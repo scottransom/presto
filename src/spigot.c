@@ -161,14 +161,9 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   /* Offset coordinate mode of GBT */
   hgets(hdr, "INDICSYS", 16, spigot->coord_sys);
   remove_whitespace(spigot->coord_sys);
-  /* RA  of observation (deg, J2000) */
-  hgets(hdr, "RA", 16, spigot->ra_str);
-  remove_whitespace(spigot->ra_str);
-printf("Debug:  RA string = '%s'\n", spigot->ra_str);
-  /* Dec of observation (deg, J2000) */
-  hgets(hdr, "DEC", 16, spigot->dec_str);
-printf("Debug: DEC string = '%s'\n", spigot->dec_str);
-  remove_whitespace(spigot->dec_str);
+  /* RA and DEC of observation (deg, J2000) */
+  hgetr8(hdr, "RA", &(spigot->ra));
+  hgetr8(hdr, "DEC", &(spigot->dec));
   /* Polarization recorded (L or C) */
   hgets(hdr, "POL-TYPE", 8, spigot->pol_type);
   remove_whitespace(spigot->pol_type);
@@ -261,9 +256,8 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO *spigot, infodata *idata)
   char ctmp[100];
 
   strncpy(idata->object, spigot->object, 24);
-  /* Note:  Coordinate conversion is TBD */
-  idata->ra_h = idata->ra_m = idata->ra_s = 0.0;
-  idata->dec_d = idata->dec_m = idata->dec_s = 0.0;
+  hours2hms(spigot->ra, &(idata->ra_h), &(idata->ra_m), &(idata->ra_s));
+  deg2dms(spigot->dec, &(idata->dec_d), &(idata->dec_m), &(idata->dec_s));
   strcpy(idata->telescope, spigot->telescope);
   strcpy(idata->instrument, spigot->instrument);
   idata->num_chan = spigot->lags_per_sample;
@@ -296,6 +290,10 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO *spigot, infodata *idata)
 void print_SPIGOT_header(SPIGOT_INFO *spigot)
 /* Output a SPIGOT header in human readable form */
 {
+  char pos_str[20];
+  int h_or_d, m;
+  double s;
+
   printf("\n           Software version = '%s'\n", spigot->software_vers);
   printf("        Header size (bytes) = %d\n", spigot->header_len);
   printf("                  Telescope = %s\n", spigot->telescope);
@@ -312,8 +310,12 @@ void print_SPIGOT_header(SPIGOT_INFO *spigot)
   printf("                      ObsID = %s\n", spigot->obs_id);
   printf("                   Observer = %s\n", spigot->observer);
   printf("                Scan Number = %d\n", spigot->scan_number);
-  printf("    RA (J2000, HHMMSS.SSSS) = %s\n", spigot->ra_str);
-  printf("   DEC (J2000, DDMMSS.SSSS) = %s\n", spigot->dec_str);
+  hours2hms(spigot->ra, &h_or_d, &m, &s);
+  ra_dec_to_string(pos_str, h_or_d, m, s);
+  printf("                 RA (J2000) = %s\n", pos_str);
+  deg2dms(spigot->dec, &h_or_d, &m, &s);
+  ra_dec_to_string(pos_str, h_or_d, m, s);
+  printf("                DEC (J2000) = %s\n", pos_str);
   printf(" Planned Obs Duration (sec) = %-17.15g\n", 
 	 spigot->tot_num_samples*spigot->dt_us/1e6);
   printf("                T_samp (us) = %-17.15g\n", spigot->dt_us);

@@ -533,6 +533,12 @@ void hours2hms(double hours, int *h, int *m, double *s)
   *s = (tmp - *m) * 60.0;
 }
 
+void deg2dms(double degrees, int *d, int *m, double *s)
+/* Convert decimal degrees to degrees, minutes, and seconds */
+{
+  return hours2hms(degrees, d, m, s);
+}
+
 double dms2rad(int deg, int min, double sec)
 /* Convert degrees, minutes, and seconds of arc to radians */
 {
