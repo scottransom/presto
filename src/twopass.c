@@ -1,15 +1,14 @@
 #include "ransomfft.h"
-#include "chkio.h"
 
 /* Optimized "two-pass" mass storage FFT function for complex data  */
 /* This version utilizes a scratch file the same size as the        */
 /*     original data set.                                           */
 
-void twopassfft_scratch(FILE * infile, FILE * scratch, \
-			long nn, int isign)
+void twopassfft_scratch(multifile* infile, multifile* scratch, \
+			long long nn, int isign)
 {
-  long n1, n2, j, k, m, b, s, ct, ind;
-  int move_size;
+  long long n1, n2, b, s, j, k;
+  int m, ct, ind, move_size;
   unsigned char *move;
   rawtype *data, *p1, *p2;
   float *f1;
@@ -18,16 +17,15 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
   if (nn < 2)
     return;
 
+  /* treat the input data as a n1 x n2 matrix */
+  /* n2 >= n1 */
+
   for (n1 = 1, n2 = 0; n1 < nn; n1 <<= 1, n2++);
   n1 = n2 >> 1;
   n2 -= n1;
-
+  
   n1 = 1 << n1;
   n2 = 1 << n2;
-
-  /* n2 >= n1 */
-
-  /* treat the input data as a n1 x n2 matrix */
 
   /* first do n2 transforms of length n1 */
   /* by fetching n1 x b blocks in memory */
@@ -47,8 +45,8 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
     /* read the data from the input file in b x b blocks */
     for (j = 0, p1 = data, s = k; j < n1; j += b, p1 += b) {
       for (m = 0, p2 = p1; m < b; m++, p2 += n1, s += n2) {
-	chkfseek(infile, (long) (sizeof(rawtype) * s), SEEK_SET);
-	chkfread(p2, sizeof(rawtype), (unsigned long)b, infile);
+	fseek_multifile(infile, sizeof(rawtype) * s, SEEK_SET);
+	fread_multifile(p2, sizeof(rawtype), b, infile);
       }
 
       /* transpose the b x b block */
@@ -65,7 +63,7 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
     /* Use recursion formulas from NR                                */
 
     for (j = 0, f1 = (float *) data; j < b; j++, f1 += 2 * n1) {
-      theta = isign * (j + k) * 6.2831853071795864769 / nn;
+      theta = isign * (j + k) * TWOPI / nn;
       wtemp = sin(0.5 * theta);
       wpr = -2.0 * wtemp * wtemp;
       wpi = sin(theta);
@@ -80,7 +78,7 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
     }
 
     /* write the data to the scratch file */
-    chkfwrite(data, sizeof(rawtype), (unsigned long)(b * n1), scratch);
+    fwrite_multifile(data, sizeof(rawtype), b * n1, scratch);
   }
   free(move);
 
@@ -101,8 +99,8 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
 
     for (j = 0, p1 = data, s = k; j < n2; j += b, p1 += b) {
       for (m = 0, p2 = p1; m < b; m++, p2 += n2, s += n1) {
-	chkfseek(scratch, (long) (sizeof(rawtype) * s), SEEK_SET);
-	chkfread(p2, sizeof(rawtype), (unsigned long) b, scratch);
+	fseek_multifile(scratch, sizeof(rawtype) * s, SEEK_SET);
+	fread_multifile(p2, sizeof(rawtype), b, scratch);
       }
 
       /* transpose the b x b block */
@@ -123,8 +121,8 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
       transpose_fcomplex((fcomplex *) p1, b, n2, move, move_size); 
 
       for (m = 0, p2 = p1; m < b; m++, p2 += n2, s += n1) {
-	chkfseek(infile, (long) (sizeof(rawtype) * s), SEEK_SET);
-	chkfwrite(p2, sizeof(rawtype), (unsigned long) b, infile);
+	fseek_multifile(infile, sizeof(rawtype) * s, SEEK_SET);
+	fwrite_multifile(p2, sizeof(rawtype), b, infile);
       }
     }
   }

@@ -10,23 +10,23 @@ void tablesplitfftraw(float data[], double table[], long n, int isign);
 double *maketable(long nn, int isign);
 void fft_scramble(float data[], long nn);
 
-unsigned long good_factor(unsigned long nn)
+long long good_factor(long long nn)
 /* Return the factor of a number that is closest to its sqrt. */
 /* If the number is prime, return 0.                          */
 {
-  unsigned long pp;
+  long long pp;
   
   /* Optimal factoring is one factor twice the size of the other */
   /* Try this brute force...                                     */
   
-  pp = (unsigned long) sqrt(nn/2);
+  pp = (long long) sqrt((double) (nn/2));
   if (2 * pp * pp == nn)
     return pp;
   
   /* Calculate the best (closest to each other) factors */
   /* This is certainly not the best way to do this...   */
   
-  pp = (unsigned long) sqrt(nn);
+  pp = (long long) sqrt((double) nn);
   while (pp > 1){
     if (nn % pp == 0)
       return pp;
@@ -34,7 +34,6 @@ unsigned long good_factor(unsigned long nn)
   }
   return 0;
 }
-
 
 void tablesixstepfft(fcomplex *indata, long nn, int isign)
 /*  This is a modified version of a six-step-FFT routine from the    */

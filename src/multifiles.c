@@ -68,7 +68,7 @@ multifile *fopen_multifile(int numfiles, char **filenames, char *mode,
   }
   for (ii=0; ii<numfiles; ii++){
     mfile->filenames[ii] = \
-      (char *)calloc(strlen(filenames[ii]+1), 1);
+      (char *)calloc(strlen(filenames[ii])+1, 1);
     strcpy(mfile->filenames[ii], filenames[ii]);
     mfile->fileptrs[ii] = \
       chkfopen(filenames[ii], mfile->mode);
@@ -108,7 +108,7 @@ int fread_multifile(void *data, size_t type, size_t number,
 /*   'number' is the number of nuggets to read               */
 /*   'mfile' is a pointer to a valid multifile structure     */
 {
-  int findex, readbytes, bytesread;
+  int findex, readbytes, bytesread, tmpbytesread;
   
   findex = mfile->currentfile;
   readbytes = number * type;
@@ -125,11 +125,12 @@ int fread_multifile(void *data, size_t type, size_t number,
 	findex++;
 	mfile->currentfile++;
 	mfile->currentpos = 0;
-	bytesread = chkfread((char *)data + bytesread, 1, 
-			     readbytes, mfile->fileptrs[findex]);
-	mfile->currentpos += bytesread;
-	mfile->position += bytesread;
-	readbytes -= bytesread;
+	tmpbytesread = chkfread((char *)data + bytesread, 1, 
+				readbytes, mfile->fileptrs[findex]);
+	bytesread += tmpbytesread;
+	mfile->currentpos += tmpbytesread;
+	mfile->position += tmpbytesread;
+	readbytes -= tmpbytesread;
       }
     } else {
       printf("\nRead error in read_multifile():\n");
@@ -149,14 +150,15 @@ int fwrite_multifile(void *data, size_t type, size_t number,
 /*   'number' is the number of nuggets to write              */
 /*   'mfile' is a pointer to a valid multifile structure     */
 {
-  int findex, writebytes, tmpwritebytes, bytesleft, byteswritten;
+  int findex, bytesleft;
+  int writebytes, tmpwritebytes, byteswritten, tmpbyteswritten;
   
   findex = mfile->currentfile;
   writebytes = number * type;
   bytesleft = mfile->maxfilelen - mfile->currentpos;
   tmpwritebytes = (writebytes > bytesleft) ? bytesleft : writebytes;
   byteswritten = chkfwrite((char *)data, 1, tmpwritebytes, 
-			mfile->fileptrs[findex]);
+			   mfile->fileptrs[findex]);
   mfile->currentpos += byteswritten;
   if (mfile->currentpos > mfile->filelens[findex]){
     mfile->length += (mfile->currentpos - 
@@ -172,17 +174,20 @@ int fwrite_multifile(void *data, size_t type, size_t number,
 	mfile->currentfile++;
 	mfile->currentpos = 0;
 	bytesleft = mfile->maxfilelen;
-	tmpwritebytes = (writebytes > bytesleft) ? bytesleft : writebytes;
-	byteswritten = chkfwrite((char *)data + byteswritten, 1, 
-				 tmpwritebytes, mfile->fileptrs[findex]);
-	mfile->currentpos += byteswritten;
+	tmpwritebytes = (writebytes > bytesleft) ? 
+	  bytesleft : writebytes;
+	tmpbyteswritten = chkfwrite((char *)data + byteswritten, 
+				    1, tmpwritebytes, 
+				    mfile->fileptrs[findex]);
+	byteswritten += tmpbyteswritten;
+	mfile->currentpos += tmpbyteswritten;
 	if (mfile->currentpos > mfile->filelens[findex]){
 	  mfile->length += (mfile->currentpos - 
 			    mfile->filelens[findex]);
 	  mfile->filelens[findex] = mfile->currentpos;
 	}
-	mfile->position += byteswritten;
-	writebytes -= byteswritten;
+	mfile->position += tmpbyteswritten;
+	writebytes -= tmpbyteswritten;
       } else {
 	printf("\nWrite error in write_multifile():\n");
 	printf("\tMultifile is maximum length!\n\n");
@@ -222,7 +227,7 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
     mfile->position = 0;
   if (mfile->position > mfile->length) 
     mfile->position = mfile->length;
-  while (cumlen < mfile->position){
+  while (cumlen <= mfile->position){
     cumlen += mfile->filelens[findex];
     findex++;
   }

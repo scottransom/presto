@@ -51,8 +51,8 @@ CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 	-g -Wall -W -O2 -mpentiumpro -fpic \
 	-D_FILE_OFFSET_BITS=64
+#	-DUSEDMALLOC
 #	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
-#       -DUSEDMALLOC
 #	-g -ansi -pedantic -Wall -W -fpic \
 #	-Dinline= -Wmissing-prototypes \
 #	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
@@ -163,9 +163,9 @@ all: $(PRESTOLIBNM) text xwin
 
 prep: meminit timetest bincat
 
-text: makedata makeinf mjd2cal realfft_4step quicklook\
+text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
-	check_parkes_raw bary shiftdata dftfold realfft\
+	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat bincand taperaw
 
 xwin: psrorbit window plotbincand profile showmulti\
@@ -233,7 +233,7 @@ check_parkes_raw: check_parkes_raw.o
 	cp $@ ../bin
 
 test_multifiles: test_multifiles.o
-	$(FLINK) $(FLINKFLAGS) -o $@ test_multifiles.o $(EXTRALINK) $(PRESTOLINK) -lm
+	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(EXTRALINK) $(PRESTOLINK) -lm
 
 showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
@@ -310,9 +310,9 @@ realfft: realfft.o realfft_cmd.o
 	$(CC) $(CFLAGS) -o $@ realfft.o realfft_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-realfft_4step: realfft_4step.o
-	$(CC) $(CFLAGS) -o $@ realfft_4step.o $(EXTRALINK) $(PRESTOLINK) -lm
-	cp $@ ../bin
+#realfft_4step: realfft_4step.o
+#	$(CC) $(CFLAGS) -o $@ realfft_4step.o $(EXTRALINK) $(PRESTOLINK) -lm
+#	cp $@ ../bin
 
 search_bin: search_bin.o search_bin_cmd.o
 	$(CC) $(CFLAGS) -o $@ search_bin.o search_bin_cmd.o $(EXTRALINK) $(PRESTOLINK)  -lm
@@ -346,7 +346,7 @@ clean:
 	rm -f *.o *~ *#
 
 cleaner:  clean
-	rm -f makedata makeinf mjd2cal realfft_4step timetest
+	rm -f makedata makeinf mjd2cal realfft timetest
 	rm -f quicklook search_bin search_rzw swap_endian        
 	rm -f prepdata prepfold check_parkes_raw bary toas2dat
 	rm -f shiftdata patchdata readfile psrorbit window       
@@ -360,7 +360,7 @@ squeaky:  cleaner
 	rm -f core *.win* *.ps *_rzw *.tmp
 	cd $(PRESTO)/include ; rm -f *# *~
 	cd $(PRESTO)/lib ; rm -f bincat.dat
-	cd $(PRESTO)/bin ; rm -f makedata makeinf mjd2cal realfft_4step
+	cd $(PRESTO)/bin ; rm -f makedata makeinf mjd2cal realfft
 	cd $(PRESTO)/bin ; rm -f quicklook search_bin search_rzw swap_endian
 	cd $(PRESTO)/bin ; rm -f prepdata prepfold check_parkes_raw bary
 	cd $(PRESTO)/bin ; rm -f shiftdata patchdata readfile psrorbit

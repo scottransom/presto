@@ -22,20 +22,16 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
-  /***** -del: Delete the original data file when performing the FFT */
+  /***** -fwd: Force an forward FFT (sign=-1) to be performed */
+  /* forwardP = */ 0,
+  /***** -inv: Force an inverse FFT (sign=+1) to be performed */
+  /* inverseP = */ 0,
+  /***** -del: Delete the original file(s) when performing the FFT */
   /* deleteP = */ 0,
-  /***** -huge: Force the use of the out-of-core FFT */
-  /* hugefftP = */ 0,
-  /***** -core: Force the use of the in-core memory FFT */
-  /* corefftP = */ 0,
-  /***** -padlen: Pad or chop the data to the prescribed length */
-  /* padlenP = */ 0,
-  /* padlen = */ (double)0,
-  /* padlenC = */ 0,
-  /***** -padval: The value to pad the data with */
-  /* padvalP = */ 1,
-  /* padval = */ 0.0,
-  /* padvalC = */ 1,
+  /***** -disk: Force the use of the out-of-core memory FFT */
+  /* diskfftP = */ 0,
+  /***** -mem: Force the use of the in-core memory FFT */
+  /* memfftP = */ 0,
   /***** -tmpdir: Scratch directory for temp file(s) in out-of-core FFT */
   /* tmpdirP = */ 0,
   /* tmpdir = */ (char*)0,
@@ -740,49 +736,39 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -del: Delete the original data file when performing the FFT */
+  /***** -fwd: Force an forward FFT (sign=-1) to be performed */
+  if( !cmd.forwardP ) {
+    printf("-fwd not found.\n");
+  } else {
+    printf("-fwd found:\n");
+  }
+
+  /***** -inv: Force an inverse FFT (sign=+1) to be performed */
+  if( !cmd.inverseP ) {
+    printf("-inv not found.\n");
+  } else {
+    printf("-inv found:\n");
+  }
+
+  /***** -del: Delete the original file(s) when performing the FFT */
   if( !cmd.deleteP ) {
     printf("-del not found.\n");
   } else {
     printf("-del found:\n");
   }
 
-  /***** -huge: Force the use of the out-of-core FFT */
-  if( !cmd.hugefftP ) {
-    printf("-huge not found.\n");
+  /***** -disk: Force the use of the out-of-core memory FFT */
+  if( !cmd.diskfftP ) {
+    printf("-disk not found.\n");
   } else {
-    printf("-huge found:\n");
+    printf("-disk found:\n");
   }
 
-  /***** -core: Force the use of the in-core memory FFT */
-  if( !cmd.corefftP ) {
-    printf("-core not found.\n");
+  /***** -mem: Force the use of the in-core memory FFT */
+  if( !cmd.memfftP ) {
+    printf("-mem not found.\n");
   } else {
-    printf("-core found:\n");
-  }
-
-  /***** -padlen: Pad or chop the data to the prescribed length */
-  if( !cmd.padlenP ) {
-    printf("-padlen not found.\n");
-  } else {
-    printf("-padlen found:\n");
-    if( !cmd.padlenC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.padlen);
-    }
-  }
-
-  /***** -padval: The value to pad the data with */
-  if( !cmd.padvalP ) {
-    printf("-padval not found.\n");
-  } else {
-    printf("-padval found:\n");
-    if( !cmd.padvalC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.padval);
-    }
+    printf("-mem found:\n");
   }
 
   /***** -tmpdir: Scratch directory for temp file(s) in out-of-core FFT */
@@ -824,23 +810,20 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-del] [-huge] [-core] [-padlen padlen] [-padval padval] [-tmpdir tmpdir] [-outdir outdir] [--] infiles ...\n\
+ [-fwd] [-inv] [-del] [-disk] [-mem] [-tmpdir tmpdir] [-outdir outdir] [--] infiles ...\n\
     Perform a single-precision FFT of real data or its inverse\n\
-     -del: Delete the original data file when performing the FFT\n\
-    -huge: Force the use of the out-of-core FFT\n\
-    -core: Force the use of the in-core memory FFT\n\
-  -padlen: Pad or chop the data to the prescribed length\n\
-           1 double value between 2 and oo\n\
-  -padval: The value to pad the data with\n\
-           1 float value\n\
-           default: `0.0'\n\
+     -fwd: Force an forward FFT (sign=-1) to be performed\n\
+     -inv: Force an inverse FFT (sign=+1) to be performed\n\
+     -del: Delete the original file(s) when performing the FFT\n\
+    -disk: Force the use of the out-of-core memory FFT\n\
+     -mem: Force the use of the in-core memory FFT\n\
   -tmpdir: Scratch directory for temp file(s) in out-of-core FFT\n\
            1 char* value\n\
   -outdir: Directory where result file(s) will reside\n\
            1 char* value\n\
   infiles: Input data file(s)\n\
            1...16 values\n\
-version: 28Sep00\n\
+version: 03Oct00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -858,35 +841,28 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-fwd", argv[i]) ) {
+      cmd.forwardP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-inv", argv[i]) ) {
+      cmd.inverseP = 1;
+      continue;
+    }
+
     if( 0==strcmp("-del", argv[i]) ) {
       cmd.deleteP = 1;
       continue;
     }
 
-    if( 0==strcmp("-huge", argv[i]) ) {
-      cmd.hugefftP = 1;
+    if( 0==strcmp("-disk", argv[i]) ) {
+      cmd.diskfftP = 1;
       continue;
     }
 
-    if( 0==strcmp("-core", argv[i]) ) {
-      cmd.corefftP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-padlen", argv[i]) ) {
-      cmd.padlenP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.padlen, 1);
-      cmd.padlenC = i-keep;
-      checkDoubleHigher("-padlen", &cmd.padlen, cmd.padlenC, 2);
-      continue;
-    }
-
-    if( 0==strcmp("-padval", argv[i]) ) {
-      cmd.padvalP = 1;
-      keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.padval, 1);
-      cmd.padvalC = i-keep;
+    if( 0==strcmp("-mem", argv[i]) ) {
+      cmd.memfftP = 1;
       continue;
     }
 
