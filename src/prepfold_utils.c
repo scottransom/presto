@@ -244,3 +244,32 @@ void double2float(double *in, float *out, int numpts)
     out[ii] = (float) in[ii];
 }
 
+
+int cpgnice_output_2(char *out, double val, double err, int len)
+/* Return a string that has the same formatting as       */
+/* nice_output_2(), but for PGPLOT.  This way, exponents */
+/* are actually in superscript!  Woo-hoo!                */
+{
+  int inlen, goodlen;
+  char tempout[100], part[20], expon[20], *expptr;
+
+  inlen = nice_output_2(tempout, val, err, len);
+
+  /* See if the formatted output*/
+
+  expptr = strrchr(tempout, '^');
+
+  /* Not in scientific notation */
+
+  if (expptr==NULL){
+    strcpy(out, tempout);
+    return inlen;
+  } else {
+    goodlen = expptr - tempout;
+    strcpy(expon, tempout + goodlen + 1);
+    strncpy(part, tempout, goodlen);
+    part[goodlen] = 0;
+    sprintf(out, "%s\\u%s\\d", part, expon);
+    return strlen(out);
+  }
+}

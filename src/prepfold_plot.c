@@ -168,7 +168,7 @@ void prepfold_plot(prepfoldinfo *search)
     /* Allocate DM specific arrays */
 
     dmprofs = gen_fvect(search->proflen * search->npart);
-    phaseone = gen_freqs(search->proflen, 0.0, 
+    phaseone = gen_freqs(search->proflen + 1, 0.0, 
 			 1.0 / search->proflen);
     dmchi = gen_fvect(search->numdms);
     
@@ -518,14 +518,38 @@ void prepfold_plot(prepfoldinfo *search)
 
       /* Plots for each subband */
 
-      /*   cpgsvp (0.43, 0.66, 0.3, 0.68); */
-      /*   cpgswin(0.0-0.01, 1.0+0.01, 0.0, nsub+1.0); */
-      /*   cpgbox("BCNST", 0.25, 2, "BNST", 0.0, 0); */
-      /*   cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band"); */
-      /*   cpgswin(0.0-0.01, 1.0+0.01, min(freqs)-2.0, max(freqs)+2.0); */
-      /*   cpgbox("", 0.2, 2, "CMST", 0.0, 0); */
-      /*   cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)"); */
-      /*   cpgmtxt("B", 2.5, 0.5, 0.5, "Phase"); */
+      {
+	int chanpersb;
+	float lofreq, losubfreq, hisubfreq, *tmpprof, df, foffset, fnorm;
+
+	tmpprof = gen_fvect(search->proflen + 1);
+	chanpersb = search->numchan / search->nsub; 
+	df = chanpersb * search->chan_wid;
+	lofreq = search->lofreq + (chanpersb - 1) * search->chan_wid;
+	losubfreq = doppler(lofreq, search->avgvoverc);
+	hisubfreq = doppler(search->lofreq + (search->numchan - 1) * 
+			    search->chan_wid, search->avgvoverc);
+	cpgsvp (0.43, 0.66, 0.3, 0.68);
+	cpgswin(0.0-0.01, 1.0+0.01, 0.0, (float) search->nsub);
+	cpgbox("BCNST", 0.25, 2, "BNST", 0.0, 0);
+	cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
+	cpgswin(0.0-0.01, 1.0+0.01, losubfreq, losubfreq);
+	cpgbox("", 0.2, 2, "CMST", 0.0, 0);
+	cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)");
+	cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
+	for (ii = 0; ii < search->nsub; ii++){
+	  find_min_max_arr(search->proflen, dmprofs + ii * 
+			   search->proflen, &min, &max);
+	  foffset = doppler(lofreq + ii * df, search->avgvoverc);
+	  fnorm = 0.9 * df / (max - min);
+	  for (jj = 0; jj < search->proflen; jj++)
+	    tmpprof[jj] = (dmprofs[ii * search->proflen + jj] - min) * 
+	      fnorm + foffset;
+	  tmpprof[search->proflen] = tmpprof[0];
+	  cpgline(search->proflen + 1, phaseone, tmpprof);
+	}
+	free(tmpprof);
+      }
 
     } else {
 
@@ -571,6 +595,7 @@ void prepfold_plot(prepfoldinfo *search)
 
       /* Period vs reduced chisqr */
 
+      cpgsch(0.8);
       cpgsvp (0.74, 0.94, 0.41, 0.51);
       pfold = 1000.0 / search->fold.p1;
       ftmparr1 = gen_fvect(search->numperiods);
@@ -580,10 +605,12 @@ void prepfold_plot(prepfoldinfo *search)
       x1 = ftmparr1[0];
       x2 = ftmparr1[search->numperiods-1];
       cpgswin(x1, x2, 0.0, 1.1 * max);
+      cpgsch(0.5);
       cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
+      cpgsch(0.7);
       sprintf(pout, "Period - %-.8f (ms)", pfold);
-      cpgmtxt("B", 2.4, 0.5, 0.5, pout);
-      cpgmtxt("R", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+      cpgmtxt("B", 2.2, 0.5, 0.5, pout);
+      cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
       cpgline(search->numperiods, ftmparr1, periodchi);
       free(ftmparr1);
 
@@ -598,15 +625,17 @@ void prepfold_plot(prepfoldinfo *search)
       y1 = ftmparr1[0];
       y2 = ftmparr1[search->numpdots-1];
       cpgswin(y1, y2, 0.0, 1.1 * max);
+      cpgsch(0.5);
       cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
+      cpgsch(0.7);
       if (pdfold < 0.0)
 	sprintf(pdout, "Pdot + %-.5g (s/s)", fabs(pdfold));
       else if (pdfold == 0.0)
 	sprintf(pdout, "Pdot (s/s)");
       else
 	sprintf(pdout, "Pdot-%-.5g (s/s)", pdfold);
-      cpgmtxt("B", 2.4, 0.5, 0.5, pdout);
-      cpgmtxt("R", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+      cpgmtxt("B", 2.2, 0.5, 0.5, pdout);
+      cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
       cpgline(search->numpdots, ftmparr1, pdotchi);
       free(ftmparr1);
 
@@ -628,9 +657,11 @@ void prepfold_plot(prepfoldinfo *search)
       x1 = (float) (bestp * 1000.0 - pfold);
       y1 = (float) (bestpd - pdfold);
       cpgpt(1, &x1, &y1, 5);
+      cpgsch(0.5);
       cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
-      cpgmtxt("B", 2.6, 0.5, 0.5, pout);
-      cpgmtxt("L", 2.1, 0.5, 0.5, pdout);
+      cpgsch(0.7);
+      cpgmtxt("B", 2.4, 0.5, 0.5, pout);
+      cpgmtxt("L", 2.0, 0.5, 0.5, pdout);
       x1 = 1.0 / search->periods[0] - search->fold.p1;
       x2 = 1.0 / search->periods[search->numperiods-1] - search->fold.p1;
       y1 = -search->pdots[0] * 
@@ -638,17 +669,20 @@ void prepfold_plot(prepfoldinfo *search)
       y2 = -search->pdots[search->numperiods-1] * 
 	search->fold.p1 * search->fold.p1 - search->fold.p2;
       cpgswin(x1, x2, y1, y2);
+      cpgsch(0.5);
       cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
+      cpgsch(0.7);
       sprintf(pout, "Freq - %-.6f (Hz)", search->fold.p1);
-      cpgmtxt("T", 1.9, 0.5, 0.5, pout);
+      cpgmtxt("T", 1.8, 0.5, 0.5, pout);
       if (search->fold.p2 < 0.0)
 	sprintf(pdout, "F-dot + %-.5g (Hz)", fabs(search->fold.p2));
       else if (search->fold.p2 == 0.0)
 	sprintf(pdout, "F-dot (Hz)");
       else
 	sprintf(pdout, "F-dot - %-.5g (Hz)", search->fold.p2);
-      cpgmtxt("R", 2.5, 0.5, 0.5, pdout);
+      cpgmtxt("R", 2.3, 0.5, 0.5, pdout);
       free(levels);
+      cpgsch(0.8);
     }
 
     {
@@ -748,11 +782,11 @@ void prepfold_plot(prepfoldinfo *search)
 	sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s", 
 		beststats.redchi, chiq, out2);
 	cpgtext(0.0, 0.9, out);
-	if (search->nsub > 1){
-	  sprintf(out, "Best Dispersion Measure (DM)  =  %.3f", search->bestdm);
-	  cpgtext(0.0, 0.8, out);
-	}
-
+	if (search->nsub > 1)
+	  sprintf(out, "Dispersion Measure (DM) = %.3f", search->bestdm);
+	else
+	  sprintf(out, "Dispersion Measure (DM) = N/A");
+	cpgtext(0.0, 0.8, out);
 	{
 	  double perr, pderr, pdderr, *dbestprof;
 
@@ -770,13 +804,13 @@ void prepfold_plot(prepfoldinfo *search)
 			beststats.data_var, search->topo.p1, search->topo.p2, 
 			search->topo.p3, &perr, &pderr, &pdderr);
 	    
-	    nice_output_2(out2, search->topo.p1*1000.0, perr*1000.0, 0);
+	    cpgnice_output_2(out2, search->topo.p1*1000.0, perr*1000.0, 0);
 	    sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
 	    cpgtext(0.0, 0.7, out);
-	    nice_output_2(out2, search->topo.p2, pderr, 0);
+	    cpgnice_output_2(out2, search->topo.p2, pderr, 0);
 	    sprintf(out, "P'\\dtopo\\u (s/s) = %s", out2);
 	    cpgtext(0.0, 0.6, out);
-	    nice_output_2(out2, search->topo.p3, pdderr, 0);
+	    cpgnice_output_2(out2, search->topo.p3, pdderr, 0);
 	    sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
 	    cpgtext(0.0, 0.5, out);
 
@@ -792,13 +826,13 @@ void prepfold_plot(prepfoldinfo *search)
 			beststats.data_var, search->bary.p1, search->bary.p2, 
 			search->bary.p3, &perr, &pderr, &pdderr);
 	    
-	    nice_output_2(out2, search->bary.p1*1000.0, perr*1000.0, 0);
+	    cpgnice_output_2(out2, search->bary.p1*1000.0, perr*1000.0, 0);
 	    sprintf(out, "P\\dbary\\u (ms) = %s", out2);
 	    cpgtext(0.6, 0.7, out);
-	    nice_output_2(out2, search->bary.p2, pderr, 0);
+	    cpgnice_output_2(out2, search->bary.p2, pderr, 0);
 	    sprintf(out, "P'\\dbary\\u (s/s) = %s", out2);
 	    cpgtext(0.6, 0.6, out);
-	    nice_output_2(out2, search->bary.p3, pdderr, 0);
+	    cpgnice_output_2(out2, search->bary.p3, pdderr, 0);
 	    sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
 	    cpgtext(0.6, 0.5, out);
 
