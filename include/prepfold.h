@@ -112,6 +112,9 @@ void init_prepfoldinfo(prepfoldinfo *in);
 void delete_prepfoldinfo(prepfoldinfo *in);
 /* Free all dynamic arrays in the prepfold array */
 
+void print_prepfoldinfo(prepfoldinfo *in);
+/* Print a prepfoldinfo data structure to STDOUT */
+
 void write_prepfoldinfo(prepfoldinfo *in, char *filename);
 /* Write a prepfoldinfo data structure to a binary file */
 
