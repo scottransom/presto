@@ -9,7 +9,7 @@
 #define ONOFF (flags > 1)
 
 /* Simple linear interpolation macro */
-#define LININTERP(X, ylo, yhi, xlo, xhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
+#define LININTERP(X, xlo, xhi, ylo, yhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
 
 void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 
@@ -328,7 +328,10 @@ double fold(float *data, int numdata, double dt, double tlo,
     /* Set the delay pointers and variables */
     
     if (DELAYS){
-      arrayoffset++;  /* Beware nasty NR zero-offset kludges! */
+
+      /* Guess that the next delay we want is the next available */
+
+      arrayoffset += 2;  /* Beware nasty NR zero-offset kludges! */
       hunt(delaytimes-1, numdelays, T, &arrayoffset);
       arrayoffset--;
       delaytimeptr = delaytimes + arrayoffset;
@@ -363,7 +366,10 @@ double fold(float *data, int numdata, double dt, double tlo,
     
       if (DELAYS){
 	if (Tnext > delaythi){
-	  arrayoffset++;  /* Beware nasty NR zero-offset kludges! */
+
+	  /* Guess that the next delay we want is the next available */
+
+	  arrayoffset += 2;  /* Beware nasty NR zero-offset kludges! */
 	  hunt(delaytimes-1, numdelays, Tnext, &arrayoffset);
 	  arrayoffset--;
 	  delaytimeptr = delaytimes + arrayoffset;
@@ -376,7 +382,7 @@ double fold(float *data, int numdata, double dt, double tlo,
 
 	/* Adjust the folding start time for the delays */
 
-	TDnext -= LININTERP(TDnext, delaytlo, delaythi, delaylo, delayhi);
+	TDnext -= LININTERP(Tnext, delaytlo, delaythi, delaylo, delayhi);
       }
 
       /* Get the pulsar phase (cyclic) for the next point. */

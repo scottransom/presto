@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 {
   FILE *datafile, *proffile, *chifile, *filemarker;
   float *fprof = NULL, *chiarr = NULL, *times = NULL, *errors = NULL;
-  double freq = 0.0, dt, dfdt = 0.0, orbdt = 0.5;
+  double freq = 0.0, dt, dfdt = 0.0, orbdt;
   double *prof = NULL, endtime, N, *psrtime = NULL;
   double *Ep = NULL, *tp = NULL, *d2phib = NULL, startE = 0.0;
   double epoch = 0.0, difft = 0.0, p_psr = 0.0, pdot_psr = 0.0;
