@@ -152,7 +152,10 @@ int main(int argc, char *argv[])
 
   /* Convert the TOAs to seconds offset from the first TOA */
 
-  To = ddata[0];
+  if (cmd->t0P)
+    To = cmd->t0;
+  else
+    To = ddata[0];
   if (cmd->secP)
     for (ii = 0; ii < ntoas; ii++)
       ddata[ii] = (ddata[ii] - To);

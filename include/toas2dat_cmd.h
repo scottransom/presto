@@ -5,7 +5,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 typedef struct s_Cmdline {
@@ -17,6 +17,10 @@ typedef struct s_Cmdline {
   char dtP;
   double dt;
   int dtC;
+  /***** -t0: Time for the start of bin 0 (same units as the TOAs) */
+  char t0P;
+  double t0;
+  int t0C;
   /***** -o: Name of the output time series file */
   char outfileP;
   char* outfile;

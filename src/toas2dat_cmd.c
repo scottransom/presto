@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -30,6 +30,10 @@ static Cmdline cmd = {
   /* dtP = */ 0,
   /* dt = */ (double)0,
   /* dtC = */ 0,
+  /***** -t0: Time for the start of bin 0 (same units as the TOAs) */
+  /* t0P = */ 0,
+  /* t0 = */ (double)0,
+  /* t0C = */ 0,
   /***** -o: Name of the output time series file */
   /* outfileP = */ 0,
   /* outfile = */ (char*)0,
@@ -97,7 +101,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -168,7 +172,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -209,7 +213,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -279,7 +283,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -319,7 +323,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -387,7 +391,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -422,7 +426,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -493,7 +497,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -519,16 +523,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -768,6 +779,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -t0: Time for the start of bin 0 (same units as the TOAs) */
+  if( !cmd.t0P ) {
+    printf("-t0 not found.\n");
+  } else {
+    printf("-t0 found:\n");
+    if( !cmd.t0C ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.t0);
+    }
+  }
+
   /***** -o: Name of the output time series file */
   if( !cmd.outfileP ) {
     printf("-o not found.\n");
@@ -816,12 +839,14 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -n numout -dt dt -o outfile [-text] [-float] [-sec] [--] file\n\
+ -n numout -dt dt [-t0 t0] -o outfile [-text] [-float] [-sec] [--] file\n\
     Converts TOAs into a binned time series.\n\
       -n: The number of bins in the output time series\n\
           1 int value between 0 and oo\n\
      -dt: Time interval in seconds for output time bins\n\
           1 double value between 0 and oo\n\
+     -t0: Time for the start of bin 0 (same units as the TOAs)\n\
+          1 double value\n\
       -o: Name of the output time series file\n\
           1 char* value\n\
    -text: TOAs are ASCII text (default is binary double)\n\
@@ -829,7 +854,7 @@ usage(void)
     -sec: TOA unit is seconds (default is days)\n\
     file: Input TOA file name\n\
           1 value\n\
-version: 21Dec00\n\
+version: 19Sep02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -837,7 +862,7 @@ version: 21Dec00\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
   char missingMandatory = 0;
 
   Program = argv[0];
@@ -849,8 +874,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-n", argv[i]) ) {
+      int keep = i;
       cmd.numoutP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numout, 1);
       cmd.numoutC = i-keep;
       checkIntHigher("-n", &cmd.numout, cmd.numoutC, 0);
@@ -858,17 +883,25 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-dt", argv[i]) ) {
+      int keep = i;
       cmd.dtP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.dt, 1);
       cmd.dtC = i-keep;
       checkDoubleHigher("-dt", &cmd.dt, cmd.dtC, 0);
       continue;
     }
 
+    if( 0==strcmp("-t0", argv[i]) ) {
+      int keep = i;
+      cmd.t0P = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.t0, 1);
+      cmd.t0C = i-keep;
+      continue;
+    }
+
     if( 0==strcmp("-o", argv[i]) ) {
+      int keep = i;
       cmd.outfileP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.outfile, 1);
       cmd.outfileC = i-keep;
       continue;

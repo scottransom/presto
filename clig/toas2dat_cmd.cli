@@ -14,6 +14,7 @@ Int 	-n 	numout 	{The number of bins in the output time series} \
 			-r 0 oo  -m
 Double 	-dt	dt	{Time interval in seconds for output time bins} \
 			-r 0 oo  -m
+Double 	-t0	t0	{Time for the start of bin 0 (same units as the TOAs)}
 String	-o	outfile {Name of the output time series file} \
 			-m
 Flag   	-text	text	{TOAs are ASCII text (default is binary double)}

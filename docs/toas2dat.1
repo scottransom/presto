@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "toas2dat" 1 "21Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "toas2dat" 1 "19Sep02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -24,6 +24,7 @@ toas2dat \- Converts TOAs into a binned time series.
 .B toas2dat
 -n numout
 -dt dt
+[-t0 t0]
 -o outfile
 [-text]
 [-float]
@@ -41,6 +42,10 @@ The number of bins in the output time series,
 Time interval in seconds for output time bins,
 .br
 1 Double value between 0 and oo.
+.IP -t0
+Time for the start of bin 0 (same units as the TOAs),
+.br
+1 Double value.
 .IP -o
 Name of the output time series file,
 .br
