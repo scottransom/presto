@@ -705,14 +705,6 @@ checkDoubleHigher(char *opt, double *values, int count, double min)
 }
 /**********************************************************************/
 
-static void
-missingErr(char *opt)
-{
-  fprintf(stderr, "%s: mandatory option `%s' missing\n",
-	  Program, opt);
-}
-/**********************************************************************/
-
 static char *
 catArgv(int argc, char **argv)
 {
@@ -814,7 +806,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-zap] [-zapfile zapfile] -in inzapfile -out outzapfile [-baryv baryv] [--] infile\n\
+ [-zap] [-zapfile zapfile] [-in inzapfile] [-out outzapfile] [-baryv baryv] [--] infile\n\
     Allows you to interactively or automatically zap interference from an FFT.\n\
       -zap: Zap the birds in the FFT from 'zapfile' (write to the FFT file)\n\
   -zapfile: A file of freqs and widths to zap from the FFT (when using '-zap')\n\
@@ -828,7 +820,7 @@ usage(void)
             default: `0.0'\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 15Jan01\n\
+version: 14Feb01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -837,7 +829,6 @@ Cmdline *
 parseCmdline(int argc, char **argv)
 {
   int i, keep;
-  char missingMandatory = 0;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -894,15 +885,6 @@ parseCmdline(int argc, char **argv)
     argv[cmd.argc++] = argv[i];
   }/* for i */
 
-  if( !cmd.inzapfileP ) {
-    missingErr("-in");
-    missingMandatory = 1;
-  }
-  if( !cmd.outzapfileP ) {
-    missingErr("-out");
-    missingMandatory = 1;
-  }
-  if( missingMandatory ) exit(EXIT_FAILURE);
 
   /*@-mustfree*/
   cmd.argv = argv+1;

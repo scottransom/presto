@@ -8,7 +8,7 @@
 
 #define NEAREST_INT(x) (int) (x < 0 ? x - 0.5 : x + 0.5)
 
-inline int calc_required_z(int numharm, int harmnum, double zfull)
+static inline int calc_required_z(int numharm, int harmnum, double zfull)
 /* Calculate the 'z' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'z' at the fundamental harmonic is 'zfull'.    */
@@ -19,7 +19,7 @@ inline int calc_required_z(int numharm, int harmnum, double zfull)
   return NEAREST_INT(zz) * ACCEL_DZ;
 }
 
-inline double calc_required_r(int numharm, int harmnum, double rfull)
+static inline double calc_required_r(int numharm, int harmnum, double rfull)
 /* Calculate the 'r' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'r' at the fundamental harmonic is 'rfull'.    */
@@ -28,7 +28,7 @@ inline double calc_required_r(int numharm, int harmnum, double rfull)
 }
 
 
-inline int index_from_r(double r, double lor)
+static inline int index_from_r(double r, double lor)
 /* Return an index for a Fourier Freq given an array that */
 /* has stepsize ACCEL_DR and low freq 'lor'.              */
 {
@@ -36,7 +36,7 @@ inline int index_from_r(double r, double lor)
 }
 
 
-inline int index_from_z(double z, double loz)
+static inline int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
 /* has stepsize ACCEL_DZ and low freq 'lor'.              */
 {
@@ -509,7 +509,7 @@ void output_harmonics(GSList *list, accelobs *obs)
       calc_props(cand->derivs[jj], cand->hirs[jj], 
 		 cand->hizs[jj], 0.0, &props);
       calc_rzwerrs(&props, obs->T, &errs);
-      if (jj==0) sprintf(tmpstr, "%-4d", ii+1);
+      if (jj==0) sprintf(tmpstr, " %-3d", ii+1);
       else sprintf(tmpstr, "    ");
       center_string(ctrstr, tmpstr, widths[0]);
       fprintf(obs->workfile, "%s  ", ctrstr);

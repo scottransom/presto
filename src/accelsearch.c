@@ -5,12 +5,6 @@
 #endif
 
 
-int calc_required_z(int numharm, int harmnum, double zfull);
-double calc_required_r(int numharm, int harmnum, double rfull);
-int index_from_r(double r, double lor);
-int index_from_z(double z, double loz);
-
-
 static void print_percent_complete(int current, int number, 
 				   char *what, int reset)
 {

@@ -292,6 +292,12 @@ int main(int argc, char *argv[])
   printf("              by Scott M. Ransom\n");
   printf("                 January, 2001\n\n");
 
+  if (!cmd->zapP && !cmd->inzapfileP && !cmd->outzapfileP){
+     printf("You must specify '-in' and '-out' if you are not\n");
+     printf("automatically zapping a file (with '-zap').\n\n");
+     exit(0);
+  }
+
   {
     int hassuffix=0;
     char *suffix;
