@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     /*      npts = 4096;  	 # of points in FFT */
     /*      npts = 524288;   	 # of points in FFT */
     
-    npts = 10000 * (i + 1);
+    npts = 300000 * (i + 1);
 
     n = npts << 1;	       	/* # of float vals */
     
