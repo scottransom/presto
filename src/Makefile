@@ -148,7 +148,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
-	dat2sdat sdat2dat downsample rednoise
+	dat2sdat sdat2dat downsample rednoise un_sc_td
 
 xwin: psrorbit window plotbincand profile \
 	prepfold show_pfd\
