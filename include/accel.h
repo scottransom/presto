@@ -3,7 +3,10 @@
 #include "accelsearch_cmd.h"
 
 /* #define ACCEL_USELEN 64000 */
-#define ACCEL_USELEN 32000
+/* Note:  In order to make add_ffdotpows() much more efficient and  */
+/* allow table look-ups of the required indices to add, this number */
+/* _must_ be an even multiple of all of the harmonics to sum.       */
+#define ACCEL_USELEN 32160
 #define ACCEL_NUMBETWEEN 2
 /* Stepsize in Fourier Freq */
 #define ACCEL_DR  0.5
