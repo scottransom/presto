@@ -22,7 +22,7 @@ class pfd:
       testswap = read_double(infile, byteswap)
       if (testswap < 1.0 or testswap > 10000.0):
          byteswap = 1
-         infile.seek(0)
+      infile.seek(0)
       self.npart = int(read_double(infile, byteswap))
       self.nsub = int(read_double(infile, byteswap))
       self.proflen = int(read_double(infile, byteswap))

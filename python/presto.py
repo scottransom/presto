@@ -1,46 +1,102 @@
 # This file was created automatically by SWIG.
-import prestoc
-class orbitparams:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,orbitparams):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = orbitparams.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+# Don't modify this file, modify the SWIG interface instead.
+# This file is compatible with both classic and new-style classes.
+import _presto
+def _swig_setattr(self,class_type,name,value):
+    if (name == "this"):
+        if isinstance(value, class_type):
+            self.__dict__[name] = value.this
+            if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
+            del value.thisown
+            return
+    method = class_type.__swig_setmethods__.get(name,None)
+    if method: return method(self,value)
+    self.__dict__[name] = value
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = orbitparams.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
+def _swig_getattr(self,class_type,name):
+    method = class_type.__swig_getmethods__.get(name,None)
+    if method: return method(self)
+    raise AttributeError,name
 
-    __setmethods__["p"] = prestoc.orbitparams_p_set
-    __getmethods__["p"] = prestoc.orbitparams_p_get
-    __setmethods__["e"] = prestoc.orbitparams_e_set
-    __getmethods__["e"] = prestoc.orbitparams_e_get
-    __setmethods__["x"] = prestoc.orbitparams_x_set
-    __getmethods__["x"] = prestoc.orbitparams_x_get
-    __setmethods__["w"] = prestoc.orbitparams_w_set
-    __getmethods__["w"] = prestoc.orbitparams_w_get
-    __setmethods__["t"] = prestoc.orbitparams_t_set
-    __getmethods__["t"] = prestoc.orbitparams_t_get
-    __setmethods__["pd"] = prestoc.orbitparams_pd_set
-    __getmethods__["pd"] = prestoc.orbitparams_pd_get
-    __setmethods__["wd"] = prestoc.orbitparams_wd_set
-    __getmethods__["wd"] = prestoc.orbitparams_wd_get
+import types
+try:
+    _object = types.ObjectType
+    _newclass = 1
+except AttributeError:
+    class _object : pass
+    _newclass = 0
+
+
+SQRT2 = _presto.SQRT2
+PI = _presto.PI
+TWOPI = _presto.TWOPI
+DEGTORAD = _presto.DEGTORAD
+RADTODEG = _presto.RADTODEG
+PIBYTWO = _presto.PIBYTWO
+SOL = _presto.SOL
+SECPERJULYR = _presto.SECPERJULYR
+SECPERDAY = _presto.SECPERDAY
+ARCSEC2RAD = _presto.ARCSEC2RAD
+SEC2RAD = _presto.SEC2RAD
+LOWACC = _presto.LOWACC
+HIGHACC = _presto.HIGHACC
+INTERBIN = _presto.INTERBIN
+INTERPOLATE = _presto.INTERPOLATE
+NO_CHECK_ALIASED = _presto.NO_CHECK_ALIASED
+CHECK_ALIASED = _presto.CHECK_ALIASED
+CONV = _presto.CONV
+CORR = _presto.CORR
+INPLACE_CONV = _presto.INPLACE_CONV
+INPLACE_CORR = _presto.INPLACE_CORR
+FFTDK = _presto.FFTDK
+FFTD = _presto.FFTD
+FFTK = _presto.FFTK
+NOFFTS = _presto.NOFFTS
+RAW = _presto.RAW
+PREPPED = _presto.PREPPED
+FFT = _presto.FFT
+SAME = _presto.SAME
+power_arr = _presto.power_arr
+
+phase_arr = _presto.phase_arr
+
+dpower_arr = _presto.dpower_arr
+
+dphase_arr = _presto.dphase_arr
+
+class orbitparams(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, orbitparams, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, orbitparams, name)
+    __swig_setmethods__["p"] = _presto.orbitparams_p_set
+    __swig_getmethods__["p"] = _presto.orbitparams_p_get
+    if _newclass:p = property(_presto.orbitparams_p_get,_presto.orbitparams_p_set)
+    __swig_setmethods__["e"] = _presto.orbitparams_e_set
+    __swig_getmethods__["e"] = _presto.orbitparams_e_get
+    if _newclass:e = property(_presto.orbitparams_e_get,_presto.orbitparams_e_set)
+    __swig_setmethods__["x"] = _presto.orbitparams_x_set
+    __swig_getmethods__["x"] = _presto.orbitparams_x_get
+    if _newclass:x = property(_presto.orbitparams_x_get,_presto.orbitparams_x_set)
+    __swig_setmethods__["w"] = _presto.orbitparams_w_set
+    __swig_getmethods__["w"] = _presto.orbitparams_w_get
+    if _newclass:w = property(_presto.orbitparams_w_get,_presto.orbitparams_w_set)
+    __swig_setmethods__["t"] = _presto.orbitparams_t_set
+    __swig_getmethods__["t"] = _presto.orbitparams_t_get
+    if _newclass:t = property(_presto.orbitparams_t_get,_presto.orbitparams_t_set)
+    __swig_setmethods__["pd"] = _presto.orbitparams_pd_set
+    __swig_getmethods__["pd"] = _presto.orbitparams_pd_get
+    if _newclass:pd = property(_presto.orbitparams_pd_get,_presto.orbitparams_pd_set)
+    __swig_setmethods__["wd"] = _presto.orbitparams_wd_set
+    __swig_getmethods__["wd"] = _presto.orbitparams_wd_get
+    if _newclass:wd = property(_presto.orbitparams_wd_get,_presto.orbitparams_wd_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_orbitparams,args)
+        self.this = apply(_presto.new_orbitparams,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_orbitparams(self)
+    def __del__(self, destroy= _presto.delete_orbitparams):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C orbitparams instance at %s>" % (self.this,)
 
@@ -49,220 +105,305 @@ class orbitparamsPtr(orbitparams):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = orbitparams
-prestoc.orbitparams_swigregister(orbitparamsPtr)
-class psrdata:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,psrdata):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = psrdata.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.orbitparams_swigregister(orbitparamsPtr)
+tofloatvector = _presto.tofloatvector
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = psrdata.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
+float_to_complex = _presto.float_to_complex
 
-    __setmethods__["ra2000"] = prestoc.psrdata_ra2000_set
-    __getmethods__["ra2000"] = prestoc.psrdata_ra2000_get
-    __setmethods__["ra1950"] = prestoc.psrdata_ra1950_set
-    __getmethods__["ra1950"] = prestoc.psrdata_ra1950_get
-    __setmethods__["rae"] = prestoc.psrdata_rae_set
-    __getmethods__["rae"] = prestoc.psrdata_rae_get
-    __setmethods__["dec2000"] = prestoc.psrdata_dec2000_set
-    __getmethods__["dec2000"] = prestoc.psrdata_dec2000_get
-    __setmethods__["dec1950"] = prestoc.psrdata_dec1950_set
-    __getmethods__["dec1950"] = prestoc.psrdata_dec1950_get
-    __setmethods__["dece"] = prestoc.psrdata_dece_set
-    __getmethods__["dece"] = prestoc.psrdata_dece_get
-    __setmethods__["dmin__"] = prestoc.psrdata_dmin___set
-    __getmethods__["dmin__"] = prestoc.psrdata_dmin___get
-    __setmethods__["dmax__"] = prestoc.psrdata_dmax___set
-    __getmethods__["dmax__"] = prestoc.psrdata_dmax___get
-    __setmethods__["dist"] = prestoc.psrdata_dist_set
-    __getmethods__["dist"] = prestoc.psrdata_dist_get
-    __setmethods__["ldeg"] = prestoc.psrdata_ldeg_set
-    __getmethods__["ldeg"] = prestoc.psrdata_ldeg_get
-    __setmethods__["bdeg"] = prestoc.psrdata_bdeg_set
-    __getmethods__["bdeg"] = prestoc.psrdata_bdeg_get
-    __setmethods__["pmra"] = prestoc.psrdata_pmra_set
-    __getmethods__["pmra"] = prestoc.psrdata_pmra_get
-    __setmethods__["pmrae"] = prestoc.psrdata_pmrae_set
-    __getmethods__["pmrae"] = prestoc.psrdata_pmrae_get
-    __setmethods__["pmdec"] = prestoc.psrdata_pmdec_set
-    __getmethods__["pmdec"] = prestoc.psrdata_pmdec_get
-    __setmethods__["pmdece"] = prestoc.psrdata_pmdece_set
-    __getmethods__["pmdece"] = prestoc.psrdata_pmdece_get
-    __setmethods__["posepoch"] = prestoc.psrdata_posepoch_set
-    __getmethods__["posepoch"] = prestoc.psrdata_posepoch_get
-    __setmethods__["p"] = prestoc.psrdata_p_set
-    __getmethods__["p"] = prestoc.psrdata_p_get
-    __setmethods__["pe"] = prestoc.psrdata_pe_set
-    __getmethods__["pe"] = prestoc.psrdata_pe_get
-    __setmethods__["pdot"] = prestoc.psrdata_pdot_set
-    __getmethods__["pdot"] = prestoc.psrdata_pdot_get
-    __setmethods__["pdote"] = prestoc.psrdata_pdote_set
-    __getmethods__["pdote"] = prestoc.psrdata_pdote_get
-    __setmethods__["f2"] = prestoc.psrdata_f2_set
-    __getmethods__["f2"] = prestoc.psrdata_f2_get
-    __setmethods__["f2e"] = prestoc.psrdata_f2e_set
-    __getmethods__["f2e"] = prestoc.psrdata_f2e_get
-    __setmethods__["f3"] = prestoc.psrdata_f3_set
-    __getmethods__["f3"] = prestoc.psrdata_f3_get
-    __setmethods__["f3e"] = prestoc.psrdata_f3e_set
-    __getmethods__["f3e"] = prestoc.psrdata_f3e_get
-    __setmethods__["epoch"] = prestoc.psrdata_epoch_set
-    __getmethods__["epoch"] = prestoc.psrdata_epoch_get
-    __setmethods__["dm"] = prestoc.psrdata_dm_set
-    __getmethods__["dm"] = prestoc.psrdata_dm_get
-    __setmethods__["dme"] = prestoc.psrdata_dme_set
-    __getmethods__["dme"] = prestoc.psrdata_dme_get
-    __setmethods__["rm"] = prestoc.psrdata_rm_set
-    __getmethods__["rm"] = prestoc.psrdata_rm_get
-    __setmethods__["rme"] = prestoc.psrdata_rme_set
-    __getmethods__["rme"] = prestoc.psrdata_rme_get
-    __setmethods__["we"] = prestoc.psrdata_we_set
-    __getmethods__["we"] = prestoc.psrdata_we_get
-    __setmethods__["w50"] = prestoc.psrdata_w50_set
-    __getmethods__["w50"] = prestoc.psrdata_w50_get
-    __setmethods__["w10"] = prestoc.psrdata_w10_set
-    __getmethods__["w10"] = prestoc.psrdata_w10_get
-    __setmethods__["s400"] = prestoc.psrdata_s400_set
-    __getmethods__["s400"] = prestoc.psrdata_s400_get
-    __setmethods__["s600"] = prestoc.psrdata_s600_set
-    __getmethods__["s600"] = prestoc.psrdata_s600_get
-    __setmethods__["s1400"] = prestoc.psrdata_s1400_set
-    __getmethods__["s1400"] = prestoc.psrdata_s1400_get
-    __setmethods__["tau"] = prestoc.psrdata_tau_set
-    __getmethods__["tau"] = prestoc.psrdata_tau_get
-    __setmethods__["t408"] = prestoc.psrdata_t408_set
-    __getmethods__["t408"] = prestoc.psrdata_t408_get
-    __setmethods__["distmod"] = prestoc.psrdata_distmod_set
-    __getmethods__["distmod"] = prestoc.psrdata_distmod_get
-    __setmethods__["lum"] = prestoc.psrdata_lum_set
-    __getmethods__["lum"] = prestoc.psrdata_lum_get
-    __setmethods__["bsurf"] = prestoc.psrdata_bsurf_set
-    __getmethods__["bsurf"] = prestoc.psrdata_bsurf_get
-    __setmethods__["age"] = prestoc.psrdata_age_set
-    __getmethods__["age"] = prestoc.psrdata_age_get
-    __setmethods__["edot"] = prestoc.psrdata_edot_set
-    __getmethods__["edot"] = prestoc.psrdata_edot_get
-    __setmethods__["pb"] = prestoc.psrdata_pb_set
-    __getmethods__["pb"] = prestoc.psrdata_pb_get
-    __setmethods__["pbe"] = prestoc.psrdata_pbe_set
-    __getmethods__["pbe"] = prestoc.psrdata_pbe_get
-    __setmethods__["a1"] = prestoc.psrdata_a1_set
-    __getmethods__["a1"] = prestoc.psrdata_a1_get
-    __setmethods__["a1e"] = prestoc.psrdata_a1e_set
-    __getmethods__["a1e"] = prestoc.psrdata_a1e_get
-    __setmethods__["om"] = prestoc.psrdata_om_set
-    __getmethods__["om"] = prestoc.psrdata_om_get
-    __setmethods__["ome"] = prestoc.psrdata_ome_set
-    __getmethods__["ome"] = prestoc.psrdata_ome_get
-    __setmethods__["omdot"] = prestoc.psrdata_omdot_set
-    __getmethods__["omdot"] = prestoc.psrdata_omdot_get
-    __setmethods__["omdote"] = prestoc.psrdata_omdote_set
-    __getmethods__["omdote"] = prestoc.psrdata_omdote_get
-    __setmethods__["e"] = prestoc.psrdata_e_set
-    __getmethods__["e"] = prestoc.psrdata_e_get
-    __setmethods__["ee"] = prestoc.psrdata_ee_set
-    __getmethods__["ee"] = prestoc.psrdata_ee_get
-    __setmethods__["t0"] = prestoc.psrdata_t0_set
-    __getmethods__["t0"] = prestoc.psrdata_t0_get
-    __setmethods__["t0e"] = prestoc.psrdata_t0e_set
-    __getmethods__["t0e"] = prestoc.psrdata_t0e_get
-    __setmethods__["gamma"] = prestoc.psrdata_gamma_set
-    __getmethods__["gamma"] = prestoc.psrdata_gamma_get
-    __setmethods__["gammae"] = prestoc.psrdata_gammae_set
-    __getmethods__["gammae"] = prestoc.psrdata_gammae_get
-    __setmethods__["pbdot"] = prestoc.psrdata_pbdot_set
-    __getmethods__["pbdot"] = prestoc.psrdata_pbdot_get
-    __setmethods__["pbdote"] = prestoc.psrdata_pbdote_set
-    __getmethods__["pbdote"] = prestoc.psrdata_pbdote_get
-    __setmethods__["si"] = prestoc.psrdata_si_set
-    __getmethods__["si"] = prestoc.psrdata_si_get
-    __setmethods__["sie"] = prestoc.psrdata_sie_set
-    __getmethods__["sie"] = prestoc.psrdata_sie_get
-    __setmethods__["r__"] = prestoc.psrdata_r___set
-    __getmethods__["r__"] = prestoc.psrdata_r___get
-    __setmethods__["re"] = prestoc.psrdata_re_set
-    __getmethods__["re"] = prestoc.psrdata_re_get
-    __setmethods__["pb2"] = prestoc.psrdata_pb2_set
-    __getmethods__["pb2"] = prestoc.psrdata_pb2_get
-    __setmethods__["pb2e"] = prestoc.psrdata_pb2e_set
-    __getmethods__["pb2e"] = prestoc.psrdata_pb2e_get
-    __setmethods__["a12"] = prestoc.psrdata_a12_set
-    __getmethods__["a12"] = prestoc.psrdata_a12_get
-    __setmethods__["a12e"] = prestoc.psrdata_a12e_set
-    __getmethods__["a12e"] = prestoc.psrdata_a12e_get
-    __setmethods__["om2"] = prestoc.psrdata_om2_set
-    __getmethods__["om2"] = prestoc.psrdata_om2_get
-    __setmethods__["om2e"] = prestoc.psrdata_om2e_set
-    __getmethods__["om2e"] = prestoc.psrdata_om2e_get
-    __setmethods__["omdot2"] = prestoc.psrdata_omdot2_set
-    __getmethods__["omdot2"] = prestoc.psrdata_omdot2_get
-    __setmethods__["omdot2e"] = prestoc.psrdata_omdot2e_set
-    __getmethods__["omdot2e"] = prestoc.psrdata_omdot2e_get
-    __setmethods__["e2"] = prestoc.psrdata_e2_set
-    __getmethods__["e2"] = prestoc.psrdata_e2_get
-    __setmethods__["e2e"] = prestoc.psrdata_e2e_set
-    __getmethods__["e2e"] = prestoc.psrdata_e2e_get
-    __setmethods__["t02"] = prestoc.psrdata_t02_set
-    __getmethods__["t02"] = prestoc.psrdata_t02_get
-    __setmethods__["t02e"] = prestoc.psrdata_t02e_set
-    __getmethods__["t02e"] = prestoc.psrdata_t02e_get
-    __setmethods__["gamma2"] = prestoc.psrdata_gamma2_set
-    __getmethods__["gamma2"] = prestoc.psrdata_gamma2_get
-    __setmethods__["gamma2e"] = prestoc.psrdata_gamma2e_set
-    __getmethods__["gamma2e"] = prestoc.psrdata_gamma2e_get
-    __setmethods__["pbdot2"] = prestoc.psrdata_pbdot2_set
-    __getmethods__["pbdot2"] = prestoc.psrdata_pbdot2_get
-    __setmethods__["pbdot2e"] = prestoc.psrdata_pbdot2e_set
-    __getmethods__["pbdot2e"] = prestoc.psrdata_pbdot2e_get
-    __setmethods__["si2"] = prestoc.psrdata_si2_set
-    __getmethods__["si2"] = prestoc.psrdata_si2_get
-    __setmethods__["si2e"] = prestoc.psrdata_si2e_set
-    __getmethods__["si2e"] = prestoc.psrdata_si2e_get
-    __setmethods__["r2"] = prestoc.psrdata_r2_set
-    __getmethods__["r2"] = prestoc.psrdata_r2_get
-    __setmethods__["r2e"] = prestoc.psrdata_r2e_set
-    __getmethods__["r2e"] = prestoc.psrdata_r2e_get
-    __setmethods__["nscode"] = prestoc.psrdata_nscode_set
-    __getmethods__["nscode"] = prestoc.psrdata_nscode_get
-    __setmethods__["ndflag"] = prestoc.psrdata_ndflag_set
-    __getmethods__["ndflag"] = prestoc.psrdata_ndflag_get
-    __setmethods__["ntauflag"] = prestoc.psrdata_ntauflag_set
-    __getmethods__["ntauflag"] = prestoc.psrdata_ntauflag_get
-    __setmethods__["ntype"] = prestoc.psrdata_ntype_set
-    __getmethods__["ntype"] = prestoc.psrdata_ntype_get
-    __setmethods__["modcode"] = prestoc.psrdata_modcode_set
-    __getmethods__["modcode"] = prestoc.psrdata_modcode_get
-    __setmethods__["limcode"] = prestoc.psrdata_limcode_set
-    __getmethods__["limcode"] = prestoc.psrdata_limcode_get
-    __setmethods__["ibin"] = prestoc.psrdata_ibin_set
-    __getmethods__["ibin"] = prestoc.psrdata_ibin_get
-    __setmethods__["jname"] = prestoc.psrdata_jname_set
-    __getmethods__["jname"] = prestoc.psrdata_jname_get
-    __setmethods__["bname"] = prestoc.psrdata_bname_set
-    __getmethods__["bname"] = prestoc.psrdata_bname_get
-    __setmethods__["lcode"] = prestoc.psrdata_lcode_set
-    __getmethods__["lcode"] = prestoc.psrdata_lcode_get
-    __setmethods__["ucode"] = prestoc.psrdata_ucode_set
-    __getmethods__["ucode"] = prestoc.psrdata_ucode_get
+complex_to_float = _presto.complex_to_float
+
+
+class psrdata(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, psrdata, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, psrdata, name)
+    __swig_setmethods__["ra2000"] = _presto.psrdata_ra2000_set
+    __swig_getmethods__["ra2000"] = _presto.psrdata_ra2000_get
+    if _newclass:ra2000 = property(_presto.psrdata_ra2000_get,_presto.psrdata_ra2000_set)
+    __swig_setmethods__["ra1950"] = _presto.psrdata_ra1950_set
+    __swig_getmethods__["ra1950"] = _presto.psrdata_ra1950_get
+    if _newclass:ra1950 = property(_presto.psrdata_ra1950_get,_presto.psrdata_ra1950_set)
+    __swig_setmethods__["rae"] = _presto.psrdata_rae_set
+    __swig_getmethods__["rae"] = _presto.psrdata_rae_get
+    if _newclass:rae = property(_presto.psrdata_rae_get,_presto.psrdata_rae_set)
+    __swig_setmethods__["dec2000"] = _presto.psrdata_dec2000_set
+    __swig_getmethods__["dec2000"] = _presto.psrdata_dec2000_get
+    if _newclass:dec2000 = property(_presto.psrdata_dec2000_get,_presto.psrdata_dec2000_set)
+    __swig_setmethods__["dec1950"] = _presto.psrdata_dec1950_set
+    __swig_getmethods__["dec1950"] = _presto.psrdata_dec1950_get
+    if _newclass:dec1950 = property(_presto.psrdata_dec1950_get,_presto.psrdata_dec1950_set)
+    __swig_setmethods__["dece"] = _presto.psrdata_dece_set
+    __swig_getmethods__["dece"] = _presto.psrdata_dece_get
+    if _newclass:dece = property(_presto.psrdata_dece_get,_presto.psrdata_dece_set)
+    __swig_setmethods__["dmin__"] = _presto.psrdata_dmin___set
+    __swig_getmethods__["dmin__"] = _presto.psrdata_dmin___get
+    if _newclass:dmin__ = property(_presto.psrdata_dmin___get,_presto.psrdata_dmin___set)
+    __swig_setmethods__["dmax__"] = _presto.psrdata_dmax___set
+    __swig_getmethods__["dmax__"] = _presto.psrdata_dmax___get
+    if _newclass:dmax__ = property(_presto.psrdata_dmax___get,_presto.psrdata_dmax___set)
+    __swig_setmethods__["dist"] = _presto.psrdata_dist_set
+    __swig_getmethods__["dist"] = _presto.psrdata_dist_get
+    if _newclass:dist = property(_presto.psrdata_dist_get,_presto.psrdata_dist_set)
+    __swig_setmethods__["ldeg"] = _presto.psrdata_ldeg_set
+    __swig_getmethods__["ldeg"] = _presto.psrdata_ldeg_get
+    if _newclass:ldeg = property(_presto.psrdata_ldeg_get,_presto.psrdata_ldeg_set)
+    __swig_setmethods__["bdeg"] = _presto.psrdata_bdeg_set
+    __swig_getmethods__["bdeg"] = _presto.psrdata_bdeg_get
+    if _newclass:bdeg = property(_presto.psrdata_bdeg_get,_presto.psrdata_bdeg_set)
+    __swig_setmethods__["pmra"] = _presto.psrdata_pmra_set
+    __swig_getmethods__["pmra"] = _presto.psrdata_pmra_get
+    if _newclass:pmra = property(_presto.psrdata_pmra_get,_presto.psrdata_pmra_set)
+    __swig_setmethods__["pmrae"] = _presto.psrdata_pmrae_set
+    __swig_getmethods__["pmrae"] = _presto.psrdata_pmrae_get
+    if _newclass:pmrae = property(_presto.psrdata_pmrae_get,_presto.psrdata_pmrae_set)
+    __swig_setmethods__["pmdec"] = _presto.psrdata_pmdec_set
+    __swig_getmethods__["pmdec"] = _presto.psrdata_pmdec_get
+    if _newclass:pmdec = property(_presto.psrdata_pmdec_get,_presto.psrdata_pmdec_set)
+    __swig_setmethods__["pmdece"] = _presto.psrdata_pmdece_set
+    __swig_getmethods__["pmdece"] = _presto.psrdata_pmdece_get
+    if _newclass:pmdece = property(_presto.psrdata_pmdece_get,_presto.psrdata_pmdece_set)
+    __swig_setmethods__["posepoch"] = _presto.psrdata_posepoch_set
+    __swig_getmethods__["posepoch"] = _presto.psrdata_posepoch_get
+    if _newclass:posepoch = property(_presto.psrdata_posepoch_get,_presto.psrdata_posepoch_set)
+    __swig_setmethods__["p"] = _presto.psrdata_p_set
+    __swig_getmethods__["p"] = _presto.psrdata_p_get
+    if _newclass:p = property(_presto.psrdata_p_get,_presto.psrdata_p_set)
+    __swig_setmethods__["pe"] = _presto.psrdata_pe_set
+    __swig_getmethods__["pe"] = _presto.psrdata_pe_get
+    if _newclass:pe = property(_presto.psrdata_pe_get,_presto.psrdata_pe_set)
+    __swig_setmethods__["pdot"] = _presto.psrdata_pdot_set
+    __swig_getmethods__["pdot"] = _presto.psrdata_pdot_get
+    if _newclass:pdot = property(_presto.psrdata_pdot_get,_presto.psrdata_pdot_set)
+    __swig_setmethods__["pdote"] = _presto.psrdata_pdote_set
+    __swig_getmethods__["pdote"] = _presto.psrdata_pdote_get
+    if _newclass:pdote = property(_presto.psrdata_pdote_get,_presto.psrdata_pdote_set)
+    __swig_setmethods__["f2"] = _presto.psrdata_f2_set
+    __swig_getmethods__["f2"] = _presto.psrdata_f2_get
+    if _newclass:f2 = property(_presto.psrdata_f2_get,_presto.psrdata_f2_set)
+    __swig_setmethods__["f2e"] = _presto.psrdata_f2e_set
+    __swig_getmethods__["f2e"] = _presto.psrdata_f2e_get
+    if _newclass:f2e = property(_presto.psrdata_f2e_get,_presto.psrdata_f2e_set)
+    __swig_setmethods__["f3"] = _presto.psrdata_f3_set
+    __swig_getmethods__["f3"] = _presto.psrdata_f3_get
+    if _newclass:f3 = property(_presto.psrdata_f3_get,_presto.psrdata_f3_set)
+    __swig_setmethods__["f3e"] = _presto.psrdata_f3e_set
+    __swig_getmethods__["f3e"] = _presto.psrdata_f3e_get
+    if _newclass:f3e = property(_presto.psrdata_f3e_get,_presto.psrdata_f3e_set)
+    __swig_setmethods__["epoch"] = _presto.psrdata_epoch_set
+    __swig_getmethods__["epoch"] = _presto.psrdata_epoch_get
+    if _newclass:epoch = property(_presto.psrdata_epoch_get,_presto.psrdata_epoch_set)
+    __swig_setmethods__["dm"] = _presto.psrdata_dm_set
+    __swig_getmethods__["dm"] = _presto.psrdata_dm_get
+    if _newclass:dm = property(_presto.psrdata_dm_get,_presto.psrdata_dm_set)
+    __swig_setmethods__["dme"] = _presto.psrdata_dme_set
+    __swig_getmethods__["dme"] = _presto.psrdata_dme_get
+    if _newclass:dme = property(_presto.psrdata_dme_get,_presto.psrdata_dme_set)
+    __swig_setmethods__["rm"] = _presto.psrdata_rm_set
+    __swig_getmethods__["rm"] = _presto.psrdata_rm_get
+    if _newclass:rm = property(_presto.psrdata_rm_get,_presto.psrdata_rm_set)
+    __swig_setmethods__["rme"] = _presto.psrdata_rme_set
+    __swig_getmethods__["rme"] = _presto.psrdata_rme_get
+    if _newclass:rme = property(_presto.psrdata_rme_get,_presto.psrdata_rme_set)
+    __swig_setmethods__["we"] = _presto.psrdata_we_set
+    __swig_getmethods__["we"] = _presto.psrdata_we_get
+    if _newclass:we = property(_presto.psrdata_we_get,_presto.psrdata_we_set)
+    __swig_setmethods__["w50"] = _presto.psrdata_w50_set
+    __swig_getmethods__["w50"] = _presto.psrdata_w50_get
+    if _newclass:w50 = property(_presto.psrdata_w50_get,_presto.psrdata_w50_set)
+    __swig_setmethods__["w10"] = _presto.psrdata_w10_set
+    __swig_getmethods__["w10"] = _presto.psrdata_w10_get
+    if _newclass:w10 = property(_presto.psrdata_w10_get,_presto.psrdata_w10_set)
+    __swig_setmethods__["s400"] = _presto.psrdata_s400_set
+    __swig_getmethods__["s400"] = _presto.psrdata_s400_get
+    if _newclass:s400 = property(_presto.psrdata_s400_get,_presto.psrdata_s400_set)
+    __swig_setmethods__["s600"] = _presto.psrdata_s600_set
+    __swig_getmethods__["s600"] = _presto.psrdata_s600_get
+    if _newclass:s600 = property(_presto.psrdata_s600_get,_presto.psrdata_s600_set)
+    __swig_setmethods__["s1400"] = _presto.psrdata_s1400_set
+    __swig_getmethods__["s1400"] = _presto.psrdata_s1400_get
+    if _newclass:s1400 = property(_presto.psrdata_s1400_get,_presto.psrdata_s1400_set)
+    __swig_setmethods__["tau"] = _presto.psrdata_tau_set
+    __swig_getmethods__["tau"] = _presto.psrdata_tau_get
+    if _newclass:tau = property(_presto.psrdata_tau_get,_presto.psrdata_tau_set)
+    __swig_setmethods__["t408"] = _presto.psrdata_t408_set
+    __swig_getmethods__["t408"] = _presto.psrdata_t408_get
+    if _newclass:t408 = property(_presto.psrdata_t408_get,_presto.psrdata_t408_set)
+    __swig_setmethods__["distmod"] = _presto.psrdata_distmod_set
+    __swig_getmethods__["distmod"] = _presto.psrdata_distmod_get
+    if _newclass:distmod = property(_presto.psrdata_distmod_get,_presto.psrdata_distmod_set)
+    __swig_setmethods__["lum"] = _presto.psrdata_lum_set
+    __swig_getmethods__["lum"] = _presto.psrdata_lum_get
+    if _newclass:lum = property(_presto.psrdata_lum_get,_presto.psrdata_lum_set)
+    __swig_setmethods__["bsurf"] = _presto.psrdata_bsurf_set
+    __swig_getmethods__["bsurf"] = _presto.psrdata_bsurf_get
+    if _newclass:bsurf = property(_presto.psrdata_bsurf_get,_presto.psrdata_bsurf_set)
+    __swig_setmethods__["age"] = _presto.psrdata_age_set
+    __swig_getmethods__["age"] = _presto.psrdata_age_get
+    if _newclass:age = property(_presto.psrdata_age_get,_presto.psrdata_age_set)
+    __swig_setmethods__["edot"] = _presto.psrdata_edot_set
+    __swig_getmethods__["edot"] = _presto.psrdata_edot_get
+    if _newclass:edot = property(_presto.psrdata_edot_get,_presto.psrdata_edot_set)
+    __swig_setmethods__["pb"] = _presto.psrdata_pb_set
+    __swig_getmethods__["pb"] = _presto.psrdata_pb_get
+    if _newclass:pb = property(_presto.psrdata_pb_get,_presto.psrdata_pb_set)
+    __swig_setmethods__["pbe"] = _presto.psrdata_pbe_set
+    __swig_getmethods__["pbe"] = _presto.psrdata_pbe_get
+    if _newclass:pbe = property(_presto.psrdata_pbe_get,_presto.psrdata_pbe_set)
+    __swig_setmethods__["a1"] = _presto.psrdata_a1_set
+    __swig_getmethods__["a1"] = _presto.psrdata_a1_get
+    if _newclass:a1 = property(_presto.psrdata_a1_get,_presto.psrdata_a1_set)
+    __swig_setmethods__["a1e"] = _presto.psrdata_a1e_set
+    __swig_getmethods__["a1e"] = _presto.psrdata_a1e_get
+    if _newclass:a1e = property(_presto.psrdata_a1e_get,_presto.psrdata_a1e_set)
+    __swig_setmethods__["om"] = _presto.psrdata_om_set
+    __swig_getmethods__["om"] = _presto.psrdata_om_get
+    if _newclass:om = property(_presto.psrdata_om_get,_presto.psrdata_om_set)
+    __swig_setmethods__["ome"] = _presto.psrdata_ome_set
+    __swig_getmethods__["ome"] = _presto.psrdata_ome_get
+    if _newclass:ome = property(_presto.psrdata_ome_get,_presto.psrdata_ome_set)
+    __swig_setmethods__["omdot"] = _presto.psrdata_omdot_set
+    __swig_getmethods__["omdot"] = _presto.psrdata_omdot_get
+    if _newclass:omdot = property(_presto.psrdata_omdot_get,_presto.psrdata_omdot_set)
+    __swig_setmethods__["omdote"] = _presto.psrdata_omdote_set
+    __swig_getmethods__["omdote"] = _presto.psrdata_omdote_get
+    if _newclass:omdote = property(_presto.psrdata_omdote_get,_presto.psrdata_omdote_set)
+    __swig_setmethods__["e"] = _presto.psrdata_e_set
+    __swig_getmethods__["e"] = _presto.psrdata_e_get
+    if _newclass:e = property(_presto.psrdata_e_get,_presto.psrdata_e_set)
+    __swig_setmethods__["ee"] = _presto.psrdata_ee_set
+    __swig_getmethods__["ee"] = _presto.psrdata_ee_get
+    if _newclass:ee = property(_presto.psrdata_ee_get,_presto.psrdata_ee_set)
+    __swig_setmethods__["t0"] = _presto.psrdata_t0_set
+    __swig_getmethods__["t0"] = _presto.psrdata_t0_get
+    if _newclass:t0 = property(_presto.psrdata_t0_get,_presto.psrdata_t0_set)
+    __swig_setmethods__["t0e"] = _presto.psrdata_t0e_set
+    __swig_getmethods__["t0e"] = _presto.psrdata_t0e_get
+    if _newclass:t0e = property(_presto.psrdata_t0e_get,_presto.psrdata_t0e_set)
+    __swig_setmethods__["gamma"] = _presto.psrdata_gamma_set
+    __swig_getmethods__["gamma"] = _presto.psrdata_gamma_get
+    if _newclass:gamma = property(_presto.psrdata_gamma_get,_presto.psrdata_gamma_set)
+    __swig_setmethods__["gammae"] = _presto.psrdata_gammae_set
+    __swig_getmethods__["gammae"] = _presto.psrdata_gammae_get
+    if _newclass:gammae = property(_presto.psrdata_gammae_get,_presto.psrdata_gammae_set)
+    __swig_setmethods__["pbdot"] = _presto.psrdata_pbdot_set
+    __swig_getmethods__["pbdot"] = _presto.psrdata_pbdot_get
+    if _newclass:pbdot = property(_presto.psrdata_pbdot_get,_presto.psrdata_pbdot_set)
+    __swig_setmethods__["pbdote"] = _presto.psrdata_pbdote_set
+    __swig_getmethods__["pbdote"] = _presto.psrdata_pbdote_get
+    if _newclass:pbdote = property(_presto.psrdata_pbdote_get,_presto.psrdata_pbdote_set)
+    __swig_setmethods__["si"] = _presto.psrdata_si_set
+    __swig_getmethods__["si"] = _presto.psrdata_si_get
+    if _newclass:si = property(_presto.psrdata_si_get,_presto.psrdata_si_set)
+    __swig_setmethods__["sie"] = _presto.psrdata_sie_set
+    __swig_getmethods__["sie"] = _presto.psrdata_sie_get
+    if _newclass:sie = property(_presto.psrdata_sie_get,_presto.psrdata_sie_set)
+    __swig_setmethods__["r__"] = _presto.psrdata_r___set
+    __swig_getmethods__["r__"] = _presto.psrdata_r___get
+    if _newclass:r__ = property(_presto.psrdata_r___get,_presto.psrdata_r___set)
+    __swig_setmethods__["re"] = _presto.psrdata_re_set
+    __swig_getmethods__["re"] = _presto.psrdata_re_get
+    if _newclass:re = property(_presto.psrdata_re_get,_presto.psrdata_re_set)
+    __swig_setmethods__["pb2"] = _presto.psrdata_pb2_set
+    __swig_getmethods__["pb2"] = _presto.psrdata_pb2_get
+    if _newclass:pb2 = property(_presto.psrdata_pb2_get,_presto.psrdata_pb2_set)
+    __swig_setmethods__["pb2e"] = _presto.psrdata_pb2e_set
+    __swig_getmethods__["pb2e"] = _presto.psrdata_pb2e_get
+    if _newclass:pb2e = property(_presto.psrdata_pb2e_get,_presto.psrdata_pb2e_set)
+    __swig_setmethods__["a12"] = _presto.psrdata_a12_set
+    __swig_getmethods__["a12"] = _presto.psrdata_a12_get
+    if _newclass:a12 = property(_presto.psrdata_a12_get,_presto.psrdata_a12_set)
+    __swig_setmethods__["a12e"] = _presto.psrdata_a12e_set
+    __swig_getmethods__["a12e"] = _presto.psrdata_a12e_get
+    if _newclass:a12e = property(_presto.psrdata_a12e_get,_presto.psrdata_a12e_set)
+    __swig_setmethods__["om2"] = _presto.psrdata_om2_set
+    __swig_getmethods__["om2"] = _presto.psrdata_om2_get
+    if _newclass:om2 = property(_presto.psrdata_om2_get,_presto.psrdata_om2_set)
+    __swig_setmethods__["om2e"] = _presto.psrdata_om2e_set
+    __swig_getmethods__["om2e"] = _presto.psrdata_om2e_get
+    if _newclass:om2e = property(_presto.psrdata_om2e_get,_presto.psrdata_om2e_set)
+    __swig_setmethods__["omdot2"] = _presto.psrdata_omdot2_set
+    __swig_getmethods__["omdot2"] = _presto.psrdata_omdot2_get
+    if _newclass:omdot2 = property(_presto.psrdata_omdot2_get,_presto.psrdata_omdot2_set)
+    __swig_setmethods__["omdot2e"] = _presto.psrdata_omdot2e_set
+    __swig_getmethods__["omdot2e"] = _presto.psrdata_omdot2e_get
+    if _newclass:omdot2e = property(_presto.psrdata_omdot2e_get,_presto.psrdata_omdot2e_set)
+    __swig_setmethods__["e2"] = _presto.psrdata_e2_set
+    __swig_getmethods__["e2"] = _presto.psrdata_e2_get
+    if _newclass:e2 = property(_presto.psrdata_e2_get,_presto.psrdata_e2_set)
+    __swig_setmethods__["e2e"] = _presto.psrdata_e2e_set
+    __swig_getmethods__["e2e"] = _presto.psrdata_e2e_get
+    if _newclass:e2e = property(_presto.psrdata_e2e_get,_presto.psrdata_e2e_set)
+    __swig_setmethods__["t02"] = _presto.psrdata_t02_set
+    __swig_getmethods__["t02"] = _presto.psrdata_t02_get
+    if _newclass:t02 = property(_presto.psrdata_t02_get,_presto.psrdata_t02_set)
+    __swig_setmethods__["t02e"] = _presto.psrdata_t02e_set
+    __swig_getmethods__["t02e"] = _presto.psrdata_t02e_get
+    if _newclass:t02e = property(_presto.psrdata_t02e_get,_presto.psrdata_t02e_set)
+    __swig_setmethods__["gamma2"] = _presto.psrdata_gamma2_set
+    __swig_getmethods__["gamma2"] = _presto.psrdata_gamma2_get
+    if _newclass:gamma2 = property(_presto.psrdata_gamma2_get,_presto.psrdata_gamma2_set)
+    __swig_setmethods__["gamma2e"] = _presto.psrdata_gamma2e_set
+    __swig_getmethods__["gamma2e"] = _presto.psrdata_gamma2e_get
+    if _newclass:gamma2e = property(_presto.psrdata_gamma2e_get,_presto.psrdata_gamma2e_set)
+    __swig_setmethods__["pbdot2"] = _presto.psrdata_pbdot2_set
+    __swig_getmethods__["pbdot2"] = _presto.psrdata_pbdot2_get
+    if _newclass:pbdot2 = property(_presto.psrdata_pbdot2_get,_presto.psrdata_pbdot2_set)
+    __swig_setmethods__["pbdot2e"] = _presto.psrdata_pbdot2e_set
+    __swig_getmethods__["pbdot2e"] = _presto.psrdata_pbdot2e_get
+    if _newclass:pbdot2e = property(_presto.psrdata_pbdot2e_get,_presto.psrdata_pbdot2e_set)
+    __swig_setmethods__["si2"] = _presto.psrdata_si2_set
+    __swig_getmethods__["si2"] = _presto.psrdata_si2_get
+    if _newclass:si2 = property(_presto.psrdata_si2_get,_presto.psrdata_si2_set)
+    __swig_setmethods__["si2e"] = _presto.psrdata_si2e_set
+    __swig_getmethods__["si2e"] = _presto.psrdata_si2e_get
+    if _newclass:si2e = property(_presto.psrdata_si2e_get,_presto.psrdata_si2e_set)
+    __swig_setmethods__["r2"] = _presto.psrdata_r2_set
+    __swig_getmethods__["r2"] = _presto.psrdata_r2_get
+    if _newclass:r2 = property(_presto.psrdata_r2_get,_presto.psrdata_r2_set)
+    __swig_setmethods__["r2e"] = _presto.psrdata_r2e_set
+    __swig_getmethods__["r2e"] = _presto.psrdata_r2e_get
+    if _newclass:r2e = property(_presto.psrdata_r2e_get,_presto.psrdata_r2e_set)
+    __swig_setmethods__["nscode"] = _presto.psrdata_nscode_set
+    __swig_getmethods__["nscode"] = _presto.psrdata_nscode_get
+    if _newclass:nscode = property(_presto.psrdata_nscode_get,_presto.psrdata_nscode_set)
+    __swig_setmethods__["ndflag"] = _presto.psrdata_ndflag_set
+    __swig_getmethods__["ndflag"] = _presto.psrdata_ndflag_get
+    if _newclass:ndflag = property(_presto.psrdata_ndflag_get,_presto.psrdata_ndflag_set)
+    __swig_setmethods__["ntauflag"] = _presto.psrdata_ntauflag_set
+    __swig_getmethods__["ntauflag"] = _presto.psrdata_ntauflag_get
+    if _newclass:ntauflag = property(_presto.psrdata_ntauflag_get,_presto.psrdata_ntauflag_set)
+    __swig_setmethods__["ntype"] = _presto.psrdata_ntype_set
+    __swig_getmethods__["ntype"] = _presto.psrdata_ntype_get
+    if _newclass:ntype = property(_presto.psrdata_ntype_get,_presto.psrdata_ntype_set)
+    __swig_setmethods__["modcode"] = _presto.psrdata_modcode_set
+    __swig_getmethods__["modcode"] = _presto.psrdata_modcode_get
+    if _newclass:modcode = property(_presto.psrdata_modcode_get,_presto.psrdata_modcode_set)
+    __swig_setmethods__["limcode"] = _presto.psrdata_limcode_set
+    __swig_getmethods__["limcode"] = _presto.psrdata_limcode_get
+    if _newclass:limcode = property(_presto.psrdata_limcode_get,_presto.psrdata_limcode_set)
+    __swig_setmethods__["ibin"] = _presto.psrdata_ibin_set
+    __swig_getmethods__["ibin"] = _presto.psrdata_ibin_get
+    if _newclass:ibin = property(_presto.psrdata_ibin_get,_presto.psrdata_ibin_set)
+    __swig_setmethods__["jname"] = _presto.psrdata_jname_set
+    __swig_getmethods__["jname"] = _presto.psrdata_jname_get
+    if _newclass:jname = property(_presto.psrdata_jname_get,_presto.psrdata_jname_set)
+    __swig_setmethods__["bname"] = _presto.psrdata_bname_set
+    __swig_getmethods__["bname"] = _presto.psrdata_bname_get
+    if _newclass:bname = property(_presto.psrdata_bname_get,_presto.psrdata_bname_set)
+    __swig_setmethods__["lcode"] = _presto.psrdata_lcode_set
+    __swig_getmethods__["lcode"] = _presto.psrdata_lcode_get
+    if _newclass:lcode = property(_presto.psrdata_lcode_get,_presto.psrdata_lcode_set)
+    __swig_setmethods__["ucode"] = _presto.psrdata_ucode_set
+    __swig_getmethods__["ucode"] = _presto.psrdata_ucode_get
+    if _newclass:ucode = property(_presto.psrdata_ucode_get,_presto.psrdata_ucode_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_psrdata,args)
+        self.this = apply(_presto.new_psrdata,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_psrdata(self)
+    def __del__(self, destroy= _presto.delete_psrdata):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C psrdata instance at %s>" % (self.this,)
 
@@ -271,66 +412,68 @@ class psrdataPtr(psrdata):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = psrdata
-prestoc.psrdata_swigregister(psrdataPtr)
-class psrparams:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,psrparams):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = psrparams.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.psrdata_swigregister(psrdataPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = psrparams.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
-
-    __setmethods__["jname"] = prestoc.psrparams_jname_set
-    __getmethods__["jname"] = prestoc.psrparams_jname_get
-    __setmethods__["bname"] = prestoc.psrparams_bname_set
-    __getmethods__["bname"] = prestoc.psrparams_bname_get
-    __setmethods__["ntype"] = prestoc.psrparams_ntype_set
-    __getmethods__["ntype"] = prestoc.psrparams_ntype_get
-    __setmethods__["ra2000"] = prestoc.psrparams_ra2000_set
-    __getmethods__["ra2000"] = prestoc.psrparams_ra2000_get
-    __setmethods__["dec2000"] = prestoc.psrparams_dec2000_set
-    __getmethods__["dec2000"] = prestoc.psrparams_dec2000_get
-    __setmethods__["dm"] = prestoc.psrparams_dm_set
-    __getmethods__["dm"] = prestoc.psrparams_dm_get
-    __setmethods__["dist"] = prestoc.psrparams_dist_set
-    __getmethods__["dist"] = prestoc.psrparams_dist_get
-    __setmethods__["fwhm"] = prestoc.psrparams_fwhm_set
-    __getmethods__["fwhm"] = prestoc.psrparams_fwhm_get
-    __setmethods__["timepoch"] = prestoc.psrparams_timepoch_set
-    __getmethods__["timepoch"] = prestoc.psrparams_timepoch_get
-    __setmethods__["p"] = prestoc.psrparams_p_set
-    __getmethods__["p"] = prestoc.psrparams_p_get
-    __setmethods__["pd"] = prestoc.psrparams_pd_set
-    __getmethods__["pd"] = prestoc.psrparams_pd_get
-    __setmethods__["pdd"] = prestoc.psrparams_pdd_set
-    __getmethods__["pdd"] = prestoc.psrparams_pdd_get
-    __setmethods__["f"] = prestoc.psrparams_f_set
-    __getmethods__["f"] = prestoc.psrparams_f_get
-    __setmethods__["fd"] = prestoc.psrparams_fd_set
-    __getmethods__["fd"] = prestoc.psrparams_fd_get
-    __setmethods__["fdd"] = prestoc.psrparams_fdd_set
-    __getmethods__["fdd"] = prestoc.psrparams_fdd_get
-    __setmethods__["orb"] = prestoc.psrparams_orb_set
-    __getmethods__["orb"] = prestoc.psrparams_orb_get
+class psrparams(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, psrparams, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, psrparams, name)
+    __swig_setmethods__["jname"] = _presto.psrparams_jname_set
+    __swig_getmethods__["jname"] = _presto.psrparams_jname_get
+    if _newclass:jname = property(_presto.psrparams_jname_get,_presto.psrparams_jname_set)
+    __swig_setmethods__["bname"] = _presto.psrparams_bname_set
+    __swig_getmethods__["bname"] = _presto.psrparams_bname_get
+    if _newclass:bname = property(_presto.psrparams_bname_get,_presto.psrparams_bname_set)
+    __swig_setmethods__["ntype"] = _presto.psrparams_ntype_set
+    __swig_getmethods__["ntype"] = _presto.psrparams_ntype_get
+    if _newclass:ntype = property(_presto.psrparams_ntype_get,_presto.psrparams_ntype_set)
+    __swig_setmethods__["ra2000"] = _presto.psrparams_ra2000_set
+    __swig_getmethods__["ra2000"] = _presto.psrparams_ra2000_get
+    if _newclass:ra2000 = property(_presto.psrparams_ra2000_get,_presto.psrparams_ra2000_set)
+    __swig_setmethods__["dec2000"] = _presto.psrparams_dec2000_set
+    __swig_getmethods__["dec2000"] = _presto.psrparams_dec2000_get
+    if _newclass:dec2000 = property(_presto.psrparams_dec2000_get,_presto.psrparams_dec2000_set)
+    __swig_setmethods__["dm"] = _presto.psrparams_dm_set
+    __swig_getmethods__["dm"] = _presto.psrparams_dm_get
+    if _newclass:dm = property(_presto.psrparams_dm_get,_presto.psrparams_dm_set)
+    __swig_setmethods__["dist"] = _presto.psrparams_dist_set
+    __swig_getmethods__["dist"] = _presto.psrparams_dist_get
+    if _newclass:dist = property(_presto.psrparams_dist_get,_presto.psrparams_dist_set)
+    __swig_setmethods__["fwhm"] = _presto.psrparams_fwhm_set
+    __swig_getmethods__["fwhm"] = _presto.psrparams_fwhm_get
+    if _newclass:fwhm = property(_presto.psrparams_fwhm_get,_presto.psrparams_fwhm_set)
+    __swig_setmethods__["timepoch"] = _presto.psrparams_timepoch_set
+    __swig_getmethods__["timepoch"] = _presto.psrparams_timepoch_get
+    if _newclass:timepoch = property(_presto.psrparams_timepoch_get,_presto.psrparams_timepoch_set)
+    __swig_setmethods__["p"] = _presto.psrparams_p_set
+    __swig_getmethods__["p"] = _presto.psrparams_p_get
+    if _newclass:p = property(_presto.psrparams_p_get,_presto.psrparams_p_set)
+    __swig_setmethods__["pd"] = _presto.psrparams_pd_set
+    __swig_getmethods__["pd"] = _presto.psrparams_pd_get
+    if _newclass:pd = property(_presto.psrparams_pd_get,_presto.psrparams_pd_set)
+    __swig_setmethods__["pdd"] = _presto.psrparams_pdd_set
+    __swig_getmethods__["pdd"] = _presto.psrparams_pdd_get
+    if _newclass:pdd = property(_presto.psrparams_pdd_get,_presto.psrparams_pdd_set)
+    __swig_setmethods__["f"] = _presto.psrparams_f_set
+    __swig_getmethods__["f"] = _presto.psrparams_f_get
+    if _newclass:f = property(_presto.psrparams_f_get,_presto.psrparams_f_set)
+    __swig_setmethods__["fd"] = _presto.psrparams_fd_set
+    __swig_getmethods__["fd"] = _presto.psrparams_fd_get
+    if _newclass:fd = property(_presto.psrparams_fd_get,_presto.psrparams_fd_set)
+    __swig_setmethods__["fdd"] = _presto.psrparams_fdd_set
+    __swig_getmethods__["fdd"] = _presto.psrparams_fdd_get
+    if _newclass:fdd = property(_presto.psrparams_fdd_get,_presto.psrparams_fdd_set)
+    __swig_setmethods__["orb"] = _presto.psrparams_orb_set
+    __swig_getmethods__["orb"] = _presto.psrparams_orb_get
+    if _newclass:orb = property(_presto.psrparams_orb_get,_presto.psrparams_orb_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_psrparams,args)
+        self.this = apply(_presto.new_psrparams,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_psrparams(self)
+    def __del__(self, destroy= _presto.delete_psrparams):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C psrparams instance at %s>" % (self.this,)
 
@@ -339,38 +482,35 @@ class psrparamsPtr(psrparams):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = psrparams
-prestoc.psrparams_swigregister(psrparamsPtr)
-class DoubleArray:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,DoubleArray):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = DoubleArray.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.psrparams_swigregister(psrparamsPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = DoubleArray.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
+num_psrs_in_database = _presto.num_psrs_in_database
 
-    __setmethods__["dptr"] = prestoc.DoubleArray_dptr_set
-    __getmethods__["dptr"] = prestoc.DoubleArray_dptr_get
+get_psrdata = _presto.get_psrdata
+
+get_psrdata_by_num = _presto.get_psrdata_by_num
+
+return_psrparams_at_epoch = _presto.return_psrparams_at_epoch
+
+get_psr_at_epoch = _presto.get_psr_at_epoch
+
+class DoubleArray(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, DoubleArray, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, DoubleArray, name)
+    __swig_setmethods__["dptr"] = _presto.DoubleArray_dptr_set
+    __swig_getmethods__["dptr"] = _presto.DoubleArray_dptr_get
+    if _newclass:dptr = property(_presto.DoubleArray_dptr_get,_presto.DoubleArray_dptr_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_DoubleArray,args)
+        self.this = apply(_presto.new_DoubleArray,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_DoubleArray(self)
-    def __getitem__(*args): return apply(prestoc.DoubleArray___getitem__,args)
-    def __setitem__(*args): return apply(prestoc.DoubleArray___setitem__,args)
+    def __del__(self, destroy= _presto.delete_DoubleArray):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
+    def __getitem__(*args): return apply(_presto.DoubleArray___getitem__,args)
+    def __setitem__(*args): return apply(_presto.DoubleArray___setitem__,args)
     def __repr__(self):
         return "<C DoubleArray instance at %s>" % (self.this,)
 
@@ -379,97 +519,116 @@ class DoubleArrayPtr(DoubleArray):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = DoubleArray
-prestoc.DoubleArray_swigregister(DoubleArrayPtr)
-class infodata:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,infodata):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = infodata.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.DoubleArray_swigregister(DoubleArrayPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = infodata.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
-
-    __setmethods__["ra_s"] = prestoc.infodata_ra_s_set
-    __getmethods__["ra_s"] = prestoc.infodata_ra_s_get
-    __setmethods__["dec_s"] = prestoc.infodata_dec_s_set
-    __getmethods__["dec_s"] = prestoc.infodata_dec_s_get
-    __setmethods__["N"] = prestoc.infodata_N_set
-    __getmethods__["N"] = prestoc.infodata_N_get
-    __setmethods__["dt"] = prestoc.infodata_dt_set
-    __getmethods__["dt"] = prestoc.infodata_dt_get
-    __setmethods__["fov"] = prestoc.infodata_fov_set
-    __getmethods__["fov"] = prestoc.infodata_fov_get
-    __setmethods__["mjd_f"] = prestoc.infodata_mjd_f_set
-    __getmethods__["mjd_f"] = prestoc.infodata_mjd_f_get
-    __setmethods__["dm"] = prestoc.infodata_dm_set
-    __getmethods__["dm"] = prestoc.infodata_dm_get
-    __setmethods__["freq"] = prestoc.infodata_freq_set
-    __getmethods__["freq"] = prestoc.infodata_freq_get
-    __setmethods__["freqband"] = prestoc.infodata_freqband_set
-    __getmethods__["freqband"] = prestoc.infodata_freqband_get
-    __setmethods__["chan_wid"] = prestoc.infodata_chan_wid_set
-    __getmethods__["chan_wid"] = prestoc.infodata_chan_wid_get
-    __setmethods__["wavelen"] = prestoc.infodata_wavelen_set
-    __getmethods__["wavelen"] = prestoc.infodata_wavelen_get
-    __setmethods__["waveband"] = prestoc.infodata_waveband_set
-    __getmethods__["waveband"] = prestoc.infodata_waveband_get
-    __setmethods__["energy"] = prestoc.infodata_energy_set
-    __getmethods__["energy"] = prestoc.infodata_energy_get
-    __setmethods__["energyband"] = prestoc.infodata_energyband_set
-    __getmethods__["energyband"] = prestoc.infodata_energyband_get
-    __getmethods__["onoff"] = prestoc.infodata_onoff_get
-    __setmethods__["num_chan"] = prestoc.infodata_num_chan_set
-    __getmethods__["num_chan"] = prestoc.infodata_num_chan_get
-    __setmethods__["mjd_i"] = prestoc.infodata_mjd_i_set
-    __getmethods__["mjd_i"] = prestoc.infodata_mjd_i_get
-    __setmethods__["ra_h"] = prestoc.infodata_ra_h_set
-    __getmethods__["ra_h"] = prestoc.infodata_ra_h_get
-    __setmethods__["ra_m"] = prestoc.infodata_ra_m_set
-    __getmethods__["ra_m"] = prestoc.infodata_ra_m_get
-    __setmethods__["dec_d"] = prestoc.infodata_dec_d_set
-    __getmethods__["dec_d"] = prestoc.infodata_dec_d_get
-    __setmethods__["dec_m"] = prestoc.infodata_dec_m_set
-    __getmethods__["dec_m"] = prestoc.infodata_dec_m_get
-    __setmethods__["bary"] = prestoc.infodata_bary_set
-    __getmethods__["bary"] = prestoc.infodata_bary_get
-    __setmethods__["numonoff"] = prestoc.infodata_numonoff_set
-    __getmethods__["numonoff"] = prestoc.infodata_numonoff_get
-    __setmethods__["notes"] = prestoc.infodata_notes_set
-    __getmethods__["notes"] = prestoc.infodata_notes_get
-    __setmethods__["name"] = prestoc.infodata_name_set
-    __getmethods__["name"] = prestoc.infodata_name_get
-    __setmethods__["object"] = prestoc.infodata_object_set
-    __getmethods__["object"] = prestoc.infodata_object_get
-    __setmethods__["instrument"] = prestoc.infodata_instrument_set
-    __getmethods__["instrument"] = prestoc.infodata_instrument_get
-    __setmethods__["observer"] = prestoc.infodata_observer_set
-    __getmethods__["observer"] = prestoc.infodata_observer_get
-    __setmethods__["analyzer"] = prestoc.infodata_analyzer_set
-    __getmethods__["analyzer"] = prestoc.infodata_analyzer_get
-    __setmethods__["telescope"] = prestoc.infodata_telescope_set
-    __getmethods__["telescope"] = prestoc.infodata_telescope_get
-    __setmethods__["band"] = prestoc.infodata_band_set
-    __getmethods__["band"] = prestoc.infodata_band_get
-    __setmethods__["filt"] = prestoc.infodata_filt_set
-    __getmethods__["filt"] = prestoc.infodata_filt_get
+class infodata(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, infodata, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, infodata, name)
+    __swig_setmethods__["ra_s"] = _presto.infodata_ra_s_set
+    __swig_getmethods__["ra_s"] = _presto.infodata_ra_s_get
+    if _newclass:ra_s = property(_presto.infodata_ra_s_get,_presto.infodata_ra_s_set)
+    __swig_setmethods__["dec_s"] = _presto.infodata_dec_s_set
+    __swig_getmethods__["dec_s"] = _presto.infodata_dec_s_get
+    if _newclass:dec_s = property(_presto.infodata_dec_s_get,_presto.infodata_dec_s_set)
+    __swig_setmethods__["N"] = _presto.infodata_N_set
+    __swig_getmethods__["N"] = _presto.infodata_N_get
+    if _newclass:N = property(_presto.infodata_N_get,_presto.infodata_N_set)
+    __swig_setmethods__["dt"] = _presto.infodata_dt_set
+    __swig_getmethods__["dt"] = _presto.infodata_dt_get
+    if _newclass:dt = property(_presto.infodata_dt_get,_presto.infodata_dt_set)
+    __swig_setmethods__["fov"] = _presto.infodata_fov_set
+    __swig_getmethods__["fov"] = _presto.infodata_fov_get
+    if _newclass:fov = property(_presto.infodata_fov_get,_presto.infodata_fov_set)
+    __swig_setmethods__["mjd_f"] = _presto.infodata_mjd_f_set
+    __swig_getmethods__["mjd_f"] = _presto.infodata_mjd_f_get
+    if _newclass:mjd_f = property(_presto.infodata_mjd_f_get,_presto.infodata_mjd_f_set)
+    __swig_setmethods__["dm"] = _presto.infodata_dm_set
+    __swig_getmethods__["dm"] = _presto.infodata_dm_get
+    if _newclass:dm = property(_presto.infodata_dm_get,_presto.infodata_dm_set)
+    __swig_setmethods__["freq"] = _presto.infodata_freq_set
+    __swig_getmethods__["freq"] = _presto.infodata_freq_get
+    if _newclass:freq = property(_presto.infodata_freq_get,_presto.infodata_freq_set)
+    __swig_setmethods__["freqband"] = _presto.infodata_freqband_set
+    __swig_getmethods__["freqband"] = _presto.infodata_freqband_get
+    if _newclass:freqband = property(_presto.infodata_freqband_get,_presto.infodata_freqband_set)
+    __swig_setmethods__["chan_wid"] = _presto.infodata_chan_wid_set
+    __swig_getmethods__["chan_wid"] = _presto.infodata_chan_wid_get
+    if _newclass:chan_wid = property(_presto.infodata_chan_wid_get,_presto.infodata_chan_wid_set)
+    __swig_setmethods__["wavelen"] = _presto.infodata_wavelen_set
+    __swig_getmethods__["wavelen"] = _presto.infodata_wavelen_get
+    if _newclass:wavelen = property(_presto.infodata_wavelen_get,_presto.infodata_wavelen_set)
+    __swig_setmethods__["waveband"] = _presto.infodata_waveband_set
+    __swig_getmethods__["waveband"] = _presto.infodata_waveband_get
+    if _newclass:waveband = property(_presto.infodata_waveband_get,_presto.infodata_waveband_set)
+    __swig_setmethods__["energy"] = _presto.infodata_energy_set
+    __swig_getmethods__["energy"] = _presto.infodata_energy_get
+    if _newclass:energy = property(_presto.infodata_energy_get,_presto.infodata_energy_set)
+    __swig_setmethods__["energyband"] = _presto.infodata_energyband_set
+    __swig_getmethods__["energyband"] = _presto.infodata_energyband_get
+    if _newclass:energyband = property(_presto.infodata_energyband_get,_presto.infodata_energyband_set)
+    __swig_setmethods__["onoff"] = _presto.infodata_onoff_set
+    __swig_getmethods__["onoff"] = _presto.infodata_onoff_get
+    if _newclass:onoff = property(_presto.infodata_onoff_get,_presto.infodata_onoff_set)
+    __swig_setmethods__["num_chan"] = _presto.infodata_num_chan_set
+    __swig_getmethods__["num_chan"] = _presto.infodata_num_chan_get
+    if _newclass:num_chan = property(_presto.infodata_num_chan_get,_presto.infodata_num_chan_set)
+    __swig_setmethods__["mjd_i"] = _presto.infodata_mjd_i_set
+    __swig_getmethods__["mjd_i"] = _presto.infodata_mjd_i_get
+    if _newclass:mjd_i = property(_presto.infodata_mjd_i_get,_presto.infodata_mjd_i_set)
+    __swig_setmethods__["ra_h"] = _presto.infodata_ra_h_set
+    __swig_getmethods__["ra_h"] = _presto.infodata_ra_h_get
+    if _newclass:ra_h = property(_presto.infodata_ra_h_get,_presto.infodata_ra_h_set)
+    __swig_setmethods__["ra_m"] = _presto.infodata_ra_m_set
+    __swig_getmethods__["ra_m"] = _presto.infodata_ra_m_get
+    if _newclass:ra_m = property(_presto.infodata_ra_m_get,_presto.infodata_ra_m_set)
+    __swig_setmethods__["dec_d"] = _presto.infodata_dec_d_set
+    __swig_getmethods__["dec_d"] = _presto.infodata_dec_d_get
+    if _newclass:dec_d = property(_presto.infodata_dec_d_get,_presto.infodata_dec_d_set)
+    __swig_setmethods__["dec_m"] = _presto.infodata_dec_m_set
+    __swig_getmethods__["dec_m"] = _presto.infodata_dec_m_get
+    if _newclass:dec_m = property(_presto.infodata_dec_m_get,_presto.infodata_dec_m_set)
+    __swig_setmethods__["bary"] = _presto.infodata_bary_set
+    __swig_getmethods__["bary"] = _presto.infodata_bary_get
+    if _newclass:bary = property(_presto.infodata_bary_get,_presto.infodata_bary_set)
+    __swig_setmethods__["numonoff"] = _presto.infodata_numonoff_set
+    __swig_getmethods__["numonoff"] = _presto.infodata_numonoff_get
+    if _newclass:numonoff = property(_presto.infodata_numonoff_get,_presto.infodata_numonoff_set)
+    __swig_setmethods__["notes"] = _presto.infodata_notes_set
+    __swig_getmethods__["notes"] = _presto.infodata_notes_get
+    if _newclass:notes = property(_presto.infodata_notes_get,_presto.infodata_notes_set)
+    __swig_setmethods__["name"] = _presto.infodata_name_set
+    __swig_getmethods__["name"] = _presto.infodata_name_get
+    if _newclass:name = property(_presto.infodata_name_get,_presto.infodata_name_set)
+    __swig_setmethods__["object"] = _presto.infodata_object_set
+    __swig_getmethods__["object"] = _presto.infodata_object_get
+    if _newclass:object = property(_presto.infodata_object_get,_presto.infodata_object_set)
+    __swig_setmethods__["instrument"] = _presto.infodata_instrument_set
+    __swig_getmethods__["instrument"] = _presto.infodata_instrument_get
+    if _newclass:instrument = property(_presto.infodata_instrument_get,_presto.infodata_instrument_set)
+    __swig_setmethods__["observer"] = _presto.infodata_observer_set
+    __swig_getmethods__["observer"] = _presto.infodata_observer_get
+    if _newclass:observer = property(_presto.infodata_observer_get,_presto.infodata_observer_set)
+    __swig_setmethods__["analyzer"] = _presto.infodata_analyzer_set
+    __swig_getmethods__["analyzer"] = _presto.infodata_analyzer_get
+    if _newclass:analyzer = property(_presto.infodata_analyzer_get,_presto.infodata_analyzer_set)
+    __swig_setmethods__["telescope"] = _presto.infodata_telescope_set
+    __swig_getmethods__["telescope"] = _presto.infodata_telescope_get
+    if _newclass:telescope = property(_presto.infodata_telescope_get,_presto.infodata_telescope_set)
+    __swig_setmethods__["band"] = _presto.infodata_band_set
+    __swig_getmethods__["band"] = _presto.infodata_band_get
+    if _newclass:band = property(_presto.infodata_band_get,_presto.infodata_band_set)
+    __swig_setmethods__["filt"] = _presto.infodata_filt_set
+    __swig_getmethods__["filt"] = _presto.infodata_filt_get
+    if _newclass:filt = property(_presto.infodata_filt_get,_presto.infodata_filt_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_infodata,args)
+        self.this = apply(_presto.new_infodata,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_infodata(self)
+    def __del__(self, destroy= _presto.delete_infodata):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C infodata instance at %s>" % (self.this,)
 
@@ -478,102 +637,126 @@ class infodataPtr(infodata):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = infodata
-prestoc.infodata_swigregister(infodataPtr)
-class makedata:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,makedata):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = makedata.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.infodata_swigregister(infodataPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = makedata.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
+readinf = _presto.readinf
 
-    __setmethods__["basefilenm"] = prestoc.makedata_basefilenm_set
-    __getmethods__["basefilenm"] = prestoc.makedata_basefilenm_get
-    __setmethods__["description"] = prestoc.makedata_description_set
-    __getmethods__["description"] = prestoc.makedata_description_get
-    __setmethods__["N"] = prestoc.makedata_N_set
-    __getmethods__["N"] = prestoc.makedata_N_get
-    __setmethods__["next2_to_n"] = prestoc.makedata_next2_to_n_set
-    __getmethods__["next2_to_n"] = prestoc.makedata_next2_to_n_get
-    __setmethods__["dt"] = prestoc.makedata_dt_set
-    __getmethods__["dt"] = prestoc.makedata_dt_get
-    __setmethods__["T"] = prestoc.makedata_T_set
-    __getmethods__["T"] = prestoc.makedata_T_get
-    __setmethods__["ptype"] = prestoc.makedata_ptype_set
-    __getmethods__["ptype"] = prestoc.makedata_ptype_get
-    __setmethods__["pnum"] = prestoc.makedata_pnum_set
-    __getmethods__["pnum"] = prestoc.makedata_pnum_get
-    __setmethods__["fwhm"] = prestoc.makedata_fwhm_set
-    __getmethods__["fwhm"] = prestoc.makedata_fwhm_get
-    __setmethods__["round"] = prestoc.makedata_round_set
-    __getmethods__["round"] = prestoc.makedata_round_get
-    __setmethods__["roundnum"] = prestoc.makedata_roundnum_set
-    __getmethods__["roundnum"] = prestoc.makedata_roundnum_get
-    __setmethods__["f"] = prestoc.makedata_f_set
-    __getmethods__["f"] = prestoc.makedata_f_get
-    __setmethods__["fd"] = prestoc.makedata_fd_set
-    __getmethods__["fd"] = prestoc.makedata_fd_get
-    __setmethods__["fdd"] = prestoc.makedata_fdd_set
-    __getmethods__["fdd"] = prestoc.makedata_fdd_get
-    __setmethods__["p"] = prestoc.makedata_p_set
-    __getmethods__["p"] = prestoc.makedata_p_get
-    __setmethods__["pd"] = prestoc.makedata_pd_set
-    __getmethods__["pd"] = prestoc.makedata_pd_get
-    __setmethods__["pdd"] = prestoc.makedata_pdd_set
-    __getmethods__["pdd"] = prestoc.makedata_pdd_get
-    __setmethods__["r"] = prestoc.makedata_r_set
-    __getmethods__["r"] = prestoc.makedata_r_get
-    __setmethods__["z"] = prestoc.makedata_z_set
-    __getmethods__["z"] = prestoc.makedata_z_get
-    __setmethods__["w"] = prestoc.makedata_w_set
-    __getmethods__["w"] = prestoc.makedata_w_get
-    __setmethods__["amp"] = prestoc.makedata_amp_set
-    __getmethods__["amp"] = prestoc.makedata_amp_get
-    __setmethods__["phs"] = prestoc.makedata_phs_set
-    __getmethods__["phs"] = prestoc.makedata_phs_get
-    __setmethods__["dc"] = prestoc.makedata_dc_set
-    __getmethods__["dc"] = prestoc.makedata_dc_get
-    __setmethods__["binary"] = prestoc.makedata_binary_set
-    __getmethods__["binary"] = prestoc.makedata_binary_get
-    __setmethods__["orb"] = prestoc.makedata_orb_set
-    __getmethods__["orb"] = prestoc.makedata_orb_get
-    __setmethods__["ampmod"] = prestoc.makedata_ampmod_set
-    __getmethods__["ampmod"] = prestoc.makedata_ampmod_get
-    __setmethods__["ampmoda"] = prestoc.makedata_ampmoda_set
-    __getmethods__["ampmoda"] = prestoc.makedata_ampmoda_get
-    __setmethods__["ampmodf"] = prestoc.makedata_ampmodf_set
-    __getmethods__["ampmodf"] = prestoc.makedata_ampmodf_get
-    __setmethods__["ampmodp"] = prestoc.makedata_ampmodp_set
-    __getmethods__["ampmodp"] = prestoc.makedata_ampmodp_get
-    __setmethods__["noisetype"] = prestoc.makedata_noisetype_set
-    __getmethods__["noisetype"] = prestoc.makedata_noisetype_get
-    __setmethods__["noise"] = prestoc.makedata_noise_set
-    __getmethods__["noise"] = prestoc.makedata_noise_get
-    __setmethods__["noisesig"] = prestoc.makedata_noisesig_set
-    __getmethods__["noisesig"] = prestoc.makedata_noisesig_get
-    __setmethods__["numonoff"] = prestoc.makedata_numonoff_set
-    __getmethods__["numonoff"] = prestoc.makedata_numonoff_get
-    __setmethods__["onoff"] = prestoc.makedata_onoff_set
-    __getmethods__["onoff"] = prestoc.makedata_onoff_get
+writeinf = _presto.writeinf
+
+class makedata(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, makedata, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, makedata, name)
+    __swig_setmethods__["basefilenm"] = _presto.makedata_basefilenm_set
+    __swig_getmethods__["basefilenm"] = _presto.makedata_basefilenm_get
+    if _newclass:basefilenm = property(_presto.makedata_basefilenm_get,_presto.makedata_basefilenm_set)
+    __swig_setmethods__["description"] = _presto.makedata_description_set
+    __swig_getmethods__["description"] = _presto.makedata_description_get
+    if _newclass:description = property(_presto.makedata_description_get,_presto.makedata_description_set)
+    __swig_setmethods__["N"] = _presto.makedata_N_set
+    __swig_getmethods__["N"] = _presto.makedata_N_get
+    if _newclass:N = property(_presto.makedata_N_get,_presto.makedata_N_set)
+    __swig_setmethods__["next2_to_n"] = _presto.makedata_next2_to_n_set
+    __swig_getmethods__["next2_to_n"] = _presto.makedata_next2_to_n_get
+    if _newclass:next2_to_n = property(_presto.makedata_next2_to_n_get,_presto.makedata_next2_to_n_set)
+    __swig_setmethods__["dt"] = _presto.makedata_dt_set
+    __swig_getmethods__["dt"] = _presto.makedata_dt_get
+    if _newclass:dt = property(_presto.makedata_dt_get,_presto.makedata_dt_set)
+    __swig_setmethods__["T"] = _presto.makedata_T_set
+    __swig_getmethods__["T"] = _presto.makedata_T_get
+    if _newclass:T = property(_presto.makedata_T_get,_presto.makedata_T_set)
+    __swig_setmethods__["ptype"] = _presto.makedata_ptype_set
+    __swig_getmethods__["ptype"] = _presto.makedata_ptype_get
+    if _newclass:ptype = property(_presto.makedata_ptype_get,_presto.makedata_ptype_set)
+    __swig_setmethods__["pnum"] = _presto.makedata_pnum_set
+    __swig_getmethods__["pnum"] = _presto.makedata_pnum_get
+    if _newclass:pnum = property(_presto.makedata_pnum_get,_presto.makedata_pnum_set)
+    __swig_setmethods__["fwhm"] = _presto.makedata_fwhm_set
+    __swig_getmethods__["fwhm"] = _presto.makedata_fwhm_get
+    if _newclass:fwhm = property(_presto.makedata_fwhm_get,_presto.makedata_fwhm_set)
+    __swig_setmethods__["round"] = _presto.makedata_round_set
+    __swig_getmethods__["round"] = _presto.makedata_round_get
+    if _newclass:round = property(_presto.makedata_round_get,_presto.makedata_round_set)
+    __swig_setmethods__["roundnum"] = _presto.makedata_roundnum_set
+    __swig_getmethods__["roundnum"] = _presto.makedata_roundnum_get
+    if _newclass:roundnum = property(_presto.makedata_roundnum_get,_presto.makedata_roundnum_set)
+    __swig_setmethods__["f"] = _presto.makedata_f_set
+    __swig_getmethods__["f"] = _presto.makedata_f_get
+    if _newclass:f = property(_presto.makedata_f_get,_presto.makedata_f_set)
+    __swig_setmethods__["fd"] = _presto.makedata_fd_set
+    __swig_getmethods__["fd"] = _presto.makedata_fd_get
+    if _newclass:fd = property(_presto.makedata_fd_get,_presto.makedata_fd_set)
+    __swig_setmethods__["fdd"] = _presto.makedata_fdd_set
+    __swig_getmethods__["fdd"] = _presto.makedata_fdd_get
+    if _newclass:fdd = property(_presto.makedata_fdd_get,_presto.makedata_fdd_set)
+    __swig_setmethods__["p"] = _presto.makedata_p_set
+    __swig_getmethods__["p"] = _presto.makedata_p_get
+    if _newclass:p = property(_presto.makedata_p_get,_presto.makedata_p_set)
+    __swig_setmethods__["pd"] = _presto.makedata_pd_set
+    __swig_getmethods__["pd"] = _presto.makedata_pd_get
+    if _newclass:pd = property(_presto.makedata_pd_get,_presto.makedata_pd_set)
+    __swig_setmethods__["pdd"] = _presto.makedata_pdd_set
+    __swig_getmethods__["pdd"] = _presto.makedata_pdd_get
+    if _newclass:pdd = property(_presto.makedata_pdd_get,_presto.makedata_pdd_set)
+    __swig_setmethods__["r"] = _presto.makedata_r_set
+    __swig_getmethods__["r"] = _presto.makedata_r_get
+    if _newclass:r = property(_presto.makedata_r_get,_presto.makedata_r_set)
+    __swig_setmethods__["z"] = _presto.makedata_z_set
+    __swig_getmethods__["z"] = _presto.makedata_z_get
+    if _newclass:z = property(_presto.makedata_z_get,_presto.makedata_z_set)
+    __swig_setmethods__["w"] = _presto.makedata_w_set
+    __swig_getmethods__["w"] = _presto.makedata_w_get
+    if _newclass:w = property(_presto.makedata_w_get,_presto.makedata_w_set)
+    __swig_setmethods__["amp"] = _presto.makedata_amp_set
+    __swig_getmethods__["amp"] = _presto.makedata_amp_get
+    if _newclass:amp = property(_presto.makedata_amp_get,_presto.makedata_amp_set)
+    __swig_setmethods__["phs"] = _presto.makedata_phs_set
+    __swig_getmethods__["phs"] = _presto.makedata_phs_get
+    if _newclass:phs = property(_presto.makedata_phs_get,_presto.makedata_phs_set)
+    __swig_setmethods__["dc"] = _presto.makedata_dc_set
+    __swig_getmethods__["dc"] = _presto.makedata_dc_get
+    if _newclass:dc = property(_presto.makedata_dc_get,_presto.makedata_dc_set)
+    __swig_setmethods__["binary"] = _presto.makedata_binary_set
+    __swig_getmethods__["binary"] = _presto.makedata_binary_get
+    if _newclass:binary = property(_presto.makedata_binary_get,_presto.makedata_binary_set)
+    __swig_setmethods__["orb"] = _presto.makedata_orb_set
+    __swig_getmethods__["orb"] = _presto.makedata_orb_get
+    if _newclass:orb = property(_presto.makedata_orb_get,_presto.makedata_orb_set)
+    __swig_setmethods__["ampmod"] = _presto.makedata_ampmod_set
+    __swig_getmethods__["ampmod"] = _presto.makedata_ampmod_get
+    if _newclass:ampmod = property(_presto.makedata_ampmod_get,_presto.makedata_ampmod_set)
+    __swig_setmethods__["ampmoda"] = _presto.makedata_ampmoda_set
+    __swig_getmethods__["ampmoda"] = _presto.makedata_ampmoda_get
+    if _newclass:ampmoda = property(_presto.makedata_ampmoda_get,_presto.makedata_ampmoda_set)
+    __swig_setmethods__["ampmodf"] = _presto.makedata_ampmodf_set
+    __swig_getmethods__["ampmodf"] = _presto.makedata_ampmodf_get
+    if _newclass:ampmodf = property(_presto.makedata_ampmodf_get,_presto.makedata_ampmodf_set)
+    __swig_setmethods__["ampmodp"] = _presto.makedata_ampmodp_set
+    __swig_getmethods__["ampmodp"] = _presto.makedata_ampmodp_get
+    if _newclass:ampmodp = property(_presto.makedata_ampmodp_get,_presto.makedata_ampmodp_set)
+    __swig_setmethods__["noisetype"] = _presto.makedata_noisetype_set
+    __swig_getmethods__["noisetype"] = _presto.makedata_noisetype_get
+    if _newclass:noisetype = property(_presto.makedata_noisetype_get,_presto.makedata_noisetype_set)
+    __swig_setmethods__["noise"] = _presto.makedata_noise_set
+    __swig_getmethods__["noise"] = _presto.makedata_noise_get
+    if _newclass:noise = property(_presto.makedata_noise_get,_presto.makedata_noise_set)
+    __swig_setmethods__["noisesig"] = _presto.makedata_noisesig_set
+    __swig_getmethods__["noisesig"] = _presto.makedata_noisesig_get
+    if _newclass:noisesig = property(_presto.makedata_noisesig_get,_presto.makedata_noisesig_set)
+    __swig_setmethods__["numonoff"] = _presto.makedata_numonoff_set
+    __swig_getmethods__["numonoff"] = _presto.makedata_numonoff_get
+    if _newclass:numonoff = property(_presto.makedata_numonoff_get,_presto.makedata_numonoff_set)
+    __swig_setmethods__["onoff"] = _presto.makedata_onoff_set
+    __swig_getmethods__["onoff"] = _presto.makedata_onoff_get
+    if _newclass:onoff = property(_presto.makedata_onoff_get,_presto.makedata_onoff_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_makedata,args)
+        self.this = apply(_presto.new_makedata,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_makedata(self)
+    def __del__(self, destroy= _presto.delete_makedata):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C makedata instance at %s>" % (self.this,)
 
@@ -582,48 +765,47 @@ class makedataPtr(makedata):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = makedata
-prestoc.makedata_swigregister(makedataPtr)
-class rderivs:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,rderivs):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = rderivs.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.makedata_swigregister(makedataPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = rderivs.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
+read_mak_input = _presto.read_mak_input
 
-    __setmethods__["pow"] = prestoc.rderivs_pow_set
-    __getmethods__["pow"] = prestoc.rderivs_pow_get
-    __setmethods__["phs"] = prestoc.rderivs_phs_set
-    __getmethods__["phs"] = prestoc.rderivs_phs_get
-    __setmethods__["dpow"] = prestoc.rderivs_dpow_set
-    __getmethods__["dpow"] = prestoc.rderivs_dpow_get
-    __setmethods__["dphs"] = prestoc.rderivs_dphs_set
-    __getmethods__["dphs"] = prestoc.rderivs_dphs_get
-    __setmethods__["d2pow"] = prestoc.rderivs_d2pow_set
-    __getmethods__["d2pow"] = prestoc.rderivs_d2pow_get
-    __setmethods__["d2phs"] = prestoc.rderivs_d2phs_set
-    __getmethods__["d2phs"] = prestoc.rderivs_d2phs_get
-    __setmethods__["locpow"] = prestoc.rderivs_locpow_set
-    __getmethods__["locpow"] = prestoc.rderivs_locpow_get
+read_mak_file = _presto.read_mak_file
+
+write_mak_file = _presto.write_mak_file
+
+class rderivs(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, rderivs, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, rderivs, name)
+    __swig_setmethods__["pow"] = _presto.rderivs_pow_set
+    __swig_getmethods__["pow"] = _presto.rderivs_pow_get
+    if _newclass:pow = property(_presto.rderivs_pow_get,_presto.rderivs_pow_set)
+    __swig_setmethods__["phs"] = _presto.rderivs_phs_set
+    __swig_getmethods__["phs"] = _presto.rderivs_phs_get
+    if _newclass:phs = property(_presto.rderivs_phs_get,_presto.rderivs_phs_set)
+    __swig_setmethods__["dpow"] = _presto.rderivs_dpow_set
+    __swig_getmethods__["dpow"] = _presto.rderivs_dpow_get
+    if _newclass:dpow = property(_presto.rderivs_dpow_get,_presto.rderivs_dpow_set)
+    __swig_setmethods__["dphs"] = _presto.rderivs_dphs_set
+    __swig_getmethods__["dphs"] = _presto.rderivs_dphs_get
+    if _newclass:dphs = property(_presto.rderivs_dphs_get,_presto.rderivs_dphs_set)
+    __swig_setmethods__["d2pow"] = _presto.rderivs_d2pow_set
+    __swig_getmethods__["d2pow"] = _presto.rderivs_d2pow_get
+    if _newclass:d2pow = property(_presto.rderivs_d2pow_get,_presto.rderivs_d2pow_set)
+    __swig_setmethods__["d2phs"] = _presto.rderivs_d2phs_set
+    __swig_getmethods__["d2phs"] = _presto.rderivs_d2phs_get
+    if _newclass:d2phs = property(_presto.rderivs_d2phs_get,_presto.rderivs_d2phs_set)
+    __swig_setmethods__["locpow"] = _presto.rderivs_locpow_set
+    __swig_getmethods__["locpow"] = _presto.rderivs_locpow_get
+    if _newclass:locpow = property(_presto.rderivs_locpow_get,_presto.rderivs_locpow_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_rderivs,args)
+        self.this = apply(_presto.new_rderivs,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_rderivs(self)
+    def __del__(self, destroy= _presto.delete_rderivs):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C rderivs instance at %s>" % (self.this,)
 
@@ -632,68 +814,71 @@ class rderivsPtr(rderivs):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = rderivs
-prestoc.rderivs_swigregister(rderivsPtr)
-class fourierprops:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,fourierprops):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = fourierprops.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.rderivs_swigregister(rderivsPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = fourierprops.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
-
-    __setmethods__["r"] = prestoc.fourierprops_r_set
-    __getmethods__["r"] = prestoc.fourierprops_r_get
-    __setmethods__["rerr"] = prestoc.fourierprops_rerr_set
-    __getmethods__["rerr"] = prestoc.fourierprops_rerr_get
-    __setmethods__["z"] = prestoc.fourierprops_z_set
-    __getmethods__["z"] = prestoc.fourierprops_z_get
-    __setmethods__["zerr"] = prestoc.fourierprops_zerr_set
-    __getmethods__["zerr"] = prestoc.fourierprops_zerr_get
-    __setmethods__["w"] = prestoc.fourierprops_w_set
-    __getmethods__["w"] = prestoc.fourierprops_w_get
-    __setmethods__["werr"] = prestoc.fourierprops_werr_set
-    __getmethods__["werr"] = prestoc.fourierprops_werr_get
-    __setmethods__["pow"] = prestoc.fourierprops_pow_set
-    __getmethods__["pow"] = prestoc.fourierprops_pow_get
-    __setmethods__["powerr"] = prestoc.fourierprops_powerr_set
-    __getmethods__["powerr"] = prestoc.fourierprops_powerr_get
-    __setmethods__["sig"] = prestoc.fourierprops_sig_set
-    __getmethods__["sig"] = prestoc.fourierprops_sig_get
-    __setmethods__["rawpow"] = prestoc.fourierprops_rawpow_set
-    __getmethods__["rawpow"] = prestoc.fourierprops_rawpow_get
-    __setmethods__["phs"] = prestoc.fourierprops_phs_set
-    __getmethods__["phs"] = prestoc.fourierprops_phs_get
-    __setmethods__["phserr"] = prestoc.fourierprops_phserr_set
-    __getmethods__["phserr"] = prestoc.fourierprops_phserr_get
-    __setmethods__["cen"] = prestoc.fourierprops_cen_set
-    __getmethods__["cen"] = prestoc.fourierprops_cen_get
-    __setmethods__["cenerr"] = prestoc.fourierprops_cenerr_set
-    __getmethods__["cenerr"] = prestoc.fourierprops_cenerr_get
-    __setmethods__["pur"] = prestoc.fourierprops_pur_set
-    __getmethods__["pur"] = prestoc.fourierprops_pur_get
-    __setmethods__["purerr"] = prestoc.fourierprops_purerr_set
-    __getmethods__["purerr"] = prestoc.fourierprops_purerr_get
-    __setmethods__["locpow"] = prestoc.fourierprops_locpow_set
-    __getmethods__["locpow"] = prestoc.fourierprops_locpow_get
+class fourierprops(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, fourierprops, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, fourierprops, name)
+    __swig_setmethods__["r"] = _presto.fourierprops_r_set
+    __swig_getmethods__["r"] = _presto.fourierprops_r_get
+    if _newclass:r = property(_presto.fourierprops_r_get,_presto.fourierprops_r_set)
+    __swig_setmethods__["rerr"] = _presto.fourierprops_rerr_set
+    __swig_getmethods__["rerr"] = _presto.fourierprops_rerr_get
+    if _newclass:rerr = property(_presto.fourierprops_rerr_get,_presto.fourierprops_rerr_set)
+    __swig_setmethods__["z"] = _presto.fourierprops_z_set
+    __swig_getmethods__["z"] = _presto.fourierprops_z_get
+    if _newclass:z = property(_presto.fourierprops_z_get,_presto.fourierprops_z_set)
+    __swig_setmethods__["zerr"] = _presto.fourierprops_zerr_set
+    __swig_getmethods__["zerr"] = _presto.fourierprops_zerr_get
+    if _newclass:zerr = property(_presto.fourierprops_zerr_get,_presto.fourierprops_zerr_set)
+    __swig_setmethods__["w"] = _presto.fourierprops_w_set
+    __swig_getmethods__["w"] = _presto.fourierprops_w_get
+    if _newclass:w = property(_presto.fourierprops_w_get,_presto.fourierprops_w_set)
+    __swig_setmethods__["werr"] = _presto.fourierprops_werr_set
+    __swig_getmethods__["werr"] = _presto.fourierprops_werr_get
+    if _newclass:werr = property(_presto.fourierprops_werr_get,_presto.fourierprops_werr_set)
+    __swig_setmethods__["pow"] = _presto.fourierprops_pow_set
+    __swig_getmethods__["pow"] = _presto.fourierprops_pow_get
+    if _newclass:pow = property(_presto.fourierprops_pow_get,_presto.fourierprops_pow_set)
+    __swig_setmethods__["powerr"] = _presto.fourierprops_powerr_set
+    __swig_getmethods__["powerr"] = _presto.fourierprops_powerr_get
+    if _newclass:powerr = property(_presto.fourierprops_powerr_get,_presto.fourierprops_powerr_set)
+    __swig_setmethods__["sig"] = _presto.fourierprops_sig_set
+    __swig_getmethods__["sig"] = _presto.fourierprops_sig_get
+    if _newclass:sig = property(_presto.fourierprops_sig_get,_presto.fourierprops_sig_set)
+    __swig_setmethods__["rawpow"] = _presto.fourierprops_rawpow_set
+    __swig_getmethods__["rawpow"] = _presto.fourierprops_rawpow_get
+    if _newclass:rawpow = property(_presto.fourierprops_rawpow_get,_presto.fourierprops_rawpow_set)
+    __swig_setmethods__["phs"] = _presto.fourierprops_phs_set
+    __swig_getmethods__["phs"] = _presto.fourierprops_phs_get
+    if _newclass:phs = property(_presto.fourierprops_phs_get,_presto.fourierprops_phs_set)
+    __swig_setmethods__["phserr"] = _presto.fourierprops_phserr_set
+    __swig_getmethods__["phserr"] = _presto.fourierprops_phserr_get
+    if _newclass:phserr = property(_presto.fourierprops_phserr_get,_presto.fourierprops_phserr_set)
+    __swig_setmethods__["cen"] = _presto.fourierprops_cen_set
+    __swig_getmethods__["cen"] = _presto.fourierprops_cen_get
+    if _newclass:cen = property(_presto.fourierprops_cen_get,_presto.fourierprops_cen_set)
+    __swig_setmethods__["cenerr"] = _presto.fourierprops_cenerr_set
+    __swig_getmethods__["cenerr"] = _presto.fourierprops_cenerr_get
+    if _newclass:cenerr = property(_presto.fourierprops_cenerr_get,_presto.fourierprops_cenerr_set)
+    __swig_setmethods__["pur"] = _presto.fourierprops_pur_set
+    __swig_getmethods__["pur"] = _presto.fourierprops_pur_get
+    if _newclass:pur = property(_presto.fourierprops_pur_get,_presto.fourierprops_pur_set)
+    __swig_setmethods__["purerr"] = _presto.fourierprops_purerr_set
+    __swig_getmethods__["purerr"] = _presto.fourierprops_purerr_get
+    if _newclass:purerr = property(_presto.fourierprops_purerr_get,_presto.fourierprops_purerr_set)
+    __swig_setmethods__["locpow"] = _presto.fourierprops_locpow_set
+    __swig_getmethods__["locpow"] = _presto.fourierprops_locpow_get
+    if _newclass:locpow = property(_presto.fourierprops_locpow_get,_presto.fourierprops_locpow_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_fourierprops,args)
+        self.this = apply(_presto.new_fourierprops,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_fourierprops(self)
+    def __del__(self, destroy= _presto.delete_fourierprops):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C fourierprops instance at %s>" % (self.this,)
 
@@ -702,88 +887,101 @@ class fourierpropsPtr(fourierprops):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = fourierprops
-prestoc.fourierprops_swigregister(fourierpropsPtr)
-class binaryprops:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,binaryprops):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = binaryprops.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.fourierprops_swigregister(fourierpropsPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = binaryprops.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
-
-    __setmethods__["ppsr"] = prestoc.binaryprops_ppsr_set
-    __getmethods__["ppsr"] = prestoc.binaryprops_ppsr_get
-    __setmethods__["fpsr"] = prestoc.binaryprops_fpsr_set
-    __getmethods__["fpsr"] = prestoc.binaryprops_fpsr_get
-    __setmethods__["rpsr"] = prestoc.binaryprops_rpsr_set
-    __getmethods__["rpsr"] = prestoc.binaryprops_rpsr_get
-    __setmethods__["pbin"] = prestoc.binaryprops_pbin_set
-    __getmethods__["pbin"] = prestoc.binaryprops_pbin_get
-    __setmethods__["rbin"] = prestoc.binaryprops_rbin_set
-    __getmethods__["rbin"] = prestoc.binaryprops_rbin_get
-    __setmethods__["z"] = prestoc.binaryprops_z_set
-    __getmethods__["z"] = prestoc.binaryprops_z_get
-    __setmethods__["asinic"] = prestoc.binaryprops_asinic_set
-    __getmethods__["asinic"] = prestoc.binaryprops_asinic_get
-    __setmethods__["rdetect"] = prestoc.binaryprops_rdetect_set
-    __getmethods__["rdetect"] = prestoc.binaryprops_rdetect_get
-    __setmethods__["nfftbins"] = prestoc.binaryprops_nfftbins_set
-    __getmethods__["nfftbins"] = prestoc.binaryprops_nfftbins_get
-    __setmethods__["lowbin"] = prestoc.binaryprops_lowbin_set
-    __getmethods__["lowbin"] = prestoc.binaryprops_lowbin_get
-    __setmethods__["ppsrerr"] = prestoc.binaryprops_ppsrerr_set
-    __getmethods__["ppsrerr"] = prestoc.binaryprops_ppsrerr_get
-    __setmethods__["fpsrerr"] = prestoc.binaryprops_fpsrerr_set
-    __getmethods__["fpsrerr"] = prestoc.binaryprops_fpsrerr_get
-    __setmethods__["rpsrerr"] = prestoc.binaryprops_rpsrerr_set
-    __getmethods__["rpsrerr"] = prestoc.binaryprops_rpsrerr_get
-    __setmethods__["pbinerr"] = prestoc.binaryprops_pbinerr_set
-    __getmethods__["pbinerr"] = prestoc.binaryprops_pbinerr_get
-    __setmethods__["rbinerr"] = prestoc.binaryprops_rbinerr_set
-    __getmethods__["rbinerr"] = prestoc.binaryprops_rbinerr_get
-    __setmethods__["zerr"] = prestoc.binaryprops_zerr_set
-    __getmethods__["zerr"] = prestoc.binaryprops_zerr_get
-    __setmethods__["asinicerr"] = prestoc.binaryprops_asinicerr_set
-    __getmethods__["asinicerr"] = prestoc.binaryprops_asinicerr_get
-    __setmethods__["rdetecterr"] = prestoc.binaryprops_rdetecterr_set
-    __getmethods__["rdetecterr"] = prestoc.binaryprops_rdetecterr_get
-    __setmethods__["sig"] = prestoc.binaryprops_sig_set
-    __getmethods__["sig"] = prestoc.binaryprops_sig_get
-    __setmethods__["phs"] = prestoc.binaryprops_phs_set
-    __getmethods__["phs"] = prestoc.binaryprops_phs_get
-    __setmethods__["phserr"] = prestoc.binaryprops_phserr_set
-    __getmethods__["phserr"] = prestoc.binaryprops_phserr_get
-    __setmethods__["cen"] = prestoc.binaryprops_cen_set
-    __getmethods__["cen"] = prestoc.binaryprops_cen_get
-    __setmethods__["cenerr"] = prestoc.binaryprops_cenerr_set
-    __getmethods__["cenerr"] = prestoc.binaryprops_cenerr_get
-    __setmethods__["pur"] = prestoc.binaryprops_pur_set
-    __getmethods__["pur"] = prestoc.binaryprops_pur_get
-    __setmethods__["purerr"] = prestoc.binaryprops_purerr_set
-    __getmethods__["purerr"] = prestoc.binaryprops_purerr_get
-    __setmethods__["pow"] = prestoc.binaryprops_pow_set
-    __getmethods__["pow"] = prestoc.binaryprops_pow_get
-    __setmethods__["powerr"] = prestoc.binaryprops_powerr_set
-    __getmethods__["powerr"] = prestoc.binaryprops_powerr_get
+class binaryprops(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, binaryprops, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, binaryprops, name)
+    __swig_setmethods__["ppsr"] = _presto.binaryprops_ppsr_set
+    __swig_getmethods__["ppsr"] = _presto.binaryprops_ppsr_get
+    if _newclass:ppsr = property(_presto.binaryprops_ppsr_get,_presto.binaryprops_ppsr_set)
+    __swig_setmethods__["fpsr"] = _presto.binaryprops_fpsr_set
+    __swig_getmethods__["fpsr"] = _presto.binaryprops_fpsr_get
+    if _newclass:fpsr = property(_presto.binaryprops_fpsr_get,_presto.binaryprops_fpsr_set)
+    __swig_setmethods__["rpsr"] = _presto.binaryprops_rpsr_set
+    __swig_getmethods__["rpsr"] = _presto.binaryprops_rpsr_get
+    if _newclass:rpsr = property(_presto.binaryprops_rpsr_get,_presto.binaryprops_rpsr_set)
+    __swig_setmethods__["pbin"] = _presto.binaryprops_pbin_set
+    __swig_getmethods__["pbin"] = _presto.binaryprops_pbin_get
+    if _newclass:pbin = property(_presto.binaryprops_pbin_get,_presto.binaryprops_pbin_set)
+    __swig_setmethods__["rbin"] = _presto.binaryprops_rbin_set
+    __swig_getmethods__["rbin"] = _presto.binaryprops_rbin_get
+    if _newclass:rbin = property(_presto.binaryprops_rbin_get,_presto.binaryprops_rbin_set)
+    __swig_setmethods__["z"] = _presto.binaryprops_z_set
+    __swig_getmethods__["z"] = _presto.binaryprops_z_get
+    if _newclass:z = property(_presto.binaryprops_z_get,_presto.binaryprops_z_set)
+    __swig_setmethods__["asinic"] = _presto.binaryprops_asinic_set
+    __swig_getmethods__["asinic"] = _presto.binaryprops_asinic_get
+    if _newclass:asinic = property(_presto.binaryprops_asinic_get,_presto.binaryprops_asinic_set)
+    __swig_setmethods__["rdetect"] = _presto.binaryprops_rdetect_set
+    __swig_getmethods__["rdetect"] = _presto.binaryprops_rdetect_get
+    if _newclass:rdetect = property(_presto.binaryprops_rdetect_get,_presto.binaryprops_rdetect_set)
+    __swig_setmethods__["nfftbins"] = _presto.binaryprops_nfftbins_set
+    __swig_getmethods__["nfftbins"] = _presto.binaryprops_nfftbins_get
+    if _newclass:nfftbins = property(_presto.binaryprops_nfftbins_get,_presto.binaryprops_nfftbins_set)
+    __swig_setmethods__["lowbin"] = _presto.binaryprops_lowbin_set
+    __swig_getmethods__["lowbin"] = _presto.binaryprops_lowbin_get
+    if _newclass:lowbin = property(_presto.binaryprops_lowbin_get,_presto.binaryprops_lowbin_set)
+    __swig_setmethods__["ppsrerr"] = _presto.binaryprops_ppsrerr_set
+    __swig_getmethods__["ppsrerr"] = _presto.binaryprops_ppsrerr_get
+    if _newclass:ppsrerr = property(_presto.binaryprops_ppsrerr_get,_presto.binaryprops_ppsrerr_set)
+    __swig_setmethods__["fpsrerr"] = _presto.binaryprops_fpsrerr_set
+    __swig_getmethods__["fpsrerr"] = _presto.binaryprops_fpsrerr_get
+    if _newclass:fpsrerr = property(_presto.binaryprops_fpsrerr_get,_presto.binaryprops_fpsrerr_set)
+    __swig_setmethods__["rpsrerr"] = _presto.binaryprops_rpsrerr_set
+    __swig_getmethods__["rpsrerr"] = _presto.binaryprops_rpsrerr_get
+    if _newclass:rpsrerr = property(_presto.binaryprops_rpsrerr_get,_presto.binaryprops_rpsrerr_set)
+    __swig_setmethods__["pbinerr"] = _presto.binaryprops_pbinerr_set
+    __swig_getmethods__["pbinerr"] = _presto.binaryprops_pbinerr_get
+    if _newclass:pbinerr = property(_presto.binaryprops_pbinerr_get,_presto.binaryprops_pbinerr_set)
+    __swig_setmethods__["rbinerr"] = _presto.binaryprops_rbinerr_set
+    __swig_getmethods__["rbinerr"] = _presto.binaryprops_rbinerr_get
+    if _newclass:rbinerr = property(_presto.binaryprops_rbinerr_get,_presto.binaryprops_rbinerr_set)
+    __swig_setmethods__["zerr"] = _presto.binaryprops_zerr_set
+    __swig_getmethods__["zerr"] = _presto.binaryprops_zerr_get
+    if _newclass:zerr = property(_presto.binaryprops_zerr_get,_presto.binaryprops_zerr_set)
+    __swig_setmethods__["asinicerr"] = _presto.binaryprops_asinicerr_set
+    __swig_getmethods__["asinicerr"] = _presto.binaryprops_asinicerr_get
+    if _newclass:asinicerr = property(_presto.binaryprops_asinicerr_get,_presto.binaryprops_asinicerr_set)
+    __swig_setmethods__["rdetecterr"] = _presto.binaryprops_rdetecterr_set
+    __swig_getmethods__["rdetecterr"] = _presto.binaryprops_rdetecterr_get
+    if _newclass:rdetecterr = property(_presto.binaryprops_rdetecterr_get,_presto.binaryprops_rdetecterr_set)
+    __swig_setmethods__["sig"] = _presto.binaryprops_sig_set
+    __swig_getmethods__["sig"] = _presto.binaryprops_sig_get
+    if _newclass:sig = property(_presto.binaryprops_sig_get,_presto.binaryprops_sig_set)
+    __swig_setmethods__["phs"] = _presto.binaryprops_phs_set
+    __swig_getmethods__["phs"] = _presto.binaryprops_phs_get
+    if _newclass:phs = property(_presto.binaryprops_phs_get,_presto.binaryprops_phs_set)
+    __swig_setmethods__["phserr"] = _presto.binaryprops_phserr_set
+    __swig_getmethods__["phserr"] = _presto.binaryprops_phserr_get
+    if _newclass:phserr = property(_presto.binaryprops_phserr_get,_presto.binaryprops_phserr_set)
+    __swig_setmethods__["cen"] = _presto.binaryprops_cen_set
+    __swig_getmethods__["cen"] = _presto.binaryprops_cen_get
+    if _newclass:cen = property(_presto.binaryprops_cen_get,_presto.binaryprops_cen_set)
+    __swig_setmethods__["cenerr"] = _presto.binaryprops_cenerr_set
+    __swig_getmethods__["cenerr"] = _presto.binaryprops_cenerr_get
+    if _newclass:cenerr = property(_presto.binaryprops_cenerr_get,_presto.binaryprops_cenerr_set)
+    __swig_setmethods__["pur"] = _presto.binaryprops_pur_set
+    __swig_getmethods__["pur"] = _presto.binaryprops_pur_get
+    if _newclass:pur = property(_presto.binaryprops_pur_get,_presto.binaryprops_pur_set)
+    __swig_setmethods__["purerr"] = _presto.binaryprops_purerr_set
+    __swig_getmethods__["purerr"] = _presto.binaryprops_purerr_get
+    if _newclass:purerr = property(_presto.binaryprops_purerr_get,_presto.binaryprops_purerr_set)
+    __swig_setmethods__["pow"] = _presto.binaryprops_pow_set
+    __swig_getmethods__["pow"] = _presto.binaryprops_pow_get
+    if _newclass:pow = property(_presto.binaryprops_pow_get,_presto.binaryprops_pow_set)
+    __swig_setmethods__["powerr"] = _presto.binaryprops_powerr_set
+    __swig_getmethods__["powerr"] = _presto.binaryprops_powerr_get
+    if _newclass:powerr = property(_presto.binaryprops_powerr_get,_presto.binaryprops_powerr_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_binaryprops,args)
+        self.this = apply(_presto.new_binaryprops,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_binaryprops(self)
+    def __del__(self, destroy= _presto.delete_binaryprops):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C binaryprops instance at %s>" % (self.this,)
 
@@ -792,54 +990,50 @@ class binarypropsPtr(binaryprops):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = binaryprops
-prestoc.binaryprops_swigregister(binarypropsPtr)
-class rawbincand:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,rawbincand):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = rawbincand.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.binaryprops_swigregister(binarypropsPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = rawbincand.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
-
-    __setmethods__["full_N"] = prestoc.rawbincand_full_N_set
-    __getmethods__["full_N"] = prestoc.rawbincand_full_N_get
-    __setmethods__["full_T"] = prestoc.rawbincand_full_T_set
-    __getmethods__["full_T"] = prestoc.rawbincand_full_T_get
-    __setmethods__["full_lo_r"] = prestoc.rawbincand_full_lo_r_set
-    __getmethods__["full_lo_r"] = prestoc.rawbincand_full_lo_r_get
-    __setmethods__["mini_N"] = prestoc.rawbincand_mini_N_set
-    __getmethods__["mini_N"] = prestoc.rawbincand_mini_N_get
-    __setmethods__["mini_r"] = prestoc.rawbincand_mini_r_set
-    __getmethods__["mini_r"] = prestoc.rawbincand_mini_r_get
-    __setmethods__["mini_power"] = prestoc.rawbincand_mini_power_set
-    __getmethods__["mini_power"] = prestoc.rawbincand_mini_power_get
-    __setmethods__["mini_numsum"] = prestoc.rawbincand_mini_numsum_set
-    __getmethods__["mini_numsum"] = prestoc.rawbincand_mini_numsum_get
-    __setmethods__["mini_sigma"] = prestoc.rawbincand_mini_sigma_set
-    __getmethods__["mini_sigma"] = prestoc.rawbincand_mini_sigma_get
-    __setmethods__["psr_p"] = prestoc.rawbincand_psr_p_set
-    __getmethods__["psr_p"] = prestoc.rawbincand_psr_p_get
-    __setmethods__["orb_p"] = prestoc.rawbincand_orb_p_set
-    __getmethods__["orb_p"] = prestoc.rawbincand_orb_p_get
+class rawbincand(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, rawbincand, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, rawbincand, name)
+    __swig_setmethods__["full_N"] = _presto.rawbincand_full_N_set
+    __swig_getmethods__["full_N"] = _presto.rawbincand_full_N_get
+    if _newclass:full_N = property(_presto.rawbincand_full_N_get,_presto.rawbincand_full_N_set)
+    __swig_setmethods__["full_T"] = _presto.rawbincand_full_T_set
+    __swig_getmethods__["full_T"] = _presto.rawbincand_full_T_get
+    if _newclass:full_T = property(_presto.rawbincand_full_T_get,_presto.rawbincand_full_T_set)
+    __swig_setmethods__["full_lo_r"] = _presto.rawbincand_full_lo_r_set
+    __swig_getmethods__["full_lo_r"] = _presto.rawbincand_full_lo_r_get
+    if _newclass:full_lo_r = property(_presto.rawbincand_full_lo_r_get,_presto.rawbincand_full_lo_r_set)
+    __swig_setmethods__["mini_N"] = _presto.rawbincand_mini_N_set
+    __swig_getmethods__["mini_N"] = _presto.rawbincand_mini_N_get
+    if _newclass:mini_N = property(_presto.rawbincand_mini_N_get,_presto.rawbincand_mini_N_set)
+    __swig_setmethods__["mini_r"] = _presto.rawbincand_mini_r_set
+    __swig_getmethods__["mini_r"] = _presto.rawbincand_mini_r_get
+    if _newclass:mini_r = property(_presto.rawbincand_mini_r_get,_presto.rawbincand_mini_r_set)
+    __swig_setmethods__["mini_power"] = _presto.rawbincand_mini_power_set
+    __swig_getmethods__["mini_power"] = _presto.rawbincand_mini_power_get
+    if _newclass:mini_power = property(_presto.rawbincand_mini_power_get,_presto.rawbincand_mini_power_set)
+    __swig_setmethods__["mini_numsum"] = _presto.rawbincand_mini_numsum_set
+    __swig_getmethods__["mini_numsum"] = _presto.rawbincand_mini_numsum_get
+    if _newclass:mini_numsum = property(_presto.rawbincand_mini_numsum_get,_presto.rawbincand_mini_numsum_set)
+    __swig_setmethods__["mini_sigma"] = _presto.rawbincand_mini_sigma_set
+    __swig_getmethods__["mini_sigma"] = _presto.rawbincand_mini_sigma_get
+    if _newclass:mini_sigma = property(_presto.rawbincand_mini_sigma_get,_presto.rawbincand_mini_sigma_set)
+    __swig_setmethods__["psr_p"] = _presto.rawbincand_psr_p_set
+    __swig_getmethods__["psr_p"] = _presto.rawbincand_psr_p_get
+    if _newclass:psr_p = property(_presto.rawbincand_psr_p_get,_presto.rawbincand_psr_p_set)
+    __swig_setmethods__["orb_p"] = _presto.rawbincand_orb_p_set
+    __swig_getmethods__["orb_p"] = _presto.rawbincand_orb_p_get
+    if _newclass:orb_p = property(_presto.rawbincand_orb_p_get,_presto.rawbincand_orb_p_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_rawbincand,args)
+        self.this = apply(_presto.new_rawbincand,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_rawbincand(self)
+    def __del__(self, destroy= _presto.delete_rawbincand):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C rawbincand instance at %s>" % (self.this,)
 
@@ -848,48 +1042,41 @@ class rawbincandPtr(rawbincand):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = rawbincand
-prestoc.rawbincand_swigregister(rawbincandPtr)
-class foldstats:
-    __setmethods__ = {}
-    for _s in []: __setmethods__.update(_s.__setmethods__)
-    def __setattr__(self,name,value):
-        if (name == "this"):
-            if isinstance(value,foldstats):
-                self.__dict__[name] = value.this
-                if hasattr(value,"thisown"): self.__dict__["thisown"] = value.thisown
-                del value.thisown
-                return
-        method = foldstats.__setmethods__.get(name,None)
-        if method: return method(self,value)
-        self.__dict__[name] = value
+_presto.rawbincand_swigregister(rawbincandPtr)
 
-    __getmethods__ = {}
-    for _s in []: __getmethods__.update(_s.__getmethods__)
-    def __getattr__(self,name):
-        method = foldstats.__getmethods__.get(name,None)
-        if method: return method(self)
-        raise AttributeError,name
-
-    __setmethods__["numdata"] = prestoc.foldstats_numdata_set
-    __getmethods__["numdata"] = prestoc.foldstats_numdata_get
-    __setmethods__["data_avg"] = prestoc.foldstats_data_avg_set
-    __getmethods__["data_avg"] = prestoc.foldstats_data_avg_get
-    __setmethods__["data_var"] = prestoc.foldstats_data_var_set
-    __getmethods__["data_var"] = prestoc.foldstats_data_var_get
-    __setmethods__["numprof"] = prestoc.foldstats_numprof_set
-    __getmethods__["numprof"] = prestoc.foldstats_numprof_get
-    __setmethods__["prof_avg"] = prestoc.foldstats_prof_avg_set
-    __getmethods__["prof_avg"] = prestoc.foldstats_prof_avg_get
-    __setmethods__["prof_var"] = prestoc.foldstats_prof_var_set
-    __getmethods__["prof_var"] = prestoc.foldstats_prof_var_get
-    __setmethods__["redchi"] = prestoc.foldstats_redchi_set
-    __getmethods__["redchi"] = prestoc.foldstats_redchi_get
+class foldstats(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, foldstats, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, foldstats, name)
+    __swig_setmethods__["numdata"] = _presto.foldstats_numdata_set
+    __swig_getmethods__["numdata"] = _presto.foldstats_numdata_get
+    if _newclass:numdata = property(_presto.foldstats_numdata_get,_presto.foldstats_numdata_set)
+    __swig_setmethods__["data_avg"] = _presto.foldstats_data_avg_set
+    __swig_getmethods__["data_avg"] = _presto.foldstats_data_avg_get
+    if _newclass:data_avg = property(_presto.foldstats_data_avg_get,_presto.foldstats_data_avg_set)
+    __swig_setmethods__["data_var"] = _presto.foldstats_data_var_set
+    __swig_getmethods__["data_var"] = _presto.foldstats_data_var_get
+    if _newclass:data_var = property(_presto.foldstats_data_var_get,_presto.foldstats_data_var_set)
+    __swig_setmethods__["numprof"] = _presto.foldstats_numprof_set
+    __swig_getmethods__["numprof"] = _presto.foldstats_numprof_get
+    if _newclass:numprof = property(_presto.foldstats_numprof_get,_presto.foldstats_numprof_set)
+    __swig_setmethods__["prof_avg"] = _presto.foldstats_prof_avg_set
+    __swig_getmethods__["prof_avg"] = _presto.foldstats_prof_avg_get
+    if _newclass:prof_avg = property(_presto.foldstats_prof_avg_get,_presto.foldstats_prof_avg_set)
+    __swig_setmethods__["prof_var"] = _presto.foldstats_prof_var_set
+    __swig_getmethods__["prof_var"] = _presto.foldstats_prof_var_get
+    if _newclass:prof_var = property(_presto.foldstats_prof_var_get,_presto.foldstats_prof_var_set)
+    __swig_setmethods__["redchi"] = _presto.foldstats_redchi_set
+    __swig_getmethods__["redchi"] = _presto.foldstats_redchi_get
+    if _newclass:redchi = property(_presto.foldstats_redchi_get,_presto.foldstats_redchi_set)
     def __init__(self,*args):
-        self.this = apply(prestoc.new_foldstats,args)
+        self.this = apply(_presto.new_foldstats,args)
         self.thisown = 1
-    def __del__(self,prestoc=prestoc):
-        if getattr(self,'thisown',0):
-            prestoc.delete_foldstats(self)
+    def __del__(self, destroy= _presto.delete_foldstats):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
     def __repr__(self):
         return "<C foldstats instance at %s>" % (self.this,)
 
@@ -898,235 +1085,173 @@ class foldstatsPtr(foldstats):
         self.this = this
         if not hasattr(self,"thisown"): self.thisown = 0
         self.__class__ = foldstats
-prestoc.foldstats_swigregister(foldstatsPtr)
-tofloatvector = prestoc.tofloatvector
+_presto.foldstats_swigregister(foldstatsPtr)
 
-float_to_complex = prestoc.float_to_complex
+read_int = _presto.read_int
 
-complex_to_float = prestoc.complex_to_float
+read_double = _presto.read_double
 
-SQRT2 = prestoc.SQRT2
-PI = prestoc.PI
-TWOPI = prestoc.TWOPI
-DEGTORAD = prestoc.DEGTORAD
-RADTODEG = prestoc.RADTODEG
-PIBYTWO = prestoc.PIBYTWO
-SOL = prestoc.SOL
-SECPERJULYR = prestoc.SECPERJULYR
-SECPERDAY = prestoc.SECPERDAY
-ARCSEC2RAD = prestoc.ARCSEC2RAD
-SEC2RAD = prestoc.SEC2RAD
-LOWACC = prestoc.LOWACC
-HIGHACC = prestoc.HIGHACC
-INTERBIN = prestoc.INTERBIN
-INTERPOLATE = prestoc.INTERPOLATE
-NO_CHECK_ALIASED = prestoc.NO_CHECK_ALIASED
-CHECK_ALIASED = prestoc.CHECK_ALIASED
-CONV = prestoc.CONV
-CORR = prestoc.CORR
-INPLACE_CONV = prestoc.INPLACE_CONV
-INPLACE_CORR = prestoc.INPLACE_CORR
-FFTDK = prestoc.FFTDK
-FFTD = prestoc.FFTD
-FFTK = prestoc.FFTK
-NOFFTS = prestoc.NOFFTS
-RAW = prestoc.RAW
-PREPPED = prestoc.PREPPED
-FFT = prestoc.FFT
-SAME = prestoc.SAME
-power_arr = prestoc.power_arr
+frotate = _presto.frotate
 
-phase_arr = prestoc.phase_arr
+drotate = _presto.drotate
 
-dpower_arr = prestoc.dpower_arr
+dorbint = _presto.dorbint
 
-dphase_arr = prestoc.dphase_arr
+keplars_eqn = _presto.keplars_eqn
 
-num_psrs_in_database = prestoc.num_psrs_in_database
+lin_interp_E = _presto.lin_interp_E
 
-get_psrdata = prestoc.get_psrdata
+E_to_phib = _presto.E_to_phib
 
-get_psrdata_by_num = prestoc.get_psrdata_by_num
+E_to_v = _presto.E_to_v
 
-return_psrparams_at_epoch = prestoc.return_psrparams_at_epoch
+E_to_p = _presto.E_to_p
 
-get_psr_at_epoch = prestoc.get_psr_at_epoch
+E_to_z = _presto.E_to_z
 
-readinf = prestoc.readinf
+E_to_phib_BT = _presto.E_to_phib_BT
 
-writeinf = prestoc.writeinf
+r_resp_halfwidth = _presto.r_resp_halfwidth
 
-read_mak_input = prestoc.read_mak_input
+z_resp_halfwidth = _presto.z_resp_halfwidth
 
-read_mak_file = prestoc.read_mak_file
+w_resp_halfwidth = _presto.w_resp_halfwidth
 
-write_mak_file = prestoc.write_mak_file
+binary_velocity = _presto.binary_velocity
 
-read_int = prestoc.read_int
+bin_resp_halfwidth = _presto.bin_resp_halfwidth
 
-read_double = prestoc.read_double
+gen_r_response = _presto.gen_r_response
 
-frotate = prestoc.frotate
+gen_z_response = _presto.gen_z_response
 
-drotate = prestoc.drotate
+gen_w_response = _presto.gen_w_response
 
-dorbint = prestoc.dorbint
+gen_bin_response = _presto.gen_bin_response
 
-keplars_eqn = prestoc.keplars_eqn
+get_numphotons = _presto.get_numphotons
 
-lin_interp_E = prestoc.lin_interp_E
+get_localpower = _presto.get_localpower
 
-E_to_phib = prestoc.E_to_phib
+get_localpower3d = _presto.get_localpower3d
 
-E_to_v = prestoc.E_to_v
+get_derivs3d = _presto.get_derivs3d
 
-E_to_p = prestoc.E_to_p
+calc_props = _presto.calc_props
 
-E_to_z = prestoc.E_to_z
+calc_binprops = _presto.calc_binprops
 
-E_to_phib_BT = prestoc.E_to_phib_BT
+calc_rzwerrs = _presto.calc_rzwerrs
 
-r_resp_halfwidth = prestoc.r_resp_halfwidth
+candidate_sigma = _presto.candidate_sigma
 
-z_resp_halfwidth = prestoc.z_resp_halfwidth
+power_for_sigma = _presto.power_for_sigma
 
-w_resp_halfwidth = prestoc.w_resp_halfwidth
+chisqr = _presto.chisqr
 
-binary_velocity = prestoc.binary_velocity
+print_candidate = _presto.print_candidate
 
-bin_resp_halfwidth = prestoc.bin_resp_halfwidth
+print_bin_candidate = _presto.print_bin_candidate
 
-gen_r_response = prestoc.gen_r_response
+read_rzw_cand = _presto.read_rzw_cand
 
-gen_z_response = prestoc.gen_z_response
+read_bin_cand = _presto.read_bin_cand
 
-gen_w_response = prestoc.gen_w_response
+read_rawbin_cand = _presto.read_rawbin_cand
 
-gen_bin_response = prestoc.gen_bin_response
+get_rzw_cand = _presto.get_rzw_cand
 
-get_numphotons = prestoc.get_numphotons
+get_bin_cand = _presto.get_bin_cand
 
-get_localpower = prestoc.get_localpower
+get_rawbin_cand = _presto.get_rawbin_cand
 
-get_localpower3d = prestoc.get_localpower3d
+chkfilelen = _presto.chkfilelen
 
-get_derivs3d = prestoc.get_derivs3d
+read_fcomplex_file = _presto.read_fcomplex_file
 
-calc_props = prestoc.calc_props
+read_float_file = _presto.read_float_file
 
-calc_binprops = prestoc.calc_binprops
+prune_powers = _presto.prune_powers
 
-calc_rzwerrs = prestoc.calc_rzwerrs
+median = _presto.median
 
-candidate_sigma = prestoc.candidate_sigma
+dms2rad = _presto.dms2rad
 
-power_for_sigma = prestoc.power_for_sigma
+hms2rad = _presto.hms2rad
 
-chisqr = prestoc.chisqr
+sphere_ang_diff = _presto.sphere_ang_diff
 
-print_candidate = prestoc.print_candidate
+spread_with_pad = _presto.spread_with_pad
 
-print_bin_candidate = prestoc.print_bin_candidate
+spread_no_pad = _presto.spread_no_pad
 
-read_rzw_cand = prestoc.read_rzw_cand
+paddata = _presto.paddata
 
-read_bin_cand = prestoc.read_bin_cand
+place_complex_kernel = _presto.place_complex_kernel
 
-read_rawbin_cand = prestoc.read_rawbin_cand
+place_real_kernel = _presto.place_real_kernel
 
-get_rzw_cand = prestoc.get_rzw_cand
+chop_complex_ends = _presto.chop_complex_ends
 
-get_bin_cand = prestoc.get_bin_cand
+chop_real_ends = _presto.chop_real_ends
 
-get_rawbin_cand = prestoc.get_rawbin_cand
+complex_corr_conv = _presto.complex_corr_conv
 
-chkfilelen = prestoc.chkfilelen
+real_corr_conv = _presto.real_corr_conv
 
-read_fcomplex_file = prestoc.read_fcomplex_file
+corr_complex = _presto.corr_complex
 
-read_float_file = prestoc.read_float_file
+stretch_fft = _presto.stretch_fft
 
-prune_powers = prestoc.prune_powers
+corr_loc_pow = _presto.corr_loc_pow
 
-median = prestoc.median
+rz_interp = _presto.rz_interp
 
-dms2rad = prestoc.dms2rad
+max_r_arr = _presto.max_r_arr
 
-hms2rad = prestoc.hms2rad
+max_rz_arr = _presto.max_rz_arr
 
-sphere_ang_diff = prestoc.sphere_ang_diff
+fold_errors = _presto.fold_errors
 
-spread_with_pad = prestoc.spread_with_pad
+foldfile = _presto.foldfile
 
-spread_no_pad = prestoc.spread_no_pad
+fold = _presto.fold
 
-paddata = prestoc.paddata
+simplefold = _presto.simplefold
 
-place_complex_kernel = prestoc.place_complex_kernel
+doppler = _presto.doppler
 
-place_real_kernel = prestoc.place_real_kernel
+search_minifft = _presto.search_minifft
 
-chop_complex_ends = prestoc.chop_complex_ends
+print_rawbincand = _presto.print_rawbincand
 
-chop_real_ends = prestoc.chop_real_ends
+barycenter = _presto.barycenter
 
-complex_corr_conv = prestoc.complex_corr_conv
+fftwcall = _presto.fftwcall
 
-real_corr_conv = prestoc.real_corr_conv
+tablesixstepfft = _presto.tablesixstepfft
 
-corr_complex = prestoc.corr_complex
+realfft = _presto.realfft
 
-stretch_fft = prestoc.stretch_fft
+tree_max_dm = _presto.tree_max_dm
 
-corr_loc_pow = prestoc.corr_loc_pow
+smearing_from_bw = _presto.smearing_from_bw
 
-rz_interp = prestoc.rz_interp
+delay_from_dm = _presto.delay_from_dm
 
-max_r_arr = prestoc.max_r_arr
+dm_from_delay = _presto.dm_from_delay
 
-max_rz_arr = prestoc.max_rz_arr
+dedisp_delays = _presto.dedisp_delays
 
-fold_errors = prestoc.fold_errors
+subband_search_delays = _presto.subband_search_delays
 
-foldfile = prestoc.foldfile
+nice_output_1 = _presto.nice_output_1
 
-fold = prestoc.fold
+nice_output_2 = _presto.nice_output_2
 
-simplefold = prestoc.simplefold
+corr_rz_plane = _presto.corr_rz_plane
 
-doppler = prestoc.doppler
-
-search_minifft = prestoc.search_minifft
-
-print_rawbincand = prestoc.print_rawbincand
-
-barycenter = prestoc.barycenter
-
-fftwcall = prestoc.fftwcall
-
-tablesixstepfft = prestoc.tablesixstepfft
-
-realfft = prestoc.realfft
-
-tree_max_dm = prestoc.tree_max_dm
-
-smearing_from_bw = prestoc.smearing_from_bw
-
-delay_from_dm = prestoc.delay_from_dm
-
-dm_from_delay = prestoc.dm_from_delay
-
-dedisp_delays = prestoc.dedisp_delays
-
-subband_search_delays = prestoc.subband_search_delays
-
-nice_output_1 = prestoc.nice_output_1
-
-nice_output_2 = prestoc.nice_output_2
-
-corr_rz_plane = prestoc.corr_rz_plane
-
-corr_rz_interp = prestoc.corr_rz_interp
+corr_rz_interp = _presto.corr_rz_interp
 
 
 
