@@ -20,7 +20,7 @@
 /*    1 = no overlap of successive miniFFTs           */
 /*    2 = overlap 1/2 of each miniFFT                 */
 /*    4 = overlap 3/4 of each miniFFT                 */
-#define OVERLAPFACT 4
+#define OVERLAPFACT 2
 
 /* Blocks of length maxfft to work with at a time */
 #define WORKBLOCK 4
@@ -42,7 +42,7 @@
 
 /* If the following is defined, the program will print */
 /* debugging info to stdout.                           */
-#define DEBUGOUT
+/*#define DEBUGOUT*/
 
 /* Output threshold */
 /* If any candidates have a sigma greater than the following  */
@@ -86,8 +86,8 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
   /* Copy the header information into *hdr */
     
- hdr = (multibeam_tapehdr *) header;
-
+  hdr = (multibeam_tapehdr *) header;
+ 
   /* Convert the Header into usable info... */
 
   multibeam_hdr_to_inf(hdr, &idata);
@@ -198,12 +198,11 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 		list[NUMCANDS - 1] = tmplist[ii];
 		minsig = percolate_rawbincands(list, NUMCANDS);
 	      }
-	    } else {
+	    } else
 	      continue;
-	    }
-	  } else {
+	  } else
 	    break;
-	  }
+
 	  /* Mini-fft search for loop */
 	}
 
@@ -248,6 +247,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
     FILE *outfile;
 
     sprintf(idata.name, "%s/%s", OUTDIR, idata.object);
+    strtofilename(idata.name);
     strncpy(idata.observer, "PMSurv", 90);
     strncpy(idata.analyzer, 
 	    "Scott Ransom <ransom@cfa.harvard.edu>", 90);
@@ -277,6 +277,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
     
     /* Write the binary candidate file */
     
+    sprintf(outfilenm, "%s_bin.cand", idata.name);
     outfile = chkfopen(outfilenm, "wb");
     chkfwrite(list, sizeof(rawbincand), newnumcands, outfile);
     fclose(outfile);

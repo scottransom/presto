@@ -73,7 +73,25 @@ int split_root_suffix(char *input, char **root, char **suffix)
   }
 }
 
+void strtofilename(char *string)
+/* Trim spaces off the end of *input and convert */
+/* all other spaces into underscores.            */
+{
+  int ii;
 
+  ii = strlen(string) - 1;
+  do {
+    if (string[ii]==' ')
+      string[ii]='\0';
+    else
+      break;
+  } while (ii--);
+  do {
+    if (string[ii]==' ')
+      string[ii]='_';
+  } while (ii--);
+}
+    
 long next2_to_n(long x)
 /* Return the first value of 2^n >= x */
 {
