@@ -1,6 +1,6 @@
 #include "prepfold.h"
 
-#define TEST_EQUAL(a, b) (fabs((a)-(b))/fabs(a) < 1.0e-10 ? 1 : 0)
+#define TEST_EQUAL(a, b) (fabs((a)-(b))/fabs((a)) < 1.0e-20 ? 1 : 0)
 
 /********************************************/
 /* The following is taken from ppgplot.c by */
@@ -91,7 +91,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 /* Make the beautiful 1 page prepfold output */
 {
   int ii, jj, kk, ll, mm, profindex=0, loops=1, ct;
-  int totpdelay=0, totpddelay=0, pdelay, pddelay;
+  int totpdelay=0, pdelay, pddelay;
   double profavg=0.0, profvar=0.0;
   double N=0.0, T, dphase, pofact, *currentprof, *lastprof;
   double parttime, *pdprofs, bestp, bestpd, bestpdd;
@@ -168,12 +168,6 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       break;
     }
   
-  for (ii = 0; ii < search->numpdots; ii++)
-    if (TEST_EQUAL(search->pdots[ii], bestpd)){
-      totpddelay = search->pdstep * (ii - (search->numpdots - 1) / 2);
-      break;
-    }
-      
   /* Correct profiles for best DM */
 
   if (search->nsub > 1){
@@ -214,6 +208,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       /* Make the DM vs subband plot */
 
       if (TEST_EQUAL(search->dms[ii], search->bestdm)){
+printf("xxxxxxxxxxxxxxxxxx\n");
 	for (jj = 0; jj < search->nsub; jj++){
 
 	  /* Copy the subband parts into a single array */
@@ -304,7 +299,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	      /* Add this point to dmchi */
 
 	      dmchi[ii] = currentstats.redchi;
-
+printf("P/Pd search chi = %f\n", dmchi[ii]);
 	      /* Copy these statistics */
 
 	      beststats = currentstats;
@@ -337,7 +332,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	
       /* Only check the best P and P-dot */
 
-      } else {
+      }
+      {
 
 	/* Correct each part for the best pdot */
 	  
@@ -355,6 +351,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
 		      totpdelay, currentprof, &currentstats);
 	dmchi[ii] = currentstats.redchi;
+printf("DM %d  = %f\n", ii, dmchi[ii]);
       }
     }
     free(ddprofs);

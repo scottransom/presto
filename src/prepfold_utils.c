@@ -90,7 +90,6 @@ void fold_errors(double *prof, int proflen, double dt, double N,
   /*        have a measurements error = sqrt(2 * P).  This   */
   /*        causes an error in our estimates of rerr.        */
 
-  ii = 1;
   for (ii = 1; ii < proflen / 2; ii++){
     pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
     pwrfact = 2.0 * pwr;
@@ -109,17 +108,23 @@ void fold_errors(double *prof, int proflen, double dt, double N,
     }
   }
 
-  /* Help protect against really low significance profiles...*/
+  if (gotone){
 
-  if (!gotone){
-    rerr = zerr = werr = 0.5;
+    /* Calculate the standard deviations */
+
+    rerr = rerrn / rerrd;
+    zerr = zerrn / zerrd;
+    werr = werrn / werrd;
+
+    /* Help protect against really low significance profiles.  */
+    /* And note that this is probably _underestimating_ the    */
+    /* errors in this case...                                  */
+
+  } else {
+    rerr = 0.5;
+    zerr = 7.8;
+    werr = 50.2;
   }
-
-  /* Calculate the standard deviations */
-
-  rerr = rerrn / rerrd;
-  zerr = zerrn / zerrd;
-  werr = werrn / werrd;
 
   /* Some useful values */
 
