@@ -252,7 +252,6 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
     mfile->currentfile = findex;
     mfile->currentpos = mfile->position - 
       (cumlen - mfile->filelens[findex]);
-printf("%pos = %lld  currentpos = %lld\n", mfile->position, mfile->currentpos);
   }
   if ((rt = fseek(mfile->fileptrs[findex], 
 		  mfile->currentpos, SEEK_SET)) == -1) {

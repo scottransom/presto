@@ -177,7 +177,7 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     for (jj=0; jj<bb; jj++){
       delta = (jj < bb2) ?
 	TWOPI * (ii + jj + 1) / (double) (nn >> 1) :
-	TWOPI * (n2 - ii - bb2 + jj) / (double) (nn >> 1);
+	TWOPI * (n2 - ii - bb + jj) / (double) (nn >> 1);
       wr = cos(delta);
       wi = sin(delta);
       wtemp = sin(0.5 * delta);
@@ -194,10 +194,8 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
 	wi = wi * wpr + wtemp * wpi + wi;
       }
     }
-    printf("%lld %lld\n", sizeof(rawtype)*ii*n1, 
-	   sizeof(rawtype)*(n2-(ii+bb2))*n1);
     fseek_multifile(scratch, sizeof(rawtype) * \
-		    (ii*n1), SEEK_SET);
+		    (ii+1)*n1, SEEK_SET);
     fwrite_multifile(data, sizeof(rawtype), bb2*n1, scratch);
     fseek_multifile(scratch, sizeof(rawtype) * \
 		    (n2-(ii+bb2))*n1, SEEK_SET);
