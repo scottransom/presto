@@ -107,60 +107,78 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan)
 }
 
 
-double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
-                  double T0, double Ttot, double *firsttoa)
-/* This routine reads a set of TOAs from the open file 'infile'.    */
-/* It returns a double precision vector of TOAs in seconds from the */
-/* first TOA.  If 'bin' is true the routine treats the data as      */
-/* binary double precision (otherwise text).  If 'sec' is true the  */
-/* data is assumed to be in seconds (otherwise MJD).                */
-/* The number of TOAs read is placed in 'numtoas', and the raw      */
-/* TOA is placed in 'firsttoa'.  T0 is the time to use for the zero */
-/* time.  If it is negative it will default to the first TOA.       */
+double *read_events(FILE *infile, int bin, int days, int *numevents,
+		    double MJD0, double Ttot, double startfrac, double endfrac, 
+		    double offset)
+/* This routine reads a set of events from the open file 'infile'.     */
+/* It returns a double precision vector of events in seconds from the  */
+/* first event.  If 'bin' is true the routine treats the data as       */
+/* binary double precision (otherwise text).  If 'days' is 1 then the  */
+/* data is assumed to be in days since the 'inf' EPOCH (0 is sec from  */
+/* EPOCH in 'inf').  If 'days' is 2, the data are assumed to be MJDs.  */
+/* The number of events read is placed in 'numevents', and the raw     */
+/* event is placed in 'firstevent'.  MJD0 is the time to use for the   */
+/* reference time.  Ttot is the duration of the observation. 'start'   */
+/* and 'end' are define the fraction of the observation that we are    */
+/* interested in.  'offset' is a time offset to apply to the events.   */
 {
-  int N, nn, goodN=0;
-  double *ts, *goodts, dtmp;
+  int N=0, nn=0, goodN=0;
+  double *ts, *goodts, dtmp, lotime, hitime;
+  char line[80];
 
   if (bin){
     N = chkfilelen(infile, sizeof(double));
   } else {
-
-    /* Read the input file once to count TOAs */
-
-    N = 0;
+    /* Read the input file once to count events */
     while (!feof(infile)){
-      fscanf(infile, "%lf", &dtmp);
-      N++;
+      fgets(line, 80, infile);
+      if (line[0]!='#')
+	if (sscanf(line, "%lf", &dtmp)==1) N++;
     }
-    N--;
   }
 
-  /* Allocate the TOA arrays */
+  /* Allocate the event arrays */
 
   ts = (double *)malloc(N * sizeof(double));
 
-  /* Rewind and read the TOAs for real */
+  /* Rewind and read the events for real */
 
   rewind(infile);
   if (bin){
     fread(ts, sizeof(double), N, infile);
   } else {
-    for (nn=0; nn<N; nn++)
-      fscanf(infile, "%lf", &ts[nn]);
+    while (!feof(infile)){
+      fgets(line, 80, infile);
+      if (line[0]!='#')
+	if (sscanf(line, "%lf", &ts[nn])==1) nn++;
+    }
   }
 
-  /* Count how many TOAs are within our range and only keep them */
+  /* Convert all the events to MJD */
 
-  if (!sec)
-    Ttot /= 86400.0;
+  if (days==0){ /* Events are in seconds since MJD0 */
+    for (nn=0; nn<N; nn++)
+      ts[nn] = MJD0+(ts[nn]+offset)/SECPERDAY;
+  } else if (days==1){ /* Events are in days since MJD0 */
+    for (nn=0; nn<N; nn++)
+      ts[nn] = MJD0+(ts[nn]+offset);
+  } else if (days==2 && 
+	     offset != 0.0){ /* Events are in MJD with an offset */
+    for (nn=0; nn<N; nn++)
+      ts[nn] += offset;
+  }
+
+  /* Count how many events are within our range and only keep them */
+
+  lotime = MJD0 + startfrac*Ttot/SECPERDAY;
+  hitime = MJD0 + endfrac*Ttot/SECPERDAY;
   for (nn=0; nn<N; nn++)
-    if (ts[nn] >= T0 && ts[nn] < T0+Ttot)
-      goodN++;
+    if (ts[nn] >= lotime && ts[nn] < hitime) goodN++;
   if (goodN != N){
     goodts = (double *)malloc(goodN * sizeof(double));
     goodN = 0;
     for (nn=0; nn<N; nn++){
-      if (ts[nn] >= T0 && ts[nn] < T0+Ttot){
+      if (ts[nn] >= lotime && ts[nn] < hitime){
 	goodts[goodN] = ts[nn];
 	goodN++;
       }
@@ -171,26 +189,16 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
   } else {
     goodts = ts;
   }
-  *numtoas = N;
+  *numevents = N;
 
-  /* Sort the TOAs */
+  /* Convert the events to seconds from MJD0 */
 
-  qsort(ts, N, sizeof(double), compare_doubles); 
-  *firsttoa = ts[0];
+  for (nn=0; nn<N; nn++)
+    goodts[nn] = (goodts[nn]-MJD0)*SECPERDAY;
 
-  /* Convert the times (if needed) from MJD to seconds from the first TOA */
+  /* Sort the events and return them */
 
-  if (T0 < 0.0)
-    dtmp = ts[0];
-  else
-    dtmp = T0;
-  if (sec){
-    for (nn = 0; nn < N; nn++)
-      ts[nn] = ts[nn] - dtmp;
-  } else {
-    for (nn = 0; nn < N; nn++)
-      ts[nn] = (ts[nn] - dtmp) * 86400.0;
-  }
+  qsort(goodts, N, sizeof(double), compare_doubles); 
   return goodts;
 }
 

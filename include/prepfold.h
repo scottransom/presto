@@ -14,7 +14,7 @@
 /* Flags used to tweak the plots */
 
 typedef struct plotflags {
-  int toas;
+  int events;
   int nosearch;
   int justprofs;
   int scaleparts;
@@ -76,17 +76,20 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan);
 /* The equivalent floats are placed in *data.               */
 /* It returns the number of points read.                    */
 
-double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
-                  double T0, double Ttot, double *firsttoa);
-/* This routine reads a set of TOAs from the open file 'infile'.    */
-/* It returns a double precision vector of TOAs in seconds from the */
-/* first TOA.  If 'bin' is true the routine treats the data as      */
-/* binary double precision (otherwise text).  If 'sec' is true the  */
-/* data is assumed to be in seconds (otherwise MJD).                */
-/* The number of TOAs read is placed in 'numtoas', and the raw      */
-/* TOA is placed in 'firsttoa'.  T0 is the time to ue for the zero  */
-/* time.  If it is negative it will default to the first TOA.  Ttot */
-/* is the total time duration that we will want to fold.            */
+double *read_events(FILE *infile, int bin, int days, int *numevents,
+		    double MJD0, double Ttot, double startfrac, double endfrac, 
+		    double offset);
+/* This routine reads a set of events from the open file 'infile'.     */
+/* It returns a double precision vector of events in seconds from the  */
+/* first event.  If 'bin' is true the routine treats the data as       */
+/* binary double precision (otherwise text).  If 'days' is 1 then the  */
+/* data is assumed to be in days since the 'inf' EPOCH (0 is sec from  */
+/* EPOCH in 'inf').  If 'days' is 2, the data are assumed to be MJDs.  */
+/* The number of events read is placed in 'numevents', and the raw     */
+/* event is placed in 'firstevent'.  MJD0 is the time to use for the   */
+/* reference time.  Ttot is the duration of the observation. 'start'   */
+/* and 'end' are define the fraction of the observation22 that we are    */
+/* interested in.  'offset' is a time offset to apply to the events.   */
 
 void hunt(double *xx, int n, double x, int *jlo);
 

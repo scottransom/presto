@@ -32,8 +32,8 @@ static Cmdline cmd = {
   /* justprofsP = */ 0,
   /***** -portrait: Orient the output in portrait mode (for -justprofs) */
   /* portraitP = */ 0,
-  /***** -toas: The folded data were TOAs instead of samples */
-  /* toasP = */ 0,
+  /***** -events: The folded data were events instead of samples or bins */
+  /* eventsP = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -772,11 +772,11 @@ showOptionValues(void)
     printf("-portrait found:\n");
   }
 
-  /***** -toas: The folded data were TOAs instead of samples */
-  if( !cmd.toasP ) {
-    printf("-toas not found.\n");
+  /***** -events: The folded data were events instead of samples or bins */
+  if( !cmd.eventsP ) {
+    printf("-events not found.\n");
   } else {
-    printf("-toas found:\n");
+    printf("-events found:\n");
   }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
@@ -794,17 +794,17 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-xwin] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-toas] [--] infile ...\n\
+ [-xwin] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [--] infile ...\n\
     Displays or regenerates the Postscript for a 'pfd' file created by prepfold.\n\
         -xwin: Show the result plots on-screen as well as making a ps file\n\
   -scaleparts: Scale the part profiles independently\n\
      -allgrey: Make all the images greyscale instead of color\n\
    -justprofs: Only output the profile portions of the plot\n\
     -portrait: Orient the output in portrait mode (for -justprofs)\n\
-        -toas: The folded data were TOAs instead of samples\n\
+      -events: The folded data were events instead of samples or bins\n\
        infile: The input 'pfd' file name.\n\
                1...100 values\n\
-version: 10Apr02\n\
+version: 30Nov02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -847,8 +847,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-toas", argv[i]) ) {
-      cmd.toasP = 1;
+    if( 0==strcmp("-events", argv[i]) ) {
+      cmd.eventsP = 1;
       continue;
     }
 

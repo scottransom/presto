@@ -1143,17 +1143,17 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	cpgtext(0.0, 0.7, out);
 	sprintf(out, "T\\dsample\\u");
 	cpgtext(0.0, 0.6, out);
-	if (flags->toas)
-	  sprintf(out, "=  N/A (TOAs)");
+	if (flags->events)
+	  sprintf(out, "=  N/A (Events)");
 	else
 	  sprintf(out, "=  %f", search->dt);
 	cpgtext(0.45, 0.6, out);
-	if (flags->toas)
-	  sprintf(out, "Toas Folded");
+	if (flags->events)
+	  sprintf(out, "Events Folded");
 	else
 	  sprintf(out, "Data Folded");
 	cpgtext(0.0, 0.5, out);
-	if (flags->toas)
+	if (flags->events)
 	  sprintf(out, "=  %-.0f", beststats.prof_avg*search->proflen);
 	else
 	  sprintf(out, "=  %-.0f", N);

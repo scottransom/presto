@@ -19,8 +19,8 @@ typedef struct s_Cmdline {
   char justprofsP;
   /***** -portrait: Orient the output in portrait mode (for -justprofs) */
   char portraitP;
-  /***** -toas: The folded data were TOAs instead of samples */
-  char toasP;
+  /***** -events: The folded data were events instead of samples or bins */
+  char eventsP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

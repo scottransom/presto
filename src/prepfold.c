@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "prepfold.h"
 #include "prepfold_cmd.h"
 #include "mask.h"
@@ -27,14 +28,14 @@ int main(int argc, char *argv[])
   FILE *infiles[MAXPATCHFILES], *filemarker, *binproffile;
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
-  double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime, startTday=0.0;
+  double recdt=0.0, barydispdt=0.0, N=0.0, T=0.0, proftime, startTday=0.0;
   double polyco_phase=0.0, polyco_phase0=0.0;
   double *obsf=NULL, *dispdts=NULL, *parttimes=NULL, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
-  double *buffers, *phasesadded, *TOAs=NULL;
-  char *plotfilenm, *outfilenm, *rootnm, *binproffilenm;
+  double *buffers, *phasesadded, *events=NULL;
+  char *plotfilenm, *outfilenm, *rootnm, *binproffilenm, *root, *suffix;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
-  int numfiles, numtoas, numchan=1, binary=0, numdelays=0, numbarypts=0;
+  int numfiles, numevents, numchan=1, binary=0, numdelays=0, numbarypts=0;
   int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0, useshorts=0;
   int *maskchans=NULL, nummasked=0;
   long ii=0, jj, kk, worklen=0, numread=0, reads_per_part=0;
@@ -60,14 +61,36 @@ int main(int argc, char *argv[])
   cmd = parseCmdline(argc, argv);
   obsmask.numchan = obsmask.numint = 0;
   if (cmd->timingP){
-    cmd->nobaryP = 1;
-    cmd->nosearchP = 1;
+    cmd->nopsearchP = 1;
+    cmd->nopdsearchP = 1;
+    cmd->nodmsearchP = 1;
     cmd->npart = 60;
+    cmd->fineP = 1;
+  }
+  if (cmd->slowP){
+    cmd->fineP = 1;
+    cmd->proflen = 100;
+    cmd->nsub = 16;
+  }
+  if (cmd->fineP){
+    cmd->ndmfact = 1;
+    cmd->dmstep = 1;
     cmd->npfact = 1;
     cmd->pstep = 1;
     cmd->pdstep = 2;
   }
-  pflags.toas = cmd->toasP;
+  if (cmd->coarseP){
+    cmd->npfact = 4;
+    if (cmd->pstep==1)
+      cmd->pstep = 2;
+    else
+      cmd->pstep = 3;
+    if (cmd->pstep==2)
+      cmd->pstep = 4;
+    else
+      cmd->pstep = 6;
+  }
+  pflags.events = cmd->eventsP;
   pflags.nosearch = cmd->nosearchP;
   pflags.scaleparts = cmd->scalepartsP;
   pflags.justprofs = cmd->justprofsP;
@@ -80,14 +103,9 @@ int main(int argc, char *argv[])
   printf("\n\n");
   printf("        Pulsar Raw-Data Folding Search Routine\n");
   printf(" Used for DM, Period, and P-dot tweaking of PSR candidates.\n");
-  printf("                 by Scott M. Ransom\n");
-  printf("          Latest modification:  2002 Sept 11\n\n");
+  printf("                 by Scott M. Ransom\n\n");
 
   init_prepfoldinfo(&search);
-
-  /* Make sure nobary is set for polyco folding */
-  if (cmd->polycofileP)
-    cmd->nobaryP = 1;
 
   numfiles = cmd->argc;
   {
@@ -97,7 +115,7 @@ int main(int argc, char *argv[])
     free(path);
 
     if (!cmd->outfileP){
-      char *suffix, *tmprootnm;
+      char *tmprootnm;
 
       split_root_suffix(cmd->argv[0], &tmprootnm, &suffix);
       if ((cmd->startT != 0.0) || (cmd->endT != 1.0)){
@@ -113,37 +131,48 @@ int main(int argc, char *argv[])
   }
 
   if (!RAWDATA){
-    char *root, *suffix;
-
     /* Split the filename into a rootname and a suffix */
-
     if (split_root_suffix(cmd->argv[0], &root, &suffix)==0){
       printf("\nThe input filename (%s) must have a suffix!\n\n", 
 	     search.filenm);
       exit(1);
     } else {
-      if (strcmp(suffix, "sdat")==0)
+      if (strcmp(suffix, "sdat")==0){
 	useshorts = 1;
+      } else if (strcmp(suffix, "bcpm1")==0 || 
+		 strcmp(suffix, "bcpm2")==0){
+	printf("Assuming the data is from a GBT BCPM...\n");
+	cmd->bcpmP = 1;
+      } else if (strcmp(suffix, "pkmb")==0){
+	printf("Assuming the data is from the Parkes Multibeam system...\n");
+	cmd->pkmbP = 1;
+      } else if (isdigit(suffix[0]) &&
+		 isdigit(suffix[1]) &&
+		 isdigit(suffix[2])){
+	printf("Assuming the data is from the Arecibo WAPP system...\n");
+	cmd->wappP = 1;
+      }
     }
+  }
 
+  if (!RAWDATA){
     printf("Reading input data from '%s'.\n", cmd->argv[0]);
     printf("Reading information from '%s.inf'.\n\n", root);
-
     /* Read the info file if available */
-
     readinf(&idata, root);
     free(root);
     free(suffix);
+    /* Use events instead of a time series */
+    if (cmd->eventsP){
+      int eventtype=0; /* 0=sec since .inf, 1=days since .inf, 2=MJDs */
 
-    if (cmd->toasP){ /* Use TOAs instead of a time series */
-      double MJD0=-1.0, firsttoa;
       /* The following allows using inf files from searches of a subset */
-      /* of TOAs from an event file.                                    */
-      if (cmd->rzwcandP) {
+      /* of events from an event file.                                  */
+      if (cmd->rzwcandP || cmd->accelcandP) {
 	infodata rzwidata;
 	char *cptr;
 	
-	if (!cmd->rzwfileP) {					
+	if (cmd->rzwcandP && !cmd->rzwfileP) {					
 	  printf("\nYou must enter a name for the rzw candidate ");
 	  printf("file (-rzwfile filename)\n");
 	  printf("Exiting.\n\n");
@@ -153,8 +182,21 @@ int main(int argc, char *argv[])
 	} else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))){
 	  ii = (long) (cptr - cmd->rzwfile);
 	}
+	if (cmd->accelcandP && !cmd->accelfileP) {
+	  printf("\nYou must enter a name for the ACCEL candidate ");
+	  printf("file (-accelfile filename)\n");
+	  printf("Exiting.\n\n");
+	  exit(1);
+	} else if (NULL != (cptr = strstr(cmd->accelfile, "_rzw"))){
+	  ii = (long) (cptr - cmd->accelfile);
+	} else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))){
+	  ii = (long) (cptr - cmd->accelfile);
+	}
 	cptr = (char *)calloc(ii + 1, sizeof(char));
-	strncpy(cptr, cmd->rzwfile, ii);
+	if (cmd->rzwfileP)
+	  strncpy(cptr, cmd->rzwfile, ii);
+	if (cmd->accelfileP)
+	  strncpy(cptr, cmd->accelfile, ii);
 	readinf(&rzwidata, cptr);
 	free(cptr);
 	idata.mjd_i = rzwidata.mjd_i;
@@ -162,36 +204,30 @@ int main(int argc, char *argv[])
 	idata.N = rzwidata.N;
 	idata.dt = rzwidata.dt;
       }
-      if (!cmd->secsP && !cmd->daysP && idata.mjd_i) 
-	MJD0 = (double) idata.mjd_i + idata.mjd_f;
-      if (cmd->toaoffset != 0.0){
-	MJD0 = cmd->toaoffset;
-	idata.mjd_i = (int) MJD0;
-	idata.mjd_f = MJD0 - idata.mjd_i;
-      }
+      printf("Assuming the events are barycentered.\n");
       if (!cmd->proflenP){
-	printf("\nYou must specify the number of bins in the profile\n"
-	       "when folding TOAs.  Use the '-n' parameter.\n\n");
-	exit(0);
-      }
-      if (!cmd->nobaryP){
-	printf("Assuming the TOAs are barycentered...\n");
-	cmd->nobaryP = 1;
+	cmd->proflenP = 1;
+	cmd->proflen = 20;
+	printf("Using %d bins in the profile since not specified.\n", cmd->proflen);
       }
       if (cmd->doubleP)
 	infiles[0] = chkfopen(cmd->argv[0], "rb");
       else
 	infiles[0] = chkfopen(cmd->argv[0], "r");
-      TOAs = read_toas(infiles[0], cmd->doubleP, cmd->secsP, &numtoas,
-		       MJD0, idata.N*idata.dt, &firsttoa);
-      if (cmd->rzwcandP)
+      if (cmd->daysP)
+	eventtype = 1;
+      else if (cmd->mjdsP)
+	eventtype = 2;
+      events = read_events(infiles[0], cmd->doubleP, eventtype, &numevents,
+			   idata.mjd_i+idata.mjd_f, idata.N*idata.dt, 
+			   cmd->startT, cmd->endT, cmd->offset);
+      if (cmd->rzwcandP || cmd->accelcandP)
 	T = idata.N*idata.dt;
       else
-	T = TOAs[numtoas-1];
+	T = events[numevents-1];
     } else {
       infiles[0] = chkfopen(cmd->argv[0], "rb");
     }
-
   } else if (cmd->pkmbP){
     if (numfiles > 1)
       printf("Reading Parkes PKMB data from %d files:\n", numfiles);
@@ -235,30 +271,25 @@ int main(int argc, char *argv[])
     if (cmd->psrnameP){
       search.candnm = (char *)calloc(strlen(cmd->psrname)+5, sizeof(char));
       sprintf(search.candnm, "PSR_%s", cmd->psrname);
-    } else if (cmd->parnameP ||
-	       (cmd->timingP && idata.bary)){
+    } else if (cmd->parnameP || cmd->timingP){
       int retval;
       psrparams psr;
-      /* Read the par file just to get the PSR name */
-      if (cmd->parnameP){
-	retval = get_psr_from_parfile(cmd->parname, 51000.0, &psr);
-      } else {
-	retval = get_psr_from_parfile(cmd->timing, 51000.0, &psr);
+      if (cmd->timingP){
 	cmd->parnameP = 1;
 	cmd->parname = cmd->timing;
       }
+      /* Read the par file just to get the PSR name */
+      retval = get_psr_from_parfile(cmd->parname, 51000.0, &psr);
       search.candnm = (char *)calloc(strlen(psr.jname)+5, sizeof(char));
       sprintf(search.candnm, "PSR_%s", psr.jname);
-    } else if (cmd->timingP && !idata.bary){
-      /* Generate polycos and get the pulsar name */
-      cmd->psrname = make_polycos(cmd->timing, &idata);
-      cmd->psrnameP = 1;
-      search.candnm = (char *)calloc(strlen(cmd->psrname)+5, sizeof(char));
-      sprintf(search.candnm, "PSR_%s", cmd->psrname);
     } else if (cmd->rzwcandP) {						
       slen = 20;
       search.candnm = (char *)calloc(slen, sizeof(char));
       sprintf(search.candnm, "RZW_Cand_%d", cmd->rzwcand);
+    } else if (cmd->accelcandP) {						
+      slen = 22;
+      search.candnm = (char *)calloc(slen, sizeof(char));
+      sprintf(search.candnm, "ACCEL_Cand_%d", cmd->accelcand);
     } else {
       slen = 20;
       search.candnm = (char *)calloc(slen, sizeof(char));
@@ -283,16 +314,6 @@ int main(int argc, char *argv[])
     sprintf(binproffilenm, "%s_%s.pfd.binprofs", rootnm, search.candnm);
     search.pgdev = (char *)calloc(slen + 7, sizeof(char));
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
-    if (cmd->timingP && !idata.bary){
-      char *polycofilenm;
-      polycofilenm = (char *)calloc(slen + 8, sizeof(char));
-      sprintf(polycofilenm, "%s_%s.pfd.polycos", rootnm, search.candnm);
-      rename("polyco.dat", polycofilenm);
-      cmd->polycofileP = 1;
-      cmd->polycofile = (char *)calloc(strlen(polycofilenm)+1, sizeof(char));
-      strcpy(cmd->polycofile, polycofilenm);
-      free(polycofilenm);
-    }
   }
 
   /* What ephemeris will we use?  (Default is DE200) */
@@ -324,7 +345,6 @@ int main(int argc, char *argv[])
       PKMB_update_infodata(numfiles, &idata);
 
       /* OBS code for TEMPO */
-      
       strcpy(obs, "PK");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "Parkes Multibeam");
@@ -422,20 +442,21 @@ int main(int argc, char *argv[])
 
       /* Correct the barycentric time for the dispersion delay.     */
       /* This converts the barycentric time to infinite frequency.  */
-
-      barydispdt = delay_from_dm(cmd->dm, idata.freq + 
-				 (idata.num_chan - 1) * idata.chan_wid);
-      search.bepoch -= (barydispdt / SECPERDAY);
+      if (cmd->dm > 0.0){
+	barydispdt = delay_from_dm(cmd->dm, idata.freq + 
+				   (idata.num_chan - 1) * idata.chan_wid);
+	search.bepoch -= (barydispdt / SECPERDAY);
+      }
     }
     worklen = ptsperrec;
 
-  } else { /* Raw floating point or TOA data (already de-dispersed if radio data) */
+  } else { /* Raw floating point or event data (already de-dispersed if radio data) */
 
     cmd->nsub = 1;
     search.startT = cmd->startT;
     search.endT = cmd->endT;
     
-    if (!cmd->toasP){
+    if (!cmd->eventsP){
       
       /* Some information about the size of the records */
       
@@ -473,49 +494,12 @@ int main(int argc, char *argv[])
     search.telescope = (char *)calloc(strlen(idata.telescope)+1, 
 				      sizeof(char));
     strcpy(search.telescope, idata.telescope);
-    
-    if (cmd->nobaryP){
-      if (idata.mjd_i){
-	if (idata.bary)
-	  search.bepoch = idata.mjd_i + idata.mjd_f + startTday;
-	else
-	  search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
-      }
-    } else {
-      
-      /* OBS code for TEMPO */
-      
-      if (cmd->obscodeP)
-	strcpy(obs, cmd->obscode);
-      else {
-	printf("\nIf you want to barycenter you must specify an \n");
-	printf("observatory found in TEMPO using the '-obs' argument.\n\n");
-	exit(1);
-      }
-      
-      /* Define the RA and DEC of the observation */
-      
-      ra_dec_to_string(rastring, idata.ra_h, idata.ra_m, idata.ra_s);
-      ra_dec_to_string(decstring, idata.dec_d, idata.dec_m, idata.dec_s);
-      
-      /* Topocentric and barycentric times of folding epoch */
 
-      if (idata.mjd_i) {
+    if (idata.mjd_i){
+      if (idata.bary)
+	search.bepoch = idata.mjd_i + idata.mjd_f + startTday;
+      else
 	search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
-	barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
-		   decstring, obs, ephem);
-
-	if (!strcmp(idata.band, "Radio")) {
-
-	  /* Correct the barycentric time for the dispersion delay.    */
-	  /* This converts the barycentric time to infinite frequency. */
-
-	  barydispdt = delay_from_dm(idata.dm, idata.freq + 
-				     (idata.num_chan - 1) * 
-				     idata.chan_wid);
-	  search.bepoch -= (barydispdt / SECPERDAY);
-	}
-      }
     }
   }
 
@@ -527,8 +511,21 @@ int main(int argc, char *argv[])
   if (cmd->timingP && !idata.bary)
     printf("Polycos used are in '%s.polycos'.\n", outfilenm);
   
-  /* Read the pulsar database if needed */
+  /* Generate polycos if required and set the pulsar name */
+  if (cmd->timingP && !idata.bary){
+    char *polycofilenm;
+    cmd->psrnameP = 1;
+    cmd->psrname = make_polycos(cmd->timing, &idata);
+    polycofilenm = (char *)calloc(strlen(outfilenm)+8, sizeof(char));
+    sprintf(polycofilenm, "%s.polycos", outfilenm);
+    rename("polyco.dat", polycofilenm);
+    cmd->polycofileP = 1;
+    cmd->polycofile = (char *)calloc(strlen(polycofilenm)+1, sizeof(char));
+    strcpy(cmd->polycofile, polycofilenm);
+    free(polycofilenm);
+  }
 
+  /* Read the pulsar database if needed */
   if (cmd->psrnameP) {
     if (cmd->polycofileP) {
       FILE *polycofileptr;
@@ -559,8 +556,8 @@ int main(int argc, char *argv[])
       psrparams psr;
       
       if (search.bepoch==0.0){
-	printf("\nYou must not use the '-nobary' flag if you want to\n");
-	printf("access the pulsar database.  Exiting.\n\n");
+	printf("\nYou cannot fold topocentric data with the pulsar database.\n");
+	printf("Use '-timing' or polycos instead.  Exiting.\n\n");
 	exit(1);
       }
       pnum = get_psr_at_epoch(cmd->psrname, search.bepoch, &psr);
@@ -575,6 +572,8 @@ int main(int argc, char *argv[])
       search.bary.p1 = psr.p;
       search.bary.p2 = psr.pd;
       search.bary.p3 = psr.pdd;
+      if (cmd->dm==0.0)
+	cmd->dm = psr.dm;
       f = psr.f;
       fd = psr.fd;
       fdd = psr.fdd;
@@ -586,8 +585,8 @@ int main(int argc, char *argv[])
     psrparams psr;
     
     if (search.bepoch==0.0){
-      printf("\nYou must not use the '-nobary' flag if you want to\n");
-      printf("fold using a par file.  Exiting.\n\n");
+      printf("\nYou cannot fold topocentric data with a par file.\n");
+      printf("Use '-timing' or polycos instead.  Exiting.\n\n");
       exit(1);
     }
 
@@ -779,7 +778,7 @@ int main(int argc, char *argv[])
 
   /* Determine the phase delays caused by the orbit if needed */
 
-  if (binary && !cmd->toasP) {
+  if (binary && !cmd->eventsP) {
     double orbdt = 1.0, startE=0.0;
 
     /* Save the orbital solution every half second               */
@@ -807,7 +806,15 @@ int main(int argc, char *argv[])
       search.orb.t = -search.orb.t/SECPERDAY + search.bepoch;
   }
 
-  if (cmd->toasP){
+  if (RAWDATA && cmd->dm==0.0){
+    /* Correct the barycentric time for the dispersion delay.     */
+    /* This converts the barycentric time to infinite frequency.  */
+    barydispdt = delay_from_dm(cmd->dm, idata.freq + 
+			       (idata.num_chan - 1) * idata.chan_wid);
+    search.bepoch -= (barydispdt / SECPERDAY);
+  }
+
+  if (cmd->eventsP){
     search.dt = (search.bary.p1 + 0.5*T*search.bary.p2)/search.proflen;
     N = ceil(T/search.dt);
   }
@@ -861,7 +868,7 @@ int main(int argc, char *argv[])
 	      "Longitude of peri (w) (deg)  =  %-.10g\n", 
 	      search.orb.w / DEGTORAD); 
       tmpTo = search.orb.t;
-      if (cmd->toasP){
+      if (cmd->eventsP){
 	if (search.bepoch == 0.0)
 	  tmpTo = -search.orb.t/SECPERDAY + search.tepoch;
 	else 
@@ -888,9 +895,9 @@ int main(int argc, char *argv[])
   }
   if (numdelays == 0) flags = 0;
 
-  if (cmd->toasP){  /* Fold TOAs instead of a time series */
-    double loT, hiT, toa, dtmp, cts, phase;
-    double tf, tfd, tfdd, delay=0.0;
+  if (cmd->eventsP){  /* Fold events instead of a time series */
+    double event, dtmp, cts, phase;
+    double tf, tfd, tfdd;
     int partnum, binnum;
     
     binproffile = chkfopen(binproffilenm, "wb");
@@ -907,26 +914,22 @@ int main(int argc, char *argv[])
     tf = f;
     tfd = fd/2.0;
     tfdd = fdd/6.0;
-    loT = search.startT*T;
-    hiT = search.endT*T;
     dtmp = cmd->npart/T;
     parttimes = gen_dvect(cmd->npart);
     if (binary) search.orb.w *= DEGTORAD;
-    for (ii=0; ii<numtoas; ii++){
-      toa = TOAs[ii];
-      if (toa > loT && toa < hiT){
-	if (binary){
-	  double tt;
-	  tt = fmod(search.orb.t+toa, search.orb.p);
-	  delay = keplars_eqn(tt, search.orb.p, search.orb.e, 1.0E-15);
-	  E_to_phib(&delay, 1, &search.orb);
-	}
-	toa -= delay;
-	partnum = (int) floor(toa*dtmp);
-	phase = toa*(toa*(toa*tfdd+tfd)+tf);
-	binnum = (int)((phase-(int)phase)*search.proflen);
-	search.rawfolds[partnum*search.proflen + binnum] += 1.0;
+    for (ii=0; ii<numevents; ii++){
+      event = events[ii];
+      if (binary){
+	double tt, delay;
+	tt = fmod(search.orb.t+event, search.orb.p);
+	delay = keplars_eqn(tt, search.orb.p, search.orb.e, 1.0E-15);
+	E_to_phib(&delay, 1, &search.orb);
+	event -= delay;
       }
+      partnum = (int) floor(event*dtmp);
+      phase = event*(event*(event*tfdd+tfd)+tf);
+      binnum = (int)((phase-(int)phase)*search.proflen);
+      search.rawfolds[partnum*search.proflen + binnum] += 1.0;
     }
     if (binary){
       if (search.bepoch == 0.0)
@@ -958,7 +961,7 @@ int main(int argc, char *argv[])
       chkfwrite(search.rawfolds + ii*search.proflen, sizeof(double), 
 		search.proflen, binproffile);
     }
-    printf("\r  Folded %d TOAs.", numtoas);
+    printf("\r  Folded %d events.", numevents);
     fflush(NULL);
 
   } else {
@@ -987,11 +990,9 @@ int main(int argc, char *argv[])
 	chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
     }
 
-    /* Correct our fold parameters if we are barycentering */
-  
-    if (cmd->nobaryP) {
+    if (!RAWDATA){ /* Data is already barycentered */
       foldf = f;  foldfd = fd;  foldfdd = fdd;
-    } else {
+    } else { /* Correct our fold parameters if we are barycentering */
       double *voverc;
     
       /* The number of topo to bary points to generate with TEMPO */
@@ -1081,7 +1082,7 @@ int main(int argc, char *argv[])
       search.chan_wid = idata.chan_wid;
       for (ii = 0; ii < numchan; ii++)
 	obsf[ii] = obsf[0] + ii * idata.chan_wid;
-      if (!cmd->nobaryP){
+      if (RAWDATA){
 	for (ii = 0; ii < numchan; ii++)
 	  obsf[ii] = doppler(obsf[ii], search.avgvoverc);
       } 
@@ -1178,7 +1179,7 @@ int main(int argc, char *argv[])
 	  phcalc(idata.mjd_i, mjdf+0.5*proftime/SECPERDAY, &offsetphase, &foldf);
 	  /* Note:  offsetphase is needed because the folding routines */
 	  /* do not count on the starting f0, f1, and f2 _changing_    */
-	  /* during the run.  The use those values to calculate the    */
+	  /* during the run.  They use those values to calculate the   */
 	  /* correct starting phase -- which turns out to drift slowly */
 	  /* when using polycos since f0 is changing slowly.           */
 	  /* offsetphase exactly compensates for the drift.            */
@@ -1552,7 +1553,7 @@ int main(int argc, char *argv[])
     
     /* Convert best params from/to barycentric to/from topocentric */
     
-    if (cmd->nobaryP){
+    if (!RAWDATA){
 
       /* Data was barycentered */
 
@@ -1691,7 +1692,7 @@ int main(int argc, char *argv[])
     free(Ep);
     free(tp);
   }
-  if (!cmd->nobaryP){
+  if (RAWDATA){
     free(barytimes);
     free(topotimes);
   }

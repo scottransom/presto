@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
-  flags.toas = cmd->toasP;
+  flags.events = cmd->eventsP;
   flags.scaleparts = cmd->scalepartsP;
   flags.justprofs = cmd->justprofsP;
   flags.allgrey = cmd->allgreyP;

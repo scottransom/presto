@@ -44,14 +44,18 @@ static Cmdline cmd = {
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
   /* numwappsC = */ 1,
-  /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
-  /* nobaryP = */ 0,
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   /* de405P = */ 0,
   /***** -xwin: Show the result plots on-screen as well as make a plotfile */
   /* xwinP = */ 0,
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   /* runavgP = */ 0,
+  /***** -fine: A finer gridding in the p/pdot plane (for well known p and pdot) */
+  /* fineP = */ 0,
+  /***** -coarse: A coarser gridding in the p/pdot plane (for uknown p and pdot) */
+  /* coarseP = */ 0,
+  /***** -slow: Sets useful flags for slow pulsars */
+  /* slowP = */ 0,
   /***** -searchpdd: Search p-dotdots as well as p and p-dots */
   /* searchpddP = */ 0,
   /***** -searchfdd: Search f-dotdots as well as f and f-dots */
@@ -162,10 +166,6 @@ static Cmdline cmd = {
   /* polycofileP = */ 0,
   /* polycofile = */ (char*)0,
   /* polycofileC = */ 0,
-  /***** -obs: Two letter TEMPO observatory code (for barycentering) */
-  /* obscodeP = */ 0,
-  /* obscode = */ (char*)0,
-  /* obscodeC = */ 0,
   /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
   /* timingP = */ 0,
   /* timing = */ (char*)0,
@@ -174,10 +174,18 @@ static Cmdline cmd = {
   /* rzwcandP = */ 0,
   /* rzwcand = */ (int)0,
   /* rzwcandC = */ 0,
-  /***** -rzwfile: Name of the rzw search file to use (include the full name of the file) */
+  /***** -rzwfile: Name of the rzw search '.cand' file to use (with suffix) */
   /* rzwfileP = */ 0,
   /* rzwfile = */ (char*)0,
   /* rzwfileC = */ 0,
+  /***** -accelcand: The candidate number to fold from 'infile'_rzw.cand */
+  /* accelcandP = */ 0,
+  /* accelcand = */ (int)0,
+  /* accelcandC = */ 0,
+  /***** -accelfile: Name of the accel search '.cand' file to use (with suffix) */
+  /* accelfileP = */ 0,
+  /* accelfile = */ (char*)0,
+  /* accelfileC = */ 0,
   /***** -bin: Fold a binary pulsar.  Must include all of the following parameters */
   /* binaryP = */ 0,
   /***** -pb: The orbital period (s) */
@@ -208,18 +216,18 @@ static Cmdline cmd = {
   /* maskfileP = */ 0,
   /* maskfile = */ (char*)0,
   /* maskfileC = */ 0,
-  /***** -toas: Use a TOA file instead of a time series (.dat) file */
-  /* toasP = */ 0,
-  /***** -secs: TOAs are in seconds days since the MJD in the .inf file */
-  /* secsP = */ 0,
-  /***** -days: TOAs are in days since the MJD in the .inf file */
+  /***** -events: Use a event file instead of a time series (.dat) file */
+  /* eventsP = */ 0,
+  /***** -days: Events are in days since the EPOCH in the '.inf' file (default is seconds) */
   /* daysP = */ 0,
-  /***** -double: TOAs are in binary double precision instead of text format */
+  /***** -mjds: Events are in MJDs */
+  /* mjdsP = */ 0,
+  /***** -double: Events are in binary double precision (default is ASCII) */
   /* doubleP = */ 0,
-  /***** -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA */
-  /* toaoffsetP = */ 1,
-  /* toaoffset = */ 0,
-  /* toaoffsetC = */ 1,
+  /***** -offset: A time offset to add to the 1st event in the same units as the events */
+  /* offsetP = */ 1,
+  /* offset = */ 0,
+  /* offsetC = */ 1,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -992,13 +1000,6 @@ showOptionValues(void)
     }
   }
 
-  /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
-  if( !cmd.nobaryP ) {
-    printf("-nobary not found.\n");
-  } else {
-    printf("-nobary found:\n");
-  }
-
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   if( !cmd.de405P ) {
     printf("-DE405 not found.\n");
@@ -1018,6 +1019,27 @@ showOptionValues(void)
     printf("-runavg not found.\n");
   } else {
     printf("-runavg found:\n");
+  }
+
+  /***** -fine: A finer gridding in the p/pdot plane (for well known p and pdot) */
+  if( !cmd.fineP ) {
+    printf("-fine not found.\n");
+  } else {
+    printf("-fine found:\n");
+  }
+
+  /***** -coarse: A coarser gridding in the p/pdot plane (for uknown p and pdot) */
+  if( !cmd.coarseP ) {
+    printf("-coarse not found.\n");
+  } else {
+    printf("-coarse found:\n");
+  }
+
+  /***** -slow: Sets useful flags for slow pulsars */
+  if( !cmd.slowP ) {
+    printf("-slow not found.\n");
+  } else {
+    printf("-slow found:\n");
   }
 
   /***** -searchpdd: Search p-dotdots as well as p and p-dots */
@@ -1359,18 +1381,6 @@ showOptionValues(void)
     }
   }
 
-  /***** -obs: Two letter TEMPO observatory code (for barycentering) */
-  if( !cmd.obscodeP ) {
-    printf("-obs not found.\n");
-  } else {
-    printf("-obs found:\n");
-    if( !cmd.obscodeC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%s'\n", cmd.obscode);
-    }
-  }
-
   /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
   if( !cmd.timingP ) {
     printf("-timing not found.\n");
@@ -1395,7 +1405,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -rzwfile: Name of the rzw search file to use (include the full name of the file) */
+  /***** -rzwfile: Name of the rzw search '.cand' file to use (with suffix) */
   if( !cmd.rzwfileP ) {
     printf("-rzwfile not found.\n");
   } else {
@@ -1404,6 +1414,30 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%s'\n", cmd.rzwfile);
+    }
+  }
+
+  /***** -accelcand: The candidate number to fold from 'infile'_rzw.cand */
+  if( !cmd.accelcandP ) {
+    printf("-accelcand not found.\n");
+  } else {
+    printf("-accelcand found:\n");
+    if( !cmd.accelcandC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.accelcand);
+    }
+  }
+
+  /***** -accelfile: Name of the accel search '.cand' file to use (with suffix) */
+  if( !cmd.accelfileP ) {
+    printf("-accelfile not found.\n");
+  } else {
+    printf("-accelfile found:\n");
+    if( !cmd.accelfileC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.accelfile);
     }
   }
 
@@ -1498,43 +1532,43 @@ showOptionValues(void)
     }
   }
 
-  /***** -toas: Use a TOA file instead of a time series (.dat) file */
-  if( !cmd.toasP ) {
-    printf("-toas not found.\n");
+  /***** -events: Use a event file instead of a time series (.dat) file */
+  if( !cmd.eventsP ) {
+    printf("-events not found.\n");
   } else {
-    printf("-toas found:\n");
+    printf("-events found:\n");
   }
 
-  /***** -secs: TOAs are in seconds days since the MJD in the .inf file */
-  if( !cmd.secsP ) {
-    printf("-secs not found.\n");
-  } else {
-    printf("-secs found:\n");
-  }
-
-  /***** -days: TOAs are in days since the MJD in the .inf file */
+  /***** -days: Events are in days since the EPOCH in the '.inf' file (default is seconds) */
   if( !cmd.daysP ) {
     printf("-days not found.\n");
   } else {
     printf("-days found:\n");
   }
 
-  /***** -double: TOAs are in binary double precision instead of text format */
+  /***** -mjds: Events are in MJDs */
+  if( !cmd.mjdsP ) {
+    printf("-mjds not found.\n");
+  } else {
+    printf("-mjds found:\n");
+  }
+
+  /***** -double: Events are in binary double precision (default is ASCII) */
   if( !cmd.doubleP ) {
     printf("-double not found.\n");
   } else {
     printf("-double found:\n");
   }
 
-  /***** -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA */
-  if( !cmd.toaoffsetP ) {
-    printf("-toaoffset not found.\n");
+  /***** -offset: A time offset to add to the 1st event in the same units as the events */
+  if( !cmd.offsetP ) {
+    printf("-offset not found.\n");
   } else {
-    printf("-toaoffset found:\n");
-    if( !cmd.toaoffsetC ) {
+    printf("-offset found:\n");
+    if( !cmd.offsetC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.toaoffset);
+      printf("  value = `%.40g'\n", cmd.offset);
     }
   }
   if( !cmd.argc ) {
@@ -1553,8 +1587,8 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
-    Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
+ [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-DE405] [-xwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n\
+    Prepares (if required) and folds raw radio data, standard time series, or events.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
         -pkmb: Raw data in Parkes Multibeam format\n\
@@ -1568,10 +1602,12 @@ usage(void)
     -numwapps: Number of WAPPs used with contiguous frequencies\n\
                1 int value between 1 and 7\n\
                default: `1'\n\
-      -nobary: Do not barycenter (assume input parameters are topocentric)\n\
        -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
         -xwin: Show the result plots on-screen as well as make a plotfile\n\
       -runavg: Subtract each blocks average as it is read (single channel data only)\n\
+        -fine: A finer gridding in the p/pdot plane (for well known p and pdot)\n\
+      -coarse: A coarser gridding in the p/pdot plane (for uknown p and pdot)\n\
+        -slow: Sets useful flags for slow pulsars\n\
    -searchpdd: Search p-dotdots as well as p and p-dots\n\
    -searchfdd: Search f-dotdots as well as f and f-dots\n\
     -nosearch: Show but do not search the p/pdot and/or DM phase spaces\n\
@@ -1644,13 +1680,15 @@ usage(void)
                1 char* value\n\
      -polycos: File containing TEMPO polycos for psrname (not required)\n\
                1 char* value\n\
-         -obs: Two letter TEMPO observatory code (for barycentering)\n\
-               1 char* value\n\
       -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified.\n\
                1 char* value\n\
      -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
                1 int value between 1 and oo\n\
-     -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
+     -rzwfile: Name of the rzw search '.cand' file to use (with suffix)\n\
+               1 char* value\n\
+   -accelcand: The candidate number to fold from 'infile'_rzw.cand\n\
+               1 int value between 1 and oo\n\
+   -accelfile: Name of the accel search '.cand' file to use (with suffix)\n\
                1 char* value\n\
          -bin: Fold a binary pulsar.  Must include all of the following parameters\n\
           -pb: The orbital period (s)\n\
@@ -1669,16 +1707,16 @@ usage(void)
                default: `0'\n\
         -mask: File containing masking information to use\n\
                1 char* value\n\
-        -toas: Use a TOA file instead of a time series (.dat) file\n\
-        -secs: TOAs are in seconds days since the MJD in the .inf file\n\
-        -days: TOAs are in days since the MJD in the .inf file\n\
-      -double: TOAs are in binary double precision instead of text format\n\
-   -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA\n\
-               1 double value between 0 and oo\n\
+      -events: Use a event file instead of a time series (.dat) file\n\
+        -days: Events are in days since the EPOCH in the '.inf' file (default is seconds)\n\
+        -mjds: Events are in MJDs\n\
+      -double: Events are in binary double precision (default is ASCII)\n\
+      -offset: A time offset to add to the 1st event in the same units as the events\n\
+               1 double value\n\
                default: `0'\n\
-       infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
+       infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 04Nov02\n\
+version: 01Dec02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1749,11 +1787,6 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-nobary", argv[i]) ) {
-      cmd.nobaryP = 1;
-      continue;
-    }
-
     if( 0==strcmp("-DE405", argv[i]) ) {
       cmd.de405P = 1;
       continue;
@@ -1766,6 +1799,21 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-runavg", argv[i]) ) {
       cmd.runavgP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-fine", argv[i]) ) {
+      cmd.fineP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-coarse", argv[i]) ) {
+      cmd.coarseP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-slow", argv[i]) ) {
+      cmd.slowP = 1;
       continue;
     }
 
@@ -2025,14 +2073,6 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-obs", argv[i]) ) {
-      int keep = i;
-      cmd.obscodeP = 1;
-      i = getStringOpt(argc, argv, i, &cmd.obscode, 1);
-      cmd.obscodeC = i-keep;
-      continue;
-    }
-
     if( 0==strcmp("-timing", argv[i]) ) {
       int keep = i;
       cmd.timingP = 1;
@@ -2055,6 +2095,23 @@ parseCmdline(int argc, char **argv)
       cmd.rzwfileP = 1;
       i = getStringOpt(argc, argv, i, &cmd.rzwfile, 1);
       cmd.rzwfileC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-accelcand", argv[i]) ) {
+      int keep = i;
+      cmd.accelcandP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.accelcand, 1);
+      cmd.accelcandC = i-keep;
+      checkIntHigher("-accelcand", &cmd.accelcand, cmd.accelcandC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-accelfile", argv[i]) ) {
+      int keep = i;
+      cmd.accelfileP = 1;
+      i = getStringOpt(argc, argv, i, &cmd.accelfile, 1);
+      cmd.accelfileC = i-keep;
       continue;
     }
 
@@ -2126,13 +2183,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-toas", argv[i]) ) {
-      cmd.toasP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-secs", argv[i]) ) {
-      cmd.secsP = 1;
+    if( 0==strcmp("-events", argv[i]) ) {
+      cmd.eventsP = 1;
       continue;
     }
 
@@ -2141,17 +2193,21 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-mjds", argv[i]) ) {
+      cmd.mjdsP = 1;
+      continue;
+    }
+
     if( 0==strcmp("-double", argv[i]) ) {
       cmd.doubleP = 1;
       continue;
     }
 
-    if( 0==strcmp("-toaoffset", argv[i]) ) {
+    if( 0==strcmp("-offset", argv[i]) ) {
       int keep = i;
-      cmd.toaoffsetP = 1;
-      i = getDoubleOpt(argc, argv, i, &cmd.toaoffset, 1);
-      cmd.toaoffsetC = i-keep;
-      checkDoubleHigher("-toaoffset", &cmd.toaoffset, cmd.toaoffsetC, 0);
+      cmd.offsetP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.offset, 1);
+      cmd.offsetC = i-keep;
       continue;
     }
 
