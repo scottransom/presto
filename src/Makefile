@@ -6,7 +6,7 @@
 DATABASE = "$(PRESTO)/lib"
 
 # Path to PGPLOT includes
-PGPLOTINCDIR = -I/home/ransom/pgplot
+PGPLOTINCDIR = -I$(PGPLOT_DIR)
 # Path to PGPLOT libraries
 PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
@@ -32,11 +32,11 @@ FFTATHINCDIR = -I/usr/local/include
 # Path to FFT libraries
 FFTATHLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
-FFTATHLINK = $(FFTLIBDIR) -lsfftw
-RFFTATHLINK = -lsrfftw
+FFTATHLINK = $(FFTATHLIBDIR) -lfftw
+RFFTATHLINK = -lrfftw
 
 # Other include directoried (i.e. glib.h)
-OTHERINCDIR = -I/home/ransom/include/glib-1.2
+OTHERINCDIR = -I/usr/include/glib-1.2
 
 # The name of the library to produce
 PRESTOLIB = presto
