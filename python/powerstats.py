@@ -2,7 +2,7 @@
 import Numeric
 from umath import pi, log, exp, sin, sqrt
 from simple_roots import newton_raphson
-from cephes import iv
+from cephes import iv, chdtri
 #from Multipack import quad
 
 # The following routines are based on the method of signal
@@ -62,17 +62,20 @@ def binning_factor(freq, nyquist_freq):
     else:
         return (sin(x) / x)
 
-def max_noise_power(bins, confidence=0.99):
+def max_noise_power(bins, n=1, confidence=0.99):
     """
-    max_noise_power(bins, confidence=0.99):
+    max_noise_power(bins, n=1, confidence=0.99):
         Return the power level that gives you some
         'confidence' that spectral noise could not cause
         that level in your power spectrum.  The total number
         of independent frequencies searched is 'bins'.
         This is P_detect in Vaughan et. al, 1994, and is also
-        know as P_threshold.
+        known as P_threshold.
     """
-    return -log((1.0 - confidence) / bins)
+    if (n==1):
+        return -log((1.0 - confidence) / bins)
+    else:
+        return 0.5 * chdtri(2.0 * n, (1.0 - confidence) / bins)
 
 def prob_power_series(power, signal_power, n=1, TOL=1.0e-14):
     """
@@ -133,9 +136,9 @@ def power_probability(power, signal_power, n=1):
            exp(-(power + signal_power)) * \
            iv(n - 1.0, 2 * sqrt(power * signal_power))
 
-def required_signal_power(power, confidence=0.99):
+def required_signal_power(power, n=1, confidence=0.99):
     """
-    required_signal_power(power, confidence=0.99):
+    required_signal_power(power, n=1, confidence=0.99):
         Return the required power of a signal that will cause
         at least a power 'power' in a power spectrum a fraction
         'confidence' of the time.  This is the inverse of
@@ -146,16 +149,16 @@ def required_signal_power(power, confidence=0.99):
         in the power spectrum.
     """
     prob = 1.0 - confidence
-    def func(x, power=power, prob=prob):
-        return prob_power_series(power, x) - prob
-    def dfunc(x, power=power):
-        return power_probability(power, x)
+    def func(x, power=power, prob=prob, n=n):
+        return prob_power_series(power, x, n) - prob
+    def dfunc(x, power=power, n=n):
+        return power_probability(power, x, n)
     P_signal = newton_raphson(func, dfunc, 0.0001, 100.0)
     return P_signal
 
-def fft_sensitivity(N, bins=0, confidence=0.99):
+def fft_sensitivity(N, bins=0, n=1, confidence=0.99):
     """
-    fft_sensitivity(N, bins=0, confidence=0.99):
+    fft_sensitivity(N, bins=0, n=1, confidence=0.99):
         Return a measure of the weakest signal power you can
         confidently detect in an FFT search containing 'N' data
         points (this is the number of bins in the time series -- the
@@ -167,12 +170,12 @@ def fft_sensitivity(N, bins=0, confidence=0.99):
         include the correction to sensitivity due to binning effects.
     """
     if not (bins): bins = N / 2
-    P_threshold = max_noise_power(bins, confidence)
-    return required_signal_power(P_threshold, confidence)
+    P_threshold = max_noise_power(bins, n, confidence)
+    return required_signal_power(P_threshold, n, confidence)
 
-def rzw_sensitivity(N, zlo=-100.0, zhi=100.0, confidence=0.99):
+def rzw_sensitivity(N, zlo=-100.0, zhi=100.0, n=1, confidence=0.99):
     """
-    rzw_sensitivity(N, zlo=-100.0, zhi=100.0, confidence=0.99):
+    rzw_sensitivity(N, zlo=-100.0, zhi=100.0, n=1, confidence=0.99):
         Return a measure of the weakest signal power you can
         confidently detect in an RZW (Fourier acceleration) search
         containing 'N' data points (this is the number of bins in the
@@ -182,12 +185,12 @@ def rzw_sensitivity(N, zlo=-100.0, zhi=100.0, confidence=0.99):
         include the correction to sensitivity due to binning effects.
     """
     bins = N / 2.0 * (zhi - zlo) / 6.95
-    P_threshold = max_noise_power(bins, confidence)
-    return required_signal_power(P_threshold, confidence)
+    P_threshold = max_noise_power(bins, n, confidence)
+    return required_signal_power(P_threshold, n, confidence)
 
-def binned_fft_sensitivity(N, dt, freq, bins=0, confidence=0.99):
+def binned_fft_sensitivity(N, dt, freq, bins=0, n=1, confidence=0.99):
     """
-    binned_fft_sensitivity(N, dt, freq, bins=0, confidence=0.99):
+    binned_fft_sensitivity(N, dt, freq, bins=0, n=1, confidence=0.99):
         Return a measure of the weakest signal power of frequency 'freq'
         Hz you can confidently detect in an FFT search containing 'N'
         data points (this is the number of bins in the time series --
@@ -202,13 +205,13 @@ def binned_fft_sensitivity(N, dt, freq, bins=0, confidence=0.99):
     """
     nyquist_freq = 0.5 / dt
     factor = binning_factor(freq, nyquist_freq)**2.0
-    return fft_sensitivity(N, bins, confidence) / factor
+    return fft_sensitivity(N, bins, n, confidence) / factor
 
 def binned_rzw_sensitivity(N, dt, freq, zlo=-100.0, zhi=100.0,
-                           confidence=0.99):
+                           n=1, confidence=0.99):
     """
     binned_rzw_sensitivity(N, dt, freq, zlo=-100.0, zhi=100.0,
-                           confidence=0.99):
+                           n=1, confidence=0.99):
         Return a measure of the weakest signal power of frequency 'freq'
         Hz you can confidently detect in an RZW (Fourier acceleration)
         search containing 'N' data points (this is the number of bins in
@@ -221,7 +224,7 @@ def binned_rzw_sensitivity(N, dt, freq, zlo=-100.0, zhi=100.0,
     bins = N / 2.0 * (zhi - zlo) / 6.95
     nyquist_freq = 0.5 / dt
     factor = binning_factor(freq, nyquist_freq)**2.0
-    return fft_sensitivity(N, bins, confidence) / factor
+    return fft_sensitivity(N, bins, n, confidence) / factor
 
 def pulsed_fraction_limit(numphot, power_limit):
     """
@@ -313,8 +316,8 @@ if __name__ == '__main__':
         print "           Confidence Level = %g%%" % (100 * conf)
         print " Number of independent bins = %.2e" % Nsearch
         print " Threshold Power (P_detect) > %.2f" % \
-              max_noise_power(Nsearch, conf)
-        ulim = required_signal_power(P_max, conf)
+              max_noise_power(Nsearch, 1, conf)
+        ulim = required_signal_power(P_max, 1, conf)
         print "    Max Power Found (P_max) = %.2f" % P_max
         print " Max Signal Power (P_limit) < %.2f" % ulim
         print "  Pulsed Fraction (P_limit) < %.3g" % \
@@ -323,8 +326,8 @@ if __name__ == '__main__':
         sens = []
         ulim = []
         for f in trial_freqs:
-            sens.append(binned_fft_sensitivity(Ntot, dt, f, Nsearch, conf))
-            ulim.append(required_signal_power(P_max, conf))
+            sens.append(binned_fft_sensitivity(Ntot, dt, f, Nsearch, 1, conf))
+            ulim.append(required_signal_power(P_max, 1, conf))
         print "          Freq (Hz)  = ",
         for f in trial_freqs:
             print " f=%-7g" % (f),
@@ -349,10 +352,10 @@ if __name__ == '__main__':
         print "           Confidence Level = %g%%" % (100 * conf)
         print " Number of independent bins = %.2e" % Nsearch
         print " Threshold Power (P_detect) > %.2f" % \
-              max_noise_power(Nsearch/2, conf)
-        sens = fft_sensitivity(Ntot, Nsearch, conf)
+              max_noise_power(Nsearch/2, 1, conf)
+        sens = fft_sensitivity(Ntot, Nsearch, 1, conf)
         print "          Power Sensitivity > %.2f" % sens
-        ulim = required_signal_power(P_max, conf)
+        ulim = required_signal_power(P_max, 1, conf)
         print "    Max Power Found (P_max) = %.2f" % P_max
         print " Max Signal Power (P_limit) < %.2f" % ulim
         print ""
