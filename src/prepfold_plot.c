@@ -369,21 +369,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
     bestpd = search->topo.p2;
     bestpdd = search->topo.p3;
   }
-  switch_f_and_p(search->fold.p1, search->fold.p2, search->fold.p3,
-		 &pfold, &pdfold, &pddfold);
-
-  /* Time interval of 1 profile bin */
-  dphase = 1.0/(search->fold.p1*search->proflen);
-
-  /* Find out how many total points were folded */
-  for (ii=0; ii<search->npart; ii++)
-    N += search->stats[ii*search->nsub].numdata;
-
-  /* Calculate the time per part and the total observation time */
-  T = N*search->dt;
-  parttime = search->stats[0].numdata*search->dt;
-  parttimes = gen_freqs(search->npart+1, 0.0, parttime);
-
+  
   /* Find the indices for the best periods, p-dots, and DMs */
   for (ii=0; ii<search->numperiods; ii++){
     if (TEST_EQUAL(search->periods[ii], bestp))
@@ -399,7 +385,30 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
   } else {
     bestidm = 0;
   }
+
+  /* Attempt to make show_pfd work on polyco-folded files */
+  if (search->fold.pow==0.0 && ppdot==NULL &&
+      bestip==(search->numperiods-1)/2 &&
+      bestipd==(search->numperiods-1)/2){
+    printf("Assuming this was folded with polycos...\n");
+    search->fold.p1 = 1.0/search->topo.p1;
+  }
   
+  switch_f_and_p(search->fold.p1, search->fold.p2, search->fold.p3,
+		 &pfold, &pdfold, &pddfold);
+
+  /* Time interval of 1 profile bin */
+  dphase = 1.0/(search->fold.p1*search->proflen);
+
+  /* Find out how many total points were folded */
+  for (ii=0; ii<search->npart; ii++)
+    N += search->stats[ii*search->nsub].numdata;
+
+  /* Calculate the time per part and the total observation time */
+  T = N*search->dt;
+  parttime = search->stats[0].numdata*search->dt;
+  parttimes = gen_freqs(search->npart+1, 0.0, parttime);
+
   { /* Generate the data we need for the plots */
     double df, dfd, dfdd;
     double *currentprof, *ddprofs=search->rawfolds;
@@ -677,22 +686,27 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
       cpgimag(timeprofs, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
       free(levels);
     }
-    cpgbox ("BCNST", 0.0, 0, "BCNST", 0.0, 0);
+    if (1)  /* if 0 skip the chi-squared vs time plot */
+      cpgbox ("BCNST", 0.0, 0, "BCNST", 0.0, 0);
+    else
+      cpgbox ("BCNST", 0.0, 0, "BNST", 0.0, 0);
     cpgmtxt("B", 2.6, 0.5, 0.5, "Phase");
     cpgmtxt("L", 2.1, 0.5, 0.5, "Time (s)");
 
     /*  Time versus Reduced chisqr */
 
     find_min_max_arr(search->npart+1, timechi, &min, &max);
-    if (search->nsub > 1)
-      cpgsvp (0.27, 0.36, 0.09, 0.68);
-    else
-      cpgsvp (0.27, 0.39, 0.09, 0.68);
-    cpgswin(1.1 * max, 0.0, 0.0, T);
-    cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
-    cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
-    cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
-    cpgline(search->npart+1, timechi, parttimes);
+    if (1){ /* if 0 skip the chi-squared vs time plot */
+      if (search->nsub > 1)
+	cpgsvp (0.27, 0.36, 0.09, 0.68);
+      else
+	cpgsvp (0.27, 0.39, 0.09, 0.68);
+      cpgswin(1.1 * max, 0.0, 0.0, T);
+      cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
+      cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
+      cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+      cpgline(search->npart+1, timechi, parttimes);
+    }
     cpgswin(1.1 * max, 0.0, search->startT-0.0001, search->endT+0.0001);
     if (search->nsub > 1)
       cpgsch(0.7);
