@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
   long long N;
   char outfilenm[200], filenmbase[200], scalingnm[200], rawlags[4096];
   unsigned char output_samples[2048];
-  float *scalings;
+  float *scalings=NULL;
   double dt, T;
   SPIGOT_INFO *spigots;
   sigprocfb fb;
@@ -69,7 +69,9 @@ int main(int argc, char *argv[])
   printf("Writing data to file '%s'.\n\n", outfilenm);
 
   /* Attempt to read a file with lag scalings in it */
-  if ((scalingfile=fopen(scalingnm, "fb"))){
+  sprintf(scalingnm, "%s.scaling", filenmbase);
+  printf("Trying to read from %s...", scalingnm);
+  if ((scalingfile=fopen(scalingnm, "rb"))){
     /* Determine the length of the file */
     numscalings = (int)chkfilelen(scalingfile, sizeof(float));
     /* Create the array and read 'em */
