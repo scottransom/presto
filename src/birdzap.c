@@ -80,14 +80,22 @@ int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths,
 
   index++;
   hunt(zapfreqs-1, numzap, candfreq, &index);
-  index--;
 
-  /* Check the lower and high birdie freqs to see if they match. */
-  
-  if ((fabs(zapfreqs[index] - candfreq) < 0.5 * zapwidths[index]) ||
-      (fabs(zapfreqs[index+1] - candfreq) < 0.5 * zapwidths[index+1]))
-    return 1;
-  else return 0;
+  /* Check the birdie freqs to see if they match. */
+    
+  if (index > 0 && index < numzap){
+    index--;
+    if ((fabs(zapfreqs[index] - candfreq) < 0.5 * zapwidths[index]) ||
+        (fabs(zapfreqs[index+1] - candfreq) < 0.5 * zapwidths[index+1]))
+      return 1;
+  } else if (index == 0){
+    if (fabs(zapfreqs[index] - candfreq) < 0.5 * zapwidths[index])
+      return 1;
+  } else if (index == numzap){
+    index--;
+    if (fabs(zapfreqs[index] - candfreq) < 0.5 * zapwidths[index])
+      return 1;
+  } else return 0;
 }
 
 
