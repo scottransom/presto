@@ -152,9 +152,13 @@ xwin: psrorbit window plotbincand profile \
 
 geomview: togeomview
 
-libpresto: $(PRESTOOBJS)
-	$(LINKCOMMAND1) $@.so $(PRESTOOBJS)
-	$(LINKCOMMAND2) $@.a $(PRESTOOBJS)
+libpresto: libpresto.a libpresto.so
+
+libpresto.so: $(PRESTOOBJS)
+	$(LINKCOMMAND1) $@ $(PRESTOOBJS)
+
+libpresto.a: $(PRESTOOBJS)
+	$(LINKCOMMAND2) $@ $(PRESTOOBJS)
 
 meminit:
 	$(CC) $(CFLAGS) -o $@ meminit.c $(DMALLOCLINK)

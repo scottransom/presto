@@ -163,3 +163,17 @@ int compare_rfi_sigma(const void *ca, const void *cb)
     return 1;
   return 0;
 }
+
+int compare_rfi_numobs(const void *ca, const void *cb)
+/*  Used as compare function for qsort() */
+{
+  rfi *a, *b;
+
+  a = (rfi *) ca;
+  b = (rfi *) cb;
+  if ((b->numobs - a->numobs) < 0.0)
+    return -1;
+  if ((b->numobs - a->numobs) > 0.0)
+    return 1;
+  return 0;
+}

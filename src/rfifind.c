@@ -34,6 +34,8 @@ static void read_statsfile(char *statsfilenm, float ***datapow,
 			   float ***dataavg, float ***datastd,
 			   int *numchan, int *numint, int *ptsperint, 
 			   int *lobin, int *numbetween);
+int compare_rfi_sigma(const void *ca, const void *cb);
+int compare_rfi_numobs(const void *ca, const void *cb);
 
 /* The main program */
 
@@ -399,7 +401,49 @@ int main(int argc, char *argv[])
 	   numgood, (float) numgood / (float)(numint*numchan) * 100.0);
     printf("  Number of  bad   intervals:  %7d  (%6.3f%%)\n\n", 
 	   numbad, (float) numbad / (float)(numint*numchan) * 100.0);
-    printf("Done.\n\n");
+    qsort(rfivect, numrfi, sizeof(rfi), compare_rfi_sigma);
+    printf("  Ten most significant birdies:\n");
+    printf("#  Sigma     Period(ms)      Freq(Hz)       Number \n");
+    printf("----------------------------------------------------\n");
+    for(ii=0; ii<10; ii++){
+      double pperr;
+      char temp1[40], temp2[40];
+
+      if (rfivect[ii].freq_var==0.0){
+	pperr = 0.0;
+	sprintf(temp1, " %-14g", rfivect[ii].freq_avg);
+	sprintf(temp2, " %-14g", 1000.0/rfivect[ii].freq_avg);
+      } else {
+	pperr = 1000.0 * sqrt(rfivect[ii].freq_var) / 
+	  (rfivect[ii].freq_avg * rfivect[ii].freq_avg);
+	nice_output_2(temp1, rfivect[ii].freq_avg, sqrt(rfivect[ii].freq_var), -15);
+	nice_output_2(temp2, 1000.0/rfivect[ii].freq_avg, pperr, -15);
+      }
+      printf("%-2d %-8.2f %13s %13s %-8d\n", ii+1, rfivect[ii].sigma_avg, 
+	     temp2, temp1, rfivect[ii].numobs);
+    } 
+    qsort(rfivect, numrfi, sizeof(rfi), compare_rfi_numobs);
+    printf("\n  Ten most numerous birdies:\n");
+    printf("#  Number    Period(ms)      Freq(Hz)       Sigma \n");
+    printf("----------------------------------------------------\n");
+    for(ii=0; ii<10; ii++){
+      double pperr;
+      char temp1[40], temp2[40];
+
+      if (rfivect[ii].freq_var==0.0){
+	pperr = 0.0;
+	sprintf(temp1, " %-14g", rfivect[ii].freq_avg);
+	sprintf(temp2, " %-14g", 1000.0/rfivect[ii].freq_avg);
+      } else {
+	pperr = 1000.0 * sqrt(rfivect[ii].freq_var) / 
+	  (rfivect[ii].freq_avg * rfivect[ii].freq_avg);
+	nice_output_2(temp1, rfivect[ii].freq_avg, sqrt(rfivect[ii].freq_var), -15);
+	nice_output_2(temp2, 1000.0/rfivect[ii].freq_avg, pperr, -15);
+      }
+      printf("%-2d %-8d %13s %13s %-8.2f\n", ii+1, rfivect[ii].numobs, 
+	     temp2, temp1, rfivect[ii].sigma_avg);
+    } 
+    printf("\nDone.\n\n");
   }
 
   /* Close the files and cleanup */
