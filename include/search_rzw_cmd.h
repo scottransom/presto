@@ -5,7 +5,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 typedef struct s_Cmdline {
@@ -49,6 +49,8 @@ typedef struct s_Cmdline {
   char baryvP;
   double baryv;
   int baryvC;
+  /***** -photon: Data is poissonian so use freq 0 as power normalization */
+  char photonP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -62,6 +62,8 @@ static Cmdline cmd = {
   /* baryvP = */ 1,
   /* baryv = */ 0.0,
   /* baryvC = */ 1,
+  /***** -photon: Data is poissonian so use freq 0 as power normalization */
+  /* photonP = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -119,7 +121,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -190,7 +192,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -231,7 +233,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -301,7 +303,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -341,7 +343,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -409,7 +411,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -444,7 +446,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -515,7 +517,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -541,16 +543,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -877,6 +886,13 @@ showOptionValues(void)
       printf("  value = `%.40g'\n", cmd.baryv);
     }
   }
+
+  /***** -photon: Data is poissonian so use freq 0 as power normalization */
+  if( !cmd.photonP ) {
+    printf("-photon not found.\n");
+  } else {
+    printf("-photon found:\n");
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -893,7 +909,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-ncand ncand] [-zlo zlo] [-zhi zhi] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-lobin lobin] [-zapfile zapfile] [-baryv baryv] [--] infile\n\
+ [-ncand ncand] [-zlo zlo] [-zhi zhi] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-lobin lobin] [-zapfile zapfile] [-baryv baryv] [-photon] [--] infile\n\
     Searches an FFT for pulsar candidates using a Fourier domain acceleration search.\n\
     -ncand: Number of candidates to try to return\n\
             1 int value between 1 and 10000\n\
@@ -921,9 +937,10 @@ usage(void)
     -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)\n\
             1 double value between -0.1 and 0.1\n\
             default: `0.0'\n\
+   -photon: Data is poissonian so use freq 0 as power normalization\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 21Dec00\n\
+version: 12Nov01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -931,7 +948,7 @@ version: 21Dec00\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -942,8 +959,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-ncand", argv[i]) ) {
+      int keep = i;
       cmd.ncandP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.ncand, 1);
       cmd.ncandC = i-keep;
       checkIntLower("-ncand", &cmd.ncand, cmd.ncandC, 10000);
@@ -952,8 +969,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-zlo", argv[i]) ) {
+      int keep = i;
       cmd.zloP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.zlo, 1);
       cmd.zloC = i-keep;
       checkIntLower("-zlo", &cmd.zlo, cmd.zloC, 2000000);
@@ -962,8 +979,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-zhi", argv[i]) ) {
+      int keep = i;
       cmd.zhiP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.zhi, 1);
       cmd.zhiC = i-keep;
       checkIntLower("-zhi", &cmd.zhi, cmd.zhiC, 2000000);
@@ -972,8 +989,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-rlo", argv[i]) ) {
+      int keep = i;
       cmd.rloP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.rlo, 1);
       cmd.rloC = i-keep;
       checkIntHigher("-rlo", &cmd.rlo, cmd.rloC, 0);
@@ -981,8 +998,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-rhi", argv[i]) ) {
+      int keep = i;
       cmd.rhiP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.rhi, 1);
       cmd.rhiC = i-keep;
       checkIntHigher("-rhi", &cmd.rhi, cmd.rhiC, 0);
@@ -990,8 +1007,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-flo", argv[i]) ) {
+      int keep = i;
       cmd.floP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.flo, 1);
       cmd.floC = i-keep;
       checkIntHigher("-flo", &cmd.flo, cmd.floC, 0);
@@ -999,8 +1016,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-fhi", argv[i]) ) {
+      int keep = i;
       cmd.fhiP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.fhi, 1);
       cmd.fhiC = i-keep;
       checkIntHigher("-fhi", &cmd.fhi, cmd.fhiC, 0);
@@ -1008,8 +1025,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-lobin", argv[i]) ) {
+      int keep = i;
       cmd.lobinP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.lobin, 1);
       cmd.lobinC = i-keep;
       checkIntHigher("-lobin", &cmd.lobin, cmd.lobinC, 0);
@@ -1017,20 +1034,25 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-zapfile", argv[i]) ) {
+      int keep = i;
       cmd.zapfileP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.zapfile, 1);
       cmd.zapfileC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-baryv", argv[i]) ) {
+      int keep = i;
       cmd.baryvP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.baryv, 1);
       cmd.baryvC = i-keep;
       checkDoubleLower("-baryv", &cmd.baryv, cmd.baryvC, 0.1);
       checkDoubleHigher("-baryv", &cmd.baryv, cmd.baryvC, -0.1);
+      continue;
+    }
+
+    if( 0==strcmp("-photon", argv[i]) ) {
+      cmd.photonP = 1;
       continue;
     }
 

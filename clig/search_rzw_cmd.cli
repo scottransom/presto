@@ -29,6 +29,7 @@ Int -lobin   lobin   {The first Fourier frequency in the data file} \
 String -zapfile zapfile {A file containing a list of freqs to ignore (i.e. RFI)}
 Double -baryv baryv   {The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)} \
 	-r -0.1 0.1  -d 0.0
+Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
 
 # Rest of command line:
 

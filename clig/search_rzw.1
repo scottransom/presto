@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "search_rzw" 1 "21Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "search_rzw" 1 "12Nov01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -32,6 +32,7 @@ search_rzw \- Searches an FFT for pulsar candidates using a Fourier domain accel
 [-lobin lobin]
 [-zapfile zapfile]
 [-baryv baryv]
+[-photon]
 infile
 .\" cligPart SYNOPSIS end
 
@@ -89,6 +90,8 @@ The earth's radial velocity component (v/c) towards the observation (used to con
 1 Double value between -0.1 and 0.1.
 .br
 Default: `0.0'
+.IP -photon
+Data is poissonian so use freq 0 as power normalization.
 .IP infile
 Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end

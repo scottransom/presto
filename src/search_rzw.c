@@ -293,7 +293,10 @@ int main(int argc, char *argv[])
     /* exponential distribution.  Then take the reciprocal so   */
     /* that we multiply instead of divide during normalization. */
     
-    locpow = 1.0 / (1.442695 * median(powlist, filedatalen));
+    if (cmd->photonP)
+      locpow = 1.0 / nph;
+    else
+      locpow = 1.0 / (1.442695 * median(powlist, filedatalen));
     free(powlist);
 
     /*  Do the f-fdot plane correlations: */
@@ -398,6 +401,8 @@ int main(int argc, char *argv[])
     }
     hipow = max_rz_file(fftfile, list[ii].p1, list[ii].p2, \
 			&hir, &hiz, &derivs[ii]);
+    if (cmd->photonP)
+      derivs[ii].locpow = nph;
     calc_props(derivs[ii], hir + cmd->lobin, hiz, 0.0, &props[ii]);
   }
   printf("\rAmount of optimization complete = %3d%%\n\n", 100);
