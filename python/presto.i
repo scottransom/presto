@@ -789,6 +789,7 @@ fcomplex *read_fcomplex_file(FILE *file, int firstpt, int numpts);
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 
+%apply int ARRAYLEN { int numpts };
 float *read_float_file(FILE *file, int firstpt, int numpts);
 /* Return a float vector with complex data taken from a file.     */
 /* Argumants:                                                     */
