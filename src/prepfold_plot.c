@@ -172,7 +172,7 @@ void write_bestprof(prepfoldinfo *search, foldstats *beststats,
     fprintf(outfile, "# Epoch_bary       =  N/A\n");
   else
     fprintf(outfile, "# Epoch_bary (MJD) =  %-.12f\n", search->bepoch);
-  fprintf(outfile, "# T_sample         =  %f\n", search->dt);
+  fprintf(outfile, "# T_sample         =  %.6g\n", search->dt);
   fprintf(outfile, "# Data Folded      =  %-.0f\n", N);
   fprintf(outfile, "# Data Avg         =  %-17.15g\n", beststats->data_avg);
   fprintf(outfile, "# Data StdDev      =  %-17.15g\n", sqrt(beststats->data_var));
