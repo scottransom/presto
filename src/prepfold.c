@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
   FILE *infiles[MAXPATCHFILES], *filemarker, *binproffile;
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
-  double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime;
+  double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime, startTday=0.0;
   double polyco_phase=0.0, polyco_phase0=0.0;
   double *obsf=NULL, *dispdts=NULL, *parttimes=NULL, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
@@ -102,12 +102,11 @@ int main(int argc, char *argv[])
 
     /* Split the filename into a rootname and a suffix */
 
-    if (split_root_suffix(search.filenm, &root, &suffix)==0){
+    if (split_root_suffix(cmd->argv[0], &root, &suffix)==0){
       printf("\nThe input filename (%s) must have a suffix!\n\n", 
 	     search.filenm);
       exit(1);
     }
-    free(suffix);
 
     printf("Reading input data from '%s'.\n", cmd->argv[0]);
     printf("Reading information from '%s.inf'.\n\n", root);
@@ -115,6 +114,8 @@ int main(int argc, char *argv[])
     /* Read the info file if available */
 
     readinf(&idata, root);
+    free(root);
+    free(suffix);
 
     if (cmd->toasP){ /* Use TOAs instead of a time series */
       double MJD0=-1.0, firsttoa;
@@ -143,7 +144,6 @@ int main(int argc, char *argv[])
     } else {
       infiles[0] = chkfopen(cmd->argv[0], "rb");
     }
-    free(root);
 
   } else if (cmd->pkmbP){
     if (numfiles > 1)
@@ -325,6 +325,7 @@ int main(int argc, char *argv[])
     search.endT = cmd->endT;
     lorec = (long) (cmd->startT * numrec + DBLCORRECT);
     hirec = (long) (cmd->endT * numrec + DBLCORRECT);
+    startTday = lorec*recdt/SECPERDAY;
     numrec = hirec - lorec;
 
     /* The number of reads from the file we need for */
@@ -343,8 +344,7 @@ int main(int argc, char *argv[])
 
     if (idata.mjd_i) {
 
-      search.tepoch = (double) idata.mjd_i + idata.mjd_f + 
-	lorec * recdt / SECPERDAY;
+      search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
       barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
 		 decstring, obs, ephem);
 
@@ -376,9 +376,10 @@ int main(int argc, char *argv[])
       
       lorec = (long) (cmd->startT * N + DBLCORRECT);
       hirec = (long) (cmd->endT * N + DBLCORRECT);
-      N = hirec - lorec;
-      numrec = N / worklen;
-      
+      startTday = lorec * search.dt / SECPERDAY;
+      numrec = (hirec - lorec) / worklen;
+      recdt = worklen * search.dt;
+
       /* The number of reads from the file we need for */
       /* each sub-integration.                         */ 
       
@@ -401,11 +402,9 @@ int main(int argc, char *argv[])
     if (cmd->nobaryP){
       if (idata.mjd_i){
 	if (idata.bary)
-	  search.bepoch = (double) idata.mjd_i + 
-	    idata.mjd_f + lorec * search.dt / SECPERDAY;
+	  search.bepoch = idata.mjd_i + idata.mjd_f + startTday;
 	else
-	  search.tepoch = (double) idata.mjd_i + 
-	    idata.mjd_f + lorec * search.dt / SECPERDAY;
+	  search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
       }
     } else {
       
@@ -427,8 +426,7 @@ int main(int argc, char *argv[])
       /* Topocentric and barycentric times of folding epoch */
 
       if (idata.mjd_i) {
-	search.tepoch = (double) idata.mjd_i + 
-	  idata.mjd_f + lorec * search.dt / SECPERDAY;
+	search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
 	barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
 		   decstring, obs, ephem);
 
@@ -473,17 +471,7 @@ int main(int argc, char *argv[])
 	       numsets, cmd->psrname, search.tepoch, polyco_dm);
 	cmd->dm = polyco_dm;
       }
-      {
-	double mjdi, mjdf;
-	
-	mjdf = idata.mjd_f + lorec*recdt/SECPERDAY;
-	mjdi = idata.mjd_i;
-	if (mjdf > 1.0){
-	  mjdi += floor(mjdf);
-	  mjdf -= floor(mjdf);
-	}
-	phcalc(mjdi, mjdf, &polyco_phase0, &f);
-      }
+      phcalc(idata.mjd_i, idata.mjd_f+startTday, &polyco_phase0, &f);
       search.topo.p1 = 1.0/f;
       search.topo.p2 = fd = 0.0;
       search.topo.p3 = fdd = 0.0;
@@ -745,7 +733,7 @@ int main(int argc, char *argv[])
 
   /* Output some informational data on the screen and to the */
   /* output file.                                            */
-  
+
   fprintf(stdout, "\n");
   filemarker = stdout;
   for (ii=0; ii<1; ii++){
@@ -1091,9 +1079,9 @@ int main(int argc, char *argv[])
 	  double mjdf, currentsec, currentday, offsetphase, orig_cmd_phs=0.0;
 
 	  if (ii==0 && jj==0) orig_cmd_phs = cmd->phs;
-	  currentsec = lorec*recdt + parttimes[ii] + jj*proftime;
+	  currentsec = parttimes[ii] + jj*proftime;
 	  currentday = currentsec/SECPERDAY;
-	  mjdf = idata.mjd_f + currentday;
+	  mjdf = idata.mjd_f + startTday + currentday;
 	  /* Calculate the pulse phase at the start of the current block */
 	  phcalc(idata.mjd_i, mjdf, &polyco_phase, &foldf);
 	  polyco_phase -= polyco_phase0;
