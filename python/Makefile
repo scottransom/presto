@@ -7,9 +7,9 @@ CWARN         = -Xa -vc
 CFLAGS        = -g -O -fpic $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
 #CFLAGS        = -g -O $(CWARN) $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
 LIBPATHS      = -L"$(PRESTO)/lib" -L/home/ransom/lib
-LIBS          = -lpresto -lsfftw -lswig -lm -ldl
+LIBS          = -lpresto -lsfftw -lm
 SWIG          = swig 
-SWIGOPT       = -dhtml -python -shadow
+SWIGOPT       = -python -shadow
 PRESTOOBJS    = presto_wrap.o
 
 wrap: prestowrap
