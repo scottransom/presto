@@ -276,6 +276,13 @@ int main(int argc, char *argv[])
 	  bppifs = SUMIFS;
       }
     }
+    /* For the WAPP, the number of bytes returned in in get_WAPP_rawblock */
+    /* is ptsperblk since the correlator lags are converted to 1 byte     */
+    /* filterbank channels in read_WAPP_rawblock()                        */
+    if (cmd->wappP){
+      bytesperblk = ptsperblk;
+      bytesperpt = numchan;
+    }
   }
 
   /* Broadcast or calculate a few extra important values */

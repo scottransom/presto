@@ -445,6 +445,7 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     numifs_st = 2;
   } else
     numifs_st = 1;
+  /* The following is the number of bytes in the _raw_ data */
   bytesperpt_st = (numchan_st * numifs_st * 4) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   filedatalen_st[0] = chkfilelen(files[0], 1) - BPP_HEADER_SIZE;

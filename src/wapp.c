@@ -1279,7 +1279,7 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes)
 {
   int ii, two_nlags;
   double power, pfact;
-  static float acf[2*WAPP_MAXLAGS], lag[WAPP_MAXLAGS];
+  static float acf[2*WAPP_MAXLAGS], lag[2*WAPP_MAXLAGS];
   double scale_min_st=0.0, scale_max_st=3.0;
 
   /* Fill lag array with scaled CFs */
