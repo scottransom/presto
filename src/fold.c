@@ -52,12 +52,14 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
   int ii;
   double addpart, deltaphase;
 
+  /* Check for bad input values */
+
   if (*phaseadded < 0.0 || *phaseadded > 1.0)
     printf("Ack!  phaseadded is %17.15g in dump_buffer()!\n", *phaseadded);
-
-
-  if (lophase >= 1.0)
+  if (lophase >= 1.0){
+    printf("Ack!  lophase is %17.15g in dump_buffer()!\n", *phaseadded);
     lophase -= (int) lophase;
+  }
 
   /* Squeeze in the last remaining bit of data we can */
 
@@ -104,6 +106,16 @@ static void add_to_prof(double *prof, double *buffer, int numprof,
 
   if (TEST_ONE(*phaseadded))
     *phaseadded = 0.0;
+
+  /* Dump (and reset) the buffer if add_to_prof() gets called with lophase==1 */
+
+  if (TEST_ONE(lophase)){
+    for (ii=0; ii<numprof; ii++){
+      prof[ii] += buffer[ii];
+      buffer[ii] = 0.0;
+    }
+    lophase = 0.0;
+  }
 
   /* Find the bins we will add data to.                 */
   /* Note:  hiprofbin will be used modulo numprof so    */
