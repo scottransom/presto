@@ -1685,7 +1685,7 @@ int main(int argc, char *argv[])
     
     /* Convert best params from/to barycentric to/from topocentric */
     
-    if (!RAWDATA || cmd->polycofileP){
+    if (!(RAWDATA || insubs)  || cmd->polycofileP){
 
       /* Data was barycentered */
 
