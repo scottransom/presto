@@ -399,7 +399,6 @@ int main(int argc, char *argv[])
     for (i = 0; i < numchan; i++)
       dispdt[i] = (dispdt[i] - barydispdt) / idata.dt;
     worklen *= ((int)(dispdt[numchan-1]) / worklen) + 1;
-    worklen = 1536;
 
     /* If the data is de-dispersed radio data...*/
 
