@@ -10,7 +10,7 @@ PGPLOTINCDIR = -I$(PGPLOT_DIR)
 # Path to PGPLOT libraries
 PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
-PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -ldl
+PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -ldl
 
 # You must define one of the following FFTTYPES (USEFFTW is default).
 # If you want to use FFTW for the FFTs, place sfftw.h and libsfftw.a
@@ -47,7 +47,9 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -Wall -W -O2 -march=athlon
+	-g -O2 -march=athlon -Wall -W
+#	-g -pg -O2 -march=athlon -Wall -W
+#  
 CLINKFLAGS = $(CFLAGS)
 FFLAGS = -g -O2 -march=athlon
 FLINKFLAGS = $(FFLAGS)
@@ -104,9 +106,10 @@ PRESTOOBJS = amoeba.o barycenter.o birdzap.o cand_output.o\
 	orbint.o output.o read_fft.o responses.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
 	transpose.o twopass.o twopass_real_fwd.o\
-	twopass_real_inv.o vectors.o multifiles.o mask.o
+	twopass_real_inv.o vectors.o multifiles.o mask.o\
+	fitsfile.o hget.o hput.o imio.o
 
-INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o
+INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o spigot.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
@@ -163,31 +166,31 @@ geomview: togeomview
 
 mpi: mpiprepsubband
 
-mpiprepsubband_utils.o: mpiprepsubband_utils.c 
-	mpicc $(CLINKFLAGS) -c mpiprepsubband_utils.c 
+mpiprepsubband_utils.o: mpiprepsubband_utils.c
+	mpicc $(CLINKFLAGS) -c mpiprepsubband_utils.c
 
-mpiprepsubband.o: mpiprepsubband.c 
-	mpicc $(CLINKFLAGS) -c mpiprepsubband.c 
+mpiprepsubband.o: mpiprepsubband.c
+	mpicc $(CLINKFLAGS) -c mpiprepsubband.c
 
 mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
 	mpicc $(CLINKFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lm
 
-accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o 
+accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o
 	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
 
-bary: bary.o 
+bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $@ bary.o $(PRESTOLINK) -lm
 
 bincand: bincand_cmd.c bincand_cmd.o bincand.o
 	$(CC) $(CLINKFLAGS) -o $@ bincand.o bincand_cmd.o $(PRESTOLINK) -lm
 
-dftfold: dftfold_cmd.c dftfold_cmd.o dftfold.o 
+dftfold: dftfold_cmd.c dftfold_cmd.o dftfold.o
 	$(CC) $(CLINKFLAGS) -o $@ dftfold.o dftfold_cmd.o $(PRESTOLINK) -lm
 
-shiftdata: shiftdata.o 
+shiftdata: shiftdata.o
 	$(CC) $(CLINKFLAGS) -o $@ shiftdata.o $(DMALLOCLINK) -lm
 
-patchdata: patchdata.o 
+patchdata: patchdata.o
 	$(CC) $(CLINKFLAGS) -o $@ patchdata.o $(DMALLOCLINK)
 
 dat2sdat: dat2sdat.o
@@ -277,26 +280,26 @@ quicklook: quicklook.o
 readfile: readfile_cmd.c readfile_cmd.o readfile.o $(INSTRUMENTOBJS)
 	$(CC) $(CLINKFLAGS) -o $@ readfile.o readfile_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lm
 
-realfft: realfft_cmd.c realfft_cmd.o realfft.o 
+realfft: realfft_cmd.c realfft_cmd.o realfft.o
 	$(CC) $(CLINKFLAGS) -o $@ realfft.o realfft_cmd.o $(PRESTOLINK) -lm
 
 rednoise: rednoise_cmd.c rednoise.o rednoise_cmd.o
 	$(CC) $(CLINKFLAGS) -o $@ rednoise.o rednoise_cmd.o $(PRESTOLINK) -lm
 
-search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o 
-	$(CC) $(CLINKFLAGS) -o $@ search_bin.o search_bin_cmd.o $(PRESTOLINK)  -lm
+search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o
+	$(CC) $(CLINKFLAGS) -o $@ search_bin.o search_bin_cmd.o $(PRESTOLINK) -lm
 
-search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o 
+search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o
 	$(CC) $(CLINKFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(PRESTOLINK) -lm
 
 taperaw: taperaw.o
-	$(CC) $(CLINKFLAGS) -o $@ taperaw.o $(DMALLOCLINK) 
+	$(CC) $(CLINKFLAGS) -o $@ taperaw.o $(DMALLOCLINK)
 
-toas2dat: toas2dat_cmd.c toas2dat_cmd.o toas2dat.o 
-	$(CC) $(CLINKFLAGS) -o $@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK) 
+toas2dat: toas2dat_cmd.c toas2dat_cmd.o toas2dat.o
+	$(CC) $(CLINKFLAGS) -o $@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK)
 
 swap_endian:
-	$(CC) $(CLINKFLAGS) -o $@ swap_endian.c $(DMALLOCLINK) 
+	$(CC) $(CLINKFLAGS) -o $@ swap_endian.c $(DMALLOCLINK)
 
 togeomview:
 	$(CC) -O -o $@ togeomview.c $(DMALLOCLINK)
