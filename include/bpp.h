@@ -169,7 +169,7 @@ typedef struct BPP_SEARCH_HEADER{
 
 
 /* bpp.c */
-void set_BPP_padvals(float *padvals);
+void set_BPP_padvals(float *fpadvals, int good_padvals);
 int compare_findex(const void *ca, const void *cb);
 void calc_BPP_chans(BPP_SEARCH_HEADER *hdr);
 void BPP_hdr_to_inf(BPP_SEARCH_HEADER *hdr, infodata *idata);

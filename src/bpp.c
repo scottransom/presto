@@ -81,16 +81,21 @@ void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk,
   memcpy(chan_mapping, chan_map, sizeof(int)*2*MAXNUMCHAN);
 }
 
-void set_BPP_padvals(float *fpadvals)
+void set_BPP_padvals(float *fpadvals, int good_padvals)
 {
   int ii;
   float sum_padvals=0.0;
 
-  for (ii=0; ii<numchan_st; ii++){
-    padvals[ii] = (unsigned char)(fpadvals[ii] + 0.5);
-    sum_padvals += fpadvals[ii];
+  if (good_padvals){
+    for (ii=0; ii<numchan_st; ii++){
+      padvals[ii] = (unsigned char)(fpadvals[ii] + 0.5);
+      sum_padvals += fpadvals[ii];
+    }
+    padval = (unsigned char)(sum_padvals/numchan_st + 0.5);
+  } else {
+    for (ii=0; ii<numchan_st; ii++)
+      padvals[ii] = padval;
   }
-  padval = (unsigned char)(fpadvals[ii]/numchan_st + 0.5);
 }
 
 int compare_freq(const void *ca, const void *cb)
