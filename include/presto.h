@@ -455,7 +455,7 @@ double sumpows_from_sigma(double sigma, int numsum);
 /*  dispersion.c:  */
 /*  Functions to de-disperse data */
 
-void dedisp(float *data, float *lastdata, long numpts, \
+void dedisp(unsigned char *data, unsigned char *lastdata, long numpts,
 	    double *dispdelays, long numchan, float *result);
 /* De-disperse a stretch of data with numpts * numchan points. */
 /* The delays (in bins) are in dispdelays for each channel.    */
@@ -469,14 +469,14 @@ void dedisp(float *data, float *lastdata, long numpts, \
 /*  Functions for text-based ouput of information  */
 
 void nice_output_1(char *output, double val, double err, int len);
-/* Generates a string in "output" of length len with "val" rounded   */
+/* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
-/*   as in scientific journals.  The error has 1 decimal place.  */
+/*   as in scientific journals.  The error has 1 decimal place.     */
 
 void nice_output_2(char *output, double val, double err, int len);
-/* Generates a string in "output" of length len with "val" rounded   */
+/* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
-/*   as in scientific journals.  The error has 2 decimal places.  */
+/*   as in scientific journals.  The error has 2 decimal places.    */
 
 void print_candidate(fourierprops * cand, double dt, long N, \
 		     double nph, int numerrdigits);

@@ -7,6 +7,9 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.4  1999/11/16 19:43:51  ransom
+ * Changed a few calling parameters.
+ *
  * Revision 1.3  1999/11/16 03:51:57  ransom
  * Simplified interface and code in dedisp.c
  * Minor modifications to multibeam code (mostly asthetic)
@@ -95,38 +98,40 @@ typedef struct MULTIBEAM_TAPEHDR {
 
 /* Routines to read and convert Parkes Multibeam data files */
 
-void convert_multibeam_point(unsigned char *rec, float *data, \
+void convert_multibeam_point(unsigned char *rec, unsigned char *data,
 			     int numchan, int decreasing_f);
-/* This routine converts 1 bit digitized data with      */
-/* 'numchan' channels to an array of 'numchan' floats.  */
+/* This routine converts 1 bit digitized data with 'numchan' */
+/* channels to an array of 'numchan' floats.                 */
 
 void multibeam_hdr_to_inf(multibeam_tapehdr *hdr, infodata *idata);
 /* Convert appropriate Multibeam header portions to make */
 /* a basic '.inf' file                                   */
 
-int skip_to_multibeam_rec(FILE * infile, long rec);
+int skip_to_multibeam_rec(FILE * infile, int rec);
 /* This routine skips to the record 'rec' in the input file */
 /* *infile.  *infile contains 1 bit digitized data from the */
 /* multibeam receiver at Parkes                             */
 /* Returns the record that was skipped to.                  */
 
-int read_multibeam_rec(FILE * file, multibeam_tapehdr *hdr, \
-		       unsigned char *data);
-/* This routine reads a single multibeam record from        */
-/* the input file *file which contains 1 bit digitized data */
-/* from the multibeam correlator at Parkes.                 */
-/* Length of a multibeam record is 640 bytes for the header */
-/*    plus 48k of data = 49792 bytes.                       */
+int read_multibeam_recs(FILE * infile, multibeam_tapehdr * hdr,
+			unsigned char *data, int blocks_to_read);
+/* This routine reads blocks_to_read multibeam records from   */
+/* the input file *infile which contains 1 bit digitized data */
+/* from the multibeam correlator at Parkes.                   */
+/* Length of a multibeam record is 640 bytes for the header   */
+/* plus 48k of data = 49792 bytes.                            */
+/* The header of the first record read is placed in hdr.      */
+/* *data must be pre-allocated with size 48k * blocks_to_read */
 
-int read_multibeam(FILE * file, float *data, long numpts,
-		   double *dispdelays, long numchan);
+int read_multibeam(FILE * file, float *data, int numpts,
+		   double *dispdelays, int numchan);
 /* This routine reads a numpts record with numchan each from */
 /* the input file *file which contains 1 bit digitized data  */
 /* from the multibeam correlator at Parkes.                  */
 /* It returns the number of points read.                     */
 
 int read_mb_chan_to_vecs(FILE * infile, float *data,
-			 long numpts, long numchan);
+			 int numpts, int numchan);
 /* This routine reads a numpts record with numchan each from   */
 /* the input file *infile which contains 1 bit digitized data  */
 /* from the multibeam correlator at Parkes.  It stores the     */
