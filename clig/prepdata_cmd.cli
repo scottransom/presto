@@ -14,8 +14,6 @@ String -o       outfile {Root of the output file names} \
 	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -ebpp    ebpp    {Raw data in Efflesberg-Berkeley Pulsar Processor format}
-Flag   -pad0    pad0    {Pad the data to the next power-of-2 with zeros}
-Flag   -padavg  padavg  {Pad the data to the next power-of-2 with the average value}
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}
