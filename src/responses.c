@@ -572,7 +572,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   if (fftlen / numbetween >= NUM_PTS_ORB - beginbin){
     printf("WARNING:  fftlen too large in gen_bin_response().\n");
   }
-  spread_no_pad(((fcomplex *) data) + beginbin, fftlen / numbetween, \
+  spread_no_pad(((fcomplex *) data) + beginbin, numkern / numbetween, \
 		dataarray, fftlen, numbetween);
   free(data);
 
