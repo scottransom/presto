@@ -501,11 +501,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     for (ii = 0; ii < search->npart; ii++){
       printf("[");
       for (jj = 0; jj < search->proflen - 1; jj++)
-	printf("%f, ", timeprofs[ii * 2 * search->proflen + jj]);
+	printf("%.2f, ", timeprofs[ii * 2 * search->proflen + jj]);
       if (ii == search->npart - 1)
-	printf("%f]]\n\n", timeprofs[ii * 2 * search->proflen + jj]);
+	printf("%.2f]]\n\n", timeprofs[ii * 2 * search->proflen + jj]);
       else
-	printf("%f],\n", timeprofs[ii * 2 * search->proflen + jj]);
+	printf("%.2f],\n", timeprofs[ii * 2 * search->proflen + jj]);
     }
 #endif
 
