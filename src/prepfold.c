@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
   if (cmd->noclipP) cmd->clip = 0.0;
   obsmask.numchan = obsmask.numint = 0;
   if (cmd->timingP){
+    cmd->nosearchP = 1;
     cmd->nopsearchP = 1;
     cmd->nopdsearchP = 1;
     cmd->nodmsearchP = 1;
