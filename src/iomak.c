@@ -32,12 +32,12 @@ void read_mak_input(makedata *mdata)
   }
 
   printf("\nWhat type of Pulse shape?\n");
-  printf("  1=Sine, 2=Crab-like, 3=Spike:\n");
+  printf("  1=Sine, 2=Crab-like, 3=Spike, 4=Gauss:\n");
   scanf("%d", &mdata->pnum);
-  while (mdata->pnum < 1 || mdata->pnum  > 3) {
+  while (mdata->pnum < 1 || mdata->pnum  > 4) {
     printf("\nNot a proper pulse shape choice in read_mak_input()\n");
     printf("\nWhat type of Pulse shape?\n");
-    printf("  1=Sine, 2=Crab-like, 3=Spike:\n");
+    printf("  1=Sine, 2=Crab-like, 3=Spike, 4=Gauss:\n");
     scanf("%d", &mdata->pnum);
   }
   switch (mdata->pnum) {
@@ -49,6 +49,16 @@ void read_mak_input(makedata *mdata)
     break;
   case 3:
     strcpy(mdata->ptype, "Spike");
+    printf("\nEnter the phase width (0.0-0.5) FWHM of the pulse.\n");
+    scanf("%lf", &mdata->fwhm);
+    while (mdata->fwhm < 0 || mdata->fwhm  > 0.5) {
+      printf("\nNot a proper FWHM in read_mak_input()\n");
+      printf("\nEnter the phase width (0.0-0.5) FWHM of the pulse.\n");
+      scanf("%lf", &mdata->fwhm);
+    }
+    break;
+  case 4:
+    strcpy(mdata->ptype, "Gauss");
     printf("\nEnter the phase width (0.0-0.5) FWHM of the pulse.\n");
     scanf("%lf", &mdata->fwhm);
     while (mdata->fwhm < 0 || mdata->fwhm  > 0.5) {
@@ -238,7 +248,11 @@ void read_mak_file(char basefilenm[], makedata *mdata)
   else if (strcmp(mdata->ptype, "Crab-like") == 0)
     mdata->pnum = 2;
   else {
-    mdata->pnum = 3;
+    if (strcmp(mdata->ptype, "Spike") == 0){
+      mdata->pnum = 3;
+    } else {
+      mdata->pnum = 4;
+    }
     /* Default value for fwhm */
     if (i == 2) sscanf(tmp, "%*[^=]= %lf", &mdata->fwhm);
     else mdata->fwhm = 0.1;
@@ -365,7 +379,7 @@ void write_mak_file(makedata *mdata)
   fprintf(makefile, "Num data pts      = %ld\n", mdata->N);
   fprintf(makefile, "dt per bin (s)    = %25.15g\n", mdata->dt);
   fprintf(makefile, "Pulse shape       = %s", mdata->ptype);
-  if (mdata->pnum == 3){
+  if (mdata->pnum > 2){
     fprintf(makefile, " (FWHM = %g)", mdata->fwhm);
   }
   fprintf(makefile, "\nRounding format   = %s\n", mdata->round);

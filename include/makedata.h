@@ -27,8 +27,8 @@ typedef struct MAKEDATA {
   long next2_to_n;              /* The next power-of-2 >= N              */
   double dt;	 	        /* Width of each time series bin (sec)   */
   double T;                     /* Total length of time series (sec)     */
-  char ptype[20];		/* Pulsetype (Sine, Crab-like, Spike)    */
-  int pnum;                     /* 1=Sine, 2=Crab-like, 3=Spike          */
+  char ptype[20];		/* Pulsetype (Sine, Crab, Spike, Gauss)  */
+  int pnum;                     /* 1=Sine, 2=Crab-like, 3=Spike, 4=Gauss */
   double fwhm;                  /* FWHM Phase (0-1) if ptype is Spike    */
   char round[20];		/* Rounding Format (Whole, Fractional)   */
   int roundnum;                 /* 1=Whole Numbers, 0=Fractional         */
@@ -72,3 +72,4 @@ void write_mak_file(makedata *mdata);
 double modsin(double val);
 double crab(double val);
 double spike(double val);
+double gauss(double val);

@@ -95,6 +95,10 @@ int main(int argc, char *argv[])
     ptype_ptr = spike;
     fwhm = mdata.fwhm;
     break;
+  case 4:
+    ptype_ptr = gauss;
+    fwhm = mdata.fwhm;
+    break;
   }
 
   printf("Calculating data points...\n\n");
@@ -334,3 +338,24 @@ double spike(double val)
   else
     return ((1.0 - (phsval - 0.5) * normalize) * normalize);
 }
+
+
+double gauss(double val)
+{
+  /*  Normalized to area per pulse = 1 */
+
+  double phsval, dtmp, integral;
+  static double sigma, sigfact;
+  static int firsttime = 1;
+
+  if (firsttime){
+    sigma = fwhm / 2.35482;
+    sigfact = 1.0 / (sigma * sqrt(TWOPI));
+    firsttime = 0;
+  }
+
+  phsval = modf(val, &integral);
+  dtmp = (phsval-0.5)/sigma;
+  return exp(-0.5*dtmp*dtmp) * sigfact;
+}
+            
