@@ -738,6 +738,7 @@ int main(int argc, char *argv[])
 		binproffile);
     }
     printf("\rFolded %ld points of %.0f", totnumfolded, N);
+    fflush(NULL);
   }
   fclose(infile);
   fclose(binproffile);
