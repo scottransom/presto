@@ -213,7 +213,6 @@ int main(int argc, char *argv[])
       powr = read_float_file(fftfile, filepos, numtoread);
     }
     if (filepos == 0) powr[0] = 1.0;
-    filepos += numtoread - cmd->maxfft / 2;
       
     /* Chop the powers that are way above the average level */
 
@@ -238,11 +237,11 @@ int main(int argc, char *argv[])
 
 	realfft(minifft, fftlen, -1);
 
-	/* Calculate the normalization constant and search the miniFFT */
+	/* Normalize and search the miniFFT */
 
 	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
-
-	search_minifft((fcomplex *)minifft, halffftlen, norm, \
+	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
+	search_minifft((fcomplex *)minifft, halffftlen, \
 		       HARMSUM, MININCANDS, highpows, highfreqs);
 
 	/* Check if the measured powers are greater than cmd->plev */
@@ -257,13 +256,14 @@ int main(int argc, char *argv[])
 	    /* power we already have in the list.                     */
 
 	    if (maxpow > minpow) {
+	      derivs.locpow = 1.0;
 	      calc_props(derivs, maxfreq, 0.0, 0.0, &props);
-	      calc_binprops(&props, T, filepos + cmd->lobin + (fptr1 - powr), \
-			    fftlen, &binprops);
+	      calc_binprops(&props, T, filepos + cmd->lobin + 
+			    (fptr1 - powr), fftlen, &binprops);
 
 	      /* Insure the candidate is semi-realistic */
 
-	      if (binprops.pbin > 300.0) {
+	      if (binprops.pbin > 300.0 || binprops.rbin < 2.0) {
 
 		/* Check to see if another candidate with these properties */
 		/* is already in the list.                                 */
@@ -289,6 +289,7 @@ int main(int argc, char *argv[])
       /* Size of mini-fft while loop */
     }
 
+    filepos += numtoread - cmd->maxfft / 2;
     loopct++;
 
     /* File position while loop */

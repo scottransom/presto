@@ -8,7 +8,9 @@ int main(void)
 {
   FILE *wisdomfile;
   fftw_plan plan;
-  int fftlen;
+  int ii, fftlen;
+  int padlen[13] = {288, 540, 1080, 2100, 4200, 8232, 16464, 32805, 
+		    65610, 131220, 262440, 525000, 1050000};
 
   fftlen = 2;
 
@@ -27,6 +29,17 @@ int main(void)
 	FFTW_MEASURE | FFTW_USE_WISDOM | FFTW_IN_PLACE);
     fftw_destroy_plan(plan);
     fftlen <<= 1;
+  }
+
+  for (ii = 0; ii < 13; ii++){
+    fftlen = padlen[ii];
+    printf("   %d\n", fftlen);
+    plan = fftw_create_plan(fftlen, -1, \
+	FFTW_MEASURE | FFTW_USE_WISDOM | FFTW_IN_PLACE);
+    fftw_destroy_plan(plan);
+    plan = fftw_create_plan(fftlen, 1, \
+	FFTW_MEASURE | FFTW_USE_WISDOM | FFTW_IN_PLACE);
+    fftw_destroy_plan(plan);
   }
 
   printf("Exporting wisdom to 'fftw_wisdom.txt'\n");

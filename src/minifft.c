@@ -7,9 +7,8 @@ int padfftlen(int minifftlen, int numbetween, int *padlen);
 static float percolate_pows_and_freqs(float *highpows, float *highfreqs, \
 				      int numcands);
 
-void search_minifft(fcomplex *minifft, int numminifft, float norm, \
-		    int harmsum, int numcands, float *highpows, \
-		    float *highfreqs)
+void search_minifft(fcomplex *minifft, int numminifft, int harmsum, \
+		    int numcands, float *highpows, float *highfreqs)
   /* This routine searches a short FFT (usually produced using the   */
   /* MiniFFT binary search method) and returns two vectors which     */
   /* contain the highest powers found and their Fourier frequencies. */
@@ -17,8 +16,6 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
   /* Arguments:                                                      */
   /*   'minifft' is the FFT to search (complex valued)               */
   /*   'numminifft' is the number of complex points in 'minifft'     */
-  /*   'norm' is the value to multiply each pow power by to get      */
-  /*      a normalized power spectrum.                               */
   /*   'harmsum' the number of harmonics to sum during the search.   */
   /*   'numcands' is the length of the returned vectors.             */
   /*   'highpows' a vector containing the 'numcands' highest powers. */
@@ -29,7 +26,7 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
 {
   int ii, jj, kk, nmini2, nmini4, offset, numtosearch;
   int numspread = 0, kern_half_width, numkern = 0;
-  float minpow = 0.0, powargr, powargi, sqrtnorm, nyquist;
+  float minpow = 0.0, powargr, powargi, nyquist;
   float *fullpows = NULL, *sumpows;
   static int firsttime = 1, old_numminifft = 0;
   static fcomplex *kernel;
@@ -55,20 +52,15 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
     old_numminifft = numminifft;
   }
 
-  /* Spread, normalize, and interpolate the minifft */
+  /* Spread and interpolate the minifft */
   
   spread = gen_cvect(numspread);
   spread_no_pad(minifft, numminifft, spread, numspread, 2);
-  sqrtnorm = sqrt(norm);
-  nyquist = spread[0].i * sqrtnorm;
+  nyquist = spread[0].i;
   spread[0].r = 1.0;
   spread[0].i = 0.0;
-  for (ii = 2; ii < nmini2; ii += 2){
-    spread[ii].r *= sqrtnorm;
-    spread[ii].i *= sqrtnorm;
-  }
-  spread[ii].r = nyquist;
-  spread[ii].i = 0.0;
+  spread[nmini2].r = nyquist;
+  spread[nmini2].i = 0.0;
   spread = complex_corr_conv(spread, kernel, numspread, \
 			     FFTD, INPLACE_CORR);
 
@@ -109,7 +101,7 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
   }
   
   /* Search the summed powers */
-  
+
   for (ii = 0; ii < numcands; ii++){
     highpows[ii] = 0.0;
     highfreqs[ii] = 0.0;
