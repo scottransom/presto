@@ -4,28 +4,31 @@
 #include "fitsfile.h"
 #include "fitshead.h"
 
-#define DEBUGOUT 0
+#define DEBUGOUT 1
+
+#if DEBUGOUT
+#include "plot2d.h"
+#endif
 
 /*  NOTES:
-bytesperblk_st is the number of bytes in the RAW LAGS for a _single_ SPIGOT
-sampperblk_st  is the number of samples (i.e. lags) in a block 
-               for all SPIGOTs together
+bytesperblk_st is the number of bytes in the RAW LAGS for a SPIGOT
+sampperblk_st  is the number of lags in a block 
 */
 
 /* All of the following have an _st to indicate static */
 static SPIGOT_INFO *spigot;
 static infodata *idata_st;
+static fftwf_plan fftplan;
 static long long N_st;
 static int decreasing_freqs_st=0, bytesperpt_st, bytesperblk_st, bits_per_lag_st;
 static int numchan_st, numifs_st, ptsperblk_st;
 static int need_byteswap_st=0, sampperblk_st, usewindow_st=0, vanvleck_st=0;
+static int currentfile, currentblock, bufferpts=0, padnum=0, shiftbuffer=1;
 static double T_st, dt_st, center_freq_st, *window_st=NULL;
+static float clip_sigma_st=0.0, *lags=NULL;
+static float lag_factor[SPIGOT_MAXLAGLEN], lag_offset[SPIGOT_MAXLAGLEN];
 static unsigned char databuffer[2*SPIGOT_MAXDATLEN], padvals[SPIGOT_MAXLAGLEN], padval=128;
 static unsigned char lagbuffer[SPIGOT_MAXLAGLEN];
-static int currentfile, currentblock;
-static int bufferpts=0, padnum=0, shiftbuffer=1;
-static fftwf_plan fftplan;
-static float clip_sigma_st=0.0, *lags=NULL;
 
 double slaCldj(int iy, int im, int id, int *j);
 static double inv_cerf(double input);
@@ -45,7 +48,10 @@ static double *hamming_window(int numlags)
   return win;
 }
 
-void get_SPIGOT_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma){
+void get_SPIGOT_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma)
+/* This is used by the MPI-based mpiprepsubband code to insure that each */
+/* processor can access (correctly) the required static variables.       */
+{
   *bytesperpt = bytesperpt_st;
   *bytesperblk = bytesperblk_st;
   *numifs = numifs_st;
@@ -53,7 +59,10 @@ void get_SPIGOT_static(int *bytesperpt, int *bytesperblk, int *numifs, float *cl
 }
 
 void set_SPIGOT_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-		     int numchan, int numifs, float clip_sigma, double dt){
+		     int numchan, int numifs, float clip_sigma, double dt)
+/* This is used by the MPI-based mpiprepsubband code to insure that each */
+/* processor can access (correctly) the required static variables.       */
+{
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
@@ -65,6 +74,9 @@ void set_SPIGOT_static(int ptsperblk, int bytesperpt, int bytesperblk,
 }
 
 void set_SPIGOT_padvals(float *fpadvals, int good_padvals)
+/* If reasonable padding values are available from rifind,       */
+/* use these as the padding values, otherwise, set them all      */
+/* to the value of padval defined in the static variables above. */
 {
   int ii;
   float sum_padvals=0.0;
@@ -100,10 +112,10 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
 /* Read and convert SPIGOT header information and place it into */
 /* a SPIGOT_INFO structure.  Return 1 if successful, 0 if not.  */
 {
-  int hdrlen, data_offset;
+  int hdrlen, data_offset, itmp;
   double dtmp1, dtmp2;
-  int itmp;
   char *hdr;
+  static int firsttime=1;
   
   hdr = fitsrhead(filename, &hdrlen, &data_offset);
   if (!hdr){
@@ -218,6 +230,19 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   spigot->file_duration = spigot->samples_per_file * 1e6 * spigot->dt_us;
   /* Total (planned) number of spectra */
   hgeti4(hdr, "SPECTRA", &(spigot->tot_num_samples));
+  /* Set the lag scaling and offset values if this is the firsttime */
+  if (firsttime){
+    int ii;
+    char keyword[10], ctmp[100];
+    float ftmp1, ftmp2;
+    
+    for (ii=0; ii<spigot->lags_per_sample; ii++){
+      sprintf(keyword, "LAGD%04d", ii);
+      hgets(hdr, keyword, 100, ctmp); 
+      sscanf(ctmp, "%f %f %f %f", lag_factor+ii, lag_offset+ii, &ftmp1, &ftmp2);
+    }
+    firsttime=0;
+  }
   free(hdr);
   return(1);
 }
@@ -372,18 +397,20 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   /* Calculate the maximum number of points we can have in a */
   /* block (power of two), based on the number of samples in */
   /* each file.                                              */
+  bytesperpt_st = (numchan_st*numifs_st*bits_per_lag_st)/8;
   filedatalen = chkfilelen(files[0], 1) - spigot[0].header_len;
   if (filedatalen != spigot[0].lags_per_sample*spigot[0].samples_per_file*bits_per_lag_st/8)
     printf("\n  Warning!  The calculated and reported lengths of file %d are different!\n\n", 0);
-  bytesperpt_st = (numchan_st*numifs_st*bits_per_lag_st)/8;
   numpts = filedatalen/bytesperpt_st;
   if (filedatalen % bytesperpt_st)
     printf("\n  Warning!  File %d has a non-integer number of complete samples!\n\n", 0);
-  if (numpts != spigot[0].samples_per_file)
+  if (numpts != spigot[0].samples_per_file){
     printf("\n  Warning!  The calculated and reported number of samples in file %d are different!\n\n", 0);
+    spigot[0].samples_per_file = numpts;
+  }
   /* Calculate the largest block size the fits evenly in each file */
   ptsperblk_st = SPIGOT_MAXPTSPERBLOCK;
-  while (numpts % ptsperblk_st) ptsperblk_st /= 2;
+  while (numpts % ptsperblk_st) ptsperblk_st--;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   if (filedatalen % bytesperblk_st)
     printf("\n  Warning!  File %d has a non-integer number of complete blocks!\n\n", 0);
@@ -411,8 +438,10 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
     filedatalen = chkfilelen(files[ii], 1) - spigot[ii].header_len;
     spigot[ii].num_blocks = filedatalen/bytesperblk_st;
     numpts = spigot[ii].num_blocks*ptsperblk_st;
-    if (numpts != spigot[ii].samples_per_file)
+    if (numpts != spigot[ii].samples_per_file){
       printf("\n  Warning!  The calculated and reported number of samples in file %d are different!\n\n", ii);
+      spigot[ii].samples_per_file = numpts;
+    }
     spigot[ii].file_duration = numpts*dt_st;
     /* If the MJDs are equal, then this is a continuation */
     /* file.  In that case, calculate the _real_ time     */
@@ -780,6 +809,7 @@ int read_SPIGOT(FILE *infiles[], int numfiles, float *data,
   }
 }
 
+
 void get_SPIGOT_channel(int channum, float chandat[], 
 			unsigned char rawdata[], int numblocks)
 /* Return the values for channel 'channum' of a block of         */
@@ -960,6 +990,8 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
   float *templags=NULL;
   double power, pfact;
   double scale_min_st=0.0, scale_max_st=3.0;
+  static int counter;
+  static double avg=0, var=0, min=0, max=0;
 
   if (ifs==IF0){
     ifnum = 1;
@@ -978,34 +1010,36 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
   for (ifnum=0; ifnum<numifs_st; ifnum++, index+=numchan_st){
     
     /* Fill lag array with scaled CFs */
+    /* Note:  The 2 and 4 bit options will almost certainly need to be fixed */
+    /*        since I don't know the precise data layout. SMR 15Aug2003      */
+    /*        Alos, I have no idea how multiple IFs/RFs are stored...        */
     if (bits_per_lag_st==16){
-      unsigned short *sdata=(unsigned short *)rawdata;
+      short *data=(short *)rawdata;
       for (ii=0; ii<numchan_st; ii++)
-	lags[ii] = sdata[ii+index] - 1.0;
-    } else {
-      unsigned int *idata=(unsigned int *)rawdata;
+	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
+    } else if (bits_per_lag_st==8){
+      unsigned char *data=(unsigned char *)rawdata;
       for (ii=0; ii<numchan_st; ii++)
-	lags[ii] = idata[ii+index] - 1.0;
+	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
+    } else if (bits_per_lag_st==4){
+      int jj;
+      unsigned char *data=(unsigned char *)rawdata, byte;
+      for (ii=0, jj=0; ii<numchan_st/2; ii++){
+	byte = data[ii+index/2];
+	lags[jj] = (byte>>0x04)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = (byte&0x0f)*lag_factor[jj] + lag_offset[jj]; jj++;
+      }
+    } else if (bits_per_lag_st==2){
+      int jj;
+      unsigned char *data=(unsigned char *)rawdata, byte;
+      for (ii=0, jj=0; ii<numchan_st/4; ii++){
+	byte = data[ii+index/4];
+	lags[jj] = (byte>>0x06)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = ((byte>>0x04)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = ((byte>>0x02)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = (byte&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+      }
     }
-
-    /* Calculate power */
-    power = inv_cerf(lags[0]);
-    power = 0.1872721836 / (power * power);
-  
-    /* Apply Van Vleck Corrections to the Lags */
-    if (vanvleck_st)
-      vanvleck3lev(lags, numchan_st);
-  
-    for (ii=0; ii<numchan_st; ii++)
-      lags[ii] *= power;
-
-    if (usewindow_st)
-      for (ii=0; ii<numchan_st; ii++)
-	lags[ii] *= window_st[ii];
-
-    /* FFT the ACF lags (which are real and even) -> real and even FFT */
-    lags[numchan_st] = 0.0;
-    fftwf_execute(fftplan);
 
 #if 0
     printf("\n");
@@ -1014,6 +1048,39 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     printf("\n");
     exit(0);
 #endif
+
+    /* Calculate power */
+
+    power = inv_cerf(lags[0]);
+    power = 0.1872721836 / (power * power);
+
+    /* Apply Van Vleck Corrections to the Lags */
+    if (vanvleck_st)
+      vanvleck3lev(lags, numchan_st);
+    
+    for (ii=0; ii<numchan_st; ii++)
+      lags[ii] *= power;
+    
+    if (usewindow_st)
+      for (ii=0; ii<numchan_st; ii++)
+	lags[ii] *= window_st[ii];
+
+#if 0
+    printf("\n");
+    for(ii=0; ii<numchan_st; ii++)
+      printf("%d  %.7g\n", ii, lags[ii]);
+    printf("\n");
+#endif
+
+    /* FFT the ACF lags (which are real and even) -> real and even FFT */
+    lags[numchan_st] = 0.0;
+    fftwf_execute(fftplan);
+
+    /* Determine some simple statistics of the spectra */
+    for (ii=0; ii<numchan_st; ii++, counter++)
+      update_stats(counter, lags[ii], &min, &max, &avg, &var);
+    printf("counter = %d avg = %.3g  var = %.3g  min = %.3g  max = %.3g\n", 
+	   counter, avg, sqrt(var/(counter-1.0)), min, max);
 
     /* Reverse band if it needs it */
     if (decreasing_freqs_st){
@@ -1049,12 +1116,6 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
   }
   
 #if 0
-  { /* Show what the raw powers are (avg ~1.05, var ~0.2) */
-    double avg, var;
-    avg_var(lags, numchan_st, &avg, &var);
-    printf("avg = %f    var = %f\n", avg, var);
-    exit(0);
-  }
 #endif
 }
 

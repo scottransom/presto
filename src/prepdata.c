@@ -102,7 +102,8 @@ int main(int argc, char *argv[])
 		 strcmp(suffix, "bcpm2")==0){
 	printf("Assuming the data is from a GBT BCPM...\n");
 	cmd->bcpmP = 1;
-      } else if (strcmp(suffix, "fits")==0){
+      } else if (strcmp(suffix, "fits")==0 &&
+		 strncmp(root, "spigot", 6)==0){
 	printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
 	cmd->spigotP = 1;
       } else if (strcmp(suffix, "pkmb")==0){
@@ -241,13 +242,28 @@ int main(int argc, char *argv[])
       strcpy(obs, "GB");
     }
     
+    /* Set-up values if we are using the NRAO-Caltech Spigot card */
+    if (cmd->spigotP) {
+      SPIGOT_INFO *spigots;
+
+      printf("Spigot card input file information:\n");
+      spigots = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO)*numfiles);
+      for (ii=0; ii<numfiles; ii++)
+	read_SPIGOT_header(cmd->argv[ii], spigots+ii);
+      get_SPIGOT_file_info(infiles, spigots, numfiles, cmd->windowP, cmd->clip, &N, 
+			   &ptsperblock, &numchan, &dt, &T, &idata, 1);
+      SPIGOT_update_infodata(numfiles, &idata);
+      set_SPIGOT_padvals(padvals, good_padvals);
+      /* OBS code for TEMPO for the GBT */
+      strcpy(obs, "GB");
+      free(spigots);
+    }
+    
     /* Set-up values if we are using the Arecibo WAPP */
     if (cmd->wappP) {
       printf("WAPP input file information:\n");
-      get_WAPP_file_info(infiles, cmd->numwapps, numfiles, 
-			 cmd->windowP, cmd->clip,
-			 &N, &ptsperblock, &numchan, 
-			 &dt, &T, &idata, 1);
+      get_WAPP_file_info(infiles, cmd->numwapps, numfiles, cmd->windowP, cmd->clip,
+			 &N, &ptsperblock, &numchan, &dt, &T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
       set_WAPP_padvals(padvals, good_padvals);
       /* OBS code for TEMPO for Arecibo */
@@ -402,6 +418,10 @@ int main(int argc, char *argv[])
 	numread = read_BPP(infiles, numfiles, outdata, worklen, 
 			   dispdt, &padding, maskchans, &nummasked, 
 			   &obsmask, ifs);
+      else if (cmd->spigotP)
+	numread = read_SPIGOT(infiles, numfiles, outdata, worklen, 
+			      dispdt, &padding, maskchans, &nummasked, 
+			      &obsmask, ifs);
       else if (cmd->wappP)
 	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked, 
@@ -583,6 +603,10 @@ int main(int argc, char *argv[])
 	numread = read_BPP(infiles, numfiles, outdata, worklen, 
 			   dispdt, &padding, maskchans, &nummasked, 
 			   &obsmask, ifs);
+      else if (cmd->spigotP)
+	numread = read_SPIGOT(infiles, numfiles, outdata, worklen, 
+			      dispdt, &padding, maskchans, &nummasked, 
+			      &obsmask, ifs);
       else if (cmd->wappP)
 	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked, 
