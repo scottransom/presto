@@ -49,6 +49,68 @@ int read_floats(FILE *file, float *data, int numpts, int numchan)
 }
 
 
+double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
+                  double T0, double *firsttoa)
+/* This routine reads a set of TOAs from the open file 'infile'.    */
+/* It returns a double precision vector of TOAs in seconds from the */
+/* first TOA.  If 'bin' is true the routine treats the data as      */
+/* binary double precision (otherwise text).  If 'sec' is true the  */
+/* data is assumed to be in seconds (otherwise MJD).                */
+/* The number of TOAs read is placed in 'numtoas', and the raw      */
+/* TOA is placed in 'firsttoa'.  T0 is the time to ue for the zero  */
+/* time.  If it is negative it will default to the first TOA.       */
+{
+  int N, nn;
+  double *t, dtmp;
+
+  if (bin){
+    N = chkfilelen(infile, sizeof(double));
+  } else {
+
+    /* Read the input file once to count TOAs */
+
+    N = 0;
+    while (!feof(infile)){
+      fscanf(infile, "%lf", &dtmp);
+      N++;
+    }
+    N--;
+  }
+  *numtoas = N;
+
+  /* Allocate the TOA arrays */
+
+  t = (double *)malloc(N * sizeof(double));
+
+  /* Rewind and read the TOAs for real */
+
+  rewind(infile);
+  if (bin){
+    fread(t, sizeof(double), N, infile);
+  } else {
+    for (nn = 0; nn < N; nn++)
+      fscanf(infile, "%lf", &t[nn]);
+  }
+  *firsttoa = t[0];
+
+  /* Convert the times (if needed) from MJD to seconds from the first TOA */
+
+  if (T0 < 0.0)
+    dtmp = t[0];
+  else
+    dtmp = T0;
+  if (sec){
+    for (nn = 0; nn < N; nn++)
+      t[nn] = t[nn] - dtmp;
+  } else {
+    for (nn = 0; nn < N; nn++)
+      t[nn] = (t[nn] - dtmp) * 86400.0;
+  }
+  return t;
+}
+
+
+
 int bary2topo(double *topotimes, double *barytimes, int numtimes, 
 	      double fb, double fbd, double fbdd, 
 	      double *ft, double *ftd, double *ftdd)

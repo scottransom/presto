@@ -117,7 +117,7 @@ void write_bestprof(prepfoldinfo *search, foldstats *beststats,
   int ii;
 
   sprintf(outfilenm, "%.*s.bestprof", 
-	  strlen(search->pgdev)-7, search->pgdev);
+	  (int)strlen(search->pgdev)-7, search->pgdev);
   outfile = chkfopen(outfilenm, "w");
 
   fprintf(outfile, "# Input file       =  %-s\n", search->filenm);
@@ -997,11 +997,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgtext(0.45, 0.5, out);
       sprintf(out, "Data Avg");
       cpgtext(0.0, 0.4, out);
-      sprintf(out, "=  %.2f", beststats.data_avg);
+      sprintf(out, "=  %.4g", beststats.data_avg);
       cpgtext(0.45, 0.4, out);
       sprintf(out, "Data StdDev"); 
       cpgtext(0.0, 0.3, out);
-      sprintf(out, "=  %.2f", sqrt(beststats.data_var));
+      sprintf(out, "=  %.4g", sqrt(beststats.data_var));
       cpgtext(0.45, 0.3, out);
       sprintf(out, "Profile Bins");
       cpgtext(0.0, 0.2, out);
@@ -1009,11 +1009,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgtext(0.45, 0.2, out);
       sprintf(out, "Profile Avg");
       cpgtext(0.0, 0.1, out);
-      sprintf(out, "=  %.2f", beststats.prof_avg);
+      sprintf(out, "=  %.4g", beststats.prof_avg);
       cpgtext(0.45, 0.1, out);
       sprintf(out, "Profile StdDev");
       cpgtext(0.0, 0.0, out);
-      sprintf(out, "=  %.2f", sqrt(beststats.prof_var));
+      sprintf(out, "=  %.4g", sqrt(beststats.prof_var));
       cpgtext(0.45, 0.0, out);
 
       /* Calculate the values of P and Q since we know X and DF */

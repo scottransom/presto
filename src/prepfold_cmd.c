@@ -174,6 +174,18 @@ static Cmdline cmd = {
   /* maskfileP = */ 0,
   /* maskfile = */ (char*)0,
   /* maskfileC = */ 0,
+  /***** -toas: Use a TOA file instead of a time series (.dat) file */
+  /* toasP = */ 0,
+  /***** -secs: TOAs are in seconds days since the MJD in the .inf file */
+  /* secsP = */ 0,
+  /***** -days: TOAs are in days since the MJD in the .inf file */
+  /* daysP = */ 0,
+  /***** -double: TOAs are in binary double precision instead of text format */
+  /* doubleP = */ 0,
+  /***** -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA */
+  /* toaoffsetP = */ 1,
+  /* toaoffset = */ 0,
+  /* toaoffsetC = */ 1,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -1348,6 +1360,46 @@ showOptionValues(void)
       printf("  value = `%s'\n", cmd.maskfile);
     }
   }
+
+  /***** -toas: Use a TOA file instead of a time series (.dat) file */
+  if( !cmd.toasP ) {
+    printf("-toas not found.\n");
+  } else {
+    printf("-toas found:\n");
+  }
+
+  /***** -secs: TOAs are in seconds days since the MJD in the .inf file */
+  if( !cmd.secsP ) {
+    printf("-secs not found.\n");
+  } else {
+    printf("-secs found:\n");
+  }
+
+  /***** -days: TOAs are in days since the MJD in the .inf file */
+  if( !cmd.daysP ) {
+    printf("-days not found.\n");
+  } else {
+    printf("-days found:\n");
+  }
+
+  /***** -double: TOAs are in binary double precision instead of text format */
+  if( !cmd.doubleP ) {
+    printf("-double not found.\n");
+  } else {
+    printf("-double found:\n");
+  }
+
+  /***** -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA */
+  if( !cmd.toaoffsetP ) {
+    printf("-toaoffset not found.\n");
+  } else {
+    printf("-toaoffset found:\n");
+    if( !cmd.toaoffsetC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.toaoffset);
+    }
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -1364,107 +1416,114 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
-        -o: Root of the output file names\n\
-            1 char* value\n\
-     -pkmb: Raw data in Parkes Multibeam format\n\
-     -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
-       -if: For BPP format only:  A specific IF to use.\n\
-            1 int value between 0 and 1\n\
-     -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
-     -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
-            1 float value between 0 and 20.0\n\
-            default: `0.0'\n\
-   -nobary: Do not barycenter (assume input parameters are topocentric)\n\
-    -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
-     -xwin: Show the result plots on-screen as well as make a plotfile\n\
-   -runavg: Subtract each blocks average as it is read (single channel data only)\n\
-       -dm: The central DM of the search (cm^-3 pc)\n\
-            1 double value between 0 and oo\n\
-            default: `0'\n\
-        -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
-            1 int value\n\
-     -nsub: The number of sub-bands to use for the DM search\n\
-            1 int value between 1 and 512\n\
-            default: `32'\n\
-    -npart: The number of sub-integrations to use for the period search\n\
-            1 int value between 1 and 512\n\
-            default: `64'\n\
-    -pstep: The minimum period stepsize over the observation in profile bins\n\
-            1 int value between 1 and 10\n\
-            default: `2'\n\
-   -pdstep: The minimum P-dot stepsize over the observation in profile bins\n\
-            1 int value between 1 and 20\n\
-            default: `4'\n\
-   -dmstep: The minimum DM stepsize over the observation in profile bins\n\
-            1 int value between 1 and 10\n\
-            default: `2'\n\
-   -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched\n\
-            1 int value between 1 and 10\n\
-            default: `2'\n\
-  -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
-            1 int value between 1 and 10\n\
-            default: `3'\n\
-        -p: The nominative folding period (s)\n\
-            1 double value between 0 and oo\n\
-       -pd: The nominative period derivative (s/s)\n\
-            1 double value\n\
-            default: `0.0'\n\
-      -pdd: The nominative period 2nd derivative (s/s^2)\n\
-            1 double value\n\
-            default: `0.0'\n\
-        -f: The nominative folding frequency (hz)\n\
-            1 double value between 0 and oo\n\
-       -fd: The nominative frequency derivative (hz/s)\n\
-            1 double value\n\
-            default: `0'\n\
-      -fdd: The nominative frequency 2nd derivative (hz/s^2)\n\
-            1 double value\n\
-            default: `0'\n\
-    -pfact: A factor to multiple the candidate p and p-dot by\n\
-            1 double value between 0.0 and 100.0\n\
-            default: `1.0'\n\
-    -ffact: A factor to multiple the candidate f and f-dot by\n\
-            1 double value between 0.0 and 100.0\n\
-            default: `1.0'\n\
-      -phs: Offset phase for the profil\n\
-            1 double value between 0.0 and 1.0\n\
-            default: `0.0'\n\
-    -start: The folding start time as a fraction of the full obs\n\
-            1 double value between 0.0 and 1.0\n\
-            default: `0.0'\n\
-      -end: The folding end time as a fraction of the full obs\n\
-            1 double value between 0.0 and 1.0\n\
-            default: `1.0'\n\
-      -psr: Name of pulsar to fold (do not include J or B)\n\
-            1 char* value\n\
-      -obs: Two letter TEMPO observatory code (for barycentering)\n\
-            1 char* value\n\
-  -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
-            1 int value between 1 and oo\n\
-  -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
-            1 char* value\n\
-      -bin: Fold a binary pulsar.  Must include all of the following parameters\n\
-       -pb: The orbital period (s)\n\
-            1 double value between 0 and oo\n\
-        -x: The projected orbital semi-major axis (lt-sec)\n\
-            1 double value between 0 and oo\n\
-        -e: The orbital eccentricity\n\
-            1 double value between 0 and 0.9999999\n\
-            default: `0'\n\
-       -To: The time of periastron passage (MJD)\n\
-            1 double value between 0 and oo\n\
-        -w: Longitude of periastron (deg)\n\
-            1 double value between 0 and 360\n\
-     -wdot: Rate of advance of periastron (deg/yr)\n\
-            1 double value\n\
-            default: `0'\n\
-     -mask: File containing masking information to use\n\
-            1 char* value\n\
-    infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-            1...100 values\n\
-version: 28Aug01\n\
+          -o: Root of the output file names\n\
+              1 char* value\n\
+       -pkmb: Raw data in Parkes Multibeam format\n\
+       -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+         -if: For BPP format only:  A specific IF to use.\n\
+              1 int value between 0 and 1\n\
+       -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
+       -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
+              1 float value between 0 and 20.0\n\
+              default: `0.0'\n\
+     -nobary: Do not barycenter (assume input parameters are topocentric)\n\
+      -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
+       -xwin: Show the result plots on-screen as well as make a plotfile\n\
+     -runavg: Subtract each blocks average as it is read (single channel data only)\n\
+         -dm: The central DM of the search (cm^-3 pc)\n\
+              1 double value between 0 and oo\n\
+              default: `0'\n\
+          -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
+              1 int value\n\
+       -nsub: The number of sub-bands to use for the DM search\n\
+              1 int value between 1 and 512\n\
+              default: `32'\n\
+      -npart: The number of sub-integrations to use for the period search\n\
+              1 int value between 1 and 512\n\
+              default: `64'\n\
+      -pstep: The minimum period stepsize over the observation in profile bins\n\
+              1 int value between 1 and 10\n\
+              default: `2'\n\
+     -pdstep: The minimum P-dot stepsize over the observation in profile bins\n\
+              1 int value between 1 and 20\n\
+              default: `4'\n\
+     -dmstep: The minimum DM stepsize over the observation in profile bins\n\
+              1 int value between 1 and 10\n\
+              default: `2'\n\
+     -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched\n\
+              1 int value between 1 and 10\n\
+              default: `2'\n\
+    -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
+              1 int value between 1 and 10\n\
+              default: `3'\n\
+          -p: The nominative folding period (s)\n\
+              1 double value between 0 and oo\n\
+         -pd: The nominative period derivative (s/s)\n\
+              1 double value\n\
+              default: `0.0'\n\
+        -pdd: The nominative period 2nd derivative (s/s^2)\n\
+              1 double value\n\
+              default: `0.0'\n\
+          -f: The nominative folding frequency (hz)\n\
+              1 double value between 0 and oo\n\
+         -fd: The nominative frequency derivative (hz/s)\n\
+              1 double value\n\
+              default: `0'\n\
+        -fdd: The nominative frequency 2nd derivative (hz/s^2)\n\
+              1 double value\n\
+              default: `0'\n\
+      -pfact: A factor to multiple the candidate p and p-dot by\n\
+              1 double value between 0.0 and 100.0\n\
+              default: `1.0'\n\
+      -ffact: A factor to multiple the candidate f and f-dot by\n\
+              1 double value between 0.0 and 100.0\n\
+              default: `1.0'\n\
+        -phs: Offset phase for the profil\n\
+              1 double value between 0.0 and 1.0\n\
+              default: `0.0'\n\
+      -start: The folding start time as a fraction of the full obs\n\
+              1 double value between 0.0 and 1.0\n\
+              default: `0.0'\n\
+        -end: The folding end time as a fraction of the full obs\n\
+              1 double value between 0.0 and 1.0\n\
+              default: `1.0'\n\
+        -psr: Name of pulsar to fold (do not include J or B)\n\
+              1 char* value\n\
+        -obs: Two letter TEMPO observatory code (for barycentering)\n\
+              1 char* value\n\
+    -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
+              1 int value between 1 and oo\n\
+    -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
+              1 char* value\n\
+        -bin: Fold a binary pulsar.  Must include all of the following parameters\n\
+         -pb: The orbital period (s)\n\
+              1 double value between 0 and oo\n\
+          -x: The projected orbital semi-major axis (lt-sec)\n\
+              1 double value between 0 and oo\n\
+          -e: The orbital eccentricity\n\
+              1 double value between 0 and 0.9999999\n\
+              default: `0'\n\
+         -To: The time of periastron passage (MJD)\n\
+              1 double value between 0 and oo\n\
+          -w: Longitude of periastron (deg)\n\
+              1 double value between 0 and 360\n\
+       -wdot: Rate of advance of periastron (deg/yr)\n\
+              1 double value\n\
+              default: `0'\n\
+       -mask: File containing masking information to use\n\
+              1 char* value\n\
+       -toas: Use a TOA file instead of a time series (.dat) file\n\
+       -secs: TOAs are in seconds days since the MJD in the .inf file\n\
+       -days: TOAs are in days since the MJD in the .inf file\n\
+     -double: TOAs are in binary double precision instead of text format\n\
+  -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA\n\
+              1 double value between 0 and oo\n\
+              default: `0'\n\
+      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
+              1...100 values\n\
+version: 06Nov01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1831,6 +1890,35 @@ parseCmdline(int argc, char **argv)
       cmd.maskfileP = 1;
       i = getStringOpt(argc, argv, i, &cmd.maskfile, 1);
       cmd.maskfileC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-toas", argv[i]) ) {
+      cmd.toasP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-secs", argv[i]) ) {
+      cmd.secsP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-days", argv[i]) ) {
+      cmd.daysP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-double", argv[i]) ) {
+      cmd.doubleP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-toaoffset", argv[i]) ) {
+      int keep = i;
+      cmd.toaoffsetP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.toaoffset, 1);
+      cmd.toaoffsetC = i-keep;
+      checkDoubleHigher("-toaoffset", &cmd.toaoffset, cmd.toaoffsetC, 0);
       continue;
     }
 
