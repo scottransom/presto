@@ -1,14 +1,14 @@
 #include "presto.h"
 #include "rfifind.h"
 
-void create_rfi_obs_vector(rfi_obs **vect, int oldnum, int newnum)
+void create_rfi_obs_vector(rfi_obs **rfi_vect, int oldnum, int newnum)
 /* Create or update a vector to hold our various rfi_obs structures */
 {
   int ii;
 
-  vect = (rfi_obs **)realloc(vect, newnum * sizeof(rfi_obs *));
+  rfi_vect = (rfi_obs **)realloc(rfi_vect, newnum * sizeof(rfi_obs *));
   for (ii=oldnum; ii<newnum; ii++)
-    vect[ii] = NULL;
+    rfi_vect[ii] = NULL;
 }
 
 rfi_obs *create_rfi_obs(rfi_instance rfi)
@@ -17,11 +17,11 @@ rfi_obs *create_rfi_obs(rfi_instance rfi)
   rfi_obs* new;
 
   new = (rfi_obs *)malloc(sizeof(rfi_obs));
-  new.rfi = (rfi_instance *)malloc(sizeof(rfi_instance));
-  new.rfi = rfi;
-  new.freq_avg = rfi.freq;
-  new.freq_var = 0.0;
-  new.number = 1;
+  new->rfi = (rfi_instance *)malloc(sizeof(rfi_instance));
+  *(new->rfi) = rfi;
+  new->freq_avg = rfi.freq;
+  new->freq_var = 0.0;
+  new->number = 1;
   return new;
 }
 
@@ -37,19 +37,23 @@ void free_rfi_obs_vector(rfi_obs **rfi_vect)
 {
   int ii=0;
 
-  while(rfi_vect[ii] != NULL)
+  while(rfi_vect[ii] != NULL){
     free_rfi_obs(rfi_vect[ii]);
+    ii++;
+  }
   free(rfi_vect);
 }
 
 void add_rfi_instance(rfi_obs *old, rfi_instance new)
 /* Add an instance of RFI to a rfi_obs structure */
 {
+  double davg, dvar;
   float dev, *freqs;
   int ii;
 
   old->number++;
-  old->rfi = (rfi_instance *)realloc(sizeof(rfi_instance)*old->number);
+  old->rfi = (rfi_instance *)realloc(old->rfi, 
+				     sizeof(rfi_instance)*old->number);
   old->rfi[old->number-1] = new;
 
   /* Update means and variances (extremely inefficient!) */
@@ -57,22 +61,24 @@ void add_rfi_instance(rfi_obs *old, rfi_instance new)
   freqs = gen_fvect(old->number);
   for (ii=0; ii<old->number; ii++)
     freqs[ii] = old->rfi[ii].freq;
-  avg_var(freqs, old->number, &(old->freq_avg), &(old->freq_var));
+  avg_var(freqs, old->number, &davg, &dvar);
+  old->freq_avg = davg;
+  old->freq_var = dvar;
   free(freqs);
 }
 
-int find_rfi(rfi_obs **rfiobs, double freq, double fract_error)
+int find_rfi(rfi_obs **rfi_vect, double freq, double fract_error)
 /* Try to find a birdie in an rfi_obs vector.  Compare     */
 /* all currently known birdies with the new freq.  If it   */
 /* finds one with a freq within fractional error, it       */
 /* returns the number of the birdie -- otherwise, -1.      */
 {
   float err;
-  int ii;
+  int ii=0;
 
-  for (ii=0; ii<rfi_obs->number; ii++){
-    err = (rfi_obs->rfi[ii].freq_avg - freq) / freq;
-    if (err < fract_err)
+  while(rfi_vect[ii] != NULL){
+    err = (rfi_vect[ii]->freq_avg - freq) / freq;
+    if (err < fract_error)
       return ii;
   }
   return -1;
@@ -98,13 +104,14 @@ void percolate_rfi_obs(rfi_obs **list, int nlist)
 /*  The new rfi_obs structure is in position nlist-1.      */
 {
   int ct;
-  rfi_obs tempzz;
+  rfi_obs *tempzz;
 
   for (ct=nlist-2; ct>=0; ct--){
-    if (list[ct].freq_avg < list[ct+1].freq_avg) {
+    if (list[ct]->freq_avg < list[ct+1]->freq_avg) {
       SWAP(list[ct], list[ct+1]);
     } else {
       break;
     }
   }
+
 }

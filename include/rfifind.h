@@ -28,3 +28,32 @@ typedef struct RFI_OBS {
   int number;        /* Number of times the RFI was detected */
   rfi_instance *rfi; /* The individual detections            */
 } rfi_obs;
+
+void create_rfi_obs_vector(rfi_obs **rfi_vect, int oldnum, int newnum);
+/* Create or update a vector to hold our various rfi_obs structures */
+
+rfi_obs *create_rfi_obs(rfi_instance rfi);
+/* Create and initialize a rfi_obs structure */
+
+void free_rfi_obs(rfi_obs *rfi);
+/* Free an rfi_obs structure and its contents */
+
+void free_rfi_obs_vector(rfi_obs **rfi_vect);
+/* Free a vector that holds rfi_obs structures */
+
+void add_rfi_instance(rfi_obs *old, rfi_instance new);
+/* Add an instance of RFI to a rfi_obs structure */
+
+int find_rfi(rfi_obs **rfi_vect, double freq, double fract_error);
+/* Try to find a birdie in an rfi_obs vector.  Compare     */
+/* all currently known birdies with the new freq.  If it   */
+/* finds one with a freq within fractional error, it       */
+/* returns the number of the birdie -- otherwise, -1.      */
+
+int compare_rfi_obs(void *ca, void *cb);
+/*  Used as compare function for qsort() */
+
+void percolate_rfi_obs(rfi_obs **list, int nlist);
+/*  Pushes an rfi_obs structure as far up a sorted list of */
+/*  structs as it needs to go to keep the list sorted.     */
+/*  The new rfi_obs structure is in position nlist-1.      */

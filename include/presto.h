@@ -1232,6 +1232,40 @@ void barycenter(double *topotimes, double *barytimes, \
   /* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
   /* is either "DE200" or "DE400".                            */
 
+fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
+		    int numbetween, presto_interptype interptype,
+		    float norm, float sigmacutoff, int *numcands, 
+		    float *powavg, float *powvar, float *powmax);
+/* This routine searches a short FFT of 'numfft' complex freqs      */
+/* and returns a candidate vector of fftcand structures containing  */
+/* information about the best candidates found.                     */
+/* The routine uses either interbinning or interpolation as well    */
+/* as harmonic summing during the search.                           */
+/* The number of candidates returned is either 'numcands' if != 0,  */
+/* or is determined automatically by 'sigmacutoff' -- which         */
+/* takes into account the number of bins searched.                  */
+/* The returned vector is sorted in order of decreasing power.      */
+/* Arguments:                                                       */
+/*   'fft' is the FFT to search (complex valued)                    */
+/*   'numfft' is the number of complex points in 'fft'              */
+/*   'lobin' is the lowest Fourier freq to search                   */
+/*   'numharmsum' the number of harmonics to sum during the search  */
+/*   'numbetween' the points to interpolate per bin                 */
+/*   'interptype' is either INTERBIN or INTERPOLATE.                */
+/*      INTERBIN = (interbinning) is fast but less sensitive.       */
+/*      INTERPOLATE = (Fourier interpolation) is slower but more    */
+/*        sensitive.                                                */
+/*   'norm' is the normalization constant to multiply each power by */
+/*   'sigmacutoff' if the number of candidates will be determined   */
+/*      automatically, is the minimum Gaussian significance of      */
+/*      candidates to keep -- taking into account the number of     */
+/*      bins searched                                               */
+/*   'numcands' if !0, is the number of candates to return.         */
+/*      if 0, is a return value giving the number of candidates.    */
+/*   'powavg' is a return value giving the average power level      */
+/*   'powvar' is a return value giving the power level variance     */
+/*   'powmax' is a return value giving the maximum power            */
+
 void search_minifft(fcomplex *minifft, int numminifft, \
 		    rawbincand *cands, int numcands, int numharmsum, \
 		    int numbetween, double numfullfft, double timefullfft, \

@@ -29,9 +29,10 @@ int main(int argc, char *argv[])
   int bitsperpt, numcands, candnum, numrfi=0, numrfiobs=NUM_RFI_OBS;
   long ii, jj, kk, slen;
   long numread=0, numtowrite=0, totwrote=0, datawrote=0;
+  double davg, dvar;
   rfi_obs **rfiobs=NULL;
   rfi_instance newrfi;
-  rawbincand cands[10];
+  fftcand *cands;
   multibeam_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
@@ -149,9 +150,10 @@ int main(int argc, char *argv[])
   datavar = gen_fmatrix(numint, numchan);
   datapow = gen_fmatrix(numint, numchan);
   indata = gen_fmatrix(ptsperint, numchan);
-  datamask = gen_bvect(numint * numchan);
-  for (ii=0; ii<numint * numchan; ii++)
-    datamask[ii] = GOOD;
+  datamask = gen_bmatrix(numint, numchan);
+  for (ii=0; ii<numint; ii++)
+    for (jj=0; jj<numchan; jj++)
+      datamask[ii][jj] = GOOD;
   avg_chan = gen_fvect(numchan);
   avg_int = gen_fvect(numint);
   var_chan = gen_fvect(numchan);
@@ -178,14 +180,16 @@ int main(int argc, char *argv[])
 
     /* Read a chunk of data */
 
-    numread = (*readrec_ptr)(infile, indata, numchan, blocksperint);
+    numread = (*readrec_ptr)(infile, indata[0], numchan, blocksperint);
       
     /* Calculate the averages and standard deviations */
     /* for each point in time.                        */
 
-    for (jj=0; jj<ptsperint; jj++)
-      avg_var(indata[jj], numchan, &(dataavg[ii][jj]), 
-	      &(datavar[ii][jj]));
+    for (jj=0; jj<ptsperint; jj++){
+      avg_var(indata[jj], numchan, &davg, &dvar);
+      dataavg[ii][jj] = davg;
+      datavar[ii][jj] = dvar;
+    }
 
     /* Transpose the data so we can work on the channels */
 
@@ -196,7 +200,7 @@ int main(int argc, char *argv[])
     for (jj=0; jj<numchan; jj++){
       index = jj * ptsperint;
       for (kk=0; kk<ptsperint; kk++)
-	outdata[kk] = data[index+kk];
+	outdata[kk] = *indata[index+kk];
       realfft(outdata, ptsperint, -1);
       numcands=0;
       cands = search_fft((fcomplex *)outdata, ptsperint>>1, 
@@ -206,10 +210,11 @@ int main(int argc, char *argv[])
       printf("\npowavg = %.3f powvar = %.3f powmax = %.3f\n", 
 	     powavg, powvar, powmax); 
       datapow[ii][jj] = powmax;
+
+      /* Record the birdies */
+
       if (numcands){
 	for (kk=0; kk<numcands; kk++){
-	  /* Store the birdie */
-	  candnum = find_rfind(rfiobs, cands[kk], RFI_FRACTERROR);
 	  newrfi.freq = cands[kk].r/inttime;
 	  newrfi.power = cands[kk].p;
 	  newrfi.fftbin = cands[kk].r;
@@ -217,6 +222,7 @@ int main(int argc, char *argv[])
 	  newrfi.inttime = inttime;
 	  newrfi.channel = jj;
 	  newrfi.intnum = ii;
+	  candnum = find_rfi(rfiobs, newrfi.freq, RFI_FRACTERROR);
 	  if (candnum >= 0){
 	    printf("  Found another %.4f Hz birdie (chan = %d pow = %.2f)\n", 
 		   newrfi.freq, newrfi.channel, newrfi.power);
@@ -226,8 +232,8 @@ int main(int argc, char *argv[])
 		   newrfi.freq, newrfi.channel, newrfi.power);
 	    rfiobs[numrfi] = create_rfi_obs(newrfi);
 	    numrfi++;
-	    if (numrfi==numrifobs-1){
-	      create_rfi_obs_vector(rfiobs, numrifobs, numrfiobs * 2);
+	    if (numrfi==numrfiobs-1){
+	      create_rfi_obs_vector(rfiobs, numrfiobs, numrfiobs * 2);
 	      numrfiobs *= 2;
 	    }
 	  }
@@ -252,7 +258,7 @@ int main(int argc, char *argv[])
   free(datavar[0]); free(datavar);
   free(datapow[0]); free(datapow);
   free(indata[0]); free(indata);
-  free(datamask);
+  free(datamask[0]); free(datamask);
   free(avg_chan);
   free(avg_int);
   free(var_chan);
