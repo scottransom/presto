@@ -15,11 +15,9 @@ Flag    -zap        zap \
 String  -zapfile    zapfile \
 	{A file of freqs and widths to zap from the FFT (when using '-zap')}
 String  -in         inzapfile \
-	{A file containing a list of freqs (Hz) and the # of harmonics to zap} \
-	-m
+	{A file containing a list of freqs (Hz) and the # of harmonics to zap}
 String  -out        outzapfile \
-	{A file to write that will contain the freqs and widths (Hz) zapped} \
-	-m
+	{A file to write that will contain the freqs and widths (Hz) zapped}
 Double  -baryv      baryv \
 	{The radial velocity component (v/c) towards the target during the obs} \
 	-r -0.1 0.1  -d 0.0
