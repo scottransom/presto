@@ -2,62 +2,41 @@
 #include "accel.h"
 #include "accelsearch_cmd.h"
 
-static int calc_r_offset(int subharm)
-/* Note:  This offset is in full bins towards lower freq */
+#if defined (__GNUC__)
+#  define inline __inline__
+#else
+#  undef inline
+#endif
+
+static inline int calc_required_z(int numharm, int harmnum, double zfull)
+/* Calculate the 'z' you need for subharmonic     */
+/* 'harmnum' out of 'numharm' subharmonics if the */
+/* 'z' at the fundamental harmonic is 'zfull'.    */
 {
-  return subharm / 2;
+  return (int) ((ACCEL_RDZ * (fabs(zfull) / numharm) 
+		 * harmnum) + 0.5) * ACCEL_DZ;
 }
 
 
-static int calc_z_zero(int subharm)
-/* The number of times the zero 'z' val is */
-/* repeated for a subharmonic.             */
+static inline double calc_required_r(int numharm, int harmnum, double rfull)
+/* Calculate the 'r' you need for subharmonic     */
+/* 'harmnum' out of 'numharm' subharmonics if the */
+/* 'r' at the fundamental harmonic is 'rfull'.    */
 {
-  return (subharm % 2) ? subharm : subharm - 1;
+  return (int) ((ACCEL_RDR * (rfull / numharm) 
+		 * harmnum) + 0.5) * ACCEL_DR;
 }
 
 
-static int calc_z_for_subharm(int subharm, int zbase)
-/* Calculate what 'z' you need for subharmonic 'subharm' */
-/* if the 'z' at the fundamental harmonic is 'zbase'.    */
-{
-  int numnonzero, mod;
-
-  mod = (zbase < 0) ? -ACCEL_DZ : ACCEL_DZ;
-  if (zbase % 2)
-    printf("zbase (%d) is not even in calc_z_for_subharm()\n", zbase);
-  if (subharm==1 || zbase==0) 
-    return zbase;
-  else {
-    zbase = abs(zbase);
-    numnonzero = (zbase / 2) - ((calc_z_zero(subharm) - 1) / 2);
-    if (numnonzero <= 0)
-      return 0;
-    else
-      return (numnonzero % subharm) ? 
-	mod * (numnonzero / subharm + 1) : 
-	mod * (numnonzero / subharm);
-  }
-}
-
-
-static int calc_fftlen(int subharm, int max_zbase)
+static int calc_fftlen(int numharm, int harmnum, int max_zfull)
 /* The fft length needed to properly process a subharmonic */
 {
   int bins_needed, end_effects;
 
-  bins_needed = (ACCEL_USELEN % subharm) ?
-    ACCEL_USELEN / subharm + 2 : ACCEL_USELEN / subharm + 1;
-  end_effects = z_resp_halfwidth(calc_z_for_subharm(subharm, max_zbase), 
+  bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
+  end_effects = z_resp_halfwidth(calc_required_z(numharm, harmnum, max_zfull), 
 				 LOWACC) * 2 * ACCEL_NUMBETWEEN;
   return next2_to_n(bins_needed + end_effects);
-}
-
-
-static int calc_numkern(int subharm, int max_zbase)
-/* The total number of kernels required for a subharmonic */
-{
-  return calc_z_for_subharm(subharm, abs(max_zbase)) + 1;
 }
 
 
@@ -86,16 +65,16 @@ static void free_kernel(kernel *kern)
 }
 
 
-static void init_subharminfo(int subharm, int zmax, subharminfo *shi)
+static void init_subharminfo(int numharm, int harmnum, 
+			     int zmax, subharminfo *shi)
 /* Note:  'zmax' is the overall maximum 'z' in the search */
 {
   int ii, z, fftlen;
 
-  shi->subharm = subharm;
-  shi->subharm_zmax = calc_z_for_subharm(subharm, zmax);
-  shi->num_z_zero = calc_z_zero(subharm);
-  shi->num_r_offset = calc_r_offset(subharm);
-  shi->numkern = calc_numkern(subharm, zmax);
+  shi->numharm = numharm;
+  shi->harmnum = harmnum;
+  shi->zmax = calc_required_z(numharm, harmnum, zmax);
+  shi->numkern = shi->zmax * 2 + 1;
   shi->kern = (kernel *)malloc(shi->numkern * sizeof(kernel));
   fftlen = calc_fftlen(subharm, zmax);
   for (ii=0, z=-zmax; ii<shi->numkern; ii++, z+=ACCEL_DZ)
@@ -115,8 +94,8 @@ subharminfo *create_subharminfo_vect(int numharm, int zmax)
   int ii;
   subharminfo *shi;
 
-  shi = (subharminfo *)malloc(numharm * sizeof(subharminfo));
-  for (ii=1; ii<=numharm; ii++)
+  shi = (subharminfo *)malloc(numharm-1 * sizeof(subharminfo));
+  for (ii=1; ii<numharm; ii++)
     init_subharminfo(ii, zmax, &(shi[ii-1]));
   return shi;
 }
@@ -126,8 +105,8 @@ void free_subharminfo_vect(int numharm, subharminfo *shi)
 {
   int ii;
 
-  for (ii=0; ii<numharm; ii++)
-    free_subharminfo(&(shi[ii]));
+  for (ii=1; ii<numharm; ii++)
+    free_subharminfo(&(shi[ii-1]));
   free(shi);
 }
 

@@ -111,9 +111,10 @@ int main(int argc, char *argv[])
 
   /* Generate the correlation kernels */
 
-  printf("Generating fdot kernels for the correlations...\n");
+  printf("Generating fdot kernels for the correlations...");
+  fflush();
   subharminf = create_subharminfo_vect(cmd->numharm, cmd->zmax);
-  printf("Done generating kernels.\n\n");
+  printf("Done.\n\n");
 
   /* Start the main search loop */
 
