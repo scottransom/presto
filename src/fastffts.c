@@ -84,14 +84,10 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   if (nn < 2)
     return;
 
-  /* treat the input data as a n1 x n2 matrix */
-  /* with n2 >= n1                            */
+  /* Treat the input data as a n1 (rows) x n2 (cols) */
+  /* matrix.  Make sure that n2 >= n1.               */
 
-  if (nn % 4 != 0){
-    printf("\nLength of FFT in tablesixstepfft() must be divisible by 4.\n\n");
-    exit(0);
-  }
-  n1 = good_factor(nn / 4) * 2;
+  n1 = good_factor(nn);
   if (n1 == 0){
     printf("\nLength of FFT in tablesixstepfft() must be factorable\n\n");
     exit(0);
@@ -223,6 +219,17 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   free(table);
 
 #endif
+
+  /* Scale the FFT if it is an inverse FFT */
+
+  if (isign == 1) {
+    tmp1 = 1.0 / (double) nn;
+    for(jj=0; jj<n1*n2; jj++){
+      indata[jj].r *= tmp1;
+      indata[jj].i *= tmp1;
+    }
+  }
+
 
   /* last transpose the matrix */
 
