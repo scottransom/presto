@@ -494,6 +494,5 @@ int main(int argc, char **argv)
   free(phases);								
   free(fprof);								
   free(chiarr);
-  if (mdata.onoff) free(mdata.onoff);
   return (0);								
 }									
