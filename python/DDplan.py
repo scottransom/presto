@@ -2,11 +2,6 @@ from umath import *
 from Numeric import *
 from Pgplot import *
 
-# The numDMs for any de-dispersion method must be
-numDMs_factor = 2
-# The minimum number of DMs required in order to use prepsubband
-min_numDMs = 4
-
 class observation:
     def __init__(self, dt, f_ctr, BW, numchan):
         # dt in sec, f_ctr and in MHz
@@ -22,18 +17,6 @@ class observation:
                 'BW' to equal the sampling time 'dt'.
         """
         return self.dt*0.0001205*self.f_ctr**3.0/(0.5*self.BW)
-
-class dedisp_plan:
-    def __init__(self):
-        self.methods = []
-        self.loDM = 0.0
-        self.hiDM = 0.0
-    def add_method(self, strat):
-        self.methods.append(strat)
-        self.update_DMs()
-    def update_DMs(self):
-        self.loDM = min([strat.loDM for strat.loDM in self.methods])
-        self.hiDM = max([strat.hiDM for strat.hiDM in self.methods])
 
 class dedisp_method:
     def __init__(self, obs, downsamp, loDM, hiDM, dDM, numDMs=0,
@@ -326,6 +309,11 @@ if __name__=='__main__':
     obs = observation(0.000064, 1450.0, 100.0, 256)
     dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
     #dm_steps(0.0, 1500.0, obs, device="ALFA_DD.ps/CPS")
+
+    # Example for Parkes EGRET survey
+    obs = observation(0.000125, 1390.0, 288.0, 96)
+    dm_steps(0.0, 450.0, obs, ok_smearing=0.7) # Create an X-window is the default
+    #dm_steps(0.0, 450.0, obs, device="EGRET_DD.ps/CPS")
 
 
 
