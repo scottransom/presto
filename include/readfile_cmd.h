@@ -16,6 +16,10 @@
 typedef struct s_Cmdline {
   /***** -more: Paginate the output like 'more' */
   char moreP;
+  /***** -byte: Raw data in byte format */
+  char bytP;
+  /***** -b: Raw data in byte format */
+  char sbytP;
   /***** -float: Raw data in floating point format */
   char fltP;
   /***** -f: Raw data in floating point format */
@@ -52,6 +56,8 @@ typedef struct s_Cmdline {
   char pksP;
   /***** -pk: Raw data in Parkes Multibeam format */
   char spksP;
+  /***** -fortran: Raw data was written by a fortran program */
+  char fortranP;
   /***** -index: The range of objects to display */
   char indexP;
   int *index;

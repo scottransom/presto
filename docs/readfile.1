@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "readfile" 1 "06Nov99" "Clig-manuals" "Programmer's Manual"
+.TH "readfile" 1 "10Nov99" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -23,6 +23,8 @@ readfile \- Reads raw data from a binary file and displays it on stdout.
 .SH SYNOPSIS
 .B readfile
 [-more]
+[-byte]
+[-b]
 [-float]
 [-f]
 [-double]
@@ -41,6 +43,7 @@ readfile \- Reads raw data from a binary file and displays it on stdout.
 [-bin]
 [-pkmb]
 [-pk]
+[-fortran]
 [-index [index]]
 [-nph nph]
 file
@@ -50,6 +53,10 @@ file
 .SH OPTIONS
 .IP -more
 Paginate the output like 'more'.
+.IP -byte
+Raw data in byte format.
+.IP -b
+Raw data in byte format.
 .IP -float
 Raw data in floating point format.
 .IP -f
@@ -86,6 +93,8 @@ Raw data in bin search candidate format.
 Raw data in Parkes Multibeam format.
 .IP -pk
 Raw data in Parkes Multibeam format.
+.IP -fortran
+Raw data was written by a fortran program.
 .IP -index
 The range of objects to display,
 .br
