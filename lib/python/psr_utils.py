@@ -374,7 +374,7 @@ def OMDOT_to_Mtot(OMDOT, porb, e):
     """
     prob /= SECPERDAY
     wd = OMDOT/SECPERJULYR*DEGTORAD # rad/s
-    return (wd/3.0*(1.0-e*e)*(porb*86400.0/(2*pi))**(5.0/3.0))**(3.0/2.0)/Tsun
+    return (wd/3.0*(1.0-e*e)*(porb*SECPERDAY/TWOPI)**(5.0/3.0))**(3.0/2.0)/Tsun
 
 
 def limiting_flux_dens(Ttot, G, BW, T, P=0.01, W=0.05, polar=2, factor=15.0):
@@ -438,6 +438,14 @@ def dm_smear(dm, BW, center_freq):
         of 'BW' MHz centered at 'center_freq' MHz.
     """
     return dm * BW / (0.0001205 * center_freq * center_freq * center_freq)
+
+def diagonal_DM(dt, chanBW, center_freq):
+    """
+    diagonal_DM(dt, chanBW, center_freq):
+        Return the so-called "diagonal DM" where the smearing across
+        one channel is equal to the sample time.
+    """
+    return (0.0001205 * center_freq * center_freq * center_freq) * dt / chanBW
 
 def guess_DMstep(DM, dt, BW, f_ctr):
     """
@@ -793,7 +801,7 @@ def gaussian_profile(N, phase, fwhm):
         okzinds = Numeric.compress(umath.fabs(zs)<20.0, Numeric.arange(N))
         okzs = Numeric.take(zs, okzinds)
         retval = Numeric.zeros(N, 'd')
-        Numeric.put(retval, okzinds, umath.exp(-0.5*(okzs)**2.0)/(sigma*umath.sqrt(2*pi)))
+        Numeric.put(retval, okzinds, umath.exp(-0.5*(okzs)**2.0)/(sigma*umath.sqrt(2*PI)))
         return retval
     except OverflowError:
         print "Problem in gaussian prof:  mean = %f  sigma = %f" % \

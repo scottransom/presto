@@ -34,6 +34,9 @@ class bestprof:
                 if line.startswith("# Profile StdDev"):
                     self.prof_std = float(line.split("=")[-1])
                     continue 
+                if line.startswith("# Reduced chi-sqr"):
+                    self.chi_sqr = float(line.split("=")[-1])
+                    continue 
                 if line.startswith("# Epoch_topo"):
                     try:
                         self.epochi = float(line.split("=")[-1].split(".")[0])
