@@ -10,6 +10,9 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.14  2001/03/13 20:01:58  ransom
+ * Added masking ability to read_PKMB_subbands()
+ *
  * Revision 1.13  2001/03/09 21:22:01  ransom
  * Modified calling convention for skip_to_PKMB_rec()
  *
@@ -209,9 +212,9 @@ void get_PKMB_channel(int channum, float chandat[],
 /* 'numblocks' * 'ptsperblk_st' spaces.                        */
 /* Channel 0 is assumed to be the lowest freq channel.         */
 
-int read_PKMB_subbands(FILE *infiles[], int numfiles, 
-		       float *data, double *dispdelays, 
-		       int numsubbands, int *padding);
+int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
+		       double *dispdelays, int numsubbands, int *padding, 
+		       int *maskchans, int *nummasked, mask *obsmask);
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the PKMB system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -221,7 +224,11 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
 /* subband etc, with 'ptsperblk_st' floating points per subband. */
 /* It returns the # of points read if succesful, 0 otherwise.    */
 /* If padding is returned as 1, then padding was added and       */
-/* statistics should not be calculated                           */
+/* statistics should not be calculated.  'maskchans' is an array */
+/* of length numchans which contains a list of the number of     */
+/* channels that were masked.  The # of channels masked is       */
+/* returned in 'nummasked'.  'obsmask' is the mask structure     */
+/* to use for masking.                                           */
 
 void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata);
 /* Convert PKMB header into an infodata structure */
