@@ -282,13 +282,31 @@ int check_mask(double starttime, double duration, mask *obsmask,
   int loint, hiint;
   double endtime;
   static int old_loint=-1, old_hiint=-1, old_numchan=0;
-  
+
+  /*
+  static int firsttime = 1;
+  if (firsttime){
+    int ii;
+    printf("\n\n numzapints = %d\n : ", obsmask->num_zap_ints);
+    for (ii=0; ii<obsmask->num_zap_ints; ii++)
+      printf("%d ", obsmask->zap_ints[ii]);
+    printf("\n\n numzapchans = %d\n : ", obsmask->num_zap_chans);
+    for (ii=0; ii<obsmask->num_zap_chans; ii++)
+      printf("%d ", obsmask->zap_chans[ii]);
+    printf("\n\n");
+    firsttime = 0;
+  }
+  */
+
   endtime = starttime + duration;
   loint = (int)(starttime / obsmask->dtint);
   hiint = (int)(endtime / obsmask->dtint);
+
+  /* Mask the same channels as for the last call */
   if (loint == old_loint && hiint == old_hiint)
-    /* Notice we don't mess with the maskchans array! */
     return old_numchan;
+
+  /* Determine new channels to mask */
   if (loint == hiint){
     old_loint = old_hiint = loint;
     if (obsmask->num_zap_ints)
@@ -341,9 +359,9 @@ static int find_num(int num, int *arr, int arrlen)
 {
   int ii;
 
+  /* Note:  I should make sure the array is sorted and do a binary search */
   for (ii=0; ii<arrlen; ii++)
-    if (arr[ii] >= num)
-      return (arr[ii] == num) ? 1 : 0;
+    if (arr[ii] == num) return 1;
   return 0;
 }
 
