@@ -36,7 +36,7 @@ int remove_other(fourierprops * list, int nlist, long rlo, \
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile, *poscandfile;
-  double dt, nph, T, N, bigz, hir, hiz, dz = 2.0;
+  double dt, nph, T, N, bigz, hir, hiz, dz = 2.0, dr;
   double powavg, powsdev, powvar, powskew, powkurt;
   float powargr, powargi, locpow = 1.0, *powlist;
   float powdiff, hipowchop, lowpowlim;
@@ -152,9 +152,9 @@ int main(int argc, char *argv[])
   sprintf(poscandnm, "%s_rzw_z:%d_%d.pos", argv[1], zlo, zhi);
   sprintf(rzwnm, "%s_rzw_z:%d_%d", argv[1], zlo, zhi);
 
-  /* Skip the lowest LOSKIP bins do to low frequency errors  */
-  /* unless you specifically give rlo on the command line.   */
-  /* Do the same at the high freqs.                          */
+  /* Skip the lowest LOSKIP bins due to low frequency errors  */
+  /* unless you specifically give rlo on the command line.    */
+  /* Do the same at the high freqs.                           */
 
   lobinskip = bigz / 4;
   hibinskip = lobinskip;
@@ -250,10 +250,11 @@ int main(int argc, char *argv[])
   props = malloc(sizeof(fourierprops) * ncand);
   corrdata = gen_cvect(corrsize);
 
+  dr = 1.0 / (double) numbetween;
   dt = idata.dt;
   N = idata.N;
   T = N * dt;
-  numr = (rhi - rlo + 1) * nz * 2;
+  numr = (rhi - rlo + 1) * nz / dr;
   filedatalen = corrsize / numbetween;
 
   /* We will automatically get rid of any candidates that have local */
@@ -338,19 +339,20 @@ int main(int argc, char *argv[])
 	  }
 	}
 	locpow /= (double) ct;
+	locpow = 1.0 / locpow;
 	free(powlist);
       }
 
       /* This loop is the heart of the search */
 
       for (ii = 0; ii < worknumbins; ii++) {
-	chkpow = POWER(corrdata[ii].r, corrdata[ii].i) / locpow;
+	chkpow = POWER(corrdata[ii].r, corrdata[ii].i) * locpow;
 
 	/* Check if the measured power is greater than cutoff */
 
 	if (chkpow > minpow) {
 	  newpos.pow = chkpow;
-	  newpos.p1 = startbin + 0.5 * ii;
+	  newpos.p1 = startbin + ii * dr;
 	  if (newpos.p1 > rhi)
 	    break;
 	  newpos.p2 = zlo + zct * dz;
@@ -382,7 +384,8 @@ int main(int argc, char *argv[])
 
   /* Do rough duplicate removal (probably not necessary) */
 
-  newncand = ncand - remove_dupes(list, ncand);
+  newncand = ncand;
+  newncand -= remove_dupes(list, ncand);
 
   /* Save the list of 'rough' candidates to a file */
 

@@ -258,7 +258,7 @@ int corr_complex(fcomplex *data, int numdata, presto_datainf datainf, \
   oldnumbetween = numbetween;
   oldkern_half_width = kern_half_width;
   if (numresult < fftlen - 2 * numbetween * kern_half_width)
-   return numresult;
+    return numresult;
   else
     return fftlen - 2 * numbetween * kern_half_width;
 }

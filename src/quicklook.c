@@ -4,19 +4,19 @@ int main(int argc, char *argv[])
 {
   FILE *fftfile;
   double flook, flook_in_data, dt, nph, t, maxz, pwr, hipow = 0.0;
-  double zlo = -30.0, zhi = 30.0, dz = 2.0;
+  double zlo = -30.0, zhi = 30.0, dr, dz = 2.0;
   double hir = 0.0, hiz = 0.0, newhir, newhiz;
   fcomplex **ffdotplane, *data;
   float powargr, powargi;
-  int startbin, numdata, nextbin, nr, nz;
-  int i, j, realpsr, kernel_half_width, numbetween = 2;
+  int startbin, numdata, nextbin, nr, nz, numkern;
+  int i, j, realpsr, kernel_half_width, numbetween = 4;
+  int n, corrsize = 1024;
   char filenm[80], infonm[80], compare[200];
   rderivs derivs;
   fourierprops props;
   infodata idata;
   struct tms runtimes;
   double ttim, utim, stim, tott;
-  unsigned long n, corrsize = 16384;
 
 
   tott = times(&runtimes) / (double) CLK_TCK;
@@ -53,11 +53,10 @@ int main(int argc, char *argv[])
   strcpy(infonm, argv[1]);
   flook = atof(argv[2]);
   dt = atof(argv[3]);
+  dr = 1.0 / (double) numbetween;
   fftfile = chkfopen(filenm, "r");
   nph = get_numphotons(fftfile);
   n = chkfilelen(fftfile, sizeof(float));
-
-  if (n < corrsize) corrsize = 1024;
   t = n * dt;
   nz = (int) ((zhi - zlo) / dz) + 1;
 
@@ -65,6 +64,9 @@ int main(int argc, char *argv[])
 
   maxz = (fabs(zlo) < fabs(zhi)) ? zhi : zlo;
   kernel_half_width = z_resp_halfwidth(maxz, HIGHACC);
+  numkern = 2 * numbetween * kernel_half_width;
+  while (numkern > 2 * corrsize)
+    corrsize *= 2;
   startbin = (int) (flook) - corrsize / ( 2 * numbetween);
   numdata = corrsize / numbetween;
   data = read_fcomplex_file(fftfile, startbin, numdata);
@@ -82,7 +84,7 @@ int main(int argc, char *argv[])
     for (j = 0; j < nr; j++) {
       pwr = POWER(ffdotplane[i][j].r, ffdotplane[i][j].i);
       if (pwr > hipow) {
-	hir = j * 0.5 + flook_in_data;
+	hir = j * dr + flook_in_data;
 	hiz = i * dz + zlo;
 	hipow = pwr;
       }
