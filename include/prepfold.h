@@ -11,6 +11,16 @@
 /* x.5s get rounded away from zero.                */
 #define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
+/* Flags used to tweak the plots */
+
+typedef struct plotflags {
+  int toas;
+  int nosearch;
+  int justprofs;
+  int scaleparts;
+  int allgrey;
+} plotflags;
+
 /* structure used to pass information to plotting routine */
 
 typedef struct PREPFOLDINFO {
@@ -86,7 +96,7 @@ double phasedelay2fdot(double phasedelay, double time);
 void double2float(double *in, float *out, int numpts);
 /* Copy a double vector into a float vector */
 
-void prepfold_plot(prepfoldinfo *in, int xwin);
+void prepfold_plot(prepfoldinfo *in, plotflags *flags, int xwin);
 /* Make the beautiful 1 page prepfold output */
 
 int bary2topo(double *topotimes, double *barytimes, int numtimes, 

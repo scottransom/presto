@@ -35,6 +35,14 @@ typedef struct s_Cmdline {
   char xwinP;
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   char runavgP;
+  /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
+  char nosearchP;
+  /***** -scaleparts: Scale the part profiles independently */
+  char scalepartsP;
+  /***** -allgrey: Make all the images greyscale instead of color */
+  char allgreyP;
+  /***** -justprofs: Only output the profile portions of the plot */
+  char justprofsP;
   /***** -dm: The central DM of the search (cm^-3 pc) */
   char dmP;
   double dm;
@@ -119,8 +127,7 @@ typedef struct s_Cmdline {
   char psrnameP;
   char* psrname;
   int psrnameC;
-  /***** -polycos: File containing TEMPO polycos for psrname (not
-required) */
+  /***** -polycos: File containing TEMPO polycos for psrname (not required) */
   char polycofileP;
   char* polycofile;
   int polycofileC;
