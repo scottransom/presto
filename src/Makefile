@@ -323,7 +323,7 @@ clean:
 cleaner:  clean
 	rm -f makedata makeinf mjd2cal realfft_4step timetest
 	rm -f quicklook search_bin search_rzw swap_endian        
-	rm -f prepdata prepfold check_parkes_raw bary            
+	rm -f prepdata prepfold check_parkes_raw bary toas2dat
 	rm -f shiftdata patchdata readfile psrorbit window       
 	rm -f plotbincand profile showmulti showmulti_dm         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
@@ -340,4 +340,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f prepdata prepfold check_parkes_raw bary
 	cd $(PRESTO)/bin ; rm -f shiftdata patchdata readfile psrorbit
 	cd $(PRESTO)/bin ; rm -f plotbincand profile showmulti showmulti_dm
-	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window
+	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
