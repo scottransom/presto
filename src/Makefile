@@ -25,15 +25,7 @@ FFTINCDIR = -I/usr/local/include
 # Path to FFT libraries
 FFTLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
-FFTLINK = $(FFTLIBDIR) -lsfftw
-RFFTLINK = -lsrfftw
-# Path to Special Athlon version of FFTW for correlations
-FFTATHINCDIR = -I/usr/local/include
-# Path to FFT libraries
-FFTATHLIBDIR = -L/usr/local/lib
-# How to link with the FFTW libs
-FFTATHLINK = $(FFTATHLIBDIR) -lsfftw
-RFFTATHLINK = -lsrfftw
+FFTLINK = $(FFTLIBDIR) -lfftw3f
 
 # Other include directoried (i.e. glib.h)
 OTHERINCDIR = -I/usr/include/glib-1.2
@@ -43,7 +35,6 @@ OTHERINCDIR = -I/usr/include/glib-1.2
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTLINK) $(DMALLOCLINK)
-ATHLON_PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTATHLINK) $(DMALLOCLINK)
 
 # When modifying the CLIG files, the is the location of the clig binary
 CLIG = /usr/local/clig/bin/clig
@@ -56,9 +47,9 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -Wall -W -O2 -march=k6 -fPIC
+	-g -Wall -W -O2 -march=athlon
 CLINKFLAGS = $(CFLAGS)
-FFLAGS = -g -O2 -march=k6 -fPIC
+FFLAGS = -g -O2 -march=athlon
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
@@ -179,10 +170,10 @@ mpiprepsubband.o: mpiprepsubband.c
 	mpicc $(CLINKFLAGS) -c mpiprepsubband.c 
 
 mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
-	mpicc $(CLINKFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
+	mpicc $(CLINKFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lm
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o 
-	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(ATHLON_PRESTOLINK) -L/home/ransom/lib -lglib -lm
+	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
 
 bary: bary.o 
 	$(CC) $(CLINKFLAGS) -o $@ bary.o $(PRESTOLINK) -lm
@@ -218,7 +209,7 @@ test_multifiles: test_multifiles.o
 	$(CC) $(CLINKFLAGS) -o $@ test_multifiles.o $(PRESTOLINK) -lm
 
 rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 #showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
 #	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
@@ -239,13 +230,13 @@ plotfft: plotfft.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotfft.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o $(INSTRUMENTOBJS)
-	$(CC) $(CLINKFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lm
 
 prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
-	$(CC) $(CLINKFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lm
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o polycos.o readpar.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
@@ -281,25 +272,22 @@ testbinresp: testbinresp.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ testbinresp.o $(PLOT2DOBJS) $(PGPLOTLINK) $(PRESTOLINK) -lm
 
 quicklook: quicklook.o
-	$(CC) $(CLINKFLAGS) -o $@ quicklook.o $(ATHLON_PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ quicklook.o $(PRESTOLINK) -lm
 
 readfile: readfile_cmd.c readfile_cmd.o readfile.o $(INSTRUMENTOBJS)
-	$(CC) $(CLINKFLAGS) -o $@ readfile.o readfile_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ readfile.o readfile_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lm
 
 realfft: realfft_cmd.c realfft_cmd.o realfft.o 
 	$(CC) $(CLINKFLAGS) -o $@ realfft.o realfft_cmd.o $(PRESTOLINK) -lm
-
-#realfft_4step: realfft_4step.o
-#	$(CC) $(CLINKFLAGS) -o $@ realfft_4step.o $(PRESTOLINK) -lm
 
 rednoise: rednoise_cmd.c rednoise.o rednoise_cmd.o
 	$(CC) $(CLINKFLAGS) -o $@ rednoise.o rednoise_cmd.o $(PRESTOLINK) -lm
 
 search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o 
-	$(CC) $(CLINKFLAGS) -o $@ search_bin.o search_bin_cmd.o $(ATHLON_PRESTOLINK)  -lm
+	$(CC) $(CLINKFLAGS) -o $@ search_bin.o search_bin_cmd.o $(PRESTOLINK)  -lm
 
 search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o 
-	$(CC) $(CLINKFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(ATHLON_PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(PRESTOLINK) -lm
 
 taperaw: taperaw.o
 	$(CC) $(CLINKFLAGS) -o $@ taperaw.o $(DMALLOCLINK) 

@@ -34,7 +34,7 @@ typedef fcomplex rawtype;
 #ifndef COMPLEXFFT
 #if defined USEFFTW
   #define COMPLEXFFT    fftwcall
-  #include "sfftw.h"
+  #include "fftw3.h"
   void fftwcall(fcomplex *indata, long nn, int isign);
 #elif defined USESGIFFT
   #define COMPLEXFFT    sgifftcall

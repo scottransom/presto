@@ -8,12 +8,13 @@ void fftwcall(fcomplex *indata, long nn, int isign)
 /* size.  indata is a complex array but stored as floats.              */
 {
   FILE *wisdomfile;
-  fftw_plan *plan_forward, *plan_inverse;
+  fftwf_plan *plan_forward, *plan_inverse;
   int ii;
-  unsigned long oldestplan = 0;
-  static fftw_plan plancache_forward[4] = {NULL, NULL, NULL, NULL};
-  static fftw_plan plancache_inverse[4] = {NULL, NULL, NULL, NULL};
-  static int firsttime = 1, nncache[4] = {0, 0, 0, 0};
+  unsigned long oldestplan=0;
+  static fftwf_plan plancache_forward[4]={NULL, NULL, NULL, NULL};
+  static fftwf_plan plancache_inverse[4]={NULL, NULL, NULL, NULL};
+  fcomplex *indatacache[4]={NULL, NULL, NULL, NULL};
+  static int firsttime=1, nncache[4] = {0, 0, 0, 0};
   static unsigned long lastuse[4] = {0, 0, 0, 0};
   static char wisdomfilenm[120];
 
@@ -29,6 +30,8 @@ void fftwcall(fcomplex *indata, long nn, int isign)
   /* If calling for the first time, read the wisdom file */
 
   if (firsttime) {
+    /* First try to import the system wisdom if available */
+    fftwf_import_system_wisdom();
     sprintf(wisdomfilenm, "%s/fftw_wisdom.txt", DATABASE);
     wisdomfile = fopen(wisdomfilenm, "r");
     if (wisdomfile == NULL) {
@@ -37,7 +40,7 @@ void fftwcall(fcomplex *indata, long nn, int isign)
       printf("Exiting.\n");
       exit(1);
     }
-    if (FFTW_FAILURE == fftw_import_wisdom_from_file(wisdomfile)) {
+    if (!fftwf_import_wisdom_from_file(wisdomfile)) {
       printf("Error importing FFTW wisdom.\n");
       printf("Exiting.\n");
       exit(1);
@@ -48,19 +51,19 @@ void fftwcall(fcomplex *indata, long nn, int isign)
   /* If we used the same plan during the last few calls, use it again */
   /* We keep, in effect, a stack of the 4 most recent plans.          */
 
-  if (nn == nncache[0]){
+  if (nn == nncache[0] && indata == indatacache[0]){
     plan_forward = &plancache_forward[0];
     plan_inverse = &plancache_inverse[0];
     lastuse[0] = 0; lastuse[1]++; lastuse[2]++; lastuse[3]++; 
-  } else if (nn == nncache[1]){
+  } else if (nn == nncache[1] && indata == indatacache[1]){
     plan_forward = &plancache_forward[1];
     plan_inverse = &plancache_inverse[1];
     lastuse[1] = 0; lastuse[0]++; lastuse[2]++; lastuse[3]++; 
-  } else if (nn == nncache[2]){
+  } else if (nn == nncache[2] && indata == indatacache[2]){
     plan_forward = &plancache_forward[2];
     plan_inverse = &plancache_inverse[2];
     lastuse[2] = 0; lastuse[0]++; lastuse[1]++; lastuse[3]++; 
-  } else if (nn == nncache[3]){
+  } else if (nn == nncache[3] && indata == indatacache[3]){
     plan_forward = &plancache_forward[3];
     plan_inverse = &plancache_inverse[3];
     lastuse[3] = 0; lastuse[0]++; lastuse[1]++; lastuse[2]++; 
@@ -69,19 +72,20 @@ void fftwcall(fcomplex *indata, long nn, int isign)
       for (ii = 3; ii >= 0; ii--)
 	if (lastuse[ii] >= oldestplan) oldestplan = ii;
       if (plancache_forward[oldestplan])
-	fftw_destroy_plan(plancache_forward[oldestplan]);
+	fftwf_destroy_plan(plancache_forward[oldestplan]);
       if (plancache_inverse[oldestplan])
-	fftw_destroy_plan(plancache_inverse[oldestplan]);
+	fftwf_destroy_plan(plancache_inverse[oldestplan]);
     }
-    plancache_forward[oldestplan] = fftw_create_plan(nn, -1, 
-						     FFTW_ESTIMATE | \
-						     FFTW_USE_WISDOM | \
-						     FFTW_IN_PLACE);
-    plancache_inverse[oldestplan] = fftw_create_plan(nn, +1, 
-						     FFTW_ESTIMATE | \
-						     FFTW_USE_WISDOM | \
-						     FFTW_IN_PLACE);
+    plancache_forward[oldestplan] = fftwf_plan_dft_1d(nn, 
+						      (fftwf_complex *)indata, 
+						      (fftwf_complex *)indata, 
+						      -1, FFTW_ESTIMATE);
+    plancache_inverse[oldestplan] = fftwf_plan_dft_1d(nn, 
+						      (fftwf_complex *)indata, 
+						      (fftwf_complex *)indata, 
+						      +1, FFTW_ESTIMATE);
     nncache[oldestplan] = nn;
+    indatacache[oldestplan] = indata;
     plan_forward = &plancache_forward[oldestplan];
     plan_inverse = &plancache_inverse[oldestplan];
     lastuse[0]++; lastuse[1]++; lastuse[2]++; lastuse[3]++; 
@@ -91,9 +95,9 @@ void fftwcall(fcomplex *indata, long nn, int isign)
   /* Call the transform */
 
   if (isign == -1){
-    fftw_one(*plan_forward, (FFTW_COMPLEX *) indata, NULL);
+    fftwf_execute(*plan_forward);
   } else {
-    fftw_one(*plan_inverse, (FFTW_COMPLEX *) indata, NULL);
+    fftwf_execute(*plan_inverse);
   }
 
   firsttime = 0;

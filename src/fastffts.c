@@ -49,9 +49,9 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   unsigned char *move;
 #if defined USEFFTW
   FILE *wisdomfile;
-  fftw_plan plan_forward, plan_inverse;
-  static fftw_plan last_plan_forward = NULL, last_plan_inverse = NULL;
-  static int firsttime = 1, lastn = 0;
+  fftwf_plan plan;
+  static fftwf_plan last_plan=NULL;
+  static int firsttime=1, lastn=0, lastisign=0;
   static char wisdomfilenm[120];
 #else
   float *p1;
@@ -63,6 +63,8 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   /* If calling for the first time, read the wisdom file */
 
   if (firsttime) {
+    /* First try to import the system wisdom if available */
+    fftwf_import_system_wisdom();
     sprintf(wisdomfilenm, "%s/fftw_wisdom.txt", DATABASE);
     wisdomfile = fopen(wisdomfilenm, "r");
     if (wisdomfile == NULL) {
@@ -71,7 +73,7 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
       printf("Exiting.\n");
       exit(1);
     }
-    if (FFTW_FAILURE == fftw_import_wisdom_from_file(wisdomfile)) {
+    if (!fftwf_import_wisdom_from_file(wisdomfile)) {
       printf("Error importing FFTW wisdom.\n");
       printf("Exiting.\n");
       exit(1);
@@ -109,33 +111,21 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 
   /* Use FFTW for the small transforms if available. */
 
-  if (n1 == lastn){
-    plan_forward = last_plan_forward;
-    plan_inverse = last_plan_inverse;
+  if (n1==lastn && isign==lastisign){
+    plan = last_plan;
   } else {
-    if (!firsttime){
-      fftw_destroy_plan(last_plan_forward);
-      fftw_destroy_plan(last_plan_inverse);
-    }
-    plan_forward = fftw_create_plan(n1, -1, FFTW_MEASURE | \
-				    FFTW_USE_WISDOM | \
-				    FFTW_IN_PLACE);
-    plan_inverse = fftw_create_plan(n1, +1, FFTW_MEASURE | \
-				    FFTW_USE_WISDOM | \
-				    FFTW_IN_PLACE);
-    last_plan_forward = plan_forward;
-    last_plan_inverse = plan_inverse;
+    const int N1[1]={n1};
+    if (firsttime) firsttime = 0;
+    else fftwf_destroy_plan(last_plan);
+    plan = fftwf_plan_many_dft(1, N1, n2, 
+			       (fftwf_complex *)indata, NULL, 1, n1, 
+			       (fftwf_complex *)indata, NULL, 1, n1,
+			       isign, FFTW_ESTIMATE);
+    last_plan = plan;
     lastn = n1;
+    lastisign = isign;
   }
-  firsttime = 0;
-
-  if (isign == -1) {
-    fftw(plan_forward, n2, (FFTW_COMPLEX *) indata, 1, n1, \
-	 NULL, 1, n1);
-  } else {
-    fftw(plan_inverse, n2, (FFTW_COMPLEX *) indata, 1, n1, \
-	 NULL, 1, n1);
-  }
+  fftwf_execute(plan);
 
 #else
 
@@ -181,32 +171,20 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 
   /* Use FFTW for the small transforms if available. */
 
-  if (n2 == lastn){
-    plan_forward = last_plan_forward;
-    plan_inverse = last_plan_inverse;
+  if (n2==lastn && isign==lastisign){
+    plan = last_plan;
   } else {
-    if (!firsttime){
-      fftw_destroy_plan(last_plan_forward);
-      fftw_destroy_plan(last_plan_inverse);
-    }
-    plan_forward = fftw_create_plan(n2, -1, FFTW_MEASURE | \
-				    FFTW_USE_WISDOM | \
-				    FFTW_IN_PLACE);
-    plan_inverse = fftw_create_plan(n2, +1, FFTW_MEASURE | \
-				    FFTW_USE_WISDOM | \
-				    FFTW_IN_PLACE);
-    last_plan_forward = plan_forward;
-    last_plan_inverse = plan_inverse;
+    const int N2[1]={n2};
+    fftwf_destroy_plan(last_plan);
+    plan = fftwf_plan_many_dft(1, N2, n1, 
+			       (fftwf_complex *)indata, NULL, 1, n2, 
+			       (fftwf_complex *)indata, NULL, 1, n2,
+			       isign, FFTW_ESTIMATE);
+    last_plan = plan;
     lastn = n2;
+    lastisign = isign;
   }
-
-  if (isign == -1) {
-    fftw(plan_forward, n1, (FFTW_COMPLEX *) indata, 1, n2, \
-	 NULL, 1, n2);
-  } else {
-    fftw(plan_inverse, n1, (FFTW_COMPLEX *) indata, 1, n2, \
-	 NULL, 1, n2);
-  }
+  fftwf_execute(plan);
 
 #else
 
@@ -229,7 +207,6 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
       indata[jj].i *= tmp1;
     }
   }
-
 
   /* last transpose the matrix */
 
