@@ -1,254 +1,61 @@
 #include "presto.h"
 #include "mask.h"
 #include "wapp.h"
+#include "srfftw.h"
 
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
-static int numblks_st[MAXPATCHFILES];
-static int bytesperpt_st, bytesperblk_st;
-static int numchan_st, numifs_st, ptsperblk_st=PTSPERBLOCK;
+static int numblks_st[MAXPATCHFILES], corr_level_st, decreasing_freqs_st=0;
+static int bytesperpt_st, bytesperblk_st, bits_per_samp_st, numifs_st;
+static int numchan_st, numifs_st, ptsperblk_st=WAPP_PTSPERBLOCK;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
-static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
+static double elapsed_st[MAXPATCHFILES], T_st, dt_st, dtus_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
+static double scale_min_st=0.0, scale_max_st=3.0;
+static double corr_rate_st, corr_scale_st;
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char databuffer[2*MAXDATLEN], padval=4;
+static unsigned char databuffer[2*WAPP_MAXDATLEN], padval=128;
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
-static double mid_freq_st, ch1_freq_st, delta_freq_st;
-static double chan_freqs[2*MAXNUMCHAN];
-static int chan_index[2*MAXNUMCHAN], chan_mapping[2*MAXNUMCHAN];
+static fftw_plan fftplan;
+
 double slaCldj(int iy, int im, int id, int *j);
-void convert_WAPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
-			WAPP_ifs ifs);
-void convert_WAPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
-void convert_WAPP_point(unsigned char *rawdata, unsigned char *bytes);
+static double inv_cerf(double input);
+static void vanvleck3lev(float *rho, int npts);
+static void vanvleck9lev(float *rho, int npts);
 
-
-static double UT_strings_to_MJD(char *date, char *start_time, 
+static double UT_strings_to_MJD(char *obs_date, char *start_time, 
 				int *mjd_day, double *mjd_fracday)
 {
-  int mtab[12] = {31,28,31,30,31,30,31,31,30,31,30,31};
-  int julday, year, month=1, day, hour, min, sec, err;
+  int year, month, day, hour, min, sec, err;
 
-  sscanf(date, "%3d:%4d", &julday, &year);
-  julday++;  /* UT date starts from 0, I believe */
-  /* Allow for leap years */
-  if (year % 4 == 0)
-    mtab[1] = 29;
-  if (year % 100 == 0 && year % 400 != 0)
-    mtab[1] = 28;
-  /* Convert Julian day to day and month */
-  while (julday - mtab[month-1] > 0){
-    julday -= mtab[month-1];
-    month++;
-  }
-  day = julday;
+  sscanf(obs_date, "%4d%2d%2d", &year, &month, &day);
   sscanf(start_time, "%2d:%2d:%2d", &hour, &min, &sec);
   *mjd_fracday = (hour + (min + (sec / 60.0)) / 60.0) / 24.0;
   *mjd_day = slaCldj(year, month, day, &err);
   return *mjd_day + *mjd_fracday;
 }
 
-
-static void swapendian_WAPP_header(WAPP_HEADER *hdr)
-/* This is required since it is a binary header */
+double wappcorrect(double mjd)
+/* subroutine to return correction to wapp_time (us) based on mjd */
 {
-  int ii;
-
-  hdr->header_version = swap_int(hdr->header_version);
-  hdr->bit_mode = swap_int(hdr->bit_mode);
-  hdr->num_chans = swap_int(hdr->num_chans);
-  hdr->lmst = swap_int(hdr->lmst);
-  hdr->scan_file_number = swap_int(hdr->scan_file_number);
-  hdr->file_size = swap_int(hdr->file_size);
-  hdr->tape_num = swap_int(hdr->tape_num);
-  hdr->tape_file_number = swap_int(hdr->tape_file_number);
-  hdr->enabled_CBs = swap_int(hdr->enabled_CBs);
-  hdr->mb_start_address = swap_int(hdr->mb_start_address);
-  hdr->mb_end_address = swap_int(hdr->mb_end_address);
-  hdr->mb_start_board = swap_int(hdr->mb_start_board);
-  hdr->mb_end_board = swap_int(hdr->mb_end_board);
-  hdr->mb_vme_mid_address = swap_int(hdr->mb_vme_mid_address);
-  hdr->mb_ack_enabled = swap_int(hdr->mb_ack_enabled);
-  hdr->start_from_ste = swap_int(hdr->start_from_ste);
-  hdr->cb_sum_polarizations = swap_int(hdr->cb_sum_polarizations);
-  hdr->cb_direct_mode = swap_int(hdr->cb_direct_mode);
-  hdr->cb_accum_length = swap_int(hdr->cb_accum_length);
-  hdr->tb_outs_reg = swap_int(hdr->tb_outs_reg);
-  hdr->tb_ste = swap_int(hdr->tb_ste);
-  hdr->tb_stc = swap_int(hdr->tb_stc);
-  hdr->H_deci_factor = swap_int(hdr->H_deci_factor);
-  hdr->GenStat0 = swap_int(hdr->GenStat0);
-  hdr->GenStat1 = swap_int(hdr->GenStat1);
-  hdr->Ack_Reg = swap_int(hdr->Ack_Reg);
-  hdr->dfb_sram_length = swap_int(hdr->dfb_sram_length);
-  hdr->ASYMMETRIC = swap_int(hdr->ASYMMETRIC);
-  hdr->mb_long_ds0 = swap_int(hdr->mb_long_ds0);
-  hdr->aib_serial = swap_int(hdr->aib_serial);
-  hdr->aib_rev = swap_int(hdr->aib_rev);
-  hdr->BACKEND_TYPE = swap_int(hdr->BACKEND_TYPE);
-  hdr->UPDATE_DONE = swap_int(hdr->UPDATE_DONE);
-  hdr->HEADER_TYPE = swap_int(hdr->HEADER_TYPE);
-  hdr->tb_id = swap_int(hdr->tb_id);
-  hdr->aib_if_switch = swap_int(hdr->aib_if_switch);
-  hdr->mb_rev = swap_int(hdr->mb_rev);
-  hdr->mb_serial = swap_int(hdr->mb_serial);
-  hdr->tb_rev = swap_int(hdr->tb_rev);
-  hdr->tb_serial = swap_int(hdr->tb_serial);
-  hdr->mb_xtal_freq = swap_int(hdr->mb_xtal_freq);
-  hdr->scan_num = swap_uint(hdr->scan_num);
-  hdr->ll_file_offset = swap_longlong(hdr->ll_file_offset);
-  hdr->ll_file_size = swap_longlong(hdr->ll_file_size);
-  hdr->length_of_integration = swap_double(hdr->length_of_integration);
-  hdr->samp_rate = swap_double(hdr->samp_rate);
-  hdr->ra_2000 = swap_double(hdr->ra_2000);
-  hdr->dec_2000 = swap_double(hdr->dec_2000);
-  hdr->tele_x = swap_double(hdr->tele_x);
-  hdr->tele_y = swap_double(hdr->tele_y);
-  hdr->tele_z = swap_double(hdr->tele_z);
-  hdr->tele_inc = swap_double(hdr->tele_inc);
-  hdr->Fclk = swap_double(hdr->Fclk);
-  hdr->Har_Clk = swap_double(hdr->Har_Clk);
-  hdr->bandwidth = swap_double(hdr->bandwidth);
-  hdr->rf_lo = swap_double(hdr->rf_lo);
-  hdr->max_dfb_freq = swap_double(hdr->max_dfb_freq);
-  hdr->mjd_start = swap_longdouble(hdr->mjd_start);
-  for (ii=0; ii<FB_CHAN_PER_BRD; ii++){
-    hdr->dfb_sram_freqs[ii] = swap_float(hdr->dfb_sram_freqs[ii]);
-  }
-  for (ii=0; ii<MAX_HARRIS_TAPS; ii++){
-    hdr->i_hcoef[ii] = swap_int(hdr->i_hcoef[ii]);
-    hdr->q_hcoef[ii] = swap_int(hdr->q_hcoef[ii]);
-  }
-  for (ii=0; ii<MAXNUMCB; ii++){
-    hdr->cb_id[ii] = swap_int(hdr->cb_id[ii]);
-    hdr->cb_rev[ii] = swap_int(hdr->cb_rev[ii]);
-    hdr->cb_serial[ii] = swap_int(hdr->cb_serial[ii]);
-    hdr->cb_eprom_mode[ii] = swap_int(hdr->cb_eprom_mode[ii]);
-  }
-  for (ii=0; ii<MAX_NUM_MF_BOARDS; ii++){
-    hdr->mf_rev[ii] = swap_int(hdr->mf_rev[ii]);
-    hdr->mf_serial[ii] = swap_int(hdr->mf_serial[ii]);
-    hdr->mf_filt_width[ii] = swap_double(hdr->mf_filt_width[ii]);
-    hdr->mf_atten[ii] = swap_double(hdr->mf_atten[ii]);
-  }
-  for (ii=0; ii<MAX_NUM_LO_BOARDS; ii++){
-    hdr->lo_rev[ii] = swap_int(hdr->lo_rev[ii]);
-    hdr->lo_serial[ii] = swap_int(hdr->lo_serial[ii]);
-    hdr->aib_los[ii] = swap_double(hdr->aib_los[ii]);
-  }
-  for (ii=0; ii<MAXNUMDFB; ii++){
-    hdr->dfb_mixer_reg[ii] = swap_int(hdr->dfb_mixer_reg[ii]);
-    hdr->dfb_conf_reg[ii] = swap_int(hdr->dfb_conf_reg[ii]);
-    hdr->dfb_sram_addr_msb[ii] = swap_int(hdr->dfb_sram_addr_msb[ii]);
-    hdr->dfb_id[ii] = swap_int(hdr->dfb_id[ii]);
-    hdr->dfb_rev[ii] = swap_int(hdr->dfb_rev[ii]);
-    hdr->dfb_serial[ii] = swap_int(hdr->dfb_serial[ii]);
-    hdr->dfb_sun_program[ii] = swap_int(hdr->dfb_sun_program[ii]);
-    hdr->dfb_eprom[ii] = swap_int(hdr->dfb_eprom[ii]);
-    hdr->dfb_sram_addr[ii] = swap_int(hdr->dfb_sram_addr[ii]);
-    hdr->dfb_har_addr[ii] = swap_int(hdr->dfb_har_addr[ii]);
-    hdr->dfb_clip_adc_neg8[ii] = swap_int(hdr->dfb_clip_adc_neg8[ii]);
-    hdr->dfb_shften_[ii] = swap_int(hdr->dfb_shften_[ii]);
-    hdr->dfb_fwd_[ii] = swap_int(hdr->dfb_fwd_[ii]);
-    hdr->dfb_rvrs_[ii] = swap_int(hdr->dfb_rvrs_[ii]);
-    hdr->dfb_asymmetric[ii] = swap_int(hdr->dfb_asymmetric[ii]);
-    hdr->dfb_i_dc[ii] = swap_double(hdr->dfb_i_dc[ii]);
-    hdr->dfb_q_dc[ii] = swap_double(hdr->dfb_q_dc[ii]);
-    hdr->dfb_gain[ii] = swap_double(hdr->dfb_gain[ii]);
-  }
-}
-
-
-void calc_WAPP_chans(WAPP_HEADER *hdr)
-/* Calculates freqs and ordering index table for WAPP channels */
-{
-  int ii, n=0, dfb_chan, logical_board, regid, bid, nibble, nchans;
-  double  f_aib, u_or_l, f_sram, fc;
-  findex *findexarr;
-  mapindex *mapindexarr;
-
-  /* The following is probably a bad way to see if */
-  /* we need to swap the endianess of the header.  */
-  if (hdr->num_chans < 0 || hdr->num_chans > 2*MAXNUMCHAN){
-    swapendian_WAPP_header(hdr);
-  }
-  nchans = (hdr->mb_end_address / 2 - hdr->mb_start_address / 2 + 1) * \
-    (hdr->mb_end_board - hdr->mb_start_board + 1) * 4;
-  if (nchans > 2*MAXNUMCHAN){
-    printf("Error:  nchans (%d) > 2*MAXNUMCHAN (%d) in bpp_calc_chans()\n\n",
-	   nchans, 2*MAXNUMCHAN);
-    exit(1);
-  }
-  /* Loop over (16-bit) regs per board. divide by 2's are to make them   */
-  /* word addresses instead of byte addresses so we can index with them. */
-  /* Normal modes will be regid = 0..3, 0..7, or 4..7                    */
-  for (regid=hdr->mb_start_address/2; regid<=hdr->mb_end_address/2; regid++){
-    /* Loop over each board */
-    for (bid=hdr->mb_start_board; bid<=hdr->mb_end_board; bid++){
-      /* Now find which LOGICAL CB we are reading */
-      logical_board = -1;
-      for (ii=0; ii<MAXNUMCB; ii++){
-        if (bid==hdr->cb_id[ii]){
-          logical_board = ii;
-          break;
-        }
-      }
-      if (logical_board==-1){
-	printf("calc_WAPP_chans() - logical_board not found");
-	exit(1);
-      }
-      /* Assumes cabling so that LO0 feeds MF0,1 which feeds leftmost CB! */
-      f_aib = hdr->aib_los[logical_board];
-      /* Loop over 4 nibbles per reg */
-      for (nibble=0; nibble<4; nibble++){
-        dfb_chan = dfb_chan_lookup[regid][nibble];
-        u_or_l = sideband_lookup[regid][nibble];
-        f_sram = hdr->dfb_sram_freqs[dfb_chan];
-	fc = f_aib + f_sram + u_or_l * hdr->bandwidth/4.0;
-        chan_freqs[n] = (hdr->rf_lo + fc) / 1000000.0;
-	n++;
-      }
-    }
-  }
-
-  /* Make a lookup table which gives chans in order of increasing freq */
+  double correction;
   
-  findexarr = (findex *)malloc(sizeof(findex) * nchans);
-  mapindexarr = (mapindex *)malloc(sizeof(mapindex) * nchans);
-  for (ii=0; ii<nchans; ii++){
-    findexarr[ii].freq = chan_freqs[ii];
-    findexarr[ii].index = ii;    
-  }
-  qsort(findexarr, nchans, sizeof(findex), compare_findex);
-  for (ii=0; ii<nchans; ii++){
-    chan_index[ii] = findexarr[ii].index;
-    mapindexarr[ii].index = findexarr[ii].index;
-    mapindexarr[ii].mapping = ii;
-  }
-  free(findexarr);
-  qsort(mapindexarr, nchans, sizeof(mapindex), compare_mapindex);
-  for (ii=0; ii<nchans; ii++){
-    chan_mapping[ii] = mapindexarr[ii].mapping;
-  }
-  free(mapindexarr);
+  /* assume no correction initially */
+  correction=0.0;
+  
+  if ( (mjd >= 51829.0) && (mjd < 51834.0) ) correction=-0.08;
+  if ( (mjd >= 51834.0) && (mjd < 51854.0) ) correction=-0.68;
+  if ( (mjd >= 51854.0) && (mjd < 51969.0) ) correction=+0.04;  
 
-  /* Set the static variables */
-
-  n = nchans / 2;
-  if (hdr->cb_sum_polarizations)
-    numchan_st = nchans;
-  else
-    numchan_st = nchans / 2;
-  mid_freq_st = 0.5 * (chan_freqs[chan_index[n]] + 
-		       chan_freqs[chan_index[n-1]]);
-  ch1_freq_st = chan_freqs[chan_index[0]];
-  if (hdr->cb_sum_polarizations)
-    delta_freq_st = chan_freqs[chan_index[1]] - chan_freqs[chan_index[0]];
-  else
-    delta_freq_st = chan_freqs[chan_index[2]] - chan_freqs[chan_index[0]];
+  if (correction != 0.0) {
+    fprintf(stderr,"WARNING: correction %f us applied for MJD %.1f\n",
+            correction,mjd);
+    fflush(stderr);
+  }
+  
+  return(correction);
 }
-
 
 void WAPP_hdr_to_inf(WAPP_HEADER *hdr, infodata *idata)
 /* Convert WAPP header into an infodata structure */
@@ -256,42 +63,45 @@ void WAPP_hdr_to_inf(WAPP_HEADER *hdr, infodata *idata)
   double MJD;
   char ctmp[80];
 
-  strncpy(idata->object, hdr->target_name, 32);
-  idata->ra_h = (int) floor(hdr->ra_2000 / 10000.0);
-  idata->ra_m = (int) floor((hdr->ra_2000 - 
+  strncpy(idata->object, hdr->src_name, 24);
+  idata->ra_h = (int) floor(hdr->src_ra / 10000.0);
+  idata->ra_m = (int) floor((hdr->src_ra - 
 			     idata->ra_h * 10000) / 100.0);
-  idata->ra_s = hdr->ra_2000 - idata->ra_h * 10000 - 
+  idata->ra_s = hdr->src_ra - idata->ra_h * 10000 - 
     idata->ra_m * 100;
-  idata->dec_d = (int) floor(fabs(hdr->dec_2000) / 10000.0);
-  idata->dec_m = (int) floor((fabs(hdr->dec_2000) - 
+  idata->dec_d = (int) floor(fabs(hdr->src_dec) / 10000.0);
+  idata->dec_m = (int) floor((fabs(hdr->src_dec) - 
 			      idata->dec_d * 10000) / 100.0);
-  idata->dec_s = fabs(hdr->dec_2000) - idata->dec_d * 10000 - 
+  idata->dec_s = fabs(hdr->src_dec) - idata->dec_d * 10000 - 
     idata->dec_m * 100;
-  if (hdr->dec_2000 < 0.0)
+  if (hdr->src_dec < 0.0)
     idata->dec_d = -idata->dec_d;
-  strcpy(idata->telescope, "GBT");
-  strcpy(idata->instrument, "BCPM1");
-  idata->num_chan = numchan_st;
-  idata->dt = hdr->samp_rate / 1000000.0;
-  idata->N = hdr->length_of_integration / idata->dt;
-  idata->chan_wid = fabs(delta_freq_st);
-  idata->freqband = idata->num_chan * idata->chan_wid;
-  idata->freq = ch1_freq_st;
-  idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 64 * DEGTORAD);
-  MJD = UT_strings_to_MJD(hdr->date, hdr->start_time, 
+  strcpy(idata->telescope, "Arecibo");
+  strcpy(idata->instrument, "WAPP");
+  idata->num_chan = hdr->num_lags;
+  MJD = UT_strings_to_MJD(hdr->obs_date, hdr->start_time, 
 			  &(idata->mjd_i), &(idata->mjd_f));
+  idata->dt = (wappcorrect(MJD) + hdr->wapp_time) / 1000000.0;
+  idata->N = hdr->obs_time / idata->dt;
+  idata->freqband = hdr->bandwidth;
+  idata->chan_wid = fabs(idata->freqband / idata->num_chan);
+  idata->freq = hdr->cent_freq - 0.5*idata->freqband + 0.5*idata->chan_wid;
+  idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 300.0 * DEGTORAD);
   idata->bary = 0;
   idata->numonoff = 0;
   strcpy(idata->band, "Radio");
   strcpy(idata->analyzer, "Scott Ransom");
-  strcpy(idata->observer, "--");
-  if (hdr->cb_sum_polarizations)
-    sprintf(ctmp, "Polarizations were summed in hardware.");
+  strncpy(idata->observer, hdr->observers, 24);
+  if (hdr->sum)
+    sprintf(ctmp, 
+	    "%d %d-level IF(s) were summed.  Lags are %d bit ints.", 
+	    numifs_st, corr_level_st, bits_per_samp_st);
   else
-    sprintf(ctmp, "Polarizations were not summed in hardware.");
-  sprintf(idata->notes, "Scan number %010d from tape %d, file %d.\n    Topo UTC Date (DDD:YYYY) & Time at file start = %s, %s\n    %s\n", 
-	  hdr->scan_num, hdr->tape_num, hdr->tape_file_number, 
-	  hdr->date, hdr->start_time, ctmp);
+    sprintf(ctmp, "%d %d-level IF(s) were not summed.  Lags are %d bit ints.", 
+	    numifs_st, corr_level_st, bits_per_samp_st);
+  sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %ld, Date: %s %s.\n    %s\n", 
+	  hdr->start_az, hdr->start_za, hdr->project_id, hdr->scan_number, 
+	  hdr->obs_date, hdr->start_time, ctmp);
 }
 
 
@@ -304,28 +114,58 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 {
-  int ii;
-  char rawhdr[WAPP_HEADER_SIZE];
-  WAPP_HEADER *header;
+  int ii, asciihdrlen=0;
+  char cc;
+  WAPP_HEADER hdr;
 
   if (numfiles > MAXPATCHFILES){
     printf("\nThe number of input files (%d) is greater than \n", numfiles);
     printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
     exit(0);
   }
-  chkfread(rawhdr, WAPP_HEADER_SIZE, 1, files[0]);
-  header = (WAPP_HEADER *)rawhdr;
-  calc_WAPP_chans(header);
-  WAPP_hdr_to_inf(header, &idata_st[0]);
-  WAPP_hdr_to_inf(header, idata);
+  /* Skip the ASCII header file */
+  while((cc=fgetc(files[0]))!='\0')
+    asciihdrlen++;
+  /* Read the binary header (no byte-swapping capabilities yet) */
+  chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[0]);
+  numifs_st = hdr.nifs;
+  if (numifs_st > 1)
+    printf("\nNumber of IFs (%d) is > 1!  I can't handle this yet!\n\n",
+	   numifs_st);
+  if (hdr.freqinversion)
+    decreasing_freqs_st = 1;
+  if (hdr.level==1)
+    corr_level_st = 3;
+  else if (hdr.level==2)
+    corr_level_st = 9;
+  else
+    printf("\nError:  Unrecognized level setting!\n\n");
+  if (hdr.lagformat==0)
+    bits_per_samp_st = 16;
+  else if (hdr.lagformat==1)
+    bits_per_samp_st = 32;
+  else
+    printf("\nError:  Unrecognized number of bits per sample!\n\n");
+  WAPP_hdr_to_inf(&hdr, &idata_st[0]);
+  WAPP_hdr_to_inf(&hdr, idata);
   *numchan = numchan_st = idata_st[0].num_chan;
+  fftplan = rfftw_create_plan(2 * numchan_st, 
+			      FFTW_REAL_TO_COMPLEX, 
+			      FFTW_MEASURE);
   *ptsperblock = ptsperblk_st;
-  numifs_st = header->num_chans / *numchan;
-  bytesperpt_st = (numchan_st * numifs_st * 4) / 8;
+  bytesperpt_st = (numchan_st * numifs_st * bits_per_samp_st) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
-  numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
+  numblks_st[0] = (chkfilelen(files[0], 1) 
+		   - asciihdrlen - WAPP_HEADER_SIZE) / bytesperblk_st;
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
+  dtus_st = idata_st[0].dt * 1000000.0;
+  corr_rate_st = 1.0 / (dtus_st - WAPP_DEADTIME);
+  corr_scale_st = corr_rate_st / idata->freqband;
+  if (corr_level_st==9) /* 9-level sampling */
+    corr_scale_st /= 16.0;
+  if (hdr.sum) /* summed IFs (search mode) */
+    corr_scale_st /= 2.0;
   dt_st = *dt = idata_st[0].dt;
   times_st[0] = numpts_st[0] * dt_st;
   mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
@@ -334,17 +174,18 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
   endblk_st[0] = (double) numpts_st[0] / ptsperblk_st;
   padpts_st[0] = padpts_st[numfiles-1] = 0;
   for (ii=1; ii<numfiles; ii++){
-    chkfread(rawhdr, WAPP_HEADER_SIZE, 1, files[ii]);
-    header = (WAPP_HEADER *)rawhdr;
-    calc_WAPP_chans(header);
-    WAPP_hdr_to_inf(header, &idata_st[ii]);
+    /* Skip the ASCII header file */
+    while((cc=fgetc(files[0]))!='\0');
+    chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[ii]);
+    WAPP_hdr_to_inf(&hdr, &idata_st[ii]);
     if (idata_st[ii].num_chan != numchan_st){
       printf("Number of channels (file %d) is not the same!\n\n", ii+1);
     }
     if (idata_st[ii].dt != dt_st){
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
     }
-    numblks_st[ii] = chkfilelen(files[ii], bytesperblk_st);
+    numblks_st[ii] = (chkfilelen(files[ii], 1) 
+		      - asciihdrlen - WAPP_HEADER_SIZE) / bytesperblk_st;
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
     times_st[ii] = numpts_st[ii] * dt_st;
     mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
@@ -364,23 +205,6 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
   *N = N_st;
   *T = T_st = N_st * dt_st;
   currentfile = currentblock = 0;
-#if 0
-  {
-    double *freq;
-    int *nibble;
-
-    for (ii=0; ii<96; ii++){
-      gen_channel_mapping(header, &nibble, &freq, NULL);
-      chan_index2[ii] = nibble[ii];
-      chan_freqs2[ii] = freq[ii]/1000000.0;
-    }
-    for (ii=0; ii<numchan_st; ii++){
-      printf("%3d  %3d  %3d  %10.3f  %3d  %10.3f\n", ii, 
-	     chan_mapping[ii], chan_index[ii], chan_freqs[chan_index[ii]],
-	     chan_index2[ii], chan_freqs2[ii]);
-    }
-  }
-#endif
   if (output){
     printf("  Number of files = %d\n", numfiles);
     printf("     Points/block = %d\n", ptsperblk_st);
@@ -434,8 +258,8 @@ void WAPP_update_infodata(int numfiles, infodata *idata)
 
 int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec)
 /* This routine skips to the record 'rec' in the input files   */
-/* *infiles.  *infiles contains 4 bit digitized data from the  */
-/* BCPM1 backend at the GBT.  Returns the record skipped to.   */
+/* *infiles.  *infiles contain data from the WAPP at Arecibo   */
+/* Returns the record skipped to.                              */
 {
   double floor_blk;
   int filenum=0;
@@ -453,7 +277,7 @@ int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec)
     floor_blk = floor(startblk_st[filenum]);
  
     /* Set the data buffer to all padding just in case */
-    memset(databuffer, padval, 2*MAXDATLEN);
+    memset(databuffer, padval, 2*WAPP_MAXDATLEN);
  
     /* Warning:  I'm not sure if the following is correct. */
     /*   If really needs accurate testing to see if my     */
@@ -495,57 +319,47 @@ void print_WAPP_hdr(WAPP_HEADER *hdr)
   int mjd_i;
   double mjd_d;
 
-  calc_WAPP_chans(hdr);
-  printf("\n'%s' (version %d)\n", hdr->head, hdr->header_version);
-  printf("                     Target = %s\n", hdr->target_name);
-  if (strlen(hdr->obs_group))
-    printf("                Observed by = %s\n", hdr->obs_group);
-  printf("   Scan number (DDDYYYY###) = %010d\n", hdr->scan_num);
-  printf("           Scan file number = %d\n", hdr->scan_file_number);
-  /*
-  printf("          File size (bytes) = %d\n", hdr->file_size);
-  */
-  printf("                Tape number = %d\n", hdr->tape_num);
-  printf("           Tape file number = %d\n", hdr->tape_file_number);
-  printf("       LMST in sec since 0h = %d\n", hdr->lmst);
-  printf("        UTC date (DDD:YYYY) = %s\n", hdr->date);
-  printf("        UTC time (HH:MM:SS) = %s\n", hdr->start_time);
-  printf("             MJD start time = %.11f\n", 
-	 UT_strings_to_MJD(hdr->date, hdr->start_time, &mjd_i, &mjd_d));
-  printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", hdr->ra_2000);
-  printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", hdr->dec_2000);
-  printf("     Integration length (s) = %.17g\n", hdr->length_of_integration);
-  printf("           Sample time (us) = %.17g\n", hdr->samp_rate);
-  if (hdr->bit_mode==4)
-    printf("               Channel mode = Powers\n");
-  else if (hdr->bit_mode==-4)
-    printf("               Channel mode = Direct voltages\n");
+  printf("\n             Header version = %ld\n", hdr->header_version);
+  printf("        Header size (bytes) = %ld\n", hdr->header_size);
+  printf("                Source Name = %s\n", hdr->src_name);
+  printf(" Observation Date (YYYMMDD) = %s\n", hdr->obs_date);
+  printf("    Obs Start UT (HH:MM:SS) = %s\n", hdr->start_time);
+  printf("             MJD start time = %.12f\n", 
+	 UT_strings_to_MJD(hdr->obs_date, hdr->start_time, &mjd_i, &mjd_d));
+  printf("                 Project ID = %s\n", hdr->project_id);
+  printf("                  Observers = %s\n", hdr->observers);
+  printf("                Scan Number = %ld\n", hdr->scan_number);
+  printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", hdr->src_ra);
+  printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", hdr->src_dec);
+  printf("        Start Azimuth (deg) = %-17.15g\n", hdr->start_az);
+  printf("     Start Zenith Ang (deg) = %-17.15g\n", hdr->start_za);
+  printf("            Start AST (sec) = %-17.15g\n", hdr->start_ast);
+  printf("            Start LST (sec) = %-17.15g\n", hdr->start_lst);
+  printf("           Obs Length (sec) = %-17.15g\n", hdr->obs_time);
+  printf("      Requested T_samp (us) = %-17.15g\n", hdr->samp_time);
+  printf("         Actual T_samp (us) = %-17.15g\n", hdr->wapp_time);
+  printf("         Central freq (MHz) = %-17.15g\n", hdr->cent_freq);
+  printf("      Total Bandwidth (MHz) = %-17.15g\n", hdr->bandwidth);
+  printf("             Number of lags = %ld\n", hdr->num_lags);
+  printf("              Number of IFs = %d\n", hdr->nifs);
+  printf("   Other information:\n");
+  if (hdr->sum==1)
+    printf("      IFs are summed.\n");
+  if (hdr->freqinversion==1)
+    printf("      Frequency band is inverted.\n");
+  if (hdr->lagformat==0)
+    printf("      Lags are 16 bit integers.\n\n");
   else
-    printf("        UNKNOWN CHANNEL MODE!!\n");
-  if (hdr->cb_sum_polarizations){
-    printf("      Polarizations summed? = Yes\n");
-    printf("         Number of channels = %d\n", hdr->num_chans);
-    printf("    Overall bandwidth (MHz) = %.17g\n", 
-	   hdr->num_chans * delta_freq_st);
-  } else {
-    printf("      Polarizations summed? = No\n");
-    printf("         Number of channels = %d x 2 IFs\n", hdr->num_chans/2);
-    printf("    Overall bandwidth (MHz) = %.17g\n", 
-	   0.5 * hdr->num_chans * delta_freq_st);
-  }
-  printf("    Channel bandwidth (MHz) = %.17g\n", delta_freq_st);
-  printf("  Lowest channel freq (MHz) = %.17g\n", ch1_freq_st);
-  printf("          Middle freq (MHz) = %.17g\n", mid_freq_st);
-  printf("\n");
+    printf("      Lags are 32 bit integers.\n\n");
 }
 
 
 int read_WAPP_rawblock(FILE *infiles[], int numfiles, 
 		      unsigned char *data, int *padding)
 /* This routine reads a single record from the          */
-/* input files *infiles which contain 4 bit digitized   */
-/* data from the BCPM1 pulsar backend at the GBT.       */
-/* A WAPP record is ptsperblk_st*numchan_st*4 bits long. */
+/* input files *infiles which contain 16 or 32 bit lags */
+/* data from the WAPP correlator at Arecibo.            */
+/* A WAPP record is ptsperblk_st*numchan_st*#bits long. */
 /* *data must be bytesperblk_st bytes long.  If padding */
 /* is returned as 1, then padding was added and         */
 /* statistics should not be calculated.                 */
@@ -667,31 +481,25 @@ int read_WAPP_rawblocks(FILE *infiles[], int numfiles,
 
 int read_WAPP(FILE *infiles[], int numfiles, float *data, 
 	     int numpts, double *dispdelays, int *padding, 
-	     int *maskchans, int *nummasked, mask *obsmask, 
-	     WAPP_ifs ifs)
-/* This routine reads numpts from the WAPP raw input    */
-/* files *infiles.  These files contain 4-bit data     */
-/* from the BCPM1 backend at the GBT.  Time delays     */
+	     int *maskchans, int *nummasked, mask *obsmask)
+/* This routine reads numpts from the WAPP raw input   */
+/* files *infiles.  These files contain raw correlator */
+/* data from WAPP at Arecibo.  Time delays             */
 /* and a mask are applied to each channel.  It returns */
 /* the # of points read if successful, 0 otherwise.    */
 /* If padding is returned as 1, then padding was       */
 /* added and statistics should not be calculated.      */
 /* maskchans is an array of length numchans contains   */
 /* a list of the number of channels that were masked.  */
-/* ifs is which ifs to return (assuming both IFs have  */
-/* been recorded. Legal values are IF0, IF1, SUMIFS.   */
-/* The # of channels masked is returned in nummasked.  */
-/* obsmask is the mask structure to use for masking.   */
 {
   int ii, jj, numread=0, offset, sampperblk;
   double starttime=0.0;
   static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
-  static unsigned char *currentdata, *lastdata, bytepadval;
+  static unsigned char *currentdata, *lastdata;
   static int firsttime=1, numblocks=1, allocd=0, mask=0;
   static double duration=0.0, timeperblk=0.0;
 
-  /* The x2 comes from 4-bits/pt */
-  sampperblk = bytesperblk_st * 2;
+  sampperblk = bytesperblk_st;
   *nummasked = 0;
   if (firsttime) {
     if (numpts % ptsperblk_st){
@@ -705,8 +513,6 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
     raw  = gen_bvect(numblocks * bytesperblk_st);
     rawdata1 = gen_bvect(numblocks * sampperblk);
     rawdata2 = gen_bvect(numblocks * sampperblk);
-    /* Put padval in the low and high nibbles */
-    bytepadval = (padval << 4) | padval;
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
@@ -718,6 +524,7 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       free(raw);
       free(rawdata1);
       free(rawdata2);
+      rfftw_destroy_plan(fftplan);
       allocd = 0;
       return 0;
     }
@@ -725,31 +532,17 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
     currentdata = rawdata1;
     lastdata = rawdata2;
 
+    /* Select the already summed IFs */
+    for (ii=0; ii<numpts; ii++)
+      convert_WAPP_point(raw + ii * bytesperpt_st, 
+			 currentdata + ii * numchan_st);
+
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, numblocks * sampperblk);
+	memset(currentdata, padval, numblocks * sampperblk);
     }
-
-    if (numifs_st==2){
-      /* Choosing a single IF */
-      if (ifs==IF0 || ifs==IF1)
-	for (ii=0; ii<numpts; ii++)
-	  convert_WAPP_one_IF(raw + ii * bytesperpt_st, 
-			     currentdata + ii * numchan_st, ifs);
-      /* Sum the IFs */
-      else
-	for (ii=0; ii<numpts; ii++)
-	  convert_WAPP_sum_IFs(raw + ii * bytesperpt_st, 
-			      currentdata + ii * numchan_st);
-    } else {
-      /* Select the already summed IFs */
-      for (ii=0; ii<numpts; ii++)
-	convert_WAPP_point(raw + ii * bytesperpt_st, 
-			  currentdata + ii * numchan_st);
-    }
-
     if (*nummasked > 0){ /* Only some of the channels are masked */
       for (ii=0; ii<numpts; ii++){
 	offset = ii * numchan_st;
@@ -768,31 +561,17 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
     numread = read_WAPP_rawblocks(infiles, numfiles, raw, 
 				 numblocks, padding);
 
+    /* Select the already summed IFs */
+    for (ii=0; ii<numpts; ii++)
+      convert_WAPP_point(raw + ii * bytesperpt_st, 
+			 currentdata + ii * numchan_st);
+
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, numblocks * sampperblk);
+	memset(currentdata, padval, numblocks * sampperblk);
     }
-
-    if (numifs_st==2){
-      /* Choosing a single IF */
-      if (ifs==IF0 || ifs==IF1)
-	for (ii=0; ii<numpts; ii++)
-	  convert_WAPP_one_IF(raw + ii * bytesperpt_st, 
-			     currentdata + ii * numchan_st, ifs);
-      /* Sum the IFs */
-      else
-	for (ii=0; ii<numpts; ii++)
-	  convert_WAPP_sum_IFs(raw + ii * bytesperpt_st, 
-			      currentdata + ii * numchan_st);
-    } else {
-      /* Select the already summed IFs */
-      for (ii=0; ii<numpts; ii++)
-	convert_WAPP_point(raw + ii * bytesperpt_st, 
-			  currentdata + ii * numchan_st);
-    }
-
     if (*nummasked > 0){ /* Only some of the channels are masked */
       for (ii=0; ii<numpts; ii++){
 	offset = ii * numchan_st;
@@ -808,6 +587,7 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       free(raw);
       free(rawdata1);
       free(rawdata2);
+      rfftw_destroy_plan(fftplan);
       allocd = 0;
     }
     return numread * ptsperblk_st;
@@ -817,95 +597,35 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
 }
 
 void get_WAPP_channel(int channum, float chandat[], 
-		     unsigned char rawdata[], int numblocks,
-		     WAPP_ifs ifs)
+		     unsigned char rawdata[], int numblocks)
 /* Return the values for channel 'channum' of a block of       */
 /* 'numblocks' raw WAPP data stored in 'rawdata' in 'chandat'.  */
 /* 'rawdata' should have been initialized using                */
 /* read_WAPP_rawblocks(), and 'chandat' must have at least      */
 /* 'numblocks' * 'ptsperblk_st' spaces.                        */
 /* Channel 0 is assumed to be the lowest freq channel.         */
-/* The different IFs are handled as standard channel numbers.  */
-/* with 'channum' = 0-numchan_st-1 as per normal.              */
 {
   unsigned char *rawdataptr;
-  int ii, nibble;
+  int ii;
 
   if (channum > numchan_st*numifs_st || channum < 0){
     printf("\nchannum = %d is out of range in get_WAPP_channel()!\n\n",
 	   channum);
     exit(1);
   }
-  if (numifs_st==2){
-    /* Choosing a single IF */
-    if (ifs==IF0 || ifs==IF1){
-      if (ifs==IF0){
-	rawdataptr = rawdata + chan_index[channum] / 2;
-	nibble = chan_index[channum] % 2;
-      } else {
-	rawdataptr = rawdata + chan_index[channum+numchan_st] / 2;
-	nibble = chan_index[channum+numchan_st] % 2;
-      }
-      if (nibble) /* Use last 4 bits in the byte */
-	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	  chandat[ii] = (*rawdataptr & 0x0F);
-	  rawdataptr += bytesperpt_st;
-	}
-      else /* Use first 4 bits in the byte */
-	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	  chandat[ii] = (*rawdataptr >> 0x04);
-	  rawdataptr += bytesperpt_st;
-	}
-    /* Sum the IFs */
-    } else {
-      rawdataptr = rawdata + chan_index[channum] / 2;
-      nibble = chan_index[channum] % 2;
-      if (nibble) /* Use last 4 bits in the byte */
-	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	  chandat[ii] = (*rawdataptr & 0x0F);
-	  rawdataptr += bytesperpt_st;
-	}
-      else /* Use first 4 bits in the byte */
-	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	  chandat[ii] = (*rawdataptr >> 0x04);
-	  rawdataptr += bytesperpt_st;
-	}
-      rawdataptr = rawdata + chan_index[channum+numchan_st] / 2;
-      nibble = chan_index[channum+numchan_st] % 2;
-      if (nibble) /* Use last 4 bits in the byte */
-	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	  chandat[ii] += (*rawdataptr & 0x0F);
-	  rawdataptr += bytesperpt_st;
-	}
-      else /* Use first 4 bits in the byte */
-	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	  chandat[ii] += (*rawdataptr >> 0x04);
-	  rawdataptr += bytesperpt_st;
-	}
-    }
-  } else {
-    /* Select the already summed IFs */
-    rawdataptr = rawdata + chan_index[channum] / 2;
-    nibble = chan_index[channum] % 2;
-    if (nibble) /* Use last 4 bits in the byte */
-      for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	chandat[ii] = (*rawdataptr & 0x0F);
-	rawdataptr += bytesperpt_st;
-      }
-    else /* Use first 4 bits in the byte */
-      for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-	chandat[ii] = (*rawdataptr >> 0x04);
-	rawdataptr += bytesperpt_st;
-      }
+  /* Select the already summed IFs */
+  rawdataptr = rawdata + channum;
+  for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+    chandat[ii] = *rawdataptr;
+    rawdataptr += bytesperpt_st;
   }
 }
 
 
 int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data, 
-		      double *dispdelays, int numsubbands, 
-		      int transpose, int *padding, 
-		      int *maskchans, int *nummasked, mask *obsmask,
-		      WAPP_ifs ifs)
+		       double *dispdelays, int numsubbands, 
+		       int transpose, int *padding, 
+		       int *maskchans, int *nummasked, mask *obsmask)
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the WAPP system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -921,13 +641,11 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 /* returned in 'nummasked'.  'obsmask' is the mask structure     */
 /* to use for masking.  If 'transpose'==0, the data will be kept */
 /* in time order instead of arranged by subband as above.        */
-/* ifs is which ifs to return (assuming both IFs have been       */
-/* recorded. Legal values are IF0, IF1, SUMIFS.                  */
 {
   int ii, jj, numread, trtn, offset;
   double starttime=0.0;
-  static unsigned char *raw, *tempzz, bytepadval;
-  static unsigned char rawdata1[MAXDATLEN], rawdata2[MAXDATLEN]; 
+  static unsigned char *raw, *tempzz;
+  static unsigned char rawdata1[WAPP_MAXDATLEN], rawdata2[WAPP_MAXDATLEN]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0, mask=0;
   static double timeperblk=0.0;
@@ -945,30 +663,15 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
       printf("Problem reading the raw WAPP data file.\n\n");
       return 0;
     }
-    /* Put padval in the low and high nibbles */
-    bytepadval = (padval << 4) | padval;
+    /* Select the already summed IFs */
+    for (ii=0; ii<ptsperblk_st; ii++)
+      convert_WAPP_point(raw + ii * bytesperpt_st, 
+			 currentdata + ii * numchan_st);
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, bytesperblk_st);
-    }
-    if (numifs_st==2){
-      /* Choosing a single IF */
-      if (ifs==IF0 || ifs==IF1)
-	for (ii=0; ii<ptsperblk_st; ii++)
-	  convert_WAPP_one_IF(raw + ii * bytesperpt_st, 
-			     currentdata + ii * numchan_st, ifs);
-      /* Sum the IFs */
-      else
-	for (ii=0; ii<ptsperblk_st; ii++)
-	  convert_WAPP_sum_IFs(raw + ii * bytesperpt_st, 
-			      currentdata + ii * numchan_st);
-    } else {
-      /* Select the already summed IFs */
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_WAPP_point(raw + ii * bytesperpt_st, 
-			  currentdata + ii * numchan_st);
+	memset(currentdata, padval, bytesperblk_st);
     }
     if (*nummasked > 0){ /* Only some of the channels are masked */
       for (ii=0; ii<ptsperblk_st; ii++){
@@ -984,28 +687,15 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
   /* Read, convert and de-disperse */
 
   numread = read_WAPP_rawblock(infiles, numfiles, raw, padding);
+  /* Select the already summed IFs */
+  for (ii=0; ii<ptsperblk_st; ii++)
+    convert_WAPP_point(raw + ii * bytesperpt_st, 
+		       currentdata + ii * numchan_st);
   if (mask){
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
     if (*nummasked==-1) /* If all channels are masked */
-      memset(raw, bytepadval, bytesperblk_st);
-  }
-  if (numifs_st==2){
-    /* Choosing a single IF */
-    if (ifs==IF0 || ifs==IF1)
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_WAPP_one_IF(raw + ii * bytesperpt_st, 
-			   currentdata + ii * numchan_st, ifs);
-    /* Sum the IFs */
-    else
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_WAPP_sum_IFs(raw + ii * bytesperpt_st, 
-			    currentdata + ii * numchan_st);
-  } else {
-    /* Select the already summed IFs */
-    for (ii=0; ii<ptsperblk_st; ii++)
-      convert_WAPP_point(raw + ii * bytesperpt_st, 
-			currentdata + ii * numchan_st);
+      memset(currentdata, padval, bytesperblk_st);
   }
   if (*nummasked > 0){ /* Only some of the channels are masked */
     for (ii=0; ii<ptsperblk_st; ii++){
@@ -1031,61 +721,291 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
     return 0;
 }
 
-void convert_WAPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
-			WAPP_ifs ifs)
-/* This routine converts a single IF from 4-bit digitized */
-/* data of two IFs into an array of 'numchan' bytes.      */
-{
-  int ii, jj=0, *indexptr;
-  unsigned char *rawdataptr, ifbytes[2*MAXNUMCHAN];
 
-  rawdataptr = rawdata;
-  indexptr = chan_mapping;
-  for (ii=0; ii<numchan_st*2; ii++) 
-    ifbytes[ii] = 0;
-  for (ii=0; ii<numchan_st; ii++, rawdataptr++){
-    ifbytes[*indexptr++] += (*rawdataptr >> 0x04);
-    ifbytes[*indexptr++] += (*rawdataptr & 0x0F);
+void convert_WAPP_point(void *rawdata, unsigned char *bytes)
+/* This routine converts a single point of WAPP lags   */
+/* into a filterbank style array of bytes.             */
+/* Van Vleck corrections are applied but no window     */
+/* functions can be applied as of yet...               */
+{
+  int ii, two_nlags;
+  double power, pfact;
+  static float acf[2*WAPP_MAXLAGS], lag[WAPP_MAXLAGS];
+
+  /* Fill lag array with scaled CFs */
+  if (bits_per_samp_st==16){
+    unsigned short *sdata=(unsigned short *)rawdata;
+    for (ii=0; ii<numchan_st; ii++)
+      lag[ii] = corr_scale_st * sdata[ii] - 1.0;
+  } else {
+    unsigned int *idata=(unsigned int *)rawdata;
+    for (ii=0; ii<numchan_st; ii++)
+      lag[ii] = corr_scale_st * idata[ii] - 1.0;
   }
-  if (ifs==IF1)
-    jj = numchan_st;
-  for (ii=0; ii<numchan_st; ii++, jj++)
-    bytes[ii] = ifbytes[jj];
+
+  /* Calculate power */
+  power = inv_cerf(lag[0]);
+  power = 0.1872721836 / (power * power);
+  
+  /* Apply Van Vleck Corrections to the Lags */
+  if (corr_level_st==3)
+    vanvleck3lev(lag, numchan_st);
+  else if (corr_level_st==9)
+    vanvleck9lev(lag, numchan_st);
+  else
+    printf("\nError:  corr_level_st (%d) does not equal 3 or 9!\n\n", 
+	   corr_level_st);
+  
+  /* Form even ACF in array */
+  two_nlags = 2 * numchan_st;
+  for(ii=1; ii<numchan_st; ii++)
+    acf[ii] = acf[two_nlags-ii] = power * lag[ii];
+  acf[0] = power * lag[0];
+  acf[numchan_st] = 0.0;
+ 
+  /* FFT the ACF (which is real and even) -> real and even FFT */
+  rfftw_one(fftplan, acf, lag);
+  
+  /* Reverse band if it needs it */
+  if (decreasing_freqs_st){
+    float tempzz=0.0, *loptr, *hiptr;
+    loptr = lag + 0;
+    hiptr = lag + numchan_st - 1;
+    for (ii=0; ii<numchan_st/2; ii++, loptr++, hiptr--)
+      SWAP(*loptr, *hiptr);
+  }
+
+  /* Scale and pack the powers */
+  pfact = 255.0 / (scale_max_st - scale_min_st);
+  for(ii=0; ii<numchan_st; ii++)
+    bytes[ii] = (unsigned char) ((lag[ii] - scale_min_st) * pfact + 0.5);
 }
 
 
-void convert_WAPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes)
-/* This routine converts 4-bit digitized data for 2 IFs */
-/* into a summed IF array of 'numchan' bytes.           */
+static double inv_cerf(double input)
+/* Approximation for Inverse Complementary Error Function */
 {
-  int ii, jj, *indexptr;
-  unsigned char *rawdataptr, ifbytes[2*MAXNUMCHAN];
+  static double numerator_const[3] = {
+    1.591863138, -2.442326820, 0.37153461};
+  static double denominator_const[3] = {
+    1.467751692, -3.013136362, 1.0};
+  double num, denom, temp_data, temp_data_srq, erf_data;
 
-  rawdataptr = rawdata;
-  indexptr = chan_mapping;
-  for (ii=0; ii<numchan_st*2; ii++) 
-    ifbytes[ii] = 0;
-  for (ii=0; ii<numchan_st; ii++, rawdataptr++){
-    ifbytes[*indexptr++] += (*rawdataptr >> 0x04);
-    ifbytes[*indexptr++] += (*rawdataptr & 0x0F);
-  }
-  for (ii=0, jj=numchan_st; ii<numchan_st; ii++, jj++)
-    bytes[ii] = ifbytes[ii] + ifbytes[jj];
+  erf_data = 1.0 - input;
+  temp_data = erf_data * erf_data - 0.5625;
+  temp_data_srq = temp_data * temp_data;
+  num = erf_data * (numerator_const[0] + 
+		    (temp_data * numerator_const[1]) + 
+		    (temp_data_srq * numerator_const[2]));
+  denom = denominator_const[0] + temp_data * denominator_const[1] + 
+    temp_data_srq * denominator_const[2];
+  return num/denom;
 }
 
 
-void convert_WAPP_point(unsigned char *rawdata, unsigned char *bytes)
-/* This routine converts 4-bit digitized power data */
-/* into an array of 'numchan' bytes.                */
+#define NO    0
+#define YES   1
+/*------------------------------------------------------------------------*
+ * Van Vleck Correction for 9-level sampling/correlation
+ *  Samples {-4,-3,-2,-1,0,1,2,3,4}
+ * Uses Zerolag to adjust correction
+ *   data_array -> Points into ACF of at least 'count' points
+ * This routine takes the first value as the zerolag and corrects the
+ * remaining count-1 points.  Zerolag is set to a normalized 1
+ * NOTE - The available routine works on lags normaized to -16<rho<16, so
+ *  I need to adjust the values before/after the fit
+ * Coefficent ranges
+ *   c1
+ *     all
+ *   c2
+ *     r0 > 4.5
+ *     r0 < 2.1
+ *     rest
+ * NOTE - correction is done INPLACE ! Original values are destroyed
+ * As reported by M. Lewis -> polynomial fits are OK, but could be improved
+ *------------------------------------------------------------------------*/
+static void vanvleck9lev(float *rho, int npts)
 {
-  int ii, *indexptr;
-  unsigned char *rawdataptr;
-
-  rawdataptr = rawdata;
-  indexptr = chan_mapping;
-  for (ii=0; ii<numchan_st/2; ii++, rawdataptr++){
-    bytes[*indexptr++] = (*rawdataptr >> 0x04);
-    bytes[*indexptr++] = (*rawdataptr & 0x0F);
+  double acoef[5], dtmp, zl;
+  int i;
+  static double coef1[5] =
+    {1.105842267, -0.053258115, 0.011830276, -0.000916417, 0.000033479};
+  static double coef2rg4p5[5] =
+    {0.111705575, -0.066425925, 0.014844439, -0.001369796, 0.000044119};
+  static double coef2rl2p1[5] =
+    {1.285303775, -1.472216011, 0.640885537, -0.123486209, 0.008817175};
+  static double coef2rother[5] =
+    {0.519701391, -0.451046837, 0.149153116, -0.021957940, 0.001212970};
+  static double coef3rg2p0[5] =
+    {1.244495105, -0.274900651, 0.022660239, -0.000760938, -1.993790548};
+  static double coef3rother[5] =
+    {1.249032787, 0.101951346, -0.126743165, 0.015221707, -2.625961708};
+  static double coef4rg3p15[5] =
+    {0.664003237, -0.403651682, 0.093057131, -0.008831547, 0.000291295};
+  static double coef4rother[5] =
+    {9.866677289, -12.858153787, 6.556692205, -1.519871179, 0.133591758};
+  static double coef5rg4p0[4] =
+    {0.033076469, -0.020621902, 0.001428681, 0.000033733};
+  static double coef5rg2p2[4] =
+    {5.284269565, 6.571535249, -2.897741312, 0.443156543};
+  static double coef5rother[4] =
+    {-1.475903733, 1.158114934, -0.311659264, 0.028185170};
+  
+  zl = rho[0] * 16;
+  /* ro = *rho;                 */
+  /*  for(i=0; i<npts; i++)     */
+  /*    (rho+i) *= *(rho+i)/ro; */
+  acoef[0] =
+    ((((coef1[4] * zl + coef1[3]) * zl + coef1[2]) * zl +
+      coef1[1]) * zl + coef1[0]);
+  if (zl > 4.50)
+    acoef[1] =
+      ((((coef2rg4p5[4] * zl + coef2rg4p5[3]) * zl +
+	 coef2rg4p5[2]) * zl + coef2rg4p5[1]) * zl + coef2rg4p5[0]);
+  else if (zl < 2.10)
+    acoef[1] =
+      ((((coef2rl2p1[4] * zl + coef2rl2p1[3]) * zl +
+	 coef2rl2p1[2]) * zl + coef2rl2p1[1]) * zl + coef2rl2p1[0]);
+  else
+    acoef[1] =
+      ((((coef2rother[4] * zl + coef2rother[3]) * zl +
+	 coef2rother[2]) * zl + coef2rother[1]) * zl +
+       coef2rother[0]);
+  if (zl > 2.00)
+    acoef[2] =
+      coef3rg2p0[4] / zl +
+      (((coef3rg2p0[3] * zl + coef3rg2p0[2]) * zl +
+	coef3rg2p0[1]) * zl + coef3rg2p0[0]);
+  else
+    acoef[2] =
+      coef3rother[4] / zl +
+      (((coef3rother[3] * zl + coef3rother[2]) * zl +
+	coef3rother[1]) * zl + coef3rother[0]);
+  if (zl > 3.15)
+    acoef[3] =
+      ((((coef4rg3p15[4] * zl + coef4rg3p15[3]) * zl +
+	 coef4rg3p15[2]) * zl + coef4rg3p15[1]) * zl +
+       coef4rg3p15[0]);
+  else
+    acoef[3] =
+      ((((coef4rg3p15[4] * zl + coef4rother[3]) * zl +
+	 coef4rother[2]) * zl + coef4rother[1]) * zl +
+       coef4rother[0]);
+  if (zl > 4.00)
+    acoef[4] =
+      (((coef5rg4p0[3] * zl + coef5rg4p0[2]) * zl +
+	coef5rg4p0[1]) * zl + coef5rg4p0[0]);
+  else if (zl < 2.2)
+    acoef[4] =
+      (((coef5rg2p2[3] * zl + coef5rg2p2[2]) * zl +
+	coef5rg2p2[1]) * zl + coef5rg2p2[0]);
+  else
+    acoef[4] =
+      (((coef5rother[3] * zl + coef5rother[2]) * zl +
+	coef5rother[1]) * zl + coef5rother[0]);
+  for (i = 1; i < npts; i++) {
+    dtmp = rho[i];
+    rho[i] =
+      ((((acoef[4] * dtmp + acoef[3]) * dtmp + acoef[2]) * dtmp +
+	acoef[1]) * dtmp + acoef[0]) * dtmp;
   }
+  rho[0] = 1.0;
+  return;
 }
 
+/*------------------------------------------------------------------------*
+ * Van Vleck Correction for 3-level sampling/correlation
+ *  Samples {-1,0,1}
+ * Uses Zerolag to adjust correction
+ *   data_array -> Points into ACF of at least 'count' points
+ * This routine takes the first value as the zerolag and corrects the
+ * remaining count-1 points.  Zerolag is set to a normalized 1
+ *
+ * NOTE - correction is done INPLACE ! Original values are destroyed
+ *------------------------------------------------------------------------*/
+static void vanvleck3lev(float *rho, int npts)
+{
+  double lo_u[3], lo_h[3];
+  double high_u[5], high_h[5];
+  double lo_coefficient[3];
+  double high_coefficient[5];
+  double zho, zho_3;
+  double temp_data;
+  double temp_data_1;
+  int ichan, ico, flag_any_high;
+  static double lo_const[3][4] = {
+    {0.939134371719, -0.567722496249, 1.02542540932, 0.130740914912},
+    {-0.369374472755, -0.430065136734, -0.06309459132, -0.00253019992917},
+    {0.888607422108, -0.230608118885, 0.0586846424223, 0.002012775510695}
+  };
+  static double high_const[5][4] = {
+    {-1.83332160595, 0.719551585882, 1.214003774444, 7.15276068378e-5},
+    {1.28629698818, -1.45854382672, -0.239102591283, -0.00555197725185},
+    {-7.93388279993, 1.91497870485, 0.351469403030, 0.00224706453982},
+    {8.04241371651, -1.51590759772, -0.18532022393, -0.00342644824947},
+    {-13.076435520, 0.769752851477, 0.396594438775, 0.0164354218208}
+  };
+  
+  /* Perform Lo correction on All data that is not flaged 
+     for high correction  */
+  zho = (double) rho[0];
+  zho_3 = zho * zho * zho;
+  lo_u[0] = zho;
+  lo_u[1] = zho_3 - (61.0 / 512.0);
+  lo_u[2] = zho - (63.0 / 128.0);
+  lo_h[0] = zho * zho;
+  lo_h[2] = zho_3 * zho_3 * zho;      /* zlag ^7 */
+  lo_h[1] = zho * lo_h[2];    /* zlag ^8 */
+  /* determine lo-correct coefficents -*/
+  for (ico = 0; ico < 3; ico++) {
+    lo_coefficient[ico] =
+      (lo_u[ico] *
+       (lo_u[ico] *
+	(lo_u[ico] * lo_const[ico][0] + lo_const[ico][1]) +
+	lo_const[ico][2]) + lo_const[ico][3]) / lo_h[ico];
+  }
+  /* perform correction --*/
+  for (ichan = 1, flag_any_high = NO; ichan < npts; ichan++) {
+    temp_data = (double) rho[ichan];
+    if (fabs(temp_data) > 0.199) {
+      if (flag_any_high == NO) {
+	high_u[0] = lo_h[2];    /* zlag ^7 */
+	high_u[1] = zho - (63.0 / 128.0);
+	high_u[2] = zho * zho - (31.0 / 128.0);
+	high_u[3] = zho_3 - (61.0 / 512.0);
+	high_u[4] = zho - (63.0 / 128.0);
+	high_h[0] = lo_h[1];    /* zlag ^8 */
+	high_h[1] = lo_h[1];    /* zlag ^8 */
+	high_h[2] = lo_h[1] * zho_3 * zho;      /* zlag ^12 */
+	high_h[3] = lo_h[1] * lo_h[1] * zho;    /* zlag ^17 */
+	high_h[4] = high_h[3];  /* zlag ^17 */
+	for (ico = 0; ico < 5; ico++) {
+	  high_coefficient[ico] =
+	    (high_u[ico] *
+	     (high_u[ico] *
+	      (high_u[ico] * high_const[ico][0] +
+	       high_const[ico][1]) + high_const[ico][2]) +
+	     high_const[ico][3]) / high_h[ico];
+	}
+	flag_any_high = YES;
+      }
+      temp_data_1 = fabs(temp_data * temp_data * temp_data);
+      rho[ichan] =
+	(temp_data *
+	 (temp_data_1 *
+	  (temp_data_1 *
+	   (temp_data_1 *
+	    (temp_data_1 * high_coefficient[4] +
+	     high_coefficient[3]) + high_coefficient[2]) +
+	   high_coefficient[1]) + high_coefficient[0]));
+    } else {
+      temp_data_1 = temp_data * temp_data;
+      rho[ichan] =
+	(temp_data *
+	 (temp_data_1 *
+	  (temp_data_1 * lo_coefficient[2] + lo_coefficient[1]) +
+	  lo_coefficient[0]));
+    }
+  }
+  rho[0] = 1.0;
+}

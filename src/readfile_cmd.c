@@ -71,6 +71,8 @@ static Cmdline cmd = {
   /* spksP = */ 0,
   /***** -bpp: Raw data in BPP format */
   /* bppP = */ 0,
+  /***** -wapp: Raw data in WAPP format */
+  /* wappP = */ 0,
   /***** -fortran: Raw data was written by a fortran program */
   /* fortranP = */ 0,
   /***** -index: The range of objects to display */
@@ -945,6 +947,13 @@ showOptionValues(void)
     printf("-bpp found:\n");
   }
 
+  /***** -wapp: Raw data in WAPP format */
+  if( !cmd.wappP ) {
+    printf("-wapp not found.\n");
+  } else {
+    printf("-wapp found:\n");
+  }
+
   /***** -fortran: Raw data was written by a fortran program */
   if( !cmd.fortranP ) {
     printf("-fortran not found.\n");
@@ -995,7 +1004,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-bpp] [-fortran] [-index [index]] [-nph nph] [--] file\n\
+ [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-bpp] [-wapp] [-fortran] [-index [index]] [-nph nph] [--] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
     -nopage: Don't paginate the output like 'more'\n\
       -byte: Raw data in byte format\n\
@@ -1021,6 +1030,7 @@ usage(void)
       -pkmb: Raw data in Parkes Multibeam format\n\
         -pk: Raw data in Parkes Multibeam format\n\
        -bpp: Raw data in BPP format\n\
+      -wapp: Raw data in WAPP format\n\
    -fortran: Raw data was written by a fortran program\n\
      -index: The range of objects to display\n\
              0...2 int values between -1 and oo\n\
@@ -1030,7 +1040,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 value\n\
-version: 06Apr01\n\
+version: 26Jun01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1165,6 +1175,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-bpp", argv[i]) ) {
       cmd.bppP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-wapp", argv[i]) ) {
+      cmd.wappP = 1;
       continue;
     }
 

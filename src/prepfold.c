@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (!cmd->pkmbP && !cmd->bcpmP){
+  if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP){
     char *root, *suffix;
 
     /* Split the filename into a rootname and a suffix */
@@ -107,11 +107,16 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->wappP){
+    if (numfiles > 1)
+      printf("Reading Arecibo WAPP data from %d files:\n", numfiles);
+    else
+      printf("Reading Arecibo WAPP data from 1 file:\n");
   }
 
   /* Open the raw data files */
 
-  if (cmd->pkmbP || cmd->bcpmP){
+  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
@@ -167,10 +172,10 @@ int main(int argc, char *argv[])
   else
     strcpy(ephem, "DE200");
     
-  /* Set-up values if we are using the Parkes Multibeam System */
-  /* or a Berkeley-Caltech Pulsar Machine.                     */
+  /* Set-up values if we are using the Parkes Multibeam System, */
+  /* a Berkeley-Caltech Pulsar Machine, or the Arecibo WAPP.    */
 
-  if (cmd->pkmbP || cmd->bcpmP){
+  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
     double local_dt, local_T;
     long long local_N;
 
@@ -216,6 +221,19 @@ int main(int argc, char *argv[])
       strcpy(obs, "G8");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "Green Bank 85-3");
+
+    } else if (cmd->wappP){
+
+      get_WAPP_file_info(infiles, numfiles, &local_N, &ptsperrec, &numchan, 
+			 &local_dt, &local_T, &idata, 1);
+      WAPP_update_infodata(numfiles, &idata);
+
+      /* OBS code for TEMPO */
+      
+      /* The following is for the Green Bank 85-3 */
+      strcpy(obs, "AO");
+      search.telescope = (char *)calloc(20, sizeof(char));
+      strcpy(search.telescope, "Arecibo");
     }
 
     idata.dm = cmd->dm;
@@ -437,7 +455,7 @@ int main(int argc, char *argv[])
       /* Now correct for the fact that we may not be starting */
       /* to fold at the same start time as the rzw search.    */
 
-      if (cmd->pkmbP || cmd->bcpmP)
+      if (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
 	f += lorec * recdt * fd;
       else
 	f += lorec * search.dt * fd;
@@ -464,7 +482,7 @@ int main(int argc, char *argv[])
       /* Now correct for the fact that we may not be starting */
       /* to fold at the same start time as the rzw search.    */
 
-      if (cmd->pkmbP || cmd->bcpmP)
+      if (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
 	f += lorec * recdt * fd;
       else
 	f += lorec * search.dt * fd;
@@ -668,6 +686,8 @@ int main(int argc, char *argv[])
     skip_to_PKMB_rec(infiles, numfiles, lorec+1);
   else if (cmd->bcpmP)
     skip_to_BPP_rec(infiles, numfiles, lorec+1);
+  else if (cmd->wappP)
+    skip_to_WAPP_rec(infiles, numfiles, lorec+1);
   else
     chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
 
@@ -811,6 +831,10 @@ int main(int argc, char *argv[])
 				    dispdts, cmd->nsub, 1, &padding,
 				    maskchans, &nummasked, &obsmask, 
 				    bppifs);
+      else if (cmd->wappP)
+	numread = read_WAPP_subbands(infiles, numfiles, data, 
+				     dispdts, cmd->nsub, 1, &padding,
+				     maskchans, &nummasked, &obsmask);
       else {
 	int mm;
 	float runavg=0.0;

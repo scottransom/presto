@@ -4,6 +4,7 @@
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
+#include "wapp.h"
 #include "rfifind.h"
 
 /* Some function definitions */
@@ -117,10 +118,11 @@ int main(int argc, char *argv[])
   
   if (!cmd->nocomputeP){
 
-    if (!cmd->pkmbP && !cmd->bcpmP){
+    if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP){
       printf("\nYou must specify the data format.  Legal types are:\n");
       printf("   -pkmb : Parkes Multibeam\n");
       printf("   -bcpm : Berkeley-Caltech Pulsar Machine\n");
+      printf("   -wapp : Arecibo WAPP\n");
       printf("\n");
       exit(0);
     } else if (cmd->pkmbP){
@@ -133,6 +135,11 @@ int main(int argc, char *argv[])
 	printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
       else
 	printf("Reading Green Bank BCPM data from 1 file:\n");
+    } else if (cmd->wappP){
+      if (numfiles > 1)
+	printf("Reading Arecibo WAPP data from %d files:\n", numfiles);
+      else
+	printf("Reading Arecibo WAPP data from 1 file:\n");
     }
 	  
     /* Open the raw data files */
@@ -179,6 +186,16 @@ int main(int argc, char *argv[])
 	else
 	  bppifs = SUMIFS;
       }
+
+    } else if (cmd->wappP){
+
+      /* Set-up for the WAPP machine at Arecibo */
+
+      get_WAPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+			&dt, &T, &idata, 1);
+      WAPP_update_infodata(numfiles, &idata);
+      idata.dm = 0.0;
+      writeinf(&idata);
     }
     
     /* The number of data points and blocks to work with at a time */
@@ -194,7 +211,7 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP)
       rawdata = gen_bvect(DATLEN * blocksperint);
-    else if (cmd->bcpmP)
+    else if (cmd->bcpmP || cmd->wappP)
       /* This allocates extra incase both IFs were stored */
       rawdata = gen_bvect(idata.num_chan * ptsperblock * blocksperint);
     dataavg = gen_fmatrix(numint, numchan);
@@ -236,6 +253,9 @@ int main(int argc, char *argv[])
       else if (cmd->bcpmP)
 	numread = read_BPP_rawblocks(infiles, numfiles, 
 				     rawdata, blocksperint, &padding);
+      else if (cmd->wappP)
+	numread = read_WAPP_rawblocks(infiles, numfiles, 
+				      rawdata, blocksperint, &padding);
       if (padding)
 	for (jj=0; jj<numchan; jj++)
 	  bytemask[ii][jj] |= PADDING;
@@ -246,6 +266,8 @@ int main(int argc, char *argv[])
 	  get_PKMB_channel(jj, chandata, rawdata, blocksperint);
 	else if (cmd->bcpmP)
 	  get_BPP_channel(jj, chandata, rawdata, blocksperint, bppifs);
+	else if (cmd->wappP)
+	  get_WAPP_channel(jj, chandata, rawdata, blocksperint);
 
 	/* Calculate the averages and standard deviations */
 	/* for each point in time.                        */

@@ -4,6 +4,7 @@
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
+#include "wapp.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -75,7 +76,7 @@ int main(int argc, char *argv[])
   printf("           Last Modification:  16 Dec, 2000\n\n");
 
   numfiles = cmd->argc;
-  if (!cmd->pkmbP && !cmd->bcpmP){
+  if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP){
     char *root, *suffix;
 
     /* Split the filename into a rootname and a suffix */
@@ -105,11 +106,16 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->wappP){
+    if (numfiles > 1)
+      printf("Reading Arecibo WAPP data from %d files:\n", numfiles);
+    else
+      printf("Reading Arecibo WAPP data from 1 file:\n");
   }
 
   /* Open the raw data files */
 
-  if (cmd->pkmbP || cmd->bcpmP){
+  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
@@ -228,10 +234,48 @@ int main(int argc, char *argv[])
     numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
   }
 
-  /* Determine our initialization data if we do _not_ have Parkes */
-  /* or Green Bank BCPM data sets.                                */
+  /* Set-up values if we are using the Arecibo WAPP */
 
-  if (!cmd->pkmbP && !cmd->bcpmP) {
+  if (cmd->wappP) {
+    double dt, T;
+    int ptsperblock;
+    long long N;
+
+    printf("\nWAPP input file information:\n");
+    get_WAPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+		      &dt, &T, &idata, 1);
+    WAPP_update_infodata(numfiles, &idata);
+    idata.dm = cmd->dm;
+    worklen = ptsperblock;
+    if (cmd->maskfileP)
+      maskchans = gen_ivect(idata.num_chan);
+
+    /* Compare the size of the data to the size of output we request */
+
+    if (cmd->numoutP) {
+      dtmp = idata.N;
+      idata.N = cmd->numout;
+      writeinf(&idata);
+      idata.N = dtmp;
+    } else {
+      cmd->numout = INT_MAX;
+      writeinf(&idata);
+    }
+     
+    /* OBS code for TEMPO */
+
+    /* The following is for Arecibo */
+    strcpy(obs, "AO");
+
+    /* The number of topo to bary time points to generate with TEMPO */
+
+    numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
+  }
+
+  /* Determine our initialization data if we do _not_ have Parkes, */
+  /* Green Bank BCPM, or Arecibo WAPP data sets.                   */
+
+  if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP) {
 
     /* If we will be barycentering... */
 
@@ -279,7 +323,8 @@ int main(int argc, char *argv[])
 
   tlotoa = (double) idata.mjd_i + idata.mjd_f;
 
-  if (!strcmp(idata.band, "Radio") && (cmd->pkmbP || cmd->bcpmP)) {
+  if (!strcmp(idata.band, "Radio") && 
+      (cmd->pkmbP || cmd->bcpmP || cmd->wappP)) {
 
     /* The topocentric spacing between channels */
 
@@ -345,6 +390,10 @@ int main(int argc, char *argv[])
 	numread = read_BPP(infiles, numfiles, outdata, worklen, 
 			   dispdt, &padding, maskchans, &nummasked, 
 			   &obsmask, bppifs);
+      else if (cmd->wappP)
+	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding, maskchans, &nummasked, 
+			    &obsmask);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
       if (numread==0)
@@ -526,6 +575,10 @@ int main(int argc, char *argv[])
 	numread = read_BPP(infiles, numfiles, outdata, worklen, 
 			   dispdt, &padding, maskchans, &nummasked, 
 			   &obsmask, bppifs);
+      else if (cmd->wappP)
+	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding, maskchans, &nummasked, 
+			    &obsmask);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
       if (numread==0)

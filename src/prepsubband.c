@@ -4,6 +4,7 @@
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
+#include "wapp.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -91,6 +92,11 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->wappP){
+    if (numinfiles > 1)
+      printf("Reading Arecibo WAPP data from %d files:\n", numinfiles);
+    else
+      printf("Reading Arecibo WAPP data from 1 file:\n");
   }
 
   /* Open the raw data files */
@@ -186,6 +192,33 @@ int main(int argc, char *argv[])
     /* OBS code for TEMPO */
     /* The following is for the Green Bank 85-3 */
     strcpy(obs, "G8");
+
+    /* The number of topo to bary time points to generate with TEMPO */
+
+    numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
+  }
+
+  /* Set-up values if we are using the Arecobo WAPP */
+
+  if (cmd->wappP) {
+    double dt, T;
+    int ptsperblock;
+    long long N;
+
+    printf("\nWAPP input file information:\n");
+    get_WAPP_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
+		      &dt, &T, &idata, 1);
+    WAPP_update_infodata(numinfiles, &idata);
+    dsdt = cmd->downsamp * idata.dt;
+    idata.dm = avgdm;
+    blocklen = ptsperblock;
+    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dsdt) 
+		     / ptsperblock + 1);
+    worklen = blocklen * blocksperread;
+
+    /* OBS code for TEMPO */
+    /* The following is for Arecibo */
+    strcpy(obs, "AO");
 
     /* The number of topo to bary time points to generate with TEMPO */
 
@@ -643,7 +676,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
   static int dsworklen;
   static float *tempzz, *data1, *data2, *dsdata1=NULL, *dsdata2=NULL; 
   static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
-  int totnumread=0, numread, ii, jj, tmppad=0, nummasked;
+  int totnumread=0, numread=0, ii, jj, tmppad=0, nummasked;
   
   if (firsttime){
     if (cmd->maskfileP)
@@ -664,18 +697,23 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       currentdsdata = data1;
       lastdsdata = data2;
     }
-    if (cmd->pkmbP || cmd->bcpmP){
+    if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
       for (ii=0; ii<blocksperread; ii++){
 	if (cmd->pkmbP)
 	  numread = read_PKMB_subbands(infiles, numfiles, 
 				       currentdata+ii*blocksize, 
 				       dispdts, cmd->numsub, 0, &tmppad, 
 				       maskchans, &nummasked, obsmask);
-	else
+	else if (cmd->bcpmP)
 	  numread = read_BPP_subbands(infiles, numfiles, 
 				      currentdata+ii*blocksize, 
 				      dispdts, cmd->numsub, 0, &tmppad, 
 				      maskchans, &nummasked, obsmask, bppifs);
+	else if (cmd->wappP)
+	  numread = read_WAPP_subbands(infiles, numfiles, 
+				       currentdata+ii*blocksize, 
+				       dispdts, cmd->numsub, 0, &tmppad, 
+				       maskchans, &nummasked, obsmask);
 	if (numread!=blocklen){
 	  for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
 	    currentdata[jj] = 0.0;
@@ -705,18 +743,23 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
     SWAP(currentdsdata, lastdsdata);
     firsttime = 0;
   }
-  if (cmd->pkmbP || cmd->bcpmP){
+  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
     for (ii=0; ii<blocksperread; ii++){
       if (cmd->pkmbP)
 	numread = read_PKMB_subbands(infiles, numfiles, 
 				     currentdata+ii*blocksize, 
 				     dispdts, cmd->numsub, 0, &tmppad, 
 				     maskchans, &nummasked, obsmask);
-	else
+      else if (cmd->bcpmP)
 	  numread = read_BPP_subbands(infiles, numfiles, 
 				      currentdata+ii*blocksize, 
 				      dispdts, cmd->numsub, 0, &tmppad, 
 				      maskchans, &nummasked, obsmask, bppifs);
+      else if (cmd->wappP)
+	  numread = read_WAPP_subbands(infiles, numfiles, 
+				       currentdata+ii*blocksize, 
+				       dispdts, cmd->numsub, 0, &tmppad, 
+				       maskchans, &nummasked, obsmask);
       totnumread += numread;
       if (numread!=blocklen){
 	for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)

@@ -26,6 +26,7 @@ FFTINCDIR = -I/usr/local/include
 FFTLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lsfftw
+RFFTLINK = -lsrfftw
 
 # Other include directoried (i.e. glib.h)
 OTHERINCDIR = -I/usr/include/glib-1.2
@@ -115,7 +116,7 @@ PRESTOOBJS = amoeba.o barycenter.o birdzap.o bpp.o cand_output.o\
 	median.o minifft.o multibeam.o misc_utils.o\
 	orbint.o output.o read_fft.o responses.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
-	transpose.o twopass.o twopass_real_fwd.o\
+	transpose.o twopass.o twopass_real_fwd.o wapp.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o
 
 PLOT2DOBJS = powerplot.o xyline.o
@@ -187,7 +188,7 @@ test_multifiles: test_multifiles.o
 	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(PRESTOLINK) -lm
 
 rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@  $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FLINK) $(FLINKFLAGS) -o $@  $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
@@ -206,15 +207,15 @@ test_fold: test_fold.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o 
-	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(PRESTOLINK) $(RFFTLINK) -lm
 	cp $@ ../bin
 
 prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o 
-	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(PRESTOLINK) $(RFFTLINK) -lm
 	cp $@ ../bin
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 show_pfd: show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
@@ -266,7 +267,7 @@ quicklook: quicklook.o
 	cp $@ ../bin
 
 readfile: readfile_cmd.c readfile_cmd.o readfile.o 
-	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(PRESTOLINK) $(RFFTLINK) -lm
 	cp $@ ../bin
 
 realfft: realfft_cmd.c realfft_cmd.o realfft.o 

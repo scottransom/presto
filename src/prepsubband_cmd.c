@@ -30,6 +30,8 @@ static Cmdline cmd = {
   /* pkmbP = */ 0,
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   /* bcpmP = */ 0,
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  /* wappP = */ 0,
   /***** -if: For BPP format only:  A specific IF to use. */
   /* ifsP = */ 0,
   /* ifs = */ (int)0,
@@ -796,6 +798,13 @@ showOptionValues(void)
     printf("-bcpm found:\n");
   }
 
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  if( !cmd.wappP ) {
+    printf("-wapp not found.\n");
+  } else {
+    printf("-wapp found:\n");
+  }
+
   /***** -if: For BPP format only:  A specific IF to use. */
   if( !cmd.ifsP ) {
     printf("-if not found.\n");
@@ -921,12 +930,13 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-wapp] [-if ifs] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
       -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+      -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
         -if: For BPP format only:  A specific IF to use.\n\
              1 int value between 0 and 1\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
@@ -952,7 +962,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...20 values\n\
-version: 26Apr01\n\
+version: 26Jun01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -986,6 +996,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-bcpm", argv[i]) ) {
       cmd.bcpmP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-wapp", argv[i]) ) {
+      cmd.wappP = 1;
       continue;
     }
 

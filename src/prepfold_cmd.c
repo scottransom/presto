@@ -30,6 +30,8 @@ static Cmdline cmd = {
   /* pkmbP = */ 0,
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   /* bcpmP = */ 0,
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  /* wappP = */ 0,
   /***** -if: For BPP format only:  A specific IF to use. */
   /* ifsP = */ 0,
   /* ifs = */ (int)0,
@@ -898,6 +900,13 @@ showOptionValues(void)
     printf("-bcpm found:\n");
   }
 
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  if( !cmd.wappP ) {
+    printf("-wapp not found.\n");
+  } else {
+    printf("-wapp found:\n");
+  }
+
   /***** -if: For BPP format only:  A specific IF to use. */
   if( !cmd.ifsP ) {
     printf("-if not found.\n");
@@ -1332,12 +1341,13 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-wapp] [-if ifs] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
         -o: Root of the output file names\n\
             1 char* value\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+     -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
        -if: For BPP format only:  A specific IF to use.\n\
             1 int value between 0 and 1\n\
    -nobary: Do not barycenter (assume input parameters are topocentric)\n\
@@ -1428,7 +1438,7 @@ usage(void)
             1 char* value\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
             1...20 values\n\
-version: 23May01\n\
+version: 26Jun01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1462,6 +1472,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-bcpm", argv[i]) ) {
       cmd.bcpmP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-wapp", argv[i]) ) {
+      cmd.wappP = 1;
       continue;
     }
 

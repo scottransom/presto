@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
   min = (int) dm;
   sec = (dm - min) * 60.0;
 
-  printf("\nDate is %2d %s %4d at %2d hours %2d minutes and %10.7f seconds\n\n",
+  printf("\nDate is %2d %s %4d at %2d hours %2d minutes and %.8g seconds\n\n",
 	 day, months[month - 1], year, hour, min, sec);
   exit(0);
 }

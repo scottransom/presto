@@ -3,12 +3,13 @@
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
+#include "wapp.h"
 #include "readfile_cmd.h"
 
 /* #define DEBUG */
 
 #define PAGELEN 32   /* Set the page length to 32 lines */
-#define NUMTYPES 12
+#define NUMTYPES 13
 
 int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
@@ -22,11 +23,12 @@ int BINCAND_print(long count, char *obj_ptr);
 int POSITION_print(long count, char *obj_ptr);
 int PKMBHDR_print(long count, char *obj_ptr);
 int BPPHDR_print(long count, char *obj_ptr);
+int WAPPHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 
 typedef enum{
   BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, 
-    RZWCAND, BINCAND, POSITION, PKMBHDR, BPPHDR
+    RZWCAND, BINCAND, POSITION, PKMBHDR, BPPHDR, WAPPHDR
 } rawtypes;
 
 typedef struct fcplex{
@@ -51,12 +53,13 @@ int type_sizes[NUMTYPES] = {
   sizeof(rawbincand), \
   sizeof(position), \
   49792,  /* This is the length of a Parkes Multibeam record */
-  32768   /* This is the length of a BPP header */
+  32768,  /* This is the length of a BPP header */
+  2048    /* This is the length of a WAPP header */
 };
 
 int objs_at_a_time[NUMTYPES] = {
   PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 
-  PAGELEN, 1, 1, PAGELEN, 1, 1
+  PAGELEN, 1, 1, PAGELEN, 1, 1, 1 
 };
 
 /* You don't see this every day -- An array of pointers to functions: */
@@ -73,7 +76,8 @@ int (*print_funct_ptrs[NUMTYPES])() = {
   BINCAND_print, \
   POSITION_print, \
   PKMBHDR_print, \
-  BPPHDR_print
+  BPPHDR_print, \
+  WAPPHDR_print
 };
 
 /* A few global variables */
@@ -129,6 +133,7 @@ int main(int argc, char **argv)
   else if (cmd->posP || cmd->sposP) index = POSITION;
   else if (cmd->pksP || cmd->spksP) index = PKMBHDR;
   else if (cmd->bppP) index = BPPHDR;
+  else if (cmd->wappP) index = WAPPHDR;
 
   /* Try to determine the data type from the file name */
 
@@ -232,6 +237,12 @@ int main(int argc, char **argv)
     chkfileseek(infile, 1, sizeof(long), SEEK_SET);
   }
 
+  /* Skip over the ASCII header if this is a WAPP file */
+  {
+    char cc;
+    while((cc=fgetc(infile))!='\0');
+  }
+
   /* Skip to the correct first object */
 
   if (cmd->index[0] > 0){
@@ -251,8 +262,8 @@ int main(int argc, char **argv)
     objs_read = chkfread(data, type_sizes[index], objs_to_read, infile);
     for(j = 0; j < objs_read; j++)
       print_funct_ptrs[index](i + j, data + j * type_sizes[index]);
-    /* Just print 1 header for BPP files */
-    if (index==BPPHDR)
+    /* Just print 1 header for BPP and WAPP files */
+    if (index==BPPHDR || index==WAPPHDR)
       break;
     i += objs_read;
     if (!cmd->nopageP){
@@ -384,6 +395,16 @@ int BPPHDR_print(long count, char *obj_ptr)
   object = (BPP_SEARCH_HEADER *) obj_ptr;
   printf("\n%ld:", count + 1);
   print_BPP_hdr(object);
+  return 0;
+}
+
+int WAPPHDR_print(long count, char *obj_ptr)
+{
+  WAPP_HEADER *object;
+
+  object = (WAPP_HEADER *) obj_ptr;
+  printf("\n%ld:", count + 1);
+  print_WAPP_hdr(object);
   return 0;
 }
 
