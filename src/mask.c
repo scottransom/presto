@@ -228,7 +228,7 @@ int determine_padvals(char *maskfilenm, mask *obsmask, float *padvals[])
       /* This is a temporary solution */
       for (ii=0; ii<obsmask->numchan; ii++)
 	(*padvals)[ii] = 0.0;
-      printf("failed.\n  Set the padding values to 0.\n");
+      printf("...failed.\n  Set the padding values to 0.\n");
       return 0;
     }
   }
