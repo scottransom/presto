@@ -376,7 +376,9 @@ void print_bin_candidate(binaryprops * cand, int numerrdigits)
   printf("Bin a_sin_i/c (s)%s  Purity        %s\n",
 	 output, output2);
   (*nice_output) (output, cand->z, cand->zerr, width);
-  printf("Freq Mod \"z\"     %s\n", output);
+  (*nice_output) (output2, cand->phs, cand->phserr, width);
+  printf("Freq Mod \"z\"     %s  Phase (rad)   %s\n", 
+	 output, output2);
   printf("\n");
 }
 
