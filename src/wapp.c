@@ -15,12 +15,12 @@ static long long filedatalen_st[MAXPATCHFILES];
 static int numblks_st[MAXPATCHFILES], corr_level_st, decreasing_freqs_st=0;
 static int bytesperpt_st, bytesperblk_st, bits_per_samp_st;
 static int numwapps_st=0, numwappchan_st, numchan_st, numifs_st, ptsperblk_st;
-static int need_byteswap_st, sampperblk_st;
+static int need_byteswap_st, sampperblk_st, usewindow_st=0;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st, dtus_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static double corr_rate_st, corr_scale_st;
-static double center_freqs_st[WAPP_MAXNUMWAPPS];
+static double center_freqs_st[WAPP_MAXNUMWAPPS], *window_st=NULL;
 static infodata idata_st[MAXPATCHFILES];
 static unsigned char databuffer[2*WAPP_MAXDATLEN], padvals[WAPP_MAXLAGLEN], padval=128;
 static unsigned char lagbuffer[WAPP_MAXLAGLEN];
@@ -37,6 +37,17 @@ static void vanvleck9lev(float *rho, int npts);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move, 
 			     int move_size);
 
+static double *hamming_window(int numlags)
+{
+  double *win;
+  int ii;
+
+  win = gen_dvect(numlags);
+  /* Hanning would have win[ii] = 0.5 - 0.5*cos(TWOPI*ii/(numlags-1)) */
+  for (ii=0; ii<numlags; ii++)
+    win[ii] = 0.54 - 0.46*cos(TWOPI*ii/(numlags-1));
+  return win;
+}
 
 void get_WAPP_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma){
   *bytesperpt = bytesperpt_st;
@@ -84,10 +95,10 @@ static void get_WAPP_HEADER_version(char *header, int *header_version,
     *header_version = swap_int(*header_version);
     *header_size = swap_int(*header_size);
   }
-  if (0){
-    printf("Header version:  %d\n", *header_version);
-    printf("Header  length:  %d\n", *header_size);
-  }
+#if 0
+  printf("Header version:  %d\n", *header_version);
+  printf("Header  length:  %d\n", *header_size);
+#endif
 }
 
 
@@ -298,7 +309,7 @@ static void WAPP_hdr_to_inf(char *hdr, infodata *idata)
 }
 
 
-void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, 
+void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, int usewindow,
 			float clipsig, long long *N, int *ptsperblock, 
 			int *numchan, double *dt, double *T, 
 			infodata *idata, int output)
@@ -368,6 +379,17 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
       bits_per_samp_st = 32;
     else
       printf("\nError:  Unrecognized number of bits per sample!\n\n");
+    /* Quick hack to allow offsets of the WAPP center freq without recompiling */
+    {
+      char *envval=getenv("WAPP_FREQ_ADJ");
+      if (envval!=NULL){
+	double dblval=strtod(envval, NULL);
+	if (dblval){
+	  printf("Offsetting band by %.4g MHz as per WAPP_FREQ_ADJ env variable.\n", dblval);
+	  hdr234->cent_freq += dblval;
+	}
+      }
+    }
     center_freqs_st[0] = hdr234->cent_freq;
   }
   if (numifs_st==2)
@@ -389,6 +411,18 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   /* The following should be freed sometime... */
   lags = (float *)fftwf_malloc((numwappchan_st+1)*sizeof(float));
   fftplan = fftwf_plan_r2r_1d(numwappchan_st+1, lags, lags, FFTW_REDFT00, FFTW_PATIENT);
+  if (usewindow){
+    usewindow_st = 1;
+    printf("Calculated Hamming window for use.\n");
+    /* Note:  Since the lags we get are only half of the lags that  */
+    /* we really need to FFT in order to get spectra (i.e. the      */
+    /* transform that we compute is real and even so we comute a    */
+    /* DCT-I instead of an FFT), we will multiply the lags by the   */
+    /* first half of the window.  The other half of the data (which */
+    /* we don't store since it is redundant)  gets the 2nd half of  */
+    /* the window implicitly since the data wraps around.           */
+    window_st = hamming_window(numwappchan_st*2);
+  }
   /* Calculate the maximum number of points we can have in a */
   /* block (power of two), based on the number of samples in */
   /* each file.                                              */
@@ -911,11 +945,12 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       if (!firsttime)
 	dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
       SWAP(currentdata, lastdata);
-      if (numread != numblocks){
+      if (numread != numblocks){	
 	free(rawdata1);
 	free(rawdata2);
 	fftwf_destroy_plan(fftplan);
 	fftwf_free(lags);
+	free(window_st);
 	allocd = 0;
       }
       if (firsttime) firsttime = 0;
@@ -1083,7 +1118,10 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
     firsttime = 0;
   }
   if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding, ifs)){
-    printf("Problem reading the raw WAPP data file.\n\n");
+    /* printf("Problem reading the raw WAPP data file.\n\n"); */
+    fftwf_destroy_plan(fftplan);
+    fftwf_free(lags);
+    free(window_st);
     return 0;
   }
   return prep_WAPP_subbands(rawdata, data, dispdelays, numsubbands, 
@@ -1116,7 +1154,7 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
   }
 
   /* Loop over the IFs */
-  for (;ifnum < numifs_st; ifnum++, index+=numwappchan_st){
+  for (ifnum=0; ifnum<numifs_st; ifnum++, index+=numwappchan_st){
     
     /* Fill lag array with scaled CFs */
     if (bits_per_samp_st==16){
@@ -1144,10 +1182,22 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
   
     for (ii=0; ii<numwappchan_st; ii++)
       lags[ii] *= power;
-       
+
+    if (usewindow_st)
+      for (ii=0; ii<numwappchan_st; ii++)
+	lags[ii] *= window_st[ii];
+
     /* FFT the ACF lags (which are real and even) -> real and even FFT */
     lags[numwappchan_st] = 0.0;
     fftwf_execute(fftplan);
+
+#if 0
+    printf("\n");
+    for(ii=0; ii<numwappchan_st; ii++)
+      printf("%d  %.7g\n", ii, lags[ii]);
+    printf("\n");
+    exit(0);
+#endif
 
     /* Reverse band if it needs it */
     if (decreasing_freqs_st){
