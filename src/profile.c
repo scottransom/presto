@@ -23,8 +23,8 @@ int main(int argc, char **argv)
   float *fprof = NULL, *chiarr = NULL, *times = NULL, *errors = NULL;
   double dt, orbdt, endphase, f = 0.0, fd = 0.0, fdd = 0.0;
   double epoch = 0.0, difft = 0.0, p = 0.0, pd = 0.0, pdd = 0.0;
-  double *prof = NULL, endtime, N, *psrtime = NULL;
-  double *Ep = NULL, *tp = NULL, *d2phib = NULL, startE = 0.0;
+  double *prof = NULL, endtime, N;
+  double *Ep = NULL, *tp = NULL, startE = 0.0;
   double chip = 0.0, chiq = 0.0, chidf = 0.0;
   double chixmeas = 0.0, chitmp = 0.0;
   double varph = 0.0, numph = 0.0, avgph = 0.0;  
@@ -608,8 +608,6 @@ int main(int argc, char **argv)
   if (!cmd->dispP && binary) {
     free(Ep);
     free(tp);
-    free(d2phib);
-    free(psrtime);
   }
   if (!cmd->dispP)
     free(errors);

@@ -22,14 +22,15 @@ void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 void quick_plot(double *data, int numdata)
 {
   int ii;
-  double *x;
+  double *phases;
 
+  phases = gen_dvect(numdata);
+  for (ii=0; ii<numdata; ii++)
+    phases[ii] = ii / (double) numdata;
   cpgstart_x("landscape");
-  x = gen_dvect(numdata);
-  for (ii=0; ii<numdata; ii++) x[ii] = ii / (double) numdata;
-  dxyline(numdata, x, data, "Profile Phase", "Intensity", 1);
+  dxyline(numdata, phases, data, "Profile Phase", "Intensity", 1);
   cpgend();
-  free(x);
+  free(phases);
 }
 
 /* The main program */
@@ -54,7 +55,7 @@ int main(int argc, char *argv[])
   int numchan=1, binary=0, np, pnum, numdelays, slen, ptsperrec=1, flags=1;
   long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part;
   long totnumfolded=0, lorec=0, hirec=0, numrecs=0, totnumrecs=0;
-  long numbinpoints=0, proflen, currentrec;
+  long numbinpoints=0, proflen, currentrec=0;
   unsigned long numrec=0, arrayoffset=0;
   multibeam_tapehdr hdr;
   fourierprops rzwcand;
@@ -330,7 +331,7 @@ int main(int argc, char *argv[])
       ii = (long) (cptr - cmd->rzwfile);
       cptr = (char *)malloc(ii + 1);
       cptr[ii] = '\0';
-      strncpy(cptr, cmd->argv[0], ii);
+      strncpy(cptr, cmd->rzwfile, ii);
       fprintf(stderr, "\nAttempting to read '%s.inf'.  ", cptr);
       readinf(&rzwidata, cptr);
       free(cptr);
@@ -392,11 +393,10 @@ int main(int argc, char *argv[])
   
   /* Determine the length of the profile */				
   
-  if (cmd->proflenP) {
+  if (cmd->proflenP)
     proflen = cmd->proflen;
-  } else {
+  else
     proflen = (long) (p / dt + 0.5);
-  }
 
   /* Determine the frequency shifts caused by the orbit if needed */
 
@@ -419,6 +419,7 @@ int main(int argc, char *argv[])
     
     orb.w *= DEGTORAD;
     E_to_phib(Ep, numbinpoints, &orb);
+    numdelays = numbinpoints;
   }
 
   /* Output some informational data on the screen and to the */
@@ -497,7 +498,7 @@ int main(int argc, char *argv[])
   
   data = gen_fvect(cmd->nsub * worklen);
   profs = gen_dvect(cmd->nsub * cmd->npart * proflen);
-  stats = (foldstats *)malloc(sizeof(stats) * cmd->nsub * cmd->npart);
+  stats = (foldstats *)malloc(sizeof(foldstats) * cmd->nsub * cmd->npart);
   for (ii = 0; ii < cmd->nsub * cmd->npart; ii++){
     for (jj = 0 ; jj < proflen; jj++)
       profs[ii * proflen + jj] = 0.0;
@@ -505,17 +506,15 @@ int main(int argc, char *argv[])
     stats[ii].data_avg = 0.0;
     stats[ii].data_var = 0.0;
   }
-  currentrec = 0;
   if (numdelays == 0) flags = 0;
     
   /* Move to the correct starting record */
   
-  printf("Folded %ld points of %.0f", totnumfolded, N);
+  currentrec = lorec;
   if (cmd->pkmbP)
-    currentrec = skip_to_multibeam_rec(infile, lorec);
+    skip_to_multibeam_rec(infile, lorec);
   else
-    currentrec = chkfileseek(infile, lorec, sizeof(float), 
-			     SEEK_SET) / sizeof(float);
+    chkfileseek(infile, lorec, sizeof(float), SEEK_SET);
 
   /* The number of reads from the file we need for */
   /* each sub-integration.                         */
@@ -526,16 +525,15 @@ int main(int argc, char *argv[])
   
   if (cmd->nobaryP) {
     
-
     /* Step through the sub-integrations of time */
 
+    printf("Folded %ld points of %.0f", totnumfolded, N);
     for (ii = 0; ii < cmd->npart; ii++){
-printf("\nii = %ld\n", ii);
-      /* Step through the records in the sub-integration */
+
+      /* Step through the records in each sub-integration */
       
       for (jj = 0; jj < reads_per_part; jj++){
-printf("  jj = %ld\n", jj);
-	
+
 	/* Read the next record (or records) */
 	
 	numread = readrec_ptr(infile, data, worklen, dispdts, 
@@ -544,7 +542,7 @@ printf("  jj = %ld\n", jj);
 	/* tt is (topocentric) seconds from first point */
       
 	tt = (ii * reads_per_part + jj) * worklen * dt;
-      
+
 	/* Step through sub-bands */
       
 	for (kk = 0; kk < cmd->nsub; kk++){
@@ -554,15 +552,12 @@ printf("  jj = %ld\n", jj);
 	       numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
 	}
 	totnumfolded += numread;
-	printf("\rFolded %ld points of %.0f", totnumfolded, N);
-	fflush(stdout);
       }
+      printf("\rFolded %ld points of %.0f", totnumfolded, N);
 for (kk = 0; kk < cmd->nsub; kk++)
-  quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
+quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
     }
 
-    /*****  Need to do this  *****/
-    
   /* Main loop if we are barycentering... */
 
   } else {
@@ -598,6 +593,8 @@ for (kk = 0; kk < cmd->nsub; kk++)
       avg_voverc += voverc[ii];
     avg_voverc /= (numbarypts - 1.0);
     free(voverc);
+    printf("The average topocentric velocity is %.3g (units of c).\n\n", 
+	   avg_voverc);
 
     if (binary){
 
@@ -609,10 +606,12 @@ for (kk = 0; kk < cmd->nsub; kk++)
 	dtmp = baryepoch + tp[ii] / SECPERDAY;
 	hunt(barytimes, numbarypts, dtmp, &arrayoffset);
 	arrayoffset--;
+printf("t1 = %f  ", tp[ii]);
 	tp[ii] = LININTERP(dtmp, barytimes[arrayoffset], 
 			   barytimes[arrayoffset+1], 
 			   topotimes[arrayoffset], 
 			   topotimes[arrayoffset+1]);    
+printf("t2 = %f\n", tp[ii]);
       }
       numdelays = numbinpoints;
     } else {
@@ -621,15 +620,43 @@ for (kk = 0; kk < cmd->nsub; kk++)
       numdelays = numbarypts;
     }
 
-    /* Add the loop here */
+    /* Step through the sub-integrations of time */
+
+    printf("Folded %ld points of %.0f", totnumfolded, N);
+    for (ii = 0; ii < cmd->npart; ii++){
+
+      /* Step through the records in each sub-integration */
+      
+      for (jj = 0; jj < reads_per_part; jj++){
+
+	/* Read the next record (or records) */
+	
+	numread = readrec_ptr(infile, data, worklen, dispdts, 
+			      cmd->nsub, numchan);
+
+	/* tt is (topocentric) seconds from first point */
+      
+	tt = (ii * reads_per_part + jj) * worklen * dt;
+
+	/* Step through sub-bands */
+      
+	for (kk = 0; kk < cmd->nsub; kk++){
+	  fold(data + kk * worklen, numread, dt, tt, 
+	       profs + (ii * cmd->nsub + kk) * proflen, 
+	       proflen, cmd->phs, f, fd, fdd, flags, Ep, tp, 
+	       numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
+	}
+	totnumfolded += numread;
+      }
+      printf("\rFolded %ld points of %.0f", totnumfolded, N);
+for (kk = 0; kk < cmd->nsub; kk++)
+quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
+    }
 
     free(barytimes);
     free(topotimes);
   }
   
-  printf("Folded %d profiles with %ld points each.\n", 
-	 numchan, totnumfolded);
-
   fclose(infile);
 
   /* Write our results. */
