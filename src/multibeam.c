@@ -671,8 +671,10 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
     strcpy(idata->telescope, "Jodrell");
   itmp1 = strtol(hdr->ibeam, NULL, 10);  
   itmp2 = strtol(hdr->nbeam, NULL, 10);  
-  sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);
-
+  if (nfilter_st==2)
+    sprintf(idata->instrument, "10cm+50cm Receiver");
+  else
+    sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);
   sscanf(hdr->nchan[filter_st], "%4d", &idata->num_chan);
   ptsperrec = DATLEN / (idata->num_chan / 8);
   /* hrow away the top 64 channels of the 10cm filterbank */
