@@ -1224,10 +1224,11 @@ double doppler(double freq_observed, double voverc);
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *minifft };
 void search_minifft(fcomplex *minifft, int numminifft,
-		    rawbincand *cands, int numcands, int numharmsum,
-		    int numbetween, double numfullfft, double timefullfft,
-		    double lorfullfft, presto_interptype interptype,
-		    presto_checkaliased checkaliased);
+                    double min_orb_p, double max_orb_p,
+                    rawbincand *cands, int numcands, int numharmsum,
+                    int numbetween, double numfullfft, double timefullfft,
+                    double lorfullfft, presto_interptype interptype,
+                    presto_checkaliased checkaliased);
   /* This routine searches a short FFT (usually produced using the   */
   /* MiniFFT binary search method) and returns a candidte vector     */
   /* containing information about the best binary candidates found.  */

@@ -89,6 +89,14 @@ typedef struct s_Cmdline {
   char fddP;
   double fdd;
   int fddC;
+  /***** -pfact: A factor to multiple the candidate p and p-dot by */
+  char pfactP;
+  double pfact;
+  int pfactC;
+  /***** -ffact: A factor to multiple the candidate f and f-dot by */
+  char ffactP;
+  double ffact;
+  int ffactC;
   /***** -phs: Offset phase for the profil */
   char phsP;
   double phs;

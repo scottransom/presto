@@ -523,6 +523,27 @@ int main(int argc, char *argv[])
     }
   }
   
+  /* Modify the fold period or frequency */
+
+  if (cmd->pfact != 1.0 ||
+      cmd->ffact != 1.0){
+    if (cmd->pfact==0.0 || cmd->ffact==0.0){
+      printf("\nFoldint factors (-pfact or -ffact) cannot be 0!  Exiting\n");
+      exit(1);
+    }
+    if (cmd->pfact != 1.0)
+      cmd->ffact = 1.0 / cmd->pfact;
+    else if (cmd->ffact != 1.0)
+      cmd->pfact = 1.0 / cmd->ffact;
+    search.bary.p1 *= cmd->pfact;
+    search.bary.p2 /= cmd->pfact;
+    search.topo.p1 *= cmd->pfact;
+    search.topo.p2 /= cmd->pfact;
+    f *= cmd->ffact;
+    fd *= cmd->ffact;
+    fdd *= cmd->ffact;
+  }
+
   /* Determine the length of the profile */				
   
   if (cmd->proflenP)

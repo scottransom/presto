@@ -49,7 +49,10 @@ Double -fd   fd  {The nominative frequency derivative (hz/s)} \
 	-r -oo oo  -d 0
 Double -fdd  fdd {The nominative frequency 2nd derivative (hz/s^2)} \
 	-r -oo oo  -d 0
-    
+Double -pfact pfact {A factor to multiple the candidate p and p-dot by} \
+	-r 0.0 100.0  -d 1.0
+Double -ffact ffact {A factor to multiple the candidate f and f-dot by} \
+	-r 0.0 100.0  -d 1.0
 Double -phs  phs {Offset phase for the profil} \
 	-r 0.0 1.0  -d 0.0
 Double -start  startT  {The folding start time as a fraction of the full obs} \

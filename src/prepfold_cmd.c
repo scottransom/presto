@@ -102,6 +102,14 @@ static Cmdline cmd = {
   /* fddP = */ 1,
   /* fdd = */ 0,
   /* fddC = */ 1,
+  /***** -pfact: A factor to multiple the candidate p and p-dot by */
+  /* pfactP = */ 1,
+  /* pfact = */ 1.0,
+  /* pfactC = */ 1,
+  /***** -ffact: A factor to multiple the candidate f and f-dot by */
+  /* ffactP = */ 1,
+  /* ffact = */ 1.0,
+  /* ffactC = */ 1,
   /***** -phs: Offset phase for the profil */
   /* phsP = */ 1,
   /* phs = */ 0.0,
@@ -1110,6 +1118,30 @@ showOptionValues(void)
     }
   }
 
+  /***** -pfact: A factor to multiple the candidate p and p-dot by */
+  if( !cmd.pfactP ) {
+    printf("-pfact not found.\n");
+  } else {
+    printf("-pfact found:\n");
+    if( !cmd.pfactC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.pfact);
+    }
+  }
+
+  /***** -ffact: A factor to multiple the candidate f and f-dot by */
+  if( !cmd.ffactP ) {
+    printf("-ffact not found.\n");
+  } else {
+    printf("-ffact found:\n");
+    if( !cmd.ffactC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.ffact);
+    }
+  }
+
   /***** -phs: Offset phase for the profil */
   if( !cmd.phsP ) {
     printf("-phs not found.\n");
@@ -1300,7 +1332,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
         -o: Root of the output file names\n\
             1 char* value\n\
@@ -1354,6 +1386,12 @@ usage(void)
       -fdd: The nominative frequency 2nd derivative (hz/s^2)\n\
             1 double value\n\
             default: `0'\n\
+    -pfact: A factor to multiple the candidate p and p-dot by\n\
+            1 double value between 0.0 and 100.0\n\
+            default: `1.0'\n\
+    -ffact: A factor to multiple the candidate f and f-dot by\n\
+            1 double value between 0.0 and 100.0\n\
+            default: `1.0'\n\
       -phs: Offset phase for the profil\n\
             1 double value between 0.0 and 1.0\n\
             default: `0.0'\n\
@@ -1390,7 +1428,7 @@ usage(void)
             1 char* value\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
             1...20 values\n\
-version: 25Apr01\n\
+version: 23May01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1591,6 +1629,26 @@ parseCmdline(int argc, char **argv)
       keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.fdd, 1);
       cmd.fddC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-pfact", argv[i]) ) {
+      cmd.pfactP = 1;
+      keep = i;
+      i = getDoubleOpt(argc, argv, i, &cmd.pfact, 1);
+      cmd.pfactC = i-keep;
+      checkDoubleLower("-pfact", &cmd.pfact, cmd.pfactC, 100.0);
+      checkDoubleHigher("-pfact", &cmd.pfact, cmd.pfactC, 0.0);
+      continue;
+    }
+
+    if( 0==strcmp("-ffact", argv[i]) ) {
+      cmd.ffactP = 1;
+      keep = i;
+      i = getDoubleOpt(argc, argv, i, &cmd.ffact, 1);
+      cmd.ffactC = i-keep;
+      checkDoubleLower("-ffact", &cmd.ffact, cmd.ffactC, 100.0);
+      checkDoubleHigher("-ffact", &cmd.ffact, cmd.ffactC, 0.0);
       continue;
     }
 
