@@ -270,9 +270,9 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
            labx2='', laby2='', symbol=ppgplot_symbol_, \
            line=ppgplot_linestyle_, width=ppgplot_linewidth_, \
            color=ppgplot_color_, font=ppgplot_font_, logx=0, logy=0, \
-           logx2=0, logy2=0, id=0, noscale=0, aspect=0.7727, \
-           fontsize=ppgplot_font_size_, ticks='in', panels=[1,1], \
-           device=ppgplot_device_):
+           logx2=0, logy2=0, errx=None, erry=None, id=0, noscale=0, \
+           aspect=0.7727, fontsize=ppgplot_font_size_, ticks='in', \
+           panels=[1,1], device=ppgplot_device_, setup=1):
     """
     plotxy(y, ...)
         An interface to make various XY style plots using PGPLOT.
@@ -292,6 +292,8 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
             logy:     make the 1st y-axis log   (default = 0 (no))
             logx2:    make the 2nd x-axis log   (default = 0 (no))
             logy2:    make the 2nd y-axis log   (default = 0 (no))
+            errx:     symmetric x errors        (default = None)   
+            erry:     symmetric y errors        (default = None)   
             symbol:   symbol for points         (default = None)   
             line:     line style                (default = 1 (solid))
             width:    line width                (default = 1 (thin))
@@ -304,6 +306,7 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
             ticks:    Ticks point in or out     (default = 'in')   
             panels:   Number of subpanels [r,c] (default = [1,1])
             device:   PGPLOT device to use      (default = '/XWIN')
+            setup:    Auto-setup the plot       (default = 1)
         Note:  Many default values are defined in global variables
             with names like ppgplot_font_ or ppgplot_device_.
     """
@@ -322,7 +325,7 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
                             Numeric.maximum.reduce(y)]
         else: rangey=scalerange(y)
     # Prep the plotting device...
-    if (not ppgplot_dev_prep_):
+    if (not ppgplot_dev_prep_ and setup):
         prepplot(rangex, rangey, title, labx, laby, \
                  rangex2, rangey2, labx2, laby2, \
                  logx, logy, logx2, logy2, font, fontsize, \
@@ -332,9 +335,16 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
         ppgplot.pgsci(ppgplot_colors_[color])
     else:
         ppgplot.pgsci(color)
-    # Plot symbols if requested
+    # Plot symbols (and errors) if requested
     if not symbol is None:
         ppgplot.pgpt(x, y, symbol)
+    # Error bars
+    if errx:
+        errx = Numeric.asarray(errx)
+        ppgplot.pgerrx(x+errx, x-errx, y, 1.0)
+    if erry:
+        erry = Numeric.asarray(erry)
+        ppgplot.pgerry(x, y+erry, y-erry, 1.0)
     # Plot connecting lines if requested
     if not line is None:
         # Choose the line style
@@ -346,13 +356,15 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
 
 # Make an X-Y plot of binned data (i.e. useful for histograms)
 def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
-               rangex=None, rangey=None, \
+               rangex=None, rangey=None, labx2='', laby2='', \
+               rangex2=None, rangey2=None, \
                line=ppgplot_linestyle_, width=ppgplot_linewidth_, \
-               color=ppgplot_color_, font=ppgplot_font_, \
-               id=0, aspect=0.7727, fontsize=ppgplot_font_size_, \
-               ticks='in', panels=[1,1], device=ppgplot_device_):
+               color=ppgplot_color_, font=ppgplot_font_, logx=0, logy=0, \
+               logx2=0, logy2=0, erry=None, id=0, noscale=0, \
+               aspect=0.7727, fontsize=ppgplot_font_size_, \
+               ticks='in', panels=[1,1], device=ppgplot_device_, setup=1):
     """
-    plotbinned(x, y):
+    plotbinned(y, ...):
         Plot x-y data that is binned.  This routine differs from
             plotxy() in that instead of each point being connected
             by diagonal lines, each point is actually a flat-line
@@ -365,6 +377,15 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
             laby:     label for the y-axis      (default = 'Counts')
             rangex:   ranges for the x-axis     (default = automatic)
             rangey:   ranges for the y-axis     (default = automatic)
+            labx2:    label for the 2nd x-axis  (default = None)   
+            laby2:    label for the 2nd y-axis  (default = None)   
+            rangex2:  ranges for 2nd x-axis     (default = None)   
+            rangey2:  ranges for 2nd y-axis     (default = None)   
+            logx:     make the 1st x-axis log   (default = 0 (no))
+            logy:     make the 1st y-axis log   (default = 0 (no))
+            logx2:    make the 2nd x-axis log   (default = 0 (no))
+            logy2:    make the 2nd y-axis log   (default = 0 (no))
+            erry:     symmetric y errors        (default = None)   
             line:     line style                (default = 1 (solid))
             width:    line width                (default = 1 (thin))
             color:    line and/or symbol color  (default = 'white')
@@ -375,6 +396,7 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
             ticks:    Ticks point in or out     (default = 'in')   
             panels:   Number of subpanels [r,c] (default = [1,1])
             device:   PGPLOT device to use      (default = '/XWIN')
+            setup:    Auto-setup the plot       (default = 1)
         Note:  Many default values are defined in global variables
             with names like ppgplot_font_ or ppgplot_device_.
     """
@@ -393,10 +415,14 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
     # Add the right side of the right-most bin
     nx = Numeric.concatenate((nx, Numeric.zeros(1)+nx[-1]+dx))
     plotxy(ny, nx, title, labx=labx, laby=laby, line=line, \
+           labx2=labx2, laby2=laby2, \
+           rangex2=rangex2, rangey2=rangey2, logx=logx, logy=logy, \
+           logx2=logx2, logy2=logy2, noscale=noscale, \
            width=width, color=color, font=font, fontsize=fontsize, \
            id=id, aspect=aspect, rangex=rangex, rangey=rangey, \
-           ticks=ticks, panels=panels, device=device)
-
+           ticks=ticks, panels=panels, device=device, setup=setup)
+    if (erry):
+        ppgplot.pgerry(Numeric.arange(len(y))+0.5, y+erry, y-erry, 1.0)
 
 # Show a 2D color intensity plot with optional arguments and keywords
 def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
