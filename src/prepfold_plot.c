@@ -37,18 +37,22 @@ void scaleprof(double *in, float *out, int n)
 /* Scales an input vector so that it goes from 0.0 to 1.0 */
 {
   int ii;
-  double min=1e100, max=-1e100;
+  double min=1e100, max=-1e100, norm;
   
   for (ii=0; ii<n; ii++){
     if (in[ii] > max) max = in[ii];
-    else if (in[ii] < min) min = in[ii];
+    if (in[ii] < min) min = in[ii];
   }
+  /* Each plot is normalized independently */
+  /* norm = 1.0 / (max - min); */
+  /* All plots are normalized together */
+  norm = 1.0 / max;
   if (TEST_CLOSE(min, max, 1.0e-7)){
     for (ii=0; ii<n; ii++)
-      out[ii] = 0.5;
+      out[ii] = 0.0;
   } else {
     for (ii=0; ii<n; ii++)
-      out[ii] = (float) ((in[ii] - min) / max);
+      out[ii] = (float) ((in[ii] - min) * norm);
   }
 }
 
