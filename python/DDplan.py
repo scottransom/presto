@@ -37,7 +37,7 @@ class dedisp_method:
         self.hiDM = loDM + self.numDMs*dDM
     def chan_smear(self, DM):
         """
-        Return the smearing in each channel at the specified DM
+        Return the smearing (in ms) in each channel at the specified DM
         """
         try:
             DM = where(DM==0.0, self.dDM/2.0, DM)
@@ -305,13 +305,13 @@ if __name__=='__main__':
     #dm_steps(0.0, 500.0, obs, ok_smearing=0.3, device="GBT_350_DD.ps/CPS")
 
     # Example for 1st generation ALFA survey
-    obs = observation(0.000064, 1450.0, 100.0, 256)
-    dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
+    #obs = observation(0.000064, 1450.0, 100.0, 256)
+    #dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
     #dm_steps(0.0, 1500.0, obs, device="ALFA_DD.ps/CPS")
 
     # Example for Parkes survey
-    #obs = observation(0.000250, 1374.0, 288.0, 96)
-    #dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
+    obs = observation(0.000250, 1374.0, 288.0, 96)
+    dm_steps(0.0, 500.0, obs) # Create an X-window is the default
     #dm_steps(0.0, 1500.0, obs, device="PKMB_DD.ps/CPS")
 
 
