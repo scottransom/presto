@@ -684,7 +684,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
   static float *tempzz, *data1, *data2, *dsdata1=NULL, *dsdata2=NULL; 
   static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
   static unsigned char *rawdata=NULL;
-  int totnumread=0, numread=0, ii, jj, tmppad=0, nummasked=0;
+  int totnumread=0, numread=0, tmpnumread=0, ii, jj, tmppad=0, nummasked=0;
   
   if (firsttime){
     if (cmd->maskfileP)
@@ -720,21 +720,24 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  numread *= blocklen;
 	}
 	MPI_Bcast(&tmppad, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(rawdata, bytesperblk, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 	if (myid>0){
-	  if (cmd->pkmbP)
-	    numread = prep_PKMB_subbands(rawdata, currentdata+ii*blocksize, 
-					 dispdts, cmd->numsub, 0, 
-					 maskchans, &nummasked, obsmask);
-	  if (cmd->bcpmP)
-	    numread = prep_BPP_subbands(rawdata, currentdata+ii*blocksize, 
-					dispdts, cmd->numsub, 0, 
-					maskchans, &nummasked, obsmask, bppifs);
-	  if (cmd->wappP)
-	    numread = prep_WAPP_subbands(rawdata, currentdata+ii*blocksize, 
-					 dispdts, cmd->numsub, 0, 
-					 maskchans, &nummasked, obsmask);
-	  if (numread!=blocklen){
+	  if (numread){
+	    if (cmd->pkmbP)
+	      tmpnumread = prep_PKMB_subbands(rawdata, currentdata+ii*blocksize, 
+					      dispdts, cmd->numsub, 0, 
+					      maskchans, &nummasked, obsmask);
+	    if (cmd->bcpmP)
+	      tmpnumread = prep_BPP_subbands(rawdata, currentdata+ii*blocksize, 
+					     dispdts, cmd->numsub, 0, 
+					     maskchans, &nummasked, obsmask, bppifs);
+	    if (cmd->wappP)
+	      tmpnumread = prep_WAPP_subbands(rawdata, currentdata+ii*blocksize, 
+					      dispdts, cmd->numsub, 0, 
+					      maskchans, &nummasked, obsmask);
+	  } else {
+	    *padding = 1;
 	    for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
 	      currentdata[jj] = 0.0;
 	  }
@@ -771,17 +774,17 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
     firsttime--;
   }
   firsttime = 0;
-  /*
+/*
 {
   int jj;
   for (jj=0; jj<numprocs; jj++){
     if (myid==jj)
-      printf("%d:  %d  %d\n", myid, numread, blocksperread);
+      printf("%d:  %d  %d  %d\n", myid, numread, totnumread, worklen);
     fflush(NULL);
     MPI_Barrier(MPI_COMM_WORLD);
   }
 }
-  */
+*/
   if (totnumread != worklen){
     if (cmd->maskfileP)
       free(maskchans);
