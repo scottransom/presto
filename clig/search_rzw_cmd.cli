@@ -32,8 +32,12 @@ Int -rhi     rhi     {The highest Fourier frequency to check} \
 Int -lobin   lobin   {The first Fourier frequency in the data file} \
 	{range = 0, oo} \
 	{default = 0}
-	
+
 String -zapfile zapfile {A file containing a list of freqs to ignore (i.e. RFI)}
+
+Float -baryv baryv   {The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)} \
+	{range = -0.1, 0.1} \
+	{default = 0.0}
 
 # Rest of command line:
 
