@@ -6,7 +6,7 @@
 #include "dmalloc.h"
 #endif
 
-#define DEBUG_OUT 1
+#define DEBUG_OUT 0
 
 static double orbit_trial(fcomplex *data, int datalen,
 			  presto_datainf datainf,  int lodata, 
@@ -413,6 +413,8 @@ int main(int argc, char *argv[]){
   orb.w = 0.0;
   orb.pd = 0.0;
   orb.wd = 0.0;
+  if (lox < 0.0)
+    lox = 0.001;
   for (pct = 0; pct < np; pct++){
     orb.p = lop + pct * dp;
 #ifdef DEBUG_OUT
@@ -422,13 +424,10 @@ int main(int argc, char *argv[]){
       orb.x = lox + xct * dx;
       avg_time = 0.0;
 #ifdef DEBUG_OUT
-      printf("  x_orb = %.4f:\n", orb.x);
+      printf("  x_orb = %.4f\n", orb.x);
 #endif
       for (tct = 0; tct < nt; tct++){
 	orb.t = lot + tct * dt;
-#ifdef DEBUG_OUT
-	printf("    t_orb = %.2f:\n", orb.t);
-#endif
 	trial_time = orbit_trial(data, datalen, SAME, lodata, ppsr, T, 
 				 orb, &bestpowr, &bestpsrp, &bestorb, 
 				 corrdata);
