@@ -39,9 +39,9 @@ int main(int argc, char *argv[])
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
   char obs[3], ephem[10], *datafilenm, *rootfilenm, *outinfonm;
   char rastring[50], decstring[50], *cptr;
-  int numchan=1, newper=0, oldper=0, slen;
+  int numchan=1, newper=0, oldper=0, slen, numadded=0, numremoved=0;
   long ii, numbarypts=0, worklen=65536, next_pow_of_two=0;
-  long numread=0, wrote=0, totwrote=0;
+  long numread=0, numtowrite=0, totwrote=0, datawrote=0;
   multibeam_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
@@ -315,16 +315,16 @@ int main(int argc, char *argv[])
       /* Write the latest chunk of data, but don't   */
       /* write more than cmd->numout points.         */
       
-      wrote = numread;
-      if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
-	wrote = cmd->numout - totwrote;
-      chkfwrite(outdata, sizeof(float), (unsigned long) wrote, outfile);
+      numtowrite = numread;
+      if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+	numtowrite = cmd->numout - totwrote;
+      chkfwrite(outdata, sizeof(float), (unsigned long) numtowrite, outfile);
       
       /* Update the statistics */
       
       for (ii = 0; ii < numread; ii++)
 	update_stats(totwrote + ii, outdata[ii], &min, &max, &avg, &var);
-      totwrote += wrote;
+      totwrote += numtowrite;
       
       /* Stop if we have written out all the data we need to */
       
@@ -420,20 +420,27 @@ int main(int argc, char *argv[])
       double lobin, hibin, calcpt;
 
       numdiffbins = abs(NEAREST_INT(btoa[numbarypts-1])) + 1;
+printf("\nnumdiffbins = %d\n\n", numdiffbins);
       diffbins = gen_ivect(numdiffbins);
       diffbinptr = diffbins;
       for (ii = 0 ; ii < numbarypts ; ii++){
 	currentbin = NEAREST_INT(btoa[ii]);
 	if (currentbin != oldbin){
-	  calcpt = (currentbin > 0) ? oldbin + 0.5 : oldbin - 0.5;
-	  while(fabs(calcpt) < fabs(btoa[ii])){
+	  if (currentbin > 0){
+	    calcpt = oldbin + 0.5;
 	    lobin = (ii-1) * TDT / idata.dt;
 	    hibin = ii * TDT / idata.dt;
+	  } else {
+	    calcpt = oldbin - 0.5;
+	    lobin = -((ii-1) * TDT / idata.dt);
+	    hibin = -(ii * TDT / idata.dt);
+	  }
+	  while(fabs(calcpt) < fabs(btoa[ii])){
 	    /* Negative bin number means remove that bin */
 	    /* Positive bin number means add a bin there */
 	    *diffbinptr = NEAREST_INT(LININTERP(calcpt, btoa[ii-1],
 						btoa[ii], lobin, hibin));
-            diffbinptr++;
+	    diffbinptr++;
 	    calcpt = (currentbin > 0) ? calcpt + 1.0 : calcpt - 1.0;
 	  }
 	  oldbin = currentbin;
@@ -449,8 +456,7 @@ int main(int argc, char *argv[])
     printf("Amount Complete = 0%%");
     
     while ((numread = 
-	    (*readrec_ptr)(infile, outdata, worklen, 
-			   dispdt, numchan))){
+	    (*readrec_ptr)(infile, outdata, worklen, dispdt, numchan))){
       
       /* Print percent complete */
       
@@ -467,72 +473,90 @@ int main(int argc, char *argv[])
       /* Simply write the data if we don't have to add or */
       /* remove any bins from this batch.                 */
       
-      if (totwrote + numread < abs(*diffbinptr)){
+      if (datawrote + numread < abs(*diffbinptr)){
 
 	/* Write the latest chunk of data, but don't   */
 	/* write more than cmd->numout points.         */
 	
-	wrote = numread;
-	if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
-	  wrote = cmd->numout - totwrote;
-	chkfwrite(outdata, sizeof(float), wrote, outfile);
+	numtowrite = numread;
+	if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+	  numtowrite = cmd->numout - totwrote;
+	chkfwrite(outdata, sizeof(float), numtowrite, outfile);
 	
 	/* Update the statistics */
 	
 	for (ii = 0; ii < numread; ii++)
-	  update_stats(totwrote + ii, outdata[ii], &min, &max, 
+	  update_stats(datawrote + ii, outdata[ii], &min, &max, 
 		       &avg, &var);
-	totwrote += wrote;
+	datawrote += numtowrite;
+	totwrote += numtowrite;
 	
       } else {  /* Add or remove bins */
 	float favg;
-	int skip;
+	int skip, numwritten;
 
-	/* Write the first part */
+	skip = 0;
+	numwritten = 0;
+	while (numwritten < numread){
 
-	wrote = abs(*diffbinptr) - totwrote;
-	if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
-	  wrote = cmd->numout - totwrote;
-	chkfwrite(outdata, sizeof(float), wrote, outfile);
-
-	/* Update the statistics */
+	  /* Write the part before the diffbin */
 	
-	for (ii = 0; ii < wrote; ii++)
-	  update_stats(totwrote + ii, outdata[ii], &min, &max, 
-		       &avg, &var);
-	totwrote += wrote;
+	  numtowrite = abs(*diffbinptr) - datawrote;
+	  if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+	    numtowrite = cmd->numout - totwrote;
+	  chkfwrite(outdata+skip, sizeof(float), numtowrite, outfile);
 
-	/* Add a bin with the average value */
-
-	skip = wrote;
-	wrote = numread - skip;
-	if (*diffbinptr > 0){
-	  if (!(cmd->numoutP && (totwrote + 1) > cmd->numout)){
-	    favg = (float) avg;
-	    chkfwrite(&favg, sizeof(float), 1, outfile);
-	    update_stats(totwrote, avg, &min, &max, 
+	  /* Update the statistics */
+	  
+	  for (ii = 0; ii < numtowrite; ii++)
+	    update_stats(datawrote + ii, outdata[skip+ii], &min, &max, 
 			 &avg, &var);
-	    totwrote++;
+	  numwritten += numtowrite;
+	  skip += numtowrite;
+	  datawrote += numtowrite;
+	  totwrote += numtowrite;
+	  if (abs(*diffbinptr)==datawrote) diffbinptr++;
+
+	  /* Add a bin with the average value */
+	  
+	  numtowrite = numread - numwritten;
+	  if (*diffbinptr > 0){
+	    if (!(cmd->numoutP && (totwrote + 1) > cmd->numout)){
+	      favg = (float) avg;
+	      chkfwrite(&favg, sizeof(float), 1, outfile);
+	      numadded++;
+	      totwrote++;
+	    }
+
+	  /* Remove a bin from the data */
+	  
+	  } else {
+	    skip++;
+	    numtowrite--;
+	    numremoved++;
 	  }
-	} else {  /* Remove a bin from the data */
-	  skip++;
-	  wrote--;
+
+	  /* Write the rest */
+	  
+	  if (datawrote + numtowrite > abs(*diffbinptr))
+	    numtowrite = abs(*diffbinptr) - datawrote;
+	  if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+	    numtowrite = cmd->numout - totwrote;
+	  chkfwrite(outdata+skip, sizeof(float), numtowrite, outfile);
+
+	  /* Update the statistics */
+	  
+	  for (ii = 0; ii < numtowrite; ii++)
+	    update_stats(datawrote + ii, outdata[skip+ii], &min, &max, 
+			 &avg, &var);
+	  numwritten += numtowrite;
+	  skip += numtowrite;
+	  datawrote += numtowrite;
+	  totwrote += numtowrite;
 	}
-
-	/* Write the rest */
-
-	if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
-	  wrote = cmd->numout - totwrote;
-	chkfwrite(outdata+skip, sizeof(float), wrote, outfile);
-	for (ii = 0; ii < wrote; ii++)
-	  update_stats(totwrote + ii, outdata[skip+ii], &min, &max, 
-		       &avg, &var);
-	totwrote += wrote;
-
-	/* Increment the diffbinptr */
-
-	diffbinptr++;
       }
+
+      if (abs(*diffbinptr)==datawrote) diffbinptr++;
 
       /* Stop if we have written out all the data we need to */
       
@@ -547,6 +571,11 @@ int main(int argc, char *argv[])
     free(btoa);
     free(ttoa);
   }
+
+printf("\n data written = %d\n", datawrote);
+printf("total written = %d\n", totwrote);
+printf("   difference = %d\n", totwrote - datawrote);
+printf("numbins added or removed = %d\n\n", numadded-numremoved);
 
   /* Print simple stats and results */
 
