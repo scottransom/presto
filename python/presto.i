@@ -314,7 +314,6 @@ double *dphase_arr(dcomplex *dft, long numfreqs);
 /* dphase_arr(dft, phases, numfreqs):
       Return the spectral phases (deg) of a complex FFT 'dft' in 'phases'. */
 
-
 typedef struct orbitparams {
   double p;	    /* Orbital period (s)                            */
   double e;	    /* Orbital eccentricity                          */
@@ -412,6 +411,13 @@ typedef struct foldstats {
   double redchi;      /* Reduced chi-squared of the profile */
 } foldstats;
 
+int get_psr_at_epoch(char *psrname, double epoch, psrparams *psr);
+/* Converts info from the pulsar database to "current" epoch.       */
+/* Returned values go in *psr.                                      */
+/* psrname is the pulsar name we are looking for (no J or B prefix) */
+/* epoch is the time in question in MJD.                            */
+/* The int returned is the number of the pulsar in the database.    */
+/* If the int = 0, then no match was found.                         */
 
 int read_int(FILE *infile, int byteswap);
 /* Reads a binary integer value from the file 'infile' */

@@ -39,14 +39,14 @@ class pfd:
             for jj in xrange(self.nsub):
                self.stats[ii].append(read_foldstats(infile, byteswap))
                self.profs[ii][jj] = self.profs[ii][jj] + \
-                                    numpyio.fread(infile,
-                                                  self.proflen, 'd',
-                                                  'd', byteswap)
+                                    scipy.io.numpyio.fread(infile,
+                                                           self.proflen, 'd',
+                                                           'd', byteswap)
          else:
             self.stats.append(read_foldstats(infile, byteswap))
             self.profs[ii] = self.profs[ii]+ \
-                             numpyio.fread(infile, self.proflen, 'd',
-                                           'd', byteswap)
+                             scipy.io.numpyio.fread(infile, self.proflen, 'd',
+                                                    'd', byteswap)
       infile.close()
    
 def val_with_err(value, error, len=0, digits=2, latex=0):
@@ -114,7 +114,7 @@ def psrepoch(psrname, epoch):
            (in MJD format).
    """
    pp = psrparams()
-   num = return_psrparams_at_epoch(pp, psrname, epoch)
+   num = get_psr_at_epoch(psrname, epoch, pp)
    print 'Retrieved data at MJD %f for %s' % (epoch, pp.jname)
    print 'The pulsar was #%d in the database.' % num
    return pp

@@ -91,8 +91,8 @@ class orbitparams(_object):
     __swig_getmethods__["wd"] = _presto.orbitparams_wd_get
     if _newclass:wd = property(_presto.orbitparams_wd_get,_presto.orbitparams_wd_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_orbitparams,args)
-        self.thisown = 1
+        _swig_setattr(self, orbitparams, 'this', apply(_presto.new_orbitparams,args))
+        _swig_setattr(self, orbitparams, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_orbitparams):
         try:
             if self.thisown: destroy(self)
@@ -102,9 +102,9 @@ class orbitparams(_object):
 
 class orbitparamsPtr(orbitparams):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = orbitparams
+        _swig_setattr(self, orbitparams, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, orbitparams, 'thisown', 0)
+        _swig_setattr(self, orbitparams,self.__class__,orbitparams)
 _presto.orbitparams_swigregister(orbitparamsPtr)
 tofloatvector = _presto.tofloatvector
 
@@ -122,8 +122,8 @@ class DoubleArray(_object):
     __swig_getmethods__["dptr"] = _presto.DoubleArray_dptr_get
     if _newclass:dptr = property(_presto.DoubleArray_dptr_get,_presto.DoubleArray_dptr_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_DoubleArray,args)
-        self.thisown = 1
+        _swig_setattr(self, DoubleArray, 'this', apply(_presto.new_DoubleArray,args))
+        _swig_setattr(self, DoubleArray, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_DoubleArray):
         try:
             if self.thisown: destroy(self)
@@ -135,9 +135,9 @@ class DoubleArray(_object):
 
 class DoubleArrayPtr(DoubleArray):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = DoubleArray
+        _swig_setattr(self, DoubleArray, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, DoubleArray, 'thisown', 0)
+        _swig_setattr(self, DoubleArray,self.__class__,DoubleArray)
 _presto.DoubleArray_swigregister(DoubleArrayPtr)
 
 class infodata(_object):
@@ -242,8 +242,8 @@ class infodata(_object):
     __swig_getmethods__["filt"] = _presto.infodata_filt_get
     if _newclass:filt = property(_presto.infodata_filt_get,_presto.infodata_filt_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_infodata,args)
-        self.thisown = 1
+        _swig_setattr(self, infodata, 'this', apply(_presto.new_infodata,args))
+        _swig_setattr(self, infodata, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_infodata):
         try:
             if self.thisown: destroy(self)
@@ -253,9 +253,9 @@ class infodata(_object):
 
 class infodataPtr(infodata):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = infodata
+        _swig_setattr(self, infodata, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, infodata, 'thisown', 0)
+        _swig_setattr(self, infodata,self.__class__,infodata)
 _presto.infodata_swigregister(infodataPtr)
 
 readinf = _presto.readinf
@@ -370,8 +370,8 @@ class makedata(_object):
     __swig_getmethods__["onoff"] = _presto.makedata_onoff_get
     if _newclass:onoff = property(_presto.makedata_onoff_get,_presto.makedata_onoff_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_makedata,args)
-        self.thisown = 1
+        _swig_setattr(self, makedata, 'this', apply(_presto.new_makedata,args))
+        _swig_setattr(self, makedata, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_makedata):
         try:
             if self.thisown: destroy(self)
@@ -381,10 +381,74 @@ class makedata(_object):
 
 class makedataPtr(makedata):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = makedata
+        _swig_setattr(self, makedata, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, makedata, 'thisown', 0)
+        _swig_setattr(self, makedata,self.__class__,makedata)
 _presto.makedata_swigregister(makedataPtr)
+
+class psrparams(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, psrparams, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, psrparams, name)
+    __swig_setmethods__["jname"] = _presto.psrparams_jname_set
+    __swig_getmethods__["jname"] = _presto.psrparams_jname_get
+    if _newclass:jname = property(_presto.psrparams_jname_get,_presto.psrparams_jname_set)
+    __swig_setmethods__["bname"] = _presto.psrparams_bname_set
+    __swig_getmethods__["bname"] = _presto.psrparams_bname_get
+    if _newclass:bname = property(_presto.psrparams_bname_get,_presto.psrparams_bname_set)
+    __swig_setmethods__["alias"] = _presto.psrparams_alias_set
+    __swig_getmethods__["alias"] = _presto.psrparams_alias_get
+    if _newclass:alias = property(_presto.psrparams_alias_get,_presto.psrparams_alias_set)
+    __swig_setmethods__["ra2000"] = _presto.psrparams_ra2000_set
+    __swig_getmethods__["ra2000"] = _presto.psrparams_ra2000_get
+    if _newclass:ra2000 = property(_presto.psrparams_ra2000_get,_presto.psrparams_ra2000_set)
+    __swig_setmethods__["dec2000"] = _presto.psrparams_dec2000_set
+    __swig_getmethods__["dec2000"] = _presto.psrparams_dec2000_get
+    if _newclass:dec2000 = property(_presto.psrparams_dec2000_get,_presto.psrparams_dec2000_set)
+    __swig_setmethods__["dm"] = _presto.psrparams_dm_set
+    __swig_getmethods__["dm"] = _presto.psrparams_dm_get
+    if _newclass:dm = property(_presto.psrparams_dm_get,_presto.psrparams_dm_set)
+    __swig_setmethods__["timepoch"] = _presto.psrparams_timepoch_set
+    __swig_getmethods__["timepoch"] = _presto.psrparams_timepoch_get
+    if _newclass:timepoch = property(_presto.psrparams_timepoch_get,_presto.psrparams_timepoch_set)
+    __swig_setmethods__["p"] = _presto.psrparams_p_set
+    __swig_getmethods__["p"] = _presto.psrparams_p_get
+    if _newclass:p = property(_presto.psrparams_p_get,_presto.psrparams_p_set)
+    __swig_setmethods__["pd"] = _presto.psrparams_pd_set
+    __swig_getmethods__["pd"] = _presto.psrparams_pd_get
+    if _newclass:pd = property(_presto.psrparams_pd_get,_presto.psrparams_pd_set)
+    __swig_setmethods__["pdd"] = _presto.psrparams_pdd_set
+    __swig_getmethods__["pdd"] = _presto.psrparams_pdd_get
+    if _newclass:pdd = property(_presto.psrparams_pdd_get,_presto.psrparams_pdd_set)
+    __swig_setmethods__["f"] = _presto.psrparams_f_set
+    __swig_getmethods__["f"] = _presto.psrparams_f_get
+    if _newclass:f = property(_presto.psrparams_f_get,_presto.psrparams_f_set)
+    __swig_setmethods__["fd"] = _presto.psrparams_fd_set
+    __swig_getmethods__["fd"] = _presto.psrparams_fd_get
+    if _newclass:fd = property(_presto.psrparams_fd_get,_presto.psrparams_fd_set)
+    __swig_setmethods__["fdd"] = _presto.psrparams_fdd_set
+    __swig_getmethods__["fdd"] = _presto.psrparams_fdd_get
+    if _newclass:fdd = property(_presto.psrparams_fdd_get,_presto.psrparams_fdd_set)
+    __swig_setmethods__["orb"] = _presto.psrparams_orb_set
+    __swig_getmethods__["orb"] = _presto.psrparams_orb_get
+    if _newclass:orb = property(_presto.psrparams_orb_get,_presto.psrparams_orb_set)
+    def __init__(self,*args):
+        _swig_setattr(self, psrparams, 'this', apply(_presto.new_psrparams,args))
+        _swig_setattr(self, psrparams, 'thisown', 1)
+    def __del__(self, destroy= _presto.delete_psrparams):
+        try:
+            if self.thisown: destroy(self)
+        except: pass
+    def __repr__(self):
+        return "<C psrparams instance at %s>" % (self.this,)
+
+class psrparamsPtr(psrparams):
+    def __init__(self,this):
+        _swig_setattr(self, psrparams, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, psrparams, 'thisown', 0)
+        _swig_setattr(self, psrparams,self.__class__,psrparams)
+_presto.psrparams_swigregister(psrparamsPtr)
 
 read_mak_input = _presto.read_mak_input
 
@@ -419,8 +483,8 @@ class rderivs(_object):
     __swig_getmethods__["locpow"] = _presto.rderivs_locpow_get
     if _newclass:locpow = property(_presto.rderivs_locpow_get,_presto.rderivs_locpow_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_rderivs,args)
-        self.thisown = 1
+        _swig_setattr(self, rderivs, 'this', apply(_presto.new_rderivs,args))
+        _swig_setattr(self, rderivs, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_rderivs):
         try:
             if self.thisown: destroy(self)
@@ -430,9 +494,9 @@ class rderivs(_object):
 
 class rderivsPtr(rderivs):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = rderivs
+        _swig_setattr(self, rderivs, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, rderivs, 'thisown', 0)
+        _swig_setattr(self, rderivs,self.__class__,rderivs)
 _presto.rderivs_swigregister(rderivsPtr)
 
 class fourierprops(_object):
@@ -492,8 +556,8 @@ class fourierprops(_object):
     __swig_getmethods__["locpow"] = _presto.fourierprops_locpow_get
     if _newclass:locpow = property(_presto.fourierprops_locpow_get,_presto.fourierprops_locpow_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_fourierprops,args)
-        self.thisown = 1
+        _swig_setattr(self, fourierprops, 'this', apply(_presto.new_fourierprops,args))
+        _swig_setattr(self, fourierprops, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_fourierprops):
         try:
             if self.thisown: destroy(self)
@@ -503,9 +567,9 @@ class fourierprops(_object):
 
 class fourierpropsPtr(fourierprops):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = fourierprops
+        _swig_setattr(self, fourierprops, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, fourierprops, 'thisown', 0)
+        _swig_setattr(self, fourierprops,self.__class__,fourierprops)
 _presto.fourierprops_swigregister(fourierpropsPtr)
 
 class binaryprops(_object):
@@ -595,8 +659,8 @@ class binaryprops(_object):
     __swig_getmethods__["powerr"] = _presto.binaryprops_powerr_get
     if _newclass:powerr = property(_presto.binaryprops_powerr_get,_presto.binaryprops_powerr_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_binaryprops,args)
-        self.thisown = 1
+        _swig_setattr(self, binaryprops, 'this', apply(_presto.new_binaryprops,args))
+        _swig_setattr(self, binaryprops, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_binaryprops):
         try:
             if self.thisown: destroy(self)
@@ -606,9 +670,9 @@ class binaryprops(_object):
 
 class binarypropsPtr(binaryprops):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = binaryprops
+        _swig_setattr(self, binaryprops, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, binaryprops, 'thisown', 0)
+        _swig_setattr(self, binaryprops,self.__class__,binaryprops)
 _presto.binaryprops_swigregister(binarypropsPtr)
 
 class rawbincand(_object):
@@ -647,8 +711,8 @@ class rawbincand(_object):
     __swig_getmethods__["orb_p"] = _presto.rawbincand_orb_p_get
     if _newclass:orb_p = property(_presto.rawbincand_orb_p_get,_presto.rawbincand_orb_p_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_rawbincand,args)
-        self.thisown = 1
+        _swig_setattr(self, rawbincand, 'this', apply(_presto.new_rawbincand,args))
+        _swig_setattr(self, rawbincand, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_rawbincand):
         try:
             if self.thisown: destroy(self)
@@ -658,9 +722,9 @@ class rawbincand(_object):
 
 class rawbincandPtr(rawbincand):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = rawbincand
+        _swig_setattr(self, rawbincand, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, rawbincand, 'thisown', 0)
+        _swig_setattr(self, rawbincand,self.__class__,rawbincand)
 _presto.rawbincand_swigregister(rawbincandPtr)
 
 class foldstats(_object):
@@ -690,8 +754,8 @@ class foldstats(_object):
     __swig_getmethods__["redchi"] = _presto.foldstats_redchi_get
     if _newclass:redchi = property(_presto.foldstats_redchi_get,_presto.foldstats_redchi_set)
     def __init__(self,*args):
-        self.this = apply(_presto.new_foldstats,args)
-        self.thisown = 1
+        _swig_setattr(self, foldstats, 'this', apply(_presto.new_foldstats,args))
+        _swig_setattr(self, foldstats, 'thisown', 1)
     def __del__(self, destroy= _presto.delete_foldstats):
         try:
             if self.thisown: destroy(self)
@@ -701,10 +765,12 @@ class foldstats(_object):
 
 class foldstatsPtr(foldstats):
     def __init__(self,this):
-        self.this = this
-        if not hasattr(self,"thisown"): self.thisown = 0
-        self.__class__ = foldstats
+        _swig_setattr(self, foldstats, 'this', this)
+        if not hasattr(self,"thisown"): _swig_setattr(self, foldstats, 'thisown', 0)
+        _swig_setattr(self, foldstats,self.__class__,foldstats)
 _presto.foldstats_swigregister(foldstatsPtr)
+
+get_psr_at_epoch = _presto.get_psr_at_epoch
 
 read_int = _presto.read_int
 
@@ -956,7 +1022,7 @@ def val_with_err(value, error, len=0, digits=2, latex=0):
    outstr = outstr[:slen]
    if latex:
       if outstr.find("x10") > 0:
-         outstr = outstr.replace("x10^", "$\times$10$^{")+"}$"
+         outstr = outstr.replace("x10^", r"$\times$10$^{")+"}$"
    return outstr
 
 def read_inffile(filename):
@@ -991,7 +1057,7 @@ def psrepoch(psrname, epoch):
            (in MJD format).
    """
    pp = psrparams()
-   num = return_psrparams_at_epoch(pp, psrname, epoch)
+   num = get_psr_at_epoch(psrname, epoch, pp)
    print 'Retrieved data at MJD %f for %s' % (epoch, pp.jname)
    print 'The pulsar was #%d in the database.' % num
    return pp

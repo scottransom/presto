@@ -41,7 +41,7 @@ def processbirds(filename):
         if (line[0]=='#'):
             continue
         elif (line[0]=='P'):
-            (tmp, psrname, numharm) = line.split()
+            (psrname, numharm) = line.split()[1:3]
             numharm = int(numharm)
             psr = psrepoch(psrname, info.mjd_i+info.mjd_f)
             if (psr.orb.p):

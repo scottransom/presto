@@ -160,6 +160,49 @@ typedef struct makedata {
 } makedata;
 
 
+%typemap(memberin) char *jname {
+        strncpy($1,$input,13);
+}       
+
+%typemap(memberin) char *bname {
+        strncpy($1,$input,9);
+}       
+
+%typemap(memberin) char *alias {
+        strncpy($1,$input,10);
+}       
+
+/* This is a structure that contains the 'key' pulsar info  */
+typedef struct psrparams {
+  char *jname;               /* The PSRs J2000 name         */
+  char *bname;               /* The PSRs B1950 name         */
+  char *alias;               /* An alias for the pulsar     */
+  double ra2000;             /* J2000 RA                    */
+  double dec2000;            /* J2000 DEC                   */
+  double dm;                 /* Dispersion Measure          */
+  double timepoch;           /* MJD epoch for timing        */
+  double p;                  /* PSR period (s)              */
+  double pd;                 /* PSR period deriv (s/s)      */
+  double pdd;                /* Period 2nd deriv (s/s^2)    */
+  double f;                  /* PSR frequency (hz)          */
+  double fd;                 /* PSR frequency deriv (s^-2)  */
+  double fdd;                /* Frequency 2nd deriv (s^-3)  */
+  orbitparams orb;           /* Orbital parameters          */
+} psrparams;
+
+/*
+%extend psrparams {
+  psrparams *Psrparams(void) {
+    psrparams *p;
+    p = (psrparams *p) calloc(sizeof(psrparams), 1);
+    return p;
+  }
+  ~Psrparams() {
+    free(self);
+  }
+}
+*/
+
 void read_mak_input(makedata *mdata);
 /* Get information for makedata from stdin.      */
 
