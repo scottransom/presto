@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include "meminfo.h"
-#include "sfftw.h"
+#include "fftw3.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -11,7 +11,8 @@
 int main(void)
 {
   FILE *wisdomfile;
-  fftw_plan plan;
+  fftwf_plan plan;
+  fftwf_complex *inout;
   int ii, fftlen;
   int padlen[13] = {288, 540, 1080, 2100, 4200, 8232, 16464, 32805, 
 		    65610, 131220, 262440, 525000, 1050000};
@@ -20,30 +21,49 @@ int main(void)
 
   /* Generate the wisdom... */
 
-  printf("\nCreating Wisdom for FFTW.\n");
+  printf("\nAttempting to read the system wisdom file...\n");
+  if (!fftwf_import_system_wisdom())
+    printf("  failed.  The file probably does not exist.  Tell your sysadmin.\n\n");
+  else
+    printf("  succeded.  Good.  We'll use it.\n\n");
+
+  printf("Creating Wisdom for FFTW.\n");
   printf("This may take a while...\n\n");
   printf("Generating plans for FFTs of length:\n");
 
   while (fftlen <= BIGFFTWSIZE) {
+    inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
     printf("   %d\n", fftlen);
-    plan = fftw_create_plan(fftlen, -1, \
-	FFTW_MEASURE | FFTW_USE_WISDOM | FFTW_IN_PLACE);
-    fftw_destroy_plan(plan);
-    plan = fftw_create_plan(fftlen, 1, \
-	FFTW_MEASURE | FFTW_USE_WISDOM | FFTW_IN_PLACE);
-    fftw_destroy_plan(plan);
+    plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
+    fftwf_destroy_plan(plan);
+    plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_BACKWARD, FFTW_PATIENT);
+    fftwf_destroy_plan(plan);
     fftlen <<= 1;
+    fftwf_free(inout);
+  }
+
+  fftlen = 10;
+
+  while (fftlen <= BIGFFTWSIZE) {
+    inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
+    printf("   %d\n", fftlen);
+    plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
+    fftwf_destroy_plan(plan);
+    plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_BACKWARD, FFTW_PATIENT);
+    fftwf_destroy_plan(plan);
+    fftlen *= 10;
+    fftwf_free(inout);
   }
 
   for (ii = 0; ii < 13; ii++){
     fftlen = padlen[ii];
+    inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
     printf("   %d\n", fftlen);
-    plan = fftw_create_plan(fftlen, -1, \
-	FFTW_MEASURE | FFTW_USE_WISDOM | FFTW_IN_PLACE);
-    fftw_destroy_plan(plan);
-    plan = fftw_create_plan(fftlen, 1, \
-	FFTW_MEASURE | FFTW_USE_WISDOM | FFTW_IN_PLACE);
-    fftw_destroy_plan(plan);
+    plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
+    fftwf_destroy_plan(plan);
+    plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_BACKWARD, FFTW_PATIENT);
+    fftwf_destroy_plan(plan);
+    fftwf_free(inout);
   }
 
   printf("Exporting wisdom to 'fftw_wisdom.txt'\n");
@@ -54,11 +74,10 @@ int main(void)
 
   /* Write the wisdom... */
 
-  fftw_export_wisdom_to_file(wisdomfile);
+  fftwf_export_wisdom_to_file(wisdomfile);
 
   /* Cleanup... */
 
-  fftw_forget_wisdom();
   fclose(wisdomfile);
   printf("Done.\n\n");
 
