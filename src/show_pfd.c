@@ -81,10 +81,10 @@ int main(int argc, char *argv[])
    *   Plot our results
    */
 
-  if (cmd->xwinP)
-    prepfold_plot(&search, &flags, 1);
-  else
+  if (cmd->noxwinP)
     prepfold_plot(&search, &flags, 0);
+  else
+    prepfold_plot(&search, &flags, 1);
   
 
   /* Free our memory  */

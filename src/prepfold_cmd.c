@@ -46,8 +46,8 @@ static Cmdline cmd = {
   /* numwappsC = */ 1,
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   /* de405P = */ 0,
-  /***** -xwin: Show the result plots on-screen as well as make a plotfile */
-  /* xwinP = */ 0,
+  /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
+  /* noxwinP = */ 0,
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   /* runavgP = */ 0,
   /***** -fine: A finer gridding in the p/pdot plane (for well known p and pdot) */
@@ -1007,11 +1007,11 @@ showOptionValues(void)
     printf("-DE405 found:\n");
   }
 
-  /***** -xwin: Show the result plots on-screen as well as make a plotfile */
-  if( !cmd.xwinP ) {
-    printf("-xwin not found.\n");
+  /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
+  if( !cmd.noxwinP ) {
+    printf("-noxwin not found.\n");
   } else {
-    printf("-xwin found:\n");
+    printf("-noxwin found:\n");
   }
 
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
@@ -1587,7 +1587,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-DE405] [-xwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n\
+ [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n\
     Prepares (if required) and folds raw radio data, standard time series, or events.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
@@ -1603,7 +1603,7 @@ usage(void)
                1 int value between 1 and 7\n\
                default: `1'\n\
        -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
-        -xwin: Show the result plots on-screen as well as make a plotfile\n\
+      -noxwin: Do not show the result plots on-screen, only make postscript files\n\
       -runavg: Subtract each blocks average as it is read (single channel data only)\n\
         -fine: A finer gridding in the p/pdot plane (for well known p and pdot)\n\
       -coarse: A coarser gridding in the p/pdot plane (for uknown p and pdot)\n\
@@ -1716,7 +1716,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 01Dec02\n\
+version: 02Dec02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1792,8 +1792,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-xwin", argv[i]) ) {
-      cmd.xwinP = 1;
+    if( 0==strcmp("-noxwin", argv[i]) ) {
+      cmd.noxwinP = 1;
       continue;
     }
 

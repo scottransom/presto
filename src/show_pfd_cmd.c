@@ -22,8 +22,8 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
-  /***** -xwin: Show the result plots on-screen as well as making a ps file */
-  /* xwinP = */ 0,
+  /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
+  /* noxwinP = */ 0,
   /***** -scaleparts: Scale the part profiles independently */
   /* scalepartsP = */ 0,
   /***** -allgrey: Make all the images greyscale instead of color */
@@ -737,11 +737,11 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -xwin: Show the result plots on-screen as well as making a ps file */
-  if( !cmd.xwinP ) {
-    printf("-xwin not found.\n");
+  /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
+  if( !cmd.noxwinP ) {
+    printf("-noxwin not found.\n");
   } else {
-    printf("-xwin found:\n");
+    printf("-noxwin found:\n");
   }
 
   /***** -scaleparts: Scale the part profiles independently */
@@ -794,9 +794,9 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-xwin] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [--] infile ...\n\
+ [-noxwin] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [--] infile ...\n\
     Displays or regenerates the Postscript for a 'pfd' file created by prepfold.\n\
-        -xwin: Show the result plots on-screen as well as making a ps file\n\
+      -noxwin: Do not show the result plots on-screen, only make postscript files\n\
   -scaleparts: Scale the part profiles independently\n\
      -allgrey: Make all the images greyscale instead of color\n\
    -justprofs: Only output the profile portions of the plot\n\
@@ -804,7 +804,7 @@ usage(void)
       -events: The folded data were events instead of samples or bins\n\
        infile: The input 'pfd' file name.\n\
                1...100 values\n\
-version: 30Nov02\n\
+version: 02Dec02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -822,8 +822,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-xwin", argv[i]) ) {
-      cmd.xwinP = 1;
+    if( 0==strcmp("-noxwin", argv[i]) ) {
+      cmd.noxwinP = 1;
       continue;
     }
 

@@ -33,8 +33,8 @@ typedef struct s_Cmdline {
   int numwappsC;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   char de405P;
-  /***** -xwin: Show the result plots on-screen as well as make a plotfile */
-  char xwinP;
+  /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
+  char noxwinP;
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   char runavgP;
   /***** -fine: A finer gridding in the p/pdot plane (for well known p and pdot) */

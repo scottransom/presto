@@ -153,6 +153,10 @@ int main(int argc, char *argv[])
 	cmd->wappP = 1;
       }
     }
+    if (RAWDATA){ /* Clean-up a bit */
+      free(root);
+      free(suffix);
+    }
   }
 
   if (!RAWDATA){
@@ -1012,9 +1016,6 @@ int main(int argc, char *argv[])
       printf("Generating barycentric corrections...\n");
       barycenter(topotimes, barytimes, voverc, numbarypts, \
 		 rastring, decstring, obs, ephem);
-      printf("   Insure you check the file %s.tempo_out for\n", \
-	     cmd->argv[0]);
-      printf("   errors from TEMPO when complete.\n\n");
     
       /* Determine the avg v/c of the Earth's motion during the obs */
     
@@ -1672,10 +1673,10 @@ int main(int argc, char *argv[])
    *   Plot our results
    */
 
-  if (cmd->xwinP)
-    prepfold_plot(&search, &pflags, 1);
-  else 
+  if (cmd->noxwinP)
     prepfold_plot(&search, &pflags, 0);
+  else 
+    prepfold_plot(&search, &pflags, 1);
 
   /* Free our memory  */
 

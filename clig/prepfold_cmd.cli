@@ -21,7 +21,7 @@ Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for cli
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 7    -d 1
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
-Flag   -xwin    xwin    {Show the result plots on-screen as well as make a plotfile}
+Flag   -noxwin  noxwin  {Do not show the result plots on-screen, only make postscript files}
 Flag   -runavg  runavg  {Subtract each blocks average as it is read (single channel data only)}
 Flag   -fine fine       {A finer gridding in the p/pdot plane (for well known p and pdot)}
 Flag   -coarse coarse   {A coarser gridding in the p/pdot plane (for uknown p and pdot)}

@@ -9,8 +9,8 @@
 *****/
 
 typedef struct s_Cmdline {
-  /***** -xwin: Show the result plots on-screen as well as making a ps file */
-  char xwinP;
+  /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
+  char noxwinP;
   /***** -scaleparts: Scale the part profiles independently */
   char scalepartsP;
   /***** -allgrey: Make all the images greyscale instead of color */
