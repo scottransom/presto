@@ -1179,7 +1179,7 @@ int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths,
 /* _must_ be in increasing order since this routine keeps track of its */
 /* place in the file.  Also, numzap _must be >= 2.                     */
 
-short TOMS_transpose_2d(float *a, int nx, int ny, char *move, 
+short TOMS_transpose_2d(float *a, int nx, int ny, unsigned char *move, 
 			int move_size);
 /*
  * TOMS Transpose.  Revised version of algorithm 380.
