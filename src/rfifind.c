@@ -26,11 +26,10 @@ int main(int argc, char *argv[])
   char *datafilenm, *rootfilenm, *maskfilenm, *rfifilenm, *cptr;
   int numblocks=0, numchan=0, numint, newper=0, oldper=0;
   int blocksperint, ptsperint, ptsperblock=0, tbuffer_size;
-  int bitsperpt, numcands, candnum, numrfi=0, numrfiobs=NUM_RFI_OBS;
-  long ii, jj, kk, slen, numread=0;
-  double davg, dvar;
-  rfi_obs **rfiobs=NULL;
-  rfi_instance newrfi;
+  int bitsperpt, numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
+  int ii, jj, kk, slen, numread=0;
+  double davg, dvar, freq;
+  rfi *rfivect=NULL;
   fftcand *cands;
   multibeam_tapehdr hdr;
   infodata idata;
@@ -157,8 +156,7 @@ int main(int argc, char *argv[])
   outdata = gen_fvect(ptsperint);
   tbuffer_size = (numint + numchan) / 2;
   tbuffer = gen_bvect(tbuffer_size);
-  rfiobs = (rfi_obs **)realloc(rfiobs, numrfiobs * 
-			       sizeof(rfi_obs *));
+  rfivect = rfi_vector(rfivect, numchan, numint, 0, numrfivect);
 
   /* Main loop */
 
@@ -203,36 +201,29 @@ int main(int argc, char *argv[])
 			 RFI_LOBIN, RFI_NUMHARMSUM, RFI_NUMBETWEEN,
 			 INTERBIN, norm, cmd->sigma,
 			 &numcands, &powavg, &powstd, &powmax);
-      printf("powavg = %f  powstd = %f  powmax = %f\n",powavg, powstd, powmax);
+      printf("powavg = %f  powstd = %f  powmax = %f\n", 
+	     powavg, powstd, powmax);
       datapow[ii][jj] = powmax;
 
       /* Record the birdies */
 
       if (numcands){
 	for (kk=0; kk<numcands; kk++){
-	  newrfi.freq = cands[kk].r/inttime;
-	  newrfi.power = cands[kk].p;
-	  newrfi.fftbin = cands[kk].r;
-	  newrfi.fftbins = ptsperint;
-	  newrfi.inttime = inttime;
-	  newrfi.channel = jj;
-	  newrfi.intnum = ii;
-	  newrfi.numsum = cands[kk].nsum;
-	  newrfi.sigma = cands[kk].sig;
-	  candnum = find_rfi(rfiobs, numrfi, newrfi.freq, RFI_FRACTERROR);
+	  freq = cands[kk].r/inttime;
+	  candnum = find_rfi(rfivect, numrfi, freq, RFI_FRACTERROR);
 	  if (candnum >= 0){
-	    printf("  Another %.4f Hz birdie (channel = %d power = %.2f)\n", 
-		   newrfi.freq, newrfi.channel, newrfi.power);
-	    add_rfi_instance(rfiobs[candnum], newrfi);
+	    printf("  Another %.4f Hz birdie (channel = %d sigma = %.2f)\n", 
+		   freq, jj, cands[kk].sig);
+	    update_rfi(rfivect+candnum, freq, cands[kk].sig, jj, ii);
 	  } else {
-	    printf("\nNew %.4f Hz birdie (channel = %d, power = %.2f)\n", 
-		   newrfi.freq, newrfi.channel, newrfi.power);
-	    rfiobs[numrfi] = create_rfi_obs(newrfi);
+	    printf("\nNew %.4f Hz birdie (channel = %d, sigma = %.2f)\n", 
+		   freq, jj, cands[kk].sig);
+	    update_rfi(rfivect+numrfi, freq, cands[kk].sig, jj, ii);
 	    numrfi++;
-	    if (numrfi==numrfiobs-1){
-	      numrfiobs *= 2;
-	      rfiobs = (rfi_obs **)realloc(rfiobs, numrfiobs * 
-					   sizeof(rfi_obs *));
+	    if (numrfi==numrfivect){
+	      numrfivect *= 2;
+	      rfivect = rfi_vector(rfivect, numchan, numint, 
+				   numrfivect/2, numrfivect);
 	    }
 	  }
 	}
@@ -250,7 +241,7 @@ int main(int argc, char *argv[])
 
   /* Close the files and cleanup */
 
-  free_rfi_obs_vector(rfiobs, numrfi);
+  free_rfi_vector(rfivect, numrfivect);
   fclose(infile);
   /* fclose(outfile); */
   fclose(maskfile);

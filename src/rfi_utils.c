@@ -1,107 +1,115 @@
 #include "presto.h"
 #include "rfifind.h"
 
-rfi_obs *create_rfi_obs(rfi_instance rfi)
-/* Create and initialize a rfi_obs structure */
+rfi *new_rfi(int numchan, int numint)
+/* Create an rfi structure */
 {
-  rfi_obs* new;
+  int num;
+  rfi *newrfi;
 
-  new = (rfi_obs *)malloc(sizeof(rfi_obs));
-  new->rfi = (rfi_instance *)malloc(sizeof(rfi_instance));
-  *(new->rfi) = rfi;
-  new->freq_avg = rfi.freq;
-  new->freq_var = 0.0;
-  new->number = 1;
-  return new;
+  newrfi = (rfi *)malloc(sizeof(rfi));
+  newrfi->freq_avg = 0.0;
+  newrfi->freq_var = 0.0;
+  newrfi->sigma_avg = 0.0;
+  newrfi->numobs = 0;
+  num = (numint % 8)  ? numint  / 8 + 1 : numint  / 8; 
+  newrfi->times = (unsigned char *)calloc(1, num);
+  num = (numchan % 8) ? numchan / 8 + 1 : numchan / 8; 
+  newrfi->chans = (unsigned char *)calloc(1, num);
+  return newrfi;
 }
 
-void free_rfi_obs(rfi_obs *rfi)
-/* Free an rfi_obs structure and its contents */
+void free_rfi(rfi oldrfi)
+/* Free the contents of an rfi structure */
 {
-  free(rfi->rfi);
-  free(rfi);
+  free(oldrfi.times);
+  free(oldrfi.chans);
 }
 
-void free_rfi_obs_vector(rfi_obs **rfi_vect, int num_rfi_vect)
-/* Free a vector that holds rfi_obs structures */
+rfi *rfi_vector(rfi *rfivect, int numchan, int numint, 
+		int oldnum, int newnum)
+/* Create or reallocate an rfi_vector */
 {
-  int ii=0;
+  int ii, numt, numc;
 
-  for(ii=0; ii<num_rfi_vect; ii++){
-    free_rfi_obs(rfi_vect[ii]);
-    ii++;
+  numt = (numint  % 8) ? numint  / 8 + 1 : numint  / 8; 
+  numc = (numchan % 8) ? numchan / 8 + 1 : numchan / 8; 
+  rfivect = (rfi *)realloc(rfivect, sizeof(rfi) * newnum);
+  for (ii=oldnum; ii<newnum; ii++){
+    rfivect[ii].freq_avg = 0.0;
+    rfivect[ii].freq_var = 0.0;
+    rfivect[ii].sigma_avg = 0.0;
+    rfivect[ii].numobs = 0;
+    rfivect[ii].times = (unsigned char *)calloc(1, numt);
+    rfivect[ii].chans = (unsigned char *)calloc(1, numc);
   }
-  free(rfi_vect);
+  return rfivect;
 }
 
-void add_rfi_instance(rfi_obs *old, rfi_instance new)
-/* Add an instance of RFI to a rfi_obs structure */
+void free_rfi_vector(rfi *rfivect, int numrfi)
+/* Free an rfi vector and its contents */
 {
-  double davg, dvar;
-  float *freqs;
   int ii;
 
-  old->number++;
-  old->rfi = (rfi_instance *)realloc(old->rfi, sizeof(rfi_instance) * 
-				     old->number);
-  old->rfi[old->number-1] = new;
-
-  /* Update means and variances (extremely inefficient!) */
-
-  freqs = gen_fvect(old->number);
-  for (ii=0; ii<old->number; ii++)
-    freqs[ii] = old->rfi[ii].freq;
-  avg_var(freqs, old->number, &davg, &dvar);
-  old->freq_avg = davg;
-  old->freq_var = dvar;
-  free(freqs);
+  for (ii=0; ii<numrfi; ii++)
+    free_rfi(rfivect[ii]);
+  free(rfivect);
 }
 
-int find_rfi(rfi_obs **rfi_vect, int num_rfi_vect, 
+void update_rfi(rfi *oldrfi, float freq, float sigma, 
+		int channel, int interval)
+/* Updates an rfi structure with a new detection */
+{
+  oldrfi->numobs++;
+  if (oldrfi->numobs==1){
+    oldrfi->freq_avg = freq;
+    oldrfi->freq_var = 0.0;
+    oldrfi->sigma_avg = sigma;
+  } else {
+    double dx, an, an1;
+    
+    an = (double) (oldrfi->numobs + 1);
+    an1 = (double) (oldrfi->numobs);
+    dx = (freq - oldrfi->freq_avg) / an;
+    oldrfi->freq_var *= (an1-1.0);
+    oldrfi->freq_var += an * an1 * dx * dx;
+    oldrfi->freq_avg += dx;
+    oldrfi->freq_var /= an1;
+    dx = (sigma - oldrfi->sigma_avg) / an;
+    oldrfi->sigma_avg += dx;
+  }
+  SET_BIT(oldrfi->times, interval);
+  SET_BIT(oldrfi->chans, channel);
+}
+
+int find_rfi(rfi *rfivect, int numrfi, 
 	     double freq, double fract_error)
-/* Try to find a birdie in an rfi_obs vector.  Compare    */
-/* all currently known birdies with the new freq.  If it  */
-/* finds one with a freq within fractional error, it      */
-/* returns the number of the birdie -- otherwise, -1.     */
+/* Try to find a birdie in an rfi ector.  Compare all */
+/* currently known birdies with the new freq.  If it  */
+/* finds one with a freq within fractional error, it  */
+/* returns the number of the birdie -- otherwise, -1. */
 {
   float err;
   int ii=0;
 
-  for (ii=0; ii<num_rfi_vect; ii++){    
-    err = fabs(rfi_vect[ii]->freq_avg - freq) / freq;
+  for (ii=0; ii<numrfi; ii++){    
+    err = fabs(rfivect[ii].freq_avg - freq) / freq;
     if (err < fract_error)
       return ii;
   }
   return -1;
 }
 
-int compare_rfi_obs(void *ca, void *cb)
+int compare_rfi(void *ca, void *cb)
 /*  Used as compare function for qsort() */
 {
-  rfi_obs *a, *b;
+  rfi *a, *b;
 
-  a = (rfi_obs *) ca;
-  b = (rfi_obs *) cb;
+  a = (rfi *) ca;
+  b = (rfi *) cb;
   if ((b->freq_avg - a->freq_avg) < 0.0)
     return -1;
   if ((b->freq_avg - a->freq_avg) > 0.0)
     return 1;
   return 0;
-}
-
-void percolate_rfi_obs(rfi_obs **list, int nlist)
-/*  Pushes an rfi_obs structure as far up a sorted list of */
-/*  structs as it needs to go to keep the list sorted.     */
-/*  The new rfi_obs structure is in position nlist-1.      */
-{
-  int ct;
-  rfi_obs *tempzz;
-
-  for (ct=nlist-2; ct>=0; ct--){
-    if (list[ct]->freq_avg < list[ct+1]->freq_avg) {
-      SWAP(list[ct], list[ct+1]);
-    } else {
-      break;
-    }
-  }
 }
