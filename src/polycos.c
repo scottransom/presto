@@ -149,8 +149,8 @@ int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname)
       binary = (binpha[0] != ' ');
       mjdcheck = mjdmid[j] + mjd1mid[j];
       /*      printf("mjd, mjdcheck,j: %lf %lf %d\n",mjd,mjdcheck,j);   */
-      if (mjd-mjdcheck < 0.5 &&
-	  mjdcheck-mjdend > 0.5) {
+      if (mjdcheck > mjd-0.5 &&
+	  mjdcheck < mjdend+0.5) {
 	nblk = nblk0;
 	ncoeff = ncoeff0;
 	if (binary)
@@ -176,7 +176,7 @@ int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname)
 
 /*  Compute pulsar phase and frequency at time mjd0+mjd1. */
  
-void phcalc(double mjd0, double mjd1, double *phase, double *psrfreq)
+int phcalc(double mjd0, double mjd1, int last_index, double *phase, double *psrfreq)
 {
   double dtmin;
   int i,j;
@@ -186,7 +186,7 @@ void phcalc(double mjd0, double mjd1, double *phase, double *psrfreq)
    
   icurr = -1;
   *psrfreq = f0[0];                     /* Default psrfreq */
-  for (j=0;j<isets;j++) {
+  for (j=last_index;j<isets;j++) {
     dtmin = (mjd0-mjdmid[j]);
     dtmin = (dtmin+(mjd1-mjd1mid[j]))*1440.; /* Time from center of this set*/
     if (fabs(dtmin) < (nblk/2.0+1e-10)) {  /* The extra bit avoids a subtle bug since
@@ -218,5 +218,6 @@ void phcalc(double mjd0, double mjd1, double *phase, double *psrfreq)
     printf("isets = %d\n",isets);
     exit(1);
   }
+  return icurr;
 }
 

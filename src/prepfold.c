@@ -13,8 +13,8 @@
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
 
 extern int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname);
-extern void phcalc(double mjd0, double mjd1, 
-		   double *phase, double *psrfreq);
+extern int phcalc(double mjd0, double mjd1, int last_index,
+		  double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, 
 				psrparams *psr);
 extern char *make_polycos(char *parfilenm, infodata *idata);
@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numevents, numchan=1, binary=0, numdelays=0, numbarypts=0;
   int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0, useshorts=0;
-  int *maskchans=NULL, nummasked=0;
+  int *maskchans=NULL, nummasked=0, polyco_index=0;
   long ii=0, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0;
@@ -559,7 +559,8 @@ int main(int argc, char *argv[])
 	       numsets, cmd->psrname, search.tepoch, polyco_dm);
 	cmd->dm = polyco_dm;
       }
-      phcalc(idata.mjd_i, idata.mjd_f+startTday, &polyco_phase0, &f);
+      polyco_index = phcalc(idata.mjd_i, idata.mjd_f+startTday, 
+			    polyco_index, &polyco_phase0, &f);
       search.topo.p1 = 1.0/f;
       search.topo.p2 = fd = 0.0;
       search.topo.p3 = fdd = 0.0;
@@ -1177,11 +1178,12 @@ int main(int argc, char *argv[])
 	  currentday = currentsec/SECPERDAY;
 	  mjdf = idata.mjd_f + startTday + currentday;
 	  /* Calculate the pulse phase at the start of the current block */
-	  phcalc(idata.mjd_i, mjdf, &polyco_phase, &foldf);
+	  polyco_index = phcalc(idata.mjd_i, mjdf, polyco_index, &polyco_phase, &foldf);
 	  polyco_phase -= polyco_phase0;
 	  if (polyco_phase < 0.0) polyco_phase += 1.0;
 	  /* Calculate the folding frequency at the middle of the current block */
-	  phcalc(idata.mjd_i, mjdf+0.5*proftime/SECPERDAY, &offsetphase, &foldf);
+	  polyco_index = phcalc(idata.mjd_i, mjdf+0.5*proftime/SECPERDAY, 
+				polyco_index, &offsetphase, &foldf);
 	  cmd->phs = orig_cmd_phs + polyco_phase;
 	  fold_time0 = 0.0;
 	} else {
