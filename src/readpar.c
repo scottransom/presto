@@ -24,11 +24,14 @@
   EPS1DOT  Time derivative of EPS1
   EPS2DOT  Time derivative of EPS2
   OMDOT    Rate of periastron advance (deg/yr) 
-  OM2DOT   Second time derivative of angle of periastron (rad/s^2)
   PBDOT    Rate of change of orbital period (10^-12) 
   XDOT     Rate of change of projected semi-major axis (-12)
-  X2DOT    Second time derivative of projected semi-major axis (1/s)
   EDOT     Rate of change of eccentricity (-12)
+
+  The following are _not_ currently implemented:
+  F3, F4, F5,...  Higher order frequency derivative terms
+  OM2DOT   Second time derivative of angle of periastron (rad/s^2)
+  X2DOT    Second time derivative of projected semi-major axis (1/s)
 */
 
 /* Test routine
@@ -182,15 +185,21 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
       eps2d = strtod(value, &value);
       eps2 += eps1d*difft;
       if (DEBUGOUT) printf("  EPS2DOT  = %.15g\n", eps2d);
+    } else if (strncmp("OM2DOT", keyword, 80)==0 ||
+	       strncmp("X2DOT", keyword, 80)==0 ||
+	       strncmp("F3", keyword, 80)==0 ||
+	       strncmp("F4", keyword, 80)==0 ||
+	       strncmp("F5", keyword, 80)==0){
+      printf("  readpar:  Warning!  '%s' is currently unused!\n", keyword);
     }
   }
   if (binary){
-    if (eps1 != 0.0 && eps2 !=0.0){
+    if (eps1 != 0.0 || eps2 !=0.0){
       /* Convert Laplace-Lagrange params to e and w */
       /* Warning!  This is presently untested!      */
       psr->orb.e = sqrt(eps1*eps1 + eps2*eps2);
       psr->orb.w = atan2(eps1, eps2);
-      psr->orb.t += psr->orb.p*SECPERDAY/TWOPI*psr->orb.w;
+      psr->orb.t += psr->orb.p/SECPERDAY*(psr->orb.w/TWOPI);
       psr->orb.w *= RADTODEG;
     }
     /* psr->orb.t is in seconds, _not_ MJD.  It represents the */
