@@ -48,7 +48,9 @@ ATHLON_PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTATHLINK) $(DMALLOCLINK)
 # When modifying the CLIG files, the is the location of the clig binary
 CLIG = /usr/local/clig/bin/clig
 
-# For Pentium with GCC
+# For Pentium or Athlon with GCC
+# For Pentium3 or Pentium4s, use -march=pentiumpro
+# For Athlons use -march=k6 or -march=k7
 CC = gcc
 FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
@@ -155,7 +157,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
-	dat2sdat sdat2dat downsample
+	dat2sdat sdat2dat downsample rednoise
 
 xwin: psrorbit window plotbincand profile \
 	prepfold show_pfd\
@@ -289,6 +291,9 @@ realfft: realfft_cmd.c realfft_cmd.o realfft.o
 
 #realfft_4step: realfft_4step.o
 #	$(CC) $(CLINKFLAGS) -o $@ realfft_4step.o $(PRESTOLINK) -lm
+
+rednoise: rednoise_cmd.c rednoise.o rednoise_cmd.o
+	$(CC) $(CLINKFLAGS) -o $@ rednoise.o rednoise_cmd.o $(PRESTOLINK) -lm
 
 search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o 
 	$(CC) $(CLINKFLAGS) -o $@ search_bin.o search_bin_cmd.o $(ATHLON_PRESTOLINK)  -lm
