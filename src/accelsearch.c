@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
   int ii;
   double ttim, utim, stim, tott;
   struct tms runtimes;
-  subharminfo *subharminf;
+  subharminfo **subharminfs;
   accelobs obs;
   infodata idata;
   GSList *cands=NULL;
@@ -57,86 +57,76 @@ int main(int argc, char *argv[])
   printf("              by Scott M. Ransom\n");
   printf("                February, 2001\n\n");
 
-  /* Read the info file */
-
-  readinf(&idata, cmd->argv[0]);
-  if (idata.object) {
-    printf("Analyzing %s data from '%s'.\n\n", 
-	   remove_whitespace(idata.object), cmd->argv[0]);
-  } else {
-    printf("Analyzing data from '%s'.\n\n", cmd->argv[0]);
-  }
-
   /* Create the accelobs structure */
   
   create_accelobs(&obs, &idata, cmd);
-
+  
   /* Generate the correlation kernels */
-
-  printf("Generating fdot kernels for the correlations...\n");
-  fflush(NULL);
-  subharminf = create_subharminfo_vect(cmd->numharm, cmd->zmax);
+  
+  printf("Generating correlation kernels:\n");
+  subharminfs = create_subharminfos(obs.numharm, (int) obs.zhi);
   printf("Done.\n\n");
-
+  
   /* Start the main search loop */
-
+  
   {
-    int harm_to_sum=1;
     double startr=obs.rlo, lastr=0, nextr=0;
     ffdotpows *fundamental;
     
     while (startr < obs.highestbin){  /* Search the fundamental */
-      harm_to_sum = 1;
       nextr = startr + ACCEL_USELEN * ACCEL_DR;
       lastr = nextr - ACCEL_DR;
-      fundamental = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
-					&subharminf[harm_to_sum], &obs);
-      search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
-
+printf("Fundamental r = %f\n", startr);
+      fundamental = subharm_ffdot_plane(1, 1, startr, lastr, 
+					&subharminfs[1][1], &obs);
+      search_ffdotpows(fundamental, 1, &obs, cands);
+      
       if (obs.numharm > 1){   /* Search the subharmonics */
 	ffdotpows *fundamental_copy, *subharmonic;
-
-	harm_to_sum = 2;
+	
 	fundamental_copy = copy_ffdotpows(fundamental);
 
 	/* Search the 1/2 subharmonic (i.e. 1/2 fundamental) */
 
-	subharmonic = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
-					  &subharminf[harm_to_sum], &obs);
-	add_ffdotpows(fundamental, subharmonic, harm_to_sum, 1);
+printf("  1/2 harmonic\n");
+	subharmonic = subharm_ffdot_plane(2, 1, startr, lastr, 
+					  &subharminfs[2][1], &obs);
+	add_ffdotpows(fundamental, subharmonic, 2, 1);
 	free_ffdotpows(subharmonic);
-	search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
+	search_ffdotpows(fundamental, 2, &obs, cands);
 
 	/* Search the 1/4 subharmonic by building on the 1/2 */
 
 	if (obs.numharm == 4){
-	  harm_to_sum = 4;
-	  subharmonic = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
-					    &subharminf[harm_to_sum], &obs);
-	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 1);
+printf("  1/4 harmonic\n");
+	  subharmonic = subharm_ffdot_plane(4, 1, startr, lastr, 
+					    &subharminfs[4][1], &obs);
+	  add_ffdotpows(fundamental, subharmonic, 4, 1);
 	  free_ffdotpows(subharmonic);
-	  subharmonic = subharm_ffdot_plane(harm_to_sum, 3, startr, lastr, 
-					    &subharminf[harm_to_sum], &obs);
-	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 3);
+printf("  3/4 harmonic\n");
+	  subharmonic = subharm_ffdot_plane(4, 3, startr, lastr, 
+					    &subharminfs[4][3], &obs);
+	  add_ffdotpows(fundamental, subharmonic, 4, 3);
 	  free_ffdotpows(subharmonic);
-	  search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
+	  search_ffdotpows(fundamental, 4, &obs, cands);
 	}
 	
 	/* Search the 1/3 subharmonic (work from scratch) */
 
 	if (obs.numharm >= 3){
-	  harm_to_sum = 3;
 	  free_ffdotpows(fundamental);
 	  fundamental = copy_ffdotpows(fundamental_copy);
-	  subharmonic = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
-					    &subharminf[harm_to_sum], &obs);
-	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 1);
+printf("  1/3 harmonic\n");
+	  subharmonic = subharm_ffdot_plane(3, 1, startr, lastr, 
+					    &subharminfs[3][1], &obs);
+	  add_ffdotpows(fundamental, subharmonic, 3, 1);
 	  free_ffdotpows(subharmonic);
-	  subharmonic = subharm_ffdot_plane(harm_to_sum, 2, startr, lastr, 
-					    &subharminf[harm_to_sum], &obs);
-	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 2);
+printf("  2/3 harmonic\n");
+	  subharmonic = subharm_ffdot_plane(3, 2, startr, lastr, 
+					    &subharminfs[3][2], &obs);
+	  add_ffdotpows(fundamental, subharmonic, 3, 2);
 	  free_ffdotpows(subharmonic);
-	  search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
+	  search_ffdotpows(fundamental, 3, &obs, cands);
 	}
 	free_ffdotpows(fundamental_copy);
       }
@@ -145,6 +135,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  free_subharminfos(obs.numharm, subharminfs);
   printf("\nDone searching.  ");
   printf("Now optimizing each candidate.\n\n");
 
@@ -187,7 +178,7 @@ int main(int argc, char *argv[])
  
     /* Write the harmonics to the output text file */
 
-    output_harmonics(props, cands, &obs, &idata);
+    output_harmonics(cands, &obs);
 
     /* Write the fundamental fourierprops to the cand file */
 
