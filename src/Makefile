@@ -39,7 +39,7 @@ LIBSUFFIX = so
 PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 
 # Use the following if we are using DMALLOC
-DMALLOCLINK = -ldmalloc
+#DMALLOCLINK = -ldmalloc
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
@@ -51,7 +51,7 @@ CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 	-g -Wall -W -O -fPIC \
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-DUSEDMALLOC 
+#	-DUSEDMALLOC 
 #	-g -Wall -W -O2 -mcpu=pentiumpro -march=pentiumpro -fPIC \
 #	-g -ansi -pedantic -Wall -W -fpic \
 #	-Dinline= -Wmissing-prototypes \
@@ -98,7 +98,6 @@ FLINKFLAGS = $(FFLAGS)
 
 # Rules for CLIG generated files
 
-%_cmd.o : %_cmd.c
 %_cmd.c : ../clig/%_cmd.cli
 	cd ../clig ; clig -o $*_cmd -d $<
 	mv ../clig/$*_cmd.h ../include/
@@ -156,11 +155,11 @@ bary: bary.o
 	$(CC) $(CFLAGS) -o $@ bary.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-bincand: bincand_cmd.o bincand.o
+bincand: bincand_cmd.c bincand_cmd.o bincand.o
 	$(CC) $(CFLAGS) -o $@ bincand.o bincand_cmd.o $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-dftfold: dftfold_cmd.o dftfold.o 
+dftfold: dftfold_cmd.c dftfold_cmd.o dftfold.o 
 	$(CC) $(CFLAGS) -o $@ dftfold.o dftfold_cmd.o $(PRESTOLINK) -lm
 	cp $@ ../bin
 
@@ -179,7 +178,7 @@ check_parkes_raw: check_parkes_raw.o
 test_multifiles: test_multifiles.o
 	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(EXTRALINK) $(PRESTOLINK) -lm
 
-rfifind: rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(PLOT2DOBJS)
+rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@  $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
@@ -198,11 +197,11 @@ searchmultidms: searchmultidms.o com.o randlib.o $(PLOT2DOBJS)
 test_fold: test_fold.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
-prepdata: prepdata_cmd.o prepdata.o 
+prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o 
 	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-prepfold: prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
+prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
@@ -234,7 +233,7 @@ plotbincand: plotbincand.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotbincand.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
-profile: profile_cmd.o profile.o $(PLOT2DOBJS)
+profile: profile_cmd.c profile_cmd.o profile.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) profile.o profile_cmd.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
@@ -250,11 +249,11 @@ quicklook: quicklook.o
 	$(CC) $(CFLAGS) -o $@ quicklook.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-readfile: readfile_cmd.o readfile.o 
+readfile: readfile_cmd.c readfile_cmd.o readfile.o 
 	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-realfft: realfft_cmd.o realfft.o 
+realfft: realfft_cmd.c realfft_cmd.o realfft.o 
 	$(CC) $(CFLAGS) -o $@ realfft.o realfft_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
@@ -262,11 +261,11 @@ realfft: realfft_cmd.o realfft.o
 #	$(CC) $(CFLAGS) -o $@ realfft_4step.o $(EXTRALINK) $(PRESTOLINK) -lm
 #	cp $@ ../bin
 
-search_bin: search_bin_cmd.o search_bin.o 
+search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o 
 	$(CC) $(CFLAGS) -o $@ search_bin.o search_bin_cmd.o $(EXTRALINK) $(PRESTOLINK)  -lm
 	cp $@ ../bin
 
-search_rzw: search_rzw_cmd.o search_rzw.o 
+search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o 
 	$(CC) $(CFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
@@ -274,7 +273,7 @@ taperaw: taperaw.o
 	$(CC) $(CFLAGS) -o $@ taperaw.o $(DMALLOCLINK) 
 	cp $@ ../bin
 
-toas2dat: toas2dat_cmd.o toas2dat.o 
+toas2dat: toas2dat_cmd.c toas2dat_cmd.o toas2dat.o 
 	$(CC) $(CFLAGS) -o $@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK) 
 	cp $@ ../bin
 
