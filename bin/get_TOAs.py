@@ -157,8 +157,12 @@ if __name__ == '__main__':
 	# Calculate the center of the summed subband freqs and delays
 	sumsubfreqs = (Num.arange(numsubbands)+0.5)*subpersumsub*fold_pfd.subdeltafreq + \
                       (fold_pfd.lofreq-0.5*fold_pfd.chan_wid)
+	# Note:  In the following, we cannot use fold_pfd.hifreqdelay since that
+	#        is based on the _barycentric_ high frequency (if the barycentric 
+	#        conversion was available).  For TOAs, we need a topocentric
+	#        delay, which is based on the topocentric frequency fold_pfd.hifreq
 	sumsubdelays = (psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) -
-                        fold_pfd.hifreqdelay)/SECPERDAY
+                        psr_utils.delay_from_DM(fold_pfd.bestdm, fold_pfd.hifreq))/SECPERDAY
     else:
 	fold_pfd.subfreqs = asarray([0.0])
 	sumsubfreqs = asarray([0.0])

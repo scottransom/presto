@@ -96,6 +96,7 @@ class pfd:
 	self.binspersec = self.fold_p1*self.proflen
 	self.chanpersub = self.numchan/self.nsub
 	self.subdeltafreq = self.chan_wid*self.chanpersub
+	self.hifreq = self.lofreq + (self.numchan-1)*self.chan_wid
 	self.losubfreq = self.lofreq + self.subdeltafreq - self.chan_wid
 	self.subfreqs = Num.arange(self.nsub, typecode='d')*self.subdeltafreq + \
                         self.losubfreq
@@ -123,6 +124,7 @@ class pfd:
         self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
         infile.close()
+        self.barysubfreqs = None
         if self.avgvoverc==0:
             print "Determining the approximate Doppler correction: ",
             if self.candnm.startswith("PSR_"):
@@ -135,9 +137,11 @@ class pfd:
                     self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
                     print self.avgvoverc
                     # Make the Doppler correction
-                    self.subfreqs *= 1.0+self.avgvoverc
+                    self.barysubfreqs = self.subfreqs*(1.0+self.avgvoverc)
                 except IOError:
                     self.polycos = 0
+        if self.barysubfreqs is None:
+            self.barysubfreqs = self.subfreqs
 
     def __str__(self):
         out = ""
@@ -160,7 +164,7 @@ class pfd:
         """
         if DM is None:
             DM = self.bestdm
-        self.subdelays = psr_utils.delay_from_DM(DM, self.subfreqs)
+        self.subdelays = psr_utils.delay_from_DM(DM, self.barysubfreqs)
 	self.hifreqdelay = self.subdelays[-1]
 	self.subdelays = self.subdelays-self.hifreqdelay
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
@@ -336,7 +340,7 @@ class pfd:
         chis = Num.zeros(N, typecode='f')
         subdelays_bins = self.subdelays_bins.copy()
         for ii, DM in enumerate(DMs):
-            subdelays = psr_utils.delay_from_DM(DM, self.subfreqs)
+            subdelays = psr_utils.delay_from_DM(DM, self.barysubfreqs)
             hifreqdelay = subdelays[-1]
             subdelays = subdelays - hifreqdelay
             delaybins = subdelays*self.binspersec - subdelays_bins
