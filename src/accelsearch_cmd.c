@@ -904,7 +904,7 @@ usage(void)
    -photon: Data is poissonian so use freq 0 as power normalization\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 28Oct03\n\
+version: 22Apr04\n\
 ");
   exit(EXIT_FAILURE);
 }

@@ -160,6 +160,7 @@ xwin: psrorbit window plotbincand profile \
 
 links:
 	cd ../bin ; find ../src -type f -perm 755 | xargs -n 1 -iXXX cp -s XXX .
+	cd ../bin ; find ../src -type f -perm 775 | xargs -n 1 -iXXX cp -s XXX .
 	rm -f ../bin/libpresto.so
 
 geomview: togeomview

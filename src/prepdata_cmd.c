@@ -1000,7 +1000,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...512 values\n\
-version: 23Jan04\n\
+version: 22Apr04\n\
 ");
   exit(EXIT_FAILURE);
 }

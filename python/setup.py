@@ -55,7 +55,7 @@ if os.name == "posix":
 else:
     raise Exception, "os not supported"
 
-ext_ppgplot = make_extension('ppgplot',
+ext_ppgplot = make_extension('_ppgplot',
 			[os.path.join('ppgplot_src','_ppgplot.c')],
 			include_dirs=ppgplot_include_dirs,
 			libraries=ppgplot_libraries,

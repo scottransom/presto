@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -97,7 +97,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -168,7 +168,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -209,7 +209,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -279,7 +279,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -319,7 +319,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -387,7 +387,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -422,7 +422,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -493,7 +493,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -519,16 +519,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -823,7 +830,7 @@ usage(void)
            1 char* value\n\
   infiles: Input data file(s)\n\
            1...16 values\n\
-version: 21Dec00\n\
+version: 22Apr04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -831,7 +838,7 @@ version: 21Dec00\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -867,16 +874,16 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-tmpdir", argv[i]) ) {
+      int keep = i;
       cmd.tmpdirP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.tmpdir, 1);
       cmd.tmpdirC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-outdir", argv[i]) ) {
+      int keep = i;
       cmd.outdirP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.outdir, 1);
       cmd.outdirC = i-keep;
       continue;

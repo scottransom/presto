@@ -1103,7 +1103,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name(s).\n\
               1...512 values\n\
-version: 17Mar04\n\
+version: 22Apr04\n\
 ");
   exit(EXIT_FAILURE);
 }

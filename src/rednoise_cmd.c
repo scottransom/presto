@@ -801,7 +801,7 @@ usage(void)
                default: `6'\n\
          file: Input '.fft' file.\n\
                1 value\n\
-version: 05Nov02\n\
+version: 22Apr04\n\
 ");
   exit(EXIT_FAILURE);
 }
