@@ -22,6 +22,7 @@ Usage:  concatdata outfile numpts padval infile1 infile2 ...
 from sys import argv, exit
 from string import atol, rfind
 from presto import *
+from infodata import *
 from math import modf
 from Numeric import *
 
@@ -88,8 +89,9 @@ for index in range(len(argv)-4):
 
     # Get the info about the data file
 
-    file_data.append(infodata())
-    file_data[index] = readinf(infile[index])
+    file_data.append(infodata(infile[index]+".inf"))
+    file_data[index].mjd_i = int(file_data[index].epoch)
+    file_data[index].mjd_f = file_data[index].epoch - file_data[index].mjd_i
     file_N.append(long(file_data[index].N + 1.0e-10))
     file_startMJDi.append(file_data[index].mjd_i)
     file_startMJDf.append(file_data[index].mjd_f)
