@@ -270,7 +270,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	  /* Search over the periods */
 	  
 	  for (kk = 0; kk < search->numperiods; kk++){
-	    pdelay = search->pdstep * (kk - (search->numperiods - 1) / 2);
+	    pdelay = search->pstep * (kk - (search->numperiods - 1) / 2);
 	    combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
 			  pdelay, currentprof, &currentstats);
 
@@ -409,8 +409,6 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	    TEST_EQUAL(search->pdots[jj], bestpd)){
 	  int wrap;
 	  
-printf("%.14g  %.14g", search->periods[kk], bestp); 
-printf("  %.14g  %.14g", search->pdots[jj], bestpd); 
 	  /* The Best Prof */
 
 	  double2float(currentprof, bestprof, search->proflen);
@@ -438,7 +436,6 @@ printf("  %.14g  %.14g", search->pdots[jj], bestpd);
 	      lastprof[mm] += currentprof[mm];
 	    profavg += search->stats[ll].prof_avg;
 	    profvar += search->stats[ll].prof_var;
-printf("Writing timechi()\n");
 	    timechi[ll+1] = (chisqr(lastprof, search->proflen, 
 				    profavg, profvar) / 
 			     (double) (search->proflen - 1.0));
@@ -523,14 +520,12 @@ printf("Writing timechi()\n");
       cpgsvp (0.27, 0.36, 0.09, 0.68);
     else
       cpgsvp (0.27, 0.39, 0.09, 0.68);
-printf("1\n");
     cpgswin(0.0, 1.1 * max, 0.0, T);
 
     cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
     cpgline(search->npart+1, timechi, parttimes);
-printf("2\n");
     cpgswin(0.0, 1.1 * max, search->startT-0.0001, search->endT+0.0001);
     if (search->nsub > 1)
       cpgsch(0.7);
@@ -569,7 +564,6 @@ printf("2\n");
 
       cpgsvp (0.44, 0.66, 0.09, 0.22);
       find_min_max_arr(search->numdms, dmchi, &min, &max);
-printf("3\n");
       cpgswin(search->dms[0], search->dms[search->numdms-1], 
 	      0.0, 1.1 * max);
       cpgsch(0.7);
@@ -686,7 +680,6 @@ printf("3\n");
       find_min_max_arr(search->numperiods, periodchi, &min, &max);
       if (search->nsub > 1){
 	cpgsvp (0.74, 0.94, 0.41, 0.51);
-printf("4\n");
 	cpgswin(x1l, x1h, 0.0, 1.1 * max);
 	cpgline(search->numperiods, ftmparr1, periodchi);
 	cpgsch(0.5);
@@ -715,7 +708,6 @@ printf("4\n");
       find_min_max_arr(search->numpdots, pdotchi, &min, &max);
       if (search->nsub > 1){
 	cpgsvp (0.74, 0.94, 0.58, 0.68);
-printf("5\n");
 	cpgswin(y1l, y1h, 0.0, 1.1 * max);
 	cpgline(search->numpdots, ftmparr1, pdotchi);
 	cpgsch(0.5);
@@ -744,7 +736,6 @@ printf("5\n");
 	cpgsvp (0.74, 0.94, 0.09, 0.29);
       else
 	cpgsvp (0.51, 0.82, 0.09, 0.49);
-printf("6\n");
       cpgswin(x1l, x1h, y1l, y1h);
       nr = search->numpdots;
       nc = search->numperiods;
@@ -771,7 +762,6 @@ printf("6\n");
 	cpgsch(0.7);
 	cpgmtxt("B", 2.4, 0.5, 0.5, pout);
 	cpgmtxt("L", 2.0, 0.5, 0.5, pdout);
-printf("7\n");
 	cpgswin(x2l, x2h, y2l, y2h);
 	cpgsch(0.5);
 	cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
