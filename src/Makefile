@@ -21,19 +21,19 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I/home/ransom/fftw/include
+FFTINCDIR = -I/usr/local/include
 # Path to FFT libraries
-FFTLIBDIR = -L/home/ransom/fftw/lib
+FFTLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lsfftw
 RFFTLINK = -lsrfftw
 # Path to Special Athlon version of FFTW for correlations
-FFTATHINCDIR = -I/home/ransom/fftw_athlon/include
+FFTATHINCDIR = -I/usr/local/include
 # Path to FFT libraries
-FFTATHLIBDIR = -L/home/ransom/fftw_athlon/lib
+FFTATHLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
-FFTATHLINK = $(FFTATHLIBDIR) -lfftw
-RFFTATHLINK = $(FFTATHLIBDIR) -lrfftw
+FFTATHLINK = $(FFTLIBDIR) -lsfftw
+RFFTATHLINK = -lsrfftw
 
 # Other include directoried (i.e. glib.h)
 OTHERINCDIR = -I/home/ransom/include/glib-1.2
@@ -146,7 +146,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd\
-	rfifind zapbirds plotdat plotfft
+	rfifind zapbirds plotdat plotfft explorefft
 
 geomview: togeomview
 
@@ -331,6 +331,10 @@ zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -L/home/ransom/lib -lglib -lm
 	cp $@ ../bin
 
+explorefft: explorefft.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ explorefft.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
 clean:
 	rm -f *.o *~ *#
 
@@ -342,7 +346,7 @@ cleaner:  clean
 	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
-	rm -f accelsearch prepsubband $(PRESTOLIBNM)
+	rm -f accelsearch prepsubband explorefft $(PRESTOLIBNM)
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
 
 squeaky:  cleaner
@@ -361,4 +365,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
 	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
 	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles accelsearch
-	cd $(PRESTO)/bin ; rm -f prepsubband plotdat plotfft
+	cd $(PRESTO)/bin ; rm -f prepsubband plotdat plotfft explorefft
