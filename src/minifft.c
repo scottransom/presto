@@ -39,8 +39,15 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 /*   'numbetween' the points to interpolate per bin                 */
 /*   'interptype' is either INTERBIN or INTERPOLATE.                */
 /*      INTERBIN = (interbinning) is fast but less sensitive.       */
+/*         NOTE:  INTERBINNING is conducted by this routine!        */
 /*      INTERPOLATE = (Fourier interpolation) is slower but more    */
 /*        sensitive.                                                */
+/*         NOTE:  The interpolation is assumed to ALREADY have been */
+/*                completed by the calling function!  The easiest   */
+/*                way is by zero-padding to 2*numfft and FFTing.    */
+/*                If you use this method, make sure numfft is the   */
+/*                original length rather than the interpolated      */
+/*                length and also make sure numbetween is correct.  */
 /*   'norm' is the normalization constant to multiply each power by */
 /*   'sigmacutoff' if the number of candidates will be determined   */
 /*      automatically, is the minimum Gaussian significance of      */
@@ -53,19 +60,16 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 /*   'powmax' is a return value giving the maximum power            */
 {
   int ii, jj, offset, numtosearch, dynamic=0;
-  int numspread=0, kern_half_width, numkern=0, nc=0, startnc=10;
+  int numspread=0, nc=0, startnc=10;
   float powargr, powargi, *fullpows=NULL, *sumpows, ftmp;
   double twobypi, minpow=0.0, tmpminsig=0.0, dr, davg, dvar;
-  static int firsttime=1, old_numfft=0;
-  static fcomplex *kernel;
   fftcand *cands, newcand;
-  fcomplex *spread, *kern;
+  fcomplex *spread;
 
   /* Override the value of numbetween if interbinning */
 
-  if (interptype == INTERBIN)
-    numbetween = 2;
-  norm = 1.0 / norm;
+  if (interptype == INTERBIN) numbetween = 2;
+  norm = 1.0/norm;
   *powmax = 0.0;
 
   /* Decide if we will manage the number of candidates */
@@ -82,51 +86,32 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 
   /* Prep some other values we will need */
 
-  dr = 1.0 / (double) numbetween;
-  twobypi = 1.0 / PIBYTWO;
-  numtosearch = numfft * numbetween;
-  numspread = padfftlen(numfft, numbetween, &kern_half_width);
+  dr = 1.0/(double)numbetween;
+  twobypi = 2.0/PI;
+  numtosearch = numfft*numbetween;
 
-  /* Prep the interpolation kernel if needed */
-
-  if (interptype == INTERPOLATE){
-    if (firsttime || (old_numfft != numfft)){
-      if (!firsttime) free(kernel);
-      numkern = 2 * numbetween * kern_half_width;
-      kern = gen_r_response(0.0, numbetween, numkern);
-      kernel = gen_cvect(numspread);
-      place_complex_kernel(kern, numkern, kernel, numspread);
-      COMPLEXFFT(kernel, numspread, -1);
-      free(kern);
-      firsttime = 0;
-      old_numfft = numfft;
-    }
-  }
-  
   /* Spread and interpolate the fft */
   
-  spread = gen_cvect(numspread);
-  spread_with_pad(fft, numfft, spread, numspread, numbetween, 0);
-  /* Nyquist is in spread[0].i, but it is usually */
-  /* _big_ so we won't use it.                    */
-  spread[0].r = spread[numtosearch].r = 1.0;
-  spread[0].i = spread[numtosearch].i = 0.0;
-  if (interptype == INTERPOLATE){  /* INTERPOLATE */
-    spread = complex_corr_conv(spread, kernel, numspread, \
-			       FFTD, INPLACE_CORR);
+  numspread = numfft*numbetween+1;
+  if (interptype==INTERPOLATE){  /* INTERPOLATE */
+    spread = fft;
   } else {                         /* INTERBIN */
-    for (ii = 1; ii < numtosearch; ii += 2){
-      spread[ii].r = twobypi * (spread[ii-1].r - spread[ii+1].r);
-      spread[ii].i = twobypi * (spread[ii-1].i - spread[ii+1].i);
+    spread = gen_cvect(numspread);
+    spread_with_pad(fft, numfft, spread, numspread, numbetween, 0);
+    for (ii=1; ii<numtosearch; ii+=2){
+      spread[ii].r = twobypi*(spread[ii-1].r - spread[ii+1].r);
+      spread[ii].i = twobypi*(spread[ii-1].i - spread[ii+1].i);
     }
   }
-  fullpows = gen_fvect(numtosearch);
+  spread[0].r = spread[numtosearch].r = 1.0;
+  spread[0].i = spread[numtosearch].i = 0.0;
 
   /* First generate the original powers in order to         */
   /* calculate the statistics.  Yes, this is inefficient... */
 
-  for (ii = lobin, jj = 0; ii < hibin; ii++, jj++){
-    ftmp = POWER(fft[ii].r, fft[ii].i) * norm;
+  fullpows = gen_fvect(numtosearch);
+  for (ii=lobin, jj=0; ii<hibin; ii++, jj++){
+    ftmp = POWER(fft[ii].r, fft[ii].i)*norm;
     fullpows[jj] = ftmp;
     if (ftmp > *powmax) *powmax = ftmp;
   }
@@ -136,13 +121,13 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
   fullpows[0] = 1.0;
   for (ii = 1; ii < numtosearch; ii++)
     fullpows[ii] = POWER(spread[ii].r, spread[ii].i) * norm;
-  free(spread);
+  if (interptype==INTERBIN) free(spread);
 
   /* Search the raw powers */
   
-  for (ii = lobin * numbetween; ii < hibin * numbetween; ii++) {
+  for (ii=lobin*numbetween; ii<hibin*numbetween; ii++) {
     if (fullpows[ii] > minpow){
-      newcand.r = dr * (double) ii;
+      newcand.r = dr*(double)ii;
       newcand.p = fullpows[ii];
       newcand.sig = candidate_sigma(fullpows[ii], 1, hibin-lobin);
       newcand.nsum = 1;
@@ -152,7 +137,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 	nc++;
 	if (nc==startnc){
 	  startnc *= 2;
-	  cands = (fftcand *)realloc(cands, startnc * sizeof(fftcand));
+	  cands = (fftcand *)realloc(cands, startnc*sizeof(fftcand));
 	  for (jj=nc; jj<startnc; jj++)
 	    cands[jj].sig = 0.0;
 	}
@@ -168,16 +153,16 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
   if (numharmsum > 1){
     sumpows = gen_fvect(numtosearch);
     memcpy(sumpows, fullpows, sizeof(float) * numtosearch);
-    for (ii = 2; ii <= numharmsum; ii++){
-      offset = ii / 2;
+    for (ii=2; ii<=numharmsum; ii++){
+      offset = ii/2;
       if (dynamic)
 	minpow = power_for_sigma(sigmacutoff, ii, hibin-lobin);
       else
 	minpow = power_for_sigma(tmpminsig, ii, hibin-lobin);
       for (jj = lobin * numbetween; jj < numtosearch; jj++){
-	sumpows[jj] += fullpows[(jj + offset) / ii];
+	sumpows[jj] += fullpows[(jj+offset)/ii];
 	if (sumpows[jj] > minpow) {
-	  newcand.r = dr * (double) jj;
+	  newcand.r = dr*(double)jj;
 	  newcand.p = sumpows[jj];
 	  newcand.sig = candidate_sigma(sumpows[jj], ii, hibin-lobin);
 	  newcand.nsum = ii;
@@ -205,7 +190,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
   /* Chop off the unused parts of the dynamic array */
   
   if (dynamic)
-    cands = (fftcand *)realloc(cands, nc * sizeof(fftcand));
+    cands = (fftcand *)realloc(cands, nc*sizeof(fftcand));
   *numcands = nc;
   return cands;
 }
@@ -236,103 +221,87 @@ void search_minifft(fcomplex *minifft, int numminifft,
   /*   'timefullfft' the duration of the original time series (s)    */
   /*   'lorfullfft' the 1st bin of the long FFT that was miniFFT'd   */
   /*   'interptype' is either INTERBIN or INTERPOLATE.               */
-  /*      INTERBIN = (interbinning) is fast but less sensitive.      */
-  /*      INTERPOLATE = (Fourier interpolation) is slower but more   */
-  /*        sensitive.                                               */
+/*      INTERBIN = (interbinning) is fast but less sensitive.        */
+/*         NOTE:  INTERBINNING is conducted by this routine!         */
+/*      INTERPOLATE = (Fourier interpolation) is slower but more     */
+/*        sensitive.                                                 */
+/*         NOTE:  The interpolation is assumed to ALREADY have been  */
+/*                completed by the calling function!  The easiest    */
+/*                way is by zero-padding to 2*numminifft and FFTing. */
+/*                If you use this method, make sure numminifft is the*/
+/*                original length rather than the interpolated       */
+/*                length and also make sure numbetween is correct.   */
   /*   'checkaliased' is either CHECK_ALIASED or NO_CHECK_ALIASED.   */
   /*      NO_CHECK_ALIASED = harmonic summing does not include       */
   /*        aliased freqs making it faster but less sensitive.       */
   /*      CHECK_ALIASED = harmonic summing includes aliased freqs    */
   /*        making it slower but more sensitive.                     */
 {
-  int ii, jj, fftlen, offset, numtosearch, lobin, hibin;
-  int numspread = 0, kern_half_width, numkern = 0;
-  float powargr, powargi, *fullpows = NULL, *sumpows;
+  int ii, jj, fftlen, offset, numtosearch=0, lobin, hibin, numspread=0;
+  float powargr, powargi, *fullpows=NULL, *sumpows;
   double twobypi, minpow, minsig, dr, numindep;
-  static int firsttime = 1, old_numminifft = 0;
-  static fcomplex *kernel;
-  fcomplex *spread, *kern;
+  fcomplex *spread;
 
   /* Override the value of numbetween if interbinning */
 
-  if (interptype == INTERBIN)
-    numbetween = 2;
+  if (interptype==INTERBIN) numbetween = 2;
 
   /* Prep some other values we will need */
 
-  dr = 1.0 / (double) numbetween;
-  twobypi = 1.0 / PIBYTWO;
-  fftlen = numminifft * numbetween;
-  numspread = padfftlen(numminifft, numbetween, &kern_half_width);
-  for (ii = 0; ii < numcands; ii++){
+  dr = 1.0/(double)numbetween;
+  twobypi = 2.0/PI;
+  fftlen = numminifft*numbetween;
+  for (ii=0; ii<numcands; ii++){
     cands[ii].mini_sigma = 0.0;
     cands[ii].mini_power = 0.0;
   }
-  lobin = ceil(2 * numminifft * min_orb_p / timefullfft);
+  lobin = ceil(2*numminifft*min_orb_p/timefullfft);
   if (lobin <= 0)
     lobin = 1;
-  hibin = floor(2 * numminifft * max_orb_p / timefullfft);
-  if (hibin >= 2 * numminifft)
-    hibin = 2 * numminifft - 1;
+  hibin = floor(2*numminifft*max_orb_p/timefullfft);
+  if (hibin >= 2*numminifft)
+    hibin = 2*numminifft - 1;
   lobin *= numbetween;
   hibin *= numbetween;
   
-  /* Prep the interpolation kernel if needed */
-
-  if (interptype == INTERPOLATE){
-    if (firsttime || (old_numminifft != numminifft)){
-      if (!firsttime) free(kernel);
-      numkern = 2 * numbetween * kern_half_width;
-      kern = gen_r_response(0.0, numbetween, numkern);
-      kernel = gen_cvect(numspread);
-      place_complex_kernel(kern, numkern, kernel, numspread);
-      COMPLEXFFT(kernel, numspread, -1);
-      free(kern);
-      firsttime = 0;
-      old_numminifft = numminifft;
+  /* Spread and interpolate the fft */
+  
+  numtosearch = (checkaliased==CHECK_ALIASED) ? 2*fftlen : fftlen;
+  numspread = numminifft*numbetween+1;
+  if (interptype==INTERPOLATE){  /* INTERPOLATE */
+    spread = minifft;
+  } else {                         /* INTERBIN */
+    spread = gen_cvect(numspread);
+    spread_with_pad(minifft, numminifft, spread, numspread, numbetween, 0);
+    for (ii=1; ii<fftlen; ii+=2){
+      spread[ii].r = twobypi*(spread[ii-1].r - spread[ii+1].r);
+      spread[ii].i = twobypi*(spread[ii-1].i - spread[ii+1].i);
     }
   }
-  
-  /* Spread and interpolate the minifft */
-  
-  spread = gen_cvect(numspread);
-  spread_with_pad(minifft, numminifft, spread, numspread, numbetween, 0);
-  /* Nyquist is in spread[0].i, but it is usually */
-  /* _big_ so we won't use it.                    */
   spread[0].r = spread[fftlen].r = 1.0;
   spread[0].i = spread[fftlen].i = 0.0;
-  if (interptype == INTERPOLATE){  /* INTERPOLATE */
-    spread = complex_corr_conv(spread, kernel, numspread, \
-			       FFTD, INPLACE_CORR);
-  } else {                         /* INTERBIN */
-    for (ii = 1; ii < fftlen; ii += 2){
-      spread[ii].r = twobypi * (spread[ii-1].r - spread[ii+1].r);
-      spread[ii].i = twobypi * (spread[ii-1].i - spread[ii+1].i);
-    }
-  }
-
-  numtosearch = (checkaliased == CHECK_ALIASED) ? 2 * fftlen : fftlen;
+  
   fullpows = gen_fvect(numtosearch);
   fullpows[0] = 1.0;
-  if (checkaliased == CHECK_ALIASED)
+  if (checkaliased==CHECK_ALIASED)
     fullpows[fftlen] = 1.0;  /* used to be nyquist^2 */
 
   /* The following wraps the data around the Nyquist freq such that */
   /* we consider aliased frequencies as well (If CHECK_ALIASED).    */
   
-  if (checkaliased == CHECK_ALIASED)
-    for (ii = 1, jj = numtosearch - 1; ii < fftlen; ii++, jj--)
+  if (checkaliased==CHECK_ALIASED)
+    for (ii=1, jj=numtosearch-1; ii<fftlen; ii++, jj--)
       fullpows[ii] = fullpows[jj] = POWER(spread[ii].r, spread[ii].i);
   else
-    for (ii = 1; ii < numtosearch; ii++)
+    for (ii=1; ii<numtosearch; ii++)
       fullpows[ii] = POWER(spread[ii].r, spread[ii].i);
-  free(spread);
+  if (interptype==INTERBIN) free(spread);
 
   /* Search the raw powers */
 
   numindep = hibin-lobin+1.0;
   minpow = power_for_sigma(MINRETURNSIG, 1, numindep);
-  for (ii = lobin; ii < hibin; ii++) {
+  for (ii=lobin; ii<hibin; ii++) {
     if (fullpows[ii] > minpow) {
       cands[numcands-1].mini_r = dr * (double) ii; 
       cands[numcands-1].mini_power = fullpows[ii];
@@ -350,18 +319,18 @@ void search_minifft(fcomplex *minifft, int numminifft,
   if (numharmsum > 1){
     sumpows = gen_fvect(numtosearch);
     memcpy(sumpows, fullpows, sizeof(float) * numtosearch);
-    for (ii = 2; ii <= numharmsum; ii++){
-      offset = ii / 2;
+    for (ii=2; ii<=numharmsum; ii++){
+      offset = ii/2;
       numindep = (hibin-lobin+1.0)/(double)ii;
       if (cands[numcands-1].mini_sigma < MINRETURNSIG)
 	minsig = MINRETURNSIG;
       else 
 	minsig = cands[numcands-1].mini_sigma;
       minpow = power_for_sigma(minsig, ii, numindep);
-      for (jj = lobin * ii; jj < hibin; jj++){
-	sumpows[jj] += fullpows[(jj + offset) / ii];
+      for (jj=lobin*ii; jj<hibin; jj++){
+	sumpows[jj] += fullpows[(jj+offset)/ii];
 	if (sumpows[jj] > minpow) {
-	  cands[numcands-1].mini_r = (dr * (double) jj) / ii; 
+	  cands[numcands-1].mini_r = (dr*(double) jj)/ii; 
 	  cands[numcands-1].mini_power = sumpows[jj];
 	  cands[numcands-1].mini_numsum = (double) ii;
 	  cands[numcands-1].mini_sigma = 
@@ -378,13 +347,13 @@ void search_minifft(fcomplex *minifft, int numminifft,
 
   /* Add the rest of the rawbincand data to the candidate array */
 
-  for (ii = 0; ii < numcands; ii++){
+  for (ii=0; ii<numcands; ii++){
     cands[ii].full_N = numfullfft;
     cands[ii].full_T = timefullfft;
     cands[ii].full_lo_r = lorfullfft;
-    cands[ii].mini_N = 2 * numminifft;  /* # of real points */
-    cands[ii].psr_p = timefullfft / (lorfullfft + numminifft);
-    cands[ii].orb_p = timefullfft * cands[ii].mini_r / cands[ii].mini_N;
+    cands[ii].mini_N = 2*numminifft;  /* # of real points */
+    cands[ii].psr_p = timefullfft/(lorfullfft + numminifft);
+    cands[ii].orb_p = timefullfft*cands[ii].mini_r/cands[ii].mini_N;
   }
 }
 

@@ -31,24 +31,29 @@ int main(void)
   printf("This may take a while...\n\n");
   printf("Generating plans for FFTs of length:\n");
 
+  inout = fftwf_malloc(sizeof(fftwf_complex) * BIGFFTWSIZE + 2);
   while (fftlen <= BIGFFTWSIZE) {
-    inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
-    printf("   %d\n", fftlen);
+    printf("   %d forward\n", fftlen);
     plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
     fftwf_destroy_plan(plan);
+    printf("   %d backward\n", fftlen);
     plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_BACKWARD, FFTW_PATIENT);
     fftwf_destroy_plan(plan);
+    printf("   %d real-to-complex\n", fftlen);
+    plan = fftwf_plan_dft_r2c_1d(fftlen, (float *)inout, inout, FFTW_PATIENT);
+    fftwf_destroy_plan(plan);
     fftlen <<= 1;
-    fftwf_free(inout);
   }
+  fftwf_free(inout);
 
   fftlen = 10;
 
   while (fftlen <= BIGFFTWSIZE) {
     inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
-    printf("   %d\n", fftlen);
+    printf("   %d forward\n", fftlen);
     plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
     fftwf_destroy_plan(plan);
+    printf("   %d backward\n", fftlen);
     plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_BACKWARD, FFTW_PATIENT);
     fftwf_destroy_plan(plan);
     fftlen *= 10;
@@ -58,9 +63,10 @@ int main(void)
   for (ii = 0; ii < 13; ii++){
     fftlen = padlen[ii];
     inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
-    printf("   %d\n", fftlen);
+    printf("   %d forward\n", fftlen);
     plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
     fftwf_destroy_plan(plan);
+    printf("   %d backward\n", fftlen);
     plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_BACKWARD, FFTW_PATIENT);
     fftwf_destroy_plan(plan);
     fftwf_free(inout);

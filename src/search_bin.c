@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
   struct tms runtimes;
   double ttim, utim, stim, tott;
   Cmdline *cmd;
+  fftwf_plan fftplan;
 
   /* Prep the timer */
 
@@ -191,29 +192,53 @@ int main(int argc, char *argv[])
   numtoread = 6 * cmd->maxfft;
   if (cmd->stack == 0)
     powers = gen_fvect(numtoread);
-  minifft = gen_fvect(cmd->maxfft);
-  ncand2 = 2 * cmd->ncand;
+  minifft = (float *)fftwf_malloc(sizeof(float)*
+				  (cmd->maxfft*cmd->numbetween+2));
+  ncand2 = 2*cmd->ncand;
   list = (rawbincand *)malloc(sizeof(rawbincand) * ncand2);
-  for (ii = 0; ii < ncand2; ii++)
+  for (ii=0; ii<ncand2; ii++)
     list[ii].mini_sigma = 0.0;
-  for (ii = 0; ii < MININCANDS; ii++)
+  for (ii=0; ii<MININCANDS; ii++)
     tmplist[ii].mini_sigma = 0.0;
   filepos = cmd->rlo - cmd->lobin;
-  numchunks = (float) (cmd->rhi - cmd->rlo) / numtoread;
+  numchunks = (float) (cmd->rhi - cmd->rlo)/numtoread;
   printf("Searching...\n");
   printf("   Amount complete = %3d%%", 0);
   fflush(stdout);
 
+  /* Prep FFTW */
+  {
+    FILE *wisdomfile;
+    char wisdomfilenm[120];
+
+    /* First try to import the system wisdom if available */
+    fftwf_import_system_wisdom();
+    sprintf(wisdomfilenm, "%s/fftw_wisdom.txt", DATABASE);
+    wisdomfile = fopen(wisdomfilenm, "r");
+    if (wisdomfile == NULL) {
+      printf("Error opening '%s'.  Run makewisdom again.\n", \
+	     wisdomfilenm);
+      printf("Exiting.\n");
+      exit(1);
+    }
+    if (!fftwf_import_wisdom_from_file(wisdomfile)) {
+      printf("Error importing FFTW wisdom.\n");
+      printf("Exiting.\n");
+      exit(1);
+    }
+    fclose(wisdomfile);
+  }
+
   /* Loop through fftfile */
 
-  while ((filepos + cmd->lobin) < cmd->rhi) {
+  while ((filepos+cmd->lobin) < cmd->rhi) {
 
     /* Calculate percentage complete */
 
-    newper = (int) (loopct / numchunks * 100.0);
+    newper = (int)(loopct/numchunks*100.0);
 
     if (newper > oldper) {
-      newper = (newper > 99) ? 100 : newper;
+      newper = (newper>99) ? 100 : newper;
       printf("\r   Amount complete = %3d%%", newper);
       oldper = newper;
       fflush(stdout);
@@ -237,7 +262,7 @@ int main(int argc, char *argv[])
 
     if (cmd->stack == 0){
       data = read_fcomplex_file(fftfile, filepos, numtoread);
-      for (ii = 0; ii < numtoread; ii++)
+      for (ii=0; ii<numtoread; ii++)
 	powers[ii] = POWER(data[ii].r, data[ii].i);
       numsumpow = 1;
     } else {
@@ -254,27 +279,39 @@ int main(int argc, char *argv[])
 
     while (fftlen >= cmd->minfft) {
 
-      halffftlen = fftlen / 2;
+      halffftlen = fftlen/2;
       powers_pos = powers;
       powers_offset = 0;
-
+      
+      /* Create the appropriate FFT plan */
+      
+      fftplan = fftwf_plan_dft_r2c_1d(cmd->interbinP ? fftlen : 2*fftlen,
+				      minifft, (fftwf_complex *)minifft, 
+				      FFTW_PATIENT);
+      
       /* Perform miniffts at each section of the powers array */
 
       while ((numtoread - powers_offset) >
 	     (int) ((1.0 - cmd->overlap) * cmd->maxfft + DBLCORRECT)){
-
+	
 	/* Copy the proper amount and portion of powers into minifft */
 
-	memcpy(minifft, powers_pos, fftlen * sizeof(float));
+	memcpy(minifft, powers_pos, fftlen*sizeof(float));
+	/* For Fourier interpolation use a zeropadded FFT */
+	if (cmd->numbetween > 1 && !cmd->interbinP){
+	  for (ii=fftlen; ii<cmd->numbetween*fftlen; ii++)
+	    minifft[ii] = 0.0;
+	}
 
 	/* Perform the minifft */
 
-	realfft(minifft, fftlen, -1);
+	fftwf_execute(fftplan);
 
 	/* Normalize and search the miniFFT */
-
-	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
-	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
+	
+	norm = sqrt(fftlen*numsumpow)/minifft[0];
+	for (ii=0; ii<(cmd->interbinP ? fftlen+1 : 2*fftlen+1); ii++)
+	  minifft[ii] *= norm;
 	search_minifft((fcomplex *)minifft, halffftlen, min_orb_p, 
 		       max_orb_p, tmplist, MININCANDS, cmd->harmsum, 
 		       cmd->numbetween, idata.N, T, 
@@ -284,7 +321,7 @@ int main(int argc, char *argv[])
 		       
 	/* Check if the new cands should go into the master cand list */
 
-	for (ii = 0; ii < MININCANDS; ii++){
+	for (ii=0; ii<MININCANDS; ii++){
 	  if (tmplist[ii].mini_sigma > minsig) {
 	    
 	    /* Check to see if another candidate with these properties */
@@ -307,6 +344,7 @@ int main(int argc, char *argv[])
 	/* Position of mini-fft in data set while loop */
       }
 
+      fftwf_destroy_plan(fftplan);
       fftlen >>= 1;
 
       /* Size of mini-fft while loop */
@@ -385,7 +423,7 @@ int main(int argc, char *argv[])
   if (cmd->stack == 0)
     free(powers);
   free(list);
-  free(minifft);
+  fftwf_free(minifft);
   free(notes);
   free(rootfilenm);
   fclose(fftfile);

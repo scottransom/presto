@@ -13,7 +13,7 @@ void fftwcall(fcomplex *indata, long nn, int isign)
   unsigned long oldestplan=0;
   static fftwf_plan plancache_forward[4]={NULL, NULL, NULL, NULL};
   static fftwf_plan plancache_inverse[4]={NULL, NULL, NULL, NULL};
-  fcomplex *indatacache[4]={NULL, NULL, NULL, NULL};
+  static fcomplex *indatacache[4]={NULL, NULL, NULL, NULL};
   static int firsttime=1, nncache[4] = {0, 0, 0, 0};
   static unsigned long lastuse[4] = {0, 0, 0, 0};
   static char wisdomfilenm[120];
@@ -21,11 +21,12 @@ void fftwcall(fcomplex *indata, long nn, int isign)
   /* Call the six-step algorithm if the FFT is too big to     */
   /* be efficiently handled by FFTW.                          */
   /* With the improvements in FFTW, this is no longer needed  */
-
+  /*
   if (nn > BIGFFTWSIZE){
     tablesixstepfft(indata, nn, isign);
     return;
   }
+  */
 
   /* If calling for the first time, read the wisdom file */
 
@@ -55,18 +56,22 @@ void fftwcall(fcomplex *indata, long nn, int isign)
     plan_forward = &plancache_forward[0];
     plan_inverse = &plancache_inverse[0];
     lastuse[0] = 0; lastuse[1]++; lastuse[2]++; lastuse[3]++; 
+    /* printf("Found old plan.  %d  %d\n", nn, ct++); */
   } else if (nn == nncache[1] && indata == indatacache[1]){
     plan_forward = &plancache_forward[1];
     plan_inverse = &plancache_inverse[1];
     lastuse[1] = 0; lastuse[0]++; lastuse[2]++; lastuse[3]++; 
+    /* printf("Found old plan.  %d  %d\n", nn, ct++); */
   } else if (nn == nncache[2] && indata == indatacache[2]){
     plan_forward = &plancache_forward[2];
     plan_inverse = &plancache_inverse[2];
     lastuse[2] = 0; lastuse[0]++; lastuse[1]++; lastuse[3]++; 
+    /* printf("Found old plan.  %d  %d\n", nn, ct++); */
   } else if (nn == nncache[3] && indata == indatacache[3]){
     plan_forward = &plancache_forward[3];
     plan_inverse = &plancache_inverse[3];
     lastuse[3] = 0; lastuse[0]++; lastuse[1]++; lastuse[2]++; 
+    /* printf("Found old plan.  %d  %d\n", nn, ct++); */
   } else {
     if (!firsttime){
       for (ii = 3; ii >= 0; ii--)
@@ -76,6 +81,7 @@ void fftwcall(fcomplex *indata, long nn, int isign)
       if (plancache_inverse[oldestplan])
 	fftwf_destroy_plan(plancache_inverse[oldestplan]);
     }
+    /* printf("Dammit.  Making a new plan.  %d  %d\n", nn, ct++); */
     plancache_forward[oldestplan] = fftwf_plan_dft_1d(nn, 
 						      (fftwf_complex *)indata, 
 						      (fftwf_complex *)indata, 
