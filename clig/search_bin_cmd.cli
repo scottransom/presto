@@ -15,7 +15,7 @@ Int -ncand   ncand   {Number of candidates to try to return} \
 Int -minfft  minfft  {Power-of-2 length of the shortest miniFFT} \
 	-r 8 1048576  -d 32
 Int -maxfft  maxfft  {Power-of-2 length of the longest miniFFT} \
-	-r 8 1048576  -d 262144
+	-r 8 1048576  -d 65536
 Int -flo     flo     {The low frequency (Hz) to check} \
 	-r 0 oo   -d 1
 Int -fhi     fhi     {The high frequency (Hz) to check} \

@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -32,7 +32,7 @@ static Cmdline cmd = {
   /* minfftC = */ 1,
   /***** -maxfft: Power-of-2 length of the longest miniFFT */
   /* maxfftP = */ 1,
-  /* maxfft = */ 262144,
+  /* maxfft = */ 65536,
   /* maxfftC = */ 1,
   /***** -flo: The low frequency (Hz) to check */
   /* floP = */ 1,
@@ -131,7 +131,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -202,7 +202,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -243,7 +243,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -313,7 +313,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -353,7 +353,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -421,7 +421,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -456,7 +456,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -527,7 +527,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -553,16 +553,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -953,7 +960,7 @@ usage(void)
                default: `32'\n\
       -maxfft: Power-of-2 length of the longest miniFFT\n\
                1 int value between 8 and 1048576\n\
-               default: `262144'\n\
+               default: `65536'\n\
          -flo: The low frequency (Hz) to check\n\
                1 int value between 0 and oo\n\
                default: `1'\n\
@@ -983,7 +990,7 @@ usage(void)
      -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n\
        infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
                1 value\n\
-version: 27Feb01\n\
+version: 04Dec02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -991,7 +998,7 @@ version: 27Feb01\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -1002,8 +1009,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-ncand", argv[i]) ) {
+      int keep = i;
       cmd.ncandP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.ncand, 1);
       cmd.ncandC = i-keep;
       checkIntLower("-ncand", &cmd.ncand, cmd.ncandC, 10000);
@@ -1012,8 +1019,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-minfft", argv[i]) ) {
+      int keep = i;
       cmd.minfftP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.minfft, 1);
       cmd.minfftC = i-keep;
       checkIntLower("-minfft", &cmd.minfft, cmd.minfftC, 1048576);
@@ -1022,8 +1029,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-maxfft", argv[i]) ) {
+      int keep = i;
       cmd.maxfftP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.maxfft, 1);
       cmd.maxfftC = i-keep;
       checkIntLower("-maxfft", &cmd.maxfft, cmd.maxfftC, 1048576);
@@ -1032,8 +1039,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-flo", argv[i]) ) {
+      int keep = i;
       cmd.floP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.flo, 1);
       cmd.floC = i-keep;
       checkIntHigher("-flo", &cmd.flo, cmd.floC, 0);
@@ -1041,8 +1048,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-fhi", argv[i]) ) {
+      int keep = i;
       cmd.fhiP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.fhi, 1);
       cmd.fhiC = i-keep;
       checkIntHigher("-fhi", &cmd.fhi, cmd.fhiC, 0);
@@ -1050,8 +1057,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-rlo", argv[i]) ) {
+      int keep = i;
       cmd.rloP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.rlo, 1);
       cmd.rloC = i-keep;
       checkIntHigher("-rlo", &cmd.rlo, cmd.rloC, 0);
@@ -1059,8 +1066,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-rhi", argv[i]) ) {
+      int keep = i;
       cmd.rhiP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.rhi, 1);
       cmd.rhiC = i-keep;
       checkIntHigher("-rhi", &cmd.rhi, cmd.rhiC, 0);
@@ -1068,8 +1075,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-lobin", argv[i]) ) {
+      int keep = i;
       cmd.lobinP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.lobin, 1);
       cmd.lobinC = i-keep;
       checkIntHigher("-lobin", &cmd.lobin, cmd.lobinC, 0);
@@ -1077,8 +1084,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-overlap", argv[i]) ) {
+      int keep = i;
       cmd.overlapP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.overlap, 1);
       cmd.overlapC = i-keep;
       checkDoubleLower("-overlap", &cmd.overlap, cmd.overlapC, 1.0);
@@ -1087,8 +1094,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-harmsum", argv[i]) ) {
+      int keep = i;
       cmd.harmsumP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.harmsum, 1);
       cmd.harmsumC = i-keep;
       checkIntLower("-harmsum", &cmd.harmsum, cmd.harmsumC, 20);
@@ -1097,8 +1104,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-numbetween", argv[i]) ) {
+      int keep = i;
       cmd.numbetweenP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numbetween, 1);
       cmd.numbetweenC = i-keep;
       checkIntLower("-numbetween", &cmd.numbetween, cmd.numbetweenC, 16);
@@ -1107,8 +1114,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-stack", argv[i]) ) {
+      int keep = i;
       cmd.stackP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.stack, 1);
       cmd.stackC = i-keep;
       checkIntHigher("-stack", &cmd.stack, cmd.stackC, 0);

@@ -7,15 +7,6 @@
 /* (Including corrections for independant freqs) */
 #define MINRETURNSIG 1.5
 
-static char num[41][5] =
-{"0th", "1st", "2nd", "3rd", "4th", "5th", "6th", \
- "7th", "8th", "9th", "10th", "11th", "12th", \
- "13th", "14th", "15th", "16th", "17th", "18th", \
- "19th", "20th", "21st", "22nd", "23rd", "24th", \
- "25th", "26th", "27th", "28th", "29th", "30th", \
- "31st", "32nd", "33rd", "34th", "35th", "36th", \
- "37th", "38th", "39th", "40th"};
-
 /* Routines defined at the bottom */
 
 static int padfftlen(int minifftlen, int numbetween, int *padlen);
@@ -575,18 +566,18 @@ void compare_rawbin_cands(rawbincand *list, int nlist,
 
 
 void file_rawbin_candidates(rawbincand *cand, char *notes,
-			    int numcands, char name[])
+			    int numcands, int numharm, char name[])
 /* Outputs a .ps file describing all the binary candidates from a    */
 /*   binary search. */
 {
   FILE *fname;
   int i, j, k = 0;
   int nlines = 87, pages, extralines, linestoprint;
-  char filenm[100], infonm[100], command[200];
+  char *filenm, command[200];
   double orbperr, psrperr;
   
-  sprintf(filenm, "%s_bin", name);
-  sprintf(infonm, "%s.inf", name);
+  filenm = (char *)calloc(strlen(name)+10, sizeof(char));
+  sprintf(filenm, "%s_bin%d", name, numharm);
   fname = chkfopen(filenm, "w");
 
   if (numcands <= 0) {
@@ -627,7 +618,7 @@ void file_rawbin_candidates(rawbincand *cand, char *notes,
       
       /*  Now output it... */
 
-      fprintf(fname, " %4d %7.3f  ", k + 1, cand[k].mini_sigma);
+      fprintf(fname, "%-5d %7.3f  ", k + 1, cand[k].mini_sigma);
       fprintf(fname, " %8.2f", cand[k].orb_p);
       fprintf(fname, " %-7.2g ", orbperr);
       if (cand[k].psr_p < 0.001)
@@ -647,11 +638,12 @@ void file_rawbin_candidates(rawbincand *cand, char *notes,
   fprintf(fname, "\n Notes:  MH = Modulation harmonic.  ");
   fprintf(fname, "H = Pulsar harmonic.  # indicates the candidate number.\n\n");
   fclose(fname);
-  sprintf(command, "cat %s >> %s", infonm, filenm);
+  sprintf(command, "cat %s.inf >> %s", name, filenm);
   system(command);
   sprintf(command, \
 	  "$PRESTO/bin/a2x -c1 -n90 -title -date -num %s > %s.ps", \
 	  filenm, filenm);
   system(command);
+  free(filenm);
 }
 

@@ -11,11 +11,11 @@
 int not_already_there_rawbin(rawbincand newcand, 
  			    rawbincand *list, int nlist);
 int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
- 		       char *output, int full);
+			char *output, int full);
 void compare_rawbin_cands(rawbincand *list, int nlist, 
- 			 char *notes);
+			  char *notes);
 void file_rawbin_candidates(rawbincand *cand, char *notes,
-				   int numcands, char name[]);
+			    int numcands, int numharm, char name[]);
 float percolate_rawbincands(rawbincand *cands, int numcands);
 
 /* Main routine */
@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
   int numtoread, filepos=0, loopct=0, powers_offset, ncand2;
   int ii, ct, newper=0, oldper=0, numsumpow=1;
   double T, totnumsearched=0.0, minsig=0.0, min_orb_p, max_orb_p;
-  char filenm[200], candnm[200], binnm[200], *notes;
+  char *rootfilenm, *notes;
   fcomplex *data=NULL;
   rawbincand tmplist[MININCANDS], *list;
   infodata idata;
@@ -63,25 +63,39 @@ int main(int argc, char *argv[])
 #endif
 
   printf("\n\n");
-  printf("          Binary Pulsar Search Routine\n");
-  printf("              by Scott M. Ransom\n");
-  printf("                 28 Feb, 2001\n\n");
+  printf("     Phase Modulation Pulsar Search Routine\n");
+  printf("              by Scott M. Ransom\n\n");
 
-  /* Initialize the filenames: */
+  {
+    int hassuffix=0;
+    char *suffix;
 
-  sprintf(filenm, "%s.fft", cmd->argv[0]);
-  sprintf(candnm, "%s_bin.cand", cmd->argv[0]);
-  sprintf(binnm, "%s_bin", cmd->argv[0]);
+    hassuffix = split_root_suffix(cmd->argv[0],
+				  &rootfilenm, &suffix);
+    if (hassuffix){
+      if (strcmp(suffix, "fft")!=0){
+        printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
+               cmd->argv[0]);
+        free(suffix);
+        exit(0);
+      }
+      free(suffix);
+    } else {
+      printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
+             cmd->argv[0]);
+      exit(0);
+    }
+  }
 
   /* Read the info file */
 
-  readinf(&idata, cmd->argv[0]);
+  readinf(&idata, rootfilenm);
   T = idata.N * idata.dt;
   if (idata.object) {
     printf("Analyzing '%s' data from '%s'.\n\n", 
-	   remove_whitespace(idata.object), filenm);
+	   remove_whitespace(idata.object), cmd->argv[0]);
   } else {
-    printf("Analyzing data from '%s'.\n\n", filenm);
+    printf("Analyzing data from '%s'.\n\n", cmd->argv[0]);
   }
   min_orb_p = MINORBP;
   if (cmd->noaliasP)
@@ -91,7 +105,7 @@ int main(int argc, char *argv[])
 
   /* open the FFT file and get its length */
 
-  fftfile = chkfopen(filenm, "rb");
+  fftfile = chkfopen(cmd->argv[0], "rb");
   nbins = chkfilelen(fftfile, sizeof(fcomplex));
 
   /* Check that cmd->maxfft is an acceptable power of 2 */
@@ -352,13 +366,19 @@ int main(int argc, char *argv[])
 
   /* Send the candidates to the text file */
 
-  file_rawbin_candidates(list, notes, newncand, cmd->argv[0]);
+  file_rawbin_candidates(list, notes, newncand, cmd->harmsum, rootfilenm);
 
   /* Write the binary candidate file */
-
-  candfile = chkfopen(candnm, "wb");
-  chkfwrite(list, sizeof(rawbincand), (unsigned long) newncand, candfile);
-  fclose(candfile);
+  {
+    char *candnm;
+    
+    candnm = (char *)calloc(strlen(rootfilenm)+15, sizeof(char));
+    sprintf(candnm, "%s_bin%d.cand", rootfilenm, cmd->harmsum);
+    candfile = chkfopen(candnm, "wb");
+    chkfwrite(list, sizeof(rawbincand), (unsigned long) newncand, candfile);
+    fclose(candfile);
+    free(candnm);
+  }
 
   /* Free our arrays and close our files */
 
@@ -367,6 +387,7 @@ int main(int argc, char *argv[])
   free(list);
   free(minifft);
   free(notes);
+  free(rootfilenm);
   fclose(fftfile);
   printf("Done.\n\n");
   return (0);
