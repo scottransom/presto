@@ -38,10 +38,10 @@ def processbirds(filename):
     min_psr_width = 40.0 / T
     file = open(filename, "r")
     for line in file.readlines():
-        if (line[0]=='#'):
-            continue
+	if (len(line)<=3 or line[0]=='#'):
+	    continue
         elif (line[0]=='P'):
-            (psrname, numharm) = line.split()[1:3]
+            (tmp, psrname, numharm) = line.split()
             numharm = int(numharm)
             psr = psrepoch(psrname, info.mjd_i+info.mjd_f)
             if (psr.orb.p):
@@ -62,7 +62,7 @@ def processbirds(filename):
                 birds.append(bird(midf, width, bary=1))
         else:
             words = line.split()
-            increase_width = 0
+	    increase_width = 0
             bary = 0
             if (len(words) >= 3):
                 freq = float(words[0])
