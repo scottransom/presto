@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "20Jan00" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "21Jan00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -31,7 +31,9 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-n proflen]
 [-nsub nsub]
 [-npart npart]
-[-step step]
+[-pstep pstep]
+[-pdstep pdstep]
+[-dmstep dmstep]
 [-npfact npfact]
 [-ndmfact ndmfact]
 [-p p]
@@ -91,12 +93,24 @@ The number of sub-integrations to use for the period search,
 1 Int value between 1 and 512.
 .br
 Default: `64'
-.IP -step
-The minimum search stepsize over the full integration in profile bins,
+.IP -pstep
+The minimum period stepsize over the observation in profile bins,
 .br
 1 Int value between 1 and 10.
 .br
 Default: `1'
+.IP -pdstep
+The minimum P-dot stepsize over the observation in profile bins,
+.br
+1 Int value between 1 and 20.
+.br
+Default: `3'
+.IP -dmstep
+The minimum DM stepsize over the observation in profile bins,
+.br
+1 Int value between 1 and 10.
+.br
+Default: `2'
 .IP -npfact
 2 * npfact * proflen + 1 periods and p-dots will be searched,
 .br
@@ -108,7 +122,7 @@ Default: `1'
 .br
 1 Int value between 1 and 10.
 .br
-Default: `2'
+Default: `1'
 .IP -p
 The nominative folding period (s),
 .br
