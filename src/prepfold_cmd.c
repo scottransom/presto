@@ -1367,7 +1367,7 @@ usage(void)
             1 int value between 0 and 1\n\
      -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
      -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
-            1 float value\n\
+            1 float value between 0 and 20.0\n\
             default: `0.0'\n\
    -nobary: Do not barycenter (assume input parameters are topocentric)\n\
     -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
@@ -1514,6 +1514,8 @@ parseCmdline(int argc, char **argv)
       keep = i;
       i = getFloatOpt(argc, argv, i, &cmd.clip, 1);
       cmd.clipC = i-keep;
+      checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
+      checkFloatHigher("-clip", &cmd.clip, cmd.clipC, 0);
       continue;
     }
 
