@@ -7,7 +7,8 @@
 
 int compare_powindex(const void *ca, const void *cb);
    /*  Used as compare function for qsort() */
-
+float median(float arr[], int n);
+/* Finds the median (but messes up the array order) */
 
 int prune_powers(float *arr, int n, int numsumpows)
 /* Sets powers that are more than approx PRUNELEV standard */
@@ -18,76 +19,25 @@ int prune_powers(float *arr, int n, int numsumpows)
 /* solitary pulsars.                                       */
 {
   int ii, ct = 0;
-  float median, cutoff, *tmparr;
+  float med, cutoff, *tmparr;
 
   /* Determine the median power */
 
   tmparr = gen_fvect(n);
   memcpy(tmparr, arr, sizeof(float) * n);
-  median = selectkth(n / 2, n, tmparr - 1);
+  med = median(tmparr, n);
   free(tmparr);
 
   /* Throw away powers that are bigger that PRUNELEV * median */
 
-  cutoff = median * PRUNELEV / sqrt((float) numsumpows);
+  cutoff = med * PRUNELEV / sqrt((float) numsumpows);
   for (ii = 0; ii < n; ii++) {
     if (arr[ii] > cutoff) {
-      arr[ii] = NEWLEV * median;
+      arr[ii] = NEWLEV * med;
       ct++;
     }
   }
   return ct;
-}
-
-
-float selectkth(long k, long n, float arr[])
-/* Selects the kth largest value from the array arr */
-{
-  long i, ir, j, l, mid;
-  float a, tempzz = 0.0;
-
-  l = 1;
-  ir = n;
-  for (;;) {
-    if (ir <= l + 1) {
-      if (ir == l + 1 && arr[ir] < arr[l]) {
-	SWAP(arr[l], arr[ir]);
-      }
-      return arr[k];
-    } else {
-      mid = (l + ir) >> 1;
-      SWAP(arr[mid], arr[l + 1]);
-      if (arr[l] > arr[ir]) {
-	SWAP(arr[l], arr[ir]);
-      }
-      if (arr[l + 1] > arr[ir]) {
-	SWAP(arr[l + 1], arr[ir]);
-      }
-      if (arr[l] > arr[l + 1]) {
-	SWAP(arr[l], arr[l + 1]);
-      }
-      i = l + 1;
-      j = ir;
-      a = arr[l + 1];
-      for (;;) {
-	do
-	  i++;
-	while (arr[i] < a);
-	do
-	  j--;
-	while (arr[j] > a);
-	if (j < i)
-	  break;
-	SWAP(arr[i], arr[j]);
-      }
-      arr[l + 1] = arr[j];
-      arr[j] = a;
-      if (j >= k)
-	ir = j - 1;
-      if (j <= k)
-	l = i;
-    }
-  }
 }
 
 

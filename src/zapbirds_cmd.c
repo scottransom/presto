@@ -22,12 +22,12 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
-  /***** -autozap: Zap the birds from the input files (write to the FFT file) */
-  /* autozapP = */ 0,
-  /***** -lobin: The first Fourier frequency in the data file */
-  /* lobinP = */ 1,
-  /* lobin = */ 0,
-  /* lobinC = */ 1,
+  /***** -zap: Zap the birds in the FFT from 'zapfile' (write to the FFT file) */
+  /* zapP = */ 0,
+  /***** -zapfile: A file of freqs and widths to zap from the FFT (when using '-zap') */
+  /* zapfileP = */ 0,
+  /* zapfile = */ (char*)0,
+  /* zapfileC = */ 0,
   /***** -in: A file containing a list of freqs (Hz) and the # of harmonics to zap */
   /* inzapfileP = */ 0,
   /* inzapfile = */ (char*)0,
@@ -36,7 +36,7 @@ static Cmdline cmd = {
   /* outzapfileP = */ 0,
   /* outzapfile = */ (char*)0,
   /* outzapfileC = */ 0,
-  /***** -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric) */
+  /***** -baryv: The radial velocity component (v/c) towards the target during the obs */
   /* baryvP = */ 1,
   /* baryv = */ 0.0,
   /* baryvC = */ 1,
@@ -744,22 +744,22 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -autozap: Zap the birds from the input files (write to the FFT file) */
-  if( !cmd.autozapP ) {
-    printf("-autozap not found.\n");
+  /***** -zap: Zap the birds in the FFT from 'zapfile' (write to the FFT file) */
+  if( !cmd.zapP ) {
+    printf("-zap not found.\n");
   } else {
-    printf("-autozap found:\n");
+    printf("-zap found:\n");
   }
 
-  /***** -lobin: The first Fourier frequency in the data file */
-  if( !cmd.lobinP ) {
-    printf("-lobin not found.\n");
+  /***** -zapfile: A file of freqs and widths to zap from the FFT (when using '-zap') */
+  if( !cmd.zapfileP ) {
+    printf("-zapfile not found.\n");
   } else {
-    printf("-lobin found:\n");
-    if( !cmd.lobinC ) {
+    printf("-zapfile found:\n");
+    if( !cmd.zapfileC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.lobin);
+      printf("  value = `%s'\n", cmd.zapfile);
     }
   }
 
@@ -787,7 +787,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric) */
+  /***** -baryv: The radial velocity component (v/c) towards the target during the obs */
   if( !cmd.baryvP ) {
     printf("-baryv not found.\n");
   } else {
@@ -814,22 +814,21 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-autozap] [-lobin lobin] -in inzapfile -out outzapfile [-baryv baryv] [--] infile\n\
+ [-zap] [-zapfile zapfile] -in inzapfile -out outzapfile [-baryv baryv] [--] infile\n\
     Allows you to interactively or automatically zap interference from an FFT.\n\
-  -autozap: Zap the birds from the input files (write to the FFT file)\n\
-    -lobin: The first Fourier frequency in the data file\n\
-            1 int value between 0 and oo\n\
-            default: `0'\n\
+      -zap: Zap the birds in the FFT from 'zapfile' (write to the FFT file)\n\
+  -zapfile: A file of freqs and widths to zap from the FFT (when using '-zap')\n\
+            1 char* value\n\
        -in: A file containing a list of freqs (Hz) and the # of harmonics to zap\n\
             1 char* value\n\
       -out: A file to write that will contain the freqs and widths (Hz) zapped\n\
             1 char* value\n\
-    -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric)\n\
+    -baryv: The radial velocity component (v/c) towards the target during the obs\n\
             1 double value between -0.1 and 0.1\n\
             default: `0.0'\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 12Jan01\n\
+version: 13Jan01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -848,17 +847,16 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-autozap", argv[i]) ) {
-      cmd.autozapP = 1;
+    if( 0==strcmp("-zap", argv[i]) ) {
+      cmd.zapP = 1;
       continue;
     }
 
-    if( 0==strcmp("-lobin", argv[i]) ) {
-      cmd.lobinP = 1;
+    if( 0==strcmp("-zapfile", argv[i]) ) {
+      cmd.zapfileP = 1;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.lobin, 1);
-      cmd.lobinC = i-keep;
-      checkIntHigher("-lobin", &cmd.lobin, cmd.lobinC, 0);
+      i = getStringOpt(argc, argv, i, &cmd.zapfile, 1);
+      cmd.zapfileC = i-keep;
       continue;
     }
 

@@ -9,12 +9,12 @@
 *****/
 
 typedef struct s_Cmdline {
-  /***** -autozap: Zap the birds from the input files (write to the FFT file) */
-  char autozapP;
-  /***** -lobin: The first Fourier frequency in the data file */
-  char lobinP;
-  int lobin;
-  int lobinC;
+  /***** -zap: Zap the birds in the FFT from 'zapfile' (write to the FFT file) */
+  char zapP;
+  /***** -zapfile: A file of freqs and widths to zap from the FFT (when using '-zap') */
+  char zapfileP;
+  char* zapfile;
+  int zapfileC;
   /***** -in: A file containing a list of freqs (Hz) and the # of harmonics to zap */
   char inzapfileP;
   char* inzapfile;
@@ -23,7 +23,7 @@ typedef struct s_Cmdline {
   char outzapfileP;
   char* outzapfile;
   int outzapfileC;
-  /***** -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric) */
+  /***** -baryv: The radial velocity component (v/c) towards the target during the obs */
   char baryvP;
   double baryv;
   int baryvC;

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "zapbirds" 1 "12Jan01" "Clig-manuals" "Programmer's Manual"
+.TH "zapbirds" 1 "13Jan01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,8 +22,8 @@ zapbirds \- Allows you to interactively or automatically zap interference from a
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B zapbirds
-[-autozap]
-[-lobin lobin]
+[-zap]
+[-zapfile zapfile]
 -in inzapfile
 -out outzapfile
 [-baryv baryv]
@@ -32,14 +32,12 @@ infile
 
 .\" cligPart OPTIONS
 .SH OPTIONS
-.IP -autozap
-Zap the birds from the input files (write to the FFT file).
-.IP -lobin
-The first Fourier frequency in the data file,
+.IP -zap
+Zap the birds in the FFT from 'zapfile' (write to the FFT file).
+.IP -zapfile
+A file of freqs and widths to zap from the FFT (when using '-zap'),
 .br
-1 Int value between 0 and oo.
-.br
-Default: `0'
+1 String value
 .IP -in
 A file containing a list of freqs (Hz) and the # of harmonics to zap,
 .br
@@ -49,7 +47,7 @@ A file to write that will contain the freqs and widths (Hz) zapped,
 .br
 1 String value
 .IP -baryv
-The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric),
+The radial velocity component (v/c) towards the target during the obs,
 .br
 1 Double value between -0.1 and 0.1.
 .br

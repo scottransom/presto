@@ -50,7 +50,7 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 	-g -Wall -W -O -fPIC \
-	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64\
 #	-DUSEDMALLOC 
 #	-g -Wall -W -O2 -mcpu=pentiumpro -march=pentiumpro -fPIC \
 #	-g -ansi -pedantic -Wall -W -fpic \
@@ -109,8 +109,8 @@ PRESTOOBJS = apprgrdn.o barycenter.o birdzap.o cand_output.o\
 	correlations.o database.o dcdflib.o dispersion.o\
 	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
 	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
-	maximize_rzw.o minifft.o multibeam.o misc_utils.o orbint.o\
-	output.o PMsurv_phasemod.o read_fft.o responses.o\
+	maximize_rzw.o median.o minifft.o multibeam.o misc_utils.o\
+	orbint.o output.o PMsurv_phasemod.o read_fft.o responses.o\
 	rzinterp.o rzwinterp.o select.o solvopt.o sorter.o\
 	transpose.o twopass.o twopass_real_fwd.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o

@@ -687,13 +687,15 @@ int prune_powers(float *arr, int n, int numsumpows);
 /* modulation spectrum (i.e. they are RF noise or strong   */
 /* solitary pulsars.                                       */
 
-float selectkth(long k, long n, float arr[]);
-/* Selects the kth largest value from the array arr */
-
 void hpselect(unsigned long m, unsigned long n, \
 	      float arr[], powindex heap[]);
 /* Selects the m largest values from the array arr          */
 /* and stores them and their indices in heap and heapindex. */
+
+/* In median.c */
+
+float median(float arr[], int n);
+/* Finds the median (but messes up the array order) */
 
 int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, \
 		     int full);

@@ -159,8 +159,7 @@ int main(int argc, char *argv[])
     /* exponential distribution.  Then take the reciprocal so   */
     /* that we multiply instead of divide during normalization. */
     
-    locpow = 1.0 / (1.442695 * 
-		    selectkth(filedatalen/2, filedatalen, powlist-1));
+    locpow = 1.0 / (1.442695 * median(powlist, filedatalen));
     free(powlist);
 
     /*  Do the f-fdot plane correlations: */

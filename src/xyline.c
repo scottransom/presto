@@ -230,8 +230,9 @@ void plot_spectrum(fcomplex *spect, int numspect,
 /* The viewing area is left defined with the xvals as _Hz_.         */
 {
   int ii;
-  float *yvals, *xvals;
-  float hir, maxy=0.0, xx[2], yy[2];
+  float *yvals, *xvals, maxy=0.0;
+  double offsetr, hir;
+  char lab[100];
 
   hir = lor + numspect * dr;
   xvals = (float *)malloc(sizeof(float) * numspect);
@@ -247,20 +248,26 @@ void plot_spectrum(fcomplex *spect, int numspect,
   /* Setup the plot screen for the first set of y's: */
   cpgpage();
   cpgvstd();
-  xx[0] = lor; xx[1] = hir;
-  yy[0] = 0.0; yy[1] = maxy;
-  cpgswin(xx[0], xx[1], yy[0], yy[1]); 
-  cpgbox("", 0.0, 0, "CMST", 0.0, 0);
-  cpgmtxt("T", 3.0, 0.5, 0.5, "Fourier Frequency (bins)");
-  cpgmtxt("L", 2.6, 0.5, 0.5, "Normalized Power");
+  if (lor > 10000){
+    offsetr = floor(lor / 1000.0) * 1000.0;
+    sprintf(lab, "Fourier Frequency - %.0f (bins)", offsetr);
+  } else {
+    offsetr = 0.0;
+    sprintf(lab, "Fourier Frequency (bins)");
+  }
+  cpgswin(lor-offsetr, hir-offsetr, 0.0, maxy); 
+  cpgbox("CMST", 0.0, 0, "", 0.0, 0);
+  cpgmtxt("T", 2.0, 0.5, 0.5, lab);
+  cpgmtxt("L", 2.0, 0.5, 0.5, "Normalized Power");
 
   /* Plot the points */
+  cpgswin(lor, hir, 0.0, maxy); 
   cpgline(numspect, xvals, yvals);
 
   /* Draw the box for the other axis */
-  cpgswin(xx[0]/T, xx[1]/T, yy[0], yy[1]); 
-  cpgbox("BCNST", 0.0, 0, "BNST", 0.0, 0);
-  cpgmtxt("B", 3.0, 0.5, 0.5, "Frequency (Hz)");
+  cpgswin(lor/T, hir/T, 0.0, maxy); 
+  cpgbox("BNST", 0.0, 0, "BCNST", 0.0, 0);
+  cpgmtxt("B", 2.5, 0.5, 0.5, "Frequency (Hz)");
 
   free(xvals);
   free(yvals);

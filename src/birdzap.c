@@ -89,11 +89,11 @@ int get_birdies(char *zapfilenm, double T, double avg_vel,
   for (ii=0; ii<numzap; ii++){
     (*lobins)[ii] = birds[ii].lobin;
     (*hibins)[ii] = birds[ii].hibin;
-    printf("%15g %15g\n", birds[ii].lobin, birds[ii].hibin);
+    /* printf("%15g %15g\n", birds[ii].lobin, birds[ii].hibin); */
   }
   free(birds);
 
-  printf("Read %d 'birdie' pairs from '%s'.\n\n", 
+  printf("Read %d birdies from '%s'.\n\n", 
 	 numzap, zapfilenm);
   return numzap;
 }
@@ -152,7 +152,7 @@ int get_std_birds(char *zapfilenm, double T, double avg_vel,
 
   /* Sort the birds and then transfer them to the individual arrays */
 
-  printf("Read %d 'birdie' pairs from '%s':\n", 
+  printf("Read %d birdies from '%s':\n", 
 	 numzap, zapfilenm);
   qsort(birds, numzap, sizeof(bird), compare_birds);
   *basebin = gen_dvect(numzap);
@@ -160,8 +160,10 @@ int get_std_birds(char *zapfilenm, double T, double avg_vel,
   for (ii=0; ii<numzap; ii++){
     (*basebin)[ii] = birds[ii].lobin;
     (*numharm)[ii] = (int) birds[ii].hibin;
+    /*
     printf("  %12.7g Hz for %2d harmonics\n", (*basebin)[ii]/T, 
 	   (*numharm)[ii]);
+    */
   }
   free(birds);
 
