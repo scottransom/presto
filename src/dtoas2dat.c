@@ -5,6 +5,7 @@
 
 #define WORKLEN 65536
 #define SECPERDAY 86400
+#define MAXREAD 32768
 
 unsigned long getfilelen(FILE *file, size_t size)
 {
@@ -80,9 +81,9 @@ int main(int argc, char *argv[])
 
   /* Read the TOAs */
 
-  ii = fread(ddata, sizeof(double), WORKLEN, infile);
-  if (ii != ntoas){
-    printf("\nError reading TOA file.  Only %ld points read.\n\n", ii);
+  jj = fread(ddata, sizeof(double), ntoas, infile);
+  if (jj != ntoas){
+    printf("\nError reading TOA file.  Only %ld points read.\n\n", jj);
     exit(-1);
   }
 
