@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "06Nov01" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "05Mar02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -53,6 +53,7 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-start startT]
 [-end endT]
 [-psr psrname]
+[-polycos polycofile]
 [-obs obscode]
 [-rzwcand rzwcand]
 [-rzwfile rzwfile]
@@ -218,6 +219,11 @@ The folding end time as a fraction of the full obs,
 Default: `1.0'
 .IP -psr
 Name of pulsar to fold (do not include J or B),
+.br
+1 String value
+.IP -polycos
+File containing TEMPO polycos for psrname (not
+required),
 .br
 1 String value
 .IP -obs
