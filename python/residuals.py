@@ -45,6 +45,6 @@ def read_residuals():
     if not Numeric.nonzero(r.orbit_phs): del r.orbit_phs
     if not Numeric.nonzero(r.bary_freq): del r.bary_freq
     if not Numeric.nonzero(r.weight): del r.weight
-    r.prefit_sec = r.postfit_sec/r.postfit_phs*r.postfit_phs
+    r.prefit_sec = r.postfit_sec/r.postfit_phs*r.prefit_phs
     r.uncertainty *= 1.e-6 # Convert uncertainties in usec to sec
     return r
