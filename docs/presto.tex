@@ -1,11 +1,17 @@
 \documentclass[11pt]{article}
+\usepackage{url}
 
 \newcommand{\fdot}{$\dot{f}$}
 \newcommand{\ffdot}{$f$--$\dot{f}$}
 \newcommand{\PRESTO}{{\tt PRESTO}}
+\newcommand{\la}{\mathrel{\hbox{\rlap{\hbox{\lower4pt\hbox{$\sim$}}}\hbox{$<$}}}}
+\newcommand{\ga}{\mathrel{\hbox{\rlap{\hbox{\lower4pt\hbox{$\sim$}}}\hbox{$>$}}}}
 
-\title{\huge \PRESTO\thanks{That's the \emph{PulsaR Exploration and Search TOolkit}, according to Steve Eikenberry.}\\
+\title{\huge \PRESTO\thanks{That's the \emph{PulsaR Exploration and
+      Search TOolkit},
+    according to Steve Eikenberry.}\\
   {\large Users Manual, Version 1.0}}
+
 \author{Scott Ransom}
 
 \begin{document}
@@ -28,74 +34,171 @@ data from the GMRT and the SPIGOT card from the GBT are in the works.
 The software is composed of numerous routines designed to handle three
 main areas of pulsar analysis:
 \begin{enumerate}
-\item Data Preparation:  Interference detection and removal, de-dispersion, barycentering.
-\item Searching:  Acceleration and phase-modulation (or sideband) searches.
-\item Folding:  Candidate optimization and TOA generation.
+\item Data Preparation: Interference detection and removal,
+  de-dispersion, barycentering.
+\item Searching: Acceleration and phase-modulation (or sideband)
+  searches.
+\item Folding: Candidate optimization and Time-of-Arrival (TOA)
+  generation.
 \end{enumerate}
-Additional utilities are provided for various tasks that are often
-required when working with pulsar data such as time conversions, time
-series and FFT exploration, byte-swapping, etc.
+Many additional utilities are provided for various tasks that are
+often required when working with pulsar data such as time conversions,
+Fourier transforms, time series and FFT exploration, byte-swapping,
+etc.  The routines are written either in C or Python\footnote{A free
+  and aesthetically pleasing scripting language available from {\tt
+    http://www.python.org}}.
 
 The intent of this manual is to provide an overview of \PRESTO's
-capabilities, describe in some details the functioning of each of the
+capabilities, describe in some detail the functioning of each of the
 main programs, and to present various simple ``recipes'' that can be
-used to accomplish typical pulsar analysis tasks.
+used to accomplish typical pulsar analysis tasks.  Detailed
+descriptions for most of the programs can be found by examining the
+man pages located in the current directory.  Additionally, details
+about command line options and parameters can be had by simply running
+the program in question without any parameters.
 
+Since the software is coded in a (relatively) modular form and is now
+quite mature, adding new capabilities, such as the ability to handle a
+new pulsar back-end, can be accomplished in only a few hours of
+programming.  Similarly, with a large library of working routines that
+cover many low-level tasks required by pulsar analysis software,
+capabilities can be coded quickly and efficiently.  I welcome
+suggestions for additions and/or modifications to \PRESTO\ as well as
+any bug fixes you may find.  Even more welcome is real, working, code
+that makes these additions, modifications, or relevant bug fixes!
+Feel free to contact me at {\tt ransom@physics.mcgill.ca}.  I hope you
+find \PRESTO\ useful and that \PRESTO\ finds you many new pulsars.
+
+
+\section{Philosophy}
+
+\PRESTO\ is not simple.  The reasons for this (somewhat) unfortunate
+circumstance are many, but two stand out above the rest.
+
+First, the methods that \PRESTO\ uses for many of its tasks,
+especially those for the acceleration search which is it's heart, have
+been optimized for memory and CPU efficiency as opposed to simplicity.
+I am the first to admit that this is a controversial design choice.
+It has resulted in \emph{many} hours of debugging and testing that
+could have been avoided if had I chosen the path of simplicity and
+re-used code from the scores of pulsar analysis packages out there.
+As the lone ``true'' pulsar person at Harvard (and in the U.S.  Army)
+though, I had no real access to a state-of-the-art pulsar analysis
+package.  I therefore developed \PRESTO\ and many of its algorithms
+from scratch as part of my PhD thesis.  Since the observational
+portion of my thesis involved searching for binary millisecond pulsars
+(MSPs) in globular clusters, the result is a package that allows one
+to conduct coherent acceleration searches of long (i.e. many hours)
+high time resolution data sets on a single ``standard'' workstation
+(i.e. without many gigabytes of memory).
+
+Second, since the software was written over the course of seven or
+more years and comprises the majority of my experience with C, my
+coding style has changed substantially over the time.  Many of the
+low-level functions and procedures that are part of {\tt libpresto}
+and are used by the majority of the programs were developed early on,
+and as such, are not as I would design and write them now.  But, more
+important than this, they work and are at least mostly de-bugged.
+More recent code (such as {\tt accelsearch} and {\tt rfifind}) are
+written (in my opinion) in a much better style but still call on many
+of the older routines.
+
+In general, though, my current philosophy is to 1) not re-invent the
+wheel and 2) to use the right tool for the job.  These two rules have
+resulted in me using several excellent libraries and packages in
+\PRESTO.  The most important of these are {\tt FFTW} for calculating
+FFTs, {\tt PGPLOT} for graphics output, {\tt TEMPO} for barycentering
+calculations, and {\tt CLIG}
+(\url{http://wsd.iitb.fhg.de/~kir/clighome/}) for automatically
+generating a command line parser and man page for each program.  The
+first rule has also resulted in me stealing code from the Parkes
+Multibeam pulsar people and from Dunc Lorimer's {\tt SIGPROC}
+(\url{http://www.jb.man.ac.uk/~drl/sigproc/}) in order to deal with
+raw data from certain pulsar back-ends.  The second rule has resulted
+in my using Python for many recently written tasks that are not CPU
+intensive.  If I were re-writing \PRESTO\ from scratch, I would write
+almost everything in Python and keep only the CPU-intensive cores of
+the raw-data handling, de-dispersion, and search codes in C.
+
+\section{Installation}
+
+A quick and dirty guide to installing \PRESTO\ can be found in the top
+level directory in the INSTALL file.  Slightly more in-depth
+instructions are provided here.
+
+Steps to install:
 
 \begin{enumerate}
-\item Data Preparation
-  \begin{enumerate}
-  \item {\bf\tt rfifind} searches the raw data in both the time and
-    frequency domains for interference or other problems.  Each
-    channel is analyzed for short time intervals throughout the
-    observation.  The result is a list of recommended portions of the
-    data to mask.
-  \item {\bf\tt prepsubband} clips, masks, dedisperses, barycenters,
-    and pads raw data into numerous time series over a range of trial
-    DMs.
-  \item {\bf\tt realfft} performs either an in-core or out-of-core FFT
-    based on the length of the time series to be transformed.  The
-    input data is not required to be a power-of-two in length.
-  \item {\bf\tt zapbirds} removes known sources of interference (or
-    strong pulsars) from a Fourier transform by replacing them with
-    the local average Fourier amplitudes.
-  \end{enumerate}
-\item Searching
-  \begin{enumerate}
-  \item {\bf\tt accelsearch} performs a Fourier domain acceleration
-    search with Fourier interpolation and harmonic summing on an FFT.
-    The code is written such that it uses a minimum of memory
-    ($\sim200$\,MB for a search over 200 independent accelerations no
-    matter what the length of the FFT) and utilizes the processor
-    cache as much as possible.
-  \item {\bf\tt search\_bin} performs a phase modulation sideband
-    search on an FFT including harmonic summing and Fourier
-    interpolation.
-  \end{enumerate}
-\item Candidate Optimization
-  \begin{enumerate}
-  \item {\bf\tt prepfold} folds known pulsars or candidates from {\tt
-      accelsearch} over a range of DMs, periods, and period
-    derivatives around the ``best-guess'' values and returns the
-    optimized pulse profile.  All plots of new and candidate pulsars
-    in this chapter were generated using {\tt prepfold}.
-  \item {\bf\tt bincand} attempts to find an orbital solution for a
-    sideband search candidate uncovered with {\tt search\_bin}.  Brute
-    force matched filtering is used to search the orbital parameters
-    around the ``best-guess'' values as discussed in
-    chapter~\ref{chapter3}.
-  \end{enumerate}
+  
+\item Install {\tt FFTW} from \url{http://www.fftw.org} in its single
+  precision mode.  I highly recommend using the configuration options
+  ``--enable-float --enable-type-prefix'' in order to get single
+  precision libraries that have an 's' in the library names.  {\tt
+    FFTW} is not actually required for \PRESTO\ since there are
+  built-in FFT routines, but since {\tt FFTW} is so fast you will
+  probably suffer a performance hit of 50\% or more if you don't.  If
+  you happen to have Athlon based machines, I highly recommend the use
+  of {\tt FFTW-GEL} as well
+  (\url{http://www.complang.tuwien.ac.at/skral/fftwgel.html}).  {\tt
+    FFTW-GEL} greatly speeds up short ($\la$16\,kpts) single-precision
+  FFTs by using automatic SIMD vectorization of the basic {\tt FFTW}
+  blocks.
+  
+\item Install {\tt PGPLOT} from
+  \url{http://www.astro.caltech.edu/~tjp/pgplot/}.  Compile the C
+  bindings as well as the standard library and insure that you compile
+  in support for the postscript devices and the X-window driver.  For
+  those architectures that support shared libraries, I highly
+  recommend following the instruction for generating a shared version
+  of libcpgplot.  It is useful (but not required) to set the
+  PGPLOT\_DIR environment variable as well.
+  
+\item Install {\tt TEMPO} and the various ephemerides from
+  \url{http://pulsar.princeton.edu/tempo/index.html}.  Make sure to
+  set the TEMPO environment variable as described in the installation
+  instructions.
+
+\item Install {\tt GLIB} from
+  \url{ftp://ftp.gnome.org/pub/GNOME/stable/sources/glib/}.
+  
+\item Set an environment variable called PRESTO that points to the top
+  level directory in the \PRESTO\ distribution.
+  
+\item cd to \$PRESTO/src.  Check and modify the Makefile for your
+  machine of choice.  Insure that the library and include file
+  directories are correct for {\tt FFTW}, {\tt PGPLOT}, {\tt GLIB},
+  and {\tt TEMPO}.
+  
+\item Get the some memory and cache information for your machine.  On
+  Linux machines the easiest ways are using {\tt free} and {\tt cat
+    /proc/cpuinfo}. In general, on't worry about this too much.  The
+  only number that is truly important is how much memory you would
+  like to allow \PRESTO\ to use.  This affects the largest in-core FFT
+  you can compute before the FFT routine switches to an out-of-core
+  (and hence \emph{much} slower) algorithm.  Do a {\tt make prep}
+  which will ask you for the memory information and then generate an
+  include file in \$PRESTO/include.
+  
+\item If you are using {\tt FFTW}, do a {\tt make makewisdom}.  This
+  gets {\tt FFTW} acquainted with your system.  It is best if you are
+  the only user on the machine when you run this, as it is very CPU
+  intensive and may take a while.
+  
+\item Do a {\tt make} in order to make all of the executables.
+  
+\item The required libraries and miscellaneous files will be located
+  in \$PRESTO/lib and links to the executables will be located in
+  \$PRESTO/lib.  You may copy or move the executables wherever you
+  like, but the library files should stay put.  (That's why you define
+  the PRESTO environment variable -- so the routines can find them).
+  
+\item If you want to save some disk space, do a {\tt make clean} in
+  the 'src' directory.  This will leave the libraries and binaries in
+  their respective directories but will get rid of all the object
+  files.
+  
+\item Go find pulsars.
+
 \end{enumerate}
-Many other utilities for displaying, plotting, and working with data
-and have been written in C or as Python\footnote{A free and
-  aesthetically pleasing scripting language available from {\tt
-    http://www.python.org}} scripts.  Since the software is coded in a
-modular form and is relatively mature, adding new capabilities, such
-as the ability to handle a new pulsar back-end, can be accomplished in
-only a few hours of programming.  Similarly, with a large library of
-routines that implement the ``building-block'' functionality of
-Fourier-domain searches (such as complex correlations and template
-generation), new searches or analysis techniques can be coded quickly
-and efficiently.
 
 \end{document}
