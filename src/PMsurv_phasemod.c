@@ -52,7 +52,8 @@
 #define THRESH 7.3
 
 /* Candidate file directory */
-#define OUTDIR "/home/ransom"
+/*#define OUTDIR "/home/ransom"*/
+#define OUTDIR ""
 
 /* Function definitions */
 int not_already_there_rawbin(rawbincand newcand, 
@@ -69,6 +70,26 @@ float percolate_rawbincands(rawbincand *cands, int numcands);
 
 int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft, 
 			   float dm, int minfft, int maxfft)
+/* This routine searches an FFT (assumed to be single precision         */
+/* complex values in increasing order by Fourier Freq) from the         */
+/* Parkes Multibeam Pulsar Survey for binary pulsars in very short      */
+/* orbits.  The method used looks for periodic phase-modulation         */
+/* induced sidelobes around a pulsar spin freq in the power spectrum    */
+/* (see http://cfa160.harvard.edu/~ransom/readable_poster.ps.gz for     */
+/* more details).  The inputs are:                                      */
+/*   *header - the 640 byte raw header for the observation              */
+/*   N - the number of frequencies in the input FFT (should be 2**22)   */
+/*   *bigfft - the single precision full-length FFT to be searched      */
+/*   dm - the DM used to prepare the data in the bigfft                 */
+/*   minfft - the shortest miniFFT to use in the search (32 is good)    */
+/*   maxfft - the longest miniFFT to use in the search (8192 is good)   */
+/* The routine as now stands will take approximately 1.5 minutes to run */
+/* on each data set.  If you want to sacrifice about 20% sensitivity,   */
+/* you can change OVERLAPFACT to 2.  This allow the routine to run      */
+/* almost twice as fast.  I would personally recommend against this.    */
+/* We should be sensitive to pulsars in very-low to very-high mass      */
+/* binaries with orbital periods <~ 20min and flux densities of 1 mJy   */
+/* or a little less (if the duty cycle of the pulsar is short enough).  */
 {
   int ii, jj, worklen, fftlen, binsleft, overlaplen;
   int bigfft_offset=0, powers_offset, wrkblk=WORKBLOCK;
