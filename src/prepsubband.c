@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
   /* Any variable that begins with 't' means topocentric */
   /* Any variable that begins with 'b' means barycentric */
   FILE **infiles, **outfiles;
-  float **outdata=NULL;
+  float **outdata=NULL, *padvals;
   short **subsdata=NULL;
   double dtmp, *dms=NULL, avgdm=0.0, maxdm, dsdt=0;
   double *dispdt, tlotoa=0.0, blotoa=0.0;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   int ii, jj, numadded=0, numremoved=0, padding=0;
   int numbarypts=0, blocklen=0, blocksperread=0, worklen=0;
   int numread=0, numtowrite=0, totwrote=0, datawrote=0;
-  int padwrote=0, padtowrite=0, statnum=0;
+  int padwrote=0, padtowrite=0, statnum=0, set_padvals;
   int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
   char *datafilenm;
   PKMB_tapehdr hdr;
@@ -206,6 +206,7 @@ int main(int argc, char *argv[])
   if (cmd->maskfileP && !cmd->subP){
     read_mask(cmd->maskfile, &obsmask);
     printf("Read mask information from '%s'\n", cmd->maskfile);
+    set_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
   } else {
     obsmask.numchan = obsmask.numint = 0;
   }
@@ -300,6 +301,7 @@ int main(int argc, char *argv[])
       get_BPP_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
 			&dt, &T, &idata, 1);
       BPP_update_infodata(numinfiles, &idata);
+      set_BPP_padvals(padvals);
       /* Which IFs will we use? */
       if (cmd->ifsP){
 	if (cmd->ifs==0)

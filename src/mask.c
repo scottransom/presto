@@ -2,6 +2,7 @@
 #include "mask.h"
 
 extern int compare_ints(const void *a, const void *b);
+extern int compare_floats(const void *a, const void *b);
 
 static int find_num(int num, int *arr, int arrlen);
 static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2, 
@@ -145,6 +146,95 @@ void read_mask(char *maskfilenm, mask *obsmask)
     }
   }
   fclose(infile);
+}
+
+
+void calc_avgmedstd(float *arr, int numarr, float fraction, 
+		    int step, float *avg, float *med, float *std)
+/* Calculates the median and middle-'fraction' std deviation  */
+/* and average of the array 'arr'.  Values are returned in    */
+/* 'avg', 'med' and 'std'.  The array is not modified.        */
+{
+  int ii, jj, len, start;
+  float *tmparr;
+  double davg, dstd;
+
+  len = (int)(numarr * fraction + 0.5);
+  if (len > numarr || len < 0){
+    printf("fraction (%g) out-of-bounds in calc_avgmedstd()\n", 
+	   fraction);
+    exit(1);
+  }
+  start = (numarr - len) / 2;
+  tmparr = gen_fvect(numarr);
+  for (ii=0, jj=0; ii<numarr; ii++, jj+=step)
+    tmparr[ii] = arr[jj];
+  qsort(tmparr, numarr, sizeof(float), compare_floats);
+  avg_var(tmparr+start, len, &davg, &dstd);
+  *avg = (float) davg;
+  *med = tmparr[numarr/2];
+  *std = sqrt(dstd);
+  free(tmparr);
+}
+
+
+int determine_padvals(char *maskfilenm, mask *obsmask, float *padvals[])
+/* Determine reasonable padding values from the rfifind produced  */
+/* *.stats file if it is available.  Return the allocated vector  */
+/* (of length numchan) in padvals.  Return a '1' if the routine   */
+/* used the stats file, return 0 if the padding was set to aeros. */
+{
+  FILE *statsfile;
+  int ii, numchan, numint, ptsperint, lobin, numbetween;
+  float **dataavg, tmp1, tmp2;
+  char *statsfilenm, *root, *suffix;
+  
+  if (split_root_suffix(maskfilenm, &root, &suffix)==0){
+    printf("\nThe mask filename (%s) must have a suffix!\n\n",
+	   maskfilenm);
+    exit(1);
+  } else {
+    /* Determine the stats file name */
+    statsfilenm = calloc(strlen(maskfilenm)+2, sizeof(char));
+    sprintf(statsfilenm, "%s.stats", root);
+    free(root);
+    free(suffix);
+    *padvals = gen_fvect(obsmask->numchan);
+    /* Check to see if the file exists */
+    printf("Attempting to read the data statistics from '%s'", statsfilenm);
+    statsfile = chkfopen(statsfilenm, "rb");
+    free(statsfilenm);
+    if (statsfile){ /* Read the stats */ 
+      chkfread(&numchan, sizeof(int), 1, statsfile);
+      chkfread(&numint, sizeof(int), 1, statsfile);
+      chkfread(&ptsperint, sizeof(int), 1, statsfile);
+      chkfread(&lobin, sizeof(int), 1, statsfile);
+      chkfread(&numbetween, sizeof(int), 1, statsfile);
+      dataavg = gen_fmatrix(numint, numchan);
+      /* These are the powers */
+      chkfread(dataavg[0], sizeof(float), numchan*numint, statsfile);
+      /* These are the averages */
+      chkfread(dataavg[0], sizeof(float), numchan*numint, statsfile);
+      /* Set the padding values equal to the mid-80% channel averages */
+      for (ii=0; ii<numchan; ii++){
+	calc_avgmedstd(dataavg[0]+ii, numint, 0.8, numchan, 
+		       *padvals+ii, &tmp1, &tmp2);
+	printf("%d  %f\n", ii, *padvals[ii]);
+      }
+      printf("succeded.\n  Set the padding values equal to the mid-80%% channel averages.\n");
+      free(dataavg[0]);
+      free(dataavg);
+      free(statsfilenm);
+      fclose(statsfile);
+      return 1;
+    } else {
+      /* This is a temporary solution */
+      for (ii=0; ii<obsmask->numchan; ii++)
+	*padvals[ii] = 0.0;
+      printf("failed.\n  Set the padding values to 0.\n");
+      return 0;
+    }
+  }
 }
 
 

@@ -12,7 +12,7 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char databuffer[2*MAXDATLEN], padval=4;
+static unsigned char databuffer[2*MAXDATLEN], padvals[MAXNUMCHAN], padval=4;
 static unsigned char *splitbytes_buffer[MAXPATCHFILES];
 static int currentfile, currentblock, both_IFs_present=0;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
@@ -61,7 +61,8 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
 
 
 void get_BCPM_static(int *bytesperpt, int *bytesperblk, 
-		     int *numifs, int *chan_map){
+		     int *numifs, int *chan_map)
+{
   *bytesperpt = bytesperpt_st;
   *bytesperblk = bytesperblk_st;
   *numifs = numifs_st;
@@ -69,7 +70,8 @@ void get_BCPM_static(int *bytesperpt, int *bytesperblk,
 }
 
 void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-		     int numchan, int numifs, double dt, int *chan_map){
+		     int numchan, int numifs, double dt, int *chan_map)
+{
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
@@ -79,6 +81,17 @@ void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk,
   memcpy(chan_mapping, chan_map, sizeof(int)*2*MAXNUMCHAN);
 }
 
+void set_BPP_padvals(float *fpadvals)
+{
+  int ii;
+  float sum_padvals=0.0;
+
+  for (ii=0; ii<numchan_st; ii++){
+    padvals[ii] = (unsigned char)(fpadvals[ii] + 0.5);
+    sum_padvals += fpadvals[ii];
+  }
+  padval = (unsigned char)(fpadvals[ii]/numchan_st + 0.5);
+}
 
 int compare_freq(const void *ca, const void *cb)
 /* qsort comparison function for chanmap */
@@ -890,7 +903,7 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
   int ii, jj, numread=0, offset, sampperblk;
   double starttime=0.0;
   static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
-  static unsigned char *currentdata, *lastdata, bytepadval;
+  static unsigned char *currentdata, *lastdata;
   static int firsttime=1, numblocks=1, allocd=0, mask=0;
   static double duration=0.0, timeperblk=0.0;
 
@@ -909,8 +922,6 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
     raw  = gen_bvect(numblocks * bytesperblk_st);
     rawdata1 = gen_bvect(numblocks * sampperblk);
     rawdata2 = gen_bvect(numblocks * sampperblk);
-    /* Put padval in the low and high nibbles */
-    bytepadval = (padval << 4) | padval;
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
@@ -932,8 +943,6 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, numblocks * bytesperblk_st);
     }
 
     if (numifs_st==2){
@@ -954,11 +963,17 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
 			  currentdata + ii * numchan_st);
     }
 
-    if (*nummasked > 0){ /* Only some of the channels are masked */
+    if (*nummasked==-1){ /* If all channels are masked */
+      for (ii=0; ii<numpts; ii++)
+	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+    } else if (*nummasked > 0){ /* Only some of the channels are masked */
+      int channum;
       for (ii=0; ii<numpts; ii++){
 	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+	for (jj=0; jj<*nummasked; jj++){
+	  channum = maskchans[jj];
+	  currentdata[offset+channum] = padvals[channum];
+	}
       }
     }
 
@@ -975,8 +990,6 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, numblocks * bytesperblk_st);
     }
 
     if (numifs_st==2){
@@ -997,14 +1010,20 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
 			  currentdata + ii * numchan_st);
     }
 
-    if (*nummasked > 0){ /* Only some of the channels are masked */
+    if (*nummasked==-1){ /* If all channels are masked */
+      for (ii=0; ii<numpts; ii++)
+	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+    } else if (*nummasked > 0){ /* Only some of the channels are masked */
+      int channum;
       for (ii=0; ii<numpts; ii++){
 	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+	for (jj=0; jj<*nummasked; jj++){
+	  channum = maskchans[jj];
+	  currentdata[offset+channum] = padvals[channum];
+	}
       }
     }
-
+    
     dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
     SWAP(currentdata, lastdata);
 
@@ -1125,7 +1144,7 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
 {
   int ii, jj, trtn, offset;
   double starttime=0.0;
-  static unsigned char *tempzz, bytepadval;
+  static unsigned char *tempzz;
   static unsigned char rawdata1[MAXDATLEN], rawdata2[MAXDATLEN]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0, mask=0;
@@ -1139,13 +1158,9 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
     currentdata = rawdata1;
     lastdata = rawdata2;
     timeperblk = ptsperblk_st * dt_st;
-    /* Put padval in the low and high nibbles */
-    bytepadval = (padval << 4) | padval;
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(rawdata, bytepadval, bytesperblk_st);
     }
     if (numifs_st==2){
       /* Choosing a single IF */
@@ -1164,13 +1179,21 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
 	convert_BPP_point(rawdata + ii * bytesperpt_st, 
 			  currentdata + ii * numchan_st);
     }
-    if (*nummasked > 0){ /* Only some of the channels are masked */
+
+    if (*nummasked==-1){ /* If all channels are masked */
+      for (ii=0; ii<ptsperblk_st; ii++)
+	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+    } else if (*nummasked > 0){ /* Only some of the channels are masked */
+      int channum;
       for (ii=0; ii<ptsperblk_st; ii++){
 	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+	for (jj=0; jj<*nummasked; jj++){
+	  channum = maskchans[jj];
+	  currentdata[offset+channum] = padvals[channum];
+	}
       }
     }
+
     SWAP(currentdata, lastdata);
     firsttime=0;
     return 0;
@@ -1181,8 +1204,6 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
   if (mask){
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-    if (*nummasked==-1) /* If all channels are masked */
-      memset(rawdata, bytepadval, bytesperblk_st);
   }
   if (numifs_st==2){
     /* Choosing a single IF */
@@ -1201,14 +1222,21 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
       convert_BPP_point(rawdata + ii * bytesperpt_st, 
 			currentdata + ii * numchan_st);
   }
-  if (*nummasked > 0){ /* Only some of the channels are masked */
+
+  if (*nummasked==-1){ /* If all channels are masked */
+    for (ii=0; ii<ptsperblk_st; ii++)
+      memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+  } else if (*nummasked > 0){ /* Only some of the channels are masked */
+    int channum;
     for (ii=0; ii<ptsperblk_st; ii++){
       offset = ii * numchan_st;
-      for (jj=0; jj<*nummasked; jj++)
-	currentdata[offset+maskchans[jj]] = padval;
+      for (jj=0; jj<*nummasked; jj++){
+	channum = maskchans[jj];
+	currentdata[offset+channum] = padvals[channum];
+      }
     }
   }
-  fflush(NULL);
+  
   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
 		  dispdelays, numsubbands, data);
   SWAP(currentdata, lastdata);

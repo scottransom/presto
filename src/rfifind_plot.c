@@ -64,33 +64,6 @@ static void plot_rfi(rfi *plotrfi, float top, int numint, int numchan,
   free(temparr);
 }
 
-static void calc_avgmedstd(float *arr, int numarr, float fraction, 
-			   int step, float *avg, float *med, float *std)
-/* Calculates the median and middle-'fraction' std deviation  */
-/* and average of the array 'arr'.  Values are returned in    */
-/* 'avg', 'med' and 'std'.  The array is not modified.        */
-{
-  int ii, jj, len, start;
-  float *tmparr;
-  double davg, dstd;
-
-  len = (int)(numarr * fraction + 0.5);
-  if (len > numarr || len < 0){
-    printf("fraction (%g) out-of-bounds in calc_avgmedstd()\n", 
-	   fraction);
-    exit(1);
-  }
-  start = (numarr - len) / 2;
-  tmparr = gen_fvect(numarr);
-  for (ii=0, jj=0; ii<numarr; ii++, jj+=step)
-    tmparr[ii] = arr[jj];
-  qsort(tmparr, numarr, sizeof(float), compare_floats);
-  avg_var(tmparr+start, len, &davg, &dstd);
-  *avg = (float) davg;
-  *med = tmparr[numarr/2];
-  *std = sqrt(dstd);
-  free(tmparr);
-}
 
 void rfifind_plot(int numchan, int numint, int ptsperint, 
 		  float timesigma, float freqsigma, 
