@@ -60,6 +60,23 @@ int main(int argc, char *argv[])
     printf("New device is '%s'\n", search.pgdev);
   }
 
+  if (0){
+    int goodlen;
+    char *substr, *tmpdev;
+
+    substr = strstr(search.pgdev, "ps/CPS");
+    goodlen = substr - search.pgdev;
+    *substr = '\0';
+    tmpdev = calloc(goodlen+9, sizeof(char));
+    strncpy(tmpdev, search.pgdev, goodlen);   
+    strcpy(tmpdev+goodlen, "png/TPNG");   
+    free(search.pgdev);
+    search.pgdev = calloc(goodlen+9, sizeof(char));
+    strncpy(search.pgdev, tmpdev, strlen(tmpdev));
+    free(tmpdev);
+    printf("New device is '%s'\n", search.pgdev);
+  }
+
   /*
    *   Plot our results
    */
