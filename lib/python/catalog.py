@@ -129,7 +129,7 @@ class psr:
         (self.dec, self.decerr) = val_and_err(parts[3], parts[4])
         self.dec /= 15.0
         self.decerr /= 15.0
-        self.l = float(parts[5])
+	self.l = float(parts[5])
         self.b = float(parts[6])
         (self.p, self.perr) = val_and_err(parts[7], parts[8])
         (self.pd, self.pderr) = val_and_err(parts[9], parts[10])
