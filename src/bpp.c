@@ -13,8 +13,11 @@ static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
 static unsigned char databuffer[2*MAXDATLEN], padval=4;
+static unsigned char *splitbytes_buffer[MAXPATCHFILES];
 static int currentfile, currentblock, both_IFs_present=0;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
+/* To fix the fact that the BCPM sometimes splits a sample over 2 files. */
+static int splitbytes_st[MAXPATCHFILES];
 static double mid_freq_st, ch1_freq_st, delta_freq_st;
 static double chan_freqs[2*MAXNUMCHAN];
 static int chan_index[2*MAXNUMCHAN], chan_mapping[2*MAXNUMCHAN];
@@ -425,6 +428,18 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   filedatalen_st[0] = chkfilelen(files[0], 1) - BPP_HEADER_SIZE;
   numblks_st[0] = filedatalen_st[0] / bytesperblk_st;
+  splitbytes_st[0] = bytesperblk_st - filedatalen_st[0] % bytesperblk_st;
+  if (splitbytes_st[0]){
+    printf("  File %2d has a non-integer number of complete samples!.  "
+	   "Applying work-around.  (bytes split = %d)\n", 1, splitbytes_st[0]);
+    if (numfiles > 1){
+      numblks_st[0]++;
+      /* This makes a memory leak as it is never freed (although the OS */
+      /* does free it when the program exits -- which is usually when   */
+      /* we want it freed anyways...)                                   */
+      splitbytes_buffer[0] = (unsigned char *)malloc(splitbytes_st[0]);
+    }
+  }
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
   dt_st = *dt = idata_st[0].dt;
@@ -444,9 +459,24 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     }
     if (idata_st[ii].dt != dt_st){
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
-    }
-    filedatalen_st[ii] = chkfilelen(files[ii], 1) - BPP_HEADER_SIZE;
+    } 
+    if (splitbytes_st[ii-1])
+      chkfread(splitbytes_buffer[ii-1], splitbytes_st[ii-1], 1, files[ii]);
+    filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
+      BPP_HEADER_SIZE - splitbytes_st[ii-1];
     numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
+    splitbytes_st[ii] = bytesperblk_st - filedatalen_st[ii] % bytesperblk_st;
+    if (splitbytes_st[ii]){
+      printf("  File %2d has a non-integer number of complete samples!.  "
+	     "Applying work-around.  (bytes split = %d)\n", ii+1, splitbytes_st[ii]);
+      if (numfiles > ii+1){
+	numblks_st[ii]++;
+	/* This makes a memory leak as it is never freed (although the OS */
+	/* does free it when the program exits -- which is usually when   */
+	/* we want it freed anyways...)                                   */
+	splitbytes_buffer[ii] = (unsigned char *)malloc(splitbytes_st[ii]);
+      }
+    }
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
     times_st[ii] = numpts_st[ii] * dt_st;
     /* If the MJDs are equal, then this is a continuation */
@@ -455,7 +485,7 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     /* previous files MJD to get the current MJD.         */
     mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
     if (fabs(mjds_st[ii]-mjds_st[0]) < 1.0e-6 / SECPERDAY){
-      elapsed_st[ii] = (filedatalen_st[ii-1] / bytesperpt_st) * dt_st;
+      elapsed_st[ii] = times_st[ii-1];
       idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + elapsed_st[ii] / SECPERDAY;
       idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
       if (idata_st[ii].mjd_f >= 1.0){
@@ -668,7 +698,7 @@ int read_BPP_rawblock(FILE *infiles[], int numfiles,
 /* is returned as 1, then padding was added and         */
 /* statistics should not be calculated.                 */
 {
-  int offset=0, numtopad=0;
+  int offset=0, numtopad=0, bytesread;
   unsigned char *dataptr;
 
   /* If our buffer array is offset from last time */
@@ -690,7 +720,12 @@ int read_BPP_rawblock(FILE *infiles[], int numfiles,
 
   /* First, attempt to read data from the current file */
   
-  if (fread(dataptr, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
+  if (currentblock==endblk_st[currentfile]-1)
+    bytesread = fread(dataptr, 1, bytesperblk_st, infiles[currentfile]);
+  else
+    bytesread = fread(dataptr, bytesperblk_st, 1, infiles[currentfile]) * 
+      bytesperblk_st;
+  if (bytesread==bytesperblk_st){ /* Got Data */
     *padding = 0;
     /* Put the new data into the databuffer if needed */
     if (bufferpts){
@@ -724,11 +759,11 @@ int read_BPP_rawblock(FILE *infiles[], int numfiles,
 	    currentfile++;
 	  }
 	  return 1;
-	} else {  /* Need < 1 block (or remaining block) of padding */
+	} else {  /* Need < 1 block (or remaining block) of padding or split block */
 	  int pad;
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
-          memset(databuffer + bufferpts * bytesperpt_st, 
+	  memset(databuffer + bufferpts * bytesperpt_st, 
 		 padval, numtopad * bytesperpt_st);
 	  padnum = 0;
 	  currentfile++;
@@ -736,10 +771,33 @@ int read_BPP_rawblock(FILE *infiles[], int numfiles,
 	  bufferpts += numtopad;
 	  return read_BPP_rawblock(infiles, numfiles, data, &pad);
 	}
-      } else {  /* No padding needed.  Try reading the next file */
-	currentfile++;
-	shiftbuffer = 0;
-	return read_BPP_rawblock(infiles, numfiles, data, padding);
+      } else {  /* No padding needed. */
+	/* Do we need to worry about a split block? */
+	/* printf("bytesread = %d, we think should be %d\n\n", 
+	       bytesread, bytesperblk_st-splitbytes_st[currentfile]);
+	*/
+	if (bytesread==bytesperblk_st-splitbytes_st[currentfile]){ /* split block correction */
+	  /*
+	    printf("DEBUG info:  Found a split data block.  Read %d bytes, correcting %d bytes.\n", 
+	    bytesread, splitbytes_st[currentfile]);
+	  */
+	  /* Add the remainder of the split block that is contained */
+	  /* in the splitbytes_buffer.                              */
+	  memcpy(dataptr+bytesread, splitbytes_buffer[currentfile], 
+		 splitbytes_st[currentfile]);
+	  *padding = 0;
+	  /* Put the new data into the databuffer if needed */
+	  if (bufferpts){
+	    memcpy(data, dataptr, bytesperblk_st);
+	  }
+	  currentblock++;
+	  currentfile++;
+	  return 1;
+	} else { /* Try reading the next file */
+	  currentfile++;
+	  shiftbuffer = 0;
+	  return read_BPP_rawblock(infiles, numfiles, data, padding);
+	}
       }
     } else {
       printf("\nProblem reading record from BPP data file:\n");
@@ -1207,5 +1265,7 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
     bytes[*indexptr++] = (*rawdataptr >> 0x04);
     bytes[*indexptr++] = (*rawdataptr & 0x0F);
   }
+  /* Hack to zap known bad channels */
+  bytes[0] = bytes[1] = bytes[8] = bytes[9] = bytes[94] = 0;
 }
 
