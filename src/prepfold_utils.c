@@ -113,14 +113,18 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan)
 }
 
 
-int read_subbands(FILE *infiles[], int numfiles, float *subbanddata)
+int read_subbands(FILE *infiles[], int numfiles, float *subbanddata, 
+		  double timeperblk, int *maskchans, 
+		  int *nummasked, mask *obsmask, float *padvals)
 /* Read short int subband data written by prepsubband     */
 /* Note:  This version returns a transpose of the version */
 /*        listed in prepsubband.c                         */
 {
   int ii, jj, index, numread=0;
   short subsdata[SUBSBLOCKLEN];
+  static int currentblock=0;
 
+  /* Read the data */
   for (ii=0; ii<numfiles; ii++){
     index = ii*SUBSBLOCKLEN;
     numread = chkfread(subsdata, sizeof(short), SUBSBLOCKLEN, infiles[ii]);
@@ -129,6 +133,29 @@ int read_subbands(FILE *infiles[], int numfiles, float *subbanddata)
     for (jj=numread; jj<SUBSBLOCKLEN; jj++, index++)
       subbanddata[index] = 0.0;
   }
+
+  /* Mask it if required */
+  if (obsmask->numchan && numread){
+    double starttime;
+    starttime = currentblock*timeperblk;
+    *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+    if (*nummasked==-1){ /* If all channels are masked */
+      for (ii=0; ii<numfiles; ii++){
+	index = ii*SUBSBLOCKLEN;
+	for (jj=0; jj<SUBSBLOCKLEN; jj++, index++)
+	  subbanddata[index] = padvals[ii];
+      }
+    } else if (*nummasked > 0){ /* Only some of the channels are masked */
+      int channum;
+      for (ii=0; ii<*nummasked; ii++){
+	channum = maskchans[ii];
+	index = channum*SUBSBLOCKLEN;
+	for (jj=0; jj<SUBSBLOCKLEN; jj++, index++)
+	  subbanddata[index] = padvals[channum];
+      }
+    }
+  }
+  currentblock += 1;
   return numread;
 }
 
