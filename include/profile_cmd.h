@@ -14,22 +14,34 @@
 #endif
 
 typedef struct s_Cmdline {
+  /***** -phs: Offset phase for the profile */
+  char phsP;
+  double phs;
+  int phsC;
   /***** -p: The folding period (s) */
   char pP;
   double p;
   int pC;
   /***** -pd: The folding period derivative (s/s) */
-  char pdotP;
-  double pdot;
-  int pdotC;
+  char pdP;
+  double pd;
+  int pdC;
+  /***** -pdd: The folding period 2nd derivative (s/s^2) */
+  char pddP;
+  double pdd;
+  int pddC;
   /***** -f: The folding frequency (hz) */
-  char freqP;
-  double freq;
-  int freqC;
+  char fP;
+  double f;
+  int fC;
   /***** -fd: The folding frequency derivative (hz/s) */
-  char dfdtP;
-  double dfdt;
-  int dfdtC;
+  char fdP;
+  double fd;
+  int fdC;
+  /***** -fdd: The folding frequency 2nd derivative (hz/s^2) */
+  char fddP;
+  double fdd;
+  int fddC;
   /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
   char proflenP;
   int proflen;
@@ -92,8 +104,6 @@ typedef struct s_Cmdline {
   char makefileP;
   /***** -noerr: Do not plot error bars */
   char noerrP;
-  /***** -poisson: Assume the data is Poisson distributed (for statistics) */
-  char poissonP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

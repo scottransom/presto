@@ -243,6 +243,16 @@ typedef struct orbitparams {
 #define ORBITPARAMS_TYPE 1
 #endif
 
+typedef struct foldstats {
+  double numdata;     /* Number of data bins folded         */
+  double data_avg;    /* Average level of the data bins     */
+  double data_var;    /* Variance of the data bins          */
+  double numprof;     /* Number of bins in the profile      */
+  double prof_avg;    /* Average level of the profile bins  */
+  double prof_var;    /* Variance of the profile bins       */
+  double redchi;      /* Reduced chi-squared of the profile */
+} foldstats;
+
 
 /*****  Function Prototypes    *****/
 
@@ -984,16 +994,117 @@ double max_rz_file(FILE *fftfile, double rin, double zin, \
 
 /* In fold.c */
 
-void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
-	      double fo, double fdot, double fdotdot, int binary, \
-	      double *delays, double orbto, double orbdt, long numdelays, \
-	      int poisson, double *avg, double *var, float *chiarr, \
-	      double *onoffpairs, long *totnumfolded);
+double foldfile(FILE *datafile, double dt, double tlo, 
+		double *prof, int numprof, double startphs, 
+		double fo, double fdot, double fdotdot, int flags, 
+		double *delays, double *delaytimes, int numdelays, 
+		double *onoffpairs, foldstats *stats, float *chiarr);
+/* This routine is a general pulsar folding algorithm.  It will fold  */
+/* data for a pulsar with single and double frequency derivatives and */
+/* with arbitrary pulse delays (for example: variable time delays     */
+/* due to light travel time in a binary).  These delays are described */
+/* in the arrays '*delays' and '*delaytimes'. The folding may also be */
+/* turned on and off throughout the data by using 'onoffpairs'. The   */
+/* profile will have the data corresponding to time 'tlo' placed at   */
+/* the phase corresponding to time 'tlo' using 'fo', 'fdot', and      */
+/* 'fdotdot' plus 'startphs' and the appropriate delay.               */
+/* Arguments:                                                         */
+/*    'datafile' is FILE ptr for the input floating point data file.  */
+/*    'dt' is the time duration of each data bin.                     */
+/*    'tlo' is the time of the start of the 1st data pt.              */
+/*    'prof' is a double prec array to contain the profile.           */
+/*    'numprof' is the length of the profile array.                   */
+/*    'startphs'is the phase offset [0-1] for the first point.        */
+/*    'fo' the starting frequency to fold.                            */
+/*    'fdot' the starting frequency derivative.                       */
+/*    'fdotdot' the frequency second derivative.                      */
+/*    'flags' is an integer containing flags of how to fold:          */
+/*            0 = No *delays and no *onoffpairs                       */
+/*            1 = Use *delays but no *onoffpairs                      */
+/*            2 = No *delays but use *onoffpairs                      */
+/*            3 = Use *delays and use *onoffpairs                     */
+/*    'delays' is an array of time delays.                            */
+/*    'delaytimes' are the times where 'delays' were calculated.      */
+/*    'numdelays' is how many points are in 'delays' and 'delaytimes' */
+/*    'onoffpairs' is array containing pairs of normalized times      */
+/*            that represent the bins when we will actively add       */
+/*            to the profile.  To fold the full file,                 */
+/*            onoffpairs should be [0.0, T_obs].                      */
+/*    'stats' are statistics of the data and the profile.             */
+/*    'chiarr' is an array containing the instant reduced chi-square  */
+/*            during the folding (1 point each WORKLEN data).  This   */
+/*            array must have been allocated and set to 0.            */
+/* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
+/*    (i.e. to the beginning of the first data point)                 */
 
-void fold(float *data, long N, double dt, double tb, double *prof, \
-	  long proflen, double fo, double fdot, double fdotdot, \
-	  int binary, double *delays, double orbto, double orbdt, \
-	  long numdelays, double *onoffpairs, long *totnumfolded);
+double simplefold(float *data, int numdata, double dt, double tlo,
+		  double *prof, int numprof, double startphase, 
+		  double fo, double fdot, double fdotdot);
+/* This routine is a simplified pulsar folding algorithm.  It    */
+/* folds data for a pulsar with single and double frequency      */
+/* derivatives.  The profile will have the data corresponding    */
+/* to time 'tlo' placed at the phase corresponding to time 'tlo' */
+/* using 'fo', 'fdot', and 'fdotdot' plus 'startphs'.            */
+/* Arguments:                                                    */
+/*    'data' is a float array containing the data to fold.       */
+/*    'numdata' is the number of points in *data.                */
+/*    'dt' is the time duration of each data bin.                */
+/*    'tlo' is the time of the start of the 1st data pt.         */
+/*    'prof' is a double prec array to contain the profile.      */
+/*    'numprof' is the length of the profile array.              */
+/*    'startphs'is the phase offset [0-1] for the first point.   */
+/*    'fo' the starting frequency to fold.                       */
+/*    'fdot' the starting frequency derivative.                  */
+/*    'fdotdot' the frequency second derivative.                 */
+/* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0        */
+/*    (i.e. to the beginning of the first data point)            */
+
+double fold(float *data, int numdata, double dt, double tlo, 
+	    double *prof, int numprof, double startphs, 
+	    double fo, double fdot, double fdotdot, int flags, 
+	    double *delays, double *delaytimes, int numdelays, 
+	    int *onoffpairs, foldstats *stats);
+/* This routine is a general pulsar folding algorithm.  It will fold  */
+/* data for a pulsar with single and double frequency derivatives and */
+/* with arbitrary pulse delays (for example: variable time delays     */
+/* due to light travel time in a binary).  These delays are described */
+/* in the arrays '*delays' and '*delaytimes'. The folding may also be */
+/* turned on and off throughout the data by using 'onoffpairs'. The   */
+/* profile will have the data corresponding to time 'tlo' placed at   */
+/* the phase corresponding to time 'tlo' using 'fo', 'fdot', and      */
+/* 'fdotdot' plus 'startphs' and the appropriate delay.               */
+/* Arguments:                                                         */
+/*    'data' is a float array containing the data to fold.            */
+/*    'numdata' is the number of points in *data.                     */
+/*    'dt' is the time duration of each data bin.                     */
+/*    'tlo' is the time of the start of the 1st data pt.              */
+/*    'prof' is a double prec array to contain the profile.           */
+/*    'numprof' is the length of the profile array.                   */
+/*    'startphs'is the phase offset [0-1] for the first point.        */
+/*    'fo' the starting frequency to fold.                            */
+/*    'fdot' the starting frequency derivative.                       */
+/*    'fdotdot' the frequency second derivative.                      */
+/*    'flags' is an integer containing flags of how to fold:          */
+/*            0 = No *delays and no *onoffpairs                       */
+/*            1 = Use *delays but no *onoffpairs                      */
+/*            2 = No *delays but use *onoffpairs                      */
+/*            3 = Use *delays and use *onoffpairs                     */
+/*    'delays' is an array of time delays.                            */
+/*    'delaytimes' are the times where 'delays' were calculated.      */
+/*    'numdelays' is how many points are in 'delays' and 'delaytimes' */
+/*    'onoffpairs' is array containing pairs of numbers that          */
+/*            represent the bins when we will actively add            */
+/*            to the profile.  To fold the whole array,               */
+/*            onoffpairs should be [0, numdata-1].                    */
+/*    'stats' are statistics of the data that were folded as well     */
+/*            as the folded profile itself.  If this                  */
+/*            routine is used on consecutive pieces of the            */
+/*            same data, fold() will use the current values           */
+/*            and update them at the end of each call.                */
+/*            So each parameter must be set to 0.0 before             */
+/*            fold() is called for the first time.                    */
+/* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
+/*    (i.e. to the beginning of the first data point)                 */
 
 
 double doppler(double freq_observed, double voverc);
