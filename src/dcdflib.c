@@ -3515,7 +3515,11 @@ S230:
         *status = 0;
         xscale = *x**scale;
         cumgam(&xscale,shape,p,q);
-        if(porq > 1.5e0) *status = 10;
+	 /* S. Ransom modification to avoid a strange GCC version-dependent bug (I think) */
+	 /* 25 March 2004: Works fine with gcc 2.7.2 (and most later ones) but not with 3.3.3 */
+	 if(*p > 1.5e0 || *q > 1.5e0){
+	     *status = 10;
+	}
     }
     else if(2 == *which) {
 /*
