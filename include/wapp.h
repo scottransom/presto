@@ -54,7 +54,7 @@ typedef struct WAPP_HEADERv1{
   double power_analog[2];   /* Power measured by Analog Detector */
 } WAPP_HEADERv1;
 
-typedef struct WAPP_HEADERv234{
+typedef struct WAPP_HEADERv2plus{
   long header_version; /* some integer that increments with each revision */
   long header_size;    /* size (in bytes) of this header (nom = 2048) */
   char obs_type[24];   /* what kind of observation is this: */
@@ -90,7 +90,7 @@ typedef struct WAPP_HEADERv234{
   int nifs;            /* user-requested: number of IFs to be recorded */
   int level;           /* user-requested: 1 means 3-level; 2 mean 9-level */
   int sum;             /* user-requested: 1 means that data is sum of IFs */
-  int freqinversion;   /* 1 band is inverted, else band is not inverted */
+  int freqinversion;   /* 1/0 whether the WAPP inverted the band or not */
   long long timeoff;   /* number of reads between obs start and snap block */
   int lagformat;       /* 0=16 bit uint lags , 1=32 bit uint lags */
                        /* 2=32 bit float lags, 3=32 bit float spectra */
@@ -101,9 +101,13 @@ typedef struct WAPP_HEADERv234{
   int firstchannel;    /* 0 when correlator channel a is first, 1 if b */
   int nbins;           /* number of time bins for pulsar folding mode */
                        /* doulbles as maxrecs for snap mode */
+  int isfolding;       /* is folding selected                              */
+  int isalfa;          /* is ALFA selected                                 */
   double dumptime;     /* folded integrations for this period of time */
   double power_analog[2];   /* Power measured by Analog Detector */
-} WAPP_HEADERv234;
+  char padding[2020];  /* Padding that ignores the timing mode params */
+  int iflo_flip;       /* consider entire iflo and determine upper/lower sb */
+} WAPP_HEADERv2plus;
 
 /* wapp.c */
 void set_WAPP_padvals(float *fpadvals, int good_padvals);
