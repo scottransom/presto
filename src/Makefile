@@ -145,9 +145,9 @@ PRESTOOBJS = apprgrdn.o barycenter.o cand_output.o characteristics.o\
 	chkio.o corr_prep.o corr_routines.o correlations.o database.o\
 	dcdflib.o dispersion.o fastffts.o fftcalls.o fminbr.o fold.o\
 	fresnl.o ioinf.o get_candidates.o iomak.o ipmpar.o\
-	maximize_r.o maximize_rz.o maximize_rzw.o misc_utils.o \
-	orbint.o output.o read_fft.o responses.o rzinterp.o \
-	rzwinterp.o select.o solvopt.o sorter.o\
+	maximize_r.o maximize_rz.o maximize_rzw.o minifft.o\
+	misc_utils.o orbint.o output.o read_fft.o responses.o\
+	rzinterp.o rzwinterp.o select.o solvopt.o sorter.o\
 	twopass.o twopass_real_fwd.o twopass_real_inv.o vectors.o
 
 PLOT2DOBJS = powerplot.o xyline.o
