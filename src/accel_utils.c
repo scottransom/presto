@@ -257,39 +257,71 @@ GSList *sort_accelcands(GSList *list)
 
 
 static GSList *insert_new_accelcand(GSList *list, float power, float sigma, 
-				    int numharm, double rr, double zz)
+				    int numharm, double rr, double zz, 
+				    int *added)
 /* Checks the current list to see if there is already */
 /* a candidate within ACCEL_CLOSEST_R bins.  If not,  */
 /* it adds it to the list in increasing freq order.   */
 {
   GSList *tmp_list=list, *prev_list=NULL, *new_list;
+  double prev_diff_r=ACCEL_CLOSEST_R+1.0, next_diff_r;
   
+  *added = 0;
   if (!list){
     new_list = g_slist_alloc();
     new_list->data = (gpointer *)create_accelcand(power, sigma, 
 						  numharm, rr, zz);
+    *added = 1;
     return new_list;
   }
 
   while ((tmp_list->next) && 
-	 (((accelcand *)(tmp_list->data))->r < (rr - ACCEL_CLOSEST_R))){
+	 (((accelcand *)(tmp_list->data))->r < rr)){
     prev_list = tmp_list;
     tmp_list = tmp_list->next;
   }
+  next_diff_r = fabs(rr - ((accelcand *)(tmp_list->data))->r);
+  if (prev_list)
+    prev_diff_r = fabs(rr - ((accelcand *)(prev_list->data))->r);
 
-  /* Similar candidate is present */
+  /* Similar candidate(s) is(are) present */
 
-  if (fabs(rr - ((accelcand *)(tmp_list->data))->r) < ACCEL_CLOSEST_R){
+  if (prev_diff_r < ACCEL_CLOSEST_R){
+    /* Overwrite the prev cand */
+    if (((accelcand *)(prev_list->data))->sigma < sigma){
+      free_accelcand(prev_list->data, NULL);
+      prev_list->data = (gpointer *)create_accelcand(power, sigma, 
+						     numharm, rr, zz);
+      *added = 1;
+    }
+    if (next_diff_r < ACCEL_CLOSEST_R){
+      if (((accelcand *)(tmp_list->data))->sigma < sigma){
+	free_accelcand(tmp_list->data, NULL);
+	if (*added){
+	  /* Remove the next cand */
+	  list = g_slist_remove_link(list, tmp_list);
+	  g_slist_free_1(tmp_list);
+	} else {
+	  /* Overwrite the next cand */
+	  tmp_list->data = (gpointer *)create_accelcand(power, sigma, 
+							numharm, rr, zz);
+	  *added = 1;
+	}
+      }
+    }
+  } else if (next_diff_r < ACCEL_CLOSEST_R){
+    /* Overwrite the next cand */
     if (((accelcand *)(tmp_list->data))->sigma < sigma){
-      free_accelcand(tmp_list->data, NULL);  /* Overwrite the old candidate */
+      free_accelcand(tmp_list->data, NULL);
       tmp_list->data = (gpointer *)create_accelcand(power, sigma, 
 						    numharm, rr, zz);
+      *added = 1;
     }
   } else {  /* This is a new candidate */
     new_list = g_slist_alloc();
     new_list->data = (gpointer *)create_accelcand(power, sigma, 
 						  numharm, rr, zz);
-
+    *added = 1;
     if (!tmp_list->next && 
 	(((accelcand *)(tmp_list->data))->r < (rr - ACCEL_CLOSEST_R))){
       tmp_list->next = new_list;
@@ -476,8 +508,8 @@ void output_fundamentals(fourierprops *props, GSList *list,
 void output_harmonics(GSList *list, accelobs *obs)
 {
   int ii, jj, numcols=12, numcands;
-  int widths[12]={4, 4, 5, 15, 15, 15, 12, 11, 8, 10, 10, 10};
-  int errors[12]={0, 0, 0,  2,  2,  2,  0,  2, 0,  2,  2,  2};
+  int widths[12]={5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 10, 10};
+  int errors[12]={0, 0, 0,  2,  0,  2,  0,  2, 0,  2,  2,  2};
   char tmpstr[30], ctrstr[30], command[200];
   accelcand *cand;
   GSList *listptr;
@@ -524,8 +556,8 @@ void output_harmonics(GSList *list, accelobs *obs)
       calc_props(cand->derivs[jj], cand->hirs[jj], 
 		 cand->hizs[jj], 0.0, &props);
       calc_rzwerrs(&props, obs->T, &errs);
-      if (jj==0) sprintf(tmpstr, " %-3d", ii+1);
-      else sprintf(tmpstr, "    ");
+      if (jj==0) sprintf(tmpstr, " %-4d", ii+1);
+      else sprintf(tmpstr, "     ");
       center_string(ctrstr, tmpstr, widths[0]);
       fprintf(obs->workfile, "%s  ", ctrstr);
       sprintf(tmpstr, "%-4d", jj+1);
@@ -536,9 +568,9 @@ void output_harmonics(GSList *list, accelobs *obs)
       fprintf(obs->workfile, "%s  ", ctrstr);
       write_val_with_err(obs->workfile, props.pow, props.powerr, 
 			 errors[3], widths[3]);
-      write_val_with_err(obs->workfile, props.rawpow, 
-			 sqrt(2.0*props.rawpow), 
-			 errors[4], widths[4]);
+      sprintf(tmpstr, "%.3g", props.rawpow);
+      center_string(ctrstr, tmpstr, widths[4]);
+      fprintf(obs->workfile, "%s  ", ctrstr);
       write_val_with_err(obs->workfile, props.r, props.rerr, 
 			 errors[5], widths[5]);
       sprintf(tmpstr, "%.2f", cand->r * (jj+1));
@@ -728,15 +760,18 @@ GSList *search_ffdotpows(ffdotpows *ffdot, int numharm,
       if (ffdot->powers[ii][jj] > powcut){
 	float pow, sig;
 	double rr, zz;
+	int added=0;
 
 	pow = ffdot->powers[ii][jj];
 	sig = candidate_sigma(pow, numharm, numindep);
 	rr = (ffdot->rlo + jj * ACCEL_DR) / numharm;
 	zz = (ffdot->zlo + ii * ACCEL_DZ) / numharm;
-	cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz);
-	fprintf(obs->workfile,
-		"%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n", 
-		pow, sig, numharm, rr, rr / obs->T, zz);
+	cands = insert_new_accelcand(cands, pow, sig, numharm, 
+				     rr, zz, &added);
+	if (added)
+	  fprintf(obs->workfile,
+		  "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n", 
+		  pow, sig, numharm, rr, rr / obs->T, zz);
       }
     }
   }

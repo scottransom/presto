@@ -344,6 +344,13 @@ int get_psr_at_epoch(char * psrname, double epoch, psrdatabase * pdata, \
       psr->orb.w = fmod((pdata->om[i] + difft * pdata->omdot[i] / \
 			 SECPERJULYR), 360.0);
       psr->orb.wd = pdata->omdot[i];
+    } else {
+      psr->orb.p = 0.0;
+      psr->orb.pd = 0.0;
+      psr->orb.x = 0.0;
+      psr->orb.e = 0.0;
+      psr->orb.w = 0.0;
+      psr->orb.t = 0.0;
     }
   }
 

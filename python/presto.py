@@ -916,6 +916,8 @@ z_resp_halfwidth = prestoc.z_resp_halfwidth
 
 w_resp_halfwidth = prestoc.w_resp_halfwidth
 
+binary_velocity = prestoc.binary_velocity
+
 bin_resp_halfwidth = prestoc.bin_resp_halfwidth
 
 gen_r_response = prestoc.gen_r_response

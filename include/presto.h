@@ -306,6 +306,16 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy);
   /*    The result must be multiplied by 2*'numbetween' to get the     */
   /*    length of the array required to hold such a kernel.            */
 
+void binary_velocity(double T, orbitparams * orbit, 
+		     double *minv, double *maxv);
+  /*  Return the minimum and maximum orbital velocities of a pulsar    */
+  /*  during an observation as a fraction of the speed of light.       */
+  /*  Arguments:                                                       */
+  /*    'ppsr' is the period of the pusar in seconds.                  */
+  /*    'T' is the length of the observation in seconds.               */
+  /*    'orbit' is a ptr to a orbitparams structure containing the     */
+  /*       Keplarian orbital parameters of the binary system.          */
+
 int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
   /*  Return the approximate kernel half width in FFT bins required    */
   /*  to achieve a fairly high accuracy correlation based correction   */

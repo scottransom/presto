@@ -87,31 +87,26 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy)
 }
 
 
-int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit)
-  /*  Return the approximate kernel half width in FFT bins required    */
-  /*  to achieve a fairly high accuracy correlation based correction   */
-  /*  or interpolation for a pulsar in a binary orbit.                 */
+void binary_velocity(double T, orbitparams * orbit, 
+		     double *minv, double *maxv)
+  /*  Return the minimum and maximum orbital velocities of a pulsar    */
+  /*  during an observation as a fraction of the speed of light.       */
   /*  Arguments:                                                       */
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
   /*       Keplarian orbital parameters of the binary system.          */
-  /*  Notes:                                                           */
-  /*    The result must be multiplied by 2 * 'numbetween' to get the   */
-  /*    length of the array required to hold such a kernel.            */
 {
-  double maxv = 0.0, maxdevbins;
-  int retval;
-
+  *minv = 1.0;
+  *maxv = -1.0;
   if (T >= orbit->p){
 
-    double c1, c2, v1, v2;
+    double c1, c2;
 
     c1 = TWOPI * orbit->x / (orbit->p * sqrt(1.0 - orbit->e * orbit->e));
     c2 = orbit->e * cos(orbit->w * DEGTORAD);
-    v1 = c1 * (c2 + 1.0);
-    v2 = c1 * (c2 - 1.0);
-    maxv = (fabs(v1) > fabs(v2)) ? v1 : v2;
+    *maxv = c1 * (c2 + 1.0);
+    *minv = c1 * (c2 - 1.0);
 
   } else {
 
@@ -128,12 +123,38 @@ int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit)
     startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
     E = dorbint(startE, numpoints, dtb, &orb);
     E_to_v(E, numpoints, &orb);
-    for (ii = 0; ii < numpoints; ii++)
-      if (fabs(E[ii]) > fabs(maxv)) maxv = E[ii];
-    maxv *= 1000.0 / SOL;
+    for (ii = 0; ii < numpoints; ii++){
+      E[ii] *= 1000.0 / SOL;
+      if (E[ii] < *minv) 
+	*minv = E[ii];
+      if (E[ii] > *maxv) 
+	*maxv = E[ii];
+    }
     free(E);
-
   }
+  if (*maxv < *minv){
+    printf("Something is wrong in binary_velocity()\n");
+  }
+}
+
+int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit)
+  /*  Return the approximate kernel half width in FFT bins required    */
+  /*  to achieve a fairly high accuracy correlation based correction   */
+  /*  or interpolation for a pulsar in a binary orbit.                 */
+  /*  Arguments:                                                       */
+  /*    'ppsr' is the period of the pusar in seconds.                  */
+  /*    'T' is the length of the observation in seconds.               */
+  /*    'orbit' is a ptr to a orbitparams structure containing the     */
+  /*       Keplarian orbital parameters of the binary system.          */
+  /*  Notes:                                                           */
+  /*    The result must be multiplied by 2 * 'numbetween' to get the   */
+  /*    length of the array required to hold such a kernel.            */
+{
+  double maxv, minvel, maxvel, maxdevbins;
+  int retval;
+
+  binary_velocity(T, orbit, &minvel, &maxvel);
+  maxv = (fabs(minvel) > fabs(maxvel)) ? minvel : maxvel;
   maxdevbins = fabs(T * maxv / (ppsr * (1.0 + maxv)));
   retval = (int) floor(1.1 * maxdevbins + 0.5);
   return (retval < NUMFINTBINS) ? NUMFINTBINS : retval;

@@ -32,18 +32,30 @@ def processbirds(filename):
     birds = []
     print "\nProcessing the birds..."
     info = read_inffile(rootname)
+    T = info.dt * info.N;
+    min_psr_width = 12.0 / T # PSRs get 12 bins minimum zapped
     file = open(filename, "r")
     for line in file.readlines():
         if (line[0]=='#'):
             continue
         elif (line[0]=='P'):
-            (tmp, psrname, width, numharm) = line.split()
+            (tmp, psrname, numharm) = line.split()
             numharm = int(numharm)
-            width = float(width)
             psr = psrepoch(psrname, info.mjd_i+info.mjd_f)
+            if (psr.orb.p):
+                (minv, maxv) = binary_velocity(T, psr.orb)
             psrs += 1
             for harm in xrange(1, numharm+1):
-                birds.append(bird(psr.f * harm, width, 1))
+                if (psr.orb.p):
+                    midv = 0.5 * (maxv + minv)
+                    midf = (1.0 + midv) * psr.f * harm
+                    width = 1.05 * (maxv - minv) * psf.f * harm
+                    if (width < min_psr_width):
+                        width = min_psr_width
+                else:
+                    midf = psr.f * harm
+                    width = min_psr_width
+                birds.append(bird(midf, width, 1))
         else:
             words = line.split()
             if (len(words)==2):
