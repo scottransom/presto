@@ -62,11 +62,18 @@ int get_birdies(char *zapfilenm, double T, double avg_vel,
   ii = 0;
   while(ii < numzap){
     fgets(line, 200, zapfile);
-    if (line[0]=='#') continue;
+    if (line[0]=='#') 
+      continue;
     else {
-      sscanf(line, "%lf %lf\n", &freq, &width);
-      birds[ii].lobin = (freq - 0.5 * width) * T * (1.0 + avg_vel);
-      birds[ii].hibin = (freq + 0.5 * width) * T * (1.0 + avg_vel);
+      if (line[0]=='B') {
+	sscanf(line, "B%lf %lf\n", &freq, &width);
+	birds[ii].lobin = (freq - 0.5 * width) * T;
+	birds[ii].hibin = (freq + 0.5 * width) * T;
+      } else {
+	sscanf(line, "%lf %lf\n", &freq, &width);
+	birds[ii].lobin = (freq - 0.5 * width) * T * (1.0 + avg_vel);
+	birds[ii].hibin = (freq + 0.5 * width) * T * (1.0 + avg_vel);
+      }
       /* Insure that all birds are at least 1 bin wide */
       if ((birds[ii].hibin - birds[ii].lobin) < 1.0){
 	double avgbin;
