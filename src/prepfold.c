@@ -27,7 +27,7 @@ void set_posn(prepfoldinfo *in, infodata *idata);
 
 int main(int argc, char *argv[])
 {
-  FILE *infiles[MAXPATCHFILES], *filemarker, *binproffile;
+  FILE *infiles[MAXPATCHFILES], *filemarker;
   float *data=NULL, *padvals;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double recdt=0.0, barydispdt=0.0, N=0.0, T=0.0, proftime, startTday=0.0;
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
   double *obsf=NULL, *dispdts=NULL, *parttimes=NULL, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
   double *buffers, *phasesadded, *events=NULL;
-  char *plotfilenm, *outfilenm, *rootnm, *binproffilenm, *root, *suffix;
+  char *plotfilenm, *outfilenm, *rootnm, *root, *suffix;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numevents, numchan=1, binary=0, numdelays=0, numbarypts=0;
   int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0, useshorts=0;
@@ -363,8 +363,6 @@ int main(int argc, char *argv[])
     sprintf(outfilenm, "%s_%s.pfd", rootnm, search.candnm);
     plotfilenm = (char *)calloc(slen + 3, sizeof(char));
     sprintf(plotfilenm, "%s_%s.pfd.ps", rootnm, search.candnm);
-    binproffilenm = (char *)calloc(slen + 9, sizeof(char));
-    sprintf(binproffilenm, "%s_%s.pfd.binprofs", rootnm, search.candnm);
     search.pgdev = (char *)calloc(slen + 7, sizeof(char));
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
   }
@@ -605,7 +603,6 @@ int main(int argc, char *argv[])
   printf("Folding a %s candidate.\n\n", search.candnm);
   printf("Output data file is '%s'.\n", outfilenm);
   printf("Output plot file is '%s'.\n", plotfilenm);
-  printf("Raw profile file is '%s'.\n", binproffilenm);
   printf("Best profile is in  '%s.bestprof'.\n", outfilenm);
   
   /* Generate polycos if required and set the pulsar name */
@@ -1009,12 +1006,6 @@ int main(int argc, char *argv[])
     double tf, tfd, tfdd, totalphs, calctotalphs, numwraps;
     int partnum, binnum;
     
-    binproffile = chkfopen(binproffilenm, "wb");
-    chkfwrite(&dtmp, sizeof(double), 1, binproffile);
-    dtmp = (double) cmd->nsub;
-    chkfwrite(&dtmp, sizeof(double), 1, binproffile);
-    dtmp = (double) search.proflen;
-    chkfwrite(&dtmp, sizeof(double), 1, binproffile);
     foldf = f;  foldfd = fd;  foldfdd = fdd;
     search.fold.pow = 1.0;
     search.fold.p1 = f;
@@ -1115,9 +1106,6 @@ int main(int argc, char *argv[])
       }
       search.stats[ii].redchi /= (search.stats[ii].prof_var * 
 				  (search.proflen-1));
-      chkfwrite(search.stats+ii, sizeof(foldstats), 1, binproffile);
-      chkfwrite(search.rawfolds+ii*search.proflen, sizeof(double), 
-		search.proflen, binproffile);
     }
     printf("\r  Folded %d events.", numevents);
     fflush(NULL);
@@ -1284,12 +1272,6 @@ int main(int argc, char *argv[])
     /* sub-integrations in time  */
   
     dtmp = (double) cmd->npart;
-    binproffile = chkfopen(binproffilenm, "wb");
-    chkfwrite(&dtmp, sizeof(double), 1, binproffile);
-    dtmp = (double) cmd->nsub;
-    chkfwrite(&dtmp, sizeof(double), 1, binproffile);
-    dtmp = (double) search.proflen;
-    chkfwrite(&dtmp, sizeof(double), 1, binproffile);
     for (ii = 0; ii < cmd->npart; ii++){
       parttimes[ii] = ii * reads_per_part * proftime;
     
@@ -1366,14 +1348,6 @@ int main(int argc, char *argv[])
 	totnumfolded += numread;
       }
 
-      /* Write the binary profiles */
-      
-      for (kk=0; kk<cmd->nsub; kk++){
-	chkfwrite(&(search.stats[ii*cmd->nsub+kk]), 
-		  sizeof(foldstats), 1, binproffile);
-	chkfwrite(search.rawfolds+(ii*cmd->nsub+kk)*search.proflen, 
-		  sizeof(double), search.proflen, binproffile);
-      }
       printf("\r  Folded %ld points of %.0f", totnumfolded, N);
       fflush(NULL);
     }
@@ -1382,7 +1356,6 @@ int main(int argc, char *argv[])
   }
   for (ii=0; ii<numfiles; ii++)
     fclose(infiles[ii]);
-  fclose(binproffile);
   
   /*
    *   Perform the candidate optimization search
@@ -1844,7 +1817,6 @@ int main(int argc, char *argv[])
     free(rootnm);
   free(outfilenm);
   free(plotfilenm);
-  free(binproffilenm);
   free(parttimes);
   free(bestprof);
   if (binary){
