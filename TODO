@@ -1,6 +1,4 @@
-Presto To-Do List in Order of Precedence as of 23 Nov 99.
-
---  Harmonic summing search
+Presto To-Do List in Order of Precedence as of 1 June 2001.
 
 --  Make all character arrays use dynamic allocation to avoid
 possible buffer over-runs.
@@ -16,8 +14,6 @@ Automake, and Libtool.
 documentation system?
 
 --  Use BLAS to speed up key loops (i.e. in the correlations)
-
---  Change times to use type Long Double?
 
 Scott M. Ransom
 ransom@cfa.harvard.edu

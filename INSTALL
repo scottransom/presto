@@ -4,43 +4,48 @@ Steps to install:
 damn fast you will suffer a 50% or more performance hit if you don't.
 This is pretty much true even if you have access to a vendor specific
 optimized library (in this case the performance will more than likely
-be similar).
+be similar).  http://www.fftw.org
 
-2.  Install PGPLOT.
+2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
 
 3.  Install TEMPO.  Make sure to set the TEMPO environment variable.
+http://pulsar.princeton.edu/tempo/index.html
 
-4.  Set a PRESTO environment variable to this directory (the top level
+4.  Install GLIB.  ftp://ftp.gnome.org/pub/GNOME/stable/sources/glib/
+
+5.  Set a PRESTO environment variable to this directory (the top level
 directory in the Preto distribution).
 
-5.  cd to $PRESTO/src.  Check and modify the Makefile for your machine
+6.  cd to $PRESTO/src.  Check and modify the Makefile for your machine
 of choice.  Insure that the library and include file directories are
-correct for FFTW, PGPLOT, and TEMPO.
+correct for FFTW, PGPLOT, GLIB, and TEMPO.
 
-6.  Get some memory and cache information ready for your machine.
+7.  Get some memory and cache information ready for your machine.  For
+example, how much total memory do you want an in-core FFT to use
+before it switches to out-of-core?
 
-7.  Do a 'make prep' which will ask you for some memory info and then
+8.  Do a 'make prep' which will ask you for some memory info and then
 turn the pulsar database into its binary form.
 
-8.  If you are using FFTW, do a 'make makewisdom'.  This gets FFTW
+9.  If you are using FFTW, do a 'make makewisdom'.  This gets FFTW
 acquainted with your system.  It is best if you are the only user on
 the machine when you run this, as it is very computation intensive and
 may take a while.
 
-9.  Do a 'make'.  This will make all of the executables.
+10.  Do a 'make'.  This will make all of the executables.
 
-10.  The required libraries and miscellaneous files will be located in
+11.  The required libraries and miscellaneous files will be located in
 presto/lib and copies of the executables will be located in
 presto/bin.  You may copy or move the executables wherever you like,
 but the library files should stay put.  (That's why you define the
 PRESTO variable -- so the routines can find them).
 
-11.  If you want to save some disk space, do a 'make clean' in the
+12.  If you want to save some disk space, do a 'make clean' in the
 'src' directory.  This will leave the libraries and binaries in their
 respective directories but will get rid of all the extra stuff in the
 'src' directory.
 
-12.  Go find pulsars.
+13.  Go find pulsars.
 
 
 Platform specific information:
