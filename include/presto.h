@@ -972,7 +972,7 @@ void barycenter(double *topotimes, double *barytimes, \
 
 void search_minifft(fcomplex *minifft, int numminifft, \
 		    rawbincand *cands, int numcands, int numharmsum, \
-		    double numfullfft, double timefullfft, \
+		    int numbetween, double numfullfft, double timefullfft, \
 		    double lorfullfft, presto_interptype interptype, \
 		    presto_checkaliased checkaliased);
   /* This routine searches a short FFT (usually produced using the   */
@@ -987,6 +987,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*      the sorted (in decreasing sigma) candidates are returned   */
   /*   'numcands' is the length of the 'cands' vector                */
   /*   'numharmsum' the number of harmonics to sum during the search */
+  /*   'numbetween' the points to interpolate per bin                */
   /*   'numfullfft' the number of points in the original long FFT    */
   /*   'timefullfft' the duration of the original time series (s)    */
   /*   'lorfullfft' the 1st bin of the long FFT that was miniFFT'd   */
@@ -1001,3 +1002,17 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*        making it slower but more sensitive.                     */
 
 void print_rawbincand(rawbincand cand);
+
+int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths);
+/* Open, read, and close a text file containing frequencies (Hz)  */
+/* and widths (Hz) to ignore in a pulsar search.  The text file   */
+/* should have one frequency and width per line.  Lines beginning */
+/* with '#' are ignored, and so may be used as comments.          */
+
+int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths, 
+		 int numzap);
+/* Look at the closest birdies in the zapfile to see if our candidate  */
+/* matches one of them.  If it does, return '1' for TRUE.  If it       */
+/* doesn't match, return a '0' for FALSE.  Note that the zapfreqs      */
+/* _must_ be in increasing order since this routine keeps track of its */
+/* place in the file.  Also, numzap _must be >= 2.                     */

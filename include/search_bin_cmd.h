@@ -38,10 +38,18 @@ typedef struct s_Cmdline {
   char lobinP;
   int lobin;
   int lobinC;
+  /***** -overlap: Fraction of a short FFT length to shift before performing another */
+  char overlapP;
+  double overlap;
+  int overlapC;
   /***** -harmsum: Number of harmonics to sum in the miniFFTs */
   char harmsumP;
   int harmsum;
   int harmsumC;
+  /***** -numbetween: Number of points to interpolate per Fourier bin (2 gives the usual bin value and an interbin) */
+  char numbetweenP;
+  int numbetween;
+  int numbetweenC;
   /***** -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
   char stackP;
   int stack;

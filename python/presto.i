@@ -1100,7 +1100,7 @@ double doppler(double freq_observed, double voverc);
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *minifft };
 void search_minifft(fcomplex *minifft, int numminifft,
 		    rawbincand *cands, int numcands, int numharmsum,
-		    double numfullfft, double timefullfft,
+		    int numbetween, double numfullfft, double timefullfft,
 		    double lorfullfft, presto_interptype interptype,
 		    presto_checkaliased checkaliased);
   /* This routine searches a short FFT (usually produced using the   */
@@ -1115,6 +1115,7 @@ void search_minifft(fcomplex *minifft, int numminifft,
   /*      the sorted (in decreasing sigma) candidates are returned   */
   /*   'numcands' is the length of the 'cands' vector                */
   /*   'numharmsum' the number of harmonics to sum during the search */
+  /*   'numbetween' the points to interpolate per bin                */
   /*   'numfullfft' the number of points in the original long FFT    */
   /*   'timefullfft' the duration of the original time series (s)    */
   /*   'lorfullfft' the 1st bin of the long FFT that was miniFFT'd   */
@@ -1127,6 +1128,7 @@ void search_minifft(fcomplex *minifft, int numminifft,
   /*        aliased freqs making it faster but less sensitive.       */
   /*      CHECK_ALIASED = harmonic summing includes aliased freqs    */
   /*        making it slower but more sensitive.                     */
+
 
 void print_rawbincand(rawbincand cand);
 
