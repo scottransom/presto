@@ -284,35 +284,36 @@ for line in infile.readlines()[1:]:
         binflag = 1
 infile.close()
 
-binflag = 0
-infile = open("hep_export.dat")
-for line in infile.readlines()[1:]:
-    if (line[0]=='J'):
-        if (binflag==0):
-            currentpulsar = psr(line)
-            pulsars[currentpulsar.jname] = currentpulsar
+if (0):
+    binflag = 0
+    infile = open("hep_export.dat")
+    for line in infile.readlines()[1:]:
+        if (line[0]=='J'):
+            if (binflag==0):
+                currentpulsar = psr(line)
+                pulsars[currentpulsar.jname] = currentpulsar
+            else:
+                binprops = line.split()
+                pulsars[binprops[0][1:]].add_bin_params(binprops)
+                num_binaries += 1
         else:
-            binprops = line.split()
-            pulsars[binprops[0][1:]].add_bin_params(binprops)
-            num_binaries += 1
-    else:
-        binflag = 1
-infile.close()
+            binflag = 1
+    infile.close()
 
-binflag = 0
-infile = open("axp_export.dat")
-for line in infile.readlines()[1:]:
-    if (line[0]=='J'):
-        if (binflag==0):
-            currentpulsar = psr(line)
-            pulsars[currentpulsar.jname] = currentpulsar
+    binflag = 0
+    infile = open("axp_export.dat")
+    for line in infile.readlines()[1:]:
+        if (line[0]=='J'):
+            if (binflag==0):
+                currentpulsar = psr(line)
+                pulsars[currentpulsar.jname] = currentpulsar
+            else:
+                binprops = line.split()
+                pulsars[binprops[0][1:]].add_bin_params(binprops)
+                num_binaries += 1
         else:
-            binprops = line.split()
-            pulsars[binprops[0][1:]].add_bin_params(binprops)
-            num_binaries += 1
-    else:
-        binflag = 1
-infile.close()
+            binflag = 1
+    infile.close()
 
 infile = open("aliases.txt")
 for line in infile.readlines()[1:]:
