@@ -1031,11 +1031,13 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
       unsigned char *data=(unsigned char *)rawdata, byte;
       for (ii=0, jj=0; ii<numchan_st/2; ii++){
 	byte = data[ii+index/2];
-	/* Treat the 4 msbs as a signed 4-bit int */
-	tmplag = (byte&0x80) ? -((byte&0x70)>>4) : (byte>>4);
+	/* Treat the 4 msbs as a twos-complement 4-bit int */
+	//tmplag = (byte&0x80) ? -((byte&0x70)>>4) : (byte>>4);
+	tmplag = ((byte&0x70)>>4) - ((byte&0x80)>>4);
 	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
-	/* Treat the 4 lsbs as a signed 4-bit int */
-	tmplag = (byte&0x08) ? -(byte&0x07) : (byte&0x07);
+	/* Treat the 4 lsbs as a twos-complement 4-bit int */
+	//tmplag = (byte&0x08) ? -(byte&0x07) : (byte&0x07);
+	tmplag = (byte&0x07) - (byte&0x08);
 	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
       }
     } else if (bits_per_lag_st==2){
