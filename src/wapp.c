@@ -386,6 +386,7 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
     clip_sigma_st = clipsig;
   numwappchan_st = idata_st[0].num_chan;
   *numchan = numchan_st = numwapps_st * numwappchan_st;
+  printf("Creating FFTW plan...\n");
   fftplan = rfftw_create_plan(2 * numwappchan_st, 
 			      FFTW_REAL_TO_COMPLEX, 
 			      FFTW_MEASURE);
@@ -1113,14 +1114,15 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes)
  
   /* FFT the ACF (which is real and even) -> real and even FFT */
   rfftw_one(fftplan, acf, lag);
-  
+
   /* Reverse band if it needs it */
   if (decreasing_freqs_st){
     float tempzz=0.0, *loptr, *hiptr;
     loptr = lag + 0;
     hiptr = lag + numwappchan_st - 1;
-    for (ii=0; ii<numwappchan_st/2; ii++, loptr++, hiptr--)
+    for (ii=0; ii<numwappchan_st/2; ii++, loptr++, hiptr--){
       SWAP(*loptr, *hiptr);
+    }
   }
 
   /* Scale and pack the powers */
