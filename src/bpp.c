@@ -941,102 +941,69 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
       allocd = 0;
       return 0;
     }
-    
+
     currentdata = rawdata1;
     lastdata = rawdata2;
-
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-    }
-
-    if (numifs_st==2){
-      /* Choosing a single IF */
-      if (ifs==IF0 || ifs==IF1)
-	for (ii=0; ii<numpts; ii++)
-	  convert_BPP_one_IF(raw + ii * bytesperpt_st, 
-			     currentdata + ii * numchan_st, ifs);
-      /* Sum the IFs */
-      else
-	for (ii=0; ii<numpts; ii++)
-	  convert_BPP_sum_IFs(raw + ii * bytesperpt_st, 
-			      currentdata + ii * numchan_st);
-    } else {
-      /* Select the already summed IFs */
-      for (ii=0; ii<numpts; ii++)
-	convert_BPP_point(raw + ii * bytesperpt_st, 
-			  currentdata + ii * numchan_st);
-    }
-
-    if (*nummasked==-1){ /* If all channels are masked */
-      for (ii=0; ii<numpts; ii++)
-	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
-    } else if (*nummasked > 0){ /* Only some of the channels are masked */
-      int channum;
-      for (ii=0; ii<numpts; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++){
-	  channum = maskchans[jj];
-	  currentdata[offset+channum] = padvals[channum];
-	}
-      }
-    }
-
-    SWAP(currentdata, lastdata);
-    firsttime=0;
+    
   }
   
   /* Read, convert and de-disperse */
   
   if (allocd){
-    numread = read_BPP_rawblocks(infiles, numfiles, raw, 
-				 numblocks, padding);
+    while(1){
+      numread = read_BPP_rawblocks(infiles, numfiles, raw, 
+				   numblocks, padding);
 
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-    }
-
-    if (numifs_st==2){
-      /* Choosing a single IF */
-      if (ifs==IF0 || ifs==IF1)
+      if (mask){
+	starttime = currentblock * timeperblk;
+	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
+      }
+      
+      if (numifs_st==2){
+	/* Choosing a single IF */
+	if (ifs==IF0 || ifs==IF1)
+	  for (ii=0; ii<numpts; ii++)
+	    convert_BPP_one_IF(raw+ii*bytesperpt_st, 
+			       currentdata+ii*numchan_st, ifs);
+	/* Sum the IFs */
+	else
+	  for (ii=0; ii<numpts; ii++)
+	    convert_BPP_sum_IFs(raw+ii*bytesperpt_st, 
+				currentdata+ii*numchan_st);
+      } else {
+	/* Select the already summed IFs */
 	for (ii=0; ii<numpts; ii++)
-	  convert_BPP_one_IF(raw + ii * bytesperpt_st, 
-			     currentdata + ii * numchan_st, ifs);
-      /* Sum the IFs */
-      else
-	for (ii=0; ii<numpts; ii++)
-	  convert_BPP_sum_IFs(raw + ii * bytesperpt_st, 
-			      currentdata + ii * numchan_st);
-    } else {
-      /* Select the already summed IFs */
-      for (ii=0; ii<numpts; ii++)
-	convert_BPP_point(raw + ii * bytesperpt_st, 
-			  currentdata + ii * numchan_st);
-    }
-
-    if (*nummasked==-1){ /* If all channels are masked */
-      for (ii=0; ii<numpts; ii++)
-	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
-    } else if (*nummasked > 0){ /* Only some of the channels are masked */
-      int channum;
-      for (ii=0; ii<numpts; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++){
-	  channum = maskchans[jj];
-	  currentdata[offset+channum] = padvals[channum];
+	  convert_BPP_point(raw+ii*bytesperpt_st, 
+			    currentdata+ii*numchan_st);
+      }
+      
+      if (mask){
+	if (*nummasked==-1){ /* If all channels are masked */
+	  for (ii=0; ii<numpts; ii++)
+	    memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+	} else if (*nummasked > 0){ /* Only some of the channels are masked */
+	  int channum;
+	  for (ii=0; ii<numpts; ii++){
+	    offset = ii * numchan_st;
+	    for (jj=0; jj<*nummasked; jj++){
+	      channum = maskchans[jj];
+	      currentdata[offset+channum] = padvals[channum];
+	    }
+	  }
 	}
       }
-    }
-    
-    dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
-    SWAP(currentdata, lastdata);
 
-    if (numread != numblocks){
-      free(raw);
-      free(rawdata1);
-      free(rawdata2);
-      allocd = 0;
+      if (!firsttime)
+	dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
+      SWAP(currentdata, lastdata);
+      if (numread != numblocks){
+	free(raw);
+	free(rawdata1);
+	free(rawdata2);
+	allocd = 0;
+      }
+      if (firsttime) firsttime = 0;
+      else break;
     }
     return numread * ptsperblk_st;
   } else {
@@ -1158,102 +1125,70 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
   *nummasked = 0;
   if (firsttime) {
     if (obsmask->numchan) mask = 1;
-    move_size = (ptsperblk_st + numsubbands) / 2;
+    move_size = (ptsperblk_st+numsubbands)/2;
     move = gen_bvect(move_size);
     currentdata = rawdata1;
     lastdata = rawdata2;
-    timeperblk = ptsperblk_st * dt_st;
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-    }
-    if (numifs_st==2){
-      /* Choosing a single IF */
-      if (ifs==IF0 || ifs==IF1)
-	for (ii=0; ii<ptsperblk_st; ii++)
-	  convert_BPP_one_IF(rawdata + ii * bytesperpt_st, 
-			     currentdata + ii * numchan_st, ifs);
-      /* Sum the IFs */
-      else
-	for (ii=0; ii<ptsperblk_st; ii++)
-	  convert_BPP_sum_IFs(rawdata + ii * bytesperpt_st, 
-			      currentdata + ii * numchan_st);
-    } else {
-      /* Select the already summed IFs */
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_BPP_point(rawdata + ii * bytesperpt_st, 
-			  currentdata + ii * numchan_st);
-    }
+    timeperblk = ptsperblk_st*dt_st;
+  }
 
+  /* Read, convert and de-disperse */
+
+  if (mask){
+    starttime = currentblock*timeperblk;
+    *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+  }
+
+  if (numifs_st==2){
+    /* Choosing a single IF */
+    if (ifs==IF0 || ifs==IF1)
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_one_IF(rawdata+ii*bytesperpt_st, 
+			   currentdata+ii*numchan_st, ifs);
+    /* Sum the IFs */
+    else
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_sum_IFs(rawdata+ii*bytesperpt_st, 
+			    currentdata+ii*numchan_st);
+  } else {
+    /* Select the already summed IFs */
+    for (ii=0; ii<ptsperblk_st; ii++)
+      convert_BPP_point(rawdata+ii*bytesperpt_st, 
+			currentdata+ii*numchan_st);
+  }
+  
+  if (mask){
     if (*nummasked==-1){ /* If all channels are masked */
       for (ii=0; ii<ptsperblk_st; ii++)
 	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
     } else if (*nummasked > 0){ /* Only some of the channels are masked */
       int channum;
       for (ii=0; ii<ptsperblk_st; ii++){
-	offset = ii * numchan_st;
+	offset = ii*numchan_st;
 	for (jj=0; jj<*nummasked; jj++){
 	  channum = maskchans[jj];
 	  currentdata[offset+channum] = padvals[channum];
 	}
       }
     }
-
+  }
+    
+  if (firsttime){
     SWAP(currentdata, lastdata);
-    firsttime=0;
+    firsttime = 0;
     return 0;
-  }
-
-  /* Read, convert and de-disperse */
-
-  if (mask){
-    starttime = currentblock * timeperblk;
-    *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-  }
-  if (numifs_st==2){
-    /* Choosing a single IF */
-    if (ifs==IF0 || ifs==IF1)
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_BPP_one_IF(rawdata + ii * bytesperpt_st, 
-			   currentdata + ii * numchan_st, ifs);
-    /* Sum the IFs */
-    else
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_BPP_sum_IFs(rawdata + ii * bytesperpt_st, 
-			    currentdata + ii * numchan_st);
   } else {
-    /* Select the already summed IFs */
-    for (ii=0; ii<ptsperblk_st; ii++)
-      convert_BPP_point(rawdata + ii * bytesperpt_st, 
-			currentdata + ii * numchan_st);
-  }
-
-  if (*nummasked==-1){ /* If all channels are masked */
-    for (ii=0; ii<ptsperblk_st; ii++)
-      memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
-  } else if (*nummasked > 0){ /* Only some of the channels are masked */
-    int channum;
-    for (ii=0; ii<ptsperblk_st; ii++){
-      offset = ii * numchan_st;
-      for (jj=0; jj<*nummasked; jj++){
-	channum = maskchans[jj];
-	currentdata[offset+channum] = padvals[channum];
-      }
+    dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
+		    dispdelays, numsubbands, data);
+    SWAP(currentdata, lastdata);
+    /* Transpose the data into vectors in the result array */
+    if (transpose){
+      if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
+				  move, move_size))<0)
+	printf("Error %d in transpose_float().\n", trtn);
     }
+    return ptsperblk_st;
   }
-  
-  dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
-		  dispdelays, numsubbands, data);
-  SWAP(currentdata, lastdata);
-
-  /* Transpose the data into vectors in the result array */
-
-  if (transpose){
-    if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-				move, move_size))<0)
-      printf("Error %d in transpose_float().\n", trtn);
-  }
-  return ptsperblk_st;
 }
 
 
