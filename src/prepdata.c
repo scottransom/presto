@@ -22,6 +22,7 @@
 /* Some function definitions */
 
 static int read_floats(FILE *file, float *data, int numpts, int numchan);
+static int read_shorts(FILE *file, float *data, int numpts, int numchan);
 static void update_stats(int N, double x, double *min, double *max,
 			 double *avg, double *var);
 static void update_infodata(infodata *idata, long datawrote, long padwrote, 
@@ -611,6 +612,8 @@ int main(int argc, char *argv[])
 	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked, 
 			    &obsmask);
+      else if (useshorts)
+	numread = read_shorts(infiles[0], outdata, worklen, numchan);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
 
@@ -872,6 +875,31 @@ static int read_floats(FILE *file, float *data, int numpts, \
 
   return chkfread(data, sizeof(float), (numpts * numchan), 
 		  file) / numchan;
+}
+
+
+static int read_shorts(FILE *file, float *data, int numpts, \
+		       int numchan)
+/* This routine reads a numpts records of numchan each from */
+/* the input file *file which contains short integer data.  */
+/* The equivalent floats are placed in *data.               */
+/* It returns the number of points read.                    */
+{
+  short *sdata;
+  int ii, numread;
+
+  sdata = (short *) malloc((size_t) (sizeof(short) * (numpts * numchan)));
+  if (!sdata) {
+    perror("\nError allocating short array in read_shorts()");
+    printf("\n");
+    exit(-1);
+  }
+  numread = chkfread(sdata, sizeof(short),
+                     (unsigned long) (numpts * numchan), file) / numchan;
+  for (ii=0; ii<numread; ii++)
+    data[ii] = (float) sdata[ii];
+  free(sdata);
+  return numread;
 }
 
 
