@@ -2,9 +2,6 @@
 #include "mask.h"
 #include "bpp.h"
 
-void indexx(unsigned int n, double arr[], unsigned int indx[]);
-
-
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
 static int numblks_st[MAXPATCHFILES];
@@ -17,8 +14,13 @@ static infodata idata_st[MAXPATCHFILES];
 static unsigned char databuffer[2*MAXDATLEN], padval=4;
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
-static double chan_freqs[2*MAXNUMCHAN], mid_freq_st, ch1_freq_st, delta_freq_st;
-static int chan_index[2*MAXNUMCHAN];
+static double mid_freq_st, ch1_freq_st, delta_freq_st;
+static double chan_freqs[2*MAXNUMCHAN];
+static int chan_index[2*MAXNUMCHAN], chan_mapping[2*MAXNUMCHAN];
+#if 0
+static double chan_freqs2[2*MAXNUMCHAN];
+static int chan_index2[2*MAXNUMCHAN];
+#endif
 static int dfb_chan_lookup[MAXREGS][NIBPERREG] = {
   {4, 0, 4, 0},
   {5, 1, 5, 1},
@@ -46,6 +48,11 @@ typedef struct findex{
   int index;
 } findex;
 
+typedef struct mapindex{
+  int mapping;
+  int index;
+} mapindex;
+
 double slaCldj(int iy, int im, int id, int *j);
 void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
 			BPP_ifs ifs);
@@ -71,6 +78,21 @@ int compare_findex(const void *ca, const void *cb)
   if ((b->index - a->index) > 0)
     return -1;
   */
+  return 0;
+}
+
+
+int compare_mapindex(const void *ca, const void *cb)
+/* qsort comparison function for findex */
+{
+  mapindex *a, *b;
+ 
+  a = (mapindex *) ca;
+  b = (mapindex *) cb;
+  if ((b->index - a->index) < 0)
+    return 1;
+  if ((b->index - a->index) > 0)
+    return -1;
   return 0;
 }
 
@@ -217,6 +239,7 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
   int ii, n=0, dfb_chan, logical_board, regid, bid, nibble, nchans;
   double  f_aib, u_or_l, f_sram, fc;
   findex *findexarr;
+  mapindex *mapindexarr;
 
   /* The following is probably a bad way to see if */
   /* we need to swap the endianess of the header.  */
@@ -265,22 +288,23 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
   /* Make a lookup table which gives chans in order of increasing freq */
   
   findexarr = (findex *)malloc(sizeof(findex) * nchans);
+  mapindexarr = (mapindex *)malloc(sizeof(mapindex) * nchans);
   for (ii=0; ii<nchans; ii++){
     findexarr[ii].freq = chan_freqs[ii];
     findexarr[ii].index = ii;    
-    /*
-    printf("%d  %f\n", findexarr[ii].index, findexarr[ii].freq);
-    */
   }
   qsort(findexarr, nchans, sizeof(findex), compare_findex);
   for (ii=0; ii<nchans; ii++){
     chan_index[ii] = findexarr[ii].index;
-    /*
-    printf("%3d  %3d  %f\n", ii, 
-	   chan_index[ii], chan_freqs[chan_index[ii]]);
-    */
+    mapindexarr[ii].index = findexarr[ii].index;
+    mapindexarr[ii].mapping = ii;
   }
   free(findexarr);
+  qsort(mapindexarr, nchans, sizeof(mapindex), compare_mapindex);
+  for (ii=0; ii<nchans; ii++){
+    chan_mapping[ii] = mapindexarr[ii].mapping;
+  }
+  free(mapindexarr);
 
   /* Set the static variables */
 
@@ -365,17 +389,6 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   chkfread(rawhdr, BPP_HEADER_SIZE, 1, files[0]);
   header = (BPP_SEARCH_HEADER *)rawhdr;
   calc_BPP_chans(header);
-#if 0
-  {
-    double *freq;
-    int *nibble;
-
-    for (ii=0; ii<NCHAN; ii++){
-      gen_channel_mapping(header, &nibble, &freq, NULL);
-      printf("%d  %f\n", nibble[ii], freq[ii]);
-    }
-  }
-#endif
   BPP_hdr_to_inf(header, &idata_st[0]);
   BPP_hdr_to_inf(header, idata);
   *numchan = numchan_st = idata_st[0].num_chan;
@@ -424,6 +437,23 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   *N = N_st;
   *T = T_st = N_st * dt_st;
   currentfile = currentblock = 0;
+#if 0
+  {
+    double *freq;
+    int *nibble;
+
+    for (ii=0; ii<96; ii++){
+      gen_channel_mapping(header, &nibble, &freq, NULL);
+      chan_index2[ii] = nibble[ii];
+      chan_freqs2[ii] = freq[ii]/1000000.0;
+    }
+    for (ii=0; ii<numchan_st; ii++){
+      printf("%3d  %3d  %3d  %10.3f  %3d  %10.3f\n", ii, 
+	     chan_mapping[ii], chan_index[ii], chan_freqs[chan_index[ii]],
+	     chan_index2[ii], chan_freqs2[ii]);
+    }
+  }
+#endif
   if (output){
     printf("  Number of files = %d\n", numfiles);
     printf("     Points/block = %d\n", ptsperblk_st);
@@ -1083,7 +1113,7 @@ void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
   unsigned char *rawdataptr, ifbytes[2*MAXNUMCHAN];
 
   rawdataptr = rawdata;
-  indexptr = chan_index;
+  indexptr = chan_mapping;
   for (ii=0; ii<numchan_st*2; ii++) 
     ifbytes[ii] = 0;
   for (ii=0; ii<numchan_st; ii++, rawdataptr++){
@@ -1105,7 +1135,7 @@ void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes)
   unsigned char *rawdataptr, ifbytes[2*MAXNUMCHAN];
 
   rawdataptr = rawdata;
-  indexptr = chan_index;
+  indexptr = chan_mapping;
   for (ii=0; ii<numchan_st*2; ii++) 
     ifbytes[ii] = 0;
   for (ii=0; ii<numchan_st; ii++, rawdataptr++){
@@ -1125,7 +1155,7 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
   unsigned char *rawdataptr;
 
   rawdataptr = rawdata;
-  indexptr = chan_index;
+  indexptr = chan_mapping;
   for (ii=0; ii<numchan_st/2; ii++, rawdataptr++){
     bytes[*indexptr++] = (*rawdataptr >> 0x04);
     bytes[*indexptr++] = (*rawdataptr & 0x0F);
