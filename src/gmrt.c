@@ -237,17 +237,16 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
 /* added and statistics should not be calculated       */
 {
   int offset, numtopad=0, ii;
-  unsigned char *dataptr;
+  unsigned char *dataptr=data;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
-  if (bufferpts && shiftbuffer){
-    offset = bufferpts * numchan_st;
-    memcpy(databuffer, databuffer+sampperblk_st, offset);
+  if (bufferpts){
+    offset = bufferpts*numchan_st;
     dataptr = databuffer + offset;
-  } else {
-    dataptr = data;
+    if (shiftbuffer)
+      memcpy(databuffer, databuffer+sampperblk_st, offset);
   }
   shiftbuffer=1;
 
@@ -268,9 +267,8 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
     convert_GMRT_block(sdatabuffer, dataptr);
     *padding = 0;
     /* Put the new data into the databuffer if needed */
-    if (bufferpts){
-      memcpy(data, dataptr, sampperblk_st);
-    }
+    if (bufferpts)
+      memcpy(data, databuffer, sampperblk_st);
     currentblock++;
     return 1;
   } else { /* Didn't get data */
@@ -305,10 +303,10 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
 	  /* then get a block from the next file. */
           memset(databuffer+bufferpts*numchan_st, 
 		 padval, numtopad*numchan_st);
-	  padnum = 0;
-	  currentfile++;
-	  shiftbuffer = 0;
 	  bufferpts += numtopad;
+	  padnum = 0;
+	  shiftbuffer = 0;
+	  currentfile++;
 	  return read_GMRT_rawblock(infiles, numfiles, data, &pad);
 	}
       } else {  /* No padding needed.  Try reading the next file */
@@ -388,7 +386,6 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
       exit(1);
     } else
       numblocks = numpts / ptsperblk_st;
-    
     if (obsmask->numchan) mask = 1;
     rawdata1 = gen_bvect(numblocks * sampperblk_st);
     rawdata2 = gen_bvect(numblocks * sampperblk_st);
@@ -405,7 +402,6 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
     while (1){
       numread = read_GMRT_rawblocks(infiles, numfiles, currentdata, 
 				    numblocks, padding);
-      
       if (mask){
 	starttime = currentblock * timeperblk;
 	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
@@ -434,7 +430,7 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
       if (firsttime) firsttime = 0;
       else break;
     }
-    return numread * ptsperblk_st;
+    return numblocks * ptsperblk_st;
   } else {
     return 0;
   }
