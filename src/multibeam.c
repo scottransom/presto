@@ -19,11 +19,18 @@ static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 
 
+void get_PKMB_static(int *decreasing_freqs)
+{
+  *decreasing_freqs = decreasing_freqs_st;
+}
+
 void set_PKMB_static(int ptsperblk, int bytesperpt, 
-		     int numchan, double dt){
+		     int numchan, int decreasing_freqs, double dt)
+{
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   numchan_st = numchan;
+  decreasing_freqs_st = decreasing_freqs;
   dt_st = dt;
 }
 
