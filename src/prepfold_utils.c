@@ -486,7 +486,11 @@ void read_prepfoldinfo(prepfoldinfo *in, char *filename)
     chkfread(temp, sizeof(char), 16, infile);
     /* Check to see if a position string was written */
     for (ii=0; ii<16; ii++){
-      if (!isdigit(temp[ii]) && temp[ii]!=':' && temp[ii]!='-' && temp[ii]!='\0'){
+      if (!isdigit(temp[ii]) && 
+	  temp[ii]!=':' && 
+	  temp[ii]!='.' && 
+	  temp[ii]!='-' && 
+	  temp[ii]!='\0'){
 	has_posn=0;
 	break;
       }
@@ -494,6 +498,8 @@ void read_prepfoldinfo(prepfoldinfo *in, char *filename)
     if (has_posn){
       strcpy(in->rastr, temp);
       chkfread(in->decstr, sizeof(char), 16, infile);
+      in->dt = read_double(infile, byteswap);
+      in->startT = read_double(infile, byteswap);
     } else {
       strcpy(in->rastr, "Unknown");
       strcpy(in->decstr, "Unknown");
