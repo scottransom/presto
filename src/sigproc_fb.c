@@ -391,7 +391,6 @@ void sigprocfb_to_inf(sigprocfb *fb, infodata *idata)
 /* Convert filterbank header structure into an infodata structure */
 {
   char *tmpstr, ctmp[500];
-  strncpy(idata->name, fb->inpfile, 80);
   strncpy(idata->object, fb->source_name, 80);
   idata->ra_h = (int) floor(fb->src_raj/10000.0);
   idata->ra_m = (int) floor((fb->src_raj - idata->ra_h*10000)/100.0);
@@ -422,16 +421,7 @@ void sigprocfb_to_inf(sigprocfb *fb, infodata *idata)
   strcpy(idata->band, "Radio");
   strcpy(idata->analyzer, "Scott Ransom");
   strcpy(idata->observer, "Unknown");
-  if (fb->sumifs)
-    sprintf(ctmp,
-	    "  %d IF(s) were summed.  Filterbank samples have %d bits.\n",
-	    fb->nifs, fb->nbits);
-  else
-    sprintf(ctmp, 
-	    "  %d IF(s) were not summed.  Filterbank samples have %d bits.\n",
-	    fb->nifs, fb->nbits);
-  sprintf(idata->notes, "%s  Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n",
-	  ctmp, fb->az_start, fb->za_start);
+  sprintf(idata->notes, "Input filterbank samples have %d bits.\n", fb->nbits);
 }
 
 
@@ -518,8 +508,8 @@ void get_filterbank_file_info(FILE *files[], int numfiles, float clipsig,
     printf("   Num of channels = %d\n", numchan_st);
     printf("  Total points (N) = %lld\n", N_st);
     printf("  Sample time (dt) = %-14.14g\n", dt_st);
-    printf("    Total time (s) = %-14.14g\n\n", T_st);
-    printf(" Header length (B) = %d\n", headerlen);
+    printf("    Total time (s) = %-14.14g\n", T_st);
+    printf(" Header length (B) = %d\n\n", headerlen);
     printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)

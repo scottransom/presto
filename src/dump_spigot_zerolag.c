@@ -36,9 +36,6 @@ int main(int argc, char *argv[])
       /* Position the file stream at the beginning of the data */
       chkfseek(infile, spigot.header_len, SEEK_SET);
       
-      fprintf(stderr, "%d  %d\n", spigot.lags_per_sample*spigot.bits_per_lag/8, 
-	      spigot.lags_per_sample);
-      
       /* Loop over the samples in the file */
       while (chkfread(rawlags, sizeof(char), 
 		      spigot.lags_per_sample*spigot.bits_per_lag/8, 
