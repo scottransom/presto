@@ -12,13 +12,17 @@ Commandline full_cmd_line
 
 Int -ncand   ncand   {Number of candidates to try to return} \
 	-r 1 10000  -d 100
-Int -zlo     zlo     {The low Fourier frequency to check} \
+Int -zlo     zlo     {The low Fourier frequency derivative to search} \
 	-r -2000000 2000000  -d " -50"
-Int -zhi     zhi     {The high Fourier frequency to check} \
+Int -zhi     zhi     {The high Fourier frequency derivative to search} \
 	-r -2000000 2000000  -d 50
-Int -rlo     rlo     {The lowest Fourier frequency to check} \
+Int -rlo     rlo     {The lowest Fourier frequency to search} \
 	-r 0 oo  -d 300
-Int -rhi     rhi     {The highest Fourier frequency to check} \
+Int -rhi     rhi     {The highest Fourier frequency to search} \
+	-r 0 oo
+Int -flo     flo     {The lowest frequency (Hz) to search} \
+	-r 0 oo
+Int -fhi     fhi     {The highest frequency (Hz) to search} \
 	-r 0 oo
 Int -lobin   lobin   {The first Fourier frequency in the data file} \
 	-r 0 oo  -d 0

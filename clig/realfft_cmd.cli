@@ -1,0 +1,20 @@
+Name realfft
+
+Usage {Perform a single-precision FFT of real data or its inverse}
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+Flag -inv  inverse {Perform an inferse FFT (i.e. F(w)->f(t))}
+Flag -del  delete  {Delete the original data file when performing the FFT}
+Flag -huge hugefft {Force the use of the out-of-core FFT}
+Flag -core corefft {Force the use of the in-core memory FFT}
+Double -padlen padlen {Pad or chop the data to the prescribed length}
+	-r 2 oo
+Float -padval padval {The value to pad the data with}
+	-d 0.0
+String -scratch scratch {Scratch directory for temp file(s) in out-of-core FFT}
+String -result result   {Directory where result file(s) will reside}
+Rest infiles {Input data file(s)} \
+	-c 1 16
