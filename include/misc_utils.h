@@ -14,6 +14,13 @@ void split_path_file(char *input, char **path, char **file);
 /* path and filename dynamically, the calling program  */
 /* must free both "path" and "file".                   */
 
+int split_root_suffix(char *input, char **root, char **suffix);
+/* This routine splits an input string into a root name */
+/* + suffix.  Since is allocates the memory for the     */
+/* root and suffix dynamically, the calling program     */
+/* must free both "root" and "suffix".                  */
+/* If the routine finds a suffix, it returns 1, else 0. */
+
 float *gen_freqs(long numfreqs, double lof, double df);
 /* This routine generates a float vector of length numfreqs */
 /* with values set to lof, lof+df, lof+2df, ...             */
