@@ -235,34 +235,36 @@ static void zapbirds(double lobin, double hibin)
   ilobin = (int) floor(lobin);
   ihibin = (int) ceil(hibin);
   binstozap = ihibin - ilobin + 1;
-  data = get_rawbins(fftfile, lobin-MEDIANBINS, 
-		     MEDIANBINS, &median_lo, &lodatabin);
-  free(data);
-  data = get_rawbins(fftfile, hibin, 
-		     MEDIANBINS, &median_hi, &lodatabin);
-  free(data);
-  avgamp = sqrt(0.5 * (median_lo + median_hi) / -log(0.5));
-  data = gen_cvect(binstozap);
-  /* Read the data to zap */
-  chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
-  chkfread(data, sizeof(fcomplex), binstozap, fftfile);
-  for (ii=0; ii<binstozap; ii++){
-    /* Change the amplitudes but not the phases */
-    /*
-      phase = RADIAN_PHASE(data[ii].r, data[ii].i);
-      data[ii].r = avgamp * cos(phase);
-      data[ii].i = avgamp * sin(phase);
-    */
-    /* Just set the amplitudes to the avgvalue */
-    data[ii].r = avgamp;
-    data[ii].i = 0.0;
+  if (lobin-1.5*MEDIANBINS > 1){
+    data = get_rawbins(fftfile, lobin-MEDIANBINS, 
+		       MEDIANBINS, &median_lo, &lodatabin);
+    free(data);
+    data = get_rawbins(fftfile, hibin, 
+		       MEDIANBINS, &median_hi, &lodatabin);
+    free(data);
+    avgamp = sqrt(0.5 * (median_lo + median_hi) / -log(0.5));
+    data = gen_cvect(binstozap);
+    /* Read the data to zap */
+    chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
+    chkfread(data, sizeof(fcomplex), binstozap, fftfile);
+    for (ii=0; ii<binstozap; ii++){
+      /* Change the amplitudes but not the phases */
+      /*
+	phase = RADIAN_PHASE(data[ii].r, data[ii].i);
+	data[ii].r = avgamp * cos(phase);
+	data[ii].i = avgamp * sin(phase);
+      */
+      /* Just set the amplitudes to the avgvalue */
+      data[ii].r = avgamp;
+      data[ii].i = 0.0;
+    }
+    /* Write the modified data */
+    chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
+    chkfwrite(data, sizeof(fcomplex), binstozap, fftfile);
+    printf("Set bins %9d through %9d to amplitude of %.3g\n",
+	   ilobin, ihibin, avgamp);
+    free(data);
   }
-  /* Write the modified data */
-  chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
-  chkfwrite(data, sizeof(fcomplex), binstozap, fftfile);
-  printf("Set bins %9d through %9d to amplitude of %.3g\n",
-	 ilobin, ihibin, avgamp);
-  free(data);
 }
 
 int main(int argc, char *argv[])
