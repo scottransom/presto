@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "readfile" 1 "22Apr04" "Clig-manuals" "Programmer's Manual"
+.TH "readfile" 1 "05Sep04" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,7 +22,7 @@ readfile \- Reads raw data from a binary file and displays it on stdout.
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B readfile
-[-nopage]
+[-page]
 [-byte]
 [-b]
 [-float]
@@ -49,6 +49,7 @@ readfile \- Reads raw data from a binary file and displays it on stdout.
 [-bcpm]
 [-wapp]
 [-spigot]
+[-filterbank]
 [-fortran]
 [-index [index]]
 [-nph nph]
@@ -57,8 +58,8 @@ file
 
 .\" cligPart OPTIONS
 .SH OPTIONS
-.IP -nopage
-Don't paginate the output like 'more'.
+.IP -page
+Paginate the output like 'more'.
 .IP -byte
 Raw data in byte format.
 .IP -b
@@ -111,6 +112,8 @@ Raw data in BCPM format.
 Raw data in WAPP format.
 .IP -spigot
 Raw data in Spigot Card format.
+.IP -filterbank
+Raw data in SIGPROC filterbank format.
 .IP -fortran
 Raw data was written by a fortran program.
 .IP -index

@@ -21,6 +21,8 @@ typedef struct s_Cmdline {
   char bcpmP;
   /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
   char spigotP;
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  char filterbankP;
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   char wappP;
   /***** -window: Window correlator lags with a Hamming window before FFTing */

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "22Apr04" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "05Sep04" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -27,6 +27,7 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 [-gmrt]
 [-bcpm]
 [-spigot]
+[-filterbank]
 [-wapp]
 [-window]
 [-numwapps numwapps]
@@ -61,6 +62,8 @@ Raw data in GMRT Phased Array format.
 Raw data in Berkeley-Caltech Pulsar Machine (BPP) format.
 .IP -spigot
 Raw data in Caltech-NRAO Spigot Card format.
+.IP -filterbank
+Raw data in SIGPROC filterbank format.
 .IP -wapp
 Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
 .IP -window

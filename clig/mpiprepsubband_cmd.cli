@@ -16,6 +16,7 @@ Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -gmrt    gmrt    {Raw data in GMRT Phased Array format}
 Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
 Flag   -spigot  spigot  {Raw data in Caltech-NRAO Spigot Card format}
+Flag   -filterbank  filterbank  {Raw data in SIGPROC filterbank format}
 Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Flag   -window  window  {Window correlator lags with a Hamming window before FFTing}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \

@@ -9,8 +9,8 @@
 *****/
 
 typedef struct s_Cmdline {
-  /***** -nopage: Don't paginate the output like 'more' */
-  char nopageP;
+  /***** -page: Paginate the output like 'more' */
+  char pageP;
   /***** -byte: Raw data in byte format */
   char bytP;
   /***** -b: Raw data in byte format */
@@ -63,6 +63,8 @@ typedef struct s_Cmdline {
   char wappP;
   /***** -spigot: Raw data in Spigot Card format */
   char spigotP;
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  char filterbankP;
   /***** -fortran: Raw data was written by a fortran program */
   char fortranP;
   /***** -index: The range of objects to display */

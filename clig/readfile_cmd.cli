@@ -10,7 +10,7 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-Flag   	-nopage		nopage	{Don't paginate the output like 'more'}
+Flag   	-page		page	{Paginate the output like 'more'}
 Flag   	-byte		byt	{Raw data in byte format}
 Flag   	-b		sbyt	{Raw data in byte format}
 Flag   	-float		flt	{Raw data in floating point format}
@@ -37,6 +37,7 @@ Flag   	-pkmb    	pkmb	{Raw data in Parkes Multibeam format}
 Flag   	-bcpm    	bcpm	{Raw data in BCPM format}
 Flag    -wapp           wapp    {Raw data in WAPP format}
 Flag    -spigot         spigot  {Raw data in Spigot Card format}
+Flag    -filterbank     filterbank  {Raw data in SIGPROC filterbank format}
 Flag	-fortran        fortran {Raw data was written by a fortran program}
 Int 	-index 		index 	{The range of objects to display} \
 				-r -1 oo  -d 0 " -1"  -c 0 2
