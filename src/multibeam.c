@@ -329,7 +329,7 @@ void multibeam_hdr_to_inf(multibeam_tapehdr * hdr, infodata * idata)
   strcpy(idata->band, "Radio");
   strcpy(idata->analyzer, "--");
   strcpy(idata->observer, "--");
-  sprintf(idata->notes, "Topo UT Date & Time at file start = %.8s, %.16s\n  From tape %.6s  file #%.4s  block #%.8s\n  Comment: %.64s\n", hdr->date, hdr->ut_start, hdr->tape_lbl, hdr->file_cntr, hdr->blk_cntr, hdr->comment);
+  sprintf(idata->notes, "Topo UT Date & Time at file start = %.8s, %.16s\n    From tape %.6s  file #%.4s  block #%.8s\n    Comment: %.64s\n", hdr->date, hdr->ut_start, hdr->tape_lbl, hdr->file_cntr, hdr->blk_cntr, hdr->comment);
 
 }
 

@@ -42,7 +42,7 @@
 
 /* If the following is defined, the program will print */
 /* debugging info to stdout.                           */
-/*#define DEBUGOUT*/
+#define DEBUGOUT
 
 /* Output threshold */
 /* If any candidates have a sigma greater than the following  */
@@ -70,11 +70,11 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 			   float dm, int minfft, int maxfft)
 {
   int ii, jj, worklen, fftlen, binsleft, overlaplen;
-  int bigfft_pos=0, powers_offset, wrkblk=WORKBLOCK;
+  int bigfft_offset=0, powers_offset, wrkblk=WORKBLOCK;
   float *powers, *minifft, *powers_pos, powargr, powargi;
   double T, norm, minsig=0.0;
   rawbincand list[NUMCANDS], tmplist[MININCANDS];
-  multibeam_tapehdr *hdr=NULL;
+  multibeam_tapehdr *hdr;
   infodata idata;
   
   /* Prep our candidate lists */
@@ -86,7 +86,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
   /* Copy the header information into *hdr */
     
-  memcpy(hdr, header, HDRLEN);
+ hdr = (multibeam_tapehdr *) header;
 
   /* Convert the Header into usable info... */
 
@@ -115,11 +115,11 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
   /* Loop through the bigFFT */
 
-  while (bigfft_pos < N) {
+  while (bigfft_offset < N) {
 
     /* How close are we to the end of the bigFFT? */
     
-    binsleft = N - bigfft_pos;
+    binsleft = N - bigfft_offset;
 
     /* Adjust our search parameters if close to end of zone to search */
 
@@ -137,9 +137,9 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
     /* Get the powers from the bigFFT */
 
-    for (ii = 0, jj = bigfft_pos; ii < worklen; ii++, jj++)
+    for (ii = 0, jj = bigfft_offset; ii < worklen; ii++, jj++)
       powers[ii] = POWER(bigfft[jj].r, bigfft[jj].i);
-    if (bigfft_pos == 0) powers[0] = 1.0;
+    if (bigfft_offset == 0) powers[0] = 1.0;
 
     /* Chop the powers that are way above the median.  */
     /* This is a crude way of removing strong coherent */
@@ -152,15 +152,16 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
     while (fftlen >= minfft) {
       powers_pos = powers;
       powers_offset = 0;
-#ifdef DEBUGOUT
-      printf("  powers_offset = %d\n", powers_offset);
-#endif
       overlaplen = fftlen / OVERLAPFACT;
 
       /* Perform miniffts at each section of the powers array */
 
       while (powers_offset < wrkblk * maxfft){
 
+#ifdef DEBUGOUT
+	printf("  %d:  offset = %d\n", fftlen, 
+	       bigfft_offset + powers_offset);
+#endif
 	/* Copy the proper amount and portion of powers into minifft */
 
 	memcpy(minifft, powers_pos, fftlen * sizeof(float));
@@ -175,7 +176,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
 	search_minifft((fcomplex *)minifft, fftlen / 2, tmplist, \
 		       MININCANDS, NUMHARMSUM, NUMBETWEEN, (double) N, \
-		       T, (double) (powers_offset + bigfft_pos), \
+		       T, (double) (powers_offset + bigfft_offset), \
 		       INTERPOLATE, NO_CHECK_ALIASED);
 		       
 	/* Check if the new cands should go into the master cand list */
@@ -222,9 +223,9 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
       /* Size of mini-fft while loop */
     }
 
-    bigfft_pos += wrkblk * maxfft;
+    bigfft_offset += wrkblk * maxfft;
 #ifdef DEBUGOUT
-      printf("\nbigfft_pos = %d\n\n", bigfft_pos);
+      printf("\nbigfft_offset = %d\n\n", bigfft_offset);
 #endif
 
     /* BigFFT position while loop */
@@ -246,7 +247,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
     char *notes, outfilenm[100];
     FILE *outfile;
 
-    sprintf(idata.name, "%s/%s", OUTDIR, hdr->pname);
+    sprintf(idata.name, "%s/%s", OUTDIR, idata.object);
     strncpy(idata.observer, "PMSurv", 90);
     strncpy(idata.analyzer, 
 	    "Scott Ransom <ransom@cfa.harvard.edu>", 90);
