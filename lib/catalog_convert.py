@@ -328,12 +328,12 @@ infile.close()
 psrs = pulsars.values()
 psrs.sort()
 
-
-outfilename = "pulsars.cat"
-outfile = open(outfilename, "w")
-print "Writing %d pulsars (%d binaries) to %s" % \
-      (len(psrs), num_binaries, outfilename)
-for psr in psrs:
-    outfile.write(psr.pack_structs())
-outfile.close()
+if __name__ == '__main__' :
+    outfilename = "pulsars.cat"
+    outfile = open(outfilename, "w")
+    print "Writing %d pulsars (%d binaries) to %s" % \
+          (len(psrs), num_binaries, outfilename)
+    for psr in psrs:
+        outfile.write(psr.pack_structs())
+    outfile.close()
 
