@@ -72,6 +72,18 @@ int swap_int(int var)
   return *iptr;
 }
 
+unsigned int swap_uint(unsigned int var)
+{
+  unsigned char *buffer;
+  unsigned int *iptr;
+
+  buffer = (unsigned char *)(&var);
+  SWAP(buffer[0], buffer[3]);
+  SWAP(buffer[1], buffer[2]);
+  iptr = (unsigned int *)buffer;
+  return *iptr;
+}
+
 short swap_short(short var)
 {
   unsigned char *buffer;
@@ -83,16 +95,15 @@ short swap_short(short var)
   return *sptr;
 }
 
-unsigned int swap_uint(unsigned int var)
+unsigned short swap_ushort(unsigned short var)
 {
   unsigned char *buffer;
-  unsigned int *iptr;
+  unsigned short *sptr;
 
   buffer = (unsigned char *)(&var);
-  SWAP(buffer[0], buffer[3]);
-  SWAP(buffer[1], buffer[2]);
-  iptr = (unsigned int *)buffer;
-  return *iptr;
+  SWAP(buffer[0], buffer[1]);
+  sptr = (unsigned short *)buffer;
+  return *sptr;
 }
 
 #undef SWAP

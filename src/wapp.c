@@ -13,7 +13,6 @@ static int need_byteswap_st, sampperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st, dtus_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
-static double scale_min_st=0.0, scale_max_st=3.0;
 static double corr_rate_st, corr_scale_st;
 static infodata idata_st[MAXPATCHFILES];
 static unsigned char databuffer[2*WAPP_MAXDATLEN], padval=128;
@@ -27,6 +26,117 @@ static void vanvleck3lev(float *rho, int npts);
 static void vanvleck9lev(float *rho, int npts);
 static float clip_sigma_st=0.0;
 
+/* NEW Clipping Routine (uses channel running averages) */
+int new_clip_times(unsigned char *rawpows)
+/* Perform time-domain clipping of WAPP data. This routine */
+/* is primarily designed to get rid of the nasty and very  */
+/* strong RFI that is occasionally observed at night at    */
+/* Arecibo.  The source of the RFI is unknown.             */
+{
+  static float running_avg=0.0, running_std=0.0;
+  static int blocksread=0;
+  static long long current_point=0;
+  float zero_dm_block[WAPP_PTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
+  double chan_avg_temp[WAPP_MAXLAGLEN], chan_running_avg[WAPP_MAXLAGLEN];
+  float current_med, trigger;
+  double current_avg=0.0, current_std=0.0;
+  unsigned char *powptr;
+  int ii, jj, clipit=0, clipped=0;
+
+  /* Calculate the zero DM time series */
+  for (ii=0; ii<ptsperblk_st; ii++){
+    zero_dm_block[ii] = 0.0;
+    powptr = rawpows + ii * numchan_st;
+    for (jj=0; jj<numchan_st; jj++)
+      zero_dm_block[ii] += *powptr++;
+    median_temp[ii] = zero_dm_block[ii];
+  }
+  current_med = median(median_temp, ptsperblk_st);
+  
+  /* Calculate the current standard deviation and mean  */
+  /* but only for data points that are within a certain */
+  /* fraction of the median value.  This removes the    */
+  /* really strong RFI from the calculation.            */
+  {
+    float lo_cutoff, hi_cutoff;
+    int numgoodpts=0;
+
+    lo_cutoff = 0.7 * current_med;
+    hi_cutoff = 1.3 * current_med;
+    for (jj=0; jj<numchan_st; jj++)
+      chan_avg_temp[jj] = 0.0;
+    /* Find the "good" points */
+    for (ii=0; ii<ptsperblk_st; ii++){
+      if (zero_dm_block[ii] > lo_cutoff &&
+	  zero_dm_block[ii] < hi_cutoff){
+	median_temp[numgoodpts] = zero_dm_block[ii];
+	powptr = rawpows + ii * numchan_st;
+	for (jj=0; jj<numchan_st; jj++)
+	  chan_avg_temp[jj] += *powptr++;
+	numgoodpts++;
+      }
+    }
+    /* Calculate the current average and stddev*/
+    if (numgoodpts<1){
+      current_avg = running_avg;
+      current_std = running_std;
+      for (jj=0; jj<numchan_st; jj++)
+	chan_avg_temp[jj] = chan_running_avg[jj];
+    } else {
+      avg_var(median_temp, numgoodpts, &current_avg, &current_std);
+      current_std = sqrt(current_std);
+      for (jj=0; jj<numchan_st; jj++)
+	chan_avg_temp[jj] /= numgoodpts;
+    }
+  }
+
+  /* Update a pseudo running average and stdev */
+  if (blocksread){
+    running_avg = 0.9 * running_avg + 0.1 * current_avg;
+    running_std = 0.9 * running_std + 0.1 * current_std;
+    for (ii=0; ii<numchan_st; ii++)
+      chan_running_avg[ii] = 0.9 * chan_running_avg[ii] + 
+	0.1 * chan_avg_temp[ii];
+  } else {
+    running_avg = current_avg;
+    running_std = current_std;
+    for (ii=0; ii<numchan_st; ii++)
+      chan_running_avg[ii] = chan_avg_temp[ii];
+    if (running_avg==0.0 || current_avg==0.0)
+      printf("BAD RFI IN BLOCK#1!!!\n\n");
+  }
+
+  /* See if any points need clipping */
+  trigger = clip_sigma_st * running_std;
+  for (ii=0; ii<ptsperblk_st; ii++){
+    if (fabs(zero_dm_block[ii] - running_avg) > trigger){
+      clipit=1;
+      break;
+    }
+  }
+      
+  /* Replace the bad channel data with channel median values */
+  /* that are scaled to equal the running_avg.               */
+  if (clipit){
+    for (ii=0; ii<ptsperblk_st; ii++){
+      if (fabs(zero_dm_block[ii] - running_avg) > trigger){
+	powptr = rawpows + ii * numchan_st;
+	for (jj=0; jj<numchan_st; jj++)
+	  *powptr++ = (unsigned char)(chan_running_avg[jj] + 0.5);
+	clipped++;
+	/* fprintf(stderr, "%lld\n", current_point); */
+      }
+      current_point++;
+    }
+  } else {
+    current_point += ptsperblk_st;
+  }
+  blocksread++;
+  return clipped;
+}
+
+
+/* OLD Clipping Routine (uses channel medians) */
 int clip_times(unsigned char *rawpows)
 /* Perform time-domain clipping of WAPP data. This routine */
 /* is primarily designed to get rid of the nasty and very  */
@@ -48,7 +158,7 @@ int clip_times(unsigned char *rawpows)
     zero_dm_block[ii] = 0.0;
     powptr = rawpows + ii * numchan_st;
     for (jj=0; jj<numchan_st; jj++)
-      zero_dm_block[ii] += *(powptr + jj);
+      zero_dm_block[ii] += *powptr++;
     median_temp[ii] = zero_dm_block[ii];
   }
   current_med = median(median_temp, ptsperblk_st);
@@ -126,9 +236,9 @@ int clip_times(unsigned char *rawpows)
       if (fabs(zero_dm_block[ii] - running_avg) > trigger){
 	powptr = rawpows + ii * numchan_st;
 	for (jj=0; jj<numchan_st; jj++)
-	  *(powptr+jj) = good_chan_levels[jj];
+	  *powptr++ = good_chan_levels[jj];
 	clipped++;
-	/* fprintf(stderr, "%lld\n", current_point);*/
+	/* fprintf(stderr, "%lld\n", current_point); */
       }
       current_point++;
     }
@@ -580,16 +690,16 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
     /* See if we need to byte-swap and if so, doit */
     if (need_byteswap_st){
       if (bits_per_samp_st==16){
-	short *sptr = (short *)lagbuffer;
+	unsigned short *sptr = (unsigned short *)lagbuffer;
 	for (ii=0; ii<sampperblk_st; ii++, sptr++)
-	  *sptr = swap_short(*sptr);
+	  *sptr = swap_ushort(*sptr);
       }
       if (bits_per_samp_st==32){
-	int *iptr = (int *)lagbuffer;
+	unsigned int *iptr = (unsigned int *)lagbuffer;
 	for (ii=0; ii<sampperblk_st; ii++, iptr++)
-	  *iptr = swap_int(*iptr);
+	  *iptr = swap_uint(*iptr);
       }
-    }      
+    }
     /* Convert from Correlator Lags to Filterbank Powers */
     for (ii=0; ii<ptsperblk_st; ii++)
       convert_WAPP_point(lagbuffer + ii * bytesperpt_st, 
@@ -916,6 +1026,7 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes)
   int ii, two_nlags;
   double power, pfact;
   static float acf[2*WAPP_MAXLAGS], lag[WAPP_MAXLAGS];
+  double scale_min_st=0.0, scale_max_st=3.0;
 
   /* Fill lag array with scaled CFs */
   if (bits_per_samp_st==16){
@@ -962,8 +1073,12 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes)
 
   /* Scale and pack the powers */
   pfact = 255.0 / (scale_max_st - scale_min_st);
-  for(ii=0; ii<numchan_st; ii++)
-    bytes[ii] = (unsigned char) ((lag[ii] - scale_min_st) * pfact + 0.5);
+  for(ii=0; ii<numchan_st; ii++){
+    double templag;
+    templag = (lag[ii] > scale_max_st) ? scale_max_st : lag[ii];
+    templag = (templag < scale_min_st) ? scale_min_st : templag;
+    bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
+  }
 #if 0
   { /* Show what the raw powers are (avg ~1.05, var ~0.2) */
     double avg, var;
