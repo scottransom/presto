@@ -85,7 +85,7 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
       wpi = sin(theta);
       wr = 1.0 + wpr;
       wi = wpi;
-      for (kk=1; kk<n1; kk++){
+      for (kk=0; kk<n1; kk++){
 	s1 = jj * n1 + kk;
 	tmp1 = data[s1].r;
 	tmp2 = data[s1].i;

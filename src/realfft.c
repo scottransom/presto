@@ -185,14 +185,6 @@ int main(int argc, char *argv[])
       printf("\nPerforming out-of-core two-pass inverse FFT on data.\n");
     }
 
-    /* Make sure the number of points is a power-of-two! */
-
-/*     if (next2_to_n(numdata) != numdata){ */
-/*       printf("\nMust have a power-of-two number of points for\n"); */
-/*       printf("   an Out-of-Core FFT!  Exiting.\n\n"); */
-/*       exit(1); */
-/*     } */
-
     /* Copy the input files if we want to keep them */
 
     if (!cmd->deleteP){

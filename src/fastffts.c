@@ -255,8 +255,7 @@ void realfft(float idata[], long n, int isign)
   theta = TWOPI / (double) (n);
   if (isign == -1) {
     c2 = -0.5;
-    /*    COMPLEXFFT((fcomplex *)idata, n >> 1, -1);*/
-    tablesixstepfft((fcomplex *)idata, n >> 1, -1);
+    COMPLEXFFT((fcomplex *)idata, n >> 1, -1);
     theta = -theta;
   } else {
     c2 = 0.5;
@@ -296,8 +295,7 @@ void realfft(float idata[], long n, int isign)
     double norm;
     data[1] = c1 * ((h1r = data[1]) + data[2]);
     data[2] = c1 * (h1r - data[2]);
-    /*    COMPLEXFFT((fcomplex *)idata, n >> 1, 1);*/
-    tablesixstepfft((fcomplex *)idata, n >> 1, 1);
+    COMPLEXFFT((fcomplex *)idata, n >> 1, 1);
     norm = 2.0 / (double) n;
     for (i = 0; i < n; i++)
       idata[i] *= norm;
