@@ -799,7 +799,7 @@ int main(int argc, char *argv[])
     float *fbuffer;
     short *sbuffer;
     
-    offset = (int)(floor(avg)+0.5);
+    offset = (int)(floor(avg));
     if ((max-min) > (SHRT_MAX-SHRT_MIN)){
       if ((max-min) < 1.5*(SHRT_MAX-SHRT_MIN)){
 	printf("Warning:  There is more dynamic range in the data\n"

@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     N += numread;
   }
   var /= (N-1.0);
-  offset = (int)(floor(avg)+0.5);
+  offset = (int)(floor(avg));
 
   printf("done.\n\n");
   printf("    Number:  %lld\n", N);
