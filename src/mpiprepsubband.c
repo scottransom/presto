@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <unistd.h>
 #include "presto.h"
 #include "mpiprepsubband_cmd.h"
 #include "mask.h"
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
   int padwrote=0, padtowrite=0, statnum=0;
   int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
   double local_lodm;
-  char *datafilenm;
+  char *datafilenm, *outpath, *outfilenm;
   infodata idata;
   mask obsmask;
 
@@ -140,8 +141,8 @@ int main(int argc, char *argv[])
 
   /* Determine the output file names and open them */
 
-  datafilenm = (char *)calloc(strlen(cmd->outfile)+20, 1);
   local_numdms = cmd->numdms / (numprocs-1);
+  dms = gen_dvect(local_numdms);
   if (cmd->numdms % (numprocs-1)){
     if (myid==0)
       printf("\nThe number of DMs must be divisible by (the number of processors - 1).\n\n");
@@ -149,13 +150,20 @@ int main(int argc, char *argv[])
     exit(1);
   }
   local_lodm = cmd->lodm + (myid-1) * local_numdms * cmd->dmstep;
-  dms = gen_dvect(local_numdms);
+
+  split_path_file(cmd->outfile, &outpath, &outfilenm);
+  datafilenm = (char *)calloc(strlen(outfilenm)+20, 1);
   if (myid>0){
+    if (chdir(outpath)==-1){
+      printf("\nProcess %d cannot chdir() to '%s'.  Exiting.\n\n", myid, outpath);
+      MPI_Finalize();
+      exit(1);
+    }
     outfiles = (FILE **)malloc(local_numdms * sizeof(FILE *));
     for (ii=0; ii<local_numdms; ii++){
       dms[ii] = local_lodm + ii * cmd->dmstep;
       avgdm += dms[ii];
-      sprintf(datafilenm, "%s_DM%.2f.dat", cmd->outfile, dms[ii]);
+      sprintf(datafilenm, "%s_DM%.2f.dat", outfilenm, dms[ii]);
       outfiles[ii] = chkfopen(datafilenm, "wb");
     }
   }
@@ -598,7 +606,7 @@ int main(int argc, char *argv[])
 	idata.mjd_i = (int) floor(baryepoch);
 	idata.mjd_f = baryepoch - idata.mjd_i;
       }
-      sprintf(idata.name, "%s_DM%.2f", cmd->outfile, dms[ii]);
+      sprintf(idata.name, "%s_DM%.2f", outfilenm, dms[ii]);
       writeinf(&idata);
     }
     
@@ -609,7 +617,7 @@ int main(int argc, char *argv[])
       
       for (ii=0; ii<local_numdms; ii++){
 	fclose(outfiles[ii]);
-	sprintf(datafilenm, "%s_DM%.2f.dat", cmd->outfile, dms[ii]);
+	sprintf(datafilenm, "%s_DM%.2f.dat", outfilenm, dms[ii]);
 	outfiles[ii] = chkfopen(datafilenm, "rb+");
       }
       for (ii=0; ii<idata.numonoff; ii++){
@@ -670,6 +678,8 @@ int main(int argc, char *argv[])
   free(offsets[0]);
   free(offsets);
   free(datafilenm);
+  free(outfilenm);
+  free(outpath);
   if (!cmd->nobaryP){
     free(btoa);
     free(ttoa);
