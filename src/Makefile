@@ -54,20 +54,14 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP \
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-g -Wall -W -O2 -march=pentiumpro -fPIC
-#	-DUSEDMALLOC \
-#	-g -Wall -W -O -fPIC \
-#	-g -ansi -pedantic -Wall -W -fpic \
-#	-Dinline= -Wmissing-prototypes \
-#	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
-#	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
-#	-Waggregate-return -fno-common -Wnested-externs
-#	-O4 -mcpu=pentiumpro -march=pentiumpro -funroll-loops -fforce-addr -fno-strict-aliasing 
+	-g -Wall -W -O2 -march=k6 -fPIC
+CLINKFLAGS = $(CFLAGS) -static
+FFLAGS = -g -O2 -march=k6 -fPIC
+FLINKFLAGS = $(FFLAGS) -static
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
-FFLAGS = -g -O
-FLINK = $(FC) -static
-FLINKFLAGS = $(FFLAGS)
+#  The following are other possibilities and/or options for the CCFLAGS
+#	-DUSEDMALLOC \
 
 # For DEC Alpha
 #CC = cc
@@ -128,12 +122,12 @@ all: libpresto text xwin
 prep: meminit timetest bincat
 
 makewisdom:
-	$(CC) $(CFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
 	./makewisdom
 	cp fftw_wisdom.txt $(PRESTO)/lib
 
 meminit:
-	$(CC) $(CFLAGS) -o $@ meminit.c $(DMALLOCLINK)
+	$(CC) $(CLINKFLAGS) -o $@ meminit.c $(DMALLOCLINK)
 	./meminit
 	rm -f meminit
 
@@ -177,154 +171,154 @@ geomview: togeomview
 mpi: mpiprepsubband
 
 mpiprepsubband_utils.o: mpiprepsubband_utils.c 
-	mpicc $(CFLAGS) -c mpiprepsubband_utils.c 
+	mpicc $(CLINKFLAGS) -c mpiprepsubband_utils.c 
 
 mpiprepsubband.o: mpiprepsubband.c 
-	mpicc $(CFLAGS) -c mpiprepsubband.c 
+	mpicc $(CLINKFLAGS) -c mpiprepsubband.c 
 
 mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
-	mpicc $(CFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
+	mpicc $(CLINKFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o 
-	$(CC) $(CFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(ATHLON_PRESTOLINK) -L/home/ransom/lib -lglib -lm
+	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(ATHLON_PRESTOLINK) -L/home/ransom/lib -lglib -lm
 
 bary: bary.o 
-	$(CC) $(CFLAGS) -o $@ bary.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ bary.o $(PRESTOLINK) -lm
 
 bincand: bincand_cmd.c bincand_cmd.o bincand.o
-	$(CC) $(CFLAGS) -o $@ bincand.o bincand_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ bincand.o bincand_cmd.o $(PRESTOLINK) -lm
 
 dftfold: dftfold_cmd.c dftfold_cmd.o dftfold.o 
-	$(CC) $(CFLAGS) -o $@ dftfold.o dftfold_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ dftfold.o dftfold_cmd.o $(PRESTOLINK) -lm
 
 shiftdata: shiftdata.o 
-	$(CC) $(CFLAGS) -o $@ shiftdata.o $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ shiftdata.o $(DMALLOCLINK) -lm
 
 patchdata: patchdata.o 
-	$(CC) $(CFLAGS) -o $@ patchdata.o $(DMALLOCLINK)
+	$(CC) $(CLINKFLAGS) -o $@ patchdata.o $(DMALLOCLINK)
 
 dat2sdat: dat2sdat.o
-	$(CC) $(CFLAGS) -o $@ dat2sdat.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ dat2sdat.o $(PRESTOLINK) -lm
 
 sdat2dat: sdat2dat.o
-	$(CC) $(CFLAGS) -o $@ sdat2dat.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ sdat2dat.o $(PRESTOLINK) -lm
 
 check_parkes_raw: check_parkes_raw.o multibeam.o
-	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o multibeam.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ check_parkes_raw.o multibeam.o $(PRESTOLINK) -lm
 
 downsample: downsample_cmd.c downsample.o downsample_cmd.o
-	$(CC) $(CFLAGS) -o $@ downsample.o downsample_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ downsample.o downsample_cmd.o $(PRESTOLINK) -lm
 
 split_parkes_beams: split_parkes_beams.o
-	$(CC) $(CFLAGS) -o $@ split_parkes_beams.o
+	$(CC) $(CLINKFLAGS) -o $@ split_parkes_beams.o
 
 test_multifiles: test_multifiles.o
-	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ test_multifiles.o $(PRESTOLINK) -lm
 
 rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
 
 #showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
-#	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+#	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 #showmulti_dm: showmulti_dm.o multi_prof_plot.o $(PLOT2DOBJS)
-#	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti_dm.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+#	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti_dm.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 #searchmultidms: searchmultidms.o com.o randlib.o $(PLOT2DOBJS)
-#	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) searchmultidms.o com.o randlib.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+#	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) searchmultidms.o com.o randlib.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 test_fold: test_fold.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 plotdat: plotdat.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotdat.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotdat.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 plotfft: plotfft.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotfft.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotfft.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o $(INSTRUMENTOBJS)
-	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
 
 prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
-	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o polycos.o readpar.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) $(PGPLOTLINK) -lm
 
 show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) testresp.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) testresp.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 makedata: com.o randlib.o makedata.o
-	$(CC) $(CFLAGS) -o $@ com.o randlib.o makedata.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ com.o randlib.o makedata.o $(PRESTOLINK) -lm
 
 makeinf: makeinf.o ioinf.o
-	$(CC) $(CFLAGS) -o $@ makeinf.o ioinf.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ makeinf.o ioinf.o $(PRESTOLINK) -lm
 
 mjd2cal: djcl.o mjd2cal.o
-	$(CC) $(CFLAGS) -o $@ djcl.o mjd2cal.o $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ djcl.o mjd2cal.o $(DMALLOCLINK) -lm
 
 cal2mjd: cldj.o cal2mjd.o
-	$(CC) $(CFLAGS) -o $@ cldj.o cal2mjd.o $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ cldj.o cal2mjd.o $(DMALLOCLINK) -lm
 
 plotbincand: plotbincand.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotbincand.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotbincand.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 profile: profile_cmd.c profile_cmd.o profile.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) profile.o profile_cmd.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) profile.o profile_cmd.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 simplefold: simplefold.o polycos.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) simplefold.o polycos.o  $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) simplefold.o polycos.o  $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 psrorbit: psrorbit.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) psrorbit.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) psrorbit.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 testbinresp: testbinresp.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ testbinresp.o $(PLOT2DOBJS) $(PGPLOTLINK) $(PRESTOLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ testbinresp.o $(PLOT2DOBJS) $(PGPLOTLINK) $(PRESTOLINK) -lm
 
 quicklook: quicklook.o
-	$(CC) $(CFLAGS) -o $@ quicklook.o $(ATHLON_PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ quicklook.o $(ATHLON_PRESTOLINK) -lm
 
 readfile: readfile_cmd.c readfile_cmd.o readfile.o $(INSTRUMENTOBJS)
-	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ readfile.o readfile_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
 
 realfft: realfft_cmd.c realfft_cmd.o realfft.o 
-	$(CC) $(CFLAGS) -o $@ realfft.o realfft_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ realfft.o realfft_cmd.o $(PRESTOLINK) -lm
 
 #realfft_4step: realfft_4step.o
-#	$(CC) $(CFLAGS) -o $@ realfft_4step.o $(PRESTOLINK) -lm
+#	$(CC) $(CLINKFLAGS) -o $@ realfft_4step.o $(PRESTOLINK) -lm
 
 search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o 
-	$(CC) $(CFLAGS) -o $@ search_bin.o search_bin_cmd.o $(ATHLON_PRESTOLINK)  -lm
+	$(CC) $(CLINKFLAGS) -o $@ search_bin.o search_bin_cmd.o $(ATHLON_PRESTOLINK)  -lm
 
 search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o 
-	$(CC) $(CFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(ATHLON_PRESTOLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(ATHLON_PRESTOLINK) -lm
 
 taperaw: taperaw.o
-	$(CC) $(CFLAGS) -o $@ taperaw.o $(DMALLOCLINK) 
+	$(CC) $(CLINKFLAGS) -o $@ taperaw.o $(DMALLOCLINK) 
 
 toas2dat: toas2dat_cmd.c toas2dat_cmd.o toas2dat.o 
-	$(CC) $(CFLAGS) -o $@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK) 
+	$(CC) $(CLINKFLAGS) -o $@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK) 
 
 swap_endian:
-	$(CC) $(CFLAGS) -o $@ swap_endian.c $(DMALLOCLINK) 
+	$(CC) $(CLINKFLAGS) -o $@ swap_endian.c $(DMALLOCLINK) 
 
 togeomview:
 	$(CC) -O -o $@ togeomview.c $(DMALLOCLINK)
 
 window: window.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) window.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) window.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -L/home/ransom/lib -lglib -lm
+	$(FC) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -L/home/ransom/lib -lglib -lm
 
 explorefft: explorefft.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ explorefft.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ explorefft.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 exploredat: exploredat.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ exploredat.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FC) $(FLINKFLAGS) -o $@ exploredat.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 clean:
 	rm -f *.o *~ *#
