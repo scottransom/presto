@@ -262,8 +262,9 @@ def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
    else:
       Pgplot.plot2d(ffdpow, x/T, y/(T**2.0), labx = "Frequency (hz)", \
                     laby = "Frequency Derivative (Hz/sec)", \
-                    labx2 = "Fourier Frequency", laby2 = \
-                    "Fourier Frequency Derivative", \
+                    rangex2 = [x[0], x[-1]], rangey2 = [y[0], y[-1]], \
+                    labx2 = "Fourier Frequency", \
+                    laby2 = "Fourier Frequency Derivative", \
                     title = title, image = image, \
                     contours = contours, device = device)
 

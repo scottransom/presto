@@ -1872,15 +1872,15 @@ def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
    print "The max value is located at:  r =", startbin + hir * dr, \
          "  z =", startz + hiz * dz
    print ""
-   if (T == None):
+   if not T:
       Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency (bins)", \
                     laby = "Fourier Frequency Derivative", \
                     title = title, image = image, \
                     contours = contours, device = device)
    else:
-      Pgplot.plot2d(ffdpow, x/T, y/T**2.0, labx = "Frequency (hz)", \
+      Pgplot.plot2d(ffdpow, x/T, y/(T**2.0), labx = "Frequency (hz)", \
                     laby = "Frequency Derivative (Hz/sec)", \
-                    labx = "Fourier Frequency", laby = \
+                    labx2 = "Fourier Frequency", laby2 = \
                     "Fourier Frequency Derivative", \
                     title = title, image = image, \
                     contours = contours, device = device)
