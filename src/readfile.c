@@ -238,7 +238,7 @@ int main(int argc, char **argv)
   }
 
   /* Skip over the ASCII header if this is a WAPP file */
-  {
+  if (cmd->wappP){
     char cc;
     while((cc=fgetc(infile))!='\0');
   }
