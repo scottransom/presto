@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "presto.h"
 
 /* This causes the barycentric motion to be calculated once per second */
@@ -45,6 +46,8 @@ typedef struct PREPFOLDINFO {
   char *candnm;       /* String describing the candidate */
   char *telescope;    /* Telescope where observation took place */
   char *pgdev;        /* PGPLOT device to use */
+  char rastr[16];     /* J2000 RA  string in format hh:mm:ss.ssss */
+  char decstr[16];    /* J2000 DEC string in format dd:mm:ss.ssss */
   double dt;          /* Sampling interval of the data */
   double startT;      /* Fraction of observation file to start folding */
   double endT;        /* Fraction of observation file to stop folding */
