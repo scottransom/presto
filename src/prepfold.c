@@ -1085,6 +1085,7 @@ int main(int argc, char *argv[])
       obsf[0] = idata.freq;
       search.numchan = numchan;
       search.lofreq = idata.freq;
+      search.bestdm = idata.dm;
       search.chan_wid = idata.chan_wid;
       for (ii = 0; ii < numchan; ii++)
 	obsf[ii] = obsf[0] + ii * idata.chan_wid;
