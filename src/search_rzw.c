@@ -85,9 +85,10 @@ int main(int argc, char *argv[])
 #endif
 
   printf("\n\n");
-  printf("       Pulsar Acceleration Search Routine\n");
-  printf("              by Scott M. Ransom\n");
-  printf("                  17 Nov, 1999\n\n");
+  printf("       Pulsar Acceleration Search Routine\n"\
+         "              by Scott M. Ransom\n\n"\
+	 " WARNING:  This is old and has no harmonic summing.\n"\
+         "          you should probably be using 'accelsearch' instead...\n\n");
 
   /* Initialize the input filename: */
 
