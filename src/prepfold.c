@@ -759,8 +759,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  printf("\nStarting work on '%s'...\n\n", search.filenm);
-    
   /* Allocate and initialize some arrays and other information */
   
   search.nsub = cmd->nsub;
@@ -969,12 +967,27 @@ int main(int argc, char *argv[])
     
       for (ii = 0; ii < numchan; ii++)
 	dispdts[ii] /= search.dt;
+
+      {
+	int numdmtrials;
+	double dphase, lodm, hidm, ddm;
+      
+	dphase = 1/(foldf*search.proflen);
+	ddm = dm_from_delay(dphase * search.dmstep, obsf[0]);
+	numdmtrials = 2*search.ndmfact*search.proflen + 1;
+	lodm = cmd->dm - (numdmtrials-1)/2*ddm;
+	if (lodm < 0.0) lodm = 0.0;
+	hidm = lodm + numdmtrials * ddm;
+	printf("Will search %d DMs from %.3f to %.3f (ddm = %.4f)\n\n", 
+	       numdmtrials, lodm, hidm, ddm);
+      }
     }
   
     /* 
      *   Perform the actual folding of the data
      */
   
+    printf("\nStarting work on '%s'...\n\n", search.filenm);
     proftime = worklen * search.dt;
     parttimes = gen_dvect(cmd->npart);
     printf("  Folded %ld points of %.0f", totnumfolded, N);
