@@ -74,20 +74,20 @@ char *make_polycos(char *parfilenm, infodata *idata)
     scopechar = '@';
     tracklen = 12;
   }
-  tmpfile = chkfopen("tz.in", "w");
   if (scopechar!='@'){
     fmid = idata->freq+(idata->num_chan/2-0.5)*idata->chan_wid;
   } else {
     fmid = 0.0;
   }
+  printf("Generating polycos for PSR %s.\n", psr.jname);
+  tmpfile = chkfopen("tz.in", "w");
   fprintf(tmpfile, "%c %d 60 12 430\n\n\n%s 60 12 %d %.1f\n", 
 	  scopechar, tracklen, psr.jname, tracklen, fmid);
   fclose(tmpfile);
-  sprintf(command, "tempo -z -f %s < \"%d %d\n\" > polycosout.tmp",
-	  parfilenm, idata->mjd_i, (int) ceil(epoch+T));
-  printf("Here goes: '%s'\n", command);
+  sprintf(command, "echo %d %d | tempo -z -f %s > /dev/null",
+	  idata->mjd_i, (int) ceil(epoch+T), parfilenm);
   system(command);
-  /* remove("tz.in"); */
+  remove("tz.in");
   psrname = (char *)calloc(strlen(psr.jname)+1, sizeof(char));
   strcpy(psrname, psr.jname);
   return psrname;

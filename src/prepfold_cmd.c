@@ -888,14 +888,6 @@ checkDoubleHigher(char *opt, double *values, int count, double min)
 }
 /**********************************************************************/
 
-static void
-missingErr(char *opt)
-{
-  fprintf(stderr, "%s: mandatory option `%s' missing\n",
-	  Program, opt);
-}
-/**********************************************************************/
-
 static char *
 catArgv(int argc, char **argv)
 {
@@ -1545,7 +1537,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
+ [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
@@ -1676,7 +1668,6 @@ Cmdline *
 parseCmdline(int argc, char **argv)
 {
   int i;
-  char missingMandatory = 0;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -2143,11 +2134,6 @@ parseCmdline(int argc, char **argv)
     argv[cmd.argc++] = argv[i];
   }/* for i */
 
-  if( !cmd.outfileP ) {
-    missingErr("-o");
-    missingMandatory = 1;
-  }
-  if( missingMandatory ) exit(EXIT_FAILURE);
 
   /*@-mustfree*/
   cmd.argv = argv+1;

@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
   printf("        Pulsar Raw-Data Folding Search Routine\n");
   printf(" Used for DM, Period, and P-dot tweaking of PSR candidates.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("                    29 Aug 2000\n\n");
+  printf("          Latest modification:  2002 Sept 11\n\n");
 
   init_prepfoldinfo(&search);
 
@@ -189,23 +189,28 @@ int main(int argc, char *argv[])
     /* Determine the candidate name */
     
     if (cmd->psrnameP){
-      slen = strlen(cmd->psrname) + 5;
-      search.candnm = (char *)calloc(slen, sizeof(char));
+      search.candnm = (char *)calloc(strlen(cmd->psrname)+5, sizeof(char));
       sprintf(search.candnm, "PSR_%s", cmd->psrname);
     } else if (cmd->parnameP ||
 	       (cmd->timingP && idata.bary)){
       int retval;
       psrparams psr;
       /* Read the par file just to get the PSR name */
-      if (cmd->parnameP)
+      if (cmd->parnameP){
 	retval = get_psr_from_parfile(cmd->parname, 51000.0, &psr);
-      else 
+      } else {
 	retval = get_psr_from_parfile(cmd->timing, 51000.0, &psr);
+	cmd->parnameP = 1;
+	cmd->parname = cmd->timing;
+      }
       search.candnm = (char *)calloc(strlen(psr.jname)+5, sizeof(char));
       sprintf(search.candnm, "PSR_%s", psr.jname);
     } else if (cmd->timingP && !idata.bary){
       /* Generate polycos and get the pulsar name */
-      search.candnm = make_polycos(cmd->timing, &idata);
+      cmd->psrname = make_polycos(cmd->timing, &idata);
+      cmd->psrnameP = 1;
+      search.candnm = (char *)calloc(strlen(cmd->psrname)+5, sizeof(char));
+      sprintf(search.candnm, "PSR_%s", cmd->psrname);
     } else if (cmd->rzwcandP) {						
       slen = 20;
       search.candnm = (char *)calloc(slen, sizeof(char));
@@ -239,11 +244,12 @@ int main(int argc, char *argv[])
       polycofilenm = (char *)calloc(slen + 8, sizeof(char));
       sprintf(polycofilenm, "%s_%s.pfd.polycos", rootnm, search.candnm);
       rename("polyco.dat", polycofilenm);
+      cmd->polycofileP = 1;
+      cmd->polycofile = (char *)calloc(strlen(polycofilenm)+1, sizeof(char));
+      strcpy(cmd->polycofile, polycofilenm);
       free(polycofilenm);
     }
   }
-
-  exit(0);
 
   /* What ephemeris will we use?  (Default is DE200) */
   
@@ -471,6 +477,9 @@ int main(int argc, char *argv[])
   printf("Output data file is '%s'.\n", outfilenm);
   printf("Output plot file is '%s'.\n", plotfilenm);
   printf("Raw profile file is '%s'.\n", binproffilenm);
+  printf("Best profile is in  '%s.bestprof'.\n", outfilenm);
+  if (cmd->timingP && !idata.bary)
+    printf("Polycos used are in '%s.polycos'.\n", outfilenm);
   
   /* Read the pulsar database if needed */
 
@@ -490,7 +499,7 @@ int main(int argc, char *argv[])
 	printf("Overriding polyco DM = %f with %f\n", 
 	       polyco_dm, cmd->dm);
       } else {
-	printf("\nRead %d set(s) of polycos for PSR %s  at %18.12f (DM = %.5g)\n", 
+	printf("\nRead %d set(s) of polycos for PSR %s at %18.12f (DM = %.5g)\n", 
 	       numsets, cmd->psrname, search.tepoch, polyco_dm);
 	cmd->dm = polyco_dm;
       }
@@ -718,8 +727,11 @@ int main(int argc, char *argv[])
       search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
     else
       search.proflen = (long) (search.topo.p1 / search.dt + 0.5);
-    if (search.proflen > 64)
+    if (cmd->timingP){
+      search.proflen = next2_to_n(search.proflen);
+    } else if (search.proflen > 64){
       search.proflen = 64;
+    }
   }
 
   /* Determine the phase delays caused by the orbit if needed */
