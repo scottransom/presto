@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
 
   /* Read an input mask if wanted */
 
-  if (cmd->maskfileP && !cmd->subP){
+  if (cmd->maskfileP){
     read_mask(cmd->maskfile, &obsmask);
     printf("Read mask information from '%s'\n\n", cmd->maskfile);
     good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
