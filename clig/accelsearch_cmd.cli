@@ -1,0 +1,48 @@
+# Admin data
+
+Name accelsearch
+
+Usage "Searches an FFT for pulsar candidates using a Fourier domain acceleration search."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Int -lobin   lobin   {The first Fourier frequency in the data file} \
+	-r 0 oo  -d 0
+Int -numbetween numbetween {The number of freqs that a Fourier bin will contain} \
+	-r 0 oo  -d 2
+Int -fftlen fftlen {The number of bins to use in the work FFTs}\
+	-r 1024 1048576 -d 131072
+Int -numharm numharm {The number of harmonics to sum}\
+	-r 1 20 -d 3
+Float -sigma sigma {Cutoff sigma for choosing candidates}\
+	-r 1.0 30.0 -d 2.5
+Double -zlo     zlo     {The low Fourier frequency derivative to search} \
+	-r -2000.0 2000.0  -d " -50.0"
+Double -zhi     zhi     {The high Fourier frequency derivative to search} \
+	-r -2000.0 2000.0  -d 50.0
+Double -dz      dz      {The Fourier frequency derivative stepsize} \
+	-r 0.0 10.0 -d 2.0
+Double -rlo     rlo     {The lowest Fourier frequency to search} \
+	-r 0.0 oo
+Double -rhi     rhi     {The highest Fourier frequency to search} \
+	-r 0.0 oo
+Double -flo     flo     {The lowest frequency (Hz) to search} \
+	-r 0.0 oo -d 0.5
+Double -fhi     fhi     {The highest frequency (Hz) to search} \
+	-r 0.0 oo -d 2000.0
+Double -baryv baryv   {The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric)} \
+	-r -0.1 0.1  -d 0.0
+String -zapfile zapfile {A file containing a list of freqs to ignore (i.e. RFI)}
+
+# Rest of command line:
+
+Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
+        -c 1 1
+
+
+
+
