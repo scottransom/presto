@@ -1,7 +1,7 @@
 DATABASE      = "$(PRESTO)/lib"
 INSTALLDIR    = /home/ransom/python
-INCLUDE       = -I/usr/local/include/python1.6 -I/usr/local/include/python1.6/Numeric -I../include
-#INCLUDE       = -I/home/ransom/include/python1.6 -I../include -I/home/ransom/include
+INCLUDE       = -I/usr/local/include/python2.0 -I/usr/local/include/python2.0/Numeric -I../include
+#INCLUDE       = -I/home/ransom/include/python2.0 -I../include -I/home/ransom/include
 CC            = cc
 CWARN         = -Xa -vc
 CFLAGS        = -g -O -fpic $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW

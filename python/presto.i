@@ -2,7 +2,6 @@
 
 %{
 #include "presto.h"
-#include "ransomfft.h"
 %}
 
 %include numpy.i

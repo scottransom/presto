@@ -297,7 +297,7 @@ else:
    przw = [phs, (rmeas - 0.5 * z) - rfold, z, 0.0]
    dv.rebin(4)
 
-if (0):
+if (1):
    print "    Max amplitude =", dv.maxamplitude()
    print "Current amplitude =", dv.amplitude()
    dv.rzwinfo(przw)
