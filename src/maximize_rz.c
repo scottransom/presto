@@ -5,7 +5,9 @@
 /* Some Static-Global Variables */
 
 static fcomplex *maxdata;
-static int nummaxdata, max_kern_half_width, num_funct_calls=0;
+static int nummaxdata, max_kern_half_width;
+/* static int  num_funct_calls=0;*/
+
 static double solvopt_options[13] = {
   -1.0, 1.e-4, 1.e-6, 15000.0, -1.0, 1.e-8, 2.5, 0.003,
   0.0, 0.0, 0.0, 0.0, 0.0};
@@ -64,7 +66,7 @@ static double power_call_rz(double rz[])
   double powargr, powargi;
   fcomplex ans;
 
-  num_funct_calls++;
+  /* num_funct_calls++; */
   rz_interp(maxdata, nummaxdata, rz[0], rz[1] * ZSCALE, \
 	    max_kern_half_width, &ans);
   powargr = (double) ans.r;
@@ -106,8 +108,9 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin, \
 		       NULL, NULL);
   }
  
-  printf("\nCalled rz_interp() %d times.\n", num_funct_calls);
- 
+  /* printf("\nCalled rz_interp() %d times.\n", num_funct_calls); */
+  /* num_funct_calls = 0; */
+
   /* The following calculates derivatives at the peak           */
 
   x[1] *= ZSCALE;
