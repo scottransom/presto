@@ -2,7 +2,9 @@
 #include "plot2d.h"
 #include "float.h" 
 
-/* #define JUST_GREYSCALE 0 */
+/*
+#define JUST_GREYSCALE 1
+*/
 
 #define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
 (fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
@@ -729,7 +731,9 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       find_min_max_arr(2 * search->proflen, bestprof, &min, &max);
       over = 0.1 * (max - min);
       cpgswin(-0.2, 2.0, min - over, max + over);
+#ifndef JUST_GREYSCALE
       cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
+#endif
       cpgline(2 * search->proflen, phasetwo, bestprof);
       cpgsls(4);
       avg[0] = avg[1] = profavg;

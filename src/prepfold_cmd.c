@@ -132,6 +132,11 @@ static Cmdline cmd = {
   /* psrnameP = */ 0,
   /* psrname = */ (char*)0,
   /* psrnameC = */ 0,
+  /***** -polyco: File containing TEMPO polycos for psrname (not
+required) */
+  /* polycofileP = */ 0,
+  /* polycofile = */ (char*)0,
+  /* polycofileC = */ 0,
   /***** -obs: Two letter TEMPO observatory code (for barycentering) */
   /* obscodeP = */ 0,
   /* obscode = */ (char*)0,
@@ -1234,6 +1239,19 @@ showOptionValues(void)
     }
   }
 
+  /***** -polyco: File containing TEMPO polycos for psrname (not
+required) */
+  if( !cmd.polycofileP ) {
+    printf("-polyco not found.\n");
+  } else {
+    printf("-polyco found:\n");
+    if( !cmd.polycofileC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.polycofile);
+    }
+  }
+
   /***** -obs: Two letter TEMPO observatory code (for barycentering) */
   if( !cmd.obscodeP ) {
     printf("-obs not found.\n");
@@ -1416,7 +1434,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-polyco polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
           -o: Root of the output file names\n\
               1 char* value\n\
@@ -1491,6 +1509,9 @@ usage(void)
               default: `1.0'\n\
         -psr: Name of pulsar to fold (do not include J or B)\n\
               1 char* value\n\
+     -polyco: File containing TEMPO polycos for psrname (not\n\
+              required)\n\
+              1 char* value\n\
         -obs: Two letter TEMPO observatory code (for barycentering)\n\
               1 char* value\n\
     -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
@@ -1523,7 +1544,7 @@ usage(void)
               default: `0'\n\
       infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
               1...100 values\n\
-version: 06Nov01\n\
+version: 05Mar02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1797,6 +1818,14 @@ parseCmdline(int argc, char **argv)
       cmd.psrnameP = 1;
       i = getStringOpt(argc, argv, i, &cmd.psrname, 1);
       cmd.psrnameC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-polyco", argv[i]) ) {
+      int keep = i;
+      cmd.polycofileP = 1;
+      i = getStringOpt(argc, argv, i, &cmd.polycofile, 1);
+      cmd.polycofileC = i-keep;
       continue;
     }
 
