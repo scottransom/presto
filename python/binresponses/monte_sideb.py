@@ -10,7 +10,7 @@ import RNG
 # Some admin variables
 parallel = 0          # True or false
 showplots = 0         # True or false
-debugout = 1          # True or false
+debugout = 0          # True or false
 outfiledir = '/home/ransom'
 outfilenm = 'monte'
 pmass = 1.35                                 # Pulsar mass in solar masses
@@ -20,9 +20,9 @@ orbsperpt = {'WD': 20, 'NS': 100, 'BH': 100}   # of orbits to avg per pt
 ppsr = [0.002, 0.02, 0.2, 2.0]               # Pulsar periods to test
 
 # Simulation parameters
-ctype = 'NS'          # The type of binary companion: 'WD', 'NS', or 'BH'
-Pb = 7200.0           # Orbital period in seconds
-dt = 0.0001           # The duration of each data sample (s)
+ctype = 'WD'             # One of 'WD', 'NS', or 'BH'
+Pb = 7200.0              # Orbital period in seconds
+dt = 0.0001              # The duration of each data sample (s)
 searchtype = 'sideband'  # One of 'ffdot', 'sideband', 'shortffts'
 
 scope = 'PK'  # One of the following 'PK' = Parkes Multibeam (20cm)
@@ -99,7 +99,7 @@ def slice_resp(psr, T, response):
 ####################################################################
 
 # Calculate the values of our X and Y axis points
-TbyPb = arange(1.5, 10.05, 0.2)
+TbyPb = arange(3.5, 10.05, 0.2)
 
 # Open a file to save each orbit calculation
 file = open(outfilenm,'w')
@@ -118,9 +118,8 @@ for x in range(len(TbyPb)):
         if not (y % numprocs == myid):  continue
         else:
             b_pows = zeros(orbsperpt[ctype], 'd')
-            s_pows = zeros(orbsperpt[ctype], 'd')
+            tryamp = zeros(orbsperpt[ctype], 'd')
             bsum_pows = zeros(orbsperpt[ctype], 'd')
-            ssum_pows = zeros(orbsperpt[ctype], 'd')
             fftlen = 0
             # Loop over the number of tries per point
             for ct in range(orbsperpt[ctype]):
@@ -148,17 +147,21 @@ for x in range(len(TbyPb)):
                     Pgplot.closeplot()
                 fftlen = len(newpows)
                 noise = rng.sample(fftlen)
-                tryamp = 12.4 * (sigma_t * sigma_t * z / N)**2 / fftlen 
+                tryamp[ct] = 12.4 * (sigma_t * sigma_t * z / N)**2 / fftlen 
                 theo_sum_pow = powersum_at_sigma(detect_sigma,
                                                  int(T/psr.orb.p))
                 if debugout:
                     print 'theo_sum_pow = ', theo_sum_pow
+                newloop = 1
                 while (fabs(theo_sum_pow - bsum_pows[ct]) > 1.0):
-                    fdata = rfft(newpows * tryamp + noise)
+                    if not newloop: tryamp[ct] = tryamp[ct] * sqrt(theo_sum_pow / bsum_pows[ct])
+                    fdata = rfft(newpows * tryamp[ct] + noise)
                     norm = fdata[0].real
                     rpred = predict_mini_r(fftlen, psr.orb.p, T)
                     [b_pows[ct], rmax, rd] = \
                                  maximize_r(fdata, rpred, norm=norm)
+                    # print 'avg(dat) = ',average(newpows * tryamp[ct] + noise)
+                    # print 'avg(fft) = ',average(spectralpower(fdata)[1:]/norm)
                     if debugout:
                         print 'Nyquist = '+`fftlen/2`
                         print '   rpred = %10.3f  power = %10.7f' % \
@@ -185,21 +188,23 @@ for x in range(len(TbyPb)):
                                alias(rmax, fftlen/2) * T / fftlen)
                         print '  BigPow = %10.7f  SumPow = %10.7f' % \
                               (b_pows[ct], bsum_pows[ct])
-                    if showplots:
-                        Pgplot.plotxy(spectralpower(fdata)[1:]/norm, \
-                                      arange(len(fdata))*T/fftlen, \
-                                      labx='Orbital Period (s))', \
-                                      laby='Power')
-                        Pgplot.closeplot()
-                    tryamp = tryamp * (theo_sum_pow / bsum_pows[ct])**(1.0/2.0)
+                        # if showplots:
+                    newloop = 0
+                # Pgplot.plotxy(spectralpower(fdata)[1:]/norm, \
+                #              arange(len(fdata))*T/fftlen, \
+                #              labx='Orbital Period (s))', \
+                #              laby='Power')
+                # Pgplot.closeplot()
+                # print '  BigPow = %10.7f  SumPow = %10.7f  S(mJy) = %10.5f' % \
+                #      (b_pows[ct], bsum_pows[ct], 2 * sigma_t * sqrt(tryamp[ct]/N))
                 tim = clock() - stim
                 if debugout:
                     print 'Time for this point was ',tim, ' s.'
-        file.write('%5d  %9.6f  %8.6f  %11.9f  %11.9f  %11.9f  %11.9f  '\
-                   '%11.9f  %11.9f  %11.9f  %11.9f\n' % \
-                   (y * numTbyPb + x, TbyPb[x], ppsr[y], \
-                    average(b_pows), max(b_pows), min(b_pows), \
-                    average(bsum_pows), average(s_pows), \
-                    max(s_pows), min(s_pows), average(ssum_pows)))
+        # Note:  The output contains the average value of tryamp.  To convert this
+        #        to a minimum flux density, use the formula
+        #               S(mJy) = 2 * sigma_t * sqrt(tryamp / N)   
+        file.write('%9.6f  %8.6f  %10d  %7d  %13.9f  %13.9f  %13.7f\n' % \
+                   (TbyPb[x], ppsr[y], N, fftlen, average(b_pows),
+                    average(bsum_pows), average(tryamp)))
         file.flush()
 file.close()
