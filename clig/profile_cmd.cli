@@ -60,19 +60,23 @@ Float -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 
 # Display parameters
 
-Flag -xwin  xwin  {Send graphics output to the screen}
+Flag -xwi   xwin  {Send graphics output to the screen}
 
 Flag -ps    ps    {Send graphics output to a Postscript file}
 
 Flag -both  both  {Send graphics output both the screen and a Postscript file}
 
-Flag -disp  disp  {Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -x}
+Flag -disp  disp  {Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin}
 
-Flag -mak  makefile  {Determine folding parameters from 'infile.mak'}
+Flag -mak   makefile  {Determine folding parameters from 'infile.mak'}
+
+Flag -noerr   noerr  {Do not plot error bars}
+
+Flag -poisson poisson {Assume the data is Poisson distributed (for statistics)}
 
 # Rest of command line:
 
-Rest infile {Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.  This file should be barycentered} \
+Rest infile {Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.} \
         {count = 1,1}
 
 

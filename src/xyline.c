@@ -219,3 +219,53 @@ void xyline2lab(int npts, float *x, float *y, float *y2, const char *xlab, \
     cpgiden();
 
 }
+
+
+void plot_profile(int proflen, float *profile, const char *title, \
+		  const char *probtxt, const char *foldtxt, \
+		  int showerr, float *errors, int showid)
+{
+  int ii;
+  float *x, overy, ymin, ymax;
+  float errmin = 0.0, errmax = 0.0, offset, avg = 0.0, av[2];
+
+  find_min_max_arr(proflen, profile, &ymin, &ymax);
+  if (showerr)
+    find_min_max_arr(proflen, errors, &errmin, &errmax);
+  overy = 0.1 * (ymax + errmax - ymin - errmin);
+  ymax = ymax + overy + errmax;
+  ymin = ymin - overy - errmin;
+  if (ymin < 0.0) ymin = 0.0;
+  x = gen_fvect(proflen);
+  for (ii = 0; ii < proflen; ii++)
+    x[ii] = (float) ii / (float) proflen;
+  cpgenv(0.0, 1.00001, ymin, ymax, 0, 0);
+  cpgscf(2);
+  cpglab("Pulse Phase", "Counts", "");
+  if (showid) cpgiden();
+  cpgslw(5);
+  cpgbin(proflen, x, profile, 0);
+  cpgslw(1);
+  if (showerr){
+    offset = 0.5 / (float) proflen;
+    for (ii = 0; ii < proflen; ii++)
+      x[ii] += offset;
+    cpgerrb(6, proflen, x, profile, errors, 2);
+    cpgpt(proflen, x, profile, 5);
+  }
+  for (ii = 0; ii < proflen; ii++)
+    avg += profile[ii];
+  avg /= proflen;
+  cpgsls(4);
+  x[0] = 0.0; x[1] = 1.0; av[0] = avg; av[1] = avg;
+  cpgline(2, x, av);
+  cpgsls(1);
+  cpgsch(1.3);
+  cpgmtxt("T", +2.0, 0.5, 0.5, title);
+  cpgsch(1.0);
+  cpgmtxt("T", +0.8, 0.5, 0.5, foldtxt);
+  cpgmtxt("T", -1.5, 0.5, 0.5, probtxt);
+  free(x);
+}
+
+

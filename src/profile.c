@@ -14,16 +14,17 @@ int main(int argc, char **argv)
 /* in April 1998.                                      */
 {
   FILE *datafile, *proffile, *chifile, *filemarker;
-  float *phases, *fprof = NULL, *chiarr = NULL, *freqs = NULL;
-  double freq = 0.0, dt, dfdt = 0.0, minlevel, maxlevel, orbdt = 0.5;
+  float *fprof = NULL, *chiarr = NULL, *freqs = NULL, *errors = NULL;
+  double freq = 0.0, dt, dfdt = 0.0, orbdt = 0.5;
   double *prof = NULL, endtime, N, *psrtime = NULL;
   double *Ep = NULL, *d2phib = NULL, startE = 0.0;
   double epoch = 0.0, difft = 0.0, p_psr = 0.0, pdot_psr = 0.0;
   double chip = 0.0, chiq = 0.0, chidf = 0.0;
   double chixmeas = 0.0, chitmp = 0.0;
   double varph = 0.0, numph = 0.0, avgph = 0.0;  
-  int chistatus = 0, chiwhich = 1;
-  double dbepoch = 0.0, onoffpairs[40];
+  double normz = 0.0, normmean = 0.0, normstdev = 1.0;
+  int chistatus = 0, chiwhich = 1, poisson = 0, showerr = 0;
+  double dbepoch = 0.0, onoffpairs[40], dtmp;
   int np, pnum, binary = 0, dochi = 0, numonoffpairs = 1;
   long totnumread = 0, numreads = 0, numpoints = 0;
   unsigned long filelen;
@@ -82,7 +83,6 @@ int main(int argc, char **argv)
     chiarr = gen_fvect(numreads+1);
     for (i = 0 ; i <= numreads ; i++)
       chiarr[i] = 0.0;
-    chiarr[0] = 0.0;
 								
     /* Read the info file */					
 								
@@ -308,9 +308,10 @@ int main(int argc, char **argv)
 
     /* The heart of the routine: */
 
+    if (cmd->poissonP) poisson = 1;
     foldfile(datafile, dt, prof, proflen, freq, dfdt, 0.0, \
-	     binary, Ep, 0.0, orbdt, numpoints, &avgph, &varph, chiarr, \
-	     onoffpairs, &totnumread);
+	     binary, Ep, 0.0, orbdt, numpoints, poisson, \
+	     &avgph, &varph, chiarr, onoffpairs, &totnumread);
 
     fclose(datafile);
 			
@@ -330,11 +331,21 @@ int main(int argc, char **argv)
     /* Compute the Chi-Squared probability that there is a signal */
     /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
 
-    for (i = 0 ; i < proflen ; i++){
-      chitmp = prof[i] - avgph;
-      chixmeas += chitmp * chitmp;
-    }
-    chixmeas /= varph;
+    chixmeas = 0.0;
+    if (cmd->poissonP){
+      for (i = 0 ; i < proflen ; i++){
+	dtmp = prof[i];
+	chitmp = dtmp - avgph;
+	dtmp = (dtmp == 0.0) ? 1.0 : dtmp;
+	chixmeas += ((chitmp * chitmp) / dtmp);
+      }
+    } else {
+      for (i = 0 ; i < proflen ; i++){
+	chitmp = prof[i] - avgph;
+	chixmeas += chitmp * chitmp;
+      }
+      chixmeas /= varph;
+    }      
 
     freqs = gen_freqs(numreads+1, 0.0, 1.0 / (float) numreads);
     dochi = 1;
@@ -442,57 +453,137 @@ int main(int argc, char **argv)
     }									
     printf("\n");							
   }									
-									
-  /* Normalize and display the output */				
-									
-  minlevel = fprof[0];							
-  maxlevel = fprof[0];							
-  for (i = 0; i < proflen; i++) {					
-    if (fprof[i] < minlevel)						
-      minlevel = fprof[i];						
-    if (fprof[i] > maxlevel)						
-      maxlevel = fprof[i];						
-  }									
-									
-  for (i = 0; i < proflen; i++)						
-    fprof[i] = (fprof[i] - minlevel) / (maxlevel - minlevel);		
-									
-  phases = gen_freqs(proflen, 0.0, 1.0 / proflen);			
-									
-  /* Initialize PGPLOT using Postscript if requested  */		
-									
-  if (cmd->psP || cmd->bothP) {						
-    sprintf(psfilenm, "%s.prof.ps", cmd->argv[0]);			
-    cpgstart_ps(psfilenm, "landscape");						
-    xybinned(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
-    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", "Chi-Square", 1);
-    cpgend();								
-  } else if (cmd->xwinP) {						
-    cpgstart_x("landscape");							
-    xybinned(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
-    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", "Chi-Square", 1);
-    cpgend();								
-  }									
 
-  /* Send the plot to the screen if necessary */			
-									
-  if (cmd->bothP) {							
-    cpgstart_x("landscape");							
-    xybinned(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
-    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", "Chi-Square", 1);
-    cpgend();								
-  }									
+  /* Calculate the errors for each profile bin */
+  
+  if (!cmd->dispP || (cmd->dispP && cmd->poissonP)){
+    showerr = 1;
+    errors = gen_fvect(proflen);						
+    if (cmd->poissonP)
+      for (i = 0; i < proflen; i++)
+	errors[i] = sqrt(fprof[i]);
+    else
+      for (i = 0; i < proflen; i++)
+	errors[i] = sqrt(varph);
 
-  /* Cleanup */								
-									
-  if (!cmd->dispP && binary) {						
-    free(Ep);								
-    free(d2phib);							
-    free(psrtime);							
-  }									
-  free(freqs);								
-  free(phases);								
-  free(fprof);								
+    /* Re-calculate the average level and the chi-squared values */
+
+    avgph = 0.0;
+    chixmeas = 0.0;
+    for (i = 0 ; i < proflen ; i++)
+      avgph += fprof[i];
+    avgph /= proflen;
+    for (i = 0 ; i < proflen ; i++){
+      dtmp = fprof[i];
+      chitmp = dtmp - avgph;
+      dtmp = (dtmp == 0.0) ? 1.0 : dtmp;
+      chixmeas += ((chitmp * chitmp) / dtmp);
+    }
+
+    /* Calculate the values of P and Q since we know X and DF */
+
+    chidf = proflen - 1;
+    cdfchi(&chiwhich, &chip, &chiq, &chixmeas, &chidf, &chistatus, &chitmp);
+    if (chistatus != 0){
+      if (chistatus < 0)
+	printf("\nInput parameter %d to cdfchi() was out of range.\n", 
+	       chistatus);
+      else if (chistatus == 3)
+	printf("\nP + Q do not equal 1.0 in cdfchi().\n");
+      else if (chistatus == 10)
+	printf("\nError in cdfgam().\n");
+      else printf("\nUnknown error in cdfchi().\n");
+    }
+    chixmeas /= (proflen - 1.0);
+
+    /* Calculate the equivalent sigma */
+
+    chiwhich = 2;
+    cdfnor(&chiwhich, &chip, &chiq, &normz, &normmean, &normstdev, 
+	   &chistatus, &chitmp);
+    if (chistatus != 0){
+      if (chistatus < 0)
+	printf("\nInput parameter %d to cdfnor() was out of range.\n", 
+	       chistatus);
+      else if (chistatus == 3)
+	printf("\nP + Q do not equal 1.0 in cdfnor().\n");
+      else printf("\nUnknown error in cdfnor().\n");
+    }
+  }
+
+  /* Initialize PGPLOT using Postscript if requested  */
+
+  if (cmd->noerrP) showerr = 0;
+  if (cmd->psP || cmd->bothP) {
+    sprintf(psfilenm, "%s.prof.ps", cmd->argv[0]);
+    cpgstart_ps(psfilenm, "landscape");
+    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p_psr, pdot_psr);
+    if (!cmd->dispP){
+      sprintf(tmp2, "Reduced Chi = %.3f,  P(Noise) < %.2g,  sigma = %.2f",
+	      chixmeas, chiq, normz);
+      if (idata.object)
+	plot_profile(proflen, fprof, idata.object, tmp1, tmp2, 
+		     showerr, errors, 1);
+      else
+	plot_profile(proflen, fprof, "", tmp1, tmp2, showerr, errors, 1);
+    } else {
+      plot_profile(proflen, fprof, "", tmp1, "", showerr, errors, 1);
+    }      
+    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", 
+		      "Reduced Chi-Squared", 1);
+    cpgend();
+  } else if (cmd->xwinP) {
+    cpgstart_x("landscape");
+    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p_psr, pdot_psr);
+    if (!cmd->dispP){
+      sprintf(tmp2, "Reduced Chi = %.3f,  P(Noise) < %.2g,  sigma = %.2f",
+	      chixmeas, chiq, normz);
+      if (idata.object)
+	plot_profile(proflen, fprof, idata.object, tmp1, tmp2, 
+		     showerr, errors, 1);
+      else
+	plot_profile(proflen, fprof, "", tmp1, tmp2, showerr, errors, 1);
+    } else {
+      plot_profile(proflen, fprof, "", tmp1, "", showerr, errors, 1);
+    }      
+    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", 
+		      "Reduced Chi-Squared", 1);
+    cpgend();
+  }
+
+  /* Send the plot to the screen if necessary */
+
+  if (cmd->bothP) {
+    cpgstart_x("landscape");
+    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p_psr, pdot_psr);
+    if (!cmd->dispP){
+      sprintf(tmp2, "Reduced Chi = %.3f,  P(Noise) < %.2g,  sigma = %.2f",
+	      chixmeas, chiq, normz);
+      if (idata.object)
+	plot_profile(proflen, fprof, idata.object, tmp1, tmp2, 
+		     showerr, errors, 1);
+      else
+	plot_profile(proflen, fprof, "", tmp1, tmp2, showerr, errors, 1);
+    } else {
+      plot_profile(proflen, fprof, "", tmp1, "", showerr, errors, 1);
+    }
+    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", 
+		      "Reduced Chi-Squared", 1);
+    cpgend();
+  }
+
+  /* Cleanup */
+
+  if (!cmd->dispP && binary) {
+    free(Ep);
+    free(d2phib);
+    free(psrtime);
+  }
+  if (!cmd->dispP || (cmd->dispP && cmd->poissonP)){
+    free(errors);
+  }
+  free(freqs);
+  free(fprof);
   free(chiarr);
-  return (0);								
+  return (0);
 }									

@@ -496,7 +496,7 @@ usage(void)
            default: `0'\n\
    infile: Input data file name (without a suffix).  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data with the name 'infile.raw'.  In this case a '.inf' file of the same name must also exist and the data will be output into the file 'infile.dat'\n\
            1 string value\n\
-version: 13Oct99\n\
+version: 01Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }

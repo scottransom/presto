@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "profile" 1 "13Oct99" "Clig-manuals" "Programmer's Manual"
+.TH "profile" 1 "01Nov99" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -39,11 +39,13 @@ profile \- Folds a time series at a given period and period derivative to make a
 [-To To]
 [-w w]
 [-wdot wdot]
-[-xwin]
+[-xwi]
 [-ps]
 [-both]
 [-disp]
 [-mak]
+[-noerr]
+[-poisson]
 infile
 .\" cligPart SYNOPSIS end
 
@@ -123,18 +125,22 @@ Rate of advance of periastron (deg/yr),
 1 double precision value.
 .br
 Default: `0'
-.IP -xwin
+.IP -xwi
 Send graphics output to the screen.
 .IP -ps
 Send graphics output to a Postscript file.
 .IP -both
 Send graphics output both the screen and a Postscript file.
 .IP -disp
-Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -x.
+Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin.
 .IP -mak
 Determine folding parameters from 'infile.mak'.
+.IP -noerr
+Do not plot error bars.
+.IP -poisson
+Assume the data is Poisson distributed (for statistics).
 .IP infile
-Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.  This file should be barycentered.
+Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist..
 .\" cligPart OPTIONS end
 
 .\" cligPart DESCRIPTION

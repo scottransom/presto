@@ -32,4 +32,8 @@ void multi_prof_plot(int proflen, int numprofs, double *profiles, \
 		     double *sumprof, const char *xlbl, \
 		     double loly, double ldy, const char *lylbl, \
 		     double lory, double rdy, const char *rylbl);
+void plot_profile(int proflen, float *profile, const char *title, \
+		  const char *probtxt, const char *foldtxt, \
+		  int showerr, float *errors, int showid);
+
 

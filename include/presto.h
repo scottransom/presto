@@ -920,7 +920,7 @@ double max_rz_file(FILE *fftfile, double rin, double zin, \
 void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
 	      double fo, double fdot, double fdotdot, int binary, \
 	      double *delays, double orbto, double orbdt, long numdelays, \
-	      double *avg, double *var, float *chiarr, \
+	      int poisson, double *avg, double *var, float *chiarr, \
 	      double *onoffpairs, long *totnumfolded);
 
 void fold(float *data, long N, double dt, double tb, double *prof, \

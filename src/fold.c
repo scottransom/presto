@@ -1,12 +1,12 @@
 #include "presto.h"
 
 /* The number of points to work with at a time from the input file */
-#define WORKLEN       8192
+#define WORKLEN  8192
 
 void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
 	      double fo, double fdot, double fdotdot, int binary, \
 	      double *delays, double orbto, double orbdt, long numdelays, \
-	      double *avg, double *var, float *chiarr, \
+	      int poisson, double *avg, double *var, float *chiarr, \
 	      double *onoffpairs, long *totnumfolded)
 /*
  * This routine is a general pulsar folding algorithm.  It will fold
@@ -36,6 +36,7 @@ void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
  * double orbto:           The starting time of the evenly spaced *delays
  * double orbdt:           The time interval used in sampling the orbit (s).
  * long numdelays:         The number of delays in *delays.
+ * int poisson:            True if we think the data is Poisson distributed.
  * double *avg:            (Return val) The average value per time series bin.
  * double *var:            (Return val) The variance per time series bin.
  * float *chiarr:          An array containing the instant chi-square
@@ -64,7 +65,6 @@ void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
   numreads = N / WORKLEN;
   orbmaxt = orbto + numdelays * orbdt;
   *totnumfolded = 0;
-
   *avg = 0.0;
   *var = 0.0;
   
@@ -234,11 +234,22 @@ void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
     /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
 
     pt = (long) floor((tbkeep / T) * (numreads+1));
-    for (i = 0; i < proflen; i++){
-      chitmp = prof[i] - avgph;
-      chiarr[pt] += chitmp * chitmp;
-    }
-    chiarr[pt] /= varph;
+
+    if (poisson){
+      for (i = 0 ; i < proflen ; i++){
+	dtmp = prof[i];
+	chitmp = dtmp - avgph;
+	dtmp = (dtmp == 0.0) ? 1.0 : dtmp;
+	chiarr[pt] += ((chitmp * chitmp) / dtmp);
+      }
+    } else {
+      for (i = 0 ; i < proflen ; i++){
+	chitmp = prof[i] - avgph;
+	chiarr[pt] += chitmp * chitmp;
+      }
+      chiarr[pt] /= varph;
+    }      
+    chiarr[pt] /= (proflen - 1.0);
 
     /* Break out of the loop if we are done due to onoff */
 

@@ -80,16 +80,20 @@ typedef struct s_Cmdline {
   char wdotP;
   double wdot;
   int wdotC;
-  /***** -xwin: Send graphics output to the screen */
+  /***** -xwi: Send graphics output to the screen */
   char xwinP;
   /***** -ps: Send graphics output to a Postscript file */
   char psP;
   /***** -both: Send graphics output both the screen and a Postscript file */
   char bothP;
-  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -x */
+  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin */
   char dispP;
   /***** -mak: Determine folding parameters from 'infile.mak' */
   char makefileP;
+  /***** -noerr: Do not plot error bars */
+  char noerrP;
+  /***** -poisson: Assume the data is Poisson distributed (for statistics) */
+  char poissonP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

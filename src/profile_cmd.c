@@ -87,16 +87,20 @@ static Cmdline cmd = {
   /* wdotP = */ TRUE,
   /* wdot = */ 0,
   /* wdotC = */ 1,
-  /***** -xwin: Send graphics output to the screen */
+  /***** -xwi: Send graphics output to the screen */
   /* xwinP = */ FALSE,
   /***** -ps: Send graphics output to a Postscript file */
   /* psP = */ FALSE,
   /***** -both: Send graphics output both the screen and a Postscript file */
   /* bothP = */ FALSE,
-  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -x */
+  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin */
   /* dispP = */ FALSE,
   /***** -mak: Determine folding parameters from 'infile.mak' */
   /* makefileP = */ FALSE,
+  /***** -noerr: Do not plot error bars */
+  /* noerrP = */ FALSE,
+  /***** -poisson: Assume the data is Poisson distributed (for statistics) */
+  /* poissonP = */ FALSE,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -637,11 +641,11 @@ showOptionValues(void)
     }
   }
 
-  /***** -xwin: Send graphics output to the screen */
+  /***** -xwi: Send graphics output to the screen */
   if( !cmd.xwinP ) {
-    printf("-xwin not found.\n");
+    printf("-xwi not found.\n");
   } else {
-    printf("-xwin found:\n");
+    printf("-xwi found:\n");
   }
 
   /***** -ps: Send graphics output to a Postscript file */
@@ -658,7 +662,7 @@ showOptionValues(void)
     printf("-both found:\n");
   }
 
-  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -x */
+  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin */
   if( !cmd.dispP ) {
     printf("-disp not found.\n");
   } else {
@@ -670,6 +674,20 @@ showOptionValues(void)
     printf("-mak not found.\n");
   } else {
     printf("-mak found:\n");
+  }
+
+  /***** -noerr: Do not plot error bars */
+  if( !cmd.noerrP ) {
+    printf("-noerr not found.\n");
+  } else {
+    printf("-noerr found:\n");
+  }
+
+  /***** -poisson: Assume the data is Poisson distributed (for statistics) */
+  if( !cmd.poissonP ) {
+    printf("-poisson not found.\n");
+  } else {
+    printf("-poisson found:\n");
   }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
@@ -687,7 +705,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-p p] [-pd pdot] [-f freq] [-fd dfdt] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bincand bincand] [-onoff onoff] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-xwin] [-ps] [-both] [-disp] [-mak] infile\n\
+ [-p p] [-pd pdot] [-f freq] [-fd dfdt] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bincand bincand] [-onoff onoff] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-xwi] [-ps] [-both] [-disp] [-mak] [-noerr] [-poisson] infile\n\
     Folds a time series at a given period and period derivative to make a pulse profile.  May be used for binary pulsars as well.\n\
         -p: The folding period (s)\n\
             1 double precision value between 0 and oo\n\
@@ -726,14 +744,16 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double precision value\n\
             default: `0'\n\
-     -xwin: Send graphics output to the screen\n\
+      -xwi: Send graphics output to the screen\n\
        -ps: Send graphics output to a Postscript file\n\
      -both: Send graphics output both the screen and a Postscript file\n\
-     -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -x\n\
+     -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin\n\
       -mak: Determine folding parameters from 'infile.mak'\n\
-    infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.  This file should be barycentered\n\
+    -noerr: Do not plot error bars\n\
+  -poisson: Assume the data is Poisson distributed (for statistics)\n\
+    infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.\n\
             1 string value\n\
-version: 13Oct99\n\
+version: 01Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -895,7 +915,7 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-xwin", argv[i]) ) {
+    if( 0==strcmp("-xwi", argv[i]) ) {
       cmd.xwinP = TRUE;
       continue;
     }
@@ -917,6 +937,16 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-mak", argv[i]) ) {
       cmd.makefileP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-noerr", argv[i]) ) {
+      cmd.noerrP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-poisson", argv[i]) ) {
+      cmd.poissonP = TRUE;
       continue;
     }
 
