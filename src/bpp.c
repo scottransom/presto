@@ -422,7 +422,7 @@ void BPP_hdr_to_inf(BPP_SEARCH_HEADER *hdr, infodata *idata)
   idata->chan_wid = fabs(delta_freq_st);
   idata->freqband = idata->num_chan * idata->chan_wid;
   idata->freq = ch1_freq_st;
-  idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 64 * DEGTORAD);
+  idata->fov = 1.2*SOL/(mid_freq_st*1e6)/100.0 * RADTODEG * 3600.0;
   MJD = UT_strings_to_MJD(hdr->date, hdr->start_time, 
 			  &(idata->mjd_i), &(idata->mjd_f));
   idata->bary = 0;
