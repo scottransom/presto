@@ -56,15 +56,16 @@ double foldfile(FILE *datafile, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
 {
-  float *data;
+  float data[WORKLEN];
   double *onoffptr=NULL, phase=0.0;
   int ourflags;
-  unsigned long ii, N, onbin, offbin, numbins, binstoread, numreads;
+  unsigned long ii, N, onbin, offbin, numbins;
+  unsigned long remainbins, binstoread, numreads;
 
   /* Get the data file length and initialize some variables */
 
   N = chkfilelen(datafile, sizeof(float));
-  if (ONOFF) onoffptr = onoffpairs - 2;
+  if (ONOFF) onoffptr = onoffpairs;
   stats->numdata = stats->data_avg = stats->data_var = 0.0;
   if (DELAYS) ourflags = 1;
   else ourflags = 0;
@@ -74,17 +75,23 @@ double foldfile(FILE *datafile, double dt, double tlo,
     /* Set the on-off variables */
     
     if (ONOFF){
-      onoffptr += 2;
       onbin = (unsigned long) (*onoffptr * N + DBLCORRECT);
-      offbin = (unsigned long) (*(onoffptr + 1) * N  + DBLCORRECT) - 1;
+      offbin = (unsigned long) (*(onoffptr + 1) * N  + DBLCORRECT);
+      if (offbin) offbin--;
+      onoffptr += 2;
     } else {
       onbin = 0;
       offbin = N - 1;
     }
-    numbins = offbin - onbin + 1;
+    numbins = (offbin == onbin) ? 0 : offbin - onbin + 1;
     numreads = numbins / WORKLEN;
-    if (numbins % WORKLEN) numreads++;
+    remainbins = numbins % WORKLEN;
+    if (remainbins) numreads++;
     binstoread = WORKLEN;
+
+    /* Skip to the correct file location */
+
+    chkfileseek(datafile, onbin, sizeof(float), SEEK_SET);
 
     /* Loop over the number of reads we have to perform for */
     /* the current on-off pair.                             */
@@ -93,26 +100,25 @@ double foldfile(FILE *datafile, double dt, double tlo,
       
       /* Correct for the fact that our last read might be short */
       
-      if ((numbins % WORKLEN) && (ii == numreads - 1))
-	binstoread = numbins % WORKLEN;
+      if (remainbins && (ii == numreads - 1))
+	binstoread = remainbins;
 
       /* Read the current chunk of data */
 
-      data = read_float_file(datafile, onbin, binstoread);
+      chkfread(data, sizeof(float), binstoread, datafile);
 
       /* Fold the current chunk of data */
 
       phase = fold(data, binstoread, dt, tlo + onbin * dt, prof, 
 		   numprof, startphs, fo, fdot, fdotdot, ourflags, 
 		   delays, delaytimes, numdelays, NULL, stats);
-      free(data);
 
       /* Set the current chiarr value */
 
-      chiarr[onbin / WORKLEN] = stats->redchi;
+      chiarr[onbin / WORKLEN] = (float) stats->redchi;
     }
 
-  } while (offbin < N - 1);
+  } while (offbin < N - 1 && offbin != 0);
 
   /* Return the ending phase from folding */
 
@@ -297,7 +303,7 @@ double fold(float *data, int numdata, double dt, double tlo,
   fdot /= 2.0;
   fdotdot /= 6.0;
   profbinwidth = 1.0 / numprof;
-  if (ONOFF) onoffptr = onoffpairs - 2;
+  if (ONOFF) onoffptr = onoffpairs;
   stats->numprof = (double) numprof;
   stats->data_var *= (stats->numdata - 1.0);
 
@@ -306,9 +312,9 @@ double fold(float *data, int numdata, double dt, double tlo,
     /* Set the on-off pointers and variables */
     
     if (ONOFF){
-      onoffptr += 2;
       onbin = *onoffptr;
       offbin = *(onoffptr + 1);
+      onoffptr += 2;
     } else {
       onbin = 0;
       offbin = numdata - 1;
@@ -340,13 +346,13 @@ double fold(float *data, int numdata, double dt, double tlo,
     /* Get the starting pulsar phase (cyclic). */
     
     phase = TD * (TD * (TD * fdotdot + fdot) + fo) + startphs;
-    loprofphase = (phase >= 0.0) ?
+    loprofphase = (phase < 0.0) ?
       1.0 + phase - (int) phase : phase - (int) phase;
     loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
-    
+
     /* Generate the profile for this onoff pair */
     
-    for (ii = onbin; ii < offbin; ii++) {
+    for (ii = onbin; ii <= offbin; ii++) {
 
       /* Calculate the barycentric time for the next point. */
       
@@ -444,26 +450,26 @@ double fold(float *data, int numdata, double dt, double tlo,
       stats->data_var += dev * (data[ii] - stats->data_avg);
     }
 
-  } while (offbin < numdata - 1);
+  } while (offbin < numdata - 1 && offbin != 0);
   
   /* Update and correct the statistics */
 
-  stats->data_var /= (stats->numdata - 1.0);
   stats->prof_avg = 0.0;
   for (ii = 0; ii < numprof; ii++)
     stats->prof_avg += prof[ii];
   stats->prof_avg /= numprof;
   stats->prof_var = stats->data_var * profbinwidth;
-  stats->redchi = 0.0;
 
   /* Compute the Chi-Squared probability that there is a signal */
   /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
   
+  stats->redchi = 0.0;
   for (ii = 0 ; ii < numprof ; ii++){
     dtmp = prof[ii] - stats->prof_avg;
     stats->redchi += dtmp * dtmp;
   }
   stats->redchi /= (stats->prof_var * (numprof - 1));
+  stats->data_var /= (stats->numdata - 1.0);
 
   phasenext = (phasenext < 0.0) ? 
     1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;

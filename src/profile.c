@@ -17,14 +17,15 @@ int main(int argc, char **argv)
 /* Added binary pulsar capability 30 Jan 98            */
 /* Core completely re-written (faster, more accurate)  */
 /* in April 1998.                                      */
+/* And yet again in November 1999.  Yeesh.             */
 {
   FILE *datafile, *proffile, *chifile, *filemarker;
-  float *fprof = NULL, *chiarr = NULL, *freqs = NULL, *errors = NULL;
+  float *fprof = NULL, *chiarr = NULL, *times = NULL, *errors = NULL;
   double freq = 0.0, dt, dfdt = 0.0, orbdt = 0.5;
   double *prof = NULL, endtime, N, *psrtime = NULL;
   double *Ep = NULL, *tp = NULL, *d2phib = NULL, startE = 0.0;
   double epoch = 0.0, difft = 0.0, p_psr = 0.0, pdot_psr = 0.0;
-  double pdotdot_psr = 0.0, d2fdt2 = 0.0;
+  double pdotdot_psr = 0.0, d2fdt2 = 0.0, endphase;
   double chip = 0.0, chiq = 0.0, chidf = 0.0;
   double chixmeas = 0.0, chitmp = 0.0;
   double varph = 0.0, numph = 0.0, avgph = 0.0;  
@@ -87,8 +88,9 @@ int main(int argc, char **argv)
 
     filelen = chkfilelen(datafile, sizeof(float));			
     numreads = filelen / WORKLEN;
-    chiarr = gen_fvect(numreads+1);
-    for (i = 0 ; i <= numreads ; i++)
+    if (numreads % WORKLEN) numreads++;
+    chiarr = gen_fvect(numreads);
+    for (i = 0 ; i < numreads ; i++)
       chiarr[i] = 0.0;
 								
     /* Read the info file */					
@@ -151,8 +153,9 @@ int main(int argc, char **argv)
       /* If the data set was generated using a makefile ('filename.mak')  */
       /* read it to determine the binary parameters.                      */
      					
-    } else if (cmd->makefileP) {				
+    } else if (cmd->makefileP) {
       
+      epoch = 0.0;
       read_mak_file(cmd->argv[0], &mdata);
       binary = mdata.binary;
       p_psr = mdata.p;
@@ -291,8 +294,7 @@ int main(int argc, char **argv)
 		epoch);							
       }									
       fprintf(filemarker, "Data pt duration (dt)   (s)  =  %-.12f\n", dt);
-      fprintf(filemarker, "Number of data points        =  %ld\n",	
-	      WORKLEN * numreads);					
+      fprintf(filemarker, "Total number of data points  =  %-.0f\n", N);					
       fprintf(filemarker, "Number of profile bins       =  %ld\n", proflen);
       fprintf(filemarker, "Folding period          (s)  =  %-.15f\n", p_psr);
       if (pdot_psr != 0.0) {						
@@ -338,9 +340,9 @@ int main(int argc, char **argv)
 
     if (binary) flags = 3;
     else flags = 2;
-    foldfile(datafile, dt, 0.0, prof, proflen, cmd->phs, 
-	     freq, dfdt, d2fdt2, flags, Ep, tp, numpoints, 
-	     onoffpairs, &stats, chiarr);
+    endphase = foldfile(datafile, dt, 0.0, prof, proflen, cmd->phs, 
+			freq, dfdt, d2fdt2, flags, Ep, tp, numpoints, 
+			onoffpairs, &stats, chiarr);
     fclose(datafile);
 			
     /* The total number of "photons"... */
@@ -360,13 +362,13 @@ int main(int argc, char **argv)
     /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
 
     chixmeas = 0.0;
-    for (i = 0 ; i < proflen ; i++){
+    for (i = 0; i < proflen; i++){
       chitmp = prof[i] - avgph;
       chixmeas += chitmp * chitmp;
     }
     chixmeas /= varph;
-
-    freqs = gen_freqs(numreads+1, 0.0, 1.0 / (float) numreads);
+    
+    times = gen_freqs(numreads, 0.0, 1.0 / (float) numreads);
     dochi = 1;
 
     /* Calculate the values of P and Q since we know X and DF */
@@ -386,20 +388,28 @@ int main(int argc, char **argv)
     /* Write the Chi-Array to a text output file */				
 									
     chifile = chkfopen(chifilenm, "w");
-    for (i = 0; i < numreads + 1; i++)					
-      fprintf(chifile, "%9.7f    %9f\n", freqs[i], chiarr[i]);
+    for (i = 0; i < numreads; i++)					
+      fprintf(chifile, "%9.7f    %9f\n", times[i], chiarr[i]);
     fclose(chifile);							
 									
     /* Output our statistics */
 
     filemarker = stdout;						
     for (i = 0 ; i < 2 ; i++){						
+      fprintf(filemarker, "Number of points folded      =  %-.0f\n",\
+	      stats.numdata);
       fprintf(filemarker, "Total signal          (cts)  =  %-15.2f\n",\
 	      numph);
-      fprintf(filemarker, "Average counts / bin         =  %-14.6f\n",\
+      fprintf(filemarker, "Time series average          =  %-14.6f\n",\
+	      stats.data_avg);
+      fprintf(filemarker, "Time series variance         =  %-14.6f\n",\
+	      stats.data_var);
+      fprintf(filemarker, "Profile average              =  %-14.6f\n",\
 	      avgph);
-      fprintf(filemarker, "Expected bin variance        =  %-14.6f\n",\
+      fprintf(filemarker, "Expected profile variance    =  %-14.6f\n",\
 	      varph);
+      fprintf(filemarker, "Ending pulse phase           =  %-.9f\n",\
+	      endphase);
       fprintf(filemarker, "Degrees of freedom           =  %-.0f\n",\
 	      chidf);
       fprintf(filemarker, "Measured chi-square   (X^2)  =  %-12.4f\n",\
@@ -546,7 +556,7 @@ int main(int argc, char **argv)
     } else {
       plot_profile(proflen, fprof, "", tmp1, "", showerr, errors, 1);
     }      
-    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", 
+    if (dochi) xyline(numreads, times, chiarr, "Time", 
 		      "Reduced Chi-Squared", 1);
     cpgend();
   } else if (cmd->xwinP) {
@@ -563,7 +573,7 @@ int main(int argc, char **argv)
     } else {
       plot_profile(proflen, fprof, "", tmp1, "", showerr, errors, 1);
     }      
-    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", 
+    if (dochi) xyline(numreads, times, chiarr, "Time", 
 		      "Reduced Chi-Squared", 1);
     cpgend();
   }
@@ -584,13 +594,15 @@ int main(int argc, char **argv)
     } else {
       plot_profile(proflen, fprof, "", tmp1, "", showerr, errors, 1);
     }
-    if (dochi) xyline(numreads+1, freqs, chiarr, "Time", 
+    if (dochi) xyline(numreads, times, chiarr, "Time", 
 		      "Reduced Chi-Squared", 1);
     cpgend();
   }
 
   /* Cleanup */
 
+  if (cmd->makefileP)
+    if (mdata.onoff) free(mdata.onoff);
   if (!cmd->dispP && binary) {
     free(Ep);
     free(tp);
@@ -599,7 +611,7 @@ int main(int argc, char **argv)
   }
   if (!cmd->dispP)
     free(errors);
-  free(freqs);
+  free(times);
   free(fprof);
   free(chiarr);
   return (0);

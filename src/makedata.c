@@ -13,7 +13,7 @@ double fwhm;
 int main(int argc, char *argv[])
 {
   /* Basic variables */
-  long numpad;
+  /* long numpad; */
   double tb = 0.0, T, phase, amp, signal, orbmaxt = 0.0;
   infodata idata;
   makedata mdata;
@@ -192,17 +192,18 @@ int main(int argc, char *argv[])
 
   /*  Add dc padding if necessary  */
 
-  if (mdata.next2_to_n != mdata.N) {
-    numpad = mdata.next2_to_n - mdata.N;
-    for (ct = 1, buffloc = 1; ct <= numpad; ct++, buffloc++) {
-      tempsig[buffloc - 1] = mdata.dc;
-      if ((buffloc == BUFFSIZE) || (ct == numpad)) {
-	chkfwrite(&tempsig, sizeof(float), \
-		  (unsigned long) buffloc, datfile);
-	buffloc = 0;
-      }
-    }
-  }
+/*   if (mdata.next2_to_n != mdata.N) { */
+/*     numpad = mdata.next2_to_n - mdata.N; */
+/*     for (ct = 1, buffloc = 1; ct <= numpad; ct++, buffloc++) { */
+/*       tempsig[buffloc - 1] = mdata.dc; */
+/*       if ((buffloc == BUFFSIZE) || (ct == numpad)) { */
+/* 	chkfwrite(&tempsig, sizeof(float), \ */
+/* 		  (unsigned long) buffloc, datfile); */
+/* 	buffloc = 0; */
+/*       } */
+/*     } */
+/*   } */
+
   printf("\n\nData saved in binary floating point format ");
   printf("in \"%s\".\n\n", datafilenm);
 
