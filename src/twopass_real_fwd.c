@@ -25,19 +25,33 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
   /* treat the input data as a n1 x n2 matrix */
   /* n2 >= n1 */
 
+   for (n1 = 1, n2 = 0; n1 < nn / 2; n1 <<= 1, n2++);
+   n1 = n2 >> 1;
+   n2 -= n1;
+   
+   n1 = 1 << n1;
+   n2 = 1 << n2;
+   b = Maxblocksize / n1;
+   if (b > n1)
+     b = n1;
+   printf("b = %lld, n1 = %lld, n2 = %lld, nn = %lld (%lld)\n", 
+	 b, n1, n2, nn, n1*n2);
+   
   if (nn % 4 != 0){
     printf("\nLength of FFT in twopassfft_real_fwd()\n");
     printf("   must be divisible by 4.\n\n");
     exit(1);
   }
-  n1 = good_factor(nn / 4) * 2;
-  if (n1 == 0){
+  n2 = good_factor(nn / 4) * 2;
+  if (n2 == 0){
     printf("\nLength of FFT in twopassfft_real_fwd()\n");
     printf("   must be factorable\n\n");
     exit(1);
   }
-  n2 = nn / n1;
+  n1 = nn / (2 * n2);
   b = find_blocksize(n1, n2);
+  printf("b = %lld, n1 = %lld, n2 = %lld, nn = %lld (%lld)\n", 
+	 b, n1, n2, nn, n1*n2);
   if (b==0 || b % 2){
     printf("\nCan't factor the FFT length in twopassfft_real_fwd()\n");
     printf("   into useful sizes.\n\n");
@@ -47,7 +61,7 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
   /* first do n2 transforms of length n1 */
   /* by fetching n1 x b blocks in memory */
 
-  data = gen_rawvect(nn / 2 < Maxblocksize ? nn / 2 : Maxblocksize);
+  data = gen_rawvect(nn / 2 < b * n2 ? nn / 2 : b * n2);
   datap = (float *) data;
 
   /* transpose scratch space */

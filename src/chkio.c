@@ -83,7 +83,7 @@ int chkfileseek(FILE * stream, long offset, size_t size, int whence)
 }
 
 
-unsigned long chkfilelen(FILE *file, size_t size)
+long long chkfilelen(FILE *file, size_t size)
 {
   int filenum, rt;
 #ifdef USE_PIOFS
@@ -107,7 +107,7 @@ unsigned long chkfilelen(FILE *file, size_t size)
     exit(-1);
   }
 #endif
-  return (unsigned long) (buf.st_size / size);
+  return (long long) (buf.st_size / size);
 }
 
 int read_int(FILE *infile)

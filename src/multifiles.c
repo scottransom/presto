@@ -57,9 +57,17 @@ multifile *fopen_multifile(int numfiles, char **filenames, char *mode,
       strcpy(mfile->mode, "rb");
     }
   } else if (strncmp(mode, "w", 1)==0){
-    strcpy(mfile->mode, "wb");
+    if (strncmp(mode, "w+", 2)==0){
+      strcpy(mfile->mode, "wb+");
+    } else {
+      strcpy(mfile->mode, "wb");
+    }
   } else if (strncmp(mode, "a", 1)==0){
-    strcpy(mfile->mode, "ab");
+    if (strncmp(mode, "a+", 2)==0){
+      strcpy(mfile->mode, "ab+");
+    } else {
+      strcpy(mfile->mode, "ab");
+    }
     append = 1;
   } else {
     printf("\n'mode' = '%s' in open_multifile() is not valid.\n\n", 

@@ -31,7 +31,7 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     printf("   must be divisible by 4.\n\n");
     exit(1);
   }
-  n1 = good_factor(nn / 4) * 2;
+  n1 = good_factor(nn / 8) * 2;
   if (n1 == 0){
     printf("\nLength of FFT in twopassfft_real_fwd()\n");
     printf("   must be factorable\n\n");

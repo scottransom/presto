@@ -179,7 +179,11 @@ int main(int argc, char *argv[])
 
     /*  Perform Two-Pass, Out-of-Core, FFT  */
 
-    printf("\nPerforming Out-of-Core Two-Pass FFT on data.\n");
+    if (isign==-1){
+      printf("\nPerforming out-of-core two-pass forward FFT on data.\n");
+    } else {
+      printf("\nPerforming out-of-core two-pass inverse FFT on data.\n");
+    }
 
     /* Make sure the number of points is a power-of-two! */
 
@@ -220,7 +224,7 @@ int main(int argc, char *argv[])
 
     fclose_multifile(datfile);
     datfile = fopen_multifile(numfiles, datfilenms, "r+", 0);
-    tmpfile = fopen_multifile(numfiles, tmpfilenms, "w", maxfilelen);
+    tmpfile = fopen_multifile(numfiles, tmpfilenms, "w+", maxfilelen);
     if (isign==1) {
       realfft_scratch_inv(datfile, tmpfile, numdata);
     } else {
@@ -250,13 +254,13 @@ int main(int argc, char *argv[])
       file2 = (char *)calloc(maxslen, 1);
       for (ii=0; ii<datfile->numfiles; ii++){
 	suf = split_root_suffix(datfile->filenames[ii], &root, &suffix);
+	sprintf(file1, "%s.%s", root, datsuffix);
+	sprintf(file2, "%s.%s", root, outsuffix);
+	rename(file1, file2);
 	if (!cmd->deleteP){
 	  sprintf(file1, "%s.bak", root);
 	  rename(file1, datfile->filenames[ii]);
 	}
-	sprintf(file1, "%s.%s", root, datsuffix);
-	sprintf(file2, "%s.%s", root, outsuffix);
-	rename(file1, file2);
 	if (suf) free(suffix);
 	free(root);
       }
@@ -269,7 +273,11 @@ int main(int argc, char *argv[])
     /* Perform standard FFT for real functions  */
     
     outfile = fopen_multifile(numfiles, outfilenms, "w", maxfilelen);
-    printf("\nPerforming In-Core FFT on data:\n");
+    if (isign==-1){
+      printf("\nPerforming in-core forward FFT on data:\n");
+    } else {
+      printf("\nPerforming in-core inverse FFT on data:\n");
+    }
     printf("   Reading.\n");
     data = gen_fvect(numdata);
     fread_multifile(data, sizeof(float), numdata, datfile);
