@@ -1160,6 +1160,7 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
     }
     SWAP(currentdata, lastdata);
     firsttime=0;
+    return 0;
   }
 
   /* Read, convert and de-disperse */
