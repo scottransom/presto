@@ -41,7 +41,7 @@ int main(int argc, char *argv[])
   char rastring[50], decstring[50], *cptr;
   int numchan=1, newper=0, oldper=0, slen, numadded=0, numremoved=0;
   long ii, numbarypts=0, worklen=65536, next_pow_of_two=0;
-  long numread=0, numtowrite=0, totwrote=0, datawrote=0;
+  long numread=0, numtowrite=0, totwrote=0, datawrote=0, padwrote=0;
   multibeam_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
   printf("           Pulsar Data Preparation Routine\n");
   printf("    Type conversion, de-dispersion, barycentering.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("           Last Modification:  5 July, 2000\n\n");
+  printf("           Last Modification:  17 July, 2000\n\n");
 
   /* Determine the root input file name and the input info file name */
 
@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
       numtowrite = numread;
       if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
 	numtowrite = cmd->numout - totwrote;
-      chkfwrite(outdata, sizeof(float), (unsigned long) numtowrite, outfile);
+      chkfwrite(outdata, sizeof(float), numtowrite, outfile);
       
       /* Update the statistics */
       
@@ -332,6 +332,8 @@ int main(int argc, char *argv[])
 	break;
      }
       
+    datawrote = totwrote;
+
     /* Main loop if we are barycentering... */
 
   } else {
@@ -420,7 +422,6 @@ int main(int argc, char *argv[])
       double lobin, hibin, calcpt;
 
       numdiffbins = abs(NEAREST_INT(btoa[numbarypts-1])) + 1;
-printf("\nnumdiffbins = %d\n\n", numdiffbins);
       diffbins = gen_ivect(numdiffbins);
       diffbinptr = diffbins;
       for (ii = 0 ; ii < numbarypts ; ii++){
@@ -461,9 +462,9 @@ printf("\nnumdiffbins = %d\n\n", numdiffbins);
       /* Print percent complete */
       
       if (cmd->numoutP)
-	newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
+	newper = (int) ((float) datawrote / cmd->numout * 100.0) + 1;
       else 
-	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
+	newper = (int) ((float) datawrote / idata.N * 100.0) + 1;
       if (newper > oldper) {
  	printf("\rAmount Complete = %3d%%", newper);
 	fflush(stdout);
@@ -493,74 +494,74 @@ printf("\nnumdiffbins = %d\n\n", numdiffbins);
 	
       } else {  /* Add or remove bins */
 	float favg;
-	int skip, numwritten;
+	int skip, numwritten, nextdiffbin;
 
 	skip = 0;
 	numwritten = 0;
+	numtowrite = abs(*diffbinptr) - datawrote;
+
 	while (numwritten < numread){
 
 	  /* Write the part before the diffbin */
 	
-	  numtowrite = abs(*diffbinptr) - datawrote;
 	  if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
 	    numtowrite = cmd->numout - totwrote;
-	  chkfwrite(outdata+skip, sizeof(float), numtowrite, outfile);
+	  chkfwrite(outdata + skip, sizeof(float), numtowrite, outfile);
 
 	  /* Update the statistics */
 	  
 	  for (ii = 0; ii < numtowrite; ii++)
-	    update_stats(datawrote + ii, outdata[skip+ii], &min, &max, 
-			 &avg, &var);
+	    update_stats(datawrote + ii, outdata[skip + ii], 
+			 &min, &max, &avg, &var);
 	  numwritten += numtowrite;
 	  skip += numtowrite;
 	  datawrote += numtowrite;
 	  totwrote += numtowrite;
-	  if (abs(*diffbinptr)==datawrote) diffbinptr++;
-
-	  /* Add a bin with the average value */
-	  
 	  numtowrite = numread - numwritten;
-	  if (*diffbinptr > 0){
-	    if (!(cmd->numoutP && (totwrote + 1) > cmd->numout)){
+
+	  /* Stop if we have written enough */
+
+	  if (cmd->numoutP && (totwrote == cmd->numout))
+	      break;
+
+	  /* Add or remove a bin from the data */
+
+	  if (abs(*diffbinptr)==datawrote){
+
+	    nextdiffbin = abs(*(diffbinptr+1)) - datawrote;
+	    if (numwritten + nextdiffbin < numread)
+	      numtowrite = nextdiffbin;
+
+	    /* Add a bin */
+	    
+	    if (*diffbinptr > 0){
 	      favg = (float) avg;
 	      chkfwrite(&favg, sizeof(float), 1, outfile);
 	      numadded++;
 	      totwrote++;
+
+	      /* Stop if we have written enough */
+
+	      if (cmd->numoutP && (totwrote == cmd->numout))
+		  break;
+
+	    } else {
+
+	      /* Remove a bin */
+
+	      numwritten++;
+	      skip++;
+	      numtowrite--;
+	      numremoved++;
 	    }
-
-	  /* Remove a bin from the data */
-	  
-	  } else {
-	    skip++;
-	    numtowrite--;
-	    numremoved++;
+	    diffbinptr++;
 	  }
-
-	  /* Write the rest */
-	  
-	  if (datawrote + numtowrite > abs(*diffbinptr))
-	    numtowrite = abs(*diffbinptr) - datawrote;
-	  if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
-	    numtowrite = cmd->numout - totwrote;
-	  chkfwrite(outdata+skip, sizeof(float), numtowrite, outfile);
-
-	  /* Update the statistics */
-	  
-	  for (ii = 0; ii < numtowrite; ii++)
-	    update_stats(datawrote + ii, outdata[skip+ii], &min, &max, 
-			 &avg, &var);
-	  numwritten += numtowrite;
-	  skip += numtowrite;
-	  datawrote += numtowrite;
-	  totwrote += numtowrite;
 	}
       }
 
-      if (abs(*diffbinptr)==datawrote) diffbinptr++;
-
       /* Stop if we have written out all the data we need to */
       
-      if (cmd->numoutP && (totwrote >= cmd->numout))
+      if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
     }
 
@@ -571,22 +572,6 @@ printf("\nnumdiffbins = %d\n\n", numdiffbins);
     free(btoa);
     free(ttoa);
   }
-
-printf("\n data written = %d\n", datawrote);
-printf("total written = %d\n", totwrote);
-printf("   difference = %d\n", totwrote - datawrote);
-printf("numbins added or removed = %d\n\n", numadded-numremoved);
-
-  /* Print simple stats and results */
-
-  var /= (totwrote - 1);
-  printf("\n\nDone.\n\nSimple statistics of the output data:\n");
-  printf("  Number of points written:    %ld\n", totwrote);
-  printf("  Maximum value:               %.2f\n", max);
-  printf("  Minimum value:               %.2f\n", min);
-  printf("  Mean value:                  %.2f\n", avg);
-  printf("  Standard deviation:          %.2f\n", sqrt(var));
-  printf("\n");
 
   /* Calculate what the next power of two number of points would be */
 
@@ -638,10 +623,10 @@ printf("numbins added or removed = %d\n\n", numadded-numremoved);
     else
       for (ii = 0; ii < worklen; ii++)
 	outdata[ii] = avg;
-    for (ii = 0; ii < (next_pow_of_two - totwrote) / worklen; ii++)
+    padwrote = next_pow_of_two - totwrote;
+    for (ii = 0; ii < padwrote / worklen; ii++)
       chkfwrite(outdata, sizeof(float), worklen, outfile);
-    chkfwrite(outdata, sizeof(float), \
-	      (next_pow_of_two - totwrote) % worklen, outfile);
+    chkfwrite(outdata, sizeof(float), padwrote % worklen, outfile);
   }
 
   /* Pad the file if needed to the requested length */
@@ -649,12 +634,31 @@ printf("numbins added or removed = %d\n\n", numadded-numremoved);
   if (cmd->numoutP && (cmd->numout > totwrote)) {
     for (ii = 0; ii < worklen; ii++)
       outdata[ii] = avg;
-    for (ii = 0; ii < (cmd->numout - totwrote) / worklen; ii++)
+    padwrote = cmd->numout - totwrote;
+    for (ii = 0; ii < padwrote / worklen; ii++)
       chkfwrite(outdata, sizeof(float), worklen, outfile);
-    chkfwrite(outdata, sizeof(float), 
-	      (cmd->numout - totwrote) % worklen, outfile);
+    chkfwrite(outdata, sizeof(float), padwrote % worklen, outfile);
   }
   free(outdata);
+
+  /* Print simple stats and results */
+
+  var /= (datawrote - 1);
+  printf("\n\nDone.\n\nSimple statistics of the output data:\n");
+  printf("               Data bins written:  %ld\n", datawrote);
+  if (padwrote)
+    printf("            Padding bins written:  %ld\n", padwrote);
+  if (!cmd->nobaryP) {
+    if (numadded)
+      printf("    Bins added for barycentering:  %d\n", numadded);
+    if (numremoved)
+      printf("  Bins removed for barycentering:  %d\n", numremoved);
+  }
+  printf("           Maximum value of data:  %.2f\n", max);
+  printf("           Minimum value of data:  %.2f\n", min);
+  printf("                 Data mean value:  %.2f\n", avg);
+  printf("         Data standard deviation:  %.2f\n", sqrt(var));
+  printf("\n");
 
   /* Close the files and cleanup */
 
@@ -681,8 +685,8 @@ static int read_floats(FILE * file, float *data, int numpts, \
   /* Read the raw data and return numbar read */
 
   *dispdelays = *dispdelays;
-  return chkfread(data, sizeof(float), \
-		  (unsigned long) (numpts * numchan), file) / numchan;
+  return chkfread(data, sizeof(float), (numpts * numchan), 
+		  file) / numchan;
 }
 
 
