@@ -7,28 +7,26 @@ from Statistics import *
 
 # Some admin variables
 parallel = 0          # True or false
-showplots = 1         # True or false
-debugout = 1          # True or false
-#outfiledir = '/tmp/scratch'
+showplots = 0         # True or false
+debugout = 0          # True or false
 outfiledir = '/home/ransom'
 outfilenm = 'montebinresp'
-pmass = 1.35          # Pulsar mass in solar masses
+pmass = 1.35                                 # Pulsar mass in solar masses
 cmass = {'WD': 0.3, 'NS': 1.35, 'BH': 10.0}  # Companion masses to use
 ecc = {'WD': 0.0, 'NS': 0.6, 'BH': 0.6}      # Eccentricities to use
 orbsperpt = {'WD': 20, 'NS': 100, 'BH': 100} # # of orbits to avg per pt
-ppsr = [0.002, 0.02, 0.2, 2.0] # Pulsar periods to test
+ppsr = [0.002, 0.02, 0.2, 2.0]               # Pulsar periods to test
 
 # Simulation parameters
 numTbyPb = 100        # The number of points along the x axis
-#minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
-minTbyPb = 5.0       # Minimum Obs Time / Orbital Period
+minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
 maxTbyPb = 10.0       # Maximum Obs Time / Orbital Period
-ctype = 'WD'          # The type of binary companion: 'WD', 'NS', or 'BH'
+ctype = 'BH'          # The type of binary companion: 'WD', 'NS', or 'BH'
 Pb = 7200.0           # Orbital period in seconds
 dt = 0.0001           # The duration of each data sample (s)
-searchtype = 'sideband'  # One of 'ffdot', 'sideband', 'shortffts'
-maxTbyPb_ffdot = 1.0
-minTbyPb_sideband = 0.3
+searchtype = 'ffdot'  # One of 'ffdot', 'sideband', 'shortffts'
+maxTbyPb_ffdot = 11.0
+minTbyPb_sideband = 1.5
 fftlen_shortffts = 0.05
 
 ##################################################
@@ -61,26 +59,6 @@ def psrparams_from_list(pplist):
     psr.orb.t = pplist[5]
     return psr
 
-def estimate_rz(psr, T, eo=0.0):
-    """
-    estimate_rz(psr, T, eo=0.0):
-        Return an estimate of the average Fourier frequency ('r')
-        and Fourier F-dot ('z') values in bins given the psrparams
-        'psr', the length of the observation 'T' in sec,  and the
-        inital Eccentric anomaly 'eo'.
-    """
-    import LeastSquares
-    dt = 1.0
-    e = dorbint(eo, int(T+1.0), dt, psr.orb)
-    z = z_from_e(e, psr, T)
-    r = T * ( 1.0 / psr.p - 1.0 / p_from_e(e, psr))
-    if showplots:
-        Pgplot.plotxy(r, labx = 'Orbital Phase', laby = 'r')
-        Pgplot.closeplot()
-        Pgplot.plotxy(z, labx = 'Orbital Phase', laby = 'z')
-        Pgplot.closeplot()
-    return (average(r), -average(z))
-    
 ####################################################################
 
 # Calculate the values of our X and Y axis points
@@ -105,9 +83,9 @@ for x in range(numTbyPb):
             pows = zeros(orbsperpt[ctype], 'd')
             stim = clock()
             if ((searchtype == 'ffdot' and
-                 TbyPb[x] < maxTbyPb_ffdot) or
+                 TbyPb[x] <= maxTbyPb_ffdot) or
                 (searchtype == 'sideband' and
-                 TbyPb[x] > minTbyPb_sideband) or
+                 TbyPb[x] >= minTbyPb_sideband) or
                 (searchtype == 'shortffts')):
                 # Loop over the number of tries per point
                 for ct in range(orbsperpt[ctype]):
@@ -126,6 +104,7 @@ for x in range(numTbyPb):
                     psr_resp = gen_bin_response(0.0, 1, psr.p, T, psr.orb,
                                                 psr_numbins)
                     if showplots:
+                        print "The raw response:"
                         Pgplot.plotxy(spectralpower(psr_resp))
                         Pgplot.closeplot()
                     if searchtype == 'ffdot':
@@ -137,28 +116,28 @@ for x in range(numTbyPb):
                         lo = (len(data) - len(psr_resp)) / 2
                         hi = lo + len(psr_resp)
                         data[lo:hi] = array(psr_resp, copy=1)
-                        eo = keplars_eqn(psr.orb.t, psr.orb.p,
-                                         psr.orb.e, 1.0e-14)
-                        (tryr, tryz) = estimate_rz(psr, T, eo)
+                        (tryr, tryz) = estimate_rz(psr, T, show=showplots)
                         tryr = tryr + len(data) / 2.0
-                        numr = 400
+                        numr = 200
                         numz = 200
                         dr = 0.5
                         dz = 1.0
                         if debugout:
 #                            print 'psr_numbins = '+`psr_numbins`+\
 #                                  ' TbyPb[x] = '+`TbyPb[x]`+\
-#                                  ' ppsr[y] = '+`ppsr[y]`+' eo = '+\
-#                                  `eo`+' len(data) = '+`len(data)`
+#                                  ' ppsr[y] = '+`ppsr[y]`+\
+#                                  ' len(data) = '+`len(data)`
                             print ' tryr = %11.5f   tryz = %11.5f' % \
                                   (tryr, tryz)
                         ffd = ffdot_plane(data, tryr, dr, numr,
                                           tryz, dz, numz)
                         maxarg = argmax(spectralpower(ffd.flat))
-                        peakr = ((maxarg % numr) * dr +
-                                 int(tryr - (numr * dr) / 2.0))
-                        peakz = ((maxarg / numr) * dz +
-                                 tryz - (numz * dz) / 2.0)
+                        rind = maxarg % numr
+                        zind = maxarg / numr
+                        peakr = (rind * dr + int(tryr - (numr * dr) / 2.0))
+                        peakz = (zind * dz + tryz - (numz * dz) / 2.0)
+                        peakpow = ffd[zind][rind].real**2 + \
+                                  ffd[zind][rind].imag**2
                         if showplots:
                             xvals = arange(numr, typecode="d") * dr + \
                                     int(tryr - (numr * dr) / 2.0)
@@ -174,9 +153,14 @@ for x in range(numTbyPb):
                         if debugout:
                             print 'peakr = %11.5f  peakz = %11.5f' % \
                                   (peakr, peakz)
-                        [pows[ct], rmax, zmax, rd] = \
-                                   maximize_rz(data, peakr, peakz, \
-                                               norm=1.0)
+                        if (peakpow < 0.2):
+                            pows[ct] = peakpow
+                            rmax = peakr
+                            zmax = peakz
+                        else:
+                            [pows[ct], rmax, zmax, rd] = \
+                                       maximize_rz(data, peakr, peakz, \
+                                                   norm=1.0)
                         if debugout:
                             print 'max_r = %11.5f  max_z = %11.5f' % \
                                   (rmax, zmax)
@@ -187,8 +171,12 @@ for x in range(numTbyPb):
                         # The biggest FFT first
                         psr_pows = spectralpower(psr_resp)
                         fftlen = int(next2_to_n(len(psr_pows)))
-                        fdata = rfft(array(psr_pows[0:fftlen], copy=1))
-                        cands = search_fft(fdata, 5, norm=1.0/fftlen)
+                        fdata = zeros(fftlen, 'f')
+                        fdata[0:len(psr_pows)] = array(psr_pows, copy=1)
+                        fdata = rfft(fdata)
+                        cands = search_fft(fdata, 15, norm=1.0/fftlen)
+                        rpred = fftlen / TbyPb[x]
+                        if (TbyPb[x] < 2.0): rpred = fftlen/2 - (rpred - fftlen/2)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata)/fftlen, \
                                           arange(len(fdata))*T/fftlen, \
@@ -196,14 +184,15 @@ for x in range(numTbyPb):
                                           laby='Power')
                             Pgplot.closeplot()
                         if debugout:
-                            print 'fftlen = '+`fftlen`
-                            for ii in range(5):
-                                print '  r = %11.5f  pow = %9.7f' % \
-                                      (cands[ii][1], cands[ii][0])
+                            for ii in range(15):
+                                print '  r = %11.5f  r_alias = %11.5f  pow = %9.7f' % \
+                                      (cands[ii][1], (fftlen - cands[ii][1])*T/fftlen, cands[ii][0])
                         # Do the first half-length FFT
                         fftlen = fftlen / 2
-                        fdata = rfft(array(psr_pows[0:fftlen], copy=1))
-                        cands = search_fft(fdata, 5, norm=1.0/fftlen)
+                        fdata = zeros(fftlen, 'f')
+                        fdata[0:fftlen] = array(psr_pows[0:fftlen], copy=1)
+                        fdata = rfft(fdata)
+                        cands = search_fft(fdata, 15, norm=1.0/fftlen)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata)/fftlen, \
                                           arange(len(fdata))*T/fftlen, \
@@ -211,16 +200,15 @@ for x in range(numTbyPb):
                                           laby='Power')
                             Pgplot.closeplot()
                         if debugout:
-                            print 'fftlen = '+`fftlen`
-                            for ii in range(5):
-                                print '  r = %11.5f  pow = %9.7f' % \
-                                      (cands[ii][1], cands[ii][0])
+                            for ii in range(15):
+                                print '  r = %11.5f  r_alias = %11.5f  pow = %9.7f' % \
+                                      (cands[ii][1], (fftlen - cands[ii][1])*T/fftlen, cands[ii][0])
                         # Do the second half-length FFT
-                        data = zeros(fftlen, 'f')
-                        lencopy = len(psr_pows[fftlen/2:])
-                        data[0:lencopy] = array(psr_pows[fftlen/2:], copy=1)
-                        fdata = rfft(data)
-                        cands = search_fft(fdata, 5, norm=1.0/fftlen)
+                        fdata = zeros(fftlen, 'f')
+                        lencopy = len(psr_pows[fftlen:])
+                        fdata[0:lencopy] = array(psr_pows[fftlen:], copy=1)
+                        fdata = rfft(fdata)
+                        cands = search_fft(fdata, 15, norm=1.0/fftlen)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata)/fftlen, \
                                           arange(len(fdata))*T/fftlen, \
@@ -228,17 +216,16 @@ for x in range(numTbyPb):
                                           laby='Power')
                             Pgplot.closeplot()
                         if debugout:
-                            print 'fftlen = '+`fftlen`
-                            for ii in range(5):
-                                print '  r = %11.5f  pow = %9.7f' % \
-                                      (cands[ii][1]*T/fftlen, cands[ii][0])
+                            for ii in range(15):
+                                print '  r = %11.5f  r_alias = %11.5f  pow = %9.7f' % \
+                                      (cands[ii][1], (fftlen - cands[ii][1])*T/fftlen, cands[ii][0])
                     if debugout:
                         print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
                         print `ppsr[y]`+'  '+`pows[ct]`
             tim = clock() - stim
             if debugout:
                 print 'Time for this point was ',tim, ' s.'
-            file.write('%5d  %9.6f  %8.6f  %7.5f  %7.5f  %7.5f\n' % \
+            file.write('%5d  %9.6f  %8.6f  %11.9f  %11.9f  %11.9f\n' % \
                        (y * numTbyPb + x, TbyPb[x], ppsr[y], \
                         average(pows), max(pows), min(pows)))
             file.flush()
