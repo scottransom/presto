@@ -534,7 +534,7 @@ static double harmonic_loop(int xid, double rr, int zoomlevel, fftpart *fp)
 
 int main(int argc, char *argv[])
 {
-  float maxpow=0.0;
+  float maxpow=0.0, inx=0.0, iny=0.0;
   double centerr, offsetf;
   int zoomlevel, maxzoom, minzoom, xid, psid;
   char *rootfilenm, inchar;
@@ -645,8 +645,6 @@ int main(int argc, char *argv[])
   offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
 
   do {
-    float inx=0.0, iny=0.0;
-    
     cpgcurs(&inx, &iny, &inchar);
     if (DEBUGOUT) printf("You pressed '%c'\n", inchar);
 
@@ -830,7 +828,7 @@ int main(int argc, char *argv[])
     case 'z':
       {
 	int badchoice=2;
-	float inx=0.0, iny=0.0, lox, hix, loy, hiy;
+	float lox, hix, loy, hiy;
 	double rs[2];
 	char choice;
 
@@ -938,7 +936,7 @@ int main(int argc, char *argv[])
 	  case 'u':
 	    {
 	      char choice2;
-	      float xx=0.0, yy=0.0;
+	      float xx=inx, yy=iny;
 	      int lor, hir, numr;
 	      double avg, var;
 
