@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "18Aug03" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "23Jan04" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -78,7 +78,7 @@ A specific IF to use if available (summed IFs is the default),
 .IP -clip
 Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 .br
-1 Float value between 0 and 20.0.
+1 Float value between 0 and 40.0.
 .br
 Default: `6.0'
 .IP -noclip
@@ -88,7 +88,7 @@ Write subbands instead of de-dispersed data.
 .IP -subdm
 The DM to use when de-dispersing subbands for -sub,
 .br
-1 Double value between 0 and 2000.0.
+1 Double value between 0 and 4000.0.
 .br
 Default: `0.0'
 .IP -numout
@@ -114,19 +114,19 @@ Default: `1.0'
 .IP -numdms
 The number of DMs to de-disperse,
 .br
-1 Int value between 1 and 100.
+1 Int value between 1 and 1000.
 .br
 Default: `10'
 .IP -nsub
 The number of sub-bands to use,
 .br
-1 Int value between 1 and 512.
+1 Int value between 1 and 1024.
 .br
 Default: `32'
 .IP -downsamp
 The number of neighboring bins to co-add,
 .br
-1 Int value between 1 and 32.
+1 Int value between 1 and 128.
 .br
 Default: `1'
 .IP -mask
@@ -134,7 +134,7 @@ File containing masking information to use,
 .br
 1 String value
 .IP infile
-Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period).
+Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period).
 .\" cligPart OPTIONS end
 
 .\" cligPart DESCRIPTION
