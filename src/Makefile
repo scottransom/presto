@@ -128,7 +128,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd\
-	rfifind
+	rfifind zapbirds
 
 geomview: togeomview
 
@@ -291,6 +291,10 @@ togeomview:
 
 window: window.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) window.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lglib -lm
 	cp $@ ../bin
 
 clean:

@@ -1,5 +1,4 @@
 #include "plot2d.h"
-#include "rawtype.h"
 #include <string.h>
 
 int nice_output_2(char *output, double val, double err, int len);

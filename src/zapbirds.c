@@ -36,6 +36,7 @@ static birdie *birdie_create(double lofreq, double hifreq)
 
 static void birdie_free(gpointer data, gpointer user_data)
 {
+  user_data=NULL;
   free((birdie *)data);
 }
 
@@ -53,8 +54,8 @@ static int birdie_compare(gconstpointer ca, gconstpointer cb)
 
 static void birdie_print(gpointer data, gpointer user_data)
 {
-  FILE *file=(FILE *)user_data;
   birdie *obj=(birdie *)data;
+  FILE *file=(FILE *)user_data;
   
   fprintf(file, "%17.14g  %17.14g\n", 
 	  obj->freq, obj->width);
@@ -65,7 +66,7 @@ static fcomplex *get_rawbins(FILE *fftfile, double bin,
 			     int numtoget, float *median, int *lobin)
 {
   int ii;
-  float *powers;
+  float *powers, powargr, powargi;
   fcomplex *result;
 
   *lobin = (int) bin - numtoget / 2;
@@ -85,19 +86,20 @@ static fcomplex *get_rawbins(FILE *fftfile, double bin,
 static void process_bird(double basebin, int harm,
 			 double *lofreq, double *hifreq)
 {
-  int lobin, plotlobin, plotnumbins=1024, not_done_yet=1;
-  int plotoffset, inchar;
+  int lobin, plotnumbins=1024, not_done_yet=1, plotoffset;
+  char inchar;
   float median, xx[2], yy[2], inx, iny;
   double bin, firstbin, pred_freq, average, tmpfreq;
   double firstfreq=0.0, lastfreq=0.0;
   fcomplex *data, *result;
 
+  *lofreq = *hifreq = 0.0;
   bin = basebin * harm;
   pred_freq = bin / T;
   xx[0] = xx[1] = pred_freq;
-  data *get_rawbins(fftfile, bin, NUMTOGET, &median, &lobin);
+  data = get_rawbins(fftfile, bin, NUMTOGET, &median, &lobin);
   average = median / -log(0.5);
-  result = gen_fcomplex(FFTLEN);
+  result = gen_cvect(FFTLEN);
   corr_complex(data, NUMTOGET, RAW, kernel, FFTLEN, FFT, \
 	       result, FFTLEN, khw, NUMBETWEEN, khw, CORR);
   firstbin = lobin + 2 * NUMBETWEEN * khw;
@@ -177,8 +179,10 @@ static void process_bird(double basebin, int harm,
 int main(int argc, char *argv[])
 {
   FILE *infile, *outfile;
-  int ii, jj, *bird_basebins, *bird_numharms, numbirds;
+  int ii, jj, *bird_numharms, numbirds;
+  double lofreq, hifreq, *bird_basebins;
   char *rootfilenm;
+  birdie *newbird;
   GSList *zapped=NULL;
   infodata idata;
   Cmdline *cmd;
@@ -235,7 +239,7 @@ int main(int argc, char *argv[])
     printf("Examining data from '%s'.\n\n", cmd->argv[0]);
   }
   T = idata.dt * idata.N;
-  dr = 1.0 / numbewteen;
+  dr = 1.0 / NUMBETWEEN;
   fftfile = chkfopen(cmd->argv[0], "rb");
 
   /* Read the Standard bird list */
@@ -260,10 +264,26 @@ int main(int argc, char *argv[])
 
   /* Loop over the birdies */
 
-  for (ii=0; ii<numbirds; ii++);
-  process_bird(double basebin, int harm,
-			 double *lofreq, double *hifreq)
+  for (ii=0; ii<numbirds; ii++){
+    for (jj=0; jj<bird_numharms[ii]; jj++){
+      process_bird(bird_basebins[ii], jj+1, &lofreq, &hifreq);
+      if (lofreq && hifreq){
+	newbird = birdie_create(lofreq, hifreq);
+	birdie_print(&newbird, stdout);
+	zapped = g_slist_insert_sorted(zapped, newbird, birdie_compare);
+      }
+    }
+  }
 
+  /* Output the birdies */
+
+  g_slist_foreach(zapped, birdie_print, stdout);
+
+  /* Free the memory */
+
+  g_slist_foreach(zapped, birdie_free, NULL);
+  g_slist_free(zapped);
   free(rootfilenm);
   free(kernel);
+  return 0;
 }
