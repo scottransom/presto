@@ -13,13 +13,13 @@ FILE *chkfopen(char *path, const char *mode)
 #ifdef USE_PIOFS
   if ((file = fopen64(path, mode)) == NULL) {
     perror("\nError in chkfopen()");
-    printf("\n");
+    printf("   path = '%s'\n", path);
     exit(-1);
   }
 #else
   if ((file = fopen(path, mode)) == NULL) {
     perror("\nError in chkfopen()");
-    printf("\n");
+    printf("   path = '%s'\n", path);
     exit(-1);
   }
 #endif
