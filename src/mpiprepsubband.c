@@ -1092,7 +1092,7 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
 		    mask * obsmask, double *dispdts, int **offsets,
 		    int *padding)
 {
-   static int firsttime = 2, worklen, *maskchans = NULL, blocksize;
+   static int firsttime = 1, worklen, *maskchans = NULL, blocksize;
    static int dsworklen;
    static float *tempzz, *data1, *data2, *dsdata1 = NULL, *dsdata2 = NULL;
    static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
@@ -1101,6 +1101,9 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
        0, nummasked = 0;
 
    if (firsttime) {
+      /* For rawdata, we need to make two initial reads in order to        */
+      /* prepare the prep_*_subbands() functions as well as this routine.  */
+      if (RAWDATA) firsttime = 2;
       if (cmd->maskfileP)
 	 maskchans = gen_ivect(numchan);
       worklen = blocklen * blocksperread;
