@@ -24,7 +24,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 static void update_stats(int N, double x, double *min, double *max,
 			 double *avg, double *var);
 static void update_infodata(infodata *idata, int datawrote, int padwrote, 
-			    int *barybins, int numbarybins);
+			    int *barybins, int numbarybins, int downsamp);
 static void print_percent_complete(int current, int number);
 
 /* From CLIG */
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
   /* Any variable that begins with 'b' means barycentric */
   FILE **infiles, **outfiles;
   float **outdata;
-  double dtmp, *dms, avgdm=0.0, maxdm;
+  double dtmp, *dms, avgdm=0.0, maxdm, dsdt=0;
   double *dispdt, tlotoa=0.0, blotoa=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
   double *btoa=NULL, *ttoa=NULL, avgvoverc=0.0;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
   printf("\n\n");
   printf("          Pulsar Subband De-dispersion Routine\n");
   printf("                 by Scott M. Ransom\n");
-  printf("            Last Modification:  18 Mar, 2001\n\n");
+  printf("            Last Modification:  19 Mar, 2001\n\n");
 
   numinfiles = cmd->argc;
   if (cmd->pkmbP){
@@ -137,9 +137,10 @@ int main(int argc, char *argv[])
     rewind(infiles[0]);
     PKMB_hdr_to_inf(&hdr, &idata);
     PKMB_update_infodata(numinfiles, &idata);
+    dsdt = cmd->downsamp * idata.dt;
     idata.dm = avgdm;
     blocklen = ptsperblock;
-    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dt) 
+    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dsdt) 
 		     / ptsperblock + 1);
     worklen = blocklen * blocksperread;
     strcpy(obs, "PK");  /* OBS code for TEMPO */
@@ -156,12 +157,20 @@ int main(int argc, char *argv[])
     strcpy(obs, "EF");  /* OBS code for TEMPO */
   }
 
+  if (blocklen % cmd->downsamp){
+    printf("Error:  The downsample factor (%d) must be a factor of the\n",
+	   cmd->downsamp);
+    printf("        blocklength (%d).  Exiting.\n\n", 
+	   blocklen);
+    exit(1);
+  }
+
   tlotoa = idata.mjd_i + idata.mjd_f;  /* Topocentric epoch */
 
   if (cmd->numoutP)
     totnumtowrite = cmd->numout;
   else
-    totnumtowrite = (int) idata.N;
+    totnumtowrite = (int) idata.N/cmd->downsamp;
 
   if (cmd->nobaryP) { /* Main loop if we are not barycentering... */
     
@@ -183,22 +192,29 @@ int main(int argc, char *argv[])
 				 idata.freq, idata.chan_wid, 0.0);
       dtmp = subdispdt[cmd->numsub-1];
       for (jj=0; jj<cmd->numsub; jj++)
-	offsets[ii][jj] = (int)((subdispdt[jj] - dtmp) / idata.dt + 0.5);
+	offsets[ii][jj] = (int)((subdispdt[jj] - dtmp) / dsdt + 0.5);
       free(subdispdt);
     }
 
     /* Allocate our data array and start getting data */
     
-    outdata = gen_fmatrix(cmd->numsub, worklen);
+    printf("De-dispersing using:\n");
+    printf("       Subbands = %d\n", cmd->numsub);
+    printf("     Average DM = %.7g\n", avgdm);
+    if (cmd->downsamp > 1){
+      printf("     Downsample = %d\n", cmd->downsamp);
+      printf("  New sample dt = %.10g\n", dsdt);
+    }
+    printf("\n");
+    
+    outdata = gen_fmatrix(cmd->numsub, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
 		       &obsmask, dispdt, offsets, &padding);
-    printf("De-dispersing using:\n");
-    printf("     Subbands = %d\n", cmd->numsub);
-    printf("   Average DM = %.7g\n\n", avgdm);
-    
+
     while (numread==worklen){
 
+      numread /= cmd->downsamp;
       print_percent_complete(totwrote, totnumtowrite);
 
       /* Write the latest chunk of data, but don't   */
@@ -268,12 +284,17 @@ int main(int argc, char *argv[])
 
     printf("   Insure you check the files tempoout_times.tmp and\n");
     printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n");
-    printf("   Average topocentric velocity (c) = %.5g.\n", avgvoverc);
-    printf("   Maximum topocentric velocity (c) = %.5g.\n", maxvoverc);
-    printf("   Minimum topocentric velocity (c) = %.5g.\n\n", minvoverc);
+    printf("   Average topocentric velocity (c) = %.7g\n", avgvoverc);
+    printf("   Maximum topocentric velocity (c) = %.7g\n", maxvoverc);
+    printf("   Minimum topocentric velocity (c) = %.7g\n\n", minvoverc);
     printf("De-dispersing and barycentering using:\n");
-    printf("     Subbands = %d\n", cmd->numsub);
-    printf("   Average DM = %.7g\n\n", avgdm);
+    printf("       Subbands = %d\n", cmd->numsub);
+    printf("     Average DM = %.7g\n", avgdm);
+    if (cmd->downsamp > 1){
+      printf("     Downsample = %d\n", cmd->downsamp);
+      printf("  New sample dt = %.10g\n", dsdt);
+    }
+    printf("\n");
 
     /* Dispersion delays (in bins).  The high freq gets no delay   */
     /* All other delays are positive fractions of bin length (dt)  */
@@ -293,7 +314,7 @@ int main(int argc, char *argv[])
 				 idata.freq, idata.chan_wid, avgvoverc);
       dtmp = subdispdt[cmd->numsub-1];
       for (jj=0; jj<cmd->numsub; jj++)
-	offsets[ii][jj] = (int)((subdispdt[jj] - dtmp) / idata.dt + 0.5);
+	offsets[ii][jj] = (int)((subdispdt[jj] - dtmp) / dsdt + 0.5);
       free(subdispdt);
     }
 
@@ -302,7 +323,7 @@ int main(int argc, char *argv[])
 
     dtmp = (btoa[0] - ttoa[0]);
     for (ii=0; ii<numbarypts; ii++)
-      btoa[ii] = ((btoa[ii] - ttoa[ii]) - dtmp) * SECPERDAY / idata.dt;
+      btoa[ii] = ((btoa[ii] - ttoa[ii]) - dtmp) * SECPERDAY / dsdt;
 
     { /* Find the points where we need to add or remove bins */
 
@@ -312,17 +333,17 @@ int main(int argc, char *argv[])
       numdiffbins = abs(NEAREST_INT(btoa[numbarypts-1])) + 1;
       diffbins = gen_ivect(numdiffbins);
       diffbinptr = diffbins;
-      for (ii = 1 ; ii < numbarypts ; ii++){
+      for (ii=1; ii<numbarypts; ii++){
 	currentbin = NEAREST_INT(btoa[ii]);
 	if (currentbin != oldbin){
 	  if (currentbin > 0){
 	    calcpt = oldbin + 0.5;
-	    lobin = (ii-1) * TDT / idata.dt;
-	    hibin = ii * TDT / idata.dt;
+	    lobin = (ii-1) * TDT / dsdt;
+	    hibin = ii * TDT / dsdt;
 	  } else {
 	    calcpt = oldbin - 0.5;
-	    lobin = -((ii-1) * TDT / idata.dt);
-	    hibin = -(ii * TDT / idata.dt);
+	    lobin = -((ii-1) * TDT / dsdt);
+	    hibin = -(ii * TDT / dsdt);
 	  }
 	  while(fabs(calcpt) < fabs(btoa[ii])){
 	    /* Negative bin number means remove that bin */
@@ -341,7 +362,7 @@ int main(int argc, char *argv[])
 
     /* Now perform the barycentering */
 
-    outdata = gen_fmatrix(cmd->numsub, worklen);
+    outdata = gen_fmatrix(cmd->numsub, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
 		       &obsmask, dispdt, offsets, &padding);
@@ -349,6 +370,7 @@ int main(int argc, char *argv[])
     while (numread==worklen){ /* Loop to read and write the data */
       int numwritten=0;
 
+      numread /= cmd->downsamp;
       print_percent_complete(totwrote, totnumtowrite);
 
       /* Simply write the data if we don't have to add or */
@@ -438,14 +460,16 @@ int main(int argc, char *argv[])
     }
   }
 
-  /* Calculate what the amount of padding we need  */
+  /* Calculate the amount of padding we need  */
 
   if (cmd->numoutP && (cmd->numout > totwrote))
     padwrote = padtowrite = cmd->numout - totwrote;
-  
+
   /* Write the new info file for the output data */
 
-  update_infodata(&idata, totwrote, padtowrite, diffbins, numdiffbins);
+  idata.dt = dsdt;
+  update_infodata(&idata, totwrote, padtowrite, diffbins, 
+		  numdiffbins, cmd->downsamp);
   for (ii=0; ii<cmd->numdms; ii++){
     idata.dm = dms[ii];
     if (!cmd->nobaryP) {
@@ -563,7 +587,7 @@ static void write_padding(FILE *outfiles[], int numfiles, float value,
       for (ii=0; ii<numfiles; ii++)
 	chkfwrite(buffer, sizeof(float), veclen, outfiles[ii]);
     } else {
-      for (ii=0; ii<=numtowrite/veclen; ii++){
+      for (ii=0; ii<numtowrite/veclen; ii++){
 	for (jj=0; jj<numfiles; jj++)
 	  chkfwrite(buffer, sizeof(float), veclen, outfiles[jj]);
       }
@@ -581,19 +605,30 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 		    int *padding)
 {
   static int firsttime=1, worklen, *maskchans=NULL, blocksize;
-  static float *tempzz, *data1, *data2; 
-  static float *currentdata, *lastdata;
+  static int dsworklen;
+  static float *tempzz, *data1, *data2, *dsdata1=NULL, *dsdata2=NULL; 
+  static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
   int totnumread=0, numread, ii, jj, tmppad=0, nummasked;
   
   if (firsttime){
     if (cmd->maskfileP)
       maskchans = gen_ivect(numchan);
     worklen = blocklen * blocksperread;
+    dsworklen = worklen / cmd->downsamp;
     blocksize = blocklen * cmd->numsub;
     data1 = gen_fvect(cmd->numsub * worklen);
     data2 = gen_fvect(cmd->numsub * worklen);
     currentdata = data1;
     lastdata = data2;
+    if (cmd->downsamp > 1){
+      dsdata1 = gen_fvect(cmd->numsub * dsworklen);
+      dsdata2 = gen_fvect(cmd->numsub * dsworklen);
+      currentdsdata = dsdata1;
+      lastdsdata = dsdata2;
+    } else {
+      currentdsdata = data1;
+      lastdsdata = data2;
+    }
     if (cmd->pkmbP){
       for (ii=0; ii<blocksperread; ii++){
 	numread = read_PKMB_subbands(infiles, numfiles, 
@@ -608,7 +643,25 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  *padding = 1;
       }
     }
+    /* Downsample the subband data if needed */
+    if (cmd->downsamp > 1){
+      int kk, offset, dsoffset, index, dsindex;
+      for (ii=0; ii<dsworklen; ii++){
+	dsoffset = ii * cmd->numsub;
+	offset = dsoffset * cmd->downsamp;
+	for (jj=0; jj<cmd->numsub; jj++){
+	  dsindex = dsoffset + jj;
+	  index = offset + jj;
+	  currentdsdata[dsindex] = 0.0;
+	  for (kk=0; kk<cmd->downsamp; kk++){
+	    currentdsdata[dsindex] += currentdata[index];
+	    index += cmd->numsub;
+	  }
+	}
+      }
+    }
     SWAP(currentdata, lastdata);
+    SWAP(currentdsdata, lastdsdata);
     firsttime = 0;
   }
   if (cmd->pkmbP){
@@ -626,16 +679,37 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	*padding = 1;
     }
   }
-  for (ii=0; ii<cmd->numdms; ii++){
-    float_dedisp(currentdata, lastdata, worklen, cmd->numsub, 
-		 offsets[ii], 0.0, outdata[ii]);
+  /* Downsample the subband data if needed */
+  if (cmd->downsamp > 1){
+    int kk, offset, dsoffset, index, dsindex;
+    for (ii=0; ii<dsworklen; ii++){
+      dsoffset = ii * cmd->numsub;
+      offset = dsoffset * cmd->downsamp;
+      for (jj=0; jj<cmd->numsub; jj++){
+	dsindex = dsoffset + jj;
+	index = offset + jj;
+	currentdsdata[dsindex] = 0.0;
+	for (kk=0; kk<cmd->downsamp; kk++){
+	  currentdsdata[dsindex] += currentdata[index];
+	  index += cmd->numsub;
+	}
+      }
+    }
   }
+  for (ii=0; ii<cmd->numdms; ii++)
+    float_dedisp(currentdsdata, lastdsdata, dsworklen, 
+		 cmd->numsub, offsets[ii], 0.0, outdata[ii]);
   SWAP(currentdata, lastdata);
+  SWAP(currentdsdata, lastdsdata);
   if (totnumread != worklen){
     if (cmd->maskfileP)
       free(maskchans);
     free(data1);
     free(data2);
+    if (cmd->downsamp > 1){
+      free(dsdata1);
+      free(dsdata2);
+    }
   }
   return totnumread;
 }
@@ -676,7 +750,7 @@ static void update_stats(int N, double x, double *min, double *max,
 
 
 static void update_infodata(infodata *idata, int datawrote, int padwrote, 
-			    int *barybins, int numbarybins)
+			    int *barybins, int numbarybins, int downsamp)
 /* Update our infodata for barycentering and padding */
 {
   int ii, jj, index;
@@ -691,6 +765,11 @@ static void update_infodata(infodata *idata, int datawrote, int padwrote,
       idata->onoff[3] = idata->N-1;
     }
     return;
+  } else {
+    for (ii=0; ii<idata->numonoff; ii++){
+      idata->onoff[ii*2] /= downsamp;
+      idata->onoff[ii*2+1] /= downsamp;
+    }
   }
   
   /* Determine the barycentric onoff bins (approximate) */
