@@ -376,6 +376,14 @@ def OMDOT_to_Mtot(OMDOT, porb, e):
     wd = OMDOT/SECPERJULYR*DEGTORAD # rad/s
     return (wd/3.0*(1.0-e*e)*(porb*SECPERDAY/TWOPI)**(5.0/3.0))**(3.0/2.0)/Tsun
 
+def beam_halfwidth(obs_freq, dish_diam):
+    """
+    beam_halfwidth(obs_freq, dish_diam):
+        Return the telescope beam halfwidth in arcmin
+            'obs_freq' = the observing frqeuency in MHz
+            'dish_diam' = the telescope diameter in m
+    """
+    return 1.2*SOL/(obs_freq*10.0**6)/dish_diam*RADTODEG*60/2
 
 def limiting_flux_dens(Ttot, G, BW, T, P=0.01, W=0.05, polar=2, factor=15.0):
     """
