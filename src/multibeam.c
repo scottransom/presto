@@ -1,6 +1,64 @@
 #include "presto.h"
 #include "multibeam.h"
 
+void get_pkmb_file_info(FILE *files[], int numfiles, 
+			long long numpoints[], long long padpoints[], 
+			double *dt, int *numchan, int output)
+/* Read basic information and make padding calculations for a       */
+/* set of PKMB rawfiles that you want to patch together.  numpoints */
+/* and padpoints are previously declared arrays of length numfiles  */
+/* that describe the number of points and padding required to       */
+/* patch the files together.  dt and numchan are return values.     */
+/* If output is true, prints a table showing all the values.        */
+{
+  int ii, ptsperblock;
+  multibeam_tapehdr header;
+  infodata first, later;
+  double mjd[MAXPATCHFILES], times[MAXPATCHFILES], elapsed[MAXPATCHFILES];
+
+  if (numfiles > MAXPATCHFILES){
+    printf("\nThe number of input files (%d) is greater than \n", numfiles);
+    printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
+    exit(0);
+  }
+  chkfread(&header, 1, HDRLEN, files[0]);
+  rewind(files[0]);
+  multibeam_hdr_to_inf(&header, &first);
+  ptsperblock = DATLEN * 8 / first.num_chan;
+  numpoints[0] = chkfilelen(files[0], RECLEN) * ptsperblock;
+  *dt = first.dt;
+  *numchan = first.num_chan;
+  times[0] = numpoints[0] * first.dt;
+  mjd[0] = first.mjd_i + first.mjd_f;
+  elapsed[0] = times[0];
+  padpoints[0] = 0;
+  padpoints[numfiles-1] = 0;
+  for (ii=1; ii<numfiles; ii++){
+    chkfread(&header, 1, HDRLEN, files[ii]);
+    rewind(files[ii]);
+    multibeam_hdr_to_inf(&header, &later);
+    if (later.num_chan != first.num_chan){
+      printf("Number of channels is not the same!\n\n");
+    }
+    if (later.dt != first.dt){
+      printf("Sample time is not the same!\n\n");
+    }
+    numpoints[ii] = chkfilelen(files[ii], RECLEN) * ptsperblock;
+    times[ii] = numpoints[ii] * later.dt;
+    mjd[ii] = later.mjd_i + later.mjd_f;
+    elapsed[ii] = (mjd[ii] - mjd[ii-1]) * SECPERDAY;
+    padpoints[ii-1] = (long long)((elapsed[ii]-times[ii-1]) / 
+				  later.dt + 0.5);
+  }
+  if (output){
+    printf("File  Points    Time(s)        Elapsed(s)     MJD                 Padding\n");
+    for (ii=0; ii<numfiles; ii++)
+      printf("%-2d    %-9lld %-14.6g %-14.6g %-17.12f  %-lld\n", 
+	     ii, numpoints[ii], times[ii], elapsed[ii], mjd[ii], padpoints[ii]);
+  }
+}
+
+
 int skip_to_multibeam_rec(FILE * infile, int rec)
 /* This routine skips to the record 'rec' in the input file */
 /* *infile.  *infile contains 1 bit digitized data from the */

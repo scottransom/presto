@@ -9,23 +9,21 @@
 *****/
 
 typedef struct s_Cmdline {
-  /***** -o: Output data file name (no suffix) */
+  /***** -o: Root of the output file names */
   char outfileP;
   char* outfile;
   int outfileC;
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
+  /***** -ebpp: Raw data in EBPP (Effelsberg) format */
   char ebppP;
-  /***** -gbpp: Raw data in Green Bank-Berkeley Pulsar Processor format */
+  /***** -gbpp: Raw data in GBPP (Green Bank) format */
   char gbppP;
-  /***** -nofft: Will not attempt to calculate the FFT of the zero-DM data */
-  char nofftP;
-  /***** -time: The number of minutes to integrate for statistics and FFT calculations */
+  /***** -time: Minutes to integrate for stats and FFT calcs */
   char timeP;
   float time;
   int timeC;
-  /***** -sigma: The sigma above/below the noise to reject a chunk of data */
+  /***** -sigma: The +/-sigma cutoff to reject a chunk of data */
   char sigmaP;
   float sigma;
   int sigmaC;

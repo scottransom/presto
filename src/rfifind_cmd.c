@@ -22,23 +22,21 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
-  /***** -o: Output data file name (no suffix) */
+  /***** -o: Root of the output file names */
   /* outfileP = */ 0,
   /* outfile = */ (char*)0,
   /* outfileC = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ 0,
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
+  /***** -ebpp: Raw data in EBPP (Effelsberg) format */
   /* ebppP = */ 0,
-  /***** -gbpp: Raw data in Green Bank-Berkeley Pulsar Processor format */
+  /***** -gbpp: Raw data in GBPP (Green Bank) format */
   /* gbppP = */ 0,
-  /***** -nofft: Will not attempt to calculate the FFT of the zero-DM data */
-  /* nofftP = */ 0,
-  /***** -time: The number of minutes to integrate for statistics and FFT calculations */
+  /***** -time: Minutes to integrate for stats and FFT calcs */
   /* timeP = */ 1,
   /* time = */ 4,
   /* timeC = */ 1,
-  /***** -sigma: The sigma above/below the noise to reject a chunk of data */
+  /***** -sigma: The +/-sigma cutoff to reject a chunk of data */
   /* sigmaP = */ 1,
   /* sigma = */ 4,
   /* sigmaC = */ 1,
@@ -750,7 +748,7 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -o: Output data file name (no suffix) */
+  /***** -o: Root of the output file names */
   if( !cmd.outfileP ) {
     printf("-o not found.\n");
   } else {
@@ -769,28 +767,21 @@ showOptionValues(void)
     printf("-pkmb found:\n");
   }
 
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
+  /***** -ebpp: Raw data in EBPP (Effelsberg) format */
   if( !cmd.ebppP ) {
     printf("-ebpp not found.\n");
   } else {
     printf("-ebpp found:\n");
   }
 
-  /***** -gbpp: Raw data in Green Bank-Berkeley Pulsar Processor format */
+  /***** -gbpp: Raw data in GBPP (Green Bank) format */
   if( !cmd.gbppP ) {
     printf("-gbpp not found.\n");
   } else {
     printf("-gbpp found:\n");
   }
 
-  /***** -nofft: Will not attempt to calculate the FFT of the zero-DM data */
-  if( !cmd.nofftP ) {
-    printf("-nofft not found.\n");
-  } else {
-    printf("-nofft found:\n");
-  }
-
-  /***** -time: The number of minutes to integrate for statistics and FFT calculations */
+  /***** -time: Minutes to integrate for stats and FFT calcs */
   if( !cmd.timeP ) {
     printf("-time not found.\n");
   } else {
@@ -802,7 +793,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -sigma: The sigma above/below the noise to reject a chunk of data */
+  /***** -sigma: The +/-sigma cutoff to reject a chunk of data */
   if( !cmd.sigmaP ) {
     printf("-sigma not found.\n");
   } else {
@@ -845,25 +836,24 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-gbpp] [-nofft] [-time time] [-sigma sigma] [-zapchan zapchan] [--] infile\n\
+ -o outfile [-pkmb] [-ebpp] [-gbpp] [-time time] [-sigma sigma] [-zapchan zapchan] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
-        -o: Output data file name (no suffix)\n\
+        -o: Root of the output file names\n\
             1 char* value\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
-     -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format\n\
-     -gbpp: Raw data in Green Bank-Berkeley Pulsar Processor format\n\
-    -nofft: Will not attempt to calculate the FFT of the zero-DM data\n\
-     -time: The number of minutes to integrate for statistics and FFT calculations\n\
+     -ebpp: Raw data in EBPP (Effelsberg) format\n\
+     -gbpp: Raw data in GBPP (Green Bank) format\n\
+     -time: Minutes to integrate for stats and FFT calcs\n\
             1 float value between 0 and oo\n\
             default: `4'\n\
-    -sigma: The sigma above/below the noise to reject a chunk of data\n\
+    -sigma: The +/-sigma cutoff to reject a chunk of data\n\
             1 float value between 0 and oo\n\
             default: `4'\n\
   -zapchan: Channels to explicitly remove from analysis\n\
             1...1024 int values between 1 and 1024\n\
     infile: Input data file name.\n\
-            1 value\n\
-version: 06Dec00\n\
+            1...20 values\n\
+version: 14Dec00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -902,11 +892,6 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-gbpp", argv[i]) ) {
       cmd.gbppP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-nofft", argv[i]) ) {
-      cmd.nofftP = 1;
       continue;
     }
 
@@ -962,8 +947,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 1<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 1 non-option argument(s)\n",
+  if( 20<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 20 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

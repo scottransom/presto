@@ -113,6 +113,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
 
   /* Generate the Mask */
 
+  /*
   {
     int numbytes, ii;
 
@@ -121,8 +122,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
     for (ii=0; ii<numbytes; ii++)
       *mask[ii]
   }
-
-
+  */
 
   /*
    *  Now plot the results

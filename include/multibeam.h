@@ -7,6 +7,13 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.7  2000/12/15 04:47:39  ransom
+ * Re-ran CLIG after modifying rfifind_cmd.cli for multiple files and
+ *    small clean-ups.
+ * Added a function that determines basic info for PKMB files that
+ *    need to be combined (in multibeam.c).
+ * Began modifying rfifind for multiple input files.
+ *
  * Revision 1.6  2000/12/06 13:41:37  ransom
  * Added new function to multibeam.h
  * Added fftcand structure in presto.h
@@ -105,6 +112,16 @@ typedef struct MULTIBEAM_TAPEHDR {
 
 
 /* Routines to read and convert Parkes Multibeam data files */
+
+void get_pkmb_file_info(FILE *files[], int numfiles, 
+			long long numpoints[], long long padpoints[], 
+			double *dt, int *numchan, int output);
+/* Read basic information and make padding calculations for a       */
+/* set of PKMB rawfiles that you want to patch together.  numpoints */
+/* and padpoints are previously declared arrays of length numfiles  */
+/* that describe the number of points and padding required to       */
+/* patch the files together.  dt and numchan are return values.     */
+/* If output is true, prints a table showing all the values.        */
 
 void convert_multibeam_point(unsigned char *rec, unsigned char *data,
 			     int numchan, int decreasing_f);

@@ -35,19 +35,19 @@ static void read_statsfile(char *statsfilenm, float ***datapow,
 
 int main(int argc, char *argv[])
 {
-  FILE *infile=NULL;
+  FILE *infiles[MAXPATCHFILES];
   float **dataavg=NULL, **datastd=NULL, **datapow=NULL;
   float *outdata=NULL, **indata=NULL, powavg, powstd, powmax;
   float inttime, norm, fracterror=RFI_FRACTERROR, sigma;
   unsigned char **datamask=NULL, *tbuffer=NULL;
-  char *outfilenm, *rootfilenm, *suffix;
-  char *statsfilenm, *maskfilenm, *rfifilenm;
-  int numblocks=0, numchan=0, numint=0, newper=0, oldper=0;
+  char *outfilenm, *statsfilenm, *maskfilenm, *rfifilenm;
+  int numchan=0, numint=0, newper=0, oldper=0, numfiles;
   int blocksperint, ptsperint=0, ptsperblock=0, tbuffer_size;
-  int bitsperpt, numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
-  int ii, jj, kk, slen, numread=0, compute=0;
+  int numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
+  int ii, jj, kk, slen, numread=0, compute=1;
   int harmsum=RFI_NUMHARMSUM, lobin=RFI_LOBIN, numbetween=RFI_NUMBETWEEN;
-  double davg, dvar, freq;
+  double davg, dvar, freq, dt;
+  long long numpoints[MAXPATCHFILES], padpoints[MAXPATCHFILES];
   presto_interptype interptype;
   rfi *rfivect=NULL;
   fftcand *cands;
@@ -67,7 +67,9 @@ int main(int argc, char *argv[])
 
   cmd = parseCmdline(argc, argv);
   sigma = cmd->sigma;
-
+  slen = strlen(cmd->outfile)+20;
+  numfiles = cmd->argc;
+   
 #ifdef DEBUG
   showOptionValues();
 #endif
@@ -77,21 +79,10 @@ int main(int argc, char *argv[])
   printf("                 by Scott M. Ransom\n");
   printf("           Last Modification:  5 Dec, 2000\n\n");
 
-  /* Determine the root input file name and the input info file name */
-
-  if (split_root_suffix(cmd->argv[0], &rootfilenm, &suffix))
-    free(suffix);
-  else {
-    printf("\nThe input filename (%s) must have a suffix!\n\n", 
-	   cmd->argv[0]);
-    exit(1);
-  }
-  slen = strlen(rootfilenm)+20;
-  
   /* The following is the root of all the output files */
 
   outfilenm = (char *)calloc(slen, sizeof(char));
-  sprintf(outfilenm, "%s_rfifind", rootfilenm);
+  sprintf(outfilenm, "%s_rfifind", cmd->outfile);
 
   /* And here are the output file names */
 
@@ -113,20 +104,29 @@ int main(int argc, char *argv[])
       printf("\n");
       exit(0);
     } else if (cmd->pkmbP){
-      printf("Reading Parkes Multibeam data from '%s'\n\n", 
-	     cmd->argv[0]);
+      if (numfiles > 1)
+	printf("Reading Parkes PKMB data from %d files:\n", numfiles);
+      else
+	printf("Reading Parkes PKMB data from 1 file:\n");
     } else if (cmd->ebppP){
-      printf("Reading Effelsberg PSR data from '%s'\n\n", 
-	     cmd->argv[0]);
+      if (numfiles > 1)
+	printf("Reading Effelsberg RBPP data from %d files:\n", numfiles);
+      else
+	printf("Reading Effelsberg RBPP data from 1 file:\n");
     } else if (cmd->gbppP){
-      printf("Reading GBPP PSR data from '%s'\n\n", 
-	     cmd->argv[0]);
+      if (numfiles > 1)
+	printf("Reading Green Bank GBPP data from %d files:\n", numfiles);
+      else
+	printf("Reading Green Bank GBPP data from 1 file:\n");
     }
 
     /* Open the raw data file */
 
-    infile = chkfopen(cmd->argv[0], "rb");
-    printf("Writing mask  data to '%s'.\n", maskfilenm);
+    for (ii=0; ii<numfiles; ii++){
+      printf("  '%s'\n", cmd->argv[ii]);
+      infiles[ii] = chkfopen(cmd->argv[ii], "rb");
+    }
+    printf("\nWriting mask  data to '%s'.\n", maskfilenm);
     printf("Writing RFI   data to '%s'.\n", rfifilenm);
     printf("Writing stats data to '%s'.\n\n", statsfilenm);
     
@@ -134,18 +134,20 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP) {
       
+      get_pkmb_file_info(infiles, numfiles, numpoints, padpoints, 
+			 &dt, &numchan, 1);
+
       /* Read the first header file and generate an infofile from it */
       
-      chkfread(&hdr, 1, HDRLEN, infile);
-      rewind(infile);
+      chkfread(&hdr, 1, HDRLEN, infiles[0]);
+      rewind(infiles[0]);
       multibeam_hdr_to_inf(&hdr, &idata);
       idata.dm = 0.0;
-      numchan = idata.num_chan;
-      ptsperblock = DATLEN * 8 / numchan;
-      numblocks = chkfilelen(infile, RECLEN);
-      idata.N = (double) (numblocks * ptsperblock);
+      idata.N = 0.0;
+      for (ii=0; ii<numfiles; ii++)
+	idata.N += numpoints[ii] + padpoints[ii];
       writeinf(&idata);
-      bitsperpt = 1;
+      ptsperblock = DATLEN * 8 / numchan;
       
       /* The data collection routine to use */
       
@@ -153,21 +155,22 @@ int main(int argc, char *argv[])
     }
     
     /* Set-up values if we are using the EBPP     */
-    /*   NOTE:  This code is not yet implemented. */
     
     if (cmd->ebppP) {
-      bitsperpt = 4;
+      /* This code is not yet implemented. */
     }
     
     /* The number of data points and blocks to work with at a time */
     
     blocksperint = (int) (cmd->time * 60.0 / 
 			  (ptsperblock * idata.dt) + 0.5);
-    numint = numblocks / blocksperint;
-    if (numblocks % blocksperint) numint++;
     ptsperint = blocksperint * ptsperblock;
+    numint = (long long) idata.N / ptsperint;
+    if ((long long) idata.N % ptsperint) numint++;
     inttime = ptsperint * idata.dt;
     
+exit(0);
+
     /* Allocate our workarrays */
     
     dataavg = gen_fmatrix(numint, numchan);
@@ -203,7 +206,7 @@ int main(int argc, char *argv[])
       
       /* Read a chunk of data */
       
-      numread = (*readrec_ptr)(infile, indata[0], numchan, blocksperint);
+      numread = (*readrec_ptr)(infiles[0], indata[0], numchan, blocksperint);
       
       /* Transpose the data so we can work on the channels */
       
@@ -292,18 +295,18 @@ int main(int argc, char *argv[])
   /* Make the plots */
 
   rfifind_plot(numchan, numint, ptsperint, cmd->sigma, 
-	       dataavg, datastd, datapow, datamask, &idata, 1);
+	       dataavg, datastd, datapow, datamask, &idata, 0);
 
   /* Close the files and cleanup */
 
   free_rfi_vector(rfivect, numrfivect);
-  free(rootfilenm);
   free(outfilenm);
   free(statsfilenm);
   free(maskfilenm);
   free(rfifilenm);
   if (compute){
-    fclose(infile);
+    for (ii=0; ii<numfiles; ii++)
+      fclose(infiles[ii]);
     free(tbuffer);
     free(dataavg[0]); free(dataavg);
     free(datastd[0]); free(datastd);

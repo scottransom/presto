@@ -53,6 +53,9 @@
 #ifndef __GNUC__
 #define __inline__
 #endif
+/* Maximum number of input files to try and patch together */
+#define MAXPATCHFILES 20
+
 
 /* various function-like macros */
 

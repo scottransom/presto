@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "06Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "14Dec00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -26,35 +26,32 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 [-pkmb]
 [-ebpp]
 [-gbpp]
-[-nofft]
 [-time time]
 [-sigma sigma]
 [-zapchan zapchan]
-infile
+infile ...
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
 .SH OPTIONS
 .IP -o
-Output data file name (no suffix),
+Root of the output file names,
 .br
 1 String value
 .IP -pkmb
 Raw data in Parkes Multibeam format.
 .IP -ebpp
-Raw data in Efflesberg-Berkeley Pulsar Processor format.
+Raw data in EBPP (Effelsberg) format.
 .IP -gbpp
-Raw data in Green Bank-Berkeley Pulsar Processor format.
-.IP -nofft
-Will not attempt to calculate the FFT of the zero-DM data.
+Raw data in GBPP (Green Bank) format.
 .IP -time
-The number of minutes to integrate for statistics and FFT calculations,
+Minutes to integrate for stats and FFT calcs,
 .br
 1 Float value between 0 and oo.
 .br
 Default: `4'
 .IP -sigma
-The sigma above/below the noise to reject a chunk of data,
+The +/-sigma cutoff to reject a chunk of data,
 .br
 1 Float value between 0 and oo.
 .br
