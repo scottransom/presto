@@ -4,11 +4,11 @@
 
 /* Some function definitions */
 
-int (*readrec_ptr)(FILE * file, float *data, int numpts, \
-		   double *dispdelays, int numchan);
+int (*readrec_ptr)(FILE * infile, float *data, int numpts,
+		   double *dispdelays, int numsubbands, int numchan);
 int read_resid_rec(FILE * file, double *toa, double *obsf);
-int read_floats(FILE * file, float *data, int numpts, \
-		double *dispdelays, int numchan);
+int read_floats(FILE * file, float *data, int numpts,
+		double *dispdelays, int numsubbands, int numchan);
 
 /* The main program */
 
@@ -18,28 +18,25 @@ int read_floats(FILE * file, float *data, int numpts, \
 
 int main(int argc, char *argv[])
 {
-  /* Any variable that begins with 't' means topocentric */
-  /* Any variable that begins with 'b' means barycentric */
-  FILE *infile = NULL, *filemarker;
-  float *data = NULL;
-  double p_psr = 0.0, pdot_psr = 0.0, freq = 0.0, dfdt = 0.0;
-  double difft, tt, nc, pl, diff_epoch = 0.0, recdt = 0.0;
-  double orb_baryepoch = 0.0, topoepoch = 0.0, baryepoch = 0.0;
-  double dtmp = 0.0, dtmp2 = 0.0, tmptopoepoch = 0.0, tmpbaryepoch = 0.0;
-  double *Ep = NULL, startE = 0.0, orbdt = 1.0, orbdtdays = 0.0;
-  double tdf = 0.0, N = 0.0, dt = 0.0, T, endtime = 0.0, dtdays;
-  double *btoa = NULL, *voverc = NULL, *bobsf = NULL, *tobsf = NULL;
-  double fakeonoffpair[2], *profs = NULL;
-  double *delta_ts = NULL, *topo_ts = NULL;
+  FILE *infile=NULL, *filemarker;
+  float *data=NULL;
+  double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
+  double difft, tt, nc, pl, diff_epoch, recdt, *disp_dts=NULL;
+  double orb_baryepoch=0.0, topoepoch, baryepoch;
+  double dtmp, dtmp2, tmptopoepoch=0.0, tmpbaryepoch=0.0;
+  double *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
+  double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays;
+  double *btoa=NULL, *voverc=NULL, *bobsf=NULL, *tobsf=NULL;
+  double *profs=NULL, *delta_ts=NULL, *topo_ts=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
-  int numchan = 1, binary = 0, np, pnum, lorec = 0, hirec = 0;
-  int slen, numonoffpairs = 1, ptsperrec = 1;
-  long ii, jj, kk, numbarypts = 0, numpts = 0;
-  long numfolded = 0, totnumfolded = 0;
-  long numrecs = 0, totnumrecs = 0;
+  int numchan=1, binary=0, np, pnum, lorec=0, hirec=0;
+  int slen, ptsperrec=1, numpoints=0;
+  long ii, jj, numbarypts=0, worklen=0;
+  long numfolded=0, totnumfolded=0;
+  long numrecs=0, totnumrecs=0;
   long numbinpoints, proflen, currentrec;
-  unsigned long numrec = 0;
+  unsigned long numrec=0;
   multibeam_tapehdr hdr;
   fourierprops rzwcand;
   orbitparams orb;
@@ -47,6 +44,7 @@ int main(int argc, char *argv[])
   psrdatabase pdata;
   infodata idata, rzwidata;
   Cmdline *cmd;
+  foldstats stats;
 
   /* Call usage() if we have no command line arguments */
 
@@ -116,7 +114,7 @@ int main(int argc, char *argv[])
     
   /* Set-up values if we are using the Parkes multibeam */
 
-  if (cmd->pkmbP) {
+  if (cmd->pkmbP){
 
     /* Read the first header file and generate an infofile from it */
 
@@ -180,7 +178,13 @@ int main(int argc, char *argv[])
     /* The number of data points to work with at a time */
 
     numchan = idata.num_chan;
-    numpts = ptsperrec;
+    worklen = ptsperrec;
+
+    /* How many sub-bands will we de-disperse to */
+    
+    if (!cmd->nsubP)
+      cmd->nsub = numchan / 8;
+    
   }
 
   /* Using the Effelsberg-Berkeley Pulsar Processor routines   */
@@ -200,7 +204,7 @@ int main(int argc, char *argv[])
 
     /* The number of data points to work with at a time */
 
-    numpts = 1024;
+    worklen = 1024;
   }
 
   /* Read the pulsar database if needed */
@@ -217,10 +221,11 @@ int main(int argc, char *argv[])
       orb = psr.orb;
       orb_baryepoch = psr.orb.t / SECPERDAY;
     }
-    p_psr = psr.p;
-    pdot_psr = psr.pd;
-    freq = psr.f;
-    dfdt = psr.fd;
+    p = psr.p;
+    pd = psr.pd;
+    f = psr.f;
+    fd = psr.fd;
+    fdd = psr.fdd;
     strcpy(pname, psr.jname);
     
     /* If the user specifies all of the binaries parameters */	
@@ -257,12 +262,12 @@ int main(int argc, char *argv[])
       free(cptr);
       fprintf(stderr, "Successful.\n");
       get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);	
-      freq = (rzwcand.r - 0.5 * rzwcand.z) / 
+      f = (rzwcand.r - 0.5 * rzwcand.z) / 
 	(rzwidata.dt * rzwidata.N);
-      p_psr = 1.0 / freq;
-      dfdt = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
+      p = 1.0 / f;
+      fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
 			  (rzwidata.dt * rzwidata.N));
-      pdot_psr = -dfdt / (freq * freq);
+      pd = -fd / (f * f);
     } else {
       printf("\nCould not read the rzwfile.\nExiting.\n\n");
       exit(1);
@@ -274,23 +279,33 @@ int main(int argc, char *argv[])
   /* the data from a .cand file, the pulsar database, or a makefile. */
   
   if (!cmd->rzwcandP && !cmd->psrnameP) {
-      
-    if (cmd->pP) {							
-      p_psr = cmd->p;							
-      freq = 1.0 / p_psr;						
-    }									
-    if (cmd->freqP) {							
-      freq = cmd->freq;						
-      p_psr = 1.0 / freq;						
-    }									
-    if (cmd->pdot != 0.0) {						
-      pdot_psr = cmd->pdot;						
-      dfdt = -pdot_psr / (p_psr * p_psr);				
-    }									
-    if (cmd->dfdt != 0.0) {						
-      dfdt = cmd->dfdt;						
-      pdot_psr = -dfdt / (freq * freq);				
-    }									
+
+    if (cmd->pP) {
+      p = cmd->p;
+      f = 1.0 / p;
+    }
+    if (cmd->fP) {
+      f = cmd->f;
+      p = 1.0 / f;
+    }
+    if (cmd->pd != 0.0) {
+      pd = cmd->pd;
+      fd = -pd / (p * p);
+    }
+    if (cmd->fd != 0.0) {
+      fd = cmd->fd;
+      pd = -fd / (f * f);
+    }
+    if (cmd->pdd != 0.0) {
+      pdd = cmd->pdd;
+      fdd = 2 * pd * pd / (p * p * p) -
+	pdd / (p * p);
+    }
+    if (cmd->fdd != 0.0) {
+      fdd = cmd->fdd;
+      pdd = 2 * fd * fd / (f * f * f) - 
+	fdd / (f * f);
+    }
   }
   
   /* Determine the length of the profile */				
@@ -298,7 +313,7 @@ int main(int argc, char *argv[])
   if (cmd->proflenP) {						
     proflen = cmd->proflen;						
   } else {								
-    proflen = (long) (p_psr / dt + 0.5);				
+    proflen = (long) (p / dt + 0.5);				
   }									
   
   /* Determine the frequency shifts caused by the orbit if needed */	
@@ -315,6 +330,8 @@ int main(int argc, char *argv[])
     else orbdt = endtime / 4096.0;
     numbinpoints = (long) floor(endtime/orbdt + 0.5) + 1;
     Ep = dorbint(startE, numbinpoints, orbdt, &orb);
+    tp = gen_dvect(numpoints);
+    for (ii = 0; ii < numpoints; ii++) tp[ii] = ii * orbdt;
 
     /* Convert Eccentric anomaly to time delays */			
     
@@ -322,53 +339,60 @@ int main(int argc, char *argv[])
     E_to_phib(Ep, numbinpoints, &orb);		
   }
 
-  /* Determine the spacing to use when generating */
-  /* TEMPO barycentric corrections                */
-
-  orbdtdays = orbdt / SECPERDAY;
-
   /* Output some informational data on the screen and to the */
   /* output file.                                            */
   
   fprintf(stdout, "\n");
   filemarker = stdout;
   for (ii = 0 ; ii < 1 ; ii++){
-    if (cmd->psrnameP) {
-      fprintf(filemarker, "Pulsar                       =  %s\n", pname);
-    }
-    if (tmptopoepoch != 0.0) {
-      fprintf(filemarker, "Folding (topo) epoch  (MJD)  =  %-17.11f\n",
-	      tmptopoepoch);
-    }
-    if (tmpbaryepoch != 0.0) {
-      fprintf(filemarker, "Folding (bary) epoch  (MJD)  =  %-17.11f\n",
-	      tmpbaryepoch);
-    }
-    fprintf(filemarker, "Data pt duration (dt)   (s)  =  %-.12f\n", dt);
-    fprintf(filemarker, "Number of data points        =  %ld\n", (long) N);
-    fprintf(filemarker, "Number of profile bins       =  %ld\n", proflen);
-    fprintf(filemarker, "Folding period          (s)  =  %-.15f\n", p_psr);
-    if (pdot_psr != 0.0) {
-      fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n",
-	      pdot_psr);
-    }
-    fprintf(filemarker, "Folding frequency      (hz)  =  %-.12f\n", freq);
-    if (pdot_psr != 0.0) {
-	fprintf(filemarker, "Folding f-dot        (hz/s)  =  %-.8e\n", dfdt);
-    }
-    if (binary) {
-      fprintf(filemarker, "Orbital period          (s)  =  %-.10f\n", orb.p);
-      fprintf(filemarker, "a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", orb.x);
-      fprintf(filemarker, "Eccentricity                 =  %-.10f\n", orb.e);
-      fprintf(filemarker, "Longitude of peri (w) (deg)  =  %-.10f\n", \
-	      orb.w/DEGTORAD);
+    if (cmd->psrnameP)
+      fprintf(filemarker, 
+	      "Pulsar                       =  %s\n", pname);
+    if (tmptopoepoch != 0.0)
+      fprintf(filemarker, 
+	      "Folding (topo) epoch  (MJD)  =  %-17.11f\n", tmptopoepoch);
+    if (tmpbaryepoch != 0.0)
+      fprintf(filemarker, 
+	      "Folding (bary) epoch  (MJD)  =  %-17.11f\n", tmpbaryepoch);
+    fprintf(filemarker, 
+	    "Data pt duration (dt)   (s)  =  %-.12f\n", dt);
+    fprintf(filemarker, 
+	    "Total number of data points  =  %-.0f\n", N);
+    fprintf(filemarker, 
+	    "Number of profile bins       =  %ld\n", proflen);
+    fprintf(filemarker, 
+	    "Folding period          (s)  =  %-.15f\n", p);
+    if (pd != 0.0)
+      fprintf(filemarker, 
+	      "Folding p-dot         (s/s)  =  %-.10e\n", pd);
+    if (pdd != 0.0)
+      fprintf(filemarker, 
+	      "Folding p-dotdot    (s/s^2)  =  %-.10e\n", pdd);
+    fprintf(filemarker, 
+	    "Folding frequency      (hz)  =  %-.12f\n", f);
+    if (pd != 0.0)
+      fprintf(filemarker, 
+	      "Folding f-dot        (hz/s)  =  %-.8e\n", fd);
+    if (pdd != 0.0)
+      fprintf(filemarker, 
+	      "Folding f-dotdot   (hz/s^2)  =  %-.8e\n", fdd);
+    if (binary) {							
+      fprintf(filemarker, 
+	      "Orbital period          (s)  =  %-.10f\n", orb.p);
+      fprintf(filemarker, 
+	      "a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", orb.x);
+      fprintf(filemarker, 
+	      "Eccentricity                 =  %-.10f\n", orb.e);
+      fprintf(filemarker, 
+	      "Longitude of peri (w) (deg)  =  %-.10f\n", orb.w/DEGTORAD); 
       if (cmd->psrnameP){
-	fprintf(filemarker, "Epoch of periapsis    (MJD)  =  %-17.11f\n",
+	fprintf(filemarker, 
+		"Epoch of periapsis    (MJD)  =  %-17.11f\n",
 		baryepoch + orb_baryepoch);
       }
     }
   }
-
+    
   /* The number of topo to bary time points to generate with TEMPO */
 
   numbarypts = (long) floor((endtime - 400.0)/ orbdt);
@@ -417,7 +441,7 @@ int main(int argc, char *argv[])
     topo_ts = gen_dvect(numbarypts);
     for (ii = 0 ; ii < numbarypts ; ii++){
       /* topocentric times in days from data start */
-      topo_ts[ii] = topoepoch + (double) ii * orbdtdays;
+      topo_ts[ii] = topoepoch + (double) ii * orbdt / SECPERDAY;
     }
 
     /* Call TEMPO for the barycentering */
@@ -474,10 +498,10 @@ int main(int argc, char *argv[])
     
     /* Allocate and initialize some arrays and other information */
     
-    data = gen_fvect(numchan * numpts);
-    profs = gen_dvect(numchan * proflen);
+    data = gen_fvect(cmd->nsub * worklen);
+    profs = gen_dvect(cmd->nsub * proflen);
     tt = 0;
-    for (ii = 0 ; ii < numchan * proflen ; ii++) profs[ii] = 0.0;
+    for (ii = 0 ; ii < cmd->nsub * proflen ; ii++) profs[ii] = 0.0;
     currentrec = 0;
     
     /* Move to the correct starting record */
@@ -487,42 +511,43 @@ int main(int argc, char *argv[])
     /* Count the total number of records to fold */
 
     printf("Completed record 0 of %ld", totnumrecs);
-    fakeonoffpair[0] = 0;
-    fakeonoffpair[1] = numpts-1;
 
     /* Now, fold the data for each channel */
     
-    /* Step through onoffpairs */
-
-    for (ii = 0 ; ii < numonoffpairs ; ii++){
+    /* Step through records */
+    
+    for (ii = lorec; ii <= hirec; ii++){
       
-      /* Step through records */
-
-      for (jj = lorec; jj <= hirec; jj++){
-
- 	printf("\rCompleted record #%ld of %ld", numrecs, totnumrecs);
-	fflush(stdout);
-
-	read_mb_chan_to_vecs(infile, data, numpts, numchan);
-
-	/* tt is topocentric seconds from data start */
-	tt = jj * numpts * dt;
-
-	/* Step through channels */
-	for (kk = 0 ; kk < numchan ; kk++){
-	  numfolded = 0;
-	  fold(data + kk * numpts, numpts, dt, tt, profs + kk * proflen, \
-	       proflen, freq, dfdt, 0.0, 0, delta_ts, 0.0, orbdt, \
-	       numbarypts, fakeonoffpair, &numfolded);
-	}
-	totnumfolded += numfolded;
-	numrecs++;
+      printf("\rCompleted record #%ld of %ld", numrecs, totnumrecs);
+      fflush(stdout);
+      
+      /* Read the next record (or records) */
+      
+      readrec_ptr(infile, data, worklen, disp_dts, cmd->nsub, 
+		  numchan);
+      
+      /* tt is topocentric seconds from data start */
+      
+      tt = ii * worklen * dt;
+      
+      /* Step through channels */
+      
+      for (jj = 0 ; jj < numchan ; jj++){
+	numfolded = 0;
+	fold(data + jj * worklen, worklen, dt, tt, 
+	     profs + jj * proflen, proflen, cmd->phs, 
+	     f, fd, fdd, 1, delta_ts, tp,
+	     numbarypts, NULL, &stats);
       }
-    } 
+      totnumfolded += numfolded;
+      numrecs++;
+    }
   }
-
-  printf("\rCompleted record #%ld of %ld\n\n", totnumrecs, totnumrecs);
-  printf("Folded %d profiles with %ld points each.\n", numchan, totnumfolded);
+  
+  printf("\rCompleted record #%ld of %ld\n\n", 
+	 totnumrecs, totnumrecs);
+  printf("Folded %d profiles with %ld points each.\n", 
+	 numchan, totnumfolded);
 
   fclose(infile);
 
@@ -534,13 +559,13 @@ int main(int argc, char *argv[])
   pl = proflen;
   chkfwrite(&nc, sizeof(double), 1, infile);
   chkfwrite(&pl, sizeof(double), 1, infile);
-  chkfwrite(&p_psr, sizeof(double), 1, infile);
+  chkfwrite(&p, sizeof(double), 1, infile);
   chkfwrite(&topoepoch, sizeof(double), 1, infile);
   chkfwrite(&baryepoch, sizeof(double), 1, infile);
   chkfwrite(&idata.freq, sizeof(double), 1, infile);
   chkfwrite(&idata.chan_wid, sizeof(double), 1, infile);
-  chkfwrite(profs, sizeof(double), (unsigned long) (numchan * proflen), \
-	    infile);
+  chkfwrite(profs, sizeof(double), 
+	    (unsigned long) (numchan * proflen), infile);
   fclose(infile);
   printf("Done.\n\n");
 
@@ -555,18 +580,22 @@ int main(int argc, char *argv[])
 }
 
     
-int read_floats(FILE * file, float *data, int numpts, \
-		double *dispdelays, int numchan)
+int read_floats(FILE *file, float *data, int numpts,
+		double *dispdelays, int numsubbands, int numchan)
 /* This routine reads a numpts records of numchan each from */
 /* the input file *file which contains normal floating      */
 /* point data.                                              */
 /* It returns the number of points read.                    */
 {
-  /* Read the raw data and return numbar read */
+  /* The following 2 lines just get rid of some compiler warnings */
 
   *dispdelays = *dispdelays;
-  return chkfread(data, sizeof(float), (unsigned long) (numpts * numchan), \
-		  file) / numchan;
+  numsubbands = numsubbands;
+
+  /* Read the raw data and return numbar read */
+
+  return chkfread(data, sizeof(float),
+		  (unsigned long) (numpts * numchan), file) / numchan;
 }
 
 

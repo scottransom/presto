@@ -157,10 +157,10 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 
 void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 		     int numpts, int numchan, double *dispdelays,
-		     int numsubbands, unsigned char *result)
+		     int numsubbands, float *result)
 /* De-disperse a stretch of data with numpts * numchan points    */
 /* into numsubbands subbands.  Each time point for each subband  */
-/* is a byte in the result array.  The result array order is     */
+/* is a float in the result array.  The result array order is    */
 /* subbands of increasing frequency together at each time pt.    */
 /* The delays (in bins) are in dispdelays for each channel.      */
 /* The input data and dispdelays are always in ascending         */

@@ -21,11 +21,10 @@ int main(int argc, char **argv)
 {
   FILE *datafile, *proffile, *chifile, *filemarker;
   float *fprof = NULL, *chiarr = NULL, *times = NULL, *errors = NULL;
-  double freq = 0.0, dt, dfdt = 0.0, orbdt;
+  double dt, orbdt, endphase, f = 0.0, fd = 0.0, fdd = 0.0;
+  double epoch = 0.0, difft = 0.0, p = 0.0, pd = 0.0, pdd = 0.0;
   double *prof = NULL, endtime, N, *psrtime = NULL;
   double *Ep = NULL, *tp = NULL, *d2phib = NULL, startE = 0.0;
-  double epoch = 0.0, difft = 0.0, p_psr = 0.0, pdot_psr = 0.0;
-  double pdotdot_psr = 0.0, d2fdt2 = 0.0, endphase;
   double chip = 0.0, chiq = 0.0, chidf = 0.0;
   double chixmeas = 0.0, chitmp = 0.0;
   double varph = 0.0, numph = 0.0, avgph = 0.0;  
@@ -125,12 +124,12 @@ int main(int argc, char **argv)
 	orb = psr.orb;
 	dbepoch = psr.orb.t / SECPERDAY;					
       }
-      p_psr = psr.p;
-      pdot_psr = psr.pd;
-      pdotdot_psr = psr.pdd;
-      freq = psr.f;						
-      dfdt = psr.fd;				
-      d2fdt2 = psr.fdd;
+      p = psr.p;
+      pd = psr.pd;
+      pdd = psr.pdd;
+      f = psr.f;						
+      fd = psr.fd;				
+      fdd = psr.fdd;
       strcpy(pname, psr.jname);
 
     /* If the user specifies all of the binaries parameters */	
@@ -158,13 +157,13 @@ int main(int argc, char **argv)
       epoch = 0.0;
       read_mak_file(cmd->argv[0], &mdata);
       binary = mdata.binary;
-      p_psr = mdata.p;
-      pdot_psr = mdata.pd;
-      pdotdot_psr = mdata.pdd;
+      p = mdata.p;
+      pd = mdata.pd;
+      pdd = mdata.pdd;
       orb = mdata.orb;
-      freq = mdata.f;
-      dfdt = mdata.fd;
-      d2fdt2 = mdata.fdd;
+      f = mdata.f;
+      fd = mdata.fd;
+      fdd = mdata.fdd;
       dbepoch = mdata.orb.t / SECPERDAY;
 
       /* Determine the pulsar parameters to fold from a _rzw.cand file */
@@ -179,11 +178,10 @@ int main(int argc, char **argv)
       }									
 
       get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);		
-      freq = (rzwcand.r - 0.5 * rzwcand.z) / (dt * idata.N);	
-      p_psr = 1.0 / freq;						
-      dfdt = rzwcand.z / ((dt * idata.N) * (dt * idata.N));	
-      d2fdt2 = 0.0;
-      pdot_psr = -dfdt / (freq * freq);					
+      f = (rzwcand.r - 0.5 * rzwcand.z) / (dt * idata.N);	
+      p = 1.0 / f;						
+      fd = rzwcand.z / ((dt * idata.N) * (dt * idata.N));	
+      pd = -fd / (f * f);					
     }
 									
     /* Determine the pulsar parameters to fold if we are not getting   */
@@ -192,30 +190,30 @@ int main(int argc, char **argv)
     if (!cmd->rzwcandP && !cmd->makefileP && !cmd->psrnameP) {		
 									
       if (cmd->pP) {
-	p_psr = cmd->p;
-	freq = 1.0 / p_psr;
+	p = cmd->p;
+	f = 1.0 / p;
       }
       if (cmd->fP) {
-	freq = cmd->f;
-	p_psr = 1.0 / freq;
+	f = cmd->f;
+	p = 1.0 / f;
       }
       if (cmd->pd != 0.0) {
-	pdot_psr = cmd->pd;
-	dfdt = -pdot_psr / (p_psr * p_psr);
+	pd = cmd->pd;
+	fd = -pd / (p * p);
       }
       if (cmd->fd != 0.0) {
-	dfdt = cmd->fd;
-	pdot_psr = -dfdt / (freq * freq);
+	fd = cmd->fd;
+	pd = -fd / (f * f);
       }
       if (cmd->pdd != 0.0) {
-	pdotdot_psr = cmd->pd;
-	d2fdt2 = 2 * pdot_psr * pdot_psr / (p_psr * p_psr * p_psr) - 
-	  pdotdot_psr / (p_psr * p_psr);
+	pdd = cmd->pdd;
+	fdd = 2 * pd * pd / (p * p * p) - 
+	  pdd / (p * p);
       }
       if (cmd->fdd != 0.0) {
-	d2fdt2 = cmd->fdd;
-	pdotdot_psr = 2 * dfdt * dfdt / (freq * freq * freq) - 
-	  d2fdt2 / (freq * freq);
+	fdd = cmd->fdd;
+	pdd = 2 * fd * fd / (f * f * f) - 
+	  fdd / (f * f);
       }
     }
 
@@ -224,7 +222,7 @@ int main(int argc, char **argv)
     if (cmd->proflenP) {						
       proflen = cmd->proflen;						
     } else {								
-      proflen = (long) (p_psr / dt + 0.5);				
+      proflen = (long) (p / dt + 0.5);				
     }									
 									
     /* Determine the frequency shifts caused by the orbit if needed */	
@@ -282,49 +280,53 @@ int main(int argc, char **argv)
     /* Output some informational data on the screen and to the */	
     /* output file.                                            */	
 									
-    proffile = chkfopen(profnm, "w");					
-    fprintf(stdout, "\n");						
-    filemarker = stdout;						
-    for (i = 0 ; i < 2 ; i++){						
-      if (cmd->psrnameP) {						
-	fprintf(filemarker, "Pulsar                       =  %s\n", pname);
-      }				       
-      if (epoch != 0.0) {						
-	fprintf(filemarker, "Folding (Obs) epoch   (MJD)  =  %-17.11f\n",
-		epoch);							
-      }									
-      fprintf(filemarker, "Data pt duration (dt)   (s)  =  %-.12f\n", dt);
-      fprintf(filemarker, "Total number of data points  =  %-.0f\n", N);					
-      fprintf(filemarker, "Number of profile bins       =  %ld\n", proflen);
-      fprintf(filemarker, "Folding period          (s)  =  %-.15f\n", p_psr);
-      if (pdot_psr != 0.0) {						
-	fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n",	
-		pdot_psr);						
-      }
-      if (pdotdot_psr != 0.0) {
-	fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n",	
-		pdotdot_psr);
-      }
-      fprintf(filemarker, "Folding frequency      (hz)  =  %-.12f\n", freq);
-      if (pdot_psr != 0.0) {						
-	fprintf(filemarker, "Folding f-dot        (hz/s)  =  %-.8e\n", dfdt);
-      }
-      if (pdotdot_psr != 0.0) {
-	fprintf(filemarker, "Folding f-dotdot   (hz/s^2)  =  %-.8e\n", d2fdt2);
-      }
+    proffile = chkfopen(profnm, "w");
+    fprintf(stdout, "\n");
+    filemarker = stdout;
+    for (i = 0 ; i < 2 ; i++){
+      if (cmd->psrnameP)
+	fprintf(filemarker, 
+		"Pulsar                       =  %s\n", pname);
+      if (epoch != 0.0)
+	fprintf(filemarker, 
+		"Folding (Obs) epoch   (MJD)  =  %-17.11f\n", epoch);
+      fprintf(filemarker, 
+	      "Data pt duration (dt)   (s)  =  %-.12f\n", dt);
+      fprintf(filemarker, 
+	      "Total number of data points  =  %-.0f\n", N);
+      fprintf(filemarker, 
+	      "Number of profile bins       =  %ld\n", proflen);
+      fprintf(filemarker, 
+	      "Folding period          (s)  =  %-.15f\n", p);
+      if (pd != 0.0)
+	fprintf(filemarker, 
+		"Folding p-dot         (s/s)  =  %-.10e\n", pd);
+      if (pdd != 0.0)
+	fprintf(filemarker, 
+		"Folding p-dotdot    (s/s^2)  =  %-.10e\n", pdd);
+      fprintf(filemarker, 
+	      "Folding frequency      (hz)  =  %-.12f\n", f);
+      if (pd != 0.0)
+	fprintf(filemarker, 
+		"Folding f-dot        (hz/s)  =  %-.8e\n", fd);
+      if (pdd != 0.0)
+	fprintf(filemarker, 
+		"Folding f-dotdot   (hz/s^2)  =  %-.8e\n", fdd);
       if (binary) {							
-	fprintf(filemarker, "Orbital period          (s)  =  %-.10f\n", orb.p);
-	fprintf(filemarker, "a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", orb.x);
-	fprintf(filemarker, "Eccentricity                 =  %-.10f\n", orb.e);
-	fprintf(filemarker, "Longitude of peri (w) (deg)  =  %-.10f\n", \
-		orb.w/DEGTORAD);
-	if (cmd->psrnameP){
-	  fprintf(filemarker, "Epoch of periapsis    (MJD)  =  %-17.11f\n",
-		  dbepoch);
-	} else if (cmd->makefileP) {
-	  fprintf(filemarker, "Epoch of periapsis    (MJD)  =  %-17.11f\n",
-		  cmd->To);						
-	}								
+	fprintf(filemarker, 
+		"Orbital period          (s)  =  %-.10f\n", orb.p);
+	fprintf(filemarker, 
+		"a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", orb.x);
+	fprintf(filemarker, 
+		"Eccentricity                 =  %-.10f\n", orb.e);
+	fprintf(filemarker, 
+		"Longitude of peri (w) (deg)  =  %-.10f\n", orb.w/DEGTORAD);
+	if (cmd->psrnameP)
+	  fprintf(filemarker, 
+		  "Epoch of periapsis    (MJD)  =  %-17.11f\n", dbepoch);
+	else if (cmd->makefileP)
+	  fprintf(filemarker, 
+		  "Epoch of periapsis    (MJD)  =  %-17.11f\n", cmd->To);
       }									
       filemarker = proffile;						
     }									
@@ -341,7 +343,7 @@ int main(int argc, char **argv)
     if (binary) flags = 3;
     else flags = 2;
     endphase = foldfile(datafile, dt, 0.0, prof, proflen, cmd->phs, 
-			freq, dfdt, d2fdt2, flags, Ep, tp, numpoints, 
+			f, fd, fdd, flags, Ep, tp, numpoints, 
 			onoffpairs, &stats, chiarr);
     fclose(datafile);
 			
@@ -544,7 +546,7 @@ int main(int argc, char **argv)
   if (cmd->psP || cmd->bothP) {
     sprintf(psfilenm, "%s.prof.ps", cmd->argv[0]);
     cpgstart_ps(psfilenm, "landscape");
-    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p_psr, pdot_psr);
+    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p, pd);
     if (!cmd->dispP){
       sprintf(tmp2, "Reduced Chi = %.3f,  P(Noise) < %.2g,  sigma = %.2f",
 	      chixmeas, chiq, normz);
@@ -561,7 +563,7 @@ int main(int argc, char **argv)
     cpgend();
   } else if (cmd->xwinP) {
     cpgstart_x("landscape");
-    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p_psr, pdot_psr);
+    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p, pd);
     if (!cmd->dispP){
       sprintf(tmp2, "Reduced Chi = %.3f,  P(Noise) < %.2g,  sigma = %.2f",
 	      chixmeas, chiq, normz);
@@ -582,7 +584,7 @@ int main(int argc, char **argv)
 
   if (cmd->bothP) {
     cpgstart_x("landscape");
-    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p_psr, pdot_psr);
+    sprintf(tmp1, "p = %16.13f s,  p-dot = %12.7g", p, pd);
     if (!cmd->dispP){
       sprintf(tmp2, "Reduced Chi = %.3f,  P(Noise) < %.2g,  sigma = %.2f",
 	      chixmeas, chiq, normz);

@@ -79,11 +79,11 @@ int read_multibeam(FILE * infile, float *data, int numpts,
   if (firsttime) {
     recsize = numchan / 8;    /* bytes per time interval        */
     blocklen = DATLEN * 8;    /* 1 byte per sample in a block   */
-    blocks_per_read = ((int)(dispdelays[numchan-1]) / numpts) + 1;
+    blocks_per_read = ((int)(fabs(dispdelays[0])) / numpts) + 1;
     worklen = blocks_per_read * blocklen;
     pts_per_read = blocks_per_read * numpts;
 
-    /* Create our data storage for the raw floating point data */
+    /* Create our data storage for the raw byte data */
 
     rawdata1 = gen_bvect(worklen);
     rawdata2 = gen_bvect(worklen);
@@ -159,71 +159,121 @@ int read_multibeam(FILE * infile, float *data, int numpts,
 }
 
 
-int read_mb_chan_to_vecs(FILE * infile, float *data,
-			 int numpts, int numchan)
-/* This routine reads a numpts record with numchan each from   */
-/* the input file *infile which contains 1 bit digitized data  */
-/* from the multibeam correlator at Parkes.  It stores the     */
-/* data in a vector *data of length numchan*numpts.  The low   */
-/* frequency channel is stored first, then the next highest    */
-/* freq etc, with numpts floating points per frequency.        */
-/* It returns the number of points (numpts) read if successful */
-/* or 0 if unsuccessful.                                       */
+int read_multibeam_subbands(FILE * infile, float *data, int numpts,
+			    double *dispdelays, int numsubbands, 
+			    int numchan)
+/* This routine reads a numpts record with numchan each from     */
+/* the input file *infile which contains 1 bit digitized data    */
+/* from the multibeam correlator at Parkes.  The routine uses    */
+/* dispersion delays in 'dispdelays' to de-disperse the data     */
+/* into 'numsubbands' subbands.  It stores the resulting         */
+/* data in vector 'data' of length numsubbands * numpts.  The    */
+/* low frequency subband is stored first, then the next highest  */
+/* subband etc, with 'numpts' floating points per subband.       */
+/* It returns the number of points (pts_per_read) read if        */
+/* succesful or 0 if unsuccessful.                               */
 {
-  static unsigned char raw[DATLEN], *rawdata = NULL, *ptr;
-  static int firsttime = 1, recsize = 0, decreasing_f = 0;
-  static int blocklen = 0;
+  static unsigned char raw[DATLEN], *ptr;
+  static unsigned char *rawdata1, *rawdata2, *move;
+  static unsigned char *currentdata, *lastdata, *tmp;
+  static int firsttime = 1, recsize = 0, blocklen = 0, worklen = 0;
+  static int decreasing_f = 0, blocks_per_read = 0, pts_per_read = 0;
+  static int move_size = 0;
   static multibeam_tapehdr hdr;
-  int i, j;
+  short trtn;
+  int ii, numread;
 
   if (firsttime) {
-    recsize = numchan / 8;
-    blocklen = numchan * numpts;
+    recsize = numchan / 8;    /* bytes per time interval        */
+    blocklen = DATLEN * 8;    /* 1 byte per sample in a block   */
+    blocks_per_read = ((int)(fabs(dispdelays[0])) / numpts) + 1;
+    worklen = blocks_per_read * blocklen;
+    pts_per_read = blocks_per_read * numpts;
+    move_size = (pts_per_read + numsubbands) / 2;
 
-    /* Create our data storage for the raw byte format data */
+    /* Create our data storage for the raw byte data */
 
-    rawdata = gen_bvect(blocklen);
-
-    /* Read the first multibeam record to cope with end effects */
-
-    if (!read_multibeam_recs(infile, &hdr, raw, 1)) {
-      printf("Problem reading the raw data file.\n\n");
-      free(rawdata);
-      return 0;
-    }
-
-    /* If decreasing_f is true, then the data has been recorded with */
-    /* high frequencies first.                                       */
-
-    decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
+    rawdata1 = gen_bvect(worklen);
+    rawdata2 = gen_bvect(worklen);
+    move = gen_bvect(move_size);
     firsttime = 0;
 
-  } else {
+    /* Read the first multibeam records to cope with end effects */
 
-    /* Read a multibeam record */
-    
-    if (!read_multibeam_recs(infile, &hdr, raw, 1)) {
+    numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
+    if (numread != blocks_per_read) {
       printf("Problem reading the raw data file.\n\n");
-      free(rawdata);
+      free(rawdata1);
+      free(rawdata2);
       return 0;
     }
-  }    
+
+    /* If decreasing_f is true, then the data has been  */
+    /* recorded with high frequencies first.            */
+
+    decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
+
+    /* Initialize our data pointers */
+
+    currentdata = rawdata1;
+    lastdata = rawdata2;
+
+    /* Convert the data to floats */
+
+    ptr = raw;
+    for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+      convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
+			      decreasing_f);
+
+    /* Swap our data pointers */
+
+    tmp = currentdata;
+    currentdata = lastdata;
+    lastdata = tmp;
+
+  }
+
+  /* Read the multibeam records */
+
+  numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
 
   /* Convert the data to floats */
-  
+
   ptr = raw;
-  for (i = 0; i < numpts; i++, ptr += recsize)
-    convert_multibeam_point(ptr, rawdata + i * numchan, numchan, 
+  for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+    convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
 			    decreasing_f);
-  for (i = 0 ; i < numchan ; i++) {
-    for (j = 0 ; j < numpts ; j++) {
-      data[i * numpts + j] = rawdata[j * numchan + i];
-    }
+
+  /* De-disperse the data into subbands */
+
+  dedisp_subbands(currentdata, lastdata, pts_per_read, numchan, 
+		  dispdelays, numsubbands, data);
+
+  /* Transpose the data into vectors in the result array */
+
+  if((trtn = TOMS_transpose_2d(data, pts_per_read, numsubbands,
+			       move, move_size))<0){
+    printf("Error %d in TOMS_transpose_2d().\n",trtn);
   }
-  
+
+  /* Exit if we have reached the EOF */
+
+  if (numread != blocks_per_read){
+    free(rawdata1);
+    free(rawdata2);
+    free(move);
+    return 0;
+  }
+
+  /* Swap our data pointers */
+
+  tmp = currentdata;
+  currentdata = lastdata;
+  lastdata = tmp;
+
   /* Return the number of points we actually read */
-  
-  return numpts;
+
+  return pts_per_read;
 }
 
 

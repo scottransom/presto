@@ -23,7 +23,7 @@ char *Program;
 static Cmdline cmd = {
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ FALSE,
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
+  /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
   /* ebppP = */ FALSE,
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   /* nobaryP = */ FALSE,
@@ -34,33 +34,37 @@ static Cmdline cmd = {
   /* dm = */ 0,
   /* dmC = */ 1,
   /***** -nsub: The number of sub-bands to use for the DM search */
-  /* numsubbandsP = */ TRUE,
-  /* numsubbands = */ 16,
-  /* numsubbandsC = */ 1,
+  /* nsubP = */ TRUE,
+  /* nsub = */ 16,
+  /* nsubC = */ 1,
   /***** -p: The nominative folding period (s) */
   /* pP = */ FALSE,
   /* p = */ (double)0,
   /* pC = */ 0,
   /***** -pd: The nominative period derivative (s/s) */
-  /* pdotP = */ TRUE,
-  /* pdot = */ 0.0,
-  /* pdotC = */ 1,
+  /* pdP = */ TRUE,
+  /* pd = */ 0.0,
+  /* pdC = */ 1,
   /***** -pdd: The nominative period 2nd derivative (s/s^2) */
-  /* pdotdotP = */ TRUE,
-  /* pdotdot = */ 0.0,
-  /* pdotdotC = */ 1,
+  /* pddP = */ TRUE,
+  /* pdd = */ 0.0,
+  /* pddC = */ 1,
   /***** -f: The nominative folding frequency (hz) */
-  /* freqP = */ FALSE,
-  /* freq = */ (double)0,
-  /* freqC = */ 0,
+  /* fP = */ FALSE,
+  /* f = */ (double)0,
+  /* fC = */ 0,
   /***** -fd: The nominative frequency derivative (hz/s) */
-  /* dfdtP = */ TRUE,
-  /* dfdt = */ 0,
-  /* dfdtC = */ 1,
+  /* fdP = */ TRUE,
+  /* fd = */ 0,
+  /* fdC = */ 1,
   /***** -fdd: The nominative frequency 2nd derivative (hz/s^2) */
-  /* d2fdt2P = */ TRUE,
-  /* d2fdt2 = */ 0,
-  /* d2fdt2C = */ 1,
+  /* fddP = */ TRUE,
+  /* fdd = */ 0,
+  /* fddC = */ 1,
+  /***** -phs: Offset phase for the profil */
+  /* phsP = */ TRUE,
+  /* phs = */ 0.0,
+  /* phsC = */ 1,
   /***** -start: The folding start time as a fraction of the full obs */
   /* startTP = */ TRUE,
   /* startT = */ 0.0,
@@ -459,7 +463,7 @@ showOptionValues(void)
     printf("-pkmb found:\n");
   }
 
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
+  /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
   if( !cmd.ebppP ) {
     printf("-ebpp not found.\n");
   } else {
@@ -493,14 +497,14 @@ showOptionValues(void)
   }
 
   /***** -nsub: The number of sub-bands to use for the DM search */
-  if( !cmd.numsubbandsP ) {
+  if( !cmd.nsubP ) {
     printf("-nsub not found.\n");
   } else {
     printf("-nsub found:\n");
-    if( !cmd.numsubbandsC ) {
+    if( !cmd.nsubC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.numsubbands);
+      printf("  value = `%d'\n", cmd.nsub);
     }
   }
 
@@ -517,62 +521,74 @@ showOptionValues(void)
   }
 
   /***** -pd: The nominative period derivative (s/s) */
-  if( !cmd.pdotP ) {
+  if( !cmd.pdP ) {
     printf("-pd not found.\n");
   } else {
     printf("-pd found:\n");
-    if( !cmd.pdotC ) {
+    if( !cmd.pdC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.pdot);
+      printf("  value = `%f'\n", cmd.pd);
     }
   }
 
   /***** -pdd: The nominative period 2nd derivative (s/s^2) */
-  if( !cmd.pdotdotP ) {
+  if( !cmd.pddP ) {
     printf("-pdd not found.\n");
   } else {
     printf("-pdd found:\n");
-    if( !cmd.pdotdotC ) {
+    if( !cmd.pddC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.pdotdot);
+      printf("  value = `%f'\n", cmd.pdd);
     }
   }
 
   /***** -f: The nominative folding frequency (hz) */
-  if( !cmd.freqP ) {
+  if( !cmd.fP ) {
     printf("-f not found.\n");
   } else {
     printf("-f found:\n");
-    if( !cmd.freqC ) {
+    if( !cmd.fC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.freq);
+      printf("  value = `%f'\n", cmd.f);
     }
   }
 
   /***** -fd: The nominative frequency derivative (hz/s) */
-  if( !cmd.dfdtP ) {
+  if( !cmd.fdP ) {
     printf("-fd not found.\n");
   } else {
     printf("-fd found:\n");
-    if( !cmd.dfdtC ) {
+    if( !cmd.fdC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.dfdt);
+      printf("  value = `%f'\n", cmd.fd);
     }
   }
 
   /***** -fdd: The nominative frequency 2nd derivative (hz/s^2) */
-  if( !cmd.d2fdt2P ) {
+  if( !cmd.fddP ) {
     printf("-fdd not found.\n");
   } else {
     printf("-fdd found:\n");
-    if( !cmd.d2fdt2C ) {
+    if( !cmd.fddC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.d2fdt2);
+      printf("  value = `%f'\n", cmd.fdd);
+    }
+  }
+
+  /***** -phs: Offset phase for the profil */
+  if( !cmd.phsP ) {
+    printf("-phs not found.\n");
+  } else {
+    printf("-phs found:\n");
+    if( !cmd.phsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%f'\n", cmd.phs);
     }
   }
 
@@ -742,10 +758,10 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-pkmb] [-ebpp] [-nobary] [-DE405] [-dm dm] [-nsub numsubbands] [-p p] [-pd pdot] [-pdd pdotdot] [-f freq] [-fd dfdt] [-fdd d2fdt2] [-start startT] [-end endT] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] infile\n\
+ [-pkmb] [-ebpp] [-nobary] [-DE405] [-dm dm] [-nsub nsub] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] infile\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
-     -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
+     -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
    -nobary: Do not barycenter (assume input parameters are topocentric)\n\
     -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
        -dm: The central DM of the search (cm^-3 pc)\n\
@@ -770,6 +786,9 @@ usage(void)
       -fdd: The nominative frequency 2nd derivative (hz/s^2)\n\
             1 double precision value\n\
             default: `0'\n\
+      -phs: Offset phase for the profil\n\
+            1 double precision value between 0.0 and 1.0\n\
+            default: `0.0'\n\
     -start: The folding start time as a fraction of the full obs\n\
             1 double precision value between 0.0 and 1.0\n\
             default: `0.0'\n\
@@ -801,7 +820,7 @@ usage(void)
             default: `0'\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
             1 string value\n\
-version: 01Dec99\n\
+version: 02Dec99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -849,12 +868,12 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-nsub", argv[i]) ) {
-      cmd.numsubbandsP = TRUE;
+      cmd.nsubP = TRUE;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.numsubbands, 1);
-      cmd.numsubbandsC = i-keep;
-      checkIntLower("-nsub", &cmd.numsubbands, cmd.numsubbandsC, 256);
-      checkIntHigher("-nsub", &cmd.numsubbands, cmd.numsubbandsC, 1);
+      i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
+      cmd.nsubC = i-keep;
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 256);
+      checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
       continue;
     }
 
@@ -868,43 +887,53 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-pd", argv[i]) ) {
-      cmd.pdotP = TRUE;
+      cmd.pdP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.pdot, 1);
-      cmd.pdotC = i-keep;
+      i = getFloatOpt(argc, argv, i, &cmd.pd, 1);
+      cmd.pdC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-pdd", argv[i]) ) {
-      cmd.pdotdotP = TRUE;
+      cmd.pddP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.pdotdot, 1);
-      cmd.pdotdotC = i-keep;
+      i = getFloatOpt(argc, argv, i, &cmd.pdd, 1);
+      cmd.pddC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-f", argv[i]) ) {
-      cmd.freqP = TRUE;
+      cmd.fP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.freq, 1);
-      cmd.freqC = i-keep;
-      checkFloatHigher("-f", &cmd.freq, cmd.freqC, 0);
+      i = getFloatOpt(argc, argv, i, &cmd.f, 1);
+      cmd.fC = i-keep;
+      checkFloatHigher("-f", &cmd.f, cmd.fC, 0);
       continue;
     }
 
     if( 0==strcmp("-fd", argv[i]) ) {
-      cmd.dfdtP = TRUE;
+      cmd.fdP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.dfdt, 1);
-      cmd.dfdtC = i-keep;
+      i = getFloatOpt(argc, argv, i, &cmd.fd, 1);
+      cmd.fdC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-fdd", argv[i]) ) {
-      cmd.d2fdt2P = TRUE;
+      cmd.fddP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.d2fdt2, 1);
-      cmd.d2fdt2C = i-keep;
+      i = getFloatOpt(argc, argv, i, &cmd.fdd, 1);
+      cmd.fddC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-phs", argv[i]) ) {
+      cmd.phsP = TRUE;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.phs, 1);
+      cmd.phsC = i-keep;
+      checkFloatLower("-phs", &cmd.phs, cmd.phsC, 1.0);
+      checkFloatHigher("-phs", &cmd.phs, cmd.phsC, 0.0);
       continue;
     }
 

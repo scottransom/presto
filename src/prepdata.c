@@ -8,10 +8,10 @@
 
 /* Some function definitions */
 
-int (*readrec_ptr)(FILE * file, float *data, int numpts, \
+int (*readrec_ptr)(FILE * file, float *data, int numpts,
 		   double *dispdelays, int numchan);
 int read_resid_rec(FILE * file, double *toa, double *obsf);
-int read_floats(FILE * file, float *data, int numpts, \
+int read_floats(FILE * file, float *data, int numpts,
 		double *dispdelays, int numchan);
 
 
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
       dtmp = dispdt[numchan - 1];
       for (i = 0; i < numchan; i++)
 	dispdt[i] = (dispdt[i] - dtmp) / idata.dt;
-      worklen *= ((int)(dispdt[numchan-1]) / worklen) + 1;
+      worklen *= ((int)(fabs(dispdt[0])) / worklen) + 1;
     }
 
   } else {     /* For non Parkes or Effelsberg raw data */
