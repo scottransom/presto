@@ -47,10 +47,14 @@ typedef struct s_Cmdline {
   char rfixwinP;
   /***** -rfips: Plot the RFI instances in a PS file */
   char rfipsP;
-  /***** -time: Seconds to integrate for stats and FFT calcs */
+  /***** -time: Seconds to integrate for stats and FFT calcs (use this or -blocks) */
   char timeP;
   double time;
   int timeC;
+  /***** -blocks: Number of blocks (usually 16-1024 samples) to integrate for stats and FFT calcs */
+  char blocksP;
+  int blocks;
+  int blocksC;
   /***** -timesig: The +/-sigma cutoff to reject time-domain chunks */
   char timesigmaP;
   float timesigma;

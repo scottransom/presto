@@ -60,10 +60,14 @@ static Cmdline cmd = {
   /* rfixwinP = */ 0,
   /***** -rfips: Plot the RFI instances in a PS file */
   /* rfipsP = */ 0,
-  /***** -time: Seconds to integrate for stats and FFT calcs */
+  /***** -time: Seconds to integrate for stats and FFT calcs (use this or -blocks) */
   /* timeP = */ 1,
-  /* time = */ 60.0,
+  /* time = */ 30.0,
   /* timeC = */ 1,
+  /***** -blocks: Number of blocks (usually 16-1024 samples) to integrate for stats and FFT calcs */
+  /* blocksP = */ 0,
+  /* blocks = */ (int)0,
+  /* blocksC = */ 0,
   /***** -timesig: The +/-sigma cutoff to reject time-domain chunks */
   /* timesigmaP = */ 1,
   /* timesigma = */ 10,
@@ -928,7 +932,7 @@ showOptionValues(void)
     printf("-rfips found:\n");
   }
 
-  /***** -time: Seconds to integrate for stats and FFT calcs */
+  /***** -time: Seconds to integrate for stats and FFT calcs (use this or -blocks) */
   if( !cmd.timeP ) {
     printf("-time not found.\n");
   } else {
@@ -937,6 +941,18 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%.40g'\n", cmd.time);
+    }
+  }
+
+  /***** -blocks: Number of blocks (usually 16-1024 samples) to integrate for stats and FFT calcs */
+  if( !cmd.blocksP ) {
+    printf("-blocks not found.\n");
+  } else {
+    printf("-blocks found:\n");
+    if( !cmd.blocksC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.blocks);
     }
   }
 
@@ -1047,7 +1063,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-blocks blocks] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
@@ -1070,9 +1086,11 @@ usage(void)
   -nocompute: Just plot and remake the mask\n\
     -rfixwin: Show the RFI instances on screen\n\
       -rfips: Plot the RFI instances in a PS file\n\
-       -time: Seconds to integrate for stats and FFT calcs\n\
+       -time: Seconds to integrate for stats and FFT calcs (use this or -blocks)\n\
               1 double value between 0 and oo\n\
-              default: `60.0'\n\
+              default: `30.0'\n\
+     -blocks: Number of blocks (usually 16-1024 samples) to integrate for stats and FFT calcs\n\
+              1 int value between 1 and oo\n\
     -timesig: The +/-sigma cutoff to reject time-domain chunks\n\
               1 float value between 0 and oo\n\
               default: `10'\n\
@@ -1093,7 +1111,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...250 values\n\
-version: 18Aug03\n\
+version: 28Oct03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1211,6 +1229,15 @@ parseCmdline(int argc, char **argv)
       i = getDoubleOpt(argc, argv, i, &cmd.time, 1);
       cmd.timeC = i-keep;
       checkDoubleHigher("-time", &cmd.time, cmd.timeC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-blocks", argv[i]) ) {
+      int keep = i;
+      cmd.blocksP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.blocks, 1);
+      cmd.blocksC = i-keep;
+      checkIntHigher("-blocks", &cmd.blocks, cmd.blocksC, 1);
       continue;
     }
 

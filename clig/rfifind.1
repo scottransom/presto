@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "18Aug03" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "28Oct03" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -38,6 +38,7 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 [-rfixwin]
 [-rfips]
 [-time time]
+[-blocks blocks]
 [-timesig timesigma]
 [-freqsig freqsigma]
 [-chanfrac chantrigfrac]
@@ -93,11 +94,15 @@ Show the RFI instances on screen.
 .IP -rfips
 Plot the RFI instances in a PS file.
 .IP -time
-Seconds to integrate for stats and FFT calcs,
+Seconds to integrate for stats and FFT calcs (use this or -blocks),
 .br
 1 Double value between 0 and oo.
 .br
-Default: `60.0'
+Default: `30.0'
+.IP -blocks
+Number of blocks (usually 16-1024 samples) to integrate for stats and FFT calcs,
+.br
+1 Int value between 1 and oo.
 .IP -timesig
 The +/-sigma cutoff to reject time-domain chunks,
 .br
