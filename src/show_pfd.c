@@ -29,6 +29,24 @@ int main(int argc, char *argv[])
 
   print_prepfoldinfo(&search);
 
+  /* Switch to portrait mode */
+
+  if (0){
+    int goodlen;
+    char *substr, *tmpdev;
+
+    substr = strstr(search.pgdev, "/CPS");
+    goodlen = substr - search.pgdev;
+    *substr = '\0';
+    tmpdev = calloc(goodlen+6, sizeof(char));
+    sprintf(tmpdev, "%s/VCPS", search.pgdev);
+    free(search.pgdev);
+    search.pgdev = calloc(goodlen+6, sizeof(char));
+    strncpy(search.pgdev, tmpdev, strlen(tmpdev));
+    free(tmpdev);
+    printf("New device is '%s'\n", search.pgdev);
+  }
+
   /*
    *   Plot our results
    */
@@ -40,3 +58,4 @@ int main(int argc, char *argv[])
   delete_prepfoldinfo(&search);
   return (0);
 }
+
