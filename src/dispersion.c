@@ -19,19 +19,17 @@ double dm_from_delay(double delay, double freq_emitted)
 
 
 void dedisp(float *data, float *lastdata, long numpts, \
-	    double *dispdelays, long numchan, float *result, int order)
+	    double *dispdelays, long numchan, float *result)
 /* De-disperse a stretch of data with numpts * numchan points. */
 /* The delays (in bins) are in dispdelays for each channel.    */
-/* The result is returned in result.  If order is positive,    */
-/* the channels are in order from lowest freq to highest.  If  */
-/* order is negative, the reverse is true.  Note that the      */
-/* dispdelays are always in ascending freq order though.       */
+/* The result is returned in result.  The input data and       */
+/* dispdelays are always in ascending frequency order.         */
 /* Data are ordered in time, with each channel in a row for    */
 /* each time point.                                            */
 {
   static double *lofrac, *hifrac;
   static float *tmpdat;
-  static int firsttime = 1, *offset, chan = 0, dchan = 0;
+  static int firsttime = 1, *offset;
   long ii, jj, ptr, tmpptr;
 
   if (firsttime) {
@@ -39,21 +37,11 @@ void dedisp(float *data, float *lastdata, long numpts, \
     hifrac = gen_dvect(numchan);
     offset = gen_ivect(numchan);
     tmpdat = gen_fvect(numpts + 1);
-
     for (ii = 0; ii < numchan; ii++) {
       offset[ii] = (int) floor(dispdelays[ii]);
       lofrac[ii] = dispdelays[ii] - offset[ii];
       hifrac[ii] = 1.0 - lofrac[ii];
     }
-
-    if (order > 0) {
-      chan = 0;
-      dchan = 1;
-    } else {
-      chan = numchan - 1;
-      dchan = -1;
-    }
-    
     firsttime = 0;
   }
 
@@ -68,14 +56,14 @@ void dedisp(float *data, float *lastdata, long numpts, \
 
     /* Organize the input data from *lastdata */
     
-    ptr = chan + ii * dchan + offset[ii] * numchan;
+    ptr = ii + offset[ii] * numchan;
     for (jj = 0; jj < numpts - offset[ii]; jj++, ptr += numchan)
       tmpdat[jj] = lastdata[ptr];
 
     /* Organize the input data from *data */
     
     tmpptr = numpts - offset[ii];
-    ptr = chan + ii * dchan;
+    ptr = ii;
     for (jj = 0; jj <= offset[ii]; jj++, ptr += numchan)
       tmpdat[jj + tmpptr] = data[ptr];
 

@@ -8,8 +8,8 @@
 
 /* Some function definitions */
 
-int (*readrec_ptr) (FILE * file, float *data, long numpts, \
-		    double *dispdelays, long numchan);
+int (*readrec_ptr)(FILE * file, float *data, long numpts, \
+		   double *dispdelays, long numchan);
 int read_resid_rec(FILE * file, double *toa, double *obsf);
 int read_floats(FILE * file, float *data, long numpts, \
 		double *dispdelays, long numchan);
@@ -242,9 +242,8 @@ int main(int argc, char *argv[])
     tobsf = gen_dvect(numchan);
 
     tobsf[0] = idata.freq;
-    for (i = 0; i < numchan; i++) {
+    for (i = 0; i < numchan; i++)
       tobsf[i] = tobsf[0] + i * tdf;
-    }
 
     /* The dispersion delays (in days) */
 
@@ -254,19 +253,15 @@ int main(int argc, char *argv[])
 
       /* Determine our dispersion time delays for each channel */
 
-      for (i = 0; i < numchan; i++) {
-	dispdt[i] = delay_from_dm(cmd->dm, tobsf[i]) / SECPERDAY;
-      }
+      for (i = 0; i < numchan; i++)
+	dispdt[i] = delay_from_dm(cmd->dm, tobsf[i]);
 
       /* The highest frequency channel gets no delay                   */
       /* All other delays are positive fractions of bin length (dt)    */
 
       dtmp = dispdt[numchan - 1];
-      for (i = 0; i < numchan; i++) {
-	dispdt[i] -= dtmp;
-	dispdt[i] /= dt;
-      }
-
+      for (i = 0; i < numchan; i++)
+	dispdt[i] = (dispdt[i] - dtmp) / idata.dt;
     }
 
   } else {			/* For non-radio data */
@@ -399,17 +394,15 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < numchan; i++) {
       bobsf[i] = doppler(tobsf[i], voverc[0]);
-      dispdt[i] = delay_from_dm(cmd->dm, bobsf[i]) / SECPERDAY;
+      dispdt[i] = delay_from_dm(cmd->dm, bobsf[i]);
     }
 
     /* The highest frequency channel gets no delay                   */
     /* All other delays are positive fractions of bin length (dt)    */
 
     dtmp = dispdt[numchan - 1];
-    for (i = 0; i < numchan; i++) {
-      dispdt[i] -= dtmp;
-      dispdt[i] /= dt;
-    }
+    for (i = 0; i < numchan; i++)
+      dispdt[i] = (dispdt[i] - dtmp) / idata.dt;
 
     /* Convert the rest of the barycentric TOAs */
 

@@ -455,16 +455,14 @@ double sumpows_from_sigma(double sigma, int numsum);
 /*  dispersion.c:  */
 /*  Functions to de-disperse data */
 
-
 void dedisp(float *data, float *lastdata, long numpts, \
-	    double *dispdelays, long numchan, float *result, int order);
+	    double *dispdelays, long numchan, float *result);
 /* De-disperse a stretch of data with numpts * numchan points. */
 /* The delays (in bins) are in dispdelays for each channel.    */
-/* The result is returned in result.  If order is positive,    */
-/* the channels are in order from lowest freq to highest.  If  */
-/* order is negative, the reverse is true.  Note that the      */
-/* dispdelays are always in ascending freq order though.       */
-
+/* The result is returned in result.  The input data and       */
+/* dispdelays are always in ascending frequency order.         */
+/* Data are ordered in time, with each channel in a row for    */
+/* each time point.                                            */
 
 
 /*  output.c:  */

@@ -7,6 +7,10 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.3  1999/11/16 03:51:57  ransom
+ * Simplified interface and code in dedisp.c
+ * Minor modifications to multibeam code (mostly asthetic)
+ *
  * Revision 1.2  1999/07/12 20:42:20  ransom
  * Changed convert_multibeam_point() to accept a variable number of channels.
  *
@@ -92,7 +96,7 @@ typedef struct MULTIBEAM_TAPEHDR {
 /* Routines to read and convert Parkes Multibeam data files */
 
 void convert_multibeam_point(unsigned char *rec, float *data, \
-			     int numchan);
+			     int numchan, int decreasing_f);
 /* This routine converts 1 bit digitized data with      */
 /* 'numchan' channels to an array of 'numchan' floats.  */
 
