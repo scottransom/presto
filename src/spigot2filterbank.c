@@ -71,7 +71,16 @@ int main(int argc, char *argv[])
   printf("\nConverting raw SPIGOT FITs data into SIGPROC filterbank format.\n\n");
   strncpy(filenmbase, argv[1], strlen(argv[1])-10);
   filenmbase[strlen(argv[1])-10] = '\0';
-  sprintf(outfilenm, "%s.fil", filenmbase);
+  {
+    char *path, *filenm, newfilenmbase[100];
+
+    split_path_file(argv[1], &path, &filenm);
+    strncpy(newfilenmbase, filenm, strlen(filenm)-10);
+    newfilenmbase[strlen(filenm)-10] = '\0';
+    sprintf(outfilenm, "%s.fil", newfilenmbase);
+    free(path);
+    free(filenm);
+  }
   printf("Writing data to file '%s'.\n\n", outfilenm);
 
   /* Attempt to read a file with lag scalings in it */
