@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
     long long N;
     PKMB_tapehdr hdr;
 
-    printf("\nPKMB input file information:\n");
+    printf("PKMB input file information:\n");
     get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 		       &dt, &T, 1);
 
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
     int ptsperblock;
     long long N;
 
-    printf("\nBCPM input file information:\n");
+    printf("BCPM input file information:\n");
     get_BPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 		      &dt, &T, &idata, 1);
     BPP_update_infodata(numfiles, &idata);
@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
     int ptsperblock;
     long long N;
 
-    printf("\nWAPP input file information:\n");
+    printf("WAPP input file information:\n");
     get_WAPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 		      &dt, &T, &idata, 1);
     WAPP_update_infodata(numfiles, &idata);

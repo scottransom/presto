@@ -7,7 +7,7 @@
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
 static int numblks_st[MAXPATCHFILES], corr_level_st, decreasing_freqs_st=0;
 static int bytesperpt_st, bytesperblk_st, bits_per_samp_st, numifs_st;
-static int numchan_st, numifs_st, ptsperblk_st=WAPP_PTSPERBLOCK;
+static int numchan_st, numifs_st, ptsperblk_st=WAPP_PTSPERBLOCK, sampperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st, dtus_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
@@ -15,6 +15,7 @@ static double scale_min_st=0.0, scale_max_st=3.0;
 static double corr_rate_st, corr_scale_st;
 static infodata idata_st[MAXPATCHFILES];
 static unsigned char databuffer[2*WAPP_MAXDATLEN], padval=128;
+static unsigned char lagbuffer[WAPP_MAXLAGLEN];
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 static fftw_plan fftplan;
@@ -153,6 +154,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
 			      FFTW_REAL_TO_COMPLEX, 
 			      FFTW_MEASURE);
   *ptsperblock = ptsperblk_st;
+  sampperblk_st = ptsperblk_st * numchan_st;
   bytesperpt_st = (numchan_st * numifs_st * bits_per_samp_st) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   numblks_st[0] = (chkfilelen(files[0], 1) 
@@ -297,7 +299,8 @@ int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec)
       currentfile = filenum;
       chkfileseek(infiles[currentfile], rec - startblk_st[filenum],
                   bytesperblk_st, SEEK_CUR);
-      bufferpts = (int)((startblk_st[filenum] - floor_blk) * ptsperblk_st + 0.5);
+      bufferpts = (int)((startblk_st[filenum] - floor_blk) * 
+			ptsperblk_st + 0.5);
       padnum = 0;
       /*
       printf("Data:  currentfile = %d  bufferpts = %d  padnum = %d\n",
@@ -364,15 +367,15 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 /* is returned as 1, then padding was added and         */
 /* statistics should not be calculated.                 */
 {
-  int offset=0, numtopad=0;
+  int offset=0, numtopad=0, ii;
   unsigned char *dataptr;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
   if (bufferpts && shiftbuffer){
-    offset = bufferpts * bytesperpt_st;
-    memcpy(databuffer, databuffer + bytesperblk_st, offset);
+    offset = bufferpts * numchan_st;
+    memcpy(databuffer, databuffer + sampperblk_st, offset);
     dataptr = databuffer + offset;
   } else {
     dataptr = data;
@@ -386,11 +389,16 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 
   /* First, attempt to read data from the current file */
   
-  if (fread(dataptr, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
+  if (fread(lagbuffer, bytesperblk_st, 
+	    1, infiles[currentfile])){ /* Got Data */
+    /* Convert from Correlator Lags to Filterbank Powers */
+    for (ii=0; ii<ptsperblk_st; ii++)
+      convert_WAPP_point(lagbuffer + ii * bytesperpt_st, 
+			 dataptr + ii * numchan_st);
     *padding = 0;
     /* Put the new data into the databuffer if needed */
     if (bufferpts){
-      memcpy(data, dataptr, bytesperblk_st);
+      memcpy(data, dataptr, sampperblk_st);
     }
     currentblock++;
     return 1;
@@ -404,13 +412,13 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 	    /* Add the amount of padding we need to */
 	    /* make our buffer offset = 0           */
 	    numtopad = ptsperblk_st - bufferpts;
-	    memset(dataptr, padval, numtopad * bytesperpt_st);
+	    memset(dataptr, padval, numtopad * numchan_st);
 	    /* Copy the new data/padding into the output array */
-	    memcpy(data, databuffer, bytesperblk_st);
+	    memcpy(data, databuffer, sampperblk_st);
 	    bufferpts = 0;
 	  } else {  /* Add a full record of padding */
 	    numtopad = ptsperblk_st;
-	    memset(data, padval, bytesperblk_st);
+	    memset(data, padval, sampperblk_st);
 	  }
 	  padnum += numtopad;
 	  currentblock++;
@@ -424,8 +432,8 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 	  int pad;
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
-          memset(databuffer + bufferpts * bytesperpt_st, 
-		 padval, numtopad * bytesperpt_st);
+          memset(databuffer + bufferpts * numchan_st, 
+		 padval, numtopad * numchan_st);
 	  padnum = 0;
 	  currentfile++;
 	  shiftbuffer = 0;
@@ -450,19 +458,19 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 int read_WAPP_rawblocks(FILE *infiles[], int numfiles, 
 		       unsigned char rawdata[], int numblocks,
 		       int *padding)
-     /* This routine reads numblocks WAPP records from the input  */
-/* files *infiles.  The 4-bit data is returned in rawdata   */
-/* which must have a size of numblocks * bytesperblk_st.    */
-/* The number  of blocks read is returned.                  */
-/* If padding is returned as 1, then padding was added      */
-/* and statistics should not be calculated                  */
+/* This routine reads numblocks WAPP records from the input  */
+/* files *infiles.  The 8-bit filterbank data is returned    */
+/* in rawdata which must have a size of numblocks *          */
+/* sampperblk_st.  The number  of blocks read is returned.   */
+/* If padding is returned as 1, then padding was added       */
+/* and statistics should not be calculated                   */
 {
   int ii, retval=0, pad, numpad=0;
   
   *padding = 0;
   for (ii=0; ii<numblocks; ii++){
     retval += read_WAPP_rawblock(infiles, numfiles, 
-				rawdata + ii * bytesperblk_st, &pad);
+				 rawdata + ii * sampperblk_st, &pad);
     if (pad)
       numpad++;
   }
@@ -492,14 +500,13 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
 /* maskchans is an array of length numchans contains   */
 /* a list of the number of channels that were masked.  */
 {
-  int ii, jj, numread=0, offset, sampperblk;
+  int ii, jj, numread=0, offset;
   double starttime=0.0;
-  static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
+  static unsigned char *tempzz, *rawdata1, *rawdata2; 
   static unsigned char *currentdata, *lastdata;
   static int firsttime=1, numblocks=1, allocd=0, mask=0;
   static double duration=0.0, timeperblk=0.0;
 
-  sampperblk = bytesperblk_st;
   *nummasked = 0;
   if (firsttime) {
     if (numpts % ptsperblk_st){
@@ -510,18 +517,19 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       numblocks = numpts / ptsperblk_st;
     
     if (obsmask->numchan) mask = 1;
-    raw  = gen_bvect(numblocks * bytesperblk_st);
-    rawdata1 = gen_bvect(numblocks * sampperblk);
-    rawdata2 = gen_bvect(numblocks * sampperblk);
+    rawdata1 = gen_bvect(numblocks * sampperblk_st);
+    rawdata2 = gen_bvect(numblocks * sampperblk_st);
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
     
-    numread = read_WAPP_rawblocks(infiles, numfiles, raw, 
-				 numblocks, padding);
+    currentdata = rawdata1;
+    lastdata = rawdata2;
+
+    numread = read_WAPP_rawblocks(infiles, numfiles, currentdata, 
+				  numblocks, padding);
     if (numread != numblocks && allocd){
       printf("Problem reading the raw WAPP data file.\n\n");
-      free(raw);
       free(rawdata1);
       free(rawdata2);
       rfftw_destroy_plan(fftplan);
@@ -529,19 +537,11 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       return 0;
     }
     
-    currentdata = rawdata1;
-    lastdata = rawdata2;
-
-    /* Select the already summed IFs */
-    for (ii=0; ii<numpts; ii++)
-      convert_WAPP_point(raw + ii * bytesperpt_st, 
-			 currentdata + ii * numchan_st);
-
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, numblocks * sampperblk);
+	memset(currentdata, padval, numblocks * sampperblk_st);
     }
     if (*nummasked > 0){ /* Only some of the channels are masked */
       for (ii=0; ii<numpts; ii++){
@@ -555,22 +555,16 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
     firsttime=0;
   }
   
-  /* Read, convert and de-disperse */
+  /* Read and de-disperse */
   
   if (allocd){
-    numread = read_WAPP_rawblocks(infiles, numfiles, raw, 
-				 numblocks, padding);
-
-    /* Select the already summed IFs */
-    for (ii=0; ii<numpts; ii++)
-      convert_WAPP_point(raw + ii * bytesperpt_st, 
-			 currentdata + ii * numchan_st);
-
+    numread = read_WAPP_rawblocks(infiles, numfiles, currentdata, 
+				  numblocks, padding);
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, numblocks * sampperblk);
+	memset(currentdata, padval, numblocks * sampperblk_st);
     }
     if (*nummasked > 0){ /* Only some of the channels are masked */
       for (ii=0; ii<numpts; ii++){
@@ -584,7 +578,6 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
     SWAP(currentdata, lastdata);
 
     if (numread != numblocks){
-      free(raw);
       free(rawdata1);
       free(rawdata2);
       rfftw_destroy_plan(fftplan);
@@ -599,26 +592,24 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
 void get_WAPP_channel(int channum, float chandat[], 
 		     unsigned char rawdata[], int numblocks)
 /* Return the values for channel 'channum' of a block of       */
-/* 'numblocks' raw WAPP data stored in 'rawdata' in 'chandat'.  */
+/* 'numblocks' raw WAPP data stored in 'rawdata' in 'chandat'. */
 /* 'rawdata' should have been initialized using                */
-/* read_WAPP_rawblocks(), and 'chandat' must have at least      */
+/* read_WAPP_rawblocks(), and 'chandat' must have at least     */
 /* 'numblocks' * 'ptsperblk_st' spaces.                        */
 /* Channel 0 is assumed to be the lowest freq channel.         */
 {
-  unsigned char *rawdataptr;
-  int ii;
+  int ii, jj;
 
-  if (channum > numchan_st*numifs_st || channum < 0){
+  if (channum > numchan_st * numifs_st || channum < 0){
     printf("\nchannum = %d is out of range in get_WAPP_channel()!\n\n",
 	   channum);
     exit(1);
   }
-  /* Select the already summed IFs */
-  rawdataptr = rawdata + channum;
-  for (ii=0; ii<numblocks*ptsperblk_st; ii++){
-    chandat[ii] = *rawdataptr;
-    rawdataptr += bytesperpt_st;
-  }
+  /* Select the correct channel */
+  for (ii=0, jj=channum; 
+       ii<numblocks*ptsperblk_st; 
+       ii++, jj+=numchan_st)
+    chandat[ii] = rawdata[jj];
 }
 
 
@@ -644,7 +635,7 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 {
   int ii, jj, numread, trtn, offset;
   double starttime=0.0;
-  static unsigned char *raw, *tempzz;
+  static unsigned char *tempzz;
   static unsigned char rawdata1[WAPP_MAXDATLEN], rawdata2[WAPP_MAXDATLEN]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0, mask=0;
@@ -655,23 +646,18 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
     if (obsmask->numchan) mask = 1;
     move_size = (ptsperblk_st + numsubbands) / 2;
     move = gen_bvect(move_size);
-    raw = gen_bvect(bytesperblk_st);
     currentdata = rawdata1;
     lastdata = rawdata2;
     timeperblk = ptsperblk_st * dt_st;
-    if (!read_WAPP_rawblock(infiles, numfiles, raw, padding)){
+    if (!read_WAPP_rawblock(infiles, numfiles, currentdata, padding)){
       printf("Problem reading the raw WAPP data file.\n\n");
       return 0;
     }
-    /* Select the already summed IFs */
-    for (ii=0; ii<ptsperblk_st; ii++)
-      convert_WAPP_point(raw + ii * bytesperpt_st, 
-			 currentdata + ii * numchan_st);
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, bytesperblk_st);
+	memset(currentdata, padval, ptsperblk_st);
     }
     if (*nummasked > 0){ /* Only some of the channels are masked */
       for (ii=0; ii<ptsperblk_st; ii++){
@@ -684,18 +670,14 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
     firsttime=0;
   }
 
-  /* Read, convert and de-disperse */
+  /* Read and de-disperse */
 
-  numread = read_WAPP_rawblock(infiles, numfiles, raw, padding);
-  /* Select the already summed IFs */
-  for (ii=0; ii<ptsperblk_st; ii++)
-    convert_WAPP_point(raw + ii * bytesperpt_st, 
-		       currentdata + ii * numchan_st);
+  numread = read_WAPP_rawblock(infiles, numfiles, currentdata, padding);
   if (mask){
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
     if (*nummasked==-1) /* If all channels are masked */
-      memset(currentdata, padval, bytesperblk_st);
+      memset(currentdata, padval, ptsperblk_st);
   }
   if (*nummasked > 0){ /* Only some of the channels are masked */
     for (ii=0; ii<ptsperblk_st; ii++){
@@ -779,6 +761,13 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes)
   pfact = 255.0 / (scale_max_st - scale_min_st);
   for(ii=0; ii<numchan_st; ii++)
     bytes[ii] = (unsigned char) ((lag[ii] - scale_min_st) * pfact + 0.5);
+#if 0
+  { /* Show what the raw powers are (avg ~1.05, var ~0.2) */
+    double avg, var;
+    avg_var(lag, numchan_st, &avg, &var);
+    printf("avg = %f    var = %f\n", avg, var);
+  }
+#endif
 }
 
 

@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
 
       /* Set-up values if we are using the Parkes multibeam */
     
+      printf("PKMB input file information:\n");
       get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 			 &dt, &T, 1);
 
@@ -170,6 +171,7 @@ int main(int argc, char *argv[])
 
       /* Set-up for the BCPM machines at Green Bank  */
 
+      printf("BCPM input file information:\n");
       get_BPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 			&dt, &T, &idata, 1);
       BPP_update_infodata(numfiles, &idata);
@@ -191,6 +193,7 @@ int main(int argc, char *argv[])
 
       /* Set-up for the WAPP machine at Arecibo */
 
+      printf("WAPP input file information:\n");
       get_WAPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 			&dt, &T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);

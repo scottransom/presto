@@ -183,6 +183,7 @@ int main(int argc, char *argv[])
     if (cmd->pkmbP){
       PKMB_tapehdr hdr;
       
+      printf("PKMB input file information:\n");
       get_PKMB_file_info(infiles, numfiles, &local_N, &ptsperrec, 
 			 &numchan, &local_dt, &local_T, 1);
 
@@ -201,6 +202,7 @@ int main(int argc, char *argv[])
 
     } else if (cmd->bcpmP){
 
+      printf("BCPM input file information:\n");
       get_BPP_file_info(infiles, numfiles, &local_N, &ptsperrec, &numchan, 
 			&local_dt, &local_T, &idata, 1);
       BPP_update_infodata(numfiles, &idata);
@@ -225,6 +227,7 @@ int main(int argc, char *argv[])
 
     } else if (cmd->wappP){
 
+      printf("WAPP input file information:\n");
       get_WAPP_file_info(infiles, numfiles, &local_N, &ptsperrec, &numchan, 
 			 &local_dt, &local_T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
