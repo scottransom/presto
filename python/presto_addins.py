@@ -217,24 +217,13 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
         Pgplot.closeplot()
     return (average(r), average(z))
     
-def alias_to_r(r, rny):
+def alias(r, rny):
     """
     alias_to_r(r, rny):
-        Return the 'true' Fourier frequency of a signal that is
-        aliased into the 'visible' part of the FFT.  Note:  The
-        returned value will be greater than the Nyquist frequency.
-           'r' is the measured (aliased) signal's Fourier frequency.
-           'rny' is the Nyquist frequency (in bins).  For an FFT
-              of real data, 'rny' = number of data points FFT'd / 2.
-    """
-    return 2.0 * rny - r
-
-def r_to_alias(r, rny):
-    """
-    r_to_alias(r, rny):
-        Return the aliased Fourier frequency of a signal which has a
-        fourier frequency greater than the Nyquist requency.
-           'r' is the signal's true Fourier frequency (f*T).
+        Convert an aliased Fourier frequency into the 'true' Fourier
+        frequency of a signal.  Or vise-versa -- the transformation is
+        symmetric about the Nyquist Freq.
+           'r' is the signal's Fourier frequency to convert.
            'rny' is the Nyquist frequency (in bins).  For an FFT
               of real data, 'rny' = number of data points FFT'd / 2.
     """
