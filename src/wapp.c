@@ -8,7 +8,7 @@ static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
 static long long filedatalen_st[MAXPATCHFILES];
 static int numblks_st[MAXPATCHFILES], corr_level_st, decreasing_freqs_st=0;
 static int bytesperpt_st, bytesperblk_st, bits_per_samp_st, numifs_st;
-static int numchan_st, numifs_st, ptsperblk_st=WAPP_PTSPERBLOCK;
+static int numchan_st, numifs_st, ptsperblk_st;
 static int need_byteswap_st, sampperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st, dtus_st;
@@ -21,11 +21,12 @@ static int currentfile, currentblock;
 static int header_version_st, header_size_st;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 static fftw_plan fftplan;
+static float clip_sigma_st=0.0;
+
 double slaCldj(int iy, int im, int id, int *j);
 static double inv_cerf(double input);
 static void vanvleck3lev(float *rho, int npts);
 static void vanvleck9lev(float *rho, int npts);
-static float clip_sigma_st=0.0;
 
 void get_WAPP_static(int *bytesperpt, int *bytesperblk, float *clip_sigma){
   *bytesperpt = bytesperpt_st;
@@ -53,7 +54,7 @@ int new_clip_times(unsigned char *rawpows)
   static float running_avg=0.0, running_std=0.0;
   static int blocksread=0;
   static long long current_point=0;
-  float zero_dm_block[WAPP_PTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
+  float zero_dm_block[WAPP_MAXPTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
   double chan_avg_temp[WAPP_MAXLAGLEN], chan_running_avg[WAPP_MAXLAGLEN];
   float current_med, trigger;
   double current_avg=0.0, current_std=0.0;
@@ -164,7 +165,7 @@ int clip_times(unsigned char *rawpows)
   static float running_avg=0.0, running_std=0.0, median_sum=0.0;
   static int blocksread=0;
   static long long current_point=0;
-  float zero_dm_block[WAPP_PTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
+  float zero_dm_block[WAPP_MAXPTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
   float current_med, trigger, running_wgt=0.1;
   double current_avg=0.0, current_std=0.0, scaling;
   unsigned char *powptr, good_chan_levels[WAPP_MAXLAGLEN];
@@ -271,7 +272,7 @@ static void get_WAPP_HEADER_version(char *header, int *header_version,
 				    int *header_size)
 {
   memcpy(header_version, header, sizeof(long));
-  memcpy(header_size, header+4, sizeof(long));
+  memcpy(header_size, header+sizeof(long), sizeof(long));
   if (0){
     printf("Header version:  %d\n", *header_version);
     printf("Header  length:  %d\n", *header_size);
@@ -566,14 +567,25 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   fftplan = rfftw_create_plan(2 * numchan_st, 
 			      FFTW_REAL_TO_COMPLEX, 
 			      FFTW_MEASURE);
-  *ptsperblock = ptsperblk_st;
-  sampperblk_st = ptsperblk_st * numchan_st;
-  bytesperpt_st = (numchan_st * numifs_st * bits_per_samp_st) / 8;
-  bytesperblk_st = ptsperblk_st * bytesperpt_st;
+  /* Calculate the maximum number of points we can have in a */
+  /* block (power of two), based on the number of samples in */
+  /* each file.                                              */
   filedatalen_st[0] = chkfilelen(files[0], 1) - 
     asciihdrlen - header_size_st;
+  bytesperpt_st = (numchan_st * numifs_st * bits_per_samp_st) / 8;
+  numpts_st[0] = filedatalen_st[0] / bytesperpt_st;
+  if (filedatalen_st[0] % bytesperpt_st)
+    printf("\n\nWARNING!!!:\n\t"
+	   "File 0 has a non-integer number of complete samples!\n\n");
+  ptsperblk_st = WAPP_MAXPTSPERBLOCK;
+  while (numpts_st[0] % ptsperblk_st) ptsperblk_st /= 2;
+  bytesperblk_st = ptsperblk_st * bytesperpt_st;
+  if (filedatalen_st[0] % bytesperblk_st)
+    printf("\n\nWARNING!!!:\n\t"
+	   "File 0 has a non-integer number of complete blocks!\n\n");
+  *ptsperblock = ptsperblk_st;
+  sampperblk_st = ptsperblk_st * numchan_st;
   numblks_st[0] = filedatalen_st[0] / bytesperblk_st;
-  numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
   dtus_st = idata_st[0].dt * 1000000.0;
   corr_rate_st = 1.0 / (dtus_st - WAPP_DEADTIME);
@@ -598,7 +610,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
     /* Skip the ASCII header file */
     chkfseek(files[ii], asciihdrlen, SEEK_SET);
     /* Read the header */
-    chkfread(&hdr, MAX_WAPP_HEADER_SIZE, 1, files[ii]);
+    chkfread(&hdr, header_size_st, 1, files[ii]);
     /* See if we need to byte-swap and if so, doit */
     need_byteswap_st = check_WAPP_byteswap(hdr);
     WAPP_hdr_to_inf(hdr, &idata_st[ii]);
@@ -891,6 +903,7 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
     for (ii=0; ii<ptsperblk_st; ii++)
       convert_WAPP_point(lagbuffer + ii * bytesperpt_st, 
 			 dataptr + ii * numchan_st);
+
     /* Clip nasty RFI if requested */
     if (clip_sigma_st > 0.0)
       clip_times(dataptr);
