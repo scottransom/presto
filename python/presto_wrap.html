@@ -1431,14 +1431,14 @@ presto_wrap.c</TITLE>
 
 <P><TT><B>dorbint(Eo,numpts,dt,orb)</B></TT>
 <BLOCKQUOTE>[ returns double * ]
-<BR>   This routine integrates Keplar's Equation and returns a double         
-   vector of the eccentric anomalys (E) for each point.  The initial      
-   value for eccentric anomaly (usually determined by using               
-   keplars_equation()) goes in Eo.  The time increment to use is dt,      
-   total number of pts goes in 'numpts' and all of the various orbital    
-   parameters are found in *orb.  The routine uses 4th order Runge-       
-   Kutta in a dumb mode (no adaptive step-size) since all we want is      
-   tabulated results with even intervals.                                 
+<BR>   This routine integrates Keplar's Equation and returns a double        
+   vector of the eccentric anomalys (E) for each point.  The initial     
+   value for eccentric anomaly (usually determined by using              
+   keplars_equation()) goes in Eo.  The time increment to use is dt,     
+   total number of pts goes in 'numpts' and all of the various orbital   
+   parameters are found in *orb.  The routine uses 4th order Runge-      
+   Kutta in a dumb mode (no adaptive step-size) since all we want is     
+   tabulated results with even intervals.                                
 </BLOCKQUOTE>
 
 <P><TT><B>keplars_eqn(t,p_orb,e,Eacc)</B></TT>
