@@ -764,17 +764,16 @@ int read_BPP_rawblock(FILE *infiles[], int numfiles,
 /* statistics should not be calculated.                 */
 {
   int offset=0, numtopad=0, bytesread;
-  unsigned char *dataptr;
+  unsigned char *dataptr=data;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
-  if (bufferpts && shiftbuffer){
-    offset = bufferpts * bytesperpt_st;
-    memcpy(databuffer, databuffer + bytesperblk_st, offset);
+  if (bufferpts){
+    offset = bufferpts*bytesperpt_st;
     dataptr = databuffer + offset;
-  } else {
-    dataptr = data;
+    if (shiftbuffer)
+      memcpy(databuffer, databuffer+bytesperblk_st, offset);
   }
   shiftbuffer=1;
 
@@ -793,9 +792,8 @@ int read_BPP_rawblock(FILE *infiles[], int numfiles,
   if (bytesread==bytesperblk_st){ /* Got Data */
     *padding = 0;
     /* Put the new data into the databuffer if needed */
-    if (bufferpts){
-      memcpy(data, dataptr, bytesperblk_st);
-    }
+    if (bufferpts)
+      memcpy(data, databuffer, bytesperblk_st);
     currentblock++;
     return 1;
   } else { /* Didn't get data */
@@ -828,12 +826,12 @@ int read_BPP_rawblock(FILE *infiles[], int numfiles,
 	  int pad;
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
-	  memset(databuffer + bufferpts * bytesperpt_st, 
-		 padval, numtopad * bytesperpt_st);
-	  padnum = 0;
-	  currentfile++;
-	  shiftbuffer = 0;
+	  memset(databuffer+bufferpts*bytesperpt_st, 
+		 padval, numtopad*bytesperpt_st);
 	  bufferpts += numtopad;
+	  padnum = 0;
+	  shiftbuffer = 0;
+	  currentfile++;
 	  return read_BPP_rawblock(infiles, numfiles, data, &pad);
 	}
       } else {  /* No padding needed. */
@@ -1016,7 +1014,7 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
       if (firsttime) firsttime = 0;
       else break;
     }
-    return numread * ptsperblk_st;
+    return numblocks * ptsperblk_st;
   } else {
     return 0;
   }
