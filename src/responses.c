@@ -478,7 +478,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 	   numbetween);
     exit(-1);
   }
-  if (numkern < numbetween || numkern > numdata * numbetween / 4) {
+  if (numkern < numbetween) {
     printf("\n  numkern = %d (out of bounds) in gen_bin_response().\n\n", \
 	   numkern);
     exit(-1);
