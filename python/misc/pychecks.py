@@ -13,7 +13,7 @@ raw_input('Press return for next page.')
 nextplotpage(1)
 
 # Check the f-fdot plane generator
-fftfile = open('../../../tests/testz.fft')
+fftfile = open('../../tests/testz.fft')
 m = 0
 numbetween = 8
 lof = 19990.0
