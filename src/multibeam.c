@@ -6,7 +6,7 @@
 
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
-static int numblks_st[MAXPATCHFILES];
+static int numblks_st[MAXPATCHFILES], nfilter_st, filter_st=0, offsetbytes_st=0;
 static int decreasing_freqs_st, numchan_st, ptsperblk_st, bytesperpt_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
@@ -56,11 +56,39 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
   }
   chkfread(&header, 1, HDRLEN, files[0]);
   rewind(files[0]);
+  nfilter_st = strtol(header.nfilter, NULL, 10);
+  /* Choose the higher filterbank for 10/50 data */
+  if (nfilter_st > 1){
+    char *envval=getenv("PARKES_FILTER");
+    filter_st=1;
+    if (envval!=NULL){
+      strlower(envval);
+      if (envval[0]=='h' && envval[1]=='i'){
+	filter_st=0;
+	printf("Looks like this is 10cm/50cm data.  Using 10cm part.\n");
+      } else {
+	printf("Looks like this is 10cm/50cm data.  Using 50cm part.\n");
+      }
+    } else {
+      printf("Looks like this is 10cm/50cm data.  Using 50cm part.\n");
+    }
+  }
   PKMB_hdr_to_inf(&header, &idata_st[0]);
   numchan_st = *numchan = idata_st[0].num_chan;
-  ptsperblk_st = *ptsperblock = DATLEN * 8 / numchan_st;
   bytesperpt_st = numchan_st / 8;
-  decreasing_freqs_st = (strtod(header.chanbw[1], NULL) > 0.0) ? 0 : 1;
+  if (nfilter_st==1){
+    ptsperblk_st = *ptsperblock = DATLEN * 8 / numchan_st;
+    offsetbytes_st = 0;
+  } else {  /* 10cm/50cm data */
+    ptsperblk_st = *ptsperblock = DATLEN * 8 / 512;
+    bytesperpt_st = 512 / 8;
+    if (filter_st==0) { /* 10cm */
+      offsetbytes_st = 0;
+    } else { /* 50cm */
+      offsetbytes_st = 256/8;
+    }
+  }
+  decreasing_freqs_st = (strtod(header.chanbw[filter_st], NULL) > 0.0) ? 0 : 1;
   numblks_st[0] = chkfilelen(files[0], RECLEN);
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
@@ -481,6 +509,7 @@ void get_PKMB_channel(int channum, float chandat[],
     exit(1);
   }
   bit = (decreasing_freqs_st) ? numchan_st - 1 - channum : channum;
+  bit += offsetbytes_st*8;
   for (ii=0; ii<numblocks*ptsperblk_st; ii++)
     chandat[ii] = (float) GET_BIT(rawdata + ii * bytesperpt_st, bit);
 }
@@ -643,9 +672,13 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
   itmp1 = strtol(hdr->ibeam, NULL, 10);  
   itmp2 = strtol(hdr->nbeam, NULL, 10);  
   sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);
-  sscanf(hdr->nchan[0], "%4d", &idata->num_chan);
+
+  sscanf(hdr->nchan[filter_st], "%4d", &idata->num_chan);
   ptsperrec = DATLEN / (idata->num_chan / 8);
-  sscanf(hdr->samp_int[0], "%12lf", &idata->dt);
+  /* hrow away the top 64 channels of the 10cm filterbank */
+  if (nfilter_st==2 && filter_st==0)
+    idata->num_chan = 192;
+  sscanf(hdr->samp_int[filter_st], "%12lf", &idata->dt);
   idata->dt *= 0.001;
   sscanf(hdr->nblk_read, "%8lf", &tmp1);
   sprintf(ctmp, " %.8s ", hdr->obs_time);
@@ -655,10 +688,10 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
   } else {
     idata->N = tmp2 / idata->dt;
   }
-  tmp1 = strtod(hdr->chanbw[0], NULL);
+  tmp1 = strtod(hdr->chanbw[filter_st], NULL);
   idata->chan_wid = fabs(tmp1);
   idata->freqband = idata->num_chan * idata->chan_wid;
-  idata->freq = strtod(hdr->freq_ch1[0], NULL);
+  idata->freq = strtod(hdr->freq_ch1[filter_st], NULL);
   if (tmp1 < 0.0) {
     idata->freq -= (idata->freqband - idata->chan_wid);
   }
@@ -723,16 +756,23 @@ void print_PKMB_hdr(PKMB_tapehdr * hdr)
 	 hdr->comment);
   printf(" Number of filter systems, ' 1' or ' 2'            = %.2s\n", \
 	 hdr->nfilter);
-  printf(" Channel incrt (MHz, -ve if inverted) '-b.bbbbb'   = %.8s\n", \
-	 hdr->chanbw[0]);
-  printf(" Nr of channels in each filter system              = %.4s\n", \
-	 hdr->nchan[0]);
-  printf(" RF of first channel centre 'ffffff.fffff'         = %.12s\n", \
-	 hdr->freq_ch1[0]);
-  printf(" Samp intval in ms (1 = 2 always) 'mm.mmmmmmmmm'   = %.12s\n", \
-	 hdr->samp_int[0]);
-  printf(" Samp per group (For backwards compat., now = 1)   = %.4s\n", \
-	 hdr->samp_grp[0]);
+  {
+    int ii;
+    int nfilter=strtol(hdr->nfilter, NULL, 10);
+
+    for (ii=0; ii<nfilter; ii++){
+      printf(" Channel incrt (MHz, -ve if inverted) '-b.bbbbb'   = %.8s\n", \
+	     hdr->chanbw[ii]);
+      printf(" Nr of channels in each filter system              = %.4s\n", \
+	     hdr->nchan[ii]);
+      printf(" RF of first channel centre 'ffffff.fffff'         = %.12s\n", \
+	     hdr->freq_ch1[ii]);
+      printf(" Samp intval in ms (1 = 2 always) 'mm.mmmmmmmmm'   = %.12s\n", \
+	     hdr->samp_int[ii]);
+      printf(" Samp per group (For backwards compat., now = 1)   = %.4s\n", \
+	     hdr->samp_grp[ii]);
+    }
+  }
   printf(" Samples per block (Was groups per block)          = %.8s\n", \
 	 hdr->samp_blk);
   printf(" Seconds per tape block per beam 'ss.sssss'        = %.8s\n", \
@@ -814,9 +854,11 @@ void convert_PKMB_point(unsigned char *bits, unsigned char *bytes)
 /* into an array of 'numchan' bytes.          */
 {
   int ii, jj;
+  int true_bytesperpt=numchan_st/8;
 
+  bits += offsetbytes_st;  /* for 10cm/50cm data */
   if (decreasing_freqs_st){
-    for(ii=bytesperpt_st-1, jj=0; ii>=0; ii--, jj+=8){
+    for(ii=true_bytesperpt-1, jj=0; ii>=0; ii--, jj+=8){
       bytes[jj]   = (bits[ii] >> 0x07) & 0x01;
       bytes[jj+1] = (bits[ii] >> 0x06) & 0x01;
       bytes[jj+2] = (bits[ii] >> 0x05) & 0x01;
@@ -827,7 +869,7 @@ void convert_PKMB_point(unsigned char *bits, unsigned char *bytes)
       bytes[jj+7] = bits[ii] & 0x01;
     }
   } else {
-    for(ii=0, jj=0; ii<bytesperpt_st; ii++, jj+=8){
+    for(ii=0, jj=0; ii<true_bytesperpt; ii++, jj+=8){
       bytes[jj]   = bits[ii] & 0x01;
       bytes[jj+1] = (bits[ii] >> 0x01) & 0x01;
       bytes[jj+2] = (bits[ii] >> 0x02) & 0x01;
