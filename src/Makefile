@@ -307,7 +307,8 @@ cleaner:  clean
 	rm -f shiftdata patchdata readfile psrorbit window       
 	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
-	rm -f taperaw bincand $(PRESTOLIBNM)
+	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
+	rm -f $(PRESTOLIBNM)
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
 
 squeaky:  cleaner
@@ -324,4 +325,5 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f shiftdata patchdata readfile psrorbit
 	cd $(PRESTO)/bin ; rm -f plotbincand profile showmulti showmulti_dm
 	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
-	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand
+	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
+	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles
