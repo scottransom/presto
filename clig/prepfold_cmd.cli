@@ -10,8 +10,7 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-String -o       outfile {Root of the output file names} \
-	-m
+String -o       outfile {Root of the output file names}
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
 Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
