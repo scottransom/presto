@@ -42,10 +42,9 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 #if defined USEFFTW
 
   FILE *wisdomfile;
-  int expon;
-  double fracpart;
-  static fftw_plan plan_forward[30], plan_inverse[30];
-  static int firsttime = 1;
+  fftw_plan plan_forward, plan_inverse;
+  static fftw_plan last_plan_forward = NULL, last_plan_inverse = NULL;
+  static int firsttime = 1, lastn = 0;
   static char wisdomfilenm[120];
 
 #else
@@ -73,8 +72,6 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
       exit(1);
     }
     fclose(wisdomfile);
-
-    firsttime = 0;
   }
 
 #endif
@@ -102,31 +99,34 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   /* then do n2 transforms of length n1 */
 
 #if defined USEFFTW
-
+printf("Hello!!!\n");
   /* Use FFTW for the small transforms if available. */
 
-  fracpart = frexp((double) n1, &expon);
-  expon--;
-
-  /* If we are calling using an nn we haven't seen before */
-
-  if (plan_forward[expon] == NULL) {
-
-    /* Create new plans */
-
-    plan_forward[expon] = fftw_create_plan(n1, -1, FFTW_MEASURE | \
-					   FFTW_USE_WISDOM | \
-					   FFTW_IN_PLACE);
-    plan_inverse[expon] = fftw_create_plan(n1, +1, FFTW_MEASURE | \
-					   FFTW_USE_WISDOM | \
-					   FFTW_IN_PLACE);
+  if (n1 == lastn){
+    plan_forward = last_plan_forward;
+    plan_inverse = last_plan_inverse;
+  } else {
+    if (!firsttime){
+      fftw_destroy_plan(last_plan_forward);
+      fftw_destroy_plan(last_plan_inverse);
+    }
+    plan_forward = fftw_create_plan(n1, -1, FFTW_MEASURE | \
+				    FFTW_USE_WISDOM | \
+				    FFTW_IN_PLACE);
+    plan_inverse = fftw_create_plan(n1, +1, FFTW_MEASURE | \
+				    FFTW_USE_WISDOM | \
+				    FFTW_IN_PLACE);
+    last_plan_forward = plan_forward;
+    last_plan_inverse = plan_inverse;
+    lastn = n1;
   }
+  firsttime = 0;
 
   if (isign == -1) {
-    fftw(plan_forward[expon], n2, (FFTW_COMPLEX *) indata, 1, n1, \
+    fftw(plan_forward, n2, (FFTW_COMPLEX *) indata, 1, n1, \
 	 NULL, 1, n1);
   } else {
-    fftw(plan_inverse[expon], n2, (FFTW_COMPLEX *) indata, 1, n1, \
+    fftw(plan_inverse, n2, (FFTW_COMPLEX *) indata, 1, n1, \
 	 NULL, 1, n1);
   }
 
@@ -171,28 +171,30 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 
   /* Use FFTW for the small transforms if available. */
 
-  fracpart = frexp((double) n2, &expon);
-  expon--;
-
-  /* If we are calling using an nn we haven't seen before */
-
-  if (plan_forward[expon] == NULL) {
-
-    /* Create new plans */
-
-    plan_forward[expon] = fftw_create_plan(n2, -1, FFTW_MEASURE | \
-					   FFTW_USE_WISDOM | \
-					   FFTW_IN_PLACE);
-    plan_inverse[expon] = fftw_create_plan(n2, +1, FFTW_MEASURE | \
-					   FFTW_USE_WISDOM | \
-					   FFTW_IN_PLACE);
+  if (n2 == lastn){
+    plan_forward = last_plan_forward;
+    plan_inverse = last_plan_inverse;
+  } else {
+    if (!firsttime){
+      fftw_destroy_plan(last_plan_forward);
+      fftw_destroy_plan(last_plan_inverse);
+    }
+    plan_forward = fftw_create_plan(n2, -1, FFTW_MEASURE | \
+				    FFTW_USE_WISDOM | \
+				    FFTW_IN_PLACE);
+    plan_inverse = fftw_create_plan(n2, +1, FFTW_MEASURE | \
+				    FFTW_USE_WISDOM | \
+				    FFTW_IN_PLACE);
+    last_plan_forward = plan_forward;
+    last_plan_inverse = plan_inverse;
+    lastn = n2;
   }
 
   if (isign == -1) {
-    fftw(plan_forward[expon], n1, (FFTW_COMPLEX *) indata, 1, n2, \
+    fftw(plan_forward, n1, (FFTW_COMPLEX *) indata, 1, n2, \
 	 NULL, 1, n2);
   } else {
-    fftw(plan_inverse[expon], n1, (FFTW_COMPLEX *) indata, 1, n2, \
+    fftw(plan_inverse, n1, (FFTW_COMPLEX *) indata, 1, n2, \
 	 NULL, 1, n2);
   }
 
