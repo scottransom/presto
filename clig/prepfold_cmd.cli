@@ -23,7 +23,11 @@ Float  -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	{default = 0}
 
 Int    -nsub    nsub    {The number of sub-bands to use for the DM search} \
-	{range = 1,256} \
+	{range = 1,512} \
+	{default = 16}
+
+Int    -npart   npart   {The number of sub-integrations to use for the period search} \
+	{range = 1,512} \
 	{default = 16}
 
 Float -p    p    {The nominative folding period (s)} \

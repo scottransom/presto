@@ -30,6 +30,10 @@ typedef struct s_Cmdline {
   char nsubP;
   int nsub;
   int nsubC;
+  /***** -npart: The number of sub-integrations to use for the period search */
+  char npartP;
+  int npart;
+  int npartC;
   /***** -p: The nominative folding period (s) */
   char pP;
   double p;
