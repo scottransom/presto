@@ -184,8 +184,6 @@ static void swapendian_BPP_header(BPP_SEARCH_HEADER *hdr)
   hdr->Har_Clk = swap_double(hdr->Har_Clk);
   hdr->bandwidth = swap_double(hdr->bandwidth);
   hdr->rf_lo = swap_double(hdr->rf_lo);
-  if (hdr->rf_lo > 1.0e6)
-    hdr->rf_lo /= 1.0e6;
   hdr->max_dfb_freq = swap_double(hdr->max_dfb_freq);
   hdr->mjd_start = swap_longdouble(hdr->mjd_start);
   for (ii=0; ii<FB_CHAN_PER_BRD; ii++){
@@ -284,7 +282,12 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
         f_sram = hdr->dfb_sram_freqs[dfb_chan];
 	fc = f_aib + f_sram + u_or_l * hdr->bandwidth/4.0;
         /* chan_freqs[n] = (hdr->rf_lo + fc) / 1000000.0; */
+
+	/* 1 Sept 2001:  I'm not sure what should be here or not... SMR */
 	/* obs below 10 GHz are LSB; above 10 GHz are USB */
+	if (hdr->rf_lo > 1.0e6)
+	  hdr->rf_lo /= 1.0e6;
+
 	if (hdr->rf_lo < 1.e10)
 	  chan_freqs[n++] = hdr->rf_lo + 800 - fc/1.0e6;
 	else
@@ -381,7 +384,7 @@ void BPP_hdr_to_inf(BPP_SEARCH_HEADER *hdr, infodata *idata)
     sprintf(ctmp, "Polarizations were summed in hardware.");
   else
     sprintf(ctmp, "Polarizations were not summed in hardware.");
-  sprintf(idata->notes, "Scan number %010d from tape %d, file %d.\n    Topo UTC Date (DDD:YYYY) & Time at file start = %s, %s\n    %s\n", 
+  sprintf(idata->notes, "Scan number %010u from tape %d, file %d.\n    Topo UTC Date (DDD:YYYY) & Time at file start = %s, %s\n    %s\n", 
 	  hdr->scan_num, hdr->tape_num, hdr->tape_file_number, 
 	  hdr->date, hdr->start_time, ctmp);
 }
@@ -596,7 +599,7 @@ void print_BPP_hdr(BPP_SEARCH_HEADER *hdr)
   printf("                     Target = %s\n", hdr->target_name);
   if (strlen(hdr->obs_group))
     printf("                Observed by = %s\n", hdr->obs_group);
-  printf("   Scan number (DDDYYYY###) = %010d\n", hdr->scan_num);
+  printf("   Scan number (DDDYYYY###) = %010u\n", hdr->scan_num);
   printf("           Scan file number = %d\n", hdr->scan_file_number);
   /*
   printf("          File size (bytes) = %d\n", hdr->file_size);
