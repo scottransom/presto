@@ -1,5 +1,5 @@
 from math import *
-import struct
+import struct, os, os.path
 
 ## The most recent catalogs are available here:
 ## 
@@ -270,7 +270,8 @@ pulsars = {}
 num_binaries = 0
 
 binflag = 0
-infile = open("psr_export.dat")
+presto_path = os.getenv("PRESTO")
+infile = open(os.path.join(presto_path, "lib", "psr_export.dat"))
 for line in infile.readlines()[1:]:
     if (line[0]=='J'):
         if (binflag==0):
@@ -315,7 +316,7 @@ if (0):
             binflag = 1
     infile.close()
 
-infile = open("aliases.txt")
+infile = open(os.path.join(presto_path, "lib", "aliases.txt"))
 for line in infile.readlines()[1:]:
     if (line[0]=='J'):
         vals = line.split()
