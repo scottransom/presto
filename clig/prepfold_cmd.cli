@@ -23,6 +23,10 @@ Flag   -nobary  nobary  {Do not barycenter (assume input parameters are topocent
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Flag   -xwin    xwin    {Show the result plots on-screen as well as make a plotfile}
 Flag   -runavg  runavg  {Subtract each blocks average as it is read (single channel data only)}
+Flag   -nosearch nosearch {Show but do not search the p/pdot and/or DM phase spaces}
+Flag   -scaleparts scaleparts {Scale the part profiles independently}
+Flag   -allgrey allgrey     {Make all the images greyscale instead of color}
+Flag   -justprofs justprofs {Only output the profile portions of the plot}
 Double  -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	-r 0 oo  -d 0
 Int     -n       proflen {The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period}
@@ -63,8 +67,7 @@ Double -start  startT  {The folding start time as a fraction of the full obs} \
 Double -end  endT  {The folding end time as a fraction of the full obs} \
 	-r 0.0 1.0  -d 1.0
 String -psr psrname {Name of pulsar to fold (do not include J or B)}
-String -polycos polycofile {File containing TEMPO polycos for psrname (not
-required)}
+String -polycos polycofile {File containing TEMPO polycos for psrname (not required)}
 String -obs obscode {Two letter TEMPO observatory code (for barycentering)}
 Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \
         -r 1 oo

@@ -1,0 +1,27 @@
+# Admin data
+
+Name show_pfd
+
+Usage "Displays or regenerates the Postscript for a 'pfd' file created by prepfold."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Flag -xwin       xwin       {Show the result plots on-screen as well as making a ps file}
+Flag -scaleparts scaleparts {Scale the part profiles independently}
+Flag -allgrey    allgrey    {Make all the images greyscale instead of color}
+Flag -justprofs  justprofs  {Only output the profile portions of the plot}
+Flag -portrait   portrait   {Orient the output in portrait mode (for -justprofs)}
+Flag -toas       toas       {The folded data were TOAs instead of samples}
+
+# Rest of command line:
+
+Rest infile {The input 'pfd' file name.} \
+        -c 1 100
+
+
+
+
