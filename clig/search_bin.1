@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "search_bin" 1 "21Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "search_bin" 1 "27Feb01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -25,6 +25,8 @@ search_bin \- Searches a long FFT for binary pulsar candidates using a phase mod
 [-ncand ncand]
 [-minfft minfft]
 [-maxfft maxfft]
+[-flo flo]
+[-fhi fhi]
 [-rlo rlo]
 [-rhi rhi]
 [-lobin lobin]
@@ -57,6 +59,18 @@ Power-of-2 length of the longest miniFFT,
 1 Int value between 8 and 1048576.
 .br
 Default: `262144'
+.IP -flo
+The low frequency (Hz) to check,
+.br
+1 Int value between 0 and oo.
+.br
+Default: `1'
+.IP -fhi
+The high frequency (Hz) to check,
+.br
+1 Int value between 0 and oo.
+.br
+Default: `2000'
 .IP -rlo
 The low Fourier frequency to check,
 .br
