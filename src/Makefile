@@ -155,7 +155,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat bincand taperaw\
-	accelsearch prepsubband cal2mjd
+	accelsearch prepsubband cal2mjd split_parkes_beams
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd\
@@ -209,6 +209,10 @@ patchdata: patchdata.o
 
 check_parkes_raw: check_parkes_raw.o multibeam.o
 	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o multibeam.o $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+split_parkes_beams: split_parkes_beams.o
+	$(CC) $(CFLAGS) -o $@ split_parkes_beams.o
 	cp $@ ../bin
 
 test_multifiles: test_multifiles.o
@@ -365,7 +369,7 @@ remove_executables:
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
 	rm -f accelsearch prepsubband explorefft exploredat 
-	rm -f mpiprepsubband $(PRESTOLIBNM)
+	rm -f mpiprepsubband split_parkes_beams $(PRESTOLIBNM)
 
 cleaner:  clean remove_executables
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
@@ -387,4 +391,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
 	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles accelsearch
 	cd $(PRESTO)/bin ; rm -f prepsubband plotdat plotfft explorefft exploredat
-	cd $(PRESTO)/bin ; rm -f mpiprepsubband
+	cd $(PRESTO)/bin ; rm -f mpiprepsubband split_parkes_beams
