@@ -73,11 +73,11 @@ int main(int argc, char *argv[])
 
   if (mdata.binary) {
     startE = keplars_eqn(mdata.orb.t, mdata.orb.p, mdata.orb.e, 1.0E-15);
-    mdata.orb.w *= DEGTORAD;
-    if (mdata.T > 2048) orbdt = 1.0;
-    else orbdt = mdata.T / 2048.0;
+    if (mdata.T > 2048) orbdt = 0.5;
+    else orbdt = mdata.T / 4096.0;
     numpoints = (long) floor(mdata.T/orbdt + 0.5) + 1;
     phib = dorbint(startE, numpoints, orbdt, &mdata.orb);
+    mdata.orb.w *= DEGTORAD;
     orbmaxt = orbdt * numpoints;
     E_to_phib(phib, numpoints, &mdata.orb);
   }
@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 
       /*  Rounds if needed */
 
-      if (mdata.round)
+      if (mdata.roundnum)
 	signal = floor(signal + 0.5);
     }
     /*  Save data in buffer */

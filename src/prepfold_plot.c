@@ -464,11 +464,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
   
   /* Calculate the errors in the pulsation quantities */
 
-  if (search->tepoch != 0.0)
+  if (search->tepoch != 0.0 ||
+      (search->tepoch == 0.0 && search->bary.p1 == 0.0))
     fold_errors(dbestprof, search->proflen, search->dt, N, 
 		beststats.data_var, search->topo.p1, search->topo.p2, 
 		search->topo.p3, &perr, &pderr, &pdderr);
-  else 
+  else
     fold_errors(dbestprof, search->proflen, search->dt, N, 
 		beststats.data_var, search->bary.p1, search->bary.p2, 
 		search->bary.p3, &perr, &pderr, &pdderr);
