@@ -1,7 +1,7 @@
-void set_GMRT_static(int numchan, double dt);
+void set_GMRT_padvals(float *fpadvals, int good_padvals);
 void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles, 
-			long long *N, int *ptsperblock, int *numchan, double *dt, 
-			double *T, int output);
+			float clipsig, long long *N, int *ptsperblock, int *numchan, 
+			double *dt, double *T, int output);
 void GMRT_update_infodata(int numfiles, infodata *idata);
 int skip_to_GMRT_rec(FILE *infiles[], int numfiles, int rec);
 int read_GMRT_rawblock(FILE *infiles[], int numfiles, unsigned char *data, 

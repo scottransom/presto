@@ -13,23 +13,54 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char padval=128;
+static unsigned char padvals[MAXNUMCHAN], padval=128;
 static short sdatabuffer[MAXNUMCHAN*BLOCKLEN];
 static unsigned char databuffer[MAXNUMCHAN*BLOCKLEN];
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
+static float clip_sigma_st=0.0;
 
 
-void set_GMRT_static(int numchan, double dt)
-{
+void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma){
+  *bytesperpt = bytesperpt_st;
+  *bytesperblk = bytesperblk_st;
+  *clip_sigma = clip_sigma_st;
+}
+
+
+void set_GMRT_static(int ptsperblk, int bytesperpt, int bytesperblk, 
+		     int numchan, float clip_sigma, double dt){
+  ptsperblk_st = ptsperblk;
+  bytesperpt_st = bytesperpt;
+  bytesperblk_st = bytesperblk;
   numchan_st = numchan;
+  sampperblk_st = ptsperblk_st * numchan_st;
+  clip_sigma_st = clip_sigma;
   dt_st = dt;
 }
 
 
+void set_GMRT_padvals(float *fpadvals, int good_padvals)
+{
+  int ii;
+  float sum_padvals=0.0;
+
+  if (good_padvals){
+    for (ii=0; ii<numchan_st; ii++){
+      padvals[ii] = (unsigned char)(fpadvals[ii] + 0.5);
+      sum_padvals += fpadvals[ii];
+    }
+    padval = (unsigned char)(sum_padvals/numchan_st + 0.5);
+  } else {
+    for (ii=0; ii<numchan_st; ii++)
+      padvals[ii] = padval;
+  }
+}
+
+
 void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles, 
-			long long *N, int *ptsperblock, int *numchan, double *dt, 
-			double *T, int output)
+			float clipsig, long long *N, int *ptsperblock, int *numchan, 
+			double *dt, double *T, int output)
 /* Read basic information into static variables and make padding      */
 /* calculations for a set of GMRT rawfiles that you want to patch     */
 /* together.  N, numchan, dt, and T are return values and include all */
@@ -45,6 +76,9 @@ void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles,
     exit(0);
   }
   GMRT_hdr_to_inf(datfilenms[0], &idata_st[0]);
+  /* Are we going to clip the data? */
+  if (clipsig > 0.0)
+    clip_sigma_st = clipsig;
   *numchan = numchan_st = idata_st[0].num_chan;
   *ptsperblock = ptsperblk_st = BLOCKLEN;
   sampperblk_st = ptsperblk_st * numchan_st;
@@ -361,65 +395,44 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
-    
     currentdata = rawdata1;
     lastdata = rawdata2;
-
-    numread = read_GMRT_rawblocks(infiles, numfiles, currentdata, 
-				  numblocks, padding);
-    if (numread != numblocks && allocd){
-      printf("Problem reading the raw GMRT data file.\n\n");
-      free(rawdata1);
-      free(rawdata2);
-      allocd = 0;
-      return 0;
-    }
-    
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, numblocks * sampperblk_st);
-      if (*nummasked > 0){ /* Only some of the channels are masked */
-	for (ii=0; ii<numpts; ii++){
-	  offset = ii * numchan_st;
-	  for (jj=0; jj<*nummasked; jj++)
-	    currentdata[offset+maskchans[jj]] = padval;
-	}
-      }
-    }
-
-    SWAP(currentdata, lastdata);
-    firsttime=0;
   }
-  
+
   /* Read, convert and de-disperse */
   
   if (allocd){
-    numread = read_GMRT_rawblocks(infiles, numfiles, currentdata, 
-				  numblocks, padding);
-
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, numblocks * sampperblk_st);
-      if (*nummasked > 0){ /* Only some of the channels are masked */
-	for (ii=0; ii<numpts; ii++){
-	  offset = ii * numchan_st;
-	  for (jj=0; jj<*nummasked; jj++)
-	    currentdata[offset+maskchans[jj]] = padval;
+    while (1){
+      numread = read_GMRT_rawblocks(infiles, numfiles, currentdata, 
+				    numblocks, padding);
+      
+      if (mask){
+	starttime = currentblock * timeperblk;
+	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
+	if (*nummasked==-1){ /* If all channels are masked */
+	  for (ii=0; ii<numpts; ii++)
+	    memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+	} else if (*nummasked > 0){ /* Only some of the channels are masked */
+	  int channum;
+	  for (ii=0; ii<numpts; ii++){
+	    offset = ii * numchan_st;
+	    for (jj=0; jj<*nummasked; jj++){
+	      channum = maskchans[jj];
+	      currentdata[offset+channum] = padvals[channum];
+	    }
+	  }
 	}
       }
-    }
-
-    dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
-    SWAP(currentdata, lastdata);
-
-    if (numread != numblocks){
-      free(rawdata1);
-      free(rawdata2);
-      allocd = 0;
+      if (!firsttime)
+	dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
+      SWAP(currentdata, lastdata);
+      if (numread != numblocks){
+	free(rawdata1);
+	free(rawdata2);
+	allocd = 0;
+      }
+      if (firsttime) firsttime = 0;
+      else break;
     }
     return numread * ptsperblk_st;
   } else {
@@ -484,52 +497,45 @@ int prep_GMRT_subbands(unsigned char *rawdata, float *data,
     currentdata = rawdata1;
     lastdata = rawdata2;
     timeperblk = ptsperblk_st * dt_st;
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, ptsperblk_st);
-      if (*nummasked > 0){ /* Only some of the channels are masked */
-	for (ii=0; ii<ptsperblk_st; ii++){
-	  offset = ii * numchan_st;
-	  for (jj=0; jj<*nummasked; jj++)
-	    currentdata[offset+maskchans[jj]] = padval;
-	}
-      }
-    }
-    SWAP(currentdata, lastdata);
-    firsttime=0;
-    return 0;
   }
 
-  /* Read, convert and de-disperse */
+  /* Read and de-disperse */
 
   memcpy(currentdata, rawdata, sampperblk_st);
   if (mask){
-    starttime = currentblock * timeperblk;
+    starttime = currentblock*timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-    if (*nummasked==-1) /* If all channels are masked */
-      memset(currentdata, padval, sampperblk_st);
-    if (*nummasked > 0){ /* Only some of the channels are masked */
+    if (*nummasked==-1){ /* If all channels are masked */
+      for (ii=0; ii<ptsperblk_st; ii++)
+	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+    } else if (*nummasked > 0){ /* Only some of the channels are masked */
+      int channum;
       for (ii=0; ii<ptsperblk_st; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+	offset = ii*numchan_st;
+	for (jj=0; jj<*nummasked; jj++){
+	  channum = maskchans[jj];
+	  currentdata[offset+channum] = padvals[channum];
+	}
       }
     }
   }
-  dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
-		  dispdelays, numsubbands, data);
-  SWAP(currentdata, lastdata);
 
-  /* Transpose the data into vectors in the result array */
-
-  if (transpose){
-    if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-				move, move_size))<0)
-      printf("Error %d in transpose_float().\n", trtn);
+  if (firsttime){
+    SWAP(currentdata, lastdata);
+    firsttime = 0;
+    return 0;
+  } else {
+    dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
+		    dispdelays, numsubbands, data);
+    SWAP(currentdata, lastdata);
+    /* Transpose the data into vectors in the result array */
+    if (transpose){
+      if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
+				  move, move_size))<0)
+	printf("Error %d in transpose_float().\n", trtn);
+    }
+    return ptsperblk_st;
   }
-  return ptsperblk_st;
 }
 
 

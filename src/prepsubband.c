@@ -284,11 +284,12 @@ int main(int argc, char *argv[])
     /* Set-up values if we are using the GMRT Phased Array system */
     if (cmd->gmrtP) {
       printf("\nGMRT input file information:\n");
-      get_GMRT_file_info(infiles, argv+1, numinfiles, &N, &ptsperblock, &numchan, 
-			 &dt, &T, 1);
+      get_GMRT_file_info(infiles, argv+1, numinfiles, cmd->clip, 
+			 &N, &ptsperblock, &numchan, &dt, &T, 1);
       /* Read the first header file and generate an infofile from it */
       GMRT_hdr_to_inf(argv[1], &idata);
       GMRT_update_infodata(numinfiles, &idata);
+      set_GMRT_padvals(padvals, good_padvals);
       /* OBS code for TEMPO for the GMRT */
       strcpy(obs, "GM");
     }
@@ -884,7 +885,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       lastdsdata = data2;
     }
   }
-  while (firsttime >= 0){
+  while (1){
     if (RAWDATA || insubs){
       for (ii=0; ii<blocksperread; ii++){
 	if (cmd->pkmbP)
@@ -910,7 +911,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	else if (insubs)
 	  numread = read_subbands(infiles, numfiles, 
 				  currentdata+ii*blocksize);
-	if (firsttime==0) totnumread += numread;
+	if (!firsttime) totnumread += numread;
 	if (numread!=blocklen){
 	  for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
 	    currentdata[jj] = 0.0;
@@ -939,10 +940,9 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
     if (firsttime){
       SWAP(currentdata, lastdata);
       SWAP(currentdsdata, lastdsdata);
-    }
-    firsttime--;
+      firsttime = 0;
+    } else break;
   }
-  firsttime = 0;
   if (!cmd->subP){
     for (ii=0; ii<cmd->numdms; ii++)
       float_dedisp(currentdsdata, lastdsdata, dsworklen, 

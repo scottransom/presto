@@ -194,11 +194,12 @@ int main(int argc, char *argv[])
     /* Set-up values if we are using the GMRT Phased Array system */
     if (cmd->gmrtP) {
       printf("GMRT input file information:\n");
-      get_GMRT_file_info(infiles, argv+1, numfiles, &N, &ptsperblock, &numchan, 
-			 &dt, &T, 1);
+      get_GMRT_file_info(infiles, argv+1, numfiles, cmd->clip, &N, &ptsperblock, 
+			 &numchan, &dt, &T, 1);
       /* Read the first header file and generate an infofile from it */
       GMRT_hdr_to_inf(argv[1], &idata);
       GMRT_update_infodata(numfiles, &idata);
+      set_GMRT_padvals(padvals, good_padvals);
       /* OBS code for TEMPO for the GMRT */
       strcpy(obs, "GM");
     }
