@@ -486,7 +486,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     bottom = bm + fh;
     top    = bm + fh + th;
     cpgsvp (left, right, bottom, top);
-    find_min_max_arr(numint, pow_chan_med, &min, &max);
+    find_min_max_arr(numchan, pow_chan_med, &min, &max);
     xl = 0.0;
     xh = numchan;
     yl = 0.0;
