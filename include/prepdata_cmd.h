@@ -17,10 +17,6 @@ typedef struct s_Cmdline {
   char pkmbP;
   /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
   char ebppP;
-  /***** -pad0: Pad the data to the next power-of-2 with zeros */
-  char pad0P;
-  /***** -padavg: Pad the data to the next power-of-2 with the average value */
-  char padavgP;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
   int numout;

@@ -8,6 +8,12 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.11  2000/12/21 23:20:54  ransom
+ * Re-ran clig after removing padding params in prepdata.
+ * Added flag to multibeam reading routines that tells if the
+ *    data is padding or not.
+ * Changed onoff array to static in infodata routines.
+ *
  * Revision 1.10  2000/12/19 23:44:01  ransom
  * Changed calling convention for read_PKMB() (added numpoints).
  *
@@ -138,13 +144,17 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 
+void PKMB_update_infodata(int numfiles, infodata *idata);
+/* Update the onoff bins section in case we used multiple files */
+
 int skip_to_PKMB_rec(FILE * infile, int rec);
 /* This routine skips to the record 'rec' in the input file */
 /* *infile.  *infile contains 1 bit digitized data from the */
 /* PKMB backend at Parkes.  Returns the record skipped to.  */
 
 int read_PKMB_rawblock(FILE *infiles[], int numfiles, 
-		       PKMB_tapehdr *hdr, unsigned char *data);
+		       PKMB_tapehdr *hdr, unsigned char *data,
+		       int *padding);
 /* This routine reads a single record from the         */
 /* input files *infiles which contain 1 bit digitized  */
 /* data from the PKMB pulsar backend at Parkes.        */
@@ -152,21 +162,28 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 /* plus 48k of data = 49792 bytes.                     */
 /* The header of the record read is placed in hdr.     */
 /* *data must be pre-allocated with a size of 48k.     */
+/* If padding is returned as 1, then padding was       */
+/* added and statistics should not be calculated       */
 
 int read_PKMB_rawblocks(FILE *infiles[], int numfiles, 
-			unsigned char rawdata[], int numblocks);
+			unsigned char rawdata[], int numblocks,
+			int *padding);
 /* This routine reads numblocks PKMB records from the input */
 /* files *infiles.  The raw bit data is returned in rawdata */
 /* which must have a size of numblocks*DATLEN.  The number  */
 /* of blocks read is returned.                              */
+/* If padding is returned as 1, then padding was added      */
+/* and statistics should not be calculated                  */
 
 int read_PKMB(FILE *infiles[], int numfiles, float *data, 
-	      int numpts, double *dispdelays);
+	      int numpts, double *dispdelays, int *padding);
 /* This routine reads numpts from the PKMB raw input   */
 /* files *infiles.  These files contain 1 bit data     */
 /* from the PKMB backend at Parkes.  Time delays and   */
 /* and a mask are applied to each channel.  It returns */
 /* the # of points read if succesful, 0 otherwise.     */
+/* If padding is returned as 1, then padding was       */
+/* added and statistics should not be calculated       */
 
 void get_PKMB_channel(int channum, float chandat[], 
 		      unsigned char rawdata[], int numblocks);
@@ -178,7 +195,8 @@ void get_PKMB_channel(int channum, float chandat[],
 /* Channel 0 is assumed to be the lowest freq channel.         */
 
 int read_PKMB_subbands(FILE *infiles[], int numfiles, 
-		       float *data, double *dispdelays, int numsubbands);
+		       float *data, double *dispdelays, 
+		       int numsubbands, int *padding);
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the PKMB system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -187,6 +205,8 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
 /* The low freq subband is stored first, then the next highest   */
 /* subband etc, with 'ptsperblk_st' floating points per subband. */
 /* It returns the # of points read if succesful, 0 otherwise.    */
+/* If padding is returned as 1, then padding was added and       */
+/* statistics should not be calculated                           */
 
 void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata);
 /* Convert PKMB header into an infodata structure */

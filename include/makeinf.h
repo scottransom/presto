@@ -16,6 +16,7 @@
 #define NUMSCOPES  8
 #define NUMBANDS   6
 #define NUMFILTERS 11
+#define MAXNUMONOFF 20
 
 typedef struct INFODATA {
     char name[200];		/* Data file name without suffix         */
@@ -32,7 +33,7 @@ typedef struct INFODATA {
     double N;		        /* Number of bins in the time series     */
     double dt;	 	        /* Width of each time series bin (sec)   */
     int numonoff;		/* The number of onoff pairs in the data */
-    double *onoff;		/* Bin number pairs where obs is "on"    */
+    double onoff[MAXNUMONOFF*2];/* Bin number pairs where obs is "on"    */
     double fov;			/* Diameter of Beam or FOV in arcsec     */
     int mjd_i;			/* Epoch of observation (MJD) int part   */
     double mjd_f;		/* Epoch of observation (MJD) frac part  */
