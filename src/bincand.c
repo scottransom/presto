@@ -420,12 +420,17 @@ int main(int argc, char *argv[]){
 #ifdef DEBUG_OUT
     printf("p_orb = %.2f:\n", orb.p);
 #endif
+    phiorb = TWOPI * orb.x / ppsr;
+    dx = orb.x * \
+      exp(0.9572412 * log(1.0/phiorb) + 0.7110553);
     for (xct = 0; xct < nx; xct++){
       orb.x = lox + xct * dx;
       avg_time = 0.0;
 #ifdef DEBUG_OUT
       printf("  x_orb = %.4f\n", orb.x);
 #endif
+      dt = orb.p * \
+	exp(0.9420009 * log(1.0/phiorb) - 1.1676730);
       for (tct = 0; tct < nt; tct++){
 	orb.t = lot + tct * dt;
 	trial_time = orbit_trial(data, datalen, SAME, lodata, ppsr, T, 
