@@ -486,3 +486,52 @@ double fold(float *data, int numdata, double dt, double tlo,
 #undef DELAYS
 #undef ONOFF
 #undef LININTERP
+
+
+void combine_profs(double *profs, int numprofs, int proflen, 
+		   int shift, double *outprof)
+/* Combine a series of 'numprofs' profiles, each of length 'proflen', */
+/* into a single profile of length 'proflen'.  The profiles are       */
+/* summed after being shifted (+:right, -:left) by an an appropriate  */
+/* amount such that the phase would drift 'shift' bins over the time  */
+/* represented by all of the profiles.  Ruturns the summed profile in */
+/* 'outprof'.  Note that 'profs' must contain all of the profiles     */
+/* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
+{
+  int ii, jj, kk, index, numadd, offset, profoffset, negshift;
+  double doffset, absshift;
+
+  /* Note:  This routine uses only integer arithmetic in order to   */
+  /*        speed up the computations.                              */
+
+  /* Set the output array to the first profile */
+
+  for (ii = 0; ii < proflen; ii++) outprof[ii] = profs[ii];
+k
+  absshift = fabs(shift);
+  negshift = (shift < 0) ? 1 : 0;
+
+  if (numprofs > 1){
+
+    /* Loop over the profiles */
+
+    for (ii = 1; ii < numprofs; ii++){
+
+      /* Loop over the low index elements in each profile */
+      
+      profoffset = ii * proflen;
+      doffset = ((ii * absshift) / (proflen - 1.0)) + 0.5000000001;
+      offset = (negshift) ? -(int)(doffset) : (int)(doffset);
+      numadd = offset % proflen;
+      index = profoffset + numadd;
+      numadd = proflen - numadd;
+      for (jj = 0, kk = index; jj < numadd; jj++, kk++)
+	outprof[jj] += profs[kk];
+
+      /* Loop over the high index elements in each profile */
+      
+      for (kk = profoffset; jj < proflen; jj++, kk++)
+      	outprof[jj] += profs[kk];
+    }
+  }
+}
