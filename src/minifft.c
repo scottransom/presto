@@ -1,6 +1,6 @@
 #include "presto.h"
 
-static float percolate_pows_and_freqs(float highpows, float highfreqs, \
+static float percolate_pows_and_freqs(float *highpows, float *highfreqs, \
 				      int numcands);
 
 void search_minifft(fcomplex *minifft, int numminifft, \
@@ -23,7 +23,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*   The returned vectors will be sorted by decreasing power.      */
 {
   int ii, numspread, kern_half_width, numkern = 0, numbetween = 2;
-  float minpow = 0.0, *highpows, *highfreqs;
+  float minpow = 0.0, pwr, powargr, powargi;
   static int firsttime = 1, old_numspread = 0;
   static fcomplex *kernel;
   fcomplex *fftcopy, *spread, *kern;
@@ -45,7 +45,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   if (firsttime || old_numspread != numspread){
     kern_half_width = r_resp_halfwidth(LOWACC);
     numkern = 2 * numbetween * kern_half_width;
-    kern = gen_z_response(0.0, numbetween, numkern);
+    kern = gen_r_response(0.0, numbetween, numkern);
     kernel = gen_cvect(numspread);
     place_complex_kernel(kern, numkern, kernel, numspread);
     COMPLEXFFT(kernel, numspread, -1);
@@ -57,9 +57,10 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Interpolate the minifft */
   
   spread = gen_cvect(numspread);
-  spread_no_pad(minifft, numminifft, spread, numspread, numbetween);
+  spread_no_pad(fftcopy, numminifft, spread, numspread, numbetween);
   spread = complex_corr_conv(spread, kernel, numspread, \
 			     FFTD, INPLACE_CORR);
+  free(fftcopy);
 
   /* Search the interpolated minifft */
 
@@ -72,13 +73,13 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     if (pwr > minpow) {
       highpows[numcands-1] = pwr;
       highfreqs[numcands-1] = 0.5 * (float) ii; 
-      percolate_pows_and_freqs(highpows, highfreqs, numcands);
+      minpow = percolate_pows_and_freqs(highpows, highfreqs, numcands);
     }
   }
 }
 
 
-static float percolate_pows_and_freqs(float highpows, float highfreqs, \
+static float percolate_pows_and_freqs(float *highpows, float *highfreqs, \
 				      int numcands)
   /*  Pushes a power and its corresponding frequency as far up their  */
   /*  respective sorted lists as they shoud go to keep the power list */
