@@ -17,7 +17,7 @@
 
 static long long N;    /* Number of points in the time series */
 static double T;       /* The time duration of data */
-static float mjd0;     /* The MJD of the beginning of the first point */
+static float mjd0;     /* The MJD of the first point in the file */
 static infodata idata;
 static FILE *datfile;
 
@@ -137,47 +137,41 @@ static double plot_dataview(dataview *dv, float minval, float maxval,
 }
 
 
-static dataview *get_dataview(int centern, int zoomlevel, datapart *fp)
+static dataview *get_dataview(int centern, int zoomlevel, datapart *dp)
 {
-  int ii, jj, powindex, normindex;
-  float tmpchunk;
-  double split=1.0/(double)LOCALCHUNK;
   dataview *dv;
 
-  fv = (dataview *)malloc(sizeof(dataview));
+  dv = (dataview *)malloc(sizeof(dataview));
+  if (zoomlevel < 0) zoomlevel = 0;
   dv->zoomlevel = zoomlevel;
-  dv->chunklen = (1 << abs(zoomlevel));
-  dv->vdt = dv->chunklen*dt;
+  dv->chunklen = (1 << zoomlevel);
+  dv->vdt = dv->chunklen * idata.dt;
   dv->centern = centern;
   dv->numsamps = DISPLAYNUM * dv->chunklen;
-  dv->dr = (double) dv->chunklen;
   dv->lon = (int) floor(centern - 0.5 * dv->numsamps);
   if (dv->lon < 0) dv->lon = 0;
-  tmprawpwrs = gen_fvect(dv->numsamps);
-  if (norm_const==0.0){
-    for (ii=0; ii<dv->numsamps; ii++){
-      powindex = (int) (dv->lor - dp->rlo + ii + 0.5);
-      normindex = (int) (powindex * split);
-      tmprawpwrs[ii] = dp->rawpowers[powindex] * dp->normvals[normindex];
+  if (zoomlevel > 0){
+    int ii, jj, offset;
+    float *tmpchunk;
+    tmpchunk = gen_fvect(dv->chunklen);
+    for (ii=0; ii<DISPLAYNUM; ii++){
+      float tmpmin=9e99, tmpmax-9e99, tmpval;
+      offset = dv->lon + ii * dv->chunklen;
+      memcpy(tmpchunk, dp->data+offset, sizeof(float)*dv->chunklen);
+      dv->meds[ii] = median(tmpchunk, dv->chunklen);
+      avg_var(dp->data+offset, dv->chunklen, dv->avgs+ii, dv->stds+ii);
+      dv->stds[ii] = sqrt(dv->stds[ii]);
+      for (jj=0; jj<dv->chunklen; jj++, offset++){
+	tmpval = dp->data[offset];
+	if (tmpval > tmpmax) tmpmax = tmpval;
+	if (tmpval < tmpmin) tmpmin = tmpval;
+      }
+      dv->maxs[ii] = tmpmax;
+      dv->mins[ii] = tmpmin;
     }
-  } else {
-    for (ii=0; ii<dv->numsamps; ii++){
-      powindex = (int) (dv->lor - dp->rlo + ii + 0.5);
-      tmprawpwrs[ii] = dp->rawpowers[powindex] * norm_const;
-    }
+    free(tmpchunk);
   }
-  powindex = 0;
-  for (ii=0; ii<DISPLAYNUM; ii++){
-    maxpow = 0.0;
-    for (jj=0; jj<dv->chunklen; jj++, powindex++)
-      if (tmprawpwrs[powindex] > maxpow) maxpow = tmprawpwrs[powindex];
-    dv->rs[ii] = dv->lor + ii * dv->dr;
-    dv->powers[ii] = maxpow;
-  }
-  dv->maxpow = 0.0;
-  for (ii=0; ii<DISPLAYNUM; ii++)
-    if (dv->powers[ii] > dv->maxpow) dv->maxpow = dv->powers[ii];
-  return fv;
+  return dv;
 }
 
 
@@ -191,8 +185,8 @@ static datapart *get_datapart(int nlo, int numn)
     float *tmpdata;
 
     dp = (datapart *)malloc(sizeof(datapart));
+    dp->nn = numn;
     dp->nlo = nlo;
-    dp->numamps = numn;
     dp->tlo = idata.dt * nlo;
     dp->data = read_float_file(datfile, nlo, numn);
     tmpdata = gen_fvect(numn);
