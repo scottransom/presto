@@ -321,6 +321,12 @@ int main(int argc, char *argv[])
 	worklen = idata.N;
       worklen = (long) (worklen / 1024) * 1024;
     }
+
+    /* Compare the size of the data to the size of output we request */
+
+    if (!cmd->numoutP)
+      cmd->numout = INT_MAX;
+
   }
 
   printf("Writing output data to '%s'.\n", datafilenm);
@@ -504,7 +510,8 @@ int main(int argc, char *argv[])
     barydispdt = dispdt[numchan - 1];
     for (ii = 0; ii < numchan; ii++)
       dispdt[ii] = (dispdt[ii] - barydispdt) / idata.dt;
-    worklen *= ((int)(dispdt[0]) / worklen) + 1;
+    if (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
+      worklen *= ((int)(dispdt[0]) / worklen) + 1;
 
     /* If the data is de-dispersed radio data...*/
 
@@ -573,7 +580,7 @@ int main(int argc, char *argv[])
     
     do { /* Loop to read and write the data */
       int numwritten=0;
-      
+     
       if (cmd->pkmbP)
 	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked,
@@ -588,6 +595,7 @@ int main(int argc, char *argv[])
 			    &obsmask);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
+
       if (numread==0)
 	break;
 
