@@ -43,10 +43,10 @@ int main(int argc, char *argv[])
     
     hassuffix = split_root_suffix(cmd->argv[0], &rootfilenm, &suffix);
     if (hassuffix){
+      if (strcmp(suffix, "sdat")==0)
+	useshorts = 1;
       if (strcmp(suffix, "dat")!=0 &&
 	  strcmp(suffix, "sdat")!=0){
-	if (strcmp(suffix, "sdat")==0)
-	  useshorts = 1;
         printf("\nInput file ('%s') must be a time series ('.dat' or '.sdat')!\n\n",
                cmd->argv[0]);
         free(suffix);
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     printf("Downsampling %s data from '%s'.\n\n",
            remove_whitespace(idata.object), cmd->argv[0]);
   } else {
-    printf("Downsampling  data from '%s'.\n\n", cmd->argv[0]);
+    printf("Downsampling data from '%s'.\n\n", cmd->argv[0]);
   }
 
   /* Open files and create arrays */
@@ -123,7 +123,10 @@ int main(int argc, char *argv[])
   idata.numonoff = 0;
   idata.N = (double) N;
   strncpy(idata.name, outname, strlen(outname)-4);
-  idata.name[strlen(outname)-4] = '\0';
+  if (useshorts)
+    idata.name[strlen(outname)-5] = '\0';
+  else
+    idata.name[strlen(outname)-4] = '\0';
   writeinf(&idata);
 
   fclose(infile);
