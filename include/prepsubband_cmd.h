@@ -31,6 +31,12 @@ typedef struct s_Cmdline {
   char numwappsP;
   int numwapps;
   int numwappsC;
+  /***** -subs: Write subbands instead of de-dispersed data */
+  char subsP;
+  /***** -subsdm: The DM to use when de-dispersing subbands for -subs */
+  char subsdmP;
+  double subsdm;
+  int subsdmC;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
   int numout;
