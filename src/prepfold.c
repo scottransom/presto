@@ -913,8 +913,8 @@ int main(int argc, char *argv[])
   if (numdelays == 0) flags = 0;
 
   if (cmd->eventsP){  /* Fold events instead of a time series */
-    double event, dtmp, cts, phase;
-    double tf, tfd, tfdd;
+    double event, dtmp, cts, phase, startphs, endphs, dphs, lphs, rphs;
+    double tf, tfd, tfdd, totalphs, numwraps;
     int partnum, binnum;
     
     binproffile = chkfopen(binproffilenm, "wb");
@@ -946,7 +946,7 @@ int main(int argc, char *argv[])
       partnum = (int) floor(event*dtmp);
       phase = event*(event*(event*tfdd+tfd)+tf);
       binnum = (int)((phase-(int)phase)*search.proflen);
-      search.rawfolds[partnum*search.proflen + binnum] += 1.0;
+      search.rawfolds[partnum*search.proflen+binnum] += 1.0;
     }
     if (binary){
       if (search.bepoch == 0.0)
@@ -957,6 +957,32 @@ int main(int argc, char *argv[])
     for (ii=0; ii<cmd->npart; ii++){
       parttimes[ii] = (T*ii)/cmd->npart;
       cts = 0.0;
+      /* Correct each part for the "exposure".  This gives us a count rate. */
+      event = parttimes[ii];
+      startphs = event*(event*(event*tfdd+tfd)+tf);
+      event = parttimes[ii]+cmd->npart/T;
+      endphs = event*(event*(event*tfdd+tfd)+tf);
+      totalphs = endphs-startphs;
+      startphs = modf(startphs, &dtmp);
+      endphs = modf(endphs, &dtmp);
+      dphs = 1.0/search.proflen;
+      for (jj=0; jj<search.proflen; jj++){
+	numwraps = floor(totalphs);
+	lphs = jj*dphs;
+	rphs = (jj+1)*dphs;
+	if (lphs < startphs){
+	  if (rphs < startphs) numwraps -= 1.0;
+	  else numwraps -= (startphs-lphs)/dphs;
+	}
+	if (rphs > endphs){
+	  if (lphs < endphs) numwraps -= 1.0;
+	  else numwraps -= (rphs-endphs)/dphs;
+	}
+	if (rphs < endphs && lphs > startphs){
+	  numwraps += 1.0;
+	}
+	search.rawfolds[ii*search.proflen+jj] /= numwraps;
+      }
       for (jj=ii*search.proflen; jj<(ii+1)*search.proflen; jj++)
 	cts += search.rawfolds[jj];
       search.stats[ii].numdata = ceil((T/cmd->npart)/search.dt);
