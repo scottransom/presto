@@ -414,10 +414,10 @@ typedef struct foldstats {
 } foldstats;
 
 
-int read_int(FILE *infile);
+int read_int(FILE *infile, int byteswap);
 /* Reads a binary integer value from the file 'infile' */
 
-double read_double(FILE *infile);
+double read_double(FILE *infile, int byteswap);
 /* Reads a double precision value from the file 'infile' */
 
 %apply float* IN_1D_FLOAT { float *data };

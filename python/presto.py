@@ -914,6 +914,8 @@ PIBYTWO = prestoc.PIBYTWO
 SOL = prestoc.SOL
 SECPERJULYR = prestoc.SECPERJULYR
 SECPERDAY = prestoc.SECPERDAY
+ARCSEC2RAD = prestoc.ARCSEC2RAD
+SEC2RAD = prestoc.SEC2RAD
 LOWACC = prestoc.LOWACC
 HIGHACC = prestoc.HIGHACC
 INTERBIN = prestoc.INTERBIN
@@ -1133,23 +1135,28 @@ corr_rz_interp = prestoc.corr_rz_interp
 
 import math, umath, Numeric, Pgplot, string, numpyio, miscutils
 
-def read_foldstats(file):
+def read_foldstats(file, byteswap=0):
    stats = foldstats()
-   stats.numdata = read_double(file)
-   stats.data_avg = read_double(file)
-   stats.data_var = read_double(file)
-   stats.numprof = read_double(file)
-   stats.prof_avg = read_double(file)
-   stats.prof_var = read_double(file)
-   stats.redchi = read_double(file)
+   stats.numdata = read_double(file, byteswap)
+   stats.data_avg = read_double(file, byteswap)
+   stats.data_var = read_double(file, byteswap)
+   stats.numprof = read_double(file, byteswap)
+   stats.prof_avg = read_double(file, byteswap)
+   stats.prof_var = read_double(file, byteswap)
+   stats.redchi = read_double(file, byteswap)
    return stats
   
 class pfd:
    def __init__(self, filename):
       infile = open(filename, "rb")
-      self.npart = int(read_double(infile))
-      self.nsub = int(read_double(infile))
-      self.proflen = int(read_double(infile))
+      byteswap = 0
+      testswap = read_double(infile, byteswap)
+      if (testswap < 1.0 or testswap > 10000.0):
+         byteswap = 1
+         infile.seek(0)
+      self.npart = int(read_double(infile, byteswap))
+      self.nsub = int(read_double(infile, byteswap))
+      self.proflen = int(read_double(infile, byteswap))
       self.stats = []
       self.profs = Numeric.zeros(self.npart * self.nsub *
                                  self.proflen, 'd')
@@ -1161,14 +1168,16 @@ class pfd:
          if (self.nsub > 1):
             self.stats.append([])
             for jj in xrange(self.nsub):
-               self.stats[ii].append(read_foldstats(infile))
+               self.stats[ii].append(read_foldstats(infile, byteswap))
                self.profs[ii][jj] = self.profs[ii][jj] + \
                                     numpyio.fread(infile,
-                                                  self.proflen, 'd')
+                                                  self.proflen, 'd',
+                                                  'd', byteswap)
          else:
-            self.stats.append(read_foldstats(infile))
+            self.stats.append(read_foldstats(infile, byteswap))
             self.profs[ii] = self.profs[ii]+ \
-                             numpyio.fread(infile, self.proflen, 'd')
+                             numpyio.fread(infile, self.proflen, 'd',
+                                           'd', byteswap)
       infile.close()
    
 def val_with_err(value, error, len=0, digits=2):
