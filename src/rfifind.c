@@ -59,7 +59,7 @@ int main(int argc, char *argv[])
   FILE **infiles=NULL, *bytemaskfile;
   float **dataavg=NULL, **datastd=NULL, **datapow=NULL, *padvals;
   float *chandata=NULL, powavg, powstd, powmax;
-  float inttime, norm, fracterror=RFI_FRACTERROR, freqsigma, timesigma;
+  float inttime, norm, fracterror=RFI_FRACTERROR;
   unsigned char *rawdata=NULL, **bytemask=NULL;
   short *srawdata=NULL;
   char *outfilenm, *statsfilenm, *maskfilenm;
@@ -92,8 +92,6 @@ int main(int argc, char *argv[])
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
-  freqsigma = cmd->freqsigma;
-  timesigma = cmd->timesigma;
   slen = strlen(cmd->outfile)+20;
   numfiles = cmd->argc;
   if (cmd->noclipP) cmd->clip = 0.0;
@@ -243,11 +241,14 @@ int main(int argc, char *argv[])
       free(root);
       free(suffix);
       ptsperblock = 1;
-      writeinf(&idata);
       /* Compensate for the fact that we have subbands and not channels */
-      idata.freq = idata.freq + (idata.num_chan/numfiles-0.5)*idata.chan_wid;
+      idata.freq = idata.freq - 0.5*idata.chan_wid + 
+	0.5*idata.chan_wid*(idata.num_chan/numfiles);
       idata.chan_wid = idata.num_chan/numfiles*idata.chan_wid;
       idata.num_chan = numchan = numfiles;
+      idata.dm = 0.0;
+      sprintf(idata.name, "%s", outfilenm);
+      writeinf(&idata);
 
     } else if (cmd->pkmbP){
 
@@ -461,7 +462,7 @@ int main(int argc, char *argv[])
 	    norm = (chandata[0]==0.0) ? 1.0 : chandata[0];
 	  cands = search_fft((fcomplex *)chandata, ptsperint / 2, 
 			     lobin, ptsperint / 2, harmsum, 
-			     numbetween, interptype, norm, freqsigma,
+			     numbetween, interptype, norm, cmd->freqsigma,
 			     &numcands, &powavg, &powstd, &powmax);
 	  datapow[ii][jj] = powmax;
 	  
@@ -494,12 +495,13 @@ int main(int argc, char *argv[])
     
     write_rfifile(rfifilenm, rfivect, numrfi, numchan, numint, 
 		  ptsperint, lobin, numbetween, harmsum,
-		  fracterror, freqsigma);
+		  fracterror, cmd->freqsigma);
     write_statsfile(statsfilenm, datapow[0], dataavg[0], datastd[0],
 		    numchan, numint, ptsperint, lobin, 
 		    numbetween);
 
   } else { /* If "-nocompute" */
+    float freqsigma;
 
     /* Read the data from the output files */
     
@@ -542,7 +544,7 @@ int main(int argc, char *argv[])
     } else {
       zapchan = gen_ivect(numchan);
     }    
-    rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
+    rfifind_plot(numchan, numint, ptsperint, cmd->timesigma, cmd->freqsigma, 
 		 cmd->inttrigfrac, cmd->chantrigfrac, 
 		 dataavg, datastd, datapow, zapchan, numzapchan,
 		 zapints, numzapints, &idata, bytemask, 
