@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
     sprintf(plotfilenm, "%s_%s.ps", rootnm, search.candnm);
     search.pgdev = (char *)calloc(slen+5, sizeof(char));
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
+sprintf(search.pgdev, "/XWIN");
     printf("Folding a %s candidate.\n\n", search.candnm);
     printf("Output data file is '%s'.\n", outfilenm);
     printf("Output plot file is '%s'.\n", plotfilenm);
@@ -765,7 +766,7 @@ int main(int argc, char *argv[])
   printf("\nOptimizing...\n\n");
   bestprof = gen_dvect(search.proflen);
   {
-    int numtrials, pdelay, pddelay, profindex, itmp;
+    int numtrials, pdelay, pddelay, profindex;
     double dphase, po, pdo, pddo, pofact;
     double *pdprofs, currentfd=0.0, *currentprof;
     foldstats currentstats;
@@ -848,14 +849,14 @@ int main(int argc, char *argv[])
 
 	for (jj = 0; jj < numtrials; jj++){
 	  currentfd = -search.pdots[jj] * pofact;
-	  itmp = jj - (numtrials - 1) / 2;
 
 	  /* Correct each part for the current pdot */
 
 	  for (kk = 0; kk < cmd->npart; kk++){
 	    profindex = kk * search.proflen;
-	    pddelay = (int) ((double) (kk * itmp) / 
-			     ((double) cmd->npart) + 0.5);
+	    pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
+			      (search.pdots[jj] * foldf * foldf + 
+			       foldfd) / dphase) + 0.5);
 	    shift_prof(ddprofs + profindex, search.proflen, pddelay, 
 		       pdprofs + profindex);
 	  }
@@ -898,14 +899,14 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
 
       for (jj = 0; jj < numtrials; jj++){
 	currentfd = -search.pdots[jj] * pofact;
-	itmp = jj - (numtrials - 1) / 2;
 	
 	/* Correct each part for the current pdot */
 	
 	for (kk = 0; kk < cmd->npart; kk++){
 	  profindex = kk * search.proflen;
-	  pddelay = (int) ((double) (kk * itmp) / 
-			   ((double) cmd->npart) + 0.5);
+	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
+			    (search.pdots[jj] * foldf * foldf + 
+			     foldfd) / dphase) + 0.5);
 	  shift_prof(search.rawfolds + profindex, search.proflen, pddelay, 
 		     pdprofs + profindex);
 	}
@@ -951,6 +952,7 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
     /* Convert best params from/to barycentric to/from topocentric */
     
     if (cmd->nobaryP){
+      search.bary.pow = 1.0; /* Flag */
       
       /* Calculate the errors in our new pulsation quantities */
       
@@ -964,7 +966,10 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
       printf("Best p-dot       (s/s)  =  %s\n", out);
       nice_output_2(out, search.bary.p3, pdderr, 0);
       printf("Best p-dotdot  (s/s^2)  =  %s\n", out);
+
     } else {
+      search.bary.pow = 1.0; /* Flag */
+      search.topo.pow = 1.0; /* Flag */
 
       if (idata.bary){
 
@@ -1038,6 +1043,8 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
   /*
    *   Plot our results
    */
+
+  prepfold_plot(&search);
 
   /* Free our memory  */
 

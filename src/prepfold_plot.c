@@ -1,22 +1,116 @@
 #include "prepfold.h"
 
-void prepfold_plot(prepfoldinfo *search);
+/********************************************/
+/* The following is taken from ppgplot.c by */
+/* Nick Patavalis (npat@ariadne.di.uoa.gr)  */
+/********************************************/
+
+void
+minmax (float *v, int nsz, float *min, float *max)
+{
+    register float *e;
+    register float mn, mx;
+
+    for (mn=mx=*v, e=v+nsz; v < e; v++)
+	if (*v > mx) mx = *v;
+	else if (*v < mn) mn = *v;
+    *min = mn;
+    *max = mx;
+}
+
+
+void 
+lininterp (float min, float max, int npts, float *v)
+{
+    register int i;
+    register float step;
+    register float lev;
+
+    step = (max-min) / (npts-1);
+    lev = min;
+    for (i=0; i<npts; i++) {
+	v[i] = lev;
+	lev += step;
+    }
+}
+
+
+static void   
+autocal2d(float *a, int rn, int cn,
+	  float *fg, float *bg, int nlevels, float *levels,
+	  float *x1, float *x2, float *y1, float *y2, 
+	  float *tr)
+{
+/*     int i; */
+    float dx1, dx2, dy1, dy2;
+
+    /* autocalibrate intensity-range. */
+    if (*fg == *bg) {
+	minmax(a,rn*cn,bg,fg);
+/* 	fprintf(stderr,"Intensity range:\n  fg=%f\n  bg=%f\n",*fg,*bg); */
+    }
+    
+    if ((nlevels >= 2) && (levels))
+	lininterp(*bg, *fg, nlevels, levels);
+    
+    /* autocalibrate x-y range. */
+    if ((*x1 == *x2) || (*y1 == *y2)) cpgqwin(&dx1,&dx2,&dy1,&dy2);
+    if (*x1 == *x2) {*x1=dx1; *x2=dx2;}
+    if (*y1 == *y2) {*y1=dy1; *y2=dy2;}
+/*     fprintf(stderr,"Xrange: [%f, %f]\nYrange[%f, %f]\n",*x1,*x2,*y1,*y2); */
+    
+    /* calculate transformation vector. */
+    tr[2] = tr[4] = 0.0;    
+    tr[1] = (*x2 - *x1) / cn;
+    tr[0] = *x1 - (tr[1] / 2);
+    tr[5] = (*y2 - *y1) / rn;
+    tr[3] = *y1 - (tr[5] / 2);
+	
+/*     fprintf(stderr,"Tansformation vector:\n"); */
+/*     for (i=0; i<6; fprintf(stderr,"  tr[%d]=%f\n",i,tr[i]),i++); */
+}
+
+/********************************************/
+
+
+void prepfold_plot(prepfoldinfo *search)
 /* Make the beautiful 1 page prepfold output */
 {
-  int ii, jj, pdelay, pddelay;
-  double N=0.0, T, foldf=0.0, foldfd=0.0, dphase;
-  double delay, parttime, *pdprofs;
-  float *redchi, *parttimes;
+  int ii, jj, kk, ll, mm, len, profindex=0;
+  int totpdelay=0, totpddelay=0, pdelay, pddelay;
+  double N=0.0, T, dphase, pofact, *currentprof, *lastprof;
+  double delay, parttime, *pdprofs, *dtmparr, bestp, bestpd, bestpdd;
+  float *ftmparr1, *ftmparr2;
+  foldstats currentstats;
+  /* Best Fold Plot */
+  float *bestprof=NULL, *phasetwo=NULL;
+  /* Profiles vs Time */
+  float *timeprofs=NULL, *parttimes=NULL;
+  /* RedChi vs Time */
+  float *timechi=NULL;
+  /* Profiles vs DM */
+  float *dmprofs=NULL, *phaseone=NULL;
+  /* DM vs RedChi */  
+  float *dmchi=NULL;
+  /* Period vs RedChi */  
+  float *periodchi=NULL;
+  /* P-dot vs RedChi */  
+  float *pdotchi=NULL;
+  /* Period P-dot 2D */  
+  float *ppdot2d=NULL;
 
-  if (search->topo.pow){  /* Used topocentric period for folding */
-    dphase = search->topo.p1 / search->proflen;  
-    foldf = 1.0 / search->topo.p1;
-    foldfd = -search->topo.p2 / (search->topo.p1 * search->topo.p1);
-  } else {                /* Used barycentric period for folding */
-    dphase = search->bary.p1 / search->proflen;  
-    foldf = 1.0 / search->bary.p1;
-    foldfd = -search->bary.p2 / (search->bary.p1 * search->bary.p1);
+  if (search->fold.pow==1.0){ /* Barycentric periods */
+    bestp = search->bary.p1;
+    bestpd = search->bary.p2;
+    bestpdd = search->bary.p3;
+  } else {                   /* Topocentric periods */
+    bestp = search->topo.p1;
+    bestpd = search->topo.p2;
+    bestpdd = search->topo.p3;
   }
+  /* Time interval of 1 profile bin */
+
+  dphase = 1.0 / (search->fold.p1 * search->proflen);
 
   /* Find out how many total points were folded */
 
@@ -27,22 +121,55 @@ void prepfold_plot(prepfoldinfo *search);
 
   parttime = search->stats[0].numdata * search->dt;
   T = N * search->dt;
+  pofact = search->fold.p1 * search->fold.p1;
 
-  /* Generate the array of times */
+  /* Allocate the non-DM specific arrays */
 
-  parttimes = gen_freqs(search->npart, 0.0, parttime);
-
-  /* Array of profiles corrected for DM and pdot */
-
+  bestprof = gen_fvect(2 * search->proflen);
+  phasetwo = gen_freqs(2 * search->proflen, 0.0, 
+		       1.0 / search->proflen);
+  timeprofs = gen_fvect(2 * search->proflen * search->npart);
+  parttimes = gen_freqs(search->npart + 1, 0.0, parttime);
+  timechi = gen_fvect(search->npart + 1);
+  timechi[0] = 0.0;
+  periodchi = gen_fvect(search->numperiods);
+  pdotchi = gen_fvect(search->numpdots);
+  ppdot2d = gen_fvect(search->numperiods * search->numpdots);
   pdprofs = gen_dvect(search->npart * search->proflen);
+  currentprof = gen_dvect(search->proflen);
+  lastprof = gen_dvect(search->proflen);
+  for (ii = 0; ii < search->proflen; ii++)
+    lastprof[ii] = 0.0;
 
+  /* Find the delays for the best periods and p-dots */
+  
+  for (ii = 0; ii < search->numperiods; ii++)
+    if (search->periods[ii]==bestp){
+      totpdelay = ii - (search->numperiods - 1) / 2;
+      break;
+    }
+  
+  for (ii = 0; ii < search->numpdots; ii++)
+    if (search->pdots[ii]==bestpd){
+      totpddelay = ii - (search->numpdots - 1) / 2;
+      break;
+    }
+      
   /* Correct profiles for best DM */
 
   if (search->nsub > 1){
+    int *dmdelays;
     double *ddprofs, *subbanddelays, hif, hifdelay;
     foldstats *ddstats;
 
-    /* Array of profiles corrected for DM and their stats */
+    /* Allocate DM specific arrays */
+
+    dmprofs = gen_fvect(search->proflen * search->npart);
+    phaseone = gen_freqs(search->proflen, 0.0, 
+			 1.0 / search->proflen);
+    dmchi = gen_fvect(search->numdms);
+    
+    /* Allocate local DM specific arrays*/
 
     ddprofs = gen_dvect(search->npart * search->proflen);
     ddstats = (foldstats *)malloc(search->npart * sizeof(foldstats));
@@ -51,187 +178,418 @@ void prepfold_plot(prepfoldinfo *search);
     /* Doppler corrected hi freq and its delay at best DM */
 
     hif = doppler(search->lofreq + (search->numchan - 1.0) * 
-		  search->chan_wid, search.avgvoverc);
+		  search->chan_wid, search->avgvoverc);
     hifdelay = delay_from_dm(search->bestdm, hif);
-    subbanddelays = subband_delays(search->numchan, search->nsub, 
-				   search->bestdm, search->lofreq, 
-				   search->chan_wid, search->avgvoverc);
-    for (ii = 0; ii < cmd->nsub; ii++)
-      dmdelays[ii] = ((int) ((subbanddelays[ii] - hifdelay) / 
-			     dphase + 0.5)) % search->proflen;
-    free(subbanddelays);
-    combine_subbands(search->rawfolds, search->stats, search->npart, 
-		     search->nsub, search->proflen, dmdelays, 
-		     ddprofs, ddstats);
 
-    /* Correct for best P-dot and Period */
+    /* De-disperse and combine the subbands */
     
-    for (ii = 0; ii < cmd->npart; ii++){
-      profindex = ii * search->proflen;
-      pdelay = (int) (((currentfd - foldfd) * parttimes[ii] * 
-		       parttimes[ii]) / (2.0 * dphase) + 0.5);
-      pddelay = (int) (((currentfd - foldfd) * parttimes[ii] * 
-			parttimes[ii]) / (2.0 * dphase) + 0.5);
-      shift_prof(ddprofs + profindex, search.proflen, pddelay, 
-		 pdprofs + profindex);
-    }
+    for (ii = 0; ii < search->numdms; ii++){  /* Loop over DMs */
+      hifdelay = delay_from_dm(search->dms[ii], hif);
+      subbanddelays = subband_delays(search->numchan, search->nsub, 
+				     search->dms[ii], search->lofreq, 
+				     search->chan_wid, search->avgvoverc);
+      for (jj = 0; jj < search->nsub; jj++)
+	dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
+			       dphase + 0.5)) % search->proflen;
+      free(subbanddelays);
 
+      /* Make the DM vs subband plot */
+
+      for (jj = 0; jj < search->nsub; jj++){
+
+	/* Copy the subband parts into a single array */
+
+	for (kk = 0; kk < search->npart; kk++)
+	  memcpy(ddprofs + kk * search->proflen, search->rawfolds + 
+		 (kk * search->nsub + jj) * search->proflen, 
+		 sizeof(double) * search->proflen);
+
+	/* Correct each part for the current pdot */
+	  
+	for (kk = 0; kk < search->npart; kk++){
+	  profindex = kk * search->proflen;
+	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
+			    (search->pdots[jj] * search->fold.p1 * 
+			     search->fold.p1 + search->fold.p2) / dphase) 
+			   + 0.5);
+	  shift_prof(ddprofs + profindex, search->proflen, pddelay, 
+		     pdprofs + profindex);
+	}
+	
+	/* Correct each part for the current pdot */
+
+	combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
+		      totpdelay, currentprof, &currentstats);
+
+	/* Place the profile into the DM array */
+
+	double2float(currentprof, dmprofs + jj * search->proflen, 
+		     search->proflen);
+      }
+
+      combine_subbands(search->rawfolds, search->stats, search->npart, 
+		       search->nsub, search->proflen, dmdelays, 
+		       ddprofs, ddstats);
+
+      /* Perform the P-dot and Period searches */
+      
+      if (search->dms[ii]==search->bestdm){
+	for (jj = 0; jj < search->numpdots; jj++){
+	  
+	  /* Correct each part for the current pdot */
+	  
+	  for (kk = 0; kk < search->npart; kk++){
+	    profindex = kk * search->proflen;
+	    pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
+			     (search->pdots[jj] * search->fold.p1 * 
+			      search->fold.p1 + search->fold.p2) / dphase) 
+			     + 0.5);
+	    shift_prof(ddprofs + profindex, search->proflen, pddelay, 
+		       pdprofs + profindex);
+	  }
+	
 	  /* Search over the periods */
-
-	  for (kk = 0; kk < numtrials; kk++){
-	    pdelay = kk - (numtrials - 1) / 2;
-	    combine_profs(pdprofs, ddstats, cmd->npart, search.proflen, 
+	  
+	  for (kk = 0; kk < search->numperiods; kk++){
+	    pdelay = kk - (search->numperiods - 1) / 2;
+	    combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
 			  pdelay, currentprof, &currentstats);
-	    if (currentstats.redchi > beststats.redchi){
-	      search.bestdm = search.dms[ii];
-	      if (idata.bary){
-		search.bary.p1 = search.periods[kk];
-		search.bary.p2 = search.pdots[jj];
-	      } else {
-		search.topo.p1 = search.periods[kk];
-		search.topo.p2 = search.pdots[jj];
+
+	    /* Add to the periodchi array */
+
+	    if (search->pdots[jj]==bestpd) 
+	      periodchi[kk] = currentstats.redchi;
+
+	    /* Add to the pdotchi array */
+
+	    if (search->periods[kk]==bestp) 
+	      pdotchi[jj] = currentstats.redchi;
+
+	    /* Add to the ppdot2d array */
+
+	    ppdot2d[jj * search->numpdots + kk] = currentstats.redchi;
+
+	    /* Generate the time based arrays */
+
+	    if (search->periods[kk]==bestp && search->pdots[jj]==bestpd){
+	      int wrap;
+	      double dataavg=0.0, datavar=0.0;
+
+	      /* The Best Prof */
+
+	      double2float(currentprof, bestprof, search->proflen);
+	      double2float(currentprof, bestprof + search->proflen, 
+			   search->proflen);
+
+	      /* Add this point to dmchi */
+
+	      dmchi[ii] = currentstats.redchi;
+
+	      /* Determine the total data variance and average */
+
+	      dataavg = datavar = 0.0;
+	      for (ll = 0; ll < search->npart; ll++){
+		dataavg += ddstats[ll].data_avg;
+		datavar += ddstats[ll].data_var;
 	      }
-	      beststats = currentstats;
+	      dataavg /= search->npart;
+	      datavar /= search->npart;
 
-printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
-       kk, jj, search.bestdm, search.topo.p1, search.topo.p2, 
-       beststats.redchi);
+	      /* The profs at each of the npart times */
 
+	      for (ll = 0; ll < search->npart; ll++){
+		profindex = ll * search->proflen;
+		wrap = (int)((double) (ll * pdelay) / 
+			     ((double) search->npart) 
+			     + 0.5) % search->proflen;
+		shift_prof(pdprofs + profindex, search->proflen, wrap, 
+			   currentprof);
+		double2float(currentprof, timeprofs + 2 * profindex, 
+			     search->proflen);
+		double2float(currentprof, timeprofs + 2 * profindex + 
+			     search->proflen, search->proflen);
+		for (mm = 0; mm < search->proflen; mm++)
+		  lastprof[mm] =+ currentprof[mm];
+		timechi[ll+1] = (chisqr(currentprof, search->proflen, 
+					dataavg, datavar) / 
+				 (double) (search->proflen - 1.0));
+	      }
 	    }
 	  }
 	}
 
+      /* Only check the best P and P-dot */
 
+      } else {
+
+	/* Correct each part for the current pdot */
+	  
+	for (kk = 0; kk < search->npart; kk++){
+	  profindex = kk * search->proflen;
+	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
+			    (search->pdots[jj] * search->fold.p1 * 
+			     search->fold.p1 + search->fold.p2) / dphase) 
+			   + 0.5);
+	  shift_prof(ddprofs + profindex, search->proflen, pddelay, 
+		     pdprofs + profindex);
+	}
+	
+	/* Correct each part for the current pdot */
+
+	combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
+		      totpdelay, currentprof, &currentstats);
+	dmchi[ii] = currentstats.redchi;
+      }
+    }
     free(ddprofs);
     free(ddstats);
     free(dmdelays);
+
+  /* No DM corrections */
+
+  } else {
+
+    for (jj = 0; jj < search->numpdots; jj++){
+      
+      /* Correct each part for the current pdot */
+      
+      for (kk = 0; kk < search->npart; kk++){
+	profindex = kk * search->proflen;
+	pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
+			  (search->pdots[jj] * search->fold.p1 * 
+			   search->fold.p1 + search->fold.p2) / dphase) 
+			 + 0.5);
+	shift_prof(search->rawfolds + profindex, search->proflen, 
+		   pddelay, pdprofs + profindex);
+      }
+      
+      /* Search over the periods */
+      
+      for (kk = 0; kk < search->numperiods; kk++){
+	pdelay = kk - (search->numperiods - 1) / 2;
+	combine_profs(pdprofs, search->stats, search->npart, 
+		      search->proflen, pdelay, currentprof, 
+		      &currentstats);
+	
+	/* Add to the periodchi array */
+	
+	if (search->pdots[jj]==bestpd) 
+	  periodchi[kk] = currentstats.redchi;
+	
+	/* Add to the pdotchi array */
+	
+	if (search->periods[kk]==bestp) 
+	  pdotchi[jj] = currentstats.redchi;
+	
+	/* Add to the ppdot2d array */
+	
+	ppdot2d[jj * search->numpdots + kk] = currentstats.redchi;
+	
+	/* Generate the time based arrays */
+	
+	if (search->periods[kk]==bestp && search->pdots[jj]==bestpd){
+	  int wrap;
+	  double dataavg=0.0, datavar=0.0;
+	  
+	  /* The Best Prof */
+	  
+	  double2float(currentprof, bestprof, search->proflen);
+	  double2float(currentprof, bestprof + search->proflen, 
+		       search->proflen);
+	  
+	  /* Determine the total data variance and average */
+	  
+	  dataavg = datavar = 0.0;
+	  for (ll = 0; ll < search->npart; ll++){
+	    dataavg += search->stats[ll].data_avg;
+	    datavar += search->stats[ll].data_var;
+	  }
+	  dataavg /= search->npart;
+	  datavar /= search->npart;
+printf("avg = %f  var = %f\n", dataavg, datavar);
+	  /* The profs at each of the npart times */
+	  
+	  for (ll = 0; ll < search->npart; ll++){
+	    profindex = ll * search->proflen;
+	    wrap = (int)((double) (ll * pdelay) / 
+			 ((double) search->npart) 
+			 + 0.5) % search->proflen;
+	    shift_prof(pdprofs + profindex, search->proflen, wrap, 
+		       currentprof);
+	    double2float(currentprof, timeprofs + 2 * profindex, 
+			 search->proflen);
+	    double2float(currentprof, timeprofs + 2 * profindex + 
+			 search->proflen, search->proflen);
+	    for (mm = 0; mm < search->proflen; mm++)
+	      lastprof[mm] =+ currentprof[mm];
+	    timechi[ll+1] = (chisqr(currentprof, search->proflen, 
+				    dataavg, datavar) / 
+			     (double) (search->proflen - 1.0));
+	    printf("timechi[%d] = %f\n", ll+1, timechi[ll+1]);
+	  }
+	}
+      }
+    }
   }
-
-
-  /* Fold the best profile to get stats about the folds */
-  /* as well as the Time vs. Phase, Time vs. RedChi and */
-  /* the Best Profile plots.                            */
-
-  free(parttimes);
-  free(pdprofs);
-  
 
   /*
    *  Now plot the results
    */
 
-  /* Open and prep our device */
-  cpgopen(in->pgdev);
-  cpgpap(10.25, 8.5/11.0);
-  cpgpage();
-  cpgiden();
-  cpgsch(0.8);
+  {
+    float min, max, over;
 
-  /* Time versus phase */
-  cpgsvp (0.06, 0.27, 0.09, 0.68);
-  cpgswin(0.0, 1.9999, 0.0, npart * 120.0);
-  cpgbox ('BCNST', 0.0, 0, 'BCNST', 0.0, 0);
-  cpgmtxt('B', 2.6, 0.5, 0.5, "Phase");
-  cpgmtxt('L', 2.1, 0.5, 0.5, "Time (s)");
-  lo_col_ind, hi_col_ind = cpgqcol();
-  lo_col_ind = lo_col_ind + 2;
-  cpgscir(lo_col_ind, hi_col_ind);
-  l = Numeric.array([0.0, 1.0]);
-  r = Numeric.array([1.0, 0.0]);
-  g = Numeric.array([1.0, 0.0]);
-  b = Numeric.array([1.0, 0.0]);
-  cpgctab(l,r,g,b);
-  /* cpgimag(dmplots, numtrials, nsub, 0, numtrials-1, 0, nsub-1, 0.0, 1.0, asarray([0.0, 2.0 / nsub, 0.0, 0.0, 120.0, 0.0])); */
-  /*  Time versus Reduced chisqr */
-  cpgsvp (0.27, 0.36, 0.09, 0.68);
-  cpgswin(0.0, 15.0001, 0.0, npart * 120.0);
-  cpgbox ('BCNST', 0.0, 0, 'BCT', 0.0, 0);
-  cpgmtxt('B', 2.6, 0.5, 0.5, "Reduced \gx\u2\d");
-  cpgline(dmplot*14, time);
-  /* Combined best profile */
-  cpgsvp (0.06, 0.27, 0.68, 0.94);
-  cpgswin(0.0, 2.0, 0.0, 1.1);
-  cpgbox ('BC', 0.0, 0, 'BC', 0.0, 0);
-  cpgmtxt('T', 1.0, 0.5, 0.5, "Best Profile");
-  cpgline(phases, fullplot);
+    /* Open and prep our device */
+
+    cpgopen(search->pgdev);
+    cpgpap(10.25, 8.5/11.0);
+    cpgpage();
+    cpgiden();
+    cpgsch(0.8);
+    
+    /* Time versus phase */
+
+    cpgsvp (0.06, 0.27, 0.09, 0.68);
+    cpgswin(0.0, 2.0, 0.0, T);
+    cpgbox ("BCNST", 0.0, 0, "BCNST", 0.0, 0);
+    cpgmtxt("B", 2.6, 0.5, 0.5, "Phase");
+    cpgmtxt("L", 2.1, 0.5, 0.5, "Time (s)");
+    {
+      int mincol, maxcol, numcol, nr, nc;
+      float l[2] = {0.0, 1.0};
+      float r[2] = {1.0, 0.0};
+      float g[2] = {1.0, 0.0};
+      float b[2] = {1.0, 0.0};
+      float fg = 0.0, bg = 0.0, tr[6], *levels;
+      float x1 = 0.0, y1 = 0.0, x2 = 2.0, y2 = T;
+
+      nr = search->npart;
+      nc = 2 * search->proflen;
+      cpgqcol(&mincol, &maxcol);
+      mincol += 2;
+      cpgscir(mincol, maxcol);
+      numcol = maxcol - mincol + 1;
+      levels = gen_fvect(numcol);
+      cpgctab(l, r, g, b, numcol, 1.0, 0.5);
+      autocal2d(timeprofs, nr, nc, &fg, &bg, numcol,
+		levels, &x1, &x2, &y1, &y2, tr);
+      cpgimag(timeprofs, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
+      free(levels);
+    }
+
+    /*  Time versus Reduced chisqr */
+
+    cpgsvp (0.27, 0.36, 0.09, 0.68);
+    find_min_max_arr(search->npart+1, timechi, &min, &max);
+    cpgswin(0.0, 1.1 * max, 0.0, T);
+    cpgbox ("BCNST", 0.0, 0, "BCT", 0.0, 0);
+    cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+    cpgline(search->npart+1, timechi, parttimes);
+
+    /* Combined best profile */
+
+    cpgsvp (0.06, 0.27, 0.68, 0.94);
+    find_min_max_arr(2 * search->proflen, bestprof, &min, &max);
+    over = 0.1 * (max - min);
+    cpgswin(0.0, 2.0, min - over, max + over);
+    cpgbox ("BC", 0.0, 0, "BC", 0.0, 0);
+    cpgmtxt("T", 1.0, 0.5, 0.5, "Best Profile");
+    cpgline(2 * search->proflen, phasetwo, bestprof);
+
   /* DM vs reduced chisqr */
-  cpgsvp (0.43, 0.66, 0.09, 0.22);
-  cpgswin(min(dms), max(dms)+0.0001, min(dmchi), max(dmchi));
-  cpgbox ('BCNST', 0.0, 0, 'BCNST', 0.0, 0);
-  cpgmtxt('L', 2.0, 0.5, 0.5, "Reduced \gx\u2\d");
-  cpgmtxt('B', 2.6, 0.5, 0.5, "DM");
-  cpgline(dms, dmchi);
+/*   cpgsvp (0.43, 0.66, 0.09, 0.22); */
+/*   cpgswin(min(dms), max(dms)+0.0001, min(dmchi), max(dmchi)); */
+/*   cpgbox ('BCNST', 0.0, 0, 'BCNST', 0.0, 0); */
+/*   cpgmtxt('L', 2.0, 0.5, 0.5, "Reduced \gx\u2\d"); */
+/*   cpgmtxt('B', 2.6, 0.5, 0.5, "DM"); */
+/*   cpgline(dms, dmchi); */
   /* Plots for each subband */
-  cpgsvp (0.43, 0.66, 0.3, 0.68);
-  cpgswin(0.0-0.01, 1.0+0.01, 0.0, nsub+1.0);
-  cpgbox("BCNST", 0.25, 2, "BNST", 0.0, 0);
-  cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
-  cpgswin(0.0-0.01, 1.0+0.01, min(freqs)-2.0, max(freqs)+2.0);
-  cpgbox("", 0.2, 2, "CMST", 0.0, 0);
-  cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)");
-  cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
+/*   cpgsvp (0.43, 0.66, 0.3, 0.68); */
+/*   cpgswin(0.0-0.01, 1.0+0.01, 0.0, nsub+1.0); */
+/*   cpgbox("BCNST", 0.25, 2, "BNST", 0.0, 0); */
+/*   cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band"); */
+/*   cpgswin(0.0-0.01, 1.0+0.01, min(freqs)-2.0, max(freqs)+2.0); */
+/*   cpgbox("", 0.2, 2, "CMST", 0.0, 0); */
+/*   cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)"); */
+/*   cpgmtxt("B", 2.5, 0.5, 0.5, "Phase"); */
   /* P P-dot image */
-  cpgsvp (0.74, 0.94, 0.09, 0.29);
-  cpgswin(0.0, 1.001, 0.0, 1.0);
-  cpgbox("BNT", 0.0, 0, "BNT", 0.0, 0);
-  cpgmtxt("L", 2.0, 0.5, 0.5, "P-dot (s/s)");
-  cpgmtxt("B", 2.6, 0.5, 0.5, "Period (ms)");
-  cpgswin(0.0, 1.001, 0.0, 1.0);
-  cpgbox("CMT", 0.0, 0, "CMT", 0.0, 0);
-  cpgmtxt("R", 2.5, 0.5, 0.5, "F-dot (Hz/s)");
-  cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (Hz)");
+/*   cpgsvp (0.74, 0.94, 0.09, 0.29); */
+/*   cpgswin(0.0, 1.001, 0.0, 1.0); */
+/*   cpgbox("BNT", 0.0, 0, "BNT", 0.0, 0); */
+/*   cpgmtxt("L", 2.0, 0.5, 0.5, "P-dot (s/s)"); */
+/*   cpgmtxt("B", 2.6, 0.5, 0.5, "Period (ms)"); */
+/*   cpgswin(0.0, 1.001, 0.0, 1.0); */
+/*   cpgbox("CMT", 0.0, 0, "CMT", 0.0, 0); */
+/*   cpgmtxt("R", 2.5, 0.5, 0.5, "F-dot (Hz/s)"); */
+/*   cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (Hz)"); */
   /* Period vs reduced chisqr */
-  cpgsvp (0.74, 0.94, 0.41, 0.51);
-  cpgswin(min(dms), max(dms)+0.0001, 0.0, max(dmchi));
-  cpgbox ('BCNST', 0.0, 0, 'BCMST', 0.0, 0);
-  cpgmtxt('B', 2.3, 0.5, 0.5, "Period (ms)");
-  cpgmtxt('R', 2.4, 0.5, 0.5, "Reduced \gx\u2\d");
-  cpgline(dms, dmchi);
+/*   cpgsvp (0.74, 0.94, 0.41, 0.51); */
+/*   cpgswin(min(dms), max(dms)+0.0001, 0.0, max(dmchi)); */
+/*   cpgbox ('BCNST', 0.0, 0, 'BCMST', 0.0, 0); */
+/*   cpgmtxt('B', 2.3, 0.5, 0.5, "Period (ms)"); */
+/*   cpgmtxt('R', 2.4, 0.5, 0.5, "Reduced \gx\u2\d"); */
+/*   cpgline(dms, dmchi); */
   /* P-dot vs reduced chisqr */
-  cpgsvp (0.74, 0.94, 0.58, 0.68);
-  cpgswin(min(dms), max(dms)+0.0001, 0.0, max(dmchi));
-  cpgbox ('BCNST', 0.0, 0, 'BCMST', 0.0, 0);
-  cpgmtxt('B', 2.3, 0.5, 0.5, "P-dot (s/s)");
-  cpgmtxt('R', 2.4, 0.5, 0.5, "Reduced \gx\u2\d");
-  cpgline(dms, dmchi);
+/*   cpgsvp (0.74, 0.94, 0.58, 0.68); */
+/*   cpgswin(min(dms), max(dms)+0.0001, 0.0, max(dmchi)); */
+/*   cpgbox ('BCNST', 0.0, 0, 'BCMST', 0.0, 0); */
+/*   cpgmtxt('B', 2.3, 0.5, 0.5, "P-dot (s/s)"); */
+/*   cpgmtxt('R', 2.4, 0.5, 0.5, "Reduced \gx\u2\d"); */
+/*   cpgline(dms, dmchi); */
   /* Add the Data Info area */
-  cpgsvp (0.27, 0.53, 0.68, 0.94);
-  cpgswin(-0.1, 1.00, -0.1, 1.1);
-  cpgmtxt('T', 1.0, 0.5, 0.5, "File:  Ter5_Full_.raw");
-  cpgsch(0.7);
-  cpgtext(0.0, 1.0, "Candidate:  PSR 1744-24A");
-  cpgtext(0.0, 0.9, "Telescope:  Parkes Multibeam");
-  cpgtext(0.0, 0.8, "Epoch\dtopo\u = 50000.12313123123");
-  cpgtext(0.0, 0.7, "Epoch\dbary\u = 50000.12313123123");
-  cpgtext(0.0, 0.6, "T\dsamp\u = 0.000125");
-  cpgtext(0.0, 0.5, "N\dfolded\u = 1000000000");
-  cpgtext(0.0, 0.4, "Data Avg = 100.0");
-  cpgtext(0.0, 0.3, "\gs\ddata\u = 10.0");
-  cpgtext(0.0, 0.2, "Bins/profile = 64");
-  cpgtext(0.0, 0.1, "Prof Avg = 100.0");
-  cpgtext(0.0, 0.0, "\gs\dprof\u = 10.0");
+/*   cpgsvp (0.27, 0.53, 0.68, 0.94); */
+/*   cpgswin(-0.1, 1.00, -0.1, 1.1); */
+/*   cpgmtxt('T', 1.0, 0.5, 0.5, "File:  Ter5_Full_.raw"); */
+/*   cpgsch(0.7); */
+/*   cpgtext(0.0, 1.0, "Candidate:  PSR 1744-24A"); */
+/*   cpgtext(0.0, 0.9, "Telescope:  Parkes Multibeam"); */
+/*   cpgtext(0.0, 0.8, "Epoch\dtopo\u = 50000.12313123123"); */
+/*   cpgtext(0.0, 0.7, "Epoch\dbary\u = 50000.12313123123"); */
+/*   cpgtext(0.0, 0.6, "T\dsamp\u = 0.000125"); */
+/*   cpgtext(0.0, 0.5, "N\dfolded\u = 1000000000"); */
+/*   cpgtext(0.0, 0.4, "Data Avg = 100.0"); */
+/*   cpgtext(0.0, 0.3, "\gs\ddata\u = 10.0"); */
+/*   cpgtext(0.0, 0.2, "Bins/profile = 64"); */
+/*   cpgtext(0.0, 0.1, "Prof Avg = 100.0"); */
+/*   cpgtext(0.0, 0.0, "\gs\dprof\u = 10.0"); */
   /* Add the Fold Info area */
-  cpgsvp (0.53, 0.94, 0.68, 0.94);
-  cpgswin(-0.05, 1.05, -0.1, 1.1);
-  cpgsch(0.8);
-  cpgmtxt('T', 1.0, 0.5, 0.5, "Search Information");
-  cpgsch(0.7);
-  cpgtext(0.0, 1.0, "   Best Fit Parameters");
-  cpgtext(0.0, 0.9, "Reduced \gx\u2\d = 17.876876");
-  cpgtext(0.57, 0.9, "P(Noise) = 0.0000002132");
-  cpgtext(0.0, 0.8, "DM = 242.21232");
-  cpgtext(0.0, 0.7, "P\dtopo\u = 11.232312424562(88)");
-  cpgtext(0.57, 0.7, "P\dbary\u = 11.232312424562(88)");
-  cpgtext(0.0, 0.6, "P'\dtopo\u = 1.2345e-12");
-  cpgtext(0.57, 0.6, "P'\dbary\u = 1.2345e-12");
-  cpgtext(0.0, 0.5, "P''\dtopo\u = 1.2345e-12");
-  cpgtext(0.57, 0.5, "P''\dbary\u = 1.2345e-12");
-  cpgtext(0.0, 0.3, "   Binary Parameters");
-  cpgtext(0.0, 0.2, "P\dorb\u (s) = 65636.123213");
-  cpgtext(0.57, 0.2, "a\d1\usin(i)/c (s) = 1.132213");
-  cpgtext(0.0, 0.1, "e = 0.0000");
-  cpgtext(0.57, 0.1, "\gw (rad) = 1.232456");
-  cpgtext(0.0, 0.0, "T\dperi\u = 50000.123234221323");
-  cpgclos();
-
+/*   cpgsvp (0.53, 0.94, 0.68, 0.94); */
+/*   cpgswin(-0.05, 1.05, -0.1, 1.1); */
+/*   cpgsch(0.8); */
+/*   cpgmtxt('T', 1.0, 0.5, 0.5, "Search Information"); */
+/*   cpgsch(0.7); */
+/*   cpgtext(0.0, 1.0, "   Best Fit Parameters"); */
+/*   cpgtext(0.0, 0.9, "Reduced \gx\u2\d = 17.876876"); */
+/*   cpgtext(0.57, 0.9, "P(Noise) = 0.0000002132"); */
+/*   cpgtext(0.0, 0.8, "DM = 242.21232"); */
+/*   cpgtext(0.0, 0.7, "P\dtopo\u = 11.232312424562(88)"); */
+/*   cpgtext(0.57, 0.7, "P\dbary\u = 11.232312424562(88)"); */
+/*   cpgtext(0.0, 0.6, "P'\dtopo\u = 1.2345e-12"); */
+/*   cpgtext(0.57, 0.6, "P'\dbary\u = 1.2345e-12"); */
+/*   cpgtext(0.0, 0.5, "P''\dtopo\u = 1.2345e-12"); */
+/*   cpgtext(0.57, 0.5, "P''\dbary\u = 1.2345e-12"); */
+/*   cpgtext(0.0, 0.3, "   Binary Parameters"); */
+/*   cpgtext(0.0, 0.2, "P\dorb\u (s) = 65636.123213"); */
+/*   cpgtext(0.57, 0.2, "a\d1\usin(i)/c (s) = 1.132213"); */
+/*   cpgtext(0.0, 0.1, "e = 0.0000"); */
+/*   cpgtext(0.57, 0.1, "\gw (rad) = 1.232456"); */
+/*   cpgtext(0.0, 0.0, "T\dperi\u = 50000.123234221323"); */
+    cpgclos();
+  }
+  free(bestprof);
+  free(phasetwo);
+  free(timeprofs);
+  free(parttimes);
+  free(timechi);
+  free(periodchi);
+  free(pdotchi);
+  free(ppdot2d);
+  free(pdprofs);
+  free(currentprof);
+  free(lastprof);
+  if (search->nsub > 1){
+    free(dmprofs);
+    free(phaseone);
+    free(dmchi);
+  }
 }

@@ -242,8 +242,8 @@ prepdata: prepdata.o prepdata_cmd.o multibeam.o
 	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-prepfold: prepfold.o prepfold_utils.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS)
-	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+prepfold: prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS)
+	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)
