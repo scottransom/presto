@@ -525,7 +525,7 @@ int main(int argc, char *argv[])
     char *polycofilenm;
     cmd->psrnameP = 1;
     cmd->psrname = make_polycos(cmd->timing, &idata);
-    polycofilenm = (char *)calloc(strlen(outfilenm)+8, sizeof(char));
+    polycofilenm = (char *)calloc(strlen(outfilenm)+9, sizeof(char));
     sprintf(polycofilenm, "%s.polycos", outfilenm);
     rename("polyco.dat", polycofilenm);
     cmd->polycofileP = 1;
