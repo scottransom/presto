@@ -378,8 +378,10 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, int usewindow
 	(hdr2plus->iflo_flip && header_version_st >= 7))
       decreasing_freqs_st = 1;
     /* Explicitly flip ALFA data */
-    if ((header_version_st >= 7 && hdr2plus->isalfa))
+    if ((header_version_st >= 7 && hdr2plus->isalfa)){
+      printf("Inverting the band since the data are from ALFA...\n");
       decreasing_freqs_st = 1;
+    }
     if (hdr2plus->level==1)
       corr_level_st = 3;
     else if (hdr2plus->level==2)
@@ -738,7 +740,8 @@ void print_WAPP_hdr(char *hdr)
     if (hdr2plus->sum==1)
       printf("      IFs are summed.\n");
     if ((hdr2plus->freqinversion && header_version_st < 7) ||
-	(hdr2plus->iflo_flip && header_version_st >= 7))
+	(hdr2plus->iflo_flip && header_version_st >= 7) ||
+	(header_version_st >= 7 && hdr2plus->isalfa))
       printf("      Frequency band is inverted.\n");
     if (header_version_st >= 7 && hdr2plus->isalfa)
       printf("      Data is from the ALFA receiver.\n");
