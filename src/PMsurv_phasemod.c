@@ -1,7 +1,8 @@
 #include "presto.h"
+#include "multibeam.h"
 
 /* The number of candidates to return from the search of each miniFFT */
-#define MININCANDS 1
+#define MININCANDS 3
 
 /* Minimum binary period (s) to accept as 'real' */
 #define MINORBP 100.0
@@ -12,58 +13,75 @@
 /* Bins to ignore at the beginning and end of the big FFT */
 #define BINSTOIGNORE 0
 
-int PMsurv_phasemod_search(char *header, int N, fcomplex *fft, double dm,
-			   int minfft, int maxfft){
-  int ii, jj, kk, binsleft;
-  int fftpos=0, havecand=0, worklen=maxfft;
-  float *powers, *minifft;
+/* Factor to overlap the miniFFTs (power-of-two only) */
+/*    1 = no overlap                    */
+/*    2 = overlap half of each miniFFT  */
+/*    4 = overlap 3/4 of each miniFFT   */
+#define OVERLAPFACT 4
+
+/* Blocks of maxfft (+ 0.5) to work with at a time */
+#define WORKBLOCK 3
+
+int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft, 
+			   double dm, int minfft, int maxfft)
+{
+  int ii, jj, kk, worklen, fftlen, binsleft;
+  int bigfft_pos=0, havecand=0, powers_offset;
+  float *powers, *minifft, *powers_pos;
   
+  /* Check our input values */
+
+  maxfft = next2_to_n(maxfft);
+  minfft = next2_to_n(minfft);
+  if (N < minfft){
+    printf("\nLength of input array in  PMsurv_phasemod_search()\n");
+    printf("is too short or less than 0:  N = %d\n\n", N);
+    exit(-1);
+  }
+
   /* Allocate the arrays that will store the powers from */
   /* the bigFFT as well as the miniFFTs.                 */
 
+  worklen = (2 * WORKBLOCK + 1) * (maxfft / 2);
   powers = gen_fvect(worklen);
-  minifft = gen_fvect(worklen);
+  minifft = gen_fvect(maxfft);
 
   /* Loop through the bigFFT */
 
-  while (fftpos < N) {
+  while (bigfft_pos < N) {
 
     /* How close are we to the end of the bigFFT? */
     
-    binsleft = N - fftpos;
+    binsleft = N - bigfft_pos;
 
     /* Adjust our search parameters if close to end of zone to search */
 
     if (binsleft < worklen){
-      while (binsleft < worklen)
+      worklen = 3 * (maxfft / 2);
+      while (binsleft < worklen){
 	worklen /= 2;
-      if (worklen < minfft) 
+	maxfft /= 2;
+      }
+      if (worklen < minfft)
 	break;
     }
-    fftlen = worklen;
+    fftlen = maxfft;
 
-    /* Read from fftfile */
+    /* Get the powers from the bigFFT */
 
-    if (cmd->stack == 0){
-      data = read_fcomplex_file(fftfile, fftpos, worklen);
-      for (ii = 0; ii < worklen; ii++)
-	powers[ii] = POWER(data[ii].r, data[ii].i);
-      numsumpow = 1;
-    } else {
-      powers = read_float_file(fftfile, fftpos, worklen);
-      numsumpow = cmd->stack;
-    }
-    if (fftpos == 0) powers[0] = 1.0;
-      
-    /* Chop the powers that are way above the median level */
+    for (ii = 0, jj = bigfft_pos; ii < worklen; ii++, jj++)
+      powers[ii] = POWER(bigfft[jj].r, bigfft[jj].i);
+    if (bigfft_pos == 0) powers[0] = 1.0;
 
-    prune_powers(powers, worklen, numsumpow);
+    /* Chop the powers that are way above the median.  */
+    /* This is a crude way of removing strong coherent */
+    /* pulsations or RFI from the power spectrum.      */
+
+    prune_powers(powers, worklen, 1);
 
     /* Loop through the different small FFT sizes */
 
     while (fftlen >= minfft) {
-
-      halffftlen = fftlen / 2;
       powers_pos = powers;
       powers_offset = 0;
 
@@ -84,11 +102,10 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *fft, double dm,
 
 	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
-	search_minifft((fcomplex *)minifft, halffftlen, tmplist, \
+	search_minifft((fcomplex *)minifft, fftlen / 2, tmplist, \
 		       MININCANDS, cmd->harmsum, cmd->numbetween, idata.N, \
-		       T, (double) (powers_offset + fftpos + cmd->lobin), \
-		       cmd->interbinP ? INTERBIN : INTERPOLATE, \
-		       cmd->noaliasP ? NO_CHECK_ALIASED : CHECK_ALIASED);
+		       T, (double) (powers_offset + bigfft_pos), \
+		       INTERPOLATE, NO_CHECK_ALIASED);
 		       
 	/* Check if the new cands should go into the master cand list */
 
@@ -130,7 +147,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *fft, double dm,
       /* Size of mini-fft while loop */
     }
 
-    fftpos += (worklen - (int)((1.0 - cmd->overlap) * maxfft));
+    bigfft_pos += (worklen - (int)((1.0 - cmd->overlap) * maxfft));
     loopct++;
 
     /* File position while loop */

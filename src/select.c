@@ -32,7 +32,7 @@ int prune_powers(float *arr, int n, int numsumpows)
   cutoff = median * PRUNELEV / sqrt((float) numsumpows);
   for (ii = 0; ii < n; ii++) {
     if (arr[ii] > cutoff) {
-      arr[ii] = median;
+      arr[ii] = NEWLEV * median;
       ct++;
     }
   }
