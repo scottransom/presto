@@ -18,6 +18,7 @@ static fftwf_plan fftplan;
 static long long N_st;
 static int decreasing_freqs_st=0, bytesperpt_st, bytesperblk_st, bits_per_lag_st;
 static int numchan_st, numifs_st, ptsperblk_st;
+static int NomOffset_st;
 static int need_byteswap_st=0, sampperblk_st, usewindow_st=0, vanvleck_st=0;
 static int currentfile, currentblock, bufferpts=0, padnum=0, shiftbuffer=1;
 static double T_st, dt_st, center_freq_st, *window_st=NULL;
@@ -243,6 +244,46 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
       sscanf(ctmp, "%f %f %f %f", lag_factor+ii, lag_offset+ii, &ftmp1, &ftmp2);
     }
     firsttime=0;
+    switch ((int)(spigot->dt_us/2.56)) {
+      /* Offset depends on sampling time & BW */
+    case 32:
+      if (spigot->bandwidth >= 200)
+	NomOffset_st=32780;
+      else {
+	NomOffset_st=61444;
+      }
+      break;
+    case 16:
+      if (spigot->bandwidth >= 200)
+	NomOffset_st=32792;
+      else
+	NomOffset_st=63492;
+      break;
+    case 8:
+      if (spigot->bandwidth >= 200)
+	NomOffset_st=49176;
+      else
+	NomOffset_st=64516;
+      break;
+    case 4:
+      if (spigot->bandwidth >= 200)
+	NomOffset_st=57368;
+      else
+	NomOffset_st=65028;
+      break;
+    case 2:
+      if (spigot->bandwidth >= 200)
+	NomOffset_st=61464;
+      else
+	NomOffset_st=65284;
+      break;
+    case 1:
+      if (spigot->bandwidth >= 200)
+	NomOffset_st=63512;
+      else
+	NomOffset_st=65412;
+      break;
+    }      
   }
   free(hdr);
   return(1);
@@ -1021,12 +1062,16 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     /*        Also, I have no idea how multiple IFs/RFs are stored...        */
     if (bits_per_lag_st==16){
       short *data=(short *)rawdata;
-      for (ii=0; ii<numchan_st; ii++)
-	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
+      for (ii=0; ii<numchan_st; ii++) 
+	/*
+	  lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];*/
+	lags[ii] = data[ii+index]*(16.0/lag_factor[ii]) + (NomOffset_st-lag_offset[ii]);
     } else if (bits_per_lag_st==8){
       char *data=(char *)rawdata;
       for (ii=0; ii<numchan_st; ii++)
-	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
+	/*
+	  lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];*/
+      	lags[ii] = data[ii+index]*(16.0*256.0/lag_factor[ii]) + (NomOffset_st-lag_offset[ii]);
     } else if (bits_per_lag_st==4){
       int jj;
       char tmplag;
@@ -1036,11 +1081,14 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
 	/* Treat the 4 msbs as a twos-complement 4-bit int */
 	//tmplag = (byte&0x80) ? -((byte&0x70)>>4) : (byte>>4);
 	tmplag = ((byte&0x70)>>4) - ((byte&0x80)>>4);
-	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
+	/*
+	  lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;*/
+	lags[jj] = tmplag*(16.0*4096.0/lag_factor[jj]) + (NomOffset_st-lag_offset[jj]); jj++;
 	/* Treat the 4 lsbs as a twos-complement 4-bit int */
 	//tmplag = (byte&0x08) ? -(byte&0x07) : (byte&0x07);
 	tmplag = (byte&0x07) - (byte&0x08);
-	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
+	/*lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;*/
+	lags[jj] = tmplag*(16.0*4096.0/lag_factor[jj]) + (NomOffset_st-lag_offset[jj]); jj++;
       }
     } else if (bits_per_lag_st==2){
       int jj;
