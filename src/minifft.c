@@ -3,6 +3,15 @@
 /* Number of bins on each side of a freq to use for interpolation */
 #define INTERPBINS 5
 
+static char num[41][5] =
+{"0th", "1st", "2nd", "3rd", "4th", "5th", "6th", \
+ "7th", "8th", "9th", "10th", "11th", "12th", \
+ "13th", "14th", "15th", "16th", "17th", "18th", \
+ "19th", "20th", "21st", "22nd", "23rd", "24th", \
+ "25th", "26th", "27th", "28th", "29th", "30th", \
+ "31st", "32nd", "33rd", "34th", "35th", "36th", \
+ "37th", "38th", "39th", "40th"};
+
 /* Routines defined at the bottom */
 
 static int padfftlen(int minifftlen, int numbetween, int *padlen);
@@ -237,4 +246,315 @@ float percolate_rawbincands(rawbincand *cands, int numcands)
   return cands[numcands - 1].mini_sigma;
 }
 
+
+int not_already_there_rawbin(rawbincand newcand, 
+			     rawbincand *list, int nlist)
+{
+  int ii;
+
+  /* Loop through the candidates already in the list */
+
+  for (ii = 0; ii < nlist; ii++) {
+    if (list[ii].mini_sigma == 0.0)
+      break;
+
+    /* Do not add the candidate to the list if it is a lower power */
+    /* version of an already listed candidate.                     */
+
+    if (list[ii].mini_N == newcand.mini_N) {
+      if (fabs(list[ii].mini_r - newcand.mini_r) < 0.6) {
+	if (list[ii].mini_sigma > newcand.mini_sigma) {
+	  return 0;
+	}
+      }
+    }
+  }
+  return 1;
+}
+
+
+void compare_rawbin_cands(rawbincand *list, int nlist, 
+			  char *notes)
+{
+  double perr;
+  int ii, jj, kk, ll;
+  char tmp[30];
+
+  /* Loop through the candidates (reference cands) */
+
+  for (ii = 0; ii < nlist; ii++) {
+
+    /* Loop through the candidates (referenced cands) */
+
+    for (jj = 0; jj < nlist; jj++) {
+      if (ii == jj)
+	continue;
+      perr = 0.5 * list[jj].full_T / list[jj].mini_N;
+
+      /* Loop through the possible PSR period harmonics */
+      
+      for (kk = 1; kk < 41; kk++) {
+	
+	/* Check if the PSR Fourier freqs are close enough */
+
+	if (fabs(list[ii].full_lo_r - list[jj].full_lo_r / kk) < 
+	    list[ii].mini_N) {
+
+	  /* Loop through the possible binary period harmonics */
+
+	  for (ll = 1; ll < 10; ll++) {
+
+	    /* Check if the binary Fourier freqs are close enough */
+
+	    if (fabs(list[ii].orb_p - list[jj].orb_p / ll) < perr) {
+
+	      /* Check if the note has already been written */
+
+	      sprintf(tmp, "%.18s", notes + jj * 18);
+	      if (!strcmp("                  ", tmp)) {
+
+		/* Write the note */
+
+		if (ll == 1 && kk == 1)
+		  sprintf(notes + jj * 18, "Same as #%d?", ii + 1);
+		else 
+		  sprintf(notes + jj * 18, "MH=%d H=%d of #%d", ll, kk, ii + 1);
+
+		break;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+}
+
+
+int comp_rawbin_to_cand(rawbincand *cand, infodata *idata,
+			char *output, int full)
+  /* Compares a binary PSR candidate defined by its props found in    */
+  /*   *cand, and *idata with all of the pulsars in the pulsar        */
+  /*   database.  It returns a string (verbose if full==1) describing */
+  /*   the results of the search in *output.                          */
+{
+  int i, j, k;
+  static int np = 0;
+  static psrdatabase pdata;
+  double T, theop, ra, dec, beam2, difft = 0.0, epoch;
+  double bmod, pmod, orbperr, psrperr;
+  char tmp1[80], tmp2[80], tmp3[80], tmp4[20];
+
+  /* If calling for the first time, read the database. */
+
+  if (!np)
+    np = read_database(&pdata);
+
+  /* Convert the beam width to radians */
+
+  beam2 = 2.0 * ARCSEC2RAD * idata->fov;
+  
+  /* Convert RA and DEC to radians  (Use J2000) */
+
+  ra = hms2rad(idata->ra_h, idata->ra_m, idata->ra_s);
+  dec = dms2rad(idata->dec_d, idata->dec_m, idata->dec_s);
+
+  /* Calculate the time related variables  */
+
+  T = idata->N * idata->dt;
+  epoch = (double) idata->mjd_i + idata->mjd_f;
+  
+  /* Calculate the approximate error in our value of orbital period */
+  
+  orbperr = 0.5 * cand->full_T / cand->mini_N;
+  
+  /* Calculate the approximate error in our value of spin period */
+
+  if (cand->full_lo_r == 0.0)
+    psrperr = cand->psr_p;
+  else 
+    psrperr = fabs(cand->full_T / 
+		   (cand->full_lo_r + 0.5 * cand->mini_N) -
+		   cand->full_T / cand->full_lo_r);
+
+  /* Run through RAs in database looking for things close  */
+  /* If find one, check the DEC as well (the angle between */
+  /* the sources < 2*beam diam).  If find one, check its   */
+  /* period.  If this matches within 2*perr, return the    */
+  /* number of the pulsar.  If no matches, return 0.       */
+
+  for (i = 0; i < np; i++) {
+    
+    /* See if we're close in RA */
+    
+    if (fabs(pdata.ra2000[i] - ra) < 5.0 * beam2) {
+      
+      /* See if we're close in RA and DEC */
+      
+      if (sphere_ang_diff(pdata.ra2000[i], pdata.dec2000[i], \
+			  ra, dec) < 5.0 * beam2) {
+
+	/* Check that the psr in the database is in a binary   */
+
+	if (pdata.ntype[i] & 8) {
+
+	  /* Predict the period of the pulsar at the observation MJD */
+
+	  difft = SECPERDAY * (epoch - pdata.epoch[i]);
+	  theop = pdata.p[i] + pdata.pdot[i] * difft;
+	  sprintf(tmp4, "%.8s", pdata.bname + i * 8);
+
+	  /* Check the predicted period and its harmonics against the */
+	  /* measured period.  Use both pulsar and binary periods.    */
+
+	  for (j = 1; j < 41; j++) {
+	    pmod = 1.0 / (double) j;
+	    if (fabs(theop * pmod - cand->psr_p) < psrperr) {
+	      for (k = 1; k < 10; k++) {
+		bmod = (double) k;
+		if (fabs(pdata.pb[i] * bmod - cand->orb_p / SECPERDAY) < orbperr) {
+		  if (!strcmp("        ", tmp4)) {
+		    if (j > 1) {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
+			sprintf(tmp2, "of the %s harmonic of PSR ", num[j]);
+			sprintf(tmp3, "J%.12s (p = %11.7f s, pbin = %9.4f d).\n", \
+				pdata.jname + i * 12, theop, pdata.pb[i]);
+			sprintf(output, "%s%s%s", tmp1, tmp2, tmp3);
+		      } else {
+			sprintf(output, "%s H J%.12s", num[k], pdata.jname + i * 12);
+		      }
+		    } else {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
+			sprintf(tmp2, "of PSR J%.12s (p = %11.7f s, pbin = %9.4f d).\n", \
+				pdata.jname + i * 12, theop, pdata.pb[i]);
+			sprintf(output, "%s%s", tmp1, tmp2);
+		      } else {
+			sprintf(output, "PSR J%.12s", pdata.jname + i * 12);
+		      }
+		    }
+		  } else {
+		    if (j > 1) {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s modulation harmonic ", num[k]);
+			sprintf(tmp2, "of the %s harmonic of PSR ", num[j]);
+			sprintf(tmp3, "B%s (p = %11.7f s, pbin = %9.4f d).\n", \
+				tmp4, theop, pdata.pb[i]);
+			sprintf(output, "%s%s%s", tmp1, tmp2, tmp3);
+		      } else {
+			sprintf(output, "%s H B%s", num[k], tmp4);
+		      }
+		    } else {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
+			sprintf(tmp2, "of PSR B%s (p = %11.7f s, pbin = %9.4f d).\n", \
+				tmp4, theop, pdata.pb[i]);
+			sprintf(output, "%s%s", tmp1, tmp2);
+		      } else {
+			sprintf(output, "PSR B%s", tmp4);
+		      }
+		    }
+		  }
+		}
+		return i + 1;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+
+  /* Didn't find a match */
+
+  if (full) {
+    sprintf(output, "I don't recognize this candidate in the pulsar database.\n");
+  } else {
+    sprintf(output, "                  ");
+  }
+  return 0;
+}
+
+
+void file_rawbin_candidates(rawbincand *cand, char *notes,
+			    int numcands, char name[])
+/* Outputs a .ps file describing all the binary candidates from a    */
+/*   binary search. */
+{
+  FILE *fname;
+  int i, j, k = 0;
+  int nlines = 87, pages, extralines, linestoprint;
+  char filenm[100], infonm[100], command[200];
+  double orbperr, psrperr;
+  
+  sprintf(filenm, "%s_bin", name);
+  sprintf(infonm, "%s.inf", name);
+  fname = chkfopen(filenm, "w");
+
+  if (numcands <= 0) {
+    printf(" Must have at least 1 candidate in ");
+    printf("file_bin_candidates().\n\n");
+    exit(1);
+  }
+  pages = numcands / nlines + 1;
+  extralines = numcands % nlines;
+
+  for (i = 1; i <= pages; i++) {
+
+    /*                       1         2         3         4         5         6         7         8         9         0         1    */  
+    /*              123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234*/
+    fprintf(fname, "#               P_orbit +/- Error   P_pulsar +/- Error   FullFFT   MiniFFT   MiniFFT  Num   Sum                   \n");
+    fprintf(fname, "# Cand  Sigma         (sec)                (sec)         Low Bin   Length      Bin    Sum  Power  Notes           \n");
+    fprintf(fname, "#------------------------------------------------------------------------------------------------------------------\n");
+    
+    if (i == pages) {
+      linestoprint = extralines;
+    } else {
+      linestoprint = nlines;
+    }
+    
+    for (j = 0; j < linestoprint; j++, k++) {
+      
+      /* Calculate the approximate error in our value of orbital period */
+      orbperr = 0.5 * cand[k].full_T / cand[k].mini_N;
+      
+      /* Calculate the approximate error in our value of spin period */
+
+      if (cand[k].full_lo_r == 0.0)
+	psrperr = cand[k].psr_p;
+      else 
+	psrperr = fabs(cand[k].full_T / (cand[k].full_lo_r + 
+					 0.5 * cand[k].mini_N) -
+		       cand[k].full_T / cand[k].full_lo_r);
+      
+      /*  Now output it... */
+
+      fprintf(fname, " %4d %7.3f  ", k + 1, cand[k].mini_sigma);
+      fprintf(fname, " %8.2f", cand[k].orb_p);
+      fprintf(fname, " %-7.2g ", orbperr);
+      if (cand[k].psr_p < 0.001)
+	fprintf(fname, " %12.5e", cand[k].psr_p);
+      else
+	fprintf(fname, " %12.9f", cand[k].psr_p);
+      fprintf(fname, " %-7.2g ", psrperr);
+      fprintf(fname, " %9.0f  ", cand[k].full_lo_r);
+      fprintf(fname, " %6.0f ", cand[k].mini_N);
+      fprintf(fname, " %8.1f ", cand[k].mini_r);
+      fprintf(fname, " %2.0f ", cand[k].mini_numsum);
+      fprintf(fname, "%7.2f ", cand[k].mini_power);
+      fprintf(fname, " %.18s\n", notes + k * 18);
+      fflush(fname);
+    }
+  }
+  fprintf(fname, "\n Notes:  MH = Modulation harmonic.  ");
+  fprintf(fname, "H = Pulsar harmonic.  # indicates the candidate number.\n\n");
+  fclose(fname);
+  sprintf(command, "cat %s >> %s", infonm, filenm);
+  system(command);
+  sprintf(command, \
+	  "$PRESTO/bin/a2x -c1 -n90 -title -date -num %s > %s.ps", \
+	  filenm, filenm);
+  system(command);
+}
 

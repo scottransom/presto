@@ -10,8 +10,11 @@
 /* Minimum miniFFT bin number to accept as 'real' */
 #define MINMINIBIN 3.0
 
-/* Bins to ignore at the beginning and end of the big FFT */
+/* Bins to ignore at the beginning and end of the bigFFT */
 #define BINSTOIGNORE 0
+
+/* Number of candidates in the stack per bigFFT */
+#define NUMCANDS 10
 
 /* Factor to overlap the miniFFTs (power-of-two only) */
 /*    1 = no overlap of successive miniFFTs           */
@@ -22,25 +25,76 @@
 /* Blocks of length maxfft to work with at a time */
 #define WORKBLOCK 4
 
+/* Number of harmonics to sum in each miniFFT   */
+/* Usually this is greater than 1, but for the  */
+/* PMsurv, 1 is probably fine since we will be  */
+/* pushing the limit on orbital periods (which  */
+/* determines the number of harmonics present   */
+/* along with the eccentricity -- which we      */
+/* expect would be 0 in a 20 minute binary).    */
+#define NUMHARMSUM 1
+
+/* Level of Fourier interpolation to use in the search      */
+/*     1 = no interpolation (just the standard FFT bins)    */
+/*     2 = interbinning (1 interpolated point between bins) */
+/*     4 = 3 interpolated points between bins               */
+#define NUMBETWEEN 2
+
+/* If the following is defined, the program will print */
+/* debugging info to stdout.                           */
+/*#define DEBUGOUT*/
+
+/* Output threshold */
+/* If any candidates have a sigma greater than the following  */
+/* then print the candidate and observation info to the       */
+/* permanent candfile.                                        */
+#define THRESH 10.0
+
+/* Candidate file directory */
+#define OUTDIR "/home/ransom"
+
+/* Function definitions */
+int not_already_there_rawbin(rawbincand newcand, 
+ 			    rawbincand *list, int nlist);
+int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
+ 		       char *output, int full);
+void compare_rawbin_cands(rawbincand *list, int nlist, 
+ 			 char *notes);
+void file_rawbin_candidates(rawbincand *cand, char *notes,
+				   int numcands, char name[]);
+float percolate_rawbincands(rawbincand *cands, int numcands);
+
 /******************************************************************/
 
 int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft, 
 			   float dm, int minfft, int maxfft)
 {
-  int ii, jj, kk, worklen, fftlen, binsleft, overlaplen;
-  int bigfft_pos=0, havecand=0, powers_offset, wrkblk=WORKBLOCK;
-  double norm;
-  float *powers, *minifft, *powers_pos;
-  multibeam_tapehdr hdr;
+  int ii, jj, worklen, fftlen, binsleft, overlaplen;
+  int bigfft_pos=0, powers_offset, wrkblk=WORKBLOCK;
+  float *powers, *minifft, *powers_pos, powargr, powargi;
+  double T, norm, minsig=0.0;
+  rawbincand list[NUMCANDS], tmplist[MININCANDS];
+  multibeam_tapehdr *hdr=NULL;
   infodata idata;
   
+  /* Prep our candidate lists */
+
+  for (ii = 0; ii < NUMCANDS; ii++)
+    list[ii].mini_sigma = 0.0;
+  for (ii = 0; ii < MININCANDS; ii++)
+    tmplist[ii].mini_sigma = 0.0;
+
   /* Copy the header information into *hdr */
     
-  if (ii == 0) memcpy(hdr, record, HDRLEN);
+  memcpy(hdr, header, HDRLEN);
 
   /* Convert the Header into usable info... */
 
   multibeam_hdr_to_inf(hdr, &idata);
+  T = N * idata.dt;
+#ifdef DEBUGOUT
+      print_multibeam_hdr(hdr);
+#endif
 
   /* Check our input values */
 
@@ -98,6 +152,9 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
     while (fftlen >= minfft) {
       powers_pos = powers;
       powers_offset = 0;
+#ifdef DEBUGOUT
+      printf("  powers_offset = %d\n", powers_offset);
+#endif
       overlaplen = fftlen / OVERLAPFACT;
 
       /* Perform miniffts at each section of the powers array */
@@ -117,7 +174,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 	norm = sqrt((double) fftlen) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
 	search_minifft((fcomplex *)minifft, fftlen / 2, tmplist, \
-		       MININCANDS, cmd->harmsum, cmd->numbetween, idata.N, \
+		       MININCANDS, NUMHARMSUM, NUMBETWEEN, (double) N, \
 		       T, (double) (powers_offset + bigfft_pos), \
 		       INTERPOLATE, NO_CHECK_ALIASED);
 		       
@@ -136,9 +193,9 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 	      /* Check to see if another candidate with these properties */
 	      /* is already in the list.                                 */
 	      
-	      if (not_already_there_rawbin(tmplist[ii], list, ncand2)) {
-		list[ncand2 - 1] = tmplist[ii];
-		minsig = percolate_rawbincands(list, ncand2);
+	      if (not_already_there_rawbin(tmplist[ii], list, NUMCANDS)) {
+		list[NUMCANDS - 1] = tmplist[ii];
+		minsig = percolate_rawbincands(list, NUMCANDS);
 	      }
 	    } else {
 	      continue;
@@ -149,22 +206,95 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 	  /* Mini-fft search for loop */
 	}
 
-	totnumsearched += fftlen;
 	powers_pos += overlaplen;
 	powers_offset += overlaplen;
 
 	/* Position of mini-fft in data set while loop */
       }
 
+      /* Switch to the next smaller miniFFT size */
+
       fftlen /= 2;
+#ifdef DEBUGOUT
+      printf("\nfftlen = %d\n\n", fftlen);
+#endif
 
       /* Size of mini-fft while loop */
     }
 
     bigfft_pos += wrkblk * maxfft;
-    loopct++;
+#ifdef DEBUGOUT
+      printf("\nbigfft_pos = %d\n\n", bigfft_pos);
+#endif
 
-    /* File position while loop */
+    /* BigFFT position while loop */
   }
+
+  /* Free up our data arrays */
+
   free(powers);
+  free(minifft);
+
+  /* Check to see if our best candidate is worth saving */
+
+#ifdef DEBUGOUT
+  {
+#else
+  if (list[0].mini_sigma > THRESH){
+#endif
+    int newnumcands;
+    char *notes, outfilenm[100];
+    FILE *outfile;
+
+    sprintf(idata.name, "%s/%s", OUTDIR, hdr->pname);
+    strncpy(idata.observer, "PMSurv", 90);
+    strncpy(idata.analyzer, 
+	    "Scott Ransom <ransom@cfa.harvard.edu>", 90);
+    idata.dm = dm;
+    writeinf(&idata);
+
+    /* Count how many candidates we actually have */
+    
+    ii = 0;
+    while (ii < NUMCANDS && list[ii].mini_sigma != 0)
+      ii++;
+    newnumcands = (ii > NUMCANDS) ? NUMCANDS : ii;
+    
+    /* Set our candidate notes to all spaces */
+    
+    notes = malloc(sizeof(char) * newnumcands * 18 + 1);
+    for (ii = 0; ii < newnumcands; ii++)
+      strncpy(notes + ii * 18, "                     ", 18);
+    
+    /* Compare the candidates with each other */
+    
+    compare_rawbin_cands(list, newnumcands, notes);
+    
+    /* Send the candidates to the text file */
+    
+    file_rawbin_candidates(list, notes, newnumcands, idata.name);
+    
+    /* Write the binary candidate file */
+    
+    outfile = chkfopen(outfilenm, "wb");
+    chkfwrite(list, sizeof(rawbincand), newnumcands, outfile);
+    fclose(outfile);
+    free(notes);
+    return newnumcands;
+  }
+  return 0;
 }
+
+#undef MININCANDS
+#undef MINORBP
+#undef MINMINIBIN
+#undef BINSTOIGNORE
+#undef NUMCANDS
+#undef OVERLAPFACT
+#undef WORKBLOCK
+#undef NUMHARMSUM
+#undef NUMBETWEEN
+#undef THRESH
+#ifdef DEBUGOUT
+#undef DEBUGOUT
+#endif
