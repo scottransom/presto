@@ -1018,7 +1018,7 @@ usage(void)
        -nph: 0th FFT bin amplitude (for 'RZW' data)\n\
              1 double value\n\
              default: `1.0'\n\
-version: 19Jan00\n\
+version: 20Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }

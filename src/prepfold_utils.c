@@ -207,6 +207,8 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->telescope = NULL;
   in->pgdev = NULL;
   in->dt = 0.0;
+  in->startT = 0.0;
+  in->endT = 0.0;
   in->tepoch = 0.0;
   in->bepoch = 0.0;
   in->avgvoverc = 0.0;

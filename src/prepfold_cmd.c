@@ -100,6 +100,10 @@ static Cmdline cmd = {
   /* psrnameP = */ 0,
   /* psrname = */ (char*)0,
   /* psrnameC = */ 0,
+  /***** -obs: Two letter TEMPO observatory code (for barycentering) */
+  /* obscodeP = */ 0,
+  /* obscode = */ (char*)0,
+  /* obscodeC = */ 0,
   /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
   /* rzwcandP = */ 0,
   /* rzwcand = */ (int)0,
@@ -1069,6 +1073,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -obs: Two letter TEMPO observatory code (for barycentering) */
+  if( !cmd.obscodeP ) {
+    printf("-obs not found.\n");
+  } else {
+    printf("-obs found:\n");
+    if( !cmd.obscodeC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.obscode);
+    }
+  }
+
   /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
   if( !cmd.rzwcandP ) {
     printf("-rzwcand not found.\n");
@@ -1187,7 +1203,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-step step] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
+ [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-step step] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
@@ -1241,6 +1257,8 @@ usage(void)
             default: `1.0'\n\
       -psr: Name of pulsar to fold (do not include J or B)\n\
             1 char* value\n\
+      -obs: Two letter TEMPO observatory code (for barycentering)\n\
+            1 char* value\n\
   -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
             1 int value between 1 and oo\n\
   -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
@@ -1260,7 +1278,7 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
-version: 19Jan00\n\
+version: 20Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1455,6 +1473,14 @@ parseCmdline(int argc, char **argv)
       keep = i;
       i = getStringOpt(argc, argv, i, &cmd.psrname, 1);
       cmd.psrnameC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-obs", argv[i]) ) {
+      cmd.obscodeP = 1;
+      keep = i;
+      i = getStringOpt(argc, argv, i, &cmd.obscode, 1);
+      cmd.obscodeC = i-keep;
       continue;
     }
 

@@ -943,7 +943,7 @@ usage(void)
                default: `0'\n\
     -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive)\n\
      -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n\
-version: 19Jan00\n\
+version: 20Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }

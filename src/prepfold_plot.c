@@ -481,20 +481,20 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     if (search->nsub > 1)
       cpgsvp (0.27, 0.36, 0.09, 0.68);
     else
-      cpgsvp (0.27, 0.43, 0.09, 0.68);
+      cpgsvp (0.27, 0.39, 0.09, 0.68);
     cpgswin(0.0, 1.1 * max, 0.0, T);
-    if (search->nsub > 1)
-      cpgbox ("BCNST", 0.0, 0, "BCST", 0.0, 0);
-    else
-      cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
+
+    cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
     cpgline(search->npart+1, timechi, parttimes);
-    if (search->nsub == 1){
-      cpgswin(0.0, 1.1 * max, 0.0, 1.0);
-      cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
-      cpgmtxt("R", 2.3, 0.5, 0.5, "Fraction of Observation");
-    }
+    cpgswin(0.0, 1.1 * max, search->startT-0.0001, search->endT+0.0001);
+    if (search->nsub > 1)
+      cpgsch(0.7);
+    cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
+    cpgmtxt("R", 2.3, 0.5, 0.5, "Fraction of Observation");
+    if (search->nsub > 1)
+      cpgsch(0.8);
 
     /* Combined best profile */
 
@@ -524,12 +524,14 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 
       /* DM vs reduced chisqr */
 
-      cpgsvp (0.43, 0.66, 0.09, 0.22);
+      cpgsvp (0.44, 0.66, 0.09, 0.22);
       find_min_max_arr(search->numdms, dmchi, &min, &max);
       cpgswin(search->dms[0], search->dms[search->numdms-1], 
 	      0.0, 1.1 * max);
+      cpgsch(0.7);
       cpgbox ("BCNST", 0.0, 0, "BCNST", 0.0, 0);
       cpgmtxt("L", 2.0, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+      cpgsch(0.8);
       cpgmtxt("B", 2.6, 0.5, 0.5, "DM");
       ftmparr1 = gen_fvect(search->numdms);
       double2float(search->dms, ftmparr1, search->numdms);
@@ -550,13 +552,15 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	hifreq = search->lofreq + search->nsub * dsubf - search->chan_wid;
 	losubfreq = doppler(lofreq, search->avgvoverc);
 	hisubfreq = doppler(hifreq, search->avgvoverc);
-	cpgsvp (0.43, 0.66, 0.3, 0.68);
+	cpgsvp (0.44, 0.66, 0.3, 0.68);
 	cpgswin(0.0-0.01, 1.0+0.01, 0.001, search->nsub + 0.999);
+	cpgsch(0.7);
 	cpgbox("BCNST", 0.2, 2, "BNST", 0.0, 0);
 	cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
 	cpgswin(0.0-0.01, 1.0+0.01, losubfreq - dsubf, hisubfreq + dsubf);
 	cpgbox("", 0.2, 2, "CMST", 0.0, 0);
 	cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)");
+	cpgsch(0.8);
 	cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
 	for (ii = 0; ii < search->nsub; ii++){
 	  find_min_max_arr(search->proflen, dmprofs + ii * 
@@ -614,11 +618,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       sprintf(pout, "Period - %-.8f (ms)", pfold);
       sprintf(fout, "Freq - %-.6f (Hz)", search->fold.p1);
       if (pdfold < 0.0)
-	sprintf(pdout, "Pdot + %-.5g (s/s)", fabs(pdfold));
+	sprintf(pdout, "P-dot + %-.5g (s/s)", fabs(pdfold));
       else if (pdfold == 0.0)
-	sprintf(pdout, "Pdot (s/s)");
+	sprintf(pdout, "P-dot (s/s)");
       else
-	sprintf(pdout, "Pdot - %-.5g (s/s)", pdfold);
+	sprintf(pdout, "P-dot - %-.5g (s/s)", pdfold);
       if (search->fold.p2 < 0.0)
 	sprintf(fdout, "F-dot + %-.5g (Hz)", fabs(search->fold.p2));
       else if (search->fold.p2 == 0.0)
@@ -636,19 +640,22 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       if (search->nsub > 1){
 	cpgsvp (0.74, 0.94, 0.41, 0.51);
 	cpgswin(x1l, x1h, 0.0, 1.1 * max);
+	cpgline(search->numperiods, ftmparr1, periodchi);
 	cpgsch(0.5);
 	cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
-	cpgline(search->numperiods, ftmparr1, periodchi);
 	cpgsch(0.7);
 	cpgmtxt("B", 2.2, 0.5, 0.5, pout);
 	cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
       } else {
-	cpgsvp (0.5, 0.75, 0.5, 0.68);
-	cpgswin(x1l, x1h, 0.01, 1.1 * max);
-	cpgbox ("BST", 0.0, 0, "BCMST", 0.0, 0);
+	cpgsvp (0.51, 0.82, 0.49, 0.63);
+	cpgswin(x1l, x1h, 0.001, 1.1 * max);
 	cpgline(search->numperiods, ftmparr1, periodchi);
+	cpgsch(0.7);
+	cpgbox ("BST", 0.0, 0, "BCMST", 0.0, 0);
+	cpgswin(x2l, x2h, 0.001, 1.1 * max);
+	cpgbox ("CMST", 0.0, 0, "", 0.0, 0);
+	cpgsch(0.8);
 	cpgmtxt("T", 1.8, 0.5, 0.5, fout);
-	cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
       }
       free(ftmparr1);
 
@@ -661,21 +668,24 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       if (search->nsub > 1){
 	cpgsvp (0.74, 0.94, 0.58, 0.68);
 	cpgswin(y1l, y1h, 0.0, 1.1 * max);
+	cpgline(search->numpdots, ftmparr1, pdotchi);
 	cpgsch(0.5);
 	cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
 	cpgsch(0.7);
 	cpgmtxt("B", 2.2, 0.5, 0.5, pdout);
 	cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
-	cpgline(search->numpdots, ftmparr1, pdotchi);
       } else {
-	cpgsvp (0.75, 0.88, 0.09, 0.5);
-	cpgswin(0.01, 1.1 * max, y1l, y1h);
+	cpgsvp (0.82, 0.93, 0.09, 0.49);
+	cpgswin(0.001, 1.1 * max, y1l, y1h);
+	cpgline(search->numpdots, pdotchi, ftmparr1);
+	cpgsch(0.7);
 	cpgbox ("BCMST", 0.0, 0, "BST", 0.0, 0);
-	cpgswin(0.01, 1.1 * max, y2l, y2h);
+	cpgswin(0.001, 1.1 * max, y2l, y2h);
 	cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
-	cpgmtxt("T", 1.8, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+	cpgsch(0.8);
+	cpgmtxt("T", 4.2, 0.5, 0.5, "Reduced");
+	cpgmtxt("T", 2.8, 0.5, 0.5, "\\gx\\u2\\d");
 	cpgmtxt("R", 2.4, 0.5, 0.5, fdout);
-	cpgline(search->numpdots, ftmparr1, pdotchi);
       }
       free(ftmparr1);
 
@@ -684,7 +694,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       if (search->nsub > 1)
 	cpgsvp (0.74, 0.94, 0.09, 0.29);
       else
-	cpgsvp (0.5, 0.75, 0.09, 0.5);
+	cpgsvp (0.51, 0.82, 0.09, 0.49);
       cpgswin(x1l, x1h, y1l, y1h);
       nr = search->numpdots;
       nc = search->numperiods;
@@ -700,12 +710,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       x1l = (float) (bestp * 1000.0 - pfold);
       y1l = (float) (bestpd - pdfold);
       cpgpt(1, &x1l, &y1l, 5);
-      cpgsch(0.5);
-      cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
-      cpgsch(0.7);
-      cpgmtxt("B", 2.4, 0.5, 0.5, pout);
-      cpgmtxt("L", 2.0, 0.5, 0.5, pdout);
       if (search->nsub > 1){
+	cpgsch(0.5);
+	cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
+	cpgsch(0.7);
+	cpgmtxt("B", 2.4, 0.5, 0.5, pout);
+	cpgmtxt("L", 2.0, 0.5, 0.5, pdout);
 	cpgswin(x2l, x2h, y2l, y2h);
 	cpgsch(0.5);
 	cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
@@ -713,6 +723,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	sprintf(pout, "Freq - %-.6f (Hz)", search->fold.p1);
 	cpgmtxt("T", 1.8, 0.5, 0.5, pout);
 	cpgmtxt("R", 2.3, 0.5, 0.5, pdout);
+      } else {
+	cpgsch(0.7);
+	cpgbox("BCNST", 0.0, 0, "BCNST", 0.0, 0);
+	cpgsch(0.8);
+	cpgmtxt("B", 2.6, 0.5, 0.5, pout);
+	cpgmtxt("L", 2.1, 0.5, 0.5, pdout);
       }
       free(levels);
       cpgsch(0.8);
@@ -815,11 +831,10 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s", 
 		beststats.redchi, chiq, out2);
 	cpgtext(0.0, 0.9, out);
-	if (search->nsub > 1)
+	if (search->nsub > 1){
 	  sprintf(out, "Dispersion Measure (DM) = %.3f", search->bestdm);
-	else
-	  sprintf(out, "Dispersion Measure (DM) = N/A");
-	cpgtext(0.0, 0.8, out);
+	  cpgtext(0.0, 0.8, out);
+	}
 	{
 	  double perr, pderr, pdderr, *dbestprof;
 

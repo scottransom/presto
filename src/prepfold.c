@@ -176,6 +176,8 @@ int main(int argc, char *argv[])
 
     /* Determine the number of records to use from the command line */
 
+    search.startT = cmd->startT;
+    search.endT = cmd->endT;
     lorec = (long) (cmd->startT * numrec + DBLCORRECT);
     hirec = (long) (cmd->endT * numrec + DBLCORRECT);
     numrec = hirec - lorec;
@@ -195,7 +197,7 @@ int main(int argc, char *argv[])
 
     /* Topocentric and barycentric times of folding epoch data */
 
-    if (idata.mjd_i && idata.mjd_f) {
+    if (idata.mjd_i) {
       search.tepoch = (double) idata.mjd_i + idata.mjd_f + 
 	lorec * recdt / SECPERDAY;
       barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
@@ -245,6 +247,8 @@ int main(int argc, char *argv[])
 
     /* Determine the number of records to use from the command line */
 
+    search.startT = cmd->startT;
+    search.endT = cmd->endT;
     lorec = (long) (cmd->startT * N + DBLCORRECT);
     hirec = (long) (cmd->endT * N + DBLCORRECT);
     N = hirec - lorec;
@@ -270,7 +274,7 @@ int main(int argc, char *argv[])
     strcpy(search.telescope, idata.telescope);
 
     if (cmd->nobaryP){
-      if (idata.mjd_i && idata.mjd_f){
+      if (idata.mjd_i){
 	if (idata.bary)
 	  search.bepoch = (double) idata.mjd_i + 
 	    idata.mjd_f + lorec * search.dt / SECPERDAY;
@@ -282,7 +286,13 @@ int main(int argc, char *argv[])
       
       /* OBS code for TEMPO */
       
-      strcpy(obs, "PK");
+      if (cmd->obscodeP)
+	strcpy(obs, cmd->obscode);
+      else {
+	printf("\nIf you want to barycenter you must specify an \n");
+	printf("observatory found in TEMPO using the '-obs' argument.\n\n");
+	exit(1);
+      }
       
       /* Define the RA and DEC of the observation */
       
@@ -290,8 +300,7 @@ int main(int argc, char *argv[])
       ra_dec_to_string(decstring, idata.dec_d, idata.dec_m, idata.dec_s);
       
       /* Topocentric and barycentric times of folding epoch data */
-      
-      if (idata.mjd_i && idata.mjd_f) {
+      if (idata.mjd_i) {
 	search.tepoch = (double) idata.mjd_i + 
 	  idata.mjd_f + lorec * search.dt / SECPERDAY;
 	barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
