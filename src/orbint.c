@@ -47,23 +47,25 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
 /* absolute accuracy in E that we want to achieve.  t is the time in   */
 /* seconds since the last periapsis.                                   */
 
-  int j;
-  double E1 = 0.0, E2 = PI, z, twopif;
+  int ii;
+  double E1=0.0, E2=PI, z, twopif;
   double df, dE, dEold, f, fh, fl;
   double temp, Eh, El, rEs;
 
-  twopif = TWOPI / p_orb;
-  z = twopif * t;
+  z = TWOPI * t / p_orb;
   fl = E1 - e * sin(E1) - z;
   fh = E2 - e * sin(E2) - z;
-  if ((fl > 0.0 && fh > 0.0) || (fl < 0.0 && fh < 0.0)){
+  if ((fl > 0.0 && fh > 0.0) || 
+      (fl < 0.0 && fh < 0.0)){
     E1 = PI;
     E2 = TWOPI;
     fl = E1 - e * sin(E1) - z;
     fh = E2 - e * sin(E2) - z;
-    if ((fl > 0.0 && fh > 0.0) || (fl < 0.0 && fh < 0.0)){
-      printf("Problem with the initial comditions in keplars_eq.  \n");
-      printf("Root must be bracketed to start.  Exiting.\n");
+    if ((fl > 0.0 && fh > 0.0) || 
+	(fl < 0.0 && fh < 0.0)){
+      printf("Problem with the initial conditions in keplars_eqn().\n");
+      printf("  t = %g  p_orb = %g  e = %g  Eacc = %g\n",
+	     t, p_orb, e, Eacc);
       exit(1);
     }
   }
@@ -83,7 +85,7 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
   dE = dEold;
   f = rEs - e * sin(rEs) - z;
   df = EDOT(rEs);
-  for (j = 1; j <= MAXIT; j++) {
+  for (ii=0; ii<MAXIT; ii++){
     if ((((rEs - Eh) * df - f) * ((rEs - El) * df - f) >= 0.0)
 	|| (fabs(2.0 * f) > fabs(dEold * df))) {
       dEold = dE;
