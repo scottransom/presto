@@ -37,9 +37,9 @@ int main(int argc, char *argv[])
     if (argc==4){
       outfilenm = (char *)malloc(strlen(argv[3])+1);
       strcpy(outfilenm, argv[3]);
-      fprintf(textout, "\nPlacing %ld bins of value %f in \"%s\".\n\n", \
+      fprintf(textout, "\nPlacing %ld bins of value %f at the end of \"%s\".\n\n", \
 	     bins_to_patch, patchvalue, outfilenm);
-      if (NULL == (outfile = fopen (outfilenm, "wb"))){
+      if (NULL == (outfile = fopen (outfilenm, "ab"))){
 	fprintf(textout, "\nCan't open \"%s\".  Exiting.\n\n", outfilenm);
 	exit(-1);
       }
@@ -57,8 +57,9 @@ int main(int argc, char *argv[])
     printf("      bins_to_patch (long):  The number of points to\n");
     printf("         generate.  This value must be greater than 0.\n");
     printf("      patch_value (float):  The value of each point.\n");
-    printf("      outfile (string):  An optional output file.  The\n");
-    printf("         default behavior sends the raw output to STDOUT\n\n");
+    printf("      outfile (string):  An optional output file to append\n");
+    printf("         the padding to.  The default behavior sends the raw\n");
+    printf("         output to STDOUT\n\n");
     exit (0);
   }
 
