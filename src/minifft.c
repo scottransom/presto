@@ -34,15 +34,14 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*      INTERPOLATE = (Fourier interpolation) is slower but more   */
   /*        sensitive.                                               */
   /*   'checkaliased' is either CHECK_ALIASED or NO_CHECK_ALIASED.   */
-  /*      NO_CHECK_ALIASED = harminic summing does not include       */
+  /*      NO_CHECK_ALIASED = harmonic summing does not include       */
   /*        aliased freqs making it faster but less sensitive.       */
-  /*      CHECK_ALIASED = harminic summing includes aliased freqs    */
+  /*      CHECK_ALIASED = harmonic summing includes aliased freqs    */
   /*        making it slower but more sensitive.                     */
 {
   int ii, jj, fftlen, fftlen2, offset, numtosearch;
   int numspread = 0, kern_half_width, numkern = 0;
-  float powargr, powargi, nyquist;
-  float *fullpows = NULL, *sumpows;
+  float powargr, powargi, *fullpows = NULL, *sumpows;
   double twobypi, minpow = 0.0, minsig;
   static int firsttime = 1, old_numminifft = 0;
   static fcomplex *kernel;
@@ -62,7 +61,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Prep the interpolation kernel if needed */
 
   if (interptype == INTERPOLATE){
-    if (firsttime || old_numminifft != numminifft){
+    if (firsttime || (old_numminifft != numminifft)){
       if (!firsttime) free(kernel);
       numkern = 4 * kern_half_width;
       kern = gen_r_response(0.0, 2, numkern);
@@ -78,26 +77,25 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Spread and interpolate the minifft */
   
   spread = gen_cvect(numspread);
-  spread_no_pad(minifft, numminifft, spread, numspread, 2);
-  nyquist = spread[0].i;
-  spread[0].r = 1.0;
-  spread[0].i = 0.0;
-  spread[fftlen].r = nyquist;
-  spread[fftlen].i = 0.0;
-  if (interptype == INTERPOLATE){
+  spread_with_pad(minifft, numminifft, spread, numspread, 2, 0);
+  /* Nyquist is in spread[0].i, but it is usually */
+  /* _big_ so we won't use it.                    */
+  spread[0].r = spread[fftlen].r = 1.0;
+  spread[0].i = spread[fftlen].r = 0.0;
+  if (interptype == INTERPOLATE){  /* INTERPOLATE */
     spread = complex_corr_conv(spread, kernel, numspread, \
 			       FFTD, INPLACE_CORR);
-  } else {
+  } else {                         /* INTERBIN */
     for (ii = 1; ii < fftlen; ii += 2){
       spread[ii].r = twobypi * (spread[ii-1].r - spread[ii+1].r);
       spread[ii].i = twobypi * (spread[ii-1].i - spread[ii+1].i);
     }
   }
 
-  numtosearch = (checkaliased == CHECK_ALIASED) ? fftlen2 : fftlen + 1;
+  numtosearch = (checkaliased == CHECK_ALIASED) ? fftlen2 : fftlen;
   fullpows = gen_fvect(numtosearch);
   fullpows[0] = 1.0;
-  fullpows[fftlen] = nyquist * nyquist;
+  fullpows[fftlen] = 1.0;  /* used to be nyquist^2 */
 
   /* The following wraps the data around the Nyquist freq such that */
   /* we consider aliased frequencies as well (If CHECK_ALIASED).    */
