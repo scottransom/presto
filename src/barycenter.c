@@ -176,7 +176,9 @@ void barycenter(double *topotimes, double *barytimes, \
   /* rename("bary.tmp", "bary2.tmp"); */
   /* rename("bary.par", "bary2.par"); */
 
-  rename("tempo.lis", "tempoout.tmp");
+  remove("tempo.lis");
+  remove("tempoout_times.tmp");
+  remove("tempoout_vels.tmp");
   remove("resid2.tmp");
   remove("bary.tmp");
   remove("matrix.tmp");
