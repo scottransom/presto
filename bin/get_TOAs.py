@@ -36,6 +36,7 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-g gausswidth, --gaussian=width]  : Use a Gaussian template of FWHM width
   [-t templateprof, --template=prof] : The template .bestprof file to use
   [-k subs_list, --kill=subs_list]   : List of subbands to ignore
+  [-i ints_list, --kints=ints_list]  : List of intervals to ignore
   [-e, --event]                      : The .pfd file was made with events
   pfd_file                           : The .pfd file containing the folds
 
@@ -71,10 +72,10 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hefs:n:d:g:t:o:k:e:",
+        opts, args = getopt.getopt(sys.argv[1:], "hefs:n:d:g:t:o:k:i:",
                                    ["help", "event", "FFTFITouts", "subbands=", 
-				    "numtoas=", "dm=", "gaussian=", "template=",
-                                    "offset=", "kill="])
+									"numtoas=", "dm=", "gaussian=", "template=",
+                                    "offset=", "kill=", "kints="])
                                     
     except getopt.GetoptError:
         # print help information and exit:
@@ -93,6 +94,7 @@ if __name__ == '__main__':
     offset = 0.0
     events = 0
     kill = []
+    kints = []
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
@@ -124,6 +126,13 @@ if __name__ == '__main__':
                     kill.extend(range(int(lo), int(hi)+1))
                 else:
                     kill.append(int(subs))
+        if o in ("-i", "--kints"):
+            for ints in a.split(','):
+                if (ints.find("-") > 0):
+                    lo, hi = ints.split("-")
+                    kints.extend(range(int(lo), int(hi)+1))
+                else:
+                    kints.append(int(ints))
 
     # Read key information from the bestprof file
     fold = bestprof(sys.argv[-1]+".bestprof")
@@ -143,6 +152,9 @@ if __name__ == '__main__':
 
     # Kill any required channels and/or subband
     fold_pfd.kill_subbands(kill)
+
+    # Kill any required intervals
+    fold_pfd.kill_intervals(kints)
 
     # De-disperse at the requested DM
     fold_pfd.dedisperse()
