@@ -82,6 +82,8 @@ Double -end  endT  {The folding end time as a fraction of the full obs} \
     
 String -psr psrname {Name of pulsar to fold (do not include J or B)}
 
+String -obs obscode {Two letter TEMPO observatory code (for barycentering)}
+
 Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \
         {range = 1,oo}
 
