@@ -1036,6 +1036,7 @@ double foldfile(FILE *datafile, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
 
+
 double simplefold(float *data, int numdata, double dt, double tlo,
 		  double *prof, int numprof, double startphase, 
 		  double fo, double fdot, double fdotdot);
@@ -1104,6 +1105,17 @@ double fold(float *data, int numdata, double dt, double tlo,
 /*            fold() is called for the first time.                    */
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
+
+
+void combine_profs(double *profs, int numprofs, int proflen, 
+		   int shift, double *outprof);
+/* Combine a series of 'numprofs' profiles, each of length 'proflen', */
+/* into a single profile of length 'proflen'.  The profiles are       */
+/* summed after being shifted (+:right, -:left) by an an appropriate  */
+/* amount such that the phase would drift 'shift' bins over the time  */
+/* represented by all of the profiles.  Ruturns the summed profile in */
+/* 'outprof'.  Note that 'profs' must contain all of the profiles     */
+/* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
 
 
 double doppler(double freq_observed, double voverc);

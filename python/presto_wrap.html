@@ -17,6 +17,7 @@ presto_wrap.c</TITLE>
 <LI> <A HREF="#s8_">8. class fourierprops</A>
 <LI> <A HREF="#s9_">9. class binaryprops</A>
 <LI> <A HREF="#s10_">10. class rawbincand</A>
+<LI> <A HREF="#s11_">11. class foldstats</A>
 </UL>
 
 <P><TT><B></B></TT>
@@ -1495,6 +1496,52 @@ presto_wrap.c</TITLE>
 <BLOCKQUOTE>[ Destructor: returns void  ]
 <BR></BLOCKQUOTE>
 
+<A name="s11_">
+<HR><H2>11. class foldstats</H2></A>
+[ created from struct foldstats ]<BR>
+<P><TT><B>self.numdata</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Number of data bins folded           
+</BLOCKQUOTE>
+
+<P><TT><B>self.data_avg</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Average level of the data bins       
+</BLOCKQUOTE>
+
+<P><TT><B>self.data_var</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Variance of the data bins            
+</BLOCKQUOTE>
+
+<P><TT><B>self.numprof</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Number of bins in the profile        
+</BLOCKQUOTE>
+
+<P><TT><B>self.prof_avg</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Average level of the profile bins    
+</BLOCKQUOTE>
+
+<P><TT><B>self.prof_var</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Variance of the profile bins         
+</BLOCKQUOTE>
+
+<P><TT><B>self.redchi</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Reduced chi-squared of the profile   
+</BLOCKQUOTE>
+
+<P><TT><B>foldstats()</B></TT>
+<BLOCKQUOTE>[ Constructor: returns foldstats * ]
+<BR></BLOCKQUOTE>
+
+<P><TT><B>del this</B></TT>
+<BLOCKQUOTE>[ Destructor: returns void  ]
+<BR></BLOCKQUOTE>
+
 <P><TT><B>frotate(data,numbins,bins_to_left)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR>   Rotates a vector by bins_to_left places to the left.      
@@ -2131,9 +2178,46 @@ presto_wrap.c</TITLE>
    maximizes the power.                                       
 </BLOCKQUOTE>
 
-<P><TT><B>foldfile(datafile,dt,prof,proflen,fo,fdot,fdotdot,binary,delays,orbto,orbdt,numdelays,poisson,chiarr,onoffpairs)</B></TT>
-<BLOCKQUOTE>[ returns void  ]
-<BR></BLOCKQUOTE>
+<P><TT><B>foldfile(datafile,dt,tlo,prof,numprof,startphs,fo,fdot,fdotdot,flags,delays,delaytimes,numdelays,onoffpairs,stats,chiarr)</B></TT>
+<BLOCKQUOTE>[ returns double  ]
+<BR>   This routine is a general pulsar folding algorithm.  It will fold    
+   data for a pulsar with single and double frequency derivatives and   
+   with arbitrary pulse delays (for example: variable time delays       
+   due to light travel time in a binary).  These delays are described   
+   in the arrays '*delays' and '*delaytimes'. The folding may also be   
+   turned on and off throughout the data by using 'onoffpairs'. The     
+   profile will have the data corresponding to time 'tlo' placed at     
+   the phase corresponding to time 'tlo' using 'fo', 'fdot', and        
+   'fdotdot' plus 'startphs' and the appropriate delay.                 
+   Arguments:                                                           
+      'datafile' is FILE ptr for the input floating point data file.    
+      'dt' is the time duration of each data bin.                       
+      'tlo' is the time of the start of the 1st data pt.                
+      'prof' is a double prec array to contain the profile.             
+      'numprof' is the length of the profile array.                     
+      'startphs'is the phase offset [0-1] for the first point.          
+      'fo' the starting frequency to fold.                              
+      'fdot' the starting frequency derivative.                         
+      'fdotdot' the frequency second derivative.                        
+      'flags' is an integer containing flags of how to fold:            
+              0 = No *delays and no *onoffpairs                         
+              1 = Use *delays but no *onoffpairs                        
+              2 = No *delays but use *onoffpairs                        
+              3 = Use *delays and use *onoffpairs                       
+      'delays' is an array of time delays.                              
+      'delaytimes' are the times where 'delays' were calculated.        
+      'numdelays' is how many points are in 'delays' and 'delaytimes'   
+      'onoffpairs' is array containing pairs of normalized times        
+              that represent the bins when we will actively add         
+              to the profile.  To fold the full file,                   
+              onoffpairs should be [0.0, T_obs].                        
+      'stats' are statistics of the data and the profile.               
+      'chiarr' is an array containing the instant reduced chi-square    
+              during the folding (1 point each WORKLEN data).  This     
+              array must have been allocated and set to 0.              
+   Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0               
+      (i.e. to the beginning of the first data point)                   
+</BLOCKQUOTE>
 
 <P><TT><B>fold(data,numdata,dt,tlo,prof,numprof,startphase,fo,fdot,fdotdot,flags,delays,delaytimes,numdelays,onoffpairs,stats)</B></TT>
 <BLOCKQUOTE>[ returns double  ]
@@ -2141,27 +2225,35 @@ presto_wrap.c</TITLE>
 
 <P><TT><B>simplefold(data,numdata,dt,tlo,prof,numprof,startphase,fo,fdot,fdotdot)</B></TT>
 <BLOCKQUOTE>[ returns double  ]
-<BR>  
- * This routine is a simplified pulsar folding algorithm.  It will fold
- * data for a pulsar with single and double frequency derivatives.  The
- * profile will have the data corresponding to time 'tlo' placed at
- * the phase corresponding to time 'tlo' using 'fo', 'fdot', and 'fdotdot'
- * plus 'startphs'.  The function arguments are:
- *
- * float *data:       A float pointer containing the data to fold.
- * int numdata:       The number of points in *data (or number to fold).
- * double dt:         The integration length of each data bin.
- * double tlo;        Time corresponding to the start of the 1st data pt.
- * double *prof:      A double precision array of length numprof
- *                       to contain the profile.
- * int numprof:       The length of the profile array.
- * double startphs:   The profile phase [0-1] to place the first point.
- * double fo:         The starting frequency to fold.
- * double fdot:       The starting frequency derivative.
- * double fdotdot:    The frequency double-derivative.
- * NOTE:  fo, fdot, and fdotdot are the values corresponding to T=0 (i.e.
- *        to the beginning of the first data point)
-   
+<BR>   This routine is a simplified pulsar folding algorithm.  It      
+   folds data for a pulsar with single and double frequency        
+   derivatives.  The profile will have the data corresponding      
+   to time 'tlo' placed at the phase corresponding to time 'tlo'   
+   using 'fo', 'fdot', and 'fdotdot' plus 'startphs'.              
+   Arguments:                                                      
+      'data' is a float array containing the data to fold.         
+      'numdata' is the number of points in *data.                  
+      'dt' is the time duration of each data bin.                  
+      'tlo' is the time of the start of the 1st data pt.           
+      'prof' is a double prec array to contain the profile.        
+      'numprof' is the length of the profile array.                
+      'startphs'is the phase offset [0-1] for the first point.     
+      'fo' the starting frequency to fold.                         
+      'fdot' the starting frequency derivative.                    
+      'fdotdot' the frequency second derivative.                   
+   Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0          
+      (i.e. to the beginning of the first data point)              
+</BLOCKQUOTE>
+
+<P><TT><B>combine_profs(profs,numprofs,proflen,shift,outprof)</B></TT>
+<BLOCKQUOTE>[ returns void  ]
+<BR>   Combine a series of 'numprofs' profiles, each of length 'proflen',   
+   into a single profile of length 'proflen'.  The profiles are         
+   summed after being shifted (+:right, -:left) by an an appropriate    
+   amount such that the phase would drift 'shift' bins over the time    
+   represented by all of the profiles.  Ruturns the summed profile in   
+   'outprof'.  Note that 'profs' must contain all of the profiles       
+   arranged end-to-end.  Also, 'outprof' must already be allocated.     
 </BLOCKQUOTE>
 
 <P><TT><B>doppler(freq_observed,voverc)</B></TT>

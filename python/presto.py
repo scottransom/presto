@@ -1436,6 +1436,62 @@ class rawbincand(rawbincandPtr):
 
 
 
+class foldstatsPtr :
+    def __init__(self,this):
+        self.this = this
+        self.thisown = 0
+    def __del__(self):
+        if self.thisown == 1 :
+            prestoc.delete_foldstats(self.this)
+    def __setattr__(self,name,value):
+        if name == "numdata" :
+            prestoc.foldstats_numdata_set(self.this,value)
+            return
+        if name == "data_avg" :
+            prestoc.foldstats_data_avg_set(self.this,value)
+            return
+        if name == "data_var" :
+            prestoc.foldstats_data_var_set(self.this,value)
+            return
+        if name == "numprof" :
+            prestoc.foldstats_numprof_set(self.this,value)
+            return
+        if name == "prof_avg" :
+            prestoc.foldstats_prof_avg_set(self.this,value)
+            return
+        if name == "prof_var" :
+            prestoc.foldstats_prof_var_set(self.this,value)
+            return
+        if name == "redchi" :
+            prestoc.foldstats_redchi_set(self.this,value)
+            return
+        self.__dict__[name] = value
+    def __getattr__(self,name):
+        if name == "numdata" : 
+            return prestoc.foldstats_numdata_get(self.this)
+        if name == "data_avg" : 
+            return prestoc.foldstats_data_avg_get(self.this)
+        if name == "data_var" : 
+            return prestoc.foldstats_data_var_get(self.this)
+        if name == "numprof" : 
+            return prestoc.foldstats_numprof_get(self.this)
+        if name == "prof_avg" : 
+            return prestoc.foldstats_prof_avg_get(self.this)
+        if name == "prof_var" : 
+            return prestoc.foldstats_prof_var_get(self.this)
+        if name == "redchi" : 
+            return prestoc.foldstats_redchi_get(self.this)
+        raise AttributeError,name
+    def __repr__(self):
+        return "<C foldstats instance>"
+class foldstats(foldstatsPtr):
+    def __init__(self) :
+        self.this = prestoc.new_foldstats()
+        self.thisown = 1
+
+
+
+
 
 
 #-------------- FUNCTION WRAPPERS ------------------
@@ -1644,11 +1700,17 @@ def max_rz_arr(arg0,arg1,arg2,arg3,arg4):
     val = prestoc.max_rz_arr(arg0,arg1,arg2,arg3,arg4.this)
     return val
 
-foldfile = prestoc.foldfile
+def foldfile(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13,arg14,arg15):
+    val = prestoc.foldfile(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13,arg14.this,arg15)
+    return val
 
-fold = prestoc.fold
+def fold(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13,arg14,arg15):
+    val = prestoc.fold(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13,arg14,arg15.this)
+    return val
 
 simplefold = prestoc.simplefold
+
+combine_profs = prestoc.combine_profs
 
 doppler = prestoc.doppler
 
