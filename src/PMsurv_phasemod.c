@@ -53,7 +53,7 @@
 
 /* Candidate file directory */
 /*#define OUTDIR "/home/ransom"*/
-#define OUTDIR ""
+#define OUTDIR "/tmp_mnt/usr/users/sransom/results"
 
 /* Function definitions */
 int not_already_there_rawbin(rawbincand newcand, 
