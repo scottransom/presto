@@ -2,7 +2,7 @@
 
 Name zapbirds
 
-Usage "Allows you to interactively or automatically zap standard birds from an FFT."
+Usage "Allows you to interactively or automatically zap interference from an FFT."
 
 Version [exec date +%d%b%y]
 
@@ -15,15 +15,15 @@ Flag    -autozap    autozap \
 Int     -lobin      lobin \
 	{The first Fourier frequency in the data file} \
 	-r 0 oo  -d 0
-Double  -baryv      baryv \
-	{The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric)} \
-	-r -0.1 0.1  -d 0.0
 String  -in         inzapfile \
 	{A file containing a list of freqs (Hz) and the # of harmonics to zap} \
 	-m
-String  -out        outzapfile \	
+String  -out        outzapfile \
 	{A file to write that will contain the freqs and widths (Hz) zapped} \
 	-m
+Double  -baryv      baryv \
+	{The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric)} \
+	-r -0.1 0.1  -d 0.0
 
 # Rest of command line:
 
