@@ -108,16 +108,18 @@ FLINKFLAGS = $(FFLAGS)
 	mv ../clig/$*_cmd.c .
 	cp ../clig/$*.1 ../docs/
 
-PRESTOOBJS = amoeba.o barycenter.o birdzap.o bpp.o cand_output.o\
+PRESTOOBJS = amoeba.o barycenter.o birdzap.o cand_output.o\
 	characteristics.o cldj.o chkio.o corr_prep.o corr_routines.o\
 	correlations.o database.o dcdflib.o dispersion.o\
 	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
 	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
-	median.o minifft.o multibeam.o misc_utils.o\
+	median.o minifft.o misc_utils.o\
 	orbint.o output.o read_fft.o responses.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
-	transpose.o twopass.o twopass_real_fwd.o wapp.o\
+	transpose.o twopass.o twopass_real_fwd.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o
+
+INSTRUMENTOBJS = multibeam.o bpp.o wapp.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
@@ -180,15 +182,15 @@ patchdata: patchdata.o
 	$(CC) $(CFLAGS) -o $@ patchdata.o $(DMALLOCLINK)
 	cp $@ ../bin
 
-check_parkes_raw: check_parkes_raw.o
-	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o $(PRESTOLINK) -lm
+check_parkes_raw: check_parkes_raw.o multibeam.o
+	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o multibeam.o $(PRESTOLINK) -lm
 	cp $@ ../bin
 
 test_multifiles: test_multifiles.o
 	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(PRESTOLINK) -lm
 
-rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@  $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
+rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
@@ -206,16 +208,16 @@ searchmultidms: searchmultidms.o com.o randlib.o $(PLOT2DOBJS)
 test_fold: test_fold.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
-prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o 
-	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(PRESTOLINK) $(RFFTLINK) -lm
+prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o $(INSTRUMENTOBJS)
+	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
 	cp $@ ../bin
 
-prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o 
-	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(PRESTOLINK) $(RFFTLINK) -lm
+prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
+	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
 	cp $@ ../bin
 
-prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
+prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 show_pfd: show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
@@ -266,8 +268,8 @@ quicklook: quicklook.o
 	$(CC) $(CFLAGS) -o $@ quicklook.o $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-readfile: readfile_cmd.c readfile_cmd.o readfile.o 
-	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(PRESTOLINK) $(RFFTLINK) -lm
+readfile: readfile_cmd.c readfile_cmd.o readfile.o $(INSTRUMENTOBJS)
+	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
 	cp $@ ../bin
 
 realfft: realfft_cmd.c realfft_cmd.o realfft.o 

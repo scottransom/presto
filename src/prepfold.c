@@ -3,6 +3,7 @@
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
+#include "wapp.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
