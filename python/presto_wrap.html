@@ -1985,40 +1985,6 @@ presto_wrap.c</TITLE>
      'numpowers' is the number of complex points in 'powers'.         
 </BLOCKQUOTE>
 
-<P><TT><B>corr_rz_plane(data,numdata,numbetween,startbin,zlo,zhi,numz,fftlen,accuracy)</B></TT>
-<BLOCKQUOTE>[ returns fcomplex ** ]
-<BR>   This routine uses the correlation method to do Fourier            
-   complex interpolations of the f-fdot plane.                       
-   Arguments:                                                        
-     'data' is a complex array of the data to be interpolated.       
-     'numdata' is the number of complex points (bins) in data.       
-     'numbetween' is the number of points to interpolate per bin.    
-     'startbin' is the first bin to use in data for interpolation.   
-     'zlo' is the lowest fdot to use (z=f-dot/T^2)                   
-     'zhi' is the highest fdot to use (z=f-dot/T^2)                  
-     'numz' is the number of z values to use to make the plane       
-     'fftlen' is the # of complex pts in kernel and result.          
-     'accuracy' is either HIGHACC or LOWACC.                         
-     'nextbin' will contain the bin number of the first bin not      
-        interpolated in data.                                        
-</BLOCKQUOTE>
-
-<P><TT><B>corr_rz_interp(data,numdata,numbetween,startbin,z,fftlen,accuracy)</B></TT>
-<BLOCKQUOTE>[ returns fcomplex * ]
-<BR>   This routine uses the correlation method to do a Fourier          
-   complex interpolation of a slice of the f-fdot plane.             
-   Arguments:                                                        
-     'data' is a complex array of the data to be interpolated.       
-     'numdata' is the number of complex points (bins) in data.       
-     'numbetween' is the number of points to interpolate per bin.    
-     'startbin' is the first bin to use in data for interpolation.   
-     'z' is the fdot to use (z=f-dot/T^2).                           
-     'fftlen' is the # of complex pts in kernel and result.          
-     'accuracy' is either HIGHACC or LOWACC.                         
-     'nextbin' will contain the bin number of the first bin not      
-        interpolated in data.                                        
-</BLOCKQUOTE>
-
 <P><TT><B>rz_interp(data,numdata,r,z,kern_half_width)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR>   This routine uses the correlation method to do a Fourier          
@@ -2123,6 +2089,40 @@ presto_wrap.c</TITLE>
 <P><TT><B>realfft(data,n,isign)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR></BLOCKQUOTE>
+
+<P><TT><B>corr_rz_plane(data,numdata,numbetween,startbin,zlo,zhi,numz,fftlen,accuracy)</B></TT>
+<BLOCKQUOTE>[ returns fcomplex ** ]
+<BR>   This routine uses the correlation method to do Fourier            
+   complex interpolations of the f-fdot plane.                       
+   Arguments:                                                        
+     'data' is a complex array of the data to be interpolated.       
+     'numdata' is the number of complex points (bins) in data.       
+     'numbetween' is the number of points to interpolate per bin.    
+     'startbin' is the first bin to use in data for interpolation.   
+     'zlo' is the lowest fdot to use (z=f-dot/T^2)                   
+     'zhi' is the highest fdot to use (z=f-dot/T^2)                  
+     'numz' is the number of z values to use to make the plane       
+     'fftlen' is the # of complex pts in kernel and result.          
+     'accuracy' is either HIGHACC or LOWACC.                         
+     'nextbin' will contain the bin number of the first bin not      
+        interpolated in data.                                        
+</BLOCKQUOTE>
+
+<P><TT><B>corr_rz_interp(data,numdata,numbetween,startbin,z,fftlen,accuracy)</B></TT>
+<BLOCKQUOTE>[ returns fcomplex * ]
+<BR>   This routine uses the correlation method to do a Fourier          
+   complex interpolation of a slice of the f-fdot plane.             
+   Arguments:                                                        
+     'data' is a complex array of the data to be interpolated.       
+     'numdata' is the number of complex points (bins) in data.       
+     'numbetween' is the number of points to interpolate per bin.    
+     'startbin' is the first bin to use in data for interpolation.   
+     'z' is the fdot to use (z=f-dot/T^2).                           
+     'fftlen' is the # of complex pts in kernel and result.          
+     'accuracy' is either HIGHACC or LOWACC.                         
+     'nextbin' will contain the bin number of the first bin not      
+        interpolated in data.                                        
+</BLOCKQUOTE>
 
 
 </BODY>

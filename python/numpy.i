@@ -438,7 +438,7 @@ static long _output_matrixcols = 0;
   _output_matrixrows = 0;
   _output_matrixcols = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(2, (int *)&n, PyArray_CFLOAT, (char *)$source[0]);
+    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$source[0]);
   free($source);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;

@@ -160,17 +160,15 @@ def ffdot_plane(data, r, dr, numr, z, dz, numz):
    """
    numbetween = int(1.0 / dr)
    startbin = int(r - (numr * dr) / 2)
-   startz = int(z - (numz * dz) / 2)
-   maxabsz = max(abs(startz), abs(startz + numz * dz))
-   fftlen = next2_to_n(numr + 2 * numbetween * \
-                       z_resp_halfwidth(maxabsz, LOWACC))
-   ffdp = Numeric.zeros((numz, numr), 'F')
-   for i in range(numz):
-      z = startz + i * dz
-      (ffdraw, nextbin) = corr_rz_interp(data, len(data), numbetween, \
-                                         startbin, z, fftlen, LOWACC)
-      ffdp[i][0:numr] = Numeric.array(ffdraw[0:numr], copy=1)
-   return ffdp
+   loz = z - (numz * dz) / 2
+   hiz = loz + (numz - 1) * dz
+   maxabsz = max(abs(loz), abs(hiz))
+   kern_half_width = z_resp_halfwidth(maxabsz, LOWACC)
+   fftlen = next2_to_n(numr + 2 * numbetween * kern_half_width)
+   (ffdraw, nextbin) = corr_rz_plane(data, len(data), numbetween,
+                                     startbin, loz, hiz, numz,
+                                     fftlen, LOWACC)
+   return Numeric.array(ffdraw[:,0:numr], copy=1)
 
 def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
                      numr = 300, numz = 300, 

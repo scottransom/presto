@@ -971,48 +971,6 @@ float *corr_loc_pow(float *powers, int numpowers);
 
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
-%apply int MATRIXROWS { int fftlen };
-%apply int MATRIXCOLS { int numz };
-%apply int *OUTPUT { int *nextbin };
-fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
-			 int startbin, double zlo, double zhi,
-			 int numz, int fftlen,
-			 presto_interp_acc accuracy, int *nextbin);
-  /* This routine uses the correlation method to do Fourier          */
-  /* complex interpolations of the f-fdot plane.                     */
-  /* Arguments:                                                      */
-  /*   'data' is a complex array of the data to be interpolated.     */
-  /*   'numdata' is the number of complex points (bins) in data.     */
-  /*   'numbetween' is the number of points to interpolate per bin.  */
-  /*   'startbin' is the first bin to use in data for interpolation. */
-  /*   'zlo' is the lowest fdot to use (z=f-dot/T^2)                 */
-  /*   'zhi' is the highest fdot to use (z=f-dot/T^2)                */
-  /*   'numz' is the number of z values to use to make the plane     */
-  /*   'fftlen' is the # of complex pts in kernel and result.        */
-  /*   'accuracy' is either HIGHACC or LOWACC.                       */
-  /*   'nextbin' will contain the bin number of the first bin not    */
-  /*      interpolated in data.                                      */
-
-%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
-%apply int ARRAYLEN { int fftlen };
-%apply int *OUTPUT { int *nextbin };
-fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween,
-			 int startbin, double z, int fftlen,
-			 presto_interp_acc accuracy, int *nextbin);
-  /* This routine uses the correlation method to do a Fourier        */
-  /* complex interpolation of a slice of the f-fdot plane.           */
-  /* Arguments:                                                      */
-  /*   'data' is a complex array of the data to be interpolated.     */
-  /*   'numdata' is the number of complex points (bins) in data.     */
-  /*   'numbetween' is the number of points to interpolate per bin.  */
-  /*   'startbin' is the first bin to use in data for interpolation. */
-  /*   'z' is the fdot to use (z=f-dot/T^2).                         */
-  /*   'fftlen' is the # of complex pts in kernel and result.        */
-  /*   'accuracy' is either HIGHACC or LOWACC.                       */
-  /*   'nextbin' will contain the bin number of the first bin not    */
-  /*      interpolated in data.                                      */
-
-%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
 %apply fcomplex *OUTPUT { fcomplex *ans }; 
 void rz_interp(fcomplex *data, int numdata, double r, double z,
 	       int kern_half_width, fcomplex *ans);
@@ -1141,3 +1099,85 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign);
 %apply float* IN_1D_FLOAT { float *data };
 %apply long ARRAYLEN { long n };
 void realfft(float *data, unsigned long n, int isign);
+
+//
+//Note:  The following must be the last declarations in the file
+//
+
+%typemap(python, out) fcomplex ** {
+  PyArrayObject *arr;
+  int n[2];
+
+  n[0] = _output_matrixcols;
+  n[1] = _output_matrixrows;
+  _output_matrixrows = 0;
+  _output_matrixcols = 0;
+  arr = (PyArrayObject *) \
+    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$source[0]);
+  free($source);
+  if (arr == NULL) return NULL;
+  arr->dimensions[1] = ((int) (*_arg9) - _arg3) * _arg2 ;
+  arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
+  arr->flags |= OWN_DATA;
+  PyArray_INCREF(arr);
+  $target = (PyObject *)arr;
+}
+
+%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
+%apply int MATRIXROWS { int fftlen };
+%apply int MATRIXCOLS { int numz };
+%apply int *OUTPUT { int *nextbin };
+fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
+			 int startbin, double zlo, double zhi,
+			 int numz, int fftlen,
+			 presto_interp_acc accuracy, int *nextbin);
+  /* This routine uses the correlation method to do Fourier          */
+  /* complex interpolations of the f-fdot plane.                     */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'numbetween' is the number of points to interpolate per bin.  */
+  /*   'startbin' is the first bin to use in data for interpolation. */
+  /*   'zlo' is the lowest fdot to use (z=f-dot/T^2)                 */
+  /*   'zhi' is the highest fdot to use (z=f-dot/T^2)                */
+  /*   'numz' is the number of z values to use to make the plane     */
+  /*   'fftlen' is the # of complex pts in kernel and result.        */
+  /*   'accuracy' is either HIGHACC or LOWACC.                       */
+  /*   'nextbin' will contain the bin number of the first bin not    */
+  /*      interpolated in data.                                      */
+
+%typemap(python, out) fcomplex * {
+  PyArrayObject *arr;
+  int n;
+  
+  n = _output_arraylen;
+  _output_arraylen = 0;
+  arr = (PyArrayObject *) \
+    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$source);
+  if (arr == NULL) return NULL;
+  arr->flags |= OWN_DATA;
+  arr->dimensions[0] = ((int) (*_arg7) - _arg3) * _arg2;
+  arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
+  PyArray_INCREF(arr);
+  $target = (PyObject *)arr;
+}
+
+%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
+%apply int ARRAYLEN { int fftlen };
+%apply int *OUTPUT { int *nextbin };
+fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween,
+			 int startbin, double z, int fftlen,
+			 presto_interp_acc accuracy, int *nextbin);
+  /* This routine uses the correlation method to do a Fourier        */
+  /* complex interpolation of a slice of the f-fdot plane.           */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'numbetween' is the number of points to interpolate per bin.  */
+  /*   'startbin' is the first bin to use in data for interpolation. */
+  /*   'z' is the fdot to use (z=f-dot/T^2).                         */
+  /*   'fftlen' is the # of complex pts in kernel and result.        */
+  /*   'accuracy' is either HIGHACC or LOWACC.                       */
+  /*   'nextbin' will contain the bin number of the first bin not    */
+  /*      interpolated in data.                                      */
+

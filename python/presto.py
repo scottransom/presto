@@ -1553,10 +1553,6 @@ stretch_fft = prestoc.stretch_fft
 
 corr_loc_pow = prestoc.corr_loc_pow
 
-corr_rz_plane = prestoc.corr_rz_plane
-
-corr_rz_interp = prestoc.corr_rz_interp
-
 rz_interp = prestoc.rz_interp
 
 def max_r_arr(arg0,arg1,arg2,arg3):
@@ -1586,6 +1582,10 @@ fftwcall = prestoc.fftwcall
 tablesixstepfft = prestoc.tablesixstepfft
 
 realfft = prestoc.realfft
+
+corr_rz_plane = prestoc.corr_rz_plane
+
+corr_rz_interp = prestoc.corr_rz_interp
 
 
 
@@ -1731,9 +1731,9 @@ def spectralphase(fftarray):
        print 'fftarray must be complex in spectralpower()'
        return None
 
-def maximize_rz(data, r, z):
+def maximize_rz(data, r, z, norm = None):
    """
-   maximize_rz(data, r, z):
+   maximize_rz(data, r, z, norm = None):
        Optimize the detection of a signal at location 'r', 'z' in
            the F-Fdot plane.  The routine returns a list containing
            the optimized values of the maximum normalized power, rmax,
@@ -1741,7 +1741,10 @@ def maximize_rz(data, r, z):
    """
    rd = rderivs()
    (maxpow, rmax, zmax) = max_rz_arr(data, len(data), r, z, rd)
-   maxpow = maxpow / rd.locpow
+   if not norm:
+      maxpow = maxpow / rd.locpow
+   else:
+      maxpow = maxpow / norm
    return [maxpow, rmax, zmax, rd]
 
 def search_fft(data, numcands, norm='default'):
@@ -1775,17 +1778,15 @@ def ffdot_plane(data, r, dr, numr, z, dz, numz):
    """
    numbetween = int(1.0 / dr)
    startbin = int(r - (numr * dr) / 2)
-   startz = int(z - (numz * dz) / 2)
-   maxabsz = max(abs(startz), abs(startz + numz * dz))
-   fftlen = next2_to_n(numr + 2 * numbetween * \
-                       z_resp_halfwidth(maxabsz, LOWACC))
-   ffdp = Numeric.zeros((numz, numr), 'F')
-   for i in range(numz):
-      z = startz + i * dz
-      (ffdraw, nextbin) = corr_rz_interp(data, len(data), numbetween, \
-                                         startbin, z, fftlen, LOWACC)
-      ffdp[i][0:numr] = Numeric.array(ffdraw[0:numr], copy=1)
-   return ffdp
+   loz = z - (numz * dz) / 2
+   hiz = loz + (numz - 1) * dz
+   maxabsz = max(abs(loz), abs(hiz))
+   kern_half_width = z_resp_halfwidth(maxabsz, LOWACC)
+   fftlen = next2_to_n(numr + 2 * numbetween * kern_half_width)
+   (ffdraw, nextbin) = corr_rz_plane(data, len(data), numbetween,
+                                     startbin, loz, hiz, numz,
+                                     fftlen, LOWACC)
+   return Numeric.array(ffdraw[:,0:numr], copy=1)
 
 def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
                      numr = 300, numz = 300, 
