@@ -41,7 +41,7 @@ typedef struct PREPFOLDINFO {
   double bepoch;      /* Barycentric eopch of data in MJD */
   double avgvoverc;   /* Average topocentric velocity */
   double lofreq;      /* Center of low frequency radio channel */
-  double chan_wid;    /* */
+  double chan_wid;    /* Width of each radio channel in MHz */
   double bestdm;      /* Best DM */
   position topo;      /* Best topocentric p, pd, and pdd */
   position bary;      /* Best barycentric p, pd, and pdd */
@@ -111,6 +111,12 @@ void init_prepfoldinfo(prepfoldinfo *in);
 
 void delete_prepfoldinfo(prepfoldinfo *in);
 /* Free all dynamic arrays in the prepfold array */
+
+void write_prepfoldinfo(prepfoldinfo *in, char *filename);
+/* Write a prepfoldinfo data structure to a binary file */
+
+void read_prepfoldinfo(prepfoldinfo *in, char *filename);
+/* Read a prepfoldinfo data structure from a binary file */
 
 int cpgnice_output_2(char *out, double val, double err, int len);
 /* Return a string that has the same formatting as       */
