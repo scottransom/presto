@@ -2245,17 +2245,6 @@ presto_wrap.c</TITLE>
       (i.e. to the beginning of the first data point)              
 </BLOCKQUOTE>
 
-<P><TT><B>combine_profs(profs,numprofs,proflen,shift,outprof)</B></TT>
-<BLOCKQUOTE>[ returns void  ]
-<BR>   Combine a series of 'numprofs' profiles, each of length 'proflen',   
-   into a single profile of length 'proflen'.  The profiles are         
-   summed after being shifted (+:right, -:left) by an an appropriate    
-   amount such that the phase would drift 'shift' bins over the time    
-   represented by all of the profiles.  Ruturns the summed profile in   
-   'outprof'.  Note that 'profs' must contain all of the profiles       
-   arranged end-to-end.  Also, 'outprof' must already be allocated.     
-</BLOCKQUOTE>
-
 <P><TT><B>doppler(freq_observed,voverc)</B></TT>
 <BLOCKQUOTE>[ returns double  ]
 <BR>   This routine returns the frequency emitted by a pulsar   

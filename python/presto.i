@@ -1173,19 +1173,6 @@ double simplefold(float *data, int numdata, double dt, double tlo,
 /*    (i.e. to the beginning of the first data point)            */
 
 
-%apply double* IN_1D_DOUBLE { double *profs,
-			      double *outprof};
-void combine_profs(double *profs, int numprofs, int proflen, 
-		   int shift, double *outprof);
-/* Combine a series of 'numprofs' profiles, each of length 'proflen', */
-/* into a single profile of length 'proflen'.  The profiles are       */
-/* summed after being shifted (+:right, -:left) by an an appropriate  */
-/* amount such that the phase would drift 'shift' bins over the time  */
-/* represented by all of the profiles.  Ruturns the summed profile in */
-/* 'outprof'.  Note that 'profs' must contain all of the profiles     */
-/* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
-
-
 double doppler(double freq_observed, double voverc);
 /* This routine returns the frequency emitted by a pulsar */
 /* (in MHz) given that we observe the pulsar at frequency */
