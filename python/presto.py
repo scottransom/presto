@@ -1781,7 +1781,7 @@ SAME = prestoc.SAME
 
 #-------------- Extra Stuff to Make Things Easier -----------------
 
-import math, Numeric, Pgplot
+import math, Numeric, Pgplot, string
 
 def read_inffile(filename):
    """
@@ -2140,7 +2140,6 @@ def pcorr(data, kernel, numbetween, lo, hi):
                 numbetween, kern_half_width, CORR)
    return result
 
-
 def ra_dec_to_string(h_or_d, m, s):
    """
    ra_dec_to_string(h_or_d, m, s):
@@ -2152,6 +2151,31 @@ def ra_dec_to_string(h_or_d, m, s):
    else:
       return "%.2d:%.2d:0%.4f" % (h_or_d, m, s)
 
+def ra_to_hours(ra_string):
+   """
+   ra_to_hours(ar_string):
+      Given a string containing RA information as
+      'hh:mm:ss.ssss', return the equivalent decimal
+      hours.
+   """
+   h, m, s = string.split(ra_string, ":")
+   h = int(h)
+   m = int(m)
+   s = float(s)
+   return 12.0/PI * hms2rad(h, m, s)
+
+def dec_to_deg(dec_string):
+   """
+   dec_to_deg(dec_string):
+      Given a string containing DEC information as
+      'dd:mm:ss.ssss', return the equivalent decimal
+      degrees.
+   """
+   d, m, s = string.split(dec_string, ":")
+   d = int(d)
+   m = int(m)
+   s = float(s)
+   return RADTODEG * dms2rad(d, m, s)
 
 def p_to_f(p, pd, pdd):
    """
@@ -2168,7 +2192,6 @@ def p_to_f(p, pd, pdd):
       fdd = 2.0 * pd * pd / (p**3.0) - pdd / (p * p)
    return [f, fd, fdd]
 
-   
 def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    """
    bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
