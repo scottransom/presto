@@ -1097,8 +1097,16 @@ void create_accelobs(accelobs *obs, infodata *idata,
       obs->nph = get_numphotons(obs->fftfile);
     }
     printf("Normalizing powers using %.0f photons.\n\n", obs->nph);
-  } else 
+  } else {
     obs->nph = 0.0;
+    /* For short FFTs insure that we don't pick up the DC */
+    /* or Nyquist component as part of the interpolation  */
+    /* for higher frequencies.                            */
+    if (obs->mmap_file || obs->dat_input){
+      obs->fft[0].r = 1.0;
+      obs->fft[0].i = 1.0;
+    }
+  }
   obs->lobin = cmd->lobin;
   if (obs->lobin > 0){
     obs->nph = 0.0;
