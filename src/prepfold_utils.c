@@ -18,11 +18,37 @@ double switch_pfdot(double pf, double pfdot)
   }
 }
 
+double switch_pfdotdot(double pf, double pfdot, double pfdotdot)
+{
+  double retval;
+
+  if (pf == 0.0 || pfdotdot == 0.0)
+    return 0.0;
+  else {
+    retval = 2.0 * pfdot * pfdot / (pf * pf * pf) - pfdotdot / (pf * pf);
+    if (retval==-0)
+      return 0.0;
+    else
+      return retval;
+  }
+}
+
 double fdot2phasedelay(double fdot, double time)
 {
   double retval;
 
-  retval = 0.5 * fdot * time * time;
+  retval = fdot * time * time / 2.0;
+  if (retval==-0)
+    return 0.0;
+  else
+    return retval;
+}
+
+double fdotdot2phasedelay(double fdotdot, double time)
+{
+  double retval;
+
+  retval = fdotdot * time * time * time / 6.0;
   if (retval==-0)
     return 0.0;
   else
@@ -35,6 +61,14 @@ double phasedelay2fdot(double phasedelay, double time)
     return 0.0;
   else 
     return 2.0 * phasedelay / (time * time);
+}
+
+double phasedelay2fdotdot(double phasedelay, double time)
+{
+  if (time == 0.0)
+    return 0.0;
+  else 
+    return 6.0 * phasedelay / (time * time * time);
 }
 
 

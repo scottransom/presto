@@ -241,7 +241,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
   double N=0.0, T, dphase, pofact, *currentprof, *lastprof;
   double parttime, *pdprofs, bestp, bestpd, bestpdd;
   double perr, pderr, pdderr, *dbestprof, fdot;
-  double pfold, pdfold;
+  double pfold, pdfold, pddfold=0.0;
   float *ftmparr1;
   foldstats currentstats, beststats;
   /* Best Fold Plot */
@@ -272,8 +272,8 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
     bestpd = search->topo.p2;
     bestpdd = search->topo.p3;
   }
-  pfold = 1.0 / search->fold.p1;
-  pdfold = switch_pfdot(search->fold.p1, search->fold.p2);
+  switch_f_and_p(search->fold.p1, search->fold.p2, search->fold.p3,
+		 &pfold, &pdfold, &pddfold);
 
   /* Time interval of 1 profile bin */
 
@@ -313,12 +313,13 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 
   /* Find the delays for the best periods and p-dots */
   
-  for (ii = 0; ii < search->numperiods; ii++)
+  for (ii = 0; ii < search->numperiods; ii++){
     if (TEST_EQUAL(search->periods[ii], bestp)){
       totpdelay = search->pstep * (ii - (search->numperiods - 1) / 2);
       break;
     }
-  
+  }
+
   /* Correct profiles for best DM */
 
   if (search->nsub > 1){
@@ -516,18 +517,35 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 
     for (jj = 0; jj < search->numpdots; jj++){
       
+      /* Correct each part for the best pdotdot (if required) */
+      
+      if (!TEST_EQUAL(pddfold, bestpdd)){
+	double fdotdot;
+	fdotdot = switch_pfdotdot(bestp, bestpd, bestpdd) - search->fold.p3;
+	for (kk = 0; kk < search->npart; kk++){
+	  profindex = kk * search->proflen;
+	  pddelay = NEAREST_INT(fdotdot2phasedelay(fdotdot, parttimes[kk]) * 
+				search->proflen);
+	  shift_prof(search->rawfolds+profindex, search->proflen, 
+		     pddelay, pdprofs+profindex);
+	}
+      }
+
       /* Correct each part for the current pdot */
       
       for (kk = 0; kk < search->npart; kk++){
 	profindex = kk * search->proflen;
-	fdot = switch_pfdot(pfold, search->pdots[jj]) - 
-	  search->fold.p2;
+	fdot = switch_pfdot(pfold, search->pdots[jj]) - search->fold.p2;
 	pddelay = NEAREST_INT(fdot2phasedelay(fdot, parttimes[kk]) * 
 			      search->proflen);
-	shift_prof(search->rawfolds + profindex, search->proflen, 
-		   pddelay, pdprofs + profindex);
+	if (!TEST_EQUAL(pddfold, bestpdd))
+	  shift_prof(pdprofs+profindex, search->proflen, 
+		     pddelay, pdprofs+profindex);
+	else
+	  shift_prof(search->rawfolds+profindex, search->proflen, 
+		     pddelay, pdprofs+profindex);
       }
-
+      
       /* Search over the periods */
       
       for (kk = 0; kk < search->numperiods; kk++){
@@ -557,15 +575,15 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	  int wrap;
 	  
 	  /* The Best Prof */
-
+	  
 	  double2float(currentprof, bestprof, search->proflen);
 	  double2float(currentprof, bestprof + search->proflen, 
 		       search->proflen);
 	  
 	  /* Copy these statistics */
-
+	  
 	  beststats = currentstats;
-
+	  
 	  /* The profs at each of the npart times */
 	  
 	  for (ll = 0; ll < search->npart; ll++){
@@ -574,7 +592,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 				((double) search->npart)) % 
 		    search->proflen);
 	    shift_prof(pdprofs + profindex, search->proflen, wrap, 
-		       currentprof);
+			   currentprof);
 	    scaleprof(currentprof, timeprofs + 2 * profindex, 
 		      search->proflen, flags->scaleparts);
 	    memcpy(timeprofs + 2 * profindex + search->proflen,

@@ -48,6 +48,10 @@ static Cmdline cmd = {
   /* xwinP = */ 0,
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   /* runavgP = */ 0,
+  /***** -searchpdd: Search p-dotdots as well as p and p-dots */
+  /* searchpddP = */ 0,
+  /***** -searchfdd: Search f-dotdots as well as f and f-dots */
+  /* searchfddP = */ 0,
   /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
   /* nosearchP = */ 0,
   /***** -scaleparts: Scale the part profiles independently */
@@ -994,6 +998,20 @@ showOptionValues(void)
     printf("-runavg found:\n");
   }
 
+  /***** -searchpdd: Search p-dotdots as well as p and p-dots */
+  if( !cmd.searchpddP ) {
+    printf("-searchpdd not found.\n");
+  } else {
+    printf("-searchpdd found:\n");
+  }
+
+  /***** -searchfdd: Search f-dotdots as well as f and f-dots */
+  if( !cmd.searchfddP ) {
+    printf("-searchfdd not found.\n");
+  } else {
+    printf("-searchfdd found:\n");
+  }
+
   /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
   if( !cmd.nosearchP ) {
     printf("-nosearch not found.\n");
@@ -1468,7 +1486,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-nosearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-polycos polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-polycos polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
@@ -1484,6 +1502,8 @@ usage(void)
        -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
         -xwin: Show the result plots on-screen as well as make a plotfile\n\
       -runavg: Subtract each blocks average as it is read (single channel data only)\n\
+   -searchpdd: Search p-dotdots as well as p and p-dots\n\
+   -searchfdd: Search f-dotdots as well as f and f-dots\n\
     -nosearch: Show but do not search the p/pdot and/or DM phase spaces\n\
   -scaleparts: Scale the part profiles independently\n\
      -allgrey: Make all the images greyscale instead of color\n\
@@ -1581,7 +1601,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 10Apr02\n\
+version: 24Apr02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1660,6 +1680,16 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-runavg", argv[i]) ) {
       cmd.runavgP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-searchpdd", argv[i]) ) {
+      cmd.searchpddP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-searchfdd", argv[i]) ) {
+      cmd.searchfddP = 1;
       continue;
     }
 
