@@ -253,8 +253,8 @@ prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plo
 	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
-show_pfd: show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)
