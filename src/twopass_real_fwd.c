@@ -10,7 +10,7 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 			 long long nn)
 {
   long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, ll, s1, s2;
-  int i1, i2, i3, i4, move_size, n2by2;
+  int i1, i2, i3, i4, move_size;
   unsigned char *move;
   rawtype *data, *dp, *p1, *p2, *p3, *p4;
   float *f1, *datap;
@@ -39,7 +39,7 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
   bb = find_blocksize(n1, n2);
   printf("bb = %lld, n1 = %lld, n2 = %lld, nn = %lld (%lld)\n", 
 	 bb, n1, n2, nn, n1*n2);
-  if (bb==0 || bb % 2){
+  if (bb==0 || bb % 2 || n1 % 2 || n2 % 2){
     printf("\nCan't factor the FFT length in twopassfft_real_fwd()\n");
     printf("   into useful sizes.\n\n");
     exit(1);
@@ -79,7 +79,6 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     /* Multiply the matrix A(ii,jj) by exp(- 2 pi i jj ii / nn). */
     /* Use recursion formulas from Numerical Recipes.            */
 
-    f1 = (float *)data;
     for (jj=0; jj<bb; jj++){
       theta = -(jj + ii) * TWOPI / (nn >> 1);
       wtemp = sin(0.5 * theta);
@@ -87,28 +86,19 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
       wpi = sin(theta);
       wr = 1.0 + wpr;
       wi = wpi;
-      i1 = 2;
-      i2 = 3;
       for (kk=1; kk<n1; kk++){
-	tmp1 = f1[i1];
-	tmp2 = f1[i2];
-	f1[i1] = tmp1 * wr - tmp2 * wi;
-	f1[i2] = tmp2 * wr + tmp1 * wi;
+	s1 = jj * n1 + kk;
+	tmp1 = data[s1].r;
+	tmp2 = data[s1].i;
+	data[s1].r = tmp1 * wr - tmp2 * wi;
+	data[s1].i = tmp2 * wr + tmp1 * wi;
 	wtemp = wr;
 	wr = wtemp * wpr - wi * wpi + wr;
 	wi = wi * wpr + wtemp * wpi + wi;
-	i1 += 2;
-	i2 += 2;
       }
-      f1 += 2 * n1;
     }
-
-    /* Write the data to the scratch file */
-    
     fwrite_multifile(data, sizeof(rawtype), bb * n1, scratch);
-
   }
-
   free(move);
 
   /* Now do n1 transforms of length n2 by fetching      */
@@ -135,9 +125,12 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     /* Read two n2 (rows) x bb2 (cols) blocks from the file */
     /* The first block comes from the start of the file and */
     /* the second block comes from the end.                 */
+    /* Note:  The first block is shifted by one complex     */
+    /*        value in order to make the complex->real      */
+    /*        assembly quite a bit more elegant...          */
 
     dp = data;
-    fp1 = sizeof(rawtype) * ii;              /* File ptr */
+    fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
     fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
     for (jj=0; jj<n2; jj++){
       fseek_multifile(scratch, fp1, SEEK_SET);
@@ -163,139 +156,108 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
     transpose_fcomplex(data, bb, n2, move, move_size); 
 
-    /* File pointers: */
+    /* Begin the re-assembly of the realFFT */
 
-    s1 = ii + 1;
-    s2 = nn / 2 - ii - bb2;
+    fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
+    fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
+    for (jj=0; jj<n2; jj++){
 
-    /* Data pointers: */
+      /* Start the trig recursion: */
 
-    datap = (float *) data;
-    p1 = data;
-    p3 = data + n2 * bb - bb2;
-
-    for (jj=0; jj<n2; jj+=bb, p1+=bb, p3-=bb){
-
-      p2 = p1;
-      p4 = p3;
-
-      for (kk=0; kk<bb; kk++, p2+=n2, p4-=n2){
-
-	/* Start the trig recursion: */
-
-	theta = ((jj + kk) * n1 + ii + 1) * delta;
-	wr = cos(theta);
-	wi = sin(theta);
-
-	/* Combine n and N/2-n terms as per Numerical Recipes. */
-
-	i1 = 2 * (kk * n2 + jj);
-	i2 = i1 + 1;
-	i3 = 2 * (n2 * (bb - kk) - jj - bb2) + bb - 2;
-	i4 = i3 + 1;
-
-	for (ll=0; ll<bb2; ll++){
-	  h1r = 0.5 * (datap[i1] + datap[i3]);
-	  h1i = 0.5 * (datap[i2] - datap[i4]);
-	  h2r = 0.5 * (datap[i2] + datap[i4]);
-	  h2i = -0.5 * (datap[i1] - datap[i3]);
-	  h2rwr = h2r * wr;
-	  h2rwi = h2r * wi;
-	  h2iwr = h2i * wr;
-	  h2iwi = h2i * wi;
-	  datap[i1] = h1r + h2rwr - h2iwi;
-	  datap[i2] = h1i + h2iwr + h2rwi;
-	  datap[i3] = h1r - h2rwr + h2iwi;
-	  datap[i4] = -h1i + h2iwr + h2rwi;
-	  wtemp = wr;
-	  wr = wtemp * wpr - wi * wpi + wr;
-	  wi = wi * wpr + wtemp * wpi + wi;
-	  i1 += 2;
-	  i2 += 2;
-	  i3 -= 2;
-	  i4 -= 2;
-	}
-
-	/* Write the "low" freqs: */
-	fseek_multifile(infile, sizeof(rawtype) * s1, SEEK_SET);
-	fwrite_multifile(p2, sizeof(rawtype), bb2, infile);
-
-	/* Write the "high" freqs: */
-	fseek_multifile(infile, sizeof(rawtype) * s2, SEEK_SET);
-	fwrite_multifile(p4, sizeof(rawtype), bb2, infile);
-
-	s1 += n1;
-	s2 -= n1;
+      theta = (jj * n1 + ii + 1) * delta;
+      wr = cos(theta);
+      wi = sin(theta);
+      
+      /* Combine n and N/2-n terms as per Numerical Recipes. */
+      
+      i1 = jj * bb;            /* n     */
+      i2 = bb * n2 - i1 - 1;   /* N/2-n */
+      for (kk=0; kk<bb2; kk++){
+	h1r = 0.5 * (data[i1].r + data[i2].r);
+	h1i = 0.5 * (data[i1].i - data[i2].i);
+	h2r = 0.5 * (data[i1].i + data[i2].i);
+	h2i = -0.5 * (data[i1].r - data[i2].r);
+	h2rwr = h2r * wr;
+	h2rwi = h2r * wi;
+	h2iwr = h2i * wr;
+	h2iwi = h2i * wi;
+	data[i1].r = h1r + h2rwr - h2iwi;
+	data[i1].i = h1i + h2iwr + h2rwi;
+	data[i2].r = h1r - h2rwr + h2iwi;
+	data[i2].i = -h1i + h2iwr + h2rwi;
+	wtemp = wr;
+	wr = wtemp * wpr - wi * wpi + wr;
+	wi = wi * wpr + wtemp * wpi + wi;
+	i1++;
+	i2--;
       }
+    }
+
+    /* Write two n2 (rows) x bb2 (cols) blocks to the file  */
+    /* The first block goes to the start of the file and    */
+    /* the second block goes to the end.                    */
+    /* Note:  The first block is shifted by one complex     */
+    /*        value in order to make the complex->real      */
+    /*        assembly quite a bit more elegant...          */
+
+    dp = data;
+    fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
+    fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
+    for (jj=0; jj<n2; jj++){
+      fseek_multifile(infile, fp1, SEEK_SET);
+      fwrite_multifile(dp, sizeof(rawtype), bb2, infile);
+      dp += bb2;   /* Data ptr */
+      fp1 += tmp1; /* File ptr */
+      fseek_multifile(infile, fp2, SEEK_SET);
+      fwrite_multifile(dp, sizeof(rawtype), bb2, infile);
+      dp += bb2;   /* Data ptr */
+      fp2 += tmp1; /* File ptr */
     }
   }
   free(move);
-  free(data);
 
   /* Now correct the final n2 values that have not been corrected */
   /*   due to the asymetry in the recombination.                  */
 
-  datap = gen_fvect(2 * n2);
-
   /* Read the n2 data points */
 
-  for (jj=0, s1=0, f1=datap; jj<n2; jj++, s1+=n1, f1+=2){
+  for (jj=0, s1=0; jj<n2; jj++, s1+=n1){
     fseek_multifile(scratch, sizeof(rawtype) * s1, SEEK_SET);
-    fread_multifile(f1, sizeof(float), 2, scratch);
+    fread_multifile(data+jj, sizeof(rawtype), 1, scratch);
   }
 
   /* FFT the array: */
 
-  tablesixstepfft((fcomplex *) datap, n2, -1);
+  fftwcall(data, n2, -1);
 
   /* Do the special cases of freq=0 and Nyquist freq */
 
-  tmp1 = datap[0];
-  datap[0] = tmp1 + datap[1];
-  datap[1] = tmp1 - datap[1];
+  tmp1 = data[0].r;
+  data[0].r = tmp1 + data[0].i;
+  data[0].i = tmp1 - data[0].i;
 
-  /* Some values for the trig recursion below: */
-
-  theta = -TWOPI * n1 / nn;
-  wtemp = sin(0.5 * theta);
-  wpr = -2.0 * wtemp * wtemp;
-  wpi = sin(theta);
-  wr = cos(theta);
-  wi = wpi;
-
-  n2by2 = n2 >> 1;
-  i1 = 2;
-  i2 = 3;
-  i3 = n2 * 2 - 2;
-  i4 = i3 + 1;
-
-  for (jj = 1; jj < n2by2; jj++){
-    h1r = 0.5 * (datap[i1] + datap[i3]);
-    h1i = 0.5 * (datap[i2] - datap[i4]);
-    h2r = 0.5 * (datap[i2] + datap[i4]);
-    h2i = -0.5 * (datap[i1] - datap[i3]);
+  for (jj=1, kk=n2-1; jj<n2/2; jj++, kk--){
+    wr = cos(delta * n1 * jj);
+    wi = sin(delta * n1 * jj);
+    h1r = 0.5 * (data[jj].r + data[kk].r);
+    h1i = 0.5 * (data[jj].i - data[kk].i);
+    h2r = 0.5 * (data[jj].i + data[kk].i);
+    h2i = -0.5 * (data[jj].r - data[kk].r);
     h2rwr = h2r * wr;
     h2rwi = h2r * wi;
     h2iwr = h2i * wr;
     h2iwi = h2i * wi;
-    datap[i1] = h1r + h2rwr - h2iwi;
-    datap[i2] = h1i + h2iwr + h2rwi;
-    datap[i3] = h1r - h2rwr + h2iwi;
-    datap[i4] = -h1i + h2iwr + h2rwi;
-    wr = (wtemp = wr) * wpr - wi * wpi + wr;
-    wi = wi * wpr + wtemp * wpi + wi;
-    i1 += 2;
-    i2 += 2;
-    i3 -= 2;
-    i4 -= 2;
+    data[jj].r = h1r + h2rwr - h2iwi;
+    data[jj].i = h1i + h2iwr + h2rwi;
+    data[kk].r = h1r - h2rwr + h2iwi;
+    data[kk].i = -h1i + h2iwr + h2rwi;
   }
 
   /* Write the n2 data points and clean up */
 
-  for (jj=0, s1=0, f1=datap; jj<n2; jj++, s1+=n1, f1+=2){
+  for (jj=0, s1=0; jj<n2; jj++, s1+=n1){
     fseek_multifile(infile, sizeof(rawtype) * s1, SEEK_SET);
-    fwrite_multifile(f1, sizeof(float), 2, infile);
+    fwrite_multifile(data+jj, sizeof(rawtype), 1, infile);
   }
-
-  free(datap);
+  free(data);
 }
