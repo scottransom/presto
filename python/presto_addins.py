@@ -99,7 +99,6 @@ def spectralpower(fftarray):
        print 'fftarray must be complex in spectralpower()'
        return None
     
-
 def spectralphase(fftarray):
     """
     spectralphase(fftarray):
@@ -126,6 +125,23 @@ def maximize_rz(data, r, z):
    (maxpow, rmax, zmax) = max_rz_arr(data, len(data), r, z, rd)
    maxpow = maxpow / rd.locpow
    return [maxpow, rmax, zmax, rd]
+
+def search_fft(data, numcands, norm='default'):
+   """
+   search_fft(data, numcands):
+      Search a short FFT and return a list containing the powers and
+      Fourier frequencies of the 'numcands' highest candidates in 'data'.
+      'norm' is the value to multiply each pow power by to get
+         a normalized power spectrum (defaults to  1.0/(Freq 0) value)
+   """
+   if (norm=='default'): norm = 1.0/data[0].real
+   hp = Numeric.zeros(numcands, 'f')
+   hf = Numeric.zeros(numcands, 'f')
+   search_minifft(data, len(data), norm, numcands, hp, hf) 
+   cands = []
+   for i in range(numcands):
+      cands.append([hp[i],hf[i]])
+   return cands
 
 def show_ffdot_plane(data, r, z, 
                      contours = None,
@@ -169,6 +185,7 @@ def show_ffdot_plane(data, r, z,
    print "The max value is located at:  r =", startbin + hir * dr, \
          "  z =", startz + hiz * dz
    print ""
-   Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency", \
-                 laby = "Fourier F-dot", title = title, image = image, \
+   Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency (bins)", \
+                 laby = "Fourier Frequency Derivative", \
+                 title = title, image = image, \
                  contours = contours, device = device)

@@ -1477,10 +1477,10 @@ get_numphotons = prestoc.get_numphotons
 
 get_localpower = prestoc.get_localpower
 
-get_localpower2d = prestoc.get_localpower2d
+get_localpower3d = prestoc.get_localpower3d
 
-def get_derivs2d(arg0,arg1,arg2,arg3,arg4,arg5):
-    val = prestoc.get_derivs2d(arg0,arg1,arg2,arg3,arg4,arg5.this)
+def get_derivs3d(arg0,arg1,arg2,arg3,arg4,arg5,arg6):
+    val = prestoc.get_derivs3d(arg0,arg1,arg2,arg3,arg4,arg5,arg6.this)
     return val
 
 def calc_props(arg0,arg1,arg2,arg3,arg4):
@@ -1576,6 +1576,8 @@ delay_from_dm = prestoc.delay_from_dm
 dm_from_delay = prestoc.dm_from_delay
 
 doppler = prestoc.doppler
+
+search_minifft = prestoc.search_minifft
 
 barycenter = prestoc.barycenter
 
@@ -1743,6 +1745,23 @@ def maximize_rz(data, r, z):
    maxpow = maxpow / rd.locpow
    return [maxpow, rmax, zmax, rd]
 
+def search_fft(data, numcands, norm='default'):
+   """
+   search_fft(data, numcands):
+      Search a short FFT and return a list containing the powers and
+      Fourier frequencies of the 'numcands' highest candidates in 'data'.
+      'norm' is the value to multiply each pow power by to get
+         a normalized power spectrum (defaults to  1.0/(Freq 0) value)
+   """
+   if (norm=='default'): norm = 1.0/data[0].real
+   hp = Numeric.zeros(numcands, 'f')
+   hf = Numeric.zeros(numcands, 'f')
+   search_minifft(data, len(data), norm, numcands, hp, hf) 
+   cands = []
+   for i in range(numcands):
+      cands.append([hp[i],hf[i]])
+   return cands
+
 def show_ffdot_plane(data, r, z, 
                      contours = None,
                      title = None, 
@@ -1785,6 +1804,7 @@ def show_ffdot_plane(data, r, z,
    print "The max value is located at:  r =", startbin + hir * dr, \
          "  z =", startz + hiz * dz
    print ""
-   Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency", \
-                 laby = "Fourier F-dot", title = title, image = image, \
+   Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency (bins)", \
+                 laby = "Fourier Frequency Derivative", \
+                 title = title, image = image, \
                  contours = contours, device = device)

@@ -625,24 +625,27 @@ float get_localpower(fcomplex *data, int numdata, double r);
   /*      interpolate.                                        */
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
-float get_localpower2d(fcomplex *data, int numdata, double r, 
-		       double z);
-  /* Return the local power level around a specific FFT         */
-  /* frequency and f-dot.                                       */
-  /* Arguments:                                                 */
-  /*   'data' is a pointer to a complex FFT.                    */
-  /*   'numdata' is the number of complex points in 'data'.     */
-  /*   'r' is the Fourier frequency in data that we want to     */
-  /*      interpolate.                                          */
-  /*   'z' is the Fourier Frequency derivative (# of bins the   */
-  /*       signal smears over during the observation).          */
+float get_localpower3d(fcomplex *data, int numdata, double r,
+		       double z, double w);
+  /* Return the local power level around a specific FFT           */
+  /* frequency, f-dot, and f-dotdot.                              */
+  /* Arguments:                                                   */
+  /*   'data' is a pointer to a complex FFT.                      */
+  /*   'numdata' is the number of complex points in 'data'.       */
+  /*   'r' is the Fourier frequency in data that we want to       */
+  /*      interpolate.                                            */
+  /*   'z' is the Fourier Frequency derivative (# of bins the     */
+  /*       signal smears over during the observation).            */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in the */
+  /*       Fourier f-dot during the observation).                 */
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
-void get_derivs2d(fcomplex *data, int numdata, double r, 
-		  double z, float localpower, rderivs *result);
+void get_derivs3d(fcomplex *data, int numdata, double r,
+                  double z, double w, float localpower,
+                  rderivs *result);
   /* Return an rderives structure that contains the power,      */
   /* phase, and their first and second derivatives at a point   */
-  /* in the F/F-dot plane.                                      */  
+  /* in the F/F-dot/F-dortdot volume.                           */  
   /* Arguments:                                                 */
   /*   'data' is a pointer to a complex FFT.                    */
   /*   'numdata' is the number of complex points in 'data'.     */
@@ -650,6 +653,8 @@ void get_derivs2d(fcomplex *data, int numdata, double r,
   /*      interpolate.                                          */
   /*   'z' is the Fourier Frequency derivative (# of bins the   */
   /*       signal smears over during the observation).          */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in   */
+  /*       the Fourier f-dot during the observation).           */
   /*   'localpower' is the local power level around the signal. */
   /*   'result' is a pointer to an rderivs structure that will  */
   /*       contain the results.                                 */
@@ -1076,6 +1081,28 @@ double doppler(double freq_observed, double voverc);
 /* (in MHz) given that we observe the pulsar at frequency */
 /* freq_observed (MHz) while moving with radial velocity  */
 /* (in units of v/c) of voverc wrt the pulsar.            */
+
+
+%apply fcomplex* IN_1D_CFLOAT { fcomplex *minifft };
+%apply float* IN_1D_FLOAT { float *highpows, float *highfreqs };
+void search_minifft(fcomplex *minifft, int numminifft,
+		    float norm, int numcands, float *highpows,
+		    float *highfreqs);
+  /* This routine searches a short FFT (usually produced using the   */
+  /* MiniFFT binary search method) and returns two vectors which     */
+  /* contain the highest powers found and their Fourier frequencies. */
+  /* The routine uses interbinning to help find the highest peaks.   */
+  /* Arguments:                                                      */
+  /*   'minifft' is the FFT to search (complex valued)               */
+  /*   'numminifft' is the number of complex points in 'minifft'     */
+  /*   'norm' is the value to multiply each pow power by to get      */
+  /*      a normalized power spectrum.                               */
+  /*   'numcands' is the length of the returned vectors.             */
+  /*   'highpows' a vector containing the 'numcands' highest powers. */
+  /*   'highfreqs' a vector containing the 'numcands' frequencies    */
+  /*      where 'highpows' were found.                               */
+  /* Notes:  The returned vectors must have already been allocated.  */
+  /*   The returned vectors will be sorted by decreasing power.      */
 
 
 %apply double* IN_1D_DOUBLE { double *topotimes, 
