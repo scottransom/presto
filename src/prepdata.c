@@ -141,18 +141,16 @@ int main(int argc, char *argv[])
 
     /* Compare the size of the data to the size of output we request */
 
-    if (cmd->numoutP && cmd->numout != idata.N) {
+    if (cmd->numoutP) {
       dtmp = idata.N;
       idata.N = cmd->numout;
-    }
-
-    /* Write a new info-file */
-
-    writeinf(&idata);
-    if (cmd->numoutP && cmd->numout != idata.N) {
+      writeinf(&idata);
       idata.N = dtmp;
+    } else {
+      cmd->numout = INT_MAX;
+      writeinf(&idata);
     }
-
+     
     /* OBS code for TEMPO */
 
     strcpy(obs, "PK");
@@ -279,14 +277,12 @@ int main(int argc, char *argv[])
     }
   }
 
-  /* Allocate our data array */
-    
-  outdata = gen_fvect(worklen);
-    
-  /* Main loop if we are not barycentering... */
+  if (cmd->nobaryP) { /* Main loop if we are not barycentering... */
 
-  if (cmd->nobaryP) {
-
+    /* Allocate our data array */
+    
+    outdata = gen_fvect(worklen);
+    
     /* Open our new output data file */
     
     outfile = chkfopen(datafilenm, "wb");
@@ -295,12 +291,12 @@ int main(int argc, char *argv[])
     printf("Amount Complete = 0%%");
     
     if (cmd->pkmbP)
-      numread = read_PKMB(infiles, numfiles, outdata, dispdt);
+      numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
     else
       numread = read_floats(infiles[0], outdata, worklen, numchan);
 
     while (numread){
-      
+
       /* Print percent complete */
       
       if (cmd->numoutP)
@@ -323,28 +319,26 @@ int main(int argc, char *argv[])
       
       /* Update the statistics */
       
-      for (ii = 0; ii < numread; ii++)
+      for (ii = 0; ii < numtowrite; ii++)
 	update_stats(totwrote + ii, outdata[ii], &min, &max, &avg, &var);
       totwrote += numtowrite;
       
       /* Stop if we have written out all the data we need to */
       
-      if (cmd->numoutP && (totwrote >= cmd->numout))
+      if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
 
       if (cmd->pkmbP)
-	numread = read_PKMB(infiles, numfiles, outdata, dispdt);
+	numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
      }
       
     datawrote = totwrote;
 
-    /* Main loop if we are barycentering... */
+  } else { /* Main loop if we are barycentering... */
 
-  } else {
-
-    double avgvoverc=0.0, *voverc=NULL;
+    double avgvoverc=0.0, maxvoverc=-1.0, minvoverc=1.0, *voverc=NULL;
     double *bobsf=NULL, *btoa=NULL, *ttoa=NULL;
     int *diffbins, *diffbinptr;
 
@@ -374,15 +368,20 @@ int main(int argc, char *argv[])
     printf("Generating barycentric corrections...\n");
     barycenter(ttoa, btoa, voverc, numbarypts, \
 	       rastring, decstring, obs, ephem);
-    for (ii = 0 ; ii < numbarypts ; ii++)
-      avgvoverc =+ voverc[ii];
+    for (ii = 0 ; ii < numbarypts ; ii++){
+      if (voverc[ii] > maxvoverc) maxvoverc = voverc[ii];
+      if (voverc[ii] < minvoverc) minvoverc = voverc[ii];
+      avgvoverc += voverc[ii];
+    }
     avgvoverc /= numbarypts;
     free(voverc);
     blotoa = btoa[0];
 
     printf("   Insure you check the files tempoout_times.tmp and\n");
-    printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n\n");
-
+    printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n");
+    printf("   Average topocentric velocity (c) = %.5g.\n", avgvoverc);
+    printf("   Maximum topocentric velocity (c) = %.5g.\n", maxvoverc);
+    printf("   Minimum topocentric velocity (c) = %.5g.\n\n", minvoverc);
     printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
 
     /* Determine the initial dispersion time delays for each channel */
@@ -421,16 +420,15 @@ int main(int argc, char *argv[])
     for (ii = 0 ; ii < numbarypts ; ii++)
       btoa[ii] = ((btoa[ii] - ttoa[ii]) - dtmp) * SECPERDAY / idata.dt;
 
-    /* Find the points where we need to add or remove bins */
+    { /* Find the points where we need to add or remove bins */
 
-    {
       int oldbin=0, currentbin, numdiffbins;
       double lobin, hibin, calcpt;
 
       numdiffbins = abs(NEAREST_INT(btoa[numbarypts-1])) + 1;
       diffbins = gen_ivect(numdiffbins);
       diffbinptr = diffbins;
-      for (ii = 0 ; ii < numbarypts ; ii++){
+      for (ii = 1 ; ii < numbarypts ; ii++){
 	currentbin = NEAREST_INT(btoa[ii]);
 	if (currentbin != oldbin){
 	  if (currentbin > 0){
@@ -462,19 +460,24 @@ int main(int argc, char *argv[])
     printf("Massaging the data...\n\n");
     printf("Amount Complete = 0%%");
     
+    /* Allocate our data array */
+    
+    outdata = gen_fvect(worklen);
+    
     if (cmd->pkmbP)
-      numread = read_PKMB(infiles, numfiles, outdata, dispdt);
+      numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
     else
       numread = read_floats(infiles[0], outdata, worklen, numchan);
     
-    while (numread){
+    while (numread){ /* Loop to read and write the data */
+      int numwritten=0;
       
       /* Print percent complete */
       
       if (cmd->numoutP)
-	newper = (int) ((float) datawrote / cmd->numout * 100.0) + 1;
+	newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
       else 
-	newper = (int) ((float) datawrote / idata.N * 100.0) + 1;
+	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
       if (newper > oldper) {
  	printf("\rAmount Complete = %3d%%", newper);
 	fflush(stdout);
@@ -483,42 +486,64 @@ int main(int argc, char *argv[])
       
       /* Simply write the data if we don't have to add or */
       /* remove any bins from this batch.                 */
+      /* OR write the amount of data up to cmd->numout or */
+      /* the next bin that will be added or removed.      */
       
-      if (datawrote + numread < abs(*diffbinptr)){
-
-	/* Write the latest chunk of data, but don't   */
-	/* write more than cmd->numout points.         */
-	
+      numtowrite = abs(*diffbinptr) - datawrote;
+      if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+	numtowrite = cmd->numout - totwrote;
+      if (numtowrite > numread)
 	numtowrite = numread;
-	if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
-	  numtowrite = cmd->numout - totwrote;
-	chkfwrite(outdata, sizeof(float), numtowrite, outfile);
-	
-	/* Update the statistics */
-	
-	for (ii = 0; ii < numread; ii++)
-	  update_stats(datawrote + ii, outdata[ii], &min, &max, 
-		       &avg, &var);
-	datawrote += numtowrite;
-	totwrote += numtowrite;
-	
-      } else {  /* Add or remove bins */
+      chkfwrite(outdata, sizeof(float), numtowrite, outfile);
+      
+      /* Update the statistics */
+      
+      for (ii = 0; ii < numtowrite; ii++)
+	update_stats(datawrote + ii, outdata[ii], &min, &max, 
+		     &avg, &var);
+      datawrote += numtowrite;
+      totwrote += numtowrite;
+      numwritten += numtowrite;
+      
+      if ((datawrote == abs(*diffbinptr)) &&
+	  (totwrote < cmd->numout)){ /* Add/remove a bin */
 	float favg;
-	int skip, numwritten, nextdiffbin;
-
-	skip = 0;
-	numwritten = 0;
-	numtowrite = abs(*diffbinptr) - datawrote;
-
-	while (numwritten < numread){
-
-	  /* Write the part before the diffbin */
+	int skip, nextdiffbin;
 	
+	skip = numtowrite;
+	
+	do { /* Write the rest of the data after adding/removing a bin  */
+	  
+	  if (*diffbinptr > 0){
+	    
+	    /* Add a bin */
+	    
+	    favg = (float) avg;
+	    chkfwrite(&favg, sizeof(float), 1, outfile);
+	    numadded++;
+	    totwrote++;
+	  } else {
+	    
+	    /* Remove a bin */
+	    
+	    numremoved++;
+	    datawrote++;
+	    numwritten++;
+	    skip++;
+	  }
+	  diffbinptr++;
+	  
+	  /* Write the part after the diffbin */
+	  
+	  numtowrite = numread - numwritten;
 	  if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
 	    numtowrite = cmd->numout - totwrote;
+	  nextdiffbin = abs(*diffbinptr) - datawrote;
+	  if (numtowrite > nextdiffbin)
+	    numtowrite = nextdiffbin;
 	  chkfwrite(outdata + skip, sizeof(float), numtowrite, outfile);
-
-	  /* Update the statistics */
+	  
+	  /* Update the statistics and counters */
 	  
 	  for (ii = 0; ii < numtowrite; ii++)
 	    update_stats(datawrote + ii, outdata[skip + ii], 
@@ -527,64 +552,25 @@ int main(int argc, char *argv[])
 	  skip += numtowrite;
 	  datawrote += numtowrite;
 	  totwrote += numtowrite;
-	  numtowrite = numread - numwritten;
-
-	  /* Stop if we have written enough */
-
-	  if (cmd->numoutP && (totwrote == cmd->numout))
-	      break;
-
-	  /* Add or remove a bin from the data */
-
-	  if (abs(*diffbinptr)==datawrote){
-
-	    nextdiffbin = abs(*(diffbinptr+1)) - datawrote;
-	    if (numwritten + nextdiffbin < numread)
-	      numtowrite = nextdiffbin;
-
-	    /* Add a bin */
-	    
-	    if (*diffbinptr > 0){
-	      favg = (float) avg;
-	      chkfwrite(&favg, sizeof(float), 1, outfile);
-	      numadded++;
-	      totwrote++;
-
-	      /* Stop if we have written enough */
-
-	      if (cmd->numoutP && (totwrote == cmd->numout))
-		  break;
-
-	    } else {
-
-	      /* Remove a bin */
-
-	      numwritten++;
-	      skip++;
-	      numtowrite--;
-	      numremoved++;
-	    }
-	    diffbinptr++;
-	  }
-	  if (cmd->pkmbP)
-	    numread = read_PKMB(infiles, numfiles, outdata, dispdt);
-	  else
-	    numread = read_floats(infiles[0], outdata, worklen, numchan);
-	}
-      }
-
+	} while (numwritten < numread);
+      } 
       /* Stop if we have written out all the data we need to */
       
       if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
+
+      if (cmd->pkmbP)
+	numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
+      else
+	numread = read_floats(infiles[0], outdata, worklen, numchan);
     }
 
     /* Free the arrays used in barycentering */
 
-    free(diffbins);
     free(bobsf);
     free(btoa);
     free(ttoa);
+    free(diffbins);
   }
 
   /* Calculate what the next power of two number of points would be */
@@ -659,9 +645,9 @@ int main(int argc, char *argv[])
 
   var /= (datawrote - 1);
   printf("\n\nDone.\n\nSimple statistics of the output data:\n");
-  printf("               Data bins written:  %ld\n", datawrote);
+  printf("             Data points written:  %ld\n", totwrote);
   if (padwrote)
-    printf("            Padding bins written:  %ld\n", padwrote);
+    printf("          Padding points written:  %ld\n", padwrote);
   if (!cmd->nobaryP) {
     if (numadded)
       printf("    Bins added for barycentering:  %d\n", numadded);

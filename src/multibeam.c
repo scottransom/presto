@@ -152,7 +152,6 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
   /* First try and read the current file */
   
   if (fread(record, RECLEN, 1, infiles[currentfile]) != 1){
-    printf("B\n");
     /* Are we at the end of the current file? */
     if (feof(infiles[currentfile])){
       /* Does this file need padding? */
@@ -206,7 +205,6 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	currentblock++;
 	return 1;
       } else {
-	printf("Hey!\n");
 	/* Try reading the next file */
 	currentfile++;
 	shiftbuffer = 0;
@@ -219,7 +217,6 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
       exit(1);
     }
   } else {
-printf("A");
     /* Put the new header into the header array */
     hdr_ptr = (unsigned char *)hdr;
     for (ii=0; ii<HDRLEN; ii++)
@@ -227,14 +224,12 @@ printf("A");
     /* Put the new data into the databuffer or directly */
     /* into the return array if the bufferoffset is 0.  */
     if (bufferpts){
-printf("2\n");
       offset = bufferpts * bytesperpt_st;
       for (ii=0; ii<DATLEN; ii++){
 	*(databuffer+offset+ii) = *(record+HDRLEN+ii);
 	*(data+ii) = *(databuffer+ii);
       }
     } else {
-printf("1\n");
       for (ii=0; ii<DATLEN; ii++)
 	*(data+ii) = *(record+HDRLEN+ii);
     }
@@ -262,48 +257,72 @@ int read_PKMB_rawblocks(FILE *infiles[], int numfiles,
 
 
 int read_PKMB(FILE *infiles[], int numfiles, float *data, 
-	      double *dispdelays)
-/* This routine reads a PKMB record from the input     */
+	      int numpts, double *dispdelays)
+/* This routine reads numpts from the PKMB raw input   */
 /* files *infiles.  These files contain 1 bit data     */
 /* from the PKMB backend at Parkes.  Time delays and   */
 /* and a mask are applied to each channel.  It returns */
 /* the # of points read if succesful, 0 otherwise.     */
 {
   int ii, numread=0;
-  PKMB_tapehdr hdr;
-  static unsigned char raw[DATLEN], *tempzz;
-  static unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
+  static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
   static unsigned char *currentdata, *lastdata;
-  static int firsttime=1;
+  static int firsttime=1, numblocks=1;
   
   if (firsttime) {
-    if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw)){
+    if (numpts % ptsperblk_st){
+      printf("numpts must be a multiple of %d in read_PKMB()!\n",
+	     ptsperblk_st);
+      exit(1);
+    } else
+      numblocks = numpts / ptsperblk_st;
+    
+    raw  = gen_bvect(numblocks * DATLEN);
+    rawdata1 = gen_bvect(numblocks * SAMPPERBLK);
+    rawdata2 = gen_bvect(numblocks * SAMPPERBLK);
+    
+    numread = read_PKMB_rawblocks(infiles, numfiles, raw, numblocks);
+    if (numread != numblocks){
       printf("Problem reading the raw PKMB data file.\n\n");
+      free(raw);
+      free(rawdata1);
+      free(rawdata2);
       return 0;
     }
+    
     currentdata = rawdata1;
     lastdata = rawdata2;
-    for (ii=0; ii<ptsperblk_st; ii++)
+    
+    for (ii=0; ii<numpts; ii++)
       convert_PKMB_point(raw + ii * bytesperpt_st, 
 			 currentdata + ii * numchan_st);
     SWAP(currentdata, lastdata);
     firsttime=0;
   }
-
+  
   /* Read, convert and de-disperse */
-
-  numread = read_PKMB_rawblock(infiles, numfiles, &hdr, raw);
-  for (ii=0; ii<ptsperblk_st; ii++)
+  
+  numread = read_PKMB_rawblocks(infiles, numfiles, raw, numblocks);
+  for (ii=0; ii<numpts; ii++)
     convert_PKMB_point(raw + ii * bytesperpt_st, 
 		       currentdata + ii * numchan_st);
-  dedisp(currentdata, lastdata, ptsperblk_st, numchan_st, 
-	 dispdelays, data);
+  dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
   SWAP(currentdata, lastdata);
 
-  if (numread)
-    return ptsperblk_st;
-  else
-    return 0;
+  /*
+  printf("np = %d  nc = %d  df = %d\n", 
+	 numpts, numchan_st, decreasing_freqs_st);
+  for (ii=0; ii<20; ii++)
+    printf("%.0f ", data[ii]);
+  printf("\n\n");
+  */
+
+  if (numread != numblocks){
+    free(raw);
+    free(rawdata1);
+    free(rawdata2);
+  }
+  return numread * ptsperblk_st;
 }
 
 
@@ -438,7 +457,7 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
   idata->onoff[0] = 0;
   idata->onoff[1] = idata->N - 1;
   strcpy(idata->band, "Radio");
-  strcpy(idata->analyzer, "--");
+  strcpy(idata->analyzer, "Scott Ransom");
   strcpy(idata->observer, "--");
   sprintf(idata->notes, "Topo UT Date & Time at file start = %.8s, %.16s\n    From tape %.6s  file #%.4s  block #%.8s\n    Comment: %.64s\n", hdr->date, hdr->ut_start, hdr->tape_lbl, hdr->file_cntr, hdr->blk_cntr, hdr->comment);
 

@@ -178,7 +178,7 @@ void writeinf(infodata * data)
 	  " Number of bins in the time series      =  %-11.0f\n", \
 	  data->N);
   fprintf(infofile, \
-	  " Width of each time series bin (sec)    =  %.15f\n", \
+	  " Width of each time series bin (sec)    =  %.15g\n", \
 	  data->dt);
   fprintf(infofile, \
 	  " Any breaks in the data? (1=yes, 0=no)  =  %d\n", \
@@ -201,35 +201,35 @@ void writeinf(infodata * data)
     if (strcmp(data->band, bands[0]) == 0) {
 
       fprintf(infofile, \
-	      " Beam diameter (arcsec)                 =  %f\n", \
+	      " Beam diameter (arcsec)                 =  %.0f\n", \
 	      data->fov);
       fprintf(infofile, \
-	      " Dispersion measure (cm-3 pc)           =  %f\n", \
+	      " Dispersion measure (cm-3 pc)           =  %.12g\n", \
 	      data->dm);
       fprintf(infofile, \
-	      " Central freq of low channel (Mhz)      =  %f\n", \
+	      " Central freq of low channel (Mhz)      =  %.12g\n", \
 	      data->freq);
       fprintf(infofile, \
-	      " Total bandwidth (Mhz)                  =  %f\n", \
+	      " Total bandwidth (Mhz)                  =  %.12g\n", \
 	      data->freqband);
       fprintf(infofile, \
 	      " Number of channels                     =  %d\n", \
 	      data->num_chan);
       fprintf(infofile, \
-	      " Channel bandwidth (Mhz)                =  %f\n", \
+	      " Channel bandwidth (Mhz)                =  %.12g\n", \
 	      data->chan_wid);
 
     } else if ((strcmp(data->band, bands[4]) == 0) || \
 	       (strcmp(data->band, bands[5]) == 0)) {
 
       fprintf(infofile, \
-	      " Field-of-view diameter (arcsec)        =  %f\n", \
+	      " Field-of-view diameter (arcsec)        =  %.2f\n", \
 	      data->fov);
       fprintf(infofile, \
-	      " Central energy (kev)                   =  %f\n", \
+	      " Central energy (kev)                   =  %.1f\n", \
 	      data->energy);
       fprintf(infofile, \
-	      " Energy bandpass (kev)                  =  %f\n", \
+	      " Energy bandpass (kev)                  =  %.1f\n", \
 	      data->energyband);
 
     } else {
@@ -238,13 +238,13 @@ void writeinf(infodata * data)
 	      " Photometric filter used                =  %s\n", \
 	      data->filt);
       fprintf(infofile, \
-	      " Field-of-view diameter (arcsec)        =  %f\n", \
+	      " Field-of-view diameter (arcsec)        =  %.2f\n", \
 	      data->fov);
       fprintf(infofile, \
-	      " Central wavelength (nm)                =  %f\n", \
+	      " Central wavelength (nm)                =  %.1f\n", \
 	      data->wavelen);
       fprintf(infofile, \
-	      " Bandpass (nm)                          =  %f\n", \
+	      " Bandpass (nm)                          =  %.1f\n", \
 	      data->waveband);
     }
 
