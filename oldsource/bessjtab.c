@@ -1,5 +1,6 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
-#include "vectors.h"
 
 double *bessjtable(double x, int *N, int tol);
 
@@ -41,7 +42,7 @@ double *bessjtable(double x, int *N, int tol)
 
   if (ax == 0.0) {
     *N = 3;
-    bes = gen_dvect(*N);
+    bes = (double *)malloc(*N * sizeof(double));
     for (i = 0; i < *N; i++) {
       bes[i] = 0.0;
     }
@@ -57,7 +58,7 @@ double *bessjtable(double x, int *N, int tol)
       m = MINM;
     twom = 2 * m;
     *N = twom + 1;
-    bes = gen_dvect(*N);
+    bes = (double *)malloc(*N * sizeof(double));
     jsum = 0;
     pm = *N - 1;
     bjp = sum = 0.0;
@@ -116,7 +117,7 @@ double *bessjtable(double x, int *N, int tol)
   /* Create the new array */
 
   newn = *N - 2 * pm;
-  trim = gen_dvect(newn);
+  trim = (double *)malloc(newn * sizeof(double));
 
   /* Copy the values we need */
 
