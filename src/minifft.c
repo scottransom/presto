@@ -3,55 +3,74 @@
 /* Number of bins on each side of a freq to use for interpolation */
 #define INTERPBINS 5
 
-int padfftlen(int minifftlen, int numbetween, int *padlen);
-static float percolate_pows_and_freqs(float *highpows, float *highfreqs, \
-				      int numcands);
+/* Routines defined at the bottom */
 
-void search_minifft(fcomplex *minifft, int numminifft, int harmsum, \
-		    int numcands, float *highpows, float *highfreqs)
+static int padfftlen(int minifftlen, int numbetween, int *padlen);
+static float percolate_rawbincands(rawbincand *cands, int numcands);
+void print_rawbincand(rawbincand cand);
+
+void search_minifft(fcomplex *minifft, int numminifft, \
+		    rawbincand *cands, int numcands, int numharmsum, \
+		    double numfullfft, double timefullfft, \
+		    double lorfullfft, presto_interptype interptype, \
+		    presto_checkaliased checkaliased)
   /* This routine searches a short FFT (usually produced using the   */
-  /* MiniFFT binary search method) and returns two vectors which     */
-  /* contain the highest powers found and their Fourier frequencies. */
-  /* The routine uses interbinning to help find the highest peaks.   */
+  /* MiniFFT binary search method) and returns a candidte vector     */
+  /* containing information about the best binary candidates found.  */
+  /* The routine uses either interbinning or interpolation as well   */
+  /* as harmonic summing during the search.                          */
   /* Arguments:                                                      */
   /*   'minifft' is the FFT to search (complex valued)               */
   /*   'numminifft' is the number of complex points in 'minifft'     */
-  /*   'harmsum' the number of harmonics to sum during the search.   */
-  /*   'numcands' is the length of the returned vectors.             */
-  /*   'highpows' a vector containing the 'numcands' highest powers. */
-  /*   'highfreqs' a vector containing the 'numcands' frequencies    */
-  /*      where 'highpows' were found.                               */
-  /* Notes:  The returned vectors must have already been allocated.  */
-  /*   The returned vectors will be sorted by decreasing power.      */
+  /*   'cands' is a pre-allocated vector of rawbincand type in which */
+  /*      the sorted (in decreasing sigma) candidates are returned   */
+  /*   'numcands' is the length of the 'cands' vector                */
+  /*   'numharmsum' the number of harmonics to sum during the search */
+  /*   'numfullfft' the number of points in the original long FFT    */
+  /*   'timefullfft' the duration of the original time series (s)    */
+  /*   'lorfullfft' the 1st bin of the long FFT that was miniFFT'd   */
+  /*   'interptype' is either INTERBIN or INTERPOLATE.               */
+  /*      INTERBIN = (interbinning) is fast but less sensitive.      */
+  /*      INTERPOLATE = (Fourier interpolation) is slower but more   */
+  /*        sensitive.                                               */
+  /*   'checkaliased' is either CHECK_ALIASED or NO_CHECK_ALIASED.   */
+  /*      NO_CHECK_ALIASED = harminic summing does not include       */
+  /*        aliased freqs making it faster but less sensitive.       */
+  /*      CHECK_ALIASED = harminic summing includes aliased freqs    */
+  /*        making it slower but more sensitive.                     */
 {
-  int ii, jj, kk, nmini2, nmini4, offset, numtosearch;
+  int ii, jj, nmini2, nmini4, offset, numtosearch;
   int numspread = 0, kern_half_width, numkern = 0;
-  float minpow = 0.0, powargr, powargi, nyquist;
+  float powargr, powargi, nyquist;
   float *fullpows = NULL, *sumpows;
+  double twobypi, minpow = 0.0, minsig;
   static int firsttime = 1, old_numminifft = 0;
   static fcomplex *kernel;
   fcomplex *spread, *kern;
 
   /* NOTE:  This routine is hard-wired for numbetween = 2 */
 
+  twobypi = 1.0 / PIBYTWO;
   nmini2 = numminifft * 2;
   nmini4 = numminifft * 4;
   numspread = padfftlen(numminifft, 2, &kern_half_width);
 
-  /* Prep the kernel if needed */
+  /* Prep the interpolation kernel if needed */
 
-  if (firsttime || old_numminifft != numminifft){
-    if (!firsttime) free(kernel);
-    numkern = 4 * kern_half_width;
-    kern = gen_r_response(0.0, 2, numkern);
-    kernel = gen_cvect(numspread);
-    place_complex_kernel(kern, numkern, kernel, numspread);
-    COMPLEXFFT(kernel, numspread, -1);
-    free(kern);
-    firsttime = 0;
-    old_numminifft = numminifft;
+  if (interptype == INTERPOLATE){
+    if (firsttime || old_numminifft != numminifft){
+      if (!firsttime) free(kernel);
+      numkern = 4 * kern_half_width;
+      kern = gen_r_response(0.0, 2, numkern);
+      kernel = gen_cvect(numspread);
+      place_complex_kernel(kern, numkern, kernel, numspread);
+      COMPLEXFFT(kernel, numspread, -1);
+      free(kern);
+      firsttime = 0;
+      old_numminifft = numminifft;
+    }
   }
-
+  
   /* Spread and interpolate the minifft */
   
   spread = gen_cvect(numspread);
@@ -61,64 +80,88 @@ void search_minifft(fcomplex *minifft, int numminifft, int harmsum, \
   spread[0].i = 0.0;
   spread[nmini2].r = nyquist;
   spread[nmini2].i = 0.0;
-  spread = complex_corr_conv(spread, kernel, numspread, \
-			     FFTD, INPLACE_CORR);
+  if (interptype == INTERPOLATE){
+    spread = complex_corr_conv(spread, kernel, numspread, \
+			       FFTD, INPLACE_CORR);
+  } else {
+    for (ii = 1; ii < nmini2; ii += 2){
+      spread[ii].r = twobypi * (spread[ii-1].r - spread[ii+1].r);
+      spread[ii].i = twobypi * (spread[ii-1].i - spread[ii+1].i);
+    }
+  }
 
-  /* Prep the arrays for harmonic summing */
+  numtosearch = (checkaliased == CHECK_ALIASED) ? nmini4 : nmini2 + 1;
+  fullpows = gen_fvect(numtosearch);
+  fullpows[0] = 1.0;
+  fullpows[nmini2] = nyquist * nyquist;
 
-  if (harmsum > 1){
-
-    /* The following wraps the data around the Nyquist freq such that */
-    /* we consider aliased frequencies as well.                       */
-
-    numtosearch = nmini4;
-    fullpows = gen_fvect(nmini4);
-    fullpows[0] = 1.0;
-    fullpows[nmini2] = nyquist * nyquist;
+  /* The following wraps the data around the Nyquist freq such that */
+  /* we consider aliased frequencies as well (If CHECK_ALIASED).    */
+  
+  if (checkaliased == CHECK_ALIASED)
     for (ii = 1, jj = nmini4 - 1; ii < nmini2; ii++, jj--)
       fullpows[ii] = fullpows[jj] = POWER(spread[ii].r, spread[ii].i);
+  else
+    for (ii = 1; ii < nmini2; ii++)
+      fullpows[ii] = POWER(spread[ii].r, spread[ii].i);
+  free(spread);
 
-    /* Perform the summation of the harmonics */
+  /* Search the raw powers */
 
-    sumpows = gen_fvect(nmini4);
-    sumpows[0] = fullpows[0];
-    for (ii = 1; ii < nmini4; ii++)
-      sumpows[ii] = 0.0;
-    for (ii = 1; ii <= harmsum; ii++){
-      offset = ii / 2;
-      for (jj = 1; jj < nmini4 / ii; jj++)
-	for (kk = 0; kk < ii; kk++)
-	  sumpows[jj * ii + kk - offset] += fullpows[jj];
+  for (ii = 1; ii < numtosearch; ii++) {
+    if (fullpows[ii] > minpow) {
+      cands[numcands-1].mini_r = 0.5 * (double) ii; 
+      cands[numcands-1].mini_power = fullpows[ii];
+      cands[numcands-1].mini_numsum = 1.0;
+      cands[numcands-1].mini_sigma = 
+	sigma_from_sumpows(fullpows[ii], 1);
+      minsig = percolate_rawbincands(cands, numcands);
+      minpow = cands[numcands-1].mini_power;
     }
-    free(fullpows);
-  } else {
-    numtosearch = nmini2+1;
-    sumpows = gen_fvect(numtosearch);
-    sumpows[0] = 1.0;
-    sumpows[nmini2] = nyquist * nyquist;
-    for (ii = 1 ; ii < nmini2; ii++)
-      sumpows[ii] = POWER(spread[ii].r, spread[ii].i);
   }
+
+  /* If needed, sum and search the harmonics */
   
-  /* Search the summed powers */
+  if (numharmsum > 1){
+    sumpows = gen_fvect(numtosearch);
+    memcpy(sumpows, fullpows, sizeof(float) * numtosearch);
+    for (ii = 2; ii <= numharmsum; ii++){
+      offset = ii / 2;
+      minpow = sumpows_from_sigma(cands[numcands-1].mini_sigma, ii);
+      for (jj = 0; jj < numtosearch; jj++){
+	sumpows[jj] += fullpows[(jj + offset) / ii];
+	if (sumpows[jj] > minpow) {
+	  cands[numcands-1].mini_r = 0.5 * (double) jj; 
+	  cands[numcands-1].mini_power = sumpows[jj];
+	  cands[numcands-1].mini_numsum = (double) ii;
+	  cands[numcands-1].mini_sigma = 
+	    sigma_from_sumpows(sumpows[jj], ii);
+	  minsig = percolate_rawbincands(cands, numcands);
+	  minpow = 
+	    sumpows_from_sigma(cands[numcands-1].mini_sigma, ii);
+	}
+      }
+    }
+    free(sumpows);
+  }
+
+  /* Add the rest of the rawbincand data to the candidate array */
 
   for (ii = 0; ii < numcands; ii++){
-    highpows[ii] = 0.0;
-    highfreqs[ii] = 0.0;
+    cands[numcands].full_N = numfullfft;
+    cands[numcands].full_T = timefullfft;
+    cands[numcands].full_lo_r = lorfullfft;
+    cands[numcands].mini_N = numminifft * 2.0;
+    cands[numcands].psr_p = (lorfullfft + numminifft) / 
+      timefullfft;
+    cands[numcands].orb_p = timefullfft * cands[numcands].mini_r / 
+      numminifft;
   }
-  for (ii = 1; ii < numtosearch; ii++) {
-    if (sumpows[ii] > minpow) {
-      highpows[numcands-1] = sumpows[ii];
-      highfreqs[numcands-1] = 0.5 * (float) ii; 
-      minpow = percolate_pows_and_freqs(highpows, highfreqs, numcands);
-    }
-  }
-  free(sumpows);
-  free(spread);
+  free(fullpows);
 }
 
 
-int padfftlen(int minifftlen, int numbetween, int *padlen)
+static int padfftlen(int minifftlen, int numbetween, int *padlen)
 /* Choose a good (easily factorable) FFT length and an */
 /* appropriate padding length (for low accuracy work). */
 /* We assume that minifftlen is a power-of-2...        */
@@ -154,23 +197,36 @@ int padfftlen(int minifftlen, int numbetween, int *padlen)
   else return (int)((int)((newlen + 1000)/1000) * 1000.0);
 }
 
+void print_rawbincand(rawbincand cand){
+  printf("  N(full)   = %f\n", cand.full_N);
+  printf("  T(full)   = %f\n", cand.full_T);
+  printf("  rlo(full) = %f\n", cand.full_lo_r);
+  printf("  N(mini)   = %f\n", cand.mini_N);
+  printf("  r(detect) = %f\n", cand.mini_r);
+  printf("  power     = %f\n", cand.mini_power);
+  printf("  numsum    = %f\n", cand.mini_numsum);
+  printf("  sigma     = %f\n", cand.mini_sigma);
+  printf("  pulsar p  = %f\n", cand.psr_p);
+  printf("  orbit p   = %f\n\n", cand.orb_p);
+}
 
-static float percolate_pows_and_freqs(float *highpows, float *highfreqs, \
-				      int numcands)
-  /*  Pushes a power and its corresponding frequency as far up their  */
-  /*  respective sorted lists as they shoud go to keep the power list */
-  /*  sorted. Returns the new low power in 'highpows'                 */
+static float percolate_rawbincands(rawbincand *cands, int numcands)
+  /*  Pushes a rawbincand candidate as far up the array of   */
+  /*  candidates as it shoud go to keep the array sorted in  */
+  /*  indecreasing significance.  Returns the new lowest     */
+  /*  sigma in the array.                                    */
 {
   int ii;
-  float tempzz;
+  rawbincand tempzz;
 
   for (ii = numcands - 2; ii >= 0; ii--) {
-    if (highpows[ii] < highpows[ii + 1]) {
-      SWAP(highpows[ii], highpows[ii + 1]);
-      SWAP(highfreqs[ii], highfreqs[ii + 1]);
+    if (cands[ii].mini_sigma < cands[ii + 1].mini_sigma) {
+      SWAP(cands[ii], cands[ii + 1]);
     } else {
       break;
     }
   }
-  return highpows[numcands - 1];
+  return cands[numcands - 1].mini_sigma;
 }
+
+

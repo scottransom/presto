@@ -268,19 +268,27 @@ double *dphase_arr(dcomplex *dft, long numfreqs){
 #endif
 
 typedef enum {
-     LOWACC = 0, HIGHACC = 1
+  LOWACC, HIGHACC
 } presto_interp_acc;
 
 typedef enum {
-     CONV = 0, CORR = 1, INPLACE_CONV = 2, INPLACE_CORR = 3
+  INTERBIN, INTERPOLATE
+} presto_interptype;
+
+typedef enum {
+  NO_CHECK_ALIASED, CHECK_ALIASED
+} presto_checkaliased;
+
+typedef enum {
+  CONV, CORR, INPLACE_CONV, INPLACE_CORR
 } presto_optype;
 
 typedef enum {
-     FFTDK = 0, FFTD = 1, FFTK = 2, NOFFTS = 3
+  FFTDK, FFTD, FFTK, NOFFTS
 } presto_ffts;
 
 typedef enum {
-     RAW = 0, PREPPED = 1, FFT = 2, SAME = 3
+  RAW, PREPPED, FFT, SAME
 } presto_datainf;
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *dft };
@@ -417,6 +425,28 @@ typedef struct BINARYPROPS {
     }
   }
 } binaryprops;
+
+typedef struct RAWBINCAND {
+  double full_N;       /* Number of points in original time series  */
+  double full_T;       /* Length (s) of original time series        */
+  double full_lo_r;    /* Lowest Fourier bin that was miniFFTd      */
+  double mini_N;       /* Number of points in short (mini) FFT      */
+  double mini_r;       /* Candidate Fourier bin in miniFFT          */
+  double mini_power;   /* Candidate normalized power in miniFFT     */
+  double mini_numsum;  /* Number of powers summed to get candidate  */
+  double mini_sigma;   /* Equivalent candidate sigma (for sum pow)  */
+  double psr_p;        /* Approx PSR period (miniFFT center bin)    */
+  double orb_p;        /* Approx orbital period (s)                 */
+  %addmethods {
+    rawbincand(){
+      rawbincand *p = (rawbincand *)malloc(sizeof(rawbincand));
+      return p;
+    }
+    ~rawbincand(){
+      free(self);
+    }
+  }
+} rawbincand;
 
 
 %apply float* IN_1D_FLOAT { float *data };
@@ -696,6 +726,14 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result);
   /*   'props' is a pointer to a fourierprops structure.      */
   /*   'T' is the length of the data set in sec (i.e. N*dt).  */
   /*   'result' is a pointer to the returned rzwerrs struct.  */
+
+double sigma_from_sumpows(double powersum, int numsum);
+  /* Return the approximate significance in Gaussian  */
+  /* sigmas of a sum of 'numsum' powers.              */
+
+double sumpows_from_sigma(double sigma, int numsum);
+  /* Return the summed ('numsum' powers) power required */
+  /* to achieve a Gaussian significance of 'sigma'.     */
 
 void nice_output_1(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded   */
@@ -1053,23 +1091,37 @@ double doppler(double freq_observed, double voverc);
 
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *minifft };
-%apply float* IN_1D_FLOAT { float *highpows, float *highfreqs };
-void search_minifft(fcomplex *minifft, int numminifft, int harmsum,
-		    int numcands, float *highpows, float *highfreqs);
+void search_minifft(fcomplex *minifft, int numminifft,
+		    rawbincand *cands, int numcands, int numharmsum,
+		    double numfullfft, double timefullfft,
+		    double lorfullfft, presto_interptype interptype,
+		    presto_checkaliased checkaliased);
   /* This routine searches a short FFT (usually produced using the   */
-  /* MiniFFT binary search method) and returns two vectors which     */
-  /* contain the highest powers found and their Fourier frequencies. */
-  /* The routine uses interbinning to help find the highest peaks.   */
+  /* MiniFFT binary search method) and returns a candidte vector     */
+  /* containing information about the best binary candidates found.  */
+  /* The routine uses either interbinning or interpolation as well   */
+  /* as harmonic summing during the search.                          */
   /* Arguments:                                                      */
   /*   'minifft' is the FFT to search (complex valued)               */
   /*   'numminifft' is the number of complex points in 'minifft'     */
-  /*   'harmsum' the number of harmonics to sum during the search.   */
-  /*   'numcands' is the length of the returned vectors.             */
-  /*   'highpows' a vector containing the 'numcands' highest powers. */
-  /*   'highfreqs' a vector containing the 'numcands' frequencies    */
-  /*      where 'highpows' were found.                               */
-  /* Notes:  The returned vectors must have already been allocated.  */
-  /*   The returned vectors will be sorted by decreasing power.      */
+  /*   'cands' is a pre-allocated vector of rawbincand type in which */
+  /*      the sorted (in decreasing sigma) candidates are returned   */
+  /*   'numcands' is the length of the 'cands' vector                */
+  /*   'numharmsum' the number of harmonics to sum during the search */
+  /*   'numfullfft' the number of points in the original long FFT    */
+  /*   'timefullfft' the duration of the original time series (s)    */
+  /*   'lorfullfft' the 1st bin of the long FFT that was miniFFT'd   */
+  /*   'interptype' is either INTERBIN or INTERPOLATE.               */
+  /*      INTERBIN = (interbinning) is fast but less sensitive.      */
+  /*      INTERPOLATE = (Fourier interpolation) is slower but more   */
+  /*        sensitive.                                               */
+  /*   'checkaliased' is either CHECK_ALIASED or NO_CHECK_ALIASED.   */
+  /*      NO_CHECK_ALIASED = harminic summing does not include       */
+  /*        aliased freqs making it faster but less sensitive.       */
+  /*      CHECK_ALIASED = harminic summing includes aliased freqs    */
+  /*        making it slower but more sensitive.                     */
+
+void print_rawbincand(rawbincand cand);
 
 
 %apply double* IN_1D_DOUBLE { double *topotimes, 
