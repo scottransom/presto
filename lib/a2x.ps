@@ -1,0 +1,532 @@
+%!
+% This is a2x.ps, version 1.0
+%
+% Copyright (C) 1994-1996 Christoph Beck, <beck@jack.rhein-main.de>
+% All rights reserved.
+%
+% This software may be distributed under the terms of the GNU General
+% Public License.
+%
+% Any bugfixes, improvements, as well as comments are welcome.
+% Mail to beck@rhein-main.de
+%
+/a2xdict 80 dict def
+a2xdict begin
+
+
+%-------------------------------------------------------------------------
+% defaults (these may be overwritten by commandline options
+% or changed here)
+%
+/A2xDefaults {
+
+  % languagelevel >= 2 ?
+  /level2 /languagelevel dup where {exch get 2 ge}{pop false} ifelse def
+
+  % a2x uses the country variable to specify the desired encoding only,
+  % if isolatin is set to false or level2 is set to false.
+  /isolatin	true	       def % use iso latin1 encoding (requires level 2)
+  /country      1	       def % use german umlauts (0 = -ger, 1 = -us)
+
+  /paperformat  /a4size cvx    def % use a4 paper by default
+
+  /land         false          def % n col port/land (default for n below)
+  /1up          true           def % 1 column portrait as default
+  /2up          false          def % 2 column landscape with
+                                   % colsep set to leftmargin+rightmargin
+
+  /portfsize   10              def % default fontsize for portrait in pt
+  /portcolumns  1              def % default #columns for portrait
+  /landfsize    7              def % default fontsize for landscape in pt
+  /landcolumns  2              def % default #columns for landscape
+  
+  /manpagelen  66              def % lines per page in formatted man pages
+  /tabsize      8              def % tab column width
+
+  /handlebackspaces false      def % backspaces are not handled by default
+  /printpagenumbers false      def % number pages ?
+  /printcolumnnumbers false    def % number columns ?
+  /printtitle       false      def % filename on each page ?
+
+  /stdfont       /Courier      def % default font
+  /fixedfont     /Courier      def % fixed font (used with man pages)
+  /boldfixedfont /Courier-Bold def % bold fixed font (used in \b-handling
+		  	           % header and column//pagenumbers).
+} def
+
+/Portrait {
+  /topmargin    40 def	 
+  /botmargin    40 def	 
+  /leftmargin   40 def	 
+  /rightmargin  40 def    
+  /colsep       12 def
+} def
+/Landscape {
+  /topmargin    40 def	 
+  /botmargin    40 def	 
+  /leftmargin   36 def	 
+  /rightmargin  36 def    
+  /colsep	10 def
+} def
+
+% Don't change anything below unless you know what you're doing!
+%-------------------------------------------------------------------------
+
+/a4size {
+  /paperwidth   595 def
+  /paperheight  842 def
+  /a4 where { /a4 get xcheck { a4 } if } if
+} def
+/lettersize {
+  /paperwidth   612 def    
+  /paperheight  792 def
+  /letter where { /letter get xcheck { letter } if } if
+} def
+/legalsize {
+  /paperwidth   612 def    
+  /paperheight 1008 def
+  /legal where { /legal get xcheck { legal } if } if
+} def
+
+%%%% initialisation
+
+/Initialize {
+  paperformat
+  land {
+    /paperwidth   paperheight /paperheight paperwidth def def  % swap w/h
+    Landscape
+    2up { 
+      /colsep leftmargin rightmargin add def
+      /columns 2 def
+    }{
+      usercol not { /columns landcolumns def } if
+    } ifelse
+  }{
+    Portrait
+    1up { 
+      /columns 1 def
+    }{
+      usercol not { /columns portcolumns def } if
+    } ifelse
+  } ifelse
+
+  userlpp {
+    /fontsize     paperheight topmargin sub 
+                  botmargin 
+                  sub
+		  linesperpage
+		  printpagenumbers printcolumnnumbers or { 2.0 add } if
+		  printtitle { 2.0 add } if
+                  div
+                  def
+  }{
+    userfontsize not {
+      /fontsize land { landfsize }{ portfsize } ifelse def
+    } if
+    /linesperpage paperheight topmargin sub 
+                  botmargin 
+                  sub
+		  fontsize
+                  div cvi
+		  printpagenumbers printcolumnnumbers or { 2 sub } if
+		  printtitle { 2 sub } if
+                  def
+  } ifelse
+
+  /ymin botmargin def
+  /ymax paperheight topmargin sub fontsize sub def
+  printpagenumbers printcolumnnumbers or {
+    /ymin ymin fontsize 2 mul add def
+  } if
+  printtitle printdate or { /ymax ymax fontsize 2 mul sub def } if
+
+  /colwidth paperwidth   leftmargin rightmargin add
+                         columns 1 sub colsep mul add  sub columns idiv  def
+  /pagestr  3 string def
+  /buffer 256 string def
+
+  isolatin level2 and {
+    /stdfont stdfont ISOLatin1Encoding ReencodeAll
+    /stdfont  exch [fontsize 0 0 fontsize 0 0] makefont definefont pop
+    /boldfont boldfixedfont ISOLatin1Encoding ReencodeAll
+    /boldfont exch [fontsize 0 0 fontsize 0 0] makefont definefont pop
+  }{
+    stdfont /stdfont fontvec country get ReencodeSome
+    /stdfont  exch [fontsize 0 0 fontsize 0 0] makefont definefont pop
+    boldfixedfont /boldfont fontvec country get ReencodeSome
+    /boldfont exch [fontsize 0 0 fontsize 0 0] makefont definefont pop
+  } ifelse
+} def
+
+
+%%% font stuff -------------------------------------------------------------
+
+/fontvec
+[
+  % arrays used for partial reencodings via ReencodeSome
+  % structure should be obvious.
+
+  % German (this is for me): option -fger
+  [ 
+    8#374 /udieresis	% ü
+    8#344 /adieresis	% ä
+    8#304 /Adieresis	% Ä
+    8#366 /odieresis	% ö
+    8#326 /Odieresis	% Ö
+    8#334 /Udieresis	% Ü
+    8#337 /germandbls	% ß
+  ]
+  % US (is there something to reencode?): option -fus
+  [
+  % no reencodings...
+  ]
+  % another very special encoding (this is for you!)
+  [
+  % ...
+  ]
+] def
+
+
+/ReencodeSome {  %  /newfontname /oldfontname fontvec --> newfont
+  exch findfont dup length dict begin
+  { 1 index /FID ne {def} {pop pop} ifelse } forall
+  /Encoding Encoding dup length array copy def
+  aload length 2 idiv { Encoding 3 1 roll put } repeat
+  currentdict end definefont
+} bind def
+
+
+/ReencodeAll {  %  /newfontname /oldfontname encoding --> newfont
+  exch findfont dup length dict begin
+  { 1 index /FID ne {def} {pop pop} ifelse } forall
+  /Encoding exch def
+  currentdict end definefont
+} bind def
+
+
+
+%%% printing stuff ---------------------------------------------------------
+
+% replace tabs by blanks; tabcolumns are modulo tabsize
+%
+/Untab {                     % source target pos --> res
+
+  0 true { begin /Untab load 1 false put }{ pop } ifelse
+  /pos    exch def           % actual len of target
+  /target exch def
+  /source exch def
+
+  source (\t) search {       % post tab pre
+    dup
+    /new_pos exch length pos add def
+    /tabnum tabsize   new_pos tabsize mod   sub   def
+
+    target pos 3 -1 roll     % post \t target pos pre
+    putinterval pop          % post
+
+    target new_pos (                ) 0 tabnum getinterval putinterval
+    target new_pos tabnum add Untab % post target pos
+  }{                         % source
+    target pos 3 -1 roll     % target pos source
+    putinterval              % --
+    target                   % target
+    /Untab load 1 true put end
+  } ifelse
+} bind def
+/Untab load 0 4 dict put
+
+
+% show str with backspace handling
+%
+/BSshow {                 % str --> --
+  0 true { begin /BSshow load 1 false put }{ pop } ifelse
+  (\b) search {            % post \b pre
+    /pre exch def          % post \b
+    /prepos pre length 1 sub def
+    pop                    % post
+    prepos 0 ge {
+      dup                    % post post
+      pre prepos 1           % post post pre len-1 1
+      getinterval            % post post pre(len-1)
+      prepos 0 gt { pre 0 prepos getinterval show } if
+      dup 3 -1 roll          % post pre(len-1) pre(len-1) post
+      0 1 getinterval        % post pre(len-1) pre(len-1) post(0)
+      dup 4 1 roll           % post post(0) pre(len-1) pre(len-1) post(0)
+      eq {                   % post post(0) pre(len-1)
+        stdfont fixedfont eq {
+          /boldfont findfont setfont
+          pop show           % post
+          /stdfont findfont setfont
+        }{
+          pop show           % post
+        } ifelse
+      }{
+        dup show             % post post(0) pre(len-1)
+        stringwidth pop neg 0 rmoveto % post post(0)
+        show                 % post
+      } ifelse
+    } if
+    dup 1 exch length 1 sub getinterval % post(1..len-1) 
+    BSshow
+  }{                       % str
+    show                   % --
+    /BSshow load 1 true put end
+  } ifelse
+} bind def
+/BSshow load 0 2 dict put
+
+
+/VisibleColumn {
+  newpath
+  0 0 moveto
+  0 paperheight rlineto
+  colwidth 0 rlineto 
+  0 0 paperheight sub rlineto
+  closepath
+} bind def
+
+
+/NewColumn {
+  col colshift sub colmod mod 0 eq { % start active column
+    /colactive true def
+    col colshift sub columns colmod mul mod 0 eq { % new page
+      active {
+        showpage
+      } if
+      /page page 1 add def
+      /active false def
+      page 2 mod 1 eq dup oddpages  and {/active true def} if
+      not { evenpages { /active true def} if } if
+      active {
+        land {
+          0 paperwidth translate -90 rotate
+        } if
+        DoPageFrame
+        reversecolumns {
+          paperwidth rightmargin sub colwidth sub 0 translate
+        }{
+          leftmargin 0 translate
+        } ifelse
+      } if
+    }{
+      active {
+        reversecolumns {
+          colwidth colsep add neg 0 translate
+        }{
+          colwidth colsep add 0 translate
+        } ifelse
+      } if
+    } ifelse
+    initclip VisibleColumn clip
+    /col col 1 add def
+    active { DoColumnFrame } if
+  }{
+    /colactive false def
+    /col col 1 add def
+  } ifelse
+  /y ymax def
+  /linenum 1 def
+} bind def
+
+/DoColumnFrame {
+  printpagenumbers not printcolumnnumbers and { % on bot center of column
+    col pagestr cvs pop
+    colwidth 2 div cvi  botmargin
+    moveto pagestr
+    /boldfont findfont setfont
+    show
+    /stdfont findfont setfont
+  } if
+} def
+
+/DoPageFrame {
+  printtitle { % filename top left
+    leftmargin    paperheight topmargin sub fontsize  sub
+    moveto titlestr
+    /boldfont findfont setfont
+    show
+    /stdfont findfont setfont
+  } if
+  printdate { % top right
+    paperwidth rightmargin sub  datestr stringwidth pop  sub
+    paperheight topmargin sub fontsize sub
+    moveto datestr
+    /boldfont findfont setfont
+    show
+    /stdfont findfont setfont
+  } if
+  printpagenumbers printcolumnnumbers not and { % on bot center
+    page pagestr cvs pop
+    paperwidth 2 div cvi  botmargin
+    moveto pagestr
+    /boldfont findfont setfont
+    show
+    /stdfont findfont setfont
+  } if
+} bind def	
+
+/PrintLine {	
+  linenum linesperpage gt { NewColumn } if
+  active colactive and {
+    zero256 untabed copy 0 Untab
+    0 y moveto handlebackspaces { BSshow }{ show } ifelse
+  }{
+    pop
+  } ifelse
+  /y y fontsize sub def
+  /linenum linenum 1 add def
+} bind def
+
+/PrintFile { 
+  {
+    infile buffer readline
+    {
+      eofSearch 
+      {
+        dup dup length dup 0 gt % str str len (len > 0)
+	{
+	  1 sub get eof eq      % str (str(len-1) == eof)
+          {
+            dup length 1 sub dup 0 gt 
+	    { 0 exch getinterval PrintLine }
+            { pop pop } ifelse
+            exit
+          } if
+	}{ pop pop } ifelse
+      } if
+      PrintLine
+    }{
+      PrintLine exit
+    } ifelse
+  } loop
+  active { showpage } if
+} bind def
+
+%%%% command line switches
+
+/SwitchArg {
+  dup (-p)    eq { /land false /1up false /2up false  def def def } if
+  dup (-l)    eq { /land true  /1up false /2up false  def def def } if
+  dup (-1up)  eq { /land false /1up true  /2up false  def def def } if
+  dup (-2up)  eq { /land true  /1up false /2up true   def def def } if
+  dup (-man)  eq {
+                userfontsize not userlpp not and {
+		  /linesperpage manpagelen def
+                  /userlpp true def
+                } if
+		/stdfont fixedfont def
+		/printpagenumbers false def
+		/printcolumnnumbers false def
+		/handlebackspaces true def
+	      } if
+  dup (-n) anchorsearch {
+             pop dup (um) eq { % -num
+	       pop /printpagenumbers false def /printcolumnnumbers true def
+             }{                % -nlpp
+	       cvi /linesperpage exch def
+               /userlpp true def
+	     } ifelse
+           }{ pop } ifelse
+  dup (-c) anchorsearch { % -cn n-column output
+             pop cvi /columns exch def
+             /1up false /2up false def def
+             /usercol true def
+           }{ pop } ifelse
+  dup (-t) anchorsearch { 
+             pop dup (itle) eq { % -title
+	       pop /printtitle true def
+             }{                % -tn
+	       cvi /tabwidth exch def
+	     } ifelse
+           }{ pop } ifelse
+  dup (-bs)eq { /handlebackspaces true def } if
+  dup (-e) eq { /oddpages  false def } if
+  dup (-o) eq { /evenpages false def } if	
+  dup (-D) eq { 1 dict dup /Duplex true put setpagedevice } if
+  dup (-T) eq { 1 dict dup /Tumble true put setpagedevice } if
+  dup (-E) eq { /colshift 1 def /colmod 2 def } if
+  dup (-O) eq { /colshift 0 def /colmod 2 def } if	
+  dup (-R) eq { /reversecolumns true def } if
+  dup (-f) anchorsearch { pop /stdfont exch cvlit def }{ pop } ifelse
+  dup (-s) anchorsearch { 
+             pop cvr /fontsize exch def 
+             /userfontsize true def
+             /userlpp false def
+           }{ pop } ifelse
+  dup (-iso)  eq { /isolatin true def } if	
+  dup (-ger)  eq { /isolatin false /country 0 def def } if	
+  dup (-us)   eq { /isolatin false /country 1 def def } if
+  dup (--job=) anchorsearch { pop /titlestr exch def }{ pop } ifelse
+  dup (--date=) anchorsearch {
+                   pop /datestr exch def
+                   /printdate true def
+                }{ pop } ifelse
+  dup (--paper=) anchorsearch { pop cvx /paperformat exch def }{ pop } ifelse
+  dup (--eof=) anchorsearch {
+                 pop cvi /eof exch def /eofSearch true def
+               }{ pop } ifelse
+  dup (-page) anchorsearch { 
+             pop
+             dup (count) eq { % -pagecount
+               /evenpages false def
+               /oddpages  false def
+               /pagecount true  def
+             } if
+             dup (num) eq { % -pagenum
+	       /printpagenumbers true def /printcolumnnumbers false def
+             } if
+             pop
+           }{ pop } ifelse
+} def
+
+
+%%% main stuff -------------------------------------------------------------
+%
+/A2x {					%stack: [ (op1) ... (opn) filename ]
+  
+  /a2xargs exch def
+
+  a2xargs length 0 gt  {
+    % ok, everything seems alright
+    A2xDefaults
+
+    /filename a2xargs dup length 1 sub get def
+    /infile filename length 0 eq	% () means currentfile
+    { currentfile 		
+    }{ filename (r) file } ifelse def
+
+    /eofSearch    false def
+    /usercol      false def  % use default #columns per page
+    /userfontsize false def  % use default fontsize
+    /userlpp      false def  % default is to compute #lines from fontsize
+		             % (userlpp true ==> linesperpage defined)
+    /oddpages     true  def  
+    /evenpages    true  def
+    /pagecount    false def
+    /printdate    false def  % date on each page ?
+    /titlestr 	  filename (%stdin) eq not { filename }{ () } ifelse def
+
+    /colshift     0 def      % skip first colshift columns
+    /colmod       1 def      % print every colmod-th column
+    /reversecolumns false def
+
+    0 1 a2xargs length 1 sub { a2xargs  exch get SwitchArg pop } for
+
+    Initialize
+
+    % little helpers to save VM
+    /zero256 256 string def
+    /untabed 256 string def
+
+    /stdfont findfont setfont 
+    /page 0 def
+    /col  0 def
+    /active false def
+    NewColumn PrintFile
+    pagecount { page (   ) cvs print } if
+  }{
+    (A2x: arguments missing\n) print flush
+  } ifelse
+} def
+end
+%---------------------------------------------------------------------------

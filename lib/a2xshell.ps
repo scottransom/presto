@@ -1,0 +1,9 @@
+%!
+% Copyright (C) 1994-1996 Christoph Beck, <beck@jack.rhein-main.de>
+% All rights reserved.
+%
+% This software may be distributed under the terms of the GNU General
+% Public License.
+%
+% push shell arguments on stack and execute A2x
+[ shellarguments { ] a2xdict begin A2x end } { pop } ifelse

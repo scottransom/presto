@@ -1,0 +1,49 @@
+# Admin data
+
+Name readfile
+
+Usage "Reads raw data from a binary file and displays it on stdout."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Flag   	-more		more	{Paginate the output like 'more'}
+Flag   	-float		flt	{Raw data in floating point format}
+Flag   	-f		sflt	{Raw data in floating point format}
+Flag   	-double    	dbl 	{Raw data in double precision format}
+Flag   	-d	    	sdbl 	{Raw data in double precision format}
+Flag   	-fcomplex    	fcx	{Raw data in float-complex format}
+Flag   	-fc	    	sfcx	{Raw data in float-complex format}
+Flag   	-dcomplex    	dcx	{Raw data in double-complex format}
+Flag   	-dc	    	sdcx	{Raw data in double-complex format}
+Flag   	-int    		igr    	{Raw data in integer format}
+Flag   	-i    		sigr    {Raw data in integer format}
+Flag   	-long    	lng	{Raw data in long format}
+Flag   	-l	    	slng	{Raw data in long format}
+Flag   	-rzwcand    	rzw	{Raw data in rzw search candidate format}
+Flag   	-rzw	    	srzw	{Raw data in rzw search candidate format}
+Flag   	-bincand    	bin	{Raw data in bin search candidate format}
+Flag   	-bin	    	sbin	{Raw data in bin search candidate format}
+Flag   	-pkmb    	pks	{Raw data in Parkes Multibeam format}
+Flag   	-pk	    	spks	{Raw data in Parkes Multibeam format}
+
+Int 	-index 		index 	{The range of objects to display} \
+				{range = -1,oo} \
+				{default = 0 -1} \
+				{count = 0,2}
+
+Float 	-nph		nph	{0th FFT bin amplitude (for 'RZW' data)} \
+				{range = -oo,oo} \
+				{default = 1.0}
+
+# Rest of command line:
+
+Rest 			file 	{Input data file name.} \
+				{count = 1,1}
+
+
+
+

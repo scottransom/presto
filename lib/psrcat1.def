@@ -1,0 +1,66 @@
+c***********************************************************************
+c       Arrays for rdascat1.f
+c	Originally part of PSRLIST program
+c       Drastically revised by RNM Oct, 1992
+c       Distance codes added. RNM March 1, 1993.
+c***********************************************************************
+
+	integer maxpsr, maxbin
+        parameter ( maxpsr = 1001, maxbin=101)
+
+        character bname(maxpsr)*8, jname(maxpsr)*12, lcode(maxpsr)*1,
+     +    ucode(maxpsr)*1
+	integer*4 ibin(maxpsr), kbin(maxpsr), nobs(maxpsr),
+     +    modcode(maxpsr),dflag(maxpsr),limcode(maxpsr),scflag(maxpsr),
+     +    ntype(maxpsr)
+	real*8 ra2000(maxpsr), dec2000(maxpsr), ra1950(maxpsr), 
+     +    dec1950(maxpsr), posepch(maxpsr), p(maxpsr), pdot(maxpsr),
+     +    f2(maxpsr), f3(maxpsr), epoch(maxpsr), dm(maxpsr), 
+     +    epbin(maxbin), pbin(maxbin), xbin(maxbin), wbin(maxbin), 
+     +    eccbin(maxbin)
+	real*4 rae(maxpsr), dece(maxpsr), pmra(maxpsr), pmrae(maxpsr), 
+     +    pmdec(maxpsr), pmdece(maxpsr), gl(maxpsr), gb(maxpsr),
+     +    pe(maxpsr), pdote(maxpsr), f2e(maxpsr), f3e(maxpsr), 
+     +    dme(maxpsr), rm(maxpsr), rme(maxpsr), we(maxpsr), w50(maxpsr), 
+     +    w10(maxpsr),s400(maxpsr), s600(maxpsr), s1400(maxpsr), 
+     +    dist(maxpsr), dmin(maxpsr), dmax(maxpsr), dmodel(maxpsr), 
+     +    tbg(maxpsr), altsc(maxpsr), 
+     +    aledot(maxpsr), allum(maxpsr), albsurf(maxpsr), alage(maxpsr), 
+     +    epbine(maxbin), pbine(maxbin), xbine(maxbin), 
+     +    wbine(maxbin), wdotbin(maxbin), wdotbine(maxbin), 
+     +    eccbine(maxbin),gambin(maxbin),gambine(maxbin),pdbin(maxbin),
+     +    pdbine(maxbin),sinibin(maxbin),sinibine(maxbin),rbin(maxbin),
+     +    rbine(maxbin)
+
+	common/apcat/bname, jname, lcode, ucode
+	common/dpcat/ra2000, dec2000, ra1950, dec1950, posepch, p, pdot,
+     +    f2, f3, epoch, dm, epbin, pbin, xbin, wbin, eccbin
+	common/pcat/ibin, kbin, nobs, dflag, scflag, ntype, modcode,
+     +    limcode,
+     +    rae, dece, pmra, pmrae, pmdec, pmdece, gl, gb,
+     +    pe, pdote, f2e, f3e, dme, rm, rme, we, w50, w10,
+     +    s400, s600, s1400, dist, dmin, dmax, dmodel, tbg,
+     +    aledot, allum, albsurf, alage, altsc,
+     +    epbine, pbine, xbine, wbine, wdotbin, wdotbine, eccbine,
+     +    gambin,gambine,pdbin,pdbine,sinibin,sinibine,rbin,rbine
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

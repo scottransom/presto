@@ -1,0 +1,326 @@
+#  Makefile for PRESTO
+#   for Pentium/Linux
+#   by Scott M. Ransom
+
+# Path to pulsar database files
+DATABASE = "$(PRESTO)/lib"
+
+# Path to PGPLOT includes
+PGPLOTINCDIR = -I$(PGPLOT_DIR)
+# Path to PGPLOT libraries
+PGPLOTLIBDIR = -L$(PGPLOT_DIR)
+# How to link with the PGPLOT libs
+PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11/lib -lX11
+
+# You must define one of the following FFTTYPES (USEFFTW is default).
+# If you want to use FFTW for the FFTs, place sfftw.h and libsfftw.a
+# (or the shared lib version) in a place where we can find it,
+# and then define the FFTTYPE and FFTLIBS variables appropriately.
+# Notes:  PRESTO uses the single precision version of FFTW.
+#         You must also run make makewisdom after you make prep.
+# Other options are USESGIFFT or REGFFT
+FFTTYPE = USEFFTW
+# Path to FFT includes
+FFTINCDIR = -I/usr/local/include
+# Path to FFT libraries
+FFTLIBDIR = -L/usr/local/lib
+# How to link with the FFTW libs
+FFTLINK = $(FFTLIBDIR) -lsfftw
+
+# The name of the library to produce
+PRESTOLIB = presto
+
+# Use the following to define the propoer library suffix for your
+# computer (usually 'so' or 'sl' for shared libraries or 'a' for
+# static libraries.
+LIBSUFFIX = so
+
+# The true library names
+PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
+
+# The standard PRESTO libraries to link into executables
+PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK)
+ 
+
+# For Pentium with GCC
+CC = egcc
+F77 = g77
+CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+	-g -ansi -pedantic -Wall -W -O -fpic
+#	-Dinline= -Wmissing-prototypes \
+#	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
+#	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
+#	-Waggregate-return -fno-common -Wnested-externs
+#	-O4 -mpentiumpro -malign-double -funroll-loops -fforce-addr \
+#	-ffast-math 
+LIBLINKFLAGS = -shared
+LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
+FFLAGS = -O
+FLINK = $(F77)
+FLINKFLAGS = $(FFLAGS)
+
+# For DEC Alpha
+#CC = cc
+#F77 = f77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-newc -w0 -O4 -fast -ansi_alias -ansi_args -tune host -std1
+#	-g -newc -w0 -ansi_alias -ansi_args -std1
+#LINKCOMMAND = ar rcs
+#FFLAGS = -O
+#FLINK = $(CC)
+#FLINKFLAGS = $(CFLAGS)
+
+# For Solaris
+#CC = cc
+#F77 = f77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-g -O -Xc -vc -KPIC
+#	-fast
+#LIBLINKFLAGS = -G
+#LINKCOMMAND = ld $(LIBLINKFLAGS) -o
+#FFLAGS = -O
+#FLINK = $(F77)
+#FLINKFLAGS = $(FFLAGS)
+
+# For IBM SP2
+#CC = cc
+#F77 = f77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-DUSE_PIOFS -g -O2 -qarch=pwr2 -qtune=pwr2
+#EXTRALINK = -bI:/usr/include/piofs/piofs.exp
+#LINKCOMMAND = ar rcs
+#FFLAGS = -O
+#FLINK = xlf
+#FLINKFLAGS = 
+
+# For SGI 64bit
+#CC = cc
+#F77 = f77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-64 -Ofast=ip27 -r10000
+#LINKCOMMAND = ar rcs
+#FFLAGS = -64 -Ofast=ip27 -r10000
+#FLINK = $(F77)
+#FLINKFLAGS = $(FFLAGS)
+
+# For SGI 32bit
+#CC = cc
+#F77 = f77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-32 -O2
+#LINKCOMMAND = ar rcs
+#FFLAGS = -O
+#FLINK = $(F77)
+#FLINKFLAGS = $(FFLAGS)
+
+# For Cray T3E
+#CC = cc
+#F77 = f90 -dp
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-O3 -h aggress -X m
+#LINKCOMMAND = ar rcs
+#FFLAGS = -O
+#FLINK = $(F77)
+#FLINKFLAGS = $(FFLAGS)
+
+# For Cray T90
+#CC = cc
+#F77 = cf77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-O3
+#LINKCOMMAND = ar rcs
+#FFLAGS = -O
+#FLINK = $(F77)
+#FLINKFLAGS = $(FFLAGS)
+
+PRESTOOBJS = apprgrdn.o barycenter.o cand_output.o characteristics.o\
+	chkio.o corr_prep.o corr_routines.o correlations.o database.o\
+	dcdflib.o dispersion.o fastffts.o fftcalls.o fminbr.o fold.o\
+	fresnl.o ioinf.o get_candidates.o iomak.o ipmpar.o\
+	maximize_r.o maximize_rz.o misc_utils.o orbint.o output.o\
+	read_fft.o responses.o rzinterp.o select.o solvopt.o sorter.o\
+	twopass.o twopass_real_fwd.o twopass_real_inv.o vectors.o
+
+PLOT2DOBJS = powerplot.o xyline.o
+
+all: $(PRESTOLIBNM) text xwin
+
+prep: meminit timetest bincat
+
+text: makedata makeinf mjd2cal realfft_4step quicklook search_bin search_rzw swap_endian prepdata prepfold check_parkes_raw bary shiftdata patchdata readfile
+
+xwin: psrorbit window plotbincand profile showmulti showmulti_dm searchmultidms
+
+geomview: togeomview
+
+cligs:
+	rm -f *_cmd.*
+	clig -o profile_cmd -d $(PRESTO)/clig/profile_cmd.cli
+	clig -o prepdata_cmd -d $(PRESTO)/clig/prepdata_cmd.cli
+	clig -o prepfold_cmd -d $(PRESTO)/clig/prepfold_cmd.cli
+	clig -o bincand_cmd -d $(PRESTO)/clig/bincand_cmd.cli
+	clig -o readfile_cmd -d $(PRESTO)/clig/readfile_cmd.cli
+	mv *_cmd.h ../include/
+	mv *.1 ../man/
+
+$(PRESTOLIBNM): $(PRESTOOBJS)
+	$(LINKCOMMAND) $@ $(PRESTOOBJS)
+	cp $@ $(PRESTO)/lib
+
+meminit:
+	$(CC) $(CFLAGS) -o $@ meminit.c
+	./meminit
+	rm -f meminit
+
+bincat:
+	$(F77) $(FFLAGS) -o $@ bincat.f rdascat.f
+	./bincat
+	rm -f bincat
+
+timetest: 
+	$(CC) -o $@ timetest.c
+	./timetest
+	rm -f timetest
+
+bary: bary.o 
+	$(CC) $(CFLAGS) -o $@ bary.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+shiftdata: shiftdata.o 
+	$(CC) $(CFLAGS) -o $@ shiftdata.o -lm
+	cp $@ ../bin
+
+patchdata: patchdata.o 
+	$(CC) $(CFLAGS) -o $@ patchdata.o
+	cp $@ ../bin
+
+check_parkes_raw: check_parkes_raw.o multibeam.o 
+	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+testmulti: testmulti.o multi_prof_plot.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) testmulti.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+
+showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+showmulti_dm: showmulti_dm.o multi_prof_plot.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti_dm.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+searchmultidms: searchmultidms.o com.o randlib.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) searchmultidms.o com.o randlib.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+test_fold: test_fold.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+
+prepdata: prepdata.o prepdata_cmd.o multibeam.o
+	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+prepfold: prepfold.o prepfold_cmd.o multibeam.o $(PLOT2DOBJS)
+	$(CC) $(CFLAGS) -o $@ prepfold.o prepfold_cmd.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+testresp: ../tests/testresp.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) testresp.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+
+makedata: com.o randlib.o makedata.o
+	$(CC) $(CFLAGS) -o $@ com.o randlib.o makedata.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+makeinf: makeinf.o ioinf.o
+	$(CC) $(CFLAGS) -o $@ makeinf.o ioinf.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+makewisdom:
+	$(CC) $(CFLAGS) -o $@ makewisdom.c -l$(FFTLIBS) -lm
+	./makewisdom
+	cp fftw_wisdom.txt $(PRESTO)/lib
+
+mjd2cal: djcl.o mjd2cal.o
+	$(CC) $(CFLAGS) -o $@ djcl.o mjd2cal.o -lm
+	cp $@ ../bin
+
+plotbincand: plotbincand.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotbincand.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+profile: profile.o profile_cmd.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) profile.o profile_cmd.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+psrorbit: psrorbit.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) psrorbit.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+testbinresp: testbinresp.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ testbinresp.o $(PLOT2DOBJS) $(PGPLOTLINK) $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+quicklook: quicklook.o
+	$(CC) $(CFLAGS) -o $@ quicklook.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+readfile:  multibeam.o readfile.o readfile_cmd.o
+	$(CC) $(CFLAGS) -o $@ multibeam.o readfile.o readfile_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+realfft_4step: realfft_4step.o
+	$(CC) $(CFLAGS) -o $@ realfft_4step.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+search_bin: search_bin.o
+	$(CC) $(CFLAGS) -o $@ search_bin.o $(EXTRALINK) $(PRESTOLINK)  -lm
+	cp $@ ../bin
+
+search_rzw: search_rzw.o
+	$(CC) $(CFLAGS) -o $@ search_rzw.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+swap_endian:
+	$(CC) $(CFLAGS) -o $@ swap_endian.c
+	cp $@ ../bin
+
+togeomview:
+	$(CC) -O -o $@ togeomview.c
+	cp $@ ../bin
+
+window: window.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) window.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+clean:
+	rm -f *.o *~ *#
+
+cleaner:  clean
+	rm -f makedata makeinf mjd2cal realfft_4step timetest
+	rm -f quicklook search_bin search_rzw swap_endian        
+	rm -f prepdata prepfold check_parkes_raw bary            
+	rm -f shiftdata patchdata readfile psrorbit window       
+	rm -f plotbincand profile showmulti showmulti_dm         
+	rm -f searchmultidms togeomview meminit bincat makewisdom
+	rm -f $(PRESTOLIBNM)
+	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
+
+squeaky:  cleaner
+	rm -f *.dat *.fft *.inf fftw_wisdom.txt
+	rm -f core *.win* *.ps *_rzw *.tmp
+	cd $(PRESTO)/include ; rm -f *# *~
+	cd $(PRESTO)/lib ; rm -f fftw_wisdom.txt bincat.dat
+	cd $(PRESTO)/bin ; rm -f makedata makeinf mjd2cal realfft_4step
+	cd $(PRESTO)/bin ; rm -f quicklook search_bin search_rzw swap_endian
+	cd $(PRESTO)/bin ; rm -f prepdata prepfold check_parkes_raw bary
+	cd $(PRESTO)/bin ; rm -f shiftdata patchdata readfile psrorbit
+	cd $(PRESTO)/bin ; rm -f plotbincand profile showmulti showmulti_dm
+	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window

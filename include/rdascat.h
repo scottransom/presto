@@ -1,0 +1,23 @@
+	implicit real*8 (a-h,o-z)
+	parameter (NP=800)
+	real*8 ldeg,lum
+	character jname*12,bname*8,lcode*1,ucode*1
+	common/dat/ jname(NP),bname(NP),ra2000(NP),ra1950(NP),
+     +    rae(NP),dec2000(NP),dec1950(NP),dece(NP),nscode(NP),
+     +    dmin(NP),dmax(NP),dist(NP),ndflag(NP),lcode(NP),ucode(NP),
+     +    ldeg(NP),bdeg(NP),pmra(NP),pmrae(NP),pmdec(NP),
+     +    pmdece(NP),posepoch(NP),p(NP),pe(NP),pdot(NP),pdote(NP),
+     +    f2(NP),f2e(NP),f3(NP),f3e(NP),epoch(NP),dm(NP),dme(NP),
+     +    rm(NP),
+     +    rme(NP),we(NP),w50(NP),w10(NP),s400(NP),s600(NP),s1400(NP),
+     +    tau(NP),ntauflag(NP),t408(NP),ntype(NP),
+     +    modcode(NP),limcode(NP),
+     +    distmod(NP),lum(NP),bsurf(NP),age(NP),edot(NP),ibin(NP),
+     +    pb(NP),pbe(NP),a1(NP),a1e(NP),om(NP),ome(NP),
+     +    omdot(NP),omdote(NP),e(NP),ee(NP),t0(NP),t0e(NP),
+     +    gamma(NP),gammae(NP),pbdot(NP),pbdote(NP),si(NP),sie(NP),
+     +    r(NP),re(NP),
+     +    pb2(NP),pb2e(NP),a12(NP),a12e(NP),om2(NP),om2e(NP),
+     +    omdot2(NP),omdot2e(NP),e2(NP),e2e(NP),t02(NP),t02e(NP),
+     +    gamma2(NP),gamma2e(NP),pbdot2(NP),pbdot2e(NP),si2(NP),
+     +    si2e(NP),r2(NP),r2e(NP)

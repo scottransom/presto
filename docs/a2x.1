@@ -1,0 +1,358 @@
+.\" -*- nroff -*-
+.TH A2X 1
+.SH NAME
+a2x \- convert and format ascii for printing to various devices
+.SH SYNOPSIS
+.B a2x
+[options] [files] 
+.SH DESCRIPTION
+.B A2x.ps
+is a PostScript program to format ascii data in various ways.
+There is also a UNIX shell script called
+.B a2x, 
+which arranges
+.B a2x.ps
+and a specified input to produce a PostScript program as output.
+It also supports use
+of the Ghostscript interpreter
+.B gs.
+This way, you can use
+.B a2x.ps
+with a real PostScript printer or produce output for any 
+device supported by Ghostscript.
+.PP
+.B A2x.ps
+is intended to be used with
+.B a2x,
+so this man page decribes just that.
+.PP
+With
+.B a2x
+you may
+switch between portrait and landscape mode,
+suppress even or odd pages,
+choose any number of columns per page,
+clip output to columns (truncate long lines),
+use german umlauts,
+choose fonts and their sizes (or lines per page),
+preview in an X window,
+handle tabs and backspaces,
+print nroff-formatted man pages
+and more.
+.PP
+.B A2x
+always writes to stdout. If no files are given,
+.B a2x 
+reads its input data from stdin, so you may use it as a filter.
+.SH OPTIONS
+.de OP
+.ie \\n(.$-1 .RI "\fB\\$1\fP" "\\$2"
+.el .RB "[\ " "\\$1" "\ ]"
+..
+.TP
+.OP \-dev DEV
+With this option you can specify a target device other than the default
+target device. 
+.I DEV 
+may be any Ghostscript device name or
+.B ps. 
+You should specify your individual
+default device in 
+.B a2x 
+as described in the INSTALLATION section below.
+.TP
+.B \-a4, \-letter, \-legal
+choose upon paper sizes. The default is 
+.B \-a4.
+Again, change this to your needs in
+.B a2x
+as described in the INSTALLATION section below.
+.TP
+.B \-1up
+1 column portrait mode.
+.TP
+.B \-2up
+2 column landscape mode.
+.TP
+.B \-o
+print odd pages only.
+.TP
+.B \-e
+print even pages only.
+.TP
+.B \-O
+print odd columns only.
+.TP
+.B \-E
+print even columns only.
+.TP
+.B \-R
+print columns per page in reverse (from right to left) order.
+.TP
+.B \-p
+print in portrait mode. This is the default.
+.TP
+.B \-l
+print in landscape mode (2 up).
+.TP
+.OP \-c n
+Specify the number
+.I n 
+of columns per page. The default is 1-column in portrait mode,
+2-column in landscape mode.
+.TP
+.OP  \-title,\ \-title= name
+The \-title option  makes the filename being printed on (top left) 
+of each page.
+By default, this is not done.
+Using 
+.OP \-title= string 
+causes
+.I string
+to be used instead of the file's name. (This is useful when reading
+from standard in.)
+.TP
+.B \-date
+makes the current date being printed on (top right) of each page.
+The default is not to do this.
+.TP
+.B \-num
+Turns column numbering on.
+The default is not to number columns.
+.TP
+.B \-pagenum
+Turns page numbering on.
+The default is not to number pages.
+.TP
+.OP \-s n
+Sets the fontsize to 
+.I n
+pt. The default is 10pt for portrait, 8pt for landscape.
+.TP
+.B -bs
+Turn on backspace handling.
+.TP
+.OP \-t n
+Set tab width to 
+.I n.
+The default is 8.
+.TP
+.OP \-n n
+Choose
+.I n
+lines per page. A corresponding fontsize is computed by
+.B a2x.ps.
+.TP
+.OP \-f font
+Using the 
+.B \-f 
+option you may choose the PostScript font
+.I font
+to be used by 
+.B a2x.ps.
+The default is Courier.
+.TP
+.B -iso
+ISO-Latin1 character encoding (default for PS level 2).
+.TP
+.B -ger, -us
+With the
+.B -ger
+option,
+.B a2x.ps 
+reencodes characters to allow german umlauts.
+Suppress it with 
+.B -us,
+which actually causes no reencoding, or change the default in 
+.B a2x.ps.
+However, the
+.B -iso
+option enables umlauts by default, if your PS device supports level 2.
+.TP
+.B -man
+Print nroff formatted man page. This selects a fixed font, 66 lines
+per page and turns backspace handling on.
+.TP
+.B -pagecount
+Finally, this option suppresses any output. It just prints the number 
+of pages it would have had to standard out (works only with ghostscript).
+.TP
+.B -D
+Duplex (double sided) output, if your PS device supports this.
+.TP
+.B -T
+In conjunction with
+.B -D
+: tumbled (double sided, pages tumbled) output,
+if your PS device supports this.
+.SH INSTALLATION
+Installing
+. B a2x
+is easy.
+.PP
+First, assume, that you
+.B have
+Ghostscript 
+.B or 
+you
+.B don't have
+a PostSript printer.
+Now, if you don't have Ghostscript, get it. It is available via anonymous ftp 
+at many sites. Once, you have installed it successfully, go on like this:
+.IP (1)
+Type
+.B gs -h
+on your command line. 
+Ghostscript should give you a list of available devices.
+If your printer is in that list, you are lucky. If not, get a
+new one (one in the list, of course).
+.IP (2)
+Copy 
+.B a2x.ps
+to a directory, where you like it to live
+(if you are superuser, Ghostscript's home would be a nice place,
+usually something like /usr/local/lib/ghostscript, or similar).
+.IP (3)
+Copy the file
+.B a2xshell.ps
+to the same directory.
+.IP (4)
+Now, go into 
+.B a2x
+and change the definition of the variables 
+.I Device
+and 
+.I Paper. 
+Simply assign to 
+.I Device
+the Ghostscript device name of your printer and one of the papersizes 
+.B a4, letter 
+and
+.B legal
+to variable 
+.I Paper.
+Also, look for the variable A2X_PATH in 
+.B a2x.
+Assign to it the directory path, where you just copied
+.B a2x.ps
+in step (2).
+.IP (5)
+You may also want to specify some interactive devices. 
+They are given by the 
+.I InteractiveDevices 
+variable. For these, 
+.B gs
+waits for you to press return after each page. 
+They should be screen devices like the 
+.B x11 
+device.
+.IP (6)
+Finally, copy 
+.B a2x 
+to a directory, where your shell can find it (eg any directory mentioned 
+in your PATH variable). 
+.PP
+Next, assume you 
+.B do have
+a PostScript printer.
+If you installed 
+.B a2x
+for use with Ghostscript, you are done. Use the
+.B \-dps
+option to generate PostScript output or make ps your default device as
+described above. If you don't have Ghostscript and don't want to 
+install it, then simply follow steps (2), (4) and (6) above.
+.SH CUSTOMIZATION
+To change default settings other than the ones described above, go
+into 
+.B a2x.ps
+and check the definitions in the procedure /A2xdefaults.
+If you would like some characters to be reencoded, go to the
+definition
+of /fontvec in
+.B a2x.ps.
+The comments there should explain how to achieve your desired
+encoding. The encoding choice is controlled by the variable /country,
+which is simply the index of the encoding in /fontvec.
+It is set in /A2xdefaults (and via the
+.B \-ger
+and 
+.B \-us
+options). If you do your own country specific reencoding, please
+email it to me. I would then include it into the next version of
+.B a2x.
+.SH EXAMPLES
+Assume, you have a working 
+.B lpr
+command and want to print file abc.xyz.
+To simply print this file "as is", use
+
+  a2x abc.xyz | lpr
+
+However, you can do more.
+To preview the output in an X window, in landscape mode, using 
+2-column style, type
+
+  a2x \-dx11 \-2up abc.xyz
+
+I know, you'd like the filename and todays date being printed on top of each
+page. Also, pagenumbers would be nice. BTW, 9pt, instead of the default 8,
+would be possible. Say
+
+  a2x \-dx11 \-2up \-title \-date \-num \-s9 abc.xyz
+
+Yes, viewing the first few pages, this seems to be ok.
+Now, abc.xyz is quite large. You would like to know, how many sheets 
+of paper it would take to print it this way. Get it with
+
+  a2x \-2up \-title \-date \-num \-s9 \-pagecount abc.xyz
+
+Oooh, thats a lot... Better, to print it double sided. First, all the odd
+pages with
+
+  a2x \-o \-2up \-title=abc \-date \-num \-s9 abc.xyz | lpr,
+
+and the rest by replacing the \-o option by \-e.
+Addititionally, the string abc comes out on top of each page, instead
+of abc.xyz.
+Now, you'd like to list all the TeX\-files in the current directory. 
+Use UNIX's 
+.B find 
+and 
+.B a2x. 
+To get it formatted into Times\-Roman font, 3\-columns, do a
+
+  find . -name "*.tex" -print| a2x -c3 -fTimes-Roman | lpr
+
+You can do a half sized (eg a5) double sided printing with -O, -E, -R:
+
+  a2x -a4 -2up -num -O    file | lpr	# prints logical pages [1|3] [5|7] ...
+
+Refeed paper to your printer (same order, upside-down) and do
+
+  a2x -a4 -2up -num -E -R file | lpr	# prints logical pages [4|2] [8|6] ...
+
+Cut between columns, merge and you're done.
+
+Finally, to get this man page printed, do
+
+  nroff -man a2x.1 | a2x -man -2up -o | lpr
+  nroff -man a2x.1 | a2x -man -2up -e | lpr
+
+.SH BUGS
+I have tested
+.B a2x
+with Ghostscript 2.6.1 and a DECLaser 1152, only.
+Send bug reports via email to the authors address, please.
+With the
+.B \-dps
+option,
+.B a2x
+produces PostScript output in which the character ^A (ascii 1) is 
+used as a special symbol. For this reason, 
+.B a2x
+filters all ^A's from your input. As a consequence, reencoding this
+character (see the CUSTOMIZATION section) will have no effect.
+.SH AUTHOR
+Christoph Beck     <beck@jack.rhein-main.de>
+

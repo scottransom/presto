@@ -1,0 +1,76 @@
+# Admin data
+
+Name prepfold
+
+Usage "Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
+
+Flag   -ebpp    ebpp    {Raw data in Efflesberg-Berkeley Pulsar Processor format}
+
+Flag   -nobary  nobary  {Do not barycenter the data}
+
+Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
+
+Float -p    p    {The folding period (s)} {range = 0,oo}
+
+Float -pd   pdot {The folding period derivative (s/s)} \
+	{range = -oo,oo} \
+	{default = 0}
+    
+Float -f    freq  {The folding frequency (hz)} {range = 0,oo}
+
+Float -fd   dfdt  {The folding frequency derivative (hz/s)} \
+	{range = -oo,oo} \
+	{default = 0}
+    
+Int -n proflen {The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period}
+
+String -psr psrname {Name of pulsar to fold (do not include J or B)}
+
+Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \
+        {range = 1,oo}
+
+String -rzwfile rzwfile {Name of the rzw search file to use (include the full name of the file)}
+
+Int -bincand bincand {Fold a binary pulsar but take the input data from this candidate number in 'infile'_bin.cand} {range = 1,oo}
+
+String -onoff onoff {A list of white-space separated pairs of numbers from 0.0 to 1.0 that designate barycentric times in our data set when we will actually keep the data. (i.e. '-onoff 0.1 0.4 0.7 0.9' means that we will fold the data set during the barycentric times 0.1-0.4 and 0.7-0.9 of the total time length of the data set)}
+
+# Parameters for a binary pulsar
+
+Flag -bin  binary {Fold a binary pulsar.  Must include all of the following parameters}
+
+Float -pb   pb      {The orbital period (s)} {range = 0,oo}
+
+Float -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
+	{range = 0,oo}
+
+Float -e    e       {The orbital eccentricity} \
+	{range = 0,0.9999999} \
+	{default = 0}
+    
+Float -To   To      {The time of periastron passage (MJD)} \
+	{range = 0,oo}
+    
+Float -w    w       {Longitude of periastron (deg)} \
+	{range = 0,360}
+    
+Float -wdot wdot    {Rate of advance of periastron (deg/yr)} \
+	{range = -oo,oo}\
+	{default = 0}
+
+# Rest of command line:
+
+Rest infile {Input data file name (without a suffix).  Currently, only PKMB format is supported.} \
+        {count = 1,1}
+
+
+
+

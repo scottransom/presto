@@ -1,0 +1,84 @@
+From - Wed Sep 30 04:37:36 1998
+Return-Path: <jherrnst@aoc.nrao.edu>
+Received: from arana.aoc.nrao.edu (arana.aoc.nrao.edu [146.88.1.7])
+	by mars.harvard.edu (8.8.8+Sun/8.8.8) with SMTP id AAA15210
+	for <ransom@mars.harvard.edu>; Mon, 28 Sep 1998 00:01:45 -0400 (EDT)
+Received: from helios.aoc.nrao.edu (helios.aoc.nrao.edu [146.88.7.4]) by arana.aoc.nrao.edu (8.6.12/8.6.10) with ESMTP id WAA20113 for <ransom@mars.harvard.edu>; Sun, 27 Sep 1998 22:01:46 -0600
+Received: (from jherrnst@localhost) by helios.aoc.nrao.edu (8.7.3/8.6.10) id WAA24917 for ransom@mars.harvard.edu; Sun, 27 Sep 1998 22:01:44 -0600 (MDT)
+Date: Sun, 27 Sep 1998 22:01:44 -0600 (MDT)
+From: Jim Herrnstein <jherrnst@aoc.nrao.edu>
+Message-Id: <199809280401.WAA24917@helios.aoc.nrao.edu>
+To: ransom@mars.harvard.edu
+Content-Length: 2858
+Status: RO
+X-Mozilla-Status: 8001
+
+#!../../bin/python
+f = open('bitops.c', 'w')
+f.write('#include <stdlib.h>\n')
+f.write('#include <stdio.h>\n')
+f.write('#include <sys/times.h>\n')
+f.write('#include <time.h>\n')
+f.write('#include <string.h>\n')
+f.write('#ifndef CLK_TCK\n')
+f.write('#define CLK_TCK       (CLOCKS_PER_SEC * 0.0001)\n')
+f.write('#endif\n')
+f.write('\n')
+f.write('#define NUMTIMES 500000\n')
+f.write('\n')
+f.write('int main(int argc, char *argv[]){\n')
+f.write('\n')
+f.write('  int ct;\n')
+f.write('  unsigned char rec[32], zz[32] = "12345678901234567890123456789012";\n')
+f.write('  float data1[256], data2[256];\n')
+f.write('  struct tms runtimes;\n')
+f.write('  double ttim, utim, stim, tott;\n')
+f.write('\n')
+f.write('  tott = times(&runtimes) / (double) CLK_TCK;\n')
+f.write('  utim = runtimes.tms_utime / (double) CLK_TCK;\n')
+f.write('  stim = runtimes.tms_stime / (double) CLK_TCK;\n')
+f.write('\n')
+f.write('  for (ct=0;ct<NUMTIMES;ct++){\n')
+f.write('    strncpy((char*)rec, (char*)zz, 32);\n')
+for i in range(32):
+   for j in range(8):
+      f.write('    data1[%d] = rec[%d] & 0x01;\n' % ((i+1)*8-j-1, i))
+      f.write('    rec[%d]>>=1;\n' % i)
+f.write('  }\n')
+f.write('\n')
+f.write('  tott = times(&runtimes) / (double) CLK_TCK - tott;\n')
+f.write('  printf("Timing summary (Method 1):\\n");\n')
+f.write('  utim = runtimes.tms_utime / (double) CLK_TCK - utim;\n')
+f.write('  stim = runtimes.tms_stime / (double) CLK_TCK - stim;\n')
+f.write('  ttim = utim + stim;\n')
+f.write('  printf("CPU usage: %f sec total (%f sec user, %f sec system)\\n", ttim, utim, stim);\n')
+f.write('  printf("Total time elapsed:  %f sec.\\n\\n", tott);\n')
+f.write('\n')
+f.write('  tott = times(&runtimes) / (double) CLK_TCK;\n')
+f.write('  utim = runtimes.tms_utime / (double) CLK_TCK;\n')
+f.write('  stim = runtimes.tms_stime / (double) CLK_TCK;\n')
+f.write('\n')
+f.write('  for (ct=0;ct<NUMTIMES;ct++){\n')
+f.write('    strncpy((char*)rec, (char*)zz, 32);\n')
+val = {0: '80', 1: '40', 2: '20', 3: '10', 4: '08', 5: '04', 6: '02', 7: '01'}
+for i in range(32):
+   for j in range(8):
+      f.write('    data2[%d] = rec[%d] & 0x%s ? 1.0 : 0.0;\n' % (i*8+j, i, val[j]))
+f.write('  }\n')
+f.write('\n')
+f.write('  tott = times(&runtimes) / (double) CLK_TCK - tott;\n')
+f.write('  printf("Timing summary (Method 2):\\n");\n')
+f.write('  utim = runtimes.tms_utime / (double) CLK_TCK - utim;\n')
+f.write('  stim = runtimes.tms_stime / (double) CLK_TCK - stim;\n')
+f.write('  ttim = utim + stim;\n')
+f.write('  printf("CPU usage: %f sec total (%f sec user, %f sec system)\\n", ttim, utim, stim);\n')
+f.write('  printf("Total time elapsed:  %f sec.\\n\\n", tott);\n')
+f.write('\n')
+f.write('  for (ct=0; ct<256; ct++){\n')
+f.write('    if (data1[ct] != data2[ct]) printf("data at i = %d do not equal.\\n", ct);\n')
+f.write('  }\n')
+f.write('  return 0;\n')
+f.write('}\n')
+f.write('\n')
+f.close()
+

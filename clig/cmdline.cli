@@ -1,0 +1,98 @@
+## The Name specified is only used in/for the manual page
+Name cligExample
+
+## Usage specifies a one-liner which is printed as part of
+## usage-message. It is also used in the NAME-section of the manual
+## page as a short description.
+Usage {demonstrate features of the clig-generated command line parser}
+
+## The Version specified is printed as part of the usage-message. The
+## example used here records the date of the clig-run as the version.
+Version [exec date +%Y-%m-%d]
+
+## Commandline specifies the name of a slot in the generated struct
+## which will be set to a newly allocated string holding the
+## concatenated command line. This is particularly useful for programs
+## which want to record their calling sequence somewhere, e.g. in a in
+## output file to document how it was generated.
+Commandline tool
+
+########################################################################
+## EXAMPLE OF FLAG OPTION
+
+## Flag options are rather trivial. They do not have any parameters.
+Flag -v verbose {switch on verbose program operation}
+
+########################################################################
+## EXAMPLES OF STRING OPTIONS
+
+## String options can have one or more parameters. By default they
+## have exactly one parameter.
+String -title title {title of x/y-plot}
+
+## To let them have exactly two parameters, use the following
+String -xytitles xytitles {title of x- and y-axis} \
+    {count = 2,2}
+
+## To impose no upper limit on the number of parameters, use oo,
+## i.e. double-`o'
+String -plotnames plotnames {names of curves to plot} \
+    {count = 1,oo}
+
+## An option you really need should be made mandatory. (I'm not sure
+## whether it can be called an `option' then?)
+String -colors colors {colors to use in plots} \
+    mandatory \
+    {count = 1,5}
+
+## Non-mandatory options can have default values
+String -bg background {background color} \
+    {default = red}
+
+########################################################################
+## EXAMPLES OF FLOAT OPTIONS
+
+## The simplest Float-option has a default-count of 1, is not
+## mandatory, imposes no limit on the parameter and has no default
+Float -o offset {offset to add to all curves to plot}
+
+## Float-option parameters can be forced to lie in a given range
+Float -p p {probability} \
+    {range = 0,1}
+    
+## `count', `mandatory' and `default' work as for String-options
+Float -f f {frequencies} \
+    {count = 2, 10} \
+    {range = 0, 47.11 } \
+    {default = 2 4 8 16.11}
+
+## special values for range-specs are -oo and oo denoting minus
+## infinity and infinity
+Float -negscale negscale {negative scale value} \
+    {range = -oo, 0.0}
+
+Float -scale scale {scale value} \
+    {range = 0.0, oo}
+
+########################################################################
+## EXAMPLES OF INT OPTIONS
+
+## Int-options work like Float options.
+Int -a a {flog quarx flirim poli gam i nabgala} \
+    mandatory
+
+Int -b b {ram dibum gabalabarum deri pum pam} \
+    {count = 3,4} \
+    {range = -10, 10} \
+    {default = -1 0 1}
+
+########################################################################
+## EXAMPLES OF REST COMMAND
+
+## The Rest-command specifies what may be found on the command line
+## after all options have extracted their parameters. The Rest-command
+## has a default `count' of 1,oo, but here we set it to 1,10.
+Rest infiles {list of input files} \
+    {count = 1,10}
+
+

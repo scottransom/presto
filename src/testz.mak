@@ -1,0 +1,22 @@
+Sample test set.
+Num data pts      = 1048576
+dt per bin (s)    =        9.5367431640625e-7
+Pulse shape       = Spike
+Rounding format   = Fractional
+Pulse freq (hz)   =               20000.12345
+fdot (s-2)        =                     5.678
+fdotdot (s-3)     =                         0
+Pulse amp         =                      0.15
+Pulse phs (deg)   =                         0
+DC backgrnd level =                       400
+Binary period (s) =                         0
+Bin asini/c (s)   =                         0
+Bin eccentricity  =                         0
+Ang of Peri (deg) =                         0
+Tm since peri (s) =                         0
+Amp Mod amplitude =                         0
+Amp Mod phs (deg) =                         0
+Amp Mod freq (hz) =                         0
+Noise type        = Standard
+Noise sigma       =                        40
+On/Off Pair  1    = 0 1
