@@ -420,18 +420,19 @@ static void write_val_with_err(FILE *outfile, double val, double err,
 void output_fundamentals(fourierprops *props, GSList *list, 
 			 accelobs *obs, infodata *idata)
 {
-  double accel=0.0, accelerr=0.0;
-  int ii, numcols=11, numcands;
-  int widths[11]={4, 5, 6, 4, 16, 15, 15, 15, 11, 15, 20};
-  int errors[11]={0, 0, 0, 0,  1,  1,  2,  1,  2,  2,  0};
+  double accel=0.0, accelerr=0.0, coherent_pow;
+  int ii, jj, numcols=12, numcands, *width, *error;
+  int widths[12]={4, 5, 6, 8, 4, 16, 15, 15, 15, 11, 15, 20};
+  int errors[12]={0, 0, 0, 0, 0,  1,  1,  2,  1,  2,  2,  0};
   char tmpstr[30], ctrstr[30], *notes;
   accelcand *cand;
   GSList *listptr;
   rzwerrs errs;
-  static char *titles1[]={"", "", "Summed", "Num", "Period", 
+  static char **title;
+  static char *titles1[]={"", "", "Summed", "Coherent", "Num", "Period", 
 			  "Frequency", "FFT 'r'", "Freq Deriv", "FFT 'z'", 
 			  "Accel", ""};
-  static char *titles2[]={"Cand", "Sigma", "Power", "Harm", "(ms)",
+  static char *titles2[]={"Cand", "Sigma", "Power", "Power", "Harm", "(ms)",
 			  "(Hz)", "(bin)", "(Hz/s)", "(bins)", 
 			  "(m/s)", "Notes"};
 
@@ -463,58 +464,90 @@ void output_fundamentals(fourierprops *props, GSList *list,
 
   /* Print the header */
   
+  width = widths; title = titles1;
   for (ii=0; ii<numcols-1; ii++){
-    center_string(ctrstr, titles1[ii], widths[ii]);
+    center_string(ctrstr, *title++, *width++);
     fprintf(obs->workfile, "%s  ", ctrstr);
   }
-  center_string(ctrstr, titles1[ii], widths[ii]);
+  center_string(ctrstr, *title++, *width++);
   fprintf(obs->workfile, "%s\n", ctrstr);
+
+  width = widths; title = titles2;
   for (ii=0; ii<numcols-1; ii++){
-    center_string(ctrstr, titles2[ii], widths[ii]);
+    center_string(ctrstr, *title++, *width++);
     fprintf(obs->workfile, "%s  ", ctrstr);
   }
-  center_string(ctrstr, titles2[ii], widths[ii]);
+  center_string(ctrstr, *title++, *width++);
   fprintf(obs->workfile, "%s\n", ctrstr);
+
+  width = widths;
   for (ii=0; ii<numcols-1; ii++){
-    memset(tmpstr, '-', widths[ii]);
-    tmpstr[widths[ii]] = '\0';
+    memset(tmpstr, '-', *width);
+    tmpstr[*width++] = '\0';
     fprintf(obs->workfile, "%s--", tmpstr);
   }
-  memset(tmpstr, '-', widths[ii]);
+  memset(tmpstr, '-', *width++);
   tmpstr[widths[ii]] = '\0';
   fprintf(obs->workfile, "%s\n", tmpstr);
   
   /* Print the fundamentals */
   
   for (ii=0; ii<numcands; ii++){
+    width = widths;  error = errors;
     cand = (accelcand *)(listptr->data);
     calc_rzwerrs(props+ii, obs->T, &errs);
+    
+    { /* Calculate the coherently summed power */
+      double coherent_r=0.0, coherent_i=0.0;
+      double phs, phs0, phscorr, amp;
+      rderivs harm;
+
+      phs0 = cand->derivs[0].phs;
+      for (jj=0; jj<cand->numharm; jj++){
+	harm = cand->derivs[jj];
+	amp = sqrt(harm.pow / harm.locpow);
+	phs = (cand->numharm-jj) * harm.phs;
+	phscorr = phs0 - fmod((jj+1.0)*phs0, TWOPI);
+	coherent_r += amp * cos(phs + phscorr);
+	coherent_i += amp * sin(phs + phscorr);
+      }
+      coherent_pow = coherent_r * coherent_r + coherent_i * coherent_i;
+    }
+
     sprintf(tmpstr, "%-4d", ii+1);
-    center_string(ctrstr, tmpstr, widths[0]);
+    center_string(ctrstr, tmpstr, *width++); error++;
     fprintf(obs->workfile, "%s  ", ctrstr);
+
     sprintf(tmpstr, "%.2f", cand->sigma);
-    center_string(ctrstr, tmpstr, widths[1]);
+    center_string(ctrstr, tmpstr, *width++); error++;
     fprintf(obs->workfile, "%s  ", ctrstr);
+
     sprintf(tmpstr, "%.2f", cand->power);
-    center_string(ctrstr, tmpstr, widths[2]);
+    center_string(ctrstr, tmpstr, *width++); error++;
     fprintf(obs->workfile, "%s  ", ctrstr);
+
+    sprintf(tmpstr, "%.2f", coherent_pow);
+    center_string(ctrstr, tmpstr, *width++); error++;
+    fprintf(obs->workfile, "%s  ", ctrstr);
+
     sprintf(tmpstr, "%d", cand->numharm);
-    center_string(ctrstr, tmpstr, widths[3]);
+    center_string(ctrstr, tmpstr, *width++); error++;
     fprintf(obs->workfile, "%s  ", ctrstr);
+
     write_val_with_err(obs->workfile, errs.p*1000.0, errs.perr*1000.0, 
-		       errors[4], widths[4]);
+		       *error++, *width++);
     write_val_with_err(obs->workfile, errs.f, errs.ferr, 
-		       errors[5], widths[5]);
+		       *error++, *width++);
     write_val_with_err(obs->workfile, props[ii].r, props[ii].rerr, 
-		       errors[6], widths[6]);
+		       *error++, *width++);
     write_val_with_err(obs->workfile, errs.fd, errs.fderr, 
-		       errors[7], widths[7]);
+		       *error++, *width++);
     write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr, 
-		       errors[8], widths[8]);
+		       *error++, *width++);
     accel = props[ii].z * SOL / (obs->T * obs->T * errs.f);
     accelerr = props[ii].zerr * SOL / (obs->T * obs->T * errs.f);
     write_val_with_err(obs->workfile, accel, accelerr, 
-		       errors[9], widths[9]);
+		       *error++, *width++);
     fprintf(obs->workfile, "  %.20s\n", notes + ii * 20);
     fflush(obs->workfile);
     listptr = listptr->next;
