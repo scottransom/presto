@@ -7,7 +7,9 @@
 /* Maximum number of lags we can have */
 #define WAPP_MAXLAGS 1024
 /* Maximum data block length in bytes */
-#define WAPP_MAXDATLEN WAPP_PTSPERBLOCK*WAPP_MAXLAGS*4
+#define WAPP_MAXDATLEN WAPP_PTSPERBLOCK*WAPP_MAXLAGS
+/* Maximum lag block length in bytes */
+#define WAPP_MAXLAGLEN WAPP_MAXDATLEN*4
 
 typedef struct WAPP_HEADER{
   long header_version; /* some integer that increments with each revision */
