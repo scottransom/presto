@@ -60,7 +60,7 @@ Float -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 
 # Display parameters
 
-Flag -xwi   xwin  {Send graphics output to the screen}
+Flag -xwin   xwin  {Send graphics output to the screen}
 
 Flag -ps    ps    {Send graphics output to a Postscript file}
 

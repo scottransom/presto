@@ -235,7 +235,6 @@ void plot_profile(int proflen, float *profile, const char *title, \
   overy = 0.1 * (ymax + errmax - ymin - errmin);
   ymax = ymax + overy + errmax;
   ymin = ymin - overy - errmin;
-  if (ymin < 0.0) ymin = 0.0;
   x = gen_fvect(proflen);
   for (ii = 0; ii < proflen; ii++)
     x[ii] = (float) ii / (float) proflen;

@@ -470,18 +470,19 @@ int main(int argc, char **argv)
       for (i = 0; i < proflen; i++)
 	errors[i] = sqrt(varph);
 
-    /* Re-calculate the average level and the chi-squared values */
+    /* Re-calculate chi-squared if needed */
 
-    avgph = 0.0;
-    chixmeas = 0.0;
-    for (i = 0 ; i < proflen ; i++)
-      avgph += fprof[i];
-    avgph /= proflen;
-    for (i = 0 ; i < proflen ; i++){
-      dtmp = fprof[i];
-      chitmp = dtmp - avgph;
-      dtmp = (dtmp == 0.0) ? 1.0 : dtmp;
-      chixmeas += ((chitmp * chitmp) / dtmp);
+    if (chixmeas == 0.0){
+      avgph = 0.0;
+      for (i = 0 ; i < proflen ; i++)
+	avgph += fprof[i];
+      avgph /= proflen;
+      for (i = 0 ; i < proflen ; i++){
+	dtmp = fprof[i];
+	chitmp = dtmp - avgph;
+	chixmeas += (chitmp * chitmp);
+      }
+      chixmeas /= varph;
     }
 
     /* Calculate the values of P and Q since we know X and DF */

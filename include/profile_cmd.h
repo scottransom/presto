@@ -80,7 +80,7 @@ typedef struct s_Cmdline {
   char wdotP;
   double wdot;
   int wdotC;
-  /***** -xwi: Send graphics output to the screen */
+  /***** -xwin: Send graphics output to the screen */
   char xwinP;
   /***** -ps: Send graphics output to a Postscript file */
   char psP;

@@ -87,7 +87,7 @@ static Cmdline cmd = {
   /* wdotP = */ TRUE,
   /* wdot = */ 0,
   /* wdotC = */ 1,
-  /***** -xwi: Send graphics output to the screen */
+  /***** -xwin: Send graphics output to the screen */
   /* xwinP = */ FALSE,
   /***** -ps: Send graphics output to a Postscript file */
   /* psP = */ FALSE,
@@ -641,11 +641,11 @@ showOptionValues(void)
     }
   }
 
-  /***** -xwi: Send graphics output to the screen */
+  /***** -xwin: Send graphics output to the screen */
   if( !cmd.xwinP ) {
-    printf("-xwi not found.\n");
+    printf("-xwin not found.\n");
   } else {
-    printf("-xwi found:\n");
+    printf("-xwin found:\n");
   }
 
   /***** -ps: Send graphics output to a Postscript file */
@@ -705,7 +705,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-p p] [-pd pdot] [-f freq] [-fd dfdt] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bincand bincand] [-onoff onoff] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-xwi] [-ps] [-both] [-disp] [-mak] [-noerr] [-poisson] infile\n\
+ [-p p] [-pd pdot] [-f freq] [-fd dfdt] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bincand bincand] [-onoff onoff] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-xwin] [-ps] [-both] [-disp] [-mak] [-noerr] [-poisson] infile\n\
     Folds a time series at a given period and period derivative to make a pulse profile.  May be used for binary pulsars as well.\n\
         -p: The folding period (s)\n\
             1 double precision value between 0 and oo\n\
@@ -744,7 +744,7 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double precision value\n\
             default: `0'\n\
-      -xwi: Send graphics output to the screen\n\
+     -xwin: Send graphics output to the screen\n\
        -ps: Send graphics output to a Postscript file\n\
      -both: Send graphics output both the screen and a Postscript file\n\
      -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin\n\
@@ -753,7 +753,7 @@ usage(void)
   -poisson: Assume the data is Poisson distributed (for statistics)\n\
     infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.\n\
             1 string value\n\
-version: 01Nov99\n\
+version: 06Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -915,7 +915,7 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-xwi", argv[i]) ) {
+    if( 0==strcmp("-xwin", argv[i]) ) {
       cmd.xwinP = TRUE;
       continue;
     }
