@@ -10,7 +10,7 @@
 /* Some function definitions */
 
 void rfifind_plot(int numchan, int numint, int ptsperint, 
-		  float timesigma, float freqsigma, 
+		  float timesigma, float freqsigma, float trigfrac,
 		  float **dataavg, float **datastd, float **datapow,
 		  int *userchan, int numuserchan, 
 		  int *userints, int numuserints, 
@@ -363,7 +363,7 @@ int main(int argc, char *argv[])
 
   /* Make the plots */
 
-  rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
+  rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, cmd->trigfrac,
 	       dataavg, datastd, datapow, cmd->zapchan, cmd->zapchanC,
 	       cmd->zapints, cmd->zapintsC, &idata, bytemask, 
 	       &oldmask, &newmask, rfivect, numrfi, 

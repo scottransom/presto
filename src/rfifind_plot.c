@@ -93,7 +93,7 @@ static void calc_avgmedstd(float *arr, int numarr, float fraction,
 }
 
 void rfifind_plot(int numchan, int numint, int ptsperint, 
-		  float timesigma, float freqsigma, 
+		  float timesigma, float freqsigma, float trigfrac,
 		  float **dataavg, float **datastd, float **datapow,
 		  int *userchan, int numuserchan, 
 		  int *userints, int numuserints, 
@@ -262,6 +262,39 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 	    if (!(bytemask[ii][jj] & PADDING)) 
 	      bytemask[ii][jj] |= BAD_STD;
 	}
+      }
+    }
+  }
+
+  /* Step over the intervals and channels and count how many are set "bad". */
+  /* If the number is > trigfac*numchan or numint, then set the whole       */
+  /* interval or channel as bad.                                            */
+  {
+    int badnum, trignum;
+
+    /* Loop over the intervals */
+    trignum = (int) (numchan * trigfrac);
+    for (ii=0; ii<numint; ii++){
+      if (!(bytemask[ii][0] & USERINTS)){
+	badnum = 0;
+	for (jj=0; jj<numchan; jj++)
+	  if (bytemask[ii][jj] & BAD_POW) badnum++;
+	if (badnum > trignum)
+	  for (jj=0; jj<numchan; jj++)
+	    bytemask[ii][jj] |= USERINTS;
+      }
+    }
+
+    /* Loop over the channels */
+    trignum = (int) (numint * trigfrac);
+    for (ii=0; ii<numchan; ii++){
+      if (!(bytemask[0][ii] & USERCHAN)){
+	badnum = 0;
+	for (jj=0; jj<numint; jj++)
+	  if (bytemask[jj][ii] & BAD_POW) badnum++;
+	if (badnum > trignum)
+	  for (jj=0; jj<numint; jj++)
+	    bytemask[jj][ii] |= USERCHAN;
       }
     }
   }

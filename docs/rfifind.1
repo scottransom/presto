@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "04Nov02" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "11Nov02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -36,6 +36,7 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 [-time time]
 [-timesig timesigma]
 [-freqsig freqsigma]
+[-trigfrac trigfrac]
 [-zapchan [zapchan]]
 [-zapints [zapints]]
 [-mask maskfile]
@@ -89,21 +90,27 @@ The +/-sigma cutoff to reject time-domain chunks,
 .br
 1 Float value between 0 and oo.
 .br
-Default: `6'
+Default: `10'
 .IP -freqsig
 The +/-sigma cutoff to reject freq-domain chunks,
 .br
 1 Float value between 0 and oo.
 .br
 Default: `4'
+.IP -trigfrac
+The fraction of bad channels or intervals to zap the whole interval or channel,
+.br
+1 Float value between 0.0 and 1.0.
+.br
+Default: `0.3'
 .IP -zapchan
 Channels to explicitly remove from analysis (zero-offset),
 .br
-0...1023 Int values between 0 and 1023.
+0...2047 Int values between 0 and 2047.
 .IP -zapints
 Intervals to explicitly remove from analysis (zero-offset),
 .br
-0...1023 Int values between 0 and 1023.
+0...10000 Int values between 0 and 10000.
 .IP -mask
 File containing masking information to use,
 .br

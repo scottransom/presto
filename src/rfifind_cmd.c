@@ -58,12 +58,16 @@ static Cmdline cmd = {
   /* timeC = */ 1,
   /***** -timesig: The +/-sigma cutoff to reject time-domain chunks */
   /* timesigmaP = */ 1,
-  /* timesigma = */ 6,
+  /* timesigma = */ 10,
   /* timesigmaC = */ 1,
   /***** -freqsig: The +/-sigma cutoff to reject freq-domain chunks */
   /* freqsigmaP = */ 1,
   /* freqsigma = */ 4,
   /* freqsigmaC = */ 1,
+  /***** -trigfrac: The fraction of bad channels or intervals to zap the whole interval or channel */
+  /* trigfracP = */ 1,
+  /* trigfrac = */ 0.3,
+  /* trigfracC = */ 1,
   /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
   /* zapchanP = */ 0,
   /* zapchan = */ (int*)0,
@@ -920,6 +924,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -trigfrac: The fraction of bad channels or intervals to zap the whole interval or channel */
+  if( !cmd.trigfracP ) {
+    printf("-trigfrac not found.\n");
+  } else {
+    printf("-trigfrac found:\n");
+    if( !cmd.trigfracC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.trigfrac);
+    }
+  }
+
   /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
   if( !cmd.zapchanP ) {
     printf("-zapchan not found.\n");
@@ -979,7 +995,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-trigfrac trigfrac] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
@@ -1003,19 +1019,22 @@ usage(void)
               default: `60.0'\n\
     -timesig: The +/-sigma cutoff to reject time-domain chunks\n\
               1 float value between 0 and oo\n\
-              default: `6'\n\
+              default: `10'\n\
     -freqsig: The +/-sigma cutoff to reject freq-domain chunks\n\
               1 float value between 0 and oo\n\
               default: `4'\n\
+   -trigfrac: The fraction of bad channels or intervals to zap the whole interval or channel\n\
+              1 float value between 0.0 and 1.0\n\
+              default: `0.3'\n\
     -zapchan: Channels to explicitly remove from analysis (zero-offset)\n\
-              0...1023 int values between 0 and 1023\n\
+              0...2047 int values between 0 and 2047\n\
     -zapints: Intervals to explicitly remove from analysis (zero-offset)\n\
-              0...1023 int values between 0 and 1023\n\
+              0...10000 int values between 0 and 10000\n\
        -mask: File containing masking information to use\n\
               1 char* value\n\
       infile: Input data file name.\n\
               1...100 values\n\
-version: 04Nov02\n\
+version: 11Nov02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1134,12 +1153,22 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-trigfrac", argv[i]) ) {
+      int keep = i;
+      cmd.trigfracP = 1;
+      i = getFloatOpt(argc, argv, i, &cmd.trigfrac, 1);
+      cmd.trigfracC = i-keep;
+      checkFloatLower("-trigfrac", &cmd.trigfrac, cmd.trigfracC, 1.0);
+      checkFloatHigher("-trigfrac", &cmd.trigfrac, cmd.trigfracC, 0.0);
+      continue;
+    }
+
     if( 0==strcmp("-zapchan", argv[i]) ) {
       int keep = i;
       cmd.zapchanP = 1;
-      i = getIntOpts(argc, argv, i, &cmd.zapchan, 0, 1023);
+      i = getIntOpts(argc, argv, i, &cmd.zapchan, 0, 2047);
       cmd.zapchanC = i-keep;
-      checkIntLower("-zapchan", cmd.zapchan, cmd.zapchanC, 1023);
+      checkIntLower("-zapchan", cmd.zapchan, cmd.zapchanC, 2047);
       checkIntHigher("-zapchan", cmd.zapchan, cmd.zapchanC, 0);
       continue;
     }
@@ -1147,9 +1176,9 @@ parseCmdline(int argc, char **argv)
     if( 0==strcmp("-zapints", argv[i]) ) {
       int keep = i;
       cmd.zapintsP = 1;
-      i = getIntOpts(argc, argv, i, &cmd.zapints, 0, 1023);
+      i = getIntOpts(argc, argv, i, &cmd.zapints, 0, 10000);
       cmd.zapintsC = i-keep;
-      checkIntLower("-zapints", cmd.zapints, cmd.zapintsC, 1023);
+      checkIntLower("-zapints", cmd.zapints, cmd.zapintsC, 10000);
       checkIntHigher("-zapints", cmd.zapints, cmd.zapintsC, 0);
       continue;
     }
