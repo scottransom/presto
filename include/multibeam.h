@@ -8,6 +8,9 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.10  2000/12/19 23:44:01  ransom
+ * Changed calling convention for read_PKMB() (added numpoints).
+ *
  * Revision 1.9  2000/12/17 06:00:53  ransom
  * Added mask.c and mask.h
  * Re-ran CLIG after modifying parameters in a fwe CLIG files.
@@ -158,8 +161,8 @@ int read_PKMB_rawblocks(FILE *infiles[], int numfiles,
 /* of blocks read is returned.                              */
 
 int read_PKMB(FILE *infiles[], int numfiles, float *data, 
-	      double *dispdelays);
-/* This routine reads a PKMB record from the input     */
+	      int numpts, double *dispdelays);
+/* This routine reads numpts from the PKMB raw input   */
 /* files *infiles.  These files contain 1 bit data     */
 /* from the PKMB backend at Parkes.  Time delays and   */
 /* and a mask are applied to each channel.  It returns */
