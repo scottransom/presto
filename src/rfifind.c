@@ -7,9 +7,10 @@
 #include "bpp.h"
 #include "wapp.h"
 #include "gmrt.h"
+#include "spigot.h"
 #include "rfifind.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
 
 /* Some function definitions */
 
@@ -155,6 +156,10 @@ int main(int argc, char *argv[])
 	    strcmp(suffix, "bcpm2")==0){
 	  printf("Assuming the data is from a GBT BCPM...\n");
 	  cmd->bcpmP = 1;
+	} else if (strcmp(suffix, "fits")==0 &&
+		   strncmp(root, "spigot", 6)==0){
+	  printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+	  cmd->spigotP = 1;
 	} else if (strcmp(suffix, "pkmb")==0){
 	  printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	  cmd->pkmbP = 1;
@@ -185,6 +190,11 @@ int main(int argc, char *argv[])
 	printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
       else
 	printf("Reading Green Bank BCPM data from 1 file:\n");
+    } else if (cmd->spigotP){
+      if (numfiles > 1)
+	printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
+      else
+	printf("Reading Green Bank Spigot data from 1 file:\n");
     } else if (cmd->gmrtP){
       if (numfiles > 1)
 	printf("Reading GMRT Phased Array data from %d files:\n", numfiles);
@@ -263,6 +273,23 @@ int main(int argc, char *argv[])
       idata.dm = 0.0;
       writeinf(&idata);
 
+    } else if (cmd->spigotP){
+
+      /* Set-up values if we are using the NRAO-Caltech Spigot card */
+
+      SPIGOT_INFO *spigots;
+      printf("Spigot card input file information:\n");
+      spigots = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO)*numfiles);
+      for (ii=0; ii<numfiles; ii++)
+	read_SPIGOT_header(cmd->argv[ii], spigots+ii);
+      get_SPIGOT_file_info(infiles, spigots, numfiles, cmd->windowP, cmd->clip, &N, 
+			   &ptsperblock, &numchan, &dt, &T, &idata, 1);
+      SPIGOT_update_infodata(numfiles, &idata);
+      set_SPIGOT_padvals(padvals, good_padvals);
+      idata.dm = 0.0;
+      writeinf(&idata);
+      free(spigots);
+
     } else if (cmd->wappP){
 
       /* Set-up for the WAPP machine at Arecibo */
@@ -324,7 +351,7 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP)
       rawdata = gen_bvect(DATLEN * blocksperint);
-    else if (cmd->bcpmP || cmd->wappP || cmd->gmrtP)
+    else if (cmd->bcpmP || cmd->spigotP || cmd->wappP || cmd->gmrtP)
       /* This allocates extra incase both IFs were stored */
       rawdata = gen_bvect(idata.num_chan * ptsperblock * blocksperint);
     else if (insubs)
@@ -368,6 +395,9 @@ int main(int argc, char *argv[])
       else if (cmd->bcpmP)
 	numread = read_BPP_rawblocks(infiles, numfiles, 
 				     rawdata, blocksperint, &padding);
+      else if (cmd->spigotP)
+	numread = read_SPIGOT_rawblocks(infiles, numfiles, 
+					rawdata, blocksperint, &padding, ifs);
       else if (cmd->wappP)
 	numread = read_WAPP_rawblocks(infiles, numfiles, 
 				      rawdata, blocksperint, &padding, ifs);
@@ -388,6 +418,8 @@ int main(int argc, char *argv[])
 	  get_PKMB_channel(jj, chandata, rawdata, blocksperint);
 	else if (cmd->bcpmP)
 	  get_BPP_channel(jj, chandata, rawdata, blocksperint, ifs);
+	else if (cmd->spigotP)
+	  get_SPIGOT_channel(jj, chandata, rawdata, blocksperint);
 	else if (cmd->wappP)
 	  get_WAPP_channel(jj, chandata, rawdata, blocksperint);
 	else if (cmd->gmrtP)

@@ -59,16 +59,17 @@ void get_SPIGOT_static(int *bytesperpt, int *bytesperblk, int *numifs, float *cl
 }
 
 void set_SPIGOT_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-		     int numchan, int numifs, float clip_sigma, double dt)
+		       int numchan, int numifs, float clip_sigma, double dt)
 /* This is used by the MPI-based mpiprepsubband code to insure that each */
 /* processor can access (correctly) the required static variables.       */
 {
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
+  bits_per_lag_st = (bytesperpt*8)/numchan;
   numchan_st = numchan;
   numifs_st = numifs;
-  sampperblk_st = ptsperblk_st * numchan_st;
+  sampperblk_st = ptsperblk_st*numchan_st;
   clip_sigma_st = clip_sigma;
   dt_st = dt;
 }
@@ -983,15 +984,11 @@ int read_SPIGOT_subbands(FILE *infiles[], int numfiles, float *data,
 void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
 /* This routine converts a single point of SPIGOT lags   */
 /* into a filterbank style array of bytes.               */
-/* Van Vleck corrections are applied but no window       */
-/* functions can be applied as of yet...                 */
 {
   int ii, ifnum=0, index=0;
   float *templags=NULL;
   double power, pfact;
   double scale_min_st=0.0, scale_max_st=3.0;
-  static int counter;
-  static double avg=0, var=0, min=0, max=0;
 
   if (ifs==IF0){
     ifnum = 1;
@@ -1012,7 +1009,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     /* Fill lag array with scaled CFs */
     /* Note:  The 2 and 4 bit options will almost certainly need to be fixed */
     /*        since I don't know the precise data layout. SMR 15Aug2003      */
-    /*        Alos, I have no idea how multiple IFs/RFs are stored...        */
+    /*        Also, I have no idea how multiple IFs/RFs are stored...        */
     if (bits_per_lag_st==16){
       short *data=(short *)rawdata;
       for (ii=0; ii<numchan_st; ii++)
@@ -1026,7 +1023,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
       unsigned char *data=(unsigned char *)rawdata, byte;
       for (ii=0, jj=0; ii<numchan_st/2; ii++){
 	byte = data[ii+index/2];
-	lags[jj] = (byte>>0x04)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = (byte>>4)*lag_factor[jj] + lag_offset[jj]; jj++;
 	lags[jj] = (byte&0x0f)*lag_factor[jj] + lag_offset[jj]; jj++;
       }
     } else if (bits_per_lag_st==2){
@@ -1034,9 +1031,9 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
       unsigned char *data=(unsigned char *)rawdata, byte;
       for (ii=0, jj=0; ii<numchan_st/4; ii++){
 	byte = data[ii+index/4];
-	lags[jj] = (byte>>0x06)*lag_factor[jj] + lag_offset[jj]; jj++;
-	lags[jj] = ((byte>>0x04)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
-	lags[jj] = ((byte>>0x02)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = (byte>>6)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = ((byte>>4)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+	lags[jj] = ((byte>>2)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
 	lags[jj] = (byte&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
       }
     }
@@ -1050,17 +1047,17 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
 #endif
 
     /* Calculate power */
-
-    power = inv_cerf(lags[0]);
-    power = 0.1872721836 / (power * power);
+    //power = sqrt(2.0)*inv_cerf(lags[0]);
+    //power = 1.0/(power*power);
 
     /* Apply Van Vleck Corrections to the Lags */
     if (vanvleck_st)
       vanvleck3lev(lags, numchan_st);
     
-    for (ii=0; ii<numchan_st; ii++)
-      lags[ii] *= power;
+    //for (ii=0; ii<numchan_st; ii++)
+    // lags[ii] *= power;
     
+    /* Window the Lags */
     if (usewindow_st)
       for (ii=0; ii<numchan_st; ii++)
 	lags[ii] *= window_st[ii];
@@ -1073,15 +1070,26 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
 #endif
 
     /* FFT the ACF lags (which are real and even) -> real and even FFT */
-    lags[numchan_st] = 0.0;
+    /* Set the missing lag as per Carl Heiles, PASP paper */
+    lags[numchan_st] = lags[numchan_st-1];
     fftwf_execute(fftplan);
 
     /* Determine some simple statistics of the spectra */
-    for (ii=0; ii<numchan_st; ii++, counter++)
-      update_stats(counter, lags[ii], &min, &max, &avg, &var);
-    printf("counter = %d avg = %.3g  var = %.3g  min = %.3g  max = %.3g\n", 
-	   counter, avg, sqrt(var/(counter-1.0)), min, max);
+    if (DEBUGOUT){
+      static int counter;
+      static double min=0, max=0;
+      double avg=0, var=0;
 
+      avg_var(lags, numchan_st, &avg, &var);
+      for (ii=0; ii<numchan_st; ii++){
+	if (lags[ii] < min) min = lags[ii];
+	if (lags[ii] > max) max = lags[ii];
+      }
+      printf("counter = %d  avg = %.3g  stdev = %.3g  min = %.3g  max = %.3g\n", 
+	     counter, avg, sqrt(var), min, max);
+      counter++;
+    }
+    
     /* Reverse band if it needs it */
     if (decreasing_freqs_st){
       float tempzz=0.0, *loptr, *hiptr;
@@ -1106,7 +1114,12 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
       }
     }
   }
-  /* Scale and pack the powers */
+
+  /* The following values were determined empirically and need to be changed */
+  scale_max_st = 1.7e8;
+  scale_min_st = -8e7;
+
+  /* Scale and pack the powers into unsigned chars */
   pfact = 255.0 / (scale_max_st - scale_min_st);
   for(ii=0; ii<numchan_st; ii++){
     double templag;
@@ -1114,9 +1127,6 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     templag = (templag < scale_min_st) ? scale_min_st : templag;
     bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
   }
-  
-#if 0
-#endif
 }
 
 
@@ -1143,7 +1153,6 @@ static double inv_cerf(double input)
 
 #define NO    0
 #define YES   1
-
 /*------------------------------------------------------------------------*
  * Van Vleck Correction for 3-level sampling/correlation
  *  Samples {-1,0,1}

@@ -9,8 +9,9 @@
 #include "wapp.h"
 #include "mpi.h"
 #include "gmrt.h"
+#include "spigot.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -41,6 +42,9 @@ extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs,
 extern void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
 			    int numchan, int numifs, float clip_sigma, 
 			    double dt, int *chan_map);
+extern void get_SPIGOT_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma);
+extern void set_SPIGOT_static(int ptsperblk, int bytesperpt, int bytesperblk, 
+			      int numchan, int numifs, float clip_sigma, double dt);
 extern void get_WAPP_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma);
 extern void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk, 
 			    int numchan, int numifs, float clip_sigma, double dt);
@@ -140,6 +144,10 @@ int main(int argc, char *argv[])
 	    strcmp(suffix, "bcpm2")==0){
 	  printf("Assuming the data is from a GBT BCPM...\n");
 	  cmd->bcpmP = 1;
+	} else if (strcmp(suffix, "fits")==0 &&
+		   strncmp(root, "spigot", 6)==0){
+	  printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+	  cmd->spigotP = 1;
 	} else if (strcmp(suffix, "pkmb")==0){
 	  printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	  cmd->pkmbP = 1;
@@ -174,6 +182,11 @@ int main(int argc, char *argv[])
 	printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
       else
 	printf("Reading Green Bank BCPM data from 1 file:\n");
+    } else if (cmd->spigotP){
+      if (numinfiles > 1)
+	printf("Reading Green Bank Spigot data from %d files:\n", numinfiles);
+      else
+	printf("Reading Green Bank Spigot data from 1 file:\n");
     } else if (cmd->gmrtP){
       if (numinfiles > 1)
 	printf("Reading GMRT Phased Array data from %d files:\n", numinfiles);
@@ -371,9 +384,28 @@ int main(int argc, char *argv[])
 			&clip_sigma);
 	BPP_update_infodata(numinfiles, &idata);
 	set_BPP_padvals(padvals, good_padvals);
-	strcpy(obs, "GB");  /* OBS code for TEMPO */
+	/* OBS code for TEMPO for the GBT */
+	strcpy(obs, "GB");
       }
       
+      /* Set-up values if we are using the NRAO-Caltech Spigot card */
+      if (cmd->spigotP) {
+	SPIGOT_INFO *spigots;
+	
+	printf("\nSpigot card input file information:\n");
+	spigots = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO)*numinfiles);
+	for (ii=0; ii<numinfiles; ii++)
+	  read_SPIGOT_header(cmd->argv[ii], spigots+ii);
+	get_SPIGOT_file_info(infiles, spigots, numinfiles, cmd->windowP, cmd->clip, &N, 
+			     &ptsperblk, &numchan, &dt, &T, &idata, 1);
+	get_SPIGOT_static(&bytesperpt, &bytesperblk, &numifs, &clip_sigma);
+	SPIGOT_update_infodata(numinfiles, &idata);
+	set_SPIGOT_padvals(padvals, good_padvals);
+	/* OBS code for TEMPO for the GBT */
+	strcpy(obs, "GB");
+	free(spigots);
+      }
+    
       /* Set-up values if we are using the Arecobo WAPP */
       
       if (cmd->wappP){
@@ -415,6 +447,9 @@ int main(int argc, char *argv[])
       if (cmd->bcpmP)
 	set_BCPM_static(ptsperblk, bytesperpt, bytesperblk, 
 			numchan, numifs, clip_sigma, dt, chan_mapping);
+      if (cmd->spigotP)
+	set_SPIGOT_static(ptsperblk, bytesperpt, bytesperblk, 
+			  numchan, numifs, clip_sigma, dt);
       if (cmd->wappP)
 	set_WAPP_static(ptsperblk, bytesperpt, bytesperblk, 
 			numchan, numifs, clip_sigma, dt);
@@ -428,15 +463,10 @@ int main(int argc, char *argv[])
       else
 	ifs = SUMIFS;
     }
-    /* For the WAPP, the number of bytes returned in get_WAPP_rawblock()  */
-    /* is ptsperblk since the correlator lags are converted to 1 byte     */
-    /* filterbank channels in read_WAPP_rawblock()                        */
-    if (cmd->wappP){
-      bytesperblk = ptsperblk*numchan;
-      bytesperpt = numchan;
-    }
-    /* Similarly for GMRT */
-    if (cmd->gmrtP){
+    /* For the WAPP (and others) , the number of bytes returned in         */
+    /* get_WAPP_rawblock() is ptsperblk since the correlator lags          */
+    /* are converted to 1 byte filterbank channels in read_WAPP_rawblock() */
+    if (cmd->wappP || cmd->gmrtP || cmd->spigotP){
       bytesperblk = ptsperblk*numchan;
       bytesperpt = numchan;
     }

@@ -6,12 +6,13 @@
 #include "bpp.h"
 #include "wapp.h"
 #include "gmrt.h"
+#include "spigot.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
 
 extern int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname);
 extern int phcalc(double mjd0, double mjd1, int last_index,
@@ -156,6 +157,10 @@ int main(int argc, char *argv[])
 		 strcmp(suffix, "bcpm2")==0){
 	printf("Assuming the data is from a GBT BCPM...\n");
 	cmd->bcpmP = 1;
+      } else if (strcmp(suffix, "fits")==0 &&
+		 strncmp(root, "spigot", 6)==0){
+	printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+	cmd->spigotP = 1;
       } else if (strcmp(suffix, "pkmb")==0){
 	printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	cmd->pkmbP = 1;
@@ -284,6 +289,11 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->spigotP){
+    if (numfiles > 1)
+      printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
+    else
+      printf("Reading Green Bank Spigot data from 1 file:\n");
   } else if (cmd->wappP){
     if (numfiles > 1)
       printf("Reading Arecibo WAPP data from %d files:\n", numfiles);
@@ -394,7 +404,6 @@ int main(int argc, char *argv[])
       rewind(infiles[0]);
       PKMB_hdr_to_inf(&hdr, &idata);
       PKMB_update_infodata(numfiles, &idata);
-
       /* OBS code for TEMPO */
       search.telescope = (char *)calloc(20, sizeof(char));
       if (!strcmp(idata.telescope, "Parkes")){
@@ -416,17 +425,31 @@ int main(int argc, char *argv[])
 			&numchan, &local_dt, &local_T, &idata, 1);
       BPP_update_infodata(numfiles, &idata);
       set_BPP_padvals(padvals, good_padvals);
-
-      /* OBS code for TEMPO */
-      
-      /* The following is for the Green Bank 85-3
-	 strcpy(obs, "G8");
-      */
-
-      /* The following is for the Green Bank Telescope */
+      /* OBS code for TEMPO for the Green Bank 85-3 */
+      /* strcpy(obs, "G8"); */
+      /* OBS code for TEMPO for the GBT */
       strcpy(obs, "GB");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "GBT");
+
+    } else if (cmd->spigotP){
+      SPIGOT_INFO *spigots;
+
+      printf("Spigot card input file information:\n");
+      spigots = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO)*numfiles);
+      for (ii=0; ii<numfiles; ii++)
+	read_SPIGOT_header(cmd->argv[ii], spigots+ii);
+      get_SPIGOT_file_info(infiles, spigots, numfiles, 
+			   cmd->windowP, cmd->clip, 
+			   &local_N, &ptsperrec, &numchan, 
+			   &local_dt, &local_T, &idata, 1);
+      SPIGOT_update_infodata(numfiles, &idata);
+      set_SPIGOT_padvals(padvals, good_padvals);
+      /* OBS code for TEMPO for the GBT */
+      strcpy(obs, "GB");
+      search.telescope = (char *)calloc(20, sizeof(char));
+      strcpy(search.telescope, "GBT");
+      free(spigots);
 
     } else if (cmd->wappP){
 
@@ -437,10 +460,7 @@ int main(int argc, char *argv[])
 			 &local_dt, &local_T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
       set_WAPP_padvals(padvals, good_padvals);
-
-      /* OBS code for TEMPO */
-      
-      /* The following is for Arecibo */
+      /* OBS code for TEMPO for Arecibo */
       strcpy(obs, "AO");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "Arecibo");
@@ -1128,6 +1148,8 @@ int main(int argc, char *argv[])
       skip_to_PKMB_rec(infiles, numfiles, lorec+1);
     else if (cmd->bcpmP)
       skip_to_BPP_rec(infiles, numfiles, lorec+1);
+    else if (cmd->spigotP)
+      skip_to_SPIGOT_rec(infiles, numfiles, lorec+1);
     else if (cmd->wappP)
       skip_to_WAPP_rec(infiles, numfiles, lorec+1);
     else if (cmd->gmrtP)
@@ -1290,6 +1312,10 @@ int main(int argc, char *argv[])
 	  numread = read_BPP_subbands(infiles, numfiles, data, 
 				      dispdts, cmd->nsub, 1, &padding,
 				      maskchans, &nummasked, &obsmask, ifs);
+	else if (cmd->spigotP)
+	  numread = read_SPIGOT_subbands(infiles, numfiles, data, 
+					 dispdts, cmd->nsub, 1, &padding,
+					 maskchans, &nummasked, &obsmask, ifs);
 	else if (cmd->wappP)
 	  numread = read_WAPP_subbands(infiles, numfiles, data, 
 				       dispdts, cmd->nsub, 1, &padding,

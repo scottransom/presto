@@ -7,8 +7,9 @@
 #include "bpp.h"
 #include "wapp.h"
 #include "gmrt.h"
+#include "spigot.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -111,6 +112,10 @@ int main(int argc, char *argv[])
 	  strcmp(suffix, "bcpm2")==0){
 	printf("Assuming the data is from a GBT BCPM...\n");
 	cmd->bcpmP = 1;
+      } else if (strcmp(suffix, "fits")==0 &&
+		 strncmp(root, "spigot", 6)==0){
+	printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+	cmd->spigotP = 1;
       } else if (strcmp(suffix, "pkmb")==0){
 	printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	cmd->pkmbP = 1;
@@ -145,6 +150,11 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->spigotP){
+    if (numinfiles > 1)
+      printf("Reading Green Bank Spigot data from %d files:\n", numinfiles);
+    else
+      printf("Reading Green Bank Spigot data from 1 file:\n");
   } else if (cmd->gmrtP){
     if (numinfiles > 1)
       printf("Reading GMRT Phased Array data from %d files:\n", numinfiles);
@@ -324,6 +334,23 @@ int main(int argc, char *argv[])
       strcpy(obs, "GB");
     }
 
+    /* Set-up values if we are using the NRAO-Caltech Spigot card */
+    if (cmd->spigotP) {
+      SPIGOT_INFO *spigots;
+
+      printf("\nSpigot card input file information:\n");
+      spigots = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO)*numinfiles);
+      for (ii=0; ii<numinfiles; ii++)
+	read_SPIGOT_header(cmd->argv[ii], spigots+ii);
+      get_SPIGOT_file_info(infiles, spigots, numinfiles, cmd->windowP, cmd->clip, &N, 
+			   &ptsperblock, &numchan, &dt, &T, &idata, 1);
+      SPIGOT_update_infodata(numinfiles, &idata);
+      set_SPIGOT_padvals(padvals, good_padvals);
+      /* OBS code for TEMPO for the GBT */
+      strcpy(obs, "GB");
+      free(spigots);
+    }
+    
     /* Set-up values if we are using the Arecobo WAPP */
     if (cmd->wappP) {
       printf("\nWAPP input file information:\n");
@@ -907,6 +934,11 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 				      currentdata+ii*blocksize, 
 				      dispdts, cmd->nsub, 0, &tmppad, 
 				      maskchans, &nummasked, obsmask, ifs);
+	else if (cmd->spigotP)
+	  numread = read_SPIGOT_subbands(infiles, numfiles, 
+					 currentdata+ii*blocksize,
+					 dispdts, cmd->nsub, 0, &tmppad, 
+					 maskchans, &nummasked, obsmask, ifs);
 	else if (cmd->wappP)
 	  numread = read_WAPP_subbands(infiles, numfiles, 
 				       currentdata+ii*blocksize,
