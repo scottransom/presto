@@ -7,17 +7,12 @@
 
 int main(int argc, char *argv[])
 {
-  FILE *fftfile, *accelcandfile, *fourierpropsfile;
-  int nextbin;
-  float nph;
-  char *rootfilenm, *candnm, *accelcandnm, *accelnm;
-  GSList *cands=NULL;
+  double ttim, utim, stim, tott;
+  char *rootfilenm, *candnm, *accelcandnm, *accelnm, *workfilenm;
+  struct tms runtimes;
   subharminfo *subharminf;
   accelobs obs;
-  fourierprops *props;
   infodata idata;
-  struct tms runtimes;
-  double ttim, utim, stim, tott;
   Cmdline *cmd;
 
   /* Prep the timer */
@@ -81,137 +76,95 @@ int main(int argc, char *argv[])
   candnm = (char *)calloc(strlen(rootfilenm)+25, 1);
   accelcandnm = (char *)calloc(strlen(rootfilenm)+25, 1);
   accelnm = (char *)calloc(strlen(rootfilenm)+25, 1);
+  workfilenm = (char *)calloc(strlen(rootfilenm)+25, 1);
   sprintf(candnm, "%s_ACCEL_%d.cand", rootfilenm, cmd->zmax);
   sprintf(accelcandnm, "%s_ACCEL_%d.accelcand", rootfilenm, cmd->zmax);
   sprintf(accelnm, "%s_ACCEL_%d", rootfilenm, cmd->zmax);
+  sprintf(workfilenm, "%s_ACCEL_%d.txtcand", rootfilenm, cmd->zmax);
 
   /* Create the accelobs structure */
   
-  fftfile = chkfopen(cmd->argv[0], "rb");
-  create_accelobs(fftfile, &obs, &idata, cmd);
+  create_accelobs(chkfopen(cmd->argv[0], "rb"),
+		  chkfopen(workfilenm, "w"),
+		  &obs, &idata, cmd);
 
   /* Generate the correlation kernels */
 
-  printf("Generating fdot kernels for the correlations...");
+  printf("Generating fdot kernels for the correlations...\n");
   fflush(NULL);
   subharminf = create_subharminfo_vect(cmd->numharm, cmd->zmax);
   printf("Done.\n\n");
 
   /* Start the main search loop */
 
-  nextbin = cmd->rlo;
-
-  do {
-
-    startbin = nextbin;
-
-    /* Get the data from the file */
-
-    filedata = read_fcomplex_file(fftfile, 
-				  startbin - kern_half_width,
-				  filedatalen);
-
-    /* Get approximate local power statistics */
+  {
+    int harm_to_sum=1;
+    double startr=obs.rlo, lastr=0, nextr=0;
+    GSList *cands=NULL;
+    ffdotpows *fundamental;
     
-    powlist = gen_fvect(filedatalen);
-    
-    /* Calculate the powers */
-    
-    for (ii = 0; ii < filedatalen; ii++) 
-      powlist[ii] = POWER(filedata[ii].r, filedata[ii].i);
-    
-    /* Set the local power level to 1.442695 * median value.    */
-    /* The 1.442695 corrects the median to the mean for an      */
-    /* exponential distribution.  Then take the reciprocal so   */
-    /* that we multiply instead of divide during normalization. */
-    
-    locpow = 1.0 / (1.442695 * median(powlist, filedatalen));
-    free(powlist);
+    while (startr < obs.highestbin){  /* Search the fundamental */
+      harm_to_sum = 1;
+      nextr = startr + ACCEL_USELEN * ACCEL_DR;
+      lastr = nextr - ACCEL_DR;
+      fundamental = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
+					&subharminf[harm_to_sum], &obs);
+      search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
 
-    /*  Do the f-fdot plane correlations: */
+      if (obs.numharm > 1){   /* Search the subharmonics */
+	ffdotpows *fundamental_copy, *subharmonic;
 
-    for (zct = 0; zct < nz; zct++) {
+	harm_to_sum = 2;
+	fundamental_copy = copy_ffdotpows(fundamental);
 
-      /* Calculate percentage complete */
+	/* Search the 1/2 subharmonic (i.e. 1/2 fundamental) */
 
-      newper = (int) (totnumsearched / (numr * 0.01)) + 1;
+	subharmonic = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
+					  &subharminf[harm_to_sum], &obs);
+	add_ffdotpows(fundamental, subharmonic, harm_to_sum, 1);
+	free_ffdotpows(subharmonic);
+	search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
 
-      if (newper > oldper) {
-	newper = (newper > 99) ? 100 : newper;
-	printf("\rAmount of search complete = %3d%%", newper);
-	fflush(stdout);
-	oldper = newper;
-      }
+	/* Search the 1/4 subharmonic by building on the 1/2 */
 
-      if (zct == 0) datainf = RAW;
-      else datainf = SAME;
-
-      /* Perform the correlation */
-
-      nr = corr_complex(filedata, filedatalen, datainf, \
-			kernels[zct], corrsize, FFT, \
-			corrdata, corrsize, kern_half_width, \
-			numbetween, kern_half_width, CORR);
-      nextbin = startbin + nr / numbetween;
-      worknumbins = (nextbin > highestbin) ? \
-	(highestbin - startbin) * numbetween : nr;
-      
-      /* This loop is the heart of the search */
-
-      for (ii = 0; ii < worknumbins; ii++) {
-	chkpow = POWER(corrdata[ii].r, corrdata[ii].i) * locpow;
-
-	/* Check if the measured power is greater than cutoff */
-
-	if (chkpow > minpow) {
-	  newpos.pow = chkpow;
-	  newpos.p1 = startbin + ii * dr;
-	  newpos.p2 = cmd->zlo + zct * dz;
-	  newpos.p3 = 0.0;
-
-	  /* If there is a zapfile, check to see if our candidate */
-	  /* matches one of the 'birdies'.  If it does, continue. */
-
-	  if (cmd->zapfileP && 
-	      check_to_zap(newpos.p1, zapfreqs, zapwidths, numzap))
-	    continue;
-
-	  /* Check to see if another candidate with these properties */
-	  /* is already in the list.                                 */
-
-	  spot = not_already_there_rzw(&newpos, list, ncand);
-
-	  if (spot >= 0) {
-	    list[spot] = newpos;
-	    minpow = percolate(list, ncand, spot);
-	  }
+	if (obs.numharm == 4){
+	  harm_to_sum = 4;
+	  subharmonic = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
+					    &subharminf[harm_to_sum], &obs);
+	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 1);
+	  free_ffdotpows(subharmonic);
+	  subharmonic = subharm_ffdot_plane(harm_to_sum, 3, startr, lastr, 
+					    &subharminf[harm_to_sum], &obs);
+	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 3);
+	  free_ffdotpows(subharmonic);
+	  search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
 	}
+	
+	/* Search the 1/3 subharmonic (work from scratch) */
+
+	if (obs.numharm >= 3){
+	  harm_to_sum = 3;
+	  free_ffdotpows(fundamental);
+	  fundamental = copy_ffdotpows(fundamental_copy);
+	  subharmonic = subharm_ffdot_plane(harm_to_sum, 1, startr, lastr, 
+					    &subharminf[harm_to_sum], &obs);
+	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 1);
+	  free_ffdotpows(subharmonic);
+	  subharmonic = subharm_ffdot_plane(harm_to_sum, 2, startr, lastr, 
+					    &subharminf[harm_to_sum], &obs);
+	  add_ffdotpows(fundamental, subharmonic, harm_to_sum, 2);
+	  free_ffdotpows(subharmonic);
+	  search_ffdotpows(fundamental, harm_to_sum, &obs, cands);
+	}
+	free_ffdotpows(fundamental_copy);
       }
-      totnumsearched += worknumbins;
+      free_ffdotpows(fundamental);
+      startr = nextr;
     }
-    free(filedata);
-  } while (nextbin <= highestbin);
+  }
 
-  /* Free the memory used by the correlation kernels */
-
-  free(kernels[0]);
-  free(kernels);
-
-  printf("\rAmount of search complete = %3d%%", 100);
-  fflush(stdout);
   printf("\nDone searching.  ");
-  printf("Now optimizing each candidate and sorting.\n\n");
-
-  /* Do rough duplicate removal (probably not necessary) */
-
-  newncand = ncand;
-  newncand -= remove_dupes(list, ncand);
-
-  /* Save the list of 'rough' candidates to a file */
-
-  poscandfile = chkfopen(poscandnm, "w");
-  chkfwrite(list, sizeof(position), newncand, poscandfile);
-  fclose(poscandfile);
+  printf("Now optimizing each candidate.\n\n");
 
   /* Now maximize each good candidate */
 
@@ -301,6 +254,7 @@ int main(int argc, char *argv[])
   free(accelcandnm);
   free(accelnm);
   free(rootfilenm);
+  free(workfilenm);
   free(list);
   free(derivs);
   free(props);

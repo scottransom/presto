@@ -52,7 +52,7 @@ static Cmdline cmd = {
   /* floC = */ 1,
   /***** -fhi: The highest frequency (Hz) to search */
   /* fhiP = */ 1,
-  /* fhi = */ 2000.0,
+  /* fhi = */ 4000.0,
   /* fhiC = */ 1,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
@@ -884,7 +884,7 @@ usage(void)
             default: `0.3'\n\
       -fhi: The highest frequency (Hz) to search\n\
             1 double value between 0.0 and oo\n\
-            default: `2000.0'\n\
+            default: `4000.0'\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
 version: 31Jan01\n\

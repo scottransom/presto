@@ -136,91 +136,153 @@ void free_subharminfo_vect(int numharm, subharminfo *shi)
   free(shi);
 }
 
-
-fcomplex **subharm_plane(int numharm, int harmnum,
-			 double fullrlo, double fullrhi, 
-			 subharminfo *shi, accelobs *obs,
-			 int *rlo, int *numrs, int *numzs)
+ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
+			       double fullrlo, double fullrhi, 
+			       subharminfo *shi, accelobs *obs)
 {
-  int ii, rhi, lobin, hibin, numdata, nrs, fftlen, binoffset;
-  double drlo, drhi;
+  int ii, lobin, hibin, numdata, nrs, fftlen, binoffset;
+  float powargr, powargi;
+  double drlo, drhi, norm;
+  ffdotpows *ffdot;
   fcomplex *data, **result;
   presto_datainf datainf;
+
+  ffdot = (ffdotpows *)malloc(sizeof(ffdotpows));
 
   /* Calculate and get the required amplitudes */
 
   drlo = calc_required_r(numharm, harmnum, fullrlo);
   drhi = calc_required_r(numharm, harmnum, fullrhi);
-  *rlo = (int) floor(drlo);
-  rhi  = (int)  ceil(drhi);
-  *numrs = (int) ((drhi - drlo) * ACCEL_RDR + DBLCORRECT) + 1;
-  *numzs = shi->numkern;
+  ffdot->rlo = (int) floor(drlo);
+  ffdot->zlo = calc_required_z(numharm, harmnum, -obs->zlo);
+  ffdot->numrs = (int) ((drhi - drlo) * ACCEL_RDR + DBLCORRECT) + 1;
+  ffdot->numzs = shi->numkern;
   binoffset = shi->kern[0].kern_half_width;
   fftlen = shi->kern[0].fftlen;
-  lobin = *rlo - binoffset;
-  hibin = rhi + binoffset;
+  lobin = ffdot->rlo - binoffset;
+  hibin = (int) ceil(drhi) + binoffset;
   numdata = hibin - lobin + 1;
   data = read_fcomplex_file(obs->fftfile, lobin, numdata);
-  result = gen_cmatrix(*numzs, *numrs);
 
-  /* Determine the mean power level (via median) and  */
-  /* normalize the rest of the amplitudes with it.    */
+  /* Determine the mean local power level (via median) */
 
   {
-    double norm;
-    float *powers, powargr, powargi;
+    float *powers;
 
     powers = gen_fvect(numdata);
     for (ii=0; ii<numdata; ii++) 
       powers[ii] = POWER(data[ii].r, data[ii].i);
-    norm = sqrt(1.0 / (1.442695 * median(powers, numdata)));
+    norm = 1.0 / (1.442695 * median(powers, numdata));
     free(powers);
-    for (ii=0; ii<numdata; ii++){
-      data[ii].r *= norm;
-      data[ii].i *= norm;
-    }
   }
 
   /* Perform the correlations */
 
+  result = gen_cmatrix(ffdot->numzs, ffdot->numrs);
   datainf = RAW;
-  for (ii=0; ii<*numzs; ii++){
+  for (ii=0; ii<ffdot->numzs; ii++){
     nrs = corr_complex(data, numdata, datainf, \
 		       shi->kern[ii].data, fftlen, FFT, \
-		       result[ii], *numrs, binoffset, \
+		       result[ii], ffdot->numrs, binoffset, \
 		       ACCEL_NUMBETWEEN, binoffset, CORR);
     datainf = SAME;
   }
   free(data);
-  return result;
+
+  /* Convert the amplitudes to normalized powers */
+
+  ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
+  for (ii=0; ii<(ffdot->numzs*ffdot->numrs); ii++) 
+    ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i) * norm;
+  free(result);
+  return ffdot;
 }
 
 
-void add_subharm_powers(float **powers, int fullnumr, int fullnumz, 
-			double fullrlo, double fullzlo, 
-			fcomplex **subharmamps, int numharm, int harmnum,
-			double rlo, double zlo)
+ffdotpows *copy_ffdotpows(ffdotpows *orig)
+{
+  int ii;
+  ffdotpows *copy;
+
+  copy = (ffdotpows *)malloc(sizeof(ffdotpows));
+  copy->numrs = orig->numrs;
+  copy->numzs = orig->numzs;
+  copy->rlo = orig->rlo;
+  copy->zlo = orig->zlo;
+  for (ii=0; ii<(orig->numzs*orig->numrs); ii++)
+    copy->powers[ii] = orig->powers[ii];
+  return copy;
+}
+
+void free_ffdotpows(ffdotpows *ffd)
+{
+  free(ffd->powers[0]);
+  free(ffd->powers);
+  free(ffd);
+}
+
+
+void add_ffdotpows(ffdotpows *fundamental,
+		   ffdotpows *subharmonic, 
+		   int numharm, int harmnum)
 {
   int ii, jj, rr, zz, rind, zind, subz, lastrind=-1;
   double subr;
-  float powargr, powargi, lastpow=0;
-
-  for (ii=0, zz=fullzlo; ii<fullnumz; ii++, zz+=ACCEL_DZ){
+  float lastpow=0;
+  
+  for (ii=0; ii<fundamental->numzs; ii++){
+    zz = fundamental->zlo; 
     subz = calc_required_z(numharm, harmnum, zz);
-    zind = index_from_z(subz, zlo);
-    for (jj=0, rr=fullrlo; jj<fullnumr; jj++, rr+=ACCEL_DR){
+    zind = index_from_z(subz, subharmonic->zlo);
+    for (jj=0; jj<fundamental->numrs; jj++){
+      rr = fundamental->rlo; 
       subr = calc_required_r(numharm, harmnum, rr);
-      rind = index_from_r(subr, rlo);
+      rind = index_from_r(subr, subharmonic->rlo);
       if (rind!=lastrind)
-	lastpow = POWER(subharmamps[zind][rind].r, 
-			subharmamps[zind][rind].i);
-      powers[ii][jj] += lastpow;
+	lastpow = subharmonic->powers[zind][rind];
+      fundamental->powers[ii][jj] += lastpow;
       lastrind = rind;
+      rr += ACCEL_DR;
+    }
+    zz += ACCEL_DZ;
+  }
+}
+
+
+void search_ffdotpows(ffdotpows *ffdot, int numharm, 
+		      accelobs *obs, GSList *cands)
+{
+  int ii, jj;
+  float powcut;
+  long long numindep;
+  
+  powcut = obs->powcut[numharm-1];
+  numindep = obs->numindep[numharm-1];
+
+  for (ii=0; ii<ffdot->numzs; ii++){
+    for (jj=0; jj<ffdot->numrs; jj++){
+      if (ffdot->powers[ii][jj] > powcut){
+	float pow, sig;
+	double rr, zz;
+
+	pow = ffdot->powers[ii][jj];
+	sig = candidate_sigma(pow, numharm, numindep);
+	rr = (ffdot->rlo + jj * ACCEL_DR) / numharm;
+	zz = (ffdot->zlo + ii * ACCEL_DZ) / numharm;
+	cands = g_slist_insert_sorted(cands,
+				      create_accelcand(pow, sig, 
+						       numharm, rr, zz),
+				      compare_accelcand);
+	fprintf(obs->workfile,
+		"%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n", 
+		pow, sig, numharm, rr, rr / obs->T, zz);
+      }
     }
   }
 }
-			
-void create_accelobs(FILE *infile, accelobs *obs, 
+
+
+void create_accelobs(FILE *infile, FILE *workfile, accelobs *obs, 
 		     infodata *idata, Cmdline *cmd)
 {
   int ii;
@@ -228,6 +290,7 @@ void create_accelobs(FILE *infile, accelobs *obs,
   if (cmd->zmax % ACCEL_DZ)
     cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
   obs->fftfile = infile;
+  obs->workfile = workfile;
   obs->N = (long long) idata->N;
   obs->nph = get_numphotons(infile);
   obs->numbins = chkfilelen(infile, sizeof(fcomplex));
@@ -310,6 +373,8 @@ void create_accelobs(FILE *infile, accelobs *obs,
 
 void free_accelobs(accelobs *obs)
 {
+  fclose(obs->fftfile);
+  fclose(obs->workfile);
   free(obs->numindep);
   free(obs->powcut);
   if (obs->numzap){

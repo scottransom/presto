@@ -39,6 +39,7 @@ typedef struct accelobs{
   double *hibins;      /* The high Fourier freq boundaries to zap (RFI) */
   long long *numindep; /* Number of independent spectra (per harmsummed) */
   FILE *fftfile;       /* The FFT file that we are analyzing */
+  FILE *workfile;      /* A text file with candidates as they are found */
 } accelobs;
 
 typedef struct accelcand{
@@ -66,10 +67,30 @@ typedef struct subharminfo{
   kernel *kern;      /* The kernels themselves */
 } subharminfo;
 
+typedef struct ffdotpows{
+  int numrs;          /* Number of Fourier freqs present */
+  int numzs;          /* Number of Fourier f-dots present */
+  int rlo;            /* Lowest Fourier freq present */
+  int zlo;            /* Lowest Fourier f-dot present */
+  float **powers;     /* Matrix of the powers */
+} ffdotpows;
 
 subharminfo *create_subharminfo_vect(int numharm, int zmax);
 void free_subharminfo_vect(int numharm, subharminfo *shi);
-void create_accelobs(FILE *infile, accelobs *obs, 
-		     infodata *idata, Cmdline *cmd);
+ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 
+			       double fullrlo, double fullrhi, 
+			       subharminfo *shi, accelobs *obs);
+ffdotpows *copy_ffdotpows(ffdotpows *orig);
+void free_ffdotpows(ffdotpows *ffd);
+void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
+		   int numharm, int harmnum);
+void search_ffdotpows(ffdotpows *ffdot, int numharm, 
+		      accelobs *obs, GSList *cands);
+void create_accelobs(FILE *infile, FILE *workfile, 
+		     accelobs *obs, infodata *idata, Cmdline *cmd);
 void free_accelobs(accelobs *obs);
-
+accelcand *create_accelcand(float power, float sigma, 
+			    int numharm, double r, double z);
+int compare_accelcand(gconstpointer ca, gconstpointer cb);
+void print_accelcand(gpointer data, gpointer user_data);
+void free_accelcand(gpointer data, gpointer user_data);

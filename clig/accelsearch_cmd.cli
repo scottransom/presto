@@ -25,7 +25,7 @@ Double -rhi     rhi     {The highest Fourier frequency to search} \
 Double -flo     flo     {The lowest frequency (Hz) to search} \
 	-r 0.0 oo -d 0.3
 Double -fhi     fhi     {The highest frequency (Hz) to search} \
-	-r 0.0 oo -d 2000.0
+	-r 0.0 oo -d 4000.0
 
 # Rest of command line:
 
