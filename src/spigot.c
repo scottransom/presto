@@ -16,8 +16,8 @@ static SPIGOT_INFO *spigot;
 static infodata *idata_st;
 static fftwf_plan fftplan;
 static long long N_st;
-static int decreasing_freqs_st=0, bytesperpt_st, bytesperblk_st, bits_per_lag_st;
-static int numchan_st, numifs_st, ptsperblk_st;
+static int decreasing_freqs_st=0, bytesperpt_st, bytesperblk_st, bits_per_lag_st=0;
+static int numchan_st=0, numifs_st, ptsperblk_st;
 static int need_byteswap_st=0, sampperblk_st, usewindow_st=0, vanvleck_st=0;
 static int currentfile, currentblock, bufferpts=0, padnum=0, shiftbuffer=1;
 static double T_st, dt_st, center_freq_st, *window_st=NULL;
@@ -201,8 +201,12 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   hgeti4(hdr, "SAMPLERS", &(spigot->num_samplers));
   /* Are polarizations summed? */
   hgetl(hdr, "SUMPOL", &(spigot->summed_pols));
+  if (spigot->summed_pols)
+    numifs_st = 1;
   /* Upper sideband? */
   hgetl(hdr, "UPPERSB", &(spigot->upper_sideband));
+  if (!spigot->upper_sideband)
+    decreasing_freqs_st = 1;
   /* For now, ignore BITPIX/NAXIS1 in favor of BITS/NLAGS 
      This is because FITS wants files to have BITPIX >= 8, 
      so for 4-bit data BITPIX says 8 while BITS says 4.
@@ -217,8 +221,12 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
     printf("\n  Warning!  '%s' claims both %d and %d bits/lag!\n\n", 
 	   filename, spigot->bits_per_lag, itmp);
   }
+  if (bits_per_lag_st==0)
+    bits_per_lag_st = spigot->bits_per_lag;
   /* Number of lags/sample */
   hgeti4(hdr, "NLAGS", &(spigot->lags_per_sample));
+  if (numchan_st==0)
+    numchan_st = spigot->lags_per_sample;
   /* Number of lags/sample */
   hgeti4(hdr, "NAXIS1", &itmp);
   if (0 && spigot->lags_per_sample != itmp){
@@ -303,6 +311,12 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
     }
   }
   free(hdr);
+  if (lags==NULL){
+    /* The following should be freed sometime... */
+    lags = (float *)fftwf_malloc((numchan_st+1)*sizeof(float));
+    /* Generate the FFTW plan */
+    fftplan = fftwf_plan_r2r_1d(numchan_st+1, lags, lags, FFTW_REDFT00, FFTW_PATIENT);
+  }
   return(1);
 }
 
@@ -408,6 +422,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
 {
   long long filedatalen, calc_filedatalen, numpts;
   int ii;
+  double base_MJD_obs;
    
   /* Allocate memory for our information structures */
   spigot = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO) * numfiles);
@@ -457,9 +472,6 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   }
   /* Are we going to clip the data? */
   if (clipsig > 0.0) clip_sigma_st = clipsig;
-  /* The following should be freed sometime... */
-  lags = (float *)fftwf_malloc((numchan_st+1)*sizeof(float));
-  fftplan = fftwf_plan_r2r_1d(numchan_st+1, lags, lags, FFTW_REDFT00, FFTW_PATIENT);
   if (usewindow){
     usewindow_st = 1;
     printf("Calculated Hamming window for use.\n");
@@ -501,6 +513,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   spigot[0].num_blocks = filedatalen/bytesperblk_st;
   N_st = numpts;
   *dt = dt_st = idata_st[0].dt;
+  base_MJD_obs = spigot[0].MJD_obs;
   spigot[0].file_duration = numpts*dt_st;
   spigot[0].elapsed_time = 0.0;
   spigot[0].start_block = 1.0;
@@ -530,7 +543,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
     /* file.  In that case, calculate the _real_ time     */
     /* length of the previous file and add it to the      */
     /* previous files MJD to get the current MJD.         */
-    if (fabs(spigot[ii].MJD_obs-spigot[0].MJD_obs) < 1.0e-6/SECPERDAY){
+    if (fabs(spigot[ii].MJD_obs-base_MJD_obs) < 1.0e-6/SECPERDAY){
       spigot[ii].elapsed_time = spigot[ii-1].file_duration;
       idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + spigot[ii].elapsed_time/SECPERDAY;
       idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
@@ -542,6 +555,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
     } else {
       spigot[ii].elapsed_time = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
 					     idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+      base_MJD_obs = spigot[ii].MJD_obs;
     }
     spigot[ii-1].padding_samples = (int)((spigot[ii].elapsed_time - 
 					spigot[ii-1].file_duration)/dt_st + 0.5);
@@ -857,6 +871,9 @@ int read_SPIGOT(FILE *infiles[], int numfiles, float *data,
 	starttime = currentblock*timeperblk;
 	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
 	if (*nummasked==-1){ /* If all channels are masked */
+for (ii=0; ii<5; ii++)
+  printf("%d ", padvals[ii]);
+printf("\n");
 	  for (ii=0; ii<numpts; ii++)
 	    memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
 	} else if (*nummasked > 0){ /* Only some of the channels are masked */
@@ -1061,6 +1078,72 @@ int read_SPIGOT_subbands(FILE *infiles[], int numfiles, float *data,
 			      transpose, maskchans, nummasked, obsmask);
 }
 
+void scale_rawlags(void *rawdata, int index)
+/* Scale the raw lags so that they are "calibrated" */
+{
+  int ii;
+  
+  /* Fill lag array with scaled CFs */
+  /* Note:  The 2 and 4 bit options will almost certainly need to be fixed */
+  /*        since I don't know the precise data layout. SMR 15Aug2003      */
+  /*        Also, I have no idea how multiple IFs/RFs are stored...        */
+  if (bits_per_lag_st==16){
+    short *data=(short *)rawdata;
+    for (ii=0; ii<numchan_st; ii++) 
+      lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
+  } else if (bits_per_lag_st==8){
+    char *data=(char *)rawdata;
+    for (ii=0; ii<numchan_st; ii++)
+      lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
+  } else if (bits_per_lag_st==4){
+    int jj;
+    char tmplag;
+    unsigned char *data=(unsigned char *)rawdata, byte;
+    for (ii=0, jj=0; ii<numchan_st/2; ii++){
+      byte = data[ii+index/2];
+      /* Treat the 4 msbs as a twos-complement 4-bit int */
+      tmplag = ((byte&0x70)>>4) - ((byte&0x80)>>4);
+      lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
+      /* Treat the 4 lsbs as a twos-complement 4-bit int */
+      tmplag = (byte&0x07) - (byte&0x08);
+      lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
+    }
+  } else if (bits_per_lag_st==2){  /* The following is _not_ correct yet ! */
+    int jj;
+    unsigned char *data=(unsigned char *)rawdata, byte;
+    for (ii=0, jj=0; ii<numchan_st/4; ii++){
+      byte = data[ii+index/4];
+      lags[jj] = (byte>>6)*lag_factor[jj] + lag_offset[jj]; jj++;
+      lags[jj] = ((byte>>4)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+      lags[jj] = ((byte>>2)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+      lags[jj] = (byte&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
+    }
+  }
+}
+
+
+void get_calibrated_lags(void *rawlags, float *calibrated_lags)
+/* Return the calibrated lags for a single sample of raw lags */
+{
+  int ii;
+
+  /* Scale the raw lags */
+  scale_rawlags(rawlags, 0);
+  
+  /* Apply Van Vleck Corrections to the Lags */
+  if (vanvleck_st)
+    vanvleck3lev(lags, numchan_st);
+  
+  /* Window the Lags */
+  if (usewindow_st)
+    for (ii=0; ii<numchan_st; ii++)
+      lags[ii] *= window_st[ii];
+  
+  /* Copy the lags into the output array */
+  for (ii=0; ii<numchan_st; ii++)
+    calibrated_lags[ii] = lags[ii];
+}
+
 
 void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
 /* This routine converts a single point of SPIGOT lags   */
@@ -1072,53 +1155,16 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
   static int counter=0;
   static double scale_min=9e19, scale_max=-9e19;
 
-  if (ifs==IF0){
-    ifnum = 1;
+  if (ifs==IF0)
     index = 0;
-  } else if (ifs==IF1){
-    ifnum = 1;
+  else if (ifs==IF1) 
     index = numchan_st;
-  }
-     
+  
   /* Loop over the IFs */
   for (ifnum=0; ifnum<numifs_st; ifnum++, index+=numchan_st){
-    
-    /* Fill lag array with scaled CFs */
-    /* Note:  The 2 and 4 bit options will almost certainly need to be fixed */
-    /*        since I don't know the precise data layout. SMR 15Aug2003      */
-    /*        Also, I have no idea how multiple IFs/RFs are stored...        */
-    if (bits_per_lag_st==16){
-      short *data=(short *)rawdata;
-      for (ii=0; ii<numchan_st; ii++) 
-	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
-    } else if (bits_per_lag_st==8){
-      char *data=(char *)rawdata;
-      for (ii=0; ii<numchan_st; ii++)
-      	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
-    } else if (bits_per_lag_st==4){
-      int jj;
-      char tmplag;
-      unsigned char *data=(unsigned char *)rawdata, byte;
-      for (ii=0, jj=0; ii<numchan_st/2; ii++){
-	byte = data[ii+index/2];
-	/* Treat the 4 msbs as a twos-complement 4-bit int */
-	tmplag = ((byte&0x70)>>4) - ((byte&0x80)>>4);
-	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
-	/* Treat the 4 lsbs as a twos-complement 4-bit int */
-	tmplag = (byte&0x07) - (byte&0x08);
-	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
-      }
-    } else if (bits_per_lag_st==2){  /* The following is _not_ correct yet ! */
-      int jj;
-      unsigned char *data=(unsigned char *)rawdata, byte;
-      for (ii=0, jj=0; ii<numchan_st/4; ii++){
-	byte = data[ii+index/4];
-	lags[jj] = (byte>>6)*lag_factor[jj] + lag_offset[jj]; jj++;
-	lags[jj] = ((byte>>4)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
-	lags[jj] = ((byte>>2)&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
-	lags[jj] = (byte&0x03)*lag_factor[jj] + lag_offset[jj]; jj++;
-      }
-    }
+
+    /* Scale the raw lags */
+    scale_rawlags(rawdata, index);
 
 #if 0
     printf("\n");
