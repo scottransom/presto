@@ -1298,7 +1298,6 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
 {
   int ii, *indexptr;
   unsigned char *rawdataptr;
-  static count=0;
 
   rawdataptr = rawdata;
   indexptr = chan_mapping;
