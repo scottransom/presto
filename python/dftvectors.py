@@ -44,19 +44,6 @@ def p_to_f(p, pd, pdd=None):
            fdd = 2.0 * pd * pd / (p**3.0) - pdd / (p * p)
        return [f, fd, fdd]
 
-def vector_amplitude(vector):
-   return umath.absolute(vector[-1])
-
-def vector_phase(vector):
-   return umath.arctan2(vector[-1].imag, vector[-1].real)
-
-def rotate_components(components, angles):
-   return components * umath.exp(complex(0.0, 1.0) * angles)   
-
-def point_distances(vec1, vec2):
-   return umath.sqrt((vec2.real-vec1.real)**2.0 +
-                     (vec2.imag-vec1.imag)**2.0)
-
 def rzw_dist_model(przw, self):
    przw = przw * Numeric.array([1.0, 1.0, 4.0, 20.0])
    amplitudes = Numeric.ones(self.numvect, 'D')
@@ -72,6 +59,19 @@ def rzw_phase_model(przw, self):
    phases = umath.arctan2(corrvect.imag, corrvect.real)
    weights = self.timefract
    return weights * smooth_phases(phases)
+
+def vector_amplitude(vector):
+   return umath.absolute(vector[-1])
+
+def vector_phase(vector):
+   return umath.arctan2(vector[-1].imag, vector[-1].real)
+
+def rotate_components(components, angles):
+   return components * umath.exp(complex(0.0, 1.0) * angles)   
+
+def point_distances(vec1, vec2):
+   return umath.sqrt((vec2.real-vec1.real)**2.0 +
+                     (vec2.imag-vec1.imag)**2.0)
 
 class dftvector:
    def __init__(self, filename=None):
@@ -99,6 +99,7 @@ class dftvector:
          index = 2 * ii + 6
          self.components[ii] = complex(dblarr[index], dblarr[index+1])
       self.vector = add_components(self.components)
+      self.mask = Numeric.ones(self.numvect)
    def rebin(self, factor):
       """
       dftvector.rebin(factor):
@@ -144,7 +145,8 @@ class dftvector:
       self.rebin(1)
       beg = Numeric.searchsorted(self.timefract, start)
       end = Numeric.searchsorted(self.timefract, stop)
-      self.components[beg:end] = complex(0.0, 0.0)
+      self.mask[beg:end] = 0
+      self.components = self.components * self.mask
       self.vector = add_components(self.components)
    def unmask(self):
       """
@@ -295,7 +297,7 @@ else:
    przw = [phs, (rmeas - 0.5 * z) - rfold, z, 0.0]
    dv.rebin(4)
 
-if (1):
+if (0):
    print "    Max amplitude =", dv.maxamplitude()
    print "Current amplitude =", dv.amplitude()
    dv.rzwinfo(przw)
@@ -334,12 +336,14 @@ if (1):
    closeplot()
 else:
    dv = dftvector("/raid/data/Ter5_98/Day1-2/Ter5_1-2_bary_DM243_2600530.000.dftvec")
-   dv.plot(step=1)
+   dv.plot(step=0.03)
    closeplot()
    plotxy(abs(dv.components), dv.timefract)
    dv.mask(0.0, 0.33)
-   dv.mask(0.43, 0.5)
-   dv.mask(0.6, 1.01)
+   dv.mask(0.41, 0.51)
+   dv.mask(0.60, 1.01)
    plotxy(abs(dv.components), dv.timefract, color='red')
    closeplot()
-   dv.plot(color='red', step=1)
+   dv.plot(color='red')
+   closeplot()
+   plotxy(dv.phases(), dv.timefract)
