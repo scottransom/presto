@@ -806,11 +806,11 @@ int main(int argc, char *argv[])
       ddprofs = gen_dvect(cmd->npart * search.proflen);
       ddstats = (foldstats *)malloc(cmd->npart * sizeof(foldstats));
       
-      /* Our DM step is the change in DM that would cause the pulse */
-      /* to be delayed 1 phasebin at the lowest frequency.          */
+      /* Our DM step is the change in DM that would cause the pulse   */
+      /* to be delayed search.step phasebins at the lowest frequency. */
       
       ddm = dm_from_delay(dphase, obsf[0]);
-      
+    
       /* Insure that we don't try a dm < 0.0 */
       
       numdmtrials = 2 * search.ndmfact * search.proflen + 1;
@@ -819,6 +819,9 @@ int main(int argc, char *argv[])
       search.dms = gen_dvect(numdmtrials);
       search.numdms = numdmtrials;
       
+      printf("Searching %d DMs, %d periods, and %d p-dots...\n\n", 
+	     search.numdms, search.numperiods, search.numpdots);
+
       /* De-disperse and combine the subbands */
       
       for (ii = 0; ii < numdmtrials; ii++){  /* Loop over DMs */
@@ -879,6 +882,9 @@ int main(int argc, char *argv[])
       /* We are not searching through DM space */
       
     } else {
+
+      printf("Searching %d periods, and %d p-dots...\n\n", 
+	     search.numperiods, search.numpdots);
 
       /* Perform the P-dot and Period searches */
 
