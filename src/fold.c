@@ -52,6 +52,21 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
   int ii;
   double addpart, deltaphase;
 
+  /* This is for folding with polycos where the phase can jump */
+  /* to a higher or lower value instantaneously.               */
+  if (*phaseadded > 1.0){
+    printf("Dumping buffer for phase %f\n", *phaseadded);
+    /* Dump the buffer */
+    for (ii=0; ii<numprof; ii++){
+      prof[ii] += buffer[ii];
+      buffer[ii] = 0.0;
+    }
+    *phaseadded -= 1.0;
+    add_to_prof(prof, buffer, numprof, lophase, 
+		partphase, dataval, phaseadded);
+    return;
+  }
+
   if (lophase >= 1.0)
     lophase -= (int) lophase;
 

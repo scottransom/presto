@@ -30,6 +30,7 @@ Sample code:
 
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 static double f0[30],z4[30],rphase[30],mjdmid[30],mjd1mid[30],coeff[30][15];
 static int isets,nblk,ncoeff,icurr;
@@ -50,12 +51,11 @@ int getpoly(double mjd, double *dm, FILE *fp, char *pname)
   char buffer[160];
   double aphi0b[30],adphib[30];
   double dm0,z40;
-  double phase,psrfreq;
   float r,tfreq;
   long int mjddummy;
   int binary;
  
-  int i,j,k,kk,len;
+  int j,k,kk,len;
   int jobs,nblk0,ncoeff0;
   double mjdcheck;
 
@@ -114,8 +114,7 @@ int getpoly(double mjd, double *dm, FILE *fp, char *pname)
 
 /*  Compute pulsar phase and frequency at time mjd0+mjd1. */
  
-phcalc(mjd0,mjd1,phase,psrfreq)
-double mjd0,mjd1,*phase,*psrfreq;
+void phcalc(double mjd0, double mjd1, double *phase, double *psrfreq)
 {
   double dtmin;
   int i,j;

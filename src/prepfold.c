@@ -9,6 +9,11 @@
 #include "dmalloc.h"
 #endif
 
+
+extern int getpoly(double mjd, double *dm, FILE *fp, char *pname);
+extern void phcalc(double mjd0, double mjd1, 
+		   double *phase, double *psrfreq);
+
 /* 
  * The main program 
  */
@@ -19,6 +24,8 @@ int main(int argc, char *argv[])
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime;
+  int polyco_init=0;
+  double polyco_phase=0.0, polyco_phase0=0.0, polyco_toffset=0.0;
   double *obsf=NULL, *dispdts=NULL, *parttimes=NULL, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
   double *buffers, *phasesadded, *TOAs=NULL;
@@ -60,6 +67,10 @@ int main(int argc, char *argv[])
   printf("                    29 Aug 2000\n\n");
 
   init_prepfoldinfo(&search);
+
+  /* Make sure nobary is set for polyco folding */
+  if (cmd->polycofileP)
+    cmd->nobaryP = 1;
 
   numfiles = cmd->argc;
   {
@@ -314,6 +325,7 @@ int main(int argc, char *argv[])
     /* Topocentric and barycentric times of folding epoch data */
 
     if (idata.mjd_i) {
+
       search.tepoch = (double) idata.mjd_i + idata.mjd_f + 
 	lorec * recdt / SECPERDAY;
       barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
@@ -425,33 +437,69 @@ int main(int argc, char *argv[])
   /* Read the pulsar database if needed */
 
   if (cmd->psrnameP) {
-    int np, pnum;
-    psrparams psr;
-    psrdatabase pdata;
-
-    np = read_database(&pdata);
-    if (search.bepoch==0.0){
-      printf("\nYou must not use the '-nobary' flag if you want to\n");
-      printf("access the pulsar database.  Exiting.\n\n");
-      exit(1);
+    if (cmd->polycofileP) {
+      FILE *polycofileptr;
+      int numsets;
+      double polyco_dm;
+      
+      polycofileptr = chkfopen(cmd->polycofile, "r");
+      numsets = getpoly(search.tepoch, &polyco_dm, 
+			polycofileptr, cmd->psrname);
+      fclose(polycofileptr);
+      if (cmd->dm > 0.0){
+	printf("\nRead %d set(s) of polycos for PSR %s at %17.12f\n", 
+	       numsets, cmd->psrname, search.tepoch);
+	printf("Overriding polyco DM = %f with %f\n", 
+	       polyco_dm, cmd->dm);
+      } else {
+	printf("\nRead %d set(s) of polycos for PSR %s  at %17.12f (DM = %.5g)\n", 
+	       numsets, cmd->psrname, search.tepoch, polyco_dm);
+	cmd->dm = polyco_dm;
+      }
+      {
+	double mjdi, mjdf;
+	
+	mjdf = idata.mjd_f + lorec*recdt/SECPERDAY;
+	if (mjdf > 1.0)
+	  mjdf -= floor(mjdf);
+	mjdi = idata.mjd_i + floor(mjdf);
+	phcalc(mjdi, mjdf, &polyco_phase0, &f);
+      }
+      /* cmd->phs += polyco_phase0; */
+      polyco_toffset = (polyco_phase0/f)/SECPERDAY;
+      /* search.tepoch -= polyco_toffset; */
+      search.topo.p1 = 1.0/f;
+      search.topo.p2 = fd = 0.0;
+      search.topo.p3 = fdd = 0.0;
+      strcpy(pname, cmd->psrname);
+    } else {  /* Use the database */
+      int np, pnum;
+      psrparams psr;
+      psrdatabase pdata;
+      
+      np = read_database(&pdata);
+      if (search.bepoch==0.0){
+	printf("\nYou must not use the '-nobary' flag if you want to\n");
+	printf("access the pulsar database.  Exiting.\n\n");
+	exit(1);
+      }
+      pnum = get_psr_at_epoch(cmd->psrname, search.bepoch, &pdata, &psr);
+      if (!pnum) {
+	printf("The pulsar is not in the database.  Exiting.\n\n");
+	exit(1);
+      }
+      if (psr.ntype & 8){  /* Checks if the pulsar is in a binary */
+	binary = 1;
+	search.orb = psr.orb;
+      }
+      search.bary.p1 = psr.p;
+      search.bary.p2 = psr.pd;
+      search.bary.p3 = psr.pdd;
+      f = psr.f;
+      fd = psr.fd;
+      fdd = psr.fdd;
+      strcpy(pname, psr.jname);
     }
-    pnum = get_psr_at_epoch(cmd->psrname, search.bepoch, &pdata, &psr);
-    if (!pnum) {
-      printf("The pulsar is not in the database.  Exiting.\n\n");
-      exit(1);
-    }
-    if (psr.ntype & 8){  /* Checks if the pulsar is in a binary */
-      binary = 1;
-      search.orb = psr.orb;
-    }
-    search.bary.p1 = psr.p;
-    search.bary.p2 = psr.pd;
-    search.bary.p3 = psr.pdd;
-    f = psr.f;
-    fd = psr.fd;
-    fdd = psr.fdd;
-    strcpy(pname, psr.jname);
-    
     /* If the user specifies all of the binaries parameters */	
     
   } else if (cmd->binaryP) {				
@@ -794,7 +842,6 @@ int main(int argc, char *argv[])
     for (ii = 0; ii < cmd->nsub; ii++)
       phasesadded[ii] = 0.0;
 
-
     /* Move to the correct starting record */
 
     data = gen_fvect(cmd->nsub * worklen);
@@ -892,7 +939,7 @@ int main(int argc, char *argv[])
     /* If this is 'raw' radio data, determine the dispersion delays */
   
     if (!strcmp(idata.band, "Radio")) {
-    
+
       /* The observation frequencies */
     
       obsf = gen_dvect(numchan);
@@ -966,19 +1013,56 @@ int main(int argc, char *argv[])
 	  }
 	}
       
+	if (cmd->polycofileP){  /* Update the period */
+	  double mjdi, mjdf, currentday, goodphase;
+
+	  currentday = (lorec*recdt + parttimes[ii] + 
+			jj*proftime)/SECPERDAY;
+	  mjdf = idata.mjd_f + currentday;
+	  if (mjdf > 1.0)
+	    mjdf -= floor(mjdf);
+	  mjdi = idata.mjd_i + floor(mjdf);
+	  phcalc(mjdi, mjdf, &polyco_phase, &foldf);
+
+	  if (0){
+	    double nextmjdi, nextmjdf, nextcurrentday, nextfoldf, nextpolyco_phase;
+	    nextcurrentday = (lorec*recdt + parttimes[ii] + 
+			      (jj+1)*proftime)/SECPERDAY;
+	    nextmjdf = idata.mjd_f + nextcurrentday;
+	    if (nextmjdf > 1.0)
+	      nextmjdf -= floor(nextmjdf);
+	    nextmjdi = idata.mjd_i + floor(nextmjdf);
+	    phcalc(nextmjdi, nextmjdf, &nextpolyco_phase, &nextfoldf);
+	    foldfd = (nextfoldf-foldf)/proftime;
+	  }
+
+	  goodphase = polyco_phase - polyco_phase0;
+	  if (goodphase < 0.0)
+	    goodphase += 1.0;
+	  for (kk = 0; kk < cmd->nsub; kk++){
+	    if ((phasesadded[kk]-goodphase) > 0.5){ /* Fix this for kk > 0 */
+	      printf("Fixing phase jump...\n");
+	      goodphase += 1.0;
+	    }
+	    /* printf("%.10f  %.10f\n", goodphase, phasesadded[kk]); */
+	    phasesadded[kk] = goodphase;
+	  }
+	}
+
 	/* frequency sub-bands */
       
 	for (kk = 0; kk < cmd->nsub; kk++)
 	  fold(data + kk * worklen, numread, search.dt, 
 	       parttimes[ii] + jj * proftime, 
 	       search.rawfolds + (ii * cmd->nsub + kk) * search.proflen, 
-	       search.proflen, cmd->phs, buffers + kk * search.proflen, 
+	       search.proflen, cmd->phs, 
+	       buffers + kk * search.proflen, 
 	       phasesadded + kk, foldf, foldfd, foldfdd, 
 	       flags, Ep, tp, numdelays, NULL, 
 	       &(search.stats[ii * cmd->nsub + kk]));
 	totnumfolded += numread;
       }
-    
+
       /* Write the binary profiles */
     
       for (kk = 0; kk < cmd->nsub; kk++){
