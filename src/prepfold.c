@@ -5,12 +5,13 @@
 #include "multibeam.h"
 #include "bpp.h"
 #include "wapp.h"
+#include "gmrt.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
 
 extern int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname);
 extern int phcalc(double mjd0, double mjd1, int last_index,
@@ -148,6 +149,9 @@ int main(int argc, char *argv[])
       } else if (strcmp(suffix, "pkmb")==0){
 	printf("Assuming the data is from the Parkes Multibeam system...\n");
 	cmd->pkmbP = 1;
+      } else if (strncmp(suffix, "gmrt", 4)==0){
+	printf("Assuming the data is from the GMRT Phased Array system...\n");
+	cmd->gmrtP = 1;
       } else if (isdigit(suffix[0]) &&
 		 isdigit(suffix[1]) &&
 		 isdigit(suffix[2])){
@@ -275,6 +279,11 @@ int main(int argc, char *argv[])
       printf("Reading Arecibo WAPP data from %d files:\n", numfiles);
     else
       printf("Reading Arecibo WAPP data from 1 file:\n");
+  } else if (cmd->gmrtP){
+    if (numfiles > 1)
+      printf("Reading GMRT Phased Array data from %d files:\n", numfiles);
+    else
+      printf("Reading GMRT Phased Array data from 1 file:\n");
   }
 
   /* Open the raw data files */
@@ -426,6 +435,20 @@ int main(int argc, char *argv[])
       strcpy(obs, "AO");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "Arecibo");
+
+    } else if (cmd->gmrtP){
+
+      printf("GMRT input file information:\n");
+      get_GMRT_file_info(infiles, argv+1, numfiles,
+			 &local_N, &ptsperrec, &numchan, 
+			 &local_dt, &local_T, 1);
+      /* Read the first header file and generate an infofile from it */
+      GMRT_hdr_to_inf(argv[1], &idata);
+      GMRT_update_infodata(numfiles, &idata);
+      /* OBS code for TEMPO for the GMRT */
+      strcpy(obs, "GM");
+      search.telescope = (char *)calloc(20, sizeof(char));
+      strcpy(search.telescope, "GMRT");
 
     } else if (insubs){
 
@@ -1105,6 +1128,8 @@ int main(int argc, char *argv[])
       skip_to_BPP_rec(infiles, numfiles, lorec+1);
     else if (cmd->wappP)
       skip_to_WAPP_rec(infiles, numfiles, lorec+1);
+    else if (cmd->gmrtP)
+      skip_to_GMRT_rec(infiles, numfiles, lorec+1);
     else {
       if (useshorts){
 	/* Use a loop to accommodate subband data */
@@ -1271,6 +1296,10 @@ int main(int argc, char *argv[])
 				      bppifs);
 	else if (cmd->wappP)
 	  numread = read_WAPP_subbands(infiles, numfiles, data, 
+				       dispdts, cmd->nsub, 1, &padding,
+				       maskchans, &nummasked, &obsmask);
+	else if (cmd->gmrtP)
+	  numread = read_GMRT_subbands(infiles, numfiles, data, 
 				       dispdts, cmd->nsub, 1, &padding,
 				       maskchans, &nummasked, &obsmask);
 	else if (insubs)

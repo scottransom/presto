@@ -6,8 +6,9 @@
 #include "multibeam.h"
 #include "bpp.h"
 #include "wapp.h"
+#include "gmrt.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -105,6 +106,9 @@ int main(int argc, char *argv[])
       } else if (strcmp(suffix, "pkmb")==0){
 	printf("Assuming the data is from the Parkes Multibeam system...\n");
 	cmd->pkmbP = 1;
+      } else if (strncmp(suffix, "gmrt", 4)==0){
+	printf("Assuming the data is from the GMRT Phased Array system...\n");
+	cmd->gmrtP = 1;
       } else if (isdigit(suffix[0]) &&
 		 isdigit(suffix[1]) &&
 		 isdigit(suffix[2])){
@@ -133,6 +137,11 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->gmrtP){
+    if (numinfiles > 1)
+      printf("Reading GMRT Phased Array data from %d files:\n", numinfiles);
+    else
+      printf("Reading GMRT Phased Array data from 1 file:\n");
   } else if (cmd->wappP){
     if (numinfiles > 1)
       printf("Reading Arecibo WAPP data from %d files:\n", numinfiles);
@@ -243,6 +252,8 @@ int main(int argc, char *argv[])
       strcpy(obs, "MT");
     } else if (!strcmp(idata.telescope, "GBT")) {
       strcpy(obs, "GB");
+    } else if (!strcmp(idata.telescope, "GMRT")) {
+      strcpy(obs, "GM");
     } else {
       printf("\nYou need to choose a telescope whose data is in\n");
       printf("$TEMPO/obsys.dat.  Exiting.\n\n");
@@ -252,100 +263,75 @@ int main(int argc, char *argv[])
     numbarypts = (int) (idata.N*idata.dt*1.1/TDT + 5.5) + 1;
   }
 
-  /* Set-up values if we are using the Parkes multibeam */
-
-  if (cmd->pkmbP) {
+  if (RAWDATA){
     double dt, T;
     int ptsperblock;
     long long N;
 
-    printf("\nPKMB input file information:\n");
-    get_PKMB_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
-		       &dt, &T, 1);
-    chkfread(&hdr, 1, HDRLEN, infiles[0]);
-    rewind(infiles[0]);
-    PKMB_hdr_to_inf(&hdr, &idata);
-    PKMB_update_infodata(numinfiles, &idata);
-    dsdt = cmd->downsamp * idata.dt;
-    idata.dm = avgdm;
-    blocklen = ptsperblock;
-    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dsdt) 
-		     / ptsperblock + 1);
-    worklen = blocklen * blocksperread;
-    strcpy(obs, "PK");  /* OBS code for TEMPO */
-
-    /* The number of topo to bary time points to generate with TEMPO */
-
-    numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
-  }
-
-  /* Set-up values if we are using the Berkeley-Caltech */
-  /* Pulsar Machine (or BPP) format.                    */
-
-  if (cmd->bcpmP) {
-    double dt, T;
-    int ptsperblock;
-    long long N;
-
-    printf("\nBCPM input file information:\n");
-    get_BPP_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
-		      &dt, &T, &idata, 1);
-    BPP_update_infodata(numinfiles, &idata);
-    dsdt = cmd->downsamp * idata.dt;
-    idata.dm = avgdm;
-    blocklen = ptsperblock;
-    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dsdt) 
-		     / ptsperblock + 1);
-    worklen = blocklen * blocksperread;
-
-    /* Which IFs will we use? */
+    /* Set-up values if we are using the Parkes multibeam */
+    if (cmd->pkmbP) {
+      printf("\nPKMB input file information:\n");
+      get_PKMB_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
+			 &dt, &T, 1);
+      chkfread(&hdr, 1, HDRLEN, infiles[0]);
+      rewind(infiles[0]);
+      PKMB_hdr_to_inf(&hdr, &idata);
+      PKMB_update_infodata(numinfiles, &idata);
+      /* OBS code for TEMPO */
+      strcpy(obs, "PK");
+    }
     
-    if (cmd->ifsP){
-      if (cmd->ifs==0)
-	bppifs = IF0;
-      else if (cmd->ifs==1)
-	bppifs = IF1;
-      else
-	bppifs = SUMIFS;
+    /* Set-up values if we are using the GMRT Phased Array system */
+    if (cmd->gmrtP) {
+      printf("\nGMRT input file information:\n");
+      get_GMRT_file_info(infiles, argv+1, numinfiles, &N, &ptsperblock, &numchan, 
+			 &dt, &T, 1);
+      /* Read the first header file and generate an infofile from it */
+      GMRT_hdr_to_inf(argv[1], &idata);
+      GMRT_update_infodata(numinfiles, &idata);
+      /* OBS code for TEMPO for the GMRT */
+      strcpy(obs, "GM");
     }
 
-    /* OBS code for TEMPO */
-    /* The following is for the Green Bank 85-3
-    strcpy(obs, "G8");
-    */
-    /* The following is for the Green Bank Telescope */
-    strcpy(obs, "GB");
+    /* Set-up values if we are using the Berkeley-Caltech */
+    /* Pulsar Machine (or BPP) format.                    */
+    if (cmd->bcpmP) {
+      printf("\nBCPM input file information:\n");
+      get_BPP_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
+			&dt, &T, &idata, 1);
+      BPP_update_infodata(numinfiles, &idata);
+      /* Which IFs will we use? */
+      if (cmd->ifsP){
+	if (cmd->ifs==0)
+	  bppifs = IF0;
+	else if (cmd->ifs==1)
+	  bppifs = IF1;
+	else
+	  bppifs = SUMIFS;
+      }
+      /* OBS code for TEMPO */
+      strcpy(obs, "GB");
+    }
 
-    /* The number of topo to bary time points to generate with TEMPO */
+    /* Set-up values if we are using the Arecobo WAPP */
+    if (cmd->wappP) {
+      printf("\nWAPP input file information:\n");
+      get_WAPP_file_info(infiles, cmd->numwapps, numinfiles, cmd->clip,
+			 &N, &ptsperblock, &numchan, 
+			 &dt, &T, &idata, 1);
+      WAPP_update_infodata(numinfiles, &idata);
+      /* OBS code for TEMPO */
+      strcpy(obs, "AO");
+    }
 
-    numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
-  }
-
-  /* Set-up values if we are using the Arecobo WAPP */
-
-  if (cmd->wappP) {
-    double dt, T;
-    int ptsperblock;
-    long long N;
-
-    printf("\nWAPP input file information:\n");
-    get_WAPP_file_info(infiles, cmd->numwapps, numinfiles, cmd->clip,
-		       &N, &ptsperblock, &numchan, 
-		       &dt, &T, &idata, 1);
-    WAPP_update_infodata(numinfiles, &idata);
+    /* Finish setting up stuff common to all raw formats */
     dsdt = cmd->downsamp * idata.dt;
     idata.dm = avgdm;
     blocklen = ptsperblock;
     blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dsdt) 
 		     / ptsperblock + 1);
     worklen = blocklen * blocksperread;
-
-    /* OBS code for TEMPO */
-    /* The following is for Arecibo */
-    strcpy(obs, "AO");
-
     /* The number of topo to bary time points to generate with TEMPO */
-
     numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
   }
 
@@ -909,6 +895,11 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 				      maskchans, &nummasked, obsmask, bppifs);
 	else if (cmd->wappP)
 	  numread = read_WAPP_subbands(infiles, numfiles, 
+				       currentdata+ii*blocksize,
+				       dispdts, cmd->nsub, 0, &tmppad, 
+				       maskchans, &nummasked, obsmask);
+	else if (cmd->gmrtP)
+	  numread = read_GMRT_subbands(infiles, numfiles, 
 				       currentdata+ii*blocksize,
 				       dispdts, cmd->nsub, 0, &tmppad, 
 				       maskchans, &nummasked, obsmask);

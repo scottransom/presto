@@ -1,11 +1,15 @@
 #include <limits.h>
+#include <ctype.h>
 #include "presto.h"
 #include "rfifind_cmd.h"
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
 #include "wapp.h"
+#include "gmrt.h"
 #include "rfifind.h"
+
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
 
 /* Some function definitions */
 
@@ -120,14 +124,36 @@ int main(int argc, char *argv[])
     oldmask.numchan = oldmask.numint = 0;
   
   if (!cmd->nocomputeP){
-
-    if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP){
-      printf("\nYou must specify the data format.  Legal types are:\n");
-      printf("   -pkmb : Parkes Multibeam\n");
-      printf("   -bcpm : Berkeley-Caltech Pulsar Machine\n");
-      printf("   -wapp : Arecibo WAPP\n");
-      printf("\n");
-      exit(0);
+    if (!RAWDATA){
+      char *root, *suffix;
+      /* Split the filename into a rootname and a suffix */
+      if (split_root_suffix(cmd->argv[0], &root, &suffix)==0){
+	printf("\nThe input filename (%s) must have a suffix, or you must\n"
+	       "    specify the data type!\n\n", 
+	       cmd->argv[0]);
+	exit(1);
+      } else {
+	if (strcmp(suffix, "bcpm1")==0 || 
+	    strcmp(suffix, "bcpm2")==0){
+	  printf("Assuming the data is from a GBT BCPM...\n");
+	  cmd->bcpmP = 1;
+	} else if (strcmp(suffix, "pkmb")==0){
+	  printf("Assuming the data is from the Parkes Multibeam system...\n");
+	  cmd->pkmbP = 1;
+	} else if (strncmp(suffix, "gmrt", 4)==0){
+	  printf("Assuming the data is from the GMRT Phased Array system...\n");
+	  cmd->gmrtP = 1;
+	} else if (isdigit(suffix[0]) &&
+		   isdigit(suffix[1]) &&
+		   isdigit(suffix[2])){
+	  printf("Assuming the data is from the Arecibo WAPP system...\n");
+	  cmd->wappP = 1;
+	}
+      }
+      if (RAWDATA){ /* Clean-up a bit */
+	free(root);
+	free(suffix);
+      }
     } else if (cmd->pkmbP){
       if (numfiles > 1)
 	printf("Reading Parkes PKMB data from %d files:\n", numfiles);
@@ -138,6 +164,11 @@ int main(int argc, char *argv[])
 	printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
       else
 	printf("Reading Green Bank BCPM data from 1 file:\n");
+    } else if (cmd->gmrtP){
+      if (numfiles > 1)
+	printf("Reading GMRT Phased Array data from %d files:\n", numfiles);
+      else
+	printf("Reading GMRT Phased Array data from 1 file:\n");
     } else if (cmd->wappP){
       if (numfiles > 1)
 	printf("Reading Arecibo WAPP data from %d files:\n", numfiles);
@@ -203,6 +234,20 @@ int main(int argc, char *argv[])
       WAPP_update_infodata(numfiles, &idata);
       idata.dm = 0.0;
       writeinf(&idata);
+
+    } else if (cmd->gmrtP){
+
+      /* Set-up for the GMRT Phase array data */
+
+      printf("GMRT input file information:\n");
+      get_GMRT_file_info(infiles, argv+1, numfiles,
+			 &N, &ptsperblock, &numchan, 
+			 &dt, &T, 1);
+      /* Read the first header file and generate an infofile from it */
+      GMRT_hdr_to_inf(argv[1], &idata);
+      GMRT_update_infodata(numfiles, &idata);
+      idata.dm = 0.0;
+      writeinf(&idata);
     }
     
     /* The number of data points and blocks to work with at a time */
@@ -218,7 +263,7 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP)
       rawdata = gen_bvect(DATLEN * blocksperint);
-    else if (cmd->bcpmP || cmd->wappP)
+    else if (cmd->bcpmP || cmd->wappP || cmd->gmrtP)
       /* This allocates extra incase both IFs were stored */
       rawdata = gen_bvect(idata.num_chan * ptsperblock * blocksperint);
     dataavg = gen_fmatrix(numint, numchan);
@@ -263,6 +308,9 @@ int main(int argc, char *argv[])
       else if (cmd->wappP)
 	numread = read_WAPP_rawblocks(infiles, numfiles, 
 				      rawdata, blocksperint, &padding);
+      else if (cmd->gmrtP)
+	numread = read_GMRT_rawblocks(infiles, numfiles, 
+				      rawdata, blocksperint, &padding);
       if (padding)
 	for (jj=0; jj<numchan; jj++)
 	  bytemask[ii][jj] |= PADDING;
@@ -275,6 +323,8 @@ int main(int argc, char *argv[])
 	  get_BPP_channel(jj, chandata, rawdata, blocksperint, bppifs);
 	else if (cmd->wappP)
 	  get_WAPP_channel(jj, chandata, rawdata, blocksperint);
+	else if (cmd->gmrtP)
+	  get_GMRT_channel(jj, chandata, rawdata, blocksperint);
 
 	/* Calculate the averages and standard deviations */
 	/* for each point in time.                        */
