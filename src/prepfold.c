@@ -690,11 +690,14 @@ int main(int argc, char *argv[])
   
   if (cmd->proflenP)
     search.proflen = cmd->proflen;
-  else
+  else {
     if (search.topo.p1 == 0.0)
       search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
     else
       search.proflen = (long) (search.topo.p1 / search.dt + 0.5);
+    if (search.proflen > 64)
+      search.proflen = 64;
+  }
 
   /* Determine the phase delays caused by the orbit if needed */
 
