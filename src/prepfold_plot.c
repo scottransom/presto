@@ -1,9 +1,14 @@
 #include "prepfold.h"
-# include "float.h" 
+#include "float.h" 
 
 #define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
 (fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
 (fabs((a)-(b))/fabs((a)) <= 2 * DBL_EPSILON ? 1 : 0))
+
+/* This is a hack that allows the raw profile data */
+/* to be printed on STDOUT so that they can be     */
+/* easily imported into Python....                 */
+#define PRINT_PROFILES 1
 
 /********************************************/
 /* The following is taken from ppgplot.c by */
@@ -490,6 +495,19 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     cpgsch(0.8);
     
     /* Time versus phase */
+
+#ifdef PRINT_PROFILES
+    printf("\n\nprofs = Numeric.asarray([");
+    for (ii = 0; ii < search->npart; ii++){
+      printf("[");
+      for (jj = 0; jj < search->proflen - 1; jj++)
+	printf("%f, ", timeprofs[ii * 2 * search->proflen + jj]);
+      if (ii == search->npart - 1)
+	printf("%f]]\n\n", timeprofs[ii * 2 * search->proflen + jj]);
+      else
+	printf("%f],\n", timeprofs[ii * 2 * search->proflen + jj]);
+    }
+#endif
 
     cpgsvp (0.06, 0.27, 0.09, 0.68);
     cpgswin(0.0, 1.999, 0.0, T);
