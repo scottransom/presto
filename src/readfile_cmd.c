@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -45,6 +45,10 @@ static Cmdline cmd = {
   /* dcxP = */ 0,
   /***** -dc: Raw data in double-complex format */
   /* sdcxP = */ 0,
+  /***** -short: Raw data in short format */
+  /* shtP = */ 0,
+  /***** -s: Raw data in short format */
+  /* sshtP = */ 0,
   /***** -int: Raw data in integer format */
   /* igrP = */ 0,
   /***** -i: Raw data in integer format */
@@ -140,7 +144,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -211,7 +215,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -252,7 +256,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -322,7 +326,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -362,7 +366,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -430,7 +434,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -465,7 +469,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -536,7 +540,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -562,16 +566,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -856,6 +867,20 @@ showOptionValues(void)
     printf("-dc found:\n");
   }
 
+  /***** -short: Raw data in short format */
+  if( !cmd.shtP ) {
+    printf("-short not found.\n");
+  } else {
+    printf("-short found:\n");
+  }
+
+  /***** -s: Raw data in short format */
+  if( !cmd.sshtP ) {
+    printf("-s not found.\n");
+  } else {
+    printf("-s found:\n");
+  }
+
   /***** -int: Raw data in integer format */
   if( !cmd.igrP ) {
     printf("-int not found.\n");
@@ -1004,7 +1029,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-bpp] [-wapp] [-fortran] [-index [index]] [-nph nph] [--] file\n\
+ [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-short] [-s] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-bpp] [-wapp] [-fortran] [-index [index]] [-nph nph] [--] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
     -nopage: Don't paginate the output like 'more'\n\
       -byte: Raw data in byte format\n\
@@ -1017,6 +1042,8 @@ usage(void)
         -fc: Raw data in float-complex format\n\
   -dcomplex: Raw data in double-complex format\n\
         -dc: Raw data in double-complex format\n\
+     -short: Raw data in short format\n\
+         -s: Raw data in short format\n\
        -int: Raw data in integer format\n\
          -i: Raw data in integer format\n\
       -long: Raw data in long format\n\
@@ -1040,7 +1067,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 value\n\
-version: 26Jun01\n\
+version: 12Sep02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1048,7 +1075,7 @@ version: 26Jun01\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -1110,6 +1137,16 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-dc", argv[i]) ) {
       cmd.sdcxP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-short", argv[i]) ) {
+      cmd.shtP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-s", argv[i]) ) {
+      cmd.sshtP = 1;
       continue;
     }
 
@@ -1189,8 +1226,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-index", argv[i]) ) {
+      int keep = i;
       cmd.indexP = 1;
-      keep = i;
       i = getIntOpts(argc, argv, i, &cmd.index, 0, 2);
       cmd.indexC = i-keep;
       checkIntHigher("-index", cmd.index, cmd.indexC, -1);
@@ -1198,8 +1235,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-nph", argv[i]) ) {
+      int keep = i;
       cmd.nphP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.nph, 1);
       cmd.nphC = i-keep;
       continue;

@@ -155,7 +155,7 @@ int main(int argc, char **argv)
 	  index = FLOAT;
 	  fprintf(stderr, \
 		  "Assuming the data is floating point.\n\n");
-	if (0 == strcmp(extension, "sdat")){
+	} else if (0 == strcmp(extension, "sdat")){
 	  index = SHORT;
 	  fprintf(stderr, \
 		  "Assuming the data is short integers.\n\n");
