@@ -34,9 +34,10 @@ multifile *fopen_multifile(int numfiles, char **filenames, char *mode,
 /*      default value is DEFAULT_MAXLEN.  If you want to use     */
 /*      the default, simply set 'maxlen' to 0.                   */
 {
-  multifile *mfile=NULL;
+  multifile *mfile;
   int ii, append=0;
 
+  mfile = (multifile *)malloc(sizeof(multifile));
   mfile->numfiles = numfiles;
   mfile->currentfile = 0;
   mfile->currentpos = 0;
@@ -46,9 +47,9 @@ multifile *fopen_multifile(int numfiles, char **filenames, char *mode,
     mfile->maxfilelen = maxlen;
   else
     mfile->maxfilelen = DEFAULT_MAXLEN;
-  mfile->filelens = malloc(numfiles * sizeof(int));
-  mfile->filenames = malloc(numfiles * sizeof(char *));
-  mfile->fileptrs = malloc(numfiles * sizeof(FILE *));
+  mfile->filelens = (long long*)malloc(numfiles * sizeof(long long));
+  mfile->filenames = (char **)malloc(numfiles * sizeof(char *));
+  mfile->fileptrs = (FILE **)malloc(numfiles * sizeof(FILE *));
   if (strncmp(mode, "r", 1)==0){
     if (strncmp(mode, "r+", 2)==0){
       strcpy(mfile->mode, "rb+");
@@ -67,7 +68,7 @@ multifile *fopen_multifile(int numfiles, char **filenames, char *mode,
   }
   for (ii=0; ii<numfiles; ii++){
     mfile->filenames[ii] = \
-      calloc(strlen(filenames[ii]+1), 1);
+      (char *)calloc(strlen(filenames[ii]+1), 1);
     strcpy(mfile->filenames[ii], filenames[ii]);
     mfile->fileptrs[ii] = \
       chkfopen(filenames[ii], mfile->mode);
@@ -95,6 +96,7 @@ int fclose_multifile(multifile *mfile)
   free(mfile->filenames);
   free(mfile->fileptrs);
   free(mfile->filelens);
+  free(mfile);
   return flag;
 }
 
@@ -147,11 +149,13 @@ int fwrite_multifile(void *data, size_t type, size_t number,
 /*   'number' is the number of nuggets to write              */
 /*   'mfile' is a pointer to a valid multifile structure     */
 {
-  int findex, writebytes, byteswritten;
+  int findex, writebytes, tmpwritebytes, bytesleft, byteswritten;
   
   findex = mfile->currentfile;
   writebytes = number * type;
-  byteswritten = chkfwrite((char *)data, 1, writebytes, 
+  bytesleft = mfile->maxfilelen - mfile->currentpos;
+  tmpwritebytes = (writebytes > bytesleft) ? bytesleft : writebytes;
+  byteswritten = chkfwrite((char *)data, 1, tmpwritebytes, 
 			mfile->fileptrs[findex]);
   mfile->currentpos += byteswritten;
   if (mfile->currentpos > mfile->filelens[findex]){
@@ -167,8 +171,10 @@ int fwrite_multifile(void *data, size_t type, size_t number,
 	findex++;
 	mfile->currentfile++;
 	mfile->currentpos = 0;
+	bytesleft = mfile->maxfilelen;
+	tmpwritebytes = (writebytes > bytesleft) ? bytesleft : writebytes;
 	byteswritten = chkfwrite((char *)data + byteswritten, 1, 
-				 writebytes, mfile->fileptrs[findex]);
+				 tmpwritebytes, mfile->fileptrs[findex]);
 	mfile->currentpos += byteswritten;
 	if (mfile->currentpos > mfile->filelens[findex]){
 	  mfile->length += (mfile->currentpos - 

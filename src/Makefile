@@ -39,7 +39,7 @@ LIBSUFFIX = so
 PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 
 # Use the following if we are using DMALLOC
-DMALLOCLINK = -ldmalloc
+#DMALLOCLINK = -ldmalloc
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
@@ -49,8 +49,9 @@ CC = gcc
 FC = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
+	-g -Wall -W -O2 -mpentiumpro -fpic \
 	-D_FILE_OFFSET_BITS=64
+#	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
 #       -DUSEDMALLOC
 #	-g -ansi -pedantic -Wall -W -fpic \
 #	-Dinline= -Wmissing-prototypes \
@@ -231,8 +232,8 @@ check_parkes_raw: check_parkes_raw.o
 	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-testmulti: testmulti.o multi_prof_plot.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) testmulti.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+test_multifiles: test_multifiles.o
+	$(FLINK) $(FLINKFLAGS) -o $@ test_multifiles.o $(EXTRALINK) $(PRESTOLINK) -lm
 
 showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
