@@ -31,7 +31,7 @@ int main(int argc, char **argv)
   double normz = 0.0, normmean = 0.0, normstdev = 1.0;
   int chistatus = 0, chiwhich = 1, showerr = 0, flags = 0;
   double dbepoch = 0.0, onoffpairs[40], dtmp;
-  int np, pnum, binary = 0, dochi = 0, numonoffpairs = 1;
+  int pnum, binary = 0, dochi = 0, numonoffpairs = 1;
   long numreads = 0, numpoints = 0;
   unsigned long filelen;
   long i = 0, proflen = 0;
@@ -42,7 +42,6 @@ int main(int argc, char **argv)
   fourierprops rzwcand;
   makedata mdata;
   infodata idata;
-  psrdatabase pdata;
   Cmdline *cmd;
   foldstats stats;
 
@@ -113,13 +112,12 @@ int main(int argc, char **argv)
     /* Read the pulsar database if needed */				
 									
     if (cmd->psrnameP) {
-      np = read_database(&pdata);
-      pnum = get_psr_at_epoch(cmd->psrname, epoch, &pdata, &psr);
+      pnum = get_psr_at_epoch(cmd->psrname, epoch, &psr);
       if (!pnum) {
 	printf("The pulsar is not in the database.  Exiting.\n\n");	
 	exit(1);							
       }
-      if (psr.ntype & 8){
+      if (psr.orb.p != 0.0){
 	binary = 1;
 	orb = psr.orb;
 	dbepoch = psr.orb.t / SECPERDAY;					

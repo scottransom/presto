@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
   FILE *makefile;
   double p_psr = 0.0, pdot_psr, N, dt, epoch = 0.0, avgz;
   double *Ep, *tmpE, startE, endtime = 0.0, orbdt = 2.0;
-  int i, np = 0, ps = 0, pnum;
+  int i, ps = 0, pnum;
   long numpoints;
   float *trl, *Erl, *Erl2;
   double onoffpairs[30];
@@ -20,7 +20,6 @@ int main(int argc, char *argv[])
   makedata mdata;
   orbitparams orb;
   infodata idata;
-  psrdatabase pdata;
   psrparams psr;
 
   if ((argc < 2) || (argc > 5)) {
@@ -70,13 +69,12 @@ int main(int argc, char *argv[])
 
       if (strlen(argv[i]) > 2) {
 
-	np = read_database(&pdata);
-	pnum = get_psr_at_epoch(argv[i], epoch, &pdata, &psr);
+	pnum = get_psr_at_epoch(argv[i], epoch, &psr);
 	if (!pnum) {
 	  printf("\nThe pulsar is not in the database.  Exiting.\n\n");	
 	  exit(1);							
 	}
-	if (psr.ntype & 8){
+	if (psr.orb.p != 0.0){
 	  orb = psr.orb;
 	} else {
 	  printf("\nPulsar is not in a binary.  Exiting.\n\n");

@@ -63,7 +63,6 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
   psr->f = psr->fd = psr->p = psr->pd = psr->dm = 0.0;
   psr->orb.p = psr->orb.pd = psr->orb.x = psr->orb.e = 0.0;
   psr->orb.w = psr->orb.wd = psr->orb.t = 0.0;
-  psr->ntype = 0;
 
   parfile = chkfopen(parfilenm, "r");
   while (fgets(line, 80, parfile)){
@@ -122,7 +121,6 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     } else if (strncmp("BINARY", keyword, 80)==0){
       binary = 1;
       value = strtok(NULL, " \t\n");
-      psr->ntype += 8;
       if (DEBUGOUT) printf("This is a binary PSR ('%s')...\n", value);
     } else if (strncmp("PB", keyword, 80)==0){
       value = strtok(NULL, " \t\n");

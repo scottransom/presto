@@ -555,22 +555,20 @@ int main(int argc, char *argv[])
       search.topo.p3 = fdd = 0.0;
       strcpy(pname, cmd->psrname);
     } else {  /* Use the database */
-      int np, pnum;
+      int pnum;
       psrparams psr;
-      psrdatabase pdata;
       
-      np = read_database(&pdata);
       if (search.bepoch==0.0){
 	printf("\nYou must not use the '-nobary' flag if you want to\n");
 	printf("access the pulsar database.  Exiting.\n\n");
 	exit(1);
       }
-      pnum = get_psr_at_epoch(cmd->psrname, search.bepoch, &pdata, &psr);
+      pnum = get_psr_at_epoch(cmd->psrname, search.bepoch, &psr);
       if (!pnum) {
 	printf("The pulsar is not in the database.  Exiting.\n\n");
 	exit(1);
       }
-      if (psr.ntype & 8){  /* Checks if the pulsar is in a binary */
+      if (psr.orb.p != 0.0){  /* Checks if the pulsar is in a binary */
 	binary = 1;
 	search.orb = psr.orb;
       }
@@ -596,7 +594,7 @@ int main(int argc, char *argv[])
     /* Read the par file*/
     retval = get_psr_from_parfile(cmd->parname, search.bepoch, &psr);
 
-    if (psr.ntype & 8){  /* Checks if the pulsar is in a binary */
+    if (psr.orb.p != 0.0){  /* Checks if the pulsar is in a binary */
       binary = 1;
       search.orb = psr.orb;
     }

@@ -51,6 +51,18 @@ char *remove_whitespace(char *str)
   return rmlead(rmtrail(str));
 }
 
+char *strlower(char *str)
+/* Convert a string to lower case */
+{
+  char *ss;
+  
+  if (str){
+    for (ss=str; *ss; ++ss)
+      *ss=tolower(*ss);
+  }
+  return str;
+}
+
 
 void split_path_file(char *input, char **path, char **file)
 /* This routine splits an input string into a path and */
