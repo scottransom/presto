@@ -147,13 +147,13 @@ FLINKFLAGS = $(FFLAGS)
 PRESTOOBJS = apprgrdn.o barycenter.o birdzap.o cand_output.o\
 	characteristics.o chkio.o corr_prep.o corr_routines.o\
 	correlations.o database.o dcdflib.o dispersion.o\
-	fastffts.o fftcalls.o fminbr.o fold.o\
-	fresnl.o ioinf.o get_candidates.o iomak.o ipmpar.o\
-	maximize_r.o maximize_rz.o maximize_rzw.o minifft.o\
-	misc_utils.o orbint.o output.o read_fft.o responses.o\
+	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
+	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
+	maximize_rzw.o minifft.o multibeam.o misc_utils.o orbint.o\
+	output.o PMsurv_phasemod.o read_fft.o responses.o\
 	rzinterp.o rzwinterp.o select.o solvopt.o sorter.o\
 	transpose.o twopass.o twopass_real_fwd.o\
-	twopass_real_inv.o vectors.o PMsurv_phasemod.o
+	twopass_real_inv.o vectors.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
@@ -216,8 +216,8 @@ patchdata: patchdata.o
 	$(CC) $(CFLAGS) -o $@ patchdata.o $(DMALLOCLINK)
 	cp $@ ../bin
 
-check_parkes_raw: check_parkes_raw.o multibeam.o 
-	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
+check_parkes_raw: check_parkes_raw.o
+	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
 testmulti: testmulti.o multi_prof_plot.o $(PLOT2DOBJS)
@@ -238,12 +238,12 @@ searchmultidms: searchmultidms.o com.o randlib.o $(PLOT2DOBJS)
 test_fold: test_fold.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
-prepdata: prepdata.o prepdata_cmd.o multibeam.o
-	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
+prepdata: prepdata.o prepdata_cmd.o
+	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-prepfold: prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS)
-	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+prepfold: prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS)
+	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 show_pfd: show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
@@ -290,8 +290,8 @@ quicklook: quicklook.o
 	$(CC) $(CFLAGS) -o $@ quicklook.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-readfile:  multibeam.o readfile.o readfile_cmd.o
-	$(CC) $(CFLAGS) -o $@ multibeam.o readfile.o readfile_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
+readfile:  readfile.o readfile_cmd.o
+	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
 realfft_4step: realfft_4step.o
