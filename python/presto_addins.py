@@ -2,7 +2,7 @@
 
 #-------------- Extra Stuff to Make Things Easier -----------------
 
-import math, Numeric, Pgplot, string
+import math, umath, Numeric, Pgplot, string
 
 def read_inffile(filename):
    """
@@ -227,7 +227,7 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
            'show' if true, displays plots of 'r' and 'z'.
            'device' if the device to plot to if 'show' is true.
     """
-    T = float(T)
+    from Scientific.Statistics import average
     startE = keplars_eqn(psr.orb.t, psr.orb.p, psr.orb.e, 1.0E-15)
     numorbpts = int(T / psr.orb.p + 1.0) * 1024 + 1
     dt = T / (numorbpts - 1)
@@ -245,7 +245,7 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
         Pgplot.plotxy(z, times, labx = 'Time',
                       laby = 'Fourier Frequency Derivative (z)', device=device)
         Pgplot.closeplot()
-    return (Numeric.add.reduce(r)/len(r), Numeric.add.reduce(z)/len(z))
+    return (average(r), average(z))
     
 def alias(r, rny):
     """
@@ -474,3 +474,71 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    print "      Quick Topo p-dot = %15.9e" % (pbd * (1.0 + avgvel))
    print "   Quick Topo p-dotdot = %15.9e" % (pbdd * (1.0 + avgvel))
    return [pt, ptd, ptdd]
+
+
+def measure_phase(profile, template, sigma):
+    """
+    measure_phase(profile, template, sigma):
+       TOA measurement technique from J. H. Taylor's talk
+       _Pulsar_Timing_and_Relativistic_Gravity_.  Routine
+       takes two profiles, the first measured and the
+       second a high S/N template and determines the phase
+       offset of 'profile' from 'template'.  Both profiles
+       must have the same number of points.  'sigma' denotes
+       the RMS noise level of the 'profile'.  The phase
+       returned is cyclic (i.e. from 0-1).  The routine
+       returns a tuple comtaining (tau, tau_err, b, b_err, a).
+       Where 'tau' is the phase, 'b' is the scaling factor,
+       and 'a' is the DC offset.  The error values are
+       estimates of the 1 sigma errors.
+    """
+    from simple_roots import bisect
+    N = len(profile)
+    if not (N == len(template)):
+       print "Lengths of 'profile' and 'template' must"
+       print "  be equal in measure_phase()."
+       return 0.0
+    ft = rfft(profile)
+    p0 = ft[0].real
+    # Nyquist freq
+    ft[0] = complex(ft[0].imag, 0.0)
+    P_k = abs(ft)
+    frotate(P_k, len(ft), 1)
+    Theta_k = umath.arctan2(-ft.imag, ft.real)
+    frotate(Theta_k, len(ft), 1)
+    ft = rfft(template)
+    s0 = ft[0].real
+    # Nyquist freq
+    ft[0] = complex(ft[0].imag, 0.0)
+    S_k = abs(ft)
+    frotate(S_k, len(ft), 1)
+    Phi_k = umath.arctan2(-ft.imag, ft.real)
+    frotate(Phi_k, len(ft), 1)
+    # Estimate of the noise sigma (This needs to be checked)
+    sig = 0.5 * sigma * math.sqrt(N)
+    k = Numeric.arange(len(ft), typecode='d') + 1.0
+    def fn1(tau, k=k, p=P_k, s=S_k, theta=Theta_k, phi=Phi_k):
+       # Since Nyquist freq always has phase = 0.0
+       k[-1] = 0.0
+       return Numeric.add.reduce(k * p * s *
+                                 umath.sin(phi - theta + k * tau))
+    a = Numeric.zeros(100, 'd')
+    phases = Numeric.arange(-math.pi, math.pi, TWOPI / 100.0)
+    for i in xrange(100):
+       a[i] = fn1(phases[i])
+#    Pgplot.plotxy(a, Numeric.arange(100.0)/100.0*TWOPI-math.pi)
+    # Solve for tau
+    tau = bisect(fn1, phases[Numeric.argmin(a)],
+                 phases[Numeric.argmax(a)])
+    # Solve for b
+    c = P_k * S_k * umath.cos(Phi_k - Theta_k + k * tau)
+    d = Numeric.add.reduce(S_k**2.0)
+    b = Numeric.add.reduce(c) / d
+    # Solve for a
+    a = (p0 - b * s0) / float(N)
+    # tau sigma
+    tau_err = sig * umath.sqrt(1.0 / (2.0 * b *
+                                      Numeric.add.reduce(k**2.0 * c)))
+    # b  sigma
+    b_err = sig * umath.sqrt(1.0 / (2.0 * d))
+    return (tau / TWOPI, tau_err / TWOPI, b, b_err, a)
