@@ -536,7 +536,16 @@ void hours2hms(double hours, int *h, int *m, double *s)
 void deg2dms(double degrees, int *d, int *m, double *s)
 /* Convert decimal degrees to degrees, minutes, and seconds */
 {
-  return hours2hms(degrees, d, m, s);
+     int sign=1;
+     double tmp;
+     
+     if (degrees < 0.0)
+	  sign = -1;
+     *d = (int) floor(fabs(degrees));
+     tmp = (fabs(degrees) - *d) * 60.0;
+     *m = (int) floor(tmp);
+     *s = (tmp - *m) * 60.0;
+     *d *= sign;
 }
 
 double dms2rad(int deg, int min, double sec)

@@ -256,7 +256,7 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO *spigot, infodata *idata)
   char ctmp[100];
 
   strncpy(idata->object, spigot->object, 24);
-  hours2hms(spigot->ra, &(idata->ra_h), &(idata->ra_m), &(idata->ra_s));
+  hours2hms(spigot->ra/15.0, &(idata->ra_h), &(idata->ra_m), &(idata->ra_s));
   deg2dms(spigot->dec, &(idata->dec_d), &(idata->dec_m), &(idata->dec_s));
   strcpy(idata->telescope, spigot->telescope);
   strcpy(idata->instrument, spigot->instrument);
@@ -310,7 +310,7 @@ void print_SPIGOT_header(SPIGOT_INFO *spigot)
   printf("                      ObsID = %s\n", spigot->obs_id);
   printf("                   Observer = %s\n", spigot->observer);
   printf("                Scan Number = %d\n", spigot->scan_number);
-  hours2hms(spigot->ra, &h_or_d, &m, &s);
+  hours2hms(spigot->ra/15.0, &h_or_d, &m, &s);
   ra_dec_to_string(pos_str, h_or_d, m, s);
   printf("                 RA (J2000) = %s\n", pos_str);
   deg2dms(spigot->dec, &h_or_d, &m, &s);
