@@ -12,7 +12,7 @@ static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
 static unsigned char databuffer[2*MAXDATLEN], padval=4;
-static int currentfile, currentblock;
+static int currentfile, currentblock, both_IFs_present=0;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 static double mid_freq_st, ch1_freq_st, delta_freq_st;
 static double chan_freqs[2*MAXNUMCHAN];
@@ -252,6 +252,8 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
     printf("Error:  nchans (%d) > 2*MAXNUMCHAN (%d) in bpp_calc_chans()\n\n",
 	   nchans, 2*MAXNUMCHAN);
     exit(1);
+  } else if (nchans == 2*MAXNUMCHAN){
+    both_IFs_present = 1;
   }
   /* Loop over (16-bit) regs per board. divide by 2's are to make them   */
   /* word addresses instead of byte addresses so we can index with them. */
@@ -287,39 +289,50 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
 
   /* Make a lookup table which gives chans in order of increasing freq */
   
+  numchan_st = MAXNUMCHAN;
   findexarr = (findex *)malloc(sizeof(findex) * nchans);
   mapindexarr = (mapindex *)malloc(sizeof(mapindex) * nchans);
   for (ii=0; ii<nchans; ii++){
     findexarr[ii].freq = chan_freqs[ii];
     findexarr[ii].index = ii;    
   }
-  qsort(findexarr, nchans, sizeof(findex), compare_findex);
-  for (ii=0; ii<nchans; ii++){
+  /* Sort IF1 or summed IFs according to freq */
+  qsort(findexarr, MAXNUMCHAN, 
+	sizeof(findex), compare_findex);
+  for (ii=0; ii<MAXNUMCHAN; ii++){
     chan_index[ii] = findexarr[ii].index;
     mapindexarr[ii].index = findexarr[ii].index;
     mapindexarr[ii].mapping = ii;
   }
-  free(findexarr);
-  qsort(mapindexarr, nchans, sizeof(mapindex), compare_mapindex);
-  for (ii=0; ii<nchans; ii++){
-    chan_mapping[ii] = mapindexarr[ii].mapping;
+  /* Sort IF1 or summed IFs according to index */
+  qsort(mapindexarr, MAXNUMCHAN, 
+	sizeof(mapindex), compare_mapindex);
+
+  if (both_IFs_present){
+    /* Sort IF2 according to freq */
+    qsort(findexarr+MAXNUMCHAN, MAXNUMCHAN, 
+	  sizeof(findex), compare_findex);
+    for (ii=MAXNUMCHAN; ii<2*MAXNUMCHAN; ii++){
+      chan_index[ii] = findexarr[ii].index;
+      mapindexarr[ii].index = findexarr[ii].index;
+      mapindexarr[ii].mapping = ii-MAXNUMCHAN;
+    }
+    /* Sort IF2 according to index */
+    qsort(mapindexarr+MAXNUMCHAN, MAXNUMCHAN, 
+	  sizeof(mapindex), compare_mapindex);
   }
+  free(findexarr);
+  for (ii=0; ii<nchans; ii++)
+    chan_mapping[ii] = mapindexarr[ii].mapping;
   free(mapindexarr);
 
   /* Set the static variables */
 
   n = nchans / 2;
-  if (hdr->cb_sum_polarizations)
-    numchan_st = nchans;
-  else
-    numchan_st = nchans / 2;
   mid_freq_st = 0.5 * (chan_freqs[chan_index[n]] + 
 		       chan_freqs[chan_index[n-1]]);
   ch1_freq_st = chan_freqs[chan_index[0]];
-  if (hdr->cb_sum_polarizations)
-    delta_freq_st = chan_freqs[chan_index[1]] - chan_freqs[chan_index[0]];
-  else
-    delta_freq_st = chan_freqs[chan_index[2]] - chan_freqs[chan_index[0]];
+  delta_freq_st = chan_freqs[chan_index[1]] - chan_freqs[chan_index[0]];
 }
 
 
@@ -393,7 +406,11 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   BPP_hdr_to_inf(header, idata);
   *numchan = numchan_st = idata_st[0].num_chan;
   *ptsperblock = ptsperblk_st;
-  numifs_st = header->num_chans / *numchan;
+  if (both_IFs_present){
+    printf("  (Note:  Both IFs are present.)\n");
+    numifs_st = 2;
+  } else
+    numifs_st = 1;
   bytesperpt_st = (numchan_st * numifs_st * 4) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
@@ -1109,21 +1126,20 @@ void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
 /* This routine converts a single IF from 4-bit digitized */
 /* data of two IFs into an array of 'numchan' bytes.      */
 {
-  int ii, jj=0, *indexptr;
-  unsigned char *rawdataptr, ifbytes[2*MAXNUMCHAN];
+  int ii, *indexptr;
+  unsigned char *rawdataptr;
 
-  rawdataptr = rawdata;
-  indexptr = chan_mapping;
-  for (ii=0; ii<numchan_st*2; ii++) 
-    ifbytes[ii] = 0;
-  for (ii=0; ii<numchan_st; ii++, rawdataptr++){
-    ifbytes[*indexptr++] += (*rawdataptr >> 0x04);
-    ifbytes[*indexptr++] += (*rawdataptr & 0x0F);
+  if (ifs==IF0){
+    rawdataptr = rawdata;
+    indexptr = chan_mapping;
+  } else {
+    rawdataptr = rawdata+MAXNUMCHAN/2;
+    indexptr = chan_mapping+MAXNUMCHAN;
   }
-  if (ifs==IF1)
-    jj = numchan_st;
-  for (ii=0; ii<numchan_st; ii++, jj++)
-    bytes[ii] = ifbytes[jj];
+  for (ii=0; ii<numchan_st/2; ii++, rawdataptr++){
+    bytes[*indexptr++] = (*rawdataptr >> 0x04);
+    bytes[*indexptr++] = (*rawdataptr & 0x0F);
+  }
 }
 
 
@@ -1131,19 +1147,22 @@ void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes)
 /* This routine converts 4-bit digitized data for 2 IFs */
 /* into a summed IF array of 'numchan' bytes.           */
 {
-  int ii, jj, *indexptr;
-  unsigned char *rawdataptr, ifbytes[2*MAXNUMCHAN];
+  int ii, *indexptr_if1, *indexptr_if2;
+  unsigned char *rawdataptr_if1, *rawdataptr_if2;
 
-  rawdataptr = rawdata;
-  indexptr = chan_mapping;
-  for (ii=0; ii<numchan_st*2; ii++) 
-    ifbytes[ii] = 0;
-  for (ii=0; ii<numchan_st; ii++, rawdataptr++){
-    ifbytes[*indexptr++] += (*rawdataptr >> 0x04);
-    ifbytes[*indexptr++] += (*rawdataptr & 0x0F);
+  rawdataptr_if1 = rawdata;
+  rawdataptr_if2 = rawdata+MAXNUMCHAN/2;
+  indexptr_if1 = chan_mapping;
+  indexptr_if2 = chan_mapping+MAXNUMCHAN;
+  for (ii=0; ii<numchan_st; ii++) bytes[ii] = 0;
+  for (ii=0; ii<numchan_st/2; ii++){
+    bytes[*indexptr_if1++] += (*rawdataptr_if1 >> 0x04);
+    bytes[*indexptr_if1++] += (*rawdataptr_if1 & 0x0F);
+    bytes[*indexptr_if2++] += (*rawdataptr_if2 >> 0x04);
+    bytes[*indexptr_if2++] += (*rawdataptr_if2 & 0x0F);
+    rawdataptr_if1++;
+    rawdataptr_if2++;
   }
-  for (ii=0, jj=numchan_st; ii<numchan_st; ii++, jj++)
-    bytes[ii] = ifbytes[ii] + ifbytes[jj];
 }
 
 
