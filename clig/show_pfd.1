@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "show_pfd" 1 "30Nov02" "Clig-manuals" "Programmer's Manual"
+.TH "show_pfd" 1 "02Dec02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,7 +22,7 @@ show_pfd \- Displays or regenerates the Postscript for a 'pfd' file created by p
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B show_pfd
-[-xwin]
+[-noxwin]
 [-scaleparts]
 [-allgrey]
 [-justprofs]
@@ -33,8 +33,8 @@ infile ...
 
 .\" cligPart OPTIONS
 .SH OPTIONS
-.IP -xwin
-Show the result plots on-screen as well as making a ps file.
+.IP -noxwin
+Do not show the result plots on-screen, only make postscript files.
 .IP -scaleparts
 Scale the part profiles independently.
 .IP -allgrey
