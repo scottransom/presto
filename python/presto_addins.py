@@ -2,7 +2,7 @@
 
 #-------------- Extra Stuff to Make Things Easier -----------------
 
-import math, umath, Numeric, Pgplot, string, numpyio
+import math, umath, Numeric, Pgplot, string, numpyio, miscutils
 
 def read_foldstats(file):
    stats = foldstats()
@@ -414,43 +414,6 @@ def pcorr(data, kernel, numbetween, lo, hi):
                 numbetween, kern_half_width, CORR)
    return result
 
-def ra_dec_to_string(h_or_d, m, s):
-   """
-   ra_dec_to_string(h_or_d, m, s):
-      Return a formatted string of RA or DEC values as
-      'hh:mm:ss.ssss' if RA, or 'dd:mm:ss.ssss' if DEC.
-   """
-   if (s >= 10.0):
-      return "%.2d:%.2d:%.4f" % (h_or_d, m, s)
-   else:
-      return "%.2d:%.2d:0%.4f" % (h_or_d, m, s)
-
-def ra_to_hours(ra_string):
-   """
-   ra_to_hours(ar_string):
-      Given a string containing RA information as
-      'hh:mm:ss.ssss', return the equivalent decimal
-      hours.
-   """
-   h, m, s = string.split(ra_string, ":")
-   h = int(h)
-   m = int(m)
-   s = float(s)
-   return 12.0/PI * hms2rad(h, m, s)
-
-def dec_to_deg(dec_string):
-   """
-   dec_to_deg(dec_string):
-      Given a string containing DEC information as
-      'dd:mm:ss.ssss', return the equivalent decimal
-      degrees.
-   """
-   d, m, s = string.split(dec_string, ":")
-   d = int(d)
-   m = int(m)
-   s = float(s)
-   return RADTODEG * dms2rad(d, m, s)
-
 def p_to_f(p, pd, pdd):
    """
    p_to_f(p, pd, pdd):
@@ -484,8 +447,8 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    nn = len(tts)
    bts = Numeric.zeros(nn, 'd')
    vel = Numeric.zeros(nn, 'd')
-   ra = ra_dec_to_string(obs.ra_h, obs.ra_m, obs.ra_s)
-   dec = ra_dec_to_string(obs.dec_d, obs.dec_m, obs.dec_s)
+   ra = miscutils.coord_to_string(obs.ra_h, obs.ra_m, obs.ra_s)
+   dec = miscutils.coord_to_string(obs.dec_d, obs.dec_m, obs.dec_s)
    if (obs.telescope == 'Parkes'):  tel = 'PK'
    elif (obs.telescope == 'Effelsberg'):  tel = 'EB'
    elif (obs.telescope == 'Arecibo'):  tel = 'AO'
