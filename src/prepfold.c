@@ -46,9 +46,9 @@ int main(int argc, char *argv[])
 
   printf("\n\n");
   printf("        Pulsar Raw-Data Folding Search Routine\n");
-  printf(" Used for DM and/or period determination of PSR candidates.\n");
+  printf(" Used for DM, Period, and P-dot tweaking of PSR candidates.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("                     12 Jan 2000\n\n");
+  printf("                    14 Jan 2000\n\n");
 
   init_prepfoldinfo(&search);
 
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
       slen = 20;
       search.candnm = (char *)calloc(slen, sizeof(char));
       if (cmd->pP)
-	sprintf(search.candnm, "%.2fms_Cand", cmd->p / 1000.0);
+	sprintf(search.candnm, "%.2fms_Cand", cmd->p * 1000.0);
       else if (cmd->fP)
 	sprintf(search.candnm, "%.2fHz_Cand", cmd->f);
       else {
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 
     /* Determine the output and plot file names */
     
-    slen = strlen(rootnm) + strlen(search.candnm) + 5;
+    slen = strlen(rootnm) + strlen(search.candnm) + 7;
     outfilenm = (char *)calloc(slen, sizeof(char));
     sprintf(outfilenm, "%s_%s.msv", rootnm, search.candnm);
     plotfilenm = (char *)calloc(slen, sizeof(char));
@@ -274,6 +274,12 @@ int main(int argc, char *argv[])
     T = N * search.dt;
     endtime = T + TDT;
 
+    /* Until I figure out a better way to do this... */
+
+    search.telescope = (char *)calloc(strlen(idata.telescope)+1, 
+				      sizeof(char));
+    strcpy(search.telescope, idata.telescope);
+
     if (cmd->nobaryP){
       if (idata.mjd_i && idata.mjd_f){
 	if (idata.bary)
@@ -288,8 +294,6 @@ int main(int argc, char *argv[])
       /* OBS code for TEMPO */
       
       strcpy(obs, "PK");
-      search.telescope = (char *)calloc(20, sizeof(char));
-      strcpy(search.telescope, "Parkes Assumed");
       
       /* Define the RA and DEC of the observation */
       
@@ -503,6 +507,8 @@ int main(int argc, char *argv[])
   fprintf(stdout, "\n");
   filemarker = stdout;
   for (ii = 0 ; ii < 1 ; ii++){
+    double p, pd, pdd;
+
     if (cmd->psrnameP)
       fprintf(filemarker, 
 	      "Pulsar                       =  %s\n", pname);
@@ -518,27 +524,12 @@ int main(int argc, char *argv[])
 	    "Total number of data points  =  %-.0f\n", N);
     fprintf(filemarker, 
 	    "Number of profile bins       =  %d\n", search.proflen);
-    if (idata.bary==0.0){
-      if (search.topo.p1 != 0.0)
-	fprintf(filemarker, "Folding period (topo)   (s)  =  %-.15f\n", 
-		search.topo.p1);
-      if (search.topo.p2 != 0.0)
-	fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n", 
-		search.topo.p2);
-      if (search.topo.p3 != 0.0)
-	fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n", 
-		search.topo.p3);
-    } else {
-      if (search.bary.p1 != 0.0)
-	fprintf(filemarker, "Folding period (bary)   (s)  =  %-.15f\n", 
-		search.bary.p1);
-      if (search.bary.p2 != 0.0)
-	fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n", 
-		search.bary.p2);
-      if (search.bary.p3 != 0.0)
-	fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n", 
-		search.bary.p3);
-    }
+    switch_f_and_p(f, fd, fdd, &p, &pd, &pdd);
+    fprintf(filemarker, "Folding period          (s)  =  %-.15f\n", p);
+    if (pd != 0.0)
+      fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n", pd);
+    if (pdd != 0.0)
+      fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n", pdd);
     fprintf(filemarker, 
 	    "Folding frequency      (hz)  =  %-.12f\n", f);
     if (fd != 0.0)
@@ -773,9 +764,9 @@ int main(int argc, char *argv[])
 
   printf("\nOptimizing...\n\n");
   {
-    int numtrials, pdelay, pddelay, profindex;
-    double dphase, dp, dpd, po, pdo, pddo, lop, lopd, pofact;
-    double *pdprofs, currentfd, *currentprof;
+    int numtrials, pdelay, pddelay, profindex, itmp;
+    double dphase, po, pdo, pddo, pofact;
+    double *pdprofs, currentfd=0.0, *currentprof;
     foldstats currentstats;
 
     /* The number of trials for the P-dot and P searches */
@@ -800,15 +791,12 @@ int main(int argc, char *argv[])
     /* to be delayed 1 bin between the first and last bins.       */
     
     dphase = po / search.proflen;
-    pofact = 1.0 / (po * po);
-    dtmp = po / T;
-    dp = dphase / T;
-    dpd = 2.0 * dphase * dtmp * dtmp;
-    lop = po - (numtrials - 1) / 2 * dp;
-    lopd = pdo - (numtrials - 1) / 2 * dpd;
+    pofact = foldf * foldf;
     for (ii = 0; ii < numtrials; ii++){
-      search.periods[ii] = lop + ii * dp;
-      search.pdots[ii] = lopd + ii * dpd;
+      pdelay = ii - (numtrials - 1) / 2;
+      dtmp = pdelay * dphase;
+      search.periods[ii] = 1.0 / (foldf + dtmp / T);
+      search.pdots[ii] = -((2.0 * dtmp / (T * T) + foldfd) / pofact);
     }
 
     /* If we are searching through DM space */
@@ -859,13 +847,14 @@ int main(int argc, char *argv[])
 
 	for (jj = 0; jj < numtrials; jj++){
 	  currentfd = -search.pdots[jj] * pofact;
+	  itmp = jj - (numtrials - 1) / 2;
 
 	  /* Correct each part for the current pdot */
 
 	  for (kk = 0; kk < cmd->npart; kk++){
 	    profindex = kk * search.proflen;
-	    pddelay = (int) (((currentfd - foldfd) * parttimes[kk] * 
-			     parttimes[kk]) / (2.0 * dphase) + 0.5);
+	    pddelay = (int) ((double) (kk * itmp) / 
+			     ((double) cmd->npart) + 0.5);
 	    shift_prof(ddprofs + profindex, search.proflen, pddelay, 
 		       pdprofs + profindex);
 	  }
@@ -907,13 +896,14 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
 
       for (jj = 0; jj < numtrials; jj++){
 	currentfd = -search.pdots[jj] * pofact;
+	itmp = jj - (numtrials - 1) / 2;
 	
 	/* Correct each part for the current pdot */
 	
 	for (kk = 0; kk < cmd->npart; kk++){
 	  profindex = kk * search.proflen;
-	  pddelay = (int) (((currentfd - foldfd) * parttimes[kk] * 
-			    parttimes[kk]) / (2.0 * dphase) + 0.5);
+	  pddelay = (int) ((double) (kk * itmp) / 
+			   ((double) cmd->npart) + 0.5);
 	  shift_prof(search.rawfolds + profindex, search.proflen, pddelay, 
 		     pdprofs + profindex);
 	}
@@ -1035,8 +1025,10 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
     free(barytimes);
     free(topotimes);
   }
-  if (obsf) free(obsf);
-  if (dispdts) free(dispdts);
+  if (!strcmp(idata.band, "Radio")){
+    free(obsf);
+    free(dispdts);
+  }
   if (idata.onoff) free(idata.onoff);
   return (0);
 }

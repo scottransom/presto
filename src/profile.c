@@ -322,8 +322,8 @@ int main(int argc, char **argv)
 	fprintf(filemarker, 
 		"Longitude of peri (w) (deg)  =  %-.10f\n", orb.w/DEGTORAD);
 	if (cmd->psrnameP)
-	  fprintf(filemarker, 
-		  "Epoch of periapsis    (MJD)  =  %-17.11f\n", dbepoch);
+	  fprintf(filemarker, "Epoch of periapsis    (MJD)  =  %-17.11f\n", 
+		  epoch + dbepoch);
 	else if (cmd->makefileP)
 	  fprintf(filemarker, 
 		  "Epoch of periapsis    (MJD)  =  %-17.11f\n", cmd->To);

@@ -555,7 +555,7 @@ void combine_profs(double *profs, foldstats *instats, int numprofs,
     
     profoffset = ii * proflen;
     wrap = (int)((double) (ii * shift) / 
-		 (double) numprofs + 0.5) % proflen;
+		 ((double) numprofs) + 0.5) % proflen;
     wrap = (wrap < 0) ? wrap + proflen : wrap;
     nowrap = proflen - wrap;
     for (jj = 0, kk = profoffset + nowrap; jj < wrap; jj++, kk++)

@@ -219,7 +219,6 @@ void delete_prepfoldinfo(prepfoldinfo *in)
 {
   free(in->rawfolds);
   if (in->nsub > 1) free(in->dms);
-  free(in->dms);
   free(in->periods);
   free(in->pdots);
   free(in->stats);
