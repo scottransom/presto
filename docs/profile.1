@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "profile" 1 "27Nov99" "Clig-manuals" "Programmer's Manual"
+.TH "profile" 1 "01Dec99" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,10 +22,13 @@ profile \- Folds a time series at a given period and period derivative to make a
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B profile
+[-phs phs]
 [-p p]
-[-pd pdot]
-[-f freq]
-[-fd dfdt]
+[-pd pd]
+[-pdd pdd]
+[-f f]
+[-fd fd]
+[-fdd fdd]
 [-n proflen]
 [-psr psrname]
 [-rzwcand rzwcand]
@@ -45,12 +48,17 @@ profile \- Folds a time series at a given period and period derivative to make a
 [-disp]
 [-mak]
 [-noerr]
-[-poisson]
 infile
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
 .SH OPTIONS
+.IP -phs
+Offset phase for the profile,
+.br
+1 double precision value between 0 and 1.
+.br
+Default: `0'
 .IP -p
 The folding period (s),
 .br
@@ -61,12 +69,24 @@ The folding period derivative (s/s),
 1 double precision value.
 .br
 Default: `0'
+.IP -pdd
+The folding period 2nd derivative (s/s^2),
+.br
+1 double precision value.
+.br
+Default: `0'
 .IP -f
 The folding frequency (hz),
 .br
 1 double precision value between 0 and oo.
 .IP -fd
 The folding frequency derivative (hz/s),
+.br
+1 double precision value.
+.br
+Default: `0'
+.IP -fdd
+The folding frequency 2nd derivative (hz/s^2),
 .br
 1 double precision value.
 .br
@@ -137,8 +157,6 @@ Don't calculate a new profile.  Just display a previously calculated profile in 
 Determine folding parameters from 'infile.mak'.
 .IP -noerr
 Do not plot error bars.
-.IP -poisson
-Assume the data is Poisson distributed (for statistics).
 .IP infile
 Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist..
 .\" cligPart OPTIONS end
