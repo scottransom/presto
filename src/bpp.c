@@ -333,7 +333,16 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
 	else
 	  chan_freqs[n++] = hdr->rf_lo + fc/1.0e6;
 	/* The following is a hack in order to get 350MHz working with the right freqs */
-	/* chan_freqs[n-1] -= 1470; */
+	{
+	  char *envval=getenv("BCPM_FREQ_ADJ");
+	  if (envval!=NULL){
+	    double dblval=strtod(envval, NULL);
+	    if (dblval){
+	      /* For 350MHz, this dblval should be -1470 ;*/
+	      chan_freqs[n-1] += dblval;
+	    }
+	  }
+	}
       }
     }
   }
