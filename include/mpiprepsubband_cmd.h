@@ -55,10 +55,10 @@ typedef struct s_Cmdline {
   char numdmsP;
   int numdms;
   int numdmsC;
-  /***** -numsub: The number of sub-bands to use */
-  char numsubP;
-  int numsub;
-  int numsubC;
+  /***** -nsub: The number of sub-bands to use */
+  char nsubP;
+  int nsub;
+  int nsubC;
   /***** -downsamp: The number of neighboring bins to co-add */
   char downsampP;
   int downsamp;

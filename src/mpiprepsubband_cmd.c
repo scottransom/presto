@@ -68,10 +68,10 @@ static Cmdline cmd = {
   /* numdmsP = */ 1,
   /* numdms = */ 10,
   /* numdmsC = */ 1,
-  /***** -numsub: The number of sub-bands to use */
-  /* numsubP = */ 1,
-  /* numsub = */ 32,
-  /* numsubC = */ 1,
+  /***** -nsub: The number of sub-bands to use */
+  /* nsubP = */ 1,
+  /* nsub = */ 32,
+  /* nsubC = */ 1,
   /***** -downsamp: The number of neighboring bins to co-add */
   /* downsampP = */ 1,
   /* downsamp = */ 1,
@@ -936,15 +936,15 @@ showOptionValues(void)
     }
   }
 
-  /***** -numsub: The number of sub-bands to use */
-  if( !cmd.numsubP ) {
-    printf("-numsub not found.\n");
+  /***** -nsub: The number of sub-bands to use */
+  if( !cmd.nsubP ) {
+    printf("-nsub not found.\n");
   } else {
-    printf("-numsub found:\n");
-    if( !cmd.numsubC ) {
+    printf("-nsub found:\n");
+    if( !cmd.nsubC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.numsub);
+      printf("  value = `%d'\n", cmd.nsub);
     }
   }
 
@@ -987,7 +987,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-gmrt] [-bcpm] [-if ifs] [-wapp] [-numwapps numwapps] [-clip clip] [-noclip] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-if ifs] [-wapp] [-numwapps numwapps] [-clip clip] [-noclip] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
@@ -1017,7 +1017,7 @@ usage(void)
     -numdms: The number of DMs to de-disperse\n\
              1 int value between 1 and 2000\n\
              default: `10'\n\
-    -numsub: The number of sub-bands to use\n\
+      -nsub: The number of sub-bands to use\n\
              1 int value between 1 and 1024\n\
              default: `32'\n\
   -downsamp: The number of neighboring bins to co-add\n\
@@ -1156,13 +1156,13 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-numsub", argv[i]) ) {
+    if( 0==strcmp("-nsub", argv[i]) ) {
       int keep = i;
-      cmd.numsubP = 1;
-      i = getIntOpt(argc, argv, i, &cmd.numsub, 1);
-      cmd.numsubC = i-keep;
-      checkIntLower("-numsub", &cmd.numsub, cmd.numsubC, 1024);
-      checkIntHigher("-numsub", &cmd.numsub, cmd.numsubC, 1);
+      cmd.nsubP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
+      cmd.nsubC = i-keep;
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 1024);
+      checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
       continue;
     }
 
