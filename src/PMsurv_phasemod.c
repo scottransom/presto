@@ -34,12 +34,6 @@
 /* expect would be 0 in a 20 minute binary).    */
 #define NUMHARMSUM 1
 
-/* Level of Fourier interpolation to use in the search      */
-/*     1 = no interpolation (just the standard FFT bins)    */
-/*     2 = interbinning (1 interpolated point between bins) */
-/*     4 = 3 interpolated points between bins               */
-#define NUMBETWEEN 2
-
 /* If the following is defined, the program will print        */
 /* debugging info to stdout or the results to the output dir. */
 /*#define DEBUGOUT*/
@@ -49,11 +43,11 @@
 /* If any candidates have a sigma greater than the following  */
 /* then print the candidate and observation info to the       */
 /* permanent candfile.                                        */
-#define THRESH 7.3
+#define THRESH 7.1
 
 /* Candidate file directory */
-/*#define OUTDIR "/home/ransom"*/
-#define OUTDIR "/tmp_mnt/usr/users/sransom/results"
+#define OUTDIR "/home/ransom"
+/*#define OUTDIR "/tmp_mnt/usr/users/sransom/results"*/
 
 /* Function definitions */
 int not_already_there_rawbin(rawbincand newcand, 
@@ -70,31 +64,33 @@ float percolate_rawbincands(rawbincand *cands, int numcands);
 
 int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft, 
 			   float dm, int minfft, int maxfft)
-/* This routine searches an FFT (assumed to be single precision         */
-/* complex values in increasing order by Fourier Freq) from the         */
-/* Parkes Multibeam Pulsar Survey for binary pulsars in very short      */
-/* orbits.  The method used looks for periodic phase-modulation         */
-/* induced sidelobes around a pulsar spin freq in the power spectrum    */
-/* (see http://cfa160.harvard.edu/~ransom/readable_poster.ps.gz for     */
-/* more details).  The inputs are:                                      */
-/*   *header - the 640 byte raw header for the observation              */
-/*   N - the number of frequencies in the input FFT (should be 2**22)   */
-/*   *bigfft - the single precision full-length FFT to be searched      */
-/*   dm - the DM used to prepare the data in the bigfft                 */
-/*   minfft - the shortest miniFFT to use in the search (32 is good)    */
-/*   maxfft - the longest miniFFT to use in the search (8192 is good)   */
-/* The routine as now stands will take approximately 1.5 minutes to run */
-/* on each data set.  If you want to sacrifice about 20% sensitivity,   */
-/* you can change OVERLAPFACT to 2.  This allow the routine to run      */
-/* almost twice as fast.  I would personally recommend against this.    */
-/* We should be sensitive to pulsars in very-low to very-high mass      */
-/* binaries with orbital periods <~ 20min and flux densities of 1 mJy   */
-/* or a little less (if the duty cycle of the pulsar is short enough).  */
-/* Return value is 0 if the code didn't find any candidates with        */
-/* significance greater than THRESH.  If the return value is positive,  */
-/* than a significant candidate (or more) was found in the FFT (this    */
-/* could be the trigger to save the bigFFT to a file for more in depth  */
-/* analysis...)                                                         */
+/* 
+ * This routine searches an FFT (assumed to be single precision        
+ * complex values in increasing order by Fourier Freq) from the        
+ * Parkes Multibeam Pulsar Survey for binary pulsars in very short     
+ * orbits.  The method used looks for periodic phase-modulation        
+ * induced sidelobes around a pulsar spin freq in the power spectrum   
+ * (see http://cfa160.harvard.edu/~ransom/readable_poster.ps.gz for    
+ * more details).  The inputs are:                                     
+ *   *header - the 640 byte raw header for the observation             
+ *   N - the number of frequencies in the input FFT (should be 2**22)  
+ *   *bigfft - the single precision full-length FFT to be searched     
+ *   dm - the DM used to prepare the data in the bigfft                
+ *   minfft - the shortest miniFFT to use in the search (32 is good)   
+ *   maxfft - the longest miniFFT to use in the search (8192 is good)  
+ * The routine as now stands takes approximately 30-40 sec to run
+ * on each data set.  If you want to sacrifice about 20% sensitivity,  
+ * you can change OVERLAPFACT to 2.  This allow the routine to run     
+ * almost twice as fast.  I would personally recommend against this.   
+ * We should be sensitive to pulsars in very-low to very-high mass     
+ * binaries with orbital periods <~ 20min and flux densities of 1 mJy  
+ * or a little less (if the duty cycle of the pulsar is short enough). 
+ * Return value is 0 if the code didn't find any candidates with       
+ * significance greater than THRESH.  If the return value is positive, 
+ * than a significant candidate (or more) was found in the FFT (this   
+ * could be the trigger to save the bigFFT to a file for more in depth 
+ * analysis...)                                                        
+ */
 {
   int ii, jj, worklen, fftlen, binsleft, overlaplen;
   int bigfft_offset=0, powers_offset, wrkblk=WORKBLOCK;
@@ -203,9 +199,9 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 	norm = sqrt((double) fftlen) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
 	search_minifft((fcomplex *)minifft, fftlen / 2, tmplist, \
-		       MININCANDS, NUMHARMSUM, NUMBETWEEN, idata.N, \
-		       T, (double) (powers_offset + bigfft_offset), \
-		       INTERPOLATE, NO_CHECK_ALIASED);
+		       MININCANDS, NUMHARMSUM, 2, idata.N, T, \
+		       (double) (powers_offset + bigfft_offset), \
+		       INTERBIN, NO_CHECK_ALIASED);
 		       
 	/* Check if the new cands should go into the master cand list */
 
@@ -323,7 +319,6 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 #undef OVERLAPFACT
 #undef WORKBLOCK
 #undef NUMHARMSUM
-#undef NUMBETWEEN
 #undef THRESH
 #ifdef CANDOUT
 #undef CANDOUT
