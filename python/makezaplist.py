@@ -49,7 +49,7 @@ def processbirds(filename):
                 if (psr.orb.p):
                     midv = 0.5 * (maxv + minv)
                     midf = (1.0 + midv) * psr.f * harm
-                    width = 1.05 * (maxv - minv) * psf.f * harm
+                    width = 1.05 * (maxv - minv) * psr.f * harm
                     if (width < min_psr_width):
                         width = min_psr_width
                 else:
