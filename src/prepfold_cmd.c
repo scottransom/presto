@@ -50,11 +50,11 @@ static Cmdline cmd = {
   /* npartC = */ 1,
   /***** -pstep: The minimum period stepsize over the observation in profile bins */
   /* pstepP = */ 1,
-  /* pstep = */ 1,
+  /* pstep = */ 2,
   /* pstepC = */ 1,
   /***** -pdstep: The minimum P-dot stepsize over the observation in profile bins */
   /* pdstepP = */ 1,
-  /* pdstep = */ 3,
+  /* pdstep = */ 4,
   /* pdstepC = */ 1,
   /***** -dmstep: The minimum DM stepsize over the observation in profile bins */
   /* dmstepP = */ 1,
@@ -62,11 +62,11 @@ static Cmdline cmd = {
   /* dmstepC = */ 1,
   /***** -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched */
   /* npfactP = */ 1,
-  /* npfact = */ 1,
+  /* npfact = */ 2,
   /* npfactC = */ 1,
   /***** -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched */
   /* ndmfactP = */ 1,
-  /* ndmfact = */ 1,
+  /* ndmfact = */ 3,
   /* ndmfactC = */ 1,
   /***** -p: The nominative folding period (s) */
   /* pP = */ 0,
@@ -1255,19 +1255,19 @@ usage(void)
             default: `64'\n\
     -pstep: The minimum period stepsize over the observation in profile bins\n\
             1 int value between 1 and 10\n\
-            default: `1'\n\
+            default: `2'\n\
    -pdstep: The minimum P-dot stepsize over the observation in profile bins\n\
             1 int value between 1 and 20\n\
-            default: `3'\n\
+            default: `4'\n\
    -dmstep: The minimum DM stepsize over the observation in profile bins\n\
             1 int value between 1 and 10\n\
             default: `2'\n\
    -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched\n\
             1 int value between 1 and 10\n\
-            default: `1'\n\
+            default: `2'\n\
   -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
             1 int value between 1 and 10\n\
-            default: `1'\n\
+            default: `3'\n\
         -p: The nominative folding period (s)\n\
             1 double value between 0 and oo\n\
        -pd: The nominative period derivative (s/s)\n\
@@ -1316,7 +1316,7 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
-version: 21Jan00\n\
+version: 21Feb00\n\
 ");
   exit(EXIT_FAILURE);
 }
