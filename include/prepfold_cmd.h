@@ -17,12 +17,16 @@ typedef struct s_Cmdline {
   char pkmbP;
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   char bcpmP;
-  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
-  char wappP;
   /***** -if: For BPP format only:  A specific IF to use. */
   char ifsP;
   int ifs;
   int ifsC;
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  char wappP;
+  /***** -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed. */
+  char clipP;
+  float clip;
+  int clipC;
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   char nobaryP;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */

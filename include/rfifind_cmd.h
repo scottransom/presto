@@ -17,12 +17,16 @@ typedef struct s_Cmdline {
   char pkmbP;
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   char bcpmP;
-  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
-  char wappP;
   /***** -if: For BPP format only:  A specific IF to use. */
   char ifsP;
   int ifs;
   int ifsC;
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  char wappP;
+  /***** -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed. */
+  char clipP;
+  float clip;
+  int clipC;
   /***** -xwin: Draw plots to the screen as well as a PS file */
   char xwinP;
   /***** -nocompute: Just plot and remake the mask */

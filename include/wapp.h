@@ -75,9 +75,9 @@ typedef struct WAPP_HEADER{
 
 /* wapp.c */
 void WAPP_hdr_to_inf(WAPP_HEADER *hdr, infodata *idata);
-void get_WAPP_file_info(FILE *files[], int numfiles, long long *N, 
-			int *ptsperblock, int *numchan, double *dt, 
-			double *T, infodata *idata, int output);
+void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig, 
+			long long *N, int *ptsperblock, int *numchan, 
+			double *dt, double *T, infodata *idata, int output);
 void WAPP_update_infodata(int numfiles, infodata *idata);
 int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec);
 void print_WAPP_hdr(WAPP_HEADER *hdr);
