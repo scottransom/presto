@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include "rawtype.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 /* Some vector routines by Scott Ransom since he hates the non-zero */
 /* offset general vector routines in Numerical Recipes.  ;)         */
 /* The routines are in vectors.c                                    */
