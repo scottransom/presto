@@ -377,7 +377,7 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   for (ii=1; ii<numwapps_st; ii++)
     center_freqs_st[ii] = center_freqs_st[0]+ii*idata->freqband;
   /* Hack to invert band when being used for very low frequencies */
-  if (center_freqs_st[ii] < 400.0){
+  if (center_freqs_st[1] < 400.0){
     decreasing_freqs_st = 1;
     printf("Inverting the band since the center frequency is < 400MHz...\n");
   }
