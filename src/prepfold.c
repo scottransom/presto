@@ -97,9 +97,15 @@ int main(int argc, char *argv[])
     free(path);
 
     if (!cmd->outfileP){
-      char *suffix;
+      char *suffix, *tmprootnm;
 
-      split_root_suffix(cmd->argv[0], &rootnm, &suffix);
+      split_root_suffix(cmd->argv[0], &tmprootnm, &suffix);
+      if ((cmd->startT != 0.0) || (cmd->endT != 1.0)){
+	rootnm = (char *)calloc(strlen(tmprootnm)+11, sizeof(char));
+	sprintf(rootnm, "%s_%4.2f-%4.2f", tmprootnm, cmd->startT, cmd->endT);
+      } else {
+	rootnm = tmprootnm;
+      }
       free(suffix);
     } else {
       rootnm = cmd->outfile;
@@ -727,11 +733,10 @@ int main(int argc, char *argv[])
       search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
     else
       search.proflen = (long) (search.topo.p1 / search.dt + 0.5);
-    if (cmd->timingP){
+    if (cmd->timingP)
       search.proflen = next2_to_n(search.proflen);
-    } else if (search.proflen > 64){
+    if (search.proflen > 64)
       search.proflen = 64;
-    }
   }
 
   /* Determine the phase delays caused by the orbit if needed */
