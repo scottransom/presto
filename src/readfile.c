@@ -82,6 +82,7 @@ int (*print_funct_ptrs[NUMTYPES])() = {
 
 /* A few global variables */
 
+int asciihdrlen;
 long N;
 double dt, nph;
 
@@ -240,7 +241,9 @@ int main(int argc, char **argv)
   /* Skip over the ASCII header if this is a WAPP file */
   if (cmd->wappP){
     char cc;
-    while((cc=fgetc(infile))!='\0');
+    while((cc=fgetc(infile))!='\0')
+      asciihdrlen++;
+    asciihdrlen++;
   }
 
   /* Skip to the correct first object */
@@ -406,8 +409,9 @@ int WAPPHDR_print(long count, char *obj_ptr)
   object = (WAPP_HEADER *) obj_ptr;
   printf("\n%ld:", count + 1);
   swapped = check_WAPP_byteswap(object);
+  printf("  Skipped ASCII header of length %d bytes.\n", asciihdrlen);
   if (swapped)
-    printf("  Byte-swapped from little-endian to big-endian...\n");
+    printf("    Byte-swapped from little-endian to big-endian.\n");
   print_WAPP_hdr(object);
   return 0;
 }

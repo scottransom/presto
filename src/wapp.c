@@ -278,12 +278,14 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
   *T = T_st = N_st * dt_st;
   currentfile = currentblock = 0;
   if (output){
-    printf("  Number of files = %d\n", numfiles);
-    printf("     Points/block = %d\n", ptsperblk_st);
-    printf("  Num of channels = %d\n", numchan_st);
-    printf(" Total points (N) = %lld\n", N_st);
-    printf(" Sample time (dt) = %-14.14g\n", dt_st);
-    printf("   Total time (s) = %-14.14g\n\n", T_st);
+    printf("   Number of files = %d\n", numfiles);
+    printf("      Points/block = %d\n", ptsperblk_st);
+    printf("   Num of channels = %d\n", numchan_st);
+    printf("  Total points (N) = %lld\n", N_st);
+    printf("  Sample time (dt) = %-14.14g\n", dt_st);
+    printf("    Total time (s) = %-14.14g\n", T_st);
+    printf("  ASCII Header (B) = %d\n", asciihdrlen);
+    printf(" Binary Header (B) = %ld\n\n", hdr.header_size);
     printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)
