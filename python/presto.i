@@ -761,6 +761,11 @@ double sumpows_from_sigma(double sigma, int numsum);
   /* Return the summed ('numsum' powers) power required */
   /* to achieve a Gaussian significance of 'sigma'.     */
 
+%apply double* IN_1D_DOUBLE { double *data };
+double chisqr(double *data, int numdata, double avg, double var);
+  /* Calculates the chi-square of the 'data' which has average */
+  /* 'avg', and variance 'var'.                                */
+
 %apply char *OUTPUT { char *output };
 int nice_output_1(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded  */

@@ -942,6 +942,8 @@ sigma_from_sumpows = prestoc.sigma_from_sumpows
 
 sumpows_from_sigma = prestoc.sumpows_from_sigma
 
+chisqr = prestoc.chisqr
+
 nice_output_1 = prestoc.nice_output_1
 
 nice_output_2 = prestoc.nice_output_2
