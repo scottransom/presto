@@ -229,6 +229,13 @@ int main(int argc, char *argv[])
     numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
   }
 
+  if (cmd->numsub > numchan){
+    printf("Warning:  The number of requested subbands (%d) is larger than the number of channels (%d).\n",
+	   cmd->numsub, numchan);
+    printf("          Re-setting the number of subbands to %d.\n\n", numchan);
+    cmd->numsub = numchan;
+  }
+
   if (blocklen % cmd->downsamp){
     printf("Error:  The downsample factor (%d) must be a factor of the\n",
 	   cmd->downsamp);
