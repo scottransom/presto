@@ -5,8 +5,11 @@
 #include <unistd.h>
 #include "vectors.h"
 
-long next2_to_n(long x);
+long long next2_to_n(long long x);
 /* Return the first value of 2^n >= x */
+
+int gcd(int a, int b);
+/* Return the greatest common divisor of a and b */
 
 void split_path_file(char *input, char **path, char **file);
 /* This routine splits an input string into a path and */
