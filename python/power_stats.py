@@ -3,7 +3,7 @@ from Numeric import *
 from RandomArray import random, randint, normal
 from presto import rfft, TWOPI, spectralpower
 from Pgplot import plotxy, plotbinned, closeplot
-from Statistics import histogram
+from Statistics import average, standardDeviation, histogram
 
 # This code tests the statistics of photon based power
 # spectra and signals.  It is useful for checking
@@ -11,10 +11,10 @@ from Statistics import histogram
 
 N = 2**14               # Number of points in FFT
 numphot = 5000          # Number of photons in time series
-pfract = 1.0            # Number of pulsed photons / number of background photons
-freq = N/8              # Signal Fourier Frequency (hz)
+pfract = 0.2            # Number of pulsed cts / number of background cts
+freq = N/4              # Signal Fourier Frequency (hz)
 phase = 0.5             # Initial pulse phase (0.0-1.0)
-pulsetype = 'Gaussian'  # Can be either 'Sine' or 'Gaussian'
+pulsetype = 'Sine'      # Can be either 'Sine' or 'Gaussian'
 width = 0.1             # +/-1 sigma width of Gaussian pulse in phase
 
 data = zeros(N, 'f')
@@ -44,11 +44,21 @@ elif pulsetype=='Gaussian':
 points = ((pulses + phases) / freq * N).astype('i')
 for point in points:
     data[point] = data[point] + 1.0
+tmp = average(data)
+#print 'Average Data = ', tmp
+#print '   sqrt(avg) = ', sqrt(tmp)
+#print ' StdDev Data = ', standardDeviation(data)
 ft = rfft(data)
 pows = spectralpower(ft)/ft[0].real
 pows[0] = 1.0
-plotxy(pows)
-print 'Number of counts =',sum(data)
-print 'Max power =', max(pows), 'at Fourier Freq =', argmax(pows)
-closeplot()
+#print 'Number of counts =', sum(data)
+#print 'Max power =', max(pows)
+#print 'Max  freq =', argmax(pows)
+theo_pow = pfract**2.0*numphot/4.0
+meas_pow = pows[freq]
+print 'Theo pow =', theo_pow
+print 'Meas pow =', meas_pow
+#print 'Theo pow2 (pfract^2Nph/(4)) = ', theo_pow
+#plotxy(pows)
+#closeplot()
 del(points)
