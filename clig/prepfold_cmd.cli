@@ -45,7 +45,7 @@ Int    -dmstep    dmstep   {The minimum DM stepsize over the observation in prof
 Int    -npfact   npfact   {2 * npfact * proflen + 1 periods and p-dots will be searched} \
 	-r 1 10  -d 2
 Int    -ndmfact  ndmfact   {2 * ndmfact * proflen + 1 DMs will be searched} \
-	-r 1 10  -d 3
+	-r 1 1000  -d 3
 Double -p    p    {The nominative folding period (s)} \
 	-r 0 oo
 Double -pd   pd	 {The nominative period derivative (s/s)} \

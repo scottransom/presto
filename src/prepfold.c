@@ -973,8 +973,8 @@ int main(int argc, char *argv[])
 	double dphase, lodm, hidm, ddm;
       
 	dphase = 1/(foldf*search.proflen);
-	ddm = dm_from_delay(dphase * search.dmstep, obsf[0]);
-	numdmtrials = 2*search.ndmfact*search.proflen + 1;
+	ddm = dm_from_delay(dphase*cmd->dmstep, obsf[0]);
+	numdmtrials = 2*cmd->ndmfact*search.proflen + 1;
 	lodm = cmd->dm - (numdmtrials-1)/2*ddm;
 	if (lodm < 0.0) lodm = 0.0;
 	hidm = lodm + numdmtrials * ddm;

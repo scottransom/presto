@@ -1532,7 +1532,7 @@ usage(void)
                1 int value between 1 and 10\n\
                default: `2'\n\
      -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
-               1 int value between 1 and 10\n\
+               1 int value between 1 and 1000\n\
                default: `3'\n\
            -p: The nominative folding period (s)\n\
                1 double value between 0 and oo\n\
@@ -1601,7 +1601,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 24Apr02\n\
+version: 17May02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1795,7 +1795,7 @@ parseCmdline(int argc, char **argv)
       cmd.ndmfactP = 1;
       i = getIntOpt(argc, argv, i, &cmd.ndmfact, 1);
       cmd.ndmfactC = i-keep;
-      checkIntLower("-ndmfact", &cmd.ndmfact, cmd.ndmfactC, 10);
+      checkIntLower("-ndmfact", &cmd.ndmfact, cmd.ndmfactC, 1000);
       checkIntHigher("-ndmfact", &cmd.ndmfact, cmd.ndmfactC, 1);
       continue;
     }
