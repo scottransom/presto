@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
 		    numchan, numint, ptsperint, lobin, 
 		    numbetween);
 
-  } else {
+  } else { /* If "-nocompute" */
 
     /* Read the data from the output files */
     

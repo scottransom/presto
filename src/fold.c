@@ -67,6 +67,11 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
     return;
   }
 
+  if (*phaseadded < 0.0){
+    printf("Ack!\n");
+  }
+
+
   if (lophase >= 1.0)
     lophase -= (int) lophase;
 

@@ -78,7 +78,7 @@ LIBLINKFLAGS = -shared
 LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
 #LINKCOMMAND = ar rcs
 FFLAGS = -g -O
-FLINK = $(FC)
+FLINK = $(FC) -shared
 FLINKFLAGS = $(FFLAGS)
 
 # For DEC Alpha
@@ -291,6 +291,10 @@ plotbincand: plotbincand.o $(PLOT2DOBJS)
 
 profile: profile_cmd.c profile_cmd.o profile.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) profile.o profile_cmd.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+simplefold: simplefold.o polycos.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) simplefold.o polycos.o  $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 psrorbit: psrorbit.o $(PLOT2DOBJS)
