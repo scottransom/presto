@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
   unsigned char output_samples[2048];
   float *scalings=NULL;
   double dt, T;
-  SPIGOT_INFO *spigots;
+  SPIGOT_INFO *spigots, spigot0;
   sigprocfb fb;
   infodata idata;
 
@@ -111,6 +111,7 @@ int main(int argc, char *argv[])
     read_SPIGOT_header(argv[filenum], spigots+filenum-1);
     rewind(infiles[filenum-1]);
   }
+  spigot0 = spigots[0];
   printf("\n");
   /* The following is necessary in order to initialize all the */
   /* static variables in spigot.c                              */
@@ -128,9 +129,8 @@ int main(int argc, char *argv[])
   ii = 0;
   for (filenum=1; filenum<argc; filenum++){
     printf("Reading from file '%s'...\n", argv[filenum]);
-    chkfseek(infiles[filenum-1], spigots[filenum-1].header_len, SEEK_SET);
-    bytes_per_read = spigots[filenum-1].lags_per_sample*\
-      spigots[filenum-1].bits_per_lag/8;
+    chkfseek(infiles[filenum-1], spigot0.header_len, SEEK_SET);
+    bytes_per_read = spigot0.lags_per_sample*spigot0.bits_per_lag/8;
     
     /* Loop over the samples in the file */
     while (chkfread(rawlags, bytes_per_read, 1, infiles[filenum-1])){
