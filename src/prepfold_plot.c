@@ -215,7 +215,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 			      (bestpd * search->fold.p1 * search->fold.p1 + 
 			       search->fold.p2) / dphase) + 0.5);
 	    shift_prof(ddprofs + profindex, search->proflen, 
-		       pddelay + dmdelays[jj], pdprofs + profindex);
+		       pddelay - dmdelays[jj], pdprofs + profindex);
 	  }
 	  
 	  /* Correct each part for the best period and sum */
@@ -641,7 +641,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       else if (pdfold == 0.0)
 	sprintf(pdout, "Pdot (s/s)");
       else
-	sprintf(pdout, "Pdot-%-.5g (s/s)", pdfold);
+	sprintf(pdout, "Pdot - %-.5g (s/s)", pdfold);
       cpgmtxt("B", 2.2, 0.5, 0.5, pdout);
       cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
       cpgline(search->numpdots, ftmparr1, pdotchi);

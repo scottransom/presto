@@ -43,7 +43,8 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 {
   int ii, gotone=0;
   double T, T2, pwr, norm, sigpow=6.6, r2, r4, z2, sr2, sz2;
-  double dtmp, r, z, w, rerr=0.0, zerr=0.0, werr=0.0;
+  double dtmp, r, z, w, pwrfact=0.0, rerr, zerr, werr;
+  double rerrn=0.0, zerrn=0.0, werrn=0.0, rerrd=0.0, zerrd=0.0, werrd=0.0;
   float powargr, powargi;
   fcomplex *fftprof;
 
@@ -83,18 +84,27 @@ void fold_errors(double *prof, int proflen, double dt, double N,
   /* Step through the powers and find the significant ones.  */
   /* Estimate the error of the fundamental using each one.   */
   /* Combine these errors into a unified error of the freq.  */
+  /* Note:  In our case the errors are the data points and   */
+  /*        we are combining them using a weighted mean.     */
+  /*        The weights come from the fact that the powers   */
+  /*        have a measurements error = sqrt(2 * P).  This   */
+  /*        causes an error in our estimates of rerr.        */
 
   ii = 1;
   for (ii = 1; ii < proflen / 2; ii++){
     pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
+    pwrfact = 2.0 * pwr;
     if (pwr > sigpow){
       gotone = 1;
       dtmp = 3.0 / ((PI * sqrt(6.0 * pwr)) * ii);
-      rerr += 1.0 / (dtmp * dtmp);
+      rerrn += pwrfact / dtmp;
+      rerrd += pwrfact / (dtmp * dtmp);
       dtmp = 3.0 * sqrt(10.0) / ((PI * sqrt(pwr)) * ii);
-      zerr += 1.0 / (dtmp * dtmp);
+      zerrn += pwrfact / dtmp;
+      zerrd += pwrfact / (dtmp * dtmp);
       dtmp = 6.0 * sqrt(105.0) / ((PI * sqrt(pwr) * ii));
-      werr += 1.0 / (dtmp * dtmp);
+      werrn += pwrfact / dtmp;
+      werrd += pwrfact / (dtmp * dtmp);
     }
   }
 
@@ -106,9 +116,9 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 
   /* Calculate the standard deviations */
 
-  rerr = sqrt(1.0 / rerr);
-  zerr = sqrt(1.0 / zerr);
-  werr = sqrt(1.0 / werr);
+  rerr = rerrn / rerrd;
+  zerr = zerrn / zerrd;
+  werr = werrn / werrd;
 
   /* Some useful values */
 

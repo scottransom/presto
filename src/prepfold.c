@@ -800,13 +800,9 @@ int main(int argc, char *argv[])
       
       /* Insure that we don't try a dm < 0.0 */
       
-      if (cmd->dm - search.proflen * ddm < 0.0){
-	numdmtrials = (int)(cmd->dm / ddm) + search.proflen + 1;
-	lodm = cmd->dm - (int)(cmd->dm / ddm);
-      } else {
-	numdmtrials = 4 * search.proflen + 1;
-	lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
-      }
+      numdmtrials = 4 * search.proflen + 1;
+      lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
+      if (lodm < 0.0) lodm = 0.0;
       search.dms = gen_dvect(numdmtrials);
       search.numdms = numdmtrials;
       
