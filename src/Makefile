@@ -237,8 +237,8 @@ test_multifiles: test_multifiles.o
 	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(EXTRALINK) $(PRESTOLINK) -lm
 
 rfifind: rfifind.o rfi_utils.o rfifind_cmd.o
-	$(CC) $(CFLAGS) -o $@ rfifind.o rfi_utils.o rfifind_cmd.o $(EXTRALINK) $
-	(PRESTOLINK) -lm
+	$(CC) $(CFLAGS) -o $@ rfifind.o rfi_utils.o rfifind_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
 
 showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
