@@ -366,6 +366,36 @@ int main(int argc, char *argv[])
     dsdt = cmd->downsamp * idata.dt;
     idata.dm = avgdm;
     blocklen = ptsperblock;
+
+    /* Hack to shift to a later part in the raw data */
+    {
+      char *envval=getenv("BCPM_OBS_OFFSET");
+
+      if (envval!=NULL){
+	double startT=strtod(envval, NULL);
+	if (startT){
+	  double recdt, newstartT, startTday;
+	  long lorec, numrec;
+
+	  numrec = idata.N/blocklen;
+	  recdt = blocklen*idata.dt;
+	  lorec = (long) (startT * numrec + DBLCORRECT);
+	  newstartT = (double)(lorec*blocklen)/idata.N;
+	  startTday = lorec*recdt/SECPERDAY;
+	  idata.mjd_f += startTday;
+	  if (idata.mjd_f > 1.0){
+	    idata.mjd_f -= 1.0;
+	    idata.mjd_i += 1;
+	  }
+	  printf("\n  Found startT = %.10g, newstartT = %.10g:\n", 
+		 startT, newstartT);
+	  printf("    numrec = %ld, lorec = %ld, timeoffset = %.10g:\n", 
+		 numrec, lorec, startTday);
+	  skip_to_BPP_rec(infiles, numinfiles, lorec+1);
+	}
+      }
+    }
+
     blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dsdt) 
 		     / ptsperblock + 1);
     worklen = blocklen * blocksperread;
