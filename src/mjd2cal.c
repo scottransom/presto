@@ -13,6 +13,10 @@ void slaDjcl(double djm, int *iy, int *im, int *id, double *fd, int *j);
 /* Does not include jump discontinuities from leap seconds.  */
 /* I don't really know if it should !                        */
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   int year, month, day, hour, min, err;

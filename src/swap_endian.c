@@ -3,6 +3,10 @@
 #include <stdlib.h>
 #include <math.h>
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
 

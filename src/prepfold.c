@@ -12,6 +12,10 @@ int read_floats(FILE * file, float *data, long numpts, \
 
 /* The main program */
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 /* This routine generates barycentric info for a multichannel radio */
 /* data file and then folds each channel at a specific frequency.   */

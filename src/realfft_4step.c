@@ -10,6 +10,10 @@
 #include "ransomfft.h"
 #include "vectors.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   float *data;

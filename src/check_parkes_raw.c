@@ -1,6 +1,10 @@
 #include "presto.h"
 #include "multibeam.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 /* This routine checks a Parkes Multibeam raw data file for */
 /* obvious errors.                                          */

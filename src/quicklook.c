@@ -1,5 +1,9 @@
 #include "presto.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *fftfile;

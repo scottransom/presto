@@ -38,16 +38,19 @@ LIBSUFFIX = so
 # The true library names
 PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 
+# Use the following if we are using DMALLOC
+DMALLOCLINK = -ldmalloc
+
 # The standard PRESTO libraries to link into executables
-PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK)
- 
+PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 
 # For Pentium with GCC
 CC = gcc
 F77 = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -ansi -pedantic -Wall -W -O -fpic
+	-g -ansi -pedantic -Wall -W -O -fpic \
+	-DUSEDMALLOC
 #	-Dinline= -Wmissing-prototypes \
 #	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
@@ -179,7 +182,7 @@ $(PRESTOLIBNM): $(PRESTOOBJS)
 	cp $@ $(PRESTO)/lib
 
 meminit:
-	$(CC) $(CFLAGS) -o $@ meminit.c
+	$(CC) $(CFLAGS) -o $@ meminit.c $(DMALLOCLINK)
 	./meminit
 	rm -f meminit
 
@@ -189,7 +192,7 @@ bincat:
 	rm -f bincat
 
 timetest: 
-	$(CC) -o $@ timetest.c
+	$(CC) -o $@ timetest.c $(DMALLOCLINK)
 	./timetest
 	rm -f timetest
 
@@ -198,11 +201,11 @@ bary: bary.o
 	cp $@ ../bin
 
 shiftdata: shiftdata.o 
-	$(CC) $(CFLAGS) -o $@ shiftdata.o -lm
+	$(CC) $(CFLAGS) -o $@ shiftdata.o $(DMALLOCLINK) -lm
 	cp $@ ../bin
 
 patchdata: patchdata.o 
-	$(CC) $(CFLAGS) -o $@ patchdata.o
+	$(CC) $(CFLAGS) -o $@ patchdata.o $(DMALLOCLINK)
 	cp $@ ../bin
 
 check_parkes_raw: check_parkes_raw.o multibeam.o 
@@ -247,12 +250,12 @@ makeinf: makeinf.o ioinf.o
 	cp $@ ../bin
 
 makewisdom:
-	$(CC) $(CFLAGS) -o $@ makewisdom.c $(FFTLINK) -lm
+	$(CC) $(CFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
 	./makewisdom
 	cp fftw_wisdom.txt $(PRESTO)/lib
 
 mjd2cal: djcl.o mjd2cal.o
-	$(CC) $(CFLAGS) -o $@ djcl.o mjd2cal.o -lm
+	$(CC) $(CFLAGS) -o $@ djcl.o mjd2cal.o $(DMALLOCLINK) -lm
 	cp $@ ../bin
 
 plotbincand: plotbincand.o $(PLOT2DOBJS)
@@ -292,11 +295,11 @@ search_rzw: search_rzw.o
 	cp $@ ../bin
 
 swap_endian:
-	$(CC) $(CFLAGS) -o $@ swap_endian.c
+	$(CC) $(CFLAGS) -o $@ swap_endian.c $(DMALLOCLINK) 
 	cp $@ ../bin
 
 togeomview:
-	$(CC) -O -o $@ togeomview.c
+	$(CC) -O -o $@ togeomview.c $(DMALLOCLINK)
 	cp $@ ../bin
 
 window: window.o $(PLOT2DOBJS)

@@ -9,6 +9,10 @@
 
 #define WORKLEN 16384
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   long ii, bins_to_patch;

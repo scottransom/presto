@@ -2,6 +2,10 @@
 #include "bincand_cmd.h"
 #include "orbint.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char **argv)
 /* bincand: tries to optimize a binary PSR candidate based  */
 /* on the mini-FFT method in a large FFT.  Uses an orbit    */

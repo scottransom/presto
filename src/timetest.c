@@ -5,6 +5,10 @@
 #include <sys/times.h>
 #include <math.h>
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(void){
   FILE *file;
   double tott;

@@ -45,6 +45,10 @@ static long sqrt4down(long x)
 }
 
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(void)
 {
   long CODESIZE;

@@ -5,6 +5,10 @@
 /* The number of points to work with at a time from the input file */
 #define WORKLEN       8192
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char **argv)
 /* profile: gets pulse profile from barycentered data  */
 /* Written by Scott Ransom on 4 Jan 98 based on a vers */

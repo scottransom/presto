@@ -32,6 +32,10 @@ static char num[41][5] =
 
 /* Main routine */
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile;
@@ -146,9 +150,9 @@ int main(int argc, char *argv[])
   /* For numtoread, the 6 just lets us read extra data at once */
 
   numtoread = 6 * cmd->maxfft + cmd->maxfft / 2;
-  if (cmd->stack == 0){
-    data = gen_cvect(numtoread);
-  }
+/*   if (cmd->stack == 0){ */
+/*     data = gen_cvect(numtoread); */
+/*   } */
   powers = gen_fvect(numtoread);
   minifft = gen_fvect(cmd->maxfft);
   ncand2 = 2 * cmd->ncand;
@@ -280,6 +284,7 @@ int main(int argc, char *argv[])
       /* Size of mini-fft while loop */
     }
 
+    if (cmd->stack == 0) free(data);
     filepos += numtoread - cmd->maxfft / 2;
     loopct++;
 
@@ -314,11 +319,10 @@ int main(int argc, char *argv[])
 
   /* Set our candidate notes to all spaces */
 
-  notes = malloc(sizeof(char) * newncand * 18);
-  for (ii = 0; ii < newncand; ii++) {
-    sprintf(notes + ii * 18, "                  ");
-  }
-
+  notes = malloc(sizeof(char) * newncand * 18 + 1);
+  for (ii = 0; ii < newncand; ii++)
+    strncpy(notes + ii * 18, "                     ", 18);
+ 
   /* Check the database for possible known PSR detections */
 
   if (idata.ra_h && idata.dec_d) {
@@ -343,7 +347,6 @@ int main(int argc, char *argv[])
 
   /* Free our arrays and close our files */
 
-  if (cmd->stack == 0) free(data);
   free(list);
   free(powers);
   free(minifft);

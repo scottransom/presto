@@ -10,6 +10,10 @@ void usage(void);
 
 /* Main routine */
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile = NULL, *psfile = NULL;

@@ -33,6 +33,10 @@ int remove_other(fourierprops * list, int nlist, long rlo, \
 /*  Returns # removed.                                               */
 
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile, *poscandfile;
@@ -424,10 +428,9 @@ int main(int argc, char *argv[])
 
   /* Set our candidate notes to all spaces */
 
-  notes = malloc(sizeof(char) * newncand * 20);
-  for (ii = 0; ii < newncand; ii++) {
-    sprintf(notes + ii * 20, "                    ");
-  }
+  notes = malloc(sizeof(char) * newncand * 20 + 1);
+  for (ii = 0; ii < newncand; ii++)
+    strncpy(notes + ii * 20, "                         ", 20);
 
   /* Compare the candidates with the pulsar database */
 

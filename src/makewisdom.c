@@ -4,6 +4,10 @@
 #include "meminfo.h"
 #include "sfftw.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(void)
 {
   FILE *wisdomfile;

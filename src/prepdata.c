@@ -17,6 +17,10 @@ int read_floats(FILE * file, float *data, long numpts, \
 
 /* The main program */
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 /* This routine generates barycentric info for a data   */
 /* file.  The file can contain many spectral channels.  */

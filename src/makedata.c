@@ -6,6 +6,10 @@ extern char bands[NUMBANDS][40];
 extern char scopes[NUMSCOPES][40];
 double fwhm;
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   /* Basic variables */

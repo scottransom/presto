@@ -13,6 +13,10 @@
 void fshift(float *indata, float *outdata, int arrlen, \
 	    double shift, double overlap);
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   int numread;

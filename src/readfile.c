@@ -67,6 +67,10 @@ int (*print_funct_ptrs[NUMTYPES])() = {
 long N;
 double dt, nph;
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char **argv)
 {
   int index = -1, need_type = 0, objs_read, objs_to_read;

@@ -2,6 +2,10 @@
 #include "plot2d.h"
 #include "orbint.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *makefile;

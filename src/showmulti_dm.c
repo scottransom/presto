@@ -1,6 +1,10 @@
 #include "presto.h"
 #include "plot2d.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *infile;

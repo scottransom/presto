@@ -3,6 +3,10 @@
 
 #define NPTS   262144
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *file;

@@ -2,6 +2,10 @@
 #include "plot2d.h"
 #include "randlib.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 {
   FILE *infile;

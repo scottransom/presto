@@ -3,6 +3,10 @@
 extern char bands[NUMBANDS][40];
 extern char scopes[NUMSCOPES][40];
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(void)
 {
   static char filters[NUMFILTERS][7] =

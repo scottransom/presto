@@ -2,6 +2,10 @@
 
 #define MAXTIMES 5000
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 int main(int argc, char *argv[])
 /* Convert topocentric arrival times (from stdin) to */
 /* barycentric times using TEMPO.                    */
