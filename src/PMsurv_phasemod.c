@@ -66,13 +66,16 @@ static int minifftlen[NUMMINIFFTS] = \
 
 /* Output thresholds */
 /* If any candidates have a power level greater than the   */
-/* following (which corresponds to a sigma of ~7.5 when    */
+/* following (which corresponds to a sigma of ~6.5 when    */
 /* you take into account the number of bins searched in    */
 /* each minifft), then print the candidate and observation */
 /* info to the output candfile.                            */
 
 static double threshold[NUMMINIFFTS] = \
+  {26.71, 27.40, 28.09, 28.79, 29.48, 30.17, 30.86};
+/* The following is ~7.5 sigma if needed
   {33.85, 34.54, 35.23, 35.93, 36.62, 37.31, 38.01};
+*/
 
 /* A single precision floating point complex structure */
 
