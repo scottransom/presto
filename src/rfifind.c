@@ -230,24 +230,31 @@ int main(int argc, char *argv[])
 	/* Calculate the averages and standard deviations */
 	/* for each point in time.                        */
       
-	avg_var(chandata, ptsperint, &davg, &dvar);
-	dataavg[ii][jj] = davg;
-	datastd[ii][jj] = sqrt(dvar);
-
 	if (padding){
-	  datapow[ii][jj] = 0.0;
-	} else { /* Calculate the FFT of each time interval and search it */
+	  if (cmd->pkmbP){
+	    dataavg[ii][jj] = 0.5;
+	    datastd[ii][jj] = 0.5;
+	    datapow[ii][jj] = 1.0;
+	  } else {
+	    dataavg[ii][jj] = 0.0;
+	    datastd[ii][jj] = 0.0;
+	    datapow[ii][jj] = 1.0;
+	  }
+	} else {
+	  avg_var(chandata, ptsperint, &davg, &dvar);
+	  dataavg[ii][jj] = davg;
+	  datastd[ii][jj] = sqrt(dvar);
 	  realfft(chandata, ptsperint, -1);
 	  numcands=0;
 	  norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
 	  if (norm==0.0) 
 	    norm = (chandata[0]==0.0) ? 1.0 : chandata[0];
 	  cands = search_fft((fcomplex *)chandata, ptsperint / 2, 
-			     lobin, 0.995 * ptsperint / 2, harmsum, 
+			     lobin, ptsperint / 2, harmsum, 
 			     numbetween, interptype, norm, freqsigma,
 			     &numcands, &powavg, &powstd, &powmax);
 	  datapow[ii][jj] = powmax;
-	
+	  
 	  /* Record the birdies */
 	  
 	  if (numcands){
@@ -266,7 +273,7 @@ int main(int argc, char *argv[])
 		}
 	      }
 	    }
-	  free(cands);
+	    free(cands);
 	  }
 	}
       }

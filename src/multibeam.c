@@ -11,8 +11,8 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char padval=0x55; /*01010101*/
-static unsigned char chanmask[MAXNUMCHAN], padblock[DATLEN];
+static const unsigned char padval=0x55; /* 01010101 (even channels are 0) */
+static unsigned char chanmask[MAXNUMCHAN];
 
 void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
 			int *ptsperblock, int *numchan, double *dt, 
@@ -40,10 +40,6 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
   ptsperblk_st = *ptsperblock = DATLEN * 8 / numchan_st;
   bytesperpt_st = numchan_st / 8;
   decreasing_freqs_st = (strtod(header.chanbw[1], NULL) > 0.0) ? 0 : 1;
-  for (ii=0; ii<ptsperblk_st; ii+=2){
-    memset(padblock + ii     * bytesperpt_st, 0x55, bytesperpt_st);
-    memset(padblock + (ii+1) * bytesperpt_st, 0xAA, bytesperpt_st);
-  }
   numblks_st[0] = chkfilelen(files[0], RECLEN);
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
@@ -160,22 +156,17 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 /* If padding is returned as 1, then padding was       */
 /* added and statistics should not be calculated       */
 {
-  int ii, offset, numtopad=0;
+  int offset, numtopad=0;
   unsigned char record[RECLEN];
   static unsigned char databuffer[DATLEN*2];
   static int bufferpts=0, padnum=0, shiftbuffer=1;
-
-static int firsttime=1;
-fflush(stdout);
-if (firsttime) printf("#currentblock currentfile bufferpts padnum shiftbuffer code\n");
-printf("%7d %2d %5d %8d %2d ", currentblock, currentfile, bufferpts, padnum, shiftbuffer);
-firsttime=0;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
   if (bufferpts && shiftbuffer)
-    memcpy(databuffer, databuffer+DATLEN, bufferpts);
+    memcpy(databuffer, databuffer + DATLEN, 
+	   bufferpts * bytesperpt_st);
   shiftbuffer=1;
 
   /* Make sure our current file number is valid */
@@ -192,13 +183,11 @@ firsttime=0;
     /* Put the new data into the databuffer or directly */
     /* into the return array if the bufferoffset is 0.  */
     if (bufferpts){
-printf("buf_block\n");
       offset = bufferpts * bytesperpt_st;
-      memcpy(databuffer+offset, record+HDRLEN, DATLEN);
+      memcpy(databuffer + offset, record + HDRLEN, DATLEN);
       memcpy(data, databuffer, DATLEN);
     } else {
-printf("std_block\n");
-      memcpy(data, record+HDRLEN, DATLEN);
+      memcpy(data, record + HDRLEN, DATLEN);
     }
     currentblock++;
     return 1;
@@ -209,22 +198,17 @@ printf("std_block\n");
 	*padding = 1;
 	if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
 	  if (bufferpts){  /* Buffer the padding? */
-printf("buf_padding\n");
 	    /* Add the amount of padding we need to */
-	    /* make our buffer offset (offset) = 0  */
+	    /* make our buffer offset = 0           */
 	    numtopad = ptsperblk_st - bufferpts;
-	    for (ii=0; ii<numtopad; ii++){
-	      offset = (bufferpts + ii) * bytesperpt_st;
-	      memset(databuffer+offset, padval, bytesperpt_st);
-	      padval = ~padval;
-	    }
+	    memset(databuffer + bufferpts * bytesperpt_st, 
+		   padval, numtopad * bytesperpt_st);
 	    /* Copy the new data/padding into the output array */
 	    memcpy(data, databuffer, DATLEN);
 	    bufferpts = 0;
 	  } else {  /* Add a full record of padding */
-printf("std_padding\n");
 	    numtopad = ptsperblk_st;
-	    memcpy(data, padblock, DATLEN);
+	    memset(data, padval, DATLEN);
 	  }
 	  padnum += numtopad;
 	  currentblock++;
@@ -236,14 +220,10 @@ printf("std_padding\n");
 	  return 1;
 	} else {  /* Need < 1 block (or remaining block) of padding */
 	  int pad;
-printf("frac_padding... ");
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
-	  for (ii=0; ii<numtopad; ii++){
-	    offset = (bufferpts + ii) * bytesperpt_st;
-	    memset(databuffer+offset, padval, bytesperpt_st);
-	    padval = ~padval;
-	  }
+          memset(databuffer + bufferpts * bytesperpt_st, 
+		 padval, numtopad * bytesperpt_st);
 	  padnum = 0;
 	  currentfile++;
 	  shiftbuffer = 0;
@@ -251,7 +231,6 @@ printf("frac_padding... ");
 	  return read_PKMB_rawblock(infiles, numfiles, hdr, data, &pad);
 	}
       } else {  /* No padding needed.  Try reading the next file */
-printf("next file... ");
 	currentfile++;
 	shiftbuffer = 0;
 	return read_PKMB_rawblock(infiles, numfiles, hdr, data, padding);
@@ -288,8 +267,12 @@ int read_PKMB_rawblocks(FILE *infiles[], int numfiles,
   }
   /* Return padding 'true' if more than */
   /* half of the blocks are padding.    */
-  if (numpad > numblocks / 2)
-    *padding = 1;
+  /* 
+     if (numpad > numblocks / 2)
+        *padding = 1;
+  */
+  /* Return padding 'true' if any block was padding */
+  if (numpad) *padding = 1;
   return retval;
 }
 
@@ -311,7 +294,6 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
 {
   int ii, jj, numread=0, offset;
   double starttime=0.0;
-  unsigned char pointmask;
   static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
   static unsigned char *currentdata, *lastdata;
   static int firsttime=1, numblocks=1, allocd=0, mask=0;
@@ -351,13 +333,8 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1){ /* If all channels are masked */
-	for (ii=0; ii<numblocks; ii++){
-	  offset = ii * DATLEN;
-	  for (jj=0; jj<DATLEN; jj++)
-	    *(raw+offset+jj) = *(padblock+jj);
-	}
-      }
+      if (*nummasked==-1) /* If all channels are masked */
+	memset(raw, padval, numblocks * DATLEN);
     }
     
     for (ii=0; ii<numpts; ii++)
@@ -368,10 +345,9 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
       for (ii=0; ii<*nummasked; ii++)
 	chanmask[ii] = maskchans[ii] & 0x01;
       for (ii=0; ii<numpts; ii++){
-	pointmask = ii & 0x01;
 	offset = ii * numchan_st;
 	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = pointmask^chanmask[jj];
+	  currentdata[offset+maskchans[jj]] = chanmask[jj];
       }
     }
 
@@ -388,13 +364,8 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1){ /* If all channels are masked */
-	for (ii=0; ii<numblocks; ii++){
-	  offset = ii * DATLEN;
-	  for (jj=0; jj<DATLEN; jj++)
-	    *(raw+offset+jj) = *(padblock+jj);
-	}
-      }
+      if (*nummasked==-1) /* If all channels are masked */
+	memset(raw, padval, numblocks * DATLEN);
     }
 
     for (ii=0; ii<numpts; ii++)
@@ -405,10 +376,9 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
       for (ii=0; ii<*nummasked; ii++)
 	chanmask[ii] = maskchans[ii] & 0x01;
       for (ii=0; ii<numpts; ii++){
-	pointmask = ii & 0x01;
 	offset = ii * numchan_st;
 	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = pointmask^chanmask[jj];
+	  currentdata[offset+maskchans[jj]] = chanmask[jj];
       }
     }
 
