@@ -190,10 +190,14 @@ int main(int argc, char *argv[])
 
     /* Place any TOAs we need to in the current output array */
 
-    while ((toa >= lotime && toa < hitime)
-	   && (toaptr - ddata) < ntoas){
-      fdata[(int)((toa - lotime) * dtfract)] += 1.0;
-      numplaced++;
+    while ((toaptr - ddata) < ntoas){
+      if (toa >= hitime)
+	break;
+      else
+	if (toa >= lotime){
+	  fdata[(int)((toa - lotime) * dtfract)] += 1.0;
+	  numplaced++;
+	}
       toaptr++;
       toa = *toaptr;
     }
