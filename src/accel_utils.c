@@ -292,11 +292,12 @@ void optimize_accelcand(accelcand *cand, accelobs *obs)
   cand->power = 0.0;
   for (ii=0; ii<cand->numharm; ii++){
     cand->pows[ii] = max_rz_file(obs->fftfile, 
-				 cand->r * (ii + 1), 
+				 cand->r * (ii + 1) - obs->lobin,
 				 cand->z * (ii + 1), 
 				 &(cand->hirs[ii]), 
 				 &(cand->hizs[ii]), 
 				 &(cand->derivs[ii]));
+    cand->hirs[ii] += obs->lobin;
     cand->power += cand->pows[ii];
   }
   cand->r = cand->hirs[0];
@@ -342,6 +343,117 @@ static void write_val_with_err(FILE *outfile, double val, double err,
 
 void output_fundamentals(fourierprops *props, GSList *list, 
 			 accelobs *obs, infodata *idata)
+{
+  double accel=0.0, accelerr=0.0;
+  int ii, numcols=13, numcands;
+  int widths[13]={4, 5, 6, 4, 16, 15, 15, 8, 8, 8, 8, 8, 20};
+  int errors[13]={0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 1, 2, 0};
+  char tmpstr[30], ctrstr[30], *notes;
+  accelcand *cand;
+  GSList *listptr;
+  rzwerrs errs;
+  char titles1[13][20]={"", "", "Summed", "Num", 
+			"Candidate Period", "Candidate Freq", 
+			"FFT Freq", "Phase", "Centroid", 
+			"Purity", "FFT Fdot", "Accel", ""};
+  char titles2[13][20]={"Cand", "Sigma", "Power", "Harm", "(ms)",
+			"(Hz)", "(bins)", "(rad)", "(0-1)", "<p> = 1",
+			"(bins)", "(m/s)", "Notes"};
+
+  numcands = g_slist_length(list);
+  listptr = list;
+
+  /* Close the old work file and open the cand file */
+  
+  fclose(obs->workfile);
+  obs->workfile = chkfopen(obs->accelnm, "w");
+  
+  /* Set our candidate notes to all spaces */
+
+  notes = (char *)malloc(numcands * widths[numcols-1]);
+  memset(notes, ' ', numcands * widths[numcols-1]);
+  
+  /* Compare the candidates with the pulsar database */
+
+  if (idata->ra_h && idata->dec_d){
+    for (ii=0; ii<numcands; ii++){
+      comp_psr_to_cand(props + ii, idata, notes + ii * 20, 0);
+    }
+  }
+
+  /* Compare the candidates with themselves */
+
+  compare_rzw_cands(props, numcands, notes);
+
+  /* Print the header */
+  
+  for (ii=0; ii<numcols-1; ii++){
+    center_string(ctrstr, titles1[ii], widths[ii]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+  }
+  center_string(ctrstr, titles1[ii], widths[ii]);
+  fprintf(obs->workfile, "%s\n", ctrstr);
+  for (ii=0; ii<numcols-1; ii++){
+    center_string(ctrstr, titles2[ii], widths[ii]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+  }
+  center_string(ctrstr, titles2[ii], widths[ii]);
+  fprintf(obs->workfile, "%s\n", ctrstr);
+  for (ii=0; ii<numcols-1; ii++){
+    memset(tmpstr, '-', widths[ii]);
+    tmpstr[widths[ii]] = '\0';
+    fprintf(obs->workfile, "%s--", tmpstr);
+  }
+  memset(tmpstr, '-', widths[ii]);
+  tmpstr[widths[ii]] = '\0';
+  fprintf(obs->workfile, "%s\n", tmpstr);
+  
+  /* Print the fundamentals */
+  
+  for (ii=0; ii<numcands; ii++){
+    cand = (accelcand *)(listptr->data);
+    calc_rzwerrs(props+ii, obs->T, &errs);
+    sprintf(tmpstr, "%4d", ii+1);
+    center_string(ctrstr, tmpstr, widths[0]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    sprintf(tmpstr, "%.2f", cand->sigma);
+    center_string(ctrstr, tmpstr, widths[1]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    sprintf(tmpstr, "%.2f", cand->power);
+    center_string(ctrstr, tmpstr, widths[2]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    sprintf(tmpstr, "%d", cand->numharm);
+    center_string(ctrstr, tmpstr, widths[3]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    write_val_with_err(obs->workfile, errs.p, errs.perr, 
+		       errors[4], widths[4]);
+    write_val_with_err(obs->workfile, errs.f, errs.ferr, 
+		       errors[5], widths[5]);
+    write_val_with_err(obs->workfile, props[ii].r, props[ii].rerr, 
+		       errors[6], widths[6]);
+    write_val_with_err(obs->workfile, props[ii].phs, props[ii].phserr, 
+		       errors[7], widths[7]);
+    write_val_with_err(obs->workfile, props[ii].cen, props[ii].cenerr, 
+		       errors[8], widths[8]);
+    write_val_with_err(obs->workfile, props[ii].pur, props[ii].purerr, 
+		       errors[9], widths[9]);
+    write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr, 
+		       errors[10], widths[10]);
+    accel = props[ii].z * SOL / (obs->T * obs->T * errs.f);
+    accelerr = props[ii].zerr * SOL / (obs->T * obs->T * errs.f);
+    write_val_with_err(obs->workfile, accel, accelerr, 
+		       errors[11], widths[11]);
+    fprintf(obs->workfile, "  %.20s\n", notes + ii * 20);
+    fflush(obs->workfile);
+    listptr = listptr->next;
+  }
+  fprintf(obs->workfile, "\n\n");
+  free(notes);
+}
+
+
+void output_harmonics(fourierprops *props, GSList *list, 
+		      accelobs *obs, infodata *idata)
 {
   double accel=0.0, accelerr=0.0;
   int ii, numcols=13, numcands;
@@ -500,7 +612,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   lobin = ffdot->rlo - binoffset;
   hibin = (int) ceil(drhi) + binoffset;
   numdata = hibin - lobin + 1;
-  data = read_fcomplex_file(obs->fftfile, lobin, numdata);
+  data = read_fcomplex_file(obs->fftfile, lobin - obs->lobin, numdata);
 
   /* Determine the mean local power level (via median) */
 

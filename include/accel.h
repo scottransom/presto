@@ -94,6 +94,8 @@ GSList *sort_accelcands(GSList *list);
 void optimize_accelcand(accelcand *cand, accelobs *obs);
 void output_fundamentals(fourierprops *props, GSList *list, 
 			 accelobs *obs, infodata *idata);
+void output_harmonics(fourierprops *props, GSList *list, 
+		      accelobs *obs, infodata *idata);
 void print_accelcand(gpointer data, gpointer user_data);
 void free_accelcand(gpointer data, gpointer user_data);
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 

@@ -4,6 +4,7 @@
 #include "dmalloc.h"
 #endif
 
+
 static void print_percent_complete(int current, int number)
 {
   static int newper=0, oldper=-1;
@@ -21,11 +22,13 @@ static void print_percent_complete(int current, int number)
 
 int main(int argc, char *argv[])
 {
+  int ii;
   double ttim, utim, stim, tott;
   struct tms runtimes;
   subharminfo *subharminf;
   accelobs obs;
   infodata idata;
+  GSList *cands=NULL;
   Cmdline *cmd;
 
   /* Prep the timer */
@@ -80,7 +83,6 @@ int main(int argc, char *argv[])
   {
     int harm_to_sum=1;
     double startr=obs.rlo, lastr=0, nextr=0;
-    GSList *cands=NULL;
     ffdotpows *fundamental;
     
     while (startr < obs.highestbin){  /* Search the fundamental */
@@ -147,45 +149,63 @@ int main(int argc, char *argv[])
   printf("Now optimizing each candidate.\n\n");
 
   {
-    double hir, hiz;
-    int ii, jj, numcands;
+    int numcands;
+    GSList *listptr;
     accelcand *cand;
-    rderivs
+    fourierprops *props;
 
-    /* Now maximize each good candidate */
+    /* Now optimize each candidate and its harmonics */
     
     numcands = g_slist_length(cands);
+    listptr = cands;
     for (ii=0; ii<numcands; ii++){
       print_percent_complete(ii, numcands);
-      cand = (accelcand *)g_slist_nth_data(cands, ii);
-      calc_props(derivs[ii], hir + cmd->lobin, hiz, 0.0, &props[ii]);
+      cand = (accelcand *)(listptr->data);
+      optimize_accelcand(cand, &obs);
+      listptr = listptr->next;
     }
     print_percent_complete(ii, numcands);
-  printf("\rAmount of optimization complete = %3d%%\n\n", 100);
+  
+    /* Sort the candidates according to the optimized sigmas */
 
-  qsort(props, (unsigned long) newncand, sizeof(fourierprops), \
-	compare_fourierprops);
+    cands = sort_accelcands(cands);
 
-  /* Write the binary candidate file */
+    /* Calculate the properties of the fundamentals */
 
-  candfile = chkfopen(candnm, "wb");
-  chkfwrite(props, sizeof(fourierprops), (unsigned long) newncand, \
-	    candfile);
-  fclose(candfile);
+    props = (fourierprops *)malloc(sizeof(fourierprops) * numcands);
+    listptr = cands;
+    for (ii=0; ii<numcands; ii++){
+      cand = (accelcand *)(listptr->data);
+      calc_props(cand->derivs[0], cand->hirs[0], cand->hizs[0], 
+		 0.0, props + ii);
+      listptr = listptr->next;
+    }
 
-  /* Send the candidates to the text file */
+    /* Write the fundamentals to the output text file */
 
-  if (cmd->ncand < newncand) newncand = cmd->ncand;
-  file_reg_candidates(props, notes, newncand, dt, \
-		      (long) (N + DBLCORRECT), nph, rootfilenm, accelnm);
+    output_fundamentals(props, cands, &obs, &idata);
+ 
+    /* Write the harmonics to the output text file */
+
+    output_harmonics(props, cands, &obs, &idata);
+
+    /* Write the fundamental fourierprops to the cand file */
+
+    obs.workfile = chkfopen(obs.candnm, "wb");
+    chkfwrite(props, sizeof(fourierprops), numcands, obs.workfile);
+    fclose(obs.workfile);
+    free(props);
+  }
 
   /* Finish up */
 
   printf("Done.\n\n");
-  printf("Searched %.0f pts (approximately %.0f were independent).\n\n", \
-	 totnumsearched, totnumsearched * 0.5 * dz / 6.95);
-
-  printf("Timing summary:\n");
+  printf("Searched the following approx numbers of independent points:\n");
+  printf("  %d  harmonic:  %9lld\n", 1, obs.numindep[ii]);
+  for (ii=1; ii<obs.numharm; ii++)
+    printf("  %d harmonics:  %9lld\n", ii+1, obs.numindep[ii]);
+  
+  printf("\nTiming summary:\n");
   tott = times(&runtimes) / (double) CLK_TCK - tott;
   utim = runtimes.tms_utime / (double) CLK_TCK;
   stim = runtimes.tms_stime / (double) CLK_TCK;
@@ -194,21 +214,11 @@ int main(int argc, char *argv[])
 	 ttim, utim, stim);
   printf("  Total time: %.3f sec\n\n", tott);
 
-  printf("Candidates in binary format are stored in '%s'.\n", candnm);
-  printf("A candidate Postscript table is stored in '%s.ps'.\n\n", accelnm);
+  printf("Candidates in binary format are stored in '%s'.\n", obs.candnm);
+  printf("Candidates in a text format are stored in '%s'.\n", obs.accelnm);
 
-/*     readinf(&idata, infonm); */
-/*     realpsr = comp_psr_to_cand(&props, &idata, compare); */
-/*     printf("%s\n",compare); */
-
-  free_accelobs(obs);
-  free(list);
-  free(derivs);
-  free(props);
-  free(notes);
-  if (cmd->zapfileP){
-    free(zapfreqs);
-    free(zapwidths);
-  }
+  free_accelobs(&obs);
+  g_slist_foreach(cands, free_accelcand, NULL);
+  g_slist_free(cands);
   return (0);
 }
