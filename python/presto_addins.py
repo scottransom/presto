@@ -211,8 +211,11 @@ def v_from_e(e, psr):
            'e' is the vector of Eccentric anomalys.
            'psr' is a psrparams instance containing info about the pulsar.
    """
+   oldw = psr.orb.w
+   psr.orb.w = psr.orb.w * DEGTORAD
    v = Numeric.array(e, copy=1)
    E_to_v(v, len(v), psr.orb)
+   psr.orb.w = oldw
    return v
 
 def d_from_e(e, psr):
@@ -223,8 +226,11 @@ def d_from_e(e, psr):
            'e' is the vector of Eccentric anomalys.
            'psr' is a psrparams instance containing info about the pulsar.
    """
+   oldw = psr.orb.w
+   psr.orb.w = psr.orb.w * DEGTORAD
    d = Numeric.array(e, copy=1)
    E_to_phib(d, len(d), psr.orb)
+   psr.orb.w = oldw
    return d
 
 def p_from_e(e, psr):
@@ -235,8 +241,11 @@ def p_from_e(e, psr):
            'e' is the vector of Eccentric anomalys.
            'psr' is a psrparams instance containing info about the pulsar.
    """
+   oldw = psr.orb.w
+   psr.orb.w = psr.orb.w * DEGTORAD
    p = Numeric.array(e, copy=1)
    E_to_p(p, len(p), psr.p, psr.orb)
+   psr.orb.w = oldw
    return p
 
 def z_from_e(e, psr, T):
@@ -248,8 +257,11 @@ def z_from_e(e, psr, T):
            'psr' is a psrparams instance containing info about the pulsar.
            'T' is the total length of the observation (s).
    """
+   oldw = psr.orb.w
+   psr.orb.w = psr.orb.w * DEGTORAD
    z = Numeric.array(e, copy=1)
    E_to_z(z, len(z), psr.p, T, psr.orb)
+   psr.orb.w = oldw
    return z
 
 
