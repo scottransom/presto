@@ -282,6 +282,11 @@ static void get_WAPP_HEADER_version(char *header, int *header_version,
 {
   memcpy(header_version, header, sizeof(long));
   memcpy(header_size, header+sizeof(long), sizeof(long));
+  if ((*header_version < 1 || *header_version > 20) &&
+      (*header_size < 1000 || *header_size > 3000)){
+    *header_version = swap_int(*header_version);
+    *header_size = swap_int(*header_size);
+  }
   if (0){
     printf("Header version:  %d\n", *header_version);
     printf("Header  length:  %d\n", *header_size);
@@ -300,7 +305,7 @@ int check_WAPP_byteswap(char *hdr)
   else
     hdr234 = (WAPP_HEADERv234 *)hdr;
   if (header_version_st==1){
-    if ((hdr1->header_size != 2048) &&
+    if ((hdr1->header_size < 1000 || hdr1->header_size > 3000) &&
 	(hdr1->nifs < 1 || hdr1->nifs > 4)){
       hdr1->src_ra = swap_double(hdr1->src_ra);
       hdr1->src_dec = swap_double(hdr1->src_dec);
@@ -331,7 +336,7 @@ int check_WAPP_byteswap(char *hdr)
       return 0;
     }
   } else {
-    if ((hdr234->header_size != 2048) &&
+    if ((hdr234->header_size < 1000 || hdr234->header_size > 3000) &&
 	(hdr234->nifs < 1 || hdr234->nifs > 4)){
       hdr234->src_ra = swap_double(hdr234->src_ra);
       hdr234->src_dec = swap_double(hdr234->src_dec);
