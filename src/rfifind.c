@@ -19,15 +19,15 @@ static void update_stats(int N, double x, double *min, double *max,
 int main(int argc, char *argv[])
 {
   FILE *infile, *outfile, *maskfile, *rfifile;
-  float **dataavg, **datavar, **datapow, *outdata;
+  float **dataavg, **datavar, **datapow, *outdata, **indata;
   float *avg_chan, *avg_int, *var_chan, *var_int, *pow_chan, *pow_int;
   float powavg, powvar, powmax, inttime;
   unsigned char **datamask, *tbuffer;
-  char *datafilenm, *rootfilenm, *maskfilenm, *rfifilenm;
+  char *datafilenm, *rootfilenm, *maskfilenm, *rfifilenm, *cptr;
   int numblocks, numchan, numint, newper=0, oldper=0, index;
   int blocksperint, ptsperint, ptsperblock, tbuffer_size;
   int bitsperpt, numcands, candnum, numrfi=0, numrfiobs=NUM_RFI_OBS;
-  long ii, jj, kk;
+  long ii, jj, kk, slen;
   long numread=0, numtowrite=0, totwrote=0, datawrote=0;
   rfi_obs **rfiobs=NULL;
   rfi_instance newrfi;
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
   sprintf(maskfilenm, "%s.mask", rootfilenm);
   rfifilenm = (char *)calloc(slen+5, sizeof(char));
   sprintf(rfifilenm, "%s.rfi", rootfilenm);
-  if (!cmd->pkmbP && !cmd->ebppP && !cmd->gbpp){
+  if (!cmd->pkmbP && !cmd->ebppP && !cmd->gbppP){
     printf("\nYou must specify the data format.  Legal types are:\n");
     printf("   -pkmb : Parkes Multibeam\n");
     printf("   -ebpp : Effelsberg-Berkeley Pulsar Processor\n");
