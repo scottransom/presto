@@ -43,9 +43,9 @@ Double -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	-r 0 oo  -d 0
 Int    -n       proflen {The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period}
 Int    -nsub    nsub    {The number of sub-bands to use for the DM search} \
-	-r 1 512  -d 32
+	-r 1 1024  -d 32
 Int    -npart   npart   {The number of sub-integrations to use for the period search} \
-	-r 1 512  -d 64
+	-r 1 2048  -d 64
 Int    -pstep    pstep   {The minimum period stepsize over the observation in profile bins} \
 	-r 1 10  -d 2
 Int    -pdstep    pdstep   {The minimum P-dot stepsize over the observation in profile bins} \
