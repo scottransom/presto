@@ -411,7 +411,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
   parttimes = gen_freqs(search->npart+1, 0.0, parttime);
 
   { /* Generate the data we need for the plots */
-    double df, dfd, dfdd;
+    double df, dfd, dfdd=0.0;
     double *currentprof, *ddprofs=search->rawfolds;
     double *delays, *pd_delays, *pdd_delays;
     foldstats *ddstats=search->stats;
@@ -426,7 +426,8 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
     }
 
     /* Calculate the delays for the pdotdot */
-    dfdd = switch_pfdotdot(pfold, pdfold, bestpdd) - search->fold.p3;
+    if (bestpdd!=0.0) /* bestpdd=0.0 only if there was no searching over pdd */
+       dfdd = switch_pfdotdot(pfold, pdfold, bestpdd) - search->fold.p3;
     for (ii=0; ii<search->npart; ii++)
       pdd_delays[ii] = fdotdot2phasedelay(dfdd, parttimes[ii]);
     
