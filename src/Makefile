@@ -135,7 +135,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd\
-	rfifind zapbirds
+	rfifind zapbirds plotdat plotfft
 
 geomview: togeomview
 
@@ -207,6 +207,14 @@ searchmultidms: searchmultidms.o com.o randlib.o $(PLOT2DOBJS)
 
 test_fold: test_fold.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+
+plotdat: plotdat.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotdat.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+plotfft: plotfft.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) plotfft.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
 
 prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o $(INSTRUMENTOBJS)
 	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm

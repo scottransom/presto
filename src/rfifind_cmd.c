@@ -30,12 +30,16 @@ static Cmdline cmd = {
   /* pkmbP = */ 0,
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   /* bcpmP = */ 0,
-  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
-  /* wappP = */ 0,
   /***** -if: For BPP format only:  A specific IF to use. */
   /* ifsP = */ 0,
   /* ifs = */ (int)0,
   /* ifsC = */ 0,
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  /* wappP = */ 0,
+  /***** -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed. */
+  /* clipP = */ 1,
+  /* clip = */ 0.0,
+  /* clipC = */ 1,
   /***** -xwin: Draw plots to the screen as well as a PS file */
   /* xwinP = */ 0,
   /***** -nocompute: Just plot and remake the mask */
@@ -798,13 +802,6 @@ showOptionValues(void)
     printf("-bcpm found:\n");
   }
 
-  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
-  if( !cmd.wappP ) {
-    printf("-wapp not found.\n");
-  } else {
-    printf("-wapp found:\n");
-  }
-
   /***** -if: For BPP format only:  A specific IF to use. */
   if( !cmd.ifsP ) {
     printf("-if not found.\n");
@@ -814,6 +811,25 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%d'\n", cmd.ifs);
+    }
+  }
+
+  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
+  if( !cmd.wappP ) {
+    printf("-wapp not found.\n");
+  } else {
+    printf("-wapp found:\n");
+  }
+
+  /***** -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed. */
+  if( !cmd.clipP ) {
+    printf("-clip not found.\n");
+  } else {
+    printf("-clip found:\n");
+    if( !cmd.clipC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.clip);
     }
   }
 
@@ -940,15 +956,18 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-wapp] [-if ifs] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
        -pkmb: Raw data in Parkes Multibeam format\n\
        -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
-       -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
          -if: For BPP format only:  A specific IF to use.\n\
               1 int value between 0 and 1\n\
+       -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
+       -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
+              1 float value\n\
+              default: `0.0'\n\
        -xwin: Draw plots to the screen as well as a PS file\n\
   -nocompute: Just plot and remake the mask\n\
     -rfixwin: Show the RFI instances on screen\n\
@@ -970,7 +989,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...20 values\n\
-version: 26Jun01\n\
+version: 29Jun01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1007,11 +1026,6 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-wapp", argv[i]) ) {
-      cmd.wappP = 1;
-      continue;
-    }
-
     if( 0==strcmp("-if", argv[i]) ) {
       cmd.ifsP = 1;
       keep = i;
@@ -1019,6 +1033,19 @@ parseCmdline(int argc, char **argv)
       cmd.ifsC = i-keep;
       checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
       checkIntHigher("-if", &cmd.ifs, cmd.ifsC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-wapp", argv[i]) ) {
+      cmd.wappP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-clip", argv[i]) ) {
+      cmd.clipP = 1;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.clip, 1);
+      cmd.clipC = i-keep;
       continue;
     }
 

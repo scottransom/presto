@@ -228,7 +228,8 @@ int main(int argc, char *argv[])
     } else if (cmd->wappP){
 
       printf("WAPP input file information:\n");
-      get_WAPP_file_info(infiles, numfiles, &local_N, &ptsperrec, &numchan, 
+      get_WAPP_file_info(infiles, numfiles, cmd->clip,
+			 &local_N, &ptsperrec, &numchan, 
 			 &local_dt, &local_T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
 

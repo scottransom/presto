@@ -194,8 +194,9 @@ int main(int argc, char *argv[])
       /* Set-up for the WAPP machine at Arecibo */
 
       printf("WAPP input file information:\n");
-      get_WAPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
-			&dt, &T, &idata, 1);
+      get_WAPP_file_info(infiles, numfiles, cmd->clip,
+			 &N, &ptsperblock, &numchan, 
+			 &dt, &T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
       idata.dm = 0.0;
       writeinf(&idata);
