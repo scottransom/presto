@@ -1,8 +1,13 @@
-#include "presto.h"
-#include "multibeam.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <math.h>
+#include "tape_hdr.h"
 
-/* The number of candidates to return from the search of each miniFFT */
-#define MININCANDS 3
+typedef struct FCOMPLEX {
+  float r; /* real */
+  float i; /* imag */
+} fcomplex;
 
 /* Minimum binary period (s) to accept as 'real' */
 #define MINORBP 100.0
@@ -10,61 +15,95 @@
 /* Minimum miniFFT bin number to accept as 'real' */
 #define MINMINIBIN 3.0
 
-/* Bins to ignore at the beginning and end of the bigFFT */
-#define BINSTOIGNORE 0
+/* Minimum pulsar frequency (Hz) to search */
+#define MINFREQ 1.0
 
-/* Number of candidates in the stack per bigFFT */
-#define NUMCANDS 10
+/* Maximum pulsar frequency (Hz) to search */
+#define MAXFREQ 900.0
 
 /* Factor to overlap the miniFFTs (power-of-two only) */
 /*    1 = no overlap of successive miniFFTs           */
 /*    2 = overlap 1/2 of each miniFFT                 */
 /*    4 = overlap 3/4 of each miniFFT                 */
-#define OVERLAPFACT 4
+#define OVERLAPFACT 2
 
 /* Blocks of length maxfft to work with at a time */
 #define WORKBLOCK 4
-
-/* Number of harmonics to sum in each miniFFT   */
-/* Usually this is greater than 1, but for the  */
-/* PMsurv, 1 is probably fine since we will be  */
-/* pushing the limit on orbital periods (which  */
-/* determines the number of harmonics present   */
-/* along with the eccentricity -- which we      */
-/* expect would be 0 in a 20 minute binary).    */
-#define NUMHARMSUM 1
 
 /* If the following is defined, the program will print        */
 /* debugging info to stdout or the results to the output dir. */
 /*#define DEBUGOUT*/
 #define CANDOUT
 
-/* Output threshold */
-/* If any candidates have a sigma greater than the following  */
-/* then print the candidate and observation info to the       */
-/* permanent candfile.                                        */
-#define THRESH 7.1
-
 /* Candidate file directory */
 #define OUTDIR "/home/ransom"
 /*#define OUTDIR "/tmp_mnt/usr/users/sransom/results"*/
 
-/* Function definitions */
-int not_already_there_rawbin(rawbincand newcand, 
- 			    rawbincand *list, int nlist);
-int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
- 		       char *output, int full);
-void compare_rawbin_cands(rawbincand *list, int nlist, 
- 			 char *notes);
-void file_rawbin_candidates(rawbincand *cand, char *notes,
-				   int numcands, char name[]);
-float percolate_rawbincands(rawbincand *cands, int numcands);
+/* The number of miniffts to use  */
+#define NUMMINIFFTS 7
+
+/* The lengths of the miniffts to use */
+static int minifftlen[NUMMINIFFTS] = \
+  {64, 128, 256, 512, 1024, 2048, 4096};
+
+/* Output thresholds */
+/* If any candidates have a power level greater than the   */
+/* following (which corresponds to a sigma of ~7.5 when    */
+/* you take into account the number of bins searched in    */
+/* each minifft), then print the candidate and observation */
+/* info to the output candfile.                            */
+static int threshold[NUMMINIFFTS] = \
+  {34.54, 35.23, 35.93, 36.62, 37.31, 38.01, 38.70};
+
+/* The binary candidate structure to write if we find candidates */
+
+typedef struct RAWBINCAND {
+  double full_N;       /* Number of points in original time series  */
+  double full_T;       /* Length (s) of original time series        */
+  double full_lo_r;    /* Lowest Fourier bin that was miniFFTd      */
+  double mini_N;       /* Number of points in short (mini) FFT      */
+  double mini_r;       /* Candidate Fourier bin in miniFFT          */
+  double mini_power;   /* Candidate normalized power in miniFFT     */
+  double mini_numsum;  /* Number of powers summed to get candidate  */
+  double mini_sigma;   /* Equivalent candidate sigma (for sum pow)  */
+  double psr_p;        /* Approx PSR period (miniFFT center bin)    */
+  double orb_p;        /* Approx orbital period (s)                 */
+} rawbincand;
+
+/* A short structure containing useful info */
+
+typedef struct INFO {
+  double dt;
+  double dm;
+  int file_cntr;
+  int ibeam;
+  char tape_lbl[7];
+  char pname[17];
+  char outfilebase[50];
+} info;  
+
+void info_from_header(struct tphdr *header, double dt, double dm, 
+		      info *idata)
+{
+  idata->dt = dt;
+  idata->dm = dm;
+  strncpy(idata->tape_lbl, header->tape_lbl, 6);
+  idata->tape_lbl[6] = '\0';
+  strncpy(idata->pname, header->pname, 16);
+  idata->pname[16] = '\0';
+  idata->ibeam = strtol(hdr->ibeam, NULL, 10);
+  idata->file_cntr = strtol(hdr->file_cntr, NULL, 10);
+  sprintf(idata->outfilebase, "%s_%d_Beam%2d_DM%.1f_%s", 
+	  idata->tape_lbl, idata->file_cntr, idata->ibeam,
+	  idata->idata->dm, idata->pname);
+}
+
 
 /******************************************************************/
 
-int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft, 
-			   float dm, int minfft, int maxfft)
-/* 
+int PMsurv_phasemod_search(struct tphdr *header, int N, 
+			   fcomplex *bigfft, double dt, double dm)
+/*
  * This routine searches an FFT (assumed to be single precision        
  * complex values in increasing order by Fourier Freq) from the        
  * Parkes Multibeam Pulsar Survey for binary pulsars in very short     
@@ -73,71 +112,42 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
  * (see http://cfa160.harvard.edu/~ransom/readable_poster.ps.gz for    
  * more details).  The inputs are:                                     
  *   *header - the 640 byte raw header for the observation             
- *   N - the number of frequencies in the input FFT (should be 2**22)  
+ *   N - the number of frequencies in the input FFT 
+ *       (should be 2**22 for a full length pointing)  
  *   *bigfft - the single precision full-length FFT to be searched     
+ *   dt - the sample time for the FFT (should be 0.00025 for
+ *       a non-decimated pointing)
  *   dm - the DM used to prepare the data in the bigfft                
- *   minfft - the shortest miniFFT to use in the search (32 is good)   
- *   maxfft - the longest miniFFT to use in the search (8192 is good)  
- * The routine as now stands takes approximately 30-40 sec to run
- * on each data set.  If you want to sacrifice about 20% sensitivity,  
- * you can change OVERLAPFACT to 2.  This allow the routine to run     
- * almost twice as fast.  I would personally recommend against this.   
+ * The routine as now stands takes approximately 10-15 sec to run
+ * on a full-length FFT (i.e. a 2**22 point pointing).  
  * We should be sensitive to pulsars in very-low to very-high mass     
- * binaries with orbital periods <~ 20min and flux densities of 1 mJy  
+ * binaries with orbital periods <~ 20min and flux densities of ~1 mJy  
  * or a little less (if the duty cycle of the pulsar is short enough). 
- * Return value is 0 if the code didn't find any candidates with       
- * significance greater than THRESH.  If the return value is positive, 
- * than a significant candidate (or more) was found in the FFT (this   
- * could be the trigger to save the bigFFT to a file for more in depth 
- * analysis...)                                                        
+ * Return value is 0 if the code didn't find any candidates. If the 
+ * return value is positive, then a significant candidate (or more) 
+ * was found in the FFT (this could be the trigger to save the bigFFT 
+ * to a file for a more in depth analysis...)
  */
 {
   int ii, jj, worklen, fftlen, binsleft, overlaplen;
-  int bigfft_offset=0, powers_offset, wrkblk=WORKBLOCK;
+  int bigfft_offset, powers_offset, wrkblk=WORKBLOCK;
   float *powers, *minifft, *powers_pos, powargr, powargi;
-  double T, norm, minsig=0.0, min_orb_p = 300.0, max_orb_p;
-  rawbincand list[NUMCANDS], tmplist[MININCANDS];
+  double T, norm, dr=0.5;
+  rawbincand cand;
   PKMB_tapehdr *hdr;
-  infodata idata;
+  info idata;
   
-  /* Prep our candidate lists */
-
-  for (ii = 0; ii < NUMCANDS; ii++)
-    list[ii].mini_sigma = 0.0;
-  for (ii = 0; ii < MININCANDS; ii++)
-    tmplist[ii].mini_sigma = 0.0;
-
-  /* Copy the header information into *hdr */
-    
-  hdr = (PKMB_tapehdr *) header;
- 
   /* Convert the Header into usable info... */
 
-  PKMB_hdr_to_inf(hdr, &idata);
-  idata.N = N * 2.0;
-  T = idata.N * idata.dt;
-#ifdef DEBUGOUT
-  print_PKMB_hdr(hdr);
-#endif
-  min_orb_p = 300.0;
-  max_orb_p = T / 2.0;
-
-  /* Check our input values */
-
-  maxfft = next2_to_n(maxfft);
-  minfft = next2_to_n(minfft);
-  if (N < minfft){
-    printf("\nLength of input array in  PMsurv_phasemod_search()\n");
-    printf("is too short or less than 0:  N = %d\n\n", N);
-    exit(-1);
-  }
+  info_from_header(header, dt, dm, &idata);
+  T = N * dt;
 
   /* Allocate the arrays that will store the powers from */
   /* the bigFFT as well as the miniFFTs.                 */
 
   worklen = (wrkblk + 1) * maxfft - (maxfft / OVERLAPFACT);
-  powers = gen_fvect(worklen);
-  minifft = gen_fvect(maxfft);
+  powers = (float *)malloc(sizeof(float) * worklen);
+  minifft = (float *)malloc(sizeof(float) * maxfft);
 
   /* Loop through the bigFFT */
 
