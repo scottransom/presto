@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
 
   /* The number of candidates to save */
 
-  ncand = 3 * cmd->ncand;
+  ncand = 2 * cmd->ncand;
 
   /* Determine the correlation sizes we will use: */
 
@@ -276,6 +276,24 @@ int main(int argc, char *argv[])
     filedata = read_fcomplex_file(fftfile, startbin - kern_half_width, \
 				  filedatalen);
 
+    /* Get approximate local power statistics */
+    
+    powlist = gen_fvect(filedatalen);
+    
+    /* Calculate the powers */
+    
+    for (ii = 0; ii < filedatalen; ii++) 
+      powlist[ii] = POWER(filedata[ii].r, filedata[ii].i);
+    
+    /* Set the local power level to 1.442695 * median value.    */
+    /* The 1.442695 corrects the median to the mean for an      */
+    /* exponential distribution.  Then take the reciprocal so   */
+    /* that we multiply instead of divide during normalization. */
+    
+    locpow = 1.0 / (1.442695 * 
+		    selectkth(filedatalen/2, filedatalen, powlist-1));
+    free(powlist);
+
     /*  Do the f-fdot plane correlations: */
 
     for (zct = 0; zct < nz; zct++) {
@@ -301,30 +319,9 @@ int main(int argc, char *argv[])
 			corrdata, corrsize, kern_half_width, \
 			numbetween, kern_half_width, CORR);
       nextbin = startbin + nr / numbetween;
-
-      if (zct == 0) {
-
-	/* Get approximate local power statistics */
-
-	worknumbins = (nextbin > highestbin) ? \
-	  (highestbin - startbin) * numbetween : nr;
-	powlist = gen_fvect(worknumbins);
-
-	/* Calculate the powers */
-
-	for (ii = 0; ii < worknumbins; ii++) 
-	  powlist[ii] = POWER(corrdata[ii].r, corrdata[ii].i);
-
-	/* Set the local power level to 1.442695 * median value.    */
-	/* The 1.442695 corrects the median to the mean for an      */
-	/* exponential distribution.  Then take the reciprocal so   */
-	/* that we multiply instead of divide during normalization. */
-
-	locpow = 1.0 / (1.442695 * 
-			selectkth(worknumbins/2, worknumbins, powlist-1));
-	free(powlist);
-      }
-
+      worknumbins = (nextbin > highestbin) ? \
+	(highestbin - startbin) * numbetween : nr;
+      
       /* This loop is the heart of the search */
 
       for (ii = 0; ii < worknumbins; ii++) {
