@@ -1,4 +1,5 @@
 #include "presto.h"
+#include "plot2d.h"
 #include "prepfold_cmd.h"
 #include "multibeam.h"
 
@@ -17,6 +18,19 @@ int read_resid_rec(FILE * file, double *toa, double *obsf);
 int read_floats(FILE * file, float *data, int numpts,
 		double *dispdelays, int numsubbands, int numchan);
 void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
+
+void quick_plot(double *data, int numdata)
+{
+  int ii;
+  double *x;
+
+  cpgstart_x("landscape");
+  x = gen_dvect(numdata);
+  for (ii=0; ii<numdata; ii++) x[ii] = ii / (double) numdata;
+  dxyline(numdata, x, data, "Profile Phase", "Intensity", 1);
+  cpgend();
+  free(x);
+}
 
 /* The main program */
 
@@ -37,10 +51,9 @@ int main(int argc, char *argv[])
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
-  int numchan=1, binary=0, np, pnum, numdelays, slen, ptsperrec=1;
+  int numchan=1, binary=0, np, pnum, numdelays, slen, ptsperrec=1, flags=1;
   long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part;
-  long numfolded=0, totnumfolded=0;
-  long lorec=0, hirec=0, numrecs=0, totnumrecs=0;
+  long totnumfolded=0, lorec=0, hirec=0, numrecs=0, totnumrecs=0;
   long numbinpoints=0, proflen, currentrec;
   unsigned long numrec=0, arrayoffset=0;
   multibeam_tapehdr hdr;
@@ -327,6 +340,7 @@ int main(int argc, char *argv[])
 	(rzwidata.dt * rzwidata.N);
       fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
 			  (rzwidata.dt * rzwidata.N));
+
       /* Now correct for the fact that we may not be starting */
       /* to fold at the same start time as the rzw search.    */
 
@@ -477,30 +491,31 @@ int main(int argc, char *argv[])
 				    tobsf[0], tdf); 
   }
   
-  printf("Starting work on '%s'...\n\n", cmd->argv[0]);
+  printf("\nStarting work on '%s'...\n\n", cmd->argv[0]);
     
   /* Allocate and initialize some arrays and other information */
   
   data = gen_fvect(cmd->nsub * worklen);
   profs = gen_dvect(cmd->nsub * cmd->npart * proflen);
   stats = (foldstats *)malloc(sizeof(stats) * cmd->nsub * cmd->npart);
-  for (ii = 0 ; ii < cmd->nsub * cmd->npart; ii++){
+  for (ii = 0; ii < cmd->nsub * cmd->npart; ii++){
     for (jj = 0 ; jj < proflen; jj++)
-      profs[jj] = 0.0;
+      profs[ii * proflen + jj] = 0.0;
     stats[ii].numdata = 0.0;
     stats[ii].data_avg = 0.0;
     stats[ii].data_var = 0.0;
   }
   currentrec = 0;
+  if (numdelays == 0) flags = 0;
     
   /* Move to the correct starting record */
   
-  printf("Folded %ld points of %ld", totnumfolded, N);
+  printf("Folded %ld points of %.0f", totnumfolded, N);
   if (cmd->pkmbP)
     currentrec = skip_to_multibeam_rec(infile, lorec);
   else
-    currentrec = chkfileseek(infile, sizeof(float) * lorec, 
-			     SEEKSET) / sizeof(float);
+    currentrec = chkfileseek(infile, lorec, sizeof(float), 
+			     SEEK_SET) / sizeof(float);
 
   /* The number of reads from the file we need for */
   /* each sub-integration.                         */
@@ -511,16 +526,15 @@ int main(int argc, char *argv[])
   
   if (cmd->nobaryP) {
     
+
     /* Step through the sub-integrations of time */
 
     for (ii = 0; ii < cmd->npart; ii++){
-
+printf("\nii = %ld\n", ii);
       /* Step through the records in the sub-integration */
       
-      for (jj = 0; jj < reads_per_part; ii++){
-	
-	printf("\rFolded %ld points of %ld", totnumfolded, N);
-	fflush(stdout);
+      for (jj = 0; jj < reads_per_part; jj++){
+printf("  jj = %ld\n", jj);
 	
 	/* Read the next record (or records) */
 	
@@ -531,16 +545,21 @@ int main(int argc, char *argv[])
       
 	tt = (ii * reads_per_part + jj) * worklen * dt;
       
-	/* Step through channels */
+	/* Step through sub-bands */
       
-	for (kk = 0; kk < numchan ; kk++)
+	for (kk = 0; kk < cmd->nsub; kk++){
 	  fold(data + kk * worklen, numread, dt, tt, 
-	       profs + kk * proflen, proflen, cmd->phs, 
-	       f, fd, fdd, 1, Ep, tp, numdelays, NULL, &stats);
-      totnumfolded += numfolded;
-      numrecs++;
+	       profs + (ii * cmd->nsub + kk) * proflen, 
+	       proflen, cmd->phs, f, fd, fdd, flags, Ep, tp, 
+	       numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
+	}
+	totnumfolded += numread;
+	printf("\rFolded %ld points of %.0f", totnumfolded, N);
+	fflush(stdout);
+      }
+for (kk = 0; kk < cmd->nsub; kk++)
+  quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
     }
-
 
     /*****  Need to do this  *****/
     
@@ -602,39 +621,12 @@ int main(int argc, char *argv[])
       numdelays = numbarypts;
     }
 
-    /* Step through records */
-    
-    for (ii = lorec; ii <= hirec; ii++){
-      
-      printf("\rCompleted record #%ld of %ld", numrecs, totnumrecs);
-      fflush(stdout);
-      
-      /* Read the next record (or records) */
-      
-      readrec_ptr(infile, data, worklen, dispdts, cmd->nsub, 
-		  numchan);
-      
-      /* tt is topocentric seconds from data start */
-      
-      tt = ii * worklen * dt;
-      
-      /* Step through channels */
-      
-      for (jj = 0 ; jj < numchan ; jj++){
-	numfolded = 0;
-	fold(data + jj * worklen, worklen, dt, tt, 
-	     profs + jj * proflen, proflen, cmd->phs, 
-	     f, fd, fdd, 1, Ep, tp, numdelays, NULL, &stats);
-      }
-      totnumfolded += numfolded;
-      numrecs++;
-    }
+    /* Add the loop here */
+
     free(barytimes);
     free(topotimes);
   }
   
-  printf("\rCompleted record #%ld of %ld\n\n", 
-	 totnumrecs, totnumrecs);
   printf("Folded %d profiles with %ld points each.\n", 
 	 numchan, totnumfolded);
 

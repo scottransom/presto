@@ -163,10 +163,11 @@ prep: meminit timetest bincat
 
 text: makedata makeinf mjd2cal realfft_4step quicklook\
 	search_bin search_rzw swap_endian prepdata\
-	prepfold check_parkes_raw bary shiftdata\
+	check_parkes_raw bary shiftdata\
 	patchdata readfile toas2dat
 
-xwin: psrorbit window plotbincand profile showmulti showmulti_dm searchmultidms
+xwin: psrorbit window plotbincand profile showmulti\
+	prepfold showmulti_dm searchmultidms
 
 geomview: togeomview
 
@@ -242,7 +243,7 @@ prepdata: prepdata.o prepdata_cmd.o multibeam.o
 	cp $@ ../bin
 
 prepfold: prepfold.o prepfold_cmd.o multibeam.o $(PLOT2DOBJS)
-	$(CC) $(CFLAGS) -o $@ prepfold.o prepfold_cmd.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
+	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_cmd.o multibeam.o $(PLOT2DOBJS) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)
