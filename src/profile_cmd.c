@@ -1154,7 +1154,7 @@ usage(void)
      -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin\n\
       -mak: Determine folding parameters from 'infile.mak'\n\
     -noerr: Do not plot error bars\n\
-version: 20Jan00\n\
+version: 21Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }

@@ -42,8 +42,8 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 /*      'pdderr' is the returned p-dotdot error             */
 {
   int ii, gotone=0;
-  double T, T2, pwr, norm, sigpow=6.6, r2, r4, z2, sr2, sz2;
-  double dtmp, r, z, w, pwrfact=0.0, rerr, zerr, werr;
+  double T, T2, pwr, norm, sigpow=2.7, r2, r4, z2, sr2, sz2;
+  double dtmp, r, z, w, pwrfact=0.0, pwrfact2=0.0, rerr, zerr, werr;
   double rerrn=0.0, zerrn=0.0, werrn=0.0, rerrd=0.0, zerrd=0.0, werrd=0.0;
   float powargr, powargi;
   fcomplex *fftprof;
@@ -94,15 +94,16 @@ void fold_errors(double *prof, int proflen, double dt, double N,
   for (ii = 1; ii < proflen / 2; ii++){
     pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
     pwrfact = 2.0 * pwr;
+    pwrfact2 = 1.0 / (sqrt(pwr) * ii);
     if (pwr > sigpow){
       gotone = 1;
-      dtmp = 3.0 / ((PI * sqrt(6.0 * pwr)) * ii);
+      dtmp = 0.38984840062 * pwrfact2;
       rerrn += pwrfact / dtmp;
       rerrd += pwrfact / (dtmp * dtmp);
-      dtmp = 3.0 * sqrt(10.0) / ((PI * sqrt(pwr)) * ii);
+      dtmp = 3.01975272627 * pwrfact2;
       zerrn += pwrfact / dtmp;
       zerrd += pwrfact / (dtmp * dtmp);
-      dtmp = 6.0 * sqrt(105.0) / ((PI * sqrt(pwr) * ii));
+      dtmp = 19.5702343923 * pwrfact2;
       werrn += pwrfact / dtmp;
       werrd += pwrfact / (dtmp * dtmp);
     }
@@ -201,7 +202,9 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->numchan = 1;
   in->ndmfact = 2;
   in->npfact = 1;
-  in->step = 1;
+  in->pstep = 1;
+  in->pdstep = 1;
+  in->dmstep = 1;
   in->filenm = NULL;
   in->candnm = NULL;
   in->telescope = NULL;

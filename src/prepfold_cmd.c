@@ -48,17 +48,25 @@ static Cmdline cmd = {
   /* npartP = */ 1,
   /* npart = */ 64,
   /* npartC = */ 1,
-  /***** -step: The minimum search stepsize over the full integration in profile bins */
-  /* stepP = */ 1,
-  /* step = */ 1,
-  /* stepC = */ 1,
+  /***** -pstep: The minimum period stepsize over the observation in profile bins */
+  /* pstepP = */ 1,
+  /* pstep = */ 1,
+  /* pstepC = */ 1,
+  /***** -pdstep: The minimum P-dot stepsize over the observation in profile bins */
+  /* pdstepP = */ 1,
+  /* pdstep = */ 3,
+  /* pdstepC = */ 1,
+  /***** -dmstep: The minimum DM stepsize over the observation in profile bins */
+  /* dmstepP = */ 1,
+  /* dmstep = */ 2,
+  /* dmstepC = */ 1,
   /***** -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched */
   /* npfactP = */ 1,
   /* npfact = */ 1,
   /* npfactC = */ 1,
   /***** -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched */
   /* ndmfactP = */ 1,
-  /* ndmfact = */ 2,
+  /* ndmfact = */ 1,
   /* ndmfactC = */ 1,
   /***** -p: The nominative folding period (s) */
   /* pP = */ 0,
@@ -917,15 +925,39 @@ showOptionValues(void)
     }
   }
 
-  /***** -step: The minimum search stepsize over the full integration in profile bins */
-  if( !cmd.stepP ) {
-    printf("-step not found.\n");
+  /***** -pstep: The minimum period stepsize over the observation in profile bins */
+  if( !cmd.pstepP ) {
+    printf("-pstep not found.\n");
   } else {
-    printf("-step found:\n");
-    if( !cmd.stepC ) {
+    printf("-pstep found:\n");
+    if( !cmd.pstepC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.step);
+      printf("  value = `%d'\n", cmd.pstep);
+    }
+  }
+
+  /***** -pdstep: The minimum P-dot stepsize over the observation in profile bins */
+  if( !cmd.pdstepP ) {
+    printf("-pdstep not found.\n");
+  } else {
+    printf("-pdstep found:\n");
+    if( !cmd.pdstepC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.pdstep);
+    }
+  }
+
+  /***** -dmstep: The minimum DM stepsize over the observation in profile bins */
+  if( !cmd.dmstepP ) {
+    printf("-dmstep not found.\n");
+  } else {
+    printf("-dmstep found:\n");
+    if( !cmd.dmstepC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.dmstep);
     }
   }
 
@@ -1203,7 +1235,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-step step] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
+ [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
@@ -1221,15 +1253,21 @@ usage(void)
     -npart: The number of sub-integrations to use for the period search\n\
             1 int value between 1 and 512\n\
             default: `64'\n\
-     -step: The minimum search stepsize over the full integration in profile bins\n\
+    -pstep: The minimum period stepsize over the observation in profile bins\n\
             1 int value between 1 and 10\n\
             default: `1'\n\
+   -pdstep: The minimum P-dot stepsize over the observation in profile bins\n\
+            1 int value between 1 and 20\n\
+            default: `3'\n\
+   -dmstep: The minimum DM stepsize over the observation in profile bins\n\
+            1 int value between 1 and 10\n\
+            default: `2'\n\
    -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched\n\
             1 int value between 1 and 10\n\
             default: `1'\n\
   -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
             1 int value between 1 and 10\n\
-            default: `2'\n\
+            default: `1'\n\
         -p: The nominative folding period (s)\n\
             1 double value between 0 and oo\n\
        -pd: The nominative period derivative (s/s)\n\
@@ -1278,7 +1316,7 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
-version: 20Jan00\n\
+version: 21Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1358,13 +1396,33 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-step", argv[i]) ) {
-      cmd.stepP = 1;
+    if( 0==strcmp("-pstep", argv[i]) ) {
+      cmd.pstepP = 1;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.step, 1);
-      cmd.stepC = i-keep;
-      checkIntLower("-step", &cmd.step, cmd.stepC, 10);
-      checkIntHigher("-step", &cmd.step, cmd.stepC, 1);
+      i = getIntOpt(argc, argv, i, &cmd.pstep, 1);
+      cmd.pstepC = i-keep;
+      checkIntLower("-pstep", &cmd.pstep, cmd.pstepC, 10);
+      checkIntHigher("-pstep", &cmd.pstep, cmd.pstepC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-pdstep", argv[i]) ) {
+      cmd.pdstepP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.pdstep, 1);
+      cmd.pdstepC = i-keep;
+      checkIntLower("-pdstep", &cmd.pdstep, cmd.pdstepC, 20);
+      checkIntHigher("-pdstep", &cmd.pdstep, cmd.pdstepC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-dmstep", argv[i]) ) {
+      cmd.dmstepP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.dmstep, 1);
+      cmd.dmstepC = i-keep;
+      checkIntLower("-dmstep", &cmd.dmstep, cmd.dmstepC, 10);
+      checkIntHigher("-dmstep", &cmd.dmstep, cmd.dmstepC, 1);
       continue;
     }
 

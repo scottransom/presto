@@ -763,7 +763,9 @@ int main(int argc, char *argv[])
 
     search.ndmfact = cmd->ndmfact;
     search.npfact = cmd->npfact;
-    search.step = cmd->step;
+    search.pstep = cmd->pstep;
+    search.pdstep = cmd->pdstep;
+    search.dmstep = cmd->dmstep;
 
     /* The number of trials for the P-dot and P searches */
 
@@ -784,14 +786,15 @@ int main(int argc, char *argv[])
     switch_f_and_p(foldf, foldfd, foldfdd, &po, &pdo, &pddo);
     
     /* Our P and P-dot steps are the changes that cause the pulse      */
-    /* to be delayed search.step bins between the first and last bins. */
+    /* to be delayed a number of bins between the first and last time. */
     
-    dphase = po * search.step / search.proflen;
+    dphase = po / search.proflen;
     pofact = foldf * foldf;
     for (ii = 0; ii < numtrials; ii++){
       pdelay = ii - (numtrials - 1) / 2;
-      dtmp = pdelay * dphase;
+      dtmp = pdelay * dphase * search.pstep;
       search.periods[ii] = 1.0 / (foldf + dtmp / T);
+      dtmp = pdelay * dphase * search.pdstep;
       search.pdots[ii] = -((2.0 * dtmp / (T * T) + foldfd) / pofact);
     }
 
@@ -807,9 +810,9 @@ int main(int argc, char *argv[])
       ddstats = (foldstats *)malloc(cmd->npart * sizeof(foldstats));
       
       /* Our DM step is the change in DM that would cause the pulse   */
-      /* to be delayed search.step phasebins at the lowest frequency. */
+      /* to be delayed a number of phasebins at the lowest frequency. */
       
-      ddm = dm_from_delay(dphase, obsf[0]);
+      ddm = dm_from_delay(dphase * search.dmstep, obsf[0]);
     
       /* Insure that we don't try a dm < 0.0 */
       
@@ -832,7 +835,7 @@ int main(int argc, char *argv[])
 				       idata.chan_wid, search.avgvoverc);
 	for (jj = 0; jj < cmd->nsub; jj++)
 	  dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
-				 dphase + 0.5)) % search.proflen;
+				 dphase + 0.5) % search.proflen);
 	free(subbanddelays);
 	combine_subbands(search.rawfolds, search.stats, cmd->npart, 
 			 cmd->nsub, search.proflen, dmdelays, 
@@ -856,7 +859,7 @@ int main(int argc, char *argv[])
 	  /* Search over the periods */
 
 	  for (kk = 0; kk < numtrials; kk++){
-	    pdelay = search.step * (kk - (numtrials - 1) / 2);
+	    pdelay = search.pstep * (kk - (numtrials - 1) / 2);
 	    combine_profs(pdprofs, ddstats, cmd->npart, search.proflen, 
 			  pdelay, currentprof, &currentstats);
 	    if (currentstats.redchi > beststats.redchi){
@@ -904,7 +907,7 @@ int main(int argc, char *argv[])
 	/* Search over the periods */
 	
 	for (kk = 0; kk < numtrials; kk++){
-	  pdelay = search.step * (kk - (numtrials - 1) / 2);
+	  pdelay = search.pstep * (kk - (numtrials - 1) / 2);
 	  combine_profs(pdprofs, search.stats, cmd->npart, search.proflen, 
 			pdelay, currentprof, &currentstats);
 	  if (currentstats.redchi > beststats.redchi){

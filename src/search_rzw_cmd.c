@@ -885,7 +885,7 @@ usage(void)
     -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)\n\
             1 double value between -0.1 and 0.1\n\
             default: `0.0'\n\
-version: 20Jan00\n\
+version: 21Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }

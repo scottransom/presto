@@ -81,6 +81,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
   double profavg=0.0, profvar=0.0;
   double N=0.0, T, dphase, pofact, *currentprof, *lastprof;
   double parttime, *pdprofs, bestp, bestpd, bestpdd;
+  double perr, pderr, pdderr, *dbestprof;
   float *ftmparr1;
   foldstats currentstats, beststats;
   /* Best Fold Plot */
@@ -112,9 +113,9 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     bestpdd = search->topo.p3;
   }
 
-  /* Time interval of 'step' profile bins */
+  /* Time interval of 1 profile bin */
 
-  dphase = search->step / (search->fold.p1 * search->proflen);
+  dphase = 1.0 / (search->fold.p1 * search->proflen);
 
   /* Find out how many total points were folded */
 
@@ -149,13 +150,13 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
   
   for (ii = 0; ii < search->numperiods; ii++)
     if (search->periods[ii]==bestp){
-      totpdelay = search->step * (ii - (search->numperiods - 1) / 2);
+      totpdelay = search->pstep * (ii - (search->numperiods - 1) / 2);
       break;
     }
   
   for (ii = 0; ii < search->numpdots; ii++)
     if (search->pdots[ii]==bestpd){
-      totpddelay = search->step * (ii - (search->numpdots - 1) / 2);
+      totpddelay = search->pdstep * (ii - (search->numpdots - 1) / 2);
       break;
     }
       
@@ -256,7 +257,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	  /* Search over the periods */
 	  
 	  for (kk = 0; kk < search->numperiods; kk++){
-	    pdelay = search->step * (kk - (search->numperiods - 1) / 2);
+	    pdelay = search->pdstep * (kk - (search->numperiods - 1) / 2);
 	    combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
 			  pdelay, currentprof, &currentstats);
 
@@ -365,7 +366,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       /* Search over the periods */
       
       for (kk = 0; kk < search->numperiods; kk++){
-	pdelay = search->step * (kk - (search->numperiods - 1) / 2);
+	pdelay = search->pstep * (kk - (search->numperiods - 1) / 2);
 	combine_profs(pdprofs, search->stats, search->npart, 
 		      search->proflen, pdelay, currentprof, 
 		      &currentstats);
@@ -424,6 +425,24 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       }
     }
   }
+
+  /* Copy our best profile */
+
+  dbestprof = gen_dvect(search->proflen);
+  for (ii = 0; ii < search->proflen; ii++)
+    dbestprof[ii] = bestprof[ii];
+  
+  /* Calculate the errors in the pulsation quantities */
+
+  if (search->tepoch != 0.0)
+    fold_errors(dbestprof, search->proflen, search->dt, N, 
+		beststats.data_var, search->topo.p1, search->topo.p2, 
+		search->topo.p3, &perr, &pderr, &pdderr);
+  else 
+    fold_errors(dbestprof, search->proflen, search->dt, N, 
+		beststats.data_var, search->bary.p1, search->bary.p2, 
+		search->bary.p3, &perr, &pderr, &pdderr);
+  free(dbestprof);
 
   /*
    *  Now plot the results
@@ -594,7 +613,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 		     1.0, 1.0, 1.0, 0.0, 0.0};
       float b[10] = {1.0, 1.0, 1.0, 1.0, 1.0, 0.95, 
 		     0.0, 0.0, 0.0, 0.0};
-      float fg = 0.0, bg = 0.0, tr[6], *levels;
+      float fg = 0.0, bg = 0.0, tr[6], *levels, errlen;
       float x1l, x1h, y1l, y1h, x2l, x2h, y2l, y2h;
       double pfold, pdfold;
       char pout[100], pdout[100], fout[100], fdout[100];
@@ -709,7 +728,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgimag(ppdot2d, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
       x1l = (float) (bestp * 1000.0 - pfold);
       y1l = (float) (bestpd - pdfold);
+      /* Plot the error bars on the P-Pdot diagram */
       cpgpt(1, &x1l, &y1l, 5);
+      errlen = (float) (perr * 1000.0);
+      cpgerrb(5, 1, &x1l, &y1l, &errlen, 2);
+      errlen = (float) (pderr);
+      cpgerrb(6, 1, &x1l, &y1l, &errlen, 2);
       if (search->nsub > 1){
 	cpgsch(0.5);
 	cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
@@ -836,22 +860,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	  cpgtext(0.0, 0.8, out);
 	}
 	{
-	  double perr, pderr, pdderr, *dbestprof;
-
-	  /* Copy our best profile */
-
-	  dbestprof = gen_dvect(search->proflen);
-	  for (ii = 0; ii < search->proflen; ii++)
-	    dbestprof[ii] = bestprof[ii];
-
-	  /* Calculate the errors in the pulsation quantities */
-	
 	  if (search->tepoch != 0.0){
-
-	    fold_errors(dbestprof, search->proflen, search->dt, N, 
-			beststats.data_var, search->topo.p1, search->topo.p2, 
-			search->topo.p3, &perr, &pderr, &pdderr);
-	    
 	    cpgnice_output_2(out2, search->topo.p1*1000.0, perr*1000.0, 0);
 	    sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
 	    cpgtext(0.0, 0.7, out);
@@ -861,7 +870,6 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	    cpgnice_output_2(out2, search->topo.p3, pdderr, 0);
 	    sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
 	    cpgtext(0.0, 0.5, out);
-
 	  } else {
 	    cpgtext(0.0, 0.7, "P\\dtopo\\u (ms) = N/A");
 	    cpgtext(0.0, 0.6, "P'\\dtopo\\u (s/s) = N/A");
@@ -869,11 +877,6 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	  }
 
 	  if (search->bepoch != 0.0){
-
-	    fold_errors(dbestprof, search->proflen, search->dt, N, 
-			beststats.data_var, search->bary.p1, search->bary.p2, 
-			search->bary.p3, &perr, &pderr, &pdderr);
-	    
 	    cpgnice_output_2(out2, search->bary.p1*1000.0, perr*1000.0, 0);
 	    sprintf(out, "P\\dbary\\u (ms) = %s", out2);
 	    cpgtext(0.6, 0.7, out);
@@ -883,13 +886,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	    cpgnice_output_2(out2, search->bary.p3, pdderr, 0);
 	    sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
 	    cpgtext(0.6, 0.5, out);
-
 	  } else {
 	    cpgtext(0.0, 0.7, "P\\dbary\\u (ms) = N/A");
 	    cpgtext(0.0, 0.6, "P'\\dbary\\u (s/s) = N/A");
 	    cpgtext(0.0, 0.5, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
 	  }
-	  free(dbestprof);
 	}
 	cpgtext(0.0, 0.3, "   Binary Parameters");
 	if (search->orb.p==0.0){
