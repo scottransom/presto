@@ -249,8 +249,8 @@ prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
 	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
 	cp $@ ../bin
 
-prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) $(PGPLOTLINK) -lm
+prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o polycos.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 show_pfd: show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
