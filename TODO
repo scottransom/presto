@@ -1,7 +1,6 @@
-Presto To-Do List in Order of Precedence as of 28 Sept 99.
+Presto To-Do List in Order of Precedence as of 23 Nov 99.
 
---  Modularize the rzw and binary search routines so that
-they could be called interactively from Python.
+--  Harmonic summing search
 
 --  Make all character arrays use dynamic allocation to avoid
 possible buffer over-runs.
@@ -12,9 +11,6 @@ possible buffer over-runs.
 
 --  Modify the Makefiles and package to use Configure.  Use Autoconf,
 Automake, and Libtool.
-
---  Perform extensive testing on the correctness of the pulse folding
-and barycentering code since I think it could be messed up.
 
 --  Improve the documentation.  Maybe by using a source code
 documentation system?
