@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
 	  printf("Assuming the data is from a GBT BCPM...\n");
 	  cmd->bcpmP = 1;
 	} else if (strcmp(suffix, "pkmb")==0){
-	  printf("Assuming the data is from the Parkes Multibeam system...\n");
+	  printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	  cmd->pkmbP = 1;
 	} else if (strncmp(suffix, "gmrt", 4)==0){
 	  printf("Assuming the data is from the GMRT Phased Array system...\n");
@@ -176,9 +176,9 @@ int main(int argc, char *argv[])
       }
     } else if (cmd->pkmbP){
       if (numfiles > 1)
-	printf("Reading Parkes PKMB data from %d files:\n", numfiles);
+	printf("Reading 1-bit filterbank (Parkes/Jodrell) data from %d files:\n", numfiles);
       else
-	printf("Reading Parkes PKMB data from 1 file:\n");
+	printf("Reading 1-bit filterbank (Parkes/Jodrell) data from 1 file:\n");
     } else if (cmd->bcpmP){
       if (numfiles > 1)
 	printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
@@ -237,7 +237,7 @@ int main(int argc, char *argv[])
 
       /* Set-up values if we are using the Parkes multibeam */
     
-      printf("PKMB input file information:\n");
+      printf("Filterbank input file information:\n");
       get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 			 &dt, &T, 1);
 
