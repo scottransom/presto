@@ -70,10 +70,7 @@ class binary_psr:
         ecc_anom_old = ma
         ecc_anom = ma + eccentricity*umath.sin(ecc_anom_old)
         # This is a simple iteration to solve Kepler's Equation
-        iter = 0
         while (umath.maximum.reduce(umath.fabs(ecc_anom-ecc_anom_old)) > 1e-15):
-            iter += 1
-            print iter
             ecc_anom_old = ecc_anom[:]
             ecc_anom = ma + eccentricity*umath.sin(ecc_anom_old)
         return ecc_anom
