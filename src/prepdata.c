@@ -519,7 +519,7 @@ int main(int argc, char *argv[])
 
 	    outdata[j] = outdata[j + worklen];
 	  }
-	  for (j = wrote; j < worklen; j++) j = 0.0;
+	  for (j = wrote; j < worklen; j++) outdata[j] = 0.0;
 
 	  /* Increment our topocentric time steppers */
 
