@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
   int harmsum=RFI_NUMHARMSUM, lobin=RFI_LOBIN, numbetween=RFI_NUMBETWEEN;
   double davg, dvar, freq, dt, T;
   long long N;
+  BPP_ifs bppifs=SUMIFS;
   presto_interptype interptype;
   rfi *rfivect=NULL;
   mask oldmask, newmask;
@@ -116,11 +117,10 @@ int main(int argc, char *argv[])
   
   if (!cmd->nocomputeP){
 
-    if (!cmd->pkmbP && !cmd->ebppP && !cmd->gbppP){
+    if (!cmd->pkmbP && !cmd->bcpmP){
       printf("\nYou must specify the data format.  Legal types are:\n");
       printf("   -pkmb : Parkes Multibeam\n");
-      printf("   -ebpp : Effelsberg-Berkeley Pulsar Processor\n");
-      printf("   -gbpp : Green Bank-Berkeley Pulsar Processor\n");
+      printf("   -bcpm : Berkeley-Caltech Pulsar Machine\n");
       printf("\n");
       exit(0);
     } else if (cmd->pkmbP){
@@ -128,16 +128,11 @@ int main(int argc, char *argv[])
 	printf("Reading Parkes PKMB data from %d files:\n", numfiles);
       else
 	printf("Reading Parkes PKMB data from 1 file:\n");
-    } else if (cmd->ebppP){
+    } else if (cmd->bcpmP){
       if (numfiles > 1)
-	printf("Reading Effelsberg RBPP data from %d files:\n", numfiles);
+	printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
       else
-	printf("Reading Effelsberg RBPP data from 1 file:\n");
-    } else if (cmd->gbppP){
-      if (numfiles > 1)
-	printf("Reading Green Bank GBPP data from %d files:\n", numfiles);
-      else
-	printf("Reading Green Bank GBPP data from 1 file:\n");
+	printf("Reading Green Bank BCPM data from 1 file:\n");
     }
 	  
     /* Open the raw data files */
@@ -164,11 +159,26 @@ int main(int argc, char *argv[])
       idata.dm = 0.0;
       writeinf(&idata);
 
-    } else if (cmd->ebppP){
+    } else if (cmd->bcpmP){
 
-      /* Set-up values if we are using the EBPP  */
-      /* This code is not yet implemented.       */
+      /* Set-up for the BCPM machines at Green Bank  */
 
+      get_BPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+			&dt, &T, &idata, 1);
+      BPP_update_infodata(numfiles, &idata);
+      idata.dm = 0.0;
+      writeinf(&idata);
+
+      /* Which IFs will we use? */
+      
+      if (cmd->ifsP){
+	if (cmd->ifs==0)
+	  bppifs = IF0;
+	else if (cmd->ifs==1)
+	  bppifs = IF1;
+	else
+	  bppifs = SUMIFS;
+      }
     }
     
     /* The number of data points and blocks to work with at a time */
@@ -184,6 +194,9 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP)
       rawdata = gen_bvect(DATLEN * blocksperint);
+    else if (cmd->bcpmP)
+      /* This allocates extra incase both IFs were stored */
+      rawdata = gen_bvect(idata.num_chan * ptsperblock * blocksperint);
     dataavg = gen_fmatrix(numint, numchan);
     datastd = gen_fmatrix(numint, numchan);
     datapow = gen_fmatrix(numint, numchan);
@@ -220,6 +233,9 @@ int main(int argc, char *argv[])
       if (cmd->pkmbP)
 	numread = read_PKMB_rawblocks(infiles, numfiles, 
 				      rawdata, blocksperint, &padding);
+      else if (cmd->bcpmP)
+	numread = read_BPP_rawblocks(infiles, numfiles, 
+				     rawdata, blocksperint, &padding);
       if (padding)
 	for (jj=0; jj<numchan; jj++)
 	  bytemask[ii][jj] |= PADDING;
@@ -228,6 +244,8 @@ int main(int argc, char *argv[])
 
 	if (cmd->pkmbP)
 	  get_PKMB_channel(jj, chandata, rawdata, blocksperint);
+	else if (cmd->bcpmP)
+	  get_BPP_channel(jj, chandata, rawdata, blocksperint, bppifs);
 
 	/* Calculate the averages and standard deviations */
 	/* for each point in time.                        */

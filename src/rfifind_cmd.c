@@ -28,10 +28,12 @@ static Cmdline cmd = {
   /* outfileC = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ 0,
-  /***** -ebpp: Raw data in EBPP (Effelsberg) format */
-  /* ebppP = */ 0,
-  /***** -gbpp: Raw data in GBPP (Green Bank) format */
-  /* gbppP = */ 0,
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  /* bcpmP = */ 0,
+  /***** -if: For BPP format only:  A specific IF to use. */
+  /* ifsP = */ 0,
+  /* ifs = */ (int)0,
+  /* ifsC = */ 0,
   /***** -xwin: Draw plots to the screen as well as a PS file */
   /* xwinP = */ 0,
   /***** -nocompute: Just plot and remake the mask */
@@ -787,18 +789,23 @@ showOptionValues(void)
     printf("-pkmb found:\n");
   }
 
-  /***** -ebpp: Raw data in EBPP (Effelsberg) format */
-  if( !cmd.ebppP ) {
-    printf("-ebpp not found.\n");
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  if( !cmd.bcpmP ) {
+    printf("-bcpm not found.\n");
   } else {
-    printf("-ebpp found:\n");
+    printf("-bcpm found:\n");
   }
 
-  /***** -gbpp: Raw data in GBPP (Green Bank) format */
-  if( !cmd.gbppP ) {
-    printf("-gbpp not found.\n");
+  /***** -if: For BPP format only:  A specific IF to use. */
+  if( !cmd.ifsP ) {
+    printf("-if not found.\n");
   } else {
-    printf("-gbpp found:\n");
+    printf("-if found:\n");
+    if( !cmd.ifsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.ifs);
+    }
   }
 
   /***** -xwin: Draw plots to the screen as well as a PS file */
@@ -924,13 +931,14 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-gbpp] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
        -pkmb: Raw data in Parkes Multibeam format\n\
-       -ebpp: Raw data in EBPP (Effelsberg) format\n\
-       -gbpp: Raw data in GBPP (Green Bank) format\n\
+       -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+         -if: For BPP format only:  A specific IF to use.\n\
+              1 int value between 0 and 1\n\
        -xwin: Draw plots to the screen as well as a PS file\n\
   -nocompute: Just plot and remake the mask\n\
     -rfixwin: Show the RFI instances on screen\n\
@@ -952,7 +960,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...20 values\n\
-version: 04Jan01\n\
+version: 26Apr01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -984,13 +992,18 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-ebpp", argv[i]) ) {
-      cmd.ebppP = 1;
+    if( 0==strcmp("-bcpm", argv[i]) ) {
+      cmd.bcpmP = 1;
       continue;
     }
 
-    if( 0==strcmp("-gbpp", argv[i]) ) {
-      cmd.gbppP = 1;
+    if( 0==strcmp("-if", argv[i]) ) {
+      cmd.ifsP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.ifs, 1);
+      cmd.ifsC = i-keep;
+      checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
+      checkIntHigher("-if", &cmd.ifs, cmd.ifsC, 0);
       continue;
     }
 

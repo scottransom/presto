@@ -28,8 +28,12 @@ static Cmdline cmd = {
   /* outfileC = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ 0,
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
-  /* ebppP = */ 0,
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  /* bcpmP = */ 0,
+  /***** -if: For BPP format only:  A specific IF to use. */
+  /* ifsP = */ 0,
+  /* ifs = */ (int)0,
+  /* ifsC = */ 0,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (int)0,
@@ -785,11 +789,23 @@ showOptionValues(void)
     printf("-pkmb found:\n");
   }
 
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
-  if( !cmd.ebppP ) {
-    printf("-ebpp not found.\n");
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  if( !cmd.bcpmP ) {
+    printf("-bcpm not found.\n");
   } else {
-    printf("-ebpp found:\n");
+    printf("-bcpm found:\n");
+  }
+
+  /***** -if: For BPP format only:  A specific IF to use. */
+  if( !cmd.ifsP ) {
+    printf("-if not found.\n");
+  } else {
+    printf("-if found:\n");
+    if( !cmd.ifsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.ifs);
+    }
   }
 
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
@@ -905,12 +921,14 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
-      -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format\n\
+      -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+        -if: For BPP format only:  A specific IF to use.\n\
+             1 int value between 0 and 1\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
              1 int value between 1 and oo\n\
     -nobary: Do not barycenter the data\n\
@@ -934,7 +952,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...20 values\n\
-version: 17Mar01\n\
+version: 26Apr01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -966,8 +984,18 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-ebpp", argv[i]) ) {
-      cmd.ebppP = 1;
+    if( 0==strcmp("-bcpm", argv[i]) ) {
+      cmd.bcpmP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-if", argv[i]) ) {
+      cmd.ifsP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.ifs, 1);
+      cmd.ifsC = i-keep;
+      checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
+      checkIntHigher("-if", &cmd.ifs, cmd.ifsC, 0);
       continue;
     }
 

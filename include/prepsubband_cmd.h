@@ -15,8 +15,12 @@ typedef struct s_Cmdline {
   int outfileC;
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
-  char ebppP;
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  char bcpmP;
+  /***** -if: For BPP format only:  A specific IF to use. */
+  char ifsP;
+  int ifs;
+  int ifsC;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
   int numout;

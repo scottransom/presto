@@ -54,6 +54,7 @@ int main(int argc, char *argv[])
   int padwrote=0, padtowrite=0, statnum=0;
   int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
   char *datafilenm;
+  BPP_ifs bppifs=SUMIFS;
   PKMB_tapehdr hdr;
   infodata idata;
   mask obsmask;
@@ -85,11 +86,11 @@ int main(int argc, char *argv[])
       printf("Reading Parkes PKMB data from %d files:\n", numinfiles);
     else
       printf("Reading Parkes PKMB data from 1 file:\n");
-  } else if (cmd->ebppP){
+  } else if (cmd->bcpmP){
     if (numinfiles > 1)
-      printf("Reading Effelsberg RBPP data from %d files:\n", numinfiles);
+      printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
     else
-      printf("Reading Effelsberg RBPP data from 1 file:\n");
+      printf("Reading Green Bank BCPM data from 1 file:\n");
   }
 
   /* Open the raw data files */
@@ -152,11 +153,43 @@ int main(int argc, char *argv[])
     numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
   }
 
-  /* Set-up values if we are using the Effelsberg-Berkeley Pulsar Processor */
-  /*   NOTE:  This code is not yet implemented.                             */
+  /* Set-up values if we are using the Berkeley-Caltech */
+  /* Pulsar Machine (or BPP) format.                    */
 
-  if (cmd->ebppP) {
-    strcpy(obs, "EF");  /* OBS code for TEMPO */
+  if (cmd->bcpmP) {
+    double dt, T;
+    int ptsperblock;
+    long long N;
+
+    printf("\nBCPM input file information:\n");
+    get_BPP_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
+		      &dt, &T, &idata, 1);
+    BPP_update_infodata(numinfiles, &idata);
+    dsdt = cmd->downsamp * idata.dt;
+    idata.dm = avgdm;
+    blocklen = ptsperblock;
+    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dsdt) 
+		     / ptsperblock + 1);
+    worklen = blocklen * blocksperread;
+
+    /* Which IFs will we use? */
+    
+    if (cmd->ifsP){
+      if (cmd->ifs==0)
+	bppifs = IF0;
+      else if (cmd->ifs==1)
+	bppifs = IF1;
+      else
+	bppifs = SUMIFS;
+    }
+
+    /* OBS code for TEMPO */
+    /* The following is for the Green Bank 85-3 */
+    strcpy(obs, "G8");
+
+    /* The number of topo to bary time points to generate with TEMPO */
+
+    numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
   }
 
   if (blocklen % cmd->downsamp){

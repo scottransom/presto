@@ -218,7 +218,7 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
   double  f_aib, u_or_l, f_sram, fc;
   findex *findexarr;
 
-  /* The following is probably a bad was to see if */
+  /* The following is probably a bad way to see if */
   /* we need to swap the endianess of the header.  */
   if (hdr->num_chans < 0 || hdr->num_chans > 2*MAXNUMCHAN){
     swapendian_BPP_header(hdr);
@@ -262,9 +262,7 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
     }
   }
 
-  /* produce lookup table which gives channels in order of descending freq */
-
-  /* Produce a lookup table which gives channels in order of increasing freq */
+  /* Make a lookup table which gives chans in order of increasing freq */
   
   findexarr = (findex *)malloc(sizeof(findex) * nchans);
   for (ii=0; ii<nchans; ii++){
@@ -275,39 +273,24 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
     */
   }
   qsort(findexarr, nchans, sizeof(findex), compare_findex);
-  for (ii=0; ii<nchans; ii++)
+  for (ii=0; ii<nchans; ii++){
     chan_index[ii] = findexarr[ii].index;
-#if 1
-  {
-    FILE *out;
-    unsigned int *nridx;
-
-    nridx  = (unsigned int *)malloc(nchans * sizeof(unsigned int));
-    indexx(nchans,chan_freqs-1,nridx-1);
-    out = fopen("dunc.txt", "w");
-    for (ii=0; ii<nchans; ii++){
-      fprintf(out, "%10.5f  %3d  %10.5f  %3d\n", chan_freqs[nridx[ii]-1], nridx[ii]-1, chan_freqs[chan_index[ii]], chan_index[ii]);
-      chan_index[ii] = nridx[ii]-1;
-    }
-    fclose(out);
-    free(nridx);
+    /*
+    printf("%3d  %3d  %f\n", ii, 
+	   chan_index[ii], chan_freqs[chan_index[ii]]);
+    */
   }
-#endif
   free(findexarr);
 
-  /*
-  for (ii=0; ii<nchans; ii++){
-    printf("%3d  %3d  %f\n", ii, chan_index[ii], chan_freqs[chan_index[ii]]);
-  }
-  */
-
   /* Set the static variables */
+
   n = nchans / 2;
   if (hdr->cb_sum_polarizations)
     numchan_st = nchans;
   else
     numchan_st = nchans / 2;
-  mid_freq_st = 0.5 * (chan_freqs[chan_index[n]] + chan_freqs[chan_index[n-1]]);
+  mid_freq_st = 0.5 * (chan_freqs[chan_index[n]] + 
+		       chan_freqs[chan_index[n-1]]);
   ch1_freq_st = chan_freqs[chan_index[0]];
   if (hdr->cb_sum_polarizations)
     delta_freq_st = chan_freqs[chan_index[1]] - chan_freqs[chan_index[0]];
@@ -876,8 +859,6 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
   }
 }
 
-#if 0
-
 void get_BPP_channel(int channum, float chandat[], 
 		     unsigned char rawdata[], int numblocks,
 		     BPP_ifs ifs)
@@ -887,26 +868,80 @@ void get_BPP_channel(int channum, float chandat[],
 /* read_BPP_rawblocks(), and 'chandat' must have at least      */
 /* 'numblocks' * 'ptsperblk_st' spaces.                        */
 /* Channel 0 is assumed to be the lowest freq channel.         */
-/* The different IFs are handled as standard channel numbers   */
-/* with IF0 going from 0-numchan/2-1 and IF1 from there up     */
-/* If 'ifs' equals SUMIFS then the channels go from            */
-/* 0-numchan_st-1 as per normal.                               */
+/* The different IFs are handled as standard channel numbers.  */
+/* with 'channum' = 0-numchan_st-1 as per normal.              */
 {
-  int ii, bit;
+  unsigned char *rawdataptr;
+  int ii, nibble;
 
-  if (ifs==IF0)
-
-  if (channum > numchan_st || channum < 0){
+  if (channum > numchan_st*numifs_st || channum < 0){
     printf("\nchannum = %d is out of range in get_BPP_channel()!\n\n",
 	   channum);
     exit(1);
   }
-  bit = (decreasing_freqs_st) ? numchan_st - 1 - channum : channum;
-  for (ii=0; ii<numblocks*ptsperblk_st; ii++)
-    chandat[ii] = (float) GET_BIT(rawdata + ii * bytesperpt_st, bit);
+  if (numifs_st==2){
+    /* Choosing a single IF */
+    if (ifs==IF0 || ifs==IF1){
+      if (ifs==IF0){
+	rawdataptr = rawdata + chan_index[channum] / 2;
+	nibble = chan_index[channum] % 2;
+      } else {
+	rawdataptr = rawdata + chan_index[channum+numchan_st] / 2;
+	nibble = chan_index[channum+numchan_st] % 2;
+      }
+      if (nibble) /* Use last 4 bits in the byte */
+	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	  chandat[ii] = (*rawdataptr & 0x0F);
+	  rawdataptr += bytesperpt_st;
+	}
+      else /* Use first 4 bits in the byte */
+	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	  chandat[ii] = (*rawdataptr >> 0x04);
+	  rawdataptr += bytesperpt_st;
+	}
+    /* Sum the IFs */
+    } else {
+      rawdataptr = rawdata + chan_index[channum] / 2;
+      nibble = chan_index[channum] % 2;
+      if (nibble) /* Use last 4 bits in the byte */
+	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	  chandat[ii] = (*rawdataptr & 0x0F);
+	  rawdataptr += bytesperpt_st;
+	}
+      else /* Use first 4 bits in the byte */
+	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	  chandat[ii] = (*rawdataptr >> 0x04);
+	  rawdataptr += bytesperpt_st;
+	}
+      rawdataptr = rawdata + chan_index[channum+numchan_st] / 2;
+      nibble = chan_index[channum+numchan_st] % 2;
+      if (nibble) /* Use last 4 bits in the byte */
+	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	  chandat[ii] += (*rawdataptr & 0x0F);
+	  rawdataptr += bytesperpt_st;
+	}
+      else /* Use first 4 bits in the byte */
+	for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	  chandat[ii] += (*rawdataptr >> 0x04);
+	  rawdataptr += bytesperpt_st;
+	}
+    }
+  } else {
+    /* Select the already summed IFs */
+    rawdataptr = rawdata + chan_index[channum] / 2;
+    nibble = chan_index[channum] % 2;
+    if (nibble) /* Use last 4 bits in the byte */
+      for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	chandat[ii] = (*rawdataptr & 0x0F);
+	rawdataptr += bytesperpt_st;
+      }
+    else /* Use first 4 bits in the byte */
+      for (ii=0; ii<numblocks*ptsperblk_st; ii++){
+	chandat[ii] = (*rawdataptr >> 0x04);
+	rawdataptr += bytesperpt_st;
+      }
+  }
 }
-
-#endif
 
 
 int read_BPP_subbands(FILE *infiles[], int numfiles, float *data, 
@@ -942,10 +977,6 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
   
   *nummasked = 0;
   if (firsttime) {
-    if (!read_BPP_rawblock(infiles, numfiles, raw, padding)){
-      printf("Problem reading the raw BPP data file.\n\n");
-      return 0;
-    }
     if (obsmask->numchan) mask = 1;
     move_size = (ptsperblk_st + numsubbands) / 2;
     move = gen_bvect(move_size);
@@ -953,6 +984,10 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
     currentdata = rawdata1;
     lastdata = rawdata2;
     timeperblk = ptsperblk_st * dt_st;
+    if (!read_BPP_rawblock(infiles, numfiles, raw, padding)){
+      printf("Problem reading the raw BPP data file.\n\n");
+      return 0;
+    }
     /* Put padval in the low and high nibbles */
     bytepadval = (padval << 4) | padval;
     if (mask){
@@ -1057,10 +1092,6 @@ void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
   }
   if (ifs==IF1)
     jj = numchan_st;
-  printf("pts = asarray([");
-  for (ii=0; ii<2*numchan_st; ii++)
-    printf("%d, ", ifbytes[ii]);
-  printf("]\n");
   for (ii=0; ii<numchan_st; ii++, jj++)
     bytes[ii] = ifbytes[jj];
 }
@@ -1101,99 +1132,3 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
   }
 }
 
-#undef SWAP
-#define NRANSI
-#define SWAP(a,b) itemp=(a);(a)=(b);(b)=itemp;
-#define M 7
-#define NSTACK 50
-#define NR_END 1
-#define FREE_ARG char*
-
-int *ivector(long nl, long nh)
-/* allocate an int vector with subscript range v[nl..nh] */
-{
-        int *v;
- 
-        v=(int *)malloc((size_t) ((nh-nl+1+NR_END)*sizeof(int)));
-        if (!v){
-	  printf("allocation failure in ivector()");
-	  exit(1);
-	}
-        return v-nl+NR_END;
-}
-
-void free_ivector(int *v, long nl, long nh)
-/* free an int vector allocated with ivector() */
-{
-        free((FREE_ARG) (v+nl-NR_END));
-}
- 
-void indexx(unsigned int n, double arr[], unsigned int indx[])
-{
-        unsigned int i,indxt,ir=n,itemp,j,k,l=1;
-        int jstack=0,*istack;
-        double a;
- 
-        istack=ivector(1,NSTACK);
-        for (j=1;j<=n;j++) indx[j]=j;
-        for (;;) {
-                if (ir-l < M) {
-                        for (j=l+1;j<=ir;j++) {
-                                indxt=indx[j];
-                                a=arr[indxt];
-                                for (i=j-1;i>=1;i--) {
-                                        if (arr[indx[i]] <= a) break;
-                                        indx[i+1]=indx[i];
-                                }
-                                indx[i+1]=indxt;
-                        }
-                        if (jstack == 0) break;
-                        ir=istack[jstack--];
-                        l=istack[jstack--];
-                } else {
-                        k=(l+ir) >> 1;
-                        SWAP(indx[k],indx[l+1]);
-                        if (arr[indx[l+1]] > arr[indx[ir]]) {
-                                SWAP(indx[l+1],indx[ir])
-                        }
-                        if (arr[indx[l]] > arr[indx[ir]]) {
-                                SWAP(indx[l],indx[ir])
-                        }
-                        if (arr[indx[l+1]] > arr[indx[l]]) {
-                                SWAP(indx[l+1],indx[l])
-                        }
-                        i=l+1;
-                        j=ir;
-                        indxt=indx[l];
-                        a=arr[indxt];
-                        for (;;) {
-                                do i++; while (arr[indx[i]] < a);
-                                do j--; while (arr[indx[j]] > a);
-                                if (j < i) break;
-                                SWAP(indx[i],indx[j])
-                        }
-                        indx[l]=indx[j];
-                        indx[j]=indxt;
-                        jstack += 2;
-                        if (jstack > NSTACK){
-			  printf("NSTACK too small in indexx.");
-			  exit(1);
-			}
-                        if (ir-i+1 >= j-l) {
-                                istack[jstack]=ir;
-                                istack[jstack-1]=i;
-                                ir=j-1;
-                        } else {
-                                istack[jstack]=j-1;
-                                istack[jstack-1]=l;
-                                l=i;
-                        }
-                }
-        }
-        free_ivector(istack,1,NSTACK);
-}
-
-#undef M
-#undef NSTACK
-#undef SWAP
-#undef NRANSI

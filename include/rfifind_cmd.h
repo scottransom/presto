@@ -15,10 +15,12 @@ typedef struct s_Cmdline {
   int outfileC;
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
-  /***** -ebpp: Raw data in EBPP (Effelsberg) format */
-  char ebppP;
-  /***** -gbpp: Raw data in GBPP (Green Bank) format */
-  char gbppP;
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  char bcpmP;
+  /***** -if: For BPP format only:  A specific IF to use. */
+  char ifsP;
+  int ifs;
+  int ifsC;
   /***** -xwin: Draw plots to the screen as well as a PS file */
   char xwinP;
   /***** -nocompute: Just plot and remake the mask */

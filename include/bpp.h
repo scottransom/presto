@@ -194,3 +194,6 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
 		      int transpose, int *padding, 
 		      int *maskchans, int *nummasked, mask *obsmask,
 		      BPP_ifs ifs);
+void get_BPP_channel(int channum, float chandat[], 
+		     unsigned char rawdata[], int numblocks,
+		     BPP_ifs ifs);
