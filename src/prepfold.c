@@ -851,19 +851,19 @@ int main(int argc, char *argv[])
     fprintf(filemarker, 
 	    "Number of profile bins       =  %d\n", search.proflen);
     switch_f_and_p(f, fd, fdd, &p, &pd, &pdd);
-    fprintf(filemarker, "Folding period          (s)  =  %-.15f\n", p);
+    fprintf(filemarker, "Folding period          (s)  =  %-.15g\n", p);
     if (pd != 0.0)
-      fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n", pd);
+      fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10g\n", pd);
     if (pdd != 0.0)
-      fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n", pdd);
+      fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10g\n", pdd);
     fprintf(filemarker, 
-	    "Folding frequency      (hz)  =  %-.12f\n", f);
+	    "Folding frequency      (hz)  =  %-.12g\n", f);
     if (fd != 0.0)
       fprintf(filemarker, 
-	      "Folding f-dot        (hz/s)  =  %-.8e\n", fd);
+	      "Folding f-dot        (hz/s)  =  %-.8g\n", fd);
     if (fdd != 0.0)
       fprintf(filemarker, 
-	      "Folding f-dotdot   (hz/s^2)  =  %-.8e\n", fdd);
+	      "Folding f-dotdot   (hz/s^2)  =  %-.8g\n", fdd);
     if (binary) {							
       double tmpTo;
       fprintf(filemarker, 
@@ -885,6 +885,15 @@ int main(int argc, char *argv[])
       fprintf(filemarker, 
 	      "Epoch of periapsis    (MJD)  =  %-17.11f\n", tmpTo);
     }
+  }
+
+  /* Check to see if the folding period is close to the time in a sub-interval */
+  if (!cmd->eventsP){
+    if (T/cmd->npart < 5.0/f)
+      printf("\nWARNING:  The pulse period is close to the duration of a folding\n"
+	     "  sub-interval.  This may cause artifacts in the plot and/or excessive\n"
+	     "  loss of data during the fold.  I recommend re-running with -npart set\n"
+	     "  to a significantly smaller value than the current value of %d.\n", cmd->npart);
   }
 
   /* Allocate and initialize some arrays and other information */
@@ -1030,20 +1039,20 @@ int main(int argc, char *argv[])
       free(voverc);
       printf("The average topocentric velocity is %.3g (units of c).\n\n", 
 	     search.avgvoverc);
-      printf("Barycentric folding frequency    (hz)  =  %-.12f\n", f);
-      printf("Barycentric folding f-dot      (hz/s)  =  %-.8e\n", fd);
-      printf("Barycentric folding f-dotdot (hz/s^2)  =  %-.8e\n", fdd);
+      printf("Barycentric folding frequency    (hz)  =  %-.12g\n", f);
+      printf("Barycentric folding f-dot      (hz/s)  =  %-.8g\n", fd);
+      printf("Barycentric folding f-dotdot (hz/s^2)  =  %-.8g\n", fdd);
     
       /* Convert the barycentric folding parameters into topocentric */
     
       if ((info=bary2topo(topotimes, barytimes, numbarypts, 
 			  f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
 	printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
-      printf("Topocentric folding frequency    (hz)  =  %-.12f\n", foldf);
+      printf("Topocentric folding frequency    (hz)  =  %-.12g\n", foldf);
       if (foldfd != 0.0)
-	printf("Topocentric folding f-dot      (hz/s)  =  %-.8e\n", foldfd);
+	printf("Topocentric folding f-dot      (hz/s)  =  %-.8g\n", foldfd);
       if (foldfdd != 0.0)
-	printf("Topocentric folding f-dotdot (hz/s^2)  =  %-.8e\n", foldfdd);
+	printf("Topocentric folding f-dotdot (hz/s^2)  =  %-.8g\n", foldfdd);
       printf("\n");
     
       /* Modify the binary delay times so they refer to */
