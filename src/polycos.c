@@ -64,6 +64,9 @@ char *make_polycos(char *parfilenm, infodata *idata)
   } else if (strcmp(idata->telescope, "VLA")==0){
     scopechar = '6';
     tracklen = 6;
+  } else if (strcmp(idata->telescope, "Parkes")==0){
+    scopechar = '7';
+    tracklen = 12;
   } else if (strcmp(idata->telescope, "Jodrell")==0){
     scopechar = '8';
     tracklen = 12;
