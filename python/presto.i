@@ -326,7 +326,6 @@ typedef struct orbitparams {
 } orbitparams;
 
 /* These files describe makedata, makeinf, and PSR database structs  */
-%include presto_psrdata.i
 %include presto_structs.i
 
 typedef struct rderivs {
@@ -1294,6 +1293,16 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /* Note:  When performing a subband search, the delays for each       */
 /*   subband must be calculated with the frequency of the highest     */
 /*   channel in each subband, _not_ the center subband frequency.     */
+
+%apply int ARRAYLEN { int numsubbands };
+double *subband_delays(int numchanx, int numsubbands, double dm,
+                       double lofreq, double chanwidth,
+                       double voverc);
+/* Return an array of delays (sec) for the highest frequency  */
+/* channels of each subband used in a subband de-dispersion.  */
+/* These are the delays described in the 'Note:' in the       */
+/* description of subband_search_delays().  See the comments  */
+/* for dedisp_delays() for more info.                         */
 
 //
 //Note:  The following must be the last declarations in the file

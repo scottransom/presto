@@ -107,20 +107,6 @@ def psrepoch(psrname, epoch):
    print 'The pulsar was #%d in the database.' % num
    return pp
 
-def collect_psrdata():
-    """
-    collect_psrdata():
-        Return a list of all of the pulsars in the Taylor et al.
-            pulsar database including their characteristics.
-    """
-    pdata = []
-    np = num_psrs_in_database()
-    print 'There are %d pulsars in the database.' % np
-    for i in range(0, np):
-        pdata.append(psrdata())
-        get_psrdata_by_num(pdata[i], i)
-    return pdata
-
 def read_rzwcands(filename):
     """
     read_rzwcands(filename):
