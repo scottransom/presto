@@ -151,6 +151,10 @@ timetest:
 	./timetest
 	rm -f timetest
 
+accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o 
+	$(CC) $(CFLAGS) -o $@ accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
 bary: bary.o 
 	$(CC) $(CFLAGS) -o $@ bary.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin

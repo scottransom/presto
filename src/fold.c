@@ -34,7 +34,7 @@
 
 /* Some helper functions */
 
-void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
+void hunt(double *xx, int n, double x, int *jlo);
 static void add_to_prof(double *prof, double *buffer, int numprof, 
 			double lophase, double deltaphase, 
 			double dataval, double *phaseadded);
@@ -600,7 +600,7 @@ double fold(float *data, int numdata, double dt, double tlo,
 /*    (i.e. to the beginning of the first data point)                 */
 {
   int ii, onbin, offbin, *onoffptr=NULL;
-  unsigned long arrayoffset=0;
+  int arrayoffset=0;
   double phase, phasenext=0.0, deltaphase, T, Tnext, TD, TDnext;
   double profbinwidth, lophase, hiphase, dtmp;
   double dev, delaytlo=0.0, delaythi=0.0, delaylo=0.0, delayhi=0.0;

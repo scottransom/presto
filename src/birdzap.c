@@ -1,17 +1,44 @@
 #include "presto.h"
 
-void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
+typedef struct bird{
+  double lobin;
+  double hibin;
+} bird;
 
-int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths)
-/* Open, read, and close a text file containing frequencies (Hz)  */
-/* and widths (bins) to ignore in a pulsar search.  The text file */
-/* should have one frequency and width per line.  Lines beginning */
-/* with '#' are ignored, and so may be used as comments.          */
+void hunt(double *xx, int n, double x, int *jlo);
+
+static int compare_birds(const void *ca, const void *cb)
+/*  Used as compare function for qsort() */
+{
+  bird *a, *b;
+ 
+  a = (bird *) ca;
+  b = (bird *) cb;
+  if ((b->lobin - a->lobin) < 0.0)
+    return 1;
+  if ((b->lobin - a->lobin) > 0.0)
+    return -1;
+  return 0;
+}
+
+int get_birdies(char *zapfilenm, double T, double avg_vel,
+		double **lobins, double **hibins)
+/* Open, read, and close a text file containing frequencies (Hz)   */
+/* and widths (Hz) to ignore in a pulsar search.  The text file    */
+/* should have one frequency and width per line.  Lines beginning  */
+/* with '#' are ignored, and so may be used as comments.           */
+/* 'T' is the total length in seconds of the observation that was  */
+/* FFTd.  'avg_vel' is the avg topocentric velocity (in units      */
+/* of c) towards the target during the obs.  The returned arrays   */
+/* are sorted in order of increasing 'lobins' and contain the low  */
+/* and high Fourier freqs that mark the boundaries of the birdies  */
+/* (based on 'T'and 'avg_vel').                                    */
 {
   FILE *zapfile;
   double freq, width;
   char line[200];
   int ii, numzap;
+  bird *birds;
 
   zapfile = chkfopen(zapfilenm, "r");
 
@@ -27,8 +54,7 @@ int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths)
 
   /* Allocate the birdie arrays */
 
-  *zapfreqs = gen_dvect(numzap);
-  *zapwidths = gen_dvect(numzap);
+  birds = (bird *)malloc(numzap * sizeof(bird));
 
   /* Rewind and read the birdies for real */
 
@@ -39,30 +65,50 @@ int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths)
     if (line[0]=='#') continue;
     else {
       sscanf(line, "%lf %lf\n", &freq, &width);
-      (*zapfreqs)[ii] = freq;
-      (*zapwidths)[ii] = width;
+      birds[ii].lobin = (freq - 0.5 * width) * T * (1.0 + avg_vel);
+      birds[ii].hibin = (freq + 0.5 * width) * T * (1.0 + avg_vel);
+      /* Insure that all birds are at least 1 bin wide */
+      if ((birds[ii].hibin - birds[ii].lobin) < 1.0){
+	double avgbin;
+	
+	avgbin = 0.5 * (birds[ii].hibin + birds[ii].lobin);
+	birds[ii].lobin = avgbin - 0.5;
+	birds[ii].hibin = avgbin + 0.5;
+      }
+	
       ii++;
     }
   }
-
-  /* Close the file and exit */
-
   fclose(zapfile);
+
+  /* Sort the birds and then transfer them to the individual arrays */
+
+  qsort(birds, numzap, sizeof(bird), compare_birds);
+  *lobins = gen_dvect(numzap);
+  *hibins = gen_dvect(numzap);
+  for (ii=0; ii<numzap; ii++){
+    (*lobins)[ii] = birds[ii].lobin;
+    (*hibins)[ii] = birds[ii].hibin;
+    printf("%15g %15g\n", birds[ii].lobin, birds[ii].hibin);
+  }
+  free(birds);
+
   printf("Read %d 'birdie' pairs from '%s'.\n\n", 
 	 numzap, zapfilenm);
   return numzap;
 }
 
 
-int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths, 
+int check_to_zap(double candbin, double *lobins, double *hibins, 
 		 int numzap)
-/* Look at the closest birdies in the zapfile to see if our candidate  */
-/* matches one of them.  If it does, return '1' for TRUE.  If it       */
-/* doesn't match, return a '0' for FALSE.  Note that the zapfreqs      */
-/* _must_ be in increasing order since this routine keeps track of its */
-/* place in the file.  Also, numzap _must be >= 2.                     */
+/* Look at the closest birdies from the zapfile to see if our  */
+/* candidate matches one of them.  If it does, return '1' for  */
+/* TRUE.  If it doesn't match, return a '0' for FALSE.  Note   */
+/* that the zapfreqs _must_ be in increasing order of 'lobins' */
+/* since this routine keeps track of its place in the file.    */
+/* Also, numzap _must be >= 2.                                 */
 {
-  static unsigned long index=0;
+  static int index=0;
 
   if (numzap < 2){
     printf("\n\n'numzap' = %d must be >= 2 in check_to_zap().", 
@@ -73,36 +119,28 @@ int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths,
 
   /* If we are beyond the end of the list, return a '0' */
 
-  if (candfreq > zapfreqs[numzap-1] + 0.5 * zapwidths[numzap-1]) 
+  if (candbin > hibins[numzap-1])
     return 0;
 
-  /* Find the indices for the birdies above and below our candidate */
+  /* Find the proper index for the highest freq birdie with a */
+  /* freq below that of our candidate.                        */
 
   index++;
-  hunt(zapfreqs-1, numzap, candfreq, &index);
+  hunt(lobins-1, numzap, candbin, &index);
+  printf("%15g  %15g  %15g\n", lobins[index], candbin, lobins[index+1]);
 
   /* Check the birdie freqs to see if they match. */
     
-  if (index > 0 && index < (unsigned long) numzap){
-    index--;
-    if ((fabs(zapfreqs[index] - candfreq) < 0.5 * zapwidths[index]) ||
-        (fabs(zapfreqs[index+1] - candfreq) < 0.5 * zapwidths[index+1]))
-      return 1;
-  } else if (index == 0){
-    if (fabs(zapfreqs[index] - candfreq) < 0.5 * zapwidths[index])
-      return 1;
-  } else if (index == (unsigned long) numzap){
-    index--;
-    if (fabs(zapfreqs[index] - candfreq) < 0.5 * zapwidths[index])
-      return 1;
-  }
-  return 0;
+  if (index == numzap)
+    return (candbin < hibins[index-1]);
+  else
+    return (candbin < hibins[index]);
 }
 
 
-void hunt(double *xx, unsigned long n, double x, unsigned long *jlo)
+void hunt(double *xx, int n, double x, int *jlo)
 {
-  unsigned long jm,jhi,inc;
+  int jm,jhi,inc;
   int ascnd;
   
   ascnd=(xx[n] >= xx[1]);

@@ -22,8 +22,8 @@ int remove_dupes_bin(binaryprops * list, int nlist);
    /*  Removes list values that are within 1 Fourier bin of the PSR freq */
    /*  from a higher power candidate. Returns # removed.                 */
 int remove_other(fourierprops * list, int nlist, long rlo,
-		 long rhi, double locpow, char zapfile, double *zapfreqs,
-		 double *zapwidths, int numzap);
+		 long rhi, double locpow, char zapfile, 
+		 double *lobins, double *hibins, int numzap);
 /*  Removes list values whose frequencies fall outside rlo and rhi, */
 /*  candidates whose local power levels are below locpow, and       */
 /*  candidates close to known birdies.  Returns # removed.          */
@@ -266,8 +266,8 @@ int remove_dupes2(fourierprops * list, int nlist)
 
 
 int remove_other(fourierprops * list, int nlist, long rlo,
-		 long rhi, double locpow, char zapfile, double *zapfreqs,
-		 double *zapwidths, int numzap)
+		 long rhi, double locpow, char zapfile, 
+		 double *lobins, double *hibins, int numzap)
 /*  Removes list values whose frequencies fall outside rlo and rhi, */
 /*  candidates whose local power levels are below locpow, and       */
 /*  candidates close to known birdies.  Returns # removed.          */
@@ -281,7 +281,7 @@ int remove_other(fourierprops * list, int nlist, long rlo,
     if (list[i].r < rlo || list[i].r > rhi || \
 	list[i].pow < locpow || \
 	(zapfile && 
-	 check_to_zap(list[i].r, zapfreqs, zapwidths, numzap))) {
+	 check_to_zap(list[i].r, lobins, hibins, numzap))) {
       if (i < nlist - 1) {
 	for (j = i; j < nlist - 1; j++) {
 	  SWAP(list[j], list[j + 1]);

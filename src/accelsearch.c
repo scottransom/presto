@@ -1,8 +1,6 @@
-#include "presto.h"
+#include <glib.h>
+#include "accel.h"
 #include "accelsearch_cmd.h"
-
-static double dmaxarg1, dmaxarg2;
-#define DMAX(a,b) (dmaxarg1=(a),dmaxarg2=(b),(dmaxarg1) > (dmaxarg2) ? (dmaxarg1) : (dmaxarg2))
 
 /* Define a couple functions specific to this program */
 
@@ -30,26 +28,11 @@ int remove_other(fourierprops * list, int nlist, long rlo,
 
 int main(int argc, char *argv[])
 {
-  FILE *fftfile, *candfile, *poscandfile;
-  char *rootfilenm;
-  double dt, nph, T, N, bigz, hir, hiz, dz=2.0, dr, tempzz=0.0;
-  double *zapfreqs=NULL, *zapwidths=NULL, totnumsearched=0.0;
-  float powargr, powargi, locpow=1.0, *powlist, lowpowlim;
-  float chkpow=0.0, hipow=0.0, minpow=0.0, numr=0.0;
-  fcomplex *response, **kernels, *corrdata, *filedata; 
-  unsigned long startbin, nextbin, nbins, highestbin;
-  int numbetween=2, numkern, kern_half_width;
-  int nr=1, nz, corrsize=0, mincorrsize, worknumbins=0;
-  int ii, zct, filedatalen, numzap=0, spot=0;
-  int ncand, newncand, oldper=0, newper=0;
-  char filenm[200], candnm[200], poscandnm[200], *notes;
-  char rzwnm[200];
-  presto_datainf datainf;
-  position *list, newpos;
-  rderivs *derivs;
-
   FILE *fftfile, *accelcandfile, *fourierpropsfile;
+  float nph;
+  char *rootfilenm, *candnm, *accelcandnm, *accelnm;
   GSList *cands=NULL;
+  subharminfo *subharminf;
   accelobs obs;
   fourierprops *props;
   infodata idata;
@@ -93,14 +76,12 @@ int main(int argc, char *argv[])
 	printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
 	       cmd->argv[0]);
 	free(suffix);
-	free(rootfilenm);
 	exit(0);
       }
       free(suffix);
     } else {
       printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
 	     cmd->argv[0]);
-      free(rootfilenm);
       exit(0);
     }
   }
@@ -110,174 +91,30 @@ int main(int argc, char *argv[])
   readinf(&idata, cmd->argv[0]);
   if (idata.object) {
     printf("Analyzing %s data from '%s'.\n\n", 
-	   remove_whitespace(idata.object), filenm);
+	   remove_whitespace(idata.object), cmd->argv[0]);
   } else {
-    printf("Analyzing data from '%s'.\n\n", filenm);
+    printf("Analyzing data from '%s'.\n\n", cmd->argv[0]);
   }
-
-  /**/
-
-  /* If there are 'birdies' to zap, read the 'zapfile' */
-
-  if (cmd->zapfileP){
-    numzap = read_zapfile(cmd->zapfile, &zapfreqs, &zapwidths);
-
-    /* Convert the freqs to bins */
-
-    tempzz = N / 2.0;  /* Nyquist Freq */
-    for (ii = 0; ii < numzap; ii++){
-      zapfreqs[ii] *= T * (1.0 + cmd->baryv);
-
-      /* If the zapfreq is greater than the Nyquist, alias it */
-
-      if (zapfreqs[ii] > tempzz) 
-	zapfreqs[ii] = N - zapfreqs[ii]; 
-    }
-
-    /* Make sure that our list is sorted.  */
-    /* (Since it should be mostly sorted,  */
-    /* we will brute force the sort.)      */
-
-    for (ii = 0; ii < numzap - 1;){
-      if (zapfreqs[ii] > zapfreqs[ii+1]){
-	  SWAP(zapfreqs[ii], zapfreqs[ii+1]);
-	  SWAP(zapwidths[ii], zapwidths[ii+1]);
-	  ii = 0;
-      } else ii++;
-    }
-  }
-
-  /* open the FFT file and get its length */
-
-  fftfile = chkfopen(filenm, "rb");
-  nph = get_numphotons(fftfile);
-  nbins = chkfilelen(fftfile, sizeof(fcomplex));
-
-  /* # of fourier frequencies */
-
-  if (nbins < SHORTESTFFT / 2) {
-    printf("\nFFT is too short to use this routine.\n\n");
-    exit(1);
-  }
-  chkfileseek(fftfile, 0L, sizeof(char), SEEK_SET);
-
-  /* insure we have a spacing of dz = 2 */
-
-  if ((cmd->zhi - cmd->zlo) & 1) cmd->zhi++;
-  bigz = DMAX(fabs((double) cmd->zlo), fabs((double) cmd->zhi));
-  kern_half_width = z_resp_halfwidth(bigz, LOWACC);
-  nz = (int) ((cmd->zhi - cmd->zlo) / dz) + 1;
 
   /* Determine the output filenames */
 
-  sprintf(candnm, "%s_rzw_z:%d_%d.cand", cmd->argv[0], 
-	  cmd->zlo, cmd->zhi);
-  sprintf(poscandnm, "%s_rzw_z:%d_%d.pos", cmd->argv[0], 
-	  cmd->zlo, cmd->zhi);
-  sprintf(rzwnm, "%s_rzw_z:%d_%d", cmd->argv[0], 
-	  cmd->zlo, cmd->zhi);
+  candnm = (char *)calloc(strlen(rootfilenm)+25, 1);
+  accelcandnm = (char *)calloc(strlen(rootfilenm)+25, 1);
+  accelnm = (char *)calloc(strlen(rootfilenm)+25, 1);
+  sprintf(candnm, "%s_ACCEL_%d.cand", rootfilenm, cmd->zmax);
+  sprintf(accelcandnm, "%s_ACCEL_%d.accelcand", rootfilenm, cmd->zmax);
+  sprintf(accelnm, "%s_ACCEL_%d", rootfilenm, cmd->zmax);
 
-  /* The number of candidates to save */
-
-  ncand = 2 * cmd->ncand;
-
-  /* Determine the correlation sizes we will use: */
-
-  /* The following mincorrsize ensures that we never waste more */
-  /* than 25% of any correlation's points due to end effects.   */
-  /* (Note: We throw away 2*m points from a correlation)        */
-
-  mincorrsize = 6 * kern_half_width * numbetween;
-
-  /* We need to keep nz + 2 arrays of corrsize complex numbers in */
-  /* memory at all times. (nz kernels, 1 data set, 1 result)      */
-  /* Therefore worknumbins is the largest corrsize we can have.   */
-
-  worknumbins = (int) (MAXREALFFT / (2 * (nz + 2)));
-
-  /* Determine corrsize:  Insure smaller than worknumbins */
-  /* then divide by two again just to be sure...          */
-
-  corrsize = next2_to_n(worknumbins) / 4;
-  if (mincorrsize > corrsize) {
-    printf("\nYou are asking for too much memory.  Specify\n");
-    printf("  fewer z values to search.  Exiting.\n\n");
-    exit(1);
-  }
+  /* Create the accelobs structure */
+  
+  fftfile = chkfopen(cmd->argv[0], "rb");
+  create_accelobs(fftfile, &obs, &idata, cmd);
 
   /* Generate the correlation kernels */
 
   printf("Generating fdot kernels for the correlations...\n");
-
-  kernels = gen_cmatrix(nz, corrsize);
-  numkern = 2 * numbetween * kern_half_width;
-  for (ii = 0; ii < nz; ii++) {
-    response = gen_z_response(0.0, numbetween, cmd->zlo + ii * dz, numkern);
-    place_complex_kernel(response, numkern, kernels[ii], corrsize);
-    free(response);
-    COMPLEXFFT(kernels[ii], corrsize, -1);
-  }
-
+  subharminf = create_subharminfo_vect(cmd->numharm, cmd->zmax);
   printf("Done generating kernels.\n\n");
-
-  /* The lowest freq present in the FFT file */
-
-  if (cmd->lobin > 0){
-    nph = 1.0;
-    if ((unsigned long) cmd->lobin > nbins - 1) {
-      printf("\n'lobin' is greater than the total number of\n");
-      printf("   frequencies in the data set.  Exiting.\n\n");
-      exit(1);
-    }
-  }
-
-  /* flo, fhi, rlo, rhi */
-
-  if (cmd->floP){
-    cmd->rlo = cmd->flo*T;
-    if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
-    if ((unsigned long) cmd->rlo > nbins - 1) {
-      printf("\nLow frequency to search 'flo' is greater than\n");
-      printf("   the highest available frequency.  Exiting.\n\n");
-      exit(1);
-    }
-  } else {
-    if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
-    if ((unsigned long) cmd->rlo > nbins - 1) {
-      printf("\nLow frequency to search 'rlo' is greater than\n");
-      printf("   the available number of points.  Exiting.\n\n");
-      exit(1);
-    }
-  }
-  highestbin = nbins - 1;
-  if (cmd->fhiP){
-    highestbin = (unsigned long) (cmd->fhi * T);
-    if (highestbin > nbins - 1) highestbin = nbins - 1;
-    if (highestbin < (unsigned long) cmd->rlo){
-      printf("\nHigh frequency to search 'fhi' is less than\n");
-      printf("   the lowest frequency to search 'flo'.  Exiting.\n\n");
-      exit(1);
-    }
-  } else if (cmd->rhiP){
-    highestbin = (unsigned long) cmd->rhi;
-    if (highestbin > nbins - 1) highestbin = nbins - 1;
-    if (highestbin < (unsigned long) cmd->rlo){
-      printf("\nHigh frequency to search 'rhi' is less than\n");
-      printf("   the lowest frequency to search 'rlo'.  Exiting.\n\n");
-      exit(1);
-    }
-  }
-
-  /* Allocate some memory */
-
-  list = malloc(sizeof(position) * ncand);
-  derivs = malloc(sizeof(rderivs) * ncand);
-  props = malloc(sizeof(fourierprops) * ncand);
-  corrdata = gen_cvect(corrsize);
-
-  dr = 1.0 / (double) numbetween;
-  numr = ((float) (highestbin - cmd->rlo + 1)) * nz / dr;
-  filedatalen = corrsize / numbetween;
 
   /* We will automatically get rid of any candidates that have local */
   /* powers much lower than what we would expect to find in the      */
@@ -471,7 +308,7 @@ int main(int argc, char *argv[])
 
   if (cmd->ncand < newncand) newncand = cmd->ncand;
   file_reg_candidates(props, notes, newncand, dt, \
-		      (long) (N + DBLCORRECT), nph, cmd->argv[0], rzwnm);
+		      (long) (N + DBLCORRECT), nph, rootfilenm, accelnm);
 
   /* Finish up */
 
@@ -489,13 +326,17 @@ int main(int argc, char *argv[])
   printf("  Total time: %.3f sec\n\n", tott);
 
   printf("Candidates in binary format are stored in '%s'.\n", candnm);
-  printf("A candidate Postscript table is stored in '%s.ps'.\n\n", rzwnm);
+  printf("A candidate Postscript table is stored in '%s.ps'.\n\n", accelnm);
 
 /*     readinf(&idata, infonm); */
 /*     realpsr = comp_psr_to_cand(&props, &idata, compare); */
 /*     printf("%s\n",compare); */
 
   fclose(fftfile);
+  free(candnm);
+  free(accelcandnm);
+  free(accelnm);
+  free(rootfilenm);
   free(list);
   free(derivs);
   free(props);

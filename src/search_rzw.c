@@ -27,8 +27,8 @@ int remove_dupes2(fourierprops * list, int nlist);
 /*  Removes list values that are within measurement error away from  */
 /*  a higher power candidate.  Returns # removed.                    */
 int remove_other(fourierprops * list, int nlist, long rlo,
-		 long rhi, double locpow, char zapfile, double *zapfreqs,
-		 double *zapwidths, int numzap);
+		 long rhi, double locpow, char zapfile, 
+		 double *lozaps, double *hizaps, int numzap);
 /*  Removes list values whose frequencies fall outside rlo and rhi, */
 /*  candidates whose local power levels are below locpow, and       */
 /*  candidates close to known birdies.  Returns # removed.          */
@@ -41,8 +41,8 @@ int remove_other(fourierprops * list, int nlist, long rlo,
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile, *poscandfile;
-  double dt, nph, T, N, bigz, hir, hiz, dz=2.0, dr, tempzz=0.0;
-  double *zapfreqs=NULL, *zapwidths=NULL, totnumsearched=0.0;
+  double dt, nph, T, N, bigz, hir, hiz, dz=2.0, dr;
+  double *lozaps=NULL, *hizaps=NULL, totnumsearched=0.0;
   float powargr, powargi, locpow=1.0, *powlist, lowpowlim;
   float chkpow=0.0, hipow=0.0, minpow=0.0, numr=0.0;
   fcomplex *response, **kernels, *corrdata, *filedata; 
@@ -106,33 +106,16 @@ int main(int argc, char *argv[])
 
   /* If there are 'birdies' to zap, read the 'zapfile' */
 
-  if (cmd->zapfileP){
-    numzap = read_zapfile(cmd->zapfile, &zapfreqs, &zapwidths);
+  if (cmd->zapfileP)
+    numzap = get_birdies(cmd->zapfile, T, cmd->baryv, 
+			 &lozaps, &hizaps);
 
-    /* Convert the freqs to bins */
+  printf("%d (1)  %d (0)  %d (0)\n", 
+	 check_to_zap(100.0/T, lozaps, hizaps, numzap),
+	 check_to_zap(102.123123/T, lozaps, hizaps, numzap),
+	 check_to_zap(10000.0/T, lozaps, hizaps, numzap));
+	 
 
-    tempzz = N / 2.0;  /* Nyquist Freq */
-    for (ii = 0; ii < numzap; ii++){
-      zapfreqs[ii] *= T * (1.0 + cmd->baryv);
-
-      /* If the zapfreq is greater than the Nyquist, alias it */
-
-      if (zapfreqs[ii] > tempzz) 
-	zapfreqs[ii] = N - zapfreqs[ii]; 
-    }
-
-    /* Make sure that our list is sorted.  */
-    /* (Since it should be mostly sorted,  */
-    /* we will brute force the sort.)      */
-
-    for (ii = 0; ii < numzap - 1;){
-      if (zapfreqs[ii] > zapfreqs[ii+1]){
-	  SWAP(zapfreqs[ii], zapfreqs[ii+1]);
-	  SWAP(zapwidths[ii], zapwidths[ii+1]);
-	  ii = 0;
-      } else ii++;
-    }
-  }
 
   /* open the FFT file and get its length */
 
@@ -359,7 +342,7 @@ int main(int argc, char *argv[])
 	  /* matches one of the 'birdies'.  If it does, continue. */
 
 	  if (cmd->zapfileP && 
-	      check_to_zap(newpos.p1, zapfreqs, zapwidths, numzap))
+	      check_to_zap(newpos.p1, lozaps, hizaps, numzap))
 	    continue;
 
 	  /* Check to see if another candidate with these properties */
@@ -427,7 +410,7 @@ int main(int argc, char *argv[])
 
   newncand -= remove_dupes2(props, newncand);
   newncand -= remove_other(props, newncand, cmd->rlo, highestbin, lowpowlim, 
-			   cmd->zapfileP, zapfreqs, zapwidths, numzap);
+			   cmd->zapfileP, lozaps, hizaps, numzap);
 
   /* Set our candidate notes to all spaces */
 
@@ -488,8 +471,8 @@ int main(int argc, char *argv[])
   free(props);
   free(notes);
   if (cmd->zapfileP){
-    free(zapfreqs);
-    free(zapwidths);
+    free(lozaps);
+    free(hizaps);
   }
   return (0);
 }

@@ -165,6 +165,12 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
   static unsigned char databuffer[DATLEN*2];
   static int bufferpts=0, padnum=0, shiftbuffer=1;
 
+static int firsttime=1;
+fflush(stdout);
+if (firsttime) printf("#currentblock currentfile bufferpts padnum shiftbuffer code\n");
+printf("%7d %2d %5d %8d %2d ", currentblock, currentfile, bufferpts, padnum, shiftbuffer);
+firsttime=0;
+
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
@@ -186,10 +192,12 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
     /* Put the new data into the databuffer or directly */
     /* into the return array if the bufferoffset is 0.  */
     if (bufferpts){
+printf("buf_block\n");
       offset = bufferpts * bytesperpt_st;
       memcpy(databuffer+offset, record+HDRLEN, DATLEN);
       memcpy(data, databuffer, DATLEN);
     } else {
+printf("std_block\n");
       memcpy(data, record+HDRLEN, DATLEN);
     }
     currentblock++;
@@ -201,6 +209,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	*padding = 1;
 	if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
 	  if (bufferpts){  /* Buffer the padding? */
+printf("buf_padding\n");
 	    /* Add the amount of padding we need to */
 	    /* make our buffer offset (offset) = 0  */
 	    numtopad = ptsperblk_st - bufferpts;
@@ -213,6 +222,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	    memcpy(data, databuffer, DATLEN);
 	    bufferpts = 0;
 	  } else {  /* Add a full record of padding */
+printf("std_padding\n");
 	    numtopad = ptsperblk_st;
 	    memcpy(data, padblock, DATLEN);
 	  }
@@ -226,6 +236,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	  return 1;
 	} else {  /* Need < 1 block (or remaining block) of padding */
 	  int pad;
+printf("frac_padding... ");
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
 	  for (ii=0; ii<numtopad; ii++){
@@ -240,6 +251,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	  return read_PKMB_rawblock(infiles, numfiles, hdr, data, &pad);
 	}
       } else {  /* No padding needed.  Try reading the next file */
+printf("next file... ");
 	currentfile++;
 	shiftbuffer = 0;
 	return read_PKMB_rawblock(infiles, numfiles, hdr, data, padding);

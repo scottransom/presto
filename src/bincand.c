@@ -360,6 +360,7 @@ int main(int argc, char *argv[]){
   /* Extract the necessary data from the fftfile */
 
   datalen = next2_to_n(10.0 * rorb * phiorb);
+  if (datalen < 32768) datalen = 32768;
   lodata = (int) (ro - datalen / 2);
   printf("Extracting frequencies from\n\t'%s.fft':\n", 
 	 cmd->argv[0]);
