@@ -33,7 +33,9 @@ def processbirds(filename):
     print "\nProcessing the birds..."
     info = read_inffile(rootname)
     T = info.dt * info.N;
-    min_psr_width = 20.0 / T # PSRs get 12 bins minimum zapped
+    # PSRs get 40 bins minimum zapped (overkill for most,
+    # but required for the _really_ bright ones
+    min_psr_width = 40.0 / T
     file = open(filename, "r")
     for line in file.readlines():
         if (line[0]=='#'):
