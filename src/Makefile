@@ -164,7 +164,7 @@ prep: meminit timetest bincat
 
 text: makedata makeinf mjd2cal realfft_4step quicklook\
 	search_bin search_rzw swap_endian prepdata\
-	check_parkes_raw bary shiftdata dftfold\
+	check_parkes_raw bary shiftdata dftfold realfft\
 	patchdata readfile toas2dat bincand taperaw
 
 xwin: psrorbit window plotbincand profile showmulti\
@@ -183,6 +183,7 @@ cligs:
 	cd ../clig ; clig -o readfile_cmd -d readfile_cmd.cli
 	cd ../clig ; clig -o toas2dat_cmd -d toas2dat_cmd.cli
 	cd ../clig ; clig -o dftfold_cmd -d dftfold_cmd.cli
+	cd ../clig ; clig -o realfft_cmd -d realfft_cmd.cli
 	mv ../clig/*_cmd.h ../include/
 	mv ../clig/*_cmd.c .
 	cp ../clig/*.1 ../docs/
@@ -302,6 +303,10 @@ quicklook: quicklook.o
 
 readfile:  readfile.o readfile_cmd.o
 	$(CC) $(CFLAGS) -o $@ readfile.o readfile_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+realfft: realfft.o realfft_cmd.o
+	$(CC) $(CFLAGS) -o $@ realfft.o realfft_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
 realfft_4step: realfft_4step.o

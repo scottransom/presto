@@ -26,22 +26,30 @@ static Cmdline cmd = {
   /* ncandP = */ 1,
   /* ncand = */ 100,
   /* ncandC = */ 1,
-  /***** -zlo: The low Fourier frequency to check */
+  /***** -zlo: The low Fourier frequency derivative to search */
   /* zloP = */ 1,
   /* zlo = */  -50,
   /* zloC = */ 1,
-  /***** -zhi: The high Fourier frequency to check */
+  /***** -zhi: The high Fourier frequency derivative to search */
   /* zhiP = */ 1,
   /* zhi = */ 50,
   /* zhiC = */ 1,
-  /***** -rlo: The lowest Fourier frequency to check */
+  /***** -rlo: The lowest Fourier frequency to search */
   /* rloP = */ 1,
   /* rlo = */ 300,
   /* rloC = */ 1,
-  /***** -rhi: The highest Fourier frequency to check */
+  /***** -rhi: The highest Fourier frequency to search */
   /* rhiP = */ 0,
   /* rhi = */ (int)0,
   /* rhiC = */ 0,
+  /***** -flo: The lowest frequency (Hz) to search */
+  /* floP = */ 0,
+  /* flo = */ (int)0,
+  /* floC = */ 0,
+  /***** -fhi: The highest frequency (Hz) to search */
+  /* fhiP = */ 0,
+  /* fhi = */ (int)0,
+  /* fhiC = */ 0,
   /***** -lobin: The first Fourier frequency in the data file */
   /* lobinP = */ 1,
   /* lobin = */ 0,
@@ -762,7 +770,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -zlo: The low Fourier frequency to check */
+  /***** -zlo: The low Fourier frequency derivative to search */
   if( !cmd.zloP ) {
     printf("-zlo not found.\n");
   } else {
@@ -774,7 +782,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -zhi: The high Fourier frequency to check */
+  /***** -zhi: The high Fourier frequency derivative to search */
   if( !cmd.zhiP ) {
     printf("-zhi not found.\n");
   } else {
@@ -786,7 +794,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -rlo: The lowest Fourier frequency to check */
+  /***** -rlo: The lowest Fourier frequency to search */
   if( !cmd.rloP ) {
     printf("-rlo not found.\n");
   } else {
@@ -798,7 +806,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -rhi: The highest Fourier frequency to check */
+  /***** -rhi: The highest Fourier frequency to search */
   if( !cmd.rhiP ) {
     printf("-rhi not found.\n");
   } else {
@@ -807,6 +815,30 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%d'\n", cmd.rhi);
+    }
+  }
+
+  /***** -flo: The lowest frequency (Hz) to search */
+  if( !cmd.floP ) {
+    printf("-flo not found.\n");
+  } else {
+    printf("-flo found:\n");
+    if( !cmd.floC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.flo);
+    }
+  }
+
+  /***** -fhi: The highest frequency (Hz) to search */
+  if( !cmd.fhiP ) {
+    printf("-fhi not found.\n");
+  } else {
+    printf("-fhi found:\n");
+    if( !cmd.fhiC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.fhi);
     }
   }
 
@@ -861,21 +893,25 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-ncand ncand] [-zlo zlo] [-zhi zhi] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-zapfile zapfile] [-baryv baryv] [--] infile\n\
+ [-ncand ncand] [-zlo zlo] [-zhi zhi] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-lobin lobin] [-zapfile zapfile] [-baryv baryv] [--] infile\n\
     Searches an FFT for pulsar candidates using a Fourier domain acceleration search.\n\
     -ncand: Number of candidates to try to return\n\
             1 int value between 1 and 10000\n\
             default: `100'\n\
-      -zlo: The low Fourier frequency to check\n\
+      -zlo: The low Fourier frequency derivative to search\n\
             1 int value between -2000000 and 2000000\n\
             default: ` -50'\n\
-      -zhi: The high Fourier frequency to check\n\
+      -zhi: The high Fourier frequency derivative to search\n\
             1 int value between -2000000 and 2000000\n\
             default: `50'\n\
-      -rlo: The lowest Fourier frequency to check\n\
+      -rlo: The lowest Fourier frequency to search\n\
             1 int value between 0 and oo\n\
             default: `300'\n\
-      -rhi: The highest Fourier frequency to check\n\
+      -rhi: The highest Fourier frequency to search\n\
+            1 int value between 0 and oo\n\
+      -flo: The lowest frequency (Hz) to search\n\
+            1 int value between 0 and oo\n\
+      -fhi: The highest frequency (Hz) to search\n\
             1 int value between 0 and oo\n\
     -lobin: The first Fourier frequency in the data file\n\
             1 int value between 0 and oo\n\
@@ -885,7 +921,9 @@ usage(void)
     -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)\n\
             1 double value between -0.1 and 0.1\n\
             default: `0.0'\n\
-version: 31Aug00\n\
+    infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
+            1 value\n\
+version: 28Sep00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -948,6 +986,24 @@ parseCmdline(int argc, char **argv)
       i = getIntOpt(argc, argv, i, &cmd.rhi, 1);
       cmd.rhiC = i-keep;
       checkIntHigher("-rhi", &cmd.rhi, cmd.rhiC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-flo", argv[i]) ) {
+      cmd.floP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.flo, 1);
+      cmd.floC = i-keep;
+      checkIntHigher("-flo", &cmd.flo, cmd.floC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-fhi", argv[i]) ) {
+      cmd.fhiP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.fhi, 1);
+      cmd.fhiC = i-keep;
+      checkIntHigher("-fhi", &cmd.fhi, cmd.fhiC, 0);
       continue;
     }
 

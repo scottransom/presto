@@ -1154,7 +1154,9 @@ usage(void)
      -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin\n\
       -mak: Determine folding parameters from 'infile.mak'\n\
     -noerr: Do not plot error bars\n\
-version: 31Aug00\n\
+    infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.\n\
+            1 value\n\
+version: 28Sep00\n\
 ");
   exit(EXIT_FAILURE);
 }

@@ -943,7 +943,9 @@ usage(void)
                default: `0'\n\
     -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive)\n\
      -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n\
-version: 31Aug00\n\
+       infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
+               1 value\n\
+version: 28Sep00\n\
 ");
   exit(EXIT_FAILURE);
 }

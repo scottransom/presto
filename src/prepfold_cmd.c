@@ -1316,7 +1316,9 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
-version: 31Aug00\n\
+    infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
+            1 value\n\
+version: 28Sep00\n\
 ");
   exit(EXIT_FAILURE);
 }

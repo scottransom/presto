@@ -223,14 +223,14 @@ int main(int argc, char *argv[])
   if (cmd->floP){
     cmd->rlo = cmd->flo*T;
     if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
-    if (cmd->rlo > nbins - 1) {
+    if ((unsigned long) cmd->rlo > nbins - 1) {
       printf("\nLow frequency to search 'flo' is greater than\n");
       printf("   the highest available frequency.  Exiting.\n\n");
       exit(1);
     }
   } else {
     if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
-    if (cmd->rlo > nbins - 1) {
+    if ((unsigned long) cmd->rlo > nbins - 1) {
       printf("\nLow frequency to search 'rlo' is greater than\n");
       printf("   the available number of points.  Exiting.\n\n");
       exit(1);

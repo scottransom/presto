@@ -13,22 +13,30 @@ typedef struct s_Cmdline {
   char ncandP;
   int ncand;
   int ncandC;
-  /***** -zlo: The low Fourier frequency to check */
+  /***** -zlo: The low Fourier frequency derivative to search */
   char zloP;
   int zlo;
   int zloC;
-  /***** -zhi: The high Fourier frequency to check */
+  /***** -zhi: The high Fourier frequency derivative to search */
   char zhiP;
   int zhi;
   int zhiC;
-  /***** -rlo: The lowest Fourier frequency to check */
+  /***** -rlo: The lowest Fourier frequency to search */
   char rloP;
   int rlo;
   int rloC;
-  /***** -rhi: The highest Fourier frequency to check */
+  /***** -rhi: The highest Fourier frequency to search */
   char rhiP;
   int rhi;
   int rhiC;
+  /***** -flo: The lowest frequency (Hz) to search */
+  char floP;
+  int flo;
+  int floC;
+  /***** -fhi: The highest frequency (Hz) to search */
+  char fhiP;
+  int fhi;
+  int fhiC;
   /***** -lobin: The first Fourier frequency in the data file */
   char lobinP;
   int lobin;

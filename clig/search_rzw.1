@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "search_rzw" 1 "31Aug00" "Clig-manuals" "Programmer's Manual"
+.TH "search_rzw" 1 "28Sep00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -27,6 +27,8 @@ search_rzw \- Searches an FFT for pulsar candidates using a Fourier domain accel
 [-zhi zhi]
 [-rlo rlo]
 [-rhi rhi]
+[-flo flo]
+[-fhi fhi]
 [-lobin lobin]
 [-zapfile zapfile]
 [-baryv baryv]
@@ -42,25 +44,33 @@ Number of candidates to try to return,
 .br
 Default: `100'
 .IP -zlo
-The low Fourier frequency to check,
+The low Fourier frequency derivative to search,
 .br
 1 Int value between -2000000 and 2000000.
 .br
 Default: ` -50'
 .IP -zhi
-The high Fourier frequency to check,
+The high Fourier frequency derivative to search,
 .br
 1 Int value between -2000000 and 2000000.
 .br
 Default: `50'
 .IP -rlo
-The lowest Fourier frequency to check,
+The lowest Fourier frequency to search,
 .br
 1 Int value between 0 and oo.
 .br
 Default: `300'
 .IP -rhi
-The highest Fourier frequency to check,
+The highest Fourier frequency to search,
+.br
+1 Int value between 0 and oo.
+.IP -flo
+The lowest frequency (Hz) to search,
+.br
+1 Int value between 0 and oo.
+.IP -fhi
+The highest frequency (Hz) to search,
 .br
 1 Int value between 0 and oo.
 .IP -lobin

@@ -827,7 +827,9 @@ usage(void)
    -text: TOAs are ASCII text (default is binary double)\n\
   -float: TOAs are binary floats (default is binary double)\n\
     -sec: TOA unit is seconds (default is days)\n\
-version: 31Aug00\n\
+    file: Input TOA file name\n\
+          1 value\n\
+version: 28Sep00\n\
 ");
   exit(EXIT_FAILURE);
 }

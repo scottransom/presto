@@ -991,7 +991,9 @@ usage(void)
              1 double value\n\
              default: `0'\n\
        -mak: Determine optimization parameters from 'infile.mak'\n\
-version: 31Aug00\n\
+     infile: Input fft file name (without a suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
+             1 value\n\
+version: 28Sep00\n\
 ");
   exit(EXIT_FAILURE);
 }

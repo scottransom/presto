@@ -836,7 +836,9 @@ usage(void)
      -norm: Raw power divided by this normalizes the power\n\
             1 double value\n\
   -fftnorm: Use local powers from '.fft' file to get 'norm'\n\
-version: 31Aug00\n\
+    infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist\n\
+            1 value\n\
+version: 28Sep00\n\
 ");
   exit(EXIT_FAILURE);
 }
