@@ -465,6 +465,11 @@ double chisqr(double *data, int numdata, double avg, double var);
 /* Calculates the chi-square of the 'data' which has average */
 /* 'avg', and variance 'var'.                                */
 
+void switch_f_and_p(double in, double ind, double indd,
+		    double *out, double *outd, double *outdd);
+/* Convert p, p-dot, and p-dotdot into f, f-dot, */
+/* and f-dotdot or vise-versa.                   */
+
 
 /*  dispersion.c:  */
 /*  Functions to de-disperse data */
@@ -553,16 +558,15 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 void combine_subbands(double *inprofs, foldstats *stats, 
 		      int numparts, int numsubbands, int proflen, 
 		      int *delays, double *outprofs, 
-		      double *outprofavgs, double *outprofvars);
+		      foldstats *outprofstats);
 /* Combine 'nparts' sets of 'numsubbands' profiles, each of length     */
 /* 'proflen' into a 'nparts' de-dispersed profiles.  The de-dispersion */
 /* uses the 'delays' (of which there are 'numsubbands' many) to        */
 /* show how many bins to shift each profile to the right.  Only        */
 /* positive numbers may be used (left shifts may be accomplished using */
 /* the shift modulo 'proflen').  The 'stats' about the profiles are    */
-/* combined as well and the combined profile averages and variances    */
-/* are returned in 'outprofavgs' and 'outprofvars' respectively.  All  */
-/* arrays must be pre-allocated.                                       */
+/* combined as well and the combined stats are returned in             */
+/* 'outprofstats'. All arrays must be pre-allocated.                   */
 
 
 /*  output.c:  */
@@ -1143,15 +1147,21 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof);
 /* If 'shift' < 0 then shift left, 'shift' > 0, shift right. */ 
 /* Place the shifted  profile in 'outprof'.                  */
 
-void combine_profs(double *profs, int numprofs, int proflen, 
-		   int shift, double *outprof);
+void combine_profs(double *profs, foldstats *instats, int numprofs, 
+		   int proflen, int shift, double *outprof,
+		   foldstats *outstats);
 /* Combine a series of 'numprofs' profiles, each of length 'proflen', */
 /* into a single profile of length 'proflen'.  The profiles are       */
 /* summed after being shifted (+:right, -:left) by an an appropriate  */
 /* amount such that the phase would drift 'shift' bins over the time  */
-/* represented by all of the profiles.  Ruturns the summed profile in */
+/* represented by all of the profiles.  Returns the summed profile in */
 /* 'outprof'.  Note that 'profs' must contain all of the profiles     */
 /* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
+/* The input profile stats in 'instats' are combined and placed in    */
+/* the 'outstats' structure.                                          */
+
+void initialize_foldstats(foldstats *stats);
+/* Zeroize all of the components of stats */
 
 
 double doppler(double freq_observed, double voverc);

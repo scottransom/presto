@@ -5,12 +5,12 @@
 #define CODESIZE              2
 #define Ramsize               104857600
 #define CacheL1size           32768
-#define CacheL2size           131072
+#define CacheL2size           262144
 #define Cacheburst            32
 #define Maxblocksize          8388608
 #define MAXREALFFT            16777216
 #define BIGFFTWSIZE           1048576
 #define KBF                   4194304
-#define Cachetreshold         16384
+#define Cachetreshold         32768
 #define Cacheburstblocksize   4
 #define Cacheblocksize        64
