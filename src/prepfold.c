@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
   if (cmd->proflenP)
     search.proflen = cmd->proflen;
   else
-    if (idata.bary || cmd->psrnameP || cmd->pkmbP)
+    if (search.topo.p1 == 0.0)
       search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
     else
       search.proflen = (long) (search.topo.p1 / search.dt + 0.5);
