@@ -456,14 +456,30 @@ int main(int argc, char *argv[])
     inttime = ptsperint * idata.dt;
   }
 
-  /* Make the plots */
+  /* Make the plots and set the mask */
 
-  rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
-	       cmd->inttrigfrac, cmd->chantrigfrac, 
-	       dataavg, datastd, datapow, cmd->zapchan, cmd->zapchanC,
-	       cmd->zapints, cmd->zapintsC, &idata, bytemask, 
-	       &oldmask, &newmask, rfivect, numrfi, 
-	       cmd->rfixwinP, cmd->rfipsP, cmd->xwinP);
+  {
+    int *zapints, *zapchan;
+
+    if (cmd->zapintsC)
+      zapints = cmd->zapints;
+    else
+      zapints = gen_ivect(numint);
+    if (cmd->zapchanC)
+      zapchan = cmd->zapchan;
+    else
+      zapchan = gen_ivect(numchan);
+    
+    rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
+		 cmd->inttrigfrac, cmd->chantrigfrac, 
+		 dataavg, datastd, datapow, cmd->zapchan, cmd->zapchanC,
+		 cmd->zapints, cmd->zapintsC, &idata, bytemask, 
+		 &oldmask, &newmask, rfivect, numrfi, 
+		 cmd->rfixwinP, cmd->rfipsP, cmd->xwinP);
+
+    free(zapints);
+    free(zapchan);
+  }
 
   /* Write the new mask and bytemask to the file */
 
