@@ -40,15 +40,16 @@
 /*     4 = 3 interpolated points between bins               */
 #define NUMBETWEEN 2
 
-/* If the following is defined, the program will print */
-/* debugging info to stdout.                           */
+/* If the following is defined, the program will print        */
+/* debugging info to stdout or the results to the output dir. */
 /*#define DEBUGOUT*/
+#define CANDOUT
 
 /* Output threshold */
 /* If any candidates have a sigma greater than the following  */
 /* then print the candidate and observation info to the       */
 /* permanent candfile.                                        */
-#define THRESH 10.0
+#define THRESH 7.3
 
 /* Candidate file directory */
 #define OUTDIR "/home/ransom"
@@ -91,7 +92,8 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
   /* Convert the Header into usable info... */
 
   multibeam_hdr_to_inf(hdr, &idata);
-  T = N * idata.dt;
+  idata.N = N * 2.0;
+  T = idata.N * idata.dt;
 #ifdef DEBUGOUT
       print_multibeam_hdr(hdr);
 #endif
@@ -175,7 +177,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 	norm = sqrt((double) fftlen) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
 	search_minifft((fcomplex *)minifft, fftlen / 2, tmplist, \
-		       MININCANDS, NUMHARMSUM, NUMBETWEEN, (double) N, \
+		       MININCANDS, NUMHARMSUM, NUMBETWEEN, idata.N, \
 		       T, (double) (powers_offset + bigfft_offset), \
 		       INTERPOLATE, NO_CHECK_ALIASED);
 		       
@@ -237,7 +239,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
   /* Check to see if our best candidate is worth saving */
 
-#ifdef DEBUGOUT
+#ifdef CANDOUT
   {
 #else
   if (list[0].mini_sigma > THRESH){
@@ -297,6 +299,9 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 #undef NUMHARMSUM
 #undef NUMBETWEEN
 #undef THRESH
+#ifdef CANDOUT
+#undef CANDOUT
+#endif
 #ifdef DEBUGOUT
 #undef DEBUGOUT
 #endif
