@@ -8,7 +8,6 @@
 static int padfftlen(int minifftlen, int numbetween, int *padlen);
 float percolate_rawbincands(rawbincand *cands, int numcands);
 void print_rawbincand(rawbincand cand);
-
 void search_minifft(fcomplex *minifft, int numminifft, \
 		    rawbincand *cands, int numcands, int numharmsum, \
 		    int numbetween, double numfullfft, double timefullfft, \
@@ -204,16 +203,19 @@ static int padfftlen(int minifftlen, int numbetween, int *padlen)
 }
 
 void print_rawbincand(rawbincand cand){
-  printf("  N(full)   = %10.0f\n", cand.full_N);
-  printf("  T(full)   = %13.6f\n", cand.full_T);
-  printf("  rlo(full) = %10.0f\n", cand.full_lo_r);
-  printf("  N(mini)   = %6.0f\n", cand.mini_N);
-  printf("  r(detect) = %9.3f\n", cand.mini_r);
-  printf("  power     = %8.3f\n", cand.mini_power);
-  printf("  numsum    = %2.0f\n", cand.mini_numsum);
-  printf("  sigma     = %6.3f\n", cand.mini_sigma);
-  printf("  pulsar p  = %13.11f\n", cand.psr_p);
-  printf("  orbit p   = %10.3f\n\n", cand.orb_p);
+  printf("  Sigma       =  %-7.3f\n", cand.mini_sigma);
+  printf("  Orbit p     =  %-8.2f\n", cand.orb_p);
+  if (cand.psr_p < 0.001)
+    printf("  Pulsar p    =  %-12.5e\n", cand.psr_p);
+  else
+    printf("  Pulsar p    =  %-12.9f\n", cand.psr_p);
+  printf("  rlo (full)  =  %-10.0f\n", cand.full_lo_r);
+  printf("  N (mini)    =  %-6.0f\n", cand.mini_N);
+  printf("  r (detect)  =  %-9.3f\n", cand.mini_r);
+  printf("  Power       =  %-8.3f\n", cand.mini_power);
+  printf("  Numsum      =  %-2.0f\n", cand.mini_numsum);
+  printf("  N (full)    =  %-10.0f\n", cand.full_N);
+  printf("  T (full)    =  %-13.6f\n\n", cand.full_T);
 }
 
 float percolate_rawbincands(rawbincand *cands, int numcands)

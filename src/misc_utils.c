@@ -31,17 +31,51 @@ void split_path_file(char *input, char **path, char **file)
       exit(1);
     }
     pathlen = strlen(stmp);
-    *path  = (char *)malloc(pathlen+1);
-    *file  = (char *)malloc(len+1);
+    *path = (char *)malloc(pathlen+1);
+    (*path)[pathlen] = '\0';
+    *file = (char *)malloc(len+1);
+    (*file)[len] = '\0';
     strcpy(*path, stmp);
     strncpy(*file, input, len);
   } else {
     pathlen = sptr - input;
     filelen = len - pathlen - 1;
-    *path  = (char *)malloc(pathlen+1);
-    *file  = (char *)malloc(filelen+1);
+    *path = (char *)malloc(pathlen+1);
+    (*path)[pathlen] = '\0';
+    *file = (char *)malloc(filelen+1);
+    (*file)[filelen] = '\0';
     strncpy(*path, input, pathlen);
     strncpy(*file, sptr+1, filelen);
+  }
+}
+
+int split_root_suffix(char *input, char **root, char **suffix)
+/* This routine splits an input string into a root name */
+/* + suffix.  Since is allocates the memory for the     */
+/* root and suffix dynamically, the calling program     */
+/* must free both "root" and "suffix".                  */
+/* If the routine finds a suffix, it returns 1, else 0. */
+{
+  char *sptr=NULL;
+  unsigned int len, rootlen=0, suffixlen=0;
+  
+  len = strlen(input);
+  sptr = strrchr(input, '.');
+  if (sptr==NULL){
+    *root = (char *)malloc(len+1);
+    (*root)[len] = '\0';
+    strncpy(*root, input, len);
+    return 0;
+  } else {
+    rootlen = sptr - input;
+    *root = (char *)malloc(rootlen+1);
+    (*root)[rootlen] = '\0';
+    strncpy(*root, input, rootlen);
+    suffixlen = len - rootlen - 1;
+    *suffix = (char *)malloc(suffixlen+1);
+    (*suffix)[suffixlen] = '\0';
+    strncpy(*suffix, sptr+1, suffixlen);
+    return 1;
   }
 }
 

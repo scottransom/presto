@@ -66,7 +66,8 @@ int nice_output_1(char *output, double val, double err, int len)
   /* Unsigned base 10 mantissa of output value: */
 
   outmant = rndval * pow(10.0, (double) (-outexp));
-  if (outmant == 1.0)
+  if (fabs(1.0 - outmant) <  DBLCORRECT ||
+      fabs(-1.0 - outmant) <  DBLCORRECT)
     totprec++;
 
   /* Space needed for sign, decimal, and error with parenthesis: */
@@ -81,11 +82,10 @@ int nice_output_1(char *output, double val, double err, int len)
 
   /* Use scientific notation but with integer mantissa */
 
-  else if ((outexp >= 0 && errexp > 0) && outexp == errexp) {
+  else if ((outexp >= 0 && errexp > 0) && outexp == errexp)
     numchar = sprintf(temp, "%d(%d)x10^%d", \
 		      (int) (COPYSIGN(outmant, rndval)), \
 		      errval, outexp);
-  }
 
   /* Use scientific notation for real small numbers: */
 
@@ -283,14 +283,25 @@ void print_candidate(fourierprops * cand, double dt, long N, \
   printf("Pdot (s/s)       %s  Sigma (Local) %*.2f\n",
 	 output, width, cand->sig);
   (*nice_output) (output, pdd, pdderr, width);
-  (*nice_output) (output2, pownph, pownpherr, width);
+  if (pownph > 1.0e7){
+    sprintf(output, "%12.5g", pownph);
+    sprintf(output2, "%*s", width, output);
+  } else {
+    (*nice_output) (output2, pownph, pownpherr, width);
+  }
+  (*nice_output) (output, pdd, pdderr, width);
   printf("Pdotdot (s/s^2)  %s  Pow/Freq 0 Pow%s\n",
 	 output, output2);
   (*nice_output) (output, f, ferr, width);
   printf("Frequency (hz)   %s  Sigma (Freq 0)%*.2f\n",
 	 output, width, signph);
+  if (cand->rawpow > 1.0e7){
+    sprintf(output, "%12.5g", cand->rawpow);
+    sprintf(output2, "%*s", width, output);
+  } else {
+    (*nice_output) (output2, cand->rawpow, rawpowerr, width);
+  }
   (*nice_output) (output, fd, fderr, width);
-  (*nice_output) (output2, cand->rawpow, rawpowerr, width);
   printf("Fdot (hz/s)      %s  Raw Power     %s\n",
 	 output, output2);
   (*nice_output) (output, fdd, fdderr, width);

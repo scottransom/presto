@@ -18,6 +18,7 @@ int LONG_print(long count, char *obj_ptr);
 int RZWCAND_print(long count, char *obj_ptr);
 int BINCAND_print(long count, char *obj_ptr);
 int PKMBHDR_print(long count, char *obj_ptr);
+void print_rawbincand(rawbincand cand);
 
 typedef enum{
   BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, RZWCAND, BINCAND, PKMBHDR
@@ -42,7 +43,7 @@ int type_sizes[NUMTYPES] = {
   sizeof(int), \
   sizeof(long), \
   sizeof(fourierprops), \
-  sizeof(binaryprops), \
+  sizeof(rawbincand), \
   49792  /* This is the length of a Parkes Multibeam record */
 };
 
@@ -76,9 +77,10 @@ double dt, nph;
 
 int main(int argc, char **argv)
 {
-  int index = -1, need_type = 0, objs_read, objs_to_read;
+  int index = -1, need_type = 0;
+  int objs_read, objs_to_read, has_suffix;
   long i, j, ct;
-  char *ctmp, *data, *short_filenm, *extension, key = '\n';
+  char *cptr, *data, *short_filenm, *extension, key = '\n';
   FILE *infile;
   Cmdline *cmd;
   infodata inf;
@@ -118,40 +120,37 @@ int main(int argc, char **argv)
 
   /* Try to determine the data type from the file name */
 
-  if (index == -1 || index == RZWCAND){
-    short_filenm = (char *)malloc(strlen(cmd->argv[0]) + 1);
-    extension = strrchr(cmd->argv[0], '.');
-    if (extension == NULL ||
-	extension <= cmd->argv[0] + 3){
+  if (index == -1){
+    has_suffix = split_root_suffix(cmd->argv[0], &short_filenm, 
+				   &extension);
+    if (!has_suffix){
       need_type = 1;
     } else {
-      if (strlen(extension) < 4){
+      if (strlen(extension) < 3){
 	need_type = 1;
       } else {
-	ctmp = (char *)malloc(strlen(extension) + 1);
-	strncpy(ctmp, extension, strlen(extension) + 1);
-	if (0 == strcmp(ctmp, ".dat")){
+	if (0 == strcmp(extension, "dat")){
 	  index = FLOAT;
 	  fprintf(stderr, \
 		  "Assuming the data is floating point.\n\n");
-	} else if (0 == strcmp(ctmp, ".fft")){
+	} else if (0 == strcmp(extension, "fft")){
 	  index = FCPLEX;
 	  fprintf(stderr, \
 		  "Assuming the data is single precision complex.\n\n");
-	} else if (0 == strcmp(ctmp, ".can")){
+	} else if (0 == strcmp(extension, "cand")){
 	  /* A binary or RZW search file? */
-	  strncpy(ctmp, extension - 4, 4);
-	  if (0 == strcmp(ctmp, "_bin")){
+	  if (NULL != (cptr = strstr(cmd->argv[0], "_bin"))){
 	    index = BINCAND;
 	    fprintf(stderr, \
 		    "Assuming the file contains binary candidates.\n\n");
-	  } else if (NULL != (extension = strstr(cmd->argv[0], "_rzw"))){
+	  } else if (NULL != (cptr = strstr(cmd->argv[0], "_rzw"))){
 	    index = RZWCAND;
-	    ct = (long) (extension - cmd->argv[0]);
+	    ct = (long) (cptr - cmd->argv[0]);
 	    fprintf(stderr, \
 		    "Assuming the file contains 'RZW' candidates.\n");
 	    free(short_filenm);
 	    short_filenm = (char *)malloc(ct + 1);
+	    short_filenm[ct] = '\0';
 	    strncpy(short_filenm, cmd->argv[0], ct);	    
 	    fprintf(stderr, \
 		    "\nAttempting to read '%s.inf'.  ", short_filenm);
@@ -159,7 +158,7 @@ int main(int argc, char **argv)
 	    fprintf(stderr, "Successful.\n");
 	    N = (long)(inf.N + DBLCORRECT);
 	    dt = inf.dt;
-	    if (cmd->nphP)nph = cmd->nph;
+	    if (cmd->nphP) nph = cmd->nph;
 	    else nph = 1.0;
 	    fprintf(stderr, \
 		    "\nUsing N = %ld, dt = %g, and DC Power = %f\n\n", \
@@ -179,6 +178,7 @@ int main(int argc, char **argv)
       exit(-1);
     }
     free(short_filenm);
+    if (has_suffix) free(extension);
   }
 
   if (cmd->index[1] == -1 || cmd->index[1] == 0) cmd->index[1] = INT_MAX;
@@ -308,11 +308,11 @@ int RZWCAND_print(long count, char *obj_ptr)
 
 int BINCAND_print(long count, char *obj_ptr)
 {
-  binaryprops *object;
+  rawbincand *object;
 
-  object = (binaryprops *) obj_ptr;
+  object = (rawbincand *) obj_ptr;
   printf("\n%ld:\n", count + 1);
-  print_bin_candidate(object, 2);
+  print_rawbincand(*object);
   return 0;
 }
 

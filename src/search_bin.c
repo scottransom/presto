@@ -505,12 +505,12 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
     
     /* See if we're close in RA */
     
-    if (fabs(pdata.ra2000[i] - ra) < beam2) {
+    if (fabs(pdata.ra2000[i] - ra) < 5.0 * beam2) {
       
       /* See if we're close in RA and DEC */
       
       if (sphere_ang_diff(pdata.ra2000[i], pdata.dec2000[i], \
-			  ra, dec) < beam2) {
+			  ra, dec) < 5.0 * beam2) {
 
 	/* Check that the psr in the database is in a binary   */
 
