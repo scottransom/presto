@@ -2,11 +2,14 @@
 #  Makefile for PRESTO:  Pulsar Search Software
 #     for Unix (and hopefully MPI soon)
 #           by Scott M. Ransom
-#            V 0.92, 23 Jun 99
+#            V 0.93, 12 Jul 99
 #
 DATE = $(shell date +%d%b%y)
 
-tar:  squeaky package
+tar:  squeaky tags package
+
+tags:
+	cd src ; find .. -name "*.[ch]" -print | etags -
 
 package:
 	@echo "Tarring..."
@@ -38,7 +41,6 @@ squeaky:
 	cd oldsource ; rm -f *~ *.o *.a *.so *.dat *.fft *.inf *#
 	cd python ; make clean
 	cd src ; make squeaky
-	cd src ; find .. -name "*.[ch]" -print | etags -
 	@echo ""
 	@echo "All is now squeaky clean and neat."
 	@echo ""
