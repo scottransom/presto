@@ -1,5 +1,11 @@
 #include "chkio.h"
 
+#ifndef __USE_FILE_OFFSET64
+# ifndef __USE_LARGEFILE
+#  define fseeko  fseek
+# endif
+#endif
+
 FILE *chkfopen(char *path, const char *mode)
 {
   FILE *file;
@@ -73,7 +79,7 @@ int chkfileseek(FILE * stream, long offset, size_t size, int whence)
     }
   }
 #else
-  if ((rt = fseek(stream, offset * size, whence)) == -1) {
+  if ((rt = fseeko(stream, offset * size, whence)) == -1) {
     perror("\nError in chkfileseek()");
     printf("\n");
     exit(-1);

@@ -1,5 +1,11 @@
 #include "multifiles.h"
 
+#ifndef __USE_FILE_OFFSET64
+# ifndef __USE_LARGEFILE
+#  define fseeko fseek
+# endif
+#endif
+
 void print_multifile(multifile *mfile, int full)
 /* Print a multifile structure.  If 'full' is true, */
 /* print everything.  Used for debugging.           */     
@@ -158,7 +164,8 @@ int fwrite_multifile(void *data, size_t type, size_t number,
 /*   'number' is the number of nuggets to write              */
 /*   'mfile' is a pointer to a valid multifile structure     */
 {
-  int findex, bytesleft;
+  long long bytesleft;
+  int findex;
   int writebytes, tmpwritebytes, byteswritten, tmpbyteswritten;
   
   findex = mfile->currentfile;
@@ -239,7 +246,7 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
     findex = mfile->numfiles-1;
     mfile->currentfile = findex;
     mfile->currentpos = mfile->maxfilelen;
-    if ((rt = fseek(mfile->fileptrs[findex], 0, SEEK_END)) == -1) {
+    if ((rt = fseeko(mfile->fileptrs[findex], 0, SEEK_END)) == -1) {
       perror("\nError in fseek_multifile()");
       printf("\n");
     }
@@ -279,8 +286,8 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
       }
     }
   }
-  if ((rt = fseek(mfile->fileptrs[findex], 
-		  mfile->currentpos, SEEK_SET)) == -1) {
+  if ((rt = fseeko(mfile->fileptrs[findex], 
+		   mfile->currentpos, SEEK_SET)) == -1) {
     perror("\nError in fseek_multifile()");
     printf("\n");
   }
