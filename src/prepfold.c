@@ -20,10 +20,10 @@ int main(int argc, char *argv[])
   char *plotfilenm, *outfilenm, *rootnm, *binproffilenm;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numchan=1, binary=0, numdelays=0, numbarypts=0;
-  int info, ptsperrec=1, flags=1, padding=0;
+  int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0;
   long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
-  unsigned long numrec=0, arrayoffset=0;
+  unsigned long numrec=0;
   infodata idata;
   foldstats beststats;
   prepfoldinfo search;
