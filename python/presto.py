@@ -1125,6 +1125,26 @@ class pfd:
                              numpyio.fread(infile, self.proflen, 'd')
       infile.close()
    
+class dftvector:
+   def __init__(self, filename):
+      infile = open(filename, "rb")
+      self.n = int(read_double(infile))
+      self.numvect = int(read_double(infile))
+      self.dt = read_double(infile)
+      self.r = read_double(infile)
+      self.norm = read_double(infile)
+      self.vector = Numeric.zeros(self.numvect, 'D')
+      for ii in xrange(self.numvect):
+         real = read_double(infile)
+         imag = read_double(infile)
+         self.vector[ii] = complex(real, imag)
+      infile.close()
+   def plot(self, device='/XWIN'):
+      x = umath.add.accumulate(self.vector.real)
+      y = umath.add.accumulate(self.vector.imag)
+      amp = 1.1 * umath.sqrt(x[-1]**2.0+y[-1]**2.0)
+      Pgplot.plotxy(y, x, rangex=[-amp, amp], rangey=[-amp, amp],
+                    labx='Real Axis', laby='Imaginary Axis', aspect=1.0)
 
 def read_inffile(filename):
    """
