@@ -56,10 +56,8 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
 
   if (*phaseadded < 0.0 || *phaseadded > 1.0)
     printf("Ack!  phaseadded is %17.15g in dump_buffer()!\n", *phaseadded);
-  if (lophase >= 1.0){
-    printf("Ack!  lophase is %17.15g in dump_buffer()!\n", *phaseadded);
+  if (lophase >= 1.0)
     lophase -= (int) lophase;
-  }
 
   /* Squeeze in the last remaining bit of data we can */
 
