@@ -7,8 +7,8 @@ from Statistics import *
 
 # Some admin variables
 parallel = 0          # True or false
-showplots = 0         # True or false
-debugout = 0          # True or false
+showplots = 1         # True or false
+debugout = 1          # True or false
 #outfiledir = '/tmp/scratch'
 outfiledir = '/home/ransom'
 outfilenm = 'montebinresp'
@@ -20,12 +20,13 @@ ppsr = [0.002, 0.02, 0.2, 2.0] # Pulsar periods to test
 
 # Simulation parameters
 numTbyPb = 100        # The number of points along the x axis
-minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
+#minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
+minTbyPb = 5.0       # Minimum Obs Time / Orbital Period
 maxTbyPb = 10.0       # Maximum Obs Time / Orbital Period
-ctype = 'BH'          # The type of binary companion: 'WD', 'NS', or 'BH'
+ctype = 'WD'          # The type of binary companion: 'WD', 'NS', or 'BH'
 Pb = 7200.0           # Orbital period in seconds
 dt = 0.0001           # The duration of each data sample (s)
-searchtype = 'ffdot'  # One of 'ffdot', 'sideband', 'shortffts'
+searchtype = 'sideband'  # One of 'ffdot', 'sideband', 'shortffts'
 maxTbyPb_ffdot = 1.0
 minTbyPb_sideband = 0.3
 fftlen_shortffts = 0.05
@@ -166,9 +167,9 @@ for x in range(numTbyPb):
                             ffdpow = spectralpower(ffd.flat)
                             ffdpow.shape = (numz, numr)
                             Pgplot.plot2d(ffdpow, xvals, yvals, \
-                                          labx = "Fourier Frequency (bins)", \
-                                          laby = "Fourier Frequency Derivative", \
-                                          image = "astro")
+                                          labx="Fourier Freq (bins)", \
+                                          laby="Fourier Freq Deriv", \
+                                          image="astro")
                             Pgplot.closeplot()
                         if debugout:
                             print 'peakr = %11.5f  peakz = %11.5f' % \
@@ -187,50 +188,50 @@ for x in range(numTbyPb):
                         psr_pows = spectralpower(psr_resp)
                         fftlen = int(next2_to_n(len(psr_pows)))
                         fdata = rfft(array(psr_pows[0:fftlen], copy=1))
-                        cands = search_fft(fdata, 5, norm=1.0)
+                        cands = search_fft(fdata, 5, norm=1.0/fftlen)
                         if showplots:
-                            Pgplot.plotxy(spectralpower(fdata), \
-                                          arange(len(fdata))*T/len(fdata), \
+                            Pgplot.plotxy(spectralpower(fdata)/fftlen, \
+                                          arange(len(fdata))*T/fftlen, \
                                           labx='Orbital Period (s))', \
                                           laby='Power')
                             Pgplot.closeplot()
                         if debugout:
                             print 'fftlen = '+`fftlen`
                             for ii in range(5):
-                                print '  r = %11.5f  pow = %9.5f' % \
+                                print '  r = %11.5f  pow = %9.7f' % \
                                       (cands[ii][1], cands[ii][0])
                         # Do the first half-length FFT
                         fftlen = fftlen / 2
                         fdata = rfft(array(psr_pows[0:fftlen], copy=1))
-                        cands = search_fft(fdata, 5, norm=1.0)
+                        cands = search_fft(fdata, 5, norm=1.0/fftlen)
                         if showplots:
-                            Pgplot.plotxy(spectralpower(fdata), \
-                                          arange(len(fdata))*T/len(fdata), \
+                            Pgplot.plotxy(spectralpower(fdata)/fftlen, \
+                                          arange(len(fdata))*T/fftlen, \
                                           labx='Orbital Period (s))', \
                                           laby='Power')
                             Pgplot.closeplot()
                         if debugout:
                             print 'fftlen = '+`fftlen`
                             for ii in range(5):
-                                print '  r = %11.5f  pow = %9.5f' % \
+                                print '  r = %11.5f  pow = %9.7f' % \
                                       (cands[ii][1], cands[ii][0])
                         # Do the second half-length FFT
                         data = zeros(fftlen, 'f')
                         lencopy = len(psr_pows[fftlen/2:])
                         data[0:lencopy] = array(psr_pows[fftlen/2:], copy=1)
                         fdata = rfft(data)
-                        cands = search_fft(fdata, 5, norm=1.0)
+                        cands = search_fft(fdata, 5, norm=1.0/fftlen)
                         if showplots:
-                            Pgplot.plotxy(spectralpower(fdata), \
-                                          arange(len(fdata))*T/len(fdata), \
+                            Pgplot.plotxy(spectralpower(fdata)/fftlen, \
+                                          arange(len(fdata))*T/fftlen, \
                                           labx='Orbital Period (s))', \
                                           laby='Power')
                             Pgplot.closeplot()
                         if debugout:
                             print 'fftlen = '+`fftlen`
                             for ii in range(5):
-                                print '  r = %11.5f  pow = %9.5f' % \
-                                      (cands[ii][1], cands[ii][0])
+                                print '  r = %11.5f  pow = %9.7f' % \
+                                      (cands[ii][1]*T/fftlen, cands[ii][0])
                     if debugout:
                         print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
                         print `ppsr[y]`+'  '+`pows[ct]`
