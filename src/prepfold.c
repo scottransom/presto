@@ -51,12 +51,12 @@ int main(int argc, char *argv[])
   mask obsmask;
 
   /* Call usage() if we have no command line arguments */
-
+     
   if (argc == 1) {
     Program = argv[0];
     usage();
     exit(0);
- }
+  }
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 #ifdef DEBUG
   showOptionValues();
 #endif
-
+     
   printf("\n\n");
   printf("        Pulsar Raw-Data Folding Search Routine\n");
   printf(" Used for DM, Period, and P-dot tweaking of PSR candidates.\n");
@@ -894,6 +894,12 @@ int main(int argc, char *argv[])
 	     "  sub-interval.  This may cause artifacts in the plot and/or excessive\n"
 	     "  loss of data during the fold.  I recommend re-running with -npart set\n"
 	     "  to a significantly smaller value than the current value of %d.\n", cmd->npart);
+  } else {
+    if (T/cmd->npart < 5.0/f){
+      cmd->npart = (int)(T*f/5.0);
+      printf("\nOverriding default number of sub-intervals due to low number\n"
+	     "  of pulses during the observation.  Current npart = %d\n", cmd->npart);
+    }
   }
 
   /* Allocate and initialize some arrays and other information */
@@ -913,7 +919,7 @@ int main(int argc, char *argv[])
   if (numdelays == 0) flags = 0;
 
   if (cmd->eventsP){  /* Fold events instead of a time series */
-    double event, dtmp, cts, phase, startphs, endphs, dphs, lphs, rphs;
+    double event, dtmp, cts, phase, begphs, endphs, dphs, lphs, rphs;
     double tf, tfd, tfdd, totalphs, numwraps;
     int partnum, binnum;
     
@@ -955,34 +961,42 @@ int main(int argc, char *argv[])
 	search.orb.t = -search.orb.t/SECPERDAY + search.bepoch;
     }
     for (ii=0; ii<cmd->npart; ii++){
-      parttimes[ii] = (T*ii)/cmd->npart;
+      parttimes[ii] = (T*ii)/(double)(cmd->npart);
       cts = 0.0;
       /* Correct each part for the "exposure".  This gives us a count rate. */
       event = parttimes[ii];
-      startphs = event*(event*(event*tfdd+tfd)+tf);
-      event = parttimes[ii]+cmd->npart/T;
+      begphs = event*(event*(event*tfdd+tfd)+tf);
+      event = (T*(ii+1))/(double)(cmd->npart);
       endphs = event*(event*(event*tfdd+tfd)+tf);
-      totalphs = endphs-startphs;
-      startphs = modf(startphs, &dtmp);
-      endphs = modf(endphs, &dtmp);
+      totalphs = endphs-begphs;
+      begphs = begphs < 0.0 ? fmod(begphs, 1.0)+1.0 : fmod(begphs, 1.0);
+      endphs = endphs < 0.0 ? fmod(endphs, 1.0)+1.0 : fmod(endphs, 1.0);
       dphs = 1.0/search.proflen;
+      /* printf("%.4f %.4f %5.4f\n", begphs, endphs, totalphs); */
       for (jj=0; jj<search.proflen; jj++){
-	numwraps = floor(totalphs);
-	lphs = jj*dphs;
-	rphs = (jj+1)*dphs;
-	if (lphs < startphs){
-	  if (rphs < startphs) numwraps -= 1.0;
-	  else numwraps -= (startphs-lphs)/dphs;
-	}
-	if (rphs > endphs){
-	  if (lphs < endphs) numwraps -= 1.0;
-	  else numwraps -= (rphs-endphs)/dphs;
-	}
-	if (rphs < endphs && lphs > startphs){
-	  numwraps += 1.0;
-	}
-	search.rawfolds[ii*search.proflen+jj] /= numwraps;
+	   numwraps = floor(totalphs);
+	   lphs = jj*dphs;
+	   rphs = (jj+1)*dphs;
+	   if (begphs <= lphs){
+		if (rphs <= endphs) 
+		     numwraps += 1.0; 
+		else if (lphs < endphs)
+		     numwraps += (endphs-lphs)*search.proflen;
+	   } else if (rphs <= begphs){
+		if (lphs <= endphs && endphs <= rphs)
+		     numwraps += (endphs-lphs)*search.proflen;
+	   } else {
+		numwraps += (rphs-begphs)*search.proflen;
+		if (lphs <= endphs && endphs <= rphs){
+		     numwraps += (endphs-lphs)*search.proflen;
+		     if (begphs <= endphs) numwraps -= 1.0;
+		}
+	   }
+	   /* printf("%.2f ", numwraps); */
+	   if (numwraps > 0)
+		search.rawfolds[ii*search.proflen+jj] /= numwraps;
       }
+      /* printf("\n"); */
       for (jj=ii*search.proflen; jj<(ii+1)*search.proflen; jj++)
 	cts += search.rawfolds[jj];
       search.stats[ii].numdata = ceil((T/cmd->npart)/search.dt);
