@@ -233,59 +233,111 @@ def pulsed_fraction_limit(numphot, power_limit):
     """
     return sqrt(4.0 * (power_limit - 1.0) / numphot)
 
+def answer_yes(question):
+    yes = ['', 'Y', 'y', 'Yes', 'yes', 'YES',
+           'T', 't', 'True', 'true', 'TRUE']
+    return raw_input('\n'+question) in yes
+
+def ask_float(question, default=None):
+    while 1:
+        ans = raw_input('\n'+question)
+        if not ans:
+            ans = default
+        try:
+            return float(ans)
+        except (ValueError, TypeError):
+            print "\nThat was not a valid number.  Try again...\n"
+
+def ask_int(question, default=None):
+    while 1:
+        ans = raw_input('\n'+question)
+        if not ans:
+            ans = default
+        try:
+            return int(ans)
+        except (ValueError, TypeError):
+            print "\nThat was not a valid number.  Try again...\n"
 
 if __name__ == '__main__':
-    import sys
+    print "\nPower Statistics Calculation Routine"
+    print "       Scott Ransom, June 2000\n"
 
-    if len(sys.argv) < 2:
-        print '\nUsage:  powerstats.py N [confidence=0.99] [dt] [numphot]\n'
-        sys.exit(0)
-    elif len(sys.argv)==2:
-        N = float(sys.argv[1])
-        confidence = 0.99
-        binned = 0
-    elif len(sys.argv)==3 or len(sys.argv)==4:
-        N = float(sys.argv[1])
-        confidence = float(sys.argv[2])
-        binned = 0
+    conf = ask_float(\
+        "What confidence level would you like to use?  [0.99]  ", 0.99)
+    Ntot = ask_int(\
+        "How many data points were FFTd (N)?  ")
+    if answer_yes(\
+        "Was this an RZW acceleration search (y/n)?  [y]  "):
+        rlo = ask_float(\
+                "What was the lowest bin searched?  [300]  ", 300)
+        rhi = ask_float(\
+                "What was the highest bin searched?  [N/2]  ", Ntot/2)
+        zlo = ask_float(\
+                "What was the lowest 'z' value searched?  [-100]  ", -100)
+        zhi = ask_float(\
+                "What was the highest 'z' value searched?  [100]  ", 100)
+        Nsearch = (rhi - rlo) * (zhi - zlo) / 6.95
     else:
-        N = float(sys.argv[1])
-        confidence = float(sys.argv[2])
-        binned = 1
-        dt = float(sys.argv[3])
-        numphot = float(sys.argv[4])
-    if (binned):
+        Nsearch = ask_int(\
+                "How many independent bins were searched?  [N/2]  ", Ntot/2)
+    if answer_yes(\
+        "Was the data composed of binned counts (y/n)?  [y]  "):
+        dt = ask_float("What was the length in time (s) of each bin?  ")
+        numphot = ask_int("How many counts (photons) were there?  ")
+        T = Ntot * dt
+        lofreq = 1.0 / T
+        nyquist = 1.0 / (2 * dt)
+        trial_freqs = (10.0**(Numeric.arange(7.0)-2.0)).tolist()
+        trial_freqs = filter(lambda x:  x > lofreq and x < nyquist,
+                             trial_freqs)
+        print "\nThe trial frequencies (Hz) are:", trial_freqs
+        if answer_yes(\
+            "Would you like to add any more?  [y]  "):
+            new_freq = ask_float(\
+                "Enter a frequency (Hz) or '0' to stop.  ")
+            while (new_freq):
+                trial_freqs.append(new_freq)                
+                new_freq = ask_float(\
+                    "Enter a frequency (Hz) or '0' to stop.  ")
+        trial_freqs.sort()
         print ""
-        print "       Power Stats for Binned Data"
-        print "   -----------------------------------"
-        print "    Number of data points = %.0f" % N
-        print "      Time per sample (s) = %g" % dt
-        print "  Total number of photons = %.0f" % numphot
-        print "         Confidence Level = %g%%" % (100 * confidence)
-        print "                 P_detect = %.2f" % \
-              max_noise_power(N/2, confidence)
+        print "         Power Stats for Binned Data"
+        print "     -----------------------------------"
+        print "      Number of data points = %.0f" % Ntot
+        print "        Time per sample (s) = %g" % dt
+        print "    Total number of photons = %.0f" % numphot
+        print "           Confidence Level = %g%%" % (100 * conf)
+        print " Number of independent bins = %.0f" % Nsearch
+        print "                   P_detect = %.2f" % \
+              max_noise_power(Nsearch, conf)
         print ""
-        sens = (binned_fft_sensitivity(N, dt, 1.0, 0, confidence),
-                binned_fft_sensitivity(N, dt, 10.0, 0, confidence),
-                binned_fft_sensitivity(N, dt, 100.0, 0, confidence),
-                binned_fft_sensitivity(N, dt, 1000.0, 0, confidence))
-        print "                        f=1Hz     f=10Hz    f=100Hz   f=1kHz"
-        print "                        -----     ------    -------   ------"
-        print "      P_sensitivity  =  %-10.2f%-10.2f%-10.2f%-10.2f" % sens
-        print "       Pulsed Fract  <  %-10.3g%-10.3g%-10.3g%-10.3g" % \
-              (pulsed_fraction_limit(numphot, sens[0]),
-               pulsed_fraction_limit(numphot, sens[1]),
-               pulsed_fraction_limit(numphot, sens[2]),
-               pulsed_fraction_limit(numphot, sens[3]))
-        print ""
+        sens = []
+        for f in trial_freqs:
+            sens.append(binned_fft_sensitivity(Nsearch, dt, f, 0, conf))
+        print "      Freq (Hz)  =  ",
+        for f in trial_freqs:
+            print " f=%-7g" % (f),
+        print '\n                    '+'-'*len(trial_freqs)*11
+        print "  P_sensitivity  =  ",
+        for s in sens:
+            print " %-8.2f " % (s),
+        print ''
+        pfract = []
+        for s in sens:
+            pfract.append(pulsed_fraction_limit(numphot, s))
+        print "   Pulsed Fract  <  ",
+        for p in pfract:
+            print " %-8.3g " % (p),
+        print '\n'
     else:
         print ""
-        print "       Power Stats for Normal Data"
-        print "   -----------------------------------"
-        print "    Number of data points = %.0f" % N
-        print "         Confidence Level = %g%%" % (100 * confidence)
-        print "                 P_detect = %.2f" % \
-              max_noise_power(N/2, confidence)
-        sens = fft_sensitivity(N, 0, confidence)
-        print "            P_sensitivity = %.2f" % sens
+        print "         Power Stats for Normal Data"
+        print "     -----------------------------------"
+        print "      Number of data points = %.0f" % Ntot
+        print "           Confidence Level = %g%%" % (100 * conf)
+        print " Number of independent bins = %.0f" % Nsearch
+        print "                   P_detect = %.2f" % \
+              max_noise_power(Nsearch/2, conf)
+        sens = fft_sensitivity(Nsearch, 0, conf)
+        print "              P_sensitivity = %.2f" % sens
         print ""
