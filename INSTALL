@@ -48,35 +48,25 @@ Basic steps to install:
   machine of choice.  Insure that the library and include file
   directories are correct for FFTW, PGPLOT, GLIB, and TEMPO.
 
-7.  Do a 'make prep' which will ask you for some memory info
-  and then turn the pulsar database into its binary form.
-  NOTE:  You should probably skip this step.  It is almost
-  certainly not needed.
-  
-8.  If you are using FFTW, do a 'make makewisdom'.  This gets
+7.  If you are using FFTW, do a 'make makewisdom'.  This gets
   FFTW acquainted with your system.  It is best if you are the
   only user on the machine when you run this, as it is very
   computation intensive and may take a while.
 
-9.  Do a 'make'.  This will make all of the executables.
+8.  Do a 'make'.  This will make all of the executables.
 
-10.  The required libraries and miscellaneous files will be
+9.  The required libraries and miscellaneous files will be
   located in presto/lib.  You may copy or move the executables
   wherever you like, but the library files should stay put.
   (That's why you define the PRESTO variable -- so the routines
   can find them).
 
-11.  If you want to save some disk space, do a 'make clean' in
+10.  If you want to save some disk space, do a 'make clean' in
   the 'src' directory.  This will leave the libraries and
   binaries in their respective directories but will get rid of
   all the extra stuff in the 'src' directory.
 
-12.  Get some memory and cache information ready for your
-  machine.  For example, how much total memory do you want an
-  in-core FFT to use before it switches to out-of-core?  This
-  information is not important, so don't worry about it.
-
-13.  Go find pulsars.
+11.  Go find pulsars.
 
 Platform specific information:
 
