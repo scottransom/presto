@@ -15,8 +15,12 @@ typedef struct s_Cmdline {
   int outfileC;
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
-  /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
-  char ebppP;
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  char bcpmP;
+  /***** -if: For BPP format only:  A specific IF to use. */
+  char ifsP;
+  int ifs;
+  int ifsC;
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   char nobaryP;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */

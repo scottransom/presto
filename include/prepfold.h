@@ -1,6 +1,4 @@
 #include "presto.h"
-#include "prepfold_cmd.h"
-#include "multibeam.h"
 
 /* This causes the barycentric motion to be calculated once per second */
 

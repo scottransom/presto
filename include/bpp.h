@@ -1,6 +1,3 @@
-#include "presto.h"
-#include "mask.h"
-
 #ifndef BPP_HEADER_SIZE
 #define BPP_HEADER_SIZE	32768
 #endif
@@ -192,3 +189,8 @@ void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
 			BPP_ifs ifs);
 void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
 void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
+int read_BPP_subbands(FILE *infiles[], int numfiles, float *data, 
+		      double *dispdelays, int numsubbands, 
+		      int transpose, int *padding, 
+		      int *maskchans, int *nummasked, mask *obsmask,
+		      BPP_ifs ifs);

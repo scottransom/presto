@@ -1,5 +1,3 @@
-#include "mask.h"
-
 #define RECLEN 49792
 #define DATLEN 49152
 #define HDRLEN 640
