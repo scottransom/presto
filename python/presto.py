@@ -1717,7 +1717,6 @@ def spectralpower(fftarray):
        print 'fftarray must be complex in spectralpower()'
        return None
     
-
 def spectralphase(fftarray):
     """
     spectralphase(fftarray):
