@@ -39,8 +39,8 @@ def running_avg(arr, navg):
     a.shape = (len(a) / navg, navg)
     return umath.add.reduce(Numeric.transpose(a)) / navg
 
-def hist(data, bins, range=None, labx="", color=1, line=1,
-         device='/XWIN'):
+def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
+         width=2, aspect=0.7727, device='/XWIN'):
     """
     hist(data, bins, range=None):
     Return and plot a histogram in one variable.
@@ -52,13 +52,15 @@ def hist(data, bins, range=None, labx="", color=1, line=1,
                If no range is given, the smallest and largest
                data values are used to define the interval.
     Note:  This command also accepts some basic flags for the plot,
-           like labx, color, line, and device.
+           like labx, laby, aspect, color, line, wdth, and device.
      """
     rawh = Histogram(data, bins, range)
     h = Numeric.transpose(rawh[:])
-    Pgplot.plotbinned(h[1], h[0], rangey=[0,int(1.1*max(h[1]))],
-                      laby="Number", color=color, line=line,
-                      labx=labx, device=device)
+    maxy = int(1.1*max(h[1]))
+    if maxy==int(1.1*max(h[1])): maxy += 1
+    Pgplot.plotbinned(h[1], h[0], rangey=[0,maxy], width=width,
+                      labx=labx, laby=laby, color=color, line=line,
+                      aspect=aspect, device=device)
     return h
 
 def KS_test(data, cumdist, output=0):
