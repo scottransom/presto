@@ -41,7 +41,7 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 /*      'pderr' is the returned p-dot error                 */
 /*      'pdderr' is the returned p-dotdot error             */
 {
-  int ii;
+  int ii, gotone=0;
   double T, T2, pwr, norm, sigpow=6.6, r2, r4, z2, sr2, sz2;
   double dtmp, r, z, w, rerr=0.0, zerr=0.0, werr=0.0;
   float powargr, powargi;
@@ -88,6 +88,7 @@ void fold_errors(double *prof, int proflen, double dt, double N,
   for (ii = 1; ii < proflen / 2; ii++){
     pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
     if (pwr > sigpow){
+      gotone = 1;
       dtmp = 3.0 / ((PI * sqrt(6.0 * pwr)) * ii);
       rerr += 1.0 / (dtmp * dtmp);
       dtmp = 3.0 * sqrt(10.0) / ((PI * sqrt(pwr)) * ii);
@@ -95,6 +96,12 @@ void fold_errors(double *prof, int proflen, double dt, double N,
       dtmp = 6.0 * sqrt(105.0) / ((PI * sqrt(pwr) * ii));
       werr += 1.0 / (dtmp * dtmp);
     }
+  }
+
+  /* Help protect against really low significance profiles...*/
+
+  if (!gotone){
+    rerr = zerr = werr = 0.5;
   }
 
   /* Calculate the standard deviations */

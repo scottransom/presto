@@ -575,6 +575,12 @@ void combine_profs(double *profs, foldstats *instats, int numprofs,
     outstats->prof_var += instats[ii].prof_var;
   }
 
+  /* Profile information gets added together, but */
+  /* data set info gets averaged together.        */
+
+  outstats->data_avg /= numprofs;
+  outstats->data_var /= numprofs;
+
   /* Calculate the reduced chi-squared */
 
   outstats->redchi = chisqr(outprof, proflen, outstats->prof_avg, 

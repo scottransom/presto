@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
   double dtmp, recdt=0.0, orb_baryepoch=0.0, barydispdt;
   double N=0.0, T=0.0, endtime=0.0, proftime;
   double *obsf=NULL, *dispdts=NULL, *parttimes, *Ep=NULL, *tp=NULL;
-  double *barytimes=NULL, *topotimes=NULL;
+  double *barytimes=NULL, *topotimes=NULL, *bestprof;
   char *plotfilenm, *outfilenm, *rootnm;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numchan=1, binary=0, numdelays=0, numbarypts=0;
@@ -676,7 +676,7 @@ int main(int argc, char *argv[])
   if (!strcmp(idata.band, "Radio")) {
     
     /* The observation frequencies */
-    
+
     obsf = gen_dvect(numchan);
     obsf[0] = idata.freq;
     search.numchan = numchan;
@@ -763,6 +763,7 @@ int main(int argc, char *argv[])
    */
 
   printf("\nOptimizing...\n\n");
+  bestprof = gen_dvect(search.proflen);
   {
     int numtrials, pdelay, pddelay, profindex, itmp;
     double dphase, po, pdo, pddo, pofact;
@@ -875,7 +876,8 @@ int main(int argc, char *argv[])
 		search.topo.p2 = search.pdots[jj];
 	      }
 	      beststats = currentstats;
-
+	      memcpy(bestprof, currentprof, sizeof(double) * 
+		     search.proflen);
 printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
        kk, jj, search.bestdm, search.topo.p1, search.topo.p2, 
        beststats.redchi);
@@ -923,7 +925,8 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
 	      search.topo.p2 = search.pdots[jj];
 	    }
 	    beststats = currentstats;
-
+	    memcpy(bestprof, currentprof, sizeof(double) * 
+		   search.proflen);
 printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
        kk, jj, search.bary.p1, search.bary.p2, beststats.redchi);
 
@@ -934,74 +937,101 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
     free(pdprofs);
     free(currentprof);
   }
-
   printf("Done searching.\n\n");
 
-  printf("Maximum reduced chi-squared found  =  %-.5f\n", 
-	 beststats.redchi);
-  if (cmd->nsub > 1)
-    printf("Best DM  =  %-.4f\n", search.bestdm);
-
-  /* Convert best params from/to barycentric to/from topocentric */
+  {
+    double perr, pderr, pdderr;
+    char out[100];
   
-  if (cmd->nobaryP){
-    printf("Best period        (s)  =  %-.15f\n", 
-	   search.bary.p1);
-    printf("Best p-dot       (s/s)  =  %-.10e\n", 
-	   search.bary.p2);
-    printf("Best p-dotdot  (s/s^2)  =  %-.10e\n", 
-	   search.bary.p3);
-  } else {
-    if (idata.bary){
-      printf("Best barycentric period        (s)  =  %-.15f\n", 
-	     search.bary.p1);
-      printf("Best barycentric p-dot       (s/s)  =  %-.10e\n", 
-	     search.bary.p2);
-      printf("Best barycentric p-dotdot  (s/s^2)  =  %-.10e\n", 
-	     search.bary.p3);
+    printf("Maximum reduced chi-squared found  =  %-.5f\n", 
+	   beststats.redchi);
+    if (cmd->nsub > 1)
+      printf("Best DM  =  %-.4f\n", search.bestdm);
+    
+    /* Convert best params from/to barycentric to/from topocentric */
+    
+    if (cmd->nobaryP){
       
-      /* Convert the barycentric folding parameters into topocentric */
+      /* Calculate the errors in our new pulsation quantities */
       
-      switch_f_and_p(search.bary.p1, search.bary.p2, search.bary.p3,
-		     &f, &fd, &fdd);
-      if ((info=bary2topo(topotimes, barytimes, numbarypts, 
-			  f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
-	printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
-      switch_f_and_p(foldf, foldfd, foldfdd, 
-		     &search.topo.p1, &search.topo.p2, &search.topo.p3);
+      fold_errors(bestprof, search.proflen, search.dt, N, 
+		  beststats.data_var, search.bary.p1, search.bary.p2, 
+		  search.bary.p3, &perr, &pderr, &pdderr);
 
-      printf("Best topocentric period        (s)  =  %-.15f\n", 
-	     search.topo.p1);
-      printf("Best topocentric p-dot       (s/s)  =  %-.10e\n", 
-	     search.topo.p2);
-      printf("Best topocentric p-dotdot  (s/s^2)  =  %-.10e\n", 
-	     search.topo.p3);
+      nice_output_2(out, search.bary.p1, perr, 0);
+      printf("Best period        (s)  =  %s\n", out);
+      nice_output_2(out, search.bary.p2, pderr, 0);
+      printf("Best p-dot       (s/s)  =  %s\n", out);
+      nice_output_2(out, search.bary.p3, pdderr, 0);
+      printf("Best p-dotdot  (s/s^2)  =  %s\n", out);
     } else {
-      printf("Best topocentric period        (s)  =  %-.15f\n", 
-	     search.topo.p1);
-      printf("Best topocentric p-dot       (s/s)  =  %-.10e\n", 
-	     search.topo.p2);
-      printf("Best topocentric p-dotdot  (s/s^2)  =  %-.10e\n", 
-	     search.topo.p3);
 
-      /* Convert the barycentric folding parameters into topocentric */
+      if (idata.bary){
+
+	/* Calculate the errors in our new pulsation quantities */
       
-      switch_f_and_p(search.topo.p1, search.topo.p2, search.topo.p3,
-		     &f, &fd, &fdd);
-      if ((info=bary2topo(barytimes, topotimes, numbarypts, 
-			  f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
-	printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
-      switch_f_and_p(foldf, foldfd, foldfdd, 
-		     &search.bary.p1, &search.bary.p2, &search.bary.p3);
+	fold_errors(bestprof, search.proflen, search.dt, N, 
+		    beststats.data_var, search.bary.p1, search.bary.p2, 
+		    search.bary.p3, &perr, &pderr, &pdderr);
 
-      printf("Best barycentric period        (s)  =  %-.15f\n", 
-	     search.bary.p1);
-      printf("Best barycentric p-dot       (s/s)  =  %-.10e\n", 
-	     search.bary.p2);
-      printf("Best barycentric p-dotdot  (s/s^2)  =  %-.10e\n", 
-	     search.bary.p3);
+	nice_output_2(out, search.bary.p1, perr, 0);
+	printf("Best barycentric period        (s)  =  %s\n", out);
+	nice_output_2(out, search.bary.p2, pderr, 0);
+	printf("Best barycentric p-dot       (s/s)  =  %s\n", out);
+	nice_output_2(out, search.bary.p3, pdderr, 0);
+	printf("Best barycentric p-dotdot  (s/s^2)  =  %s\n", out);
+	
+	/* Convert the barycentric folding parameters into topocentric */
+	
+	switch_f_and_p(search.bary.p1, search.bary.p2, search.bary.p3,
+		       &f, &fd, &fdd);
+	if ((info=bary2topo(topotimes, barytimes, numbarypts, 
+			    f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
+	  printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
+	switch_f_and_p(foldf, foldfd, foldfdd, 
+		       &search.topo.p1, &search.topo.p2, &search.topo.p3);
+	
+	nice_output_2(out, search.topo.p1, perr, 0);
+	printf("Best topocentric period        (s)  =  %s\n", out);
+	nice_output_2(out, search.topo.p2, pderr, 0);
+	printf("Best topocentric p-dot       (s/s)  =  %s\n", out);
+	nice_output_2(out, search.topo.p3, pdderr, 0);
+	printf("Best topocentric p-dotdot  (s/s^2)  =  %s\n", out);
+
+      } else {
+	
+	/* Calculate the errors in our new pulsation quantities */
+      
+	fold_errors(bestprof, search.proflen, search.dt, N, 
+		    beststats.data_var, search.topo.p1, search.topo.p2, 
+		    search.topo.p3, &perr, &pderr, &pdderr);
+
+	nice_output_2(out, search.topo.p1, perr, 0);
+	printf("Best topocentric period        (s)  =  %s\n", out);
+	nice_output_2(out, search.topo.p2, pderr, 0);
+	printf("Best topocentric p-dot       (s/s)  =  %s\n", out);
+	nice_output_2(out, search.topo.p3, pdderr, 0);
+	printf("Best topocentric p-dotdot  (s/s^2)  =  %s\n", out);
+
+	/* Convert the barycentric folding parameters into topocentric */
+	
+	switch_f_and_p(search.topo.p1, search.topo.p2, search.topo.p3,
+		       &f, &fd, &fdd);
+	if ((info=bary2topo(barytimes, topotimes, numbarypts, 
+			    f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
+	  printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
+	switch_f_and_p(foldf, foldfd, foldfdd, 
+		       &search.bary.p1, &search.bary.p2, &search.bary.p3);
+	
+	nice_output_2(out, search.bary.p1, perr, 0);
+	printf("Best barycentric period        (s)  =  %s\n", out);
+	nice_output_2(out, search.bary.p2, pderr, 0);
+	printf("Best barycentric p-dot       (s/s)  =  %s\n", out);
+	nice_output_2(out, search.bary.p3, pdderr, 0);
+	printf("Best barycentric p-dotdot  (s/s^2)  =  %s\n", out);
+      }
     }
-  } 
+  }
   
   printf("\nMaking plots.\n\n");
 
@@ -1017,6 +1047,7 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
   free(outfilenm);
   free(plotfilenm);
   free(parttimes);
+  free(bestprof);
   if (binary){
     free(Ep);
     free(tp);
@@ -1029,7 +1060,6 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
     free(obsf);
     free(dispdts);
   }
-  if (idata.onoff) free(idata.onoff);
   return (0);
 }
   
