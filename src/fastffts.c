@@ -8,7 +8,7 @@ void tablefftraw(float data[], double table[], long n);
 void tablesplitfft(float data[], long nn, int isign);
 void tablesplitfftraw(float data[], double table[], long n, int isign);
 double *maketable(long nn, int isign);
-void scramble(float data[], long nn);
+void fft_scramble(float data[], long nn);
 
 unsigned long good_factor(unsigned long nn)
 /* Return the factor of a number that is closest to its sqrt. */
@@ -151,7 +151,7 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   table = maketable(n1, 1);
   for (k = 0, p1 = (float *)indata; k < n2; k++, p1 += 2 * n1) {
     tablesplitfftraw(p1, table, n1, isign);
-    scramble(p1, n1);
+    fft_scramble(p1, n1);
   }
   free(table);
 
@@ -219,7 +219,7 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   table = maketable(n2, 1);
   for (k = 0, p1 = (float *)indata; k < n1; k++, p1 += 2 * n2) {
     tablesplitfftraw(p1, table, n2, isign);
-    scramble(p1, n2);
+    fft_scramble(p1, n2);
   }
   free(table);
 
@@ -240,19 +240,26 @@ void realfft(float idata[], long n, int isign)
 
 {
   long i, i1, i2, i3, i4, np3;
-  float c1 = 0.5, c2, h1r, h1i, h2r, h2i;
+  float c1=0.5, c2, h1r, h1i, h2r, h2i;
   double wr, wi, wpr, wpi, wtemp, theta;
   float *data;
 
-  isign = -isign;
+  if (n % 2){
+    printf("\nrealfft() can only handle arrays of even length.\n\n");
+    exit(-1);
+  }
   data = idata - 1;
-  theta = PIBYTWO / (double) (n);
-  if (isign == 1) {
+  theta = TWOPI / (double) (n);
+  if (isign == -1) {
     c2 = -0.5;
     COMPLEXFFT((fcomplex *)idata, n >> 1, -1);
     theta = -theta;
   } else {
     c2 = 0.5;
+    /* Numerical Recipes gives a sign error for */
+    /* the imaginary part of frequency n/2.     */
+    if ((n+2)%4)
+      data[(n>>1)+2] = -data[(n>>1)+2];
   }
   wtemp = sin(0.5 * theta);
   wpr = -2.0 * wtemp * wtemp;
@@ -260,7 +267,7 @@ void realfft(float idata[], long n, int isign)
   wr = 1.0 + wpr;
   wi = wpi;
   np3 = n + 3;
-  for (i = 2; i <= (n >> 2); i++) {
+  for (i = 2; i <= ((n + 2) >> 2); i++) {
     i4 = 1 + (i3 = np3 - (i2 = 1 + (i1 = i + i - 1)));
     h1r = c1 * (data[i1] + data[i3]);
     h1i = c1 * (data[i2] - data[i4]);
@@ -273,19 +280,22 @@ void realfft(float idata[], long n, int isign)
     wr = (wtemp = wr) * wpr - wi * wpi + wr;
     wi = wi * wpr + wtemp * wpi + wi;
   }
-  /* Numerical Recipes gives a sign error for */
-  /* the imaginary part of frequency n/2.     */
-  data[(n>>1)+2] = -data[(n>>1)+2];
-  if (isign == 1) {
+  if (isign == -1) {
+    /* Numerical Recipes gives a sign error for */
+    /* the imaginary part of frequency n/2.     */
+    if ((n+2)%4)
+      data[(n>>1)+2] = -data[(n>>1)+2];
     data[1] = (h1r = data[1]) + data[2];
-    /* This sets data[2]=0.0  We don't use this... */
-    /* data[2] = 0.0; */
     /* This sets data[2]=Nyquist Freq value */
     data[2] = h1r - data[2];
   } else {
+    double norm;
     data[1] = c1 * ((h1r = data[1]) + data[2]);
     data[2] = c1 * (h1r - data[2]);
     COMPLEXFFT((fcomplex *)idata, n >> 1, 1);
+    norm = 2.0 / (double) n;
+    for (i = 0; i < n; i++)
+      idata[i] *= norm;
   }
 }
 
@@ -302,7 +312,7 @@ void tablesplitfft(float data[], long nn, int isign)
 
   table = maketable(nn, 1);
   tablesplitfftraw(data, table, nn, isign);
-  scramble(data, nn);
+  fft_scramble(data, nn);
   free(table);
 }
 
@@ -316,7 +326,7 @@ void tablefft(float data[], long nn, int isign)
 
   table = maketable(nn, isign);
   tablefftraw(data, table, nn);
-  scramble(data, nn);
+  fft_scramble(data, nn);
   free(table);
 }
 
@@ -354,7 +364,7 @@ double *maketable(long nn, int isign)
 }
 
 
-void scramble(float data[], long nn)
+void fft_scramble(float data[], long nn)
 {
   long i, j, m, n;
   float tempzz;

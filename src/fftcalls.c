@@ -17,8 +17,9 @@ void fftwcall(fcomplex *indata, long nn, int isign)
   static unsigned long lastuse[4] = {0, 0, 0, 0};
   static char wisdomfilenm[120];
 
-  /* Call the six-step algorithm if the FFT is too big to */
-  /* be efficiently handled by FFTW.                      */
+  /* Call the six-step algorithm if the FFT is too big to     */
+  /* be efficiently handled by FFTW.                          */
+  /* Withe the improvements in FFTW, this is no longer needed */
 
   if (nn > BIGFFTWSIZE){
     tablesixstepfft(indata, nn, isign);

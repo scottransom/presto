@@ -199,5 +199,9 @@ int main(int argc, char *argv[])
     exit(1);
   }
   fclose(datafile);
+  /*
+    fftw_print_max_memory_usage();
+    fftw_check_memory_leaks();
+   */
   exit(0);
 }

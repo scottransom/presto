@@ -68,7 +68,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
     /* Use recursion formulas from NR                          */
 
     for (j = 0, f1 = (float *) data; j < b; j++, f1 += 2 * n1) {
-      theta = -(j + k) * 6.2831853071795864769 / (nn >> 1);
+      theta = -(j + k) * TWOPI / (nn >> 1);
       wtemp = sin(0.5 * theta);
       wpr = -2.0 * wtemp * wtemp;
       wpi = sin(theta);
@@ -98,7 +98,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
 
   /* Some values for the trig recursion below: */
 
-  delta = -6.2831853071795864769 / nn;
+  delta = -TWOPI / nn;
   wtemp = sin(0.5 * delta);
   wpr = -2.0 * wtemp * wtemp;
   wpi = sin(delta);
@@ -229,7 +229,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
 
   /* Some values for the trig recursion below: */
 
-  theta = -6.2831853071795864769 * n1 / nn;
+  theta = -TWOPI * n1 / nn;
   wtemp = sin(0.5 * theta);
   wpr = -2.0 * wtemp * wtemp;
   wpi = sin(theta);

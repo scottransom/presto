@@ -121,7 +121,7 @@ int main(void)
 
   /*  Maximum size for FFTW (real numbers) to do in memory    */
 
-  fprintf(memfile, "#define BIGFFTWSIZE           1048576\n");
+  fprintf(memfile, "#define BIGFFTWSIZE           2000000000\n");
 
   /*  KBF (from fourfs.c) */
 
