@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 
   if (cmd->maskfileP && !cmd->subP){
     read_mask(cmd->maskfile, &obsmask);
-    printf("Read mask information from '%s'\n", cmd->maskfile);
+    printf("\nRead mask information from '%s'\n", cmd->maskfile);
     set_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
   } else {
     obsmask.numchan = obsmask.numint = 0;

@@ -211,7 +211,6 @@ int determine_padvals(char *maskfilenm, mask *obsmask, float *padvals[])
       chkfread(&lobin, sizeof(int), 1, statsfile);
       chkfread(&numbetween, sizeof(int), 1, statsfile);
       dataavg = gen_fmatrix(numint, numchan);
-      printf("numint = %d  numchan = %d\n", numint, numchan);
       /* These are the powers */
       chkfread(dataavg[0], sizeof(float), numchan*numint, statsfile);
       /* These are the averages */
