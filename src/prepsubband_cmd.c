@@ -1046,12 +1046,12 @@ usage(void)
         -if: A specific IF to use if available (summed IFs is the default)\n\
              1 int value between 0 and 1\n\
       -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
-             1 float value between 0 and 20.0\n\
+             1 float value between 0 and 40.0\n\
              default: `6.0'\n\
     -noclip: Do not clip the data.  (The default is to _always_ clip!)\n\
        -sub: Write subbands instead of de-dispersed data\n\
      -subdm: The DM to use when de-dispersing subbands for -sub\n\
-             1 double value between 0 and 2000.0\n\
+             1 double value between 0 and 4000.0\n\
              default: `0.0'\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
              1 int value between 1 and oo\n\
@@ -1064,19 +1064,19 @@ usage(void)
              1 double value between 0 and oo\n\
              default: `1.0'\n\
     -numdms: The number of DMs to de-disperse\n\
-             1 int value between 1 and 100\n\
+             1 int value between 1 and 1000\n\
              default: `10'\n\
       -nsub: The number of sub-bands to use\n\
-             1 int value between 1 and 512\n\
+             1 int value between 1 and 1024\n\
              default: `32'\n\
   -downsamp: The number of neighboring bins to co-add\n\
-             1 int value between 1 and 32\n\
+             1 int value between 1 and 128\n\
              default: `1'\n\
       -mask: File containing masking information to use\n\
              1 char* value\n\
-     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-             1...250 values\n\
-version: 18Aug03\n\
+     infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
+             1...512 values\n\
+version: 23Jan04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1158,7 +1158,7 @@ parseCmdline(int argc, char **argv)
       cmd.clipP = 1;
       i = getFloatOpt(argc, argv, i, &cmd.clip, 1);
       cmd.clipC = i-keep;
-      checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
+      checkFloatLower("-clip", &cmd.clip, cmd.clipC, 40.0);
       checkFloatHigher("-clip", &cmd.clip, cmd.clipC, 0);
       continue;
     }
@@ -1178,7 +1178,7 @@ parseCmdline(int argc, char **argv)
       cmd.subdmP = 1;
       i = getDoubleOpt(argc, argv, i, &cmd.subdm, 1);
       cmd.subdmC = i-keep;
-      checkDoubleLower("-subdm", &cmd.subdm, cmd.subdmC, 2000.0);
+      checkDoubleLower("-subdm", &cmd.subdm, cmd.subdmC, 4000.0);
       checkDoubleHigher("-subdm", &cmd.subdm, cmd.subdmC, 0);
       continue;
     }
@@ -1225,7 +1225,7 @@ parseCmdline(int argc, char **argv)
       cmd.numdmsP = 1;
       i = getIntOpt(argc, argv, i, &cmd.numdms, 1);
       cmd.numdmsC = i-keep;
-      checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 100);
+      checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 1000);
       checkIntHigher("-numdms", &cmd.numdms, cmd.numdmsC, 1);
       continue;
     }
@@ -1235,7 +1235,7 @@ parseCmdline(int argc, char **argv)
       cmd.nsubP = 1;
       i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
       cmd.nsubC = i-keep;
-      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 512);
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 1024);
       checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
       continue;
     }
@@ -1245,7 +1245,7 @@ parseCmdline(int argc, char **argv)
       cmd.downsampP = 1;
       i = getIntOpt(argc, argv, i, &cmd.downsamp, 1);
       cmd.downsampC = i-keep;
-      checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 32);
+      checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 128);
       checkIntHigher("-downsamp", &cmd.downsamp, cmd.downsampC, 1);
       continue;
     }
@@ -1282,8 +1282,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 250<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 250 non-option argument(s)\n",
+  if( 512<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 512 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

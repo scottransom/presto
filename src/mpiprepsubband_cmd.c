@@ -1021,7 +1021,7 @@ usage(void)
         -if: A specific IF to use if available (summed IFs is the default)\n\
              1 int value between 0 and 1\n\
       -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
-             1 float value between 0 and 20.0\n\
+             1 float value between 0 and 40.0\n\
              default: `6.0'\n\
     -noclip: Do not clip the data.  (The default is to _always_ clip!)\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
@@ -1035,7 +1035,7 @@ usage(void)
              1 double value between 0 and oo\n\
              default: `1.0'\n\
     -numdms: The number of DMs to de-disperse\n\
-             1 int value between 1 and 2000\n\
+             1 int value between 1 and 4000\n\
              default: `10'\n\
       -nsub: The number of sub-bands to use\n\
              1 int value between 1 and 1024\n\
@@ -1045,9 +1045,9 @@ usage(void)
              default: `1'\n\
       -mask: File containing masking information to use\n\
              1 char* value\n\
-     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-             1...250 values\n\
-version: 18Aug03\n\
+     infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
+             1...512 values\n\
+version: 23Jan04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1129,7 +1129,7 @@ parseCmdline(int argc, char **argv)
       cmd.clipP = 1;
       i = getFloatOpt(argc, argv, i, &cmd.clip, 1);
       cmd.clipC = i-keep;
-      checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
+      checkFloatLower("-clip", &cmd.clip, cmd.clipC, 40.0);
       checkFloatHigher("-clip", &cmd.clip, cmd.clipC, 0);
       continue;
     }
@@ -1181,7 +1181,7 @@ parseCmdline(int argc, char **argv)
       cmd.numdmsP = 1;
       i = getIntOpt(argc, argv, i, &cmd.numdms, 1);
       cmd.numdmsC = i-keep;
-      checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 2000);
+      checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 4000);
       checkIntHigher("-numdms", &cmd.numdms, cmd.numdmsC, 1);
       continue;
     }
@@ -1238,8 +1238,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 250<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 250 non-option argument(s)\n",
+  if( 512<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 512 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

@@ -1109,9 +1109,9 @@ usage(void)
               0...10000 int values between 0 and 10000\n\
        -mask: File containing masking information to use\n\
               1 char* value\n\
-      infile: Input data file name.\n\
-              1...250 values\n\
-version: 28Oct03\n\
+      infile: Input data file name(s).\n\
+              1...512 values\n\
+version: 23Jan04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1331,8 +1331,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 250<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 250 non-option argument(s)\n",
+  if( 512<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 512 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }
