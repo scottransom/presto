@@ -114,7 +114,7 @@ int read_multibeam(FILE * infile, float *data, long numpts,
 
     ptr = raw;
     for (i = 0; i < numpts; i++, ptr += recsize) {
-      convert_multibeam_point(ptr, currentdata + i * numchan);
+      convert_multibeam_point(ptr, currentdata + i * numchan, numchan);
     }
 
     /* Swap our data pointers */
@@ -139,7 +139,7 @@ int read_multibeam(FILE * infile, float *data, long numpts,
 
   ptr = raw;
   for (i = 0; i < numpts; i++, ptr += recsize) {
-    convert_multibeam_point(ptr, currentdata + i * numchan);
+    convert_multibeam_point(ptr, currentdata + i * numchan, numchan);
   }
 
   /* De-disperse the data */
@@ -219,7 +219,7 @@ int read_mb_chan_to_vecs(FILE * infile, float *data,
   
   ptr = raw;
   for (i = 0; i < numpts; i++, ptr += recsize) {
-    convert_multibeam_point(ptr, rawdata + i * numchan);
+    convert_multibeam_point(ptr, rawdata + i * numchan, numchan);
   }
 
   /* Change ordering so that all of the data for an */
@@ -434,264 +434,21 @@ void print_multibeam_hdr(multibeam_tapehdr * hdr)
 }
 
 
-void convert_multibeam_point(unsigned char *rec, float *data)
-/* This routine converts 1 bit digitized data with */
-/* 256 channels to a 256 array of floats.          */
+void convert_multibeam_point(unsigned char *rec, float *data, \
+			     int numchan)
+/* This routine converts 1 bit digitized data with      */
+/* 'numchan' channels to an array of 'numchan' floats.  */
 {
-    data[0] = rec[0] & 0x80 ? 1.0 : 0.0;
-    data[1] = rec[0] & 0x40 ? 1.0 : 0.0;
-    data[2] = rec[0] & 0x20 ? 1.0 : 0.0;
-    data[3] = rec[0] & 0x10 ? 1.0 : 0.0;
-    data[4] = rec[0] & 0x08 ? 1.0 : 0.0;
-    data[5] = rec[0] & 0x04 ? 1.0 : 0.0;
-    data[6] = rec[0] & 0x02 ? 1.0 : 0.0;
-    data[7] = rec[0] & 0x01 ? 1.0 : 0.0;
-    data[8] = rec[1] & 0x80 ? 1.0 : 0.0;
-    data[9] = rec[1] & 0x40 ? 1.0 : 0.0;
-    data[10] = rec[1] & 0x20 ? 1.0 : 0.0;
-    data[11] = rec[1] & 0x10 ? 1.0 : 0.0;
-    data[12] = rec[1] & 0x08 ? 1.0 : 0.0;
-    data[13] = rec[1] & 0x04 ? 1.0 : 0.0;
-    data[14] = rec[1] & 0x02 ? 1.0 : 0.0;
-    data[15] = rec[1] & 0x01 ? 1.0 : 0.0;
-    data[16] = rec[2] & 0x80 ? 1.0 : 0.0;
-    data[17] = rec[2] & 0x40 ? 1.0 : 0.0;
-    data[18] = rec[2] & 0x20 ? 1.0 : 0.0;
-    data[19] = rec[2] & 0x10 ? 1.0 : 0.0;
-    data[20] = rec[2] & 0x08 ? 1.0 : 0.0;
-    data[21] = rec[2] & 0x04 ? 1.0 : 0.0;
-    data[22] = rec[2] & 0x02 ? 1.0 : 0.0;
-    data[23] = rec[2] & 0x01 ? 1.0 : 0.0;
-    data[24] = rec[3] & 0x80 ? 1.0 : 0.0;
-    data[25] = rec[3] & 0x40 ? 1.0 : 0.0;
-    data[26] = rec[3] & 0x20 ? 1.0 : 0.0;
-    data[27] = rec[3] & 0x10 ? 1.0 : 0.0;
-    data[28] = rec[3] & 0x08 ? 1.0 : 0.0;
-    data[29] = rec[3] & 0x04 ? 1.0 : 0.0;
-    data[30] = rec[3] & 0x02 ? 1.0 : 0.0;
-    data[31] = rec[3] & 0x01 ? 1.0 : 0.0;
-    data[32] = rec[4] & 0x80 ? 1.0 : 0.0;
-    data[33] = rec[4] & 0x40 ? 1.0 : 0.0;
-    data[34] = rec[4] & 0x20 ? 1.0 : 0.0;
-    data[35] = rec[4] & 0x10 ? 1.0 : 0.0;
-    data[36] = rec[4] & 0x08 ? 1.0 : 0.0;
-    data[37] = rec[4] & 0x04 ? 1.0 : 0.0;
-    data[38] = rec[4] & 0x02 ? 1.0 : 0.0;
-    data[39] = rec[4] & 0x01 ? 1.0 : 0.0;
-    data[40] = rec[5] & 0x80 ? 1.0 : 0.0;
-    data[41] = rec[5] & 0x40 ? 1.0 : 0.0;
-    data[42] = rec[5] & 0x20 ? 1.0 : 0.0;
-    data[43] = rec[5] & 0x10 ? 1.0 : 0.0;
-    data[44] = rec[5] & 0x08 ? 1.0 : 0.0;
-    data[45] = rec[5] & 0x04 ? 1.0 : 0.0;
-    data[46] = rec[5] & 0x02 ? 1.0 : 0.0;
-    data[47] = rec[5] & 0x01 ? 1.0 : 0.0;
-    data[48] = rec[6] & 0x80 ? 1.0 : 0.0;
-    data[49] = rec[6] & 0x40 ? 1.0 : 0.0;
-    data[50] = rec[6] & 0x20 ? 1.0 : 0.0;
-    data[51] = rec[6] & 0x10 ? 1.0 : 0.0;
-    data[52] = rec[6] & 0x08 ? 1.0 : 0.0;
-    data[53] = rec[6] & 0x04 ? 1.0 : 0.0;
-    data[54] = rec[6] & 0x02 ? 1.0 : 0.0;
-    data[55] = rec[6] & 0x01 ? 1.0 : 0.0;
-    data[56] = rec[7] & 0x80 ? 1.0 : 0.0;
-    data[57] = rec[7] & 0x40 ? 1.0 : 0.0;
-    data[58] = rec[7] & 0x20 ? 1.0 : 0.0;
-    data[59] = rec[7] & 0x10 ? 1.0 : 0.0;
-    data[60] = rec[7] & 0x08 ? 1.0 : 0.0;
-    data[61] = rec[7] & 0x04 ? 1.0 : 0.0;
-    data[62] = rec[7] & 0x02 ? 1.0 : 0.0;
-    data[63] = rec[7] & 0x01 ? 1.0 : 0.0;
-    data[64] = rec[8] & 0x80 ? 1.0 : 0.0;
-    data[65] = rec[8] & 0x40 ? 1.0 : 0.0;
-    data[66] = rec[8] & 0x20 ? 1.0 : 0.0;
-    data[67] = rec[8] & 0x10 ? 1.0 : 0.0;
-    data[68] = rec[8] & 0x08 ? 1.0 : 0.0;
-    data[69] = rec[8] & 0x04 ? 1.0 : 0.0;
-    data[70] = rec[8] & 0x02 ? 1.0 : 0.0;
-    data[71] = rec[8] & 0x01 ? 1.0 : 0.0;
-    data[72] = rec[9] & 0x80 ? 1.0 : 0.0;
-    data[73] = rec[9] & 0x40 ? 1.0 : 0.0;
-    data[74] = rec[9] & 0x20 ? 1.0 : 0.0;
-    data[75] = rec[9] & 0x10 ? 1.0 : 0.0;
-    data[76] = rec[9] & 0x08 ? 1.0 : 0.0;
-    data[77] = rec[9] & 0x04 ? 1.0 : 0.0;
-    data[78] = rec[9] & 0x02 ? 1.0 : 0.0;
-    data[79] = rec[9] & 0x01 ? 1.0 : 0.0;
-    data[80] = rec[10] & 0x80 ? 1.0 : 0.0;
-    data[81] = rec[10] & 0x40 ? 1.0 : 0.0;
-    data[82] = rec[10] & 0x20 ? 1.0 : 0.0;
-    data[83] = rec[10] & 0x10 ? 1.0 : 0.0;
-    data[84] = rec[10] & 0x08 ? 1.0 : 0.0;
-    data[85] = rec[10] & 0x04 ? 1.0 : 0.0;
-    data[86] = rec[10] & 0x02 ? 1.0 : 0.0;
-    data[87] = rec[10] & 0x01 ? 1.0 : 0.0;
-    data[88] = rec[11] & 0x80 ? 1.0 : 0.0;
-    data[89] = rec[11] & 0x40 ? 1.0 : 0.0;
-    data[90] = rec[11] & 0x20 ? 1.0 : 0.0;
-    data[91] = rec[11] & 0x10 ? 1.0 : 0.0;
-    data[92] = rec[11] & 0x08 ? 1.0 : 0.0;
-    data[93] = rec[11] & 0x04 ? 1.0 : 0.0;
-    data[94] = rec[11] & 0x02 ? 1.0 : 0.0;
-    data[95] = rec[11] & 0x01 ? 1.0 : 0.0;
-    data[96] = rec[12] & 0x80 ? 1.0 : 0.0;
-    data[97] = rec[12] & 0x40 ? 1.0 : 0.0;
-    data[98] = rec[12] & 0x20 ? 1.0 : 0.0;
-    data[99] = rec[12] & 0x10 ? 1.0 : 0.0;
-    data[100] = rec[12] & 0x08 ? 1.0 : 0.0;
-    data[101] = rec[12] & 0x04 ? 1.0 : 0.0;
-    data[102] = rec[12] & 0x02 ? 1.0 : 0.0;
-    data[103] = rec[12] & 0x01 ? 1.0 : 0.0;
-    data[104] = rec[13] & 0x80 ? 1.0 : 0.0;
-    data[105] = rec[13] & 0x40 ? 1.0 : 0.0;
-    data[106] = rec[13] & 0x20 ? 1.0 : 0.0;
-    data[107] = rec[13] & 0x10 ? 1.0 : 0.0;
-    data[108] = rec[13] & 0x08 ? 1.0 : 0.0;
-    data[109] = rec[13] & 0x04 ? 1.0 : 0.0;
-    data[110] = rec[13] & 0x02 ? 1.0 : 0.0;
-    data[111] = rec[13] & 0x01 ? 1.0 : 0.0;
-    data[112] = rec[14] & 0x80 ? 1.0 : 0.0;
-    data[113] = rec[14] & 0x40 ? 1.0 : 0.0;
-    data[114] = rec[14] & 0x20 ? 1.0 : 0.0;
-    data[115] = rec[14] & 0x10 ? 1.0 : 0.0;
-    data[116] = rec[14] & 0x08 ? 1.0 : 0.0;
-    data[117] = rec[14] & 0x04 ? 1.0 : 0.0;
-    data[118] = rec[14] & 0x02 ? 1.0 : 0.0;
-    data[119] = rec[14] & 0x01 ? 1.0 : 0.0;
-    data[120] = rec[15] & 0x80 ? 1.0 : 0.0;
-    data[121] = rec[15] & 0x40 ? 1.0 : 0.0;
-    data[122] = rec[15] & 0x20 ? 1.0 : 0.0;
-    data[123] = rec[15] & 0x10 ? 1.0 : 0.0;
-    data[124] = rec[15] & 0x08 ? 1.0 : 0.0;
-    data[125] = rec[15] & 0x04 ? 1.0 : 0.0;
-    data[126] = rec[15] & 0x02 ? 1.0 : 0.0;
-    data[127] = rec[15] & 0x01 ? 1.0 : 0.0;
-    data[128] = rec[16] & 0x80 ? 1.0 : 0.0;
-    data[129] = rec[16] & 0x40 ? 1.0 : 0.0;
-    data[130] = rec[16] & 0x20 ? 1.0 : 0.0;
-    data[131] = rec[16] & 0x10 ? 1.0 : 0.0;
-    data[132] = rec[16] & 0x08 ? 1.0 : 0.0;
-    data[133] = rec[16] & 0x04 ? 1.0 : 0.0;
-    data[134] = rec[16] & 0x02 ? 1.0 : 0.0;
-    data[135] = rec[16] & 0x01 ? 1.0 : 0.0;
-    data[136] = rec[17] & 0x80 ? 1.0 : 0.0;
-    data[137] = rec[17] & 0x40 ? 1.0 : 0.0;
-    data[138] = rec[17] & 0x20 ? 1.0 : 0.0;
-    data[139] = rec[17] & 0x10 ? 1.0 : 0.0;
-    data[140] = rec[17] & 0x08 ? 1.0 : 0.0;
-    data[141] = rec[17] & 0x04 ? 1.0 : 0.0;
-    data[142] = rec[17] & 0x02 ? 1.0 : 0.0;
-    data[143] = rec[17] & 0x01 ? 1.0 : 0.0;
-    data[144] = rec[18] & 0x80 ? 1.0 : 0.0;
-    data[145] = rec[18] & 0x40 ? 1.0 : 0.0;
-    data[146] = rec[18] & 0x20 ? 1.0 : 0.0;
-    data[147] = rec[18] & 0x10 ? 1.0 : 0.0;
-    data[148] = rec[18] & 0x08 ? 1.0 : 0.0;
-    data[149] = rec[18] & 0x04 ? 1.0 : 0.0;
-    data[150] = rec[18] & 0x02 ? 1.0 : 0.0;
-    data[151] = rec[18] & 0x01 ? 1.0 : 0.0;
-    data[152] = rec[19] & 0x80 ? 1.0 : 0.0;
-    data[153] = rec[19] & 0x40 ? 1.0 : 0.0;
-    data[154] = rec[19] & 0x20 ? 1.0 : 0.0;
-    data[155] = rec[19] & 0x10 ? 1.0 : 0.0;
-    data[156] = rec[19] & 0x08 ? 1.0 : 0.0;
-    data[157] = rec[19] & 0x04 ? 1.0 : 0.0;
-    data[158] = rec[19] & 0x02 ? 1.0 : 0.0;
-    data[159] = rec[19] & 0x01 ? 1.0 : 0.0;
-    data[160] = rec[20] & 0x80 ? 1.0 : 0.0;
-    data[161] = rec[20] & 0x40 ? 1.0 : 0.0;
-    data[162] = rec[20] & 0x20 ? 1.0 : 0.0;
-    data[163] = rec[20] & 0x10 ? 1.0 : 0.0;
-    data[164] = rec[20] & 0x08 ? 1.0 : 0.0;
-    data[165] = rec[20] & 0x04 ? 1.0 : 0.0;
-    data[166] = rec[20] & 0x02 ? 1.0 : 0.0;
-    data[167] = rec[20] & 0x01 ? 1.0 : 0.0;
-    data[168] = rec[21] & 0x80 ? 1.0 : 0.0;
-    data[169] = rec[21] & 0x40 ? 1.0 : 0.0;
-    data[170] = rec[21] & 0x20 ? 1.0 : 0.0;
-    data[171] = rec[21] & 0x10 ? 1.0 : 0.0;
-    data[172] = rec[21] & 0x08 ? 1.0 : 0.0;
-    data[173] = rec[21] & 0x04 ? 1.0 : 0.0;
-    data[174] = rec[21] & 0x02 ? 1.0 : 0.0;
-    data[175] = rec[21] & 0x01 ? 1.0 : 0.0;
-    data[176] = rec[22] & 0x80 ? 1.0 : 0.0;
-    data[177] = rec[22] & 0x40 ? 1.0 : 0.0;
-    data[178] = rec[22] & 0x20 ? 1.0 : 0.0;
-    data[179] = rec[22] & 0x10 ? 1.0 : 0.0;
-    data[180] = rec[22] & 0x08 ? 1.0 : 0.0;
-    data[181] = rec[22] & 0x04 ? 1.0 : 0.0;
-    data[182] = rec[22] & 0x02 ? 1.0 : 0.0;
-    data[183] = rec[22] & 0x01 ? 1.0 : 0.0;
-    data[184] = rec[23] & 0x80 ? 1.0 : 0.0;
-    data[185] = rec[23] & 0x40 ? 1.0 : 0.0;
-    data[186] = rec[23] & 0x20 ? 1.0 : 0.0;
-    data[187] = rec[23] & 0x10 ? 1.0 : 0.0;
-    data[188] = rec[23] & 0x08 ? 1.0 : 0.0;
-    data[189] = rec[23] & 0x04 ? 1.0 : 0.0;
-    data[190] = rec[23] & 0x02 ? 1.0 : 0.0;
-    data[191] = rec[23] & 0x01 ? 1.0 : 0.0;
-    data[192] = rec[24] & 0x80 ? 1.0 : 0.0;
-    data[193] = rec[24] & 0x40 ? 1.0 : 0.0;
-    data[194] = rec[24] & 0x20 ? 1.0 : 0.0;
-    data[195] = rec[24] & 0x10 ? 1.0 : 0.0;
-    data[196] = rec[24] & 0x08 ? 1.0 : 0.0;
-    data[197] = rec[24] & 0x04 ? 1.0 : 0.0;
-    data[198] = rec[24] & 0x02 ? 1.0 : 0.0;
-    data[199] = rec[24] & 0x01 ? 1.0 : 0.0;
-    data[200] = rec[25] & 0x80 ? 1.0 : 0.0;
-    data[201] = rec[25] & 0x40 ? 1.0 : 0.0;
-    data[202] = rec[25] & 0x20 ? 1.0 : 0.0;
-    data[203] = rec[25] & 0x10 ? 1.0 : 0.0;
-    data[204] = rec[25] & 0x08 ? 1.0 : 0.0;
-    data[205] = rec[25] & 0x04 ? 1.0 : 0.0;
-    data[206] = rec[25] & 0x02 ? 1.0 : 0.0;
-    data[207] = rec[25] & 0x01 ? 1.0 : 0.0;
-    data[208] = rec[26] & 0x80 ? 1.0 : 0.0;
-    data[209] = rec[26] & 0x40 ? 1.0 : 0.0;
-    data[210] = rec[26] & 0x20 ? 1.0 : 0.0;
-    data[211] = rec[26] & 0x10 ? 1.0 : 0.0;
-    data[212] = rec[26] & 0x08 ? 1.0 : 0.0;
-    data[213] = rec[26] & 0x04 ? 1.0 : 0.0;
-    data[214] = rec[26] & 0x02 ? 1.0 : 0.0;
-    data[215] = rec[26] & 0x01 ? 1.0 : 0.0;
-    data[216] = rec[27] & 0x80 ? 1.0 : 0.0;
-    data[217] = rec[27] & 0x40 ? 1.0 : 0.0;
-    data[218] = rec[27] & 0x20 ? 1.0 : 0.0;
-    data[219] = rec[27] & 0x10 ? 1.0 : 0.0;
-    data[220] = rec[27] & 0x08 ? 1.0 : 0.0;
-    data[221] = rec[27] & 0x04 ? 1.0 : 0.0;
-    data[222] = rec[27] & 0x02 ? 1.0 : 0.0;
-    data[223] = rec[27] & 0x01 ? 1.0 : 0.0;
-    data[224] = rec[28] & 0x80 ? 1.0 : 0.0;
-    data[225] = rec[28] & 0x40 ? 1.0 : 0.0;
-    data[226] = rec[28] & 0x20 ? 1.0 : 0.0;
-    data[227] = rec[28] & 0x10 ? 1.0 : 0.0;
-    data[228] = rec[28] & 0x08 ? 1.0 : 0.0;
-    data[229] = rec[28] & 0x04 ? 1.0 : 0.0;
-    data[230] = rec[28] & 0x02 ? 1.0 : 0.0;
-    data[231] = rec[28] & 0x01 ? 1.0 : 0.0;
-    data[232] = rec[29] & 0x80 ? 1.0 : 0.0;
-    data[233] = rec[29] & 0x40 ? 1.0 : 0.0;
-    data[234] = rec[29] & 0x20 ? 1.0 : 0.0;
-    data[235] = rec[29] & 0x10 ? 1.0 : 0.0;
-    data[236] = rec[29] & 0x08 ? 1.0 : 0.0;
-    data[237] = rec[29] & 0x04 ? 1.0 : 0.0;
-    data[238] = rec[29] & 0x02 ? 1.0 : 0.0;
-    data[239] = rec[29] & 0x01 ? 1.0 : 0.0;
-    data[240] = rec[30] & 0x80 ? 1.0 : 0.0;
-    data[241] = rec[30] & 0x40 ? 1.0 : 0.0;
-    data[242] = rec[30] & 0x20 ? 1.0 : 0.0;
-    data[243] = rec[30] & 0x10 ? 1.0 : 0.0;
-    data[244] = rec[30] & 0x08 ? 1.0 : 0.0;
-    data[245] = rec[30] & 0x04 ? 1.0 : 0.0;
-    data[246] = rec[30] & 0x02 ? 1.0 : 0.0;
-    data[247] = rec[30] & 0x01 ? 1.0 : 0.0;
-    data[248] = rec[31] & 0x80 ? 1.0 : 0.0;
-    data[249] = rec[31] & 0x40 ? 1.0 : 0.0;
-    data[250] = rec[31] & 0x20 ? 1.0 : 0.0;
-    data[251] = rec[31] & 0x10 ? 1.0 : 0.0;
-    data[252] = rec[31] & 0x08 ? 1.0 : 0.0;
-    data[253] = rec[31] & 0x04 ? 1.0 : 0.0;
-    data[254] = rec[31] & 0x02 ? 1.0 : 0.0;
-    data[255] = rec[31] & 0x01 ? 1.0 : 0.0;
+  int ii, jj;
+
+  for(ii = 0, jj = 0; ii < numchan / 8; ii++, jj+=8){
+    data[jj] = rec[ii] & 0x80 ? 1.0 : 0.0;
+    data[jj+1] = rec[ii] & 0x40 ? 1.0 : 0.0;
+    data[jj+2] = rec[ii] & 0x20 ? 1.0 : 0.0;
+    data[jj+3] = rec[ii] & 0x10 ? 1.0 : 0.0;
+    data[jj+4] = rec[ii] & 0x08 ? 1.0 : 0.0;
+    data[jj+5] = rec[ii] & 0x04 ? 1.0 : 0.0;
+    data[jj+6] = rec[ii] & 0x02 ? 1.0 : 0.0;
+    data[jj+7] = rec[ii] & 0x01 ? 1.0 : 0.0;
+  }
 }

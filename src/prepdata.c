@@ -81,8 +81,7 @@ int main(int argc, char *argv[])
     /* Read the first header file and generate an infofile from it */
 
     chkfread(&hdr, 1, HDRLEN, infile);
-    rewind(infile);
-    /* print_multibeam_hdr(&hdr); */
+    chkfileseek(infile, 0L, sizeof(char), SEEK_SET);
     multibeam_hdr_to_inf(&hdr, &idata);
     sprintf(filenm, "%s.inf", cmd->outfile);
     sprintf(idata.name, "%s", cmd->outfile);

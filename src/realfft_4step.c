@@ -159,8 +159,8 @@ int main(int argc, char *argv[])
 
     printf("Reading data.\n\n");
     data = gen_fvect(numdata);
-    chkfread(data, sizeof(float), (unsigned long) numdata, datafile);
-    rewind(datafile);
+    chkfread(data, sizeof(float), (unsigned long) numdata, datafile); 
+    chkfileseek(datafile, 0L, sizeof(char), SEEK_SET);
 
     /* Start and time the transform   */
 

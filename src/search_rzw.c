@@ -127,7 +127,7 @@ int main(int argc, char *argv[])
     printf("\nFFT is too short to use this routine.\n\n");
     exit(1);
   }
-  rewind(fftfile);
+  chkfileseek(fftfile, 0L, sizeof(char), SEEK_SET);
 
   /* zlo and zhi */
 

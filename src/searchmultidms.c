@@ -81,7 +81,9 @@ int main(int argc, char *argv[])
   /* Create a Summed-Profile vector */
 
   sumprof = gen_dvect(proflen);
+  for (ii = 0 ; ii < proflen ; ii++) sumprof[ii] = 0.0;
   tmpprof = gen_dvect(proflen);
+  for (ii = 0 ; ii < proflen ; ii++) tmpprof[ii] = 0.0;
 
   /* Create a Chi-Squared Storage Vector */
 
@@ -95,10 +97,9 @@ int main(int argc, char *argv[])
   for (ii = 0 ; ii < numchan ; ii++){
     bindelay = delay_from_dm(dm, f + ii * df) * (double) proflen / p;
     memcpy(tmpprof, &profs[ii * proflen], sizeof(double) * proflen);
-    drotate(tmpprof, proflen, -genunf(0.0, (float) proflen));
-    for (jj = 0 ; jj < proflen ; jj++){
+    drotate(tmpprof, proflen, -genunf(0.0, (float) proflen - 1));
+    for (jj = 0 ; jj < proflen ; jj++)
       sumprof[jj] += tmpprof[jj];
-    }
   }
   
   /* Determine some stats for this trial */
@@ -114,9 +115,7 @@ int main(int argc, char *argv[])
 
     /* Reset the summed-profile to all zeros */
 
-    for (jj = 0 ; jj < proflen ; jj++){
-      sumprof[jj] = 0.0;
-    }
+    for (jj = 0 ; jj < proflen ; jj++) sumprof[jj] = 0.0;
     
     /* Rotate the vectors and sum the profiles */
 
@@ -124,9 +123,8 @@ int main(int argc, char *argv[])
       bindelay = delay_from_dm(dm, f + jj * df) * (double) proflen / p;
       memcpy(tmpprof, &profs[jj * proflen], sizeof(double) * proflen);
       drotate(tmpprof, proflen, bindelay);
-      for (kk = 0 ; kk < proflen ; kk++){
+      for (kk = 0 ; kk < proflen ; kk++)
 	sumprof[kk] += tmpprof[kk];
-      }
     }
 
     /* Compute the Chi-Squared probability that there is a signal */
@@ -144,7 +142,6 @@ int main(int argc, char *argv[])
       maxchi = chixmeas;
       maxdm = dm;
     }
-
   }
 
   printf("\n\nThe maximum Chi-Squared of %g occured at DM = %f\n\n", \

@@ -32,7 +32,7 @@ void dedisp(float *data, float *lastdata, long numpts, \
   static double *lofrac, *hifrac;
   static float *tmpdat;
   static int firsttime = 1, *offset, chan = 0, dchan = 0;
-  long i, j, ptr, tmpptr;
+  long ii, jj, ptr, tmpptr;
 
   if (firsttime) {
     lofrac = gen_dvect(numchan);
@@ -40,10 +40,10 @@ void dedisp(float *data, float *lastdata, long numpts, \
     offset = gen_ivect(numchan);
     tmpdat = gen_fvect(numpts + 1);
 
-    for (i = 0; i < numchan; i++) {
-      offset[i] = (int) floor(dispdelays[i]);
-      lofrac[i] = dispdelays[i] - offset[i];
-      hifrac[i] = 1.0 - lofrac[i];
+    for (ii = 0; ii < numchan; ii++) {
+      offset[ii] = (int) floor(dispdelays[ii]);
+      lofrac[ii] = dispdelays[ii] - offset[ii];
+      hifrac[ii] = 1.0 - lofrac[ii];
     }
 
     if (order > 0) {
@@ -56,33 +56,33 @@ void dedisp(float *data, float *lastdata, long numpts, \
     
     firsttime = 0;
   }
+
   /* Reset the result array to 0's */
 
-  for (i = 0; i < numpts; i++) {
-    result[i] = 0.0;
-  }
+  for (ii = 0; ii < numpts; ii++)
+    result[ii] = 0.0;
 
   /* De-disperse */
 
-  for (i = 0; i < numchan; i++) {
+  for (ii = 0; ii < numchan; ii++) {
 
     /* Organize the input data from *lastdata */
     
-    ptr = chan + i * dchan + offset[i] * numchan;
-    for (j = 0; j < numpts - offset[i]; j++, ptr += numchan)
-      tmpdat[j] = lastdata[ptr];
+    ptr = chan + ii * dchan + offset[ii] * numchan;
+    for (jj = 0; jj < numpts - offset[ii]; jj++, ptr += numchan)
+      tmpdat[jj] = lastdata[ptr];
 
     /* Organize the input data from *data */
     
-    tmpptr = numpts - offset[i];
-    ptr = chan + i * dchan;
-    for (j = 0; j <= offset[i]; j++, ptr += numchan)
-      tmpdat[j + tmpptr] = data[ptr];
+    tmpptr = numpts - offset[ii];
+    ptr = chan + ii * dchan;
+    for (jj = 0; jj <= offset[ii]; jj++, ptr += numchan)
+      tmpdat[jj + tmpptr] = data[ptr];
 
     /* Now combine the input data with the proper weights  */
     
-    for (j = 0; j < numpts; j++)
-      result[j] += hifrac[i] * tmpdat[j] + lofrac[i] * tmpdat[j + 1];
+    for (jj = 0; jj < numpts; jj++)
+      result[jj] += hifrac[ii] * tmpdat[jj] + lofrac[ii] * tmpdat[jj + 1];
   }
 }
 

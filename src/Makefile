@@ -317,7 +317,7 @@ squeaky:  cleaner
 	rm -f *.dat *.fft *.inf fftw_wisdom.txt
 	rm -f core *.win* *.ps *_rzw *.tmp
 	cd $(PRESTO)/include ; rm -f *# *~
-	cd $(PRESTO)/lib ; rm -f fftw_wisdom.txt bincat.dat
+	cd $(PRESTO)/lib ; rm -f bincat.dat
 	cd $(PRESTO)/bin ; rm -f makedata makeinf mjd2cal realfft_4step
 	cd $(PRESTO)/bin ; rm -f quicklook search_bin search_rzw swap_endian
 	cd $(PRESTO)/bin ; rm -f prepdata prepfold check_parkes_raw bary
