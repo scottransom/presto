@@ -133,12 +133,11 @@ int main(int argc, char *argv[])
 
     if ((tb >= ont) && (tb < offt)) {
 
+      T = tb;
+      
       /*  Get additional time due to binary orbit */
 
-      if (mdata.binary) {
-	T = tb - lin_interp_E(phib, tb, 0.0, orbdt, orbmaxt);
-      } else
-	T = tb;
+      if (mdata.binary) T -= lin_interp_E(phib, tb, 0.0, orbdt, orbmaxt);
 
       /*  Get current pulsar phase (cyclic) */
 

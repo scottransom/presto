@@ -43,7 +43,7 @@ PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK)
  
 
 # For Pentium with GCC
-CC = egcc
+CC = gcc
 F77 = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
