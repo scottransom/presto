@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "01Dec99" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "02Dec99" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -27,13 +27,14 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-nobary]
 [-DE405]
 [-dm dm]
-[-nsub numsubbands]
+[-nsub nsub]
 [-p p]
-[-pd pdot]
-[-pdd pdotdot]
-[-f freq]
-[-fd dfdt]
-[-fdd d2fdt2]
+[-pd pd]
+[-pdd pdd]
+[-f f]
+[-fd fd]
+[-fdd fdd]
+[-phs phs]
 [-start startT]
 [-end endT]
 [-n proflen]
@@ -55,7 +56,7 @@ infile
 .IP -pkmb
 Raw data in Parkes Multibeam format.
 .IP -ebpp
-Raw data in Efflesberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED.
+Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED.
 .IP -nobary
 Do not barycenter (assume input parameters are topocentric).
 .IP -DE405
@@ -104,6 +105,12 @@ The nominative frequency 2nd derivative (hz/s^2),
 1 double precision value.
 .br
 Default: `0'
+.IP -phs
+Offset phase for the profil,
+.br
+1 double precision value between 0.0 and 1.0.
+.br
+Default: `0.0'
 .IP -start
 The folding start time as a fraction of the full obs,
 .br
