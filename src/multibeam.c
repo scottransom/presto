@@ -280,6 +280,7 @@ void multibeam_hdr_to_inf(multibeam_tapehdr * hdr, infodata * idata)
   double tmp1, tmp2;
   char ctmp[100];
   int ptsperrec = 0;
+  int itmp1, itmp2;
 
   sprintf(idata->object, "%.16s", hdr->pname);
   sscanf(hdr->ra_start, \
@@ -287,7 +288,9 @@ void multibeam_hdr_to_inf(multibeam_tapehdr * hdr, infodata * idata)
   sscanf(hdr->dec_start, \
 	 "%3d:%2d:%9lf", &idata->dec_d, &idata->dec_m, &idata->dec_s);
   strcpy(idata->telescope, "Parkes");
-  strcpy(idata->instrument, "Multibeam (center beam)");
+  itmp1 = strtol(hdr->ibeam, NULL, 10);  
+  itmp2 = strtol(hdr->nbeam, NULL, 10);  
+  sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);
   sscanf(hdr->nchan[0], "%4d", &idata->num_chan);
   ptsperrec = DATLEN / (idata->num_chan / 8);
   sscanf(hdr->samp_int[0], "%12lf", &idata->dt);

@@ -14,21 +14,34 @@
 #define BINSTOIGNORE 0
 
 /* Factor to overlap the miniFFTs (power-of-two only) */
-/*    1 = no overlap                    */
-/*    2 = overlap half of each miniFFT  */
-/*    4 = overlap 3/4 of each miniFFT   */
+/*    1 = no overlap of successive miniFFTs           */
+/*    2 = overlap 1/2 of each miniFFT                 */
+/*    4 = overlap 3/4 of each miniFFT                 */
 #define OVERLAPFACT 4
 
-/* Blocks of maxfft (+ 0.5) to work with at a time */
-#define WORKBLOCK 3
+/* Blocks of length maxfft to work with at a time */
+#define WORKBLOCK 4
+
+/******************************************************************/
 
 int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft, 
-			   double dm, int minfft, int maxfft)
+			   float dm, int minfft, int maxfft)
 {
-  int ii, jj, kk, worklen, fftlen, binsleft;
-  int bigfft_pos=0, havecand=0, powers_offset;
+  int ii, jj, kk, worklen, fftlen, binsleft, overlaplen;
+  int bigfft_pos=0, havecand=0, powers_offset, wrkblk=WORKBLOCK;
+  double norm;
   float *powers, *minifft, *powers_pos;
+  multibeam_tapehdr hdr;
+  infodata idata;
   
+  /* Copy the header information into *hdr */
+    
+  if (ii == 0) memcpy(hdr, record, HDRLEN);
+
+  /* Convert the Header into usable info... */
+
+  multibeam_hdr_to_inf(hdr, &idata);
+
   /* Check our input values */
 
   maxfft = next2_to_n(maxfft);
@@ -42,7 +55,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
   /* Allocate the arrays that will store the powers from */
   /* the bigFFT as well as the miniFFTs.                 */
 
-  worklen = (2 * WORKBLOCK + 1) * (maxfft / 2);
+  worklen = (wrkblk + 1) * maxfft - (maxfft / OVERLAPFACT);
   powers = gen_fvect(worklen);
   minifft = gen_fvect(maxfft);
 
@@ -57,10 +70,11 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
     /* Adjust our search parameters if close to end of zone to search */
 
     if (binsleft < worklen){
-      worklen = 3 * (maxfft / 2);
+      wrkblk = 1;
+      worklen = (wrkblk + 1) * maxfft - (maxfft / OVERLAPFACT);
       while (binsleft < worklen){
-	worklen /= 2;
 	maxfft /= 2;
+	worklen = (wrkblk + 1) * maxfft - (maxfft / OVERLAPFACT);
       }
       if (worklen < minfft)
 	break;
@@ -84,11 +98,11 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
     while (fftlen >= minfft) {
       powers_pos = powers;
       powers_offset = 0;
+      overlaplen = fftlen / OVERLAPFACT;
 
       /* Perform miniffts at each section of the powers array */
 
-      while ((worklen - powers_offset) >
-	     (int) ((1.0 - cmd->overlap) * maxfft + DBLCORRECT)){
+      while (powers_offset < wrkblk * maxfft){
 
 	/* Copy the proper amount and portion of powers into minifft */
 
@@ -100,7 +114,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
 	/* Normalize and search the miniFFT */
 
-	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
+	norm = sqrt((double) fftlen) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
 	search_minifft((fcomplex *)minifft, fftlen / 2, tmplist, \
 		       MININCANDS, cmd->harmsum, cmd->numbetween, idata.N, \
@@ -136,18 +150,18 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 	}
 
 	totnumsearched += fftlen;
-	powers_pos += (int)(cmd->overlap * fftlen);
-	powers_offset = powers_pos - powers;
+	powers_pos += overlaplen;
+	powers_offset += overlaplen;
 
 	/* Position of mini-fft in data set while loop */
       }
 
-      fftlen >>= 1;
+      fftlen /= 2;
 
       /* Size of mini-fft while loop */
     }
 
-    bigfft_pos += (worklen - (int)((1.0 - cmd->overlap) * maxfft));
+    bigfft_pos += wrkblk * maxfft;
     loopct++;
 
     /* File position while loop */
