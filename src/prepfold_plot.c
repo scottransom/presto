@@ -914,9 +914,9 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	    sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
 	    cpgtext(0.6, 0.5, out);
 	  } else {
-	    cpgtext(0.0, 0.7, "P\\dbary\\u (ms) = N/A");
-	    cpgtext(0.0, 0.6, "P'\\dbary\\u (s/s) = N/A");
-	    cpgtext(0.0, 0.5, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
+	    cpgtext(0.6, 0.7, "P\\dbary\\u (ms) = N/A");
+	    cpgtext(0.6, 0.6, "P'\\dbary\\u (s/s) = N/A");
+	    cpgtext(0.6, 0.5, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
 	  }
 	}
 	cpgtext(0.0, 0.3, "   Binary Parameters");
