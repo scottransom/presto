@@ -250,7 +250,8 @@ int main(int argc, char *argv[])
 	    /* Insure the candidate is semi-realistic */
 
 	    if (tmplist[ii].orb_p > MINORBP && 
-		tmplist[ii].mini_r > MINMINIBIN) {
+		tmplist[ii].mini_r > MINMINIBIN &&
+		tmplist[ii].mini_r < tmplist[ii].mini_N - MINMINIBIN) {
 
 	      /* Check to see if another candidate with these properties */
 	      /* is already in the list.                                 */
@@ -410,7 +411,7 @@ static void compare_rawbin_cands(rawbincand *list, int nlist,
 
 	    /* Check if the binary Fourier freqs are close enough */
 
-	    if (fabs(list[ii].orb_p - list[jj].orb_p * ll) < 20.0) {
+	    if (fabs(list[ii].orb_p - list[jj].orb_p / ll) < 20.0) {
 
 	      /* Check if the note has already been written */
 
@@ -419,7 +420,10 @@ static void compare_rawbin_cands(rawbincand *list, int nlist,
 
 		/* Write the note */
 
-		sprintf(notes + jj * 18, "MH=%d H=%d of #%d", ll, kk, ii + 1);
+		if (ll == 1 && kk == 1)
+		  sprintf(notes + jj * 18, "Same as #%d?", ii + 1);
+		else 
+		  sprintf(notes + jj * 18, "MH=%d H=%d of #%d", ll, kk, ii + 1);
 
 		break;
 	      }
@@ -590,11 +594,11 @@ static void file_rawbin_candidates(rawbincand *cand, char *notes,
 
   for (i = 1; i <= pages; i++) {
 
-    /*                       1         2         3         4         5         6         7         8         9      */  
-    /*              123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456*/
-    fprintf(fname, " Cand           Orb Period   PSR Period     FullFFT  MiniFFT   MiniFFT  Num    Sum                \n");
-    fprintf(fname, "Number  Sigma      (sec)        (sec)       Low Bin  Length      Bin    Harm  Power    Notes      \n");
-    fprintf(fname, "------------------------------------------------------------------------------------------------\n");
+    /*                       1         2         3         4         5         6         7         8         9         0   */  
+    /*              1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123*/
+    fprintf(fname, "#              Orb Period   PSR Period    FullFFT   MiniFFT   MiniFFT  Num    Sum                    \n");
+    fprintf(fname, "# Cand  Sigma     (sec)        (sec)      Low Bin   Length      Bin    Sum   Power   Notes           \n");
+    fprintf(fname, "#----------------------------------------------------------------------------------------------------\n");
 
     if (i == pages) {
       linestoprint = extralines;
@@ -606,15 +610,15 @@ static void file_rawbin_candidates(rawbincand *cand, char *notes,
 
       /*  Now output it... */
 
-      fprintf(fname, " %-4d %7.3f  ", k + 1, cand[k].mini_sigma);
-      fprintf(fname, " %10.3f ", cand[k].orb_p);
-      fprintf(fname, " %13.11f ", cand[k].psr_p);
-      fprintf(fname, " %10.0f ", cand[k].full_lo_r);
+      fprintf(fname, " %4d %7.3f  ", k + 1, cand[k].mini_sigma);
+      fprintf(fname, " %9.3f ", cand[k].orb_p);
+      fprintf(fname, " %12.9f ", cand[k].psr_p);
+      fprintf(fname, " %9.0f  ", cand[k].full_lo_r);
       fprintf(fname, " %6.0f ", cand[k].mini_N);
-      fprintf(fname, " %7.1f ", cand[k].mini_r);
+      fprintf(fname, " %8.1f ", cand[k].mini_r);
       fprintf(fname, " %2.0f ", cand[k].mini_numsum);
-      fprintf(fname, " %8.2f ", cand[k].mini_power);
-      fprintf(fname, " %.18s\n", notes + k * 18);
+      fprintf(fname, " %7.2f ", cand[k].mini_power);
+      fprintf(fname, "  %.18s\n", notes + k * 18);
       fflush(fname);
     }
   }
@@ -624,7 +628,7 @@ static void file_rawbin_candidates(rawbincand *cand, char *notes,
   sprintf(command, "cat %s >> %s", infonm, filenm);
   system(command);
   sprintf(command, \
-	  "$PRESTO/bin/a2x -l -c1 -n80 -title -date -num %s > %s.ps", \
+	  "$PRESTO/bin/a2x -c1 -n80 -title -date -num %s > %s.ps", \
 	  filenm, filenm);
   system(command);
 }

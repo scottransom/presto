@@ -391,17 +391,24 @@ double sigma_from_sumpows(double powersum, int numsum)
     cdfstatus = 0;
     cdfchi(&cdfwhich, &p, &q, &x, &df, &cdfstatus, &bound);
     if (cdfstatus){
-      printf("\nError in cdfchi():\n");
-      printf("   cdfstatus = %d, bound = %f\n\n", cdfstatus, bound);
+      printf("\nError in cdfchi() (sigma_from_sumpows()):\n");
+      printf("   cdfstatus = %d, bound = %f\n", cdfstatus, bound);
+      printf("   p = %f, q = %f, x = %f, df = %f\n\n", p, q, x, df);
       exit(1);
     }
     cdfwhich = 2;
     cdfstatus = 0;
     cdfnor(&cdfwhich, &p, &q, &x, &mean, &sd, &cdfstatus, &bound);
     if (cdfstatus){
-      printf("\nError in cdfnor():\n");
-      printf("   cdfstatus = %d, bound = %f\n\n", cdfstatus, bound);
-      exit(1);
+      if (cdfstatus != -3){
+	printf("\nError in cdfnor() (sigma_from_sumpows()):\n");
+	printf("   cdfstatus = %d, bound = %f\n", cdfstatus, bound);
+	printf("   p = %f, q = %f, x = %f, mean = %f, sd = %f\n\n", 
+	       p, q, x, mean, sd);
+	exit(1);
+      } else {
+	x = 38.5;
+      }
     }
     return x;
   }
@@ -423,8 +430,10 @@ double sumpows_from_sigma(double sigma, int numsum)
     x = sigma;
     cdfnor(&cdfwhich, &p, &q, &x, &mean, &sd, &cdfstatus, &bound);
     if (cdfstatus){
-      printf("\nError in cdfnor():\n");
+      printf("\nError in cdfnor() (sumpows_from_sigma()):\n");
       printf("   cdfstatus = %d, bound = %f\n\n", cdfstatus, bound);
+      printf("   p = %f, q = %f, x = %f, mean = %f, sd = %f\n\n", 
+	     p, q, x, mean, sd);
       exit(1);
     }
     df = 2.0 * numsum;
@@ -432,9 +441,14 @@ double sumpows_from_sigma(double sigma, int numsum)
     cdfstatus = 0;
     cdfchi(&cdfwhich, &p, &q, &x, &df, &cdfstatus, &bound);
     if (cdfstatus){
-      printf("\nError in cdfchi():\n");
-      printf("   cdfstatus = %d, bound = %f\n\n", cdfstatus, bound);
-      exit(1);
+      if (cdfstatus != -3){
+	printf("\nError in cdfchi() (sumpows_from_sigma()):\n");
+	printf("   cdfstatus = %d, bound = %f\n", cdfstatus, bound);
+	printf("   p = %f, q = %f, x = %f, df = %f\n\n", p, q, x, df);
+	exit(1);
+      } else {
+	x = 750.0;
+      }
     }
     return 0.5 * x;
   }

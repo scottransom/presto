@@ -144,6 +144,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     }
     free(sumpows);
   }
+  free(fullpows);
 
   /* Add the rest of the rawbincand data to the candidate array */
 
@@ -155,7 +156,6 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     cands[ii].psr_p = timefullfft / (lorfullfft + numminifft);
     cands[ii].orb_p = timefullfft * cands[ii].mini_r / nmini2;
   }
-  free(fullpows);
 }
 
 
