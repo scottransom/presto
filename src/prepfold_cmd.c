@@ -54,6 +54,12 @@ static Cmdline cmd = {
   /* searchfddP = */ 0,
   /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
   /* nosearchP = */ 0,
+  /***** -nopsearch: Show but do not search over period */
+  /* nopsearchP = */ 0,
+  /***** -nopdsearch: Show but do not search over p-dot */
+  /* nopdsearchP = */ 0,
+  /***** -nodmsearch: Show but do not search over DM */
+  /* nodmsearchP = */ 0,
   /***** -scaleparts: Scale the part profiles independently */
   /* scalepartsP = */ 0,
   /***** -allgrey: Make all the images greyscale instead of color */
@@ -144,6 +150,10 @@ static Cmdline cmd = {
   /* psrnameP = */ 0,
   /* psrname = */ (char*)0,
   /* psrnameC = */ 0,
+  /***** -par: Name of a TEMPO par file from which to get PSR params */
+  /* parnameP = */ 0,
+  /* parname = */ (char*)0,
+  /* parnameC = */ 0,
   /***** -polycos: File containing TEMPO polycos for psrname (not required) */
   /* polycofileP = */ 0,
   /* polycofile = */ (char*)0,
@@ -1019,6 +1029,27 @@ showOptionValues(void)
     printf("-nosearch found:\n");
   }
 
+  /***** -nopsearch: Show but do not search over period */
+  if( !cmd.nopsearchP ) {
+    printf("-nopsearch not found.\n");
+  } else {
+    printf("-nopsearch found:\n");
+  }
+
+  /***** -nopdsearch: Show but do not search over p-dot */
+  if( !cmd.nopdsearchP ) {
+    printf("-nopdsearch not found.\n");
+  } else {
+    printf("-nopdsearch found:\n");
+  }
+
+  /***** -nodmsearch: Show but do not search over DM */
+  if( !cmd.nodmsearchP ) {
+    printf("-nodmsearch not found.\n");
+  } else {
+    printf("-nodmsearch found:\n");
+  }
+
   /***** -scaleparts: Scale the part profiles independently */
   if( !cmd.scalepartsP ) {
     printf("-scaleparts not found.\n");
@@ -1292,6 +1323,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -par: Name of a TEMPO par file from which to get PSR params */
+  if( !cmd.parnameP ) {
+    printf("-par not found.\n");
+  } else {
+    printf("-par found:\n");
+    if( !cmd.parnameC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.parname);
+    }
+  }
+
   /***** -polycos: File containing TEMPO polycos for psrname (not required) */
   if( !cmd.polycofileP ) {
     printf("-polycos not found.\n");
@@ -1486,7 +1529,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-polycos polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
@@ -1505,6 +1548,9 @@ usage(void)
    -searchpdd: Search p-dotdots as well as p and p-dots\n\
    -searchfdd: Search f-dotdots as well as f and f-dots\n\
     -nosearch: Show but do not search the p/pdot and/or DM phase spaces\n\
+   -nopsearch: Show but do not search over period\n\
+  -nopdsearch: Show but do not search over p-dot\n\
+  -nodmsearch: Show but do not search over DM\n\
   -scaleparts: Scale the part profiles independently\n\
      -allgrey: Make all the images greyscale instead of color\n\
    -justprofs: Only output the profile portions of the plot\n\
@@ -1567,6 +1613,8 @@ usage(void)
                default: `1.0'\n\
          -psr: Name of pulsar to fold (do not include J or B)\n\
                1 char* value\n\
+         -par: Name of a TEMPO par file from which to get PSR params\n\
+               1 char* value\n\
      -polycos: File containing TEMPO polycos for psrname (not required)\n\
                1 char* value\n\
          -obs: Two letter TEMPO observatory code (for barycentering)\n\
@@ -1601,7 +1649,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 17May02\n\
+version: 18May02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1695,6 +1743,21 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-nosearch", argv[i]) ) {
       cmd.nosearchP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-nopsearch", argv[i]) ) {
+      cmd.nopsearchP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-nopdsearch", argv[i]) ) {
+      cmd.nopdsearchP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-nodmsearch", argv[i]) ) {
+      cmd.nodmsearchP = 1;
       continue;
     }
 
@@ -1905,6 +1968,14 @@ parseCmdline(int argc, char **argv)
       cmd.psrnameP = 1;
       i = getStringOpt(argc, argv, i, &cmd.psrname, 1);
       cmd.psrnameC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-par", argv[i]) ) {
+      int keep = i;
+      cmd.parnameP = 1;
+      i = getStringOpt(argc, argv, i, &cmd.parname, 1);
+      cmd.parnameC = i-keep;
       continue;
     }
 

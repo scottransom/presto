@@ -968,7 +968,7 @@ int main(int argc, char *argv[])
       for (ii = 0; ii < numchan; ii++)
 	dispdts[ii] /= search.dt;
 
-      {
+      if (cmd->nsub > 1){
 	int numdmtrials;
 	double dphase, lodm, hidm, ddm;
       
@@ -1116,6 +1116,7 @@ int main(int argc, char *argv[])
   bestprof = gen_dvect(search.proflen);
   {
     int ll, numtrials, pdelay, pddelay, profindex;
+    int good_dm_index, good_p_index, good_pd_index, good_pdd_index;
     double dphase, po, pdo, pddo;
     double *pdprofs, *pddprofs=NULL, *currentprof, *fdots, *fdotdots=NULL;
     foldstats currentstats;
@@ -1128,7 +1129,7 @@ int main(int argc, char *argv[])
 
     /* The number of trials for the P-dot and P searches */
 
-    numtrials = 2 * search.npfact * search.proflen + 1;
+    numtrials = 2*search.npfact*search.proflen + 1;
 
     /* Initialize a bunch of variables */
 
@@ -1136,14 +1137,33 @@ int main(int argc, char *argv[])
     search.periods = gen_dvect(numtrials);
     search.pdots = gen_dvect(numtrials);
     fdots = gen_dvect(numtrials);
-    if (cmd->searchpddP || cmd->searchfddP)
+    if (cmd->searchfddP)
+      cmd->searchpddP = 1;
+    if (cmd->nopsearchP && cmd->nopdsearchP){
+      if (cmd->nsub > 1 && cmd->nodmsearchP)
+	cmd->nosearchP = 1;
+      else if (cmd->nsub==1)
+	cmd->nosearchP = 1;
+    }
+    if (cmd->nosearchP){
+      cmd->nopsearchP = cmd->nopdsearchP = 1;
+      if (cmd->nsub > 1)
+	cmd->nodmsearchP = 1;
+    }
+    if (cmd->searchpddP)
       fdotdots = gen_dvect(numtrials);
     search.numpdots = numtrials;
     pdprofs = gen_dvect(cmd->npart * search.proflen);
-    if (cmd->searchpddP || cmd->searchfddP)
+    if (cmd->searchpddP)
       pddprofs = gen_dvect(cmd->npart * search.proflen);
     currentprof = gen_dvect(search.proflen);
     initialize_foldstats(&beststats);
+    if (cmd->nopsearchP)
+      good_p_index = search.npfact*search.proflen;
+    if (cmd->nopdsearchP)
+      good_pd_index = search.npfact*search.proflen;
+    if (cmd->nosearchP && cmd->searchpddP)
+      good_pdd_index = search.npfact*search.proflen;
 
     /* Convert the folding freqs and derivs to periods */
     
@@ -1160,7 +1180,7 @@ int main(int argc, char *argv[])
       dtmp = (double) (pdelay * search.pdstep) / search.proflen;
       fdots[ii] = phasedelay2fdot(dtmp, T);
       search.pdots[ii] = switch_pfdot(foldf, foldfd + fdots[ii]);
-      if (cmd->searchpddP || cmd->searchfddP)
+      if (cmd->searchpddP)
 	fdotdots[ii] = phasedelay2fdotdot(dtmp, T);
     }
 
@@ -1182,13 +1202,30 @@ int main(int argc, char *argv[])
     
       /* Insure that we don't try a dm < 0.0 */
       
-      numdmtrials = 2 * search.ndmfact * search.proflen + 1;
-      lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
-      if (lodm < 0.0) lodm = 0.0;
+      numdmtrials = 2*search.ndmfact*search.proflen + 1;
+      lodm = cmd->dm - (numdmtrials-1)/2*ddm;
+      if (cmd->nodmsearchP)
+	good_dm_index = search.ndmfact*search.proflen;
+      if (lodm < 0.0){
+	lodm = 0.0;
+	/* Find the closest DM to the requested DM */
+	if (cmd->nodmsearchP){
+	  double mindmerr=1000.0, dmerr, trialdm;
+	  for (ii=0; ii<numdmtrials; ii++){  /* Loop over DMs */
+	    trialdm = lodm + ii*ddm;
+	    dmerr = fabs(trialdm - cmd->dm);
+	    if (dmerr < mindmerr){
+	      good_dm_index = ii;
+	      mindmerr = dmerr;
+	    }
+	  }
+	}
+      }
+
       search.dms = gen_dvect(numdmtrials);
       search.numdms = numdmtrials;
       
-      if (cmd->searchpddP || cmd->searchfddP)
+      if (cmd->searchpddP)
 	printf("  Searching %d DMs, %d periods, %d p-dots, and %d p-dotdots...\n", 
 	       search.numdms, search.numperiods, search.numpdots, search.numpdots);
       else
@@ -1197,14 +1234,16 @@ int main(int argc, char *argv[])
 
       /* De-disperse and combine the subbands */
       
-      for (ii = 0; ii < numdmtrials; ii++){  /* Loop over DMs */
+      for (ii=0; ii<numdmtrials; ii++){  /* Loop over DMs */
 	int numpdds=1;
-	search.dms[ii] = lodm + ii * ddm;
+	if (!cmd->nodmsearchP)
+	  good_dm_index = ii;
+	search.dms[ii] = lodm + ii*ddm;
 	hifdelay = delay_from_dm(search.dms[ii], obsf[numchan - 1]);
 	subbanddelays = subband_delays(numchan, cmd->nsub, 
 				       search.dms[ii], idata.freq, 
 				       idata.chan_wid, search.avgvoverc);
-	for (jj = 0; jj < cmd->nsub; jj++)
+	for (jj=0; jj<cmd->nsub; jj++)
 	  dmdelays[jj] = NEAREST_INT((subbanddelays[jj] - hifdelay) / 
 				     dphase) % search.proflen;
 	free(subbanddelays);
@@ -1214,18 +1253,20 @@ int main(int argc, char *argv[])
 	
 	/* Perform the Period and P-dot (and possibly P-dotdot) searches */
 
-	if (cmd->searchpddP || cmd->searchfddP)
+	if (cmd->searchpddP)
 	  numpdds = numtrials;
 	else
 	  pddprofs = ddprofs;
 
-	for (ll = 0; ll < numpdds; ll++){
+	for (ll=0; ll<numpdds; ll++){
+	  if (!(cmd->nosearchP && cmd->searchpddP))
+	    good_pdd_index = ll;
 
 	  /* Correct each part for the current pdotdot (if required) */
 
-	  if (cmd->searchpddP || cmd->searchfddP){
-	    for (kk = 0; kk < cmd->npart; kk++){
-	      profindex = kk * search.proflen;
+	  if (cmd->searchpddP){
+	    for (kk=0; kk<cmd->npart; kk++){
+	      profindex = kk*search.proflen;
 	      pddelay = NEAREST_INT(fdotdot2phasedelay(fdotdots[ll], parttimes[kk]) * 
 				    search.proflen);
 	      shift_prof(ddprofs+profindex, search.proflen, pddelay, 
@@ -1233,12 +1274,14 @@ int main(int argc, char *argv[])
 	    }
 	  }
 	    
-	  for (jj = 0; jj < numtrials; jj++){
-	  
+	  for (jj=0; jj<numtrials; jj++){
+	    if (!cmd->nopdsearchP)
+	      good_pd_index = jj;
+
 	    /* Correct each part for the current pdot */
 
-	    for (kk = 0; kk < cmd->npart; kk++){
-	      profindex = kk * search.proflen;
+	    for (kk=0; kk<cmd->npart; kk++){
+	      profindex = kk*search.proflen;
 	      pddelay = NEAREST_INT(fdot2phasedelay(fdots[jj], parttimes[kk]) * 
 				    search.proflen);
 	      shift_prof(pddprofs+profindex, search.proflen, pddelay, 
@@ -1247,33 +1290,36 @@ int main(int argc, char *argv[])
 	    
 	    /* Search over the periods */
 	    
-	    for (kk = 0; kk < numtrials; kk++){
-	      pdelay = search.pstep * (kk - (numtrials - 1) / 2);
+	    for (kk=0; kk<numtrials; kk++){
+	      if (!cmd->nopsearchP)
+		good_p_index = kk;
+	      pdelay = search.pstep*(kk-(numtrials-1)/2);
 	      combine_profs(pdprofs, ddstats, cmd->npart, search.proflen, 
 			  pdelay, currentprof, &currentstats);
-	      if ((currentstats.redchi > beststats.redchi && !cmd->nosearchP) || 
-		  (cmd->nosearchP &&
-		 search.dms[ii] == cmd->dm &&
-		   jj == (numtrials-1)/2 &&
-		   kk == (numtrials-1)/2 &&
-		   ll == (numpdds-1)/2)){
-		search.bestdm = search.dms[ii];
-		if (idata.bary){
-		  search.bary.p1 = search.periods[kk];
-		  search.bary.p2 = search.pdots[jj];
-		  if (cmd->searchpddP || cmd->searchfddP)
-		    search.bary.p3 = switch_pfdotdot(1.0/search.periods[kk], 
-						     foldfd+fdots[jj], foldfdd+fdotdots[ll]);
-		} else {
-		  search.topo.p1 = search.periods[kk];
-		  search.topo.p2 = search.pdots[jj];
-		  if (cmd->searchpddP || cmd->searchfddP)
-		    search.topo.p3 = switch_pfdotdot(1.0/search.periods[kk], 
-						     foldfd+fdots[jj], foldfdd+fdotdots[ll]);
+	      if (ii==good_dm_index &&
+		  ll==good_pdd_index &&
+		  jj==good_pd_index &&
+		  kk==good_p_index){
+		if (cmd->nosearchP ||
+		    (currentstats.redchi > beststats.redchi && !cmd->nosearchP)){
+		  search.bestdm = search.dms[ii];
+		  if (idata.bary){
+		    search.bary.p1 = search.periods[kk];
+		    search.bary.p2 = search.pdots[jj];
+		    if (cmd->searchpddP)
+		      search.bary.p3 = switch_pfdotdot(1.0/search.periods[kk], 
+						       foldfd+fdots[jj], foldfdd+fdotdots[ll]);
+		  } else {
+		    search.topo.p1 = search.periods[kk];
+		    search.topo.p2 = search.pdots[jj];
+		    if (cmd->searchpddP)
+		      search.topo.p3 = switch_pfdotdot(1.0/search.periods[kk], 
+						       foldfd+fdots[jj], foldfdd+fdotdots[ll]);
+		  }
+		  beststats = currentstats;
+		  memcpy(bestprof, currentprof, sizeof(double) * 
+			 search.proflen);
 		}
-		beststats = currentstats;
-		memcpy(bestprof, currentprof, sizeof(double) * 
-		       search.proflen);
 	      }
 	    }
 	  }
@@ -1288,7 +1334,7 @@ int main(int argc, char *argv[])
     } else {
       int numpdds=1;
 
-      if (cmd->searchpddP || cmd->searchfddP)
+      if (cmd->searchpddP)
 	printf("  Searching %d periods, %d p-dots, and %d p-dotdots...\n", 
 	       search.numperiods, search.numpdots, search.numpdots);
       else
@@ -1297,18 +1343,20 @@ int main(int argc, char *argv[])
 
       /* Perform the Period and P-dot (and possibly P-dotdot) searches */
 
-      if (cmd->searchpddP || cmd->searchfddP)
+      if (cmd->searchpddP)
 	numpdds = numtrials;
       else
 	pddprofs = search.rawfolds;
 
-      for (ll = 0; ll < numpdds; ll++){
+      for (ll=0; ll<numpdds; ll++){
+	if (!(cmd->nosearchP && cmd->searchpddP))
+	  good_pdd_index = ll;
 
 	/* Correct each part for the current pdotdot (if required) */
 	
-	if (cmd->searchpddP || cmd->searchfddP){
-	  for (kk = 0; kk < cmd->npart; kk++){
-	    profindex = kk * search.proflen;
+	if (cmd->searchpddP){
+	  for (kk=0; kk<cmd->npart; kk++){
+	    profindex = kk*search.proflen;
 	    pddelay = NEAREST_INT(fdotdot2phasedelay(fdotdots[ll], 
 						     parttimes[kk]) * search.proflen);
 	    shift_prof(search.rawfolds+profindex, search.proflen, pddelay, 
@@ -1318,12 +1366,14 @@ int main(int argc, char *argv[])
 	
 	/* Perform the P-dot and Period searches */
 	
-	for (jj = 0; jj < numtrials; jj++){
+	for (jj=0; jj<numtrials; jj++){
+	  if (!cmd->nopdsearchP)
+	    good_pd_index = jj;
 	  
 	  /* Correct each part for the current pdot */
 	  
-	  for (kk = 0; kk < cmd->npart; kk++){
-	    profindex = kk * search.proflen;
+	  for (kk=0; kk<cmd->npart; kk++){
+	    profindex = kk*search.proflen;
 	    pddelay = NEAREST_INT(fdot2phasedelay(fdots[jj], parttimes[kk]) * 
 				  search.proflen);
 	    shift_prof(pddprofs+profindex, search.proflen, pddelay, 
@@ -1331,31 +1381,34 @@ int main(int argc, char *argv[])
 	  }
 	  /* Search over the periods */
 	  
-	  for (kk = 0; kk < numtrials; kk++){
-	    pdelay = search.pstep * (kk - (numtrials - 1) / 2);
+	  for (kk=0; kk<numtrials; kk++){
+	    if (!cmd->nopsearchP)
+	      good_p_index = kk;
+	    pdelay = search.pstep*(kk-(numtrials-1)/2);
 	    combine_profs(pdprofs, search.stats, cmd->npart, search.proflen, 
 			  pdelay, currentprof, &currentstats);
-	    if ((currentstats.redchi > beststats.redchi && !cmd->nosearchP) || 
-		(cmd->nosearchP &&
-		 jj == (numtrials-1)/2 &&
-		 kk == (numtrials-1)/2 &&
-		 ll == (numpdds-1)/2)){
-	      if (idata.bary){
-		search.bary.p1 = search.periods[kk];
-		search.bary.p2 = search.pdots[jj];
-		if (cmd->searchpddP || cmd->searchfddP)
-		  search.bary.p3 = switch_pfdotdot(1.0/search.periods[kk], 
-						   foldfd+fdots[jj], foldfdd+fdotdots[ll]);
-	      } else {
-		search.topo.p1 = search.periods[kk];
-		search.topo.p2 = search.pdots[jj];
-		if (cmd->searchpddP || cmd->searchfddP)
-		  search.topo.p3 = switch_pfdotdot(1.0/search.periods[kk], 
-						   foldfd+fdots[jj], foldfdd+fdotdots[ll]);
+	    if (ll==good_pdd_index &&
+		jj==good_pd_index &&
+		kk==good_p_index){
+	      if (cmd->nosearchP ||
+		  (currentstats.redchi > beststats.redchi && !cmd->nosearchP)){
+		if (idata.bary){
+		  search.bary.p1 = search.periods[kk];
+		  search.bary.p2 = search.pdots[jj];
+		  if (cmd->searchpddP)
+		    search.bary.p3 = switch_pfdotdot(1.0/search.periods[kk], 
+						     foldfd+fdots[jj], foldfdd+fdotdots[ll]);
+		} else {
+		  search.topo.p1 = search.periods[kk];
+		  search.topo.p2 = search.pdots[jj];
+		  if (cmd->searchpddP)
+		    search.topo.p3 = switch_pfdotdot(1.0/search.periods[kk], 
+						     foldfd+fdots[jj], foldfdd+fdotdots[ll]);
+		}
+		beststats = currentstats;
+		memcpy(bestprof, currentprof, sizeof(double) * 
+		       search.proflen);
 	      }
-	      beststats = currentstats;
-	      memcpy(bestprof, currentprof, sizeof(double) * 
-		     search.proflen);
 	    }
 	  }
 	}
@@ -1364,7 +1417,7 @@ int main(int argc, char *argv[])
     free(pdprofs);
     free(currentprof);
     free(fdots);
-    if (cmd->searchpddP || cmd->searchfddP){
+    if (cmd->searchpddP){
       free(fdotdots);
       free(pddprofs);
     }

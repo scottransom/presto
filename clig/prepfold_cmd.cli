@@ -26,6 +26,9 @@ Flag   -runavg  runavg  {Subtract each blocks average as it is read (single chan
 Flag   -searchpdd searchpdd {Search p-dotdots as well as p and p-dots}
 Flag   -searchfdd searchfdd {Search f-dotdots as well as f and f-dots}
 Flag   -nosearch nosearch {Show but do not search the p/pdot and/or DM phase spaces}
+Flag   -nopsearch nopsearch {Show but do not search over period}
+Flag   -nopdsearch nopdsearch {Show but do not search over p-dot}
+Flag   -nodmsearch nodmsearch {Show but do not search over DM}
 Flag   -scaleparts scaleparts {Scale the part profiles independently}
 Flag   -allgrey allgrey     {Make all the images greyscale instead of color}
 Flag   -justprofs justprofs {Only output the profile portions of the plot}
@@ -69,6 +72,7 @@ Double -start  startT  {The folding start time as a fraction of the full obs} \
 Double -end  endT  {The folding end time as a fraction of the full obs} \
 	-r 0.0 1.0  -d 1.0
 String -psr psrname {Name of pulsar to fold (do not include J or B)}
+String -par parname {Name of a TEMPO par file from which to get PSR params}
 String -polycos polycofile {File containing TEMPO polycos for psrname (not required)}
 String -obs obscode {Two letter TEMPO observatory code (for barycentering)}
 Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \

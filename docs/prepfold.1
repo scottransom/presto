@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "17May02" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "18May02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -35,6 +35,9 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-searchpdd]
 [-searchfdd]
 [-nosearch]
+[-nopsearch]
+[-nopdsearch]
+[-nodmsearch]
 [-scaleparts]
 [-allgrey]
 [-justprofs]
@@ -59,6 +62,7 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-start startT]
 [-end endT]
 [-psr psrname]
+[-par parname]
 [-polycos polycofile]
 [-obs obscode]
 [-rzwcand rzwcand]
@@ -115,6 +119,12 @@ Search p-dotdots as well as p and p-dots.
 Search f-dotdots as well as f and f-dots.
 .IP -nosearch
 Show but do not search the p/pdot and/or DM phase spaces.
+.IP -nopsearch
+Show but do not search over period.
+.IP -nopdsearch
+Show but do not search over p-dot.
+.IP -nodmsearch
+Show but do not search over DM.
 .IP -scaleparts
 Scale the part profiles independently.
 .IP -allgrey
@@ -237,6 +247,10 @@ The folding end time as a fraction of the full obs,
 Default: `1.0'
 .IP -psr
 Name of pulsar to fold (do not include J or B),
+.br
+1 String value
+.IP -par
+Name of a TEMPO par file from which to get PSR params,
 .br
 1 String value
 .IP -polycos

@@ -41,6 +41,12 @@ typedef struct s_Cmdline {
   char searchfddP;
   /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
   char nosearchP;
+  /***** -nopsearch: Show but do not search over period */
+  char nopsearchP;
+  /***** -nopdsearch: Show but do not search over p-dot */
+  char nopdsearchP;
+  /***** -nodmsearch: Show but do not search over DM */
+  char nodmsearchP;
   /***** -scaleparts: Scale the part profiles independently */
   char scalepartsP;
   /***** -allgrey: Make all the images greyscale instead of color */
@@ -131,6 +137,10 @@ typedef struct s_Cmdline {
   char psrnameP;
   char* psrname;
   int psrnameC;
+  /***** -par: Name of a TEMPO par file from which to get PSR params */
+  char parnameP;
+  char* parname;
+  int parnameC;
   /***** -polycos: File containing TEMPO polycos for psrname (not required) */
   char polycofileP;
   char* polycofile;
