@@ -28,11 +28,11 @@ static Cmdline cmd = {
   /* lobinC = */ 1,
   /***** -numharm: The number of harmonics to sum */
   /* numharmP = */ 1,
-  /* numharm = */ 3,
+  /* numharm = */ 4,
   /* numharmC = */ 1,
   /***** -zmax: The max (+ and -) Fourier freq deriv to search */
   /* zmaxP = */ 1,
-  /* zmax = */ 50,
+  /* zmax = */ 100,
   /* zmaxC = */ 1,
   /***** -sigma: Cutoff sigma for choosing candidates */
   /* sigmaP = */ 1,
@@ -48,20 +48,12 @@ static Cmdline cmd = {
   /* rhiC = */ 0,
   /***** -flo: The lowest frequency (Hz) to search */
   /* floP = */ 1,
-  /* flo = */ 0.5,
+  /* flo = */ 0.3,
   /* floC = */ 1,
   /***** -fhi: The highest frequency (Hz) to search */
   /* fhiP = */ 1,
   /* fhi = */ 2000.0,
   /* fhiC = */ 1,
-  /***** -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric) */
-  /* baryvP = */ 1,
-  /* baryv = */ 0.0,
-  /* baryvC = */ 1,
-  /***** -zapfile: A file containing a list of freqs to ignore (i.e. RFI) */
-  /* zapfileP = */ 0,
-  /* zapfile = */ (char*)0,
-  /* zapfileC = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -853,30 +845,6 @@ showOptionValues(void)
       printf("  value = `%.40g'\n", cmd.fhi);
     }
   }
-
-  /***** -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric) */
-  if( !cmd.baryvP ) {
-    printf("-baryv not found.\n");
-  } else {
-    printf("-baryv found:\n");
-    if( !cmd.baryvC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.baryv);
-    }
-  }
-
-  /***** -zapfile: A file containing a list of freqs to ignore (i.e. RFI) */
-  if( !cmd.zapfileP ) {
-    printf("-zapfile not found.\n");
-  } else {
-    printf("-zapfile found:\n");
-    if( !cmd.zapfileC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%s'\n", cmd.zapfile);
-    }
-  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -893,17 +861,17 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-baryv baryv] [-zapfile zapfile] [--] infile\n\
-    Searches an FFT for pulsar candidates using a Fourier domain acceleration search.\n\
+ [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [--] infile\n\
+    Searches an FFT for pulsar candidates using a Fourier domain acceleration search with harmonic summing.\n\
     -lobin: The first Fourier frequency in the data file\n\
             1 int value between 0 and oo\n\
             default: `0'\n\
   -numharm: The number of harmonics to sum\n\
-            1 int value between 1 and 20\n\
-            default: `3'\n\
+            1 int value between 1 and 4\n\
+            default: `4'\n\
      -zmax: The max (+ and -) Fourier freq deriv to search\n\
             1 int value between 0 and 300\n\
-            default: `50'\n\
+            default: `100'\n\
     -sigma: Cutoff sigma for choosing candidates\n\
             1 float value between 1.0 and 30.0\n\
             default: `2.5'\n\
@@ -913,18 +881,13 @@ usage(void)
             1 double value between 0.0 and oo\n\
       -flo: The lowest frequency (Hz) to search\n\
             1 double value between 0.0 and oo\n\
-            default: `0.5'\n\
+            default: `0.3'\n\
       -fhi: The highest frequency (Hz) to search\n\
             1 double value between 0.0 and oo\n\
             default: `2000.0'\n\
-    -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric)\n\
-            1 double value between -0.1 and 0.1\n\
-            default: `0.0'\n\
-  -zapfile: A file containing a list of freqs to ignore (i.e. RFI)\n\
-            1 char* value\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 11Jan01\n\
+version: 31Jan01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -956,7 +919,7 @@ parseCmdline(int argc, char **argv)
       keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numharm, 1);
       cmd.numharmC = i-keep;
-      checkIntLower("-numharm", &cmd.numharm, cmd.numharmC, 20);
+      checkIntLower("-numharm", &cmd.numharm, cmd.numharmC, 4);
       checkIntHigher("-numharm", &cmd.numharm, cmd.numharmC, 1);
       continue;
     }
@@ -1014,24 +977,6 @@ parseCmdline(int argc, char **argv)
       i = getDoubleOpt(argc, argv, i, &cmd.fhi, 1);
       cmd.fhiC = i-keep;
       checkDoubleHigher("-fhi", &cmd.fhi, cmd.fhiC, 0.0);
-      continue;
-    }
-
-    if( 0==strcmp("-baryv", argv[i]) ) {
-      cmd.baryvP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.baryv, 1);
-      cmd.baryvC = i-keep;
-      checkDoubleLower("-baryv", &cmd.baryv, cmd.baryvC, 0.1);
-      checkDoubleHigher("-baryv", &cmd.baryv, cmd.baryvC, -0.1);
-      continue;
-    }
-
-    if( 0==strcmp("-zapfile", argv[i]) ) {
-      cmd.zapfileP = 1;
-      keep = i;
-      i = getStringOpt(argc, argv, i, &cmd.zapfile, 1);
-      cmd.zapfileC = i-keep;
       continue;
     }
 

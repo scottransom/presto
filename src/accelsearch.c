@@ -1,26 +1,6 @@
 #include <glib.h>
 #include "accel.h"
 
-/* Define a couple functions specific to this program */
-
-void compare_rzw_cands(fourierprops * list, int nlist, char *notes);
-int not_already_there_rzw(position * newpos, position * list, int nlist);
-int compare_fourierprops(const void *ca, const void *cb);
-/*  Used as compare function for qsort() */
-int remove_dupes(position * list, int nlist);
-/*  Removes list values that are 1 unit of search away from a higher */
-/*  power candidate (dr = 0.5 or dz = 2.0).  Returns # removed.      */
-int remove_dupes2(fourierprops * list, int nlist);
-/*  Removes list values that are within measurement error away from  */
-/*  a higher power candidate.  Returns # removed.                    */
-int remove_other(fourierprops * list, int nlist, long rlo,
-		 long rhi, double locpow, char zapfile, double *zapfreqs,
-		 double *zapwidths, int numzap);
-/*  Removes list values whose frequencies fall outside rlo and rhi, */
-/*  candidates whose local power levels are below locpow, and       */
-/*  candidates close to known birdies.  Returns # removed.          */
-
-
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
@@ -28,6 +8,7 @@ int remove_other(fourierprops * list, int nlist, long rlo,
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *accelcandfile, *fourierpropsfile;
+  int nextbin;
   float nph;
   char *rootfilenm, *candnm, *accelcandnm, *accelnm;
   GSList *cands=NULL;
@@ -63,7 +44,7 @@ int main(int argc, char *argv[])
   printf("\n\n");
   printf("       Pulsar Acceleration Search Routine II\n");
   printf("              by Scott M. Ransom\n");
-  printf("                 January, 2001\n\n");
+  printf("                February, 2001\n\n");
 
   {
     int hassuffix=0;
@@ -112,13 +93,13 @@ int main(int argc, char *argv[])
   /* Generate the correlation kernels */
 
   printf("Generating fdot kernels for the correlations...");
-  fflush();
+  fflush(NULL);
   subharminf = create_subharminfo_vect(cmd->numharm, cmd->zmax);
   printf("Done.\n\n");
 
   /* Start the main search loop */
 
-  nextbin = (unsigned long) cmd->rlo;
+  nextbin = cmd->rlo;
 
   do {
 
