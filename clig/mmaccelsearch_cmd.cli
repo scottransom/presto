@@ -1,0 +1,39 @@
+# Admin data
+
+Name mmaccelsearch
+
+Usage "Uses memory-mapping to search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Int -lobin   lobin      {The first Fourier frequency in the data file} \
+	-r 0 oo  -d 0
+Int -numharm numharm    {The number of harmonics to sum (power-of-two)}\
+	-r 1 16 -d 8
+Int -zmax    zmax       {The max (+ and -) Fourier freq deriv to search} \
+	-r 0 500  -d 200
+Float -sigma sigma      {Cutoff sigma for choosing candidates}\
+	-r 1.0 30.0 -d 2.0
+Double -rlo     rlo     {The lowest Fourier frequency to search} \
+	-r 0.0 oo
+Double -rhi     rhi     {The highest Fourier frequency to search} \
+	-r 0.0 oo
+Double -flo     flo     {The lowest frequency (Hz) to search} \
+	-r 0.0 oo -d 0.3
+Double -fhi     fhi     {The highest frequency (Hz) to search} \
+	-r 0.0 oo -d 10000.0
+Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
+String  -zapfile    zapfile \
+        {A file of freqs and widths to zap from the FFT (when using '-zap')}
+Double  -baryv      baryv \
+        {The radial velocity component (v/c) towards the target during the obs} \
+        -r -0.1 0.1  -d 0.0
+	
+# Rest of command line:
+
+Rest infile {Input file name of the floating point .fft or .dat file.  A '.inf' file of the same name must also exist} \
+        -c 1 1
