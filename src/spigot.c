@@ -258,7 +258,7 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO *spigot, infodata *idata)
   strncpy(idata->object, spigot->object, 24);
   hours2hms(spigot->ra/15.0, &(idata->ra_h), &(idata->ra_m), &(idata->ra_s));
   deg2dms(spigot->dec, &(idata->dec_d), &(idata->dec_m), &(idata->dec_s));
-  strcpy(idata->telescope, spigot->telescope);
+  strcpy(idata->telescope, "GBT");
   strcpy(idata->instrument, spigot->instrument);
   idata->num_chan = spigot->lags_per_sample;
   MJD = UT_strings_to_MJD(spigot->date_obs, spigot->time_obs, 
