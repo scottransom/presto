@@ -487,6 +487,34 @@ double fold(float *data, int numdata, double dt, double tlo,
 #undef ONOFF
 #undef LININTERP
 
+void shift_prof(double *prof, int proflen, int shift, double *outprof)
+/* Rotates a profile 'prof' by an integer 'shift' places.    */
+/* If 'shift' < 0 then shift left, 'shift' > 0, shift right. */ 
+/* Place the shifted  profile in 'outprof'.                  */
+{
+  int wrap=0, nowrap=0;
+
+  /* no shift */
+
+  if (shift==0){
+    memcpy(outprof, prof, proflen * sizeof(double));
+    return;
+
+  /* Convert a left shift into the equivalent right shift */
+
+  } else if (shift < 0)
+    wrap = (shift % proflen) + proflen;
+
+  /* Perform a right shift */
+
+  else 
+    wrap = shift % proflen;
+  
+  nowrap = proflen - wrap;
+  memcpy(outprof, prof + nowrap, wrap * sizeof(double));
+  memcpy(outprof + wrap, prof, nowrap * sizeof(double));
+}
+
 
 void combine_profs(double *profs, int numprofs, int proflen, 
 		   int shift, double *outprof)

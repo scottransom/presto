@@ -2390,16 +2390,18 @@ presto_wrap.c</TITLE>
    delayed by 'delay' seconds.                                
 </BLOCKQUOTE>
 
-<P><TT><B>dedisp_delays(numchan,dm,lofreq,chanwidth)</B></TT>
+<P><TT><B>dedisp_delays(numchan,dm,lofreq,chanwidth,voverc)</B></TT>
 <BLOCKQUOTE>[ returns double * ]
-<BR>   Return an array of delays (sec) for dedispersing 'numchan'    
-   channels at a DM of 'dm'.  'lofreq' is the center frequency   
-   in MHz of the lowest frequency channel.  'chanwidth' is the   
-   width in MHz of each channel.  The returned array is          
-   allocated by this routine.                                    
+<BR>   Return an array of delays (sec) for dedispersing 'numchan'      
+   channels at a DM of 'dm'.  'lofreq' is the center frequency     
+   in MHz of the lowest frequency channel.  'chanwidth' is the     
+   width in MHz of each channel.  'voverc' is the observatory's    
+   velocity towards or away from the source.  This is to adjust    
+   the frequencies for doppler effects (for no correction use      
+   voverc=0).  The returned array is allocated by this routine.    
 </BLOCKQUOTE>
 
-<P><TT><B>subband_search_delays(numchan,numsubbands,dm,lofreq,chanwidth)</B></TT>
+<P><TT><B>subband_search_delays(numchan,numsubbands,dm,lofreq,chanwidth,voverc)</B></TT>
 <BLOCKQUOTE>[ returns double * ]
 <BR>   Return an array of delays (sec) for a subband DM search.  The        
    delays are calculated normally for each of the 'numchan' channels    
@@ -2411,7 +2413,9 @@ presto_wrap.c</TITLE>
    way, we can call dedisp() on the group of subbands if needed.        
    'lofreq' is the center frequency in MHz of the lowest frequency      
    channel.  'chanwidth' is the width in MHz of each channel.  The      
-   returned array is allocated by this routine.                         
+   returned array is allocated by this routine.  'voverc' is used to    
+   correct the input frequencies for doppler effects.  See the          
+   comments in dedisp_delays() for more info.                           
    Note:  When performing a subband search, the delays for each         
      subband must be calculated with the frequency of the highest       
      channel in each subband, _not_ the center subband frequency.       

@@ -363,13 +363,7 @@ int main(int argc, char **argv)
     /* Compute the Chi-Squared probability that there is a signal */
     /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
 
-    chixmeas = 0.0;
-    for (i = 0; i < proflen; i++){
-      chitmp = prof[i] - avgph;
-      chixmeas += chitmp * chitmp;
-    }
-    chixmeas /= varph;
-    
+    chixmeas = chisqr(prof, proflen, avgph, varph);
     times = gen_freqs(numreads, 0.0, 1.0 / (float) numreads);
     dochi = 1;
 
@@ -388,7 +382,6 @@ int main(int argc, char **argv)
     }
 
     /* Write the Chi-Array to a text output file */				
-									
     chifile = chkfopen(chifilenm, "w");
     for (i = 0; i < numreads; i++)					
       fprintf(chifile, "%9.7f    %9f\n", times[i], chiarr[i]);

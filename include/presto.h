@@ -461,6 +461,10 @@ double sumpows_from_sigma(double sigma, int numsum);
   /* Return the summed ('numsum' powers) power required */
   /* to achieve a Gaussian significance of 'sigma'.     */
 
+double chisqr(double *data, int numdata, double avg, double var);
+/* Calculates the chi-square of the 'data' which has average */
+/* 'avg', and variance 'var'.                                */
+
 
 /*  dispersion.c:  */
 /*  Functions to de-disperse data */
@@ -488,12 +492,14 @@ double dm_from_delay(double delay, double freq_emitted);
 /* delayed by 'delay' seconds.                              */
 
 double *dedisp_delays(int numchan, double dm, double lofreq, 
-		      double chanwidth);
-/* Return an array of delays (sec) for dedispersing 'numchan'  */
-/* channels at a DM of 'dm'.  'lofreq' is the center frequency */
-/* in MHz of the lowest frequency channel.  'chanwidth' is the */
-/* width in MHz of each channel.  The returned array is        */
-/* allocated by this routine.                                  */
+		      double chanwidth, double voverc);
+/* Return an array of delays (sec) for dedispersing 'numchan'    */
+/* channels at a DM of 'dm'.  'lofreq' is the center frequency   */
+/* in MHz of the lowest frequency channel.  'chanwidth' is the   */
+/* width in MHz of each channel.  'voverc' is the observatory's  */
+/* velocity towards or away from the source.  This is to adjust  */
+/* the frequencies for doppler effects (for no correction use    */
+/* voverc=0).  The returned array is allocated by this routine.  */
 
 void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
 	    int numchan, double *dispdelays, float *result);
@@ -504,8 +510,18 @@ void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
 /* Input data are ordered in time, with the channels stored    */
 /* together at each time point.                                */ 
 
+double *subband_delays(int numchan, int numsubbands, double dm, 
+		       double lofreq, double chanwidth, 
+		       double voverc);
+/* Return an array of delays (sec) for the highest frequency  */
+/* channels of each subband used in a subband de-dispersion.  */
+/* These are the delays described in the 'Note:' in the       */
+/* description of subband_search_delays().  See the comments  */
+/* for dedisp_delays() for more info.                         */
+
 double *subband_search_delays(int numchan, int numsubbands, double dm, 
-			      double lofreq, double chanwidth);
+			      double lofreq, double chanwidth, 
+			      double voverc);
 /* Return an array of delays (sec) for a subband DM search.  The      */
 /* delays are calculated normally for each of the 'numchan' channels  */
 /* using the appropriate frequencies at the 'dm'.  Then the delay     */
@@ -516,7 +532,9 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /* way, we can call dedisp() on the group of subbands if needed.      */
 /* 'lofreq' is the center frequency in MHz of the lowest frequency    */
 /* channel.  'chanwidth' is the width in MHz of each channel.  The    */
-/* returned array is allocated by this routine.                       */
+/* returned array is allocated by this routine.  'voverc' is used to  */
+/* correct the input frequencies for doppler effects.  See the        */
+/* comments in dedisp_delays() for more info.                         */
 /* Note:  When performing a subband search, the delays for each       */
 /*   subband must be calculated with the frequency of the highest     */
 /*   channel in each subband, _not_ the center subband frequency.     */
@@ -531,6 +549,20 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 /* The delays (in bins) are in dispdelays for each channel.      */
 /* The input data and dispdelays are always in ascending         */
 /* frequency order.  Input data are ordered in time, with the    */
+
+void combine_subbands(double *inprofs, foldstats *stats, 
+		      int numparts, int numsubbands, int proflen, 
+		      int *delays, double *outprofs, 
+		      double *outprofavgs, double *outprofvars);
+/* Combine 'nparts' sets of 'numsubbands' profiles, each of length     */
+/* 'proflen' into a 'nparts' de-dispersed profiles.  The de-dispersion */
+/* uses the 'delays' (of which there are 'numsubbands' many) to        */
+/* show how many bins to shift each profile to the right.  Only        */
+/* positive numbers may be used (left shifts may be accomplished using */
+/* the shift modulo 'proflen').  The 'stats' about the profiles are    */
+/* combined as well and the combined profile averages and variances    */
+/* are returned in 'outprofavgs' and 'outprofvars' respectively.  All  */
+/* arrays must be pre-allocated.                                       */
 
 
 /*  output.c:  */
@@ -1106,6 +1138,10 @@ double fold(float *data, int numdata, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
 
+void shift_prof(double *prof, int proflen, int shift, double *outprof);
+/* Rotates a profile 'prof' by an integer 'shift' places.    */
+/* If 'shift' < 0 then shift left, 'shift' > 0, shift right. */ 
+/* Place the shifted  profile in 'outprof'.                  */
 
 void combine_profs(double *profs, int numprofs, int proflen, 
 		   int shift, double *outprof);

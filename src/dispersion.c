@@ -52,19 +52,23 @@ double dm_from_delay(double delay, double freq_emitted)
 
 
 double *dedisp_delays(int numchan, double dm, double lofreq, 
-		      double chanwidth)
-/* Return an array of delays (sec) for dedispersing 'numchan'  */
-/* channels at a DM of 'dm'.  'lofreq' is the center frequency */
-/* in MHz of the lowest frequency channel.  'chanwidth' is the */
-/* width in MHz of each channel.  The returned array is        */
-/* allocated by this routine.                                  */
+		      double chanwidth, double voverc)
+/* Return an array of delays (sec) for dedispersing 'numchan'    */
+/* channels at a DM of 'dm'.  'lofreq' is the center frequency   */
+/* in MHz of the lowest frequency channel.  'chanwidth' is the   */
+/* width in MHz of each channel.  'voverc' is the observatory's  */
+/* velocity towards or away from the source.  This is to adjust  */
+/* the frequencies for doppler effects (for no correction use    */
+/* voverc=0).  The returned array is allocated by this routine.  */
 {
   int ii;
-  double *delays;
+  double *delays, freq;
 
   delays = gen_dvect(numchan);
-  for (ii = 0; ii < numchan; ii++)
-    delays[ii] = delay_from_dm(dm, lofreq + ii * chanwidth);
+  for (ii = 0; ii < numchan; ii++){
+    freq = doppler(lofreq + ii * chanwidth, voverc);
+    delays[ii] = delay_from_dm(dm, freq);
+  }
   return delays;
 }
 
@@ -89,7 +93,7 @@ void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
 	       ii, dispdelays[ii]);
 	exit(-1);
       }
-      offset[ii] = (int) dispdelays[ii];
+      offset[ii] = (int) (dispdelays[ii] + 0.5);
     }
     approx_mean = -(numchan / 2 - 1);
     firsttime = 0;
@@ -113,9 +117,32 @@ void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
   }
 }
 
+double *subband_delays(int numchan, int numsubbands, double dm, 
+		       double lofreq, double chanwidth, 
+		       double voverc)
+/* Return an array of delays (sec) for the highest frequency  */
+/* channels of each subband used in a subband de-dispersion.  */
+/* These are the delays described in the 'Note:' in the       */
+/* description of subband_search_delays().  See the comments  */
+/* for dedisp_delays() for more info.                         */
+{
+  int chan_per_subband;
+  double subbandwidth, losub_hifreq;
+
+  chan_per_subband = numchan / numsubbands;
+  subbandwidth = chanwidth * chan_per_subband;
+  losub_hifreq = lofreq + subbandwidth - chanwidth;
+
+  /* Calculate the appropriate delays to subtract from each subband */
+
+  return dedisp_delays(numsubbands, dm, losub_hifreq,
+		       subbandwidth, voverc);
+}
+
 
 double *subband_search_delays(int numchan, int numsubbands, double dm, 
-			      double lofreq, double chanwidth)
+			      double lofreq, double chanwidth, 
+			      double voverc)
 /* Return an array of delays (sec) for a subband DM search.  The      */
 /* delays are calculated normally for each of the 'numchan' channels  */
 /* using the appropriate frequencies at the 'dm'.  Then the delay     */
@@ -126,26 +153,26 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /* way, we can call dedisp() on the group of subbands if needed.      */
 /* 'lofreq' is the center frequency in MHz of the lowest frequency    */
 /* channel.  'chanwidth' is the width in MHz of each channel.  The    */
-/* returned array is allocated by this routine.                       */
+/* returned array is allocated by this routine.  'voverc' is used to  */
+/* correct the input frequencies for doppler effects.  See the        */
+/* comments in dedisp_delays() for more info.                         */
 /* Note:  When performing a subband search, the delays for each       */
 /*   subband must be calculated with the frequency of the highest     */
 /*   channel in each subband, _not_ the center subband frequency.     */
 {
   int ii, jj, chan_per_subband;
-  double *delays, *subbanddelays, subbandwidth, losub_hifreq;
+  double *delays, *subbanddelays;
 
   chan_per_subband = numchan / numsubbands;
-  subbandwidth = chanwidth * chan_per_subband;
-  losub_hifreq = lofreq + subbandwidth - chanwidth;
 
   /* Calculate the appropriate delays to subtract from each subband */
 
-  subbanddelays = dedisp_delays(numsubbands, dm, losub_hifreq, 
-				subbandwidth);
+  subbanddelays = subband_delays(numchan, numsubbands, dm, 
+				 lofreq, chanwidth, voverc);
 
   /* Calculate the appropriate delays for each channel */
 
-  delays = dedisp_delays(numchan, dm, lofreq, chanwidth);
+  delays = dedisp_delays(numchan, dm, lofreq, chanwidth, voverc);
   for (ii = 0; ii < numsubbands; ii++)
     for (jj = 0; jj < chan_per_subband; jj++)
       delays[ii * chan_per_subband + jj] -= subbanddelays[ii];
@@ -178,7 +205,7 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 	       ii, dispdelays[ii]);
 	exit(-1);
       }
-      offset[ii] = (int) dispdelays[ii];
+      offset[ii] = (int) (dispdelays[ii] + 0.5);
     }
     chan_per_subband = numchan / numsubbands;
     approx_mean = -(numchan / 2 - 1);
@@ -210,7 +237,61 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 }
 
 
+void combine_subbands(double *inprofs, foldstats *stats, 
+		      int numparts, int numsubbands, int proflen, 
+		      int *delays, double *outprofs, 
+		      double *outprofavgs, double *outprofvars)
+/* Combine 'nparts' sets of 'numsubbands' profiles, each of length     */
+/* 'proflen' into a 'nparts' de-dispersed profiles.  The de-dispersion */
+/* uses the 'delays' (of which there are 'numsubbands' many) to        */
+/* show how many bins to shift each profile to the right.  Only        */
+/* positive numbers may be used (left shifts may be accomplished using */
+/* the shift modulo 'proflen').  The 'stats' about the profiles are    */
+/* combined as well and the combined profile averages and variances    */
+/* are returned in 'outprofavgs' and 'outprofvars' respectively.  All  */
+/* arrays must be pre-allocated.                                       */
+{
+  int ii, jj, kk, ptsperpart;
+  int partindex, profindex, ptindex, outprofindex, statindex;
 
+  /* Set the output profiles and statistics to 0.0 */
+
+  for (ii = 0; ii < numparts * proflen; ii++) outprofs[ii] = 0.0;
+  for (ii = 0; ii < numparts; ii++){
+    outprofavgs[ii] = 0.0;
+    outprofvars[ii] = 0.0;
+  }
+  ptsperpart = numsubbands * proflen;
+
+  /* Combine the profiles */
+
+  for (ii = 0; ii < numparts; ii++){  /* Step through parts */
+    outprofindex = ii * proflen;
+    partindex = ii * ptsperpart;
+    statindex = ii * numsubbands;
+    for (jj = 0; jj < numsubbands; jj++){  /* Step through subbands */
+      profindex = partindex + jj * proflen;
+
+      /* low part of profile  */
+
+      ptindex = profindex + delays[jj];
+      for (kk = 0; kk < proflen - delays[jj]; kk++, ptindex++)
+	outprofs[outprofindex + kk] += inprofs[ptindex];
+
+      /* high part of profile */
+
+      ptindex = profindex;
+      for (; kk < proflen; kk++, ptindex++)
+	outprofs[outprofindex + kk] += inprofs[ptindex];
+
+      /* Add the profile variances (this is adding in quadrature */
+      /* the profile standard deviations) and averages.          */
+
+      outprofavgs[ii] += stats[statindex + jj].prof_avg;
+      outprofvars[ii] += stats[statindex + jj].prof_var;
+    }
+  }
+}
 
 
 

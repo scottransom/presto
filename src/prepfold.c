@@ -3,6 +3,10 @@
 #include "prepfold_cmd.h"
 #include "multibeam.h"
 
+#ifdef USEDMALLOC
+#include "dmalloc.h"
+#endif
+
 /* This causes the barycentric motion to be calculated once per second */
 
 #define TDT 10.0
@@ -80,20 +84,16 @@ void quick_plot(double *data, int numdata)
 
 /* The main program */
 
-#ifdef USEDMALLOC
-#include "dmalloc.h"
-#endif
-
 int main(int argc, char *argv[])
 {
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
-  double difft, tt, recdt=0.0, *dispdts=NULL;
+  double difft, tt, recdt=0.0, *dispdts=NULL, *dms=NULL, *parttimes=NULL;
   double orb_baryepoch=0.0, topoepoch=0.0, baryepoch=0.0, barydispdt;
   double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
-  double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
-  double *voverc=NULL, *tobsf=NULL, foldf=0.0, foldfd=0.0, foldfdd=0.0;
+  double N=0.0, dt=0.0, T, endtime=0.0, dtdays, avgvoverc=0.0;
+  double *voverc=NULL, *obsf=NULL, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL, proftime;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
@@ -533,29 +533,6 @@ int main(int argc, char *argv[])
     }
   }
 
-  /* If this is 'raw' radio data, determine the dispersion delays */
-
-  if (!strcmp(idata.band, "Radio")) {
-    
-    /* The topocentric spacing between channels */
-    
-    tdf = idata.chan_wid;
-    
-    /* The topocentric observation frequencies */
-    
-    tobsf = gen_dvect(numchan);
-    tobsf[0] = idata.freq;
-    for (ii = 0; ii < numchan; ii++)
-      tobsf[ii] = tobsf[0] + ii * tdf;
-    dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
-				    tobsf[0], tdf); 
-
-    /* Convert the delays in seconds to delays in bins */
-
-    for (ii = 0; ii < numchan; ii++)
-      dispdts[ii] /= dt;
-  }
-  
   printf("\nStarting work on '%s'...\n\n", cmd->argv[0]);
     
   /* Allocate and initialize some arrays and other information */
@@ -614,13 +591,13 @@ int main(int argc, char *argv[])
 
     /* Determine the avg v/c of the Earth's motion during the obs */
 
-    avg_voverc = 0.0;
+    avgvoverc = 0.0;
     for (ii = 0 ; ii < numbarypts - 1 ; ii++)
-      avg_voverc += voverc[ii];
-    avg_voverc /= (numbarypts - 1.0);
+      avgvoverc += voverc[ii];
+    avgvoverc /= (numbarypts - 1.0);
     free(voverc);
     printf("The average topocentric velocity is %.3g (units of c).\n", 
-	   avg_voverc);
+	   avgvoverc);
 
     /* Convert the barycentric folding parameters into topocentric */
 
@@ -657,18 +634,43 @@ int main(int argc, char *argv[])
     free(topotimes);
   }
 
+  /* If this is 'raw' radio data, determine the dispersion delays */
+
+  if (!strcmp(idata.band, "Radio")) {
+    
+    /* The observation frequencies */
+    
+    obsf = gen_dvect(numchan);
+    obsf[0] = idata.freq;
+    for (ii = 0; ii < numchan; ii++)
+      obsf[ii] = obsf[0] + ii * idata.chan_wid;
+    if (!cmd->nobaryP){
+      for (ii = 0; ii < numchan; ii++)
+	obsf[ii] = doppler(obsf[ii], avgvoverc);
+    } 
+    dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
+				    idata.freq, idata.chan_wid, avgvoverc); 
+
+    /* Convert the delays in seconds to delays in bins */
+
+    for (ii = 0; ii < numchan; ii++)
+      dispdts[ii] /= dt;
+  }
+  
   /* 
    *   Perform the actual folding of the data
    */
 
   proftime = worklen * dt;
+  parttimes = gen_dvect(cmd->npart);
   printf("Folded %ld points of %.0f", totnumfolded, N);
   for (ii = 0; ii < cmd->npart; ii++){        /* sub-integrations in time  */
+    parttimes[ii] = ii * reads_per_part * proftime;
     for (jj = 0; jj < reads_per_part; jj++){  /* reads per sub-integration */
       numread = readrec_ptr(infile, data, worklen, dispdts, 
 			    cmd->nsub, numchan);
       /* tt is (topocentric) time from first point in sec */
-      tt = (ii * reads_per_part + jj) * proftime;
+      tt = parttimes[ii] + jj * proftime;
       for (kk = 0; kk < cmd->nsub; kk++)      /* frequency sub-bands */
 	fold(data + kk * worklen, numread, dt, tt, 
 	     profs + (ii * cmd->nsub + kk) * proflen, proflen, 
@@ -677,6 +679,8 @@ int main(int argc, char *argv[])
       totnumfolded += numread;
     }
     printf("\rFolded %ld points of %.0f", totnumfolded, N);
+/* for (kk = 0; kk < cmd->nsub; kk++) */
+/* quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen); */
   }
   fclose(infile);
 
@@ -684,7 +688,7 @@ int main(int argc, char *argv[])
    *   Write the raw (unsummed) profiles
    */
 
-  printf("\nWriting %s.\n", outfilenm);
+  printf("\n\nWriting %s.\n", outfilenm);
   infile = chkfopen(outfilenm,"wb");
   chkfwrite(&topoepoch, sizeof(double), 1, infile);
   chkfwrite(&baryepoch, sizeof(double), 1, infile);
@@ -709,20 +713,66 @@ int main(int argc, char *argv[])
    *   Perform the candidate optimization search
    */
 
-  {
-    int numtrials;
-    double dm, ddm, dispdt, p, pd, dedispprofs;
+  printf("\nOptimizing...\n\n");
 
-    numtrials = 2 * proflen + 1;
+  /* If we are searching through DM space */
 
-    for (ii = -proflen; ii <= proflen; ii++){  /* Loop over DMs*/
-      
+  if (cmd->nsub > 1){
+    int numdmtrials, *dmdelays;
+    double dphase, lodm, ddm, redchi, hifdelay;
+    double *ddprofs, *ddprofavgs, *ddprofvars, *subbanddelays;
+    
+    dmdelays = gen_ivect(cmd->nsub);
+    ddprofs = gen_dvect(cmd->npart * proflen);
+    ddprofavgs = gen_dvect(cmd->npart);
+    ddprofvars = gen_dvect(cmd->npart);
+    
+    /* Our DM step is the change in DM that would cause the pulse */
+    /* to be delayed 1 phasebin at the lowest frequency.          */
+    
+    dphase = 1.0 / (foldf * proflen);
+    ddm = dm_from_delay(dphase, obsf[0]);
+    
+    /* Insure that we don't try a dm < 0.0 */
+    
+    if (cmd->dm - proflen * ddm < 0.0){
+      numdmtrials = (int)(cmd->dm / ddm) + proflen + 1;
+      lodm = cmd->dm - (int)(cmd->dm / ddm);
+    } else {
+      numdmtrials = 4 * proflen + 1;
+      lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
     }
-  }
+    dms = gen_dvect(numdmtrials);
+    
+    /* De-disperse and combine the subbands */
+    
+    for (ii = 0; ii < numdmtrials; ii++){  /* Loop over DMs */
+      dms[ii] = lodm + ii * ddm;
+      hifdelay = delay_from_dm(dms[ii], obsf[numchan - 1]);
+      subbanddelays = subband_delays(numchan, cmd->nsub, dms[ii], 
+				     idata.freq, idata.chan_wid,
+				     avgvoverc);
+      for (jj = 0; jj < cmd->nsub; jj++)
+	dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
+			       dphase + 0.5)) % proflen;
+      free(subbanddelays);
+      combine_subbands(profs, stats, cmd->npart, cmd->nsub, proflen, 
+		       dmdelays, ddprofs, ddprofavgs, ddprofvars);
+      redchi = chisqr(ddprofs, proflen, ddprofavgs[0], 
+		      ddprofvars[0]) / (proflen - 1.0);
+      printf("dm = %f  reduced chi = %f\n", dms[ii], redchi);
+      /* quick_plot(ddprofs, proflen); */
+    }
+    free(dmdelays);
+    free(ddprofs);
+    free(ddprofavgs);
+    free(ddprofvars);
 
-/* for (kk = 0; kk < cmd->nsub; kk++) */
-/* quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen); */
-  
+  /* We are not searching through DM space */
+
+  } else {
+
+  }
 
   /*
    *   Plot our results
@@ -737,11 +787,13 @@ int main(int argc, char *argv[])
   free(stats);
   free(rootfilenm);
   free(outfilenm);
+  free(parttimes);
+  if (cmd->nsub > 1) free(dms);
   if (binary){
     free(Ep);
     free(tp);
   }
-  if (tobsf) free(tobsf);
+  if (obsf) free(obsf);
   if (dispdts) free(dispdts);
   if (idata.onoff) free(idata.onoff);
   return (0);

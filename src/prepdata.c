@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
   double *tobsf=NULL, *bobsf=NULL, tlotoa=0.0, blotoa=0.0;
   double intime=0.0, intimelo=0.0, outtime=0.0, dtmp=0.0, lopoint, hipoint;
   double intimenext=0.0, outtimenext=0.0, deltapoints, rdeltapoints;
-  double *delayptr=NULL, *delaytimeptr=NULL;
+  double *delayptr=NULL, *delaytimeptr=NULL, avgvoverc=0.0;
   double delaytlo=0.0, delaythi=0.0, delaylo=0.0, delayhi=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0, dev=0.0;
   double *btoa=NULL, *ttoa=NULL, *voverc=NULL, barydispdt=0.0;
@@ -383,6 +383,10 @@ int main(int argc, char *argv[])
     printf("Generating barycentric corrections...\n");
     barycenter(ttoa, btoa, voverc, numbarypts, \
 	       rastring, decstring, obs, ephem);
+    for (ii = 0 ; ii < numbarypts ; ii++)
+      avgvoverc =+ voverc[ii];
+    avgvoverc /= numbarypts;
+    free(voverc);
     blotoa = btoa[0];
 
     printf("   Insure you check the files tempoout_times.tmp and\n");
@@ -393,7 +397,7 @@ int main(int argc, char *argv[])
     /* Determine the initial dispersion time delays for each channel */
 
     for (ii = 0; ii < numchan; ii++) {
-      bobsf[ii] = doppler(tobsf[ii], voverc[0]);
+      bobsf[ii] = doppler(tobsf[ii], avgvoverc);
       dispdt[ii] = delay_from_dm(cmd->dm, bobsf[ii]);
     }
 
@@ -699,7 +703,6 @@ int main(int argc, char *argv[])
     free(bobsf);
     free(btoa);
     free(ttoa);
-    free(voverc);
   }
   return (0);
 }

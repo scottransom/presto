@@ -454,6 +454,21 @@ double sumpows_from_sigma(double sigma, int numsum)
   }
 }
 
+double chisqr(double *data, int numdata, double avg, double var)
+/* Calculates the chi-square of the 'data' which has average */
+/* 'avg', and variance 'var'.                                */
+{
+  double dtmp, chitmp, chixmeas=0.0;
+  int ii;
+
+  for (ii = 0; ii < numdata; ii++){
+    dtmp = data[ii];
+    chitmp = dtmp - avg;
+    chixmeas += (chitmp * chitmp);
+  }
+  return chixmeas / var;
+}
+
 
 /* Optional non-macro definitions of power and phase */
 /*

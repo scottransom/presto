@@ -1370,16 +1370,19 @@ double dm_from_delay(double delay, double freq_emitted);
 
 %apply int ARRAYLEN { int numchan };
 double *dedisp_delays(int numchan, double dm, double lofreq, 
-		      double chanwidth);
-/* Return an array of delays (sec) for dedispersing 'numchan'  */
-/* channels at a DM of 'dm'.  'lofreq' is the center frequency */
-/* in MHz of the lowest frequency channel.  'chanwidth' is the */
-/* width in MHz of each channel.  The returned array is        */
-/* allocated by this routine.                                  */
+		      double chanwidth, double voverc);
+/* Return an array of delays (sec) for dedispersing 'numchan'    */
+/* channels at a DM of 'dm'.  'lofreq' is the center frequency   */
+/* in MHz of the lowest frequency channel.  'chanwidth' is the   */
+/* width in MHz of each channel.  'voverc' is the observatory's  */
+/* velocity towards or away from the source.  This is to adjust  */
+/* the frequencies for doppler effects (for no correction use    */
+/* voverc=0).  The returned array is allocated by this routine.  */
 
 %apply int ARRAYLEN { int numchan };
 double *subband_search_delays(int numchan, int numsubbands, double dm, 
-			      double lofreq, double chanwidth);
+			      double lofreq, double chanwidth, 
+			      double voverc);
 /* Return an array of delays (sec) for a subband DM search.  The      */
 /* delays are calculated normally for each of the 'numchan' channels  */
 /* using the appropriate frequencies at the 'dm'.  Then the delay     */
@@ -1390,7 +1393,9 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /* way, we can call dedisp() on the group of subbands if needed.      */
 /* 'lofreq' is the center frequency in MHz of the lowest frequency    */
 /* channel.  'chanwidth' is the width in MHz of each channel.  The    */
-/* returned array is allocated by this routine.                       */
+/* returned array is allocated by this routine.  'voverc' is used to  */
+/* correct the input frequencies for doppler effects.  See the        */
+/* comments in dedisp_delays() for more info.                         */
 /* Note:  When performing a subband search, the delays for each       */
 /*   subband must be calculated with the frequency of the highest     */
 /*   channel in each subband, _not_ the center subband frequency.     */
