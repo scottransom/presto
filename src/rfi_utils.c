@@ -19,6 +19,38 @@ rfi *new_rfi(int numchan, int numint)
   return newrfi;
 }
 
+void write_rfi(FILE *outfile, rfi *outrfi, 
+	       int numchan, int numint)
+/* Write the contents of an rfi structure to a file */
+{
+  int num;
+
+  chkfwrite(&(outrfi->freq_avg), sizeof(float), 1, outfile);
+  chkfwrite(&(outrfi->freq_var), sizeof(float), 1, outfile);
+  chkfwrite(&(outrfi->sigma_avg), sizeof(float), 1, outfile);
+  chkfwrite(&(outrfi->numobs), sizeof(int), 1, outfile);
+  num = (numint % 8)  ? numint  / 8 + 1 : numint  / 8; 
+  chkfwrite(outrfi->times, 1, num, outfile);
+  num = (numchan % 8) ? numchan / 8 + 1 : numchan / 8; 
+  chkfwrite(outrfi->chans, 1, num, outfile);
+}
+
+void read_rfi(FILE *infile, rfi *inrfi, 
+	       int numchan, int numint)
+/* Read the contents of an rfi structure to a file */
+{
+  int num;
+
+  chkfread(&(inrfi->freq_avg), sizeof(float), 1, infile);
+  chkfread(&(inrfi->freq_var), sizeof(float), 1, infile);
+  chkfread(&(inrfi->sigma_avg), sizeof(float), 1, infile);
+  chkfread(&(inrfi->numobs), sizeof(int), 1, infile);
+  num = (numint % 8)  ? numint  / 8 + 1 : numint  / 8; 
+  chkfread(inrfi->times, 1, num, infile);
+  num = (numchan % 8) ? numchan / 8 + 1 : numchan / 8; 
+  chkfread(inrfi->chans, 1, num, infile);
+}
+
 void free_rfi(rfi oldrfi)
 /* Free the contents of an rfi structure */
 {

@@ -24,6 +24,14 @@ typedef struct RFI {
 rfi *new_rfi(int numchan, int numint);
 /* Create an rfi structure */
 
+void write_rfi(FILE *outfile, rfi *outrfi, 
+	       int numchan, int numint);
+/* Write the contents of an rfi structure to a file */
+
+void read_rfi(FILE *infile, rfi *inrfi, 
+	      int numchan, int numint);
+/* Read the contents of an rfi structure to a file */
+
 void free_rfi(rfi oldrfi);
 /* Free an rfi structure and its contents */
 
