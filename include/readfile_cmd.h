@@ -57,6 +57,8 @@ typedef struct s_Cmdline {
   char spksP;
   /***** -bpp: Raw data in BPP format */
   char bppP;
+  /***** -wapp: Raw data in WAPP format */
+  char wappP;
   /***** -fortran: Raw data was written by a fortran program */
   char fortranP;
   /***** -index: The range of objects to display */
