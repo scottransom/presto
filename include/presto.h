@@ -507,6 +507,10 @@ int file_nice_output(char *output, double val, double err);
 /*  get_candidates.c:  */
 /*  Functions for manipulating candidate files */
 
+int read_rzw_cand(FILE *file, fourierprops *cands);
+/* Read the next rzw candidate from the file */
+/* If successful, return 1, else 0           */
+
 void get_rzw_cand(char *filenm, int candnum, fourierprops *cand);
 /*  Read the rzw candidate file 'filenm' and return a        */
 /*  pointer to the fourierprops that describes it.           */

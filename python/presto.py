@@ -1365,6 +1365,77 @@ class binaryprops(binarypropsPtr):
 
 
 
+class rawbincandPtr :
+    def __init__(self,this):
+        self.this = this
+        self.thisown = 0
+    def __del__(self):
+        if self.thisown == 1 :
+            prestoc.delete_rawbincand(self.this)
+    def __setattr__(self,name,value):
+        if name == "full_N" :
+            prestoc.rawbincand_full_N_set(self.this,value)
+            return
+        if name == "full_T" :
+            prestoc.rawbincand_full_T_set(self.this,value)
+            return
+        if name == "full_lo_r" :
+            prestoc.rawbincand_full_lo_r_set(self.this,value)
+            return
+        if name == "mini_N" :
+            prestoc.rawbincand_mini_N_set(self.this,value)
+            return
+        if name == "mini_r" :
+            prestoc.rawbincand_mini_r_set(self.this,value)
+            return
+        if name == "mini_power" :
+            prestoc.rawbincand_mini_power_set(self.this,value)
+            return
+        if name == "mini_numsum" :
+            prestoc.rawbincand_mini_numsum_set(self.this,value)
+            return
+        if name == "mini_sigma" :
+            prestoc.rawbincand_mini_sigma_set(self.this,value)
+            return
+        if name == "psr_p" :
+            prestoc.rawbincand_psr_p_set(self.this,value)
+            return
+        if name == "orb_p" :
+            prestoc.rawbincand_orb_p_set(self.this,value)
+            return
+        self.__dict__[name] = value
+    def __getattr__(self,name):
+        if name == "full_N" : 
+            return prestoc.rawbincand_full_N_get(self.this)
+        if name == "full_T" : 
+            return prestoc.rawbincand_full_T_get(self.this)
+        if name == "full_lo_r" : 
+            return prestoc.rawbincand_full_lo_r_get(self.this)
+        if name == "mini_N" : 
+            return prestoc.rawbincand_mini_N_get(self.this)
+        if name == "mini_r" : 
+            return prestoc.rawbincand_mini_r_get(self.this)
+        if name == "mini_power" : 
+            return prestoc.rawbincand_mini_power_get(self.this)
+        if name == "mini_numsum" : 
+            return prestoc.rawbincand_mini_numsum_get(self.this)
+        if name == "mini_sigma" : 
+            return prestoc.rawbincand_mini_sigma_get(self.this)
+        if name == "psr_p" : 
+            return prestoc.rawbincand_psr_p_get(self.this)
+        if name == "orb_p" : 
+            return prestoc.rawbincand_orb_p_get(self.this)
+        raise AttributeError,name
+    def __repr__(self):
+        return "<C rawbincand instance>"
+class rawbincand(rawbincandPtr):
+    def __init__(self) :
+        self.this = prestoc.new_rawbincand()
+        self.thisown = 1
+
+
+
+
 
 
 #-------------- FUNCTION WRAPPERS ------------------
@@ -1495,6 +1566,10 @@ def calc_rzwerrs(arg0,arg1,arg2):
     val = prestoc.calc_rzwerrs(arg0.this,arg1,arg2)
     return val
 
+sigma_from_sumpows = prestoc.sigma_from_sumpows
+
+sumpows_from_sigma = prestoc.sumpows_from_sigma
+
 nice_output_1 = prestoc.nice_output_1
 
 nice_output_2 = prestoc.nice_output_2
@@ -1505,6 +1580,10 @@ def print_candidate(arg0,arg1,arg2,arg3,arg4):
 
 def print_bin_candidate(arg0,arg1):
     val = prestoc.print_bin_candidate(arg0.this,arg1)
+    return val
+
+def read_rzw_cand(arg0,arg1):
+    val = prestoc.read_rzw_cand(arg0,arg1.this)
     return val
 
 def get_rzw_cand(arg0,arg1,arg2):
@@ -1518,6 +1597,8 @@ def get_bin_cand(arg0,arg1,arg2):
 chkfilelen = prestoc.chkfilelen
 
 read_fcomplex_file = prestoc.read_fcomplex_file
+
+read_float_file = prestoc.read_float_file
 
 prune_powers = prestoc.prune_powers
 
@@ -1573,7 +1654,13 @@ dm_from_delay = prestoc.dm_from_delay
 
 doppler = prestoc.doppler
 
-search_minifft = prestoc.search_minifft
+def search_minifft(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9):
+    val = prestoc.search_minifft(arg0,arg1,arg2.this,arg3,arg4,arg5,arg6,arg7,arg8,arg9)
+    return val
+
+def print_rawbincand(arg0):
+    val = prestoc.print_rawbincand(arg0.this)
+    return val
 
 barycenter = prestoc.barycenter
 
@@ -1604,6 +1691,10 @@ ARCSEC2RAD = prestoc.ARCSEC2RAD
 SEC2RAD = prestoc.SEC2RAD
 LOWACC = prestoc.LOWACC
 HIGHACC = prestoc.HIGHACC
+INTERBIN = prestoc.INTERBIN
+INTERPOLATE = prestoc.INTERPOLATE
+NO_CHECK_ALIASED = prestoc.NO_CHECK_ALIASED
+CHECK_ALIASED = prestoc.CHECK_ALIASED
 CONV = prestoc.CONV
 CORR = prestoc.CORR
 INPLACE_CONV = prestoc.INPLACE_CONV
@@ -1672,6 +1763,21 @@ def collect_psrdata():
         pdata.append(psrdata())
         get_psrdata_by_num(pdata[i], i)
     return pdata
+
+def read_rzwcands(filename):
+    """
+    read_rzwcands(filename):
+        Return a list of all of the rzw search candidates from
+            the file 'filename'.
+    """
+    infile = open(filename, "r")
+    cands = []
+    nextcand = fourierprops()
+    while (read_rzw_cand(infile, nextcand)):
+       cands.append(nextcand)
+       nextcand = fourierprops()
+    infile.close()
+    return cands
 
 def next2_to_n(x):
     """

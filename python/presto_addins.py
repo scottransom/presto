@@ -55,6 +55,21 @@ def collect_psrdata():
         get_psrdata_by_num(pdata[i], i)
     return pdata
 
+def read_rzwcands(filename):
+    """
+    read_rzwcands(filename):
+        Return a list of all of the rzw search candidates from
+            the file 'filename'.
+    """
+    infile = open(filename, "r")
+    cands = []
+    nextcand = fourierprops()
+    while (read_rzw_cand(infile, nextcand)):
+       cands.append(nextcand)
+       nextcand = fourierprops()
+    infile.close()
+    return cands
+
 def next2_to_n(x):
     """
     next2_to_n(x):

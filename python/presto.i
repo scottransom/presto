@@ -752,6 +752,10 @@ void print_candidate(fourierprops * cand, double dt, unsigned long N,
 void print_bin_candidate(binaryprops * cand, int numerrdigits);
 /* Outputs a 2 column summary of all the properties or a fourier peak  */
 
+int read_rzw_cand(FILE *file, fourierprops *cands);
+/* Read the next rzw candidate from the file */
+/* If successful, return 1, else 0           */
+
 void get_rzw_cand(char *filenm, int candnum, fourierprops *cand);
 /*  Read the rzw candidate file 'filenm' and return a        */
 /*  pointer to the fourierprops that describes it.           */
@@ -1061,7 +1065,7 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin,
 void foldfile(FILE *datafile, double dt, double *prof, long proflen, 
 	      double fo, double fdot, double fdotdot, int binary, 
 	      double *delays, double orbto, double orbdt, long numdelays, 
-	      double *avg, double *var, float *chiarr, 
+	      int poisson, double *avg, double *var, float *chiarr, 
 	      double *onoffpairs, long *totnumfolded);
 
 %apply double* IN_1D_DOUBLE { double *prof, 

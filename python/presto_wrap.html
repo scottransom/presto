@@ -16,6 +16,7 @@ presto_wrap.c</TITLE>
 <LI> <A HREF="#s7_">7. class rderivs</A>
 <LI> <A HREF="#s8_">8. class fourierprops</A>
 <LI> <A HREF="#s9_">9. class binaryprops</A>
+<LI> <A HREF="#s10_">10. class rawbincand</A>
 </UL>
 
 <P><TT><B></B></TT>
@@ -87,6 +88,22 @@ presto_wrap.c</TITLE>
 <BR></BLOCKQUOTE>
 
 <P><TT><B>HIGHACC = HIGHACC</B></TT>
+<BLOCKQUOTE>[ Constant: int  ]
+<BR></BLOCKQUOTE>
+
+<P><TT><B>INTERBIN = INTERBIN</B></TT>
+<BLOCKQUOTE>[ Constant: int  ]
+<BR></BLOCKQUOTE>
+
+<P><TT><B>INTERPOLATE = INTERPOLATE</B></TT>
+<BLOCKQUOTE>[ Constant: int  ]
+<BR></BLOCKQUOTE>
+
+<P><TT><B>NO_CHECK_ALIASED = NO_CHECK_ALIASED</B></TT>
+<BLOCKQUOTE>[ Constant: int  ]
+<BR></BLOCKQUOTE>
+
+<P><TT><B>CHECK_ALIASED = CHECK_ALIASED</B></TT>
 <BLOCKQUOTE>[ Constant: int  ]
 <BR></BLOCKQUOTE>
 
@@ -1417,6 +1434,67 @@ presto_wrap.c</TITLE>
 <BLOCKQUOTE>[ Destructor: returns void  ]
 <BR></BLOCKQUOTE>
 
+<A name="s10_">
+<HR><H2>10. class rawbincand</H2></A>
+[ created from struct rawbincand ]<BR>
+<P><TT><B>self.full_N</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Number of points in original time series    
+</BLOCKQUOTE>
+
+<P><TT><B>self.full_T</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Length (s) of original time series          
+</BLOCKQUOTE>
+
+<P><TT><B>self.full_lo_r</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Lowest Fourier bin that was miniFFTd        
+</BLOCKQUOTE>
+
+<P><TT><B>self.mini_N</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Number of points in short (mini) FFT        
+</BLOCKQUOTE>
+
+<P><TT><B>self.mini_r</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Candidate Fourier bin in miniFFT            
+</BLOCKQUOTE>
+
+<P><TT><B>self.mini_power</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Candidate normalized power in miniFFT       
+</BLOCKQUOTE>
+
+<P><TT><B>self.mini_numsum</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Number of powers summed to get candidate    
+</BLOCKQUOTE>
+
+<P><TT><B>self.mini_sigma</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Equivalent candidate sigma (for sum pow)    
+</BLOCKQUOTE>
+
+<P><TT><B>self.psr_p</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Approx PSR period (miniFFT center bin)      
+</BLOCKQUOTE>
+
+<P><TT><B>self.orb_p</B></TT>
+<BLOCKQUOTE>[ Member data: returns double  ]
+<BR>   Approx orbital period (s)                   
+</BLOCKQUOTE>
+
+<P><TT><B>rawbincand()</B></TT>
+<BLOCKQUOTE>[ Constructor: returns rawbincand * ]
+<BR></BLOCKQUOTE>
+
+<P><TT><B>del this</B></TT>
+<BLOCKQUOTE>[ Destructor: returns void  ]
+<BR></BLOCKQUOTE>
+
 <P><TT><B>frotate(data,numbins,bins_to_left)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR>   Rotates a vector by bins_to_left places to the left.      
@@ -1700,6 +1778,18 @@ presto_wrap.c</TITLE>
      'result' is a pointer to the returned rzwerrs struct.    
 </BLOCKQUOTE>
 
+<P><TT><B>sigma_from_sumpows(powersum,numsum)</B></TT>
+<BLOCKQUOTE>[ returns double  ]
+<BR>   Return the approximate significance in Gaussian    
+   sigmas of a sum of 'numsum' powers.                
+</BLOCKQUOTE>
+
+<P><TT><B>sumpows_from_sigma(sigma,numsum)</B></TT>
+<BLOCKQUOTE>[ returns double  ]
+<BR>   Return the summed ('numsum' powers) power required   
+   to achieve a Gaussian significance of 'sigma'.       
+</BLOCKQUOTE>
+
 <P><TT><B>nice_output_1(output,val,err,len)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR>   Generates a string in &quot;output&quot; of length len with &quot;val&quot; rounded     
@@ -1722,6 +1812,12 @@ presto_wrap.c</TITLE>
 <P><TT><B>print_bin_candidate(cand,numerrdigits)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR>   Outputs a 2 column summary of all the properties or a fourier peak    
+</BLOCKQUOTE>
+
+<P><TT><B>read_rzw_cand(file,cands)</B></TT>
+<BLOCKQUOTE>[ returns int  ]
+<BR>   Read the next rzw candidate from the file   
+   If successful, return 1, else 0             
 </BLOCKQUOTE>
 
 <P><TT><B>get_rzw_cand(filenm,candnum,cand)</B></TT>
@@ -1754,11 +1850,27 @@ presto_wrap.c</TITLE>
          file, the returned vector will be zero padded.             
 </BLOCKQUOTE>
 
+<P><TT><B>read_float_file(file,firstpt,numpts)</B></TT>
+<BLOCKQUOTE>[ returns float * ]
+<BR>   Return a float vector with complex data taken from a file.       
+   Argumants:                                                       
+     'file' is a pointer to the file you want to access.            
+     'firstpt' is the number of the first point to get. (0 = 1st    
+         point in the file).  If < 0, the resulting array will      
+         be zero padded.                                            
+     'numpts' is the number of points to get from the file.         
+         If the number of bins to read takes us past the end of     
+         file, the returned vector will be zero padded.             
+</BLOCKQUOTE>
+
 <P><TT><B>prune_powers(arr,n,numsumpows)</B></TT>
 <BLOCKQUOTE>[ returns int  ]
-<BR>   Sets powers that are more than PRUNELEV standard devs above   
-   the median value to the median value.  Thereby &quot;cleaning&quot;     
-   the spectrum of high power signals.                           
+<BR>   Sets powers that are more than approx PRUNELEV standard   
+   devs above the median value to NEWLEV times the median    
+   value.  This helps 'clean' the spectrum of high power     
+   signals that probably have nothing to do with a phase     
+   modulation spectrum (i.e. they are RF noise or strong     
+   solitary pulsars.                                         
 </BLOCKQUOTE>
 
 <P><TT><B>selectkth(k,n,arr)</B></TT>
@@ -2011,7 +2123,7 @@ presto_wrap.c</TITLE>
    maximizes the power.                                       
 </BLOCKQUOTE>
 
-<P><TT><B>foldfile(datafile,dt,prof,proflen,fo,fdot,fdotdot,binary,delays,orbto,orbdt,numdelays,chiarr,onoffpairs)</B></TT>
+<P><TT><B>foldfile(datafile,dt,prof,proflen,fo,fdot,fdotdot,binary,delays,orbto,orbdt,numdelays,poisson,chiarr,onoffpairs)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR></BLOCKQUOTE>
 
@@ -2041,24 +2153,37 @@ presto_wrap.c</TITLE>
    (in units of v/c) of voverc wrt the pulsar.              
 </BLOCKQUOTE>
 
-<P><TT><B>search_minifft(minifft,numminifft,norm,numcands,highpows,highfreqs)</B></TT>
+<P><TT><B>search_minifft(minifft,numminifft,cands,numcands,numharmsum,numfullfft,timefullfft,lorfullfft,interptype,checkaliased)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR>   This routine searches a short FFT (usually produced using the     
-   MiniFFT binary search method) and returns two vectors which       
-   contain the highest powers found and their Fourier frequencies.   
-   The routine uses interbinning to help find the highest peaks.     
+   MiniFFT binary search method) and returns a candidte vector       
+   containing information about the best binary candidates found.    
+   The routine uses either interbinning or interpolation as well     
+   as harmonic summing during the search.                            
    Arguments:                                                        
      'minifft' is the FFT to search (complex valued)                 
      'numminifft' is the number of complex points in 'minifft'       
-     'norm' is the value to multiply each pow power by to get        
-        a normalized power spectrum.                                 
-     'numcands' is the length of the returned vectors.               
-     'highpows' a vector containing the 'numcands' highest powers.   
-     'highfreqs' a vector containing the 'numcands' frequencies      
-        where 'highpows' were found.                                 
-   Notes:  The returned vectors must have already been allocated.    
-     The returned vectors will be sorted by decreasing power.        
+     'cands' is a pre-allocated vector of rawbincand type in which   
+        the sorted (in decreasing sigma) candidates are returned     
+     'numcands' is the length of the 'cands' vector                  
+     'numharmsum' the number of harmonics to sum during the search   
+     'numfullfft' the number of points in the original long FFT      
+     'timefullfft' the duration of the original time series (s)      
+     'lorfullfft' the 1st bin of the long FFT that was miniFFT'd     
+     'interptype' is either INTERBIN or INTERPOLATE.                 
+        INTERBIN = (interbinning) is fast but less sensitive.        
+        INTERPOLATE = (Fourier interpolation) is slower but more     
+          sensitive.                                                 
+     'checkaliased' is either CHECK_ALIASED or NO_CHECK_ALIASED.     
+        NO_CHECK_ALIASED = harmonic summing does not include         
+          aliased freqs making it faster but less sensitive.         
+        CHECK_ALIASED = harmonic summing includes aliased freqs      
+          making it slower but more sensitive.                       
 </BLOCKQUOTE>
+
+<P><TT><B>print_rawbincand(cand)</B></TT>
+<BLOCKQUOTE>[ returns void  ]
+<BR></BLOCKQUOTE>
 
 <P><TT><B>barycenter(topotimes,barytimes,voverc,N,ra,dec,obs,ephem)</B></TT>
 <BLOCKQUOTE>[ returns void  ]

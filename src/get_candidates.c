@@ -1,5 +1,13 @@
 #include "presto.h"
 
+int read_rzw_cand(FILE *file, fourierprops *cands)
+/* Read the next rzw candidate from the file */
+/* If successful, return 1, else 0           */
+{
+  return chkfread(cands, sizeof(fourierprops), 1, file);
+}  
+
+
 void get_rzw_cand(char *filenm, int candnum, fourierprops * cand)
 /*  Read the rzw candidate file 'filenm' and return a        */
 /*  pointer to the fourierprops that describes it.           */
