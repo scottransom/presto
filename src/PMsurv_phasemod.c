@@ -531,15 +531,15 @@ static void cand_output(double pow, double bin, int numminifft,
 
   if (candnum==1){
     /* Write the header */
-    sprintf(filenm, "%s.hdr", idata->outfilebase);
+    sprintf(filenm, "%s/%s.hdr", OUTDIR, idata->outfilebase);
     out_binfile = fopen(filenm, "wb");
     fwrite(idata->rawheader, 640, 1, out_binfile);
     fclose(out_binfile);
     /* Open the binary file */
-    sprintf(filenm, "%s.cand", idata->outfilebase);
+    sprintf(filenm, "%s/%s.cand", OUTDIR, idata->outfilebase);
     out_binfile = fopen(filenm, "wb");
     /* Open the text file */
-    sprintf(filenm, "%s.phsout", idata->outfilebase);
+    sprintf(filenm, "%s/%s.phsout", OUTDIR, idata->outfilebase);
     out_txtfile = fopen(filenm, "w");
     fprintf(out_txtfile, "#     Tape: %s\n", idata->tape_lbl);
     fprintf(out_txtfile, "#   File #: %d\n", idata->file_cntr);
