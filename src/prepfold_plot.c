@@ -8,6 +8,9 @@
 /*
 #define SCALE_PARTS_SEPARATELY 1
 */
+/*
+#define OUTPUT_DMS 1
+*/
 
 #define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
 (fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
@@ -760,6 +763,18 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 
       cpgsvp (0.44, 0.66, 0.09, 0.22);
       find_min_max_arr(search->numdms, dmchi, &min, &max);
+#ifdef OUTPUT_DMS
+      {
+	int dmnum;
+
+	printf("\nThe raw data from the DM vs. Reduced chi-sqr plot:\n\n");
+	printf("   DM      Reduced chi-sqr\n");
+	for(dmnum=0; dmnum<search->numdms; dmnum++)
+	  printf("  %.3f     %.3f\n", 
+		 search->dms[dmnum], dmchi[dmnum]);
+	printf("\n");
+      }
+#endif
       cpgswin(search->dms[0], search->dms[search->numdms-1], 
 	      0.0, 1.1 * max);
       cpgsch(0.7);
