@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
-  double recdt=0.0, barydispdt, N=0.0, T=0.0, endtime=0.0, proftime;
+  double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime;
   double *obsf=NULL, *dispdts=NULL, *parttimes, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
   char *plotfilenm, *outfilenm, *rootnm;
@@ -193,7 +193,6 @@ int main(int argc, char *argv[])
     numrec = reads_per_part * cmd->npart;
     T = numrec * recdt;
     N = numrec * ptsperrec;
-    endtime = T + TDT;
 
     /* Topocentric and barycentric times of folding epoch data */
 
@@ -265,7 +264,6 @@ int main(int argc, char *argv[])
     numrec = reads_per_part * cmd->npart;
     N = numrec * worklen;
     T = N * search.dt;
-    endtime = T + TDT;
 
     /* Until I figure out a better way to do this... */
 
@@ -299,7 +297,8 @@ int main(int argc, char *argv[])
       ra_dec_to_string(rastring, idata.ra_h, idata.ra_m, idata.ra_s);
       ra_dec_to_string(decstring, idata.dec_d, idata.dec_m, idata.dec_s);
       
-      /* Topocentric and barycentric times of folding epoch data */
+      /* Topocentric and barycentric times of folding epoch */
+
       if (idata.mjd_i) {
 	search.tepoch = (double) idata.mjd_i + 
 	  idata.mjd_f + lorec * search.dt / SECPERDAY;
@@ -483,9 +482,9 @@ int main(int argc, char *argv[])
     
     startE = keplars_eqn(search.orb.t, search.orb.p, 
 			 search.orb.e, 1.0E-15);
-    if (endtime > 2048) orbdt = 0.5;
-    else orbdt = endtime / 4096.0;
-    numbinpoints = (long) floor(endtime/orbdt + 0.5) + 1;
+    if (T > 2048) orbdt = 0.5;
+    else orbdt = T / 4096.0;
+    numbinpoints = (long) floor(T/orbdt + 0.5) + 1;
     Ep = dorbint(startE, numbinpoints, orbdt, &search.orb);
     tp = gen_dvect(numbinpoints);
     for (ii = 0; ii < numbinpoints; ii++) tp[ii] = ii * orbdt;
@@ -589,7 +588,7 @@ int main(int argc, char *argv[])
 
     /* The number of topo to bary points to generate with TEMPO */
     
-    numbarypts = endtime / TDT + 1;
+    numbarypts = T / TDT + 10;
     barytimes = gen_dvect(numbarypts);
     topotimes = gen_dvect(numbarypts);
     voverc = gen_dvect(numbarypts);
@@ -641,7 +640,7 @@ int main(int argc, char *argv[])
 	dtmp = search.bepoch + tp[ii] / SECPERDAY;
 	hunt(barytimes, numbarypts, dtmp, &arrayoffset);
 	arrayoffset--;
-	tp[ii] = LININTERP(dtmp, barytimes[arrayoffset], 
+ 	tp[ii] = LININTERP(dtmp, barytimes[arrayoffset], 
 			   barytimes[arrayoffset+1], 
 			   topotimes[arrayoffset], 
 			   topotimes[arrayoffset+1]);    
