@@ -1,6 +1,6 @@
 #include "presto.h"
 
-#define PRUNELEV 20
+#define PRUNELEV 25
 #define NEWLEV   5
 
 /* Function declarations */
