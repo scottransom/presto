@@ -131,10 +131,11 @@ int psr_number_from_name(char *psrname)
 /* Return -1 if no pulsar is found.                       */
 {
   int ii, psrnumber=-1;
-  char *matchname;
+  char *matchname, jname[13], bname[9];
 
   matchname = strlower(psrname);
-  if (matchname[0]=='j' || matchname[0]=='b') matchname++;
+  if (matchname[0]=='j' || 
+      matchname[0]=='b') matchname++;
 
   /* Read the database if needed */
   if (!have_database)
@@ -142,8 +143,10 @@ int psr_number_from_name(char *psrname)
 
   /* Search for the J-name, the B-name, or the alias */		
   for (ii=0; ii<np; ii++) {					
-    if (!strcmp(pulsardata[ii].jname, matchname) || 
-	!strcmp(pulsardata[ii].bname, matchname) ||
+    strncpy(jname, pulsardata[ii].jname, 13);
+    strncpy(bname, pulsardata[ii].bname, 9);
+    if (!strcmp(strlower(jname), matchname) || 
+	!strcmp(strlower(bname), matchname) ||
 	!strcmp(pulsardata[ii].alias, matchname)) {	
       psrnumber = ii;
       break;
