@@ -778,22 +778,34 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof)
 
   wrap = shift % proflen;
 
-  /* no shift */
-
-  if (wrap==0){
-    memcpy(outprof, prof, proflen * sizeof(double));
-    return;
-
-  /* Convert a left shift into the equivalent right shift */
-
-  } else if (wrap < 0)
-    wrap += proflen;
-
-  /* Perform a right shift */
-
-  nowrap = proflen - wrap;
-  memcpy(outprof, prof + nowrap, wrap * sizeof(double));
-  memcpy(outprof + wrap, prof, nowrap * sizeof(double));
+  if (prof==outprof){
+    double *tmpprof;
+    /* no shift */
+    if (wrap==0){
+      return;
+    /* Convert a left shift into the equivalent right shift */
+    } else if (wrap < 0)
+      wrap += proflen;
+    /* Perform a right shift */
+    nowrap = proflen - wrap;
+    tmpprof = gen_dvect(proflen);
+    memcpy(tmpprof, prof+nowrap, wrap*sizeof(double));
+    memcpy(tmpprof+wrap, prof, nowrap*sizeof(double));
+    memcpy(outprof, tmpprof, proflen*sizeof(double));
+    free(tmpprof);
+  } else {
+    /* no shift */
+    if (wrap==0){
+      memcpy(outprof, prof, proflen*sizeof(double));
+      return;
+    /* Convert a left shift into the equivalent right shift */
+    } else if (wrap < 0)
+      wrap += proflen;
+    /* Perform a right shift */
+    nowrap = proflen - wrap;
+    memcpy(outprof, prof+nowrap, wrap*sizeof(double));
+    memcpy(outprof+wrap, prof, nowrap*sizeof(double));
+  }
 }
 
 
