@@ -70,13 +70,15 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     if (strncmp("PSR", keyword, 80)==0){
       strncpy(psr->jname, strtok(NULL, " \t\n"), 20);
       if (DEBUGOUT) printf("The pulsar is '%s'\n", psr->jname);
-    } else if (strncmp("RAJ", keyword, 80)==0){
+    } else if (strncmp("RAJ", keyword, 80)==0 ||
+	       strncmp("RA", keyword, 80)==0){
       int h, m;
       double s;
       ra_dec_from_string(strtok(NULL, " \t\n"), &h, &m, &s);
       psr->ra2000 = hms2rad(h, m, s);
       if (DEBUGOUT) printf("The RA  is %d %d %f (%f)\n", h, m, s, psr->ra2000);
-    } else if (strncmp("DECJ", keyword, 80)==0){
+    } else if (strncmp("DECJ", keyword, 80)==0 ||
+	       strncmp("DEC", keyword, 80)==0){
       int d, m;
       double s;
       ra_dec_from_string(strtok(NULL, " \t\n"), &d, &m, &s);
