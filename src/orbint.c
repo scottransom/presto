@@ -204,21 +204,19 @@ double lin_interp_E(double *E, double currenttime, double to, \
 /* to is the starting time and dt is the time interval of the        */
 /* evenly tabulated dat vector *E.                                   */
 {
-
-  long index;
-  double difft;
+  int index;
+  double fpart, ipart, dtemp;
 
   if (currenttime < to || currenttime > maxt){
     printf("\nInput currenttime out-of-bounds in lin_interp_E().\n");
     printf("Exiting.\n\n");
     exit(1);
   }
-  difft = currenttime - to;
-  index = (long) floor(difft / dt);
-  return (fmod(difft, dt)/dt * (E[index+1]-E[index])) + E[index];
+  fpart = modf((currenttime - to) / dt, &ipart);
+  index = (int) (ipart + DBLCORRECT);
+  dtemp = E[index];
+  return (fpart * (E[index+1]-dtemp)) + dtemp;
 }
-
-
 
 
 

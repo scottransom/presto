@@ -122,20 +122,18 @@ void chop_complex_ends(fcomplex *data, int numdata, \
   /*   'chopbins' is the number of bins to chop on each   */
   /*      end of the data array.                          */
 {
-  int ii;
+  int ii, numtocopy;
   fcomplex zeros = {0.0, 0.0};
 
   if (numdata < 2 * chopbins){
     printf("\n  'chopbins' is too large in chop_complex_ends()\n\n");
     exit(1);
   }
-  if (numresult < numdata - 2 * chopbins){
-    printf("\n  'numresult' is too small in chop_complex_ends()\n\n");
-    exit(1);
-  }
+  numtocopy = numdata - 2 * chopbins;
+  if (numresult < numtocopy)
+    numtocopy = numresult;
   for (ii = 0; ii < numresult; ii++) result[ii] = zeros;
-  memcpy(result, data + chopbins, \
-	 sizeof(fcomplex) * (numdata - 2 * chopbins));
+  memcpy(result, data + chopbins, sizeof(fcomplex) * numtocopy);
 }
 
 

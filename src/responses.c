@@ -1,6 +1,7 @@
 #include "presto.h"
 
-#define MIN_NUM_DATA 524288
+#define MIN_NUMDATA 131072
+#define MIN_NUMORBPTS 2049  /* This should be a power-of-two + 1 */
 #define NUM_PTS_WDAT 131072
 
 /* Function declarations */
@@ -455,12 +456,12 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /*       contain.                                                    */
 {
 
-  int fftlen, ii, beginbin, numintkern, index;
-  int numdata = MIN_NUM_DATA;
-  int numorbpts = 32769; /* This should be a power-of-two + 1 */
+  int fftlen, ii, beginbin, numintkern, index, datar;
+  int numdata = MIN_NUMDATA;
+  int numorbpts = MIN_NUMORBPTS; /* This should be a power-of-two + 1 */
   float *data;
   double *phi = NULL, startE;
-  double amp, f, dt, dtb, t, tp, z, fpart, ipart, dtemp;
+  double amp, f, dt, dtb, t, tp, fpart, ipart, dtemp;
   static int old_numbetween=0, old_numkern=0, old_fftlen=0, firsttime=1;
   static fcomplex *kernelarray=NULL;
   fcomplex *response, *tmpresponse, *rresp, *dataarray;
@@ -490,15 +491,19 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
   /* Initialize some data */
 
-  if (numkern > numdata * numbetween / 4)
-    numdata = next2_to_n(numkern * 4 / numbetween);
-  z = orbit->x / ppsr;
-  dt = 1.0 / (double) numdata;
-  dtb = 1.0 / (double) (numorbpts - 1);
-  amp = 2.0 * dt;
-  f = TWOPI * (double) (numdata / 4);
+  datar = numdata / 4;
+  if (numkern > datar){
+    numdata = next2_to_n(numkern * 4);
+    datar = numdata / 4;
+  }
+  dt = 1.0 / numdata;
   orb.p = orbit->p / T;
-  orb.x = z / (double) (numdata / 4);
+  if (orb.p < 1.0)
+    numorbpts = next2_to_n(MIN_NUMORBPTS/orb.p) + 1;
+  dtb = 1.0 / (numorbpts - 1);
+  amp = 2.0 * dt;
+  f = TWOPI * datar;
+  orb.x = orbit->x / (ppsr * datar);
   orb.e = orbit->e;
   orb.w = orbit->w * DEGTORAD;
   orb.t = orbit->t / T;
@@ -519,7 +524,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
     fpart = modf(t / dtb, &ipart);
     index = (int) (ipart + DBLCORRECT);
     dtemp = phi[index];
-    tp = t - (fpart * (phi[index+1]-dtemp)) + dtemp;
+    tp = t - ((fpart * (phi[index+1]-dtemp)) + dtemp);
     data[ii] = amp * cos(f * tp);
   }
   free(phi);
