@@ -202,6 +202,9 @@ int main(int argc, char *argv[])
     avgdm /= cmd->numdms;
     maxdm = dms[cmd->numdms-1];
   } else {
+    char format_str[30];
+    int num_places;
+
     if (!cmd->nobaryP){
       printf("\nWarning:  You cannot (currently) barycenter subbands.\n"
 	     "          Setting the '-nobary' flag automatically.\n");
@@ -215,8 +218,10 @@ int main(int argc, char *argv[])
     avgdm = cmd->subdm;
     maxdm = cmd->subdm;
     outfiles = (FILE **)malloc(cmd->nsub * sizeof(FILE *));
+    num_places = (int)ceil(log10(cmd->nsub));
+    sprintf(format_str,"%%s_DM%%.2f.sub%%0%dd", num_places);
     for (ii=0; ii<cmd->nsub; ii++){
-      sprintf(datafilenm, "%s_DM%.2f.sub%02d", cmd->outfile, avgdm, ii);
+      sprintf(datafilenm, format_str, cmd->outfile, avgdm, ii);
       outfiles[ii] = chkfopen(datafilenm, "wb");
       printf("   '%s'\n", datafilenm);
     }
