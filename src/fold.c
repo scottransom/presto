@@ -582,7 +582,15 @@ void combine_profs(double *profs, foldstats *instats, int numprofs,
   outstats->data_var /= numprofs;
 
   /* Calculate the reduced chi-squared */
+  /*
+  {
+    double lavg=0.0, lvar=0.0;
 
+    davg_dvar(outprof, proflen, &lavg, &lvar);
+    printf("Local:  avg = %f  var = %f  Summed = %f  var = %f\n",
+	   lavg, lvar, outstats->prof_avg, outstats->prof_var);
+  }
+  */
   outstats->redchi = chisqr(outprof, proflen, outstats->prof_avg, 
 			    outstats->prof_var) / (proflen - 1.0);
 }

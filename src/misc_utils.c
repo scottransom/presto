@@ -355,6 +355,40 @@ void avg_var(float *x, int n, double *mean, double *var)
 }
 
 
+void davg_dvar(double *x, int n, double *mean, double *var)
+/* For a double vector, *x, of length n, this routine  */
+/* returns the mean and variance of *x.                */
+{
+  long i;
+  double an=0.0, an1=0.0, dx;
+  
+  /*  Modified (29 June 98) C version of the following:        */
+  /*  ALGORITHM AS 52  APPL. STATIST. (1972) VOL.21, P.226     */
+  /*  Returned values were checked with Mathematica 3.01       */
+
+  if (n < 1) {
+    printf("\vVector length must be > 0 in avg_var().  Exiting\n");
+    exit(1);
+  } else {
+    *mean = (double) x[0];
+    *var = 0.0;
+  }
+  
+  for (i = 1 ; i < n ; i++){
+    an = (double) (i + 1);
+    an1 = (double) (i);
+    dx = (x[i] - *mean) / an;
+    *var += an * an1 * dx * dx;
+    *mean += dx;
+  }
+
+  if (n > 1)
+    *var /= an1;
+
+  return;
+}
+
+
 void ra_dec_to_string(char *radec, int h_or_d, int m, double s)
 /* Return a properly formatted string containing RA or DEC values   */
 /*   radec is a string with J2000 RA  in the format 'hh:mm:ss.ssss' */
