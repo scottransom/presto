@@ -469,27 +469,26 @@ void convert_multibeam_point(unsigned char *rec, unsigned char *data, \
   int ii, jj;
 
   if (decreasing_f){
-    for(ii = 0, jj = numchan-8; ii < numchan / 8; ii++, jj-=8){
-      data[jj] = rec[ii] & 0x80 ? 1 : 0;
-      data[jj+1] = rec[ii] & 0x40 ? 1 : 0;
-      data[jj+2] = rec[ii] & 0x20 ? 1 : 0;
-      data[jj+3] = rec[ii] & 0x10 ? 1 : 0;
-      data[jj+4] = rec[ii] & 0x08 ? 1 : 0;
-      data[jj+5] = rec[ii] & 0x04 ? 1 : 0;
-      data[jj+6] = rec[ii] & 0x02 ? 1 : 0;
-      data[jj+7] = rec[ii] & 0x01 ? 1 : 0;
+    for(ii = numchan/8-1, jj = 0; ii >= 0; ii--, jj+=8){
+      data[jj] = (rec[ii] >> 7) & 1;
+      data[jj+1] = (rec[ii] >> 6) & 1;
+      data[jj+2] = (rec[ii] >> 5) & 1;
+      data[jj+3] = (rec[ii] >> 4) & 1;
+      data[jj+4] = (rec[ii] >> 3) & 1;
+      data[jj+5] = (rec[ii] >> 2) & 1;
+      data[jj+6] = (rec[ii] >> 1) & 1;
+      data[jj+7] = rec[ii] & 1;
     }
   } else {
-    for(ii = 0, jj = 0; ii < numchan / 8; ii++, jj+=8){
-      data[jj] = rec[ii] & 0x01 ? 1 : 0;
-      data[jj+1] = rec[ii] & 0x02 ? 1 : 0;
-      data[jj+2] = rec[ii] & 0x04 ? 1 : 0;
-      data[jj+3] = rec[ii] & 0x08 ? 1 : 0;
-      data[jj+4] = rec[ii] & 0x10 ? 1 : 0;
-      data[jj+5] = rec[ii] & 0x20 ? 1 : 0;
-      data[jj+6] = rec[ii] & 0x40 ? 1 : 0;
-      data[jj+7] = rec[ii] & 0x80 ? 1 : 0;
+    for(ii = 0, jj = 0; ii < numchan/8; ii++, jj+=8){
+      data[jj] = rec[ii] & 1;
+      data[jj+1] = (rec[ii] >> 1) & 1;
+      data[jj+2] = (rec[ii] >> 2) & 1;
+      data[jj+3] = (rec[ii] >> 3) & 1;
+      data[jj+4] = (rec[ii] >> 4) & 1;
+      data[jj+5] = (rec[ii] >> 5) & 1;
+      data[jj+6] = (rec[ii] >> 6) & 1;
+      data[jj+7] = (rec[ii] >> 7) & 1;
     }
   }
 }
-
