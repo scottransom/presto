@@ -6,9 +6,9 @@ from miscutils import *
 from Statistics import *
 
 # Some admin variables
-parallel = 1          # True or false
-showplots = 0         # True or false
-debugout = 0          # True or false
+parallel = 0          # True or false
+showplots = 1         # True or false
+debugout = 1          # True or false
 #outfiledir = '/tmp/scratch'
 outfiledir = '/home/ransom'
 outfilenm = 'montebinresp'
@@ -19,15 +19,16 @@ orbsperpt = {'WD': 20, 'NS': 100, 'BH': 100} # # of orbits to avg per pt
 
 # Simulation parameters
 numTbyPb = 80         # The number of points along the x axis
-minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
+#minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
+minTbyPb = 4.0       # Minimum Obs Time / Orbital Period
 maxTbyPb = 10.0       # Maximum Obs Time / Orbital Period
 numppsr = 80          # The number of points along the y axis
 minppsr = 0.0005      # Minimum pulsar period (s)
 maxppsr = 5.0         # Maximum pulsar period (s)
-ctype = 'NS'          # The type of binary companion: 'WD', 'NS', or 'BH'
+ctype = 'WD'          # The type of binary companion: 'WD', 'NS', or 'BH'
 Pb = 7200.0           # Orbital period in seronds
 dt = 0.0001           # The duration of each data sample (s)
-searchtype = 'ffdot'  # One of 'ffdot', 'sideband', 'shortffts'
+searchtype = 'sideband'  # One of 'ffdot', 'sideband', 'shortffts'
 maxTbyPb_ffdot = 1.0
 minTbyPb_sideband = 0.3
 fftlen_shortffts = 0.05
@@ -120,10 +121,10 @@ for x in range(numTbyPb):
                         (orbf, orbi)  = modf(ct / sqrt(orbsperpt[ctype]))
                         orbi = orbi / sqrt(orbsperpt[ctype])
                         wb, tp = orbf * 180.0, Pb * orbi
-#                    if debugout:
-#                        print 'T = '+`T`+'  ppsr = '+`ppsr[y]`+\
-#                              ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
-#                              `eb`+' wb = '+`wb`+' tp = '+`tp`
+                    if debugout:
+                        print 'T = '+`T`+'  ppsr = '+`ppsr[y]`+\
+                              ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
+                              `eb`+' wb = '+`wb`+' tp = '+`tp`
                     psr = psrparams_from_list([ppsr[y], Pb, xb, eb, wb, tp])
                     psr_numbins = 2 * bin_resp_halfwidth(psr.p, T, psr.orb)
                     psr_resp = gen_bin_response(0.0, 1, psr.p, T, psr.orb,
@@ -184,9 +185,60 @@ for x in range(numTbyPb):
                             print 'max_r = %11.5f  max_z = %11.5f' % \
                                   (rmax, zmax)
                     elif searchtype == 'sideband':
+                        if debugout:
+                            print 'T = %9.3f  Pb = %9.3f  Ppsr = %9.7f' % \
+                                  (T, psr.orb.p, psr.p)
+                        # The biggest FFT first
                         psr_pows = spectralpower(psr_resp)
-                        data = zeros(next2_to_n(psr_numbins * 2), 'd')
-                        data[0:psr_numbins] = psr_pows
+                        fftlen = int(next2_to_n(len(psr_pows)))
+                        fdata = rfft(array(psr_pows[0:fftlen], copy=1))
+                        fdata[0].real = 0.0
+                        cands = search_fft(fdata, 5, norm=1.0)
+                        if showplots:
+                            Pgplot.plotxy(spectralpower(fdata), \
+                                          arange(len(fdata))*T/len(fdata), \
+                                          labx='Orbital Period (s))', \
+                                          laby='Power')
+                            Pgplot.closeplot()
+                        if debugout:
+                            print 'fftlen = '+`fftlen`
+                            for ii in range(5):
+                                print '  r = %11.5f  pow = %9.5f' % \
+                                      (cands[ii][1], cands[ii][0])
+                        # Do the first half-length FFT
+                        fftlen = fftlen / 2
+                        fdata = rfft(array(psr_pows[0:fftlen], copy=1))
+                        fdata[0].real = 0.0
+                        cands = search_fft(fdata, 5, norm=1.0)
+                        if showplots:
+                            Pgplot.plotxy(spectralpower(fdata), \
+                                          arange(len(fdata))*T/len(fdata), \
+                                          labx='Orbital Period (s))', \
+                                          laby='Power')
+                            Pgplot.closeplot()
+                        if debugout:
+                            print 'fftlen = '+`fftlen`
+                            for ii in range(5):
+                                print '  r = %11.5f  pow = %9.5f' % \
+                                      (cands[ii][1], cands[ii][0])
+                        # Do the second half-length FFT
+                        data = zeros(fftlen, 'f')
+                        lencopy = len(psr_pows[fftlen/2:])
+                        data[0:lencopy] = array(psr_pows[fftlen/2:], copy=1)
+                        fdata = rfft(data)
+                        fdata[0] = 0.0
+                        cands = search_fft(fdata, 5, norm=1.0)
+                        if showplots:
+                            Pgplot.plotxy(spectralpower(fdata), \
+                                          arange(len(fdata))*T/len(fdata), \
+                                          labx='Orbital Period (s))', \
+                                          laby='Power')
+                            Pgplot.closeplot()
+                        if debugout:
+                            print 'fftlen = '+`fftlen`
+                            for ii in range(5):
+                                print '  r = %11.5f  pow = %9.5f' % \
+                                      (cands[ii][1], cands[ii][0])
                     if debugout:
                         print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
                         print `ppsr[y]`+'  '+`pows[ct]`
