@@ -10,7 +10,7 @@ PGPLOTINCDIR = -I/usr/local/include
 # Path to PGPLOT libraries
 PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
-PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11/lib -lX11
+PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11
 
 # You must define one of the following FFTTYPES (USEFFTW is default).
 # If you want to use FFTW for the FFTs, place sfftw.h and libsfftw.a
@@ -49,10 +49,10 @@ CC = gcc
 FC = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -Wall -W -O -fPIC \
-	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64\
+	-g -Wall -W -O2 -mcpu=pentiumpro -march=pentiumpro -fPIC
+#	-g -Wall -W -O -fPIC \
+#	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64\
 #	-DUSEDMALLOC 
-#	-g -Wall -W -O2 -mcpu=pentiumpro -march=pentiumpro -fPIC \
 #	-g -ansi -pedantic -Wall -W -fpic \
 #	-Dinline= -Wmissing-prototypes \
 #	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \

@@ -110,13 +110,6 @@ int main(int argc, char *argv[])
     numzap = get_birdies(cmd->zapfile, T, cmd->baryv, 
 			 &lozaps, &hizaps);
 
-  printf("%d (1)  %d (0)  %d (0)\n", 
-	 check_to_zap(100.0/T, lozaps, hizaps, numzap),
-	 check_to_zap(102.123123/T, lozaps, hizaps, numzap),
-	 check_to_zap(10000.0/T, lozaps, hizaps, numzap));
-	 
-
-
   /* open the FFT file and get its length */
 
   fftfile = chkfopen(filenm, "rb");
