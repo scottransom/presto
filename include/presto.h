@@ -523,10 +523,10 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 
 void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 		     int numpts, int numchan, double *dispdelays,
-		     int numsubbands, unsigned char *result);
+		     int numsubbands, float *result);
 /* De-disperse a stretch of data with numpts * numchan points    */
 /* into numsubbands subbands.  Each time point for each subband  */
-/* is a byte in the result array.  The result array order is     */
+/* is a float in the result array.  The result array order is    */
 /* subbands of increasing frequency together at each time pt.    */
 /* The delays (in bins) are in dispdelays for each channel.      */
 /* The input data and dispdelays are always in ascending         */
@@ -1178,3 +1178,28 @@ int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths,
 /* doesn't match, return a '0' for FALSE.  Note that the zapfreqs      */
 /* _must_ be in increasing order since this routine keeps track of its */
 /* place in the file.  Also, numzap _must be >= 2.                     */
+
+short TOMS_transpose_2d(float *a, int nx, int ny, char *move, 
+			int move_size);
+/*
+ * TOMS Transpose.  Revised version of algorithm 380.
+ * 
+ * These routines do in-place transposes of arrays.
+ * 
+ * [ Cate, E.G. and Twigg, D.W., ACM Transactions on Mathematical Software, 
+ *   vol. 3, no. 1, 104-110 (1977) ]
+ * 
+ * C version by Steven G. Johnson. February 1997.
+ *
+ * "a" is a 1D array of length ny*nx which contains the nx x ny matrix to be
+ * transposed.  "a" is stored in C order (last index varies fastest).  move
+ * is a 1D array of length move_size used to store information to speed up
+ * the process.  The value move_size=(ny+nx)/2 is recommended.
+ * 
+ * The return value indicates the success or failure of the routine. Returns 0
+ * if okay, -1 if ny or nx < 0, and -2 if move_size < 1. The return value
+ * should never be positive, but it it is, it is set to the final position in
+ * a when the search is completed but some elements have not been moved.
+ * 
+ * Note: move[i] will stay zero for fixed points.
+ */

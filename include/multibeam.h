@@ -7,6 +7,9 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.5  1999/12/02 20:26:49  ransom
+ * Made a multibeam subband de-dispersion routine.
+ *
  * Revision 1.4  1999/11/16 19:43:51  ransom
  * Changed a few calling parameters.
  *
@@ -130,16 +133,19 @@ int read_multibeam(FILE * file, float *data, int numpts,
 /* from the multibeam correlator at Parkes.                  */
 /* It returns the number of points read.                     */
 
-int read_mb_chan_to_vecs(FILE * infile, float *data,
-			 int numpts, int numchan);
-/* This routine reads a numpts record with numchan each from   */
-/* the input file *infile which contains 1 bit digitized data  */
-/* from the multibeam correlator at Parkes.  It stores the     */
-/* data in a vector *data of length numchan*numpts.  The low   */
-/* frequency channel is stored first, then the next highest    */
-/* freq etc, with numpts floating points per frequency.        */
-/* It returns the number of points (numpts) read if successful */
-/* or 0 if unsuccessful.                                       */
+int read_multibeam_subbands(FILE * infile, float *data, int numpts,
+			    double *dispdelays, int numsubbands, 
+			    int numchan);
+/* This routine reads a numpts record with numchan each from     */
+/* the input file *infile which contains 1 bit digitized data    */
+/* from the multibeam correlator at Parkes.  The routine uses    */
+/* dispersion delays in 'dispdelays' to de-disperse the data     */
+/* into 'numsubbands' subbands.  It stores the resulting         */
+/* data in vector 'data' of length numsubbands * numpts.  The    */
+/* low frequency subband is stored first, then the next highest  */
+/* subband etc, with 'numpts' floating points per subband.       */
+/* It returns the number of points (pts_per_read) read if        */
+/* succesful or 0 if unsuccessful.                               */
 
 void print_multibeam_hdr(multibeam_tapehdr *hdr);
 /* Output in human readable form a multibeam header. */

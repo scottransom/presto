@@ -16,7 +16,7 @@
 typedef struct s_Cmdline {
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
+  /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
   char ebppP;
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   char nobaryP;
@@ -27,33 +27,37 @@ typedef struct s_Cmdline {
   double dm;
   int dmC;
   /***** -nsub: The number of sub-bands to use for the DM search */
-  char numsubbandsP;
-  int numsubbands;
-  int numsubbandsC;
+  char nsubP;
+  int nsub;
+  int nsubC;
   /***** -p: The nominative folding period (s) */
   char pP;
   double p;
   int pC;
   /***** -pd: The nominative period derivative (s/s) */
-  char pdotP;
-  double pdot;
-  int pdotC;
+  char pdP;
+  double pd;
+  int pdC;
   /***** -pdd: The nominative period 2nd derivative (s/s^2) */
-  char pdotdotP;
-  double pdotdot;
-  int pdotdotC;
+  char pddP;
+  double pdd;
+  int pddC;
   /***** -f: The nominative folding frequency (hz) */
-  char freqP;
-  double freq;
-  int freqC;
+  char fP;
+  double f;
+  int fC;
   /***** -fd: The nominative frequency derivative (hz/s) */
-  char dfdtP;
-  double dfdt;
-  int dfdtC;
+  char fdP;
+  double fd;
+  int fdC;
   /***** -fdd: The nominative frequency 2nd derivative (hz/s^2) */
-  char d2fdt2P;
-  double d2fdt2;
-  int d2fdt2C;
+  char fddP;
+  double fdd;
+  int fddC;
+  /***** -phs: Offset phase for the profil */
+  char phsP;
+  double phs;
+  int phsC;
   /***** -start: The folding start time as a fraction of the full obs */
   char startTP;
   double startT;
