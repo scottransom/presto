@@ -1,14 +1,14 @@
 from time import clock
 from math import *
 from Numeric import *
+from presto import *
 from miscutils import *
 from Statistics import *
-from presto import *
 
 # Some admin variables
-parallel = 0          # True or false
-showplots = 1         # True or false
-debugout = 1          # True or false
+parallel = 1          # True or false
+showplots = 0         # True or false
+debugout = 0          # True or false
 #outfiledir = '/tmp/scratch'
 outfiledir = '/home/ransom'
 outfilenm = 'montebinresp'
@@ -120,10 +120,10 @@ for x in range(numTbyPb):
                         (orbf, orbi)  = modf(ct / sqrt(orbsperpt[ctype]))
                         orbi = orbi / sqrt(orbsperpt[ctype])
                         wb, tp = orbf * 180.0, Pb * orbi
-                    if debugout:
-                        print 'T = '+`T`+'  ppsr = '+`ppsr[y]`+\
-                              ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
-                              `eb`+' wb = '+`wb`+' tp = '+`tp`
+#                    if debugout:
+#                        print 'T = '+`T`+'  ppsr = '+`ppsr[y]`+\
+#                              ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
+#                              `eb`+' wb = '+`wb`+' tp = '+`tp`
                     psr = psrparams_from_list([ppsr[y], Pb, xb, eb, wb, tp])
                     psr_numbins = 2 * bin_resp_halfwidth(psr.p, T, psr.orb)
                     psr_resp = gen_bin_response(0.0, 1, psr.p, T, psr.orb,
@@ -149,11 +149,12 @@ for x in range(numTbyPb):
                         dr = 0.5
                         dz = 1.0
                         if debugout:
-                            print 'psr_numbins = '+`psr_numbins`+\
-                                  ' TbyPb[x] = '+`TbyPb[x]`+\
-                                  ' ppsr[y] = '+`ppsr[y]`+' eo = '+\
-                                  `eo`+' len(data) = '+`len(data)`+\
-                                  ' tryr = '+`tryr`+' tryz = '+`tryz`,
+#                            print 'psr_numbins = '+`psr_numbins`+\
+#                                  ' TbyPb[x] = '+`TbyPb[x]`+\
+#                                  ' ppsr[y] = '+`ppsr[y]`+' eo = '+\
+#                                  `eo`+' len(data) = '+`len(data)`
+                            print ' tryr = %11.5f   tryz = %11.5f' % \
+                                  (tryr, tryz)
                         ffd = ffdot_plane(data, tryr, dr, numr,
                                           tryz, dz, numz)
                         maxarg = argmax(spectralpower(ffd.flat))
@@ -174,12 +175,14 @@ for x in range(numTbyPb):
                                           image = "astro")
                             Pgplot.closeplot()
                         if debugout:
-                            print ' peakr = '+`peakr`+' peakz = '+`peakz`
+                            print 'peakr = %11.5f  peakz = %11.5f' % \
+                                  (peakr, peakz)
                         [pows[ct], rmax, zmax, rd] = \
                                    maximize_rz(data, peakr, peakz, \
                                                norm=1.0)
                         if debugout:
-                            print ' rmax = '+`rmax`+' zmax = '+`zmax`
+                            print 'max_r = %11.5f  max_z = %11.5f' % \
+                                  (rmax, zmax)
                     elif searchtype == 'sideband':
                         psr_pows = spectralpower(psr_resp)
                         data = zeros(next2_to_n(psr_numbins * 2), 'd')
@@ -188,11 +191,8 @@ for x in range(numTbyPb):
                         print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
                         print `ppsr[y]`+'  '+`pows[ct]`
             tim = clock() - stim
-            print 'Time for this point was ',tim, ' s.'
             if debugout:
-                print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
-                print `ppsr[y]`+'  '+`average(pows)`+'  ',
-                print `max(pows)`+'  '+`min(pows)`
+                print 'Time for this point was ',tim, ' s.'
             file.write('%5d  %9.6f  %8.6f  %7.5f  %7.5f  %7.5f\n' % \
                        (y * numTbyPb + x, TbyPb[x], ppsr[y], \
                         average(pows), max(pows), min(pows)))
