@@ -11,8 +11,9 @@ double single_power_pdf(double power, int numpowers)
 }
 
 void rfifind_plot(int numchan, int numint, int ptsperint, float sigma, 
-		  float **dataavg, float **datastd, float **datapow, 
-		  unsigned char **datamask, infodata *idata, int xwin)
+		  float **dataavg, float **datastd, float **datapow,
+		  int *userchan, int numuserchan, unsigned char **mask, 
+		  infodata *idata, int xwin)
 /* Make the beautiful 1 page rfifind output */
 {
   int ii, jj, ct, loops=1;
@@ -109,6 +110,19 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
   datastd_med = selectkth(ct/2, ct, datastd[0]-1);
   datapow_med = selectkth(ct/2, ct, datapow[0]-1);
   maxpow = power_for_sigma(sigma, 1, ptsperint/2);
+
+  /* Generate the Mask */
+
+  {
+    int numbytes, ii;
+
+    numbytes = (numchan % 8)  ? numchan  / 8 + 1 : numchan  / 8;
+    *mask = gen_bvect(numbytes);
+    for (ii=0; ii<numbytes; ii++)
+      *mask[ii]
+  }
+
+
 
   /*
    *  Now plot the results
