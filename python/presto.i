@@ -1119,9 +1119,9 @@ void search_minifft(fcomplex *minifft, int numminifft,
   /*      INTERPOLATE = (Fourier interpolation) is slower but more   */
   /*        sensitive.                                               */
   /*   'checkaliased' is either CHECK_ALIASED or NO_CHECK_ALIASED.   */
-  /*      NO_CHECK_ALIASED = harminic summing does not include       */
+  /*      NO_CHECK_ALIASED = harmonic summing does not include       */
   /*        aliased freqs making it faster but less sensitive.       */
-  /*      CHECK_ALIASED = harminic summing includes aliased freqs    */
+  /*      CHECK_ALIASED = harmonic summing includes aliased freqs    */
   /*        making it slower but more sensitive.                     */
 
 void print_rawbincand(rawbincand cand);
