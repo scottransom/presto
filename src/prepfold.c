@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
     /* Later, we will change them to topocentric times after     */
     /* applying corrections to Ep using TEMPO.                   */
     
-    startE = keplars_eqn(orb.t, 1.0 / orb.p, orb.e, 1.0E-15);
+    startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
     if (endtime > 2048) orbdt = 0.5;
     else orbdt = endtime / 4096.0;
     numbinpoints = (long) floor(endtime/orbdt + 0.5) + 1;

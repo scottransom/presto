@@ -474,7 +474,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
   /* Generate the orbit */
 
-  startE = keplars_eqn(orb.t, 1.0 / orb.p, orb.e, 1.0E-15);
+  startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
   phi = gen_dvect(numpoints);
   orbtimes = gen_dvect(numpoints);
   dorbint(phi, startE, orbtimes, 0.0, numpoints, dtb, &orb);

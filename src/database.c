@@ -331,12 +331,13 @@ int get_psr_at_epoch(char * psrname, double epoch, psrdatabase * pdata, \
     if (psr->ntype & 8) {					
       psr->orb.t = pdata->t0[i];
       difft = SECPERDAY * (epoch - psr->orb.t);
-      psr->orb.p = pdata->pb[i] * SECPERDAY + \
-	pdata->pbdot[i] * difft * 1.0E-12;
-      psr->orb.pd = pdata->pbdot[i] * SECPERJULYR * 1.0E-12;
+      psr->orb.pd = pdata->pbdot[i] * 1.0E-12;
+      psr->orb.p = pdata->pb[i] * SECPERDAY + psr->orb.pd * difft;
       psr->orb.x = pdata->a1[i];
       psr->orb.e = pdata->e[i];
-      /* psr->orb.t is in seconds, _not_ MJD */
+      /* psr->orb.t is in seconds, _not_ MJD.  It represents the time    */
+      /*      in sec _since_ the last periastron passage, _not_ when the */
+      /*      next periastron will occur....                             */
       psr->orb.t = fmod(difft, psr->orb.p);
       if (psr->orb.t < 0.0)
 	psr->orb.t += psr->orb.p;

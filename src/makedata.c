@@ -68,8 +68,7 @@ int main(int argc, char *argv[])
   /* Determine the orbital phase adjustments if needed */
 
   if (mdata.binary) {
-    startE = keplars_eqn(mdata.orb.t, 1.0 / mdata.orb.p, \
-			 mdata.orb.e, 1.0E-15);
+    startE = keplars_eqn(mdata.orb.t, mdata.orb.p, mdata.orb.e, 1.0E-15);
     mdata.orb.w *= DEGTORAD;
     if (mdata.T > 2048) orbdt = 1.0;
     else orbdt = mdata.T / 2048.0;

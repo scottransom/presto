@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
 
   /* Prep the orbit integrator */
 
-  startE = keplars_eqn(orb.t, 1.0 / orb.p, orb.e, 1.0E-15);
+  startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
   if (endtime > 2048) orbdt = 2.0;
   else orbdt = endtime / 1024.0;
   numpoints = (long) floor(endtime/orbdt + 0.5) + 1;

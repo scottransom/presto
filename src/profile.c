@@ -207,7 +207,7 @@ int main(int argc, char **argv)
 									
       /* Save the orbital solution every half second */
 	
-      startE = keplars_eqn(orb.t, 1.0 / orb.p, orb.e, 1.0E-15);
+      startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
       if (endtime > 2048) orbdt = 0.5;
       else orbdt = endtime / 4096.0;
       numpoints = (long) floor(endtime/orbdt + 0.5) + 1;

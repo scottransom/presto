@@ -38,11 +38,11 @@ void dorbint(double *E, double Eo, double *t, double to, long numpts, \
 }
 
 
-double keplars_eqn(double t, double f_orb, double e, double Eacc)
+double keplars_eqn(double t, double p_orb, double e, double Eacc)
 {
 /* This routine solves Keplar's Equation at a single time t (sec) and  */
-/* returns the value of the eccentric anomaly.  The orbital frequency  */
-/* is in f_orb and the orbital eccentricity is in e.  Eacc is the      */
+/* returns the value of the eccentric anomaly.  The orbital period (s) */
+/* is in p_orb and the orbital eccentricity is in e.  Eacc is the      */
 /* absolute accuracy in E that we want to achieve.  t is the time in   */
 /* seconds since the last periapsis.                                   */
 
@@ -51,7 +51,7 @@ double keplars_eqn(double t, double f_orb, double e, double Eacc)
   double df, dE, dEold, f, fh, fl;
   double temp, Eh, El, rEs;
 
-  z = TWOPI * f_orb * t;
+  z = TWOPI * t / p_orb;
   fl = E1 - e * sin(E1) - z;
   fh = E2 - e * sin(E2) - z;
   if ((fl > 0.0 && fh > 0.0) || (fl < 0.0 && fh < 0.0)){
@@ -80,7 +80,7 @@ double keplars_eqn(double t, double f_orb, double e, double Eacc)
   dEold = fabs(E2 - E1);
   dE = dEold;
   f = rEs - e * sin(rEs) - z;
-  df = EDOT(rEs, TWOPI*f_orb, e);
+  df = EDOT(rEs, TWOPI/p_orb, e);
   for (j = 1; j <= MAXIT; j++) {
     if ((((rEs - Eh) * df - f) * ((rEs - El) * df - f) >= 0.0)
 	|| (fabs(2.0 * f) > fabs(dEold * df))) {
@@ -100,7 +100,7 @@ double keplars_eqn(double t, double f_orb, double e, double Eacc)
     if (fabs(dE) < Eacc)
       return rEs;
     f = rEs - e * sin(rEs) - z;
-    df = EDOT(rEs, TWOPI*f_orb, e);
+    df = EDOT(rEs, TWOPI/p_orb, e);
     if (f < 0.0)
       El = rEs;
     else
