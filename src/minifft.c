@@ -44,6 +44,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Prep the kernel if needed */
 
   if (firsttime || old_numspread != numspread){
+    if (!firsttime) free(kernel);
     kern_half_width = r_resp_halfwidth(LOWACC);
     numkern = 2 * numbetween * kern_half_width;
     kern = gen_r_response(0.0, numbetween, numkern);
