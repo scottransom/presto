@@ -27,6 +27,9 @@ FFTLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lsfftw
 
+# Other include directoried (i.e. glib.h)
+OTHERINCDIR = -I/usr/include/glib-1.2
+
 # The name of the library to produce
 PRESTOLIB = presto
 
@@ -47,7 +50,7 @@ PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 # For Pentium with GCC
 CC = gcc
 FC = g77
-CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-g -Wall -W -O2 -mcpu=pentiumpro -march=pentiumpro -fPIC

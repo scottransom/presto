@@ -21,6 +21,7 @@ int main(int argc, char *argv[])
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numchan=1, binary=0, numdelays=0, numbarypts=0;
   int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0;
+  int *maskchans=NULL, nummasked=0;
   long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0;
@@ -28,6 +29,7 @@ int main(int argc, char *argv[])
   foldstats beststats;
   prepfoldinfo search;
   Cmdline *cmd;
+  mask obsmask;
 
   /* Call usage() if we have no command line arguments */
 
@@ -39,6 +41,7 @@ int main(int argc, char *argv[])
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
+  obsmask.numchan = obsmask.numint = 0;
 
 #ifdef DEBUG
   showOptionValues();
@@ -561,7 +564,7 @@ int main(int argc, char *argv[])
       fprintf(filemarker, 
 	      "Folding (bary) epoch  (MJD)  =  %-17.11f\n", search.bepoch);
     fprintf(filemarker, 
-	    "Data pt duration (dt)   (s)  =  %-.12f\n", search.dt);
+	    "Data pt duration (dt)   (s)  =  %-.12g\n", search.dt);
     fprintf(filemarker, 
 	    "Total number of data points  =  %-.0f\n", N);
     fprintf(filemarker, 
@@ -582,13 +585,13 @@ int main(int argc, char *argv[])
 	      "Folding f-dotdot   (hz/s^2)  =  %-.8e\n", fdd);
     if (binary) {							
       fprintf(filemarker, 
-	      "Orbital period          (s)  =  %-.10f\n", search.orb.p);
+	      "Orbital period          (s)  =  %-.10g\n", search.orb.p);
       fprintf(filemarker, 
-	      "a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", search.orb.x);
+	      "a*sin(i)/c (x)     (lt-sec)  =  %-.10g\n", search.orb.x);
       fprintf(filemarker, 
-	      "Eccentricity                 =  %-.10f\n", search.orb.e);
+	      "Eccentricity                 =  %-.10g\n", search.orb.e);
       fprintf(filemarker, 
-	      "Longitude of peri (w) (deg)  =  %-.10f\n", 
+	      "Longitude of peri (w) (deg)  =  %-.10g\n", 
 	      search.orb.w / DEGTORAD); 
       fprintf(filemarker, 
 	      "Epoch of periapsis    (MJD)  =  %-17.11f\n", search.orb.t);
@@ -760,7 +763,8 @@ int main(int argc, char *argv[])
     for (jj = 0; jj < reads_per_part; jj++){
       if (cmd->pkmbP)
 	numread = read_PKMB_subbands(infiles, numfiles, data, 
-				     dispdts, cmd->nsub, &padding);
+				     dispdts, cmd->nsub, &padding,
+				     maskchans, &nummasked, &obsmask);
       else {
 	int mm;
 	float runavg=0.0;

@@ -145,6 +145,8 @@ int skip_to_PKMB_rec(FILE *infiles[], int numfiles, int rec)
   double floor_blk;
   int filenum=0;
 
+  if (rec < startblk_st[0])
+    rec += (startblk_st[0] - 1);
   if (rec > 0 && rec < endblk_st[numfiles-1]){
 
     /* Find which file we need */
@@ -467,9 +469,9 @@ void get_PKMB_channel(int channum, float chandat[],
 }
 
 
-int read_PKMB_subbands(FILE *infiles[], int numfiles, 
-		       float *data, double *dispdelays, int numsubbands,
-		       int *padding)
+int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
+		       double *dispdelays, int numsubbands, int *padding, 
+		       int *maskchans, int *nummasked, mask *obsmask)
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the PKMB system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -479,27 +481,51 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
 /* subband etc, with 'ptsperblk_st' floating points per subband. */
 /* It returns the # of points read if succesful, 0 otherwise.    */
 /* If padding is returned as 1, then padding was added and       */
-/* statistics should not be calculated                           */
+/* statistics should not be calculated.  'maskchans' is an array */
+/* of length numchans which contains a list of the number of     */
+/* channels that were masked.  The # of channels masked is       */
+/* returned in 'nummasked'.  'obsmask' is the mask structure     */
+/* to use for masking.                                           */
 {
-  int ii, numread, trtn;
+  int ii, jj, numread, trtn, offset;
+  double starttime=0.0;
   PKMB_tapehdr hdr;
   static unsigned char raw[DATLEN], *tempzz;
   static unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
   static unsigned char *currentdata, *lastdata, *move;
-  static int firsttime=1, move_size=0;
+  static int firsttime=1, move_size=0, mask=0;
+  static double timeperblk=0.0;
   
+  *nummasked = 0;
   if (firsttime) {
     if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding)){
       printf("Problem reading the raw PKMB data file.\n\n");
       return 0;
     }
+    if (obsmask->numchan) mask = 1;
     move_size = (ptsperblk_st + numsubbands) / 2;
     move = gen_bvect(move_size);
     currentdata = rawdata1;
     lastdata = rawdata2;
+    timeperblk = ptsperblk_st * dt_st;
+    if (mask){
+      starttime = currentblock * timeperblk;
+      *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+      if (*nummasked==-1) /* If all channels are masked */
+	memset(raw, padval, DATLEN);
+    }
     for (ii=0; ii<ptsperblk_st; ii++)
       convert_PKMB_point(raw + ii * bytesperpt_st, 
 			 currentdata + ii * numchan_st);
+    if (*nummasked > 0){ /* Only some of the channels are masked */
+      for (ii=0; ii<*nummasked; ii++)
+	chanmask[ii] = maskchans[ii] & 0x01;
+      for (ii=0; ii<ptsperblk_st; ii++){
+	offset = ii * numchan_st;
+	for (jj=0; jj<*nummasked; jj++)
+	  currentdata[offset+maskchans[jj]] = chanmask[jj];
+      }
+    }
     SWAP(currentdata, lastdata);
     firsttime=0;
   }
@@ -507,9 +533,24 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
   /* Read, convert and de-disperse */
 
   numread = read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding);
+  if (mask){
+    starttime = currentblock * timeperblk;
+    *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+    if (*nummasked==-1) /* If all channels are masked */
+      memset(raw, padval, DATLEN);
+  }
   for (ii=0; ii<ptsperblk_st; ii++)
     convert_PKMB_point(raw + ii * bytesperpt_st, 
 		       currentdata + ii * numchan_st);
+  if (*nummasked > 0){ /* Only some of the channels are masked */
+    for (ii=0; ii<*nummasked; ii++)
+      chanmask[ii] = maskchans[ii] & 0x01;
+    for (ii=0; ii<ptsperblk_st; ii++){
+      offset = ii * numchan_st;
+      for (jj=0; jj<*nummasked; jj++)
+	currentdata[offset+maskchans[jj]] = chanmask[jj];
+    }
+  }
   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
 		  dispdelays, numsubbands, data);
   SWAP(currentdata, lastdata);
