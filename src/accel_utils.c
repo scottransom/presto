@@ -960,6 +960,73 @@ GSList *search_ffdotpows(ffdotpows *ffdot, int numharm,
   return cands;
 }
 
+void deredden(fcomplex *fft, int numamps)
+/* Attempt to remove rednoise from a time series by using   */
+/* a median-filter of logarithmically increasing width.     */
+/* Thanks to Jason Hessels and Maggie Livingstone for the   */
+/* initial implementation (in rednoise.c)                   */
+{
+  int ii, initialbuflen=6, lastbuflen, newbuflen, maxbuflen=200;
+  int newoffset=1, fixedoffset=1;
+  float *powers, mean_old, mean_new;
+  double slope, lineval, scaleval=1.0, lineoffset=0;
+
+  powers = gen_fvect(numamps);
+  
+  /* Takes care of the DC term */ 
+  fft[0].r = 1.0;
+  fft[0].i = 0.0;
+  
+  /* Step through the input FFT and create powers */
+  for (ii=0; ii<numamps; ii++){
+    float powargr, powargi;
+    powers[ii] = POWER(fft[ii].r, fft[ii].i);
+  }
+
+  /* Calculate initial values */ 
+  mean_old = median(powers+newoffset, initialbuflen)/log(2.0);
+  newoffset += initialbuflen;
+  lastbuflen = initialbuflen;
+  newbuflen = initialbuflen*log(newoffset); 
+  if (newbuflen > maxbuflen) newbuflen = maxbuflen;
+  
+  while (newoffset+newbuflen < numamps){  
+    /* Calculate the next mean */ 
+    mean_new = median(powers+newoffset, newbuflen)/log(2.0);
+    //slope = (mean_new-mean_old)/(0.5*(newbuflen+lastbuflen));
+    slope = (mean_new-mean_old)/(newbuflen+lastbuflen);
+
+    /* Correct the previous segment */
+    lineoffset = 0.5*(newbuflen+lastbuflen);
+    for (ii=0; ii<lastbuflen; ii++){
+      lineval = mean_old + slope*(lineoffset-ii);
+      scaleval = 1.0/sqrt(lineval);
+      fft[fixedoffset+ii].r *= scaleval;
+      fft[fixedoffset+ii].i *= scaleval;
+    }
+
+    /* Update our values */
+    fixedoffset += lastbuflen;
+    lastbuflen = newbuflen;
+    mean_old = mean_new;
+    newoffset += lastbuflen;
+    newbuflen = initialbuflen*log(newoffset); 
+    if (newbuflen > maxbuflen) newbuflen = maxbuflen;
+  }
+
+  /* Scale the last (partial) chunk the same way as the last point */
+  
+  while (fixedoffset < numamps){
+    fft[fixedoffset].r *= scaleval;
+    fft[fixedoffset].i *= scaleval;
+    fixedoffset++;  
+  }
+
+  /* Free the powers */
+  free(powers);
+}
+
+
 void create_accelobs(accelobs *obs, infodata *idata, 
 		     Cmdline *cmd, int usemmap)
 {
@@ -1044,6 +1111,11 @@ void create_accelobs(accelobs *obs, infodata *idata,
     obs->fftfile = NULL;
     obs->fft = (fcomplex *)ftmp;
     obs->numbins = filelen/2;
+    printf("done.\n");
+
+    /* De-redden it*/
+    printf("Removing red-noise...");
+    deredden(obs->fft, obs->numbins);
     printf("done.\n\n");
   }
 
@@ -1100,7 +1172,7 @@ void create_accelobs(accelobs *obs, infodata *idata,
     /* For short FFTs insure that we don't pick up the DC */
     /* or Nyquist component as part of the interpolation  */
     /* for higher frequencies.                            */
-    if (obs->mmap_file || obs->dat_input){
+    if (obs->dat_input){
       obs->fft[0].r = 1.0;
       obs->fft[0].i = 1.0;
     }
