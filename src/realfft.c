@@ -215,7 +215,7 @@ int main(int argc, char *argv[])
     /* Close the input files and re-open them in write mode */
 
     fclose_multifile(datfile);
-    datfile = fopen_multifile(numfiles, datfilenms, "r+", 0);
+    datfile = fopen_multifile(numfiles, datfilenms, "r+", maxfilelen);
     tmpfile = fopen_multifile(numfiles, tmpfilenms, "w+", maxfilelen);
     if (isign==1) {
       realfft_scratch_inv(datfile, tmpfile, numdata);

@@ -16,7 +16,7 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
   rawtype *data, *dp;
   double tmp1, tmp2, h1r, h1i, h2r, h2i;
   double h2rwr, h2rwi, h2iwr, h2iwi;
-  double wtemp, wpi, wpr, wi, wr, theta=0.0, delta;
+  double wtemp, wpi, wpr, wpi2, wpr2, wi, wr, theta=0.0, delta;
 
   if (nn < 2)
     return;
@@ -175,14 +175,14 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     /* Use recursion formulas from Numerical Recipes.            */
 
     for (jj=0; jj<bb; jj++){
-      delta = (jj < bb2) ?
+      theta = (jj < bb2) ?
 	TWOPI * (ii + jj + 1) / (double) (nn >> 1) :
 	TWOPI * (n2 - ii - bb + jj) / (double) (nn >> 1);
-      wr = cos(delta);
-      wi = sin(delta);
-      wtemp = sin(0.5 * delta);
-      wpr = -2.0 * wtemp * wtemp;
-      wpi = wi;
+      wr = cos(theta);
+      wi = sin(theta);
+      wtemp = sin(0.5 * theta);
+      wpr2 = -2.0 * wtemp * wtemp;
+      wpi2 = wi;
       kind = jj * n1 + 1;
       for (kk=1; kk<n1; kk++, kind++){
 	tmp1 = data[kind].r;
@@ -190,8 +190,8 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
 	data[kind].r = tmp1 * wr - tmp2 * wi;
 	data[kind].i = tmp2 * wr + tmp1 * wi;
 	wtemp = wr;
-	wr = wtemp * wpr - wi * wpi + wr;
-	wi = wi * wpr + wtemp * wpi + wi;
+	wr = wtemp * wpr2 - wi * wpi2 + wr;
+	wi = wi * wpr2 + wtemp * wpi2 + wi;
       }
     }
     fseek_multifile(scratch, sizeof(rawtype) * \
@@ -237,7 +237,7 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     /* Scale and write the data */
 
     tmp1 = 2.0 / (double) nn;
-    for (jj=0; jj<n1*bb; jj++){
+    for (jj=0; jj<n2*bb; jj++){
       data[jj].r *= tmp1;
       data[jj].i *= tmp1;
     }

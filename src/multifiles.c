@@ -217,8 +217,8 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
 /*   'whence' is either SEEK_SET, SEEK_CUR, or SEEK_END. */
 /*   Note:  Return is 0 for success, -1 for failure      */
 {
-  int findex=0, rt;
-  long long cumlen=0;
+  int findex, rt;
+  long long cumlen=0, maxlen;
 
   if (whence==SEEK_SET){
     mfile->position = offset;
@@ -231,27 +231,53 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
       printf("\tValue for 'whence' was %d!\n\n", \
 	     whence);
   }
-  if (mfile->position < 0) 
-    mfile->position = 0;
-  if (mfile->position > mfile->maxfilelen * mfile->numfiles){
+  maxlen = mfile->maxfilelen * mfile->numfiles;
+  if (mfile->position > maxlen){
     printf("\nWarning in fseek_multifile():\n");
     printf(" Seeking beyond max file length.\n");
-    mfile->position = mfile->maxfilelen * mfile->numfiles;
+    mfile->position = maxlen;
+    findex = mfile->numfiles-1;
+    mfile->currentfile = findex;
+    mfile->currentpos = mfile->maxfilelen;
+    if ((rt = fseek(mfile->fileptrs[findex], 0, SEEK_END)) == -1) {
+      perror("\nError in fseek_multifile()");
+      printf("\n");
+    }
+    return rt;
   }
-  if (mfile->position == 0){
+  if (mfile->position <= 0){
+    findex = 0;
+    mfile->position = 0;
     mfile->currentfile = 0;
     mfile->currentpos = 0;
   } else {
-    while (cumlen < mfile->position){
-      cumlen += mfile->filelens[findex];
-      findex++;
+    /* Allow each file to be extended to mfile->maxfilelen */
+    /* if the file has been opened in write mode.          */
+    if (mfile->mode[0]=='w'){
+	findex = mfile->position / mfile->maxfilelen;
+	mfile->currentfile = findex;
+	mfile->currentpos = mfile->position - 
+	  findex * mfile->maxfilelen;
+    } else {
+      findex = -1;
+      while (cumlen <= mfile->position &&
+	     findex < mfile->numfiles-1){
+	findex++;
+	cumlen += mfile->filelens[findex];
+      }
+      /* Extend the last file (for files opened with */
+      /* any form of read access).                   */
+      if (cumlen < mfile->position){
+	findex = mfile->numfiles-1;
+	mfile->currentfile = findex;
+	mfile->currentpos = mfile->position - 
+	  findex * mfile->maxfilelen;
+      } else {
+	mfile->currentfile = findex;
+	mfile->currentpos = mfile->position - 
+	  (cumlen - mfile->filelens[findex]);
+      }
     }
-    findex--;
-    if (findex >= mfile->numfiles)
-      findex = mfile->numfiles - 1;
-    mfile->currentfile = findex;
-    mfile->currentpos = mfile->position - 
-      (cumlen - mfile->filelens[findex]);
   }
   if ((rt = fseek(mfile->fileptrs[findex], 
 		  mfile->currentpos, SEEK_SET)) == -1) {
