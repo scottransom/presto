@@ -208,15 +208,19 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       /* Make the DM vs subband plot */
 
       if (TEST_EQUAL(search->dms[ii], search->bestdm)){
-printf("xxxxxxxxxxxxxxxxxx\n");
+double *sumdmprof, dmavg=0, dmvar=0;
+sumdmprof = gen_dvect(search->proflen);
+
 	for (jj = 0; jj < search->nsub; jj++){
 
-	  /* Copy the subband parts into a single array */
+	  /* Copy the subband parts and stats into single arrays */
 	  
-	  for (kk = 0; kk < search->npart; kk++)
-	    memcpy(ddprofs + kk * search->proflen, search->rawfolds + 
-		   (kk * search->nsub + jj) * search->proflen, 
-		   sizeof(double) * search->proflen);
+	  for (kk = 0; kk < search->npart; kk++){
+	    ll = kk * search->nsub + jj;
+	    memcpy(ddprofs + kk * search->proflen, search->rawfolds + ll *
+		   search->proflen, sizeof(double) * search->proflen);
+	    ddstats[kk] = search->stats[ll];
+	  }	  
 	  
 	  /* Correct each part for the best pdot and the DM delay */
 	  
@@ -233,12 +237,24 @@ printf("xxxxxxxxxxxxxxxxxx\n");
 	  
 	  combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
 			totpdelay, currentprof, &currentstats);
-	  
+
 	  /* Place the profile into the DM array */
 	  
 	  double2float(currentprof, dmprofs + jj * search->proflen, 
 		       search->proflen);
+
+for (kk=0;kk<search->proflen;kk++) 
+  sumdmprof[kk] += currentprof[kk];
+printf("%d  avg = %f  var = %f  chi = %f\n", jj, currentstats.prof_avg,
+       currentstats.prof_var, currentstats.redchi);
+dmavg += currentstats.prof_avg;
+dmvar += currentstats.prof_var;
+
 	}
+
+printf("avg = %f  var = %f  sum chi = %f\n", dmavg, dmvar, chisqr(sumdmprof, search->proflen, dmavg, dmvar) / (search->proflen - 1.0));
+free(sumdmprof); 
+
       }
 
       combine_subbands(search->rawfolds, search->stats, search->npart, 
