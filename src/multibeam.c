@@ -19,6 +19,15 @@ static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 
 
+void set_PKMB_static(int ptsperblk, int bytesperpt, 
+		     int numchan, double dt){
+  ptsperblk_st = ptsperblk;
+  bytesperpt_st = bytesperpt;
+  numchan_st = numchan;
+  dt_st = dt;
+}
+
+
 void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
 			int *ptsperblock, int *numchan, double *dt, 
 			double *T, int output)
@@ -470,41 +479,32 @@ void get_PKMB_channel(int channum, float chandat[],
 }
 
 
-int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
+int prep_PKMB_subbands(unsigned char *rawdata, float *data, 
 		       double *dispdelays, int numsubbands, 
-		       int transpose, int *padding, 
-		       int *maskchans, int *nummasked, mask *obsmask)
-/* This routine reads a record from the input files *infiles[]   */
-/* which contain data from the PKMB system.  The routine uses    */
-/* dispersion delays in 'dispdelays' to de-disperse the data     */
-/* into 'numsubbands' subbands.  It stores the resulting data    */
-/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
-/* The low freq subband is stored first, then the next highest   */
-/* subband etc, with 'ptsperblk_st' floating points per subband. */
-/* It returns the # of points read if succesful, 0 otherwise.    */
-/* If padding is returned as 1, then padding was added and       */
-/* statistics should not be calculated.  'maskchans' is an array */
-/* of length numchans which contains a list of the number of     */
-/* channels that were masked.  The # of channels masked is       */
-/* returned in 'nummasked'.  'obsmask' is the mask structure     */
-/* to use for masking.  If 'transpose'==0, the data will be kept */
-/* in time order instead of arranged by subband as above.        */
+		       int transpose, int *maskchans, 
+		       int *nummasked, mask *obsmask)
+/* This routine preps a block from from the PKMB system.  It uses         */
+/* dispersion delays in 'dispdelays' to de-disperse the data into         */
+/* 'numsubbands' subbands.  It stores the resulting data in vector 'data' */
+/* of length 'numsubbands' * 'ptsperblk_st'.  The low freq subband is     */
+/* stored first, then the next highest subband etc, with 'ptsperblk_st'   */
+/* floating points per subband. It returns the # of points read if        */
+/* succesful, 0 otherwise.  'maskchans' is an array of length numchans    */
+/* which contains a list of the number of channels that were masked.  The */
+/* # of channels masked is returned in 'nummasked'.  'obsmask' is the     */
+/* mask structure to use for masking.  If 'transpose'==0, the data will   */
+/* be kept in time order instead of arranged by subband as above.         */
 {
-  int ii, jj, numread, trtn, offset;
+  int ii, jj, trtn, offset;
   double starttime=0.0;
-  PKMB_tapehdr hdr;
-  static unsigned char raw[DATLEN], *tempzz;
+  static unsigned char *tempzz;
   static unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0, mask=0;
   static double timeperblk=0.0;
   
   *nummasked = 0;
-  if (firsttime) {
-    if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding)){
-      printf("Problem reading the raw PKMB data file.\n\n");
-      return 0;
-    }
+  if (firsttime){
     if (obsmask->numchan) mask = 1;
     move_size = (ptsperblk_st + numsubbands) / 2;
     move = gen_bvect(move_size);
@@ -515,10 +515,10 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data,
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, padval, DATLEN);
+	memset(rawdata, padval, DATLEN);
     }
     for (ii=0; ii<ptsperblk_st; ii++)
-      convert_PKMB_point(raw + ii * bytesperpt_st, 
+      convert_PKMB_point(rawdata + ii * bytesperpt_st, 
 			 currentdata + ii * numchan_st);
     if (*nummasked > 0){ /* Only some of the channels are masked */
       for (ii=0; ii<*nummasked; ii++)
@@ -535,15 +535,14 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data,
 
   /* Read, convert and de-disperse */
 
-  numread = read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding);
   if (mask){
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
     if (*nummasked==-1) /* If all channels are masked */
-      memset(raw, padval, DATLEN);
+      memset(rawdata, padval, DATLEN);
   }
   for (ii=0; ii<ptsperblk_st; ii++)
-    convert_PKMB_point(raw + ii * bytesperpt_st, 
+    convert_PKMB_point(rawdata + ii * bytesperpt_st, 
 		       currentdata + ii * numchan_st);
   if (*nummasked > 0){ /* Only some of the channels are masked */
     for (ii=0; ii<*nummasked; ii++)
@@ -565,10 +564,39 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data,
 				move, move_size))<0)
       printf("Error %d in transpose_float().\n", trtn);
   }
-  if (numread)
-    return ptsperblk_st;
-  else
+  return ptsperblk_st;
+}
+
+
+int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
+		       double *dispdelays, int numsubbands, 
+		       int transpose, int *padding, 
+		       int *maskchans, int *nummasked, mask *obsmask)
+/* This routine reads a record from the input files *infiles[]   */
+/* which contain data from the PKMB system.  The routine uses    */
+/* dispersion delays in 'dispdelays' to de-disperse the data     */
+/* into 'numsubbands' subbands.  It stores the resulting data    */
+/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
+/* The low freq subband is stored first, then the next highest   */
+/* subband etc, with 'ptsperblk_st' floating points per subband. */
+/* It returns the # of points read if succesful, 0 otherwise.    */
+/* If padding is returned as 1, then padding was added and       */
+/* statistics should not be calculated.  'maskchans' is an array */
+/* of length numchans which contains a list of the number of     */
+/* channels that were masked.  The # of channels masked is       */
+/* returned in 'nummasked'.  'obsmask' is the mask structure     */
+/* to use for masking.  If 'transpose'==0, the data will be kept */
+/* in time order instead of arranged by subband as above.        */
+{
+  PKMB_tapehdr hdr;
+  static unsigned char raw[DATLEN];
+  
+  if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding)){
+    printf("Problem reading the raw PKMB data file.\n\n");
     return 0;
+  }
+  return prep_PKMB_subbands(raw, data, dispdelays, numsubbands, 
+			    transpose, maskchans, nummasked, obsmask);
 }
 
 

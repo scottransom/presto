@@ -64,6 +64,23 @@ void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
 void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
 
 
+void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs){
+  *bytesperpt = bytesperpt_st;
+  *bytesperblk = bytesperblk_st;
+  *numifs = numifs_st;
+}
+
+void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
+		     int numchan, int numifs, double dt){
+  ptsperblk_st = ptsperblk;
+  bytesperpt_st = bytesperpt;
+  bytesperblk_st = bytesperblk;
+  numchan_st = numchan;
+  numifs_st = numifs;
+  dt_st = dt;
+}
+
+
 int compare_findex(const void *ca, const void *cb)
 /* qsort comparison function for findex */
 {
@@ -1077,6 +1094,123 @@ void get_BPP_channel(int channum, float chandat[],
 }
 
 
+int prep_BPP_subbands(unsigned char *rawdata, float *data, 
+		      double *dispdelays, int numsubbands, 
+		      int transpose, int *maskchans, int *nummasked, 
+		      mask *obsmask, BPP_ifs ifs)
+/* This routine preps a block from the BPP system.  The routine uses      */
+/* dispersion delays in 'dispdelays' to de-disperse the data into         */
+/* 'numsubbands' subbands.  It stores the resulting data in vector 'data' */
+/* of length 'numsubbands' * 'ptsperblk_st'.  The low freq subband is     */
+/* stored first, then the next highest subband etc, with 'ptsperblk_st'   */
+/* floating points per subband.  It returns the # of points read if       */
+/* succesful, 0 otherwise.  'maskchans' is an array of length numchans    */
+/* which contains a list of the number of channels that were masked.  The */
+/* # of channels masked is returned in 'nummasked'.  'obsmask' is the     */
+/* mask structure to use for masking.  If 'transpose'==0, the data will   */
+/* be kept in time order instead of arranged by subband as above.  ifs is */
+/* which ifs to return (assuming both IFs have been recorded. Legal       */
+/* values are IF0, IF1, SUMIFS.                                           */
+{
+  int ii, jj, trtn, offset;
+  double starttime=0.0;
+  static unsigned char *tempzz, bytepadval;
+  static unsigned char rawdata1[MAXDATLEN], rawdata2[MAXDATLEN]; 
+  static unsigned char *currentdata, *lastdata, *move;
+  static int firsttime=1, move_size=0, mask=0;
+  static double timeperblk=0.0;
+  
+  *nummasked = 0;
+  if (firsttime) {
+    if (obsmask->numchan) mask = 1;
+    move_size = (ptsperblk_st + numsubbands) / 2;
+    move = gen_bvect(move_size);
+    currentdata = rawdata1;
+    lastdata = rawdata2;
+    timeperblk = ptsperblk_st * dt_st;
+    /* Put padval in the low and high nibbles */
+    bytepadval = (padval << 4) | padval;
+    if (mask){
+      starttime = currentblock * timeperblk;
+      *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+      if (*nummasked==-1) /* If all channels are masked */
+	memset(rawdata, bytepadval, bytesperblk_st);
+    }
+    if (numifs_st==2){
+      /* Choosing a single IF */
+      if (ifs==IF0 || ifs==IF1)
+	for (ii=0; ii<ptsperblk_st; ii++)
+	  convert_BPP_one_IF(rawdata + ii * bytesperpt_st, 
+			     currentdata + ii * numchan_st, ifs);
+      /* Sum the IFs */
+      else
+	for (ii=0; ii<ptsperblk_st; ii++)
+	  convert_BPP_sum_IFs(rawdata + ii * bytesperpt_st, 
+			      currentdata + ii * numchan_st);
+    } else {
+      /* Select the already summed IFs */
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_point(rawdata + ii * bytesperpt_st, 
+			  currentdata + ii * numchan_st);
+    }
+    if (*nummasked > 0){ /* Only some of the channels are masked */
+      for (ii=0; ii<ptsperblk_st; ii++){
+	offset = ii * numchan_st;
+	for (jj=0; jj<*nummasked; jj++)
+	  currentdata[offset+maskchans[jj]] = padval;
+      }
+    }
+    SWAP(currentdata, lastdata);
+    firsttime=0;
+  }
+
+  /* Read, convert and de-disperse */
+
+  if (mask){
+    starttime = currentblock * timeperblk;
+    *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+    if (*nummasked==-1) /* If all channels are masked */
+      memset(rawdata, bytepadval, bytesperblk_st);
+  }
+  if (numifs_st==2){
+    /* Choosing a single IF */
+    if (ifs==IF0 || ifs==IF1)
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_one_IF(rawdata + ii * bytesperpt_st, 
+			   currentdata + ii * numchan_st, ifs);
+    /* Sum the IFs */
+    else
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_sum_IFs(rawdata + ii * bytesperpt_st, 
+			    currentdata + ii * numchan_st);
+  } else {
+    /* Select the already summed IFs */
+    for (ii=0; ii<ptsperblk_st; ii++)
+      convert_BPP_point(rawdata + ii * bytesperpt_st, 
+			currentdata + ii * numchan_st);
+  }
+  if (*nummasked > 0){ /* Only some of the channels are masked */
+    for (ii=0; ii<ptsperblk_st; ii++){
+      offset = ii * numchan_st;
+      for (jj=0; jj<*nummasked; jj++)
+	currentdata[offset+maskchans[jj]] = padval;
+    }
+  }
+  dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
+		  dispdelays, numsubbands, data);
+  SWAP(currentdata, lastdata);
+
+  /* Transpose the data into vectors in the result array */
+
+  if (transpose){
+    if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
+				move, move_size))<0)
+      printf("Error %d in transpose_float().\n", trtn);
+  }
+  return ptsperblk_st;
+}
+
+
 int read_BPP_subbands(FILE *infiles[], int numfiles, float *data, 
 		      double *dispdelays, int numsubbands, 
 		      int transpose, int *padding, 
@@ -1100,112 +1234,21 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
 /* ifs is which ifs to return (assuming both IFs have been       */
 /* recorded. Legal values are IF0, IF1, SUMIFS.                  */
 {
-  int ii, jj, numread, trtn, offset;
-  double starttime=0.0;
-  static unsigned char *raw, *tempzz, bytepadval;
-  static unsigned char rawdata1[MAXDATLEN], rawdata2[MAXDATLEN]; 
-  static unsigned char *currentdata, *lastdata, *move;
-  static int firsttime=1, move_size=0, mask=0;
-  static double timeperblk=0.0;
+  static unsigned char *rawdata;
+  static int firsttime=1;
   
-  *nummasked = 0;
   if (firsttime) {
-    if (obsmask->numchan) mask = 1;
-    move_size = (ptsperblk_st + numsubbands) / 2;
-    move = gen_bvect(move_size);
-    raw = gen_bvect(bytesperblk_st);
-    currentdata = rawdata1;
-    lastdata = rawdata2;
-    timeperblk = ptsperblk_st * dt_st;
-    if (!read_BPP_rawblock(infiles, numfiles, raw, padding)){
-      printf("Problem reading the raw BPP data file.\n\n");
-      return 0;
-    }
-    /* Put padval in the low and high nibbles */
-    bytepadval = (padval << 4) | padval;
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, bytesperblk_st);
-    }
-    if (numifs_st==2){
-      /* Choosing a single IF */
-      if (ifs==IF0 || ifs==IF1)
-	for (ii=0; ii<ptsperblk_st; ii++)
-	  convert_BPP_one_IF(raw + ii * bytesperpt_st, 
-			     currentdata + ii * numchan_st, ifs);
-      /* Sum the IFs */
-      else
-	for (ii=0; ii<ptsperblk_st; ii++)
-	  convert_BPP_sum_IFs(raw + ii * bytesperpt_st, 
-			      currentdata + ii * numchan_st);
-    } else {
-      /* Select the already summed IFs */
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_BPP_point(raw + ii * bytesperpt_st, 
-			  currentdata + ii * numchan_st);
-    }
-    if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<ptsperblk_st; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
-      }
-    }
-    SWAP(currentdata, lastdata);
-    firsttime=0;
+    rawdata = gen_bvect(bytesperblk_st);
+    firsttime = 0;
   }
-
-  /* Read, convert and de-disperse */
-
-  numread = read_BPP_rawblock(infiles, numfiles, raw, padding);
-  if (mask){
-    starttime = currentblock * timeperblk;
-    *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-    if (*nummasked==-1) /* If all channels are masked */
-      memset(raw, bytepadval, bytesperblk_st);
-  }
-  if (numifs_st==2){
-    /* Choosing a single IF */
-    if (ifs==IF0 || ifs==IF1)
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_BPP_one_IF(raw + ii * bytesperpt_st, 
-			   currentdata + ii * numchan_st, ifs);
-    /* Sum the IFs */
-    else
-      for (ii=0; ii<ptsperblk_st; ii++)
-	convert_BPP_sum_IFs(raw + ii * bytesperpt_st, 
-			    currentdata + ii * numchan_st);
-  } else {
-    /* Select the already summed IFs */
-    for (ii=0; ii<ptsperblk_st; ii++)
-      convert_BPP_point(raw + ii * bytesperpt_st, 
-			currentdata + ii * numchan_st);
-  }
-  if (*nummasked > 0){ /* Only some of the channels are masked */
-    for (ii=0; ii<ptsperblk_st; ii++){
-      offset = ii * numchan_st;
-      for (jj=0; jj<*nummasked; jj++)
-	currentdata[offset+maskchans[jj]] = padval;
-    }
-  }
-  dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
-		  dispdelays, numsubbands, data);
-  SWAP(currentdata, lastdata);
-
-  /* Transpose the data into vectors in the result array */
-
-  if (transpose){
-    if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-				move, move_size))<0)
-      printf("Error %d in transpose_float().\n", trtn);
-  }
-  if (numread)
-    return ptsperblk_st;
-  else
+  if (!read_BPP_rawblock(infiles, numfiles, rawdata, padding)){
+    printf("Problem reading the raw BPP data file.\n\n");
     return 0;
+  }
+  return prep_BPP_subbands(rawdata, data, dispdelays, numsubbands, 
+			   transpose, maskchans, nummasked, obsmask, ifs);
 }
+
 
 void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
 			BPP_ifs ifs)

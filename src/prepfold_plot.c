@@ -2,7 +2,7 @@
 #include "plot2d.h"
 #include "float.h" 
 
-#define JUST_GREYSCALE 0
+/* #define JUST_GREYSCALE 0 */
 
 #define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
 (fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \

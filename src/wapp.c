@@ -27,6 +27,22 @@ static void vanvleck3lev(float *rho, int npts);
 static void vanvleck9lev(float *rho, int npts);
 static float clip_sigma_st=0.0;
 
+void get_WAPP_static(int *bytesperpt, int *bytesperblk, float *clip_sigma){
+  *bytesperpt = bytesperpt_st;
+  *bytesperblk = bytesperblk_st;
+  *clip_sigma = clip_sigma_st;
+}
+
+void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk, 
+		     int numchan, double clip_sigma, double dt){
+  ptsperblk_st = ptsperblk;
+  bytesperpt_st = bytesperpt;
+  bytesperblk_st = bytesperblk;
+  numchan_st = numchan;
+  clip_sigma_st = clip_sigma;
+  dt_st = dt;
+}
+
 /* NEW Clipping Routine (uses channel running averages) */
 int new_clip_times(unsigned char *rawpows)
 /* Perform time-domain clipping of WAPP data. This routine */
@@ -1097,27 +1113,23 @@ void get_WAPP_channel(int channum, float chandat[],
 }
 
 
-int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data, 
+int prep_WAPP_subbands(unsigned char *rawdata, float *data, 
 		       double *dispdelays, int numsubbands, 
-		       int transpose, int *padding, 
-		       int *maskchans, int *nummasked, mask *obsmask)
-/* This routine reads a record from the input files *infiles[]   */
-/* which contain data from the WAPP system.  The routine uses    */
-/* dispersion delays in 'dispdelays' to de-disperse the data     */
-/* into 'numsubbands' subbands.  It stores the resulting data    */
-/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
-/* The low freq subband is stored first, then the next highest   */
-/* subband etc, with 'ptsperblk_st' floating points per subband. */
-/* It returns the # of points read if succesful, 0 otherwise.    */
-/* If padding is returned as 1, then padding was added and       */
-/* statistics should not be calculated.  'maskchans' is an array */
-/* of length numchans which contains a list of the number of     */
-/* channels that were masked.  The # of channels masked is       */
-/* returned in 'nummasked'.  'obsmask' is the mask structure     */
-/* to use for masking.  If 'transpose'==0, the data will be kept */
-/* in time order instead of arranged by subband as above.        */
+		       int transpose, int *maskchans, 
+		       int *nummasked, mask *obsmask)
+/* This routine preps a block from the WAPP system.  The routine uses     */
+/* dispersion delays in 'dispdelays' to de-disperse the data into         */
+/* 'numsubbands' subbands.  It stores the resulting data in vector 'data' */
+/* of length 'numsubbands' * 'ptsperblk_st'.  The low freq subband is     */
+/* stored first, then the next highest subband etc, with 'ptsperblk_st'   */
+/* floating points per subband.  It returns the # of points read if       */
+/* succesful, 0 otherwise.  'maskchans' is an array of length numchans    */
+/* which contains a list of the number of channels that were masked.  The */
+/* # of channels masked is returned in 'nummasked'.  'obsmask' is the     */
+/* mask structure to use for masking.  If 'transpose'==0, the data will   */
+/* be kept in time order instead of arranged by subband as above.         */
 {
-  int ii, jj, numread, trtn, offset;
+  int ii, jj, trtn, offset;
   double starttime=0.0;
   static unsigned char *tempzz;
   static unsigned char rawdata1[WAPP_MAXDATLEN], rawdata2[WAPP_MAXDATLEN]; 
@@ -1132,11 +1144,8 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
     move = gen_bvect(move_size);
     currentdata = rawdata1;
     lastdata = rawdata2;
+    memcpy(currentdata, rawdata, bytesperblk_st);
     timeperblk = ptsperblk_st * dt_st;
-    if (!read_WAPP_rawblock(infiles, numfiles, currentdata, padding)){
-      printf("Problem reading the raw WAPP data file.\n\n");
-      return 0;
-    }
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
@@ -1156,7 +1165,7 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 
   /* Read and de-disperse */
 
-  numread = read_WAPP_rawblock(infiles, numfiles, currentdata, padding);
+  memcpy(currentdata, rawdata, bytesperblk_st);
   if (mask){
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
@@ -1181,10 +1190,38 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 				move, move_size))<0)
       printf("Error %d in transpose_float().\n", trtn);
   }
-  if (numread)
-    return ptsperblk_st;
-  else
+  return ptsperblk_st;
+}
+
+
+int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data, 
+		       double *dispdelays, int numsubbands, 
+		       int transpose, int *padding, 
+		       int *maskchans, int *nummasked, mask *obsmask)
+/* This routine reads a record from the input files *infiles[]   */
+/* which contain data from the WAPP system.  The routine uses    */
+/* dispersion delays in 'dispdelays' to de-disperse the data     */
+/* into 'numsubbands' subbands.  It stores the resulting data    */
+/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
+/* The low freq subband is stored first, then the next highest   */
+/* subband etc, with 'ptsperblk_st' floating points per subband. */
+/* It returns the # of points read if succesful, 0 otherwise.    */
+/* If padding is returned as 1, then padding was added and       */
+/* statistics should not be calculated.  'maskchans' is an array */
+/* of length numchans which contains a list of the number of     */
+/* channels that were masked.  The # of channels masked is       */
+/* returned in 'nummasked'.  'obsmask' is the mask structure     */
+/* to use for masking.  If 'transpose'==0, the data will be kept */
+/* in time order instead of arranged by subband as above.        */
+{
+  static unsigned char rawdata[WAPP_MAXDATLEN]; 
+
+  if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding)){
+    printf("Problem reading the raw WAPP data file.\n\n");
     return 0;
+  }
+  return prep_WAPP_subbands(rawdata, data, dispdelays, numsubbands, 
+			    transpose, maskchans, nummasked, obsmask);
 }
 
 
