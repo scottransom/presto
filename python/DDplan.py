@@ -219,10 +219,9 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
     print "Best guess for optimal initial dDM is %.3f" % dDM
     while (allow_dDMs[index_dDMs+1] < ff*dDM):
         index_dDMs += 1
-    start_dDM = allow_dDMs[index_dDMs]
 
     # Create the first method
-    methods = [dedisp_method(obs, downsamp, loDM, hiDM, start_dDM)]
+    methods = [dedisp_method(obs, downsamp, loDM, hiDM, allow_dDMs[index_dDMs])]
     numDMs = [methods[-1].numDMs]
    
     # Calculate the next methods
@@ -258,7 +257,7 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
     work_fracts = asarray(work_fracts)/sum(work_fracts)
 
     # The optimal smearing
-    tot_smear = total_smear(DMs, start_dDM, obs.dt, obs.f_ctr,
+    tot_smear = total_smear(DMs, allow_dDMs[0], obs.dt, obs.f_ctr,
                             obs.BW, obs.numchan, allow_dsubDMs[0], 0)
     # Plot them
     plotxy(log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
@@ -296,24 +295,24 @@ if __name__=='__main__':
     # for a "best" resolution GBT search using the SPIGOT
     # Check out how many DMs you need!  Cool.  ;-)
     #                    dt     f_ctr   BW  numchan
-    obs = observation(0.00008192, 350.0, 50.0, 2048)
+    #obs = observation(0.00008192, 350.0, 50.0, 2048)
 
     # The following function creates the de-dispersion plan
     # The ok_smearing values is optional and allows you to raise the floor
     # and provide a level of smearing that you are willing to accept (in ms)
     #        loDM  hiDM    obs
-    dm_steps(0.0, 500.0, obs, ok_smearing=0.3) # Create an X-window is the default
+    #dm_steps(0.0, 500.0, obs, ok_smearing=0.3) # Create an X-window is the default
     #dm_steps(0.0, 500.0, obs, ok_smearing=0.3, device="GBT_350_DD.ps/CPS")
 
     # Example for 1st generation ALFA survey
-    obs = observation(0.000064, 1450.0, 100.0, 256)
-    dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
+    #obs = observation(0.000064, 1450.0, 100.0, 256)
+    #dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
     #dm_steps(0.0, 1500.0, obs, device="ALFA_DD.ps/CPS")
 
-    # Example for Parkes EGRET survey
-    obs = observation(0.000125, 1390.0, 288.0, 96)
-    dm_steps(0.0, 450.0, obs, ok_smearing=0.7) # Create an X-window is the default
-    #dm_steps(0.0, 450.0, obs, device="EGRET_DD.ps/CPS")
+    # Example for Parkes survey
+    obs = observation(0.000250, 1374.0, 288.0, 96)
+    dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
+    #dm_steps(0.0, 1500.0, obs, device="PKMB_DD.ps/CPS")
 
 
 
