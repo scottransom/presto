@@ -13,7 +13,7 @@ static int TOMS_gcd(int a, int b)
   return a;
 }
 
-short TOMS_transpose_2d(float *a, int nx, int ny, char *move, 
+short TOMS_transpose_2d(float *a, int nx, int ny, unsigned char *move, 
 			int move_size)
 /*
  * TOMS Transpose.  Revised version of algorithm 380.
