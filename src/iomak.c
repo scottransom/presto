@@ -80,8 +80,11 @@ void read_mak_input(makedata *mdata)
   }
   mdata->p = 1.0 / mdata->f;
   mdata->pd = - mdata->fd / (mdata->f * mdata->f);
-  mdata->pdd = (2 * mdata->fd * mdata->fd / mdata->f - \
-		mdata->fdd) / mdata->f * mdata->f;
+  if (mdata->fdd==0.0)
+    mdata->pdd = 0.0;
+  else 
+    mdata->pdd = (2 * mdata->fd * mdata->fd / mdata->f - \
+		  mdata->fdd) / mdata->f * mdata->f;
   mdata->r = mdata->f * mdata->T;
   mdata->z = mdata->fd * mdata->T * mdata->T;
   mdata->w = mdata->fdd * mdata->T * mdata->T * mdata->T;
@@ -261,8 +264,11 @@ void read_mak_file(char basefilenm[], makedata *mdata)
   fscanf(makefile, "%*[^=]= %lf", &mdata->fdd);
   mdata->p = 1.0 / mdata->f;
   mdata->pd = - mdata->fd / (mdata->f * mdata->f);
-  mdata->pdd = (2 * mdata->fd * mdata->fd / mdata->f - \
-		mdata->fdd) / mdata->f * mdata->f;
+  if (mdata->fdd==0.0)
+    mdata->pdd = 0.0;
+  else
+    mdata->pdd = (2 * mdata->fd * mdata->fd / mdata->f - \
+		  mdata->fdd) / mdata->f * mdata->f;
   mdata->r = mdata->f * mdata->T;
   mdata->z = mdata->fd * mdata->T * mdata->T;
   mdata->w = mdata->fdd * mdata->T * mdata->T * mdata->T;

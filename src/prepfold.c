@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double dtmp, recdt=0.0, orb_baryepoch=0.0, barydispdt;
-  double N=0.0, T=0.0, endtime=0.0, avgvoverc=0.0, proftime;
+  double N=0.0, T=0.0, endtime=0.0, proftime;
   double *obsf=NULL, *dispdts=NULL, *parttimes, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL;
   char *plotfilenm, *outfilenm, *rootnm;
@@ -629,13 +629,12 @@ int main(int argc, char *argv[])
 
     /* Determine the avg v/c of the Earth's motion during the obs */
 
-    avgvoverc = 0.0;
     for (ii = 0 ; ii < numbarypts - 1 ; ii++)
-      avgvoverc += voverc[ii];
-    avgvoverc /= (numbarypts - 1.0);
+      search.avgvoverc += voverc[ii];
+    search.avgvoverc /= (numbarypts - 1.0);
     free(voverc);
     printf("The average topocentric velocity is %.3g (units of c).\n\n", 
-	   avgvoverc);
+	   search.avgvoverc);
     printf("Barycentric folding frequency    (hz)  =  %-.12f\n", f);
     printf("Barycentric folding f-dot      (hz/s)  =  %-.8e\n", fd);
     printf("Barycentric folding f-dotdot (hz/s^2)  =  %-.8e\n", fdd);
@@ -671,9 +670,15 @@ int main(int argc, char *argv[])
       for (ii = 0 ; ii < numdelays ; ii++)
 	tp[ii] = (tp[ii] - dtmp) * SECPERDAY;
     }
-    free(barytimes);
-    free(topotimes);
   }
+
+  /* Record the f, fd, and fdd we used to do the raw folding */
+
+  if (idata.bary)
+    search.fold.pow = 1.0;
+  search.fold.p1 = foldf;
+  search.fold.p2 = foldfd;
+  search.fold.p3 = foldfdd;
 
   /* If this is 'raw' radio data, determine the dispersion delays */
 
@@ -683,15 +688,18 @@ int main(int argc, char *argv[])
     
     obsf = gen_dvect(numchan);
     obsf[0] = idata.freq;
+    search.numchan = numchan;
+    search.lofreq = idata.freq;
+    search.chan_wid = idata.chan_wid;
     for (ii = 0; ii < numchan; ii++)
       obsf[ii] = obsf[0] + ii * idata.chan_wid;
     if (!cmd->nobaryP){
       for (ii = 0; ii < numchan; ii++)
-	obsf[ii] = doppler(obsf[ii], avgvoverc);
+	obsf[ii] = doppler(obsf[ii], search.avgvoverc);
     } 
     dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
 				    idata.freq, idata.chan_wid, 
-				    avgvoverc); 
+				    search.avgvoverc); 
 
     /* Convert the delays in seconds to delays in bins */
 
@@ -838,7 +846,7 @@ int main(int argc, char *argv[])
 	hifdelay = delay_from_dm(search.dms[ii], obsf[numchan - 1]);
 	subbanddelays = subband_delays(numchan, cmd->nsub, 
 				       search.dms[ii], idata.freq, 
-				       idata.chan_wid, avgvoverc);
+				       idata.chan_wid, search.avgvoverc);
 	for (jj = 0; jj < cmd->nsub; jj++)
 	  dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
 				 dphase + 0.5)) % search.proflen;
@@ -937,7 +945,75 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
     free(currentprof);
   }
 
-  printf("Done searching.\nMaking plots.\n\n");
+  printf("Done searching.\n\n");
+
+  printf("Maximum reduced chi-squared found  =  %-.5f\n", 
+	 beststats.redchi);
+  if (cmd->nsub > 1)
+    printf("Best DM  =  %-.4f\n", search.bestdm);
+
+  /* Convert best params from/to barycentric to/from topocentric */
+  
+  if (cmd->nobaryP){
+    printf("Best period        (s)  =  %-.15f\n", 
+	   search.bary.p1);
+    printf("Best p-dot       (s/s)  =  %-.10e\n", 
+	   search.bary.p2);
+    printf("Best p-dotdot  (s/s^2)  =  %-.10e\n", 
+	   search.bary.p3);
+  } else {
+    if (idata.bary){
+      printf("Best barycentric period        (s)  =  %-.15f\n", 
+	     search.bary.p1);
+      printf("Best barycentric p-dot       (s/s)  =  %-.10e\n", 
+	     search.bary.p2);
+      printf("Best barycentric p-dotdot  (s/s^2)  =  %-.10e\n", 
+	     search.bary.p3);
+      
+      /* Convert the barycentric folding parameters into topocentric */
+      
+      switch_f_and_p(search.bary.p1, search.bary.p2, search.bary.p3,
+		     &f, &fd, &fdd);
+      if ((info=bary2topo(topotimes, barytimes, numbarypts, 
+			  f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
+	printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
+      switch_f_and_p(foldf, foldfd, foldfdd, 
+		     &search.topo.p1, &search.topo.p2, &search.topo.p3);
+
+      printf("Best topocentric period        (s)  =  %-.15f\n", 
+	     search.topo.p1);
+      printf("Best topocentric p-dot       (s/s)  =  %-.10e\n", 
+	     search.topo.p2);
+      printf("Best topocentric p-dotdot  (s/s^2)  =  %-.10e\n", 
+	     search.topo.p3);
+    } else {
+      printf("Best topocentric period        (s)  =  %-.15f\n", 
+	     search.topo.p1);
+      printf("Best topocentric p-dot       (s/s)  =  %-.10e\n", 
+	     search.topo.p2);
+      printf("Best topocentric p-dotdot  (s/s^2)  =  %-.10e\n", 
+	     search.topo.p3);
+
+      /* Convert the barycentric folding parameters into topocentric */
+      
+      switch_f_and_p(search.topo.p1, search.topo.p2, search.topo.p3,
+		     &f, &fd, &fdd);
+      if ((info=bary2topo(barytimes, topotimes, numbarypts, 
+			  f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
+	printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
+      switch_f_and_p(foldf, foldfd, foldfdd, 
+		     &search.bary.p1, &search.bary.p2, &search.bary.p3);
+
+      printf("Best barycentric period        (s)  =  %-.15f\n", 
+	     search.bary.p1);
+      printf("Best barycentric p-dot       (s/s)  =  %-.10e\n", 
+	     search.bary.p2);
+      printf("Best barycentric p-dotdot  (s/s^2)  =  %-.10e\n", 
+	     search.bary.p3);
+    }
+  } 
+  
+  printf("\nMaking plots.\n\n");
 
   /*
    *   Plot our results

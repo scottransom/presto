@@ -1087,7 +1087,6 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin,
 /* Return the Fourier frequency and Fourier f-dot that      */ 
 /* maximizes the power.                                     */
 
-
 %apply double* IN_1D_DOUBLE { double *prof, 
 			      double *delays, 
 			      double *delaytimes, 

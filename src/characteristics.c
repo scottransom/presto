@@ -369,7 +369,10 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result)
   result->perr = T * props->rerr / r2;
   result->pd = -props->z / r2;
   result->pderr = sqrt(4 * z2 * sr2 / (r4 * r2) + sz2 / r4);
-  result->pdd = (2 * z2 - props->r * props->w) / (T * r2 * props->r);
+  if (props->w==0.0)
+    result->pdd = 0.0;
+  else 
+    result->pdd = (2 * z2 - props->r * props->w) / (T * r2 * props->r);
   result->pdderr = sqrt((props->werr * props->werr * r4 + 16 * sz2 * r2 + \
 			4 * tmp * tmp * sr2) / (r4 * r4 * T2));
 }
@@ -479,7 +482,10 @@ void switch_f_and_p(double in, double ind, double indd,
   *out = 1.0 / in;
   dtmp = in * in;
   *outd = -ind / dtmp;
-  *outdd = 2.0 * ind * ind / (dtmp * in) - indd / dtmp;
+  if (indd==0.0)
+    *outdd = 0.0;
+  else
+    *outdd = 2.0 * ind * ind / (dtmp * in) - indd / dtmp;
 }
 
 

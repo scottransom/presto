@@ -383,7 +383,10 @@ def p_to_f(p, pd, pdd):
    """
    f = 1.0 / p
    fd = -pd / (p * p)
-   fdd = 2.0 * pd * pd / (p**3.0) - pdd / (p * p)
+   if (pdd==0.0):
+      fdd = 0.0
+   else:
+      fdd = 2.0 * pd * pd / (p**3.0) - pdd / (p * p)
    return [f, fd, fdd]
 
    

@@ -21,7 +21,7 @@ int read_floats(FILE *file, float *data, int numpts,
 
 void fold_errors(double *prof, int proflen, double dt, double N, 
 		 double datavar, double p, double pd, double pdd, 
-		 double *perr, double *pderr, double *pdderr){
+		 double *perr, double *pderr, double *pdderr)
 /* Calculate estimates for the errors in period p-dot and   */
 /* p-dotdot using Middleditch's error formula.  The routine */
 /* calculates the errors for each Fourier harmonic present  */
@@ -39,47 +39,88 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 /*      'pdd' is the folding period 2nd dervivative         */
 /*      'perr' is the returned period error                 */
 /*      'pderr' is the returned p-dot error                 */
-/*      'pderr' is the returned p-dotdot error              */
+/*      'pdderr' is the returned p-dotdot error             */
+{
   int ii;
-  double T, pwr, norm, hferr, hfderr, hfdderr;
-  double r, z, w;
+  double T, T2, pwr, norm, sigpow=6.6, r2, r4, z2, sr2, sz2;
+  double dtmp, r, z, w, rerr=0.0, zerr=0.0, werr=0.0;
+  float powargr, powargi;
   fcomplex *fftprof;
 
   /* Total length in time of data set */
 
-  T = datanum * dt;
+  T = N * dt;
 
   /* Convert p, pd, and pdd into r, z, and w */
 
+  dtmp = p * p;
+  T2 = T * T;
   r = T / p;
-  z = -pd * r * r;
+  z = T2 * -pd / dtmp;
+  if (pdd==0.0)
+    w = 0.0;
+  else 
+    w = T2 * T * (2.0 * pd * pd / (dtmp * p) - pdd / dtmp);
 
-  /* calculate the normalization constant which converts the raw */
+  /* Calculate the normalization constant which converts the raw */
   /* powers into normalized powers -- just as if we had FFTd the */
   /* full data set.                                              */
 
-  norm = 1.0 / (datanum * datavar);
+  norm = 1.0 / (N * datavar);
 
   /* Place the profile into a complex array */
 
   fftprof = gen_cvect(proflen);
   for (ii = 0; ii < proflen; ii++){
     fftprof[ii].r = (float) prof[ii];
-    fftprof[ii].r = 0.0;
+    fftprof[ii].i = 0.0;
   }
 
   /* FFT the profile */
 
   COMPLEXFFT(fftprof, proflen, -1);
 
-  /* Step through the powers and find the significant ones */
+  /* Step through the powers and find the significant ones.  */
+  /* Estimate the error of the fundamental using each one.   */
+  /* Combine these errors into a unified error of the freq.  */
 
-  for (ii = 0; ii < proflen; ii++){
+  ii = 1;
+  for (ii = 1; ii < proflen / 2; ii++){
     pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
-    if (pwr > 3.0){
-      hferr
+    if (pwr > sigpow){
+      dtmp = 3.0 / ((PI * sqrt(6.0 * pwr)) * ii);
+      rerr += 1.0 / (dtmp * dtmp);
+      dtmp = 3.0 * sqrt(10.0) / ((PI * sqrt(pwr)) * ii);
+      zerr += 1.0 / (dtmp * dtmp);
+      dtmp = 6.0 * sqrt(105.0) / ((PI * sqrt(pwr) * ii));
+      werr += 1.0 / (dtmp * dtmp);
     }
   }
+
+  /* Calculate the standard deviations */
+
+  rerr = sqrt(1.0 / rerr);
+  zerr = sqrt(1.0 / zerr);
+  werr = sqrt(1.0 / werr);
+
+  /* Some useful values */
+
+  r2 = r * r;
+  sr2 = rerr * rerr;
+  r4 = r2 * r2;
+  z2 = z * z;
+  sz2 = zerr * zerr;
+  dtmp = r * w - 3 * z2;
+
+  /* Convert the standard deviations to periods */
+  
+  *perr = T * rerr / r2;
+  *pderr = sqrt(4 * z2 * sr2 / (r4 * r2) + sz2 / r4);
+  *pdderr = sqrt((werr * werr * r4 + 16 * sz2 * r2 + \
+		  4 * dtmp * dtmp * sr2) / (r4 * r4 * T2));
+
+  /* Free our FFT array */
+
   free(fftprof);
 }
 
@@ -140,13 +181,17 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->nsub = 0;
   in->npart = 0;
   in->proflen = 0;
+  in->numchan = 1;
   in->filenm = NULL;
   in->candnm = NULL;
   in->telescope = NULL;
   in->pgdev = NULL;
+  in->dt = 0.0;
   in->tepoch = 0.0;
   in->bepoch = 0.0;
-  in->dt = 0.0;
+  in->avgvoverc = 0.0;
+  in->lofreq = 0.0;
+  in->chan_wid = 0.0;
   in->bestdm = 0.0;
   in->topo.pow = 0.0;
   in->topo.p1 = 0.0;
@@ -156,6 +201,10 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->bary.p1 = 0.0;
   in->bary.p2 = 0.0;
   in->bary.p3 = 0.0;
+  in->fold.pow = 0.0;
+  in->fold.p1 = 0.0;
+  in->fold.p2 = 0.0;
+  in->fold.p3 = 0.0;
   in->orb.p = 0.0;
   in->orb.e = 0.0;
   in->orb.x = 0.0;
@@ -179,3 +228,13 @@ void delete_prepfoldinfo(prepfoldinfo *in)
   free(in->telescope);
   free(in->pgdev);
 }
+
+void double2float(double *in, float *out, int numpts)
+/* Copy a double vector into a float vector */
+{
+  int ii;
+
+  for (ii = 0; ii < numpts; ii++)
+    out[ii] = (float) in[ii];
+}
+

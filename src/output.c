@@ -266,8 +266,13 @@ void print_candidate(fourierprops * cand, double dt, long N, \
   /*  Calculate values for "period" format: */
 
   p = 1.0 / f;
-  pd = -fd / (f2 = f * f);
-  pdd = (2.0 * (fd2 = fd * fd) / f - fdd) / f2;
+  f2 = f * f;
+  pd = -fd / f2;
+  fd2 = fd * fd;
+  if (fdd==0.0)
+    pdd = 0.0;
+  else
+    pdd = (2.0 * fd2 / f - fdd) / f2;
   perr = ferr / f2;
   pderr = sqrt(4.0 * fd2 * ferr * ferr / f2 + (fderr2 = fderr * fderr)) / f2;
   temp = (-6.0 * fd2 / f2 + 2.0 * fd / f) * ferr;
