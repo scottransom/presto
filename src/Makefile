@@ -6,9 +6,9 @@
 DATABASE = "$(PRESTO)/lib"
 
 # Path to PGPLOT includes
-PGPLOTINCDIR = 
+PGPLOTINCDIR = -I$(PGPLOT_DIR)
 # Path to PGPLOT libraries
-PGPLOTLIBDIR = -L/users/sransom/lib
+PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
 PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -ldl
 
@@ -21,14 +21,14 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I/users/sransom/include
+FFTINCDIR = -I/usr/local/include
 # Path to FFT libraries
-FFTLIBDIR = -L/users/sransom/lib
+FFTLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lfftw3f
 
 # Other include directoried (i.e. glib.h)
-OTHERINCDIR = -I/users/sransom/include/glib-1.2
+OTHERINCDIR = -I/usr/include/glib-1.2
 
 # Use the following if we are using DMALLOC
 #DMALLOCLINK = -ldmalloc
@@ -42,16 +42,16 @@ CLIG = /usr/bin/clig
 # For Pentium or Athlon with GCC
 # For Pentium3 or Pentium4s, use -march=pentiumpro
 # For Athlons use -march=k6 or -march=k7
-CC = gcc
-FC = g77
+CC = gcc-3.4
+FC = g77-3.4
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -O2 -march=pentium4 -Wall -W
-#	-g -pg -O2 -march=athlon -Wall -W
+	-g -O3 -ffast-math -march=athlon-xp -mfpmath=sse -msse -mmmx -m3dnow -Wall -W
+#	-g -O2 -march=pentium4 -Wall -W
 #  
 CLINKFLAGS = $(CFLAGS)
-FFLAGS = -g -O2 -march=pentium4
+FFLAGS = -g -O3 -ffast-math -march=athlon-xp -mfpmath=sse -msse -mmmx -m3dnow 
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
@@ -109,7 +109,7 @@ PRESTOOBJS = amoeba.o barycenter.o birdzap.o cand_output.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o\
 	fitsfile.o hget.o hput.o imio.o
 
-INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o spigot.o
+INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o spigot.o sigproc_fb.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
@@ -152,7 +152,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
-	dump_spigot_zerolag
+	dump_spigot_zerolag spigot2filterbank
 
 xwin: psrorbit window plotbincand profile \
 	prepfold show_pfd\
@@ -236,6 +236,9 @@ prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plo
 
 dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o
 	$(CC) $(CLINKFLAGS) -o $@ dump_spigot_zerolag.o spigot.o $(PRESTOLINK) -lm
+
+spigot2filterbank: spigot2filterbank.o spigot.o sigproc_fb.o
+	$(CC) $(CLINKFLAGS) -o $@ spigot2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
 
 show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm

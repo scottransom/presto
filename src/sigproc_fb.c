@@ -3,19 +3,21 @@
 #include "sigproc_fb.h"
 
 #define MAXNUMCHAN 2048
-#define BLOCKLEN   1000
+#define BLOCKLEN   1024
+#define MAXFBFILES 10
 
 /* All of the following have an _st to indicate static */
-static *sigprocfb;
-static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
-static int numblks_st[MAXPATCHFILES], need_byteswap_st=0, sampperblk_st;
+static sigprocfb fb_st[MAXFBFILES];
+static infodata idata_st[MAXFBFILES];
+static long long numpts_st[MAXFBFILES], padpts_st[MAXFBFILES], N_st;
+static int numblks_st[MAXFBFILES], need_byteswap_st=0, sampperblk_st;
 static int numchan_st, ptsperblk_st, bytesperpt_st=1, bytesperblk_st;
-static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
-static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
-static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
-static infodata idata_st[MAXPATCHFILES];
+static double times_st[MAXFBFILES], mjds_st[MAXFBFILES];
+static double elapsed_st[MAXFBFILES], T_st, dt_st;
+static double startblk_st[MAXFBFILES], endblk_st[MAXFBFILES];
+static infodata idata_st[MAXFBFILES];
 static unsigned char padvals[MAXNUMCHAN], padval=128;
-static short sdatabuffer[MAXNUMCHAN*BLOCKLEN];
+static int rawdatabuffer[MAXNUMCHAN*BLOCKLEN];
 static unsigned char databuffer[MAXNUMCHAN*BLOCKLEN];
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
@@ -44,10 +46,13 @@ static void get_string(FILE *inputfile, int *nbytes, char string[])
   *nbytes+=nchar;
 }
 
-static void send_float(char *name, float floating_point, FILE *outfile)
+static int strings_equal (char *string1, char *string2)
 {
-  send_string(name, outfile);
-  chkfwrite(&floating_point,sizeof(float),1,outfile);
+  if (!strcmp(string1,string2)) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 static void send_double (char *name, double double_precision, FILE *outfile)
@@ -105,7 +110,7 @@ static char *telescope_name(int telescope_id)
     strcpy(string,"???????"); 
     break;
   }
-  telescope=(char *)calloc(strlen(string)+1);
+  telescope=(char *)calloc(strlen(string)+1, 1);
   strcpy(telescope,string);
   return telescope;
 }
@@ -142,11 +147,12 @@ static char *backend_name(int machine_id)
     strcpy(string,"????");
     break;
   }
-  backend=(char *)calloc(strlen(string)+1);
+  backend=(char *)calloc(strlen(string)+1, 1);
   strcpy(backend,string);
   return backend;
 }
 
+/*
 static char *data_category(int data_type)
 {
   char *datatype, string[80];
@@ -176,10 +182,11 @@ static char *data_category(int data_type)
     strcpy(string,"unknown!");
     break;
   }
-  datatype=(char *)calloc(strlen(string)+1);
+  datatype=(char *)calloc(strlen(string)+1, 1);
   strcpy(datatype,string);
   return datatype;
 }
+*/
 
 void write_filterbank_header(sigprocfb *fb, FILE *outfile)
 {
@@ -188,7 +195,7 @@ void write_filterbank_header(sigprocfb *fb, FILE *outfile)
   if (fb->machine_id!=0) {
     send_string("HEADER_START",outfile);
     send_string("rawdatafile",outfile);
-    send_string(fb->inpfile);
+    send_string(fb->inpfile,outfile);
     if (!strings_equal(fb->source_name,"")){
       send_string("source_name",outfile);
       send_string(fb->source_name,outfile);
@@ -200,7 +207,7 @@ void write_filterbank_header(sigprocfb *fb, FILE *outfile)
     send_double("fch1",fb->fch1,outfile);
     send_double("foff",fb->foff,outfile);
     send_int("nchans",fb->nchans,outfile);
-    send_int("nbits",fb->obits,outfile);
+    send_int("nbits",fb->nbits,outfile);
     send_double("tstart",fb->tstart,outfile);
     send_double("tsamp",fb->tsamp,outfile);
     if (fb->sumifs){
@@ -217,11 +224,10 @@ void write_filterbank_header(sigprocfb *fb, FILE *outfile)
 }
 
 /* attempt to read in the general header info from a pulsar data file */
-int read_filterbank_header(sigprocfb *fb, FILE *inputfile) /* includefile */
+int read_filterbank_header(sigprocfb *fb, FILE *inputfile)
 {
   char string[80], message[80];
   int itmp,nbytes,totalbytes,expecting_rawdatafile=0,expecting_source_name=0; 
-  int expecting_frequency_table=0,channel_index;
   /* try to read in the first line of the header */
   get_string(inputfile,&nbytes,string);
   if (!strings_equal(string,"HEADER_START")) {
@@ -275,23 +281,20 @@ int read_filterbank_header(sigprocfb *fb, FILE *inputfile) /* includefile */
       chkfread(&(fb->machine_id),sizeof(int),1,inputfile);
       totalbytes+=sizeof(int);
     } else if (strings_equal(string,"data_type")) {
-      chkfread(&(fb->data_type),sizeof(int),1,inputfile);
+      chkfread(&itmp,sizeof(int),1,inputfile);
       totalbytes+=sizeof(int);
     } else if (strings_equal(string,"nbits")) {
       chkfread(&(fb->nbits),sizeof(int),1,inputfile);
       totalbytes+=sizeof(int);
-    } else if (strings_equal(string,"nbins")) {
-      chkfread(&(fb->nbins),sizeof(int),1,inputfile);
-      totalbytes+=sizeof(int);
     } else if (strings_equal(string,"nsamples")) {
       /* read this one only for backwards compatibility */
-      chkfread(&(fb->itmp),sizeof(int),1,inputfile);
+      chkfread(&itmp,sizeof(int),1,inputfile);
       totalbytes+=sizeof(int);
     } else if (strings_equal(string,"nifs")) {
       chkfread(&(fb->nifs),sizeof(int),1,inputfile);
       totalbytes+=sizeof(int);
     } else if (expecting_rawdatafile) {
-      strcpy(fb->rawdatafile,string);
+      strcpy(fb->inpfile,string);
       expecting_rawdatafile=0;
     } else if (expecting_source_name) {
       strcpy(fb->source_name,string);
@@ -304,12 +307,48 @@ int read_filterbank_header(sigprocfb *fb, FILE *inputfile) /* includefile */
   } 
   /* add on last header string */
   totalbytes+=nbytes;
-
   /* return total number of bytes read */
   fb->headerlen = totalbytes;
+  /* Calculate the number of samples in the file */
+  fb->N = (chkfilelen(inputfile, 1)-fb->headerlen)/fb->nchans*8/fb->nbits;
   return totalbytes;
 }
 
+
+void print_filterbank_header(sigprocfb *fb)
+/* Output a SIGPROC filterbank header in human readable form */
+{
+  char *ctmp;
+  
+  printf("\n        Header size (bytes) = %d\n", fb->headerlen);
+  ctmp = telescope_name(fb->telescope_id);
+  printf("                  Telescope = %s (%d)\n", ctmp, fb->telescope_id);
+  free(ctmp);
+  ctmp = backend_name(fb->machine_id);
+  printf("                 Instrument = %s (%d)\n", ctmp, fb->machine_id);
+  free(ctmp);
+  printf("                Source Name = %s\n", fb->source_name);
+  printf("   Original input file name = '%s'\n", fb->inpfile);
+  printf("             MJD start time = %.12f\n", fb->tstart);
+  printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", fb->src_raj);
+  printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", fb->src_dej);
+  printf("          Number of samples = %lld\n", fb->N);
+  printf("        File duration (sec) = %-17.15g\n", fb->N*fb->tsamp);
+  printf("                T_samp (us) = %-17.6g\n", fb->tsamp*1e6);
+  printf("    High channel freq (MHz) = %-17.15g\n", fb->fch1);
+  printf("         Central freq (MHz) = %-17.15g\n", fb->fch1+(fb->nchans/2-0.5)*fb->foff); 
+  printf("         Number of channels = %d\n", fb->nchans);
+  printf("    Channel Bandwidth (MHz) = %-17.15g\n", fb->foff);
+  printf("      Total Bandwidth (MHz) = %-17.15g\n", fabs(fb->foff*fb->nchans));
+  printf("      Number of IFs present = %d\n", fb->nifs);
+  printf("            Bits per sample = %d\n", fb->nbits);
+  if (fb->az_start!=0.0)
+    printf("        Start azimuth (deg) = %.3f\n", fb->az_start);
+  if (fb->za_start!=0.0)
+    printf("   Start zenith angle (deg) = %.3f\n", fb->za_start);
+  if (fb->sumifs)
+    printf(" Note:  IFs were summed in hardware.\n");
+}
 
 void get_filterbank_static(int *bytesperpt, int *bytesperblk, float *clip_sigma){
   *bytesperpt = bytesperpt_st;
@@ -348,116 +387,56 @@ void set_filterbank_padvals(float *fpadvals, int good_padvals)
 }
 
 
-void filterbank_hdr_to_inf(char *datfilenm, infodata *idata)
-/* Convert filterbank header into an infodata structure */
+void sigprocfb_to_inf(sigprocfb *fb, infodata *idata)
+/* Convert filterbank header structure into an infodata structure */
 {
-  FILE *hdrfile;
-  double ss;
-  char line[200], ctmp[100], project[20], date[20];
-  char *hdrfilenm;
-  int numantennas, hh, mm, cliplen;
-
-  hdrfilenm = calloc(strlen(datfilenm)+1, 1);
-  cliplen = strlen(datfilenm)-3;
-  strncpy(hdrfilenm, datfilenm, cliplen);
-  strcpy(hdrfilenm+cliplen, "hdr");
-  hdrfile = chkfopen(hdrfilenm, "r");
-  while(fgets(line, 200, hdrfile)){
-    if (line[0]=='#'){
-      continue;
-    } else if (strncmp(line, "Site            ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", idata->telescope);
-    } else if (strncmp(line, "Observer        ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", idata->observer);
-    } else if (strncmp(line, "Proposal        ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", project);
-    } else if (strncmp(line, "Array Mode      ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", idata->instrument);
-    } else if (strncmp(line, "Observing Mode  ", 16)==0){
-      continue;
-    } else if (strncmp(line, "Date            ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", date);
-    } else if (strncmp(line, "Num Antennas    ", 16)==0){
-      sscanf(line,  "%*[^:]: %d\n", &numantennas);
-    } else if (strncmp(line, "Antenna List    ", 16)==0){
-      continue;
-    } else if (strncmp(line, "Num Channels    ", 16)==0){
-      sscanf(line,  "%*[^:]: %d\n", &idata->num_chan);
-    } else if (strncmp(line, "Channel width   ", 16)==0){
-      sscanf(line,  "%*[^:]: %lf\n", &idata->chan_wid);
-    } else if (strncmp(line, "Frequency Ch.1  ", 16)==0){
-      sscanf(line,  "%*[^:]: %lf\n", &idata->freq);
-    } else if (strncmp(line, "Sampling Time   ", 16)==0){
-      sscanf(line,  "%*[^:]: %lf\n", &idata->dt);
-      idata->dt /= 1000000.0;  /* Convert from us to s */
-    } else if (strncmp(line, "Num bits/sample ", 16)==0){
-      continue;
-    } else if (strncmp(line, "Data Format     ", 16)==0){
-      if (strstr(line, "little")){
-	/* printf("Found 'little'  and %d\n", MACHINE_IS_LITTLE_ENDIAN); */
-	if (MACHINE_IS_LITTLE_ENDIAN)
-	  need_byteswap_st = 0;
-	else
-	  need_byteswap_st = 1;
-      } else {
-	/* printf("Didn't find 'little' and %d\n", MACHINE_IS_LITTLE_ENDIAN); */
-	if (MACHINE_IS_LITTLE_ENDIAN)
-	  need_byteswap_st = 1;
-	else
-	  need_byteswap_st = 0;
-      }
-      /* printf("need_byteswap_st = %d\n", need_byteswap_st); */
-    } else if (strncmp(line, "Polarizations   ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", ctmp);
-      if (strcmp(ctmp, "Total I")){
-	printf("\nWarning:  Cannot handle data with other than "\
-	       "'Total I' polarization.\n   Data is '%s'\n", ctmp);
-      }
-    } else if (strncmp(line, "MJD             ", 16)==0){
-      sscanf(line,  "%*[^:]: %d\n", &idata->mjd_i);
-    } else if (strncmp(line, "UTC             ", 16)==0){
-      sscanf(line,  "%*[^:]: %d:%d:%lf\n", &hh, &mm, &ss);
-      idata->mjd_f = (hh+(mm+ss/60.0)/60.0)/24.0;
-    } else if (strncmp(line, "Source          ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", idata->object);
-    } else if (strncmp(line, "Coordinates     ", 16)==0){
-      sscanf(line,  "%*[^:]: %d:%d:%lf, %d:%d:%lf\n", \
-	     &idata->ra_h, &idata->ra_m, &idata->ra_s, \
-	     &idata->dec_d, &idata->dec_m, &idata->dec_s);
-    } else if (strncmp(line, "Coordinate Sys  ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", ctmp);
-      if (strcmp(ctmp, "J2000")){
-	printf("\nWarning:  Cannot non-J2000 coordinates!\n"\
-	       "   Data is '%s'\n", ctmp);
-      }
-    } else if (strncmp(line, "Drift Rate      ", 16)==0){
-      continue;
-    } else if (strncmp(line, "Obs. Length     ", 16)==0){
-      continue;
-    } else if (strncmp(line, "Bad Channels    ", 16)==0){
-      sscanf(line,  "%*[^:]: %[^\n]\n", ctmp);
-    } else {
-      continue;
-    }
-  }
-  idata->freqband = idata->chan_wid * idata->num_chan;
-  idata->dm = 0.0;
-  idata->N = 0.0;
-  idata->numonoff = 0;
+  char *tmpstr, ctmp[500];
+  strncpy(idata->name, fb->inpfile, 80);
+  strncpy(idata->object, fb->source_name, 80);
+  idata->ra_h = (int) floor(fb->src_raj/10000.0);
+  idata->ra_m = (int) floor((fb->src_raj - idata->ra_h*10000)/100.0);
+  idata->ra_s = fb->src_raj - idata->ra_h*10000 - idata->ra_m*100;
+  idata->dec_d = (int) floor(fabs(fb->src_dej)/10000.0);
+  idata->dec_m = (int) floor((fabs(fb->src_dej) - idata->dec_d*10000)/100.0);
+  idata->dec_s = fabs(fb->src_dej) - idata->dec_d*10000 - idata->dec_m*100;
+  if (fb->src_dej < 0.0)
+    idata->dec_d = -idata->dec_d;
+  tmpstr = telescope_name(fb->telescope_id);
+  strcpy(idata->telescope, tmpstr);
+  free(tmpstr);
+  tmpstr = backend_name(fb->machine_id);
+  strcpy(idata->instrument, tmpstr);
+  free(tmpstr);
+  idata->mjd_i = (int)floor(fb->tstart);
+  idata->mjd_f = fb->tstart - idata->mjd_i;
+  idata->dt = fb->tsamp;
+  idata->N = (double)fb->N;
+  idata->chan_wid = fabs(fb->foff);
+  idata->num_chan = fb->nchans;
+  idata->freqband = idata->chan_wid*idata->num_chan;
+  idata->freq = fb->fch1 - (idata->num_chan-1)*idata->chan_wid;
+  idata->fov = 1.2*SOL*3600.0/(1000000.0*idata->freq*300.0*DEGTORAD);
   idata->bary = 0;
-  idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 45 * DEGTORAD);
+  idata->numonoff = 0;
+  idata->dm = 0.0;
   strcpy(idata->band, "Radio");
   strcpy(idata->analyzer, "Scott Ransom");
-  sprintf(idata->notes, "%d antenna observation for Project %s\n"\
-	  "    UT Date at file start = %s\n"\
-	  "    Bad channels: %s\n", numantennas, project, date, ctmp);
-  fclose(hdrfile);
-  free(hdrfilenm);
+  strcpy(idata->observer, "Unknown");
+  if (fb->sumifs)
+    sprintf(ctmp,
+	    "  %d IF(s) were summed.  Filterbank samples have %d bits.\n",
+	    fb->nifs, fb->nbits);
+  else
+    sprintf(ctmp, 
+	    "  %d IF(s) were not summed.  Filterbank samples have %d bits.\n",
+	    fb->nifs, fb->nbits);
+  sprintf(idata->notes, "%s  Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n",
+	  ctmp, fb->az_start, fb->za_start);
 }
 
 
-void get_filterbank_file_info(FILE *files[], char *datfilenms[], int numfiles, 
-			      float clipsig, long long *N, int *ptsperblock, int *numchan, 
+void get_filterbank_file_info(FILE *files[], int numfiles, float clipsig, 
+			      long long *N, int *ptsperblock, int *numchan, 
 			      double *dt, double *T, int output)
 /* Read basic information into static variables and make padding        */
 /* calculations for a set of filterbank rawfiles that you want to patch */
@@ -465,17 +444,24 @@ void get_filterbank_file_info(FILE *files[], char *datfilenms[], int numfiles,
 /* the files with the required padding.  If output is true, prints      */
 /* a table showing a summary of the values.                             */
 {
-  int ii;
+  int ii, headerlen;
 
-  if (numfiles > MAXPATCHFILES){
+  if (numfiles > MAXFBFILES){
     printf("\nThe number of input files (%d) is greater than \n", numfiles);
-    printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
+    printf("   MAXFBFILES=%d.  Exiting.\n\n", MAXFBFILES);
     exit(0);
   }
-  filterbank_hdr_to_inf(datfilenms[0], &idata_st[0]);
-  /* Are we going to clip the data? */
-  if (clipsig > 0.0)
-    clip_sigma_st = clipsig;
+  headerlen = read_filterbank_header(&(fb_st[0]), files[0]);
+  if (fb_st[0].nbits!=8){
+    printf("\nThe number of bits per sample (%d) does not equal 8!", fb_st[0].nbits);
+    printf("   Exiting.\n\n");
+    exit(0);
+  } else {
+    bytesperpt_st = 1;
+  }
+  sigprocfb_to_inf(fb_st+0, idata_st+0);
+  chkfseek(files[0], fb_st[0].headerlen, SEEK_SET);
+  if (clipsig > 0.0) clip_sigma_st = clipsig;
   *numchan = numchan_st = idata_st[0].num_chan;
   *ptsperblock = ptsperblk_st = BLOCKLEN;
   sampperblk_st = ptsperblk_st * numchan_st;
@@ -487,11 +473,13 @@ void get_filterbank_file_info(FILE *files[], char *datfilenms[], int numfiles,
   times_st[0] = numpts_st[0] * dt_st;
   mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
   elapsed_st[0] = 0.0;
-  startblk_st[0] = 0;
+  startblk_st[0] = 1;
   endblk_st[0] = numblks_st[0] - 1;
   padpts_st[0] = padpts_st[numfiles-1] = 0;
   for (ii=1; ii<numfiles; ii++){
-    filterbank_hdr_to_inf(datfilenms[ii], &idata_st[ii]);
+    headerlen = read_filterbank_header(&(fb_st[ii]), files[ii]);
+    sigprocfb_to_inf(fb_st+ii, idata_st+ii);
+    chkfseek(files[ii], fb_st[ii].headerlen, SEEK_SET);
     if (idata_st[ii].num_chan != numchan_st){
       printf("Number of channels (file %d) is not the same!\n\n", ii+1);
     }
@@ -508,7 +496,7 @@ void get_filterbank_file_info(FILE *files[], char *datfilenms[], int numfiles,
 				  dt_st + 0.5);
     elapsed_st[ii] += elapsed_st[ii-1];
     N_st += numpts_st[ii] + padpts_st[ii-1];
-    startblk_st[ii] = (double) (N_st-numpts_st[ii])/ptsperblk_st;
+    startblk_st[ii] = (double) (N_st-numpts_st[ii])/ptsperblk_st + 1;
     endblk_st[ii] = (double) (N_st)/ptsperblk_st - 1;
   }
   padpts_st[numfiles-1] = ((long long) ceil(endblk_st[numfiles-1]+1.0) * \
@@ -518,12 +506,20 @@ void get_filterbank_file_info(FILE *files[], char *datfilenms[], int numfiles,
   *T = T_st = N_st * dt_st;
   currentfile = currentblock = 0;
   if (output){
-    printf("  Number of files = %d\n", numfiles);
-    printf("     Points/block = %d\n", ptsperblk_st);
-    printf("  Num of channels = %d\n", numchan_st);
-    printf(" Total points (N) = %lld\n", N_st);
-    printf(" Sample time (dt) = %-14.14g\n", dt_st);
-    printf("   Total time (s) = %-14.14g\n\n", T_st);
+    char *ctmp;
+    ctmp = telescope_name(fb_st[0].telescope_id);
+    printf("         Telescope = %s (%d)\n", ctmp, fb_st[0].telescope_id);
+    free(ctmp);
+    ctmp = backend_name(fb_st[0].machine_id);
+    printf("        Instrument = %s (%d)\n", ctmp, fb_st[0].machine_id);
+    free(ctmp);
+    printf("   Number of files = %d\n", numfiles);
+    printf("      Points/block = %d\n", ptsperblk_st);
+    printf("   Num of channels = %d\n", numchan_st);
+    printf("  Total points (N) = %lld\n", N_st);
+    printf("  Sample time (dt) = %-14.14g\n", dt_st);
+    printf("    Total time (s) = %-14.14g\n\n", T_st);
+    printf(" Header length (B) = %d\n", headerlen);
     printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)
@@ -569,8 +565,8 @@ void filterbank_update_infodata(int numfiles, infodata *idata)
 
 int skip_to_filterbank_rec(FILE *infiles[], int numfiles, int rec)
 /* This routine skips to the record 'rec' in the input files     */
-/* *infiles.  *infiles contains 1 bit digitized data from the    */
-/* filterbank backend at Parkes.  Returns the record skipped to. */
+/* *infiles.  *infiles contains SIGPROC format data.             */
+/* Returns the record skipped to.                                */
 {
   double floor_blk;
   int filenum=0, ii;
@@ -608,7 +604,7 @@ int skip_to_filterbank_rec(FILE *infiles[], int numfiles, int rec)
     } else {  /* Data region */
       currentfile = filenum;
       chkfileseek(infiles[currentfile], rec - startblk_st[filenum], 
-		  bytesperblk_st, SEEK_SET);
+		  bytesperblk_st, SEEK_CUR);
       bufferpts = (int)((startblk_st[filenum] - floor_blk) * ptsperblk_st + 0.5);
       padnum = 0;
       /*
@@ -633,7 +629,7 @@ int read_filterbank_rawblock(FILE *infiles[], int numfiles,
 /* If padding is returned as 1, then padding was */
 /* added and statistics should not be calculated */
 {
-  int offset, numtopad=0, ii;
+  int offset, numtopad=0;
   unsigned char *dataptr=data;
 
   /* If our buffer array is offset from last time */
@@ -654,14 +650,13 @@ int read_filterbank_rawblock(FILE *infiles[], int numfiles,
 
   /* First, attempt to read data from the current file */
   
-  if (chkfread(sdatabuffer, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
+  if (chkfread((unsigned char *)rawdatabuffer, bytesperblk_st, 1, 
+	       infiles[currentfile])){ /* Got Data */
     /* See if we need to byte-swap and if so, doit */
     if (need_byteswap_st){
-      short *sptr = sdatabuffer;
-      for (ii=0; ii<sampperblk_st; ii++, sptr++)
-	*sptr = swap_short(*sptr);
+      /* Need to add this later */
     }
-    convert_filterbank_block(sdatabuffer, dataptr);
+    convert_filterbank_block(rawdatabuffer, dataptr);
     *padding = 0;
     /* Put the new data into the databuffer if needed */
     if (bufferpts)
@@ -798,7 +793,7 @@ int read_filterbank(FILE *infiles[], int numfiles, float *data,
   if (allocd){
     while (1){
       numread = read_filterbank_rawblocks(infiles, numfiles, currentdata, 
-				    numblocks, padding);
+					  numblocks, padding);
       if (mask){
 	starttime = currentblock * timeperblk;
 	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
@@ -933,9 +928,9 @@ int prep_filterbank_subbands(unsigned char *rawdata, float *data,
 
 
 int read_filterbank_subbands(FILE *infiles[], int numfiles, float *data, 
-		       double *dispdelays, int numsubbands, 
-		       int transpose, int *padding, 
-		       int *maskchans, int *nummasked, mask *obsmask)
+			     double *dispdelays, int numsubbands, 
+			     int transpose, int *padding, 
+			     int *maskchans, int *nummasked, mask *obsmask)
 /* This routine reads a record from the input files *infiles[]   */
 /* in SIGPROC filterbank format.  The routine uses               */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -968,7 +963,7 @@ int read_filterbank_subbands(FILE *infiles[], int numfiles, float *data,
     firsttime = 0;
   }
   if (!read_filterbank_rawblock(infiles, numfiles, rawdata, padding)){
-    printf("Problem reading the raw filterbank data file.\n\n");
+    /* printf("Problem reading the raw filterbank data file.\n\n"); */
     return 0;
   }
   return prep_filterbank_subbands(rawdata, data, dispdelays, numsubbands, 
@@ -976,17 +971,23 @@ int read_filterbank_subbands(FILE *infiles[], int numfiles, float *data,
 }
 
 
-void convert_filterbank_block(short *indata, unsigned char *outdata)
-/* This routine converts 16 bit digitized data into bytes */
+void convert_filterbank_block(int *indata, unsigned char *outdata)
+/* This routine converts SIGPROC filterbank-format data into PRESTO format */
 {
-  int ii;
-  short inval;
+  int ii, jj, samp_ct, offset;
 
-  /* Note:  The LSB is the GPS bit.  The other bit that we throw */
-  /*        away is actually significant.  But we need a byte... */
-
-  for(ii=0; ii<numchan_st*ptsperblk_st; ii++){
-    inval = ~indata[ii] >> 2;
-    outdata[ii] = (inval > 255) ? 255 : inval;
+  if (bytesperpt_st==1){
+    unsigned char *chardata=(unsigned char *)indata;
+    for (samp_ct=0; samp_ct<ptsperblk_st; samp_ct++){
+      offset = samp_ct*numchan_st;
+      for (ii=0, jj=numchan_st-1; ii<numchan_st; ii++, jj--)
+	outdata[ii+offset] = chardata[jj+offset];
+    }
+  } else if (bytesperpt_st==2){
+    printf("Can't handle 2-byte data yet!\n");
+  } else if (bytesperpt_st==4){
+    printf("Can't handle 4-byte data yet!\n");
+  } else {
+    printf("\nYikes!!! Not supposed to be here in convert_filterbank_block()\n\n");
   }
 }
