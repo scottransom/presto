@@ -33,7 +33,7 @@ Sample code:
 #include <string.h>
 #include "presto.h"
 
-static double f0[30],z4[30],rphase[30],mjdmid[30],mjd1mid[30],coeff[30][15];
+static double f0[100],z4[100],rphase[100],mjdmid[100],mjd1mid[100],coeff[100][15];
 static int isets,nblk,ncoeff,icurr;
 
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr);
@@ -95,11 +95,11 @@ char *make_polycos(char *parfilenm, infodata *idata)
 
 
  
-int getpoly(double mjd, double *dm, FILE *fp, char *pname)
+int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname)
 {
  
 /*
-  Given name,mjd returns coeffs and dm
+  Given pname, mjd, and duration (days).  returns coeffs and dm
   Reads polynomial coeffs for current source and time from polyco.dat.
   DM and binary phase info added 23 Apr 90 (new version TZ)
   Puts out two sets of mjdmids for better precision. 16 Nov 1996.
@@ -110,7 +110,7 @@ int getpoly(double mjd, double *dm, FILE *fp, char *pname)
   char dummy[3][30];
   char buffer[160];
   double aphi0b[30],adphib[30];
-  double dm0,z40;
+  double dm0,z40,mjdend;
   float r,tfreq;
   long int mjddummy;
   int binary;
@@ -119,6 +119,7 @@ int getpoly(double mjd, double *dm, FILE *fp, char *pname)
   int nblk0,ncoeff0;
   double mjdcheck;
    
+  mjdend = mjd+duration;
   j=0;
   while (fgets(buffer,90,fp) != NULL) {
     sscanf(buffer,"%s",testname);
@@ -148,7 +149,8 @@ int getpoly(double mjd, double *dm, FILE *fp, char *pname)
       binary = (binpha[0] != ' ');
       mjdcheck = mjdmid[j] + mjd1mid[j];
       /*      printf("mjd, mjdcheck,j: %lf %lf %d\n",mjd,mjdcheck,j);   */
-      if (fabs(mjd-mjdcheck)<=0.5) {
+      if (mjd-mjdcheck < 0.5 &&
+	  mjdcheck-mjdend > 0.5) {
 	nblk = nblk0;
 	ncoeff = ncoeff0;
 	if (binary)

@@ -12,7 +12,7 @@
 
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
 
-extern int getpoly(double mjd, double *dm, FILE *fp, char *pname);
+extern int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname);
 extern void phcalc(double mjd0, double mjd1, 
 		   double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, 
@@ -546,7 +546,7 @@ int main(int argc, char *argv[])
       double polyco_dm;
       
       polycofileptr = chkfopen(cmd->polycofile, "r");
-      numsets = getpoly(search.tepoch, &polyco_dm, 
+      numsets = getpoly(search.tepoch, T/SECPERDAY, &polyco_dm, 
 			polycofileptr, cmd->psrname);
       fclose(polycofileptr);
       if (cmd->dm > 0.0){
