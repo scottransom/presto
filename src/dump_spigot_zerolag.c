@@ -4,6 +4,8 @@
 #include "fitsfile.h"
 #include "fitshead.h"
 
+extern void get_calibrated_lags(void *rawlags, float *calibrated_lags);
+
 int main(int argc, char *argv[])
 {
   FILE *infile, *outfile;
