@@ -330,7 +330,7 @@ clean:
 	rm -f *.o *~ *#
 
 cleaner: clean
-	find . -perm 755 | xargs rm -f
+	find . -type f -perm 755 | xargs rm -f
 	rm -f libpresto.a
 
 squeaky:  cleaner
