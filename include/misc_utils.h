@@ -17,6 +17,9 @@ char *rmtrail(char *str);
 char *rmlead(char *str);
 /* Removes leading space from a string */
 
+char *strlower(char *str);
+/* Convert a string to lower case */
+
 char *remove_whitespace(char *str);
 /* Remove leading and trailing space from a string */
 
