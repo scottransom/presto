@@ -32,8 +32,8 @@ FFTATHINCDIR = -I/usr/local/include
 # Path to FFT libraries
 FFTATHLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
-FFTATHLINK = $(FFTATHLIBDIR) -lsfftw
-RFFTATHLINK = -lsrfftw
+FFTATHLINK = $(FFTATHLIBDIR) -lfftw
+RFFTATHLINK = -lrfftw
 
 # Other include directoried (i.e. glib.h)
 OTHERINCDIR = -I/usr/include/glib-1.2
@@ -63,9 +63,9 @@ CLIG = /usr/local/clig/bin/clig
 CC = gcc
 FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
-	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP \
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-g -Wall -W -O2 -mcpu=pentiumpro -march=pentiumpro -fPIC
+	-g -Wall -W -O2 -march=k6 -fPIC
 #	-DUSEDMALLOC \
 #	-g -Wall -W -O -fPIC \
 #	-g -ansi -pedantic -Wall -W -fpic \
@@ -76,7 +76,7 @@ CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-O4 -mcpu=pentiumpro -march=pentiumpro -funroll-loops -fforce-addr -fno-strict-aliasing 
 LIBLINKFLAGS = -shared
 LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
-FFLAGS = -g -O -fpic
+FFLAGS = -g -O
 FLINK = $(FC)
 FLINKFLAGS = $(FFLAGS)
 

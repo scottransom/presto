@@ -1,5 +1,12 @@
 #include "presto.h"
 #include "cpgplot.h"
+#ifdef USEMMAP
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -8,10 +15,10 @@
 #define DEBUGOUT 0
  
 /* Note:  zoomlevel is simply (LOGMAXDISPNUM-Log_2(numsamps)) */
-#define LOGMAXDISPNUM      11 /* 2048: Maximum number of points to display at once */
+#define LOGMAXDISPNUM      10 /* 1024: Maximum number of points to display at once */
 #define LOGMINDISPNUM      3  /* 8: Minimum number of points to display at once */
 #define LOGMINCHUNKLEN     3  /* 8: The minimum number of real points in a stats chunk */
-#define LOGMAXPTS          23 /* 8M points */
+#define LOGMAXPTS          24 /* 16M points */
 #define LOGINITIALNUMPTS   16 /* 65536: The initial number of samples to plot */
 #define MAXDISPNUM      (1<<LOGMAXDISPNUM)
 #define MINDISPNUM      (1<<LOGMINDISPNUM)
@@ -25,7 +32,11 @@
 
 static long long Ndat;
 static infodata idata;
+#ifdef USEMMAP
+static int mmap_file;
+#else
 static FILE *datfile;
+#endif
 static int plotstats=0, usemedian=0;
 /* plotstats: 0 = both, 1 = stats only, 2 = data only */
 /* usemedian: 0 = average, 1 = median */
@@ -66,13 +77,14 @@ typedef struct basicstats {
   double max;
 } basicstats;
 
+
 static basicstats *calc_stats(dataview *dv, datapart *dp)
 {
   int ii, jj;
   float *tmpdata;
   basicstats *tmpstats;
 
-  tmpstats = (basicstats *)malloc(sizeof(stats));
+  tmpstats = (basicstats *)malloc(sizeof(basicstats));
   tmpstats->max = SMALLNUM;
   tmpstats->min = LARGENUM;
   tmpdata = gen_fvect(dv->numsamps);
@@ -284,23 +296,28 @@ static datapart *get_datapart(int nlo, int numn)
   if (nlo+numn > Ndat)
     return NULL;
   else {
-    float *tmpdata;
-
     dp = (datapart *)malloc(sizeof(datapart));
     dp->nn = numn;
     dp->nlo = nlo;
     dp->tlo = idata.dt * nlo;
+#ifdef USEMMAP
+    dp->data = (float *)mmap(0, sizeof(float)*numn, PROT_READ, 
+			     MAP_SHARED, mmap_file, 0);
+#else
     dp->data = read_float_file(datfile, nlo, numn);
-    tmpdata = gen_fvect(numn);
-    memcpy(tmpdata, dp->data, sizeof(float)*numn);
-    free(tmpdata);
+#endif
     return dp;
   }
 }
 
+
 static void free_datapart(datapart *dp)
 {
+#ifdef USEMMAP
+  munmap(dp->data, sizeof(float)*Ndat);
+#else
   free(dp->data);
+#endif
   free(dp);
 }
 
@@ -312,8 +329,10 @@ static void print_help(void)
 	 " -------------            ------\n"
 	 " Left Mouse or I or A     Zoom in  by a factor of 2\n"
 	 " Right Mouse or O or X    Zoom out by a factor of 2\n"
-	 " < or ,                   Shift left  by 15%% of the screen width\n"
-	 " > or .                   Shift right by 15%% of the screen width\n"
+	 " <                        Shift left  by a full screen width\n"
+	 " >                        Shift right by a full screen width\n"
+	 " ,                        Shift left  by 15%% of the screen width\n"
+	 " .                        Shift right by 15%% of the screen width\n"
 	 " +/_                      Increase/Decrease the top edge\n"
 	 " =/-                      Increase/Decrease the bottom edge\n"
 	 " SPACE                    Toggle statistics and sample plotting on/off\n"
@@ -332,7 +351,7 @@ int main(int argc, char *argv[])
 {
   float minval=SMALLNUM, maxval=LARGENUM;
   int centern, offsetn;
-  int numsamp, zoomlevel, maxzoom=0, minzoom, xid, psid;
+  int zoomlevel, maxzoom=0, minzoom, xid, psid;
   char *rootfilenm, inchar;
   datapart *lodp;
   dataview *dv;
@@ -376,13 +395,34 @@ int main(int argc, char *argv[])
   } else {
     printf("Examining data from '%s'.\n\n", argv[1]);
   }
-  datfile = chkfopen(argv[1], "rb");
-  Ndat = chkfilelen(datfile, sizeof(fcomplex));
+#ifdef USEMMAP
+  mmap_file = open(argv[1], O_RDONLY);
+  {
+    int rt;
+    struct stat buf;
+    
+    rt = fstat(mmap_file, &buf);
+    if (rt == -1){
+      perror("\nError in chkfilelen()");
+      printf("\n");
+      exit(-1);
+    }
+    Ndat = buf.st_size / sizeof(float);
+  }
+  lodp = get_datapart(0, Ndat);
+#else
+  {
+    int numsamp;
 
-  /* Get and plot the initial data */
+    datfile = chkfopen(argv[1], "rb");
+    Ndat = chkfilelen(datfile, sizeof(float));
+    numsamp = (Ndat > MAXPTS) ? (int) MAXPTS : (int) Ndat;
+    lodp = get_datapart(0, numsamp);
+  }
+#endif
+
+  /* Plot the initial data */
   
-  numsamp = (Ndat > MAXPTS) ? (int) MAXPTS : (int) Ndat;
-  lodp = get_datapart(0, numsamp);
   centern = 0.5 * INITIALNUMPTS;
   zoomlevel = LOGMAXDISPNUM - LOGINITIALNUMPTS;
   minzoom = LOGMAXDISPNUM - LOGMAXPTS;
@@ -393,9 +433,13 @@ int main(int argc, char *argv[])
 
   xid = cpgopen("/XWIN");
   if (xid <= 0){
-    fclose(datfile);
-    free(dv);
     free_datapart(lodp);
+#ifdef USEMMAP
+    close(mmap_file);
+#else
+    fclose(datfile);
+#endif
+    free(dv);
     exit(EXIT_FAILURE);
   }
   cpgask(0);
@@ -453,10 +497,11 @@ int main(int argc, char *argv[])
       } else 
 	printf("  Already at minimum zoom level (%d).\n", zoomlevel);
       break;
-    case '<': /* Shift left */
-    case ',':
+    case '<': /* Shift left 1 full screen */
+      centern -= dv->numsamps + dv->numsamps / 8;
+    case ',': /* Shift left 1/8 screen */
       if (DEBUGOUT) printf("  Shifting left...\n");
-      centern -= 0.15 * dv->numsamps;
+      centern -= dv->numsamps / 8;
       { /* Should probably get the previous chunk from the datfile... */
 	double lowestr;
 
@@ -469,10 +514,11 @@ int main(int argc, char *argv[])
       cpgpage();
       offsetn = plot_dataview(dv, minval, maxval, 1.0);
       break;
-    case '>': /* Shift right */
-    case '.':
+    case '>': /* Shift right 1 full screen */
+      centern += dv->numsamps - dv->numsamps / 8;
+    case '.': /* Shift right 1/8 screen */
+      centern += dv->numsamps / 8;
       if (DEBUGOUT) printf("  Shifting right...\n");
-      centern += 0.15 * dv->numsamps;
       { /* Should probably get the next chunk from the datfile... */
 	double highestr;
 
@@ -634,10 +680,10 @@ int main(int argc, char *argv[])
     case 'v':
       statvals = calc_stats(dv, lodp);
       printf("\n  Statistics:\n"
-	     "    Number of samples        %d\n"
-	     "    Duration of samples (s)  %.7g\n" 
 	     "    Low sample               %d\n"
+	     "    Number of samples        %d\n"
 	     "    Low time (s)             %.7g\n"
+	     "    Duration of samples (s)  %.7g\n" 
 	     "    Maximum value            %.7g\n"
 	     "    Minimum value            %.7g\n"
 	     "    Average value            %.7g\n"
@@ -645,7 +691,7 @@ int main(int argc, char *argv[])
 	     "    Standard Deviation       %.7g\n"
 	     "    Skewness                 %.7g\n"
 	     "    Kurtosis                 %.7g\n\n", 
-	     dv->numsamps, dv->numsamps*idata.dt, dv->lon, dv->lon*idata.dt,
+	     dv->lon, dv->numsamps, dv->lon*idata.dt, dv->numsamps*idata.dt, 
 	     statvals->max, statvals->min, statvals->average, 
 	     statvals->median, statvals->stdev, 
 	     statvals->skewness, statvals->kurtosis);
@@ -662,9 +708,12 @@ int main(int argc, char *argv[])
       break;
     }
   } while (inchar != 'Q' && inchar != 'q');
-
   free_datapart(lodp);
+#ifdef USEMMAP
+  close(mmap_file);
+#else
   fclose(datfile);
+#endif
   printf("Done\n\n");
   return 0;
 }
