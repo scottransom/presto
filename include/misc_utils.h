@@ -113,6 +113,12 @@ double dms2rad(int deg, int min, double sec);
 double hms2rad(int hour, int min, double sec);
 /* Convert hours, minutes, and seconds of arc to radians */
 
+void hours2hms(double hours, int *h, int *m, double *s);
+/* Convert decimal hours to hours, minutes, and seconds */
+
+void deg2dms(double degrees, int *d, int *m, double *s);
+/* Convert decimal degrees to degrees, minutes, and seconds */
+
 double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 /* Returns the angular difference in radians between two sets */
 /* of RA and DEC (in radians).                                */

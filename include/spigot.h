@@ -20,10 +20,10 @@ typedef struct SPIGOT_INFO{
   char time_obs[16];	  /* Start of observation (HH:MM:SS) */
   char time_sys[16];	  /* Time scale specification */
   char coord_sys[16];	  /* Offset coordinate mode of GBT */
-  char ra_str[16];	  /* RA  of observation (deg, J2000) */
-  char dec_str[16];	  /* Dec of observation (deg, J2000) */
   char pol_type[8];	  /* Polarization recorded (L or C) */
   char corr_mode[8];	  /* Spigot correlator mode */
+  double ra;	          /* RA  of observation (decimal deg, J2000) */
+  double dec;	          /* Dec of observation (decimal deg, J2000) */
   double dt_us;		  /* Sampling time (us) */
   double freq_ctr;	  /* Sky center freq (MHz) for sampler 1 */
   double bandwidth;	  /* Bandwidth (MHz) for sampler 1 */
