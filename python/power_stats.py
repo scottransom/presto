@@ -22,6 +22,26 @@ def sinc(x):
     else:
         return sin(x)/x
 
+def secant(func, oldx, x, TOL=1e-6): # f(x)=func(x)
+    """
+    Similar to Newton's method, but the derivative is estimated
+    by divided difference using only function calls.  A root is
+    estimated by x = x - f(x) (x - oldx)/(f(x) - f(oldx))
+    where oldx = x[i-1] and x = x[i].
+    """
+    oldf, f = func(oldx), func(x)
+    if (abs(f) > abs(oldf)):         # swap so that f(x) is closer to 0
+        oldx, x = x, oldx
+        oldf, f = f, oldf
+    count = 0
+    while 1:
+        dx = f * (x - oldx) / float(f - oldf)
+        if abs(dx) < TOL * (1 + abs(x)): return x - dx
+        oldx, x = x, x - dx
+        oldf, f = f, func(x)
+        count = count + 1
+        print "secant(%d): x=%s, f(x)=%s" % (count, x, f)
+
 class trials:
     def __init__(self, Nbins, Nphot, pfrac):
         self.Nphot = Nphot
