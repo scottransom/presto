@@ -27,33 +27,26 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
   /* Notes:  The returned vectors must have already been allocated.  */
   /*   The returned vectors will be sorted by decreasing power.      */
 {
-  int ii, numspread, kern_half_width, numkern = 0;
-  int numbetween = 2, lowaccbins;
-  float minpow = 0.0, pwr, powargr, powargi, sqrtnorm, nyquist;
-  static int firsttime = 1, old_numminifft = 0, old_khw = 0;
+  int ii, jj, kk, nmini2, nmini4, offset, numtosearch;
+  int numspread = 0, kern_half_width, numkern = 0;
+  float minpow = 0.0, powargr, powargi, sqrtnorm, nyquist;
+  float *fullpows, *sumpows;
+  static int firsttime = 1, old_numminifft = 0;
   static fcomplex *kernel;
-  fcomplex *fftcopy, *spread, *kern;
+  fcomplex *spread, *kern;
 
-  /* Copy and then normalize the minifft */
-  
-  fftcopy = gen_cvect(numminifft);
-  memcpy(fftcopy, minifft, numminifft * sizeof(fcomplex));
-  sqrtnorm = sqrt(norm);
-  nyquist = fftcopy[0].i * sqrtnorm;
-  fftcopy[0].r = 1.0;
-  fftcopy[0].i = 1.0;
-  for (ii = 0; ii < numminifft; ii++){
-    fftcopy[ii].r *= sqrtnorm;
-    fftcopy[ii].i *= sqrtnorm;
-  }
+  /* NOTE:  This routine is hard-wired for numbetween = 2 */
+
+  nmini2 = numminifft * 2;
+  nmini4 = numminifft * 4;
+  numspread = padfftlen(numminifft, 2, &kern_half_width);
 
   /* Prep the kernel if needed */
 
   if (firsttime || old_numminifft != numminifft){
     if (!firsttime) free(kernel);
-    numspread = padfftlen(numminifft, numbetween, &kern_half_width);
-    numkern = 2 * numbetween * kern_half_width;
-    kern = gen_r_response(0.0, numbetween, numkern);
+    numkern = 4 * kern_half_width;
+    kern = gen_r_response(0.0, 2, numkern);
     kernel = gen_cvect(numspread);
     place_complex_kernel(kern, numkern, kernel, numspread);
     COMPLEXFFT(kernel, numspread, -1);
@@ -62,40 +55,74 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
     old_numminifft = numminifft;
   }
 
-  /* Interpolate the minifft */
+  /* Spread, normalize, and interpolate the minifft */
   
   spread = gen_cvect(numspread);
-  spread_no_pad(fftcopy, numminifft, spread, numspread, numbetween);
+  spread_no_pad(minifft, numminifft, spread, numspread, 2);
+  sqrtnorm = sqrt(norm);
+  nyquist = spread[0].i * sqrtnorm;
+  spread[0].r = 1.0;
+  spread[0].i = 0.0;
+  for (ii = 2; ii < nmini2; ii += 2){
+    spread[ii].r *= sqrtnorm;
+    spread[ii].i *= sqrtnorm;
+  }
+  spread[ii].r = nyquist;
+  spread[ii].i = 0.0;
   spread = complex_corr_conv(spread, kernel, numspread, \
 			     FFTD, INPLACE_CORR);
-  free(fftcopy);
 
   /* Prep the arrays for harmonic summing */
 
   if (harmsum > 1){
-    fullpows = gen_fvect(2 * numminifft + 1);
+
+    /* The following wraps the data around the Nyquist freq such that */
+    /* we consider aliased frequencies as well.                       */
+
+    fullpows = gen_fvect(nmini4);
     fullpows[0] = 1.0;
-    fullpows[2 * numminifft] = nyquist;
-    for (ii = 0, jj = 2 * numminifft - 1; 
-	 ii < numminifft / 2; 
-	 ii++, jj--){
-      
+    fullpows[nmini2] = nyquist * nyquist;
+    for (ii = 1, jj = nmini4 - 1; ii < nmini2; ii++, jj--)
+      fullpows[ii] = fullpows[jj] = POWER(spread[ii].r, spread[ii].i);
+
+    /* Perform the summation of the harmonics */
+
+    sumpows = gen_fvect(nmini4);
+    sumpows[0] = fullpows[0];
+    for (ii = 1; ii < nmini4; ii++)
+      sumpows[ii] = 0.0;
+    for (ii = 1; ii <= harmsum; ii++){
+      offset = ii / 2;
+      for (jj = 1; jj < nmini4 / ii; jj++)
+	for (kk = 0; kk < ii; kk++)
+	  sumpows[jj * ii + kk - offset] += fullpows[jj];
     }
-
-  /* Search the interpolated minifft */
-
+    free(fullpows);
+    numtosearch = nmini4;
+  } else {
+    sumpows = gen_fvect(nmini2+1);
+    sumpows[0] = 1.0;
+    sumpows[nmini2] = nyquist * nyquist;
+    for (ii = 1 ; ii < nmini2; ii++)
+      sumpows[ii] = POWER(spread[ii].r, spread[ii].i);
+    numtosearch = nmini2+1;
+  }
+  
+  /* Search the summed powers */
+  
   for (ii = 0; ii < numcands; ii++){
     highpows[ii] = 0.0;
     highfreqs[ii] = 0.0;
   }
-  for (ii = 1; ii < numspread; ii++) {
-    pwr = POWER(spread[ii].r, spread[ii].i);
-    if (pwr > minpow) {
-      highpows[numcands-1] = pwr;
+  for (ii = 1; ii < numtosearch; ii++) {
+    if (sumpows[ii] > minpow) {
+      highpows[numcands-1] = sumpows[ii];
       highfreqs[numcands-1] = 0.5 * (float) ii; 
       minpow = percolate_pows_and_freqs(highpows, highfreqs, numcands);
     }
   }
+  free(sumpows);
+  free(spread);
 }
 
 
@@ -132,7 +159,7 @@ int padfftlen(int minifftlen, int numbetween, int *padlen)
   else if (newlen <= 525000) return 525000;
   else if (newlen <= 1050000) return 1050000;
   /* The following might get optimized out and give garbage... */
-  else return int(int((newlen + 1000)/1000) * 1000.0);
+  else return (int)((int)((newlen + 1000)/1000) * 1000.0);
 }
 
 
