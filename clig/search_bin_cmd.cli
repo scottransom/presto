@@ -1,0 +1,44 @@
+# Admin data
+
+Name search_bin
+
+Usage "Searches a long FFT for binary pulsar candidates using a phase modulation search."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Int -ncand   ncand   {Number of candidates to try to return} \
+	{range = 1, 10000} {default = 100}
+
+Float -plev  plev    {Closely examine candidates above this power level} \
+	{range = 5, oo}
+
+Int -minfft  minfft  {Power-of-2 length of the shortest miniFFT} \
+	{range = 8, 1048576} {default = 32}
+
+Int -maxfft  maxfft  {Power-of-2 length of the longest miniFFT} \
+	{range = 8, 1048576} {default = 262144}
+
+Int -rlo     rlo     {The low Fourier frequency to check} \
+	{range = 0, oo} {default = 0}
+	
+Int -rhi     rhi     {The high Fourier frequency to check} \
+	{range = 0, oo}
+
+Int -lobin   lobin   {The first Fourier frequency in the data file} \
+	{range = 0, oo} {default = 0}
+	
+Int -sum     sum     {Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes)} \
+	{range = 0, oo} {default = 0}
+
+# Rest of command line:
+
+Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
+        {count = 1,1}
+
+
+
+
