@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <ctype.h>
 #include "presto.h"
 #include "mask.h"
 #include "multibeam.h"
@@ -163,6 +164,24 @@ int main(int argc, char **argv)
 	  index = FCPLEX;
 	  fprintf(stderr, \
 		  "Assuming the data is single precision complex.\n\n");
+	} else if (0 == strcmp(extension, "bcpm1") ||
+		   0 == strcmp(extension, "bcpm2")){
+	  cmd->bppP = 1;
+	  index = BPPHDR;
+	  fprintf(stderr, \
+		  "Assuming the data is from a BCPM machine.\n\n");
+	} else if (0 == strcmp(extension, "pkmb")){
+	  cmd->pksP = 1;
+	  index = PKMBHDR;
+	  fprintf(stderr, \
+		  "Assuming the data is from the Parkes Multibeam machine.\n\n");
+	} else if (isdigit(extension[0]) &&
+		   isdigit(extension[1]) &&
+		   isdigit(extension[2])){
+	  cmd->wappP = 1;
+	  index = WAPPHDR;
+	  fprintf(stderr, \
+		  "Assuming the data is from a WAPP machine.\n\n");
 	} else if (0 == strcmp(extension, "pos")){
 	  index = POSITION;
 	  fprintf(stderr, \
