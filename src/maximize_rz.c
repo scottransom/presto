@@ -75,7 +75,7 @@ static double power_call_rz(double rz[])
 static void grad_call_rz(double rz[], double drdz[])
 /* Gradient function for f-fdot plane power */
 {
-  float rpwrlo, rpwrhi, zpwrlo, zpwrhi;
+  double rpwrlo, rpwrhi, zpwrlo, zpwrhi;
   double h = 0.003, twoh = 0.006;
   double powargr, powargi;
   int kern_half_width;
@@ -110,8 +110,7 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin, \
 /* Return the Fourier frequency and Fourier f-dot that      */ 
 /* maximizes the power.                                     */
 {
-  double maxpower, x[2];
-  float locpow, startpow;
+  double maxpower, x[2], locpow, startpow;
   int iter = 0;
 
   maxdata = data;

@@ -80,8 +80,7 @@ double max_rzw_arr(fcomplex *data, int numdata, double rin, double zin, \
 /* Return the Fourier frequency, f-dot, and fdotdot that    */ 
 /* maximizes the power.                                     */
 {
-  double maxpower, x[3];
-  float locpow;
+  double maxpower, x[3], locpow;
 
   maxdata = data;
   nummaxdata = numdata;

@@ -1,4 +1,3 @@
-#include <glib.h>
 #include "accel.h"
 
 #ifdef USEDMALLOC

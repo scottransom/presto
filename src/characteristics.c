@@ -18,7 +18,7 @@ float get_numphotons(FILE * file)
 }
 
 
-float get_localpower(fcomplex *data, int numdata, double r)
+double get_localpower(fcomplex *data, int numdata, double r)
   /* Return the local power level at specific FFT frequency.  */
   /* Arguments:                                               */
   /*   'data' is a pointer to a complex FFT.                  */
@@ -26,7 +26,7 @@ float get_localpower(fcomplex *data, int numdata, double r)
   /*   'r' is the Fourier frequency in data that we want to   */
   /*      interpolate.                                        */
 {
-  float powargr, powargi, sum=0.0;
+  double powargr, powargi, sum=0.0;
   int ii, binsperside, lo1, lo2, hi1, hi2, intfreq;
 
   intfreq = (long) floor(r);
@@ -56,13 +56,13 @@ float get_localpower(fcomplex *data, int numdata, double r)
     sum += POWER(data[ii].r, data[ii].i);
   for (ii = lo2; ii < hi2; ii++)
     sum += POWER(data[ii].r, data[ii].i);
-  sum /= (float) NUMLOCPOWAVG;
+  sum /= (double) NUMLOCPOWAVG;
   return sum;
 }
 
 
-float get_localpower3d(fcomplex *data, int numdata, double r, \
-		       double z, double w)
+double get_localpower3d(fcomplex *data, int numdata, double r, \
+			double z, double w)
   /* Return the local power level around a specific FFT           */
   /* frequency, f-dot, and f-dotdot.                              */
   /* Arguments:                                                   */
@@ -75,7 +75,7 @@ float get_localpower3d(fcomplex *data, int numdata, double r, \
   /*   'w' is the Fourier Frequency 2nd derivative (change in the */
   /*       Fourier f-dot during the observation).                 */
 {
-  float powargr, powargi, sum=0.0;
+  double powargr, powargi, sum=0.0;
   double lo1, lo2, hi1, hi2, freq;
   int binsperside, kern_half_width;
   fcomplex ans;
@@ -111,13 +111,13 @@ float get_localpower3d(fcomplex *data, int numdata, double r, \
     rzw_interp(data, numdata, freq, z, w, kern_half_width, &ans);
     sum += POWER(ans.r, ans.i);
   }
-  sum /= (float) NUMLOCPOWAVG;
+  sum /= (double) NUMLOCPOWAVG;
   return sum;
 }
 
 
 void get_derivs3d(fcomplex *data, int numdata, double r, \
-		  double z, double w, float localpower, \
+		  double z, double w, double localpower, \
 		  rderivs *result)
   /* Return an rderives structure that contains the power,      */
   /* phase, and their first and second derivatives at a point   */
@@ -139,7 +139,7 @@ void get_derivs3d(fcomplex *data, int numdata, double r, \
   /* This is optimized for single precision powers and phases.   */
 
   double h = 0.003, twoh = 0.006, twohsqrd = 0.000036, f;
-  float powargr, powargi, radargr, radargi, radtmp, pwr[5], phs[5];
+  double powargr, powargi, radargr, radargi, radtmp, pwr[5], phs[5];
   int ii, kern_half_width;
   fcomplex ans;
 
@@ -494,26 +494,26 @@ void switch_f_and_p(double in, double ind, double indd,
 /* Optional non-macro definitions of power and phase */
 /*
 
-__inline__ float POWER(float rl, float im)
+__inline__ double POWER(double rl, double im)
 {
   return rl * rl + im * im;
 }
 
 
-__inline__ float PHASE(float rl, float im)
+__inline__ double PHASE(double rl, double im)
 {
-  float temp;
+  double temp;
 
-  temp = (float) (57.2957795130823208 * atan2(im, rl));
+  temp = 57.2957795130823208 * atan2(im, rl);
   return (temp > 0.0) ? temp : temp + 360.0;
 }
 
 
-float RADIAN_PHASE(float rl, float im)
+double RADIAN_PHASE(double rl, double im)
 {
-  float temp;
+  double temp;
 
-  temp = (float) atan2(im, rl);
+  temp = atan2(im, rl);
   return (temp > 0.0) ? temp : temp + TWOPI;
 }
 

@@ -1,6 +1,4 @@
-#include <glib.h>
 #include "accel.h"
-#include "accelsearch_cmd.h"
 
 #if defined (__GNUC__)
 #  define inline __inline__
@@ -168,19 +166,10 @@ static int compare_accelcand_sigma(gconstpointer ca, gconstpointer cb)
 }
 
 
-static int compare_accelcand_r(gconstpointer ca, gconstpointer cb)
-/* Sorts from low to high r (ties are sorted by increasing z) */
+GSList *sort_accelcands(GSList *list)
+/* Sort the candidate list by decreasing sigma */
 {
-  int result;
-  accelcand *a, *b;
-
-  a = (accelcand *) ca;
-  b = (accelcand *) cb;
-  result = (a->r > b->r) - (a->r < b->r);
-  if (result) 
-    return result;
-  else
-    return (a->z > b->z) - (a->z < b->z);
+  return g_slist_sort(list, compare_accelcand_sigma);
 }
 
 
@@ -191,8 +180,6 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
 /* it adds it to the list in increasing freq order.   */
 {
   GSList *tmp_list=list, *prev_list=NULL, *new_list;
-  GCompareFunc func;
-  gint cmp;
   
   if (!list){
     new_list = g_slist_alloc();
@@ -201,19 +188,19 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
   }
 
   while ((tmp_list->next) && 
-	 (tmp_list->data.r < (rr - ACCEL_CLOSEST_R))){
+	 (((accelcand *)(tmp_list->data))->r < (rr - ACCEL_CLOSEST_R))){
     prev_list = tmp_list;
     tmp_list = tmp_list->next;
   }
 
-  if (fabs(rr - tmp_list->data.r) < ACCEL_CLOSEST_R){
-    if (tmp_list->data.sigma > sigma){
-      return list;           /* Better candidate already there */
-    } else {
+  /* Similar candidate is present */
+
+  if (fabs(rr - ((accelcand *)(tmp_list->data))->r) < ACCEL_CLOSEST_R){
+    if (((accelcand *)(tmp_list->data))->sigma < sigma){
       free(tmp_list->data);  /* Overwrite the old candidate */
       tmp_list->data = create_accelcand(power, sigma, numharm, rr, zz);
     }
-  } else {
+  } else {  /* This is a new candidate */
     new_list = g_slist_alloc();
     new_list->data = create_accelcand(power, sigma, numharm, rr, zz);
 
@@ -221,20 +208,35 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
       tmp_list->next = new_list;
       return list;
     }
-
     if (prev_list){
       prev_list->next = new_list;
       new_list->next = tmp_list;
-      return list;
     } else {
       new_list->next = list;
       return new_list;
     }
   }
+  return list;
+}
+
+void optimize_accelcand(accelcand *cand, accelobs *obs)
+{
+  int ii;
+  
+  cand->pows = gen_dvect(cand->numharm);
+  cand->hirs = gen_dvect(cand->numharm);
+  cand->hizs = gen_dvect(cand->numharm);
+  for (ii=1; ii<=cand->numharm; ii++){
+    cand->pows[ii] = max_rz_file(obs->fftfile, 
+				 cand->r*ii, cand->z*ii, \
+				 &(cand->hirs[ii]), 
+				 &(cand->hizs[ii]), 
+				 &(cand->derivs[ii]));
+    cand->power
 }
 
 
-static void print_accelcand(gpointer data, gpointer user_data)
+void print_accelcand(gpointer data, gpointer user_data)
 {
   accelcand *obj=(accelcand *)data;
 
@@ -247,6 +249,10 @@ static void print_accelcand(gpointer data, gpointer user_data)
 void free_accelcand(gpointer data, gpointer user_data)
 {
   user_data = NULL;
+  free(((accelcand *)data)->pows);
+  free(((accelcand *)data)->hirs);
+  free(((accelcand *)data)->hizs);
+  free(((accelcand *)data)->rderivs);
   free((accelcand *)data);
 }
 
@@ -384,10 +390,7 @@ void search_ffdotpows(ffdotpows *ffdot, int numharm,
 	sig = candidate_sigma(pow, numharm, numindep);
 	rr = (ffdot->rlo + jj * ACCEL_DR) / numharm;
 	zz = (ffdot->zlo + ii * ACCEL_DZ) / numharm;
-	cands = g_slist_insert_sorted(cands,
-				      create_accelcand(pow, sig, 
-						       numharm, rr, zz),
-				      compare_accelcand);
+	cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz);
 	fprintf(obs->workfile,
 		"%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n", 
 		pow, sig, numharm, rr, rr / obs->T, zz);

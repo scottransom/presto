@@ -29,8 +29,7 @@ double max_r_arr(fcomplex *data, int numdata, double rin,
 		 double *rout, rderivs *derivs)
 /* Return the Fourier frequency that maximizes the power.  */
 {
-  double ax, bx, xmin;
-  float locpow;
+  double ax, bx, xmin, locpow;
 
   maxdata = data;
   nummaxdata = numdata;
