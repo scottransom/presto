@@ -401,7 +401,7 @@ static void info_from_header(struct tphdr *header, int N,
   rmtrail(idata->pname);
   idata->ibeam = strtol(header->ibeam, NULL, 10);
   idata->file_cntr = strtol(header->file_cntr, NULL, 10);
-  sprintf(idata->outfilebase, "%s_File%d_Beam%2d_DM%.2f_%s", 
+  sprintf(idata->outfilebase, "%s_File%d_Beam%02d_DM%.2f_%s", 
 	  idata->tape_lbl, idata->file_cntr, idata->ibeam,
 	  idata->dm, idata->pname);
   memcpy(idata->rawheader, (char *)header, 640);
