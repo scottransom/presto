@@ -15,7 +15,8 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
 		  float **dataavg, float **datastd, float **datapow,
 		  int *userchan, int numuserchan, 
 		  int *userints, int numuserints, 
-		  infodata *idata, mask *outmask, int xwin)
+		  infodata *idata, unsigned char **bytemask, 
+		  mask *oldmask, mask *newmask, int xwin)
 /* Make the beautiful multi-page rfifind plots */
 {
   int ii, jj, ct, loops=1;
@@ -114,13 +115,60 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
   datapow_med = selectkth(ct/2, ct, datapow[0]-1);
   maxpow = power_for_sigma(sigma, 1, ptsperint/2);
 
-  /* Generate the Mask */
+  /* Generate the byte mask */
 
-  bytemask = gen_bmatrix(numint, numchan);
-  for (ii=0; ii<numint; ii++)
-    for (jj=0; jj<numchan; jj++)
-      bytemask[ii][jj] = GOOD;
+  if (numuserints)
+    for (ii=0; ii<numuserints; ii++)
+      for (jj=0; jj<numchans; jj++)
+	bytemask[userints[ii]][jj] = USERINTS;
+  if (numuserchans)
+    for (ii=0; ii<numuserchans; ii++)
+      for (jj=0; jj<numints; jj++)
+	bytemask[jj][userchans[ii]] = USERCHANS;
+  for (ii=0; ii<numints; ii++){
+    if (fabs(std_int[ii] - std_int_med) > (sigma * std_int_std))
+      for (jj=0; jj<numchan; jj++)				
+	if (bytemask[ii][jj] != PAD) bytemask[ii][jj] = STD;
+    if (fabs(avg_int[ii] - avg_int_med) > (sigma * avg_int_std))
+      for (jj=0; jj<numchan; jj++)				
+	if (bytemask[ii][jj] != PAD) bytemask[ii][jj] = AVG;
+    if (fabs(pow_int[ii] - pow_int_med) > (sigma * pow_int_std))
+      for (jj=0; jj<numchan; jj++)
+	if (bytemask[ii][jj] != PAD) bytemask[ii][jj] = POW;
+  }
+  for (ii=0; ii<numchans; ii++){
+    if (fabs(std_chan[ii] - std_chan_med) > (sigma * std_chan_std))
+      for (jj=0; jj<numints; jj++)	  			   
+	if (bytemask[jj][ii] != PAD) bytemask[jj][ii] = STD;
+    if (fabs(avg_chan[ii] - avg_chan_med) > (sigma * avg_chan_std))
+      for (jj=0; jj<numints; jj++)	  			   
+	if (bytemask[jj][ii] != PAD) bytemask[jj][ii] = AVG;
+    if (fabs(pow_chan[ii] - pow_chan_med) > (sigma * pow_chan_std))
+      for (jj=0; jj<numints; jj++)
+	if (bytemask[jj][ii] != PAD) bytemask[jj][ii] = POW;
+  }
+  for (ii=0; ii<numints; ii++){
+    for (jj=0; jj<numchans; jj++){
+      if (fabs(datastd[ii][jj] - datastd_med) > sigma * datastd_std)
+	if (bytemask[ii][jj] != PAD) bytemask[ii][jj] = STD;
+      if (fabs(dataavg[ii][jj] - dataavg_med) > sigma * dataavg_std)
+	if (bytemask[ii][jj] != PAD) bytemask[ii][jj] = AVG;
+      if (fabs(datapow[ii][jj] - datapow_med) > sigma * datapow_std)
+	if (bytemask[ii][jj] != PAD) bytemask[ii][jj] = POW;
+    }
+  }
+  
+  /* Generate the New Mask */
 
+  fill_mask(sigma, idata->mjd_i+idata->mjd_f, ptsperint * idata->dt, 
+	    idata->freq, idata->chan_wid, numchan, numint, ptsperint, 
+	    int num_zap_chans, int *zap_chans, int num_zap_ints, 
+	    int *zap_ints, bytemask, newmask);
+
+  /* Overwrite the oldmask for plotting purposes */
+
+  if (oldmask->numchan)
+    set_bytes_from_mask(oldmask, bytemask, OLDMASK);
 
   /*
    *  Now plot the results

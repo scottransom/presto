@@ -48,6 +48,24 @@ int compare_positions(void *ca, void *cb)
   return 0;
 }
 
+int compare_doubles(const void *a, const void *b)
+/* qsort comparison function for doubles */
+{
+  const double *da = (const double *) a;
+  const double *db = (const double *) b;
+ 
+  return (*da > *db) - (*da < *db);
+}
+
+int compare_ints(const void *a, const void *b)
+/* qsort comparison function for ints */
+{
+  const int *da = (const int *) a;
+  const int *db = (const int *) b;
+ 
+  return (*da > *db) - (*da < *db);
+}
+
 /* int compare_powindex(const void *ca, const void *cb) */
 int compare_powindex(void *ca, void *cb)
 /*  Used as compare function for qsort() */

@@ -290,7 +290,7 @@ int read_PKMB_rawblocks(FILE *infiles[], int numfiles,
 /* If padding is returned as 1, then padding was added      */
 /* and statistics should not be calculated                  */
 {
-  int ii, retval=0, pad;
+  int ii, retval=0, pad, numpad=0;
   PKMB_tapehdr hdr;
   
   *padding = 0;
@@ -298,8 +298,12 @@ int read_PKMB_rawblocks(FILE *infiles[], int numfiles,
     retval += read_PKMB_rawblock(infiles, numfiles, &hdr, 
 				 rawdata + ii * DATLEN, &pad);
     if (pad)
-      *padding = 1;
+      numpad++;
   }
+  /* Return padding 'true' if more than */
+  /* half of the blocks are padding.    */
+  if (numpad > numblocks / 2)
+    *padding = 1;
   return retval;
 }
 

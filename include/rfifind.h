@@ -5,7 +5,7 @@
 #define NUM_RFI_VECT   30
 
 typedef enum {
-  GOOD=0, POW=1, STD=2, AVG=3, USERCHAN=4, USERINTS=5
+  GOOD=0, OLDMASK, PADDING, POW, STD, AVG, USERCHAN, USERINTS 
 } mask_flags;
 
 typedef struct RFI {

@@ -11,7 +11,8 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
 		  float **dataavg, float **datastd, float **datapow,
 		  int *userchan, int numuserchan, 
 		  int *userints, int numuserints, 
-		  infodata *idata, mask *outmask, int xwin);
+		  infodata *idata, unsigned char **bytemask, 
+		  mask *oldmask, mask *newmask, int xwin);
 static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
 			  int numchan, int numint, int ptsperint, 
 			  int lobin, int numbetween, int harmsum,
@@ -41,10 +42,10 @@ int main(int argc, char *argv[])
   float **dataavg=NULL, **datastd=NULL, **datapow=NULL;
   float *chandata=NULL, powavg, powstd, powmax;
   float inttime, norm, fracterror=RFI_FRACTERROR, sigma;
-  unsigned char *rawdata=NULL;
+  unsigned char *rawdata=NULL, **bytemask;
   char *outfilenm, *statsfilenm, *maskfilenm, *rfifilenm;
   int numchan=0, numint=0, newper=0, oldper=0, numfiles;
-  int blocksperint, ptsperint=0, ptsperblock=0;
+  int blocksperint, ptsperint=0, ptsperblock=0, padding=0;
   int numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
   int ii, jj, kk, slen, numread=0, compute=1;
   int harmsum=RFI_NUMHARMSUM, lobin=RFI_LOBIN, numbetween=RFI_NUMBETWEEN;
@@ -52,7 +53,7 @@ int main(int argc, char *argv[])
   long long N;
   presto_interptype interptype;
   rfi *rfivect=NULL;
-  mask inmask, outmask;
+  mask oldmask, newmask;
   fftcand *cands;
   PKMB_tapehdr hdr;
   infodata idata;
@@ -100,8 +101,10 @@ int main(int argc, char *argv[])
   /* Read an input mask if wanted */
 
   if (cmd->maskfileP)
-    read_mask(cmd->maskfile, &inmask);
-
+    read_mask(cmd->maskfile, &oldmask);
+  else
+    oldmask.numchan = oldmask.numint = 0;
+  
   if (compute){
 
     if (!cmd->pkmbP && !cmd->ebppP && !cmd->gbppP){
@@ -148,8 +151,8 @@ int main(int argc, char *argv[])
       chkfread(&hdr, 1, HDRLEN, infiles[0]);
       rewind(infiles[0]);
       PKMB_hdr_to_inf(&hdr, &idata);
+      PKMB_update_infodata(numfiles, &idata);
       idata.dm = 0.0;
-      idata.N = N;
       writeinf(&idata);
 
     } else if (cmd->ebppP){
@@ -176,6 +179,10 @@ int main(int argc, char *argv[])
     datastd = gen_fmatrix(numint, numchan);
     datapow = gen_fmatrix(numint, numchan);
     chandata = gen_fvect(ptsperint);
+    bytemask = gen_bmatrix(numint, numchan);
+    for (ii=0; ii<numint; ii++)
+      for (jj=0; jj<numchan; jj++)
+	bytemask[ii][jj] = GOOD;
     rfivect = rfi_vector(rfivect, numchan, numint, 0, numrfivect);
     if (numbetween==2)
       interptype = INTERBIN;
@@ -201,10 +208,13 @@ int main(int argc, char *argv[])
       
       /* Read a chunk of data */
       
-      if (cmd->pkmbP)
+      if (cmd->pkmbP){
 	numread = read_PKMB_rawblocks(infiles, numfiles, 
-				      rawdata, blocksperint);
-      
+				      rawdata, blocksperint, &padding);
+	if (padding)
+	  for (jj=0; jj<numchan; jj++)
+	    bytemask[ii][jj] = PAD;
+      }
       for (jj=0; jj<numchan; jj++){
 
 	if (cmd->pkmbP)
@@ -284,7 +294,8 @@ int main(int argc, char *argv[])
 
   rfifind_plot(numchan, numint, ptsperint, cmd->sigma, dataavg, 
 	       datastd, datapow, cmd->zapchan, cmd->zapchanC,
-	       cmd->zapints, cmd->zapintsC, &idata, &outmask, 0);
+	       cmd->zapints, cmd->zapintsC, &idata, bytemask, 
+	       &oldmask, &newmask, cmd->xwinP);
 
   /* Write the mask file */
 

@@ -18,9 +18,13 @@ typedef struct MASK {
 
 void fill_mask(double sigma, double mjd, double dtint, double lofreq, 
 	       double dfreq, int numchan, int numint, int ptsperint, 
-	       int num_user_chans, int *user_chans, int num_user_ints, 
-	       int *user_ints, unsigned char **bytemask, mask *obsmask);
+	       int num_zap_chans, int *zap_chans, int num_zap_ints, 
+	       int *zap_ints, unsigned char **bytemask, mask *obsmask);
 /* Fill a mask structure with the appropriate values */
+
+void set_bytes_from_mask(mask *obsmask, unsigned char **bytematrix,
+			 unsigned char fillval);
+/* Inverse of fill_mask() */
 
 void free_mask(mask obsmask);
 /* Free the contents of an mask structure */
@@ -31,3 +35,9 @@ void read_mask(char *maskfilenm, mask *obsmask);
 void write_mask(char *maskfilenm, mask *obsmask);
 /* Write the contents of an mask structure to a file */
 
+int check_mask(double starttime, double duration, mask *obsmask, 
+	       int *maskchans);
+/* Return value is the number of channels to mask.  The */
+/* channel numbers are placed in maskchans (which must  */
+/* have a length of numchan).  If -1 is returned, all   */
+/* channels should be masked.                           */
