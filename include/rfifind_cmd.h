@@ -47,11 +47,11 @@ typedef struct s_Cmdline {
   char freqsigmaP;
   float freqsigma;
   int freqsigmaC;
-  /***** -zapchan: Channels to explicitly remove from analysis */
+  /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
   char zapchanP;
   int *zapchan;
   int zapchanC;
-  /***** -zapints: Intervals to explicitly remove from analysis */
+  /***** -zapints: Intervals to explicitly remove from analysis (zero-offset) */
   char zapintsP;
   int *zapints;
   int zapintsC;

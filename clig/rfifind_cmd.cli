@@ -29,10 +29,10 @@ Float  -timesig timesigma {The +/-sigma cutoff to reject time-domain chunks} \
 	-r 0 oo  -d 6
 Float  -freqsig freqsigma {The +/-sigma cutoff to reject freq-domain chunks} \
 	-r 0 oo  -d 4
-Int    -zapchan zapchan {Channels to explicitly remove from analysis} \
-	-r 1 1024 -c 1 1024
-Int    -zapints zapints {Intervals to explicitly remove from analysis} \
-	-r 1 1024 -c 1 1024
+Int    -zapchan zapchan {Channels to explicitly remove from analysis (zero-offset)} \
+	-r 0 1023 -c 0 1023
+Int    -zapints zapints {Intervals to explicitly remove from analysis (zero-offset)} \
+	-r 0 1023 -c 0 1023
 String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
