@@ -1442,11 +1442,11 @@ presto_wrap.c</TITLE>
    tabulated results with even intervals.                                
 </BLOCKQUOTE>
 
-<P><TT><B>keplars_eqn(t,f_orb,e,Eacc)</B></TT>
+<P><TT><B>keplars_eqn(t,p_orb,e,Eacc)</B></TT>
 <BLOCKQUOTE>[ returns double  ]
 <BR>   This routine solves Keplar's Equation at a single time t (sec) and    
-   returns the value of the eccentric anomaly.  The orbital frequency    
-   is in f_orb and the orbital eccentricity is in e.  Eacc is the        
+   returns the value of the eccentric anomaly.  The orbital period (s)   
+   is in p_orb and the orbital eccentricity is in e.  Eacc is the        
    absolute accuracy in E that we want to achieve.  t is the time in     
    seconds since the last periapsis.  Uses Newton-Raphson.               
 </BLOCKQUOTE>

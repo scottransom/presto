@@ -143,7 +143,34 @@ def search_fft(data, numcands, norm='default'):
       cands.append([hp[i],hf[i]])
    return cands
 
-def show_ffdot_plane(data, r, z, 
+def ffdot_plane(data, r, dr, numr, z, dz, numz):
+   """
+   ffdot_plane(data, r, dr, numr, z, dz, numz):
+       Generate an F-Fdot plane centered on the point 'r', 'z'.
+       There will be a total of 'numr' x 'numz' points in the array.
+       The F-Fdot plane will be interpolated such the points are
+       separated by 'dr' in the 'r' (i.e. f) direction and 'dz'
+       in the 'z' (i.e. fdot) direction.  'data' is the input FFT.
+       Note:  'dr' much be the reciprocal of an integer
+              (i.e. 1 / numbetween).  Also, 'r' is considered to be
+              the average frequency (r = ro + z / 2).
+   """
+   numbetween = int(1.0 / dr)
+   startbin = int(r - (numr * dr) / 2)
+   startz = int(z - (numz * dz) / 2)
+   maxabsz = max(abs(startz), abs(startz + numz * dz))
+   fftlen = next2_to_n(numr + 2 * numbetween * \
+                       z_resp_halfwidth(maxabsz, LOWACC))
+   ffdp = Numeric.zeros((numz, numr), 'F')
+   for i in range(numz):
+      z = startz + i * dz
+      (ffdraw, nextbin) = corr_rz_interp(data, len(data), numbetween, \
+                                         startbin, z, fftlen, LOWACC)
+      ffdp[i][0:numr] = Numeric.array(ffdraw[0:numr], copy=1)
+   return ffdp
+
+def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
+                     numr = 300, numz = 300, 
                      contours = None,
                      title = None, 
                      image = "astro",
@@ -153,34 +180,19 @@ def show_ffdot_plane(data, r, z,
    show_ffdot_plane(data, r, z):
        Show a color plot of the F-Fdot plane centered on the point 'r', 'z'.
    """
-   numbetween = 8
-   dr = 1.0 / numbetween
-   dz = dr * 4.0
-   width = 300
-
-   centerr = r + z / 2.0
-   startbin = int(centerr - (width * dr) / 2)
-   startz = int(z - (width * dz) / 2)
-   maxabsz = max(abs(startz), abs(startz + width * dz))
-   fftlen = next2_to_n(width + 2 * numbetween * \
-                       z_resp_halfwidth(maxabsz, LOWACC))
-   ffdpow = []
-   for i in range(width):
-      z = startz + i * dz
-      (ffdraw, nextbin) = corr_rz_interp(data, len(data), numbetween, \
-                                         startbin, z, fftlen, LOWACC)
-      ffdpow.append(spectralpower(ffdraw[0:width]) / norm)
-   ffdpow = Numeric.asarray(ffdpow)
-
-   x = Numeric.arange(width, typecode="d") * dr + startbin
-   y = Numeric.arange(width, typecode="d") * dz + startz
-   
+   ffdp = ffdot_plane(data, r, dr, numr, z, dz, numz)
+   ffdpow = spectralpower(ffdp.flat)
+   ffdpow.shape = (numz, numr)
+   startbin = int(r - (numr * dr) / 2)
+   startz = int(z - (numz * dz) / 2)
+   x = Numeric.arange(numr, typecode="d") * dr + startbin
+   y = Numeric.arange(numz, typecode="d") * dz + startz
+   highpt = Numeric.argmax(ffdpow.flat)
+   hir = highpt % numr
+   hiz = highpt / numr
    print ""
    print "Fourier Freqs from ", min(x), "to", max(x), "."
    print "Fourier Fdots from ", min(y), "to", max(y), "."
-   highpt = Numeric.argmax(ffdpow.flat)
-   hir = highpt % width
-   hiz = highpt / width
    print "Maximum normalized power is ", ffdpow[hiz][hir]
    print "The max value is located at:  r =", startbin + hir * dr, \
          "  z =", startz + hiz * dz
@@ -189,3 +201,70 @@ def show_ffdot_plane(data, r, z,
                  laby = "Fourier Frequency Derivative", \
                  title = title, image = image, \
                  contours = contours, device = device)
+
+def make_orbit(psr, npts, dt, eo=0.0):
+   """
+   make_orbit(psr, npts, dt, eo=0.0):
+       Return a Numeric array containing the Eccentric anomaly for a
+       given orbit at a string of times.
+           'psr' is a psrparams instance containing info about the pulsar.
+           'npts' is the number of data points to return.
+           'dt' is the difference in time (s) between returned points.
+           'eo' is the initial Eccentric anomaly. (default = 0.0)
+   """
+   e = Numeric.zeros(npts, 'd')
+   t = Numeric.zeros(npts, 'd')
+   dorbint(e, eo, t, 0.0, npts, dt, psr.orb)
+   return e
+
+def v_from_e(e, psr):
+   """
+   v_from_e(e, psr):
+       Return a vector of velocities (km/s) from a vector of Eccentric
+       anomalys.
+           'e' is the vector of Eccentric anomalys.
+           'psr' is a psrparams instance containing info about the pulsar.
+   """
+   v = Numeric.array(e, copy=1)
+   E_to_v(v, len(v), psr.orb)
+   return v
+
+def d_from_e(e, psr):
+   """
+   d_from_e(e, psr):
+       Return a vector of time delays (s) from a vector of Eccentric
+       anomalys.
+           'e' is the vector of Eccentric anomalys.
+           'psr' is a psrparams instance containing info about the pulsar.
+   """
+   d = Numeric.array(e, copy=1)
+   E_to_phib(d, len(d), psr.orb)
+   return d
+
+def p_from_e(e, psr):
+   """
+   p_from_e(e, psr):
+       Return a vector of pulsar periods (s) from a vector of Eccentric
+       anomalys.
+           'e' is the vector of Eccentric anomalys.
+           'psr' is a psrparams instance containing info about the pulsar.
+   """
+   p = Numeric.array(e, copy=1)
+   E_to_p(p, len(p), psr.p, psr.orb)
+   return p
+
+def z_from_e(e, psr, T):
+   """
+   z_from_e(e, psr):
+       Return a vector of Fourier F-dots (bins) from a vector of Eccentric
+       anomalys.
+           'e' is the vector of Eccentric anomalys.
+           'psr' is a psrparams instance containing info about the pulsar.
+           'T' is the total length of the observation (s).
+   """
+   z = Numeric.array(e, copy=1)
+   E_to_z(z, len(z), psr.p, T, psr.orb)
+   return z
+
+
+   

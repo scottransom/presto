@@ -460,10 +460,10 @@ void dorbint(double *E, double Eo, double *t, double to, long numpts,
 /* Kutta in a dumb mode (no adaptive step-size) since all we want is   */
 /* tabulated results with even intervals.                              */
 
-double keplars_eqn(double t, double f_orb, double e, double Eacc);
+double keplars_eqn(double t, double p_orb, double e, double Eacc);
 /* This routine solves Keplar's Equation at a single time t (sec) and  */
-/* returns the value of the eccentric anomaly.  The orbital frequency  */
-/* is in f_orb and the orbital eccentricity is in e.  Eacc is the      */
+/* returns the value of the eccentric anomaly.  The orbital period (s) */
+/* is in p_orb and the orbital eccentricity is in e.  Eacc is the      */
 /* absolute accuracy in E that we want to achieve.  t is the time in   */
 /* seconds since the last periapsis.  Uses Newton-Raphson.             */
 
