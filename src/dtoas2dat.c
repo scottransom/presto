@@ -109,10 +109,10 @@ int main(int argc, char *argv[])
 
     /* Determine the beginning and ending times of the output array */
 
-    lotime = ii * WORKLEN * dt;
-    hitime = (ii + 1) * WORKLEN * dt;
     numtowrite = ((N % WORKLEN) && (ii == (numwrites - 1))) ? 
       N % WORKLEN : WORKLEN;
+    lotime = ii * WORKLEN * dt;
+    hitime = lotime + numtowrite * dt;
 
     /* Initialize the output data array to all zeros */
 
@@ -123,8 +123,7 @@ int main(int argc, char *argv[])
 
     while ((toa >= lotime && toa < hitime)
 	   && (toaptr - ddata) < ntoas-1){
-      printf("%f\n",(toa - lotime) * dtfract); 
-      fdata[(int)((toa - lotime) * dtfract)]++;
+      fdata[(int)((toa - lotime) * dtfract)] += 1.0;
       toaptr++;
       toa = *toaptr;
     }
@@ -132,7 +131,6 @@ int main(int argc, char *argv[])
     /* Write the output data */
 
     fwrite(fdata, sizeof(float), numtowrite, outfile);
-
   }
 
   /* Cleanup */
