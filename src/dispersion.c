@@ -27,50 +27,32 @@ void dedisp(unsigned char *data, unsigned char *lastdata, long numpts,
 /* Data are ordered in time, with each channel in a row for    */
 /* each time point.                                            */
 {
-  static double *lofrac, *hifrac;
-  static float *tmpdat;
-  static int firsttime = 1, *offset;
-  long ii, jj, ptr, tmpptr;
+  static int approx_mean, firsttime = 1, *offset;
+  long ii, jj, kk;
 
-  if (firsttime) {
-    lofrac = gen_dvect(numchan);
-    hifrac = gen_dvect(numchan);
+  if (firsttime){
     offset = gen_ivect(numchan);
-    tmpdat = gen_fvect(numpts + 1);
-    for (ii = 0; ii < numchan; ii++) {
-      offset[ii] = (int) floor(dispdelays[ii]);
-      lofrac[ii] = dispdelays[ii] - offset[ii];
-      hifrac[ii] = 1.0 - lofrac[ii];
-    }
+    for (ii = 0; ii < numchan; ii++)
+      offset[ii] = (int) dispdelays[ii];
+    approx_mean = -(numchan / 2 - 1);
     firsttime = 0;
   }
 
-  /* Reset the result array to 0's */
+  /* Set the result array to negative of numchan / 2. */
+  /* This will result in data with approx zero mean.  */
 
   for (ii = 0; ii < numpts; ii++)
-    result[ii] = 0.0;
+    result[ii] = approx_mean;
 
   /* De-disperse */
 
-  for (ii = 0; ii < numchan; ii++) {
-
-    /* Organize the input data from *lastdata */
-    
-    ptr = ii + offset[ii] * numchan;
-    for (jj = 0; jj < numpts - offset[ii]; jj++, ptr += numchan)
-      tmpdat[jj] = lastdata[ptr];
-
-    /* Organize the input data from *data */
-    
-    tmpptr = numpts - offset[ii];
-    ptr = ii;
-    for (jj = 0; jj <= offset[ii]; jj++, ptr += numchan)
-      tmpdat[jj + tmpptr] = data[ptr];
-
-    /* Now combine the input data with the proper weights  */
-    
-    for (jj = 0; jj < numpts; jj++)
-      result[jj] += hifrac[ii] * tmpdat[jj] + lofrac[ii] * tmpdat[jj + 1];
+  for (ii = 0; ii < numchan; ii++){
+    jj = ii + offset[ii] * numchan;
+    for (kk = 0; kk < numpts - offset[ii]; kk++, jj += numchan)
+      result[kk] += lastdata[jj];
+    jj = ii;
+    for (; kk < numpts; kk++, jj += numchan)
+      result[kk] += data[jj];
   }
 }
 
