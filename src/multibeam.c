@@ -165,14 +165,9 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 /* added and statistics should not be calculated       */
 {
   int ii, jj, offset, numtopad=0;
-  unsigned char record[RECLEN], *hdr_ptr;
+  unsigned char record[RECLEN], *hdr_ptr, *padptr=pad1;
   static unsigned char databuffer[DATLEN*2];
   static int bufferpts=0, padnum=0, shiftbuffer=1;
-  unsigned char *padptr=pad1;
-
-  /* Reset out padding flag */
-
-  *padding = 0;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
@@ -182,85 +177,15 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
       *(databuffer+ii) = *(databuffer+DATLEN+ii);
   shiftbuffer=1;
 
-  /* Set the data to zeros */
-  
-  for (ii=0; ii<DATLEN; ii++) data[ii] = 0;
-
-  /* make sure our current file number is valid */
+  /* Make sure our current file number is valid */
 
   if (currentfile >= numfiles)
     return 0;
 
-  /* First try and read the current file */
+  /* First, attempt to read data from the current file */
   
-  if (fread(record, RECLEN, 1, infiles[currentfile]) != 1){
-    /* Are we at the end of the current file? */
-    if (feof(infiles[currentfile])){
-      /* Does this file need padding? */
-      numtopad = padpts_st[currentfile] - padnum;
-      if (numtopad){
-	*padding = 1;
-	/* Pad the data */
-	if (numtopad >= ptsperblk_st - bufferpts){
-	  if (bufferpts){
-	    /* Add the amount of padding we need to */
-	    /* make our buffer_offset = 0           */
-	    numtopad = ptsperblk_st - bufferpts;
-	    for (ii=0; ii<numtopad; ii++){
-	      offset = (bufferpts + ii) * bytesperpt_st;
-	      for (jj=0; jj<bytesperpt_st; jj++){
-		*(databuffer+offset+jj) = *(padptr+jj);
-		SWAPPAD(padptr);
-	      }
-	    }
-	  } else {
-	    /* Add a full record of padding */
-	    numtopad = ptsperblk_st;
-	    for (ii=0; ii<DATLEN; ii++)
-	      *(databuffer+ii) = *(padblock+ii);
-	  }
-	  padnum += numtopad;
-	  bufferpts = 0;
-	} else {
-	  int pad;
-	  /* Add the remainder of the padding and */
-	  /* then get a block from the next file. */
-	  for (ii=0; ii<numtopad; ii++){
-	    offset = (bufferpts + ii) * bytesperpt_st;
-	    for (jj=0; jj<bytesperpt_st; jj++){
-	      *(databuffer+offset+jj) = *(padptr+jj);
-	      SWAPPAD(padptr);
-	    }
-	  }
-	  padnum = 0;
-	  currentfile++;
-	  shiftbuffer = 0;
-	  bufferpts += numtopad;
-	  return read_PKMB_rawblock(infiles, numfiles, hdr, data, &pad);
-	}
-	/* If done with padding reset padding variables */
-	if (padnum == padpts_st[currentfile]){
-	  padnum = 0;
-	  currentfile++;
-	}
-	/* Copy the new data into the output array */
-	for (ii=0; ii<DATLEN; ii++)
-	  *(data+ii) = *(databuffer+ii);
-	currentblock++;
-	return 1;
-      } else {
-	/* Try reading the next file */
-	currentfile++;
-	shiftbuffer = 0;
-	return read_PKMB_rawblock(infiles, numfiles, hdr, data, padding);
-      }
-    } else {
-      printf("\nProblem reading record from PKMB data file:\n");
-      printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
-	     currentfile, currentblock);
-      exit(1);
-    }
-  } else {
+  if (fread(record, RECLEN, 1, infiles[currentfile])){ /* Got Data */
+    *padding = 0;
     /* Put the new header into the header array */
     hdr_ptr = (unsigned char *)hdr;
     for (ii=0; ii<HDRLEN; ii++)
@@ -277,9 +202,69 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
       for (ii=0; ii<DATLEN; ii++)
 	*(data+ii) = *(record+HDRLEN+ii);
     }
+    currentblock++;
+    return 1;
+  } else { /* Didn't get data */
+    if (feof(infiles[currentfile])){  /* End of file? */
+      numtopad = padpts_st[currentfile] - padnum;
+      if (numtopad){  /* Pad the data? */
+	*padding = 1;
+	if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
+	  if (bufferpts){  /* Buffer the padding? */
+	    /* Add the amount of padding we need to */
+	    /* make our buffer offset (offset) = 0  */
+	    numtopad = ptsperblk_st - bufferpts;
+	    for (ii=0; ii<numtopad; ii++){
+	      offset = (bufferpts + ii) * bytesperpt_st;
+	      for (jj=0; jj<bytesperpt_st; jj++)
+		*(databuffer+offset+jj) = *(padptr+jj);
+	      SWAPPAD(padptr);
+	    }
+	    /* Copy the new data/padding into the output array */
+	    for (ii=0; ii<DATLEN; ii++)
+	      *(data+ii) = *(databuffer+ii);
+	    bufferpts = 0;
+	  } else {  /* Add a full record of padding */
+	    numtopad = ptsperblk_st;
+	    for (ii=0; ii<DATLEN; ii++)
+	      *(data+ii) = *(padblock+ii);
+	  }
+	  padnum += numtopad;
+	  currentblock++;
+	  /* If done with padding reset padding variables */
+	  if (padnum==padpts_st[currentfile]){
+	    padnum = 0;
+	    currentfile++;
+	  }
+	  return 1;
+	} else {  /* Need < 1 block (or remaining block) of padding */
+	  int pad;
+	  /* Add the remainder of the padding and */
+	  /* then get a block from the next file. */
+	  for (ii=0; ii<numtopad; ii++){
+	    offset = (bufferpts + ii) * bytesperpt_st;
+	    for (jj=0; jj<bytesperpt_st; jj++)
+	      *(databuffer+offset+jj) = *(padptr+jj);
+	    SWAPPAD(padptr);
+	  }
+	  padnum = 0;
+	  currentfile++;
+	  shiftbuffer = 0;
+	  bufferpts += numtopad;
+	  return read_PKMB_rawblock(infiles, numfiles, hdr, data, &pad);
+	}
+      } else {  /* No padding needed.  Try reading the next file */
+	currentfile++;
+	shiftbuffer = 0;
+	return read_PKMB_rawblock(infiles, numfiles, hdr, data, padding);
+      }
+    } else {
+      printf("\nProblem reading record from PKMB data file:\n");
+      printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
+	     currentfile, currentblock);
+      exit(1);
+    }
   }
-  currentblock++;
-  return 1;
 }
 
 

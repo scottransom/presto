@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
     printf("Amount Complete = %3d%%", oldper);
     fflush(stdout);
     
-    for (ii=0; ii<numint; ii++){
+    for (ii=0; ii<numint; ii++){  /* Loop over the intervals */
       newper = (int) ((float) ii / numint * 100.0 + 0.5);
       if (newper > oldper) {
 	printf("\rAmount Complete = %3d%%", newper);
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 	  for (jj=0; jj<numchan; jj++)
 	    bytemask[ii][jj] |= PADDING;
       }
-      for (jj=0; jj<numchan; jj++){
+      for (jj=0; jj<numchan; jj++){  /* Loop over the channels */
 
 	if (cmd->pkmbP)
 	  get_PKMB_channel(jj, chandata, rawdata, blocksperint);
@@ -254,12 +254,8 @@ int main(int argc, char *argv[])
 	    freq = cands[kk].r/inttime;
 	    candnum = find_rfi(rfivect, numrfi, freq, RFI_FRACTERROR);
 	    if (candnum >= 0){
-	      printf("  Another %.4f Hz birdie (channel = %d sigma = %.2f)\n", 
-		     freq, jj, cands[kk].sig);
 	      update_rfi(rfivect+candnum, freq, cands[kk].sig, jj, ii);
 	    } else {
-	      printf("\nNew %.4f Hz birdie (channel = %d, sigma = %.2f)\n", 
-		     freq, jj, cands[kk].sig);
 	      update_rfi(rfivect+numrfi, freq, cands[kk].sig, jj, ii);
 	      numrfi++;
 	      if (numrfi==numrfivect){

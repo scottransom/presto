@@ -337,7 +337,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 
       numpows = numint * numchan;
       find_min_max_arr(numpows, datapow[0], &min, &max);
-      min = (min==0.0) ? log10(5.0 * 0.95) : log10(min * 0.95);
+      min = (min<5.0) ? log10(5.0 * 0.95) : log10(min * 0.95);
       max = log10(max * 1.05);
       dhist = (max-min)/numhist;
       theo = gen_fvect(numtheo);
