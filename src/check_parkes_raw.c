@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 {
   FILE *infile;
   long numrec = 1, currentctr = 1, lastctr = 1;
-  int h = 0, m = 0;
+  int h = 0, m = 0, padding=0;
   double currentut = 0.0, lastut = 0.0, s = 0.0;
   PKMB_tapehdr hdr;
   unsigned char data[RECLEN];
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
   printf("                    20 July 1998\n\n");
 
   infile = chkfopen(argv[1], "rb");
-  while (read_PKMB_rawblock(&infile, 1, &hdr, data)){
+  while (read_PKMB_rawblock(&infile, 1, &hdr, data, &padding)){
     sprintf(tmp, " %.8s ", hdr.blk_cntr);
     currentctr = strtol(tmp, NULL, 10);
     sprintf(tmp, " %.16s ", hdr.ut_blk);

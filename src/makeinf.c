@@ -16,7 +16,6 @@ int main(void)
   char temp1[100], temp2[100];
   int i, itemp, itemp2;
   infodata data;
-  double temponoff[40];
 
   printf("\n\n");
   printf("   Info File  Generation Program\n");
@@ -127,20 +126,14 @@ int main(void)
     printf("or un-padded.)\n");
     i = 0;
     do {
-      scanf("%lf %lf", &temponoff[i], &temponoff[i+1]);
+      scanf("%lf %lf", &data.onoff[i], &data.onoff[i+1]);
       i += 2;
-    } while (temponoff[i - 1] != data.N - 1 && i < 40);
+    } while (data.onoff[i-1] != data.N - 1 && i < 40);
     data.numonoff = i/2;
-    data.onoff = (double *)malloc(data.numonoff*2*sizeof(double));
-    for(i=0; i<data.numonoff; i++){
-      data.onoff[2*i] = temponoff[2*i];
-      data.onoff[2*i+1] = temponoff[2*i+1];
-    }
     fgets(temp1, 100, stdin);
     temp1[strlen(temp1) - 1] = '\0';
   } else {
-    data.numonoff = 1;
-    data.onoff = (double *)malloc(2*sizeof(double));
+    data.numonoff = 0;
     data.onoff[0] = 0;
     data.onoff[1] = data.N - 1;
   }
