@@ -56,7 +56,7 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -Wall -W -O2 -march=k6 -fPIC
+	-g -Wall -W -O2 -march=k6 -fPIC -pg -fprofile-arcs
 CLINKFLAGS = $(CFLAGS)
 FFLAGS = -g -O2 -march=k6 -fPIC
 FLINKFLAGS = $(FFLAGS)
@@ -109,7 +109,7 @@ PRESTOOBJS = amoeba.o barycenter.o birdzap.o cand_output.o\
 	correlations.o database.o dcdflib.o dispersion.o\
 	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
 	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
-	median.o minifft.o misc_utils.o\
+	median.o minifft.o misc_utils.o clipping.o\
 	orbint.o output.o read_fft.o responses.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
 	transpose.o twopass.o twopass_real_fwd.o\
