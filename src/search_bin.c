@@ -119,6 +119,7 @@ int main(int argc, char *argv[])
     printf("\n'maxfft' is not a power of 2.\n\n");
     exit(1);
   }
+
   /* The smallest FFT to use in the search */
 
   if (argc >= 5) {
@@ -298,8 +299,8 @@ int main(int argc, char *argv[])
 
 	/* Interpolate the minifft */
 
-	spread_no_pad(spread, fftlen, (fcomplex *)minifft, \
-		      fftlen / 2, numbetween);
+	spread_no_pad((fcomplex *)minifft, fftlen / 2, spread, 
+		      fftlen, numbetween);
 	COMPLEXFFT(spread, fftlen, -1);
 	spread = complex_corr_conv(spread, kernels[ct], \
 				   fftlen, NOFFTS, INPLACE_CORR);
