@@ -1,6 +1,5 @@
 #include "presto.h"
 #include "cpgplot.h"
-#include "float.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -19,10 +18,13 @@
 #define MINCHUNKLEN     (1<<LOGMINCHUNKLEN)
 #define MAXPTS          (1<<LOGMAXPTS)
 #define INITIALNUMPTS   (1<<LOGINITIALNUMPTS)
+#define AVG_COLOR 2 /* 2 = red */
+#define STD_COLOR 4 /* 4 = blue */
+#define MED_COLOR 7 /* 7 = yellow */
+#define LARGENUM 1.0e32
+#define SMALLNUM -1.0e32
 
-static long long N;    /* Number of points in the time series */
-static double T;       /* The time duration of data */
-static float mjd0;     /* The MJD of the first point in the file */
+static long long Ndat;
 static infodata idata;
 static FILE *datfile;
 static int plotstats=1;
@@ -32,22 +34,25 @@ typedef struct datapart {
   double avg;  /* The average of this chunk of data */
   double med;  /* The median of this chunk of data */
   double std;  /* The standard deviation of this chunk of data */
-  int nlo      /* The sample number of the first point */
+  int nlo;     /* The sample number of the first point */
   int nn;      /* The total number samples in *data */
   float *data; /* Raw data  */
 } datapart;
 
 typedef struct dataview {
   double vdt;       /* Data view time step (2.0**(-zoomlevel))*dt */
+  float minval;     /* The minimum sample value in this view */
+  float maxval;     /* The maximum sample value in this view */
   int centern;      /* The center sample to plot */
   int lon;          /* The lowest sample to plot */
   int zoomlevel;    /* Positive = zoomed in, Negative = zoomed out */
-  int numsamps;     /* The number of samples from low to high to display */
+  int numsamps;     /* The number of samples covered by the display */
+  int dispnum;      /* The number of points actually plotted */
   int chunklen;     /* The length of the chunk of samples used to calculate stats */
   int numchunks;    /* The number of chunks that are being displayed */
   float avgs[MAXDISPNUM];  /* The average samples for each chunk */
   float meds[MAXDISPNUM];  /* The median samples for each chunk */
-  float stds[MAXDISPNUM];  /* The atandard deviation of the samples for each chunk */
+  float stds[MAXDISPNUM];  /* The standard deviation of the samples for each chunk */
   float maxs[MAXDISPNUM];  /* The maximum samples for each chunk */
   float mins[MAXDISPNUM];  /* The minimum samples for each chunk */
   float vals[MAXDISPNUM];  /* The raw data values when zoomlevel > 0 */
@@ -59,8 +64,9 @@ static int plot_dataview(dataview *dv, float minval, float maxval,
 /* The return value is offsetn */
 {
   int ii, lon, hin, offsetn=0, tmpn;
-  double lot, hit, offsett;
-  float ns[MAXDISPNUM], scalemin, scalemax, dscale;
+  double lot, hit, offsett=0.0;
+  float ns[MAXDISPNUM], hiavg[MAXDISPNUM], loavg[MAXDISPNUM];
+  float scalemin=0.0, scalemax=0.0, dscale;
   
   cpgsave();
   cpgbbuf();
@@ -74,19 +80,19 @@ static int plot_dataview(dataview *dv, float minval, float maxval,
   cpgvstd();
   
   /* Autoscale for the maximum value */
-  if (maxval==FLT_MAX)
+  if (maxval > 0.5 * LARGENUM)
     scalemax = dv->maxval;
   else
     scalemax = maxval;
   /* Autoscale for the minimum value */
-  if (minval==FLT_MIN)
+  if (minval < 0.5 * SMALLNUM)
     scalemin = dv->minval;
   else
-    scalemax = minval;
+    scalemin = minval;
   dscale = 0.1 * (scalemax - scalemin);
-  if (maxval==FLT_MAX)
+  if (maxval > 0.5 * LARGENUM)
     maxval = scalemax + dscale;
-  if (minval==FLT_MIN)
+  if (minval < 0.5 * SMALLNUM)
     minval = scalemin - dscale;
   
   lon = dv->lon;
@@ -96,7 +102,7 @@ static int plot_dataview(dataview *dv, float minval, float maxval,
 
   /* Time Labels (top of box) */
 
-  if ((lot-hit)/hit < 0.001){
+  if ((hit-lot)/hit < 0.001){
     int numchar;
     char label[50];
     
@@ -116,19 +122,19 @@ static int plot_dataview(dataview *dv, float minval, float maxval,
     int numchar;
     char label[50];
     
-    offsetn = (lon / 1000) * 1000;
+    offsetn = (lon / 10000) * 10000;
     numchar = snprintf(label, 50, "Sample - %d", offsetn);
     cpgmtxt("B", 2.8, 0.5, 0.5, label);
   } else {
     cpgmtxt("B", 2.8, 0.5, 0.5, "Sample");
   }
-  cpgswin(lon-offsetn, hin-offsetn, min, maxval);
+  cpgswin(lon-offsetn, hin-offsetn, minval, maxval);
   cpgbox("BNST", 0.0, 0, "BCNST", 0.0, 0);
 
   /* Plot the rawdata if required */
 
   tmpn = lon - offsetn;
-  if (zoomlevel > 0){
+  if (dv->zoomlevel > 0){
     for (ii=0; ii<dv->dispnum; ii++)
       ns[ii] = tmpn + ii;
     cpgbin(dv->dispnum, ns, dv->vals, 0);
@@ -143,15 +149,36 @@ static int plot_dataview(dataview *dv, float minval, float maxval,
 
   if (plotstats){
     tmpn = lon - offsetn;
-    for (ii=0; ii<dv->numchunks; ii++, tmpn += dv->chunklen)
+    for (ii=0; ii<dv->numchunks; ii++, tmpn += dv->chunklen){
       ns[ii] = tmpn;
+      hiavg[ii] = dv->avgs[ii] + dv->stds[ii];
+      loavg[ii] = dv->avgs[ii] - dv->stds[ii];
+    }
     if (dv->numchunks > 512){
-      
+      cpgsci(AVG_COLOR);
       cpgline(dv->numchunks, ns, dv->avgs);
+      cpgmtxt("T", -1.5, 0.2, 0.5, "Average");
+      cpgsci(MED_COLOR);
+      cpgline(dv->numchunks, ns, dv->meds);
+      cpgmtxt("T", -1.5, 0.5, 0.5, "Median");
+      cpgsci(STD_COLOR);
+      cpgline(dv->numchunks, ns, hiavg);
+      cpgline(dv->numchunks, ns, loavg);
+      cpgmtxt("T", -1.5, 0.8, 0.5, "Std. Dev.");
     } else {
+      cpgsci(AVG_COLOR);
       cpgbin(dv->numchunks, ns, dv->avgs, 0);
+      cpgmtxt("T", -1.5, 0.2, 0.5, "Average");
+      cpgsci(MED_COLOR);
+      cpgbin(dv->numchunks, ns, dv->meds, 0);
+      cpgmtxt("T", -1.5, 0.5, 0.5, "Median");
+      cpgsci(STD_COLOR);
+      cpgbin(dv->numchunks, ns, hiavg, 0);
+      cpgbin(dv->numchunks, ns, loavg, 0);
+      cpgmtxt("T", -1.5, 0.8, 0.5, "Std. Dev.");
     }
   }
+  cpgsci(1);
   cpgmtxt("L", 2.5, 0.5, 0.5, "Sample Value");
   cpgebuf();
   cpgunsa();
@@ -162,6 +189,7 @@ static int plot_dataview(dataview *dv, float minval, float maxval,
 static dataview *get_dataview(int centern, int zoomlevel, datapart *dp)
 {
   int ii, jj, offset;
+  double tmpavg, tmpvar;
   float *tmpchunk;
   dataview *dv;
 
@@ -169,28 +197,33 @@ static dataview *get_dataview(int centern, int zoomlevel, datapart *dp)
   dv->zoomlevel = zoomlevel;
   dv->numsamps = (1 << (LOGMAXDISPNUM - zoomlevel));
   dv->chunklen = (zoomlevel < -LOGMINCHUNKLEN) ?
-    (1 << abs(zoomlevel)) : dv->chunklen = (1 << LOGMINCHUNKLEN);
+    (1 << abs(zoomlevel)) : (1 << LOGMINCHUNKLEN);
   dv->dispnum = (dv->numsamps > MAXDISPNUM) ? MAXDISPNUM : dv->numsamps;
   dv->numchunks = dv->numsamps / dv->chunklen;
   dv->vdt = dv->chunklen * idata.dt;
   dv->centern = centern;
   dv->lon = (int) floor(centern - 0.5 * dv->numsamps);
+  dv->maxval = SMALLNUM;
+  dv->minval = LARGENUM;
   if (dv->lon < 0) dv->lon = 0;
   tmpchunk = gen_fvect(dv->chunklen);
   for (ii=0; ii<dv->dispnum; ii++){
-    float tmpmin=FLT_MAX, tmpmax=FLT_MIN, tmpval;
+    float tmpmin=LARGENUM, tmpmax=SMALLNUM, tmpval;
     offset = dv->lon + ii * dv->chunklen;
     memcpy(tmpchunk, dp->data+offset, sizeof(float)*dv->chunklen);
     dv->meds[ii] = median(tmpchunk, dv->chunklen);
-    avg_var(dp->data+offset, dv->chunklen, dv->avgs+ii, dv->stds+ii);
-    dv->stds[ii] = sqrt(dv->stds[ii]);
+    avg_var(dp->data+offset, dv->chunklen, &tmpavg, &tmpvar);
+    dv->avgs[ii] = tmpavg;
+    dv->stds[ii] = sqrt(tmpvar);
     for (jj=0; jj<dv->chunklen; jj++, offset++){
       tmpval = dp->data[offset];
       if (tmpval > tmpmax) tmpmax = tmpval;
       if (tmpval < tmpmin) tmpmin = tmpval;
     }
     dv->maxs[ii] = tmpmax;
+    if (tmpmax > dv->maxval) dv->maxval = tmpmax;
     dv->mins[ii] = tmpmin;
+    if (tmpmin < dv->minval) dv->minval = tmpmin;
   }
   free(tmpchunk);
   offset = dv->lon;
@@ -206,7 +239,7 @@ static datapart *get_datapart(int nlo, int numn)
 {
   datapart *dp;
 
-  if (nlo+numn > N)
+  if (nlo+numn > Ndat)
     return NULL;
   else {
     float *tmpdata;
@@ -218,7 +251,7 @@ static datapart *get_datapart(int nlo, int numn)
     dp->data = read_float_file(datfile, nlo, numn);
     tmpdata = gen_fvect(numn);
     memcpy(tmpdata, dp->data, sizeof(float)*numn);
-    dp->median = median(tmpdata, numn);
+    dp->med = median(tmpdata, numn);
     free(tmpdata);
     avg_var(dp->data, numn, &(dp->avg), &(dp->std));
     dp->std = sqrt(dp->std);
@@ -240,16 +273,14 @@ static void print_help(void)
 	 " -------------            ------\n"
 	 " Left Mouse or I or A     Zoom in  by a factor of 2\n"
 	 " Right Mouse or O or X    Zoom out by a factor of 2\n"
-	 " Middle Mouse or D        Show details about a selected frequency\n"
 	 " < or ,                   Shift left  by 15%% of the screen width\n"
 	 " > or .                   Shift right by 15%% of the screen width\n"
-	 " + or =                   Increase the power scale (make them taller)\n"
-	 " - or _                   Decrease the power scale (make them shorter)\n"
+	 " +/_                      Increase/Decrease the top edge\n"
+	 " =/-                      Increase/Decrease the bottom edge\n"
+	 " SPACE                    Toggle statistics on/off\n"
 	 " S                        Scale the powers automatically\n"
-	 " N                        Re-normalize the nowers by one of several methods\n"
 	 " P                        Print the current plot to a file\n"
-	 " G                        Go to a specified frequency\n"
-	 " H                        Show the harmonics of the center frequency\n"
+	 " G                        Go to a specified time\n"
 	 " ?                        Show this help screen\n"
 	 " Q                        Quit\n"
 	 "\n");
@@ -258,13 +289,18 @@ static void print_help(void)
 
 int main(int argc, char *argv[])
 {
-  float maxval=0.0;
-  double centern, offsetn;
-  int numamps, zoomlevel, maxzoom=0, minzoom, xid, psid;
+  float minval=SMALLNUM, maxval=LARGENUM;
+  int centern, offsetn;
+  int numsamp, zoomlevel, maxzoom=0, minzoom, xid, psid;
   char *rootfilenm, inchar;
   datapart *lodp;
   dataview *dv;
  
+  if (argc==1){
+    printf("\nusage:  exploredat datafilename\n\n");
+    exit(0);
+  }
+
   printf("\n\n");
   printf("      Interactive Data Explorer\n");
   printf("         by Scott M. Ransom\n");
@@ -298,19 +334,17 @@ int main(int argc, char *argv[])
   } else {
     printf("Examining data from '%s'.\n\n", argv[1]);
   }
-  N = idata.N;
-  T = idata.dt * idata.N;
   datfile = chkfopen(argv[1], "rb");
   Ndat = chkfilelen(datfile, sizeof(fcomplex));
 
   /* Get and plot the initial data */
   
-  numamps = (Ndat > MAXPTS) ? (int) MAXPTS : (int) Ndat;
-  lodp = get_datapart(0, numamps);
+  numsamp = (Ndat > MAXPTS) ? (int) MAXPTS : (int) Ndat;
+  lodp = get_datapart(0, numsamp);
   centern = 0.5 * INITIALNUMPTS;
   zoomlevel = LOGMAXDISPNUM - LOGINITIALNUMPTS;
   minzoom = LOGMAXDISPNUM - LOGMAXPTS;
-  maxzoom = LOGMINDISPNUM - LOGMINPTS;
+  maxzoom = LOGMAXDISPNUM - LOGMINDISPNUM;
   dv = get_dataview(centern, zoomlevel, lodp);
 
   /* Prep the XWIN device for PGPLOT */
@@ -324,7 +358,7 @@ int main(int argc, char *argv[])
   }
   cpgask(0);
   cpgpage();
-  offsetn = plot_dataview(dv, maxval, 1.0);
+  offsetn = plot_dataview(dv, minval, maxval, 1.0);
 
   do {
     float inx, iny;
@@ -333,9 +367,14 @@ int main(int argc, char *argv[])
     if (DEBUGOUT) printf("You pressed '%c'\n", inchar);
 
     switch (inchar){
+    case ' ': /* Toggle stats on/off */
+      plotstats = (plotstats) ? 0 : 1;
+      cpgpage();
+      offsetn = plot_dataview(dv, minval, maxval, 1.0);
+      break;
     case 'A': /* Zoom in */
     case 'a':
-      centern = (inx + offsetn) * T;
+      centern = inx + offsetn;
     case 'I':
     case 'i':
       if (DEBUGOUT) printf("  Zooming in  (zoomlevel = %d)...\n", zoomlevel);
@@ -344,7 +383,7 @@ int main(int argc, char *argv[])
 	free(dv);
 	dv = get_dataview(centern, zoomlevel, lodp);
 	cpgpage();
-	offsetn = plot_dataview(dv, maxval, 1.0);
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
       } else 
 	printf("  Already at maximum zoom level (%d).\n", zoomlevel);
       break;
@@ -358,7 +397,7 @@ int main(int argc, char *argv[])
 	free(dv);
 	dv = get_dataview(centern, zoomlevel, lodp);
 	cpgpage();
-	offsetn = plot_dataview(dv, maxval, 1.0);
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
       } else 
 	printf("  Already at minimum zoom level (%d).\n", zoomlevel);
       break;
@@ -376,7 +415,7 @@ int main(int argc, char *argv[])
       free(dv);
       dv = get_dataview(centern, zoomlevel, lodp);
       cpgpage();
-      offsetn = plot_dataview(dv, maxval, 1.0);
+      offsetn = plot_dataview(dv, minval, maxval, 1.0);
       break;
     case '>': /* Shift right */
     case '.':
@@ -385,46 +424,111 @@ int main(int argc, char *argv[])
       { /* Should probably get the next chunk from the datfile... */
 	double highestr;
 
-	highestr = lodp->nlo + lodp->numamps - 0.5 * dv->numsamps;
+	highestr = lodp->nlo + lodp->nn - 0.5 * dv->numsamps;
 	if (centern > highestr)
 	  centern = highestr;
       }
       free(dv);
       dv = get_dataview(centern, zoomlevel, lodp);
       cpgpage();
-      offsetn = plot_dataview(dv, maxval, 1.0);
+      offsetn = plot_dataview(dv, minval, maxval, 1.0);
       break;
-    case '+': /* Increase height of powers */
-    case '=':
-      if (maxval==0.0){
-	printf("  Auto-scaling is off.\n");
-	maxval = 1.1 * dv->maxval;
+    case '+': /* Increase height of top edge */
+      {
+	float dy;
+
+	if (maxval > 0.5 * LARGENUM){
+	  printf("  Auto-scaling of top edge is off.\n");
+	  if (minval < 0.5 * SMALLNUM)
+	    dy = dv->maxval - dv->minval;
+	  else
+	    dy = dv->maxval - minval;
+	  maxval = dv->maxval + 0.1 * dy;
+	} else {
+	  if (minval < 0.5 * SMALLNUM)
+	    dy = maxval - dv->minval;
+	  else
+	    dy = maxval - minval;
+	  maxval += 0.1 * dy;
+	}
+	cpgpage();
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
+	break;
       }
-      maxval = 3.0/4.0 * maxval;
-      cpgpage();
-      offsetn = plot_dataview(dv, maxval, 1.0);
-      break;
-    case '-': /* Decrease height of powers */
-    case '_':
-      if (maxval==0.0){ 
-	printf("  Auto-scaling is off.\n");
-	maxval = 1.1 * dv->maxval;
+    case '_': /* Decrease height of top edge */
+      {
+	float dy;
+
+	if (maxval > 0.5 * LARGENUM){
+	  printf("  Auto-scaling of top edge is off.\n");
+	  if (minval < 0.5 * SMALLNUM)
+	    dy = dv->maxval - dv->minval;
+	  else
+	    dy = dv->maxval - minval;
+	  maxval = dv->maxval - 0.1 * dy;
+	} else {
+	  if (minval < 0.5 * SMALLNUM)
+	    dy = maxval - dv->minval;
+	  else
+	    dy = maxval - minval;
+	  maxval -= 0.1 * dy;
+	}
+	cpgpage();
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
+	break;
       }
-      maxval = 4.0/3.0 * maxval;
-      cpgpage();
-      offsetn = plot_dataview(dv, maxval, 1.0);
-      break;
+    case '=': /* Increase height of bottom edge */
+      {
+	float dy;
+
+	if (minval < 0.5 * SMALLNUM){
+	  printf("  Auto-scaling of bottom edge is off.\n");
+	  if (maxval > 0.5 * LARGENUM)
+	    dy = dv->maxval - dv->minval;
+	  else
+	    dy = maxval - dv->minval;
+	  minval = dv->minval + 0.1 * dy;
+	} else {
+	  if (maxval > 0.5 * LARGENUM)
+	    dy = dv->maxval - minval;
+	  else
+	    dy = maxval - minval;
+	  minval += 0.1 * dy;
+	}
+	cpgpage();
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
+	break;
+      }
+    case '-': /* Decrease height of bottom edge */
+      {
+	float dy;
+
+	if (minval < 0.5 * SMALLNUM){
+	  printf("  Auto-scaling of bottom edge is off.\n");
+	  if (maxval > 0.5 * LARGENUM)
+	    dy = dv->maxval - dv->minval;
+	  else
+	    dy = maxval - dv->minval;
+	  minval = dv->minval - 0.1 * dy;
+	} else {
+	  if (maxval > 0.5 * LARGENUM)
+	    dy = dv->maxval - minval;
+	  else
+	    dy = maxval - minval;
+	  minval -= 0.1 * dy;
+	}
+	cpgpage();
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
+	break;
+      }
     case 'S': /* Auto-scale */
     case 's':
-      if (maxval==0.0)
-	break;
-      else {
-	printf("  Auto-scaling is on.\n");
-	maxval = 0.0;
-	cpgpage();
-	offsetn = plot_dataview(dv, maxval, 1.0);
-	break;
-      }
+      printf("  Auto-scaling is on.\n");
+      minval = SMALLNUM;
+      maxval = LARGENUM;
+      cpgpage();
+      offsetn = plot_dataview(dv, minval, maxval, 1.0);
+      break;
     case 'G': /* Goto a time */
     case 'g':
       {
@@ -438,12 +542,12 @@ int main(int argc, char *argv[])
 	  time = atof(timestr);
 	}
 	offsetn = 0.0;
-	centern = time / idata.dt;
+	centern = (int)(time / idata.dt + 0.5);
 	printf("  Moving to time %.15g (data point %d).\n", time, centern);
 	free(dv);
 	dv = get_dataview(centern, zoomlevel, lodp);
 	cpgpage();
-	offsetn = plot_dataview(dv, maxval, 1.0);
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
       }
       break;
     case '?': /* Print help screen */
@@ -456,17 +560,18 @@ int main(int argc, char *argv[])
 	char filename[200];
 
 	printf("  Enter the filename to save the plot as:\n");
-	fgets(filename, 196, stdin);
+	fgets(filename, 195, stdin);
 	len = strlen(filename)-1;
 	filename[len+0] = '/';
-	filename[len+1] = 'P';
-	filename[len+2] = 'S';
-	filename[len+3] = '\0';
+	filename[len+1] = 'C';
+	filename[len+2] = 'P';
+	filename[len+3] = 'S';
+	filename[len+4] = '\0';
 	psid = cpgopen(filename);
 	cpgslct(psid);
 	cpgpap(10.25, 8.5/11.0);
 	cpgiden();
-	offsetn = plot_dataview(dv, maxval, 1.0);
+	offsetn = plot_dataview(dv, minval, maxval, 1.0);
 	cpgclos();
 	cpgslct(xid);
 	filename[len] = '\0';
