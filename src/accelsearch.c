@@ -5,6 +5,12 @@
 #endif
 
 
+int calc_required_z(int numharm, int harmnum, double zfull);
+double calc_required_r(int numharm, int harmnum, double rfull);
+int index_from_r(double r, double lor);
+int index_from_z(double z, double loz);
+
+
 static void print_percent_complete(int current, int number, 
 				   char *what, int reset)
 {
@@ -75,7 +81,10 @@ int main(int argc, char *argv[])
   
   printf("Generating correlation kernels:\n");
   subharminfs = create_subharminfos(obs.numharm, (int) obs.zhi);
-  printf("Done.\n\n");
+  printf("Done generating kernels.\n\n");
+  printf("Starting the search.\n");
+  printf("  Working candidates in a test format are in '%s'.\n\n", 
+	 obs.workfilenm);
   
   /* Start the main search loop */
   
@@ -107,7 +116,7 @@ int main(int argc, char *argv[])
 
 	/* Search the 1/4 subharmonic by building on the 1/2 */
 
-	if (obs.numharm == 4){
+	if (obs.numharm >= 4){
 	  subharmonic = subharm_ffdot_plane(4, 1, startr, lastr, 
 					    &subharminfs[4][1], &obs);
 	  add_ffdotpows(fundamental, subharmonic, 4, 1);
@@ -219,8 +228,8 @@ int main(int argc, char *argv[])
 	 ttim, utim, stim);
   printf("  Total time: %.3f sec\n\n", tott);
 
-  printf("Candidates in binary format are stored in '%s'.\n", obs.candnm);
-  printf("Candidates in a text format are stored in '%s'.\n\n", obs.accelnm);
+  printf("Final candidates in binary format are in '%s'.\n", obs.candnm);
+  printf("Final Candidates in a text format are in '%s'.\n\n", obs.accelnm);
 
   free_accelobs(&obs);
   g_slist_foreach(cands, free_accelcand, NULL);

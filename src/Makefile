@@ -124,7 +124,8 @@ prep: meminit timetest bincat
 text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
-	patchdata readfile toas2dat bincand taperaw
+	patchdata readfile toas2dat bincand taperaw\
+	accelsearch
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd\
@@ -308,7 +309,7 @@ cleaner:  clean
 	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
-	rm -f $(PRESTOLIBNM)
+	rm -f accelsearch $(PRESTOLIBNM)
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
 
 squeaky:  cleaner
@@ -326,4 +327,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f plotbincand profile showmulti showmulti_dm
 	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
 	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
-	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles
+	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles accelsearch

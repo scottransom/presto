@@ -8,7 +8,7 @@
 
 #define NEAREST_INT(x) (int) (x < 0 ? x - 0.5 : x + 0.5)
 
-static inline int calc_required_z(int numharm, int harmnum, double zfull)
+inline int calc_required_z(int numharm, int harmnum, double zfull)
 /* Calculate the 'z' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'z' at the fundamental harmonic is 'zfull'.    */
@@ -19,7 +19,7 @@ static inline int calc_required_z(int numharm, int harmnum, double zfull)
   return NEAREST_INT(zz) * ACCEL_DZ;
 }
 
-static inline double calc_required_r(int numharm, int harmnum, double rfull)
+inline double calc_required_r(int numharm, int harmnum, double rfull)
 /* Calculate the 'r' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'r' at the fundamental harmonic is 'rfull'.    */
@@ -28,7 +28,7 @@ static inline double calc_required_r(int numharm, int harmnum, double rfull)
 }
 
 
-static inline int index_from_r(double r, double lor)
+inline int index_from_r(double r, double lor)
 /* Return an index for a Fourier Freq given an array that */
 /* has stepsize ACCEL_DR and low freq 'lor'.              */
 {
@@ -36,7 +36,7 @@ static inline int index_from_r(double r, double lor)
 }
 
 
-static inline int index_from_z(double z, double loz)
+inline int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
 /* has stepsize ACCEL_DZ and low freq 'lor'.              */
 {
@@ -656,25 +656,23 @@ void add_ffdotpows(ffdotpows *fundamental,
 		   ffdotpows *subharmonic, 
 		   int numharm, int harmnum)
 {
-  int ii, jj, rr, zz, rind, zind, subz, lastrind=-1;
-  double subr;
+  int ii, jj, zz, rind, zind, subz, lastrind=-1;
+  double rr, subr;
   float lastpow=0;
   
-  zz = fundamental->zlo; 
   for (ii=0; ii<fundamental->numzs; ii++){
+    zz = fundamental->zlo + ii * ACCEL_DZ; 
     subz = calc_required_z(numharm, harmnum, zz);
     zind = index_from_z(subz, subharmonic->zlo);
-    rr = fundamental->rlo; 
     for (jj=0; jj<fundamental->numrs; jj++){
+      rr = fundamental->rlo + jj * ACCEL_DR; 
       subr = calc_required_r(numharm, harmnum, rr);
       rind = index_from_r(subr, subharmonic->rlo);
       if (rind!=lastrind)
 	lastpow = subharmonic->powers[zind][rind];
       fundamental->powers[ii][jj] += lastpow;
       lastrind = rind;
-      rr += ACCEL_DR;
     }
-    zz += ACCEL_DZ;
   }
 }
 
