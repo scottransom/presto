@@ -1142,6 +1142,9 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
       printf("\nError:  corr_level_st (%d) does not equal 3 or 9!\n\n", 
 	     corr_level_st);
   
+    for (ii=0; ii<numwappchan_st; ii++)
+      lags[ii] *= power;
+       
     /* FFT the ACF lags (which are real and even) -> real and even FFT */
     lags[numwappchan_st] = 0.0;
     fftwf_execute(fftplan);
