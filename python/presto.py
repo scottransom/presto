@@ -1747,6 +1747,22 @@ def maximize_rz(data, r, z, norm = None):
       maxpow = maxpow / norm
    return [maxpow, rmax, zmax, rd]
 
+def maximize_r(data, r, norm = None):
+   """
+   maximize_r(data, r, norm = None):
+       Optimize the detection of a signal at Fourier frequency 'r' in
+           a FFT 'data'.  The routine returns a list containing
+           the optimized values of the maximum normalized power, rmax,
+           and an rderivs structure for the peak.
+   """
+   rd = rderivs()
+   (maxpow, rmax) = max_r_arr(data, len(data), r, rd)
+   if not norm:
+      maxpow = maxpow / rd.locpow
+   else:
+      maxpow = maxpow / norm
+   return [maxpow, rmax, rd]
+
 def search_fft(data, numcands, norm='default'):
    """
    search_fft(data, numcands):
@@ -1787,6 +1803,49 @@ def ffdot_plane(data, r, dr, numr, z, dz, numz):
                                      startbin, loz, hiz, numz,
                                      fftlen, LOWACC)
    return Numeric.array(ffdraw[:,0:numr], copy=1)
+
+def estimate_rz(psr, T, show=0, device='/XWIN'):
+    """
+    estimate_rz(psr, T, eo=0.0, show=0, device='/XWIN'):
+        Return estimates of a pulsar's average Fourier freq ('r')
+        relative to its nominal Fourier freq as well as its
+        Fourier f-dot ('z') in bins, of a pulsar.
+           'psr' is a psrparams structure describing the pulsar.
+           'T' is the length of the observation in sec.
+           'show' if true, displays plots of 'r' and 'z'.
+           'device' if the device to plot to if 'show' is true.
+    """
+    from Statistics import average
+    startE = keplars_eqn(psr.orb.t, psr.orb.p, psr.orb.e, 1.0E-15)
+    numorbpts = int(T / psr.orb.p + 1.0) * 1024 + 1
+    dt = T / (numorbpts - 1)
+    E = dorbint(startE, numorbpts, dt, psr.orb)
+    z = z_from_e(E, psr, T)
+    r = T/p_from_e(E, psr) - T/psr.p
+    if show:
+        times = Numeric.arange(numorbpts) * dt
+        Pgplot.plotxy(r, times, labx = 'Time', \
+                      laby = 'Fourier Frequency (r)', device=device)
+        if device=='/XWIN':
+           print 'Press enter to continue:'
+           i = raw_input()
+        Pgplot.nextplotpage()
+        Pgplot.plotxy(z, times, labx = 'Time',
+                      laby = 'Fourier Frequency Derivative (z)', device=device)
+        Pgplot.closeplot()
+    return (average(r), average(z))
+    
+def alias(r, rny):
+    """
+    alias_to_r(r, rny):
+        Convert an aliased Fourier frequency into the 'true' Fourier
+        frequency of a signal.  Or vise-versa -- the transformation is
+        symmetric about the Nyquist Freq.
+           'r' is the signal's Fourier frequency to convert.
+           'rny' is the Nyquist frequency (in bins).  For an FFT
+              of real data, 'rny' = number of data points FFT'd / 2.
+    """
+    return 2.0 * rny - r
 
 def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
                      numr = 300, numz = 300, 
@@ -1881,6 +1940,22 @@ def z_from_e(e, psr, T):
    E_to_z(z, len(z), psr.p, T, psr.orb)
    psr.orb.w = oldw
    return z
+
+def pcorr(data, kernel, numbetween, lo, hi):
+   """
+   pcorr(data, kernel, numbetween, lo, hi):
+       Perform a correlation with the raw complex vectors 'data' and
+       'kernel'.  The returned vector should start at frequency
+       'lo' (must be an integer), and go up to but not include 'hi'
+       (also an integer).
+   """
+   kern_half_width = len(kernel)/(2 * numbetween)
+   result = Numeric.zeros((hi-lo)*numbetween, 'F')
+   corr_complex(data, len(data), RAW,
+                kernel, len(kernel), RAW,
+                result, len(result), lo,
+                numbetween, kern_half_width, CORR)
+   return result
 
 
    

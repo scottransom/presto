@@ -20,7 +20,7 @@ orbsperpt = {'WD': 20, 'NS': 20, 'BH': 20}   # # of orbits to avg per pt
 ppsr = [0.002, 0.02, 0.2, 2.0]               # Pulsar periods to test
 
 # Simulation parameters
-ctype = 'WD'             # The type of binary companion: 'WD', 'NS', or 'BH'
+ctype = 'BH'             # The type of binary companion: 'WD', 'NS', or 'BH'
 Pb = 7200.0              # Orbital period in seconds
 dt = 0.0001              # The duration of each data sample (s)
 searchtype = 'short'     # One of 'ffdot', 'sideband', 'short'

@@ -22,7 +22,7 @@ orbsperpt = {'WD': 20, 'NS': 100, 'BH': 100}   # of orbits to avg per pt
 ppsr = [0.002, 0.02, 0.2, 2.0]               # Pulsar periods to test
 
 # Simulation parameters
-ctype = 'WD'             # One of 'WD', 'NS', or 'BH'
+ctype = 'BH'             # One of 'WD', 'NS', or 'BH'
 Pb = 7200.0              # Orbital period in seconds
 dt = 0.0001              # The duration of each data sample (s)
 searchtype = 'sideband'  # One of 'ffdot', 'sideband', 'shortffts'
@@ -173,7 +173,7 @@ def slice_resp(psr, T, response):
 ####################################################################
 
 # Calculate the values of our X and Y axis points
-TbyPb = arange(1.05, 10.05, 0.2)
+TbyPb = arange(1.15, 10.15, 0.2)
 
 # Open a file to save each orbit calculation
 file = open(outfilenm,'w')
@@ -186,7 +186,7 @@ for x in range(len(TbyPb)):
     T = Pb * TbyPb[x]
     N = T / dt
     # Loop over ppsr
-    for y in range(len(ppsr))[2:]:
+    for y in range(len(ppsr)):
         # Each processor calculates its own point
         z = 2 * pi * xb / ppsr[y]
         if not (y % numprocs == myid):  continue

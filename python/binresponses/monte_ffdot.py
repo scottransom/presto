@@ -7,8 +7,8 @@ from Statistics import *
 
 # Some admin variables
 parallel = 0          # True or false
-showplots = 1         # True or false
-debugout = 1          # True or false
+showplots = 0         # True or false
+debugout = 0          # True or false
 outfiledir = '/home/ransom'
 outfilenm = 'monte'
 pmass = 1.35                                 # Pulsar mass in solar masses
@@ -77,7 +77,7 @@ file = open(outfilenm,'w')
 # The Simulation loops
 
 # Loop over T / Porb
-for x in range(numTbyPb):
+for x in range(numTbyPb)[51:66]:
     T = Pb * TbyPb[x]
     xb = asini_c(Pb, mass_funct2(pmass, cmass[ctype], pi / 3.0))
     eb = ecc[ctype]

@@ -323,5 +323,21 @@ def z_from_e(e, psr, T):
    psr.orb.w = oldw
    return z
 
+def pcorr(data, kernel, numbetween, lo, hi):
+   """
+   pcorr(data, kernel, numbetween, lo, hi):
+       Perform a correlation with the raw complex vectors 'data' and
+       'kernel'.  The returned vector should start at frequency
+       'lo' (must be an integer), and go up to but not include 'hi'
+       (also an integer).
+   """
+   kern_half_width = len(kernel)/(2 * numbetween)
+   result = Numeric.zeros((hi-lo)*numbetween, 'F')
+   corr_complex(data, len(data), RAW,
+                kernel, len(kernel), RAW,
+                result, len(result), lo,
+                numbetween, kern_half_width, CORR)
+   return result
+
 
    
