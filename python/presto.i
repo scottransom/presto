@@ -1185,11 +1185,14 @@ double foldfile(FILE *datafile, double dt, double tlo,
 
 %apply float* IN_1D_FLOAT { float *data };
 %apply double* IN_1D_DOUBLE { double *prof, 
+			      double *buffer, 
+			      double *phaseadded, 
 			      double *delays,
 			      double *delaytimes };
 %apply int* IN_1D_INTEGER { int *onoffpairs }; 
 double fold(float *data, int numdata, double dt, double tlo, 
 	    double *prof, int numprof, double startphase, 
+	    double *buffer, double *phaseadded,
 	    double fo, double fdot, double fdotdot, int flags, 
 	    double *delays, double *delaytimes, int numdelays, 
 	    int *onoffpairs, foldstats *stats);

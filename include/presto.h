@@ -1128,6 +1128,7 @@ double simplefold(float *data, int numdata, double dt, double tlo,
 
 double fold(float *data, int numdata, double dt, double tlo, 
 	    double *prof, int numprof, double startphs, 
+	    double *buffer, double *phaseadded, 
 	    double fo, double fdot, double fdotdot, int flags, 
 	    double *delays, double *delaytimes, int numdelays, 
 	    int *onoffpairs, foldstats *stats);
@@ -1148,6 +1149,10 @@ double fold(float *data, int numdata, double dt, double tlo,
 /*    'prof' is a double prec array to contain the profile.           */
 /*    'numprof' is the length of the profile array.                   */
 /*    'startphs'is the phase offset [0-1] for the first point.        */
+/*    'buffer' is a double prec array of numprof values containing    */
+/*            data that hasn't made it into the prof yet.             */
+/*    'phaseadded' is the address to a variable showing how much      */
+/*            has been added to the buffer [0-1] (must start as 0.0)  */
 /*    'fo' the starting frequency to fold.                            */
 /*    'fdot' the starting frequency derivative.                       */
 /*    'fdotdot' the frequency second derivative.                      */
