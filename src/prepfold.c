@@ -604,7 +604,7 @@ int main(int argc, char *argv[])
     if (idata.mjd_i) {
       search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
 
-      if (!cmd->polycofileP && !cmd->timingP && !cmd->parnameP) {
+      if (!cmd->polycofileP && !cmd->timingP && !cmd->topoP && !cmd->parnameP) {
 	barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
 		   decstring, obs, ephem);
 	
@@ -970,7 +970,8 @@ int main(int argc, char *argv[])
       search.orb.t = -search.orb.t/SECPERDAY + search.bepoch;
   }
 
-  if ((RAWDATA || insubs) && cmd->dm==0.0 && !cmd->polycofileP){
+  if (((RAWDATA || insubs) && !cmd->topoP)
+      && cmd->dm==0.0 && !cmd->polycofileP){
     /* Correct the barycentric time for the dispersion delay.     */
     /* This converts the barycentric time to infinite frequency.  */
     barydispdt = delay_from_dm(cmd->dm, idata.freq + 
@@ -1221,8 +1222,10 @@ int main(int argc, char *argv[])
       }
     }
     
-    /* Data is already barycentered or the polycos will take care of the barycentering*/
-    if (!(RAWDATA || insubs) || cmd->polycofileP){
+    /* Data is already barycentered or 
+       the polycos will take care of the barycentering or
+       we are folding topocentrically.  */
+    if (!(RAWDATA || insubs) || cmd->polycofileP || cmd->topoP){
       foldf = f;  foldfd = fd;  foldfdd = fdd;
       orig_foldf = foldf;
     } else { /* Correct our fold parameters if we are barycentering */
@@ -1259,7 +1262,7 @@ int main(int argc, char *argv[])
       printf("Barycentric folding f-dotdot (hz/s^2)  =  %-.8g\n", fdd);
     
       /* Convert the barycentric folding parameters into topocentric */
-    
+
       if ((info=bary2topo(topotimes, barytimes, numbarypts, 
 			  f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
 	printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
@@ -1697,7 +1700,7 @@ int main(int argc, char *argv[])
     
     /* Convert best params from/to barycentric to/from topocentric */
     
-    if (!(RAWDATA || insubs)  || cmd->polycofileP){
+    if (!(RAWDATA || insubs) || cmd->polycofileP || cmd->topoP){
 
       /* Data was barycentered */
 

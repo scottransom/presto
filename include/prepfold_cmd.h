@@ -27,6 +27,10 @@ typedef struct s_Cmdline {
   char wappP;
   /***** -window: Window correlator lags with a Hamming window before FFTing */
   char windowP;
+  /***** -topo: Fold the data topocentrically (i.e. don't barycenter) */
+  char topoP;
+  /***** -invert: For rawdata, flip (or invert) the band */
+  char invertP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;

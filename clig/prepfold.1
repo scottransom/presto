@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "04Sep04" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "27Oct04" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -30,6 +30,8 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-filterbank]
 [-wapp]
 [-window]
+[-topo]
+[-invert]
 [-numwapps numwapps]
 [-if ifs]
 [-clip clip]
@@ -113,6 +115,10 @@ Raw data in SIGPROC filterbank format.
 Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
 .IP -window
 Window correlator lags with a Hamming window before FFTing.
+.IP -topo
+Fold the data topocentrically (i.e. don't barycenter).
+.IP -invert
+For rawdata, flip (or invert) the band.
 .IP -numwapps
 Number of WAPPs used with contiguous frequencies,
 .br

@@ -18,6 +18,8 @@ Flag   -spigot  spigot  {Raw data in Caltech-NRAO Spigot Card format}
 Flag   -filterbank  filterbank  {Raw data in SIGPROC filterbank format}
 Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Flag   -window  window  {Window correlator lags with a Hamming window before FFTing}
+Flag   -topo    topo    {Fold the data topocentrically (i.e. don't barycenter)}
+Flag   -invert  invert  {For rawdata, flip (or invert) the band}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 7    -d 1
 Int    -if      ifs     {A specific IF to use if available (summed IFs is the default)} \
