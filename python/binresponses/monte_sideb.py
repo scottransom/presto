@@ -7,6 +7,8 @@ from Statistics import *
 from random import expovariate
 import RNG
 
+global theo_sum_pow, b_pows, bsum_pows, newpows, noise, fftlen
+
 # Some admin variables
 parallel = 0          # True or false
 showplots = 0         # True or false
@@ -62,6 +64,78 @@ else:
     outfilenm = (outfiledir+'/'+outfilenm+
                  '_'+searchtype+'_'+ctype+'.out')
 
+
+def secant(func, oldx, x, TOL=1e-6):    # f(x)=func(x)
+    """
+    Summary 
+       Solve for a zero of function using Secant method 
+
+    Usage 
+       real = func(real) 
+       real = secant(func, real, real [, TOL=real]) 
+       
+    Similar to Newton's method, but the derivative is estimated by divided
+    difference using only function calls.  A root is estimated by
+    x = x - f(x) (x - oldx)/(f(x) - f(oldx))
+    where oldx = x[i-1] and x = x[i].
+    """
+    oldf, f = func(oldx), func(x)
+    if (abs(f) > abs(oldf)):            # swap so that f(x) is closer to 0
+        oldx, x = x, oldx
+        oldf, f = f, oldf
+    count = 0
+    while 1:
+        dx = f * (x - oldx) / float(f - oldf)
+        if abs(dx) < TOL * (1 + abs(x)): return x - dx
+        if count > 50:
+            x = average([x, oldx, x - dx])
+            f = func(x)
+            # print "secant(%d): x=%s, f(x)=%s" % (count, x, f)
+            return x
+        oldx, x = x, x - dx
+        oldf, f = f, func(x)
+        count = count + 1
+        # print "secant(%d): x=%s, f(x)=%s" % (count, x, f)
+
+def mini_fft_sum_pows(tryamp):
+    global theo_sum_pow, b_pows, bsum_pows, newpows, noise, fftlen
+
+    fdata = rfft(newpows * tryamp + noise)
+    norm = fdata[0].real
+    rpred = predict_mini_r(fftlen, psr.orb.p, T)
+    [b_pows[ct], rmax, rd] = \
+                 maximize_r(fdata, rpred, norm=norm)
+    # print 'avg(dat) = ',average(newpows * tryamp[ct] + noise)
+    # print 'avg(fft) = ',average(spectralpower(fdata)[1:]/norm)
+    # print tryamp
+    if debugout:
+        print 'Nyquist = '+`fftlen/2`
+        print '   rpred = %10.3f  power = %10.7f' % \
+              (rpred, b_pows[ct])
+    bsum_pows[ct] = b_pows[ct]
+    if (TbyPb[x] > 2.0):
+        for harmonic in arange(int(TbyPb[x]-1.0))+2:
+            hrpred = predict_mini_r(fftlen, harmonic * \
+                                    psr.orb.p, T)
+            [tmppow, hrmax, rd] = \
+                     maximize_r(fdata, hrpred, norm=norm)
+            bsum_pows[ct] = bsum_pows[ct] + tmppow
+            if debugout:
+                print '  hrpred = %10.3f  power = %10.7f' % \
+                      (hrpred, tmppow)
+    if debugout:
+        print '  r = %10.3f  meas_r = %10.3f '\
+              'alias_r = %10.3f' % \
+              (fftlen * psr.orb.p / T, rmax,
+               alias(rmax, fftlen/2))
+        print '  p = %10.3f  meas_p = %10.3f '\
+              'alias_p = %10.3f' % \
+              (psr.orb.p, rmax * T / fftlen,
+               alias(rmax, fftlen/2) * T / fftlen)
+        print '  BigPow = %10.7f  SumPow = %10.7f' % \
+              (b_pows[ct], bsum_pows[ct])
+    return bsum_pows[ct] - theo_sum_pow
+    
 def psrparams_from_list(pplist):
     psr = psrparams()
     psr.p = pplist[0]
@@ -112,7 +186,7 @@ for x in range(len(TbyPb)):
     T = Pb * TbyPb[x]
     N = T / dt
     # Loop over ppsr
-    for y in range(len(ppsr)):
+    for y in range(len(ppsr))[2:]:
         # Each processor calculates its own point
         z = 2 * pi * xb / ppsr[y]
         if not (y % numprocs == myid):  continue
@@ -147,56 +221,21 @@ for x in range(len(TbyPb)):
                     Pgplot.closeplot()
                 fftlen = len(newpows)
                 noise = rng.sample(fftlen)
-                tryamp[ct] = 12.4 * (sigma_t * sigma_t * z / N)**2 / fftlen 
+                tryamp[ct] = 500.0
                 theo_sum_pow = powersum_at_sigma(detect_sigma,
                                                  int(T/psr.orb.p))
                 if debugout:
                     print 'theo_sum_pow = ', theo_sum_pow
                 newloop = 1
-                while (fabs(theo_sum_pow - bsum_pows[ct]) > 1.0):
-                    if not newloop: tryamp[ct] = tryamp[ct] * sqrt(theo_sum_pow / bsum_pows[ct])
-                    fdata = rfft(newpows * tryamp[ct] + noise)
-                    norm = fdata[0].real
-                    rpred = predict_mini_r(fftlen, psr.orb.p, T)
-                    [b_pows[ct], rmax, rd] = \
-                                 maximize_r(fdata, rpred, norm=norm)
-                    # print 'avg(dat) = ',average(newpows * tryamp[ct] + noise)
-                    # print 'avg(fft) = ',average(spectralpower(fdata)[1:]/norm)
-                    if debugout:
-                        print 'Nyquist = '+`fftlen/2`
-                        print '   rpred = %10.3f  power = %10.7f' % \
-                              (rpred, b_pows[ct])
-                    bsum_pows[ct] = b_pows[ct]
-                    if (TbyPb[x] > 2.0):
-                        for harmonic in arange(int(TbyPb[x]-1.0))+2:
-                            hrpred = predict_mini_r(fftlen, harmonic * \
-                                                    psr.orb.p, T)
-                            [tmppow, hrmax, rd] = \
-                                     maximize_r(fdata, hrpred, norm=norm)
-                            bsum_pows[ct] = bsum_pows[ct] + tmppow
-                            if debugout:
-                                print '  hrpred = %10.3f  power = %10.7f' % \
-                                      (hrpred, tmppow)
-                    if debugout:
-                        print '  r = %10.3f  meas_r = %10.3f '\
-                              'alias_r = %10.3f' % \
-                              (fftlen * psr.orb.p / T, rmax,
-                               alias(rmax, fftlen/2))
-                        print '  p = %10.3f  meas_p = %10.3f '\
-                              'alias_p = %10.3f' % \
-                              (psr.orb.p, rmax * T / fftlen,
-                               alias(rmax, fftlen/2) * T / fftlen)
-                        print '  BigPow = %10.7f  SumPow = %10.7f' % \
-                              (b_pows[ct], bsum_pows[ct])
-                        # if showplots:
-                    newloop = 0
+                tryamp[ct] = secant(mini_fft_sum_pows, tryamp[ct]/2,
+                                    tryamp[ct], 0.01)
                 # Pgplot.plotxy(spectralpower(fdata)[1:]/norm, \
                 #              arange(len(fdata))*T/fftlen, \
                 #              labx='Orbital Period (s))', \
                 #              laby='Power')
                 # Pgplot.closeplot()
-                # print '  BigPow = %10.7f  SumPow = %10.7f  S(mJy) = %10.5f' % \
-                #      (b_pows[ct], bsum_pows[ct], 2 * sigma_t * sqrt(tryamp[ct]/N))
+                #print '  BigPow = %10.7f  SumPow = %10.7f  S(mJy) = %10.5f' % \
+                #      (b_pows[ct], bsum_pows[ct]-theo_sum_pow, 2 * sigma_t * sqrt(tryamp[ct]/N))
                 tim = clock() - stim
                 if debugout:
                     print 'Time for this point was ',tim, ' s.'
