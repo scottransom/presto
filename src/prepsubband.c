@@ -1,7 +1,9 @@
 #include <limits.h>
 #include "presto.h"
 #include "prepsubband_cmd.h"
+#include "mask.h"
 #include "multibeam.h"
+#include "bpp.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0

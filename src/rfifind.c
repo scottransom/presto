@@ -1,7 +1,9 @@
 #include <limits.h>
 #include "presto.h"
 #include "rfifind_cmd.h"
+#include "mask.h"
 #include "multibeam.h"
+#include "bpp.h"
 #include "rfifind.h"
 
 /* Some function definitions */

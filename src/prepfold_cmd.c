@@ -28,8 +28,12 @@ static Cmdline cmd = {
   /* outfileC = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ 0,
-  /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
-  /* ebppP = */ 0,
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  /* bcpmP = */ 0,
+  /***** -if: For BPP format only:  A specific IF to use. */
+  /* ifsP = */ 0,
+  /* ifs = */ (int)0,
+  /* ifsC = */ 0,
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   /* nobaryP = */ 0,
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
@@ -879,11 +883,23 @@ showOptionValues(void)
     printf("-pkmb found:\n");
   }
 
-  /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
-  if( !cmd.ebppP ) {
-    printf("-ebpp not found.\n");
+  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
+  if( !cmd.bcpmP ) {
+    printf("-bcpm not found.\n");
   } else {
-    printf("-ebpp found:\n");
+    printf("-bcpm found:\n");
+  }
+
+  /***** -if: For BPP format only:  A specific IF to use. */
+  if( !cmd.ifsP ) {
+    printf("-if not found.\n");
+  } else {
+    printf("-if found:\n");
+    if( !cmd.ifsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.ifs);
+    }
   }
 
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
@@ -1284,12 +1300,14 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
         -o: Root of the output file names\n\
             1 char* value\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
-     -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
+     -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+       -if: For BPP format only:  A specific IF to use.\n\
+            1 int value between 0 and 1\n\
    -nobary: Do not barycenter (assume input parameters are topocentric)\n\
     -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
      -xwin: Show the result plots on-screen as well as make a plotfile\n\
@@ -1372,7 +1390,7 @@ usage(void)
             1 char* value\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
             1...20 values\n\
-version: 02Jan01\n\
+version: 25Apr01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1404,8 +1422,18 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-ebpp", argv[i]) ) {
-      cmd.ebppP = 1;
+    if( 0==strcmp("-bcpm", argv[i]) ) {
+      cmd.bcpmP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-if", argv[i]) ) {
+      cmd.ifsP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.ifs, 1);
+      cmd.ifsC = i-keep;
+      checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
+      checkIntHigher("-if", &cmd.ifs, cmd.ifsC, 0);
       continue;
     }
 

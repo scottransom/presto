@@ -1,3 +1,5 @@
+#include "presto.h"
+#include "mask.h"
 #include "bpp.h"
 
 void indexx(unsigned int n, double arr[], unsigned int indx[]);
@@ -12,8 +14,7 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char chanmask[MAXNUMCHAN], padval;
-static unsigned char databuffer[2*MAXDATLEN];
+static unsigned char databuffer[2*MAXDATLEN], padval=4;
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 static double chan_freqs[2*MAXNUMCHAN], mid_freq_st, ch1_freq_st, delta_freq_st;
@@ -397,10 +398,6 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   *numchan = numchan_st = idata_st[0].num_chan;
   *ptsperblock = ptsperblk_st;
   numifs_st = header->num_chans / *numchan;
-  if (numifs_st==1)
-    padval = 7;
-  else 
-    padval = 14;
   bytesperpt_st = (numchan_st * numifs_st * 4) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
@@ -749,14 +746,12 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
   int ii, jj, numread=0, offset, sampperblk;
   double starttime=0.0;
   static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
-  static unsigned char *currentdata, *lastdata;
+  static unsigned char *currentdata, *lastdata, bytepadval;
   static int firsttime=1, numblocks=1, allocd=0, mask=0;
   static double duration=0.0, timeperblk=0.0;
 
   /* The x2 comes from 4-bits/pt */
   sampperblk = bytesperblk_st * 2;
-  if (numifs_st==2 && (ifs==IF0 || ifs==IF1)) 
-    padval = 7;
   *nummasked = 0;
   if (firsttime) {
     if (numpts % ptsperblk_st){
@@ -770,6 +765,8 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
     raw  = gen_bvect(numblocks * bytesperblk_st);
     rawdata1 = gen_bvect(numblocks * sampperblk);
     rawdata2 = gen_bvect(numblocks * sampperblk);
+    /* Put padval in the low and high nibbles */
+    bytepadval = (padval << 4) | padval;
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
@@ -792,7 +789,7 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, padval, numblocks * sampperblk);
+	memset(raw, bytepadval, numblocks * sampperblk);
     }
 
     if (numifs_st==2){
@@ -814,12 +811,10 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
     }
 
     if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<*nummasked; ii++)
-	chanmask[ii] = maskchans[ii] & 0x01;
       for (ii=0; ii<numpts; ii++){
 	offset = ii * numchan_st;
 	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = chanmask[jj];
+	  currentdata[offset+maskchans[jj]] = padval;
       }
     }
 
@@ -837,7 +832,7 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, padval, numblocks * sampperblk);
+	memset(raw, bytepadval, numblocks * sampperblk);
     }
 
     if (numifs_st==2){
@@ -859,12 +854,10 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
     }
 
     if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<*nummasked; ii++)
-	chanmask[ii] = maskchans[ii] & 0x01;
       for (ii=0; ii<numpts; ii++){
 	offset = ii * numchan_st;
 	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = chanmask[jj];
+	  currentdata[offset+maskchans[jj]] = padval;
       }
     }
 
@@ -960,24 +953,36 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
     currentdata = rawdata1;
     lastdata = rawdata2;
     timeperblk = ptsperblk_st * dt_st;
-    /* XXXXXXXXXXXXXXXXX */
+    /* Put padval in the low and high nibbles */
     bytepadval = (padval << 4) | padval;
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, padval, bytesperblk_st);
+	memset(raw, bytepadval, bytesperblk_st);
     }
-    for (ii=0; ii<ptsperblk_st; ii++)
-      convert_BPP_point(raw + ii * bytesperpt_st, 
-			 currentdata + ii * numchan_st);
+    if (numifs_st==2){
+      /* Choosing a single IF */
+      if (ifs==IF0 || ifs==IF1)
+	for (ii=0; ii<ptsperblk_st; ii++)
+	  convert_BPP_one_IF(raw + ii * bytesperpt_st, 
+			     currentdata + ii * numchan_st, ifs);
+      /* Sum the IFs */
+      else
+	for (ii=0; ii<ptsperblk_st; ii++)
+	  convert_BPP_sum_IFs(raw + ii * bytesperpt_st, 
+			      currentdata + ii * numchan_st);
+    } else {
+      /* Select the already summed IFs */
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_point(raw + ii * bytesperpt_st, 
+			  currentdata + ii * numchan_st);
+    }
     if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<*nummasked; ii++)
-	chanmask[ii] = maskchans[ii] & 0x01;
       for (ii=0; ii<ptsperblk_st; ii++){
 	offset = ii * numchan_st;
 	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = chanmask[jj];
+	  currentdata[offset+maskchans[jj]] = padval;
       }
     }
     SWAP(currentdata, lastdata);
@@ -991,18 +996,30 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
     if (*nummasked==-1) /* If all channels are masked */
-      memset(raw, padval, bytesperblk_st);
+      memset(raw, bytepadval, bytesperblk_st);
   }
-  for (ii=0; ii<ptsperblk_st; ii++)
-    convert_BPP_point(raw + ii * bytesperpt_st, 
-		       currentdata + ii * numchan_st);
+  if (numifs_st==2){
+    /* Choosing a single IF */
+    if (ifs==IF0 || ifs==IF1)
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_one_IF(raw + ii * bytesperpt_st, 
+			   currentdata + ii * numchan_st, ifs);
+    /* Sum the IFs */
+    else
+      for (ii=0; ii<ptsperblk_st; ii++)
+	convert_BPP_sum_IFs(raw + ii * bytesperpt_st, 
+			    currentdata + ii * numchan_st);
+  } else {
+    /* Select the already summed IFs */
+    for (ii=0; ii<ptsperblk_st; ii++)
+      convert_BPP_point(raw + ii * bytesperpt_st, 
+			currentdata + ii * numchan_st);
+  }
   if (*nummasked > 0){ /* Only some of the channels are masked */
-    for (ii=0; ii<*nummasked; ii++)
-      chanmask[ii] = maskchans[ii] & 0x01;
     for (ii=0; ii<ptsperblk_st; ii++){
       offset = ii * numchan_st;
       for (jj=0; jj<*nummasked; jj++)
-	currentdata[offset+maskchans[jj]] = chanmask[jj];
+	currentdata[offset+maskchans[jj]] = padval;
     }
   }
   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
@@ -1035,7 +1052,7 @@ void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
   for (ii=0; ii<numchan_st*2; ii++) 
     ifbytes[ii] = 0;
   for (ii=0; ii<numchan_st; ii++, rawdataptr++){
-    ifbytes[*indexptr++] += (*rawdataptr >> 4);
+    ifbytes[*indexptr++] += (*rawdataptr >> 0x04);
     ifbytes[*indexptr++] += (*rawdataptr & 0x0F);
   }
   if (ifs==IF1)
@@ -1060,9 +1077,9 @@ void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes)
   indexptr = chan_index;
   for (ii=0; ii<numchan_st*2; ii++) 
     ifbytes[ii] = 0;
-  for (ii=0; ii<numchan_st; ii++, *rawdataptr++){
-    ifbytes[*indexptr++] += (*rawdataptr & 0x0F);
+  for (ii=0; ii<numchan_st; ii++, rawdataptr++){
     ifbytes[*indexptr++] += (*rawdataptr >> 0x04);
+    ifbytes[*indexptr++] += (*rawdataptr & 0x0F);
   }
   for (ii=0, jj=numchan_st; ii<numchan_st; ii++, jj++)
     bytes[ii] = ifbytes[ii] + ifbytes[jj];
@@ -1078,9 +1095,9 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
 
   rawdataptr = rawdata;
   indexptr = chan_index;
-  for (ii=0; ii<numchan_st/2; ii++, *rawdataptr++){
-    bytes[*indexptr++] = (*rawdataptr & 0x0F);
+  for (ii=0; ii<numchan_st/2; ii++, rawdataptr++){
     bytes[*indexptr++] = (*rawdataptr >> 0x04);
+    bytes[*indexptr++] = (*rawdataptr & 0x0F);
   }
 }
 

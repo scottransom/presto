@@ -1,4 +1,8 @@
 #include "prepfold.h"
+#include "prepfold_cmd.h"
+#include "mask.h"
+#include "multibeam.h"
+#include "bpp.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -25,6 +29,7 @@ int main(int argc, char *argv[])
   long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0;
+  BPP_ifs bppifs=SUMIFS;
   infodata idata;
   foldstats beststats;
   prepfoldinfo search;
@@ -72,7 +77,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (!cmd->pkmbP && !cmd->ebppP){
+  if (!cmd->pkmbP && !cmd->bcpmP){
     char *root, *suffix;
 
     /* Split the filename into a rootname and a suffix */
@@ -97,16 +102,16 @@ int main(int argc, char *argv[])
       printf("Reading Parkes PKMB data from %d files:\n", numfiles);
     else
       printf("Reading Parkes PKMB data from 1 file:\n");
-  } else if (cmd->ebppP){
+  } else if (cmd->bcpmP){
     if (numfiles > 1)
-      printf("Reading Effelsberg RBPP data from %d files:\n", numfiles);
+      printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
     else
-      printf("Reading Effelsberg RBPP data from 1 file:\n");
+      printf("Reading Green Bank BCPM data from 1 file:\n");
   }
 
   /* Open the raw data files */
 
-  if (cmd->pkmbP || cmd->ebppP){
+  if (cmd->pkmbP || cmd->bcpmP){
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
@@ -155,10 +160,6 @@ int main(int argc, char *argv[])
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
   }
 
-  /* Open the file to store the binary profiles */
-  
-  binproffile = chkfopen(binproffilenm, "wb");
-    
   /* What ephemeris will we use?  (Default is DE200) */
   
   if (cmd->de405P)
@@ -167,29 +168,60 @@ int main(int argc, char *argv[])
     strcpy(ephem, "DE200");
     
   /* Set-up values if we are using the Parkes Multibeam System */
+  /* or a Berkeley-Caltech Pulsar Machine.                     */
 
-  if (cmd->pkmbP){
-    double pkmb_dt, pkmb_T;
-    long long pkmb_N;
-    PKMB_tapehdr hdr;
+  if (cmd->pkmbP || cmd->bcpmP){
+    double local_dt, local_T;
+    long long local_N;
 
-    get_PKMB_file_info(infiles, numfiles, &pkmb_N, &ptsperrec, 
-		       &numchan, &pkmb_dt, &pkmb_T, 1);
+    if (cmd->pkmbP){
+      PKMB_tapehdr hdr;
+      
+      get_PKMB_file_info(infiles, numfiles, &local_N, &ptsperrec, 
+			 &numchan, &local_dt, &local_T, 1);
 
-    /* Read the first header file and generate an infofile from it */
+      /* Read the first header file and generate an infofile from it */
+      
+      chkfread(&hdr, 1, HDRLEN, infiles[0]);
+      rewind(infiles[0]);
+      PKMB_hdr_to_inf(&hdr, &idata);
+      PKMB_update_infodata(numfiles, &idata);
 
-    chkfread(&hdr, 1, HDRLEN, infiles[0]);
-    rewind(infiles[0]);
-    PKMB_hdr_to_inf(&hdr, &idata);
-    PKMB_update_infodata(numfiles, &idata);
+      /* OBS code for TEMPO */
+      
+      strcpy(obs, "PK");
+      search.telescope = (char *)calloc(20, sizeof(char));
+      strcpy(search.telescope, "Parkes Multibeam");
+
+    } else if (cmd->bcpmP){
+
+      get_BPP_file_info(infiles, numfiles, &local_N, &ptsperrec, &numchan, 
+			&local_dt, &local_T, &idata, 1);
+      BPP_update_infodata(numfiles, &idata);
+
+      /* Which IFs will we use? */
+      
+      if (cmd->ifsP){
+	if (cmd->ifs==0)
+	  bppifs = IF0;
+	else if (cmd->ifs==1)
+	  bppifs = IF1;
+	else
+	  bppifs = SUMIFS;
+      }
+      
+      /* OBS code for TEMPO */
+      
+      /* The following is for the Green Bank 85-3 */
+      strcpy(obs, "G8");
+      search.telescope = (char *)calloc(20, sizeof(char));
+      strcpy(search.telescope, "Green Bank 85-3");
+    }
+
     idata.dm = cmd->dm;
-    numrec = pkmb_N / ptsperrec;
-
-    /* OBS code for TEMPO */
-
-    strcpy(obs, "PK");
-    search.telescope = (char *)calloc(20, sizeof(char));
-    strcpy(search.telescope, "Parkes Multibeam");
+    numrec = local_N / ptsperrec;
+    if (cmd->maskfileP)
+      maskchans = gen_ivect(idata.num_chan);
 
     /* Define the RA and DEC of the observation */
   
@@ -237,23 +269,8 @@ int main(int argc, char *argv[])
       search.bepoch -= (barydispdt / SECPERDAY);
     }
     worklen = ptsperrec;
-  }
 
-  /* Using the Effelsberg-Berkeley Pulsar Processor routines   */
-  /*   NOTE:  This code is not yet implemented.                */
-
-  if (cmd->ebppP) {
-
-    /* OBS code for TEMPO */
-
-    strcpy(obs, "EF");
-    search.telescope = (char *)calloc(20, sizeof(char));
-    strcpy(search.telescope, "Effelsberg");
-  }
-
-  /* Raw floating point data (already de-dispersed if radio data) */
-
-  if (!cmd->ebppP && !cmd->pkmbP){
+  } else { /* Raw floating point data (already de-dispersed if radio data) */
 
     /* Some information about the size of the records */
 
@@ -420,9 +437,9 @@ int main(int argc, char *argv[])
       /* Now correct for the fact that we may not be starting */
       /* to fold at the same start time as the rzw search.    */
 
-      if (cmd->pkmbP)
+      if (cmd->pkmbP || cmd->bcpmP)
 	f += lorec * recdt * fd;
-      else if (!cmd->pkmbP && !cmd->ebppP)
+      else
 	f += lorec * search.dt * fd;
       if (rzwidata.bary)
 	switch_f_and_p(f, fd, fdd, &search.bary.p1, \
@@ -447,9 +464,9 @@ int main(int argc, char *argv[])
       /* Now correct for the fact that we may not be starting */
       /* to fold at the same start time as the rzw search.    */
 
-      if (cmd->pkmbP)
+      if (cmd->pkmbP || cmd->bcpmP)
 	f += lorec * recdt * fd;
-      else if (!cmd->pkmbP && !cmd->ebppP)
+      else
 	f += lorec * search.dt * fd;
       if (rzwidata.bary)
 	switch_f_and_p(f, fd, fdd, &search.bary.p1, \
@@ -628,6 +645,8 @@ int main(int argc, char *argv[])
   currentrec = lorec;
   if (cmd->pkmbP)
     skip_to_PKMB_rec(infiles, numfiles, lorec+1);
+  else if (cmd->bcpmP)
+    skip_to_BPP_rec(infiles, numfiles, lorec+1);
   else
     chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
 
@@ -750,6 +769,7 @@ int main(int argc, char *argv[])
   /* sub-integrations in time  */
   
   dtmp = (double) cmd->npart;
+  binproffile = chkfopen(binproffilenm, "wb");
   chkfwrite(&dtmp, sizeof(double), 1, binproffile);
   dtmp = (double) cmd->nsub;
   chkfwrite(&dtmp, sizeof(double), 1, binproffile);
@@ -765,6 +785,11 @@ int main(int argc, char *argv[])
 	numread = read_PKMB_subbands(infiles, numfiles, data, 
 				     dispdts, cmd->nsub, 1, &padding,
 				     maskchans, &nummasked, &obsmask);
+      else if (cmd->bcpmP)
+	numread = read_BPP_subbands(infiles, numfiles, data, 
+				    dispdts, cmd->nsub, 1, &padding,
+				    maskchans, &nummasked, &obsmask, 
+				    bppifs);
       else {
 	int mm;
 	float runavg=0.0;

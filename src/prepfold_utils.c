@@ -1,4 +1,5 @@
 #include "prepfold.h"
+#include "prepfold_cmd.h"
 
 double switch_pfdot(double pf, double pfdot)
 {

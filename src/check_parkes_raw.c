@@ -1,4 +1,5 @@
 #include "presto.h"
+#include "mask.h"
 #include "multibeam.h"
 
 #ifdef USEDMALLOC

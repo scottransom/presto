@@ -1,6 +1,7 @@
 #include <limits.h>
-#include "presto.h"
 #include "prepdata_cmd.h"
+#include "presto.h"
+#include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
 
