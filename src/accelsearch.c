@@ -59,18 +59,17 @@ int main(int argc, char *argv[])
 #endif
 
   printf("\n\n");
-  printf("       Pulsar Acceleration Search Routine II\n");
-  printf("              by Scott M. Ransom\n");
-  printf("                February, 2001\n\n");
+  printf("       Pulsar Acceleration Search Routine\n");
+  printf("              by Scott M. Ransom\n\n");
 
   /* Create the accelobs structure */
   
   create_accelobs(&obs, &idata, cmd);
   printf("Searching with up to %d harmonics summed:\n", 
 	 1<<(obs.numharmstages-1));
-  printf("  f = %.1f to %.1f\n", obs.rlo/obs.T, obs.rhi/obs.T);
-  printf("  r = %.1f to %.1f\n", obs.rlo, obs.rhi);
-  printf("  z = %.1f to %.1f\n\n", obs.zlo, obs.zhi);
+  printf("  f = %.1f to %.1f Hz\n", obs.rlo/obs.T, obs.rhi/obs.T);
+  printf("  r = %.1f to %.1f Fourier bins\n", obs.rlo, obs.rhi);
+  printf("  z = %.1f to %.1f Fourier bins drifted\n\n", obs.zlo, obs.zhi);
 
   /* Generate the correlation kernels */
   

@@ -164,10 +164,10 @@ subharminfo **create_subharminfos(int numharmstages, int zmax)
   subharminfo **shis;
 
   shis = (subharminfo **)malloc(numharmstages * sizeof(subharminfo *));
-  /* Prep the fundamental */
+  /* Prep the fundamental (actually, the highest harmonic) */
   shis[0] = (subharminfo *)malloc(2 * sizeof(subharminfo));
   init_subharminfo(1, 1, zmax, &shis[0][0]);
-  printf("  Fundamental  has %3d kernels from z = %4d to %4d,  FFT length = %d\n", 
+  printf("  Harmonic 1/1 has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n", 
 	 shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
 	 calc_fftlen(1, 1, shis[0][0].zmax));
   /* Prep the sub-harmonics */
@@ -176,7 +176,7 @@ subharminfo **create_subharminfos(int numharmstages, int zmax)
     shis[ii] = (subharminfo *)malloc(harmtosum * sizeof(subharminfo));
     for (jj=1; jj<harmtosum; jj+=2){
       init_subharminfo(harmtosum, jj, zmax, &shis[ii][jj-1]);
-      printf("  Harmonic %d/%d has %3d kernels from z = %4d to %4d,  FFT length = %d\n", 
+      printf("  Harmonic %d/%d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n", 
 	     jj, harmtosum, shis[ii][jj-1].numkern, 
 	     -shis[ii][jj-1].zmax, shis[ii][jj-1].zmax,
 	     calc_fftlen(harmtosum, jj, shis[ii][jj-1].zmax));
@@ -263,7 +263,7 @@ static int compare_accelcand_sigma(gconstpointer ca, gconstpointer cb)
   if (result) 
     return result;
   else
-    return (a->r > b->r) - (a->r < b->r);
+    return (a->power < b->power) - (a->power > b->power);
 }
 
 
@@ -499,7 +499,7 @@ void output_fundamentals(fourierprops *props, GSList *list,
     
     { /* Calculate the coherently summed power */
       double coherent_r=0.0, coherent_i=0.0;
-      double phs, phs0, phscorr, amp;
+      double phs0, phscorr, amp;
       rderivs harm;
 
       phs0 = cand->derivs[0].phs;
@@ -509,10 +509,9 @@ void output_fundamentals(fourierprops *props, GSList *list,
 	  amp = sqrt(harm.pow / obs->nph);
 	else
 	  amp = sqrt(harm.pow / harm.locpow);
-	phs = (cand->numharm-jj) * harm.phs;
 	phscorr = phs0 - fmod((jj+1.0)*phs0, TWOPI);
-	coherent_r += amp * cos(phs + phscorr);
-	coherent_i += amp * sin(phs + phscorr);
+	coherent_r += amp * cos(harm.phs+phscorr);
+	coherent_i += amp * sin(harm.phs+phscorr);
       }
       coherent_pow = coherent_r * coherent_r + coherent_i * coherent_i;
     }
@@ -723,8 +722,12 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   ffdot->rinds = shi->rinds;
   ffdot->numrs = (int) ((ceil(drhi) - floor(drlo)) 
 			* ACCEL_RDR + DBLCORRECT) + 1;
-  if (ffdot->numrs % ACCEL_RDR)
-    ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
+  if (numharm==1 && harmnum==1){
+    ffdot->numrs = ACCEL_USELEN;
+  } else {
+    if (ffdot->numrs % ACCEL_RDR)
+      ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
+  }
   ffdot->numzs = shi->numkern;
   binoffset = shi->kern[0].kern_half_width;
   fftlen = shi->kern[0].fftlen;
@@ -988,7 +991,7 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
   obs->numindep = (long long *)malloc(obs->numharmstages * sizeof(long long));
   for (ii=0; ii<obs->numharmstages; ii++){
     if (obs->numz==1)
-      obs->numindep[ii] = obs->rhi - obs->rlo;
+      obs->numindep[ii] = (obs->rhi - obs->rlo) / index_to_twon(ii);
     else
       /* The numz+1 takes care of the small amount of  */
       /* search we get above zmax and below zmin.      */
