@@ -1,4 +1,5 @@
 #include "plot2d.h"
+#include "rawtype.h"
 #include <string.h>
 
 int nice_output_2(char *output, double val, double err, int len);
@@ -220,6 +221,50 @@ void xyline2lab(int npts, float *x, float *y, float *y2, const char *xlab, \
   if (id == 1)
     cpgiden();
 
+}
+
+
+void plot_spectrum(fcomplex *spect, int numspect, 
+		   double lor, double dr, double T,
+		   double average)
+/* Plot a chunk of the Fourier power spectrum normalized by average */
+/* The viewing area is left defined with the xvals as _Hz_.         */
+{
+  int ii;
+  float *yvals, *xvals;
+  float hir, maxy=0.0, xx[2], yy[2];
+
+  hir = lor + numspect * dr;
+  xvals = (float *)malloc(sizeof(float) * numspect);
+  yvals = (float *)malloc(sizeof(float) * numspect);
+  for (ii=0; ii<numspect; ii++){
+    xvals[ii] = lor + ii * dr;
+    yvals[ii] = (spect[ii].r * spect[ii].r +
+      spect[ii].i * spect[ii].i) / average;
+    if (yvals[ii] > maxy) maxy = yvals[ii];
+  }
+  maxy *= 1.1;
+
+  /* Setup the plot screen for the first set of y's: */
+  cpgpage();
+  cpgvstd();
+  xx[0] = lor; xx[1] = hir;
+  yy[0] = 0.0; yy[1] = maxy;
+  cpgswin(xx[0], xx[1], yy[0], yy[1]); 
+  cpgbox("", 0.0, 0, "CMST", 0.0, 0);
+  cpgmtxt("T", 3.0, 0.5, 0.5, "Fourier Frequency (bins)");
+  cpgmtxt("L", 2.6, 0.5, 0.5, "Normalized Power");
+
+  /* Plot the points */
+  cpgline(numspect, xvals, yvals);
+
+  /* Draw the box for the other axis */
+  cpgswin(xx[0]/T, xx[1]/T, yy[0], yy[1]); 
+  cpgbox("BCNST", 0.0, 0, "BNST", 0.0, 0);
+  cpgmtxt("B", 3.0, 0.5, 0.5, "Frequency (Hz)");
+
+  free(xvals);
+  free(yvals);
 }
 
 

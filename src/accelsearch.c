@@ -1,6 +1,5 @@
 #include <glib.h>
 #include "accel.h"
-#include "accelsearch_cmd.h"
 
 /* Define a couple functions specific to this program */
 

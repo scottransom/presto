@@ -99,6 +99,76 @@ int get_birdies(char *zapfilenm, double T, double avg_vel,
 }
 
 
+int get_std_birds(char *zapfilenm, double T, double avg_vel,
+		  double **basebin, int **numharm)
+/* Open, read, and close a text file containing frequencies (Hz)   */
+/* and the number of harmonics to zap from a FFT.  The text file   */
+/* should have one frequency and number of harmonics per line.     */
+/* Lines beginning with '#' are ignored (i.e. used as comments).   */
+/* 'T' is the total length in seconds of the observation that was  */
+/* FFTd.  'avg_vel' is the avg topocentric velocity (in units      */
+/* of c) towards the target during the obs.  The returned arrays   */
+/* are sorted in order of increasing 'basebins' and contain the    */
+/* base Fourier freq and the number of harmonics to check.  The    */
+/* base freqs are adjusted based on avg_vel.                       */
+{
+  FILE *zapfile;
+  double freq, harm;
+  char line[200];
+  int ii, numzap;
+  bird *birds;
+
+  zapfile = chkfopen(zapfilenm, "r");
+
+  /* Read the input file once to count the birdies */
+  
+  numzap = 0;
+  while (!feof(zapfile)){
+    fgets(line, 200, zapfile);
+    if (line[0]=='#') continue;
+    else numzap++;
+  }
+  numzap--;
+
+  /* Allocate the birdie arrays */
+
+  birds = (bird *)malloc(numzap * sizeof(bird));
+
+  /* Rewind and read the birdies for real */
+
+  rewind(zapfile);
+  ii = 0;
+  while(ii < numzap){
+    fgets(line, 200, zapfile);
+    if (line[0]=='#') continue;
+    else {
+      sscanf(line, "%lf %lf\n", &freq, &harm);
+      birds[ii].lobin = freq * T * (1.0 + avg_vel);
+      birds[ii].hibin = harm;
+      ii++;
+    }
+  }
+  fclose(zapfile);
+
+  /* Sort the birds and then transfer them to the individual arrays */
+
+  printf("Read %d 'birdie' pairs from '%s':\n", 
+	 numzap, zapfilenm);
+  qsort(birds, numzap, sizeof(bird), compare_birds);
+  *basebin = gen_dvect(numzap);
+  *numharm = gen_ivect(numzap);
+  for (ii=0; ii<numzap; ii++){
+    (*basebin)[ii] = birds[ii].lobin;
+    (*numharm)[ii] = (int) birds[ii].hibin;
+    printf("  %12.7g Hz for %2d harmonics\n", (*basebin)[ii]/T, 
+	   (*numharm)[ii]);
+  }
+  free(birds);
+
+  return numzap;
+}
+
+
 int check_to_zap(double candbin, double *lobins, double *hibins, 
 		 int numzap)
 /* Look at the closest birdies from the zapfile to see if our  */
