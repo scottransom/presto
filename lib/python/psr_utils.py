@@ -1,4 +1,4 @@
-import Numeric, umath, FFT, Pgplot, ppgplot, bisect
+import Numeric, umath, FFT, Pgplot, ppgplot, bisect, sinc_interp
 from Scientific.Functions.FindRoot import newtonRaphson
 from Scientific.Statistics import average, standardDeviation
 from Scientific.Statistics.Histogram import Histogram
@@ -649,6 +649,19 @@ def rotate(arr, bins):
         return arr
     else:
         return Numeric.concatenate((arr[bins:], arr[:bins]))
+
+def interp_rotate(arr, bins, zoomfact=10):
+    """
+    interp_rotate(arr, bins, zoomfact=10):
+        Return a sinc-interpolated array rotated by 'bins' places to the left.
+            'bins' can be fractional and will be rounded to the closest
+            whole-number of interpolated bins.  The resulting vector will
+            have the same length as the oiginal.
+    """
+    newlen = len(arr)*zoomfact
+    rotbins = int(umath.floor(bins*zoomfact+0.5)) % newlen
+    newarr = sinc_interp.periodic_interp(arr, zoomfact)  
+    return rotate(newarr, rotbins)[::zoomfact]
 
 def corr(profile, template):
     """

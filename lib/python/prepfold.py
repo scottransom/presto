@@ -1,9 +1,7 @@
 import umath
 import Numeric as Num
 import struct
-import psr_utils
-import infodata
-import Pgplot
+import psr_utils, infodata, polycos, Pgplot, sinc_interp
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
 
@@ -24,6 +22,7 @@ class foldstats:
 class pfd:
 
     def __init__(self, filename):
+        self.pfd_filename = filename
         infile = open(filename, "rb")
         # See if the .bestprof file is around
         try:
@@ -124,6 +123,21 @@ class pfd:
         self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
         infile.close()
+        if self.avgvoverc==0:
+            print "Determining the approximate Doppler correction: ",
+            if self.candnm.startswith("PSR_"):
+                # If this doesn't work, we should try to use the barycentering calcs
+                # in the presto module.
+                try:
+                    self.polycos = polycos.polycos(self.candnm.lstrip("PSR_"),
+                                                   filenm=self.pfd_filename+".polycos")
+                    midMJD = self.tepoch + 0.5*self.T/86400.0
+                    self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
+                    print self.avgvoverc
+                    # Make the Doppler correction
+                    self.subfreqs *= 1.0+self.avgvoverc
+                except IOError:
+                    self.polycos = 0
 
     def __str__(self):
         out = ""
@@ -137,26 +151,35 @@ class pfd:
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
 
-    def dedisperse(self, DM=None):
+    def dedisperse(self, DM=None, interp=1):
         """
-        dedisperse(DM=self.bestdm):
+        dedisperse(DM=self.bestdm, interp=1):
             Rotate (internally) the profiles so that they are de-dispersed
-                at a dispersion measure of DM.
+                at a dispersion measure of DM.  Use sinc-interpolation if
+                'interp' is non-zero (NOTE: It is _on_ by default!).
         """
         if DM is None:
             DM = self.bestdm
         self.subdelays = psr_utils.delay_from_DM(DM, self.subfreqs)
 	self.hifreqdelay = self.subdelays[-1]
 	self.subdelays = self.subdelays-self.hifreqdelay
-        # The following allows multiple DM trials
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
-	new_subdelays_bins = umath.floor(delaybins+0.5)
-        for ii in range(self.nsub):
-            rotbins = int(new_subdelays_bins[ii])%self.proflen
-            if rotbins:  # i.e. if not zero
-                subdata = self.profs[:,ii,:]
-                self.profs[:,ii] = Num.concatenate((subdata[:,rotbins:],
-                                                    subdata[:,:rotbins]), 1)
+        if interp:
+            interp_factor = 16
+            new_subdelays_bins = umath.floor(delaybins*interp_factor+0.5)/float(interp_factor)
+            for ii in range(self.npart):
+                for jj in range(self.nsub):
+                    tmp_prof = self.profs[ii,jj,:]
+                    self.profs[ii,jj] = psr_utils.interp_rotate(tmp_prof, delaybins[jj],
+                                                                zoomfact=interp_factor)
+        else:
+            new_subdelays_bins = umath.floor(delaybins+0.5)
+            for ii in range(self.nsub):
+                rotbins = int(new_subdelays_bins[ii])%self.proflen
+                if rotbins:  # i.e. if not zero
+                    subdata = self.profs[:,ii,:]
+                    self.profs[:,ii] = Num.concatenate((subdata[:,rotbins:],
+                                                        subdata[:,:rotbins]), 1)
         self.subdelays_bins += new_subdelays_bins
         self.sumprof = Num.sum(Num.sum(self.profs))
 
@@ -296,14 +319,19 @@ class pfd:
             self.dedisperse()
         return sum((self.sumprof-self.avgprof)**2.0/self.varprof)/(self.proflen-1.0)
 
-    def plot_chi2_vs_DM(self, loDM, hiDM, N=100):
+    def plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0):
         """
-        plot_chi2_vs_DM(self, loDM, hiDM, N=100):
+        plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0):
             Plot (and return) an array showing the reduced-chi^2 versus
-                DM (N DMs spanning loDM-hiDM).
+                DM (N DMs spanning loDM-hiDM).  Use sinc_interpolation
+                if 'interp' is non-zero.
         """
         # Sum the profiles in time
-        profs = Num.sum(self.profs)
+        sumprofs = Num.sum(self.profs)
+        if not interp:
+            profs = sumprofs
+        else:
+            profs = Num.zeros(Num.shape(sumprofs), typecode='d')
         DMs = psr_utils.span(loDM, hiDM, N)
         chis = Num.zeros(N, typecode='f')
         subdelays_bins = self.subdelays_bins.copy()
@@ -312,11 +340,16 @@ class pfd:
             hifreqdelay = subdelays[-1]
             subdelays = subdelays - hifreqdelay
             delaybins = subdelays*self.binspersec - subdelays_bins
-            last_subdelays_bins = subdelays_bins
-            new_subdelays_bins = umath.floor(delaybins+0.5)
-            for jj in range(self.nsub):
-                profs[jj] = psr_utils.rotate(profs[jj], int(new_subdelays_bins[jj]))
-            subdelays_bins += new_subdelays_bins
+            if interp:
+                interp_factor = 16
+                for jj in range(self.nsub):
+                    profs[jj] = psr_utils.interp_rotate(sumprofs[jj], delaybins[jj],
+                                                        zoomfact=interp_factor)
+            else:
+                new_subdelays_bins = umath.floor(delaybins+0.5)
+                for jj in range(self.nsub):
+                    profs[jj] = psr_utils.rotate(profs[jj], int(new_subdelays_bins[jj]))
+                subdelays_bins += new_subdelays_bins
             sumprof = Num.sum(profs)
             chis[ii] = Num.sum((sumprof-self.avgprof)**2.0/self.varprof)/(self.proflen-1.0)
         # Now plot it
@@ -356,23 +389,32 @@ class pfd:
 
 
 if __name__ == "__main__":
+    import sys
     
-    testpfd = "/home/ransom/tmp_pfd/M5_52725_W234_PSR_1518+0204A.pfd"
+    #testpfd = "/home/ransom/tmp_pfd/M5_52725_W234_PSR_1518+0204A.pfd"
     #testpfd = "/home/ransom/tmp_pfd/M13_52724_W234_PSR_1641+3627C.pfd"
+    testpfd = "M13_53135_W34_rficlean_DM30.10_PSR_1641+3627C.pfd"
 
     tp = pfd(testpfd)
 
-    print tp.start_secs
-    print tp.mid_secs
-    print tp.start_topo_MJDs
-    print tp.mid_topo_MJDs
-    print tp.T
+    if (0):
+        print tp.start_secs
+        print tp.mid_secs
+        print tp.start_topo_MJDs
+        print tp.mid_topo_MJDs
+        print tp.T
 
-    tp.kill_subbands([6,7,8,9,30,31,32,33])
-    tp.kill_intervals([2,3,4,5,6])
+    #tp.kill_subbands([6,7,8,9,30,31,32,33])
+    #tp.kill_intervals([2,3,4,5,6])
 
-    tp.plot_chi2_vs_sub()
-    tp.plot_chi2_vs_DM(0.0, 50.0, 1000)
+    #tp.plot_chi2_vs_sub()
+    #(chis, DMs) = tp.plot_chi2_vs_DM(0.0, 50.0, 501, interp=1)
+    #best_index = Num.argmax(chis)
+    #print "Best DM = ", DMs[best_index]
+
+    (chis, DMs) = tp.plot_chi2_vs_DM(0.0, 50.0, 501)
+    best_index = Num.argmax(chis)
+    print "Best DM = ", DMs[best_index]
     
     tp.dedisperse()
     tp.plot_subbands()

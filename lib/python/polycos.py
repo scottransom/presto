@@ -15,8 +15,9 @@ class polyco:
             self.TMIDi = float(sl[3].split(".")[0])
             self.TMIDf = float("0."+sl[3].split(".")[1])
 	    self.TMID = self.TMIDi+self.TMIDf
-	    self.doppler = float(sl[4])
-	    self.log10rms = float(sl[5])
+            self.DM = float(sl[4])
+	    self.doppler = float(sl[5])*1e-4
+	    self.log10rms = float(sl[6])
 	    sl = fileptr.readline().split()
 	    self.RPHASE = float(sl[0])
 	    self.F0 = float(sl[1])
@@ -33,6 +34,10 @@ class polyco:
 		self.coeffs[linenum*3+1] = float(sl[1])
 		self.coeffs[linenum*3+2] = float(sl[2])
     def phase(self, mjdi, mjdf):
+        """
+        self.phase(mjdi, mjdf):
+            Return the predicted pulsar phase at a given integer and frational MJD.
+        """
         DT = ((mjdi-self.TMIDi)+(mjdf-self.TMIDf))*1440.0
         phase = self.coeffs[self.numcoeff-1]
         for ii in range(self.numcoeff-1, 0, -1):
@@ -40,6 +45,10 @@ class polyco:
         phase += self.RPHASE + DT*60.0*self.F0
         return phase - umath.floor(phase)
     def freq(self, mjdi, mjdf):
+        """
+        self.freq(mjdi, mjdf):
+            Return the predicted pulsar spin frequency at a given integer and frational MJD.
+        """
         DT = ((mjdi-self.TMIDi)+(mjdf-self.TMIDf))*1440.0
         psrfreq = 0.0
         for ii in range(self.numcoeff-1, 0, -1):
@@ -47,6 +56,7 @@ class polyco:
         return self.F0 + psrfreq/60.0
         
 class polycos:
+
     def __init__(self, psrname, filenm="polyco.dat"):
         self.psr = psrname
         self.file = filenm
@@ -68,9 +78,30 @@ class polycos:
         self.TMIDs = Numeric.asarray(self.TMIDs)
         infile.close()
         self.validrange = 0.5*self.dataspan/1440.0
-    def get_phs_and_freq(self, mjdi, mjdf):
+
+    def select_polyco(self, mjdi, mjdf):
+        """
+        self.select_polyco(mjdi, mjdf):
+            Return the polyco number that is valid for the specified time.
+        """
         goodpoly = Numeric.argmin(umath.fabs(self.TMIDs-(mjdi+mjdf)))
         if (umath.fabs(self.TMIDs[goodpoly]-(mjdi+mjdf)) > self.validrange):
             sys.stderr.write("Cannot find a valid polyco at %f!\n" % (mjdi+mjdf))
+        return goodpoly
+
+    def get_phs_and_freq(self, mjdi, mjdf):
+        """
+        self.get_voverc(mjdi, mjdf):
+            Return the predicted pulsar phase and spin frquency for the specified time.
+        """
+        goodpoly = self.select_polyco(mjdi, mjdf)
         return (self.polycos[goodpoly].phase(mjdi, mjdf), 
                 self.polycos[goodpoly].freq(mjdi, mjdf))
+
+    def get_voverc(self, mjdi, mjdf):
+        """
+        self.get_voverc(mjdi, mjdf):
+            Return the (approximate) topocentric v/c for the specified time.
+        """
+        goodpoly = self.select_polyco(mjdi, mjdf)
+        return self.polycos[goodpoly].doppler
