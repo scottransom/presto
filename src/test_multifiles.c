@@ -11,6 +11,7 @@ int main(int argc, char *argv[])
   float *data, *scratch;
   char **filenames;
 
+  srand(3);
   if (argc<4){
     printf("usage:  test_multifiles numfiles filelen datalen\n");
     exit(0);
@@ -29,7 +30,7 @@ int main(int argc, char *argv[])
   data = gen_fvect(datalen);
   scratch = gen_fvect(datalen);
   for(ii=0; ii<datalen; ii++)
-    data[ii] = (float) ii;
+    data[ii] = (float) 2.0 * (rand() / ((double) RAND_MAX)) - 1.0;
 
   /* Write the data */
 

@@ -9,11 +9,10 @@ extern long long find_blocksize(long long n1, long long n2);
 void realfft_scratch_fwd(multifile* infile, multifile* scratch, 
 			 long long nn)
 {
-  long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, ll, s1, s2;
-  int i1, i2, i3, i4, move_size;
+  long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, s1;
+  int i1, i2, move_size;
   unsigned char *move;
-  rawtype *data, *dp, *p1, *p2, *p3, *p4;
-  float *f1, *datap;
+  rawtype *data, *dp;
   double tmp1, tmp2, h1r, h1i, h2r, h2i;
   double h2rwr, h2rwi, h2iwr, h2iwi;
   double wtemp, wpi, wpr, wi, wr, theta, delta;
