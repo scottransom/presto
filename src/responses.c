@@ -81,10 +81,8 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy)
 {
   /* This needs to be made more robust... */
 
-  int donothing;
-
-  donothing = (int) w;
-  return (int) (z) + r_resp_halfwidth(accuracy);
+  if (fabs(w) < 1.0e-7) return z_resp_halfwidth(z, accuracy);
+  else return (int) fabs(z) + r_resp_halfwidth(accuracy);
 }
 
 
