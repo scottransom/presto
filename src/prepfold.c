@@ -453,12 +453,12 @@ int main(int argc, char *argv[])
 			polycofileptr, cmd->psrname);
       fclose(polycofileptr);
       if (cmd->dm > 0.0){
-	printf("\nRead %d set(s) of polycos for PSR %s at %17.12f\n", 
+	printf("\nRead %d set(s) of polycos for PSR %s at %18.12f\n", 
 	       numsets, cmd->psrname, search.tepoch);
 	printf("Overriding polyco DM = %f with %f\n", 
 	       polyco_dm, cmd->dm);
       } else {
-	printf("\nRead %d set(s) of polycos for PSR %s  at %17.12f (DM = %.5g)\n", 
+	printf("\nRead %d set(s) of polycos for PSR %s  at %18.12f (DM = %.5g)\n", 
 	       numsets, cmd->psrname, search.tepoch, polyco_dm);
 	cmd->dm = polyco_dm;
       }
@@ -466,9 +466,11 @@ int main(int argc, char *argv[])
 	double mjdi, mjdf;
 	
 	mjdf = idata.mjd_f + lorec*recdt/SECPERDAY;
-	if (mjdf > 1.0)
+	mjdi = idata.mjd_i;
+	if (mjdf > 1.0){
+	  mjdi += floor(mjdf);
 	  mjdf -= floor(mjdf);
-	mjdi = idata.mjd_i + floor(mjdf);
+	}
 	phcalc(mjdi, mjdf, &polyco_phase0, &f);
       }
       /* cmd->phs += polyco_phase0; */
@@ -1025,19 +1027,24 @@ int main(int argc, char *argv[])
 	  currentday = (lorec*recdt + parttimes[ii] + 
 			jj*proftime)/SECPERDAY;
 	  mjdf = idata.mjd_f + currentday;
-	  if (mjdf > 1.0)
+	  mjdi = idata.mjd_i;
+	  if (mjdf > 1.0){
+	    mjdi += floor(mjdf);
 	    mjdf -= floor(mjdf);
-	  mjdi = idata.mjd_i + floor(mjdf);
+	  }
 	  phcalc(mjdi, mjdf, &polyco_phase, &foldf);
 
 	  if (0){
-	    double nextmjdi, nextmjdf, nextcurrentday, nextfoldf, nextpolyco_phase;
+	    double nextmjdi, nextmjdf, nextcurrentday;
+	    double nextfoldf, nextpolyco_phase;
 	    nextcurrentday = (lorec*recdt + parttimes[ii] + 
 			      (jj+1)*proftime)/SECPERDAY;
 	    nextmjdf = idata.mjd_f + nextcurrentday;
-	    if (nextmjdf > 1.0)
+	    nextmjdi = idata.mjd_i;
+	    if (nextmjdf > 1.0){
+	      nextmjdi += floor(nextmjdf);
 	      nextmjdf -= floor(nextmjdf);
-	    nextmjdi = idata.mjd_i + floor(nextmjdf);
+	    }
 	    phcalc(nextmjdi, nextmjdf, &nextpolyco_phase, &nextfoldf);
 	    foldfd = (nextfoldf-foldf)/proftime;
 	  }

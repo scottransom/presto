@@ -55,10 +55,10 @@ int getpoly(double mjd, double *dm, FILE *fp, char *pname)
   long int mjddummy;
   int binary;
  
-  int j,k,kk,len;
-  int jobs,nblk0,ncoeff0;
+  int j,k,kk,len,jobs;
+  int nblk0,ncoeff0;
   double mjdcheck;
-
+   
   j=0;
   while (fgets(buffer,90,fp) != NULL) {
     sscanf(buffer,"%s",testname);
@@ -66,7 +66,7 @@ int getpoly(double mjd, double *dm, FILE *fp, char *pname)
       sscanf(buffer,"%s%s%f%ld%lf%lf%lf",
 	     name0,date0,&r,&mjddummy,&mjd1mid[j],&dm0,&z40);
       fgets(buffer,80,fp);
-      sscanf(buffer,"%lf%lf%d%d%d",&rphase[j],&f0[j],&jobs,&nblk0,&ncoeff0);
+      sscanf(buffer,"%lf%lf%i%d%d",&rphase[j],&f0[j],&jobs,&nblk0,&ncoeff0);
       fgets(buffer,80,fp);
       sscanf(buffer,"%f%16c",&r,binpha);
       for(k=0;k<ncoeff0/3;k++) {
