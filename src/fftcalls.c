@@ -9,7 +9,6 @@ void fftwcall(fcomplex *indata, long nn, int isign)
 /* files.  It is VERY fast.  nn doe _not_ have to be a power of two    */
 /* size.  indata is a complex array but stored as floats.              */
 {
-  int i;
   FILE *wisdomfile;
   fftw_plan plan_forward, plan_inverse;
   static fftw_plan last_plan_forward = NULL, last_plan_inverse = NULL;
