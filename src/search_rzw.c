@@ -233,7 +233,8 @@ int main(int argc, char *argv[])
   /* search from purely statistical reasons alone                    */
   /* Note:  6.95 is the full width in z of a signal response         */
 
-  lowpowlim = -0.8 * log(ncand / (numr * 0.5 * dz / 6.95));
+  /* lowpowlim = -0.8 * log(ncand / (numr * 0.5 * dz / 6.95)); */
+  lowpowlim = 4.0;
 
   /* Initialize the candidate list */
 
