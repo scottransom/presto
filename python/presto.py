@@ -970,7 +970,7 @@ read_float_file = prestoc.read_float_file
 
 prune_powers = prestoc.prune_powers
 
-selectkth = prestoc.selectkth
+median = prestoc.median
 
 dms2rad = prestoc.dms2rad
 

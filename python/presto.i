@@ -835,8 +835,9 @@ int prune_powers(float *arr, int n, int numsumpows);
 /* solitary pulsars.                                       */
 
 %apply float* IN_1D_FLOAT { float *arr };
-float selectkth(long k, long n, float *arr);
-/* Selects the kth largest value from the array arr */
+float median(float *arr, int n);
+/* Fast computation of the median of an array. */
+/* Note:  It messes up the order!              */
 
 double dms2rad(int deg, int min, double sec);
 /* Convert degrees, minutes and seconds into radians */
