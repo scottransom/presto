@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
   foldstats beststats;
   prepfoldinfo search;
   Cmdline *cmd;
+  plotflags pflags;
   mask obsmask;
 
   /* Call usage() if we have no command line arguments */
@@ -55,6 +56,11 @@ int main(int argc, char *argv[])
 
   cmd = parseCmdline(argc, argv);
   obsmask.numchan = obsmask.numint = 0;
+  pflags.toas = cmd->toasP;
+  pflags.nosearch = cmd->nosearchP;
+  pflags.scaleparts = cmd->scalepartsP;
+  pflags.justprofs = cmd->justprofsP;
+  pflags.allgrey = cmd->allgreyP;
 
 #ifdef DEBUG
   showOptionValues();
@@ -1013,7 +1019,7 @@ int main(int argc, char *argv[])
 	  }
 	}
       
-	if (cmd->polycofileP){  /* Update the period */
+	if (cmd->polycofileP){  /* Update the period/phase */
 	  double mjdi, mjdf, currentday, goodphase;
 
 	  currentday = (lorec*recdt + parttimes[ii] + 
@@ -1196,7 +1202,11 @@ int main(int argc, char *argv[])
 	    pdelay = search.pstep * (kk - (numtrials - 1) / 2);
 	    combine_profs(pdprofs, ddstats, cmd->npart, search.proflen, 
 			  pdelay, currentprof, &currentstats);
-	    if (currentstats.redchi > beststats.redchi){
+	    if ((currentstats.redchi > beststats.redchi && !cmd->nosearchP) || 
+		(cmd->nosearchP &&
+		 search.dms[ii] == cmd->dm &&
+		 jj == (numtrials-1)/2 &&
+		 kk == (numtrials-1)/2)){
 	      search.bestdm = search.dms[ii];
 	      if (idata.bary){
 		search.bary.p1 = search.periods[kk];
@@ -1242,7 +1252,10 @@ int main(int argc, char *argv[])
 	  pdelay = search.pstep * (kk - (numtrials - 1) / 2);
 	  combine_profs(pdprofs, search.stats, cmd->npart, search.proflen, 
 			pdelay, currentprof, &currentstats);
-	  if (currentstats.redchi > beststats.redchi){
+	  if ((currentstats.redchi > beststats.redchi && !cmd->nosearchP) || 
+	      (cmd->nosearchP &&
+	       jj == (numtrials-1)/2 &&
+	       kk == (numtrials-1)/2)){
 	    if (idata.bary){
 	      search.bary.p1 = search.periods[kk];
 	      search.bary.p2 = search.pdots[jj];
@@ -1394,9 +1407,9 @@ int main(int argc, char *argv[])
    */
 
   if (cmd->xwinP)
-    prepfold_plot(&search, 1);
+    prepfold_plot(&search, &pflags, 1);
   else 
-    prepfold_plot(&search, 0);
+    prepfold_plot(&search, &pflags, 0);
 
   /* Free our memory  */
 

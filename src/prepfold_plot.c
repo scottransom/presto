@@ -1,13 +1,8 @@
 #include "prepfold.h"
+#include "prepfold_cmd.h"
 #include "plot2d.h"
 #include "float.h" 
 
-/*
-#define JUST_GREYSCALE 1
-*/
-/*
-#define SCALE_PARTS_SEPARATELY 1
-*/
 /*
 #define OUTPUT_DMS 1
 */
@@ -43,7 +38,7 @@ void minmax (float *v, int nsz, float *min, float *max)
 }
 
 
-void scaleprof(double *in, float *out, int n)
+void scaleprof(double *in, float *out, int n, int scalesep)
 /* Scales an input vector so that it goes from 0.0 to 1.0 */
 {
   int ii;
@@ -54,13 +49,12 @@ void scaleprof(double *in, float *out, int n)
     if (in[ii] < min) min = in[ii];
   }
 
-#ifdef SCALE_PARTS_SEPARATELY
-  /* Each plot is normalized independently */
-  norm = 1.0 / (max - min);
-#else
-  /* All plots are normalized together */
-  norm = 1.0 / max;
-#endif
+  if (scalesep)
+    /* Each plot is normalized independently */
+    norm = 1.0 / (max - min);
+  else
+    /* All plots are normalized together */
+    norm = 1.0 / max;
 
   if (TEST_CLOSE(min, max, 1.0e-7)){
     for (ii=0; ii<n; ii++)
@@ -238,7 +232,7 @@ void write_bestprof(prepfoldinfo *search, foldstats *beststats,
 }
 
 
-void prepfold_plot(prepfoldinfo *search, int xwin)
+void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 /* Make the beautiful 1 page prepfold output */
 {
   int ii, jj, kk, ll, mm, profindex=0, loops=1, ct;
@@ -473,7 +467,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 		shift_prof(pdprofs + profindex, search->proflen, wrap, 
 			   currentprof);
 		scaleprof(currentprof, timeprofs + 2 * profindex, 
-			  search->proflen);
+			  search->proflen, flags->scaleparts);
 		memcpy(timeprofs + 2 * profindex + search->proflen,
 		       timeprofs + 2 * profindex, 
 		       search->proflen * sizeof(float));
@@ -582,7 +576,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	    shift_prof(pdprofs + profindex, search->proflen, wrap, 
 		       currentprof);
 	    scaleprof(currentprof, timeprofs + 2 * profindex, 
-		      search->proflen);
+		      search->proflen, flags->scaleparts);
 	    memcpy(timeprofs + 2 * profindex + search->proflen,
 		   timeprofs + 2 * profindex, 
 		   search->proflen * sizeof(float));
@@ -635,11 +629,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     /* Open and prep our device */
 
     cpgopen(search->pgdev);
-#ifndef JUST_GREYSCALE
-    cpgpap(10.25, 8.5/11.0);
-    cpgpage();
-    cpgiden();
-#endif
+    if (!flags->justprofs){
+      cpgpap(10.25, 8.5/11.0);
+      cpgpage();
+      cpgiden();
+    }
     cpgsch(0.8);
     
     /* Time versus phase */
@@ -742,9 +736,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       find_min_max_arr(2 * search->proflen, bestprof, &min, &max);
       over = 0.1 * (max - min);
       cpgswin(-0.2, 2.0, min - over, max + over);
-#ifndef JUST_GREYSCALE
-      cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
-#endif
+      if (flags->justprofs)
+	cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
       cpgline(2 * search->proflen, phasetwo, bestprof);
       cpgsls(4);
       avg[0] = avg[1] = profavg;
@@ -755,402 +748,415 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgpt(1, &errx, &erry, 5);
     }
 
-#ifndef JUST_GREYSCALE
-
-    if (search->nsub > 1){
-
-      /* DM vs reduced chisqr */
-
-      cpgsvp (0.44, 0.66, 0.09, 0.22);
-      find_min_max_arr(search->numdms, dmchi, &min, &max);
-#ifdef OUTPUT_DMS
-      {
-	int dmnum;
-
-	printf("\nThe raw data from the DM vs. Reduced chi-sqr plot:\n\n");
-	printf("   DM      Reduced chi-sqr\n");
-	for(dmnum=0; dmnum<search->numdms; dmnum++)
-	  printf("  %.3f     %.3f\n", 
-		 search->dms[dmnum], dmchi[dmnum]);
-	printf("\n");
-      }
-#endif
-      cpgswin(search->dms[0], search->dms[search->numdms-1], 
-	      0.0, 1.1 * max);
-      cpgsch(0.7);
-      cpgbox ("BCNST", 0.0, 0, "BCNST", 0.0, 0);
-      cpgmtxt("L", 2.0, 0.5, 0.5, "Reduced \\gx\\u2\\d");
-      cpgsch(0.8);
-      cpgmtxt("B", 2.6, 0.5, 0.5, "DM");
-      ftmparr1 = gen_fvect(search->numdms);
-      double2float(search->dms, ftmparr1, search->numdms);
-      cpgline(search->numdms, ftmparr1, dmchi);
-      free(ftmparr1);
-
-      /* Plots for each subband */
-
-      {
-	int chanpersb;
-	double lofreq, hifreq, losubfreq, hisubfreq;
-	float *tmpprof, dsubf, foffset, fnorm;
-
-	tmpprof = gen_fvect(search->proflen + 1);
-	chanpersb = search->numchan / search->nsub; 
-	dsubf = chanpersb * search->chan_wid;
-	lofreq = search->lofreq + dsubf - search->chan_wid;
-	hifreq = search->lofreq + search->nsub * dsubf - search->chan_wid;
-	losubfreq = doppler(lofreq, search->avgvoverc);
-	hisubfreq = doppler(hifreq, search->avgvoverc);
-	cpgsvp (0.44, 0.66, 0.3, 0.68);
-	cpgswin(0.0-0.01, 1.0+0.01, 0.001, search->nsub + 0.999);
-	cpgsch(0.7);
-	cpgbox("BCNST", 0.2, 2, "BNST", 0.0, 0);
-	cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
-	cpgswin(0.0-0.01, 1.0+0.01, losubfreq - dsubf, hisubfreq + dsubf);
-	cpgbox("", 0.2, 2, "CMST", 0.0, 0);
-	cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)");
-	cpgsch(0.8);
-	cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
-	for (ii = 0; ii < search->nsub; ii++){
-	  find_min_max_arr(search->proflen, dmprofs + ii * 
-			   search->proflen, &min, &max);
-	  foffset = doppler(lofreq + (ii - 0.45) * dsubf, search->avgvoverc);
-	  if (min==max){
-	    for (jj = 0; jj < search->proflen; jj++)
-	      tmpprof[jj] = 0.45 * dsubf + foffset;
-	  } else {
-	    fnorm = 0.9 * dsubf / (max - min);
-	    for (jj = 0; jj < search->proflen; jj++)
-	      tmpprof[jj] = (dmprofs[ii * search->proflen + jj] - min) * 
-		fnorm + foffset;
-	  }
-	  tmpprof[search->proflen] = tmpprof[0];
-	  cpgline(search->proflen+1, phaseone, tmpprof);
-	}
-	free(tmpprof);
-      }
-
-    }
-
-    {
-      int mincol, maxcol, numcol, nr, nc;
-      /* "Astro" (BG=Black, FG=White) (Better for X-win) */
-      /*       float l[7] = {0.0, 0.167, 0.333, 0.5, 0.667, 0.833, 1.0}; */
-      /*       float r[7] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0}; */
-      /*       float g[7] = {0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0}; */
-      /*       float b[7] = {0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0}; */
-      /* "Anti-Rainbow" (BG=White, FG=Red) (Better for printing) */
-      float l[10] = {0.0, 0.035, 0.045, 0.225, 
-		     0.4, 0.41, 0.6, 0.775, 0.985, 1.0};
-      float r[10] = {1.0, 1.0, 0.947, 0.0, 0.0, 
-		     0.0, 0.0, 1.0, 1.0, 1.0};
-      float g[10] = {1.0, 0.844, 0.8, 0.0, 0.946, 
-		     1.0, 1.0, 1.0, 0.0, 0.0};
-      float b[10] = {1.0, 1.0, 1.0, 1.0, 1.0, 0.95, 
-		     0.0, 0.0, 0.0, 0.0};
-      /* ApJ Grey  White to dark grey...*/
-      /*
-      float l[2] = {0.0, 1.0};
-      float r[2] = {1.0, 0.25};
-      float g[2] = {1.0, 0.25};
-      float b[2] = {1.0, 0.25};
-      */
-      float fg = 0.0, bg = 0.0, tr[6], *levels, errlen;
-      float x1l, x1h, y1l, y1h, x2l, x2h, y2l, y2h;
-      char pout[100], pdout[100], fout[100], fdout[100];
-
-      /* Plot Boundaries */ 
-
-      /* Period / P-dot */
-      x1l = (search->periods[0] - pfold) * 1000.0;
-      x1h = (search->periods[search->numperiods-1] - pfold) * 1000.0;
-      y1l = search->pdots[0] - pdfold;
-      y1h = search->pdots[search->numpdots-1] - pdfold;
-      /* Frequency / F-dot */
-      x2l = 1.0 / search->periods[0] - search->fold.p1;
-      x2h = 1.0 / search->periods[search->numperiods-1] - search->fold.p1;
-      y2l = switch_pfdot(pfold, search->pdots[0]) - search->fold.p2;
-      y2h = switch_pfdot(pfold, search->pdots[search->numperiods-1]) - 
-	search->fold.p2;
-      sprintf(pout, "Period - %-.8f (ms)", pfold * 1000.0);
-      sprintf(fout, "Freq - %-.6f (Hz)", search->fold.p1);
-      if (pdfold < 0.0)
-	sprintf(pdout, "P-dot + %-.5g (s/s)", fabs(pdfold));
-      else if (TEST_EQUAL(pdfold, 0.0))
-	sprintf(pdout, "P-dot (s/s)");
-      else
-	sprintf(pdout, "P-dot - %-.5g (s/s)", pdfold);
-      if (search->fold.p2 < 0.0)
-	sprintf(fdout, "F-dot + %-.5g (Hz)", fabs(search->fold.p2));
-      else if (TEST_EQUAL(search->fold.p2, 0.0))
-	sprintf(fdout, "F-dot (Hz)");
-      else
-	sprintf(fdout, "F-dot - %-.5g (Hz)", search->fold.p2);
-
-      /* Period vs reduced chisqr */
-
-      cpgsch(0.8);
-      ftmparr1 = gen_fvect(search->numperiods);
-      for (ii = 0; ii < search->numperiods; ii++)
-	ftmparr1[ii] = (search->periods[ii] - pfold) * 1000.0;
-      find_min_max_arr(search->numperiods, periodchi, &min, &max);
-      if (search->nsub > 1){
-	cpgsvp (0.74, 0.94, 0.41, 0.51);
-	cpgswin(x1l, x1h, 0.0, 1.1 * max);
-	cpgline(search->numperiods, ftmparr1, periodchi);
-	cpgsch(0.5);
-	cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
-	cpgsch(0.7);
-	cpgmtxt("B", 2.2, 0.5, 0.5, pout);
-	cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
-      } else {
-	cpgsvp (0.51, 0.82, 0.49, 0.63);
-	cpgswin(x1l, x1h, 0.001, 1.1 * max);
-	cpgline(search->numperiods, ftmparr1, periodchi);
-	cpgsch(0.7);
-	cpgbox ("BST", 0.0, 0, "BCMST", 0.0, 0);
-	cpgswin(x2l, x2h, 0.001, 1.1 * max);
-	cpgbox ("CMST", 0.0, 0, "", 0.0, 0);
-	cpgsch(0.8);
-	cpgmtxt("T", 1.8, 0.5, 0.5, fout);
-      }
-      free(ftmparr1);
-
-      /* P-dot vs reduced chisqr */
-
-      ftmparr1 = gen_fvect(search->numpdots);
-      for (ii = 0; ii < search->numpdots; ii++)
-	ftmparr1[ii] = search->pdots[ii] - pdfold;
-      find_min_max_arr(search->numpdots, pdotchi, &min, &max);
-      if (search->nsub > 1){
-	cpgsvp (0.74, 0.94, 0.58, 0.68);
-	cpgswin(y1l, y1h, 0.0, 1.1 * max);
-	cpgline(search->numpdots, ftmparr1, pdotchi);
-	cpgsch(0.5);
-	cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
-	cpgsch(0.7);
-	cpgmtxt("B", 2.2, 0.5, 0.5, pdout);
-	cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
-      } else {
-	cpgsvp (0.82, 0.93, 0.09, 0.49);
-	cpgswin(0.001, 1.1 * max, y1l, y1h);
-	cpgline(search->numpdots, pdotchi, ftmparr1);
-	cpgsch(0.7);
-	cpgbox ("BCMST", 0.0, 0, "BST", 0.0, 0);
-	cpgswin(0.001, 1.1 * max, y2l, y2h);
-	cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
-	cpgsch(0.8);
-	cpgmtxt("T", 4.2, 0.5, 0.5, "Reduced");
-	cpgmtxt("T", 2.8, 0.5, 0.5, "\\gx\\u2\\d");
-	cpgmtxt("R", 2.4, 0.5, 0.5, fdout);
-      }
-      free(ftmparr1);
-
-      /* P P-dot image */
-
-      if (search->nsub > 1)
-	cpgsvp (0.74, 0.94, 0.09, 0.29);
-      else
-	cpgsvp (0.51, 0.82, 0.09, 0.49);
-      cpgswin(x1l, x1h, y1l, y1h);
-      nr = search->numpdots;
-      nc = search->numperiods;
-      cpgqcol(&mincol, &maxcol);
-      mincol += 2;
-      cpgscir(mincol, maxcol);
-      numcol = maxcol - mincol + 1;
-      levels = gen_fvect(numcol);
-      cpgctab(l, r, g, b, numcol, 1.0, 0.5);
-      autocal2d(ppdot2d, nr, nc, &fg, &bg, numcol,
-		levels, &x1l, &x1h, &y1l, &y1h, tr);
-      cpgimag(ppdot2d, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
-      x1l = (float) ((bestp - pfold) * 1000.0);
-      y1l = (float) (bestpd - pdfold);
-      /* Plot the error bars on the P-Pdot diagram */
-      cpgpt(1, &x1l, &y1l, 5);
-      errlen = (float) (perr * 1000.0);
-      cpgerrb(5, 1, &x1l, &y1l, &errlen, 2);
-      errlen = (float) (pderr);
-      cpgerrb(6, 1, &x1l, &y1l, &errlen, 2);
-      if (search->nsub > 1){
-	cpgsch(0.5);
-	cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
-	cpgsch(0.7);
-	cpgmtxt("B", 2.4, 0.5, 0.5, pout);
-	cpgmtxt("L", 2.0, 0.5, 0.5, pdout);
-	cpgswin(x2l, x2h, y2l, y2h);
-	cpgsch(0.5);
-	cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
-	cpgsch(0.7);
-	cpgmtxt("T", 1.8, 0.5, 0.5, fout);
-	cpgmtxt("R", 2.3, 0.5, 0.5, fdout);
-      } else {
-	cpgsch(0.7);
-	cpgbox("BCNST", 0.0, 0, "BCNST", 0.0, 0);
-	cpgsch(0.8);
-	cpgmtxt("B", 2.6, 0.5, 0.5, pout);
-	cpgmtxt("L", 2.1, 0.5, 0.5, pdout);
-      }
-      free(levels);
-      cpgsch(0.8);
-    }
-
-    {
-      char out[200], out2[100];
-
-      /* Add the Data Info area */
-
-      cpgsvp (0.27, 0.519, 0.68, 0.94);
-      cpgswin(-0.1, 1.00, -0.1, 1.1);
-      cpgsch(1.0);
-      sprintf(out, "%-s", search->filenm);
-      cpgmtxt("T", 1.0, 0.5, 0.5, out);
-      cpgsch(0.7);
-      sprintf(out, "Candidate:  %-s", search->candnm);
-      cpgtext(0.0, 1.0, out);
-      sprintf(out, "Telescope:  %-s", search->telescope);
-      cpgtext(0.0, 0.9, out);
-      if (TEST_EQUAL(search->tepoch, 0.0))
-	sprintf(out, "Epoch\\dtopo\\u = N/A");
-      else
-	sprintf(out, "Epoch\\dtopo\\u = %-.11f", search->tepoch);
-      cpgtext(0.0, 0.8, out);
-      if (TEST_EQUAL(search->bepoch, 0.0))
-	sprintf(out, "Epoch\\dbary\\u = N/A");
-      else
-	sprintf(out, "Epoch\\dbary\\u = %-.11f", search->bepoch);
-      cpgtext(0.0, 0.7, out);
-      sprintf(out, "T\\dsample\\u");
-      cpgtext(0.0, 0.6, out);
-      sprintf(out, "=  %f", search->dt);
-      cpgtext(0.45, 0.6, out);
-      sprintf(out, "Data Folded");
-      cpgtext(0.0, 0.5, out);
-      sprintf(out, "=  %-.0f", N);
-      cpgtext(0.45, 0.5, out);
-      sprintf(out, "Data Avg");
-      cpgtext(0.0, 0.4, out);
-      sprintf(out, "=  %.4g", beststats.data_avg);
-      cpgtext(0.45, 0.4, out);
-      sprintf(out, "Data StdDev"); 
-      cpgtext(0.0, 0.3, out);
-      sprintf(out, "=  %.4g", sqrt(beststats.data_var));
-      cpgtext(0.45, 0.3, out);
-      sprintf(out, "Profile Bins");
-      cpgtext(0.0, 0.2, out);
-      sprintf(out, "=  %d", search->proflen);
-      cpgtext(0.45, 0.2, out);
-      sprintf(out, "Profile Avg");
-      cpgtext(0.0, 0.1, out);
-      sprintf(out, "=  %.4g", beststats.prof_avg);
-      cpgtext(0.45, 0.1, out);
-      sprintf(out, "Profile StdDev");
-      cpgtext(0.0, 0.0, out);
-      sprintf(out, "=  %.4g", sqrt(beststats.prof_var));
-      cpgtext(0.45, 0.0, out);
-
-      /* Calculate the values of P and Q since we know X and DF */
-
-      {
-	int chiwhich=1, chistatus=0, goodsig=1;
-	double chip=0.0, chiq=0.0, chixmeas=0.0, chidf=0.0, chitmp=0.0;
-	double normz=0.0, normmean=0.0, normstdev=1.0;
-	
-	chidf = search->proflen - 1.0;
-	chixmeas = beststats.redchi * chidf;
-	cdfchi(&chiwhich, &chip, &chiq, &chixmeas, &chidf, &chistatus, &chitmp);
-	if (chistatus != 0){
-	  if (chistatus < 0)
-	    printf("\nInput parameter %d to cdfchi() was out of range.\n", 
-		   chistatus);
-	  else if (chistatus == 3)
-	    printf("\nP + Q do not equal 1.0 in cdfchi().\n");
-	  else if (chistatus == 10)
-	    printf("\nError in cdfgam().\n");
-	  else printf("\nUnknown error in cdfchi().\n");
-	}
-	
-	/* Calculate the equivalent sigma */
-	
-	chiwhich = 2;
-	cdfnor(&chiwhich, &chip, &chiq, &normz, &normmean, &normstdev, 
-	       &chistatus, &chitmp);
-	if (chistatus != 0) goodsig=0;
-
-	/* Add the Fold Info area */
+    if (!flags->justprofs){
       
-	cpgsvp (0.519, 0.94, 0.68, 0.94);
-	cpgswin(-0.05, 1.05, -0.1, 1.1);
-	cpgsch(0.8);
-	cpgmtxt("T", 1.0, 0.5, 0.5, "Search Information");
-	cpgsch(0.7);
-	cpgtext(0.0, 1.0, "   Best Fit Parameters");
-	if (goodsig)
-	  sprintf(out2, "(\\(0248)%.1f\\gs)", normz);
-	else 
-	  sprintf(out2, " ");
-	sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s", 
-		beststats.redchi, chiq, out2);
-	cpgtext(0.0, 0.9, out);
-	if (search->nsub > 1){
-	  sprintf(out, "Dispersion Measure (DM) = %.3f", search->bestdm);
-	  cpgtext(0.0, 0.8, out);
-	}
+      if (search->nsub > 1){
+	
+	/* DM vs reduced chisqr */
+	
+	cpgsvp (0.44, 0.66, 0.09, 0.22);
+	find_min_max_arr(search->numdms, dmchi, &min, &max);
+#ifdef OUTPUT_DMS
 	{
-	  if (search->tepoch != 0.0){
-	    cpgnice_output_2(out2, search->topo.p1*1000.0, perr*1000.0, 0);
-	    sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
-	    cpgtext(0.0, 0.7, out);
-	    cpgnice_output_2(out2, search->topo.p2, pderr, 0);
-	    sprintf(out, "P'\\dtopo\\u (s/s) = %s", out2);
-	    cpgtext(0.0, 0.6, out);
-	    cpgnice_output_2(out2, search->topo.p3, pdderr, 0);
-	    sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
-	    cpgtext(0.0, 0.5, out);
-	  } else {
-	    cpgtext(0.0, 0.7, "P\\dtopo\\u (ms) = N/A");
-	    cpgtext(0.0, 0.6, "P'\\dtopo\\u (s/s) = N/A");
-	    cpgtext(0.0, 0.5, "P''\\dtopo\\u (s/s\\u2\\d) = N/A");
-	  }
-
-	  if (search->bepoch != 0.0){
-	    cpgnice_output_2(out2, search->bary.p1*1000.0, perr*1000.0, 0);
-	    sprintf(out, "P\\dbary\\u (ms) = %s", out2);
-	    cpgtext(0.6, 0.7, out);
-	    cpgnice_output_2(out2, search->bary.p2, pderr, 0);
-	    sprintf(out, "P'\\dbary\\u (s/s) = %s", out2);
-	    cpgtext(0.6, 0.6, out);
-	    cpgnice_output_2(out2, search->bary.p3, pdderr, 0);
-	    sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
-	    cpgtext(0.6, 0.5, out);
-	  } else {
-	    cpgtext(0.6, 0.7, "P\\dbary\\u (ms) = N/A");
-	    cpgtext(0.6, 0.6, "P'\\dbary\\u (s/s) = N/A");
-	    cpgtext(0.6, 0.5, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
-	  }
+	  int dmnum;
+	  
+	  printf("\nThe raw data from the DM vs. Reduced chi-sqr plot:\n\n");
+	  printf("   DM      Reduced chi-sqr\n");
+	  for(dmnum=0; dmnum<search->numdms; dmnum++)
+	    printf("  %.3f     %.3f\n", 
+		   search->dms[dmnum], dmchi[dmnum]);
+	  printf("\n");
 	}
-	cpgtext(0.0, 0.3, "   Binary Parameters");
-	if (TEST_EQUAL(search->orb.p, 0.0)){
-	  cpgtext(0.0, 0.2, "P\\dorb\\u (s) = N/A");
-	  cpgtext(0.0, 0.1, "a\\d1\\usin(i)/c (s) = N/A");
-	  cpgtext(0.6, 0.2, "e = N/A");
-	  cpgtext(0.6, 0.1, "\\gw (rad) = N/A");
-	  cpgtext(0.0, 0.0, "T\\dperi\\u = N/A");
+#endif
+	cpgswin(search->dms[0], search->dms[search->numdms-1], 
+		0.0, 1.1 * max);
+	cpgsch(0.7);
+	cpgbox ("BCNST", 0.0, 0, "BCNST", 0.0, 0);
+	cpgmtxt("L", 2.0, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+	cpgsch(0.8);
+	cpgmtxt("B", 2.6, 0.5, 0.5, "DM");
+	ftmparr1 = gen_fvect(search->numdms);
+	double2float(search->dms, ftmparr1, search->numdms);
+	cpgline(search->numdms, ftmparr1, dmchi);
+	free(ftmparr1);
+	
+	/* Plots for each subband */
+	
+	{
+	  int chanpersb;
+	  double lofreq, hifreq, losubfreq, hisubfreq;
+	  float *tmpprof, dsubf, foffset, fnorm;
+	  
+	  tmpprof = gen_fvect(search->proflen + 1);
+	  chanpersb = search->numchan / search->nsub; 
+	  dsubf = chanpersb * search->chan_wid;
+	  lofreq = search->lofreq + dsubf - search->chan_wid;
+	  hifreq = search->lofreq + search->nsub * dsubf - search->chan_wid;
+	  losubfreq = doppler(lofreq, search->avgvoverc);
+	  hisubfreq = doppler(hifreq, search->avgvoverc);
+	  cpgsvp (0.44, 0.66, 0.3, 0.68);
+	  cpgswin(0.0-0.01, 1.0+0.01, 0.001, search->nsub + 0.999);
+	  cpgsch(0.7);
+	  cpgbox("BCNST", 0.2, 2, "BNST", 0.0, 0);
+	  cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
+	  cpgswin(0.0-0.01, 1.0+0.01, losubfreq - dsubf, hisubfreq + dsubf);
+	  cpgbox("", 0.2, 2, "CMST", 0.0, 0);
+	  cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)");
+	  cpgsch(0.8);
+	  cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
+	  for (ii = 0; ii < search->nsub; ii++){
+	    find_min_max_arr(search->proflen, dmprofs + ii * 
+			     search->proflen, &min, &max);
+	    foffset = doppler(lofreq + (ii - 0.45) * dsubf, search->avgvoverc);
+	    if (min==max){
+	      for (jj = 0; jj < search->proflen; jj++)
+		tmpprof[jj] = 0.45 * dsubf + foffset;
+	    } else {
+	      fnorm = 0.9 * dsubf / (max - min);
+	      for (jj = 0; jj < search->proflen; jj++)
+		tmpprof[jj] = (dmprofs[ii * search->proflen + jj] - min) * 
+		  fnorm + foffset;
+	    }
+	    tmpprof[search->proflen] = tmpprof[0];
+	    cpgline(search->proflen+1, phaseone, tmpprof);
+	  }
+	  free(tmpprof);
+	}
+	
+      }
+      
+      {
+	int mincol, maxcol, numcol, nr, nc;
+	/* "Astro" (BG=Black, FG=White) (Better for X-win) */
+	/*       float l[7] = {0.0, 0.167, 0.333, 0.5, 0.667, 0.833, 1.0}; */
+	/*       float r[7] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0}; */
+	/*       float g[7] = {0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0}; */
+	/*       float b[7] = {0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0}; */
+	/* "Anti-Rainbow" (BG=White, FG=Red) (Better for printing) */
+	float l[10] = {0.0, 0.035, 0.045, 0.225, 
+		       0.4, 0.41, 0.6, 0.775, 0.985, 1.0};
+	float r[10] = {1.0, 1.0, 0.947, 0.0, 0.0, 
+		       0.0, 0.0, 1.0, 1.0, 1.0};
+	float g[10] = {1.0, 0.844, 0.8, 0.0, 0.946, 
+		       1.0, 1.0, 1.0, 0.0, 0.0};
+	float b[10] = {1.0, 1.0, 1.0, 1.0, 1.0, 0.95, 
+		       0.0, 0.0, 0.0, 0.0};
+	float fg = 0.0, bg = 0.0, tr[6], *levels, errlen;
+	float x1l, x1h, y1l, y1h, x2l, x2h, y2l, y2h;
+	char pout[100], pdout[100], fout[100], fdout[100];
+	
+	if (flags->allgrey){
+	  /* ApJ Grey  White to dark grey...*/
+	  l[0]=0.0; l[1]=1.0;
+	  r[0]=1.0; r[1]=0.25;
+	  g[0]=1.0; g[1]=0.25;
+	  b[0]=1.0; b[1]=0.25;
+	}
+
+	/* Plot Boundaries */ 
+	
+	/* Period / P-dot */
+	x1l = (search->periods[0] - pfold) * 1000.0;
+	x1h = (search->periods[search->numperiods-1] - pfold) * 1000.0;
+	y1l = search->pdots[0] - pdfold;
+	y1h = search->pdots[search->numpdots-1] - pdfold;
+	/* Frequency / F-dot */
+	x2l = 1.0 / search->periods[0] - search->fold.p1;
+	x2h = 1.0 / search->periods[search->numperiods-1] - search->fold.p1;
+	y2l = switch_pfdot(pfold, search->pdots[0]) - search->fold.p2;
+	y2h = switch_pfdot(pfold, search->pdots[search->numperiods-1]) - 
+	  search->fold.p2;
+	sprintf(pout, "Period - %-.8f (ms)", pfold * 1000.0);
+	sprintf(fout, "Freq - %-.6f (Hz)", search->fold.p1);
+	if (pdfold < 0.0)
+	  sprintf(pdout, "P-dot + %-.5g (s/s)", fabs(pdfold));
+	else if (TEST_EQUAL(pdfold, 0.0))
+	  sprintf(pdout, "P-dot (s/s)");
+	else
+	  sprintf(pdout, "P-dot - %-.5g (s/s)", pdfold);
+	if (search->fold.p2 < 0.0)
+	  sprintf(fdout, "F-dot + %-.5g (Hz)", fabs(search->fold.p2));
+	else if (TEST_EQUAL(search->fold.p2, 0.0))
+	  sprintf(fdout, "F-dot (Hz)");
+	else
+	  sprintf(fdout, "F-dot - %-.5g (Hz)", search->fold.p2);
+	
+	/* Period vs reduced chisqr */
+	
+	cpgsch(0.8);
+	ftmparr1 = gen_fvect(search->numperiods);
+	for (ii = 0; ii < search->numperiods; ii++)
+	  ftmparr1[ii] = (search->periods[ii] - pfold) * 1000.0;
+	find_min_max_arr(search->numperiods, periodchi, &min, &max);
+	if (search->nsub > 1){
+	  cpgsvp (0.74, 0.94, 0.41, 0.51);
+	  cpgswin(x1l, x1h, 0.0, 1.1 * max);
+	  cpgline(search->numperiods, ftmparr1, periodchi);
+	  cpgsch(0.5);
+	  cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
+	  cpgsch(0.7);
+	  cpgmtxt("B", 2.2, 0.5, 0.5, pout);
+	  cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
 	} else {
-	  sprintf(out, "P\\dorb\\u (s) = %f", search->orb.p);
-	  cpgtext(0.0, 0.2, out);
-	  sprintf(out, "a\\d1\\usin(i)/c (s) = %f", search->orb.x);
-	  cpgtext(0.0, 0.1, out);
-	  sprintf(out, "e = %f", search->orb.e);
-	  cpgtext(0.6, 0.2, out);
-	  sprintf(out, "\\gw (rad) = %f", search->orb.w);
-	  cpgtext(0.6, 0.1, out);
-	  sprintf(out, "T\\dperi\\u = %-.11f", search->orb.t);
-	  cpgtext(0.0, 0.0, out);
+	  cpgsvp (0.51, 0.82, 0.49, 0.63);
+	  cpgswin(x1l, x1h, 0.001, 1.1 * max);
+	  cpgline(search->numperiods, ftmparr1, periodchi);
+	  cpgsch(0.7);
+	  cpgbox ("BST", 0.0, 0, "BCMST", 0.0, 0);
+	  cpgswin(x2l, x2h, 0.001, 1.1 * max);
+	  cpgbox ("CMST", 0.0, 0, "", 0.0, 0);
+	  cpgsch(0.8);
+	  cpgmtxt("T", 1.8, 0.5, 0.5, fout);
+	}
+	free(ftmparr1);
+	
+	/* P-dot vs reduced chisqr */
+	
+	ftmparr1 = gen_fvect(search->numpdots);
+	for (ii = 0; ii < search->numpdots; ii++)
+	  ftmparr1[ii] = search->pdots[ii] - pdfold;
+	find_min_max_arr(search->numpdots, pdotchi, &min, &max);
+	if (search->nsub > 1){
+	  cpgsvp (0.74, 0.94, 0.58, 0.68);
+	  cpgswin(y1l, y1h, 0.0, 1.1 * max);
+	  cpgline(search->numpdots, ftmparr1, pdotchi);
+	  cpgsch(0.5);
+	  cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
+	  cpgsch(0.7);
+	  cpgmtxt("B", 2.2, 0.5, 0.5, pdout);
+	  cpgmtxt("R", 2.4, 0.5, 0.5, "Reduced \\gx\\u2\\d");
+	} else {
+	  cpgsvp (0.82, 0.93, 0.09, 0.49);
+	  cpgswin(0.001, 1.1 * max, y1l, y1h);
+	  cpgline(search->numpdots, pdotchi, ftmparr1);
+	  cpgsch(0.7);
+	  cpgbox ("BCMST", 0.0, 0, "BST", 0.0, 0);
+	  cpgswin(0.001, 1.1 * max, y2l, y2h);
+	  cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
+	  cpgsch(0.8);
+	  cpgmtxt("T", 4.2, 0.5, 0.5, "Reduced");
+	  cpgmtxt("T", 2.8, 0.5, 0.5, "\\gx\\u2\\d");
+	  cpgmtxt("R", 2.4, 0.5, 0.5, fdout);
+	}
+	free(ftmparr1);
+	
+	/* P P-dot image */
+	
+	if (search->nsub > 1)
+	  cpgsvp (0.74, 0.94, 0.09, 0.29);
+	else
+	  cpgsvp (0.51, 0.82, 0.09, 0.49);
+	cpgswin(x1l, x1h, y1l, y1h);
+	nr = search->numpdots;
+	nc = search->numperiods;
+	cpgqcol(&mincol, &maxcol);
+	mincol += 2;
+	cpgscir(mincol, maxcol);
+	numcol = maxcol - mincol + 1;
+	levels = gen_fvect(numcol);
+	cpgctab(l, r, g, b, numcol, 1.0, 0.5);
+	autocal2d(ppdot2d, nr, nc, &fg, &bg, numcol,
+		  levels, &x1l, &x1h, &y1l, &y1h, tr);
+	cpgimag(ppdot2d, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
+	x1l = (float) ((bestp - pfold) * 1000.0);
+	y1l = (float) (bestpd - pdfold);
+	/* Plot the error bars on the P-Pdot diagram */
+	cpgpt(1, &x1l, &y1l, 5);
+	errlen = (float) (perr * 1000.0);
+	cpgerrb(5, 1, &x1l, &y1l, &errlen, 2);
+	errlen = (float) (pderr);
+	cpgerrb(6, 1, &x1l, &y1l, &errlen, 2);
+	if (search->nsub > 1){
+	  cpgsch(0.5);
+	  cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
+	  cpgsch(0.7);
+	  cpgmtxt("B", 2.4, 0.5, 0.5, pout);
+	  cpgmtxt("L", 2.0, 0.5, 0.5, pdout);
+	  cpgswin(x2l, x2h, y2l, y2h);
+	  cpgsch(0.5);
+	  cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
+	  cpgsch(0.7);
+	  cpgmtxt("T", 1.8, 0.5, 0.5, fout);
+	  cpgmtxt("R", 2.3, 0.5, 0.5, fdout);
+	} else {
+	  cpgsch(0.7);
+	  cpgbox("BCNST", 0.0, 0, "BCNST", 0.0, 0);
+	  cpgsch(0.8);
+	  cpgmtxt("B", 2.6, 0.5, 0.5, pout);
+	  cpgmtxt("L", 2.1, 0.5, 0.5, pdout);
+	}
+	free(levels);
+	cpgsch(0.8);
+      }
+      
+      {
+	char out[200], out2[100];
+	
+	/* Add the Data Info area */
+	
+	cpgsvp (0.27, 0.519, 0.68, 0.94);
+	cpgswin(-0.1, 1.00, -0.1, 1.1);
+	cpgsch(1.0);
+	sprintf(out, "%-s", search->filenm);
+	cpgmtxt("T", 1.0, 0.5, 0.5, out);
+	cpgsch(0.7);
+	sprintf(out, "Candidate:  %-s", search->candnm);
+	cpgtext(0.0, 1.0, out);
+	sprintf(out, "Telescope:  %-s", search->telescope);
+	cpgtext(0.0, 0.9, out);
+	if (TEST_EQUAL(search->tepoch, 0.0))
+	  sprintf(out, "Epoch\\dtopo\\u = N/A");
+	else
+	  sprintf(out, "Epoch\\dtopo\\u = %-.11f", search->tepoch);
+	cpgtext(0.0, 0.8, out);
+	if (TEST_EQUAL(search->bepoch, 0.0))
+	  sprintf(out, "Epoch\\dbary\\u = N/A");
+	else
+	  sprintf(out, "Epoch\\dbary\\u = %-.11f", search->bepoch);
+	cpgtext(0.0, 0.7, out);
+	sprintf(out, "T\\dsample\\u");
+	cpgtext(0.0, 0.6, out);
+	if (flags->toas)
+	  sprintf(out, "=  N/A (TOAs)");
+	else
+	  sprintf(out, "=  %f", search->dt);
+	cpgtext(0.45, 0.6, out);
+	if (flags->toas)
+	  sprintf(out, "Toas Folded");
+	else
+	  sprintf(out, "Data Folded");
+	cpgtext(0.0, 0.5, out);
+	if (flags->toas)
+	  sprintf(out, "=  %-.0f", beststats.prof_avg*search->proflen);
+	else
+	  sprintf(out, "=  %-.0f", N);
+	cpgtext(0.45, 0.5, out);
+	sprintf(out, "Data Avg");
+	cpgtext(0.0, 0.4, out);
+	sprintf(out, "=  %.4g", beststats.data_avg);
+	cpgtext(0.45, 0.4, out);
+	sprintf(out, "Data StdDev"); 
+	cpgtext(0.0, 0.3, out);
+	sprintf(out, "=  %.4g", sqrt(beststats.data_var));
+	cpgtext(0.45, 0.3, out);
+	sprintf(out, "Profile Bins");
+	cpgtext(0.0, 0.2, out);
+	sprintf(out, "=  %d", search->proflen);
+	cpgtext(0.45, 0.2, out);
+	sprintf(out, "Profile Avg");
+	cpgtext(0.0, 0.1, out);
+	sprintf(out, "=  %.4g", beststats.prof_avg);
+	cpgtext(0.45, 0.1, out);
+	sprintf(out, "Profile StdDev");
+	cpgtext(0.0, 0.0, out);
+	sprintf(out, "=  %.4g", sqrt(beststats.prof_var));
+	cpgtext(0.45, 0.0, out);
+	
+	/* Calculate the values of P and Q since we know X and DF */
+	
+	{
+	  int chiwhich=1, chistatus=0, goodsig=1;
+	  double chip=0.0, chiq=0.0, chixmeas=0.0, chidf=0.0, chitmp=0.0;
+	  double normz=0.0, normmean=0.0, normstdev=1.0;
+	  
+	  chidf = search->proflen - 1.0;
+	  chixmeas = beststats.redchi * chidf;
+	  cdfchi(&chiwhich, &chip, &chiq, &chixmeas, &chidf, &chistatus, &chitmp);
+	  if (chistatus != 0){
+	    if (chistatus < 0)
+	      printf("\nInput parameter %d to cdfchi() was out of range.\n", 
+		     chistatus);
+	    else if (chistatus == 3)
+	      printf("\nP + Q do not equal 1.0 in cdfchi().\n");
+	    else if (chistatus == 10)
+	      printf("\nError in cdfgam().\n");
+	    else printf("\nUnknown error in cdfchi().\n");
+	  }
+	  
+	  /* Calculate the equivalent sigma */
+	  
+	  chiwhich = 2;
+	  cdfnor(&chiwhich, &chip, &chiq, &normz, &normmean, &normstdev, 
+		 &chistatus, &chitmp);
+	  if (chistatus != 0) goodsig=0;
+	  
+	  /* Add the Fold Info area */
+	  
+	  cpgsvp (0.519, 0.94, 0.68, 0.94);
+	  cpgswin(-0.05, 1.05, -0.1, 1.1);
+	  cpgsch(0.8);
+	  cpgmtxt("T", 1.0, 0.5, 0.5, "Search Information");
+	  cpgsch(0.7);
+	  if (flags->nosearch)
+	    cpgtext(0.0, 1.0, "   Folding Parameters");
+	  else 
+	    cpgtext(0.0, 1.0, "   Best Fit Parameters");
+	  if (goodsig)
+	    sprintf(out2, "(\\(0248)%.1f\\gs)", normz);
+	  else 
+	    sprintf(out2, " ");
+	  sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s", 
+		  beststats.redchi, chiq, out2);
+	  cpgtext(0.0, 0.9, out);
+	  if (search->nsub > 1){
+	    sprintf(out, "Dispersion Measure (DM) = %.3f", search->bestdm);
+	    cpgtext(0.0, 0.8, out);
+	  }
+	  {
+	    if (search->tepoch != 0.0){
+	      cpgnice_output_2(out2, search->topo.p1*1000.0, perr*1000.0, 0);
+	      sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
+	      cpgtext(0.0, 0.7, out);
+	      cpgnice_output_2(out2, search->topo.p2, pderr, 0);
+	      sprintf(out, "P'\\dtopo\\u (s/s) = %s", out2);
+	      cpgtext(0.0, 0.6, out);
+	      cpgnice_output_2(out2, search->topo.p3, pdderr, 0);
+	      sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
+	      cpgtext(0.0, 0.5, out);
+	    } else {
+	      cpgtext(0.0, 0.7, "P\\dtopo\\u (ms) = N/A");
+	      cpgtext(0.0, 0.6, "P'\\dtopo\\u (s/s) = N/A");
+	      cpgtext(0.0, 0.5, "P''\\dtopo\\u (s/s\\u2\\d) = N/A");
+	    }
+	    
+	    if (search->bepoch != 0.0){
+	      cpgnice_output_2(out2, search->bary.p1*1000.0, perr*1000.0, 0);
+	      sprintf(out, "P\\dbary\\u (ms) = %s", out2);
+	      cpgtext(0.6, 0.7, out);
+	      cpgnice_output_2(out2, search->bary.p2, pderr, 0);
+	      sprintf(out, "P'\\dbary\\u (s/s) = %s", out2);
+	      cpgtext(0.6, 0.6, out);
+	      cpgnice_output_2(out2, search->bary.p3, pdderr, 0);
+	      sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
+	      cpgtext(0.6, 0.5, out);
+	    } else {
+	      cpgtext(0.6, 0.7, "P\\dbary\\u (ms) = N/A");
+	      cpgtext(0.6, 0.6, "P'\\dbary\\u (s/s) = N/A");
+	      cpgtext(0.6, 0.5, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
+	    }
+	  }
+	  cpgtext(0.0, 0.3, "   Binary Parameters");
+	  if (TEST_EQUAL(search->orb.p, 0.0)){
+	    cpgtext(0.0, 0.2, "P\\dorb\\u (s) = N/A");
+	    cpgtext(0.0, 0.1, "a\\d1\\usin(i)/c (s) = N/A");
+	    cpgtext(0.6, 0.2, "e = N/A");
+	    cpgtext(0.6, 0.1, "\\gw (rad) = N/A");
+	    cpgtext(0.0, 0.0, "T\\dperi\\u = N/A");
+	  } else {
+	    sprintf(out, "P\\dorb\\u (s) = %f", search->orb.p);
+	    cpgtext(0.0, 0.2, out);
+	    sprintf(out, "a\\d1\\usin(i)/c (s) = %f", search->orb.x);
+	    cpgtext(0.0, 0.1, out);
+	    sprintf(out, "e = %f", search->orb.e);
+	    cpgtext(0.6, 0.2, out);
+	    sprintf(out, "\\gw (rad) = %f", search->orb.w);
+	    cpgtext(0.6, 0.1, out);
+	    sprintf(out, "T\\dperi\\u = %-.11f", search->orb.t);
+	    cpgtext(0.0, 0.0, out);
+	  }
 	}
       }
     }
-#endif    /* The ends the JUST_GREYSCALE block */
     cpgclos();
   }
   free(bestprof);

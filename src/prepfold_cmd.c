@@ -48,6 +48,14 @@ static Cmdline cmd = {
   /* xwinP = */ 0,
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   /* runavgP = */ 0,
+  /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
+  /* nosearchP = */ 0,
+  /***** -scaleparts: Scale the part profiles independently */
+  /* scalepartsP = */ 0,
+  /***** -allgrey: Make all the images greyscale instead of color */
+  /* allgreyP = */ 0,
+  /***** -justprofs: Only output the profile portions of the plot */
+  /* justprofsP = */ 0,
   /***** -dm: The central DM of the search (cm^-3 pc) */
   /* dmP = */ 1,
   /* dm = */ 0,
@@ -132,8 +140,7 @@ static Cmdline cmd = {
   /* psrnameP = */ 0,
   /* psrname = */ (char*)0,
   /* psrnameC = */ 0,
-  /***** -polycos: File containing TEMPO polycos for psrname (not
-required) */
+  /***** -polycos: File containing TEMPO polycos for psrname (not required) */
   /* polycofileP = */ 0,
   /* polycofile = */ (char*)0,
   /* polycofileC = */ 0,
@@ -987,6 +994,34 @@ showOptionValues(void)
     printf("-runavg found:\n");
   }
 
+  /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
+  if( !cmd.nosearchP ) {
+    printf("-nosearch not found.\n");
+  } else {
+    printf("-nosearch found:\n");
+  }
+
+  /***** -scaleparts: Scale the part profiles independently */
+  if( !cmd.scalepartsP ) {
+    printf("-scaleparts not found.\n");
+  } else {
+    printf("-scaleparts found:\n");
+  }
+
+  /***** -allgrey: Make all the images greyscale instead of color */
+  if( !cmd.allgreyP ) {
+    printf("-allgrey not found.\n");
+  } else {
+    printf("-allgrey found:\n");
+  }
+
+  /***** -justprofs: Only output the profile portions of the plot */
+  if( !cmd.justprofsP ) {
+    printf("-justprofs not found.\n");
+  } else {
+    printf("-justprofs found:\n");
+  }
+
   /***** -dm: The central DM of the search (cm^-3 pc) */
   if( !cmd.dmP ) {
     printf("-dm not found.\n");
@@ -1239,8 +1274,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -polycos: File containing TEMPO polycos for psrname (not
-required) */
+  /***** -polycos: File containing TEMPO polycos for psrname (not required) */
   if( !cmd.polycofileP ) {
     printf("-polycos not found.\n");
   } else {
@@ -1434,117 +1468,120 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-polycos polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-nosearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-polycos polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
-          -o: Root of the output file names\n\
-              1 char* value\n\
-       -pkmb: Raw data in Parkes Multibeam format\n\
-       -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
-         -if: For BPP format only:  A specific IF to use.\n\
-              1 int value between 0 and 1\n\
-       -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
-       -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
-              1 float value between 0 and 20.0\n\
-              default: `0.0'\n\
-     -nobary: Do not barycenter (assume input parameters are topocentric)\n\
-      -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
-       -xwin: Show the result plots on-screen as well as make a plotfile\n\
-     -runavg: Subtract each blocks average as it is read (single channel data only)\n\
-         -dm: The central DM of the search (cm^-3 pc)\n\
-              1 double value between 0 and oo\n\
-              default: `0'\n\
-          -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
-              1 int value\n\
-       -nsub: The number of sub-bands to use for the DM search\n\
-              1 int value between 1 and 512\n\
-              default: `32'\n\
-      -npart: The number of sub-integrations to use for the period search\n\
-              1 int value between 1 and 512\n\
-              default: `64'\n\
-      -pstep: The minimum period stepsize over the observation in profile bins\n\
-              1 int value between 1 and 10\n\
-              default: `2'\n\
-     -pdstep: The minimum P-dot stepsize over the observation in profile bins\n\
-              1 int value between 1 and 20\n\
-              default: `4'\n\
-     -dmstep: The minimum DM stepsize over the observation in profile bins\n\
-              1 int value between 1 and 10\n\
-              default: `2'\n\
-     -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched\n\
-              1 int value between 1 and 10\n\
-              default: `2'\n\
-    -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
-              1 int value between 1 and 10\n\
-              default: `3'\n\
-          -p: The nominative folding period (s)\n\
-              1 double value between 0 and oo\n\
-         -pd: The nominative period derivative (s/s)\n\
-              1 double value\n\
-              default: `0.0'\n\
-        -pdd: The nominative period 2nd derivative (s/s^2)\n\
-              1 double value\n\
-              default: `0.0'\n\
-          -f: The nominative folding frequency (hz)\n\
-              1 double value between 0 and oo\n\
-         -fd: The nominative frequency derivative (hz/s)\n\
-              1 double value\n\
-              default: `0'\n\
-        -fdd: The nominative frequency 2nd derivative (hz/s^2)\n\
-              1 double value\n\
-              default: `0'\n\
-      -pfact: A factor to multiple the candidate p and p-dot by\n\
-              1 double value between 0.0 and 100.0\n\
-              default: `1.0'\n\
-      -ffact: A factor to multiple the candidate f and f-dot by\n\
-              1 double value between 0.0 and 100.0\n\
-              default: `1.0'\n\
-        -phs: Offset phase for the profil\n\
-              1 double value between 0.0 and 1.0\n\
-              default: `0.0'\n\
-      -start: The folding start time as a fraction of the full obs\n\
-              1 double value between 0.0 and 1.0\n\
-              default: `0.0'\n\
-        -end: The folding end time as a fraction of the full obs\n\
-              1 double value between 0.0 and 1.0\n\
-              default: `1.0'\n\
-        -psr: Name of pulsar to fold (do not include J or B)\n\
-              1 char* value\n\
-    -polycos: File containing TEMPO polycos for psrname (not\n\
-              required)\n\
-              1 char* value\n\
-        -obs: Two letter TEMPO observatory code (for barycentering)\n\
-              1 char* value\n\
-    -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
-              1 int value between 1 and oo\n\
-    -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
-              1 char* value\n\
-        -bin: Fold a binary pulsar.  Must include all of the following parameters\n\
-         -pb: The orbital period (s)\n\
-              1 double value between 0 and oo\n\
-          -x: The projected orbital semi-major axis (lt-sec)\n\
-              1 double value between 0 and oo\n\
-          -e: The orbital eccentricity\n\
-              1 double value between 0 and 0.9999999\n\
-              default: `0'\n\
-         -To: The time of periastron passage (MJD)\n\
-              1 double value between 0 and oo\n\
-          -w: Longitude of periastron (deg)\n\
-              1 double value between 0 and 360\n\
-       -wdot: Rate of advance of periastron (deg/yr)\n\
-              1 double value\n\
-              default: `0'\n\
-       -mask: File containing masking information to use\n\
-              1 char* value\n\
-       -toas: Use a TOA file instead of a time series (.dat) file\n\
-       -secs: TOAs are in seconds days since the MJD in the .inf file\n\
-       -days: TOAs are in days since the MJD in the .inf file\n\
-     -double: TOAs are in binary double precision instead of text format\n\
-  -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA\n\
-              1 double value between 0 and oo\n\
-              default: `0'\n\
-      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-              1...100 values\n\
-version: 05Mar02\n\
+           -o: Root of the output file names\n\
+               1 char* value\n\
+        -pkmb: Raw data in Parkes Multibeam format\n\
+        -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+          -if: For BPP format only:  A specific IF to use.\n\
+               1 int value between 0 and 1\n\
+        -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
+        -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
+               1 float value between 0 and 20.0\n\
+               default: `0.0'\n\
+      -nobary: Do not barycenter (assume input parameters are topocentric)\n\
+       -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
+        -xwin: Show the result plots on-screen as well as make a plotfile\n\
+      -runavg: Subtract each blocks average as it is read (single channel data only)\n\
+    -nosearch: Show but do not search the p/pdot and/or DM phase spaces\n\
+  -scaleparts: Scale the part profiles independently\n\
+     -allgrey: Make all the images greyscale instead of color\n\
+   -justprofs: Only output the profile portions of the plot\n\
+          -dm: The central DM of the search (cm^-3 pc)\n\
+               1 double value between 0 and oo\n\
+               default: `0'\n\
+           -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
+               1 int value\n\
+        -nsub: The number of sub-bands to use for the DM search\n\
+               1 int value between 1 and 512\n\
+               default: `32'\n\
+       -npart: The number of sub-integrations to use for the period search\n\
+               1 int value between 1 and 512\n\
+               default: `64'\n\
+       -pstep: The minimum period stepsize over the observation in profile bins\n\
+               1 int value between 1 and 10\n\
+               default: `2'\n\
+      -pdstep: The minimum P-dot stepsize over the observation in profile bins\n\
+               1 int value between 1 and 20\n\
+               default: `4'\n\
+      -dmstep: The minimum DM stepsize over the observation in profile bins\n\
+               1 int value between 1 and 10\n\
+               default: `2'\n\
+      -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched\n\
+               1 int value between 1 and 10\n\
+               default: `2'\n\
+     -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
+               1 int value between 1 and 10\n\
+               default: `3'\n\
+           -p: The nominative folding period (s)\n\
+               1 double value between 0 and oo\n\
+          -pd: The nominative period derivative (s/s)\n\
+               1 double value\n\
+               default: `0.0'\n\
+         -pdd: The nominative period 2nd derivative (s/s^2)\n\
+               1 double value\n\
+               default: `0.0'\n\
+           -f: The nominative folding frequency (hz)\n\
+               1 double value between 0 and oo\n\
+          -fd: The nominative frequency derivative (hz/s)\n\
+               1 double value\n\
+               default: `0'\n\
+         -fdd: The nominative frequency 2nd derivative (hz/s^2)\n\
+               1 double value\n\
+               default: `0'\n\
+       -pfact: A factor to multiple the candidate p and p-dot by\n\
+               1 double value between 0.0 and 100.0\n\
+               default: `1.0'\n\
+       -ffact: A factor to multiple the candidate f and f-dot by\n\
+               1 double value between 0.0 and 100.0\n\
+               default: `1.0'\n\
+         -phs: Offset phase for the profil\n\
+               1 double value between 0.0 and 1.0\n\
+               default: `0.0'\n\
+       -start: The folding start time as a fraction of the full obs\n\
+               1 double value between 0.0 and 1.0\n\
+               default: `0.0'\n\
+         -end: The folding end time as a fraction of the full obs\n\
+               1 double value between 0.0 and 1.0\n\
+               default: `1.0'\n\
+         -psr: Name of pulsar to fold (do not include J or B)\n\
+               1 char* value\n\
+     -polycos: File containing TEMPO polycos for psrname (not required)\n\
+               1 char* value\n\
+         -obs: Two letter TEMPO observatory code (for barycentering)\n\
+               1 char* value\n\
+     -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
+               1 int value between 1 and oo\n\
+     -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
+               1 char* value\n\
+         -bin: Fold a binary pulsar.  Must include all of the following parameters\n\
+          -pb: The orbital period (s)\n\
+               1 double value between 0 and oo\n\
+           -x: The projected orbital semi-major axis (lt-sec)\n\
+               1 double value between 0 and oo\n\
+           -e: The orbital eccentricity\n\
+               1 double value between 0 and 0.9999999\n\
+               default: `0'\n\
+          -To: The time of periastron passage (MJD)\n\
+               1 double value between 0 and oo\n\
+           -w: Longitude of periastron (deg)\n\
+               1 double value between 0 and 360\n\
+        -wdot: Rate of advance of periastron (deg/yr)\n\
+               1 double value\n\
+               default: `0'\n\
+        -mask: File containing masking information to use\n\
+               1 char* value\n\
+        -toas: Use a TOA file instead of a time series (.dat) file\n\
+        -secs: TOAs are in seconds days since the MJD in the .inf file\n\
+        -days: TOAs are in days since the MJD in the .inf file\n\
+      -double: TOAs are in binary double precision instead of text format\n\
+   -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA\n\
+               1 double value between 0 and oo\n\
+               default: `0'\n\
+       infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
+               1...100 values\n\
+version: 10Apr02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1623,6 +1660,26 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-runavg", argv[i]) ) {
       cmd.runavgP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-nosearch", argv[i]) ) {
+      cmd.nosearchP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-scaleparts", argv[i]) ) {
+      cmd.scalepartsP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-allgrey", argv[i]) ) {
+      cmd.allgreyP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-justprofs", argv[i]) ) {
+      cmd.justprofsP = 1;
       continue;
     }
 

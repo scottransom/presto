@@ -1,4 +1,5 @@
 #include "prepfold.h"
+#include "show_pfd_cmd.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -11,11 +12,23 @@
 int main(int argc, char *argv[])
 {
   prepfoldinfo search;
+  Cmdline *cmd;
+  plotflags flags;
 
-  if (argc==1 || argc > 2){
-    printf("\nusage:  show_pfd pfdfilename\n\n");
+  /* Call usage() if we have no command line arguments */
+
+  if (argc == 1) {
+    Program = argv[0];
+    usage();
     exit(0);
   }
+  /* Parse the command line using the excellent program Clig */
+
+  cmd = parseCmdline(argc, argv);
+  flags.toas = cmd->toasP;
+  flags.scaleparts = cmd->scalepartsP;
+  flags.justprofs = cmd->justprofsP;
+  flags.allgrey = cmd->allgreyP;
 
   /*
    *   Read the raw prepfoldinfo structure
@@ -31,7 +44,7 @@ int main(int argc, char *argv[])
 
   /* Switch to portrait mode */
 
-  if (0){
+  if (cmd->portraitP){
     int goodlen;
     char *substr, *tmpdev;
 
@@ -51,7 +64,11 @@ int main(int argc, char *argv[])
    *   Plot our results
    */
 
-  prepfold_plot(&search, 1);
+  if (cmd->xwinP)
+    prepfold_plot(&search, &flags, 1);
+  else
+    prepfold_plot(&search, &flags, 0);
+  
 
   /* Free our memory  */
 
