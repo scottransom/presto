@@ -89,18 +89,18 @@ int main(int argc, char *argv[])
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
-  double difft, tt, nc, pl, recdt=0.0, *dispdts=NULL;
+  double difft, tt, recdt=0.0, *dispdts=NULL;
   double orb_baryepoch=0.0, topoepoch=0.0, baryepoch=0.0, barydispdt;
   double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
   double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
-  double *voverc=NULL, *tobsf=NULL, topof=0.0, topofd=0.0, topofdd=0.0;
+  double *voverc=NULL, *tobsf=NULL, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
   int numchan=1, binary=0, np, pnum, numdelays=0;
   int info, slen, ptsperrec=1, flags=1;
   long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part;
-  long totnumfolded=0, lorec=0, hirec=0, numrecs=0, totnumrecs=0;
+  long totnumfolded=0, lorec=0, hirec=0;
   long numbinpoints=0, proflen, currentrec=0;
   unsigned long numrec=0, arrayoffset=0;
   multibeam_tapehdr hdr;
@@ -465,7 +465,7 @@ int main(int argc, char *argv[])
   else
     proflen = (long) (p / dt + 0.5);
 
-  /* Determine the frequency shifts caused by the orbit if needed */
+  /* Determine the phase delays caused by the orbit if needed */
 
   if (binary) {
     
@@ -543,6 +543,8 @@ int main(int argc, char *argv[])
     }
   }
 
+  /* If this is 'raw' radio data, determine the dispersion delays */
+
   if (!strcmp(idata.band, "Radio")) {
     
     /* The topocentric spacing between channels */
@@ -593,53 +595,15 @@ int main(int argc, char *argv[])
   
   reads_per_part = numrec / cmd->npart;
 
-  /* Main loop if we are not barycentering... */
+  /* Correct our fold parameters if we are barycentering */
 
   if (cmd->nobaryP) {
-    
-    /* Step through the sub-integrations of time */
-
-    printf("Folded %ld points of %.0f", totnumfolded, N);
-    for (ii = 0; ii < cmd->npart; ii++){
-
-      /* Step through the records in each sub-integration */
-      
-      for (jj = 0; jj < reads_per_part; jj++){
-
-	/* Read the next record (or records) */
-	
-	numread = readrec_ptr(infile, data, worklen, dispdts, 
-			      cmd->nsub, numchan);
-
-	/* tt is (topocentric) seconds from first point */
-      
-	tt = (ii * reads_per_part + jj) * worklen * dt;
-
-	/* Step through sub-bands */
-      
-	for (kk = 0; kk < cmd->nsub; kk++){
-	  fold(data + kk * worklen, numread, dt, tt, 
-	       profs + (ii * cmd->nsub + kk) * proflen, 
-	       proflen, cmd->phs, f, fd, fdd, flags, Ep, tp, 
-	       numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
-	}
-	totnumfolded += numread;
-      }
-      printf("\rFolded %ld points of %.0f", totnumfolded, N);
-for (kk = 0; kk < cmd->nsub; kk++)
-quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
-    }
-
-  /* Main loop if we are barycentering... */
-
+    foldf = f;  foldfd = fd;  foldfdd = fdd;
   } else {
-    
+
     /* The number of topo to bary points to generate with TEMPO */
     
     numbarypts = endtime / TDT + 1;
-
-    /* Allocate some arrays */
-    
     barytimes = gen_dvect(numbarypts);
     topotimes = gen_dvect(numbarypts);
     voverc = gen_dvect(numbarypts);
@@ -658,7 +622,7 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
 	   cmd->argv[0]);
     printf("   errors from TEMPO when complete.\n\n");
 
-    /* Determine the average V/c */
+    /* Determine the avg v/c of the Earth's motion during the obs */
 
     avg_voverc = 0.0;
     for (ii = 0 ; ii < numbarypts - 1 ; ii++)
@@ -667,22 +631,23 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
     free(voverc);
     printf("The average topocentric velocity is %.3g (units of c).\n", 
 	   avg_voverc);
-    info = bary2topo(topotimes, barytimes, numbarypts, 
-		     f, fd, fdd, &topof, &topofd, &topofdd);
-    if (info < 0)
+
+    /* Convert the barycentric folding parameters into topocentric */
+
+    if ((info=bary2topo(topotimes, barytimes, numbarypts, 
+			f, fd, fdd, &foldf, &foldfd, &foldfdd))==0)
       printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
-    printf("Topocentric folding frequency    (hz)  =  %-.12f\n", topof);
-    if (topofd != 0.0)
-      printf("Topocentric folding f-dot      (hz/s)  =  %-.8e\n", topofd);
-    if (topofdd != 0.0)
-      printf("Topocentric folding f-dotdot (hz/s^2)  =  %-.8e\n", topofdd);
+    printf("Topocentric folding frequency    (hz)  =  %-.12f\n", foldf);
+    if (foldfd != 0.0)
+      printf("Topocentric folding f-dot      (hz/s)  =  %-.8e\n", foldfd);
+    if (foldfdd != 0.0)
+      printf("Topocentric folding f-dotdot (hz/s^2)  =  %-.8e\n", foldfdd);
     printf("\n");
 
-    if (binary){
-
-      /* Modify the binary times so that they refer to topocentric   */
-      /* reference times.  This way we can barycenter while we fold. */
+    /* Modify the binary delay times so they refer to */
+    /* topocentric reference times.                   */
       
+    if (binary){
       for (ii = 0; ii < numbinpoints; ii++){
 	arrayoffset++;  /* Beware nasty NR zero-offset kludges! */
 	dtmp = baryepoch + tp[ii] / SECPERDAY;
@@ -697,70 +662,74 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
       dtmp = tp[0];
       for (ii = 0 ; ii < numdelays ; ii++)
 	tp[ii] = (tp[ii] - dtmp) * SECPERDAY;
-
     }
-
-    /* Step through the sub-integrations of time */
-
-    printf("Folded %ld points of %.0f", totnumfolded, N);
-    for (ii = 0; ii < cmd->npart; ii++){
-
-      /* Step through the records in each sub-integration */
-      
-      for (jj = 0; jj < reads_per_part; jj++){
-
-	/* Read the next record (or records) */
-	
-	numread = readrec_ptr(infile, data, worklen, dispdts, 
-			      cmd->nsub, numchan);
-
-	/* tt is (topocentric) seconds from first point */
-      
-	tt = (ii * reads_per_part + jj) * worklen * dt;
-
-	/* Step through sub-bands */
-      
-	for (kk = 0; kk < cmd->nsub; kk++){
-	  fold(data + kk * worklen, numread, dt, tt, 
-	       profs + (ii * cmd->nsub + kk) * proflen, proflen, 
-	       cmd->phs, topof, topofd, topofdd, flags, Ep, tp, 
-	       numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
-	}
-	totnumfolded += numread;
-      }
-      printf("\rFolded %ld points of %.0f", totnumfolded, N);
-for (kk = 0; kk < cmd->nsub; kk++)
-quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
-    }
-
     free(barytimes);
     free(topotimes);
   }
-  
+
+  /* 
+   *   Perform the actual folding of the data
+   */
+
+  printf("Folded %ld points of %.0f", totnumfolded, N);
+  for (ii = 0; ii < cmd->npart; ii++){        /* sub-integrations in time  */
+    for (jj = 0; jj < reads_per_part; jj++){  /* reads per sub-integration */
+      numread = readrec_ptr(infile, data, worklen, dispdts, 
+			    cmd->nsub, numchan);
+      /* tt is (topocentric) time from first point in sec */
+      tt = (ii * reads_per_part + jj) * worklen * dt;
+      for (kk = 0; kk < cmd->nsub; kk++)      /* frequency sub-bands */
+	fold(data + kk * worklen, numread, dt, tt, 
+	     profs + (ii * cmd->nsub + kk) * proflen, proflen, 
+	     cmd->phs, foldf, foldfd, foldfdd, flags, Ep, tp, 
+	     numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
+      totnumfolded += numread;
+    }
+    printf("\rFolded %ld points of %.0f", totnumfolded, N);
+    for (kk = 0; kk < cmd->nsub; kk++)
+      quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
+  }
   fclose(infile);
 
-  /* Write our results. */
+  /*
+   *   Write the raw folds
+   */
 
   printf("\nWriting %s.\n", outfilenm);
   infile = chkfopen(outfilenm,"wb");
-  nc = numchan;
-  pl = proflen;
-  chkfwrite(&nc, sizeof(double), 1, infile);
-  chkfwrite(&pl, sizeof(double), 1, infile);
-  chkfwrite(&p, sizeof(double), 1, infile);
   chkfwrite(&topoepoch, sizeof(double), 1, infile);
   chkfwrite(&baryepoch, sizeof(double), 1, infile);
-  chkfwrite(&idata.freq, sizeof(double), 1, infile);
-  chkfwrite(&idata.chan_wid, sizeof(double), 1, infile);
-  chkfwrite(profs, sizeof(double), 
-	    (unsigned long) (numchan * proflen), infile);
+  chkfwrite(&f, sizeof(double), 1, infile);
+  chkfwrite(&fd, sizeof(double), 1, infile);
+  chkfwrite(&fdd, sizeof(double), 1, infile);
+  chkfwrite(&foldf, sizeof(double), 1, infile);
+  chkfwrite(&foldfd, sizeof(double), 1, infile);
+  chkfwrite(&foldfdd, sizeof(double), 1, infile);
+  dtmp = cmd->npart;
+  chkfwrite(&dtmp, sizeof(double), 1, infile);
+  dtmp = cmd->nsub;
+  chkfwrite(&dtmp, sizeof(double), 1, infile);
+  dtmp = proflen;
+  chkfwrite(&dtmp, sizeof(double), 1, infile);
+  chkfwrite(profs, sizeof(double), cmd->nsub * cmd->npart * proflen, infile);
+  chkfwrite(stats, sizeof(foldstats), cmd->nsub * cmd->npart, infile);
   fclose(infile);
+
+  /*
+   *   Perform the candidate optimization search
+   */
+
+  /*
+   *   Plot our results
+   */
+
   printf("Done.\n\n");
 
   /* Free our memory  */
 
   free(data);
   free(profs);
+  free(stats);
   free(rootfilenm);
   free(outfilenm);
   if (binary){
