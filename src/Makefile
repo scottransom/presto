@@ -70,8 +70,8 @@ FLINKFLAGS = $(FFLAGS)
 #FC = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-newc -w0 -O4 -fast -ansi_alias -ansi_args -tune host -std1
-#	-g -newc -w0 -ansi_alias -ansi_args -std1
+#	-newc -w0 -O4 -fast -ansi_alias -ansi_args -tune host -std
+#	-g -newc -w0 -ansi_alias -ansi_args -std
 #LINKCOMMAND = ar rcs
 #FFLAGS = -O
 #FLINK = $(FC) -nofor_main

@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
     startE = keplars_eqn(mdata.orb.t, mdata.orb.p, mdata.orb.e, 1.0E-15);
     if (mdata.T > 2048) orbdt = 0.5;
     else orbdt = mdata.T / 4096.0;
-    numpoints = (long) floor(mdata.T/orbdt + 0.5) + 1;
+    numpoints = (long) floor(mdata.T/orbdt + 0.5) + 2;
     phib = dorbint(startE, numpoints, orbdt, &mdata.orb);
     mdata.orb.w *= DEGTORAD;
     orbmaxt = orbdt * numpoints;
