@@ -152,6 +152,7 @@ long long next2_to_n(long long x)
   return i;
 }
 
+#if 0
 int gcd(int a, int b)
 /* Return the greatest common divisor of a and b */
 {
@@ -166,7 +167,7 @@ int gcd(int a, int b)
   }
   return b;
 }
-
+#endif
 
 float *gen_freqs(long numfreqs, double lof, double df)
 /* This routine generates a float vector of length numfreqs */
