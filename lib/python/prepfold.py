@@ -1,7 +1,7 @@
 import umath
 import Numeric as Num
 import struct
-import sys, psr_utils, infodata, polycos, Pgplot, sinc_interp
+import sys, psr_utils, infodata, polycos, Pgplot, sinc_interp, copy, random
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
 
@@ -120,8 +120,9 @@ class pfd:
         if (not self.bepoch==0.0):
             self.start_bary_MJDs = self.start_secs/86400.0 + self.bepoch
             self.mid_bary_MJDs = self.mid_secs/86400.0 + self.bepoch
-        self.T = umath.add.reduce(self.pts_per_fold)*self.dt
-        self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
+        self.Nfolded = umath.add.reduce(self.pts_per_fold)
+        self.T = self.Nfolded*self.dt
+        self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
         self.varprof = self.calc_varprof()
         infile.close()
         self.barysubfreqs = None
@@ -175,6 +176,9 @@ class pfd:
                     tmp_prof = self.profs[ii,jj,:]
                     self.profs[ii,jj] = psr_utils.interp_rotate(tmp_prof, delaybins[jj],
                                                                 zoomfact=interp_factor)
+            # Note: Since the interpolation process slightly changes the values of the
+            # profs, we need to re-calculate the average profile value
+            self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
         else:
             new_subdelays_bins = umath.floor(delaybins+0.5)
             for ii in range(self.nsub):
@@ -185,6 +189,8 @@ class pfd:
                                                         subdata[:,:rotbins]), 1)
         self.subdelays_bins += new_subdelays_bins
         self.sumprof = Num.sum(Num.sum(self.profs))
+        if umath.fabs(Num.sum(self.sumprof)/self.proflen - self.avgprof) > 1.0:
+            print "self.avgprof is not the correct value!"
 
     def combine_profs(self, new_npart, new_nsub):
         """
@@ -228,7 +234,7 @@ class pfd:
             self.profs[part,:,:] *= 0.0
             self.killed_intervals.append(part)
         # Update the stats
-        self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
+        self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
         self.varprof = self.calc_varprof()
 
     def kill_subbands(self, subbands):
@@ -241,7 +247,7 @@ class pfd:
             self.profs[:,sub,:] *= 0.0
             self.killed_subbands.append(sub)
         # Update the stats
-        self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
+        self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
         self.varprof = self.calc_varprof()
 
     def plot_sumprof(self, device='/xwin'):
@@ -312,15 +318,18 @@ class pfd:
                 varprof += self.stats[part][sub].prof_var
         return varprof
 
-    def calc_redchi2(self):
+    def calc_redchi2(self, prof=None, avg=None, var=None):
         """
-        calc_redchi2(self):
+        calc_redchi2(self, prof=None, avg=None, var=None):
             Return the calculated reduced-chi^2 of the current summed profile.
         """
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
             self.dedisperse()
-        return sum((self.sumprof-self.avgprof)**2.0/self.varprof)/(self.proflen-1.0)
+        if prof is None:  prof = self.sumprof
+        if avg is None:  avg = self.avgprof
+        if var is None:  var = self.varprof
+        return Num.sum((prof-avg)**2.0/var)/(len(prof)-1.0)
 
     def plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0):
         """
@@ -348,13 +357,17 @@ class pfd:
                 for jj in range(self.nsub):
                     profs[jj] = psr_utils.interp_rotate(sumprofs[jj], delaybins[jj],
                                                         zoomfact=interp_factor)
+                # Note: Since the interpolation process slightly changes the values of the
+                # profs, we need to re-calculate the average profile value
+                avgprof = Num.sum(Num.ravel(profs))/self.proflen
             else:
                 new_subdelays_bins = umath.floor(delaybins+0.5)
                 for jj in range(self.nsub):
                     profs[jj] = psr_utils.rotate(profs[jj], int(new_subdelays_bins[jj]))
                 subdelays_bins += new_subdelays_bins
+                avgprof = self.avgprof
             sumprof = Num.sum(profs)
-            chis[ii] = Num.sum((sumprof-self.avgprof)**2.0/self.varprof)/(self.proflen-1.0)
+            chis[ii] = self.calc_redchi2(prof=sumprof, avg=avgprof)
         # Now plot it
         Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d")
         Pgplot.closeplot()
@@ -383,13 +396,29 @@ class pfd:
             vars.append(var)
         chis = Num.zeros(self.nsub, typecode='f')
         for ii in range(self.nsub):
-            chis[ii] = Num.sum((profs[ii]-avgs[ii])**2.0/vars[ii])/(self.proflen-1.0)
+            chis[ii] = self.calc_redchi2(prof=profs[ii], avg=avgs[ii], var=vars[ii])
         # Now plot it
         Pgplot.plotxy(chis, labx="Subband Number", laby="Reduced-\gx\u2\d",
                       rangey=[0.0, max(chis)*1.1])
         Pgplot.closeplot()
         return chis
 
+    def estimate_offsignal_redchi2(self):
+        """
+        estimate_offsignal_redchi2():
+            Estimate the reduced-chi^2 off of the signal based on randomly shifting
+                and summing all of the component profiles.  
+        """
+        numtrials = 20
+        redchi2s = []
+        for count in range(numtrials):
+            prof = Num.zeros(self.proflen, typecode='d')
+            for ii in range(self.npart):
+                for jj in range(self.nsub):
+                    tmpprof = copy.copy(self.profs[ii][jj])
+                    prof += psr_utils.rotate(tmpprof, random.randrange(0,self.proflen))
+            redchi2s.append(self.calc_redchi2(prof=prof))
+        return psr_utils.average(redchi2s)
 
 if __name__ == "__main__":
     import sys
