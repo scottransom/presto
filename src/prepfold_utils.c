@@ -71,6 +71,12 @@ double phasedelay2fdotdot(double phasedelay, double time)
     return 6.0 * phasedelay / (time * time * time);
 }
 
+void set_posn(prepfoldinfo *in, infodata *idata){
+  if (strcmp(idata->telescope, "None (Artificial Data Set)") != 0){
+    ra_dec_to_string(in->rastr, idata->ra_h, idata->ra_m, idata->ra_s);
+    ra_dec_to_string(in->decstr, idata->dec_d, idata->dec_m, idata->dec_s);
+  }
+}
 
 int read_floats(FILE *file, float *data, int numpts, int numchan)
 /* This routine reads a numpts records of numchan each from */
@@ -270,6 +276,15 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->candnm = NULL;
   in->telescope = NULL;
   in->pgdev = NULL;
+  {
+    int ii;
+    for (ii=0; ii<16; ii++){
+      in->rastr[ii] = '\0';
+      in->decstr[ii] = '\0';
+    }
+    strcpy(in->rastr, "Unknown");
+    strcpy(in->decstr, "Unknown");
+  }
   in->dt = 0.0;
   in->startT = 0.0;
   in->endT = 0.0;
@@ -320,6 +335,8 @@ void print_prepfoldinfo(prepfoldinfo *in)
   printf("candnm      =  '%s'\n", in->candnm);
   printf("telescope   =  '%s'\n", in->telescope);
   printf("pgdev       =  '%s'\n", in->pgdev);
+  printf("rastr       =  '%s'\n", in->rastr);
+  printf("decstr      =  '%s'\n", in->decstr);
   printf("dt          =  %.14g\n", in->dt);
   printf("startT      =  %.14g\n", in->startT);
   printf("endT        =  %.14g\n", in->endT);
@@ -382,6 +399,8 @@ void write_prepfoldinfo(prepfoldinfo *in, char *filename)
   itmp = strlen(in->pgdev);
   chkfwrite(&itmp, sizeof(int), 1, outfile);
   chkfwrite(in->pgdev, sizeof(char), itmp, outfile);
+  chkfwrite(in->rastr, sizeof(char), 16, outfile);
+  chkfwrite(in->decstr, sizeof(char), 16, outfile);
   chkfwrite(&in->dt, sizeof(double), 1, outfile);
   chkfwrite(&in->startT, sizeof(double), 1, outfile);
   chkfwrite(&in->endT, sizeof(double), 1, outfile);
@@ -426,6 +445,7 @@ void read_prepfoldinfo(prepfoldinfo *in, char *filename)
   FILE *infile;
   int itmp, byteswap=0;
   float ftmp;
+  char temp[16];
 
   infile = chkfopen(filename, "rb");
   in->numdms = read_int(infile, byteswap);
@@ -461,8 +481,28 @@ void read_prepfoldinfo(prepfoldinfo *in, char *filename)
   itmp = read_int(infile, byteswap);
   in->pgdev = calloc(itmp+1, sizeof(char));
   chkfread(in->pgdev, sizeof(char), itmp, infile);
-  in->dt = read_double(infile, byteswap);
-  in->startT = read_double(infile, byteswap);
+  {
+    int has_posn=1, ii;
+    chkfread(temp, sizeof(char), 16, infile);
+    /* Check to see if a position string was written */
+    for (ii=0; ii<16; ii++){
+      if (!isdigit(temp[ii]) && temp[ii]!=':' && temp[ii]!='-' && temp[ii]!='\0'){
+	has_posn=0;
+	break;
+      }
+    }
+    if (has_posn){
+      strcpy(in->rastr, temp);
+      chkfread(in->decstr, sizeof(char), 16, infile);
+    } else {
+      strcpy(in->rastr, "Unknown");
+      strcpy(in->decstr, "Unknown");
+      in->dt = *(double *)(temp+0);
+      if (byteswap) in->dt = swap_double(in->dt);
+      in->startT = *(double *)(temp+sizeof(double));
+      if (byteswap) in->startT = swap_double(in->startT);
+    }
+  }
   in->endT = read_double(infile, byteswap);
   in->tepoch = read_double(infile, byteswap);
   in->bepoch = read_double(infile, byteswap);

@@ -18,6 +18,7 @@ extern int phcalc(double mjd0, double mjd1, int last_index,
 extern int get_psr_from_parfile(char *parfilenm, double epoch, 
 				psrparams *psr);
 extern char *make_polycos(char *parfilenm, infodata *idata);
+void set_posn(prepfoldinfo *in, infodata *idata);
 
 /* 
  * The main program 
@@ -514,6 +515,7 @@ int main(int argc, char *argv[])
     }
   }
 
+  set_posn(&search, &idata);
   printf("Folding a %s candidate.\n\n", search.candnm);
   printf("Output data file is '%s'.\n", outfilenm);
   printf("Output plot file is '%s'.\n", plotfilenm);

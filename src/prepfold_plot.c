@@ -1214,55 +1214,62 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	  cpgsch(0.8);
 	  cpgmtxt("T", 1.0, 0.5, 0.5, "Search Information");
 	  cpgsch(0.7);
+	  sprintf(out, "RA\\dJ2000\\u = %s", search->rastr);
+	  cpgtext(0.0, 1.0, out);
+	  sprintf(out, "DEC\\dJ2000\\u = %s", search->decstr);
+	  cpgtext(0.6, 1.0, out);
 	  if (flags->nosearch)
-	    cpgtext(0.0, 1.0, "   Folding Parameters");
+	    cpgtext(0.0, 0.9, "        Folding Parameters");
 	  else 
-	    cpgtext(0.0, 1.0, "   Best Fit Parameters");
+	    cpgtext(0.0, 0.9, "        Best Fit Parameters");
 	  if (goodsig)
 	    sprintf(out2, "(\\(0248)%.1f\\gs)", normz);
 	  else 
 	    sprintf(out2, " ");
 	  sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s", 
 		  beststats.redchi, chiq, out2);
-	  cpgtext(0.0, 0.9, out);
+	  cpgtext(0.0, 0.8, out);
 	  if (search->nsub > 1){
 	    sprintf(out, "Dispersion Measure (DM) = %.3f", search->bestdm);
-	    cpgtext(0.0, 0.8, out);
+	    cpgtext(0.0, 0.7, out);
+	  } else {
+	    sprintf(out, "Dispersion Measure (DM) = N/A");
+	    cpgtext(0.0, 0.7, out);
 	  }
 	  {
 	    if (search->tepoch != 0.0){
 	      cpgnice_output_2(out2, search->topo.p1*1000.0, perr*1000.0, 0);
 	      sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
-	      cpgtext(0.0, 0.7, out);
+	      cpgtext(0.0, 0.6, out);
 	      cpgnice_output_2(out2, search->topo.p2, pderr, 0);
 	      sprintf(out, "P'\\dtopo\\u (s/s) = %s", out2);
-	      cpgtext(0.0, 0.6, out);
+	      cpgtext(0.0, 0.5, out);
 	      cpgnice_output_2(out2, search->topo.p3, pdderr, 0);
 	      sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
-	      cpgtext(0.0, 0.5, out);
+	      cpgtext(0.0, 0.4, out);
 	    } else {
-	      cpgtext(0.0, 0.7, "P\\dtopo\\u (ms) = N/A");
-	      cpgtext(0.0, 0.6, "P'\\dtopo\\u (s/s) = N/A");
-	      cpgtext(0.0, 0.5, "P''\\dtopo\\u (s/s\\u2\\d) = N/A");
+	      cpgtext(0.0, 0.6, "P\\dtopo\\u (ms) = N/A");
+	      cpgtext(0.0, 0.5, "P'\\dtopo\\u (s/s) = N/A");
+	      cpgtext(0.0, 0.4, "P''\\dtopo\\u (s/s\\u2\\d) = N/A");
 	    }
 	    
 	    if (search->bepoch != 0.0){
 	      cpgnice_output_2(out2, search->bary.p1*1000.0, perr*1000.0, 0);
 	      sprintf(out, "P\\dbary\\u (ms) = %s", out2);
-	      cpgtext(0.6, 0.7, out);
+	      cpgtext(0.6, 0.6, out);
 	      cpgnice_output_2(out2, search->bary.p2, pderr, 0);
 	      sprintf(out, "P'\\dbary\\u (s/s) = %s", out2);
-	      cpgtext(0.6, 0.6, out);
+	      cpgtext(0.6, 0.5, out);
 	      cpgnice_output_2(out2, search->bary.p3, pdderr, 0);
 	      sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
-	      cpgtext(0.6, 0.5, out);
+	      cpgtext(0.6, 0.4, out);
 	    } else {
-	      cpgtext(0.6, 0.7, "P\\dbary\\u (ms) = N/A");
-	      cpgtext(0.6, 0.6, "P'\\dbary\\u (s/s) = N/A");
-	      cpgtext(0.6, 0.5, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
+	      cpgtext(0.6, 0.6, "P\\dbary\\u (ms) = N/A");
+	      cpgtext(0.6, 0.5, "P'\\dbary\\u (s/s) = N/A");
+	      cpgtext(0.6, 0.4, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
 	    }
 	  }
-	  cpgtext(0.0, 0.3, "   Binary Parameters");
+	  cpgtext(0.0, 0.3, "        Binary Parameters");
 	  if (TEST_EQUAL(search->orb.p, 0.0)){
 	    cpgtext(0.0, 0.2, "P\\dorb\\u (s) = N/A");
 	    cpgtext(0.0, 0.1, "a\\d1\\usin(i)/c (s) = N/A");
