@@ -6,9 +6,9 @@
 DATABASE = "$(PRESTO)/lib"
 
 # Path to PGPLOT includes
-PGPLOTINCDIR = -I$(PGPLOT_DIR)
+PGPLOTINCDIR = 
 # Path to PGPLOT libraries
-PGPLOTLIBDIR = -L$(PGPLOT_DIR)
+PGPLOTLIBDIR = -L/users/sransom/lib
 # How to link with the PGPLOT libs
 PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -ldl
 
@@ -21,14 +21,14 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I/usr/local/include
+FFTINCDIR = -I/users/sransom/include
 # Path to FFT libraries
-FFTLIBDIR = -L/usr/local/lib
+FFTLIBDIR = -L/users/sransom/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lfftw3f
 
 # Other include directoried (i.e. glib.h)
-OTHERINCDIR = -I/usr/include/glib-1.2
+OTHERINCDIR = -I/users/sransom/include/glib-1.2
 
 # Use the following if we are using DMALLOC
 #DMALLOCLINK = -ldmalloc
@@ -37,7 +37,7 @@ OTHERINCDIR = -I/usr/include/glib-1.2
 PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTLINK) $(DMALLOCLINK)
 
 # When modifying the CLIG files, the is the location of the clig binary
-CLIG = /usr/local/clig/bin/clig
+CLIG = /usr/bin/clig
 
 # For Pentium or Athlon with GCC
 # For Pentium3 or Pentium4s, use -march=pentiumpro
@@ -47,11 +47,11 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -O2 -march=athlon -Wall -W
+	-g -O2 -march=pentium4 -Wall -W
 #	-g -pg -O2 -march=athlon -Wall -W
 #  
 CLINKFLAGS = $(CFLAGS)
-FFLAGS = -g -O2 -march=athlon
+FFLAGS = -g -O2 -march=pentium4
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
@@ -150,8 +150,9 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat taperaw\
-	accelsearch mmaccelsearch prepsubband cal2mjd split_parkes_beams\
-	dat2sdat sdat2dat downsample rednoise un_sc_td bincand
+	accelsearch prepsubband cal2mjd split_parkes_beams\
+	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
+	dump_spigot_zerolag
 
 xwin: psrorbit window plotbincand profile \
 	prepfold show_pfd\
@@ -159,8 +160,8 @@ xwin: psrorbit window plotbincand profile \
 	explorefft exploredat
 
 links:
-	cd ../bin ; find ../src -type f -perm 755 | xargs -n 1 -iXXX cp -s XXX .
-	cd ../bin ; find ../src -type f -perm 775 | xargs -n 1 -iXXX cp -s XXX .
+	cd ../bin ; find ../src -type f -perm 755 | xargs -n 1 -iXXX cp -fs XXX .
+	cd ../bin ; find ../src -type f -perm 775 | xargs -n 1 -iXXX cp -fs XXX .
 	rm -f ../bin/libpresto.so
 
 geomview: togeomview
@@ -178,9 +179,6 @@ mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o
 	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
-
-mmaccelsearch: mmaccelsearch_cmd.c mmaccelsearch_cmd.o accel_utils.o mmaccelsearch.o
-	$(CC) $(CLINKFLAGS) -o $@ mmaccelsearch_cmd.o accel_utils.o mmaccelsearch.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $@ bary.o $(PRESTOLINK) -lm
@@ -218,15 +216,6 @@ test_multifiles: test_multifiles.o
 rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o range_parse.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o range_parse.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
-#showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
-#	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
-
-#showmulti_dm: showmulti_dm.o multi_prof_plot.o $(PLOT2DOBJS)
-#	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti_dm.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
-
-#searchmultidms: searchmultidms.o com.o randlib.o $(PLOT2DOBJS)
-#	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) searchmultidms.o com.o randlib.o $(PRESTOLINK) $(PGPLOTLINK) -lm
-
 test_fold: test_fold.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) test_fold.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
@@ -244,6 +233,9 @@ prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o polycos.o readpar.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+
+dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o
+	$(CC) $(CLINKFLAGS) -o $@ dump_spigot_zerolag.o spigot.o $(PRESTOLINK) -lm
 
 show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
