@@ -21,6 +21,9 @@ Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for cli
 	-r 0 20.0  -d 0.0
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 7    -d 1
+Flag   -subs    subs    {Write subbands instead of de-dispersed data}
+Double -subsdm  subsdm  {The DM to use when de-dispersing subbands for -subs} \
+	-r 0 2000.0  -d 0.0
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "28Aug01" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "25Mar03" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -28,6 +28,9 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 [-if ifs]
 [-wapp]
 [-clip clip]
+[-numwapps numwapps]
+[-subs]
+[-subsdm subsdm]
 [-numout numout]
 [-nobary]
 [-DE405]
@@ -60,6 +63,20 @@ Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
 For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.,
 .br
 1 Float value between 0 and 20.0.
+.br
+Default: `0.0'
+.IP -numwapps
+Number of WAPPs used with contiguous frequencies,
+.br
+1 Int value between 1 and 7.
+.br
+Default: `1'
+.IP -subs
+Write subbands instead of de-dispersed data.
+.IP -subsdm
+The DM to use when de-dispersing subbands for -subs,
+.br
+1 Double value between 0 and 2000.0.
 .br
 Default: `0.0'
 .IP -numout

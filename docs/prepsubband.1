@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "04Nov02" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "25Mar03" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -29,6 +29,8 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 [-wapp]
 [-clip clip]
 [-numwapps numwapps]
+[-subs]
+[-subsdm subsdm]
 [-numout numout]
 [-nobary]
 [-DE405]
@@ -69,6 +71,14 @@ Number of WAPPs used with contiguous frequencies,
 1 Int value between 1 and 7.
 .br
 Default: `1'
+.IP -subs
+Write subbands instead of de-dispersed data.
+.IP -subsdm
+The DM to use when de-dispersing subbands for -subs,
+.br
+1 Double value between 0 and 2000.0.
+.br
+Default: `0.0'
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br
