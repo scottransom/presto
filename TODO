@@ -6,6 +6,8 @@ they could be called interactively from Python.
 --  Make all character arrays use dynamic allocation to avoid
 possible buffer over-runs.
 
+--  Fix the fdotdot routines so they are accurate and faster.
+
 --  Finish MPI-based searches.  (Use ParallelPython?).
 
 --  Modify the Makefiles and package to use Configure.  Use Autoconf,

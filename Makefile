@@ -9,7 +9,8 @@ DATE = $(shell date +%d%b%y)
 tar:  squeaky tags package
 
 tags:
-	cd src ; find .. -name "*.[ch]" -print | etags -
+	cd src ; find . -name "*.[ch]" -print | etags -
+	cd src ; find ../include -name "*.[ch]" -print | etags -a -
 
 package:
 	@echo "Tarring..."
