@@ -1,4 +1,5 @@
 #include "presto.h"
+#include "float.h"
 
 /* The number of points to work with at a time         */
 /* This must be the same as the WORKLEN in profile.c!  */
@@ -11,7 +12,206 @@
 /* Simple linear interpolation macro */
 #define LININTERP(X, xlo, xhi, ylo, yhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
 
+/* Macro to test equality of float values */
+#define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
+(fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
+(fabs((a)-(b))/fabs((a)) <= 2 * DBL_EPSILON ? 1 : 0))
+
+/* Some helper functions */
+
 void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
+static void add_to_prof(double *prof, int numprof, double lophase,
+			double deltaphase, double dataval, int init);
+static double dump_buffer(double *prof, double *buffer, int numprof, 
+			  double lophase, double phaseadded, 
+			  double partphase, double dataval);
+
+
+static double dump_buffer(double *prof, double *buffer, int numprof, 
+			  double lophase, double phaseadded, 
+			  double partphase, double dataval)
+/* Fill the profile buffer and transfer its contents */
+/* to the real profile.  Reset the buffer.           */
+{
+  int ii;
+  double addpart, deltaphase;
+
+  /* Squeeze in the last remaining bit of data we can */
+
+  deltaphase = 1.0 - phaseadded;
+  addpart = deltaphase / partphase * dataval;
+  add_to_prof(prof, numprof, lophase, deltaphase, addpart, 0);
+
+  /* Dump the buffer into the profile array */
+  /* and reset the buffer array to zeros.   */
+
+  for (ii=0; ii<numprof; ii++){
+    prof[ii] += buffer[ii];
+    buffer[ii] = 0.0;
+  }
+
+  /* Add the remaining bit of data to the fresh buffer */
+
+  lophase += deltaphase;
+  if (lophase > 1.0) lophase -= 1.0;
+  deltaphase = phaseadded + partphase - 1.0;
+  addpart = dataval - addpart;
+  add_to_prof(prof, numprof, lophase, deltaphase, addpart, 0);
+
+  /* Return the new value of phaseadded */
+
+  return deltaphase;
+}
+
+
+static void add_to_prof(double *prof, int numprof, double lophase,
+			double deltaphase, double dataval, int init)
+{
+  int ii, numbins, loprofbin, hiprofbin, modhiprofbin;
+  double dtmp, part, partphase;
+  double tmpphase, hiphase, newphaseadded;
+  static int havebuffer=0;
+  static double profbinwidth=0.0, startphase=0.0;
+  static double phaseadded=0.0, *buffer=NULL;
+
+  /* Initialize or clean-up the buffer */
+
+  if (init){
+    if (havebuffer){
+      free(buffer);
+      havebuffer = 0;
+    } else {
+      buffer = gen_dvect(numprof);
+      for (ii=0; ii<numprof; ii++)
+	buffer[ii] = 0.0;
+      havebuffer = 1;
+    }
+    startphase = lophase;
+    if (numprof)
+      profbinwidth = 1.0 / numprof;
+    else /* Prevent divide by zero */
+      profbinwidth = 1.0;
+    return;
+  }
+
+  /* Reset the phase counter if needed */
+
+  if (TEST_EQUAL(1.0, phaseadded))
+    phaseadded = 0.0;
+
+  /* Find the highest numbered bin we will add data to.   */
+  /* Note:  This number will be used modulo numprof so it */
+  /*        could be greater than numprof.                */
+  
+  hiphase = lophase + deltaphase;
+  
+  /* How many profile bins we will spread the data over? */
+  
+  loprofbin = (int) (lophase * numprof + DBLCORRECT);
+  hiprofbin = (int) (hiphase * numprof + DBLCORRECT);
+  modhiprofbin = hiprofbin % numprof;
+  numbins = hiprofbin - loprofbin + 1;
+  
+  /* Spread the data into the proper bins. */
+  
+  if (numbins >= 3){
+    
+    /* Data point will be spread over 3 or more profile bins */
+    
+    /* Fill the current buffer bin */
+    dtmp = dataval  / deltaphase;
+    partphase = (loprofbin + 1) * profbinwidth - lophase;
+    part = dtmp * partphase;
+    newphaseadded = phaseadded + partphase;
+    if (newphaseadded > 1.0)
+      phaseadded = dump_buffer(prof, buffer, numprof, 
+			       lophase, phaseadded, 
+			       partphase, part);
+    else {
+      phaseadded = newphaseadded;
+      buffer[loprofbin] += part;
+    }
+
+    /* Fill the middle buffer bins */
+    partphase = profbinwidth;
+    part = dtmp * partphase;
+    for (ii = loprofbin + 1; ii < hiprofbin; ii++){
+      newphaseadded = phaseadded + partphase;
+      if (newphaseadded > 1.0)
+	phaseadded = dump_buffer(prof, buffer, numprof, 
+				 lophase, phaseadded, 
+				 partphase, part);
+      else {
+	phaseadded = newphaseadded;
+	buffer[ii % numprof] += part;
+      }
+    }
+
+    /* Add what's left */
+    tmpphase = hiphase - (int) hiphase;
+    tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
+    partphase = tmpphase - modhiprofbin * profbinwidth;
+    part = dtmp * partphase;
+    newphaseadded = phaseadded + partphase;
+    if (newphaseadded > 1.0)
+      phaseadded = dump_buffer(prof, buffer, numprof, 
+			       lophase, phaseadded, 
+			       partphase, part);
+    else {
+      phaseadded = newphaseadded;
+      buffer[modhiprofbin] += part;
+    }
+    
+  } else if (numbins == 2) {
+    
+    /* Data point will be spread over 2 profile bins */
+    
+    /* Low bin */
+    tmpphase = modhiprofbin * profbinwidth;
+    tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
+    partphase = tmpphase - lophase;
+    part = dataval * partphase / deltaphase;
+    newphaseadded = phaseadded + partphase;
+    if (newphaseadded > 1.0)
+      phaseadded = dump_buffer(prof, buffer, numprof, 
+			       lophase, phaseadded, 
+			       partphase, part);
+    else {
+      phaseadded = newphaseadded;
+      buffer[loprofbin] += part;
+    }
+
+    /* High bin */
+    partphase = deltaphase - partphase;
+    part = dataval - part;
+    newphaseadded = phaseadded + partphase;
+    if (newphaseadded > 1.0)
+      phaseadded = dump_buffer(prof, buffer, numprof, 
+			       lophase, phaseadded, 
+			       partphase, part);
+    else {
+      phaseadded = newphaseadded;
+      buffer[modhiprofbin] += part;
+    }
+    
+  } else {
+    
+    /* Data point will go into only 1 profile bin */
+    
+    partphase = deltaphase;
+    part = dataval;
+    newphaseadded = phaseadded + partphase;
+    if (newphaseadded > 1.0)
+      phaseadded = dump_buffer(prof, buffer, numprof, 
+			       lophase, phaseadded, 
+			       partphase, part);
+    else {
+      phaseadded = newphaseadded;
+      buffer[loprofbin] += part;
+    }
+  }
+}
+
 
 void fold_errors(double *prof, int proflen, double dt, double N, 
 		 double datavar, double p, double pd, double pdd, 
@@ -427,12 +627,10 @@ double fold(float *data, int numdata, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
 {
-  int loprofbin, hiprofbin, numbins, modhiprofbin;
-  int ii, jj, onbin, offbin, *onoffptr=NULL;
+  int ii, onbin, offbin, *onoffptr=NULL, firsttime=1;
   unsigned long arrayoffset=0;
   double phase, phasenext=0.0, deltaphase, T, Tnext, TD, TDnext;
-  double profbinwidth, loprofphase, hiprofphase;
-  double lopart, midpart, hipart, tmpphase, dtmp, rdeltaphase;
+  double profbinwidth, lophase, hiphase, dtmp;
   double dev, delaytlo=0.0, delaythi=0.0, delaylo=0.0, delayhi=0.0;
   double *delayptr=NULL, *delaytimeptr=NULL, *buf;
 
@@ -492,9 +690,14 @@ double fold(float *data, int numdata, double dt, double tlo,
     /* Get the starting pulsar phase (cyclic). */
     
     phase = TD * (TD * (TD * fdotdot + fdot) + fo) + startphs;
-    loprofphase = (phase < 0.0) ?
+    lophase = (phase < 0.0) ?
       1.0 + phase - (int) phase : phase - (int) phase;
-    loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
+
+    /* Initialize the buffer the first time through */
+
+    if (firsttime)
+      add_to_prof(prof, numprof, lophase, 0.0, 0.0, 1);
+    firsttime = 0;
 
     /* Generate the profile for this onoff pair */
     
@@ -536,59 +739,15 @@ double fold(float *data, int numdata, double dt, double tlo,
       /* How much total phase does the data point cover? */
       
       deltaphase = phasenext - phase;
-      rdeltaphase = 1.0 / deltaphase;
-      
-      /* Find the highest numbered bin we will add data to.   */
-      /* Note:  This number will be used modulo numprof so it */
-      /*        could be greater than numprof.                */
-      
-      hiprofphase = loprofphase + deltaphase;
-      hiprofbin = (int) (hiprofphase * numprof + DBLCORRECT);
-      modhiprofbin = hiprofbin % numprof;
-      
-      /* How many profile bins we will spread the data over? */
-      
-      numbins = hiprofbin - loprofbin + 1;
-      
-      /* Spread the data into the proper bins. */
-      
-      if (numbins >= 3){
-	
-	/* Data point will be spread over 3 or more profile bins */
-	
-	dtmp = data[ii] * rdeltaphase;
-	hipart = dtmp * ((loprofbin + 1) * profbinwidth - loprofphase);
-	tmpphase = hiprofphase - (int) hiprofphase;
-	tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
-	lopart = dtmp * (tmpphase - modhiprofbin * profbinwidth);
-	midpart = dtmp * profbinwidth;
-	prof[loprofbin] += hipart;
-	prof[modhiprofbin] += lopart;
-	for (jj = loprofbin + 1; jj < hiprofbin; jj++)
-	  prof[jj % numprof] += midpart;
-	
-      } else if (numbins == 2) {
-	
-	/* Data point will be spread over 2 profile bins */
-	
-	tmpphase = modhiprofbin * profbinwidth;
-	tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
-	hipart = data[ii] * (tmpphase - loprofphase) * rdeltaphase;
-	lopart = data[ii] - hipart;
-	prof[loprofbin] += hipart;
-	prof[modhiprofbin] += lopart;
-	
-      } else {
-	
-	/* Data point will go into only 1 profile bin */
-	
-	prof[loprofbin] += data[ii];
-      }
-    
+
+      /* Add the current point to the buffer or the profile */
+
+      add_to_prof(prof, numprof, lophase, deltaphase, data[ii], 0);
+  
       /* Update variables */
       
-      loprofphase = hiprofphase - (int) hiprofphase;
-      loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
+      hiphase = lophase + deltaphase;
+      lophase = hiphase - (int) hiphase;
       phase = phasenext;
 
       /* Use clever single pass mean and variance calculation */
@@ -622,7 +781,10 @@ double fold(float *data, int numdata, double dt, double tlo,
 
   phasenext = (phasenext < 0.0) ? 
     1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
-  free(buf);
+
+  /* Free the buffer and return */
+  
+  add_to_prof(prof, numprof, lophase, 0.0, 0.0, 1);
   return(phasenext);
 }
 
@@ -630,6 +792,7 @@ double fold(float *data, int numdata, double dt, double tlo,
 #undef DELAYS
 #undef ONOFF
 #undef LININTERP
+#undef TEST_EQUAL
 
 
 void shift_prof(double *prof, int proflen, int shift, double *outprof)
