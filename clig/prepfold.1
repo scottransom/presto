@@ -11,12 +11,12 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "11Sep02" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "01Dec02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
 .SH NAME
-prepfold \- Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.
+prepfold \- Prepares (if required) and folds raw radio data, standard time series, or events.
 .\" cligPart NAME end
 
 .\" cligPart SYNOPSIS
@@ -28,10 +28,13 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-if ifs]
 [-wapp]
 [-clip clip]
-[-nobary]
+[-numwapps numwapps]
 [-DE405]
 [-xwin]
 [-runavg]
+[-fine]
+[-coarse]
+[-slow]
 [-searchpdd]
 [-searchfdd]
 [-nosearch]
@@ -64,10 +67,11 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-psr psrname]
 [-par parname]
 [-polycos polycofile]
-[-obs obscode]
 [-timing timing]
 [-rzwcand rzwcand]
 [-rzwfile rzwfile]
+[-accelcand accelcand]
+[-accelfile accelfile]
 [-bin]
 [-pb pb]
 [-x asinic]
@@ -76,11 +80,11 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-w w]
 [-wdot wdot]
 [-mask maskfile]
-[-toas]
-[-secs]
+[-events]
 [-days]
+[-mjds]
 [-double]
-[-toaoffset toaoffset]
+[-offset offset]
 infile ...
 .\" cligPart SYNOPSIS end
 
@@ -106,14 +110,24 @@ For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipp
 1 Float value between 0 and 20.0.
 .br
 Default: `0.0'
-.IP -nobary
-Do not barycenter (assume input parameters are topocentric).
+.IP -numwapps
+Number of WAPPs used with contiguous frequencies,
+.br
+1 Int value between 1 and 7.
+.br
+Default: `1'
 .IP -DE405
 Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -xwin
 Show the result plots on-screen as well as make a plotfile.
 .IP -runavg
 Subtract each blocks average as it is read (single channel data only).
+.IP -fine
+A finer gridding in the p/pdot plane (for well known p and pdot).
+.IP -coarse
+A coarser gridding in the p/pdot plane (for uknown p and pdot).
+.IP -slow
+Sets useful flags for slow pulsars.
 .IP -searchpdd
 Search p-dotdots as well as p and p-dots.
 .IP -searchfdd
@@ -258,10 +272,6 @@ Name of a TEMPO par file from which to get PSR params,
 File containing TEMPO polycos for psrname (not required),
 .br
 1 String value
-.IP -obs
-Two letter TEMPO observatory code (for barycentering),
-.br
-1 String value
 .IP -timing
 Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified.,
 .br
@@ -271,7 +281,15 @@ The candidate number to fold from 'infile'_rzw.cand,
 .br
 1 Int value between 1 and oo.
 .IP -rzwfile
-Name of the rzw search file to use (include the full name of the file),
+Name of the rzw search '.cand' file to use (with suffix),
+.br
+1 String value
+.IP -accelcand
+The candidate number to fold from 'infile'_rzw.cand,
+.br
+1 Int value between 1 and oo.
+.IP -accelfile
+Name of the accel search '.cand' file to use (with suffix),
 .br
 1 String value
 .IP -bin
@@ -308,22 +326,22 @@ Default: `0'
 File containing masking information to use,
 .br
 1 String value
-.IP -toas
-Use a TOA file instead of a time series (.dat) file.
-.IP -secs
-TOAs are in seconds days since the MJD in the .inf file.
+.IP -events
+Use a event file instead of a time series (.dat) file.
 .IP -days
-TOAs are in days since the MJD in the .inf file.
+Events are in days since the EPOCH in the '.inf' file (default is seconds).
+.IP -mjds
+Events are in MJDs.
 .IP -double
-TOAs are in binary double precision instead of text format.
-.IP -toaoffset
-Offset in days or sec from the .inf file MJD to the first TOA,
+Events are in binary double precision (default is ASCII).
+.IP -offset
+A time offset to add to the 1st event in the same units as the events,
 .br
-1 Double value between 0 and oo.
+1 Double value.
 .br
 Default: `0'
 .IP infile
-Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period).
+Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period).
 .\" cligPart OPTIONS end
 
 .\" cligPart DESCRIPTION

@@ -2,7 +2,7 @@
 
 Name prepfold
 
-Usage "Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure."
+Usage "Prepares (if required) and folds raw radio data, standard time series, or events."
 
 Version [exec date +%d%b%y]
 
@@ -20,10 +20,12 @@ Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for cli
 	-r 0 20.0  -d 0.0
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 7    -d 1
-Flag   -nobary  nobary  {Do not barycenter (assume input parameters are topocentric)}
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Flag   -xwin    xwin    {Show the result plots on-screen as well as make a plotfile}
 Flag   -runavg  runavg  {Subtract each blocks average as it is read (single channel data only)}
+Flag   -fine fine       {A finer gridding in the p/pdot plane (for well known p and pdot)}
+Flag   -coarse coarse   {A coarser gridding in the p/pdot plane (for uknown p and pdot)}
+Flag   -slow slow       {Sets useful flags for slow pulsars}
 Flag   -searchpdd searchpdd {Search p-dotdots as well as p and p-dots}
 Flag   -searchfdd searchfdd {Search f-dotdots as well as f and f-dots}
 Flag   -nosearch nosearch {Show but do not search the p/pdot and/or DM phase spaces}
@@ -33,10 +35,10 @@ Flag   -nodmsearch nodmsearch {Show but do not search over DM}
 Flag   -scaleparts scaleparts {Scale the part profiles independently}
 Flag   -allgrey allgrey     {Make all the images greyscale instead of color}
 Flag   -justprofs justprofs {Only output the profile portions of the plot}
-Double  -dm      dm      {The central DM of the search (cm^-3 pc)} \
+Double -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	-r 0 oo  -d 0
-Int     -n       proflen {The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period}
-Int     -nsub    nsub    {The number of sub-bands to use for the DM search} \
+Int    -n       proflen {The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period}
+Int    -nsub    nsub    {The number of sub-bands to use for the DM search} \
 	-r 1 512  -d 32
 Int    -npart   npart   {The number of sub-integrations to use for the period search} \
 	-r 1 512  -d 64
@@ -56,7 +58,7 @@ Double -pd   pd	 {The nominative period derivative (s/s)} \
 	-r -oo oo  -d 0.0
 Double -pdd   pdd {The nominative period 2nd derivative (s/s^2)} \
 	-r -oo oo  -d 0.0
-Double -f    f  	{The nominative folding frequency (hz)} \
+Double -f    f   {The nominative folding frequency (hz)} \
 	-r 0 oo
 Double -fd   fd  {The nominative frequency derivative (hz/s)} \
 	-r -oo oo  -d 0
@@ -75,11 +77,13 @@ Double -end  endT  {The folding end time as a fraction of the full obs} \
 String -psr psrname {Name of pulsar to fold (do not include J or B)}
 String -par parname {Name of a TEMPO par file from which to get PSR params}
 String -polycos polycofile {File containing TEMPO polycos for psrname (not required)}
-String -obs obscode {Two letter TEMPO observatory code (for barycentering)}
 String -timing timing {Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified.}
 Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \
         -r 1 oo
-String -rzwfile rzwfile {Name of the rzw search file to use (include the full name of the file)}
+String -rzwfile rzwfile {Name of the rzw search '.cand' file to use (with suffix)}
+Int -accelcand accelcand {The candidate number to fold from 'infile'_rzw.cand} \
+        -r 1 oo
+String -accelfile accelfile {Name of the accel search '.cand' file to use (with suffix)}
 
 # Parameters for a binary pulsar
 
@@ -99,18 +103,18 @@ Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 
 String -mask    maskfile   {File containing masking information to use}
 
-# Parameters if we are using TOAs instead of a timeseries
+# Parameters if we are using events instead of a timeseries
 
-Flag -toas   toas    {Use a TOA file instead of a time series (.dat) file}
-Flag -secs   secs   {TOAs are in seconds days since the MJD in the .inf file}
-Flag -days   days   {TOAs are in days since the MJD in the .inf file}
-Flag -double double {TOAs are in binary double precision instead of text format}
-Double -toaoffset toaoffset {Offset in days or sec from the .inf file MJD to the first TOA} \
-	-r 0 oo  -d 0
+Flag -events events  {Use a event file instead of a time series (.dat) file}
+Flag -days   days   {Events are in days since the EPOCH in the '.inf' file (default is seconds)}
+Flag -mjds   mjds   {Events are in MJDs}
+Flag -double double {Events are in binary double precision (default is ASCII)}
+Double -offset offset {A time offset to add to the 1st event in the same units as the events} \
+	-r -oo oo  -d 0
 
 # Rest of command line:
 
-Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
+Rest infile {Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
         -c 1 100
 
 

@@ -15,7 +15,7 @@ Flag -scaleparts scaleparts {Scale the part profiles independently}
 Flag -allgrey    allgrey    {Make all the images greyscale instead of color}
 Flag -justprofs  justprofs  {Only output the profile portions of the plot}
 Flag -portrait   portrait   {Orient the output in portrait mode (for -justprofs)}
-Flag -toas       toas       {The folded data were TOAs instead of samples}
+Flag -events     events     {The folded data were events instead of samples or bins}
 
 # Rest of command line:
 
