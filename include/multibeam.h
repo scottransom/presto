@@ -5,79 +5,7 @@
 #define HDRLEN 640
 #define SAMPPERBLK DATLEN*8
 
-/* The following is from Manchester, 9 Feb 98 */
-
-/* Structure defining the tape header 
-
- * $Log: multibeam.h,v $
- * Revision 1.14  2001/03/13 20:01:58  ransom
- * Added masking ability to read_PKMB_subbands()
- *
- * Revision 1.13  2001/03/09 21:22:01  ransom
- * Modified calling convention for skip_to_PKMB_rec()
- *
- * Revision 1.12  2001/01/03 04:55:25  ransom
- * Added masking ability to read_PKMB().  Seems to work.
- * Added running-average subtraction option to prepfold for single channel data.
- * Many other minor changes/fixes/additions.
- *
- * Revision 1.11  2000/12/21 23:20:54  ransom
- * Re-ran clig after removing padding params in prepdata.
- * Added flag to multibeam reading routines that tells if the
- *    data is padding or not.
- * Changed onoff array to static in infodata routines.
- *
- * Revision 1.10  2000/12/19 23:44:01  ransom
- * Changed calling convention for read_PKMB() (added numpoints).
- *
- * Revision 1.9  2000/12/17 06:00:53  ransom
- * Added mask.c and mask.h
- * Re-ran CLIG after modifying parameters in a fwe CLIG files.
- * "Finished" the reworking of the PKMB code to accept multiple
- *    files.  Compiles cleanly.  Now must test...
- * Added lots of stuff pertaining to mask determination.  Still
- *    need to actually compute the mask, though.  Also need to
- *    add the masking routines to the rawdata extracting files.
- *
- * Revision 1.8  2000/12/15 22:17:24  ransom
- * Added MJD difference routine to misc_utils.
- *
- * Revision 1.7  2000/12/15 04:47:39  ransom
- * Re-ran CLIG after modifying rfifind_cmd.cli for multiple files and
- *    small clean-ups.
- * Added a function that determines basic info for PKMB files that
- *    need to be combined (in multibeam.c).
- * Began modifying rfifind for multiple input files.
- *
- * Revision 1.6  2000/12/06 13:41:37  ransom
- * Added new function to multibeam.h
- * Added fftcand structure in presto.h
- * Modified calling sequence to power/sigma routines.
- *
- * Revision 1.5  1999/12/02 20:26:49  ransom
- * Made a multibeam subband de-dispersion routine.
- *
- * Revision 1.4  1999/11/16 19:43:51  ransom
- * Changed a few calling parameters.
- *
- * Revision 1.3  1999/11/16 03:51:57  ransom
- * Simplified interface and code in dedisp.c
- * Minor modifications to multibeam code (mostly asthetic)
- *
- * Revision 1.2  1999/07/12 20:42:20  ransom
- * Changed convert_multibeam_point() to accept a variable number of channels.
- *
- * Revision 1.1.1.1  1999/07/02 02:04:45  ransom
- * Imported PRESTO sources
- *
- * Revision 1.1.1.1  1997/08/20 05:07:11  rmanches
- * CVS import
- *
- *
- * Revision 1.1  1997/04/23 04:37:03  rmanches
- * Initial revision
- *
- */
+/* Structure defining the tape header */
 
 typedef struct PKMB_TAPEHDR {
 
@@ -213,7 +141,8 @@ void get_PKMB_channel(int channum, float chandat[],
 /* Channel 0 is assumed to be the lowest freq channel.         */
 
 int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
-		       double *dispdelays, int numsubbands, int *padding, 
+		       double *dispdelays, int numsubbands, 
+		       int transpose, int *padding, 
 		       int *maskchans, int *nummasked, mask *obsmask);
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the PKMB system.  The routine uses    */
@@ -228,7 +157,8 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data,
 /* of length numchans which contains a list of the number of     */
 /* channels that were masked.  The # of channels masked is       */
 /* returned in 'nummasked'.  'obsmask' is the mask structure     */
-/* to use for masking.                                           */
+/* to use for masking.  If 'transpose'==0, the data will be kept */
+/* in time order instead of arranged by subband as above.        */
 
 void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata);
 /* Convert PKMB header into an infodata structure */

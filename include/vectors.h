@@ -34,6 +34,9 @@ rawtype *gen_rawvect(long length);
 unsigned char **gen_bmatrix(long nrows, long ncols);
 /* Generate a 'byte' or unsigned char matrix (2 dimensions) */
 
+int **gen_imatrix(long nrows, long ncols);
+/* Generate an integer matrix (2 dimensions) */
+
 float **gen_fmatrix(long nrows, long ncols);
 /* Generate a floating point matrix (2 dimensions) */
 
