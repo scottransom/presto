@@ -1102,7 +1102,7 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 /* to use for masking.  If 'transpose'==0, the data will be kept */
 /* in time order instead of arranged by subband as above.        */
 {
-  static int firsttime=1;
+  static int firsttime=1, memfreed=0;
   static unsigned char rawdata[WAPP_MAXDATLEN]; 
 
   if (firsttime){
@@ -1119,9 +1119,12 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
   }
   if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding, ifs)){
     /* printf("Problem reading the raw WAPP data file.\n\n"); */
-    fftwf_destroy_plan(fftplan);
-    fftwf_free(lags);
-    free(window_st);
+    if (!memfreed){
+       fftwf_destroy_plan(fftplan);
+       fftwf_free(lags);
+       free(window_st);
+       memfreed=1;
+    }
     return 0;
   }
   return prep_WAPP_subbands(rawdata, data, dispdelays, numsubbands, 
