@@ -39,6 +39,7 @@ static void read_statsfile(char *statsfilenm, float ***datapow,
 			   float ***dataavg, float ***datastd,
 			   int *numchan, int *numint, int *ptsperint, 
 			   int *lobin, int *numbetween);
+static int *get_prime_factors(int nn, int *numfactors);
 int compare_rfi_sigma(const void *ca, const void *cb);
 int compare_rfi_numobs(const void *ca, const void *cb);
 int read_subband_rawblocks(FILE *infiles[], int numfiles, short *subbanddata, 
@@ -299,6 +300,24 @@ int main(int argc, char *argv[])
     numint = (long long) idata.N / ptsperint;
     if ((long long) idata.N % ptsperint) numint++;
     inttime = ptsperint * idata.dt;
+    printf("Analyzing data sections of length %d points (%.6g sec).\n", 
+	   ptsperint, inttime);
+    {
+      int *factors, numfactors;
+
+      factors = get_prime_factors(ptsperint, &numfactors);
+      printf("  Prime factors are:  ");
+      for (ii=0; ii<numfactors; ii++)
+	printf("%d ", factors[ii]);
+      printf("\n");
+      if (factors[numfactors-1] > 13){
+	printf("  WARNING:  The largest prime factor is pretty big!  This will\n"\
+	       "            cause the FFTs to take a long time to compute.  I\n"\
+	       "            recommend choosing a different -time value.\n");
+      }
+      printf("\n");
+      free(factors);
+    }
     
     /* Allocate our workarrays */
     
@@ -426,6 +445,7 @@ int main(int argc, char *argv[])
 	}
       }
     }
+    printf("\rAmount Complete = 100%%\n");
 
     /* Write the data to the output files */
     
@@ -701,4 +721,32 @@ void get_subband(int subbandnum, float chandat[], short srawdata[], int numsampl
   index = subbandnum*numsamples;
   for (ii=0; ii<numsamples; ii++, index++)
     chandat[ii] = (float)srawdata[index];
+}
+
+static int *get_prime_factors(int nn, int *numfactors)
+{
+  int ii, factors[30], *cfactors;
+  
+  *numfactors = 0;
+  while ((nn & 1) == 0){
+    nn >>= 1;
+    factors[(*numfactors)++] = 2;
+  }
+  if (nn == 1) goto finish;
+  
+  for (ii=3; ii*ii<=nn; ii+=2){
+    while (!(nn % ii)){
+      nn /= ii;
+      factors[(*numfactors)++] = ii;
+    }
+  }
+  if (nn == 1) goto finish;
+  
+  factors[(*numfactors)++] = nn;
+
+ finish:
+  cfactors = (int *)malloc(*numfactors*sizeof(int));
+  for (ii=0; ii<*numfactors; ii++)
+    cfactors[ii] = factors[ii];
+  return cfactors;
 }
