@@ -1,5 +1,4 @@
 #include "presto.h"
-#include "plot2d.h"
 #include "prepfold_cmd.h"
 #include "multibeam.h"
 
@@ -66,28 +65,6 @@ int read_floats(FILE *file, float *data, int numpts,
 /* the input file *file which contains normal floating      */
 /* point data.                                              */
 /* It returns the number of points read.                    */
-
-void fold_errors(double *prof, int proflen, double dt, double N, 
-		 double datavar, double p, double pd, double pdd, 
-		 double *perr, double *pderr, double *pdderr);
-/* Calculate estimates for the errors in period p-dot and   */
-/* p-dotdot using Middleditch's error formula.  The routine */
-/* calculates the errors for each Fourier harmonic present  */
-/* in the profile that is significant.  Then it combines    */
-/* the errors for the harmonics into an error for the       */
-/* fundamental.                                             */
-/*   Arguments:                                             */
-/*      'prof' is and array pointing to the profile         */
-/*      'proflen' is the number of bins in 'prof'           */
-/*      'dt' is the sample interval of the original data    */
-/*      'N' is the total number of points folded            */
-/*      'datavar' is the variance of the original data      */
-/*      'p' is the folding period                           */
-/*      'pd' is the folding period derivative               */
-/*      'pdd' is the folding period 2nd dervivative         */
-/*      'perr' is the returned period error                 */
-/*      'pderr' is the returned p-dot error                 */
-/*      'pdderr' is the returned p-dotdot error             */
 
 void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 

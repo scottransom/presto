@@ -1038,6 +1038,28 @@ double max_rz_file(FILE *fftfile, double rin, double zin, \
 
 /* In fold.c */
 
+void fold_errors(double *prof, int proflen, double dt, double N, 
+		 double datavar, double p, double pd, double pdd, 
+		 double *perr, double *pderr, double *pdderr);
+/* Calculate estimates for the errors in period p-dot and   */
+/* p-dotdot using Middleditch's error formula.  The routine */
+/* calculates the errors for each Fourier harmonic present  */
+/* in the profile that is significant.  Then it combines    */
+/* the errors for the harmonics into an error for the       */
+/* fundamental.                                             */
+/*   Arguments:                                             */
+/*      'prof' is and array pointing to the profile         */
+/*      'proflen' is the number of bins in 'prof'           */
+/*      'dt' is the sample interval of the original data    */
+/*      'N' is the total number of points folded            */
+/*      'datavar' is the variance of the original data      */
+/*      'p' is the folding period                           */
+/*      'pd' is the folding period derivative               */
+/*      'pdd' is the folding period 2nd dervivative         */
+/*      'perr' is the returned period error                 */
+/*      'pderr' is the returned p-dot error                 */
+/*      'pdderr' is the returned p-dotdot error             */
+
 double foldfile(FILE *datafile, double dt, double tlo, 
 		double *prof, int numprof, double startphs, 
 		double fo, double fdot, double fdotdot, int flags, 
