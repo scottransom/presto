@@ -5,32 +5,32 @@ typedef struct {
 } DoubleArray;
 %}
 
-%typemap(memberin) char name[200] {
-        strncpy($target,$source,199);
+%typemap(memberin) char *name {
+        strncpy($1,$input,200);
 }       
-%typemap(memberin) char object[100] {
-        strncpy($target,$source,99);
+%typemap(memberin) char *object {
+        strncpy($1,$input,100);
 }       
-%typemap(memberin) char telescope[40] {
-        strncpy($target,$source,39);
+%typemap(memberin) char *telescope {
+        strncpy($1,$input,40);
 }       
-%typemap(memberin) char instrument[100] {
-        strncpy($target,$source,99);
+%typemap(memberin) char *instrument {
+        strncpy($1,$input,100);
 }       
-%typemap(memberin) char observer[100] {
-        strncpy($target,$source,99);
+%typemap(memberin) char *observer {
+        strncpy($1,$input,100);
 }
-%typemap(memberin) char band[40] {
-        strncpy($target,$source,39);
+%typemap(memberin) char *band {
+        strncpy($1,$input,40);
 }       
-%typemap(memberin) char filt[7] {
-        strncpy($target,$source,6);
+%typemap(memberin) char *filt {
+        strncpy($1,$input,7);
 }       
-%typemap(memberin) char analyzer[100] {
-        strncpy($target,$source,99);
+%typemap(memberin) char *analyzer {
+        strncpy($1,$input,100);
 }       
-%typemap(memberin) char notes[500] {
-        strncpy($target,$source,499);
+%typemap(memberin) char *notes {
+        strncpy($1,$input,500);
 }       
 
 %addmethods DoubleArray {
@@ -55,13 +55,13 @@ typedef struct {
 // Return a DoubleArray instead of a double *
 %typemap(memberout) DoubleArray *onoff {
   static DoubleArray d;
-  d.dptr = $source;
-  $target = &d;
+  d.dptr = $1;
+  $result = &d;
 }
 
 // Set a DoubleArray
 %typemap(memberin) DoubleArray *onoff {
-  $target = $source->dptr;
+  $1 = $input->dptr;
 }
 
 typedef struct infodata {
@@ -88,15 +88,15 @@ typedef struct infodata {
   int dec_m;		/* Declination minutes (J2000)           */  
   int bary;		/* Barycentered?  1=yes, 0=no            */
   int numonoff;		/* The number of onoff pairs in the data */ 
-  char notes[500];	/* Any additional notes                  */
-  char name[200];	/* Data file name without suffix         */
-  char object[100];	/* Object being observed                 */ 
-  char instrument[100];	/* Instrument used                       */
-  char observer[100];	/* Observer[s] for the data set          */
-  char analyzer[100];	/* Who analyzed the data                 */
-  char telescope[40];	/* Telescope used                        */
-  char band[40];	/* Type of observation (EM band)         */
-  char filt[7];		/* IR,Opt,UV -- Photometric Filter       */
+  char *notes;	        /* Any additional notes                  */
+  char *name;	        /* Data file name without suffix         */
+  char *object;	        /* Object being observed                 */ 
+  char *instrument;	/* Instrument used                       */
+  char *observer;	/* Observer[s] for the data set          */
+  char *analyzer;	/* Who analyzed the data                 */
+  char *telescope;	/* Telescope used                        */
+  char *band;	        /* Type of observation (EM band)         */
+  char *filt;		/* IR,Opt,UV -- Photometric Filter       */
 } infodata;
 
 void readinf(infodata * data, char *filenm);
@@ -106,33 +106,33 @@ void writeinf(infodata *data);
 /* Write a ".inf" file to disk. */
 
 
-%typemap(memberin) char basefilenm[200] {
-        strncpy($target,$source,199);
+%typemap(memberin) char *basefilenm {
+        strncpy($1,$input,200);
 }       
-%typemap(memberin) char description[200] {
-        strncpy($target,$source,199);
+%typemap(memberin) char *description {
+        strncpy($1,$input,200);
 }       
-%typemap(memberin) char ptype[20] {
-        strncpy($target,$source,19);
+%typemap(memberin) char *ptype {
+        strncpy($1,$input,20);
 }       
-%typemap(memberin) char round[20] {
-        strncpy($target,$source,19);
+%typemap(memberin) char *round {
+        strncpy($1,$input,20);
 }       
-%typemap(memberin) char noisetype[20] {
-        strncpy($target,$source,19);
+%typemap(memberin) char *noisetype {
+        strncpy($1,$input,20);
 }       
 
 typedef struct makedata {
-  char basefilenm[200];	        /* Data file name without suffix         */
-  char description[200];	/* Data description                      */
+  char *basefilenm;	        /* Data file name without suffix         */
+  char *description;	        /* Data description                      */
   long N;		        /* Number of bins in the time series     */
   long next2_to_n;              /* The next power-of-2 >= N              */
   double dt;	 	        /* Width of each time series bin (sec)   */
   double T;                     /* Total length of time series (sec)     */
-  char ptype[20];		/* Pulsetype (Sine, Crab-like, Spike)    */
+  char *ptype;		        /* Pulsetype (Sine, Crab-like, Spike)    */
   int pnum;                     /* 1=Sine, 2=Crab-like, 3=Spike          */
   double fwhm;                  /* FWHM Phase (0-1) if ptype is Spike    */
-  char round[20];		/* Rounding Format (Whole, Fractional)   */
+  char *round;		        /* Rounding Format (Whole, Fractional)   */
   int roundnum;                 /* 1=Whole Numbers, 0=Fractional         */
   double f;                     /* Pulsar frequency (hz)                 */
   double fd;                    /* Pulsar frequency deriv (hz/s)         */
@@ -152,7 +152,7 @@ typedef struct makedata {
   double ampmoda;               /* Amplitude modulation amplitude        */
   double ampmodf;               /* Amplitude modulation frequency (hz)   */
   double ampmodp;               /* Amplitude modulation phase (deg)      */
-  char noisetype[20];		/* Noise type (Standard, Other)          */
+  char *noisetype;		/* Noise type (Standard, Other)          */
   int noise;                    /* 1=Standard, 0=Other                   */
   double noisesig;              /* Noise standard deviation              */
   int numonoff;                 /* The number of onoff pairs in the data */
