@@ -519,6 +519,7 @@ int main(int argc, char **argv)
   /* Initialize PGPLOT using Postscript if requested  */
 
   if (cmd->noerrP) showerr = 0;
+  else if (proflen > 100) showerr = 0;
   if (cmd->psP || cmd->bothP) {
     sprintf(psfilenm, "%s.prof.ps", cmd->argv[0]);
     cpgstart_ps(psfilenm, "landscape");

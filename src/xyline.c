@@ -243,7 +243,11 @@ void plot_profile(int proflen, float *profile, const char *title, \
   cpglab("Pulse Phase", "Counts", "");
   if (showid) cpgiden();
   cpgslw(5);
-  cpgbin(proflen, x, profile, 0);
+  if (showerr){
+    cpgbin(proflen, x, profile, 0);
+  } else {
+    cpgline(proflen, x, profile);
+  }
   cpgslw(1);
   if (showerr){
     offset = 0.5 / (float) proflen;

@@ -13,7 +13,7 @@ void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
  * pulsar data for a pulsar with frequency derivatives and double
  * derivatives as well as pulsars in binary orbits.  Additional
  * applications can be added by changing the makeup of the arrays
- * *delays and *delaytimes.  The array *delays descirbes the sum
+ * *delays and *delaytimes.  The array *delays describes the sum
  * of all time-of-arrival delays that act on the pulses.  For a binary
  * system, the dominant component is the light-propagation delay caused
  * by the pulsar orbit.  The array *delaytimes simply describes the
@@ -276,7 +276,7 @@ void fold(float *data, long N, double dt, double tb, double *prof, \
  * pulsar data for a pulsar with frequency derivatives and double
  * derivatives as well as pulsars in binary orbits.  Additional
  * applications can be added by changing the makeup of the arrays
- * *delays and *delaytimes.  The array *delays descirbes the sum
+ * *delays and *delaytimes.  The array *delays describes the sum
  * of all time-of-arrival delays that act on the pulses.  For a binary
  * system, the dominant component is the light-propagation delay caused
  * by the pulsar orbit.  The array *delaytimes simply describes the
