@@ -73,7 +73,7 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
   double eps1=0.0, eps2=0.0, eps1d=0.0, eps2d=0.0;
   char line[80], *keyword, *value;
 
-  psr->f = psr->fd = psr->p = psr->pd = psr->dm = 0.0;
+  psr->f = psr->fd = psr->fdd = psr->p = psr->pd = psr->pdd = psr->dm = 0.0;
   psr->orb.p = psr->orb.pd = psr->orb.x = psr->orb.e = 0.0;
   psr->orb.w = psr->orb.wd = psr->orb.t = 0.0;
 
