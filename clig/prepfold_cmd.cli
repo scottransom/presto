@@ -63,6 +63,8 @@ Double -start  startT  {The folding start time as a fraction of the full obs} \
 Double -end  endT  {The folding end time as a fraction of the full obs} \
 	-r 0.0 1.0  -d 1.0
 String -psr psrname {Name of pulsar to fold (do not include J or B)}
+String -polyco polycofile {File containing TEMPO polycos for psrname (not
+required)}
 String -obs obscode {Two letter TEMPO observatory code (for barycentering)}
 Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \
         -r 1 oo
@@ -83,7 +85,8 @@ Double -w    w       {Longitude of periastron (deg)} \
 	-r 0 360
 Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 	-r -oo oo  -d 0
-String -mask    maskfile {File containing masking information to use}
+
+String -mask    maskfile   {File containing masking information to use}
 
 # Parameters if we are using TOAs instead of a timeseries
 
