@@ -115,23 +115,6 @@ int main(int argc, char *argv[])
   subharminf = create_subharminfo_vect(cmd->numharm, cmd->zmax);
   printf("Done generating kernels.\n\n");
 
-  /* We will automatically get rid of any candidates that have local */
-  /* powers much lower than what we would expect to find in the      */
-  /* search from purely statistical reasons alone                    */
-  /* Note:  6.95 is the full width in z of a signal response         */
-
-  /* lowpowlim = -0.8 * log(ncand / (numr * 0.5 * dz / 6.95)); */
-  lowpowlim = 4.0;
-
-  /* Initialize the candidate list */
-
-  for (ii = 0; ii < ncand; ii++) {
-    list[ii].pow = 0.0;
-    list[ii].p1 = 0.0;
-    list[ii].p2 = 0.0;
-    list[ii].p3 = 0.0;
-  }
-
   /* Start the main search loop */
 
   nextbin = (unsigned long) cmd->rlo;
@@ -142,7 +125,8 @@ int main(int argc, char *argv[])
 
     /* Get the data from the file */
 
-    filedata = read_fcomplex_file(fftfile, startbin - kern_half_width, \
+    filedata = read_fcomplex_file(fftfile, 
+				  startbin - kern_half_width,
 				  filedatalen);
 
     /* Get approximate local power statistics */
