@@ -534,7 +534,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   if (fftlen > NUM_PTS_ORB){
     printf("WARNING:  fftlen > NUM_PTS_ORB in gen_bin_response().\n");
   }
-  beginbin = NUM_PTS_ORB/4 - numkern / numbetween;
+  beginbin = NUM_PTS_ORB/4 - numkern / (2 * numbetween);
   if (firsttime || 
       old_numkern != numkern || 
       old_numbetween != numbetween ||
@@ -582,10 +582,9 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   tmpresponse = complex_corr_conv(dataarray, kernelarray, fftlen, \
 				  FFTD, CORR);
   
-  /* Chop off the contaminated ends and/or the extra data */
-  
-  memcpy(response, tmpresponse + numkern / 2, \
-	 sizeof(fcomplex) * numkern);
+  /* Chop off the extra data */
+
+  memcpy(response, tmpresponse, sizeof(fcomplex) * numkern);
   free(tmpresponse);
   free(dataarray);
 
