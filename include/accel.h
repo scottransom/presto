@@ -8,7 +8,8 @@
 /* This number must also be less than 65536 since we use unsigned   */
 /* short ints to index our arrays...                                */
 /* #define ACCEL_USELEN 32160 */
-#define ACCEL_USELEN 16000
+/* #define ACCEL_USELEN 16000 */
+#define ACCEL_USELEN 7560
 #define ACCEL_NUMBETWEEN 2
 /* Stepsize in Fourier Freq */
 #define ACCEL_DR  0.5
