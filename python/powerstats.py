@@ -266,6 +266,10 @@ if __name__ == '__main__':
         "What confidence level would you like to use?  [0.99]  ", 0.99)
     Ntot = ask_int(\
         "How many data points were FFTd (N)?  ")
+    P_max = ask_float(\
+        "What was the maximum normalized power found?  ")
+    rlo = 1
+    rhi = Ntot / 2
     if answer_yes(\
         "Was this an RZW acceleration search (y/n)?  [y]  "):
         rlo = ask_float(\
@@ -285,10 +289,9 @@ if __name__ == '__main__':
         dt = ask_float("What was the length in time (s) of each bin?  ")
         numphot = ask_int("How many counts (photons) were there?  ")
         T = Ntot * dt
-        lofreq = 1.0 / T
-        nyquist = 1.0 / (2 * dt)
+        lofreq, hifreq = rlo / T, rhi / T
         trial_freqs = (10.0**(Numeric.arange(7.0)-2.0)).tolist()
-        trial_freqs = filter(lambda x:  x > lofreq and x < nyquist,
+        trial_freqs = filter(lambda x:  x > lofreq and x < hifreq,
                              trial_freqs)
         print "\nThe trial frequencies (Hz) are:", trial_freqs
         if answer_yes(\
@@ -300,6 +303,7 @@ if __name__ == '__main__':
                 new_freq = ask_float(\
                     "Enter a frequency (Hz) or '0' to stop.  ")
         trial_freqs.sort()
+        print "\n\nCalculating...\n\n"
         print ""
         print "         Power Stats for Binned Data"
         print "     -----------------------------------"
@@ -307,37 +311,48 @@ if __name__ == '__main__':
         print "        Time per sample (s) = %g" % dt
         print "    Total number of photons = %.0f" % numphot
         print "           Confidence Level = %g%%" % (100 * conf)
-        print " Number of independent bins = %.0f" % Nsearch
-        print "                   P_detect = %.2f" % \
+        print " Number of independent bins = %.2e" % Nsearch
+        print " Threshold Power (P_detect) > %.2f" % \
               max_noise_power(Nsearch, conf)
+        ulim = required_signal_power(P_max, conf)
+        print "    Max Power Found (P_max) = %.2f" % P_max
+        print " Max Signal Power (P_limit) < %.2f" % ulim
+        print "  Pulsed Fraction (P_limit) < %.3g" % \
+              pulsed_fraction_limit(numphot, ulim)
         print ""
         sens = []
+        ulim = []
         for f in trial_freqs:
-            sens.append(binned_fft_sensitivity(Nsearch, dt, f, 0, conf))
-        print "      Freq (Hz)  =  ",
+            sens.append(binned_fft_sensitivity(Ntot, dt, f, Nsearch, conf))
+            ulim.append(required_signal_power(P_max, conf))
+        print "          Freq (Hz)  = ",
         for f in trial_freqs:
             print " f=%-7g" % (f),
-        print '\n                    '+'-'*len(trial_freqs)*11
-        print "  P_sensitivity  =  ",
+        print '\n                       '+'-'*len(trial_freqs)*11
+        print "  Power Sensitivity  > ",
         for s in sens:
             print " %-8.2f " % (s),
         print ''
         pfract = []
         for s in sens:
             pfract.append(pulsed_fraction_limit(numphot, s))
-        print "   Pulsed Fract  <  ",
+        print "    Pulsed Fraction  < ",
         for p in pfract:
             print " %-8.3g " % (p),
         print '\n'
     else:
+        print "\n\nCalculating...\n\n"
         print ""
         print "         Power Stats for Normal Data"
         print "     -----------------------------------"
         print "      Number of data points = %.0f" % Ntot
         print "           Confidence Level = %g%%" % (100 * conf)
-        print " Number of independent bins = %.0f" % Nsearch
-        print "                   P_detect = %.2f" % \
+        print " Number of independent bins = %.2e" % Nsearch
+        print " Threshold Power (P_detect) > %.2f" % \
               max_noise_power(Nsearch/2, conf)
-        sens = fft_sensitivity(Nsearch, 0, conf)
-        print "              P_sensitivity = %.2f" % sens
+        sens = fft_sensitivity(Ntot, Nsearch, conf)
+        print "          Power Sensitivity > %.2f" % sens
+        ulim = required_signal_power(P_max, conf)
+        print "    Max Power Found (P_max) = %.2f" % P_max
+        print " Max Signal Power (P_limit) < %.2f" % ulim
         print ""
