@@ -1425,8 +1425,8 @@ frotate = prestoc.frotate
 
 drotate = prestoc.drotate
 
-def dorbint(arg0,arg1,arg2,arg3,arg4,arg5,arg6):
-    val = prestoc.dorbint(arg0,arg1,arg2,arg3,arg4,arg5,arg6.this)
+def dorbint(arg0,arg1,arg2,arg3):
+    val = prestoc.dorbint(arg0,arg1,arg2,arg3.this)
     return val
 
 keplars_eqn = prestoc.keplars_eqn
@@ -1459,8 +1459,8 @@ z_resp_halfwidth = prestoc.z_resp_halfwidth
 
 w_resp_halfwidth = prestoc.w_resp_halfwidth
 
-def bin_resp_halfwidth(arg0,arg1):
-    val = prestoc.bin_resp_halfwidth(arg0,arg1.this)
+def bin_resp_halfwidth(arg0,arg1,arg2):
+    val = prestoc.bin_resp_halfwidth(arg0,arg1,arg2.this)
     return val
 
 gen_r_response = prestoc.gen_r_response
@@ -1820,21 +1820,6 @@ def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
                  laby = "Fourier Frequency Derivative", \
                  title = title, image = image, \
                  contours = contours, device = device)
-
-def make_orbit(psr, npts, dt, eo=0.0):
-   """
-   make_orbit(psr, npts, dt, eo=0.0):
-       Return a Numeric array containing the Eccentric anomaly for a
-       given orbit at a string of times.
-           'psr' is a psrparams instance containing info about the pulsar.
-           'npts' is the number of data points to return.
-           'dt' is the difference in time (s) between returned points.
-           'eo' is the initial Eccentric anomaly. (default = 0.0)
-   """
-   e = Numeric.zeros(npts, 'd')
-   t = Numeric.zeros(npts, 'd')
-   dorbint(e, eo, t, 0.0, npts, dt, psr.orb)
-   return e
 
 def v_from_e(e, psr):
    """

@@ -6,7 +6,7 @@ int main(int argc, char *argv[])
 {
   FILE *makefile;
   double p_psr = 0.0, pdot_psr, N, dt, epoch = 0.0, avgz;
-  double *Ep, *tp, *tmpE, startE, endtime = 0.0, orbdt = 2.0;
+  double *Ep, *tmpE, startE, endtime = 0.0, orbdt = 2.0;
   int i, np = 0, ps = 0, pnum;
   long numpoints;
   float *trl, *Erl, *Erl2;
@@ -148,16 +148,14 @@ int main(int argc, char *argv[])
   if (endtime > 2048) orbdt = 2.0;
   else orbdt = endtime / 1024.0;
   numpoints = (long) floor(endtime/orbdt + 0.5) + 1;
-  Ep = gen_dvect(numpoints);
-  tp = gen_dvect(numpoints);
-  dorbint(Ep, startE, tp, 0.0, numpoints, orbdt, &orb);
+  Ep = dorbint(startE, numpoints, orbdt, &orb);
   tmpE = gen_dvect(numpoints);
   trl = gen_fvect(numpoints);
   Erl = gen_fvect(numpoints);
   Erl2 = gen_fvect(numpoints);
 
   for (i = 0; i < numpoints; i++) {
-    trl[i] = (float) tp[i];
+    trl[i] = orbdt * i;
     tmpE[i] = Ep[i];
   }
 
@@ -220,7 +218,6 @@ int main(int argc, char *argv[])
   free(trl);
   free(tmpE);
   free(Ep);
-  free(tp);
   exit(0);
 }
 

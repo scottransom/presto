@@ -17,7 +17,7 @@ int main(int argc, char **argv)
   float *phases, *fprof = NULL, *chiarr = NULL, *freqs = NULL;
   double freq = 0.0, dt, dfdt = 0.0, minlevel, maxlevel, orbdt = 0.5;
   double *prof = NULL, endtime, N, *psrtime = NULL;
-  double *Ep = NULL, *tp = NULL, *d2phib = NULL, startE = 0.0;
+  double *Ep = NULL, *d2phib = NULL, startE = 0.0;
   double epoch = 0.0, difft = 0.0, p_psr = 0.0, pdot_psr = 0.0;
   double chip = 0.0, chiq = 0.0, chidf = 0.0;
   double chixmeas = 0.0, chitmp = 0.0;
@@ -211,10 +211,7 @@ int main(int argc, char **argv)
       if (endtime > 2048) orbdt = 0.5;
       else orbdt = endtime / 4096.0;
       numpoints = (long) floor(endtime/orbdt + 0.5) + 1;
-      Ep = gen_dvect(numpoints);
-      tp = gen_dvect(numpoints);
-      dorbint(Ep, startE, tp, 0.0, numpoints, orbdt, &orb);
-      free(tp);								
+      Ep = dorbint(startE, numpoints, orbdt, &orb);
 									
       /* Convert Eccentric anomaly to time delays */			
 									

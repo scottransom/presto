@@ -8,7 +8,7 @@ from orbitstuff import *
 
 # Some admin variables
 parallel = 0          # True or false
-showplots = 0         # True or false
+showplots = 1         # True or false
 debugout = 1          # True or false
 #outfiledir = '/tmp/scratch'
 outfiledir = '/home/ransom'
@@ -26,6 +26,7 @@ numppsr = 50          # The number of points along the y axis
 minppsr = 0.0005      # Minimum pulsar period (s)
 maxppsr = 5.0         # Maximum pulsar period (s)
 ctype = 'WD'          # The type of binary companion: 'WD', 'NS', or 'BH'
+Pb = 2 * 3600.0       # Orbital period in seronds
 dt = 0.0001           # The duration of each data sample (s)
 searchtype = 'ffdot'  # One of 'ffdot', 'sideband', 'shortffts'
 maxTbyPb_ffdot = 1.0
@@ -56,7 +57,7 @@ def estimate_rz(psr, T, eo=0.0):
     """
     import LeastSquares
     dt = 1.0
-    e = make_orbit(psr, int(T+1.0), dt, eo)
+    e = dorbint(eo, int(T+1.0), dt, psr.orb)
     z = z_from_e(e, psr, T)
     r = T / p_from_e(e, psr)
     return (average(r), average(z))
@@ -82,11 +83,6 @@ logTbyPb = span(log(minTbyPb), log(maxTbyPb), numTbyPb)
 logppsr = span(log(minppsr), log(maxppsr), numppsr)
 TbyPb = exp(logTbyPb)
 ppsr = exp(logppsr)
-# Adjust the number of points in the time series so as to
-# keep the ppsr in the center of the FFT freq range
-# (i.e. fpsr = 1 / ppsr = Nyquist freq / 2)
-N = 4 / ppsr
-T = N * dt
 
 # Open a file to save each orbit calculation
 file = open(outfilenm,'w')
@@ -95,7 +91,7 @@ file = open(outfilenm,'w')
 
 # Loop over T / Porb
 for x in range(numTbyPb):
-    Pb = T[x] / TbyPb[x]
+    T = Pb * TbyPb[x]
     xb = asini_c(Pb, mass_funct2(pmass, cmass[ctype], pi / 3.0))
     eb = ecc[ctype]
     # Loop over ppsr
@@ -119,15 +115,17 @@ for x in range(numTbyPb):
                         orbi = orbi / sqrt(orbsperpt)
                         wb, tp = orbf * 180.0, Pb * orbi
                     if debugout:
-                        print 'T = '+`T[x]`+'  ppsr = '+`ppsr[y]`+\
+                        print 'T = '+`T`+'  ppsr = '+`ppsr[y]`+\
                               ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
                               `eb`+' wb = '+`wb`+' tp = '+`tp`
                     psr = psrparams_from_list([ppsr[y], Pb, xb,
                                                eb, wb, tp])
-                    psr_numbins = 2 * bin_resp_halfwidth(psr.p, psr.orb)
-                    psr_resp = gen_bin_response(0.0, 1, psr.p,
-                                                T[x], psr.orb,
+                    psr_numbins = 2 * bin_resp_halfwidth(psr.p, T, psr.orb)
+                    psr_resp = gen_bin_response(0.0, 1, psr.p, T, psr.orb,
                                                 psr_numbins)
+                    if showplots:
+                        Pgplot.plotxy(spectralpower(psr_resp))
+                        Pgplot.nextplotpage()
                     if searchtype == 'ffdot':
                         # The following places the nominative psr freq
                         # approx in bin len(data)/2
@@ -137,8 +135,8 @@ for x in range(numTbyPb):
                         data[lo:hi] = array(psr_resp, copy=1)
                         eo = keplars_eqn(psr.orb.t, psr.orb.p,
                                          psr.orb.e, 1.0e-14)
-                        (tryr, tryz) = estimate_rz(psr, T[x], eo)
-                        tryr = T[x] / psr.p - tryr + len(data) / 2.0
+                        (tryr, tryz) = estimate_rz(psr, T, eo)
+                        tryr = T / psr.p - tryr + len(data) / 2.0
                         width = 201
                         if debugout:
                             print 'psr_numbins = '+`psr_numbins`+\
@@ -150,9 +148,12 @@ for x in range(numTbyPb):
                                           tryz, 2.0, width)
                         maxarg = argmax(spectralpower(ffd.flat))
                         peakr = ((maxarg % width) * 0.5 +
-                                 int(tryr - (width * 0.5) / 2))
+                                 int(tryr - (width * 0.5) / 2.0))
                         peakz = ((maxarg / width) * 2.0 +
-                                 int(tryz - (width * 2.0) / 2))
+                                 tryz - (width * 2.0) / 2.0)
+                        if showplots:
+                            show_ffdot_plane(data, tryr, tryz)
+                            Pgplot.nextplotpage()
                         if debugout:
                             print ' peakr = '+`peakr`+' peakz = '+`peakz`
                         [pows[ct], rmax, zmax, rd] = \

@@ -1429,17 +1429,16 @@ presto_wrap.c</TITLE>
    numbins is the number of DOUBLE points to move.           
 </BLOCKQUOTE>
 
-<P><TT><B>dorbint(E,Eo,t,to,numpts,dt,orb)</B></TT>
-<BLOCKQUOTE>[ returns void  ]
-<BR>   This routine integrates Keplar's Equation and returns                 
-   double precision vectors of eccentric anomalys (E) and times (t)      
-   for each point.  The initial value for eccentric anomaly (usually     
-   determined by using keplars_equation()) goes in Eo and the initial    
-   time step (in sec) goes in 'to'.  The time increment to use is dt,    
-   total number of pts goes in 'numpts' and all of the various orbital   
-   parameters are found in *orb.  The routine uses 4th order Runge-      
-   Kutta in a dumb mode (no adaptive step-size) since all we want is     
-   tabulated results with even intervals.                                
+<P><TT><B>dorbint(Eo,numpts,dt,orb)</B></TT>
+<BLOCKQUOTE>[ returns double * ]
+<BR>   This routine integrates Keplar's Equation and returns a double         
+   vector of the eccentric anomalys (E) for each point.  The initial      
+   value for eccentric anomaly (usually determined by using               
+   keplars_equation()) goes in Eo.  The time increment to use is dt,      
+   total number of pts goes in 'numpts' and all of the various orbital    
+   parameters are found in *orb.  The routine uses 4th order Runge-       
+   Kutta in a dumb mode (no adaptive step-size) since all we want is      
+   tabulated results with even intervals.                                 
 </BLOCKQUOTE>
 
 <P><TT><B>keplars_eqn(t,p_orb,e,Eacc)</B></TT>
@@ -1533,13 +1532,14 @@ presto_wrap.c</TITLE>
       length of the array required to hold such a kernel.              
 </BLOCKQUOTE>
 
-<P><TT><B>bin_resp_halfwidth(ppsr,orbit)</B></TT>
+<P><TT><B>bin_resp_halfwidth(ppsr,T,orbit)</B></TT>
 <BLOCKQUOTE>[ returns int  ]
 <BR>    Return the approximate kernel half width in FFT bins required      
     to achieve a fairly high accuracy correlation based correction     
     or interpolation for a pulsar in a binary orbit.                   
     Arguments:                                                         
       'ppsr' is the period of the pusar in seconds.                    
+      'T' is the length of the observation in seconds.                 
       'orbit' is a ptr to a orbitparams structure containing the       
          Keplarian orbital parameters of the binary system.            
     Notes:                                                             

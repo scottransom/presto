@@ -203,21 +203,6 @@ def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
                  title = title, image = image, \
                  contours = contours, device = device)
 
-def make_orbit(psr, npts, dt, eo=0.0):
-   """
-   make_orbit(psr, npts, dt, eo=0.0):
-       Return a Numeric array containing the Eccentric anomaly for a
-       given orbit at a string of times.
-           'psr' is a psrparams instance containing info about the pulsar.
-           'npts' is the number of data points to return.
-           'dt' is the difference in time (s) between returned points.
-           'eo' is the initial Eccentric anomaly. (default = 0.0)
-   """
-   e = Numeric.zeros(npts, 'd')
-   t = Numeric.zeros(npts, 'd')
-   dorbint(e, eo, t, 0.0, npts, dt, psr.orb)
-   return e
-
 def v_from_e(e, psr):
    """
    v_from_e(e, psr):

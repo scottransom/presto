@@ -447,18 +447,17 @@ void drotate(double *data, long numbins, double bins_to_left);
  *   w or w_orb  = longitude of periastron (degrees)
  */
 
-%apply double* IN_1D_DOUBLE { double *E, double *t };
-void dorbint(double *E, double Eo, double *t, double to, long numpts, 
-	     double dt, orbitparams *orb);
-/* This routine integrates Keplar's Equation and returns               */
-/* double precision vectors of eccentric anomalys (E) and times (t)    */
-/* for each point.  The initial value for eccentric anomaly (usually   */
-/* determined by using keplars_equation()) goes in Eo and the initial  */
-/* time step (in sec) goes in 'to'.  The time increment to use is dt,  */
-/* total number of pts goes in 'numpts' and all of the various orbital */
-/* parameters are found in *orb.  The routine uses 4th order Runge-    */
-/* Kutta in a dumb mode (no adaptive step-size) since all we want is   */
-/* tabulated results with even intervals.                              */
+%apply int ARRAYLEN { int numpts };
+double *dorbint(double Eo, long numpts, double dt, orbitparams *orb);
+/* This routine integrates Keplar's Equation and returns a double       */
+/* vector of the eccentric anomalys (E) for each point.  The initial    */
+/* value for eccentric anomaly (usually determined by using             */
+/* keplars_equation()) goes in Eo.  The time increment to use is dt,    */
+/* total number of pts goes in 'numpts' and all of the various orbital  */
+/* parameters are found in *orb.  The routine uses 4th order Runge-     */
+/* Kutta in a dumb mode (no adaptive step-size) since all we want is    */
+/* tabulated results with even intervals.                               */
+
 
 double keplars_eqn(double t, double p_orb, double e, double Eacc);
 /* This routine solves Keplar's Equation at a single time t (sec) and  */
@@ -539,12 +538,13 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy);
   /*    The result must be multiplied by 2*'numbetween' to get the     */
   /*    length of the array required to hold such a kernel.            */
 
-int bin_resp_halfwidth(double ppsr, orbitparams * orbit);
+int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
   /*  Return the approximate kernel half width in FFT bins required    */
   /*  to achieve a fairly high accuracy correlation based correction   */
   /*  or interpolation for a pulsar in a binary orbit.                 */
   /*  Arguments:                                                       */
   /*    'ppsr' is the period of the pusar in seconds.                  */
+  /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
   /*       Keplarian orbital parameters of the binary system.          */
   /*  Notes:                                                           */

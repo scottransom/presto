@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
   FILE *datfile, *infofile;
 
   /* For binary orbit integration */
-  double *tbb = NULL, *phib = NULL, startE, orbdt = 1.0;
+  double *phib = NULL, startE, orbdt = 1.0;
   long numpoints;
 
   /* Signal on and off */
@@ -73,10 +73,7 @@ int main(int argc, char *argv[])
     if (mdata.T > 2048) orbdt = 1.0;
     else orbdt = mdata.T / 2048.0;
     numpoints = (long) floor(mdata.T/orbdt + 0.5) + 1;
-    phib = gen_dvect(numpoints);
-    tbb = gen_dvect(numpoints);
-    dorbint(phib, startE, tbb, 0.0, numpoints, orbdt, &mdata.orb);
-    free(tbb);
+    phib = dorbint(startE, numpoints, orbdt, &mdata.orb);
     orbmaxt = orbdt * numpoints;
     E_to_phib(phib, numpoints, &mdata.orb);
   }

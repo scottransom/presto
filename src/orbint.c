@@ -8,22 +8,21 @@
 #endif
 
 
-void dorbint(double *E, double Eo, double *t, double to, long numpts, \
-	     double dt, orbitparams *orb)
-/* This routine integrates Keplar's Equation and returns               */
-/* double precision vectors of eccentric anomalys (E) and times (t)    */
-/* for each point.  The initial value for eccentric anomaly (usually   */
-/* determined by using keplars_equation()) goes in Eo and the initial  */
-/* time step (in sec) goes in 'to'.  The time increment to use is dt,  */
-/* total number of pts goes in 'numpts' and all of the various orbital */
-/* parameters are found in *orb.  The routine uses 4th order Runge-    */
-/* Kutta in a dumb mode (no adaptive step-size) since all we want is   */
-/* tabulated results with even intervals.                              */
-{
-  long i;
-  double k1, k2, k3, k4, dt2, twopif;
+double *dorbint(double Eo, long numpts, double dt, orbitparams *orb) 
+/* This routine integrates Keplar's Equation and returns a double       */
+/* vector of the eccentric anomalys (E) for each point.  The initial    */
+/* value for eccentric anomaly (usually determined by using             */
+/* keplars_equation()) goes in Eo.  The time increment to use is dt,    */
+/* total number of pts goes in 'numpts' and all of the various orbital  */
+/* parameters are found in *orb.  The routine uses 4th order Runge-     */
+/* Kutta in a dumb mode (no adaptive step-size) since all we want is    */
+/* tabulated results with even intervals.                               */
 
-  t[0] = to;
+{ 
+  long i; 
+  double k1, k2, k3, k4, dt2, twopif, *E;
+
+  E = gen_dvect(numpts);
   E[0] = Eo;
   twopif = TWOPI / orb->p;
   dt2 = 0.5 * dt;
@@ -33,8 +32,8 @@ void dorbint(double *E, double Eo, double *t, double to, long numpts, \
     k3 = EDOT(E[i] + dt2 * k2, twopif, orb->e);
     k4 = EDOT(E[i] + dt * k3, twopif, orb->e);
     E[i+1] = E[i] + dt * (((k1 + k4) * 0.5 + k2 + k3) / 3.0);
-    t[i+1] = to + dt * (i+1);
   }
+  return E;
 }
 
 

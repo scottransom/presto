@@ -88,26 +88,56 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy)
 }
 
 
-int bin_resp_halfwidth(double ppsr, orbitparams * orbit)
+int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit)
   /*  Return the approximate kernel half width in FFT bins required    */
   /*  to achieve a fairly high accuracy correlation based correction   */
   /*  or interpolation for a pulsar in a binary orbit.                 */
   /*  Arguments:                                                       */
   /*    'ppsr' is the period of the pusar in seconds.                  */
+  /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
   /*       Keplarian orbital parameters of the binary system.          */
   /*  Notes:                                                           */
   /*    The result must be multiplied by 2 * 'numbetween' to get the   */
   /*    length of the array required to hold such a kernel.            */
 {
-  double c1, c2, v1, v2, maxv;
+  double maxv = 0.0, maxdevbins;
+  int retval;
 
-  c1 = TWOPI * orbit->x / (ppsr * sqrt(1.0 - orbit->e * orbit->e));
-  c2 = orbit->e * cos(orbit->w * DEGTORAD);
-  v1 = fabs(c1 * (c2 + 1.0));
-  v2 = fabs(c1 * (c2 - 1.0));
-  maxv = (v1 < v2) ? v2 : v1;
-  return floor(1.1 * maxv + 0.5);
+  if (T >= orbit->p){
+
+    double c1, c2, v1, v2;
+
+    c1 = TWOPI * orbit->x / (orbit->p * sqrt(1.0 - orbit->e * orbit->e));
+    c2 = orbit->e * cos(orbit->w * DEGTORAD);
+    v1 = c1 * (c2 + 1.0);
+    v2 = c1 * (c2 - 1.0);
+    maxv = (fabs(v1) > fabs(v2)) ? v1 : v2;
+
+  } else {
+
+    double dtb, startE, *E;
+    int ii, numpoints = 1025;
+    orbitparams orb;
+
+    dtb = T / (double) (numpoints - 1);
+    orb.p = orbit->p;
+    orb.x = orbit->x;
+    orb.e = orbit->e;
+    orb.w = orbit->w * DEGTORAD;
+    orb.t = orbit->t;
+    startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+    E = dorbint(startE, numpoints, dtb, &orb);
+    E_to_v(E, numpoints, &orb);
+    for (ii = 0; ii < numpoints; ii++)
+      if (fabs(E[ii]) > fabs(maxv)) maxv = E[ii];
+    maxv *= 1000.0 / SOL;
+    free(E);
+
+  }
+  maxdevbins = fabs(T * maxv / (ppsr * (1.0 + maxv)));
+  retval = (int) floor(1.1 * maxdevbins + 0.5);
+  return (retval < NUMFINTBINS) ? NUMFINTBINS : retval;
 }
 
 
@@ -430,8 +460,8 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   int fftlen, ii, beginbin, numintkern, index;
   int numpoints=32769; /* This should be a power-of-two + 1 */
   float *data;
-  double *orbtimes = NULL, *phi = NULL, startE;
-  double amp, f, dt, dtb, t, tp, z, orbmaxt, fpart, ipart, dtemp;
+  double *phi = NULL, startE;
+  double amp, f, dt, dtb, t, tp, z, fpart, ipart, dtemp;
   static int old_numbetween=0, old_numkern=0, old_fftlen=0, firsttime=1;
   static fcomplex *kernelarray=NULL;
   fcomplex *response, *tmpresponse, *rresp, *dataarray;
@@ -475,11 +505,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /* Generate the orbit */
 
   startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
-  phi = gen_dvect(numpoints);
-  orbtimes = gen_dvect(numpoints);
-  dorbint(phi, startE, orbtimes, 0.0, numpoints, dtb, &orb);
-  orbmaxt = numpoints * dtb;
-  free(orbtimes);
+  phi = dorbint(startE, numpoints, dtb, &orb);
   E_to_phib(phi, numpoints, &orb);
 
   /* Generate the data set */

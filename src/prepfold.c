@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
   double difft, tt, nc, pl, diff_epoch = 0.0, recdt = 0.0;
   double orb_baryepoch = 0.0, topoepoch = 0.0, baryepoch = 0.0;
   double dtmp = 0.0, dtmp2 = 0.0, tmptopoepoch = 0.0, tmpbaryepoch = 0.0;
-  double *Ep = NULL, *tp = NULL, startE = 0.0, orbdt = 1.0, orbdtdays = 0.0;
+  double *Ep = NULL, startE = 0.0, orbdt = 1.0, orbdtdays = 0.0;
   double tdf = 0.0, N = 0.0, dt = 0.0, T, endtime = 0.0, dtdays;
   double *btoa = NULL, *voverc = NULL, *bobsf = NULL, *tobsf = NULL;
   double onoffpairs[40], fakeonoffpair[2], *onptr, *offptr, *profs = NULL;
@@ -257,10 +257,7 @@ int main(int argc, char *argv[])
     if (endtime > 2048) orbdt = 0.5;
     else orbdt = endtime / 4096.0;
     numbinpoints = (long) floor(endtime/orbdt + 0.5) + 1;
-    Ep = gen_dvect(numbinpoints);
-    tp = gen_dvect(numbinpoints);
-    dorbint(Ep, startE, tp, 0.0, numbinpoints, orbdt, &orb);
-    free(tp);
+    Ep = dorbint(startE, numbinpoints, orbdt, &orb);
 
     /* Convert Eccentric anomaly to time delays */			
     
