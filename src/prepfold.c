@@ -5,10 +5,10 @@
 /* Some function definitions */
 
 int (*readrec_ptr) (FILE * infile, float *data,
-		    long numpts, long numchan);
+		    int numpts, int numchan);
 int read_resid_rec(FILE * file, double *toa, double *obsf);
-int read_floats(FILE * file, float *data, long numpts, \
-		double *dispdelays, long numchan);
+int read_floats(FILE * file, float *data, int numpts, \
+		double *dispdelays, int numchan);
 
 /* The main program */
 
@@ -557,8 +557,8 @@ int main(int argc, char *argv[])
 }
 
     
-int read_floats(FILE * file, float *data, long numpts, \
-		double *dispdelays, long numchan)
+int read_floats(FILE * file, float *data, int numpts, \
+		double *dispdelays, int numchan)
 /* This routine reads a numpts records of numchan each from */
 /* the input file *file which contains normal floating      */
 /* point data.                                              */

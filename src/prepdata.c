@@ -8,11 +8,11 @@
 
 /* Some function definitions */
 
-int (*readrec_ptr)(FILE * file, float *data, long numpts, \
-		   double *dispdelays, long numchan);
+int (*readrec_ptr)(FILE * file, float *data, int numpts, \
+		   double *dispdelays, int numchan);
 int read_resid_rec(FILE * file, double *toa, double *obsf);
-int read_floats(FILE * file, float *data, long numpts, \
-		double *dispdelays, long numchan);
+int read_floats(FILE * file, float *data, int numpts, \
+		double *dispdelays, int numchan);
 
 
 /* The main program */
@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
     numbarypts = (long) (dt * idata.N * 1.1 / TDT + 5.5);
 
   }
+
   /* Set-up values if we are using the Effelsberg-Berkeley Pulsar Processor */
   /*   NOTE:  This code is not yet implemented.                             */
 
@@ -145,6 +146,7 @@ int main(int argc, char *argv[])
 
     worklen = 1024;
   }
+
   /* Determine our initialization data if we do _not_ have Parkes */
   /* or Effelesberg data sets.                                    */
 
@@ -218,13 +220,6 @@ int main(int argc, char *argv[])
     }
 
   }
-  /* Allocate and initialize some arrays and other information */
-
-  data = gen_fvect(worklen);
-  wlen2 = worklen * 2;
-  outdata = gen_fvect(wlen2);
-  for (i = 0; i < wlen2; i++)
-    outdata[i] = 0.0;
 
   /* The topocentric epoch of the start of the data */
 
@@ -256,12 +251,13 @@ int main(int argc, char *argv[])
       for (i = 0; i < numchan; i++)
 	dispdt[i] = delay_from_dm(cmd->dm, tobsf[i]);
 
-      /* The highest frequency channel gets no delay                   */
-      /* All other delays are positive fractions of bin length (dt)    */
+      /* The highest frequency channel gets no delay                 */
+      /* All other delays are positive fractions of bin length (dt)  */
 
       dtmp = dispdt[numchan - 1];
       for (i = 0; i < numchan; i++)
 	dispdt[i] = (dispdt[i] - dtmp) / idata.dt;
+      worklen *= ((int)(dispdt[numchan-1]) / worklen) + 1;
     }
 
   } else {			/* For non-radio data */
@@ -291,6 +287,14 @@ int main(int argc, char *argv[])
   /* Main loop if we are not barycentering... */
 
   if (cmd->nobaryP) {
+
+    /* Allocate and initialize some arrays and other information */
+    
+    data = gen_fvect(worklen);
+    wlen2 = worklen * 2;
+    outdata = gen_fvect(wlen2);
+    for (i = 0; i < wlen2; i++)
+      outdata[i] = 0.0;
 
     /* Open our new output data file */
 
@@ -403,6 +407,15 @@ int main(int argc, char *argv[])
     dtmp = dispdt[numchan - 1];
     for (i = 0; i < numchan; i++)
       dispdt[i] = (dispdt[i] - dtmp) / idata.dt;
+    worklen *= ((int)(dispdt[numchan-1]) / worklen) + 1;
+
+    /* Allocate and initialize some arrays and other information */
+    
+    data = gen_fvect(worklen);
+    wlen2 = worklen * 2;
+    outdata = gen_fvect(wlen2);
+    for (i = 0; i < wlen2; i++)
+      outdata[i] = 0.0;
 
     /* Convert the rest of the barycentric TOAs */
 
@@ -668,8 +681,8 @@ int main(int argc, char *argv[])
 }
 
 
-int read_floats(FILE * file, float *data, long numpts, \
-		double *dispdelays, long numchan)
+int read_floats(FILE * file, float *data, int numpts, \
+		double *dispdelays, int numchan)
 /* This routine reads a numpts records of numchan each from */
 /* the input file *file which contains normal floating      */
 /* point data.                                              */

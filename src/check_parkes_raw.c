@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
   printf("                    20 July 1998\n\n");
 
   infile = chkfopen(argv[1], "rb");
-  while (read_multibeam_rec(infile, &hdr, data)){
+  while (read_multibeam_recs(infile, &hdr, data, 1)){
     sprintf(tmp, " %.8s ", hdr.blk_cntr);
     currentctr = strtol(tmp, NULL, 10);
     sprintf(tmp, " %.16s ", hdr.ut_blk);

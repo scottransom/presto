@@ -18,7 +18,7 @@ double dm_from_delay(double delay, double freq_emitted)
 }
 
 
-void dedisp(float *data, float *lastdata, long numpts, \
+void dedisp(unsigned char *data, unsigned char *lastdata, long numpts,
 	    double *dispdelays, long numchan, float *result)
 /* De-disperse a stretch of data with numpts * numchan points. */
 /* The delays (in bins) are in dispdelays for each channel.    */

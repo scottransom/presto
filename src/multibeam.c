@@ -1,7 +1,7 @@
 #include "presto.h"
 #include "multibeam.h"
 
-int skip_to_multibeam_rec(FILE * infile, long rec)
+int skip_to_multibeam_rec(FILE * infile, int rec)
 /* This routine skips to the record 'rec' in the input file */
 /* *infile.  *infile contains 1 bit digitized data from the */
 /* multibeam receiver at Parkes                             */
@@ -12,73 +12,95 @@ int skip_to_multibeam_rec(FILE * infile, long rec)
 }
 
 
-int read_multibeam_rec(FILE * infile, multibeam_tapehdr * hdr, \
-		       unsigned char *data)
-/* This routine reads a single multibeam record from          */
+int read_multibeam_recs(FILE * infile, multibeam_tapehdr * hdr, \
+			unsigned char *data, int blocks_to_read)
+/* This routine reads blocks_to_read multibeam records from   */
 /* the input file *infile which contains 1 bit digitized data */
 /* from the multibeam correlator at Parkes.                   */
 /* Length of a multibeam record is 640 bytes for the header   */
 /* plus 48k of data = 49792 bytes.                            */
+/* The header of the first record read is placed in hdr.      */
+/* *data must be pre-allocated with size 48k * blocks_to_read */
 {
+  int ii, blocksread = 0;
   unsigned char record[RECLEN];
 
-  /* Read the record */
-
-  if (fread(record, sizeof(unsigned char), RECLEN, infile) != RECLEN) {
-    if (feof(infile)) {
-      return 0;
-    } else {
-      printf("\nProblem reading record from multibeam data file.\n");
-      printf("Exiting\n");
-    }
+  if (blocks_to_read < 1){
+    printf("\n blocks_to_read = %d in read_multibeam_recs()\n\n", 
+	   blocks_to_read);
+    exit(1);
   }
+    
+  /* Set the data to zeros */
 
-  /* Copy the header information into *hdr */
+  for (ii = 0; ii < DATLEN * blocks_to_read; ii++) data[ii] = 0;
 
-  memcpy(hdr, record, HDRLEN);
+  /* Read the records */
 
-  /* Copy the data into the data vector */
+  for (ii = 0; ii < blocks_to_read; ii++){
+    if (fread(record, sizeof(unsigned char), RECLEN, infile) != RECLEN) {
+      if (feof(infile)) {
+	return blocksread;
+      } else {
+	printf("\nProblem reading record from multibeam data file.\n");
+	printf("Exiting\n");
+	exit(1);
+      }
+    }
+    blocksread++;
 
-  memcpy(data, record+HDRLEN, DATLEN);
-  return 1;
+    /* Copy the header information into *hdr */
+    
+    if (ii == 0) memcpy(hdr, record, HDRLEN);
+
+    /* Copy the data into the data vector */
+
+    memcpy(data + ii * DATLEN, record + HDRLEN, DATLEN);
+  }
+  return blocksread;
 }
 
 
-int read_multibeam(FILE * infile, float *data, long numpts,
-		   double *dispdelays, long numchan)
+int read_multibeam(FILE * infile, float *data, int numpts,
+		   double *dispdelays, int numchan)
 /* This routine reads a numpts record with numchan each from   */
 /* the input file *infile which contains 1 bit digitized data  */
 /* from the multibeam correlator at Parkes.                    */
 /* It returns the number of points read.                       */
 {
   static unsigned char raw[DATLEN], *ptr;
-  static int firsttime = 1, recsize = 0, decreasing_f = 0;
-  static float *rawdata1, *rawdata2, *currentdata, *lastdata, *tmp;
-  static long worklen = 0;
+  static unsigned char *rawdata1, *rawdata2;
+  static unsigned char *currentdata, *lastdata, *tmp;
+  static int firsttime = 1, recsize = 0, blocklen = 0, worklen = 0;
+  static int decreasing_f = 0, blocks_per_read = 0, pts_per_read = 0;
   static multibeam_tapehdr hdr;
-  long i;
+  int ii, numread;
 
   if (firsttime) {
-    recsize = numchan / 8;   /* bytes per time interval        */
-    worklen = DATLEN * 8;    /* 1 float per sample in a block  */
+    recsize = numchan / 8;    /* bytes per time interval        */
+    blocklen = DATLEN * 8;    /* 1 byte per sample in a block   */
+    blocks_per_read = ((int)(dispdelays[numchan-1]) / numpts) + 1;
+    worklen = blocks_per_read * blocklen;
+    pts_per_read = blocks_per_read * numpts;
 
     /* Create our data storage for the raw floating point data */
 
-    rawdata1 = gen_fvect(worklen);
-    rawdata2 = gen_fvect(worklen);
+    rawdata1 = gen_bvect(worklen);
+    rawdata2 = gen_bvect(worklen);
     firsttime = 0;
 
-    /* Read the first multibeam record to cope with end effects */
+    /* Read the first multibeam records to cope with end effects */
 
-    if (!read_multibeam_rec(infile, &hdr, raw)) {
+    numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
+    if (numread != blocks_per_read) {
       printf("Problem reading the raw data file.\n\n");
       free(rawdata1);
       free(rawdata2);
       return 0;
     }
 
-    /* If decreasing_f is true, then the data has been recorded with */
-    /* high frequencies first.                                       */
+    /* If decreasing_f is true, then the data has been  */
+    /* recorded with high frequencies first.            */
 
     decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
 
@@ -90,8 +112,8 @@ int read_multibeam(FILE * infile, float *data, long numpts,
     /* Convert the data to floats */
 
     ptr = raw;
-    for (i = 0; i < numpts; i++, ptr += recsize)
-      convert_multibeam_point(ptr, currentdata + i * numchan, numchan, 
+    for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+      convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
 			      decreasing_f);
 
     /* Swap our data pointers */
@@ -102,27 +124,28 @@ int read_multibeam(FILE * infile, float *data, long numpts,
 
   }
 
-  /* Read a multibeam record */
+  /* Read the multibeam records */
 
-  if (!read_multibeam_rec(infile, &hdr, raw)) {
-    for (i = 0; i < worklen; i++)
-      currentdata[i] = 0.0;
-    dedisp(rawdata1, lastdata, numpts, dispdelays, numchan, data);
-    free(rawdata1);
-    free(rawdata2);
-    return 0;
-  }
+  numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
 
   /* Convert the data to floats */
 
   ptr = raw;
-  for (i = 0; i < numpts; i++, ptr += recsize)
-    convert_multibeam_point(ptr, currentdata + i * numchan, numchan, 
+  for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+    convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
 			    decreasing_f);
 
   /* De-disperse the data */
 
-  dedisp(currentdata, lastdata, numpts, dispdelays, numchan, data);
+  dedisp(currentdata, lastdata, pts_per_read, dispdelays, numchan, data);
+
+  /* Exit if we have reached the EOF */
+
+  if (numread != blocks_per_read){
+    free(rawdata1);
+    free(rawdata2);
+    return 0;
+  }
 
   /* Swap our data pointers */
 
@@ -132,12 +155,12 @@ int read_multibeam(FILE * infile, float *data, long numpts,
 
   /* Return the number of points we actually read */
 
-  return numpts;
+  return pts_per_read;
 }
 
 
 int read_mb_chan_to_vecs(FILE * infile, float *data,
-			 long numpts, long numchan)
+			 int numpts, int numchan)
 /* This routine reads a numpts record with numchan each from   */
 /* the input file *infile which contains 1 bit digitized data  */
 /* from the multibeam correlator at Parkes.  It stores the     */
@@ -147,27 +170,23 @@ int read_mb_chan_to_vecs(FILE * infile, float *data,
 /* It returns the number of points (numpts) read if successful */
 /* or 0 if unsuccessful.                                       */
 {
-  static unsigned char raw[DATLEN], *ptr;
+  static unsigned char raw[DATLEN], *rawdata = NULL, *ptr;
   static int firsttime = 1, recsize = 0, decreasing_f = 0;
-  static float *rawdata = NULL, *tmp = NULL;
-  static long worklen = 0;
+  static int blocklen = 0;
   static multibeam_tapehdr hdr;
-  long i, j;
+  int i, j;
 
   if (firsttime) {
     recsize = numchan / 8;
-    worklen = numchan * numpts;
+    blocklen = numchan * numpts;
 
-    /* Create our data storage for the raw floating point data */
+    /* Create our data storage for the raw byte format data */
 
-    rawdata = gen_fvect(worklen);
-    tmp = gen_fvect(worklen);
-
-    firsttime = 0;
+    rawdata = gen_bvect(blocklen);
 
     /* Read the first multibeam record to cope with end effects */
 
-    if (!read_multibeam_rec(infile, &hdr, raw)) {
+    if (!read_multibeam_recs(infile, &hdr, raw, 1)) {
       printf("Problem reading the raw data file.\n\n");
       free(rawdata);
       return 0;
@@ -177,12 +196,13 @@ int read_mb_chan_to_vecs(FILE * infile, float *data,
     /* high frequencies first.                                       */
 
     decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
+    firsttime = 0;
 
   } else {
 
     /* Read a multibeam record */
     
-    if (!read_multibeam_rec(infile, &hdr, raw)) {
+    if (!read_multibeam_recs(infile, &hdr, raw, 1)) {
       printf("Problem reading the raw data file.\n\n");
       free(rawdata);
       return 0;
@@ -213,7 +233,7 @@ void multibeam_hdr_to_inf(multibeam_tapehdr * hdr, infodata * idata)
 {
   double tmp1, tmp2;
   char ctmp[100];
-  long ptsperrec = 0;
+  int ptsperrec = 0;
 
   sprintf(idata->object, "%.16s", hdr->pname);
   sscanf(hdr->ra_start, \
@@ -392,34 +412,34 @@ void print_multibeam_hdr(multibeam_tapehdr * hdr)
 }
 
 
-void convert_multibeam_point(unsigned char *rec, float *data, \
+void convert_multibeam_point(unsigned char *rec, unsigned char *data, \
 			     int numchan, int decreasing_f)
-/* This routine converts 1 bit digitized data with      */
-/* 'numchan' channels to an array of 'numchan' floats.  */
+/* This routine converts 1 bit digitized data with 'numchan' */
+/* channels to an array of 'numchan' floats.                 */
 {
   int ii, jj;
 
   if (decreasing_f){
     for(ii = 0, jj = numchan-8; ii < numchan / 8; ii++, jj-=8){
-      data[jj+7] = rec[ii] & 0x80 ? 1.0 : 0.0;
-      data[jj+6] = rec[ii] & 0x40 ? 1.0 : 0.0;
-      data[jj+5] = rec[ii] & 0x20 ? 1.0 : 0.0;
-      data[jj+4] = rec[ii] & 0x10 ? 1.0 : 0.0;
-      data[jj+3] = rec[ii] & 0x08 ? 1.0 : 0.0;
-      data[jj+2] = rec[ii] & 0x04 ? 1.0 : 0.0;
-      data[jj+1] = rec[ii] & 0x02 ? 1.0 : 0.0;
-      data[jj] = rec[ii] & 0x01 ? 1.0 : 0.0;
+      data[jj] = rec[ii] & 0x01 ? 1 : 0;
+      data[jj+1] = rec[ii] & 0x02 ? 1 : 0;
+      data[jj+2] = rec[ii] & 0x04 ? 1 : 0;
+      data[jj+3] = rec[ii] & 0x08 ? 1 : 0;
+      data[jj+4] = rec[ii] & 0x10 ? 1 : 0;
+      data[jj+5] = rec[ii] & 0x20 ? 1 : 0;
+      data[jj+6] = rec[ii] & 0x40 ? 1 : 0;
+      data[jj+7] = rec[ii] & 0x80 ? 1 : 0;
     }
   } else {
     for(ii = 0, jj = 0; ii < numchan / 8; ii++, jj+=8){
-      data[jj] = rec[ii] & 0x80 ? 1.0 : 0.0;
-      data[jj+1] = rec[ii] & 0x40 ? 1.0 : 0.0;
-      data[jj+2] = rec[ii] & 0x20 ? 1.0 : 0.0;
-      data[jj+3] = rec[ii] & 0x10 ? 1.0 : 0.0;
-      data[jj+4] = rec[ii] & 0x08 ? 1.0 : 0.0;
-      data[jj+5] = rec[ii] & 0x04 ? 1.0 : 0.0;
-      data[jj+6] = rec[ii] & 0x02 ? 1.0 : 0.0;
-      data[jj+7] = rec[ii] & 0x01 ? 1.0 : 0.0;
+      data[jj] = rec[ii] & 0x80 ? 1 : 0;
+      data[jj+1] = rec[ii] & 0x40 ? 1 : 0;
+      data[jj+2] = rec[ii] & 0x20 ? 1 : 0;
+      data[jj+3] = rec[ii] & 0x10 ? 1 : 0;
+      data[jj+4] = rec[ii] & 0x08 ? 1 : 0;
+      data[jj+5] = rec[ii] & 0x04 ? 1 : 0;
+      data[jj+6] = rec[ii] & 0x02 ? 1 : 0;
+      data[jj+7] = rec[ii] & 0x01 ? 1 : 0;
     }
   }
 }
