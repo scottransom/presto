@@ -129,6 +129,22 @@ def maximize_rz(data, r, z, norm = None):
       maxpow = maxpow / norm
    return [maxpow, rmax, zmax, rd]
 
+def maximize_r(data, r, norm = None):
+   """
+   maximize_r(data, r, norm = None):
+       Optimize the detection of a signal at Fourier frequency 'r' in
+           a FFT 'data'.  The routine returns a list containing
+           the optimized values of the maximum normalized power, rmax,
+           and an rderivs structure for the peak.
+   """
+   rd = rderivs()
+   (maxpow, rmax) = max_r_arr(data, len(data), r, rd)
+   if not norm:
+      maxpow = maxpow / rd.locpow
+   else:
+      maxpow = maxpow / norm
+   return [maxpow, rmax, rd]
+
 def search_fft(data, numcands, norm='default'):
    """
    search_fft(data, numcands):
