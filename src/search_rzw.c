@@ -2,6 +2,7 @@
 #include "search_rzw_cmd.h"
 
 #define SHORTESTFFT 32768	/* The shortest data set we will look at */
+#define FFTLENGTH 65536
 
 /* To do:  - Make an MPI version.                                        */
 /*           Should allow the saving of specific output files that       */
@@ -157,12 +158,17 @@ int main(int argc, char *argv[])
   /* memory at all times. (nz kernels, 1 data set, 1 result)      */
   /* Therefore worknumbins is the largest corrsize we can have.   */
 
+  /*
   worknumbins = (int) (MAXREALFFT / (2 * (nz + 2)));
+  */
 
   /* Determine corrsize:  Insure smaller than worknumbins */
   /* then divide by two again just to be sure...          */
 
+  /*
   corrsize = next2_to_n(worknumbins) / 4;
+  */
+  corrsize = FFTLENGTH;
   if (mincorrsize > corrsize) {
     printf("\nYou are asking for too much memory.  Specify\n");
     printf("  fewer z values to search.  Exiting.\n\n");
