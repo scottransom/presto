@@ -60,11 +60,11 @@ static Cmdline cmd = {
   /* freqsigmaP = */ 1,
   /* freqsigma = */ 4,
   /* freqsigmaC = */ 1,
-  /***** -zapchan: Channels to explicitly remove from analysis */
+  /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
   /* zapchanP = */ 0,
   /* zapchan = */ (int*)0,
   /* zapchanC = */ 0,
-  /***** -zapints: Intervals to explicitly remove from analysis */
+  /***** -zapints: Intervals to explicitly remove from analysis (zero-offset) */
   /* zapintsP = */ 0,
   /* zapints = */ (int*)0,
   /* zapintsC = */ 0,
@@ -904,7 +904,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -zapchan: Channels to explicitly remove from analysis */
+  /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
   if( !cmd.zapchanP ) {
     printf("-zapchan not found.\n");
   } else {
@@ -920,7 +920,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -zapints: Intervals to explicitly remove from analysis */
+  /***** -zapints: Intervals to explicitly remove from analysis (zero-offset) */
   if( !cmd.zapintsP ) {
     printf("-zapints not found.\n");
   } else {
@@ -963,7 +963,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
@@ -988,15 +988,15 @@ usage(void)
     -freqsig: The +/-sigma cutoff to reject freq-domain chunks\n\
               1 float value between 0 and oo\n\
               default: `4'\n\
-    -zapchan: Channels to explicitly remove from analysis\n\
-              1...1024 int values between 1 and 1024\n\
-    -zapints: Intervals to explicitly remove from analysis\n\
-              1...1024 int values between 1 and 1024\n\
+    -zapchan: Channels to explicitly remove from analysis (zero-offset)\n\
+              0...1023 int values between 0 and 1023\n\
+    -zapints: Intervals to explicitly remove from analysis (zero-offset)\n\
+              0...1023 int values between 0 and 1023\n\
        -mask: File containing masking information to use\n\
               1 char* value\n\
       infile: Input data file name.\n\
               1...100 values\n\
-version: 29Nov01\n\
+version: 13Dec01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1108,20 +1108,20 @@ parseCmdline(int argc, char **argv)
     if( 0==strcmp("-zapchan", argv[i]) ) {
       int keep = i;
       cmd.zapchanP = 1;
-      i = getIntOpts(argc, argv, i, &cmd.zapchan, 1, 1024);
+      i = getIntOpts(argc, argv, i, &cmd.zapchan, 0, 1023);
       cmd.zapchanC = i-keep;
-      checkIntLower("-zapchan", cmd.zapchan, cmd.zapchanC, 1024);
-      checkIntHigher("-zapchan", cmd.zapchan, cmd.zapchanC, 1);
+      checkIntLower("-zapchan", cmd.zapchan, cmd.zapchanC, 1023);
+      checkIntHigher("-zapchan", cmd.zapchan, cmd.zapchanC, 0);
       continue;
     }
 
     if( 0==strcmp("-zapints", argv[i]) ) {
       int keep = i;
       cmd.zapintsP = 1;
-      i = getIntOpts(argc, argv, i, &cmd.zapints, 1, 1024);
+      i = getIntOpts(argc, argv, i, &cmd.zapints, 0, 1023);
       cmd.zapintsC = i-keep;
-      checkIntLower("-zapints", cmd.zapints, cmd.zapintsC, 1024);
-      checkIntHigher("-zapints", cmd.zapints, cmd.zapintsC, 1);
+      checkIntLower("-zapints", cmd.zapints, cmd.zapintsC, 1023);
+      checkIntHigher("-zapints", cmd.zapints, cmd.zapintsC, 0);
       continue;
     }
 

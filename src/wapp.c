@@ -203,6 +203,7 @@ int clip_times(unsigned char *rawpows)
     if (running_avg==0.0 || current_avg==0.0)
       printf("BAD RFI IN BLOCK#1!!!\n\n");
   }
+  padval = running_avg / numchan_st;
 
   /* See if any points need clipping */
   trigger = clip_sigma_st * running_std;
