@@ -237,6 +237,8 @@ int main(int argc, char *argv[])
 	realfft(chandata, ptsperint, -1);
 	numcands=0;
 	norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
+	if (norm==0.0) 
+	  norm = (chandata[0]==0.0) ? 1.0 : chandata[0];
 	cands = search_fft((fcomplex *)chandata, ptsperint / 2, 
 			   lobin, harmsum, numbetween,
 			   interptype, norm, freqsigma,
