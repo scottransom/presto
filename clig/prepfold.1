@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "02Jan01" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "25Apr01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -24,7 +24,8 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 .B prepfold
 -o outfile
 [-pkmb]
-[-ebpp]
+[-bcpm]
+[-if ifs]
 [-nobary]
 [-DE405]
 [-xwin]
@@ -70,8 +71,12 @@ Root of the output file names,
 1 String value
 .IP -pkmb
 Raw data in Parkes Multibeam format.
-.IP -ebpp
-Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED.
+.IP -bcpm
+Raw data in Berkeley-Caltech Pulsar Machine (BPP) format.
+.IP -if
+For BPP format only:  A specific IF to use.,
+.br
+1 Int value between 0 and 1.
 .IP -nobary
 Do not barycenter (assume input parameters are topocentric).
 .IP -DE405
