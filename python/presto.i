@@ -708,12 +708,12 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result);
   /*   'T' is the length of the data set in sec (i.e. N*dt).  */
   /*   'result' is a pointer to the returned rzwerrs struct.  */
 
-double candidate_sigma(double power, int numsum, int numtrials);
+double candidate_sigma(double power, int numsum, double numtrials);
 /* Return the approximate significance in Gaussian       */
 /* sigmas of a candidate of numsum summed powers,        */
 /* taking into account the number of independent trials. */
 
-double power_for_sigma(double sigma, int numsum, int numtrials);
+double power_for_sigma(double sigma, int numsum, double numtrials);
 /* Return the approximate summed power level required */
 /* to get a Gaussian significance of 'sigma', taking  */
 /* into account the number of independent trials.     */
