@@ -125,45 +125,12 @@ PLOT2DOBJS = powerplot.o xyline.o
 
 all: libpresto text xwin
 
-links:
-	cd ../bin ; find ../src -type f -perm 755 | xargs -n 1 -iXXX cp -s XXX .
-	cd ../lib ; ln -s ../src/libpresto.a .
-	cd ../lib ; ln -s ../src/libpresto.so .
-
-mpi: mpiprepsubband
-
-mpiprepsubband_utils.o: mpiprepsubband_utils.c 
-	mpicc $(CFLAGS) -c mpiprepsubband_utils.c 
-
-mpiprepsubband.o: mpiprepsubband.c 
-	mpicc $(CFLAGS) -c mpiprepsubband.c 
-
-mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
-	mpicc $(CFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
-
 prep: meminit timetest bincat
 
-text: makedata makeinf mjd2cal realfft quicklook\
-	search_bin search_rzw swap_endian prepdata\
-	check_parkes_raw bary shiftdata dftfold\
-	patchdata readfile toas2dat bincand taperaw\
-	accelsearch prepsubband cal2mjd split_parkes_beams\
-	dat2sdat sdat2dat downsample
-
-xwin: psrorbit window plotbincand profile \
-	prepfold show_pfd\
-	rfifind zapbirds plotdat plotfft\
-	explorefft exploredat
-
-geomview: togeomview
-
-libpresto: libpresto.a libpresto.so
-
-libpresto.so: $(PRESTOOBJS)
-	$(LINKCOMMAND1) $@ $(PRESTOOBJS)
-
-libpresto.a: $(PRESTOOBJS)
-	$(LINKCOMMAND2) $@ $(PRESTOOBJS)
+makewisdom:
+	$(CC) $(CFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
+	./makewisdom
+	cp fftw_wisdom.txt $(PRESTO)/lib
 
 meminit:
 	$(CC) $(CFLAGS) -o $@ meminit.c $(DMALLOCLINK)
@@ -179,6 +146,44 @@ timetest:
 	$(CC) -o $@ timetest.c $(DMALLOCLINK)
 	./timetest
 	rm -f timetest
+
+libpresto: libpresto.a libpresto.so
+	@cd ../lib ; cp -sf ../src/libpresto* .
+
+libpresto.so: $(PRESTOOBJS)
+	$(LINKCOMMAND1) $@ $(PRESTOOBJS)
+
+libpresto.a: $(PRESTOOBJS)
+	$(LINKCOMMAND2) $@ $(PRESTOOBJS)
+
+text: makedata makeinf mjd2cal realfft quicklook\
+	search_bin search_rzw swap_endian prepdata\
+	check_parkes_raw bary shiftdata dftfold\
+	patchdata readfile toas2dat bincand taperaw\
+	accelsearch prepsubband cal2mjd split_parkes_beams\
+	dat2sdat sdat2dat downsample
+
+xwin: psrorbit window plotbincand profile \
+	prepfold show_pfd\
+	rfifind zapbirds plotdat plotfft\
+	explorefft exploredat
+
+links:
+	cd ../bin ; find ../src -type f -perm 755 | xargs -n 1 -iXXX cp -s XXX .
+	rm -f ../bin/libpresto.so
+
+geomview: togeomview
+
+mpi: mpiprepsubband
+
+mpiprepsubband_utils.o: mpiprepsubband_utils.c 
+	mpicc $(CFLAGS) -c mpiprepsubband_utils.c 
+
+mpiprepsubband.o: mpiprepsubband.c 
+	mpicc $(CFLAGS) -c mpiprepsubband.c 
+
+mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
+	mpicc $(CFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o 
 	$(CC) $(CFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(ATHLON_PRESTOLINK) -L/home/ransom/lib -lglib -lm
@@ -257,11 +262,6 @@ makedata: com.o randlib.o makedata.o
 
 makeinf: makeinf.o ioinf.o
 	$(CC) $(CFLAGS) -o $@ makeinf.o ioinf.o $(PRESTOLINK) -lm
-
-makewisdom:
-	$(CC) $(CFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
-	./makewisdom
-	cp fftw_wisdom.txt $(PRESTO)/lib
 
 mjd2cal: djcl.o mjd2cal.o
 	$(CC) $(CFLAGS) -o $@ djcl.o mjd2cal.o $(DMALLOCLINK) -lm
