@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
       /* Compensate for the fact that we have subbands and not channels */
       idata.freq = idata.freq + (idata.num_chan/numfiles-0.5)*idata.chan_wid;
       idata.chan_wid = idata.num_chan/numfiles*idata.chan_wid;
-      idata.num_chan = numfiles;
+      idata.num_chan = numchan = numfiles;
 
     } else if (cmd->pkmbP){
 
@@ -352,6 +352,7 @@ int main(int argc, char *argv[])
       else if (insubs)
 	numread = read_subband_rawblocks(infiles, numfiles, 
 					 srawdata, blocksperint, &padding);
+
       if (padding)
 	for (jj=0; jj<numchan; jj++)
 	  bytemask[ii][jj] |= PADDING;
