@@ -59,6 +59,17 @@ void broadcast_mask(mask *obsmask, int myid){
   }
   MPI_Bcast(&mbase, 1, maskbase_type, 0, MPI_COMM_WORLD); 
   if (myid>0){
+    obsmask->timesigma = mbase.timesigma;
+    obsmask->freqsigma = mbase.freqsigma;
+    obsmask->mjd = mbase.mjd;
+    obsmask->dtint = mbase.dtint;
+    obsmask->lofreq = mbase.lofreq;
+    obsmask->dfreq = mbase.dfreq;
+    obsmask->numchan = mbase.numchan;
+    obsmask->numint = mbase.numint;
+    obsmask->ptsperint = mbase.ptsperint;
+    obsmask->num_zap_chans = mbase.num_zap_chans;
+    obsmask->num_zap_ints = mbase.num_zap_ints;
     obsmask->zap_chans = gen_ivect(mbase.num_zap_chans);
     obsmask->zap_ints = gen_ivect(mbase.num_zap_ints);
     obsmask->num_chans_per_int = gen_ivect(mbase.numint);
@@ -71,10 +82,20 @@ void broadcast_mask(mask *obsmask, int myid){
   MPI_Bcast(obsmask->num_chans_per_int, mbase.numint, 
 	    MPI_INT, 0, MPI_COMM_WORLD);
   for (ii=0; ii<mbase.numint; ii++){
-    if (myid>0)
-      obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
-    MPI_Bcast(obsmask->chans[ii], obsmask->num_chans_per_int[ii], 
-	      MPI_INT, 0, MPI_COMM_WORLD);
+    if (obsmask->num_chans_per_int[ii] > 0 &&
+	obsmask->num_chans_per_int[ii] < obsmask->numchan){
+      if (myid>0)
+	obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
+      MPI_Bcast(obsmask->chans[ii], obsmask->num_chans_per_int[ii], 
+		MPI_INT, 0, MPI_COMM_WORLD);
+    } else if (obsmask->num_chans_per_int[ii] == obsmask->numchan){
+      int jj;
+      if (myid>0){
+	obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
+	for (jj=0; jj<obsmask->numchan; jj++)
+	  obsmask->chans[ii][jj] = jj;
+      }
+    }
   }
 }
 
