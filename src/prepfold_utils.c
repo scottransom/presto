@@ -1,6 +1,8 @@
 #include "prepfold.h"
 #include "prepfold_cmd.h"
 
+int compare_doubles(const void *a, const void *b);
+
 double switch_pfdot(double pf, double pfdot)
 {
   double retval;
@@ -57,7 +59,7 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
 /* binary double precision (otherwise text).  If 'sec' is true the  */
 /* data is assumed to be in seconds (otherwise MJD).                */
 /* The number of TOAs read is placed in 'numtoas', and the raw      */
-/* TOA is placed in 'firsttoa'.  T0 is the time to ue for the zero  */
+/* TOA is placed in 'firsttoa'.  T0 is the time to use for the zero */
 /* time.  If it is negative it will default to the first TOA.       */
 {
   int N, nn;
@@ -106,6 +108,10 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
     for (nn = 0; nn < N; nn++)
       t[nn] = (t[nn] - dtmp) * 86400.0;
   }
+
+  /* Sort and return the TOAs */
+
+  qsort(t, N, sizeof(double), compare_doubles);
   return t;
 }
 
