@@ -215,13 +215,13 @@ int main(int argc, char *argv[])
       
       /* Read a chunk of data */
       
-      if (cmd->pkmbP){
+      if (cmd->pkmbP)
 	numread = read_PKMB_rawblocks(infiles, numfiles, 
 				      rawdata, blocksperint, &padding);
-	if (padding)
-	  for (jj=0; jj<numchan; jj++)
-	    bytemask[ii][jj] |= PADDING;
-      }
+      if (padding)
+	for (jj=0; jj<numchan; jj++)
+	  bytemask[ii][jj] |= PADDING;
+
       for (jj=0; jj<numchan; jj++){  /* Loop over the channels */
 
 	if (cmd->pkmbP)
@@ -234,38 +234,40 @@ int main(int argc, char *argv[])
 	dataavg[ii][jj] = davg;
 	datastd[ii][jj] = sqrt(dvar);
 
-	/* Calculate the FFT of each time interval and search it */
-      
-	realfft(chandata, ptsperint, -1);
-	numcands=0;
-	norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
-	if (norm==0.0) 
-	  norm = (chandata[0]==0.0) ? 1.0 : chandata[0];
-	cands = search_fft((fcomplex *)chandata, ptsperint / 2, 
-			   lobin, harmsum, numbetween,
-			   interptype, norm, freqsigma,
-			   &numcands, &powavg, &powstd, &powmax);
-	datapow[ii][jj] = powmax;
+	if (padding){
+	  datapow[ii][jj] = 0.0;
+	} else { /* Calculate the FFT of each time interval and search it */
+	  realfft(chandata, ptsperint, -1);
+	  numcands=0;
+	  norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
+	  if (norm==0.0) 
+	    norm = (chandata[0]==0.0) ? 1.0 : chandata[0];
+	  cands = search_fft((fcomplex *)chandata, ptsperint / 2, 
+			     lobin, 0.995 * ptsperint / 2, harmsum, 
+			     numbetween, interptype, norm, freqsigma,
+			     &numcands, &powavg, &powstd, &powmax);
+	  datapow[ii][jj] = powmax;
 	
-	/* Record the birdies */
-	
-	if (numcands){
-	  for (kk=0; kk<numcands; kk++){
-	    freq = cands[kk].r/inttime;
-	    candnum = find_rfi(rfivect, numrfi, freq, RFI_FRACTERROR);
-	    if (candnum >= 0){
-	      update_rfi(rfivect+candnum, freq, cands[kk].sig, jj, ii);
-	    } else {
-	      update_rfi(rfivect+numrfi, freq, cands[kk].sig, jj, ii);
-	      numrfi++;
-	      if (numrfi==numrfivect){
-		numrfivect *= 2;
-		rfivect = rfi_vector(rfivect, numchan, numint, 
-				     numrfivect/2, numrfivect);
+	  /* Record the birdies */
+	  
+	  if (numcands){
+	    for (kk=0; kk<numcands; kk++){
+	      freq = cands[kk].r/inttime;
+	      candnum = find_rfi(rfivect, numrfi, freq, RFI_FRACTERROR);
+	      if (candnum >= 0){
+		update_rfi(rfivect+candnum, freq, cands[kk].sig, jj, ii);
+	      } else {
+		update_rfi(rfivect+numrfi, freq, cands[kk].sig, jj, ii);
+		numrfi++;
+		if (numrfi==numrfivect){
+		  numrfivect *= 2;
+		  rfivect = rfi_vector(rfivect, numchan, numint, 
+				       numrfivect/2, numrfivect);
+		}
 	      }
 	    }
-	  }
 	  free(cands);
+	  }
 	}
       }
     }
@@ -295,6 +297,9 @@ int main(int argc, char *argv[])
 		   &numbetween);
     bytemask = gen_bmatrix(numint, numchan);
     printf("Reading  bytemask  from '%s'.\n\n", bytemaskfilenm);
+    bytemaskfile = chkfopen(bytemaskfilenm, "rb");
+    chkfread(bytemask[0], numint*numchan, 1, bytemaskfile);
+    fclose(bytemaskfile);
     for (ii=0; ii<numint; ii++)
       for (jj=0; jj<numchan; jj++)
 	bytemask[ii][jj] &= PADDING; /* Clear all but the PADDING bits */

@@ -11,10 +11,8 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char pad1[MAXNUMCHAN/8], pad2[MAXNUMCHAN/8];
+static unsigned char padval=0x55; /*01010101*/
 static unsigned char chanmask[MAXNUMCHAN], padblock[DATLEN];
-
-#define SWAPPAD(padptr)(padptr = (padptr==pad1) ? pad2 : pad1)
 
 void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
 			int *ptsperblock, int *numchan, double *dt, 
@@ -35,8 +33,6 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
     printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
     exit(0);
   }
-  memset(pad1, 0x55, MAXNUMCHAN/8); /* 01010101... */
-  memset(pad2, 0xAA, MAXNUMCHAN/8); /* 10101010... */
   chkfread(&header, 1, HDRLEN, files[0]);
   rewind(files[0]);
   PKMB_hdr_to_inf(&header, &idata_st[0]);
@@ -164,17 +160,19 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 /* If padding is returned as 1, then padding was       */
 /* added and statistics should not be calculated       */
 {
-  int ii, jj, offset, numtopad=0;
-  unsigned char record[RECLEN], *hdr_ptr, *padptr=pad1;
+  int ii, offset, numtopad=0;
+  unsigned char record[RECLEN];
   static unsigned char databuffer[DATLEN*2];
   static int bufferpts=0, padnum=0, shiftbuffer=1;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
+  if (bufferpts)
+    printf("currentblock = %d  bufferpts = %d\n", currentblock, bufferpts);
+
   if (bufferpts && shiftbuffer)
-    for (ii=0; ii<bufferpts; ii++)
-      *(databuffer+ii) = *(databuffer+DATLEN+ii);
+    memcpy(databuffer, databuffer+DATLEN, bufferpts);
   shiftbuffer=1;
 
   /* Make sure our current file number is valid */
@@ -187,20 +185,15 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
   if (fread(record, RECLEN, 1, infiles[currentfile])){ /* Got Data */
     *padding = 0;
     /* Put the new header into the header array */
-    hdr_ptr = (unsigned char *)hdr;
-    for (ii=0; ii<HDRLEN; ii++)
-      *(hdr_ptr+ii) = *(record+ii);
+    memcpy(hdr, record, HDRLEN);
     /* Put the new data into the databuffer or directly */
     /* into the return array if the bufferoffset is 0.  */
     if (bufferpts){
       offset = bufferpts * bytesperpt_st;
-      for (ii=0; ii<DATLEN; ii++){
-	*(databuffer+offset+ii) = *(record+HDRLEN+ii);
-	*(data+ii) = *(databuffer+ii);
-      }
+      memcpy(databuffer+offset, record+HDRLEN, DATLEN);
+      memcpy(data, databuffer, DATLEN);
     } else {
-      for (ii=0; ii<DATLEN; ii++)
-	*(data+ii) = *(record+HDRLEN+ii);
+      memcpy(data, record+HDRLEN, DATLEN);
     }
     currentblock++;
     return 1;
@@ -216,18 +209,15 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	    numtopad = ptsperblk_st - bufferpts;
 	    for (ii=0; ii<numtopad; ii++){
 	      offset = (bufferpts + ii) * bytesperpt_st;
-	      for (jj=0; jj<bytesperpt_st; jj++)
-		*(databuffer+offset+jj) = *(padptr+jj);
-	      SWAPPAD(padptr);
+	      memset(databuffer+offset, padval, bytesperpt_st);
+	      padval = ~padval;
 	    }
 	    /* Copy the new data/padding into the output array */
-	    for (ii=0; ii<DATLEN; ii++)
-	      *(data+ii) = *(databuffer+ii);
+	    memcpy(data, databuffer, DATLEN);
 	    bufferpts = 0;
 	  } else {  /* Add a full record of padding */
 	    numtopad = ptsperblk_st;
-	    for (ii=0; ii<DATLEN; ii++)
-	      *(data+ii) = *(padblock+ii);
+	    memcpy(data, padblock, DATLEN);
 	  }
 	  padnum += numtopad;
 	  currentblock++;
@@ -243,9 +233,8 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	  /* then get a block from the next file. */
 	  for (ii=0; ii<numtopad; ii++){
 	    offset = (bufferpts + ii) * bytesperpt_st;
-	    for (jj=0; jj<bytesperpt_st; jj++)
-	      *(databuffer+offset+jj) = *(padptr+jj);
-	    SWAPPAD(padptr);
+	    memset(databuffer+offset, padval, bytesperpt_st);
+	    padval = ~padval;
 	  }
 	  padnum = 0;
 	  currentfile++;

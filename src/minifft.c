@@ -19,8 +19,9 @@ float percolate_rawbincands(rawbincand *cands, int numcands);
 float percolate_fftcands(fftcand *cands, int numcands);
 void print_rawbincand(rawbincand cand);
 
-fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
-		    int numbetween, presto_interptype interptype,
+fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin, 
+		    int numharmsum, int numbetween, 
+		    presto_interptype interptype,
 		    float norm, float sigmacutoff, int *numcands, 
 		    float *powavg, float *powvar, float *powmax)
 /* This routine searches a short FFT of 'numfft' complex freqs      */
@@ -36,6 +37,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
 /*   'fft' is the FFT to search (complex valued)                    */
 /*   'numfft' is the number of complex points in 'fft'              */
 /*   'lobin' is the lowest Fourier freq to search                   */
+/*   'hibin' is the highest Fourier freq to search                  */
 /*   'numharmsum' the number of harmonics to sum during the search  */
 /*   'numbetween' the points to interpolate per bin                 */
 /*   'interptype' is either INTERBIN or INTERPOLATE.                */
@@ -66,7 +68,8 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
 
   if (interptype == INTERBIN)
     numbetween = 2;
-  lobin = lobin * numbetween;
+  lobin *= numbetween;
+  hibin *= numbetween;
   norm = 1.0 / norm;
   *powmax = 0.0;
 
@@ -76,7 +79,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
     startnc = *numcands;
   else {
     dynamic = 1;
-    minpow = power_for_sigma(sigmacutoff, 1, numfft-lobin);
+    minpow = power_for_sigma(sigmacutoff, 1, hibin-lobin);
   }
   cands = (fftcand *)malloc(startnc * sizeof(fftcand));
   for (ii=0; ii<startnc; ii++)
@@ -127,12 +130,12 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
   /* First generate the original powers in order to         */
   /* calculate the statistics.  Yes, this is inefficient... */
 
-  for (ii = lobin, jj = 0; ii < numfft; ii++, jj++){
+  for (ii = lobin, jj = 0; ii < hibin; ii++, jj++){
     ftmp = POWER(fft[ii].r, fft[ii].i) * norm;
     fullpows[jj] = ftmp;
     if (ftmp > *powmax) *powmax = ftmp;
   }
-  avg_var(fullpows, numfft-lobin, &davg, &dvar);
+  avg_var(fullpows, hibin-lobin, &davg, &dvar);
   *powavg = davg;
   *powvar = dvar;
   fullpows[0] = 1.0;
@@ -142,12 +145,11 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
 
   /* Search the raw powers */
   
-  for (ii = lobin; ii < numtosearch; ii++) {
+  for (ii = lobin; ii < hibin; ii++) {
     if (fullpows[ii] > minpow){
       newcand.r = dr * (double) ii;
       newcand.p = fullpows[ii];
-      newcand.sig = candidate_sigma(fullpows[ii], 1,
-					     numfft-lobin);
+      newcand.sig = candidate_sigma(fullpows[ii], 1, hibin-lobin);
       newcand.nsum = 1;
       cands[startnc-1] = newcand;
       tmpminsig = percolate_fftcands(cands, startnc);
@@ -174,21 +176,15 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
     for (ii = 2; ii <= numharmsum; ii++){
       offset = ii / 2;
       if (dynamic)
-	minpow = power_for_sigma(sigmacutoff, ii, numfft-lobin);
-      else {
-if (tmpminsig==0.0){
-  printf("XXXXXXXXXXXXXXXXXXXXXXXXXX\n");
-  exit(0);
-}
-	minpow = power_for_sigma(tmpminsig, ii, numfft-lobin);
-      }
+	minpow = power_for_sigma(sigmacutoff, ii, hibin-lobin);
+      else
+	minpow = power_for_sigma(tmpminsig, ii, hibin-lobin);
       for (jj = lobin; jj < numtosearch; jj++){
 	sumpows[jj] += fullpows[(jj + offset) / ii];
 	if (sumpows[jj] > minpow) {
 	  newcand.r = dr * (double) jj;
 	  newcand.p = sumpows[jj];
-	  newcand.sig = candidate_sigma(sumpows[jj], ii,
-					numfft-lobin);
+	  newcand.sig = candidate_sigma(sumpows[jj], ii, hibin-lobin);
 	  newcand.nsum = ii;
 	  cands[startnc-1] = newcand;
 	  tmpminsig = percolate_fftcands(cands, startnc);
@@ -201,7 +197,7 @@ if (tmpminsig==0.0){
 		cands[jj].sig = 0.0;
 	    }
 	  } else {
-	    minpow = power_for_sigma(tmpminsig, ii, numfft-lobin);
+	    minpow = power_for_sigma(tmpminsig, ii, hibin-lobin);
 	    if (nc<startnc) nc++;
 	  }
 	}

@@ -334,7 +334,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 
       /* Calculate the predicted distribution of max powers */
 
-
       numpows = numint * numchan;
       find_min_max_arr(numpows, datapow[0], &min, &max);
       min = (min<5.0) ? log10(5.0 * 0.95) : log10(min * 0.95);
@@ -435,6 +434,19 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("CST", 0.0, 0, "CST", 0.0, 0);
 
+    /* Max Power Label */
+    
+    left   = lm + ft;
+    right  = lm + ft + tt;
+    bottom = bm + fh;
+    top    = bm + fh + th;
+    cpgsvp (left, right, bottom, top);
+    cpgswin(0.0, 1.0, 0.0, 1.0);
+    cpgscr(maxcol, 1.0, 0.0, 0.0); cpgsci(maxcol); /* Red */
+    cpgptxt(0.5, 0.7, 0.0, 0.5, "Max");
+    cpgptxt(0.5, 0.3, 0.0, 0.5, "Power");
+    cpgsci(1); /* Default color */
+
     /*  Max Power versus Time */
 
     left   = lm + ft;
@@ -450,7 +462,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("BCST", 0.0, 0, "BST", 0.0, 0);
     cpgscr(maxcol, 1.0, 0.0, 0.0); cpgsci(maxcol); /* Red */
-    cpgmtxt("B", 1.2, 0.5, 0.5, "Max Power");
     yarr[0] = yl; yarr[1] = yh;
     xarr[0] = xarr[1] = datapow_med;
     cpgline(2, xarr, yarr);
@@ -481,7 +492,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("BST", 0.0, 0, "BCST", 0.0, 0);
     cpgscr(maxcol, 1.0, 0.0, 0.0); cpgsci(maxcol); /* Red */
-    cpgmtxt("L", 0.8, 0.5, 0.5, "Max Power");
     xarr[0] = xl; xarr[1] = xh;
     yarr[0] = yarr[1] = datapow_med;
     cpgline(2, xarr, yarr);
@@ -530,7 +540,20 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("CST", 0.0, 0, "CST", 0.0, 0);
 
-    /*  Max sigma versus Time */
+    /* Data Sigma Label */
+    
+    left   = lm + 2.0 * ft + 2.0 * tt;
+    right  = lm + 2.0 * ft + 3.0 * tt;
+    bottom = bm + fh;
+    top    = bm + fh + th;
+    cpgsvp (left, right, bottom, top);
+    cpgswin(0.0, 1.0, 0.0, 1.0);
+    cpgscr(maxcol, 0.0, 1.0, 0.0); cpgsci(maxcol); /* Green */
+    cpgptxt(0.5, 0.7, 0.0, 0.5, "Data");
+    cpgptxt(0.5, 0.3, 0.0, 0.5, "Sigma");
+    cpgsci(1); /* Default color */
+
+    /*  Data Sigma versus Time */
 
     left   = lm + 2.0 * ft + 2.0 * tt;
     right  = lm + 2.0 * ft + 3.0 * tt;
@@ -544,7 +567,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("BCST", 0.0, 0, "BST", 0.0, 0);
     cpgscr(maxcol, 0.0, 1.0, 0.0); cpgsci(maxcol); /* Green */
-    cpgmtxt("B", 1.2, 0.5, 0.5, "Data \\gs");
     yarr[0] = yl; yarr[1] = yh;
     xarr[0] = xarr[1] = datastd_med;
     cpgline(2, xarr, yarr);
@@ -562,7 +584,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
     /* cpgmtxt("R", 2.3, 0.5, 0.5, "Interval Number"); */
 
-    /*  Max Sigma versus Channel */
+    /*  Data Sigma versus Channel */
 
     left   = lm + ft + 2.0 * tt;
     right  = lm + 2.0 * ft + 2.0 * tt;
@@ -576,7 +598,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("BST", 0.0, 0, "BCST", 0.0, 0);
     cpgscr(maxcol, 0.0, 1.0, 0.0); cpgsci(maxcol); /* Green */
-    cpgmtxt("L", 0.8, 0.5, 0.5, "Data \\gs");
     xarr[0] = xl; xarr[1] = xh;
     yarr[0] = yarr[1] = datastd_med;
     cpgline(2, xarr, yarr);
@@ -594,7 +615,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgbox ("CMST", 0.0, 0, "", 0.0, 0);
     cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (MHz)");
 
-    /* Averages */
+    /* Data Mean */
 
     left   = lm + 2.0 * ft + 4.0 * tt;
     right  = lm + 3.0 * ft + 4.0 * tt;
@@ -627,7 +648,20 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("CST", 0.0, 0, "CST", 0.0, 0);
 
-    /*  Max Average versus Time */
+    /* Data Mean Label */
+    
+    left   = lm + 3.0 * ft + 4.0 * tt;
+    right  = lm + 3.0 * ft + 5.0 * tt;
+    bottom = bm + fh;
+    top    = bm + fh + th;
+    cpgsvp (left, right, bottom, top);
+    cpgswin(0.0, 1.0, 0.0, 1.0);
+    cpgscr(maxcol, 0.0, 0.0, 1.0); cpgsci(maxcol); /* Blue */
+    cpgptxt(0.5, 0.7, 0.0, 0.5, "Data");
+    cpgptxt(0.5, 0.3, 0.0, 0.5, "Mean");
+    cpgsci(1); /* Default color */
+
+    /*  Data Mean versus Time */
 
     left   = lm + 3.0 * ft + 4.0 * tt;
     right  = lm + 3.0 * ft + 5.0 * tt;
@@ -641,7 +675,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("BCST", 0.0, 0, "BST", 0.0, 0);
     cpgscr(maxcol, 0.0, 0.0, 1.0); cpgsci(maxcol); /* Blue */
-    cpgmtxt("B", 1.2, 0.5, 0.5, "Data Mean");
     yarr[0] = yl; yarr[1] = yh;
     xarr[0] = xarr[1] = dataavg_med;
     cpgline(2, xarr, yarr);
@@ -658,7 +691,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
 
-    /*  Max Average versus Channel */
+    /*  Data Mean versus Channel */
 
     left   = lm + 2.0 * ft + 4.0 * tt;
     right  = lm + 3.0 * ft + 4.0 * tt;
@@ -672,7 +705,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgswin(xl, xh, yl, yh);
     cpgbox ("BST", 0.0, 0, "BCST", 0.0, 0);
     cpgscr(maxcol, 0.0, 0.0, 1.0); cpgsci(maxcol); /* Blue */
-    cpgmtxt("L", 0.8, 0.5, 0.5, "Data Mean");
     xarr[0] = xl; xarr[1] = xh;
     yarr[0] = yarr[1] = dataavg_med;
     cpgline(2, xarr, yarr);
@@ -774,7 +806,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
       cpgtext(left+0.21,   top-3*dy, out);
       sprintf(out, "= %-.3f", max);
       cpgtext(left+0.245,   top-3*dy, out);
-      sprintf(out, "Data \\gs:");
+      sprintf(out, "Sigma:");
       cpgtext(left+0.0,  top-4*dy, out);
       sprintf(out, "median");
       cpgtext(left+0.06,  top-4*dy, out);
@@ -878,7 +910,8 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 	cpgswin(xl, xh, yl, yh);
 	cpgbox ("BNST", 0.0, 0, "BNST", 0.0, 0);
 	cpgmtxt("B", 2.6, 0.5, 0.5, "Channel");
-	cpgmtxt("L", 2.1, 0.5, 0.5, "Time (s)");
+	if (page)
+	  cpgmtxt("L", 2.1, 0.5, 0.5, "Time (s)");
 	xl = lof;
 	xh = hif;
 	yl = 0.0;
@@ -899,11 +932,11 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 	  cpgsci(mincol+3);
 	  cpgptxt(left, top+0.06, 0.0, 0.0, "User Zap");
 	  cpgsci(mincol+4);
-	  cpgptxt(right, top+0.1, 0.0, 1.0, "Max Power");
+	  cpgptxt(right, top+0.1, 0.0, 1.0, "Power");
 	  cpgsci(mincol+6);
-	  cpgptxt(right, top+0.08, 0.0, 1.0, "Data \\gs");
+	  cpgptxt(right, top+0.08, 0.0, 1.0, "Sigma");
 	  cpgsci(mincol+5);
-	  cpgptxt(right, top+0.06, 0.0, 1.0, "Data Mean");
+	  cpgptxt(right, top+0.06, 0.0, 1.0, "Mean");
 	  cpgsci(1);
 	} else {
 	  cpgsci(mincol+1);
@@ -915,7 +948,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 	  cpgsci(mincol+4);
 	  cpgptxt(7.0/12.0, 0.955, 0.0, 0.5, "Max Power");
 	  cpgsci(mincol+6);
-	  cpgptxt(9.0/12.0, 0.955, 0.0, 0.5, "Data \\gs");
+	  cpgptxt(9.0/12.0, 0.955, 0.0, 0.5, "Data Sigma");
 	  cpgsci(mincol+5);
 	  cpgptxt(11.0/12.0, 0.955, 0.0, 0.5, "Data Mean");
 	  cpgsci(1);

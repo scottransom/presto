@@ -1239,8 +1239,9 @@ void barycenter(double *topotimes, double *barytimes, \
   /* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
   /* is either "DE200" or "DE400".                            */
 
-fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
-		    int numbetween, presto_interptype interptype,
+fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin, 
+		    int numharmsum, int numbetween, 
+		    presto_interptype interptype,
 		    float norm, float sigmacutoff, int *numcands, 
 		    float *powavg, float *powvar, float *powmax);
 /* This routine searches a short FFT of 'numfft' complex freqs      */
@@ -1256,6 +1257,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
 /*   'fft' is the FFT to search (complex valued)                    */
 /*   'numfft' is the number of complex points in 'fft'              */
 /*   'lobin' is the lowest Fourier freq to search                   */
+/*   'hibin' is the highest Fourier freq to search                  */
 /*   'numharmsum' the number of harmonics to sum during the search  */
 /*   'numbetween' the points to interpolate per bin                 */
 /*   'interptype' is either INTERBIN or INTERPOLATE.                */
