@@ -102,7 +102,7 @@ static void process_bird(double basebin, int harm,
   result = gen_cvect(FFTLEN);
   corr_complex(data, NUMTOGET, RAW, kernel, FFTLEN, FFT, \
 	       result, FFTLEN, khw, NUMBETWEEN, khw, CORR);
-  firstbin = lobin + 2 * NUMBETWEEN * khw;
+  firstbin = lobin + NUMBETWEEN * khw;
   do {
     plotoffset = (((int) bin - plotnumbins/2) - firstbin) * NUMBETWEEN;
     if (plotoffset < 0)
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
 
   /* Read the info file */
  
-  readinf(&idata, cmd->argv[0]);
+  readinf(&idata, rootfilenm);
   if (idata.object) {
     printf("Examining %s data from '%s'.\n\n",
            remove_whitespace(idata.object), cmd->argv[0]);
@@ -264,6 +264,7 @@ int main(int argc, char *argv[])
 
   /* Loop over the birdies */
 
+  cpgstart_x("landscape");
   for (ii=0; ii<numbirds; ii++){
     for (jj=0; jj<bird_numharms[ii]; jj++){
       process_bird(bird_basebins[ii], jj+1, &lofreq, &hifreq);
@@ -274,7 +275,8 @@ int main(int argc, char *argv[])
       }
     }
   }
-
+  cpgclos();
+   
   /* Output the birdies */
 
   g_slist_foreach(zapped, birdie_print, stdout);
