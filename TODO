@@ -1,4 +1,4 @@
-Presto To-Do List in Order of Precedence as of 01 July 99.
+Presto To-Do List in Order of Precedence as of 28 Sept 99.
 
 --  Modularize the rzw and binary search routines so that
 they could be called interactively from Python.
@@ -16,10 +16,10 @@ Automake, and Libtool.
 --  Perform extensive testing on the correctness of the pulse folding
 and barycentering code since I think it could be messed up.
 
---  Allow FFTW to be called with non power-of-two length vectors.
-
 --  Improve the documentation.  Maybe by using a source code
 documentation system?
+
+--  Use BLAS to speed up key loops (i.e. in the correlations)
 
 --  Change times to use type Long Double?
 
