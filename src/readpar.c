@@ -69,8 +69,8 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
 {
   FILE *parfile;
   int binary=0;
-  double difft=0.0, f=0.0, fd=0.0;
-  double eps1=0.0, eps2=0.0, eps1d=0.0, eps2d=0.0;
+  double orbdifft=0.0, difft=0.0, f=0.0, fd=0.0;
+  double eps1=0.0, eps2=0.0, eps1d=0.0, eps2d=0.0, ed=0.0, xd=0.0;
   char line[80], *keyword, *value;
 
   psr->f = psr->fd = psr->fdd = psr->p = psr->pd = psr->pdd = psr->dm = 0.0;
@@ -145,7 +145,6 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     } else if (strncmp("PBDOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       psr->orb.pd = strtod(fortran_double_convert(value), &value)*1.0E-12;
-      psr->orb.p += psr->orb.pd*difft;
       if (DEBUGOUT) printf("  P_orb-dot  = %.15g\n", psr->orb.pd);
     } else if (strncmp("OM", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
@@ -154,32 +153,29 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     } else if (strncmp("OMDOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       psr->orb.wd = strtod(fortran_double_convert(value), &value)/SECPERJULYR;
-      psr->orb.w += psr->orb.wd*difft;
       if (DEBUGOUT) printf("  w_orb-dot  = %.15g\n", psr->orb.wd);
     } else if (strncmp("A1", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       psr->orb.x = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  x_orb  = %.15g\n", psr->orb.x);
     } else if (strncmp("XDOT", keyword, 80)==0){
-      double xd;
       value = strtok(NULL, " \t\n");
       xd = strtod(fortran_double_convert(value), &value)*1.0E-12;
-      psr->orb.x += xd*difft;
       if (DEBUGOUT) printf("  x_orb-dot  = %.15g\n", xd);
     } else if (strncmp("E", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       psr->orb.e = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  e_orb  = %.15g\n", psr->orb.e);
     } else if (strncmp("EDOT", keyword, 80)==0){
-      double ed;
       value = strtok(NULL, " \t\n");
       ed = strtod(fortran_double_convert(value), &value)*1.0E-12;
-      psr->orb.e += ed*difft;
       if (DEBUGOUT) printf("  e_orb-dot  = %.15g\n", ed);
     } else if (strncmp("T0", keyword, 80)==0 ||
 	       strncmp("TASC", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       psr->orb.t = strtod(fortran_double_convert(value), &value);
+      /* TEMPO bases the orbital params on T0, not PEPOCH */
+      orbdifft = (epoch - psr->orb.t)*SECPERDAY;
       if (DEBUGOUT) printf("  T_orb  = %.15g\n", psr->orb.t);
     } else if (strncmp("EPS1", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
@@ -192,12 +188,10 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     } else if (strncmp("EPS1DOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       eps1d = strtod(fortran_double_convert(value), &value);
-      eps1 += eps1d*difft;
       if (DEBUGOUT) printf("  EPS1DOT  = %.15g\n", eps1d);
     } else if (strncmp("EPS2DOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       eps2d = strtod(fortran_double_convert(value), &value);
-      eps2 += eps1d*difft;
       if (DEBUGOUT) printf("  EPS2DOT  = %.15g\n", eps2d);
     } else if (strncmp("OM2DOT", keyword, 80)==0 ||
 	       strncmp("X2DOT", keyword, 80)==0 ||
@@ -208,6 +202,12 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     }
   }
   if (binary){
+    psr->orb.p += psr->orb.pd*orbdifft;
+    psr->orb.w += psr->orb.wd*orbdifft;
+    psr->orb.x += xd*orbdifft;
+    psr->orb.e += ed*orbdifft;
+    eps1 += eps1d*orbdifft;
+    eps2 += eps1d*orbdifft;
     if (eps1 != 0.0 || eps2 !=0.0){
       /* Convert Laplace-Lagrange params to e and w */
       /* Warning!  This is presently untested!      */
