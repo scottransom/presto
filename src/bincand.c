@@ -6,7 +6,7 @@
 #include "dmalloc.h"
 #endif
 
-#define DEBUG_OUT 0
+/* #define DEBUG_OUT */
 
 static double orbit_trial(fcomplex *data, int datalen,
 			  presto_datainf datainf,  int lodata, 
