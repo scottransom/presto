@@ -468,7 +468,7 @@ static void plot_harmonics(double rr, int zoomlevel, fftpart *fp)
 
 static double harmonic_loop(int xid, double rr, int zoomlevel, fftpart *fp)
 {
-  float inx, iny;
+  float inx=0.0, iny=0.0;
   double retval=0.0;
   int xid2, psid, badchoice=1;
   char choice;
@@ -645,7 +645,7 @@ int main(int argc, char *argv[])
   offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
 
   do {
-    float inx, iny;
+    float inx=0.0, iny=0.0;
     
     cpgcurs(&inx, &iny, &inchar);
     if (DEBUGOUT) printf("You pressed '%c'\n", inchar);
@@ -830,7 +830,7 @@ int main(int argc, char *argv[])
     case 'z':
       {
 	int badchoice=2;
-	float inx, iny, lox, hix, loy, hiy;
+	float inx=0.0, iny=0.0, lox, hix, loy, hiy;
 	double rs[2];
 	char choice;
 
@@ -901,7 +901,7 @@ int main(int argc, char *argv[])
     case 'N': /* Changing power normalization */
     case 'n':
       {
-	float inx2, iny2;
+	float inx2=0.0, iny2=0.0;
 	char choice;
 	unsigned char badchoice=1;
 
@@ -938,7 +938,7 @@ int main(int argc, char *argv[])
 	  case 'u':
 	    {
 	      char choice2;
-	      float xx, yy;
+	      float xx=0.0, yy=0.0;
 	      int lor, hir, numr;
 	      double avg, var;
 

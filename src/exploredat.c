@@ -460,7 +460,7 @@ int main(int argc, char *argv[])
   offsetn = plot_dataview(dv, minval, maxval, 1.0);
 
   do {
-    float inx, iny;
+    float inx=0, iny=0;
     
     cpgcurs(&inx, &iny, &inchar);
     if (DEBUGOUT) printf("You pressed '%c'\n", inchar);
