@@ -403,6 +403,12 @@ double candidate_sigma(double power, int numsum, int numtrials)
   else
     q = 1.0 - pow(p, numtrials);
   p = 1.0 - q;
+  /*
+  if (numsum==4){
+    printf("   p = %f, q = %f, x = %f, shape = %f, scale = %f\n\n", 
+	   p, q, x, shape, scale);
+  }
+  */
   which = 2;
   status = 0;
   cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);

@@ -6,14 +6,18 @@
 #  undef inline
 #endif
 
+#define NEAREST_INT(x) (int) (x < 0 ? x - 0.5 : x + 0.5)
+
 static inline int calc_required_z(int numharm, int harmnum, double zfull)
 /* Calculate the 'z' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'z' at the fundamental harmonic is 'zfull'.    */
 {
-  return ((int) rint(ACCEL_RDZ * (zfull / numharm) * harmnum)) * ACCEL_DZ;
+  double zz;
+  
+  zz = ACCEL_RDZ * (zfull / numharm) * harmnum;
+  return NEAREST_INT(zz) * ACCEL_DZ;
 }
-
 
 static inline double calc_required_r(int numharm, int harmnum, double rfull)
 /* Calculate the 'r' you need for subharmonic     */
@@ -40,58 +44,30 @@ static inline int index_from_z(double z, double loz)
 }
 
 
-
-
 static void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
 {
   int ii, jj, kk;
   char tmp[30];
 
-  /* Loop through the candidates (reference cands) */
-
   for (ii = 0; ii < nlist; ii++) {
-
-    /* Loop through the candidates (referenced cands) */
-
     for (jj = 0; jj < nlist; jj++) {
       if (ii == jj)
 	continue;
-
-      /* Look for standard sidelobes */
-
       if (fabs(list[ii].r - list[jj].r) < 15.0 && \
 	  fabs(list[ii].z - list[jj].z) > 1.0 && \
 	  list[ii].pow > list[jj].pow) {
-
-	/* Check if the note has already been written */
-
 	sprintf(tmp, "%.20s", notes + jj * 20);
 	if (!strcmp("                    ", tmp)) {
-
-	  /* Write the note */
-
 	  sprintf(notes + jj * 20, "SL? of Cand %d", ii + 1);
 	}
 	continue;
       }
-      /* Loop through the possible PSR period harmonics */
-
       for (kk = 1; kk < 61; kk++) {
-
-	/* Check if the PSR Fourier freqs and z's are close enough */
-
 	if ((fabs(list[ii].r - list[jj].r / kk) < list[jj].rerr * 3) && \
 	    (fabs(list[ii].z - list[jj].z / kk) < list[jj].zerr * 2)) {
-
-	  /* Check if the note has already been written */
-
 	  sprintf(tmp, "%.20s", notes + jj * 20);
 	  if (!strcmp("                    ", tmp)) {
-
-	    /* Write the note */
-
 	    sprintf(notes + jj * 20, "H %d of Cand %d", kk, ii + 1);
-
 	    break;
 	  }
 	}
@@ -149,17 +125,9 @@ static void init_subharminfo(int numharm, int harmnum,
   shi->zmax = calc_required_z(numharm, harmnum, zmax);
   shi->numkern = (shi->zmax / ACCEL_DZ) * 2 + 1;
   shi->kern = (kernel *)malloc(shi->numkern * sizeof(kernel));
-  fftlen = calc_fftlen(numharm, harmnum, zmax);
+  fftlen = calc_fftlen(numharm, harmnum, zmax); 
   for (ii=0; ii<shi->numkern; ii++)
-    init_kernel(-shi->zmax + ii * ACCEL_DZ, 
-		fftlen, &(shi->kern[ii]));
-}
-
-
-static void free_subharminfo(subharminfo *shi)
-{
-  free_kernel(shi->kern);
-  free(shi->kern);
+    init_kernel(-shi->zmax+ii*ACCEL_DZ, fftlen, &shi->kern[ii]);
 }
 
 
@@ -171,7 +139,7 @@ subharminfo **create_subharminfos(int numharm, int zmax)
   shis = (subharminfo **)malloc((numharm + 1) * sizeof(subharminfo *));
   /* Prep the fundamental */
   shis[1] = (subharminfo *)malloc(2 * sizeof(subharminfo));
-  init_subharminfo(1, 1, zmax, shis[1]+1);
+  init_subharminfo(1, 1, zmax, &shis[1][1]);
   printf("  Fundamental  has %3d kernels from z = %4d to %4d\n", 
 	 shis[1][1].numkern, -shis[1][1].zmax, shis[1][1].zmax);
   /* Prep the sub-harmonics */
@@ -179,7 +147,7 @@ subharminfo **create_subharminfos(int numharm, int zmax)
     shis[ii] = (subharminfo *)malloc(ii * sizeof(subharminfo));
     for (jj=1; jj<ii; jj++){
       if (jj==1 || ii % jj){
-	init_subharminfo(ii, jj, zmax, shis[ii]+jj);
+	init_subharminfo(ii, jj, zmax, &shis[ii][jj]);
 	printf("  Harmonic %d/%d has %3d kernels from z = %4d to %4d\n", 
 	       jj, ii, shis[ii][jj].numkern, 
 	       -shis[ii][jj].zmax, shis[ii][jj].zmax);
@@ -190,6 +158,15 @@ subharminfo **create_subharminfos(int numharm, int zmax)
 }
 
 
+static void free_subharminfo(subharminfo *shi)
+{
+  int ii;
+
+  for (ii=0; ii<shi->numkern; ii++)
+    free_kernel(&shi->kern[ii]);
+}
+
+
 void free_subharminfos(int numharm, subharminfo **shis)
 {
   int ii, jj;
@@ -197,14 +174,14 @@ void free_subharminfos(int numharm, subharminfo **shis)
   /* Free the sub-harmonics */
   for (ii=2; ii<=numharm; ii++){
     for (jj=1; jj<ii; jj++){
-      if (jj==1 || numharm % jj)
-	free_subharminfo(shis[ii]+jj);
+      if (jj==1 || ii % jj)
+	free_subharminfo(&shis[ii][jj]);
     }
-    free(shis+ii);
+    free(shis[ii]);
   }
   /* Free the fundamental */
-  free_subharminfo(shis[1]+1);
-  free(shis+1);
+  free_subharminfo(&shis[1][1]);
+  free(shis[1]);
   /* Free the container */
   free(shis);
 }
@@ -221,7 +198,23 @@ static accelcand *create_accelcand(float power, float sigma,
   obj->numharm = numharm;
   obj->r = r;
   obj->z = z;
+  obj->pows = NULL;
+  obj->hirs = NULL;
+  obj->hizs = NULL;
+  obj->derivs = NULL;
   return obj;
+}
+
+void free_accelcand(gpointer data, gpointer user_data)
+{
+  user_data = NULL;
+  if (((accelcand *)data)->pows){
+    free(((accelcand *)data)->pows);
+    free(((accelcand *)data)->hirs);
+    free(((accelcand *)data)->hizs);
+    free(((accelcand *)data)->derivs);
+  }
+  free((accelcand *)data);
 }
 
 
@@ -258,7 +251,8 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
   
   if (!list){
     new_list = g_slist_alloc();
-    new_list->data = create_accelcand(power, sigma, numharm, rr, zz);
+    new_list->data = (gpointer *)create_accelcand(power, sigma, 
+						  numharm, rr, zz);
     return new_list;
   }
 
@@ -272,14 +266,17 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
 
   if (fabs(rr - ((accelcand *)(tmp_list->data))->r) < ACCEL_CLOSEST_R){
     if (((accelcand *)(tmp_list->data))->sigma < sigma){
-      free(tmp_list->data);  /* Overwrite the old candidate */
-      tmp_list->data = create_accelcand(power, sigma, numharm, rr, zz);
+      free_accelcand(tmp_list->data, NULL);  /* Overwrite the old candidate */
+      tmp_list->data = (gpointer *)create_accelcand(power, sigma, 
+						    numharm, rr, zz);
     }
   } else {  /* This is a new candidate */
     new_list = g_slist_alloc();
-    new_list->data = create_accelcand(power, sigma, numharm, rr, zz);
+    new_list->data = (gpointer *)create_accelcand(power, sigma, 
+						  numharm, rr, zz);
 
-    if (!tmp_list->next){
+    if (!tmp_list->next && 
+	(((accelcand *)(tmp_list->data))->r < (rr - ACCEL_CLOSEST_R))){
       tmp_list->next = new_list;
       return list;
     }
@@ -328,8 +325,12 @@ static void center_string(char *outstring, char *instring, int width)
 	   len, instring, width);
   }
   tmp = memset(outstring, ' ', width);
-  outstring[len] = '\0';
-  tmp = strncpy(outstring+(width-len)/2, instring, len);
+  outstring[width] = '\0';
+  if (len >= width){
+    strncpy(outstring, instring, width);
+  } else {
+    strncpy(outstring+(width-len)/2, instring, len);
+  }
 }
 
 
@@ -356,18 +357,18 @@ void output_fundamentals(fourierprops *props, GSList *list,
 {
   double accel=0.0, accelerr=0.0;
   int ii, numcols=11, numcands;
-  int widths[11]={4, 5, 6, 4, 16, 15, 15, 15, 8, 8, 20};
-  int errors[11]={0, 0, 0, 0,  1,  1,  2,  1, 2, 2,  0};
+  int widths[11]={4, 5, 6, 4, 16, 15, 15, 15, 11, 15, 20};
+  int errors[11]={0, 0, 0, 0,  1,  1,  2,  1,  2,  2,  0};
   char tmpstr[30], ctrstr[30], *notes;
   accelcand *cand;
   GSList *listptr;
   rzwerrs errs;
-  char titles1[11][20]={"",     "",      "Summed", "Num",  "Period", 
-			"Frequency", "FFT 'r'", "Freq Deriv", "FFT 'z'", 
-			"Accel", ""};
-  char titles2[11][20]={"Cand", "Sigma", "Power",  "Harm", "(ms)",
-			"(Hz)",      "(bin)",   "(Hz/s)",     "(bins)", 
-			"(m/s)", "Notes"};
+  static char *titles1[]={"", "", "Summed", "Num", "Period", 
+			  "Frequency", "FFT 'r'", "Freq Deriv", "FFT 'z'", 
+			  "Accel", ""};
+  static char *titles2[]={"Cand", "Sigma", "Power", "Harm", "(ms)",
+			  "(Hz)", "(bin)", "(Hz/s)", "(bins)", 
+			  "(m/s)", "Notes"};
 
   numcands = g_slist_length(list);
   listptr = list;
@@ -422,7 +423,7 @@ void output_fundamentals(fourierprops *props, GSList *list,
   for (ii=0; ii<numcands; ii++){
     cand = (accelcand *)(listptr->data);
     calc_rzwerrs(props+ii, obs->T, &errs);
-    sprintf(tmpstr, "%4d", ii+1);
+    sprintf(tmpstr, "%-4d", ii+1);
     center_string(ctrstr, tmpstr, widths[0]);
     fprintf(obs->workfile, "%s  ", ctrstr);
     sprintf(tmpstr, "%.2f", cand->sigma);
@@ -460,19 +461,19 @@ void output_fundamentals(fourierprops *props, GSList *list,
 void output_harmonics(GSList *list, accelobs *obs)
 {
   int ii, jj, numcols=12, numcands;
-  int widths[12]={4, 4, 5, 10, 10, 15, 12, 8, 6, 8, 8, 8};
-  int errors[12]={0, 0, 0,  2,  2,  2,  0, 2, 0, 2, 2, 2};
+  int widths[12]={4, 4, 5, 15, 15, 15, 12, 11, 8, 10, 10, 10};
+  int errors[12]={0, 0, 0,  2,  2,  2,  0,  2, 0,  2,  2,  2};
   char tmpstr[30], ctrstr[30], command[200];
   accelcand *cand;
   GSList *listptr;
   fourierprops props;
   rzwerrs errs;
-  char titles1[12][20]={"",     "",     "",      "Power /", "Raw", 
-			"FFT 'r'", "Pred 'r'", "FFT 'z'", "Pred 'z'", 
-			"Phase", "Centroid", "Purity"};
-  char titles2[12][20]={"Cand", "Harm", "Sigma", "Loc Pow", "Power", 
-			"(bin)",   "(bin)",    "(bins)",  "(bins)", 
-			"(rad)", "(0-1)",    "<p> = 1"};
+  static char *titles1[]={"", "", "", "Power /", "Raw", 
+			  "FFT 'r'", "Pred 'r'", "FFT 'z'", "Pred 'z'", 
+			  "Phase", "Centroid", "Purity"};
+  static char *titles2[]={"Cand", "Harm", "Sigma", "Loc Pow", "Power", 
+			  "(bin)", "(bin)", "(bins)", "(bins)", 
+			  "(rad)", "(0-1)", "<p> = 1"};
 
   numcands = g_slist_length(list);
   listptr = list;
@@ -508,14 +509,14 @@ void output_harmonics(GSList *list, accelobs *obs)
       calc_props(cand->derivs[jj], cand->hirs[jj], 
 		 cand->hizs[jj], 0.0, &props);
       calc_rzwerrs(&props, obs->T, &errs);
-      if (ii==0) sprintf(tmpstr, "%4d", ii+1);
+      if (jj==0) sprintf(tmpstr, "%-4d", ii+1);
       else sprintf(tmpstr, "    ");
       center_string(ctrstr, tmpstr, widths[0]);
       fprintf(obs->workfile, "%s  ", ctrstr);
-      if (ii==0) sprintf(tmpstr, "%4d", jj+1);
+      sprintf(tmpstr, "%-4d", jj+1);
       center_string(ctrstr, tmpstr, widths[1]);
       fprintf(obs->workfile, "%s  ", ctrstr);
-      sprintf(tmpstr, "%.2f", cand->sigma);
+      sprintf(tmpstr, "%.2f", candidate_sigma(props.pow, 1, 1));
       center_string(ctrstr, tmpstr, widths[2]);
       fprintf(obs->workfile, "%s  ", ctrstr);
       write_val_with_err(obs->workfile, props.pow, props.powerr, 
@@ -525,12 +526,12 @@ void output_harmonics(GSList *list, accelobs *obs)
 			 errors[4], widths[4]);
       write_val_with_err(obs->workfile, props.r, props.rerr, 
 			 errors[5], widths[5]);
-      sprintf(tmpstr, "%.2f", cand->r * (ii+1));
+      sprintf(tmpstr, "%.2f", cand->r * (jj+1));
       center_string(ctrstr, tmpstr, widths[6]);
       fprintf(obs->workfile, "%s  ", ctrstr);
       write_val_with_err(obs->workfile, props.z, props.zerr, 
 			 errors[7], widths[7]);
-      sprintf(tmpstr, "%.2f", cand->z * (ii+1));
+      sprintf(tmpstr, "%.2f", cand->z * (jj+1));
       center_string(ctrstr, tmpstr, widths[8]);
       fprintf(obs->workfile, "%s  ", ctrstr);
       write_val_with_err(obs->workfile, props.phs, props.phserr, 
@@ -539,6 +540,7 @@ void output_harmonics(GSList *list, accelobs *obs)
 			 errors[10], widths[10]);
       write_val_with_err(obs->workfile, props.pur, props.purerr, 
 			 errors[11], widths[11]);
+      fprintf(obs->workfile, "\n");
       fflush(obs->workfile);
     }     
     listptr = listptr->next;
@@ -560,19 +562,6 @@ void print_accelcand(gpointer data, gpointer user_data)
 }
 
 
-void free_accelcand(gpointer data, gpointer user_data)
-{
-  user_data = NULL;
-  if (((accelcand *)data)->pows){
-    free(((accelcand *)data)->pows);
-    free(((accelcand *)data)->hirs);
-    free(((accelcand *)data)->hizs);
-    free(((accelcand *)data)->derivs);
-  }
-  free((accelcand *)data);
-}
-
-
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs)
@@ -591,7 +580,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   drlo = calc_required_r(numharm, harmnum, fullrlo);
   drhi = calc_required_r(numharm, harmnum, fullrhi);
   ffdot->rlo = (int) floor(drlo);
-  ffdot->zlo = calc_required_z(numharm, harmnum, -obs->zlo);
+  ffdot->zlo = calc_required_z(numharm, harmnum, obs->zlo);
   ffdot->numrs = (int) ((drhi - drlo) * ACCEL_RDR + DBLCORRECT) + 1;
   if (ffdot->numrs % ACCEL_RDR)
     ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
@@ -633,6 +622,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
   for (ii=0; ii<(ffdot->numzs*ffdot->numrs); ii++) 
     ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i) * norm;
+  free(result[0]);
   free(result);
   return ffdot;
 }
@@ -689,8 +679,8 @@ void add_ffdotpows(ffdotpows *fundamental,
 }
 
 
-void search_ffdotpows(ffdotpows *ffdot, int numharm, 
-		      accelobs *obs, GSList *cands)
+GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, 
+			 accelobs *obs, GSList *cands)
 {
   int ii, jj;
   float powcut;
@@ -716,6 +706,7 @@ void search_ffdotpows(ffdotpows *ffdot, int numharm,
       }
     }
   }
+  return cands;
 }
 
 
@@ -839,7 +830,7 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
   obs->powcut = (float *)malloc(obs->numharm * sizeof(float));
   obs->numindep = (long long *)malloc(obs->numharm * sizeof(long long));
   for (ii=1; ii<=obs->numharm; ii++){
-    if (ii==1)
+    if (obs->numz==1)
       obs->numindep[ii-1] = obs->rhi - obs->rlo;
     else
       /* The numz+1 takes care of the small amount of  */
@@ -849,6 +840,7 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
     obs->powcut[ii-1] = power_for_sigma(obs->sigma, ii, 
 					obs->numindep[ii-1]);
   }
+  obs->numzap = 0;
   /*
   if (cmd->zapfileP)
     obs->numzap = get_birdies(cmd->zapfile, obs->T, obs->baryv, 
@@ -862,8 +854,8 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
 void free_accelobs(accelobs *obs)
 {
   fclose(obs->fftfile);
-  free(obs->numindep);
   free(obs->powcut);
+  free(obs->numindep);
   free(obs->rootfilenm);
   free(obs->candnm);
   free(obs->accelnm);

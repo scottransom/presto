@@ -97,8 +97,8 @@ void optimize_accelcand(accelcand *cand, accelobs *obs);
 void output_fundamentals(fourierprops *props, GSList *list, 
 			 accelobs *obs, infodata *idata);
 void output_harmonics(GSList *list, accelobs *obs);
-void print_accelcand(gpointer data, gpointer user_data);
 void free_accelcand(gpointer data, gpointer user_data);
+void print_accelcand(gpointer data, gpointer user_data);
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs);
@@ -106,7 +106,7 @@ ffdotpows *copy_ffdotpows(ffdotpows *orig);
 void free_ffdotpows(ffdotpows *ffd);
 void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
 		   int numharm, int harmnum);
-void search_ffdotpows(ffdotpows *ffdot, int numharm, 
-		      accelobs *obs, GSList *cands);
+GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, 
+			 accelobs *obs, GSList *cands);
 void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd);
 void free_accelobs(accelobs *obs);
