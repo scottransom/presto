@@ -10,6 +10,9 @@
 /* Minimum miniFFT bin number to accept as 'real' */
 #define MINMINIBIN 3.0
 
+/* Bins to ignore at the beginning and end of the big FFT */
+#define BINSTOIGNORE 1024
+
 /* Function definitions */
 static int not_already_there_rawbin(rawbincand newcand, 
 				    rawbincand *list, int nlist);
@@ -53,7 +56,7 @@ int main(int argc, char *argv[])
   double ttim, utim, stim, tott;
   Cmdline *cmd;
 
-  /* Prep out timer */
+  /* Prep the timer */
 
   tott = times(&runtimes) / (double) CLK_TCK;
 
@@ -65,6 +68,7 @@ int main(int argc, char *argv[])
     usage();
     exit(1);
   }
+
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
@@ -129,12 +133,18 @@ int main(int argc, char *argv[])
 
   /* Low and high Fourier freqs to check */
 
-  if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
+  if (cmd->rlo < cmd->lobin){
+    if (cmd->lobin == 0)
+      cmd->rlo = BINSTOIGNORE;
+    else
+      cmd->rlo = cmd->lobin;
+  }
   if (cmd->rhiP){
     if (cmd->rhi < cmd->rlo) cmd->rhi = cmd->rlo + cmd->maxfft;
-    if (cmd->rhi > cmd->lobin + nbins) cmd->rhi = cmd->lobin + nbins;
+    if (cmd->rhi > cmd->lobin + nbins) 
+      cmd->rhi = cmd->lobin + nbins - BINSTOIGNORE;
   } else {
-    cmd->rhi = cmd->lobin + nbins;
+    cmd->rhi = cmd->lobin + nbins - BINSTOIGNORE;
   }
 
   /* Determine how many different mini-fft sizes we will use */
@@ -149,7 +159,7 @@ int main(int argc, char *argv[])
   /* Allocate some memory and prep some variables.             */
   /* For numtoread, the 6 just lets us read extra data at once */
 
-  numtoread = 6 * cmd->maxfft + cmd->maxfft / 2;
+  numtoread = 6 * cmd->maxfft;
   if (cmd->stack == 0)
     powers = gen_fvect(numtoread);
   minifft = gen_fvect(cmd->maxfft);
@@ -186,13 +196,13 @@ int main(int argc, char *argv[])
     if (binsleft < cmd->minfft) 
       break;
     if (binsleft < numtoread)     /* 1st try decreasing the numtoread  */
-      numtoread = cmd->maxfft + cmd->maxfft / 2;
+      numtoread = cmd->maxfft;
     if (binsleft <= numtoread) {  /* Next try changing our maxfft size */
       for (cmd->maxfft = cmd->minfft; \
 	   cmd->maxfft <= binsleft; \
 	   cmd->maxfft *= 2);
       cmd->maxfft /= 2;
-      numtoread = cmd->maxfft + cmd->maxfft / 2;
+      numtoread = cmd->maxfft;
     }
     fftlen = cmd->maxfft;
 
@@ -219,10 +229,12 @@ int main(int argc, char *argv[])
 
       halffftlen = fftlen / 2;
       powers_pos = powers;
+      powers_offset = 0;
 
       /* Perform miniffts at each section of the powers array */
 
-      while ((powers_offset = powers_pos - powers) < cmd->maxfft) {
+      while ((numtoread - powers_offset) >
+	     (int) ((1.0 - cmd->overlap) * cmd->maxfft + DBLCORRECT)){
 
 	/* Copy the proper amount and portion of powers into minifft */
 
@@ -237,8 +249,8 @@ int main(int argc, char *argv[])
 	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
 	search_minifft((fcomplex *)minifft, halffftlen, tmplist, \
-		       MININCANDS, cmd->harmsum, idata.N, T, \
-		       (double) (powers_offset + filepos + cmd->lobin), \
+		       MININCANDS, cmd->harmsum, cmd->numbetween, idata.N, \
+		       T, (double) (powers_offset + filepos + cmd->lobin), \
 		       cmd->interbinP ? INTERBIN : INTERPOLATE, \
 		       cmd->noaliasP ? NO_CHECK_ALIASED : CHECK_ALIASED);
 		       
@@ -271,7 +283,8 @@ int main(int argc, char *argv[])
 	}
 
 	totnumsearched += fftlen;
-	powers_pos += halffftlen;
+	powers_pos += (int)(cmd->overlap * fftlen);
+	powers_offset = powers_pos - powers;
 
 	/* Position of mini-fft in data set while loop */
       }
@@ -283,7 +296,7 @@ int main(int argc, char *argv[])
 
     if (cmd->stack == 0) free(data);
     else free(powers);
-    filepos += numtoread - cmd->maxfft / 2;
+    filepos += (numtoread - (int)((1.0 - cmd->overlap) * cmd->maxfft));
     loopct++;
 
     /* File position while loop */

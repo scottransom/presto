@@ -34,9 +34,9 @@ static Cmdline cmd = {
   /* maxfft = */ 262144,
   /* maxfftC = */ 1,
   /***** -rlo: The low Fourier frequency to check */
-  /* rloP = */ TRUE,
-  /* rlo = */ 0,
-  /* rloC = */ 1,
+  /* rloP = */ FALSE,
+  /* rlo = */ (int)0,
+  /* rloC = */ 0,
   /***** -rhi: The high Fourier frequency to check */
   /* rhiP = */ FALSE,
   /* rhi = */ (int)0,
@@ -45,10 +45,18 @@ static Cmdline cmd = {
   /* lobinP = */ TRUE,
   /* lobin = */ 0,
   /* lobinC = */ 1,
+  /***** -overlap: Fraction of a short FFT length to shift before performing another */
+  /* overlapP = */ TRUE,
+  /* overlap = */ 0.25,
+  /* overlapC = */ 1,
   /***** -harmsum: Number of harmonics to sum in the miniFFTs */
   /* harmsumP = */ TRUE,
   /* harmsum = */ 3,
   /* harmsumC = */ 1,
+  /***** -numbetween: Number of points to interpolate per Fourier bin (2 gives the usual bin value and an interbin) */
+  /* numbetweenP = */ TRUE,
+  /* numbetween = */ 2,
+  /* numbetweenC = */ 1,
   /***** -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
   /* stackP = */ TRUE,
   /* stack = */ 0,
@@ -470,6 +478,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -overlap: Fraction of a short FFT length to shift before performing another */
+  if( !cmd.overlapP ) {
+    printf("-overlap not found.\n");
+  } else {
+    printf("-overlap found:\n");
+    if( !cmd.overlapC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%f'\n", cmd.overlap);
+    }
+  }
+
   /***** -harmsum: Number of harmonics to sum in the miniFFTs */
   if( !cmd.harmsumP ) {
     printf("-harmsum not found.\n");
@@ -479,6 +499,18 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%d'\n", cmd.harmsum);
+    }
+  }
+
+  /***** -numbetween: Number of points to interpolate per Fourier bin (2 gives the usual bin value and an interbin) */
+  if( !cmd.numbetweenP ) {
+    printf("-numbetween not found.\n");
+  } else {
+    printf("-numbetween found:\n");
+    if( !cmd.numbetweenC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numbetween);
     }
   }
 
@@ -523,36 +555,41 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-ncand ncand] [-minfft minfft] [-maxfft maxfft] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-harmsum harmsum] [-stack stack] [-interbin] [-noalias] infile\n\
+ [-ncand ncand] [-minfft minfft] [-maxfft maxfft] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-overlap overlap] [-harmsum harmsum] [-numbetween numbetween] [-stack stack] [-interbin] [-noalias] infile\n\
     Searches a long FFT for binary pulsar candidates using a phase modulation search.\n\
-     -ncand: Number of candidates to try to return\n\
-             1 integer value between 1 and 10000\n\
-             default: `100'\n\
-    -minfft: Power-of-2 length of the shortest miniFFT\n\
-             1 integer value between 8 and 1048576\n\
-             default: `32'\n\
-    -maxfft: Power-of-2 length of the longest miniFFT\n\
-             1 integer value between 8 and 1048576\n\
-             default: `262144'\n\
-       -rlo: The low Fourier frequency to check\n\
-             1 integer value between 0 and oo\n\
-             default: `0'\n\
-       -rhi: The high Fourier frequency to check\n\
-             1 integer value between 0 and oo\n\
-     -lobin: The first Fourier frequency in the data file\n\
-             1 integer value between 0 and oo\n\
-             default: `0'\n\
-   -harmsum: Number of harmonics to sum in the miniFFTs\n\
-             1 integer value between 1 and 20\n\
-             default: `3'\n\
-     -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes)\n\
-             1 integer value between 0 and oo\n\
-             default: `0'\n\
-  -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive)\n\
-   -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n\
-     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
-             1 string value\n\
-version: 17Nov99\n\
+       -ncand: Number of candidates to try to return\n\
+               1 integer value between 1 and 10000\n\
+               default: `100'\n\
+      -minfft: Power-of-2 length of the shortest miniFFT\n\
+               1 integer value between 8 and 1048576\n\
+               default: `32'\n\
+      -maxfft: Power-of-2 length of the longest miniFFT\n\
+               1 integer value between 8 and 1048576\n\
+               default: `262144'\n\
+         -rlo: The low Fourier frequency to check\n\
+               1 integer value between 0 and oo\n\
+         -rhi: The high Fourier frequency to check\n\
+               1 integer value between 0 and oo\n\
+       -lobin: The first Fourier frequency in the data file\n\
+               1 integer value between 0 and oo\n\
+               default: `0'\n\
+     -overlap: Fraction of a short FFT length to shift before performing another\n\
+               1 double precision value between 0.05 and 1.0\n\
+               default: `0.25'\n\
+     -harmsum: Number of harmonics to sum in the miniFFTs\n\
+               1 integer value between 1 and 20\n\
+               default: `3'\n\
+  -numbetween: Number of points to interpolate per Fourier bin (2 gives the usual bin value and an interbin)\n\
+               1 integer value between 1 and 16\n\
+               default: `2'\n\
+       -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes)\n\
+               1 integer value between 0 and oo\n\
+               default: `0'\n\
+    -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive)\n\
+     -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n\
+       infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
+               1 string value\n\
+version: 19Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -627,6 +664,16 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-overlap", argv[i]) ) {
+      cmd.overlapP = TRUE;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.overlap, 1);
+      cmd.overlapC = i-keep;
+      checkFloatLower("-overlap", &cmd.overlap, cmd.overlapC, 1.0);
+      checkFloatHigher("-overlap", &cmd.overlap, cmd.overlapC, 0.05);
+      continue;
+    }
+
     if( 0==strcmp("-harmsum", argv[i]) ) {
       cmd.harmsumP = TRUE;
       keep = i;
@@ -634,6 +681,16 @@ parseCmdline(int argc, char **argv)
       cmd.harmsumC = i-keep;
       checkIntLower("-harmsum", &cmd.harmsum, cmd.harmsumC, 20);
       checkIntHigher("-harmsum", &cmd.harmsum, cmd.harmsumC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-numbetween", argv[i]) ) {
+      cmd.numbetweenP = TRUE;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.numbetween, 1);
+      cmd.numbetweenC = i-keep;
+      checkIntLower("-numbetween", &cmd.numbetween, cmd.numbetweenC, 16);
+      checkIntHigher("-numbetween", &cmd.numbetween, cmd.numbetweenC, 1);
       continue;
     }
 

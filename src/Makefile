@@ -144,9 +144,10 @@ FLINKFLAGS = $(FFLAGS)
 #FLINK = $(F77)
 #FLINKFLAGS = $(FFLAGS)
 
-PRESTOOBJS = apprgrdn.o barycenter.o cand_output.o characteristics.o\
-	chkio.o corr_prep.o corr_routines.o correlations.o database.o\
-	dcdflib.o dispersion.o fastffts.o fftcalls.o fminbr.o fold.o\
+PRESTOOBJS = apprgrdn.o barycenter.o birdzap.o cand_output.o\
+	characteristics.o chkio.o corr_prep.o corr_routines.o\
+	correlations.o database.o dcdflib.o dispersion.o\
+	fastffts.o fftcalls.o fminbr.o fold.o\
 	fresnl.o ioinf.o get_candidates.o iomak.o ipmpar.o\
 	maximize_r.o maximize_rz.o maximize_rzw.o minifft.o\
 	misc_utils.o orbint.o output.o read_fft.o responses.o\
@@ -172,6 +173,7 @@ cligs:
 	cd ../clig ; clig -o prepfold_cmd -d prepfold_cmd.cli
 	cd ../clig ; clig -o bincand_cmd -d bincand_cmd.cli
 	cd ../clig ; clig -o search_bin_cmd -d search_bin_cmd.cli
+	cd ../clig ; clig -o search_rzw_cmd -d search_rzw_cmd.cli
 	cd ../clig ; clig -o readfile_cmd -d readfile_cmd.cli
 	mv ../clig/*_cmd.h ../include/
 	mv ../clig/*_cmd.c .
@@ -290,8 +292,8 @@ search_bin: search_bin.o search_bin_cmd.o
 	$(CC) $(CFLAGS) -o $@ search_bin.o search_bin_cmd.o $(EXTRALINK) $(PRESTOLINK)  -lm
 	cp $@ ../bin
 
-search_rzw: search_rzw.o
-	$(CC) $(CFLAGS) -o $@ search_rzw.o $(EXTRALINK) $(PRESTOLINK) -lm
+search_rzw: search_rzw.o search_rzw_cmd.o
+	$(CC) $(CFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
 swap_endian:

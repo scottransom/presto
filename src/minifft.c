@@ -11,7 +11,7 @@ void print_rawbincand(rawbincand cand);
 
 void search_minifft(fcomplex *minifft, int numminifft, \
 		    rawbincand *cands, int numcands, int numharmsum, \
-		    double numfullfft, double timefullfft, \
+		    int numbetween, double numfullfft, double timefullfft, \
 		    double lorfullfft, presto_interptype interptype, \
 		    presto_checkaliased checkaliased)
   /* This routine searches a short FFT (usually produced using the   */
@@ -26,6 +26,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*      the sorted (in decreasing sigma) candidates are returned   */
   /*   'numcands' is the length of the 'cands' vector                */
   /*   'numharmsum' the number of harmonics to sum during the search */
+  /*   'numbetween' the points to interpolate per bin                */
   /*   'numfullfft' the number of points in the original long FFT    */
   /*   'timefullfft' the duration of the original time series (s)    */
   /*   'lorfullfft' the 1st bin of the long FFT that was miniFFT'd   */
@@ -39,20 +40,25 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*      CHECK_ALIASED = harmonic summing includes aliased freqs    */
   /*        making it slower but more sensitive.                     */
 {
-  int ii, jj, fftlen, fftlen2, offset, numtosearch;
+  int ii, jj, fftlen, offset, numtosearch;
   int numspread = 0, kern_half_width, numkern = 0;
   float powargr, powargi, *fullpows = NULL, *sumpows;
-  double twobypi, minpow = 0.0, minsig;
+  double twobypi, minpow = 0.0, minsig, dr;
   static int firsttime = 1, old_numminifft = 0;
   static fcomplex *kernel;
   fcomplex *spread, *kern;
 
-  /* NOTE:  This routine is hard-wired for numbetween = 2 */
+  /* Override the value of numbetween if interbinning */
 
+  if (interptype == INTERBIN)
+    numbetween = 2;
+
+  /* Prep some other values we will need */
+
+  dr = 1.0 / (double) numbetween;
   twobypi = 1.0 / PIBYTWO;
-  fftlen = numminifft * 2;
-  fftlen2 = numminifft * 4;
-  numspread = padfftlen(numminifft, 2, &kern_half_width);
+  fftlen = numminifft * numbetween;
+  numspread = padfftlen(numminifft, numbetween, &kern_half_width);
   for (ii = 0; ii < numcands; ii++){
     cands[ii].mini_sigma = 0.0;
     cands[ii].mini_power = 0.0;
@@ -63,8 +69,8 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   if (interptype == INTERPOLATE){
     if (firsttime || (old_numminifft != numminifft)){
       if (!firsttime) free(kernel);
-      numkern = 4 * kern_half_width;
-      kern = gen_r_response(0.0, 2, numkern);
+      numkern = 2 * numbetween * kern_half_width;
+      kern = gen_r_response(0.0, numbetween, numkern);
       kernel = gen_cvect(numspread);
       place_complex_kernel(kern, numkern, kernel, numspread);
       COMPLEXFFT(kernel, numspread, -1);
@@ -77,11 +83,11 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Spread and interpolate the minifft */
   
   spread = gen_cvect(numspread);
-  spread_with_pad(minifft, numminifft, spread, numspread, 2, 0);
+  spread_with_pad(minifft, numminifft, spread, numspread, numbetween, 0);
   /* Nyquist is in spread[0].i, but it is usually */
   /* _big_ so we won't use it.                    */
   spread[0].r = spread[fftlen].r = 1.0;
-  spread[0].i = spread[fftlen].r = 0.0;
+  spread[0].i = spread[fftlen].i = 0.0;
   if (interptype == INTERPOLATE){  /* INTERPOLATE */
     spread = complex_corr_conv(spread, kernel, numspread, \
 			       FFTD, INPLACE_CORR);
@@ -92,7 +98,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     }
   }
 
-  numtosearch = (checkaliased == CHECK_ALIASED) ? fftlen2 : fftlen;
+  numtosearch = (checkaliased == CHECK_ALIASED) ? 2 * fftlen : fftlen;
   fullpows = gen_fvect(numtosearch);
   fullpows[0] = 1.0;
   fullpows[fftlen] = 1.0;  /* used to be nyquist^2 */
@@ -101,10 +107,10 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* we consider aliased frequencies as well (If CHECK_ALIASED).    */
   
   if (checkaliased == CHECK_ALIASED)
-    for (ii = 1, jj = fftlen2 - 1; ii < fftlen; ii++, jj--)
+    for (ii = 1, jj = numtosearch - 1; ii < fftlen; ii++, jj--)
       fullpows[ii] = fullpows[jj] = POWER(spread[ii].r, spread[ii].i);
   else
-    for (ii = 1; ii < fftlen; ii++)
+    for (ii = 1; ii < numtosearch; ii++)
       fullpows[ii] = POWER(spread[ii].r, spread[ii].i);
   free(spread);
 
@@ -112,7 +118,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
 
   for (ii = 1; ii < numtosearch; ii++) {
     if (fullpows[ii] > minpow) {
-      cands[numcands-1].mini_r = 0.5 * (double) ii; 
+      cands[numcands-1].mini_r = dr * (double) ii; 
       cands[numcands-1].mini_power = fullpows[ii];
       cands[numcands-1].mini_numsum = 1.0;
       cands[numcands-1].mini_sigma = 
@@ -133,7 +139,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
       for (jj = 0; jj < numtosearch; jj++){
 	sumpows[jj] += fullpows[(jj + offset) / ii];
 	if (sumpows[jj] > minpow) {
-	  cands[numcands-1].mini_r = 0.5 * (double) jj; 
+	  cands[numcands-1].mini_r = dr * (double) jj; 
 	  cands[numcands-1].mini_power = sumpows[jj];
 	  cands[numcands-1].mini_numsum = (double) ii;
 	  cands[numcands-1].mini_sigma = 
@@ -171,7 +177,7 @@ static int padfftlen(int minifftlen, int numbetween, int *padlen)
   /* First choose an appropriate number of full pad bins */
 
   *padlen = minifftlen / 8;
-  lowaccbins = r_resp_halfwidth(LOWACC);
+  lowaccbins = r_resp_halfwidth(LOWACC) * (numbetween / 2);
   if (*padlen > lowaccbins) *padlen = lowaccbins;
 
   /* Now choose the FFT length (This requires an FFT that */

@@ -1,7 +1,7 @@
 #include "presto.h"
+#include "search_rzw_cmd.h"
 
 #define SHORTESTFFT 32768	/* The shortest data set we will look at */
-#define LOSKIP      200		/* The min # of low freq bins to skip    */
 
 /* To do:  - Make an MPI version.                                        */
 /*           Should allow the saving of specific output files that       */
@@ -42,15 +42,15 @@ int main(int argc, char *argv[])
   FILE *fftfile, *candfile, *poscandfile;
   double dt, nph, T, N, bigz, hir, hiz, dz = 2.0, dr;
   double powavg, powsdev, powvar, powskew, powkurt;
+  double *zapfreqs = NULL, *zapwidths = NULL;
   float powargr, powargi, locpow = 1.0, *powlist;
   float powdiff, hipowchop, lowpowlim;
   float chkpow = 0.0, hipow = 0.0, minpow = 0.0, numr = 0.0;
   fcomplex *response, **kernels, *corrdata, *filedata; 
-  unsigned long totnumsearched = 0, nreal;
-  int numbetween = 2, startbin, lofreq = 0.0, lobinskip, hibinskip;
+  unsigned long totnumsearched = 0;
+  int numbetween = 2, startbin, numkern, kern_half_width;
   int nbins, nr = 1, nz, corrsize = 0, mincorrsize, worknumbins = 0;
-  int rlo, rhi, zlo = 0, zhi = 0, numkern, kern_half_width;
-  int ii, ct, zct, nextbin, filedatalen;
+  int ii, ct, zct, nextbin, filedatalen, numzap = 0;
   int ncand, newncand, oldper = 0, newper = 0;
   char filenm[200], candnm[200], poscandnm[200], *notes;
   char rzwnm[200];
@@ -61,122 +61,98 @@ int main(int argc, char *argv[])
   infodata idata;
   struct tms runtimes;
   double ttim, utim, stim, tott;
+  Cmdline *cmd;
+
+  /* Prep the timer */
 
   tott = times(&runtimes) / (double) CLK_TCK;
-  if ((argc < 5) || (argc > 8)) {
-    printf("\nUsage:  search_rzw filename ncand zlo zhi [lofreq] [rlo] [rhi]\n\n");
-    printf("  Mandatory arguments:\n");
-    printf("   'filename' = a string containing the FFT file's name.\n");
-    printf("                You must have an '.inf' file of the same\n");
-    printf("                name as well.  Do not add a suffix.\n");
-    printf("                Candidates will be returned in a file called\n");
-    printf("                'filename_rzw.cand'.  A Postscript format\n");
-    printf("                candidate list will be in 'filename_rzw.ps'.\n");
-    printf("      'ncand' = (int) The routine will return 'ncand' candidates.\n");
-    printf("                Must be less than or equal to 5000.\n");
-    printf("        'zlo' = (int) lowest Fourier freq deriv to search.\n");
-    printf("        'zhi' = (int) highest Fourier freq deriv to search.\n\n");
-    printf("  Optional arguments:\n");
-    printf("     'lofreq' = (int) Lowest Fourier bin in FFT file.  This is\n");
-    printf("                useful if you chop a long FFT for space reasons.\n");
-    printf("                If 'lofreq' is present and not equal to '0', \n");
-    printf("                we will assume the 0th frequency bin = 1 for\n");
-    printf("                normalization purposes.\n");
-    printf("        'rlo' = (int) lowest Fourier bin to search.\n");
-    printf("        'rhi' = (int) highest Fourier bin to search.\n\n");
-    printf("  'search_rzw' will search a region of the f-fdot plane for \n");
-    printf("  pulsations in a file containing a long, single precision FFT\n");
-    printf("  using the Correlation method (i.e. Ransom and \n");
-    printf("  Eikenberry, 1997, unpublished as of yet).\n");
-    printf("  The search uses a spacing of 0.5 frequency bins in\n");
-    printf("  the fourier frequency (r) direction and 2 'bins' in\n");
-    printf("  the fdot (z) direction.\n");
-    printf("  The routine outputs formatted statistics for the 'ncand'\n");
-    printf("  best candidates found in the search region.  If the\n");
-    printf("  optional arguments are ommitted, the routine will search\n");
-    printf("  the whole FFT file and assume the first bin is freq=0.\n\n");
-    printf("  The routine currently cannot search the 'w' dimension.\n");
-    printf("  This may be fixed shortly.\n");
-    printf("                                        7 Nov 1997\n\n");
-    exit(0);
+
+  /* Call usage() if we have no command line arguments */
+
+  if (argc == 1) {
+    Program = argv[0];
+    printf("\n");
+    usage();
+    exit(1);
   }
+
+  /* Parse the command line using the excellent program Clig */
+
+  cmd = parseCmdline(argc, argv);
+
+#ifdef DEBUG
+  showOptionValues();
+#endif
+
   printf("\n\n");
   printf("       Pulsar Acceleration Search Routine\n");
   printf("              by Scott M. Ransom\n");
-  printf("                  7 Nov, 1997\n\n");
+  printf("                  17 Nov, 1999\n\n");
 
   /* Initialize the input filename: */
 
-  sprintf(filenm, "%s.fft", argv[1]);
+  sprintf(filenm, "%s.fft", cmd->argv[0]);
 
   /* Read the info file */
 
-  readinf(&idata, argv[1]);
+  readinf(&idata, cmd->argv[0]);
   if (idata.object) {
     printf("Analyzing %s data from '%s'.\n\n", idata.object, filenm);
   } else {
     printf("Analyzing data from '%s'.\n\n", filenm);
+  }
+  dt = idata.dt;
+  N = idata.N;
+  T = N * dt;
+
+  /* If there are 'birdies' to zap, read the 'zapfile' */
+
+  if (cmd->zapfileP){
+    numzap = read_zapfile(cmd->zapfile, &zapfreqs, &zapwidths);
+
+    /* Convert the freqs and freq-widths to bins and bin-widths */
+
+    for (ii = 0; ii < numzap; ii++){
+      zapfreqs[ii] *= T;
+      zapwidths[ii] *= T;
+printf("%3d:  %15.10f  %15.10f\n", ii, zapfreqs[ii], zapwidths[ii]);  
+    }
   }
 
   /* open the FFT file and get its length */
 
   fftfile = chkfopen(filenm, "rb");
   nph = get_numphotons(fftfile);
-  nreal = chkfilelen(fftfile, sizeof(float));
+  nbins = chkfilelen(fftfile, sizeof(fcomplex));
 
   /* # of fourier frequencies */
 
-  nbins = nreal >> 1;
-  if (nreal < SHORTESTFFT) {
+  if (nbins < SHORTESTFFT / 2) {
     printf("\nFFT is too short to use this routine.\n\n");
     exit(1);
   }
   chkfileseek(fftfile, 0L, sizeof(char), SEEK_SET);
 
-  /* zlo and zhi */
-
-  zlo = atoi(argv[3]);
-  zhi = atoi(argv[4]);
-
   /* insure we have a spacing of dz = 2 */
 
-  if ((zhi - zlo) & 1)
-    zhi++;
-  if ((zlo < -2000000) || (zhi > 2000000)) {
-    printf("\nFrequency derivatives to search are out of range.\n\n");
-    exit(1);
-  }
-  bigz = DMAX(fabs((double) zlo), fabs((double) zhi));
+  if ((cmd->zhi - cmd->zlo) & 1) cmd->zhi++;
+  bigz = DMAX(fabs((double) cmd->zlo), fabs((double) cmd->zhi));
   kern_half_width = z_resp_halfwidth(bigz, LOWACC);
-  nz = (int) ((zhi - zlo) / dz) + 1;
+  nz = (int) ((cmd->zhi - cmd->zlo) / dz) + 1;
 
-  /* Initialize the input filename: */
+  /* Determine the output filenames */
 
-  sprintf(candnm, "%s_rzw_z:%d_%d.cand", argv[1], zlo, zhi);
-  sprintf(poscandnm, "%s_rzw_z:%d_%d.pos", argv[1], zlo, zhi);
-  sprintf(rzwnm, "%s_rzw_z:%d_%d", argv[1], zlo, zhi);
-
-  /* Skip the lowest LOSKIP bins due to low frequency errors  */
-  /* unless you specifically give rlo on the command line.    */
-  /* Do the same at the high freqs.                           */
-
-  lobinskip = bigz / 4;
-  hibinskip = lobinskip;
-  if (lobinskip < LOSKIP)
-    lobinskip = LOSKIP;
-  rlo = lobinskip;
-  rhi = nbins - 1 - hibinskip;
-
-  /* Check other arguments */
+  sprintf(candnm, "%s_rzw_z:%d_%d.cand", cmd->argv[0], 
+	  cmd->zlo, cmd->zhi);
+  sprintf(poscandnm, "%s_rzw_z:%d_%d.pos", cmd->argv[0], 
+	  cmd->zlo, cmd->zhi);
+  sprintf(rzwnm, "%s_rzw_z:%d_%d", cmd->argv[0], 
+	  cmd->zlo, cmd->zhi);
 
   /* The number of candidates to save */
 
-  ncand = atoi(argv[2]);
-  ncand = (int) (ncand * 1.5);
-  if ((ncand < 1) || (ncand > 15000)) {
-    printf("\n'ncand' must be >= 1 and <= 10000.\n\n");
-    exit(1);
-  }
+  ncand = (int) (cmd->ncand * 1.5);
+
   /* Determine the correlation sizes we will use: */
 
   /* The following mincorrsize ensures that we never waste more */
@@ -189,21 +165,18 @@ int main(int argc, char *argv[])
   /* memory at all times. (nz kernels, 1 data set, 1 result)      */
   /* Therefore worknumbins is the largest corrsize we can have.   */
 
-  worknumbins = (int) ((MAXREALFFT >> 1) / (nz + 2));
+  worknumbins = (int) (MAXREALFFT / (2 * (nz + 2)));
 
-  /* Determine corrsize */
+  /* Determine corrsize:  Insure smaller than worknumbins */
+  /* then divide by two again just to be sure...          */
 
-  corrsize = next2_to_n(worknumbins);
-
-  /* Insure smaller than worknumbins then *0.5 to be sure... */
-
-  corrsize >>= 2;
-
+  corrsize = next2_to_n(worknumbins) / 4;
   if (mincorrsize > corrsize) {
     printf("\nYou are asking for too much memory.  Specify\n");
-    printf("fewer z values to search, or lower z values.\n\n");
+    printf("  fewer z values to search.  Exiting.\n\n");
     exit(1);
   }
+
   /* Generate the correlation kernels */
 
   printf("Generating fdot kernels for the correlations...\n");
@@ -211,7 +184,7 @@ int main(int argc, char *argv[])
   kernels = gen_cmatrix(nz, corrsize);
   numkern = 2 * numbetween * kern_half_width;
   for (ii = 0; ii < nz; ii++) {
-    response = gen_z_response(0.0, numbetween, zlo + ii * dz, numkern);
+    response = gen_z_response(0.0, numbetween, cmd->zlo + ii * dz, numkern);
     place_complex_kernel(response, numkern, kernels[ii], corrsize);
     free(response);
     COMPLEXFFT(kernels[ii], corrsize, -1);
@@ -221,32 +194,31 @@ int main(int argc, char *argv[])
 
   /* The lowest freq present in the FFT file */
 
-  if (argc >= 6) {
-    lofreq = atoi(argv[5]);
-    if ((lofreq < 0) || (lofreq > nbins - 1)) {
-      printf("\n'lofreq' is out of range.\n\n");
+  if (cmd->lobin > 0){
+    nph = 1.0;
+    if (cmd->lobin > nbins - 1) {
+      printf("\n'lobin' is greater than the total number of\n");
+      printf("   frequencies in the data set.  Exiting.\n\n");
       exit(1);
     }
-    if (lofreq != 0)
-      nph = 1.0;
   }
+
   /* rlo and rhi */
 
-  if (argc >= 7) {
-    rlo = atoi(argv[6]);
-    if ((rlo < lofreq) || (rlo > nbins - 1)) {
-      printf("\nLow frequency to search (rlo) is out of range.\n\n");
-      exit(1);
-    }
+  if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
+  if (cmd->rlo > nbins - 1) {
+    printf("\nLow frequency to search 'rlo' is greater than\n");
+    printf("   the available number of points.  Exiting.\n\n");
+    exit(1);
   }
-  if (argc == 8) {
-    rhi = atoi(argv[7]);
-    if ((rhi < rlo) || (rhi > nbins - 1)) {
-      printf("\nHigh frequency to search (rhi) is out of range.\n\n");
-      printf("\nFrequencies to search are out of range.\n\n");
-      exit(1);
-    }
+  if (!cmd->rhiP || 
+      (cmd->rhi > nbins - 1)) cmd->rhi = nbins - 1;
+  if (cmd->rhi < cmd->rlo){
+    printf("\nHigh frequency to search 'rhi' is less than\n");
+    printf("   the lowest frequency to search 'rlo'.  Exiting.\n\n");
+    exit(1);
   }
+
   /* Allocate some memory */
 
   list = malloc(sizeof(position) * ncand);
@@ -255,10 +227,7 @@ int main(int argc, char *argv[])
   corrdata = gen_cvect(corrsize);
 
   dr = 1.0 / (double) numbetween;
-  dt = idata.dt;
-  N = idata.N;
-  T = N * dt;
-  numr = (rhi - rlo + 1) * nz / dr;
+  numr = (cmd->rhi - cmd->rlo + 1) * nz / dr;
   filedatalen = corrsize / numbetween;
 
   /* We will automatically get rid of any candidates that have local */
@@ -279,7 +248,7 @@ int main(int argc, char *argv[])
 
   /* Start the main search loop */
 
-  nextbin = rlo;
+  nextbin = cmd->rlo;
 
   do {
 
@@ -321,8 +290,8 @@ int main(int argc, char *argv[])
 	/* Get approximate local power statistics */
 
 	powlist = gen_fvect(nr);
-	worknumbins = (nextbin > rhi) ? \
-	  (rhi - startbin) * numbetween : nr;
+	worknumbins = (nextbin > cmd->rhi) ? \
+	  (cmd->rhi - startbin) * numbetween : nr;
 	for (ii = 0; ii < worknumbins; ii++) 
 	  powlist[ii] = POWER(corrdata[ii].r, corrdata[ii].i);
 	stats(powlist, worknumbins, &powavg, &powvar, &powskew, &powkurt);
@@ -357,10 +326,17 @@ int main(int argc, char *argv[])
 	if (chkpow > minpow) {
 	  newpos.pow = chkpow;
 	  newpos.p1 = startbin + ii * dr;
-	  if (newpos.p1 > rhi)
+	  if (newpos.p1 > cmd->rhi)
 	    break;
-	  newpos.p2 = zlo + zct * dz;
+	  newpos.p2 = cmd->zlo + zct * dz;
 	  newpos.p3 = 0.0;
+
+	  /* If there is a zapfile, check to see if our candidate */
+	  /* matches one of the 'birdies'.  If it does, continue. */
+
+	  if (cmd->zapfileP && 
+	      check_to_zap(newpos.p1, zapfreqs, zapwidths, numzap))
+	    continue;
 
 	  /* Check to see if another candidate with these properties */
 	  /* is already in the list.                                 */
@@ -374,7 +350,7 @@ int main(int argc, char *argv[])
       totnumsearched += worknumbins;
     }
     free(filedata);
-  } while (nextbin <= rhi);
+  } while (nextbin <= cmd->rhi);
 
   /* Free the memory used by the correlation kernels */
 
@@ -414,7 +390,7 @@ int main(int argc, char *argv[])
     }
     hipow = max_rz_file(fftfile, list[ii].p1, list[ii].p2, \
 			&hir, &hiz, &derivs[ii]);
-    calc_props(derivs[ii], hir + lofreq, hiz, 0.0, &props[ii]);
+    calc_props(derivs[ii], hir + cmd->lobin, hiz, 0.0, &props[ii]);
   }
   printf("\rAmount of optimization complete = %3d%%\n\n", 100);
 
@@ -424,7 +400,7 @@ int main(int argc, char *argv[])
   /* Do fine scale duplicate removal and other cleaning */
 
   newncand -= remove_dupes2(props, newncand);
-  newncand -= remove_other(props, newncand, rlo, rhi, lowpowlim);
+  newncand -= remove_other(props, newncand, cmd->rlo, cmd->rhi, lowpowlim);
 
   /* Set our candidate notes to all spaces */
 
@@ -453,8 +429,9 @@ int main(int argc, char *argv[])
 
   /* Send the candidates to the text file */
 
+  if (cmd->ncand < newncand) newncand = cmd->ncand;
   file_reg_candidates(props, notes, newncand, dt, \
-		      (long) (N + DBLCORRECT), nph, argv[1], rzwnm);
+		      (long) (N + DBLCORRECT), nph, cmd->argv[0], rzwnm);
 
   /* Finish up */
 
@@ -483,6 +460,10 @@ int main(int argc, char *argv[])
   free(derivs);
   free(props);
   free(notes);
+  if (cmd->zapfileP){
+    free(zapfreqs);
+    free(zapwidths);
+  }
   if (idata.onoff) free(idata.onoff);
   return (0);
 }
