@@ -26,6 +26,12 @@ int dgels_(char *trans, int *mm, int *nn, int *nrhs,
 	   double *aa, int *lda, double *bb, int *ldb, 
 	   double *work, int *lwork, int *info);
 
+double calc_phase(double t, double f, double fd, double fdd)
+/* Calculate the instantaneout phase at time t given f, fd and fdd */
+{
+  return t * (f + t * (0.5 * fd  + fdd / 6.0 * t));
+}
+
 int bary2topo(double *topotimes, double *barytimes, int numtimes, 
 	      double fb, double fbd, double fbdd, 
 	      double *ft, double *ftd, double *ftdd)
@@ -89,17 +95,19 @@ int main(int argc, char *argv[])
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
-  double difft, tt, recdt=0.0, *dispdts=NULL, *dms=NULL, *parttimes=NULL;
+  double bestdm=0.0, bestp=0.0, bestpd=0.0;
+  double difft, tt, recdt=0.0, *dispdts=NULL;
+  double *periods, *pdots, *parttimes, *dms=NULL, *bestprof;
   double orb_baryepoch=0.0, topoepoch=0.0, baryepoch=0.0, barydispdt;
   double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
-  double N=0.0, dt=0.0, T, endtime=0.0, dtdays, avgvoverc=0.0;
+  double N=0.0, dt=0.0, T=0.0, endtime=0.0, dtdays, avgvoverc=0.0;
   double *voverc=NULL, *obsf=NULL, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL, proftime;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
   int numchan=1, binary=0, np, pnum, numdelays=0;
   int info, slen, ptsperrec=1, flags=1;
-  long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part;
+  long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0;
   long numbinpoints=0, proflen, currentrec=0;
   unsigned long numrec=0, arrayoffset=0;
@@ -110,7 +118,7 @@ int main(int argc, char *argv[])
   psrdatabase pdata;
   infodata idata, rzwidata;
   Cmdline *cmd;
-  foldstats *stats, beststats, currentstats;
+  foldstats *stats;
 
   /* Call usage() if we have no command line arguments */
 
@@ -214,13 +222,22 @@ int main(int argc, char *argv[])
     dt = idata.dt;
     dtdays = idata.dt / SECPERDAY;
     recdt = dt * ptsperrec;
-    T = numrec * recdt;
 
     /* Determine the number of records to use from the command line */
 
     lorec = (long) (cmd->startT * numrec + DBLCORRECT);
     hirec = (long) (cmd->endT * numrec + DBLCORRECT);
     numrec = hirec - lorec;
+
+    /* The number of reads from the file we need for */
+    /* each sub-integration.                         */ 
+
+    reads_per_part = numrec / cmd->npart;
+
+    /* Correct numrec so that each part will contain */
+    /* the same number of records.                   */
+
+    numrec = reads_per_part * cmd->npart;
     T = numrec * recdt;
     N = numrec * ptsperrec;
     endtime = T + 2 * TDT;
@@ -298,8 +315,19 @@ int main(int argc, char *argv[])
     lorec = (long) (cmd->startT * N + DBLCORRECT);
     hirec = (long) (cmd->endT * N + DBLCORRECT);
     N = hirec - lorec;
-    T = N * dt;
     numrec = N / worklen;
+
+    /* The number of reads from the file we need for */
+    /* each sub-integration.                         */ 
+
+    reads_per_part = numrec / cmd->npart;
+
+    /* Correct numrec so that each part will contain */
+    /* the same number of records.                   */
+
+    numrec = reads_per_part * cmd->npart;
+    N = numrec * worklen;
+    T = N * dt;
     endtime = T + 2 * TDT;
 
     if (cmd->nobaryP){
@@ -557,11 +585,6 @@ int main(int argc, char *argv[])
   else
     chkfileseek(infile, lorec, sizeof(float), SEEK_SET);
 
-  /* The number of reads from the file we need for */
-  /* each sub-integration.                         */
-  
-  reads_per_part = numrec / cmd->npart;
-
   /* Correct our fold parameters if we are barycentering */
 
   if (cmd->nobaryP) {
@@ -714,64 +737,135 @@ int main(int argc, char *argv[])
    */
 
   printf("\nOptimizing...\n\n");
+  {
+    int ll, numtrials, pdelay, pddelay, profindex;
+    double dphase, dp, dpd, po, pdo, pddo, lop, lopd, pofact;
+    double *pdprofs, currentf, currentfd, *currentprof;
+    foldstats beststats, currentstats;
 
-  /* If we are searching through DM space */
+    /* The number of trials for the P-dot and P searches */
 
-  if (cmd->nsub > 1){
-    int numdmtrials, *dmdelays;
-    double dphase, lodm, ddm, redchi, hifdelay;
-    double *ddprofs, *ddprofavgs, *ddprofvars, *subbanddelays;
+    numtrials = 2 * proflen + 1;
+
+    /* Initialize a bunch of variables */
+
+    periods = gen_dvect(numtrials);
+    pdots = gen_dvect(numtrials);
+    pdprofs = gen_dvect(cmd->npart * proflen);
+    currentprof = gen_dvect(proflen);
+    bestprof = gen_dvect(proflen);
+    initialize_foldstats(&beststats);
+
+    /* Convert the folding freqs and derivs to periods */
     
-    dmdelays = gen_ivect(cmd->nsub);
-    ddprofs = gen_dvect(cmd->npart * proflen);
-    ddprofavgs = gen_dvect(cmd->npart);
-    ddprofvars = gen_dvect(cmd->npart);
+    switch_f_and_p(foldf, foldfd, foldfdd, &po, &pdo, &pddo);
     
-    /* Our DM step is the change in DM that would cause the pulse */
-    /* to be delayed 1 phasebin at the lowest frequency.          */
+    /* Our P and P-dot steps are the changes that cause the pulse */
+    /* to be delayed 1 bin between the first and last bins.       */
     
-    dphase = 1.0 / (foldf * proflen);
-    ddm = dm_from_delay(dphase, obsf[0]);
+    dphase = po / proflen;
+    pofact = 1.0 / (po * po);
+    dtmp = po / T;
+    dp = dphase / T;
+    dpd = 2.0 * dphase * dtmp * dtmp;
+    lop = po - (numtrials - 1) / 2 * dp;
+    lopd = pdo - (numtrials - 1) / 2 * dpd;
+    for (ii = 0; ii < numtrials; ii++){
+      periods[ii] = lop + ii * dp;
+      pdots[ii] = lopd + ii * dpd;
+    }
+
+    /* If we are searching through DM space */
     
-    /* Insure that we don't try a dm < 0.0 */
-    
-    if (cmd->dm - proflen * ddm < 0.0){
-      numdmtrials = (int)(cmd->dm / ddm) + proflen + 1;
-      lodm = cmd->dm - (int)(cmd->dm / ddm);
+    if (cmd->nsub > 1){
+      int numdmtrials, *dmdelays;
+      double lodm, ddm, hifdelay, *ddprofs, *subbanddelays;
+      foldstats *ddstats;
+      
+      dmdelays = gen_ivect(cmd->nsub);
+      ddprofs = gen_dvect(cmd->npart * proflen);
+      ddstats = (foldstats *)malloc(cmd->npart * sizeof(foldstats));
+      
+      /* Our DM step is the change in DM that would cause the pulse */
+      /* to be delayed 1 phasebin at the lowest frequency.          */
+      
+      ddm = dm_from_delay(dphase, obsf[0]);
+      
+      /* Insure that we don't try a dm < 0.0 */
+      
+      if (cmd->dm - proflen * ddm < 0.0){
+	numdmtrials = (int)(cmd->dm / ddm) + proflen + 1;
+	lodm = cmd->dm - (int)(cmd->dm / ddm);
+      } else {
+	numdmtrials = 4 * proflen + 1;
+	lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
+      }
+      dms = gen_dvect(numdmtrials);
+      
+      /* De-disperse and combine the subbands */
+      
+      for (ii = 0; ii < numdmtrials; ii++){  /* Loop over DMs */
+	dms[ii] = lodm + ii * ddm;
+	hifdelay = delay_from_dm(dms[ii], obsf[numchan - 1]);
+	subbanddelays = subband_delays(numchan, cmd->nsub, dms[ii], 
+				       idata.freq, idata.chan_wid,
+				       avgvoverc);
+	for (jj = 0; jj < cmd->nsub; jj++)
+	  dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
+				 dphase + 0.5)) % proflen;
+	free(subbanddelays);
+	combine_subbands(profs, stats, cmd->npart, cmd->nsub, proflen, 
+			 dmdelays, ddprofs, ddstats);
+	
+	/* Perform the P-dot and Period searches */
+
+	for (jj = 0; jj < numtrials; jj++){
+	  currentfd = -pdots[jj] * pofact;
+
+	  /* Correct each part for the current pdot */
+
+	  for (kk = 0; kk < cmd->npart; kk++){
+	    profindex = kk * proflen;
+	    pddelay = (int) (((currentfd - foldfd) * parttimes[kk] * 
+			     parttimes[kk]) / (2.0 * dphase) + 0.5);
+	    shift_prof(ddprofs + profindex, proflen, pddelay, 
+		       pdprofs + profindex);
+	  }
+
+	  /* Search over the periods */
+
+	  for (kk = 0; kk < numtrials; kk++){
+	    currentf = 1.0 / periods[kk];
+	    pdelay = (int) ((currentf - foldf) * parttimes[kk] / 
+			    dphase + 0.5);
+	    combine_profs(pdprofs, ddstats, cmd->npart, proflen, pdelay, 
+			  currentprof, &currentstats);
+	    if (currentstats.redchi > beststats.redchi){
+	      beststats = currentstats;
+	      for (ll = 0; ll < proflen; ll++)
+		bestprof[ll] = currentprof[ll];
+	      bestdm = dms[ii];
+	      bestpd = pdots[jj];
+	      bestp = periods[kk];
+	    }
+printf("dm = %g  p = %g  pd = %g  reduced chi = %f\n", 
+       dms[ii], periods[kk], pdots[jj], currentstats.redchi);
+	  }
+	}
+      }
+printf("\nBest: p = %g  pd = %g  dm = %g\n\n", bestp, bestpd, bestdm); 
+      quick_plot(bestprof, proflen);
+      free(dmdelays);
+      free(ddprofs);
+      free(ddstats);
+      
+      /* We are not searching through DM space */
+      
     } else {
-      numdmtrials = 4 * proflen + 1;
-      lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
     }
-    dms = gen_dvect(numdmtrials);
-    
-    /* De-disperse and combine the subbands */
-    
-    for (ii = 0; ii < numdmtrials; ii++){  /* Loop over DMs */
-      dms[ii] = lodm + ii * ddm;
-      hifdelay = delay_from_dm(dms[ii], obsf[numchan - 1]);
-      subbanddelays = subband_delays(numchan, cmd->nsub, dms[ii], 
-				     idata.freq, idata.chan_wid,
-				     avgvoverc);
-      for (jj = 0; jj < cmd->nsub; jj++)
-	dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
-			       dphase + 0.5)) % proflen;
-      free(subbanddelays);
-      combine_subbands(profs, stats, cmd->npart, cmd->nsub, proflen, 
-		       dmdelays, ddprofs, ddprofavgs, ddprofvars);
-      redchi = chisqr(ddprofs, proflen, ddprofavgs[0], 
-		      ddprofvars[0]) / (proflen - 1.0);
-      printf("dm = %f  reduced chi = %f\n", dms[ii], redchi);
-      /* quick_plot(ddprofs, proflen); */
-    }
-    free(dmdelays);
-    free(ddprofs);
-    free(ddprofavgs);
-    free(ddprofvars);
-
-  /* We are not searching through DM space */
-
-  } else {
-
+  
+    free(pdprofs);
+    free(currentprof);
   }
 
   /*
@@ -788,6 +882,9 @@ int main(int argc, char *argv[])
   free(rootfilenm);
   free(outfilenm);
   free(parttimes);
+  free(periods);
+  free(pdots);
+  free(bestprof);
   if (cmd->nsub > 1) free(dms);
   if (binary){
     free(Ep);

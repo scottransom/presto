@@ -240,16 +240,15 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 void combine_subbands(double *inprofs, foldstats *stats, 
 		      int numparts, int numsubbands, int proflen, 
 		      int *delays, double *outprofs, 
-		      double *outprofavgs, double *outprofvars)
+		      foldstats *outprofstats)
 /* Combine 'nparts' sets of 'numsubbands' profiles, each of length     */
 /* 'proflen' into a 'nparts' de-dispersed profiles.  The de-dispersion */
 /* uses the 'delays' (of which there are 'numsubbands' many) to        */
 /* show how many bins to shift each profile to the right.  Only        */
 /* positive numbers may be used (left shifts may be accomplished using */
 /* the shift modulo 'proflen').  The 'stats' about the profiles are    */
-/* combined as well and the combined profile averages and variances    */
-/* are returned in 'outprofavgs' and 'outprofvars' respectively.  All  */
-/* arrays must be pre-allocated.                                       */
+/* combined as well and the combined stats are returned in             */
+/* 'outprofstats'. All arrays must be pre-allocated.                   */
 {
   int ii, jj, kk, ptsperpart;
   int partindex, profindex, ptindex, outprofindex, statindex;
@@ -258,8 +257,8 @@ void combine_subbands(double *inprofs, foldstats *stats,
 
   for (ii = 0; ii < numparts * proflen; ii++) outprofs[ii] = 0.0;
   for (ii = 0; ii < numparts; ii++){
-    outprofavgs[ii] = 0.0;
-    outprofvars[ii] = 0.0;
+    initialize_foldstats(&(outprofstats[ii]));
+    outprofstats[ii].numprof = stats[0].numprof;
   }
   ptsperpart = numsubbands * proflen;
 
@@ -269,6 +268,7 @@ void combine_subbands(double *inprofs, foldstats *stats,
     outprofindex = ii * proflen;
     partindex = ii * ptsperpart;
     statindex = ii * numsubbands;
+    outprofstats[ii].numdata += stats[statindex].numdata;
     for (jj = 0; jj < numsubbands; jj++){  /* Step through subbands */
       profindex = partindex + jj * proflen;
 
@@ -284,11 +284,12 @@ void combine_subbands(double *inprofs, foldstats *stats,
       for (; kk < proflen; kk++, ptindex++)
 	outprofs[outprofindex + kk] += inprofs[ptindex];
 
-      /* Add the profile variances (this is adding in quadrature */
-      /* the profile standard deviations) and averages.          */
+      /* Update the foldstats */
 
-      outprofavgs[ii] += stats[statindex + jj].prof_avg;
-      outprofvars[ii] += stats[statindex + jj].prof_var;
+      outprofstats[ii].data_avg += stats[statindex + jj].data_avg;
+      outprofstats[ii].data_var += stats[statindex + jj].data_var;
+      outprofstats[ii].prof_avg += stats[statindex + jj].prof_avg;
+      outprofstats[ii].prof_var += stats[statindex + jj].prof_var;
     }
   }
 }

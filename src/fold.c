@@ -516,8 +516,9 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof)
 }
 
 
-void combine_profs(double *profs, int numprofs, int proflen, 
-		   int shift, double *outprof)
+void combine_profs(double *profs, foldstats *instats, int numprofs, 
+		   int proflen, int shift, double *outprof,
+		   foldstats *outstats)
 /* Combine a series of 'numprofs' profiles, each of length 'proflen', */
 /* into a single profile of length 'proflen'.  The profiles are       */
 /* summed after being shifted (+:right, -:left) by an an appropriate  */
@@ -525,12 +526,23 @@ void combine_profs(double *profs, int numprofs, int proflen,
 /* represented by all of the profiles.  Returns the summed profile in */
 /* 'outprof'.  Note that 'profs' must contain all of the profiles     */
 /* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
+/* The input profile stats in 'instats' are combined and placed in    */
+/* the 'outstats' structure.                                          */
 {
   int ii, jj, kk, index, numadd, offset, profoffset, negshift;
   double doffset, absshift;
 
   /* Note:  This routine uses only integer arithmetic in order to   */
   /*        speed up the computations.                              */
+
+  /* Initiate the output statistics */
+
+  outstats->numdata = instats[0].numdata;
+  outstats->data_avg = instats[0].data_avg;
+  outstats->data_var = instats[0].data_var;
+  outstats->numprof = proflen;
+  outstats->prof_avg = instats[0].prof_avg;
+  outstats->prof_avg = instats[0].prof_var;
 
   /* Set the output array to the first profile */
 
@@ -559,6 +571,32 @@ void combine_profs(double *profs, int numprofs, int proflen,
       
       for (kk = profoffset; jj < proflen; jj++, kk++)
       	outprof[jj] += profs[kk];
+
+      /* Update the output statistics structure */
+
+      outstats->numdata += instats[ii].numdata;
+      outstats->data_avg += instats[ii].data_avg;
+      outstats->data_var += instats[ii].data_var;
+      outstats->prof_avg += instats[ii].prof_avg;
+      outstats->prof_avg += instats[ii].prof_var;
     }
   }
+
+  /* Calculate the reduced chi-squared */
+
+  outstats->redchi = chisqr(outprof, proflen, outstats->prof_avg, 
+			    outstats->prof_var) / (proflen - 1.0);
+}
+
+
+void initialize_foldstats(foldstats *stats)
+/* Zeroize all of the components of stats */
+{
+  stats->numdata = 0.0;   /* Number of data bins folded         */
+  stats->data_avg = 0.0;  /* Average level of the data bins     */
+  stats->data_var = 0.0;  /* Variance of the data bins          */
+  stats->numprof = 0.0;   /* Number of bins in the profile      */
+  stats->prof_avg = 0.0;  /* Average level of the profile bins  */
+  stats->prof_var = 0.0;  /* Variance of the profile bins       */
+  stats->redchi = 0.0;    /* Reduced chi-squared of the profile */
 }

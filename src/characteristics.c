@@ -469,6 +469,19 @@ double chisqr(double *data, int numdata, double avg, double var)
   return chixmeas / var;
 }
 
+void switch_f_and_p(double in, double ind, double indd,
+		    double *out, double *outd, double *outdd)
+/* Convert p, p-dot, and p-dotdot into f, f-dot, */
+/* and f-dotdot or vise-versa.                   */
+{
+  double dtmp;
+
+  *out = 1.0 / in;
+  dtmp = in * in;
+  *outd = -ind / dtmp;
+  *outdd = 2.0 * ind * ind / (dtmp * in) - indd / dtmp;
+}
+
 
 /* Optional non-macro definitions of power and phase */
 /*
