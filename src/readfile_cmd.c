@@ -69,6 +69,8 @@ static Cmdline cmd = {
   /* pksP = */ 0,
   /***** -pk: Raw data in Parkes Multibeam format */
   /* spksP = */ 0,
+  /***** -bpp: Raw data in BPP format */
+  /* bppP = */ 0,
   /***** -fortran: Raw data was written by a fortran program */
   /* fortranP = */ 0,
   /***** -index: The range of objects to display */
@@ -936,6 +938,13 @@ showOptionValues(void)
     printf("-pk found:\n");
   }
 
+  /***** -bpp: Raw data in BPP format */
+  if( !cmd.bppP ) {
+    printf("-bpp not found.\n");
+  } else {
+    printf("-bpp found:\n");
+  }
+
   /***** -fortran: Raw data was written by a fortran program */
   if( !cmd.fortranP ) {
     printf("-fortran not found.\n");
@@ -986,7 +995,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-fortran] [-index [index]] [-nph nph] [--] file\n\
+ [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-bpp] [-fortran] [-index [index]] [-nph nph] [--] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
     -nopage: Don't paginate the output like 'more'\n\
       -byte: Raw data in byte format\n\
@@ -1011,6 +1020,7 @@ usage(void)
        -pos: Raw data in position struct format\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
         -pk: Raw data in Parkes Multibeam format\n\
+       -bpp: Raw data in BPP format\n\
    -fortran: Raw data was written by a fortran program\n\
      -index: The range of objects to display\n\
              0...2 int values between -1 and oo\n\
@@ -1020,7 +1030,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 value\n\
-version: 21Dec00\n\
+version: 06Apr01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1150,6 +1160,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-pk", argv[i]) ) {
       cmd.spksP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-bpp", argv[i]) ) {
+      cmd.bppP = 1;
       continue;
     }
 

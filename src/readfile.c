@@ -1,12 +1,13 @@
 #include <limits.h>
 #include "presto.h"
 #include "multibeam.h"
+#include "bpp.h"
 #include "readfile_cmd.h"
 
 /* #define DEBUG */
 
 #define PAGELEN 32   /* Set the page length to 32 lines */
-#define NUMTYPES 11
+#define NUMTYPES 12
 
 int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
@@ -19,11 +20,12 @@ int RZWCAND_print(long count, char *obj_ptr);
 int BINCAND_print(long count, char *obj_ptr);
 int POSITION_print(long count, char *obj_ptr);
 int PKMBHDR_print(long count, char *obj_ptr);
+int BPPHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 
 typedef enum{
   BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, 
-    RZWCAND, BINCAND, POSITION, PKMBHDR
+    RZWCAND, BINCAND, POSITION, PKMBHDR, BPPHDR
 } rawtypes;
 
 typedef struct fcplex{
@@ -47,12 +49,13 @@ int type_sizes[NUMTYPES] = {
   sizeof(fourierprops), \
   sizeof(rawbincand), \
   sizeof(position), \
-  49792  /* This is the length of a Parkes Multibeam record */
+  49792,  /* This is the length of a Parkes Multibeam record */
+  32768   /* This is the length of a BPP header */
 };
 
 int objs_at_a_time[NUMTYPES] = {
   PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 
-  PAGELEN, 1, 1, PAGELEN, 1
+  PAGELEN, 1, 1, PAGELEN, 1, 1
 };
 
 /* You don't see this every day -- An array of pointers to functions: */
@@ -68,7 +71,8 @@ int (*print_funct_ptrs[NUMTYPES])() = {
   RZWCAND_print, \
   BINCAND_print, \
   POSITION_print, \
-  PKMBHDR_print
+  PKMBHDR_print, \
+  BPPHDR_print
 };
 
 /* A few global variables */
@@ -123,6 +127,7 @@ int main(int argc, char **argv)
   else if (cmd->binP || cmd->sbinP) index = BINCAND;
   else if (cmd->posP || cmd->sposP) index = POSITION;
   else if (cmd->pksP || cmd->spksP) index = PKMBHDR;
+  else if (cmd->bppP) index = BPPHDR;
 
   /* Try to determine the data type from the file name */
 
@@ -245,6 +250,9 @@ int main(int argc, char **argv)
     objs_read = chkfread(data, type_sizes[index], objs_to_read, infile);
     for(j = 0; j < objs_read; j++)
       print_funct_ptrs[index](i + j, data + j * type_sizes[index]);
+    /* Just print 1 header for BPP files */
+    if (index==BPPHDR)
+      break;
     i += objs_read;
     if (!cmd->nopageP){
       fflush(NULL);
@@ -365,6 +373,16 @@ int PKMBHDR_print(long count, char *obj_ptr)
   object = (PKMB_tapehdr *) obj_ptr;
   printf("\n%ld:", count + 1);
   print_PKMB_hdr(object);
+  return 0;
+}
+
+int BPPHDR_print(long count, char *obj_ptr)
+{
+  BPP_SEARCH_HEADER *object;
+
+  object = (BPP_SEARCH_HEADER *) obj_ptr;
+  printf("\n%ld:", count + 1);
+  print_BPP_hdr(object);
   return 0;
 }
 

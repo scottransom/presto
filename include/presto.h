@@ -266,6 +266,15 @@ typedef struct foldstats {
 
 /*****  Function Prototypes    *****/
 
+/* From swapendian.c: */
+
+float swap_float(float var);
+double swap_double(double var);
+long double swap_longdouble(long double var);
+long long swap_longlong(long long var);
+int swap_int(int var);
+unsigned int swap_uint(unsigned int var);
+
 /* From responses.c: */
 
 int r_resp_halfwidth(presto_interp_acc accuracy);

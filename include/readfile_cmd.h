@@ -55,6 +55,8 @@ typedef struct s_Cmdline {
   char pksP;
   /***** -pk: Raw data in Parkes Multibeam format */
   char spksP;
+  /***** -bpp: Raw data in BPP format */
+  char bppP;
   /***** -fortran: Raw data was written by a fortran program */
   char fortranP;
   /***** -index: The range of objects to display */

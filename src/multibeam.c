@@ -332,10 +332,10 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
 /* This routine reads numpts from the PKMB raw input   */
 /* files *infiles.  These files contain 1 bit data     */
 /* from the PKMB backend at Parkes.  Time delays and   */
-/* and a mask are applied to each channel.  It returns */
-/* the # of points read if succesful, 0 otherwise.     */
+/* a mask are applied to each channel.  It returns     */
+/* the # of points read if successful, 0 otherwise.    */
 /* If padding is returned as 1, then padding was       */
-/* added and statistics should not be calculated       */
+/* added and statistics should not be calculated.      */
 /* maskchans is an array of length numchans contains   */
 /* a list of the number of channels that were masked.  */
 /* The # of channels masked is returned in nummasked.  */

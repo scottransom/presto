@@ -79,93 +79,23 @@ typedef struct PKMB_TAPEHDR {
 void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
 			int *ptsperblock, int *numchan, double *dt, 
 			double *T, int output);
-/* Read basic information into static variables and make padding      */
-/* calculations for a set of PKMB rawfiles that you want to patch     */
-/* together.  N, numchan, dt, and T are return values and include all */
-/* the files with the required padding.  If output is true, prints    */
-/* a table showing a summary of the values.                           */
-
 void PKMB_update_infodata(int numfiles, infodata *idata);
-/* Update the onoff bins section in case we used multiple files */
-
 int skip_to_PKMB_rec(FILE *infiles[], int numfiles, int rec);
-/* This routine skips to the record 'rec' in the input files   */
-/* *infiles.  *infiles contains 1 bit digitized data from the  */
-/* PKMB backend at Parkes.  Returns the record skipped to.     */
-
 int read_PKMB_rawblock(FILE *infiles[], int numfiles, 
 		       PKMB_tapehdr *hdr, unsigned char *data,
 		       int *padding);
-/* This routine reads a single record from the         */
-/* input files *infiles which contain 1 bit digitized  */
-/* data from the PKMB pulsar backend at Parkes.        */
-/* Length of a PKMB record is 640 bytes for the header */
-/* plus 48k of data = 49792 bytes.                     */
-/* The header of the record read is placed in hdr.     */
-/* *data must be pre-allocated with a size of 48k.     */
-/* If padding is returned as 1, then padding was       */
-/* added and statistics should not be calculated       */
-
 int read_PKMB_rawblocks(FILE *infiles[], int numfiles, 
 			unsigned char rawdata[], int numblocks,
 			int *padding);
-/* This routine reads numblocks PKMB records from the input */
-/* files *infiles.  The raw bit data is returned in rawdata */
-/* which must have a size of numblocks*DATLEN.  The number  */
-/* of blocks read is returned.                              */
-/* If padding is returned as 1, then padding was added      */
-/* and statistics should not be calculated                  */
-
 int read_PKMB(FILE *infiles[], int numfiles, float *data, 
 	      int numpts, double *dispdelays, int *padding,
 	      int *maskchans, int *nummasked, mask *obsmask);
-/* This routine reads numpts from the PKMB raw input   */
-/* files *infiles.  These files contain 1 bit data     */
-/* from the PKMB backend at Parkes.  Time delays and   */
-/* and a mask are applied to each channel.  It returns */
-/* the # of points read if succesful, 0 otherwise.     */
-/* If padding is returned as 1, then padding was       */
-/* added and statistics should not be calculated       */
-/* maskchans is an array of length numchans contains   */
-/* a list of the number of channels that were masked.  */
-/* The # of channels masked is returned in nummasked.  */
-/* obsmask is the mask structure to use for masking.   */
-
 void get_PKMB_channel(int channum, float chandat[], 
 		      unsigned char rawdata[], int numblocks);
-/* Return the values for channel 'channum' of a block of       */
-/* 'numblocks' raw PKMB data stored in 'rawdata' in 'chandat'. */
-/* 'rawdata' should have been initialized using                */
-/* read_PKMB_rawblocks(), and 'chandat' must have at least     */
-/* 'numblocks' * 'ptsperblk_st' spaces.                        */
-/* Channel 0 is assumed to be the lowest freq channel.         */
-
 int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
 		       double *dispdelays, int numsubbands, 
 		       int transpose, int *padding, 
 		       int *maskchans, int *nummasked, mask *obsmask);
-/* This routine reads a record from the input files *infiles[]   */
-/* which contain data from the PKMB system.  The routine uses    */
-/* dispersion delays in 'dispdelays' to de-disperse the data     */
-/* into 'numsubbands' subbands.  It stores the resulting data    */
-/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
-/* The low freq subband is stored first, then the next highest   */
-/* subband etc, with 'ptsperblk_st' floating points per subband. */
-/* It returns the # of points read if succesful, 0 otherwise.    */
-/* If padding is returned as 1, then padding was added and       */
-/* statistics should not be calculated.  'maskchans' is an array */
-/* of length numchans which contains a list of the number of     */
-/* channels that were masked.  The # of channels masked is       */
-/* returned in 'nummasked'.  'obsmask' is the mask structure     */
-/* to use for masking.  If 'transpose'==0, the data will be kept */
-/* in time order instead of arranged by subband as above.        */
-
 void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata);
-/* Convert PKMB header into an infodata structure */
-
 void print_PKMB_hdr(PKMB_tapehdr * hdr);
-/* Output a PKMB header in human readable form */
-
 void convert_PKMB_point(unsigned char *bits, unsigned char *bytes);
-/* This routine converts 1 bit digitized data */
-/* into an array of 'numchan' bytes.          */

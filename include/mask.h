@@ -9,6 +9,7 @@
 #define BADDATA  (BAD_POW|BAD_STD|BAD_AVG)
 #define USERZAP  (USERCHAN|USERINTS)
 
+#ifndef MASK_DEFINED
 typedef struct MASK { 
   double timesigma;        /* Cutoff time-domain sigma               */
   double freqsigma;        /* Cutoff freq-domain sigma               */
@@ -26,7 +27,8 @@ typedef struct MASK {
   int *num_chans_per_int;  /* Number of channels zapped per interval */
   int **chans;             /* The channels zapped                    */
 } mask;
-
+#define MASK_DEFINED
+#endif
 
 void fill_mask(double timesigma, double freqsigma, double mjd, 
 	       double dtint, double lofreq, double dfreq, 

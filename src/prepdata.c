@@ -2,6 +2,7 @@
 #include "presto.h"
 #include "prepdata_cmd.h"
 #include "multibeam.h"
+#include "bpp.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -45,7 +46,7 @@ int main(int argc, char *argv[])
   long numread=0, numtowrite=0, totwrote=0, datawrote=0;
   long padwrote=0, padtowrite=0, statnum=0;
   int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
-  PKMB_tapehdr hdr;
+  BPP_ifs bppifs=SUMIFS;
   infodata idata;
   Cmdline *cmd;
   mask obsmask;
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
   printf("           Last Modification:  16 Dec, 2000\n\n");
 
   numfiles = cmd->argc;
-  if (!cmd->pkmbP && !cmd->ebppP){
+  if (!cmd->pkmbP && !cmd->bcpmP){
     char *root, *suffix;
 
     /* Split the filename into a rootname and a suffix */
@@ -98,16 +99,16 @@ int main(int argc, char *argv[])
       printf("Reading Parkes PKMB data from %d files:\n", numfiles);
     else
       printf("Reading Parkes PKMB data from 1 file:\n");
-  } else if (cmd->ebppP){
+  } else if (cmd->bcpmP){
     if (numfiles > 1)
-      printf("Reading Effelsberg RBPP data from %d files:\n", numfiles);
+      printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
     else
-      printf("Reading Effelsberg RBPP data from 1 file:\n");
+      printf("Reading Green Bank BCPM data from 1 file:\n");
   }
 
   /* Open the raw data files */
 
-  if (cmd->pkmbP || cmd->ebppP){
+  if (cmd->pkmbP || cmd->bcpmP){
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
@@ -138,6 +139,7 @@ int main(int argc, char *argv[])
     double dt, T;
     int ptsperblock;
     long long N;
+    PKMB_tapehdr hdr;
 
     get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 		       &dt, &T, 1);
@@ -174,26 +176,60 @@ int main(int argc, char *argv[])
     numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
   }
 
-  /* Set-up values if we are using the Effelsberg-Berkeley Pulsar Processor */
-  /*   NOTE:  This code is not yet implemented.                             */
+  /* Set-up values if we are using the Berkeley-Caltech */
+  /* Pulsar Machine (or BPP) format.                    */
 
-  if (cmd->ebppP) {
+  if (cmd->bcpmP) {
 
-    /* Read the first header file and generate an infofile from it */
+    double dt, T;
+    int ptsperblock;
+    long long N;
 
+    get_BPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+		      &dt, &T, &idata, 1);
+    BPP_update_infodata(numfiles, &idata);
+    idata.dm = cmd->dm;
+    worklen = ptsperblock;
+    if (cmd->maskfileP)
+      maskchans = gen_ivect(idata.num_chan);
+
+    /* Which IFs will we use? */
+    
+    if (cmd->ifsP){
+      if (cmd->ifs==0)
+	bppifs = IF0;
+      else if (cmd->ifs==1)
+	bppifs = IF1;
+      else
+	bppifs = SUMIFS;
+    }
+
+    /* Compare the size of the data to the size of output we request */
+
+    if (cmd->numoutP) {
+      dtmp = idata.N;
+      idata.N = cmd->numout;
+      writeinf(&idata);
+      idata.N = dtmp;
+    } else {
+      cmd->numout = INT_MAX;
+      writeinf(&idata);
+    }
+     
     /* OBS code for TEMPO */
 
-    strcpy(obs, "EF");
+    /* The following is for the Green Bank 85-3 */
+    strcpy(obs, "G8");
 
-    /* The number of data points to work with at a time */
+    /* The number of topo to bary time points to generate with TEMPO */
 
-    worklen = 1024;
+    numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
   }
 
   /* Determine our initialization data if we do _not_ have Parkes */
-  /* or Effelesberg data sets.                                    */
+  /* or Green Bank BCPM data sets.                                */
 
-  if (!cmd->pkmbP && !cmd->ebppP) {
+  if (!cmd->pkmbP && !cmd->bcpmP) {
 
     /* If we will be barycentering... */
 
@@ -241,7 +277,7 @@ int main(int argc, char *argv[])
 
   tlotoa = (double) idata.mjd_i + idata.mjd_f;
 
-  if (!strcmp(idata.band, "Radio") && (cmd->pkmbP || cmd->ebppP)) {
+  if (!strcmp(idata.band, "Radio") && (cmd->pkmbP || cmd->bcpmP)) {
 
     /* The topocentric spacing between channels */
 
@@ -297,14 +333,20 @@ int main(int argc, char *argv[])
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = 0%%");
     
-    if (cmd->pkmbP)
-      numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			  dispdt, &padding, maskchans, &nummasked,
-			  &obsmask);
-    else
-      numread = read_floats(infiles[0], outdata, worklen, numchan);
+    do {
 
-    while (numread){
+      if (cmd->pkmbP)
+	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding, maskchans, &nummasked,
+			    &obsmask);
+      else if (cmd->bcpmP)
+	numread = read_BPP(infiles, numfiles, outdata, worklen, 
+			   dispdt, &padding, maskchans, &nummasked, 
+			   &obsmask, bppifs);
+      else
+	numread = read_floats(infiles[0], outdata, worklen, numchan);
+      if (numread==0)
+	break;
 
       /* Print percent complete */
       
@@ -339,14 +381,8 @@ int main(int argc, char *argv[])
       
       if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
-
-      if (cmd->pkmbP)
-	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			    dispdt, &padding, maskchans, &nummasked,
-			    &obsmask);
-      else
-	numread = read_floats(infiles[0], outdata, worklen, numchan);
-     }
+      
+    } while (numread);
       
     datawrote = totwrote;
 
@@ -477,16 +513,22 @@ int main(int argc, char *argv[])
     
     outdata = gen_fvect(worklen);
     
-    if (cmd->pkmbP)
-      numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			  dispdt, &padding, maskchans, &nummasked,
-			  &obsmask);
-    else
-      numread = read_floats(infiles[0], outdata, worklen, numchan);
-    
-    while (numread){ /* Loop to read and write the data */
+    do { /* Loop to read and write the data */
       int numwritten=0;
       
+      if (cmd->pkmbP)
+	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding, maskchans, &nummasked,
+			    &obsmask);
+      else if (cmd->bcpmP)
+	numread = read_BPP(infiles, numfiles, outdata, worklen, 
+			   dispdt, &padding, maskchans, &nummasked, 
+			   &obsmask, bppifs);
+      else
+	numread = read_floats(infiles[0], outdata, worklen, numchan);
+      if (numread==0)
+	break;
+
       /* Print percent complete */
       
       if (cmd->numoutP)
@@ -586,13 +628,7 @@ int main(int argc, char *argv[])
       if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
 
-      if (cmd->pkmbP)
-	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			    dispdt, &padding, maskchans, &nummasked,
-			    &obsmask);
-      else
-	numread = read_floats(infiles[0], outdata, worklen, numchan);
-    }
+    } while (numread);
 
     /* Free the arrays used in barycentering */
 
