@@ -337,11 +337,12 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
   int ii, jj, profindex=0, loops=1, ct, bestidm=0, bestip=0, bestipd=0;
   double N=0.0, T, dphase;
   double parttime, bestp, bestpd, bestpdd;
-  double perr, pderr, pdderr, *dbestprof;
+  double perr, pderr, pdderr;
   double pfold, pdfold, pddfold=0.0;
   float *ftmparr1;
   foldstats currentstats, beststats;
   /* Best Fold Plot */
+  double *dbestprof=NULL;
   float *bestprof=NULL;
   /* Profiles vs Time */
   float *timeprofs=NULL, *parttimes=NULL;
