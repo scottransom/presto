@@ -1,7 +1,7 @@
 #include "presto.h"
 #include "cpgplot.h"
 
-#undef USEMMAP
+/*#undef USEMMAP*/
 
 #ifdef USEMMAP
 #include <unistd.h>
@@ -388,9 +388,17 @@ static void print_help(void)
 }
 
 
-static fftview *get_harmonic(double rr, int zoomlevel)
+static fftview *get_harmonic(double rr, int zoomlevel, fftpart *fp)
 {
   int numharmbins;
+
+#ifdef USEMMAP
+  numharmbins = (1<<(LOGDISPLAYNUM-zoomlevel));
+  if (rr+numharmbins > Nfft)
+    return NULL;
+  else
+    return get_fftview(rr, zoomlevel, fp);
+#else
   fftpart *harmpart;
   fftview *harmview;
 
@@ -403,9 +411,10 @@ static fftview *get_harmonic(double rr, int zoomlevel)
   } else {
     return NULL;
   }
+#endif
 }
 
-static void plot_harmonics(double rr, int zoomlevel)
+static void plot_harmonics(double rr, int zoomlevel, fftpart *fp)
 {
   int ii, hh;
   double offsetf;
@@ -415,7 +424,7 @@ static void plot_harmonics(double rr, int zoomlevel)
   cpgsubp(4, 4);
   for (ii=0, hh=2; ii<8; ii++, hh++){
     cpgpanl(ii%4+1, ii/4+1);
-    harmview = get_harmonic(hh*rr, zoomlevel);
+    harmview = get_harmonic(hh*rr, zoomlevel, fp);
     if (harmview != NULL){
       offsetf = plot_fftview(harmview, 0.0, 2.0, hh*rr, 2);
       snprintf(label, 20, "Harmonic %d", hh);
@@ -428,7 +437,7 @@ static void plot_harmonics(double rr, int zoomlevel)
   } 
   for (ii=8, hh=2; ii<16; ii++, hh++){
     cpgpanl(ii%4+1, ii/4+1);
-    harmview = get_harmonic(rr/(double)hh, zoomlevel);
+    harmview = get_harmonic(rr/(double)hh, zoomlevel, fp);
     if (harmview != NULL){
       offsetf = plot_fftview(harmview, 0.0, 2.0, rr/(double)hh, 2);
       snprintf(label, 20, "Harmonic 1/%d", hh);
@@ -449,7 +458,7 @@ static void plot_harmonics(double rr, int zoomlevel)
   cpgslw(1);
 }
 
-static double harmonic_loop(int xid, double rr, int zoomlevel)
+static double harmonic_loop(int xid, double rr, int zoomlevel, fftpart *fp)
 {
   float inx, iny;
   double retval=0.0;
@@ -460,7 +469,7 @@ static double harmonic_loop(int xid, double rr, int zoomlevel)
   cpgpap(10.25, 8.5/11.0);
   cpgask(0);
   cpgslct(xid2);
-  plot_harmonics(rr, zoomlevel);
+  plot_harmonics(rr, zoomlevel, fp);
   printf("  Click on the harmonic to go it,\n"
 	 "    press 'P' to print, or press 'Q' to close.\n");
   while (badchoice){
@@ -493,7 +502,7 @@ static double harmonic_loop(int xid, double rr, int zoomlevel)
       free_fftpart(harmpart);
       offsetf = plot_fftview(harmview, 0.0, 1.0, rr, 2);
       cpgpage();
-      plot_harmonics(rr, zoomlevel);
+      plot_harmonics(rr, zoomlevel, fp);
       cpgclos();
       cpgslct(xid2);
       cpgscr(15, 0.4, 0.4, 0.4);
@@ -569,6 +578,7 @@ int main(int argc, char *argv[])
   N = idata.N;
   T = idata.dt * idata.N;
 #ifdef USEMMAP
+  printf("Memory mapping the input FFT.  This may take a while...\n");
   mmap_file = open(argv[1], O_RDONLY);
   {
     int rt;
@@ -747,7 +757,7 @@ int main(int argc, char *argv[])
       {
 	double retval;
 	
-	retval = harmonic_loop(xid, centerr, zoomlevel);
+	retval = harmonic_loop(xid, centerr, zoomlevel, lofp);
 	if (retval > 0.0){
 	  offsetf = 0.0;
 	  centerr = retval;
