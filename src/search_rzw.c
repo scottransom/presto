@@ -491,7 +491,6 @@ int main(int argc, char *argv[])
     free(zapfreqs);
     free(zapwidths);
   }
-  if (idata.onoff) free(idata.onoff);
   return (0);
 }
 

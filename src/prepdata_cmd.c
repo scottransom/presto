@@ -30,10 +30,6 @@ static Cmdline cmd = {
   /* pkmbP = */ 0,
   /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
   /* ebppP = */ 0,
-  /***** -pad0: Pad the data to the next power-of-2 with zeros */
-  /* pad0P = */ 0,
-  /***** -padavg: Pad the data to the next power-of-2 with the average value */
-  /* padavgP = */ 0,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (int)0,
@@ -780,20 +776,6 @@ showOptionValues(void)
     printf("-ebpp found:\n");
   }
 
-  /***** -pad0: Pad the data to the next power-of-2 with zeros */
-  if( !cmd.pad0P ) {
-    printf("-pad0 not found.\n");
-  } else {
-    printf("-pad0 found:\n");
-  }
-
-  /***** -padavg: Pad the data to the next power-of-2 with the average value */
-  if( !cmd.padavgP ) {
-    printf("-padavg not found.\n");
-  } else {
-    printf("-padavg found:\n");
-  }
-
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   if( !cmd.numoutP ) {
     printf("-numout not found.\n");
@@ -859,14 +841,12 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-pad0] [-padavg] [-numout numout] [-nobary] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-ebpp] [-numout numout] [-nobary] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
     Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n\
        -o: Root of the output file names\n\
            1 char* value\n\
     -pkmb: Raw data in Parkes Multibeam format\n\
     -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format\n\
-    -pad0: Pad the data to the next power-of-2 with zeros\n\
-  -padavg: Pad the data to the next power-of-2 with the average value\n\
   -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
            1 int value between 1 and oo\n\
   -nobary: Do not barycenter the data\n\
@@ -878,7 +858,7 @@ usage(void)
            1 char* value\n\
    infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
            1...20 values\n\
-version: 17Dec00\n\
+version: 21Dec00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -912,16 +892,6 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-ebpp", argv[i]) ) {
       cmd.ebppP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-pad0", argv[i]) ) {
-      cmd.pad0P = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-padavg", argv[i]) ) {
-      cmd.padavgP = 1;
       continue;
     }
 

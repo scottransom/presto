@@ -15,10 +15,12 @@
 
 /* Some function definitions */
 
-static int read_floats(FILE *file, float *data, int numpts,
-		       int numchan);
+static int read_floats(FILE *file, float *data, int numpts, int numchan);
 static void update_stats(int N, double x, double *min, double *max,
 			 double *avg, double *var);
+static void update_infodata(infodata *idata, long datawrote, long padwrote, 
+			    int *barybins, int numbarybins);
+/* Update our infodata for barycentering and padding */
 
 /* The main program */
 
@@ -38,9 +40,11 @@ int main(int argc, char *argv[])
   char obs[3], ephem[10], *datafilenm, *outinfonm;
   char rastring[50], decstring[50];
   int numfiles, numchan=1, newper=0, oldper=0;
-  int slen, numadded=0, numremoved=0;
-  long ii, numbarypts=0, worklen=65536, next_pow_of_two=0;
-  long numread=0, numtowrite=0, totwrote=0, datawrote=0, padwrote=0;
+  int slen, numadded=0, numremoved=0, padding=0;
+  long ii, numbarypts=0, worklen=65536;
+  long numread=0, numtowrite=0, totwrote=0, datawrote=0;
+  long padwrote=0, padtowrite=0, statnum=0;
+  int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
   PKMB_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
@@ -135,9 +139,9 @@ int main(int argc, char *argv[])
     chkfread(&hdr, 1, HDRLEN, infiles[0]);
     rewind(infiles[0]);
     PKMB_hdr_to_inf(&hdr, &idata);
+    PKMB_update_infodata(numfiles, &idata);
     idata.dm = cmd->dm;
     worklen = ptsperblock;
-    idata.N = N;
 
     /* Compare the size of the data to the size of output we request */
 
@@ -283,15 +287,12 @@ int main(int argc, char *argv[])
     
     outdata = gen_fvect(worklen);
     
-    /* Open our new output data file */
-    
-    outfile = chkfopen(datafilenm, "wb");
-    
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = 0%%");
     
     if (cmd->pkmbP)
-      numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
+      numread = read_PKMB(infiles, numfiles, outdata, worklen, 
+			  dispdt, &padding);
     else
       numread = read_floats(infiles[0], outdata, worklen, numchan);
 
@@ -316,12 +317,15 @@ int main(int argc, char *argv[])
       if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
 	numtowrite = cmd->numout - totwrote;
       chkfwrite(outdata, sizeof(float), numtowrite, outfile);
+      totwrote += numtowrite;
       
       /* Update the statistics */
       
-      for (ii = 0; ii < numtowrite; ii++)
-	update_stats(totwrote + ii, outdata[ii], &min, &max, &avg, &var);
-      totwrote += numtowrite;
+      if (!padding){
+	for (ii = 0; ii < numtowrite; ii++)
+	  update_stats(statnum + ii, outdata[ii], &min, &max, &avg, &var);
+	statnum += numtowrite;
+      }
       
       /* Stop if we have written out all the data we need to */
       
@@ -329,7 +333,8 @@ int main(int argc, char *argv[])
 	break;
 
       if (cmd->pkmbP)
-	numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
+	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
      }
@@ -340,7 +345,6 @@ int main(int argc, char *argv[])
 
     double avgvoverc=0.0, maxvoverc=-1.0, minvoverc=1.0, *voverc=NULL;
     double *bobsf=NULL, *btoa=NULL, *ttoa=NULL;
-    int *diffbins, *diffbinptr;
 
     /* What ephemeris will we use?  (Default is DE200) */
 
@@ -422,7 +426,7 @@ int main(int argc, char *argv[])
 
     { /* Find the points where we need to add or remove bins */
 
-      int oldbin=0, currentbin, numdiffbins;
+      int oldbin=0, currentbin;
       double lobin, hibin, calcpt;
 
       numdiffbins = abs(NEAREST_INT(btoa[numbarypts-1])) + 1;
@@ -465,7 +469,8 @@ int main(int argc, char *argv[])
     outdata = gen_fvect(worklen);
     
     if (cmd->pkmbP)
-      numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
+      numread = read_PKMB(infiles, numfiles, outdata, worklen, 
+			  dispdt, &padding);
     else
       numread = read_floats(infiles[0], outdata, worklen, numchan);
     
@@ -495,15 +500,18 @@ int main(int argc, char *argv[])
       if (numtowrite > numread)
 	numtowrite = numread;
       chkfwrite(outdata, sizeof(float), numtowrite, outfile);
-      
-      /* Update the statistics */
-      
-      for (ii = 0; ii < numtowrite; ii++)
-	update_stats(datawrote + ii, outdata[ii], &min, &max, 
-		     &avg, &var);
       datawrote += numtowrite;
       totwrote += numtowrite;
       numwritten += numtowrite;
+      
+      /* Update the statistics */
+      
+      if (!padding){
+	for (ii = 0; ii < numtowrite; ii++)
+	  update_stats(statnum + ii, outdata[ii], &min, &max, 
+		       &avg, &var);
+	statnum += numtowrite;
+      }
       
       if ((datawrote == abs(*diffbinptr)) &&
 	  (totwrote < cmd->numout)){ /* Add/remove a bin */
@@ -542,16 +550,19 @@ int main(int argc, char *argv[])
 	  if (numtowrite > nextdiffbin)
 	    numtowrite = nextdiffbin;
 	  chkfwrite(outdata + skip, sizeof(float), numtowrite, outfile);
+	  numwritten += numtowrite;
+	  datawrote += numtowrite;
+	  totwrote += numtowrite;
 	  
 	  /* Update the statistics and counters */
 	  
-	  for (ii = 0; ii < numtowrite; ii++)
-	    update_stats(datawrote + ii, outdata[skip + ii], 
-			 &min, &max, &avg, &var);
-	  numwritten += numtowrite;
+	  if (!padding){
+	    for (ii = 0; ii < numtowrite; ii++)
+	      update_stats(statnum + ii, outdata[skip + ii], 
+			   &min, &max, &avg, &var);
+	    statnum += numtowrite;
+	  }
 	  skip += numtowrite;
-	  datawrote += numtowrite;
-	  totwrote += numtowrite;
 	} while (numwritten < numread);
       } 
       /* Stop if we have written out all the data we need to */
@@ -560,7 +571,8 @@ int main(int argc, char *argv[])
 	break;
 
       if (cmd->pkmbP)
-	numread = read_PKMB(infiles, numfiles, outdata, worklen, dispdt);
+	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
     }
@@ -570,74 +582,46 @@ int main(int argc, char *argv[])
     free(bobsf);
     free(btoa);
     free(ttoa);
-    free(diffbins);
   }
 
-  /* Calculate what the next power of two number of points would be */
+  /* Calculate what the amount of padding we need  */
 
-  next_pow_of_two = next2_to_n(totwrote);
-
+  if (cmd->numoutP && (cmd->numout > totwrote))
+    padwrote = padtowrite = cmd->numout - totwrote;
+  
+  
   /* Write the new info file for the output data */
 
-  if (cmd->pkmbP) {
-    idata.numonoff = 0;
-  }
-  idata.N = totwrote;
   if (!cmd->nobaryP) {
     idata.bary = 1;
     idata.mjd_i = (int) floor(blotoa - (barydispdt / SECPERDAY));
     idata.mjd_f = blotoa - (barydispdt / SECPERDAY) - idata.mjd_i;
   }
-  if (cmd->numoutP && (cmd->numout > totwrote)) {
-    idata.N = cmd->numout;
-    free(idata.onoff);
-    idata.numonoff = 2;
-    idata.onoff = gen_dvect(2 * idata.numonoff);
-    idata.onoff[0] = 0;
-    idata.onoff[1] = totwrote - 1;
-    idata.onoff[2] = cmd->numout - 1;
-    idata.onoff[3] = cmd->numout - 1;
-    printf("NOTE:  If there were on-off pairs in the input info file,\n");
-    printf("       the output info file pairs are now incorrect!\n\n");
-  }
-  if ((cmd->pad0P || cmd->padavgP) && (next_pow_of_two != totwrote)) {
-    idata.N = next_pow_of_two;
-    free(idata.onoff);
-    idata.numonoff = 2;
-    idata.onoff = gen_dvect(2 * idata.numonoff);
-    idata.onoff[0] = 0;
-    idata.onoff[1] = totwrote - 1;
-    idata.onoff[2] = next_pow_of_two - 1;
-    idata.onoff[3] = next_pow_of_two - 1;
-    printf("NOTE:  If there were on-off pairs in the input info file,\n");
-    printf("       the output info file pairs are now incorrect!\n\n");
-  }
+  update_infodata(&idata, totwrote, padtowrite, diffbins, numdiffbins);
   writeinf(&idata);
 
-  /* Pad the file if needed to pow_of_two_length */
+  /* Set the padded points equal to the average data point */
 
-  if (cmd->pad0P || cmd->padavgP) {
-    if (cmd->pad0P)
-      for (ii = 0; ii < worklen; ii++)
-	outdata[ii] = 0.0;
-    else
-      for (ii = 0; ii < worklen; ii++)
-	outdata[ii] = avg;
-    padwrote = next_pow_of_two - totwrote;
-    for (ii = 0; ii < padwrote / worklen; ii++)
-      chkfwrite(outdata, sizeof(float), worklen, outfile);
-    chkfwrite(outdata, sizeof(float), padwrote % worklen, outfile);
-  }
+  if (idata.numonoff > 1){
+    int jj, index, startpad, endpad;
 
-  /* Pad the file if needed to the requested length */
-
-  if (cmd->numoutP && (cmd->numout > totwrote)) {
     for (ii = 0; ii < worklen; ii++)
       outdata[ii] = avg;
-    padwrote = cmd->numout - totwrote;
-    for (ii = 0; ii < padwrote / worklen; ii++)
-      chkfwrite(outdata, sizeof(float), worklen, outfile);
-    chkfwrite(outdata, sizeof(float), padwrote % worklen, outfile);
+    fclose(outfile);
+    outfile = chkfopen(datafilenm, "rb+");
+    for (ii=0; ii<idata.numonoff; ii++){
+      index = 2 * ii;
+      startpad = idata.onoff[index+1];
+      if (ii==idata.numonoff-1)
+	endpad = idata.N - 1;
+      else
+	endpad = idata.onoff[index+2];
+      chkfseek(outfile, (startpad+1)*sizeof(float), SEEK_SET);
+      padtowrite = endpad - startpad;
+      for (jj=0; jj<padtowrite/worklen; jj++)
+	chkfwrite(outdata, sizeof(float), worklen, outfile);
+      chkfwrite(outdata, sizeof(float), padtowrite%worklen, outfile);
+    }
   }
   free(outdata);
 
@@ -656,7 +640,7 @@ int main(int argc, char *argv[])
   }
   printf("           Maximum value of data:  %.2f\n", max);
   printf("           Minimum value of data:  %.2f\n", min);
-  printf("                 Data mean value:  %.2f\n", avg);
+  printf("              Data average value:  %.2f\n", avg);
   printf("         Data standard deviation:  %.2f\n", sqrt(var));
   printf("\n");
 
@@ -669,8 +653,8 @@ int main(int argc, char *argv[])
   free(dispdt);
   free(outinfonm);
   free(datafilenm);
-  if (idata.onoff)
-    free(idata.onoff);
+  if (!cmd->nobaryP)
+    free(diffbins);
   return (0);
 }
 
@@ -706,3 +690,66 @@ static void update_stats(int N, double x, double *min, double *max,
   *avg += dev / (N + 1.0);
   *var += dev * (x - *avg);
 }
+
+
+static void update_infodata(infodata *idata, long datawrote, long padwrote, 
+			    int *barybins, int numbarybins)
+/* Update our infodata for barycentering and padding */
+{
+  int ii, jj, index;
+
+  idata->N = datawrote + padwrote;
+  if (idata->numonoff==0){
+    if (padwrote){
+      idata->numonoff = 2;
+      idata->onoff[0] = 0.0;
+      idata->onoff[1] = datawrote-1;
+      idata->onoff[2] = idata->N-1;
+      idata->onoff[3] = idata->N-1;
+    }
+    return;
+  }
+  
+  /* Determine the barycentric onoff bins (approximate) */
+
+  if (numbarybins){
+    int numadded=0, numremoved=0;
+
+    ii = 1; /* onoff index    */
+    jj = 0; /* barybins index */
+    while (ii < idata->numonoff * 2){
+      while (abs(barybins[jj]) <= idata->onoff[ii] &&
+	     jj < numbarybins){
+	if (barybins[jj] < 0)
+	  numremoved++;
+	else
+	  numadded++;
+	jj++;
+      }
+      idata->onoff[ii] += numadded - numremoved;
+      ii++;
+    }
+  }
+
+  /* Now cut off the extra onoff bins */
+
+  for (ii=1, index=1; ii<=idata->numonoff; ii++, index+=2){
+    if (idata->onoff[index-1] > idata->N - 1){
+      idata->onoff[index-1] = idata->N - 1;
+      idata->onoff[index] = idata->N - 1;
+      break;
+    }
+    if (idata->onoff[index] > datawrote - 1){
+      idata->onoff[index] = datawrote - 1;
+      idata->numonoff = ii;
+      if (padwrote){
+	idata->numonoff++;
+	idata->onoff[index+1] = idata->N - 1;
+	idata->onoff[index+2] = idata->N - 1;
+      }
+      break;
+    }
+  }
+}
+
+

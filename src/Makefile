@@ -39,7 +39,7 @@ LIBSUFFIX = so
 PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 
 # Use the following if we are using DMALLOC
-DMALLOCLINK = -ldmalloc
+#DMALLOCLINK = -ldmalloc
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
@@ -50,8 +50,8 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 	-g -Wall -W -O2 -fPIC \
-	-DUSEDMALLOC 
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+#	-DUSEDMALLOC 
 #	-g -Wall -W -O2 -mpentiumpro -fPIC \
 #	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
 #	-g -ansi -pedantic -Wall -W -fpic \

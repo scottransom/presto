@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
   char *plotfilenm, *outfilenm, *rootnm, *binproffilenm;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numchan=1, binary=0, numdelays=0, numbarypts=0;
-  int info, ptsperrec=1, flags=1;
+  int info, ptsperrec=1, flags=1, padding=0;
   long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0, arrayoffset=0;
@@ -178,6 +178,7 @@ int main(int argc, char *argv[])
     chkfread(&hdr, 1, HDRLEN, infiles[0]);
     rewind(infiles[0]);
     PKMB_hdr_to_inf(&hdr, &idata);
+    PKMB_update_infodata(numfiles, &idata);
     idata.dm = cmd->dm;
     numrec = pkmb_N / ptsperrec;
 
@@ -430,7 +431,6 @@ int main(int argc, char *argv[])
       printf("\nCould not read the rzwfile.\nExiting.\n\n");
       exit(1);
     }
-    if (rzwidata.onoff) free(idata.onoff);
   }
   
   /* Determine the pulsar parameters to fold if we are not getting   */
@@ -732,8 +732,8 @@ int main(int argc, char *argv[])
     
     for (jj = 0; jj < reads_per_part; jj++){
       if (cmd->pkmbP)
-	numread =  read_PKMB_subbands(infiles, numfiles, 
-				      data, dispdts, cmd->nsub);
+	numread = read_PKMB_subbands(infiles, numfiles, data, 
+				     dispdts, cmd->nsub, &padding);
       else
 	numread = read_floats(infiles[0], data, worklen, numchan);
      

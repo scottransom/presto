@@ -98,10 +98,42 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
     printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)
-      printf("%2d    %12.12g  %12.12g  %10lld  %14.14g  %14.14g  %17.12f  %10lld\n", 
+      printf("%2d    %12.11g  %12.11g  %10lld  %14.13g  %14.13g  %17.12f  %10lld\n", 
 	     ii+1, startblk_st[ii], endblk_st[ii], numpts_st[ii], 
 	     elapsed_st[ii], times_st[ii], mjds_st[ii], padpts_st[ii]);
     printf("\n");
+  }
+}
+
+void PKMB_update_infodata(int numfiles, infodata *idata)
+/* Update the onoff bins section in case we used multiple files */
+{
+  
+  int ii, index=2;
+
+  idata->N = N_st;
+  if (numfiles==1 && padpts_st[0]==0){
+    idata->numonoff = 0;
+    return;
+  }
+  /* Determine the topocentric onoff bins */
+  idata->numonoff = 1;
+  idata->onoff[0] = 0.0;
+  idata->onoff[1] = numpts_st[0] - 1.0;
+  for (ii=1; ii<numfiles; ii++){
+    if (padpts_st[ii-1]){
+      idata->onoff[index] = idata->onoff[index-1] + padpts_st[ii-1];
+      idata->onoff[index+1] = idata->onoff[index] + numpts_st[ii];
+      idata->numonoff++;
+      index += 2;
+    } else {
+      idata->onoff[index-1] += numpts_st[ii];
+    }
+  }
+  if (padpts_st[numfiles-1]){
+    idata->onoff[index] = idata->onoff[index-1] + padpts_st[numfiles-1];
+    idata->onoff[index+1] = idata->onoff[index];
+    idata->numonoff++;
   }
 }
 
@@ -117,7 +149,8 @@ int skip_to_PKMB_rec(FILE * infile, int rec)
 
 
 int read_PKMB_rawblock(FILE *infiles[], int numfiles, 
-		       PKMB_tapehdr *hdr, unsigned char *data)
+		       PKMB_tapehdr *hdr, unsigned char *data,
+		       int *padding)
 /* This routine reads a single record from the         */
 /* input files *infiles which contain 1 bit digitized  */
 /* data from the PKMB pulsar backend at Parkes.        */
@@ -125,12 +158,18 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 /* plus 48k of data = 49792 bytes.                     */
 /* The header of the record read is placed in hdr.     */
 /* *data must be pre-allocated with a size of 48k.     */
+/* If padding is returned as 1, then padding was       */
+/* added and statistics should not be calculated       */
 {
   int ii, jj, offset, numtopad=0;
   unsigned char record[RECLEN], *hdr_ptr;
   static unsigned char databuffer[DATLEN*2];
   static int bufferpts=0, padnum=0, shiftbuffer=1;
   unsigned char *padptr=pad1;
+
+  /* Reset out padding flag */
+
+  *padding = 0;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
@@ -157,6 +196,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
       /* Does this file need padding? */
       numtopad = padpts_st[currentfile] - padnum;
       if (numtopad){
+	*padding = 1;
 	/* Pad the data */
 	if (numtopad >= ptsperblk_st - bufferpts){
 	  if (bufferpts){
@@ -179,6 +219,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	  padnum += numtopad;
 	  bufferpts = 0;
 	} else {
+	  int pad;
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
 	  for (ii=0; ii<numtopad; ii++){
@@ -192,7 +233,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	  currentfile++;
 	  shiftbuffer = 0;
 	  bufferpts += numtopad;
-	  return read_PKMB_rawblock(infiles, numfiles, hdr, data);
+	  return read_PKMB_rawblock(infiles, numfiles, hdr, data, &pad);
 	}
 	/* If done with padding reset padding variables */
 	if (padnum == padpts_st[currentfile]){
@@ -208,7 +249,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	/* Try reading the next file */
 	currentfile++;
 	shiftbuffer = 0;
-	return read_PKMB_rawblock(infiles, numfiles, hdr, data);
+	return read_PKMB_rawblock(infiles, numfiles, hdr, data, padding);
       }
     } else {
       printf("\nProblem reading record from PKMB data file:\n");
@@ -240,34 +281,43 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 
 
 int read_PKMB_rawblocks(FILE *infiles[], int numfiles, 
-			unsigned char rawdata[], int numblocks)
+			unsigned char rawdata[], int numblocks,
+			int *padding)
 /* This routine reads numblocks PKMB records from the input */
 /* files *infiles.  The raw bit data is returned in rawdata */
 /* which must have a size of numblocks*DATLEN.  The number  */
 /* of blocks read is returned.                              */
+/* If padding is returned as 1, then padding was added      */
+/* and statistics should not be calculated                  */
 {
-  int ii, retval=0;
+  int ii, retval=0, pad;
   PKMB_tapehdr hdr;
   
-  for (ii=0; ii<numblocks; ii++)
+  *padding = 0;
+  for (ii=0; ii<numblocks; ii++){
     retval += read_PKMB_rawblock(infiles, numfiles, &hdr, 
-				 rawdata + ii * DATLEN);
+				 rawdata + ii * DATLEN, &pad);
+    if (pad)
+      *padding = 1;
+  }
   return retval;
 }
 
 
 int read_PKMB(FILE *infiles[], int numfiles, float *data, 
-	      int numpts, double *dispdelays)
+	      int numpts, double *dispdelays, int *padding)
 /* This routine reads numpts from the PKMB raw input   */
 /* files *infiles.  These files contain 1 bit data     */
 /* from the PKMB backend at Parkes.  Time delays and   */
 /* and a mask are applied to each channel.  It returns */
 /* the # of points read if succesful, 0 otherwise.     */
+/* If padding is returned as 1, then padding was       */
+/* added and statistics should not be calculated       */
 {
   int ii, numread=0;
   static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
   static unsigned char *currentdata, *lastdata;
-  static int firsttime=1, numblocks=1;
+  static int firsttime=1, numblocks=1, allocd=0;
   
   if (firsttime) {
     if (numpts % ptsperblk_st){
@@ -280,13 +330,16 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
     raw  = gen_bvect(numblocks * DATLEN);
     rawdata1 = gen_bvect(numblocks * SAMPPERBLK);
     rawdata2 = gen_bvect(numblocks * SAMPPERBLK);
+    allocd = 1;
     
-    numread = read_PKMB_rawblocks(infiles, numfiles, raw, numblocks);
-    if (numread != numblocks){
+    numread = read_PKMB_rawblocks(infiles, numfiles, raw, 
+				  numblocks, padding);
+    if (numread != numblocks && allocd){
       printf("Problem reading the raw PKMB data file.\n\n");
       free(raw);
       free(rawdata1);
       free(rawdata2);
+      allocd = 0;
       return 0;
     }
     
@@ -302,27 +355,25 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
   
   /* Read, convert and de-disperse */
   
-  numread = read_PKMB_rawblocks(infiles, numfiles, raw, numblocks);
-  for (ii=0; ii<numpts; ii++)
-    convert_PKMB_point(raw + ii * bytesperpt_st, 
-		       currentdata + ii * numchan_st);
-  dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
-  SWAP(currentdata, lastdata);
+  if (allocd){
+    numread = read_PKMB_rawblocks(infiles, numfiles, raw, 
+				  numblocks, padding);
+    for (ii=0; ii<numpts; ii++)
+      convert_PKMB_point(raw + ii * bytesperpt_st, 
+			 currentdata + ii * numchan_st);
+    dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
+    SWAP(currentdata, lastdata);
 
-  /*
-  printf("np = %d  nc = %d  df = %d\n", 
-	 numpts, numchan_st, decreasing_freqs_st);
-  for (ii=0; ii<20; ii++)
-    printf("%.0f ", data[ii]);
-  printf("\n\n");
-  */
-
-  if (numread != numblocks){
-    free(raw);
-    free(rawdata1);
-    free(rawdata2);
+    if (numread != numblocks){
+      free(raw);
+      free(rawdata1);
+      free(rawdata2);
+      allocd = 0;
+    }
+    return numread * ptsperblk_st;
+  } else {
+    return 0;
   }
-  return numread * ptsperblk_st;
 }
 
 
@@ -349,7 +400,8 @@ void get_PKMB_channel(int channum, float chandat[],
 
 
 int read_PKMB_subbands(FILE *infiles[], int numfiles, 
-		       float *data, double *dispdelays, int numsubbands)
+		       float *data, double *dispdelays, int numsubbands,
+		       int *padding)
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the PKMB system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -358,6 +410,8 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
 /* The low freq subband is stored first, then the next highest   */
 /* subband etc, with 'ptsperblk_st' floating points per subband. */
 /* It returns the # of points read if succesful, 0 otherwise.    */
+/* If padding is returned as 1, then padding was added and       */
+/* statistics should not be calculated                           */
 {
   int ii, numread, trtn;
   PKMB_tapehdr hdr;
@@ -367,7 +421,7 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
   static int firsttime=1, move_size=0;
   
   if (firsttime) {
-    if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw)){
+    if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding)){
       printf("Problem reading the raw PKMB data file.\n\n");
       return 0;
     }
@@ -384,12 +438,13 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
 
   /* Read, convert and de-disperse */
 
-  numread = read_PKMB_rawblock(infiles, numfiles, &hdr, raw);
+  numread = read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding);
   for (ii=0; ii<ptsperblk_st; ii++)
     convert_PKMB_point(raw + ii * bytesperpt_st, 
 		       currentdata + ii * numchan_st);
   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
 		  dispdelays, numsubbands, data);
+  SWAP(currentdata, lastdata);
 
   /* Transpose the data into vectors in the result array */
 
@@ -452,10 +507,7 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
     idata->mjd_i += 1;
   }
   idata->bary = 0;
-  idata->numonoff = 1;
-  idata->onoff = (double *)malloc(2*sizeof(double));
-  idata->onoff[0] = 0;
-  idata->onoff[1] = idata->N - 1;
+  idata->numonoff = 0;
   strcpy(idata->band, "Radio");
   strcpy(idata->analyzer, "Scott Ransom");
   strcpy(idata->observer, "--");

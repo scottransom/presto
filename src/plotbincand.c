@@ -225,7 +225,6 @@ int main(int argc, char *argv[])
   free(spreadpow);
   free(minizoom);
   free(minizoompow);
-  if (idata.onoff) free(idata.onoff);	
   fclose(fftfile);
   if ((argc == 6) && (!strcmp(argv[5], "ps"))) {
     fclose(psfile);

@@ -220,7 +220,6 @@ int main(int argc, char *argv[])
   idata.N = mdata.N;
   idata.dt = mdata.dt;
   idata.numonoff = mdata.numonoff;
-  idata.onoff = (double *)malloc(idata.numonoff*2*sizeof(double));
   i = 0;
   do {
     idata.onoff[i] = mdata.onoff[i] * mdata.N;
@@ -252,8 +251,6 @@ int main(int argc, char *argv[])
   /* Write infofile data */
 
   writeinf(&idata);
-  if (mdata.onoff) free(mdata.onoff);
-  if (idata.onoff) free(idata.onoff);
   exit(0);
 
 }

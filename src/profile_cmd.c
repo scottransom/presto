@@ -1156,7 +1156,7 @@ usage(void)
     -noerr: Do not plot error bars\n\
     infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.\n\
             1 value\n\
-version: 17Dec00\n\
+version: 21Dec00\n\
 ");
   exit(EXIT_FAILURE);
 }

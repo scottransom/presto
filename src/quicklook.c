@@ -128,6 +128,5 @@ int main(int argc, char *argv[])
   free(ffdotplane[0]);
   free(ffdotplane);
   free(data);
-  if (idata.onoff) free(idata.onoff);
   exit(0);
 }

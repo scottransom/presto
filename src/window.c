@@ -167,7 +167,6 @@ int main(int argc, char *argv[])
   free(window);
   free(tmp);
   free(freqs);
-  if (idata.onoff) free(idata.onoff);
   exit(0);
 }
 

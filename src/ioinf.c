@@ -1,4 +1,5 @@
 #include "makeinf.h"
+#include "vectors.h"
 
 char bands[NUMBANDS][40] =
 {"Radio", "IR", "Optical", "UV", "X-ray", "Gamma"};
@@ -11,8 +12,7 @@ char scopes[NUMSCOPES][40] =
 void readinf(infodata * data, char *filenm)
 {
   char tmp1[100], tmp2[100], infofilenm[100];
-  double tmponoff[40];
-  int i;
+  int ii;
   FILE *infofile;
 
   sprintf(infofilenm, "%s.inf", filenm);
@@ -54,22 +54,21 @@ void readinf(infodata * data, char *filenm)
   fscanf(infofile, "%*[^)] %*[^=]= %d\n", &data->numonoff);
 
   if (data->numonoff) {
-    i = 0;
+    ii = 0;
     do {
       fscanf(infofile, "%*[^=]= %lf %*[ ,] %lf", \
-	     &tmponoff[i], &tmponoff[i+1]);
-      i += 2;
-    } while (tmponoff[i - 1] < data->N - 1 && i < 40);
-    if (tmponoff[i - 1] > data->N - 1) tmponoff[i - 1] = data->N - 1;
-    data->numonoff = i/2;
-    data->onoff = (double *)malloc(data->numonoff*2*sizeof(double));
-    for(i=0; i<data->numonoff; i++){
-      data->onoff[2*i] = tmponoff[2*i];
-      data->onoff[2*i+1] = tmponoff[2*i+1];
+ 	     &data->onoff[ii], &data->onoff[ii+1]);
+      ii += 2;
+    } while (data->onoff[ii-1] < data->N-1 && 
+	     ii < 2 * MAXNUMONOFF);
+    data->numonoff = ii / 2;
+    if (data->numonoff == MAXNUMONOFF){
+      printf("Number of onoff pairs (%d) is >= than MAXNUMONOFF (%d).\n",
+	     data->numonoff, MAXNUMONOFF);
+      exit(1);
     }
   } else {
     data->numonoff = 1;
-    data->onoff = (double *)malloc(2*sizeof(double));
     data->onoff[0] = 0;
     data->onoff[1] = data->N - 1;
   }
@@ -118,7 +117,7 @@ void writeinf(infodata * data)
 {
   char tmp1[100], tmp2[100];
   char infofilenm[100];
-  int itmp, i;
+  int itmp, ii;
   FILE *infofile;
 
   sprintf(infofilenm, "%s.inf", data->name);
@@ -185,10 +184,10 @@ void writeinf(infodata * data)
 	  data->numonoff > 1 ? 1 : 0);
 
   if (data->numonoff > 1) {
-    for(i=0; i<data->numonoff; i++){
+    for(ii=0; ii<data->numonoff; ii++){
       fprintf(infofile, \
        " On/Off bin pair #%3d                   =  %-11.0f, %-11.0f\n", \
-	      i + 1, data->onoff[2 * i], data->onoff[2 * i + 1]);
+	      ii+1, data->onoff[2*ii], data->onoff[2*ii+1]);
     }
   }
 
