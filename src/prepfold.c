@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime;
-  double polyco_phase=0.0, polyco_phase0=0.0, polyco_toffset=0.0;
+  double polyco_phase=0.0, polyco_phase0=0.0;
   double *obsf=NULL, *dispdts=NULL, *parttimes=NULL, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
   double *buffers, *phasesadded, *TOAs=NULL;
@@ -484,9 +484,6 @@ int main(int argc, char *argv[])
 	}
 	phcalc(mjdi, mjdf, &polyco_phase0, &f);
       }
-      /* cmd->phs += polyco_phase0; */
-      polyco_toffset = (polyco_phase0/f)/SECPERDAY;
-      /* search.tepoch -= polyco_toffset; */
       search.topo.p1 = 1.0/f;
       search.topo.p2 = fd = 0.0;
       search.topo.p3 = fdd = 0.0;
@@ -1091,44 +1088,31 @@ int main(int argc, char *argv[])
 	}
       
 	if (cmd->polycofileP){  /* Update the period/phase */
-	  double mjdi, mjdf, currentday, goodphase;
+	  double mjdf, currentsec, currentday, offsetphase, orig_cmd_phs=0.0;
 
-	  currentday = (lorec*recdt + parttimes[ii] + 
-			jj*proftime)/SECPERDAY;
+	  if (ii==0 && jj==0) orig_cmd_phs = cmd->phs;
+	  currentsec = lorec*recdt + parttimes[ii] + jj*proftime;
+	  currentday = currentsec/SECPERDAY;
 	  mjdf = idata.mjd_f + currentday;
-	  mjdi = idata.mjd_i;
-	  if (mjdf > 1.0){
-	    mjdi += floor(mjdf);
-	    mjdf -= floor(mjdf);
-	  }
-	  phcalc(mjdi, mjdf, &polyco_phase, &foldf);
-
-	  if (0){
-	    double nextmjdi, nextmjdf, nextcurrentday;
-	    double nextfoldf, nextpolyco_phase;
-	    nextcurrentday = (lorec*recdt + parttimes[ii] + 
-			      (jj+1)*proftime)/SECPERDAY;
-	    nextmjdf = idata.mjd_f + nextcurrentday;
-	    nextmjdi = idata.mjd_i;
-	    if (nextmjdf > 1.0){
-	      nextmjdi += floor(nextmjdf);
-	      nextmjdf -= floor(nextmjdf);
-	    }
-	    phcalc(nextmjdi, nextmjdf, &nextpolyco_phase, &nextfoldf);
-	    foldfd = (nextfoldf-foldf)/proftime;
-	  }
-
-	  goodphase = polyco_phase - polyco_phase0;
-	  if (goodphase < 0.0)
-	    goodphase += 1.0;
-	  for (kk = 0; kk < cmd->nsub; kk++){
-	    if ((phasesadded[kk]-goodphase) > 0.5){ /* Fix this for kk > 0 */
-	      printf("Fixing phase jump...\n");
-	      goodphase += 1.0;
-	    }
-	    /* printf("%.10f  %.10f\n", goodphase, phasesadded[kk]); */
-	    phasesadded[kk] = goodphase;
-	  }
+	  /* Calculate the pulse phase at the start of the current block */
+	  phcalc(idata.mjd_i, mjdf, &polyco_phase, &foldf);
+	  polyco_phase -= polyco_phase0;
+	  if (polyco_phase < 0.0) polyco_phase += 1.0;
+	  /* Calculate the folding frequency at the middle of the current block */
+	  phcalc(idata.mjd_i, mjdf+0.5*proftime/SECPERDAY, &offsetphase, &foldf);
+	  /* Note:  offsetphase is needed because the folding routines */
+	  /* do not count on the starting f0, f1, and f2 _changing_    */
+	  /* during the run.  The use those values to calculate the    */
+	  /* correct starting phase -- which turns out to drift slowly */
+	  /* when using polycos since f0 is changing slowly.           */
+	  /* offsetphase exactly compensates for the drift.            */
+	  offsetphase = polyco_phase - currentsec*foldf;
+	  offsetphase = (offsetphase < 0.0) ? 
+	    1.0 + offsetphase - (int) offsetphase : 
+	    offsetphase - (int) offsetphase;
+	  cmd->phs = orig_cmd_phs + offsetphase;
+	  for (kk=0; kk<cmd->nsub; kk++)
+	    phasesadded[kk] = offsetphase;
 	}
 
 	/* frequency sub-bands */
