@@ -7,8 +7,8 @@ from Statistics import *
 
 # Some admin variables
 parallel = 0          # True or false
-showplots = 1         # True or false
-debugout = 1          # True or false
+showplots = 0         # True or false
+debugout = 0          # True or false
 #outfiledir = '/tmp/scratch'
 outfiledir = '/home/ransom'
 outfilenm = 'montebinresp'
@@ -16,19 +16,16 @@ pmass = 1.35          # Pulsar mass in solar masses
 cmass = {'WD': 0.3, 'NS': 1.35, 'BH': 10.0}  # Companion masses to use
 ecc = {'WD': 0.0, 'NS': 0.6, 'BH': 0.6}      # Eccentricities to use
 orbsperpt = {'WD': 20, 'NS': 100, 'BH': 100} # # of orbits to avg per pt
+ppsr = [0.002, 0.02, 0.2, 2.0] # Pulsar periods to test
 
 # Simulation parameters
-numTbyPb = 80         # The number of points along the x axis
-#minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
-minTbyPb = 4.0       # Minimum Obs Time / Orbital Period
+numTbyPb = 100        # The number of points along the x axis
+minTbyPb = 0.01       # Minimum Obs Time / Orbital Period
 maxTbyPb = 10.0       # Maximum Obs Time / Orbital Period
-numppsr = 80          # The number of points along the y axis
-minppsr = 0.0005      # Minimum pulsar period (s)
-maxppsr = 5.0         # Maximum pulsar period (s)
-ctype = 'WD'          # The type of binary companion: 'WD', 'NS', or 'BH'
-Pb = 7200.0           # Orbital period in seronds
+ctype = 'BH'          # The type of binary companion: 'WD', 'NS', or 'BH'
+Pb = 7200.0           # Orbital period in seconds
 dt = 0.0001           # The duration of each data sample (s)
-searchtype = 'sideband'  # One of 'ffdot', 'sideband', 'shortffts'
+searchtype = 'ffdot'  # One of 'ffdot', 'sideband', 'shortffts'
 maxTbyPb_ffdot = 1.0
 minTbyPb_sideband = 0.3
 fftlen_shortffts = 0.05
@@ -87,9 +84,7 @@ def estimate_rz(psr, T, eo=0.0):
 
 # Calculate the values of our X and Y axis points
 logTbyPb = span(log(minTbyPb), log(maxTbyPb), numTbyPb)
-logppsr = span(log(minppsr), log(maxppsr), numppsr)
 TbyPb = exp(logTbyPb)
-ppsr = exp(logppsr)
 
 # Open a file to save each orbit calculation
 file = open(outfilenm,'w')
@@ -102,7 +97,7 @@ for x in range(numTbyPb):
     xb = asini_c(Pb, mass_funct2(pmass, cmass[ctype], pi / 3.0))
     eb = ecc[ctype]
     # Loop over ppsr
-    for y in range(numppsr):
+    for y in range(len(ppsr)):
         # Each processor calculates its own point
         if not (y % numprocs == myid):  continue
         else:
@@ -192,7 +187,6 @@ for x in range(numTbyPb):
                         psr_pows = spectralpower(psr_resp)
                         fftlen = int(next2_to_n(len(psr_pows)))
                         fdata = rfft(array(psr_pows[0:fftlen], copy=1))
-                        fdata[0].real = 0.0
                         cands = search_fft(fdata, 5, norm=1.0)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata), \
@@ -208,7 +202,6 @@ for x in range(numTbyPb):
                         # Do the first half-length FFT
                         fftlen = fftlen / 2
                         fdata = rfft(array(psr_pows[0:fftlen], copy=1))
-                        fdata[0].real = 0.0
                         cands = search_fft(fdata, 5, norm=1.0)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata), \
@@ -226,7 +219,6 @@ for x in range(numTbyPb):
                         lencopy = len(psr_pows[fftlen/2:])
                         data[0:lencopy] = array(psr_pows[fftlen/2:], copy=1)
                         fdata = rfft(data)
-                        fdata[0] = 0.0
                         cands = search_fft(fdata, 5, norm=1.0)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata), \
