@@ -25,6 +25,9 @@ typedef struct PREPFOLDINFO {
   int npart;          /* Number of folds in time over integration */
   int proflen;        /* Number of bins per profile */
   int numchan;        /* Number of channels for radio data */
+  int step;           /* Minimum stepsize in profile phase bins */
+  int ndmfact;        /* 2*ndmfact*proflen+1 DMs to search */
+  int npfact;         /* 2*npfact*proflen+1 periods and p-dots to search */
   char *filenm;       /* Filename of the folded data */
   char *candnm;       /* String describing the candidate */
   char *telescope;    /* Telescope where observation took place */

@@ -23,6 +23,10 @@ typedef struct s_Cmdline {
   char dmP;
   double dm;
   int dmC;
+  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
+  char proflenP;
+  int proflen;
+  int proflenC;
   /***** -nsub: The number of sub-bands to use for the DM search */
   char nsubP;
   int nsub;
@@ -31,6 +35,18 @@ typedef struct s_Cmdline {
   char npartP;
   int npart;
   int npartC;
+  /***** -step: The minimum search stepsize over the full integration in profile bins */
+  char stepP;
+  int step;
+  int stepC;
+  /***** -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched */
+  char npfactP;
+  int npfact;
+  int npfactC;
+  /***** -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched */
+  char ndmfactP;
+  int ndmfact;
+  int ndmfactC;
   /***** -p: The nominative folding period (s) */
   char pP;
   double p;
@@ -67,10 +83,6 @@ typedef struct s_Cmdline {
   char endTP;
   double endT;
   int endTC;
-  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
-  char proflenP;
-  int proflen;
-  int proflenC;
   /***** -psr: Name of pulsar to fold (do not include J or B) */
   char psrnameP;
   char* psrname;
