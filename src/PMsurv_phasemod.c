@@ -12,58 +12,56 @@
 /* Bins to ignore at the beginning and end of the big FFT */
 #define BINSTOIGNORE 0
 
-int PMsurv_phasemod(char *header, int N, fcomplex *fft, double dm){
-  int ii, jj, kk, fftpos;
+int PMsurv_phasemod_search(char *header, int N, fcomplex *fft, double dm,
+			   int minfft, int maxfft){
+  int ii, jj, kk, binsleft;
+  int fftpos=0, havecand=0, worklen=maxfft;
+  float *powers, *minifft;
   
-  /* Loop through fftfile */
+  /* Allocate the arrays that will store the powers from */
+  /* the bigFFT as well as the miniFFTs.                 */
 
-  while ((fftpos + cmd->lobin) < cmd->rhi) {
+  powers = gen_fvect(worklen);
+  minifft = gen_fvect(worklen);
 
-    /* Calculate percentage complete */
+  /* Loop through the bigFFT */
 
-    newper = (int) (loopct / numchunks * 100.0);
+  while (fftpos < N) {
 
-    if (newper > oldper) {
-      newper = (newper > 99) ? 100 : newper;
-      printf("\r   Amount complete = %3d%%", newper);
-      oldper = newper;
-      fflush(stdout);
-    }
+    /* How close are we to the end of the bigFFT? */
+    
+    binsleft = N - fftpos;
 
     /* Adjust our search parameters if close to end of zone to search */
 
-    binsleft = cmd->rhi - (fftpos + cmd->lobin);
-    if (binsleft < cmd->minfft) 
-      break;
-    if (binsleft < numtoread) {  /* Change numtoread */
-      numtoread = cmd->maxfft;
-      while (binsleft < numtoread){
-	cmd->maxfft /= 2;
-	numtoread = cmd->maxfft;
-      }
+    if (binsleft < worklen){
+      while (binsleft < worklen)
+	worklen /= 2;
+      if (worklen < minfft) 
+	break;
     }
-    fftlen = cmd->maxfft;
+    fftlen = worklen;
 
     /* Read from fftfile */
 
     if (cmd->stack == 0){
-      data = read_fcomplex_file(fftfile, fftpos, numtoread);
-      for (ii = 0; ii < numtoread; ii++)
+      data = read_fcomplex_file(fftfile, fftpos, worklen);
+      for (ii = 0; ii < worklen; ii++)
 	powers[ii] = POWER(data[ii].r, data[ii].i);
       numsumpow = 1;
     } else {
-      powers = read_float_file(fftfile, fftpos, numtoread);
+      powers = read_float_file(fftfile, fftpos, worklen);
       numsumpow = cmd->stack;
     }
     if (fftpos == 0) powers[0] = 1.0;
       
     /* Chop the powers that are way above the median level */
 
-    prune_powers(powers, numtoread, numsumpow);
+    prune_powers(powers, worklen, numsumpow);
 
     /* Loop through the different small FFT sizes */
 
-    while (fftlen >= cmd->minfft) {
+    while (fftlen >= minfft) {
 
       halffftlen = fftlen / 2;
       powers_pos = powers;
@@ -71,8 +69,8 @@ int PMsurv_phasemod(char *header, int N, fcomplex *fft, double dm){
 
       /* Perform miniffts at each section of the powers array */
 
-      while ((numtoread - powers_offset) >
-	     (int) ((1.0 - cmd->overlap) * cmd->maxfft + DBLCORRECT)){
+      while ((worklen - powers_offset) >
+	     (int) ((1.0 - cmd->overlap) * maxfft + DBLCORRECT)){
 
 	/* Copy the proper amount and portion of powers into minifft */
 
@@ -132,11 +130,10 @@ int PMsurv_phasemod(char *header, int N, fcomplex *fft, double dm){
       /* Size of mini-fft while loop */
     }
 
-    if (cmd->stack == 0) free(data);
-    else free(powers);
-    fftpos += (numtoread - (int)((1.0 - cmd->overlap) * cmd->maxfft));
+    fftpos += (worklen - (int)((1.0 - cmd->overlap) * maxfft));
     loopct++;
 
     /* File position while loop */
   }
+  free(powers);
 }
