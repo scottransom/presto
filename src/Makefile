@@ -164,7 +164,7 @@ prep: meminit timetest bincat
 
 text: makedata makeinf mjd2cal realfft_4step quicklook\
 	search_bin search_rzw swap_endian prepdata\
-	check_parkes_raw bary shiftdata\
+	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat bincand taperaw
 
 xwin: psrorbit window plotbincand profile showmulti\
