@@ -896,8 +896,8 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	  
 	  chanpersb = search->numchan / search->nsub; 
 	  dsubf = chanpersb * search->chan_wid;
-	  lofreq = search->lofreq + dsubf - search->chan_wid;
-	  hifreq = search->lofreq + search->nsub * dsubf - search->chan_wid;
+	  lofreq = search->lofreq - 0.5 * search->chan_wid;
+	  hifreq = lofreq + search->numchan * search->chan_wid;
 	  losubfreq = doppler(lofreq, search->avgvoverc);
 	  hisubfreq = doppler(hifreq, search->avgvoverc);
 	  cpgsvp (0.44, 0.66, 0.3, 0.68);
@@ -939,12 +939,12 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	    free(subprofs);
 	    free(levels);
 	  }
-	  cpgswin(0.0-0.01, 1.0+0.01, 0.001, search->nsub + 1.0);
+	  cpgswin(0.0-0.01, 1.0+0.01, 0.0, search->nsub);
 	  cpgsch(0.7);
 	  cpgbox("CST", 0.2, 2, "", 0.0, 0);
 	  cpgbox("BNSTI", 0.2, 2, "BNSTI", 0.0, 0);
 	  cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
-	  cpgswin(0.0-0.01, 1.0+0.01, losubfreq - dsubf, hisubfreq + dsubf);
+	  cpgswin(0.0-0.01, 1.0+0.01, losubfreq, hisubfreq);
 	  cpgbox("", 0.2, 2, "CMSTI", 0.0, 0);
 	  cpgmtxt("R", 2.5, 0.5, 0.5, "Frequency (MHz)");
 	  cpgsch(0.8);
