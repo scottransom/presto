@@ -6,6 +6,13 @@
 # endif
 #endif
 
+#ifndef SWAP
+/* Swaps two variables of undetermined type */
+#define SWAP(a,b) tmpswap=(a);(a)=(b);(b)=tmpswap;
+#endif
+
+static unsigned char tmpswap;
+
 FILE *chkfopen(char *path, const char *mode)
 {
   FILE *file;
@@ -116,21 +123,47 @@ long long chkfilelen(FILE *file, size_t size)
   return (long long) (buf.st_size / size);
 }
 
-int read_int(FILE *infile)
+int read_int(FILE *infile, int byteswap)
 /* Reads a binary integer value from the file 'infile' */
 {
   int itmp;
 
   chkfread(&itmp, sizeof(int), 1, infile);
+  if (byteswap){
+    unsigned char *buffer = (unsigned char *)(&itmp);
+    SWAP(buffer[0], buffer[3]);
+    SWAP(buffer[1], buffer[2]);
+  }
   return itmp;
 }
 
-double read_double(FILE *infile)
+float read_float(FILE *infile, int byteswap)
+/* Reads a binary float value from the file 'infile' */
+{
+  float ftmp;
+
+  chkfread(&ftmp, sizeof(float), 1, infile);
+  if (byteswap){
+    unsigned char *buffer = (unsigned char *)(&ftmp);
+    SWAP(buffer[0], buffer[3]);
+    SWAP(buffer[1], buffer[2]);
+  }
+  return ftmp;
+}
+
+double read_double(FILE *infile, int byteswap)
 /* Reads a double precision value from the file 'infile' */
 {
   double dtmp;
 
   chkfread(&dtmp, sizeof(double), 1, infile);
+  if (byteswap){
+    unsigned char *buffer = (unsigned char *)(&dtmp);
+    SWAP(buffer[0], buffer[7]);
+    SWAP(buffer[1], buffer[6]);
+    SWAP(buffer[2], buffer[5]);
+    SWAP(buffer[3], buffer[4]);
+  }
   return dtmp;
 }
 

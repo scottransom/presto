@@ -371,61 +371,77 @@ void read_prepfoldinfo(prepfoldinfo *in, char *filename)
 /* Read a prepfoldinfo data structure from a binary file */
 {
   FILE *infile;
-  int itmp;
+  int itmp, byteswap=0;
+  float ftmp;
 
   infile = chkfopen(filename, "rb");
-  chkfread(&in->numdms, sizeof(int), 1, infile);
-  chkfread(&in->numperiods, sizeof(int), 1, infile);
-  chkfread(&in->numpdots, sizeof(int), 1, infile);
-  chkfread(&in->nsub, sizeof(int), 1, infile);
-  chkfread(&in->npart, sizeof(int), 1, infile);
-  chkfread(&in->proflen, sizeof(int), 1, infile);
-  chkfread(&in->numchan, sizeof(int), 1, infile);
-  chkfread(&in->pstep, sizeof(int), 1, infile);
-  chkfread(&in->pdstep, sizeof(int), 1, infile);
-  chkfread(&in->dmstep, sizeof(int), 1, infile);
-  chkfread(&in->ndmfact, sizeof(int), 1, infile);
-  chkfread(&in->npfact, sizeof(int), 1, infile);
-  chkfread(&itmp, sizeof(int), 1, infile);
+  in->numdms = read_int(infile, byteswap);
+  in->numperiods = read_int(infile, byteswap);
+  in->numpdots = read_int(infile, byteswap);
+  in->nsub = read_int(infile, byteswap);
+  in->npart = read_int(infile, byteswap);
+  /* The following is not exactly the most robust, but it should work... */
+  if (in->npart < 1 || in->npart > 10000){
+    byteswap = 1;
+    in->numdms = swap_int(in->numdms);
+    in->numperiods = swap_int(in->numperiods);
+    in->numpdots = swap_int(in->numpdots);
+    in->nsub = swap_int(in->nsub);
+    in->npart = swap_int(in->npart);
+  }
+  in->proflen = read_int(infile, byteswap);
+  in->numchan = read_int(infile, byteswap);
+  in->pstep = read_int(infile, byteswap);
+  in->pdstep = read_int(infile, byteswap);
+  in->dmstep = read_int(infile, byteswap);
+  in->ndmfact = read_int(infile, byteswap);
+  in->npfact = read_int(infile, byteswap);
+  itmp = read_int(infile, byteswap);
   in->filenm = calloc(itmp+1, sizeof(char));
   chkfread(in->filenm, sizeof(char), itmp, infile);
-  chkfread(&itmp, sizeof(int), 1, infile);
+  itmp = read_int(infile, byteswap);
   in->candnm = calloc(itmp+1, sizeof(char));
   chkfread(in->candnm, sizeof(char), itmp, infile);
-  chkfread(&itmp, sizeof(int), 1, infile);
+  itmp = read_int(infile, byteswap);
   in->telescope = calloc(itmp+1, sizeof(char));
   chkfread(in->telescope, sizeof(char), itmp, infile);
-  chkfread(&itmp, sizeof(int), 1, infile);
+  itmp = read_int(infile, byteswap);
   in->pgdev = calloc(itmp+1, sizeof(char));
   chkfread(in->pgdev, sizeof(char), itmp, infile);
-  chkfread(&in->dt, sizeof(double), 1, infile);
-  chkfread(&in->startT, sizeof(double), 1, infile);
-  chkfread(&in->endT, sizeof(double), 1, infile);
-  chkfread(&in->tepoch, sizeof(double), 1, infile);
-  chkfread(&in->bepoch, sizeof(double), 1, infile);
-  chkfread(&in->avgvoverc, sizeof(double), 1, infile);
-  chkfread(&in->lofreq, sizeof(double), 1, infile);
-  chkfread(&in->chan_wid, sizeof(double), 1, infile);
-  chkfread(&in->bestdm, sizeof(double), 1, infile);
-  chkfread(&(in->topo.pow), sizeof(double), 1, infile);
-  chkfread(&(in->topo.p1), sizeof(double), 1, infile);
-  chkfread(&(in->topo.p2), sizeof(double), 1, infile);
-  chkfread(&(in->topo.p3), sizeof(double), 1, infile);
-  chkfread(&(in->bary.pow), sizeof(double), 1, infile);
-  chkfread(&(in->bary.p1), sizeof(double), 1, infile);
-  chkfread(&(in->bary.p2), sizeof(double), 1, infile);
-  chkfread(&(in->bary.p3), sizeof(double), 1, infile);
-  chkfread(&(in->fold.pow), sizeof(double), 1, infile);
-  chkfread(&(in->fold.p1), sizeof(double), 1, infile);
-  chkfread(&(in->fold.p2), sizeof(double), 1, infile);
-  chkfread(&(in->fold.p3), sizeof(double), 1, infile);
-  chkfread(&(in->orb.p), sizeof(double), 1, infile);
-  chkfread(&(in->orb.e), sizeof(double), 1, infile);
-  chkfread(&(in->orb.x), sizeof(double), 1, infile);
-  chkfread(&(in->orb.w), sizeof(double), 1, infile);
-  chkfread(&(in->orb.t), sizeof(double), 1, infile);
-  chkfread(&(in->orb.pd), sizeof(double), 1, infile);
-  chkfread(&(in->orb.wd), sizeof(double), 1, infile);
+  in->dt = read_double(infile, byteswap);
+  in->startT = read_double(infile, byteswap);
+  in->endT = read_double(infile, byteswap);
+  in->tepoch = read_double(infile, byteswap);
+  in->bepoch = read_double(infile, byteswap);
+  in->avgvoverc = read_double(infile, byteswap);
+  in->lofreq = read_double(infile, byteswap);
+  in->chan_wid = read_double(infile, byteswap);
+  in->bestdm = read_double(infile, byteswap);
+  /* The .pow elements were written as doubles (Why??) */
+  in->topo.pow = read_float(infile, byteswap);
+  ftmp = read_float(infile, byteswap);
+  in->topo.p1 = read_double(infile, byteswap);
+  in->topo.p2 = read_double(infile, byteswap);
+  in->topo.p3 = read_double(infile, byteswap);
+  /* The .pow elements were written as doubles (Why??) */
+  in->bary.pow = read_float(infile, byteswap);
+  ftmp = read_float(infile, byteswap);
+  in->bary.p1 = read_double(infile, byteswap);
+  in->bary.p2 = read_double(infile, byteswap);
+  in->bary.p3 = read_double(infile, byteswap);
+  /* The .pow elements were written as doubles (Why??) */
+  in->fold.pow = read_float(infile, byteswap);
+  ftmp = read_float(infile, byteswap);
+  in->fold.p1 = read_double(infile, byteswap);
+  in->fold.p2 = read_double(infile, byteswap);
+  in->fold.p3 = read_double(infile, byteswap);
+  in->orb.p = read_double(infile, byteswap);
+  in->orb.e = read_double(infile, byteswap);
+  in->orb.x = read_double(infile, byteswap);
+  in->orb.w = read_double(infile, byteswap);
+  in->orb.t = read_double(infile, byteswap);
+  in->orb.pd = read_double(infile, byteswap);
+  in->orb.wd = read_double(infile, byteswap);
   in->dms = gen_dvect(in->numdms);
   chkfread(in->dms, sizeof(double), in->numdms, infile);
   in->periods = gen_dvect(in->numperiods);
@@ -440,6 +456,26 @@ void read_prepfoldinfo(prepfoldinfo *in, char *filename)
   chkfread(in->stats, sizeof(foldstats), 
 	   in->nsub * in->npart, infile);
   fclose(infile);
+  if (byteswap){
+    int ii;
+    for (ii=0; ii<in->numdms; ii++)
+      in->dms[ii] = swap_double(in->dms[ii]);
+    for (ii=0; ii<in->numperiods; ii++)
+      in->periods[ii] = swap_double(in->periods[ii]);
+    for (ii=0; ii<in->numpdots; ii++)
+      in->pdots[ii] = swap_double(in->pdots[ii]);
+    for (ii=0; ii<in->nsub*in->npart*in->proflen; ii++)
+      in->rawfolds[ii] = swap_double(in->rawfolds[ii]);
+    for (ii=0; ii<in->nsub*in->npart; ii++){
+      in->stats[ii].numdata  = swap_double(in->stats[ii].numdata);
+      in->stats[ii].data_avg = swap_double(in->stats[ii].data_avg);
+      in->stats[ii].data_var = swap_double(in->stats[ii].data_var);
+      in->stats[ii].numprof  = swap_double(in->stats[ii].numprof);
+      in->stats[ii].prof_avg = swap_double(in->stats[ii].prof_avg);
+      in->stats[ii].prof_var = swap_double(in->stats[ii].prof_var);
+      in->stats[ii].redchi   = swap_double(in->stats[ii].redchi);
+    }
+  }
 }
 
 void delete_prepfoldinfo(prepfoldinfo *in)
