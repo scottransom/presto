@@ -189,18 +189,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     for (ii=0; ii<numint; ii++){
       for (jj=0; jj<numchan; jj++){
 	{ /* Powers */
-	  if (fabs(pow_int_med[ii] - datapow_med) > 
-	      freqsigma * datapow_std)
-	    int_med = datapow_med;
-	  else
-	    int_med = pow_int_med[ii];
-	  if (fabs(pow_chan_med[ii] - datapow_med) > 
-	      freqsigma * datapow_std)
-	    chan_med = datapow_med;
-	  else
-	    chan_med = pow_chan_med[ii];
-	  if (fabs(datapow[ii][jj] - int_med) > pow_reject ||
-	      fabs(datapow[ii][jj] - chan_med) > pow_reject)
+	  if (datapow[ii][jj] > pow_reject)
 	    if (!(bytemask[ii][jj] & PADDING)) 
 	      bytemask[ii][jj] |= BAD_POW;
 	}
