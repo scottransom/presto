@@ -46,7 +46,7 @@ PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 
 # For Pentium with GCC
 CC = gcc
-F77 = g77
+FC = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
@@ -60,24 +60,24 @@ CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 LIBLINKFLAGS = -shared
 LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
 FFLAGS = -g -O -fpic
-FLINK = $(F77)
+FLINK = $(FC)
 FLINKFLAGS = $(FFLAGS)
 
 # For DEC Alpha
 #CC = cc
-#F77 = f77
+#FC = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 #	-newc -w0 -O4 -fast -ansi_alias -ansi_args -tune host -std1
 #	-g -newc -w0 -ansi_alias -ansi_args -std1
 #LINKCOMMAND = ar rcs
 #FFLAGS = -O
-#FLINK = $(F77) -nofor_main
+#FLINK = $(FC) -nofor_main
 #FLINKFLAGS = $(CFLAGS)
 
 # For Solaris
 #CC = cc
-#F77 = f77
+#FC = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 #	-g -O -Xc -v -KPIC
@@ -85,12 +85,12 @@ FLINKFLAGS = $(FFLAGS)
 #LIBLINKFLAGS = -G
 #LINKCOMMAND = ld $(LIBLINKFLAGS) -o
 #FFLAGS = -O
-#FLINK = $(F77)
+#FLINK = $(FC)
 #FLINKFLAGS = $(FFLAGS)
 
 # For IBM SP2
 #CC = cc
-#F77 = f77
+#FC = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 #	-DUSE_PIOFS -g -O2 -qarch=pwr2 -qtune=pwr2
@@ -102,46 +102,46 @@ FLINKFLAGS = $(FFLAGS)
 
 # For SGI 64bit
 #CC = cc
-#F77 = f77
+#FC = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 #	-64 -Ofast=ip27 -r10000
 #LINKCOMMAND = ar rcs
 #FFLAGS = -64 -Ofast=ip27 -r10000
-#FLINK = $(F77)
+#FLINK = $(FC)
 #FLINKFLAGS = $(FFLAGS)
 
 # For SGI 32bit
 #CC = cc
-#F77 = f77
+#FC = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 #	-32 -O2
 #LINKCOMMAND = ar rcs
 #FFLAGS = -O
-#FLINK = $(F77)
+#FLINK = $(FC)
 #FLINKFLAGS = $(FFLAGS)
 
 # For Cray T3E
 #CC = cc
-#F77 = f90 -dp
+#FC = f90 -dp
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 #	-O3 -h aggress -X m
 #LINKCOMMAND = ar rcs
 #FFLAGS = -O
-#FLINK = $(F77)
+#FLINK = $(FC)
 #FLINKFLAGS = $(FFLAGS)
 
 # For Cray T90
 #CC = cc
-#F77 = cf77
+#FC = cf77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 #	-O3
 #LINKCOMMAND = ar rcs
 #FFLAGS = -O
-#FLINK = $(F77)
+#FLINK = $(FC)
 #FLINKFLAGS = $(FFLAGS)
 
 PRESTOOBJS = apprgrdn.o barycenter.o birdzap.o cand_output.o\
@@ -195,7 +195,7 @@ meminit:
 	rm -f meminit
 
 bincat:
-	$(F77) -o $@ bincat.f rdascat.f
+	$(FC) -o $@ bincat.f rdascat.f
 	./bincat
 	rm -f bincat
 
