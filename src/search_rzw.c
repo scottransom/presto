@@ -315,11 +315,13 @@ int main(int argc, char *argv[])
 	for (ii = 0; ii < worknumbins; ii++) 
 	  powlist[ii] = POWER(corrdata[ii].r, corrdata[ii].i);
 
-	/* Set the local power level equal to the median value  */
-	/* Then take the reciprocal so that we multiply instead */
-	/* of divide during normalization.                      */
+	/* Set the local power level to 1.442695 * median value.    */
+	/* The 1.442695 corrects the median to the mean for an      */
+	/* exponential distribution.  Then take the reciprocal so   */
+	/* that we multiply instead of divide during normalization. */
 
-	locpow = 1.0 / selectkth(worknumbins/2, worknumbins, powlist-1);
+	locpow = 1.0 / (1.442695 * 
+			selectkth(worknumbins/2, worknumbins, powlist-1));
 	free(powlist);
       }
 
