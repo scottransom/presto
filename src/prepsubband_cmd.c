@@ -38,14 +38,16 @@ static Cmdline cmd = {
   /* ifsC = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
-  /***** -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed. */
-  /* clipP = */ 1,
-  /* clip = */ 0.0,
-  /* clipC = */ 1,
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
   /* numwappsC = */ 1,
+  /***** -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default */
+  /* clipP = */ 1,
+  /* clip = */ 6.0,
+  /* clipC = */ 1,
+  /***** -noclip: Do not clip the data.  (The default is to _always_ clip!) */
+  /* noclipP = */ 0,
   /***** -sub: Write subbands instead of de-dispersed data */
   /* subP = */ 0,
   /***** -subdm: The DM to use when de-dispersing subbands for -sub */
@@ -847,7 +849,19 @@ showOptionValues(void)
     printf("-wapp found:\n");
   }
 
-  /***** -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed. */
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  if( !cmd.numwappsP ) {
+    printf("-numwapps not found.\n");
+  } else {
+    printf("-numwapps found:\n");
+    if( !cmd.numwappsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numwapps);
+    }
+  }
+
+  /***** -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default */
   if( !cmd.clipP ) {
     printf("-clip not found.\n");
   } else {
@@ -859,16 +873,11 @@ showOptionValues(void)
     }
   }
 
-  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
-  if( !cmd.numwappsP ) {
-    printf("-numwapps not found.\n");
+  /***** -noclip: Do not clip the data.  (The default is to _always_ clip!) */
+  if( !cmd.noclipP ) {
+    printf("-noclip not found.\n");
   } else {
-    printf("-numwapps found:\n");
-    if( !cmd.numwappsC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.numwapps);
-    }
+    printf("-noclip found:\n");
   }
 
   /***** -sub: Write subbands instead of de-dispersed data */
@@ -1003,7 +1012,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-gmrt] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-if ifs] [-wapp] [-numwapps numwapps] [-clip clip] [-noclip] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
@@ -1013,12 +1022,13 @@ usage(void)
         -if: For BPP format only:  A specific IF to use.\n\
              1 int value between 0 and 1\n\
       -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
-      -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
-             1 float value between 0 and 20.0\n\
-             default: `0.0'\n\
   -numwapps: Number of WAPPs used with contiguous frequencies\n\
              1 int value between 1 and 7\n\
              default: `1'\n\
+      -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
+             1 float value between 0 and 20.0\n\
+             default: `6.0'\n\
+    -noclip: Do not clip the data.  (The default is to _always_ clip!)\n\
        -sub: Write subbands instead of de-dispersed data\n\
      -subdm: The DM to use when de-dispersing subbands for -sub\n\
              1 double value between 0 and 2000.0\n\
@@ -1046,7 +1056,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 31Mar03\n\
+version: 20Apr03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1103,6 +1113,16 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-numwapps", argv[i]) ) {
+      int keep = i;
+      cmd.numwappsP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
+      cmd.numwappsC = i-keep;
+      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
+      checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
+      continue;
+    }
+
     if( 0==strcmp("-clip", argv[i]) ) {
       int keep = i;
       cmd.clipP = 1;
@@ -1113,13 +1133,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-numwapps", argv[i]) ) {
-      int keep = i;
-      cmd.numwappsP = 1;
-      i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
-      cmd.numwappsC = i-keep;
-      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
-      checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
+    if( 0==strcmp("-noclip", argv[i]) ) {
+      cmd.noclipP = 1;
       continue;
     }
 

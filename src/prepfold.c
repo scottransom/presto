@@ -28,7 +28,7 @@ void set_posn(prepfoldinfo *in, infodata *idata);
 int main(int argc, char *argv[])
 {
   FILE *infiles[MAXPATCHFILES], *filemarker, *binproffile;
-  float *data=NULL;
+  float *data=NULL, *padvals;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double recdt=0.0, barydispdt=0.0, N=0.0, T=0.0, proftime, startTday=0.0;
   double polyco_phase=0.0, polyco_phase0=0.0;
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numevents, numchan=1, binary=0, numdelays=0, numbarypts=0;
   int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0, useshorts=0;
-  int *maskchans=NULL, nummasked=0, polyco_index=0, insubs=0;
+  int *maskchans=NULL, nummasked=0, polyco_index=0, insubs=0, good_padvals=0;
   long ii=0, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0;
@@ -61,6 +61,7 @@ int main(int argc, char *argv[])
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
+  if (cmd->noclipP) cmd->clip = 0.0;
   obsmask.numchan = obsmask.numint = 0;
   if (cmd->timingP){
     cmd->nopsearchP = 1;
@@ -294,9 +295,11 @@ int main(int argc, char *argv[])
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
     }
     printf("\n");
+    /* Read an input mask if wanted */
     if (cmd->maskfileP){
       read_mask(cmd->maskfile, &obsmask);
-      printf("Read mask information from '%s'\n", cmd->maskfile);
+      printf("Read mask information from '%s'\n\n", cmd->maskfile);
+      good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
     } else {
       obsmask.numchan = obsmask.numint = 0;
     }
@@ -393,9 +396,10 @@ int main(int argc, char *argv[])
     } else if (cmd->bcpmP){
 
       printf("BCPM input file information:\n");
-      get_BPP_file_info(infiles, numfiles, &local_N, &ptsperrec, &numchan, 
-			&local_dt, &local_T, &idata, 1);
+      get_BPP_file_info(infiles, numfiles, cmd->clip, &local_N, &ptsperrec, 
+			&numchan, &local_dt, &local_T, &idata, 1);
       BPP_update_infodata(numfiles, &idata);
+      set_BPP_padvals(padvals, good_padvals);
 
       /* Which IFs will we use? */
       
@@ -428,6 +432,7 @@ int main(int argc, char *argv[])
 			 &local_N, &ptsperrec, &numchan, 
 			 &local_dt, &local_T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
+      set_WAPP_padvals(padvals, good_padvals);
 
       /* OBS code for TEMPO */
       

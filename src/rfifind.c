@@ -54,14 +54,14 @@ void get_subband(int subbandnum, float chandat[], short srawdata[], int numsampl
 int main(int argc, char *argv[])
 {
   FILE *infiles[MAXPATCHFILES], *bytemaskfile;
-  float **dataavg=NULL, **datastd=NULL, **datapow=NULL;
+  float **dataavg=NULL, **datastd=NULL, **datapow=NULL, *padvals;
   float *chandata=NULL, powavg, powstd, powmax;
   float inttime, norm, fracterror=RFI_FRACTERROR, freqsigma, timesigma;
   unsigned char *rawdata=NULL, **bytemask=NULL;
   short *srawdata=NULL;
   char *outfilenm, *statsfilenm, *maskfilenm;
   char *bytemaskfilenm, *rfifilenm;
-  int numchan=0, numint=0, newper=0, oldper=0, numfiles;
+  int numchan=0, numint=0, newper=0, oldper=0, numfiles, good_padvals=0;
   int blocksperint, ptsperint=0, ptsperblock=0, padding=0;
   int numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
   int ii, jj, kk, slen, numread=0, insubs=0;
@@ -93,6 +93,7 @@ int main(int argc, char *argv[])
   timesigma = cmd->timesigma;
   slen = strlen(cmd->outfile)+20;
   numfiles = cmd->argc;
+  if (cmd->noclipP) cmd->clip = 0.0;
 
 #ifdef DEBUG
   showOptionValues();
@@ -122,10 +123,13 @@ int main(int argc, char *argv[])
 
   /* Read an input mask if wanted */
 
-  if (cmd->maskfileP)
+  if (cmd->maskfileP){
     read_mask(cmd->maskfile, &oldmask);
-  else
+    printf("Read old mask information from '%s'\n\n", cmd->maskfile);
+    good_padvals = determine_padvals(cmd->maskfile, &oldmask, &padvals);
+  } else {
     oldmask.numchan = oldmask.numint = 0;
+  }
   
   if (!cmd->nocomputeP){
     char *root, *suffix;
@@ -242,9 +246,10 @@ int main(int argc, char *argv[])
       /* Set-up for the BCPM machines at Green Bank  */
 
       printf("BCPM input file information:\n");
-      get_BPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
-			&dt, &T, &idata, 1);
+      get_BPP_file_info(infiles, numfiles, cmd->clip, &N, &ptsperblock, 
+			&numchan, &dt, &T, &idata, 1);
       BPP_update_infodata(numfiles, &idata);
+      set_BPP_padvals(padvals, good_padvals);
       idata.dm = 0.0;
       writeinf(&idata);
 
@@ -268,6 +273,7 @@ int main(int argc, char *argv[])
 			 &N, &ptsperblock, &numchan, 
 			 &dt, &T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
+      set_WAPP_padvals(padvals, good_padvals);
       idata.dm = 0.0;
       writeinf(&idata);
 

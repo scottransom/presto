@@ -32,8 +32,6 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 		    int numchan, int blocklen, int blocksperread, 
 		    mask *obsmask, double *dispdts, int **offsets, 
 		    int *padding, short **subsdata);
-static void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var);
 static void update_infodata(infodata *idata, int datawrote, int padwrote, 
 			    int *barybins, int numbarybins, int downsamp);
 static void print_percent_complete(int current, int number);
@@ -82,6 +80,7 @@ int main(int argc, char *argv[])
 
   cmd = parseCmdline(argc, argv);
   numinfiles = cmd->argc;
+  if (cmd->noclipP) cmd->clip = 0.0;
 
 #ifdef DEBUG
   showOptionValues();
@@ -205,7 +204,7 @@ int main(int argc, char *argv[])
 
   if (cmd->maskfileP && !cmd->subP){
     read_mask(cmd->maskfile, &obsmask);
-    printf("\nRead mask information from '%s'\n", cmd->maskfile);
+    printf("Read mask information from '%s'\n\n", cmd->maskfile);
     good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
   } else {
     obsmask.numchan = obsmask.numint = 0;
@@ -298,8 +297,8 @@ int main(int argc, char *argv[])
     /* Pulsar Machine (or BPP) format.                    */
     if (cmd->bcpmP) {
       printf("\nBCPM input file information:\n");
-      get_BPP_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
-			&dt, &T, &idata, 1);
+      get_BPP_file_info(infiles, numinfiles, cmd->clip, &N, &ptsperblock, 
+			&numchan, &dt, &T, &idata, 1);
       BPP_update_infodata(numinfiles, &idata);
       set_BPP_padvals(padvals, good_padvals);
       /* Which IFs will we use? */
@@ -319,9 +318,9 @@ int main(int argc, char *argv[])
     if (cmd->wappP) {
       printf("\nWAPP input file information:\n");
       get_WAPP_file_info(infiles, cmd->numwapps, numinfiles, cmd->clip,
-			 &N, &ptsperblock, &numchan, 
-			 &dt, &T, &idata, 1);
+			 &N, &ptsperblock, &numchan, &dt, &T, &idata, 1);
       WAPP_update_infodata(numinfiles, &idata);
+      set_WAPP_padvals(padvals, good_padvals);
       /* OBS code for TEMPO */
       strcpy(obs, "AO");
     }
@@ -563,8 +562,11 @@ int main(int argc, char *argv[])
     
     while (numread==worklen){ /* Loop to read and write the data */
       int numwritten=0;
+      double block_avg, block_var;
 
       numread /= cmd->downsamp;
+      /* Determine the approximate local average */
+      avg_var(outdata[0], numread, &block_avg, &block_var);
       print_percent_complete(totwrote, totnumtowrite);
 
       /* Simply write the data if we don't have to add or */
@@ -605,7 +607,7 @@ int main(int argc, char *argv[])
 	  
 	  if (*diffbinptr > 0){
 	    /* Add a bin */
-	    write_padding(outfiles, cmd->numdms, avg, 1);
+	    write_padding(outfiles, cmd->numdms, block_avg, 1);
 	    numadded++;
 	    totwrote++;
 	  } else {
@@ -985,25 +987,6 @@ static void print_percent_complete(int current, int number)
     fflush(stdout);
     oldper = newper;
   }
-}
-
-
-static void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var)
-/* Update time series statistics using one-pass technique */
-{
-  double dev;
-
-  /* Check the max and min values */
-  
-  if (x > *max) *max = x;
-  if (x < *min) *min = x;
-  
-  /* Use clever single pass mean and variance calculation */
-  
-  dev = x - *avg;
-  *avg += dev / (N + 1.0);
-  *var += dev * (x - *avg);
 }
 
 

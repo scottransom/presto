@@ -22,8 +22,6 @@ extern void write_data(FILE *outfiles[], int numfiles, float **outdata,
 		       int startpoint, int numtowrite);
 extern void write_padding(FILE *outfiles[], int numfiles, float value, 
 			  int numtowrite);
-extern void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var);
 extern void update_infodata(infodata *idata, int datawrote, int padwrote, 
 			    int *barybins, int numbarybins, int downsamp);
 extern void print_percent_complete(int current, int number);
@@ -63,7 +61,7 @@ int main(int argc, char *argv[])
   /* Any variable that begins with 't' means topocentric */
   /* Any variable that begins with 'b' means barycentric */
   FILE **infiles=NULL, **outfiles=NULL;
-  float **outdata;
+  float **outdata, *padvals;
   double dtmp, *dms, avgdm=0.0, dsdt=0;
   double *dispdt, tlotoa=0.0, blotoa=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
@@ -73,7 +71,7 @@ int main(int argc, char *argv[])
   int ii, jj, numadded=0, numremoved=0, padding=0;
   int numbarypts=0, numread=0, numtowrite=0, totwrote=0, datawrote=0;
   int padwrote=0, padtowrite=0, statnum=0;
-  int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
+  int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL, good_padvals=0;
   double local_lodm;
   char *datafilenm, *outpath, *outfilenm, *hostname;
   infodata idata;
@@ -111,6 +109,7 @@ int main(int argc, char *argv[])
 
   cmd = parseCmdline(argc, argv);
   numinfiles = cmd->argc;
+  if (cmd->noclipP) cmd->clip = 0.0;
 
 #ifdef DEBUG
   showOptionValues();
@@ -182,12 +181,15 @@ int main(int argc, char *argv[])
   /* Read an input mask if wanted */
 
   if (cmd->maskfileP){
-    if (myid==0)
+    if (myid==0){
       read_mask(cmd->maskfile, &obsmask);
+      printf("Read mask information from '%s'\n\n", cmd->maskfile);
+    }
     broadcast_mask(&obsmask, myid);
+    good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
   } else {
     obsmask.numchan = obsmask.numint = 0;
-  }  
+  }
 
   {
     float clip_sigma=0.0;
@@ -539,8 +541,11 @@ int main(int argc, char *argv[])
     
     while (numread==worklen){ /* Loop to read and write the data */
       int numwritten=0;
+      double block_avg, block_var;
 
       numread /= cmd->downsamp;
+      /* Determine the approximate local average */
+      avg_var(outdata[0], numread, &block_avg, &block_var);
       if (myid==0)
 	print_percent_complete(totwrote, totnumtowrite);
 
@@ -580,7 +585,7 @@ int main(int argc, char *argv[])
 	  if (*diffbinptr > 0){
 	    /* Add a bin */
 	    if (myid>0)
-	      write_padding(outfiles, local_numdms, avg, 1);
+	      write_padding(outfiles, local_numdms, block_avg, 1);
 	    numadded++;
 	    totwrote++;
 	  } else {

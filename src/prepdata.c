@@ -24,8 +24,6 @@
 
 static int read_floats(FILE *file, float *data, int numpts, int numchan);
 static int read_shorts(FILE *file, float *data, int numpts, int numchan);
-static void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var);
 static void update_infodata(infodata *idata, long datawrote, long padwrote, 
 			    int *barybins, int numbarybins);
 /* Update our infodata for barycentering and padding */
@@ -41,7 +39,7 @@ int main(int argc, char *argv[])
   /* Any variable that begins with 't' means topocentric */
   /* Any variable that begins with 'b' means barycentric */
   FILE *infiles[MAXPATCHFILES], *outfile;
-  float *outdata=NULL;
+  float *outdata=NULL, *padvals;
   double tdf=0.0, dtmp=0.0, barydispdt=0.0;
   double *dispdt, *tobsf=NULL, tlotoa=0.0, blotoa=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
@@ -52,7 +50,7 @@ int main(int argc, char *argv[])
   long ii, numbarypts=0, worklen=65536;
   long numread=0, numtowrite=0, totwrote=0, datawrote=0;
   long padwrote=0, padtowrite=0, statnum=0;
-  int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
+  int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL, good_padvals=0;
   BPP_ifs bppifs=SUMIFS;
   infodata idata;
   Cmdline *cmd;
@@ -70,6 +68,7 @@ int main(int argc, char *argv[])
 
   cmd = parseCmdline(argc, argv);
   numfiles = cmd->argc;
+  if (cmd->noclipP) cmd->clip = 0.0;
 
 #ifdef DEBUG
   showOptionValues();
@@ -162,9 +161,11 @@ int main(int argc, char *argv[])
   sprintf(outinfonm, "%s.inf", cmd->outfile);
 
   /* Read an input mask if wanted */
+
   if (cmd->maskfileP){
     read_mask(cmd->maskfile, &obsmask);
-    printf("Read mask information from '%s'\n", cmd->maskfile);
+    printf("Read mask information from '%s'\n\n", cmd->maskfile);
+    good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
   } else {
     obsmask.numchan = obsmask.numint = 0;
   }
@@ -206,9 +207,10 @@ int main(int argc, char *argv[])
     /* Pulsar Machine (or BPP) format.                    */
     if (cmd->bcpmP) {
       printf("BCPM input file information:\n");
-      get_BPP_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+      get_BPP_file_info(infiles, numfiles, cmd->clip, &N, &ptsperblock, &numchan, 
 			&dt, &T, &idata, 1);
       BPP_update_infodata(numfiles, &idata);
+      set_BPP_padvals(padvals, good_padvals);
       /* Which IFs will we use? */
       if (cmd->ifsP){
 	if (cmd->ifs==0)
@@ -229,6 +231,7 @@ int main(int argc, char *argv[])
 			 &N, &ptsperblock, &numchan, 
 			 &dt, &T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
+      set_WAPP_padvals(padvals, good_padvals);
       /* OBS code for TEMPO for Arecibo */
       strcpy(obs, "AO");
     }
@@ -560,6 +563,7 @@ int main(int argc, char *argv[])
     
     do { /* Loop to read and write the data */
       int numwritten=0;
+      double block_avg, block_var;
      
       if (cmd->pkmbP)
 	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
@@ -584,6 +588,9 @@ int main(int argc, char *argv[])
 
       if (numread==0)
 	break;
+
+      /* Determine the approximate local average */
+      avg_var(outdata, numread, &block_avg, &block_var);
 
       /* Print percent complete */
       
@@ -635,7 +642,7 @@ int main(int argc, char *argv[])
 	    
 	    /* Add a bin */
 	    
-	    favg = (float) avg;
+	    favg = (float) block_avg;
 	    chkfwrite(&favg, sizeof(float), 1, outfile);
 	    numadded++;
 	    totwrote++;
@@ -865,25 +872,6 @@ static int read_shorts(FILE *file, float *data, int numpts, \
     data[ii] = (float) sdata[ii];
   free(sdata);
   return numread;
-}
-
-
-static void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var)
-/* Update time series statistics using one-pass technique */
-{
-  double dev;
-
-  /* Check the max and min values */
-  
-  if (x > *max) *max = x;
-  if (x < *min) *min = x;
-  
-  /* Use clever single pass mean and variance calculation */
-  
-  dev = x - *avg;
-  *avg += dev / (N + 1.0);
-  *var += dev * (x - *avg);
 }
 
 

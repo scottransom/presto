@@ -23,7 +23,7 @@ static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static double corr_rate_st, corr_scale_st;
 static double center_freqs_st[WAPP_MAXNUMWAPPS];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char databuffer[2*WAPP_MAXDATLEN], padval=128;
+static unsigned char databuffer[2*WAPP_MAXDATLEN], padvals[WAPP_MAXLAGLEN], padval=128;
 static unsigned char lagbuffer[WAPP_MAXLAGLEN];
 static int currentfile, currentblock;
 static int header_version_st, header_size_st;
@@ -53,228 +53,21 @@ void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk,
   dt_st = dt;
 }
 
-/* NEW Clipping Routine (uses channel running averages) */
-int new_clip_times(unsigned char *rawpows)
-/* Perform time-domain clipping of WAPP data. This routine */
-/* is primarily designed to get rid of the nasty and very  */
-/* strong RFI that is occasionally observed at night at    */
-/* Arecibo.  The source of the RFI is unknown.             */
+void set_WAPP_padvals(float *fpadvals, int good_padvals)
 {
-  static float running_avg=0.0, running_std=0.0;
-  static int blocksread=0;
-  static long long current_point=0;
-  float zero_dm_block[WAPP_MAXPTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
-  double chan_avg_temp[WAPP_MAXLAGLEN], chan_running_avg[WAPP_MAXLAGLEN];
-  float current_med, trigger;
-  double current_avg=0.0, current_std=0.0;
-  unsigned char *powptr;
-  int ii, jj, clipit=0, clipped=0;
+  int ii;
+  float sum_padvals=0.0;
 
-  /* Calculate the zero DM time series */
-  for (ii=0; ii<ptsperblk_st; ii++){
-    zero_dm_block[ii] = 0.0;
-    powptr = rawpows + ii * numchan_st;
-    for (jj=0; jj<numchan_st; jj++)
-      zero_dm_block[ii] += *powptr++;
-    median_temp[ii] = zero_dm_block[ii];
-  }
-  current_med = median(median_temp, ptsperblk_st);
-  
-  /* Calculate the current standard deviation and mean  */
-  /* but only for data points that are within a certain */
-  /* fraction of the median value.  This removes the    */
-  /* really strong RFI from the calculation.            */
-  {
-    float lo_cutoff, hi_cutoff;
-    int numgoodpts=0;
-
-    lo_cutoff = 0.7 * current_med;
-    hi_cutoff = 1.3 * current_med;
-    for (jj=0; jj<numchan_st; jj++)
-      chan_avg_temp[jj] = 0.0;
-    /* Find the "good" points */
-    for (ii=0; ii<ptsperblk_st; ii++){
-      if (zero_dm_block[ii] > lo_cutoff &&
-	  zero_dm_block[ii] < hi_cutoff){
-	median_temp[numgoodpts] = zero_dm_block[ii];
-	powptr = rawpows + ii * numchan_st;
-	for (jj=0; jj<numchan_st; jj++)
-	  chan_avg_temp[jj] += *powptr++;
-	numgoodpts++;
-      }
-    }
-    /* Calculate the current average and stddev*/
-    if (numgoodpts<1){
-      current_avg = running_avg;
-      current_std = running_std;
-      for (jj=0; jj<numchan_st; jj++)
-	chan_avg_temp[jj] = chan_running_avg[jj];
-    } else {
-      avg_var(median_temp, numgoodpts, &current_avg, &current_std);
-      current_std = sqrt(current_std);
-      for (jj=0; jj<numchan_st; jj++)
-	chan_avg_temp[jj] /= numgoodpts;
-    }
-  }
-
-  /* Update a pseudo running average and stdev */
-  if (blocksread){
-    running_avg = 0.9 * running_avg + 0.1 * current_avg;
-    running_std = 0.9 * running_std + 0.1 * current_std;
-    for (ii=0; ii<numchan_st; ii++)
-      chan_running_avg[ii] = 0.9 * chan_running_avg[ii] + 
-	0.1 * chan_avg_temp[ii];
-  } else {
-    running_avg = current_avg;
-    running_std = current_std;
-    for (ii=0; ii<numchan_st; ii++)
-      chan_running_avg[ii] = chan_avg_temp[ii];
-    if (running_avg==0.0 || current_avg==0.0)
-      printf("BAD RFI IN BLOCK#1!!!\n\n");
-  }
-
-  /* See if any points need clipping */
-  trigger = clip_sigma_st * running_std;
-  for (ii=0; ii<ptsperblk_st; ii++){
-    if (fabs(zero_dm_block[ii] - running_avg) > trigger){
-      clipit=1;
-      break;
-    }
-  }
-      
-  /* Replace the bad channel data with channel median values */
-  /* that are scaled to equal the running_avg.               */
-  if (clipit){
-    for (ii=0; ii<ptsperblk_st; ii++){
-      if (fabs(zero_dm_block[ii] - running_avg) > trigger){
-	powptr = rawpows + ii * numchan_st;
-	for (jj=0; jj<numchan_st; jj++)
-	  *powptr++ = (unsigned char)(chan_running_avg[jj] + 0.5);
-	clipped++;
-	/* fprintf(stderr, "%lld\n", current_point); */
-      }
-      current_point++;
-    }
-  } else {
-    current_point += ptsperblk_st;
-  }
-  blocksread++;
-  return clipped;
-}
-
-
-/* OLD Clipping Routine (uses channel medians) */
-int clip_times(unsigned char *rawpows)
-/* Perform time-domain clipping of WAPP data. This routine */
-/* is primarily designed to get rid of the nasty and very  */
-/* strong RFI that is occasionally observed at night at    */
-/* Arecibo.  The source of the RFI is unknown.             */
-{
-  static float median_chan_levels[WAPP_MAXLAGLEN];
-  static float running_avg=0.0, running_std=0.0, median_sum=0.0;
-  static int blocksread=0;
-  static long long current_point=0;
-  float zero_dm_block[WAPP_MAXPTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
-  float current_med, trigger, running_wgt=0.1;
-  double current_avg=0.0, current_std=0.0, scaling;
-  unsigned char *powptr, good_chan_levels[WAPP_MAXLAGLEN];
-  int ii, jj, clipit=0, clipped=0;
-
-  /* Calculate the zero DM time series */
-  for (ii=0; ii<ptsperblk_st; ii++){
-    zero_dm_block[ii] = 0.0;
-    powptr = rawpows + ii * numchan_st;
-    for (jj=0; jj<numchan_st; jj++)
-      zero_dm_block[ii] += *powptr++;
-    median_temp[ii] = zero_dm_block[ii];
-  }
-  current_med = median(median_temp, ptsperblk_st);
-  
-  /* Calculate the current standard deviation and mean  */
-  /* but only for data points that are within a certain */
-  /* fraction of the median value.  This removes the    */
-  /* really strong RFI from the calculation.            */
-  {
-    float lo_cutoff, hi_cutoff;
-    int numgoodpts=0;
-
-    lo_cutoff = 0.7 * current_med;
-    hi_cutoff = 1.3 * current_med;
-    /* Find the "good" points */
-    for (ii=0; ii<ptsperblk_st; ii++){
-      if (zero_dm_block[ii] > lo_cutoff &&
-	  zero_dm_block[ii] < hi_cutoff){
-	median_temp[numgoodpts] = zero_dm_block[ii];
-	numgoodpts++;
-      }
-    }
-    /* Calculate the current average and stddev*/
-    if (numgoodpts<1){
-      current_avg = running_avg;
-      current_std = running_std;
-    } else {
-      avg_var(median_temp, numgoodpts, &current_avg, &current_std);
-      current_std = sqrt(current_std);
-    }
-  }
-
-  /* Update a pseudo running average and stdev */
-  if (blocksread){
-    running_avg = (running_avg*(1.0-running_wgt) + 
-		   running_wgt*current_avg);
-    running_std = (running_std*(1.0-running_wgt) + 
-		   running_wgt*current_std);
-  } else {
-    running_avg = current_avg;
-    running_std = current_std;
-    if (running_avg==0.0 || current_avg==0.0)
-      printf("BAD RFI IN BLOCK#1!!!\n\n");
-  }
-  padval = (unsigned char) (running_avg / numchan_st + 0.5);
-
-  /* See if any points need clipping */
-  trigger = clip_sigma_st * running_std;
-  for (ii=0; ii<ptsperblk_st; ii++){
-    if (fabs(zero_dm_block[ii] - running_avg) > trigger){
-      clipit=1;
-      break;
-    }
-  }
-      
-  /* Calculate the channel medians if required */
-  if ((blocksread % 100==0 && clipit==0) || blocksread==0){
-    median_sum = 0.0;
+  if (good_padvals){
     for (ii=0; ii<numchan_st; ii++){
-      powptr = rawpows + ii;
-      for (jj=0; jj<ptsperblk_st; jj++)
-	median_temp[jj] = *(powptr + jj * numchan_st);
-      median_chan_levels[ii] = median(median_temp, ptsperblk_st);
-      median_sum += median_chan_levels[ii];
+      padvals[ii] = (unsigned char)(fpadvals[ii] + 0.5);
+      sum_padvals += fpadvals[ii];
     }
-  }
-    
-  /* Replace the bad channel data with channel median values */
-  /* that are scaled to equal the running_avg.               */
-  if (clipit){
-    scaling = running_avg / median_sum;
-    for (ii=0; ii<numchan_st; ii++)
-      good_chan_levels[ii] = (unsigned char)(median_chan_levels[ii] * 
-					     scaling + 0.5);
-    for (ii=0; ii<ptsperblk_st; ii++){
-      if (fabs(zero_dm_block[ii] - running_avg) > trigger){
-	powptr = rawpows + ii * numchan_st;
-	for (jj=0; jj<numchan_st; jj++)
-	  *powptr++ = good_chan_levels[jj];
-	clipped++;
-	/* fprintf(stderr, "%lld\n", current_point); */
-      }
-      current_point++;
-    }
+    padval = (unsigned char)(sum_padvals/numchan_st + 0.5);
   } else {
-    current_point += ptsperblk_st;
+    for (ii=0; ii<numchan_st; ii++)
+      padvals[ii] = padval;
   }
-  blocksread++;
-  return clipped;
 }
 
 static void get_WAPP_HEADER_version(char *header, int *header_version, 
@@ -945,7 +738,8 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 
     /* Clip nasty RFI if requested */
     if (clip_sigma_st > 0.0)
-      clip_times(dataptr);
+      clip_times(dataptr, ptsperblk_st, numchan_st, 
+		 clip_sigma_st, padvals);
     *padding = 0;
 
     /* Put the new data into the databuffer if needed */
@@ -1074,66 +868,45 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
-    
     currentdata = rawdata1;
     lastdata = rawdata2;
-
-    numread = read_WAPP_rawblocks(infiles, numfiles, currentdata, 
-				  numblocks, padding);
-    if (numread != numblocks && allocd){
-      printf("Problem reading the raw WAPP data file.\n\n");
-      free(rawdata1);
-      free(rawdata2);
-      rfftw_destroy_plan(fftplan);
-      allocd = 0;
-      return 0;
-    }
-    
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, numblocks * sampperblk_st);
-      if (*nummasked > 0){ /* Only some of the channels are masked */
-	for (ii=0; ii<numpts; ii++){
-	  offset = ii * numchan_st;
-	  for (jj=0; jj<*nummasked; jj++)
-	    currentdata[offset+maskchans[jj]] = padval;
-	}
-      }
-    }
-    
-    SWAP(currentdata, lastdata);
-    firsttime=0;
   }
   
   /* Read and de-disperse */
   
   if (allocd){
-    numread = read_WAPP_rawblocks(infiles, numfiles, currentdata, 
-				  numblocks, padding);
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, numblocks * sampperblk_st);
-      if (*nummasked > 0){ /* Only some of the channels are masked */
-	for (ii=0; ii<numpts; ii++){
-	  offset = ii * numchan_st;
-	  for (jj=0; jj<*nummasked; jj++)
-	    currentdata[offset+maskchans[jj]] = padval;
+    while(1){
+      numread = read_WAPP_rawblocks(infiles, numfiles, currentdata, 
+				    numblocks, padding);
+      if (mask){
+	starttime = currentblock * timeperblk;
+	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
+	if (*nummasked==-1){ /* If all channels are masked */
+	  for (ii=0; ii<numpts; ii++)
+	    memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+	} else if (*nummasked > 0){ /* Only some of the channels are masked */
+	  int channum;
+	  for (ii=0; ii<numpts; ii++){
+	    offset = ii * numchan_st;
+	    for (jj=0; jj<*nummasked; jj++){
+	      channum = maskchans[jj];
+	      currentdata[offset+channum] = padvals[channum];
+	    }
+	  }
 	}
       }
-    }
     
-    dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
-    SWAP(currentdata, lastdata);
-    
-    if (numread != numblocks){
-      free(rawdata1);
-      free(rawdata2);
-      rfftw_destroy_plan(fftplan);
-      allocd = 0;
+      if (!firsttime)
+	dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
+      SWAP(currentdata, lastdata);
+      if (numread != numblocks){
+	free(rawdata1);
+	free(rawdata2);
+	rfftw_destroy_plan(fftplan);
+	allocd = 0;
+      }
+      if (firsttime) firsttime = 0;
+      else break;
     }
     return numread * ptsperblk_st;
   } else {
@@ -1192,58 +965,51 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
   *nummasked = 0;
   if (firsttime) {
     if (obsmask->numchan) mask = 1;
-    move_size = (ptsperblk_st + numsubbands) / 2;
+    move_size = (ptsperblk_st+numsubbands)/2;
     move = gen_bvect(move_size);
     currentdata = rawdata1;
     lastdata = rawdata2;
     memcpy(currentdata, rawdata, sampperblk_st);
-    timeperblk = ptsperblk_st * dt_st;
-    if (mask){
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-      if (*nummasked==-1) /* If all channels are masked */
-	memset(currentdata, padval, ptsperblk_st);
-      if (*nummasked > 0){ /* Only some of the channels are masked */
-	for (ii=0; ii<ptsperblk_st; ii++){
-	  offset = ii * numchan_st;
-	  for (jj=0; jj<*nummasked; jj++)
-	    currentdata[offset+maskchans[jj]] = padval;
-	}
-      }
-    }
-    SWAP(currentdata, lastdata);
-    firsttime=0;
-    return 0;
+    timeperblk = ptsperblk_st*dt_st;
   }
 
   /* Read and de-disperse */
 
   memcpy(currentdata, rawdata, sampperblk_st);
   if (mask){
-    starttime = currentblock * timeperblk;
+    starttime = currentblock*timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-    if (*nummasked==-1) /* If all channels are masked */
-      memset(currentdata, padval, ptsperblk_st);
-    if (*nummasked > 0){ /* Only some of the channels are masked */
+    if (*nummasked==-1){ /* If all channels are masked */
+      for (ii=0; ii<ptsperblk_st; ii++)
+	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+    } else if (*nummasked > 0){ /* Only some of the channels are masked */
+      int channum;
       for (ii=0; ii<ptsperblk_st; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+	offset = ii*numchan_st;
+	for (jj=0; jj<*nummasked; jj++){
+	  channum = maskchans[jj];
+	  currentdata[offset+channum] = padvals[channum];
+	}
       }
     }
   }
-  dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
-		  dispdelays, numsubbands, data);
-  SWAP(currentdata, lastdata);
-
-  /* Transpose the data into vectors in the result array */
-
-  if (transpose){
-    if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-				move, move_size))<0)
-      printf("Error %d in transpose_float().\n", trtn);
+    
+  if (firsttime){
+    SWAP(currentdata, lastdata);
+    firsttime = 0;
+    return 0;
+  } else {
+    dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
+		    dispdelays, numsubbands, data);
+    SWAP(currentdata, lastdata);
+    /* Transpose the data into vectors in the result array */
+    if (transpose){
+      if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
+				  move, move_size))<0)
+	printf("Error %d in transpose_float().\n", trtn);
+    }
+    return ptsperblk_st;
   }
-  return ptsperblk_st;
 }
 
 

@@ -21,6 +21,8 @@ static int splitbytes_st[MAXPATCHFILES];
 static double mid_freq_st, ch1_freq_st, delta_freq_st;
 static double chan_freqs[2*MAXNUMCHAN];
 static int chan_index[2*MAXNUMCHAN], chan_mapping[2*MAXNUMCHAN];
+static float clip_sigma_st=0.0;
+
 #if 0
 static double chan_freqs2[2*MAXNUMCHAN];
 static int chan_index2[2*MAXNUMCHAN];
@@ -61,22 +63,25 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
 
 
 void get_BCPM_static(int *bytesperpt, int *bytesperblk, 
-		     int *numifs, int *chan_map)
+		     int *numifs, int *chan_map, float *clip_sigma)
 {
   *bytesperpt = bytesperpt_st;
   *bytesperblk = bytesperblk_st;
   *numifs = numifs_st;
   memcpy(chan_map, chan_mapping, sizeof(int)*2*MAXNUMCHAN);
+  *clip_sigma = clip_sigma_st;
 }
 
 void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-		     int numchan, int numifs, double dt, int *chan_map)
+		     int numchan, int numifs, float clip_sigma, 
+		     double dt, int *chan_map)
 {
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
   numchan_st = numchan;
   numifs_st = numifs;
+  clip_sigma_st = clip_sigma;
   dt_st = dt;
   memcpy(chan_mapping, chan_map, sizeof(int)*2*MAXNUMCHAN);
 }
@@ -328,7 +333,7 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
 	else
 	  chan_freqs[n++] = hdr->rf_lo + fc/1.0e6;
 	/* The following is a hack in order to get 350MHz working with the right freqs */
-	chan_freqs[n-1] -= 1470;
+	/* chan_freqs[n-1] -= 1470; */
       }
     }
   }
@@ -426,8 +431,8 @@ void BPP_hdr_to_inf(BPP_SEARCH_HEADER *hdr, infodata *idata)
 }
 
 
-void get_BPP_file_info(FILE *files[], int numfiles, long long *N, 
-		       int *ptsperblock, int *numchan, double *dt, 
+void get_BPP_file_info(FILE *files[], int numfiles, float clipsig, 
+		       long long *N, int *ptsperblock, int *numchan, double *dt, 
 		       double *T, infodata *idata, int output)
 /* Read basic information into static variables and make padding      */
 /* calculations for a set of BPP rawfiles that you want to patch      */
@@ -450,6 +455,9 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   calc_BPP_chans(header);
   BPP_hdr_to_inf(header, &idata_st[0]);
   BPP_hdr_to_inf(header, idata);
+  /* Are we going to clip the data? */
+  if (clipsig > 0.0)
+    clip_sigma_st = clipsig;
   *numchan = numchan_st = idata_st[0].num_chan;
   *ptsperblock = ptsperblk_st;
   if (both_IFs_present){
@@ -932,21 +940,8 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
-    
-    numread = read_BPP_rawblocks(infiles, numfiles, raw, 
-				 numblocks, padding);
-    if (numread != numblocks && allocd){
-      printf("Problem reading the raw BPP data file.\n\n");
-      free(raw);
-      free(rawdata1);
-      free(rawdata2);
-      allocd = 0;
-      return 0;
-    }
-
     currentdata = rawdata1;
     lastdata = rawdata2;
-    
   }
   
   /* Read, convert and de-disperse */
@@ -979,6 +974,11 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
 			    currentdata+ii*numchan_st);
       }
       
+      /* Clip nasty RFI if requested */
+      if (clip_sigma_st > 0.0)
+	clip_times(currentdata, numpts, numchan_st, 
+		   clip_sigma_st, padvals);
+
       if (mask){
 	if (*nummasked==-1){ /* If all channels are masked */
 	  for (ii=0; ii<numpts; ii++)
@@ -1159,6 +1159,11 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
 			currentdata+ii*numchan_st);
   }
   
+  /* Clip nasty RFI if requested */
+  if (clip_sigma_st > 0.0)
+    clip_times(currentdata, ptsperblk_st, numchan_st, 
+	       clip_sigma_st, padvals);
+
   if (mask){
     if (*nummasked==-1){ /* If all channels are masked */
       for (ii=0; ii<ptsperblk_st; ii++)
@@ -1243,7 +1248,7 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
 
 
 void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
-			BPP_ifs ifs)
+			       BPP_ifs ifs)
 /* This routine converts a single IF from 4-bit digitized */
 /* data of two IFs into an array of 'numchan' bytes.      */
 {

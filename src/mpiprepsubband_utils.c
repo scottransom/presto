@@ -187,25 +187,6 @@ void print_percent_complete(int current, int number)
 }
 
 
-void update_stats(int N, double x, double *min, double *max,
-		  double *avg, double *var)
-/* Update time series statistics using one-pass technique */
-{
-  double dev;
-
-  /* Check the max and min values */
-  
-  if (x > *max) *max = x;
-  if (x < *min) *min = x;
-  
-  /* Use clever single pass mean and variance calculation */
-  
-  dev = x - *avg;
-  *avg += dev / (N + 1.0);
-  *var += dev * (x - *avg);
-}
-
-
 void update_infodata(infodata *idata, int datawrote, int padwrote, 
 		     int *barybins, int numbarybins, int downsamp)
 /* Update our infodata for barycentering and padding */
