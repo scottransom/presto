@@ -80,7 +80,7 @@ FLINKFLAGS = $(FFLAGS)
 #F77 = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-g -O -Xc -vc -KPIC
+#	-g -O -Xc -v -KPIC
 #	-fast
 #LIBLINKFLAGS = -G
 #LINKCOMMAND = ld $(LIBLINKFLAGS) -o

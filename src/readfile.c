@@ -6,8 +6,9 @@
 /* #define DEBUG */
 
 #define PAGELEN 32   /* Set the page length to 32 lines */
-#define NUMTYPES 9
+#define NUMTYPES 10
 
+int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
 int DOUBLE_print(long count, char *obj_ptr);
 int FCPLEX_print(long count, char *obj_ptr);
@@ -19,7 +20,7 @@ int BINCAND_print(long count, char *obj_ptr);
 int PKMBHDR_print(long count, char *obj_ptr);
 
 typedef enum{
-  FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, RZWCAND, BINCAND, PKMBHDR
+  BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, RZWCAND, BINCAND, PKMBHDR
 } rawtypes;
 
 typedef struct fcplex{
@@ -33,6 +34,7 @@ typedef struct dcplex{
 } dcplex;
 
 int type_sizes[NUMTYPES] = {
+  sizeof(unsigned char), \
   sizeof(float), \
   sizeof(double), \
   sizeof(fcplex), \
@@ -51,6 +53,7 @@ int objs_at_a_time[NUMTYPES] = {
 /* You don't see this every day -- An array of pointers to functions: */
 
 int (*print_funct_ptrs[NUMTYPES])() = {
+  BYTE_print, \
   FLOAT_print, \
   DOUBLE_print, \
   FCPLEX_print, \
@@ -102,7 +105,8 @@ int main(int argc, char **argv)
 
   /* Set our index value */
 
-  if (cmd->fltP || cmd->sfltP) index = FLOAT;
+  if (cmd->bytP || cmd->sbytP) index = BYTE;
+  else if (cmd->fltP || cmd->sfltP) index = FLOAT;
   else if (cmd->dblP || cmd->sdblP) index = DOUBLE;
   else if (cmd->fcxP || cmd->sfcxP) index = FCPLEX;
   else if (cmd->dcxP || cmd->sdcxP) index = DCPLEX;
@@ -188,11 +192,15 @@ int main(int argc, char **argv)
 
   infile = chkfopen(cmd->argv[0], "rb");
 
+  if (cmd->fortranP){
+    chkfileseek(infile, 1, sizeof(long), SEEK_SET);
+  }
+
   /* Skip to the correct first object */
 
   if (cmd->index[0] > 0){
     chkfileseek(infile, (long) (cmd->index[0]), type_sizes[index], \
-		SEEK_SET);
+		SEEK_CUR);
   }
 
   /* Read the file */
@@ -224,6 +232,15 @@ int main(int argc, char **argv)
   exit(0);
  }
 
+
+int BYTE_print(long count, char *obj_ptr)
+{
+  unsigned char *object;
+
+  object = (unsigned char *) obj_ptr;
+  printf("%9ld:  %d\n", count, *object);
+  return 0;
+}
 
 int FLOAT_print(long count, char *obj_ptr)
 {

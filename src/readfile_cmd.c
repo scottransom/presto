@@ -24,6 +24,10 @@ static int indexDefault[] = {0, -1};
 static Cmdline cmd = {
   /***** -more: Paginate the output like 'more' */
   /* moreP = */ FALSE,
+  /***** -byte: Raw data in byte format */
+  /* bytP = */ FALSE,
+  /***** -b: Raw data in byte format */
+  /* sbytP = */ FALSE,
   /***** -float: Raw data in floating point format */
   /* fltP = */ FALSE,
   /***** -f: Raw data in floating point format */
@@ -60,6 +64,8 @@ static Cmdline cmd = {
   /* pksP = */ FALSE,
   /***** -pk: Raw data in Parkes Multibeam format */
   /* spksP = */ FALSE,
+  /***** -fortran: Raw data was written by a fortran program */
+  /* fortranP = */ FALSE,
   /***** -index: The range of objects to display */
   /* indexP = */ TRUE,
   /* index = */ indexDefault,
@@ -416,6 +422,20 @@ showOptionValues(void)
     printf("-more found:\n");
   }
 
+  /***** -byte: Raw data in byte format */
+  if( !cmd.bytP ) {
+    printf("-byte not found.\n");
+  } else {
+    printf("-byte found:\n");
+  }
+
+  /***** -b: Raw data in byte format */
+  if( !cmd.sbytP ) {
+    printf("-b not found.\n");
+  } else {
+    printf("-b found:\n");
+  }
+
   /***** -float: Raw data in floating point format */
   if( !cmd.fltP ) {
     printf("-float not found.\n");
@@ -542,6 +562,13 @@ showOptionValues(void)
     printf("-pk found:\n");
   }
 
+  /***** -fortran: Raw data was written by a fortran program */
+  if( !cmd.fortranP ) {
+    printf("-fortran not found.\n");
+  } else {
+    printf("-fortran found:\n");
+  }
+
   /***** -index: The range of objects to display */
   if( !cmd.indexP ) {
     printf("-index not found.\n");
@@ -585,9 +612,11 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-more] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-pkmb] [-pk] [-index [index]] [-nph nph] file\n\
+ [-more] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-pkmb] [-pk] [-fortran] [-index [index]] [-nph nph] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
       -more: Paginate the output like 'more'\n\
+      -byte: Raw data in byte format\n\
+         -b: Raw data in byte format\n\
      -float: Raw data in floating point format\n\
          -f: Raw data in floating point format\n\
     -double: Raw data in double precision format\n\
@@ -606,6 +635,7 @@ usage(void)
        -bin: Raw data in bin search candidate format\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
         -pk: Raw data in Parkes Multibeam format\n\
+   -fortran: Raw data was written by a fortran program\n\
      -index: The range of objects to display\n\
              0...2 integer values between -1 and oo\n\
              default: `0' `-1'\n\
@@ -614,7 +644,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 string value\n\
-version: 06Nov99\n\
+version: 10Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -634,6 +664,16 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-more", argv[i]) ) {
       cmd.moreP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-byte", argv[i]) ) {
+      cmd.bytP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-b", argv[i]) ) {
+      cmd.sbytP = TRUE;
       continue;
     }
 
@@ -724,6 +764,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-pk", argv[i]) ) {
       cmd.spksP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-fortran", argv[i]) ) {
+      cmd.fortranP = TRUE;
       continue;
     }
 
