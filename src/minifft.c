@@ -68,8 +68,6 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 
   if (interptype == INTERBIN)
     numbetween = 2;
-  lobin *= numbetween;
-  hibin *= numbetween;
   norm = 1.0 / norm;
   *powmax = 0.0;
 
@@ -145,7 +143,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 
   /* Search the raw powers */
   
-  for (ii = lobin; ii < hibin; ii++) {
+  for (ii = lobin * numbetween; ii < hibin * numbetween; ii++) {
     if (fullpows[ii] > minpow){
       newcand.r = dr * (double) ii;
       newcand.p = fullpows[ii];
@@ -179,7 +177,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 	minpow = power_for_sigma(sigmacutoff, ii, hibin-lobin);
       else
 	minpow = power_for_sigma(tmpminsig, ii, hibin-lobin);
-      for (jj = lobin; jj < numtosearch; jj++){
+      for (jj = lobin * numbetween; jj < numtosearch; jj++){
 	sumpows[jj] += fullpows[(jj + offset) / ii];
 	if (sumpows[jj] > minpow) {
 	  newcand.r = dr * (double) jj;
