@@ -4,7 +4,6 @@ from Numeric import *
 from presto import *
 from miscutils import *
 from Statistics import *
-from cPickle import *
 import Pgplot
 
 # Some admin variables
@@ -12,12 +11,12 @@ showplots = 0         # True or false
 showsumplots = 0      # True or false
 debugout = 0          # True or false
 outfiledir = '/home/ransom'
-outfilenm = 'cpickle'
+outfilenm = 'monte'
 pmass = 1.35                                 # Pulsar mass in solar masses
 cmass = {'WD': 0.3, 'NS': 1.35, 'BH': 10.0}  # Companion masses to use
 ecc = {'WD': 0.0, 'NS': 0.6, 'BH': 0.6}      # Eccentricities to use
 orbsperpt = {'WD': 20, 'NS': 20, 'BH': 20}   # # of orbits to avg per pt
-ppsr = [0.002, 0.02, 0.2, 2.0]               # Pulsar periods to test
+ppsr = [0.002, 0.02, 0.2]                    # Pulsar periods to test
 
 # Simulation parameters
 ctype = 'BH'             # The type of binary companion: 'WD', 'NS', or 'BH'
@@ -64,8 +63,6 @@ for pp in ppsr:
         if tmpnumbins > numbins:  numbins = tmpnumbins
     # Powers averaged over orb.t as a function of orb.w
     pwrs_w = zeros((orbsperpt[ctype], numbins), Float32)
-    # Powers averaged over orb.w as a function of orb.t
-    pwrs_t = zeros((numffts, numbins), Float32)
     for ct in range(orbsperpt[ctype]):
         wb = ct * 180.0 / orbsperpt[ctype]
         if debugout:  print 'wb = '+`wb`
@@ -81,24 +78,18 @@ for pp in ppsr:
                 Pgplot.plotxy(tmppwrs)
                 Pgplot.closeplot()
             pwrs_w[ct] = pwrs_w[ct] + tmppwrs
-            pwrs_t[i] = pwrs_t[i] + tmppwrs
         if showsumplots:
             Pgplot.plotxy(pwrs_w[ct], title='power(w) averaged over orb.t')
             Pgplot.closeplot()
-    for i in range(numffts):
-        if showsumplots:
-            Pgplot.plotxy(pwrs_t[i], title='power(t) averaged over orb.w')
-            Pgplot.closeplot()
     pwrs_w = pwrs_w / numffts
-    pwrs_t = pwrs_t / orbsperpt[ctype]
+    max_avg_pow = average(maximum.reduce(pwrs_w,1))
     if showsumplots:
         Pgplot.plotxy(add.reduce(pwrs_w), title='power(w) averaged over orb.t')
-        Pgplot.closeplot()
-        Pgplot.plotxy(add.reduce(pwrs_t), title='power(t) averaged over orb.w')
         Pgplot.closeplot()
     tim = clock() - stim
     if debugout:
         print 'Time for this point was ',tim, ' s.'
-    dump(pwrs_w, file)
-    dump(pwrs_t, file)
+    file.write('%8.6f  %10.5f  %10d  %13.9f\n' % \
+               (pp, Tfft, int(Tfft/dt), max_avg_pow))
+    file.flush()
 file.close()
