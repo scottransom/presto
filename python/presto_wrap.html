@@ -1791,17 +1791,25 @@ presto_wrap.c</TITLE>
 </BLOCKQUOTE>
 
 <P><TT><B>nice_output_1(output,val,err,len)</B></TT>
-<BLOCKQUOTE>[ returns void  ]
-<BR>   Generates a string in &quot;output&quot; of length len with &quot;val&quot; rounded     
+<BLOCKQUOTE>[ returns int  ]
+<BR>   Generates a string in &quot;output&quot; of length len with &quot;val&quot; rounded    
      to the appropriate decimal place and the error in parenthesis    
-     as in scientific journals.  The error has 1 decimal place.    
+     as in scientific journals.  The error has 1 decimal place.       
+   Note:  len should be ~ 20 to show full double precision            
+     if the base 10 exponent of the error needs to be shown.          
+     If len == 0, left-justified minimum length string is returned.   
+     If len > 0, the string returned has is right justified.          
 </BLOCKQUOTE>
 
 <P><TT><B>nice_output_2(output,val,err,len)</B></TT>
-<BLOCKQUOTE>[ returns void  ]
-<BR>   Generates a string in &quot;output&quot; of length len with &quot;val&quot; rounded     
+<BLOCKQUOTE>[ returns int  ]
+<BR>   Generates a string in &quot;output&quot; of length len with &quot;val&quot; rounded    
      to the appropriate decimal place and the error in parenthesis    
-     as in scientific journals.  The error has 2 decimal places.    
+     as in scientific journals.  The error has 2 decimal places.      
+   Note:  len should be ~ 20 to show full double precision            
+     if the base 10 exponent of the error needs to be shown.          
+     If len == 0, left-justified minimum length string is returned.   
+     If len > 0, the string returned has is right justified.          
 </BLOCKQUOTE>
 
 <P><TT><B>print_candidate(cand,dt,N,nph,numerrdigits)</B></TT>
@@ -2153,7 +2161,7 @@ presto_wrap.c</TITLE>
    (in units of v/c) of voverc wrt the pulsar.              
 </BLOCKQUOTE>
 
-<P><TT><B>search_minifft(minifft,numminifft,cands,numcands,numharmsum,numfullfft,timefullfft,lorfullfft,interptype,checkaliased)</B></TT>
+<P><TT><B>search_minifft(minifft,numminifft,cands,numcands,numharmsum,numbetween,numfullfft,timefullfft,lorfullfft,interptype,checkaliased)</B></TT>
 <BLOCKQUOTE>[ returns void  ]
 <BR>   This routine searches a short FFT (usually produced using the     
    MiniFFT binary search method) and returns a candidte vector       
@@ -2167,6 +2175,7 @@ presto_wrap.c</TITLE>
         the sorted (in decreasing sigma) candidates are returned     
      'numcands' is the length of the 'cands' vector                  
      'numharmsum' the number of harmonics to sum during the search   
+     'numbetween' the points to interpolate per bin                  
      'numfullfft' the number of points in the original long FFT      
      'timefullfft' the duration of the original time series (s)      
      'lorfullfft' the 1st bin of the long FFT that was miniFFT'd     

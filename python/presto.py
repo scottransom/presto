@@ -1654,8 +1654,8 @@ dm_from_delay = prestoc.dm_from_delay
 
 doppler = prestoc.doppler
 
-def search_minifft(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9):
-    val = prestoc.search_minifft(arg0,arg1,arg2.this,arg3,arg4,arg5,arg6,arg7,arg8,arg9)
+def search_minifft(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10):
+    val = prestoc.search_minifft(arg0,arg1,arg2.this,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10)
     return val
 
 def print_rawbincand(arg0):

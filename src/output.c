@@ -3,16 +3,19 @@
 /*  NOTE:  See presto.h for function definitions. */
 #include "presto.h"
 
-void nice_output_1(char *output, double val, double err, int len)
+int nice_output_1(char *output, double val, double err, int len)
+/* Generates a string in "output" of length len with "val" rounded  */
+/*   to the appropriate decimal place and the error in parenthesis  */
+/*   as in scientific journals.  The error has 1 decimal place.     */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
 {
   int nint, nfrac, pad, totprec, numchar;
   int errexp, errval, outexp;
   double rndval, outmant;
   char temp[50];
-
-  /* This function gives output with an error of 1 decimal place    */
-  /* Note:  len should be at least 20 to show full double precision */
-  /* the base 10 exponent of err:                                   */
 
   sprintf(temp, "There is a problem with 'nice_output()'.\n");
   if (fabs(err) == 0.0) {
@@ -106,23 +109,27 @@ void nice_output_1(char *output, double val, double err, int len)
   else 
     sprintf(temp, "%.*f(%d)", nfrac, rndval, errval);
 
-  /* Use the following for left justification:          */
-  /* sprintf(output,"%-*s",len,temp);                   */
-  /* Use the following for right justification:         */
-
-  sprintf(output, "%*s", len, temp);
+  if (len==0){  /* Left-justify  */
+    sprintf(output, "%s", temp);
+  } else {      /* Right-justify with a lenght of len */
+    sprintf(output, "%*s", len, temp);
+  }
+  return strlen(output);
 }
 
 
-void nice_output_2(char *output, double val, double err, int len)
+int nice_output_2(char *output, double val, double err, int len)
+/* Generates a string in "output" of length len with "val" rounded  */
+/*   to the appropriate decimal place and the error in parenthesis  */
+/*   as in scientific journals.  The error has 2 decimal places.    */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
 {
   int errexp, errval, outexp, valexp, tmp;
   double rndval, outmant;
   char temp[50];
-
-  /* This function gives output with an error of 2 decimal places      */
-  /* Note:  len should be at least 20 to show full double precision    */
-  /* the base 10 exponent of err:                                      */
 
   sprintf(temp, "There is a problem with 'nice_output2()'.\n");
   if (fabs(err) == 0.0) {
@@ -208,11 +215,12 @@ void nice_output_2(char *output, double val, double err, int len)
     exit(1);
   }
 
-  /* Use the following for left justification:    */
-  /* sprintf(output,"%-*s",len,temp);             */
-  /* Use the following for right justification:   */
-
-  sprintf(output, "%*s", len, temp);
+  if (len==0){  /* Left-justify  */
+    sprintf(output, "%s", temp);
+  } else {      /* Right-justify with a lenght of len */
+    sprintf(output, "%*s", len, temp);
+  }
+  return strlen(output);
 }
 
 
@@ -226,7 +234,7 @@ void print_candidate(fourierprops * cand, double dt, long N, \
   double pownph, signph, pownpherr, rawpowerr, temp;
   int width = 19;
   char output[40], output2[40];
-  void (*nice_output) (char *, double, double, int);
+  int (*nice_output) (char *, double, double, int);
 
   if (numerrdigits == 1)
     nice_output = nice_output_1;
@@ -310,7 +318,7 @@ void print_bin_candidate(binaryprops * cand, int numerrdigits)
 {
   int width = 19;
   char output[40], output2[40];
-  void (*nice_output) (char *, double, double, int);
+  int (*nice_output) (char *, double, double, int);
 
   if (numerrdigits == 1)
     nice_output = nice_output_1;

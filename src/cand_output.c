@@ -75,36 +75,40 @@ void file_reg_candidates(fourierprops cand[], char *notes, int numcands, \
 
       fprintf(fname, " %-5d", k + 1);
       fprintf(fname, "%7.2f  ", cand[k].sig);
-      nwrit = file_nice_output(output, cand[k].pow, cand[k].powerr);
+      nwrit = nice_output_1(output, cand[k].pow, cand[k].powerr, 0);
       nwrit += (12 - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, 12 - nwrit, tmp);
-      nwrit = file_nice_output(output, rzws.p, rzws.perr);
+      nwrit = nice_output_1(output, rzws.p, rzws.perr, 0);
       nwrit += (18 - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, 18 - nwrit, tmp);
-      nwrit = file_nice_output(output, rzws.pd, rzws.pderr);
+      nwrit = nice_output_1(output, rzws.pd, rzws.pderr, 0);
       nwrit += (18 - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, 18 - nwrit, tmp);
-      nwrit = file_nice_output(output, cand[k].phs, cand[k].phserr);
+      nwrit = nice_output_1(output, cand[k].phs, cand[k].phserr, 0);
       nwrit += (7 - nwrit) / 2;
       fprintf(fname, "%*s%*s ", nwrit, output, 7 - nwrit, tmp);
-      nwrit = file_nice_output(output, cand[k].cen, cand[k].cenerr);
+      nwrit = nice_output_1(output, cand[k].cen, cand[k].cenerr, 0);
       nwrit += (12 - nwrit) / 2;
       fprintf(fname, "  %*s%*s ", nwrit, output, 11 - nwrit, tmp);
-      nwrit = file_nice_output(output, cand[k].pur, cand[k].purerr);
+      nwrit = nice_output_1(output, cand[k].pur, cand[k].purerr, 0);
       nwrit += (11 - nwrit) / 2;
       fprintf(fname, "%*s%*s", nwrit, output, 12 - nwrit, tmp);
-      nwrit = file_nice_output(output, cand[k].r, cand[k].rerr);
+      nwrit = nice_output_1(output, cand[k].r, cand[k].rerr, 0);
       nwrit += (18 - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, 18 - nwrit, tmp);
-      nwrit = file_nice_output(output, cand[k].z, cand[k].zerr);
+      nwrit = nice_output_1(output, cand[k].z, cand[k].zerr, 0);
       nwrit += (12 - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, 12 - nwrit, tmp);
-      nwrit = file_nice_output(output, cand[k].w, cand[k].werr);
+      nwrit = nice_output_1(output, cand[k].w, cand[k].werr, 0);
       nwrit += (14 - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, 14 - nwrit, tmp);
-      nwrit = file_nice_output(output, pownph, pownpherr);
-      nwrit += (16 - nwrit) / 2;
-      fprintf(fname, "%*s%*s", nwrit, output, 16 - nwrit, tmp);
+      if (pownph > 1.0e7){
+	fprintf(fname, "%12.5g    ", pownph);
+      } else {
+	nwrit = nice_output_1(output, pownph, pownpherr, 0);
+	nwrit += (16 - nwrit) / 2;
+	fprintf(fname, "%*s%*s", nwrit, output, 16 - nwrit, tmp);
+      }
       fprintf(fname, "  %.20s\n", notes + k * 20);
       fflush(fname);
     }
@@ -170,52 +174,52 @@ void file_bin_candidates(binaryprops cand[], char *notes, \
       fprintf(fname, " %-4d %7ld ", k + 1, cand[k].nfftbins);
       fprintf(fname, "%7.2f  ", cand[k].sig);
 
-      nwrit = file_nice_output(output, cand[k].pow, cand[k].powerr);
+      nwrit = nice_output_1(output, cand[k].pow, cand[k].powerr, 0);
       wide = 12;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].ppsr, cand[k].ppsrerr);
+      nwrit = nice_output_1(output, cand[k].ppsr, cand[k].ppsrerr, 0);
       wide = 15;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].pbin, cand[k].pbinerr);
+      nwrit = nice_output_1(output, cand[k].pbin, cand[k].pbinerr, 0);
       wide = 14;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].asinic, cand[k].asinicerr);
+      nwrit = nice_output_1(output, cand[k].asinic, cand[k].asinicerr, 0);
       wide = 12;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s ", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].z, cand[k].zerr);
+      nwrit = nice_output_1(output, cand[k].z, cand[k].zerr, 0);
       wide = 14;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "  %*s%*s ", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].cen, cand[k].cenerr);
+      nwrit = nice_output_1(output, cand[k].cen, cand[k].cenerr, 0);
       wide = 11;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].pur, cand[k].purerr);
+      nwrit = nice_output_1(output, cand[k].pur, cand[k].purerr, 0);
       wide = 11;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].rpsr, cand[k].rpsrerr);
+      nwrit = nice_output_1(output, cand[k].rpsr, cand[k].rpsrerr, 0);
       wide = 17;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].rbin, cand[k].rbinerr);
+      nwrit = nice_output_1(output, cand[k].rbin, cand[k].rbinerr, 0);
       wide = 13;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s  ", nwrit, output, wide - nwrit, tmp);
 
-      nwrit = file_nice_output(output, cand[k].rdetect, cand[k].rdetecterr);
+      nwrit = nice_output_1(output, cand[k].rdetect, cand[k].rdetecterr, 0);
       wide = 14;
       nwrit += (wide - nwrit) / 2;
       fprintf(fname, "%*s%*s", nwrit, output, wide - nwrit, tmp);
@@ -233,117 +237,6 @@ void file_bin_candidates(binaryprops cand[], char *notes, \
 	  "$PRESTO/bin/a2x -l -c1 -n80 -title -date -num %s > %s.ps", \
 	  filenm, filenm);
   system(command);
-}
-
-
-
-int file_nice_output(char *output, double val, double err)
-{
-  int nint, nfrac, pad, totprec, numchar;
-  int errexp, errval, outexp;
-  double rndval, outmant;
-  char temp[50];
-
-  /* This function gives output with an error of 1 decimal place    */
-  /* Note:  len should be at least 20 to show full double precision */
-  /* the base 10 exponent of err:                                   */
-
-  sprintf(temp, "There is a problem with 'nice_output()'.\n");
-  if (fabs(err) == 0.0) {
-    errexp = 0;
-  } else {
-    errexp = (int) floor(log10(fabs(err)));
-  }
-  /* 1 digit error value:  */
-
-  errval = (int) ceil(fabs(err) * pow(10.0, (double)(-errexp)));
-  if (errval == 10) {
-    errval = 1;
-    errexp++;
-  }
-  /* val rounded to the appropriate decimal place due to err: */
-
-  rndval = pow(10.0, (double)errexp) * \
-    floor(val * pow(10.0, (double)(-errexp)) + 0.5);
-
-  /* Space needed for integer part: */
-
-  if (fabs(val) == 0.0) {
-    nint = 1;
-  } else {
-    nint = (int) (ceil(log10(fabs(val))));
-    if (nint == 0)
-      nint++;
-  }
-
-  /* Space needed for fractional part: */
-
-  nfrac = -errexp;
-
-  /* Total number of digits of precision in output value: */
-
-  totprec = nint + nfrac;
-  if (totprec == 0)
-    totprec++;
-
-  /* Base 10 exponent of output value: */
-
-  if (fabs(rndval) == 0.0) {
-    outexp = 0;
-  } else {
-    outexp = (int) floor(log10(fabs(rndval)));
-  }
-
-  /* Unsigned base 10 mantissa of output value: */
-
-  outmant = rndval * pow(10.0, (double)(-outexp));
-  if (outmant == 1.0)
-    totprec++;
-
-  /* Space needed for sign, decimal, and error with parenthesis: */
-
-  pad = 5;
-
-  /* Use scientific notation:  */
-
-  if ((outexp >= 0 && errexp > 0) && outexp > errexp)
-    numchar = sprintf(temp, "%.*f(%d)x10^%d", totprec - 1, \
-		      COPYSIGN(outmant, rndval), errval, outexp);
-
-  /* Use scientific notation but with integer mantissa */
-
-  else if ((outexp >= 0 && errexp > 0) && outexp == errexp) {
-    numchar = sprintf(temp, "%d(%d)x10^%d", \
-		      (int) (COPYSIGN(outmant, rndval)), \
-		      errval, outexp);
-  }
-  /* Use scientific notation for real small numbers: */
-
-  else if (outexp < -4 && outexp >= errexp)
-    numchar = sprintf(temp, "%.*f(%d)x10^%d", totprec - 1, \
-		      COPYSIGN(outmant, rndval), errval, outexp);
-
-  /* Use scientific notation but with integer mantissa */
-
-  else if (outexp < errexp && errexp != 0)
-    numchar = sprintf(temp, "%d(%d)x10^%d", \
-		      (int) (COPYSIGN(outmant, rndval) + DBLCORRECT), \
-		      errval, errexp);
-
-  /* Use regular notation: */
-
-  else if (nfrac == 0 && fabs(rndval) < 1.0e-15)
-    sprintf(temp, "%d(%d)", (int) fabs(rndval), errval);
-  else
-    sprintf(temp, "%.*f(%d)", nfrac, rndval, errval);
-
-  /* Use the following for left justification:    */
-  /* sprintf(output,"%-s",temp);             */
-  /* Use the following for right justification:   */
-
-  strcpy(output, temp);
-
-  return strlen(output);
 }
 
 #undef COPYSIGN

@@ -735,15 +735,25 @@ double sumpows_from_sigma(double sigma, int numsum);
   /* Return the summed ('numsum' powers) power required */
   /* to achieve a Gaussian significance of 'sigma'.     */
 
-void nice_output_1(char *output, double val, double err, int len);
-/* Generates a string in "output" of length len with "val" rounded   */
+%apply char *OUTPUT { char *output };
+int nice_output_1(char *output, double val, double err, int len);
+/* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
-/*   as in scientific journals.  The error has 1 decimal place.  */
+/*   as in scientific journals.  The error has 1 decimal place.     */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
 
-void nice_output_2(char *output, double val, double err, int len);
-/* Generates a string in "output" of length len with "val" rounded   */
+%apply char *OUTPUT { char *output };
+int nice_output_2(char *output, double val, double err, int len);
+/* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
-/*   as in scientific journals.  The error has 2 decimal places.  */
+/*   as in scientific journals.  The error has 2 decimal places.    */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
 
 void print_candidate(fourierprops * cand, double dt, unsigned long N, 
 		     float nph, int numerrdigits);
