@@ -853,29 +853,29 @@ void rzw_interp(fcomplex *data, int numdata, double r, double z, \
 
 double max_r_arr(fcomplex *data, int numdata, double rin, 
 		 double *rout, rderivs *derivs);
-/* Return the Fourier frequency that maximizes the power.  */
+  /* Return the Fourier frequency that maximizes the power.  */
 
 
 double max_rz_arr(fcomplex *data, int numdata, double rin, double zin, \
 		  double *rout, double *zout, rderivs * derivs);
-/* Return the Fourier frequency and Fourier f-dot that      */ 
-/* maximizes the power.                                     */
+  /* Return the Fourier frequency and Fourier f-dot that      */ 
+  /* maximizes the power.                                     */
 
 double max_rz_file(FILE *fftfile, double rin, double zin, \
 		   double *rout, double *zout, rderivs * derivs);
-/* Return the Fourier frequency and Fourier f-dot that      */ 
-/* maximizes the power of the candidate in 'fftfile'.       */
+  /* Return the Fourier frequency and Fourier f-dot that      */ 
+  /* maximizes the power of the candidate in 'fftfile'.       */
 
 double max_rzw_arr(fcomplex *data, int numdata, double rin, double zin, \
 		   double win, double *rout, double *zout, \
 		   double *wout, rderivs * derivs);
-/* Return the Fourier frequency, f-dot, and fdotdot that    */ 
-/* maximizes the power.                                     */
+  /* Return the Fourier frequency, f-dot, and fdotdot that    */ 
+  /* maximizes the power.                                     */
 
 double max_rz_file(FILE *fftfile, double rin, double zin, \
 		   double *rout, double *zout, rderivs * derivs);
-/* Return the Fourier frequency and Fourier f-dot that      */ 
-/* maximizes the power of the candidate in 'fftfile'.       */
+  /* Return the Fourier frequency and Fourier f-dot that      */ 
+  /* maximizes the power of the candidate in 'fftfile'.       */
 
 
 /* In fold.c */
@@ -892,43 +892,57 @@ void fold(float *data, long N, double dt, double tb, double *prof, \
 	  long numdelays, double *onoffpairs, long *totnumfolded);
 
 double delay_from_dm(double dm, double freq_emitted);
-/* Return the delay in seconds caused by dispersion, given  */
-/* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
-/* frequency (freq_emitted) of the pulsar in MHz.           */
+  /* Return the delay in seconds caused by dispersion, given  */
+  /* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
+  /* frequency (freq_emitted) of the pulsar in MHz.           */
 
 
 double dm_from_delay(double delay, double freq_emitted);
-/* Return the Dispersion Measure in cm-3 pc, that would     */
-/* cause a pulse emitted at frequency 'freq_emitted' to be  */
-/* delayed by 'delay' seconds.                              */
+  /* Return the Dispersion Measure in cm-3 pc, that would     */
+  /* cause a pulse emitted at frequency 'freq_emitted' to be  */
+  /* delayed by 'delay' seconds.                              */
 
 
 double doppler(double freq_observed, double voverc);
-/* This routine returns the frequency emitted by a pulsar */
-/* (in MHz) given that we observe the pulsar at frequency */
-/* freq_observed (MHz) while moving with radial velocity  */
-/* (in units of v/c) of voverc wrt the pulsar.            */
+  /* This routine returns the frequency emitted by a pulsar */
+  /* (in MHz) given that we observe the pulsar at frequency */
+  /* freq_observed (MHz) while moving with radial velocity  */
+  /* (in units of v/c) of voverc wrt the pulsar.            */
 
 
 void barycenter(double *topotimes, double *barytimes, \
 		double *voverc, long N, char *ra, char *dec, \
 		char *obs, char *ephem);
-/* This routine uses TEMPO to correct a vector of           */
-/* topocentric times (in *topotimes) to barycentric times   */
-/* (in *barytimes) assuming an infinite observation         */
-/* frequency.  The routine also returns values for the      */
-/* radial velocity of the observation site (in units of     */
-/* v/c) at the barycentric times.  All three vectors must   */
-/* be initialized prior to calling.  The vector length for  */
-/* all the vectors is 'N' points.  The RA and DEC (J2000)   */
-/* of the observed object are passed as strings in the      */
-/* following format: "hh:mm:ss.ssss" for RA and             */
-/* "dd:mm:s.ssss" for DEC.  The observatory site is passed  */
-/* as a 2 letter ITOA code.  This observatory code must be  */
-/* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
-/* is either "DE200" or "DE400".                            */
-
-
-   /*  The following are modifications I still need to make: */
-   /*  -- add harmonics and harmonic properties */
-   /*  -- fdotdot space routines */
+  /* This routine uses TEMPO to correct a vector of           */
+  /* topocentric times (in *topotimes) to barycentric times   */
+  /* (in *barytimes) assuming an infinite observation         */
+  /* frequency.  The routine also returns values for the      */
+  /* radial velocity of the observation site (in units of     */
+  /* v/c) at the barycentric times.  All three vectors must   */
+  /* be initialized prior to calling.  The vector length for  */
+  /* all the vectors is 'N' points.  The RA and DEC (J2000)   */
+  /* of the observed object are passed as strings in the      */
+  /* following format: "hh:mm:ss.ssss" for RA and             */
+  /* "dd:mm:s.ssss" for DEC.  The observatory site is passed  */
+  /* as a 2 letter ITOA code.  This observatory code must be  */
+  /* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
+  /* is either "DE200" or "DE400".                            */
+  
+void search_minifft(fcomplex *minifft, int numminifft, \
+		    float norm, int numcands, float *highpows, \
+		    float *highfreqs);
+  /* This routine searches a short FFT (usually produced using the   */
+  /* MiniFFT binary search method) and returns two vectors which     */
+  /* contain the highest powers found and their Fourier frequencies. */
+  /* The routine uses interbinning to help find the highest peaks.   */
+  /* Arguments:                                                      */
+  /*   'minifft' is the FFT to search (complex valued)               */
+  /*   'numminifft' is the number of complex points in 'minifft'     */
+  /*   'norm' is the value to multiply each pow power by to get      */
+  /*      a normalized power spectrum.                               */
+  /*   'numcands' is the length of the returned vectors.             */
+  /*   'highpows' a vector containing the 'numcands' highest powers. */
+  /*   'highfreqs' a vector containing the 'numcands' frequencies    */
+  /*      where 'highpows' were found.                               */
+  /* Notes:  The returned vectors must have already been allocated.  */
+  /*   The returned vectors will be sorted by decreasing power.      */
