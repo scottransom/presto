@@ -64,20 +64,23 @@ void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
 void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
 
 
-void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs){
+void get_BCPM_static(int *bytesperpt, int *bytesperblk, 
+		     int *numifs, int *chan_map){
   *bytesperpt = bytesperpt_st;
   *bytesperblk = bytesperblk_st;
   *numifs = numifs_st;
+  memcpy(chan_map, chan_mapping, sizeof(int)*2*MAXNUMCHAN);
 }
 
 void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-		     int numchan, int numifs, double dt){
+		     int numchan, int numifs, double dt, int *chan_map){
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
   numchan_st = numchan;
   numifs_st = numifs;
   dt_st = dt;
+  memcpy(chan_mapping, chan_map, sizeof(int)*2*MAXNUMCHAN);
 }
 
 
@@ -445,8 +448,9 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   filedatalen_st[0] = chkfilelen(files[0], 1) - BPP_HEADER_SIZE;
   numblks_st[0] = filedatalen_st[0] / bytesperblk_st;
-  splitbytes_st[0] = bytesperblk_st - filedatalen_st[0] % bytesperblk_st;
+  splitbytes_st[0] = filedatalen_st[0] % bytesperblk_st;
   if (splitbytes_st[0]){
+    splitbytes_st[0] = bytesperblk_st - filedatalen_st[0] % bytesperblk_st;
     printf("  File %2d has a non-integer number of complete samples!.  "
 	   "Applying work-around.  (bytes split = %d)\n", 1, splitbytes_st[0]);
     if (numfiles > 1){
@@ -482,8 +486,9 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
       BPP_HEADER_SIZE - splitbytes_st[ii-1];
     numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
-    splitbytes_st[ii] = bytesperblk_st - filedatalen_st[ii] % bytesperblk_st;
+    splitbytes_st[ii] = filedatalen_st[ii] % bytesperblk_st;
     if (splitbytes_st[ii]){
+      splitbytes_st[ii] = bytesperblk_st - filedatalen_st[ii] % bytesperblk_st;
       printf("  File %2d has a non-integer number of complete samples!.  "
 	     "Applying work-around.  (bytes split = %d)\n", ii+1, splitbytes_st[ii]);
       if (numfiles > ii+1){
@@ -1196,6 +1201,7 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
 	currentdata[offset+maskchans[jj]] = padval;
     }
   }
+  fflush(NULL);
   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
 		  dispdelays, numsubbands, data);
   SWAP(currentdata, lastdata);
@@ -1308,7 +1314,16 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
     bytes[*indexptr++] = (*rawdataptr >> 0x04);
     bytes[*indexptr++] = (*rawdataptr & 0x0F);
   }
+
   /* Hack to zap known bad channels */
+
+  /* BCPM1 */
   bytes[0] = bytes[1] = bytes[8] = bytes[9] = bytes[94] = 0;
+  /* BCPM2 */
+  /*
+  bytes[0] = bytes[1] = bytes[8] = bytes[9] = 0;
+  for (ii=80; ii<96; ii++)
+    bytes[ii] = 0;
+  */
 }
 
