@@ -33,7 +33,7 @@ def processbirds(filename):
     print "\nProcessing the birds..."
     info = read_inffile(rootname)
     T = info.dt * info.N;
-    min_psr_width = 12.0 / T # PSRs get 12 bins minimum zapped
+    min_psr_width = 20.0 / T # PSRs get 12 bins minimum zapped
     file = open(filename, "r")
     for line in file.readlines():
         if (line[0]=='#'):
