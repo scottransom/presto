@@ -1,7 +1,7 @@
 import umath
 import Numeric as Num
 import struct
-import psr_utils, infodata, polycos, Pgplot, sinc_interp
+import sys, psr_utils, infodata, polycos, Pgplot, sinc_interp
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
 
@@ -126,7 +126,6 @@ class pfd:
         infile.close()
         self.barysubfreqs = None
         if self.avgvoverc==0:
-            print "Determining the approximate Doppler correction: ",
             if self.candnm.startswith("PSR_"):
                 # If this doesn't work, we should try to use the barycentering calcs
                 # in the presto module.
@@ -135,7 +134,7 @@ class pfd:
                                                    filenm=self.pfd_filename+".polycos")
                     midMJD = self.tepoch + 0.5*self.T/86400.0
                     self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
-                    print self.avgvoverc
+                    sys.stderr.write("Approximate Doppler velocity (in c) is:  %.4g\n"%self.avgvoverc)
                     # Make the Doppler correction
                     self.barysubfreqs = self.subfreqs*(1.0+self.avgvoverc)
                 except IOError:

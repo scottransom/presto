@@ -609,10 +609,12 @@ void file_rawbin_candidates(rawbincand *cand, char *notes,
   fclose(fname);
   sprintf(command, "cat %s.inf >> %s", name, filenm);
   system(command);
+  /* This is not necessary
   sprintf(command, \
 	  "$PRESTO/bin/a2x -c1 -n90 -title -date -num %s > %s.ps", \
 	  filenm, filenm);
   system(command);
+  */
   free(filenm);
 }
 

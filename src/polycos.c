@@ -84,7 +84,7 @@ char *make_polycos(char *parfilenm, infodata *idata)
   }
   printf("Generating polycos for PSR %s.\n", psr.jname);
   tmpfile = chkfopen("tz.in", "w");
-  fprintf(tmpfile, "%c %d 60 12 430\n\n\n%s 60 12 %d %.1f\n", 
+  fprintf(tmpfile, "%c %d 60 12 430\n\n\n%s 60 12 %d %.5f\n", 
 	  scopechar, tracklen, psr.jname, tracklen, fmid);
   fclose(tmpfile);
   sprintf(command, "echo %d %d | tempo -z -f %s > /dev/null",

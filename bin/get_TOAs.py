@@ -184,7 +184,11 @@ if __name__ == '__main__':
 
     # Read the polyco file (if required)
     if (fold.psr and fold.topo):
-        pcs = polycos(fold.psr, sys.argv[-1]+".polycos")
+	if (fold_pfd.__dict__.has_key("polycos") and
+	    not fold_pfd.polycos==0):
+		pcs = fold_pfd.polycos
+	else:
+	    pcs = polycos(fold.psr, sys.argv[-1]+".polycos")
         (fold.phs0, fold.f0) = pcs.get_phs_and_freq(fold.epochi, fold.epochf)
         fold.f1 = fold.f2 = 0.0
     else:
