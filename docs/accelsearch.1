@@ -11,12 +11,12 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "11Jan01" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "31Jan01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
 .SH NAME
-accelsearch \- Searches an FFT for pulsar candidates using a Fourier domain acceleration search.
+accelsearch \- Searches an FFT for pulsar candidates using a Fourier domain acceleration search with harmonic summing.
 .\" cligPart NAME end
 
 .\" cligPart SYNOPSIS
@@ -30,8 +30,6 @@ accelsearch \- Searches an FFT for pulsar candidates using a Fourier domain acce
 [-rhi rhi]
 [-flo flo]
 [-fhi fhi]
-[-baryv baryv]
-[-zapfile zapfile]
 infile
 .\" cligPart SYNOPSIS end
 
@@ -46,15 +44,15 @@ Default: `0'
 .IP -numharm
 The number of harmonics to sum,
 .br
-1 Int value between 1 and 20.
+1 Int value between 1 and 4.
 .br
-Default: `3'
+Default: `4'
 .IP -zmax
 The max (+ and -) Fourier freq deriv to search,
 .br
 1 Int value between 0 and 300.
 .br
-Default: `50'
+Default: `100'
 .IP -sigma
 Cutoff sigma for choosing candidates,
 .br
@@ -74,23 +72,13 @@ The lowest frequency (Hz) to search,
 .br
 1 Double value between 0.0 and oo.
 .br
-Default: `0.5'
+Default: `0.3'
 .IP -fhi
 The highest frequency (Hz) to search,
 .br
 1 Double value between 0.0 and oo.
 .br
 Default: `2000.0'
-.IP -baryv
-The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric),
-.br
-1 Double value between -0.1 and 0.1.
-.br
-Default: `0.0'
-.IP -zapfile
-A file containing a list of freqs to ignore (i.e. RFI),
-.br
-1 String value
 .IP infile
 Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end

@@ -2,7 +2,7 @@
 
 Name accelsearch
 
-Usage "Searches an FFT for pulsar candidates using a Fourier domain acceleration search."
+Usage "Searches an FFT for pulsar candidates using a Fourier domain acceleration search with harmonic summing."
 
 Version [exec date +%d%b%y]
 
@@ -13,9 +13,9 @@ Commandline full_cmd_line
 Int -lobin   lobin      {The first Fourier frequency in the data file} \
 	-r 0 oo  -d 0
 Int -numharm numharm    {The number of harmonics to sum}\
-	-r 1 20 -d 3
+	-r 1 4 -d 4
 Int -zmax    zmax       {The max (+ and -) Fourier freq deriv to search} \
-	-r 0 300  -d 50
+	-r 0 300  -d 100
 Float -sigma sigma      {Cutoff sigma for choosing candidates}\
 	-r 1.0 30.0 -d 2.5
 Double -rlo     rlo     {The lowest Fourier frequency to search} \
@@ -23,12 +23,9 @@ Double -rlo     rlo     {The lowest Fourier frequency to search} \
 Double -rhi     rhi     {The highest Fourier frequency to search} \
 	-r 0.0 oo
 Double -flo     flo     {The lowest frequency (Hz) to search} \
-	-r 0.0 oo -d 0.5
+	-r 0.0 oo -d 0.3
 Double -fhi     fhi     {The highest frequency (Hz) to search} \
 	-r 0.0 oo -d 2000.0
-Double -baryv baryv     {The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric)} \
-	-r -0.1 0.1  -d 0.0
-String -zapfile zapfile {A file containing a list of freqs to ignore (i.e. RFI)}
 
 # Rest of command line:
 
