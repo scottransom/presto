@@ -7,8 +7,8 @@ from Statistics import *
 
 # Some admin variables
 parallel = 0          # True or false
-showplots = 0         # True or false
-debugout = 0          # True or false
+showplots = 1         # True or false
+debugout = 1          # True or false
 outfiledir = '/home/ransom'
 outfilenm = 'montebinresp'
 pmass = 1.35                                 # Pulsar mass in solar masses
@@ -24,9 +24,9 @@ maxTbyPb = 10.0       # Maximum Obs Time / Orbital Period
 ctype = 'BH'          # The type of binary companion: 'WD', 'NS', or 'BH'
 Pb = 7200.0           # Orbital period in seconds
 dt = 0.0001           # The duration of each data sample (s)
-searchtype = 'ffdot'  # One of 'ffdot', 'sideband', 'shortffts'
+searchtype = 'sideband'  # One of 'ffdot', 'sideband', 'shortffts'
 maxTbyPb_ffdot = 11.0
-minTbyPb_sideband = 1.5
+minTbyPb_sideband = 1.75
 fftlen_shortffts = 0.05
 
 ##################################################
@@ -58,6 +58,14 @@ def psrparams_from_list(pplist):
     psr.orb.w = pplist[4]
     psr.orb.t = pplist[5]
     return psr
+
+def predict_mini_r(fftlen, Pb, T):
+    nyquist = fftlen / 2
+    r = fftlen * Pb / T
+    if (r > nyquist): rpred = alias(r, nyquist)
+    else: rpred = r
+    return rpred
+
 
 ####################################################################
 
@@ -174,51 +182,79 @@ for x in range(numTbyPb):
                         fdata = zeros(fftlen, 'f')
                         fdata[0:len(psr_pows)] = array(psr_pows, copy=1)
                         fdata = rfft(fdata)
-                        cands = search_fft(fdata, 15, norm=1.0/fftlen)
-                        rpred = fftlen / TbyPb[x]
-                        if (TbyPb[x] < 2.0): rpred = fftlen/2 - (rpred - fftlen/2)
+                        rpred = predict_mini_r(fftlen, psr.orb.p, T)
+                        [pows[ct], rmax, rd] = \
+                                   maximize_r(fdata, rpred, norm=1.0)
+                        if debugout:
+                            print 'theo_r = %f  alias_r = %f' % \
+                                  (fftlen * psr.orb.p / T, rpred)
+                            print 'pow1 = %f  Porb = %f' % \
+                                  (pows[ct], rmax * T / fftlen)
+                        #cands = search_fft(fdata, 15, norm=1.0/fftlen)
+                        #if debugout:
+                            #print 'rpred = %11.5f  '\
+                            #      'max_r = %11.5f max_pow = %11.5f' % \
+                            #      (rpred, rmax, pows[ct])
                         if showplots:
-                            Pgplot.plotxy(spectralpower(fdata)/fftlen, \
+                            Pgplot.plotxy(spectralpower(fdata), \
                                           arange(len(fdata))*T/fftlen, \
                                           labx='Orbital Period (s))', \
                                           laby='Power')
                             Pgplot.closeplot()
-                        if debugout:
-                            for ii in range(15):
-                                print '  r = %11.5f  r_alias = %11.5f  pow = %9.7f' % \
-                                      (cands[ii][1], (fftlen - cands[ii][1])*T/fftlen, cands[ii][0])
+                        #if debugout:
+                            #for ii in range(15):
+                            #    print '  r = %11.5f  pow = %9.7f' % \
+                            #          (cands[ii][1], cands[ii][0])
                         # Do the first half-length FFT
                         fftlen = fftlen / 2
                         fdata = zeros(fftlen, 'f')
                         fdata[0:fftlen] = array(psr_pows[0:fftlen], copy=1)
                         fdata = rfft(fdata)
-                        cands = search_fft(fdata, 15, norm=1.0/fftlen)
+                        rpred = predict_mini_r(fftlen, psr.orb.p, T)
+                        [tmppow, rmax, rd] = \
+                                   maximize_r(fdata, rpred, norm=1.0)
+                        if tmppow > pows[ct]:  pows[ct] = tmppow
+                        if debugout:
+                            print 'theo_r = %f  alias_r = %f' % \
+                                  (fftlen * psr.orb.p / T, rpred)
+                            print 'pow1 = %f  Porb = %f' % \
+                                  (tmppow, rmax * T / fftlen)
+                        #cands = search_fft(fdata, 15, norm=1.0/fftlen)
                         if showplots:
-                            Pgplot.plotxy(spectralpower(fdata)/fftlen, \
+                            Pgplot.plotxy(spectralpower(fdata), \
                                           arange(len(fdata))*T/fftlen, \
                                           labx='Orbital Period (s))', \
                                           laby='Power')
                             Pgplot.closeplot()
-                        if debugout:
-                            for ii in range(15):
-                                print '  r = %11.5f  r_alias = %11.5f  pow = %9.7f' % \
-                                      (cands[ii][1], (fftlen - cands[ii][1])*T/fftlen, cands[ii][0])
+                        #if debugout:
+                            #for ii in range(15):
+                            #    print '  r = %11.5f  pow = %9.7f' % \
+                            #          (cands[ii][1], cands[ii][0])
                         # Do the second half-length FFT
                         fdata = zeros(fftlen, 'f')
                         lencopy = len(psr_pows[fftlen:])
                         fdata[0:lencopy] = array(psr_pows[fftlen:], copy=1)
                         fdata = rfft(fdata)
-                        cands = search_fft(fdata, 15, norm=1.0/fftlen)
+                        rpred = predict_mini_r(fftlen, psr.orb.p, T)
+                        [tmppow, rmax, rd] = \
+                                   maximize_r(fdata, rpred, norm=1.0)
+                        if tmppow > pows[ct]:  pows[ct] = tmppow
+                        if debugout:
+                            print 'theo_r = %f  alias_r = %f' % \
+                                  (fftlen * psr.orb.p / T, rpred)
+                            print 'pow1 = %f  Porb = %f' % \
+                                  (tmppow, rmax * T / fftlen)
+                        #cands = search_fft(fdata, 15, norm=1.0/fftlen)
                         if showplots:
-                            Pgplot.plotxy(spectralpower(fdata)/fftlen, \
+                            Pgplot.plotxy(spectralpower(fdata), \
                                           arange(len(fdata))*T/fftlen, \
                                           labx='Orbital Period (s))', \
                                           laby='Power')
                             Pgplot.closeplot()
-                        if debugout:
-                            for ii in range(15):
-                                print '  r = %11.5f  r_alias = %11.5f  pow = %9.7f' % \
-                                      (cands[ii][1], (fftlen - cands[ii][1])*T/fftlen, cands[ii][0])
+                        #if debugout:
+                            #for ii in range(15):
+                            #    print '  r = %11.5f  pow = %9.7f' % \
+                            #      (cands[ii][1], cands[ii][0])
                     if debugout:
                         print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
                         print `ppsr[y]`+'  '+`pows[ct]`
