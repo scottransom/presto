@@ -19,8 +19,9 @@ Double -rlo    rlo    {The low Fourier frequency bin to check} \
 Double -rhi    rhi    {The high Fourier frequency bin to check} \
 	-r 0 oo
 String -psr   psrname  {Name of pulsar to check for (do not include J or B)}
-Int -candnum  candnum  {Number of the candidate to optimize from 'infile'_bin.cand} \
+Int -candnum  candnum  {Number of the candidate to optimize from candfile.} \
 	-r 1 oo
+String -candfile  candfile  {Name of the bincary candidate file.}
 
 # Parameters for a binary pulsar
 
