@@ -531,7 +531,6 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 /* The delays (in bins) are in dispdelays for each channel.      */
 /* The input data and dispdelays are always in ascending         */
 /* frequency order.  Input data are ordered in time, with the    */
-/* channels stored together at each time point.                  */ 
 
 
 /*  output.c:  */
