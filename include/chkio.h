@@ -26,7 +26,7 @@ int chkfseek(FILE * stream, long offset, int whence);
 int chkfileseek(FILE * stream, long offset, size_t size, int whence);
 /* Preform a file seek with error checking.  */
 
-unsigned long chkfilelen(FILE *file, size_t size);
+long long chkfilelen(FILE *file, size_t size);
 /* Return the length of a file (in blocks of 'size').  */
 
 int read_int(FILE *infile);
