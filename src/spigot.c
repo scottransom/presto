@@ -4,11 +4,7 @@
 #include "fitsfile.h"
 #include "fitshead.h"
 
-#define DEBUGOUT 1
-
-#if DEBUGOUT
-#include "plot2d.h"
-#endif
+#define DEBUGOUT 0
 
 /*  NOTES:
 bytesperblk_st is the number of bytes in the RAW LAGS for a SPIGOT
@@ -168,8 +164,10 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   /* RA  of observation (deg, J2000) */
   hgets(hdr, "RA", 16, spigot->ra_str);
   remove_whitespace(spigot->ra_str);
+printf("Debug:  RA string = '%s'\n", spigot->ra_str);
   /* Dec of observation (deg, J2000) */
   hgets(hdr, "DEC", 16, spigot->dec_str);
+printf("Debug: DEC string = '%s'\n", spigot->dec_str);
   remove_whitespace(spigot->dec_str);
   /* Polarization recorded (L or C) */
   hgets(hdr, "POL-TYPE", 8, spigot->pol_type);
@@ -210,11 +208,17 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   hgetl(hdr, "SUMPOL", &(spigot->summed_pols));
   /* Upper sideband? */
   hgetl(hdr, "UPPERSB", &(spigot->upper_sideband));
+  /* For now, ignore BITPIX/NAXIS1 in favor of BITS/NLAGS 
+     This is because FITS wants files to have BITPIX >= 8, 
+     so for 4-bit data BITPIX says 8 while BITS says 4.
+     Should come up with a better solution for this.
+     DLK
+  */  
   /* Bits/lag */
-  hgeti4(hdr, "BITPIX", &(spigot->bits_per_lag));
+  hgeti4(hdr, "BITPIX", &itmp);
   /* Bits/lag */
-  hgeti4(hdr, "BITS", &itmp);
-  if (spigot->bits_per_lag != itmp){
+  hgeti4(hdr, "BITS", &(spigot->bits_per_lag));
+  if (0 && spigot->bits_per_lag != itmp){
     printf("\n  Warning!  '%s' claims both %d and %d bits/lag!\n\n", 
 	   filename, spigot->bits_per_lag, itmp);
   }
@@ -222,12 +226,13 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   hgeti4(hdr, "NLAGS", &(spigot->lags_per_sample));
   /* Number of lags/sample */
   hgeti4(hdr, "NAXIS1", &itmp);
-  if (spigot->lags_per_sample != itmp){
+  if (0 && spigot->lags_per_sample != itmp){
     printf("\n  Warning!  '%s' claims both %d and %d lags/sample!\n\n", 
 	   filename, spigot->lags_per_sample, itmp);
   }
   /* Number of spectra in this file */
   hgeti4(hdr, "NAXIS2", &(spigot->samples_per_file));
+  /* Total duration of the file in sec */   
   spigot->file_duration = spigot->samples_per_file * 1e6 * spigot->dt_us;
   /* Total (planned) number of spectra */
   hgeti4(hdr, "SPECTRA", &(spigot->tot_num_samples));
@@ -341,8 +346,9 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 {
-  int ii, filedatalen, numpts;
-
+  long long filedatalen, calc_filedatalen, numpts;
+  int ii;
+   
   /* Allocate memory for our information structures */
   spigot = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO) * numfiles);
   idata_st = (infodata *)malloc(sizeof(infodata) * numfiles);
@@ -400,13 +406,17 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   /* each file.                                              */
   bytesperpt_st = (numchan_st*numifs_st*bits_per_lag_st)/8;
   filedatalen = chkfilelen(files[0], 1) - spigot[0].header_len;
-  if (filedatalen != spigot[0].lags_per_sample*spigot[0].samples_per_file*bits_per_lag_st/8)
-    printf("\n  Warning!  The calculated and reported lengths of file %d are different!\n\n", 0);
+  calc_filedatalen = (spigot[0].lags_per_sample * (long long)spigot[0].samples_per_file *
+		      bits_per_lag_st)/8;
+  if (filedatalen != calc_filedatalen)
+    printf("\n  Warning!  The calculated (%lld) and measured (%lld) data lengths of file %d are different!\n\n", 
+	   calc_filedatalen, filedatalen, 0);
   numpts = filedatalen/bytesperpt_st;
   if (filedatalen % bytesperpt_st)
     printf("\n  Warning!  File %d has a non-integer number of complete samples!\n\n", 0);
   if (numpts != spigot[0].samples_per_file){
-    printf("\n  Warning!  The calculated and reported number of samples in file %d are different!\n\n", 0);
+    printf("\n  Warning!  The calculated (%lld) and reported (%d) number of samples in file %d are different!\n\n", 
+	   numpts, spigot[0].samples_per_file, 0);
     spigot[0].samples_per_file = numpts;
   }
   /* Calculate the largest block size the fits evenly in each file */
@@ -420,6 +430,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   spigot[0].num_blocks = filedatalen/bytesperblk_st;
   N_st = numpts;
   *dt = dt_st = idata_st[0].dt;
+  spigot[0].file_duration = numpts*dt_st;
   spigot[0].elapsed_time = 0.0;
   spigot[0].start_block = 1.0;
   spigot[0].end_block = (double) numpts/ptsperblk_st;
@@ -988,7 +999,8 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
   int ii, ifnum=0, index=0;
   float *templags=NULL;
   double power, pfact;
-  double scale_min_st=0.0, scale_max_st=3.0;
+  static int counter=0;
+  static double scale_min=9e19, scale_max=-9e19;
 
   if (ifs==IF0){
     ifnum = 1;
@@ -996,13 +1008,8 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
   } else if (ifs==IF1){
     ifnum = 1;
     index = numchan_st;
-  } else { /* Sum the IFs (or they were already summed) */
-    if (numifs_st==2){
-      scale_min_st *= 2.0;
-      scale_max_st *= 2.0;
-    }
   }
-
+     
   /* Loop over the IFs */
   for (ifnum=0; ifnum<numifs_st; ifnum++, index+=numchan_st){
     
@@ -1015,16 +1022,21 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
       for (ii=0; ii<numchan_st; ii++)
 	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
     } else if (bits_per_lag_st==8){
-      unsigned char *data=(unsigned char *)rawdata;
+      char *data=(char *)rawdata;
       for (ii=0; ii<numchan_st; ii++)
 	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
     } else if (bits_per_lag_st==4){
       int jj;
+      char tmplag;
       unsigned char *data=(unsigned char *)rawdata, byte;
       for (ii=0, jj=0; ii<numchan_st/2; ii++){
 	byte = data[ii+index/2];
-	lags[jj] = (byte>>4)*lag_factor[jj] + lag_offset[jj]; jj++;
-	lags[jj] = (byte&0x0f)*lag_factor[jj] + lag_offset[jj]; jj++;
+	/* Treat the 4 msbs as a signed 4-bit int */
+	tmplag = (byte&0x80) ? -((byte&0x70)>>4) : (byte>>4);
+	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
+	/* Treat the 4 lsbs as a signed 4-bit int */
+	tmplag = (byte&0x08) ? -(byte&0x07) : (byte&0x07);
+	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
       }
     } else if (bits_per_lag_st==2){
       int jj;
@@ -1075,8 +1087,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     fftwf_execute(fftplan);
 
     /* Determine some simple statistics of the spectra */
-    if (DEBUGOUT){
-      static int counter;
+    if (counter % 10240 == 0){
       static double min=0, max=0;
       double avg=0, var=0;
 
@@ -1085,10 +1096,17 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
 	if (lags[ii] < min) min = lags[ii];
 	if (lags[ii] > max) max = lags[ii];
       }
-      printf("counter = %d  avg = %.3g  stdev = %.3g  min = %.3g  max = %.3g\n", 
-	     counter, avg, sqrt(var), min, max);
-      counter++;
+      if (counter==0){
+	double range;
+	range = max - min;
+	scale_max = max + 0.1*range;
+	scale_min = min - 0.1*range;
+      }
+      if (0)
+	printf("counter = %d  avg = %.3g  stdev = %.3g  min = %.3g  max = %.3g\n", 
+	  counter, avg, sqrt(var), min, max);
     }
+    counter++;
     
     /* Reverse band if it needs it */
     if (decreasing_freqs_st){
@@ -1115,17 +1133,13 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     }
   }
 
-  /* The following values were determined empirically and need to be changed */
-  scale_max_st = 1.7e8;
-  scale_min_st = -8e7;
-
   /* Scale and pack the powers into unsigned chars */
-  pfact = 255.0 / (scale_max_st - scale_min_st);
+  pfact = 255.0 / (scale_max - scale_min);
   for(ii=0; ii<numchan_st; ii++){
     double templag;
-    templag = (lags[ii] > scale_max_st) ? scale_max_st : lags[ii];
-    templag = (templag < scale_min_st) ? scale_min_st : templag;
-    bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
+    templag = (lags[ii] > scale_max) ? scale_max : lags[ii];
+    templag = (templag < scale_min) ? scale_min : templag;
+    bytes[ii] = (unsigned char) ((templag - scale_min) * pfact + 0.5);
   }
 }
 
