@@ -34,6 +34,8 @@ static Cmdline cmd = {
   /* bcpmP = */ 0,
   /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
   /* spigotP = */ 0,
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  /* filterbankP = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
   /***** -window: Window correlator lags with a Hamming window before FFTing */
@@ -841,6 +843,13 @@ showOptionValues(void)
     printf("-spigot found:\n");
   }
 
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  if( !cmd.filterbankP ) {
+    printf("-filterbank not found.\n");
+  } else {
+    printf("-filterbank found:\n");
+  }
+
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   if( !cmd.wappP ) {
     printf("-wapp not found.\n");
@@ -1030,53 +1039,54 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
-         -o: Root of the output file names\n\
-             1 char* value\n\
-      -pkmb: Raw data in Parkes Multibeam format\n\
-      -gmrt: Raw data in GMRT Phased Array format\n\
-      -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
-    -spigot: Raw data in Caltech-NRAO Spigot Card format\n\
-      -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
-    -window: Window correlator lags with a Hamming window before FFTing\n\
-  -numwapps: Number of WAPPs used with contiguous frequencies\n\
-             1 int value between 1 and 7\n\
-             default: `1'\n\
-        -if: A specific IF to use if available (summed IFs is the default)\n\
-             1 int value between 0 and 1\n\
-      -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
-             1 float value between 0 and 40.0\n\
-             default: `6.0'\n\
-    -noclip: Do not clip the data.  (The default is to _always_ clip!)\n\
-       -sub: Write subbands instead of de-dispersed data\n\
-     -subdm: The DM to use when de-dispersing subbands for -sub\n\
-             1 double value between 0 and 4000.0\n\
-             default: `0.0'\n\
-    -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
-             1 int value between 1 and oo\n\
-    -nobary: Do not barycenter the data\n\
-     -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
-      -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc)\n\
-             1 double value between 0 and oo\n\
-             default: `0'\n\
-    -dmstep: The stepsize in dispersion measure to use(cm^-3 pc)\n\
-             1 double value between 0 and oo\n\
-             default: `1.0'\n\
-    -numdms: The number of DMs to de-disperse\n\
-             1 int value between 1 and 1000\n\
-             default: `10'\n\
-      -nsub: The number of sub-bands to use\n\
-             1 int value between 1 and 1024\n\
-             default: `32'\n\
-  -downsamp: The number of neighboring bins to co-add\n\
-             1 int value between 1 and 128\n\
-             default: `1'\n\
-      -mask: File containing masking information to use\n\
-             1 char* value\n\
-     infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-             1...512 values\n\
-version: 22Apr04\n\
+           -o: Root of the output file names\n\
+               1 char* value\n\
+        -pkmb: Raw data in Parkes Multibeam format\n\
+        -gmrt: Raw data in GMRT Phased Array format\n\
+        -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+      -spigot: Raw data in Caltech-NRAO Spigot Card format\n\
+  -filterbank: Raw data in SIGPROC filterbank format\n\
+        -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
+      -window: Window correlator lags with a Hamming window before FFTing\n\
+    -numwapps: Number of WAPPs used with contiguous frequencies\n\
+               1 int value between 1 and 7\n\
+               default: `1'\n\
+          -if: A specific IF to use if available (summed IFs is the default)\n\
+               1 int value between 0 and 1\n\
+        -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
+               1 float value between 0 and 40.0\n\
+               default: `6.0'\n\
+      -noclip: Do not clip the data.  (The default is to _always_ clip!)\n\
+         -sub: Write subbands instead of de-dispersed data\n\
+       -subdm: The DM to use when de-dispersing subbands for -sub\n\
+               1 double value between 0 and 4000.0\n\
+               default: `0.0'\n\
+      -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
+               1 int value between 1 and oo\n\
+      -nobary: Do not barycenter the data\n\
+       -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
+        -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc)\n\
+               1 double value between 0 and oo\n\
+               default: `0'\n\
+      -dmstep: The stepsize in dispersion measure to use(cm^-3 pc)\n\
+               1 double value between 0 and oo\n\
+               default: `1.0'\n\
+      -numdms: The number of DMs to de-disperse\n\
+               1 int value between 1 and 1000\n\
+               default: `10'\n\
+        -nsub: The number of sub-bands to use\n\
+               1 int value between 1 and 1024\n\
+               default: `32'\n\
+    -downsamp: The number of neighboring bins to co-add\n\
+               1 int value between 1 and 128\n\
+               default: `1'\n\
+        -mask: File containing masking information to use\n\
+               1 char* value\n\
+       infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
+               1...512 values\n\
+version: 05Sep04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1120,6 +1130,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-spigot", argv[i]) ) {
       cmd.spigotP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-filterbank", argv[i]) ) {
+      cmd.filterbankP = 1;
       continue;
     }
 

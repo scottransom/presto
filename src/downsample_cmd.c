@@ -788,7 +788,7 @@ usage(void)
            1 char* value\n\
      file: Input '.dat' or '.sdat' file name\n\
            1 value\n\
-version: 22Apr04\n\
+version: 23Apr04\n\
 ");
   exit(EXIT_FAILURE);
 }

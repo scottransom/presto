@@ -804,7 +804,7 @@ usage(void)
       -events: The folded data were events instead of samples or bins\n\
        infile: The input 'pfd' file name.\n\
                1...100 values\n\
-version: 22Apr04\n\
+version: 23Apr04\n\
 ");
   exit(EXIT_FAILURE);
 }

@@ -34,6 +34,8 @@ static Cmdline cmd = {
   /* bcpmP = */ 0,
   /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
   /* spigotP = */ 0,
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  /* filterbankP = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
   /***** -window: Window correlator lags with a Hamming window before FFTing */
@@ -847,6 +849,13 @@ showOptionValues(void)
     printf("-spigot found:\n");
   }
 
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  if( !cmd.filterbankP ) {
+    printf("-filterbank not found.\n");
+  } else {
+    printf("-filterbank found:\n");
+  }
+
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   if( !cmd.wappP ) {
     printf("-wapp not found.\n");
@@ -1055,55 +1064,56 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-blocks blocks] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan zapchanstr] [-zapints zapintsstr] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-blocks blocks] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan zapchanstr] [-zapints zapintsstr] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
-          -o: Root of the output file names\n\
-              1 char* value\n\
-       -pkmb: Raw data in Parkes Multibeam format\n\
-       -gmrt: Raw data in GMRT Phased Array format\n\
-       -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
-     -spigot: Raw data in Caltech-NRAO Spigot Card format\n\
-       -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
-     -window: Window correlator lags with a Hamming window before FFTing\n\
-   -numwapps: Number of WAPPs used with contiguous frequencies\n\
-              1 int value between 1 and 7\n\
-              default: `1'\n\
-         -if: A specific IF to use if available (summed IFs is the default)\n\
-              1 int value between 0 and 1\n\
-       -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
-              1 float value between 0 and 20.0\n\
-              default: `6.0'\n\
-     -noclip: Do not clip the data.  (The default is to _always_ clip!)\n\
-       -xwin: Draw plots to the screen as well as a PS file\n\
-  -nocompute: Just plot and remake the mask\n\
-    -rfixwin: Show the RFI instances on screen\n\
-      -rfips: Plot the RFI instances in a PS file\n\
-       -time: Seconds to integrate for stats and FFT calcs (use this or -blocks)\n\
-              1 double value between 0 and oo\n\
-              default: `30.0'\n\
-     -blocks: Number of blocks (usually 16-1024 samples) to integrate for stats and FFT calcs\n\
-              1 int value between 1 and oo\n\
-    -timesig: The +/-sigma cutoff to reject time-domain chunks\n\
-              1 float value between 0 and oo\n\
-              default: `10'\n\
-    -freqsig: The +/-sigma cutoff to reject freq-domain chunks\n\
-              1 float value between 0 and oo\n\
-              default: `4'\n\
-   -chanfrac: The fraction of bad channels that will mask a full interval\n\
-              1 float value between 0.0 and 1.0\n\
-              default: `0.7'\n\
-    -intfrac: The fraction of bad intervals that will mask a full channel\n\
-              1 float value between 0.0 and 1.0\n\
-              default: `0.3'\n\
-    -zapchan: Comma separated string (no spaces!) of channels to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step]\n\
-              1 char* value\n\
-    -zapints: Comma separated string (no spaces!) of intervals to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step]\n\
-              1 char* value\n\
-       -mask: File containing masking information to use\n\
-              1 char* value\n\
-      infile: Input data file name(s).\n\
-              1...512 values\n\
-version: 22Apr04\n\
+           -o: Root of the output file names\n\
+               1 char* value\n\
+        -pkmb: Raw data in Parkes Multibeam format\n\
+        -gmrt: Raw data in GMRT Phased Array format\n\
+        -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+      -spigot: Raw data in Caltech-NRAO Spigot Card format\n\
+  -filterbank: Raw data in SIGPROC filterbank format\n\
+        -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
+      -window: Window correlator lags with a Hamming window before FFTing\n\
+    -numwapps: Number of WAPPs used with contiguous frequencies\n\
+               1 int value between 1 and 7\n\
+               default: `1'\n\
+          -if: A specific IF to use if available (summed IFs is the default)\n\
+               1 int value between 0 and 1\n\
+        -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
+               1 float value between 0 and 20.0\n\
+               default: `6.0'\n\
+      -noclip: Do not clip the data.  (The default is to _always_ clip!)\n\
+        -xwin: Draw plots to the screen as well as a PS file\n\
+   -nocompute: Just plot and remake the mask\n\
+     -rfixwin: Show the RFI instances on screen\n\
+       -rfips: Plot the RFI instances in a PS file\n\
+        -time: Seconds to integrate for stats and FFT calcs (use this or -blocks)\n\
+               1 double value between 0 and oo\n\
+               default: `30.0'\n\
+      -blocks: Number of blocks (usually 16-1024 samples) to integrate for stats and FFT calcs\n\
+               1 int value between 1 and oo\n\
+     -timesig: The +/-sigma cutoff to reject time-domain chunks\n\
+               1 float value between 0 and oo\n\
+               default: `10'\n\
+     -freqsig: The +/-sigma cutoff to reject freq-domain chunks\n\
+               1 float value between 0 and oo\n\
+               default: `4'\n\
+    -chanfrac: The fraction of bad channels that will mask a full interval\n\
+               1 float value between 0.0 and 1.0\n\
+               default: `0.7'\n\
+     -intfrac: The fraction of bad intervals that will mask a full channel\n\
+               1 float value between 0.0 and 1.0\n\
+               default: `0.3'\n\
+     -zapchan: Comma separated string (no spaces!) of channels to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step]\n\
+               1 char* value\n\
+     -zapints: Comma separated string (no spaces!) of intervals to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step]\n\
+               1 char* value\n\
+        -mask: File containing masking information to use\n\
+               1 char* value\n\
+       infile: Input data file name(s).\n\
+               1...512 values\n\
+version: 05Sep04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1147,6 +1157,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-spigot", argv[i]) ) {
       cmd.spigotP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-filterbank", argv[i]) ) {
+      cmd.filterbankP = 1;
       continue;
     }
 

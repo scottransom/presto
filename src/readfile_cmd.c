@@ -23,8 +23,8 @@ char *Program;
 static int indexDefault[] = {0,  -1};
 
 static Cmdline cmd = {
-  /***** -nopage: Don't paginate the output like 'more' */
-  /* nopageP = */ 0,
+  /***** -page: Paginate the output like 'more' */
+  /* pageP = */ 0,
   /***** -byte: Raw data in byte format */
   /* bytP = */ 0,
   /***** -b: Raw data in byte format */
@@ -77,6 +77,8 @@ static Cmdline cmd = {
   /* wappP = */ 0,
   /***** -spigot: Raw data in Spigot Card format */
   /* spigotP = */ 0,
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  /* filterbankP = */ 0,
   /***** -fortran: Raw data was written by a fortran program */
   /* fortranP = */ 0,
   /***** -index: The range of objects to display */
@@ -790,11 +792,11 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -nopage: Don't paginate the output like 'more' */
-  if( !cmd.nopageP ) {
-    printf("-nopage not found.\n");
+  /***** -page: Paginate the output like 'more' */
+  if( !cmd.pageP ) {
+    printf("-page not found.\n");
   } else {
-    printf("-nopage found:\n");
+    printf("-page found:\n");
   }
 
   /***** -byte: Raw data in byte format */
@@ -979,6 +981,13 @@ showOptionValues(void)
     printf("-spigot found:\n");
   }
 
+  /***** -filterbank: Raw data in SIGPROC filterbank format */
+  if( !cmd.filterbankP ) {
+    printf("-filterbank not found.\n");
+  } else {
+    printf("-filterbank found:\n");
+  }
+
   /***** -fortran: Raw data was written by a fortran program */
   if( !cmd.fortranP ) {
     printf("-fortran not found.\n");
@@ -1029,45 +1038,46 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-short] [-s] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-bcpm] [-wapp] [-spigot] [-fortran] [-index [index]] [-nph nph] [--] file\n\
+ [-page] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-short] [-s] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-bcpm] [-wapp] [-spigot] [-filterbank] [-fortran] [-index [index]] [-nph nph] [--] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
-    -nopage: Don't paginate the output like 'more'\n\
-      -byte: Raw data in byte format\n\
-         -b: Raw data in byte format\n\
-     -float: Raw data in floating point format\n\
-         -f: Raw data in floating point format\n\
-    -double: Raw data in double precision format\n\
-         -d: Raw data in double precision format\n\
-  -fcomplex: Raw data in float-complex format\n\
-        -fc: Raw data in float-complex format\n\
-  -dcomplex: Raw data in double-complex format\n\
-        -dc: Raw data in double-complex format\n\
-     -short: Raw data in short format\n\
-         -s: Raw data in short format\n\
-       -int: Raw data in integer format\n\
-         -i: Raw data in integer format\n\
-      -long: Raw data in long format\n\
-         -l: Raw data in long format\n\
-   -rzwcand: Raw data in rzw search candidate format\n\
-       -rzw: Raw data in rzw search candidate format\n\
-   -bincand: Raw data in bin search candidate format\n\
-       -bin: Raw data in bin search candidate format\n\
-  -position: Raw data in position struct format\n\
-       -pos: Raw data in position struct format\n\
-      -pkmb: Raw data in Parkes Multibeam format\n\
-      -bcpm: Raw data in BCPM format\n\
-      -wapp: Raw data in WAPP format\n\
-    -spigot: Raw data in Spigot Card format\n\
-   -fortran: Raw data was written by a fortran program\n\
-     -index: The range of objects to display\n\
-             0...2 int values between -1 and oo\n\
-             default: `0' ` -1'\n\
-       -nph: 0th FFT bin amplitude (for 'RZW' data)\n\
-             1 double value\n\
-             default: `1.0'\n\
-       file: Input data file name.\n\
-             1 value\n\
-version: 22Apr04\n\
+        -page: Paginate the output like 'more'\n\
+        -byte: Raw data in byte format\n\
+           -b: Raw data in byte format\n\
+       -float: Raw data in floating point format\n\
+           -f: Raw data in floating point format\n\
+      -double: Raw data in double precision format\n\
+           -d: Raw data in double precision format\n\
+    -fcomplex: Raw data in float-complex format\n\
+          -fc: Raw data in float-complex format\n\
+    -dcomplex: Raw data in double-complex format\n\
+          -dc: Raw data in double-complex format\n\
+       -short: Raw data in short format\n\
+           -s: Raw data in short format\n\
+         -int: Raw data in integer format\n\
+           -i: Raw data in integer format\n\
+        -long: Raw data in long format\n\
+           -l: Raw data in long format\n\
+     -rzwcand: Raw data in rzw search candidate format\n\
+         -rzw: Raw data in rzw search candidate format\n\
+     -bincand: Raw data in bin search candidate format\n\
+         -bin: Raw data in bin search candidate format\n\
+    -position: Raw data in position struct format\n\
+         -pos: Raw data in position struct format\n\
+        -pkmb: Raw data in Parkes Multibeam format\n\
+        -bcpm: Raw data in BCPM format\n\
+        -wapp: Raw data in WAPP format\n\
+      -spigot: Raw data in Spigot Card format\n\
+  -filterbank: Raw data in SIGPROC filterbank format\n\
+     -fortran: Raw data was written by a fortran program\n\
+       -index: The range of objects to display\n\
+               0...2 int values between -1 and oo\n\
+               default: `0' ` -1'\n\
+         -nph: 0th FFT bin amplitude (for 'RZW' data)\n\
+               1 double value\n\
+               default: `1.0'\n\
+         file: Input data file name.\n\
+               1 value\n\
+version: 05Sep04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1085,8 +1095,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-nopage", argv[i]) ) {
-      cmd.nopageP = 1;
+    if( 0==strcmp("-page", argv[i]) ) {
+      cmd.pageP = 1;
       continue;
     }
 
@@ -1217,6 +1227,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-spigot", argv[i]) ) {
       cmd.spigotP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-filterbank", argv[i]) ) {
+      cmd.filterbankP = 1;
       continue;
     }
 
