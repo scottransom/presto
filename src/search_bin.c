@@ -527,10 +527,11 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata *idata,
 	  /* Check the predicted period and its harmonics against the */
 	  /* measured period.  Use both pulsar and binary periods.    */
 
-	  for (j = 1, pmod = 1.0; j < 41; j++, pmod = 1.0 / (double) j) {
+	  for (j = 1; j < 41; j++) {
+	    pmod = 1.0 / (double) j;
 	    if (fabs(theop * pmod - cand->psr_p) < psrperr) {
-	      for (k = 1, bmod = 1.0; k < 10; \
-		   k++, bmod = 1.0 / (double) k) {
+	      for (k = 1; k < 10; k++) {
+		bmod = (double) k;
 		if (fabs(pdata.pb[i] * bmod - cand->orb_p / SECPERDAY) < orbperr) {
 		  if (!strcmp("        ", tmp4)) {
 		    if (j > 1) {
