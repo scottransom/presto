@@ -2,8 +2,6 @@
 
 #if defined USEFFTW
 
-#define NUMPLANS 20
-
 void fftwcall(fcomplex *indata, long nn, int isign)
 /* This routine calls the FFTW complex-complex FFT using stored wisdom */
 /* files.  It is VERY fast.  nn doe _not_ have to be a power of two    */
@@ -11,8 +9,9 @@ void fftwcall(fcomplex *indata, long nn, int isign)
 {
   FILE *wisdomfile;
   fftw_plan plan_forward, plan_inverse;
-  static fftw_plan last_plan_forward = NULL, last_plan_inverse = NULL;
-  static int firsttime = 1, lastnn = 0;
+  static fftw_plan plancache_forward[4] = {NULL, NULL, NULL, NULL};
+  static fftw_plan plancache_inverse[4] = {NULL, NULL, NULL, NULL};
+  static int firsttime = 1, nncache[4] = {0, 0, 0, 0};
   static char wisdomfilenm[120];
 
   /* Call the six-step algorithm if the FFT is too big to */
@@ -42,25 +41,76 @@ void fftwcall(fcomplex *indata, long nn, int isign)
     fclose(wisdomfile);
   }
 
-  /* If we used the same plan during the last call, use it again */
+  /* If we used the same plan during the last few calls, use it again */
+  /* We keep, in effect, a stack of the 4 most recent plans.          */
 
-  if (nn == lastnn){
-    plan_forward = last_plan_forward;
-    plan_inverse = last_plan_inverse;
+  if (nn == nncache[0]){
+printf("oldplan0\n");
+    plan_forward = plancache_forward[0];
+    plan_inverse = plancache_inverse[0];
+  } else if (nn == nncache[1]){
+printf("oldplan1\n");
+    plan_forward = plancache_forward[1];
+    plan_inverse = plancache_inverse[1];
+    plancache_forward[1] = plancache_forward[0];
+    plancache_inverse[1] = plancache_inverse[0];
+    nncache[1] = nncache[0];
+    plancache_forward[0] = plan_forward;
+    plancache_inverse[0] = plan_inverse;
+    nncache[0] = nn;
+  } else if (nn == nncache[2]){
+printf("oldplan2\n");
+    plan_forward = plancache_forward[2];
+    plan_inverse = plancache_inverse[2];
+    plancache_forward[2] = plancache_forward[1];
+    plancache_inverse[2] = plancache_inverse[1];
+    nncache[2] = nncache[1];
+    plancache_forward[1] = plancache_forward[0];
+    plancache_inverse[1] = plancache_inverse[0];
+    nncache[1] = nncache[0];
+    plancache_forward[0] = plan_forward;
+    plancache_inverse[0] = plan_inverse;
+    nncache[0] = nn;
+  } else if (nn == nncache[3]){
+printf("oldplan3\n");
+    plan_forward = plancache_forward[3];
+    plan_inverse = plancache_inverse[3];
+    plancache_forward[3] = plancache_forward[2];
+    plancache_inverse[3] = plancache_inverse[2];
+    nncache[3] = nncache[2];
+    plancache_forward[2] = plancache_forward[1];
+    plancache_inverse[2] = plancache_inverse[1];
+    nncache[2] = nncache[1];
+    plancache_forward[1] = plancache_forward[0];
+    plancache_inverse[1] = plancache_inverse[0];
+    nncache[1] = nncache[0];
+    plancache_forward[0] = plan_forward;
+    plancache_inverse[0] = plan_inverse;
+    nncache[0] = nn;
   } else {
+printf("*** newplan ***\n");
     if (!firsttime){
-      fftw_destroy_plan(last_plan_forward);
-      fftw_destroy_plan(last_plan_inverse);
+      plancache_forward[3] = plancache_forward[2];
+      plancache_inverse[3] = plancache_inverse[2];
+      nncache[3] = nncache[2];
+      plancache_forward[2] = plancache_forward[1];
+      plancache_inverse[2] = plancache_inverse[1];
+      nncache[2] = nncache[1];
+      plancache_forward[1] = plancache_forward[0];
+      plancache_inverse[1] = plancache_inverse[0];
+      nncache[1] = nncache[0];
+      fftw_destroy_plan(plancache_forward[0]);
+      fftw_destroy_plan(plancache_inverse[0]);
     }
-    plan_forward = fftw_create_plan(nn, -1, FFTW_MEASURE | \
-				    FFTW_USE_WISDOM | \
-				    FFTW_IN_PLACE);
-    plan_inverse = fftw_create_plan(nn, +1, FFTW_MEASURE | \
-				    FFTW_USE_WISDOM | \
-				    FFTW_IN_PLACE);
-    last_plan_forward = plan_forward;
-    last_plan_inverse = plan_inverse;
-    lastnn = nn;
+    plancache_forward[0] = fftw_create_plan(nn, -1, FFTW_ESTIMATE | \
+					    FFTW_USE_WISDOM | \
+					    FFTW_IN_PLACE);
+    plancache_inverse[0] = fftw_create_plan(nn, +1, FFTW_ESTIMATE | \
+					    FFTW_USE_WISDOM | \
+					    FFTW_IN_PLACE);
+    nncache[0] = nn;
+    plan_forward = plancache_forward[0];
+    plan_inverse = plancache_inverse[0];
   }
 
   /* Call the transform */
