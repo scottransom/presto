@@ -24,9 +24,9 @@
 
 static int read_floats(FILE *file, float *data, int numpts, int numchan);
 static int read_shorts(FILE *file, float *data, int numpts, int numchan);
+static int downsample(float outdata[], int numread, int downsampfact);
 static void update_infodata(infodata *idata, long datawrote, long padwrote, 
 			    int *barybins, int numbarybins);
-/* Update our infodata for barycentering and padding */
 
 /* The main program */
 
@@ -246,7 +246,6 @@ int main(int argc, char *argv[])
 
     /* Finish setting up stuff common to all raw formats */
     idata.dm = cmd->dm;
-    dsdt = cmd->downsamp * idata.dt;
     worklen = ptsperblock;
     if (cmd->maskfileP)
       maskchans = gen_ivect(idata.num_chan);
@@ -266,25 +265,20 @@ int main(int argc, char *argv[])
 
   /* Determine our initialization data if we do _not_ have Parkes, */
   /* Green Bank BCPM, or Arecibo WAPP data sets.                   */
-
   if (!RAWDATA) {
 
     /* If we will be barycentering... */
-
     if (!cmd->nobaryP) {
 
       /* The number of topo to bary time points to generate with TEMPO */
-
       numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
 
       /* The number of data points to work with at a time */
-
       if (worklen > idata.N)
 	worklen = idata.N;
       worklen = (long) (worklen / 1024) * 1024;
 
       /* What telescope are we using? */
-
       if (!strcmp(idata.telescope, "Arecibo")) {
 	strcpy(obs, "AO");
       } else if (!strcmp(idata.telescope, "Parkes")) {
@@ -306,57 +300,61 @@ int main(int argc, char *argv[])
 	printf("$TEMPO/obsys.dat.  Exiting.\n\n");
 	exit(1);
       }
+
     } else {			/* No barycentering... */
 
       /* The number of data points to work with at a time */
-
       if (worklen > idata.N)
 	worklen = idata.N;
       worklen = (long) (worklen / 1024) * 1024;
     }
 
     /* Compare the size of the data to the size of output we request */
-
     if (!cmd->numoutP)
       cmd->numout = INT_MAX;
-
   }
-
+ 
+  /* Check if we are downsampling */
+  dsdt = idata.dt*cmd->downsamp;
+  if (cmd->downsamp > 1){
+    printf("Downsampling by a factor of %d\n", cmd->downsamp);
+    printf("New sample dt = %.10g\n\n", dsdt);
+    if (worklen % cmd->downsamp){
+      printf("Error:  The downsample factor (%d) must be a factor of the\n",
+	     cmd->downsamp);
+      printf("        worklength (%ld).  Exiting.\n\n", worklen);
+      exit(1);
+    }
+  }
   printf("Writing output data to '%s'.\n", datafilenm);
   printf("Writing information to '%s'.\n\n", outinfonm);
 
   /* The topocentric epoch of the start of the data */
-
   tlotoa = (double) idata.mjd_i + idata.mjd_f;
 
   if (!strcmp(idata.band, "Radio") && RAWDATA){
 
     /* The topocentric spacing between channels */
-
     tdf = idata.chan_wid;
     numchan = idata.num_chan;
 
     /* The topocentric observation frequencies */
-
     tobsf = gen_dvect(numchan);
     tobsf[0] = idata.freq;
     for (ii = 0; ii < numchan; ii++)
       tobsf[ii] = tobsf[0] + ii * tdf;
 
     /* The dispersion delays (in time bins) */
-
     dispdt = gen_dvect(numchan);
 
     if (cmd->nobaryP) {
 
       /* Determine our dispersion time delays for each channel */
-
       for (ii = 0; ii < numchan; ii++)
 	dispdt[ii] = delay_from_dm(cmd->dm, tobsf[ii]);
 
       /* The highest frequency channel gets no delay                 */
       /* All other delays are positive fractions of bin length (dt)  */
-
       dtmp = dispdt[numchan - 1];
       for (ii = 0; ii < numchan; ii++)
 	dispdt[ii] = (dispdt[ii] - dtmp) / idata.dt;
@@ -379,7 +377,6 @@ int main(int argc, char *argv[])
   if (cmd->nobaryP) { /* Main loop if we are not barycentering... */
 
     /* Allocate our data array */
-    
     outdata = gen_fvect(worklen);
     
     printf("Massaging the data ...\n\n");
@@ -408,12 +405,15 @@ int main(int argc, char *argv[])
       if (numread==0)
 	break;
 
-      /* Print percent complete */
+      /* Downsample if requested */
+      if (cmd->downsamp > 1)
+	numread = downsample(outdata, numread, cmd->downsamp);
       
+      /* Print percent complete */
       if (cmd->numoutP)
-	newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
+	newper = (int)((float)totwrote/cmd->numout*100.0) + 1;
       else
-	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
+	newper = (int)((float)totwrote*cmd->downsamp*100.0/idata.N) + 1;
       if (newper > oldper) {
 	printf("\rAmount Complete = %3d%%", newper);
 	fflush(stdout);
@@ -422,7 +422,6 @@ int main(int argc, char *argv[])
       
       /* Write the latest chunk of data, but don't   */
       /* write more than cmd->numout points.         */
-      
       numtowrite = numread;
       if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
 	numtowrite = cmd->numout - totwrote;
@@ -430,7 +429,6 @@ int main(int argc, char *argv[])
       totwrote += numtowrite;
       
       /* Update the statistics */
-      
       if (!padding){
 	for (ii = 0; ii < numtowrite; ii++)
 	  update_stats(statnum + ii, outdata[ii], &min, &max, &avg, &var);
@@ -438,7 +436,6 @@ int main(int argc, char *argv[])
       }
       
       /* Stop if we have written out all the data we need to */
-      
       if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
       
@@ -452,19 +449,16 @@ int main(int argc, char *argv[])
     double *bobsf=NULL, *btoa=NULL, *ttoa=NULL;
 
     /* What ephemeris will we use?  (Default is DE200) */
-
     if (cmd->de405P)
       strcpy(ephem, "DE405");
     else
       strcpy(ephem, "DE200");
 
     /* Define the RA and DEC of the observation */
-    
     ra_dec_to_string(rastring, idata.ra_h, idata.ra_m, idata.ra_s);
     ra_dec_to_string(decstring, idata.dec_d, idata.dec_m, idata.dec_s);
 
     /* Allocate some arrays */
-
     bobsf = gen_dvect(numchan);
     btoa = gen_dvect(numbarypts);
     ttoa = gen_dvect(numbarypts);
@@ -473,11 +467,10 @@ int main(int argc, char *argv[])
       ttoa[ii] = tlotoa + TDT * ii / SECPERDAY;
 
     /* Call TEMPO for the barycentering */
-
     printf("Generating barycentric corrections...\n");
     barycenter(ttoa, btoa, voverc, numbarypts, \
 	       rastring, decstring, obs, ephem);
-    for (ii = 0 ; ii < numbarypts ; ii++){
+    for (ii=0; ii<numbarypts; ii++){
       if (voverc[ii] > maxvoverc) maxvoverc = voverc[ii];
       if (voverc[ii] < minvoverc) minvoverc = voverc[ii];
       avgvoverc += voverc[ii];
@@ -492,23 +485,20 @@ int main(int argc, char *argv[])
     printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
 
     /* Determine the initial dispersion time delays for each channel */
-
-    for (ii = 0; ii < numchan; ii++) {
+    for (ii=0; ii<numchan; ii++) {
       bobsf[ii] = doppler(tobsf[ii], avgvoverc);
       dispdt[ii] = delay_from_dm(cmd->dm, bobsf[ii]);
     }
 
     /* The highest frequency channel gets no delay                   */
     /* All other delays are positive fractions of bin length (dt)    */
-
-    barydispdt = dispdt[numchan - 1];
-    for (ii = 0; ii < numchan; ii++)
-      dispdt[ii] = (dispdt[ii] - barydispdt) / idata.dt;
+    barydispdt = dispdt[numchan-1];
+    for (ii=0; ii<numchan; ii++)
+      dispdt[ii] = (dispdt[ii]-barydispdt)/idata.dt;
     if (RAWDATA)
-      worklen *= ((int)(dispdt[0]) / worklen) + 1;
+      worklen *= ((int)(dispdt[0])/worklen) + 1;
 
     /* If the data is de-dispersed radio data...*/
-
     if (!strcmp(idata.band, "Radio")) {
       printf("The DM of %.2f at the barycentric observing freq of %.3f MHz\n",
 	     idata.dm, bobsf[numchan-1]);
@@ -519,14 +509,13 @@ int main(int argc, char *argv[])
     printf("Topocentric epoch (at data start) is:\n");
     printf("   %17.11f\n\n", tlotoa);
     printf("Barycentric epoch (infinite obs freq at data start) is:\n");
-    printf("   %17.11f\n\n", blotoa - (barydispdt / SECPERDAY));
+    printf("   %17.11f\n\n", blotoa-(barydispdt/SECPERDAY));
 
-    /* Convert the bary TOAs to differences from the topo TOAs in */
-    /* units of bin length (dt) rounded to the nearest integer.   */
-
-    dtmp = (btoa[0] - ttoa[0]);
-    for (ii = 0 ; ii < numbarypts ; ii++)
-      btoa[ii] = ((btoa[ii] - ttoa[ii]) - dtmp) * SECPERDAY / idata.dt;
+    /* Convert the bary TOAs to differences from the topo TOAs in  */
+    /* units of bin length (dsdt) rounded to the nearest integer.  */
+    dtmp = (btoa[0]-ttoa[0]);
+    for (ii=0; ii<numbarypts; ii++)
+      btoa[ii] = ((btoa[ii]-ttoa[ii])-dtmp)*SECPERDAY/dsdt;
 
     { /* Find the points where we need to add or remove bins */
 
@@ -536,17 +525,17 @@ int main(int argc, char *argv[])
       numdiffbins = abs(NEAREST_INT(btoa[numbarypts-1])) + 1;
       diffbins = gen_ivect(numdiffbins);
       diffbinptr = diffbins;
-      for (ii = 1 ; ii < numbarypts ; ii++){
+      for (ii=1; ii<numbarypts; ii++){
 	currentbin = NEAREST_INT(btoa[ii]);
 	if (currentbin != oldbin){
 	  if (currentbin > 0){
 	    calcpt = oldbin + 0.5;
-	    lobin = (ii-1) * TDT / idata.dt;
-	    hibin = ii * TDT / idata.dt;
+	    lobin = (ii-1)*TDT/dsdt;
+	    hibin = ii*TDT/dsdt;
 	  } else {
 	    calcpt = oldbin - 0.5;
-	    lobin = -((ii-1) * TDT / idata.dt);
-	    hibin = -(ii * TDT / idata.dt);
+	    lobin = -((ii-1)*TDT/dsdt);
+	    hibin = -(ii*TDT/dsdt);
 	  }
 	  while(fabs(calcpt) < fabs(btoa[ii])){
 	    /* Negative bin number means remove that bin */
@@ -554,7 +543,7 @@ int main(int argc, char *argv[])
 	    *diffbinptr = NEAREST_INT(LININTERP(calcpt, btoa[ii-1],
 						btoa[ii], lobin, hibin));
 	    diffbinptr++;
-	    calcpt = (currentbin > 0) ? calcpt + 1.0 : calcpt - 1.0;
+	    calcpt = (currentbin>0) ? calcpt+1.0 : calcpt-1.0;
 	  }
 	  oldbin = currentbin;
 	}
@@ -596,19 +585,22 @@ int main(int argc, char *argv[])
 	numread = read_shorts(infiles[0], outdata, worklen, numchan);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
-
       if (numread==0)
 	break;
 
+      /* Downsample if requested */
+      if (cmd->downsamp > 1)
+	numread = downsample(outdata, numread, cmd->downsamp);
+      
       /* Determine the approximate local average */
       avg_var(outdata, numread, &block_avg, &block_var);
 
       /* Print percent complete */
       
       if (cmd->numoutP)
-	newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
+	newper = (int)((float)totwrote/cmd->numout*100.0) + 1;
       else 
-	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
+	newper = (int)((float)totwrote*cmd->downsamp*100.0/idata.N) + 1;
       if (newper > oldper) {
  	printf("\rAmount Complete = %3d%%", newper);
 	fflush(stdout);
@@ -724,6 +716,8 @@ int main(int argc, char *argv[])
     idata.mjd_i = (int) floor(blotoa - (barydispdt / SECPERDAY));
     idata.mjd_f = blotoa - (barydispdt / SECPERDAY) - idata.mjd_i;
   }
+  if (cmd->downsamp > 1)
+    idata.dt = dsdt;
   update_infodata(&idata, totwrote, padtowrite, diffbins, numdiffbins);
   writeinf(&idata);
 
@@ -882,6 +876,22 @@ static int read_shorts(FILE *file, float *data, int numpts, \
   for (ii=0; ii<numread; ii++)
     data[ii] = (float) sdata[ii];
   free(sdata);
+  return numread;
+}
+
+static int downsample(float outdata[], int numread, int downsampfact)
+/* Downsample the floating point data by a factor downsampfact */
+{
+  float tmpout;
+  int ii, jj, index;
+
+  numread /= downsampfact;
+  for (ii=0, index=0; ii<numread; ii++, index+=downsampfact){
+    tmpout = 0.0;
+    for (jj=0; jj<downsampfact; jj++)
+      tmpout += outdata[index+jj];
+    outdata[ii] = tmpout;
+  }
   return numread;
 }
 
