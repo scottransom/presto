@@ -27,11 +27,13 @@ static void write_subs(FILE *outfiles[], int numfiles, short **subsdata,
 		       int startpoint, int numtowrite);
 static void write_padding(FILE *outfiles[], int numfiles, float value, 
 			  int numtowrite);
-static int read_subbands(FILE *infiles[], int numfiles, 
-			 float *subbanddata);
+static int read_subbands(FILE *infiles[], int numfiles, float *subbanddata, 
+			 double timeperblk, int *maskchans, 
+			 int *nummasked, mask *obsmask, float *padvals);
 static int get_data(FILE *infiles[], int numfiles, float **outdata, 
 		    int numchan, int blocklen, int blocksperread, 
-		    mask *obsmask, double *dispdts, int **offsets, 
+		    mask *obsmask, float *padvals, double dt, 
+		    double *dispdts, int **offsets, 
 		    int *padding, short **subsdata);
 static void update_infodata(infodata *idata, int datawrote, int padwrote, 
 			    int *barybins, int numbarybins, int downsamp);
@@ -474,7 +476,8 @@ int main(int argc, char *argv[])
       outdata = gen_fmatrix(cmd->numdms, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
-		       &obsmask, dispdt, offsets, &padding, subsdata);
+		       &obsmask, padvals, idata.dt, dispdt, 
+		       offsets, &padding, subsdata);
 
     while (numread==worklen){
 
@@ -508,7 +511,8 @@ int main(int argc, char *argv[])
       
       numread = get_data(infiles, numinfiles, outdata, 
 			 numchan, blocklen, blocksperread, 
-			 &obsmask, dispdt, offsets, &padding, subsdata);
+			 &obsmask, padvals, idata.dt, dispdt, 
+			 offsets, &padding, subsdata);
     }
     datawrote = totwrote;
 
@@ -633,7 +637,8 @@ int main(int argc, char *argv[])
       outdata = gen_fmatrix(cmd->numdms, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
-		       &obsmask, dispdt, offsets, &padding, subsdata);
+		       &obsmask, padvals, idata.dt, dispdt, 
+		       offsets, &padding, subsdata);
     
     while (numread==worklen){ /* Loop to read and write the data */
       int numwritten=0;
@@ -733,7 +738,8 @@ int main(int argc, char *argv[])
 
       numread = get_data(infiles, numinfiles, outdata, 
 			 numchan, blocklen, blocksperread, 
-			 &obsmask, dispdt, offsets, &padding, subsdata);
+			 &obsmask, padvals, idata.dt, dispdt, 
+			 offsets, &padding, subsdata);
     }
   }
 
@@ -826,8 +832,10 @@ int main(int argc, char *argv[])
 
   /* Close the files and cleanup */
 
-  if (cmd->maskfileP)
+  if (cmd->maskfileP){
     free_mask(obsmask);
+    free(padvals);
+  }
   for (ii=0; ii<numinfiles; ii++)
     fclose(infiles[ii]);
   free(infiles);
@@ -909,13 +917,16 @@ static void write_padding(FILE *outfiles[], int numfiles, float value,
 }
 
 
-static int read_subbands(FILE *infiles[], int numfiles, 
-			 float *subbanddata)
+static int read_subbands(FILE *infiles[], int numfiles, float *subbanddata, 
+			 double timeperblk, int *maskchans, 
+			 int *nummasked, mask *obsmask, float *padvals)
 /* Read short int subband data written by prepsubband */
 {
   int ii, jj, index, numread=0;
   short subsdata[SUBSBLOCKLEN];
+  static int currentblock=0;
 
+  /* Read the data */
   for (ii=0; ii<numfiles; ii++){
     numread = chkfread(subsdata, sizeof(short), SUBSBLOCKLEN, infiles[ii]);
     for (jj=0, index=ii; jj<numread; jj++, index+=numfiles)
@@ -924,19 +935,42 @@ static int read_subbands(FILE *infiles[], int numfiles,
       subbanddata[index] = 0.0;
     index += numread;
   }
+
+  /* Mask it if required */
+  if (obsmask->numchan && numread){
+    double starttime;
+    starttime = currentblock*timeperblk;
+    *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+    if (*nummasked==-1){ /* If all channels are masked */
+      for (ii=0; ii<SUBSBLOCKLEN; ii++)
+	memcpy(subbanddata+ii*numfiles, padvals, sizeof(float)*numfiles);
+    } else if (*nummasked > 0){ /* Only some of the channels are masked */
+      int offset, channum;
+      for (ii=0; ii<SUBSBLOCKLEN; ii++){
+	offset = ii*numfiles;
+	for (jj=0; jj<*nummasked; jj++){
+	  channum = maskchans[jj];
+	  subbanddata[offset+channum] = padvals[channum];
+	}
+      }
+    }
+  }
+  currentblock += 1;
   return numread;
 }
 
 
 static int get_data(FILE *infiles[], int numfiles, float **outdata, 
 		    int numchan, int blocklen, int blocksperread, 
-		    mask *obsmask, double *dispdts, int **offsets, 
+		    mask *obsmask, float *padvals, double dt, 
+		    double *dispdts, int **offsets, 
 		    int *padding, short **subsdata)
 {
   static int firsttime=1, worklen, *maskchans=NULL, blocksize;
   static int dsworklen;
   static float *tempzz, *data1, *data2, *dsdata1=NULL, *dsdata2=NULL; 
   static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
+  static double blockdt;
   int totnumread=0, numread=0, ii, jj, tmppad=0, nummasked=0;
   
   if (firsttime){
@@ -945,6 +979,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
     worklen = blocklen * blocksperread;
     dsworklen = worklen / cmd->downsamp;
     blocksize = blocklen * cmd->nsub;
+    blockdt = blocklen * dt;
     data1 = gen_fvect(cmd->nsub * worklen);
     data2 = gen_fvect(cmd->nsub * worklen);
     currentdata = data1;
@@ -989,7 +1024,8 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 				       maskchans, &nummasked, obsmask);
 	else if (insubs)
 	  numread = read_subbands(infiles, numfiles, 
-				  currentdata+ii*blocksize);
+				  currentdata+ii*blocksize, blockdt,
+				  maskchans, &nummasked, obsmask, padvals);
 	if (!firsttime) totnumread += numread;
 	if (numread!=blocklen){
 	  for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)

@@ -1,7 +1,6 @@
 #include <ctype.h>
 #include "prepfold.h"
 #include "prepfold_cmd.h"
-#include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
 #include "wapp.h"
@@ -522,7 +521,7 @@ int main(int argc, char *argv[])
     idata.dm = cmd->dm;
     numrec = local_N / ptsperrec;
     if (cmd->maskfileP)
-      maskchans = gen_ivect(idata.num_chan);
+      maskchans = gen_ivect(obsmask.numchan);
 
     /* Define the RA and DEC of the observation */
   
@@ -1336,7 +1335,8 @@ int main(int argc, char *argv[])
 				       dispdts, cmd->nsub, 1, &padding,
 				       maskchans, &nummasked, &obsmask);
 	else if (insubs)
-	  numread = read_subbands(infiles, numfiles, data);
+	  numread = read_subbands(infiles, numfiles, data, recdt, 
+				  maskchans, &nummasked, &obsmask, padvals);
 	else {
 	  int mm;
 	  float runavg=0.0;
@@ -1782,6 +1782,10 @@ int main(int argc, char *argv[])
   if (binary){
     free(Ep);
     free(tp);
+  }
+  if (cmd->maskfileP){
+    free_mask(obsmask);
+    free(padvals);
   }
   if (RAWDATA || insubs){
     free(barytimes);
