@@ -962,7 +962,6 @@ int main(int argc, char *argv[])
     }
     for (ii=0; ii<cmd->npart; ii++){
       parttimes[ii] = (T*ii)/(double)(cmd->npart);
-      cts = 0.0;
       /* Correct each part for the "exposure".  This gives us a count rate. */
       event = parttimes[ii];
       begphs = event*(event*(event*tfdd+tfd)+tf);
@@ -1004,7 +1003,7 @@ int main(int argc, char *argv[])
 	   /* printf("%.2f ", numwraps); */
 	   calctotalphs += numwraps;
 	   if (numwraps > 0)
-		search.rawfolds[ii*search.proflen+jj] /= numwraps;
+		search.rawfolds[ii*search.proflen+jj] *= (totalphs/numwraps);
       }
       /* printf("\n"); */
       calctotalphs /= search.proflen;
@@ -1012,6 +1011,7 @@ int main(int argc, char *argv[])
            printf("\nThere seems to be a problem in the \"exposure\" calculation\n"
 		  "  in prepfold (npart = %ld):  totalphs = %.6f but calctotalphs = %0.6f\n", 
 		  ii, totalphs, calctotalphs);
+      cts = 0.0;
       for (jj=ii*search.proflen; jj<(ii+1)*search.proflen; jj++)
 	cts += search.rawfolds[jj];
       search.stats[ii].numdata = ceil((T/cmd->npart)/search.dt);
