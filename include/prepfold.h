@@ -89,9 +89,15 @@ int dgels_(char *trans, int *mm, int *nn, int *nrhs,
 
 double switch_pfdot(double pf, double pfdot);
 
+double switch_pfdotdot(double pf, double pfdot, double pfdotdot);
+
 double fdot2phasedelay(double fdot, double time);
 
 double phasedelay2fdot(double phasedelay, double time);
+
+double fdotdot2phasedelay(double fdotdot, double time);
+
+double phasedelay2fdotdot(double phasedelay, double time);
 
 void double2float(double *in, float *out, int numpts);
 /* Copy a double vector into a float vector */

@@ -35,6 +35,10 @@ typedef struct s_Cmdline {
   char xwinP;
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   char runavgP;
+  /***** -searchpdd: Search p-dotdots as well as p and p-dots */
+  char searchpddP;
+  /***** -searchfdd: Search f-dotdots as well as f and f-dots */
+  char searchfddP;
   /***** -nosearch: Show but do not search the p/pdot and/or DM phase spaces */
   char nosearchP;
   /***** -scaleparts: Scale the part profiles independently */
