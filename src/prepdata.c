@@ -6,6 +6,9 @@
 
 #define TDT 10.0
 
+/* Simple linear interpolation macro */
+#define LININTERP(X, xlo, xhi, ylo, yhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
+
 /* Some function definitions */
 
 int (*readrec_ptr)(FILE * file, float *data, int numpts,
@@ -13,6 +16,7 @@ int (*readrec_ptr)(FILE * file, float *data, int numpts,
 int read_resid_rec(FILE * file, double *toa, double *obsf);
 int read_floats(FILE * file, float *data, int numpts,
 		double *dispdelays, int numchan);
+void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 
 /* The main program */
 
@@ -26,16 +30,21 @@ int main(int argc, char *argv[])
   /* Any variable that begins with 'b' means barycentric */
   FILE *infile = NULL, *outfile;
   float *data, *outdata;
-  double tdf = 0.0, tdtbins, tt1, tt2, ttdt, *dispdt, rdt = 0.0, rbdt = 0.0;
-  double *tobsf = NULL, *bobsf = NULL, tlotoa = 0.0, blotoa = 0.0;
-  double *btl = NULL, *bth = NULL, bt, bdt, fact, dtmp = 0.0;
-  double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0, dev = 0.0;
-  double *btoa = NULL, *ttoa = NULL, *voverc = NULL, barydispdt = 0.0;
+  double tdf=0.0, *dispdt, rdt=0.0, fact;
+  double *tobsf=NULL, *bobsf=NULL, tlotoa=0.0, blotoa=0.0;
+  double intime=0.0, intimelo=0.0, outtime=0.0, dtmp=0.0, lopoint, hipoint;
+  double intimenext=0.0, outtimenext=0.0, deltapoints, rdeltapoints;
+  double *delayptr=NULL, *delaytimeptr=NULL;
+  double delaytlo=0.0, delaythi=0.0, delaylo=0.0, delayhi=0.0;
+  double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0, dev=0.0;
+  double *btoa=NULL, *ttoa=NULL, *voverc=NULL, barydispdt=0.0;
   char obs[3], ephem[10], *datafilenm, *rootfilenm, *outinfonm;
   char rastring[50], decstring[50], *cptr;
-  int numchan = 1, newper = 0, oldper = 0, slen, hiindex;
-  long i, j, k, numbarypts = 0, worklen = 65536, next_pow_of_two = 0;
-  long numread = 0, totread = 0, wlen2, wrote = 0, totwrote = 0, bindex = 0;
+  int numchan=1, newper=0, oldper=0, slen;
+  long ii, numbarypts=0, worklen=65536, next_pow_of_two=0;
+  long numread=0, wlen2, wrote=0;
+  long totread=0, totwrote=0;
+  unsigned long lobin, hibin, index=0, numbins, arrayoffset=0;
   multibeam_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
@@ -95,12 +104,14 @@ int main(int argc, char *argv[])
 
   /* Determine the other file names and open the output data file */
 
-  slen = strlen(cmd->outfile)+5;
-  datafilenm = (char *)malloc(slen);
+  slen = strlen(cmd->outfile)+6;
+  datafilenm = (char *)malloc(slen+1);
+  datafilenm[slen] = '\0';
   sprintf(datafilenm, "%s.dat", cmd->outfile);
   outfile = chkfopen(datafilenm, "wb");
   sprintf(idata.name, "%s", cmd->outfile);
-  outinfonm = (char *)malloc(slen);
+  outinfonm = (char *)malloc(slen+1);
+  outinfonm[slen] = '\0';
   sprintf(outinfonm, "%s.inf", cmd->outfile);
   printf("Writing output data to '%s'.\n", datafilenm);
   printf("Writing information to '%s'.\n\n", outinfonm);
@@ -112,9 +123,18 @@ int main(int argc, char *argv[])
     /* Read the first header file and generate an infofile from it */
 
     chkfread(&hdr, 1, HDRLEN, infile);
-    chkfileseek(infile, 0L, sizeof(char), SEEK_SET);
+    rewind(infile);
     multibeam_hdr_to_inf(&hdr, &idata);
     idata.dm = cmd->dm;
+
+    /* The number of data points to work with at a time */
+
+    numchan = idata.num_chan;
+    worklen = DATLEN * 8 / numchan;
+
+    /* Set idata.N to the actual size of the raw data file */
+
+    idata.N = (double) (chkfilelen(infile, RECLEN)) * worklen;
 
     /* Compare the size of the data to the size of output we request */
 
@@ -126,7 +146,7 @@ int main(int argc, char *argv[])
     /* Write a new info-file */
 
     writeinf(&idata);
-    if (cmd->numoutP && cmd->numout == idata.N) {
+    if (cmd->numoutP && cmd->numout != idata.N) {
       idata.N = dtmp;
     }
 
@@ -138,14 +158,9 @@ int main(int argc, char *argv[])
 
     readrec_ptr = read_multibeam;
 
-    /* The number of data points to work with at a time */
-
-    numchan = idata.num_chan;
-    worklen = DATLEN * 8 / numchan;
-
     /* The number of topo to bary time points to generate with TEMPO */
 
-    numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5);
+    numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
 
   }
 
@@ -184,7 +199,7 @@ int main(int argc, char *argv[])
 
       /* The number of topo to bary time points to generate with TEMPO */
 
-      numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5);
+      numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
 
       /* The number of data points to work with at a time */
 
@@ -235,8 +250,8 @@ int main(int argc, char *argv[])
 
     tobsf = gen_dvect(numchan);
     tobsf[0] = idata.freq;
-    for (i = 0; i < numchan; i++)
-      tobsf[i] = tobsf[0] + i * tdf;
+    for (ii = 0; ii < numchan; ii++)
+      tobsf[ii] = tobsf[0] + ii * tdf;
 
     /* The dispersion delays (in time bins) */
 
@@ -246,15 +261,15 @@ int main(int argc, char *argv[])
 
       /* Determine our dispersion time delays for each channel */
 
-      for (i = 0; i < numchan; i++)
-	dispdt[i] = delay_from_dm(cmd->dm, tobsf[i]);
+      for (ii = 0; ii < numchan; ii++)
+	dispdt[ii] = delay_from_dm(cmd->dm, tobsf[ii]);
 
       /* The highest frequency channel gets no delay                 */
       /* All other delays are positive fractions of bin length (dt)  */
 
       dtmp = dispdt[numchan - 1];
-      for (i = 0; i < numchan; i++)
-	dispdt[i] = (dispdt[i] - dtmp) / idata.dt;
+      for (ii = 0; ii < numchan; ii++)
+	dispdt[ii] = (dispdt[ii] - dtmp) / idata.dt;
       worklen *= ((int)(fabs(dispdt[0])) / worklen) + 1;
     }
 
@@ -280,8 +295,8 @@ int main(int argc, char *argv[])
     data = gen_fvect(worklen);
     wlen2 = worklen * 2;
     outdata = gen_fvect(wlen2);
-    for (i = 0; i < wlen2; i++)
-      outdata[i] = 0.0;
+    for (ii = 0; ii < wlen2; ii++)
+      outdata[ii] = 0.0;
     
     /* Open our new output data file */
     
@@ -292,9 +307,8 @@ int main(int argc, char *argv[])
     
     wrote = worklen;
     
-    do {
-
-      numread = (*readrec_ptr) (infile, data, worklen, dispdt, numchan);
+    while ((numread = 
+	   (*readrec_ptr)(infile, data, worklen, dispdt, numchan))){
 
       /* Insure we don't write out too much data */
 
@@ -318,26 +332,26 @@ int main(int argc, char *argv[])
 
       /* Determine some data statistics */
 
-      for (j = 0; j < wrote; j++) {
+      for (ii = 0; ii < wrote; ii++) {
 
 	/* Find the max and min values */
 	
-	if (data[j] > max)
-	  max = data[j];
-	if (data[j] < min)
-	  min = data[j];
+	if (data[ii] > max)
+	  max = data[ii];
+	if (data[ii] < min)
+	  min = data[ii];
 	
 	/* Use clever single pass mean and variance calculation */
 	
-	dev = data[j] - avg;
-	avg += dev / (totwrote + j + 1);
-	var += dev * (data[j] - avg);
+	dev = data[ii] - avg;
+	avg += dev / (totwrote + ii + 1);
+	var += dev * (data[ii] - avg);
       }
 
       if (cmd->numoutP && (totwrote >= cmd->numout))
 	break;
 	
-     } while (numread == worklen);
+     }
       
     /* Main loop if we are barycentering... */
 
@@ -359,16 +373,16 @@ int main(int argc, char *argv[])
     /* Allocate some arrays */
 
     bobsf = gen_dvect(numchan);
-    btoa = gen_dvect(numbarypts + 1);
-    ttoa = gen_dvect(numbarypts + 1);
-    voverc = gen_dvect(numbarypts + 1);
-    for (i = 0 ; i <= numbarypts ; i++)
-      ttoa[i] = tlotoa + TDT * i / SECPERDAY;
+    btoa = gen_dvect(numbarypts);
+    ttoa = gen_dvect(numbarypts);
+    voverc = gen_dvect(numbarypts);
+    for (ii = 0 ; ii < numbarypts ; ii++)
+      ttoa[ii] = tlotoa + TDT * ii / SECPERDAY;
 
     /* Call TEMPO for the barycentering */
 
     printf("Generating barycentric corrections...\n");
-    barycenter(ttoa, btoa, voverc, numbarypts + 1, \
+    barycenter(ttoa, btoa, voverc, numbarypts, \
 	       rastring, decstring, obs, ephem);
     blotoa = btoa[0];
 
@@ -379,17 +393,17 @@ int main(int argc, char *argv[])
 
     /* Determine the initial dispersion time delays for each channel */
 
-    for (i = 0; i < numchan; i++) {
-      bobsf[i] = doppler(tobsf[i], voverc[0]);
-      dispdt[i] = delay_from_dm(cmd->dm, bobsf[i]);
+    for (ii = 0; ii < numchan; ii++) {
+      bobsf[ii] = doppler(tobsf[ii], voverc[0]);
+      dispdt[ii] = delay_from_dm(cmd->dm, bobsf[ii]);
     }
 
     /* The highest frequency channel gets no delay                   */
     /* All other delays are positive fractions of bin length (dt)    */
 
     barydispdt = dispdt[numchan - 1];
-    for (i = 0; i < numchan; i++)
-      dispdt[i] = (dispdt[i] - barydispdt) / idata.dt;
+    for (ii = 0; ii < numchan; ii++)
+      dispdt[ii] = (dispdt[ii] - barydispdt) / idata.dt;
     worklen *= ((int)(dispdt[0]) / worklen) + 1;
 
     /* If the data is de-dispersed radio data...*/
@@ -411,41 +425,47 @@ int main(int argc, char *argv[])
     data = gen_fvect(worklen);
     wlen2 = worklen * 2;
     outdata = gen_fvect(wlen2);
-    for (i = 0; i < wlen2; i++)
-      outdata[i] = 0.0;
+    for (ii = 0; ii < wlen2; ii++)
+      outdata[ii] = 0.0;
     rdt = 1.0 / idata.dt;
 
-    /* Convert the barycentric TOAs to seconds from the beginning */
+    /* Convert the topo TOAs to seconds from start */
+    /* Convert the bary TOAs to delays from the topo TOAs */
 
-    for (i = 0 ; i <= numbarypts ; i++)
-      btoa[i] = (btoa[i] - blotoa) * SECPERDAY;
+    dtmp = (ttoa[0] - btoa[0]);
+    for (ii = 0 ; ii < numbarypts ; ii++){
+      btoa[ii] = ((ttoa[ii] - btoa[ii]) - dtmp) * SECPERDAY;
+      ttoa[ii] = TDT * ii;
+    }
 
-    /* The length of a time bin in terms of the topocentric spacing   */
-    /* of the points where we determined the barycentric corrections. */
+    /* Initiate some variables */
+    
+    intime = 0.0;
+    arrayoffset = 1;  /* Beware nasty NR zero-offset kludges! */
+    hunt(ttoa-1, numbarypts, intime, &arrayoffset);
+    arrayoffset--;
+    delaytimeptr = ttoa + arrayoffset;
+    delayptr = btoa + arrayoffset;
+    delaytlo = *delaytimeptr;
+    delaythi = *(delaytimeptr + 1);
+    delaylo = *delayptr;
+    delayhi = *(delayptr + 1);
 
-    tdtbins = idata.dt / TDT;
-
-    /* Initialize some data */
-
-    bt = 0.0;
-    bdt = 0.0;
-    ttdt = idata.dt * worklen;
-    tt1 = 0.0;
-    tt2 = ttdt;
-    wrote = worklen;
-    hiindex = 0;
-
-    printf("Massaging the data ...\n\n");
-    printf("Amount Complete = 0%%");
-
+    /* Adjust the start time for the barycentric delay */
+    
+    outtime = intime - 
+      LININTERP(outtime, delaytlo, delaythi, delaylo, delayhi);
+    
     /* Now perform the barycentering */
 
-    /* Blatantly stolen then subsequently modified */
-    /* from Steve Eikenberry's bstretch.c          */
+    printf("Massaging the data...\n\n");
+    printf("Amount Complete = 0%%");
 
-    do {
+    while ((numread = 
+	   (*readrec_ptr)(infile, data, worklen, dispdt, numchan))){
 
-      numread = (*readrec_ptr) (infile, data, worklen, dispdt, numchan);
+      intimelo = totread * idata.dt;
+      totread += numread;
 
       /* Print percent complete */
 
@@ -458,137 +478,129 @@ int main(int argc, char *argv[])
 	fflush(stdout);
 	oldper = newper;
       }
+      
+      /* Work through each batch of topocentric data */
+      
+      for (ii = 0; ii < numread; ii++) {
 
-      /* Determine the barycentric time for the data  */
-      /* segment using linear interpolation.          */
+	/* Calculate the topocentric time for the next point. */
+      
+	intimenext = intimelo + (ii + 1) * idata.dt;
 
-      dtmp = totread * tdtbins;
-      bindex = (long)(dtmp + DBLCORRECT); 
-      fact = dtmp - bindex;
-      totread += numread;
-      btl = btoa + bindex;
-      bth = btl + 1;
-      bdt = (*bth - *btl);
-      bt = *btl + fact * bdt;
-      bdt *= tdtbins;
-      rbdt = 1.0 / bdt;
+	/* Set the delay pointers and variables */
+	
+	if (intimenext > delaythi){
 
-      /* Loop over the newly read data segment */
-
-      for (i = 0; i < worklen; i++, bt += bdt) {
-
-	/* Get new barycentered dt if needed */
-
-	if (bt > *bth) {
-	  btl++;
-	  bth++;
-	  bdt = (*bth - *btl) * tdtbins;
-	  rbdt = 1.0 / bdt;
+	  /* Guess that the next delay we want is the next available */
+	  
+	  arrayoffset += 2;  /* Beware nasty NR zero-offset kludges! */
+	  hunt(ttoa-1, numbarypts, intimenext, &arrayoffset);
+	  arrayoffset--;
+	  delaytimeptr = ttoa + arrayoffset;
+	  delayptr = btoa + arrayoffset;
+	  delaytlo = *delaytimeptr;
+	  delaythi = *(delaytimeptr + 1);
+	  delaylo = *delayptr;
+	  delayhi = *(delayptr + 1);
 	}
 
-	/* Write a chunk of the output data set */
+	/* Delay the topocentric time by the appropriate amount */
+	
+	outtimenext = intimenext - 
+	  LININTERP(intimenext, delaytlo, delaythi, delaylo, delayhi);
+	
+	/* How much time does the data point cover? */
+      
+      
+	/* Find the output points we will add data to.   */
+	
+	lopoint = outtime * rdt;
+	hipoint = outtimenext * rdt;
+	deltapoints = (outtimenext - outtime) * rdt;
+	rdeltapoints = 1.0 / deltapoints;
+	lobin = (unsigned long) lopoint;
+	hibin = (unsigned long) hipoint;
 
-	if (bt >= tt2) {
+	/* How many output points we will spread the data over? */
+	
+	numbins = hibin - lobin + 1;
+	index = lobin - totwrote;
+      
+	/* Barycentric bin fits in one output bin */
 
-	  /* If the barycentering compresses the data, don't */
-	  /* write a bunch of zeros.  Also, don't write more */
-	  /* than cmd->numout points.                        */
+	if (numbins == 1) {
+	  outdata[index] += data[ii];
 
-	  wrote = hiindex;
-	  if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
-	    wrote = cmd->numout - totwrote;
+	/* Barycentric bin covers 2 output bins */
 
-	  chkfwrite(outdata, sizeof(float), wrote, outfile);
+	} else if (numbins == 2) {
+	  index = lobin - totwrote;
+	  fact = (hibin - lopoint) * rdeltapoints;
+	  outdata[index] += data[ii] * fact;
+	  outdata[index+1] += data[ii] * (1.0 - fact);
+	  index++;
 
-	  /* The following accounts for overlap effects between reads */
-
-	  for (j = 0; j < wrote; j++) {
-
-	    /* Find the max and min values */
-
-	    if (outdata[j] > max)
-	      max = outdata[j];
-	    if (outdata[j] < min)
-	      min = outdata[j];
-
-	    /* Use clever single pass mean and variance calculation */
-
-	    dev = outdata[j] - avg;
-	    avg += dev / (totwrote + j + 1);
-	    var += dev * (outdata[j] - avg);
-
-	    /* Move the output array around for the next pass */
-
-	    outdata[j] = outdata[j + wrote];
-	  }
-
-	  /* Re-set the high end of the buffer */
-
-	  for (j = wrote; j < wlen2; j++) 
-	    outdata[j] = 0.0;
-
-	  /* Increment our topocentric time steppers */
-
-	  tt1 = tt2;
-	  totwrote += wrote;
-	  tt2 = (totread + worklen) * idata.dt;
-	  hiindex = 0;
-	}
-
-	/* Determine if barycentric interval is less than, equal to, */
-	/* or greater than the topocentric interval.                 */
-
-	j = (long) ((bt - tt1) * rdt + DBLCORRECT);       /* Bin start */
-	k = (long) ((bt - tt1 + bdt) * rdt + DBLCORRECT); /* Bin end   */
-	hiindex = k;
-
-	/* Barycentric bin fits in one topocentric bin */
-
-	if (k == j) {
-	  outdata[j] += data[i];
-
-	/* Barycentric bin covers 2 topocentric bins */
-
-	} else if (k - j == 1) {
-	  fact = ((k * idata.dt + tt1) - bt) * rbdt;
-	  outdata[j] += data[i] * fact;
-	  outdata[k] += data[i] * (1.0 - fact);
-
-	/* Barycentric bin covers 3 topocentric bins */
+	/* Barycentric bin covers 3 output bins */
 
 	} else {
-	  fact = (((j+1) * idata.dt + tt1) - bt) * rbdt;
-	  dtmp = idata.dt * rbdt;
-	  outdata[j] += data[i] * fact;
-	  outdata[j+1] += data[i] * dtmp;
-	  outdata[k] += data[i] * (1.0 - (fact + dtmp));
+	  fact = ((lobin + 1) - lopoint) * rdeltapoints;
+	  dtmp = idata.dt * rdeltapoints;
+	  outdata[index] += data[ii] * fact;
+	  outdata[index+1] += data[ii] * dtmp;
+	  outdata[index+2] += data[ii] * (1.0 - (fact + dtmp));
+	  index += 2;
+
 	}
 
-	if (cmd->numoutP && totwrote >= cmd->numout)
-	  break;
+	/* Increment our time steps */
 
+	intime = intimenext;
+	outtime = outtimenext;
       }
 
-      if (cmd->numoutP && totwrote >= cmd->numout)
+      /* Write the latest chunk of data, but don't   */
+      /* write more than cmd->numout points.         */
+
+      wrote = index;
+      if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
+	wrote = cmd->numout - totwrote;
+      chkfwrite(outdata, sizeof(float), wrote, outfile);
+
+      /* The following accounts for overlap effects between reads */
+      
+      dtmp = outdata[index];
+      for (ii = 0; ii < wrote; ii++) {
+
+	/* Find the max and min values */
+	
+	if (outdata[ii] > max)
+	  max = outdata[ii];
+	if (outdata[ii] < min)
+	  min = outdata[ii];
+	
+	/* Use clever single pass mean and variance calculation */
+	
+	dev = outdata[ii] - avg;
+	avg += dev / (totwrote + ii + 1);
+	var += dev * (outdata[ii] - avg);
+	
+	/* Reset the output array */
+	
+	outdata[ii] = 0.0;
+      }
+
+      /* Set the lowest output  point to the last fractional point */
+
+      outdata[0] = dtmp;
+
+      /* Update the total number of points written */
+
+      totwrote += wrote;
+
+      /* Stop if we have written out all the data we need to */
+
+      if (cmd->numoutP && (totwrote >= cmd->numout))
 	break;
-
-    } while (numread == worklen);
-
-    /* Write the final few points if necessary */
-
-    if (!(cmd->numoutP && totwrote >= cmd->numout)) {
-      i = wlen2 - 1;
-      while (outdata[i] == 0.0)
-	i--;
-      if (i < 0) i = 0;
-
-      /* Insure we don't write out too much data */
-
-      if (cmd->numoutP && totwrote + i > cmd->numout)
-	i = cmd->numout - totwrote;
-
-      chkfwrite(outdata, sizeof(float), i, outfile);
-      totwrote += i;
     }
   }
 
@@ -620,7 +632,9 @@ int main(int argc, char *argv[])
   }
   if (cmd->numoutP && (cmd->numout > totwrote)) {
     idata.N = cmd->numout;
+    free(idata.onoff);
     idata.numonoff = 2;
+    idata.onoff = gen_dvect(2 * idata.numonoff);
     idata.onoff[0] = 0;
     idata.onoff[1] = totwrote - 1;
     idata.onoff[2] = cmd->numout - 1;
@@ -630,7 +644,9 @@ int main(int argc, char *argv[])
   }
   if ((cmd->pad0P || cmd->padavgP) && (next_pow_of_two != totwrote)) {
     idata.N = next_pow_of_two;
+    free(idata.onoff);
     idata.numonoff = 2;
+    idata.onoff = gen_dvect(2 * idata.numonoff);
     idata.onoff[0] = 0;
     idata.onoff[1] = totwrote - 1;
     idata.onoff[2] = next_pow_of_two - 1;
@@ -643,32 +659,29 @@ int main(int argc, char *argv[])
   /* Pad the file if needed to pow_of_two_length */
 
   if (cmd->pad0P || cmd->padavgP) {
-    if (cmd->pad0P) {
-      for (i = 0; i < wlen2; i++)
-	outdata[i] = 0.0;
-    } else {
-      for (i = 0; i < wlen2; i++)
-	outdata[i] = avg;
-    }
-    for (i = 0; i < (next_pow_of_two - totwrote) / wlen2; i++) {
-      chkfwrite(outdata, sizeof(float), (unsigned long) wlen2, outfile);
-    }
-    totwrote += i * wlen2;
+    if (cmd->pad0P)
+      for (ii = 0; ii < wlen2; ii++)
+	outdata[ii] = 0.0;
+    else
+      for (ii = 0; ii < wlen2; ii++)
+	outdata[ii] = avg;
+    for (ii = 0; ii < (next_pow_of_two - totwrote) / wlen2; ii++)
+      chkfwrite(outdata, sizeof(float), wlen2, outfile);
     chkfwrite(outdata, sizeof(float), \
-	      (unsigned long) (next_pow_of_two - totwrote), outfile);
+	      (next_pow_of_two - totwrote) % wlen2, outfile);
   }
+
   /* Pad the file if needed to the requested length */
 
-  if (cmd->numoutP && cmd->numout > totwrote) {
-    for (i = 0; i < wlen2; i++)
-      outdata[i] = avg;
-    for (i = 0; i < (cmd->numout - totwrote) / wlen2; i++) {
-      chkfwrite(outdata, sizeof(float), (unsigned long) wlen2, outfile);
-    }
-    totwrote += i * wlen2;
-    chkfwrite(outdata, sizeof(float), \
-	      (unsigned long) (cmd->numout - totwrote), outfile);
+  if (cmd->numoutP && (cmd->numout > totwrote)) {
+    for (ii = 0; ii < wlen2; ii++)
+      outdata[ii] = avg;
+    for (ii = 0; ii < (cmd->numout - totwrote) / wlen2; ii++)
+      chkfwrite(outdata, sizeof(float), wlen2, outfile);
+    chkfwrite(outdata, sizeof(float), 
+	      (cmd->numout - totwrote) % wlen2, outfile);
   }
+
   /* Close the files and cleanup */
 
   fclose(infile);
@@ -678,8 +691,10 @@ int main(int argc, char *argv[])
   free(tobsf);
   free(dispdt);
   free(rootfilenm);
-  free(datafilenm);
   free(outinfonm);
+  free(datafilenm);
+  if (idata.onoff)
+    free(idata.onoff);
   if (!cmd->nobaryP) {
     free(bobsf);
     free(btoa);
