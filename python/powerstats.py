@@ -2,7 +2,7 @@
 import Numeric
 from umath import pi, log, exp, sin, sqrt
 from simple_roots import newton_raphson
-from cephes import iv, chdtri, ndtr, ndtri
+from scipy.special.cephes import iv, chdtri, ndtr, ndtri
 #from Multipack import quad
 
 def gauss_sigma_to_prob(sigma):

@@ -12,7 +12,8 @@
 #    --Timing uncertainty (according to input file)
 #    --Prefit residual (seconds)
 
-import mIO, Numeric
+import mIO
+import Numeric
 
 class residuals:
     pass

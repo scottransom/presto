@@ -945,7 +945,7 @@ corr_rz_interp = _presto.corr_rz_interp
 
 #-------------- Extra Stuff to Make Things Easier -----------------
 
-import math, umath, Numeric, Pgplot, string, numpyio, miscutils
+import math, umath, Numeric, Pgplot, string, scipy.io.numpyio, miscutils
 
 def read_foldstats(file, byteswap=0):
    stats = foldstats()
@@ -982,14 +982,14 @@ class pfd:
             for jj in xrange(self.nsub):
                self.stats[ii].append(read_foldstats(infile, byteswap))
                self.profs[ii][jj] = self.profs[ii][jj] + \
-                                    numpyio.fread(infile,
-                                                  self.proflen, 'd',
-                                                  'd', byteswap)
+                                    scipy.io.numpyio.fread(infile,
+                                                           self.proflen, 'd',
+                                                           'd', byteswap)
          else:
             self.stats.append(read_foldstats(infile, byteswap))
             self.profs[ii] = self.profs[ii]+ \
-                             numpyio.fread(infile, self.proflen, 'd',
-                                           'd', byteswap)
+                             scipy.io.numpyio.fread(infile, self.proflen, 'd',
+                                                    'd', byteswap)
       infile.close()
    
 def val_with_err(value, error, len=0, digits=2, latex=0):
