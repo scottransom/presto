@@ -281,7 +281,7 @@ void multibeam_hdr_to_inf(multibeam_tapehdr * hdr, infodata * idata)
   idata->freqband = idata->num_chan * idata->chan_wid;
   idata->freq = strtod(hdr->freq_ch1[0], NULL);
   if (tmp1 < 0.0) {
-    idata->freq -= idata->freqband - idata->chan_wid;
+    idata->freq -= (idata->freqband - idata->chan_wid);
   }
   idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 64 * DEGTORAD);
   idata->mjd_i = strtol(hdr->mjd, NULL, 10);
