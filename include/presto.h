@@ -128,9 +128,10 @@ typedef enum {
 } presto_datainf;
 
 typedef struct FFTCAND {
-  int nsum;  /* Number of harmonics summed */
-  double p;  /* Summed normalized power */
-  double r;  /* Frequency of lowest harmonic */
+  int nsum;   /* Number of harmonics summed */
+  double p;   /* Summed normalized power */
+  double r;   /* Frequency of lowest harmonic */
+  double sig; /* Significance of the candidate taking N into account */
 } fftcand;
 
 typedef struct POSITION {

@@ -7,8 +7,9 @@
 /* Some function definitions */
 
 int (*readrec_ptr)(FILE *file, float *data, int numchan, int numblocks);
-static void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var);
+void rfifind_plot(int numchan, int numint, int ptsperint, float sigma, 
+		  float **dataavg, float **datastd, float **datapow, 
+		  unsigned char **datamask, infodata *idata, int xwin);
 
 /* The main program */
 
@@ -19,16 +20,14 @@ static void update_stats(int N, double x, double *min, double *max,
 int main(int argc, char *argv[])
 {
   FILE *infile, *outfile, *maskfile, *rfifile;
-  float **dataavg, **datavar, **datapow, *outdata, **indata;
-  float *avg_chan, *avg_int, *var_chan, *var_int, *pow_chan, *pow_int;
-  float powavg, powvar, powmax, inttime;
+  float **dataavg, **datastd, **datapow, *outdata, **indata;
+  float powavg, powstd, powmax, inttime, norm;
   unsigned char **datamask, *tbuffer;
   char *datafilenm, *rootfilenm, *maskfilenm, *rfifilenm, *cptr;
-  int numblocks, numchan, numint, newper=0, oldper=0, index;
-  int blocksperint, ptsperint, ptsperblock, tbuffer_size;
+  int numblocks=0, numchan=0, numint, newper=0, oldper=0;
+  int blocksperint, ptsperint, ptsperblock=0, tbuffer_size;
   int bitsperpt, numcands, candnum, numrfi=0, numrfiobs=NUM_RFI_OBS;
-  long ii, jj, kk, slen;
-  long numread=0, numtowrite=0, totwrote=0, datawrote=0;
+  long ii, jj, kk, slen, numread=0;
   double davg, dvar;
   rfi_obs **rfiobs=NULL;
   rfi_instance newrfi;
@@ -71,8 +70,10 @@ int main(int argc, char *argv[])
   strncpy(rootfilenm, cmd->argv[0], slen);
   maskfilenm = (char *)calloc(slen+6, sizeof(char));
   sprintf(maskfilenm, "%s.mask", rootfilenm);
+  maskfile = chkfopen(maskfilenm, "wb");
   rfifilenm = (char *)calloc(slen+5, sizeof(char));
   sprintf(rfifilenm, "%s.rfi", rootfilenm);
+  rfifile = chkfopen(rfifilenm, "w");
   if (!cmd->pkmbP && !cmd->ebppP && !cmd->gbppP){
     printf("\nYou must specify the data format.  Legal types are:\n");
     printf("   -pkmb : Parkes Multibeam\n");
@@ -101,7 +102,6 @@ int main(int argc, char *argv[])
   datafilenm = (char *)calloc(slen, sizeof(char));
   sprintf(datafilenm, "%s_DM0.0_masked.dat", cmd->outfile);
   printf("Writing masked DM=0.0 data to '%s'.\n", datafilenm);
-  outfile = chkfopen(datafilenm, "wb");
   sprintf(idata.name, "%s_DM0.0_masked", cmd->outfile);
   printf("Writing mask data to '%s'.\n", maskfilenm);
   maskfile = chkfopen(maskfilenm, "wb");
@@ -147,28 +147,24 @@ int main(int argc, char *argv[])
   /* Allocate our workarrays */
     
   dataavg = gen_fmatrix(numint, numchan);
-  datavar = gen_fmatrix(numint, numchan);
+  datastd = gen_fmatrix(numint, numchan);
   datapow = gen_fmatrix(numint, numchan);
   indata = gen_fmatrix(ptsperint, numchan);
   datamask = gen_bmatrix(numint, numchan);
   for (ii=0; ii<numint; ii++)
     for (jj=0; jj<numchan; jj++)
       datamask[ii][jj] = GOOD;
-  avg_chan = gen_fvect(numchan);
-  avg_int = gen_fvect(numint);
-  var_chan = gen_fvect(numchan);
-  var_int = gen_fvect(numint);
-  pow_chan = gen_fvect(numchan);
-  pow_int = gen_fvect(numint);
   outdata = gen_fvect(ptsperint);
   tbuffer_size = (numint + numchan) / 2;
   tbuffer = gen_bvect(tbuffer_size);
-  create_rfi_obs_vector(rfiobs, 0, numrfiobs);
+  rfiobs = (rfi_obs **)realloc(rfiobs, numrfiobs * 
+			       sizeof(rfi_obs *));
 
   /* Main loop */
 
   printf("Massaging the data ...\n\n");
   printf("Amount Complete = %3d%%", oldper);
+  fflush(stdout);
 
   for (ii=0; ii<numint; ii++){
     newper = (int) ((float) ii / numint * 100.0 + 0.5);
@@ -182,33 +178,32 @@ int main(int argc, char *argv[])
 
     numread = (*readrec_ptr)(infile, indata[0], numchan, blocksperint);
       
-    /* Calculate the averages and standard deviations */
-    /* for each point in time.                        */
-
-    for (jj=0; jj<ptsperint; jj++){
-      avg_var(indata[jj], numchan, &davg, &dvar);
-      dataavg[ii][jj] = davg;
-      datavar[ii][jj] = dvar;
-    }
-
     /* Transpose the data so we can work on the channels */
 
     transpose_float(indata[0], numint, numchan, tbuffer, tbuffer_size);
 
+    /* Calculate the averages and standard deviations */
+    /* for each point in time.                        */
+
+    for (jj=0; jj<numchan; jj++){
+      avg_var(indata[jj], ptsperint, &davg, &dvar);
+      dataavg[ii][jj] = davg;
+      datastd[ii][jj] = sqrt(dvar);
+    }
+
     /* Calculate the FFT of each time interval and search it */
 
     for (jj=0; jj<numchan; jj++){
-      index = jj * ptsperint;
       for (kk=0; kk<ptsperint; kk++)
-	outdata[kk] = *indata[index+kk];
+	outdata[kk] = *(indata[jj]+kk);
       realfft(outdata, ptsperint, -1);
       numcands=0;
-      cands = search_fft((fcomplex *)outdata, ptsperint>>1, 
+      norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
+      cands = search_fft((fcomplex *)outdata, ptsperint / 2, 
 			 RFI_LOBIN, RFI_NUMHARMSUM, RFI_NUMBETWEEN,
-			 INTERBIN, outdata[0], cmd->sigma,
-			 &numcands, &powavg, &powvar, &powmax);
-      printf("\npowavg = %.3f powvar = %.3f powmax = %.3f\n", 
-	     powavg, powvar, powmax); 
+			 INTERBIN, norm, cmd->sigma,
+			 &numcands, &powavg, &powstd, &powmax);
+      printf("powavg = %f  powstd = %f  powmax = %f\n",powavg, powstd, powmax);
       datapow[ii][jj] = powmax;
 
       /* Record the birdies */
@@ -222,19 +217,22 @@ int main(int argc, char *argv[])
 	  newrfi.inttime = inttime;
 	  newrfi.channel = jj;
 	  newrfi.intnum = ii;
-	  candnum = find_rfi(rfiobs, newrfi.freq, RFI_FRACTERROR);
+	  newrfi.numsum = cands[kk].nsum;
+	  newrfi.sigma = cands[kk].sig;
+	  candnum = find_rfi(rfiobs, numrfi, newrfi.freq, RFI_FRACTERROR);
 	  if (candnum >= 0){
-	    printf("  Found another %.4f Hz birdie (chan = %d pow = %.2f)\n", 
+	    printf("  Another %.4f Hz birdie (channel = %d power = %.2f)\n", 
 		   newrfi.freq, newrfi.channel, newrfi.power);
 	    add_rfi_instance(rfiobs[candnum], newrfi);
 	  } else {
-	    printf("New %.4f Hz birdie (chan = %d pow = %.2f)\n", 
+	    printf("\nNew %.4f Hz birdie (channel = %d, power = %.2f)\n", 
 		   newrfi.freq, newrfi.channel, newrfi.power);
 	    rfiobs[numrfi] = create_rfi_obs(newrfi);
 	    numrfi++;
 	    if (numrfi==numrfiobs-1){
-	      create_rfi_obs_vector(rfiobs, numrfiobs, numrfiobs * 2);
 	      numrfiobs *= 2;
+	      rfiobs = (rfi_obs **)realloc(rfiobs, numrfiobs * 
+					   sizeof(rfi_obs *));
 	    }
 	  }
 	}
@@ -243,10 +241,18 @@ int main(int argc, char *argv[])
     }
   }
 
+  /* Generate the mask */
+
+  /* Make the plots */
+
+  rfifind_plot(numchan, numint, ptsperint, cmd->sigma, 
+	       dataavg, datastd, datapow, datamask, &idata, 1);
+
   /* Close the files and cleanup */
 
+  free_rfi_obs_vector(rfiobs, numrfi);
   fclose(infile);
-  fclose(outfile);
+  /* fclose(outfile); */
   fclose(maskfile);
   fclose(rfifile);
   free(tbuffer);
@@ -255,34 +261,10 @@ int main(int argc, char *argv[])
   free(datafilenm);
   free(rfifilenm);
   free(dataavg[0]); free(dataavg);
-  free(datavar[0]); free(datavar);
+  free(datastd[0]); free(datastd);
   free(datapow[0]); free(datapow);
   free(indata[0]); free(indata);
   free(datamask[0]); free(datamask);
-  free(avg_chan);
-  free(avg_int);
-  free(var_chan);
-  free(var_int);
-  free(pow_chan);
-  free(pow_int);
   free(outdata);
   return (0);
-}
-
-static void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var)
-/* Update time series statistics using one-pass technique */
-{
-  double dev;
-
-  /* Check the max and min values */
-  
-  if (x > *max) *max = x;
-  if (x < *min) *min = x;
-  
-  /* Use clever single pass mean and variance calculation */
-  
-  dev = x - *avg;
-  *avg += dev / (N + 1.0);
-  *var += dev * (x - *avg);
 }

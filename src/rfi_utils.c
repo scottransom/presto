@@ -1,16 +1,6 @@
 #include "presto.h"
 #include "rfifind.h"
 
-void create_rfi_obs_vector(rfi_obs **rfi_vect, int oldnum, int newnum)
-/* Create or update a vector to hold our various rfi_obs structures */
-{
-  int ii;
-
-  rfi_vect = (rfi_obs **)realloc(rfi_vect, newnum * sizeof(rfi_obs *));
-  for (ii=oldnum; ii<newnum; ii++)
-    rfi_vect[ii] = NULL;
-}
-
 rfi_obs *create_rfi_obs(rfi_instance rfi)
 /* Create and initialize a rfi_obs structure */
 {
@@ -32,12 +22,12 @@ void free_rfi_obs(rfi_obs *rfi)
   free(rfi);
 }
 
-void free_rfi_obs_vector(rfi_obs **rfi_vect)
+void free_rfi_obs_vector(rfi_obs **rfi_vect, int num_rfi_vect)
 /* Free a vector that holds rfi_obs structures */
 {
   int ii=0;
 
-  while(rfi_vect[ii] != NULL){
+  for(ii=0; ii<num_rfi_vect; ii++){
     free_rfi_obs(rfi_vect[ii]);
     ii++;
   }
@@ -48,12 +38,12 @@ void add_rfi_instance(rfi_obs *old, rfi_instance new)
 /* Add an instance of RFI to a rfi_obs structure */
 {
   double davg, dvar;
-  float dev, *freqs;
+  float *freqs;
   int ii;
 
   old->number++;
-  old->rfi = (rfi_instance *)realloc(old->rfi, 
-				     sizeof(rfi_instance)*old->number);
+  old->rfi = (rfi_instance *)realloc(old->rfi, sizeof(rfi_instance) * 
+				     old->number);
   old->rfi[old->number-1] = new;
 
   /* Update means and variances (extremely inefficient!) */
@@ -67,17 +57,18 @@ void add_rfi_instance(rfi_obs *old, rfi_instance new)
   free(freqs);
 }
 
-int find_rfi(rfi_obs **rfi_vect, double freq, double fract_error)
-/* Try to find a birdie in an rfi_obs vector.  Compare     */
-/* all currently known birdies with the new freq.  If it   */
-/* finds one with a freq within fractional error, it       */
-/* returns the number of the birdie -- otherwise, -1.      */
+int find_rfi(rfi_obs **rfi_vect, int num_rfi_vect, 
+	     double freq, double fract_error)
+/* Try to find a birdie in an rfi_obs vector.  Compare    */
+/* all currently known birdies with the new freq.  If it  */
+/* finds one with a freq within fractional error, it      */
+/* returns the number of the birdie -- otherwise, -1.     */
 {
   float err;
   int ii=0;
 
-  while(rfi_vect[ii] != NULL){
-    err = (rfi_vect[ii]->freq_avg - freq) / freq;
+  for (ii=0; ii<num_rfi_vect; ii++){    
+    err = fabs(rfi_vect[ii]->freq_avg - freq) / freq;
     if (err < fract_error)
       return ii;
   }
@@ -113,5 +104,4 @@ void percolate_rfi_obs(rfi_obs **list, int nlist)
       break;
     }
   }
-
 }

@@ -19,7 +19,6 @@ float percolate_rawbincands(rawbincand *cands, int numcands);
 float percolate_fftcands(fftcand *cands, int numcands);
 void print_rawbincand(rawbincand cand);
 
-
 fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
 		    int numbetween, presto_interptype interptype,
 		    float norm, float sigmacutoff, int *numcands, 
@@ -57,10 +56,10 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
   int ii, jj, offset, numtosearch, dynamic=0;
   int numspread=0, kern_half_width, numkern=0, nc=0, startnc=10;
   float powargr, powargi, *fullpows=NULL, *sumpows, ftmp;
-  double twobypi, minpow=0.0, tmpminpow, dr, davg, dvar;
+  double twobypi, minpow=0.0, tmpminsig=0.0, dr, davg, dvar;
   static int firsttime=1, old_numfft=0;
   static fcomplex *kernel;
-  fftcand *cands;
+  fftcand *cands, newcand;
   fcomplex *spread, *kern;
 
   /* Override the value of numbetween if interbinning */
@@ -69,6 +68,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
     numbetween = 2;
   lobin = lobin * numbetween;
   norm = 1.0 / norm;
+  *powmax = 0.0;
 
   /* Decide if we will manage the number of candidates */
 
@@ -80,7 +80,7 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
   }
   cands = (fftcand *)malloc(startnc * sizeof(fftcand));
   for (ii=0; ii<startnc; ii++)
-    cands[ii].p = 0.0;
+    cands[ii].sig = 0.0;
 
   /* Prep some other values we will need */
 
@@ -144,19 +144,23 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
   
   for (ii = lobin; ii < numtosearch; ii++) {
     if (fullpows[ii] > minpow){
-      cands[startnc-1].r = dr * (double) ii;
-      cands[startnc-1].p = fullpows[ii];
-      tmpminpow = percolate_fftcands(cands, startnc);
+      newcand.r = dr * (double) ii;
+      newcand.p = fullpows[ii];
+      newcand.sig = candidate_sigma(fullpows[ii], 1,
+					     numfft-lobin);
+      newcand.nsum = 1;
+      cands[startnc-1] = newcand;
+      tmpminsig = percolate_fftcands(cands, startnc);
       if (dynamic){
+	nc++;
 	if (nc==startnc){
 	  startnc *= 2;
 	  cands = (fftcand *)realloc(cands, startnc * sizeof(fftcand));
 	  for (jj=nc; jj<startnc; jj++)
-	    cands[jj].p = 0.0;
+	    cands[jj].sig = 0.0;
 	}
-	nc++;
       } else {
-	minpow = tmpminpow;
+	minpow = cands[startnc-1].p;
 	if (nc<startnc) nc++;
       }
     }
@@ -171,24 +175,33 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
       offset = ii / 2;
       if (dynamic)
 	minpow = power_for_sigma(sigmacutoff, ii, numfft-lobin);
-      else
-	minpow = cands[startnc-1].p;
+      else {
+if (tmpminsig==0.0){
+  printf("XXXXXXXXXXXXXXXXXXXXXXXXXX\n");
+  exit(0);
+}
+	minpow = power_for_sigma(tmpminsig, ii, numfft-lobin);
+      }
       for (jj = lobin; jj < numtosearch; jj++){
 	sumpows[jj] += fullpows[(jj + offset) / ii];
 	if (sumpows[jj] > minpow) {
-	  cands[startnc-1].r = dr * (double) ii;
-	  cands[startnc-1].p = sumpows[ii];
-	  tmpminpow = percolate_fftcands(cands, startnc);
+	  newcand.r = dr * (double) jj;
+	  newcand.p = sumpows[jj];
+	  newcand.sig = candidate_sigma(sumpows[jj], ii,
+					numfft-lobin);
+	  newcand.nsum = ii;
+	  cands[startnc-1] = newcand;
+	  tmpminsig = percolate_fftcands(cands, startnc);
 	  if (dynamic){
+	    nc++;
 	    if (nc==startnc){
 	      startnc *= 2;
 	      cands = (fftcand *)realloc(cands, startnc * sizeof(fftcand));
 	      for (jj=nc; jj<startnc; jj++)
-		cands[jj].p = 0.0;
+		cands[jj].sig = 0.0;
 	    }
-	    nc++;
 	  } else {
-	    minpow = tmpminpow;
+	    minpow = power_for_sigma(tmpminsig, ii, numfft-lobin);
 	    if (nc<startnc) nc++;
 	  }
 	}
@@ -197,11 +210,6 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
     free(sumpows);
   }
   free(fullpows);
-
-  /* Add the rest of the fftcand data to the candidate array */
-
-  for (ii=0; ii<startnc; ii++)
-    cands[ii].nsum = numharmsum;
 
   /* Chop off the unused parts of the dynamic array */
   
@@ -426,20 +434,20 @@ void print_rawbincand(rawbincand cand){
 float percolate_fftcands(fftcand *cands, int numcands)
   /*  Pushes a fftcand candidate as far up the array of   */
   /*  candidates as it shoud go to keep the array sorted  */
-  /*  in indecreasing powers.  Returns the new lowest     */
-  /*  power in the array.                                 */
+  /*  in indecreasing sigmas.  Returns the new lowest     */
+  /*  sigma in the array.                                 */
 {
   int ii;
   fftcand tempzz;
 
   for (ii = numcands - 2; ii >= 0; ii--) {
-    if (cands[ii].p < cands[ii + 1].p) {
+    if (cands[ii].sig < cands[ii + 1].sig) {
       SWAP(cands[ii], cands[ii + 1]);
     } else {
       break;
     }
   }
-  return cands[numcands - 1].p;
+  return cands[numcands-1].sig;
 }
 
 
@@ -459,7 +467,7 @@ float percolate_rawbincands(rawbincand *cands, int numcands)
       break;
     }
   }
-  return cands[numcands - 1].mini_sigma;
+  return cands[numcands-1].mini_sigma;
 }
 
 

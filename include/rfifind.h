@@ -18,8 +18,10 @@ typedef struct RFI_INSTANCE {
   float fftbin;   /* FFT bin number of detection         */
   float fftbins;  /* Number of FFT bins                  */
   float inttime;  /* Time duration of integration (s)    */
+  float sigma;    /* True significance                   */
   int channel;    /* Channel of detection (0--numchan-1) */
   int intnum;     /* Integration detected (0--numint-1)  */
+  int numsum;     /* Number of bins that were summed     */
 } rfi_instance;
 
 typedef struct RFI_OBS {
@@ -29,22 +31,20 @@ typedef struct RFI_OBS {
   rfi_instance *rfi; /* The individual detections            */
 } rfi_obs;
 
-void create_rfi_obs_vector(rfi_obs **rfi_vect, int oldnum, int newnum);
-/* Create or update a vector to hold our various rfi_obs structures */
-
 rfi_obs *create_rfi_obs(rfi_instance rfi);
 /* Create and initialize a rfi_obs structure */
 
 void free_rfi_obs(rfi_obs *rfi);
 /* Free an rfi_obs structure and its contents */
 
-void free_rfi_obs_vector(rfi_obs **rfi_vect);
+void free_rfi_obs_vector(rfi_obs **rfi_vect, int num_rfi_vect);
 /* Free a vector that holds rfi_obs structures */
 
 void add_rfi_instance(rfi_obs *old, rfi_instance new);
 /* Add an instance of RFI to a rfi_obs structure */
 
-int find_rfi(rfi_obs **rfi_vect, double freq, double fract_error);
+int find_rfi(rfi_obs **rfi_vect, int num_rfi_vect, 
+	     double freq, double fract_error);
 /* Try to find a birdie in an rfi_obs vector.  Compare     */
 /* all currently known birdies with the new freq.  If it   */
 /* finds one with a freq within fractional error, it       */

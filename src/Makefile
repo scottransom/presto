@@ -6,7 +6,7 @@
 DATABASE = "$(PRESTO)/lib"
 
 # Path to PGPLOT includes
-PGPLOTINCDIR = -I$(PGPLOT_DIR)
+PGPLOTINCDIR = -I/usr/local/include
 # Path to PGPLOT libraries
 PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
@@ -21,9 +21,9 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11/lib -lX11
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I/usr/local/include
+FFTINCDIR = -I/u/sransom/include
 # Path to FFT libraries
-FFTLIBDIR = -L/usr/local/lib
+FFTLIBDIR = -L/u/sransom/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lsfftw
 
@@ -45,12 +45,12 @@ PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 
 # For Pentium with GCC
-CC = gcc
-FC = g77
-CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -Wall -W -O2 -mpentiumpro -fpic \
-	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+#CC = gcc
+#FC = g77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-g -Wall -W -O2 -mpentiumpro -fpic \
+#	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #	-DUSEDMALLOC
 #	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
 #	-g -ansi -pedantic -Wall -W -fpic \
@@ -59,11 +59,11 @@ CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
 #	-Waggregate-return -fno-common -Wnested-externs
 #	-O4 -mpentiumpro -funroll-loops -fforce-addr -fno-strict-aliasing 
-LIBLINKFLAGS = -shared
-LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
-FFLAGS = -g -O -fpic
-FLINK = $(FC)
-FLINKFLAGS = $(FFLAGS)
+#LIBLINKFLAGS = -shared
+#LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
+#FFLAGS = -g -O -fpic
+#FLINK = $(FC)
+#FLINKFLAGS = $(FFLAGS)
 
 # For DEC Alpha
 #CC = cc
@@ -78,12 +78,18 @@ FLINKFLAGS = $(FFLAGS)
 #FLINKFLAGS = $(CFLAGS)
 
 # For Solaris
-#CC = cc
-#FC = f77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+CC = gcc
+FC = g77
+CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+	-g -O2 -fPIC -Wall -W 
 #	-g -O -v -KPIC
 #	-fast
+LIBLINKFLAGS = -shared
+LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
+FFLAGS = -g -O -fPIC
+FLINK = f77
+FLINKFLAGS = 
 #LIBLINKFLAGS = -G
 #LINKCOMMAND = ld $(LIBLINKFLAGS) -o
 #FFLAGS = -O
@@ -236,8 +242,8 @@ check_parkes_raw: check_parkes_raw.o
 test_multifiles: test_multifiles.o
 	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(EXTRALINK) $(PRESTOLINK) -lm
 
-rfifind: rfifind.o rfi_utils.o rfifind_cmd.o
-	$(CC) $(CFLAGS) -o $@ rfifind.o rfi_utils.o rfifind_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
+rfifind: rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PLOT2DOBJS)
+	$(FLINK) $(FLINKFLAGS) -o $@  $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)

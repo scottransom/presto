@@ -439,13 +439,11 @@ double power_for_sigma(double sigma, int numsum, int numtrials)
 	   p, q, x, mean, sd);
     exit(1);
   }
-  printf("%g  %g\n", p, q);
   q = q / numtrials;
   p = 1.0 - q;
   which = 2;
   df = 2.0 * numsum;
   status = 0;
-  printf("%g  %g\n", p, q);
   cdfchi(&which, &p, &q, &x, &df, &status, &bound);
   if (status){
     printf("\nError in cdfchi() (power_for_sigma()):\n");
