@@ -47,15 +47,11 @@ static float sideband_lookup[MAXREGS][NIBPERREG] = {
   {+1.0, +1.0, -1.0, -1.0}
 };
 
-typedef struct findex{
+typedef struct chanmap{
   double freq; 
   int index;
-} findex;
-
-typedef struct mapindex{
   int mapping;
-  int index;
-} mapindex;
+} chanmap;
 
 double slaCldj(int iy, int im, int id, int *j);
 void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
@@ -84,13 +80,13 @@ void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk,
 }
 
 
-int compare_findex(const void *ca, const void *cb)
-/* qsort comparison function for findex */
+int compare_freq(const void *ca, const void *cb)
+/* qsort comparison function for chanmap */
 {
-  findex *a, *b;
+  chanmap *a, *b;
  
-  a = (findex *) ca;
-  b = (findex *) cb;
+  a = (chanmap *) ca;
+  b = (chanmap *) cb;
   if ((b->freq - a->freq) < 0.0)
     return 1;
   if ((b->freq - a->freq) > 0.0)
@@ -106,13 +102,13 @@ int compare_findex(const void *ca, const void *cb)
 }
 
 
-int compare_mapindex(const void *ca, const void *cb)
-/* qsort comparison function for findex */
+int compare_index(const void *ca, const void *cb)
+/* qsort comparison function for chanmap */
 {
-  mapindex *a, *b;
+  chanmap *a, *b;
  
-  a = (mapindex *) ca;
-  b = (mapindex *) cb;
+  a = (chanmap *) ca;
+  b = (chanmap *) cb;
   if ((b->index - a->index) < 0)
     return 1;
   if ((b->index - a->index) > 0)
@@ -263,8 +259,7 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
 {
   int ii, n=0, dfb_chan, logical_board, regid, bid, nibble, nchans;
   double  f_aib, u_or_l, f_sram, fc;
-  findex *findexarr;
-  mapindex *mapindexarr;
+  chanmap *chanmaparr;
 
   /* The following is probably a bad way to see if */
   /* we need to swap the endianess of the header.  */
@@ -321,41 +316,38 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
   /* Make a lookup table which gives chans in order of increasing freq */
   
   numchan_st = MAXNUMCHAN;
-  findexarr = (findex *)malloc(sizeof(findex) * nchans);
-  mapindexarr = (mapindex *)malloc(sizeof(mapindex) * nchans);
+  chanmaparr = (chanmap *)malloc(sizeof(chanmap) * nchans);
   for (ii=0; ii<nchans; ii++){
-    findexarr[ii].freq = chan_freqs[ii];
-    findexarr[ii].index = ii;    
+    chanmaparr[ii].freq = chan_freqs[ii];
+    chanmaparr[ii].index = ii;    
   }
   /* Sort IF1 or summed IFs according to freq */
-  qsort(findexarr, MAXNUMCHAN, 
-	sizeof(findex), compare_findex);
+  qsort(chanmaparr, MAXNUMCHAN, sizeof(chanmap), compare_freq);
   for (ii=0; ii<MAXNUMCHAN; ii++){
-    chan_index[ii] = findexarr[ii].index;
-    mapindexarr[ii].index = findexarr[ii].index;
-    mapindexarr[ii].mapping = ii;
+    chan_index[ii] = chanmaparr[ii].index;
+    chanmaparr[ii].mapping = ii;
   }
   /* Sort IF1 or summed IFs according to index */
-  qsort(mapindexarr, MAXNUMCHAN, 
-	sizeof(mapindex), compare_mapindex);
+  qsort(chanmaparr, MAXNUMCHAN, sizeof(chanmap), compare_index);
 
   if (both_IFs_present){
     /* Sort IF2 according to freq */
-    qsort(findexarr+MAXNUMCHAN, MAXNUMCHAN, 
-	  sizeof(findex), compare_findex);
+    qsort(chanmaparr+MAXNUMCHAN, MAXNUMCHAN, sizeof(chanmap), compare_freq);
     for (ii=MAXNUMCHAN; ii<2*MAXNUMCHAN; ii++){
-      chan_index[ii] = findexarr[ii].index;
-      mapindexarr[ii].index = findexarr[ii].index;
-      mapindexarr[ii].mapping = ii-MAXNUMCHAN;
+      chan_index[ii] = chanmaparr[ii].index;
+      chanmaparr[ii].mapping = ii-MAXNUMCHAN;
     }
     /* Sort IF2 according to index */
-    qsort(mapindexarr+MAXNUMCHAN, MAXNUMCHAN, 
-	  sizeof(mapindex), compare_mapindex);
+    qsort(chanmaparr+MAXNUMCHAN, MAXNUMCHAN, sizeof(chanmap), compare_index);
   }
-  free(findexarr);
-  for (ii=0; ii<nchans; ii++)
-    chan_mapping[ii] = mapindexarr[ii].mapping;
-  free(mapindexarr);
+  /* 
+  for (ii=0; ii<nchans; ii++){
+    chan_mapping[ii] = chanmaparr[ii].mapping;
+    printf("%3d %3d %3d %10.4f %10.4f\n", ii, chan_index[ii], 
+    chan_mapping[ii], chan_freqs[chan_index[ii]], chan_freqs[ii]);
+  }
+  */
+  free(chanmaparr);
 
   /* Set the static variables */
 
@@ -1306,6 +1298,7 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
 {
   int ii, *indexptr;
   unsigned char *rawdataptr;
+  static count=0;
 
   rawdataptr = rawdata;
   indexptr = chan_mapping;
@@ -1323,6 +1316,19 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
   bytes[0] = bytes[1] = bytes[8] = bytes[9] = 0;
   for (ii=80; ii<96; ii++)
     bytes[ii] = 0;
+  */
+  /*
+  {
+    int ci;
+
+    for (ii=0; ii<numchan_st; ii++){
+      ci = chan_index[ii];
+      if (ci % 2)
+	bytes[ii] = rawdata[ci/2] & 0x0F;
+      else
+	bytes[ii] = rawdata[ci/2] >> 0x04;
+    }
+  }
   */
 }
 
