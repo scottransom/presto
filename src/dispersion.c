@@ -5,7 +5,10 @@ double delay_from_dm(double dm, double freq_emitted)
 /* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
 /* frequency (freq_emitted) of the pulsar in MHz.           */
 {
-  return dm / (0.000241 * freq_emitted * freq_emitted);
+  if (freq_emitted==0.0)
+    return 0.0;
+  else
+    return dm / (0.000241 * freq_emitted * freq_emitted);
 }
 
 
@@ -14,7 +17,10 @@ double dm_from_delay(double delay, double freq_emitted)
 /* cause a pulse emitted at frequency 'freq_emitted' to be  */
 /* delayed by 'delay' seconds.                              */
 {
-  return delay * 0.000241 * freq_emitted * freq_emitted;
+  if (freq_emitted==0.0)
+    return 0.0;
+  else
+    return delay * 0.000241 * freq_emitted * freq_emitted;
 }
 
 

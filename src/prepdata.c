@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
   printf("           Pulsar Data Preparation Routine\n");
   printf("    Type conversion, de-dispersion, barycentering.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("                    13 Feb, 1998\n\n");
+  printf("                    16 Nov, 1999\n\n");
 
   /* Determine the output file name */
 
@@ -325,6 +325,7 @@ int main(int argc, char *argv[])
 	fflush(stdout);
 	oldper = newper;
       }
+
       /* Determine some data statistics */
 
       for (j = 0; j < wrote; j++) {
@@ -670,7 +671,6 @@ int main(int argc, char *argv[])
   free(outdata);
   free(tobsf);
   free(dispdt);
-  if (idata.onoff) free(idata.onoff);
   if (!cmd->nobaryP) {
     free(bobsf);
     free(btoa);
