@@ -32,9 +32,9 @@ extern void broadcast_mask(mask *obsmask, int myid);
 
 extern void set_PKMB_static(int ptsperblk, int bytesperpt, 
 			    int numchan, double dt);
-extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs);
+extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs, int *chan_map);
 extern void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-			    int numchan, int numifs, double dt);
+			    int numchan, int numifs, double dt, int *chan_map);
 extern void get_WAPP_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
 extern void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk, 
 			    int numchan, float clip_sigma, double dt);
@@ -171,9 +171,10 @@ int main(int argc, char *argv[])
   }  
 
   {
-    float clip_sigma;
+    float clip_sigma=0.0;
     double dt, T;
     int ptsperblk, bytesperpt, numifs=0;
+    int chan_mapping[2*MAXNUMCHAN];
     long long N;
 
     if (myid==0){  /* Master */
@@ -199,7 +200,7 @@ int main(int argc, char *argv[])
 	printf("\nBCPM input file information:\n");
 	get_BPP_file_info(infiles, numinfiles, &N, &ptsperblk, &numchan, 
 			  &dt, &T, &idata, 1);
-	get_BCPM_static(&bytesperpt, &bytesperblk, &numifs);
+	get_BCPM_static(&bytesperpt, &bytesperblk, &numifs, chan_mapping);
 	BPP_update_infodata(numinfiles, &idata);
 	strcpy(obs, "GB");  /* OBS code for TEMPO */
       }
@@ -219,13 +220,14 @@ int main(int argc, char *argv[])
       /* The number of topo to bary time points to generate with TEMPO */
       numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
     }
-      
+
     MPI_Bcast(&ptsperblk, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&bytesperpt, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&bytesperblk, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&numchan, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&numifs, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&numbarypts, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(chan_mapping, 2*MAXNUMCHAN, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&clip_sigma, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&dt, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     blocklen = ptsperblk;
@@ -235,7 +237,7 @@ int main(int argc, char *argv[])
 	set_PKMB_static(ptsperblk, bytesperpt, numchan, dt);
       if (cmd->bcpmP)
 	set_BCPM_static(ptsperblk, bytesperpt, bytesperblk, 
-			numchan, numifs, dt);
+			numchan, numifs, dt, chan_mapping);
       if (cmd->wappP)
 	set_WAPP_static(ptsperblk, bytesperpt, bytesperblk, 
 			numchan, clip_sigma, dt);
@@ -377,9 +379,9 @@ int main(int argc, char *argv[])
       double maxvoverc=-1.0, minvoverc=1.0, *voverc=NULL;
 
       printf("Generating barycentric corrections...\n");
+      voverc = gen_dvect(numbarypts);
       barycenter(ttoa, btoa, voverc, numbarypts, \
 		 rastring, decstring, obs, ephem);
-      voverc = gen_dvect(numbarypts);
       for (ii=0; ii<numbarypts; ii++){
 	if (voverc[ii] > maxvoverc) maxvoverc = voverc[ii];
 	if (voverc[ii] < minvoverc) minvoverc = voverc[ii];
@@ -387,7 +389,6 @@ int main(int argc, char *argv[])
       }
       avgvoverc /= numbarypts;
       free(voverc);
-      blotoa = btoa[0];
       
       printf("   Insure you check the files tempoout_times.tmp and\n");
       printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n");
@@ -396,11 +397,13 @@ int main(int argc, char *argv[])
       printf("   Minimum topocentric velocity (c) = %.7g\n\n", minvoverc);
       printf("De-dispersing using %d subbands.\n", cmd->numsub);
       if (cmd->downsamp > 1)
-	printf("Downsampling by a factor of %d (new dt = %.10g)\n", cmd->downsamp, dsdt);
+	printf("Downsampling by a factor of %d (new dt = %.10g)\n", 
+	       cmd->downsamp, dsdt);
       printf("\n");
     }
     MPI_Bcast(btoa, numbarypts, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(&avgvoverc, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    blotoa = btoa[0];
 
     /* Dispersion delays (in bins).  The high freq gets no delay   */
     /* All other delays are positive fractions of bin length (dt)  */
@@ -622,7 +625,8 @@ int main(int argc, char *argv[])
   /* Print simple stats and results */
 
   var /= (datawrote - 1);
-  print_percent_complete(1, 1);
+  if (myid==0)
+    print_percent_complete(1, 1);
   if (myid==1){
     printf("\n\nDone.\n\nSimple statistics of the output data:\n");
     printf("             Data points written:  %d\n", totwrote);
@@ -666,6 +670,7 @@ int main(int argc, char *argv[])
     free(ttoa);
     free(diffbins);
   }
+  MPI_Finalize();
   return (0);
 }
 
@@ -678,7 +683,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
   static int dsworklen;
   static float *tempzz, *data1, *data2, *dsdata1=NULL, *dsdata2=NULL; 
   static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
-  unsigned char *rawdata=NULL;
+  static unsigned char *rawdata=NULL;
   int totnumread=0, numread=0, ii, jj, tmppad=0, nummasked=0;
   
   if (firsttime){
@@ -701,6 +706,8 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       currentdsdata = data1;
       lastdsdata = data2;
     }
+  }
+  while (firsttime >= 0){
     if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
       for (ii=0; ii<blocksperread; ii++){
 	if (myid==0){
@@ -710,6 +717,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	    numread = read_BPP_rawblock(infiles, numfiles, rawdata, &tmppad);
 	  if (cmd->wappP)
 	    numread = read_WAPP_rawblock(infiles, numfiles, rawdata, &tmppad);
+	  numread *= blocklen;
 	}
 	MPI_Bcast(&tmppad, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(rawdata, bytesperblk, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
@@ -720,7 +728,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 					 maskchans, &nummasked, obsmask);
 	  if (cmd->bcpmP)
 	    numread = prep_BPP_subbands(rawdata, currentdata+ii*blocksize, 
-					dispdts, cmd->numsub, 0,  
+					dispdts, cmd->numsub, 0, 
 					maskchans, &nummasked, obsmask, bppifs);
 	  if (cmd->wappP)
 	    numread = prep_WAPP_subbands(rawdata, currentdata+ii*blocksize, 
@@ -733,87 +741,47 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  if (tmppad) 
 	    *padding = 1;
 	}
+	if (firsttime==0) totnumread += numread;
       }
     }
     /* Downsample the subband data if needed */
-    if (cmd->downsamp > 1 && myid>0){
-      int kk, offset, dsoffset, index, dsindex;
-      for (ii=0; ii<dsworklen; ii++){
-	dsoffset = ii * cmd->numsub;
-	offset = dsoffset * cmd->downsamp;
-	for (jj=0; jj<cmd->numsub; jj++){
-	  dsindex = dsoffset + jj;
-	  index = offset + jj;
-	  currentdsdata[dsindex] = 0.0;
-	  for (kk=0; kk<cmd->downsamp; kk++){
-	    currentdsdata[dsindex] += currentdata[index];
-	    index += cmd->numsub;
+    if (myid>0){
+      if (cmd->downsamp > 1){
+	int kk, offset, dsoffset, index, dsindex;
+	for (ii=0; ii<dsworklen; ii++){
+	  dsoffset = ii * cmd->numsub;
+	  offset = dsoffset * cmd->downsamp;
+	  for (jj=0; jj<cmd->numsub; jj++){
+	    dsindex = dsoffset + jj;
+	    index = offset + jj;
+	    currentdsdata[dsindex] = 0.0;
+	    for (kk=0; kk<cmd->downsamp; kk++){
+	      currentdsdata[dsindex] += currentdata[index];
+	      index += cmd->numsub;
+	    }
 	  }
 	}
       }
+      for (ii=0; ii<local_numdms; ii++)
+	float_dedisp(currentdsdata, lastdsdata, dsworklen, 
+		     cmd->numsub, offsets[ii], 0.0, outdata[ii]);
+      SWAP(currentdata, lastdata);
+      SWAP(currentdsdata, lastdsdata);
     }
-    SWAP(currentdata, lastdata);
-    SWAP(currentdsdata, lastdsdata);
-    firsttime = 0;
+    firsttime--;
   }
-  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
-    for (ii=0; ii<blocksperread; ii++){
-      if (myid==0){
-	if (cmd->pkmbP)
-	  numread = read_PKMB_rawblock(infiles, numfiles, &hdr, rawdata, &tmppad);
-	if (cmd->bcpmP)
-	  numread = read_BPP_rawblock(infiles, numfiles, rawdata, &tmppad);
-	if (cmd->wappP)
-	  numread = read_WAPP_rawblock(infiles, numfiles, rawdata, &tmppad);
-      }
-      MPI_Bcast(&tmppad, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(rawdata, bytesperblk, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-      if (myid>0){
-	if (cmd->pkmbP)
-	  numread = prep_PKMB_subbands(rawdata, currentdata+ii*blocksize, 
-				       dispdts, cmd->numsub, 0, 
-				       maskchans, &nummasked, obsmask);
-	if (cmd->bcpmP)
-	  numread = prep_BPP_subbands(rawdata, currentdata+ii*blocksize, 
-				      dispdts, cmd->numsub, 0, 
-				      maskchans, &nummasked, obsmask, bppifs);
-	if (cmd->wappP)
-	  numread = prep_WAPP_subbands(rawdata, currentdata+ii*blocksize, 
-				       dispdts, cmd->numsub, 0, 
-				       maskchans, &nummasked, obsmask);
-	if (numread!=blocklen){
-	  for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
-	    currentdata[jj] = 0.0;
-	}
-	if (tmppad) 
-	  *padding = 1;
-      }
-    }
+  firsttime = 0;
+  /*
+{
+  int jj;
+  for (jj=0; jj<numprocs; jj++){
+    if (myid==jj)
+      printf("%d:  %d  %d\n", myid, numread, blocksperread);
+    fflush(NULL);
+    MPI_Barrier(MPI_COMM_WORLD);
   }
-  /* Downsample the subband data if needed */
-  if (myid>0){
-    if (cmd->downsamp > 1){
-      int kk, offset, dsoffset, index, dsindex;
-      for (ii=0; ii<dsworklen; ii++){
-	dsoffset = ii * cmd->numsub;
-	offset = dsoffset * cmd->downsamp;
-	for (jj=0; jj<cmd->numsub; jj++){
-	  dsindex = dsoffset + jj;
-	  index = offset + jj;
-	  currentdsdata[dsindex] = 0.0;
-	  for (kk=0; kk<cmd->downsamp; kk++){
-	    currentdsdata[dsindex] += currentdata[index];
-	    index += cmd->numsub;
-	  }
-	}
-      }
-    }
-    for (ii=0; ii<local_numdms; ii++)
-      float_dedisp(currentdsdata, lastdsdata, dsworklen, 
-		   cmd->numsub, offsets[ii], 0.0, outdata[ii]);
-    SWAP(currentdata, lastdata);
-    SWAP(currentdsdata, lastdsdata);
-  }
+}
+  */
   if (totnumread != worklen){
     if (cmd->maskfileP)
       free(maskchans);
