@@ -1,8 +1,8 @@
-import Numeric, umath, FFT, Pgplot, ppgplot
+import Numeric, umath, FFT, Pgplot, ppgplot, bisect
 from Scientific.Functions.FindRoot import newtonRaphson
 from Scientific.Statistics import average, standardDeviation
 from Scientific.Statistics.Histogram import Histogram
-from scipy.special.cephes import ndtr, ndtri, chdtrc, chdtri, i0
+from scipy.special.cephes import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov
 from scipy.optimize import leastsq
 from psr_constants import *
 
@@ -60,6 +60,26 @@ def hist(data, bins, range=None, labx="", color=1, line=1,
                       laby="Number", color=color, line=line,
                       labx=labx, device=device)
     return h
+
+def KS_test(data, cumdist, output=0):
+    """
+    KS_test(data, cumdist, output=0):
+        Perform a Kolmogorov-Smirnov test on data compared to the
+            cumulative-distribution function cumdist.
+    """
+    nn = len(data)
+    sdata = Numeric.sort(Numeric.asarray(data))
+    D1 = umath.maximum.reduce(umath.absolute(cumdist(sdata)-
+                                             Numeric.arange(nn, typecode='d')/nn))
+    D2 = umath.maximum.reduce(umath.absolute(cumdist(sdata)-
+                                             Numeric.arange(1,nn+1, typecode='d')/nn))
+    D = max((D1, D2))
+    P = kolmogorov(sqrt(nn)*D)
+    if (output):
+        print "Max distance between the cumulative distributions (D) = %.5g" % D
+        print "Prob the data is from the specified distrbution   (P) = %.3g" % P
+    return (D, P)
+
 
 def MJD_to_JD(MJD):
     """
@@ -685,6 +705,19 @@ def spike_profile(N, phase, fwhm):
                                        0.0, (1.0 - (phsval - 0.5) *
                                              normalize) * normalize))
 
+def harm_to_sum(fwhm):
+    """
+    harm_to_sum(fwhm):
+        For an MVMD profile returns the optimal number
+            of harmonics to sum incoherently
+    """
+    fwhms = [0.0108, 0.0110, 0.0113, 0.0117, 0.0119, 0.0124, 0.0127, 0.0132,
+             0.0134, 0.0140, 0.0145, 0.0151, 0.0154, 0.0160, 0.0167, 0.0173,
+             0.0180, 0.0191, 0.0199, 0.0207, 0.0220, 0.0228, 0.0242, 0.0257,
+             0.0273, 0.0295, 0.0313, 0.0338, 0.0366, 0.0396, 0.0437, 0.0482,
+             0.0542, 0.0622, 0.0714, 0.0836, 0.1037, 0.1313, 0.1799, 0.2883]
+    return len(fwhms)-bisect.bisect(fwhms, fwhm)+1
+
 def expcos_profile(N, phase, fwhm):
     """
     expcos_profile(N, phase, fwhm):
@@ -872,6 +905,26 @@ def num_spike_powers(FWHM):
     """
     return -3.95499721563e-05 / FWHM**2 + 0.562069634689 / FWHM - \
            0.683604041138
+
+def incoherent_sum(amps):
+    """
+    incoherent_sum(amps):
+        Given a series of complex Fourier amplitudes, return a vector
+            showing the accumulated incoherently-summed powers.
+    """
+    return umath.add.accumulate(umath.absolute(amps)**2.0)
+
+def coherent_sum(amps):
+    """
+    coherent_sum(amps):
+        Given a series of complex Fourier amplitudes, return a vector
+            showing the accumulated coherently-summed powers.
+    """
+    phss = umath.arctan2(amps.imag, amps.real)
+    phs0 = phss[0]
+    phscorr = phs0 - umath.fmod((Num.arange(len(amps), typecode='d')+1.0)*phs0, TWOPI)
+    sumamps = umath.add.accumulate(amps*umath.exp(complex(0.0, 1.0)*phscorr))
+    return umath.absolute(sumamps)**2.0
 
 def prob_power(power):
     """
