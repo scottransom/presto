@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
   char *plotfilenm, *outfilenm, *rootnm, *binproffilenm;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numtoas, numchan=1, binary=0, numdelays=0, numbarypts=0;
-  int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0;
+  int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0, useshorts=0;
   int *maskchans=NULL, nummasked=0;
   long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
@@ -121,6 +121,9 @@ int main(int argc, char *argv[])
       printf("\nThe input filename (%s) must have a suffix!\n\n", 
 	     search.filenm);
       exit(1);
+    } else {
+      if (strcmp(suffix, "sdat")==0)
+	useshorts = 1;
     }
 
     printf("Reading input data from '%s'.\n", cmd->argv[0]);
@@ -405,8 +408,11 @@ int main(int argc, char *argv[])
       numchan = 1;
       worklen = 1024;
       search.dt = idata.dt;
-      N = chkfilelen(infiles[0], sizeof(float));
-      
+      if (useshorts)
+	N = chkfilelen(infiles[0], sizeof(short));
+      else
+	N = chkfilelen(infiles[0], sizeof(float));
+
       /* Determine the number of records to use from the command line */
       
       lorec = (long) (cmd->startT * N + DBLCORRECT);
@@ -1108,7 +1114,10 @@ int main(int argc, char *argv[])
 	  int mm;
 	  float runavg=0.0;
 	
-	  numread = read_floats(infiles[0], data, worklen, numchan);
+	  if (useshorts)
+	    numread = read_shorts(infiles[0], data, worklen, numchan);
+	  else
+	    numread = read_floats(infiles[0], data, worklen, numchan);
 	  if (cmd->runavgP){
 	    for (mm=0; mm<numread; mm++)
 	      runavg += data[mm];

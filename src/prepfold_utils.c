@@ -78,10 +78,32 @@ int read_floats(FILE *file, float *data, int numpts, int numchan)
 /* point data.                                              */
 /* It returns the number of points read.                    */
 {
-  /* Read the raw data and return numbar read */
-
   return chkfread(data, sizeof(float),
 		  (unsigned long) (numpts * numchan), file) / numchan;
+}
+
+
+int read_shorts(FILE *file, float *data, int numpts, int numchan)
+/* This routine reads a numpts records of numchan each from */
+/* the input file *file which contains short integer data.  */
+/* The equivalent floats are placed in *data.               */
+/* It returns the number of points read.                    */
+{
+  short *sdata;
+  int ii, numread;
+
+  sdata = (short *) malloc((size_t) (sizeof(short) * (numpts * numchan)));
+  if (!sdata) {
+    perror("\nError allocating short array in read_shorts()");
+    printf("\n");
+    exit(-1);
+  }
+  numread = chkfread(sdata, sizeof(short),
+		     (unsigned long) (numpts * numchan), file) / numchan;
+  for (ii=0; ii<numread; ii++)
+    data[ii] = (float) sdata[ii];
+  free(sdata);
+  return numread;
 }
 
 
