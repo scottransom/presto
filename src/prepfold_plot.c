@@ -1,6 +1,9 @@
 #include "prepfold.h"
+# include "float.h" 
 
-#define TEST_EQUAL(a, b) (fabs((a)-(b))/fabs((a)) < 1.0e-20 ? 1 : 0)
+#define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
+(fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
+(fabs((a)-(b))/fabs((a)) <= 2 * DBL_EPSILON ? 1 : 0))
 
 /********************************************/
 /* The following is taken from ppgplot.c by */
