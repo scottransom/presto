@@ -226,7 +226,7 @@ def rzw_sensitivity(N, zlo=-100.0, zhi=100.0, n=1, confidence=0.99):
         the result (i.e. 0.99 = 99% limit).  This calculation does not
         include the correction to sensitivity due to binning effects.
     """
-    bins = N / 2.0 * (zhi - zlo) / 6.95
+    bins = N / 2.0 * (zhi - zlo + 1.0) / 6.95
     P_threshold = max_noise_power(bins, n, confidence)
     return required_signal_power(P_threshold, n, confidence)
 
@@ -263,7 +263,7 @@ def binned_rzw_sensitivity(N, dt, freq, zlo=-100.0, zhi=100.0,
         0.99 = 99% limit).  This calculation includes the correction to
         sensitivity due to binning effects.
     """
-    bins = N / 2.0 * (zhi - zlo) / 6.95
+    bins = N / 2.0 * (zhi - zlo + 1.0) / 6.95
     nyquist_freq = 0.5 / dt
     factor = binning_factor(freq, nyquist_freq)**2.0
     return fft_sensitivity(N, bins, n, confidence) / factor
@@ -328,7 +328,7 @@ if __name__ == '__main__':
                 "What was the lowest 'z' value searched?  [-100]  ", -100.0)
         zhi = ask_float(\
                 "What was the highest 'z' value searched?  [100]  ", 100.0)
-        Nsearch = (rhi - rlo) * (zhi - zlo) / 6.95
+        Nsearch = (rhi - rlo) * (zhi - zlo + 1.0) / 6.95
     else:
         Nsearch = ask_int(\
                 "How many independent bins were searched?  [N/2]  ", Ntot/2)

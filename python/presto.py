@@ -6,9 +6,11 @@ class orbitparams:
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_orbitparams(self)
-    __setmethods__ = {
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
         "p" : prestoc.orbitparams_p_set,
         "e" : prestoc.orbitparams_e_set,
         "x" : prestoc.orbitparams_x_set,
@@ -16,13 +18,15 @@ class orbitparams:
         "t" : prestoc.orbitparams_t_set,
         "pd" : prestoc.orbitparams_pd_set,
         "wd" : prestoc.orbitparams_wd_set,
-    }
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
         method = orbitparams.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
         "p" : prestoc.orbitparams_p_get,
         "e" : prestoc.orbitparams_e_get,
         "x" : prestoc.orbitparams_x_get,
@@ -30,7 +34,7 @@ class orbitparams:
         "t" : prestoc.orbitparams_t_get,
         "pd" : prestoc.orbitparams_pd_get,
         "wd" : prestoc.orbitparams_wd_get,
-    }
+    })
     def __getattr__(self,name):
         method = orbitparams.__getmethods__.get(name,None)
         if method: return method(self)
@@ -45,283 +49,291 @@ class orbitparamsPtr(orbitparams):
 
 
 
-class psrdata:
+class PSRDATA:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_psrdata,args)
+        self.this = apply(prestoc.new_PSRDATA,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_psrdata(self)
-    __setmethods__ = {
-        "ra2000" : prestoc.psrdata_ra2000_set,
-        "ra1950" : prestoc.psrdata_ra1950_set,
-        "rae" : prestoc.psrdata_rae_set,
-        "dec2000" : prestoc.psrdata_dec2000_set,
-        "dec1950" : prestoc.psrdata_dec1950_set,
-        "dece" : prestoc.psrdata_dece_set,
-        "dmin__" : prestoc.psrdata_dmin___set,
-        "dmax__" : prestoc.psrdata_dmax___set,
-        "dist" : prestoc.psrdata_dist_set,
-        "ldeg" : prestoc.psrdata_ldeg_set,
-        "bdeg" : prestoc.psrdata_bdeg_set,
-        "pmra" : prestoc.psrdata_pmra_set,
-        "pmrae" : prestoc.psrdata_pmrae_set,
-        "pmdec" : prestoc.psrdata_pmdec_set,
-        "pmdece" : prestoc.psrdata_pmdece_set,
-        "posepoch" : prestoc.psrdata_posepoch_set,
-        "p" : prestoc.psrdata_p_set,
-        "pe" : prestoc.psrdata_pe_set,
-        "pdot" : prestoc.psrdata_pdot_set,
-        "pdote" : prestoc.psrdata_pdote_set,
-        "f2" : prestoc.psrdata_f2_set,
-        "f2e" : prestoc.psrdata_f2e_set,
-        "f3" : prestoc.psrdata_f3_set,
-        "f3e" : prestoc.psrdata_f3e_set,
-        "epoch" : prestoc.psrdata_epoch_set,
-        "dm" : prestoc.psrdata_dm_set,
-        "dme" : prestoc.psrdata_dme_set,
-        "rm" : prestoc.psrdata_rm_set,
-        "rme" : prestoc.psrdata_rme_set,
-        "we" : prestoc.psrdata_we_set,
-        "w50" : prestoc.psrdata_w50_set,
-        "w10" : prestoc.psrdata_w10_set,
-        "s400" : prestoc.psrdata_s400_set,
-        "s600" : prestoc.psrdata_s600_set,
-        "s1400" : prestoc.psrdata_s1400_set,
-        "tau" : prestoc.psrdata_tau_set,
-        "t408" : prestoc.psrdata_t408_set,
-        "distmod" : prestoc.psrdata_distmod_set,
-        "lum" : prestoc.psrdata_lum_set,
-        "bsurf" : prestoc.psrdata_bsurf_set,
-        "age" : prestoc.psrdata_age_set,
-        "edot" : prestoc.psrdata_edot_set,
-        "pb" : prestoc.psrdata_pb_set,
-        "pbe" : prestoc.psrdata_pbe_set,
-        "a1" : prestoc.psrdata_a1_set,
-        "a1e" : prestoc.psrdata_a1e_set,
-        "om" : prestoc.psrdata_om_set,
-        "ome" : prestoc.psrdata_ome_set,
-        "omdot" : prestoc.psrdata_omdot_set,
-        "omdote" : prestoc.psrdata_omdote_set,
-        "e" : prestoc.psrdata_e_set,
-        "ee" : prestoc.psrdata_ee_set,
-        "t0" : prestoc.psrdata_t0_set,
-        "t0e" : prestoc.psrdata_t0e_set,
-        "gamma" : prestoc.psrdata_gamma_set,
-        "gammae" : prestoc.psrdata_gammae_set,
-        "pbdot" : prestoc.psrdata_pbdot_set,
-        "pbdote" : prestoc.psrdata_pbdote_set,
-        "si" : prestoc.psrdata_si_set,
-        "sie" : prestoc.psrdata_sie_set,
-        "r__" : prestoc.psrdata_r___set,
-        "re" : prestoc.psrdata_re_set,
-        "pb2" : prestoc.psrdata_pb2_set,
-        "pb2e" : prestoc.psrdata_pb2e_set,
-        "a12" : prestoc.psrdata_a12_set,
-        "a12e" : prestoc.psrdata_a12e_set,
-        "om2" : prestoc.psrdata_om2_set,
-        "om2e" : prestoc.psrdata_om2e_set,
-        "omdot2" : prestoc.psrdata_omdot2_set,
-        "omdot2e" : prestoc.psrdata_omdot2e_set,
-        "e2" : prestoc.psrdata_e2_set,
-        "e2e" : prestoc.psrdata_e2e_set,
-        "t02" : prestoc.psrdata_t02_set,
-        "t02e" : prestoc.psrdata_t02e_set,
-        "gamma2" : prestoc.psrdata_gamma2_set,
-        "gamma2e" : prestoc.psrdata_gamma2e_set,
-        "pbdot2" : prestoc.psrdata_pbdot2_set,
-        "pbdot2e" : prestoc.psrdata_pbdot2e_set,
-        "si2" : prestoc.psrdata_si2_set,
-        "si2e" : prestoc.psrdata_si2e_set,
-        "r2" : prestoc.psrdata_r2_set,
-        "r2e" : prestoc.psrdata_r2e_set,
-        "nscode" : prestoc.psrdata_nscode_set,
-        "ndflag" : prestoc.psrdata_ndflag_set,
-        "ntauflag" : prestoc.psrdata_ntauflag_set,
-        "ntype" : prestoc.psrdata_ntype_set,
-        "modcode" : prestoc.psrdata_modcode_set,
-        "limcode" : prestoc.psrdata_limcode_set,
-        "ibin" : prestoc.psrdata_ibin_set,
-        "jname" : prestoc.psrdata_jname_set,
-        "bname" : prestoc.psrdata_bname_set,
-        "lcode" : prestoc.psrdata_lcode_set,
-        "ucode" : prestoc.psrdata_ucode_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "ra2000" : prestoc.PSRDATA_ra2000_set,
+        "ra1950" : prestoc.PSRDATA_ra1950_set,
+        "rae" : prestoc.PSRDATA_rae_set,
+        "dec2000" : prestoc.PSRDATA_dec2000_set,
+        "dec1950" : prestoc.PSRDATA_dec1950_set,
+        "dece" : prestoc.PSRDATA_dece_set,
+        "dmin__" : prestoc.PSRDATA_dmin___set,
+        "dmax__" : prestoc.PSRDATA_dmax___set,
+        "dist" : prestoc.PSRDATA_dist_set,
+        "ldeg" : prestoc.PSRDATA_ldeg_set,
+        "bdeg" : prestoc.PSRDATA_bdeg_set,
+        "pmra" : prestoc.PSRDATA_pmra_set,
+        "pmrae" : prestoc.PSRDATA_pmrae_set,
+        "pmdec" : prestoc.PSRDATA_pmdec_set,
+        "pmdece" : prestoc.PSRDATA_pmdece_set,
+        "posepoch" : prestoc.PSRDATA_posepoch_set,
+        "p" : prestoc.PSRDATA_p_set,
+        "pe" : prestoc.PSRDATA_pe_set,
+        "pdot" : prestoc.PSRDATA_pdot_set,
+        "pdote" : prestoc.PSRDATA_pdote_set,
+        "f2" : prestoc.PSRDATA_f2_set,
+        "f2e" : prestoc.PSRDATA_f2e_set,
+        "f3" : prestoc.PSRDATA_f3_set,
+        "f3e" : prestoc.PSRDATA_f3e_set,
+        "epoch" : prestoc.PSRDATA_epoch_set,
+        "dm" : prestoc.PSRDATA_dm_set,
+        "dme" : prestoc.PSRDATA_dme_set,
+        "rm" : prestoc.PSRDATA_rm_set,
+        "rme" : prestoc.PSRDATA_rme_set,
+        "we" : prestoc.PSRDATA_we_set,
+        "w50" : prestoc.PSRDATA_w50_set,
+        "w10" : prestoc.PSRDATA_w10_set,
+        "s400" : prestoc.PSRDATA_s400_set,
+        "s600" : prestoc.PSRDATA_s600_set,
+        "s1400" : prestoc.PSRDATA_s1400_set,
+        "tau" : prestoc.PSRDATA_tau_set,
+        "t408" : prestoc.PSRDATA_t408_set,
+        "distmod" : prestoc.PSRDATA_distmod_set,
+        "lum" : prestoc.PSRDATA_lum_set,
+        "bsurf" : prestoc.PSRDATA_bsurf_set,
+        "age" : prestoc.PSRDATA_age_set,
+        "edot" : prestoc.PSRDATA_edot_set,
+        "pb" : prestoc.PSRDATA_pb_set,
+        "pbe" : prestoc.PSRDATA_pbe_set,
+        "a1" : prestoc.PSRDATA_a1_set,
+        "a1e" : prestoc.PSRDATA_a1e_set,
+        "om" : prestoc.PSRDATA_om_set,
+        "ome" : prestoc.PSRDATA_ome_set,
+        "omdot" : prestoc.PSRDATA_omdot_set,
+        "omdote" : prestoc.PSRDATA_omdote_set,
+        "e" : prestoc.PSRDATA_e_set,
+        "ee" : prestoc.PSRDATA_ee_set,
+        "t0" : prestoc.PSRDATA_t0_set,
+        "t0e" : prestoc.PSRDATA_t0e_set,
+        "gamma" : prestoc.PSRDATA_gamma_set,
+        "gammae" : prestoc.PSRDATA_gammae_set,
+        "pbdot" : prestoc.PSRDATA_pbdot_set,
+        "pbdote" : prestoc.PSRDATA_pbdote_set,
+        "si" : prestoc.PSRDATA_si_set,
+        "sie" : prestoc.PSRDATA_sie_set,
+        "r__" : prestoc.PSRDATA_r___set,
+        "re" : prestoc.PSRDATA_re_set,
+        "pb2" : prestoc.PSRDATA_pb2_set,
+        "pb2e" : prestoc.PSRDATA_pb2e_set,
+        "a12" : prestoc.PSRDATA_a12_set,
+        "a12e" : prestoc.PSRDATA_a12e_set,
+        "om2" : prestoc.PSRDATA_om2_set,
+        "om2e" : prestoc.PSRDATA_om2e_set,
+        "omdot2" : prestoc.PSRDATA_omdot2_set,
+        "omdot2e" : prestoc.PSRDATA_omdot2e_set,
+        "e2" : prestoc.PSRDATA_e2_set,
+        "e2e" : prestoc.PSRDATA_e2e_set,
+        "t02" : prestoc.PSRDATA_t02_set,
+        "t02e" : prestoc.PSRDATA_t02e_set,
+        "gamma2" : prestoc.PSRDATA_gamma2_set,
+        "gamma2e" : prestoc.PSRDATA_gamma2e_set,
+        "pbdot2" : prestoc.PSRDATA_pbdot2_set,
+        "pbdot2e" : prestoc.PSRDATA_pbdot2e_set,
+        "si2" : prestoc.PSRDATA_si2_set,
+        "si2e" : prestoc.PSRDATA_si2e_set,
+        "r2" : prestoc.PSRDATA_r2_set,
+        "r2e" : prestoc.PSRDATA_r2e_set,
+        "nscode" : prestoc.PSRDATA_nscode_set,
+        "ndflag" : prestoc.PSRDATA_ndflag_set,
+        "ntauflag" : prestoc.PSRDATA_ntauflag_set,
+        "ntype" : prestoc.PSRDATA_ntype_set,
+        "modcode" : prestoc.PSRDATA_modcode_set,
+        "limcode" : prestoc.PSRDATA_limcode_set,
+        "ibin" : prestoc.PSRDATA_ibin_set,
+        "jname" : prestoc.PSRDATA_jname_set,
+        "bname" : prestoc.PSRDATA_bname_set,
+        "lcode" : prestoc.PSRDATA_lcode_set,
+        "ucode" : prestoc.PSRDATA_ucode_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = psrdata.__setmethods__.get(name,None)
+        method = PSRDATA.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "ra2000" : prestoc.psrdata_ra2000_get,
-        "ra1950" : prestoc.psrdata_ra1950_get,
-        "rae" : prestoc.psrdata_rae_get,
-        "dec2000" : prestoc.psrdata_dec2000_get,
-        "dec1950" : prestoc.psrdata_dec1950_get,
-        "dece" : prestoc.psrdata_dece_get,
-        "dmin__" : prestoc.psrdata_dmin___get,
-        "dmax__" : prestoc.psrdata_dmax___get,
-        "dist" : prestoc.psrdata_dist_get,
-        "ldeg" : prestoc.psrdata_ldeg_get,
-        "bdeg" : prestoc.psrdata_bdeg_get,
-        "pmra" : prestoc.psrdata_pmra_get,
-        "pmrae" : prestoc.psrdata_pmrae_get,
-        "pmdec" : prestoc.psrdata_pmdec_get,
-        "pmdece" : prestoc.psrdata_pmdece_get,
-        "posepoch" : prestoc.psrdata_posepoch_get,
-        "p" : prestoc.psrdata_p_get,
-        "pe" : prestoc.psrdata_pe_get,
-        "pdot" : prestoc.psrdata_pdot_get,
-        "pdote" : prestoc.psrdata_pdote_get,
-        "f2" : prestoc.psrdata_f2_get,
-        "f2e" : prestoc.psrdata_f2e_get,
-        "f3" : prestoc.psrdata_f3_get,
-        "f3e" : prestoc.psrdata_f3e_get,
-        "epoch" : prestoc.psrdata_epoch_get,
-        "dm" : prestoc.psrdata_dm_get,
-        "dme" : prestoc.psrdata_dme_get,
-        "rm" : prestoc.psrdata_rm_get,
-        "rme" : prestoc.psrdata_rme_get,
-        "we" : prestoc.psrdata_we_get,
-        "w50" : prestoc.psrdata_w50_get,
-        "w10" : prestoc.psrdata_w10_get,
-        "s400" : prestoc.psrdata_s400_get,
-        "s600" : prestoc.psrdata_s600_get,
-        "s1400" : prestoc.psrdata_s1400_get,
-        "tau" : prestoc.psrdata_tau_get,
-        "t408" : prestoc.psrdata_t408_get,
-        "distmod" : prestoc.psrdata_distmod_get,
-        "lum" : prestoc.psrdata_lum_get,
-        "bsurf" : prestoc.psrdata_bsurf_get,
-        "age" : prestoc.psrdata_age_get,
-        "edot" : prestoc.psrdata_edot_get,
-        "pb" : prestoc.psrdata_pb_get,
-        "pbe" : prestoc.psrdata_pbe_get,
-        "a1" : prestoc.psrdata_a1_get,
-        "a1e" : prestoc.psrdata_a1e_get,
-        "om" : prestoc.psrdata_om_get,
-        "ome" : prestoc.psrdata_ome_get,
-        "omdot" : prestoc.psrdata_omdot_get,
-        "omdote" : prestoc.psrdata_omdote_get,
-        "e" : prestoc.psrdata_e_get,
-        "ee" : prestoc.psrdata_ee_get,
-        "t0" : prestoc.psrdata_t0_get,
-        "t0e" : prestoc.psrdata_t0e_get,
-        "gamma" : prestoc.psrdata_gamma_get,
-        "gammae" : prestoc.psrdata_gammae_get,
-        "pbdot" : prestoc.psrdata_pbdot_get,
-        "pbdote" : prestoc.psrdata_pbdote_get,
-        "si" : prestoc.psrdata_si_get,
-        "sie" : prestoc.psrdata_sie_get,
-        "r__" : prestoc.psrdata_r___get,
-        "re" : prestoc.psrdata_re_get,
-        "pb2" : prestoc.psrdata_pb2_get,
-        "pb2e" : prestoc.psrdata_pb2e_get,
-        "a12" : prestoc.psrdata_a12_get,
-        "a12e" : prestoc.psrdata_a12e_get,
-        "om2" : prestoc.psrdata_om2_get,
-        "om2e" : prestoc.psrdata_om2e_get,
-        "omdot2" : prestoc.psrdata_omdot2_get,
-        "omdot2e" : prestoc.psrdata_omdot2e_get,
-        "e2" : prestoc.psrdata_e2_get,
-        "e2e" : prestoc.psrdata_e2e_get,
-        "t02" : prestoc.psrdata_t02_get,
-        "t02e" : prestoc.psrdata_t02e_get,
-        "gamma2" : prestoc.psrdata_gamma2_get,
-        "gamma2e" : prestoc.psrdata_gamma2e_get,
-        "pbdot2" : prestoc.psrdata_pbdot2_get,
-        "pbdot2e" : prestoc.psrdata_pbdot2e_get,
-        "si2" : prestoc.psrdata_si2_get,
-        "si2e" : prestoc.psrdata_si2e_get,
-        "r2" : prestoc.psrdata_r2_get,
-        "r2e" : prestoc.psrdata_r2e_get,
-        "nscode" : prestoc.psrdata_nscode_get,
-        "ndflag" : prestoc.psrdata_ndflag_get,
-        "ntauflag" : prestoc.psrdata_ntauflag_get,
-        "ntype" : prestoc.psrdata_ntype_get,
-        "modcode" : prestoc.psrdata_modcode_get,
-        "limcode" : prestoc.psrdata_limcode_get,
-        "ibin" : prestoc.psrdata_ibin_get,
-        "jname" : prestoc.psrdata_jname_get,
-        "bname" : prestoc.psrdata_bname_get,
-        "lcode" : prestoc.psrdata_lcode_get,
-        "ucode" : prestoc.psrdata_ucode_get,
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "ra2000" : prestoc.PSRDATA_ra2000_get,
+        "ra1950" : prestoc.PSRDATA_ra1950_get,
+        "rae" : prestoc.PSRDATA_rae_get,
+        "dec2000" : prestoc.PSRDATA_dec2000_get,
+        "dec1950" : prestoc.PSRDATA_dec1950_get,
+        "dece" : prestoc.PSRDATA_dece_get,
+        "dmin__" : prestoc.PSRDATA_dmin___get,
+        "dmax__" : prestoc.PSRDATA_dmax___get,
+        "dist" : prestoc.PSRDATA_dist_get,
+        "ldeg" : prestoc.PSRDATA_ldeg_get,
+        "bdeg" : prestoc.PSRDATA_bdeg_get,
+        "pmra" : prestoc.PSRDATA_pmra_get,
+        "pmrae" : prestoc.PSRDATA_pmrae_get,
+        "pmdec" : prestoc.PSRDATA_pmdec_get,
+        "pmdece" : prestoc.PSRDATA_pmdece_get,
+        "posepoch" : prestoc.PSRDATA_posepoch_get,
+        "p" : prestoc.PSRDATA_p_get,
+        "pe" : prestoc.PSRDATA_pe_get,
+        "pdot" : prestoc.PSRDATA_pdot_get,
+        "pdote" : prestoc.PSRDATA_pdote_get,
+        "f2" : prestoc.PSRDATA_f2_get,
+        "f2e" : prestoc.PSRDATA_f2e_get,
+        "f3" : prestoc.PSRDATA_f3_get,
+        "f3e" : prestoc.PSRDATA_f3e_get,
+        "epoch" : prestoc.PSRDATA_epoch_get,
+        "dm" : prestoc.PSRDATA_dm_get,
+        "dme" : prestoc.PSRDATA_dme_get,
+        "rm" : prestoc.PSRDATA_rm_get,
+        "rme" : prestoc.PSRDATA_rme_get,
+        "we" : prestoc.PSRDATA_we_get,
+        "w50" : prestoc.PSRDATA_w50_get,
+        "w10" : prestoc.PSRDATA_w10_get,
+        "s400" : prestoc.PSRDATA_s400_get,
+        "s600" : prestoc.PSRDATA_s600_get,
+        "s1400" : prestoc.PSRDATA_s1400_get,
+        "tau" : prestoc.PSRDATA_tau_get,
+        "t408" : prestoc.PSRDATA_t408_get,
+        "distmod" : prestoc.PSRDATA_distmod_get,
+        "lum" : prestoc.PSRDATA_lum_get,
+        "bsurf" : prestoc.PSRDATA_bsurf_get,
+        "age" : prestoc.PSRDATA_age_get,
+        "edot" : prestoc.PSRDATA_edot_get,
+        "pb" : prestoc.PSRDATA_pb_get,
+        "pbe" : prestoc.PSRDATA_pbe_get,
+        "a1" : prestoc.PSRDATA_a1_get,
+        "a1e" : prestoc.PSRDATA_a1e_get,
+        "om" : prestoc.PSRDATA_om_get,
+        "ome" : prestoc.PSRDATA_ome_get,
+        "omdot" : prestoc.PSRDATA_omdot_get,
+        "omdote" : prestoc.PSRDATA_omdote_get,
+        "e" : prestoc.PSRDATA_e_get,
+        "ee" : prestoc.PSRDATA_ee_get,
+        "t0" : prestoc.PSRDATA_t0_get,
+        "t0e" : prestoc.PSRDATA_t0e_get,
+        "gamma" : prestoc.PSRDATA_gamma_get,
+        "gammae" : prestoc.PSRDATA_gammae_get,
+        "pbdot" : prestoc.PSRDATA_pbdot_get,
+        "pbdote" : prestoc.PSRDATA_pbdote_get,
+        "si" : prestoc.PSRDATA_si_get,
+        "sie" : prestoc.PSRDATA_sie_get,
+        "r__" : prestoc.PSRDATA_r___get,
+        "re" : prestoc.PSRDATA_re_get,
+        "pb2" : prestoc.PSRDATA_pb2_get,
+        "pb2e" : prestoc.PSRDATA_pb2e_get,
+        "a12" : prestoc.PSRDATA_a12_get,
+        "a12e" : prestoc.PSRDATA_a12e_get,
+        "om2" : prestoc.PSRDATA_om2_get,
+        "om2e" : prestoc.PSRDATA_om2e_get,
+        "omdot2" : prestoc.PSRDATA_omdot2_get,
+        "omdot2e" : prestoc.PSRDATA_omdot2e_get,
+        "e2" : prestoc.PSRDATA_e2_get,
+        "e2e" : prestoc.PSRDATA_e2e_get,
+        "t02" : prestoc.PSRDATA_t02_get,
+        "t02e" : prestoc.PSRDATA_t02e_get,
+        "gamma2" : prestoc.PSRDATA_gamma2_get,
+        "gamma2e" : prestoc.PSRDATA_gamma2e_get,
+        "pbdot2" : prestoc.PSRDATA_pbdot2_get,
+        "pbdot2e" : prestoc.PSRDATA_pbdot2e_get,
+        "si2" : prestoc.PSRDATA_si2_get,
+        "si2e" : prestoc.PSRDATA_si2e_get,
+        "r2" : prestoc.PSRDATA_r2_get,
+        "r2e" : prestoc.PSRDATA_r2e_get,
+        "nscode" : prestoc.PSRDATA_nscode_get,
+        "ndflag" : prestoc.PSRDATA_ndflag_get,
+        "ntauflag" : prestoc.PSRDATA_ntauflag_get,
+        "ntype" : prestoc.PSRDATA_ntype_get,
+        "modcode" : prestoc.PSRDATA_modcode_get,
+        "limcode" : prestoc.PSRDATA_limcode_get,
+        "ibin" : prestoc.PSRDATA_ibin_get,
+        "jname" : prestoc.PSRDATA_jname_get,
+        "bname" : prestoc.PSRDATA_bname_get,
+        "lcode" : prestoc.PSRDATA_lcode_get,
+        "ucode" : prestoc.PSRDATA_ucode_get,
+    })
     def __getattr__(self,name):
-        method = psrdata.__getmethods__.get(name,None)
+        method = PSRDATA.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C psrdata instance at %s>" % (self.this,)
-class psrdataPtr(psrdata):
+        return "<C PSRDATA instance at %s>" % (self.this,)
+class PSRDATAPtr(PSRDATA):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = psrdata
+        self.__class__ = PSRDATA
 
 
 
-class psrparams:
+class PSRPARAMS:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_psrparams,args)
+        self.this = apply(prestoc.new_PSRPARAMS,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_psrparams(self)
-    __setmethods__ = {
-        "jname" : prestoc.psrparams_jname_set,
-        "bname" : prestoc.psrparams_bname_set,
-        "ntype" : prestoc.psrparams_ntype_set,
-        "ra2000" : prestoc.psrparams_ra2000_set,
-        "dec2000" : prestoc.psrparams_dec2000_set,
-        "dm" : prestoc.psrparams_dm_set,
-        "dist" : prestoc.psrparams_dist_set,
-        "fwhm" : prestoc.psrparams_fwhm_set,
-        "timepoch" : prestoc.psrparams_timepoch_set,
-        "p" : prestoc.psrparams_p_set,
-        "pd" : prestoc.psrparams_pd_set,
-        "pdd" : prestoc.psrparams_pdd_set,
-        "f" : prestoc.psrparams_f_set,
-        "fd" : prestoc.psrparams_fd_set,
-        "fdd" : prestoc.psrparams_fdd_set,
-        "orb" : prestoc.psrparams_orb_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "jname" : prestoc.PSRPARAMS_jname_set,
+        "bname" : prestoc.PSRPARAMS_bname_set,
+        "ntype" : prestoc.PSRPARAMS_ntype_set,
+        "ra2000" : prestoc.PSRPARAMS_ra2000_set,
+        "dec2000" : prestoc.PSRPARAMS_dec2000_set,
+        "dm" : prestoc.PSRPARAMS_dm_set,
+        "dist" : prestoc.PSRPARAMS_dist_set,
+        "fwhm" : prestoc.PSRPARAMS_fwhm_set,
+        "timepoch" : prestoc.PSRPARAMS_timepoch_set,
+        "p" : prestoc.PSRPARAMS_p_set,
+        "pd" : prestoc.PSRPARAMS_pd_set,
+        "pdd" : prestoc.PSRPARAMS_pdd_set,
+        "f" : prestoc.PSRPARAMS_f_set,
+        "fd" : prestoc.PSRPARAMS_fd_set,
+        "fdd" : prestoc.PSRPARAMS_fdd_set,
+        "orb" : prestoc.PSRPARAMS_orb_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = psrparams.__setmethods__.get(name,None)
+        method = PSRPARAMS.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "jname" : prestoc.psrparams_jname_get,
-        "bname" : prestoc.psrparams_bname_get,
-        "ntype" : prestoc.psrparams_ntype_get,
-        "ra2000" : prestoc.psrparams_ra2000_get,
-        "dec2000" : prestoc.psrparams_dec2000_get,
-        "dm" : prestoc.psrparams_dm_get,
-        "dist" : prestoc.psrparams_dist_get,
-        "fwhm" : prestoc.psrparams_fwhm_get,
-        "timepoch" : prestoc.psrparams_timepoch_get,
-        "p" : prestoc.psrparams_p_get,
-        "pd" : prestoc.psrparams_pd_get,
-        "pdd" : prestoc.psrparams_pdd_get,
-        "f" : prestoc.psrparams_f_get,
-        "fd" : prestoc.psrparams_fd_get,
-        "fdd" : prestoc.psrparams_fdd_get,
-        "orb" : lambda x : orbitparamsPtr(prestoc.psrparams_orb_get(x)),
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "jname" : prestoc.PSRPARAMS_jname_get,
+        "bname" : prestoc.PSRPARAMS_bname_get,
+        "ntype" : prestoc.PSRPARAMS_ntype_get,
+        "ra2000" : prestoc.PSRPARAMS_ra2000_get,
+        "dec2000" : prestoc.PSRPARAMS_dec2000_get,
+        "dm" : prestoc.PSRPARAMS_dm_get,
+        "dist" : prestoc.PSRPARAMS_dist_get,
+        "fwhm" : prestoc.PSRPARAMS_fwhm_get,
+        "timepoch" : prestoc.PSRPARAMS_timepoch_get,
+        "p" : prestoc.PSRPARAMS_p_get,
+        "pd" : prestoc.PSRPARAMS_pd_get,
+        "pdd" : prestoc.PSRPARAMS_pdd_get,
+        "f" : prestoc.PSRPARAMS_f_get,
+        "fd" : prestoc.PSRPARAMS_fd_get,
+        "fdd" : prestoc.PSRPARAMS_fdd_get,
+        "orb" : lambda x : orbitparamsPtr(prestoc.PSRPARAMS_orb_get(x)),
+    })
     def __getattr__(self,name):
-        method = psrparams.__getmethods__.get(name,None)
+        method = PSRPARAMS.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C psrparams instance at %s>" % (self.this,)
-class psrparamsPtr(psrparams):
+        return "<C PSRPARAMS instance at %s>" % (self.this,)
+class PSRPARAMSPtr(PSRPARAMS):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = psrparams
+        self.__class__ = PSRPARAMS
 
 
 
@@ -331,7 +343,7 @@ class DoubleArray:
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_DoubleArray(self)
     def __getitem__(*args):
         val = apply(prestoc.DoubleArray___getitem__,args)
@@ -339,17 +351,21 @@ class DoubleArray:
     def __setitem__(*args):
         val = apply(prestoc.DoubleArray___setitem__,args)
         return val
-    __setmethods__ = {
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
         "dptr" : prestoc.DoubleArray_dptr_set,
-    }
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
         method = DoubleArray.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
         "dptr" : prestoc.DoubleArray_dptr_get,
-    }
+    })
     def __getattr__(self,name):
         method = DoubleArray.__getmethods__.get(name,None)
         if method: return method(self)
@@ -364,442 +380,466 @@ class DoubleArrayPtr(DoubleArray):
 
 
 
-class infodata:
+class INFODATA:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_infodata,args)
+        self.this = apply(prestoc.new_INFODATA,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_infodata(self)
-    __setmethods__ = {
-        "name" : prestoc.infodata_name_set,
-        "object" : prestoc.infodata_object_set,
-        "ra_h" : prestoc.infodata_ra_h_set,
-        "ra_m" : prestoc.infodata_ra_m_set,
-        "ra_s" : prestoc.infodata_ra_s_set,
-        "dec_d" : prestoc.infodata_dec_d_set,
-        "dec_m" : prestoc.infodata_dec_m_set,
-        "dec_s" : prestoc.infodata_dec_s_set,
-        "telescope" : prestoc.infodata_telescope_set,
-        "instrument" : prestoc.infodata_instrument_set,
-        "observer" : prestoc.infodata_observer_set,
-        "N" : prestoc.infodata_N_set,
-        "dt" : prestoc.infodata_dt_set,
-        "numonoff" : prestoc.infodata_numonoff_set,
-        "fov" : prestoc.infodata_fov_set,
-        "mjd_i" : prestoc.infodata_mjd_i_set,
-        "mjd_f" : prestoc.infodata_mjd_f_set,
-        "bary" : prestoc.infodata_bary_set,
-        "band" : prestoc.infodata_band_set,
-        "dm" : prestoc.infodata_dm_set,
-        "freq" : prestoc.infodata_freq_set,
-        "freqband" : prestoc.infodata_freqband_set,
-        "num_chan" : prestoc.infodata_num_chan_set,
-        "chan_wid" : prestoc.infodata_chan_wid_set,
-        "filt" : prestoc.infodata_filt_set,
-        "wavelen" : prestoc.infodata_wavelen_set,
-        "waveband" : prestoc.infodata_waveband_set,
-        "energy" : prestoc.infodata_energy_set,
-        "energyband" : prestoc.infodata_energyband_set,
-        "analyzer" : prestoc.infodata_analyzer_set,
-        "notes" : prestoc.infodata_notes_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "name" : prestoc.INFODATA_name_set,
+        "object" : prestoc.INFODATA_object_set,
+        "ra_h" : prestoc.INFODATA_ra_h_set,
+        "ra_m" : prestoc.INFODATA_ra_m_set,
+        "ra_s" : prestoc.INFODATA_ra_s_set,
+        "dec_d" : prestoc.INFODATA_dec_d_set,
+        "dec_m" : prestoc.INFODATA_dec_m_set,
+        "dec_s" : prestoc.INFODATA_dec_s_set,
+        "telescope" : prestoc.INFODATA_telescope_set,
+        "instrument" : prestoc.INFODATA_instrument_set,
+        "observer" : prestoc.INFODATA_observer_set,
+        "N" : prestoc.INFODATA_N_set,
+        "dt" : prestoc.INFODATA_dt_set,
+        "numonoff" : prestoc.INFODATA_numonoff_set,
+        "fov" : prestoc.INFODATA_fov_set,
+        "mjd_i" : prestoc.INFODATA_mjd_i_set,
+        "mjd_f" : prestoc.INFODATA_mjd_f_set,
+        "bary" : prestoc.INFODATA_bary_set,
+        "band" : prestoc.INFODATA_band_set,
+        "dm" : prestoc.INFODATA_dm_set,
+        "freq" : prestoc.INFODATA_freq_set,
+        "freqband" : prestoc.INFODATA_freqband_set,
+        "num_chan" : prestoc.INFODATA_num_chan_set,
+        "chan_wid" : prestoc.INFODATA_chan_wid_set,
+        "filt" : prestoc.INFODATA_filt_set,
+        "wavelen" : prestoc.INFODATA_wavelen_set,
+        "waveband" : prestoc.INFODATA_waveband_set,
+        "energy" : prestoc.INFODATA_energy_set,
+        "energyband" : prestoc.INFODATA_energyband_set,
+        "analyzer" : prestoc.INFODATA_analyzer_set,
+        "notes" : prestoc.INFODATA_notes_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = infodata.__setmethods__.get(name,None)
+        method = INFODATA.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "name" : prestoc.infodata_name_get,
-        "object" : prestoc.infodata_object_get,
-        "ra_h" : prestoc.infodata_ra_h_get,
-        "ra_m" : prestoc.infodata_ra_m_get,
-        "ra_s" : prestoc.infodata_ra_s_get,
-        "dec_d" : prestoc.infodata_dec_d_get,
-        "dec_m" : prestoc.infodata_dec_m_get,
-        "dec_s" : prestoc.infodata_dec_s_get,
-        "telescope" : prestoc.infodata_telescope_get,
-        "instrument" : prestoc.infodata_instrument_get,
-        "observer" : prestoc.infodata_observer_get,
-        "N" : prestoc.infodata_N_get,
-        "dt" : prestoc.infodata_dt_get,
-        "numonoff" : prestoc.infodata_numonoff_get,
-        "onoff" : prestoc.infodata_onoff_get,
-        "fov" : prestoc.infodata_fov_get,
-        "mjd_i" : prestoc.infodata_mjd_i_get,
-        "mjd_f" : prestoc.infodata_mjd_f_get,
-        "bary" : prestoc.infodata_bary_get,
-        "band" : prestoc.infodata_band_get,
-        "dm" : prestoc.infodata_dm_get,
-        "freq" : prestoc.infodata_freq_get,
-        "freqband" : prestoc.infodata_freqband_get,
-        "num_chan" : prestoc.infodata_num_chan_get,
-        "chan_wid" : prestoc.infodata_chan_wid_get,
-        "filt" : prestoc.infodata_filt_get,
-        "wavelen" : prestoc.infodata_wavelen_get,
-        "waveband" : prestoc.infodata_waveband_get,
-        "energy" : prestoc.infodata_energy_get,
-        "energyband" : prestoc.infodata_energyband_get,
-        "analyzer" : prestoc.infodata_analyzer_get,
-        "notes" : prestoc.infodata_notes_get,
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "name" : prestoc.INFODATA_name_get,
+        "object" : prestoc.INFODATA_object_get,
+        "ra_h" : prestoc.INFODATA_ra_h_get,
+        "ra_m" : prestoc.INFODATA_ra_m_get,
+        "ra_s" : prestoc.INFODATA_ra_s_get,
+        "dec_d" : prestoc.INFODATA_dec_d_get,
+        "dec_m" : prestoc.INFODATA_dec_m_get,
+        "dec_s" : prestoc.INFODATA_dec_s_get,
+        "telescope" : prestoc.INFODATA_telescope_get,
+        "instrument" : prestoc.INFODATA_instrument_get,
+        "observer" : prestoc.INFODATA_observer_get,
+        "N" : prestoc.INFODATA_N_get,
+        "dt" : prestoc.INFODATA_dt_get,
+        "numonoff" : prestoc.INFODATA_numonoff_get,
+        "onoff" : prestoc.INFODATA_onoff_get,
+        "fov" : prestoc.INFODATA_fov_get,
+        "mjd_i" : prestoc.INFODATA_mjd_i_get,
+        "mjd_f" : prestoc.INFODATA_mjd_f_get,
+        "bary" : prestoc.INFODATA_bary_get,
+        "band" : prestoc.INFODATA_band_get,
+        "dm" : prestoc.INFODATA_dm_get,
+        "freq" : prestoc.INFODATA_freq_get,
+        "freqband" : prestoc.INFODATA_freqband_get,
+        "num_chan" : prestoc.INFODATA_num_chan_get,
+        "chan_wid" : prestoc.INFODATA_chan_wid_get,
+        "filt" : prestoc.INFODATA_filt_get,
+        "wavelen" : prestoc.INFODATA_wavelen_get,
+        "waveband" : prestoc.INFODATA_waveband_get,
+        "energy" : prestoc.INFODATA_energy_get,
+        "energyband" : prestoc.INFODATA_energyband_get,
+        "analyzer" : prestoc.INFODATA_analyzer_get,
+        "notes" : prestoc.INFODATA_notes_get,
+    })
     def __getattr__(self,name):
-        method = infodata.__getmethods__.get(name,None)
+        method = INFODATA.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C infodata instance at %s>" % (self.this,)
-class infodataPtr(infodata):
+        return "<C INFODATA instance at %s>" % (self.this,)
+class INFODATAPtr(INFODATA):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = infodata
+        self.__class__ = INFODATA
 
 
 
-class makedata:
+class MAKEDATA:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_makedata,args)
+        self.this = apply(prestoc.new_MAKEDATA,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_makedata(self)
-    __setmethods__ = {
-        "basefilenm" : prestoc.makedata_basefilenm_set,
-        "description" : prestoc.makedata_description_set,
-        "N" : prestoc.makedata_N_set,
-        "next2_to_n" : prestoc.makedata_next2_to_n_set,
-        "dt" : prestoc.makedata_dt_set,
-        "T" : prestoc.makedata_T_set,
-        "ptype" : prestoc.makedata_ptype_set,
-        "pnum" : prestoc.makedata_pnum_set,
-        "fwhm" : prestoc.makedata_fwhm_set,
-        "round" : prestoc.makedata_round_set,
-        "roundnum" : prestoc.makedata_roundnum_set,
-        "f" : prestoc.makedata_f_set,
-        "fd" : prestoc.makedata_fd_set,
-        "fdd" : prestoc.makedata_fdd_set,
-        "p" : prestoc.makedata_p_set,
-        "pd" : prestoc.makedata_pd_set,
-        "pdd" : prestoc.makedata_pdd_set,
-        "r" : prestoc.makedata_r_set,
-        "z" : prestoc.makedata_z_set,
-        "w" : prestoc.makedata_w_set,
-        "amp" : prestoc.makedata_amp_set,
-        "phs" : prestoc.makedata_phs_set,
-        "dc" : prestoc.makedata_dc_set,
-        "binary" : prestoc.makedata_binary_set,
-        "orb" : prestoc.makedata_orb_set,
-        "ampmod" : prestoc.makedata_ampmod_set,
-        "ampmoda" : prestoc.makedata_ampmoda_set,
-        "ampmodf" : prestoc.makedata_ampmodf_set,
-        "ampmodp" : prestoc.makedata_ampmodp_set,
-        "noisetype" : prestoc.makedata_noisetype_set,
-        "noise" : prestoc.makedata_noise_set,
-        "noisesig" : prestoc.makedata_noisesig_set,
-        "numonoff" : prestoc.makedata_numonoff_set,
-        "onoff" : prestoc.makedata_onoff_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "basefilenm" : prestoc.MAKEDATA_basefilenm_set,
+        "description" : prestoc.MAKEDATA_description_set,
+        "N" : prestoc.MAKEDATA_N_set,
+        "next2_to_n" : prestoc.MAKEDATA_next2_to_n_set,
+        "dt" : prestoc.MAKEDATA_dt_set,
+        "T" : prestoc.MAKEDATA_T_set,
+        "ptype" : prestoc.MAKEDATA_ptype_set,
+        "pnum" : prestoc.MAKEDATA_pnum_set,
+        "fwhm" : prestoc.MAKEDATA_fwhm_set,
+        "round" : prestoc.MAKEDATA_round_set,
+        "roundnum" : prestoc.MAKEDATA_roundnum_set,
+        "f" : prestoc.MAKEDATA_f_set,
+        "fd" : prestoc.MAKEDATA_fd_set,
+        "fdd" : prestoc.MAKEDATA_fdd_set,
+        "p" : prestoc.MAKEDATA_p_set,
+        "pd" : prestoc.MAKEDATA_pd_set,
+        "pdd" : prestoc.MAKEDATA_pdd_set,
+        "r" : prestoc.MAKEDATA_r_set,
+        "z" : prestoc.MAKEDATA_z_set,
+        "w" : prestoc.MAKEDATA_w_set,
+        "amp" : prestoc.MAKEDATA_amp_set,
+        "phs" : prestoc.MAKEDATA_phs_set,
+        "dc" : prestoc.MAKEDATA_dc_set,
+        "binary" : prestoc.MAKEDATA_binary_set,
+        "orb" : prestoc.MAKEDATA_orb_set,
+        "ampmod" : prestoc.MAKEDATA_ampmod_set,
+        "ampmoda" : prestoc.MAKEDATA_ampmoda_set,
+        "ampmodf" : prestoc.MAKEDATA_ampmodf_set,
+        "ampmodp" : prestoc.MAKEDATA_ampmodp_set,
+        "noisetype" : prestoc.MAKEDATA_noisetype_set,
+        "noise" : prestoc.MAKEDATA_noise_set,
+        "noisesig" : prestoc.MAKEDATA_noisesig_set,
+        "numonoff" : prestoc.MAKEDATA_numonoff_set,
+        "onoff" : prestoc.MAKEDATA_onoff_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = makedata.__setmethods__.get(name,None)
+        method = MAKEDATA.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "basefilenm" : prestoc.makedata_basefilenm_get,
-        "description" : prestoc.makedata_description_get,
-        "N" : prestoc.makedata_N_get,
-        "next2_to_n" : prestoc.makedata_next2_to_n_get,
-        "dt" : prestoc.makedata_dt_get,
-        "T" : prestoc.makedata_T_get,
-        "ptype" : prestoc.makedata_ptype_get,
-        "pnum" : prestoc.makedata_pnum_get,
-        "fwhm" : prestoc.makedata_fwhm_get,
-        "round" : prestoc.makedata_round_get,
-        "roundnum" : prestoc.makedata_roundnum_get,
-        "f" : prestoc.makedata_f_get,
-        "fd" : prestoc.makedata_fd_get,
-        "fdd" : prestoc.makedata_fdd_get,
-        "p" : prestoc.makedata_p_get,
-        "pd" : prestoc.makedata_pd_get,
-        "pdd" : prestoc.makedata_pdd_get,
-        "r" : prestoc.makedata_r_get,
-        "z" : prestoc.makedata_z_get,
-        "w" : prestoc.makedata_w_get,
-        "amp" : prestoc.makedata_amp_get,
-        "phs" : prestoc.makedata_phs_get,
-        "dc" : prestoc.makedata_dc_get,
-        "binary" : prestoc.makedata_binary_get,
-        "orb" : lambda x : orbitparamsPtr(prestoc.makedata_orb_get(x)),
-        "ampmod" : prestoc.makedata_ampmod_get,
-        "ampmoda" : prestoc.makedata_ampmoda_get,
-        "ampmodf" : prestoc.makedata_ampmodf_get,
-        "ampmodp" : prestoc.makedata_ampmodp_get,
-        "noisetype" : prestoc.makedata_noisetype_get,
-        "noise" : prestoc.makedata_noise_get,
-        "noisesig" : prestoc.makedata_noisesig_get,
-        "numonoff" : prestoc.makedata_numonoff_get,
-        "onoff" : lambda x : DoubleArrayPtr(prestoc.makedata_onoff_get(x)),
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "basefilenm" : prestoc.MAKEDATA_basefilenm_get,
+        "description" : prestoc.MAKEDATA_description_get,
+        "N" : prestoc.MAKEDATA_N_get,
+        "next2_to_n" : prestoc.MAKEDATA_next2_to_n_get,
+        "dt" : prestoc.MAKEDATA_dt_get,
+        "T" : prestoc.MAKEDATA_T_get,
+        "ptype" : prestoc.MAKEDATA_ptype_get,
+        "pnum" : prestoc.MAKEDATA_pnum_get,
+        "fwhm" : prestoc.MAKEDATA_fwhm_get,
+        "round" : prestoc.MAKEDATA_round_get,
+        "roundnum" : prestoc.MAKEDATA_roundnum_get,
+        "f" : prestoc.MAKEDATA_f_get,
+        "fd" : prestoc.MAKEDATA_fd_get,
+        "fdd" : prestoc.MAKEDATA_fdd_get,
+        "p" : prestoc.MAKEDATA_p_get,
+        "pd" : prestoc.MAKEDATA_pd_get,
+        "pdd" : prestoc.MAKEDATA_pdd_get,
+        "r" : prestoc.MAKEDATA_r_get,
+        "z" : prestoc.MAKEDATA_z_get,
+        "w" : prestoc.MAKEDATA_w_get,
+        "amp" : prestoc.MAKEDATA_amp_get,
+        "phs" : prestoc.MAKEDATA_phs_get,
+        "dc" : prestoc.MAKEDATA_dc_get,
+        "binary" : prestoc.MAKEDATA_binary_get,
+        "orb" : lambda x : orbitparamsPtr(prestoc.MAKEDATA_orb_get(x)),
+        "ampmod" : prestoc.MAKEDATA_ampmod_get,
+        "ampmoda" : prestoc.MAKEDATA_ampmoda_get,
+        "ampmodf" : prestoc.MAKEDATA_ampmodf_get,
+        "ampmodp" : prestoc.MAKEDATA_ampmodp_get,
+        "noisetype" : prestoc.MAKEDATA_noisetype_get,
+        "noise" : prestoc.MAKEDATA_noise_get,
+        "noisesig" : prestoc.MAKEDATA_noisesig_get,
+        "numonoff" : prestoc.MAKEDATA_numonoff_get,
+        "onoff" : lambda x : DoubleArrayPtr(prestoc.MAKEDATA_onoff_get(x)),
+    })
     def __getattr__(self,name):
-        method = makedata.__getmethods__.get(name,None)
+        method = MAKEDATA.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C makedata instance at %s>" % (self.this,)
-class makedataPtr(makedata):
+        return "<C MAKEDATA instance at %s>" % (self.this,)
+class MAKEDATAPtr(MAKEDATA):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = makedata
+        self.__class__ = MAKEDATA
 
 
 
-class rderivs:
+class RDERIVS:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_rderivs,args)
+        self.this = apply(prestoc.new_RDERIVS,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_rderivs(self)
-    __setmethods__ = {
-        "pow" : prestoc.rderivs_pow_set,
-        "phs" : prestoc.rderivs_phs_set,
-        "dpow" : prestoc.rderivs_dpow_set,
-        "dphs" : prestoc.rderivs_dphs_set,
-        "d2pow" : prestoc.rderivs_d2pow_set,
-        "d2phs" : prestoc.rderivs_d2phs_set,
-        "locpow" : prestoc.rderivs_locpow_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "pow" : prestoc.RDERIVS_pow_set,
+        "phs" : prestoc.RDERIVS_phs_set,
+        "dpow" : prestoc.RDERIVS_dpow_set,
+        "dphs" : prestoc.RDERIVS_dphs_set,
+        "d2pow" : prestoc.RDERIVS_d2pow_set,
+        "d2phs" : prestoc.RDERIVS_d2phs_set,
+        "locpow" : prestoc.RDERIVS_locpow_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = rderivs.__setmethods__.get(name,None)
+        method = RDERIVS.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "pow" : prestoc.rderivs_pow_get,
-        "phs" : prestoc.rderivs_phs_get,
-        "dpow" : prestoc.rderivs_dpow_get,
-        "dphs" : prestoc.rderivs_dphs_get,
-        "d2pow" : prestoc.rderivs_d2pow_get,
-        "d2phs" : prestoc.rderivs_d2phs_get,
-        "locpow" : prestoc.rderivs_locpow_get,
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "pow" : prestoc.RDERIVS_pow_get,
+        "phs" : prestoc.RDERIVS_phs_get,
+        "dpow" : prestoc.RDERIVS_dpow_get,
+        "dphs" : prestoc.RDERIVS_dphs_get,
+        "d2pow" : prestoc.RDERIVS_d2pow_get,
+        "d2phs" : prestoc.RDERIVS_d2phs_get,
+        "locpow" : prestoc.RDERIVS_locpow_get,
+    })
     def __getattr__(self,name):
-        method = rderivs.__getmethods__.get(name,None)
+        method = RDERIVS.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C rderivs instance at %s>" % (self.this,)
-class rderivsPtr(rderivs):
+        return "<C RDERIVS instance at %s>" % (self.this,)
+class RDERIVSPtr(RDERIVS):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = rderivs
+        self.__class__ = RDERIVS
 
 
 
-class fourierprops:
+class FOURIERPROPS:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_fourierprops,args)
+        self.this = apply(prestoc.new_FOURIERPROPS,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_fourierprops(self)
-    __setmethods__ = {
-        "r" : prestoc.fourierprops_r_set,
-        "rerr" : prestoc.fourierprops_rerr_set,
-        "z" : prestoc.fourierprops_z_set,
-        "zerr" : prestoc.fourierprops_zerr_set,
-        "w" : prestoc.fourierprops_w_set,
-        "werr" : prestoc.fourierprops_werr_set,
-        "pow" : prestoc.fourierprops_pow_set,
-        "powerr" : prestoc.fourierprops_powerr_set,
-        "sig" : prestoc.fourierprops_sig_set,
-        "rawpow" : prestoc.fourierprops_rawpow_set,
-        "phs" : prestoc.fourierprops_phs_set,
-        "phserr" : prestoc.fourierprops_phserr_set,
-        "cen" : prestoc.fourierprops_cen_set,
-        "cenerr" : prestoc.fourierprops_cenerr_set,
-        "pur" : prestoc.fourierprops_pur_set,
-        "purerr" : prestoc.fourierprops_purerr_set,
-        "locpow" : prestoc.fourierprops_locpow_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "r" : prestoc.FOURIERPROPS_r_set,
+        "rerr" : prestoc.FOURIERPROPS_rerr_set,
+        "z" : prestoc.FOURIERPROPS_z_set,
+        "zerr" : prestoc.FOURIERPROPS_zerr_set,
+        "w" : prestoc.FOURIERPROPS_w_set,
+        "werr" : prestoc.FOURIERPROPS_werr_set,
+        "pow" : prestoc.FOURIERPROPS_pow_set,
+        "powerr" : prestoc.FOURIERPROPS_powerr_set,
+        "sig" : prestoc.FOURIERPROPS_sig_set,
+        "rawpow" : prestoc.FOURIERPROPS_rawpow_set,
+        "phs" : prestoc.FOURIERPROPS_phs_set,
+        "phserr" : prestoc.FOURIERPROPS_phserr_set,
+        "cen" : prestoc.FOURIERPROPS_cen_set,
+        "cenerr" : prestoc.FOURIERPROPS_cenerr_set,
+        "pur" : prestoc.FOURIERPROPS_pur_set,
+        "purerr" : prestoc.FOURIERPROPS_purerr_set,
+        "locpow" : prestoc.FOURIERPROPS_locpow_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = fourierprops.__setmethods__.get(name,None)
+        method = FOURIERPROPS.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "r" : prestoc.fourierprops_r_get,
-        "rerr" : prestoc.fourierprops_rerr_get,
-        "z" : prestoc.fourierprops_z_get,
-        "zerr" : prestoc.fourierprops_zerr_get,
-        "w" : prestoc.fourierprops_w_get,
-        "werr" : prestoc.fourierprops_werr_get,
-        "pow" : prestoc.fourierprops_pow_get,
-        "powerr" : prestoc.fourierprops_powerr_get,
-        "sig" : prestoc.fourierprops_sig_get,
-        "rawpow" : prestoc.fourierprops_rawpow_get,
-        "phs" : prestoc.fourierprops_phs_get,
-        "phserr" : prestoc.fourierprops_phserr_get,
-        "cen" : prestoc.fourierprops_cen_get,
-        "cenerr" : prestoc.fourierprops_cenerr_get,
-        "pur" : prestoc.fourierprops_pur_get,
-        "purerr" : prestoc.fourierprops_purerr_get,
-        "locpow" : prestoc.fourierprops_locpow_get,
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "r" : prestoc.FOURIERPROPS_r_get,
+        "rerr" : prestoc.FOURIERPROPS_rerr_get,
+        "z" : prestoc.FOURIERPROPS_z_get,
+        "zerr" : prestoc.FOURIERPROPS_zerr_get,
+        "w" : prestoc.FOURIERPROPS_w_get,
+        "werr" : prestoc.FOURIERPROPS_werr_get,
+        "pow" : prestoc.FOURIERPROPS_pow_get,
+        "powerr" : prestoc.FOURIERPROPS_powerr_get,
+        "sig" : prestoc.FOURIERPROPS_sig_get,
+        "rawpow" : prestoc.FOURIERPROPS_rawpow_get,
+        "phs" : prestoc.FOURIERPROPS_phs_get,
+        "phserr" : prestoc.FOURIERPROPS_phserr_get,
+        "cen" : prestoc.FOURIERPROPS_cen_get,
+        "cenerr" : prestoc.FOURIERPROPS_cenerr_get,
+        "pur" : prestoc.FOURIERPROPS_pur_get,
+        "purerr" : prestoc.FOURIERPROPS_purerr_get,
+        "locpow" : prestoc.FOURIERPROPS_locpow_get,
+    })
     def __getattr__(self,name):
-        method = fourierprops.__getmethods__.get(name,None)
+        method = FOURIERPROPS.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C fourierprops instance at %s>" % (self.this,)
-class fourierpropsPtr(fourierprops):
+        return "<C FOURIERPROPS instance at %s>" % (self.this,)
+class FOURIERPROPSPtr(FOURIERPROPS):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = fourierprops
+        self.__class__ = FOURIERPROPS
 
 
 
-class binaryprops:
+class BINARYPROPS:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_binaryprops,args)
+        self.this = apply(prestoc.new_BINARYPROPS,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_binaryprops(self)
-    __setmethods__ = {
-        "ppsr" : prestoc.binaryprops_ppsr_set,
-        "fpsr" : prestoc.binaryprops_fpsr_set,
-        "rpsr" : prestoc.binaryprops_rpsr_set,
-        "pbin" : prestoc.binaryprops_pbin_set,
-        "rbin" : prestoc.binaryprops_rbin_set,
-        "z" : prestoc.binaryprops_z_set,
-        "asinic" : prestoc.binaryprops_asinic_set,
-        "rdetect" : prestoc.binaryprops_rdetect_set,
-        "nfftbins" : prestoc.binaryprops_nfftbins_set,
-        "lowbin" : prestoc.binaryprops_lowbin_set,
-        "ppsrerr" : prestoc.binaryprops_ppsrerr_set,
-        "fpsrerr" : prestoc.binaryprops_fpsrerr_set,
-        "rpsrerr" : prestoc.binaryprops_rpsrerr_set,
-        "pbinerr" : prestoc.binaryprops_pbinerr_set,
-        "rbinerr" : prestoc.binaryprops_rbinerr_set,
-        "zerr" : prestoc.binaryprops_zerr_set,
-        "asinicerr" : prestoc.binaryprops_asinicerr_set,
-        "rdetecterr" : prestoc.binaryprops_rdetecterr_set,
-        "sig" : prestoc.binaryprops_sig_set,
-        "phs" : prestoc.binaryprops_phs_set,
-        "phserr" : prestoc.binaryprops_phserr_set,
-        "cen" : prestoc.binaryprops_cen_set,
-        "cenerr" : prestoc.binaryprops_cenerr_set,
-        "pur" : prestoc.binaryprops_pur_set,
-        "purerr" : prestoc.binaryprops_purerr_set,
-        "pow" : prestoc.binaryprops_pow_set,
-        "powerr" : prestoc.binaryprops_powerr_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "ppsr" : prestoc.BINARYPROPS_ppsr_set,
+        "fpsr" : prestoc.BINARYPROPS_fpsr_set,
+        "rpsr" : prestoc.BINARYPROPS_rpsr_set,
+        "pbin" : prestoc.BINARYPROPS_pbin_set,
+        "rbin" : prestoc.BINARYPROPS_rbin_set,
+        "z" : prestoc.BINARYPROPS_z_set,
+        "asinic" : prestoc.BINARYPROPS_asinic_set,
+        "rdetect" : prestoc.BINARYPROPS_rdetect_set,
+        "nfftbins" : prestoc.BINARYPROPS_nfftbins_set,
+        "lowbin" : prestoc.BINARYPROPS_lowbin_set,
+        "ppsrerr" : prestoc.BINARYPROPS_ppsrerr_set,
+        "fpsrerr" : prestoc.BINARYPROPS_fpsrerr_set,
+        "rpsrerr" : prestoc.BINARYPROPS_rpsrerr_set,
+        "pbinerr" : prestoc.BINARYPROPS_pbinerr_set,
+        "rbinerr" : prestoc.BINARYPROPS_rbinerr_set,
+        "zerr" : prestoc.BINARYPROPS_zerr_set,
+        "asinicerr" : prestoc.BINARYPROPS_asinicerr_set,
+        "rdetecterr" : prestoc.BINARYPROPS_rdetecterr_set,
+        "sig" : prestoc.BINARYPROPS_sig_set,
+        "phs" : prestoc.BINARYPROPS_phs_set,
+        "phserr" : prestoc.BINARYPROPS_phserr_set,
+        "cen" : prestoc.BINARYPROPS_cen_set,
+        "cenerr" : prestoc.BINARYPROPS_cenerr_set,
+        "pur" : prestoc.BINARYPROPS_pur_set,
+        "purerr" : prestoc.BINARYPROPS_purerr_set,
+        "pow" : prestoc.BINARYPROPS_pow_set,
+        "powerr" : prestoc.BINARYPROPS_powerr_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = binaryprops.__setmethods__.get(name,None)
+        method = BINARYPROPS.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "ppsr" : prestoc.binaryprops_ppsr_get,
-        "fpsr" : prestoc.binaryprops_fpsr_get,
-        "rpsr" : prestoc.binaryprops_rpsr_get,
-        "pbin" : prestoc.binaryprops_pbin_get,
-        "rbin" : prestoc.binaryprops_rbin_get,
-        "z" : prestoc.binaryprops_z_get,
-        "asinic" : prestoc.binaryprops_asinic_get,
-        "rdetect" : prestoc.binaryprops_rdetect_get,
-        "nfftbins" : prestoc.binaryprops_nfftbins_get,
-        "lowbin" : prestoc.binaryprops_lowbin_get,
-        "ppsrerr" : prestoc.binaryprops_ppsrerr_get,
-        "fpsrerr" : prestoc.binaryprops_fpsrerr_get,
-        "rpsrerr" : prestoc.binaryprops_rpsrerr_get,
-        "pbinerr" : prestoc.binaryprops_pbinerr_get,
-        "rbinerr" : prestoc.binaryprops_rbinerr_get,
-        "zerr" : prestoc.binaryprops_zerr_get,
-        "asinicerr" : prestoc.binaryprops_asinicerr_get,
-        "rdetecterr" : prestoc.binaryprops_rdetecterr_get,
-        "sig" : prestoc.binaryprops_sig_get,
-        "phs" : prestoc.binaryprops_phs_get,
-        "phserr" : prestoc.binaryprops_phserr_get,
-        "cen" : prestoc.binaryprops_cen_get,
-        "cenerr" : prestoc.binaryprops_cenerr_get,
-        "pur" : prestoc.binaryprops_pur_get,
-        "purerr" : prestoc.binaryprops_purerr_get,
-        "pow" : prestoc.binaryprops_pow_get,
-        "powerr" : prestoc.binaryprops_powerr_get,
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "ppsr" : prestoc.BINARYPROPS_ppsr_get,
+        "fpsr" : prestoc.BINARYPROPS_fpsr_get,
+        "rpsr" : prestoc.BINARYPROPS_rpsr_get,
+        "pbin" : prestoc.BINARYPROPS_pbin_get,
+        "rbin" : prestoc.BINARYPROPS_rbin_get,
+        "z" : prestoc.BINARYPROPS_z_get,
+        "asinic" : prestoc.BINARYPROPS_asinic_get,
+        "rdetect" : prestoc.BINARYPROPS_rdetect_get,
+        "nfftbins" : prestoc.BINARYPROPS_nfftbins_get,
+        "lowbin" : prestoc.BINARYPROPS_lowbin_get,
+        "ppsrerr" : prestoc.BINARYPROPS_ppsrerr_get,
+        "fpsrerr" : prestoc.BINARYPROPS_fpsrerr_get,
+        "rpsrerr" : prestoc.BINARYPROPS_rpsrerr_get,
+        "pbinerr" : prestoc.BINARYPROPS_pbinerr_get,
+        "rbinerr" : prestoc.BINARYPROPS_rbinerr_get,
+        "zerr" : prestoc.BINARYPROPS_zerr_get,
+        "asinicerr" : prestoc.BINARYPROPS_asinicerr_get,
+        "rdetecterr" : prestoc.BINARYPROPS_rdetecterr_get,
+        "sig" : prestoc.BINARYPROPS_sig_get,
+        "phs" : prestoc.BINARYPROPS_phs_get,
+        "phserr" : prestoc.BINARYPROPS_phserr_get,
+        "cen" : prestoc.BINARYPROPS_cen_get,
+        "cenerr" : prestoc.BINARYPROPS_cenerr_get,
+        "pur" : prestoc.BINARYPROPS_pur_get,
+        "purerr" : prestoc.BINARYPROPS_purerr_get,
+        "pow" : prestoc.BINARYPROPS_pow_get,
+        "powerr" : prestoc.BINARYPROPS_powerr_get,
+    })
     def __getattr__(self,name):
-        method = binaryprops.__getmethods__.get(name,None)
+        method = BINARYPROPS.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C binaryprops instance at %s>" % (self.this,)
-class binarypropsPtr(binaryprops):
+        return "<C BINARYPROPS instance at %s>" % (self.this,)
+class BINARYPROPSPtr(BINARYPROPS):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = binaryprops
+        self.__class__ = BINARYPROPS
 
 
 
-class rawbincand:
+class RAWBINCAND:
     def __init__(self,*args):
-        self.this = apply(prestoc.new_rawbincand,args)
+        self.this = apply(prestoc.new_RAWBINCAND,args)
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_rawbincand(self)
-    __setmethods__ = {
-        "full_N" : prestoc.rawbincand_full_N_set,
-        "full_T" : prestoc.rawbincand_full_T_set,
-        "full_lo_r" : prestoc.rawbincand_full_lo_r_set,
-        "mini_N" : prestoc.rawbincand_mini_N_set,
-        "mini_r" : prestoc.rawbincand_mini_r_set,
-        "mini_power" : prestoc.rawbincand_mini_power_set,
-        "mini_numsum" : prestoc.rawbincand_mini_numsum_set,
-        "mini_sigma" : prestoc.rawbincand_mini_sigma_set,
-        "psr_p" : prestoc.rawbincand_psr_p_set,
-        "orb_p" : prestoc.rawbincand_orb_p_set,
-    }
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
+        "full_N" : prestoc.RAWBINCAND_full_N_set,
+        "full_T" : prestoc.RAWBINCAND_full_T_set,
+        "full_lo_r" : prestoc.RAWBINCAND_full_lo_r_set,
+        "mini_N" : prestoc.RAWBINCAND_mini_N_set,
+        "mini_r" : prestoc.RAWBINCAND_mini_r_set,
+        "mini_power" : prestoc.RAWBINCAND_mini_power_set,
+        "mini_numsum" : prestoc.RAWBINCAND_mini_numsum_set,
+        "mini_sigma" : prestoc.RAWBINCAND_mini_sigma_set,
+        "psr_p" : prestoc.RAWBINCAND_psr_p_set,
+        "orb_p" : prestoc.RAWBINCAND_orb_p_set,
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
-        method = rawbincand.__setmethods__.get(name,None)
+        method = RAWBINCAND.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
-        "full_N" : prestoc.rawbincand_full_N_get,
-        "full_T" : prestoc.rawbincand_full_T_get,
-        "full_lo_r" : prestoc.rawbincand_full_lo_r_get,
-        "mini_N" : prestoc.rawbincand_mini_N_get,
-        "mini_r" : prestoc.rawbincand_mini_r_get,
-        "mini_power" : prestoc.rawbincand_mini_power_get,
-        "mini_numsum" : prestoc.rawbincand_mini_numsum_get,
-        "mini_sigma" : prestoc.rawbincand_mini_sigma_get,
-        "psr_p" : prestoc.rawbincand_psr_p_get,
-        "orb_p" : prestoc.rawbincand_orb_p_get,
-    }
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
+        "full_N" : prestoc.RAWBINCAND_full_N_get,
+        "full_T" : prestoc.RAWBINCAND_full_T_get,
+        "full_lo_r" : prestoc.RAWBINCAND_full_lo_r_get,
+        "mini_N" : prestoc.RAWBINCAND_mini_N_get,
+        "mini_r" : prestoc.RAWBINCAND_mini_r_get,
+        "mini_power" : prestoc.RAWBINCAND_mini_power_get,
+        "mini_numsum" : prestoc.RAWBINCAND_mini_numsum_get,
+        "mini_sigma" : prestoc.RAWBINCAND_mini_sigma_get,
+        "psr_p" : prestoc.RAWBINCAND_psr_p_get,
+        "orb_p" : prestoc.RAWBINCAND_orb_p_get,
+    })
     def __getattr__(self,name):
-        method = rawbincand.__getmethods__.get(name,None)
+        method = RAWBINCAND.__getmethods__.get(name,None)
         if method: return method(self)
         raise AttributeError,name
     def __repr__(self):
-        return "<C rawbincand instance at %s>" % (self.this,)
-class rawbincandPtr(rawbincand):
+        return "<C RAWBINCAND instance at %s>" % (self.this,)
+class RAWBINCANDPtr(RAWBINCAND):
     def __init__(self,this):
         self.this = this
         self.thisown = 0
-        self.__class__ = rawbincand
+        self.__class__ = RAWBINCAND
 
 
 
@@ -809,9 +849,11 @@ class foldstats:
         self.thisown = 1
 
     def __del__(self,prestoc=prestoc):
-        if self.thisown == 1 :
+        if getattr(self,'thisown',0):
             prestoc.delete_foldstats(self)
-    __setmethods__ = {
+    __setmethods__ = {}
+    for _s in []: __setmethods__.update(_s.__setmethods__)
+    __setmethods__.update({
         "numdata" : prestoc.foldstats_numdata_set,
         "data_avg" : prestoc.foldstats_data_avg_set,
         "data_var" : prestoc.foldstats_data_var_set,
@@ -819,13 +861,15 @@ class foldstats:
         "prof_avg" : prestoc.foldstats_prof_avg_set,
         "prof_var" : prestoc.foldstats_prof_var_set,
         "redchi" : prestoc.foldstats_redchi_set,
-    }
+    })
     def __setattr__(self,name,value):
         if (name == "this") or (name == "thisown"): self.__dict__[name] = value; return
         method = foldstats.__setmethods__.get(name,None)
         if method: return method(self,value)
         self.__dict__[name] = value
-    __getmethods__ = {
+    __getmethods__ = {}
+    for _s in []: __getmethods__.update(_s.__getmethods__)
+    __getmethods__.update({
         "numdata" : prestoc.foldstats_numdata_get,
         "data_avg" : prestoc.foldstats_data_avg_get,
         "data_var" : prestoc.foldstats_data_var_get,
@@ -833,7 +877,7 @@ class foldstats:
         "prof_avg" : prestoc.foldstats_prof_avg_get,
         "prof_var" : prestoc.foldstats_prof_var_get,
         "redchi" : prestoc.foldstats_redchi_get,
-    }
+    })
     def __getattr__(self,name):
         method = foldstats.__getmethods__.get(name,None)
         if method: return method(self)

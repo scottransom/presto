@@ -1,13 +1,13 @@
-PYTHONBASE    = /home/ransom/python2.1
+PYTHONBASE    = /usr
 DATABASE      = "$(PRESTO)/lib"
 INSTALLDIR    = /home/ransom/python
 INCLUDE       = -I$(PYTHONBASE)/include/python2.1 -I$(PYTHONBASE)/include/python2.1/Numeric -I../include
 #INCLUDE       = -IPYTHONBASE/include/python2.1 -I../include -I/home/ransom/include
 CC            = cc
 CWARN         = -Xa -vc
-CFLAGS        = -g -O -fpic $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
+CFLAGS        = -g -O -fPIC $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
 #CFLAGS        = -g -O $(CWARN) $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
-LIBPATHS      = -L"$(PRESTO)/lib" -L/home/ransom/lib
+LIBPATHS      = -L"$(PRESTO)/lib" -L/usr/local/lib
 LIBS          = -lpresto -lsfftw -lm
 SWIG          = swig 
 SWIGOPT       = -python -shadow
