@@ -954,9 +954,13 @@ int main(int argc, char *argv[])
       skip_to_BPP_rec(infiles, numfiles, lorec+1);
     else if (cmd->wappP)
       skip_to_WAPP_rec(infiles, numfiles, lorec+1);
-    else
-      chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
-  
+    else {
+      if (useshorts)
+	chkfileseek(infiles[0], lorec, sizeof(short), SEEK_SET);
+      else
+	chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
+    }
+
     /* Correct our fold parameters if we are barycentering */
   
     if (cmd->nobaryP) {
