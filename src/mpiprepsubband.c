@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
   showOptionValues();
 #endif
 
-  if (myid==0){
+  if (myid==0){  /* Master node only */
     printf("\n\n");
     printf("      Parallel Pulsar Subband De-dispersion Routine\n");
     printf("                 by Scott M. Ransom\n");
@@ -280,7 +280,7 @@ int main(int argc, char *argv[])
     /* is ptsperblk since the correlator lags are converted to 1 byte     */
     /* filterbank channels in read_WAPP_rawblock()                        */
     if (cmd->wappP){
-      bytesperblk = ptsperblk;
+      bytesperblk = ptsperblk*numchan;
       bytesperpt = numchan;
     }
   }

@@ -48,6 +48,7 @@ void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk,
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
   numchan_st = numchan;
+  sampperblk_st = ptsperblk_st * numchan_st;
   clip_sigma_st = clip_sigma;
   dt_st = dt;
 }
