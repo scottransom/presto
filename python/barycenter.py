@@ -21,6 +21,22 @@ def convert_angle(inval, flag=1):
     if (flag == 1 or flag == 3): ang = ang * twopi
     return ang
 
+def hms2hours(hms):
+    """
+    hms2hours(hms):
+        Converts an angle 'hms' expressed as hhmmss.ss into
+        fractional hours.
+    """
+    return convert_angle(hms, 4) * 24.0
+
+def dms2deg(dms):
+    """
+    dms2deg(dms):
+        Converts an angle 'dms' expressed as ddmmss.ss into
+        fractional degrees.
+    """
+    return convert_angle(dms, 2) * 360.0
+
 def rad2dms(rad):
     """
     rad2dms(rad):
