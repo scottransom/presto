@@ -4,8 +4,14 @@
 /* #define ACCEL_USELEN 64000 */
 #define ACCEL_USELEN 32000
 #define ACCEL_NUMBETWEEN 2
-#define ACCEL_DR 0.5
-#define ACCEL_DZ 2
+/* Stepsize in Fourier Freq */
+#define ACCEL_DR  0.5
+/* Reciprocal of ACCEL_DR */
+#define ACCEL_RDR 2
+/* Stepsize in Fourier F-dot */
+#define ACCEL_DZ  2
+/* Reciprocal of ACCEL_DZ */
+#define ACCEL_RDZ 0.5
 
 typedef struct accelobs{
   long long N;         /* Number of data points in observation */
@@ -52,12 +58,11 @@ typedef struct kernel{
 } kernel;
 
 typedef struct subharminfo{
-  int subharm;         /* The sub-harmonic (1=fundamental) */
-  int subharm_zmax;    /* The maximum Fourier f-dot for this harmonic */
-  int num_z_zero;      /* Number of times the z=0.0 accel is reproduced */
-  int num_r_offset;    /* Number of bins (full) to offset for summation */
-  int numkern;         /* Number of kernels in the vector */
-  kernel *kern;        /* The kernels themselves */
+  int numharm;       /* The number of sub-harmonics */
+  int harmnum;       /* The sub-harmonic number (fundamental = numharm) */
+  int zmax;          /* The maximum Fourier f-dot for this harmonic */
+  int numkern;       /* Number of kernels in the vector */
+  kernel *kern;      /* The kernels themselves */
 } subharminfo;
 
 
