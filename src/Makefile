@@ -44,7 +44,7 @@ PRESTOLIB = presto
 # Use the following to define the propoer library suffix for your
 # computer (usually 'so' or 'sl' for shared libraries or 'a' for
 # static libraries.
-LIBSUFFIX = so
+LIBSUFFIX = a
 
 # The true library names
 PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
@@ -74,11 +74,11 @@ CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
 #	-Waggregate-return -fno-common -Wnested-externs
 #	-O4 -mcpu=pentiumpro -march=pentiumpro -funroll-loops -fforce-addr -fno-strict-aliasing 
-LIBLINKFLAGS = -shared
-LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
-#LINKCOMMAND = ar rcs
+LIBLINKFLAGS = -static
+#LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
+LINKCOMMAND = ar rcs
 FFLAGS = -g -O
-FLINK = $(FC) -shared
+FLINK = $(FC) -static
 FLINKFLAGS = $(FFLAGS)
 
 # For DEC Alpha
@@ -155,7 +155,8 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat bincand taperaw\
-	accelsearch prepsubband cal2mjd split_parkes_beams
+	accelsearch prepsubband cal2mjd split_parkes_beams\
+	dat2sdat
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd\
@@ -207,6 +208,10 @@ patchdata: patchdata.o
 	$(CC) $(CFLAGS) -o $@ patchdata.o $(DMALLOCLINK)
 	cp $@ ../bin
 
+dat2sdat: dat2sdat.o
+	$(CC) $(CFLAGS) -o $@ dat2sdat.o $(PRESTOLINK) -lm
+	cp $@ ../bin
+		
 check_parkes_raw: check_parkes_raw.o multibeam.o
 	$(CC) $(CFLAGS) -o $@ check_parkes_raw.o multibeam.o $(PRESTOLINK) -lm
 	cp $@ ../bin
@@ -373,7 +378,7 @@ remove_executables:
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
 	rm -f accelsearch prepsubband explorefft exploredat 
-	rm -f mpiprepsubband split_parkes_beams $(PRESTOLIBNM)
+	rm -f mpiprepsubband split_parkes_beams dat2sdat $(PRESTOLIBNM)
 
 cleaner:  clean remove_executables
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
@@ -395,4 +400,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
 	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles accelsearch
 	cd $(PRESTO)/bin ; rm -f prepsubband plotdat plotfft explorefft exploredat
-	cd $(PRESTO)/bin ; rm -f mpiprepsubband split_parkes_beams
+	cd $(PRESTO)/bin ; rm -f mpiprepsubband split_parkes_beams dat2sdat
