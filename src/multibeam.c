@@ -538,6 +538,7 @@ int prep_PKMB_subbands(unsigned char *rawdata, float *data,
     }
     SWAP(currentdata, lastdata);
     firsttime=0;
+    return 0;
   }
 
   /* Read, convert and de-disperse */
@@ -596,8 +597,21 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data,
 /* in time order instead of arranged by subband as above.        */
 {
   PKMB_tapehdr hdr;
+  static int firsttime=1;
   static unsigned char raw[DATLEN];
   
+  if (firsttime){
+    if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding)){
+      printf("Problem reading the raw PKMB data file.\n\n");
+      return 0;
+    }
+    if (0!=prep_PKMB_subbands(raw, data, dispdelays, numsubbands, 
+			      transpose, maskchans, nummasked, obsmask)){
+      printf("Problem initializing prep_PKMB_subbands()\n\n");
+      return 0;
+    }
+    firsttime = 0;
+  }
   if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw, padding)){
     printf("Problem reading the raw PKMB data file.\n\n");
     return 0;
