@@ -1618,14 +1618,14 @@ int main(int argc, char *argv[])
 	  
 	  for (ipd=0; ipd<numtrials; ipd++){  /* Loop over the pds */
 	    if (!cmd->nopdsearchP) good_ipd = ipd;
-	    else if (cmd->nopdsearchP && ipd!=good_ipd) continue;
+	    else if (cmd->nopdsearchP && cmd->nsub > 1 && ipd!=good_ipd) continue;
 	    for (ii=0; ii<cmd->npart; ii++)
 	      pd_delays[ii] = pdd_delays[ii] + \
 		fdot2phasedelay(fdots[ipd], parttimes[ii])*search.proflen;
 	    
 	    for (ip=0; ip<numtrials; ip++){  /* Loop over the ps */
 	      if (!cmd->nopsearchP) good_ip = ip;
-	      else if (cmd->nopsearchP && ip!=good_ip) continue;
+	      else if (cmd->nopsearchP && cmd->nsub > 1 && ip!=good_ip) continue;
 	      totpdelay = search.pstep*(ip-(numtrials-1)/2);
 	      for (ii=0; ii<cmd->npart; ii++)
 		delays[ii] = pd_delays[ii] + (double)(ii*totpdelay)/cmd->npart;

@@ -52,7 +52,7 @@ def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
                If no range is given, the smallest and largest
                data values are used to define the interval.
     Note:  This command also accepts some basic flags for the plot,
-           like labx, laby, aspect, color, line, wdth, and device.
+           like labx, laby, aspect, color, line, width, and device.
      """
     rawh = Histogram(data, bins, range)
     h = Numeric.transpose(rawh[:])
