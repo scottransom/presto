@@ -555,7 +555,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   bytesperpt_st = (numchan_st * numifs_st * bits_per_samp_st) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   filedatalen_st[0] = chkfilelen(files[0], 1) - 
-    asciihdrlen - MAX_WAPP_HEADER_SIZE;
+    asciihdrlen - header_size_st;
   numblks_st[0] = filedatalen_st[0] / bytesperblk_st;
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
@@ -593,7 +593,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
     }
     filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
-      asciihdrlen - MAX_WAPP_HEADER_SIZE;
+      asciihdrlen - header_size_st;
     numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
     times_st[ii] = numpts_st[ii] * dt_st;
