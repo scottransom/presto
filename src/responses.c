@@ -1,6 +1,6 @@
 #include "presto.h"
 
-#define NUM_PTS_ORB 524288
+#define MIN_NUM_DATA 524288
 #define NUM_PTS_WDAT 131072
 
 /* Function declarations */
@@ -456,7 +456,8 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 {
 
   int fftlen, ii, beginbin, numintkern, index;
-  int numorbpts=32769; /* This should be a power-of-two + 1 */
+  int numdata = MIN_NUM_DATA;
+  int numorbpts = 32769; /* This should be a power-of-two + 1 */
   float *data;
   double *phi = NULL, startE;
   double amp, f, dt, dtb, t, tp, z, fpart, ipart, dtemp;
@@ -477,7 +478,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 	   numbetween);
     exit(-1);
   }
-  if (numkern < numbetween || numkern > NUM_PTS_ORB * numbetween / 4) {
+  if (numkern < numbetween || numkern > numdata * numbetween / 4) {
     printf("\n  numkern = %d (out of bounds) in gen_bin_response().\n\n", \
 	   numkern);
     exit(-1);
@@ -489,13 +490,15 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
   /* Initialize some data */
 
+  if (numkern > numdata * numbetween / 4)
+    numdata = next2_to_n(numkern * 4 / numbetween);
   z = orbit->x / ppsr;
-  dt = 1.0 / (double) NUM_PTS_ORB;
+  dt = 1.0 / (double) numdata;
   dtb = 1.0 / (double) (numorbpts - 1);
   amp = 2.0 * dt;
-  f = TWOPI * (double) (NUM_PTS_ORB / 4);
+  f = TWOPI * (double) (numdata / 4);
   orb.p = orbit->p / T;
-  orb.x = z / (double) (NUM_PTS_ORB / 4);
+  orb.x = z / (double) (numdata / 4);
   orb.e = orbit->e;
   orb.w = orbit->w * DEGTORAD;
   orb.t = orbit->t / T;
@@ -508,8 +511,8 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
   /* Generate the data set */
 
-  data = gen_fvect(NUM_PTS_ORB);
-  for(ii = 0; ii < NUM_PTS_ORB; ii++){
+  data = gen_fvect(numdata);
+  for(ii = 0; ii < numdata; ii++){
     t = ii * dt;
     /* The following 4 lines simply linearly interpolate   */
     /* the orbital solution and add the delay to the time. */
@@ -523,7 +526,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
   /* FFT the data */
 
-  realfft(data, NUM_PTS_ORB, -1);
+  realfft(data, numdata, -1);
 
   /* The following block saves us from having to re-compute */
   /* the Fourier interpolation kernels if 'numkern' is the  */
@@ -531,10 +534,10 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
   numintkern = 2 * numbetween * r_resp_halfwidth(HIGHACC);
   fftlen = next2_to_n(numkern + numintkern);
-  if (fftlen > NUM_PTS_ORB){
-    printf("WARNING:  fftlen > NUM_PTS_ORB in gen_bin_response().\n");
+  if (fftlen > numdata){
+    printf("WARNING:  fftlen > numdata in gen_bin_response().\n");
   }
-  beginbin = NUM_PTS_ORB/4 - numkern / (2 * numbetween);
+  beginbin = numdata/4 - numkern / (2 * numbetween);
   if (firsttime || 
       old_numkern != numkern || 
       old_numbetween != numbetween ||
@@ -569,7 +572,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /* Generate the data array */
 
   dataarray = gen_cvect(fftlen);
-  if (fftlen / numbetween >= NUM_PTS_ORB - beginbin){
+  if (fftlen / numbetween >= numdata - beginbin){
     printf("WARNING:  fftlen too large in gen_bin_response().\n");
   }
   spread_no_pad(((fcomplex *) data) + beginbin, numkern / numbetween, \
