@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
   int numfiles, numtoas, numchan=1, binary=0, numdelays=0, numbarypts=0;
   int info, ptsperrec=1, flags=1, padding=0, arrayoffset=0, useshorts=0;
   int *maskchans=NULL, nummasked=0;
-  long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
+  long ii=0, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0;
   BPP_ifs bppifs=SUMIFS;
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     Program = argv[0];
     usage();
     exit(0);
-  }
+ }
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
@@ -137,7 +137,31 @@ int main(int argc, char *argv[])
 
     if (cmd->toasP){ /* Use TOAs instead of a time series */
       double MJD0=-1.0, firsttoa;
-
+      /* The following allows using inf files from searches of a subset */
+      /* of TOAs from an event file.                                    */
+      if (cmd->rzwcandP) {
+	infodata rzwidata;
+	char *cptr;
+	
+	if (!cmd->rzwfileP) {					
+	  printf("\nYou must enter a name for the rzw candidate ");
+	  printf("file (-rzwfile filename)\n");
+	  printf("Exiting.\n\n");
+	  exit(1);
+	} else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))){
+	  ii = (long) (cptr - cmd->rzwfile);
+	} else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))){
+	  ii = (long) (cptr - cmd->rzwfile);
+	}
+	cptr = (char *)calloc(ii + 1, sizeof(char));
+	strncpy(cptr, cmd->rzwfile, ii);
+	readinf(&rzwidata, cptr);
+	free(cptr);
+	idata.mjd_i = rzwidata.mjd_i;
+	idata.mjd_f = rzwidata.mjd_f;
+	idata.N = rzwidata.N;
+	idata.dt = rzwidata.dt;
+      }
       if (!cmd->secsP && !cmd->daysP && idata.mjd_i) 
 	MJD0 = (double) idata.mjd_i + idata.mjd_f;
       if (cmd->toaoffset != 0.0){
@@ -160,7 +184,10 @@ int main(int argc, char *argv[])
 	infiles[0] = chkfopen(cmd->argv[0], "r");
       TOAs = read_toas(infiles[0], cmd->doubleP, cmd->secsP, &numtoas,
 		       MJD0, idata.N*idata.dt, &firsttoa);
-      T = TOAs[numtoas-1];
+      if (cmd->rzwcandP)
+	T = idata.N*idata.dt;
+      else
+	T = TOAs[numtoas-1];
     } else {
       infiles[0] = chkfopen(cmd->argv[0], "rb");
     }
