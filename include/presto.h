@@ -262,6 +262,10 @@ typedef struct foldstats {
   double redchi;      /* Reduced chi-squared of the profile */
 } foldstats;
 
+typedef struct bird{
+  double lobin;
+  double hibin;
+} bird;
 
 /*****  Function Prototypes    *****/
 
