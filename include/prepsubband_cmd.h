@@ -27,6 +27,10 @@ typedef struct s_Cmdline {
   char clipP;
   float clip;
   int clipC;
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  char numwappsP;
+  int numwapps;
+  int numwappsC;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
   int numout;

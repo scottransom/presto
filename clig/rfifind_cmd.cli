@@ -19,6 +19,8 @@ Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
 Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.} \
 	-r 0 20.0  -d 0.0
+Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
+	-r 1 7    -d 1
 Flag   -xwin    xwin    {Draw plots to the screen as well as a PS file}
 Flag   -nocompute nocompute {Just plot and remake the mask}
 Flag   -rfixwin rfixwin {Show the RFI instances on screen}

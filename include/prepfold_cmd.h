@@ -27,6 +27,10 @@ typedef struct s_Cmdline {
   char clipP;
   float clip;
   int clipC;
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  char numwappsP;
+  int numwapps;
+  int numwappsC;
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   char nobaryP;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */

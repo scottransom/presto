@@ -27,6 +27,10 @@ typedef struct s_Cmdline {
   char clipP;
   float clip;
   int clipC;
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  char numwappsP;
+  int numwapps;
+  int numwappsC;
   /***** -xwin: Draw plots to the screen as well as a PS file */
   char xwinP;
   /***** -nocompute: Just plot and remake the mask */

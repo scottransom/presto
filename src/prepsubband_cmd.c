@@ -40,6 +40,10 @@ static Cmdline cmd = {
   /* clipP = */ 1,
   /* clip = */ 0.0,
   /* clipC = */ 1,
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  /* numwappsP = */ 1,
+  /* numwapps = */ 1,
+  /* numwappsC = */ 1,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (int)0,
@@ -840,6 +844,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  if( !cmd.numwappsP ) {
+    printf("-numwapps not found.\n");
+  } else {
+    printf("-numwapps found:\n");
+    if( !cmd.numwappsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numwapps);
+    }
+  }
+
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   if( !cmd.numoutP ) {
     printf("-numout not found.\n");
@@ -953,7 +969,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
@@ -965,6 +981,9 @@ usage(void)
       -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
              1 float value between 0 and 20.0\n\
              default: `0.0'\n\
+  -numwapps: Number of WAPPs used with contiguous frequencies\n\
+             1 int value between 1 and 7\n\
+             default: `1'\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
              1 int value between 1 and oo\n\
     -nobary: Do not barycenter the data\n\
@@ -988,7 +1007,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 28Aug01\n\
+version: 04Nov02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1047,6 +1066,16 @@ parseCmdline(int argc, char **argv)
       cmd.clipC = i-keep;
       checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
       checkFloatHigher("-clip", &cmd.clip, cmd.clipC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-numwapps", argv[i]) ) {
+      int keep = i;
+      cmd.numwappsP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
+      cmd.numwappsC = i-keep;
+      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
+      checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
       continue;
     }
 

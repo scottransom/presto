@@ -15,7 +15,7 @@
 #include <float.h>
 #include <math.h>
 
-#include "prepdata_cmd.h"
+#include "mpiprepsubband_cmd.h"
 
 char *Program;
 
@@ -40,10 +40,6 @@ static Cmdline cmd = {
   /* clipP = */ 1,
   /* clip = */ 0.0,
   /* clipC = */ 1,
-  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
-  /* numwappsP = */ 1,
-  /* numwapps = */ 1,
-  /* numwappsC = */ 1,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (int)0,
@@ -52,10 +48,26 @@ static Cmdline cmd = {
   /* nobaryP = */ 0,
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   /* de405P = */ 0,
-  /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
-  /* dmP = */ 1,
-  /* dm = */ 0,
-  /* dmC = */ 1,
+  /***** -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc) */
+  /* lodmP = */ 1,
+  /* lodm = */ 0,
+  /* lodmC = */ 1,
+  /***** -dmstep: The stepsize in dispersion measure to use(cm^-3 pc) */
+  /* dmstepP = */ 1,
+  /* dmstep = */ 1.0,
+  /* dmstepC = */ 1,
+  /***** -numdms: The number of DMs to de-disperse */
+  /* numdmsP = */ 1,
+  /* numdms = */ 10,
+  /* numdmsC = */ 1,
+  /***** -numsub: The number of sub-bands to use */
+  /* numsubP = */ 1,
+  /* numsub = */ 32,
+  /* numsubC = */ 1,
+  /***** -downsamp: The number of neighboring bins to co-add */
+  /* downsampP = */ 1,
+  /* downsamp = */ 1,
+  /* downsampC = */ 1,
   /***** -mask: File containing masking information to use */
   /* maskfileP = */ 0,
   /* maskfile = */ (char*)0,
@@ -828,18 +840,6 @@ showOptionValues(void)
     }
   }
 
-  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
-  if( !cmd.numwappsP ) {
-    printf("-numwapps not found.\n");
-  } else {
-    printf("-numwapps found:\n");
-    if( !cmd.numwappsC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.numwapps);
-    }
-  }
-
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   if( !cmd.numoutP ) {
     printf("-numout not found.\n");
@@ -866,15 +866,63 @@ showOptionValues(void)
     printf("-DE405 found:\n");
   }
 
-  /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
-  if( !cmd.dmP ) {
-    printf("-dm not found.\n");
+  /***** -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc) */
+  if( !cmd.lodmP ) {
+    printf("-lodm not found.\n");
   } else {
-    printf("-dm found:\n");
-    if( !cmd.dmC ) {
+    printf("-lodm found:\n");
+    if( !cmd.lodmC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.dm);
+      printf("  value = `%.40g'\n", cmd.lodm);
+    }
+  }
+
+  /***** -dmstep: The stepsize in dispersion measure to use(cm^-3 pc) */
+  if( !cmd.dmstepP ) {
+    printf("-dmstep not found.\n");
+  } else {
+    printf("-dmstep found:\n");
+    if( !cmd.dmstepC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.dmstep);
+    }
+  }
+
+  /***** -numdms: The number of DMs to de-disperse */
+  if( !cmd.numdmsP ) {
+    printf("-numdms not found.\n");
+  } else {
+    printf("-numdms found:\n");
+    if( !cmd.numdmsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numdms);
+    }
+  }
+
+  /***** -numsub: The number of sub-bands to use */
+  if( !cmd.numsubP ) {
+    printf("-numsub not found.\n");
+  } else {
+    printf("-numsub found:\n");
+    if( !cmd.numsubC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numsub);
+    }
+  }
+
+  /***** -downsamp: The number of neighboring bins to co-add */
+  if( !cmd.downsampP ) {
+    printf("-downsamp not found.\n");
+  } else {
+    printf("-downsamp found:\n");
+    if( !cmd.downsampC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.downsamp);
     }
   }
 
@@ -905,8 +953,8 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-numout numout] [-nobary] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
-    Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+    Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
@@ -917,21 +965,30 @@ usage(void)
       -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
              1 float value between 0 and 20.0\n\
              default: `0.0'\n\
-  -numwapps: Number of WAPPs used with contiguous frequencies\n\
-             1 int value between 1 and 7\n\
-             default: `1'\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
              1 int value between 1 and oo\n\
     -nobary: Do not barycenter the data\n\
      -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
-        -dm: The dispersion measure to de-disperse (cm^-3 pc)\n\
+      -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc)\n\
              1 double value between 0 and oo\n\
              default: `0'\n\
+    -dmstep: The stepsize in dispersion measure to use(cm^-3 pc)\n\
+             1 double value between 0 and oo\n\
+             default: `1.0'\n\
+    -numdms: The number of DMs to de-disperse\n\
+             1 int value between 1 and 2000\n\
+             default: `10'\n\
+    -numsub: The number of sub-bands to use\n\
+             1 int value between 1 and 1024\n\
+             default: `32'\n\
+  -downsamp: The number of neighboring bins to co-add\n\
+             1 int value between 1 and 20\n\
+             default: `1'\n\
       -mask: File containing masking information to use\n\
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 04Nov02\n\
+version: 15Feb02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -993,16 +1050,6 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-numwapps", argv[i]) ) {
-      int keep = i;
-      cmd.numwappsP = 1;
-      i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
-      cmd.numwappsC = i-keep;
-      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
-      checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
-      continue;
-    }
-
     if( 0==strcmp("-numout", argv[i]) ) {
       int keep = i;
       cmd.numoutP = 1;
@@ -1022,12 +1069,51 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-dm", argv[i]) ) {
+    if( 0==strcmp("-lodm", argv[i]) ) {
       int keep = i;
-      cmd.dmP = 1;
-      i = getDoubleOpt(argc, argv, i, &cmd.dm, 1);
-      cmd.dmC = i-keep;
-      checkDoubleHigher("-dm", &cmd.dm, cmd.dmC, 0);
+      cmd.lodmP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.lodm, 1);
+      cmd.lodmC = i-keep;
+      checkDoubleHigher("-lodm", &cmd.lodm, cmd.lodmC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-dmstep", argv[i]) ) {
+      int keep = i;
+      cmd.dmstepP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.dmstep, 1);
+      cmd.dmstepC = i-keep;
+      checkDoubleHigher("-dmstep", &cmd.dmstep, cmd.dmstepC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-numdms", argv[i]) ) {
+      int keep = i;
+      cmd.numdmsP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.numdms, 1);
+      cmd.numdmsC = i-keep;
+      checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 2000);
+      checkIntHigher("-numdms", &cmd.numdms, cmd.numdmsC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-numsub", argv[i]) ) {
+      int keep = i;
+      cmd.numsubP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.numsub, 1);
+      cmd.numsubC = i-keep;
+      checkIntLower("-numsub", &cmd.numsub, cmd.numsubC, 1024);
+      checkIntHigher("-numsub", &cmd.numsub, cmd.numsubC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-downsamp", argv[i]) ) {
+      int keep = i;
+      cmd.downsampP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.downsamp, 1);
+      cmd.downsampC = i-keep;
+      checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 20);
+      checkIntHigher("-downsamp", &cmd.downsamp, cmd.downsampC, 1);
       continue;
     }
 

@@ -40,6 +40,10 @@ static Cmdline cmd = {
   /* clipP = */ 1,
   /* clip = */ 0.0,
   /* clipC = */ 1,
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  /* numwappsP = */ 1,
+  /* numwapps = */ 1,
+  /* numwappsC = */ 1,
   /***** -xwin: Draw plots to the screen as well as a PS file */
   /* xwinP = */ 0,
   /***** -nocompute: Just plot and remake the mask */
@@ -840,6 +844,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  if( !cmd.numwappsP ) {
+    printf("-numwapps not found.\n");
+  } else {
+    printf("-numwapps found:\n");
+    if( !cmd.numwappsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numwapps);
+    }
+  }
+
   /***** -xwin: Draw plots to the screen as well as a PS file */
   if( !cmd.xwinP ) {
     printf("-xwin not found.\n");
@@ -963,7 +979,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
@@ -975,6 +991,9 @@ usage(void)
        -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
               1 float value between 0 and 20.0\n\
               default: `0.0'\n\
+   -numwapps: Number of WAPPs used with contiguous frequencies\n\
+              1 int value between 1 and 7\n\
+              default: `1'\n\
        -xwin: Draw plots to the screen as well as a PS file\n\
   -nocompute: Just plot and remake the mask\n\
     -rfixwin: Show the RFI instances on screen\n\
@@ -996,7 +1015,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...100 values\n\
-version: 13Dec01\n\
+version: 04Nov02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1055,6 +1074,16 @@ parseCmdline(int argc, char **argv)
       cmd.clipC = i-keep;
       checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
       checkFloatHigher("-clip", &cmd.clip, cmd.clipC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-numwapps", argv[i]) ) {
+      int keep = i;
+      cmd.numwappsP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
+      cmd.numwappsC = i-keep;
+      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
+      checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
       continue;
     }
 

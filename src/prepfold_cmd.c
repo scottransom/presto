@@ -40,6 +40,10 @@ static Cmdline cmd = {
   /* clipP = */ 1,
   /* clip = */ 0.0,
   /* clipC = */ 1,
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  /* numwappsP = */ 1,
+  /* numwapps = */ 1,
+  /* numwappsC = */ 1,
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   /* nobaryP = */ 0,
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
@@ -976,6 +980,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
+  if( !cmd.numwappsP ) {
+    printf("-numwapps not found.\n");
+  } else {
+    printf("-numwapps found:\n");
+    if( !cmd.numwappsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numwapps);
+    }
+  }
+
   /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   if( !cmd.nobaryP ) {
     printf("-nobary not found.\n");
@@ -1537,7 +1553,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
+ [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
@@ -1549,6 +1565,9 @@ usage(void)
         -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.\n\
                1 float value between 0 and 20.0\n\
                default: `0.0'\n\
+    -numwapps: Number of WAPPs used with contiguous frequencies\n\
+               1 int value between 1 and 7\n\
+               default: `1'\n\
       -nobary: Do not barycenter (assume input parameters are topocentric)\n\
        -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
         -xwin: Show the result plots on-screen as well as make a plotfile\n\
@@ -1659,7 +1678,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 11Sep02\n\
+version: 04Nov02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1717,6 +1736,16 @@ parseCmdline(int argc, char **argv)
       cmd.clipC = i-keep;
       checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
       checkFloatHigher("-clip", &cmd.clip, cmd.clipC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-numwapps", argv[i]) ) {
+      int keep = i;
+      cmd.numwappsP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
+      cmd.numwappsC = i-keep;
+      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
+      checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
       continue;
     }
 
