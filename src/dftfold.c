@@ -96,7 +96,7 @@ int main(int argc, char *argv[])
   /* Initialize the dftvector */
 
   init_dftvector(&dftvec, dataperread, cmd->numvect, 
-		 idata.dt, rr, norm);
+		 idata.dt, rr, norm, T);
 
   /* Show our folding values */
 
@@ -175,6 +175,7 @@ void read_dftvector(dftvector *data, char *filename)
   chkfread(&data->dt, sizeof(double), 1, infile);
   chkfread(&data->r, sizeof(double), 1, infile);
   chkfread(&data->norm, sizeof(double), 1, infile);
+  chkfread(&data->T, sizeof(double), 1, infile);
   data->vector = gen_cvect(data->n);
   for (ii=0; ii<data->numvect; ii++){
     chkfread(&dtmp, sizeof(double), 1, infile);
@@ -200,6 +201,7 @@ void write_dftvector(dftvector *data, char *filename)
   chkfwrite(&data->dt, sizeof(double), 1, outfile);
   chkfwrite(&data->r, sizeof(double), 1, outfile);
   chkfwrite(&data->norm, sizeof(double), 1, outfile);
+  chkfwrite(&data->T, sizeof(double), 1, outfile);
   for (ii=0; ii<data->numvect; ii++){
     dtmp = (double) data->vector[ii].r;
     chkfwrite(&dtmp, sizeof(double), 1, outfile);
@@ -210,7 +212,8 @@ void write_dftvector(dftvector *data, char *filename)
 }
 
 void init_dftvector(dftvector *data, int n, int numvect, 
-		    double dt, double r, double norm)
+		    double dt, double r, double norm,
+		    double T)
 /* Initialize a dftvector and allocate its vector part */
 {
   data->n = n;
@@ -218,6 +221,7 @@ void init_dftvector(dftvector *data, int n, int numvect,
   data->dt = dt;
   data->r = r;
   data->norm = norm;
+  data->T = T;
   data->vector = gen_cvect(n);
 }
 

@@ -6,6 +6,7 @@ typedef struct DFTVECTOR {
   double dt;        /* Duration (s) of each data point                */
   double r;         /* Fourier frequency folded                       */
   double norm;      /* Normalization used on vector                   */
+  double T;         /* Total duration of original data set.           */
   fcomplex *vector; /* Calculated DFT vector                          */
 } dftvector;
 
@@ -16,7 +17,8 @@ void write_dftvector(dftvector *data, char *filename);
 /* Write a dftvector data structure to a binary file */
 
 void init_dftvector(dftvector *data, int n, int numvect, 
-		    double dt, double r, double norm);
+		    double dt, double r, double norm,
+		    double T);
 /* Initialize a dftvector and allocate its vector part */
 
 void free_dftvector(dftvector *data);
