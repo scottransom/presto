@@ -329,9 +329,9 @@ int main(int argc, char *argv[])
   }
   T = idata.dt * idata.N;
   dr = 1.0 / NUMBETWEEN;
-
+	
   if (cmd->zapP){  /* Automatic  */
-    double *bird_lobins, *bird_hibins;
+    double *bird_lobins, *bird_hibins, hibin;
     
     if (!cmd->zapfileP){
       printf("You must specify a 'zapfile' containing freqs\n");
@@ -339,6 +339,7 @@ int main(int argc, char *argv[])
       free(rootfilenm);
       exit(0);
     }
+    hibin = idata.N / 2;
 
     /* Read the Standard bird list */
 
@@ -348,8 +349,13 @@ int main(int argc, char *argv[])
     /* Zap the birdies */
 
     fftfile = chkfopen(cmd->argv[0], "rb+");
-    for (ii=0; ii<numbirds; ii++)
+    for (ii=0; ii<numbirds; ii++){
+      if (bird_lobins[ii] >= hibin)
+	break;
+      if (bird_hibins[ii] >= hibin)
+	bird_hibins[ii] = hibin - 1;
       zapbirds(bird_lobins[ii], bird_hibins[ii]);
+    }
 
     free(bird_lobins);
     free(bird_hibins);
