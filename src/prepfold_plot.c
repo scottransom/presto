@@ -74,6 +74,30 @@ void scaleprof(double *in, float *out, int n, int scalesep, double gmax)
 }
 
 
+void fscaleprof(float *in, float *out, int n, int scalesep, double gmax)
+/* Scales an input vector so that it goes from 0.0 to 1.0 */
+{
+  int ii;
+  float norm, min=1e100, max=-1e100;
+  
+  minmax(in, n, &min, &max);
+  if (scalesep){
+    /* Each plot is normalized independently */
+    norm = 1.0 / (max - min);
+  } else {
+    /* All plots are normalized together */
+    norm = 1.0 / gmax;
+  }
+  if (TEST_CLOSE(min, max, 1.0e-7)){
+    for (ii=0; ii<n; ii++)
+      out[ii] = 0.0;
+  } else {
+    for (ii=0; ii<n; ii++)
+      out[ii] = (float) ((in[ii] - min) * norm);
+  }
+}
+
+
 void lininterp (float min, float max, int npts, float *v)
 {
   register int i;
@@ -826,7 +850,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	
 	/* Plots for each subband */
 	
-	{
+	if (0){
 	  int chanpersb;
 	  double lofreq, hifreq, losubfreq, hisubfreq;
 	  float *tmpprof, dsubf, foffset, fnorm;
@@ -865,8 +889,67 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	    cpgline(search->proflen+1, phaseone, tmpprof);
 	  }
 	  free(tmpprof);
+	} else {
+	  int chanpersb;
+	  double lofreq, hifreq, losubfreq, hisubfreq;
+	  float dsubf;
+	  
+	  chanpersb = search->numchan / search->nsub; 
+	  dsubf = chanpersb * search->chan_wid;
+	  lofreq = search->lofreq + dsubf - search->chan_wid;
+	  hifreq = search->lofreq + search->nsub * dsubf - search->chan_wid;
+	  losubfreq = doppler(lofreq, search->avgvoverc);
+	  hisubfreq = doppler(hifreq, search->avgvoverc);
+	  cpgsvp (0.44, 0.66, 0.3, 0.68);
+	  cpgswin(0.0, 1.0, 0.0, search->nsub);
+	  {
+	    int mincol, maxcol, numcol, nr, nc;
+	    float min, max, gmax=-1.0e100;
+	    float l[2] = {0.0, 1.0};
+	    float r[2] = {1.0, 0.0};
+	    float g[2] = {1.0, 0.0};
+	    float b[2] = {1.0, 0.0};
+	    float fg = 0.0, bg = 0.0, tr[6], *levels;
+	    float x1 = 0.0, y1 = 0.0, x2 = 1.0, y2 = search->nsub;
+	    float *subprofs;
+	    
+	    nr = search->nsub;
+	    nc = search->proflen;
+	    subprofs = gen_fvect(nr * nc);
+	    cpgqcol(&mincol, &maxcol);
+	    mincol += 2;
+	    cpgscir(mincol, maxcol);
+	    numcol = maxcol - mincol + 1;
+	    levels = gen_fvect(numcol);
+	    cpgctab(l, r, g, b, numcol, 1.0, 0.5);
+	    for (ii = 0; ii < search->nsub; ii++){
+	      profindex = ii * search->proflen;
+	      find_min_max_arr(search->proflen, 
+			       dmprofs + profindex, &min, &max);
+	      if (max > gmax) gmax = max;
+	    }
+	    for (ii = 0; ii < search->nsub; ii++){
+	      profindex = ii * search->proflen;
+	      fscaleprof(dmprofs + profindex, subprofs + profindex, 
+			 search->proflen, flags->scaleparts, gmax);
+	    }
+	    autocal2d(subprofs, nr, nc, &fg, &bg, numcol,
+		      levels, &x1, &x2, &y1, &y2, tr);
+	    cpgimag(subprofs, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
+	    free(subprofs);
+	    free(levels);
+	  }
+	  cpgswin(0.0-0.01, 1.0+0.01, 0.001, search->nsub + 1.0);
+	  cpgsch(0.7);
+	  cpgbox("CST", 0.2, 2, "", 0.0, 0);
+	  cpgbox("BNSTI", 0.2, 2, "BNSTI", 0.0, 0);
+	  cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
+	  cpgswin(0.0-0.01, 1.0+0.01, losubfreq - dsubf, hisubfreq + dsubf);
+	  cpgbox("", 0.2, 2, "CMSTI", 0.0, 0);
+	  cpgmtxt("R", 2.5, 0.5, 0.5, "Frequency (MHz)");
+	  cpgsch(0.8);
+	  cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
 	}
-	
       }
       
       {
