@@ -74,7 +74,7 @@ def processbirds(filename):
 
 if __name__ == '__main__':
     if len(argv)==1:
-        print "\nusage:  python makebirds.py birdsfilename"
+        print "\nusage:  makezaplist.py birdsfilename"
         print "       Note:  'birdsfilename' must end in '.birds'\n"
         print "               and a related infofile ('.inf') must exist.\n"
     else:
