@@ -233,9 +233,10 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
   }
   if (mfile->position < 0) 
     mfile->position = 0;
-  if (mfile->position > mfile->length){
-printf("Yikes! :  pos=%lld len=%lld\n", mfile->position, mfile->length);
-    mfile->position = mfile->length;
+  if (mfile->position > mfile->maxfilelen * mfile->numfiles){
+    printf("\nWarning in fseek_multifile():\n");
+    printf(" Seeking beyond max file length.\n");
+    mfile->position = mfile->maxfilelen * mfile->numfiles;
   }
   if (mfile->position == 0){
     mfile->currentfile = 0;
@@ -246,9 +247,12 @@ printf("Yikes! :  pos=%lld len=%lld\n", mfile->position, mfile->length);
       findex++;
     }
     findex--;
+    if (findex >= mfile->numfiles)
+      findex = mfile->numfiles - 1;
     mfile->currentfile = findex;
     mfile->currentpos = mfile->position - 
       (cumlen - mfile->filelens[findex]);
+printf("%pos = %lld  currentpos = %lld\n", mfile->position, mfile->currentpos);
   }
   if ((rt = fseek(mfile->fileptrs[findex], 
 		  mfile->currentpos, SEEK_SET)) == -1) {

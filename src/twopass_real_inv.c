@@ -194,11 +194,13 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
 	wi = wi * wpr + wtemp * wpi + wi;
       }
     }
+    printf("%lld %lld\n", sizeof(rawtype)*ii*n1, 
+	   sizeof(rawtype)*(n2-(ii+bb2))*n1);
     fseek_multifile(scratch, sizeof(rawtype) * \
 		    (ii*n1), SEEK_SET);
     fwrite_multifile(data, sizeof(rawtype), bb2*n1, scratch);
     fseek_multifile(scratch, sizeof(rawtype) * \
-		    (nn-((ii+bb2)*n1)), SEEK_SET);
+		    (n2-(ii+bb2))*n1, SEEK_SET);
     fwrite_multifile(data+bb2*n1, sizeof(rawtype), bb2*n1, scratch);
   }
 
