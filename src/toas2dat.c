@@ -103,7 +103,6 @@ int main(int argc, char *argv[])
     infile = fopen(cmd->argv[0], "r");
     ntoas = read_toas(infile, &ddata);
     printf("Found %ld TOAs.\n", ntoas);
-    fclose(infile);
   } else { /* Binary data */
     infile = fopen(cmd->argv[0], "rb");
     if (cmd->floatP){  /* Floating point data */
