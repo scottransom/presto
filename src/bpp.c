@@ -280,6 +280,9 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
   } else if (nchans == 2*MAXNUMCHAN){
     both_IFs_present = 1;
   }
+  if (fabs(hdr->rf_lo) >= 1.e6)
+    hdr->rf_lo /= 1.e6;
+
   /* Loop over (16-bit) regs per board. divide by 2's are to make them   */
   /* word addresses instead of byte addresses so we can index with them. */
   /* Normal modes will be regid = 0..3, 0..7, or 4..7                    */
@@ -306,14 +309,8 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
         u_or_l = sideband_lookup[regid][nibble];
         f_sram = hdr->dfb_sram_freqs[dfb_chan];
 	fc = f_aib + f_sram + u_or_l * hdr->bandwidth/4.0;
-        /* chan_freqs[n] = (hdr->rf_lo + fc) / 1000000.0; */
-
-	/* 1 Sept 2001:  I'm not sure what should be here or not... SMR */
 	/* obs below 10 GHz are LSB; above 10 GHz are USB */
-	if (hdr->rf_lo > 1.0e6)
-	  hdr->rf_lo /= 1.0e6;
-
-	if (hdr->rf_lo < 1.e10)
+	if (hdr->rf_lo < 1.e4)
 	  chan_freqs[n++] = hdr->rf_lo + 800 - fc/1.0e6;
 	else
 	  chan_freqs[n++] = hdr->rf_lo + fc/1.0e6;
