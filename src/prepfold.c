@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
   }
   if (cmd->slowP){
     cmd->fineP = 1;
+    cmd->proflenP = 1;
     cmd->proflen = 100;
     cmd->nsub = 16;
   }
@@ -174,33 +175,36 @@ int main(int argc, char *argv[])
       /* of events from an event file.                                  */
       if (cmd->rzwcandP || cmd->accelcandP) {
 	infodata rzwidata;
-	char *cptr;
+	char *cptr=NULL;
 	
-	if (cmd->rzwcandP && !cmd->rzwfileP) {					
-	  printf("\nYou must enter a name for the rzw candidate ");
-	  printf("file (-rzwfile filename)\n");
-	  printf("Exiting.\n\n");
-	  exit(1);
-	} else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))){
-	  ii = (long) (cptr - cmd->rzwfile);
-	} else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))){
-	  ii = (long) (cptr - cmd->rzwfile);
-	}
-	if (cmd->accelcandP && !cmd->accelfileP) {
-	  printf("\nYou must enter a name for the ACCEL candidate ");
-	  printf("file (-accelfile filename)\n");
-	  printf("Exiting.\n\n");
-	  exit(1);
-	} else if (NULL != (cptr = strstr(cmd->accelfile, "_rzw"))){
-	  ii = (long) (cptr - cmd->accelfile);
-	} else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))){
-	  ii = (long) (cptr - cmd->accelfile);
-	}
-	cptr = (char *)calloc(ii + 1, sizeof(char));
-	if (cmd->rzwfileP)
+	if (cmd->rzwcandP) {
+	  if (!cmd->rzwfileP) {
+	    printf("\nYou must enter a name for the rzw candidate ");
+	    printf("file (-rzwfile filename)\n");
+	    printf("Exiting.\n\n");
+	    exit(1);
+	  } else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))){
+	    ii = (long) (cptr - cmd->rzwfile);
+	  } else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))){
+	    ii = (long) (cptr - cmd->rzwfile);
+	  }
+	  cptr = (char *)calloc(ii + 1, sizeof(char));
 	  strncpy(cptr, cmd->rzwfile, ii);
-	if (cmd->accelfileP)
+	}
+	if (cmd->accelcandP) {
+	  if (!cmd->accelfileP) {
+	    printf("\nYou must enter a name for the ACCEL candidate ");
+	    printf("file (-accelfile filename)\n");
+	    printf("Exiting.\n\n");
+	    exit(1);
+	  } else if (NULL != (cptr = strstr(cmd->accelfile, "_rzw"))){
+	    ii = (long) (cptr - cmd->accelfile);
+	  } else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))){
+	    ii = (long) (cptr - cmd->accelfile);
+	  }
+	  cptr = (char *)calloc(ii + 1, sizeof(char));
 	  strncpy(cptr, cmd->accelfile, ii);
+	}
 	readinf(&rzwidata, cptr);
 	free(cptr);
 	idata.mjd_i = rzwidata.mjd_i;
@@ -212,7 +216,8 @@ int main(int argc, char *argv[])
       if (!cmd->proflenP){
 	cmd->proflenP = 1;
 	cmd->proflen = 20;
-	printf("Using %d bins in the profile since not specified.\n", cmd->proflen);
+	printf("Using %d bins in the profile since not specified.\n", 
+	       cmd->proflen);
       }
       if (cmd->doubleP)
 	infiles[0] = chkfopen(cmd->argv[0], "rb");
@@ -290,7 +295,7 @@ int main(int argc, char *argv[])
       slen = 20;
       search.candnm = (char *)calloc(slen, sizeof(char));
       sprintf(search.candnm, "RZW_Cand_%d", cmd->rzwcand);
-    } else if (cmd->accelcandP) {						
+    } else if (cmd->accelcandP) {					       
       slen = 22;
       search.candnm = (char *)calloc(slen, sizeof(char));
       sprintf(search.candnm, "ACCEL_Cand_%d", cmd->accelcand);
@@ -631,80 +636,72 @@ int main(int argc, char *argv[])
     search.orb.w = (cmd->w + dtmp*cmd->wdot/SECPERJULYR);
     binary = 1;
 
-  } else if (cmd->rzwcandP) {
+  } else if (cmd->rzwcandP || cmd->accelcandP) {
     fourierprops rzwcand;
     infodata rzwidata;
-    char *cptr;
+    char *cptr=NULL;
 
-    if (!cmd->rzwfileP) {					
-      printf("\nYou must enter a name for the rzw candidate ");
-      printf("file (-rzwfile filename)\n");
-      printf("Exiting.\n\n");
-      exit(1);
-    } else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))){
-      ii = (long) (cptr - cmd->rzwfile);
+    if (cmd->rzwcandP) {
+      if (!cmd->rzwfileP) {
+	printf("\nYou must enter a name for the rzw candidate ");
+	printf("file (-rzwfile filename)\n");
+	printf("Exiting.\n\n");
+	exit(1);
+      } else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))){
+	ii = (long) (cptr - cmd->rzwfile);
+      } else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))){
+	ii = (long) (cptr - cmd->rzwfile);
+      }
       cptr = (char *)calloc(ii + 1, sizeof(char));
       strncpy(cptr, cmd->rzwfile, ii);
-      fprintf(stderr, "\nAttempting to read '%s.inf'.  ", cptr);
-      readinf(&rzwidata, cptr);
-      free(cptr);
-      fprintf(stderr, "Successful.\n");
-      get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);	
-      f = (rzwcand.r - 0.5 * rzwcand.z) / 
-	(rzwidata.dt * rzwidata.N);
-      fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
-			  (rzwidata.dt * rzwidata.N));
-
-      /* Now correct for the fact that we may not be starting */
-      /* to fold at the same start time as the rzw search.    */
-
-      if (RAWDATA)
-	f += lorec * recdt * fd;
-      else
-	f += lorec * search.dt * fd;
-      if (rzwidata.bary)
-	switch_f_and_p(f, fd, fdd, &search.bary.p1, \
-		       &search.bary.p2, &search.bary.p3);
-      else
-	switch_f_and_p(f, fd, fdd, &search.topo.p1, \
-		       &search.topo.p2, &search.topo.p3);
-    } else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))){
-      ii = (long) (cptr - cmd->rzwfile);
-      cptr = (char *)calloc(ii + 1, sizeof(char));
-      strncpy(cptr, cmd->rzwfile, ii);
-      fprintf(stderr, "\nAttempting to read '%s.inf'.  ", cptr);
-      readinf(&rzwidata, cptr);
-      free(cptr);
-      fprintf(stderr, "Successful.\n");
-      get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);	
-      f = (rzwcand.r - 0.5 * rzwcand.z) / 
-	(rzwidata.dt * rzwidata.N);
-      fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
-			  (rzwidata.dt * rzwidata.N));
-
-      /* Now correct for the fact that we may not be starting */
-      /* to fold at the same start time as the rzw search.    */
-
-      if (RAWDATA)
-	f += lorec * recdt * fd;
-      else
-	f += lorec * search.dt * fd;
-      if (rzwidata.bary)
-	switch_f_and_p(f, fd, fdd, &search.bary.p1, \
-		       &search.bary.p2, &search.bary.p3);
-      else
-	switch_f_and_p(f, fd, fdd, &search.topo.p1, \
-		       &search.topo.p2, &search.topo.p3);
-    } else {
-      printf("\nCould not read the rzwfile.\nExiting.\n\n");
-      exit(1);
     }
+    if (cmd->accelcandP) {
+      if (!cmd->accelfileP) {
+	printf("\nYou must enter a name for the ACCEL candidate ");
+	printf("file (-accelfile filename)\n");
+	printf("Exiting.\n\n");
+	exit(1);
+      } else if (NULL != (cptr = strstr(cmd->accelfile, "_rzw"))){
+	ii = (long) (cptr - cmd->accelfile);
+      } else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))){
+	ii = (long) (cptr - cmd->accelfile);
+      }
+      cptr = (char *)calloc(ii + 1, sizeof(char));
+      strncpy(cptr, cmd->accelfile, ii);
+    }
+    fprintf(stderr, "\nAttempting to read '%s.inf'.  ", cptr);
+    readinf(&rzwidata, cptr);
+    free(cptr);
+    fprintf(stderr, "Successful.\n");
+    if (cmd->rzwfileP)
+      get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);	
+    if (cmd->accelfileP)
+      get_rzw_cand(cmd->accelfile, cmd->accelcand, &rzwcand);	
+    f = (rzwcand.r - 0.5 * rzwcand.z) / 
+      (rzwidata.dt * rzwidata.N);
+    fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
+		      (rzwidata.dt * rzwidata.N));
+    
+    /* Now correct for the fact that we may not be starting */
+    /* to fold at the same start time as the rzw search.    */
+    
+    if (RAWDATA)
+      f += lorec * recdt * fd;
+    else
+      f += lorec * search.dt * fd;
+    if (rzwidata.bary)
+      switch_f_and_p(f, fd, fdd, &search.bary.p1, \
+		     &search.bary.p2, &search.bary.p3);
+    else
+      switch_f_and_p(f, fd, fdd, &search.topo.p1, \
+		     &search.topo.p2, &search.topo.p3);
   }
   
   /* Determine the pulsar parameters to fold if we are not getting   */
   /* the data from a .cand file, the pulsar database, or a makefile. */
   
-  if (!cmd->rzwcandP && !cmd->psrnameP && !cmd->parnameP) {
+  if (!cmd->rzwcandP && !cmd->accelcandP && 
+      !cmd->psrnameP && !cmd->parnameP) {
     double p=0.0, pd=0.0, pdd=0.0;
 
     if (cmd->pP) {
@@ -767,9 +764,9 @@ int main(int argc, char *argv[])
 
   /* Determine the length of the profile */				
   
-  if (cmd->proflenP)
+  if (cmd->proflenP) {
     search.proflen = cmd->proflen;
-  else {
+  } else {
     if (search.topo.p1 == 0.0)
       search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
     else
