@@ -18,22 +18,20 @@
 #define MINCHUNKLEN     (1<<LOGMINCHUNKLEN)
 #define MAXPTS          (1<<LOGMAXPTS)
 #define INITIALNUMPTS   (1<<LOGINITIALNUMPTS)
-#define AVG_COLOR 2 /* 2 = red */
-#define STD_COLOR 4 /* 4 = blue */
-#define MED_COLOR 7 /* 7 = yellow */
+#define AVGMED_COLOR 11
+#define STDDEV_COLOR 10
 #define LARGENUM 1.0e32
 #define SMALLNUM -1.0e32
 
 static long long Ndat;
 static infodata idata;
 static FILE *datfile;
-static int plotstats=1;
+static int plotstats=0, usemedian=0;
+/* plotstats: 0 = both, 1 = stats only, 2 = data only */
+/* usemedian: 0 = average, 1 = median */
 
 typedef struct datapart {
   double tlo;  /* Elapsed time (s) of the first point */
-  double avg;  /* The average of this chunk of data */
-  double med;  /* The median of this chunk of data */
-  double std;  /* The standard deviation of this chunk of data */
   int nlo;     /* The sample number of the first point */
   int nn;      /* The total number samples in *data */
   float *data; /* Raw data  */
@@ -50,14 +48,46 @@ typedef struct dataview {
   int dispnum;      /* The number of points actually plotted */
   int chunklen;     /* The length of the chunk of samples used to calculate stats */
   int numchunks;    /* The number of chunks that are being displayed */
-  float avgs[MAXDISPNUM];  /* The average samples for each chunk */
-  float meds[MAXDISPNUM];  /* The median samples for each chunk */
+  float avgmeds[MAXDISPNUM];  /* The average or median samples for each chunk */
   float stds[MAXDISPNUM];  /* The standard deviation of the samples for each chunk */
   float maxs[MAXDISPNUM];  /* The maximum samples for each chunk */
   float mins[MAXDISPNUM];  /* The minimum samples for each chunk */
   float vals[MAXDISPNUM];  /* The raw data values when zoomlevel > 0 */
 } dataview;
 
+
+typedef struct basicstats {
+  double average;
+  double stdev;
+  double skewness;
+  double kurtosis;
+  double median;
+  double min;
+  double max;
+} basicstats;
+
+static basicstats *calc_stats(dataview *dv, datapart *dp)
+{
+  int ii, jj;
+  float *tmpdata;
+  basicstats *tmpstats;
+
+  tmpstats = (basicstats *)malloc(sizeof(stats));
+  tmpstats->max = SMALLNUM;
+  tmpstats->min = LARGENUM;
+  tmpdata = gen_fvect(dv->numsamps);
+  for (ii=0, jj=dv->lon-dp->nlo; ii<dv->numsamps; ii++, jj++){
+    tmpdata[ii] = dp->data[jj];
+    if (tmpdata[ii] > tmpstats->max) tmpstats->max = tmpdata[ii];
+    if (tmpdata[ii] < tmpstats->min) tmpstats->min = tmpdata[ii];
+  }
+  stats(tmpdata, dv->numsamps, &tmpstats->average, &tmpstats->stdev, 
+	&tmpstats->skewness, &tmpstats->kurtosis);
+  tmpstats->stdev = sqrt(tmpstats->stdev);
+  tmpstats->median = median(tmpdata, dv->numsamps);
+  free(tmpdata);
+  return tmpstats;
+}
 
 static int plot_dataview(dataview *dv, float minval, float maxval, 
 			 float charhgt)
@@ -134,48 +164,58 @@ static int plot_dataview(dataview *dv, float minval, float maxval,
   /* Plot the rawdata if required */
 
   tmpn = lon - offsetn;
-  if (dv->zoomlevel > 0){
-    for (ii=0; ii<dv->dispnum; ii++)
-      ns[ii] = tmpn + ii;
-    cpgbin(dv->dispnum, ns, dv->vals, 0);
-  } else {  /* Plot the min/max values */
-    for (ii=0; ii<dv->numchunks; ii++, tmpn += dv->chunklen){
-      cpgmove((float) tmpn, dv->mins[ii]);
-      cpgdraw((float) tmpn, dv->maxs[ii]);
+  if (plotstats==0 || plotstats==2){
+    if (dv->zoomlevel > 0){
+      for (ii=0; ii<dv->dispnum; ii++)
+	ns[ii] = tmpn + ii;
+      cpgbin(dv->dispnum, ns, dv->vals, 0);
+    } else {  /* Plot the min/max values */
+      for (ii=0; ii<dv->numchunks; ii++, tmpn += dv->chunklen){
+	cpgmove((float) tmpn, dv->mins[ii]);
+	cpgdraw((float) tmpn, dv->maxs[ii]);
+      }
     }
   }
 
   /* Plot the other statistics if requested */
 
-  if (plotstats){
+  if (plotstats==0 || plotstats==1){
     tmpn = lon - offsetn;
     for (ii=0; ii<dv->numchunks; ii++, tmpn += dv->chunklen){
       ns[ii] = tmpn;
-      hiavg[ii] = dv->avgs[ii] + dv->stds[ii];
-      loavg[ii] = dv->avgs[ii] - dv->stds[ii];
+      hiavg[ii] = dv->avgmeds[ii] + dv->stds[ii];
+      loavg[ii] = dv->avgmeds[ii] - dv->stds[ii];
     }
     if (dv->numchunks > 512){
-      cpgsci(AVG_COLOR);
-      cpgline(dv->numchunks, ns, dv->avgs);
-      cpgmtxt("T", -1.5, 0.2, 0.5, "Average");
-      cpgsci(MED_COLOR);
-      cpgline(dv->numchunks, ns, dv->meds);
-      cpgmtxt("T", -1.5, 0.5, 0.5, "Median");
-      cpgsci(STD_COLOR);
+      if (plotstats==1){
+	cpgline(dv->numchunks, ns, dv->mins);
+	cpgline(dv->numchunks, ns, dv->maxs);
+      }
+      cpgsci(AVGMED_COLOR);
+      cpgline(dv->numchunks, ns, dv->avgmeds);
+      if (usemedian)
+	cpgmtxt("T", -1.4, 0.02, 0.0, "Median");
+      else
+	cpgmtxt("T", -1.4, 0.02, 0.0, "Average");
+      cpgsci(STDDEV_COLOR);
       cpgline(dv->numchunks, ns, hiavg);
       cpgline(dv->numchunks, ns, loavg);
-      cpgmtxt("T", -1.5, 0.8, 0.5, "Std. Dev.");
+      cpgmtxt("T", -2.6, 0.02, 0.0, "+/- 1 Std Dev");
     } else {
-      cpgsci(AVG_COLOR);
-      cpgbin(dv->numchunks, ns, dv->avgs, 0);
-      cpgmtxt("T", -1.5, 0.2, 0.5, "Average");
-      cpgsci(MED_COLOR);
-      cpgbin(dv->numchunks, ns, dv->meds, 0);
-      cpgmtxt("T", -1.5, 0.5, 0.5, "Median");
-      cpgsci(STD_COLOR);
+      if (plotstats==1){
+	cpgbin(dv->numchunks, ns, dv->mins, 0);
+	cpgbin(dv->numchunks, ns, dv->maxs, 0);
+      }
+      cpgsci(AVGMED_COLOR);
+      cpgbin(dv->numchunks, ns, dv->avgmeds, 0);
+      if (usemedian)
+	cpgmtxt("T", -1.4, 0.02, 0.0, "Median");
+      else
+	cpgmtxt("T", -1.4, 0.02, 0.0, "Average");
+      cpgsci(STDDEV_COLOR);
       cpgbin(dv->numchunks, ns, hiavg, 0);
       cpgbin(dv->numchunks, ns, loavg, 0);
-      cpgmtxt("T", -1.5, 0.8, 0.5, "Std. Dev.");
+      cpgmtxt("T", -2.6, 0.02, 0.0, "+/- 1 Std Dev");
     }
   }
   cpgsci(1);
@@ -211,9 +251,11 @@ static dataview *get_dataview(int centern, int zoomlevel, datapart *dp)
     float tmpmin=LARGENUM, tmpmax=SMALLNUM, tmpval;
     offset = dv->lon + ii * dv->chunklen;
     memcpy(tmpchunk, dp->data+offset, sizeof(float)*dv->chunklen);
-    dv->meds[ii] = median(tmpchunk, dv->chunklen);
     avg_var(dp->data+offset, dv->chunklen, &tmpavg, &tmpvar);
-    dv->avgs[ii] = tmpavg;
+    if (usemedian)
+      dv->avgmeds[ii] = median(tmpchunk, dv->chunklen);
+    else
+      dv->avgmeds[ii] = tmpavg;
     dv->stds[ii] = sqrt(tmpvar);
     for (jj=0; jj<dv->chunklen; jj++, offset++){
       tmpval = dp->data[offset];
@@ -251,10 +293,7 @@ static datapart *get_datapart(int nlo, int numn)
     dp->data = read_float_file(datfile, nlo, numn);
     tmpdata = gen_fvect(numn);
     memcpy(tmpdata, dp->data, sizeof(float)*numn);
-    dp->med = median(tmpdata, numn);
     free(tmpdata);
-    avg_var(dp->data, numn, &(dp->avg), &(dp->std));
-    dp->std = sqrt(dp->std);
     return dp;
   }
 }
@@ -277,8 +316,10 @@ static void print_help(void)
 	 " > or .                   Shift right by 15%% of the screen width\n"
 	 " +/_                      Increase/Decrease the top edge\n"
 	 " =/-                      Increase/Decrease the bottom edge\n"
-	 " SPACE                    Toggle statistics on/off\n"
+	 " SPACE                    Toggle statistics and sample plotting on/off\n"
+	 " M                        Toggle between median and average\n"
 	 " S                        Scale the powers automatically\n"
+	 " V                        Print the statistics for the current view\n"
 	 " P                        Print the current plot to a file\n"
 	 " G                        Go to a specified time\n"
 	 " ?                        Show this help screen\n"
@@ -295,6 +336,7 @@ int main(int argc, char *argv[])
   char *rootfilenm, inchar;
   datapart *lodp;
   dataview *dv;
+  basicstats *statvals;
  
   if (argc==1){
     printf("\nusage:  exploredat datafilename\n\n");
@@ -367,8 +409,18 @@ int main(int argc, char *argv[])
     if (DEBUGOUT) printf("You pressed '%c'\n", inchar);
 
     switch (inchar){
-    case ' ': /* Toggle stats on/off */
-      plotstats = (plotstats) ? 0 : 1;
+    case ' ': /* Toggle stats and sample plotting on/off */
+      /* 0 = both, 1 = stats only, 2 = data only */
+      plotstats++;
+      plotstats = plotstats % 3;
+      cpgpage();
+      offsetn = plot_dataview(dv, minval, maxval, 1.0);
+      break;
+    case 'M': /* Toggle between median and average */
+    case 'm':
+      usemedian = (usemedian) ? 0 : 1;
+      free(dv);
+      dv = get_dataview(centern, zoomlevel, lodp);
       cpgpage();
       offsetn = plot_dataview(dv, minval, maxval, 1.0);
       break;
@@ -577,6 +629,27 @@ int main(int argc, char *argv[])
 	filename[len] = '\0';
 	printf("  Wrote the plot to the file '%s'.\n", filename);
       }
+      break;
+    case 'V': /* Show the basic statistics for the current dataview */
+    case 'v':
+      statvals = calc_stats(dv, lodp);
+      printf("\n  Statistics:\n"
+	     "    Number of samples        %d\n"
+	     "    Duration of samples (s)  %.7g\n" 
+	     "    Low sample               %d\n"
+	     "    Low time (s)             %.7g\n"
+	     "    Maximum value            %.7g\n"
+	     "    Minimum value            %.7g\n"
+	     "    Average value            %.7g\n"
+	     "    Median value             %.7g\n"
+	     "    Standard Deviation       %.7g\n"
+	     "    Skewness                 %.7g\n"
+	     "    Kurtosis                 %.7g\n\n", 
+	     dv->numsamps, dv->numsamps*idata.dt, dv->lon, dv->lon*idata.dt,
+	     statvals->max, statvals->min, statvals->average, 
+	     statvals->median, statvals->stdev, 
+	     statvals->skewness, statvals->kurtosis);
+      free(statvals);
       break;
     case 'Q': /* Quit */
     case 'q':
