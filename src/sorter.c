@@ -8,6 +8,8 @@ int compare_positions(void *ca, void *cb);
    /*  Used as compare function for qsort() */
 int compare_fourierprops(void *ca, void *cb);
    /*  Used as compare function for qsort() */
+int compare_birds(void *ca, void *cb);
+   /*  Used as compare function for qsort() */
 int comp_bin_pow(void *ca, void *cb);
    /*  Used as compare function for qsort() */
 int comp_bin_nfftbins(void *ca, void *cb);
@@ -135,6 +137,20 @@ int compare_fourierprops(void *ca, void *cb)
   return 0;
 }
 
+/* int compare_birds(const void *ca, const void *cb) */
+int compare_birds(void *ca, void *cb)
+/*  Used as compare function for qsort() */
+{
+  bird *a, *b;
+ 
+  a = (bird *) ca;
+  b = (bird *) cb;
+  if ((b->lobin - a->lobin) < 0.0)
+    return 1;
+  if ((b->lobin - a->lobin) > 0.0)
+    return -1;
+  return 0;
+}
 
 float percolate(position * list, int nlist, int spot)
 /*  Pushes a position structure as far up a sorted list of positions */

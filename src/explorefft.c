@@ -7,6 +7,8 @@
 
 #define DEBUGOUT 0
  
+int compare_birds(const void *ca, const void *cb);
+
 /* Note:  zoomlevel is simply (LOGDISPLAYNUM-Log_2(numbins)) */
 #define LOGDISPLAYNUM     10 /* 1024: Maximum number of points to display at once */
 #define LOGLOCALCHUNK     4  /* 16: Chunk size for polynomial fit */
@@ -26,6 +28,9 @@ static float r0;       /* The value of the zeroth Fourier freq */
 static infodata idata;
 static FILE *fftfile;
 static double norm_const=0.0;  /* Used if the user specifies a power normalization. */
+static int numzaplist=0; /* The number of actual lobin/hibin pairs in zaplist */
+static int lenzaplist=0; /* The number of possible lobin/hibin pairs in zaplist */
+static bird *zaplist=NULL;
 
 typedef struct fftpart {
   int rlo;          /* Lowest Fourier freq displayed */
@@ -49,6 +54,7 @@ typedef struct fftview {
 } fftview;
 
 
+/*
 static int floor_log2(int nn)
 {
   int ii=0;
@@ -61,14 +67,14 @@ static int floor_log2(int nn)
   }
   return ii;
 }
-
+*/
 
 static double plot_fftview(fftview *fv, float maxpow, float charhgt, 
 			   float vertline, int vertline_color)
 /* The return value is offsetf */
 {
   int ii;
-  double lof, hif, offsetf=0.0;
+  double lor, lof, hir, hif, offsetf=0.0;
   float *freqs;
 
   cpgsave();
@@ -85,8 +91,10 @@ static double plot_fftview(fftview *fv, float maxpow, float charhgt,
   if (maxpow==0.0) /* Autoscale for the maximum value */
     maxpow = 1.1 * fv->maxpow;
 
-  lof = fv->lor / T;
-  hif = (fv->lor + fv->dr * DISPLAYNUM) / T;
+  lor = fv->lor;
+  lof = lor / T;
+  hir = lor + fv->dr * DISPLAYNUM;
+  hif = hir / T;
   offsetf = 0.0;
 
   /* Period Labels */
@@ -124,10 +132,25 @@ static double plot_fftview(fftview *fv, float maxpow, float charhgt,
     cpgmtxt("B", 2.8, 0.5, 0.5, "Frequency (Hz)");
   }
   cpgswin(lof-offsetf, hif-offsetf, 0.0, maxpow);
-  if (fv->zoomlevel >= 0 && lof > 1.0)
-    cpgbox("BINST", 0.0, 0, "BCNST", 0.0, 0);
-  else
-    cpgbox("BCINST", 0.0, 0, "BCNST", 0.0, 0);
+
+  /* Add zapboxes if required */
+
+  if (numzaplist){
+    double zaplo, zaphi;
+
+    cpgsave();
+    cpgsci(15);
+    cpgsfs(1);
+    for (ii=0; ii<numzaplist; ii++){
+      zaplo = zaplist[ii].lobin;
+      zaphi = zaplist[ii].hibin;
+      if ((zaplo < hir && zaplo > lor) ||
+	  (zaphi < hir && zaphi > lor)){
+	cpgrect(zaplo/T-offsetf, zaphi/T-offsetf, 0.0, 0.95 * maxpow);
+      }
+    }
+    cpgunsa();
+  }
 
   /* Add a background vertical line if requested */
 
@@ -139,6 +162,11 @@ static double plot_fftview(fftview *fv, float maxpow, float charhgt,
     cpgdraw(vertline/T - offsetf, maxpow);
     cpgunsa();
   }
+
+  if (fv->zoomlevel >= 0 && lof > 1.0)
+    cpgbox("BINST", 0.0, 0, "BCNST", 0.0, 0);
+  else
+    cpgbox("BCINST", 0.0, 0, "BCNST", 0.0, 0);
 
   /* Plot the spectrum */
 
@@ -180,7 +208,6 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart *fp)
     fv->dr = 1.0 / (double) numbetween;
     fv->lor = (int) floor(centerr - 0.5 * fv->numbins);
     if (fv->lor < 0) fv->lor = 0;
-    /* fv->lor = floor(numbewteen * fv->lor + 0.5) / numbetween; */
     interp = corr_rz_interp(fp->amps, fp->numamps, numbetween,
 			    fv->lor - fp->rlo, 0.0, DISPLAYNUM*2,
 			    LOWACC, &nextbin);
@@ -311,22 +338,24 @@ static double find_peak(float inf, fftview *fv, fftpart *fp)
 static void print_help(void)
 {
   printf("\n"
-	 " Button or Key            Effect\n"
-	 " -------------            ------\n"
-	 " Left Mouse or I or A     Zoom in  by a factor of 2\n"
-	 " Right Mouse or O or X    Zoom out by a factor of 2\n"
-	 " Middle Mouse or D        Show details about a selected frequency\n"
-	 " < or ,                   Shift left  by 15%% of the screen width\n"
-	 " > or .                   Shift right by 15%% of the screen width\n"
-	 " + or =                   Increase the power scale (make them taller)\n"
-	 " - or _                   Decrease the power scale (make them shorter)\n"
-	 " S                        Scale the powers automatically\n"
-	 " N                        Re-normalize the nowers by one of several methods\n"
-	 " P                        Print the current plot to a file\n"
-	 " G                        Go to a specified frequency\n"
-	 " H                        Show the harmonics of the center frequency\n"
-	 " ?                        Show this help screen\n"
-	 " Q                        Quit\n"
+	 " Button or Key       Effect\n"
+	 " -------------       ------\n"
+	 " Left Mouse or I     Zoom in  by a factor of 2\n"
+	 " Right Mouse or O    Zoom out by a factor of 2\n"
+	 " Middle Mouse or D   Show details about a selected frequency\n"
+	 " < or ,              Shift left  by 15%% of the screen width\n"
+	 " > or .              Shift right by 15%% of the screen width\n"
+	 " + or =              Increase the power scale (make them taller)\n"
+	 " - or _              Decrease the power scale (make them shorter)\n"
+	 " S                   Scale the powers automatically\n"
+	 " N                   Re-normalize the nowers by one of several methods\n"
+	 " P                   Print the current plot to a file\n"
+	 " G                   Go to a specified frequency\n"
+	 " L                   Load a zaplist showing potential RFI locations\n"
+	 " Z                   Add a frequency chunk to the RFI zaplist\n"
+	 " H                   Show the harmonics of the center frequency\n"
+	 " ?                   Show this help screen\n"
+	 " Q                   Quit\n"
 	 "\n");
 }
 
@@ -429,6 +458,7 @@ static double harmonic_loop(int xid, double rr, int zoomlevel)
       cpgslct(psid);
       cpgpap(10.25, 8.5/11.0);
       cpgiden();
+      cpgscr(15, 0.8, 0.8, 0.8);
       numharmbins = (1<<(LOGDISPLAYNUM-zoomlevel));
       harmpart = get_fftpart((int)(rr-numharmbins), 2*numharmbins);
       harmview = get_fftview(rr, zoomlevel, harmpart);
@@ -438,10 +468,10 @@ static double harmonic_loop(int xid, double rr, int zoomlevel)
       plot_harmonics(rr, zoomlevel);
       cpgclos();
       cpgslct(xid2);
+      cpgscr(15, 0.4, 0.4, 0.4);
       filename[len] = '\0';
       printf("  Wrote the plot to the file '%s'.\n", filename);
     } else if (choice=='A' || choice=='a'){
-      printf("inx = %f  iny= %f\n", inx, iny);
       if (iny > 1.0)
 	retval = rr * (int)(inx);
       else if (iny > 0.0)
@@ -533,6 +563,7 @@ int main(int argc, char *argv[])
     free_fftpart(lofp);
     exit(EXIT_FAILURE);
   }
+  cpgscr(15, 0.4, 0.4, 0.4);
   cpgask(0);
   cpgpage();
   offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
@@ -690,6 +721,79 @@ int main(int argc, char *argv[])
 	offsetf = plot_fftview(fv, maxpow, 1.0, centerr, 2);
       }
       break;
+    case 'L': /* Load a zaplist */
+    case 'l':
+      {
+	int ii, len;
+	char filename[200];
+	double *lobins, *hibins;
+
+	printf("  Enter the filename containing the zaplist to load:\n");
+	fgets(filename, 199, stdin);
+	len = strlen(filename)-1;
+	filename[len] = '\0';
+	numzaplist = get_birdies(filename, T, 0.0, &lobins, &hibins);
+	lenzaplist = numzaplist + 20;  /* Allow some room to add more */
+	if (lenzaplist)
+	  free(zaplist);
+	zaplist = (bird *)malloc(sizeof(bird) * lenzaplist);
+	for (ii=0; ii<numzaplist; ii++){
+	  zaplist[ii].lobin = lobins[ii];
+	  zaplist[ii].hibin = hibins[ii];
+	}
+	free(lobins);
+	free(hibins);
+	printf("\n");
+	cpgpage();
+	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
+      }
+      break;
+    case 'Z': /* Add a birdie to a zaplist */
+    case 'z':
+      {
+	int badchoice=2;
+	float inx, iny, lox, hix, loy, hiy;
+	double rs[2];
+	char choice;
+
+	if (numzaplist+1 > lenzaplist){
+	  lenzaplist += 10;
+	  zaplist = (bird *)realloc(zaplist, sizeof(bird) * lenzaplist);
+	}
+	cpgqwin(&lox, &hix, &loy, &hiy);
+	printf("  Click the left mouse button on the first frequency limit.\n");
+	while (badchoice){
+	  cpgcurs(&inx, &iny, &choice);
+	  if (choice=='A' || choice=='a'){
+	    rs[2-badchoice] = ((double)inx + offsetf)*T;
+	    cpgsave();
+	    cpgsci(7);
+	    cpgmove(inx, 0.0);
+	    cpgdraw(inx, hiy);
+	    cpgunsa();
+	    badchoice--;
+	    if (badchoice==1)
+	      printf("  Click the left mouse button on the second frequency limit.\n");
+	  } else {
+	    printf("  Option not recognized.\n");
+	  }
+	};
+	if (rs[1] > rs[0]){
+	  zaplist[numzaplist].lobin = rs[0];
+	  zaplist[numzaplist].hibin = rs[1];
+	} else {
+	  zaplist[numzaplist].lobin = rs[1];
+	  zaplist[numzaplist].hibin = rs[0];
+	}
+	printf("    The new birdie has:  f_avg = %.15g  f_width = %.15g\n\n", 
+	       0.5*(zaplist[numzaplist].hibin+zaplist[numzaplist].lobin)/T, 
+	       (zaplist[numzaplist].hibin-zaplist[numzaplist].lobin)/T);
+       	numzaplist++;
+	qsort(zaplist, numzaplist, sizeof(bird), compare_birds);
+	cpgpage();
+	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
+      }
+      break;
     case 'P': /* Print the current plot */
     case 'p':
       {
@@ -707,9 +811,11 @@ int main(int argc, char *argv[])
 	cpgslct(psid);
 	cpgpap(10.25, 8.5/11.0);
 	cpgiden();
+	cpgscr(15, 0.8, 0.8, 0.8);
 	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
 	cpgclos();
 	cpgslct(xid);
+	cpgscr(15, 0.4, 0.4, 0.4);
 	filename[len] = '\0';
 	printf("  Wrote the plot to the file '%s'.\n", filename);
       }
@@ -815,6 +921,8 @@ int main(int argc, char *argv[])
 
   free_fftpart(lofp);
   fclose(fftfile);
+  if (lenzaplist)
+    free(zaplist);
   printf("Done\n\n");
   return 0;
 }

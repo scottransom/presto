@@ -1,25 +1,7 @@
 #include "presto.h"
 
-typedef struct bird{
-  double lobin;
-  double hibin;
-} bird;
-
 void hunt(double *xx, int n, double x, int *jlo);
-
-static int compare_birds(const void *ca, const void *cb)
-/*  Used as compare function for qsort() */
-{
-  bird *a, *b;
- 
-  a = (bird *) ca;
-  b = (bird *) cb;
-  if ((b->lobin - a->lobin) < 0.0)
-    return 1;
-  if ((b->lobin - a->lobin) > 0.0)
-    return -1;
-  return 0;
-}
+int compare_birds(const void *ca, const void *cb);
 
 int get_birdies(char *zapfilenm, double T, double avg_vel,
 		double **lobins, double **hibins)
