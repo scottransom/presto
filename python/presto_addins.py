@@ -113,9 +113,9 @@ def spectralphase(fftarray):
        print 'fftarray must be complex in spectralpower()'
        return None
 
-def maximize_rz(data, r, z):
+def maximize_rz(data, r, z, norm = None):
    """
-   maximize_rz(data, r, z):
+   maximize_rz(data, r, z, norm = None):
        Optimize the detection of a signal at location 'r', 'z' in
            the F-Fdot plane.  The routine returns a list containing
            the optimized values of the maximum normalized power, rmax,
@@ -123,7 +123,10 @@ def maximize_rz(data, r, z):
    """
    rd = rderivs()
    (maxpow, rmax, zmax) = max_rz_arr(data, len(data), r, z, rd)
-   maxpow = maxpow / rd.locpow
+   if not norm:
+      maxpow = maxpow / rd.locpow
+   else:
+      maxpow = maxpow / norm
    return [maxpow, rmax, zmax, rd]
 
 def search_fft(data, numcands, norm='default'):
