@@ -49,14 +49,14 @@ CC = gcc
 F77 = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -ansi -pedantic -Wall -W -O -fpic
+	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
+	-D_FILE_OFFSET_BITS=64
 #-DUSEDMALLOC
 #	-Dinline= -Wmissing-prototypes \
 #	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
 #	-Waggregate-return -fno-common -Wnested-externs
-#	-O4 -mpentiumpro -malign-double -funroll-loops -fforce-addr \
-#	-fno-strict-aliasing 
+#	-O4 -mpentiumpro -funroll-loops -fforce-addr -fno-strict-aliasing 
 LIBLINKFLAGS = -shared
 LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
 FFLAGS = -g -O -fpic
@@ -206,6 +206,10 @@ timetest:
 
 bary: bary.o 
 	$(CC) $(CFLAGS) -o $@ bary.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+bincand: bincand.o bincand_cmd.o
+	$(CC) $(CFLAGS) -o $@ bincand.o bincand_cmd.o $(PRESTOLINK) -lm
 	cp $@ ../bin
 
 shiftdata: shiftdata.o 
