@@ -23,8 +23,8 @@ Flag   -xwin    xwin    {Draw plots to the screen as well as a PS file}
 Flag   -nocompute nocompute {Just plot and remake the mask}
 Flag   -rfixwin rfixwin {Show the RFI instances on screen}
 Flag   -rfips   rfips   {Plot the RFI instances in a PS file}
-Float  -time    time    {Minutes to integrate for stats and FFT calcs} \
-	-r 0 oo  -d 1
+Double -time    time    {Seconds to integrate for stats and FFT calcs} \
+	-r 0 oo  -d 60.0
 Float  -timesig timesigma {The +/-sigma cutoff to reject time-domain chunks} \
 	-r 0 oo  -d 6
 Float  -freqsig freqsigma {The +/-sigma cutoff to reject freq-domain chunks} \

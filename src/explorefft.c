@@ -1,5 +1,8 @@
 #include "presto.h"
 #include "cpgplot.h"
+
+#undef USEMMAP
+
 #ifdef USEMMAP
 #include <unistd.h>
 #include <sys/mman.h>

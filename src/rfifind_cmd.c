@@ -48,9 +48,9 @@ static Cmdline cmd = {
   /* rfixwinP = */ 0,
   /***** -rfips: Plot the RFI instances in a PS file */
   /* rfipsP = */ 0,
-  /***** -time: Minutes to integrate for stats and FFT calcs */
+  /***** -time: Seconds to integrate for stats and FFT calcs */
   /* timeP = */ 1,
-  /* time = */ 1,
+  /* time = */ 60.0,
   /* timeC = */ 1,
   /***** -timesig: The +/-sigma cutoff to reject time-domain chunks */
   /* timesigmaP = */ 1,
@@ -868,7 +868,7 @@ showOptionValues(void)
     printf("-rfips found:\n");
   }
 
-  /***** -time: Minutes to integrate for stats and FFT calcs */
+  /***** -time: Seconds to integrate for stats and FFT calcs */
   if( !cmd.timeP ) {
     printf("-time not found.\n");
   } else {
@@ -979,9 +979,9 @@ usage(void)
   -nocompute: Just plot and remake the mask\n\
     -rfixwin: Show the RFI instances on screen\n\
       -rfips: Plot the RFI instances in a PS file\n\
-       -time: Minutes to integrate for stats and FFT calcs\n\
-              1 float value between 0 and oo\n\
-              default: `1'\n\
+       -time: Seconds to integrate for stats and FFT calcs\n\
+              1 double value between 0 and oo\n\
+              default: `60.0'\n\
     -timesig: The +/-sigma cutoff to reject time-domain chunks\n\
               1 float value between 0 and oo\n\
               default: `6'\n\
@@ -996,7 +996,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...100 values\n\
-version: 28Aug01\n\
+version: 29Nov01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1081,9 +1081,9 @@ parseCmdline(int argc, char **argv)
     if( 0==strcmp("-time", argv[i]) ) {
       int keep = i;
       cmd.timeP = 1;
-      i = getFloatOpt(argc, argv, i, &cmd.time, 1);
+      i = getDoubleOpt(argc, argv, i, &cmd.time, 1);
       cmd.timeC = i-keep;
-      checkFloatHigher("-time", &cmd.time, cmd.timeC, 0);
+      checkDoubleHigher("-time", &cmd.time, cmd.timeC, 0);
       continue;
     }
 

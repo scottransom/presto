@@ -204,7 +204,7 @@ int main(int argc, char *argv[])
     
     /* The number of data points and blocks to work with at a time */
     
-    blocksperint = (int) (cmd->time * 60.0 / 
+    blocksperint = (int) (cmd->time / 
 			  (ptsperblock * idata.dt) + 0.5);
     ptsperint = blocksperint * ptsperblock;
     numint = (long long) idata.N / ptsperint;
