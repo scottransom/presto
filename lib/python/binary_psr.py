@@ -86,7 +86,7 @@ class binary_psr:
             # Note:  This is an array
             return (self.par.OM + difft/SECPERJULYR*self.par.OMDOT)*DEGTORAD
         else:
-            return self.OM*DEGTORAD
+            return self.par.OM*DEGTORAD
 
     def radial_velocity(self, MJD):
         """
