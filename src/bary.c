@@ -48,11 +48,11 @@ int main(int argc, char *argv[])
     N++;
   }
 
-  printf("\n\n      Barycentric Time Converter Hack\n");
-  printf("            by Scott M. Ransom\n");
-  printf("               20 July 1998\n\n");
+  fprintf(stderr, "\n\n      Barycentric Time Converter Hack\n");
+  fprintf(stderr, "            by Scott M. Ransom\n");
+  fprintf(stderr, "               20 July 1998\n\n");
 
-  printf("  Calling TEMPO with %ld topocentic time(s)...\n\n", N);
+  fprintf(stderr, "  Calling TEMPO with %ld topocentic time(s)...\n\n", N);
 
   /* Call TEMPO */
 
@@ -68,15 +68,15 @@ int main(int argc, char *argv[])
       dmdelays[i] = delay_from_dm(dm, doppler(topof, voverc[i]));
   }
 
-  printf("   Inf Freq          Inf Freq          Radial Vel     Emitted    DM Delay \n");
-  printf(" Topotimes (MJD)   Barytimes (MJD)       (v/c)       Freq (MHz)   (sec)   \n");
-  printf("--------------------------------------------------------------------------\n");
+  fprintf(stderr, "   Inf Freq          Inf Freq          Radial Vel     Emitted    DM Delay \n");
+  fprintf(stderr, " Topotimes (MJD)   Barytimes (MJD)       (v/c)       Freq (MHz)   (sec)   \n");
+  fprintf(stderr, "--------------------------------------------------------------------------\n");
 
   for (i = 0 ; i < N ; i++)
-    printf("%16.10f  %16.10f  %14.7g  %11.6f  %9.7f\n", \
+    fprintf(stdout, "%16.10f  %16.10f  %14.7g  %11.6f  %9.7f\n", \
 	   topotimes[i], barytimes[i], voverc[i], doppler(topof, voverc[i]), \
 	   dmdelays[i]);
 
-  printf("\n\n");
+  fprintf(stderr, "\n\n");
   exit(0);
 }
