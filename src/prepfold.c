@@ -13,10 +13,9 @@ int main(int argc, char *argv[])
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
-  double dtmp, recdt=0.0, orb_baryepoch=0.0, barydispdt;
-  double N=0.0, T=0.0, endtime=0.0, proftime;
+  double recdt=0.0, barydispdt, N=0.0, T=0.0, endtime=0.0, proftime;
   double *obsf=NULL, *dispdts=NULL, *parttimes, *Ep=NULL, *tp=NULL;
-  double *barytimes=NULL, *topotimes=NULL, *bestprof;
+  double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
   char *plotfilenm, *outfilenm, *rootnm;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numchan=1, binary=0, numdelays=0, numbarypts=0;
@@ -348,7 +347,6 @@ sprintf(search.pgdev, "/XWIN");
     if (psr.ntype & 8){  /* Checks if the pulsar is in a binary */
       binary = 1;
       search.orb = psr.orb;
-      orb_baryepoch = psr.orb.t / SECPERDAY;
     }
     search.bary.p1 = psr.p;
     search.bary.p2 = psr.pd;
@@ -500,6 +498,10 @@ sprintf(search.pgdev, "/XWIN");
     search.orb.w *= DEGTORAD;
     E_to_phib(Ep, numbinpoints, &search.orb);
     numdelays = numbinpoints;
+    if (search.bepoch == 0.0)
+      search.orb.t = search.orb.t / SECPERDAY + search.tepoch;
+    else 
+      search.orb.t = search.orb.t / SECPERDAY + search.bepoch;
   }
 
   /* Output some informational data on the screen and to the */
@@ -549,18 +551,8 @@ sprintf(search.pgdev, "/XWIN");
       fprintf(filemarker, 
 	      "Longitude of peri (w) (deg)  =  %-.10f\n", 
 	      search.orb.w / DEGTORAD); 
-      if (cmd->psrnameP)
-	fprintf(filemarker, 
-		"Epoch of periapsis    (MJD)  =  %-17.11f\n",
-		search.bepoch + orb_baryepoch);
-      else if (search.bepoch==0.0)
-	fprintf(filemarker, 
-		"Epoch of periapsis      (s)  =  %-.10f\n",
-		search.tepoch);
-      else
-	fprintf(filemarker, 
-		"Epoch of periapsis      (s)  =  %-.10f\n",
-		search.bepoch);
+      fprintf(filemarker, 
+	      "Epoch of periapsis    (MJD)  =  %-17.11f\n", search.orb.t);
     }
   }
 

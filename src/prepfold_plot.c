@@ -100,7 +100,7 @@ void prepfold_plot(prepfoldinfo *search)
   /* Period P-dot 2D */  
   float *ppdot2d=NULL;
 
-strcpy(search->pgdev, "/CPS");
+/* strcpy(search->pgdev, "/CPS"); */
 
   if (search->fold.pow==1.0){ /* Barycentric periods */
     bestp = search->bary.p1;
@@ -481,13 +481,13 @@ strcpy(search->pgdev, "/CPS");
     /* Combined best profile */
 
     {
-      float x[2] = {0.0, 2.2}, avg[2];
-      float errx = 2.1, erry = profavg, errlen;
+      float x[2] = {-0.2, 2.0}, avg[2];
+      float errx = -0.1, erry = profavg, errlen;
 
-      cpgsvp (0.06, 0.291, 0.68, 0.94);
+      cpgsvp (0.039, 0.27, 0.68, 0.94);
       find_min_max_arr(2 * search->proflen, bestprof, &min, &max);
       over = 0.1 * (max - min);
-      cpgswin(0.0, 2.2, min - over, max + over);
+      cpgswin(-0.2, 2.0, min - over, max + over);
       cpgbox ("BCST", 1.0, 4, "BC", 0.0, 0);
       cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
       cpgline(2 * search->proflen, phasetwo, bestprof);
@@ -625,6 +625,9 @@ strcpy(search->pgdev, "/CPS");
       autocal2d(ppdot2d, nr, nc, &fg, &bg, numcol,
 		levels, &x1, &x2, &y1, &y2, tr);
       cpgimag(ppdot2d, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
+      x1 = (float) (bestp * 1000.0 - pfold);
+      y1 = (float) (bestpd - pdfold);
+      cpgpt(1, &x1, &y1, 5);
       cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
       cpgmtxt("B", 2.6, 0.5, 0.5, pout);
       cpgmtxt("L", 2.1, 0.5, 0.5, pdout);
@@ -653,7 +656,7 @@ strcpy(search->pgdev, "/CPS");
 
       /* Add the Data Info area */
 
-      cpgsvp (0.291, 0.54, 0.68, 0.94);
+      cpgsvp (0.27, 0.519, 0.68, 0.94);
       cpgswin(-0.1, 1.00, -0.1, 1.1);
       cpgsch(1.0);
       sprintf(out, "File:  %-s", search->filenm);
@@ -666,12 +669,12 @@ strcpy(search->pgdev, "/CPS");
       if (search->tepoch==0.0)
 	sprintf(out, "Epoch\\dtopo\\u = N/A");
       else
-	sprintf(out, "Epoch\\dtopo\\u = %-.12f", search->tepoch);
+	sprintf(out, "Epoch\\dtopo\\u = %-.11f", search->tepoch);
       cpgtext(0.0, 0.8, out);
       if (search->bepoch==0.0)
 	sprintf(out, "Epoch\\dbary\\u = N/A");
       else
-	sprintf(out, "Epoch\\dbary\\u = %-.12f", search->bepoch);
+	sprintf(out, "Epoch\\dbary\\u = %-.11f", search->bepoch);
       cpgtext(0.0, 0.7, out);
       sprintf(out, "T\\dsample\\u");
       cpgtext(0.0, 0.6, out);
@@ -732,7 +735,7 @@ strcpy(search->pgdev, "/CPS");
 
 	/* Add the Fold Info area */
       
-	cpgsvp (0.54, 0.94, 0.68, 0.94);
+	cpgsvp (0.519, 0.94, 0.68, 0.94);
 	cpgswin(-0.05, 1.05, -0.1, 1.1);
 	cpgsch(0.8);
 	cpgmtxt("T", 1.0, 0.5, 0.5, "Search Information");
@@ -822,7 +825,7 @@ strcpy(search->pgdev, "/CPS");
 	  cpgtext(0.6, 0.2, out);
 	  sprintf(out, "\\gw (rad) = %f", search->orb.w);
 	  cpgtext(0.6, 0.1, out);
-	  sprintf(out, "T\\dperi\\u = %17.12f", search->orb.t);
+	  sprintf(out, "T\\dperi\\u = %-.11f", search->orb.t);
 	  cpgtext(0.0, 0.0, out);
 	}
       }
