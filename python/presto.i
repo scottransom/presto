@@ -1308,11 +1308,11 @@ double *subband_delays(int numchanx, int numsubbands, double dm,
 //Note:  The following must be the last declarations in the file
 //
 
-%typemap(python, argout) char * {
-  $target = (PyObject *) PyString_FromString($source);
-}
+//%typemap(python, argout) char * {
+// $result = (PyObject *) PyString_FromString($1);
+//}
 
-%apply signed char *OUTPUT { char *output };
+//%apply signed char *OUTPUT { char *output };
 int nice_output_1(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
@@ -1322,7 +1322,7 @@ int nice_output_1(char *output, double val, double err, int len);
 /*   If len == 0, left-justified minimum length string is returned. */
 /*   If len > 0, the string returned has is right justified.        */
 
-%apply signed char *OUTPUT { char *output };
+//%apply signed char *OUTPUT { char *output };
 int nice_output_2(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
@@ -1341,14 +1341,14 @@ int nice_output_2(char *output, double val, double err, int len);
   _output_matrixrows = 0;
   _output_matrixcols = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$source[0]);
-  free($source);
+    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$1[0]);
+  free($1);
   if (arr == NULL) return NULL;
   arr->dimensions[1] = ((int) arg9 - arg3) * arg2 ;
   arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);
-  $target = (PyObject *)arr;
+  $result = (PyObject *)arr;
 }
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
@@ -1381,13 +1381,13 @@ fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
   n = _output_arraylen;
   _output_arraylen = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$source);
+    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
   arr->dimensions[0] = ((int) arg7 - arg3) * arg2;
   arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
   PyArray_INCREF(arr);
-  $target = (PyObject *)arr;
+  $result = (PyObject *)arr;
 }
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *data };

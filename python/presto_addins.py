@@ -49,7 +49,7 @@ class pfd:
                                            'd', byteswap)
       infile.close()
    
-def val_with_err(value, error, len=0, digits=2):
+def val_with_err(value, error, len=0, digits=2, latex=0):
    """
    val_with_err(value, error, len=0, digits=2):
        Returns a string of length len (auto if 0) with 'value'
@@ -62,13 +62,25 @@ def val_with_err(value, error, len=0, digits=2):
           If len == 0, left-justified minimum length string is returned.
           If len > 0, the string returned is right justified.       
           If len < 0, the string returned is left justified.       
+          If latex=1, the string is converted into LaTeX markup.
    """
    slen = 40
-   if abs(len) > slen: slen = abs(len)
+   outstr = ' '*slen
+   if abs(len) > slen:
+      slen = abs(len)
    if digits==2:
-      return nice_output_2(' '*slen, value, error, len)
+      slen = nice_output_2(outstr, value, error, len)
    else:
-      return nice_output_1(' '*slen, value, error, len)
+      slen = nice_output_1(outstr, value, error, len)
+   if len <= 0 and outstr[0]==' ':  # Not quite sure why this is necessary...
+      outstr = outstr[1:slen]
+      if len < 0:
+         outstr += ' '
+   outstr = outstr[:slen]
+   if latex:
+      if outstr.find("x10") > 0:
+         outstr = outstr.replace("x10^", "$\times$10$^{")+"}$"
+   return outstr
 
 def read_inffile(filename):
    """

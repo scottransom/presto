@@ -33,7 +33,7 @@ typedef struct {
         strncpy($1,$input,500);
 }       
 
-%addmethods DoubleArray {
+%extend DoubleArray {
   DoubleArray(double *dptr) {
     DoubleArray *d = (DoubleArray *) malloc(sizeof(DoubleArray));
     d->dptr = dptr;
