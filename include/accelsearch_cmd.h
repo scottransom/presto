@@ -41,14 +41,6 @@ typedef struct s_Cmdline {
   char fhiP;
   double fhi;
   int fhiC;
-  /***** -baryv: The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric) */
-  char baryvP;
-  double baryv;
-  int baryvC;
-  /***** -zapfile: A file containing a list of freqs to ignore (i.e. RFI) */
-  char zapfileP;
-  char* zapfile;
-  int zapfileC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

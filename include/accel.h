@@ -30,7 +30,7 @@ typedef struct accelobs{
   double dr;           /* Stepsize in fourier freq (1/numbetween) */
   double zlo;          /* Minimum fourier fdot to search */
   double zhi;          /* Maximum fourier fdot to search */
-  double dz;           /* Stepsize in fourier freq (1/numbetween) */
+  double dz;           /* Stepsize in fourier fdot */
   double baryv;        /* Average barycentric velocity during observation */
   float nph;           /* Freq 0 level if present (1 otherwise) */
   float sigma;         /* Cutoff sigma to choose a candidate */
@@ -38,6 +38,7 @@ typedef struct accelobs{
   double *lobins;      /* The low Fourier freq boundaries to zap (RFI) */
   double *hibins;      /* The high Fourier freq boundaries to zap (RFI) */
   long long *numindep; /* Number of independent spectra (per harmsummed) */
+  FILE *fftfile;       /* The FFT file that we are analyzing */
 } accelobs;
 
 typedef struct accelcand{
