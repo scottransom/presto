@@ -10,7 +10,8 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-String -o       outfile {Output data file name}
+String -o       outfile {Output data file name (no suffix)} \
+	mandatory
 
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 
@@ -33,7 +34,7 @@ Float  -dm      dm      {The dispersion measure to de-disperse (cm^-3 pc)} \
 
 # Rest of command line:
 
-Rest infile {Input data file name (without a suffix).  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data with the name 'infile.raw'.  In this case a '.inf' file of the same name must also exist and the data will be output into the file 'infile.dat'} \
+Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
         {count = 1,1}
 
 
