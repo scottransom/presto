@@ -734,9 +734,20 @@ int main(int argc, char *argv[])
       if (cmd->pkmbP)
 	numread = read_PKMB_subbands(infiles, numfiles, data, 
 				     dispdts, cmd->nsub, &padding);
-      else
+      else {
+	int mm;
+	float runavg=0.0;
+
 	numread = read_floats(infiles[0], data, worklen, numchan);
-     
+	if (cmd->runavgP){
+	  for (mm=0; mm<numread; mm++)
+	    runavg += data[mm];
+	  runavg /= numread;
+	  for (mm=0; mm<numread; mm++)
+	    data[mm] -= runavg;
+	}
+      }
+   
       /* frequency sub-bands */
 
       for (kk = 0; kk < cmd->nsub; kk++)

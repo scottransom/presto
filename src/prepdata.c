@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
   char obs[3], ephem[10], *datafilenm, *outinfonm;
   char rastring[50], decstring[50];
-  int numfiles, numchan=1, newper=0, oldper=0;
-  int slen, numadded=0, numremoved=0, padding=0;
+  int numfiles, numchan=1, newper=0, oldper=0, nummasked=0;
+  int slen, numadded=0, numremoved=0, padding=0, *maskchans=NULL;
   long ii, numbarypts=0, worklen=65536;
   long numread=0, numtowrite=0, totwrote=0, datawrote=0;
   long padwrote=0, padtowrite=0, statnum=0;
@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
   PKMB_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
+  mask obsmask;
 
   /* Call usage() if we have no command line arguments */
 
@@ -124,6 +125,13 @@ int main(int argc, char *argv[])
   outinfonm = (char *)calloc(slen, 1);
   sprintf(outinfonm, "%s.inf", cmd->outfile);
 
+  /* Read an input mask if wanted */
+
+  if (cmd->maskfileP)
+    read_mask(cmd->maskfile, &obsmask);
+  else
+    obsmask.numchan = obsmask.numint = 0;
+  
   /* Set-up values if we are using the Parkes multibeam */
 
   if (cmd->pkmbP) {
@@ -142,6 +150,8 @@ int main(int argc, char *argv[])
     PKMB_update_infodata(numfiles, &idata);
     idata.dm = cmd->dm;
     worklen = ptsperblock;
+    if (cmd->maskfileP)
+      maskchans = gen_ivect(idata.num_chan);
 
     /* Compare the size of the data to the size of output we request */
 
@@ -292,7 +302,8 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP)
       numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			  dispdt, &padding);
+			  dispdt, &padding, maskchans, &nummasked,
+			  &obsmask);
     else
       numread = read_floats(infiles[0], outdata, worklen, numchan);
 
@@ -334,7 +345,8 @@ int main(int argc, char *argv[])
 
       if (cmd->pkmbP)
 	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			    dispdt, &padding);
+			    dispdt, &padding, maskchans, &nummasked,
+			    &obsmask);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
      }
@@ -470,7 +482,8 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP)
       numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			  dispdt, &padding);
+			  dispdt, &padding, maskchans, &nummasked,
+			  &obsmask);
     else
       numread = read_floats(infiles[0], outdata, worklen, numchan);
     
@@ -572,7 +585,8 @@ int main(int argc, char *argv[])
 
       if (cmd->pkmbP)
 	numread = read_PKMB(infiles, numfiles, outdata, worklen, 
-			    dispdt, &padding);
+			    dispdt, &padding, maskchans, &nummasked,
+			    &obsmask);
       else
 	numread = read_floats(infiles[0], outdata, worklen, numchan);
     }
@@ -646,6 +660,10 @@ int main(int argc, char *argv[])
 
   /* Close the files and cleanup */
 
+  if (cmd->maskfileP){
+    free_mask(obsmask);
+    free(maskchans);
+  }
   for (ii=0; ii<numfiles; ii++)
     fclose(infiles[ii]);
   fclose(outfile);

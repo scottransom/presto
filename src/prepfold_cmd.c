@@ -36,6 +36,8 @@ static Cmdline cmd = {
   /* de405P = */ 0,
   /***** -xwin: Show the result plots on-screen as well as make a plotfile */
   /* xwinP = */ 0,
+  /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
+  /* runavgP = */ 0,
   /***** -dm: The central DM of the search (cm^-3 pc) */
   /* dmP = */ 1,
   /* dm = */ 0,
@@ -905,6 +907,13 @@ showOptionValues(void)
     printf("-xwin found:\n");
   }
 
+  /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
+  if( !cmd.runavgP ) {
+    printf("-runavg not found.\n");
+  } else {
+    printf("-runavg found:\n");
+  }
+
   /***** -dm: The central DM of the search (cm^-3 pc) */
   if( !cmd.dmP ) {
     printf("-dm not found.\n");
@@ -1275,7 +1284,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-runavg] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
         -o: Root of the output file names\n\
             1 char* value\n\
@@ -1284,6 +1293,7 @@ usage(void)
    -nobary: Do not barycenter (assume input parameters are topocentric)\n\
     -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
      -xwin: Show the result plots on-screen as well as make a plotfile\n\
+   -runavg: Subtract each blocks average as it is read (single channel data only)\n\
        -dm: The central DM of the search (cm^-3 pc)\n\
             1 double value between 0 and oo\n\
             default: `0'\n\
@@ -1362,7 +1372,7 @@ usage(void)
             1 char* value\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
             1...20 values\n\
-version: 21Dec00\n\
+version: 02Jan01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1411,6 +1421,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-xwin", argv[i]) ) {
       cmd.xwinP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-runavg", argv[i]) ) {
+      cmd.runavgP = 1;
       continue;
     }
 

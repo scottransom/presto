@@ -262,15 +262,6 @@ static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2,
   int ptr1=0, ptr2=0, count=0;
     
   while (1){
-    if (arr1[ptr1] < arr2[ptr2])
-      merged[count++] = arr1[ptr1++];
-    else if (arr1[ptr1] > arr2[ptr2])
-      merged[count++] = arr2[ptr2++];
-    else {
-      merged[count++] = arr1[ptr1];
-      ptr1++;
-      ptr2++;
-    }
     if (ptr1 == len1){
       while (ptr2 < len2)
 	merged[count++] = arr2[ptr2++];
@@ -279,6 +270,15 @@ static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2,
       while (ptr1 < len1)
 	merged[count++] = arr1[ptr1++];
       break;
+    }
+    if (arr1[ptr1] < arr2[ptr2])
+      merged[count++] = arr1[ptr1++];
+    else if (arr1[ptr1] > arr2[ptr2])
+      merged[count++] = arr2[ptr2++];
+    else {
+      merged[count++] = arr1[ptr1];
+      ptr1++;
+      ptr2++;
     }
   }
   return count;

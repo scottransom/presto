@@ -1,6 +1,8 @@
 #include "presto.h"
 #include "multibeam.h"
 
+#define MAXNUMCHAN 1024
+
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
 static int numblks_st[MAXPATCHFILES], currentfile, currentblock;
@@ -9,7 +11,8 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char pad1[512], pad2[512], padblock[DATLEN];
+static unsigned char pad1[MAXNUMCHAN/8], pad2[MAXNUMCHAN/8];
+static unsigned char chanmask[MAXNUMCHAN], padblock[DATLEN];
 
 #define SWAPPAD(padptr)(padptr = (padptr==pad1) ? pad2 : pad1)
 
@@ -32,8 +35,8 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
     printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
     exit(0);
   }
-  memset(pad1, 0xAA, 512); /* 10101010... */
-  memset(pad2, 0x55, 512); /* 01010101... */
+  memset(pad1, 0x55, MAXNUMCHAN/8); /* 01010101... */
+  memset(pad2, 0xAA, MAXNUMCHAN/8); /* 10101010... */
   chkfread(&header, 1, HDRLEN, files[0]);
   rewind(files[0]);
   PKMB_hdr_to_inf(&header, &idata_st[0]);
@@ -42,8 +45,8 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
   bytesperpt_st = numchan_st / 8;
   decreasing_freqs_st = (strtod(header.chanbw[1], NULL) > 0.0) ? 0 : 1;
   for (ii=0; ii<ptsperblk_st; ii+=2){
-    memset(padblock + ii     * bytesperpt_st, 0xAA, bytesperpt_st);
-    memset(padblock + (ii+1) * bytesperpt_st, 0x55, bytesperpt_st);
+    memset(padblock + ii     * bytesperpt_st, 0x55, bytesperpt_st);
+    memset(padblock + (ii+1) * bytesperpt_st, 0xAA, bytesperpt_st);
   }
   numblks_st[0] = chkfilelen(files[0], RECLEN);
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
@@ -309,7 +312,8 @@ int read_PKMB_rawblocks(FILE *infiles[], int numfiles,
 
 
 int read_PKMB(FILE *infiles[], int numfiles, float *data, 
-	      int numpts, double *dispdelays, int *padding)
+	      int numpts, double *dispdelays, int *padding,
+	      int *maskchans, int *nummasked, mask *obsmask)
 /* This routine reads numpts from the PKMB raw input   */
 /* files *infiles.  These files contain 1 bit data     */
 /* from the PKMB backend at Parkes.  Time delays and   */
@@ -317,12 +321,20 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
 /* the # of points read if succesful, 0 otherwise.     */
 /* If padding is returned as 1, then padding was       */
 /* added and statistics should not be calculated       */
+/* maskchans is an array of length numchans contains   */
+/* a list of the number of channels that were masked.  */
+/* The # of channels masked is returned in nummasked.  */
+/* obsmask is the mask structure to use for masking.   */
 {
-  int ii, numread=0;
+  int ii, jj, numread=0, offset;
+  double starttime=0.0;
+  unsigned char pointmask;
   static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
   static unsigned char *currentdata, *lastdata;
-  static int firsttime=1, numblocks=1, allocd=0;
-  
+  static int firsttime=1, numblocks=1, allocd=0, mask=0;
+  static double duration=0.0, timeperblk=0.0;
+
+  *nummasked = 0;
   if (firsttime) {
     if (numpts % ptsperblk_st){
       printf("numpts must be a multiple of %d in read_PKMB()!\n",
@@ -331,10 +343,13 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
     } else
       numblocks = numpts / ptsperblk_st;
     
+    if (obsmask->numchan) mask = 1;
     raw  = gen_bvect(numblocks * DATLEN);
     rawdata1 = gen_bvect(numblocks * SAMPPERBLK);
     rawdata2 = gen_bvect(numblocks * SAMPPERBLK);
     allocd = 1;
+    timeperblk = ptsperblk_st * dt_st;
+    duration = numblocks * timeperblk;
     
     numread = read_PKMB_rawblocks(infiles, numfiles, raw, 
 				  numblocks, padding);
@@ -349,10 +364,34 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
     
     currentdata = rawdata1;
     lastdata = rawdata2;
+
+    if (mask){
+      starttime = currentblock * timeperblk;
+      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+      if (*nummasked==-1){ /* If all channels are masked */
+	for (ii=0; ii<numblocks; ii++){
+	  offset = ii * DATLEN;
+	  for (jj=0; jj<DATLEN; jj++)
+	    *(raw+offset+jj) = *(padblock+jj);
+	}
+      }
+    }
     
     for (ii=0; ii<numpts; ii++)
       convert_PKMB_point(raw + ii * bytesperpt_st, 
 			 currentdata + ii * numchan_st);
+    
+    if (*nummasked > 0){ /* Only some of the channels are masked */
+      for (ii=0; ii<*nummasked; ii++)
+	chanmask[ii] = maskchans[ii] & 0x01;
+      for (ii=0; ii<numpts; ii++){
+	pointmask = ii & 0x01;
+	offset = ii * numchan_st;
+	for (jj=0; jj<*nummasked; jj++)
+	  currentdata[offset+maskchans[jj]] = pointmask^chanmask[jj];
+      }
+    }
+
     SWAP(currentdata, lastdata);
     firsttime=0;
   }
@@ -362,9 +401,34 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
   if (allocd){
     numread = read_PKMB_rawblocks(infiles, numfiles, raw, 
 				  numblocks, padding);
+
+    if (mask){
+      starttime = currentblock * timeperblk;
+      *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+      if (*nummasked==-1){ /* If all channels are masked */
+	for (ii=0; ii<numblocks; ii++){
+	  offset = ii * DATLEN;
+	  for (jj=0; jj<DATLEN; jj++)
+	    *(raw+offset+jj) = *(padblock+jj);
+	}
+      }
+    }
+
     for (ii=0; ii<numpts; ii++)
       convert_PKMB_point(raw + ii * bytesperpt_st, 
 			 currentdata + ii * numchan_st);
+
+    if (*nummasked > 0){ /* Only some of the channels are masked */
+      for (ii=0; ii<*nummasked; ii++)
+	chanmask[ii] = maskchans[ii] & 0x01;
+      for (ii=0; ii<numpts; ii++){
+	pointmask = ii & 0x01;
+	offset = ii * numchan_st;
+	for (jj=0; jj<*nummasked; jj++)
+	  currentdata[offset+maskchans[jj]] = pointmask^chanmask[jj];
+      }
+    }
+
     dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
     SWAP(currentdata, lastdata);
 

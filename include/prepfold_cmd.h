@@ -23,6 +23,8 @@ typedef struct s_Cmdline {
   char de405P;
   /***** -xwin: Show the result plots on-screen as well as make a plotfile */
   char xwinP;
+  /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
+  char runavgP;
   /***** -dm: The central DM of the search (cm^-3 pc) */
   char dmP;
   double dm;

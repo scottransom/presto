@@ -1,3 +1,5 @@
+#include "mask.h"
+
 #define RECLEN 49792
 #define DATLEN 49152
 #define HDRLEN 640
@@ -8,6 +10,11 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.12  2001/01/03 04:55:25  ransom
+ * Added masking ability to read_PKMB().  Seems to work.
+ * Added running-average subtraction option to prepfold for single channel data.
+ * Many other minor changes/fixes/additions.
+ *
  * Revision 1.11  2000/12/21 23:20:54  ransom
  * Re-ran clig after removing padding params in prepdata.
  * Added flag to multibeam reading routines that tells if the
@@ -176,7 +183,8 @@ int read_PKMB_rawblocks(FILE *infiles[], int numfiles,
 /* and statistics should not be calculated                  */
 
 int read_PKMB(FILE *infiles[], int numfiles, float *data, 
-	      int numpts, double *dispdelays, int *padding);
+	      int numpts, double *dispdelays, int *padding,
+	      int *maskchans, int *nummasked, mask *obsmask);
 /* This routine reads numpts from the PKMB raw input   */
 /* files *infiles.  These files contain 1 bit data     */
 /* from the PKMB backend at Parkes.  Time delays and   */
@@ -184,6 +192,10 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
 /* the # of points read if succesful, 0 otherwise.     */
 /* If padding is returned as 1, then padding was       */
 /* added and statistics should not be calculated       */
+/* maskchans is an array of length numchans contains   */
+/* a list of the number of channels that were masked.  */
+/* The # of channels masked is returned in nummasked.  */
+/* obsmask is the mask structure to use for masking.   */
 
 void get_PKMB_channel(int channum, float chandat[], 
 		      unsigned char rawdata[], int numblocks);

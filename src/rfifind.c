@@ -3,7 +3,6 @@
 #include "rfifind_cmd.h"
 #include "multibeam.h"
 #include "rfifind.h"
-#include "mask.h"
 
 /* Some function definitions */
 

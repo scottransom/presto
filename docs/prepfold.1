@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "21Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "02Jan01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -28,6 +28,7 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-nobary]
 [-DE405]
 [-xwin]
+[-runavg]
 [-dm dm]
 [-n proflen]
 [-nsub nsub]
@@ -77,6 +78,8 @@ Do not barycenter (assume input parameters are topocentric).
 Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -xwin
 Show the result plots on-screen as well as make a plotfile.
+.IP -runavg
+Subtract each blocks average as it is read (single channel data only).
 .IP -dm
 The central DM of the search (cm^-3 pc),
 .br

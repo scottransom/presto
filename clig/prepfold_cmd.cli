@@ -17,6 +17,7 @@ Flag   -ebpp    ebpp    {Raw data in Effelsberg-Berkeley Pulsar Processor format
 Flag   -nobary  nobary  {Do not barycenter (assume input parameters are topocentric)}
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Flag   -xwin    xwin    {Show the result plots on-screen as well as make a plotfile}
+Flag   -runavg  runavg  {Subtract each blocks average as it is read (single channel data only)}
 Double  -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	-r 0 oo  -d 0
 Int     -n       proflen {The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period}
