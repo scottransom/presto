@@ -59,11 +59,11 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
 
   deltaphase = 1.0 - *phaseadded;
   addpart = dataval * deltaphase / partphase;
-  if (deltaphase > 0.0)
+/*   if (deltaphase > 0.0) */
     add_to_prof(prof, buffer, numprof, lophase, 
 		deltaphase, addpart, phaseadded);
-  else
-    printf("1. delaphase = 0.0\n");
+/*   else */
+/*     printf("1. deltaphase = %g\n", deltaphase); */
 
   /* Dump the buffer into the profile array */
   /* and reset the buffer array to zeros.   */
@@ -80,11 +80,11 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
     lophase -= (int) lophase;
   deltaphase = partphase - deltaphase;
   addpart = dataval - addpart;
-  if (deltaphase > 0.0)
+/*   if (deltaphase > 0.0) */
     add_to_prof(prof, buffer, numprof, lophase, 
 		deltaphase, addpart, phaseadded);
-  else
-    printf("2. delaphase = 0.0\n");
+/*   else */
+/*     printf("2. deltaphase = %g\n", deltaphase); */
 
   /* Return the new value of phaseadded */
 
@@ -356,7 +356,7 @@ double foldfile(FILE *datafile, double dt, double tlo,
 /*    (i.e. to the beginning of the first data point)                 */
 {
   float data[WORKLEN];
-  double *onoffptr=NULL, phase=0.0;
+  double *onoffptr=NULL, *buffer, phase=0.0, phaseadded=0.0;
   int ourflags;
   unsigned long ii, N, onbin, offbin, numbins;
   unsigned long remainbins, binstoread, numreads;
@@ -368,6 +368,12 @@ double foldfile(FILE *datafile, double dt, double tlo,
   stats->numdata = stats->data_avg = stats->data_var = 0.0;
   if (DELAYS) ourflags = 1;
   else ourflags = 0;
+
+  /* Create and initialize the buffer needed by fold() */
+
+  buffer = gen_dvect(numprof);
+  for (ii=0; ii<(unsigned long)numprof; ii++)
+    buffer[ii] = 0.0;
 
   do { /* Loop over the on-off pairs */
 
@@ -409,7 +415,8 @@ double foldfile(FILE *datafile, double dt, double tlo,
       /* Fold the current chunk of data */
 
       phase = fold(data, binstoread, dt, tlo + onbin * dt, prof, 
-		   numprof, startphs, fo, fdot, fdotdot, ourflags, 
+		   numprof, startphs, buffer, &phaseadded, 
+		   fo, fdot, fdotdot, ourflags, 
 		   delays, delaytimes, numdelays, NULL, stats);
 
       /* Set the current chiarr value */
@@ -419,8 +426,9 @@ double foldfile(FILE *datafile, double dt, double tlo,
 
   } while (offbin < N - 1 && offbin != 0);
 
-  /* Return the ending phase from folding */
-
+  /* Free the buffer and return */
+  
+  free(buffer);
   return phase;
 }
 
@@ -543,6 +551,7 @@ double simplefold(float *data, int numdata, double dt, double tlo,
 
 double fold(float *data, int numdata, double dt, double tlo, 
 	    double *prof, int numprof, double startphs, 
+	    double *buffer, double *phaseadded, 
 	    double fo, double fdot, double fdotdot, int flags, 
 	    double *delays, double *delaytimes, int numdelays, 
 	    int *onoffpairs, foldstats *stats)
@@ -563,6 +572,10 @@ double fold(float *data, int numdata, double dt, double tlo,
 /*    'prof' is a double prec array to contain the profile.           */
 /*    'numprof' is the length of the profile array.                   */
 /*    'startphs'is the phase offset [0-1] for the first point.        */
+/*    'buffer' is a double prec array of numprof values containing    */
+/*            data that hasn't made it into the prof yet.             */
+/*    'phaseadded' is the address to a variable showing how much      */
+/*            has been added to the buffer [0-1] (must start as 0.0)  */
 /*    'fo' the starting frequency to fold.                            */
 /*    'fdot' the starting frequency derivative.                       */
 /*    'fdotdot' the frequency second derivative.                      */
@@ -591,9 +604,9 @@ double fold(float *data, int numdata, double dt, double tlo,
   int ii, onbin, offbin, *onoffptr=NULL;
   unsigned long arrayoffset=0;
   double phase, phasenext=0.0, deltaphase, T, Tnext, TD, TDnext;
-  double profbinwidth, lophase, hiphase, dtmp, phaseadded=0.0;
+  double profbinwidth, lophase, hiphase, dtmp;
   double dev, delaytlo=0.0, delaythi=0.0, delaylo=0.0, delayhi=0.0;
-  double *delayptr=NULL, *delaytimeptr=NULL, *buffer;
+  double *delayptr=NULL, *delaytimeptr=NULL;
 
   /* Initialize some variables and save some FLOPs later... */
 
@@ -604,13 +617,6 @@ double fold(float *data, int numdata, double dt, double tlo,
   stats->numprof = (double) numprof;
   stats->data_var *= (stats->numdata - 1.0);
 
-  /* Create a buffer that we must be at least half full */
-  /* before transferring the first half to the profile  */
-
-  buffer = gen_dvect(numprof);
-  for (ii=0; ii<numprof; ii++) 
-    buffer[ii] = 0.0;
-  
   do { /* Loop over the on-off pairs */
 
     /* Set the on-off pointers and variables */
@@ -700,7 +706,7 @@ double fold(float *data, int numdata, double dt, double tlo,
       /* Add the current point to the buffer or the profile */
 
       add_to_prof(prof, buffer, numprof, lophase, 
-		  deltaphase, data[ii], &phaseadded);
+		  deltaphase, data[ii], phaseadded);
   
       /* Update variables */
       
@@ -740,9 +746,6 @@ double fold(float *data, int numdata, double dt, double tlo,
   phasenext = (phasenext < 0.0) ? 
     1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
 
-  /* Free the buffer and return */
-  
-  free(buffer);
   return(phasenext);
 }
 

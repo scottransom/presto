@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
   double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime;
   double *obsf=NULL, *dispdts=NULL, *parttimes, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
+  double *buffers, *phasesadded;
   char *plotfilenm, *outfilenm, *rootnm, *binproffilenm;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numchan=1, binary=0, numdelays=0, numbarypts=0;
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
   printf("        Pulsar Raw-Data Folding Search Routine\n");
   printf(" Used for DM, Period, and P-dot tweaking of PSR candidates.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("                    14 Jan 2000\n\n");
+  printf("                    29 Aug 2000\n\n");
 
   init_prepfoldinfo(&search);
 
@@ -469,7 +470,7 @@ int main(int argc, char *argv[])
   if (cmd->proflenP)
     search.proflen = cmd->proflen;
   else
-    if (idata.bary || cmd->psrnameP)
+    if (idata.bary || cmd->psrnameP || cmd->pkmbP)
       search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
     else
       search.proflen = (long) (search.topo.p1 / search.dt + 0.5);
@@ -564,11 +565,17 @@ int main(int argc, char *argv[])
   search.npart = cmd->npart;
   data = gen_fvect(cmd->nsub * worklen);
   search.rawfolds = gen_dvect(cmd->nsub * cmd->npart * search.proflen);
+  buffers = gen_dvect(cmd->nsub * search.proflen);
+  phasesadded = gen_dvect(cmd->nsub);
   search.stats = (foldstats *)malloc(sizeof(foldstats) * 
 				     cmd->nsub * cmd->npart);
-  for (ii = 0 ; ii < cmd->npart * cmd->nsub * search.proflen; ii++)
+  for (ii = 0; ii < cmd->nsub * search.proflen; ii++)
+    buffers[ii] = 0.0;
+  for (ii = 0; ii < cmd->nsub; ii++)
+    phasesadded[ii] = 0.0;
+  for (ii = 0; ii < cmd->npart * cmd->nsub * search.proflen; ii++)
     search.rawfolds[ii] = 0.0;
-  for (ii = 0 ; ii < cmd->npart * cmd->nsub; ii++){
+  for (ii = 0; ii < cmd->npart * cmd->nsub; ii++){
     search.stats[ii].numdata = 0.0;
     search.stats[ii].data_avg = 0.0;
     search.stats[ii].data_var = 0.0;
@@ -717,12 +724,13 @@ int main(int argc, char *argv[])
 			    cmd->nsub, numchan);
      
       /* frequency sub-bands */
-      
+
       for (kk = 0; kk < cmd->nsub; kk++)
 	fold(data + kk * worklen, numread, search.dt, 
 	     parttimes[ii] + jj * proftime, 
 	     search.rawfolds + (ii * cmd->nsub + kk) * search.proflen, 
-	     search.proflen, cmd->phs, foldf, foldfd, foldfdd, 
+	     search.proflen, cmd->phs, buffers + kk * search.proflen, 
+	     phasesadded + kk, foldf, foldfd, foldfdd, 
 	     flags, Ep, tp, numdelays, NULL, 
 	     &(search.stats[ii * cmd->nsub + kk]));
       totnumfolded += numread;
@@ -740,6 +748,8 @@ int main(int argc, char *argv[])
     printf("\r  Folded %ld points of %.0f", totnumfolded, N);
     fflush(NULL);
   }
+  free(buffers);
+  free(phasesadded);
   fclose(infile);
   fclose(binproffile);
 
