@@ -118,14 +118,24 @@ static void init_subharminfo(int numharm, int harmnum,
 			     int zmax, subharminfo *shi)
 /* Note:  'zmax' is the overall maximum 'z' in the search */
 {
-  int ii, fftlen;
+  int ii, fftlen, numz_full;
 
   shi->numharm = numharm;
   shi->harmnum = harmnum;
   shi->zmax = calc_required_z(numharm, harmnum, zmax);
-  shi->numkern = (shi->zmax / ACCEL_DZ) * 2 + 1;
-  shi->kern = (kernel *)malloc(shi->numkern * sizeof(kernel));
+  numz_full = (zmax / ACCEL_DZ) * 2 + 1;
+  shi->rinds_init = 0;
+  if (numharm > 1){
+    shi->rinds = (unsigned short int **) malloc(numz_full * 
+						sizeof(unsigned short int *));
+    shi->rinds[0] = (unsigned short int *) malloc(numz_full * ACCEL_USELEN * 
+						  sizeof(unsigned short int));
+    for (ii=1; ii<numz_full; ii++)
+      shi->rinds[ii] = shi->rinds[ii-1] + ACCEL_USELEN;
+  }
   fftlen = calc_fftlen(numharm, harmnum, zmax); 
+  shi->numkern = (shi->zmax / ACCEL_DZ) * 2 + 1;
+  shi->kern = (kernel *)malloc(shi->numkern * sizeof(kernel)); 
   for (ii=0; ii<shi->numkern; ii++)
     init_kernel(-shi->zmax+ii*ACCEL_DZ, fftlen, &shi->kern[ii]);
 }
@@ -164,6 +174,10 @@ static void free_subharminfo(subharminfo *shi)
 
   for (ii=0; ii<shi->numkern; ii++)
     free_kernel(&shi->kern[ii]);
+  if (shi->numharm > 1){
+    free(shi->rinds[0]);
+    free(shi->rinds);
+  }
   free(shi->kern);
 }
 
@@ -568,12 +582,23 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 			       subharminfo *shi, accelobs *obs)
 {
   int ii, lobin, hibin, numdata, nrs, fftlen, binoffset;
+  static int numrs_full=0, numzs_full=0;
   float powargr, powargi;
   double drlo, drhi, norm;
   ffdotpows *ffdot;
   fcomplex *data, **result;
   presto_datainf datainf;
 
+  if (numrs_full==0){
+    if (numharm==1 && harmnum==1){
+      numrs_full = ACCEL_USELEN;
+      numzs_full = shi->numkern;
+    } else {
+      printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
+      printf("harnum=1 before you use other values!  Exiting.\n\n");
+      exit(0);
+    }
+  }
   ffdot = (ffdotpows *)malloc(sizeof(ffdotpows));
 
   /* Calculate and get the required amplitudes */
@@ -582,6 +607,19 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   drhi = calc_required_r(numharm, harmnum, fullrhi);
   ffdot->rlo = (int) floor(drlo);
   ffdot->zlo = calc_required_z(numharm, harmnum, obs->zlo);
+  if (shi->rinds_init==0 && numharm > 1){
+    int jj;
+    double rr, subr;
+    for (ii=0; ii<numzs_full; ii++){
+      for (jj=0; jj<numrs_full; jj++){
+	rr = fullrlo + jj * ACCEL_DR; 
+	subr = calc_required_r(numharm, harmnum, rr);
+	shi->rinds[ii][jj] = index_from_r(subr, ffdot->rlo);
+      }
+    }
+    shi->rinds_init = 1;
+  }
+  ffdot->rinds = shi->rinds;
   ffdot->numrs = (int) ((drhi - drlo) * ACCEL_RDR + DBLCORRECT) + 1;
   if (ffdot->numrs % ACCEL_RDR)
     ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
@@ -658,7 +696,6 @@ void add_ffdotpows(ffdotpows *fundamental,
 		   int numharm, int harmnum)
 {
   int ii, jj, zz, rind, zind, subz, lastrind=-1;
-  double rr, subr;
   float lastpow=0;
   
   for (ii=0; ii<fundamental->numzs; ii++){
@@ -666,9 +703,7 @@ void add_ffdotpows(ffdotpows *fundamental,
     subz = calc_required_z(numharm, harmnum, zz);
     zind = index_from_z(subz, subharmonic->zlo);
     for (jj=0; jj<fundamental->numrs; jj++){
-      rr = fundamental->rlo + jj * ACCEL_DR; 
-      subr = calc_required_r(numharm, harmnum, rr);
-      rind = index_from_r(subr, subharmonic->rlo);
+      rind = subharmonic->rinds[ii][jj];
       if (rind!=lastrind)
 	lastpow = subharmonic->powers[zind][rind];
       fundamental->powers[ii][jj] += lastpow;
