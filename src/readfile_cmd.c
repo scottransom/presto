@@ -614,7 +614,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 string value\n\
-version: 20Mar99\n\
+version: 23Sep99\n\
 ");
   exit(EXIT_FAILURE);
 }

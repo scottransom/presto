@@ -619,7 +619,7 @@ usage(void)
       -mak: Determine optimization parameters from 'infile.mak'\n\
     infile: Input fft file name (without a suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 string value\n\
-version: 18Jul98\n\
+version: 23Sep99\n\
 ");
   exit(EXIT_FAILURE);
 }

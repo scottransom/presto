@@ -164,13 +164,15 @@ geomview: togeomview
 
 cligs:
 	rm -f *_cmd.*
-	clig -o profile_cmd -d $(PRESTO)/clig/profile_cmd.cli
-	clig -o prepdata_cmd -d $(PRESTO)/clig/prepdata_cmd.cli
-	clig -o prepfold_cmd -d $(PRESTO)/clig/prepfold_cmd.cli
-	clig -o bincand_cmd -d $(PRESTO)/clig/bincand_cmd.cli
-	clig -o readfile_cmd -d $(PRESTO)/clig/readfile_cmd.cli
-	mv *_cmd.h ../include/
-	mv *.1 ../man/
+	cd ../clig ; clig -o profile_cmd -d profile_cmd.cli
+	cd ../clig ; clig -o prepdata_cmd -d prepdata_cmd.cli
+	cd ../clig ; clig -o prepfold_cmd -d prepfold_cmd.cli
+	cd ../clig ; clig -o bincand_cmd -d bincand_cmd.cli
+	cd ../clig ; clig -o search_bin_cmd -d search_bin_cmd.cli
+	cd ../clig ; clig -o readfile_cmd -d readfile_cmd.cli
+	mv ../clig/*_cmd.h ../include/
+	mv ../clig/*_cmd.c .
+	cp ../clig/*.1 ../docs/
 
 $(PRESTOLIBNM): $(PRESTOOBJS)
 	$(LINKCOMMAND) $@ $(PRESTOOBJS)
@@ -281,8 +283,8 @@ realfft_4step: realfft_4step.o
 	$(CC) $(CFLAGS) -o $@ realfft_4step.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-search_bin: search_bin.o
-	$(CC) $(CFLAGS) -o $@ search_bin.o $(EXTRALINK) $(PRESTOLINK)  -lm
+search_bin: search_bin.o search_bin_cmd.o
+	$(CC) $(CFLAGS) -o $@ search_bin.o search_bin_cmd.o $(EXTRALINK) $(PRESTOLINK)  -lm
 	cp $@ ../bin
 
 search_rzw: search_rzw.o

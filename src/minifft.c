@@ -30,7 +30,7 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
   int ii, jj, kk, nmini2, nmini4, offset, numtosearch;
   int numspread = 0, kern_half_width, numkern = 0;
   float minpow = 0.0, powargr, powargi, sqrtnorm, nyquist;
-  float *fullpows, *sumpows;
+  float *fullpows = NULL, *sumpows;
   static int firsttime = 1, old_numminifft = 0;
   static fcomplex *kernel;
   fcomplex *spread, *kern;
@@ -79,6 +79,7 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
     /* The following wraps the data around the Nyquist freq such that */
     /* we consider aliased frequencies as well.                       */
 
+    numtosearch = nmini4;
     fullpows = gen_fvect(nmini4);
     fullpows[0] = 1.0;
     fullpows[nmini2] = nyquist * nyquist;
@@ -98,14 +99,13 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm, \
 	  sumpows[jj * ii + kk - offset] += fullpows[jj];
     }
     free(fullpows);
-    numtosearch = nmini4;
   } else {
-    sumpows = gen_fvect(nmini2+1);
+    numtosearch = nmini2+1;
+    sumpows = gen_fvect(numtosearch);
     sumpows[0] = 1.0;
     sumpows[nmini2] = nyquist * nyquist;
     for (ii = 1 ; ii < nmini2; ii++)
       sumpows[ii] = POWER(spread[ii].r, spread[ii].i);
-    numtosearch = nmini2+1;
   }
   
   /* Search the summed powers */

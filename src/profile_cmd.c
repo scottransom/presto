@@ -733,7 +733,7 @@ usage(void)
       -mak: Determine folding parameters from 'infile.mak'\n\
     infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.  This file should be barycentered\n\
             1 string value\n\
-version: 18Jul98\n\
+version: 23Sep99\n\
 ");
   exit(EXIT_FAILURE);
 }
