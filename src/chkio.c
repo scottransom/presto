@@ -4,22 +4,17 @@ FILE *chkfopen(char *path, const char *mode)
 {
   FILE *file;
 
-  if ((file = fopen(path, mode)) == NULL) {
+#ifdef USE_PIOFS
+  if ((file = fopen64(path, mode)) == NULL) {
     perror("\nError in chkfopen()");
     printf("\n");
     exit(-1);
   }
-#ifdef USE_PIOFS
-  {
-    int filenum, rt;
-    piofs_lseek_t arg;
-    
-    filenum = fileno(file);
-    if ((rt = llseek(filenum, (offset_t) 0, SEEK_SET)) == -1){
-      perror("\nError in chkfopen() during llseek()");
-      printf("\n");
-      exit(-1);
-    }
+#else
+  if ((file = fopen(path, mode)) == NULL) {
+    perror("\nError in chkfopen()");
+    printf("\n");
+    exit(-1);
   }
 #endif
   return (file);
@@ -68,13 +63,10 @@ int chkfileseek(FILE * stream, long offset, size_t size, int whence)
 
 #ifdef USE_PIOFS
   {
-    int filenum;
-    piofs_lseek_t arg;
-    
-    filenum = fileno(stream);
-    arg.offset = (offset_t) (offset) * (offset_t) (size);
-    arg.whence = whence;
-    if ((rt = piofsioctl(filenum, PIOFS_LSEEK, &arg)) == -1){
+    off64_t pos;
+
+    pos = (long long) offset * (long long) size;
+    if ((rt = fseeko64(stream, pos, whence)) == -1){
       perror("\nError in chkfileseek()");
       printf("\n");
       exit(-1);
@@ -117,3 +109,6 @@ unsigned long chkfilelen(FILE *file, size_t size)
 #endif
   return (unsigned long) (buf.st_size / size);
 }
+
+
+
