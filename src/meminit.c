@@ -153,7 +153,7 @@ int main(void)
   printf("Cacheblocksize        = %ld\n", Cacheblocksize);
   printf("Maxblocksize          = %ld\n", Maxblocksize);
   printf("MAXREALFFT            = %ld\n", Maxblocksize * 2);
-  printf("BIGFFTWSIZE           = 1048576\n");
+  printf("BIGFFTWSIZE           = 2000000000\n");
   printf("KBF                   = %ld\n", Maxblocksize / 2);
   printf("\n\n");
 

@@ -10,7 +10,8 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
 {
   long n1, n2, j, k, m, b, b2, s, s1, s2, ct;
   long ind, lorowind, hirowind, n1by2;
-  int i, i1, i2, i3, i4;
+  int i, i1, i2, i3, i4, move_size;
+  unsigned char *move;
   rawtype *data, *p1, *p2, *p3, *p4;
   float *f1, *datap;
   double tmp = 0.0, h1r, h1i, h2r, h2i;
@@ -48,6 +49,11 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
   wtemp = sin(0.5 * delta);
   wpr = -2.0 * wtemp * wtemp;
   wpi = sin(delta);
+
+  /* transpose scratch space */
+
+  move_size = (b2 + n1) / 2;
+  move = (unsigned char *)malloc(move_size);
 
   for (k = 0; k < (n2 / 2); k += b) {
 
@@ -123,7 +129,7 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
     /* transpose the b2 x b2 blocks */
 
     for (j = 0, p1 = data; j < n1; j += b2, p1 += b2)
-      transposesquare(p1, b2, n1);
+      transpose_fcomplex((fcomplex *) p1, b2, n1, move, move_size); 
 
     /* do b2 transforms of size n1 */
 
@@ -151,6 +157,7 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
     /* write the data to the scratch file */
     chkfwrite(data, sizeof(rawtype), (unsigned long) (b * n1), scratch);
   }
+  free(move);
 
   /* Un-combine the first n1 values that will not be corrected  */
   /*   later due to the asymetry in the recombination.          */
@@ -226,6 +233,11 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
   if (b > n1)
     b = n1;
 
+  /* transpose scratch space */
+
+  move_size = (b + n2) / 2;
+  move = (unsigned char *)malloc(move_size);
+
   for (k = 0; k < n1; k += b) {
     /* read the data from the input file in b x b blocks */
 
@@ -237,7 +249,7 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
 
       /* transpose the b x b block */
 
-      transposesquare(p1, b, n2);
+      transpose_fcomplex((fcomplex *) p1, b, n2, move, move_size); 
     }
 
     /* do b transforms of size n2 */
@@ -250,7 +262,7 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
     for (j = 0, p1 = data, s = k; j < n2; j += b, p1 += b) {
       /* transpose the b x b block */
 
-      transposesquare(p1, b, n2);
+      transpose_fcomplex((fcomplex *) p1, b, n2, move, move_size); 
 
       for (m = 0, p2 = p1; m < b; m++, p2 += n2, s += n1) {
 	chkfseek(infile, (long) (sizeof(rawtype) * s), SEEK_SET);
@@ -258,7 +270,6 @@ void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn)
       }
     }
   }
-
+  free(move);
   free(data);
-
 }

@@ -9,7 +9,8 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
 {
   long n1, n2, j, k, m, b, b2, s, s1, s2, ct;
   long ind, lorowind, hirowind, n2by2;
-  int i, i1, i2, i3, i4;
+  int i, i1, i2, i3, i4, move_size;
+  unsigned char *move;
   rawtype *data, *p1, *p2, *p3, *p4;
   float *f1, *datap;
   double tmp = 0.0, h1r, h1i, h2r, h2i;
@@ -40,6 +41,11 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
   data = gen_rawvect(nn / 2 < Maxblocksize ? nn / 2 : Maxblocksize);
   datap = (float *) data;
 
+  /* transpose scratch space */
+
+  move_size = (b + n1) / 2;
+  move = (unsigned char *)malloc(move_size);
+
   for (k = 0; k < n2; k += b) {
     /* read the data from the input file in b x b blocks */
     for (j = 0, p1 = data, s = k; j < n1; j += b, p1 += b) {
@@ -50,7 +56,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
 
       /* transpose the b x b block */
 
-      transposesquare(p1, b, n1);
+      transpose_fcomplex((fcomplex *) p1, b, n1, move, move_size); 
     }
 
     /* do b transforms of size n1 */
@@ -79,6 +85,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
     /* write the data to the scratch file */
     chkfwrite(data, sizeof(rawtype), (unsigned long) (b * n1), scratch);
   }
+  free(move);
 
   /* then do n1 transforms of length n2          */
   /* by fetching 2 x (n2 x b) blocks in memory   */
@@ -96,6 +103,11 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
   wpr = -2.0 * wtemp * wtemp;
   wpi = sin(delta);
 
+  /* transpose scratch space */
+
+  move_size = (b + n2) / 2;
+  move = (unsigned char *)malloc(move_size);
+  
   for (k = 0; k < (n1 / 2); k += b) {
 
     /* read the data from the input file in b x b blocks */
@@ -114,7 +126,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
 
       /* transpose the b2 x b2 blocks */
 
-      transposesquare(p1, b2, n2);
+      transpose_fcomplex((fcomplex *) p1, b, n2, move, move_size); 
     }
 
     /* do 2*b transforms of size n2y */
@@ -125,7 +137,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
     /* transpose the b2 x b2 blocks */
 
     for (j = 0, p1 = data; j < n2; j += b2, p1 += b2)
-      transposesquare(p1, b2, n2);
+      transpose_fcomplex((fcomplex *) p1, b, n2, move, move_size); 
 
     /* File pointers: */
     s1 = k + 1;
@@ -191,6 +203,7 @@ void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn)
       }
     }
   }
+  free(move);
   free(data);
 
   /* Now correct the final n2 values that have not been corrected */

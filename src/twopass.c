@@ -9,6 +9,8 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
 			long nn, int isign)
 {
   long n1, n2, j, k, m, b, s, ct, ind;
+  int move_size;
+  unsigned char *move;
   rawtype *data, *p1, *p2;
   float *f1;
   double tmp = 0.0, wtemp, wpi, wpr, wi, wr, theta;
@@ -36,6 +38,11 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
 
   data = gen_rawvect(nn < Maxblocksize ? nn : Maxblocksize);
 
+  /* transpose scratch space */
+
+  move_size = (b + n1) / 2;
+  move = (unsigned char *)malloc(move_size);
+
   for (k = 0; k < n2; k += b) {
     /* read the data from the input file in b x b blocks */
     for (j = 0, p1 = data, s = k; j < n1; j += b, p1 += b) {
@@ -46,7 +53,7 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
 
       /* transpose the b x b block */
 
-      transposesquare(p1, b, n1);
+      transpose_fcomplex((fcomplex *) p1, b, n1, move, move_size); 
     }
 
     /* do b transforms of size n1 */
@@ -75,6 +82,7 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
     /* write the data to the scratch file */
     chkfwrite(data, sizeof(rawtype), (unsigned long)(b * n1), scratch);
   }
+  free(move);
 
   /* then do n1 transforms of length n2  */
   /* by fetching n2 x b blocks in memory */
@@ -82,6 +90,11 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
   b = Maxblocksize / n2;
   if (b > n1)
     b = n1;
+
+  /* transpose scratch space */
+
+  move_size = (b + n2) / 2;
+  move = (unsigned char *)malloc(move_size);
 
   for (k = 0; k < n1; k += b) {
     /* read the data from the input file in b x b blocks */
@@ -94,7 +107,7 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
 
       /* transpose the b x b block */
 
-      transposesquare(p1, b, n2);
+      transpose_fcomplex((fcomplex *) p1, b, n2, move, move_size); 
     }
 
     /* do b transforms of size n2 */
@@ -107,7 +120,7 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
     for (j = 0, p1 = data, s = k; j < n2; j += b, p1 += b) {
       /* transpose the b x b block */
 
-      transposesquare(p1, b, n2);
+      transpose_fcomplex((fcomplex *) p1, b, n2, move, move_size); 
 
       for (m = 0, p2 = p1; m < b; m++, p2 += n2, s += n1) {
 	chkfseek(infile, (long) (sizeof(rawtype) * s), SEEK_SET);
@@ -115,5 +128,6 @@ void twopassfft_scratch(FILE * infile, FILE * scratch, \
       }
     }
   }
+  free(move);
   free(data);
 }

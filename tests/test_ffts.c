@@ -11,6 +11,7 @@
 #include "ransomfft.h"
 #include "meminfo.h"
 #include "randlib.h"
+#include "clk_tck.h"
 
 #ifndef PI
 #define PI            3.1415926535897932384626433832795028841971693993751
@@ -23,7 +24,8 @@
 
 int main(int argc, char *argv[])
 {
-  float *data1, *data2, *ptr1, *ptr2;
+  float *data1, *data2;
+  fcomplex *ptr1, *ptr2;
   long n, npts, tmp = 0, ct, plimit, prn = 0;
   long i, isign = -1;
   double err = 0.0;
@@ -73,17 +75,19 @@ int main(int argc, char *argv[])
 
   for (i = 0; i <= 8; i++) {
     
-    npts = 1 << (i + 12);     /* # of points in FFT */
+    /* npts = 1 << (i + 14);        # of points in FFT */
     /*      npts = 1 << 16;	 # of points in FFT */
     /*      npts = 4096;  	 # of points in FFT */
     /*      npts = 524288;   	 # of points in FFT */
     
+    npts = 10000 * (i + 1);
+
     n = npts << 1;	       	/* # of float vals */
     
     data1 = gen_fvect(n);
     data2 = gen_fvect(n);
-    ptr1 = data1;
-    ptr2 = data2;
+    ptr1 = (fcomplex *)data1;
+    ptr2 = (fcomplex *)data2;
     
     /*      make the data = {1,1,1,1,-1,-1,-1,-1} (all real) */
     /*

@@ -19,7 +19,7 @@ PGPLOTLINK = -L$(PGPLOTLIB) -lcpgplot -lpgplot -L/usr/X11/lib -lX11
 # in $(PRESTO)/LIB and then define the following:
 # You must also run make makewisdom after you make prep.
 FFTTYPE = USEFFTW
-LINKPRESTO = -L$(PRESTO)/lib -lpresto -lfftws
+LINKPRESTO = -L$(PRESTO)/lib -lpresto -lsfftw
 # If you want to use SGI's SGIMATH FFT, define the following
 #FFTTYPE = USESGIFFT
 #FFTLIBS = -L$(PRESTO)/lib -lpresto -lcomplib.sgimath

@@ -70,6 +70,8 @@ void realsingfft(FILE * bigfft[5], long numdata, int isign, \
 		 char *inpath, char *outpath);
 void fourew(FILE * file[5], int *na, int *nb, int *nc, int *nd);
 void fourfs(FILE * file[5], unsigned long nn[], int ndim, int isign);
-void transposesquare(rawtype data[], int n1, int n2);
-void transpose(rawtype data[], int n1, int n2);
+short transpose_float(float *a, int nx, int ny, unsigned char *move, 
+		      int move_size);
+short transpose_fcomplex(fcomplex *a, int nx, int ny, unsigned char *move, 
+			 int move_size);
 rawtype *gen_rawvect(long length);

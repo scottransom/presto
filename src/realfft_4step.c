@@ -18,7 +18,8 @@ int main(int argc, char *argv[])
 {
   float *data;
   int status, isign;
-  unsigned long numdata, next2ton;
+  unsigned long numdata;
+/*   unsigned long next2ton; */
   FILE *datafile, *scratchfile;
   char datafilenm[100], scratchfilenm[100], resultfilenm[100];
   char command[80];
@@ -70,14 +71,14 @@ int main(int argc, char *argv[])
     /* # of real data points */
 
     numdata = chkfilelen(datafile, sizeof(float));
-    next2ton = next2_to_n(numdata);
-    if (numdata != next2ton) {
-      printf("\nNumber of data pts must be an integer power of two,\n");
-      printf("     or data must be single precision floats.\n");
-      printf("Exiting.\n\n");
-      fclose(datafile);
-      exit(1);
-    }
+/*     next2ton = next2_to_n(numdata); */
+/*     if (numdata != next2ton) { */
+/*       printf("\nNumber of data pts must be an integer power of two,\n"); */
+/*       printf("     or data must be single precision floats.\n"); */
+/*       printf("Exiting.\n\n"); */
+/*       fclose(datafile); */
+/*       exit(1); */
+/*     } */
     printf("Data OK.  There are %ld points.\n\n", numdata);
     fclose(datafile);
   } else {
