@@ -53,7 +53,7 @@ CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
 #	-Waggregate-return -fno-common -Wnested-externs
 #	-O4 -mpentiumpro -malign-double -funroll-loops -fforce-addr \
-#	-ffast-math 
+#	-fno-strict-aliasing 
 LIBLINKFLAGS = -shared
 LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
 FFLAGS = -O
