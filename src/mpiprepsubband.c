@@ -30,8 +30,9 @@ extern void make_infodata_struct(void);
 extern void make_maskbase_struct(void);
 extern void broadcast_mask(mask *obsmask, int myid);
 
+extern void get_PKMB_static(int *decreasing_freqs);
 extern void set_PKMB_static(int ptsperblk, int bytesperpt, 
-			    int numchan, double dt);
+			    int numchan, int decreasing_freqs, double dt);
 extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs, int *chan_map);
 extern void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
 			    int numchan, int numifs, double dt, int *chan_map);
@@ -173,7 +174,7 @@ int main(int argc, char *argv[])
   {
     float clip_sigma=0.0;
     double dt, T;
-    int ptsperblk, bytesperpt, numifs=0;
+    int ptsperblk, bytesperpt, numifs=0, decreasing_freqs=1;
     int chan_mapping[2*MAXNUMCHAN];
     long long N;
 
@@ -185,7 +186,9 @@ int main(int argc, char *argv[])
 	printf("\nPKMB input file information:\n");
 	get_PKMB_file_info(infiles, numinfiles, &N, &ptsperblk, &numchan, 
 			   &dt, &T, 1);
+	get_PKMB_static(&decreasing_freqs);
 	bytesperpt = numchan / 8;
+	bytesperblk = DATLEN;
 	chkfread(&hdr, 1, HDRLEN, infiles[0]);
 	rewind(infiles[0]);
 	PKMB_hdr_to_inf(&hdr, &idata);
@@ -227,6 +230,7 @@ int main(int argc, char *argv[])
     MPI_Bcast(&numchan, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&numifs, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&numbarypts, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(&decreasing_freqs, 1, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(chan_mapping, 2*MAXNUMCHAN, MPI_INT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&clip_sigma, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
     MPI_Bcast(&dt, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -234,7 +238,8 @@ int main(int argc, char *argv[])
     
     if (myid>0){ /* Slave */
       if (cmd->pkmbP)
-	set_PKMB_static(ptsperblk, bytesperpt, numchan, dt);
+	set_PKMB_static(ptsperblk, bytesperpt, numchan, 
+			decreasing_freqs, dt);
       if (cmd->bcpmP)
 	set_BCPM_static(ptsperblk, bytesperpt, bytesperblk, 
 			numchan, numifs, dt, chan_mapping);
