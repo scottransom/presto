@@ -40,6 +40,67 @@ static inline int index_from_z(double z, double loz)
 }
 
 
+
+
+static void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
+{
+  int ii, jj, kk;
+  char tmp[30];
+
+  /* Loop through the candidates (reference cands) */
+
+  for (ii = 0; ii < nlist; ii++) {
+
+    /* Loop through the candidates (referenced cands) */
+
+    for (jj = 0; jj < nlist; jj++) {
+      if (ii == jj)
+	continue;
+
+      /* Look for standard sidelobes */
+
+      if (fabs(list[ii].r - list[jj].r) < 15.0 && \
+	  fabs(list[ii].z - list[jj].z) > 1.0 && \
+	  list[ii].pow > list[jj].pow) {
+
+	/* Check if the note has already been written */
+
+	sprintf(tmp, "%.20s", notes + jj * 20);
+	if (!strcmp("                    ", tmp)) {
+
+	  /* Write the note */
+
+	  sprintf(notes + jj * 20, "SL? of Cand %d", ii + 1);
+	}
+	continue;
+      }
+      /* Loop through the possible PSR period harmonics */
+
+      for (kk = 1; kk < 61; kk++) {
+
+	/* Check if the PSR Fourier freqs and z's are close enough */
+
+	if ((fabs(list[ii].r - list[jj].r / kk) < list[jj].rerr * 3) && \
+	    (fabs(list[ii].z - list[jj].z / kk) < list[jj].zerr * 2)) {
+
+	  /* Check if the note has already been written */
+
+	  sprintf(tmp, "%.20s", notes + jj * 20);
+	  if (!strcmp("                    ", tmp)) {
+
+	    /* Write the note */
+
+	    sprintf(notes + jj * 20, "H %d of Cand %d", kk, ii + 1);
+
+	    break;
+	  }
+	}
+      }
+    }
+  }
+}
+
+
 static int calc_fftlen(int numharm, int harmnum, int max_zfull)
 /* The fft length needed to properly process a subharmonic */
 {
@@ -219,6 +280,7 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
   return list;
 }
 
+
 void optimize_accelcand(accelcand *cand, accelobs *obs)
 {
   int ii;
@@ -226,13 +288,166 @@ void optimize_accelcand(accelcand *cand, accelobs *obs)
   cand->pows = gen_dvect(cand->numharm);
   cand->hirs = gen_dvect(cand->numharm);
   cand->hizs = gen_dvect(cand->numharm);
-  for (ii=1; ii<=cand->numharm; ii++){
+  cand->derivs = (rderivs *)malloc(sizeof(rderivs)*cand->numharm);
+  cand->power = 0.0;
+  for (ii=0; ii<cand->numharm; ii++){
     cand->pows[ii] = max_rz_file(obs->fftfile, 
-				 cand->r*ii, cand->z*ii, \
+				 cand->r * (ii + 1), 
+				 cand->z * (ii + 1), 
 				 &(cand->hirs[ii]), 
 				 &(cand->hizs[ii]), 
 				 &(cand->derivs[ii]));
-    cand->power
+    cand->power += cand->pows[ii];
+  }
+  cand->r = cand->hirs[0];
+  cand->z = cand->hizs[0];
+  cand->sigma = candidate_sigma(cand->power, cand->numharm, 
+				obs->numindep[cand->numharm]);
+}
+
+
+static void center_string(char *outstring, char *instring, int width)
+{
+  int len;
+  char *tmp;
+
+  len = strlen(instring);
+  if (width < len){
+    printf("\nwidth < len (%d) in center_string(outstring, '%s', width=%d)\n",
+	   len, instring, width);
+  }
+  tmp = memset(outstring, ' ', width);
+  outstring[len] = '\0';
+  tmp = strncpy(outstring+(width-len)/2, instring, len);
+}
+
+
+static void write_val_with_err(FILE *outfile, double val, double err, 
+			       int numerr, int width)
+{
+  int retval;
+  char tmpstr[30], ctrstr[30];
+
+  if (numerr==1)
+    retval = nice_output_1(tmpstr, val, err, 0);
+  else if (numerr==2)
+    retval = nice_output_2(tmpstr, val, err, 0);
+  else
+    printf("\numerr = %d is out-of-range (1-2) in write_val_with_err()\n",
+	   numerr);
+  center_string(ctrstr, tmpstr, width);
+  fprintf(outfile, "%s  ", ctrstr);
+}
+
+
+void output_fundamentals(fourierprops *props, GSList *list, 
+			 accelobs *obs, infodata *idata)
+{
+  double accel=0.0, accelerr=0.0;
+  int ii, numcols=13, numcands;
+  int widths[13]={4, 5, 6, 4, 16, 15, 15, 8, 8, 8, 8, 8, 20};
+  int errors[13]={0, 0, 0, 0, 1, 1, 1, 2, 2, 2, 1, 2, 0};
+  char tmpstr[30], ctrstr[30], *notes;
+  accelcand *cand;
+  GSList *listptr;
+  rzwerrs errs;
+  char titles1[13][20]={"", "", "Summed", "Num", 
+			"Candidate Period", "Candidate Freq", 
+			"FFT Freq", "Phase", "Centroid", 
+			"Purity", "FFT Fdot", "Accel", ""};
+  char titles2[13][20]={"Cand", "Sigma", "Power", "Harm", "(ms)",
+			"(Hz)", "(bins)", "(rad)", "(0-1)", "<p> = 1",
+			"(bins)", "(m/s)", "Notes"};
+
+  numcands = g_slist_length(list);
+  listptr = list;
+
+  /* Close the old work file and open the cand file */
+  
+  fclose(obs->workfile);
+  obs->workfile = chkfopen(obs->accelnm, "w");
+  
+  /* Set our candidate notes to all spaces */
+
+  notes = (char *)malloc(numcands * widths[numcols-1]);
+  memset(notes, ' ', numcands * widths[numcols-1]);
+  
+  /* Compare the candidates with the pulsar database */
+
+  if (idata->ra_h && idata->dec_d){
+    for (ii=0; ii<numcands; ii++){
+      comp_psr_to_cand(props + ii, idata, notes + ii * 20, 0);
+    }
+  }
+
+  /* Compare the candidates with themselves */
+
+  compare_rzw_cands(props, numcands, notes);
+
+  /* Print the header */
+  
+  for (ii=0; ii<numcols-1; ii++){
+    center_string(ctrstr, titles1[ii], widths[ii]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+  }
+  center_string(ctrstr, titles1[ii], widths[ii]);
+  fprintf(obs->workfile, "%s\n", ctrstr);
+  for (ii=0; ii<numcols-1; ii++){
+    center_string(ctrstr, titles2[ii], widths[ii]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+  }
+  center_string(ctrstr, titles2[ii], widths[ii]);
+  fprintf(obs->workfile, "%s\n", ctrstr);
+  for (ii=0; ii<numcols-1; ii++){
+    memset(tmpstr, '-', widths[ii]);
+    tmpstr[widths[ii]] = '\0';
+    fprintf(obs->workfile, "%s--", tmpstr);
+  }
+  memset(tmpstr, '-', widths[ii]);
+  tmpstr[widths[ii]] = '\0';
+  fprintf(obs->workfile, "%s\n", tmpstr);
+  
+  /* Print the fundamentals */
+  
+  for (ii=0; ii<numcands; ii++){
+    cand = (accelcand *)(listptr->data);
+    calc_rzwerrs(props+ii, obs->T, &errs);
+    sprintf(tmpstr, "%4d", ii+1);
+    center_string(ctrstr, tmpstr, widths[0]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    sprintf(tmpstr, "%.2f", cand->sigma);
+    center_string(ctrstr, tmpstr, widths[1]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    sprintf(tmpstr, "%.2f", cand->power);
+    center_string(ctrstr, tmpstr, widths[2]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    sprintf(tmpstr, "%d", cand->numharm);
+    center_string(ctrstr, tmpstr, widths[3]);
+    fprintf(obs->workfile, "%s  ", ctrstr);
+    write_val_with_err(obs->workfile, errs.p, errs.perr, 
+		       errors[4], widths[4]);
+    write_val_with_err(obs->workfile, errs.f, errs.ferr, 
+		       errors[5], widths[5]);
+    write_val_with_err(obs->workfile, props[ii].r, props[ii].rerr, 
+		       errors[6], widths[6]);
+    write_val_with_err(obs->workfile, props[ii].phs, props[ii].phserr, 
+		       errors[7], widths[7]);
+    write_val_with_err(obs->workfile, props[ii].cen, props[ii].cenerr, 
+		       errors[8], widths[8]);
+    write_val_with_err(obs->workfile, props[ii].pur, props[ii].purerr, 
+		       errors[9], widths[9]);
+    write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr, 
+		       errors[10], widths[10]);
+    accel = props[ii].z * SOL / (obs->T * obs->T * errs.f);
+    accelerr = props[ii].zerr * SOL / (obs->T * obs->T * errs.f);
+    write_val_with_err(obs->workfile, accel, accelerr, 
+		       errors[11], widths[11]);
+    fprintf(obs->workfile, "  %.20s\n", notes + ii * 20);
+    fflush(obs->workfile);
+    listptr = listptr->next;
+  }
+  fprintf(obs->workfile, "\n\n");
+  free(notes);
 }
 
 
@@ -249,10 +464,12 @@ void print_accelcand(gpointer data, gpointer user_data)
 void free_accelcand(gpointer data, gpointer user_data)
 {
   user_data = NULL;
-  free(((accelcand *)data)->pows);
-  free(((accelcand *)data)->hirs);
-  free(((accelcand *)data)->hizs);
-  free(((accelcand *)data)->rderivs);
+  if (((accelcand *)data)->pows){
+    free(((accelcand *)data)->pows);
+    free(((accelcand *)data)->hirs);
+    free(((accelcand *)data)->hizs);
+    free(((accelcand *)data)->derivs);
+  }
   free((accelcand *)data);
 }
 
@@ -400,18 +617,53 @@ void search_ffdotpows(ffdotpows *ffdot, int numharm,
 }
 
 
-void create_accelobs(FILE *infile, FILE *workfile, accelobs *obs, 
-		     infodata *idata, Cmdline *cmd)
+void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
 {
-  int ii;
+  int ii, rootlen;
+
+  {
+    int hassuffix=0;
+    char *suffix;
+    
+    hassuffix = split_root_suffix(cmd->argv[0], 
+				  &(obs->rootfilenm), &suffix);
+    if (hassuffix){
+      if (strcmp(suffix, "fft")!=0){
+	printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
+	       cmd->argv[0]);
+	free(suffix);
+	exit(0);
+      }
+      free(suffix);
+    } else {
+      printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
+	     cmd->argv[0]);
+      exit(0);
+    }
+  }
+  
+  /* Determine the output filenames */
+
+  rootlen = strlen(obs->rootfilenm)+25;
+  obs->candnm = (char *)calloc(rootlen, 1);
+  obs->accelnm = (char *)calloc(rootlen, 1);
+  obs->workfilenm = (char *)calloc(rootlen, 1);
+  sprintf(obs->candnm, "%s_ACCEL_%d.cand", 
+	  obs->rootfilenm, cmd->zmax);
+  sprintf(obs->accelnm, "%s_ACCEL_%d", 
+	  obs->rootfilenm, cmd->zmax);
+  sprintf(obs->workfilenm, "%s_ACCEL_%d.txtcand", 
+	  obs->rootfilenm, cmd->zmax);
+
+  /* Determine the other parameters */
 
   if (cmd->zmax % ACCEL_DZ)
     cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
-  obs->fftfile = infile;
-  obs->workfile = workfile;
+  obs->fftfile = chkfopen(cmd->argv[0], "rb");
+  obs->workfile = chkfopen(obs->workfilenm, "w");
   obs->N = (long long) idata->N;
-  obs->nph = get_numphotons(infile);
-  obs->numbins = chkfilelen(infile, sizeof(fcomplex));
+  obs->nph = get_numphotons(obs->fftfile);
+  obs->numbins = chkfilelen(obs->fftfile, sizeof(fcomplex));
   obs->lobin = cmd->lobin;
   if (obs->lobin > 0){
     obs->nph = 1.0;
@@ -474,8 +726,13 @@ void create_accelobs(FILE *infile, FILE *workfile, accelobs *obs,
   obs->powcut = (float *)malloc(obs->numharm * sizeof(float));
   obs->numindep = (long long *)malloc(obs->numharm * sizeof(long long));
   for (ii=1; ii<=obs->numharm; ii++){
-    obs->numindep[ii-1] = (obs->rhi - obs->rlo) * obs->numz * 
-      (obs->dz / 6.95) / ii;
+    if (ii==1)
+      obs->numindep[ii-1] = obs->rhi - obs->rlo;
+    else
+      /* The numz+1 takes care of the small amount of  */
+      /* search we get above zmax and below zmin.      */
+      obs->numindep[ii-1] = (obs->rhi - obs->rlo) * (obs->numz + 1) * 
+	(obs->dz / 6.95) / ii;
     obs->powcut[ii-1] = power_for_sigma(obs->sigma, ii, 
 					obs->numindep[ii-1]);
   }
@@ -492,13 +749,14 @@ void create_accelobs(FILE *infile, FILE *workfile, accelobs *obs,
 void free_accelobs(accelobs *obs)
 {
   fclose(obs->fftfile);
-  fclose(obs->workfile);
   free(obs->numindep);
   free(obs->powcut);
+  free(obs->rootfilenm);
+  free(obs->candnm);
+  free(obs->accelnm);
+  free(obs->workfilenm);
   if (obs->numzap){
     free(obs->lobins);
     free(obs->hibins);
   }
 }
-
-

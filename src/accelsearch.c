@@ -22,7 +22,6 @@ static void print_percent_complete(int current, int number)
 int main(int argc, char *argv[])
 {
   double ttim, utim, stim, tott;
-  char *rootfilenm, *candnm, *accelcandnm, *accelnm, *workfilenm;
   struct tms runtimes;
   subharminfo *subharminf;
   accelobs obs;
@@ -55,26 +54,6 @@ int main(int argc, char *argv[])
   printf("              by Scott M. Ransom\n");
   printf("                February, 2001\n\n");
 
-  {
-    int hassuffix=0;
-    char *suffix;
-    
-    hassuffix = split_root_suffix(cmd->argv[0], &rootfilenm, &suffix);
-    if (hassuffix){
-      if (strcmp(suffix, "fft")!=0){
-	printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
-	       cmd->argv[0]);
-	free(suffix);
-	exit(0);
-      }
-      free(suffix);
-    } else {
-      printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
-	     cmd->argv[0]);
-      exit(0);
-    }
-  }
-  
   /* Read the info file */
 
   readinf(&idata, cmd->argv[0]);
@@ -85,22 +64,9 @@ int main(int argc, char *argv[])
     printf("Analyzing data from '%s'.\n\n", cmd->argv[0]);
   }
 
-  /* Determine the output filenames */
-
-  candnm = (char *)calloc(strlen(rootfilenm)+25, 1);
-  accelcandnm = (char *)calloc(strlen(rootfilenm)+25, 1);
-  accelnm = (char *)calloc(strlen(rootfilenm)+25, 1);
-  workfilenm = (char *)calloc(strlen(rootfilenm)+25, 1);
-  sprintf(candnm, "%s_ACCEL_%d.cand", rootfilenm, cmd->zmax);
-  sprintf(accelcandnm, "%s_ACCEL_%d.accelcand", rootfilenm, cmd->zmax);
-  sprintf(accelnm, "%s_ACCEL_%d", rootfilenm, cmd->zmax);
-  sprintf(workfilenm, "%s_ACCEL_%d.txtcand", rootfilenm, cmd->zmax);
-
   /* Create the accelobs structure */
   
-  create_accelobs(chkfopen(cmd->argv[0], "rb"),
-		  chkfopen(workfilenm, "w"),
-		  &obs, &idata, cmd);
+  create_accelobs(&obs, &idata, cmd);
 
   /* Generate the correlation kernels */
 
@@ -200,30 +166,6 @@ int main(int argc, char *argv[])
   qsort(props, (unsigned long) newncand, sizeof(fourierprops), \
 	compare_fourierprops);
 
-  /* Do fine scale duplicate removal and other cleaning */
-
-  newncand -= remove_dupes2(props, newncand);
-  newncand -= remove_other(props, newncand, cmd->rlo, highestbin, lowpowlim, 
-			   cmd->zapfileP, zapfreqs, zapwidths, numzap);
-
-  /* Set our candidate notes to all spaces */
-
-  notes = malloc(sizeof(char) * newncand * 20 + 1);
-  for (ii = 0; ii < newncand; ii++)
-    strncpy(notes + ii * 20, "                         ", 20);
-
-  /* Compare the candidates with the pulsar database */
-
-  if (idata.ra_h && idata.dec_d) {
-    for (ii = 0; ii < newncand; ii++) {
-      comp_psr_to_cand(&props[ii], &idata, notes + ii * 20, 0);
-    }
-  }
-
-  /* Compare the candidates with themselves */
-
-  compare_rzw_cands(props, newncand, notes);
-
   /* Write the binary candidate file */
 
   candfile = chkfopen(candnm, "wb");
@@ -259,12 +201,7 @@ int main(int argc, char *argv[])
 /*     realpsr = comp_psr_to_cand(&props, &idata, compare); */
 /*     printf("%s\n",compare); */
 
-  fclose(fftfile);
-  free(candnm);
-  free(accelcandnm);
-  free(accelnm);
-  free(rootfilenm);
-  free(workfilenm);
+  free_accelobs(obs);
   free(list);
   free(derivs);
   free(props);
@@ -275,99 +212,3 @@ int main(int argc, char *argv[])
   }
   return (0);
 }
-
-
-int not_already_there_rzw(position * newpos, position * list, int nlist)
-{
-  int ii;
-
-  /* Loop through the candidates already in the list */
-
-  for (ii = 0; ii < nlist; ii++) {
-    if (list[ii].pow == 0.0)
-      break;
-    
-    /* Check to see if the positions of the candidates match */
-
-    if ((fabs(newpos->p1 - list[ii].p1) < 0.51) &&
-	(fabs(newpos->p2 - list[ii].p2) < 2.01) &&
-	(fabs(newpos->p3 - list[ii].p3) < 5.0)){
-      
-      /* If the previous candidate is simply a lower power   */
-      /* version of the new candidate, overwrite the old and */
-      /* percolate it to its proper position.                */
-
-      if (list[ii].pow < newpos->pow){
-	return ii;
-	
-      /* Otherwise, skip the new candidate.  Its already there. */
-
-      }	else return -1;
-    }
-  }
-
-  /* Place the new candidate in the last position */
-
-  return nlist - 1;
-}
-
-
-void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
-{
-  int ii, jj, kk;
-  char tmp[30];
-
-  /* Loop through the candidates (reference cands) */
-
-  for (ii = 0; ii < nlist; ii++) {
-
-    /* Loop through the candidates (referenced cands) */
-
-    for (jj = 0; jj < nlist; jj++) {
-      if (ii == jj)
-	continue;
-
-      /* Look for standard sidelobes */
-
-      if (fabs(list[ii].r - list[jj].r) < 15.0 && \
-	  fabs(list[ii].z - list[jj].z) > 1.0 && \
-	  list[ii].pow > list[jj].pow) {
-
-	/* Check if the note has already been written */
-
-	sprintf(tmp, "%.20s", notes + jj * 20);
-	if (!strcmp("                    ", tmp)) {
-
-	  /* Write the note */
-
-	  sprintf(notes + jj * 20, "SL? of Cand %d", ii + 1);
-	}
-	continue;
-      }
-      /* Loop through the possible PSR period harmonics */
-
-      for (kk = 1; kk < 61; kk++) {
-
-	/* Check if the PSR Fourier freqs and z's are close enough */
-
-	if ((fabs(list[ii].r - list[jj].r / kk) < list[jj].rerr * 3) && \
-	    (fabs(list[ii].z - list[jj].z / kk) < list[jj].zerr * 2)) {
-
-	  /* Check if the note has already been written */
-
-	  sprintf(tmp, "%.20s", notes + jj * 20);
-	  if (!strcmp("                    ", tmp)) {
-
-	    /* Write the note */
-
-	    sprintf(notes + jj * 20, "H %d of Cand %d", kk, ii + 1);
-
-	    break;
-	  }
-	}
-      }
-    }
-  }
-}
-#undef SHORTESTFFT
-#undef LOSKIP
