@@ -272,9 +272,9 @@ void realfft(float idata[], long n, int isign)
     h2rwi = h2r * wi;
     h2iwr = h2i * wr;
     h2iwi = h2i * wi;
-    data[il].r = h1r + h2rwr - h2iwi;
-    data[il].i = h1i + h2iwr + h2rwi;
-    data[ih].r = h1r - h2rwr + h2iwi;
+    data[il].r =  h1r + h2rwr - h2iwi;
+    data[il].i =  h1i + h2iwr + h2rwi;
+    data[ih].r =  h1r - h2rwr + h2iwi;
     data[ih].i = -h1i + h2iwr + h2rwi;
     tmp1 = wr;
     wr = tmp1 * wpr - wi * wpi + wr;
