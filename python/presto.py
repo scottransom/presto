@@ -1302,6 +1302,7 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
            'show' if true, displays plots of 'r' and 'z'.
            'device' if the device to plot to if 'show' is true.
     """
+    T = float(T)
     startE = keplars_eqn(psr.orb.t, psr.orb.p, psr.orb.e, 1.0E-15)
     numorbpts = int(T / psr.orb.p + 1.0) * 1024 + 1
     dt = T / (numorbpts - 1)
