@@ -4,7 +4,7 @@
 
 /* This causes the barycentric motion to be calculated once per second */
 
-#define TDT 1.0
+#define TDT 10.0
 
 /* Some function definitions */
 
@@ -13,7 +13,6 @@ int (*readrec_ptr)(FILE * file, float *data, int numpts,
 int read_resid_rec(FILE * file, double *toa, double *obsf);
 int read_floats(FILE * file, float *data, int numpts,
 		double *dispdelays, int numchan);
-
 
 /* The main program */
 
@@ -34,7 +33,7 @@ int main(int argc, char *argv[])
   double *btoa = NULL, *ttoa = NULL, *voverc = NULL, barydispdt = 0.0;
   char obs[3], ephem[10], *datafilenm, *rootfilenm, *outinfonm;
   char rastring[50], decstring[50], *cptr;
-  int numchan = 1, newper = 0, oldper = 0, slen;
+  int numchan = 1, newper = 0, oldper = 0, slen, hiindex;
   long i, j, k, numbarypts = 0, worklen = 65536, next_pow_of_two = 0;
   long numread = 0, totread = 0, wlen2, wrote = 0, totwrote = 0, bindex = 0;
   multibeam_tapehdr hdr;
@@ -307,7 +306,10 @@ int main(int argc, char *argv[])
 
       /* Print percent complete */
 
-      newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
+      if (cmd->numoutP)
+	newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
+      else
+	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
       if (newper > oldper) {
 	printf("\rAmount Complete = %3d%%", newper);
 	fflush(stdout);
@@ -388,7 +390,7 @@ int main(int argc, char *argv[])
     barydispdt = dispdt[numchan - 1];
     for (i = 0; i < numchan; i++)
       dispdt[i] = (dispdt[i] - barydispdt) / idata.dt;
-    worklen *= ((int)(dispdt[numchan-1]) / worklen) + 1;
+    worklen *= ((int)(dispdt[0]) / worklen) + 1;
 
     /* If the data is de-dispersed radio data...*/
 
@@ -431,6 +433,7 @@ int main(int argc, char *argv[])
     tt1 = 0.0;
     tt2 = ttdt;
     wrote = worklen;
+    hiindex = 0;
 
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = 0%%");
@@ -446,7 +449,10 @@ int main(int argc, char *argv[])
 
       /* Print percent complete */
 
-      newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
+      if (cmd->numoutP)
+	newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
+      else 
+	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
       if (newper > oldper) {
 	printf("\rAmount Complete = %3d%%", newper);
 	fflush(stdout);
@@ -485,14 +491,10 @@ int main(int argc, char *argv[])
 	if (bt >= tt2) {
 
 	  /* If the barycentering compresses the data, don't */
-	  /* write a bunch of zeros.                         */
+	  /* write a bunch of zeros.  Also, don't write more */
+	  /* than cmd->numout points.                        */
 
-	  wrote = worklen;
-	  if (numread != worklen && outdata[worklen-1] == 0.0)
-	    while (outdata[wrote - 1] == 0.0) wrote--;
-
-	  /* Insure we don't write out too much data */
-
+	  wrote = hiindex;
 	  if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
 	    wrote = cmd->numout - totwrote;
 
@@ -517,15 +519,20 @@ int main(int argc, char *argv[])
 
 	    /* Move the output array around for the next pass */
 
-	    outdata[j] = outdata[j + worklen];
+	    outdata[j] = outdata[j + wrote];
 	  }
-	  for (j = wrote; j < worklen; j++) outdata[j] = 0.0;
+
+	  /* Re-set the high end of the buffer */
+
+	  for (j = wrote; j < wlen2; j++) 
+	    outdata[j] = 0.0;
 
 	  /* Increment our topocentric time steppers */
 
 	  tt1 = tt2;
 	  totwrote += wrote;
-	  tt2 = (totwrote + worklen) * idata.dt;
+	  tt2 = (totread + worklen) * idata.dt;
+	  hiindex = 0;
 	}
 
 	/* Determine if barycentric interval is less than, equal to, */
@@ -533,6 +540,7 @@ int main(int argc, char *argv[])
 
 	j = (long) ((bt - tt1) * rdt + DBLCORRECT);       /* Bin start */
 	k = (long) ((bt - tt1 + bdt) * rdt + DBLCORRECT); /* Bin end   */
+	hiindex = k;
 
 	/* Barycentric bin fits in one topocentric bin */
 
@@ -556,22 +564,23 @@ int main(int argc, char *argv[])
 	  outdata[k] += data[i] * (1.0 - (fact + dtmp));
 	}
 
-	if ((cmd->numoutP && totwrote >= cmd->numout) ||
-	    (wrote != worklen))
+	if (cmd->numoutP && totwrote >= cmd->numout)
 	  break;
 
       }
 
-      if ((cmd->numoutP && totwrote >= cmd->numout) ||
-	  (wrote != worklen))
+      if (cmd->numoutP && totwrote >= cmd->numout)
 	break;
+
     } while (numread == worklen);
 
     /* Write the final few points if necessary */
 
     if (!(cmd->numoutP && totwrote >= cmd->numout)) {
       i = wlen2 - 1;
-      while (outdata[i] == 0.0) i--;
+      while (outdata[i] == 0.0)
+	i--;
+      if (i < 0) i = 0;
 
       /* Insure we don't write out too much data */
 

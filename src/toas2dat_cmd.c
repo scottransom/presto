@@ -14,66 +14,31 @@
 extern double strtod(const char *, char **);
 extern long int strtol(const char *, char **, int);
 
-#include "readfile_cmd.h"
+#include "toas2dat_cmd.h"
 
 char *Program;
 
 /*@-null*/
-static int indexDefault[] = {0, -1};
 
 static Cmdline cmd = {
-  /***** -more: Paginate the output like 'more' */
-  /* moreP = */ FALSE,
-  /***** -byte: Raw data in byte format */
-  /* bytP = */ FALSE,
-  /***** -b: Raw data in byte format */
-  /* sbytP = */ FALSE,
-  /***** -float: Raw data in floating point format */
-  /* fltP = */ FALSE,
-  /***** -f: Raw data in floating point format */
-  /* sfltP = */ FALSE,
-  /***** -double: Raw data in double precision format */
-  /* dblP = */ FALSE,
-  /***** -d: Raw data in double precision format */
-  /* sdblP = */ FALSE,
-  /***** -fcomplex: Raw data in float-complex format */
-  /* fcxP = */ FALSE,
-  /***** -fc: Raw data in float-complex format */
-  /* sfcxP = */ FALSE,
-  /***** -dcomplex: Raw data in double-complex format */
-  /* dcxP = */ FALSE,
-  /***** -dc: Raw data in double-complex format */
-  /* sdcxP = */ FALSE,
-  /***** -int: Raw data in integer format */
-  /* igrP = */ FALSE,
-  /***** -i: Raw data in integer format */
-  /* sigrP = */ FALSE,
-  /***** -long: Raw data in long format */
-  /* lngP = */ FALSE,
-  /***** -l: Raw data in long format */
-  /* slngP = */ FALSE,
-  /***** -rzwcand: Raw data in rzw search candidate format */
-  /* rzwP = */ FALSE,
-  /***** -rzw: Raw data in rzw search candidate format */
-  /* srzwP = */ FALSE,
-  /***** -bincand: Raw data in bin search candidate format */
-  /* binP = */ FALSE,
-  /***** -bin: Raw data in bin search candidate format */
-  /* sbinP = */ FALSE,
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  /* pksP = */ FALSE,
-  /***** -pk: Raw data in Parkes Multibeam format */
-  /* spksP = */ FALSE,
-  /***** -fortran: Raw data was written by a fortran program */
-  /* fortranP = */ FALSE,
-  /***** -index: The range of objects to display */
-  /* indexP = */ TRUE,
-  /* index = */ indexDefault,
-  /* indexC = */ 2,
-  /***** -nph: 0th FFT bin amplitude (for 'RZW' data) */
-  /* nphP = */ TRUE,
-  /* nph = */ 1.0,
-  /* nphC = */ 1,
+  /***** -n: The number of bins in the output time series */
+  /* numoutP = */ FALSE,
+  /* numout = */ (int)0,
+  /* numoutC = */ 0,
+  /***** -dt: Time interval in seconds for output time bins */
+  /* dtP = */ FALSE,
+  /* dt = */ (double)0,
+  /* dtC = */ 0,
+  /***** -o: Name of the output time series file */
+  /* outfileP = */ FALSE,
+  /* outfile = */ (char*)0,
+  /* outfileC = */ 0,
+  /***** -text: TOAs are ASCII text (default is binary double) */
+  /* textP = */ FALSE,
+  /***** -float: TOAs are binary floats (default is binary double) */
+  /* floatP = */ FALSE,
+  /***** -sec: TOA unit is seconds (default is days) */
+  /* secP = */ FALSE,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -385,6 +350,13 @@ checkFloatHigher(char *opt, double *values, int count, double min)
   }
 }
 /**********************************************************************/
+static void
+missingErr(char *opt)
+{
+  fprintf(stderr, "%s: mandatory option `%s' missing\n",
+	  Program, opt);
+}
+/**********************************************************************/
 static char *
 catArgv(int argc, char **argv)
 {
@@ -415,186 +387,61 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -more: Paginate the output like 'more' */
-  if( !cmd.moreP ) {
-    printf("-more not found.\n");
+  /***** -n: The number of bins in the output time series */
+  if( !cmd.numoutP ) {
+    printf("-n not found.\n");
   } else {
-    printf("-more found:\n");
+    printf("-n found:\n");
+    if( !cmd.numoutC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.numout);
+    }
   }
 
-  /***** -byte: Raw data in byte format */
-  if( !cmd.bytP ) {
-    printf("-byte not found.\n");
+  /***** -dt: Time interval in seconds for output time bins */
+  if( !cmd.dtP ) {
+    printf("-dt not found.\n");
   } else {
-    printf("-byte found:\n");
+    printf("-dt found:\n");
+    if( !cmd.dtC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%f'\n", cmd.dt);
+    }
   }
 
-  /***** -b: Raw data in byte format */
-  if( !cmd.sbytP ) {
-    printf("-b not found.\n");
+  /***** -o: Name of the output time series file */
+  if( !cmd.outfileP ) {
+    printf("-o not found.\n");
   } else {
-    printf("-b found:\n");
+    printf("-o found:\n");
+    if( !cmd.outfileC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.outfile);
+    }
   }
 
-  /***** -float: Raw data in floating point format */
-  if( !cmd.fltP ) {
+  /***** -text: TOAs are ASCII text (default is binary double) */
+  if( !cmd.textP ) {
+    printf("-text not found.\n");
+  } else {
+    printf("-text found:\n");
+  }
+
+  /***** -float: TOAs are binary floats (default is binary double) */
+  if( !cmd.floatP ) {
     printf("-float not found.\n");
   } else {
     printf("-float found:\n");
   }
 
-  /***** -f: Raw data in floating point format */
-  if( !cmd.sfltP ) {
-    printf("-f not found.\n");
+  /***** -sec: TOA unit is seconds (default is days) */
+  if( !cmd.secP ) {
+    printf("-sec not found.\n");
   } else {
-    printf("-f found:\n");
-  }
-
-  /***** -double: Raw data in double precision format */
-  if( !cmd.dblP ) {
-    printf("-double not found.\n");
-  } else {
-    printf("-double found:\n");
-  }
-
-  /***** -d: Raw data in double precision format */
-  if( !cmd.sdblP ) {
-    printf("-d not found.\n");
-  } else {
-    printf("-d found:\n");
-  }
-
-  /***** -fcomplex: Raw data in float-complex format */
-  if( !cmd.fcxP ) {
-    printf("-fcomplex not found.\n");
-  } else {
-    printf("-fcomplex found:\n");
-  }
-
-  /***** -fc: Raw data in float-complex format */
-  if( !cmd.sfcxP ) {
-    printf("-fc not found.\n");
-  } else {
-    printf("-fc found:\n");
-  }
-
-  /***** -dcomplex: Raw data in double-complex format */
-  if( !cmd.dcxP ) {
-    printf("-dcomplex not found.\n");
-  } else {
-    printf("-dcomplex found:\n");
-  }
-
-  /***** -dc: Raw data in double-complex format */
-  if( !cmd.sdcxP ) {
-    printf("-dc not found.\n");
-  } else {
-    printf("-dc found:\n");
-  }
-
-  /***** -int: Raw data in integer format */
-  if( !cmd.igrP ) {
-    printf("-int not found.\n");
-  } else {
-    printf("-int found:\n");
-  }
-
-  /***** -i: Raw data in integer format */
-  if( !cmd.sigrP ) {
-    printf("-i not found.\n");
-  } else {
-    printf("-i found:\n");
-  }
-
-  /***** -long: Raw data in long format */
-  if( !cmd.lngP ) {
-    printf("-long not found.\n");
-  } else {
-    printf("-long found:\n");
-  }
-
-  /***** -l: Raw data in long format */
-  if( !cmd.slngP ) {
-    printf("-l not found.\n");
-  } else {
-    printf("-l found:\n");
-  }
-
-  /***** -rzwcand: Raw data in rzw search candidate format */
-  if( !cmd.rzwP ) {
-    printf("-rzwcand not found.\n");
-  } else {
-    printf("-rzwcand found:\n");
-  }
-
-  /***** -rzw: Raw data in rzw search candidate format */
-  if( !cmd.srzwP ) {
-    printf("-rzw not found.\n");
-  } else {
-    printf("-rzw found:\n");
-  }
-
-  /***** -bincand: Raw data in bin search candidate format */
-  if( !cmd.binP ) {
-    printf("-bincand not found.\n");
-  } else {
-    printf("-bincand found:\n");
-  }
-
-  /***** -bin: Raw data in bin search candidate format */
-  if( !cmd.sbinP ) {
-    printf("-bin not found.\n");
-  } else {
-    printf("-bin found:\n");
-  }
-
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  if( !cmd.pksP ) {
-    printf("-pkmb not found.\n");
-  } else {
-    printf("-pkmb found:\n");
-  }
-
-  /***** -pk: Raw data in Parkes Multibeam format */
-  if( !cmd.spksP ) {
-    printf("-pk not found.\n");
-  } else {
-    printf("-pk found:\n");
-  }
-
-  /***** -fortran: Raw data was written by a fortran program */
-  if( !cmd.fortranP ) {
-    printf("-fortran not found.\n");
-  } else {
-    printf("-fortran found:\n");
-  }
-
-  /***** -index: The range of objects to display */
-  if( !cmd.indexP ) {
-    printf("-index not found.\n");
-  } else {
-    printf("-index found:\n");
-    if( !cmd.indexC ) {
-      printf("  no values\n");
-    } else {
-      printf("  values =");
-      for(i=0; i<cmd.indexC; i++) {
-        printf(" `%d'", cmd.index[i]);
-      }
-      printf("\n");
-    }
-  }
-
-  /***** -nph: 0th FFT bin amplitude (for 'RZW' data) */
-  if( !cmd.nphP ) {
-    printf("-nph not found.\n");
-  } else {
-    printf("-nph found:\n");
-    if( !cmd.nphC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%f'\n", cmd.nph);
-    }
+    printf("-sec found:\n");
   }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
@@ -612,38 +459,19 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-more] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-pkmb] [-pk] [-fortran] [-index [index]] [-nph nph] file\n\
-    Reads raw data from a binary file and displays it on stdout.\n\
-      -more: Paginate the output like 'more'\n\
-      -byte: Raw data in byte format\n\
-         -b: Raw data in byte format\n\
-     -float: Raw data in floating point format\n\
-         -f: Raw data in floating point format\n\
-    -double: Raw data in double precision format\n\
-         -d: Raw data in double precision format\n\
-  -fcomplex: Raw data in float-complex format\n\
-        -fc: Raw data in float-complex format\n\
-  -dcomplex: Raw data in double-complex format\n\
-        -dc: Raw data in double-complex format\n\
-       -int: Raw data in integer format\n\
-         -i: Raw data in integer format\n\
-      -long: Raw data in long format\n\
-         -l: Raw data in long format\n\
-   -rzwcand: Raw data in rzw search candidate format\n\
-       -rzw: Raw data in rzw search candidate format\n\
-   -bincand: Raw data in bin search candidate format\n\
-       -bin: Raw data in bin search candidate format\n\
-      -pkmb: Raw data in Parkes Multibeam format\n\
-        -pk: Raw data in Parkes Multibeam format\n\
-   -fortran: Raw data was written by a fortran program\n\
-     -index: The range of objects to display\n\
-             0...2 integer values between -1 and oo\n\
-             default: `0' `-1'\n\
-       -nph: 0th FFT bin amplitude (for 'RZW' data)\n\
-             1 double precision value\n\
-             default: `1.0'\n\
-       file: Input data file name.\n\
-             1 string value\n\
+ -n numout -dt dt -o outfile [-text] [-float] [-sec] file\n\
+    Converts TOAs into a binned time series.\n\
+      -n: The number of bins in the output time series\n\
+          1 integer value between 0 and oo\n\
+     -dt: Time interval in seconds for output time bins\n\
+          1 double precision value between 0 and oo\n\
+      -o: Name of the output time series file\n\
+          1 string value\n\
+   -text: TOAs are ASCII text (default is binary double)\n\
+  -float: TOAs are binary floats (default is binary double)\n\
+    -sec: TOA unit is seconds (default is days)\n\
+    file: Input TOA file name\n\
+          1 string value\n\
 version: 04Dec99\n\
 ");
   exit(EXIT_FAILURE);
@@ -653,6 +481,7 @@ Cmdline *
 parseCmdline(int argc, char **argv)
 {
   int i, keep;
+  char missingMandatory = FALSE;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -662,130 +491,44 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-more", argv[i]) ) {
-      cmd.moreP = TRUE;
+    if( 0==strcmp("-n", argv[i]) ) {
+      cmd.numoutP = TRUE;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.numout, 1);
+      cmd.numoutC = i-keep;
+      checkIntHigher("-n", &cmd.numout, cmd.numoutC, 0);
       continue;
     }
 
-    if( 0==strcmp("-byte", argv[i]) ) {
-      cmd.bytP = TRUE;
+    if( 0==strcmp("-dt", argv[i]) ) {
+      cmd.dtP = TRUE;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.dt, 1);
+      cmd.dtC = i-keep;
+      checkFloatHigher("-dt", &cmd.dt, cmd.dtC, 0);
       continue;
     }
 
-    if( 0==strcmp("-b", argv[i]) ) {
-      cmd.sbytP = TRUE;
+    if( 0==strcmp("-o", argv[i]) ) {
+      cmd.outfileP = TRUE;
+      keep = i;
+      i = getStringOpt(argc, argv, i, &cmd.outfile, 1);
+      cmd.outfileC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-text", argv[i]) ) {
+      cmd.textP = TRUE;
       continue;
     }
 
     if( 0==strcmp("-float", argv[i]) ) {
-      cmd.fltP = TRUE;
+      cmd.floatP = TRUE;
       continue;
     }
 
-    if( 0==strcmp("-f", argv[i]) ) {
-      cmd.sfltP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-double", argv[i]) ) {
-      cmd.dblP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-d", argv[i]) ) {
-      cmd.sdblP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-fcomplex", argv[i]) ) {
-      cmd.fcxP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-fc", argv[i]) ) {
-      cmd.sfcxP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-dcomplex", argv[i]) ) {
-      cmd.dcxP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-dc", argv[i]) ) {
-      cmd.sdcxP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-int", argv[i]) ) {
-      cmd.igrP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-i", argv[i]) ) {
-      cmd.sigrP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-long", argv[i]) ) {
-      cmd.lngP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-l", argv[i]) ) {
-      cmd.slngP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-rzwcand", argv[i]) ) {
-      cmd.rzwP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-rzw", argv[i]) ) {
-      cmd.srzwP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-bincand", argv[i]) ) {
-      cmd.binP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-bin", argv[i]) ) {
-      cmd.sbinP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-pkmb", argv[i]) ) {
-      cmd.pksP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-pk", argv[i]) ) {
-      cmd.spksP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-fortran", argv[i]) ) {
-      cmd.fortranP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-index", argv[i]) ) {
-      cmd.indexP = TRUE;
-      keep = i;
-      i = getIntOpts(argc, argv, i, &cmd.index, 0, 2);
-      cmd.indexC = i-keep;
-      checkIntHigher("-index", cmd.index, cmd.indexC, -1);
-      continue;
-    }
-
-    if( 0==strcmp("-nph", argv[i]) ) {
-      cmd.nphP = TRUE;
-      keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.nph, 1);
-      cmd.nphC = i-keep;
+    if( 0==strcmp("-sec", argv[i]) ) {
+      cmd.secP = TRUE;
       continue;
     }
 
@@ -797,6 +540,19 @@ parseCmdline(int argc, char **argv)
     argv[cmd.argc++] = argv[i];
   }/* for i */
 
+  if( !cmd.numoutP ) {
+    missingErr("-n");
+    missingMandatory = TRUE;
+  }
+  if( !cmd.dtP ) {
+    missingErr("-dt");
+    missingMandatory = TRUE;
+  }
+  if( !cmd.outfileP ) {
+    missingErr("-o");
+    missingMandatory = TRUE;
+  }
+  if( missingMandatory ) exit(EXIT_FAILURE);
 
   /*@-mustfree*/
   cmd.argv = argv+1;
