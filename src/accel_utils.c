@@ -505,7 +505,10 @@ void output_fundamentals(fourierprops *props, GSList *list,
       phs0 = cand->derivs[0].phs;
       for (jj=0; jj<cand->numharm; jj++){
 	harm = cand->derivs[jj];
-	amp = sqrt(harm.pow / harm.locpow);
+	if (obs->nph > 0.0)
+	  amp = sqrt(harm.pow / obs->nph);
+	else
+	  amp = sqrt(harm.pow / harm.locpow);
 	phs = (cand->numharm-jj) * harm.phs;
 	phscorr = phs0 - fmod((jj+1.0)*phs0, TWOPI);
 	coherent_r += amp * cos(phs + phscorr);
@@ -586,7 +589,10 @@ void output_harmonics(GSList *list, accelobs *obs, infodata *idata)
   center_string(ctrstr, titles1[ii], widths[ii]);
   fprintf(obs->workfile, "%s\n", ctrstr);
   for (ii=0; ii<numcols-1; ii++){
-    center_string(ctrstr, titles2[ii], widths[ii]);
+    if (ii==3) /*  HAAACK!!! */
+      center_string(ctrstr, "NumPhot", widths[ii]);
+    else 
+      center_string(ctrstr, titles2[ii], widths[ii]);
     fprintf(obs->workfile, "%s  ", ctrstr);
   }
   center_string(ctrstr, titles2[ii], widths[ii]);
@@ -605,8 +611,18 @@ void output_harmonics(GSList *list, accelobs *obs, infodata *idata)
   for (ii=0; ii<numcands; ii++){
     cand = (accelcand *)(listptr->data);
     for (jj=0; jj<cand->numharm; jj++){
-      calc_props(cand->derivs[jj], cand->hirs[jj], 
-		 cand->hizs[jj], 0.0, &props);
+      if (obs->nph > 0.0){
+	double tmp_locpow;
+
+	tmp_locpow = cand->derivs[jj].locpow;
+	cand->derivs[jj].locpow = obs->nph;
+	calc_props(cand->derivs[jj], cand->hirs[jj], 
+		   cand->hizs[jj], 0.0, &props);
+	cand->derivs[jj].locpow = tmp_locpow;
+      } else {
+	calc_props(cand->derivs[jj], cand->hirs[jj], 
+		   cand->hizs[jj], 0.0, &props);
+      }
       calc_rzwerrs(&props, obs->T, &errs);
       comp_psr_to_cand(&props, idata, notes, 0);
       if (jj==0) sprintf(tmpstr, " %-4d", ii+1);
@@ -718,9 +734,11 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 
   /* Determine the mean local power level (via median) */
 
-  {
+  if (obs->nph > 0.0){ /* Unless freq 0 normalization is requested */
+    norm = 1.0 / obs->nph;
+  } else {
     float *powers;
-
+    
     powers = gen_fvect(numdata);
     for (ii=0; ii<numdata; ii++) 
       powers[ii] = POWER(data[ii].r, data[ii].i);
@@ -887,11 +905,15 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
   obs->fftfile = chkfopen(cmd->argv[0], "rb");
   obs->workfile = chkfopen(obs->workfilenm, "w");
   obs->N = (long long) idata->N;
-  obs->nph = get_numphotons(obs->fftfile);
+  if (cmd->photonP){
+    obs->nph = get_numphotons(obs->fftfile);
+    printf("Normalizing powers using %.0f photons.\n\n", obs->nph);
+  } else 
+    obs->nph = 0.0;
   obs->numbins = chkfilelen(obs->fftfile, sizeof(fcomplex));
   obs->lobin = cmd->lobin;
   if (obs->lobin > 0){
-    obs->nph = 1.0;
+    obs->nph = 0.0;
     if (cmd->lobin > obs->numbins - 1) {
       printf("\n'lobin' is greater than the total number of\n");
       printf("   frequencies in the data set.  Exiting.\n\n");

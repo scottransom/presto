@@ -54,6 +54,8 @@ static Cmdline cmd = {
   /* fhiP = */ 1,
   /* fhi = */ 4000.0,
   /* fhiC = */ 1,
+  /***** -photon: Data is poissonian so use freq 0 as power normalization */
+  /* photonP = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -845,6 +847,13 @@ showOptionValues(void)
       printf("  value = `%.40g'\n", cmd.fhi);
     }
   }
+
+  /***** -photon: Data is poissonian so use freq 0 as power normalization */
+  if( !cmd.photonP ) {
+    printf("-photon not found.\n");
+  } else {
+    printf("-photon found:\n");
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -861,7 +870,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [--] infile\n\
+ [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-photon] [--] infile\n\
     Searches an FFT for pulsar candidates using a Fourier domain acceleration search with harmonic summing.\n\
     -lobin: The first Fourier frequency in the data file\n\
             1 int value between 0 and oo\n\
@@ -885,9 +894,10 @@ usage(void)
       -fhi: The highest frequency (Hz) to search\n\
             1 double value between 0.0 and oo\n\
             default: `4000.0'\n\
+   -photon: Data is poissonian so use freq 0 as power normalization\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 15May01\n\
+version: 21Jun01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -977,6 +987,11 @@ parseCmdline(int argc, char **argv)
       i = getDoubleOpt(argc, argv, i, &cmd.fhi, 1);
       cmd.fhiC = i-keep;
       checkDoubleHigher("-fhi", &cmd.fhi, cmd.fhiC, 0.0);
+      continue;
+    }
+
+    if( 0==strcmp("-photon", argv[i]) ) {
+      cmd.photonP = 1;
       continue;
     }
 
