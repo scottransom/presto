@@ -24,6 +24,7 @@ typedef struct PREPFOLDINFO {
   int nsub;           /* Number of frequency subbands folded */
   int npart;          /* Number of folds in time over integration */
   int proflen;        /* Number of bins per profile */
+  int numchan;        /* Number of channels for radio data */
   char *filenm;       /* Filename of the folded data */
   char *candnm;       /* String describing the candidate */
   char *telescope;    /* Telescope where observation took place */
@@ -31,9 +32,13 @@ typedef struct PREPFOLDINFO {
   double dt;          /* Sampling interval of the data */
   double tepoch;      /* Topocentric eopch of data in MJD */
   double bepoch;      /* Barycentric eopch of data in MJD */
+  double avgvoverc;   /* Average topocentric velocity */
+  double lofreq;      /* Center of low frequency radio channel */
+  double chan_wid;    /* */
   double bestdm;      /* Best DM */
   position topo;      /* Best topocentric p, pd, and pdd */
   position bary;      /* Best barycentric p, pd, and pdd */
+  position fold;      /* f, fd, and fdd used to fold the initial data */
   orbitparams orb;    /* Barycentric orbital parameters used in folds */
 } prepfoldinfo;
 
@@ -51,13 +56,39 @@ int read_floats(FILE *file, float *data, int numpts,
 /* point data.                                              */
 /* It returns the number of points read.                    */
 
+void fold_errors(double *prof, int proflen, double dt, double N, 
+		 double datavar, double p, double pd, double pdd, 
+		 double *perr, double *pderr, double *pdderr);
+/* Calculate estimates for the errors in period p-dot and   */
+/* p-dotdot using Middleditch's error formula.  The routine */
+/* calculates the errors for each Fourier harmonic present  */
+/* in the profile that is significant.  Then it combines    */
+/* the errors for the harmonics into an error for the       */
+/* fundamental.                                             */
+/*   Arguments:                                             */
+/*      'prof' is and array pointing to the profile         */
+/*      'proflen' is the number of bins in 'prof'           */
+/*      'dt' is the sample interval of the original data    */
+/*      'N' is the total number of points folded            */
+/*      'datavar' is the variance of the original data      */
+/*      'p' is the folding period                           */
+/*      'pd' is the folding period derivative               */
+/*      'pdd' is the folding period 2nd dervivative         */
+/*      'perr' is the returned period error                 */
+/*      'pderr' is the returned p-dot error                 */
+/*      'pdderr' is the returned p-dotdot error             */
+
 void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 
 int dgels_(char *trans, int *mm, int *nn, int *nrhs, 
 	   double *aa, int *lda, double *bb, int *ldb, 
 	   double *work, int *lwork, int *info);
 
+void double2float(double *in, float *out, int numpts);
+/* Copy a double vector into a float vector */
+
 void prepfold_plot(prepfoldinfo *in);
+/* Make the beautiful 1 page prepfold output */
 
 int bary2topo(double *topotimes, double *barytimes, int numtimes, 
 	      double fb, double fbd, double fbdd, 
