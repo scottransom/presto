@@ -97,7 +97,7 @@ static void process_bird(double basebin, int harm,
   float med, xx[2], yy[2], inx, iny;
   float powargr, powargi, pwr, maxpow=0.0, maxbin=0.0;
   double truebin, pred_freq, average;
-  double firstfreq=0.0, lastfreq=0.0;
+  double firstbin=0.0, lastbin=0.0, numbins=0.0;
   fcomplex *data, *result;
 
   /* 'bin' means normal resolution FFT amplitude */
@@ -137,26 +137,25 @@ static void process_bird(double basebin, int harm,
     cpgsci(1);
     if (replot){
       plotoffset = MAXPTSTOSHOW/2 - plotnumpts/2;
-      firstfreq = firstcorrbin + dr * plotoffset;
+      firstbin = firstcorrbin + dr * plotoffset;
+      numbins = dr * plotnumpts;
+      lastbin = firstbin + numbins;
       plot_spectrum(result+plotoffset, plotnumpts,
-		    firstfreq, dr, T, average);
-      firstfreq /= T;
-      lastfreq = (firstcorrbin + dr * (plotoffset + plotnumpts)) / T;
-      xx[0] = xx[1] = pred_freq;
-      yy[0] = 0.0; yy[1] = 1.0e8;
+		    firstbin, dr, T, average);
+      cpgswin(0.0, 1.0, 0.0, 1.0);
+      xx[0] = xx[1] = (truebin - firstbin) / numbins;
+      yy[0] = 0.0; yy[1] = 1.0;
       cpgsci(2); /* red */
       cpgline(2, xx, yy); /* Predicted freq */
       cpgsci(7); /* yellow */
       if (*lofreq){
-	xx[0] = xx[1] = *lofreq;
+	xx[0] = xx[1] = ((*lofreq * T) - firstbin) / numbins;
 	cpgline(2, xx, yy); /* Boundary */
       }
       if (*hifreq){
-	xx[0] = xx[1] = *hifreq;
+	xx[0] = xx[1] = ((*hifreq * T) - firstbin) / numbins;
 	cpgline(2, xx, yy); /* Boundary */
       }
-      cpgswin(0.0, 1.0, 0.0, 1.0);
-      yy[0] = 0.0; yy[1] = 1.0;
     }
     replot=1;
     cpgsci(7); /* yellow */
@@ -168,10 +167,10 @@ static void process_bird(double basebin, int harm,
       xx[0] = xx[1] = inx;
       cpgline(2, xx, yy); /* New boundary */
       if (*lofreq==0.0){
-	*lofreq = inx * (lastfreq - firstfreq) + firstfreq;
+	*lofreq = (inx * numbins + firstbin) / T;
 	printf("  Added 1st boundary at %.12g Hz\n", *lofreq);
       } else {
-	*hifreq = inx * (lastfreq - firstfreq) + firstfreq;
+	*hifreq = (inx * numbins + firstbin) / T;
 	printf("  Added 2nd boundary at %.12g Hz\n", *hifreq);
       }
       replot=0;

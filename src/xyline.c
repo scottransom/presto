@@ -224,16 +224,23 @@ void xyline2lab(int npts, float *x, float *y, float *y2, const char *xlab, \
 
 
 void plot_spectrum(fcomplex *spect, int numspect, 
-		   double lor, double dr, double T,
-		   double average)
-/* Plot a chunk of the Fourier power spectrum normalized by average */
-/* The viewing area is left defined with the xvals as _Hz_.         */
+		   double lor, double dr, double T, double average)
+/* Plot a chunk of the Fourier power spectrum normalized by average  */
+/* The viewing area is left defined with the xvals as _bins_.        */
 {
   int ii;
   float *yvals, *xvals, maxy=0.0;
   double offsetr, hir;
   char lab[100];
 
+  if (lor > 10000){
+    offsetr = floor(lor / 1000.0) * 1000.0;
+    sprintf(lab, "Fourier Frequency - %.0f (bins)", offsetr);
+  } else {
+    offsetr = 0.0;
+    sprintf(lab, "Fourier Frequency (bins)");
+  }
+  lor = lor - offsetr;
   hir = lor + numspect * dr;
   xvals = (float *)malloc(sizeof(float) * numspect);
   yvals = (float *)malloc(sizeof(float) * numspect);
@@ -248,26 +255,20 @@ void plot_spectrum(fcomplex *spect, int numspect,
   /* Setup the plot screen for the first set of y's: */
   cpgpage();
   cpgvstd();
-  if (lor > 10000){
-    offsetr = floor(lor / 1000.0) * 1000.0;
-    sprintf(lab, "Fourier Frequency - %.0f (bins)", offsetr);
-  } else {
-    offsetr = 0.0;
-    sprintf(lab, "Fourier Frequency (bins)");
-  }
-  cpgswin(lor-offsetr, hir-offsetr, 0.0, maxy); 
+
+  /* Draw the box for the frequency (Hz) axis */
+  cpgswin((lor+offsetr)/T, (hir+offsetr)/T, 0.0, maxy); 
+  cpgbox("BNST", 0.0, 0, "BCNST", 0.0, 0);
+  cpgmtxt("B", 2.5, 0.5, 0.5, "Frequency (Hz)");
+
+  /* Draw the box for the Fourier frequency (bins) axis */
+  cpgswin(lor, hir, 0.0, maxy); 
   cpgbox("CMST", 0.0, 0, "", 0.0, 0);
   cpgmtxt("T", 2.0, 0.5, 0.5, lab);
   cpgmtxt("L", 2.0, 0.5, 0.5, "Normalized Power");
 
   /* Plot the points */
-  cpgswin(lor, hir, 0.0, maxy); 
   cpgline(numspect, xvals, yvals);
-
-  /* Draw the box for the other axis */
-  cpgswin(lor/T, hir/T, 0.0, maxy); 
-  cpgbox("BNST", 0.0, 0, "BCNST", 0.0, 0);
-  cpgmtxt("B", 2.5, 0.5, 0.5, "Frequency (Hz)");
 
   free(xvals);
   free(yvals);
