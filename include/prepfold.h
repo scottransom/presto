@@ -77,7 +77,7 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan);
 /* It returns the number of points read.                    */
 
 double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
-                  double T0, double *firsttoa);
+                  double T0, double Ttot, double *firsttoa);
 /* This routine reads a set of TOAs from the open file 'infile'.    */
 /* It returns a double precision vector of TOAs in seconds from the */
 /* first TOA.  If 'bin' is true the routine treats the data as      */
@@ -85,7 +85,8 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
 /* data is assumed to be in seconds (otherwise MJD).                */
 /* The number of TOAs read is placed in 'numtoas', and the raw      */
 /* TOA is placed in 'firsttoa'.  T0 is the time to ue for the zero  */
-/* time.  If it is negative it will default to the first TOA.       */
+/* time.  If it is negative it will default to the first TOA.  Ttot */
+/* is the total time duration that we will want to fold.            */
 
 void hunt(double *xx, int n, double x, int *jlo);
 
