@@ -31,6 +31,7 @@ static void print_percent_complete(int current, int number);
 
 /* From CLIG */
 static Cmdline *cmd;
+static BPP_ifs bppifs=SUMIFS;
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -54,7 +55,6 @@ int main(int argc, char *argv[])
   int padwrote=0, padtowrite=0, statnum=0;
   int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
   char *datafilenm;
-  BPP_ifs bppifs=SUMIFS;
   PKMB_tapehdr hdr;
   infodata idata;
   mask obsmask;
@@ -664,12 +664,18 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       currentdsdata = data1;
       lastdsdata = data2;
     }
-    if (cmd->pkmbP){
+    if (cmd->pkmbP || cmd->bcpmP){
       for (ii=0; ii<blocksperread; ii++){
-	numread = read_PKMB_subbands(infiles, numfiles, 
-				     currentdata+ii*blocksize, 
-				     dispdts, cmd->numsub, 0, &tmppad, 
-				     maskchans, &nummasked, obsmask);
+	if (cmd->pkmbP)
+	  numread = read_PKMB_subbands(infiles, numfiles, 
+				       currentdata+ii*blocksize, 
+				       dispdts, cmd->numsub, 0, &tmppad, 
+				       maskchans, &nummasked, obsmask);
+	else
+	  numread = read_BPP_subbands(infiles, numfiles, 
+				      currentdata+ii*blocksize, 
+				      dispdts, cmd->numsub, 0, &tmppad, 
+				      maskchans, &nummasked, obsmask, bppifs);
 	if (numread!=blocklen){
 	  for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
 	    currentdata[jj] = 0.0;
@@ -699,12 +705,18 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
     SWAP(currentdsdata, lastdsdata);
     firsttime = 0;
   }
-  if (cmd->pkmbP){
+  if (cmd->pkmbP || cmd->bcpmP){
     for (ii=0; ii<blocksperread; ii++){
-      numread = read_PKMB_subbands(infiles, numfiles, 
-				   currentdata+ii*blocksize, 
-				   dispdts, cmd->numsub, 0, &tmppad, 
-				   maskchans, &nummasked, obsmask);
+      if (cmd->pkmbP)
+	numread = read_PKMB_subbands(infiles, numfiles, 
+				     currentdata+ii*blocksize, 
+				     dispdts, cmd->numsub, 0, &tmppad, 
+				     maskchans, &nummasked, obsmask);
+	else
+	  numread = read_BPP_subbands(infiles, numfiles, 
+				      currentdata+ii*blocksize, 
+				      dispdts, cmd->numsub, 0, &tmppad, 
+				      maskchans, &nummasked, obsmask, bppifs);
       totnumread += numread;
       if (numread!=blocklen){
 	for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
