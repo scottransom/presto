@@ -1,0 +1,27 @@
+# Admin data
+
+Name rednoise
+
+Usage "Rednoise extraction routine."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Int 	-startwidth startwidth 	{The initial windowing size.} \
+		        -r 2 50 -d 6
+
+Int     -endwidth endwidth  {The final windowing size.} \
+			-r 50 500 -d 100
+
+Double  -endfreq endfreq  {The highest frequency where the windowing increases.} \
+			-r 0.1 10 -d 6
+
+# Rest of command line:
+
+Rest 		file 	{Input '.fft' file.} \
+			-c 1 1
+
+
