@@ -1061,7 +1061,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
 	if (flags->events)
 	  sprintf(out, "=  N/A (Events)");
 	else
-	  sprintf(out, "=  %f", search->dt);
+	  sprintf(out, "=  %.5g", search->dt);
 	cpgtext(0.45, 0.6, out);
 	if (flags->events)
 	  sprintf(out, "Events Folded");
