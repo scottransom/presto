@@ -87,7 +87,7 @@ void free_mask(mask obsmask)
 
   for (ii=0; ii<obsmask.numint; ii++){
     if (obsmask.num_chans_per_int[ii] > 0 &&
-	obsmask.num_chans_per_int[ii] < obsmask.numchan)
+	obsmask.num_chans_per_int[ii] <= obsmask.numchan)
       free(obsmask.chans[ii]);
   }
   free(obsmask.chans);
@@ -137,6 +137,11 @@ void read_mask(char *maskfilenm, mask *obsmask)
       obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
       chkfread(obsmask->chans[ii], sizeof(int), 
 	       obsmask->num_chans_per_int[ii], infile);
+    } else if (obsmask->num_chans_per_int[ii] == obsmask->numchan){
+      int jj;
+      obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
+      for (jj=0; jj<obsmask->numchan; jj++)
+	obsmask->chans[ii][jj] = jj;
     }
   }
   fclose(infile);

@@ -539,6 +539,22 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     }
 #endif
 
+    /* Scale each of the profiles in time so that the overall */
+    /* scaling is not messed up.                              */
+
+    if (ct==0) {
+      int index;
+      float min, max;
+      for (ii = 0; ii < search->npart; ii++){
+	minmax(timeprofs + ii * 2 * search->proflen, 
+	       search->proflen, &min, &max);	
+	for (jj = 0; jj < 2 * search->proflen; jj++){
+	  index = ii * 2 * search->proflen + jj;
+	  timeprofs[index] = (timeprofs[index] - min) / max;
+	}
+      }
+    }
+
     cpgsvp (0.06, 0.27, 0.09, 0.68);
     cpgswin(0.0, 1.999, 0.0, T);
     {
