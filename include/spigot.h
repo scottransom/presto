@@ -1,5 +1,5 @@
 /* Maximum number of samples (in time) to process at a time */
-#define SPIGOT_MAXPTSPERBLOCK 1024
+#define SPIGOT_MAXPTSPERBLOCK 512
 /* Maximum number of lags we can have for each sample */
 #define SPIGOT_MAXLAGS 2048
 /* Maximum data block length in bytes (the 4 is for up to 4 channels (i.e. full Stokes)) */

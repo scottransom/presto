@@ -3,7 +3,7 @@
 #include "sigproc_fb.h"
 
 #define MAXNUMCHAN 2048
-#define BLOCKLEN   1024
+#define BLOCKLEN   512
 #define MAXFBFILES 10
 
 /* All of the following have an _st to indicate static */
