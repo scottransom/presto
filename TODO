@@ -1,4 +1,4 @@
-Presto To-Do List in Order of Precedence as of 23 June 99.
+Presto To-Do List in Order of Precedence as of 01 July 99.
 
 --  Modularize the rzw and binary search routines so that
 they could be called interactively from Python.
@@ -10,9 +10,6 @@ possible buffer over-runs.
 
 --  Modify the Makefiles and package to use Configure.  Use Autoconf,
 Automake, and Libtool.
-
---  Move the code to a CVS repository on an automatically backed up
-server.
 
 --  Perform extensive testing on the correctness of the pulse folding
 and barycentering code since I think it could be messed up.
