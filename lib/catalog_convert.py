@@ -337,6 +337,5 @@ if __name__ == '__main__' :
           (len(psrs), num_binaries, outfilename)
     for ii, psr in enumerate(psrs):
         outfile.write(psr.pack_structs())
-        if psr.binary:  print ii, psr.jname
     outfile.close()
 
