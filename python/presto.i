@@ -469,6 +469,12 @@ typedef struct foldstats {
 } foldstats;
 
 
+int read_int(FILE *infile);
+/* Reads a binary integer value from the file 'infile' */
+
+double read_double(FILE *infile);
+/* Reads a double precision value from the file 'infile' */
+
 %apply float* IN_1D_FLOAT { float *data };
 void frotate(float *data, long numbins, float bins_to_left);
 /* Rotates a vector by bins_to_left places to the left.    */

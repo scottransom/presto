@@ -2,7 +2,46 @@
 
 #-------------- Extra Stuff to Make Things Easier -----------------
 
-import math, umath, Numeric, Pgplot, string
+import math, umath, Numeric, Pgplot, string, numpyio
+
+def read_foldstats(file):
+   stats = foldstats()
+   stats.numdata = read_double(file)
+   stats.data_avg = read_double(file)
+   stats.data_var = read_double(file)
+   stats.numprof = read_double(file)
+   stats.prof_avg = read_double(file)
+   stats.prof_var = read_double(file)
+   stats.redchi = read_double(file)
+   return stats
+  
+class pfd:
+   def __init__(self, filename):
+      infile = open(filename, "rb")
+      self.npart = int(read_double(infile))
+      self.nsub = int(read_double(infile))
+      self.proflen = int(read_double(infile))
+      self.stats = []
+      self.profs = Numeric.zeros(self.npart * self.nsub *
+                                 self.proflen, 'd')
+      if (self.nsub > 1):
+         self.profs.shape = (self.npart, self.nsub, self.proflen)
+      else:
+         self.profs.shape = (self.npart, self.proflen)
+      for ii in xrange(self.npart):
+         if (self.nsub > 1):
+            self.stats.append([])
+            for jj in xrange(self.nsub):
+               self.stats[ii].append(read_foldstats(infile))
+               self.profs[ii][jj] = self.profs[ii][jj] + \
+                                    numpyio.fread(infile,
+                                                  self.proflen, 'd')
+         else:
+            self.stats.append(read_foldstats(infile))
+            self.profs[ii] = self.profs[ii]+ \
+                             numpyio.fread(infile, self.proflen, 'd')
+      infile.close()
+   
 
 def read_inffile(filename):
    """
