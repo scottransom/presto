@@ -1,0 +1,45 @@
+# Admin data
+
+Name mpiprepsubband
+
+Usage "Converts a raw radio data file into many de-dispersed time-series (including barycentering)."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+String -o       outfile {Root of the output file names} \
+	-m
+Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
+Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
+Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
+        -r 0 1
+Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
+Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.} \
+	-r 0 20.0  -d 0.0
+Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
+	-r 1 oo
+Flag   -nobary  nobary  {Do not barycenter the data}
+Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
+Double  -lodm   lodm    {The lowest dispersion measure to de-disperse (cm^-3 pc)} \
+	-r 0 oo  -d 0
+Double  -dmstep dmstep  {The stepsize in dispersion measure to use(cm^-3 pc)} \
+	-r 0 oo  -d 1.0
+Int     -numdms numdms  {The number of DMs to de-disperse} \
+	-r 1 100 -d 10
+Int     -numsub numsub  {The number of sub-bands to use} \
+	-r 1 512 -d 32
+Int     -downsamp downsamp {The number of neighboring bins to co-add} \
+	-r 1 8 -d 1
+String -mask    maskfile {File containing masking information to use}
+
+# Rest of command line:
+
+Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
+        -c 1 100
+
+
+
+
