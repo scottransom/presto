@@ -507,7 +507,6 @@ void combine_profs(double *profs, int numprofs, int proflen,
   /* Set the output array to the first profile */
 
   for (ii = 0; ii < proflen; ii++) outprof[ii] = profs[ii];
-k
   absshift = fabs(shift);
   negshift = (shift < 0) ? 1 : 0;
 
