@@ -1,21 +1,24 @@
 #include "prepfold.h"
 
-double pdot2fdot(double period, double pdot)
+double switch_pfdot(double pf, double pfdot)
 {
-  return -pdot / (period * period);
+  if (pf == 0.0)
+    return 0.0;
+  else
+    return -pfdot / (pf * pf);
 }
 
-double pdot2phasedelay(double pdot, double time)
+double fdot2phasedelay(double fdot, double time)
 {
-  return 0.5 * pdot * time * time;
+  return 0.5 * fdot * time * time;
 }
 
-double phasedelay2pdot(double period, double phasedelay, double time)
+double phasedelay2fdot(double phasedelay, double time)
 {
   if (time == 0.0)
     return 0.0;
   else 
-    return pdot2fdot(1.0 / period, 2.0 * phasedelay / (time * time));
+    return 2.0 * phasedelay / (time * time);
 }
 
 

@@ -750,8 +750,8 @@ int main(int argc, char *argv[])
   bestprof = gen_dvect(search.proflen);
   {
     int numtrials, pdelay, pddelay, profindex;
-    double dphase, po, pdo, pddo, pofact;
-    double *pdprofs, *currentprof;
+    double dphase, po, pdo, pddo;
+    double *pdprofs, *currentprof, *fdots;
     foldstats currentstats;
 
     search.ndmfact = cmd->ndmfact;
@@ -766,9 +766,10 @@ int main(int argc, char *argv[])
 
     /* Initialize a bunch of variables */
 
-    search.periods = gen_dvect(numtrials);
     search.numperiods = numtrials;
+    search.periods = gen_dvect(numtrials);
     search.pdots = gen_dvect(numtrials);
+    fdots = gen_dvect(numtrials);
     search.numpdots = numtrials;
     pdprofs = gen_dvect(cmd->npart * search.proflen);
     currentprof = gen_dvect(search.proflen);
@@ -782,13 +783,13 @@ int main(int argc, char *argv[])
     /* to be delayed a number of bins between the first and last time. */
     
     dphase = po / search.proflen;
-    pofact = foldf * foldf;
     for (ii = 0; ii < numtrials; ii++){
       pdelay = ii - (numtrials - 1) / 2;
       dtmp = (double) (pdelay * search.pstep) / search.proflen;
       search.periods[ii] = 1.0 / (foldf + dtmp / T);
       dtmp = (double) (pdelay * search.pdstep) / search.proflen;
-      search.pdots[ii] = -((2.0 * dtmp / (T * T) + foldfd) / pofact);
+      fdots[ii] = phasedelay2fdot(dtmp, T);
+      search.pdots[ii] = switch_pfdot(foldf, foldfd + fdots[ii]);
       if (search.pdots[ii]==-0) search.pdots[ii] = 0.0;
     }
 
@@ -828,8 +829,8 @@ int main(int argc, char *argv[])
 				       search.dms[ii], idata.freq, 
 				       idata.chan_wid, search.avgvoverc);
 	for (jj = 0; jj < cmd->nsub; jj++)
-	  dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
-				 dphase + 0.5) % search.proflen);
+	  dmdelays[jj] = NEAREST_INT((subbanddelays[jj] - hifdelay) / 
+				     dphase) % search.proflen;
 	free(subbanddelays);
 	combine_subbands(search.rawfolds, search.stats, cmd->npart, 
 			 cmd->nsub, search.proflen, dmdelays, 
@@ -843,10 +844,8 @@ int main(int argc, char *argv[])
 
 	  for (kk = 0; kk < cmd->npart; kk++){
 	    profindex = kk * search.proflen;
-	    pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
-			      (search.pdots[jj] * foldf * foldf + 
-			       foldfd) / dphase) + 0.5);
-	    if (pddelay==-0) pddelay = 0.0;
+	    pddelay = NEAREST_INT(fdot2phasedelay(fdots[jj], parttimes[kk]) * 
+				  search.proflen);
 	    shift_prof(ddprofs + profindex, search.proflen, pddelay, 
 		       pdprofs + profindex);
 	  }
@@ -892,14 +891,11 @@ int main(int argc, char *argv[])
 	
 	for (kk = 0; kk < cmd->npart; kk++){
 	  profindex = kk * search.proflen;
-	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
-			    (search.pdots[jj] * foldf * foldf + 
-			     foldfd) / dphase) + 0.5);
-	  if (pddelay==-0) pddelay = 0.0;
+	  pddelay = NEAREST_INT(fdot2phasedelay(fdots[jj], parttimes[kk]) * 
+				search.proflen);
 	  shift_prof(search.rawfolds + profindex, search.proflen, pddelay, 
 		     pdprofs + profindex);
 	}
-
 	/* Search over the periods */
 	
 	for (kk = 0; kk < numtrials; kk++){
@@ -923,6 +919,7 @@ int main(int argc, char *argv[])
     }
     free(pdprofs);
     free(currentprof);
+    free(fdots);
   }
   printf("Done searching.\n\n");
 
