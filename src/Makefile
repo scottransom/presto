@@ -331,7 +331,7 @@ clean:
 
 cleaner: clean
 	find . -type f -perm 755 | xargs rm -f
-	rm -f libpresto.a
+	rm -f libpresto.*
 
 squeaky:  cleaner
 	rm -f *.dat *.fft *.inf fftw_wisdom.txt
