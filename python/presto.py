@@ -683,38 +683,11 @@ class infodataPtr :
         if self.thisown == 1 :
             prestoc.delete_infodata(self)
     def __setattr__(self,name,value):
-        if name == "name" :
-            prestoc.infodata_name_set(self,value)
-            return
-        if name == "object" :
-            prestoc.infodata_object_set(self,value)
-            return
-        if name == "ra_h" :
-            prestoc.infodata_ra_h_set(self,value)
-            return
-        if name == "ra_m" :
-            prestoc.infodata_ra_m_set(self,value)
-            return
         if name == "ra_s" :
             prestoc.infodata_ra_s_set(self,value)
             return
-        if name == "dec_d" :
-            prestoc.infodata_dec_d_set(self,value)
-            return
-        if name == "dec_m" :
-            prestoc.infodata_dec_m_set(self,value)
-            return
         if name == "dec_s" :
             prestoc.infodata_dec_s_set(self,value)
-            return
-        if name == "telescope" :
-            prestoc.infodata_telescope_set(self,value)
-            return
-        if name == "instrument" :
-            prestoc.infodata_instrument_set(self,value)
-            return
-        if name == "observer" :
-            prestoc.infodata_observer_set(self,value)
             return
         if name == "N" :
             prestoc.infodata_N_set(self,value)
@@ -722,26 +695,11 @@ class infodataPtr :
         if name == "dt" :
             prestoc.infodata_dt_set(self,value)
             return
-        if name == "numonoff" :
-            prestoc.infodata_numonoff_set(self,value)
-            return
-        if name == "onoff" :
-            prestoc.infodata_onoff_set(self,value)
-            return
         if name == "fov" :
             prestoc.infodata_fov_set(self,value)
             return
-        if name == "mjd_i" :
-            prestoc.infodata_mjd_i_set(self,value)
-            return
         if name == "mjd_f" :
             prestoc.infodata_mjd_f_set(self,value)
-            return
-        if name == "bary" :
-            prestoc.infodata_bary_set(self,value)
-            return
-        if name == "band" :
-            prestoc.infodata_band_set(self,value)
             return
         if name == "dm" :
             prestoc.infodata_dm_set(self,value)
@@ -752,14 +710,8 @@ class infodataPtr :
         if name == "freqband" :
             prestoc.infodata_freqband_set(self,value)
             return
-        if name == "num_chan" :
-            prestoc.infodata_num_chan_set(self,value)
-            return
         if name == "chan_wid" :
             prestoc.infodata_chan_wid_set(self,value)
-            return
-        if name == "filt" :
-            prestoc.infodata_filt_set(self,value)
             return
         if name == "wavelen" :
             prestoc.infodata_wavelen_set(self,value)
@@ -773,66 +725,82 @@ class infodataPtr :
         if name == "energyband" :
             prestoc.infodata_energyband_set(self,value)
             return
-        if name == "analyzer" :
-            prestoc.infodata_analyzer_set(self,value)
+        if name == "onoff" :
+            prestoc.infodata_onoff_set(self,value)
+            return
+        if name == "num_chan" :
+            prestoc.infodata_num_chan_set(self,value)
+            return
+        if name == "mjd_i" :
+            prestoc.infodata_mjd_i_set(self,value)
+            return
+        if name == "ra_h" :
+            prestoc.infodata_ra_h_set(self,value)
+            return
+        if name == "ra_m" :
+            prestoc.infodata_ra_m_set(self,value)
+            return
+        if name == "dec_d" :
+            prestoc.infodata_dec_d_set(self,value)
+            return
+        if name == "dec_m" :
+            prestoc.infodata_dec_m_set(self,value)
+            return
+        if name == "bary" :
+            prestoc.infodata_bary_set(self,value)
+            return
+        if name == "numonoff" :
+            prestoc.infodata_numonoff_set(self,value)
             return
         if name == "notes" :
             prestoc.infodata_notes_set(self,value)
             return
+        if name == "name" :
+            prestoc.infodata_name_set(self,value)
+            return
+        if name == "object" :
+            prestoc.infodata_object_set(self,value)
+            return
+        if name == "instrument" :
+            prestoc.infodata_instrument_set(self,value)
+            return
+        if name == "observer" :
+            prestoc.infodata_observer_set(self,value)
+            return
+        if name == "analyzer" :
+            prestoc.infodata_analyzer_set(self,value)
+            return
+        if name == "telescope" :
+            prestoc.infodata_telescope_set(self,value)
+            return
+        if name == "band" :
+            prestoc.infodata_band_set(self,value)
+            return
+        if name == "filt" :
+            prestoc.infodata_filt_set(self,value)
+            return
         self.__dict__[name] = value
     def __getattr__(self,name):
-        if name == "name" : 
-            return prestoc.infodata_name_get(self)
-        if name == "object" : 
-            return prestoc.infodata_object_get(self)
-        if name == "ra_h" : 
-            return prestoc.infodata_ra_h_get(self)
-        if name == "ra_m" : 
-            return prestoc.infodata_ra_m_get(self)
         if name == "ra_s" : 
             return prestoc.infodata_ra_s_get(self)
-        if name == "dec_d" : 
-            return prestoc.infodata_dec_d_get(self)
-        if name == "dec_m" : 
-            return prestoc.infodata_dec_m_get(self)
         if name == "dec_s" : 
             return prestoc.infodata_dec_s_get(self)
-        if name == "telescope" : 
-            return prestoc.infodata_telescope_get(self)
-        if name == "instrument" : 
-            return prestoc.infodata_instrument_get(self)
-        if name == "observer" : 
-            return prestoc.infodata_observer_get(self)
         if name == "N" : 
             return prestoc.infodata_N_get(self)
         if name == "dt" : 
             return prestoc.infodata_dt_get(self)
-        if name == "numonoff" : 
-            return prestoc.infodata_numonoff_get(self)
-        if name == "onoff" : 
-            return prestoc.infodata_onoff_get(self)
         if name == "fov" : 
             return prestoc.infodata_fov_get(self)
-        if name == "mjd_i" : 
-            return prestoc.infodata_mjd_i_get(self)
         if name == "mjd_f" : 
             return prestoc.infodata_mjd_f_get(self)
-        if name == "bary" : 
-            return prestoc.infodata_bary_get(self)
-        if name == "band" : 
-            return prestoc.infodata_band_get(self)
         if name == "dm" : 
             return prestoc.infodata_dm_get(self)
         if name == "freq" : 
             return prestoc.infodata_freq_get(self)
         if name == "freqband" : 
             return prestoc.infodata_freqband_get(self)
-        if name == "num_chan" : 
-            return prestoc.infodata_num_chan_get(self)
         if name == "chan_wid" : 
             return prestoc.infodata_chan_wid_get(self)
-        if name == "filt" : 
-            return prestoc.infodata_filt_get(self)
         if name == "wavelen" : 
             return prestoc.infodata_wavelen_get(self)
         if name == "waveband" : 
@@ -841,10 +809,42 @@ class infodataPtr :
             return prestoc.infodata_energy_get(self)
         if name == "energyband" : 
             return prestoc.infodata_energyband_get(self)
-        if name == "analyzer" : 
-            return prestoc.infodata_analyzer_get(self)
+        if name == "onoff" : 
+            return prestoc.infodata_onoff_get(self)
+        if name == "num_chan" : 
+            return prestoc.infodata_num_chan_get(self)
+        if name == "mjd_i" : 
+            return prestoc.infodata_mjd_i_get(self)
+        if name == "ra_h" : 
+            return prestoc.infodata_ra_h_get(self)
+        if name == "ra_m" : 
+            return prestoc.infodata_ra_m_get(self)
+        if name == "dec_d" : 
+            return prestoc.infodata_dec_d_get(self)
+        if name == "dec_m" : 
+            return prestoc.infodata_dec_m_get(self)
+        if name == "bary" : 
+            return prestoc.infodata_bary_get(self)
+        if name == "numonoff" : 
+            return prestoc.infodata_numonoff_get(self)
         if name == "notes" : 
             return prestoc.infodata_notes_get(self)
+        if name == "name" : 
+            return prestoc.infodata_name_get(self)
+        if name == "object" : 
+            return prestoc.infodata_object_get(self)
+        if name == "instrument" : 
+            return prestoc.infodata_instrument_get(self)
+        if name == "observer" : 
+            return prestoc.infodata_observer_get(self)
+        if name == "analyzer" : 
+            return prestoc.infodata_analyzer_get(self)
+        if name == "telescope" : 
+            return prestoc.infodata_telescope_get(self)
+        if name == "band" : 
+            return prestoc.infodata_band_get(self)
+        if name == "filt" : 
+            return prestoc.infodata_filt_get(self)
         raise AttributeError,name
     def __repr__(self):
         return "<C infodata instance at %s>" % (self.this,)
