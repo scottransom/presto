@@ -14,9 +14,11 @@ String -o       outfile {Root of the output file names} \
 	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
-Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
         -r 0 1
+Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
+Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.} \
+	-d 0.0
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}

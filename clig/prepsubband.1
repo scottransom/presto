@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "26Jun01" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "29Jun01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -25,8 +25,9 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 -o outfile
 [-pkmb]
 [-bcpm]
-[-wapp]
 [-if ifs]
+[-wapp]
+[-clip clip]
 [-numout numout]
 [-nobary]
 [-DE405]
@@ -49,12 +50,18 @@ Root of the output file names,
 Raw data in Parkes Multibeam format.
 .IP -bcpm
 Raw data in Berkeley-Caltech Pulsar Machine (BPP) format.
-.IP -wapp
-Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
 .IP -if
 For BPP format only:  A specific IF to use.,
 .br
 1 Int value between 0 and 1.
+.IP -wapp
+Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
+.IP -clip
+For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.,
+.br
+1 Float value.
+.br
+Default: `0.0'
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br

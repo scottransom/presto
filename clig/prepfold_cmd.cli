@@ -14,9 +14,11 @@ String -o       outfile {Root of the output file names} \
 	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
-Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
 	-r 0 1
+Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
+Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.} \
+	-d 0.0
 Flag   -nobary  nobary  {Do not barycenter (assume input parameters are topocentric)}
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Flag   -xwin    xwin    {Show the result plots on-screen as well as make a plotfile}
