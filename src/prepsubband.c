@@ -466,7 +466,7 @@ int main(int argc, char *argv[])
     if (cmd->subP)
       subsdata = gen_smatrix(cmd->nsub, worklen/cmd->downsamp);
     else
-      outdata = gen_fmatrix(cmd->nsub, worklen/cmd->downsamp);
+      outdata = gen_fmatrix(cmd->numdms, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
 		       &obsmask, dispdt, offsets, &padding, subsdata);
@@ -625,7 +625,7 @@ int main(int argc, char *argv[])
     if (cmd->subP)
       subsdata = gen_smatrix(cmd->nsub, worklen/cmd->downsamp);
     else
-      outdata = gen_fmatrix(cmd->nsub, worklen/cmd->downsamp);
+      outdata = gen_fmatrix(cmd->numdms, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
 		       &obsmask, dispdt, offsets, &padding, subsdata);
