@@ -1,73 +1,87 @@
 #include "prepfold.h"
 
+#define TEST_EQUAL(a, b) (fabs((a)-(b))/fabs(a) < 1.0e-10 ? 1 : 0)
+
 /********************************************/
 /* The following is taken from ppgplot.c by */
 /* Nick Patavalis (npat@ariadne.di.uoa.gr)  */
 /********************************************/
 
-void
-minmax (float *v, int nsz, float *min, float *max)
+void minmax (float *v, int nsz, float *min, float *max)
 {
-    register float *e;
-    register float mn, mx;
-
-    for (mn=mx=*v, e=v+nsz; v < e; v++)
-	if (*v > mx) mx = *v;
-	else if (*v < mn) mn = *v;
-    *min = mn;
-    *max = mx;
+  register float *e;
+  register float mn, mx;
+  
+  for (mn=mx=*v, e=v+nsz; v < e; v++)
+    if (*v > mx) mx = *v;
+    else if (*v < mn) mn = *v;
+  *min = mn;
+  *max = mx;
 }
 
 
-void 
-lininterp (float min, float max, int npts, float *v)
+void scaleprof(double *in, float *out, int n)
+/* Scales an input vector so that it goes from 0.0 to 1.0 */
 {
-    register int i;
-    register float step;
-    register float lev;
-
-    step = (max-min) / (npts-1);
-    lev = min;
-    for (i=0; i<npts; i++) {
-	v[i] = lev;
-	lev += step;
-    }
+  int ii;
+  double min=1e100, max=-1e100;
+  
+  for (ii=0; ii<n; ii++){
+    if (in[ii] > max) max = in[ii];
+    else if (in[ii] < min) min = in[ii];
+  }
+  for (ii=0; ii<n; ii++)
+    out[ii] = (float) ((in[ii] - min) / max);
 }
 
 
-static void   
-autocal2d(float *a, int rn, int cn,
-	  float *fg, float *bg, int nlevels, float *levels,
-	  float *x1, float *x2, float *y1, float *y2, 
-	  float *tr)
+void lininterp (float min, float max, int npts, float *v)
 {
-/*     int i; */
-    float dx1, dx2, dy1, dy2;
+  register int i;
+  register float step;
+  register float lev;
 
-    /* autocalibrate intensity-range. */
-    if (*fg == *bg) {
-	minmax(a,rn*cn,bg,fg);
-/* 	fprintf(stderr,"Intensity range:\n  fg=%f\n  bg=%f\n",*fg,*bg); */
-    }
-    
-    if ((nlevels >= 2) && (levels))
-	lininterp(*bg, *fg, nlevels, levels);
-    
-    /* autocalibrate x-y range. */
-    if ((*x1 == *x2) || (*y1 == *y2)) cpgqwin(&dx1,&dx2,&dy1,&dy2);
-    if (*x1 == *x2) {*x1=dx1; *x2=dx2;}
-    if (*y1 == *y2) {*y1=dy1; *y2=dy2;}
-/*     fprintf(stderr,"Xrange: [%f, %f]\nYrange[%f, %f]\n",*x1,*x2,*y1,*y2); */
-    
-    /* calculate transformation vector. */
-    tr[2] = tr[4] = 0.0;    
-    tr[1] = (*x2 - *x1) / cn;
-    tr[0] = *x1 - (tr[1] / 2);
-    tr[5] = (*y2 - *y1) / rn;
-    tr[3] = *y1 - (tr[5] / 2);
-	
-/*     fprintf(stderr,"Tansformation vector:\n"); */
-/*     for (i=0; i<6; fprintf(stderr,"  tr[%d]=%f\n",i,tr[i]),i++); */
+  step = (max-min) / (npts-1);
+  lev = min;
+  for (i=0; i<npts; i++) {
+    v[i] = lev;
+    lev += step;
+  }
+}
+
+
+static void autocal2d(float *a, int rn, int cn,
+		      float *fg, float *bg, int nlevels, float *levels,
+		      float *x1, float *x2, float *y1, float *y2, 
+		      float *tr)
+{
+  /* int i; */
+  float dx1, dx2, dy1, dy2;
+  
+  /* autocalibrate intensity-range. */
+  if (*fg == *bg) {
+    minmax(a,rn*cn,bg,fg);
+    /* fprintf(stderr,"Intensity range:\n  fg=%f\n  bg=%f\n",*fg,*bg); */
+  }
+  
+  if ((nlevels >= 2) && (levels))
+    lininterp(*bg, *fg, nlevels, levels);
+  
+  /* autocalibrate x-y range. */
+  if ((*x1 == *x2) || (*y1 == *y2)) cpgqwin(&dx1,&dx2,&dy1,&dy2);
+  if (*x1 == *x2) {*x1=dx1; *x2=dx2;}
+  if (*y1 == *y2) {*y1=dy1; *y2=dy2;}
+  /* fprintf(stderr,"Xrange: [%f, %f]\nYrange[%f, %f]\n",*x1,*x2,*y1,*y2); */
+  
+  /* calculate transformation vector. */
+  tr[2] = tr[4] = 0.0;    
+  tr[1] = (*x2 - *x1) / cn;
+  tr[0] = *x1 - (tr[1] / 2);
+  tr[5] = (*y2 - *y1) / rn;
+  tr[3] = *y1 - (tr[5] / 2);
+  
+  /* fprintf(stderr,"Tansformation vector:\n"); */
+  /* for (i=0; i<6; fprintf(stderr,"  tr[%d]=%f\n",i,tr[i]),i++); */
 }
 
 /********************************************/
@@ -103,7 +117,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 
   if (xwin) loops = 2;
 
-  if (search->fold.pow==1.0){ /* Barycentric periods */
+  if (TEST_EQUAL(search->fold.pow,1.0)){ /* Barycentric periods */
     bestp = search->bary.p1;
     bestpd = search->bary.p2;
     bestpdd = search->bary.p3;
@@ -149,13 +163,13 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
   /* Find the delays for the best periods and p-dots */
   
   for (ii = 0; ii < search->numperiods; ii++)
-    if (search->periods[ii]==bestp){
+    if (TEST_EQUAL(search->periods[ii], bestp)){
       totpdelay = search->pstep * (ii - (search->numperiods - 1) / 2);
       break;
     }
   
   for (ii = 0; ii < search->numpdots; ii++)
-    if (search->pdots[ii]==bestpd){
+    if (TEST_EQUAL(search->pdots[ii], bestpd)){
       totpddelay = search->pdstep * (ii - (search->numpdots - 1) / 2);
       break;
     }
@@ -199,7 +213,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 
       /* Make the DM vs subband plot */
 
-      if (search->dms[ii]==search->bestdm){
+      if (TEST_EQUAL(search->dms[ii], search->bestdm)){
 	for (jj = 0; jj < search->nsub; jj++){
 
 	  /* Copy the subband parts into a single array */
@@ -238,7 +252,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       
       /* Perform the P-dot and Period searches */
       
-      if (search->dms[ii]==search->bestdm){
+      if (TEST_EQUAL(search->dms[ii], search->bestdm)){
 
 	for (jj = 0; jj < search->numpdots; jj++){
 	  
@@ -263,12 +277,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 
 	    /* Add to the periodchi array */
 
-	    if (search->pdots[jj]==bestpd) 
+	    if (TEST_EQUAL(search->pdots[jj], bestpd)) 
 	      periodchi[kk] = currentstats.redchi;
 
 	    /* Add to the pdotchi array */
 
-	    if (search->periods[kk]==bestp) 
+	    if (TEST_EQUAL(search->periods[kk], bestp)) 
 	      pdotchi[jj] = currentstats.redchi;
 
 	    /* Add to the ppdot2d array */
@@ -277,7 +291,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 
 	    /* Generate the time based arrays */
 
-	    if (search->periods[kk]==bestp && search->pdots[jj]==bestpd){
+	    if (TEST_EQUAL(search->periods[kk], bestp) && 
+		TEST_EQUAL(search->pdots[jj], bestpd)){
 	      int wrap;
 
 	      /* The Best Prof */
@@ -303,10 +318,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 			     + 0.5) % search->proflen;
 		shift_prof(pdprofs + profindex, search->proflen, wrap, 
 			   currentprof);
-		double2float(currentprof, timeprofs + 2 * profindex, 
-			     search->proflen);
-		double2float(currentprof, timeprofs + 2 * profindex + 
-			     search->proflen, search->proflen);
+		scaleprof(currentprof, timeprofs + 2 * profindex, 
+			  search->proflen);
+		memcpy(timeprofs + 2 * profindex + search->proflen,
+		       timeprofs + 2 * profindex, 
+		       search->proflen * sizeof(float));
 		for (mm = 0; mm < search->proflen; mm++)
 		  lastprof[mm] += currentprof[mm];
 		profavg += ddstats[ll].prof_avg;
@@ -373,12 +389,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	
 	/* Add to the periodchi array */
 	
-	if (search->pdots[jj]==bestpd) 
+	if (TEST_EQUAL(search->pdots[jj], bestpd)) 
 	  periodchi[kk] = currentstats.redchi;
 	
 	/* Add to the pdotchi array */
 	
-	if (search->periods[kk]==bestp) 
+	if (TEST_EQUAL(search->periods[kk], bestp))
 	  pdotchi[jj] = currentstats.redchi;
 	
 	/* Add to the ppdot2d array */
@@ -387,7 +403,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	
 	/* Generate the time based arrays */
 	
-	if (search->periods[kk]==bestp && search->pdots[jj]==bestpd){
+	if (TEST_EQUAL(search->periods[kk], bestp) && 
+	    TEST_EQUAL(search->pdots[jj], bestpd)){
 	  int wrap;
 	  
 	  /* The Best Prof */
@@ -638,13 +655,13 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       sprintf(fout, "Freq - %-.6f (Hz)", search->fold.p1);
       if (pdfold < 0.0)
 	sprintf(pdout, "P-dot + %-.5g (s/s)", fabs(pdfold));
-      else if (pdfold == 0.0)
+      else if (TEST_EQUAL(pdfold, 0.0))
 	sprintf(pdout, "P-dot (s/s)");
       else
 	sprintf(pdout, "P-dot - %-.5g (s/s)", pdfold);
       if (search->fold.p2 < 0.0)
 	sprintf(fdout, "F-dot + %-.5g (Hz)", fabs(search->fold.p2));
-      else if (search->fold.p2 == 0.0)
+      else if (TEST_EQUAL(search->fold.p2, 0.0))
 	sprintf(fdout, "F-dot (Hz)");
       else
 	sprintf(fdout, "F-dot - %-.5g (Hz)", search->fold.p2);
@@ -744,9 +761,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	cpgsch(0.5);
 	cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
 	cpgsch(0.7);
-	sprintf(pout, "Freq - %-.6f (Hz)", search->fold.p1);
-	cpgmtxt("T", 1.8, 0.5, 0.5, pout);
-	cpgmtxt("R", 2.3, 0.5, 0.5, pdout);
+	cpgmtxt("T", 1.8, 0.5, 0.5, fout);
+	cpgmtxt("R", 2.3, 0.5, 0.5, fdout);
       } else {
 	cpgsch(0.7);
 	cpgbox("BCNST", 0.0, 0, "BCNST", 0.0, 0);
@@ -773,12 +789,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgtext(0.0, 1.0, out);
       sprintf(out, "Telescope:  %-s", search->telescope);
       cpgtext(0.0, 0.9, out);
-      if (search->tepoch==0.0)
+      if (TEST_EQUAL(search->tepoch, 0.0))
 	sprintf(out, "Epoch\\dtopo\\u = N/A");
       else
 	sprintf(out, "Epoch\\dtopo\\u = %-.11f", search->tepoch);
       cpgtext(0.0, 0.8, out);
-      if (search->bepoch==0.0)
+      if (TEST_EQUAL(search->bepoch, 0.0))
 	sprintf(out, "Epoch\\dbary\\u = N/A");
       else
 	sprintf(out, "Epoch\\dbary\\u = %-.11f", search->bepoch);
@@ -893,7 +909,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	  }
 	}
 	cpgtext(0.0, 0.3, "   Binary Parameters");
-	if (search->orb.p==0.0){
+	if (TEST_EQUAL(search->orb.p, 0.0)){
 	  cpgtext(0.0, 0.2, "P\\dorb\\u (s) = N/A");
 	  cpgtext(0.0, 0.1, "a\\d1\\usin(i)/c (s) = N/A");
 	  cpgtext(0.6, 0.2, "e = N/A");

@@ -239,6 +239,150 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->orb.wd = 0.0;
 }
 
+void write_prepfoldinfo(prepfoldinfo *in, char *filename)
+/* Write a prepfoldinfo data structure to a binary file */
+{
+  FILE *outfile;
+  int itmp;
+
+  outfile = chkfopen(filename, "wb");
+  chkfwrite(&in->numdms, sizeof(int), 1, outfile);
+  chkfwrite(&in->numperiods, sizeof(int), 1, outfile);
+  chkfwrite(&in->numpdots, sizeof(int), 1, outfile);
+  chkfwrite(&in->nsub, sizeof(int), 1, outfile);
+  chkfwrite(&in->npart, sizeof(int), 1, outfile);
+  chkfwrite(&in->proflen, sizeof(int), 1, outfile);
+  chkfwrite(&in->numchan, sizeof(int), 1, outfile);
+  chkfwrite(&in->pstep, sizeof(int), 1, outfile);
+  chkfwrite(&in->pdstep, sizeof(int), 1, outfile);
+  chkfwrite(&in->dmstep, sizeof(int), 1, outfile);
+  chkfwrite(&in->ndmfact, sizeof(int), 1, outfile);
+  chkfwrite(&in->npfact, sizeof(int), 1, outfile);
+  itmp = strlen(in->filenm);
+  chkfwrite(&itmp, sizeof(int), 1, outfile);
+  chkfwrite(in->filenm, sizeof(char), itmp, outfile);
+  itmp = strlen(in->candnm);
+  chkfwrite(&itmp, sizeof(int), 1, outfile);
+  chkfwrite(in->candnm, sizeof(char), itmp, outfile);
+  itmp = strlen(in->telescope);
+  chkfwrite(&itmp, sizeof(int), 1, outfile);
+  chkfwrite(in->telescope, sizeof(char), itmp, outfile);
+  itmp = strlen(in->pgdev);
+  chkfwrite(&itmp, sizeof(int), 1, outfile);
+  chkfwrite(in->pgdev, sizeof(char), itmp, outfile);
+  chkfwrite(&in->dt, sizeof(double), 1, outfile);
+  chkfwrite(&in->startT, sizeof(double), 1, outfile);
+  chkfwrite(&in->endT, sizeof(double), 1, outfile);
+  chkfwrite(&in->tepoch, sizeof(double), 1, outfile);
+  chkfwrite(&in->bepoch, sizeof(double), 1, outfile);
+  chkfwrite(&in->avgvoverc, sizeof(double), 1, outfile);
+  chkfwrite(&in->lofreq, sizeof(double), 1, outfile);
+  chkfwrite(&in->chan_wid, sizeof(double), 1, outfile);
+  chkfwrite(&in->bestdm, sizeof(double), 1, outfile);
+  chkfwrite(&(in->topo.pow), sizeof(double), 1, outfile);
+  chkfwrite(&(in->topo.p1), sizeof(double), 1, outfile);
+  chkfwrite(&(in->topo.p2), sizeof(double), 1, outfile);
+  chkfwrite(&(in->topo.p3), sizeof(double), 1, outfile);
+  chkfwrite(&(in->bary.pow), sizeof(double), 1, outfile);
+  chkfwrite(&(in->bary.p1), sizeof(double), 1, outfile);
+  chkfwrite(&(in->bary.p2), sizeof(double), 1, outfile);
+  chkfwrite(&(in->bary.p3), sizeof(double), 1, outfile);
+  chkfwrite(&(in->fold.pow), sizeof(double), 1, outfile);
+  chkfwrite(&(in->fold.p1), sizeof(double), 1, outfile);
+  chkfwrite(&(in->fold.p2), sizeof(double), 1, outfile);
+  chkfwrite(&(in->fold.p3), sizeof(double), 1, outfile);
+  chkfwrite(&(in->orb.p), sizeof(double), 1, outfile);
+  chkfwrite(&(in->orb.e), sizeof(double), 1, outfile);
+  chkfwrite(&(in->orb.x), sizeof(double), 1, outfile);
+  chkfwrite(&(in->orb.w), sizeof(double), 1, outfile);
+  chkfwrite(&(in->orb.t), sizeof(double), 1, outfile);
+  chkfwrite(&(in->orb.pd), sizeof(double), 1, outfile);
+  chkfwrite(&(in->orb.wd), sizeof(double), 1, outfile);
+  chkfwrite(in->dms, sizeof(double), in->numdms, outfile);
+  chkfwrite(in->periods, sizeof(double), in->numperiods, outfile);
+  chkfwrite(in->pdots, sizeof(double), in->numpdots, outfile);
+  chkfwrite(in->rawfolds, sizeof(double), in->nsub * 
+	    in->npart * in->proflen, outfile);
+  chkfwrite(in->stats, sizeof(foldstats), 
+	    in->nsub * in->npart, outfile);
+  fclose(outfile);
+}
+
+void read_prepfoldinfo(prepfoldinfo *in, char *filename)
+/* Read a prepfoldinfo data structure from a binary file */
+{
+  FILE *infile;
+  int itmp;
+
+  infile = chkfopen(filename, "rb");
+  chkfread(&in->numdms, sizeof(int), 1, infile);
+  chkfread(&in->numperiods, sizeof(int), 1, infile);
+  chkfread(&in->numpdots, sizeof(int), 1, infile);
+  chkfread(&in->nsub, sizeof(int), 1, infile);
+  chkfread(&in->npart, sizeof(int), 1, infile);
+  chkfread(&in->proflen, sizeof(int), 1, infile);
+  chkfread(&in->numchan, sizeof(int), 1, infile);
+  chkfread(&in->pstep, sizeof(int), 1, infile);
+  chkfread(&in->pdstep, sizeof(int), 1, infile);
+  chkfread(&in->dmstep, sizeof(int), 1, infile);
+  chkfread(&in->ndmfact, sizeof(int), 1, infile);
+  chkfread(&in->npfact, sizeof(int), 1, infile);
+  chkfread(&itmp, sizeof(int), 1, infile);
+  in->filenm = calloc(itmp+1, sizeof(char));
+  chkfread(in->filenm, sizeof(char), itmp, infile);
+  chkfread(&itmp, sizeof(int), 1, infile);
+  in->candnm = calloc(itmp+1, sizeof(char));
+  chkfread(in->candnm, sizeof(char), itmp, infile);
+  chkfread(&itmp, sizeof(int), 1, infile);
+  in->telescope = calloc(itmp+1, sizeof(char));
+  chkfread(in->telescope, sizeof(char), itmp, infile);
+  chkfread(&itmp, sizeof(int), 1, infile);
+  in->pgdev = calloc(itmp+1, sizeof(char));
+  chkfread(in->pgdev, sizeof(char), itmp, infile);
+  chkfread(&in->dt, sizeof(double), 1, infile);
+  chkfread(&in->startT, sizeof(double), 1, infile);
+  chkfread(&in->endT, sizeof(double), 1, infile);
+  chkfread(&in->tepoch, sizeof(double), 1, infile);
+  chkfread(&in->bepoch, sizeof(double), 1, infile);
+  chkfread(&in->avgvoverc, sizeof(double), 1, infile);
+  chkfread(&in->lofreq, sizeof(double), 1, infile);
+  chkfread(&in->chan_wid, sizeof(double), 1, infile);
+  chkfread(&in->bestdm, sizeof(double), 1, infile);
+  chkfread(&(in->topo.pow), sizeof(double), 1, infile);
+  chkfread(&(in->topo.p1), sizeof(double), 1, infile);
+  chkfread(&(in->topo.p2), sizeof(double), 1, infile);
+  chkfread(&(in->topo.p3), sizeof(double), 1, infile);
+  chkfread(&(in->bary.pow), sizeof(double), 1, infile);
+  chkfread(&(in->bary.p1), sizeof(double), 1, infile);
+  chkfread(&(in->bary.p2), sizeof(double), 1, infile);
+  chkfread(&(in->bary.p3), sizeof(double), 1, infile);
+  chkfread(&(in->fold.pow), sizeof(double), 1, infile);
+  chkfread(&(in->fold.p1), sizeof(double), 1, infile);
+  chkfread(&(in->fold.p2), sizeof(double), 1, infile);
+  chkfread(&(in->fold.p3), sizeof(double), 1, infile);
+  chkfread(&(in->orb.p), sizeof(double), 1, infile);
+  chkfread(&(in->orb.e), sizeof(double), 1, infile);
+  chkfread(&(in->orb.x), sizeof(double), 1, infile);
+  chkfread(&(in->orb.w), sizeof(double), 1, infile);
+  chkfread(&(in->orb.t), sizeof(double), 1, infile);
+  chkfread(&(in->orb.pd), sizeof(double), 1, infile);
+  chkfread(&(in->orb.wd), sizeof(double), 1, infile);
+  in->dms = gen_dvect(in->numdms);
+  chkfread(in->dms, sizeof(double), in->numdms, infile);
+  in->periods = gen_dvect(in->numperiods);
+  chkfread(in->periods, sizeof(double), in->numperiods, infile);
+  in->pdots = gen_dvect(in->numpdots);
+  chkfread(in->pdots, sizeof(double), in->numpdots, infile);
+  in->rawfolds = gen_dvect(in->nsub * in->npart * in->proflen);
+  chkfread(in->rawfolds, sizeof(double), in->nsub * 
+	   in->npart * in->proflen, infile);
+  in->stats = (foldstats *)malloc(sizeof(foldstats) * 
+				  in->nsub * in->npart);
+  chkfread(in->stats, sizeof(foldstats), 
+	   in->nsub * in->npart, infile);
+  fclose(infile);
+}
+
 void delete_prepfoldinfo(prepfoldinfo *in)
 /* Free all dynamic arrays in the prepfold array */
 {

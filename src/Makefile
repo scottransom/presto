@@ -72,7 +72,7 @@ FLINKFLAGS = $(FFLAGS)
 #	-g -newc -w0 -ansi_alias -ansi_args -std1
 #LINKCOMMAND = ar rcs
 #FFLAGS = -O
-#FLINK = $(CC)
+#FLINK = $(F77) -nofor_main
 #FLINKFLAGS = $(CFLAGS)
 
 # For Solaris
@@ -167,7 +167,7 @@ text: makedata makeinf mjd2cal realfft_4step quicklook\
 	patchdata readfile toas2dat
 
 xwin: psrorbit window plotbincand profile showmulti\
-	prepfold showmulti_dm searchmultidms
+	prepfold showmulti_dm searchmultidms show_pfd
 
 geomview: togeomview
 
@@ -195,7 +195,7 @@ meminit:
 	rm -f meminit
 
 bincat:
-	$(F77) $(FFLAGS) -o $@ bincat.f rdascat.f
+	$(F77) -o $@ bincat.f rdascat.f
 	./bincat
 	rm -f bincat
 
@@ -244,6 +244,10 @@ prepdata: prepdata.o prepdata_cmd.o multibeam.o
 
 prepfold: prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS)
 	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	cp $@ ../bin
+
+show_pfd: show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
+	$(FLINK) $(CFLAGS) -o $@ show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)
@@ -326,7 +330,7 @@ cleaner:  clean
 	rm -f quicklook search_bin search_rzw swap_endian        
 	rm -f prepdata prepfold check_parkes_raw bary toas2dat
 	rm -f shiftdata patchdata readfile psrorbit window       
-	rm -f plotbincand profile showmulti showmulti_dm         
+	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f $(PRESTOLIBNM)
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
@@ -342,3 +346,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f shiftdata patchdata readfile psrorbit
 	cd $(PRESTO)/bin ; rm -f plotbincand profile showmulti showmulti_dm
 	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
+	cd $(PRESTO)/bin ; rm -f show_pfd

@@ -724,32 +724,6 @@ int main(int argc, char *argv[])
   fclose(infile);
 
   /*
-   *   Write the raw (unsummed) profiles
-   */
-
-  printf("\n\nWriting %s.\n", outfilenm);
-  infile = chkfopen(outfilenm,"wb");
-  chkfwrite(&search.tepoch, sizeof(double), 1, infile);
-  chkfwrite(&search.bepoch, sizeof(double), 1, infile);
-  chkfwrite(&f, sizeof(double), 1, infile);
-  chkfwrite(&fd, sizeof(double), 1, infile);
-  chkfwrite(&fdd, sizeof(double), 1, infile);
-  chkfwrite(&foldf, sizeof(double), 1, infile);
-  chkfwrite(&foldfd, sizeof(double), 1, infile);
-  chkfwrite(&foldfdd, sizeof(double), 1, infile);
-  dtmp = cmd->npart;
-  chkfwrite(&dtmp, sizeof(double), 1, infile);
-  dtmp = cmd->nsub;
-  chkfwrite(&dtmp, sizeof(double), 1, infile);
-  dtmp = search.proflen;
-  chkfwrite(&dtmp, sizeof(double), 1, infile);
-  chkfwrite(search.rawfolds, sizeof(double), cmd->nsub * 
-	    cmd->npart * search.proflen, infile);
-  chkfwrite(search.stats, sizeof(foldstats), 
-	    cmd->nsub * cmd->npart, infile);
-  fclose(infile);
-
-  /*
    *   Perform the candidate optimization search
    */
 
@@ -1049,6 +1023,12 @@ int main(int argc, char *argv[])
   }
   
   printf("\nMaking plots.\n\n");
+
+  /*
+   *   Write the raw prepfoldinfo structure
+   */
+
+  write_prepfoldinfo(&search, outfilenm);
 
   /*
    *   Plot our results
