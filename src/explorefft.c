@@ -486,11 +486,7 @@ static double harmonic_loop(int xid, double rr, int zoomlevel, fftpart *fp)
       printf("  Enter the filename to save the plot as:\n");
       fgets(filename, 195, stdin);
       len = strlen(filename)-1;
-      filename[len+0] = '/';
-      filename[len+1] = 'C';
-      filename[len+2] = 'P';
-      filename[len+3] = 'S';
-      filename[len+4] = '\0';
+      strcpy(filename+len, "/CPS");
       psid = cpgopen(filename);
       cpgslct(psid);
       cpgpap(10.25, 8.5/11.0);

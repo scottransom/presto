@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
 #endif
  
   printf("\n\n");
-  printf("     Interactive/Automatic Bug Zapping Program\n");
+  printf("     Interactive/Automatic Birdie Zapping Program\n");
   printf("              by Scott M. Ransom\n");
   printf("                 January, 2001\n\n");
 
