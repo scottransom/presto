@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from umath import *
 from Numeric import *
 from Pgplot import *
@@ -290,28 +291,92 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
     print "\n\n"
     closeplot()
     
-if __name__=='__main__':
-    # The following is an instance of an "observation" class
-    # for a "best" resolution GBT search using the SPIGOT
-    # Check out how many DMs you need!  Cool.  ;-)
-    #                    dt     f_ctr   BW  numchan
-    #obs = observation(0.00008192, 350.0, 50.0, 2048)
+def usage():
+    print """
+usage:  DDplan.py [options]
+  [-h, --help]                    : Display this help
+  [-o outfile, --outfile=outfile] : Output .eps plot file (default is xwin)
+  [-l loDM, --loDM=loDM]          : Low DM to search   (default = 0 pc cm-3)
+  [-d hiDM, --hiDM=HIDM]          : High DM to search  (default = 1000 pc cm-3)
+  [-f fctr, --fctr=fctr]          : Center frequency   (default = 1400MHz)
+  [-b BW, --bw=bandwidth]         : Bandwidth in MHz   (default = 300MHz)
+  [-n #chan, --numchan=#chan]     : Number of channels (default = 1024)
+  [-t dt, --dt=dt]                : Sample time (s)    (default = 0.000064 s)
+  [-s smear, --smearing=smear]    : Acceptable smearing (ms)
+  The program generates a good plan for de-dispersing raw data.  It
+  trades a small amount of sensitivity in order to save computation costs.
 
+"""    
+
+if __name__=='__main__':
+    import getopt, sys
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], "ho:l:d:f:b:n:t:s:",
+                                   ["help", "output=", "loDM=", "hiDM=",
+                                    "fctr=", "bw=", "numchan=", "dt=",
+                                    "smearing="])
+
+    except getopt.GetoptError:
+        # print help information and exit:
+        usage()
+        sys.exit(2)
+    if len(sys.argv)==1:
+        usage()
+        sys.exit(2)
+    # The defaults are close to the future ALFA survey
+    loDM, hiDM = 0.0, 1000.0
+    fctr = 1400.0
+    BW = 300.0
+    numchan = 1024
+    dt = 0.000064
+    ok_smearing = 0.0
+    device = "/xwin"
+
+    for o, a in opts:
+        if o in ("-h", "--help"):
+            usage()
+            sys.exit()
+        if o in ("-o", "--output"):
+            device = a
+            if not (device.endswith(".eps") or device.endswith(".ps")):
+                device += ".eps"
+            if not (device.endswith("/CPS") or device.endswith("/VCPS") or
+                    device.endswith("/cps") or device.endswith("/vcps")):
+                device += "/CPS"
+        if o in ("-l", "--loDM"):
+            loDM = float(a)
+        if o in ("-h", "--hiDM"):
+            hiDM = float(a)
+        if o in ("-f", "--fctr"):
+            fctr = float(a)
+        if o in ("-b", "--bw"):
+            BW = float(a)
+        if o in ("-n", "--numchan"):
+            numchan = int(a)
+        if o in ("-t", "--dt"):
+            dt = float(a)
+        if o in ("-s", "--smearing"):
+            ok_smearing = float(a)
+
+    # The following is an instance of an "observation" class
+    obs = observation(dt, fctr, BW, numchan)
     # The following function creates the de-dispersion plan
     # The ok_smearing values is optional and allows you to raise the floor
     # and provide a level of smearing that you are willing to accept (in ms)
-    #        loDM  hiDM    obs
+    dm_steps(loDM, hiDM, obs, ok_smearing=ok_smearing, device=device)
+    
+    # The following is an instance of an "observation" class
+    # Here's one for a "best" resolution GBT search using the SPIGOT
+    # Check out how many DMs you need!  Cool.  ;-)
+    #                    dt     f_ctr   BW  numchan
+    #obs = observation(0.00008192, 350.0, 50.0, 2048)
     #dm_steps(0.0, 500.0, obs, ok_smearing=0.3) # Create an X-window is the default
     #dm_steps(0.0, 500.0, obs, ok_smearing=0.3, device="GBT_350_DD.ps/CPS")
 
-    # Example for 1st generation ALFA survey
-    #obs = observation(0.000064, 1450.0, 100.0, 256)
-    #dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
-    #dm_steps(0.0, 1500.0, obs, device="ALFA_DD.ps/CPS")
-
     # Example for Parkes survey
-    obs = observation(0.000250, 1374.0, 288.0, 96)
-    dm_steps(0.0, 500.0, obs) # Create an X-window is the default
+    #obs = observation(0.000250, 1374.0, 288.0, 96)
+    #dm_steps(0.0, 500.0, obs) # Create an X-window is the default
     #dm_steps(0.0, 1500.0, obs, device="PKMB_DD.ps/CPS")
 
 
