@@ -865,7 +865,7 @@ int main(int argc, char *argv[])
   if (cmd->pfact != 1.0 ||
       cmd->ffact != 1.0){
     if (cmd->pfact==0.0 || cmd->ffact==0.0){
-      printf("\nFoldint factors (-pfact or -ffact) cannot be 0!  Exiting\n");
+      printf("\nFolding factors (-pfact or -ffact) cannot be 0!  Exiting\n");
       exit(1);
     }
     if (cmd->pfact != 1.0)
