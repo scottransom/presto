@@ -307,6 +307,12 @@ int check_mask(double starttime, double duration, mask *obsmask,
       hiint==old_hiint)
     return old_numchan;
 
+  /* Make sure that we aren't past the last interval */
+  if (loint>=obsmask->numint)
+    loint = obsmask->numint-1;
+  if (hiint>=obsmask->numint)
+    hiint = loint;
+  
   /* Determine new channels to mask */
   if (loint==hiint){
     old_loint = old_hiint = loint;
