@@ -1,0 +1,22 @@
+# Admin data
+
+Name downsample
+
+Usage "Downsamples a time series."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Int 	-factor factor 	{The factor to downsample the data} \
+			-r 1 100 -m
+String	-o	outfile {Name of the output time series file}
+
+# Rest of command line:
+
+Rest 		file 	{Input *.dat file name} \
+			-c 1 1
+
+
