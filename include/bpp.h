@@ -189,6 +189,10 @@ void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
 			BPP_ifs ifs);
 void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
 void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
+int prep_BPP_subbands(unsigned char *rawdata, float *data, 
+		      double *dispdelays, int numsubbands, 
+		      int transpose, int *maskchans, int *nummasked, 
+		      mask *obsmask, BPP_ifs ifs);
 int read_BPP_subbands(FILE *infiles[], int numfiles, float *data, 
 		      double *dispdelays, int numsubbands, 
 		      int transpose, int *padding, 

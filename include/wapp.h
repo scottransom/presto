@@ -121,6 +121,10 @@ void get_WAPP_channel(int channum, float chandat[],
 void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig, 
 			long long *N, int *ptsperblock, int *numchan, 
 			double *dt, double *T, infodata *idata, int output);
+int prep_WAPP_subbands(unsigned char *rawdata, float *data, 
+		       double *dispdelays, int numsubbands, 
+		       int transpose, int *maskchans, 
+		       int *nummasked, mask *obsmask);
 int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data, 
 		       double *dispdelays, int numsubbands, int transpose, 
 		       int *padding, int *maskchans, int *nummasked, 

@@ -90,6 +90,10 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
 	      int *maskchans, int *nummasked, mask *obsmask);
 void get_PKMB_channel(int channum, float chandat[], 
 		      unsigned char rawdata[], int numblocks);
+int prep_PKMB_subbands(unsigned char *rawdata, float *data, 
+		       double *dispdelays, int numsubbands, 
+		       int transpose, int *maskchans, 
+		       int *nummasked, mask *obsmask);
 int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
 		       double *dispdelays, int numsubbands, 
 		       int transpose, int *padding, 
