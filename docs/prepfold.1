@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "31Mar03" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "20Apr03" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -28,8 +28,9 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-bcpm]
 [-if ifs]
 [-wapp]
-[-clip clip]
 [-numwapps numwapps]
+[-clip clip]
+[-noclip]
 [-DE405]
 [-noxwin]
 [-runavg]
@@ -107,18 +108,20 @@ For BPP format only:  A specific IF to use.,
 1 Int value between 0 and 1.
 .IP -wapp
 Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
-.IP -clip
-For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed.,
-.br
-1 Float value between 0 and 20.0.
-.br
-Default: `0.0'
 .IP -numwapps
 Number of WAPPs used with contiguous frequencies,
 .br
 1 Int value between 1 and 7.
 .br
 Default: `1'
+.IP -clip
+Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
+.br
+1 Float value between 0 and 20.0.
+.br
+Default: `6.0'
+.IP -noclip
+Do not clip the data.  (The default is to _always_ clip!).
 .IP -DE405
 Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -noxwin
