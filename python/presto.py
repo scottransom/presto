@@ -948,9 +948,15 @@ print_bin_candidate = prestoc.print_bin_candidate
 
 read_rzw_cand = prestoc.read_rzw_cand
 
+read_bin_cand = prestoc.read_bin_cand
+
+read_rawbin_cand = prestoc.read_rawbin_cand
+
 get_rzw_cand = prestoc.get_rzw_cand
 
 get_bin_cand = prestoc.get_bin_cand
+
+get_rawbin_cand = prestoc.get_rawbin_cand
 
 chkfilelen = prestoc.chkfilelen
 
@@ -1136,6 +1142,21 @@ def read_rzwcands(filename):
     while (read_rzw_cand(infile, nextcand)):
        cands.append(nextcand)
        nextcand = fourierprops()
+    infile.close()
+    return cands
+
+def read_rawbincands(filename):
+    """
+    read_rawbincands(filename):
+        Return a list of all of the raw binary search candidates
+            from the file 'filename'.
+    """
+    infile = open(filename, "r")
+    cands = []
+    nextcand = rawbincand()
+    while (read_rawbin_cand(infile, nextcand)):
+       cands.append(nextcand)
+       nextcand = rawbincand()
     infile.close()
     return cands
 

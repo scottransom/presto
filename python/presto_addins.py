@@ -70,6 +70,21 @@ def read_rzwcands(filename):
     infile.close()
     return cands
 
+def read_rawbincands(filename):
+    """
+    read_rawbincands(filename):
+        Return a list of all of the raw binary search candidates
+            from the file 'filename'.
+    """
+    infile = open(filename, "r")
+    cands = []
+    nextcand = rawbincand()
+    while (read_rawbin_cand(infile, nextcand)):
+       cands.append(nextcand)
+       nextcand = rawbincand()
+    infile.close()
+    return cands
+
 def next2_to_n(x):
     """
     next2_to_n(x):
