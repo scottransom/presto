@@ -201,7 +201,7 @@ int determine_padvals(char *maskfilenm, mask *obsmask, float *padvals[])
     free(suffix);
     *padvals = gen_fvect(obsmask->numchan);
     /* Check to see if the file exists */
-    printf("Attempting to read the data statistics from '%s'", statsfilenm);
+    printf("Attempting to read the data statistics from '%s'...\n", statsfilenm);
     statsfile = chkfopen(statsfilenm, "rb");
     free(statsfilenm);
     if (statsfile){ /* Read the stats */ 
@@ -219,7 +219,7 @@ int determine_padvals(char *maskfilenm, mask *obsmask, float *padvals[])
       for (ii=0; ii<numchan; ii++)
 	calc_avgmedstd(dataavg[0]+ii, numint, 0.8, numchan, 
 		       *padvals+ii, &tmp1, &tmp2);
-      printf("succeded.\n  Set the padding values equal to the mid-80%% channel averages.\n");
+      printf("...succeded.  Set the padding values equal to the mid-80%% channel averages.\n");
       free(dataavg[0]);
       free(dataavg);
       fclose(statsfile);
