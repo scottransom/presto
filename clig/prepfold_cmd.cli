@@ -81,7 +81,7 @@ Double -end  endT  {The folding end time as a fraction of the full obs} \
 String -psr psrname {Name of pulsar to fold (do not include J or B)}
 String -par parname {Name of a TEMPO par file from which to get PSR params}
 String -polycos polycofile {File containing TEMPO polycos for psrname (not required)}
-String -timing timing {Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified.}
+String -timing timing {Sets useful flags for TOA generation. Generates polycos (if required) based on the par file specified as the argument. (This means you don't need the -par or -psr commands!)}
 Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \
         -r 1 oo
 String -rzwfile rzwfile {Name of the rzw search '.cand' file to use (with suffix)}
@@ -119,7 +119,7 @@ Double -offset offset {A time offset to add to the 1st event in the same units a
 # Rest of command line:
 
 Rest infile {Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
-        -c 1 100
+        -c 1 250
 
 
 

@@ -161,7 +161,7 @@ typedef struct s_Cmdline {
   char polycofileP;
   char* polycofile;
   int polycofileC;
-  /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
+  /***** -timing: Sets useful flags for TOA generation. Generates polycos (if required) based on the par file specified as the argument. (This means you don't need the -par or -psr commands!) */
   char timingP;
   char* timing;
   int timingC;

@@ -174,7 +174,7 @@ static Cmdline cmd = {
   /* polycofileP = */ 0,
   /* polycofile = */ (char*)0,
   /* polycofileC = */ 0,
-  /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
+  /***** -timing: Sets useful flags for TOA generation. Generates polycos (if required) based on the par file specified as the argument. (This means you don't need the -par or -psr commands!) */
   /* timingP = */ 0,
   /* timing = */ (char*)0,
   /* timingC = */ 0,
@@ -1417,7 +1417,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
+  /***** -timing: Sets useful flags for TOA generation. Generates polycos (if required) based on the par file specified as the argument. (This means you don't need the -par or -psr commands!) */
   if( !cmd.timingP ) {
     printf("-timing not found.\n");
   } else {
@@ -1720,7 +1720,7 @@ usage(void)
                1 char* value\n\
      -polycos: File containing TEMPO polycos for psrname (not required)\n\
                1 char* value\n\
-      -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified.\n\
+      -timing: Sets useful flags for TOA generation. Generates polycos (if required) based on the par file specified as the argument. (This means you don't need the -par or -psr commands!)\n\
                1 char* value\n\
      -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
                1 int value between 1 and oo\n\
@@ -1755,8 +1755,8 @@ usage(void)
                1 double value\n\
                default: `0'\n\
        infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-               1...100 values\n\
-version: 14Aug03\n\
+               1...250 values\n\
+version: 18Aug03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -2290,8 +2290,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 100<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 100 non-option argument(s)\n",
+  if( 250<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 250 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

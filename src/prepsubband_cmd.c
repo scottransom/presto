@@ -1075,8 +1075,8 @@ usage(void)
       -mask: File containing masking information to use\n\
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-             1...100 values\n\
-version: 14Aug03\n\
+             1...250 values\n\
+version: 18Aug03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1282,8 +1282,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 100<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 100 non-option argument(s)\n",
+  if( 250<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 250 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }
