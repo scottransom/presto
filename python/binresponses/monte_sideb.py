@@ -99,7 +99,7 @@ def slice_resp(psr, T, response):
 ####################################################################
 
 # Calculate the values of our X and Y axis points
-TbyPb = arange(3.5, 10.05, 0.2)
+TbyPb = arange(1.05, 10.05, 0.2)
 
 # Open a file to save each orbit calculation
 file = open(outfilenm,'w')
