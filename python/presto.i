@@ -1382,10 +1382,10 @@ fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
 }
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
-%apply int ARRAYLEN { int fftlen };
+%apply int ARRAYLEN { int afftlen };
 %apply int *OUTPUT { int *nextbin };
 fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween,
-			 int startbin, double z, int fftlen,
+			 int startbin, double z, int afftlen,
 			 presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do a Fourier        */
   /* complex interpolation of a slice of the f-fdot plane.           */
