@@ -472,8 +472,8 @@ int main(int argc, char *argv[])
     
     rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
 		 cmd->inttrigfrac, cmd->chantrigfrac, 
-		 dataavg, datastd, datapow, cmd->zapchan, cmd->zapchanC,
-		 cmd->zapints, cmd->zapintsC, &idata, bytemask, 
+		 dataavg, datastd, datapow, zapchan, cmd->zapchanC,
+		 zapints, cmd->zapintsC, &idata, bytemask, 
 		 &oldmask, &newmask, rfivect, numrfi, 
 		 cmd->rfixwinP, cmd->rfipsP, cmd->xwinP);
 
