@@ -41,18 +41,18 @@ int remove_other(fourierprops * list, int nlist, long rlo,
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile, *poscandfile;
-  double dt, nph, T, N, bigz, hir, hiz, dz = 2.0, dr;
+  double dt, nph, T, N, bigz, hir, hiz, dz=2.0, dr;
   double powavg, powsdev, powvar, powskew, powkurt;
-  double *zapfreqs = NULL, *zapwidths = NULL;
-  float powargr, powargi, locpow = 1.0, *powlist;
+  double *zapfreqs=NULL, *zapwidths=NULL, totnumsearched=0.0;
+  float powargr, powargi, locpow=1.0, *powlist;
   float powdiff, hipowchop, lowpowlim;
-  float chkpow = 0.0, hipow = 0.0, minpow = 0.0, numr = 0.0;
+  float chkpow=0.0, hipow=0.0, minpow=0.0, numr=0.0;
   fcomplex *response, **kernels, *corrdata, *filedata; 
-  unsigned long totnumsearched = 0, startbin, nextbin, nbins, highestbin;
-  int numbetween = 2, numkern, kern_half_width;
-  int nr = 1, nz, corrsize = 0, mincorrsize, worknumbins = 0;
-  int ii, ct, zct, filedatalen, numzap = 0;
-  int ncand, newncand, oldper = 0, newper = 0;
+  unsigned long startbin, nextbin, nbins, highestbin;
+  int numbetween=2, numkern, kern_half_width;
+  int nr=1, nz, corrsize=0, mincorrsize, worknumbins=0;
+  int ii, ct, zct, filedatalen, numzap=0;
+  int ncand, newncand, oldper=0, newper=0;
   char filenm[200], candnm[200], poscandnm[200], *notes;
   char rzwnm[200];
   presto_datainf datainf;
@@ -289,30 +289,20 @@ int main(int argc, char *argv[])
 
 	/* Get approximate local power statistics */
 
-	powlist = gen_fvect(nr);
 	worknumbins = (nextbin > highestbin) ? \
 	  (highestbin - startbin) * numbetween : nr;
+	powlist = gen_fvect(worknumbins);
+
+	/* Calculate the powers */
+
 	for (ii = 0; ii < worknumbins; ii++) 
 	  powlist[ii] = POWER(corrdata[ii].r, corrdata[ii].i);
-	stats(powlist, worknumbins, &powavg, &powvar, &powskew, &powkurt);
-	powsdev = sqrt(powvar);
 
-	/* Throw powers away that are greater than 4.0 sdev above mean  */
-	/* Also throw powers away that are very small.  This could show */
-	/* that we have come into a zero-padded area.                   */
+	/* Set the local power level equal to the median value  */
+	/* Then take the reciprocal so that we multiply instead */
+	/* of divide during normalization.                      */
 
-	ct = worknumbins;
-	locpow = powavg * worknumbins;
-	hipowchop = 4.0 * powsdev + powavg;
-	for (ii = 0; ii < worknumbins; ii++) {
-	  powdiff = powlist[ii] - powavg;
-	  if (powdiff > hipowchop) {
-	    locpow -= powlist[ii];
-	    ct--;
-	  }
-	}
-	locpow /= (double) ct;
-	locpow = 1.0 / locpow;
+	locpow = 1.0 / selectkth(worknumbins/2, worknumbins, powlist-1);
 	free(powlist);
       }
 
@@ -435,8 +425,8 @@ int main(int argc, char *argv[])
   /* Finish up */
 
   printf("Done.\n\n");
-  printf("Searched %ld pts (approximately %ld were independent).\n\n", \
-	 totnumsearched, (long) (totnumsearched * 0.5 * dz / 6.95));
+  printf("Searched %.0f pts (approximately %.0f were independent).\n\n", \
+	 totnumsearched, totnumsearched * 0.5 * dz / 6.95);
 
   printf("Timing summary:\n");
   tott = times(&runtimes) / (double) CLK_TCK - tott;
