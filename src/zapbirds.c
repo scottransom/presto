@@ -8,22 +8,26 @@
 #define BINSTOGET      FFTLEN/NUMBETWEEN
 #define MAXPTSTOSHOW   64000
 #define MAXBINSTOSHOW  MAXPTSTOSHOW/NUMBETWEEN
-#define MEDIANBINS     200
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
  
-static FILE *fftfile;
-static int khw;
-static fcomplex *kernel;
-static double T, dr;
-
 typedef struct birdie {
   double freq;
   double width;
 } birdie;
 
+static FILE *fftfile;
+static int khw;
+static fcomplex *kernel;
+static double T, dr;
+
+extern float calc_median_powers(fcomplex *amplitudes, int numamps);
+extern fcomplex *get_rawbins(FILE *fftfile, double bin, 
+			     int numtoget, float *med, int *lobin);
+extern void zapbirds(double lobin, double hibin, 
+		     FILE *fftfile, fcomplex *fft);
 
 static birdie *birdie_create(double lofreq, double hifreq, double baryv)
 /* If baryv corrects barycentric freqs to topocentric */
@@ -37,7 +41,6 @@ static birdie *birdie_create(double lofreq, double hifreq, double baryv)
   obj->width = hifreq - lofreq;
   return obj;
 }
-
 
 static void birdie_free(gpointer data, gpointer user_data)
 {
@@ -66,27 +69,6 @@ static void birdie_print(gpointer data, gpointer user_data)
 	  obj->freq, obj->width);
 }
 
-
-static fcomplex *get_rawbins(FILE *fftfile, double bin, 
-			     int numtoget, float *med, int *lobin)
-{
-  int ii;
-  float *powers, powargr, powargi;
-  fcomplex *result;
-
-  *lobin = (int) bin - numtoget / 2;
-
-  result = read_fcomplex_file(fftfile, *lobin, numtoget);
-
-  /* Calculate the median power */
-  powers = gen_fvect(numtoget);
-  for (ii=0; ii<numtoget; ii++)
-    powers[ii] = POWER(result[ii].r, result[ii].i);
-  *med = median(powers, numtoget);
-  free(powers);
-
-  return result;
-}
 
 static void process_bird(double basebin, int harm,
 			 double *lofreq, double *hifreq)
@@ -225,48 +207,6 @@ static void process_bird(double basebin, int harm,
 }
 
 
-static void zapbirds(double lobin, double hibin)
-{
-  int ii, ilobin, ihibin, binstozap, lodatabin;
-  float median_lo, median_hi, avgamp;
-  /* double phase, radargr, radargi, radtmp; */
-  fcomplex *data;
-
-  ilobin = (int) floor(lobin);
-  ihibin = (int) ceil(hibin);
-  binstozap = ihibin - ilobin + 1;
-  if (lobin-1.5*MEDIANBINS > 1){
-    data = get_rawbins(fftfile, lobin-MEDIANBINS, 
-		       MEDIANBINS, &median_lo, &lodatabin);
-    free(data);
-    data = get_rawbins(fftfile, hibin, 
-		       MEDIANBINS, &median_hi, &lodatabin);
-    free(data);
-    avgamp = sqrt(0.5 * (median_lo + median_hi) / -log(0.5));
-    data = gen_cvect(binstozap);
-    /* Read the data to zap */
-    chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
-    chkfread(data, sizeof(fcomplex), binstozap, fftfile);
-    for (ii=0; ii<binstozap; ii++){
-      /* Change the amplitudes but not the phases */
-      /*
-	phase = RADIAN_PHASE(data[ii].r, data[ii].i);
-	data[ii].r = avgamp * cos(phase);
-	data[ii].i = avgamp * sin(phase);
-      */
-      /* Just set the amplitudes to the avgvalue */
-      data[ii].r = avgamp;
-      data[ii].i = 0.0;
-    }
-    /* Write the modified data */
-    chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
-    chkfwrite(data, sizeof(fcomplex), binstozap, fftfile);
-    printf("Set bins %9d through %9d to amplitude of %.3g\n",
-	   ilobin, ihibin, avgamp);
-    free(data);
-  }
-}
-
 int main(int argc, char *argv[])
 {
   int ii, jj, numbirds;
@@ -361,7 +301,7 @@ int main(int argc, char *argv[])
 	break;
       if (bird_hibins[ii] >= hibin)
 	bird_hibins[ii] = hibin - 1;
-      zapbirds(bird_lobins[ii], bird_hibins[ii]);
+      zapbirds(bird_lobins[ii], bird_hibins[ii], fftfile, NULL);
     }
 
     free(bird_lobins);

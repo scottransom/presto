@@ -1,9 +1,22 @@
 #include "accel.h"
 
+/*#undef USEMMAP*/
+
+#ifdef USEMMAP
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
+
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
 
+extern float calc_median_powers(fcomplex *amplitudes, int numamps);
+extern void zapbirds(double lobin, double hibin, 
+		     FILE *fftfile, fcomplex *fft);
 
 static void print_percent_complete(int current, int number, 
 				   char *what, int reset)
@@ -59,12 +72,37 @@ int main(int argc, char *argv[])
 #endif
 
   printf("\n\n");
-  printf("       Pulsar Acceleration Search Routine\n");
-  printf("              by Scott M. Ransom\n\n");
+  printf("    Fourier-Domain Acceleration Search Routine\n");
+  printf("               by Scott M. Ransom\n\n");
 
   /* Create the accelobs structure */
-  
-  create_accelobs(&obs, &idata, cmd);
+  create_accelobs(&obs, &idata, cmd, 1);
+
+  /* Zap birdies if requested and if in memory */
+  if (cmd->zaplistP && !obs.mmap_file && obs.fft){
+    int numbirds;
+    double *bird_lobins, *bird_hibins, hibin;
+    
+    /* Read the Standard bird list */
+    numbirds = get_birdies(cmd->zaplist, obs.T, cmd->baryv,
+			   &bird_lobins, &bird_hibins);
+
+    /* Zap the birdies */
+    printf("Zapping them using a barycentric velocity of %.5gc.\n\n", 
+	   cmd->baryv);
+    hibin = obs.N/2;
+    for (ii=0; ii<numbirds; ii++){
+      if (bird_lobins[ii] >= hibin)
+	break;
+      if (bird_hibins[ii] >= hibin)
+	bird_hibins[ii] = hibin - 1;
+      zapbirds(bird_lobins[ii], bird_hibins[ii], NULL, obs.fft);
+    }
+    
+    free(bird_lobins);
+    free(bird_hibins);
+  }
+
   printf("Searching with up to %d harmonics summed:\n", 
 	 1<<(obs.numharmstages-1));
   printf("  f = %.1f to %.1f Hz\n", obs.rlo/obs.T, obs.rhi/obs.T);
@@ -122,19 +160,28 @@ int main(int argc, char *argv[])
   printf("\n\nDone searching.  Now optimizing each candidate.\n\n");
   free_subharminfos(obs.numharmstages, subharminfs);
 
-  {
+  {  /* Candidate list trimming and optimization */
     int numcands;
     GSList *listptr;
     accelcand *cand;
     fourierprops *props;
 
-    /* Now optimize each candidate and its harmonics */
     
     numcands = g_slist_length(cands);
 
     if (numcands){
-      listptr = cands;
+      
+      /* Sort the candidates according to the optimized sigmas */
+      
+      cands = sort_accelcands(cands);
+      
+      /* Eliminate (most of) the harmonically related candidates */
+      eliminate_harmonics(cands, &numcands);
+
+      /* Now optimize each candidate and its harmonics */
+
       print_percent_complete(0, 0, NULL, 1);
+      listptr = cands;
       for (ii=0; ii<numcands; ii++){
 	print_percent_complete(ii, numcands, "optimization", 0);
 	cand = (accelcand *)(listptr->data);
@@ -143,10 +190,6 @@ int main(int argc, char *argv[])
       }
       print_percent_complete(ii, numcands, "optimization", 0);
   
-      /* Sort the candidates according to the optimized sigmas */
-      
-      cands = sort_accelcands(cands);
-      
       /* Calculate the properties of the fundamentals */
       
       props = (fourierprops *)malloc(sizeof(fourierprops) * numcands);

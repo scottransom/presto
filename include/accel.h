@@ -1,5 +1,6 @@
 #include <glib.h>
 #include "presto.h"
+#include "accelsearch_cmd.h"
 
 /* Note:  In order to make add_ffdotpows() much more efficient and  */
 /* allow table look-ups of the required indices to add, this number */
@@ -102,6 +103,8 @@ typedef struct ffdotpows{
 /* accel_utils.c */
 
 subharminfo **create_subharminfos(int numharmstages, int zmax);
+void create_accelobs(accelobs *obs, infodata *idata, 
+		     Cmdline *cmd, int usemmap);
 void free_subharminfos(int numharmstages, subharminfo **shis);
 GSList *sort_accelcands(GSList *list);
 GSList *eliminate_harmonics(GSList *cands, int *numcands);

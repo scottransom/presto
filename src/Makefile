@@ -177,8 +177,8 @@ mpiprepsubband.o: mpiprepsubband.c
 mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
 	mpicc $(CLINKFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lm
 
-accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o
-	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
+accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
+	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $@ bary.o $(PRESTOLINK) -lm
@@ -303,8 +303,8 @@ togeomview:
 window: window.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) window.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
-zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -L/home/ransom/lib -lglib -lm
+zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS)
+	$(FC) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -L/home/ransom/lib -lglib -lm
 
 explorefft: explorefft.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ explorefft.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm

@@ -964,7 +964,7 @@ GSList *search_ffdotpows(ffdotpows *ffdot, int numharm,
 }
 
 void create_accelobs(accelobs *obs, infodata *idata, 
-		     Cmdline *cmd, char *zapfile, int usemmap)
+		     Cmdline *cmd, int usemmap)
 {
   int ii, rootlen, input_shorts=0;
 
@@ -1048,12 +1048,6 @@ void create_accelobs(accelobs *obs, infodata *idata,
     obs->fft = (fcomplex *)ftmp;
     obs->numbins = filelen/2;
     printf("done.\n\n");
-
-    /* Zap birds if requested */
-    if (zapfile!=NULL){
-      printf("\nWARNING:  Birdie zapping is not yet implemented!!!\n\n");
-      /* Add this */
-    }
   }
 
   /* Determine the output filenames */

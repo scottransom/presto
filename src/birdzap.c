@@ -82,7 +82,7 @@ int get_birdies(char *zapfilenm, double T, double avg_vel,
   }
   free(birds);
 
-  printf("Read %d birdies from '%s'.\n\n", 
+  printf("Read %d birdies from '%s'.\n", 
 	 numzap, zapfilenm);
   return numzap;
 }
