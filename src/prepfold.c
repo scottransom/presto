@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
   
   currentrec = lorec;
   if (cmd->pkmbP)
-    skip_to_PKMB_rec(infiles[0], lorec);
+    skip_to_PKMB_rec(infiles, numfiles, lorec+1);
   else
     chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
 

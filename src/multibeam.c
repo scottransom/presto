@@ -5,7 +5,7 @@
 
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
-static int numblks_st[MAXPATCHFILES], currentfile, currentblock;
+static int numblks_st[MAXPATCHFILES];
 static int decreasing_freqs_st, numchan_st, ptsperblk_st, bytesperpt_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
@@ -13,6 +13,10 @@ static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
 static const unsigned char padval=0x55; /* 01010101 (even channels are 0) */
 static unsigned char chanmask[MAXNUMCHAN];
+static unsigned char databuffer[DATLEN*2];
+static int currentfile, currentblock;
+static int bufferpts=0, padnum=0, shiftbuffer=1;
+
 
 void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
 			int *ptsperblock, int *numchan, double *dt, 
@@ -133,12 +137,57 @@ void PKMB_update_infodata(int numfiles, infodata *idata)
 }
 
 
-int skip_to_PKMB_rec(FILE * infile, int rec)
-/* This routine skips to the record 'rec' in the input file */
-/* *infile.  *infile contains 1 bit digitized data from the */
-/* PKMB backend at Parkes.  Returns the record skipped to.  */
+int skip_to_PKMB_rec(FILE *infiles[], int numfiles, int rec)
+/* This routine skips to the record 'rec' in the input files   */
+/* *infiles.  *infiles contains 1 bit digitized data from the  */
+/* PKMB backend at Parkes.  Returns the record skipped to.     */
 {
-  chkfileseek(infile, rec, RECLEN, SEEK_SET);
+  double floor_blk;
+  int filenum=0;
+
+  if (rec > 0 && rec < endblk_st[numfiles-1]){
+
+    /* Find which file we need */
+    while (rec > endblk_st[filenum])
+      filenum++;
+
+    currentblock = rec - 1;
+    shiftbuffer = 1;
+    floor_blk = floor(startblk_st[filenum]);
+
+    /* Set the data buffer to all padding just in case */
+    memset(databuffer, padval, DATLEN*2);
+
+    /* Warning:  I'm not sure if the following is correct. */
+    /*   If really needs accurate testing to see if my     */
+    /*   offsets are correct.  Bottom line, don't trust    */
+    /*   a TOA determined using the following!             */
+
+    if (rec < startblk_st[filenum]){  /* Padding region */
+      currentfile = filenum-1;
+      chkfileseek(infiles[currentfile], 0, 1, SEEK_END);
+      bufferpts = padpts_st[currentfile] % ptsperblk_st;
+      padnum = ptsperblk_st * (rec - endblk_st[currentfile] - 1);
+      /*
+      printf("Padding:  currentfile = %d  bufferpts = %d  padnum = %d\n", 
+	     currentfile, bufferpts, padnum);
+      */
+    } else {  /* Data region */
+      currentfile = filenum;
+      chkfileseek(infiles[currentfile], rec - startblk_st[filenum], 
+		  RECLEN, SEEK_SET);
+      bufferpts = (int)((startblk_st[filenum] - floor_blk) * ptsperblk_st + 0.5);
+      padnum = 0;
+      /*
+      printf("Data:  currentfile = %d  bufferpts = %d  padnum = %d\n", 
+	     currentfile, bufferpts, padnum);
+      */
+    }
+
+  } else {
+    printf("\n rec = %d out of range in skip_to_PKMB_rec()\n", rec);
+    exit(1);
+  }
   return rec;
 }
 
@@ -158,8 +207,6 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 {
   int offset, numtopad=0;
   unsigned char record[RECLEN];
-  static unsigned char databuffer[DATLEN*2];
-  static int bufferpts=0, padnum=0, shiftbuffer=1;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
