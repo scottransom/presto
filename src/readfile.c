@@ -168,7 +168,8 @@ int main(int argc, char **argv)
 	  index = FCPLEX;
 	  fprintf(stderr, \
 		  "Assuming the data is single precision complex.\n\n");
-	} else if (0 == strcmp(extension, "fits")){
+	} else if (0 == strcmp(extension, "fits") &&
+                   strstr(short_filenm, "spigot_5")!=NULL){
 	  cmd->spigotP = 1;
 	  index = SPIGOTHDR;
 	  fprintf(stderr, \

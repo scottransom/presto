@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 	  printf("Assuming the data is from a GBT BCPM...\n");
 	  cmd->bcpmP = 1;
 	} else if (strcmp(suffix, "fits")==0 &&
-		   strncmp(root, "spigot", 6)==0){
+                   strstr(root, "spigot_5")!=NULL){
 	  printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
 	  cmd->spigotP = 1;
 	} else if (strcmp(suffix, "pkmb")==0){
