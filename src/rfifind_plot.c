@@ -199,11 +199,11 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 	    int_med = dataavg_med;
 	  else
 	    int_med = avg_int_med[ii];
-	  if (fabs(avg_chan_med[ii] - dataavg_med) > 
+	  if (fabs(avg_chan_med[jj] - dataavg_med) > 
 	      timesigma * dataavg_std)
 	    chan_med = dataavg_med;
 	  else
-	    chan_med = avg_chan_med[ii];
+	    chan_med = avg_chan_med[jj];
 	  if (fabs(dataavg[ii][jj] - int_med) > avg_reject ||
 	      fabs(dataavg[ii][jj] - chan_med) > avg_reject)
 	    if (!(bytemask[ii][jj] & PADDING)) 
@@ -215,11 +215,11 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 	    int_med = datastd_med;
 	  else
 	    int_med = std_int_med[ii];
-	  if (fabs(std_chan_med[ii] - datastd_med) > 
+	  if (fabs(std_chan_med[jj] - datastd_med) > 
 	      timesigma * datastd_std)
 	    chan_med = datastd_med;
 	  else
-	    chan_med = std_chan_med[ii];
+	    chan_med = std_chan_med[jj];
 	  if (fabs(datastd[ii][jj] - int_med) > std_reject ||
 	      fabs(datastd[ii][jj] - chan_med) > std_reject)
 	    if (!(bytemask[ii][jj] & PADDING)) 
