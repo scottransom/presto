@@ -186,8 +186,9 @@ void phcalc(double mjd0, double mjd1, double *phase, double *psrfreq)
   *psrfreq = f0[0];                     /* Default psrfreq */
   for (j=0;j<isets;j++) {
     dtmin = (mjd0-mjdmid[j]);
-    dtmin = (dtmin +(mjd1-mjd1mid[j]))*1440.; /* Time from center of this set*/
-    if (fabs(dtmin) <= nblk/2) {
+    dtmin = (dtmin+(mjd1-mjd1mid[j]))*1440.; /* Time from center of this set*/
+    if (fabs(dtmin) < (nblk/2.0+1e-10)) {  /* The extra bit avoids a subtle bug since
+					      roundoff can cause fabs(dtmin)>(nblk/2) */
       /*      printf("j, mjds: %d %f %f %f %f\n",j,mjd0,mjd1,mjdmid[j],mjd1mid[j]); */
       *psrfreq = 0.;                    /* Compute psrfreq and phase from */
       *phase = coeff[j][ncoeff-1];      /* the polynomial coeffs. */
