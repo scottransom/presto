@@ -240,8 +240,10 @@ class psr:
             self.werr = 0.0
         (self.To, self.Toerr) = val_and_err(parts[9], parts[10])
         if (self.To is None):
-            self.To = 0.0
-            self.Toerr = 0.0
+            (self.To, self.Toerr) = val_and_err(parts[15], parts[16])
+            if (self.To is None):
+                self.To = 0.0
+                self.Toerr = 0.0
         if (parts[11]!='*'):  # Use the 
             (eps1, eps2) = (float(parts[11]), float(parts[13]))
             self.e = sqrt(eps1*eps1 + eps2*eps2)
@@ -333,7 +335,8 @@ if __name__ == '__main__' :
     outfile = open(outfilename, "w")
     print "Writing %d pulsars (%d binaries) to %s" % \
           (len(psrs), num_binaries, outfilename)
-    for psr in psrs:
+    for ii, psr in enumerate(psrs):
         outfile.write(psr.pack_structs())
+        if psr.binary:  print ii, psr.jname
     outfile.close()
 
