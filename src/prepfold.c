@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
   double orb_baryepoch=0.0, topoepoch=0.0, baryepoch=0.0, barydispdt;
   double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
   double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
-  double *voverc=NULL, *tobsf=NULL;
+  double *voverc=NULL, *tobsf=NULL, topof=0.0, topofd=0.0, topofdd=0.0;
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
@@ -490,6 +490,11 @@ int main(int argc, char *argv[])
       tobsf[ii] = tobsf[0] + ii * tdf;
     dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
 				    tobsf[0], tdf); 
+
+    /* Convert the delays in seconds to delays in bins */
+
+    for (ii = 0; ii < numchan; ii++)
+      dispdts[ii] /= dt;
   }
   
   printf("\nStarting work on '%s'...\n\n", cmd->argv[0]);
@@ -522,7 +527,7 @@ int main(int argc, char *argv[])
   reads_per_part = numrec / cmd->npart;
 
   /* Main loop if we are not barycentering... */
-  
+
   if (cmd->nobaryP) {
     
     /* Step through the sub-integrations of time */
@@ -579,7 +584,7 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
 
     /* Call TEMPO for the barycentering */
 
-    printf("\nGenerating barycentric corrections...\n");
+    printf("Generating barycentric corrections...\n");
     barycenter(topotimes, barytimes, voverc, numbarypts, \
 	       rastring, decstring, obs, ephem);
     printf("   Insure you check the file %s.tempo_out for\n", \
@@ -593,8 +598,17 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
       avg_voverc += voverc[ii];
     avg_voverc /= (numbarypts - 1.0);
     free(voverc);
-    printf("The average topocentric velocity is %.3g (units of c).\n\n", 
+    printf("The average topocentric velocity is %.3g (units of c).\n", 
 	   avg_voverc);
+    topof = f * (1.0 - avg_voverc);
+    topofd = fd * (1.0 - avg_voverc);
+    topofdd = fdd * (1.0 - avg_voverc);
+    printf("Topocentric folding frequency    (hz)  =  %-.12f\n", topof);
+    if (topofd != 0.0)
+      printf("Topocentric folding f-dot      (hz/s)  =  %-.8e\n", topofd);
+    if (topofdd != 0.0)
+      printf("Topocentric folding f-dotdot (hz/s^2)  =  %-.8e\n", topofdd);
+    printf("\n");
 
     if (binary){
 
@@ -606,18 +620,29 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
 	dtmp = baryepoch + tp[ii] / SECPERDAY;
 	hunt(barytimes, numbarypts, dtmp, &arrayoffset);
 	arrayoffset--;
-printf("t1 = %f  ", tp[ii]);
 	tp[ii] = LININTERP(dtmp, barytimes[arrayoffset], 
 			   barytimes[arrayoffset+1], 
 			   topotimes[arrayoffset], 
 			   topotimes[arrayoffset+1]);    
-printf("t2 = %f\n", tp[ii]);
       }
       numdelays = numbinpoints;
+      dtmp = (tp[0] - Ep[0]);
+      for (ii = 0 ; ii < numdelays ; ii++)
+	Ep[ii] = ((tp[ii] - Ep[ii]) - dtmp) * SECPERDAY;
+
     } else {
+
+      /* Convert the topo TOAs to seconds from start */
+      /* Convert the bary TOAs to delays from the topo TOAs */
+
       tp = topotimes;
       Ep = barytimes;
       numdelays = numbarypts;
+      dtmp = (tp[0] - Ep[0]);
+      for (ii = 0 ; ii < numdelays ; ii++){
+	Ep[ii] = ((tp[ii] - Ep[ii]) - dtmp) * SECPERDAY;
+	tp[ii] = TDT * ii;
+      }
     }
 
     /* Step through the sub-integrations of time */
@@ -642,8 +667,8 @@ printf("t2 = %f\n", tp[ii]);
       
 	for (kk = 0; kk < cmd->nsub; kk++){
 	  fold(data + kk * worklen, numread, dt, tt, 
-	       profs + (ii * cmd->nsub + kk) * proflen, 
-	       proflen, cmd->phs, f, fd, fdd, flags, Ep, tp, 
+	       profs + (ii * cmd->nsub + kk) * proflen, proflen, 
+	       cmd->phs, topof, topofd, topofdd, flags, Ep, tp, 
 	       numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
 	}
 	totnumfolded += numread;

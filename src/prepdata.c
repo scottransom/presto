@@ -473,7 +473,7 @@ int main(int argc, char *argv[])
       else 
 	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
       if (newper > oldper) {
-/* 	printf("\rAmount Complete = %3d%%", newper); */
+ 	printf("\rAmount Complete = %3d%%", newper);
 	fflush(stdout);
 	oldper = newper;
       }

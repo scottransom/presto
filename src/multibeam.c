@@ -247,8 +247,8 @@ int read_multibeam_subbands(FILE * infile, float *data, int numpts,
 
   /* Transpose the data into vectors in the result array */
 
-  if((trtn = TOMS_transpose_2d(data, numpts, numsubbands,
-			       move, move_size))<0){
+  if ((trtn = TOMS_transpose_2d(data, numpts, numsubbands,
+				move, move_size))<0){
     printf("Error %d in TOMS_transpose_2d().\n",trtn);
   }
 

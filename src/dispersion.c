@@ -167,8 +167,7 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 /* frequency order.  Input data are ordered in time, with the    */
 /* channels stored together at each time point.                  */ 
 {
-  static int firsttime = 1, *offset, chan_per_subband;
-  static unsigned char approx_mean;
+  static int approx_mean, firsttime = 1, *offset, chan_per_subband;
   int ii, jj, kk, ll, chan;
 
   if (firsttime){
@@ -182,7 +181,8 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
       offset[ii] = (int) dispdelays[ii];
     }
     chan_per_subband = numchan / numsubbands;
-    approx_mean = -(chan_per_subband / 2);
+    approx_mean = -(numchan / 2 - 1);
+/*     approx_mean = -(chan_per_subband / 2); */
     firsttime = 0;
   }
 
