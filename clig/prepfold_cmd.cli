@@ -14,6 +14,7 @@ String -o       outfile {Root of the output file names} \
 	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
+Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
 	-r 0 1
 Flag   -nobary  nobary  {Do not barycenter (assume input parameters are topocentric)}

@@ -54,8 +54,7 @@
 #define __inline__
 #endif
 /* Maximum number of input files to try and patch together */
-#define MAXPATCHFILES 20
-
+#define MAXPATCHFILES 100
 
 /* various function-like macros */
 
