@@ -29,9 +29,12 @@ int chkfileseek(FILE * stream, long offset, size_t size, int whence);
 long long chkfilelen(FILE *file, size_t size);
 /* Return the length of a file (in blocks of 'size').  */
 
-int read_int(FILE *infile);
+int read_int(FILE *infile, int byteswap);
 /* Reads a binary integer value from the file 'infile' */
 
-double read_double(FILE *infile);
+float read_float(FILE *infile, int byteswap);
+/* Reads a binary float value from the file 'infile' */
+
+double read_double(FILE *infile, int byteswap);
 /* Reads a double precision value from the file 'infile' */
 
