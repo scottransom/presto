@@ -4,6 +4,21 @@
 #include "dmalloc.h"
 #endif
 
+static void print_percent_complete(int current, int number)
+{
+  static int newper=0, oldper=-1;
+
+  newper = (int) (current / (float)(number) * 100.0);
+  if (newper < 0) newper = 0;
+  if (newper > 100) newper = 100;
+  if (newper > oldper) {
+    printf("\rAmount of optimization complete = %3d%%", newper);
+    fflush(stdout);
+    oldper = newper;
+  }
+}
+
+
 int main(int argc, char *argv[])
 {
   double ttim, utim, stim, tott;
@@ -165,25 +180,21 @@ int main(int argc, char *argv[])
   printf("\nDone searching.  ");
   printf("Now optimizing each candidate.\n\n");
 
-  /* Now maximize each good candidate */
+  {
+    double hir, hiz;
+    int ii, jj, numcands;
+    accelcand *cand;
+    rderivs
 
-  newper = 0;
-  oldper = 0;
-
-  for (ii = 0; ii < newncand; ii++) {
-
-    /* Calculate percentage complete */
-
-    newper = (int) (ii / (float) (newncand) * 100.0) + 1;
-    if (newper > oldper) {
-      printf("\rAmount of optimization complete = %3d%%", newper);
-      fflush(stdout);
-      oldper = newper;
+    /* Now maximize each good candidate */
+    
+    numcands = g_slist_length(cands);
+    for (ii=0; ii<numcands; ii++){
+      print_percent_complete(ii, numcands);
+      cand = (accelcand *)g_slist_nth_data(cands, ii);
+      calc_props(derivs[ii], hir + cmd->lobin, hiz, 0.0, &props[ii]);
     }
-    hipow = max_rz_file(fftfile, list[ii].p1, list[ii].p2, \
-			&hir, &hiz, &derivs[ii]);
-    calc_props(derivs[ii], hir + cmd->lobin, hiz, 0.0, &props[ii]);
-  }
+    print_percent_complete(ii, numcands);
   printf("\rAmount of optimization complete = %3d%%\n\n", 100);
 
   qsort(props, (unsigned long) newncand, sizeof(fourierprops), \
