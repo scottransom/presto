@@ -11,12 +11,12 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "22Apr04" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "03Sep04" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
 .SH NAME
-accelsearch \- Searches an FFT for pulsar candidates using a Fourier domain acceleration search with harmonic summing.
+accelsearch \- Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.
 .\" cligPart NAME end
 
 .\" cligPart SYNOPSIS
@@ -31,6 +31,8 @@ accelsearch \- Searches an FFT for pulsar candidates using a Fourier domain acce
 [-flo flo]
 [-fhi fhi]
 [-photon]
+[-zaplist zaplist]
+[-baryv baryv]
 infile
 .\" cligPart SYNOPSIS end
 
@@ -69,21 +71,31 @@ The highest Fourier frequency to search,
 .br
 1 Double value between 0.0 and oo.
 .IP -flo
-The lowest frequency (Hz) to search,
+The lowest frequency (Hz) (of the highest harmonic!) to search,
 .br
 1 Double value between 0.0 and oo.
 .br
-Default: `0.3'
+Default: `1.0'
 .IP -fhi
-The highest frequency (Hz) to search,
+The highest frequency (Hz) (of the highest harmonic!) to search,
 .br
 1 Double value between 0.0 and oo.
 .br
 Default: `10000.0'
 .IP -photon
 Data is poissonian so use freq 0 as power normalization.
+.IP -zaplist
+A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file),
+.br
+1 String value
+.IP -baryv
+The radial velocity component (v/c) towards the target during the obs,
+.br
+1 Double value between -0.1 and 0.1.
+.br
+Default: `0.0'
 .IP infile
-Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist.
+Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end
 
 .\" cligPart DESCRIPTION

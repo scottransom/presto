@@ -1,6 +1,5 @@
 #include <glib.h>
 #include "presto.h"
-#include "accelsearch_cmd.h"
 
 /* Note:  In order to make add_ffdotpows() much more efficient and  */
 /* allow table look-ups of the required indices to add, this number */
@@ -32,6 +31,8 @@ typedef struct accelobs{
   int numz;            /* Number of f-dots searched */
   int numbetween;      /* Highest fourier freq resolution (2=interbin) */
   int numzap;          /* Number of birdies to zap */
+  int dat_input;       /* The input file is a short time series */
+  int mmap_file;       /* The file number if using MMAP */
   double dt;           /* Data sample length (s) */           
   double T;            /* Total observation length */
   double rlo;          /* Minimum fourier freq to search */
@@ -49,6 +50,7 @@ typedef struct accelobs{
   long long *numindep; /* Number of independent spectra (per harmsummed) */
   FILE *fftfile;       /* The FFT file that we are analyzing */
   FILE *workfile;      /* A text file with candidates as they are found */
+  fcomplex *fft;       /* A pointer to the FFT for MMAPing or input time series */
   char *rootfilenm;    /* The root filename for associated files. */
   char *candnm;        /* The fourierprop save file for the fundamentals */
   char *accelnm;       /* The filename of the final candidates in text */
@@ -102,12 +104,14 @@ typedef struct ffdotpows{
 subharminfo **create_subharminfos(int numharmstages, int zmax);
 void free_subharminfos(int numharmstages, subharminfo **shis);
 GSList *sort_accelcands(GSList *list);
+GSList *eliminate_harmonics(GSList *cands, int *numcands);
 void optimize_accelcand(accelcand *cand, accelobs *obs);
 void output_fundamentals(fourierprops *props, GSList *list, 
 			 accelobs *obs, infodata *idata);
 void output_harmonics(GSList *list, accelobs *obs, infodata *idata);
 void free_accelcand(gpointer data, gpointer user_data);
 void print_accelcand(gpointer data, gpointer user_data);
+fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs *obs);
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs);
@@ -117,5 +121,4 @@ void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic,
 		   int numharm, int harmnum);
 GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, 
 			 accelobs *obs, GSList *cands);
-void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd);
 void free_accelobs(accelobs *obs);

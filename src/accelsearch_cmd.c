@@ -46,16 +46,24 @@ static Cmdline cmd = {
   /* rhiP = */ 0,
   /* rhi = */ (double)0,
   /* rhiC = */ 0,
-  /***** -flo: The lowest frequency (Hz) to search */
+  /***** -flo: The lowest frequency (Hz) (of the highest harmonic!) to search */
   /* floP = */ 1,
-  /* flo = */ 0.3,
+  /* flo = */ 1.0,
   /* floC = */ 1,
-  /***** -fhi: The highest frequency (Hz) to search */
+  /***** -fhi: The highest frequency (Hz) (of the highest harmonic!) to search */
   /* fhiP = */ 1,
   /* fhi = */ 10000.0,
   /* fhiC = */ 1,
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   /* photonP = */ 0,
+  /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
+  /* zaplistP = */ 0,
+  /* zaplist = */ (char*)0,
+  /* zaplistC = */ 0,
+  /***** -baryv: The radial velocity component (v/c) towards the target during the obs */
+  /* baryvP = */ 1,
+  /* baryv = */ 0.0,
+  /* baryvC = */ 1,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -831,7 +839,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -flo: The lowest frequency (Hz) to search */
+  /***** -flo: The lowest frequency (Hz) (of the highest harmonic!) to search */
   if( !cmd.floP ) {
     printf("-flo not found.\n");
   } else {
@@ -843,7 +851,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -fhi: The highest frequency (Hz) to search */
+  /***** -fhi: The highest frequency (Hz) (of the highest harmonic!) to search */
   if( !cmd.fhiP ) {
     printf("-fhi not found.\n");
   } else {
@@ -861,6 +869,30 @@ showOptionValues(void)
   } else {
     printf("-photon found:\n");
   }
+
+  /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
+  if( !cmd.zaplistP ) {
+    printf("-zaplist not found.\n");
+  } else {
+    printf("-zaplist found:\n");
+    if( !cmd.zaplistC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.zaplist);
+    }
+  }
+
+  /***** -baryv: The radial velocity component (v/c) towards the target during the obs */
+  if( !cmd.baryvP ) {
+    printf("-baryv not found.\n");
+  } else {
+    printf("-baryv found:\n");
+    if( !cmd.baryvC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.baryv);
+    }
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -877,8 +909,8 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-photon] [--] infile\n\
-    Searches an FFT for pulsar candidates using a Fourier domain acceleration search with harmonic summing.\n\
+ [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-photon] [-zaplist zaplist] [-baryv baryv] [--] infile\n\
+    Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n\
     -lobin: The first Fourier frequency in the data file\n\
             1 int value between 0 and oo\n\
             default: `0'\n\
@@ -895,16 +927,21 @@ usage(void)
             1 double value between 0.0 and oo\n\
       -rhi: The highest Fourier frequency to search\n\
             1 double value between 0.0 and oo\n\
-      -flo: The lowest frequency (Hz) to search\n\
+      -flo: The lowest frequency (Hz) (of the highest harmonic!) to search\n\
             1 double value between 0.0 and oo\n\
-            default: `0.3'\n\
-      -fhi: The highest frequency (Hz) to search\n\
+            default: `1.0'\n\
+      -fhi: The highest frequency (Hz) (of the highest harmonic!) to search\n\
             1 double value between 0.0 and oo\n\
             default: `10000.0'\n\
    -photon: Data is poissonian so use freq 0 as power normalization\n\
-    infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
+  -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file)\n\
+            1 char* value\n\
+    -baryv: The radial velocity component (v/c) towards the target during the obs\n\
+            1 double value between -0.1 and 0.1\n\
+            default: `0.0'\n\
+    infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 22Apr04\n\
+version: 03Sep04\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -999,6 +1036,24 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-photon", argv[i]) ) {
       cmd.photonP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-zaplist", argv[i]) ) {
+      int keep = i;
+      cmd.zaplistP = 1;
+      i = getStringOpt(argc, argv, i, &cmd.zaplist, 1);
+      cmd.zaplistC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-baryv", argv[i]) ) {
+      int keep = i;
+      cmd.baryvP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.baryv, 1);
+      cmd.baryvC = i-keep;
+      checkDoubleLower("-baryv", &cmd.baryv, cmd.baryvC, 0.1);
+      checkDoubleHigher("-baryv", &cmd.baryv, cmd.baryvC, -0.1);
       continue;
     }
 

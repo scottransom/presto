@@ -2,7 +2,7 @@
 
 Name accelsearch
 
-Usage "Searches an FFT for pulsar candidates using a Fourier domain acceleration search with harmonic summing."
+Usage "Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing."
 
 Version [exec date +%d%b%y]
 
@@ -22,13 +22,18 @@ Double -rlo     rlo     {The lowest Fourier frequency to search} \
 	-r 0.0 oo
 Double -rhi     rhi     {The highest Fourier frequency to search} \
 	-r 0.0 oo
-Double -flo     flo     {The lowest frequency (Hz) to search} \
-	-r 0.0 oo -d 0.3
-Double -fhi     fhi     {The highest frequency (Hz) to search} \
+Double -flo     flo     {The lowest frequency (Hz) (of the highest harmonic!) to search} \
+	-r 0.0 oo -d 1.0
+Double -fhi     fhi     {The highest frequency (Hz) (of the highest harmonic!) to search} \
 	-r 0.0 oo -d 10000.0
 Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
-
+String  -zaplist    zaplist \
+        {A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file)}
+Double  -baryv      baryv \
+        {The radial velocity component (v/c) towards the target during the obs} \
+        -r -0.1 0.1  -d 0.0
+	
 # Rest of command line:
 
-Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
+Rest infile {Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist} \
         -c 1 1

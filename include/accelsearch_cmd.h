@@ -33,16 +33,24 @@ typedef struct s_Cmdline {
   char rhiP;
   double rhi;
   int rhiC;
-  /***** -flo: The lowest frequency (Hz) to search */
+  /***** -flo: The lowest frequency (Hz) (of the highest harmonic!) to search */
   char floP;
   double flo;
   int floC;
-  /***** -fhi: The highest frequency (Hz) to search */
+  /***** -fhi: The highest frequency (Hz) (of the highest harmonic!) to search */
   char fhiP;
   double fhi;
   int fhiC;
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   char photonP;
+  /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
+  char zaplistP;
+  char* zaplist;
+  int zaplistC;
+  /***** -baryv: The radial velocity component (v/c) towards the target during the obs */
+  char baryvP;
+  double baryv;
+  int baryvC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

@@ -1,4 +1,5 @@
 #include "accel.h"
+#include "mmaccelsearch_cmd.h"
 
 #if defined (__GNUC__)
 #  define inline __inline__
@@ -6,7 +7,17 @@
 #  undef inline
 #endif
 
-#define NEAREST_INT(x) (int) (x < 0 ? x - 0.5 : x + 0.5)
+/*#undef USEMMAP*/
+
+#ifdef USEMMAP
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
+
+#define NEAREST_INT(x) (int) (x<0 ? x-0.5 : x+0.5)
 
 /* Return 2**n */
 #define index_to_twon(n) (1<<n)
@@ -167,7 +178,7 @@ subharminfo **create_subharminfos(int numharmstages, int zmax)
   /* Prep the fundamental (actually, the highest harmonic) */
   shis[0] = (subharminfo *)malloc(2 * sizeof(subharminfo));
   init_subharminfo(1, 1, zmax, &shis[0][0]);
-  printf("  Harmonic 1/1 has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n", 
+  printf("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n", 
 	 shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
 	 calc_fftlen(1, 1, shis[0][0].zmax));
   /* Prep the sub-harmonics */
@@ -176,7 +187,7 @@ subharminfo **create_subharminfos(int numharmstages, int zmax)
     shis[ii] = (subharminfo *)malloc(harmtosum * sizeof(subharminfo));
     for (jj=1; jj<harmtosum; jj+=2){
       init_subharminfo(harmtosum, jj, zmax, &shis[ii][jj-1]);
-      printf("  Harmonic %d/%d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n", 
+      printf("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n", 
 	     jj, harmtosum, shis[ii][jj-1].numkern, 
 	     -shis[ii][jj-1].zmax, shis[ii][jj-1].zmax,
 	     calc_fftlen(harmtosum, jj, shis[ii][jj-1].zmax));
@@ -293,6 +304,8 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
     return new_list;
   }
 
+  /* Find the correct position in the list for the candidate */
+
   while ((tmp_list->next) && 
 	 (((accelcand *)(tmp_list->data))->r < rr)){
     prev_list = tmp_list;
@@ -357,6 +370,83 @@ static GSList *insert_new_accelcand(GSList *list, float power, float sigma,
 }
 
 
+GSList *eliminate_harmonics(GSList *cands, int *numcands)
+/* Eliminate obvious but less-significant harmonically-related candidates */
+{
+  GSList *currentptr, *otherptr, *toocloseptr;
+  accelcand *current_cand, *other_cand;
+  int ii, maxharm=16;
+  double tooclose=1.5;
+  
+  currentptr = cands;
+  while (currentptr->next){
+    current_cand = (accelcand *)(currentptr->data);
+    otherptr = currentptr->next;
+    do {
+      int remove=0;
+      other_cand = (accelcand *)(otherptr->data);
+      for (ii=1; ii<=maxharm; ii++){
+	if (fabs(current_cand->r/ii - other_cand->r) < tooclose){
+	  remove = 1;
+	  break;
+	}
+      }
+      if (remove==0){
+	for (ii=1; ii<=maxharm; ii++){
+	  if (fabs(current_cand->r*ii - other_cand->r) < tooclose){
+	    remove = 1;
+	    break;
+	  }
+	}
+      }
+      /* Check a few other common harmonic ratios  */
+      /* Hopefully this isn't being overzealous... */
+      if (remove==0 && 
+	  ((fabs(current_cand->r*3.0/2.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*5.0/2.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*2.0/3.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*4.0/3.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*5.0/3.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*3.0/4.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*5.0/4.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*2.0/5.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*3.0/5.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*4.0/5.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*5.0/6.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*2.0/7.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*3.0/7.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*4.0/7.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*3.0/8.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*5.0/8.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*2.0/9.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*3.0/10.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*2.0/11.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*3.0/11.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*2.0/13.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*3.0/13.0 - other_cand->r) < tooclose) ||
+	   (fabs(current_cand->r*2.0/15.0 - other_cand->r) < tooclose))){
+	remove = 1;
+      }
+      /* Remove the "other" cand */
+      if (remove){
+	toocloseptr = otherptr;
+	otherptr = otherptr->next;
+	free_accelcand(other_cand, NULL);
+	cands = g_slist_remove_link(cands, toocloseptr);
+	g_slist_free_1(toocloseptr);
+	*numcands = *numcands-1;
+      } else {
+	otherptr = otherptr->next;
+      }
+    } while (otherptr);
+    if (currentptr->next)
+      currentptr = currentptr->next;
+  }
+  return cands;
+}
+
+
+
 void optimize_accelcand(accelcand *cand, accelobs *obs)
 {
   int ii;
@@ -366,12 +456,21 @@ void optimize_accelcand(accelcand *cand, accelobs *obs)
   cand->hizs = gen_dvect(cand->numharm);
   cand->derivs = (rderivs *)malloc(sizeof(rderivs)*cand->numharm);
   for (ii=0; ii<cand->numharm; ii++){
-    cand->pows[ii] = max_rz_file(obs->fftfile, 
-				 cand->r * (ii + 1) - obs->lobin,
-				 cand->z * (ii + 1), 
-				 &(cand->hirs[ii]), 
-				 &(cand->hizs[ii]), 
-				 &(cand->derivs[ii]));
+    if (obs->mmap_file || obs->dat_input)
+      cand->pows[ii] = max_rz_arr(obs->fft,
+				  obs->numbins,
+				  cand->r * (ii + 1) - obs->lobin,
+				  cand->z * (ii + 1), 
+				  &(cand->hirs[ii]), 
+				  &(cand->hizs[ii]), 
+				  &(cand->derivs[ii]));
+    else
+      cand->pows[ii] = max_rz_file(obs->fftfile, 
+				   cand->r * (ii + 1) - obs->lobin,
+				   cand->z * (ii + 1), 
+				   &(cand->hirs[ii]), 
+				   &(cand->hizs[ii]), 
+				   &(cand->derivs[ii]));
     cand->hirs[ii] += obs->lobin;
   }
   cand->sigma = candidate_sigma(cand->power, cand->numharm, 
@@ -677,6 +776,15 @@ void print_accelcand(gpointer data, gpointer user_data)
 }
 
 
+fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs *obs)
+{
+  if (obs->mmap_file || obs->dat_input)
+    return (fcomplex *)obs->fft+(lobin-obs->lobin);
+  else
+    return read_fcomplex_file(obs->fftfile, lobin-obs->lobin, numbins);
+}
+
+
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs)
@@ -725,8 +833,9 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   if (numharm==1 && harmnum==1){
     ffdot->numrs = ACCEL_USELEN;
   } else {
-    if (ffdot->numrs % ACCEL_RDR)
+    if (ffdot->numrs % ACCEL_RDR){
       ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
+    }
   }
   ffdot->numzs = shi->numkern;
   binoffset = shi->kern[0].kern_half_width;
@@ -734,7 +843,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   lobin = ffdot->rlo - binoffset;
   hibin = (int) ceil(drhi) + binoffset;
   numdata = hibin - lobin + 1;
-  data = read_fcomplex_file(obs->fftfile, lobin - obs->lobin, numdata);
+  data = get_fourier_amplitudes(lobin-obs->lobin, numdata, obs);
 
   /* Determine the mean local power level (via median) */
 
@@ -761,7 +870,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 		       ACCEL_NUMBETWEEN, binoffset, CORR);
     datainf = SAME;
   }
-  free(data);
+  if (!obs->mmap_file && !obs->dat_input)
+    free(data);
 
   /* Convert the amplitudes to normalized powers */
 
@@ -853,10 +963,10 @@ GSList *search_ffdotpows(ffdotpows *ffdot, int numharm,
   return cands;
 }
 
-
-void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
+void create_accelobs(accelobs *obs, infodata *idata, 
+		     Cmdline *cmd, char *zapfile, int usemmap)
 {
-  int ii, rootlen;
+  int ii, rootlen, input_shorts=0;
 
   {
     int hassuffix=0;
@@ -865,15 +975,26 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
     hassuffix = split_root_suffix(cmd->argv[0], 
 				  &(obs->rootfilenm), &suffix);
     if (hassuffix){
-      if (strcmp(suffix, "fft")!=0){
-	printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
+      if (strcmp(suffix, "fft")!=0 &&
+	  strcmp(suffix, "dat")!=0 &&
+	  strcmp(suffix, "sdat")!=0){
+	printf("\nInput file ('%s') must be an '.fft' or '.[s]dat' file!\n\n",
 	       cmd->argv[0]);
 	free(suffix);
 	exit(0);
       }
+      /* If the input file is a time series */
+      if (strcmp(suffix, "dat")==0 ||
+	  strcmp(suffix, "sdat")==0){
+	obs->dat_input = 1;
+	obs->mmap_file = 0;
+	if (strcmp(suffix, "sdat")==0) input_shorts = 1;
+      } else {
+	obs->dat_input = 0;
+      }
       free(suffix);
     } else {
-      printf("\nInput file ('%s') must be a FFT file ('.fft')!\n\n",
+      printf("\nInput file ('%s') must be an '.fft' or '.[s]dat' file!\n\n",
 	     cmd->argv[0]);
       exit(0);
     }
@@ -889,6 +1010,52 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
     printf("Analyzing data from '%s'.\n\n", cmd->argv[0]);
   }
 
+  /* Prepare the input time series if required */
+
+  if (obs->dat_input){
+    FILE *datfile;
+    long long filelen;
+    float *ftmp;
+
+    printf("Reading and FFTing the time series...");
+    fflush(NULL);
+    datfile = chkfopen(cmd->argv[0], "rb");
+
+    /* Check the length of the file to see if we can handle it */
+    filelen = chkfilelen(datfile, sizeof(float));
+    if (input_shorts) filelen *= 2;
+    if (filelen > 67108864){ /* Small since we need memory for the templates */
+      printf("\nThe input time series is too large.  Use 'realfft' first.\n\n");
+      exit(0);
+    }
+
+    /* Read the time series into a temporary buffer */
+    if (input_shorts){
+      short *stmp = gen_svect(filelen);
+      ftmp = gen_fvect(filelen);
+      chkfread(stmp, sizeof(short), filelen, datfile);
+      for (ii=0; ii<filelen; ii++)
+	ftmp[ii] = (float)stmp[ii];
+      free(stmp);
+    } else {
+      ftmp = read_float_file(datfile, 0, filelen);
+    }
+    fclose(datfile);
+
+    /* FFT it */
+    realfft(ftmp, filelen, -1);
+    obs->fftfile = NULL;
+    obs->fft = (fcomplex *)ftmp;
+    obs->numbins = filelen/2;
+    printf("done.\n\n");
+
+    /* Zap birds if requested */
+    if (zapfile!=NULL){
+      printf("\nWARNING:  Birdie zapping is not yet implemented!!!\n\n");
+      /* Add this */
+    }
+  }
+
   /* Determine the output filenames */
 
   rootlen = strlen(obs->rootfilenm)+25;
@@ -902,19 +1069,42 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
   sprintf(obs->workfilenm, "%s_ACCEL_%d.txtcand", 
 	  obs->rootfilenm, cmd->zmax);
 
+  /* Open the FFT file if it exists appropriately */
+  if (!obs->dat_input){
+    obs->fftfile = chkfopen(cmd->argv[0], "rb");
+    obs->numbins = chkfilelen(obs->fftfile, sizeof(fcomplex));
+    if (usemmap){
+      fclose(obs->fftfile);
+      obs->fftfile = NULL;
+      printf("Memory mapping the input FFT.  This may take a while...\n");
+      obs->mmap_file = open(cmd->argv[0], O_RDONLY);
+      if (obs->mmap_file == -1){
+	perror("\nError in open() in accel_utils.c");
+	printf("\n");
+	exit(-1);
+      }
+      obs->fft = (fcomplex *)mmap(0, sizeof(fcomplex)*obs->numbins, PROT_READ, 
+				  MAP_SHARED, obs->mmap_file, 0);
+    } else {
+      obs->mmap_file = 0;
+    }
+  }
+
   /* Determine the other parameters */
 
   if (cmd->zmax % ACCEL_DZ)
     cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
-  obs->fftfile = chkfopen(cmd->argv[0], "rb");
   obs->workfile = chkfopen(obs->workfilenm, "w");
   obs->N = (long long) idata->N;
   if (cmd->photonP){
-    obs->nph = get_numphotons(obs->fftfile);
+    if (obs->mmap_file || obs->dat_input){
+      obs->nph = obs->fft[0].r;
+    } else {
+      obs->nph = get_numphotons(obs->fftfile);
+    }
     printf("Normalizing powers using %.0f photons.\n\n", obs->nph);
   } else 
     obs->nph = 0.0;
-  obs->numbins = chkfilelen(obs->fftfile, sizeof(fcomplex));
   obs->lobin = cmd->lobin;
   if (obs->lobin > 0){
     obs->nph = 0.0;
@@ -1003,7 +1193,7 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
   }
   obs->numzap = 0;
   /*
-  if (cmd->zapfileP)
+  if (zapfile!=NULL)
     obs->numzap = get_birdies(cmd->zapfile, obs->T, obs->baryv, 
 			      &(obs->lobins), &(obs->hibins));
   else
@@ -1014,7 +1204,12 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
 
 void free_accelobs(accelobs *obs)
 {
-  fclose(obs->fftfile);
+  if (obs->mmap_file)
+    close(obs->mmap_file);
+  else if (obs->dat_input)
+    free(obs->fft);
+  else
+    fclose(obs->fftfile);
   free(obs->powcut);
   free(obs->numindep);
   free(obs->rootfilenm);
