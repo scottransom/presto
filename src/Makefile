@@ -32,8 +32,8 @@ FFTATHINCDIR = -I/usr/local/include
 # Path to FFT libraries
 FFTATHLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
-FFTATHLINK = $(FFTATHLIBDIR) -lfftw
-RFFTATHLINK = -lrfftw
+FFTATHLINK = $(FFTATHLIBDIR) -lsfftw
+RFFTATHLINK = -lsrfftw
 
 # Other include directoried (i.e. glib.h)
 OTHERINCDIR = -I/usr/include/glib-1.2
@@ -54,7 +54,7 @@ FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP \
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-g -Wall -W -O2 -march=k6 -fPIC
+	-g -Wall -W -O2 -march=pentiumpro -fPIC
 #	-DUSEDMALLOC \
 #	-g -Wall -W -O -fPIC \
 #	-g -ansi -pedantic -Wall -W -fpic \
@@ -124,6 +124,11 @@ INSTRUMENTOBJS = multibeam.o bpp.o wapp.o
 PLOT2DOBJS = powerplot.o xyline.o
 
 all: libpresto text xwin
+
+links:
+	cd ../bin ; find ../src -type f -perm 755 | xargs -n 1 -iXXX cp -s XXX .
+	cd ../lib ; ln -s ../src/libpresto.a .
+	cd ../lib ; ln -s ../src/libpresto.so .
 
 mpi: mpiprepsubband
 
