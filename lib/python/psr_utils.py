@@ -575,12 +575,11 @@ def calc_phs(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
             rotational freq (f0) and optional freq derivs (f1-f5).
     """
     t = (MJD-refMJD)*SECPERDAY
-    return fmod(t*(f0 +
-                   t*(f1/2.0 +
-                      t*(f2/6.0 +
-                         t*(f3/24.0 +
-                            t*(f4/120.0 +
-                               t*f5/720.0))))), 1.0)
+    return umath.fmod(t*(f0 +t*(f1/2.0 +
+                                t*(f2/6.0 +
+                                   t*(f3/24.0 +
+                                      t*(f4/120.0 +
+                                         t*f5/720.0))))), 1.0)
 
 def calc_freq(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
     """
@@ -598,8 +597,7 @@ def calc_freq(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
 def calc_t0(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
     """
     calc_t0(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
-        Return the closest previous MJD where corresponding to phase=0
-            of the pulse.
+        Return the closest previous MJD corresponding to phase=0 of the pulse.
     """
     phs = calc_phs(MJD, refMJD, f0, f1, f2, f3, f4, f5)
     p = 1.0/calc_freq(MJD, refMJD, f0, f1, f2, f3, f4, f5)

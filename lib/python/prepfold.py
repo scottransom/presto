@@ -2,6 +2,7 @@ import umath
 import Numeric as Num
 import struct
 import psr_utils
+import infodata
 import Pgplot
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
@@ -82,6 +83,17 @@ class pfd:
         self.profs = Num.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
                                                infile.read(self.numprofs*self.proflen*8)))
         self.profs = Num.reshape(self.profs, (self.npart, self.nsub, self.proflen))
+        if (self.numchan==1):
+            try:
+                idata = infodata.infodata(self.filenm[:self.filenm.rfind('.')]+".inf")
+                if idata.waveband=="Radio":
+                    self.bestdm = idata.DM
+                    self.numchan = idata.numchan
+                else: # i.e. for events
+                    self.bestdm = 0.0
+                    self.numchan = 1
+            except IOError:
+                print "Warning!  Can't open the .inf file for "+filename+"!"
 	self.binspersec = self.fold_p1*self.proflen
 	self.chanpersub = self.numchan/self.nsub
 	self.subdeltafreq = self.chan_wid*self.chanpersub
