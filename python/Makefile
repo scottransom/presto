@@ -8,13 +8,13 @@ CWARN         = -Xa -vc
 CFLAGS        = -g -O -fPIC $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
 #CFLAGS        = -g -O $(CWARN) $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
 LIBPATHS      = -L"$(PRESTO)/lib" -L/usr/local/lib
-LIBS          = -lpresto -lsfftw -lm
+LIBS          = -lpresto -lfftw3f -lm
 SWIG          = /usr/bin/swig 
 SWIGOPT       = -make_default -python -shadow
 PRESTOOBJS    = presto_wrap.o
 
-wrap: prestowrap
 lib: _presto.so
+wrap: prestowrap
 
 prestowrap:
 	$(SWIG) $(SWIGOPT) presto.i
