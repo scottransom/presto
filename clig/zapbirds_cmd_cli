@@ -1,0 +1,35 @@
+# Admin data
+
+Name zapbirds
+
+Usage "Allows you to interactively or automatically zap standard birds from an FFT."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Flag    -autozap    autozap \
+	{Zap the birds from the input files (write to the FFT file)}
+Int     -lobin      lobin \
+	{The first Fourier frequency in the data file} \
+	-r 0 oo  -d 0
+Double  -baryv      baryv \
+	{The earth's average radial velocity component (v/c) towards the target during he observation (used to convert topocentric RFI freqs to barycentric)} \
+	-r -0.1 0.1  -d 0.0
+String  -in         inzapfile \
+	{A file containing a list of freqs (Hz) and the # of harmonics to zap} \
+	-m
+String  -out        outzapfile \	
+	{A file to write that will contain the freqs and widths (Hz) zapped} \
+	-m
+
+# Rest of command line:
+
+Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
+        -c 1 1
+
+
+
+
