@@ -6,7 +6,38 @@
 #include "dmalloc.h"
 #endif
 
-/* #define DEBUG_OUT */
+/*
+#define DEBUG_OUT
+*/
+
+static double orbit_step(orbitparams orb, double ppsr, char param)
+{
+  double phiorb;
+  
+  phiorb = TWOPI * orb.x / ppsr;
+  switch (param){
+  case 'p':
+  case 'P':
+    return orb.p * \
+      exp(0.9792168 * log(orb.p/phiorb) - 10.9658871);
+  case 'x':
+  case 'X':
+    return orb.x * \
+      exp(0.9572412 * log(1.0/phiorb) + 0.7110553);
+  case 'e':
+    return 0.016;
+  case 'w': 
+    return 0.8;
+  case 't':
+  case 'T':
+    return orb.p * \
+      exp(0.9420009 * log(1.0/phiorb) - 1.1676730);
+  default:
+    printf("  Unrecognized parameter '%c' in orbit_step()\n", param);
+  }
+  return 0.0;
+}
+
 
 static double orbit_trial(fcomplex *data, int datalen,
 			  presto_datainf datainf,  int lodata, 
@@ -25,10 +56,11 @@ int main(int argc, char *argv[]){
   double N, T, rlo, rhi, rorb=0.0, norm, bestpsrp=0.0;
   double phiorb=0.0, ro=0.0, plo, phi, powargr, powargi;
   double epoch=0.0, freq=0.0, ppsr=0.0;
-  int pnum, ii, pct, xct, tct, datalen, lodata;
+  int pnum, ii, datalen, lodata;
   double dp=0.0, dx=0.0, dt=0.0, de=0.016, dw=0.8;
   double lop=0.0, lox=0.0, lot=0.0, loe, low;
-  int np=0, nx=0, nt=0, ne, nw;
+  double hip=0.0, hix=0.0, hit=0.0, hie, hiw;
+  int dynamic=0;
   unsigned long filelen;
   double numsearched=0.0, numtosearch=0.0, trial_time, avg_time;
   fcomplex *data=NULL, *corrdata=NULL;
@@ -148,19 +180,21 @@ int main(int argc, char *argv[]){
     printf("   time of periap = %.3f sec\n", trialorb.t);
     printf(" Modulation 'Phi' = %.3f\n\n", phiorb);
 
-    dp = trialorb.p * \
-      exp(0.9792168 * log(trialorb.p/phiorb) - 10.9658871);
-    dx = trialorb.x * \
-      exp(0.9572412 * log(1.0/phiorb) + 0.7110553);
-    dt = trialorb.p * \
-      exp(0.9420009 * log(1.0/phiorb) - 1.1676730);
-    np = nx = nt = nw = ne = 6;
-    lop = trialorb.p - np / 2 * dp;
-    lox = trialorb.x - nx / 2 * dx;
-    lot = trialorb.t - nt / 2 * dt;
-    loe = trialorb.e - ne / 2 * de;
+    dp = orbit_step(trialorb, ppsr, 'p');
+    dx = orbit_step(trialorb, ppsr, 'x');
+    dt = orbit_step(trialorb, ppsr, 't');
+    lop = trialorb.p - 3 * dp;
+    lox = trialorb.x - 3 * dx;
+    if (lox < 0.0) lox = 0.001;
+    lot = trialorb.t - 3 * dt;
+    loe = trialorb.e - 3 * de;
     if (loe < 0.0) loe = 0.0;
-    low = fmod(trialorb.w - nw / 2 * dw, 360.0) * 360.0;
+    low = fmod(trialorb.w - 3 * dw, 360.0) * 360.0;
+    hip = trialorb.p + 3 * dp;
+    hix = trialorb.x + 3 * dx;
+    hit = trialorb.t + 3 * dt;
+    hie = trialorb.e + 3 * de;
+    hiw = low + 6 * dw;
 
     /* If the user specifies all of the binaries parameters */
     
@@ -201,19 +235,21 @@ int main(int argc, char *argv[]){
     printf("   time of periap = %.3f sec\n", trialorb.t);
     printf(" Modulation 'Phi' = %.3f\n\n", phiorb);
 
-    dp = trialorb.p * \
-      exp(0.9792168 * log(trialorb.p/phiorb) - 10.9658871);
-    dx = trialorb.x * \
-      exp(0.9572412 * log(1.0/phiorb) + 0.7110553);
-    dt = trialorb.p * \
-      exp(0.9420009 * log(1.0/phiorb) - 1.1676730);
-    np = nx = nt = nw = ne = 6;
-    lop = trialorb.p - np / 2 * dp;
-    lox = trialorb.x - nx / 2 * dx;
-    lot = trialorb.t - nt / 2 * dt;
-    loe = trialorb.e - ne / 2 * de;
+    dp = orbit_step(trialorb, ppsr, 'p');
+    dx = orbit_step(trialorb, ppsr, 'x');
+    dt = orbit_step(trialorb, ppsr, 't');
+    lop = trialorb.p - 3 * dp;
+    lox = trialorb.x - 3 * dx;
+    if (lox < 0.0) lox = 0.001;
+    lot = trialorb.t - 3 * dt;
+    loe = trialorb.e - 3 * de;
     if (loe < 0.0) loe = 0.0;
-    low = fmod(trialorb.w - nw / 2 * dw, 360.0) * 360.0;
+    low = fmod(trialorb.w - 3 * dw, 360.0) * 360.0;
+    hip = trialorb.p + 3 * dp;
+    hix = trialorb.x + 3 * dx;
+    hit = trialorb.t + 3 * dt;
+    hie = trialorb.e + 3 * de;
+    hiw = low + 6 * dw;
 
     /* Determine the candidate parameters to examine from a _bin.cand file */
 
@@ -288,23 +324,18 @@ int main(int argc, char *argv[]){
     rorb = T / trialorb.p;
     ro = T / ppsr;
     print_bin_candidate(&binprops, 2);
-
-    dp = trialorb.p * \
-      exp(0.9792168 * log(trialorb.p/phiorb) - 10.9658871);
-    dx = trialorb.x * \
-      exp(0.9572412 * log(1.0/phiorb) + 0.7110553);
-    dt = trialorb.p * \
-      exp(0.9420009 * log(1.0/phiorb) - 1.1676730);
-    np = 4.0 * binprops.pbinerr / dp + 1;
-    nx = 6.0 * binprops.asinicerr / dx + 1;
-    nt = trialorb.p / dt + 1;
-    ne = 1;  /* This only works for circular orbs */
-    nw = 1;  /* This only works for circular orbs */
-    lop = trialorb.p - np / 2 * dp;
-    lox = trialorb.x - nx / 2 * dx;
+    lop = trialorb.p - 2 * binprops.pbinerr;
+    lox = trialorb.x - 3 * binprops.asinicerr;
+    if (lox < 0.0) lox = 0.001;
     lot = 0.0;
     loe = 0.0;  /* This only works for circular orbs */
     low = 0.0;  /* This only works for circular orbs */
+    hip = trialorb.p + 2 * binprops.pbinerr;
+    hix = trialorb.x + 3 * binprops.asinicerr;
+    hit = trialorb.p;
+    hie = 0.0;  /* This only works for circular orbs */
+    hiw = 0.0;  /* This only works for circular orbs */
+    dynamic = 1;
   }
 
   /* Determine the pulsar parameters to check if we are not getting   */
@@ -391,62 +422,77 @@ int main(int argc, char *argv[]){
   }
   COMPLEXFFT(data, datalen, -1);
 
-  /* Begin the loop over the possible orbital params */
-  /* So far only circular orbits are implemented...  */
+  /* Count the nuber of orbits to search */
 
-  numtosearch = np * nx * nt;
+  orb.e = 0.0;
+  orb.w = 0.0;
+  orb.pd = 0.0;
+  orb.wd = 0.0;
+  orb.p = lop;
+  dp = orbit_step(trialorb, ppsr, 'p');
+  while (orb.p < hip){
+    orb.x = lox;
+    dx = orbit_step(trialorb, ppsr, 'x');
+    while (orb.x < hix){
+      orb.t = lot;
+      dt = orbit_step(trialorb, ppsr, 't');
+      while (orb.t < orb.p){
+	numtosearch = numtosearch + 1.0;
+	orb.t += dt;
+      }
+      orb.x += dx;
+    }
+    orb.p += dp;
+  }
+  printf("\nWill search a total of %.0f candidates.\n\n", numtosearch);
+
   corrdata = gen_cvect(datalen);
-  printf("\nWill search...\n");
-  printf("   Orbital periods = %d\n", np);
-  printf("   Semi-major axes = %d\n", nx);
-  printf("   Periapsis times = %d\n", nt);
-  printf("      ...for a total of %.0f candidates.\n\n", numtosearch);
-
-  /* Do a search through the */
-
   trial_time = orbit_trial(data, datalen, FFT, lodata, ppsr, T, trialorb, 
 			   &bestpowr, &bestpsrp, &bestorb, corrdata);
   printf("Approx %f sec per trial.  Estimate %.3f hours for full search.", 
 	 trial_time, numtosearch * trial_time / 3600.0);
   fflush(NULL);
-  orb.e = 0.0;
-  orb.w = 0.0;
-  orb.pd = 0.0;
-  orb.wd = 0.0;
-  if (lox < 0.0)
-    lox = 0.001;
-  for (pct = 0; pct < np; pct++){
-    orb.p = lop + pct * dp;
+
+  /* Begin the loop over the possible orbital params */
+  /* So far only circular orbits are implemented...  */
+
+  orb.p = lop;
+  dp = orbit_step(trialorb, ppsr, 'p');
+  while (orb.p < hip){
 #ifdef DEBUG_OUT
     printf("p_orb = %.2f:\n", orb.p);
 #endif
-    phiorb = TWOPI * orb.x / ppsr;
-    dx = orb.x * \
-      exp(0.9572412 * log(1.0/phiorb) + 0.7110553);
-    for (xct = 0; xct < nx; xct++){
-      orb.x = lox + xct * dx;
-      avg_time = 0.0;
+    orb.x = lox;
+    dx = orbit_step(trialorb, ppsr, 'x');
+    while (orb.x < hix){
+      int nt;
 #ifdef DEBUG_OUT
       printf("  x_orb = %.4f\n", orb.x);
 #endif
-      dt = orb.p * \
-	exp(0.9420009 * log(1.0/phiorb) - 1.1676730);
-      for (tct = 0; tct < nt; tct++){
-	orb.t = lot + tct * dt;
+      orb.t = lot;
+      dt = orbit_step(trialorb, ppsr, 't');
+      avg_time = 0.0;
+      nt = 0;
+      while (orb.t < orb.p){
+#ifdef DEBUG_OUT
+	printf("    t_orb = %.4f\n", orb.t);
+#endif
 	trial_time = orbit_trial(data, datalen, SAME, lodata, ppsr, T, 
 				 orb, &bestpowr, &bestpsrp, &bestorb, 
 				 corrdata);
 	avg_time += trial_time;
 	numsearched = numsearched + 1.0;
+	nt++;
+	orb.t += dt;
       }
-/*       printf("\tBestpow = %f  BestPsrP = %f  BestOrbP = %f\n",  */
-/* 	     *bestpowr, *bestpsrp, bestorb->p); */
       avg_time /= nt;
       printf("\rApprox %.2f hrs remaining.  Current best:  Power = %.2f  P_psr = %.12f  P_orb = %.2f  x = %.4f  To = %.3f", 
 	     (numtosearch - numsearched) * avg_time / 3600.0,
 	     bestpowr, bestpsrp, bestorb.p, bestorb.x, bestorb.t);
       fflush(NULL);
+      orb.x += dx;
     }
+    orb.p += dp;
   }
   free(data);
   free(corrdata);
