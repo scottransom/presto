@@ -220,7 +220,6 @@ int main(int argc, char **argv)
 									
       orb.w *= DEGTORAD;
       E_to_phib(Ep, numpoints, &orb);		
-
     }									
 
     /* Determine if we will take any breaks during the folding */
@@ -468,12 +467,12 @@ int main(int argc, char **argv)
   if (cmd->psP || cmd->bothP) {						
     sprintf(psfilenm, "%s.prof.ps", cmd->argv[0]);			
     cpgstart_ps(psfilenm, "landscape");						
-    xyline(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
+    xybinned(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
     if (dochi) xyline(numreads+1, freqs, chiarr, "Time", "Chi-Square", 1);
     cpgend();								
   } else if (cmd->xwinP) {						
     cpgstart_x("landscape");							
-    xyline(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
+    xybinned(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
     if (dochi) xyline(numreads+1, freqs, chiarr, "Time", "Chi-Square", 1);
     cpgend();								
   }									
@@ -482,7 +481,7 @@ int main(int argc, char **argv)
 									
   if (cmd->bothP) {							
     cpgstart_x("landscape");							
-    xyline(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
+    xybinned(proflen, phases, fprof, "Pulse Phase", "Relative Intensity", 1);
     if (dochi) xyline(numreads+1, freqs, chiarr, "Time", "Chi-Square", 1);
     cpgend();								
   }									
@@ -499,6 +498,5 @@ int main(int argc, char **argv)
   free(fprof);								
   free(chiarr);
   if (mdata.onoff) free(mdata.onoff);
-  if (idata.onoff) free(idata.onoff);
   return (0);								
 }									

@@ -44,7 +44,7 @@ void multi_prof_plot(int proflen, int numprofs, double *profiles, \
     for (j = 0 ; j < proflen ; j++)
       y[j] = (profiles[index + j] - ymin) * ynorm + yoffset;
     y[proflen] = y[0];
-    cpgline(proflen+1, x, y);
+    cpgbin(proflen+1, x, y, 1);
   }
 
   /* The summed plot... */
@@ -64,7 +64,7 @@ void multi_prof_plot(int proflen, int numprofs, double *profiles, \
     y[j] = (sumprof[j] - ymin) * ynorm;
   y[proflen] = y[0];
   /* Plot the summed profile */
-  cpgline(proflen+1, x, y);
+  cpgbin(proflen+1, x, y, 1);
   
   /* Cleanup */
   free(x);

@@ -228,7 +228,6 @@ void print_candidate(fourierprops * cand, double dt, long N, \
   char output[40], output2[40];
   void (*nice_output) (char *, double, double, int);
 
-
   if (numerrdigits == 1)
     nice_output = nice_output_1;
   else if (numerrdigits == 2)

@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
   printf("  Total time: %.3f sec\n\n", tott);
 
   printf("The best candidate is:\n");
+  
   print_candidate(&props, dt, n, nph, 2);
   readinf(&idata, infonm);
   realpsr = comp_psr_to_cand(&props, &idata, compare, 1);

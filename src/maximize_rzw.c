@@ -1,6 +1,7 @@
 #include "presto.h"
 
 #define ZSCALE 4.0
+#define WSCALE 24.0
 
 /* Some Static-Global Variables */
 
@@ -58,27 +59,28 @@ extern double solvopt(unsigned short n, double x[], double fun(), \
 		      void grad(), double options[], double func(), \
 		      void gradc());
 
-static double power_call_rz(double rz[])
+static double power_call_rzw(double rzw[])
 /*  Maximization function used with an array */
 {
   double powargr, powargi;
   fcomplex ans;
 
   num_funct_calls++;
-  rz_interp(maxdata, nummaxdata, rz[0], rz[1] * ZSCALE, \
-	    max_kern_half_width, &ans);
+  rzw_interp(maxdata, nummaxdata, rzw[0], rzw[1] * ZSCALE, \
+	     rzw[2] * WSCALE, max_kern_half_width, &ans);
   powargr = (double) ans.r;
   powargi = (double) ans.i;
   return -POWER(powargr, powargi);
 }
 
 
-double max_rz_arr(fcomplex *data, int numdata, double rin, double zin, \
-		  double *rout, double *zout, rderivs * derivs)
-/* Return the Fourier frequency and Fourier f-dot that      */ 
+double max_rzw_arr(fcomplex *data, int numdata, double rin, double zin, \
+		   double win, double *rout, double *zout, \
+		   double *wout, rderivs * derivs)
+/* Return the Fourier frequency, f-dot, and fdotdot that    */ 
 /* maximizes the power.                                     */
 {
-  double maxpower, x[2];
+  double maxpower, x[3];
   float locpow;
 
   maxdata = data;
@@ -88,39 +90,43 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin, \
   /* the true value of z is a little larger than z.  This    */
   /* keeps a little more accuracy.                           */
 
-  max_kern_half_width = z_resp_halfwidth(fabs(zin) + 4.0, HIGHACC);
+  max_kern_half_width = w_resp_halfwidth(fabs(zin) + 4.0, win, HIGHACC);
   x[0] = rin;
   x[1] = zin / ZSCALE;
+  x[2] = win / WSCALE;
 
   /* Call the solver: */
 
   solvopt_options[0] = -0.1;
-  maxpower = solvopt(2, x, power_call_rz, NULL, solvopt_options, \
+  maxpower = solvopt(3, x, power_call_rzw, NULL, solvopt_options, \
 		     NULL, NULL);
 
   /* Re-run solvopt from the value obtained if needed. */
 
   if (solvopt_options[8] == -11.0){
     solvopt_options[0] = -0.01;
-    maxpower = solvopt(2, x, power_call_rz, NULL, solvopt_options, \
+    maxpower = solvopt(3, x, power_call_rzw, NULL, solvopt_options, \
 		       NULL, NULL);
   }
  
-  printf("\nCalled rz_interp() %d times.\n", num_funct_calls);
+  printf("\nCalled rzw_interp() %d times.\n", num_funct_calls);
  
   /* The following calculates derivatives at the peak           */
 
   x[1] *= ZSCALE;
+  x[2] *= WSCALE;
   *rout = x[0];
   *zout = x[1];
-  locpow = get_localpower3d(data, numdata, x[0], x[1], 0.0);
-  get_derivs3d(data, numdata, x[0], x[1], 0.0, locpow, derivs);
+  *wout = x[2];
+  locpow = get_localpower3d(data, numdata, x[0], x[1], x[2]);
+  get_derivs3d(data, numdata, x[0], x[1], x[2], locpow, derivs);
   return -maxpower;
 }
 
-double max_rz_file(FILE *fftfile, double rin, double zin, \
-		   double *rout, double *zout, rderivs * derivs)
-/* Return the Fourier frequency and Fourier f-dot that      */ 
+double max_rzw_file(FILE *fftfile, double rin, double zin, double win, \
+		    double *rout, double *zout, double *wout, \
+		    rderivs * derivs)
+/* Return the Fourier frequency, f-dot, and fdotdot that    */ 
 /* maximizes the power of the candidate in 'fftfile'.       */
 {
   double maxpow, rin_int, rin_frac;
@@ -128,13 +134,13 @@ double max_rz_file(FILE *fftfile, double rin, double zin, \
   fcomplex *filedata;
 
   rin_frac = modf(rin, &rin_int);
-  kern_half_width = z_resp_halfwidth(fabs(zin) + 4.0, HIGHACC);
+  kern_half_width = w_resp_halfwidth(fabs(zin) + 4.0, win, HIGHACC);
   filedatalen = 2 * kern_half_width + extra;
   startbin = (int) rin_int - filedatalen / 2;
 
   filedata = read_fcomplex_file(fftfile, startbin, filedatalen);
-  maxpow = max_rz_arr(filedata, filedatalen, rin_frac + filedatalen / 2, \
-		      zin, rout, zout, derivs);
+  maxpow = max_rzw_arr(filedata, filedatalen, rin_frac + filedatalen / 2, \
+		       zin, win, rout, zout, wout, derivs);
   *rout += startbin;
   free(filedata);
   return maxpow;

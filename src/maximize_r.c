@@ -57,7 +57,7 @@ double max_r_arr(fcomplex *data, int numdata, double rin,
 
   *rout = xmin;
   locpow = get_localpower(data, numdata, xmin);
-  get_derivs2d(data, numdata, xmin, 0.0, locpow, derivs);
+  get_derivs3d(data, numdata, xmin, 0.0, 0.0, locpow, derivs);
   return derivs->pow;
 }
 

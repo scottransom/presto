@@ -11,8 +11,8 @@ fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween, \
   /*   'numdata' is the number of complex points (bins) in data.     */
   /*   'numbetween' is the number of points to interpolate per bin.  */
   /*   'startbin' is the first bin to use in data for interpolation. */
-  /*   'zlo' is the lowest fdot to use (z=f-dot/T^2)                 */
-  /*   'zhi' is the highest fdot to use (z=f-dot/T^2)                */
+  /*   'zlo' is the lowest fdot to use (z=f-dot*T^2)                 */
+  /*   'zhi' is the highest fdot to use (z=f-dot*T^2)                */
   /*   'numz' is the number of z values to use to make the plane     */
   /*   'fftlen' is the # of complex pts in kernel and result.        */
   /*   'accuracy' is either HIGHACC or LOWACC.                       */
@@ -119,7 +119,7 @@ fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween, \
   /*   'numdata' is the number of complex points (bins) in data.     */
   /*   'numbetween' is the number of points to interpolate per bin.  */
   /*   'startbin' is the first bin to use in data for interpolation. */
-  /*   'z' is the fdot to use (z=f-dot/T^2).                         */
+  /*   'z' is the fdot to use (z=f-dot*T^2).                         */
   /*   'fftlen' is the # of complex pts in kernel and result.        */
   /*   'accuracy' is either HIGHACC or LOWACC.                       */
   /*   'nextbin' will contain the bin number of the first bin not    */
@@ -145,7 +145,7 @@ void rz_interp(fcomplex *data, int numdata, double r, double z, \
   /*   'numdata' is the number of complex points (bins) in data.     */
   /*   'r' is the Fourier frequency in data that we want to          */
   /*      interpolate.  This can (and should) be fractional.         */
-  /*   'z' is the fdot to use (z=f-dot/T^2 (T is integration time)). */
+  /*   'z' is the fdot to use (z=f-dot*T^2 (T is integration time)). */
   /*   'kern_half_width' is the half-width of the kernel in bins.    */
   /*   'ans' is the complex answer.                                  */
 {

@@ -322,6 +322,16 @@ double hms2hours(int hours, int min, double sec)
   return (double) hours + (((double) min + sec / 60.0) / 60.0);
 }
 
+void hours2hms(double hours, int *h, int *m, double *s)
+/* Convert decimal hours to hours, minutes, and seconds */
+{
+  double tmp;
+
+  *h = (int) floor(hours);
+  tmp = (hours - *h) * 60.0;
+  *m = (int) floor(tmp);
+  *s = (tmp - *m) * 60.0;
+}
 
 double dms2rad(int deg, int min, double sec)
 /* Convert degrees, minutes, and seconds of arc to radians */

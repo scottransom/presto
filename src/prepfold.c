@@ -2,10 +2,6 @@
 #include "prepfold_cmd.h"
 #include "multibeam.h"
 
-/* Data points per record */
-
-#define PTSPERREC 1536
-
 /* Some function definitions */
 
 int (*readrec_ptr) (FILE * infile, float *data,
@@ -40,7 +36,7 @@ int main(int argc, char *argv[])
   double *delta_ts = NULL, *topo_ts = NULL;
   char obs[3], ephem[10], datafilenm[200];
   char pname[30], rastring[50], decstring[50], *ctmp;
-  int numchan = 1, binary = 0, np, pnum, numonoffpairs = 1;
+  int numchan = 1, binary = 0, np, pnum, numonoffpairs = 1, ptsperrec = 1;
   long i, j, k, numbarypts = 0, numpts = 0, numfolded = 0, totnumfolded = 0;
   long numrecs = 0, totnumrecs = 0;
   long numbinpoints, proflen, currentrec;
@@ -107,9 +103,10 @@ int main(int argc, char *argv[])
     if (idata.object) {						
       printf("Folding a %s candidate from '%s'.\n", \
 	     idata.object, cmd->argv[0]);
-    } else {								
+    } else {
       printf("Folding a candidate from '%s'.\n", cmd->argv[0]);
-    }									
+    }
+    ptsperrec = DATLEN * 8 / idata.num_chan;
 
     /* Define the RA and DEC of the observation */
   
@@ -120,8 +117,8 @@ int main(int argc, char *argv[])
 
     dt = idata.dt;
     dtdays = idata.dt / SECPERDAY;
-    recdt = dt * PTSPERREC;
-    N = numrec * PTSPERREC;
+    recdt = dt * ptsperrec;
+    N = numrec * ptsperrec;
     T = dt * N;
     /* 1000.0 extra secs allows for worst case barycentric correction */
     endtime = T + 1000;
@@ -139,7 +136,7 @@ int main(int argc, char *argv[])
     /* The number of data points to work with at a time */
 
     numchan = idata.num_chan;
-    numpts = PTSPERREC;
+    numpts = ptsperrec;
 
   }
 
@@ -269,7 +266,6 @@ int main(int argc, char *argv[])
     
     orb.w *= DEGTORAD;
     E_to_phib(Ep, numbinpoints, &orb);		
-    
   }
   
   /* Determine the spacing to use when generating */
@@ -305,7 +301,7 @@ int main(int argc, char *argv[])
     
     /* Adjust various values to the beginning of the first bin */
     
-    tmptopoepoch = topoepoch + onoffpairs[0] * dt * PTSPERREC / SECPERDAY;
+    tmptopoepoch = topoepoch + onoffpairs[0] * dt * ptsperrec / SECPERDAY;
     if (cmd->pkmbP) {
       barycenter(&tmptopoepoch, &tmpbaryepoch, &dtmp2, 1, rastring, \
 		 decstring, obs, ephem);
@@ -396,10 +392,10 @@ int main(int argc, char *argv[])
     
     printf("Massaging the data ...\n\n");
     
-    /* Main loop if we are barycentering... */
-
     /*****  Need to do this  *****/
     
+  /* Main loop if we are barycentering... */
+
   } else {
     
     /* Allocate some arrays */

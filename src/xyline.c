@@ -115,6 +115,65 @@ void xyline(int npts, float *x, float *y, const char *xlab, \
 }
 
 
+void dxybinned(int npts, double *x, double *y, const char *xlab, \
+	       const char *ylab, int id)
+/* Wrapper to plot double precision vectors */
+{
+  float *fx, *fy;
+  long i;
+
+  /* Copy our double vectors to float vectors */
+
+  fx = (float *) malloc(sizeof(float) * npts);
+  fy = (float *) malloc(sizeof(float) * npts);
+
+  for (i = 0; i < npts; i++) {
+    fx[i] = (float) x[i];
+    fy[i] = (float) y[i];
+  }
+
+  /* Call xyline */
+
+  xybinned(npts, fx, fy, xlab, ylab, id);
+
+  /* Free our memory */
+
+  free(fx);
+  free(fy);
+}
+
+
+void xybinned(int npts, float *x, float *y, const char *xlab, \
+	      const char *ylab, int id)
+{
+  float xmin, xmax, ymin, ymax;
+  float overy, over = 0.1;
+
+  /* Determine min and max values to plot and scaling: */
+  find_min_max_arr(npts, x, &xmin, &xmax);
+  find_min_max_arr(npts, y, &ymin, &ymax);
+  overy = over * (ymax - ymin);
+  ymax += overy;
+  ymin -= overy;
+
+  /* Setup the plot screen: */
+  cpgenv(xmin, xmax, ymin, ymax, 0, 0);
+
+  /* Choose the font: */
+  cpgscf(2);
+
+  /* Label the axes: */
+  cpglab(xlab, ylab, "");
+
+  /* Add ID line if required */
+  if (id == 1)
+    cpgiden();
+
+  /* Plot the points: */
+  cpgbin(npts, x, y, 0);
+}
+
+
 void xyline2lab(int npts, float *x, float *y, float *y2, const char *xlab, \
 		const char *ylab, const char *ylab2, int id)
 {

@@ -1,7 +1,5 @@
 #include <presto.h>
 
-int read_resid_rec(FILE * file, double *toa, double *obsf);
-
 double doppler(double freq_observed, double voverc)
 /* This routine returns the frequency emitted by a pulsar */
 /* (in MHz) given that we observe the pulsar at frequency */
@@ -22,11 +20,19 @@ int read_resid_rec(FILE * file, double *toa, double *obsf)
 
   fread(&l, sizeof(int), 1, file);
   fread(&d, sizeof(double), 9, file);
+printf("Barycentric TOA = %17.10f\n", d[0]);
+printf("Postfit residual (pulse phase) = %g\n", d[1]);
+printf("Postfit residual (seconds) = %g\n", d[2]);
+printf("Orbital phase = %g\n", d[3]);
+printf("Barycentric Observing freq = %g\n", d[4]);
+printf("Weight of point in the fit = %g\n", d[5]);
+printf("Timing uncertainty = %g\n", d[6]);
+printf("Prefit residual (seconds) = %g\n", d[7]);
+printf("??? = %g\n\n", d[8]);
   *toa = d[0];
   *obsf = d[4];
   return fread(&l, sizeof(int), 1, file);
 }
-  
 
 void barycenter(double *topotimes, double *barytimes, \
 		double *voverc, long N, char *ra, char *dec, \
@@ -60,9 +66,10 @@ void barycenter(double *topotimes, double *barytimes, \
   fprintf(outfile, "  HEAD                    \n");
   fprintf(outfile, "  PSR                 bary\n");
   fprintf(outfile, "  NPRNT                  2\n");
-  fprintf(outfile, "  P0                   1.0\n");
+  fprintf(outfile, "  P0                   1.0 1\n");
   fprintf(outfile, "  P1                   0.0\n");
   fprintf(outfile, "  CLK            UTC(NIST)\n");
+  fprintf(outfile, "  PEPOCH            %11.5f\n", topotimes[0]);
   fprintf(outfile, "  COORD              J2000\n");
   fprintf(outfile, "  RA                    %s\n", ra);
   fprintf(outfile, "  DEC                   %s\n", dec);
@@ -73,19 +80,57 @@ void barycenter(double *topotimes, double *barytimes, \
 
   /* Write the TOAs for infinite frequencies */
 
+  /*  TOA Formats
+  Princeton Format
+    columns
+    1-1     Observatory (one-character code)
+    2-2     must be blank
+    16-24   Observing frequency (MHz)
+    25-44   TOA (decimal point must be in column 30 or column 31)
+    45-53   TOA uncertainty 
+    69-78   DM correction (pc cm^-3)
+  Parkes Format
+    columns
+    1-1     must be blank
+    26-34   Observing frequency (MHz)
+    35-55   TOA (decimal point must be in column 42)
+    56-63   Phase offset (fraction of P0, added to TOA)
+    64-71   TOA uncertainty
+    80-80   Observatory (one-character code)
+  ITOA Format
+    columns
+    1-2     ignored, but must not be blank (often PSRNAME goes here)
+   10-28    TOA (decimal point must be in column 15)
+   29-34    TOA uncertainty 
+   35-45    Observing frequency (MHz)
+   46-55    DM correction (pc cm^-3)
+   58-59    Observatory (two-letter code)
+  */
+
+  
   for (i = 0; i < N; i++) {
-    fprintf(outfile, "topocent %20.14f 0.00  0.000000000 0.000000 %s\n", \
+    fprintf(outfile, "topocent %19.13f  0.00     0.0000  0.000000  %s\n", \
 	    topotimes[i], obs);
   }
-  fprintf(outfile, "topocent %20.14f 0.00  0.000000000 0.000000 %s\n", \
-	  topotimes[N-1]+0.0001, obs);
+  fprintf(outfile, "topocent %19.13f  0.00     0.0000  0.000000  %s\n", \
+	  topotimes[N-1] + 100.0 / SECPERDAY, obs);
+
+  /*
+  for (i = 0; i < N; i++) {
+    fprintf(outfile, "7              0.0      %19.13f  0.00                    0.00\n", \
+	    topotimes[i]);
+  }
+  fprintf(outfile, "7              0.0      %19.13f  0.00                    0.00\n", \
+	  topotimes[N-1] + 100.0 / SECPERDAY);
+  */
+
   fclose(outfile);
 
   /* Call TEMPO */
 
   /* Check the TEMPO *.tmp and *.lis files for errors when done. */
 
-  sprintf(command, "tempo bary.tmp > tempoout_times.tmp");
+  sprintf(command, "tempo -x bary.tmp > tempoout_times.tmp");
   system(command);
 
   /* Now read the TEMPO results */
@@ -99,7 +144,11 @@ void barycenter(double *topotimes, double *barytimes, \
     read_resid_rec(outfile, &barytimes[i], &dtmp);
   }
   fclose(outfile);
-  
+
+rename("itoa.out", "itoa1.out");
+rename("bary.tmp", "bary1.tmp");
+rename("bary.par", "bary1.par");
+
   /* Write the free format TEMPO file to begin barycentering */
   
   strcpy(temporaryfile, "bary.tmp");
@@ -108,9 +157,10 @@ void barycenter(double *topotimes, double *barytimes, \
   fprintf(outfile, "  HEAD                    \n");
   fprintf(outfile, "  PSR                 bary\n");
   fprintf(outfile, "  NPRNT                  2\n");
-  fprintf(outfile, "  P0                   1.0\n");
+  fprintf(outfile, "  P0                   1.0 1\n");
   fprintf(outfile, "  P1                   0.0\n");
   fprintf(outfile, "  CLK            UTC(NIST)\n");
+  fprintf(outfile, "  PEPOCH            %11.5f\n", topotimes[0]);
   fprintf(outfile, "  COORD              J2000\n");
   fprintf(outfile, "  RA                    %s\n", ra);
   fprintf(outfile, "  DEC                   %s\n", dec);
@@ -122,11 +172,11 @@ void barycenter(double *topotimes, double *barytimes, \
   /* Write the TOAs for finite frequencies */
 
   for (i = 0; i < N; i++) {
-    fprintf(outfile, "topocent %20.14f 0.00  %11.6f 0.000000 %s\n", \
+    fprintf(outfile, "topocent %19.13f  0.00  %9.4f  0.000000  %s\n", \
 	    topotimes[i], fobs, obs);
   }
-  fprintf(outfile, "topocent %20.14f 0.00  %11.6f 0.000000 %s\n", \
-	  topotimes[N-1]+0.0001, fobs, obs);
+  fprintf(outfile, "topocent %19.13f  0.00  %9.4f  0.000000  %s\n", \
+	  topotimes[N-1] + 100.0 / SECPERDAY, fobs, obs);
   fclose(outfile);
 
   /* Call TEMPO */
@@ -134,7 +184,7 @@ void barycenter(double *topotimes, double *barytimes, \
   /* Insure you check the file tempoout.tmp for  */
   /* errors from TEMPO when complete.            */
 
-  sprintf(command, "tempo bary.tmp > tempoout_vels.tmp");
+  sprintf(command, "tempo -x bary.tmp > tempoout_vels.tmp");
   system(command);
 
   /* Now read the TEMPO results */
@@ -152,10 +202,14 @@ void barycenter(double *topotimes, double *barytimes, \
 
   /* Cleanup the temp files */
 
+rename("itoa.out", "itoa2.out");
+rename("bary.tmp", "bary2.tmp");
+rename("bary.par", "bary2.par");
+
   rename("tempo.lis", "tempoout.tmp");
   remove("resid2.tmp");
-  remove("bary.tmp");
+/*   remove("bary.tmp"); */
   remove("matrix.tmp");
-  remove("bary.par");
+/*   remove("bary.par"); */
 }
 

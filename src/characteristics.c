@@ -61,17 +61,19 @@ float get_localpower(fcomplex *data, int numdata, double r)
 }
 
 
-float get_localpower2d(fcomplex *data, int numdata, double r, \
-		       double z)
-  /* Return the local power level around a specific FFT         */
-  /* frequency and f-dot.                                       */
-  /* Arguments:                                                 */
-  /*   'data' is a pointer to a complex FFT.                    */
-  /*   'numdata' is the number of complex points in 'data'.     */
-  /*   'r' is the Fourier frequency in data that we want to     */
-  /*      interpolate.                                          */
-  /*   'z' is the Fourier Frequency derivative (# of bins the   */
-  /*       signal smears over during the observation).          */
+float get_localpower3d(fcomplex *data, int numdata, double r, \
+		       double z, double w)
+  /* Return the local power level around a specific FFT           */
+  /* frequency, f-dot, and f-dotdot.                              */
+  /* Arguments:                                                   */
+  /*   'data' is a pointer to a complex FFT.                      */
+  /*   'numdata' is the number of complex points in 'data'.       */
+  /*   'r' is the Fourier frequency in data that we want to       */
+  /*      interpolate.                                            */
+  /*   'z' is the Fourier Frequency derivative (# of bins the     */
+  /*       signal smears over during the observation).            */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in the */
+  /*       Fourier f-dot during the observation).                 */
 {
   float powargr, powargi, sum=0.0;
   double lo1, lo2, hi1, hi2, freq;
@@ -79,7 +81,7 @@ float get_localpower2d(fcomplex *data, int numdata, double r, \
   fcomplex ans;
 
   binsperside = NUMLOCPOWAVG / 2;
-  kern_half_width = z_resp_halfwidth(z, LOWACC);
+  kern_half_width = w_resp_halfwidth(z, w, LOWACC);
 
   /* Set the bounds of our summation */
 
@@ -102,11 +104,11 @@ float get_localpower2d(fcomplex *data, int numdata, double r, \
   /* Perform the summation */
 
   for (freq = lo1; freq < hi1; freq += 1.0){
-    rz_interp(data, numdata, freq, z, kern_half_width, &ans);
+    rzw_interp(data, numdata, freq, z, w, kern_half_width, &ans);
     sum += POWER(ans.r, ans.i);
   }
   for (freq = lo2; freq < hi2; freq += 1.0){
-    rz_interp(data, numdata, freq, z, kern_half_width, &ans);
+    rzw_interp(data, numdata, freq, z, w, kern_half_width, &ans);
     sum += POWER(ans.r, ans.i);
   }
   sum /= (float) NUMLOCPOWAVG;
@@ -114,11 +116,12 @@ float get_localpower2d(fcomplex *data, int numdata, double r, \
 }
 
 
-void get_derivs2d(fcomplex *data, int numdata, double r, \
-		  double z, float localpower, rderivs *result)
+void get_derivs3d(fcomplex *data, int numdata, double r, \
+		  double z, double w, float localpower, \
+		  rderivs *result)
   /* Return an rderives structure that contains the power,      */
   /* phase, and their first and second derivatives at a point   */
-  /* in the F/F-dot plane.                                      */  
+  /* in the F/F-dot/F-dortdot volume.                           */  
   /* Arguments:                                                 */
   /*   'data' is a pointer to a complex FFT.                    */
   /*   'numdata' is the number of complex points in 'data'.     */
@@ -126,6 +129,8 @@ void get_derivs2d(fcomplex *data, int numdata, double r, \
   /*      interpolate.                                          */
   /*   'z' is the Fourier Frequency derivative (# of bins the   */
   /*       signal smears over during the observation).          */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in   */
+  /*       the Fourier f-dot during the observation).           */
   /*   'localpower' is the local power level around the signal. */
   /*   'result' is a pointer to an rderivs structure that will  */
   /*       contain the results.                                 */
@@ -140,9 +145,9 @@ void get_derivs2d(fcomplex *data, int numdata, double r, \
 
   /* Read the powers and phases: */
 
-  kern_half_width = z_resp_halfwidth(z, HIGHACC);
+  kern_half_width = w_resp_halfwidth(z, w, HIGHACC);
   for (ii = 0, f = r - twoh; ii < 5; ii++, f += h) {
-    rz_interp(data, numdata, f, z, kern_half_width, &ans);
+    rzw_interp(data, numdata, f, z, w, kern_half_width, &ans);
     pwr[ii] = POWER(ans.r, ans.i);
     phs[ii] = RADIAN_PHASE(ans.r, ans.i);
   }
