@@ -1389,7 +1389,7 @@ int nice_output_2(char *output, double val, double err, int len);
     PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$source[0]);
   free($source);
   if (arr == NULL) return NULL;
-  arr->dimensions[1] = ((int) (*arg9) - arg3) * arg2 ;
+  arr->dimensions[1] = ((int) (*_arg9) - _arg3) * _arg2 ;
   arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);
@@ -1429,7 +1429,7 @@ fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
     PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$source);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
-  arr->dimensions[0] = ((int) (*arg7) - arg3) * arg2;
+  arr->dimensions[0] = ((int) (*_arg7) - _arg3) * _arg2;
   arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
   PyArray_INCREF(arr);
   $target = (PyObject *)arr;
