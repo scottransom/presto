@@ -32,7 +32,7 @@ static Cmdline cmd = {
   /* numharmC = */ 1,
   /***** -zmax: The max (+ and -) Fourier freq deriv to search */
   /* zmaxP = */ 1,
-  /* zmax = */ 170,
+  /* zmax = */ 200,
   /* zmaxC = */ 1,
   /***** -sigma: Cutoff sigma for choosing candidates */
   /* sigmaP = */ 1,
@@ -886,8 +886,8 @@ usage(void)
             1 int value between 1 and 16\n\
             default: `8'\n\
      -zmax: The max (+ and -) Fourier freq deriv to search\n\
-            1 int value between 0 and 300\n\
-            default: `170'\n\
+            1 int value between 0 and 500\n\
+            default: `200'\n\
     -sigma: Cutoff sigma for choosing candidates\n\
             1 float value between 1.0 and 30.0\n\
             default: `2.0'\n\
@@ -904,7 +904,7 @@ usage(void)
    -photon: Data is poissonian so use freq 0 as power normalization\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 14Aug03\n\
+version: 28Oct03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -946,7 +946,7 @@ parseCmdline(int argc, char **argv)
       cmd.zmaxP = 1;
       i = getIntOpt(argc, argv, i, &cmd.zmax, 1);
       cmd.zmaxC = i-keep;
-      checkIntLower("-zmax", &cmd.zmax, cmd.zmaxC, 300);
+      checkIntLower("-zmax", &cmd.zmax, cmd.zmaxC, 500);
       checkIntHigher("-zmax", &cmd.zmax, cmd.zmaxC, 0);
       continue;
     }
