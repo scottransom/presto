@@ -470,7 +470,8 @@ void get_PKMB_channel(int channum, float chandat[],
 
 
 int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data, 
-		       double *dispdelays, int numsubbands, int *padding, 
+		       double *dispdelays, int numsubbands, 
+		       int transpose, int *padding, 
 		       int *maskchans, int *nummasked, mask *obsmask)
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the PKMB system.  The routine uses    */
@@ -485,7 +486,8 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data,
 /* of length numchans which contains a list of the number of     */
 /* channels that were masked.  The # of channels masked is       */
 /* returned in 'nummasked'.  'obsmask' is the mask structure     */
-/* to use for masking.                                           */
+/* to use for masking.  If 'transpose'==0, the data will be kept */
+/* in time order instead of arranged by subband as above.        */
 {
   int ii, jj, numread, trtn, offset;
   double starttime=0.0;
@@ -557,9 +559,10 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles, float *data,
 
   /* Transpose the data into vectors in the result array */
 
-  if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-			      move, move_size))<0){
-    printf("Error %d in transpose_float().\n", trtn);
+  if (transpose){
+    if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
+				move, move_size))<0)
+      printf("Error %d in transpose_float().\n", trtn);
   }
   if (numread)
     return ptsperblk_st;

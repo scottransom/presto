@@ -695,7 +695,7 @@ int main(int argc, char *argv[])
  	tp[ii] = LININTERP(dtmp, barytimes[arrayoffset], 
 			   barytimes[arrayoffset+1], 
 			   topotimes[arrayoffset], 
-			   topotimes[arrayoffset+1]);    
+			   topotimes[arrayoffset+1]);
       }
       numdelays = numbinpoints;
       dtmp = tp[0];
@@ -763,7 +763,7 @@ int main(int argc, char *argv[])
     for (jj = 0; jj < reads_per_part; jj++){
       if (cmd->pkmbP)
 	numread = read_PKMB_subbands(infiles, numfiles, data, 
-				     dispdts, cmd->nsub, &padding,
+				     dispdts, cmd->nsub, 1, &padding,
 				     maskchans, &nummasked, &obsmask);
       else {
 	int mm;

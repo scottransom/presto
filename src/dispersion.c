@@ -151,7 +151,7 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /* subbands is subtracted from each subband.  This gives the subbands */
 /* the correct delays for each freq in the subband, but the subbands  */
 /* themselves are offset as if they had not been de-dispersed.  This  */
-/* way, we can call dedisp() on the group of subbands if needed.      */
+/* way, we can call float_dedisp() on the subbands if needed.         */
 /* 'lofreq' is the center frequency in MHz of the lowest frequency    */
 /* channel.  'chanwidth' is the width in MHz of each channel.  The    */
 /* returned array is allocated by this routine.  'voverc' is used to  */
@@ -234,6 +234,37 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 	   ll += numsubbands, kk += numchan)
 	result[ll + ii] += data[kk];
     }
+  }
+}
+
+
+void float_dedisp(float *data, float *lastdata, 
+		  int numpts, int numchan, 
+		  int *offsets, float approx_mean, float *result)
+/* De-disperse a stretch of data with numpts * numchan points. */
+/* The delays (in bins) are in offsets for each channel.       */
+/* The result is returned in result.  The input data and       */
+/* delay offsets are always in ascending frequency order.      */
+/* Input data are ordered in time, with the channels stored    */
+/* together at each time point.                                */ 
+{
+  int ii, jj, kk;
+
+  /* Set the result array to negative of numchan / 2. */
+  /* This will result in data with approx zero mean.  */
+  
+  for (ii = 0; ii < numpts; ii++)
+    result[ii] = -approx_mean;
+  
+  /* De-disperse */
+  
+  for (ii = 0; ii < numchan; ii++){
+    jj = ii + offsets[ii] * numchan;
+    for (kk = 0; kk < numpts - offsets[ii]; kk++, jj += numchan)
+      result[kk] += lastdata[jj];
+    jj = ii;
+    for (; kk < numpts; kk++, jj += numchan)
+      result[kk] += data[jj];
   }
 }
 

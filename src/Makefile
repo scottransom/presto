@@ -209,6 +209,10 @@ prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o
 	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(PRESTOLINK) -lm
 	cp $@ ../bin
 
+prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o 
+	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(PRESTOLINK) -lm
+	cp $@ ../bin
+
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
@@ -312,7 +316,7 @@ cleaner:  clean
 	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
-	rm -f accelsearch $(PRESTOLIBNM)
+	rm -f accelsearch prepsubband $(PRESTOLIBNM)
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
 
 squeaky:  cleaner
@@ -331,3 +335,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
 	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
 	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles accelsearch
+	cd $(PRESTO)/bin ; rm -f prepsubband

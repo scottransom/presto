@@ -128,6 +128,35 @@ unsigned char **gen_bmatrix(long nrows, long ncols)
 }
 
 
+int **gen_imatrix(long nrows, long ncols)
+{
+  /* Note:  To free this matrix, assuming you called it with:    */
+  /*             x = gen_imatrix(10,10);                         */
+  /*        all you need to do is the following:                 */
+  /*             free(x[0]) ; free(x) ;                          */
+  /*        The order is important!                              */
+
+  long i;
+  int **m;
+
+  m = (int **) malloc((size_t) (nrows * sizeof(int *)));
+  if (!m) {
+    perror("\nError in 1st malloc() in gen_imatrix()");
+    printf("\n");
+    exit(-1);
+  }
+  m[0] = (int *) malloc((size_t) ((nrows * ncols) * sizeof(int)));
+  if (!m[0]) {
+    perror("\nError in 2nd malloc() in gen_imatrix()");
+    printf("\n");
+    exit(-1);
+  }
+  for (i = 1; i < nrows; i++)
+    m[i] = m[i - 1] + ncols;
+  return m;
+}
+
+
 float **gen_fmatrix(long nrows, long ncols)
 {
   /* Note:  To free this matrix, assuming you called it with:    */
