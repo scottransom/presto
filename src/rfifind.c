@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
   sigma = cmd->sigma;
   slen = strlen(cmd->outfile)+20;
   numfiles = cmd->argc;
-   
+
 #ifdef DEBUG
   showOptionValues();
 #endif

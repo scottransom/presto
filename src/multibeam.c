@@ -23,6 +23,8 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
 /* a table showing a summary of the values.                           */
 {
   int ii;
+  double block_offset;
+  char ctmp[12];
   PKMB_tapehdr header;
 
   if (numfiles > MAXPATCHFILES){
@@ -50,8 +52,10 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
   times_st[0] = numpts_st[0] * dt_st;
   mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
   elapsed_st[0] = 0.0;
-  startblk_st[0] = 0.0;
-  endblk_st[0] = (double) numpts_st[0] / ptsperblk_st;
+  sprintf(ctmp, " %.8s ", header.blk_cntr); 
+  sscanf(ctmp, "%8lf", &block_offset);
+  startblk_st[0] = block_offset;
+  endblk_st[0] = (double) numpts_st[0] / ptsperblk_st + block_offset - 1;
   padpts_st[0] = padpts_st[numfiles-1] = 0;
   for (ii=1; ii<numfiles; ii++){
     chkfread(&header, 1, HDRLEN, files[ii]);
@@ -72,13 +76,14 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
     padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / 
 				  dt_st + 0.5);
     elapsed_st[ii] += elapsed_st[ii-1];
-    endblk_st[ii] = (double) (N_st + numpts_st[ii]) / ptsperblk_st;
     N_st += numpts_st[ii] + padpts_st[ii-1];
-    startblk_st[ii] = (double) (numpts_st[ii-1] + padpts_st[ii-1]) / 
-      ptsperblk_st;
+    startblk_st[ii] = (double) (N_st - numpts_st[ii]) / 
+      ptsperblk_st + block_offset;
+    endblk_st[ii] = (double) (N_st) / ptsperblk_st + block_offset - 1;
   }
-  padpts_st[numfiles-1] = (long long) ceil(endblk_st[numfiles-1]) * 
-    ptsperblk_st - N_st;
+  padpts_st[numfiles-1] = ((long long) ceil(endblk_st[numfiles-1] - 
+					   block_offset + 1.0) * 
+			   ptsperblk_st - N_st);
   N_st += padpts_st[numfiles-1];
   *N = N_st;
   *T = T_st = N_st * dt_st;
@@ -90,7 +95,7 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
     printf(" Total points (N) = %lld\n", N_st);
     printf(" Sample time (dt) = %-14.14g\n", dt_st);
     printf("   Total time (s) = %-14.14g\n\n", T_st);
-    printf("File  Start Block    End Block      Points      Elapsed (s)      Time (s)            MJD           Padding\n");
+    printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)
       printf("%2d    %12.12g  %12.12g  %10lld  %14.14g  %14.14g  %17.12f  %10lld\n", 
@@ -135,6 +140,10 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
       *(databuffer+ii) = *(databuffer+DATLEN+ii);
   shiftbuffer=1;
 
+  /* Set the data to zeros */
+  
+  for (ii=0; ii<DATLEN; ii++) data[ii] = 0;
+
   /* make sure our current file number is valid */
 
   if (currentfile >= numfiles)
@@ -143,6 +152,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
   /* First try and read the current file */
   
   if (fread(record, RECLEN, 1, infiles[currentfile]) != 1){
+    printf("B\n");
     /* Are we at the end of the current file? */
     if (feof(infiles[currentfile])){
       /* Does this file need padding? */
@@ -196,6 +206,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
 	currentblock++;
 	return 1;
       } else {
+	printf("Hey!\n");
 	/* Try reading the next file */
 	currentfile++;
 	shiftbuffer = 0;
@@ -208,6 +219,7 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
       exit(1);
     }
   } else {
+printf("A");
     /* Put the new header into the header array */
     hdr_ptr = (unsigned char *)hdr;
     for (ii=0; ii<HDRLEN; ii++)
@@ -215,12 +227,14 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
     /* Put the new data into the databuffer or directly */
     /* into the return array if the bufferoffset is 0.  */
     if (bufferpts){
+printf("2\n");
       offset = bufferpts * bytesperpt_st;
       for (ii=0; ii<DATLEN; ii++){
 	*(databuffer+offset+ii) = *(record+HDRLEN+ii);
 	*(data+ii) = *(databuffer+ii);
       }
     } else {
+printf("1\n");
       for (ii=0; ii<DATLEN; ii++)
 	*(data+ii) = *(record+HDRLEN+ii);
     }
@@ -256,9 +270,9 @@ int read_PKMB(FILE *infiles[], int numfiles, float *data,
 /* the # of points read if succesful, 0 otherwise.     */
 {
   int ii, numread=0;
-  unsigned char raw[DATLEN], *tempzz;
-  unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
   PKMB_tapehdr hdr;
+  static unsigned char raw[DATLEN], *tempzz;
+  static unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
   static unsigned char *currentdata, *lastdata;
   static int firsttime=1;
   
@@ -327,9 +341,9 @@ int read_PKMB_subbands(FILE *infiles[], int numfiles,
 /* It returns the # of points read if succesful, 0 otherwise.    */
 {
   int ii, numread, trtn;
-  unsigned char raw[DATLEN], *tempzz;
-  unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
   PKMB_tapehdr hdr;
+  static unsigned char raw[DATLEN], *tempzz;
+  static unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0;
   
