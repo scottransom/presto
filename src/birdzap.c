@@ -9,6 +9,7 @@ int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths)
 /* with '#' are ignored, and so may be used as comments.          */
 {
   FILE *zapfile;
+  double freq, width;
   char line[200];
   int ii, numzap;
 
@@ -37,7 +38,9 @@ int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths)
     fgets(line, 200, zapfile);
     if (line[0]=='#') continue;
     else {
-      sscanf(line, "%lf %lf\n", &(*zapfreqs)[ii], &(*zapwidths)[ii]);
+      sscanf(line, "%lf %lf\n", &freq, &width);
+      (*zapfreqs)[ii] = freq;
+      (*zapwidths)[ii] = width;
       ii++;
     }
   }
