@@ -136,10 +136,13 @@ double *read_events(FILE *infile, int bin, int days, int *numevents,
     N = chkfilelen(infile, sizeof(double));
   } else {
     /* Read the input file once to count events */
-    while (!feof(infile)){
+    while (1){
       fgets(line, 80, infile);
-      if (line[0]!='#')
-	if (sscanf(line, "%lf", &dtmp)==1) N++;
+      if (!feof(infile)){
+	if (line[0]!='#' && sscanf(line, "%lf", &dtmp)==1) N++;
+      } else {
+	break;
+      }
     }
   }
 
@@ -153,12 +156,25 @@ double *read_events(FILE *infile, int bin, int days, int *numevents,
   if (bin){
     fread(ts, sizeof(double), N, infile);
   } else {
-    while (!feof(infile)){
+    while (1){
       fgets(line, 80, infile);
-      if (line[0]!='#')
-	if (sscanf(line, "%lf", &ts[nn])==1) nn++;
+      if (!feof(infile)){
+	if (line[0]!='#' && sscanf(line, "%lf", &ts[nn])==1) nn++;
+      } else {
+	break;
+      }
     }
   }
+
+  /* Sort the events  */
+
+  qsort(ts, N, sizeof(double), compare_doubles);
+
+  /* If there is no offset specified and the data are non-MJD */
+  /* days or seconds, then set the offset to be the first event */
+
+  if (offset==0.0 && days < 2)
+    offset = -ts[0];
 
   /* Convert all the events to MJD */
 
@@ -202,9 +218,6 @@ double *read_events(FILE *infile, int bin, int days, int *numevents,
   for (nn=0; nn<N; nn++)
     goodts[nn] = (goodts[nn]-MJD0)*SECPERDAY;
 
-  /* Sort the events and return them */
-
-  qsort(goodts, N, sizeof(double), compare_doubles); 
   return goodts;
 }
 
