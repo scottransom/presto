@@ -753,7 +753,7 @@ usage(void)
   -poisson: Assume the data is Poisson distributed (for statistics)\n\
     infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.\n\
             1 string value\n\
-version: 19Nov99\n\
+version: 22Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }

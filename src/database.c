@@ -412,12 +412,12 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 
     /* See if we're close in RA */
 
-    if (fabs(pdata.ra2000[i] - ra) < beam2) {
+    if (fabs(pdata.ra2000[i] - ra) < 5 * beam2) {
 
       /* See if we're close in RA and DEC */
 
       if (sphere_ang_diff(pdata.ra2000[i], pdata.dec2000[i], \
-			  ra, dec) < beam2) {
+			  ra, dec) < 5 * beam2) {
 
 	/* Predict the period of the pulsar at the observation MJD */
 

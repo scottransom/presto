@@ -49,6 +49,10 @@ static Cmdline cmd = {
   /* zapfileP = */ FALSE,
   /* zapfile = */ (char*)0,
   /* zapfileC = */ 0,
+  /***** -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric) */
+  /* baryvP = */ TRUE,
+  /* baryv = */ 0.0,
+  /* baryvC = */ 1,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -473,6 +477,18 @@ showOptionValues(void)
       printf("  value = `%s'\n", cmd.zapfile);
     }
   }
+
+  /***** -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric) */
+  if( !cmd.baryvP ) {
+    printf("-baryv not found.\n");
+  } else {
+    printf("-baryv found:\n");
+    if( !cmd.baryvC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%f'\n", cmd.baryv);
+    }
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -489,7 +505,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-ncand ncand] [-zlo zlo] [-zhi zhi] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-zapfile zapfile] infile\n\
+ [-ncand ncand] [-zlo zlo] [-zhi zhi] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-zapfile zapfile] [-baryv baryv] infile\n\
     Searches an FFT for pulsar candidates using a Fourier domain acceleration search.\n\
     -ncand: Number of candidates to try to return\n\
             1 integer value between 1 and 10000\n\
@@ -510,9 +526,12 @@ usage(void)
             default: `0'\n\
   -zapfile: A file containing a list of freqs to ignore (i.e. RFI)\n\
             1 string value\n\
+    -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)\n\
+            1 double precision value between -0.1 and 0.1\n\
+            default: `0.0'\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 string value\n\
-version: 19Nov99\n\
+version: 22Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -592,6 +611,16 @@ parseCmdline(int argc, char **argv)
       keep = i;
       i = getStringOpt(argc, argv, i, &cmd.zapfile, 1);
       cmd.zapfileC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-baryv", argv[i]) ) {
+      cmd.baryvP = TRUE;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.baryv, 1);
+      cmd.baryvC = i-keep;
+      checkFloatLower("-baryv", &cmd.baryv, cmd.baryvC, 0.1);
+      checkFloatHigher("-baryv", &cmd.baryv, cmd.baryvC, -0.1);
       continue;
     }
 

@@ -26,11 +26,12 @@ int remove_dupes(position * list, int nlist);
 int remove_dupes2(fourierprops * list, int nlist);
 /*  Removes list values that are within measurement error away from  */
 /*  a higher power candidate.  Returns # removed.                    */
-int remove_other(fourierprops * list, int nlist, long rlo, \
-		 long rhi, double locpow);
-/*  Removes list values whose frequencies fall outside rlo and rhi   */
-/*  and candidates whose local power levels are below locpow.        */ 
-/*  Returns # removed.                                               */
+int remove_other(fourierprops * list, int nlist, long rlo,
+		 long rhi, double locpow, char zapfile, double *zapfreqs,
+		 double *zapwidths, int numzap);
+/*  Removes list values whose frequencies fall outside rlo and rhi, */
+/*  candidates whose local power levels are below locpow, and       */
+/*  candidates close to known birdies.  Returns # removed.          */
 
 
 #ifdef USEDMALLOC
@@ -110,13 +111,10 @@ int main(int argc, char *argv[])
   if (cmd->zapfileP){
     numzap = read_zapfile(cmd->zapfile, &zapfreqs, &zapwidths);
 
-    /* Convert the freqs and freq-widths to bins and bin-widths */
+    /* Convert the freqs to bins */
 
-    for (ii = 0; ii < numzap; ii++){
-      zapfreqs[ii] *= T;
-      zapwidths[ii] *= T;
-printf("%3d:  %15.10f  %15.10f\n", ii, zapfreqs[ii], zapwidths[ii]);  
-    }
+    for (ii = 0; ii < numzap; ii++)
+      zapfreqs[ii] *= T * (1.0 + cmd->baryv);
   }
 
   /* open the FFT file and get its length */
@@ -151,7 +149,7 @@ printf("%3d:  %15.10f  %15.10f\n", ii, zapfreqs[ii], zapwidths[ii]);
 
   /* The number of candidates to save */
 
-  ncand = (int) (cmd->ncand * 1.5);
+  ncand = 3 * cmd->ncand;
 
   /* Determine the correlation sizes we will use: */
 
@@ -400,7 +398,8 @@ printf("%3d:  %15.10f  %15.10f\n", ii, zapfreqs[ii], zapwidths[ii]);
   /* Do fine scale duplicate removal and other cleaning */
 
   newncand -= remove_dupes2(props, newncand);
-  newncand -= remove_other(props, newncand, cmd->rlo, cmd->rhi, lowpowlim);
+  newncand -= remove_other(props, newncand, cmd->rlo, cmd->rhi, lowpowlim, 
+			   cmd->zapfileP, zapfreqs, zapwidths, numzap);
 
   /* Set our candidate notes to all spaces */
 

@@ -723,7 +723,7 @@ usage(void)
             default: `0'\n\
     infile: Input data file name (without a suffix).  Currently, only PKMB format is supported.\n\
             1 string value\n\
-version: 19Nov99\n\
+version: 22Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }

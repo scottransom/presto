@@ -21,11 +21,12 @@ int remove_dupes2(fourierprops * list, int nlist);
 int remove_dupes_bin(binaryprops * list, int nlist);
    /*  Removes list values that are within 1 Fourier bin of the PSR freq */
    /*  from a higher power candidate. Returns # removed.                 */
-int remove_other(fourierprops * list, int nlist, long rlo, \
-		 long rhi, double locpow);
-   /*  Removes list values whose frequencies fall outside rlo and rhi */
-   /*  and candidates whose local power levels are below locpow.      */ 
-   /*  Returns # removed.                                             */
+int remove_other(fourierprops * list, int nlist, long rlo,
+		 long rhi, double locpow, char zapfile, double *zapfreqs,
+		 double *zapwidths, int numzap);
+/*  Removes list values whose frequencies fall outside rlo and rhi, */
+/*  candidates whose local power levels are below locpow, and       */
+/*  candidates close to known birdies.  Returns # removed.          */
 int remove_other_bin(binaryprops * list, int nlist);
    /*  Removes list values whose binary parameters are unrealistic.   */
    /*  For example, orbital periods under 200 sec.                    */
@@ -154,7 +155,8 @@ int remove_dupes(position * list, int nlist)
   for (i = 0; i < nlist - 1; i++) {
     if (list[i].pow == 0.0)
       break;
-    for (j = i + 1; j < nlist; j++) {
+    j = i + 1;
+    while (j < nlist){
       if (list[j].pow == 0.0)
 	break;
       if ((fabs(list[j].p1 - list[i].p1) < 0.51) &&
@@ -164,11 +166,9 @@ int remove_dupes(position * list, int nlist)
 	    SWAP(list[k], list[k + 1]);
 	  }
 	}
-	k = nlist - 1;
-	list[k].pow = 0.0;
+	list[nlist - 1].pow = 0.0;
 	ct++;
-	j--;
-      }
+      } else j++;
     }
   }
   printf("Removed %d duplicates\n", ct);
@@ -185,7 +185,8 @@ int remove_dupes_bin(binaryprops * list, int nlist)
   for (i = 0; i < nlist - 1; i++) {
     if (list[i].pow == 0.0)
       break;
-    for (j = i + 1; j < nlist; j++) {
+    j = i + 1;
+    while (j < nlist) {
       if (list[j].pow == 0.0)
 	break;
       if ((fabs(list[j].rdetect - list[i].rdetect) < 0.6) &&
@@ -196,11 +197,9 @@ int remove_dupes_bin(binaryprops * list, int nlist)
 	    SWAP(list[k], list[k + 1]);
 	  }
 	}
-	k = nlist - 1;
-	list[k].pow = 0.0;
+	list[nlist - 1].pow = 0.0;
 	ct++;
-	j--;
-      }
+      } else j++;
     }
   }
   return ct;
@@ -216,7 +215,8 @@ int remove_dupes2(fourierprops * list, int nlist)
   for (i = 0; i < nlist - 1; i++) {
     if (list[i].pow == 0.0)
       break;
-    for (j = i + 1; j < nlist; j++) {
+    j = i + 1;
+    while (j < nlist) {
       if (list[j].pow == 0.0)
 	break;
       if ((fabs(list[j].r - list[i].r) < list[i].rerr) &&
@@ -226,11 +226,9 @@ int remove_dupes2(fourierprops * list, int nlist)
 	    SWAP(list[k], list[k + 1]);
 	  }
 	}
-	k = nlist - 1;
-	list[k].pow = 0.0;
+	list[nlist - 1].pow = 0.0;
 	ct++;
-	j--;
-      }
+      } else j++;
     }
   }
   printf("Removed %d fine duplicates\n", ct);
@@ -238,31 +236,33 @@ int remove_dupes2(fourierprops * list, int nlist)
 }
 
 
-int remove_other(fourierprops * list, int nlist, long rlo, \
-		 long rhi, double locpow)
+int remove_other(fourierprops * list, int nlist, long rlo,
+		 long rhi, double locpow, char zapfile, double *zapfreqs,
+		 double *zapwidths, int numzap)
+/*  Removes list values whose frequencies fall outside rlo and rhi, */
+/*  candidates whose local power levels are below locpow, and       */
+/*  candidates close to known birdies.  Returns # removed.          */
 {
-  /*  Removes list values whose frequencies fall outside rlo and rhi */
-  /*  and candidates whose local power levels are below locpow.      */
-  /*  Returns # removed.                                             */
-  int i, j, ct = 0;
+  int i = 0, j, ct = 0;
   fourierprops tempzz;
 
-  for (i = 0; i < nlist; i++) {
+  while (i < nlist) {
     if (list[i].pow == 0.0)
       break;
     if (list[i].r < rlo || \
 	list[i].r > rhi || \
-	list[i].pow < locpow) {
+	list[i].pow < locpow ||
+	(zapfile && 
+	 check_to_zap(list[i].r, zapfreqs, zapwidths, numzap))
+	) {
       if (i < nlist - 1) {
 	for (j = i; j < nlist - 1; j++) {
 	  SWAP(list[j], list[j + 1]);
 	}
       }
-      j = nlist - 1;
-      list[j].pow = 0.0;
+      list[nlist - 1].pow = 0.0;
       ct++;
-      i--;
-    }
+    } else i++;
   }
   printf("Removed %d others\n", ct);
   return ct;
@@ -274,11 +274,11 @@ int remove_other_bin(binaryprops * list, int nlist)
   /*  For example, orbital periods under 300 sec.                    */
   /*  Returns # removed.                                             */
 {
-  int i, j, ct = 0;
+  int i = 0, j, ct = 0;
   float cutoff = 300.0;
   binaryprops tempzz;
 
-  for (i = 0; i < nlist; i++) {
+  while (i < nlist) {
     if (list[i].pow == 0.0)
       break;
     if (list[i].pbin < cutoff) {
@@ -287,11 +287,9 @@ int remove_other_bin(binaryprops * list, int nlist)
 	  SWAP(list[j], list[j + 1]);
 	}
       }
-      j = nlist - 1;
-      list[j].pow = 0.0;
+      list[nlist - 1].pow = 0.0;
       ct++;
-      i--;
-    }
+    } else i++;
   }
   return ct;
 }
