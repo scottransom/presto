@@ -822,7 +822,7 @@ int main(int argc, char *argv[])
       sbuffer = gen_svect(bufflen);
       sdatafilenm = (char *)calloc(slen, 1);
       sprintf(sdatafilenm, "%s.sdat", cmd->outfile);
-      printf("\n\nConverting floats in '%s'to shorts in '%s'.", 
+      printf("\n\nConverting floats in '%s' to shorts in '%s'.", 
 	     datafilenm, sdatafilenm);
       fflush(NULL);
 
