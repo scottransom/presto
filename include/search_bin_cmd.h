@@ -18,10 +18,6 @@ typedef struct s_Cmdline {
   char ncandP;
   int ncand;
   int ncandC;
-  /***** -plev: Closely examine candidates above this power level */
-  char plevP;
-  double plev;
-  int plevC;
   /***** -minfft: Power-of-2 length of the shortest miniFFT */
   char minfftP;
   int minfft;
@@ -42,10 +38,18 @@ typedef struct s_Cmdline {
   char lobinP;
   int lobin;
   int lobinC;
-  /***** -sum: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
-  char sumP;
-  int sum;
-  int sumC;
+  /***** -harmsum: Number of harmonics to sum in the miniFFTs */
+  char harmsumP;
+  int harmsum;
+  int harmsumC;
+  /***** -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
+  char stackP;
+  int stack;
+  int stackC;
+  /***** -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive) */
+  char interbinP;
+  /***** -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive) */
+  char noaliasP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;
