@@ -57,6 +57,11 @@ int main(void)
   for (ii = 0, jj = 0; ii < NUMRAW/32; ii+=32, jj+=256)
     convert1(rawdata+ii, gooddata+jj, 256, 0);
 
+  /* Do the 'correct' conversion */
+
+  for (ii = 0, jj = 0; ii < NUMRAW/32; ii+=32, jj+=256)
+    convert1(rawdata+ii, data+jj, 256, 0);
+
   /* Time the first one */
 
   gettimeofday(&t1, 0);
@@ -81,6 +86,11 @@ int main(void)
 
   for (ii = 0, jj = 0; ii < NUMRAW/32; ii+=32, jj+=256)
     convert1(rawdata+ii, gooddata+jj, 256, 1);
+
+  /* Do the 'correct' conversion */
+
+  for (ii = 0, jj = 0; ii < NUMRAW/32; ii+=32, jj+=256)
+    convert1(rawdata+ii, data+jj, 256, 1);
 
   /* Time the first one */
 
@@ -123,7 +133,7 @@ int check_results(int nn, unsigned char *gooddata, unsigned char *data)
 }
 
 
-void convert1(unsigned char *rec, unsigned char *data, \
+void convert_old(unsigned char *rec, unsigned char *data, \
 	      int numchan, int decreasing_f)
 /* This routine converts 1 bit digitized data with 'numchan' */
 /* channels to an array of 'numchan' floats.                 */
@@ -155,7 +165,7 @@ void convert1(unsigned char *rec, unsigned char *data, \
   }
 }
 
-void convert2(unsigned char *rec, unsigned char *data, \
+void convert1(unsigned char *rec, unsigned char *data, \
 	      int numchan, int decreasing_f)
 /* This routine converts 1 bit digitized data with 'numchan' */
 /* channels to an array of 'numchan' floats.                 */
@@ -187,34 +197,41 @@ void convert2(unsigned char *rec, unsigned char *data, \
   }
 }
 
-void convert3(unsigned char *rec, unsigned char *data, \
+void convert2(unsigned char *rec, unsigned char *data, \
 	      int numchan, int decreasing_f)
 /* This routine converts 1 bit digitized data with 'numchan' */
 /* channels to an array of 'numchan' floats.                 */
 {
+  register unsigned char one = 1;
+  register unsigned char two = 2;
+  register unsigned char thr = 3;
+  register unsigned char fou = 4;
+  register unsigned char fiv = 5;
+  register unsigned char six = 6;
+  register unsigned char sev = 7;
   int ii, jj;
 
   if (decreasing_f){
-    for(ii = 0, jj = numchan-8; ii < numchan / 8; ii++, jj-=8){
-      data[jj] = CHARBIT(rec+ii, 8);
-      data[jj+1] = CHARBIT(rec+ii, 7);
-      data[jj+2] = CHARBIT(rec+ii, 6);
-      data[jj+3] = CHARBIT(rec+ii, 5);
-      data[jj+4] = CHARBIT(rec+ii, 4);
-      data[jj+5] = CHARBIT(rec+ii, 3);
-      data[jj+6] = CHARBIT(rec+ii, 2);
-      data[jj+7] = CHARBIT(rec+ii, 1);
+    for(ii = numchan/8-1, jj = 0; ii >= 0; ii--, jj+=8){
+      data[jj] = (rec[ii] >> sev) & one;
+      data[jj+1] = (rec[ii] >> six) & one;
+      data[jj+2] = (rec[ii] >> fiv) & one;
+      data[jj+3] = (rec[ii] >> fou) & one;
+      data[jj+4] = (rec[ii] >> thr) & one;
+      data[jj+5] = (rec[ii] >> two) & one;
+      data[jj+6] = (rec[ii] >> one) & one;
+      data[jj+7] = rec[ii] & one;
     }
   } else {
-    for(ii = 0, jj = 0; ii < numchan / 8; ii++, jj+=8){
-      data[jj] = CHARBIT(rec+ii, 1);
-      data[jj+1] = CHARBIT(rec+ii, 2);
-      data[jj+2] = CHARBIT(rec+ii, 3);
-      data[jj+3] = CHARBIT(rec+ii, 4);
-      data[jj+4] = CHARBIT(rec+ii, 5);
-      data[jj+5] = CHARBIT(rec+ii, 6);
-      data[jj+6] = CHARBIT(rec+ii, 7);
-      data[jj+7] = CHARBIT(rec+ii, 8);
+    for(ii = 0, jj = 0; ii < numchan/8; ii++, jj+=8){
+      data[jj] = rec[ii] & one;
+      data[jj+1] = (rec[ii] >> 1) & one;
+      data[jj+2] = (rec[ii] >> 2) & one;
+      data[jj+3] = (rec[ii] >> 3) & one;
+      data[jj+4] = (rec[ii] >> 4) & one;
+      data[jj+5] = (rec[ii] >> 5) & one;
+      data[jj+6] = (rec[ii] >> 6) & one;
+      data[jj+7] = (rec[ii] >> 7) & one;
     }
   }
 }
