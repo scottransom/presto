@@ -1321,6 +1321,19 @@ int get_birdies(char *zapfilenm, double T, double avg_vel,
 /* and high Fourier freqs that mark the boundaries of the birdies  */
 /* (based on 'T'and 'avg_vel').                                    */
 
+int get_std_birds(char *zapfilenm, double T, double avg_vel,
+		  double **basebin, int **numharm);
+/* Open, read, and close a text file containing frequencies (Hz)   */
+/* and the number of harmonics to zap from a FFT.  The text file   */
+/* should have one frequency and number of harmonics per line.     */
+/* Lines beginning with '#' are ignored (i.e. used as comments).   */
+/* 'T' is the total length in seconds of the observation that was  */
+/* FFTd.  'avg_vel' is the avg topocentric velocity (in units      */
+/* of c) towards the target during the obs.  The returned arrays   */
+/* are sorted in order of increasing 'basebins' and contain the    */
+/* base Fourier freq and the number of harmonics to check.  The    */
+/* base freqs are adjusted based on avg_vel.                       */
+
 int check_to_zap(double candbin, double *lobins, double *hibins, 
 		 int numzap);
 /* Look at the closest birdies from the zapfile to see if our  */

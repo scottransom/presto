@@ -1,4 +1,5 @@
 #include "presto.h"
+#include "accelsearch_cmd.h"
 
 /* #define ACCEL_USELEN 64000 */
 #define ACCEL_USELEN 32000
