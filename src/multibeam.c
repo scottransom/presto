@@ -174,7 +174,7 @@ int read_multibeam_subbands(FILE * infile, float *data, int numpts,
   static unsigned char *raw, *ptr, *rawdata1, *rawdata2, *move;
   static unsigned char *currentdata, *lastdata, *tmp;
   static int firsttime = 1, recsize = 0, blocklen = 0, worklen = 0;
-  static int decreasing_f = 0, pts_per_read = 0, move_size = 0;
+  static int decreasing_f = 0, blocks_per_read = 0, move_size = 0;
   static multibeam_tapehdr hdr;
   short trtn;
   int ii, numread;
