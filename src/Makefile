@@ -150,7 +150,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat taperaw\
-	accelsearch prepsubband cal2mjd split_parkes_beams\
+	accelsearch mmaccelsearch prepsubband cal2mjd split_parkes_beams\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand
 
 xwin: psrorbit window plotbincand profile \
@@ -178,6 +178,9 @@ mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o
 	$(CC) $(CLINKFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
+
+mmaccelsearch: mmaccelsearch_cmd.c mmaccelsearch_cmd.o accel_utils.o mmaccelsearch.o
+	$(CC) $(CLINKFLAGS) -o $@ mmaccelsearch_cmd.o accel_utils.o mmaccelsearch.o $(PRESTOLINK) -L/home/ransom/lib -lglib -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $@ bary.o $(PRESTOLINK) -lm
