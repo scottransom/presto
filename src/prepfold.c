@@ -689,40 +689,76 @@ int main(int argc, char *argv[])
       dispdts[ii] /= search.dt;
   }
   
-  /* 
-   *   Perform the actual folding of the data
-   */
+  {
+    int ll;
+    float *sumsubs;
+    double davg=0.0, dvar=0.0, tavg, tvar;
 
-  proftime = worklen * search.dt;
-  parttimes = gen_dvect(cmd->npart);
-  printf("Folded %ld points of %.0f", totnumfolded, N);
+    /* 
+     *   Perform the actual folding of the data
+     */
+    
+    proftime = worklen * search.dt;
+    parttimes = gen_dvect(cmd->npart);
+    printf("Folded %ld points of %.0f", totnumfolded, N);
+    sumsubs = gen_fvect(worklen);
+    
+    /* sub-integrations in time  */
+    
+    for (ii = 0; ii < cmd->npart; ii++){
+      parttimes[ii] = ii * reads_per_part * proftime;
+      
+      /* reads per sub-integration */
+      
+      davg = 0.0;
+      dvar = 0.0;
+      for (kk = 0; kk < worklen; kk++) 
+	sumsubs[kk]=0.0;
+      for (jj = 0; jj < reads_per_part; jj++){
+	numread = readrec_ptr(infile, data, worklen, dispdts, 
+			      cmd->nsub, numchan);
+	
+	/* Sum the subbands so that we can calculate the data     */
+	/* variance.  (Cannot calculate it by adding the sub-band */
+	/* variances in quadrature since there is sinificant      */
+	/* covariance between the subbands).                      */
 
-  /* sub-integrations in time  */
+	for (kk = 0; kk < worklen; kk++) 
+	  sumsubs[kk]=0.0;
+	for (kk = 0; kk < cmd->nsub; kk++)
+	  for (ll = 0; ll < worklen; ll++)
+	    sumsubs[ll] += data[kk * worklen + ll];
+	avg_var(sumsubs, worklen, &tavg, &tvar);
+/* printf("tavg = %f  tvar = %f\n", tavg, tvar); */
+	davg += tavg;
+	dvar += tvar;
 
-  for (ii = 0; ii < cmd->npart; ii++){
-    parttimes[ii] = ii * reads_per_part * proftime;
-
-    /* reads per sub-integration */
-
-    for (jj = 0; jj < reads_per_part; jj++){
-      numread = readrec_ptr(infile, data, worklen, dispdts, 
-			    cmd->nsub, numchan);
-
-      /* frequency sub-bands */
-
-      for (kk = 0; kk < cmd->nsub; kk++)
-	fold(data + kk * worklen, numread, search.dt, 
-	     parttimes[ii] + jj * proftime, 
-	     search.rawfolds + (ii * cmd->nsub + kk) * search.proflen, 
-	     search.proflen, cmd->phs, foldf, foldfd, foldfdd, 
-	     flags, Ep, tp, numdelays, NULL, 
-	     &(search.stats[ii * cmd->nsub + kk]));
-      totnumfolded += numread;
+	/* frequency sub-bands */
+	
+	for (kk = 0; kk < cmd->nsub; kk++)
+	  fold(data + kk * worklen, numread, search.dt, 
+	       parttimes[ii] + jj * proftime, 
+	       search.rawfolds + (ii * cmd->nsub + kk) * search.proflen, 
+	       search.proflen, cmd->phs, foldf, foldfd, foldfdd, 
+	       flags, Ep, tp, numdelays, NULL, 
+	       &(search.stats[ii * cmd->nsub + kk]));
+	totnumfolded += numread;
+      } 
+      davg /= reads_per_part;
+      dvar /= reads_per_part;
+      for (kk = 0; kk < cmd->nsub; kk++){
+/* 	search.stats[ii * cmd->nsub + kk].data_var = dvar; */
+/* 	search.stats[ii * cmd->nsub + kk].prof_var =  */
+/* 	  dvar * reads_per_part * worklen * search.dt * foldf; */
+printf("nsub = %d  data_avg = %f  data_var = %f  prof_var = %f\n", kk, davg, 
+       dvar, search.stats[ii * cmd->nsub + kk].prof_var);
+      }
+      printf("\rFolded %ld points of %.0f", totnumfolded, N);
     }
-    printf("\rFolded %ld points of %.0f", totnumfolded, N);
+    fclose(infile);
+    free(sumsubs);
   }
-  fclose(infile);
-
+    
   /*
    *   Perform the candidate optimization search
    */
@@ -1060,6 +1096,7 @@ int main(int argc, char *argv[])
     free(obsf);
     free(dispdts);
   }
+  printf("Done.\n\n");
   return (0);
 }
   

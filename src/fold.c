@@ -474,7 +474,7 @@ double fold(float *data, int numdata, double dt, double tlo,
     stats->redchi += dtmp * dtmp;
   }
   stats->data_var /= (stats->numdata - 1.0);
-  stats->prof_var = stats->data_var * dt * stats->numdata * fo;
+  stats->prof_var = stats->data_var * stats->numdata * profbinwidth;
   stats->redchi /= (stats->prof_var * (numprof - 1));
 
   phasenext = (phasenext < 0.0) ? 
