@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -231,7 +231,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -302,7 +302,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -343,7 +343,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -413,7 +413,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -453,7 +453,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -521,7 +521,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -556,7 +556,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -627,7 +627,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -653,16 +653,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -1456,8 +1463,8 @@ usage(void)
      -mask: File containing masking information to use\n\
             1 char* value\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-            1...20 values\n\
-version: 18Jul01\n\
+            1...100 values\n\
+version: 28Aug01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1465,7 +1472,7 @@ version: 18Jul01\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
   char missingMandatory = 0;
 
   Program = argv[0];
@@ -1477,8 +1484,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-o", argv[i]) ) {
+      int keep = i;
       cmd.outfileP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.outfile, 1);
       cmd.outfileC = i-keep;
       continue;
@@ -1495,8 +1502,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-if", argv[i]) ) {
+      int keep = i;
       cmd.ifsP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.ifs, 1);
       cmd.ifsC = i-keep;
       checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
@@ -1510,8 +1517,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-clip", argv[i]) ) {
+      int keep = i;
       cmd.clipP = 1;
-      keep = i;
       i = getFloatOpt(argc, argv, i, &cmd.clip, 1);
       cmd.clipC = i-keep;
       checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
@@ -1540,8 +1547,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-dm", argv[i]) ) {
+      int keep = i;
       cmd.dmP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.dm, 1);
       cmd.dmC = i-keep;
       checkDoubleHigher("-dm", &cmd.dm, cmd.dmC, 0);
@@ -1549,16 +1556,16 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-n", argv[i]) ) {
+      int keep = i;
       cmd.proflenP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.proflen, 1);
       cmd.proflenC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-nsub", argv[i]) ) {
+      int keep = i;
       cmd.nsubP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
       cmd.nsubC = i-keep;
       checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 512);
@@ -1567,8 +1574,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-npart", argv[i]) ) {
+      int keep = i;
       cmd.npartP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.npart, 1);
       cmd.npartC = i-keep;
       checkIntLower("-npart", &cmd.npart, cmd.npartC, 512);
@@ -1577,8 +1584,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-pstep", argv[i]) ) {
+      int keep = i;
       cmd.pstepP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.pstep, 1);
       cmd.pstepC = i-keep;
       checkIntLower("-pstep", &cmd.pstep, cmd.pstepC, 10);
@@ -1587,8 +1594,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-pdstep", argv[i]) ) {
+      int keep = i;
       cmd.pdstepP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.pdstep, 1);
       cmd.pdstepC = i-keep;
       checkIntLower("-pdstep", &cmd.pdstep, cmd.pdstepC, 20);
@@ -1597,8 +1604,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-dmstep", argv[i]) ) {
+      int keep = i;
       cmd.dmstepP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.dmstep, 1);
       cmd.dmstepC = i-keep;
       checkIntLower("-dmstep", &cmd.dmstep, cmd.dmstepC, 10);
@@ -1607,8 +1614,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-npfact", argv[i]) ) {
+      int keep = i;
       cmd.npfactP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.npfact, 1);
       cmd.npfactC = i-keep;
       checkIntLower("-npfact", &cmd.npfact, cmd.npfactC, 10);
@@ -1617,8 +1624,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-ndmfact", argv[i]) ) {
+      int keep = i;
       cmd.ndmfactP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.ndmfact, 1);
       cmd.ndmfactC = i-keep;
       checkIntLower("-ndmfact", &cmd.ndmfact, cmd.ndmfactC, 10);
@@ -1627,8 +1634,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-p", argv[i]) ) {
+      int keep = i;
       cmd.pP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.p, 1);
       cmd.pC = i-keep;
       checkDoubleHigher("-p", &cmd.p, cmd.pC, 0);
@@ -1636,24 +1643,24 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-pd", argv[i]) ) {
+      int keep = i;
       cmd.pdP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.pd, 1);
       cmd.pdC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-pdd", argv[i]) ) {
+      int keep = i;
       cmd.pddP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.pdd, 1);
       cmd.pddC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-f", argv[i]) ) {
+      int keep = i;
       cmd.fP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.f, 1);
       cmd.fC = i-keep;
       checkDoubleHigher("-f", &cmd.f, cmd.fC, 0);
@@ -1661,24 +1668,24 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-fd", argv[i]) ) {
+      int keep = i;
       cmd.fdP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.fd, 1);
       cmd.fdC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-fdd", argv[i]) ) {
+      int keep = i;
       cmd.fddP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.fdd, 1);
       cmd.fddC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-pfact", argv[i]) ) {
+      int keep = i;
       cmd.pfactP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.pfact, 1);
       cmd.pfactC = i-keep;
       checkDoubleLower("-pfact", &cmd.pfact, cmd.pfactC, 100.0);
@@ -1687,8 +1694,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-ffact", argv[i]) ) {
+      int keep = i;
       cmd.ffactP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.ffact, 1);
       cmd.ffactC = i-keep;
       checkDoubleLower("-ffact", &cmd.ffact, cmd.ffactC, 100.0);
@@ -1697,8 +1704,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-phs", argv[i]) ) {
+      int keep = i;
       cmd.phsP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.phs, 1);
       cmd.phsC = i-keep;
       checkDoubleLower("-phs", &cmd.phs, cmd.phsC, 1.0);
@@ -1707,8 +1714,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-start", argv[i]) ) {
+      int keep = i;
       cmd.startTP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.startT, 1);
       cmd.startTC = i-keep;
       checkDoubleLower("-start", &cmd.startT, cmd.startTC, 1.0);
@@ -1717,8 +1724,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-end", argv[i]) ) {
+      int keep = i;
       cmd.endTP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.endT, 1);
       cmd.endTC = i-keep;
       checkDoubleLower("-end", &cmd.endT, cmd.endTC, 1.0);
@@ -1727,24 +1734,24 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-psr", argv[i]) ) {
+      int keep = i;
       cmd.psrnameP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.psrname, 1);
       cmd.psrnameC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-obs", argv[i]) ) {
+      int keep = i;
       cmd.obscodeP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.obscode, 1);
       cmd.obscodeC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-rzwcand", argv[i]) ) {
+      int keep = i;
       cmd.rzwcandP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.rzwcand, 1);
       cmd.rzwcandC = i-keep;
       checkIntHigher("-rzwcand", &cmd.rzwcand, cmd.rzwcandC, 1);
@@ -1752,8 +1759,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-rzwfile", argv[i]) ) {
+      int keep = i;
       cmd.rzwfileP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.rzwfile, 1);
       cmd.rzwfileC = i-keep;
       continue;
@@ -1765,8 +1772,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-pb", argv[i]) ) {
+      int keep = i;
       cmd.pbP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.pb, 1);
       cmd.pbC = i-keep;
       checkDoubleHigher("-pb", &cmd.pb, cmd.pbC, 0);
@@ -1774,8 +1781,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-x", argv[i]) ) {
+      int keep = i;
       cmd.asinicP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.asinic, 1);
       cmd.asinicC = i-keep;
       checkDoubleHigher("-x", &cmd.asinic, cmd.asinicC, 0);
@@ -1783,8 +1790,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-e", argv[i]) ) {
+      int keep = i;
       cmd.eP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.e, 1);
       cmd.eC = i-keep;
       checkDoubleLower("-e", &cmd.e, cmd.eC, 0.9999999);
@@ -1793,8 +1800,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-To", argv[i]) ) {
+      int keep = i;
       cmd.ToP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.To, 1);
       cmd.ToC = i-keep;
       checkDoubleHigher("-To", &cmd.To, cmd.ToC, 0);
@@ -1802,8 +1809,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-w", argv[i]) ) {
+      int keep = i;
       cmd.wP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.w, 1);
       cmd.wC = i-keep;
       checkDoubleLower("-w", &cmd.w, cmd.wC, 360);
@@ -1812,16 +1819,16 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-wdot", argv[i]) ) {
+      int keep = i;
       cmd.wdotP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.wdot, 1);
       cmd.wdotC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-mask", argv[i]) ) {
+      int keep = i;
       cmd.maskfileP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.maskfile, 1);
       cmd.maskfileC = i-keep;
       continue;
@@ -1851,8 +1858,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 20<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 20 non-option argument(s)\n",
+  if( 100<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 100 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

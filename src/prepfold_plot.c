@@ -815,6 +815,13 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 		     1.0, 1.0, 1.0, 0.0, 0.0};
       float b[10] = {1.0, 1.0, 1.0, 1.0, 1.0, 0.95, 
 		     0.0, 0.0, 0.0, 0.0};
+      /* ApJ Grey  White to dark grey...*/
+      /*
+      float l[2] = {0.0, 1.0};
+      float r[2] = {1.0, 0.25};
+      float g[2] = {1.0, 0.25};
+      float b[2] = {1.0, 0.25};
+      */
       float fg = 0.0, bg = 0.0, tr[6], *levels, errlen;
       float x1l, x1h, y1l, y1h, x2l, x2h, y2l, y2h;
       char pout[100], pdout[100], fout[100], fdout[100];

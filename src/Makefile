@@ -56,6 +56,9 @@ PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 ATHLON_PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTATHLINK) $(DMALLOCLINK)
 
+# When modifying the CLIG files, the is the location of the clig binary
+CLIG = /usr/local/clig/bin/clig
+
 # For Pentium with GCC
 CC = gcc
 FC = g77
@@ -111,7 +114,7 @@ FLINKFLAGS = $(FFLAGS)
 # Rules for CLIG generated files
 
 %_cmd.c : ../clig/%_cmd.cli
-	cd ../clig ; clig -o $*_cmd -d $<
+	cd ../clig ; $(CLIG) -o $*_cmd -d $<
 	mv ../clig/$*_cmd.h ../include/
 	mv ../clig/$*_cmd.c .
 	cp ../clig/$*.1 ../docs/

@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -129,7 +129,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -200,7 +200,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -241,7 +241,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -311,7 +311,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -351,7 +351,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -419,7 +419,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -454,7 +454,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -525,7 +525,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -551,16 +551,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -980,8 +987,8 @@ usage(void)
       -mask: File containing masking information to use\n\
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-             1...20 values\n\
-version: 29Jun01\n\
+             1...100 values\n\
+version: 28Aug01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -989,7 +996,7 @@ version: 29Jun01\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
   char missingMandatory = 0;
 
   Program = argv[0];
@@ -1001,8 +1008,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-o", argv[i]) ) {
+      int keep = i;
       cmd.outfileP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.outfile, 1);
       cmd.outfileC = i-keep;
       continue;
@@ -1019,8 +1026,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-if", argv[i]) ) {
+      int keep = i;
       cmd.ifsP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.ifs, 1);
       cmd.ifsC = i-keep;
       checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
@@ -1034,8 +1041,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-clip", argv[i]) ) {
+      int keep = i;
       cmd.clipP = 1;
-      keep = i;
       i = getFloatOpt(argc, argv, i, &cmd.clip, 1);
       cmd.clipC = i-keep;
       checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
@@ -1044,8 +1051,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-numout", argv[i]) ) {
+      int keep = i;
       cmd.numoutP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numout, 1);
       cmd.numoutC = i-keep;
       checkIntHigher("-numout", &cmd.numout, cmd.numoutC, 1);
@@ -1063,8 +1070,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-lodm", argv[i]) ) {
+      int keep = i;
       cmd.lodmP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.lodm, 1);
       cmd.lodmC = i-keep;
       checkDoubleHigher("-lodm", &cmd.lodm, cmd.lodmC, 0);
@@ -1072,8 +1079,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-dmstep", argv[i]) ) {
+      int keep = i;
       cmd.dmstepP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.dmstep, 1);
       cmd.dmstepC = i-keep;
       checkDoubleHigher("-dmstep", &cmd.dmstep, cmd.dmstepC, 0);
@@ -1081,8 +1088,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-numdms", argv[i]) ) {
+      int keep = i;
       cmd.numdmsP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numdms, 1);
       cmd.numdmsC = i-keep;
       checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 100);
@@ -1091,8 +1098,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-numsub", argv[i]) ) {
+      int keep = i;
       cmd.numsubP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numsub, 1);
       cmd.numsubC = i-keep;
       checkIntLower("-numsub", &cmd.numsub, cmd.numsubC, 512);
@@ -1101,8 +1108,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-downsamp", argv[i]) ) {
+      int keep = i;
       cmd.downsampP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.downsamp, 1);
       cmd.downsampC = i-keep;
       checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 8);
@@ -1111,8 +1118,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-mask", argv[i]) ) {
+      int keep = i;
       cmd.maskfileP = 1;
-      keep = i;
       i = getStringOpt(argc, argv, i, &cmd.maskfile, 1);
       cmd.maskfileC = i-keep;
       continue;
@@ -1142,8 +1149,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 20<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 20 non-option argument(s)\n",
+  if( 100<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 100 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }
