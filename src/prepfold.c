@@ -19,6 +19,38 @@ int read_floats(FILE * file, float *data, int numpts,
 		double *dispdelays, int numsubbands, int numchan);
 void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 
+int bary2topo(double *topotimes, double *barytimes, int numtimes, 
+	      double fb, double fbd, double fbdd, 
+	      double *ft, double *ftd, double *ftdd)
+/* Convert a set of barycentric pulsar spin parameters (fb, fbd, fbdd) */
+/* into topocentric spin parameters (ft, ftd, ftdd) by performing      */
+/* a linear least-squares fit (using LAPACK routine DGELS).  The       */
+/* routine equates the pulse phase using topcentric parameters and     */
+/* times to the pulse phase using barycentric parameters and times.    */
+{
+  double *tt, *bt, *work, *aa, *bb, dtmp;
+  int mm, nn, nrhs=1, lda, ldb=1, lwork, info;
+  char trans='N';
+
+  if (numtimes < 4){
+    printf("\n'numtimes' < 4 in bary2topo():  Cannot solve.\n\n");
+    exit(0);
+  }
+  tt = gen_dvect(numtimes);
+  bt = gen_dvect(numtimes);
+  
+  lwork = 
+  work = 
+  dgels_(&trans, &mm, &nn, &nrhs, aa, &lda, bb, &ldb, work, &lwork, &info);
+  free(tt); 
+  free(bt);
+  free(work);
+  free(aa);
+  free(bb);
+  return info;
+}
+
+
 void quick_plot(double *data, int numdata)
 {
   int ii;
