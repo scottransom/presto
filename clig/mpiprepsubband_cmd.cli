@@ -15,11 +15,11 @@ String -o       outfile {Root of the output file names} \
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -gmrt    gmrt    {Raw data in GMRT Phased Array format}
 Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
-Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
-        -r 0 1
 Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 7    -d 1
+Int    -if      ifs     {A specific IF to use if available (summed IFs is the default)} \
+        -r 0 1
 Float  -clip    clip    {Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default} \
 	-r 0 20.0  -d 6.0
 Flag   -noclip  noclip  {Do not clip the data.  (The default is to _always_ clip!)}
@@ -36,14 +36,10 @@ Int     -numdms numdms  {The number of DMs to de-disperse} \
 Int     -nsub   nsub    {The number of sub-bands to use} \
 	-r 1 1024 -d 32
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
-	-r 1 20 -d 1
+	-r 1 32 -d 1
 String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
 
 Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
         -c 1 100
-
-
-
-

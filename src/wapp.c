@@ -14,7 +14,7 @@ sampperblk_st  is the number of samples (i.e. lags) in a block
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
 static long long filedatalen_st[MAXPATCHFILES];
 static int numblks_st[MAXPATCHFILES], corr_level_st, decreasing_freqs_st=0;
-static int bytesperpt_st, bytesperblk_st, bits_per_samp_st, numifs_st;
+static int bytesperpt_st, bytesperblk_st, bits_per_samp_st;
 static int numwapps_st=0, numwappchan_st, numchan_st, numifs_st, ptsperblk_st;
 static int need_byteswap_st, sampperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
@@ -332,9 +332,6 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   if (header_version_st==1){
     hdr1 = (WAPP_HEADERv1 *)hdr;
     numifs_st = hdr1->nifs;
-    if (numifs_st > 1)
-      printf("\nNumber of IFs (%d) is > 1!  I can't handle this yet!\n\n",
-	     numifs_st);
     if (hdr1->freqinversion)
       decreasing_freqs_st = 1;
     if (hdr1->level==1)
@@ -353,9 +350,6 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   } else {
     hdr234 = (WAPP_HEADERv234 *)hdr;
     numifs_st = hdr234->nifs;
-    if (numifs_st > 1)
-      printf("\nNumber of IFs (%d) is > 1!  I can't handle this yet!\n\n",
-	     numifs_st);
     if (hdr234->freqinversion)
       decreasing_freqs_st = 1;
     if (hdr234->level==1)

@@ -34,10 +34,6 @@
 					/* single data word, i.e. for 2-bit */
 					/* samples.			    */
 
-typedef enum {
-  IF0, IF1, SUMIFS
-} BPP_ifs;
-
 typedef struct BPP_SEARCH_HEADER{
   char head[16];	/* Holds "NBPPSEARCH\0" */
   int header_version;	/* Version number which is different for each backend */
@@ -185,20 +181,20 @@ int read_BPP_rawblocks(FILE *infiles[], int numfiles, unsigned char rawdata[],
 		       int numblocks, int *padding);
 int read_BPP(FILE *infiles[], int numfiles, float *data, int numpts, 
 	     double *dispdelays, int *padding, int *maskchans, 
-	     int *nummasked, mask *obsmask, BPP_ifs ifs);
+	     int *nummasked, mask *obsmask, IFs ifs);
 void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes, 
-			BPP_ifs ifs);
+			IFs ifs);
 void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
 void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
 int prep_BPP_subbands(unsigned char *rawdata, float *data, 
 		      double *dispdelays, int numsubbands, 
 		      int transpose, int *maskchans, int *nummasked, 
-		      mask *obsmask, BPP_ifs ifs);
+		      mask *obsmask, IFs ifs);
 int read_BPP_subbands(FILE *infiles[], int numfiles, float *data, 
 		      double *dispdelays, int numsubbands, 
 		      int transpose, int *padding, 
 		      int *maskchans, int *nummasked, mask *obsmask,
-		      BPP_ifs ifs);
+		      IFs ifs);
 void get_BPP_channel(int channum, float chandat[], 
 		     unsigned char rawdata[], int numblocks,
-		     BPP_ifs ifs);
+		     IFs ifs);

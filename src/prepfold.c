@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
   long ii=0, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0;
-  BPP_ifs bppifs=SUMIFS;
+  IFs ifs=SUMIFS;
   infodata idata;
   foldstats beststats;
   prepfoldinfo search;
@@ -405,11 +405,11 @@ int main(int argc, char *argv[])
       
       if (cmd->ifsP){
 	if (cmd->ifs==0)
-	  bppifs = IF0;
+	  ifs = IF0;
 	else if (cmd->ifs==1)
-	  bppifs = IF1;
+	  ifs = IF1;
 	else
-	  bppifs = SUMIFS;
+	  ifs = SUMIFS;
       }
       
       /* OBS code for TEMPO */
@@ -1299,7 +1299,7 @@ int main(int argc, char *argv[])
 	  numread = read_BPP_subbands(infiles, numfiles, data, 
 				      dispdts, cmd->nsub, 1, &padding,
 				      maskchans, &nummasked, &obsmask, 
-				      bppifs);
+				      ifs);
 	else if (cmd->wappP)
 	  numread = read_WAPP_subbands(infiles, numfiles, data, 
 				       dispdts, cmd->nsub, 1, &padding,

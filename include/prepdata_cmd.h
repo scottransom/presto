@@ -19,16 +19,16 @@ typedef struct s_Cmdline {
   char gmrtP;
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   char bcpmP;
-  /***** -if: For BPP format only:  A specific IF to use. */
-  char ifsP;
-  int ifs;
-  int ifsC;
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   char wappP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;
   int numwappsC;
+  /***** -if: A specific IF to use if available (summed IFs is the default) */
+  char ifsP;
+  int ifs;
+  int ifsC;
   /***** -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default */
   char clipP;
   float clip;
@@ -39,6 +39,10 @@ typedef struct s_Cmdline {
   char numoutP;
   int numout;
   int numoutC;
+  /***** -downsamp: The number of neighboring bins to co-add */
+  char downsampP;
+  int downsamp;
+  int downsampC;
   /***** -nobary: Do not barycenter the data */
   char nobaryP;
   /***** -shorts: Use short ints for the output data instead of floats */

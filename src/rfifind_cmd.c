@@ -32,16 +32,16 @@ static Cmdline cmd = {
   /* gmrtP = */ 0,
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   /* bcpmP = */ 0,
-  /***** -if: For BPP format only:  A specific IF to use. */
-  /* ifsP = */ 0,
-  /* ifs = */ (int)0,
-  /* ifsC = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
   /* numwappsC = */ 1,
+  /***** -if: A specific IF to use if available (summed IFs is the default) */
+  /* ifsP = */ 0,
+  /* ifs = */ (int)0,
+  /* ifsC = */ 0,
   /***** -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default */
   /* clipP = */ 1,
   /* clip = */ 6.0,
@@ -832,18 +832,6 @@ showOptionValues(void)
     printf("-bcpm found:\n");
   }
 
-  /***** -if: For BPP format only:  A specific IF to use. */
-  if( !cmd.ifsP ) {
-    printf("-if not found.\n");
-  } else {
-    printf("-if found:\n");
-    if( !cmd.ifsC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.ifs);
-    }
-  }
-
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   if( !cmd.wappP ) {
     printf("-wapp not found.\n");
@@ -860,6 +848,18 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%d'\n", cmd.numwapps);
+    }
+  }
+
+  /***** -if: A specific IF to use if available (summed IFs is the default) */
+  if( !cmd.ifsP ) {
+    printf("-if not found.\n");
+  } else {
+    printf("-if found:\n");
+    if( !cmd.ifsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.ifs);
     }
   }
 
@@ -1029,19 +1029,19 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-gmrt] [-bcpm] [-if ifs] [-wapp] [-numwapps numwapps] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-wapp] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
        -pkmb: Raw data in Parkes Multibeam format\n\
        -gmrt: Raw data in GMRT Phased Array format\n\
        -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
-         -if: For BPP format only:  A specific IF to use.\n\
-              1 int value between 0 and 1\n\
        -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
    -numwapps: Number of WAPPs used with contiguous frequencies\n\
               1 int value between 1 and 7\n\
               default: `1'\n\
+         -if: A specific IF to use if available (summed IFs is the default)\n\
+              1 int value between 0 and 1\n\
        -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n\
               1 float value between 0 and 20.0\n\
               default: `6.0'\n\
@@ -1073,7 +1073,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...100 values\n\
-version: 20Apr03\n\
+version: 02May03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1115,16 +1115,6 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-if", argv[i]) ) {
-      int keep = i;
-      cmd.ifsP = 1;
-      i = getIntOpt(argc, argv, i, &cmd.ifs, 1);
-      cmd.ifsC = i-keep;
-      checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
-      checkIntHigher("-if", &cmd.ifs, cmd.ifsC, 0);
-      continue;
-    }
-
     if( 0==strcmp("-wapp", argv[i]) ) {
       cmd.wappP = 1;
       continue;
@@ -1137,6 +1127,16 @@ parseCmdline(int argc, char **argv)
       cmd.numwappsC = i-keep;
       checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
       checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-if", argv[i]) ) {
+      int keep = i;
+      cmd.ifsP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.ifs, 1);
+      cmd.ifsC = i-keep;
+      checkIntLower("-if", &cmd.ifs, cmd.ifsC, 1);
+      checkIntHigher("-if", &cmd.ifs, cmd.ifsC, 0);
       continue;
     }
 

@@ -56,7 +56,7 @@ MPI_Datatype infodata_type;
 MPI_Datatype maskbase_type;
 
 static Cmdline *cmd;
-static BPP_ifs bppifs=SUMIFS;
+static IFs ifs=SUMIFS;
 static int blocklen=0, blocksperread=0, bytesperblk=0, worklen=0, numchan=1, insubs=0;
 static int local_numdms=1, myid=0, numprocs=1;
 static PKMB_tapehdr hdr;
@@ -412,11 +412,11 @@ int main(int argc, char *argv[])
       /* Which IFs will we use? */
       if (cmd->ifsP){
 	if (cmd->ifs==0)
-	  bppifs = IF0;
+	  ifs = IF0;
 	else if (cmd->ifs==1)
-	  bppifs = IF1;
+	  ifs = IF1;
 	else
-	  bppifs = SUMIFS;
+	  ifs = SUMIFS;
       }
     }
     /* For the WAPP, the number of bytes returned in get_WAPP_rawblock()  */
@@ -981,7 +981,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	    else if (cmd->bcpmP)
 	      tmpnumread = prep_BPP_subbands(rawdata, currentdata+ii*blocksize, 
 					     dispdts, cmd->nsub, 0, 
-					     maskchans, &nummasked, obsmask, bppifs);
+					     maskchans, &nummasked, obsmask, ifs);
 	    else if (cmd->wappP)
 	      tmpnumread = prep_WAPP_subbands(rawdata, currentdata+ii*blocksize, 
 					      dispdts, cmd->nsub, 0, 

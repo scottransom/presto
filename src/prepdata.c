@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
   long numread=0, numtowrite=0, totwrote=0, datawrote=0;
   long padwrote=0, padtowrite=0, statnum=0;
   int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL, good_padvals=0;
-  BPP_ifs bppifs=SUMIFS;
+  IFs ifs=SUMIFS;
   infodata idata;
   Cmdline *cmd;
   mask obsmask;
@@ -215,11 +215,11 @@ int main(int argc, char *argv[])
       /* Which IFs will we use? */
       if (cmd->ifsP){
 	if (cmd->ifs==0)
-	  bppifs = IF0;
+	  ifs = IF0;
 	else if (cmd->ifs==1)
-	  bppifs = IF1;
+	  ifs = IF1;
 	else
-	  bppifs = SUMIFS;
+	  ifs = SUMIFS;
       }
       /* OBS code for TEMPO for the GBT */
       strcpy(obs, "GB");
@@ -384,7 +384,7 @@ int main(int argc, char *argv[])
       else if (cmd->bcpmP)
 	numread = read_BPP(infiles, numfiles, outdata, worklen, 
 			   dispdt, &padding, maskchans, &nummasked, 
-			   &obsmask, bppifs);
+			   &obsmask, ifs);
       else if (cmd->wappP)
 	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked, 
@@ -573,7 +573,7 @@ int main(int argc, char *argv[])
       else if (cmd->bcpmP)
 	numread = read_BPP(infiles, numfiles, outdata, worklen, 
 			   dispdt, &padding, maskchans, &nummasked, 
-			   &obsmask, bppifs);
+			   &obsmask, ifs);
       else if (cmd->wappP)
 	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked, 

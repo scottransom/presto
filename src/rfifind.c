@@ -68,7 +68,7 @@ int main(int argc, char *argv[])
   int harmsum=RFI_NUMHARMSUM, lobin=RFI_LOBIN, numbetween=RFI_NUMBETWEEN;
   double davg, dvar, freq, dt, T;
   long long N;
-  BPP_ifs bppifs=SUMIFS;
+  IFs ifs=SUMIFS;
   presto_interptype interptype;
   rfi *rfivect=NULL;
   mask oldmask, newmask;
@@ -257,11 +257,11 @@ int main(int argc, char *argv[])
       
       if (cmd->ifsP){
 	if (cmd->ifs==0)
-	  bppifs = IF0;
+	  ifs = IF0;
 	else if (cmd->ifs==1)
-	  bppifs = IF1;
+	  ifs = IF1;
 	else
-	  bppifs = SUMIFS;
+	  ifs = SUMIFS;
       }
 
     } else if (cmd->wappP){
@@ -369,7 +369,7 @@ int main(int argc, char *argv[])
 	if (cmd->pkmbP)
 	  get_PKMB_channel(jj, chandata, rawdata, blocksperint);
 	else if (cmd->bcpmP)
-	  get_BPP_channel(jj, chandata, rawdata, blocksperint, bppifs);
+	  get_BPP_channel(jj, chandata, rawdata, blocksperint, ifs);
 	else if (cmd->wappP)
 	  get_WAPP_channel(jj, chandata, rawdata, blocksperint);
 	else if (cmd->gmrtP)

@@ -39,7 +39,7 @@ static void print_percent_complete(int current, int number);
 /* From CLIG */
 static int insubs=0;
 static Cmdline *cmd;
-static BPP_ifs bppifs=SUMIFS;
+static IFs ifs=SUMIFS;
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -305,11 +305,11 @@ int main(int argc, char *argv[])
       /* Which IFs will we use? */
       if (cmd->ifsP){
 	if (cmd->ifs==0)
-	  bppifs = IF0;
+	  ifs = IF0;
 	else if (cmd->ifs==1)
-	  bppifs = IF1;
+	  ifs = IF1;
 	else
-	  bppifs = SUMIFS;
+	  ifs = SUMIFS;
       }
       /* OBS code for TEMPO */
       strcpy(obs, "GB");
@@ -897,7 +897,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  numread = read_BPP_subbands(infiles, numfiles, 
 				      currentdata+ii*blocksize, 
 				      dispdts, cmd->nsub, 0, &tmppad, 
-				      maskchans, &nummasked, obsmask, bppifs);
+				      maskchans, &nummasked, obsmask, ifs);
 	else if (cmd->wappP)
 	  numread = read_WAPP_subbands(infiles, numfiles, 
 				       currentdata+ii*blocksize,

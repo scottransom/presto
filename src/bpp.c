@@ -57,7 +57,7 @@ typedef struct chanmap{
 
 double slaCldj(int iy, int im, int id, int *j);
 void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
-			BPP_ifs ifs);
+			IFs ifs);
 void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
 void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
 
@@ -900,7 +900,7 @@ int read_BPP_rawblocks(FILE *infiles[], int numfiles,
 int read_BPP(FILE *infiles[], int numfiles, float *data, 
 	     int numpts, double *dispdelays, int *padding, 
 	     int *maskchans, int *nummasked, mask *obsmask, 
-	     BPP_ifs ifs)
+	     IFs ifs)
 /* This routine reads numpts from the BPP raw input    */
 /* files *infiles.  These files contain 4-bit data     */
 /* from the BCPM1 backend at the GBT.  Time delays     */
@@ -1015,7 +1015,7 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
 
 void get_BPP_channel(int channum, float chandat[], 
 		     unsigned char rawdata[], int numblocks,
-		     BPP_ifs ifs)
+		     IFs ifs)
 /* Return the values for channel 'channum' of a block of       */
 /* 'numblocks' raw BPP data stored in 'rawdata' in 'chandat'.  */
 /* 'rawdata' should have been initialized using                */
@@ -1101,7 +1101,7 @@ void get_BPP_channel(int channum, float chandat[],
 int prep_BPP_subbands(unsigned char *rawdata, float *data, 
 		      double *dispdelays, int numsubbands, 
 		      int transpose, int *maskchans, int *nummasked, 
-		      mask *obsmask, BPP_ifs ifs)
+		      mask *obsmask, IFs ifs)
 /* This routine preps a block from the BPP system.  The routine uses      */
 /* dispersion delays in 'dispdelays' to de-disperse the data into         */
 /* 'numsubbands' subbands.  It stores the resulting data in vector 'data' */
@@ -1203,7 +1203,7 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
 		      double *dispdelays, int numsubbands, 
 		      int transpose, int *padding, 
 		      int *maskchans, int *nummasked, mask *obsmask,
-		      BPP_ifs ifs)
+		      IFs ifs)
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the BPP system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -1248,7 +1248,7 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
 
 
 void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes,
-			       BPP_ifs ifs)
+			       IFs ifs)
 /* This routine converts a single IF from 4-bit digitized */
 /* data of two IFs into an array of 'numchan' bytes.      */
 {

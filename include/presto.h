@@ -107,6 +107,11 @@
 /*    to sum for Fourier interpolation (low accuracy)     */
 #define NUMFINTBINS   16
 
+/* Used for raw-data handling */
+typedef enum {
+  IF0, IF1, SUMIFS
+} IFs;
+
 /*  Constants used in the interpolation routines */
 typedef enum {
   LOWACC, HIGHACC

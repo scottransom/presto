@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepdata" 1 "20Apr03" "Clig-manuals" "Programmer's Manual"
+.TH "prepdata" 1 "02May03" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -26,12 +26,13 @@ prepdata \- Prepares a raw data file for pulsar searching or folding (conversion
 [-pkmb]
 [-gmrt]
 [-bcpm]
-[-if ifs]
 [-wapp]
 [-numwapps numwapps]
+[-if ifs]
 [-clip clip]
 [-noclip]
 [-numout numout]
+[-downsamp downsamp]
 [-nobary]
 [-shorts]
 [-DE405]
@@ -52,10 +53,6 @@ Raw data in Parkes Multibeam format.
 Raw data in GMRT Phased Array format.
 .IP -bcpm
 Raw data in Berkeley-Caltech Pulsar Machine (BPP) format.
-.IP -if
-For BPP format only:  A specific IF to use.,
-.br
-1 Int value between 0 and 1.
 .IP -wapp
 Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
 .IP -numwapps
@@ -64,6 +61,10 @@ Number of WAPPs used with contiguous frequencies,
 1 Int value between 1 and 7.
 .br
 Default: `1'
+.IP -if
+A specific IF to use if available (summed IFs is the default),
+.br
+1 Int value between 0 and 1.
 .IP -clip
 Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 .br
@@ -76,6 +77,12 @@ Do not clip the data.  (The default is to _always_ clip!).
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br
 1 Int value between 1 and oo.
+.IP -downsamp
+The number of neighboring bins to co-add,
+.br
+1 Int value between 1 and 32.
+.br
+Default: `1'
 .IP -nobary
 Do not barycenter the data.
 .IP -shorts

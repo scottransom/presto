@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "20Apr03" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "02May03" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -26,9 +26,9 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-pkmb]
 [-gmrt]
 [-bcpm]
-[-if ifs]
 [-wapp]
 [-numwapps numwapps]
+[-if ifs]
 [-clip clip]
 [-noclip]
 [-DE405]
@@ -102,10 +102,6 @@ Raw data in Parkes Multibeam format.
 Raw data in GMRT Phased Array format.
 .IP -bcpm
 Raw data in Berkeley-Caltech Pulsar Machine (BPP) format.
-.IP -if
-For BPP format only:  A specific IF to use.,
-.br
-1 Int value between 0 and 1.
 .IP -wapp
 Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
 .IP -numwapps
@@ -114,6 +110,10 @@ Number of WAPPs used with contiguous frequencies,
 1 Int value between 1 and 7.
 .br
 Default: `1'
+.IP -if
+A specific IF to use if available (summed IFs is the default),
+.br
+1 Int value between 0 and 1.
 .IP -clip
 Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 .br
