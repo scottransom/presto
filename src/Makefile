@@ -302,7 +302,7 @@ search_rzw: search_rzw.o search_rzw_cmd.o
 	cp $@ ../bin
 
 toas2dat: toas2dat.o toas2dat_cmd.o
-	$(CC) $(CFLAGS) -o $@ toas2dat.c toas2dat_cmd.c $(DMALLOCLINK) 
+	$(CC) $(CFLAGS) -o $@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK) 
 	cp $@ ../bin
 
 swap_endian:

@@ -14,7 +14,7 @@ int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths)
 
   zapfile = chkfopen(zapfilenm, "r");
 
-  /* Read the input file once to count TOAs */
+  /* Read the input file once to count the birdies */
   
   numzap = 0;
   while (!feof(zapfile)){
@@ -29,7 +29,7 @@ int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths)
   *zapfreqs = gen_dvect(numzap);
   *zapwidths = gen_dvect(numzap);
 
-  /* Rewind and read the TOAs for real */
+  /* Rewind and read the birdies for real */
 
   rewind(zapfile);
   ii = 0;
