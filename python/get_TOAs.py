@@ -5,7 +5,7 @@ from Numeric import *
 from FFT import *
 from fftfit import *
 from types import StringType, FloatType, IntType
-from Pgplot import *
+#from Pgplot import *
 
 PI = float('3.1415926535897932384626433832795028841971693993751')
 TWOPI = PI*2.0
@@ -651,11 +651,11 @@ if __name__ == '__main__':
         else:
             profs[ii][0] = add.reduce(fold_pfd.profs[ii*dp:(ii+1)*dp,0])
 
-    if (0):
-        for ii in range(numtoas):
-            profs[ii][0] = (profs[ii][0]-min(profs[ii][0]))/max(profs[ii][0])
-        plot2d(profs[:,0], arange(64.0)/64.0, arange(numtoas, typecode='d'), image='antigrey')
-        closeplot()
+    #if (0):
+    #    for ii in range(numtoas):
+    #        profs[ii][0] = (profs[ii][0]-min(profs[ii][0]))/max(profs[ii][0])
+    #    plot2d(profs[:,0], arange(64.0)/64.0, arange(numtoas, typecode='d'), image='antigrey')
+    #    closeplot()
 
     # Calculate the TOAs
     for ii in range(numtoas):
