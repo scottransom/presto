@@ -9,13 +9,13 @@
 #include "dmalloc.h"
 #endif
 
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
 
 extern int getpoly(double mjd, double *dm, FILE *fp, char *pname);
 extern void phcalc(double mjd0, double mjd1, 
 		   double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, 
 				psrparams *psr);
-
 
 /* 
  * The main program 
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
     }
   }
 
-  if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP){
+  if (!RAWDATA){
     char *root, *suffix;
 
     /* Split the filename into a rootname and a suffix */
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
 
   /* Open the raw data files */
 
-  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
+  if (RAWDATA){
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
   /* Set-up values if we are using the Parkes Multibeam System, */
   /* a Berkeley-Caltech Pulsar Machine, or the Arecibo WAPP.    */
 
-  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
+  if (RAWDATA){
     double local_dt, local_T;
     long long local_N;
 
@@ -594,7 +594,7 @@ int main(int argc, char *argv[])
       /* Now correct for the fact that we may not be starting */
       /* to fold at the same start time as the rzw search.    */
 
-      if (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
+      if (RAWDATA)
 	f += lorec * recdt * fd;
       else
 	f += lorec * search.dt * fd;
@@ -621,7 +621,7 @@ int main(int argc, char *argv[])
       /* Now correct for the fact that we may not be starting */
       /* to fold at the same start time as the rzw search.    */
 
-      if (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
+      if (RAWDATA)
 	f += lorec * recdt * fd;
       else
 	f += lorec * search.dt * fd;
@@ -640,7 +640,7 @@ int main(int argc, char *argv[])
   /* Determine the pulsar parameters to fold if we are not getting   */
   /* the data from a .cand file, the pulsar database, or a makefile. */
   
-  if (!cmd->rzwcandP && !cmd->psrnameP) {
+  if (!cmd->rzwcandP && !cmd->psrnameP && !cmd->parnameP) {
     double p=0.0, pd=0.0, pdd=0.0;
 
     if (cmd->pP) {
@@ -1024,7 +1024,7 @@ int main(int argc, char *argv[])
       for (ii = 0; ii < numchan; ii++)
 	dispdts[ii] /= search.dt;
 
-      if (cmd->nsub > 1){
+      if (cmd->nsub > 1 && RAWDATA){
 	int numdmtrials;
 	double dphase, lodm, hidm, ddm;
       
