@@ -641,7 +641,7 @@ def corr(profile, template):
     corr(profile, template):
         Cross-correlate (using FFTs) a 'profile' and a 'template'.
     """
-    return FFT.inverse_real_fft(FFT.real_fft(template) * FFT.real_fft(profile))
+    return FFT.inverse_real_fft(FFT.real_fft(template) * umath.conjugate(FFT.real_fft(profile)))
 
 def maxphase(profile, template):
     """
