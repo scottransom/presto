@@ -1,12 +1,22 @@
 #define RECLEN 49792
 #define DATLEN 49152
 #define HDRLEN 640
+#define SAMPPERBLK DATLEN*8
 
 /* The following is from Manchester, 9 Feb 98 */
 
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.9  2000/12/17 06:00:53  ransom
+ * Added mask.c and mask.h
+ * Re-ran CLIG after modifying parameters in a fwe CLIG files.
+ * "Finished" the reworking of the PKMB code to accept multiple
+ *    files.  Compiles cleanly.  Now must test...
+ * Added lots of stuff pertaining to mask determination.  Still
+ *    need to actually compute the mask, though.  Also need to
+ *    add the masking routines to the rawdata extracting files.
+ *
  * Revision 1.8  2000/12/15 22:17:24  ransom
  * Added MJD difference routine to misc_utils.
  *
@@ -47,7 +57,7 @@
  *
  */
 
-typedef struct MULTIBEAM_TAPEHDR {
+typedef struct PKMB_TAPEHDR {
 
 /*
  *  Length of full header is 640 bytes (all char)
@@ -111,12 +121,12 @@ typedef struct MULTIBEAM_TAPEHDR {
   char bsw[8];          /* Nr of samples per beam switch */
   char cal_cycle[4];    /* Cal cycle period in samples */
   char spare[22];       /* Spare */
-} multibeam_tapehdr;
+} PKMB_tapehdr;
 
 
 /* Routines to read and convert Parkes Multibeam data files */
 
-void get_pkmb_file_info(FILE *files[], int numfiles, long long *N, 
+void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
 			int *ptsperblock, int *numchan, double *dt, 
 			double *T, int output);
 /* Read basic information into static variables and make padding      */
@@ -125,57 +135,62 @@ void get_pkmb_file_info(FILE *files[], int numfiles, long long *N,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 
-void convert_multibeam_point(unsigned char *rec, unsigned char *data,
-			     int numchan, int decreasing_f);
-/* This routine converts 1 bit digitized data with 'numchan' */
-/* channels to an array of 'numchan' floats.                 */
-
-void multibeam_hdr_to_inf(multibeam_tapehdr *hdr, infodata *idata);
-/* Convert appropriate Multibeam header portions to make */
-/* a basic '.inf' file                                   */
-
-int skip_to_multibeam_rec(FILE * infile, int rec);
+int skip_to_PKMB_rec(FILE * infile, int rec);
 /* This routine skips to the record 'rec' in the input file */
 /* *infile.  *infile contains 1 bit digitized data from the */
-/* multibeam receiver at Parkes                             */
-/* Returns the record that was skipped to.                  */
+/* PKMB backend at Parkes.  Returns the record skipped to.  */
 
-int read_rawmultibeam(FILE *infile, float *data, int numchan, 
-		      int numblocks);
-/* This routine reads numblocks PKMB records with numchan */
-/* channels each from the input file *infile.  The number */
-/* of blocks read is returned.                            */
+int read_PKMB_rawblock(FILE *infiles[], int numfiles, 
+		       PKMB_tapehdr *hdr, unsigned char *data);
+/* This routine reads a single record from the         */
+/* input files *infiles which contain 1 bit digitized  */
+/* data from the PKMB pulsar backend at Parkes.        */
+/* Length of a PKMB record is 640 bytes for the header */
+/* plus 48k of data = 49792 bytes.                     */
+/* The header of the record read is placed in hdr.     */
+/* *data must be pre-allocated with a size of 48k.     */
 
-int read_multibeam_recs(FILE * infile, multibeam_tapehdr * hdr,
-			unsigned char *data, int blocks_to_read);
-/* This routine reads blocks_to_read multibeam records from   */
-/* the input file *infile which contains 1 bit digitized data */
-/* from the multibeam correlator at Parkes.                   */
-/* Length of a multibeam record is 640 bytes for the header   */
-/* plus 48k of data = 49792 bytes.                            */
-/* The header of the first record read is placed in hdr.      */
-/* *data must be pre-allocated with size 48k * blocks_to_read */
+int read_PKMB_rawblocks(FILE *infiles[], int numfiles, 
+			unsigned char rawdata[], int numblocks);
+/* This routine reads numblocks PKMB records from the input */
+/* files *infiles.  The raw bit data is returned in rawdata */
+/* which must have a size of numblocks*DATLEN.  The number  */
+/* of blocks read is returned.                              */
 
-int read_multibeam(FILE * file, float *data, int numpts,
-		   double *dispdelays, int numchan);
-/* This routine reads a numpts record with numchan each from */
-/* the input file *file which contains 1 bit digitized data  */
-/* from the multibeam correlator at Parkes.                  */
-/* It returns the number of points read.                     */
+int read_PKMB(FILE *infiles[], int numfiles, float *data, 
+	      double *dispdelays);
+/* This routine reads a PKMB record from the input     */
+/* files *infiles.  These files contain 1 bit data     */
+/* from the PKMB backend at Parkes.  Time delays and   */
+/* and a mask are applied to each channel.  It returns */
+/* the # of points read if succesful, 0 otherwise.     */
 
-int read_multibeam_subbands(FILE * infile, float *data, int numpts,
-			    double *dispdelays, int numsubbands, 
-			    int numchan);
-/* This routine reads a numpts record with numchan each from     */
-/* the input file *infile which contains 1 bit digitized data    */
-/* from the multibeam correlator at Parkes.  The routine uses    */
+void get_PKMB_channel(int channum, float chandat[], 
+		      unsigned char rawdata[], int numblocks);
+/* Return the values for channel 'channum' of a block of       */
+/* 'numblocks' raw PKMB data stored in 'rawdata' in 'chandat'. */
+/* 'rawdata' should have been initialized using                */
+/* read_PKMB_rawblocks(), and 'chandat' must have at least     */
+/* 'numblocks' * 'ptsperblk_st' spaces.                        */
+/* Channel 0 is assumed to be the lowest freq channel.         */
+
+int read_PKMB_subbands(FILE *infiles[], int numfiles, 
+		       float *data, double *dispdelays, int numsubbands);
+/* This routine reads a record from the input files *infiles[]   */
+/* which contain data from the PKMB system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
-/* into 'numsubbands' subbands.  It stores the resulting         */
-/* data in vector 'data' of length numsubbands * numpts.  The    */
-/* low frequency subband is stored first, then the next highest  */
-/* subband etc, with 'numpts' floating points per subband.       */
-/* It returns the number of points (pts_per_read) read if        */
-/* succesful or 0 if unsuccessful.                               */
+/* into 'numsubbands' subbands.  It stores the resulting data    */
+/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
+/* The low freq subband is stored first, then the next highest   */
+/* subband etc, with 'ptsperblk_st' floating points per subband. */
+/* It returns the # of points read if succesful, 0 otherwise.    */
 
-void print_multibeam_hdr(multibeam_tapehdr *hdr);
-/* Output in human readable form a multibeam header. */
+void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata);
+/* Convert PKMB header into an infodata structure */
+
+void print_PKMB_hdr(PKMB_tapehdr * hdr);
+/* Output a PKMB header in human readable form */
+
+void convert_PKMB_point(unsigned char *bits, unsigned char *bytes);
+/* This routine converts 1 bit digitized data */
+/* into an array of 'numchan' bytes.          */

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "14Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "17Dec00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -26,9 +26,12 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 [-pkmb]
 [-ebpp]
 [-gbpp]
+[-xwin]
 [-time time]
 [-sigma sigma]
 [-zapchan zapchan]
+[-zapints zapints]
+[-mask maskfile]
 infile ...
 .\" cligPart SYNOPSIS end
 
@@ -44,6 +47,8 @@ Raw data in Parkes Multibeam format.
 Raw data in EBPP (Effelsberg) format.
 .IP -gbpp
 Raw data in GBPP (Green Bank) format.
+.IP -xwin
+Draw plots to the screen as well as a PS file.
 .IP -time
 Minutes to integrate for stats and FFT calcs,
 .br
@@ -60,6 +65,14 @@ Default: `4'
 Channels to explicitly remove from analysis,
 .br
 1...1024 Int values between 1 and 1024.
+.IP -zapints
+Intervals to explicitly remove from analysis,
+.br
+1...1024 Int values between 1 and 1024.
+.IP -mask
+File containing masking information to use,
+.br
+1 String value
 .IP infile
 Input data file name..
 .\" cligPart OPTIONS end

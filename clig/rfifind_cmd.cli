@@ -15,12 +15,16 @@ String -o       outfile {Root of the output file names} \
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -ebpp    ebpp    {Raw data in EBPP (Effelsberg) format}
 Flag   -gbpp    gbpp    {Raw data in GBPP (Green Bank) format}
+Flag   -xwin    xwin    {Draw plots to the screen as well as a PS file}
 Float  -time    time    {Minutes to integrate for stats and FFT calcs} \
 	-r 0 oo  -d 4
 Float  -sigma   sigma   {The +/-sigma cutoff to reject a chunk of data} \
 	-r 0 oo  -d 4
 Int    -zapchan zapchan {Channels to explicitly remove from analysis} \
 	-r 1 1024 -c 1 1024
+Int    -zapints zapints {Intervals to explicitly remove from analysis} \
+	-r 1 1024 -c 1 1024
+String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
 

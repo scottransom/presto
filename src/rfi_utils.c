@@ -37,7 +37,7 @@ void write_rfi(FILE *outfile, rfi *outrfi,
 
 void read_rfi(FILE *infile, rfi *inrfi, 
 	       int numchan, int numint)
-/* Read the contents of an rfi structure to a file */
+/* Read the contents of an rfi structure from a file */
 {
   int num;
 

@@ -3,17 +3,17 @@
 
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
-static int numblks_st[MAXPATCHFILES];
-static int currentfile, currentblock, numchan_st, ptsperblk_st, bytesperpt_st;
-static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES]g;
+static int numblks_st[MAXPATCHFILES], currentfile, currentblock;
+static int decreasing_freqs_st, numchan_st, ptsperblk_st, bytesperpt_st;
+static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char mask1[512], mask2[512], maskblock[DATLEN];
+static unsigned char pad1[512], pad2[512], padblock[DATLEN];
 
-#define SWAPMASK(maskptr)(maskptr = (maskptr==mask1) ? mask2 : mask1)
+#define SWAPPAD(padptr)(padptr = (padptr==pad1) ? pad2 : pad1)
 
-void get_pkmb_file_info(FILE *files[], int numfiles, long long *N, 
+void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
 			int *ptsperblock, int *numchan, double *dt, 
 			double *T, int output)
 /* Read basic information into static variables and make padding      */
@@ -23,24 +23,25 @@ void get_pkmb_file_info(FILE *files[], int numfiles, long long *N,
 /* a table showing a summary of the values.                           */
 {
   int ii;
-  multibeam_tapehdr header;
+  PKMB_tapehdr header;
 
   if (numfiles > MAXPATCHFILES){
     printf("\nThe number of input files (%d) is greater than \n", numfiles);
     printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
     exit(0);
   }
-  memset(mask1, 0xAA, 512); /* 10101010... */
-  memset(mask2, 0x55, 512); /* 01010101... */
+  memset(pad1, 0xAA, 512); /* 10101010... */
+  memset(pad2, 0x55, 512); /* 01010101... */
   chkfread(&header, 1, HDRLEN, files[0]);
   rewind(files[0]);
-  multibeam_hdr_to_inf(&header, &idata_st[0]);
+  PKMB_hdr_to_inf(&header, &idata_st[0]);
   numchan_st = *numchan = idata_st[0].num_chan;
   ptsperblk_st = *ptsperblock = DATLEN * 8 / numchan_st;
-  bytesperpt_st = DATLEN / ptsperblk_st;
+  bytesperpt_st = numchan_st / 8;
+  decreasing_freqs_st = (strtod(header.chanbw[1], NULL) > 0.0) ? 0 : 1;
   for (ii=0; ii<ptsperblk_st; ii+=2){
-    memset(maskblock + ii     * bytesperpt_st, 0xAA, bytesperpt_st);
-    memset(maskblock + (ii+1) * bytesperpt_st, 0x55, bytesperpt_st);
+    memset(padblock + ii     * bytesperpt_st, 0xAA, bytesperpt_st);
+    memset(padblock + (ii+1) * bytesperpt_st, 0x55, bytesperpt_st);
   }
   numblks_st[0] = chkfilelen(files[0], RECLEN);
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
@@ -55,7 +56,7 @@ void get_pkmb_file_info(FILE *files[], int numfiles, long long *N,
   for (ii=1; ii<numfiles; ii++){
     chkfread(&header, 1, HDRLEN, files[ii]);
     rewind(files[ii]);
-    multibeam_hdr_to_inf(&header, &idata_st[ii]);
+    PKMB_hdr_to_inf(&header, &idata_st[ii]);
     if (idata_st[ii].num_chan != numchan_st){
       printf("Number of channels (file %d) is not the same!\n\n", ii+1);
     }
@@ -76,7 +77,7 @@ void get_pkmb_file_info(FILE *files[], int numfiles, long long *N,
     startblk_st[ii] = (double) (numpts_st[ii-1] + padpts_st[ii-1]) / 
       ptsperblk_st;
   }
-  padpts_st[numfiles-1] = (long long) ceiling(endblk_st[numfiles-1]) * 
+  padpts_st[numfiles-1] = (long long) ceil(endblk_st[numfiles-1]) * 
     ptsperblk_st - N_st;
   N_st += padpts_st[numfiles-1];
   *N = N_st;
@@ -92,7 +93,7 @@ void get_pkmb_file_info(FILE *files[], int numfiles, long long *N,
     printf("File  Start Block    End Block      Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)
-      printf("%2d  %12.12g  %12.12g  %10lld  %14.14g  %14.14g  %17.12f  %10lld\n", 
+      printf("%2d    %12.12g  %12.12g  %10lld  %14.14g  %14.14g  %17.12f  %10lld\n", 
 	     ii+1, startblk_st[ii], endblk_st[ii], numpts_st[ii], 
 	     elapsed_st[ii], times_st[ii], mjds_st[ii], padpts_st[ii]);
     printf("\n");
@@ -100,40 +101,39 @@ void get_pkmb_file_info(FILE *files[], int numfiles, long long *N,
 }
 
 
-int skip_to_multibeam_rec(FILE * infile, int rec)
+int skip_to_PKMB_rec(FILE * infile, int rec)
 /* This routine skips to the record 'rec' in the input file */
 /* *infile.  *infile contains 1 bit digitized data from the */
-/* multibeam receiver at Parkes                             */
-/* Returns the record that was skipped to.                  */
+/* PKMB backend at Parkes.  Returns the record skipped to.  */
 {
   chkfileseek(infile, rec, RECLEN, SEEK_SET);
   return rec;
 }
 
 
-int read_multibeam_rawblock(FILE *infiles, int numfiles, 
-			    multibeam_tapehdr *hdr, \
-			    unsigned char *data)
-/* This routine reads a single multibeam record from          */
-/* the input files *infiles which contain 1 bit digitized     */
-/* data from the multibeam pulsar backend at Parkes.          */
-/* Length of a multibeam record is 640 bytes for the header   */
-/* plus 48k of data = 49792 bytes.                            */
-/* The header of the record read is placed in hdr.            */
-/* *data must be pre-allocated with size 48k * blocks_to_read */
+int read_PKMB_rawblock(FILE *infiles[], int numfiles, 
+		       PKMB_tapehdr *hdr, unsigned char *data)
+/* This routine reads a single record from the         */
+/* input files *infiles which contain 1 bit digitized  */
+/* data from the PKMB pulsar backend at Parkes.        */
+/* Length of a PKMB record is 640 bytes for the header */
+/* plus 48k of data = 49792 bytes.                     */
+/* The header of the record read is placed in hdr.     */
+/* *data must be pre-allocated with a size of 48k.     */
 {
-  int ii, blocksread=0, offset, numtopad=0;
-  unsigned char record[RECLEN];
+  int ii, jj, offset, numtopad=0;
+  unsigned char record[RECLEN], *hdr_ptr;
   static unsigned char databuffer[DATLEN*2];
-  static int bufferpts=0, padnum=0;
-  unsigned char *maskptr=mask1;
+  static int bufferpts=0, padnum=0, shiftbuffer=1;
+  unsigned char *padptr=pad1;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
-  if (bufferpts)
+  if (bufferpts && shiftbuffer)
     for (ii=0; ii<bufferpts; ii++)
       *(databuffer+ii) = *(databuffer+DATLEN+ii);
+  shiftbuffer=1;
 
   /* make sure our current file number is valid */
 
@@ -142,31 +142,32 @@ int read_multibeam_rawblock(FILE *infiles, int numfiles,
 
   /* First try and read the current file */
   
-  if (fread(record, 1, RECLEN, infiles[currentfile]) != 1){
+  if (fread(record, RECLEN, 1, infiles[currentfile]) != 1){
     /* Are we at the end of the current file? */
     if (feof(infiles[currentfile])){
       /* Does this file need padding? */
       numtopad = padpts_st[currentfile] - padnum;
       if (numtopad){
 	/* Pad the data */
-	if (numtopad >= ptsperblk_st){
-	  /* Add a full record of padding */
-	  offset = bufferpts * bytesperpt_st;
-	  for (ii=0; ii<DATLEN; ii++)
-	    *(databuffer+offset+ii) = *(maskblock+ii);
-	  padnum += ptsperblk_st;
-	} else if (numtopad >= ptsperblk_st - bufferpts){
-	  /* Add the amount of padding we need to */
-	  /* make our buffer_offset = 0           */
-	  numtopad = ptsperblk_st - bufferpts;
-	  for (ii=0; ii<numtopad; ii++){
-	    offset = (bufferpts + ii) * bytesperpt_st;
-	    for (jj=0; jj<bytesperpt_st; jj++){
-	      *(databuffer+offset+jj) = *(maskptr+jj);
-	      SWAPMASK(maskptr);
+	if (numtopad >= ptsperblk_st - bufferpts){
+	  if (bufferpts){
+	    /* Add the amount of padding we need to */
+	    /* make our buffer_offset = 0           */
+	    numtopad = ptsperblk_st - bufferpts;
+	    for (ii=0; ii<numtopad; ii++){
+	      offset = (bufferpts + ii) * bytesperpt_st;
+	      for (jj=0; jj<bytesperpt_st; jj++){
+		*(databuffer+offset+jj) = *(padptr+jj);
+		SWAPPAD(padptr);
+	      }
 	    }
+	  } else {
+	    /* Add a full record of padding */
+	    numtopad = ptsperblk_st;
+	    for (ii=0; ii<DATLEN; ii++)
+	      *(databuffer+ii) = *(padblock+ii);
 	  }
-	  padnum += ptsperblk_st;
+	  padnum += numtopad;
 	  bufferpts = 0;
 	} else {
 	  /* Add the remainder of the padding and */
@@ -174,14 +175,15 @@ int read_multibeam_rawblock(FILE *infiles, int numfiles,
 	  for (ii=0; ii<numtopad; ii++){
 	    offset = (bufferpts + ii) * bytesperpt_st;
 	    for (jj=0; jj<bytesperpt_st; jj++){
-	      *(databuffer+offset+jj) = *(maskptr+jj);
-	      SWAPMASK(maskptr);
+	      *(databuffer+offset+jj) = *(padptr+jj);
+	      SWAPPAD(padptr);
 	    }
 	  }
 	  padnum = 0;
-	  bufferpts += numtopad;
 	  currentfile++;
-	  return read_multibeam_rawblock(infiles, numfiles, hdr, data);
+	  shiftbuffer = 0;
+	  bufferpts += numtopad;
+	  return read_PKMB_rawblock(infiles, numfiles, hdr, data);
 	}
 	/* If done with padding reset padding variables */
 	if (padnum == padpts_st[currentfile]){
@@ -191,20 +193,25 @@ int read_multibeam_rawblock(FILE *infiles, int numfiles,
 	/* Copy the new data into the output array */
 	for (ii=0; ii<DATLEN; ii++)
 	  *(data+ii) = *(databuffer+ii);
+	currentblock++;
+	return 1;
       } else {
 	/* Try reading the next file */
 	currentfile++;
-	return read_multibeam_rawblock(infiles, numfiles, hdr, data);
+	shiftbuffer = 0;
+	return read_PKMB_rawblock(infiles, numfiles, hdr, data);
       }
     } else {
-      printf("\nProblem reading record from multibeam data file.\n");
-      printf("Exiting\n");
+      printf("\nProblem reading record from PKMB data file:\n");
+      printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
+	     currentfile, currentblock);
       exit(1);
     }
   } else {
     /* Put the new header into the header array */
+    hdr_ptr = (unsigned char *)hdr;
     for (ii=0; ii<HDRLEN; ii++)
-      *(hdr+ii) = *(record+ii);
+      *(hdr_ptr+ii) = *(record+ii);
     /* Put the new data into the databuffer or directly */
     /* into the return array if the bufferoffset is 0.  */
     if (bufferpts){
@@ -218,267 +225,154 @@ int read_multibeam_rawblock(FILE *infiles, int numfiles,
 	*(data+ii) = *(record+HDRLEN+ii);
     }
   }
+  currentblock++;
   return 1;
 }
 
 
-int read_multibeam(FILE * infile, float *data, int numpts,
-		   double *dispdelays, int numchan)
-/* This routine reads a numpts record with numchan each from   */
-/* the input file *infile which contains 1 bit digitized data  */
-/* from the multibeam correlator at Parkes.                    */
-/* It returns the number of points read.                       */
+int read_PKMB_rawblocks(FILE *infiles[], int numfiles, 
+			unsigned char rawdata[], int numblocks)
+/* This routine reads numblocks PKMB records from the input */
+/* files *infiles.  The raw bit data is returned in rawdata */
+/* which must have a size of numblocks*DATLEN.  The number  */
+/* of blocks read is returned.                              */
 {
-  static unsigned char *raw, *ptr, *rawdata1, *rawdata2;
-  static unsigned char *currentdata, *lastdata, *tmp;
-  static int firsttime = 1, recsize = 0, blocklen = 0, worklen = 0;
-  static int decreasing_f = 0, blocks_per_read = 0;
-  static multibeam_tapehdr hdr;
-  int ii, numread;
-
-  if (firsttime) {
-    recsize = numchan / 8;    /* bytes per time interval           */
-    blocklen = DATLEN * 8;    /* total samples / block (1 bit per) */
-    blocks_per_read = numpts * numchan / blocklen;
-    worklen = blocks_per_read * blocklen; /* 1 byte per data point */
-
-    /* Create our data storage for the raw byte data */
- 
-    raw  = gen_bvect(blocks_per_read * DATLEN);
-    rawdata1 = gen_bvect(worklen);
-    rawdata2 = gen_bvect(worklen);
-    firsttime = 0;
-
-    /* Read the first multibeam records to cope with end effects */
-
-    numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
-    if (numread != blocks_per_read) {
-      printf("Problem reading the raw data file.\n\n");
-      free(rawdata1);
-      free(rawdata2);
-      return 0;
-    }
-
-    /* If decreasing_f is true, then the data has been  */
-    /* recorded with high frequencies first.            */
-
-    decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
-
-    /* Initialize our data pointers */
-
-    currentdata = rawdata1;
-    lastdata = rawdata2;
-
-    /* Convert the data to 1 byte points */
-
-    ptr = raw;
-    for (ii = 0; ii < numpts; ii++, ptr += recsize)
-      convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
-			      decreasing_f);
-
-    /* Swap our data pointers */
-
-    tmp = currentdata;
-    currentdata = lastdata;
-    lastdata = tmp;
-  }
-
-  /* Read the multibeam records */
-
-  numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
-
-  /* Convert the data to 1 byte points */
-
-  ptr = raw;
-  for (ii = 0; ii < numpts; ii++, ptr += recsize)
-    convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
-			    decreasing_f);
-
-  /* De-disperse the data */
-
-  dedisp(currentdata, lastdata, numpts, numchan, dispdelays, data);
-
-  /* Exit if we have reached the EOF */
-
-  if (numread != blocks_per_read){
-    free(rawdata1);
-    free(rawdata2);
-    return 0;
-  }
-
-  /* Swap our data pointers */
-
-  tmp = currentdata;
-  currentdata = lastdata;
-  lastdata = tmp;
-
-  /* Return the number of points we actually read */
-
-  return numpts;
-}
-
-
-int read_rawmultibeam(FILE *infile, float *data, int numchan, 
-		      int numblocks)
-/* This routine reads numblocks PKMB records with numchan */
-/* channels each from the input file *infile.  The number */
-/* of blocks read is returned.                            */
-{
-  static unsigned char *rawblocks, *sample;
-  static int firsttime=1, decreasing_f=-1, recsize, ptsperblock;
-  static multibeam_tapehdr hdr;
-  int ii, jj, numread, dataindex;
-
-  if (firsttime){
-    recsize = numchan / 8; /* bytes per time interval */
-    ptsperblock = DATLEN / recsize;
-    rawblocks = gen_bvect(DATLEN * numblocks);
-    sample = gen_bvect(numchan);
-    firsttime = 0;
-  }
-   
-  /* Read raw multibeam records */
-
-  numread = read_multibeam_recs(infile, &hdr, rawblocks, numblocks);
-
-  /* If decreasing_f is true, then the data has been  */
-  /* recorded with high frequencies first.            */
+  int ii, retval=0;
+  PKMB_tapehdr hdr;
   
-  if (decreasing_f < 0)
-    decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
-
-  /* Convert the data to floats */
-
-  for (ii=0; ii<ptsperblock*numread; ii++){
-    convert_multibeam_point(rawblocks+ii*recsize, 
-			    sample, numchan, decreasing_f);
-    dataindex = ii * numchan;
-    for (jj=0; jj<numchan; jj++)
-      data[dataindex+jj] = (float) sample[jj];
-  }
-  return numread;
+  for (ii=0; ii<numblocks; ii++)
+    retval += read_PKMB_rawblock(infiles, numfiles, &hdr, 
+				 rawdata + ii * DATLEN);
+  return retval;
 }
 
 
-int read_multibeam_subbands(FILE * infile, float *data, int numpts,
-			    double *dispdelays, int numsubbands, 
-			    int numchan)
-/* This routine reads a numpts record with numchan each from     */
-/* the input file *infile which contains 1 bit digitized data    */
-/* from the multibeam correlator at Parkes.  The routine uses    */
-/* dispersion delays in 'dispdelays' to de-disperse the data     */
-/* into 'numsubbands' subbands.  It stores the resulting         */
-/* data in vector 'data' of length numsubbands * numpts.  The    */
-/* low frequency subband is stored first, then the next highest  */
-/* subband etc, with 'numpts' floating points per subband.       */
-/* It returns the number of points (pts_per_read) read if        */
-/* succesful or 0 if unsuccessful.                               */
+int read_PKMB(FILE *infiles[], int numfiles, float *data, 
+	      double *dispdelays)
+/* This routine reads a PKMB record from the input     */
+/* files *infiles.  These files contain 1 bit data     */
+/* from the PKMB backend at Parkes.  Time delays and   */
+/* and a mask are applied to each channel.  It returns */
+/* the # of points read if succesful, 0 otherwise.     */
 {
-  static unsigned char *raw, *ptr, *rawdata1, *rawdata2, *move;
-  static unsigned char *currentdata, *lastdata, *tmp;
-  static int firsttime = 1, recsize = 0, blocklen = 0, worklen = 0;
-  static int decreasing_f = 0, blocks_per_read = 0, move_size = 0;
-  static multibeam_tapehdr hdr;
-  short trtn;
-  int ii, numread;
-
+  int ii, numread=0;
+  unsigned char raw[DATLEN], *tempzz;
+  unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
+  PKMB_tapehdr hdr;
+  static unsigned char *currentdata, *lastdata;
+  static int firsttime=1;
+  
   if (firsttime) {
-    recsize = numchan / 8;    /* bytes per time interval           */
-    blocklen = DATLEN * 8;    /* total samples / block (1 bit per) */
-    blocks_per_read = numpts * numchan / blocklen;
-    worklen = blocks_per_read * blocklen; /* 1 byte per data point */
-    move_size = (numpts + numsubbands) / 2;
-
-    /* Create our data storage for the raw byte data */
-
-    raw  = gen_bvect(blocks_per_read * DATLEN);
-    rawdata1 = gen_bvect(worklen);
-    rawdata2 = gen_bvect(worklen);
-    move = gen_bvect(move_size);
-    firsttime = 0;
-
-    /* Read the first multibeam records to cope with end effects */
-
-    numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
-    if (numread != blocks_per_read) {
-      printf("Problem reading the raw data file.\n\n");
-      free(rawdata1);
-      free(rawdata2);
+    if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw)){
+      printf("Problem reading the raw PKMB data file.\n\n");
       return 0;
     }
-
-    /* If decreasing_f is true, then the data has been  */
-    /* recorded with high frequencies first.            */
-
-    decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
-
-    /* Initialize our data pointers */
-
     currentdata = rawdata1;
     lastdata = rawdata2;
-
-    /* Convert the data to floats */
-
-    ptr = raw;
-    for (ii = 0; ii < numpts; ii++, ptr += recsize)
-      convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
-			      decreasing_f);
-
-    /* Swap our data pointers */
-
-    tmp = currentdata;
-    currentdata = lastdata;
-    lastdata = tmp;
-
+    for (ii=0; ii<ptsperblk_st; ii++)
+      convert_PKMB_point(raw + ii * bytesperpt_st, 
+			 currentdata + ii * numchan_st);
+    SWAP(currentdata, lastdata);
+    firsttime=0;
   }
 
-  /* Read the multibeam records */
+  /* Read, convert and de-disperse */
 
-  numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
+  numread = read_PKMB_rawblock(infiles, numfiles, &hdr, raw);
+  for (ii=0; ii<ptsperblk_st; ii++)
+    convert_PKMB_point(raw + ii * bytesperpt_st, 
+		       currentdata + ii * numchan_st);
+  dedisp(currentdata, lastdata, ptsperblk_st, numchan_st, 
+	 dispdelays, data);
+  SWAP(currentdata, lastdata);
 
-  /* Convert the data to floats */
+  if (numread)
+    return ptsperblk_st;
+  else
+    return 0;
+}
 
-  ptr = raw;
-  for (ii = 0; ii < numpts; ii++, ptr += recsize)
-    convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
-			    decreasing_f);
 
-  /* De-disperse the data into subbands */
+void get_PKMB_channel(int channum, float chandat[], 
+		      unsigned char rawdata[], int numblocks)
+/* Return the values for channel 'channum' of a block of       */
+/* 'numblocks' raw PKMB data stored in 'rawdata' in 'chandat'. */
+/* 'rawdata' should have been initialized using                */
+/* read_PKMB_rawblocks(), and 'chandat' must have at least     */
+/* 'numblocks' * 'ptsperblk_st' spaces.                        */
+/* Channel 0 is assumed to be the lowest freq channel.         */
+{
+  int ii, bit;
 
-  dedisp_subbands(currentdata, lastdata, numpts, numchan, 
+  if (channum > numchan_st || channum < 0){
+    printf("\nchannum = %d is out of range in get_PKMB_channel()!\n\n",
+	   channum);
+    exit(1);
+  }
+  bit = (decreasing_freqs_st) ? numchan_st - 1 - channum : channum;
+  for (ii=0; ii<numblocks*ptsperblk_st; ii++)
+    chandat[ii] = (float) GET_BIT(rawdata + ii * bytesperpt_st, bit);
+}
+
+
+int read_PKMB_subbands(FILE *infiles[], int numfiles, 
+		       float *data, double *dispdelays, int numsubbands)
+/* This routine reads a record from the input files *infiles[]   */
+/* which contain data from the PKMB system.  The routine uses    */
+/* dispersion delays in 'dispdelays' to de-disperse the data     */
+/* into 'numsubbands' subbands.  It stores the resulting data    */
+/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
+/* The low freq subband is stored first, then the next highest   */
+/* subband etc, with 'ptsperblk_st' floating points per subband. */
+/* It returns the # of points read if succesful, 0 otherwise.    */
+{
+  int ii, numread, trtn;
+  unsigned char raw[DATLEN], *tempzz;
+  unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
+  PKMB_tapehdr hdr;
+  static unsigned char *currentdata, *lastdata, *move;
+  static int firsttime=1, move_size=0;
+  
+  if (firsttime) {
+    if (!read_PKMB_rawblock(infiles, numfiles, &hdr, raw)){
+      printf("Problem reading the raw PKMB data file.\n\n");
+      return 0;
+    }
+    move_size = (ptsperblk_st + numsubbands) / 2;
+    move = gen_bvect(move_size);
+    currentdata = rawdata1;
+    lastdata = rawdata2;
+    for (ii=0; ii<ptsperblk_st; ii++)
+      convert_PKMB_point(raw + ii * bytesperpt_st, 
+			 currentdata + ii * numchan_st);
+    SWAP(currentdata, lastdata);
+    firsttime=0;
+  }
+
+  /* Read, convert and de-disperse */
+
+  numread = read_PKMB_rawblock(infiles, numfiles, &hdr, raw);
+  for (ii=0; ii<ptsperblk_st; ii++)
+    convert_PKMB_point(raw + ii * bytesperpt_st, 
+		       currentdata + ii * numchan_st);
+  dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
 		  dispdelays, numsubbands, data);
 
   /* Transpose the data into vectors in the result array */
 
-  if ((trtn = transpose_float(data, numpts, numsubbands,
+  if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
 			      move, move_size))<0){
-    printf("Error %d in transpose_float().\n",trtn);
+    printf("Error %d in transpose_float().\n", trtn);
   }
-
-  /* Exit if we have reached the EOF */
-
-  if (numread != blocks_per_read){
-    free(rawdata1);
-    free(rawdata2);
-    free(move);
+  if (numread)
+    return ptsperblk_st;
+  else
     return 0;
-  }
-
-  /* Swap our data pointers */
-
-  tmp = currentdata;
-  currentdata = lastdata;
-  lastdata = tmp;
-
-  /* Return the number of points we actually read */
-
-  return numpts;
 }
 
 
-void multibeam_hdr_to_inf(multibeam_tapehdr * hdr, infodata * idata)
-/* Convert appropriate Multibeam header portions to make */
-/* a basic '.inf' file                                   */
+void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
+/* Convert PKMB header into an infodata structure */
 {
   double tmp1, tmp2;
   char ctmp[100];
@@ -537,9 +431,8 @@ void multibeam_hdr_to_inf(multibeam_tapehdr * hdr, infodata * idata)
 }
 
 
-
-void print_multibeam_hdr(multibeam_tapehdr * hdr)
-/* Output in human readable form a multibeam header. */
+void print_PKMB_hdr(PKMB_tapehdr * hdr)
+/* Output a PKMB header in human readable form */
 {
   printf("\n");
   printf(" Program name                                      = %.6s\n", \
@@ -664,34 +557,33 @@ void print_multibeam_hdr(multibeam_tapehdr * hdr)
 }
 
 
-void convert_multibeam_point(unsigned char *rec, unsigned char *data, \
-			     int numchan, int decreasing_f)
-/* This routine converts 1 bit digitized data with 'numchan' */
-/* channels to an array of 'numchan' floats.                 */
+void convert_PKMB_point(unsigned char *bits, unsigned char *bytes)
+/* This routine converts 1 bit digitized data */
+/* into an array of 'numchan' bytes.          */
 {
   int ii, jj;
 
-  if (decreasing_f){
-    for(ii = numchan/8-1, jj = 0; ii >= 0; ii--, jj+=8){
-      data[jj] = (rec[ii] >> 7) & 1;
-      data[jj+1] = (rec[ii] >> 6) & 1;
-      data[jj+2] = (rec[ii] >> 5) & 1;
-      data[jj+3] = (rec[ii] >> 4) & 1;
-      data[jj+4] = (rec[ii] >> 3) & 1;
-      data[jj+5] = (rec[ii] >> 2) & 1;
-      data[jj+6] = (rec[ii] >> 1) & 1;
-      data[jj+7] = rec[ii] & 1;
+  if (decreasing_freqs_st){
+    for(ii=bytesperpt_st-1, jj=0; ii>=0; ii--, jj+=8){
+      bytes[jj]   = (bits[ii] >> 0x07) & 0x01;
+      bytes[jj+1] = (bits[ii] >> 0x06) & 0x01;
+      bytes[jj+2] = (bits[ii] >> 0x05) & 0x01;
+      bytes[jj+3] = (bits[ii] >> 0x04) & 0x01;
+      bytes[jj+4] = (bits[ii] >> 0x03) & 0x01;
+      bytes[jj+5] = (bits[ii] >> 0x02) & 0x01;
+      bytes[jj+6] = (bits[ii] >> 0x01) & 0x01;
+      bytes[jj+7] = bits[ii] & 0x01;
     }
   } else {
-    for(ii = 0, jj = 0; ii < numchan/8; ii++, jj+=8){
-      data[jj] = rec[ii] & 1;
-      data[jj+1] = (rec[ii] >> 1) & 1;
-      data[jj+2] = (rec[ii] >> 2) & 1;
-      data[jj+3] = (rec[ii] >> 3) & 1;
-      data[jj+4] = (rec[ii] >> 4) & 1;
-      data[jj+5] = (rec[ii] >> 5) & 1;
-      data[jj+6] = (rec[ii] >> 6) & 1;
-      data[jj+7] = (rec[ii] >> 7) & 1;
+    for(ii=0, jj=0; ii<bytesperpt_st; ii++, jj+=8){
+      bytes[jj]   = bits[ii] & 0x01;
+      bytes[jj+1] = (bits[ii] >> 0x01) & 0x01;
+      bytes[jj+2] = (bits[ii] >> 0x02) & 0x01;
+      bytes[jj+3] = (bits[ii] >> 0x03) & 0x01;
+      bytes[jj+4] = (bits[ii] >> 0x04) & 0x01;
+      bytes[jj+5] = (bits[ii] >> 0x05) & 0x01;
+      bytes[jj+6] = (bits[ii] >> 0x06) & 0x01;
+      bytes[jj+7] = (bits[ii] >> 0x07) & 0x01;
     }
   }
 }

@@ -54,13 +54,9 @@ typedef struct PREPFOLDINFO {
 
 /* Some function definitions */
 
-int (*readrec_ptr)(FILE * infile, float *data, int numpts,
-		   double *dispdelays, int numsubbands, int numchan);
-
 int read_resid_rec(FILE * file, double *toa, double *obsf);
 
-int read_floats(FILE *file, float *data, int numpts,
-		double *dispdelays, int numsubbands, int numchan);
+int read_floats(FILE *file, float *data, int numpts, int numchan);
 /* This routine reads a numpts records of numchan each from */
 /* the input file *file which contains normal floating      */
 /* point data.                                              */

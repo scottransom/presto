@@ -161,7 +161,7 @@ PRESTOOBJS = apprgrdn.o barycenter.o birdzap.o cand_output.o\
 	output.o PMsurv_phasemod.o read_fft.o responses.o\
 	rzinterp.o rzwinterp.o select.o solvopt.o sorter.o\
 	transpose.o twopass.o twopass_real_fwd.o\
-	twopass_real_inv.o vectors.o multifiles.o
+	twopass_real_inv.o vectors.o multifiles.o mask.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 

@@ -22,6 +22,10 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
+  /***** -o: Root of the output file names */
+  /* outfileP = */ 0,
+  /* outfile = */ (char*)0,
+  /* outfileC = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ 0,
   /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
@@ -146,6 +150,10 @@ static Cmdline cmd = {
   /* wdotP = */ 1,
   /* wdot = */ 0,
   /* wdotC = */ 1,
+  /***** -mask: File containing masking information to use */
+  /* maskfileP = */ 0,
+  /* maskfile = */ (char*)0,
+  /* maskfileC = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -811,6 +819,14 @@ checkDoubleHigher(char *opt, double *values, int count, double min)
 }
 /**********************************************************************/
 
+static void
+missingErr(char *opt)
+{
+  fprintf(stderr, "%s: mandatory option `%s' missing\n",
+	  Program, opt);
+}
+/**********************************************************************/
+
 static char *
 catArgv(int argc, char **argv)
 {
@@ -841,6 +857,18 @@ showOptionValues(void)
   int i;
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
+
+  /***** -o: Root of the output file names */
+  if( !cmd.outfileP ) {
+    printf("-o not found.\n");
+  } else {
+    printf("-o found:\n");
+    if( !cmd.outfileC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.outfile);
+    }
+  }
 
   /***** -pkmb: Raw data in Parkes Multibeam format */
   if( !cmd.pkmbP ) {
@@ -1219,6 +1247,18 @@ showOptionValues(void)
       printf("  value = `%.40g'\n", cmd.wdot);
     }
   }
+
+  /***** -mask: File containing masking information to use */
+  if( !cmd.maskfileP ) {
+    printf("-mask not found.\n");
+  } else {
+    printf("-mask found:\n");
+    if( !cmd.maskfileC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.maskfile);
+    }
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -1235,8 +1275,10 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
+ -o outfile [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
+        -o: Root of the output file names\n\
+            1 char* value\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
    -nobary: Do not barycenter (assume input parameters are topocentric)\n\
@@ -1316,9 +1358,11 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
+     -mask: File containing masking information to use\n\
+            1 char* value\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-            1 value\n\
-version: 14Dec00\n\
+            1...20 values\n\
+version: 17Dec00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1327,12 +1371,21 @@ Cmdline *
 parseCmdline(int argc, char **argv)
 {
   int i, keep;
+  char missingMandatory = 0;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
   for(i=1, cmd.argc=1; i<argc; i++) {
     if( 0==strcmp("--", argv[i]) ) {
       while( ++i<argc ) argv[cmd.argc++] = argv[i];
+      continue;
+    }
+
+    if( 0==strcmp("-o", argv[i]) ) {
+      cmd.outfileP = 1;
+      keep = i;
+      i = getStringOpt(argc, argv, i, &cmd.outfile, 1);
+      cmd.outfileC = i-keep;
       continue;
     }
 
@@ -1621,6 +1674,14 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-mask", argv[i]) ) {
+      cmd.maskfileP = 1;
+      keep = i;
+      i = getStringOpt(argc, argv, i, &cmd.maskfile, 1);
+      cmd.maskfileC = i-keep;
+      continue;
+    }
+
     if( argv[i][0]=='-' ) {
       fprintf(stderr, "\n%s: unknown option `%s'\n\n",
               Program, argv[i]);
@@ -1629,6 +1690,11 @@ parseCmdline(int argc, char **argv)
     argv[cmd.argc++] = argv[i];
   }/* for i */
 
+  if( !cmd.outfileP ) {
+    missingErr("-o");
+    missingMandatory = 1;
+  }
+  if( missingMandatory ) exit(EXIT_FAILURE);
 
   /*@-mustfree*/
   cmd.argv = argv+1;
@@ -1640,8 +1706,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 1<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 1 non-option argument(s)\n",
+  if( 20<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 20 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

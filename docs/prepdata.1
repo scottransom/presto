@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepdata" 1 "14Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "prepdata" 1 "17Dec00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -31,13 +31,14 @@ prepdata \- Prepares a raw data file for pulsar searching or folding (conversion
 [-nobary]
 [-DE405]
 [-dm dm]
-infile
+[-mask maskfile]
+infile ...
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
 .SH OPTIONS
 .IP -o
-Output data file name (no suffix),
+Root of the output file names,
 .br
 1 String value
 .IP -pkmb
@@ -62,6 +63,10 @@ The dispersion measure to de-disperse (cm^-3 pc),
 1 Double value between 0 and oo.
 .br
 Default: `0'
+.IP -mask
+File containing masking information to use,
+.br
+1 String value
 .IP infile
 Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period).
 .\" cligPart OPTIONS end

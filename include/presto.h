@@ -90,6 +90,9 @@
 		    radtmp : radtmp+TWOPI)
 #endif
 
+#define GET_BIT(c, n) (*(c+(n>>3)) >> (7-(n&7)) & 1)
+#define SET_BIT(c, n) (*(c+(n>>3)) |= 1 << (7-(n&7)))
+#define UNSET_BIT(c, n) (*(c+(n>>3)) &= ~(1 << (7-(n&7))))
 
 /*   Number of bins (total) to average for local power:   */
 /*     Must be an even number (1/2 on each side).         */

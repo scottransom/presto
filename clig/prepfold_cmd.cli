@@ -10,6 +10,8 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
+String -o       outfile {Root of the output file names} \
+	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -ebpp    ebpp    {Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED}
 Flag   -nobary  nobary  {Do not barycenter (assume input parameters are topocentric)}
@@ -72,11 +74,12 @@ Double -w    w       {Longitude of periastron (deg)} \
 	-r 0 360
 Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 	-r -oo oo  -d 0
+String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
 
 Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
-        -c 1 1
+        -c 1 20
 
 
 

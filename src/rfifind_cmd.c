@@ -32,6 +32,8 @@ static Cmdline cmd = {
   /* ebppP = */ 0,
   /***** -gbpp: Raw data in GBPP (Green Bank) format */
   /* gbppP = */ 0,
+  /***** -xwin: Draw plots to the screen as well as a PS file */
+  /* xwinP = */ 0,
   /***** -time: Minutes to integrate for stats and FFT calcs */
   /* timeP = */ 1,
   /* time = */ 4,
@@ -44,6 +46,14 @@ static Cmdline cmd = {
   /* zapchanP = */ 0,
   /* zapchan = */ (int*)0,
   /* zapchanC = */ 0,
+  /***** -zapints: Intervals to explicitly remove from analysis */
+  /* zapintsP = */ 0,
+  /* zapints = */ (int*)0,
+  /* zapintsC = */ 0,
+  /***** -mask: File containing masking information to use */
+  /* maskfileP = */ 0,
+  /* maskfile = */ (char*)0,
+  /* maskfileC = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -781,6 +791,13 @@ showOptionValues(void)
     printf("-gbpp found:\n");
   }
 
+  /***** -xwin: Draw plots to the screen as well as a PS file */
+  if( !cmd.xwinP ) {
+    printf("-xwin not found.\n");
+  } else {
+    printf("-xwin found:\n");
+  }
+
   /***** -time: Minutes to integrate for stats and FFT calcs */
   if( !cmd.timeP ) {
     printf("-time not found.\n");
@@ -820,6 +837,34 @@ showOptionValues(void)
       printf("\n");
     }
   }
+
+  /***** -zapints: Intervals to explicitly remove from analysis */
+  if( !cmd.zapintsP ) {
+    printf("-zapints not found.\n");
+  } else {
+    printf("-zapints found:\n");
+    if( !cmd.zapintsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  values =");
+      for(i=0; i<cmd.zapintsC; i++) {
+        printf(" `%d'", cmd.zapints[i]);
+      }
+      printf("\n");
+    }
+  }
+
+  /***** -mask: File containing masking information to use */
+  if( !cmd.maskfileP ) {
+    printf("-mask not found.\n");
+  } else {
+    printf("-mask found:\n");
+    if( !cmd.maskfileC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.maskfile);
+    }
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -836,13 +881,14 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-gbpp] [-time time] [-sigma sigma] [-zapchan zapchan] [--] infile ...\n\
+ -o outfile [-pkmb] [-ebpp] [-gbpp] [-xwin] [-time time] [-sigma sigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
         -o: Root of the output file names\n\
             1 char* value\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -ebpp: Raw data in EBPP (Effelsberg) format\n\
      -gbpp: Raw data in GBPP (Green Bank) format\n\
+     -xwin: Draw plots to the screen as well as a PS file\n\
      -time: Minutes to integrate for stats and FFT calcs\n\
             1 float value between 0 and oo\n\
             default: `4'\n\
@@ -851,9 +897,13 @@ usage(void)
             default: `4'\n\
   -zapchan: Channels to explicitly remove from analysis\n\
             1...1024 int values between 1 and 1024\n\
+  -zapints: Intervals to explicitly remove from analysis\n\
+            1...1024 int values between 1 and 1024\n\
+     -mask: File containing masking information to use\n\
+            1 char* value\n\
     infile: Input data file name.\n\
             1...20 values\n\
-version: 14Dec00\n\
+version: 17Dec00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -895,6 +945,11 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-xwin", argv[i]) ) {
+      cmd.xwinP = 1;
+      continue;
+    }
+
     if( 0==strcmp("-time", argv[i]) ) {
       cmd.timeP = 1;
       keep = i;
@@ -920,6 +975,24 @@ parseCmdline(int argc, char **argv)
       cmd.zapchanC = i-keep;
       checkIntLower("-zapchan", cmd.zapchan, cmd.zapchanC, 1024);
       checkIntHigher("-zapchan", cmd.zapchan, cmd.zapchanC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-zapints", argv[i]) ) {
+      cmd.zapintsP = 1;
+      keep = i;
+      i = getIntOpts(argc, argv, i, &cmd.zapints, 1, 1024);
+      cmd.zapintsC = i-keep;
+      checkIntLower("-zapints", cmd.zapints, cmd.zapintsC, 1024);
+      checkIntHigher("-zapints", cmd.zapints, cmd.zapintsC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-mask", argv[i]) ) {
+      cmd.maskfileP = 1;
+      keep = i;
+      i = getStringOpt(argc, argv, i, &cmd.maskfile, 1);
+      cmd.maskfileC = i-keep;
       continue;
     }
 

@@ -19,6 +19,8 @@ typedef struct s_Cmdline {
   char ebppP;
   /***** -gbpp: Raw data in GBPP (Green Bank) format */
   char gbppP;
+  /***** -xwin: Draw plots to the screen as well as a PS file */
+  char xwinP;
   /***** -time: Minutes to integrate for stats and FFT calcs */
   char timeP;
   float time;
@@ -31,6 +33,14 @@ typedef struct s_Cmdline {
   char zapchanP;
   int *zapchan;
   int zapchanC;
+  /***** -zapints: Intervals to explicitly remove from analysis */
+  char zapintsP;
+  int *zapints;
+  int zapintsC;
+  /***** -mask: File containing masking information to use */
+  char maskfileP;
+  char* maskfile;
+  int maskfileC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

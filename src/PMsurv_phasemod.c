@@ -97,7 +97,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
   float *powers, *minifft, *powers_pos, powargr, powargi;
   double T, norm, minsig=0.0;
   rawbincand list[NUMCANDS], tmplist[MININCANDS];
-  multibeam_tapehdr *hdr;
+  PKMB_tapehdr *hdr;
   infodata idata;
   
   /* Prep our candidate lists */
@@ -109,15 +109,15 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
   /* Copy the header information into *hdr */
     
-  hdr = (multibeam_tapehdr *) header;
+  hdr = (PKMB_tapehdr *) header;
  
   /* Convert the Header into usable info... */
 
-  multibeam_hdr_to_inf(hdr, &idata);
+  PKMB_hdr_to_inf(hdr, &idata);
   idata.N = N * 2.0;
   T = idata.N * idata.dt;
 #ifdef DEBUGOUT
-      print_multibeam_hdr(hdr);
+  print_PKMB_hdr(hdr);
 #endif
 
   /* Check our input values */

@@ -9,6 +9,10 @@
 *****/
 
 typedef struct s_Cmdline {
+  /***** -o: Root of the output file names */
+  char outfileP;
+  char* outfile;
+  int outfileC;
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
   /***** -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
@@ -133,6 +137,10 @@ typedef struct s_Cmdline {
   char wdotP;
   double wdot;
   int wdotC;
+  /***** -mask: File containing masking information to use */
+  char maskfileP;
+  char* maskfile;
+  int maskfileC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

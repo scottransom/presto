@@ -10,7 +10,7 @@
 
 int main(int argc, char *argv[])
 {
-  FILE *infile=NULL, *filemarker, *binproffile;
+  FILE *infiles[MAXPATCHFILES], *filemarker, *binproffile;
   float *data=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double recdt=0.0, barydispdt, N=0.0, T=0.0, proftime;
@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
   double *buffers, *phasesadded;
   char *plotfilenm, *outfilenm, *rootnm, *binproffilenm;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
-  int numchan=1, binary=0, numdelays=0, numbarypts=0;
+  int numfiles, numchan=1, binary=0, numdelays=0, numbarypts=0;
   int info, ptsperrec=1, flags=1;
   long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
   long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
@@ -52,47 +52,69 @@ int main(int argc, char *argv[])
 
   init_prepfoldinfo(&search);
 
-  /* Manipulate the file names we will use  */
-
+  numfiles = cmd->argc;
   {
-    char *path, *root, *suffix;
-    int slen;
-
-    /* Split argv[0] into a path and a file name */
+    char *path;
 
     split_path_file(cmd->argv[0], &path, &search.filenm);
     free(path);
+
+    if (!cmd->outfileP){
+      char *suffix;
+
+      split_root_suffix(cmd->argv[0], &rootnm, &suffix);
+      free(suffix);
+    } else {
+      rootnm = cmd->outfile;
+    }
+  }
+
+  if (!cmd->pkmbP && !cmd->ebppP){
+    char *root, *suffix;
 
     /* Split the filename into a rootname and a suffix */
 
     if (split_root_suffix(search.filenm, &root, &suffix)==0){
       printf("\nThe input filename (%s) must have a suffix!\n\n", 
 	     search.filenm);
-      free(search.filenm);
       exit(1);
     }
     free(suffix);
 
-    /* Split argv[0] into a rootname and a suffix */
+    printf("Reading input data from '%s'.\n", cmd->argv[0]);
+    printf("Reading information from '%s.inf'.\n\n", root);
 
-    split_root_suffix(cmd->argv[0], &rootnm, &suffix);
-    free(suffix);
+    /* Read the info file if available */
 
-    if (!cmd->pkmbP && !cmd->ebppP){
-      printf("Reading input data from '%s'\n", search.filenm);
-      printf("Reading information from '%s.inf'\n\n", root);
-      
-      /* Read the info file if available */
-      
-      readinf(&idata, rootnm);
-    } else if (cmd->pkmbP){
-      printf("Reading Parkes Multibeam data from '%s'\n\n", 
-	     search.filenm);
-    } else if (cmd->ebppP){
-      printf("Reading New Effelsberg PSR data from '%s'\n\n", 
-	     search.filenm);
-    }
+    readinf(&idata, root);
+    infiles[0] = chkfopen(cmd->argv[0], "rb");
     free(root);
+  } else if (cmd->pkmbP){
+    if (numfiles > 1)
+      printf("Reading Parkes PKMB data from %d files:\n", numfiles);
+    else
+      printf("Reading Parkes PKMB data from 1 file:\n");
+  } else if (cmd->ebppP){
+    if (numfiles > 1)
+      printf("Reading Effelsberg RBPP data from %d files:\n", numfiles);
+    else
+      printf("Reading Effelsberg RBPP data from 1 file:\n");
+  }
+
+  /* Open the raw data files */
+
+  if (cmd->pkmbP || cmd->ebppP){
+    for (ii=0; ii<numfiles; ii++){
+      printf("  '%s'\n", cmd->argv[ii]);
+      infiles[ii] = chkfopen(cmd->argv[ii], "rb");
+    }
+    printf("\n");
+  }
+
+  /* Manipulate the file names we will use  */
+
+  {
+    int slen;
 
     /* Determine the candidate name */
     
@@ -128,15 +150,10 @@ int main(int argc, char *argv[])
     sprintf(binproffilenm, "%s_%s.pfd.binprofs", rootnm, search.candnm);
     search.pgdev = (char *)calloc(slen + 7, sizeof(char));
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
-    printf("Folding a %s candidate.\n\n", search.candnm);
-    printf("Output data file is '%s'.\n", outfilenm);
-    printf("Output plot file is '%s'.\n", plotfilenm);
-    printf("Raw profile file is '%s'.\n", binproffilenm);
   }
 
-  /* Open the raw data file */
+  /* Open the file to store the binary profiles */
   
-  infile = chkfopen(cmd->argv[0], "rb");
   binproffile = chkfopen(binproffilenm, "wb");
     
   /* What ephemeris will we use?  (Default is DE200) */
@@ -149,19 +166,20 @@ int main(int argc, char *argv[])
   /* Set-up values if we are using the Parkes Multibeam System */
 
   if (cmd->pkmbP){
-    multibeam_tapehdr hdr;
+    double pkmb_dt, pkmb_T;
+    long long pkmb_N;
+    PKMB_tapehdr hdr;
+
+    get_PKMB_file_info(infiles, numfiles, &pkmb_N, &ptsperrec, 
+		       &numchan, &pkmb_dt, &pkmb_T, 1);
 
     /* Read the first header file and generate an infofile from it */
 
-    chkfread(&hdr, 1, HDRLEN, infile);
-    rewind(infile);
-    multibeam_hdr_to_inf(&hdr, &idata);
+    chkfread(&hdr, 1, HDRLEN, infiles[0]);
+    rewind(infiles[0]);
+    PKMB_hdr_to_inf(&hdr, &idata);
     idata.dm = cmd->dm;
-
-    /* Some information about the size of the records */
-
-    numrec = chkfilelen(infile, RECLEN);
-    ptsperrec = DATLEN * 8 / idata.num_chan;
+    numrec = pkmb_N / ptsperrec;
 
     /* OBS code for TEMPO */
 
@@ -214,14 +232,6 @@ int main(int argc, char *argv[])
 				 (idata.num_chan - 1) * idata.chan_wid);
       search.bepoch -= (barydispdt / SECPERDAY);
     }
-
-    /* The data collection routine to use */
-
-    readrec_ptr = read_multibeam_subbands;
-
-    /* The number of data points to work with at a time */
-
-    numchan = idata.num_chan;
     worklen = ptsperrec;
   }
 
@@ -247,7 +257,7 @@ int main(int argc, char *argv[])
     numchan = 1;
     worklen = 1024;
     search.dt = idata.dt;
-    N = chkfilelen(infile, sizeof(float));
+    N = chkfilelen(infiles[0], sizeof(float));
 
     /* Determine the number of records to use from the command line */
 
@@ -322,11 +332,12 @@ int main(int argc, char *argv[])
 	}
       }
     }
-
-    /* The data collection routine to use */
-
-    readrec_ptr = read_floats;
   }
+
+  printf("Folding a %s candidate.\n\n", search.candnm);
+  printf("Output data file is '%s'.\n", outfilenm);
+  printf("Output plot file is '%s'.\n", plotfilenm);
+  printf("Raw profile file is '%s'.\n", binproffilenm);
 
   /* Read the pulsar database if needed */
 
@@ -586,9 +597,9 @@ int main(int argc, char *argv[])
   
   currentrec = lorec;
   if (cmd->pkmbP)
-    skip_to_multibeam_rec(infile, lorec);
+    skip_to_PKMB_rec(infiles[0], lorec);
   else
-    chkfileseek(infile, lorec, sizeof(float), SEEK_SET);
+    chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
 
   /* Correct our fold parameters if we are barycentering */
 
@@ -720,8 +731,11 @@ int main(int argc, char *argv[])
     /* reads per sub-integration */
     
     for (jj = 0; jj < reads_per_part; jj++){
-      numread = readrec_ptr(infile, data, worklen, dispdts, 
-			    cmd->nsub, numchan);
+      if (cmd->pkmbP)
+	numread =  read_PKMB_subbands(infiles, numfiles, 
+				      data, dispdts, cmd->nsub);
+      else
+	numread = read_floats(infiles[0], data, worklen, numchan);
      
       /* frequency sub-bands */
 
@@ -750,7 +764,8 @@ int main(int argc, char *argv[])
   }
   free(buffers);
   free(phasesadded);
-  fclose(infile);
+  for (ii=0; ii<numfiles; ii++)
+    fclose(infiles[ii]);
   fclose(binproffile);
 
   /*
@@ -1073,7 +1088,8 @@ int main(int argc, char *argv[])
 
   delete_prepfoldinfo(&search);
   free(data);
-  free(rootnm);
+  if (!cmd->outfileP)
+    free(rootnm);
   free(outfilenm);
   free(plotfilenm);
   free(binproffilenm);

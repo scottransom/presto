@@ -9,7 +9,7 @@
 *****/
 
 typedef struct s_Cmdline {
-  /***** -o: Output data file name (no suffix) */
+  /***** -o: Root of the output file names */
   char outfileP;
   char* outfile;
   int outfileC;
@@ -33,6 +33,10 @@ typedef struct s_Cmdline {
   char dmP;
   double dm;
   int dmC;
+  /***** -mask: File containing masking information to use */
+  char maskfileP;
+  char* maskfile;
+  int maskfileC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

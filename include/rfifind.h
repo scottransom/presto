@@ -4,12 +4,8 @@
 #define RFI_FRACTERROR 0.002
 #define NUM_RFI_VECT   30
 
-#define GET_BIT(c, n) (*(c+(n>>3)) >> (7-(n&7)) & 1)
-#define SET_BIT(c, n) (*(c+(n>>3)) |= 1 << (7-(n&7)))
-#define UNSET_BIT(c, n) (*(c+(n>>3)) &= ~(1 << (7-(n&7))))
-
 typedef enum {
-  GOOD, USER, POW, AVG, VAR
+  GOOD=0, POW=1, STD=2, AVG=3, USERCHAN=4, USERINTS=5
 } mask_flags;
 
 typedef struct RFI {

@@ -340,11 +340,11 @@ int POSITION_print(long count, char *obj_ptr)
 
 int PKMBHDR_print(long count, char *obj_ptr)
 {
-  multibeam_tapehdr *object;
+  PKMB_tapehdr *object;
 
-  object = (multibeam_tapehdr *) obj_ptr;
+  object = (PKMB_tapehdr *) obj_ptr;
   printf("\n%ld:", count + 1);
-  print_multibeam_hdr(object);
+  print_PKMB_hdr(object);
   return 0;
 }
 

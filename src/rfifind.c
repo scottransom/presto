@@ -3,13 +3,15 @@
 #include "rfifind_cmd.h"
 #include "multibeam.h"
 #include "rfifind.h"
+#include "mask.h"
 
 /* Some function definitions */
 
-int (*readrec_ptr)(FILE *file, float *data, int numchan, int numblocks);
 void rfifind_plot(int numchan, int numint, int ptsperint, float sigma, 
-		  float **dataavg, float **datastd, float **datapow, 
-		  unsigned char **datamask, infodata *idata, int xwin);
+		  float **dataavg, float **datastd, float **datapow,
+		  int *userchan, int numuserchan, 
+		  int *userints, int numuserints, 
+		  infodata *idata, mask *outmask, int xwin);
 static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
 			  int numchan, int numint, int ptsperint, 
 			  int lobin, int numbetween, int harmsum,
@@ -37,12 +39,12 @@ int main(int argc, char *argv[])
 {
   FILE *infiles[MAXPATCHFILES];
   float **dataavg=NULL, **datastd=NULL, **datapow=NULL;
-  float *outdata=NULL, **indata=NULL, powavg, powstd, powmax;
+  float *chandata=NULL, powavg, powstd, powmax;
   float inttime, norm, fracterror=RFI_FRACTERROR, sigma;
-  unsigned char **datamask=NULL, *tbuffer=NULL;
+  unsigned char *rawdata=NULL;
   char *outfilenm, *statsfilenm, *maskfilenm, *rfifilenm;
   int numchan=0, numint=0, newper=0, oldper=0, numfiles;
-  int blocksperint, ptsperint=0, ptsperblock=0, tbuffer_size;
+  int blocksperint, ptsperint=0, ptsperblock=0;
   int numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
   int ii, jj, kk, slen, numread=0, compute=1;
   int harmsum=RFI_NUMHARMSUM, lobin=RFI_LOBIN, numbetween=RFI_NUMBETWEEN;
@@ -50,8 +52,9 @@ int main(int argc, char *argv[])
   long long N;
   presto_interptype interptype;
   rfi *rfivect=NULL;
+  mask inmask, outmask;
   fftcand *cands;
-  multibeam_tapehdr hdr;
+  PKMB_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
 
@@ -94,6 +97,11 @@ int main(int argc, char *argv[])
   sprintf(statsfilenm, "%s.stats", outfilenm);
   sprintf(idata.name, "%s", outfilenm);
 
+  /* Read an input mask if wanted */
+
+  if (cmd->maskfileP)
+    read_mask(cmd->maskfile, &inmask);
+
   if (compute){
 
     if (!cmd->pkmbP && !cmd->ebppP && !cmd->gbppP){
@@ -120,7 +128,7 @@ int main(int argc, char *argv[])
 	printf("Reading Green Bank GBPP data from 1 file:\n");
     }
 	  
-    /* Open the raw data file */
+    /* Open the raw data files */
 
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
@@ -128,32 +136,27 @@ int main(int argc, char *argv[])
     }
     printf("\n");
 
-    /* Set-up values if we are using the Parkes multibeam */
+    if (cmd->pkmbP){
+
+      /* Set-up values if we are using the Parkes multibeam */
     
-    if (cmd->pkmbP) {
-      
-      get_pkmb_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+      get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 			 &dt, &T, 1);
 
       /* Read the first header file and generate an infofile from it */
       
       chkfread(&hdr, 1, HDRLEN, infiles[0]);
       rewind(infiles[0]);
-      multibeam_hdr_to_inf(&hdr, &idata);
+      PKMB_hdr_to_inf(&hdr, &idata);
       idata.dm = 0.0;
       idata.N = N;
       writeinf(&idata);
-      ptsperblock = DATLEN * 8 / numchan;
-      
-      /* The data collection routine to use */
-      
-      readrec_ptr = read_rawmultibeam;
-    }
-    
-    /* Set-up values if we are using the EBPP     */
-    
-    if (cmd->ebppP) {
-      /* This code is not yet implemented. */
+
+    } else if (cmd->ebppP){
+
+      /* Set-up values if we are using the EBPP  */
+      /* This code is not yet implemented.       */
+
     }
     
     /* The number of data points and blocks to work with at a time */
@@ -165,21 +168,14 @@ int main(int argc, char *argv[])
     if ((long long) idata.N % ptsperint) numint++;
     inttime = ptsperint * idata.dt;
     
-exit(0);
-
     /* Allocate our workarrays */
     
+    if (cmd->pkmbP)
+      rawdata = gen_bvect(DATLEN * blocksperint);
     dataavg = gen_fmatrix(numint, numchan);
     datastd = gen_fmatrix(numint, numchan);
     datapow = gen_fmatrix(numint, numchan);
-    indata = gen_fmatrix(ptsperint, numchan);
-    datamask = gen_bmatrix(numint, numchan);
-    for (ii=0; ii<numint; ii++)
-      for (jj=0; jj<numchan; jj++)
-	datamask[ii][jj] = GOOD;
-    outdata = gen_fvect(ptsperint);
-    tbuffer_size = (numint + numchan) / 2;
-    tbuffer = gen_bvect(tbuffer_size);
+    chandata = gen_fvect(ptsperint);
     rfivect = rfi_vector(rfivect, numchan, numint, 0, numrfivect);
     if (numbetween==2)
       interptype = INTERBIN;
@@ -205,35 +201,31 @@ exit(0);
       
       /* Read a chunk of data */
       
-      numread = (*readrec_ptr)(infiles[0], indata[0], numchan, blocksperint);
-      
-      /* Transpose the data so we can work on the channels */
-      
-      transpose_float(indata[0], numint, numchan, tbuffer, tbuffer_size);
-      
-      /* Calculate the averages and standard deviations */
-      /* for each point in time.                        */
+      if (cmd->pkmbP)
+	numread = read_PKMB_rawblocks(infiles, numfiles, 
+				      rawdata, blocksperint);
       
       for (jj=0; jj<numchan; jj++){
-	avg_var(indata[jj], ptsperint, &davg, &dvar);
+
+	if (cmd->pkmbP)
+	  get_PKMB_channel(jj, chandata, rawdata, blocksperint);
+
+	/* Calculate the averages and standard deviations */
+	/* for each point in time.                        */
+      
+	avg_var(chandata, ptsperint, &davg, &dvar);
 	dataavg[ii][jj] = davg;
 	datastd[ii][jj] = sqrt(dvar);
-      }
+
+	/* Calculate the FFT of each time interval and search it */
       
-      /* Calculate the FFT of each time interval and search it */
-      
-      for (jj=0; jj<numchan; jj++){
-	for (kk=0; kk<ptsperint; kk++)
-	  outdata[kk] = *(indata[jj]+kk);
-	realfft(outdata, ptsperint, -1);
+	realfft(chandata, ptsperint, -1);
 	numcands=0;
 	norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
-	cands = search_fft((fcomplex *)outdata, ptsperint / 2, 
+	cands = search_fft((fcomplex *)chandata, ptsperint / 2, 
 			   lobin, harmsum, numbetween,
 			   interptype, norm, sigma,
 			   &numcands, &powavg, &powstd, &powmax);
-	printf("powavg = %f  powstd = %f  powmax = %f\n", 
-	       powavg, powstd, powmax);
 	datapow[ii][jj] = powmax;
 	
 	/* Record the birdies */
@@ -276,7 +268,6 @@ exit(0);
 
     /* Read the data from the output files */
     
-    printf("Reading mask  data from '%s'.\n", maskfilenm);
     printf("Reading RFI   data from '%s'.\n", rfifilenm);
     printf("Reading stats data from '%s'.\n\n", statsfilenm);
     readinf(&idata, outfilenm);
@@ -289,13 +280,16 @@ exit(0);
     inttime = ptsperint * idata.dt;
   }
 
-  /* Generate the mask */
-
   /* Make the plots */
 
-  rfifind_plot(numchan, numint, ptsperint, cmd->sigma, 
-	       dataavg, datastd, datapow, datamask, &idata, 0);
+  rfifind_plot(numchan, numint, ptsperint, cmd->sigma, dataavg, 
+	       datastd, datapow, cmd->zapchan, cmd->zapchanC,
+	       cmd->zapints, cmd->zapintsC, &idata, &outmask, 0);
 
+  /* Write the mask file */
+
+  write_mask(maskfilenm, &outmask);
+  
   /* Close the files and cleanup */
 
   free_rfi_vector(rfivect, numrfivect);
@@ -306,13 +300,11 @@ exit(0);
   if (compute){
     for (ii=0; ii<numfiles; ii++)
       fclose(infiles[ii]);
-    free(tbuffer);
     free(dataavg[0]); free(dataavg);
     free(datastd[0]); free(datastd);
     free(datapow[0]); free(datapow);
-    free(indata[0]); free(indata);
-    free(datamask[0]); free(datamask);
-    free(outdata);
+    free(chandata);
+    free(rawdata);
   }
   return (0);
 }

@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
   long numrec = 1, currentctr = 1, lastctr = 1;
   int h = 0, m = 0;
   double currentut = 0.0, lastut = 0.0, s = 0.0;
-  multibeam_tapehdr hdr;
+  PKMB_tapehdr hdr;
   unsigned char data[RECLEN];
   char tmp[100];
 
@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
   printf("                    20 July 1998\n\n");
 
   infile = chkfopen(argv[1], "rb");
-  while (read_multibeam_recs(infile, &hdr, data, 1)){
+  while (read_PKMB_rawblock(&infile, 1, &hdr, data)){
     sprintf(tmp, " %.8s ", hdr.blk_cntr);
     currentctr = strtol(tmp, NULL, 10);
     sprintf(tmp, " %.16s ", hdr.ut_blk);

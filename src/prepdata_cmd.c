@@ -22,7 +22,7 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
-  /***** -o: Output data file name (no suffix) */
+  /***** -o: Root of the output file names */
   /* outfileP = */ 0,
   /* outfile = */ (char*)0,
   /* outfileC = */ 0,
@@ -46,6 +46,10 @@ static Cmdline cmd = {
   /* dmP = */ 1,
   /* dm = */ 0,
   /* dmC = */ 1,
+  /***** -mask: File containing masking information to use */
+  /* maskfileP = */ 0,
+  /* maskfile = */ (char*)0,
+  /* maskfileC = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -750,7 +754,7 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -o: Output data file name (no suffix) */
+  /***** -o: Root of the output file names */
   if( !cmd.outfileP ) {
     printf("-o not found.\n");
   } else {
@@ -827,6 +831,18 @@ showOptionValues(void)
       printf("  value = `%.40g'\n", cmd.dm);
     }
   }
+
+  /***** -mask: File containing masking information to use */
+  if( !cmd.maskfileP ) {
+    printf("-mask not found.\n");
+  } else {
+    printf("-mask found:\n");
+    if( !cmd.maskfileC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.maskfile);
+    }
+  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -843,9 +859,9 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-pad0] [-padavg] [-numout numout] [-nobary] [-DE405] [-dm dm] [--] infile\n\
+ -o outfile [-pkmb] [-ebpp] [-pad0] [-padavg] [-numout numout] [-nobary] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
     Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n\
-       -o: Output data file name (no suffix)\n\
+       -o: Root of the output file names\n\
            1 char* value\n\
     -pkmb: Raw data in Parkes Multibeam format\n\
     -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format\n\
@@ -858,9 +874,11 @@ usage(void)
       -dm: The dispersion measure to de-disperse (cm^-3 pc)\n\
            1 double value between 0 and oo\n\
            default: `0'\n\
+    -mask: File containing masking information to use\n\
+           1 char* value\n\
    infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
-           1 value\n\
-version: 14Dec00\n\
+           1...20 values\n\
+version: 17Dec00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -935,6 +953,14 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-mask", argv[i]) ) {
+      cmd.maskfileP = 1;
+      keep = i;
+      i = getStringOpt(argc, argv, i, &cmd.maskfile, 1);
+      cmd.maskfileC = i-keep;
+      continue;
+    }
+
     if( argv[i][0]=='-' ) {
       fprintf(stderr, "\n%s: unknown option `%s'\n\n",
               Program, argv[i]);
@@ -959,8 +985,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 1<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 1 non-option argument(s)\n",
+  if( 20<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 20 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

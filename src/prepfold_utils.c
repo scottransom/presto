@@ -35,18 +35,12 @@ double phasedelay2fdot(double phasedelay, double time)
 }
 
 
-int read_floats(FILE *file, float *data, int numpts,
-		double *dispdelays, int numsubbands, int numchan)
+int read_floats(FILE *file, float *data, int numpts, int numchan)
 /* This routine reads a numpts records of numchan each from */
 /* the input file *file which contains normal floating      */
 /* point data.                                              */
 /* It returns the number of points read.                    */
 {
-  /* The following 2 lines just get rid of some compiler warnings */
-
-  *dispdelays = *dispdelays;
-  numsubbands = numsubbands;
-
   /* Read the raw data and return numbar read */
 
   return chkfread(data, sizeof(float),

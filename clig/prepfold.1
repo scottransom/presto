@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "14Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "17Dec00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,6 +22,7 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B prepfold
+-o outfile
 [-pkmb]
 [-ebpp]
 [-nobary]
@@ -56,11 +57,16 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-To To]
 [-w w]
 [-wdot wdot]
-infile
+[-mask maskfile]
+infile ...
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
 .SH OPTIONS
+.IP -o
+Root of the output file names,
+.br
+1 String value
 .IP -pkmb
 Raw data in Parkes Multibeam format.
 .IP -ebpp
@@ -219,6 +225,10 @@ Rate of advance of periastron (deg/yr),
 1 Double value.
 .br
 Default: `0'
+.IP -mask
+File containing masking information to use,
+.br
+1 String value
 .IP infile
 Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period).
 .\" cligPart OPTIONS end

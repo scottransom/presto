@@ -15,10 +15,8 @@
 
 /* Some function definitions */
 
-int (*readrec_ptr)(FILE * file, float *data, int numpts,
-		   double *dispdelays, int numchan);
-static int read_floats(FILE * file, float *data, int numpts,
-		       double *dispdelays, int numchan);
+static int read_floats(FILE *file, float *data, int numpts,
+		       int numchan);
 static void update_stats(int N, double x, double *min, double *max,
 			 double *avg, double *var);
 
@@ -32,17 +30,18 @@ int main(int argc, char *argv[])
 {
   /* Any variable that begins with 't' means topocentric */
   /* Any variable that begins with 'b' means barycentric */
-  FILE *infile = NULL, *outfile;
+  FILE *infiles[MAXPATCHFILES], *outfile;
   float *outdata=NULL;
   double tdf=0.0, dtmp=0.0, barydispdt=0.0;
   double *dispdt, *tobsf=NULL, tlotoa=0.0, blotoa=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
-  char obs[3], ephem[10], *datafilenm, *rootfilenm, *outinfonm;
-  char rastring[50], decstring[50], *cptr;
-  int numchan=1, newper=0, oldper=0, slen, numadded=0, numremoved=0;
+  char obs[3], ephem[10], *datafilenm, *outinfonm;
+  char rastring[50], decstring[50];
+  int numfiles, numchan=1, newper=0, oldper=0;
+  int slen, numadded=0, numremoved=0;
   long ii, numbarypts=0, worklen=65536, next_pow_of_two=0;
   long numread=0, numtowrite=0, totwrote=0, datawrote=0, padwrote=0;
-  multibeam_tapehdr hdr;
+  PKMB_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
 
@@ -66,72 +65,79 @@ int main(int argc, char *argv[])
   printf("           Pulsar Data Preparation Routine\n");
   printf("    Type conversion, de-dispersion, barycentering.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("           Last Modification:  17 July, 2000\n\n");
+  printf("           Last Modification:  16 Dec, 2000\n\n");
 
-  /* Determine the root input file name and the input info file name */
-
-  cptr = strrchr(cmd->argv[0], '.');
-  if (cptr==NULL){
-    printf("\nThe input filename (%s) must have a suffix!\n\n", 
-	   cmd->argv[0]);
-    exit(1);
-  }
-  slen = cptr - cmd->argv[0];
-  rootfilenm = (char *)malloc(slen+1);
-  rootfilenm[slen] = '\0';
-  strncpy(rootfilenm, cmd->argv[0], slen);
+  numfiles = cmd->argc;
   if (!cmd->pkmbP && !cmd->ebppP){
-    printf("Reading input  data from '%s'.\n", cmd->argv[0]);
-    printf("Reading information from '%s.inf'.\n\n", rootfilenm);
+    char *root, *suffix;
+
+    /* Split the filename into a rootname and a suffix */
+
+    if (split_root_suffix(cmd->argv[0], &root, &suffix)==0){
+      printf("\nThe input filename (%s) must have a suffix!\n\n", 
+	     cmd->argv[0]);
+      exit(1);
+    }
+    free(suffix);
+
+    printf("Reading input data from '%s'.\n", cmd->argv[0]);
+    printf("Reading information from '%s.inf'.\n\n", root);
 
     /* Read the info file if available */
 
-    readinf(&idata, rootfilenm);
+    readinf(&idata, root);
+    infiles[0] = chkfopen(cmd->argv[0], "rb");
+    free(root);
   } else if (cmd->pkmbP){
-    printf("Reading Parkes Multibeam data from '%s'\n\n", 
-	   cmd->argv[0]);
-  } else if (cmd->pkmbP){
-    printf("Reading New Effelsberg PSR data from '%s'\n\n", 
-	   cmd->argv[0]);
+    if (numfiles > 1)
+      printf("Reading Parkes PKMB data from %d files:\n", numfiles);
+    else
+      printf("Reading Parkes PKMB data from 1 file:\n");
+  } else if (cmd->ebppP){
+    if (numfiles > 1)
+      printf("Reading Effelsberg RBPP data from %d files:\n", numfiles);
+    else
+      printf("Reading Effelsberg RBPP data from 1 file:\n");
   }
 
-  /* Open the raw data file */
+  /* Open the raw data files */
 
-  infile = chkfopen(cmd->argv[0], "rb");
+  if (cmd->pkmbP || cmd->ebppP){
+    for (ii=0; ii<numfiles; ii++){
+      printf("  '%s'\n", cmd->argv[ii]);
+      infiles[ii] = chkfopen(cmd->argv[ii], "rb");
+    }
+    printf("\n");
+  }
 
   /* Determine the other file names and open the output data file */
 
-  slen = strlen(cmd->outfile)+6;
-  datafilenm = (char *)malloc(slen+1);
-  datafilenm[slen] = '\0';
+  slen = strlen(cmd->outfile)+8;
+  datafilenm = (char *)calloc(slen, 1);
   sprintf(datafilenm, "%s.dat", cmd->outfile);
   outfile = chkfopen(datafilenm, "wb");
   sprintf(idata.name, "%s", cmd->outfile);
-  outinfonm = (char *)malloc(slen+1);
-  outinfonm[slen] = '\0';
+  outinfonm = (char *)calloc(slen, 1);
   sprintf(outinfonm, "%s.inf", cmd->outfile);
-  printf("Writing output data to '%s'.\n", datafilenm);
-  printf("Writing information to '%s'.\n\n", outinfonm);
 
   /* Set-up values if we are using the Parkes multibeam */
 
   if (cmd->pkmbP) {
+    double dt, T;
+    int ptsperblock;
+    long long N;
+
+    get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+		       &dt, &T, 1);
 
     /* Read the first header file and generate an infofile from it */
 
-    chkfread(&hdr, 1, HDRLEN, infile);
-    rewind(infile);
-    multibeam_hdr_to_inf(&hdr, &idata);
+    chkfread(&hdr, 1, HDRLEN, infiles[0]);
+    rewind(infiles[0]);
+    PKMB_hdr_to_inf(&hdr, &idata);
     idata.dm = cmd->dm;
-
-    /* The number of data points to work with at a time */
-
-    numchan = idata.num_chan;
-    worklen = DATLEN * 8 / numchan;
-
-    /* Set idata.N to the actual size of the raw data file */
-
-    idata.N = (double) (chkfilelen(infile, RECLEN)) * worklen;
+    worklen = ptsperblock;
+    idata.N = N;
 
     /* Compare the size of the data to the size of output we request */
 
@@ -151,10 +157,6 @@ int main(int argc, char *argv[])
 
     strcpy(obs, "PK");
 
-    /* The data collection routine to use */
-
-    readrec_ptr = read_multibeam;
-
     /* The number of topo to bary time points to generate with TEMPO */
 
     numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
@@ -171,10 +173,6 @@ int main(int argc, char *argv[])
 
     strcpy(obs, "EF");
 
-    /* The data collection routine to use */
-
-    /* readrec_ptr = read_ebpp; */
-
     /* The number of data points to work with at a time */
 
     worklen = 1024;
@@ -184,10 +182,6 @@ int main(int argc, char *argv[])
   /* or Effelesberg data sets.                                    */
 
   if (!cmd->pkmbP && !cmd->ebppP) {
-
-    /* The data collection routine to use */
-
-    readrec_ptr = read_floats;
 
     /* If we will be barycentering... */
 
@@ -230,6 +224,9 @@ int main(int argc, char *argv[])
     }
 
   }
+
+  printf("Writing output data to '%s'.\n", datafilenm);
+  printf("Writing information to '%s'.\n\n", outinfonm);
 
   /* The topocentric epoch of the start of the data */
 
@@ -297,8 +294,12 @@ int main(int argc, char *argv[])
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = 0%%");
     
-    while ((numread = 
-	    (*readrec_ptr)(infile, outdata, worklen, dispdt, numchan))){
+    if (cmd->pkmbP)
+      numread = read_PKMB(infiles, numfiles, outdata, dispdt);
+    else
+      numread = read_floats(infiles[0], outdata, worklen, numchan);
+
+    while (numread){
       
       /* Print percent complete */
       
@@ -330,6 +331,11 @@ int main(int argc, char *argv[])
       
       if (cmd->numoutP && (totwrote >= cmd->numout))
 	break;
+
+      if (cmd->pkmbP)
+	numread = read_PKMB(infiles, numfiles, outdata, dispdt);
+      else
+	numread = read_floats(infiles[0], outdata, worklen, numchan);
      }
       
     datawrote = totwrote;
@@ -456,8 +462,12 @@ int main(int argc, char *argv[])
     printf("Massaging the data...\n\n");
     printf("Amount Complete = 0%%");
     
-    while ((numread = 
-	    (*readrec_ptr)(infile, outdata, worklen, dispdt, numchan))){
+    if (cmd->pkmbP)
+      numread = read_PKMB(infiles, numfiles, outdata, dispdt);
+    else
+      numread = read_floats(infiles[0], outdata, worklen, numchan);
+    
+    while (numread){
       
       /* Print percent complete */
       
@@ -556,6 +566,10 @@ int main(int argc, char *argv[])
 	    }
 	    diffbinptr++;
 	  }
+	  if (cmd->pkmbP)
+	    numread = read_PKMB(infiles, numfiles, outdata, dispdt);
+	  else
+	    numread = read_floats(infiles[0], outdata, worklen, numchan);
 	}
       }
 
@@ -662,11 +676,11 @@ int main(int argc, char *argv[])
 
   /* Close the files and cleanup */
 
-  fclose(infile);
+  for (ii=0; ii<numfiles; ii++)
+    fclose(infiles[ii]);
   fclose(outfile);
   free(tobsf);
   free(dispdt);
-  free(rootfilenm);
   free(outinfonm);
   free(datafilenm);
   if (idata.onoff)
@@ -675,8 +689,8 @@ int main(int argc, char *argv[])
 }
 
 
-static int read_floats(FILE * file, float *data, int numpts, \
-		       double *dispdelays, int numchan)
+static int read_floats(FILE *file, float *data, int numpts, \
+		       int numchan)
 /* This routine reads a numpts records of numchan each from */
 /* the input file *file which contains normal floating      */
 /* point data.                                              */
@@ -684,7 +698,6 @@ static int read_floats(FILE * file, float *data, int numpts, \
 {
   /* Read the raw data and return numbar read */
 
-  *dispdelays = *dispdelays;
   return chkfread(data, sizeof(float), (numpts * numchan), 
 		  file) / numchan;
 }

@@ -1,6 +1,7 @@
 #include "presto.h"
 #include "rfifind.h"
 #include "plot2d.h"
+#include "mask.h"
 
 double single_power_pdf(double power, int numpowers)
 {
@@ -12,9 +13,10 @@ double single_power_pdf(double power, int numpowers)
 
 void rfifind_plot(int numchan, int numint, int ptsperint, float sigma, 
 		  float **dataavg, float **datastd, float **datapow,
-		  int *userchan, int numuserchan, unsigned char **mask, 
-		  infodata *idata, int xwin)
-/* Make the beautiful 1 page rfifind output */
+		  int *userchan, int numuserchan, 
+		  int *userints, int numuserints, 
+		  infodata *idata, mask *outmask, int xwin)
+/* Make the beautiful multi-page rfifind plots */
 {
   int ii, jj, ct, loops=1;
   float *freqs, *chans, *times, *ints;
@@ -28,6 +30,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
   double avg_chan_med, std_chan_med, pow_chan_med;
   double avg_int_std, std_int_std, pow_int_std;
   double avg_int_med, std_int_med, pow_int_med;
+  unsigned char **bytemask;
   
   inttim = ptsperint * idata->dt;
   T = inttim * numint;
@@ -113,16 +116,11 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
 
   /* Generate the Mask */
 
-  /*
-  {
-    int numbytes, ii;
+  bytemask = gen_bmatrix(numint, numchan);
+  for (ii=0; ii<numint; ii++)
+    for (jj=0; jj<numchan; jj++)
+      bytemask[ii][jj] = GOOD;
 
-    numbytes = (numchan % 8)  ? numchan  / 8 + 1 : numchan  / 8;
-    *mask = gen_bvect(numbytes);
-    for (ii=0; ii<numbytes; ii++)
-      *mask[ii]
-  }
-  */
 
   /*
    *  Now plot the results
@@ -666,4 +664,5 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
   free(std_int);
   free(pow_chan);
   free(pow_int);
+  free(bytemask[0]); free(bytemask);
 }
