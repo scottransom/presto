@@ -31,14 +31,18 @@ typedef struct s_Cmdline {
   char numwappsP;
   int numwapps;
   int numwappsC;
-  /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
-  char nobaryP;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   char de405P;
   /***** -xwin: Show the result plots on-screen as well as make a plotfile */
   char xwinP;
   /***** -runavg: Subtract each blocks average as it is read (single channel data only) */
   char runavgP;
+  /***** -fine: A finer gridding in the p/pdot plane (for well known p and pdot) */
+  char fineP;
+  /***** -coarse: A coarser gridding in the p/pdot plane (for uknown p and pdot) */
+  char coarseP;
+  /***** -slow: Sets useful flags for slow pulsars */
+  char slowP;
   /***** -searchpdd: Search p-dotdots as well as p and p-dots */
   char searchpddP;
   /***** -searchfdd: Search f-dotdots as well as f and f-dots */
@@ -149,10 +153,6 @@ typedef struct s_Cmdline {
   char polycofileP;
   char* polycofile;
   int polycofileC;
-  /***** -obs: Two letter TEMPO observatory code (for barycentering) */
-  char obscodeP;
-  char* obscode;
-  int obscodeC;
   /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
   char timingP;
   char* timing;
@@ -161,10 +161,18 @@ typedef struct s_Cmdline {
   char rzwcandP;
   int rzwcand;
   int rzwcandC;
-  /***** -rzwfile: Name of the rzw search file to use (include the full name of the file) */
+  /***** -rzwfile: Name of the rzw search '.cand' file to use (with suffix) */
   char rzwfileP;
   char* rzwfile;
   int rzwfileC;
+  /***** -accelcand: The candidate number to fold from 'infile'_rzw.cand */
+  char accelcandP;
+  int accelcand;
+  int accelcandC;
+  /***** -accelfile: Name of the accel search '.cand' file to use (with suffix) */
+  char accelfileP;
+  char* accelfile;
+  int accelfileC;
   /***** -bin: Fold a binary pulsar.  Must include all of the following parameters */
   char binaryP;
   /***** -pb: The orbital period (s) */
@@ -195,18 +203,18 @@ typedef struct s_Cmdline {
   char maskfileP;
   char* maskfile;
   int maskfileC;
-  /***** -toas: Use a TOA file instead of a time series (.dat) file */
-  char toasP;
-  /***** -secs: TOAs are in seconds days since the MJD in the .inf file */
-  char secsP;
-  /***** -days: TOAs are in days since the MJD in the .inf file */
+  /***** -events: Use a event file instead of a time series (.dat) file */
+  char eventsP;
+  /***** -days: Events are in days since the EPOCH in the '.inf' file (default is seconds) */
   char daysP;
-  /***** -double: TOAs are in binary double precision instead of text format */
+  /***** -mjds: Events are in MJDs */
+  char mjdsP;
+  /***** -double: Events are in binary double precision (default is ASCII) */
   char doubleP;
-  /***** -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA */
-  char toaoffsetP;
-  double toaoffset;
-  int toaoffsetC;
+  /***** -offset: A time offset to add to the 1st event in the same units as the events */
+  char offsetP;
+  double offset;
+  int offsetC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;
