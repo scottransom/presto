@@ -245,7 +245,7 @@ makeinf: makeinf.o ioinf.o
 	cp $@ ../bin
 
 makewisdom:
-	$(CC) $(CFLAGS) -o $@ makewisdom.c -l$(FFTLIBS) -lm
+	$(CC) $(CFLAGS) -o $@ makewisdom.c $(FFTLINK) -lm
 	./makewisdom
 	cp fftw_wisdom.txt $(PRESTO)/lib
 
