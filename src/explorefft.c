@@ -50,6 +50,7 @@ typedef struct fftview {
   double rs[DISPLAYNUM];     /* The corresponding Fourier freqs */
 } fftview;
 
+
 static int floor_log2(int nn)
 {
   int ii=0;
@@ -228,31 +229,35 @@ static fftpart *get_fftpart(int rlo, int numr)
   float powargr, powargi, tmppwr, chunk[LOCALCHUNK];
   fftpart *fp;
 
-  fp = (fftpart *)malloc(sizeof(fftpart));
-  fp->rlo = rlo;
-  fp->numamps = numr;
-  fp->amps = read_fcomplex_file(fftfile, rlo, fp->numamps);
-  if (rlo==0){
-    fp->amps[0].r = 1.0;
-    fp->amps[0].i = 0.0;
-  }
-  fp->rawpowers = gen_fvect(fp->numamps);
-  fp->medians = gen_fvect(fp->numamps/LOCALCHUNK);
-  fp->normvals = gen_fvect(fp->numamps/LOCALCHUNK);
-  fp->maxrawpow = 0.0;
-  for (ii=0; ii<fp->numamps/LOCALCHUNK; ii++){
-    index = ii * LOCALCHUNK;
-    for (jj=0; jj<LOCALCHUNK; jj++, index++){
-      tmppwr = POWER(fp->amps[index].r, fp->amps[index].i);
-      if (tmppwr > fp->maxrawpow)
-	fp->maxrawpow = tmppwr;
-      fp->rawpowers[index] = tmppwr;
-      chunk[jj] = tmppwr;
+  if (rlo+numr > Nfft)
+    return NULL;
+  else {
+    fp = (fftpart *)malloc(sizeof(fftpart));
+    fp->rlo = rlo;
+    fp->numamps = numr;
+    fp->amps = read_fcomplex_file(fftfile, rlo, fp->numamps);
+    if (rlo==0){
+      fp->amps[0].r = 1.0;
+      fp->amps[0].i = 0.0;
     }
-    fp->medians[ii] = median(chunk, LOCALCHUNK);
-    fp->normvals[ii] = 1.0 / (1.4426950408889634 * fp->medians[ii]);
+    fp->rawpowers = gen_fvect(fp->numamps);
+    fp->medians = gen_fvect(fp->numamps/LOCALCHUNK);
+    fp->normvals = gen_fvect(fp->numamps/LOCALCHUNK);
+    fp->maxrawpow = 0.0;
+    for (ii=0; ii<fp->numamps/LOCALCHUNK; ii++){
+      index = ii * LOCALCHUNK;
+      for (jj=0; jj<LOCALCHUNK; jj++, index++){
+	tmppwr = POWER(fp->amps[index].r, fp->amps[index].i);
+	if (tmppwr > fp->maxrawpow)
+	  fp->maxrawpow = tmppwr;
+	fp->rawpowers[index] = tmppwr;
+	chunk[jj] = tmppwr;
+      }
+      fp->medians[ii] = median(chunk, LOCALCHUNK);
+      fp->normvals[ii] = 1.0 / (1.4426950408889634 * fp->medians[ii]);
+    }
+    return fp;
   }
-  return fp;
 }
 
 static void free_fftpart(fftpart *fp)
@@ -290,6 +295,7 @@ static double find_peak(float inf, fftview *fv, fftpart *fp)
   return newmaxr;
 }
 
+
 static void print_help(void)
 {
   printf("\n"
@@ -310,6 +316,130 @@ static void print_help(void)
 	 " Q                  Quit\n"
 	 "\n");
 }
+
+
+static fftview *get_harmonic(double rr)
+{
+  fftpart *harmpart;
+  fftview *harmview;
+
+  harmpart = get_fftpart((int)(rr-NUMHARMBINS), 2*NUMHARMBINS);
+  if (harmpart != NULL){
+    harmview = get_fftview(rr, LOGDISPLAYNUM-LOGNUMHARMBINS, harmpart);
+    free_fftpart(harmpart);
+    return harmview;
+  } else {
+    return NULL;
+  }
+}
+
+static void plot_harmonics(double rr)
+{
+  int ii, hh;
+  double offsetf;
+  char label[20];
+  fftview *harmview;
+
+  cpgsubp(4, 4);
+  for (ii=0, hh=2; ii<8; ii++, hh++){
+    cpgpanl(ii%4+1, ii/4+1);
+    harmview = get_harmonic(hh*rr);
+    if (harmview != NULL){
+      offsetf = plot_fftview(harmview, 0.0);
+      snprintf(label, 20, "Harmonic %d", hh);
+      cpgmtxt("T", -3, 0.1, 0.0, label);
+      cpgsci(2); /* red */
+      cpgmove((hh*rr)/T-offsetf, 0.0);
+      cpgdraw((hh*rr)/T-offsetf, 1.1*harmview->maxpow);
+      cpgsci(1); /* foreground */
+      free(harmview);
+    }
+  } 
+  for (ii=8, hh=2; ii<16; ii++, hh++){
+    cpgpanl(ii%4+1, ii/4+1);
+    harmview = get_harmonic(rr/(double)hh);
+    if (harmview != NULL){
+      offsetf = plot_fftview(harmview, 0.0);
+      snprintf(label, 20, "Harmonic 1/%d", hh);
+      cpgmtxt("T", -3, 0.1, 0.0, label);
+      cpgsci(2); /* red */
+      cpgmove((rr/(double)hh)/T-offsetf, 0.0);
+      cpgdraw((rr/(double)hh)/T-offsetf, 1.1*harmview->maxpow);
+      cpgsci(1); /* foreground */
+      free(harmview);
+    }
+  } 
+  cpgsubp(1, 1);
+  cpgpanl(1, 1);
+  cpgsvp(0.0, 1.0, 0.0, 1.0);
+  cpgswin(2.0, 6.0, -2.0, 2.0);
+}
+
+static double harmonic_loop(int xid, double rr)
+{
+  float inx, iny;
+  double retval=0.0;
+  int xid2, psid, badchoice=1;
+  char choice;
+
+  xid2 = cpgopen("/XWIN");
+  cpgask(0);
+  cpgslct(xid2);
+  plot_harmonics(rr);
+  printf("  Click on the harmonic to go it,\n"
+	 "    press 'P' to print, or press 'Q' to close.\n");
+  while (badchoice){
+    cpgcurs(&inx, &iny, &choice);
+    if (choice=='Q' || choice=='q'){
+      badchoice = 0;
+    } else if (choice=='P' || choice=='p'){
+      int len;
+      double offsetf;
+      char filename[200];
+      fftpart *harmpart;
+      fftview *harmview;
+ 
+      printf("  Enter the filename to save the plot as:\n");
+      fgets(filename, 195, stdin);
+      len = strlen(filename)-1;
+      filename[len+0] = '/';
+      filename[len+1] = 'C';
+      filename[len+2] = 'P';
+      filename[len+3] = 'S';
+      filename[len+4] = '\0';
+      psid = cpgopen(filename);
+      cpgslct(psid);
+      cpgpap(11.0, 8.5/11.0);
+      harmpart = get_fftpart((int)(rr-NUMHARMBINS), 2*NUMHARMBINS);
+      harmview = get_fftview(rr, LOGDISPLAYNUM-LOGNUMHARMBINS, harmpart);
+      free_fftpart(harmpart);
+      offsetf = plot_fftview(harmview, 0.0);
+      cpgpage();
+      plot_harmonics(rr);
+      cpgclos();
+      cpgslct(xid2);
+      filename[len] = '\0';
+      printf("  Wrote the plot to the file '%s'.\n", filename);
+    } else if (choice=='A' || choice=='a'){
+      printf("inx = %f  iny= %f\n", inx, iny);
+      if (iny > 1.0)
+	retval = rr * (int)(inx);
+      else if (iny > 0.0)
+	retval = rr * ((int)(inx) + 4.0);
+      else if (iny > -1.0)
+	retval = rr / (int)(inx);
+      else
+	retval = rr / ((int)(inx) + 4.0);
+      badchoice = 0;
+    } else {
+      printf("  Option not recognized.\n");
+    }
+  };
+  cpgclos();
+  cpgslct(xid);
+  return retval;
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -419,6 +549,13 @@ int main(int argc, char *argv[])
     case 'j':
       if (DEBUGOUT) printf("  Shifting left...\n");
       centerr -= 0.15 * fv->numbins;
+      { /* Should probably get the previous chunk from the fftfile... */
+	double lowestr;
+
+	lowestr = 0.5 * fv->numbins;
+	if (centerr < lowestr)
+	  centerr = lowestr;
+      }
       free(fv);
       fv = get_fftview(centerr, zoomlevel, lofp);
       cpgpage();
@@ -428,6 +565,13 @@ int main(int argc, char *argv[])
     case 'l':
       if (DEBUGOUT) printf("  Shifting right...\n");
       centerr += 0.15 * fv->numbins;
+      { /* Should probably get the next chunk from the fftfile... */
+	double highestr;
+
+	highestr = lofp->rlo + lofp->numamps - 0.5 * fv->numbins;
+	if (centerr > highestr)
+	  centerr = highestr;
+      }
       free(fv);
       fv = get_fftview(centerr, zoomlevel, lofp);
       cpgpage();
@@ -482,6 +626,23 @@ int main(int argc, char *argv[])
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
 	offsetf = plot_fftview(fv, maxpow);
+      }
+      break;
+    case 'H': /* Show harmonics */
+    case 'h':
+      {
+	double retval;
+	
+	retval = harmonic_loop(xid, centerr);
+	if (retval > 0.0){
+	  offsetf = 0.0;
+	  centerr = retval;
+	  zoomlevel = LOGDISPLAYNUM - LOGNUMHARMBINS;
+	  free(fv);
+	  fv = get_fftview(centerr, zoomlevel, lofp);
+	  cpgpage();
+	  offsetf = plot_fftview(fv, maxpow);
+	}
       }
       break;
     case '?': /* Print help screen */
