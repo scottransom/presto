@@ -33,6 +33,7 @@ Flag   	-position    	pos	{Raw data in position struct format}
 Flag   	-pos	    	spos	{Raw data in position struct format}
 Flag   	-pkmb    	pks	{Raw data in Parkes Multibeam format}
 Flag   	-pk	    	spks	{Raw data in Parkes Multibeam format}
+Flag   	-bpp    	bpp	{Raw data in BPP format}
 Flag	-fortran        fortran {Raw data was written by a fortran program}
 Int 	-index 		index 	{The range of objects to display} \
 				-r -1 oo  -d 0 " -1"  -c 0 2

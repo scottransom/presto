@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepdata" 1 "21Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "prepdata" 1 "10Apr01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -24,7 +24,8 @@ prepdata \- Prepares a raw data file for pulsar searching or folding (conversion
 .B prepdata
 -o outfile
 [-pkmb]
-[-ebpp]
+[-bcpm]
+[-if ifs]
 [-numout numout]
 [-nobary]
 [-DE405]
@@ -41,8 +42,12 @@ Root of the output file names,
 1 String value
 .IP -pkmb
 Raw data in Parkes Multibeam format.
-.IP -ebpp
-Raw data in Efflesberg-Berkeley Pulsar Processor format.
+.IP -bcpm
+Raw data in Berkeley-Caltech Pulsar Machine (BPP) format.
+.IP -if
+For BPP format only:  A specific IF to use.,
+.br
+1 Int value between 0 and 1.
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br
