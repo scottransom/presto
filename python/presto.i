@@ -1089,17 +1089,6 @@ void fold(float *data, long N, double dt, double tb, double *prof,
 	  int binary, double *delays, double orbto, double orbdt, 
 	  long numdelays, double *onoffpairs, long *totnumfolded);
 
-double delay_from_dm(double dm, double freq_emitted);
-/* Return the delay in seconds caused by dispersion, given  */
-/* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
-/* frequency (freq_emitted) of the pulsar in MHz.           */
-
-
-double dm_from_delay(double delay, double freq_emitted);
-/* Return the Dispersion Measure in cm-3 pc, that would     */
-/* cause a pulse emitted at frequency 'freq_emitted' to be  */
-/* delayed by 'delay' seconds.                              */
-
 
 double doppler(double freq_observed, double voverc);
 /* This routine returns the frequency emitted by a pulsar */
@@ -1262,3 +1251,50 @@ fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween,
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
+double tree_max_dm(int numchan, double dt, double lofreq, double hifreq);
+/* Return the maximum Dispersion Measure (dm) in cm-3 pc, the  */
+/* tree de-dispersion technique can correct for given a sample */
+/* interval 'dt', the number of channels 'numchan', and the    */
+/* low and high observation frequencies in MHz.                */
+
+double smearing_from_bw(double dm, double center_freq, double bandwidth);
+/* Return the smearing in seconds caused by dispersion, given  */
+/* a Dispersion Measure (dm) in cm-3 pc, the central frequency */
+/* and the bandwith of the observation in MHz.                 */
+
+double delay_from_dm(double dm, double freq_emitted);
+/* Return the delay in seconds caused by dispersion, given  */
+/* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
+/* frequency (freq_emitted) of the pulsar in MHz.           */
+
+double dm_from_delay(double delay, double freq_emitted);
+/* Return the Dispersion Measure in cm-3 pc, that would     */
+/* cause a pulse emitted at frequency 'freq_emitted' to be  */
+/* delayed by 'delay' seconds.                              */
+
+%apply int ARRAYLEN { int numchan };
+double *dedisp_delays(int numchan, double dm, double lofreq, 
+		      double chanwidth);
+/* Return an array of delays (sec) for dedispersing 'numchan'  */
+/* channels at a DM of 'dm'.  'lofreq' is the center frequency */
+/* in MHz of the lowest frequency channel.  'chanwidth' is the */
+/* width in MHz of each channel.  The returned array is        */
+/* allocated by this routine.                                  */
+
+%apply int ARRAYLEN { int numchan };
+double *subband_search_delays(int numchan, int numsubbands, double dm, 
+			      double lofreq, double chanwidth);
+/* Return an array of delays (sec) for a subband DM search.  The      */
+/* delays are calculated normally for each of the 'numchan' channels  */
+/* using the appropriate frequencies at the 'dm'.  Then the delay     */
+/* from the highest frequency channel of each of the 'numsubbands'    */
+/* subbands is subtracted from each subband.  This gives the subbands */
+/* the correct delays for each freq in the subband, but the subbands  */
+/* themselves are offset as if they had not been de-dispersed.  This  */
+/* way, we can call dedisp() on the group of subbands if needed.      */
+/* 'lofreq' is the center frequency in MHz of the lowest frequency    */
+/* channel.  'chanwidth' is the width in MHz of each channel.  The    */
+/* returned array is allocated by this routine.                       */
+/* Note:  When performing a subband search, the delays for each       */
+/*   subband must be calculated with the frequency of the highest     */
+/*   channel in each subband, _not_ the center subband frequency.     */

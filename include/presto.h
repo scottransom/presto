@@ -455,18 +455,78 @@ double sumpows_from_sigma(double sigma, int numsum);
 /*  dispersion.c:  */
 /*  Functions to de-disperse data */
 
-void dedisp(unsigned char *data, unsigned char *lastdata, long numpts,
-	    double *dispdelays, long numchan, float *result);
+
+double tree_max_dm(int numchan, double dt, double lofreq, double hifreq);
+/* Return the maximum Dispersion Measure (dm) in cm-3 pc, the  */
+/* tree de-dispersion technique can correct for given a sample */
+/* interval 'dt', the number of channels 'numchan', and the    */
+/* low and high observation frequencies in MHz.                */
+
+double smearing_from_bw(double dm, double center_freq, double bandwidth);
+/* Return the smearing in seconds caused by dispersion, given  */
+/* a Dispersion Measure (dm) in cm-3 pc, the central frequency */
+/* and the bandwith of the observation in MHz.                 */
+
+double delay_from_dm(double dm, double freq_emitted);
+/* Return the delay in seconds caused by dispersion, given  */
+/* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
+/* frequency (freq_emitted) of the pulsar in MHz.           */
+
+double dm_from_delay(double delay, double freq_emitted);
+/* Return the Dispersion Measure in cm-3 pc, that would     */
+/* cause a pulse emitted at frequency 'freq_emitted' to be  */
+/* delayed by 'delay' seconds.                              */
+
+double *dedisp_delays(int numchan, double dm, double lofreq, 
+		      double chanwidth);
+/* Return an array of delays (sec) for dedispersing 'numchan'  */
+/* channels at a DM of 'dm'.  'lofreq' is the center frequency */
+/* in MHz of the lowest frequency channel.  'chanwidth' is the */
+/* width in MHz of each channel.  The returned array is        */
+/* allocated by this routine.                                  */
+
+void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
+	    int numchan, double *dispdelays, float *result);
 /* De-disperse a stretch of data with numpts * numchan points. */
 /* The delays (in bins) are in dispdelays for each channel.    */
 /* The result is returned in result.  The input data and       */
 /* dispdelays are always in ascending frequency order.         */
-/* Data are ordered in time, with each channel in a row for    */
-/* each time point.                                            */
+/* Input data are ordered in time, with the channels stored    */
+/* together at each time point.                                */ 
+
+double *subband_search_delays(int numchan, int numsubbands, double dm, 
+			      double lofreq, double chanwidth);
+/* Return an array of delays (sec) for a subband DM search.  The      */
+/* delays are calculated normally for each of the 'numchan' channels  */
+/* using the appropriate frequencies at the 'dm'.  Then the delay     */
+/* from the highest frequency channel of each of the 'numsubbands'    */
+/* subbands is subtracted from each subband.  This gives the subbands */
+/* the correct delays for each freq in the subband, but the subbands  */
+/* themselves are offset as if they had not been de-dispersed.  This  */
+/* way, we can call dedisp() on the group of subbands if needed.      */
+/* 'lofreq' is the center frequency in MHz of the lowest frequency    */
+/* channel.  'chanwidth' is the width in MHz of each channel.  The    */
+/* returned array is allocated by this routine.                       */
+/* Note:  When performing a subband search, the delays for each       */
+/*   subband must be calculated with the frequency of the highest     */
+/*   channel in each subband, _not_ the center subband frequency.     */
+
+void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
+		     int numpts, int numchan, double *dispdelays,
+		     int numsubbands, unsigned char *result);
+/* De-disperse a stretch of data with numpts * numchan points    */
+/* into numsubbands subbands.  Each time point for each subband  */
+/* is a byte in the result array.  The result array order is     */
+/* subbands of increasing frequency together at each time pt.    */
+/* The delays (in bins) are in dispdelays for each channel.      */
+/* The input data and dispdelays are always in ascending         */
+/* frequency order.  Input data are ordered in time, with the    */
+/* channels stored together at each time point.                  */ 
 
 
 /*  output.c:  */
 /*  Functions for text-based ouput of information  */
+
 
 int nice_output_1(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded  */
@@ -934,17 +994,6 @@ void fold(float *data, long N, double dt, double tb, double *prof, \
 	  long proflen, double fo, double fdot, double fdotdot, \
 	  int binary, double *delays, double orbto, double orbdt, \
 	  long numdelays, double *onoffpairs, long *totnumfolded);
-
-double delay_from_dm(double dm, double freq_emitted);
-  /* Return the delay in seconds caused by dispersion, given  */
-  /* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
-  /* frequency (freq_emitted) of the pulsar in MHz.           */
-
-
-double dm_from_delay(double delay, double freq_emitted);
-  /* Return the Dispersion Measure in cm-3 pc, that would     */
-  /* cause a pulse emitted at frequency 'freq_emitted' to be  */
-  /* delayed by 'delay' seconds.                              */
 
 
 double doppler(double freq_observed, double voverc);

@@ -1648,10 +1648,6 @@ foldfile = prestoc.foldfile
 
 fold = prestoc.fold
 
-delay_from_dm = prestoc.delay_from_dm
-
-dm_from_delay = prestoc.dm_from_delay
-
 doppler = prestoc.doppler
 
 def search_minifft(arg0,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10):
@@ -1673,6 +1669,18 @@ realfft = prestoc.realfft
 corr_rz_plane = prestoc.corr_rz_plane
 
 corr_rz_interp = prestoc.corr_rz_interp
+
+tree_max_dm = prestoc.tree_max_dm
+
+smearing_from_bw = prestoc.smearing_from_bw
+
+delay_from_dm = prestoc.delay_from_dm
+
+dm_from_delay = prestoc.dm_from_delay
+
+dedisp_delays = prestoc.dedisp_delays
+
+subband_search_delays = prestoc.subband_search_delays
 
 
 

@@ -284,8 +284,6 @@ int main(int argc, char *argv[])
 			numbetween, kern_half_width, CORR);
       nextbin = startbin + nr / numbetween;
 
-/* printf("nextbin = %d  nr = %d  rhi = %d\n", nextbin, nr, cmd->rhi);*/
-
       if (zct == 0) {
 
 	/* Get approximate local power statistics */

@@ -16,28 +16,52 @@
 typedef struct s_Cmdline {
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
-  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
+  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED */
   char ebppP;
-  /***** -nobary: Do not barycenter the data */
+  /***** -nobary: Do not barycenter (assume input parameters are topocentric) */
   char nobaryP;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   char de405P;
-  /***** -p: The folding period (s) */
+  /***** -dm: The central DM of the search (cm^-3 pc) */
+  char dmP;
+  double dm;
+  int dmC;
+  /***** -nsub: The number of sub-bands to use for the DM search */
+  char numsubbandsP;
+  int numsubbands;
+  int numsubbandsC;
+  /***** -p: The nominative folding period (s) */
   char pP;
   double p;
   int pC;
-  /***** -pd: The folding period derivative (s/s) */
+  /***** -pd: The nominative period derivative (s/s) */
   char pdotP;
   double pdot;
   int pdotC;
-  /***** -f: The folding frequency (hz) */
+  /***** -pdd: The nominative period 2nd derivative (s/s^2) */
+  char pdotdotP;
+  double pdotdot;
+  int pdotdotC;
+  /***** -f: The nominative folding frequency (hz) */
   char freqP;
   double freq;
   int freqC;
-  /***** -fd: The folding frequency derivative (hz/s) */
+  /***** -fd: The nominative frequency derivative (hz/s) */
   char dfdtP;
   double dfdt;
   int dfdtC;
+  /***** -fdd: The nominative frequency 2nd derivative (hz/s^2) */
+  char d2fdt2P;
+  double d2fdt2;
+  int d2fdt2C;
+  /***** -start: The folding start time as a fraction of the full obs */
+  char startTP;
+  double startT;
+  int startTC;
+  /***** -end: The folding end time as a fraction of the full obs */
+  char endTP;
+  double endT;
+  int endTC;
   /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
   char proflenP;
   int proflen;
@@ -54,14 +78,6 @@ typedef struct s_Cmdline {
   char rzwfileP;
   char* rzwfile;
   int rzwfileC;
-  /***** -bincand: Fold a binary pulsar but take the input data from this candidate number in 'infile'_bin.cand */
-  char bincandP;
-  int bincand;
-  int bincandC;
-  /***** -onoff: A list of white-space separated pairs of numbers from 0.0 to 1.0 that designate barycentric times in our data set when we will actually keep the data. (i.e. '-onoff 0.1 0.4 0.7 0.9' means that we will fold the data set during the barycentric times 0.1-0.4 and 0.7-0.9 of the total time length of the data set) */
-  char onoffP;
-  char* onoff;
-  int onoffC;
   /***** -bin: Fold a binary pulsar.  Must include all of the following parameters */
   char binaryP;
   /***** -pb: The orbital period (s) */

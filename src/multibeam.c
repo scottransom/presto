@@ -137,7 +137,7 @@ int read_multibeam(FILE * infile, float *data, int numpts,
 
   /* De-disperse the data */
 
-  dedisp(currentdata, lastdata, pts_per_read, dispdelays, numchan, data);
+  dedisp(currentdata, lastdata, pts_per_read, numchan, dispdelays, data);
 
   /* Exit if we have reached the EOF */
 

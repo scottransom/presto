@@ -531,7 +531,7 @@ usage(void)
             default: `0.0'\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 string value\n\
-version: 22Nov99\n\
+version: 27Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }

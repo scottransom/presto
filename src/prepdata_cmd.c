@@ -503,7 +503,7 @@ usage(void)
            default: `0'\n\
    infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
            1 string value\n\
-version: 22Nov99\n\
+version: 27Nov99\n\
 ");
   exit(EXIT_FAILURE);
 }
