@@ -217,7 +217,7 @@ static long _output_matrixcols = 0;
 }
 
 
-%typemap(python, in) float* IN_2D_DOUBLE {
+%typemap(python, in) double* IN_2D_DOUBLE {
   PyObject *obj;
   PyArrayObject *arr;
   int i, j;
