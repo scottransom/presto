@@ -119,6 +119,11 @@ typedef struct s_Cmdline {
   char psrnameP;
   char* psrname;
   int psrnameC;
+  /***** -polycos: File containing TEMPO polycos for psrname (not
+required) */
+  char polycofileP;
+  char* polycofile;
+  int polycofileC;
   /***** -obs: Two letter TEMPO observatory code (for barycentering) */
   char obscodeP;
   char* obscode;
