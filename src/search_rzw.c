@@ -218,21 +218,41 @@ int main(int argc, char *argv[])
     }
   }
 
-  /* rlo and rhi */
+  /* flo, fhi, rlo, rhi */
 
-  if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
-  if ((unsigned long) cmd->rlo > nbins - 1) {
-    printf("\nLow frequency to search 'rlo' is greater than\n");
-    printf("   the available number of points.  Exiting.\n\n");
-    exit(1);
+  if (cmd->floP){
+    cmd->rlo = cmd->flo*T;
+    if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
+    if (cmd->rlo > nbins - 1) {
+      printf("\nLow frequency to search 'flo' is greater than\n");
+      printf("   the highest available frequency.  Exiting.\n\n");
+      exit(1);
+    }
+  } else {
+    if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
+    if (cmd->rlo > nbins - 1) {
+      printf("\nLow frequency to search 'rlo' is greater than\n");
+      printf("   the available number of points.  Exiting.\n\n");
+      exit(1);
+    }
   }
-  if (!cmd->rhiP) highestbin = nbins - 1;
-  else highestbin = (unsigned long) cmd->rhi;
-  if (highestbin > nbins - 1) highestbin = nbins - 1;
-  if (highestbin < (unsigned long) cmd->rlo){
-    printf("\nHigh frequency to search 'rhi' is less than\n");
-    printf("   the lowest frequency to search 'rlo'.  Exiting.\n\n");
-    exit(1);
+  highestbin = nbins - 1;
+  if (cmd->fhiP){
+    highestbin = (unsigned long) (cmd->fhi * T);
+    if (highestbin > nbins - 1) highestbin = nbins - 1;
+    if (highestbin < (unsigned long) cmd->rlo){
+      printf("\nHigh frequency to search 'fhi' is less than\n");
+      printf("   the lowest frequency to search 'flo'.  Exiting.\n\n");
+      exit(1);
+    }
+  } else if (cmd->rhiP){
+    highestbin = (unsigned long) cmd->rhi;
+    if (highestbin > nbins - 1) highestbin = nbins - 1;
+    if (highestbin < (unsigned long) cmd->rlo){
+      printf("\nHigh frequency to search 'rhi' is less than\n");
+      printf("   the lowest frequency to search 'rlo'.  Exiting.\n\n");
+      exit(1);
+    }
   }
 
   /* Allocate some memory */

@@ -14,7 +14,7 @@
 
 void split_path_file(char *input, char **path, char **file)
 /* This routine splits an input string into a path and */
-/* a filename.  Since is allocates the memory for the  */
+/* a filename.  Since it allocates the memory for the  */
 /* path and filename dynamically, the calling program  */
 /* must free both "path" and "file".                   */
 {
@@ -47,7 +47,7 @@ void split_path_file(char *input, char **path, char **file)
 
 int split_root_suffix(char *input, char **root, char **suffix)
 /* This routine splits an input string into a root name */
-/* + suffix.  Since is allocates the memory for the     */
+/* + suffix.  Since it allocates the memory for the     */
 /* root and suffix dynamically, the calling program     */
 /* must free both "root" and "suffix".                  */
 /* If the routine finds a suffix, it returns 1, else 0. */
@@ -59,7 +59,6 @@ int split_root_suffix(char *input, char **root, char **suffix)
   sptr = strrchr(input, '.');
   if (sptr==NULL){
     *root = (char *)calloc(len+1, sizeof(char));
-    (*root)[len] = '\0';
     strncpy(*root, input, len);
     return 0;
   } else {
