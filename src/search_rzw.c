@@ -41,7 +41,7 @@ int remove_other(fourierprops * list, int nlist, long rlo,
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile, *poscandfile;
-  double dt, nph, T, N, bigz, hir, hiz, dz=2.0, dr;
+  double dt, nph, T, N, bigz, hir, hiz, dz=2.0, dr, tempzz=0.0;
   double *zapfreqs=NULL, *zapwidths=NULL, totnumsearched=0.0;
   float powargr, powargi, locpow=1.0, *powlist, lowpowlim;
   float chkpow=0.0, hipow=0.0, minpow=0.0, numr=0.0;
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
   unsigned long startbin, nextbin, nbins, highestbin;
   int numbetween=2, numkern, kern_half_width;
   int nr=1, nz, corrsize=0, mincorrsize, worknumbins=0;
-  int ii, zct, filedatalen, numzap=0;
+  int ii, zct, filedatalen, numzap=0, spot=0;
   int ncand, newncand, oldper=0, newper=0;
   char filenm[200], candnm[200], poscandnm[200], *notes;
   char rzwnm[200];
@@ -111,8 +111,27 @@ int main(int argc, char *argv[])
 
     /* Convert the freqs to bins */
 
-    for (ii = 0; ii < numzap; ii++)
+    tempzz = N / 2.0;  /* Nyquist Freq */
+    for (ii = 0; ii < numzap; ii++){
       zapfreqs[ii] *= T * (1.0 + cmd->baryv);
+
+      /* If the zapfreq is greater than the Nyquist, alias it */
+
+      if (zapfreqs[ii] > tempzz) 
+	zapfreqs[ii] = N - zapfreqs[ii]; 
+    }
+
+    /* Make sure that our list is sorted.  */
+    /* (Since it should be mostly sorted,  */
+    /* we will brute force the sort.)      */
+
+    for (ii = 0; ii < numzap - 1;){
+      if (zapfreqs[ii] > zapfreqs[ii+1]){
+	  SWAP(zapfreqs[ii], zapfreqs[ii+1]);
+	  SWAP(zapwidths[ii], zapwidths[ii+1]);
+	  ii = 0;
+      } else ii++;
+    }
   }
 
   /* open the FFT file and get its length */
@@ -327,9 +346,11 @@ int main(int argc, char *argv[])
 	  /* Check to see if another candidate with these properties */
 	  /* is already in the list.                                 */
 
-	  if (not_already_there_rzw(&newpos, list, ncand)) {
-	    list[ncand - 1] = newpos;
-	    minpow = percolate(list, ncand);
+	  spot = not_already_there_rzw(&newpos, list, ncand);
+
+	  if (spot >= 0) {
+	    list[spot] = newpos;
+	    minpow = percolate(list, ncand, spot);
 	  }
 	}
       }
@@ -465,17 +486,29 @@ int not_already_there_rzw(position * newpos, position * list, int nlist)
   for (ii = 0; ii < nlist; ii++) {
     if (list[ii].pow == 0.0)
       break;
-
-    /* Do not add the candidate to the list if it is a lower power */
-    /* version of an already listed candidate.                     */
+    
+    /* Check to see if the positions of the candidates match */
 
     if ((fabs(newpos->p1 - list[ii].p1) < 0.51) &&
 	(fabs(newpos->p2 - list[ii].p2) < 2.01) &&
-	(fabs(newpos->p3 - list[ii].p3) < 5.0) &&
-	(newpos->pow < list[ii].pow))
-      return 0;
+	(fabs(newpos->p3 - list[ii].p3) < 5.0)){
+      
+      /* If the previous candidate is simply a lower power   */
+      /* version of the new candidate, overwrite the old and */
+      /* percolate it to its proper position.                */
+
+      if (list[ii].pow < newpos->pow){
+	return ii;
+	
+      /* Otherwise, skip the new candidate.  Its already there. */
+
+      }	else return -1;
+    }
   }
-  return 1;
+
+  /* Place the new candidate in the last position */
+
+  return nlist - 1;
 }
 
 

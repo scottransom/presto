@@ -108,23 +108,23 @@ int compare_fourierprops(void *ca, void *cb)
   return 0;
 }
 
-float percolate(position * list, int nlist)
+
+float percolate(position * list, int nlist, int spot)
 /*  Pushes a position structure as far up a sorted list of positions */
 /*  as it needs to go to keep the list sorted.  Returns the new low  */
 /*  power in the list.                                               */
 {
-  int ct;
+  int ii;
   position tempzz;
 
-  for (ct = nlist - 2; ct >= 0; ct--) {
-    if (list[ct].pow < list[ct + 1].pow) {
-      SWAP(list[ct], list[ct + 1]);
-    } else {
-      break;
-    }
+  ii = spot;
+  while (list[ii-1].pow < list[ii].pow && ii > 0){
+    SWAP(list[ii-1], list[ii]);
+    ii--;
   }
   return list[nlist - 1].pow;
 }
+
 
 float percolate_bin(binaryprops * list, int nlist)
 /*  Pushes a binaryprops structure as far up a sorted list of structs */
@@ -171,7 +171,7 @@ int remove_dupes(position * list, int nlist)
       } else j++;
     }
   }
-  printf("Removed %d duplicates\n", ct);
+  printf("Removed %d duplicate candidates.\n", ct);
   return ct;
 }
 
@@ -233,7 +233,7 @@ int remove_dupes2(fourierprops * list, int nlist)
       } else j++;
     }
   }
-  printf("Removed %d fine duplicates\n", ct);
+  printf("Removed %d duplicate optimized candidates.\n", ct);
   return ct;
 }
 
@@ -264,7 +264,7 @@ int remove_other(fourierprops * list, int nlist, long rlo,
       ct++;
     } else i++;
   }
-  printf("Removed %d others\n", ct);
+  printf("Removed %d candidates for various reasons.\n", ct);
   return ct;
 }
 
