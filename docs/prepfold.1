@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "06Nov01" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "10Apr02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -32,6 +32,10 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-DE405]
 [-xwin]
 [-runavg]
+[-nosearch]
+[-scaleparts]
+[-allgrey]
+[-justprofs]
 [-dm dm]
 [-n proflen]
 [-nsub nsub]
@@ -53,6 +57,7 @@ prepfold \- Prepares a raw, multichannel, radio data file and folds it looking f
 [-start startT]
 [-end endT]
 [-psr psrname]
+[-polycos polycofile]
 [-obs obscode]
 [-rzwcand rzwcand]
 [-rzwfile rzwfile]
@@ -102,6 +107,14 @@ Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 Show the result plots on-screen as well as make a plotfile.
 .IP -runavg
 Subtract each blocks average as it is read (single channel data only).
+.IP -nosearch
+Show but do not search the p/pdot and/or DM phase spaces.
+.IP -scaleparts
+Scale the part profiles independently.
+.IP -allgrey
+Make all the images greyscale instead of color.
+.IP -justprofs
+Only output the profile portions of the plot.
 .IP -dm
 The central DM of the search (cm^-3 pc),
 .br
@@ -218,6 +231,10 @@ The folding end time as a fraction of the full obs,
 Default: `1.0'
 .IP -psr
 Name of pulsar to fold (do not include J or B),
+.br
+1 String value
+.IP -polycos
+File containing TEMPO polycos for psrname (not required),
 .br
 1 String value
 .IP -obs
