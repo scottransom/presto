@@ -26,9 +26,9 @@ static Cmdline cmd = {
   /* lobinP = */ 1,
   /* lobin = */ 0,
   /* lobinC = */ 1,
-  /***** -numharm: The number of harmonics to sum */
+  /***** -numharm: The number of harmonics to sum (power-of-two) */
   /* numharmP = */ 1,
-  /* numharm = */ 4,
+  /* numharm = */ 8,
   /* numharmC = */ 1,
   /***** -zmax: The max (+ and -) Fourier freq deriv to search */
   /* zmaxP = */ 1,
@@ -762,7 +762,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -numharm: The number of harmonics to sum */
+  /***** -numharm: The number of harmonics to sum (power-of-two) */
   if( !cmd.numharmP ) {
     printf("-numharm not found.\n");
   } else {
@@ -866,9 +866,9 @@ usage(void)
     -lobin: The first Fourier frequency in the data file\n\
             1 int value between 0 and oo\n\
             default: `0'\n\
-  -numharm: The number of harmonics to sum\n\
-            1 int value between 1 and 4\n\
-            default: `4'\n\
+  -numharm: The number of harmonics to sum (power-of-two)\n\
+            1 int value between 1 and 16\n\
+            default: `8'\n\
      -zmax: The max (+ and -) Fourier freq deriv to search\n\
             1 int value between 0 and 300\n\
             default: `100'\n\
@@ -887,7 +887,7 @@ usage(void)
             default: `4000.0'\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 31Jan01\n\
+version: 15May01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -919,7 +919,7 @@ parseCmdline(int argc, char **argv)
       keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numharm, 1);
       cmd.numharmC = i-keep;
-      checkIntLower("-numharm", &cmd.numharm, cmd.numharmC, 4);
+      checkIntLower("-numharm", &cmd.numharm, cmd.numharmC, 16);
       checkIntHigher("-numharm", &cmd.numharm, cmd.numharmC, 1);
       continue;
     }

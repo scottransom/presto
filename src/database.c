@@ -372,9 +372,8 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
   static int np=0;
   static psrdatabase pdata;
   static infodata *old_idata;
-  double theop, theoz, sidedp, sidedr=20.0;
-  double p_criteria, z_criteria, pdiff, zdiff;
-  double errmult=3.0, difft=0;
+  double theor, theoz, sidedr=20.0;
+  double r_criteria, z_criteria, rdiff, zdiff, difft=0;
   static double T, beam2, ra, dec, epoch;
   char tmp1[80], tmp2[80], tmp3[80], shortout[30], psrname[20];
   rzwerrs rzws;
@@ -388,7 +387,6 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
   /* initialize some values.                               */
 
   if (idata != old_idata) {
-
     /* Convert the beam width to radians */
 
     beam2 = 2.0 * ARCSEC2RAD * idata->fov;
@@ -407,7 +405,6 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
   /* Calculate the measured r, z, w's and their derivatives */
 
   calc_rzwerrs(cand, T, &rzws);
-  sidedp = sidedr * T / (cand->r * (cand->r + sidedr));
 
   /* Run through RAs in database looking for things close  */
   /* If find one, check the DEC as well (the angle between */
@@ -429,8 +426,8 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 	/* Predict the period of the pulsar at the observation MJD */
 
 	difft = SECPERDAY * (epoch - pdata.epoch[i]);
-	theop = pdata.p[i] + pdata.pdot[i] * difft;
-	theoz = -pdata.pdot[i] * T * T / (theop * theop);
+	theor = T / (pdata.p[i] + pdata.pdot[i] * difft);
+	theoz = -pdata.pdot[i] * theor * theor;
 
 	/* Check the predicted period and its harmonics against the */
 	/* measured period.                                         */
@@ -442,26 +439,29 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 	  /* This accounts for Doppler variations in period.  */
 
 	  if (pdata.ntype[i] & 8) {
-	    p_criteria = 0.001 * theop / j;  /* 0.1% fractional error   */
+	    r_criteria = 0.001 * theor * j;  /* 0.1% fractional error   */
 	    z_criteria = 9999999999.0;	     /* Always match for binary */
 	    strcpy(tmp1, "?");
 	    if (full) {
 	      strcpy(tmp3, "Possibly (large error) ");
 	    }
 	  } else {
-	    p_criteria = ((j > errmult) ? j * rzws.perr : \
-			  errmult * rzws.perr);
-	    z_criteria = 2.5 * cand->zerr;
+	    r_criteria = 5.0;                /* 5 bin error matching... */
+	    z_criteria = 9999999999.0;	     /* Always match for binary */
+	    /* z_criteria = 2.5 * cand->zerr; */
 	    strcpy(tmp1, "");
 	    if (full) {
 	      strcpy(tmp3, "Looks like ");
 	    }
 	  }
 
-	  pdiff = fabs(theop / j - rzws.p);
-	  zdiff = fabs(theoz / j - cand->z);
+	  if (theor*j > 1.5*cand->r)
+	    break;
 
-	  if (pdiff < p_criteria && zdiff < z_criteria) {
+	  rdiff = fabs(theor * j - cand->r);
+	  zdiff = fabs(theoz * j - cand->z);
+
+	  if (rdiff < r_criteria && zdiff < z_criteria) {
 	    sprintf(tmp2, "%.8s", pdata.bname + i * 8);
 	    if (strcmp("        ", tmp2)==0){
 	      sprintf(tmp2, "%.12s", pdata.jname + i * 12);
@@ -473,7 +473,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 	      if (full) {
 		sprintf(tmp1, "the fundamental of ");
 		sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n", \
-			psrname, theop);
+			psrname, T/theor);
 		sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
 	      } else {
 		sprintf(shortout, "PSR %s%s", psrname, tmp1);
@@ -483,7 +483,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 	      if (full) {
 		sprintf(tmp1, "the %s harmonic of ", num[j]);
 		sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n", \
-			psrname, theop);
+			psrname, T/theor);
 		sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
 	      } else {
 		sprintf(shortout, "%s H %s%s", num[j], psrname, tmp1);
@@ -491,7 +491,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 	      }
 	    }
 	    return i + 1;
-	  } else if (pdiff < sidedp) {
+	  } else if (rdiff < sidedr) {
 	    sprintf(tmp2, "%.8s", pdata.bname + i * 8);
 	    if (strcmp("        ", tmp2)==0){
 	      sprintf(tmp2, "%.12s", pdata.jname + i * 12);
@@ -502,7 +502,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 	    if (full) {
 	      sprintf(tmp1, "a sidelobe of the %s harmonic of ", num[j]);
 	      sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n", \
-		      psrname, theop);
+		      psrname, T/theor);
 	      sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
 	    } else {
 	      sprintf(shortout, "SL H%d %s", j, psrname);

@@ -8,6 +8,22 @@
 
 #define NEAREST_INT(x) (int) (x < 0 ? x - 0.5 : x + 0.5)
 
+/* Return 2**n */
+#define index_to_twon(n) (1<<n)
+
+/* Return x such that 2**x = n */
+static inline int twon_to_index(int n)
+{
+  int x=0;
+
+  while(n>1){
+    n >>= 1;
+    x++;
+  }
+  return x;
+}
+
+
 static inline int calc_required_z(int numharm, int harmnum, double zfull)
 /* Calculate the 'z' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
@@ -18,6 +34,7 @@ static inline int calc_required_z(int numharm, int harmnum, double zfull)
   zz = ACCEL_RDZ * (zfull / numharm) * harmnum;
   return NEAREST_INT(zz) * ACCEL_DZ;
 }
+
 
 static inline double calc_required_r(int numharm, int harmnum, double rfull)
 /* Calculate the 'r' you need for subharmonic     */
@@ -141,27 +158,28 @@ static void init_subharminfo(int numharm, int harmnum,
 }
 
 
-subharminfo **create_subharminfos(int numharm, int zmax)
+subharminfo **create_subharminfos(int numharmstages, int zmax)
 {
-  int ii, jj;
+  int ii, jj, harmtosum;
   subharminfo **shis;
 
-  shis = (subharminfo **)malloc((numharm + 1) * sizeof(subharminfo *));
+  shis = (subharminfo **)malloc(numharmstages * sizeof(subharminfo *));
   /* Prep the fundamental */
-  shis[1] = (subharminfo *)malloc(2 * sizeof(subharminfo));
-  init_subharminfo(1, 1, zmax, &shis[1][1]);
-  printf("  Fundamental  has %3d kernels from z = %4d to %4d\n", 
-	 shis[1][1].numkern, -shis[1][1].zmax, shis[1][1].zmax);
+  shis[0] = (subharminfo *)malloc(2 * sizeof(subharminfo));
+  init_subharminfo(1, 1, zmax, &shis[0][0]);
+  printf("  Fundamental  has %3d kernels from z = %4d to %4d,  FFT length = %d\n", 
+	 shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
+	 calc_fftlen(1, 1, shis[0][0].zmax));
   /* Prep the sub-harmonics */
-  for (ii=2; ii<=numharm; ii++){
-    shis[ii] = (subharminfo *)malloc(ii * sizeof(subharminfo));
-    for (jj=1; jj<ii; jj++){
-      if (jj==1 || ii % jj){
-	init_subharminfo(ii, jj, zmax, &shis[ii][jj]);
-	printf("  Harmonic %d/%d has %3d kernels from z = %4d to %4d\n", 
-	       jj, ii, shis[ii][jj].numkern, 
-	       -shis[ii][jj].zmax, shis[ii][jj].zmax);
-      }
+  for (ii=1; ii<numharmstages; ii++){
+    harmtosum = index_to_twon(ii);
+    shis[ii] = (subharminfo *)malloc(harmtosum * sizeof(subharminfo));
+    for (jj=1; jj<harmtosum; jj+=2){
+      init_subharminfo(harmtosum, jj, zmax, &shis[ii][jj-1]);
+      printf("  Harmonic %d/%d has %3d kernels from z = %4d to %4d,  FFT length = %d\n", 
+	     jj, harmtosum, shis[ii][jj-1].numkern, 
+	     -shis[ii][jj-1].zmax, shis[ii][jj-1].zmax,
+	     calc_fftlen(harmtosum, jj, shis[ii][jj-1].zmax));
     }
   }
   return shis;
@@ -182,21 +200,21 @@ static void free_subharminfo(subharminfo *shi)
 }
 
 
-void free_subharminfos(int numharm, subharminfo **shis)
+void free_subharminfos(int numharmstages, subharminfo **shis)
 {
-  int ii, jj;
+  int ii, jj, harmtosum;
 
   /* Free the sub-harmonics */
-  for (ii=2; ii<=numharm; ii++){
-    for (jj=1; jj<ii; jj++){
-      if (jj==1 || ii % jj)
-	free_subharminfo(&shis[ii][jj]);
+  for (ii=1; ii<numharmstages; ii++){
+    harmtosum = index_to_twon(ii);
+    for (jj=1; jj<harmtosum; jj+=2){
+      free_subharminfo(&shis[ii][jj-1]);
     }
     free(shis[ii]);
   }
   /* Free the fundamental */
-  free_subharminfo(&shis[1][1]);
-  free(shis[1]);
+  free_subharminfo(&shis[0][0]);
+  free(shis[0]);
   /* Free the container */
   free(shis);
 }
@@ -357,7 +375,7 @@ void optimize_accelcand(accelcand *cand, accelobs *obs)
     cand->hirs[ii] += obs->lobin;
   }
   cand->sigma = candidate_sigma(cand->power, cand->numharm, 
-				obs->numindep[cand->numharm-1]);
+				obs->numindep[twon_to_index(cand->numharm)]);
 }
 
 
@@ -432,7 +450,8 @@ void output_fundamentals(fourierprops *props, GSList *list,
   
   /* Compare the candidates with the pulsar database */
 
-  if (idata->ra_h && idata->dec_d){
+  if (dms2rad(idata->ra_h, idata->ra_m, idata->ra_s) != 0.0 && 
+      hms2rad(idata->dec_d, idata->dec_m, idata->dec_s) != 0.0){
     for (ii=0; ii<numcands; ii++){
       comp_psr_to_cand(props + ii, idata, notes + ii * 20, 0);
     }
@@ -505,22 +524,22 @@ void output_fundamentals(fourierprops *props, GSList *list,
 }
 
 
-void output_harmonics(GSList *list, accelobs *obs)
+void output_harmonics(GSList *list, accelobs *obs, infodata *idata)
 {
-  int ii, jj, numcols=12, numcands;
-  int widths[12]={5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 10, 10};
-  int errors[12]={0, 0, 0,  2,  0,  2,  0,  2, 0,  2,  2,  2};
-  char tmpstr[30], ctrstr[30], command[200];
+  int ii, jj, numcols=13, numcands;
+  int widths[13]={5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 10, 10, 20};
+  int errors[13]={0, 0, 0,  2,  0,  2,  0,  2, 0,  2,  2,  2, 0};
+  char tmpstr[30], ctrstr[30], command[200], notes[21];
   accelcand *cand;
   GSList *listptr;
   fourierprops props;
   rzwerrs errs;
   static char *titles1[]={"", "", "", "Power /", "Raw", 
 			  "FFT 'r'", "Pred 'r'", "FFT 'z'", "Pred 'z'", 
-			  "Phase", "Centroid", "Purity"};
+			  "Phase", "Centroid", "Purity", ""};
   static char *titles2[]={"Cand", "Harm", "Sigma", "Loc Pow", "Power", 
 			  "(bin)", "(bin)", "(bins)", "(bins)", 
-			  "(rad)", "(0-1)", "<p> = 1"};
+			  "(rad)", "(0-1)", "<p> = 1", "Notes"};
 
   numcands = g_slist_length(list);
   listptr = list;
@@ -556,6 +575,7 @@ void output_harmonics(GSList *list, accelobs *obs)
       calc_props(cand->derivs[jj], cand->hirs[jj], 
 		 cand->hizs[jj], 0.0, &props);
       calc_rzwerrs(&props, obs->T, &errs);
+      comp_psr_to_cand(&props, idata, notes, 0);
       if (jj==0) sprintf(tmpstr, " %-4d", ii+1);
       else sprintf(tmpstr, "     ");
       center_string(ctrstr, tmpstr, widths[0]);
@@ -587,7 +607,7 @@ void output_harmonics(GSList *list, accelobs *obs)
 			 errors[10], widths[10]);
       write_val_with_err(obs->workfile, props.pur, props.purerr, 
 			 errors[11], widths[11]);
-      fprintf(obs->workfile, "\n");
+      fprintf(obs->workfile, "  %.20s\n", notes);
       fflush(obs->workfile);
     }     
     listptr = listptr->next;
@@ -752,8 +772,8 @@ GSList *search_ffdotpows(ffdotpows *ffdot, int numharm,
   float powcut;
   long long numindep;
   
-  powcut = obs->powcut[numharm-1];
-  numindep = obs->numindep[numharm-1];
+  powcut = obs->powcut[twon_to_index(numharm)];
+  numindep = obs->numindep[twon_to_index(numharm)];
 
   for (ii=0; ii<ffdot->numzs; ii++){
     for (jj=0; jj<ffdot->numrs; jj++){
@@ -845,7 +865,16 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
       exit(1);
     }
   }
-  obs->numharm = cmd->numharm;
+  if (cmd->numharm != 1 &&
+      cmd->numharm != 2 &&
+      cmd->numharm != 4 &&
+      cmd->numharm != 8 &&
+      cmd->numharm != 16){
+      printf("\n'numharm' = %d must be a power-of-two!  Exiting\n\n", 
+	     cmd->numharm);
+      exit(1);
+  }
+  obs->numharmstages = twon_to_index(cmd->numharm)+1;
   obs->dz = ACCEL_DZ;
   obs->numz = cmd->zmax * 2 + 1;
   obs->numbetween = ACCEL_NUMBETWEEN;
@@ -896,18 +925,19 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
   obs->zhi = cmd->zmax;
   obs->zlo = -cmd->zmax;
   obs->sigma = cmd->sigma;
-  obs->powcut = (float *)malloc(obs->numharm * sizeof(float));
-  obs->numindep = (long long *)malloc(obs->numharm * sizeof(long long));
-  for (ii=1; ii<=obs->numharm; ii++){
+  obs->powcut = (float *)malloc(obs->numharmstages * sizeof(float));
+  obs->numindep = (long long *)malloc(obs->numharmstages * sizeof(long long));
+  for (ii=0; ii<obs->numharmstages; ii++){
     if (obs->numz==1)
-      obs->numindep[ii-1] = obs->rhi - obs->rlo;
+      obs->numindep[ii] = obs->rhi - obs->rlo;
     else
       /* The numz+1 takes care of the small amount of  */
       /* search we get above zmax and below zmin.      */
-      obs->numindep[ii-1] = (obs->rhi - obs->rlo) * (obs->numz + 1) * 
-	(obs->dz / 6.95) / ii;
-    obs->powcut[ii-1] = power_for_sigma(obs->sigma, ii, 
-					obs->numindep[ii-1]);
+      obs->numindep[ii] = (obs->rhi - obs->rlo) * (obs->numz + 1) * 
+	(obs->dz / 6.95) / index_to_twon(ii);
+    obs->powcut[ii] = power_for_sigma(obs->sigma, 
+				      index_to_twon(ii), 
+				      obs->numindep[ii]);
   }
   obs->numzap = 0;
   /*

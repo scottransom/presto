@@ -66,7 +66,8 @@ int main(int argc, char *argv[])
   /* Create the accelobs structure */
   
   create_accelobs(&obs, &idata, cmd);
-  printf("Searching with up to %d harmonics summed:\n", obs.numharm);
+  printf("Searching with up to %d harmonics summed:\n", 
+	 1<<(obs.numharmstages-1));
   printf("  f = %.1f to %.1f\n", obs.rlo/obs.T, obs.rhi/obs.T);
   printf("  r = %.1f to %.1f\n", obs.rlo, obs.rhi);
   printf("  z = %.1f to %.1f\n\n", obs.zlo, obs.zhi);
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
   /* Generate the correlation kernels */
   
   printf("Generating correlation kernels:\n");
-  subharminfs = create_subharminfos(obs.numharm, (int) obs.zhi);
+  subharminfs = create_subharminfos(obs.numharmstages, (int) obs.zhi);
   printf("Done generating kernels.\n\n");
   printf("Starting the search.\n");
   printf("  Working candidates in a test format are in '%s'.\n\n", 
@@ -86,58 +87,31 @@ int main(int argc, char *argv[])
     double startr=obs.rlo, lastr=0, nextr=0;
     ffdotpows *fundamental;
     
-    while (startr < obs.highestbin){  /* Search the fundamental */
+    while (startr + ACCEL_USELEN * ACCEL_DR < obs.highestbin){
+      /* Search the fundamental */
       print_percent_complete(startr-obs.rlo, 
 			     obs.highestbin-obs.rlo, "search", 0);
       nextr = startr + ACCEL_USELEN * ACCEL_DR;
       lastr = nextr - ACCEL_DR;
       fundamental = subharm_ffdot_plane(1, 1, startr, lastr, 
-					&subharminfs[1][1], &obs);
+					&subharminfs[0][0], &obs);
       cands = search_ffdotpows(fundamental, 1, &obs, cands);
       
-      if (obs.numharm > 1){   /* Search the subharmonics */
-	ffdotpows *fundamental_copy, *subharmonic;
+      if (obs.numharmstages >= 2){   /* Search the subharmonics */
+	int stage, harmtosum, harm;
+	ffdotpows *subharmonic;
 	
-	fundamental_copy = copy_ffdotpows(fundamental);
-
-	/* Search the 1/2 subharmonic (i.e. 1/2 fundamental) */
-
-	subharmonic = subharm_ffdot_plane(2, 1, startr, lastr, 
-					  &subharminfs[2][1], &obs);
-	add_ffdotpows(fundamental, subharmonic, 2, 1);
-	free_ffdotpows(subharmonic);
-	cands = search_ffdotpows(fundamental, 2, &obs, cands);
-
-	/* Search the 1/4 subharmonic by building on the 1/2 */
-
-	if (obs.numharm >= 4){
-	  subharmonic = subharm_ffdot_plane(4, 1, startr, lastr, 
-					    &subharminfs[4][1], &obs);
-	  add_ffdotpows(fundamental, subharmonic, 4, 1);
-	  free_ffdotpows(subharmonic);
-	  subharmonic = subharm_ffdot_plane(4, 3, startr, lastr, 
-					    &subharminfs[4][3], &obs);
-	  add_ffdotpows(fundamental, subharmonic, 4, 3);
-	  free_ffdotpows(subharmonic);
-	  cands = search_ffdotpows(fundamental, 4, &obs, cands);
+	for (stage=2; stage<=obs.numharmstages; stage++){
+	  harmtosum = 1<<(stage-1);
+	  for (harm=1; harm<harmtosum; harm+=2){
+	    subharmonic = subharm_ffdot_plane(harmtosum, harm, startr, lastr, 
+					      &subharminfs[stage-1][harm-1], 
+					      &obs);
+	    add_ffdotpows(fundamental, subharmonic, harmtosum, harm);
+	    free_ffdotpows(subharmonic);
+	  }
+	  cands = search_ffdotpows(fundamental, harmtosum, &obs, cands);
 	}
-	
-	/* Search the 1/3 subharmonic (work from scratch) */
-
-	if (obs.numharm >= 3){
-	  free_ffdotpows(fundamental);
-	  fundamental = copy_ffdotpows(fundamental_copy);
-	  subharmonic = subharm_ffdot_plane(3, 1, startr, lastr, 
-					    &subharminfs[3][1], &obs);
-	  add_ffdotpows(fundamental, subharmonic, 3, 1);
-	  free_ffdotpows(subharmonic);
-	  subharmonic = subharm_ffdot_plane(3, 2, startr, lastr, 
-					    &subharminfs[3][2], &obs);
-	  add_ffdotpows(fundamental, subharmonic, 3, 2);
-	  free_ffdotpows(subharmonic);
-	  cands = search_ffdotpows(fundamental, 3, &obs, cands);
-	}
-	free_ffdotpows(fundamental_copy);
       }
       free_ffdotpows(fundamental);
       startr = nextr;
@@ -147,7 +121,7 @@ int main(int argc, char *argv[])
   }
 
   printf("\n\nDone searching.  Now optimizing each candidate.\n\n");
-  free_subharminfos(obs.numharm, subharminfs);
+  free_subharminfos(obs.numharmstages, subharminfs);
 
   {
     int numcands;
@@ -191,7 +165,7 @@ int main(int argc, char *argv[])
       
       /* Write the harmonics to the output text file */
       
-      output_harmonics(cands, &obs);
+      output_harmonics(cands, &obs, &idata);
       
       /* Write the fundamental fourierprops to the cand file */
       
@@ -210,8 +184,8 @@ int main(int argc, char *argv[])
 
   printf("Searched the following approx numbers of independent points:\n");
   printf("  %d harmonic:   %9lld\n", 1, obs.numindep[0]);
-  for (ii=1; ii<obs.numharm; ii++)
-    printf("  %d harmonics:  %9lld\n", ii+1, obs.numindep[ii]);
+  for (ii=1; ii<obs.numharmstages; ii++)
+    printf("  %d harmonics:  %9lld\n", 1<<ii, obs.numindep[ii]);
   
   printf("\nTiming summary:\n");
   tott = times(&runtimes) / (double) CLK_TCK - tott;
