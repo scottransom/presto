@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
   double polyco_phase=0.0, polyco_phase0=0.0;
   double *obsf=NULL, *dispdts=NULL, *parttimes=NULL, *Ep=NULL, *tp=NULL;
   double *barytimes=NULL, *topotimes=NULL, *bestprof, dtmp;
-  double *buffers, *phasesadded, *events=NULL;
+  double *buffers, *phasesadded, *events=NULL, orig_foldf=0.0;
   char *plotfilenm, *outfilenm, *rootnm, *root, *suffix;
   char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
   int numfiles, numevents, numchan=1, binary=0, numdelays=0, numbarypts=0;
@@ -1145,6 +1145,7 @@ int main(int argc, char *argv[])
     /* Data is already barycentered or the polycos will take care of the barycentering*/
     if (!(RAWDATA || insubs) || cmd->polycofileP){
       foldf = f;  foldfd = fd;  foldfdd = fdd;
+      orig_foldf = foldf;
     } else { /* Correct our fold parameters if we are barycentering */
       double *voverc;
     
@@ -1355,6 +1356,9 @@ int main(int argc, char *argv[])
     free(buffers);
     free(phasesadded);
   }
+  /* This resets foldf (which is used below) to the original value */
+  if (cmd->polycofileP)
+    foldf = orig_foldf;
   for (ii=0; ii<numfiles; ii++)
     fclose(infiles[ii]);
   
