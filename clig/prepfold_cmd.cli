@@ -85,6 +85,15 @@ Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 	-r -oo oo  -d 0
 String -mask    maskfile {File containing masking information to use}
 
+# Parameters if we are using TOAs instead of a timeseries
+
+Flag -toas   toas    {Use a TOA file instead of a time series (.dat) file}
+Flag -secs   secs   {TOAs are in seconds days since the MJD in the .inf file}
+Flag -days   days   {TOAs are in days since the MJD in the .inf file}
+Flag -double double {TOAs are in binary double precision instead of text format}
+Double -toaoffset toaoffset {Offset in days or sec from the .inf file MJD to the first TOA} \
+	-r 0 oo  -d 0
+
 # Rest of command line:
 
 Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
