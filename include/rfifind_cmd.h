@@ -21,14 +21,20 @@ typedef struct s_Cmdline {
   char gbppP;
   /***** -xwin: Draw plots to the screen as well as a PS file */
   char xwinP;
+  /***** -nocompute: Just plot and remake the mask */
+  char nocomputeP;
   /***** -time: Minutes to integrate for stats and FFT calcs */
   char timeP;
   float time;
   int timeC;
-  /***** -sigma: The +/-sigma cutoff to reject a chunk of data */
-  char sigmaP;
-  float sigma;
-  int sigmaC;
+  /***** -timesig: The +/-sigma cutoff to reject time-domain chunks */
+  char timesigmaP;
+  float timesigma;
+  int timesigmaC;
+  /***** -freqsig: The +/-sigma cutoff to reject freq-domain chunks */
+  char freqsigmaP;
+  float freqsigma;
+  int freqsigmaC;
   /***** -zapchan: Channels to explicitly remove from analysis */
   char zapchanP;
   int *zapchan;

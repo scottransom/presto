@@ -48,6 +48,15 @@ int compare_positions(void *ca, void *cb)
   return 0;
 }
 
+int compare_floats(const void *a, const void *b)
+/* qsort comparison function for floats */
+{
+  const float *da = (const float *) a;
+  const float *db = (const float *) b;
+ 
+  return (*da > *db) - (*da < *db);
+}
+
 int compare_doubles(const void *a, const void *b)
 /* qsort comparison function for doubles */
 {

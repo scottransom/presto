@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "21Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "01Jan01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -27,8 +27,10 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 [-ebpp]
 [-gbpp]
 [-xwin]
+[-nocompute]
 [-time time]
-[-sigma sigma]
+[-timesig timesigma]
+[-freqsig freqsigma]
 [-zapchan zapchan]
 [-zapints zapints]
 [-mask maskfile]
@@ -49,14 +51,22 @@ Raw data in EBPP (Effelsberg) format.
 Raw data in GBPP (Green Bank) format.
 .IP -xwin
 Draw plots to the screen as well as a PS file.
+.IP -nocompute
+Just plot and remake the mask.
 .IP -time
 Minutes to integrate for stats and FFT calcs,
 .br
 1 Float value between 0 and oo.
 .br
-Default: `4'
-.IP -sigma
-The +/-sigma cutoff to reject a chunk of data,
+Default: `1'
+.IP -timesig
+The +/-sigma cutoff to reject time-domain chunks,
+.br
+1 Float value between 0 and oo.
+.br
+Default: `6'
+.IP -freqsig
+The +/-sigma cutoff to reject freq-domain chunks,
 .br
 1 Float value between 0 and oo.
 .br

@@ -7,7 +7,8 @@
 
 /* Some function definitions */
 
-void rfifind_plot(int numchan, int numint, int ptsperint, float sigma, 
+void rfifind_plot(int numchan, int numint, int ptsperint, 
+		  float timesigma, float freqsigma, 
 		  float **dataavg, float **datastd, float **datapow,
 		  int *userchan, int numuserchan, 
 		  int *userints, int numuserints, 
@@ -16,19 +17,19 @@ void rfifind_plot(int numchan, int numint, int ptsperint, float sigma,
 static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
 			  int numchan, int numint, int ptsperint, 
 			  int lobin, int numbetween, int harmsum,
-			  float fracterror, float sigma);
+			  float fracterror, float freqsigma);
 static void write_statsfile(char *statsfilenm, float *datapow,
 			    float *dataavg, float *datastd,
 			    int numchan, int numint, int ptsperint, 
-			    int lobin, int numbetween, float sigma);
+			    int lobin, int numbetween);
 static void read_rfifile(char *rfifilenm, rfi **rfivect, int *numrfi,
 			 int *numchan, int *numint, int *ptsperint, 
 			 int *lobin, int *numbetween, int *harmsum,
-			 float *fracterror, float *sigma);
+			 float *fracterror, float *freqsigma);
 static void read_statsfile(char *statsfilenm, float ***datapow,
 			   float ***dataavg, float ***datastd,
 			   int *numchan, int *numint, int *ptsperint, 
-			   int *lobin, int *numbetween, float *sigma);
+			   int *lobin, int *numbetween);
 
 /* The main program */
 
@@ -38,16 +39,17 @@ static void read_statsfile(char *statsfilenm, float ***datapow,
 
 int main(int argc, char *argv[])
 {
-  FILE *infiles[MAXPATCHFILES];
+  FILE *infiles[MAXPATCHFILES], *bytemaskfile;
   float **dataavg=NULL, **datastd=NULL, **datapow=NULL;
   float *chandata=NULL, powavg, powstd, powmax;
-  float inttime, norm, fracterror=RFI_FRACTERROR, sigma;
-  unsigned char *rawdata=NULL, **bytemask;
-  char *outfilenm, *statsfilenm, *maskfilenm, *rfifilenm;
+  float inttime, norm, fracterror=RFI_FRACTERROR, freqsigma, timesigma;
+  unsigned char *rawdata=NULL, **bytemask=NULL;
+  char *outfilenm, *statsfilenm, *maskfilenm;
+  char *bytemaskfilenm, *rfifilenm;
   int numchan=0, numint=0, newper=0, oldper=0, numfiles;
   int blocksperint, ptsperint=0, ptsperblock=0, padding=0;
   int numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
-  int ii, jj, kk, slen, numread=0, compute=1;
+  int ii, jj, kk, slen, numread=0;
   int harmsum=RFI_NUMHARMSUM, lobin=RFI_LOBIN, numbetween=RFI_NUMBETWEEN;
   double davg, dvar, freq, dt, T;
   long long N;
@@ -70,7 +72,8 @@ int main(int argc, char *argv[])
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
-  sigma = cmd->sigma;
+  freqsigma = cmd->freqsigma;
+  timesigma = cmd->timesigma;
   slen = strlen(cmd->outfile)+20;
   numfiles = cmd->argc;
 
@@ -92,6 +95,8 @@ int main(int argc, char *argv[])
 
   maskfilenm = (char *)calloc(slen, sizeof(char));
   sprintf(maskfilenm, "%s.mask", outfilenm);
+  bytemaskfilenm = (char *)calloc(slen, sizeof(char));
+  sprintf(bytemaskfilenm, "%s.bytemask", outfilenm);
   rfifilenm = (char *)calloc(slen, sizeof(char));
   sprintf(rfifilenm, "%s.rfi", outfilenm);
   statsfilenm = (char *)calloc(slen, sizeof(char));
@@ -105,7 +110,7 @@ int main(int argc, char *argv[])
   else
     oldmask.numchan = oldmask.numint = 0;
   
-  if (compute){
+  if (!cmd->nocomputeP){
 
     if (!cmd->pkmbP && !cmd->ebppP && !cmd->gbppP){
       printf("\nYou must specify the data format.  Legal types are:\n");
@@ -182,7 +187,7 @@ int main(int argc, char *argv[])
     bytemask = gen_bmatrix(numint, numchan);
     for (ii=0; ii<numint; ii++)
       for (jj=0; jj<numchan; jj++)
-	bytemask[ii][jj] = GOOD;
+	bytemask[ii][jj] = GOODDATA;
     rfivect = rfi_vector(rfivect, numchan, numint, 0, numrfivect);
     if (numbetween==2)
       interptype = INTERBIN;
@@ -191,9 +196,9 @@ int main(int argc, char *argv[])
     
     /* Main loop */
 
-    printf("Writing mask  data to '%s'.\n", maskfilenm);
-    printf("Writing RFI   data to '%s'.\n", rfifilenm);
-    printf("Writing stats data to '%s'.\n\n", statsfilenm);
+    printf("Writing mask data  to '%s'.\n", maskfilenm);
+    printf("Writing  RFI data  to '%s'.\n", rfifilenm);
+    printf("Writing statistics to '%s'.\n\n", statsfilenm);
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = %3d%%", oldper);
     fflush(stdout);
@@ -213,7 +218,7 @@ int main(int argc, char *argv[])
 				      rawdata, blocksperint, &padding);
 	if (padding)
 	  for (jj=0; jj<numchan; jj++)
-	    bytemask[ii][jj] = PAD;
+	    bytemask[ii][jj] |= PADDING;
       }
       for (jj=0; jj<numchan; jj++){
 
@@ -234,7 +239,7 @@ int main(int argc, char *argv[])
 	norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
 	cands = search_fft((fcomplex *)chandata, ptsperint / 2, 
 			   lobin, harmsum, numbetween,
-			   interptype, norm, sigma,
+			   interptype, norm, freqsigma,
 			   &numcands, &powavg, &powstd, &powmax);
 	datapow[ii][jj] = powmax;
 	
@@ -269,51 +274,93 @@ int main(int argc, char *argv[])
     
     write_rfifile(rfifilenm, rfivect, numrfi, numchan, numint, 
 		  ptsperint, lobin, numbetween, harmsum,
-		  fracterror, sigma);
+		  fracterror, freqsigma);
     write_statsfile(statsfilenm, datapow[0], dataavg[0], datastd[0],
 		    numchan, numint, ptsperint, lobin, 
-		    numbetween, sigma);
+		    numbetween);
 
   } else {
 
     /* Read the data from the output files */
     
-    printf("Reading RFI   data from '%s'.\n", rfifilenm);
-    printf("Reading stats data from '%s'.\n\n", statsfilenm);
+    printf("Reading  RFI data  from '%s'.\n", rfifilenm);
+    printf("Reading statistics from '%s'.\n", statsfilenm);
     readinf(&idata, outfilenm);
     read_rfifile(rfifilenm, &rfivect, &numrfi, &numchan, &numint, 
 		 &ptsperint, &lobin, &numbetween, &harmsum,
-		 &fracterror, &sigma);
+		 &fracterror, &freqsigma);
+    numrfivect = numrfi;
     read_statsfile(statsfilenm, &datapow, &dataavg, &datastd,
 		   &numchan, &numint, &ptsperint, &lobin, 
-		   &numbetween, &sigma);
+		   &numbetween);
+    bytemask = gen_bmatrix(numint, numchan);
+    printf("Reading  bytemask  from '%s'.\n\n", bytemaskfilenm);
+    for (ii=0; ii<numint; ii++)
+      for (jj=0; jj<numchan; jj++)
+	bytemask[ii][jj] &= PADDING; /* Clear all but the PADDING bits */
     inttime = ptsperint * idata.dt;
   }
 
   /* Make the plots */
 
-  rfifind_plot(numchan, numint, ptsperint, cmd->sigma, dataavg, 
-	       datastd, datapow, cmd->zapchan, cmd->zapchanC,
+  rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
+	       dataavg, datastd, datapow, cmd->zapchan, cmd->zapchanC,
 	       cmd->zapints, cmd->zapintsC, &idata, bytemask, 
 	       &oldmask, &newmask, cmd->xwinP);
 
-  /* Write the mask file */
+  /* Write the new mask and bytemask to the file */
 
-  write_mask(maskfilenm, &outmask);
+  write_mask(maskfilenm, &newmask);
+  bytemaskfile = chkfopen(bytemaskfilenm, "wb");
+  chkfwrite(bytemask[0], numint*numchan, 1, bytemaskfile);
+  fclose(bytemaskfile);
   
+  /* Determine the percent of good and bad data */
+
+  {
+    int numpad=0, numbad=0, numgood=0;
+
+    for (ii=0; ii<numint; ii++){
+      for (jj=0; jj<numchan; jj++){
+	if (bytemask[ii][jj]==GOODDATA){
+	  numgood++;
+	} else {
+	  if (bytemask[ii][jj] & PADDING)
+	    numpad++;
+	  else 
+	    numbad++;
+	}
+      }
+    }
+    printf("\nTotal number of intervals in the data:  %d\n\n", 
+	   numint*numchan);
+    printf("  Number of padded intervals:  %7d  (%6.3f%%)\n", 
+	   numpad, (float) numpad / (float)(numint*numchan) * 100.0);
+    printf("  Number of  good  intervals:  %7d  (%6.3f%%)\n", 
+	   numgood, (float) numgood / (float)(numint*numchan) * 100.0);
+    printf("  Number of  bad   intervals:  %7d  (%6.3f%%)\n\n", 
+	   numbad, (float) numbad / (float)(numint*numchan) * 100.0);
+    printf("Done.\n\n");
+  }
+
   /* Close the files and cleanup */
 
   free_rfi_vector(rfivect, numrfivect);
+  free_mask(newmask);
+  if (cmd->maskfileP)
+    free_mask(oldmask);
   free(outfilenm);
   free(statsfilenm);
+  free(bytemaskfilenm);
   free(maskfilenm);
   free(rfifilenm);
-  if (compute){
+  free(dataavg[0]); free(dataavg);
+  free(datastd[0]); free(datastd);
+  free(datapow[0]); free(datapow);
+  free(bytemask[0]); free(bytemask);
+  if (!cmd->nocomputeP){
     for (ii=0; ii<numfiles; ii++)
       fclose(infiles[ii]);
-    free(dataavg[0]); free(dataavg);
-    free(datastd[0]); free(datastd);
-    free(datapow[0]); free(datapow);
     free(chandata);
     free(rawdata);
   }
@@ -323,7 +370,7 @@ int main(int argc, char *argv[])
 static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
 			  int numchan, int numint, int ptsperint, 
 			  int lobin, int numbetween, int harmsum,
-			  float fracterror, float sigma)
+			  float fracterror, float freqsigma)
 {
   FILE *outfile;
   int ii;
@@ -337,7 +384,7 @@ static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
   chkfwrite(&harmsum, sizeof(int), 1, outfile);
   chkfwrite(&numrfi, sizeof(int), 1, outfile);
   chkfwrite(&fracterror, sizeof(float), 1, outfile);
-  chkfwrite(&sigma, sizeof(float), 1, outfile);
+  chkfwrite(&freqsigma, sizeof(float), 1, outfile);
   for (ii=0; ii<numrfi; ii++)
     write_rfi(outfile, rfivect+ii, numchan, numint);
   fclose(outfile);
@@ -346,7 +393,7 @@ static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
 static void write_statsfile(char *statsfilenm, float *datapow,
 			    float *dataavg, float *datastd,
 			    int numchan, int numint, int ptsperint, 
-			    int lobin, int numbetween, float sigma)
+			    int lobin, int numbetween)
 {
   FILE *outfile;
   
@@ -356,7 +403,6 @@ static void write_statsfile(char *statsfilenm, float *datapow,
   chkfwrite(&ptsperint, sizeof(int), 1, outfile);
   chkfwrite(&lobin, sizeof(int), 1, outfile);
   chkfwrite(&numbetween, sizeof(int), 1, outfile);
-  chkfwrite(&sigma, sizeof(float), 1, outfile);
   chkfwrite(datapow, sizeof(float), numchan * numint, outfile);
   chkfwrite(dataavg, sizeof(float), numchan * numint, outfile);
   chkfwrite(datastd, sizeof(float), numchan * numint, outfile);
@@ -366,7 +412,7 @@ static void write_statsfile(char *statsfilenm, float *datapow,
 static void read_rfifile(char *rfifilenm, rfi **rfivect, int *numrfi,
 			 int *numchan, int *numint, int *ptsperint, 
 			 int *lobin, int *numbetween, int *harmsum,
-			 float *fracterror, float *sigma)
+			 float *fracterror, float *freqsigma)
 {
   FILE *outfile;
   int ii;
@@ -380,7 +426,7 @@ static void read_rfifile(char *rfifilenm, rfi **rfivect, int *numrfi,
   chkfread(harmsum, sizeof(int), 1, outfile);
   chkfread(numrfi, sizeof(int), 1, outfile);
   chkfread(fracterror, sizeof(float), 1, outfile);
-  chkfread(sigma, sizeof(float), 1, outfile);
+  chkfread(freqsigma, sizeof(float), 1, outfile);
   *rfivect = rfi_vector(*rfivect, *numchan, *numint, 0, *numrfi);
   for (ii=0; ii<*numrfi; ii++)
     read_rfi(outfile, *rfivect+ii, *numchan, *numint);
@@ -390,7 +436,7 @@ static void read_rfifile(char *rfifilenm, rfi **rfivect, int *numrfi,
 static void read_statsfile(char *statsfilenm, float ***datapow,
 			   float ***dataavg, float ***datastd,
 			   int *numchan, int *numint, int *ptsperint, 
-			   int *lobin, int *numbetween, float *sigma)
+			   int *lobin, int *numbetween)
 {
   FILE *outfile;
   
@@ -400,7 +446,6 @@ static void read_statsfile(char *statsfilenm, float ***datapow,
   chkfread(ptsperint, sizeof(int), 1, outfile);
   chkfread(lobin, sizeof(int), 1, outfile);
   chkfread(numbetween, sizeof(int), 1, outfile);
-  chkfread(sigma, sizeof(float), 1, outfile);
   *dataavg = gen_fmatrix(*numint, *numchan);
   *datastd = gen_fmatrix(*numint, *numchan);
   *datapow = gen_fmatrix(*numint, *numchan);

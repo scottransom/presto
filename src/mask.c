@@ -3,19 +3,21 @@
 
 extern int compare_ints(const void *a, const void *b);
 
-static find_num(int num, int *arr, int arrlen);
+static int find_num(int num, int *arr, int arrlen);
 static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2, 
 			  int *merged);
 
-void fill_mask(double sigma, double mjd, double dtint, double lofreq, 
-	       double dfreq, int numchan, int numint, int ptsperint, 
+void fill_mask(double timesigma, double freqsigma, double mjd, 
+	       double dtint, double lofreq, double dfreq, 
+	       int numchan, int numint, int ptsperint, 
 	       int num_zap_chans, int *zap_chans, int num_zap_ints, 
 	       int *zap_ints, unsigned char **bytemask, mask *obsmask)
 /* Fill a mask structure with the appropriate values */
 {
   int ii, jj, count;
 
-  obsmask->sigma = sigma;
+  obsmask->timesigma = timesigma;
+  obsmask->freqsigma = freqsigma;
   obsmask->mjd = mjd;
   obsmask->dtint = dtint;
   obsmask->lofreq = lofreq;
@@ -38,17 +40,17 @@ void fill_mask(double sigma, double mjd, double dtint, double lofreq,
   obsmask->num_chans_per_int = gen_ivect(obsmask->numint);
   obsmask->chans = (int **)malloc(obsmask->numint * sizeof(int *));
   for (ii=0; ii<obsmask->numint; ii++){
-    /* Count the bad channels first */
     count = 0;
+    /* Count the bad channels first */
     for (jj=0; jj<obsmask->numchan; jj++)
-      if (bytemask[ii][jj]) count++;
+      if (bytemask[ii][jj] & BADDATA) count++;
     obsmask->num_chans_per_int[ii] = count;
     if (count){
       /* Now determine which channels */
       count = 0;
       obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
       for (jj=0; jj<obsmask->numchan; jj++){
-	if (bytemask[ii][jj])
+	if (bytemask[ii][jj] & BADDATA)
 	  obsmask->chans[ii][count++] = jj;
       }
     }
@@ -56,15 +58,25 @@ void fill_mask(double sigma, double mjd, double dtint, double lofreq,
 }
 
 
-void set_bytes_from_mask(mask *obsmask, unsigned char **bytematrix,
-			 unsigned char fillval)
-/* Inverse of fill_mask() */
+void set_oldmask_bits(mask *oldmask, unsigned char **bytemask)
+/* Sets the oldmask bit in the appropriate bytes in bytemask */
 {
   int ii, jj;
 
-  for (ii=0; ii<obsmask->numint; ii++)
-    for (jj=0; jj<obsmask->num_chans_per_int[ii]; jj++)
-      bytarr[ii][obsmask->chans[ii][jj]] = fillval;
+  for (ii=0; ii<oldmask->numint; ii++)
+    for (jj=0; jj<oldmask->num_chans_per_int[ii]; jj++)
+      bytemask[ii][oldmask->chans[ii][jj]] |= OLDMASK;
+}
+
+
+void unset_oldmask_bits(mask *oldmask, unsigned char **bytemask)
+/* Unsets the oldmask bits in bytemask */
+{
+  int ii, jj;
+
+  for (ii=0; ii<oldmask->numint; ii++)
+    for (jj=0; jj<oldmask->numchan; jj++)
+      bytemask[ii][jj] &= ~OLDMASK;
 }
 
 
@@ -94,7 +106,8 @@ void read_mask(char *maskfilenm, mask *obsmask)
   int ii;
 
   infile = chkfopen(maskfilenm, "rb");
-  chkfread(&(obsmask->sigma), sizeof(double), 1, infile);
+  chkfread(&(obsmask->timesigma), sizeof(double), 1, infile);
+  chkfread(&(obsmask->freqsigma), sizeof(double), 1, infile);
   chkfread(&(obsmask->mjd), sizeof(double), 1, infile);
   chkfread(&(obsmask->dtint), sizeof(double), 1, infile);
   chkfread(&(obsmask->lofreq), sizeof(double), 1, infile);
@@ -137,7 +150,8 @@ void write_mask(char *maskfilenm, mask *obsmask)
   int ii;
 
   outfile = chkfopen(maskfilenm, "wb");
-  chkfwrite(&(obsmask->sigma), sizeof(double), 1, outfile);
+  chkfwrite(&(obsmask->timesigma), sizeof(double), 1, outfile);
+  chkfwrite(&(obsmask->freqsigma), sizeof(double), 1, outfile);
   chkfwrite(&(obsmask->mjd), sizeof(double), 1, outfile);
   chkfwrite(&(obsmask->dtint), sizeof(double), 1, outfile);
   chkfwrite(&(obsmask->lofreq), sizeof(double), 1, outfile);
@@ -173,13 +187,13 @@ int check_mask(double starttime, double duration, mask *obsmask,
 /* have a length of numchan).  If -1 is returned, all   */
 /* channels should be masked.                           */
 {
-  int ii, loint, hiint, numchan;
+  int loint, hiint;
   double endtime;
   static int old_loint=-1, old_hiint=-1, old_numchan=0;
   
   endtime = starttime + duration;
-  loint = (int)(starttime / dtint);
-  hiint = (int)(endtime / dtint);
+  loint = (int)(starttime / obsmask->dtint);
+  hiint = (int)(endtime / obsmask->dtint);
   if (loint == old_loint && hiint == old_hiint)
     /* Notice we don't mess with the maskchans array! */
     return old_numchan;
@@ -231,7 +245,7 @@ int check_mask(double starttime, double duration, mask *obsmask,
 }
 
 
-static find_num(int num, int *arr, int arrlen)
+static int find_num(int num, int *arr, int arrlen)
 {
   int ii;
 
@@ -249,21 +263,21 @@ static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2,
     
   while (1){
     if (arr1[ptr1] < arr2[ptr2])
-      out[count++] = arr1[ptr1++];
+      merged[count++] = arr1[ptr1++];
     else if (arr1[ptr1] > arr2[ptr2])
-      out[count++] = arr2[ptr2++];
+      merged[count++] = arr2[ptr2++];
     else {
-      out[count++] = arr1[ptr1];
+      merged[count++] = arr1[ptr1];
       ptr1++;
       ptr2++;
     }
     if (ptr1 == len1){
       while (ptr2 < len2)
-	out[count++] = arr2[ptr2++];
+	merged[count++] = arr2[ptr2++];
       break;
     } else if (ptr2 == len2){
       while (ptr1 < len1)
-	out[count++] = arr1[ptr1++];
+	merged[count++] = arr1[ptr1++];
       break;
     }
   }

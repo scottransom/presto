@@ -34,14 +34,20 @@ static Cmdline cmd = {
   /* gbppP = */ 0,
   /***** -xwin: Draw plots to the screen as well as a PS file */
   /* xwinP = */ 0,
+  /***** -nocompute: Just plot and remake the mask */
+  /* nocomputeP = */ 0,
   /***** -time: Minutes to integrate for stats and FFT calcs */
   /* timeP = */ 1,
-  /* time = */ 4,
+  /* time = */ 1,
   /* timeC = */ 1,
-  /***** -sigma: The +/-sigma cutoff to reject a chunk of data */
-  /* sigmaP = */ 1,
-  /* sigma = */ 4,
-  /* sigmaC = */ 1,
+  /***** -timesig: The +/-sigma cutoff to reject time-domain chunks */
+  /* timesigmaP = */ 1,
+  /* timesigma = */ 6,
+  /* timesigmaC = */ 1,
+  /***** -freqsig: The +/-sigma cutoff to reject freq-domain chunks */
+  /* freqsigmaP = */ 1,
+  /* freqsigma = */ 4,
+  /* freqsigmaC = */ 1,
   /***** -zapchan: Channels to explicitly remove from analysis */
   /* zapchanP = */ 0,
   /* zapchan = */ (int*)0,
@@ -798,6 +804,13 @@ showOptionValues(void)
     printf("-xwin found:\n");
   }
 
+  /***** -nocompute: Just plot and remake the mask */
+  if( !cmd.nocomputeP ) {
+    printf("-nocompute not found.\n");
+  } else {
+    printf("-nocompute found:\n");
+  }
+
   /***** -time: Minutes to integrate for stats and FFT calcs */
   if( !cmd.timeP ) {
     printf("-time not found.\n");
@@ -810,15 +823,27 @@ showOptionValues(void)
     }
   }
 
-  /***** -sigma: The +/-sigma cutoff to reject a chunk of data */
-  if( !cmd.sigmaP ) {
-    printf("-sigma not found.\n");
+  /***** -timesig: The +/-sigma cutoff to reject time-domain chunks */
+  if( !cmd.timesigmaP ) {
+    printf("-timesig not found.\n");
   } else {
-    printf("-sigma found:\n");
-    if( !cmd.sigmaC ) {
+    printf("-timesig found:\n");
+    if( !cmd.timesigmaC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.sigma);
+      printf("  value = `%.40g'\n", cmd.timesigma);
+    }
+  }
+
+  /***** -freqsig: The +/-sigma cutoff to reject freq-domain chunks */
+  if( !cmd.freqsigmaP ) {
+    printf("-freqsig not found.\n");
+  } else {
+    printf("-freqsig found:\n");
+    if( !cmd.freqsigmaC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.freqsigma);
     }
   }
 
@@ -881,29 +906,33 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-gbpp] [-xwin] [-time time] [-sigma sigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-ebpp] [-gbpp] [-xwin] [-nocompute] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
-        -o: Root of the output file names\n\
-            1 char* value\n\
-     -pkmb: Raw data in Parkes Multibeam format\n\
-     -ebpp: Raw data in EBPP (Effelsberg) format\n\
-     -gbpp: Raw data in GBPP (Green Bank) format\n\
-     -xwin: Draw plots to the screen as well as a PS file\n\
-     -time: Minutes to integrate for stats and FFT calcs\n\
-            1 float value between 0 and oo\n\
-            default: `4'\n\
-    -sigma: The +/-sigma cutoff to reject a chunk of data\n\
-            1 float value between 0 and oo\n\
-            default: `4'\n\
-  -zapchan: Channels to explicitly remove from analysis\n\
-            1...1024 int values between 1 and 1024\n\
-  -zapints: Intervals to explicitly remove from analysis\n\
-            1...1024 int values between 1 and 1024\n\
-     -mask: File containing masking information to use\n\
-            1 char* value\n\
-    infile: Input data file name.\n\
-            1...20 values\n\
-version: 21Dec00\n\
+          -o: Root of the output file names\n\
+              1 char* value\n\
+       -pkmb: Raw data in Parkes Multibeam format\n\
+       -ebpp: Raw data in EBPP (Effelsberg) format\n\
+       -gbpp: Raw data in GBPP (Green Bank) format\n\
+       -xwin: Draw plots to the screen as well as a PS file\n\
+  -nocompute: Just plot and remake the mask\n\
+       -time: Minutes to integrate for stats and FFT calcs\n\
+              1 float value between 0 and oo\n\
+              default: `1'\n\
+    -timesig: The +/-sigma cutoff to reject time-domain chunks\n\
+              1 float value between 0 and oo\n\
+              default: `6'\n\
+    -freqsig: The +/-sigma cutoff to reject freq-domain chunks\n\
+              1 float value between 0 and oo\n\
+              default: `4'\n\
+    -zapchan: Channels to explicitly remove from analysis\n\
+              1...1024 int values between 1 and 1024\n\
+    -zapints: Intervals to explicitly remove from analysis\n\
+              1...1024 int values between 1 and 1024\n\
+       -mask: File containing masking information to use\n\
+              1 char* value\n\
+      infile: Input data file name.\n\
+              1...20 values\n\
+version: 01Jan01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -950,6 +979,11 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-nocompute", argv[i]) ) {
+      cmd.nocomputeP = 1;
+      continue;
+    }
+
     if( 0==strcmp("-time", argv[i]) ) {
       cmd.timeP = 1;
       keep = i;
@@ -959,12 +993,21 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-sigma", argv[i]) ) {
-      cmd.sigmaP = 1;
+    if( 0==strcmp("-timesig", argv[i]) ) {
+      cmd.timesigmaP = 1;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.sigma, 1);
-      cmd.sigmaC = i-keep;
-      checkFloatHigher("-sigma", &cmd.sigma, cmd.sigmaC, 0);
+      i = getFloatOpt(argc, argv, i, &cmd.timesigma, 1);
+      cmd.timesigmaC = i-keep;
+      checkFloatHigher("-timesig", &cmd.timesigma, cmd.timesigmaC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-freqsig", argv[i]) ) {
+      cmd.freqsigmaP = 1;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.freqsigma, 1);
+      cmd.freqsigmaC = i-keep;
+      checkFloatHigher("-freqsig", &cmd.freqsigma, cmd.freqsigmaC, 0);
       continue;
     }
 

@@ -4,10 +4,6 @@
 #define RFI_FRACTERROR 0.002
 #define NUM_RFI_VECT   30
 
-typedef enum {
-  GOOD=0, OLDMASK, PADDING, POW, STD, AVG, USERCHAN, USERINTS 
-} mask_flags;
-
 typedef struct RFI {
   float freq_avg;   /* Average frequency of detection (Hz)  */
   float freq_var;   /* Variance of the measured frequencies */

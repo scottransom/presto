@@ -1,5 +1,17 @@
+#define GOODDATA 0x00
+#define PADDING  0x01
+#define OLDMASK  0x02
+#define USERCHAN 0x04
+#define USERINTS 0x08
+#define BAD_POW  0x10
+#define BAD_STD  0x20
+#define BAD_AVG  0x40
+#define BADDATA  (BAD_POW|BAD_STD|BAD_AVG)
+#define USERZAP  (USERCHAN|USERINTS)
+
 typedef struct MASK { 
-  double sigma;            /* Cutoff sigma                           */
+  double timesigma;        /* Cutoff time-domain sigma               */
+  double freqsigma;        /* Cutoff freq-domain sigma               */
   double mjd;              /* MJD of time zero                       */
   double dtint;            /* Time in sec of each interval           */
   double lofreq;           /* Freq (MHz) of low channel              */
@@ -7,24 +19,27 @@ typedef struct MASK {
   int numchan;             /* Number of channels                     */
   int numint;              /* Number of intervals                    */
   int ptsperint;           /* Points per interval                    */
-  int num_user_chans;      /* Number of channels the user zapped     */
-  int *user_chans;         /* The channels the user zapped           */
-  int num_user_ints;       /* Number of intervals the user zapped    */
-  int *user_ints;          /* The intervals the user zapped          */
+  int num_zap_chans;       /* Number of full channels to zap         */
+  int *zap_chans;          /* The full channels to zap               */
+  int num_zap_ints;        /* Number of full intervals to zap        */
+  int *zap_ints;           /* The full intervals to zap              */
   int *num_chans_per_int;  /* Number of channels zapped per interval */
   int **chans;             /* The channels zapped                    */
 } mask;
 
 
-void fill_mask(double sigma, double mjd, double dtint, double lofreq, 
-	       double dfreq, int numchan, int numint, int ptsperint, 
+void fill_mask(double timesigma, double freqsigma, double mjd, 
+	       double dtint, double lofreq, double dfreq, 
+	       int numchan, int numint, int ptsperint, 
 	       int num_zap_chans, int *zap_chans, int num_zap_ints, 
 	       int *zap_ints, unsigned char **bytemask, mask *obsmask);
 /* Fill a mask structure with the appropriate values */
 
-void set_bytes_from_mask(mask *obsmask, unsigned char **bytematrix,
-			 unsigned char fillval);
-/* Inverse of fill_mask() */
+void set_oldmask_bits(mask *oldmask, unsigned char **bytemask);
+/* Sets the oldmask bit in the appropriate bytes in bytemask */
+
+void unset_oldmask_bits(mask *oldmask, unsigned char **bytemask);
+/* Unsets the oldmask bits in bytemask */
 
 void free_mask(mask obsmask);
 /* Free the contents of an mask structure */
