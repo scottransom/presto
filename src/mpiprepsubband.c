@@ -205,11 +205,11 @@ int main(int argc, char *argv[])
     if (!cmd->numoutP)
       cmd->numout = INT_MAX;
   }
-
   MPI_Bcast(&cmd->pkmbP, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&cmd->gmrtP, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&cmd->bcpmP, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&cmd->wappP, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&cmd->numout, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&insubs, 1, MPI_INT, 0, MPI_COMM_WORLD);
   if (insubs) cmd->nsub = cmd->argc;
 
@@ -246,8 +246,8 @@ int main(int argc, char *argv[])
       sprintf(datafilenm, "%s_DM%.2f.dat", outfilenm, dms[ii]);
       outfiles[ii] = chkfopen(datafilenm, "wb");
     }
+    avgdm /= local_numdms;
   }
-  avgdm /= local_numdms;
 
   /* Read an input mask if wanted */
 
@@ -404,7 +404,7 @@ int main(int argc, char *argv[])
     MPI_Bcast(&dt, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     blocklen = ptsperblk;
     if (cmd->maskfileP) free(padvals);
-    
+
     if (myid>0){ /* Slave */
       if (cmd->pkmbP)
 	set_PKMB_static(ptsperblk, bytesperpt, numchan, 
@@ -445,8 +445,12 @@ int main(int argc, char *argv[])
   /* Broadcast or calculate a few extra important values */
 
   MPI_Bcast(&idata, 1, infodata_type, 0, MPI_COMM_WORLD);
-  dsdt = cmd->downsamp * idata.dt;
+  if (insubs){
+    avgdm = idata.dm;
+    numchan = idata.num_chan;
+  }
   idata.dm = avgdm;
+  dsdt = cmd->downsamp * idata.dt;
   blocksperread = ((int)(delay_from_dm(cmd->lodm+cmd->numdms*cmd->dmstep, 
 				       idata.freq)/dsdt) / blocklen + 1);
   worklen = blocklen * blocksperread;
@@ -501,11 +505,18 @@ int main(int argc, char *argv[])
 	printf("Downsampling by a factor of %d (new dt = %.10g)\n", cmd->downsamp, dsdt);
       printf("\n");
     }
-    {
+
+    { /* Print the nodes and the DMs they are handling */
       int kk;
+
       MPI_Barrier(MPI_COMM_WORLD);
-      for (jj=0; jj<numprocs; jj++){
-	if (myid==jj && jj){
+      fflush(NULL);
+      if (myid==0) printf("Node\t\tDMs\n----\t\t---\n");
+      fflush(NULL);
+
+      for (jj=1; jj<numprocs; jj++){
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (myid==jj){
 	  printf("%s\t\t", hostname);
 	  for (kk=0; kk<local_numdms-1; kk++)
 	    printf("%.2f\t", dms[kk]);
@@ -514,9 +525,9 @@ int main(int argc, char *argv[])
 	fflush(NULL);
 	MPI_Barrier(MPI_COMM_WORLD);
       }
+      if (myid==0) printf("\n");
+      fflush(NULL);
     }
-    if (myid==0)
-      printf("\n");
     
     outdata = gen_fmatrix(cmd->nsub, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
@@ -581,7 +592,7 @@ int main(int argc, char *argv[])
     if (myid==0){
       double maxvoverc=-1.0, minvoverc=1.0, *voverc=NULL;
 
-      printf("Generating barycentric corrections...\n");
+      printf("\nGenerating barycentric corrections...\n");
       voverc = gen_dvect(numbarypts);
       barycenter(ttoa, btoa, voverc, numbarypts, \
 		 rastring, decstring, obs, ephem);
@@ -593,8 +604,6 @@ int main(int argc, char *argv[])
       avgvoverc /= numbarypts;
       free(voverc);
       
-      printf("   Insure you check the files tempoout_times.tmp and\n");
-      printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n");
       printf("   Average topocentric velocity (c) = %.7g\n", avgvoverc);
       printf("   Maximum topocentric velocity (c) = %.7g\n", maxvoverc);
       printf("   Minimum topocentric velocity (c) = %.7g\n\n", minvoverc);
@@ -604,11 +613,18 @@ int main(int argc, char *argv[])
 	       cmd->downsamp, dsdt);
       printf("\n");
     }
-    {
+
+    { /* Print the nodes and the DMs they are handling */
       int kk;
+
+      MPI_Barrier(MPI_COMM_WORLD);
+      fflush(NULL);
+      if (myid==0) printf("Node\t\tDMs\n----\t\t---\n");
+      fflush(NULL);
+
       for (jj=1; jj<numprocs; jj++){
 	MPI_Barrier(MPI_COMM_WORLD);
-	if (myid==jj && jj){
+	if (myid==jj){
 	  printf("%s\t\t", hostname);
 	  for (kk=0; kk<local_numdms-1; kk++)
 	    printf("%.2f\t", dms[kk]);
@@ -617,9 +633,10 @@ int main(int argc, char *argv[])
 	fflush(NULL);
 	MPI_Barrier(MPI_COMM_WORLD);
       }
+      if (myid==0) printf("\n");
+      fflush(NULL);
     }
-    if (myid==0)
-      printf("\n");
+
     MPI_Bcast(btoa, numbarypts, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(&avgvoverc, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     blotoa = btoa[0];
@@ -920,11 +937,13 @@ static int read_subbands(FILE *infiles[], int numfiles,
 static void convert_subbands(int numfiles, short *shortdata, float *floatdata)
 /* Convert and transpose the subband data */
 {
-  int ii, jj, index;
+  int ii, jj, index, shortindex;
 
-  for (ii=0; ii<SUBSBLOCKLEN; ii++)
-    for (jj=0, index=ii; jj<numfiles; jj++, index+=SUBSBLOCKLEN)
-      *(floatdata++) = (float)shortdata[index];
+  for (ii=0; ii<numfiles; ii++){
+    shortindex = ii*SUBSBLOCKLEN;
+    for (jj=0, index=ii; jj<SUBSBLOCKLEN; jj++, index+=numfiles)
+      floatdata[index] = (float)shortdata[shortindex+jj];
+  }
 }
 
 
@@ -1003,7 +1022,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  if (tmppad) 
 	    *padding = 1;
 	}
-	if (firsttime==0) totnumread += numread;
+	if (!firsttime) totnumread += numread;
       }
     } else if (insubs){
       short *subsdata=NULL;
@@ -1015,7 +1034,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(subsdata, SUBSBLOCKLEN*numfiles, MPI_SHORT, 0, MPI_COMM_WORLD);
 	convert_subbands(numfiles, subsdata, currentdata+ii*blocksize);
-	if (firsttime==0) totnumread += numread;
+	if (!firsttime) totnumread += numread;
       }
       free(subsdata);
     }
