@@ -479,6 +479,17 @@ double hms2rad(int hour, int min, double sec)
                             + (double) min) + sec);
 }
 
+double mjd_sec_diff(int int1, double frac1, int int2, double frac2)
+/* Return the difference in seconds between two MJDs (1 - 2) */
+{
+  int idiff;
+  double fdiff;
+
+  idiff = (int1 - int2) * 86400;
+  fdiff = (frac1 - frac2) * 86400.0;
+  return (double) (idiff + fdiff);
+}
+
 double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2)
 /* Returns the angular difference in radians between two sets */
 /* of RA and DEC (in radians).                                */

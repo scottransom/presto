@@ -1,60 +1,101 @@
 #include "presto.h"
 #include "multibeam.h"
 
-void get_pkmb_file_info(FILE *files[], int numfiles, 
-			long long numpoints[], long long padpoints[], 
-			double *dt, int *numchan, int output)
-/* Read basic information and make padding calculations for a       */
-/* set of PKMB rawfiles that you want to patch together.  numpoints */
-/* and padpoints are previously declared arrays of length numfiles  */
-/* that describe the number of points and padding required to       */
-/* patch the files together.  dt and numchan are return values.     */
-/* If output is true, prints a table showing all the values.        */
+/* All of the following have an _st to indicate static */
+static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
+static int numblks_st[MAXPATCHFILES];
+static int currentfile, currentblock, numchan_st, ptsperblk_st, bytesperpt_st;
+static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES]g;
+static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
+static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
+static infodata idata_st[MAXPATCHFILES];
+static unsigned char mask1[512], mask2[512], maskblock[DATLEN];
+
+#define SWAPMASK(maskptr)(maskptr = (maskptr==mask1) ? mask2 : mask1)
+
+void get_pkmb_file_info(FILE *files[], int numfiles, long long *N, 
+			int *ptsperblock, int *numchan, double *dt, 
+			double *T, int output)
+/* Read basic information into static variables and make padding      */
+/* calculations for a set of PKMB rawfiles that you want to patch     */
+/* together.  N, numchan, dt, and T are return values and include all */
+/* the files with the required padding.  If output is true, prints    */
+/* a table showing a summary of the values.                           */
 {
-  int ii, ptsperblock;
+  int ii;
   multibeam_tapehdr header;
-  infodata first, later;
-  double mjd[MAXPATCHFILES], times[MAXPATCHFILES], elapsed[MAXPATCHFILES];
 
   if (numfiles > MAXPATCHFILES){
     printf("\nThe number of input files (%d) is greater than \n", numfiles);
     printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
     exit(0);
   }
+  memset(mask1, 0xAA, 512); /* 10101010... */
+  memset(mask2, 0x55, 512); /* 01010101... */
   chkfread(&header, 1, HDRLEN, files[0]);
   rewind(files[0]);
-  multibeam_hdr_to_inf(&header, &first);
-  ptsperblock = DATLEN * 8 / first.num_chan;
-  numpoints[0] = chkfilelen(files[0], RECLEN) * ptsperblock;
-  *dt = first.dt;
-  *numchan = first.num_chan;
-  times[0] = numpoints[0] * first.dt;
-  mjd[0] = first.mjd_i + first.mjd_f;
-  elapsed[0] = times[0];
-  padpoints[0] = 0;
-  padpoints[numfiles-1] = 0;
+  multibeam_hdr_to_inf(&header, &idata_st[0]);
+  numchan_st = *numchan = idata_st[0].num_chan;
+  ptsperblk_st = *ptsperblock = DATLEN * 8 / numchan_st;
+  bytesperpt_st = DATLEN / ptsperblk_st;
+  for (ii=0; ii<ptsperblk_st; ii+=2){
+    memset(maskblock + ii     * bytesperpt_st, 0xAA, bytesperpt_st);
+    memset(maskblock + (ii+1) * bytesperpt_st, 0x55, bytesperpt_st);
+  }
+  numblks_st[0] = chkfilelen(files[0], RECLEN);
+  numpts_st[0] = numblks_st[0] * ptsperblk_st;
+  N_st = numpts_st[0];
+  dt_st = *dt = idata_st[0].dt;
+  times_st[0] = numpts_st[0] * dt_st;
+  mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
+  elapsed_st[0] = 0.0;
+  startblk_st[0] = 0.0;
+  endblk_st[0] = (double) numpts_st[0] / ptsperblk_st;
+  padpts_st[0] = padpts_st[numfiles-1] = 0;
   for (ii=1; ii<numfiles; ii++){
     chkfread(&header, 1, HDRLEN, files[ii]);
     rewind(files[ii]);
-    multibeam_hdr_to_inf(&header, &later);
-    if (later.num_chan != first.num_chan){
-      printf("Number of channels is not the same!\n\n");
+    multibeam_hdr_to_inf(&header, &idata_st[ii]);
+    if (idata_st[ii].num_chan != numchan_st){
+      printf("Number of channels (file %d) is not the same!\n\n", ii+1);
     }
-    if (later.dt != first.dt){
-      printf("Sample time is not the same!\n\n");
+    if (idata_st[ii].dt != dt_st){
+      printf("Sample time (file %d) is not the same!\n\n", ii+1);
     }
-    numpoints[ii] = chkfilelen(files[ii], RECLEN) * ptsperblock;
-    times[ii] = numpoints[ii] * later.dt;
-    mjd[ii] = later.mjd_i + later.mjd_f;
-    elapsed[ii] = (mjd[ii] - mjd[ii-1]) * SECPERDAY;
-    padpoints[ii-1] = (long long)((elapsed[ii]-times[ii-1]) / 
-				  later.dt + 0.5);
+    numblks_st[ii] = chkfilelen(files[ii], RECLEN);
+    numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
+    times_st[ii] = numpts_st[ii] * dt_st;
+    mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
+    elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
+				  idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+    padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / 
+				  dt_st + 0.5);
+    elapsed_st[ii] += elapsed_st[ii-1];
+    endblk_st[ii] = (double) (N_st + numpts_st[ii]) / ptsperblk_st;
+    N_st += numpts_st[ii] + padpts_st[ii-1];
+    startblk_st[ii] = (double) (numpts_st[ii-1] + padpts_st[ii-1]) / 
+      ptsperblk_st;
   }
+  padpts_st[numfiles-1] = (long long) ceiling(endblk_st[numfiles-1]) * 
+    ptsperblk_st - N_st;
+  N_st += padpts_st[numfiles-1];
+  *N = N_st;
+  *T = T_st = N_st * dt_st;
+  currentfile = currentblock = 0;
   if (output){
-    printf("File  Points    Time(s)        Elapsed(s)     MJD                 Padding\n");
+    printf("  Number of files = %d\n", numfiles);
+    printf("     Points/block = %d\n", ptsperblk_st);
+    printf("  Num of channels = %d\n", numchan_st);
+    printf(" Total points (N) = %lld\n", N_st);
+    printf(" Sample time (dt) = %-14.14g\n", dt_st);
+    printf("   Total time (s) = %-14.14g\n\n", T_st);
+    printf("File  Start Block    End Block      Points      Elapsed (s)      Time (s)            MJD           Padding\n");
+    printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)
-      printf("%-2d    %-9lld %-14.6g %-14.6g %-17.12f  %-lld\n", 
-	     ii, numpoints[ii], times[ii], elapsed[ii], mjd[ii], padpoints[ii]);
+      printf("%2d  %12.12g  %12.12g  %10lld  %14.14g  %14.14g  %17.12f  %10lld\n", 
+	     ii+1, startblk_st[ii], endblk_st[ii], numpts_st[ii], 
+	     elapsed_st[ii], times_st[ii], mjds_st[ii], padpts_st[ii]);
+    printf("\n");
   }
 }
 
@@ -70,52 +111,114 @@ int skip_to_multibeam_rec(FILE * infile, int rec)
 }
 
 
-int read_multibeam_recs(FILE * infile, multibeam_tapehdr * hdr, \
-			unsigned char *data, int blocks_to_read)
-/* This routine reads blocks_to_read multibeam records from   */
-/* the input file *infile which contains 1 bit digitized data */
-/* from the multibeam correlator at Parkes.                   */
+int read_multibeam_rawblock(FILE *infiles, int numfiles, 
+			    multibeam_tapehdr *hdr, \
+			    unsigned char *data)
+/* This routine reads a single multibeam record from          */
+/* the input files *infiles which contain 1 bit digitized     */
+/* data from the multibeam pulsar backend at Parkes.          */
 /* Length of a multibeam record is 640 bytes for the header   */
 /* plus 48k of data = 49792 bytes.                            */
-/* The header of the first record read is placed in hdr.      */
+/* The header of the record read is placed in hdr.            */
 /* *data must be pre-allocated with size 48k * blocks_to_read */
 {
-  int ii, blocksread = 0;
+  int ii, blocksread=0, offset, numtopad=0;
   unsigned char record[RECLEN];
+  static unsigned char databuffer[DATLEN*2];
+  static int bufferpts=0, padnum=0;
+  unsigned char *maskptr=mask1;
 
-  if (blocks_to_read < 1){
-    printf("\n blocks_to_read = %d in read_multibeam_recs()\n\n", 
-	   blocks_to_read);
-    exit(1);
-  }
-    
-  /* Set the data to zeros */
+  /* If our buffer array is offset from last time */
+  /* copy the second part into the first.         */
 
-  for (ii = 0; ii < DATLEN * blocks_to_read; ii++) data[ii] = 0;
+  if (bufferpts)
+    for (ii=0; ii<bufferpts; ii++)
+      *(databuffer+ii) = *(databuffer+DATLEN+ii);
 
-  /* Read the records */
+  /* make sure our current file number is valid */
 
-  for (ii = 0; ii < blocks_to_read; ii++){
-    if (fread(record, sizeof(unsigned char), RECLEN, infile) != RECLEN) {
-      if (feof(infile)) {
-	return blocksread;
+  if (currentfile >= numfiles)
+    return 0;
+
+  /* First try and read the current file */
+  
+  if (fread(record, 1, RECLEN, infiles[currentfile]) != 1){
+    /* Are we at the end of the current file? */
+    if (feof(infiles[currentfile])){
+      /* Does this file need padding? */
+      numtopad = padpts_st[currentfile] - padnum;
+      if (numtopad){
+	/* Pad the data */
+	if (numtopad >= ptsperblk_st){
+	  /* Add a full record of padding */
+	  offset = bufferpts * bytesperpt_st;
+	  for (ii=0; ii<DATLEN; ii++)
+	    *(databuffer+offset+ii) = *(maskblock+ii);
+	  padnum += ptsperblk_st;
+	} else if (numtopad >= ptsperblk_st - bufferpts){
+	  /* Add the amount of padding we need to */
+	  /* make our buffer_offset = 0           */
+	  numtopad = ptsperblk_st - bufferpts;
+	  for (ii=0; ii<numtopad; ii++){
+	    offset = (bufferpts + ii) * bytesperpt_st;
+	    for (jj=0; jj<bytesperpt_st; jj++){
+	      *(databuffer+offset+jj) = *(maskptr+jj);
+	      SWAPMASK(maskptr);
+	    }
+	  }
+	  padnum += ptsperblk_st;
+	  bufferpts = 0;
+	} else {
+	  /* Add the remainder of the padding and */
+	  /* then get a block from the next file. */
+	  for (ii=0; ii<numtopad; ii++){
+	    offset = (bufferpts + ii) * bytesperpt_st;
+	    for (jj=0; jj<bytesperpt_st; jj++){
+	      *(databuffer+offset+jj) = *(maskptr+jj);
+	      SWAPMASK(maskptr);
+	    }
+	  }
+	  padnum = 0;
+	  bufferpts += numtopad;
+	  currentfile++;
+	  return read_multibeam_rawblock(infiles, numfiles, hdr, data);
+	}
+	/* If done with padding reset padding variables */
+	if (padnum == padpts_st[currentfile]){
+	  padnum = 0;
+	  currentfile++;
+	}
+	/* Copy the new data into the output array */
+	for (ii=0; ii<DATLEN; ii++)
+	  *(data+ii) = *(databuffer+ii);
       } else {
-	printf("\nProblem reading record from multibeam data file.\n");
-	printf("Exiting\n");
-	exit(1);
+	/* Try reading the next file */
+	currentfile++;
+	return read_multibeam_rawblock(infiles, numfiles, hdr, data);
       }
+    } else {
+      printf("\nProblem reading record from multibeam data file.\n");
+      printf("Exiting\n");
+      exit(1);
     }
-    blocksread++;
-
-    /* Copy the header information into *hdr */
-    
-    if (ii == 0) memcpy(hdr, record, HDRLEN);
-
-    /* Copy the data into the data vector */
-
-    memcpy(data + ii * DATLEN, record + HDRLEN, DATLEN);
+  } else {
+    /* Put the new header into the header array */
+    for (ii=0; ii<HDRLEN; ii++)
+      *(hdr+ii) = *(record+ii);
+    /* Put the new data into the databuffer or directly */
+    /* into the return array if the bufferoffset is 0.  */
+    if (bufferpts){
+      offset = bufferpts * bytesperpt_st;
+      for (ii=0; ii<DATLEN; ii++){
+	*(databuffer+offset+ii) = *(record+HDRLEN+ii);
+	*(data+ii) = *(databuffer+ii);
+      }
+    } else {
+      for (ii=0; ii<DATLEN; ii++)
+	*(data+ii) = *(record+HDRLEN+ii);
+    }
   }
-  return blocksread;
+  return 1;
 }
 
 

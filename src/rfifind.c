@@ -46,8 +46,8 @@ int main(int argc, char *argv[])
   int numcands, candnum, numrfi=0, numrfivect=NUM_RFI_VECT;
   int ii, jj, kk, slen, numread=0, compute=1;
   int harmsum=RFI_NUMHARMSUM, lobin=RFI_LOBIN, numbetween=RFI_NUMBETWEEN;
-  double davg, dvar, freq, dt;
-  long long numpoints[MAXPATCHFILES], padpoints[MAXPATCHFILES];
+  double davg, dvar, freq, dt, T;
+  long long N;
   presto_interptype interptype;
   rfi *rfivect=NULL;
   fftcand *cands;
@@ -119,23 +119,21 @@ int main(int argc, char *argv[])
       else
 	printf("Reading Green Bank GBPP data from 1 file:\n");
     }
-
+	  
     /* Open the raw data file */
 
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
     }
-    printf("\nWriting mask  data to '%s'.\n", maskfilenm);
-    printf("Writing RFI   data to '%s'.\n", rfifilenm);
-    printf("Writing stats data to '%s'.\n\n", statsfilenm);
-    
+    printf("\n");
+
     /* Set-up values if we are using the Parkes multibeam */
     
     if (cmd->pkmbP) {
       
-      get_pkmb_file_info(infiles, numfiles, numpoints, padpoints, 
-			 &dt, &numchan, 1);
+      get_pkmb_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+			 &dt, &T, 1);
 
       /* Read the first header file and generate an infofile from it */
       
@@ -143,9 +141,7 @@ int main(int argc, char *argv[])
       rewind(infiles[0]);
       multibeam_hdr_to_inf(&hdr, &idata);
       idata.dm = 0.0;
-      idata.N = 0.0;
-      for (ii=0; ii<numfiles; ii++)
-	idata.N += numpoints[ii] + padpoints[ii];
+      idata.N = N;
       writeinf(&idata);
       ptsperblock = DATLEN * 8 / numchan;
       
@@ -192,6 +188,9 @@ exit(0);
     
     /* Main loop */
 
+    printf("Writing mask  data to '%s'.\n", maskfilenm);
+    printf("Writing RFI   data to '%s'.\n", rfifilenm);
+    printf("Writing stats data to '%s'.\n\n", statsfilenm);
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = %3d%%", oldper);
     fflush(stdout);

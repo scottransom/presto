@@ -21,9 +21,9 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11/lib -lX11
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I/u/sransom/include
+FFTINCDIR = -I/usr/local/include
 # Path to FFT libraries
-FFTLIBDIR = -L/u/sransom/lib
+FFTLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lsfftw
 
@@ -45,12 +45,12 @@ PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 
 # For Pentium with GCC
-#CC = gcc
-#FC = g77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-g -Wall -W -O2 -mpentiumpro -fpic \
-#	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+CC = gcc
+FC = g77
+CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+	-g -Wall -W -O2 -mpentiumpro -fpic \
+	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 #	-DUSEDMALLOC
 #	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
 #	-g -ansi -pedantic -Wall -W -fpic \
@@ -59,11 +59,11 @@ PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
 #	-Waggregate-return -fno-common -Wnested-externs
 #	-O4 -mpentiumpro -funroll-loops -fforce-addr -fno-strict-aliasing 
-#LIBLINKFLAGS = -shared
-#LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
-#FFLAGS = -g -O -fpic
-#FLINK = $(FC)
-#FLINKFLAGS = $(FFLAGS)
+LIBLINKFLAGS = -shared
+LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
+FFLAGS = -g -O -fpic
+FLINK = $(FC)
+FLINKFLAGS = $(FFLAGS)
 
 # For DEC Alpha
 #CC = cc
@@ -78,18 +78,18 @@ PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
 #FLINKFLAGS = $(CFLAGS)
 
 # For Solaris
-CC = gcc
-FC = g77
-CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -O2 -fPIC -Wall -W 
+#CC = gcc
+#FC = g77
+#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
+#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
+#	-g -O2 -fPIC -Wall -W 
 #	-g -O -v -KPIC
 #	-fast
-LIBLINKFLAGS = -shared
-LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
-FFLAGS = -g -O -fPIC
-FLINK = f77
-FLINKFLAGS = 
+#LIBLINKFLAGS = -shared
+#LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
+#FFLAGS = -g -O -fPIC
+#FLINK = f77
+#FLINKFLAGS = 
 #LIBLINKFLAGS = -G
 #LINKCOMMAND = ld $(LIBLINKFLAGS) -o
 #FFLAGS = -O
