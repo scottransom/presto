@@ -220,7 +220,11 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart *fp)
     numbetween = (1 << zoomlevel);
     fv->numbins = DISPLAYNUM / numbetween;
     fv->dr = 1.0 / (double) numbetween;
-    fv->lor = (int) floor(centerr - 0.5 * fv->numbins);
+    fv->lor = centerr - fv->numbins/2; 
+    if (fv->lor+fv->numbins > Nfft){
+      fv->lor = Nfft-fv->numbins;
+      fv->centerr = fv->lor + fv->numbins/2;
+    }
     if (fv->lor < 0) fv->lor = 0;
     interp = corr_rz_interp(fp->amps, fp->numamps, numbetween,
 			    fv->lor - fp->rlo, 0.0, DISPLAYNUM*2,
@@ -246,6 +250,10 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart *fp)
     fv->numbins = DISPLAYNUM * binstocombine;
     fv->dr = (double) binstocombine;
     fv->lor = (int) floor(centerr - 0.5 * fv->numbins);
+    if (fv->lor+fv->numbins > Nfft){
+      fv->lor = Nfft-fv->numbins;
+      fv->centerr = fv->lor + fv->numbins/2;
+    }
     if (fv->lor < 0) fv->lor = 0;
     tmprawpwrs = gen_fvect(fv->numbins);
     if (norm_const==0.0){
@@ -282,9 +290,9 @@ static fftpart *get_fftpart(int rlo, int numr)
   float powargr, powargi, tmppwr, chunk[LOCALCHUNK];
   fftpart *fp;
 
-  if (rlo+numr > Nfft)
+  if (rlo+numr > Nfft) {
     return NULL;
-  else {
+  } else {
     fp = (fftpart *)malloc(sizeof(fftpart));
     fp->rlo = rlo;
     fp->numamps = numr;
@@ -602,10 +610,20 @@ int main(int argc, char *argv[])
 
   /* Plot the initial data */
   
-  centerr = 0.5 * INITIALNUMBINS;
-  zoomlevel = LOGDISPLAYNUM - LOGINITIALNUMBINS;
-  minzoom = LOGDISPLAYNUM - LOGMAXBINS;
-  maxzoom = LOGDISPLAYNUM - LOGMINBINS;
+  {
+    int initnumbins=INITIALNUMBINS;
+
+    if (initnumbins > Nfft){
+      initnumbins = next2_to_n(Nfft)/2;
+      zoomlevel = LOGDISPLAYNUM-(int)(log(initnumbins)/log(2.0));
+      minzoom = zoomlevel;
+    } else {
+      zoomlevel = LOGDISPLAYNUM - LOGINITIALNUMBINS;
+      minzoom = LOGDISPLAYNUM - LOGMAXBINS;
+    }
+    maxzoom = LOGDISPLAYNUM - LOGMINBINS;
+    centerr = initnumbins/2;
+  }
   fv = get_fftview(centerr, zoomlevel, lofp);
 
   /* Prep the XWIN device for PGPLOT */

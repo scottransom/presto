@@ -248,18 +248,30 @@ static dataview *get_dataview(int centern, int zoomlevel, datapart *dp)
   dv = (dataview *)malloc(sizeof(dataview));
   dv->zoomlevel = zoomlevel;
   dv->numsamps = (1 << (LOGMAXDISPNUM - zoomlevel));
+  if (dv->numsamps > dp->nn)
+    dv->numsamps = next2_to_n(dp->nn)/2;
   dv->chunklen = (zoomlevel < -LOGMINCHUNKLEN) ?
     (1 << abs(zoomlevel)) : (1 << LOGMINCHUNKLEN);
   dv->dispnum = (dv->numsamps > MAXDISPNUM) ? MAXDISPNUM : dv->numsamps;
+  if (DEBUGOUT)
+    printf("zoomlevel = %d  numsamps = %d  chunklen = %d  dispnum %d  nn = %d\n", 
+	   dv->zoomlevel, dv->numsamps, dv->chunklen, dv->dispnum, dp->nn);
   dv->numchunks = dv->numsamps / dv->chunklen;
-  dv->vdt = dv->chunklen * idata.dt;
   dv->centern = centern;
-  dv->lon = (int) floor(centern - 0.5 * dv->numsamps);
+  dv->lon = centern - dv->numsamps/2;
+  dv->vdt = dv->chunklen * idata.dt;
   dv->maxval = SMALLNUM;
   dv->minval = LARGENUM;
-  if (dv->lon < 0) dv->lon = 0;
+  if (dv->lon < 0){
+    dv->lon = 0;
+    dv->centern = dv->lon + dv->numsamps/2;
+  }
+  if (dv->lon + dv->numsamps >= dp->nn){
+    dv->lon = dp->nn - dv->numsamps;
+    dv->centern = dv->lon + dv->numsamps/2;
+  }
   tmpchunk = gen_fvect(dv->chunklen);
-  for (ii=0; ii<dv->dispnum; ii++){
+  for (ii=0; ii<dv->numchunks; ii++){
     float tmpmin=LARGENUM, tmpmax=SMALLNUM, tmpval;
     offset = dv->lon + ii * dv->chunklen;
     memcpy(tmpchunk, dp->data+offset, sizeof(float)*dv->chunklen);
@@ -424,6 +436,7 @@ int main(int argc, char *argv[])
   /* Plot the initial data */
   
   centern = 0.5 * INITIALNUMPTS;
+  if (centern > lodp->nn) centern = lodp->nn/2;
   zoomlevel = LOGMAXDISPNUM - LOGINITIALNUMPTS;
   minzoom = LOGMAXDISPNUM - LOGMAXPTS;
   maxzoom = LOGMAXDISPNUM - LOGMINDISPNUM;
