@@ -16,11 +16,11 @@ Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -ebpp    ebpp    {Raw data in Efflesberg-Berkeley Pulsar Processor format}
 Flag   -gbpp    gbpp    {Raw data in Green Bank-Berkeley Pulsar Processor format}
 Flag   -nofft   nofft   {Will not attempt to calculate the FFT of the zero-DM data}
-Float  -time    time    {The number of minutes to integrate for statistics and FFT calculations}
+Float  -time    time    {The number of minutes to integrate for statistics and FFT calculations} \
 	-r 0 oo  -d 4
-Float  -sigma   sigma   {The sigma above/below the noise to reject a chunk of data} 
+Float  -sigma   sigma   {The sigma above/below the noise to reject a chunk of data} \
 	-r 0 oo  -d 4
-Integer -zapchan zapchan {Channels to explicitly remove from analysis}
+Int    -zapchan zapchan {Channels to explicitly remove from analysis} \
 	-r 1 1024 -c 1 1024
 # Rest of command line:
 

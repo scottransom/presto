@@ -11,49 +11,60 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "realfft" 1 "06Dec00" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "06Dec00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
 .SH NAME
-realfft \- Perform a single-precision FFT of real data or its inverse
+rfifind \- Examines radio data for narrow and wide band interference as well as problems with channels
 .\" cligPart NAME end
 
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
-.B realfft
-[-fwd]
-[-inv]
-[-del]
-[-disk]
-[-mem]
-[-tmpdir tmpdir]
-[-outdir outdir]
-infiles ...
+.B rfifind
+-o outfile
+[-pkmb]
+[-ebpp]
+[-gbpp]
+[-nofft]
+[-time time]
+[-sigma sigma]
+[-zapchan zapchan]
+infile
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
 .SH OPTIONS
-.IP -fwd
-Force an forward FFT (sign=-1) to be performed.
-.IP -inv
-Force an inverse FFT (sign=+1) to be performed.
-.IP -del
-Delete the original file(s) when performing the FFT.
-.IP -disk
-Force the use of the out-of-core memory FFT.
-.IP -mem
-Force the use of the in-core memory FFT.
-.IP -tmpdir
-Scratch directory for temp file(s) in out-of-core FFT,
+.IP -o
+Output data file name (no suffix),
 .br
 1 String value
-.IP -outdir
-Directory where result file(s) will reside,
+.IP -pkmb
+Raw data in Parkes Multibeam format.
+.IP -ebpp
+Raw data in Efflesberg-Berkeley Pulsar Processor format.
+.IP -gbpp
+Raw data in Green Bank-Berkeley Pulsar Processor format.
+.IP -nofft
+Will not attempt to calculate the FFT of the zero-DM data.
+.IP -time
+The number of minutes to integrate for statistics and FFT calculations,
 .br
-1 String value
-.IP infiles
-Input data file(s).
+1 Float value between 0 and oo.
+.br
+Default: `4'
+.IP -sigma
+The sigma above/below the noise to reject a chunk of data,
+.br
+1 Float value between 0 and oo.
+.br
+Default: `4'
+.IP -zapchan
+Channels to explicitly remove from analysis,
+.br
+1...1024 Int values between 1 and 1024.
+.IP infile
+Input data file name..
 .\" cligPart OPTIONS end
 
 .\" cligPart DESCRIPTION
