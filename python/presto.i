@@ -1054,9 +1054,8 @@ double doppler(double freq_observed, double voverc);
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *minifft };
 %apply float* IN_1D_FLOAT { float *highpows, float *highfreqs };
-void search_minifft(fcomplex *minifft, int numminifft, float norm, 
-		    int harmsum, int numcands, float *highpows,
-		    float *highfreqs);
+void search_minifft(fcomplex *minifft, int numminifft, int harmsum,
+		    int numcands, float *highpows, float *highfreqs);
   /* This routine searches a short FFT (usually produced using the   */
   /* MiniFFT binary search method) and returns two vectors which     */
   /* contain the highest powers found and their Fourier frequencies. */
@@ -1064,8 +1063,6 @@ void search_minifft(fcomplex *minifft, int numminifft, float norm,
   /* Arguments:                                                      */
   /*   'minifft' is the FFT to search (complex valued)               */
   /*   'numminifft' is the number of complex points in 'minifft'     */
-  /*   'norm' is the value to multiply each pow power by to get      */
-  /*      a normalized power spectrum.                               */
   /*   'harmsum' the number of harmonics to sum during the search.   */
   /*   'numcands' is the length of the returned vectors.             */
   /*   'highpows' a vector containing the 'numcands' highest powers. */
