@@ -690,87 +690,6 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgbox ("CMST", 0.0, 0, "", 0.0, 0);
     cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (MHz)");
 
-    { /* Plot the Mask */
-      unsigned char byte;
-      float **plotmask, rr, gg, bb;
-
-      plotmask = gen_fmatrix(numint, numchan);
-      for (ii=0; ii<numint; ii++){
-	for (jj=0; jj<numchan; jj++){
-	  byte = bytemask[ii][jj];
-	  plotmask[ii][jj] = 0.0;
-	  if (byte & PADDING) plotmask[ii][jj] = 1.0;
-	  if (byte & OLDMASK) plotmask[ii][jj] = 2.0;
-	  if (byte & USERZAP) plotmask[ii][jj] = 3.0;
-	  if (byte & BAD_POW) plotmask[ii][jj] = 4.0;
-	  else if (byte & BAD_AVG) plotmask[ii][jj] = 5.0;
-	  else if (byte & BAD_STD) plotmask[ii][jj] = 6.0;
-	}
-      }
-      /* Set the colors */
-      numcol = 7;
-      maxcol = mincol + numcol - 1;
-      cpgscir(mincol, maxcol);
-      cpgqcr(0, &rr, &gg, &bb);
-      cpgscr(mincol+0, rr,  gg,  bb ); /* GOODDATA = background */
-      cpgscr(mincol+1, 0.7, 0.7, 0.7); /* PADDING  = light grey */
-      cpgscr(mincol+2, 0.3, 0.3, 0.3); /* OLDMASK  = dark grey */
-      cpgqcr(1, &rr, &gg, &bb);
-      cpgscr(mincol+3, rr,  gg,  bb ); /* USERZAP  = foreground */
-      cpgscr(mincol+4, 1.0, 0.0, 0.0); /* BAD+POW  = red */
-      cpgscr(mincol+5, 0.0, 0.0, 1.0); /* BAD+AVG  = blue */
-      cpgscr(mincol+6, 0.0, 1.0, 0.0); /* BAD+STD  = green */
-      /* Prep the image */
-      left   = lm + 3.0 * ft + 6.0 * tt;
-      right  = lm + 4.0 * ft + 6.0 * tt;
-      bottom = bm;
-      top    = bm + fh;
-      xl = 0.0;
-      xh = numchan;
-      yl = 0.0;
-      yh = T;
-      cpgsvp (left, right, bottom, top);
-      cpgswin(xl, xh, yl, yh);
-      locut = 0.0;
-      hicut = 6.0;
-      tr[2] = tr[4] = 0.0;    
-      tr[1] = (xh - xl) / numchan;
-      tr[0] = xl - (tr[1] / 2);
-      tr[5] = (yh - yl) / numint;
-      tr[3] = yl - (tr[5] / 2);
-      cpgimag(plotmask[0], numchan, numint, 1, 
-	      numchan, 1, numint, locut, hicut, tr);
-      cpgswin(xl, xh, yl, yh);
-      cpgbox ("BNST", 0.0, 0, "BNST", 0.0, 0);
-      cpgmtxt("B", 2.6, 0.5, 0.5, "Channel");
-      xl = lof;
-      xh = hif;
-      yl = 0.0;
-      yh = numint;
-      cpgswin(xl, xh, yl, yh);
-      cpgbox ("CMST", 0.0, 0, "CMST", 0.0, 0);
-      cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (MHz)");
-      cpgmtxt("R", 2.3, 0.5, 0.5, "Interval Number");
-      /* Add the Labels */
-      cpgsvp (0.0, 1.0, 0.0, 1.0);
-      cpgswin(0.0, 1.0, 0.0, 1.0);
-      cpgsch(0.7);
-      cpgsci(mincol+1);
-      cpgptxt(left, top+0.1, 0.0, 0.0, "Padding");
-      cpgsci(mincol+2);
-      cpgptxt(left, top+0.08, 0.0, 0.0, "Old Mask");
-      cpgsci(mincol+3);
-      cpgptxt(left, top+0.06, 0.0, 0.0, "User Zap");
-      cpgsci(mincol+4);
-      cpgptxt(right, top+0.1, 0.0, 1.0, "Max Power");
-      cpgsci(mincol+6);
-      cpgptxt(right, top+0.08, 0.0, 1.0, "Data \\gs");
-      cpgsci(mincol+5);
-      cpgptxt(right, top+0.06, 0.0, 1.0, "Data Mean");
-      cpgsci(1);
-      free(plotmask[0]); free(plotmask);
-    }
-
     { /* Add the Data Info area */
       char out[200], out2[100];
       float dy = 0.025;
@@ -781,7 +700,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
       top = 1.0 - tm;
       cpgsch(1.0);
       sprintf(out, "%-s", idata->name);
-      cpgtext(0.5, 1.0 - 0.5*tm, out);
+      cpgptxt(0.5, 1.0 - 0.5*tm, 0.0, 0.5, out);
       cpgsch(0.8);
 
       sprintf(out, "Object:");
@@ -895,6 +814,118 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
       cpgtext(left+0.245,   top-7*dy, out);
     }
   
+    { /* Plot the Mask */
+      unsigned char byte, temp[200];
+      float **plotmask, rr, gg, bb, page;
+
+      plotmask = gen_fmatrix(numint, numchan);
+      for (ii=0; ii<numint; ii++){
+	for (jj=0; jj<numchan; jj++){
+	  byte = bytemask[ii][jj];
+	  plotmask[ii][jj] = 0.0;
+	  if (byte & PADDING) plotmask[ii][jj] = 1.0;
+	  if (byte & OLDMASK) plotmask[ii][jj] = 2.0;
+	  if (byte & USERZAP) plotmask[ii][jj] = 3.0;
+	  if (byte & BAD_POW) plotmask[ii][jj] = 4.0;
+	  else if (byte & BAD_AVG) plotmask[ii][jj] = 5.0;
+	  else if (byte & BAD_STD) plotmask[ii][jj] = 6.0;
+	}
+      }
+      /* Set the colors */
+      numcol = 7;
+      maxcol = mincol + numcol - 1;
+      cpgscir(mincol, maxcol);
+      cpgqcr(0, &rr, &gg, &bb);
+      cpgscr(mincol+0, rr,  gg,  bb ); /* GOODDATA = background */
+      cpgscr(mincol+1, 0.7, 0.7, 0.7); /* PADDING  = light grey */
+      cpgscr(mincol+2, 0.3, 0.3, 0.3); /* OLDMASK  = dark grey */
+      cpgqcr(1, &rr, &gg, &bb);
+      cpgscr(mincol+3, rr,  gg,  bb ); /* USERZAP  = foreground */
+      cpgscr(mincol+4, 1.0, 0.0, 0.0); /* BAD+POW  = red */
+      cpgscr(mincol+5, 0.0, 0.0, 1.0); /* BAD+AVG  = blue */
+      cpgscr(mincol+6, 0.0, 1.0, 0.0); /* BAD+STD  = green */
+      /* Prep the image */
+      for (page=0; page<=1; page++){
+	xl = 0.0;
+	xh = numchan;
+	yl = 0.0;
+	yh = T;
+	locut = 0.0;
+	hicut = 6.0;
+	tr[2] = tr[4] = 0.0;    
+	tr[1] = (xh - xl) / numchan;
+	tr[0] = xl - (tr[1] / 2);
+	tr[5] = (yh - yl) / numint;
+	tr[3] = yl - (tr[5] / 2);
+	if (page==0){
+	  left   = lm + 3.0 * ft + 6.0 * tt;
+	  right  = lm + 4.0 * ft + 6.0 * tt;
+	  bottom = bm;
+	  top    = bm + fh;
+	} else {
+	  cpgpage();
+	  cpgiden();
+	  left   = 0.06;
+	  right  = 0.94;
+	  bottom = 0.06;
+	  top    = 0.88;
+	}
+	cpgsvp (left, right, bottom, top);
+	cpgswin(xl, xh, yl, yh);
+	cpgimag(plotmask[0], numchan, numint, 1, 
+		numchan, 1, numint, locut, hicut, tr);
+	cpgswin(xl, xh, yl, yh);
+	cpgbox ("BNST", 0.0, 0, "BNST", 0.0, 0);
+	cpgmtxt("B", 2.6, 0.5, 0.5, "Channel");
+	cpgmtxt("L", 2.1, 0.5, 0.5, "Time (s)");
+	xl = lof;
+	xh = hif;
+	yl = 0.0;
+	yh = numint;
+	cpgswin(xl, xh, yl, yh);
+	cpgbox ("CMST", 0.0, 0, "CMST", 0.0, 0);
+	cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (MHz)");
+	cpgmtxt("R", 2.3, 0.5, 0.5, "Interval Number");
+	/* Add the Labels */
+	cpgsvp (0.0, 1.0, 0.0, 1.0);
+	cpgswin(0.0, 1.0, 0.0, 1.0);
+	cpgsch(0.8);
+	if (page==0){
+	  cpgsci(mincol+1);
+	  cpgptxt(left, top+0.1, 0.0, 0.0, "Padding");
+	  cpgsci(mincol+2);
+	  cpgptxt(left, top+0.08, 0.0, 0.0, "Old Mask");
+	  cpgsci(mincol+3);
+	  cpgptxt(left, top+0.06, 0.0, 0.0, "User Zap");
+	  cpgsci(mincol+4);
+	  cpgptxt(right, top+0.1, 0.0, 1.0, "Max Power");
+	  cpgsci(mincol+6);
+	  cpgptxt(right, top+0.08, 0.0, 1.0, "Data \\gs");
+	  cpgsci(mincol+5);
+	  cpgptxt(right, top+0.06, 0.0, 1.0, "Data Mean");
+	  cpgsci(1);
+	} else {
+	  cpgsci(mincol+1);
+	  cpgptxt(1.0/12.0, 0.955, 0.0, 0.5, "Padding");
+	  cpgsci(mincol+2);
+	  cpgptxt(3.0/12.0, 0.955, 0.0, 0.5, "Old Mask");
+	  cpgsci(mincol+3);
+	  cpgptxt(5.0/12.0, 0.955, 0.0, 0.5, "User Zap");
+	  cpgsci(mincol+4);
+	  cpgptxt(7.0/12.0, 0.955, 0.0, 0.5, "Max Power");
+	  cpgsci(mincol+6);
+	  cpgptxt(9.0/12.0, 0.955, 0.0, 0.5, "Data \\gs");
+	  cpgsci(mincol+5);
+	  cpgptxt(11.0/12.0, 0.955, 0.0, 0.5, "Data Mean");
+	  cpgsci(1);
+	  cpgsch(0.9);
+	  sprintf(temp, "Recommended Mask for '%-s'", idata->name);
+	  cpgptxt(0.5, 0.985, 0.0, 0.5, temp);
+	}
+      }
+      free(plotmask[0]); free(plotmask);
+    }
+
     if (ct==0)
       printf("There are %d RFI instances.\n\n", numrfi);
 

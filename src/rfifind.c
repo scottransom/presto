@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
   printf("\n\n");
   printf("               Pulsar Data RFI Finder\n");
   printf("                 by Scott M. Ransom\n");
-  printf("           Last Modification:  5 Dec, 2000\n\n");
+  printf("           Last Modification:  4 Jan, 2001\n\n");
 
   /* The following is the root of all the output files */
 
