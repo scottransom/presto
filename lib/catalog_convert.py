@@ -265,6 +265,7 @@ class psr:
         return out
 
 pulsars = {}
+num_binaries = 0
 
 binflag = 0
 infile = open("psr_export.dat")
@@ -276,6 +277,7 @@ for line in infile.readlines()[1:]:
         else:
             binprops = line.split()
             pulsars[binprops[0][1:]].add_bin_params(binprops)
+            num_binaries += 1
     else:
         binflag = 1
 infile.close()
@@ -290,6 +292,22 @@ for line in infile.readlines()[1:]:
         else:
             binprops = line.split()
             pulsars[binprops[0][1:]].add_bin_params(binprops)
+            num_binaries += 1
+    else:
+        binflag = 1
+infile.close()
+
+binflag = 0
+infile = open("axp_export.dat")
+for line in infile.readlines()[1:]:
+    if (line[0]=='J'):
+        if (binflag==0):
+            currentpulsar = psr(line)
+            pulsars[currentpulsar.jname] = currentpulsar
+        else:
+            binprops = line.split()
+            pulsars[binprops[0][1:]].add_bin_params(binprops)
+            num_binaries += 1
     else:
         binflag = 1
 infile.close()
@@ -310,7 +328,11 @@ infile.close()
 psrs = pulsars.values()
 psrs.sort()
 
-outfile = open("pulsars.cat", "w")
+
+outfilename = "pulsars.cat"
+outfile = open(outfilename, "w")
+print "Writing %d pulsars (%d binaries) to %s" % \
+      (len(psrs), num_binaries, outfilename)
 for psr in psrs:
     outfile.write(psr.pack_structs())
 outfile.close()
