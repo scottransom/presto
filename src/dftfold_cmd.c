@@ -15,45 +15,35 @@
 #include <float.h>
 #include <math.h>
 
-#include "search_rzw_cmd.h"
+#include "dftfold_cmd.h"
 
 char *Program;
 
 /*@-null*/
 
 static Cmdline cmd = {
-  /***** -ncand: Number of candidates to try to return */
-  /* ncandP = */ 1,
-  /* ncand = */ 100,
-  /* ncandC = */ 1,
-  /***** -zlo: The low Fourier frequency to check */
-  /* zloP = */ 1,
-  /* zlo = */  -50,
-  /* zloC = */ 1,
-  /***** -zhi: The high Fourier frequency to check */
-  /* zhiP = */ 1,
-  /* zhi = */ 50,
-  /* zhiC = */ 1,
-  /***** -rlo: The lowest Fourier frequency to check */
-  /* rloP = */ 1,
-  /* rlo = */ 300,
-  /* rloC = */ 1,
-  /***** -rhi: The highest Fourier frequency to check */
-  /* rhiP = */ 0,
-  /* rhi = */ (int)0,
-  /* rhiC = */ 0,
-  /***** -lobin: The first Fourier frequency in the data file */
-  /* lobinP = */ 1,
-  /* lobin = */ 0,
-  /* lobinC = */ 1,
-  /***** -zapfile: A file containing a list of freqs to ignore (i.e. RFI) */
-  /* zapfileP = */ 0,
-  /* zapfile = */ (char*)0,
-  /* zapfileC = */ 0,
-  /***** -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric) */
-  /* baryvP = */ 1,
-  /* baryv = */ 0.0,
-  /* baryvC = */ 1,
+  /***** -n: The number of DFT sub-vectors to save */
+  /* numvectP = */ 1,
+  /* numvect = */ 1000,
+  /* numvectC = */ 1,
+  /***** -r: The Fourier frequency to fold (bins) */
+  /* rrP = */ 0,
+  /* rr = */ (double)0,
+  /* rrC = */ 0,
+  /***** -p: The period to fold (s) */
+  /* ppP = */ 0,
+  /* pp = */ (double)0,
+  /* ppC = */ 0,
+  /***** -f: The frequency to fold (Hz) */
+  /* ffP = */ 0,
+  /* ff = */ (double)0,
+  /* ffC = */ 0,
+  /***** -norm: Raw power divided by this normalizes the power */
+  /* normP = */ 0,
+  /* norm = */ (double)0,
+  /* normC = */ 0,
+  /***** -fftnorm: Use local powers from '.fft' file to get 'norm' */
+  /* fftnormP = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -750,100 +740,71 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -ncand: Number of candidates to try to return */
-  if( !cmd.ncandP ) {
-    printf("-ncand not found.\n");
+  /***** -n: The number of DFT sub-vectors to save */
+  if( !cmd.numvectP ) {
+    printf("-n not found.\n");
   } else {
-    printf("-ncand found:\n");
-    if( !cmd.ncandC ) {
+    printf("-n found:\n");
+    if( !cmd.numvectC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.ncand);
+      printf("  value = `%d'\n", cmd.numvect);
     }
   }
 
-  /***** -zlo: The low Fourier frequency to check */
-  if( !cmd.zloP ) {
-    printf("-zlo not found.\n");
+  /***** -r: The Fourier frequency to fold (bins) */
+  if( !cmd.rrP ) {
+    printf("-r not found.\n");
   } else {
-    printf("-zlo found:\n");
-    if( !cmd.zloC ) {
+    printf("-r found:\n");
+    if( !cmd.rrC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.zlo);
+      printf("  value = `%.40g'\n", cmd.rr);
     }
   }
 
-  /***** -zhi: The high Fourier frequency to check */
-  if( !cmd.zhiP ) {
-    printf("-zhi not found.\n");
+  /***** -p: The period to fold (s) */
+  if( !cmd.ppP ) {
+    printf("-p not found.\n");
   } else {
-    printf("-zhi found:\n");
-    if( !cmd.zhiC ) {
+    printf("-p found:\n");
+    if( !cmd.ppC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.zhi);
+      printf("  value = `%.40g'\n", cmd.pp);
     }
   }
 
-  /***** -rlo: The lowest Fourier frequency to check */
-  if( !cmd.rloP ) {
-    printf("-rlo not found.\n");
+  /***** -f: The frequency to fold (Hz) */
+  if( !cmd.ffP ) {
+    printf("-f not found.\n");
   } else {
-    printf("-rlo found:\n");
-    if( !cmd.rloC ) {
+    printf("-f found:\n");
+    if( !cmd.ffC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.rlo);
+      printf("  value = `%.40g'\n", cmd.ff);
     }
   }
 
-  /***** -rhi: The highest Fourier frequency to check */
-  if( !cmd.rhiP ) {
-    printf("-rhi not found.\n");
+  /***** -norm: Raw power divided by this normalizes the power */
+  if( !cmd.normP ) {
+    printf("-norm not found.\n");
   } else {
-    printf("-rhi found:\n");
-    if( !cmd.rhiC ) {
+    printf("-norm found:\n");
+    if( !cmd.normC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.rhi);
+      printf("  value = `%.40g'\n", cmd.norm);
     }
   }
 
-  /***** -lobin: The first Fourier frequency in the data file */
-  if( !cmd.lobinP ) {
-    printf("-lobin not found.\n");
+  /***** -fftnorm: Use local powers from '.fft' file to get 'norm' */
+  if( !cmd.fftnormP ) {
+    printf("-fftnorm not found.\n");
   } else {
-    printf("-lobin found:\n");
-    if( !cmd.lobinC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.lobin);
-    }
-  }
-
-  /***** -zapfile: A file containing a list of freqs to ignore (i.e. RFI) */
-  if( !cmd.zapfileP ) {
-    printf("-zapfile not found.\n");
-  } else {
-    printf("-zapfile found:\n");
-    if( !cmd.zapfileC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%s'\n", cmd.zapfile);
-    }
-  }
-
-  /***** -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric) */
-  if( !cmd.baryvP ) {
-    printf("-baryv not found.\n");
-  } else {
-    printf("-baryv found:\n");
-    if( !cmd.baryvC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.baryv);
-    }
+    printf("-fftnorm found:\n");
   }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
@@ -861,30 +822,20 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-ncand ncand] [-zlo zlo] [-zhi zhi] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-zapfile zapfile] [-baryv baryv] [--] infile\n\
-    Searches an FFT for pulsar candidates using a Fourier domain acceleration search.\n\
-    -ncand: Number of candidates to try to return\n\
-            1 int value between 1 and 10000\n\
-            default: `100'\n\
-      -zlo: The low Fourier frequency to check\n\
-            1 int value between -2000000 and 2000000\n\
-            default: ` -50'\n\
-      -zhi: The high Fourier frequency to check\n\
-            1 int value between -2000000 and 2000000\n\
-            default: `50'\n\
-      -rlo: The lowest Fourier frequency to check\n\
-            1 int value between 0 and oo\n\
-            default: `300'\n\
-      -rhi: The highest Fourier frequency to check\n\
-            1 int value between 0 and oo\n\
-    -lobin: The first Fourier frequency in the data file\n\
-            1 int value between 0 and oo\n\
-            default: `0'\n\
-  -zapfile: A file containing a list of freqs to ignore (i.e. RFI)\n\
-            1 char* value\n\
-    -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)\n\
-            1 double value between -0.1 and 0.1\n\
-            default: `0.0'\n\
+ [-n numvect] [-r rr] [-p pp] [-f ff] [-norm norm] [-fftnorm] [--] infile\n\
+    Calculates the complex vector addition of a DFT frequency.\n\
+        -n: The number of DFT sub-vectors to save\n\
+            1 int value between 2 and 262144\n\
+            default: `1000'\n\
+        -r: The Fourier frequency to fold (bins)\n\
+            1 double value between 1.0 and 2000000000.0\n\
+        -p: The period to fold (s)\n\
+            1 double value between 0.00000001 and 100000.0\n\
+        -f: The frequency to fold (Hz)\n\
+            1 double value between 0.00000001 and 100000.0\n\
+     -norm: Raw power divided by this normalizes the power\n\
+            1 double value\n\
+  -fftnorm: Use local powers from '.fft' file to get 'norm'\n\
 version: 31Aug00\n\
 ");
   exit(EXIT_FAILURE);
@@ -903,78 +854,56 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-ncand", argv[i]) ) {
-      cmd.ncandP = 1;
+    if( 0==strcmp("-n", argv[i]) ) {
+      cmd.numvectP = 1;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.ncand, 1);
-      cmd.ncandC = i-keep;
-      checkIntLower("-ncand", &cmd.ncand, cmd.ncandC, 10000);
-      checkIntHigher("-ncand", &cmd.ncand, cmd.ncandC, 1);
+      i = getIntOpt(argc, argv, i, &cmd.numvect, 1);
+      cmd.numvectC = i-keep;
+      checkIntLower("-n", &cmd.numvect, cmd.numvectC, 262144);
+      checkIntHigher("-n", &cmd.numvect, cmd.numvectC, 2);
       continue;
     }
 
-    if( 0==strcmp("-zlo", argv[i]) ) {
-      cmd.zloP = 1;
+    if( 0==strcmp("-r", argv[i]) ) {
+      cmd.rrP = 1;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.zlo, 1);
-      cmd.zloC = i-keep;
-      checkIntLower("-zlo", &cmd.zlo, cmd.zloC, 2000000);
-      checkIntHigher("-zlo", &cmd.zlo, cmd.zloC, -2000000);
+      i = getDoubleOpt(argc, argv, i, &cmd.rr, 1);
+      cmd.rrC = i-keep;
+      checkDoubleLower("-r", &cmd.rr, cmd.rrC, 2000000000.0);
+      checkDoubleHigher("-r", &cmd.rr, cmd.rrC, 1.0);
       continue;
     }
 
-    if( 0==strcmp("-zhi", argv[i]) ) {
-      cmd.zhiP = 1;
+    if( 0==strcmp("-p", argv[i]) ) {
+      cmd.ppP = 1;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.zhi, 1);
-      cmd.zhiC = i-keep;
-      checkIntLower("-zhi", &cmd.zhi, cmd.zhiC, 2000000);
-      checkIntHigher("-zhi", &cmd.zhi, cmd.zhiC, -2000000);
+      i = getDoubleOpt(argc, argv, i, &cmd.pp, 1);
+      cmd.ppC = i-keep;
+      checkDoubleLower("-p", &cmd.pp, cmd.ppC, 100000.0);
+      checkDoubleHigher("-p", &cmd.pp, cmd.ppC, 0.00000001);
       continue;
     }
 
-    if( 0==strcmp("-rlo", argv[i]) ) {
-      cmd.rloP = 1;
+    if( 0==strcmp("-f", argv[i]) ) {
+      cmd.ffP = 1;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.rlo, 1);
-      cmd.rloC = i-keep;
-      checkIntHigher("-rlo", &cmd.rlo, cmd.rloC, 0);
+      i = getDoubleOpt(argc, argv, i, &cmd.ff, 1);
+      cmd.ffC = i-keep;
+      checkDoubleLower("-f", &cmd.ff, cmd.ffC, 100000.0);
+      checkDoubleHigher("-f", &cmd.ff, cmd.ffC, 0.00000001);
       continue;
     }
 
-    if( 0==strcmp("-rhi", argv[i]) ) {
-      cmd.rhiP = 1;
+    if( 0==strcmp("-norm", argv[i]) ) {
+      cmd.normP = 1;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.rhi, 1);
-      cmd.rhiC = i-keep;
-      checkIntHigher("-rhi", &cmd.rhi, cmd.rhiC, 0);
+      i = getDoubleOpt(argc, argv, i, &cmd.norm, 1);
+      cmd.normC = i-keep;
       continue;
     }
 
-    if( 0==strcmp("-lobin", argv[i]) ) {
-      cmd.lobinP = 1;
-      keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.lobin, 1);
-      cmd.lobinC = i-keep;
-      checkIntHigher("-lobin", &cmd.lobin, cmd.lobinC, 0);
-      continue;
-    }
-
-    if( 0==strcmp("-zapfile", argv[i]) ) {
-      cmd.zapfileP = 1;
-      keep = i;
-      i = getStringOpt(argc, argv, i, &cmd.zapfile, 1);
-      cmd.zapfileC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-baryv", argv[i]) ) {
-      cmd.baryvP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.baryv, 1);
-      cmd.baryvC = i-keep;
-      checkDoubleLower("-baryv", &cmd.baryv, cmd.baryvC, 0.1);
-      checkDoubleHigher("-baryv", &cmd.baryv, cmd.baryvC, -0.1);
+    if( 0==strcmp("-fftnorm", argv[i]) ) {
+      cmd.fftnormP = 1;
       continue;
     }
 

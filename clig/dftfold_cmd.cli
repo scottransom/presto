@@ -1,0 +1,20 @@
+Name dftfold
+
+Usage "Calculates the complex vector addition of a DFT frequency."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+Int    -n       numvect  {The number of DFT sub-vectors to save}\
+	-r 2 262144 -d 1000
+Double -r       rr      {The Fourier frequency to fold (bins)}\
+	-r 1.0 2000000000.0
+Double -p       pp      {The period to fold (s)}\
+	-r 0.00000001 100000.0
+Double -f       ff      {The frequency to fold (Hz)}\
+	-r 0.00000001 100000.0
+Double -norm    norm    {Raw power divided by this normalizes the power}
+Flag   -fftnorm fftnorm {Use local powers from '.fft' file to get 'norm'}
+Rest   infile {Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist} \
+        -c 1 1

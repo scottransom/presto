@@ -182,6 +182,7 @@ cligs:
 	cd ../clig ; clig -o search_rzw_cmd -d search_rzw_cmd.cli
 	cd ../clig ; clig -o readfile_cmd -d readfile_cmd.cli
 	cd ../clig ; clig -o toas2dat_cmd -d toas2dat_cmd.cli
+	cd ../clig ; clig -o dftfold_cmd -d dftfold_cmd.cli
 	mv ../clig/*_cmd.h ../include/
 	mv ../clig/*_cmd.c .
 	cp ../clig/*.1 ../docs/
@@ -211,6 +212,10 @@ bary: bary.o
 
 bincand: bincand.o bincand_cmd.o
 	$(CC) $(CFLAGS) -o $@ bincand.o bincand_cmd.o $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+dftfold: dftfold.o dftfold_cmd.o
+	$(CC) $(CFLAGS) -o $@ dftfold.o dftfold_cmd.o $(PRESTOLINK) -lm
 	cp $@ ../bin
 
 shiftdata: shiftdata.o 

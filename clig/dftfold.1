@@ -11,48 +11,54 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "toas2dat" 1 "31Aug00" "Clig-manuals" "Programmer's Manual"
+.TH "dftfold" 1 "31Aug00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
 .SH NAME
-toas2dat \- Converts TOAs into a binned time series.
+dftfold \- Calculates the complex vector addition of a DFT frequency.
 .\" cligPart NAME end
 
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
-.B toas2dat
--n numout
--dt dt
--o outfile
-[-text]
-[-float]
-[-sec]
-file
+.B dftfold
+[-n numvect]
+[-r rr]
+[-p pp]
+[-f ff]
+[-norm norm]
+[-fftnorm]
+infile
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
 .SH OPTIONS
 .IP -n
-The number of bins in the output time series,
+The number of DFT sub-vectors to save,
 .br
-1 Int value between 0 and oo.
-.IP -dt
-Time interval in seconds for output time bins,
+1 Int value between 2 and 262144.
 .br
-1 Double value between 0 and oo.
-.IP -o
-Name of the output time series file,
+Default: `1000'
+.IP -r
+The Fourier frequency to fold (bins),
 .br
-1 String value
-.IP -text
-TOAs are ASCII text (default is binary double).
-.IP -float
-TOAs are binary floats (default is binary double).
-.IP -sec
-TOA unit is seconds (default is days).
-.IP file
-Input TOA file name.
+1 Double value between 1.0 and 2000000000.0.
+.IP -p
+The period to fold (s),
+.br
+1 Double value between 0.00000001 and 100000.0.
+.IP -f
+The frequency to fold (Hz),
+.br
+1 Double value between 0.00000001 and 100000.0.
+.IP -norm
+Raw power divided by this normalizes the power,
+.br
+1 Double value.
+.IP -fftnorm
+Use local powers from '.fft' file to get 'norm'.
+.IP infile
+Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end
 
 .\" cligPart DESCRIPTION

@@ -991,7 +991,7 @@ usage(void)
              1 double value\n\
              default: `0'\n\
        -mak: Determine optimization parameters from 'infile.mak'\n\
-version: 19Jun00\n\
+version: 31Aug00\n\
 ");
   exit(EXIT_FAILURE);
 }
