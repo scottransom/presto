@@ -76,6 +76,7 @@ CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-O4 -mcpu=pentiumpro -march=pentiumpro -funroll-loops -fforce-addr -fno-strict-aliasing 
 LIBLINKFLAGS = -shared
 LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
+#LINKCOMMAND = ar rcs
 FFLAGS = -g -O
 FLINK = $(FC)
 FLINKFLAGS = $(FFLAGS)
@@ -355,7 +356,7 @@ exploredat: exploredat.o $(PLOT2DOBJS)
 clean:
 	rm -f *.o *~ *#
 
-cleaner:  clean
+remove_executables:
 	rm -f makedata makeinf mjd2cal realfft timetest cal2mjd plotdat
 	rm -f quicklook search_bin search_rzw swap_endian plotfft
 	rm -f prepdata prepfold check_parkes_raw bary toas2dat
@@ -363,8 +364,10 @@ cleaner:  clean
 	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
-	rm -f accelsearch prepsubband explorefft exploredat $(PRESTOLIBNM)
-	rm -f mpiprepsubband
+	rm -f accelsearch prepsubband explorefft exploredat 
+	rm -f mpiprepsubband $(PRESTOLIBNM)
+
+cleaner:  clean remove_executables
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
 
 squeaky:  cleaner
