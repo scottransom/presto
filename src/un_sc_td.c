@@ -18,8 +18,11 @@ int main(int argc, char* argv[]){
 
   sprintf(filenm, "%s.hdr", argv[1]);
   datfile = fopen(filenm, "r");
-  if ((numread=fread(hdr, sizeof(char), HDRLEN+8, datfile))!=HDRLEN){
+  if ((numread=fread(hdr, sizeof(char), HDRLEN+8, datfile))!=HDRLEN+8){
     printf("  Problem reading the header file '%s'\n", argv[1]);
+  } else {
+    printf("Successfully read the header file '%s'.\n"
+	   "  Now merging '.hdr' and '.dat' files...\n", argv[1]);
   }
   fclose(datfile);
 
