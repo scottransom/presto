@@ -53,7 +53,7 @@ void readinf(infodata * data, char *filenm)
   fscanf(infofile, "%*[^=]= %lf", &data->dt);
   fscanf(infofile, "%*[^)] %*[^=]= %d\n", &data->numonoff);
 
-  if (data->numonoff >= 1) {
+  if (data->numonoff) {
     i = 0;
     do {
       fscanf(infofile, "%*[^=]= %lf %*[ ,] %lf", \
@@ -184,7 +184,7 @@ void writeinf(infodata * data)
 	  " Any breaks in the data? (1=yes, 0=no)  =  %d\n", \
 	  data->numonoff > 1 ? 1 : 0);
 
-  if (data->numonoff) {
+  if (data->numonoff > 1) {
     for(i=0; i<data->numonoff; i++){
       fprintf(infofile, \
        " On/Off bin pair #%3d                   =  %-11.0f, %-11.0f\n", \

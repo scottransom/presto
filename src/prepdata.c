@@ -22,9 +22,6 @@ int read_floats(FILE * file, float *data, int numpts, \
 #endif
 
 int main(int argc, char *argv[])
-/* This routine generates barycentric info for a data   */
-/* file.  The file can contain many spectral channels.  */
-/* It uses either the DE200 or the DE405 ephemeris.     */
 {
   /* Any variable that begins with 't' means topocentric */
   /* Any variable that begins with 'b' means barycentric */
@@ -34,10 +31,10 @@ int main(int argc, char *argv[])
   double *tobsf = NULL, *bobsf = NULL, tlotoa = 0.0, blotoa = 0.0;
   double *btl = NULL, *bth = NULL, bt, bdt, fact, dtmp;
   double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0, dev = 0.0;
-  double *btoa = NULL, *ttoa = NULL, *voverc = NULL;
-  char obs[3], ephem[10], datafilenm[120], filenm[120];
-  char rastring[50], decstring[50];
-  int numchan = 1, newper = 0, oldper = 0;
+  double *btoa = NULL, *ttoa = NULL, *voverc = NULL, barydispdt = 0.0;
+  char obs[3], ephem[10], *datafilenm, *rootfilenm, *outinfonm;
+  char rastring[50], decstring[50], *cptr;
+  int numchan = 1, newper = 0, oldper = 0, slen;
   long i, j, k, numbarypts = 0, worklen = 65536, next_pow_of_two = 0;
   long numread = 0, totread = 0, totwrote = 0, wrote = 0, wlen2;
   multibeam_tapehdr hdr;
@@ -65,30 +62,58 @@ int main(int argc, char *argv[])
   printf("                 by Scott M. Ransom\n");
   printf("                    16 Nov, 1999\n\n");
 
-  /* Determine the output file name */
+  /* Determine the root input file name and the input info file name */
 
+  cptr = strrchr(cmd->argv[0], '.');
+  if (cptr==NULL){
+    printf("\nThe input filename (%s) must have a suffix!\n\n", 
+	   cmd->argv[0]);
+    exit(1);
+  }
+  slen = cptr - cmd->argv[0];
+  rootfilenm = (char *)malloc(slen+1);
+  rootfilenm[slen] = '\0';
+  strncpy(rootfilenm, cmd->argv[0], slen);
+  if (!cmd->pkmbP && !cmd->ebppP){
+    printf("Reading input  data from '%s'.\n", cmd->argv[0]);
+    printf("Reading information from '%s.inf'.\n\n", rootfilenm);
+
+    /* Read the info file if available */
+
+    readinf(&idata, rootfilenm);
+  } else if (cmd->pkmbP){
+    printf("Reading Parkes Multibeam data from '%s'\n\n", 
+	   cmd->argv[0]);
+  } else if (cmd->pkmbP){
+    printf("Reading New Effelsberg PSR data from '%s'\n\n", 
+	   cmd->argv[0]);
+  }
+
+  /* Open the raw data file */
+
+  infile = chkfopen(cmd->argv[0], "rb");
+
+  /* Determine the other file names and open the output data file */
+
+  slen = strlen(cmd->outfile)+5;
+  datafilenm = (char *)malloc(slen);
   sprintf(datafilenm, "%s.dat", cmd->outfile);
+  outfile = chkfopen(datafilenm, "wb");
+  sprintf(idata.name, "%s", cmd->outfile);
+  outinfonm = (char *)malloc(slen);
+  sprintf(outinfonm, "%s.inf", cmd->outfile);
+  printf("Writing output data to '%s'.\n", datafilenm);
+  printf("Writing information to '%s'.\n\n", outinfonm);
 
   /* Set-up values if we are using the Parkes multibeam */
 
   if (cmd->pkmbP) {
-
-    if (!cmd->outfileP) {
-      printf("You must enter an output file name if you are using the \n");
-      printf("Parkes Multibeam format.  Exiting.\n\n");
-      exit(1);
-    }
-    /* Open the raw input file */
-
-    infile = chkfopen(cmd->argv[0], "rb");
 
     /* Read the first header file and generate an infofile from it */
 
     chkfread(&hdr, 1, HDRLEN, infile);
     chkfileseek(infile, 0L, sizeof(char), SEEK_SET);
     multibeam_hdr_to_inf(&hdr, &idata);
-    sprintf(filenm, "%s.inf", cmd->outfile);
-    sprintf(idata.name, "%s", cmd->outfile);
     idata.dm = cmd->dm;
 
     /* Compare the size of the data to the size of output we request */
@@ -97,13 +122,14 @@ int main(int argc, char *argv[])
       dtmp = idata.N;
       idata.N = cmd->numout;
     }
+
     /* Write a new info-file */
 
     writeinf(&idata);
-
     if (cmd->numoutP && cmd->numout == idata.N) {
       idata.N = dtmp;
     }
+
     /* The topocentric spacing of the observed data points (days) */
 
     dt = idata.dt / SECPERDAY;
@@ -152,25 +178,6 @@ int main(int argc, char *argv[])
 
   if (!cmd->pkmbP && !cmd->ebppP) {
 
-    /* Determine the input file name */
-
-    sprintf(filenm, "%s.raw", cmd->argv[0]);
-
-    if (!cmd->outfileP){
-
-      /* Determine the output file name */
-
-      sprintf(datafilenm, "%s.dat", cmd->argv[0]);
-    }
-
-    /* Open the raw input file */
-
-    infile = chkfopen(filenm, "rb");
-
-    /* Open and read the infofile */
-
-    readinf(&idata, cmd->argv[0]);
-
     /* The topocentric spacing of the observed data points (days) */
 
     dt = idata.dt / SECPERDAY;
@@ -185,7 +192,7 @@ int main(int argc, char *argv[])
 
       /* The number of topo to bary time points to generate with TEMPO */
 
-      numbarypts = (long) (dt * idata.N * 1.1/ TDT + 5.5);
+      numbarypts = (long) (dt * idata.N * 1.1 / TDT + 5.5);
 
       /* The number of data points to work with at a time */
 
@@ -235,12 +242,11 @@ int main(int argc, char *argv[])
     /* The topocentric observation frequencies */
 
     tobsf = gen_dvect(numchan);
-
     tobsf[0] = idata.freq;
     for (i = 0; i < numchan; i++)
       tobsf[i] = tobsf[0] + i * tdf;
 
-    /* The dispersion delays (in days) */
+    /* The dispersion delays (in time bins) */
 
     dispdt = gen_dvect(numchan);
 
@@ -260,51 +266,40 @@ int main(int argc, char *argv[])
       worklen *= ((int)(dispdt[numchan-1]) / worklen) + 1;
     }
 
-  } else {			/* For non-radio data */
-
-    /* The topocentric observation frequencies */
-
+  } else {     /* For non Parkes or Effelsberg raw data */
     tobsf = gen_dvect(numchan);
-
-    /* The dispersion delays (in days) */
-
     dispdt = gen_dvect(numchan);
-
-    /* Set the observing frequency to infinity */
-
-    tobsf[0] = 0.0;
-
-    /* Our effective DM */
-
-    cmd->dm = 0.0;
-
-    /* Our dispersion time delay... */
-
     dispdt[0] = 0.0;
-
+    if (!strcmp(idata.band, "Radio")){
+      tobsf[0] = idata.freq + (idata.num_chan - 1) * idata.chan_wid;
+      cmd->dm = idata.dm;
+    } else {
+      tobsf[0] = 0.0;
+      cmd->dm = 0.0;
+    }
   }
 
   /* Main loop if we are not barycentering... */
 
   if (cmd->nobaryP) {
 
-    /* Allocate and initialize some arrays and other information */
+    /* Allocate and initialize our data array and others */
     
     data = gen_fvect(worklen);
     wlen2 = worklen * 2;
     outdata = gen_fvect(wlen2);
     for (i = 0; i < wlen2; i++)
       outdata[i] = 0.0;
-
+    
     /* Open our new output data file */
-
+    
     outfile = chkfopen(datafilenm, "wb");
-
+    
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = 0%%");
-
+    
     wrote = worklen;
-
+    
     do {
 
       numread = (*readrec_ptr) (infile, data, worklen, dispdt, numchan);
@@ -331,14 +326,14 @@ int main(int argc, char *argv[])
       for (j = 0; j < wrote; j++) {
 
 	/* Find the max and min values */
-
+	
 	if (data[j] > max)
 	  max = data[j];
 	if (data[j] < min)
 	  min = data[j];
-
+	
 	/* Use clever single pass mean and variance calculation */
-
+	
 	dev = data[j] - avg;
 	avg += dev / (totwrote + j + 1);
 	var += dev * (data[j] - avg);
@@ -346,10 +341,9 @@ int main(int argc, char *argv[])
 
       if (cmd->numoutP && (totwrote >= cmd->numout))
 	break;
-
-    } while (numread == worklen);
-
-
+	
+     } while (numread == worklen);
+      
     /* Main loop if we are barycentering... */
 
   } else {
@@ -390,10 +384,6 @@ int main(int argc, char *argv[])
 
     tlotoa = ttoa[0];
     blotoa = btoa[0];
-    printf("Topocentric epoch (at data start) is:\n");
-    printf("   %17.11f\n\n", tlotoa);
-    printf("Barycentric epoch (infinite obs freq at data start) is:\n");
-    printf("   %17.11f\n\n", blotoa);
 
     /* Determine the initial dispersion time delays for each channel */
 
@@ -405,10 +395,25 @@ int main(int argc, char *argv[])
     /* The highest frequency channel gets no delay                   */
     /* All other delays are positive fractions of bin length (dt)    */
 
-    dtmp = dispdt[numchan - 1];
+    barydispdt = dispdt[numchan - 1];
     for (i = 0; i < numchan; i++)
-      dispdt[i] = (dispdt[i] - dtmp) / idata.dt;
+      dispdt[i] = (dispdt[i] - barydispdt) / idata.dt;
     worklen *= ((int)(dispdt[numchan-1]) / worklen) + 1;
+    worklen = 1536;
+
+    /* If the data is de-dispersed radio data...*/
+
+    if (!strcmp(idata.band, "Radio")) {
+      printf("The DM of %.2f at the barycentric observing freq of %.3f MHz\n",
+	     idata.dm, bobsf[numchan-1]);
+      printf("   causes a delay of %f seconds compared to infinite freq.\n",
+	     barydispdt);
+      printf("   This delay is removed from the barycented times.\n\n");
+    }
+    printf("Topocentric epoch (at data start) is:\n");
+    printf("   %17.11f\n\n", tlotoa);
+    printf("Barycentric epoch (infinite obs freq at data start) is:\n");
+    printf("   %17.11f\n\n", blotoa - (barydispdt / SECPERDAY));
 
     /* Allocate and initialize some arrays and other information */
     
@@ -436,10 +441,6 @@ int main(int argc, char *argv[])
     tt2 = ttdt;
     wrote = worklen;
 
-    /* Open our new output data file */
-
-    outfile = chkfopen(datafilenm, "wb");
-
     printf("Massaging the data ...\n\n");
     printf("Amount Complete = 0%%");
 
@@ -460,6 +461,7 @@ int main(int argc, char *argv[])
 	fflush(stdout);
 	oldper = newper;
       }
+
       /* Determine the barycentric time for the data segment */
 
       fact = modf(totread * tdtbins, &dtmp);
@@ -481,6 +483,7 @@ int main(int argc, char *argv[])
 	  bth++;
 	  bdt = (*bth - *btl) * tdtbins;
 	}
+
 	/* Write a chunk of the output data set */
 
 	if (bt >= tt2) {
@@ -488,10 +491,12 @@ int main(int argc, char *argv[])
 	  /* If the barycentering compresses the data, don't */
 	  /* write a bunch of zeros.                         */
 
-	  if (totwrote && outdata[worklen - 1] == 0.0) {
-	    wrote = 0;
-	    while (outdata[wrote] != 0.0)
-	      wrote++;
+	  if (totwrote && 
+	      totread == idata.N &&
+	      outdata[worklen - 1] == 0.0) {
+	    wrote = worklen;
+	    while (outdata[wrote - 1] == 0.0)
+	      wrote--;
 	  } else {
 	    wrote = worklen;
 	  }
@@ -564,16 +569,15 @@ int main(int argc, char *argv[])
 
 	}
 
-	if ((cmd->numoutP && totwrote >= cmd->numout) \
-	    ||(wrote != worklen))
+	if ((cmd->numoutP && totwrote >= cmd->numout) ||
+	    (wrote != worklen))
 	  break;
 
       }
 
-      if ((cmd->numoutP && totwrote >= cmd->numout) \
-	  ||(wrote != worklen))
+      if ((cmd->numoutP && totwrote >= cmd->numout) ||
+	  (wrote != worklen))
 	break;
-
     } while (numread == worklen);
 
 
@@ -609,30 +613,38 @@ int main(int argc, char *argv[])
 
   next_pow_of_two = next2_to_n(totwrote);
 
-  /* Update the info in our '.inf' file if this routine generated it */
+  /* Write the new info file for the output data */
 
   if (cmd->pkmbP) {
-    idata.N = totwrote;
-    idata.numonoff = 1;
+    idata.numonoff = 0;
+  }
+  idata.N = totwrote;
+  if (!cmd->nobaryP) {
+    idata.bary = 1;
+    idata.mjd_i = (int) floor(blotoa - (barydispdt / SECPERDAY));
+    idata.mjd_f = blotoa - (barydispdt / SECPERDAY) - idata.mjd_i;
+  }
+  if (cmd->numoutP && (cmd->numout > totwrote)) {
+    idata.N = cmd->numout;
+    idata.numonoff = 2;
     idata.onoff[0] = 0;
     idata.onoff[1] = totwrote - 1;
-    if (!cmd->nobaryP) {
-      idata.bary = 1;
-      idata.mjd_i = (int) floor(blotoa);
-      idata.mjd_f = blotoa - idata.mjd_i;
-    }
-    if (cmd->numoutP && cmd->numout > totwrote) {
-      idata.N = cmd->numout;
-      idata.onoff[2] = cmd->numout - 1;
-      idata.onoff[3] = cmd->numout - 1;
-    }
-    if ((cmd->pad0P || cmd->padavgP) && next_pow_of_two != totwrote) {
-      idata.N = next_pow_of_two;
-      idata.onoff[2] = next_pow_of_two - 1;
-      idata.onoff[3] = next_pow_of_two - 1;
-    }
-    writeinf(&idata);
+    idata.onoff[2] = cmd->numout - 1;
+    idata.onoff[3] = cmd->numout - 1;
+    printf("NOTE:  If there were on-off pairs in the input info file,\n");
+    printf("       the output info file pairs are now incorrect!\n\n");
   }
+  if ((cmd->pad0P || cmd->padavgP) && (next_pow_of_two != totwrote)) {
+    idata.N = next_pow_of_two;
+    idata.numonoff = 2;
+    idata.onoff[0] = 0;
+    idata.onoff[1] = totwrote - 1;
+    idata.onoff[2] = next_pow_of_two - 1;
+    idata.onoff[3] = next_pow_of_two - 1;
+    printf("NOTE:  If there were on-off pairs in the input info file,\n");
+    printf("       the output info file pairs are now incorrect!\n\n");
+  }
+  writeinf(&idata);
 
   /* Pad the file if needed to pow_of_two_length */
 
@@ -671,6 +683,9 @@ int main(int argc, char *argv[])
   free(outdata);
   free(tobsf);
   free(dispdt);
+  free(rootfilenm);
+  free(datafilenm);
+  free(outinfonm);
   if (!cmd->nobaryP) {
     free(bobsf);
     free(btoa);
