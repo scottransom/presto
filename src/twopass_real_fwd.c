@@ -36,8 +36,6 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
   }
   n1 = nn / (2 * n2);
   bb = find_blocksize(n1, n2);
-  printf("bb = %lld, n1 = %lld, n2 = %lld, nn = %lld (%lld)\n", 
-	 bb, n1, n2, nn, n1*n2);
   if (bb==0 || bb % 2 || n1 % 2 || n2 % 2){
     printf("\nCan't factor the FFT length in twopassfft_real_fwd()\n");
     printf("   into useful sizes.\n\n");
@@ -167,8 +165,9 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
       /* Combine n and N/2-n terms as per Numerical Recipes. */
       
-      i1 = jj * bb;           /* n     */
-      i2 = bb * n2 - i1 - 1;  /* N/2-n */
+      i1 = jj * bb;          /* n     */
+      i2 = bb * n2 - i1 - 1; /* N/2-n */
+
       for (kk=0; kk<bb2; kk++, i1++, i2--){
 	h1r =  0.5 * (data[i1].r + data[i2].r);
 	h1i =  0.5 * (data[i1].i - data[i2].i);

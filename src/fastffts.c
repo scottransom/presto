@@ -254,6 +254,10 @@ void realfft(float idata[], long n, int isign)
   } else {
     cc = 0.5;
     theta = TWOPI / (double) n;
+    /* Numerical Recipes gives a sign error for */
+    /* the imaginary part of frequency n/2.     */
+    if ((n+2)%4)
+      data[(n>>2)].i = -data[(n>>2)].i;
   }
   /* Prep the trig recursion */
   wr = cos(theta);
@@ -286,6 +290,10 @@ void realfft(float idata[], long n, int isign)
     tmp1 = data[0].r;
     data[0].r = tmp1 + data[0].i;
     data[0].i = tmp1 - data[0].i;
+    /* Numerical Recipes gives a sign error for */
+    /* the imaginary part of frequency n/2.     */
+    if ((n+2)%4)
+      data[(n>>2)].i = -data[(n>>2)].i;
   } else {
     tmp1 = data[0].r;
     data[0].r = 0.5 * (tmp1 + data[0].i);

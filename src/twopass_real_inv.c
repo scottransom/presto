@@ -10,13 +10,13 @@ extern long long find_blocksize(long long n1, long long n2);
 void realfft_scratch_inv(multifile* infile, multifile* scratch, 
 			 long long nn)
 {
-  long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, s1;
+  long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, kind;
   int i1, i2, move_size;
   unsigned char *move;
   rawtype *data, *dp;
   double tmp1, tmp2, h1r, h1i, h2r, h2i;
   double h2rwr, h2rwi, h2iwr, h2iwi;
-  double wtemp, wpi, wpr, wi, wr, theta, delta;
+  double wtemp, wpi, wpr, wi, wr, theta=0.0, delta;
 
   if (nn < 2)
     return;
@@ -54,13 +54,13 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
   wpr = -2.0 * wtemp * wtemp;
   wpi = sin(delta);
 
-  /* Now correct the firstl n2 values that will not be corrected */
-  /*   later due to the asymetry in the recombination.           */
+  /* Correct the first n2 values that will not be corrected */
+  /*   later due to the asymetry in the recombination.      */
 
   /* Read the n2 data points */
 
-  for (jj=0, s1=0; jj<n2; jj++, s1+=n1){
-    fseek_multifile(infile, sizeof(rawtype) * s1, SEEK_SET);
+  for (jj=0; jj<n2; jj++){
+    fseek_multifile(infile, sizeof(rawtype) * jj * n1, SEEK_SET);
     fread_multifile(data+jj, sizeof(rawtype), 1, infile);
   }
 
@@ -71,30 +71,31 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
   data[0].i = 0.5 * (tmp1 - data[0].i);
 
   for (jj=1, kk=n2-1; jj<n2/2; jj++, kk--){
-    wr = cos(delta * n1 * jj);
-    wi = sin(delta * n1 * jj);
-    h1r = 0.5 * (data[jj].r + data[kk].r);
-    h1i = 0.5 * (data[jj].i - data[kk].i);
+    theta = delta * n1 * jj;
+    wr = cos(theta);
+    wi = sin(theta);
+    h1r =  0.5 * (data[jj].r + data[kk].r);
+    h1i =  0.5 * (data[jj].i - data[kk].i);
     h2r = -0.5 * (data[jj].i + data[kk].i);
-    h2i = -0.5 * (data[jj].r - data[kk].r);
+    h2i =  0.5 * (data[jj].r - data[kk].r);
     h2rwr = h2r * wr;
     h2rwi = h2r * wi;
     h2iwr = h2i * wr;
     h2iwi = h2i * wi;
-    data[jj].r = h1r + h2rwr - h2iwi;
-    data[jj].i = h1i + h2iwr + h2rwi;
-    data[kk].r = h1r - h2rwr + h2iwi;
+    data[jj].r =  h1r + h2rwr - h2iwi;
+    data[jj].i =  h1i + h2iwr + h2rwi;
+    data[kk].r =  h1r - h2rwr + h2iwi;
     data[kk].i = -h1i + h2iwr + h2rwi;
   }
 
   /* FFT the array: */
 
-  fftwcall(data, n2, 1);
+  COMPLEXFFT(data, n2, 1);
 
   /* Write the n2 data points */
 
-  for (jj=0, s1=0; jj<n2; jj++, s1+=n1){
-    fseek_multifile(scratch, sizeof(rawtype) * s1, SEEK_SET);
+  for (jj=0; jj<n2; jj++){
+    fseek_multifile(scratch, sizeof(rawtype) * jj * n1, SEEK_SET);
     fwrite_multifile(data+jj, sizeof(rawtype), 1, scratch);
   }
 
@@ -147,26 +148,24 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
       
       /* Combine n and N/2-n terms as per Numerical Recipes. */
       
-      i1 = jj * bb;            /* n     */
-      i2 = bb * n2 - i1 - 1;   /* N/2-n */
-      for (kk=0; kk<bb2; kk++){
-	h1r = 0.5 * (data[i1].r + data[i2].r);
-	h1i = 0.5 * (data[i1].i - data[i2].i);
+      i1 = jj * bb;          /* n     */
+      i2 = bb * n2 - i1 - 1; /* N/2-n */
+      for (kk=0; kk<bb2; kk++, i1++, i2--){
+	h1r =  0.5 * (data[i1].r + data[i2].r);
+	h1i =  0.5 * (data[i1].i - data[i2].i);
 	h2r = -0.5 * (data[i1].i + data[i2].i);
-	h2i = -0.5 * (data[i1].r - data[i2].r);
+	h2i =  0.5 * (data[i1].r - data[i2].r);
 	h2rwr = h2r * wr;
 	h2rwi = h2r * wi;
 	h2iwr = h2i * wr;
 	h2iwi = h2i * wi;
-	data[i1].r = h1r + h2rwr - h2iwi;
-	data[i1].i = h1i + h2iwr + h2rwi;
-	data[i2].r = h1r - h2rwr + h2iwi;
+	data[i1].r =  h1r + h2rwr - h2iwi;
+	data[i1].i =  h1i + h2iwr + h2rwi;
+	data[i2].r =  h1r - h2rwr + h2iwi;
 	data[i2].i = -h1i + h2iwr + h2rwi;
 	wtemp = wr;
 	wr = wtemp * wpr - wi * wpi + wr;
 	wi = wi * wpr + wtemp * wpi + wi;
-	i1++;
-	i2--;
       }
     }
 
@@ -177,7 +176,7 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     /* Do bb transforms of length n2 */
 
     for (jj=0; jj<bb; jj++)
-      fftwcall(data + jj * n2, n2, 1);
+      COMPLEXFFT(data + jj * n2, n2, 1);
 
     /* Transpose the n2 (rows) x bb (cols) block of data */
 
@@ -221,18 +220,18 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     /* Use recursion formulas from Numerical Recipes.            */
 
     for (jj=0; jj<bb; jj++){
-      theta = (jj + ii) * TWOPI / (nn >> 1);
+      delta = TWOPI * (ii + jj) / (double) (nn >> 1);
+      wr = cos(delta);
+      wi = sin(delta);
       wtemp = sin(0.5 * theta);
       wpr = -2.0 * wtemp * wtemp;
-      wpi = sin(theta);
-      wr = 1.0 + wpr;
-      wi = wpi;
-      for (kk=1; kk<n1; kk++){
-	s1 = jj * n1 + kk;
-	tmp1 = data[s1].r;
-	tmp2 = data[s1].i;
-	data[s1].r = tmp1 * wr - tmp2 * wi;
-	data[s1].i = tmp2 * wr + tmp1 * wi;
+      wpi = wi;
+      kind = jj * n1 + 1;
+      for (kk=1; kk<n1; kk++, kind++){
+	tmp1 = data[kind].r;
+	tmp2 = data[kind].i;
+	data[kind].r = tmp1 * wr - tmp2 * wi;
+	data[kind].i = tmp2 * wr + tmp1 * wi;
 	wtemp = wr;
 	wr = wtemp * wpr - wi * wpi + wr;
 	wi = wi * wpr + wtemp * wpi + wi;
@@ -242,7 +241,7 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     /* Do bb transforms of length n1 */
 
     for (jj=0; jj<bb; jj++)
-      fftwcall(data + jj * n1, n1, 1);
+      COMPLEXFFT(data + jj * n1, n1, 1);
 
     /* Transpose the n1 (rows) x bb (cols) block of data */
 
