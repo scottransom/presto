@@ -2,9 +2,9 @@
 #include "prepdata_cmd.h"
 #include "multibeam.h"
 
-/* This causes the binary orbit to be calculated about once every second */
+/* This causes the barycentric motion to be calculated once per second */
 
-#define TDT 0.00001525878906250
+#define TDT 1.0
 
 /* Some function definitions */
 
@@ -27,16 +27,16 @@ int main(int argc, char *argv[])
   /* Any variable that begins with 'b' means barycentric */
   FILE *infile = NULL, *outfile;
   float *data, *outdata;
-  double tdf = 0.0, dt = 0.0, tdtbins, tt1, tt2, ttdt, *dispdt;
+  double tdf = 0.0, tdtbins, tt1, tt2, ttdt, *dispdt, rdt = 0.0, rbdt = 0.0;
   double *tobsf = NULL, *bobsf = NULL, tlotoa = 0.0, blotoa = 0.0;
-  double *btl = NULL, *bth = NULL, bt, bdt, fact, dtmp;
+  double *btl = NULL, *bth = NULL, bt, bdt, fact, dtmp = 0.0;
   double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0, dev = 0.0;
   double *btoa = NULL, *ttoa = NULL, *voverc = NULL, barydispdt = 0.0;
   char obs[3], ephem[10], *datafilenm, *rootfilenm, *outinfonm;
   char rastring[50], decstring[50], *cptr;
   int numchan = 1, newper = 0, oldper = 0, slen;
   long i, j, k, numbarypts = 0, worklen = 65536, next_pow_of_two = 0;
-  long numread = 0, totread = 0, totwrote = 0, wrote = 0, wlen2;
+  long numread = 0, totread = 0, wlen2, wrote = 0, totwrote = 0, bindex = 0;
   multibeam_tapehdr hdr;
   infodata idata;
   Cmdline *cmd;
@@ -48,6 +48,7 @@ int main(int argc, char *argv[])
     usage();
     exit(1);
   }
+
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
@@ -130,10 +131,6 @@ int main(int argc, char *argv[])
       idata.N = dtmp;
     }
 
-    /* The topocentric spacing of the observed data points (days) */
-
-    dt = idata.dt / SECPERDAY;
-
     /* OBS code for TEMPO */
 
     strcpy(obs, "PK");
@@ -149,7 +146,7 @@ int main(int argc, char *argv[])
 
     /* The number of topo to bary time points to generate with TEMPO */
 
-    numbarypts = (long) (dt * idata.N * 1.1 / TDT + 5.5);
+    numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5);
 
   }
 
@@ -178,10 +175,6 @@ int main(int argc, char *argv[])
 
   if (!cmd->pkmbP && !cmd->ebppP) {
 
-    /* The topocentric spacing of the observed data points (days) */
-
-    dt = idata.dt / SECPERDAY;
-
     /* The data collection routine to use */
 
     readrec_ptr = read_floats;
@@ -192,7 +185,7 @@ int main(int argc, char *argv[])
 
       /* The number of topo to bary time points to generate with TEMPO */
 
-      numbarypts = (long) (dt * idata.N * 1.1 / TDT + 5.5);
+      numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5);
 
       /* The number of data points to work with at a time */
 
@@ -306,7 +299,7 @@ int main(int argc, char *argv[])
 
       /* Insure we don't write out too much data */
 
-      if (cmd->numoutP && totwrote + wrote > cmd->numout)
+      if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
 	wrote = cmd->numout - totwrote;
 
       chkfwrite(data, sizeof(float), (unsigned long) wrote, outfile);
@@ -367,23 +360,20 @@ int main(int argc, char *argv[])
     btoa = gen_dvect(numbarypts + 1);
     ttoa = gen_dvect(numbarypts + 1);
     voverc = gen_dvect(numbarypts + 1);
-    for (i = 0 ; i <= numbarypts ; i++){
-      ttoa[i] = tlotoa + (double) i * TDT;
-    }
+    for (i = 0 ; i <= numbarypts ; i++)
+      ttoa[i] = tlotoa + TDT * i / SECPERDAY;
 
     /* Call TEMPO for the barycentering */
 
     printf("Generating barycentric corrections...\n");
     barycenter(ttoa, btoa, voverc, numbarypts + 1, \
 	       rastring, decstring, obs, ephem);
+    blotoa = btoa[0];
 
     printf("   Insure you check the files tempoout_times.tmp and\n");
     printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n\n");
 
     printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
-
-    tlotoa = ttoa[0];
-    blotoa = btoa[0];
 
     /* Determine the initial dispersion time delays for each channel */
 
@@ -421,22 +411,24 @@ int main(int argc, char *argv[])
     outdata = gen_fvect(wlen2);
     for (i = 0; i < wlen2; i++)
       outdata[i] = 0.0;
+    rdt = 1.0 / idata.dt;
 
-    /* Convert the rest of the barycentric TOAs */
+    /* Convert the barycentric TOAs to seconds from the beginning */
 
-    for (i = 0 ; i <= numbarypts ; i++) btoa[i] -= blotoa;
+    for (i = 0 ; i <= numbarypts ; i++)
+      btoa[i] = (btoa[i] - blotoa) * SECPERDAY;
 
-    /* The topocentric spacing of the points where we determined  */
-    /* the barycentric corrections (days).                        */
+    /* The length of a time bin in terms of the topocentric spacing   */
+    /* of the points where we determined the barycentric corrections. */
 
-    tdtbins = dt / TDT;
+    tdtbins = idata.dt / TDT;
 
     /* Initialize some data */
 
     bt = 0.0;
     bdt = 0.0;
+    ttdt = idata.dt * worklen;
     tt1 = 0.0;
-    ttdt = dt * worklen;
     tt2 = ttdt;
     wrote = worklen;
 
@@ -461,15 +453,19 @@ int main(int argc, char *argv[])
 	oldper = newper;
       }
 
-      /* Determine the barycentric time for the data segment */
+      /* Determine the barycentric time for the data  */
+      /* segment using linear interpolation.          */
 
-      fact = modf(totread * tdtbins, &dtmp);
+      dtmp = totread * tdtbins;
+      bindex = (long)(dtmp + DBLCORRECT); 
+      fact = dtmp - bindex;
       totread += numread;
-      btl = btoa + (long) (dtmp + 0.0000000001);
+      btl = btoa + bindex;
       bth = btl + 1;
       bdt = (*bth - *btl);
       bt = *btl + fact * bdt;
       bdt *= tdtbins;
+      rbdt = 1.0 / bdt;
 
       /* Loop over the newly read data segment */
 
@@ -481,6 +477,7 @@ int main(int argc, char *argv[])
 	  btl++;
 	  bth++;
 	  bdt = (*bth - *btl) * tdtbins;
+	  rbdt = 1.0 / bdt;
 	}
 
 	/* Write a chunk of the output data set */
@@ -490,23 +487,16 @@ int main(int argc, char *argv[])
 	  /* If the barycentering compresses the data, don't */
 	  /* write a bunch of zeros.                         */
 
-	  if (totwrote && 
-	      totread == idata.N &&
-	      outdata[worklen - 1] == 0.0) {
-	    wrote = worklen;
-	    while (outdata[wrote - 1] == 0.0)
-	      wrote--;
-	  } else {
-	    wrote = worklen;
-	  }
+	  wrote = worklen;
+	  if (numread != worklen && outdata[worklen-1] == 0.0)
+	    while (outdata[wrote - 1] == 0.0) wrote--;
 
 	  /* Insure we don't write out too much data */
 
-	  if (cmd->numoutP && totwrote + wrote > cmd->numout)
+	  if (cmd->numoutP && (totwrote + wrote) > cmd->numout)
 	    wrote = cmd->numout - totwrote;
 
-	  chkfwrite(outdata, sizeof(float), (unsigned long) wrote, \
-		    outfile);
+	  chkfwrite(outdata, sizeof(float), wrote, outfile);
 
 	  /* The following accounts for overlap effects between reads */
 
@@ -528,44 +518,42 @@ int main(int argc, char *argv[])
 	    /* Move the output array around for the next pass */
 
 	    outdata[j] = outdata[j + worklen];
-	    outdata[j + worklen] = 0.0;
 	  }
+	  for (j = wrote; j < worklen; j++) j = 0.0;
 
 	  /* Increment our topocentric time steppers */
 
 	  tt1 = tt2;
 	  totwrote += wrote;
-	  tt2 = (totwrote + worklen) * dt;
+	  tt2 = (totwrote + worklen) * idata.dt;
 	}
+
 	/* Determine if barycentric interval is less than, equal to, */
 	/* or greater than the topocentric interval.                 */
 
-	j = (long) floor((bt - tt1) / dt);
-	k = (long) floor((bt - tt1 + bdt) / dt);
+	j = (long) ((bt - tt1) * rdt + DBLCORRECT);       /* Bin start */
+	k = (long) ((bt - tt1 + bdt) * rdt + DBLCORRECT); /* Bin end   */
+
+	/* Barycentric bin fits in one topocentric bin */
 
 	if (k == j) {
-
-	  /* Barycentric and topocentric bins are the same size */
-
 	  outdata[j] += data[i];
 
+	/* Barycentric bin covers 2 topocentric bins */
+
 	} else if (k - j == 1) {
+	  fact = ((k * idata.dt + tt1) - bt) * rbdt;
+	  outdata[j] += data[i] * fact;
+	  outdata[k] += data[i] * (1.0 - fact);
 
-	  /* Barycentric bins cover 2 topocentric bins */
-
-	  fact = k * dt + tt1 - bt;
-	  outdata[j] += data[i] * fact / bdt;
-	  outdata[k] += data[i] * (1.0 - fact / bdt);
+	/* Barycentric bin covers 3 topocentric bins */
 
 	} else {
-
-	  /* Barycentric bins cover 3 topocentric bins */
-
-	  fact = (j + 1) * dt + tt1 - bt;
-	  outdata[j] += data[i] * fact / bdt;
-	  outdata[j + 1] += data[i] * dt / bdt;
-	  outdata[k] += data[i] * (1.0 - (fact + dt) / bdt);
-
+	  fact = (((j+1) * idata.dt + tt1) - bt) * rbdt;
+	  dtmp = idata.dt * rbdt;
+	  outdata[j] += data[i] * fact;
+	  outdata[j+1] += data[i] * dtmp;
+	  outdata[k] += data[i] * (1.0 - (fact + dtmp));
 	}
 
 	if ((cmd->numoutP && totwrote >= cmd->numout) ||
@@ -579,20 +567,18 @@ int main(int argc, char *argv[])
 	break;
     } while (numread == worklen);
 
-
     /* Write the final few points if necessary */
 
     if (!(cmd->numoutP && totwrote >= cmd->numout)) {
-      i = 0;
-      while (outdata[i] != 0.0)
-	i++;
+      i = wlen2 - 1;
+      while (outdata[i] == 0.0) i--;
 
       /* Insure we don't write out too much data */
 
       if (cmd->numoutP && totwrote + i > cmd->numout)
 	i = cmd->numout - totwrote;
 
-      chkfwrite(outdata, sizeof(float), (unsigned long) i, outfile);
+      chkfwrite(outdata, sizeof(float), i, outfile);
       totwrote += i;
     }
   }
