@@ -526,13 +526,12 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgsvp (0.27, 0.36, 0.09, 0.68);
     else
       cpgsvp (0.27, 0.39, 0.09, 0.68);
-    cpgswin(0.0, 1.1 * max, 0.0, T);
-
+    cpgswin(1.1 * max, 0.0, 0.0, T);
     cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
     cpgline(search->npart+1, timechi, parttimes);
-    cpgswin(0.0, 1.1 * max, search->startT-0.0001, search->endT+0.0001);
+    cpgswin(1.1 * max, 0.0, search->startT-0.0001, search->endT+0.0001);
     if (search->nsub > 1)
       cpgsch(0.7);
     cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
