@@ -44,6 +44,12 @@ static Cmdline cmd = {
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
   /* numwappsC = */ 1,
+  /***** -subs: Write subbands instead of de-dispersed data */
+  /* subsP = */ 0,
+  /***** -subsdm: The DM to use when de-dispersing subbands for -subs */
+  /* subsdmP = */ 1,
+  /* subsdm = */ 0.0,
+  /* subsdmC = */ 1,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (int)0,
@@ -856,6 +862,25 @@ showOptionValues(void)
     }
   }
 
+  /***** -subs: Write subbands instead of de-dispersed data */
+  if( !cmd.subsP ) {
+    printf("-subs not found.\n");
+  } else {
+    printf("-subs found:\n");
+  }
+
+  /***** -subsdm: The DM to use when de-dispersing subbands for -subs */
+  if( !cmd.subsdmP ) {
+    printf("-subsdm not found.\n");
+  } else {
+    printf("-subsdm found:\n");
+    if( !cmd.subsdmC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.subsdm);
+    }
+  }
+
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   if( !cmd.numoutP ) {
     printf("-numout not found.\n");
@@ -969,7 +994,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-subs] [-subsdm subsdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
@@ -984,6 +1009,10 @@ usage(void)
   -numwapps: Number of WAPPs used with contiguous frequencies\n\
              1 int value between 1 and 7\n\
              default: `1'\n\
+      -subs: Write subbands instead of de-dispersed data\n\
+    -subsdm: The DM to use when de-dispersing subbands for -subs\n\
+             1 double value between 0 and 2000.0\n\
+             default: `0.0'\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
              1 int value between 1 and oo\n\
     -nobary: Do not barycenter the data\n\
@@ -1007,7 +1036,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 04Nov02\n\
+version: 25Mar03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1076,6 +1105,21 @@ parseCmdline(int argc, char **argv)
       cmd.numwappsC = i-keep;
       checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
       checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-subs", argv[i]) ) {
+      cmd.subsP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-subsdm", argv[i]) ) {
+      int keep = i;
+      cmd.subsdmP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.subsdm, 1);
+      cmd.subsdmC = i-keep;
+      checkDoubleLower("-subsdm", &cmd.subsdm, cmd.subsdmC, 2000.0);
+      checkDoubleHigher("-subsdm", &cmd.subsdm, cmd.subsdmC, 0);
       continue;
     }
 
