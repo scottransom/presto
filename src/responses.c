@@ -458,7 +458,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 {
 
   int fftlen, ii, beginbin, numintkern, index;
-  int numpoints=32769; /* This should be a power-of-two + 1 */
+  int numorbpts=32769; /* This should be a power-of-two + 1 */
   float *data;
   double *phi = NULL, startE;
   double amp, f, dt, dtb, t, tp, z, fpart, ipart, dtemp;
@@ -493,7 +493,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
   z = orbit->x / ppsr;
   dt = 1.0 / (double) NUM_PTS_ORB;
-  dtb = 1.0 / (double) (numpoints - 1);
+  dtb = 1.0 / (double) (numorbpts - 1);
   amp = 2.0 * dt;
   f = TWOPI * (double) (NUM_PTS_ORB / 4);
   orb.p = orbit->p / T;
@@ -505,8 +505,8 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /* Generate the orbit */
 
   startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
-  phi = dorbint(startE, numpoints, dtb, &orb);
-  E_to_phib(phi, numpoints, &orb);
+  phi = dorbint(startE, numorbpts, dtb, &orb);
+  E_to_phib(phi, numorbpts, &orb);
 
   /* Generate the data set */
 
@@ -531,7 +531,11 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /* the Fourier interpolation kernels if 'numkern' is the  */
   /* same length as on prior calls.                         */
 
-  fftlen = next2_to_n(numkern);
+  numintkern = 2 * numbetween * r_resp_halfwidth(HIGHACC);
+  fftlen = next2_to_n(numkern + numintkern);
+  if (fftlen > NUM_PTS_ORB){
+    printf("WARNING:  fftlen > NUM_PTS_ORB in gen_bin_response().\n");
+  }
   beginbin = NUM_PTS_ORB/4 - numkern / numbetween;
   if (firsttime || 
       old_numkern != numkern || 
@@ -540,7 +544,6 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
 
     /* Generate an interpolation kernel for the data */
 
-    numintkern = 2 * numbetween * r_resp_halfwidth(HIGHACC);
     rresp = gen_r_response(0.0, numbetween, numintkern);
 
     /* Free the old kernelarray if one exists */
@@ -568,6 +571,9 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /* Generate the data array */
 
   dataarray = gen_cvect(fftlen);
+  if (fftlen / numbetween >= NUM_PTS_ORB - beginbin){
+    printf("WARNING:  fftlen too large in gen_bin_response().\n");
+  }
   spread_no_pad(((fcomplex *) data) + beginbin, fftlen / numbetween, \
 		dataarray, fftlen, numbetween);
   free(data);

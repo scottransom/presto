@@ -1,37 +1,39 @@
 #include "orbint.h"
 
 /* The first time derivative of eccentric anomaly.             */
-/* E = eccentric anomaly.  twopif = TWOPI * orbital freq.      */
+/* Z = eccentric anomaly.  twopif = TWOPI * orbital freq.      */
 /* e = eccentricity.                                           */
 #ifndef EDOT
-#define EDOT(E,twopif,e) ((twopif) / (1.0 - (e) * cos(E)))
+#define EDOT(Z) ((twopif) / (1.0 - (e) * cos(Z)))
 #endif
 
 
 double *dorbint(double Eo, long numpts, double dt, orbitparams *orb) 
-/* This routine integrates Keplar's Equation and returns a double       */
-/* vector of the eccentric anomalys (E) for each point.  The initial    */
-/* value for eccentric anomaly (usually determined by using             */
-/* keplars_equation()) goes in Eo.  The time increment to use is dt,    */
-/* total number of pts goes in 'numpts' and all of the various orbital  */
-/* parameters are found in *orb.  The routine uses 4th order Runge-     */
-/* Kutta in a dumb mode (no adaptive step-size) since all we want is    */
-/* tabulated results with even intervals.                               */
+/* This routine integrates Keplar's Equation and returns a double      */
+/* vector of the eccentric anomalys (E) for each point.  The initial   */
+/* value for eccentric anomaly (usually determined by using            */
+/* keplars_equation()) goes in Eo.  The time increment to use is dt,   */
+/* total number of pts goes in 'numpts' and all of the various orbital */
+/* parameters are found in *orb.  The routine uses 4th order Runge-    */
+/* Kutta in a dumb mode (no adaptive step-size) since all we want is   */
+/* tabulated results with even intervals.                              */
 
 { 
-  long i; 
-  double k1, k2, k3, k4, dt2, twopif, *E;
+  long ii; 
+  double k1, k2, k3, k4, dt2, twopif, *E, e, Etmp;
 
   E = gen_dvect(numpts);
   E[0] = Eo;
+  e = orb->e;
   twopif = TWOPI / orb->p;
   dt2 = 0.5 * dt;
-  for (i=0 ; i<numpts-1 ; i++){
-    k1 = EDOT(E[i], twopif, orb->e);
-    k2 = EDOT(E[i] + dt2 * k1, twopif, orb->e);
-    k3 = EDOT(E[i] + dt2 * k2, twopif, orb->e);
-    k4 = EDOT(E[i] + dt * k3, twopif, orb->e);
-    E[i+1] = E[i] + dt * (((k1 + k4) * 0.5 + k2 + k3) / 3.0);
+  for (ii = 0; ii < numpts - 1; ii++){
+    Etmp = E[ii];
+    k1 = EDOT(Etmp);
+    k2 = EDOT(Etmp + dt2 * k1);
+    k3 = EDOT(Etmp + dt2 * k2);
+    k4 = EDOT(Etmp + dt * k3);
+    E[ii + 1] = Etmp + dt * (((k1 + k4) * 0.5 + k2 + k3) / 3.0);
   }
   return E;
 }
@@ -46,11 +48,12 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
 /* seconds since the last periapsis.                                   */
 
   int j;
-  double E1 = 0.0, E2 = PI, z;
+  double E1 = 0.0, E2 = PI, z, twopif;
   double df, dE, dEold, f, fh, fl;
   double temp, Eh, El, rEs;
 
-  z = TWOPI * t / p_orb;
+  twopif = TWOPI / p_orb;
+  z = twopif * t;
   fl = E1 - e * sin(E1) - z;
   fh = E2 - e * sin(E2) - z;
   if ((fl > 0.0 && fh > 0.0) || (fl < 0.0 && fh < 0.0)){
@@ -79,7 +82,7 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
   dEold = fabs(E2 - E1);
   dE = dEold;
   f = rEs - e * sin(rEs) - z;
-  df = EDOT(rEs, TWOPI/p_orb, e);
+  df = EDOT(rEs);
   for (j = 1; j <= MAXIT; j++) {
     if ((((rEs - Eh) * df - f) * ((rEs - El) * df - f) >= 0.0)
 	|| (fabs(2.0 * f) > fabs(dEold * df))) {
@@ -99,7 +102,7 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
     if (fabs(dE) < Eacc)
       return rEs;
     f = rEs - e * sin(rEs) - z;
-    df = EDOT(rEs, TWOPI/p_orb, e);
+    df = EDOT(rEs);
     if (f < 0.0)
       El = rEs;
     else
