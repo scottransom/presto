@@ -1308,19 +1308,27 @@ void search_minifft(fcomplex *minifft, int numminifft, \
 
 void print_rawbincand(rawbincand cand);
 
-int read_zapfile(char *zapfilenm, double **zapfreqs, double **zapwidths);
-/* Open, read, and close a text file containing frequencies (Hz)  */
-/* and widths (Hz) to ignore in a pulsar search.  The text file   */
-/* should have one frequency and width per line.  Lines beginning */
-/* with '#' are ignored, and so may be used as comments.          */
+int get_birdies(char *zapfilenm, double T, double avg_vel,
+		double **lobins, double **hibins);
+/* Open, read, and close a text file containing frequencies (Hz)   */
+/* and widths (Hz) to ignore in a pulsar search.  The text file    */
+/* should have one frequency and width per line.  Lines beginning  */
+/* with '#' are ignored, and so may be used as comments.           */
+/* 'T' is the total length in seconds of the observation that was  */
+/* FFTd.  'avg_vel' is the avg topocentric velocity (in units      */
+/* of c) towards the target during the obs.  The returned arrays   */
+/* are sorted in order of increasing 'lobins' and contain the low  */
+/* and high Fourier freqs that mark the boundaries of the birdies  */
+/* (based on 'T'and 'avg_vel').                                    */
 
-int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths, 
+int check_to_zap(double candbin, double *lobins, double *hibins, 
 		 int numzap);
-/* Look at the closest birdies in the zapfile to see if our candidate  */
-/* matches one of them.  If it does, return '1' for TRUE.  If it       */
-/* doesn't match, return a '0' for FALSE.  Note that the zapfreqs      */
-/* _must_ be in increasing order since this routine keeps track of its */
-/* place in the file.  Also, numzap _must be >= 2.                     */
+/* Look at the closest birdies from the zapfile to see if our  */
+/* candidate matches one of them.  If it does, return '1' for  */
+/* TRUE.  If it doesn't match, return a '0' for FALSE.  Note   */
+/* that the zapfreqs _must_ be in increasing order of 'lobins' */
+/* since this routine keeps track of its place in the file.    */
+/* Also, numzap _must be >= 2.                                 */
 
 short transpose_float(float *a, int nx, int ny, unsigned char *move, 
 		      int move_size);

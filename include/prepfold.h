@@ -62,7 +62,7 @@ int read_floats(FILE *file, float *data, int numpts, int numchan);
 /* point data.                                              */
 /* It returns the number of points read.                    */
 
-void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
+void hunt(double *xx, int n, double x, int *jlo);
 
 int dgels_(char *trans, int *mm, int *nn, int *nrhs, 
 	   double *aa, int *lda, double *bb, int *ldb, 
