@@ -121,7 +121,7 @@ int main(void)
 
   /*  Maximum size for FFTW (real numbers) to do in memory    */
 
-  fprintf(memfile, "#define BIGFFTWSIZE           2000000000\n");
+  fprintf(memfile, "#define BIGFFTWSIZE           2000000\n");
 
   /*  KBF (from fourfs.c) */
 
@@ -153,7 +153,7 @@ int main(void)
   printf("Cacheblocksize        = %ld\n", Cacheblocksize);
   printf("Maxblocksize          = %ld\n", Maxblocksize);
   printf("MAXREALFFT            = %ld\n", Maxblocksize * 2);
-  printf("BIGFFTWSIZE           = 2000000000\n");
+  printf("BIGFFTWSIZE           = 2000000\n");
   printf("KBF                   = %ld\n", Maxblocksize / 2);
   printf("\n\n");
 

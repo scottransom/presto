@@ -96,7 +96,11 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   /* treat the input data as a n1 x n2 matrix */
   /* with n2 >= n1                            */
 
-  n1 = good_factor(nn);
+  if (nn % 4 != 0){
+    printf("\nLength of FFT in tablesixstepfft() must be divisible by 4.\n\n");
+    exit(0);
+  }
+  n1 = good_factor(nn / 4) * 2;
   if (n1 == 0){
     printf("\nLength of FFT in tablesixstepfft() must be factorable\n\n");
     exit(0);
