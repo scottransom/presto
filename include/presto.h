@@ -1241,17 +1241,13 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof);
 /* Place the shifted  profile in 'outprof'.                  */
 
 void combine_profs(double *profs, foldstats *instats, int numprofs, 
-		   int proflen, int shift, double *outprof,
+		   int proflen, double *delays, double *outprof,
 		   foldstats *outstats);
-/* Combine a series of 'numprofs' profiles, each of length 'proflen', */
-/* into a single profile of length 'proflen'.  The profiles are       */
-/* summed after being shifted (+:right, -:left) by an an appropriate  */
-/* amount such that the phase would drift 'shift' bins over the time  */
-/* represented by all of the profiles.  Returns the summed profile in */
-/* 'outprof'.  Note that 'profs' must contain all of the profiles     */
-/* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
-/* The input profile stats in 'instats' are combined and placed in    */
-/* the 'outstats' structure.                                          */
+/* Combine a series of 'numprofs' profiles, each of length 'proflen',   */
+/* into a single profile of length 'proflen'.  The profiles are         */
+/* summed after the appropriate 'delays' are added to each profile.     */
+/* The result is a profile in 'outprof' (which must be pre-allocated)   */
+/* The input stats in 'instats' are combined and placed in 'outstats'   */
 
 void initialize_foldstats(foldstats *stats);
 /* Zeroize all of the components of stats */

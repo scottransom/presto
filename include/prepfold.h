@@ -118,7 +118,7 @@ double phasedelay2fdotdot(double phasedelay, double time);
 void double2float(double *in, float *out, int numpts);
 /* Copy a double vector into a float vector */
 
-void prepfold_plot(prepfoldinfo *in, plotflags *flags, int xwin);
+void prepfold_plot(prepfoldinfo *in, plotflags *flags, int xwin, float *ppdot);
 /* Make the beautiful 1 page prepfold output */
 
 int bary2topo(double *topotimes, double *barytimes, int numtimes, 
@@ -150,5 +150,7 @@ int cpgnice_output_2(char *out, double val, double err, int len);
 /* nice_output_2(), but for PGPLOT.  This way, exponents */
 /* are actually in superscript!  Woo-hoo!                */
 
-
-		   
+void correct_subbands_for_DM(double dm, prepfoldinfo *search,
+			     double *ddprofs, foldstats *ddstats);
+/* Calculate the DM delays and apply them to the subbands */
+/* to create de-disopersed profiles.                      */

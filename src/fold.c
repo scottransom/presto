@@ -803,57 +803,49 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof)
 
 
 void combine_profs(double *profs, foldstats *instats, int numprofs, 
-		   int proflen, int shift, double *outprof,
+		   int proflen, double *delays, double *outprof,
 		   foldstats *outstats)
-/* Combine a series of 'numprofs' profiles, each of length 'proflen', */
-/* into a single profile of length 'proflen'.  The profiles are       */
-/* summed after being shifted (+:right, -:left) by an an appropriate  */
-/* amount such that the phase would drift 'shift' bins over the time  */
-/* represented by all of the profiles.  Returns the summed profile in */
-/* 'outprof'.  Note that 'profs' must contain all of the profiles     */
-/* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
-/* The input profile stats in 'instats' are combined and placed in    */
-/* the 'outstats' structure.                                          */
+/* Combine a series of 'numprofs' profiles, each of length 'proflen',   */
+/* into a single profile of length 'proflen'.  The profiles are         */
+/* summed after the appropriate 'delays' are added to each profile.     */
+/* The result is a profile in 'outprof' (which must be pre-allocated)   */
+/* The input stats in 'instats' are combined and placed in 'outstats'   */
 {
-  int ii, jj, kk, wrap, nowrap, profoffset;
-
-  /* Note:  This routine uses only integer arithmetic in order to   */
-  /*        speed up the computations.                              */
+  int ii, jj, kk, index=0, offset;
+  double *local_delays;
 
   /* Initiate the output statistics */
-
-  outstats->numdata = instats[0].numdata;
-  outstats->data_avg = instats[0].data_avg;
-  outstats->data_var = instats[0].data_var;
+  initialize_foldstats(outstats);
   outstats->numprof = proflen;
-  outstats->prof_avg = instats[0].prof_avg;
-  outstats->prof_var = instats[0].prof_var;
+  local_delays = gen_dvect(numprofs);
 
-  /* Set the output array to the first profile */
-
-  memcpy(outprof, profs, sizeof(double) * proflen);
+  /* Convert all the delays to positive offsets from   */
+  /* the phase=0 profile bin, in units of profile bins */
+  /* Note:  The negative sign refers to the fact that  */
+  /*        we want positiev numbers to represent      */
+  /*        shifts _to_ the right not _from_ the right */
+  
+  for (ii=0; ii<numprofs; ii++){
+    local_delays[ii] = fmod(-delays[ii], proflen);
+    if (local_delays[ii] < 0.0) local_delays[ii] += proflen;
+  }
+	      
+  /* Set the output array to zeros */
+  for (ii=0; ii<proflen; ii++) outprof[ii] = 0.0;
 
   /* Loop over the profiles */
-  
-  for (ii = 1; ii < numprofs; ii++){
-    
-    /* Loop over the low index elements in each profile */
-    
-    profoffset = ii * proflen;
-    wrap = (int)((double) (ii * shift) / 
-		 ((double) numprofs) + 0.5) % proflen;
-    wrap = (wrap < 0) ? wrap + proflen : wrap;
-    nowrap = proflen - wrap;
-    for (jj = 0, kk = profoffset + nowrap; jj < wrap; jj++, kk++)
-      outprof[jj] += profs[kk];
-    
-    /* Loop over the high index elements in each profile */
-    
-    for (kk = profoffset; jj < proflen; jj++, kk++)
-      outprof[jj] += profs[kk];
+  for (ii=0; ii<numprofs; ii++){
+
+    /* Calculate the appropriate offset into the profile array */
+    offset = (int)(local_delays[ii]+0.5);
+
+    /* Sum the profiles */
+    for (jj=0, kk=proflen-offset; jj<offset; jj++, kk++, index++)
+      outprof[kk] += profs[index];
+    for (kk=0; jj<proflen; jj++, kk++, index++)
+      outprof[kk] += profs[index];
     
     /* Update the output statistics structure */
-    
     outstats->numdata += instats[ii].numdata;
     outstats->data_avg += instats[ii].data_avg;
     outstats->data_var += instats[ii].data_var;
@@ -863,22 +855,14 @@ void combine_profs(double *profs, foldstats *instats, int numprofs,
 
   /* Profile information gets added together, but */
   /* data set info gets averaged together.        */
-
+  
   outstats->data_avg /= numprofs;
   outstats->data_var /= numprofs;
 
   /* Calculate the reduced chi-squared */
-  /*
-  {
-    double lavg=0.0, lvar=0.0;
-
-    davg_dvar(outprof, proflen, &lavg, &lvar);
-    printf("Local:  avg = %f  var = %f  Summed = %f  var = %f\n",
-	   lavg, lvar, outstats->prof_avg, outstats->prof_var);
-  }
-  */
   outstats->redchi = chisqr(outprof, proflen, outstats->prof_avg, 
-			    outstats->prof_var) / (proflen - 1.0);
+			    outstats->prof_var) / (proflen-1.0);
+  free(local_delays);
 }
 
 

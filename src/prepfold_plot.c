@@ -264,26 +264,91 @@ void write_bestprof(prepfoldinfo *search, foldstats *beststats,
 }
 
 
-void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
+void CSS_profs(double *inprofs, double *outprofs, 
+	       foldstats *instats, int numprofs, int proflen, 
+	       double *delays, double *sumprof, foldstats *sumstats, 
+	       float *timechi)
+/* Combine, Scale and Shift 'numprofs' profiles, of length 'proflen',   */
+/* into a single profile of length 'proflen'.  The profiles are         */
+/* summed after the appropriate 'delays' are added to each profile.     */
+{
+  int ii, jj, index=proflen, offset;
+  double rdof, redchi=0.0, *local_delays;
+
+  /* Initiate the output statistics */
+  initialize_foldstats(sumstats);
+  sumstats->numprof = proflen;
+  rdof = 1.0/(proflen-1.0);
+  local_delays = gen_dvect(numprofs);
+  
+  /* Convert all the delays to positive offsets from   */
+  /* the phase=0 profile bin, in units of profile bins */
+  for (ii=0; ii<numprofs; ii++){
+    local_delays[ii] = fmod(delays[ii], proflen);
+    if (local_delays[ii] < 0.0) local_delays[ii] += proflen;
+  }
+	      
+  /* Set the output arrays to all zeros */
+  for (ii=0; ii<proflen; ii++)
+    sumprof[ii] = 0.0;
+  
+  /* Start defining the time vs chi-squared array */
+  timechi[0] = 1.0;
+  
+  /* Loop over the profiles */
+  for (ii=0; ii<numprofs; ii++){
+
+    /* Calculate the appropriate offset into the profile array */
+    offset = (int)(local_delays[ii]+0.5);
+
+    /* Shift and copy the profiles */
+    index = ii*proflen;
+    shift_prof(inprofs+index, proflen, offset, outprofs+index);
+
+    /* Now add the current profile to the summed profile */
+    for (jj=0; jj<proflen; jj++, index++)
+      sumprof[jj] += outprofs[index];
+    
+    /* Update the output statistics structure */
+    sumstats->numdata += instats[ii].numdata;
+    sumstats->data_avg += instats[ii].data_avg;
+    sumstats->data_var += instats[ii].data_var;
+    sumstats->prof_avg += instats[ii].prof_avg;
+    sumstats->prof_var += instats[ii].prof_var;
+
+    /* Calculate the current chi-squared */
+    redchi = chisqr(sumprof, proflen, sumstats->prof_avg, 
+		    sumstats->prof_var)*rdof;
+    timechi[ii+1] = (float) redchi;
+  }
+
+  /* Profile information gets added together, but */
+  /* data set info gets averaged together.        */
+  sumstats->data_avg /= numprofs;
+  sumstats->data_var /= numprofs;
+  sumstats->redchi = redchi;
+  free(local_delays);
+}
+
+
+void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdot)
 /* Make the beautiful 1 page prepfold output */
 {
-  int ii, jj, kk, ll, mm, profindex=0, loops=1, ct;
-  int totpdelay=0, pdelay, pddelay;
-  double profavg=0.0, profvar=0.0;
-  double N=0.0, T, dphase, pofact, *currentprof, *lastprof;
-  double parttime, *pdprofs, bestp, bestpd, bestpdd;
-  double perr, pderr, pdderr, *dbestprof, fdot;
+  int ii, jj, profindex=0, loops=1, ct, bestidm=0, bestip=0, bestipd=0;
+  double N=0.0, T, dphase;
+  double parttime, bestp, bestpd, bestpdd;
+  double perr, pderr, pdderr, *dbestprof;
   double pfold, pdfold, pddfold=0.0;
   float *ftmparr1;
   foldstats currentstats, beststats;
   /* Best Fold Plot */
-  float *bestprof=NULL, *phasetwo=NULL;
+  float *bestprof=NULL;
   /* Profiles vs Time */
   float *timeprofs=NULL, *parttimes=NULL;
   /* RedChi vs Time */
   float *timechi=NULL;
   /* Profiles vs DM */
-  float *dmprofs=NULL, *phaseone=NULL;
+  float *dmprofs=NULL;
   /* DM vs RedChi */  
   float *dmchi=NULL;
   /* Period vs RedChi */  
@@ -291,7 +356,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
   /* P-dot vs RedChi */  
   float *pdotchi=NULL;
   /* Period P-dot 2D */  
-  float *ppdot2d=NULL;
+  float *ppdot2d=ppdot;
 
   if (xwin) loops = 2;
 
@@ -299,7 +364,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
     bestp = search->bary.p1;
     bestpd = search->bary.p2;
     bestpdd = search->bary.p3;
-  } else {                   /* Topocentric periods */
+  } else { /* Topocentric periods */
     bestp = search->topo.p1;
     bestpd = search->topo.p2;
     bestpdd = search->topo.p3;
@@ -308,365 +373,208 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 		 &pfold, &pdfold, &pddfold);
 
   /* Time interval of 1 profile bin */
-
-  dphase = 1.0 / (search->fold.p1 * search->proflen);
+  dphase = 1.0/(search->fold.p1*search->proflen);
 
   /* Find out how many total points were folded */
-
-  for (ii = 0; ii < search->npart; ii++)
-    N += search->stats[ii * search->nsub].numdata;
+  for (ii=0; ii<search->npart; ii++)
+    N += search->stats[ii*search->nsub].numdata;
 
   /* Calculate the time per part and the total observation time */
+  T = N*search->dt;
+  parttime = search->stats[0].numdata*search->dt;
+  parttimes = gen_freqs(search->npart+1, 0.0, parttime);
 
-  parttime = search->stats[0].numdata * search->dt;
-  T = N * search->dt;
-  pofact = search->fold.p1 * search->fold.p1;
-
-  /* Allocate the non-DM specific arrays */
-
-  bestprof = gen_fvect(2 * search->proflen);
-  phasetwo = gen_freqs(2 * search->proflen, 0.0, 
-		       1.0 / search->proflen);
-  timeprofs = gen_fvect(2 * search->proflen * search->npart);
-  parttimes = gen_freqs(search->npart + 1, 0.0, parttime);
-  timechi = gen_fvect(search->npart + 1);
-
-  /* Since the reduced chi-sqrt of folded noise = 1 */
-
-  timechi[0] = 1.0;
-  periodchi = gen_fvect(search->numperiods);
-  pdotchi = gen_fvect(search->numpdots);
-  ppdot2d = gen_fvect(search->numperiods * search->numpdots);
-  pdprofs = gen_dvect(search->npart * search->proflen);
-  currentprof = gen_dvect(search->proflen);
-  lastprof = gen_dvect(search->proflen);
-  for (ii = 0; ii < search->proflen; ii++)
-    lastprof[ii] = 0.0;
-
-  /* Find the delays for the best periods and p-dots */
-  
-  for (ii = 0; ii < search->numperiods; ii++){
-    if (TEST_EQUAL(search->periods[ii], bestp)){
-      totpdelay = search->pstep * (ii - (search->numperiods - 1) / 2);
-      break;
-    }
+  /* Find the indices for the best periods, p-dots, and DMs */
+  for (ii=0; ii<search->numperiods; ii++){
+    if (TEST_EQUAL(search->periods[ii], bestp))
+      bestip = ii;
+    if (TEST_EQUAL(search->pdots[ii], bestpd))
+      bestipd = ii;
   }
-
-  /* Correct profiles for best DM */
-
   if (search->nsub > 1){
-    int *dmdelays;
-    double *ddprofs, *subbanddelays, hif, hifdelay;
-    foldstats *ddstats;
-
-    /* Allocate DM specific arrays */
-
-    dmprofs = gen_fvect(search->nsub * search->proflen);
-    phaseone = gen_freqs(search->proflen + 1, 0.0, 
-			 1.0 / search->proflen);
-    dmchi = gen_fvect(search->numdms);
+    for (ii=0; ii<search->numdms; ii++){
+      if (TEST_EQUAL(search->dms[ii], search->bestdm))
+	bestidm = ii;
+    }
+  } else {
+    bestidm = 0;
+  }
+  
+  { /* Generate the data we need for the plots */
+    double df, dfd, dfdd;
+    double *currentprof, *ddprofs=search->rawfolds;
+    double *delays, *pd_delays, *pdd_delays;
+    foldstats *ddstats=search->stats;
     
-    /* Allocate local DM specific arrays*/
+    delays = gen_dvect(search->npart);
+    pd_delays = gen_dvect(search->npart);
+    pdd_delays = gen_dvect(search->npart);
+    currentprof = gen_dvect(search->proflen);
+    if (search->nsub > 1){
+      ddprofs = gen_dvect(search->npart*search->proflen);
+      ddstats = (foldstats *)malloc(search->npart*sizeof(foldstats));
+    }
 
-    ddprofs = gen_dvect(search->npart * search->proflen);
-    ddstats = (foldstats *)malloc(search->npart * sizeof(foldstats));
-    dmdelays = gen_ivect(search->nsub);
-
-    /* Doppler corrected hi freq */
-
-    hif = doppler(search->lofreq + (search->numchan - 1.0) * 
-		  search->chan_wid, search->avgvoverc);
-
-    /* De-disperse and combine the subbands */
+    /* Calculate the delays for the pdotdot */
+    dfdd = switch_pfdotdot(pfold, pdfold, bestpdd) - search->fold.p3;
+    for (ii=0; ii<search->npart; ii++)
+      pdd_delays[ii] = fdotdot2phasedelay(dfdd, parttimes[ii]);
     
-    for (ii = 0; ii < search->numdms; ii++){  /* Loop over DMs */
-      hifdelay = delay_from_dm(search->dms[ii], hif);
-      subbanddelays = subband_delays(search->numchan, search->nsub, 
-				     search->dms[ii], search->lofreq, 
-				     search->chan_wid, search->avgvoverc);
-      for (jj = 0; jj < search->nsub; jj++)
-	dmdelays[jj] = NEAREST_INT((subbanddelays[jj] - hifdelay) / 
-				   dphase) % search->proflen;
-      free(subbanddelays);
+    {  /* Correct for and fold the best profile */
+      double *tmp_profs, gmin, gmax;
 
-      /* Make the DM vs subband plot */
+      bestprof = gen_fvect(2*search->proflen);
+      dbestprof = gen_dvect(search->proflen);
 
-      if (TEST_EQUAL(search->dms[ii], search->bestdm)){
+      /* De-disperse if needed */
+      if (search->nsub > 1)
+	correct_subbands_for_DM(search->dms[bestidm], search, 
+				ddprofs, ddstats);
 
-	for (jj = 0; jj < search->nsub; jj++){
+      /* Determine the global min and max in the profiles */
+      dminmax(ddprofs, search->npart*search->proflen, &gmin, &gmax);
 
-	  /* Copy the subband parts and stats into single arrays */
-	  
-	  for (kk = 0; kk < search->npart; kk++){
-	    ll = kk * search->nsub + jj;
-	    memcpy(ddprofs + kk * search->proflen, search->rawfolds + ll *
-		   search->proflen, sizeof(double) * search->proflen);
-	    ddstats[kk] = search->stats[ll];
-	  }	  
-	  
-	  /* Correct each part for the best pdot and the DM delay */
-	  
-	  for (kk = 0; kk < search->npart; kk++){
-	    profindex = kk * search->proflen;
-	    fdot = switch_pfdot(pfold, bestpd) - search->fold.p2;
-	    pddelay = NEAREST_INT(fdot2phasedelay(fdot, parttimes[kk]) * 
-				  search->proflen);
-	    shift_prof(ddprofs + profindex, search->proflen, 
-		       pddelay - dmdelays[jj], pdprofs + profindex);
-	  }
-	  
-	  /* Correct each part for the best period and sum */
-	  
-	  combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
-			totpdelay, currentprof, &currentstats);
+      /* Compute the errors in fdot, and f to correct */
+      df = 1.0/bestp - search->fold.p1;
+      dfd = switch_pfdot(pfold, bestpd) - search->fold.p2;
 
-	  /* Place the profile into the DM array */
-	  
-	  double2float(currentprof, dmprofs + jj * search->proflen, 
-		       search->proflen);
+      /* Compute the delays for the best profile */
+      for (ii=0; ii<search->npart; ii++)
+	delays[ii] = (pdd_delays[ii] + fdot2phasedelay(dfd, parttimes[ii]) +
+		      df*parttimes[ii])*search->proflen;
+
+      /* Create the best profile */
+      timechi = gen_fvect(search->npart+1);
+      tmp_profs = gen_dvect(search->npart*search->proflen);
+      CSS_profs(ddprofs, tmp_profs, ddstats, search->npart, 
+		search->proflen, delays, dbestprof, &beststats, timechi);
+      double2float(dbestprof, bestprof, search->proflen);
+      double2float(dbestprof, bestprof+search->proflen, search->proflen);
+      
+      /* Create the time vs phase plot data */
+      timeprofs = gen_fvect(2*search->proflen*search->npart);
+      for (ii=0; ii<search->npart; ii++){
+	profindex = ii*search->proflen;
+	scaleprof(tmp_profs+profindex, timeprofs+2*profindex, 
+		  search->proflen, flags->scaleparts, gmax);
+	memcpy(timeprofs+2*profindex+search->proflen,
+	       timeprofs+2*profindex, search->proflen*sizeof(float));
+      }
+      free(tmp_profs);
+    }
+    
+    if (ppdot==NULL){  /* Generate the p-pdot plane */
+      int ip, ipd;
+
+      ppdot2d = gen_fvect(search->numperiods*search->numpdots);
+      for (ipd=0; ipd<search->numpdots; ipd++){  /* Loop over the pds */
+
+	/* Compute the error in fdot, and its delays */
+	dfd = switch_pfdot(pfold, search->pdots[ipd]) - search->fold.p2;
+	for (ii=0; ii<search->npart; ii++)
+	  pd_delays[ii] = pdd_delays[ii] + fdot2phasedelay(dfd, parttimes[ii]);
+
+	for (ip=0; ip<search->numperiods; ip++){  /* Loop over the ps */
+	  df = 1.0/search->periods[ip] - search->fold.p1;
+
+	  /* Compute the phase offsets for each subintegration */
+	  for (ii=0; ii<search->npart; ii++)
+	    delays[ii] = (pd_delays[ii] + 
+			  df*parttimes[ii])*search->proflen;
+
+	  /* Combine the profiles usingthe above computed delays */
+	  combine_profs(ddprofs, ddstats, search->npart, search->proflen, 
+			delays, currentprof, &currentstats);
+	  ppdot2d[ipd*search->numperiods+ip] = currentstats.redchi;
 	}
       }
+    }
 
-      combine_subbands(search->rawfolds, search->stats, search->npart, 
-		       search->nsub, search->proflen, dmdelays, 
-		       ddprofs, ddstats);
-      
-      /* Perform the P-dot and Period searches */
-      
-      if (TEST_EQUAL(search->dms[ii], search->bestdm)){
+    { /* Create the p vs chi and pd vs chi plots */
 
-	for (jj = 0; jj < search->numpdots; jj++){
-	  
-	  /* Correct each part for the current pdot */
-	  
-	  for (kk = 0; kk < search->npart; kk++){
-	    profindex = kk * search->proflen;
-	    fdot = switch_pfdot(pfold, search->pdots[jj]) - 
-	      search->fold.p2;
-	    pddelay = NEAREST_INT(fdot2phasedelay(fdot, parttimes[kk]) * 
-				  search->proflen);
-	    shift_prof(ddprofs + profindex, search->proflen, pddelay, 
-		       pdprofs + profindex);
-	  }
-	
-	  /* Search over the periods */
-	  
-	  for (kk = 0; kk < search->numperiods; kk++){
-	    pdelay = search->pstep * (kk - (search->numperiods - 1) / 2);
-	    combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
-			  pdelay, currentprof, &currentstats);
+      periodchi = gen_fvect(search->numperiods);
+      for (ii=0; ii<search->numperiods; ii++)
+	periodchi[ii] = ppdot2d[bestipd*search->numperiods+ii];
+      pdotchi = gen_fvect(search->numpdots);
+      for (ii=0; ii<search->numperiods; ii++)
+	pdotchi[ii] = ppdot2d[ii*search->numperiods+bestip];
+    }
 
-	    /* Add to the periodchi array */
+    if (search->nsub > 1){  /* For data with subbands */
 
-	    if (TEST_EQUAL(search->pdots[jj], bestpd)) 
-	      periodchi[kk] = currentstats.redchi;
+      /* Generate the DM vs chi plot */
+      dmchi = gen_fvect(search->numdms);
 
-	    /* Add to the pdotchi array */
+      /* Compute the errors in fdotdot, fdot, and f to correct */
+      df = 1.0/bestp - search->fold.p1;
+      dfd = switch_pfdot(pfold, bestpd) - search->fold.p2;
 
-	    if (TEST_EQUAL(search->periods[kk], bestp)) 
-	      pdotchi[jj] = currentstats.redchi;
+      /* Compute the delays for the best profile */
+      for (ii=0; ii<search->npart; ii++)
+	delays[ii] = (pdd_delays[ii] + fdot2phasedelay(dfd, parttimes[ii]) +
+		      df*parttimes[ii])*search->proflen;
 
-	    /* Add to the ppdot2d array */
-
-	    ppdot2d[jj * search->numperiods + kk] = currentstats.redchi;
-
-	    /* Generate the time based arrays */
-
-	    if (TEST_EQUAL(search->periods[kk], bestp) && 
-		TEST_EQUAL(search->pdots[jj], bestpd)){
-	      int wrap;
-
-	      /* The Best Prof */
-
-	      double2float(currentprof, bestprof, search->proflen);
-	      double2float(currentprof, bestprof + search->proflen, 
-			   search->proflen);
-
-	      /* Add this point to dmchi */
-
-	      dmchi[ii] = currentstats.redchi;
-
-	      /* Copy these statistics */
-
-	      beststats = currentstats;
-
-	      /* The profs at each of the npart times */
-
-	      {
-		double min, max, gmax=-1.0e100;
-
-		for (ll = 0; ll < search->npart; ll++){
-		  profindex = ll * search->proflen;
- 		  dminmax(pdprofs + profindex, search->proflen, &min, &max);
-		  if (max > gmax) gmax = max;
-		}
-		for (ll = 0; ll < search->npart; ll++){
-		  profindex = ll * search->proflen;
-		  wrap = (NEAREST_INT((double) (ll * pdelay) / 
-				      ((double) search->npart)) % 
-			  search->proflen);
-		  shift_prof(pdprofs + profindex, search->proflen, wrap, 
-			     currentprof);
-		  scaleprof(currentprof, timeprofs + 2 * profindex, 
-			    search->proflen, flags->scaleparts, gmax);
-		  memcpy(timeprofs + 2 * profindex + search->proflen,
-			 timeprofs + 2 * profindex, 
-			 search->proflen * sizeof(float));
-		  for (mm = 0; mm < search->proflen; mm++)
-		    lastprof[mm] += currentprof[mm];
-		  profavg += ddstats[ll].prof_avg;
-		  profvar += ddstats[ll].prof_var;
-		  timechi[ll+1] = (chisqr(lastprof, search->proflen, 
-					  profavg, profvar) / 
-				   (double) (search->proflen - 1.0));
-		}
-	      }
-	    }
-	  }
-	}
-	
-      /* Only check the best P and P-dot */
-
-      }
-      {
-
-	/* Correct each part for the best pdot */
-	  
-	for (kk = 0; kk < search->npart; kk++){
-	  profindex = kk * search->proflen;
-	  fdot = switch_pfdot(pfold, bestpd) - search->fold.p2;
-	  pddelay = NEAREST_INT(fdot2phasedelay(fdot, parttimes[kk]) * 
-				search->proflen);
-	  shift_prof(ddprofs + profindex, search->proflen, pddelay, 
-		     pdprofs + profindex);
-	}
-	
-	/* Correct each part for the current pdot */
-
-	combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
-		      totpdelay, currentprof, &currentstats);
+      /* De-disperse and fold */
+      for (ii=0; ii<search->numdms; ii++){
+	correct_subbands_for_DM(search->dms[ii], search, ddprofs, ddstats);
+	combine_profs(ddprofs, ddstats, search->npart, 
+		      search->proflen, delays, currentprof, &currentstats);
 	dmchi[ii] = currentstats.redchi;
       }
-    }
-    free(ddprofs);
-    free(ddstats);
-    free(dmdelays);
 
-  /* No DM corrections */
+      {  /* Generate the Subband vs phase plot */
+	double *dmdelays, hif, dopplerhif, hifdelay, rdphase;
+	double *tmpprofs, *totdelays, *subbanddelays;
 
-  } else {
+	dmprofs = gen_fvect(search->nsub*search->proflen);
+	tmpprofs = gen_dvect(search->npart*search->proflen);
+	totdelays = gen_dvect(search->npart);
 
-    for (jj = 0; jj < search->numpdots; jj++){
-      
-      /* Correct each part for the best pdotdot (if required) */
-      
-      if (!TEST_EQUAL(pddfold, bestpdd)){
-	double fdotdot;
-	fdotdot = switch_pfdotdot(bestp, bestpd, bestpdd) - search->fold.p3;
-	for (kk = 0; kk < search->npart; kk++){
-	  profindex = kk * search->proflen;
-	  pddelay = NEAREST_INT(fdotdot2phasedelay(fdotdot, parttimes[kk]) * 
-				search->proflen);
-	  shift_prof(search->rawfolds+profindex, search->proflen, 
-		     pddelay, pdprofs+profindex);
-	}
-      }
+	/* Compute the DM-delays for each subband */
+	rdphase = search->fold.p1*search->proflen;
+	hif = search->lofreq+(search->numchan-1.0)*search->chan_wid;
+	dopplerhif = doppler(hif, search->avgvoverc);
+	hifdelay = delay_from_dm(search->dms[bestidm], dopplerhif);
+	subbanddelays = subband_delays(search->numchan, search->nsub, search->dms[bestidm],
+				       search->lofreq, search->chan_wid, search->avgvoverc);
+	dmdelays = gen_dvect(search->nsub);
+	for (ii=0; ii<search->nsub; ii++)
+	  dmdelays[ii] = -(subbanddelays[ii]-hifdelay)*rdphase;
+	free(subbanddelays);
 
-      /* Correct each part for the current pdot */
-      
-      for (kk = 0; kk < search->npart; kk++){
-	profindex = kk * search->proflen;
-	fdot = switch_pfdot(pfold, search->pdots[jj]) - search->fold.p2;
-	pddelay = NEAREST_INT(fdot2phasedelay(fdot, parttimes[kk]) * 
-			      search->proflen);
-	if (!TEST_EQUAL(pddfold, bestpdd))
-	  shift_prof(pdprofs+profindex, search->proflen, 
-		     pddelay, pdprofs+profindex);
-	else
-	  shift_prof(search->rawfolds+profindex, search->proflen, 
-		     pddelay, pdprofs+profindex);
-      }
-      
-      /* Search over the periods */
-      
-      for (kk = 0; kk < search->numperiods; kk++){
-	pdelay = search->pstep * (kk - (search->numperiods - 1) / 2);
-	combine_profs(pdprofs, search->stats, search->npart, 
-		      search->proflen, pdelay, currentprof, 
-		      &currentstats);
-	
-	/* Add to the periodchi array */
-	
-	if (TEST_EQUAL(search->pdots[jj], bestpd)) 
-	  periodchi[kk] = currentstats.redchi;
-	
-	/* Add to the pdotchi array */
-	
-	if (TEST_EQUAL(search->periods[kk], bestp))
-	  pdotchi[jj] = currentstats.redchi;
-	
-	/* Add to the ppdot2d array */
-	
-	ppdot2d[jj * search->numperiods + kk] = currentstats.redchi;
-	
-	/* Generate the time based arrays */
-	
-	if (TEST_EQUAL(search->periods[kk], bestp) && 
-	    TEST_EQUAL(search->pdots[jj], bestpd)){
-	  int wrap;
+	/* Fold each subband */
+	for (ii=0; ii<search->nsub; ii++){
 	  
-	  /* The Best Prof */
-	  
-	  double2float(currentprof, bestprof, search->proflen);
-	  double2float(currentprof, bestprof + search->proflen, 
-		       search->proflen);
-	  
-	  /* Copy these statistics */
-	  
-	  beststats = currentstats;
-	  
-	  /* The profs at each of the npart times */
-	  
-	  {
-	    double min, max, gmax=-1.0e100;
-
-	    for (ll = 0; ll < search->npart; ll++){
-	      profindex = ll * search->proflen;
-	      dminmax(pdprofs + profindex, search->proflen, &min, &max);
-	      if (max > gmax) gmax = max;
-	    }
-	    for (ll = 0; ll < search->npart; ll++){
-	      profindex = ll * search->proflen;
-	      wrap = (NEAREST_INT((double) (ll * pdelay) / 
-				  ((double) search->npart)) % 
-		      search->proflen);
-	      shift_prof(pdprofs + profindex, search->proflen, wrap, 
-			 currentprof);
-	      scaleprof(currentprof, timeprofs + 2 * profindex, 
-			search->proflen, flags->scaleparts, gmax);
-	      memcpy(timeprofs + 2 * profindex + search->proflen,
-		     timeprofs + 2 * profindex, 
-		     search->proflen * sizeof(float));
-	      for (mm = 0; mm < search->proflen; mm++)
-		lastprof[mm] += currentprof[mm];
-	      profavg += search->stats[ll].prof_avg;
-	      profvar += search->stats[ll].prof_var;
-	      timechi[ll+1] = (chisqr(lastprof, search->proflen, 
-				      profavg, profvar) / 
-			       (double) (search->proflen - 1.0));
-	    }
+	  /* Create a temporary array filled with just the current subbands profiles */
+	  for (jj=0; jj<search->npart; jj++){
+	    memcpy(tmpprofs+jj*search->proflen, 
+		   search->rawfolds+search->proflen*(jj*search->nsub + ii), 
+		   sizeof(double)*search->proflen);
+	    totdelays[jj] = delays[jj] + dmdelays[ii];
 	  }
+	  
+	  /* Create the profile */
+	  /* Note that the stats will be incorrect in the following... */
+	  combine_profs(tmpprofs, ddstats, search->npart, 
+			search->proflen, totdelays, currentprof, &currentstats);
+	  double2float(currentprof, dmprofs+ii*search->proflen, search->proflen);
 	}
+	free(totdelays);
+	free(tmpprofs);
+	free(dmdelays);
       }
+    }
+
+    free(delays);
+    free(pd_delays);
+    free(pdd_delays);
+    free(currentprof);
+    if (search->nsub > 1){
+      free(ddprofs);
+      free(ddstats);
     }
   }
 
-  /* Copy our best profile */
-
-  dbestprof = gen_dvect(search->proflen);
-  for (ii = 0; ii < search->proflen; ii++)
-    dbestprof[ii] = bestprof[ii];
-  
   /* Calculate the errors in the pulsation quantities */
 
   if (search->tepoch != 0.0 ||
@@ -679,14 +587,14 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 		beststats.data_var, search->bary.p1, search->bary.p2, 
 		search->bary.p3, &perr, &pderr, &pdderr);
   free(dbestprof);
-
+  
   write_bestprof(search, &beststats, bestprof, N, perr, pderr, pdderr);
     
   /*
    *  Now plot the results
    */
 
-  for (ct = 0; ct < loops; ct++){
+  for (ct=0; ct<loops; ct++){
     float min, max, over;
 
     /*Set the PGPLOT device to an X-Window */
@@ -701,7 +609,9 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
       cpgpap(10.25, 8.5/11.0);
       cpgpage();
       cpgiden();
-    }
+    }/* else {
+      cpgpap(10.0, 1.0);
+      }*/
     cpgsch(0.8);
     
     /* Time versus phase */
@@ -795,7 +705,8 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 
     {
       float x[2] = {-0.2, 2.0}, avg[2];
-      float errx = -0.1, erry = profavg, errlen;
+      float errx = -0.1, erry = beststats.prof_avg, errlen;
+      float *phasetwo=NULL;
 
       cpgsvp (0.06, 0.27, 0.68, 0.94);
       cpgswin(0.0, 1.999, 0.0, 1.0);
@@ -806,12 +717,14 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
       cpgswin(-0.2, 2.0, min - over, max + over);
       if (!flags->justprofs)
 	cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
+      phasetwo = gen_freqs(2*search->proflen, 0.0, 1.0/search->proflen);
       cpgline(2 * search->proflen, phasetwo, bestprof);
+      free(phasetwo);
       cpgsls(4);
-      avg[0] = avg[1] = profavg;
+      avg[0] = avg[1] = beststats.prof_avg;
       cpgline(2, x, avg);
       cpgsls(1);
-      errlen = sqrt(profvar);
+      errlen = sqrt(beststats.prof_var);
       cpgerrb(6, 1, &errx, &erry, &errlen, 2);
       cpgpt(1, &errx, &erry, 5);
     }
@@ -853,7 +766,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	if (0){
 	  int chanpersb;
 	  double lofreq, hifreq, losubfreq, hisubfreq;
-	  float *tmpprof, dsubf, foffset, fnorm;
+	  float *tmpprof, dsubf, foffset, fnorm, *phaseone;
 	  
 	  tmpprof = gen_fvect(search->proflen + 1);
 	  chanpersb = search->numchan / search->nsub; 
@@ -872,22 +785,24 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	  cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)");
 	  cpgsch(0.8);
 	  cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
-	  for (ii = 0; ii < search->nsub; ii++){
-	    find_min_max_arr(search->proflen, dmprofs + ii * 
-			     search->proflen, &min, &max);
-	    foffset = doppler(lofreq + (ii - 0.45) * dsubf, search->avgvoverc);
+	  phaseone = gen_freqs(search->proflen+1, 0.0, 1.0/search->proflen);
+	  for (ii=0; ii<search->nsub; ii++){
+	    find_min_max_arr(search->proflen, dmprofs+ii*search->proflen, 
+			     &min, &max);
+	    foffset = doppler(lofreq+(ii-0.45)*dsubf, search->avgvoverc);
 	    if (min==max){
-	      for (jj = 0; jj < search->proflen; jj++)
-		tmpprof[jj] = 0.45 * dsubf + foffset;
+	      for (jj=0; jj<search->proflen; jj++)
+		tmpprof[jj] = 0.45*dsubf+foffset;
 	    } else {
-	      fnorm = 0.9 * dsubf / (max - min);
-	      for (jj = 0; jj < search->proflen; jj++)
-		tmpprof[jj] = (dmprofs[ii * search->proflen + jj] - min) * 
-		  fnorm + foffset;
+	      fnorm = 0.9*dsubf/(max-min);
+	      for (jj=0; jj<search->proflen; jj++)
+		tmpprof[jj] = (dmprofs[ii*search->proflen+jj] - 
+			       min)*fnorm + foffset;
 	    }
 	    tmpprof[search->proflen] = tmpprof[0];
 	    cpgline(search->proflen+1, phaseone, tmpprof);
 	  }
+	  free(phaseone);
 	  free(tmpprof);
 	} else {
 	  int chanpersb;
@@ -896,7 +811,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	  
 	  chanpersb = search->numchan / search->nsub; 
 	  dsubf = chanpersb * search->chan_wid;
-	  lofreq = search->lofreq - 0.5 * search->chan_wid;
+	  lofreq = search->lofreq - 0.5*search->chan_wid;
 	  hifreq = lofreq + search->numchan * search->chan_wid;
 	  losubfreq = doppler(lofreq, search->avgvoverc);
 	  hisubfreq = doppler(hifreq, search->avgvoverc);
@@ -915,22 +830,22 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	    
 	    nr = search->nsub;
 	    nc = search->proflen;
-	    subprofs = gen_fvect(nr * nc);
+	    subprofs = gen_fvect(nr*nc);
 	    cpgqcol(&mincol, &maxcol);
 	    mincol += 2;
 	    cpgscir(mincol, maxcol);
 	    numcol = maxcol - mincol + 1;
 	    levels = gen_fvect(numcol);
 	    cpgctab(l, r, g, b, numcol, 1.0, 0.5);
-	    for (ii = 0; ii < search->nsub; ii++){
-	      profindex = ii * search->proflen;
+	    for (ii=0; ii<search->nsub; ii++){
+	      profindex = ii*search->proflen;
 	      find_min_max_arr(search->proflen, 
-			       dmprofs + profindex, &min, &max);
+			       dmprofs+profindex, &min, &max);
 	      if (max > gmax) gmax = max;
 	    }
-	    for (ii = 0; ii < search->nsub; ii++){
-	      profindex = ii * search->proflen;
-	      fscaleprof(dmprofs + profindex, subprofs + profindex, 
+	    for (ii=0; ii<search->nsub; ii++){
+	      profindex = ii*search->proflen;
+	      fscaleprof(dmprofs+profindex, subprofs+profindex, 
 			 search->proflen, flags->scaleparts, gmax);
 	    }
 	    autocal2d(subprofs, nr, nc, &fg, &bg, numcol,
@@ -1226,8 +1141,13 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	    sprintf(out2, "(\\(0248)%.1f\\gs)", normz);
 	  else 
 	    sprintf(out2, " ");
-	  sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s", 
-		  beststats.redchi, chiq, out2);
+	  if (chiq==0.0)
+ 	    sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) ~ 0   %s", 
+		    beststats.redchi, out2);
+	  else
+ 	    sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s", 
+		    beststats.redchi, chiq, out2);
+	    
 	  cpgtext(0.0, 0.8, out);
 	  if (search->nsub > 1){
 	    sprintf(out, "Dispersion Measure (DM) = %.3f", search->bestdm);
@@ -1294,19 +1214,15 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
     cpgclos();
   }
   free(bestprof);
-  free(phasetwo);
   free(timeprofs);
   free(parttimes);
   free(timechi);
   free(periodchi);
   free(pdotchi);
-  free(ppdot2d);
-  free(pdprofs);
-  free(currentprof);
-  free(lastprof);
+  if (ppdot==NULL)
+    free(ppdot2d);
   if (search->nsub > 1){
     free(dmprofs);
-    free(phaseone);
     free(dmchi);
   }
 }

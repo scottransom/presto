@@ -632,3 +632,28 @@ void double2float(double *in, float *out, int numpts)
   for (ii = 0; ii < numpts; ii++)
     out[ii] = (float) in[ii];
 }
+
+
+void correct_subbands_for_DM(double dm, prepfoldinfo *search, 
+			     double *ddprofs, foldstats *ddstats)
+/* Calculate the DM delays and apply them to the subbands */
+/* to create de-dispersed profiles.                      */
+{
+  int ii, *dmdelays;
+  double *subbanddelays, hif, dopplerhif, hifdelay, rdphase;
+  
+  rdphase = search->fold.p1*search->proflen;
+  hif = search->lofreq+(search->numchan-1.0)*search->chan_wid;
+  dopplerhif = doppler(hif, search->avgvoverc);
+  hifdelay = delay_from_dm(dm, dopplerhif);
+  subbanddelays = subband_delays(search->numchan, search->nsub, dm,
+				 search->lofreq, search->chan_wid, search->avgvoverc);
+  dmdelays = gen_ivect(search->nsub);
+  for (ii=0; ii<search->nsub; ii++)
+    dmdelays[ii] = NEAREST_INT((subbanddelays[ii]-hifdelay)*rdphase) % search->proflen;
+  free(subbanddelays);
+  combine_subbands(search->rawfolds, search->stats, search->npart, 
+		   search->nsub, search->proflen, dmdelays, 
+		   ddprofs, ddstats);
+  free(dmdelays);
+}

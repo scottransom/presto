@@ -29,6 +29,7 @@ int main(int argc, char *argv[])
   flags.scaleparts = cmd->scalepartsP;
   flags.justprofs = cmd->justprofsP;
   flags.allgrey = cmd->allgreyP;
+  flags.nosearch = 1;
 
   /*
    *   Read the raw prepfoldinfo structure
@@ -81,11 +82,7 @@ int main(int argc, char *argv[])
    *   Plot our results
    */
 
-  if (cmd->noxwinP)
-    prepfold_plot(&search, &flags, 0);
-  else
-    prepfold_plot(&search, &flags, 1);
-  
+  prepfold_plot(&search, &flags, !cmd->noxwinP, NULL);
 
   /* Free our memory  */
 
