@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "21Jun01" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "14Aug03" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -53,13 +53,13 @@ The max (+ and -) Fourier freq deriv to search,
 .br
 1 Int value between 0 and 300.
 .br
-Default: `100'
+Default: `170'
 .IP -sigma
 Cutoff sigma for choosing candidates,
 .br
 1 Float value between 1.0 and 30.0.
 .br
-Default: `2.5'
+Default: `2.0'
 .IP -rlo
 The lowest Fourier frequency to search,
 .br
@@ -79,7 +79,7 @@ The highest frequency (Hz) to search,
 .br
 1 Double value between 0.0 and oo.
 .br
-Default: `4000.0'
+Default: `10000.0'
 .IP -photon
 Data is poissonian so use freq 0 as power normalization.
 .IP infile

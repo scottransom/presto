@@ -3,7 +3,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1996,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 #include <stdio.h>
@@ -32,11 +32,11 @@ static Cmdline cmd = {
   /* numharmC = */ 1,
   /***** -zmax: The max (+ and -) Fourier freq deriv to search */
   /* zmaxP = */ 1,
-  /* zmax = */ 100,
+  /* zmax = */ 170,
   /* zmaxC = */ 1,
   /***** -sigma: Cutoff sigma for choosing candidates */
   /* sigmaP = */ 1,
-  /* sigma = */ 2.5,
+  /* sigma = */ 2.0,
   /* sigmaC = */ 1,
   /***** -rlo: The lowest Fourier frequency to search */
   /* rloP = */ 0,
@@ -52,7 +52,7 @@ static Cmdline cmd = {
   /* floC = */ 1,
   /***** -fhi: The highest frequency (Hz) to search */
   /* fhiP = */ 1,
-  /* fhi = */ 4000.0,
+  /* fhi = */ 10000.0,
   /* fhiC = */ 1,
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   /* photonP = */ 0,
@@ -113,7 +113,7 @@ getIntOpt(int argc, char **argv, int i, int *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check if it fits into an int */
@@ -184,7 +184,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -225,7 +225,7 @@ getLongOpt(int argc, char **argv, int i, long *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -295,7 +295,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1; 
+    while( isspace((int) *end) ) end+=1; 
     if( *end ) break;
 
     /***** check for overflow */
@@ -335,7 +335,7 @@ getFloatOpt(int argc, char **argv, int i, float *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -403,7 +403,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -438,7 +438,7 @@ getDoubleOpt(int argc, char **argv, int i, double *value, int force)
   if( end==argv[i] ) goto nothingFound;
 
   /***** check for surplus non-whitespace */
-  while( isspace(*end) ) end+=1;
+  while( isspace((int) *end) ) end+=1;
   if( *end ) goto nothingFound;
 
   /***** check for overflow */
@@ -509,7 +509,7 @@ outMem:
     if( end==argv[used+i+1] ) break;
 
     /***** check for surplus non-whitespace */
-    while( isspace(*end) ) end+=1;
+    while( isspace((int) *end) ) end+=1;
     if( *end ) break;
 
     /***** check for overflow */
@@ -535,16 +535,23 @@ outMem:
 }
 /**********************************************************************/
 
+/**
+  force will be set if we need at least one argument for the option.
+*****/
 int
 getStringOpt(int argc, char **argv, int i, char **value, int force)
 {
-  if( ++i>=argc ) {
-    fprintf(stderr, "%s: missing string after option `%s'\n",
-            Program, argv[i-1]);
-    exit(EXIT_FAILURE);
+  i += 1;
+  if( i>=argc ) {
+    if( force ) {
+      fprintf(stderr, "%s: missing string after option `%s'\n",
+	      Program, argv[i-1]);
+      exit(EXIT_FAILURE);
+    } 
+    return i-1;
   }
   
-  if( !force && argv[i+1][0] == '-' ) return i-1;
+  if( !force && argv[i][0] == '-' ) return i-1;
   *value = argv[i];
   return i;
 }
@@ -880,10 +887,10 @@ usage(void)
             default: `8'\n\
      -zmax: The max (+ and -) Fourier freq deriv to search\n\
             1 int value between 0 and 300\n\
-            default: `100'\n\
+            default: `170'\n\
     -sigma: Cutoff sigma for choosing candidates\n\
             1 float value between 1.0 and 30.0\n\
-            default: `2.5'\n\
+            default: `2.0'\n\
       -rlo: The lowest Fourier frequency to search\n\
             1 double value between 0.0 and oo\n\
       -rhi: The highest Fourier frequency to search\n\
@@ -893,11 +900,11 @@ usage(void)
             default: `0.3'\n\
       -fhi: The highest frequency (Hz) to search\n\
             1 double value between 0.0 and oo\n\
-            default: `4000.0'\n\
+            default: `10000.0'\n\
    -photon: Data is poissonian so use freq 0 as power normalization\n\
     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
             1 value\n\
-version: 21Jun01\n\
+version: 14Aug03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -905,7 +912,7 @@ version: 21Jun01\n\
 Cmdline *
 parseCmdline(int argc, char **argv)
 {
-  int i, keep;
+  int i;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -916,8 +923,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-lobin", argv[i]) ) {
+      int keep = i;
       cmd.lobinP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.lobin, 1);
       cmd.lobinC = i-keep;
       checkIntHigher("-lobin", &cmd.lobin, cmd.lobinC, 0);
@@ -925,8 +932,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-numharm", argv[i]) ) {
+      int keep = i;
       cmd.numharmP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.numharm, 1);
       cmd.numharmC = i-keep;
       checkIntLower("-numharm", &cmd.numharm, cmd.numharmC, 16);
@@ -935,8 +942,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-zmax", argv[i]) ) {
+      int keep = i;
       cmd.zmaxP = 1;
-      keep = i;
       i = getIntOpt(argc, argv, i, &cmd.zmax, 1);
       cmd.zmaxC = i-keep;
       checkIntLower("-zmax", &cmd.zmax, cmd.zmaxC, 300);
@@ -945,8 +952,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-sigma", argv[i]) ) {
+      int keep = i;
       cmd.sigmaP = 1;
-      keep = i;
       i = getFloatOpt(argc, argv, i, &cmd.sigma, 1);
       cmd.sigmaC = i-keep;
       checkFloatLower("-sigma", &cmd.sigma, cmd.sigmaC, 30.0);
@@ -955,8 +962,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-rlo", argv[i]) ) {
+      int keep = i;
       cmd.rloP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.rlo, 1);
       cmd.rloC = i-keep;
       checkDoubleHigher("-rlo", &cmd.rlo, cmd.rloC, 0.0);
@@ -964,8 +971,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-rhi", argv[i]) ) {
+      int keep = i;
       cmd.rhiP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.rhi, 1);
       cmd.rhiC = i-keep;
       checkDoubleHigher("-rhi", &cmd.rhi, cmd.rhiC, 0.0);
@@ -973,8 +980,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-flo", argv[i]) ) {
+      int keep = i;
       cmd.floP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.flo, 1);
       cmd.floC = i-keep;
       checkDoubleHigher("-flo", &cmd.flo, cmd.floC, 0.0);
@@ -982,8 +989,8 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-fhi", argv[i]) ) {
+      int keep = i;
       cmd.fhiP = 1;
-      keep = i;
       i = getDoubleOpt(argc, argv, i, &cmd.fhi, 1);
       cmd.fhiC = i-keep;
       checkDoubleHigher("-fhi", &cmd.fhi, cmd.fhiC, 0.0);

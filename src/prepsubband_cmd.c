@@ -32,6 +32,8 @@ static Cmdline cmd = {
   /* gmrtP = */ 0,
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   /* bcpmP = */ 0,
+  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
+  /* spigotP = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
   /***** -window: Window correlator lags with a Hamming window before FFTing */
@@ -832,6 +834,13 @@ showOptionValues(void)
     printf("-bcpm found:\n");
   }
 
+  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
+  if( !cmd.spigotP ) {
+    printf("-spigot not found.\n");
+  } else {
+    printf("-spigot found:\n");
+  }
+
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   if( !cmd.wappP ) {
     printf("-wapp not found.\n");
@@ -1021,13 +1030,14 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-gmrt] [-bcpm] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
       -gmrt: Raw data in GMRT Phased Array format\n\
       -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
+    -spigot: Raw data in Caltech-NRAO Spigot Card format\n\
       -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
     -window: Window correlator lags with a Hamming window before FFTing\n\
   -numwapps: Number of WAPPs used with contiguous frequencies\n\
@@ -1066,7 +1076,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 25May03\n\
+version: 14Aug03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1105,6 +1115,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-bcpm", argv[i]) ) {
       cmd.bcpmP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-spigot", argv[i]) ) {
+      cmd.spigotP = 1;
       continue;
     }
 

@@ -15,9 +15,9 @@ Int -lobin   lobin      {The first Fourier frequency in the data file} \
 Int -numharm numharm    {The number of harmonics to sum (power-of-two)}\
 	-r 1 16 -d 8
 Int -zmax    zmax       {The max (+ and -) Fourier freq deriv to search} \
-	-r 0 300  -d 100
+	-r 0 300  -d 170
 Float -sigma sigma      {Cutoff sigma for choosing candidates}\
-	-r 1.0 30.0 -d 2.5
+	-r 1.0 30.0 -d 2.0
 Double -rlo     rlo     {The lowest Fourier frequency to search} \
 	-r 0.0 oo
 Double -rhi     rhi     {The highest Fourier frequency to search} \
@@ -25,14 +25,10 @@ Double -rhi     rhi     {The highest Fourier frequency to search} \
 Double -flo     flo     {The lowest frequency (Hz) to search} \
 	-r 0.0 oo -d 0.3
 Double -fhi     fhi     {The highest frequency (Hz) to search} \
-	-r 0.0 oo -d 4000.0
+	-r 0.0 oo -d 10000.0
 Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
 
 # Rest of command line:
 
 Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
         -c 1 1
-
-
-
-

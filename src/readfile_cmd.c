@@ -70,13 +70,13 @@ static Cmdline cmd = {
   /***** -pos: Raw data in position struct format */
   /* sposP = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
-  /* pksP = */ 0,
-  /***** -pk: Raw data in Parkes Multibeam format */
-  /* spksP = */ 0,
-  /***** -bpp: Raw data in BPP format */
-  /* bppP = */ 0,
+  /* pkmbP = */ 0,
+  /***** -bcpm: Raw data in BCPM format */
+  /* bcpmP = */ 0,
   /***** -wapp: Raw data in WAPP format */
   /* wappP = */ 0,
+  /***** -spigot: Raw data in Spigot Card format */
+  /* spigotP = */ 0,
   /***** -fortran: Raw data was written by a fortran program */
   /* fortranP = */ 0,
   /***** -index: The range of objects to display */
@@ -952,24 +952,17 @@ showOptionValues(void)
   }
 
   /***** -pkmb: Raw data in Parkes Multibeam format */
-  if( !cmd.pksP ) {
+  if( !cmd.pkmbP ) {
     printf("-pkmb not found.\n");
   } else {
     printf("-pkmb found:\n");
   }
 
-  /***** -pk: Raw data in Parkes Multibeam format */
-  if( !cmd.spksP ) {
-    printf("-pk not found.\n");
+  /***** -bcpm: Raw data in BCPM format */
+  if( !cmd.bcpmP ) {
+    printf("-bcpm not found.\n");
   } else {
-    printf("-pk found:\n");
-  }
-
-  /***** -bpp: Raw data in BPP format */
-  if( !cmd.bppP ) {
-    printf("-bpp not found.\n");
-  } else {
-    printf("-bpp found:\n");
+    printf("-bcpm found:\n");
   }
 
   /***** -wapp: Raw data in WAPP format */
@@ -977,6 +970,13 @@ showOptionValues(void)
     printf("-wapp not found.\n");
   } else {
     printf("-wapp found:\n");
+  }
+
+  /***** -spigot: Raw data in Spigot Card format */
+  if( !cmd.spigotP ) {
+    printf("-spigot not found.\n");
+  } else {
+    printf("-spigot found:\n");
   }
 
   /***** -fortran: Raw data was written by a fortran program */
@@ -1029,7 +1029,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-short] [-s] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-bpp] [-wapp] [-fortran] [-index [index]] [-nph nph] [--] file\n\
+ [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-short] [-s] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-bcpm] [-wapp] [-spigot] [-fortran] [-index [index]] [-nph nph] [--] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
     -nopage: Don't paginate the output like 'more'\n\
       -byte: Raw data in byte format\n\
@@ -1055,9 +1055,9 @@ usage(void)
   -position: Raw data in position struct format\n\
        -pos: Raw data in position struct format\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
-        -pk: Raw data in Parkes Multibeam format\n\
-       -bpp: Raw data in BPP format\n\
+      -bcpm: Raw data in BCPM format\n\
       -wapp: Raw data in WAPP format\n\
+    -spigot: Raw data in Spigot Card format\n\
    -fortran: Raw data was written by a fortran program\n\
      -index: The range of objects to display\n\
              0...2 int values between -1 and oo\n\
@@ -1067,7 +1067,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 value\n\
-version: 12Sep02\n\
+version: 14Aug03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1201,22 +1201,22 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-pkmb", argv[i]) ) {
-      cmd.pksP = 1;
+      cmd.pkmbP = 1;
       continue;
     }
 
-    if( 0==strcmp("-pk", argv[i]) ) {
-      cmd.spksP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-bpp", argv[i]) ) {
-      cmd.bppP = 1;
+    if( 0==strcmp("-bcpm", argv[i]) ) {
+      cmd.bcpmP = 1;
       continue;
     }
 
     if( 0==strcmp("-wapp", argv[i]) ) {
       cmd.wappP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-spigot", argv[i]) ) {
+      cmd.spigotP = 1;
       continue;
     }
 

@@ -33,10 +33,10 @@ Flag   	-bincand    	bin	{Raw data in bin search candidate format}
 Flag   	-bin	    	sbin	{Raw data in bin search candidate format}
 Flag   	-position    	pos	{Raw data in position struct format}
 Flag   	-pos	    	spos	{Raw data in position struct format}
-Flag   	-pkmb    	pks	{Raw data in Parkes Multibeam format}
-Flag   	-pk	    	spks	{Raw data in Parkes Multibeam format}
-Flag   	-bpp    	bpp	{Raw data in BPP format}
+Flag   	-pkmb    	pkmb	{Raw data in Parkes Multibeam format}
+Flag   	-bcpm    	bcpm	{Raw data in BCPM format}
 Flag    -wapp           wapp    {Raw data in WAPP format}
+Flag    -spigot         spigot  {Raw data in Spigot Card format}
 Flag	-fortran        fortran {Raw data was written by a fortran program}
 Int 	-index 		index 	{The range of objects to display} \
 				-r -1 oo  -d 0 " -1"  -c 0 2

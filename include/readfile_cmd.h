@@ -56,13 +56,13 @@ typedef struct s_Cmdline {
   /***** -pos: Raw data in position struct format */
   char sposP;
   /***** -pkmb: Raw data in Parkes Multibeam format */
-  char pksP;
-  /***** -pk: Raw data in Parkes Multibeam format */
-  char spksP;
-  /***** -bpp: Raw data in BPP format */
-  char bppP;
+  char pkmbP;
+  /***** -bcpm: Raw data in BCPM format */
+  char bcpmP;
   /***** -wapp: Raw data in WAPP format */
   char wappP;
+  /***** -spigot: Raw data in Spigot Card format */
+  char spigotP;
   /***** -fortran: Raw data was written by a fortran program */
   char fortranP;
   /***** -index: The range of objects to display */
