@@ -815,7 +815,8 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     }
   
     { /* Plot the Mask */
-      unsigned char byte, temp[200];
+      unsigned char byte;
+      char temp[200];
       float **plotmask, rr, gg, bb, page;
 
       plotmask = gen_fmatrix(numint, numchan);
