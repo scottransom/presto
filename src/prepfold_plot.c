@@ -367,7 +367,8 @@ printf("P/Pd search chi = %f\n", dmchi[ii]);
 	combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
 		      totpdelay, currentprof, &currentstats);
 	dmchi[ii] = currentstats.redchi;
-printf("DM %d  = %f\n", ii, dmchi[ii]);
+printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii], 
+       currentstats.data_avg, currentstats.data_var);
       }
     }
     free(ddprofs);

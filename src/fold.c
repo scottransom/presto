@@ -464,7 +464,6 @@ double fold(float *data, int numdata, double dt, double tlo,
   for (ii = 0; ii < numprof; ii++)
     stats->prof_avg += prof[ii];
   stats->prof_avg /= numprof;
-  stats->prof_var = stats->data_var * profbinwidth;
 
   /* Compute the Chi-Squared probability that there is a signal */
   /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
@@ -474,8 +473,9 @@ double fold(float *data, int numdata, double dt, double tlo,
     dtmp = prof[ii] - stats->prof_avg;
     stats->redchi += dtmp * dtmp;
   }
-  stats->redchi /= (stats->prof_var * (numprof - 1));
   stats->data_var /= (stats->numdata - 1.0);
+  stats->prof_var = stats->data_var * dt * stats->numdata * fo;
+  stats->redchi /= (stats->prof_var * (numprof - 1));
 
   phasenext = (phasenext < 0.0) ? 
     1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
