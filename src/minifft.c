@@ -3,6 +3,10 @@
 /* Number of bins on each side of a freq to use for interpolation */
 #define INTERPBINS 5
 
+/* Minimum sigma detection to return.            */
+/* (Including corrections for independant freqs) */
+#define MINRETURNSIG 1.5
+
 static char num[41][5] =
 {"0th", "1st", "2nd", "3rd", "4th", "5th", "6th", \
  "7th", "8th", "9th", "10th", "11th", "12th", \
@@ -214,10 +218,11 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 }
 
 
-void search_minifft(fcomplex *minifft, int numminifft, \
-		    rawbincand *cands, int numcands, int numharmsum, \
-		    int numbetween, double numfullfft, double timefullfft, \
-		    double lorfullfft, presto_interptype interptype, \
+void search_minifft(fcomplex *minifft, int numminifft, 
+		    double min_orb_p, double max_orb_p,
+		    rawbincand *cands, int numcands, int numharmsum,
+		    int numbetween, double numfullfft, double timefullfft,
+		    double lorfullfft, presto_interptype interptype,
 		    presto_checkaliased checkaliased)
   /* This routine searches a short FFT (usually produced using the   */
   /* MiniFFT binary search method) and returns a candidte vector     */
@@ -227,6 +232,8 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Arguments:                                                      */
   /*   'minifft' is the FFT to search (complex valued)               */
   /*   'numminifft' is the number of complex points in 'minifft'     */
+  /*   'min_orb_p' is the minimum orbital period (s) to search       */
+  /*   'max_orb_p' is the maximum orbital period (s) to search       */
   /*   'cands' is a pre-allocated vector of rawbincand type in which */
   /*      the sorted (in decreasing sigma) candidates are returned   */
   /*   'numcands' is the length of the 'cands' vector                */
@@ -245,10 +252,10 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*      CHECK_ALIASED = harmonic summing includes aliased freqs    */
   /*        making it slower but more sensitive.                     */
 {
-  int ii, jj, fftlen, offset, numtosearch;
+  int ii, jj, fftlen, offset, numtosearch, lobin, hibin;
   int numspread = 0, kern_half_width, numkern = 0;
   float powargr, powargi, *fullpows = NULL, *sumpows;
-  double twobypi, minpow = 0.0, minsig, dr;
+  double twobypi, minpow, minsig, dr, numindep;
   static int firsttime = 1, old_numminifft = 0;
   static fcomplex *kernel;
   fcomplex *spread, *kern;
@@ -268,7 +275,15 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     cands[ii].mini_sigma = 0.0;
     cands[ii].mini_power = 0.0;
   }
-
+  lobin = ceil(2 * numminifft * min_orb_p / timefullfft);
+  if (lobin <= 0)
+    lobin = 1;
+  hibin = floor(2 * numminifft * max_orb_p / timefullfft);
+  if (hibin >= 2 * numminifft)
+    hibin = 2 * numminifft - 1;
+  lobin *= numbetween;
+  hibin *= numbetween;
+  
   /* Prep the interpolation kernel if needed */
 
   if (interptype == INTERPOLATE){
@@ -322,15 +337,18 @@ void search_minifft(fcomplex *minifft, int numminifft, \
 
   /* Search the raw powers */
 
-  for (ii = 1; ii < numtosearch; ii++) {
+  numindep = hibin-lobin+1.0;
+  minpow = power_for_sigma(MINRETURNSIG, 1, numindep);
+  for (ii = lobin; ii < hibin; ii++) {
     if (fullpows[ii] > minpow) {
       cands[numcands-1].mini_r = dr * (double) ii; 
       cands[numcands-1].mini_power = fullpows[ii];
       cands[numcands-1].mini_numsum = 1.0;
       cands[numcands-1].mini_sigma = 
-	candidate_sigma(fullpows[ii], 1, 1);
+	candidate_sigma(fullpows[ii], 1, numindep);
       minsig = percolate_rawbincands(cands, numcands);
-      minpow = cands[numcands-1].mini_power;
+      if (cands[numcands-1].mini_power > minpow)
+	minpow = cands[numcands-1].mini_power;
     }
   }
 
@@ -341,18 +359,23 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     memcpy(sumpows, fullpows, sizeof(float) * numtosearch);
     for (ii = 2; ii <= numharmsum; ii++){
       offset = ii / 2;
-      minpow = power_for_sigma(cands[numcands-1].mini_sigma, ii, 1);
-      for (jj = 0; jj < numtosearch; jj++){
+      numindep = (hibin-lobin+1.0)/(double)ii;
+      if (cands[numcands-1].mini_sigma < MINRETURNSIG)
+	minsig = MINRETURNSIG;
+      else 
+	minsig = cands[numcands-1].mini_sigma;
+      minpow = power_for_sigma(minsig, ii, numindep);
+      for (jj = lobin * ii; jj < hibin; jj++){
 	sumpows[jj] += fullpows[(jj + offset) / ii];
 	if (sumpows[jj] > minpow) {
-	  cands[numcands-1].mini_r = dr * (double) jj; 
+	  cands[numcands-1].mini_r = (dr * (double) jj) / ii; 
 	  cands[numcands-1].mini_power = sumpows[jj];
 	  cands[numcands-1].mini_numsum = (double) ii;
 	  cands[numcands-1].mini_sigma = 
-	    candidate_sigma(sumpows[jj], ii, 1);
+	    candidate_sigma(sumpows[jj], ii, numindep);
 	  minsig = percolate_rawbincands(cands, numcands);
-	  minpow = 
-	    power_for_sigma(cands[numcands-1].mini_sigma, ii, 1);
+	  if (minsig > MINRETURNSIG)
+	    minpow = power_for_sigma(minsig, ii, numindep);
 	}
       }
     }
@@ -366,9 +389,9 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     cands[ii].full_N = numfullfft;
     cands[ii].full_T = timefullfft;
     cands[ii].full_lo_r = lorfullfft;
-    cands[ii].mini_N = fftlen;
+    cands[ii].mini_N = 2 * numminifft;  /* # of real points */
     cands[ii].psr_p = timefullfft / (lorfullfft + numminifft);
-    cands[ii].orb_p = timefullfft * cands[ii].mini_r / fftlen;
+    cands[ii].orb_p = timefullfft * cands[ii].mini_r / cands[ii].mini_N;
   }
 }
 

@@ -7,12 +7,6 @@
 /* Minimum binary period (s) to accept as 'real' */
 #define MINORBP 300.0
 
-/* Minimum miniFFT bin number to accept as 'real' */
-#define MINMINIBIN 3.0
-
-/* Bins to ignore at the beginning and end of the big FFT */
-#define BINSTOIGNORE 0
-
 /* Function definitions */
 int not_already_there_rawbin(rawbincand newcand, 
  			    rawbincand *list, int nlist);
@@ -33,14 +27,14 @@ float percolate_rawbincands(rawbincand *cands, int numcands);
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile;
-  float powargr, powargi, *powers = NULL, *minifft;
+  float powargr, powargi, *powers=NULL, *minifft;
   float norm, numchunks, *powers_pos;
   int nbins, newncand, nfftsizes, fftlen, halffftlen, binsleft;
-  int numtoread, filepos = 0, loopct = 0, powers_offset, ncand2;
-  int ii, ct, newper = 0, oldper = 0, numsumpow = 1;
-  double T, totnumsearched = 0.0, minsig = 0.0;
+  int numtoread, filepos=0, loopct=0, powers_offset, ncand2;
+  int ii, ct, newper=0, oldper=0, numsumpow=1;
+  double T, totnumsearched=0.0, minsig=0.0, min_orb_p, max_orb_p;
   char filenm[200], candnm[200], binnm[200], *notes;
-  fcomplex *data = NULL;
+  fcomplex *data=NULL;
   rawbincand tmplist[MININCANDS], *list;
   infodata idata;
   struct tms runtimes;
@@ -71,7 +65,7 @@ int main(int argc, char *argv[])
   printf("\n\n");
   printf("          Binary Pulsar Search Routine\n");
   printf("              by Scott M. Ransom\n");
-  printf("                 23 Sept, 1999\n\n");
+  printf("                 28 Feb, 2001\n\n");
 
   /* Initialize the filenames: */
 
@@ -84,10 +78,16 @@ int main(int argc, char *argv[])
   readinf(&idata, cmd->argv[0]);
   T = idata.N * idata.dt;
   if (idata.object) {
-    printf("Analyzing %s data from '%s'.\n\n", idata.object, filenm);
+    printf("Analyzing '%s' data from '%s'.\n\n", 
+	   remove_whitespace(idata.object), filenm);
   } else {
     printf("Analyzing data from '%s'.\n\n", filenm);
   }
+  min_orb_p = MINORBP;
+  if (cmd->noaliasP)
+    max_orb_p = T / 2.0;
+  else
+    max_orb_p = T / 1.2;
 
   /* open the FFT file and get its length */
 
@@ -124,18 +124,42 @@ int main(int argc, char *argv[])
 
   /* Low and high Fourier freqs to check */
 
-  if (!cmd->rloP || (cmd->rloP && cmd->rlo < cmd->lobin)){
-    if (cmd->lobin == 0)
-      cmd->rlo = BINSTOIGNORE;
-    else
+  if (cmd->floP){
+    cmd->rlo = floor(cmd->flo * T);
+    if (cmd->rlo < cmd->lobin) 
       cmd->rlo = cmd->lobin;
-  }
-  if (cmd->rhiP){
-    if (cmd->rhi < cmd->rlo) cmd->rhi = cmd->rlo + cmd->maxfft;
-    if (cmd->rhi > cmd->lobin + nbins) 
-      cmd->rhi = cmd->lobin + nbins - BINSTOIGNORE;
+    if (cmd->rlo > cmd->lobin + nbins - 1) {
+      printf("\nLow frequency to search 'flo' is greater than\n");
+      printf("   the highest available frequency.  Exiting.\n\n");
+      exit(1);
+    }
   } else {
-    cmd->rhi = cmd->lobin + nbins - BINSTOIGNORE;
+    cmd->rlo = 1.0;
+    if (cmd->rlo < cmd->lobin) 
+      cmd->rlo = cmd->lobin;
+    if (cmd->rlo > cmd->lobin + nbins - 1) {
+      printf("\nLow frequency to search 'rlo' is greater than\n");
+      printf("   the available number of points.  Exiting.\n\n");
+      exit(1);
+    }
+  }
+  if (cmd->fhiP){
+    cmd->rhi = ceil(cmd->fhi * T);
+    if (cmd->rhi > cmd->lobin + nbins - 1) 
+      cmd->rhi = cmd->lobin + nbins - 1;
+    if (cmd->rhi < cmd->rlo){
+      printf("\nHigh frequency to search 'fhi' is less than\n");
+      printf("   the lowest frequency to search 'flo'.  Exiting.\n\n");
+      exit(1);
+    }
+  } else if (cmd->rhiP){
+    if (cmd->rhi > cmd->lobin + nbins - 1) 
+      cmd->rhi = cmd->lobin + nbins - 1;
+    if (cmd->rhi < cmd->rlo){
+      printf("\nHigh frequency to search 'rhi' is less than\n");
+      printf("   the lowest frequency to search 'rlo'.  Exiting.\n\n");
+      exit(1);
+    }
   }
 
   /* Determine how many different mini-fft sizes we will use */
@@ -237,33 +261,24 @@ int main(int argc, char *argv[])
 
 	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
-	search_minifft((fcomplex *)minifft, halffftlen, tmplist, \
-		       MININCANDS, cmd->harmsum, cmd->numbetween, idata.N, \
-		       T, (double) (powers_offset + filepos + cmd->lobin), \
-		       cmd->interbinP ? INTERBIN : INTERPOLATE, \
+	search_minifft((fcomplex *)minifft, halffftlen, min_orb_p, 
+		       max_orb_p, tmplist, MININCANDS, cmd->harmsum, 
+		       cmd->numbetween, idata.N, T, 
+		       (double) (powers_offset + filepos + cmd->lobin),
+		       cmd->interbinP ? INTERBIN : INTERPOLATE,
 		       cmd->noaliasP ? NO_CHECK_ALIASED : CHECK_ALIASED);
 		       
 	/* Check if the new cands should go into the master cand list */
 
 	for (ii = 0; ii < MININCANDS; ii++){
 	  if (tmplist[ii].mini_sigma > minsig) {
-
-	    /* Insure the candidate is semi-realistic */
-
-	    if (tmplist[ii].orb_p > MINORBP && 
-		tmplist[ii].mini_r > MINMINIBIN &&
-		tmplist[ii].mini_r < tmplist[ii].mini_N - MINMINIBIN &&
-		fabs(tmplist[ii].mini_r - 0.5 * tmplist[ii].mini_N) > 2.0){
-
-	      /* Check to see if another candidate with these properties */
-	      /* is already in the list.                                 */
-	      
-	      if (not_already_there_rawbin(tmplist[ii], list, ncand2)) {
-		list[ncand2 - 1] = tmplist[ii];
-		minsig = percolate_rawbincands(list, ncand2);
-	      }
-	    } else {
-	      continue;
+	    
+	    /* Check to see if another candidate with these properties */
+	    /* is already in the list.                                 */
+	    
+	    if (not_already_there_rawbin(tmplist[ii], list, ncand2)) {
+	      list[ncand2 - 1] = tmplist[ii];
+	      minsig = percolate_rawbincands(list, ncand2);
 	    }
 	  } else {
 	    break;

@@ -419,18 +419,23 @@ double candidate_sigma(double power, int numsum, double numtrials)
     status = 0;
     cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
     if (status){
-      if (status != -3){
+      if (status == -2){
+	x = 0.0;
+      } else if (status == -3){
+	x = 38.5;
+      } else {
 	printf("\nError in cdfnor() (candidate_sigma()):\n");
 	printf("   status = %d, bound = %g\n", status, bound);
 	printf("   p = %g, q = %g, x = %g, mean = %g, sd = %g\n\n", 
 	       p, q, x, mean, sd);
 	exit(1);
-      } else {
-	x = 38.5;
       }
     }
   }
-  return x;
+  if (x < 0.0) 
+    return 0.0;
+  else 
+    return x;
 }
 
 double power_for_sigma(double sigma, int numsum, double numtrials)

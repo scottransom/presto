@@ -95,7 +95,7 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
   int ii, jj, worklen, fftlen, binsleft, overlaplen;
   int bigfft_offset=0, powers_offset, wrkblk=WORKBLOCK;
   float *powers, *minifft, *powers_pos, powargr, powargi;
-  double T, norm, minsig=0.0;
+  double T, norm, minsig=0.0, min_orb_p = 300.0, max_orb_p;
   rawbincand list[NUMCANDS], tmplist[MININCANDS];
   PKMB_tapehdr *hdr;
   infodata idata;
@@ -119,6 +119,8 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 #ifdef DEBUGOUT
   print_PKMB_hdr(hdr);
 #endif
+  min_orb_p = 300.0;
+  max_orb_p = T / 2.0;
 
   /* Check our input values */
 
@@ -198,9 +200,10 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 
 	norm = sqrt((double) fftlen) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
-	search_minifft((fcomplex *)minifft, fftlen / 2, tmplist, \
-		       MININCANDS, NUMHARMSUM, 2, idata.N, T, \
-		       (double) (powers_offset + bigfft_offset), \
+	search_minifft((fcomplex *)minifft, fftlen / 2, 
+		       min_orb_p, max_orb_p, tmplist,
+		       MININCANDS, NUMHARMSUM, 2, idata.N, T,
+		       (double) (powers_offset + bigfft_offset),
 		       INTERBIN, NO_CHECK_ALIASED);
 		       
 	/* Check if the new cands should go into the master cand list */

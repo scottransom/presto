@@ -34,6 +34,14 @@ static Cmdline cmd = {
   /* maxfftP = */ 1,
   /* maxfft = */ 262144,
   /* maxfftC = */ 1,
+  /***** -flo: The low frequency (Hz) to check */
+  /* floP = */ 1,
+  /* flo = */ 1,
+  /* floC = */ 1,
+  /***** -fhi: The high frequency (Hz) to check */
+  /* fhiP = */ 1,
+  /* fhi = */ 2000,
+  /* fhiC = */ 1,
   /***** -rlo: The low Fourier frequency to check */
   /* rloP = */ 0,
   /* rlo = */ (int)0,
@@ -798,6 +806,30 @@ showOptionValues(void)
     }
   }
 
+  /***** -flo: The low frequency (Hz) to check */
+  if( !cmd.floP ) {
+    printf("-flo not found.\n");
+  } else {
+    printf("-flo found:\n");
+    if( !cmd.floC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.flo);
+    }
+  }
+
+  /***** -fhi: The high frequency (Hz) to check */
+  if( !cmd.fhiP ) {
+    printf("-fhi not found.\n");
+  } else {
+    printf("-fhi found:\n");
+    if( !cmd.fhiC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.fhi);
+    }
+  }
+
   /***** -rlo: The low Fourier frequency to check */
   if( !cmd.rloP ) {
     printf("-rlo not found.\n");
@@ -911,7 +943,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-ncand ncand] [-minfft minfft] [-maxfft maxfft] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-overlap overlap] [-harmsum harmsum] [-numbetween numbetween] [-stack stack] [-interbin] [-noalias] [--] infile\n\
+ [-ncand ncand] [-minfft minfft] [-maxfft maxfft] [-flo flo] [-fhi fhi] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-overlap overlap] [-harmsum harmsum] [-numbetween numbetween] [-stack stack] [-interbin] [-noalias] [--] infile\n\
     Searches a long FFT for binary pulsar candidates using a phase modulation search.\n\
        -ncand: Number of candidates to try to return\n\
                1 int value between 1 and 10000\n\
@@ -922,6 +954,12 @@ usage(void)
       -maxfft: Power-of-2 length of the longest miniFFT\n\
                1 int value between 8 and 1048576\n\
                default: `262144'\n\
+         -flo: The low frequency (Hz) to check\n\
+               1 int value between 0 and oo\n\
+               default: `1'\n\
+         -fhi: The high frequency (Hz) to check\n\
+               1 int value between 0 and oo\n\
+               default: `2000'\n\
          -rlo: The low Fourier frequency to check\n\
                1 int value between 0 and oo\n\
          -rhi: The high Fourier frequency to check\n\
@@ -945,7 +983,7 @@ usage(void)
      -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n\
        infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
                1 value\n\
-version: 21Dec00\n\
+version: 27Feb01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -990,6 +1028,24 @@ parseCmdline(int argc, char **argv)
       cmd.maxfftC = i-keep;
       checkIntLower("-maxfft", &cmd.maxfft, cmd.maxfftC, 1048576);
       checkIntHigher("-maxfft", &cmd.maxfft, cmd.maxfftC, 8);
+      continue;
+    }
+
+    if( 0==strcmp("-flo", argv[i]) ) {
+      cmd.floP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.flo, 1);
+      cmd.floC = i-keep;
+      checkIntHigher("-flo", &cmd.flo, cmd.floC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-fhi", argv[i]) ) {
+      cmd.fhiP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.fhi, 1);
+      cmd.fhiC = i-keep;
+      checkIntHigher("-fhi", &cmd.fhi, cmd.fhiC, 0);
       continue;
     }
 
