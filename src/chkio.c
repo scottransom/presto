@@ -98,7 +98,7 @@ unsigned long chkfilelen(FILE *file, size_t size)
   }
 #else
   struct stat buf;
-  
+
   filenum = fileno(file);
   rt = fstat(filenum, &buf);
   if (rt == -1){
