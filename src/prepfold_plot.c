@@ -2,6 +2,8 @@
 #include "plot2d.h"
 #include "float.h" 
 
+#define JUST_GREYSCALE 0
+
 #define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
 (fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
 (fabs((a)-(b))/fabs((a)) <= 2 * DBL_EPSILON ? 1 : 0))
@@ -620,9 +622,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     /* Open and prep our device */
 
     cpgopen(search->pgdev);
+#ifndef JUST_GREYSCALE
     cpgpap(10.25, 8.5/11.0);
     cpgpage();
     cpgiden();
+#endif
     cpgsch(0.8);
     
     /* Time versus phase */
@@ -735,6 +739,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgerrb(6, 1, &errx, &erry, &errlen, 2);
       cpgpt(1, &errx, &erry, 5);
     }
+
+#ifndef JUST_GREYSCALE
 
     if (search->nsub > 1){
 
@@ -1117,6 +1123,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	}
       }
     }
+#endif    /* The ends the JUST_GREYSCALE block */
     cpgclos();
   }
   free(bestprof);
