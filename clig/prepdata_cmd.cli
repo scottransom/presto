@@ -24,6 +24,7 @@ Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}
+Flag   -shorts  shorts  {Use short ints for the output data instead of floats}
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Double  -dm      dm      {The dispersion measure to de-disperse (cm^-3 pc)} \
 	-r 0 oo  -d 0

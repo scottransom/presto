@@ -1,10 +1,13 @@
 #include <limits.h>
+#include <ctype.h>
 #include "presto.h"
 #include "prepsubband_cmd.h"
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
 #include "wapp.h"
+
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -71,6 +74,7 @@ int main(int argc, char *argv[])
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
+  numinfiles = cmd->argc;
 
 #ifdef DEBUG
   showOptionValues();
@@ -78,10 +82,38 @@ int main(int argc, char *argv[])
 
   printf("\n\n");
   printf("          Pulsar Subband De-dispersion Routine\n");
-  printf("                 by Scott M. Ransom\n");
-  printf("            Last Modification:  19 Mar, 2001\n\n");
+  printf("                 by Scott M. Ransom\n\n");
 
-  numinfiles = cmd->argc;
+  if (!RAWDATA){
+    char *root, *suffix;
+    /* Split the filename into a rootname and a suffix */
+    if (split_root_suffix(cmd->argv[0], &root, &suffix)==0){
+      printf("\nThe input filename (%s) must have a suffix!\n\n", 
+	     cmd->argv[0]);
+      exit(1);
+    } else {
+      if (strcmp(suffix, "bcpm1")==0 || 
+	  strcmp(suffix, "bcpm2")==0){
+	printf("Assuming the data is from a GBT BCPM...\n");
+	cmd->bcpmP = 1;
+      } else if (strcmp(suffix, "pkmb")==0){
+	printf("Assuming the data is from the Parkes Multibeam system...\n");
+	cmd->pkmbP = 1;
+      } else if (isdigit(suffix[0]) &&
+		 isdigit(suffix[1]) &&
+		 isdigit(suffix[2])){
+	printf("Assuming the data is from the Arecibo WAPP system...\n");
+	cmd->wappP = 1;
+      } else {
+	printf("\nCannot determine the format of the input files '%s'...\n\n", 
+	       cmd->argv[0]);
+	exit(1);
+      }
+      free(root);
+      free(suffix);
+    }
+  }
+
   if (cmd->pkmbP){
     if (numinfiles > 1)
       printf("Reading Parkes PKMB data from %d files:\n", numinfiles);
@@ -363,8 +395,6 @@ int main(int argc, char *argv[])
     free(voverc);
     blotoa = btoa[0];
 
-    printf("   Insure you check the files tempoout_times.tmp and\n");
-    printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n");
     printf("   Average topocentric velocity (c) = %.7g\n", avgvoverc);
     printf("   Maximum topocentric velocity (c) = %.7g\n", maxvoverc);
     printf("   Minimum topocentric velocity (c) = %.7g\n\n", minvoverc);

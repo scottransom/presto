@@ -1,4 +1,5 @@
 #include <limits.h>
+#include <ctype.h>
 #include "prepdata_cmd.h"
 #include "presto.h"
 #include "mask.h"
@@ -15,6 +16,8 @@
 /* Round a double or float to the nearest integer. */
 /* x.5s get rounded away from zero.                */
 #define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
+
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
 
 /* Some function definitions */
 
@@ -40,10 +43,10 @@ int main(int argc, char *argv[])
   double tdf=0.0, dtmp=0.0, barydispdt=0.0;
   double *dispdt, *tobsf=NULL, tlotoa=0.0, blotoa=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
-  char obs[3], ephem[10], *datafilenm, *outinfonm;
+  char obs[3], ephem[10], *datafilenm, *outinfonm, *root, *suffix;
   char rastring[50], decstring[50];
-  int numfiles, numchan=1, newper=0, oldper=0, nummasked=0;
-  int slen, numadded=0, numremoved=0, padding=0, *maskchans=NULL;
+  int numfiles, numchan=1, newper=0, oldper=0, nummasked=0, useshorts=0;
+  int slen, numadded=0, numremoved=0, padding=0, *maskchans=NULL, offset=0;
   long ii, numbarypts=0, worklen=65536;
   long numread=0, numtowrite=0, totwrote=0, datawrote=0;
   long padwrote=0, padtowrite=0, statnum=0;
@@ -64,6 +67,7 @@ int main(int argc, char *argv[])
   /* Parse the command line using the excellent program Clig */
 
   cmd = parseCmdline(argc, argv);
+  numfiles = cmd->argc;
 
 #ifdef DEBUG
   showOptionValues();
@@ -72,30 +76,45 @@ int main(int argc, char *argv[])
   printf("\n\n");
   printf("           Pulsar Data Preparation Routine\n");
   printf("    Type conversion, de-dispersion, barycentering.\n");
-  printf("                 by Scott M. Ransom\n");
-  printf("           Last Modification:  16 Dec, 2000\n\n");
+  printf("                 by Scott M. Ransom\n\n");
 
-  numfiles = cmd->argc;
-  if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP){
-    char *root, *suffix;
-
+  if (!RAWDATA){
     /* Split the filename into a rootname and a suffix */
-
     if (split_root_suffix(cmd->argv[0], &root, &suffix)==0){
       printf("\nThe input filename (%s) must have a suffix!\n\n", 
 	     cmd->argv[0]);
       exit(1);
+    } else {
+      if (strcmp(suffix, "sdat")==0){
+	useshorts = 1;
+      } else if (strcmp(suffix, "bcpm1")==0 || 
+		 strcmp(suffix, "bcpm2")==0){
+	printf("Assuming the data is from a GBT BCPM...\n");
+	cmd->bcpmP = 1;
+      } else if (strcmp(suffix, "pkmb")==0){
+	printf("Assuming the data is from the Parkes Multibeam system...\n");
+	cmd->pkmbP = 1;
+      } else if (isdigit(suffix[0]) &&
+		 isdigit(suffix[1]) &&
+		 isdigit(suffix[2])){
+	printf("Assuming the data is from the Arecibo WAPP system...\n");
+	cmd->wappP = 1;
+      }
     }
-    free(suffix);
+    if (RAWDATA){ /* Clean-up a bit */
+      free(root);
+      free(suffix);
+    }
+  }
 
+  if (!RAWDATA){
     printf("Reading input data from '%s'.\n", cmd->argv[0]);
     printf("Reading information from '%s.inf'.\n\n", root);
-
     /* Read the info file if available */
-
     readinf(&idata, root);
-    infiles[0] = chkfopen(cmd->argv[0], "rb");
     free(root);
+    free(suffix);
+    infiles[0] = chkfopen(cmd->argv[0], "rb");
   } else if (cmd->pkmbP){
     if (numfiles > 1)
       printf("Reading Parkes PKMB data from %d files:\n", numfiles);
@@ -115,7 +134,7 @@ int main(int argc, char *argv[])
 
   /* Open the raw data files */
 
-  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
+  if (RAWDATA){
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
@@ -282,7 +301,7 @@ int main(int argc, char *argv[])
   /* Determine our initialization data if we do _not_ have Parkes, */
   /* Green Bank BCPM, or Arecibo WAPP data sets.                   */
 
-  if (!cmd->pkmbP && !cmd->bcpmP && !cmd->wappP) {
+  if (!RAWDATA) {
 
     /* If we will be barycentering... */
 
@@ -338,8 +357,7 @@ int main(int argc, char *argv[])
 
   tlotoa = (double) idata.mjd_i + idata.mjd_f;
 
-  if (!strcmp(idata.band, "Radio") && 
-      (cmd->pkmbP || cmd->bcpmP || cmd->wappP)) {
+  if (!strcmp(idata.band, "Radio") && RAWDATA){
 
     /* The topocentric spacing between channels */
 
@@ -492,8 +510,6 @@ int main(int argc, char *argv[])
     free(voverc);
     blotoa = btoa[0];
 
-    printf("   Insure you check the files tempoout_times.tmp and\n");
-    printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n");
     printf("   Average topocentric velocity (c) = %.7g\n", avgvoverc);
     printf("   Maximum topocentric velocity (c) = %.7g\n", maxvoverc);
     printf("   Minimum topocentric velocity (c) = %.7g\n\n", minvoverc);
@@ -512,7 +528,7 @@ int main(int argc, char *argv[])
     barydispdt = dispdt[numchan - 1];
     for (ii = 0; ii < numchan; ii++)
       dispdt[ii] = (dispdt[ii] - barydispdt) / idata.dt;
-    if (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
+    if (RAWDATA)
       worklen *= ((int)(dispdt[0]) / worklen) + 1;
 
     /* If the data is de-dispersed radio data...*/
@@ -750,9 +766,67 @@ int main(int argc, char *argv[])
   }
   free(outdata);
 
+  /* Close the files */
+
+  for (ii=0; ii<numfiles; ii++)
+    fclose(infiles[ii]);
+  fclose(outfile);
+
   /* Print simple stats and results */
 
   var /= (datawrote - 1);
+
+  /* Conver the '.dat' file to '.sdat' if requested */
+  
+  if (cmd->shortsP){
+    FILE *infile;
+    int safe_convert=1, bufflen=65536;
+    char *sdatafilenm;
+    float *fbuffer;
+    short *sbuffer;
+    
+    offset = (int)(floor(avg)+0.5);
+    if ((max-min) > (SHRT_MAX-SHRT_MIN)){
+      if ((max-min) < 1.5*(SHRT_MAX-SHRT_MIN)){
+	printf("Warning:  There is more dynamic range in the data\n"
+	       "          than can be handled perfectly:\n"
+	       "               max - min = %.2f - %.2f = %.2f\n"
+	       "          Clipping the low values...\n\n", 
+	       max, min, max-min);
+	offset = max - SHRT_MAX;
+      } else {
+	printf("Error:  There is way too much dynamic range in the data:\n"
+	       "               max - min = %.2f - %.2f = %.2f\n"
+	       "        Not converting to shorts.\n\n", 
+	       max, min, max-min);
+	safe_convert = 0;
+      }
+    }
+    
+    if (safe_convert){
+      fbuffer = gen_fvect(bufflen);
+      sbuffer = gen_svect(bufflen);
+      sdatafilenm = (char *)calloc(slen, 1);
+      sprintf(sdatafilenm, "%s.sdat", cmd->outfile);
+      printf("\n\nConverting floats in '%s'to shorts in '%s'.", 
+	     datafilenm, sdatafilenm);
+      fflush(NULL);
+
+      infile = chkfopen(datafilenm, "rb");
+      outfile = chkfopen(sdatafilenm, "wb");
+      while ((numread=chkfread(fbuffer, sizeof(float), bufflen, infile))){
+	for (ii=0; ii<numread; ii++)
+	  sbuffer[ii] = (short)(fbuffer[ii]+1e-20-offset);
+	chkfwrite(sbuffer, sizeof(short), numread, outfile);
+      }
+      fclose(infile);
+      fclose(outfile);
+      remove(datafilenm);
+      free(fbuffer);
+      free(sbuffer);
+    }
+  }
+  
   printf("\n\nDone.\n\nSimple statistics of the output data:\n");
   printf("             Data points written:  %ld\n", totwrote);
   if (padwrote)
@@ -767,17 +841,16 @@ int main(int argc, char *argv[])
   printf("           Minimum value of data:  %.2f\n", min);
   printf("              Data average value:  %.2f\n", avg);
   printf("         Data standard deviation:  %.2f\n", sqrt(var));
+  if (cmd->shortsP && offset != 0)
+    printf("          Offset applied to data:  %d\n", -offset);
   printf("\n");
 
-  /* Close the files and cleanup */
+  /* Cleanup */
 
   if (cmd->maskfileP){
     free_mask(obsmask);
     free(maskchans);
   }
-  for (ii=0; ii<numfiles; ii++)
-    fclose(infiles[ii]);
-  fclose(outfile);
   free(tobsf);
   free(dispdt);
   free(outinfonm);

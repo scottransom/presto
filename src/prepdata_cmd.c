@@ -50,6 +50,8 @@ static Cmdline cmd = {
   /* numoutC = */ 0,
   /***** -nobary: Do not barycenter the data */
   /* nobaryP = */ 0,
+  /***** -shorts: Use short ints for the output data instead of floats */
+  /* shortsP = */ 0,
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   /* de405P = */ 0,
   /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
@@ -859,6 +861,13 @@ showOptionValues(void)
     printf("-nobary found:\n");
   }
 
+  /***** -shorts: Use short ints for the output data instead of floats */
+  if( !cmd.shortsP ) {
+    printf("-shorts not found.\n");
+  } else {
+    printf("-shorts found:\n");
+  }
+
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   if( !cmd.de405P ) {
     printf("-DE405 not found.\n");
@@ -905,7 +914,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-numout numout] [-nobary] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-numout numout] [-nobary] [-shorts] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
     Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
@@ -923,6 +932,7 @@ usage(void)
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
              1 int value between 1 and oo\n\
     -nobary: Do not barycenter the data\n\
+    -shorts: Use short ints for the output data instead of floats\n\
      -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
         -dm: The dispersion measure to de-disperse (cm^-3 pc)\n\
              1 double value between 0 and oo\n\
@@ -931,7 +941,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 04Nov02\n\
+version: 02Dec02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1014,6 +1024,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-nobary", argv[i]) ) {
       cmd.nobaryP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-shorts", argv[i]) ) {
+      cmd.shortsP = 1;
       continue;
     }
 

@@ -37,6 +37,8 @@ typedef struct s_Cmdline {
   int numoutC;
   /***** -nobary: Do not barycenter the data */
   char nobaryP;
+  /***** -shorts: Use short ints for the output data instead of floats */
+  char shortsP;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   char de405P;
   /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
