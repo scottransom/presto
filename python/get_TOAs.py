@@ -10,7 +10,7 @@ from Pgplot import *
 PI = float('3.1415926535897932384626433832795028841971693993751')
 TWOPI = PI*2.0
 SECPERDAY = 86400.0
-scopes = {'GBT':'1', 'Arecibo':'3', 'Parkes':'7'}
+scopes = {'GBT':'1', 'Arecibo':'3', 'Parkes':'7', 'GMRT': 'r'}
 
 class infodata:
     def __init__(self, filenm):
