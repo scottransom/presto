@@ -303,27 +303,32 @@ int check_mask(double starttime, double duration, mask *obsmask,
   hiint = (int)(endtime / obsmask->dtint);
 
   /* Mask the same channels as for the last call */
-  if (loint == old_loint && hiint == old_hiint)
+  if (loint==old_loint && 
+      hiint==old_hiint)
     return old_numchan;
 
   /* Determine new channels to mask */
-  if (loint == hiint){
+  if (loint==hiint){
     old_loint = old_hiint = loint;
-    if (obsmask->num_zap_ints)
+    /* Check to see if this is an interval where we zap all the channels */
+    if (obsmask->num_zap_ints){
       if (find_num(loint, obsmask->zap_ints, obsmask->num_zap_ints)){
 	old_numchan = -1;
 	return old_numchan;
       }
+    }
+    /* Merge the overall channels to zap with the local channels to zap */
     old_numchan = merge_no_dupes(obsmask->zap_chans, 
 				 obsmask->num_zap_chans,
 				 obsmask->chans[loint], 
 				 obsmask->num_chans_per_int[loint],
 				 maskchans);
-  } else {
+  } else { /* We are straddling a rfifind interval boundary */
     int *tmpchans;
 
     old_loint = loint;
     old_hiint = hiint;
+    /* Check to see if this is an interval where we zap all the channels */
     if (obsmask->num_zap_ints){
       if (find_num(loint, obsmask->zap_ints, obsmask->num_zap_ints)){
 	old_numchan = -1;
@@ -333,6 +338,9 @@ int check_mask(double starttime, double duration, mask *obsmask,
 	old_numchan = -1;
 	return old_numchan;
       }
+    }
+    /* Merge the overall channels to zap with the loint channels to zap */
+    if (obsmask->num_zap_chans){
       tmpchans = gen_ivect(obsmask->numchan);
       old_numchan = merge_no_dupes(obsmask->zap_chans, 
 				   obsmask->num_zap_chans,
@@ -340,15 +348,16 @@ int check_mask(double starttime, double duration, mask *obsmask,
 				   obsmask->num_chans_per_int[loint],
 				   tmpchans);
     } else {
-      tmpchans = obsmask->chans[loint];
-      old_numchan = obsmask->num_chans_per_int[loint];
+      tmpchans = obsmask->zap_chans;
+      old_numchan = obsmask->num_zap_chans;
     }
+    /* Merge the loint+overall channels to zap with the hiint channels to zap */
     old_numchan = merge_no_dupes(tmpchans, 
 				 old_numchan,
 				 obsmask->chans[hiint], 
 				 obsmask->num_chans_per_int[hiint],
 				 maskchans);
-    if (obsmask->num_zap_ints)
+    if (obsmask->num_zap_chans)
       free(tmpchans);
   }
   return old_numchan;
