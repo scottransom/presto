@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 	printf("Assuming the data is from a GBT BCPM...\n");
 	cmd->bcpmP = 1;
       } else if (strcmp(suffix, "pkmb")==0){
-	printf("Assuming the data is from the Parkes Multibeam system...\n");
+	printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	cmd->pkmbP = 1;
       } else if (strncmp(suffix, "gmrt", 4)==0){
 	printf("Assuming the data is from the GMRT Phased Array system...\n");
@@ -137,9 +137,9 @@ int main(int argc, char *argv[])
 
   if (cmd->pkmbP){
     if (numinfiles > 1)
-      printf("Reading Parkes PKMB data from %d files:\n", numinfiles);
+      printf("Reading 1-bit filterbank (Parkes/Jodrell) data from %d files:\n", numinfiles);
     else
-      printf("Reading Parkes PKMB data from 1 file:\n");
+      printf("Reading 1-bit filterbank (Parkes/Jodrell) data from 1 file:\n");
   } else if (cmd->bcpmP){
     if (numinfiles > 1)
       printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
@@ -255,6 +255,8 @@ int main(int argc, char *argv[])
       strcpy(obs, "AO");
     } else if (!strcmp(idata.telescope, "Parkes")) {
       strcpy(obs, "PK");
+    } else if (!strcmp(idata.telescope, "Jodrell")) {
+      strcpy(obs, "JB");
     } else if (!strcmp(idata.telescope, "Effelsberg")) {
       strcpy(obs, "EF");
     } else if (!strcmp(idata.telescope, "MMT")) {
@@ -279,7 +281,7 @@ int main(int argc, char *argv[])
 
     /* Set-up values if we are using the Parkes multibeam */
     if (cmd->pkmbP) {
-      printf("\nPKMB input file information:\n");
+      printf("\nFilterbank input file information:\n");
       get_PKMB_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
 			 &dt, &T, 1);
       chkfread(&hdr, 1, HDRLEN, infiles[0]);
@@ -287,7 +289,14 @@ int main(int argc, char *argv[])
       PKMB_hdr_to_inf(&hdr, &idata);
       PKMB_update_infodata(numinfiles, &idata);
       /* OBS code for TEMPO */
-      strcpy(obs, "PK");
+      if (!strcmp(idata.telescope, "Parkes"))
+	strcpy(obs, "PK");
+      else if (!strcmp(idata.telescope, "Jodrell"))
+	strcpy(obs, "JB");
+      else {
+	printf("\nWARNING!!!:  I don't recognize the observatory (%s)!", 
+	       idata.telescope);
+      }
     }
     
     /* Set-up values if we are using the GMRT Phased Array system */

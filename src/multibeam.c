@@ -634,7 +634,10 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
 	 "%3d:%2d:%9lf", &idata->ra_h, &idata->ra_m, &idata->ra_s);
   sscanf(hdr->dec_start, \
 	 "%3d:%2d:%9lf", &idata->dec_d, &idata->dec_m, &idata->dec_s);
-  strcpy(idata->telescope, "Parkes");
+  if (!strncmp(hdr->telid, "PARKES", 6))
+    strcpy(idata->telescope, "Parkes");
+  else if (!strncmp(hdr->telid, "JODRELL", 7))
+    strcpy(idata->telescope, "Jodrell");
   itmp1 = strtol(hdr->ibeam, NULL, 10);  
   itmp2 = strtol(hdr->nbeam, NULL, 10);  
   sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);

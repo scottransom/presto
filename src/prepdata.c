@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
   /* Any variable that begins with 'b' means barycentric */
   FILE *infiles[MAXPATCHFILES], *outfile;
   float *outdata=NULL, *padvals;
-  double tdf=0.0, dtmp=0.0, barydispdt=0.0;
+  double tdf=0.0, dtmp=0.0, barydispdt=0.0, dsdt=0.0;
   double *dispdt, *tobsf=NULL, tlotoa=0.0, blotoa=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
   char obs[3], ephem[10], *datafilenm, *outinfonm, *root, *suffix;
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 	printf("Assuming the data is from a GBT BCPM...\n");
 	cmd->bcpmP = 1;
       } else if (strcmp(suffix, "pkmb")==0){
-	printf("Assuming the data is from the Parkes Multibeam system...\n");
+	printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	cmd->pkmbP = 1;
       } else if (strncmp(suffix, "gmrt", 4)==0){
 	printf("Assuming the data is from the GMRT Phased Array system...\n");
@@ -130,9 +130,9 @@ int main(int argc, char *argv[])
     infiles[0] = chkfopen(cmd->argv[0], "rb");
   } else if (cmd->pkmbP){
     if (numfiles > 1)
-      printf("Reading Parkes PKMB data from %d files:\n", numfiles);
+      printf("Reading 1-bit filterbank (Parkes/Jodrell) data from %d files:\n", numfiles);
     else
-      printf("Reading Parkes PKMB data from 1 file:\n");
+      printf("Reading 1-bit filterbank (Parkes/Jodrell) data from 1 file:\n");
   } else if (cmd->bcpmP){
     if (numfiles > 1)
       printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
@@ -188,7 +188,7 @@ int main(int argc, char *argv[])
     if (cmd->pkmbP) {
       PKMB_tapehdr hdr;
 
-      printf("PKMB input file information:\n");
+      printf("Filterbank input file information:\n");
       get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
 			 &dt, &T, 1);
       /* Read the first header file and generate an infofile from it */
@@ -197,7 +197,14 @@ int main(int argc, char *argv[])
       PKMB_hdr_to_inf(&hdr, &idata);
       PKMB_update_infodata(numfiles, &idata);
       /* OBS code for TEMPO for Parkes */
-      strcpy(obs, "PK");
+      if (!strcmp(idata.telescope, "Parkes"))
+	strcpy(obs, "PK");
+      else if (!strcmp(idata.telescope, "Jodrell"))
+	strcpy(obs, "JB");
+      else {
+	printf("\nWARNING!!!:  I don't recognize the observatory (%s)!", 
+	       idata.telescope);
+      }
     }
     
     /* Set-up values if we are using the GMRT Phased Array system */
@@ -221,15 +228,6 @@ int main(int argc, char *argv[])
 			&dt, &T, &idata, 1);
       BPP_update_infodata(numfiles, &idata);
       set_BPP_padvals(padvals, good_padvals);
-      /* Which IFs will we use? */
-      if (cmd->ifsP){
-	if (cmd->ifs==0)
-	  ifs = IF0;
-	else if (cmd->ifs==1)
-	  ifs = IF1;
-	else
-	  ifs = SUMIFS;
-      }
       /* OBS code for TEMPO for the GBT */
       strcpy(obs, "GB");
     }
@@ -248,6 +246,7 @@ int main(int argc, char *argv[])
 
     /* Finish setting up stuff common to all raw formats */
     idata.dm = cmd->dm;
+    dsdt = cmd->downsamp * idata.dt;
     worklen = ptsperblock;
     if (cmd->maskfileP)
       maskchans = gen_ivect(idata.num_chan);
@@ -290,6 +289,8 @@ int main(int argc, char *argv[])
 	strcpy(obs, "AO");
       } else if (!strcmp(idata.telescope, "Parkes")) {
 	strcpy(obs, "PK");
+      } else if (!strcmp(idata.telescope, "Jodrell")) {
+	strcpy(obs, "JB");
       } else if (!strcmp(idata.telescope, "Effelsberg")) {
 	strcpy(obs, "EF");
       } else if (!strcmp(idata.telescope, "MMT")) {

@@ -368,6 +368,8 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
       printf("\nError:  Unrecognized number of bits per sample!\n\n");
     center_freqs_st[0] = hdr234->cent_freq;
   }
+  if (numifs_st==2)
+    printf("Both IFs are present.\n");
   WAPP_hdr_to_inf(hdr, &idata_st[0]);
   WAPP_hdr_to_inf(hdr, idata);
   for (ii=1; ii<numwapps_st; ii++)
@@ -1077,12 +1079,17 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
   static float acf[2*WAPP_MAXLAGS], lag[2*WAPP_MAXLAGS], templag[WAPP_MAXLAGS];
   double scale_min_st=0.0, scale_max_st=3.0;
 
-  if (ifs==IF1){
+  if (ifs==IF0){
+    ifnum = 1;
+    index = 0;
+  } else if (ifs==IF1){
     ifnum = 1;
     index = numwappchan_st;
-  } else if (ifs==SUMIFS) {
-    scale_min_st *= 2.0;
-    scale_max_st *= 2.0;
+  } else { /* Sum the IFs (or they were already summed) */
+    if (numifs_st==2){
+      scale_min_st *= 2.0;
+      scale_max_st *= 2.0;
+    }
   }
 
   /* Loop over the IFs */
@@ -1142,16 +1149,15 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
 	for(ii=0; ii<numwappchan_st; ii++)
 	  lag[ii] += templag[ii];
       }
-    } else {
-      /* Scale and pack the powers */
-      pfact = 255.0 / (scale_max_st - scale_min_st);
-      for(ii=0; ii<numwappchan_st; ii++){
-	double templag;
-	templag = (lag[ii] > scale_max_st) ? scale_max_st : lag[ii];
-	templag = (templag < scale_min_st) ? scale_min_st : templag;
-	bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
-      }
     }
+  }
+  /* Scale and pack the powers */
+  pfact = 255.0 / (scale_max_st - scale_min_st);
+  for(ii=0; ii<numwappchan_st; ii++){
+    double templag;
+    templag = (lag[ii] > scale_max_st) ? scale_max_st : lag[ii];
+    templag = (templag < scale_min_st) ? scale_min_st : templag;
+    bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
   }
   
 #if 0
