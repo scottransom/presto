@@ -29,6 +29,8 @@ Flag   	-rzwcand    	rzw	{Raw data in rzw search candidate format}
 Flag   	-rzw	    	srzw	{Raw data in rzw search candidate format}
 Flag   	-bincand    	bin	{Raw data in bin search candidate format}
 Flag   	-bin	    	sbin	{Raw data in bin search candidate format}
+Flag   	-position    	pos	{Raw data in position struct format}
+Flag   	-pos	    	spos	{Raw data in position struct format}
 Flag   	-pkmb    	pks	{Raw data in Parkes Multibeam format}
 Flag   	-pk	    	spks	{Raw data in Parkes Multibeam format}
 Flag	-fortran        fortran {Raw data was written by a fortran program}

@@ -52,6 +52,10 @@ typedef struct s_Cmdline {
   char binP;
   /***** -bin: Raw data in bin search candidate format */
   char sbinP;
+  /***** -position: Raw data in position struct format */
+  char posP;
+  /***** -pos: Raw data in position struct format */
+  char sposP;
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pksP;
   /***** -pk: Raw data in Parkes Multibeam format */

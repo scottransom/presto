@@ -6,7 +6,7 @@
 /* #define DEBUG */
 
 #define PAGELEN 32   /* Set the page length to 32 lines */
-#define NUMTYPES 10
+#define NUMTYPES 11
 
 int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
@@ -17,11 +17,13 @@ int INT_print(long count, char *obj_ptr);
 int LONG_print(long count, char *obj_ptr);
 int RZWCAND_print(long count, char *obj_ptr);
 int BINCAND_print(long count, char *obj_ptr);
+int POSITION_print(long count, char *obj_ptr);
 int PKMBHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 
 typedef enum{
-  BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, RZWCAND, BINCAND, PKMBHDR
+  BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, 
+    RZWCAND, BINCAND, POSITION, PKMBHDR
 } rawtypes;
 
 typedef struct fcplex{
@@ -44,11 +46,13 @@ int type_sizes[NUMTYPES] = {
   sizeof(long), \
   sizeof(fourierprops), \
   sizeof(rawbincand), \
+  sizeof(position), \
   49792  /* This is the length of a Parkes Multibeam record */
 };
 
 int objs_at_a_time[NUMTYPES] = {
-  PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 1, 1, 1
+  PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 
+  PAGELEN, 1, 1, PAGELEN, 1
 };
 
 /* You don't see this every day -- An array of pointers to functions: */
@@ -63,6 +67,7 @@ int (*print_funct_ptrs[NUMTYPES])() = {
   LONG_print, \
   RZWCAND_print, \
   BINCAND_print, \
+  POSITION_print, \
   PKMBHDR_print
 };
 
@@ -116,6 +121,7 @@ int main(int argc, char **argv)
   else if (cmd->lngP || cmd->slngP) index = LONG;
   else if (cmd->rzwP || cmd->srzwP) index = RZWCAND;
   else if (cmd->binP || cmd->sbinP) index = BINCAND;
+  else if (cmd->posP || cmd->sposP) index = POSITION;
   else if (cmd->pksP || cmd->spksP) index = PKMBHDR;
 
   /* Try to determine the data type from the file name */
@@ -137,6 +143,10 @@ int main(int argc, char **argv)
 	  index = FCPLEX;
 	  fprintf(stderr, \
 		  "Assuming the data is single precision complex.\n\n");
+	} else if (0 == strcmp(extension, "pos")){
+	  index = POSITION;
+	  fprintf(stderr, \
+		  "Assuming the data contains 'position' structures.\n\n");
 	} else if (0 == strcmp(extension, "cand")){
 	  /* A binary or RZW search file? */
 	  if (NULL != (cptr = strstr(cmd->argv[0], "_bin"))){
@@ -223,6 +233,7 @@ int main(int argc, char **argv)
     }
   } while (!feof(infile) && i < cmd->index[1] && key == '\n');
 
+  fflush(NULL);
   if (feof(infile)){
     fprintf(stderr, "\nEnd of file.\n\n");
   }
@@ -313,6 +324,16 @@ int BINCAND_print(long count, char *obj_ptr)
   object = (rawbincand *) obj_ptr;
   printf("\n%ld:\n", count + 1);
   print_rawbincand(*object);
+  return 0;
+}
+
+int POSITION_print(long count, char *obj_ptr)
+{
+  position *object;
+
+  object = (position *) obj_ptr;
+  printf("\n%ld:  pow = %-7g    p1 = %-13.2f   p2 = %-9.2f   p3 = %-9.2f", 
+	 count + 1, object->pow, object->p1, object->p2, object->p3);
   return 0;
 }
 

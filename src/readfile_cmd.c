@@ -60,6 +60,10 @@ static Cmdline cmd = {
   /* binP = */ FALSE,
   /***** -bin: Raw data in bin search candidate format */
   /* sbinP = */ FALSE,
+  /***** -position: Raw data in position struct format */
+  /* posP = */ FALSE,
+  /***** -pos: Raw data in position struct format */
+  /* sposP = */ FALSE,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pksP = */ FALSE,
   /***** -pk: Raw data in Parkes Multibeam format */
@@ -548,6 +552,20 @@ showOptionValues(void)
     printf("-bin found:\n");
   }
 
+  /***** -position: Raw data in position struct format */
+  if( !cmd.posP ) {
+    printf("-position not found.\n");
+  } else {
+    printf("-position found:\n");
+  }
+
+  /***** -pos: Raw data in position struct format */
+  if( !cmd.sposP ) {
+    printf("-pos not found.\n");
+  } else {
+    printf("-pos found:\n");
+  }
+
   /***** -pkmb: Raw data in Parkes Multibeam format */
   if( !cmd.pksP ) {
     printf("-pkmb not found.\n");
@@ -612,7 +630,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-more] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-pkmb] [-pk] [-fortran] [-index [index]] [-nph nph] file\n\
+ [-more] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-fortran] [-index [index]] [-nph nph] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
       -more: Paginate the output like 'more'\n\
       -byte: Raw data in byte format\n\
@@ -633,6 +651,8 @@ usage(void)
        -rzw: Raw data in rzw search candidate format\n\
    -bincand: Raw data in bin search candidate format\n\
        -bin: Raw data in bin search candidate format\n\
+  -position: Raw data in position struct format\n\
+       -pos: Raw data in position struct format\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
         -pk: Raw data in Parkes Multibeam format\n\
    -fortran: Raw data was written by a fortran program\n\
@@ -644,7 +664,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 string value\n\
-version: 04Dec99\n\
+version: 15Dec99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -754,6 +774,16 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-bin", argv[i]) ) {
       cmd.sbinP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-position", argv[i]) ) {
+      cmd.posP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-pos", argv[i]) ) {
+      cmd.sposP = TRUE;
       continue;
     }
 

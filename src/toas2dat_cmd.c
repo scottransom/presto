@@ -472,7 +472,7 @@ usage(void)
     -sec: TOA unit is seconds (default is days)\n\
     file: Input TOA file name\n\
           1 string value\n\
-version: 04Dec99\n\
+version: 15Dec99\n\
 ");
   exit(EXIT_FAILURE);
 }
