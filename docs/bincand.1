@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "bincand" 1 "15May00" "Clig-manuals" "Programmer's Manual"
+.TH "bincand" 1 "19Jun00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -28,6 +28,7 @@ bincand \- Generates a set of fake orbits and their Fourier modulation spectra f
 [-rhi rhi]
 [-psr psrname]
 [-candnum candnum]
+[-candfile candfile]
 [-usr]
 [-pb pb]
 [-x asinic]
@@ -62,9 +63,13 @@ Name of pulsar to check for (do not include J or B),
 .br
 1 String value
 .IP -candnum
-Number of the candidate to optimize from 'infile'_bin.cand,
+Number of the candidate to optimize from candfile.,
 .br
 1 Int value between 1 and oo.
+.IP -candfile
+Name of the bincary candidate file.,
+.br
+1 String value
 .IP -usr
 Describe your own binary candidate.  Must include all of the following (assumed) parameters.
 .IP -pb

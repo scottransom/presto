@@ -1,13 +1,11 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <sys/times.h>
+#include "chkio.h"
 #include <math.h>
 #include <string.h>
-#include <sys/times.h>
 #include <time.h>
 #include "clk_tck.h"
 #include "ransomfft.h"
 #include "meminfo.h"
-#include "chkio.h"
 #include "vectors.h"
 #include "makeinf.h"
 #include "orbint.h"
@@ -616,7 +614,15 @@ int read_rzw_cand(FILE *file, fourierprops *cands);
 /* Read the next rzw candidate from the file */
 /* If successful, return 1, else 0           */
 
-void get_rzw_cand(char *filenm, int candnum, fourierprops *cand);
+int read_bin_cand(FILE *file, binaryprops *cands);
+/* Read the next binary candidate from the file */
+/* If successful, return 1, else 0              */
+
+int read_rawbin_cand(FILE *file, rawbincand *cands);
+/* Read the next rawbin candidate from the file */
+/* If successful, return 1, else 0              */
+
+void get_rzw_cand(char *filenm, int candnum, fourierprops * cand);
 /*  Read the rzw candidate file 'filenm' and return a        */
 /*  pointer to the fourierprops that describes it.           */
 
@@ -624,6 +630,9 @@ void get_bin_cand(char *filenm, int candnum, binaryprops * cand);
 /*  Read the bin candidate file 'filenm' and return a        */
 /*  pointer to the binaryprops that describes it.            */
 
+void get_rawbin_cand(char *filenm, int candnum, rawbincand * cand);
+/*  Read the rawbin candidate file 'filenm' and return a     */
+/*  pointer to the rawbincand that describe it.              */
 
 /*  read_fft.c:  */
 /*  Functions for getting information from an FFT file  */

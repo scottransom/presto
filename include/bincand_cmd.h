@@ -29,10 +29,14 @@ typedef struct s_Cmdline {
   char psrnameP;
   char* psrname;
   int psrnameC;
-  /***** -candnum: Number of the candidate to optimize from 'infile'_bin.cand */
+  /***** -candnum: Number of the candidate to optimize from candfile. */
   char candnumP;
   int candnum;
   int candnumC;
+  /***** -candfile: Name of the bincary candidate file. */
+  char candfileP;
+  char* candfile;
+  int candfileC;
   /***** -usr: Describe your own binary candidate.  Must include all of the following (assumed) parameters */
   char usrP;
   /***** -pb: The orbital period (s) */

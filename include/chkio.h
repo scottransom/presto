@@ -1,13 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <errno.h>
+#include <sys/types.h>
 #ifdef USE_PIOFS
 #include <sys/limits.h>
 #include <piofs/piofs_ioctl.h>
 #else
 #include <sys/stat.h>
 #endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
 
 FILE *chkfopen(char *path, const char *mode);
 /* Preform a file open with error checking.  */
