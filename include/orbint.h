@@ -12,7 +12,12 @@
 #ifndef SOL
 #define SOL 299792458.0
 #endif
+#ifndef DBLCORRECT
+#define DBLCORRECT    1e-14
+#endif
+#ifndef MAXIT
 #define MAXIT 1000
+#endif
 
 #ifndef ORBITPARAMS_TYPE
 typedef struct orbitparams {
