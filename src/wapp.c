@@ -28,19 +28,19 @@ static void vanvleck9lev(float *rho, int npts);
 static float clip_sigma_st=0.0;
 
 int clip_times(unsigned char *rawpows)
-/* Perform tim-domain clipping of WAPP data. This routine */
-/* is primarily designed to get rid of the nasty and very */
-/* strong RFI that is occasionally observed at night at   */
-/* Arecibo.  The source of the RFI is unknown.            */
+/* Perform time-domain clipping of WAPP data. This routine */
+/* is primarily designed to get rid of the nasty and very  */
+/* strong RFI that is occasionally observed at night at    */
+/* Arecibo.  The source of the RFI is unknown.             */
 {
   static float median_chan_levels[WAPP_MAXLAGLEN];
-  static float running_avg=0.0, running_std=0.0;
+  static float running_avg=0.0, running_std=0.0, median_sum=0.0;
   static int blocksread=0;
   static long long current_point=0;
   float zero_dm_block[WAPP_PTSPERBLOCK], median_temp[WAPP_MAXLAGLEN];
   float current_med, trigger, running_wgt=0.1;
-  double current_avg=0.0, current_std=0.0;
-  unsigned char *powptr;
+  double current_avg=0.0, current_std=0.0, scaling;
+  unsigned char *powptr, good_chan_levels[WAPP_MAXLAGLEN];
   int ii, jj, clipit=0, clipped=0;
 
   /* Calculate the zero DM time series */
@@ -104,25 +104,31 @@ int clip_times(unsigned char *rawpows)
   }
       
   /* Calculate the channel medians if required */
-  if (blocksread==0 ||
-      (blocksread % 100==0 && clipit==0)){
+  if ((blocksread % 100==0 && clipit==0) || blocksread==0){
+    median_sum = 0.0;
     for (ii=0; ii<numchan_st; ii++){
       powptr = rawpows + ii;
       for (jj=0; jj<ptsperblk_st; jj++)
 	median_temp[jj] = *(powptr + jj * numchan_st);
       median_chan_levels[ii] = median(median_temp, ptsperblk_st);
+      median_sum += median_chan_levels[ii];
     }
   }
     
-  /* Replace the bad channel data with the channel median values */
+  /* Replace the bad channel data with channel median values */
+  /* that are scaled to equal the running_avg.               */
   if (clipit){
+    scaling = running_avg / median_sum;
+    for (ii=0; ii<numchan_st; ii++)
+      good_chan_levels[ii] = (unsigned char)(median_chan_levels[ii] * 
+					     scaling + 0.5);
     for (ii=0; ii<ptsperblk_st; ii++){
       if (fabs(zero_dm_block[ii] - running_avg) > trigger){
 	powptr = rawpows + ii * numchan_st;
 	for (jj=0; jj<numchan_st; jj++)
-	  *(powptr+jj) = median_chan_levels[jj];
+	  *(powptr+jj) = good_chan_levels[jj];
 	clipped++;
-	/* fprintf(stderr, "%lld\n", current_point); */
+	/* fprintf(stderr, "%lld\n", current_point);*/
       }
       current_point++;
     }
@@ -409,7 +415,6 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
 void WAPP_update_infodata(int numfiles, infodata *idata)
 /* Update the onoff bins section in case we used multiple files */
 {
-  
   int ii, index=2;
 
   idata->N = N_st;
