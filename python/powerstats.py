@@ -269,29 +269,30 @@ if __name__ == '__main__':
         "What confidence level would you like to use?  [0.99]  ", 0.99)
     Ntot = ask_int(\
         "How many data points were FFTd (N)?  ")
+    dt = ask_float("What was the length in time (s) of each bin?  ")
+    T = Ntot * dt
     P_max = ask_float(\
         "What was the maximum normalized power found?  ")
     rlo = 1
     rhi = Ntot / 2
     if answer_yes(\
         "Was this an RZW acceleration search (y/n)?  [y]  "):
-        rlo = ask_float(\
-                "What was the lowest bin searched?  [300]  ", 300)
-        rhi = ask_float(\
-                "What was the highest bin searched?  [N/2]  ", Ntot/2)
+        rlo = T * ask_float(\
+                "What was the lowest freq searched (Hz)?   [1.0]  ", 1.0)
+        rhi = T * ask_float(\
+                "What was the highest freq searched (Hz)? [%.2f]  " %
+                ((Ntot/2.0)/T), (Ntot/2.0)/T)
         zlo = ask_float(\
-                "What was the lowest 'z' value searched?  [-100]  ", -100)
+                "What was the lowest 'z' value searched?  [-100]  ", -100.0)
         zhi = ask_float(\
-                "What was the highest 'z' value searched?  [100]  ", 100)
+                "What was the highest 'z' value searched?  [100]  ", 100.0)
         Nsearch = (rhi - rlo) * (zhi - zlo) / 6.95
     else:
         Nsearch = ask_int(\
                 "How many independent bins were searched?  [N/2]  ", Ntot/2)
     if answer_yes(\
         "Was the data composed of binned counts (y/n)?  [y]  "):
-        dt = ask_float("What was the length in time (s) of each bin?  ")
         numphot = ask_int("How many counts (photons) were there?  ")
-        T = Ntot * dt
         lofreq, hifreq = rlo / T, rhi / T
         trial_freqs = (10.0**(Numeric.arange(7.0)-2.0)).tolist()
         trial_freqs = filter(lambda x:  x > lofreq and x < hifreq,
