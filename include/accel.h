@@ -12,6 +12,8 @@
 #define ACCEL_DZ  2
 /* Reciprocal of ACCEL_DZ */
 #define ACCEL_RDZ 0.5
+/* Closest candidates we will accept as independent */
+#define ACCEL_CLOSEST_R 15.0
 
 typedef struct accelobs{
   long long N;         /* Number of data points in observation */

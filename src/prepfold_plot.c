@@ -6,6 +6,10 @@
 (fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
 (fabs((a)-(b))/fabs((a)) <= 2 * DBL_EPSILON ? 1 : 0))
 
+#define TEST_CLOSE(a, b, c) (fabs(a) == 0.0 ? \
+(fabs((a)-(b)) <= (c) ? 1 : 0) : \
+(fabs((a)-(b))/fabs((a)) <= (c) ? 1 : 0))
+
 /* This is a hack that allows the raw profile data */
 /* to be printed on STDOUT so that they can be     */
 /* easily imported into Python....                 */
@@ -39,8 +43,13 @@ void scaleprof(double *in, float *out, int n)
     if (in[ii] > max) max = in[ii];
     else if (in[ii] < min) min = in[ii];
   }
-  for (ii=0; ii<n; ii++)
-    out[ii] = (float) ((in[ii] - min) / max);
+  if (TEST_CLOSE(min, max, 1.0e-7)){
+    for (ii=0; ii<n; ii++)
+      out[ii] = 0.5;
+  } else {
+    for (ii=0; ii<n; ii++)
+      out[ii] = (float) ((in[ii] - min) / max);
+  }
 }
 
 
@@ -439,10 +448,11 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 		    search->proflen);
 	    shift_prof(pdprofs + profindex, search->proflen, wrap, 
 		       currentprof);
-	    double2float(currentprof, timeprofs + 2 * profindex, 
-			 search->proflen);
-	    double2float(currentprof, timeprofs + 2 * profindex + 
-			 search->proflen, search->proflen);
+	    scaleprof(currentprof, timeprofs + 2 * profindex, 
+		      search->proflen);
+	    memcpy(timeprofs + 2 * profindex + search->proflen,
+		   timeprofs + 2 * profindex, 
+		   search->proflen * sizeof(float));
 	    for (mm = 0; mm < search->proflen; mm++)
 	      lastprof[mm] += currentprof[mm];
 	    profavg += search->stats[ll].prof_avg;
@@ -531,29 +541,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	else
 	  printf("%.2f, ", max);
       }
-/*       proffile = chkfopen("NGC6544_profs.bin", "wb"); */
-/*       for (ii = 0; ii < search->npart; ii++) */
-/* 	chkfwrite(timeprofs + ii * 2 * search->proflen, sizeof(float), */
-/* 		  search->proflen, proffile); */
-/*       fclose(proffile); */
     }
 #endif
-
-    /* Scale each of the profiles in time so that the overall */
-    /* scaling is not messed up.                              */
-
-    if (ct==0) {
-      int index;
-      float min, max;
-      for (ii = 0; ii < search->npart; ii++){
-	minmax(timeprofs + ii * 2 * search->proflen, 
-	       search->proflen, &min, &max);	
-	for (jj = 0; jj < 2 * search->proflen; jj++){
-	  index = ii * 2 * search->proflen + jj;
-	  timeprofs[index] = (timeprofs[index] - min) / max;
-	}
-      }
-    }
 
     cpgsvp (0.06, 0.27, 0.09, 0.68);
     cpgswin(0.0, 1.999, 0.0, T);

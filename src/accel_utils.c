@@ -136,6 +136,121 @@ void free_subharminfo_vect(int numharm, subharminfo *shi)
   free(shi);
 }
 
+
+static accelcand *create_accelcand(float power, float sigma, 
+				   int numharm, double r, double z)
+{
+  accelcand *obj;
+
+  obj = (accelcand *)malloc(sizeof(accelcand));
+  obj->power = power;
+  obj->sigma = sigma;
+  obj->numharm = numharm;
+  obj->r = r;
+  obj->z = z;
+  return obj;
+}
+
+
+static int compare_accelcand_sigma(gconstpointer ca, gconstpointer cb)
+/* Sorts from high to low sigma (ties are sorted by increasing r) */
+{
+  int result;
+  accelcand *a, *b;
+
+  a = (accelcand *) ca;
+  b = (accelcand *) cb;
+  result = (a->sigma < b->sigma) - (a->sigma > b->sigma);
+  if (result) 
+    return result;
+  else
+    return (a->r > b->r) - (a->r < b->r);
+}
+
+
+static int compare_accelcand_r(gconstpointer ca, gconstpointer cb)
+/* Sorts from low to high r (ties are sorted by increasing z) */
+{
+  int result;
+  accelcand *a, *b;
+
+  a = (accelcand *) ca;
+  b = (accelcand *) cb;
+  result = (a->r > b->r) - (a->r < b->r);
+  if (result) 
+    return result;
+  else
+    return (a->z > b->z) - (a->z < b->z);
+}
+
+
+static GSList *insert_new_accelcand(GSList *list, float power, float sigma, 
+				    int numharm, double rr, double zz)
+/* Checks the current list to see if there is already */
+/* a candidate within ACCEL_CLOSEST_R bins.  If not,  */
+/* it adds it to the list in increasing freq order.   */
+{
+  GSList *tmp_list=list, *prev_list=NULL, *new_list;
+  GCompareFunc func;
+  gint cmp;
+  
+  if (!list){
+    new_list = g_slist_alloc();
+    new_list->data = create_accelcand(power, sigma, numharm, rr, zz);
+    return new_list;
+  }
+
+  while ((tmp_list->next) && 
+	 (tmp_list->data.r < (rr - ACCEL_CLOSEST_R))){
+    prev_list = tmp_list;
+    tmp_list = tmp_list->next;
+  }
+
+  if (fabs(rr - tmp_list->data.r) < ACCEL_CLOSEST_R){
+    if (tmp_list->data.sigma > sigma){
+      return list;           /* Better candidate already there */
+    } else {
+      free(tmp_list->data);  /* Overwrite the old candidate */
+      tmp_list->data = create_accelcand(power, sigma, numharm, rr, zz);
+    }
+  } else {
+    new_list = g_slist_alloc();
+    new_list->data = create_accelcand(power, sigma, numharm, rr, zz);
+
+    if (!tmp_list->next){
+      tmp_list->next = new_list;
+      return list;
+    }
+
+    if (prev_list){
+      prev_list->next = new_list;
+      new_list->next = tmp_list;
+      return list;
+    } else {
+      new_list->next = list;
+      return new_list;
+    }
+  }
+}
+
+
+static void print_accelcand(gpointer data, gpointer user_data)
+{
+  accelcand *obj=(accelcand *)data;
+
+  user_data = NULL;
+  printf("sigma: %-7.4f  pow: %-7.2f  harm: %-2d  r: %-14.4f  z: %-10.4f\n", 
+	 obj->sigma, obj->power, obj->numharm, obj->r, obj->z); 
+}
+
+
+void free_accelcand(gpointer data, gpointer user_data)
+{
+  user_data = NULL;
+  free((accelcand *)data);
+}
+
+
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs)
@@ -381,54 +496,6 @@ void free_accelobs(accelobs *obs)
     free(obs->lobins);
     free(obs->hibins);
   }
-}
-
-
-accelcand *create_accelcand(float power, float sigma, 
-			    int numharm, double r, double z)
-{
-  accelcand *obj;
-
-  obj = (accelcand *)malloc(sizeof(accelcand));
-  obj->power = power;
-  obj->sigma = sigma;
-  obj->numharm = numharm;
-  obj->r = r;
-  obj->z = z;
-  return obj;
-}
-
-
-int compare_accelcand(gconstpointer ca, gconstpointer cb)
-/* Sorts from high to low sigma (ties are sorted by increasing r) */
-{
-  int result;
-  accelcand *a, *b;
-
-  a = (accelcand *) ca;
-  b = (accelcand *) cb;
-  result = (a->sigma < b->sigma) - (a->sigma > b->sigma);
-  if (result) 
-    return result;
-  else
-    return (a->r > b->r) - (a->r < b->r);
-}
-
-
-void print_accelcand(gpointer data, gpointer user_data)
-{
-  accelcand *obj=(accelcand *)data;
-
-  user_data = NULL;
-  printf("sigma: %-7.4f  pow: %-7.2f  harm: %-2d  r: %-14.4f  z: %-10.4f\n", 
-	 obj->sigma, obj->power, obj->numharm, obj->r, obj->z); 
-}
-
-
-void free_accelcand(gpointer data, gpointer user_data)
-{
-  user_data = NULL;
-  free((accelcand *)data);
 }
 
 
