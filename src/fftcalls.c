@@ -11,11 +11,9 @@ void fftwcall(fcomplex *indata, long nn, int isign)
 {
   int i;
   FILE *wisdomfile;
-  static fftw_plan plan_forward[NUMPLANS], plan_inverse[NUMPLANS];
-  static fftw_plan *good_plan_forward, *good_plan_inverse;
-  static fftw_plan est_plan_forward, est_plan_inverse;
-  static long fftsizes[NUMPLANS];
-  static int firsttime = 1, currentindex = 0;
+  fftw_plan plan_forward, plan_inverse;
+  static fftw_plan last_plan_forward = NULL, last_plan_inverse = NULL;
+  static int firsttime = 1, lastnn = 0;
   static char wisdomfilenm[120];
 
   /* Call the six-step algorithm if the FFT is too big to */
@@ -43,67 +41,38 @@ void fftwcall(fcomplex *indata, long nn, int isign)
       exit(1);
     }
     fclose(wisdomfile);
-
-    firsttime = 0;
   }
 
-  /* Search the stack of plans for the proper size transform */
+  /* If we used the same plan during the last call, use it again */
 
-  for(i=currentindex-1; i>=0; i--){
-    if (fftsizes[i] == nn){
-      good_plan_forward = &plan_forward[i];
-      good_plan_inverse = &plan_inverse[i];
-      break;
+  if (nn == lastnn){
+    plan_forward = last_plan_forward;
+    plan_inverse = last_plan_inverse;
+  } else {
+    if (!firsttime){
+      fftw_destroy_plan(last_plan_forward);
+      fftw_destroy_plan(last_plan_inverse);
     }
-  }
-    
-  /* If we are calling using an nn we haven't seen before */
-
-  if (i < 0) {
-
-    if (currentindex < NUMPLANS){
-
-      /* Create new plans if space in the array */
-      
-      plan_forward[currentindex] = fftw_create_plan(nn, -1, FFTW_MEASURE | \
-						    FFTW_USE_WISDOM | \
-						    FFTW_IN_PLACE);
-      plan_inverse[currentindex] = fftw_create_plan(nn, +1, FFTW_MEASURE | \
-						    FFTW_USE_WISDOM | \
-						    FFTW_IN_PLACE);
-      good_plan_forward = &plan_forward[currentindex];
-      good_plan_inverse = &plan_inverse[currentindex];
-      currentindex++;
-
-    } else {
-
-      /* Estimate a plan if we are out of space */
-
-      est_plan_forward = fftw_create_plan(nn, -1, FFTW_ESTIMATE | \
-					  FFTW_USE_WISDOM | \
-					  FFTW_IN_PLACE);
-      est_plan_inverse = fftw_create_plan(nn, +1, FFTW_ESTIMATE | \
-					  FFTW_USE_WISDOM | \
-					  FFTW_IN_PLACE);
-      good_plan_forward = &est_plan_forward;
-      good_plan_inverse = &est_plan_inverse;
-
-    }
+    plan_forward = fftw_create_plan(nn, -1, FFTW_MEASURE | \
+				    FFTW_USE_WISDOM | \
+				    FFTW_IN_PLACE);
+    plan_inverse = fftw_create_plan(nn, +1, FFTW_MEASURE | \
+				    FFTW_USE_WISDOM | \
+				    FFTW_IN_PLACE);
+    last_plan_forward = plan_forward;
+    last_plan_inverse = plan_inverse;
+    lastnn = nn;
   }
 
   /* Call the transform */
 
   if (isign == -1){
-
-    fftw(*good_plan_forward, 1, (FFTW_COMPLEX *) indata, 1, 1, \
-	 NULL, 1, 1);
-
+    fftw_one(plan_forward, (FFTW_COMPLEX *) indata, NULL);
   } else {
-
-    fftw(*good_plan_inverse, 1, (FFTW_COMPLEX *) indata, 1, 1, \
-	 NULL, 1, 1);
-
+    fftw_one(plan_inverse, (FFTW_COMPLEX *) indata, NULL);
   }
+
+  firsttime = 0;
 }
 
 
