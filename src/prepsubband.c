@@ -753,8 +753,10 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	}
       }
     }
-    SWAP(currentdata, lastdata);
-    SWAP(currentdsdata, lastdsdata);
+    if (firsttime){
+      SWAP(currentdata, lastdata);
+      SWAP(currentdsdata, lastdsdata);
+    }
     firsttime--;
   }
   firsttime = 0;

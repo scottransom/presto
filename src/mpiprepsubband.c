@@ -823,15 +823,21 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  }
 	}
       }
-      for (ii=0; ii<local_numdms; ii++)
-	float_dedisp(currentdsdata, lastdsdata, dsworklen, 
-		     cmd->numsub, offsets[ii], 0.0, outdata[ii]);
+    }
+    if (firsttime){
       SWAP(currentdata, lastdata);
       SWAP(currentdsdata, lastdsdata);
     }
     firsttime--;
   }
   firsttime = 0;
+  if (myid>0){
+    for (ii=0; ii<local_numdms; ii++)
+      float_dedisp(currentdsdata, lastdsdata, dsworklen, 
+		   cmd->numsub, offsets[ii], 0.0, outdata[ii]);
+  }
+  SWAP(currentdata, lastdata);
+  SWAP(currentdsdata, lastdsdata);
 /*
 {
   int jj;
