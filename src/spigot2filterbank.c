@@ -47,11 +47,12 @@ void spigot2sigprocfb(SPIGOT_INFO *spigot, sigprocfb *fb, char *filenmbase)
 
 int main(int argc, char *argv[])
 {
-  FILE **infiles, *outfile;
-  int filenum, ii=0, ptsperblock, numchan, numfiles, bytes_per_read;
+  FILE **infiles, *outfile, *scalingfile;
+  int filenum, ii=0, ptsperblock, numchan, numfiles, bytes_per_read, scaling=0, numscalings;
   long long N;
-  char outfilenm[200], filenmbase[200], rawlags[4096];
+  char outfilenm[200], filenmbase[200], scalingnm[200], rawlags[4096];
   unsigned char output_samples[2048];
+  float *scalings;
   double dt, T;
   SPIGOT_INFO *spigots;
   sigprocfb fb;
@@ -66,6 +67,21 @@ int main(int argc, char *argv[])
   filenmbase[strlen(argv[1])-10] = '\0';
   sprintf(outfilenm, "%s.fil", filenmbase);
   printf("Writing data to file '%s'.\n\n", outfilenm);
+
+  /* Attempt to read a file with lag scalings in it */
+  if ((scalingfile=fopen(scalingnm, "fb"))){
+    /* Determine the length of the file */
+    numscalings = (int)chkfilelen(scalingfile, sizeof(float));
+    /* Create the array and read 'em */
+    scalings = gen_fvect(numscalings);
+    chkfread(scalings, sizeof(float), numscalings, scalingfile);
+    scaling = 1;
+    /* close the scaling file */
+    fclose(scalingfile);
+    printf("Scaling the lags with the %d values found in '%s'\n\n", 
+	   numscalings, scalingnm);
+  }
+
 
   /* Read and convert the basic SPIGOT file information */
   
@@ -102,7 +118,10 @@ int main(int argc, char *argv[])
     
     /* Loop over the samples in the file */
     while (chkfread(rawlags, bytes_per_read, 1, infiles[filenum-1])){
-      convert_SPIGOT_point(rawlags, output_samples, SUMIFS);
+      if (scaling)
+	convert_SPIGOT_point(rawlags, output_samples, SUMIFS, scalings[ii]);
+      else
+	convert_SPIGOT_point(rawlags, output_samples, SUMIFS, 1.0);
       ii++;
       /* Invert the band so that the high freqs are first */
       /* This is how SIGPROC stores its data.             */
@@ -120,6 +139,8 @@ int main(int argc, char *argv[])
     fclose(infiles[filenum-1]);
   }
   fclose(outfile);
+  if (scaling)
+    free(scalings);
   fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
   free(infiles);
   return 0;

@@ -723,7 +723,7 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
     /* Convert from Correlator Lags to Filterbank Powers */
     for (ii=0; ii<ptsperblk_st; ii++)
       convert_SPIGOT_point(lagbuffer+ii*bytesperpt_st, 
-			   dataptr+ii*numchan_st, ifs);
+			   dataptr+ii*numchan_st, ifs, 1.0);
 
     /* Clip nasty RFI if requested */
     if (clip_sigma_st > 0.0)
@@ -1142,7 +1142,8 @@ void get_calibrated_lags(void *rawlags, float *calibrated_lags)
 }
 
 
-void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
+void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, 
+			  IFs ifs, float lag_scaling)
 /* This routine converts a single point of SPIGOT lags   */
 /* into a filterbank style array of bytes.               */
 {
@@ -1170,6 +1171,12 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     printf("\n");
     exit(0);
 #endif
+
+    /* Apply the user-specified scaling */
+    if (lag_scaling!=1.0){
+      for (ii=0; ii<numchan_st; ii++)
+	lags[ii] *= lag_scaling;
+    }
 
     /* Calculate power */
     //power = sqrt(2.0)*inv_cerf(lags[0]);

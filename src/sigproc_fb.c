@@ -390,7 +390,7 @@ void set_filterbank_padvals(float *fpadvals, int good_padvals)
 void sigprocfb_to_inf(sigprocfb *fb, infodata *idata)
 /* Convert filterbank header structure into an infodata structure */
 {
-  char *tmpstr, ctmp[500];
+  char *tmpstr;
   strncpy(idata->object, fb->source_name, 80);
   idata->ra_h = (int) floor(fb->src_raj/10000.0);
   idata->ra_m = (int) floor((fb->src_raj - idata->ra_h*10000)/100.0);

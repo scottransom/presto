@@ -76,7 +76,8 @@ int read_SPIGOT_subbands(FILE *infiles[], int numfiles, float *data,
 			 double *dispdelays, int numsubbands, int transpose, 
 			 int *padding, int *maskchans, int *nummasked, 
 			 mask *obsmask, IFs ifs);
-void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs);
+void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, 
+			  IFs ifs, float lag_scaling);
 void SPIGOT_update_infodata(int numfiles, infodata *idata);
 int skip_to_SPIGOT_rec(FILE *infiles[], int numfiles, int rec);
 int check_SPIGOT_byteswap(char *hdr);
