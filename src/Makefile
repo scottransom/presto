@@ -313,7 +313,7 @@ clean:
 	rm -f *.o *~ *#
 
 cleaner:  clean
-	rm -f makedata makeinf mjd2cal realfft timetest
+	rm -f makedata makeinf mjd2cal realfft timetest cal2mjd
 	rm -f quicklook search_bin search_rzw swap_endian        
 	rm -f prepdata prepfold check_parkes_raw bary toas2dat
 	rm -f shiftdata patchdata readfile psrorbit window       
@@ -331,7 +331,7 @@ squeaky:  cleaner
 	cd $(PRESTO)/python ; rm -f *# *~ *.o *.pyc *.pyo
 	cd $(PRESTO)/include ; rm -f *# *~
 	cd $(PRESTO)/lib ; rm -f bincat.dat
-	cd $(PRESTO)/bin ; rm -f makedata makeinf mjd2cal realfft
+	cd $(PRESTO)/bin ; rm -f makedata makeinf mjd2cal realfft cal2mjd
 	cd $(PRESTO)/bin ; rm -f quicklook search_bin search_rzw swap_endian
 	cd $(PRESTO)/bin ; rm -f prepdata prepfold check_parkes_raw bary
 	cd $(PRESTO)/bin ; rm -f shiftdata patchdata readfile psrorbit
