@@ -161,7 +161,7 @@ all: $(PRESTOLIBNM) text xwin
 
 prep: meminit timetest bincat
 
-text: makedata makeinf mjd2cal realfft_4step quicklook search_bin search_rzw swap_endian prepdata prepfold check_parkes_raw bary shiftdata patchdata readfile
+text: makedata makeinf mjd2cal realfft_4step quicklook search_bin search_rzw swap_endian prepdata prepfold check_parkes_raw bary shiftdata patchdata readfile dtoas2dat
 
 xwin: psrorbit window plotbincand profile showmulti showmulti_dm searchmultidms
 
@@ -295,6 +295,10 @@ search_bin: search_bin.o search_bin_cmd.o
 
 search_rzw: search_rzw.o search_rzw_cmd.o
 	$(CC) $(CFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
+	cp $@ ../bin
+
+dtoas2dat:
+	$(CC) $(CFLAGS) -o $@ dtoas2dat.c $(DMALLOCLINK) 
 	cp $@ ../bin
 
 swap_endian:
