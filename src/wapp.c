@@ -498,7 +498,7 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 {
-  int ii, asciihdrlen=1;
+  int ii, jj, asciihdrlen=1;
   char cc=1, hdr[MAX_WAPP_HEADER_SIZE];
   WAPP_HEADERv1 *hdr1=NULL;
   WAPP_HEADERv234 *hdr234=NULL;
@@ -509,15 +509,18 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
     exit(0);
   }
   numwapps_st = numwapps;
-  /* Skip the ASCII header file */
-  while((cc=fgetc(files[0]))!='\0')
-    asciihdrlen++;
-  /* Read the binary header */
-  chkfread(hdr, 2*sizeof(long), 1, files[0]);
-  /* Check the header version and use the correct header structure */
-  get_WAPP_HEADER_version(hdr, &header_version_st, &header_size_st);
-  chkfread(hdr+2*sizeof(long), 
-	   header_size_st-2*sizeof(long), 1, files[0]);
+  for (ii=numwapps_st-1; ii>=0; ii--){
+    /* Skip the ASCII header file */
+    asciihdrlen=1;
+    while((cc=fgetc(files[ii]))!='\0')
+      asciihdrlen++;
+    /* Read the binary header */
+    chkfread(hdr, 2*sizeof(long), 1, files[ii]);
+    /* Check the header version and use the correct header structure */
+    get_WAPP_HEADER_version(hdr, &header_version_st, &header_size_st);
+    chkfread(hdr+2*sizeof(long), 
+	     header_size_st-2*sizeof(long), 1, files[ii]);
+  }
   /* See if we need to byte-swap and if so, doit */
   need_byteswap_st = check_WAPP_byteswap(hdr);
   if (header_version_st==1){
@@ -565,9 +568,9 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   }
   WAPP_hdr_to_inf(hdr, &idata_st[0]);
   WAPP_hdr_to_inf(hdr, idata);
-  idata->freqband *= numwapps_st;
   for (ii=1; ii<numwapps; ii++)
     center_freqs_st[ii] = center_freqs_st[0]+ii*idata->freqband;
+  idata->freqband *= numwapps_st;
   /* Are we going to clip the data? */
   if (clipsig > 0.0)
     clip_sigma_st = clipsig;
@@ -614,12 +617,14 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   elapsed_st[0] = 0.0;
   startblk_st[0] = 1;
   endblk_st[0] = (double) numpts_st[0] / ptsperblk_st;
-  padpts_st[0] = padpts_st[numfiles-1] = 0;
-  for (ii=1; ii<numfiles; ii++){
-    /* Skip the ASCII header file */
-    chkfseek(files[ii*numwapps], asciihdrlen, SEEK_SET);
-    /* Read the header */
-    chkfread(&hdr, header_size_st, 1, files[ii]);
+  padpts_st[0] = padpts_st[numfiles/numwapps_st-1] = 0;
+  for (ii=1; ii<numfiles/numwapps_st; ii++){
+    for (jj=numwapps_st-1; jj>=0; jj--){
+      /* Skip the ASCII header file */
+      chkfseek(files[ii*numwapps+jj], asciihdrlen, SEEK_SET);
+      /* Read the header */
+      chkfread(&hdr, header_size_st, 1, files[ii*numwapps+jj]);
+    }
     /* See if we need to byte-swap and if so, doit */
     need_byteswap_st = check_WAPP_byteswap(hdr);
     WAPP_hdr_to_inf(hdr, &idata_st[ii]);
@@ -629,7 +634,7 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
     if (idata_st[ii].dt != dt_st){
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
     }
-    filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
+    filedatalen_st[ii] = chkfilelen(files[ii*numwapps], 1) - 
       asciihdrlen - header_size_st;
     numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
@@ -659,19 +664,20 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
       ptsperblk_st + 1;
     endblk_st[ii] = (double) (N_st) / ptsperblk_st;
   }
-  padpts_st[numfiles-1] = ((long long) ceil(endblk_st[numfiles-1]) *
+  padpts_st[numfiles/numwapps_st-1] = ((long long) ceil(endblk_st[numfiles/numwapps_st-1]) *
                            ptsperblk_st - N_st);
-  N_st += padpts_st[numfiles-1];
+  N_st += padpts_st[numfiles/numwapps_st-1];
   *N = N_st;
   *T = T_st = N_st * dt_st;
   currentfile = currentblock = 0;
   if (output){
     printf("   Number of files = %d\n", numfiles);
+    printf(" Num of files/WAPP = %d\n", numfiles/numwapps_st);
     printf("      Points/block = %d\n", ptsperblk_st);
     printf("     Channels/WAPP = %d\n", numwappchan_st);
     printf("   Num of channels = %d\n", numchan_st);
     for (ii=0; ii<numwapps; ii++)
-      printf(" WAPP%d center freq = %.8g\n", ii, center_freqs_st[ii]);
+      printf(" WAPP%d center freq = %.8g\n", ii+1, center_freqs_st[ii]);
     printf("  Total points (N) = %lld\n", N_st);
     printf("  Sample time (dt) = %-14.14g\n", dt_st);
     printf("    Total time (s) = %-14.14g\n", T_st);
@@ -682,7 +688,7 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
       printf(" Binary Header (B) = %ld\n\n", hdr234->header_size);
     printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
-    for (ii=0; ii<numfiles; ii++)
+    for (ii=0; ii<numfiles/numwapps_st; ii++)
       printf("%2d    %12.11g  %12.11g  %10lld  %14.13g  %14.13g  %17.12f  %10lld\n",
              ii+1, startblk_st[ii], endblk_st[ii], numpts_st[ii],
              elapsed_st[ii], times_st[ii], mjds_st[ii], padpts_st[ii]);
@@ -697,7 +703,7 @@ void WAPP_update_infodata(int numfiles, infodata *idata)
   int ii, index=2;
 
   idata->N = N_st;
-  if (numfiles==1 && padpts_st[0]==0){
+  if (numfiles/numwapps_st==1 && padpts_st[0]==0){
     idata->numonoff = 0;
     return;
   }
@@ -705,7 +711,7 @@ void WAPP_update_infodata(int numfiles, infodata *idata)
   idata->numonoff = 1;
   idata->onoff[0] = 0.0;
   idata->onoff[1] = numpts_st[0] - 1.0;
-  for (ii=1; ii<numfiles; ii++){
+  for (ii=1; ii<numfiles/numwapps_st; ii++){
     if (padpts_st[ii-1]){
       idata->onoff[index] = idata->onoff[index-1] + padpts_st[ii-1];
       idata->onoff[index+1] = idata->onoff[index] + numpts_st[ii];
@@ -715,8 +721,8 @@ void WAPP_update_infodata(int numfiles, infodata *idata)
       idata->onoff[index-1] += numpts_st[ii];
     }
   }
-  if (padpts_st[numfiles-1]){
-    idata->onoff[index] = idata->onoff[index-1] + padpts_st[numfiles-1];
+  if (padpts_st[numfiles/numwapps_st-1]){
+    idata->onoff[index] = idata->onoff[index-1] + padpts_st[numfiles/numwapps_st-1];
     idata->onoff[index+1] = idata->onoff[index];
     idata->numonoff++;
   }
@@ -733,7 +739,7 @@ int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec)
  
   if (rec < startblk_st[0])
     rec += (startblk_st[0] - 1);
-  if (rec > 0 && rec < endblk_st[numfiles-1]){
+  if (rec > 0 && rec < endblk_st[numfiles/numwapps_st-1]){
  
     /* Find which file we need */
     while (rec > endblk_st[filenum])
@@ -754,7 +760,7 @@ int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec)
     if (rec < startblk_st[filenum]){  /* Padding region */
       currentfile = filenum-1;
       for (ii=0; ii<numwapps_st; ii++)
-	chkfileseek(infiles[currentfile+ii*numwapps_st], 0, 1, SEEK_END);
+	chkfileseek(infiles[currentfile*numwapps_st+ii], 0, 1, SEEK_END);
       bufferpts = padpts_st[currentfile] % ptsperblk_st;
       padnum = ptsperblk_st * (rec - endblk_st[currentfile] - 1);
       /*
@@ -764,7 +770,7 @@ int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec)
     } else {  /* Data region */
       currentfile = filenum;
       for (ii=0; ii<numwapps_st; ii++)
-	chkfileseek(infiles[currentfile+ii*numwapps_st], 
+	chkfileseek(infiles[currentfile*numwapps_st+ii], 
 		    rec - startblk_st[filenum], bytesperblk_st, SEEK_CUR);
       bufferpts = (int)((startblk_st[filenum] - floor_blk) * 
 			ptsperblk_st + 0.5);
@@ -893,16 +899,16 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 
   /* Make sure our current file number is valid */
 
-  if (currentfile >= numfiles)
+  if (currentfile >= numfiles/numwapps_st)
     return 0;
 
   /* First, attempt to read data from the current file */
   
   if (chkfread(lagbuffer, bytesperblk_st, 
-	       1, infiles[currentfile])){ /* Got data */
+	       1, infiles[currentfile*numwapps_st])){ /* Got data */
     for (ii=1; ii<numwapps_st; ii++) /* Get data from other WAPPs */
       chkfread(lagbuffer+ii*bytesperblk_st, bytesperblk_st, 1, 
-	       infiles[currentfile+ii*numwapps_st]);
+	       infiles[currentfile*numwapps_st+ii]);
     /* See if we need to byte-swap and if so, doit */
     if (need_byteswap_st){
       if (bits_per_samp_st==16){
@@ -919,8 +925,7 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
     /* Convert from Correlator Lags to Filterbank Powers */
     for (ii=0; ii<ptsperblk_st; ii++)
       for (jj=0; jj<numwapps_st; jj++)
-	convert_WAPP_point(lagbuffer+jj*numwapps_st*bytesperblk_st+\
-			   ii*bytesperpt_st,
+	convert_WAPP_point(lagbuffer+jj*bytesperblk_st+ii*bytesperpt_st,
 			   dataptr+(ii*numwapps_st+jj)*numwappchan_st);
 
     /* Clip nasty RFI if requested */
@@ -935,7 +940,7 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
     currentblock++;
     return 1;
   } else { /* Didn't get data */
-    if (feof(infiles[currentfile])){  /* End of file? */
+    if (feof(infiles[currentfile*numwapps_st])){  /* End of file? */
       numtopad = padpts_st[currentfile] - padnum;
       if (numtopad){  /* Pad the data? */
 	*padding = 1;
@@ -1164,7 +1169,7 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
   int ii, jj, trtn, offset;
   double starttime=0.0;
   static unsigned char *tempzz;
-  static unsigned char rawdata1[WAPP_MAXDATLEN], rawdata2[WAPP_MAXDATLEN]; 
+  static unsigned char rawdata1[4*WAPP_MAXDATLEN], rawdata2[4*WAPP_MAXDATLEN]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0, mask=0;
   static double timeperblk=0.0;
@@ -1176,6 +1181,7 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
     move = gen_bvect(move_size);
     currentdata = rawdata1;
     lastdata = rawdata2;
+    printf("%d  %d\n", WAPP_MAXDATLEN, bytesperblk_st*numwapps_st);
     memcpy(currentdata, rawdata, bytesperblk_st*numwapps_st);
     timeperblk = ptsperblk_st * dt_st;
     if (mask){
