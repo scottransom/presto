@@ -64,7 +64,7 @@ typedef struct {
   $target = $source->dptr;
 }
 
-typedef struct INFODATA {
+typedef struct infodata {
   double ra_s;		/* Right ascension seconds (J2000)       */
   double dec_s;		/* Declination seconds (J2000)           */ 
   double N;		/* Number of bins in the time series     */
@@ -97,15 +97,6 @@ typedef struct INFODATA {
   char telescope[40];	/* Telescope used                        */
   char band[40];	/* Type of observation (EM band)         */
   char filt[7];		/* IR,Opt,UV -- Photometric Filter       */
-  %addmethods {
-    infodata(){
-      infodata *p = (infodata *)malloc(sizeof(infodata));
-      return p;
-    }
-    ~infodata(){
-      free(self);
-    }
-  }
 } infodata;
 
 void readinf(infodata * data, char *filenm);
@@ -131,7 +122,7 @@ void writeinf(infodata *data);
         strncpy($target,$source,19);
 }       
 
-typedef struct MAKEDATA {
+typedef struct makedata {
   char basefilenm[200];	        /* Data file name without suffix         */
   char description[200];	/* Data description                      */
   long N;		        /* Number of bins in the time series     */
@@ -166,15 +157,6 @@ typedef struct MAKEDATA {
   double noisesig;              /* Noise standard deviation              */
   int numonoff;                 /* The number of onoff pairs in the data */
   DoubleArray *onoff;		/* Bin number pairs where obs is "on"    */
-  %addmethods {
-    makedata(){
-      makedata *p = (makedata *)malloc(sizeof(makedata));
-      return p;
-    }
-    ~makedata(){
-      free(self);
-    }
-  }
 } makedata;
 
 

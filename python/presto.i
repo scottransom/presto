@@ -323,22 +323,13 @@ typedef struct orbitparams {
   double t;	    /* Time since last periastron passage (s)        */
   double pd;	    /* Orbital period derivative (s/yr)              */
   double wd;	    /* Advance of longitude of periapsis (deg/yr)    */
-  %addmethods {
-      orbitparams(){
-	orbitparams *p = (orbitparams *)malloc(sizeof(orbitparams));
-	return p;
-      }
-      ~orbitparams(){
-	free(self);
-      }
-  }
 } orbitparams;
 
 /* These files describe makedata, makeinf, and PSR database structs  */
 %include presto_psrdata.i
 %include presto_structs.i
 
-typedef struct RDERIVS {
+typedef struct rderivs {
   float pow;	   /* Power normalized with local power             */
   float phs;	   /* Signal phase                                  */
   float dpow;	   /* 1st deriv of power wrt fourier freq           */
@@ -346,18 +337,9 @@ typedef struct RDERIVS {
   float d2pow;     /* 2nd deriv of power wrt fourier freq           */
   float d2phs;     /* 2nd deriv of power wrt fourier freq           */
   float locpow;    /* Local mean power level                        */
-  %addmethods {
-      rderivs(){
-	rderivs *p = (rderivs *)malloc(sizeof(rderivs));
-	return p;
-      }
-      ~rderivs(){
-	free(self);
-      }
-  }
 } rderivs;
 
-typedef struct FOURIERPROPS {
+typedef struct fourierprops {
   double r;        /* Fourier freq at start of run                  */
   float rerr;	   /* Error in fourier freq                         */
   double z;        /* Fourier freq deriv at start of run = T^2*fdot */
@@ -375,18 +357,9 @@ typedef struct FOURIERPROPS {
   float pur;	   /* Purity:  rms duration of signal over run      */
   float purerr;    /* Error in purity                               */
   float locpow;    /* Local mean power level                        */
-  %addmethods {
-    fourierprops(){
-      fourierprops *p = (fourierprops *)malloc(sizeof(fourierprops));
-      return p;
-    }
-    ~fourierprops(){
-      free(self);
-    }
-  }
 } fourierprops;
 
-typedef struct BINARYPROPS {
+typedef struct binaryprops {
   double ppsr;       /* Pulsar period (s)                            */
   double fpsr;       /* Pulsar freq (hz)                             */
   double rpsr;       /* Pulsar Fourier freq (bins)                   */
@@ -414,18 +387,9 @@ typedef struct BINARYPROPS {
   float purerr;      /* Error in purity                              */
   float pow;         /* Power normalized with Nph equivalent         */
   float powerr;      /* Error in signal power                        */
-  %addmethods {
-    binaryprops(){
-      binaryprops *p = (binaryprops *)malloc(sizeof(binaryprops));
-      return p;
-    }
-    ~binaryprops(){
-      free(self);
-    }
-  }
 } binaryprops;
 
-typedef struct RAWBINCAND {
+typedef struct rawbincand {
   double full_N;       /* Number of points in original time series  */
   double full_T;       /* Length (s) of original time series        */
   double full_lo_r;    /* Lowest Fourier bin that was miniFFTd      */
@@ -436,15 +400,6 @@ typedef struct RAWBINCAND {
   double mini_sigma;   /* Equivalent candidate sigma (for sum pow)  */
   double psr_p;        /* Approx PSR period (miniFFT center bin)    */
   double orb_p;        /* Approx orbital period (s)                 */
-  %addmethods {
-    rawbincand(){
-      rawbincand *p = (rawbincand *)malloc(sizeof(rawbincand));
-      return p;
-    }
-    ~rawbincand(){
-      free(self);
-    }
-  }
 } rawbincand;
 
 
@@ -456,15 +411,6 @@ typedef struct foldstats {
   double prof_avg;    /* Average level of the profile bins  */
   double prof_var;    /* Variance of the profile bins       */
   double redchi;      /* Reduced chi-squared of the profile */
-  %addmethods {
-    foldstats(){
-      foldstats *p = (foldstats *)malloc(sizeof(foldstats));
-      return p;
-    }
-    ~foldstats(){
-      free(self);
-    }
-  }
 } foldstats;
 
 
@@ -1389,7 +1335,7 @@ int nice_output_2(char *output, double val, double err, int len);
     PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$source[0]);
   free($source);
   if (arr == NULL) return NULL;
-  arr->dimensions[1] = ((int) (*_arg9) - _arg3) * _arg2 ;
+  arr->dimensions[1] = ((int) arg9 - arg3) * arg2 ;
   arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);
@@ -1429,7 +1375,7 @@ fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
     PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$source);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
-  arr->dimensions[0] = ((int) (*_arg7) - _arg3) * _arg2;
+  arr->dimensions[0] = ((int) arg7 - arg3) * arg2;
   arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
   PyArray_INCREF(arr);
   $target = (PyObject *)arr;

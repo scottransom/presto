@@ -20,7 +20,7 @@
 }       
 
 /* A complete pulsar database entry for a single pulsar */
-typedef struct PSRDATA {
+typedef struct psrdata{
   /* See the PSR database documentation for details */
   double ra2000, ra1950, rae, dec2000, dec1950, dece,
     dmin__, dmax__, dist, ldeg, bdeg, pmra, pmrae, pmdec,
@@ -35,15 +35,6 @@ typedef struct PSRDATA {
   char jname[12];
   char bname[8];
   char lcode, ucode;
-  %addmethods {
-    psrdata(){
-      psrdata *p = (psrdata *)malloc(sizeof(psrdata));
-      return p;
-    }
-    ~psrdata(){
-      free(self);
-    }
-  }
 } psrdata;
 
 
@@ -71,7 +62,7 @@ typedef struct PSRDATA {
 // } orbitparams;
 
 /* This is a structure that contains the 'key' pulsar info  */
-typedef struct PSRPARAMS {
+typedef struct psrparams {
   char jname[20];            /* The PSRs J2000 name         */
   char bname[20];            /* The PSRs B1950 name         */
   int ntype;                 /* Pulsar type (see below)     */
@@ -97,15 +88,6 @@ typedef struct PSRPARAMS {
   /*                (ntype & 32)  =  Recycled PSR           */
   /*                (ntype & 64)  =  Has an interpulse      */
   /*                (ntype & 128) =  High-energy pulsations */
-  %addmethods {
-    psrparams(){
-      psrparams *p = (psrparams *)malloc(sizeof(psrparams));
-      return p;
-    }
-    ~psrparams(){
-      free(self);
-    }
-  }
 } psrparams;
 
 
