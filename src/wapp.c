@@ -376,9 +376,10 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   WAPP_hdr_to_inf(hdr, idata);
   for (ii=1; ii<numwapps_st; ii++)
     center_freqs_st[ii] = center_freqs_st[0]+ii*idata->freqband;
+  /* Hack to invert band when being used for very low frequencies */
   if (center_freqs_st[ii] < 400.0){
     decreasing_freqs_st = 1;
-    printf("Inverting the band...\n");
+    printf("Inverting the band since the center frequency is < 400MHz...\n");
   }
   /* Are we going to clip the data? */
   if (clipsig > 0.0)
@@ -424,9 +425,9 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
       corr_scale_st /= 2.0;
   }
   if (header_version_st==1)
-    corr_scale_st*pow(2.0,(double)hdr1->lagtrunc);
+    corr_scale_st *= pow(2.0,(double)hdr1->lagtrunc);
   else
-    corr_scale_st*pow(2.0,(double)hdr234->lagtrunc);
+    corr_scale_st *= pow(2.0,(double)hdr234->lagtrunc);
   idata->freqband *= numwapps_st;
   idata->num_chan *= numwapps_st;
   dt_st = *dt = idata_st[0].dt;
