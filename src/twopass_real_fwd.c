@@ -59,11 +59,13 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     /* Read a n1 (rows) x bb (cols) block of data */
 
     dp = data;
+    fp1 = sizeof(rawtype) * ii;
+    df  = sizeof(rawtype) * n2;
     for (jj=0; jj<n1; jj++){
-      fp1 = sizeof(rawtype) * (jj * n2 + ii); /* File ptr */
       fseek_multifile(infile, fp1, SEEK_SET);
       fread_multifile(dp, sizeof(rawtype), bb, infile);
-      dp += bb; /* Data ptr */
+      dp  += bb; /* Data ptr */
+      fp1 += df; /* File ptr */
     }
 
     /* Transpose the n1 (rows) x bb (cols) block of data */
@@ -154,20 +156,19 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     transpose_fcomplex(data, bb, n2, move, move_size); 
 
     /* Begin the re-assembly of the realFFT */
-    /*
+
     for (jj=0; jj<n2; jj++){
-    */
+
       /* Start the trig recursion: */
-    /*
+      
       theta = (jj * n1 + ii + 1) * delta;
       wr = cos(theta);
       wi = sin(theta);
-    */
+      
       /* Combine n and N/2-n terms as per Numerical Recipes. */
-
-    /*      i1 = jj * bb;          n     */
-    /*      i2 = bb * n2 - i1 - 1; N/2-n */
-    /*
+      
+      i1 = jj * bb;          /* n     */
+      i2 = bb * n2 - i1 - 1; /* N/2-n */
       for (kk=0; kk<bb2; kk++, i1++, i2--){
 	h1r =  0.5 * (data[i1].r + data[i2].r);
 	h1i =  0.5 * (data[i1].i - data[i2].i);
@@ -186,7 +187,7 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 	wi = wi * wpr + wtemp * wpi + wi;
       }
     }
-    */
+
     /* Write two n2 (rows) x bb2 (cols) blocks to the file  */
     /* The first block goes to the start of the file and    */
     /* the second block goes to the end.                    */
@@ -225,7 +226,6 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
   /* Do the special cases of freq=0 and Nyquist freq */
 
-  /*
   tmp1 = data[0].r;
   data[0].r = tmp1 + data[0].i;
   data[0].i = tmp1 - data[0].i;
@@ -247,7 +247,7 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     data[kk].r =  h1r - h2rwr + h2iwi;
     data[kk].i = -h1i + h2iwr + h2rwi;
   }
-  */
+
   /* Write the n2 data points and clean up */
 
   for (jj=0; jj<n2; jj++){

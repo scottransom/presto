@@ -103,7 +103,7 @@ void twopassfft_scratch(multifile* infile, multifile* scratch, \
   /* Now do n1 transforms of length n2 by fetching  */
   /* groups of size n2 (rows) x bb (cols) blocks.   */
 
-  for (ii=0; ii<n1; ii+=bb) {
+  for (ii=0; ii<n1; ii+=bb){
 
     /* Read two n2 (rows) x bb (cols) blocks from the file */
 

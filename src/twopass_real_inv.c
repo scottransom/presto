@@ -10,7 +10,7 @@ extern long long find_blocksize(long long n1, long long n2);
 void realfft_scratch_inv(multifile* infile, multifile* scratch, 
 			 long long nn)
 {
-  long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, kind;
+  long long n1, n2, bb, bb2, fp1, fp2, df, ii, jj, kk, kind;
   int i1, i2, move_size;
   unsigned char *move;
   rawtype *data, *dp;
@@ -54,25 +54,24 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
   wpr = -2.0 * wtemp * wtemp;
   wpi = sin(delta);
 
-  /* Correct the first n2 values that will not be corrected */
+  /* Correct the first n1 values that will not be corrected */
   /*   later due to the asymetry in the recombination.      */
 
-  /* Read the n2 data points */
+  /* Read the n1 data points */
 
-  for (jj=0; jj<n2; jj++){
-    fseek_multifile(infile, sizeof(rawtype) * jj * n1, SEEK_SET);
+  for (jj=0; jj<n1; jj++){
+    fseek_multifile(infile, sizeof(rawtype) * jj * n2, SEEK_SET);
     fread_multifile(data+jj, sizeof(rawtype), 1, infile);
   }
 
   /* Do the special cases of freq=0 and Nyquist freq */
 
-  /*
   tmp1 = data[0].r;
   data[0].r = 0.5 * (tmp1 + data[0].i);
   data[0].i = 0.5 * (tmp1 - data[0].i);
 
-  for (jj=1, kk=n2-1; jj<n2/2; jj++, kk--){
-    theta = delta * n1 * jj;
+  for (jj=1, kk=n1-1; jj<n1/2; jj++, kk--){
+    theta = delta * n2 * jj;
     wr = cos(theta);
     wi = sin(theta);
     h1r =  0.5 * (data[jj].r + data[kk].r);
@@ -88,21 +87,14 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     data[kk].r =  h1r - h2rwr + h2iwi;
     data[kk].i = -h1i + h2iwr + h2rwi;
   }
-  */
 
-  /* FFT the array: */
+  /* FFT and write the array: */
 
-  COMPLEXFFT(data, n2, 1);
+  COMPLEXFFT(data, n1, 1);
+  fwrite_multifile(data, sizeof(rawtype), n1, scratch);
 
-  /* Write the n2 data points */
-
-  for (jj=0; jj<n2; jj++){
-    fseek_multifile(scratch, sizeof(rawtype) * jj * n1, SEEK_SET);
-    fwrite_multifile(data+jj, sizeof(rawtype), 1, scratch);
-  }
-
-  /* Now do n1 transforms of length n2 by fetching      */
-  /* groups of 2 size n2 (rows) x bb2 (cols) blocks     */
+  /* Now do n2 transforms of length n1 by fetching      */
+  /* groups of 2 size n1 (rows) x bb2 (cols) blocks     */
   /* after splitting the data from the real transform.  */
 
   bb2 = bb >> 1;
@@ -111,11 +103,12 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
 
   move_size = (bb + n2) / 2;
   move = (unsigned char *)malloc(move_size);
-  tmp1 = sizeof(rawtype) * n1;
+  move_size = (bb + n1) / 2;
+  df = sizeof(rawtype) * n2;
 
-  for (ii=0; ii<(n1/2); ii+=bb2) {
+  for (ii=0; ii<(n2/2); ii+=bb2){
 
-    /* Read two n2 (rows) x bb2 (cols) blocks from the file */
+    /* Read two n1 (rows) x bb2 (cols) blocks from the file */
     /* The first block comes from the start of the file and */
     /* the second block comes from the end.                 */
     /* Note:  The first block is shifted by one complex     */
@@ -124,33 +117,32 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
 
     dp = data;
     fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
-    fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
-    for (jj=0; jj<n2; jj++){
+    fp2 = sizeof(rawtype) * (n2 - ii - bb2); /* File ptr */
+    for (jj=0; jj<n1; jj++){
       fseek_multifile(infile, fp1, SEEK_SET);
       fread_multifile(dp, sizeof(rawtype), bb2, infile);
-      dp += bb2;   /* Data ptr */
-      fp1 += tmp1; /* File ptr */
+      dp += bb2; /* Data ptr */
+      fp1 += df; /* File ptr */
       fseek_multifile(infile, fp2, SEEK_SET);
       fread_multifile(dp, sizeof(rawtype), bb2, infile);
-      dp += bb2;   /* Data ptr */
-      fp2 += tmp1; /* File ptr */
+      dp += bb2; /* Data ptr */
+      fp2 += df; /* File ptr */
     }
 
     /* Begin the re-assembly of the realFFT */
-    /*
-    for (jj=0; jj<n2; jj++){
-    */
+
+    for (jj=0; jj<n1; jj++){
+
       /* Start the trig recursion: */
-    /*
-      theta = (jj * n1 + ii + 1) * delta;
+
+      theta = (jj * n2 + ii + 1) * delta;
       wr = cos(theta);
       wi = sin(theta);
-    */
+
       /* Combine n and N/2-n terms as per Numerical Recipes. */
     
-    /*  i1 = jj * bb;          n     */
-    /*  i2 = bb * n2 - i1 - 1; N/2-n */
-    /*
+      i1 = jj * bb;          /* n     */
+      i2 = bb * n1 - i1 - 1; /* N/2-n */
       for (kk=0; kk<bb2; kk++, i1++, i2--){
 	h1r =  0.5 * (data[i1].r + data[i2].r);
 	h1i =  0.5 * (data[i1].i - data[i2].i);
@@ -169,57 +161,23 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
 	wi = wi * wpr + wtemp * wpi + wi;
       }
     }
-    */
-    /* Transpose the n2 (rows) x bb (cols) block of data */
 
-    transpose_fcomplex(data, n2, bb, move, move_size);
+    /* Transpose the n1 (rows) x bb (cols) block of data */
 
-    /* Do bb transforms of length n2 */
+    transpose_fcomplex(data, n1, bb, move, move_size);
+
+    /* Do bb transforms of length n1 */
 
     for (jj=0; jj<bb; jj++)
-      COMPLEXFFT(data + jj * n2, n2, 1);
-
-    /* Transpose the bb (rows) x n2 (cols) block of data */
-
-    transpose_fcomplex(data, bb, n2, move, move_size);
-
-    /* Write two n2 (rows) x bb2 (cols) blocks to the file  */
-    /* The first block goes to the start of the file and    */
-    /* the second block goes to the end.                    */
-    /* Note:  The first block is shifted by one complex     */
-    /*        value in order to make the complex->real      */
-    /*        assembly quite a bit more elegant...          */
-
-    dp = data;
-    fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
-    fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
-    for (jj=0; jj<n2; jj++){
-      fseek_multifile(scratch, fp1, SEEK_SET);
-      fwrite_multifile(dp, sizeof(rawtype), bb2, scratch);
-      dp += bb2;   /* Data ptr */
-      fp1 += tmp1; /* File ptr */
-      fseek_multifile(scratch, fp2, SEEK_SET);
-      fwrite_multifile(dp, sizeof(rawtype), bb2, scratch);
-      dp += bb2;   /* Data ptr */
-      fp2 += tmp1; /* File ptr */
-    }
-  }
-
-  /* Transpose scratch space */
-
-  move_size = (bb + n1) / 2;
-
-  for (ii=0; ii<n2; ii+=bb){
-
-    /* Read a n1 (rows) x bb (cols) block of data */
-
-    fread_multifile(data, sizeof(rawtype), bb * n1, scratch);
+      COMPLEXFFT(data + jj * n1, n1, 1);
 
     /* Multiply the matrix A(ii,jj) by exp(2 pi i jj ii / nn).   */
     /* Use recursion formulas from Numerical Recipes.            */
 
     for (jj=0; jj<bb; jj++){
-      delta = TWOPI * (ii + jj) / (double) (nn >> 1);
+      delta = (jj < bb2) ?
+	TWOPI * (ii + jj + 1) / (double) (nn >> 1) :
+	TWOPI * (n2 - ii - bb2 + jj) / (double) (nn >> 1);
       wr = cos(delta);
       wi = sin(delta);
       wtemp = sin(0.5 * delta);
@@ -236,15 +194,45 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
 	wi = wi * wpr + wtemp * wpi + wi;
       }
     }
+    fseek_multifile(scratch, sizeof(rawtype) * \
+		    (ii*n1), SEEK_SET);
+    fwrite_multifile(data, sizeof(rawtype), bb2*n1, scratch);
+    fseek_multifile(scratch, sizeof(rawtype) * \
+		    (nn-((ii+bb2)*n1)), SEEK_SET);
+    fwrite_multifile(data+bb2*n1, sizeof(rawtype), bb2*n1, scratch);
+  }
 
-    /* Do bb transforms of length n1 */
+  /* Now do n1 transforms of length n2 by fetching  */
+  /* groups of size n2 (rows) x bb (cols) blocks.   */
+
+  move_size = (bb + n2) / 2;
+
+  for (ii=0; ii<n1; ii+=bb){
+
+    /* Read two n2 (rows) x bb (cols) blocks from the file */
+
+    dp = data;
+    fp1 = sizeof(rawtype) * ii;
+    df  = sizeof(rawtype) * n1;
+    for (jj=0; jj<n2; jj++){
+      fseek_multifile(scratch, fp1, SEEK_SET);
+      fread_multifile(dp, sizeof(rawtype), bb, scratch);
+      dp  += bb; /* Data ptr */
+      fp1 += df; /* File ptr */
+    }
+
+    /* Transpose the n2 (rows) x bb (cols) block of data */
+
+    transpose_fcomplex(data, n2, bb, move, move_size); 
+
+    /* Do bb transforms of length n2 */
 
     for (jj=0; jj<bb; jj++)
-      COMPLEXFFT(data + jj * n1, n1, 1);
+      COMPLEXFFT(data + jj * n2, n2, 1);
 
-    /* Transpose the n1 (rows) x bb (cols) block of data */
+    /* Transpose the bb (rows) x n2 (cols) block of data */
 
-    transpose_fcomplex(data, n1, bb, move, move_size);
+    transpose_fcomplex(data, bb, n2, move, move_size); 
 
     /* Scale and write the data */
 
@@ -254,11 +242,13 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
       data[jj].i *= tmp1;
     }
     dp = data;
-    for (jj=0; jj<n1; jj++){
-      fp1 = sizeof(rawtype) * (jj * n2 + ii); /* File ptr */
+    fp1 = sizeof(rawtype) * ii;
+    df  = sizeof(rawtype) * n1;
+    for (jj=0; jj<n2; jj++){
       fseek_multifile(infile, fp1, SEEK_SET);
       fwrite_multifile(dp, sizeof(rawtype), bb, infile);
-      dp += bb; /* Data ptr */
+      dp  += bb; /* Data ptr */
+      fp1 += df; /* File ptr */
     }
   }
   free(move);

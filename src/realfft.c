@@ -217,12 +217,12 @@ int main(int argc, char *argv[])
     fclose_multifile(datfile);
     datfile = fopen_multifile(numfiles, datfilenms, "r+", 0);
     tmpfile = fopen_multifile(numfiles, tmpfilenms, "w+", maxfilelen);
-    /* twopassfft_scratch(datfile, tmpfile, numdata, isign); */
     if (isign==1) {
       realfft_scratch_inv(datfile, tmpfile, numdata);
     } else {
       realfft_scratch_fwd(datfile, tmpfile, numdata);
     }
+    /* twopassfft_scratch(datfile, tmpfile, numdata, isign); */
 
     /* Remove the scratch files*/
 
@@ -275,9 +275,9 @@ int main(int argc, char *argv[])
     data = gen_fvect(numdata);
     fread_multifile(data, sizeof(float), numdata, datfile);
     printf("   Transforming.\n");
-    /*    fftwcall((fcomplex *)data, numdata/2, isign); */
-    tablesixstepfft((fcomplex *)data, numdata/2, isign);
-/*     realfft(data, numdata, isign); */
+    realfft(data, numdata, isign); 
+    /* fftwcall((fcomplex *)data, numdata/2, isign); */
+    /* tablesixstepfft((fcomplex *)data, numdata/2, isign); */
     printf("   Writing.\n");
     fwrite_multifile(data, sizeof(float), numdata, outfile);
     fclose_multifile(outfile);
