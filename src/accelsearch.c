@@ -88,7 +88,6 @@ int main(int argc, char *argv[])
     ffdotpows *fundamental;
     
     while (startr + ACCEL_USELEN * ACCEL_DR < obs.highestbin){
-printf("startr = %f\n", startr);
       /* Search the fundamental */
       print_percent_complete(startr-obs.rlo, 
 			     obs.highestbin-obs.rlo, "search", 0);
@@ -117,7 +116,7 @@ printf("startr = %f\n", startr);
       free_ffdotpows(fundamental);
       startr = nextr;
     }
-    print_percent_complete(startr-obs.rlo, 
+    print_percent_complete(obs.highestbin-obs.rlo,
 			   obs.highestbin-obs.rlo, "search", 0);
   }
 

@@ -721,7 +721,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     shi->rinds_init = 1;
   }
   ffdot->rinds = shi->rinds;
-  ffdot->numrs = (int) ((drhi - drlo) * ACCEL_RDR + DBLCORRECT) + 1;
+  ffdot->numrs = (int) ((ceil(drhi) - floor(drlo)) 
+			* ACCEL_RDR + DBLCORRECT) + 1;
   if (ffdot->numrs % ACCEL_RDR)
     ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
   ffdot->numzs = shi->numkern;
@@ -762,7 +763,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   /* Convert the amplitudes to normalized powers */
 
   ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
-  for (ii=0; ii<(ffdot->numzs*ffdot->numrs); ii++) 
+  for (ii=0; ii<(ffdot->numzs*ffdot->numrs); ii++)
     ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i) * norm;
   free(result[0]);
   free(result);
@@ -945,7 +946,10 @@ void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd)
       exit(1);
     }
   } else {
-    obs->rlo = 1.0;
+    if (cmd->rloP)
+      obs->rlo = cmd->rlo;
+    else
+      obs->rlo = 1.0;
     if (obs->rlo < obs->lobin) 
       obs->rlo = obs->lobin;
     if (obs->rlo > obs->numbins - 1) {
