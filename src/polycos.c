@@ -31,9 +31,69 @@ Sample code:
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include "presto.h"
 
 static double f0[30],z4[30],rphase[30],mjdmid[30],mjd1mid[30],coeff[30][15];
 static int isets,nblk,ncoeff,icurr;
+
+extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr);
+
+char *make_polycos(char *parfilenm, infodata *idata)
+{
+  FILE *tmpfile;
+  int tracklen;
+  double T, fmid=0.0, epoch;
+  char command[100], *psrname, scopechar;
+  psrparams psr;
+
+  /* Read the parfile */
+  epoch = idata->mjd_i+idata->mjd_f;
+  T = (idata->dt*idata->N)/SECPERDAY;
+  if (!get_psr_from_parfile(parfilenm, epoch, &psr)){
+    printf("\nError:  Cannot read parfile '%s'\n\n", parfilenm);
+    exit(0);
+  }
+
+  /* Write tz.in */
+  if (strcmp(idata->telescope, "GBT")==0){
+    scopechar = '1';
+    tracklen = 12;
+  } else if (strcmp(idata->telescope, "Arecibo")==0){
+    scopechar = '3';
+    tracklen = 3;
+  } else if (strcmp(idata->telescope, "VLA")==0){
+    scopechar = '6';
+    tracklen = 6;
+  } else if (strcmp(idata->telescope, "Jodrell")==0){
+    scopechar = '8';
+    tracklen = 12;
+  } else if (strcmp(idata->telescope, "GMRT")==0){
+    scopechar = 'r';
+    tracklen = 12;
+  } else {  /*  Barycenter */
+    scopechar = '@';
+    tracklen = 12;
+  }
+  tmpfile = chkfopen("tz.in", "w");
+  if (scopechar!='@'){
+    fmid = idata->freq+(idata->num_chan/2-0.5)*idata->chan_wid;
+  } else {
+    fmid = 0.0;
+  }
+  fprintf(tmpfile, "%c %d 60 12 430\n\n\n%s 60 12 %d %.1f\n", 
+	  scopechar, tracklen, psr.jname, tracklen, fmid);
+  fclose(tmpfile);
+  sprintf(command, "tempo -z -f %s < \"%d %d\n\" > polycosout.tmp",
+	  parfilenm, idata->mjd_i, (int) ceil(epoch+T));
+  printf("Here goes: '%s'\n", command);
+  system(command);
+  /* remove("tz.in"); */
+  psrname = (char *)calloc(strlen(psr.jname)+1, sizeof(char));
+  strcpy(psrname, psr.jname);
+  return psrname;
+}
+
+
  
 int getpoly(double mjd, double *dm, FILE *fp, char *pname)
 {

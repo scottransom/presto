@@ -16,6 +16,7 @@ extern void phcalc(double mjd0, double mjd1,
 		   double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, 
 				psrparams *psr);
+extern char *make_polycos(char *parfilenm, infodata *idata);
 
 /* 
  * The main program 
@@ -58,6 +59,14 @@ int main(int argc, char *argv[])
 
   cmd = parseCmdline(argc, argv);
   obsmask.numchan = obsmask.numint = 0;
+  if (cmd->timingP){
+    cmd->nobaryP = 1;
+    cmd->nosearchP = 1;
+    cmd->npart = 60;
+    cmd->npfact = 1;
+    cmd->pstep = 1;
+    cmd->pdstep = 2;
+  }
   pflags.toas = cmd->toasP;
   pflags.nosearch = cmd->nosearchP;
   pflags.scaleparts = cmd->scalepartsP;
@@ -183,15 +192,20 @@ int main(int argc, char *argv[])
       slen = strlen(cmd->psrname) + 5;
       search.candnm = (char *)calloc(slen, sizeof(char));
       sprintf(search.candnm, "PSR_%s", cmd->psrname);
-    } else if (cmd->parnameP){
+    } else if (cmd->parnameP ||
+	       (cmd->timingP && idata.bary)){
       int retval;
       psrparams psr;
-      
       /* Read the par file just to get the PSR name */
-      retval = get_psr_from_parfile(cmd->parname, 51000.0, &psr);
-      slen = strlen(psr.jname) + 5;
-      search.candnm = (char *)calloc(slen, sizeof(char));
+      if (cmd->parnameP)
+	retval = get_psr_from_parfile(cmd->parname, 51000.0, &psr);
+      else 
+	retval = get_psr_from_parfile(cmd->timing, 51000.0, &psr);
+      search.candnm = (char *)calloc(strlen(psr.jname)+5, sizeof(char));
       sprintf(search.candnm, "PSR_%s", psr.jname);
+    } else if (cmd->timingP && !idata.bary){
+      /* Generate polycos and get the pulsar name */
+      search.candnm = make_polycos(cmd->timing, &idata);
     } else if (cmd->rzwcandP) {						
       slen = 20;
       search.candnm = (char *)calloc(slen, sizeof(char));
@@ -220,7 +234,16 @@ int main(int argc, char *argv[])
     sprintf(binproffilenm, "%s_%s.pfd.binprofs", rootnm, search.candnm);
     search.pgdev = (char *)calloc(slen + 7, sizeof(char));
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
+    if (cmd->timingP && !idata.bary){
+      char *polycofilenm;
+      polycofilenm = (char *)calloc(slen + 8, sizeof(char));
+      sprintf(polycofilenm, "%s_%s.pfd.polycos", rootnm, search.candnm);
+      rename("polyco.dat", polycofilenm);
+      free(polycofilenm);
+    }
   }
+
+  exit(0);
 
   /* What ephemeris will we use?  (Default is DE200) */
   

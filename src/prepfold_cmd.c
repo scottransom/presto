@@ -162,6 +162,10 @@ static Cmdline cmd = {
   /* obscodeP = */ 0,
   /* obscode = */ (char*)0,
   /* obscodeC = */ 0,
+  /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
+  /* timingP = */ 0,
+  /* timing = */ (char*)0,
+  /* timingC = */ 0,
   /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
   /* rzwcandP = */ 0,
   /* rzwcand = */ (int)0,
@@ -1359,6 +1363,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
+  if( !cmd.timingP ) {
+    printf("-timing not found.\n");
+  } else {
+    printf("-timing found:\n");
+    if( !cmd.timingC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%s'\n", cmd.timing);
+    }
+  }
+
   /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
   if( !cmd.rzwcandP ) {
     printf("-rzwcand not found.\n");
@@ -1529,7 +1545,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-nobary] [-DE405] [-xwin] [-runavg] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-obs obscode] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-toas] [-secs] [-days] [-double] [-toaoffset toaoffset] [--] infile ...\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
@@ -1619,6 +1635,8 @@ usage(void)
                1 char* value\n\
          -obs: Two letter TEMPO observatory code (for barycentering)\n\
                1 char* value\n\
+      -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified.\n\
+               1 char* value\n\
      -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
                1 int value between 1 and oo\n\
      -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
@@ -1649,7 +1667,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 18May02\n\
+version: 11Sep02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1992,6 +2010,14 @@ parseCmdline(int argc, char **argv)
       cmd.obscodeP = 1;
       i = getStringOpt(argc, argv, i, &cmd.obscode, 1);
       cmd.obscodeC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-timing", argv[i]) ) {
+      int keep = i;
+      cmd.timingP = 1;
+      i = getStringOpt(argc, argv, i, &cmd.timing, 1);
+      cmd.timingC = i-keep;
       continue;
     }
 

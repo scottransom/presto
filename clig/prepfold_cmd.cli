@@ -75,6 +75,7 @@ String -psr psrname {Name of pulsar to fold (do not include J or B)}
 String -par parname {Name of a TEMPO par file from which to get PSR params}
 String -polycos polycofile {File containing TEMPO polycos for psrname (not required)}
 String -obs obscode {Two letter TEMPO observatory code (for barycentering)}
+String -timing timing {Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified.}
 Int -rzwcand rzwcand {The candidate number to fold from 'infile'_rzw.cand} \
         -r 1 oo
 String -rzwfile rzwfile {Name of the rzw search file to use (include the full name of the file)}

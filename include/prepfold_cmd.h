@@ -149,6 +149,10 @@ typedef struct s_Cmdline {
   char obscodeP;
   char* obscode;
   int obscodeC;
+  /***** -timing: Sets useful flags for TOA generation.  Generates polycos (if required) based on the par file specified. */
+  char timingP;
+  char* timing;
+  int timingC;
   /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
   char rzwcandP;
   int rzwcand;
