@@ -5,7 +5,7 @@ from string import index
 from presto import *
 
 class bird:
-    def __init__(self, freq, width, bary):
+    def __init__(self, freq, width, bary=0):
         self.freq = freq
         self.width = width
         self.bary = bary
@@ -51,25 +51,37 @@ def processbirds(filename):
                 if (psr.orb.p):
                     midv = 0.5 * (maxv + minv)
                     midf = (1.0 + midv) * psr.f * harm
-                    width = 1.05 * (maxv - minv) * psr.f * harm
-                    if (width < min_psr_width):
-                        width = min_psr_width
+                    width = (maxv - minv) * psr.f * harm
+                    if (0.1 * width < min_psr_width):
+                        width = width + min_psr_width
+                    else:
+                        width = width * 1.1
                 else:
                     midf = psr.f * harm
                     width = min_psr_width
-                birds.append(bird(midf, width, 1))
+                birds.append(bird(midf, width, bary=1))
         else:
             words = line.split()
-            if (len(words)==2):
-                freqs += 1
-                birds.append(bird(float(words[0]), float(words[1]), 0))
-            else:
+            increase_width = 0
+            bary = 0
+            if (len(words) >= 3):
                 freq = float(words[0])
                 width = float(words[1])
                 numharm = int(words[2])
+                if (len(words) >= 4):
+                    increase_width = int(words[3])
+                    if (len(words) >= 5):
+                        bary = int(words[4])
                 trains += 1
-                for harm in xrange(1, numharm+1):
-                    birds.append(bird(freq * harm, width, 0))
+                if (increase_width):
+                    for harm in xrange(1, numharm+1):
+                        birds.append(bird(freq * harm, width * harm, bary))
+                else:
+                    for harm in xrange(1, numharm+1):
+                        birds.append(bird(freq * harm, width, bary))
+            else:
+                freqs += 1
+                birds.append(bird(float(words[0]), float(words[1])))
     print "\nRead %d freqs, %d pulsars, and %d harmonic series." % \
           (freqs, psrs, trains)
     print "Total number of birdies = %d" % (len(birds)) 

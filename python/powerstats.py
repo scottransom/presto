@@ -2,8 +2,50 @@
 import Numeric
 from umath import pi, log, exp, sin, sqrt
 from simple_roots import newton_raphson
-from cephes import iv, chdtri
+from cephes import iv, chdtri, ndtr, ndtri
 #from Multipack import quad
+
+def gauss_sigma_to_prob(sigma):
+    """
+    gauss_sigma_to_prob(sigma):
+        Returns the area under the Gaussian probability density
+        function, integrated from minus infinity to 'sigma'.
+    """
+    return ndtr(sigma)
+
+def prob_to_gauss_sigma(prob):
+    """
+    prob_to_gauss_sigma(prob):
+        Returns the Gaussian sigma for which the area under the
+        Gaussian probability density function (integrated from minus
+        infinity to 'sigma') is equal to 'prob'.
+    """
+    return ndtri(prob)
+
+def xray_time_to_detect(ctrate, pfract, dt, fpsr, bins=0, confidence=0.99,
+                        detectfract=0.99):
+    """
+        Return the observation duration required (assuming no breaks
+        and a sinusoidal pulse profile) to detect pulsations at
+        frequency 'fpsr' while looking in a number of Fourier
+        bins equal to 'bins' (Note: the default value of 0 means
+        that all bins will be examined).  'dt' is the bin duration in
+        sec, 'ctrate' is the total expected count rate, and 'pfract' is
+        the expected pulsed fraction.  'confidence' is the confidence
+        level that the signal is not caused by noise, and 'detectfract'
+        is the fraction of the time that you want this observation to
+        occur (i.e. if set to 0.5, 50% of observations of this duration
+        would detect the specified signal at 'confidence' level).
+    """
+    nyquist_freq = 0.5 / dt
+    factor = binning_factor(fpsr, nyquist_freq)**2.0
+    A = pfract * ctrate  # Signal ct rate
+    if (bins):
+        P_detect = max_noise_power(bins, confidence=confidence)
+        power_required = required_signal_power(P_detect, confidence=detectfract)
+        return 4 * ctrate * dt**2.0 / (A**2.0 * factor) * power_required
+    else:
+        print "Not implemented yet...I think we need to iterate."
 
 # The following routines are based on the method of signal
 # estimation described by Vaughan et al., 1994, ApJ, 435, p362.
