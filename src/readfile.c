@@ -47,7 +47,7 @@ int type_sizes[NUMTYPES] = {
 };
 
 int objs_at_a_time[NUMTYPES] = {
-  PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 1, 1, 1
+  PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 1, 1, 1
 };
 
 /* You don't see this every day -- An array of pointers to functions: */
