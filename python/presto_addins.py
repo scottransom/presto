@@ -79,7 +79,7 @@ def val_with_err(value, error, len=0, digits=2, latex=0):
    outstr = outstr[:slen]
    if latex:
       if outstr.find("x10") > 0:
-         outstr = outstr.replace("x10^", "$\times$10$^{")+"}$"
+         outstr = outstr.replace("x10^", r"$\times$10$^{")+"}$"
    return outstr
 
 def read_inffile(filename):
