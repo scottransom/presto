@@ -10,13 +10,13 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-Float -plo    plo    {The low pulsar period to check (s)} {range = 0,oo}
+Double -plo    plo    {The low pulsar period to check (s)} {range = 0,oo}
 
-Float -phi    phi    {The high pulsar period to check (s)} {range = 0,oo}
+Double -phi    phi    {The high pulsar period to check (s)} {range = 0,oo}
 
-Float -rlo    rlo    {The low Fourier frequency bin to check} {range = 0,oo}
+Double -rlo    rlo    {The low Fourier frequency bin to check} {range = 0,oo}
 
-Float -rhi    rhi    {The high Fourier frequency bin to check} {range = 0,oo}
+Double -rhi    rhi    {The high Fourier frequency bin to check} {range = 0,oo}
 
 String -psr   psrname  {Name of pulsar to check for (do not include J or B)}
 
@@ -26,22 +26,22 @@ Int -candnum  candnum  {Number of the candidate to optimize from 'infile'_bin.ca
 
 Flag -usr  usr    {Describe your own binary candidate.  Must include all of the following (assumed) parameters}
 
-Float -pb   pb      {The orbital period (s)} {range = 0,oo}
+Double -pb   pb      {The orbital period (s)} {range = 0,oo}
 
-Float -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
+Double -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
 	{range = 0,oo}
 
-Float -e    e       {The orbital eccentricity} \
+Double -e    e       {The orbital eccentricity} \
 	{range = 0,0.9999999} \
 	{default = 0}
     
-Float -To   To      {The time of periastron passage (MJD)} \
+Double -To   To      {The time of periastron passage (MJD)} \
 	{range = 0,oo}
     
-Float -w    w       {Longitude of periastron (deg)} \
+Double -w    w       {Longitude of periastron (deg)} \
 	{range = 0,360}
     
-Float -wdot wdot    {Rate of advance of periastron (deg/yr)} \
+Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 	{range = -oo,oo}\
 	{default = 0}
 

@@ -10,27 +10,27 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-Float -phs  phs  {Offset phase for the profile} \
+Double -phs  phs  {Offset phase for the profile} \
 	{range = 0,1} \
 	{default = 0}
 
-Float -p    p    {The folding period (s)} {range = 0,oo}
+Double -p    p    {The folding period (s)} {range = 0,oo}
 
-Float -pd   pd {The folding period derivative (s/s)} \
+Double -pd   pd {The folding period derivative (s/s)} \
 	{range = -oo,oo} \
 	{default = 0}
     
-Float -pdd  pdd {The folding period 2nd derivative (s/s^2)} \
+Double -pdd  pdd {The folding period 2nd derivative (s/s^2)} \
 	{range = -oo,oo} \
 	{default = 0}
     
-Float -f    f  {The folding frequency (hz)} {range = 0,oo}
+Double -f    f  {The folding frequency (hz)} {range = 0,oo}
 
-Float -fd   fd  {The folding frequency derivative (hz/s)} \
+Double -fd   fd  {The folding frequency derivative (hz/s)} \
 	{range = -oo,oo} \
 	{default = 0}
     
-Float -fdd  fdd  {The folding frequency 2nd derivative (hz/s^2)} \
+Double -fdd  fdd  {The folding frequency 2nd derivative (hz/s^2)} \
 	{range = -oo,oo} \
 	{default = 0}
     
@@ -51,22 +51,22 @@ String -onoff onoff {A list of white-space separated pairs of numbers from 0.0 t
 
 Flag -bin  binary {Fold a binary pulsar.  Must include all of the following parameters}
 
-Float -pb   pb      {The orbital period (s)} {range = 0,oo}
+Double -pb   pb      {The orbital period (s)} {range = 0,oo}
 
-Float -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
+Double -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
 	{range = 0,oo}
 
-Float -e    e       {The orbital eccentricity} \
+Double -e    e       {The orbital eccentricity} \
 	{range = 0,0.9999999} \
 	{default = 0}
     
-Float -To   To      {The time of periastron passage (MJD)} \
+Double -To   To      {The time of periastron passage (MJD)} \
 	{range = 0,oo}
     
-Float -w    w       {Longitude of periastron (deg)} \
+Double -w    w       {Longitude of periastron (deg)} \
 	{range = 0,360}
     
-Float -wdot wdot    {Rate of advance of periastron (deg/yr)} \
+Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 	{range = -oo,oo}\
 	{default = 0}
 

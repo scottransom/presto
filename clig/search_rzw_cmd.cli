@@ -35,7 +35,7 @@ Int -lobin   lobin   {The first Fourier frequency in the data file} \
 
 String -zapfile zapfile {A file containing a list of freqs to ignore (i.e. RFI)}
 
-Float -baryv baryv   {The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)} \
+Double -baryv baryv   {The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)} \
 	{range = -0.1, 0.1} \
 	{default = 0.0}
 

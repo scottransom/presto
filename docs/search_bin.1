@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "search_bin" 1 "21Dec99" "Clig-manuals" "Programmer's Manual"
+.TH "search_bin" 1 "13Jan00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -42,57 +42,57 @@ infile
 .IP -ncand
 Number of candidates to try to return,
 .br
-1 integer value between 1 and 10000.
+1 Int value between 1 and 10000.
 .br
 Default: `100'
 .IP -minfft
 Power-of-2 length of the shortest miniFFT,
 .br
-1 integer value between 8 and 1048576.
+1 Int value between 8 and 1048576.
 .br
 Default: `32'
 .IP -maxfft
 Power-of-2 length of the longest miniFFT,
 .br
-1 integer value between 8 and 1048576.
+1 Int value between 8 and 1048576.
 .br
 Default: `262144'
 .IP -rlo
 The low Fourier frequency to check,
 .br
-1 integer value between 0 and oo.
+1 Int value between 0 and oo.
 .IP -rhi
 The high Fourier frequency to check,
 .br
-1 integer value between 0 and oo.
+1 Int value between 0 and oo.
 .IP -lobin
 The first Fourier frequency in the data file,
 .br
-1 integer value between 0 and oo.
+1 Int value between 0 and oo.
 .br
 Default: `0'
 .IP -overlap
 Fraction of a short FFT length to shift before performing another,
 .br
-1 double precision value between 0.05 and 1.0.
+1 Double value between 0.05 and 1.0.
 .br
 Default: `0.25'
 .IP -harmsum
 Number of harmonics to sum in the miniFFTs,
 .br
-1 integer value between 1 and 20.
+1 Int value between 1 and 20.
 .br
 Default: `3'
 .IP -numbetween
 Number of points to interpolate per Fourier bin (2 gives the usual bin value and an interbin),
 .br
-1 integer value between 1 and 16.
+1 Int value between 1 and 16.
 .br
 Default: `2'
 .IP -stack
 Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes),
 .br
-1 integer value between 0 and oo.
+1 Int value between 0 and oo.
 .br
 Default: `0'
 .IP -interbin
@@ -103,13 +103,14 @@ Do not add aliased powers to the harmonic sum.  (Faster but less accurate and se
 Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end
 
+.\" cligPart DESCRIPTION
 .SH DESCRIPTION
-This program searches the Fourier transformed time series 
-found in the input file for binary pulsars whose periodicities are
-Doppler shifted to such an extent that their spread-out Fourier power
-forms a set of frequency modulation sidebands.  The frequency of
-modulation is simply the orbital frequency.  The routine outputs
-formatted statistics for the best candidates found in the search
-region.
+This manual page was generated automagically by clig, the
+Command Line Interface Generator. Actually the programmer
+using clig was supposed to edit this part of the manual
+page after
+generating it with clig, but obviously (s)he didn't.
 
-Copyright 1999, Scott M. Ransom (ransom@cfa.harvard.edu)
+Sadly enough clig does not yet have the power to pick a good
+program description out of blue air ;-(
+.\" cligPart DESCRIPTION end

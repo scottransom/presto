@@ -52,32 +52,32 @@ String -bg background {background color} \
 ########################################################################
 ## EXAMPLES OF FLOAT OPTIONS
 
-## The simplest Float-option has a default-count of 1, is not
+## The simplest Double-option has a default-count of 1, is not
 ## mandatory, imposes no limit on the parameter and has no default
-Float -o offset {offset to add to all curves to plot}
+Double -o offset {offset to add to all curves to plot}
 
-## Float-option parameters can be forced to lie in a given range
-Float -p p {probability} \
+## Double-option parameters can be forced to lie in a given range
+Double -p p {probability} \
     {range = 0,1}
     
 ## `count', `mandatory' and `default' work as for String-options
-Float -f f {frequencies} \
+Double -f f {frequencies} \
     {count = 2, 10} \
     {range = 0, 47.11 } \
     {default = 2 4 8 16.11}
 
 ## special values for range-specs are -oo and oo denoting minus
 ## infinity and infinity
-Float -negscale negscale {negative scale value} \
+Double -negscale negscale {negative scale value} \
     {range = -oo, 0.0}
 
-Float -scale scale {scale value} \
+Double -scale scale {scale value} \
     {range = 0.0, oo}
 
 ########################################################################
 ## EXAMPLES OF INT OPTIONS
 
-## Int-options work like Float options.
+## Int-options work like Double options.
 Int -a a {flog quarx flirim poli gam i nabgala} \
     mandatory
 

@@ -32,7 +32,7 @@ Int -lobin   lobin   {The first Fourier frequency in the data file} \
 	{range = 0, oo} \
 	{default = 0}
 	
-Float -overlap overlap {Fraction of a short FFT length to shift before performing another} \
+Double -overlap overlap {Fraction of a short FFT length to shift before performing another} \
 	{range = 0.05, 1.0} \
 	{default = 0.25}
 

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "21Dec99" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "13Jan00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -65,115 +65,115 @@ Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -dm
 The central DM of the search (cm^-3 pc),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .br
 Default: `0'
 .IP -nsub
 The number of sub-bands to use for the DM search,
 .br
-1 integer value between 1 and 512.
+1 Int value between 1 and 512.
 .br
 Default: `16'
 .IP -npart
 The number of sub-integrations to use for the period search,
 .br
-1 integer value between 1 and 512.
+1 Int value between 1 and 512.
 .br
 Default: `16'
 .IP -p
 The nominative folding period (s),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -pd
 The nominative period derivative (s/s),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0.0'
 .IP -pdd
 The nominative period 2nd derivative (s/s^2),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0.0'
 .IP -f
 The nominative folding frequency (hz),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -fd
 The nominative frequency derivative (hz/s),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP -fdd
 The nominative frequency 2nd derivative (hz/s^2),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP -phs
 Offset phase for the profil,
 .br
-1 double precision value between 0.0 and 1.0.
+1 Double value between 0.0 and 1.0.
 .br
 Default: `0.0'
 .IP -start
 The folding start time as a fraction of the full obs,
 .br
-1 double precision value between 0.0 and 1.0.
+1 Double value between 0.0 and 1.0.
 .br
 Default: `0.0'
 .IP -end
 The folding end time as a fraction of the full obs,
 .br
-1 double precision value between 0.0 and 1.0.
+1 Double value between 0.0 and 1.0.
 .br
 Default: `1.0'
 .IP -n
 The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period,
 .br
-1 integer value.
+1 Int value.
 .IP -psr
 Name of pulsar to fold (do not include J or B),
 .br
-1 string value.
+1 String value
 .IP -rzwcand
 The candidate number to fold from 'infile'_rzw.cand,
 .br
-1 integer value between 1 and oo.
+1 Int value between 1 and oo.
 .IP -rzwfile
 Name of the rzw search file to use (include the full name of the file),
 .br
-1 string value.
+1 String value
 .IP -bin
 Fold a binary pulsar.  Must include all of the following parameters.
 .IP -pb
 The orbital period (s),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -x
 The projected orbital semi-major axis (lt-sec),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -e
 The orbital eccentricity,
 .br
-1 double precision value between 0 and 0.9999999.
+1 Double value between 0 and 0.9999999.
 .br
 Default: `0'
 .IP -To
 The time of periastron passage (MJD),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -w
 Longitude of periastron (deg),
 .br
-1 double precision value between 0 and 360.
+1 Double value between 0 and 360.
 .IP -wdot
 Rate of advance of periastron (deg/yr),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP infile

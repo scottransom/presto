@@ -40,7 +40,7 @@ Int 	-index 		index 	{The range of objects to display} \
 				{default = 0 -1} \
 				{count = 0,2}
 
-Float 	-nph		nph	{0th FFT bin amplitude (for 'RZW' data)} \
+Double 	-nph		nph	{0th FFT bin amplitude (for 'RZW' data)} \
 				{range = -oo,oo} \
 				{default = 1.0}
 

@@ -28,7 +28,7 @@ Flag   -nobary  nobary  {Do not barycenter the data}
 
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 
-Float  -dm      dm      {The dispersion measure to de-disperse (cm^-3 pc)} \
+Double  -dm      dm      {The dispersion measure to de-disperse (cm^-3 pc)} \
                 {range = 0,oo} \
                 {default = 0}
 

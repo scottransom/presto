@@ -13,7 +13,7 @@ Commandline full_cmd_line
 Int 	-n 	numout 	{The number of bins in the output time series} \
 			{range = 0,oo} \
 			mandatory
-Float 	-dt	dt	{Time interval in seconds for output time bins} \
+Double 	-dt	dt	{Time interval in seconds for output time bins} \
 			{range = 0,oo} \
 			mandatory
 String	-o	outfile {Name of the output time series file} \

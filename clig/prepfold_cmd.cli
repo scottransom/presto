@@ -18,7 +18,7 @@ Flag   -nobary  nobary  {Do not barycenter (assume input parameters are topocent
 
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 
-Float  -dm      dm      {The central DM of the search (cm^-3 pc)} \
+Double  -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	{range = 0,oo} \
 	{default = 0}
 
@@ -30,37 +30,37 @@ Int    -npart   npart   {The number of sub-integrations to use for the period se
 	{range = 1,512} \
 	{default = 16}
 
-Float -p    p    {The nominative folding period (s)} \
+Double -p    p    {The nominative folding period (s)} \
 	{range = 0,oo}
 
-Float -pd   pd	 {The nominative period derivative (s/s)} \
+Double -pd   pd	 {The nominative period derivative (s/s)} \
 	{range = -oo,oo} \
 	{default = 0.0}
     
-Float -pdd   pdd {The nominative period 2nd derivative (s/s^2)} \
+Double -pdd   pdd {The nominative period 2nd derivative (s/s^2)} \
 	{range = -oo,oo} \
 	{default = 0.0}
     
-Float -f    f  	{The nominative folding frequency (hz)} \
+Double -f    f  	{The nominative folding frequency (hz)} \
 	{range = 0,oo}
 
-Float -fd   fd  {The nominative frequency derivative (hz/s)} \
+Double -fd   fd  {The nominative frequency derivative (hz/s)} \
 	{range = -oo,oo} \
 	{default = 0}
     
-Float -fdd  fdd {The nominative frequency 2nd derivative (hz/s^2)} \
+Double -fdd  fdd {The nominative frequency 2nd derivative (hz/s^2)} \
 	{range = -oo,oo} \
 	{default = 0}
     
-Float -phs  phs {Offset phase for the profil} \
+Double -phs  phs {Offset phase for the profil} \
 	{range = 0.0,1.0} \
 	{default = 0.0}
     
-Float -start  startT  {The folding start time as a fraction of the full obs} \
+Double -start  startT  {The folding start time as a fraction of the full obs} \
 	{range = 0.0,1.0} \
 	{default = 0.0}
     
-Float -end  endT  {The folding end time as a fraction of the full obs} \
+Double -end  endT  {The folding end time as a fraction of the full obs} \
 	{range = 0.0,1.0} \
 	{default = 1.0}
     
@@ -77,22 +77,22 @@ String -rzwfile rzwfile {Name of the rzw search file to use (include the full na
 
 Flag -bin  binary {Fold a binary pulsar.  Must include all of the following parameters}
 
-Float -pb   pb      {The orbital period (s)} {range = 0,oo}
+Double -pb   pb      {The orbital period (s)} {range = 0,oo}
 
-Float -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
+Double -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
 	{range = 0,oo}
 
-Float -e    e       {The orbital eccentricity} \
+Double -e    e       {The orbital eccentricity} \
 	{range = 0,0.9999999} \
 	{default = 0}
     
-Float -To   To      {The time of periastron passage (MJD)} \
+Double -To   To      {The time of periastron passage (MJD)} \
 	{range = 0,oo}
     
-Float -w    w       {Longitude of periastron (deg)} \
+Double -w    w       {Longitude of periastron (deg)} \
 	{range = 0,360}
     
-Float -wdot wdot    {Rate of advance of periastron (deg/yr)} \
+Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 	{range = -oo,oo}\
 	{default = 0}
 

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "profile" 1 "21Dec99" "Clig-manuals" "Programmer's Manual"
+.TH "profile" 1 "13Jan00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -56,93 +56,93 @@ infile
 .IP -phs
 Offset phase for the profile,
 .br
-1 double precision value between 0 and 1.
+1 Double value between 0 and 1.
 .br
 Default: `0'
 .IP -p
 The folding period (s),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -pd
 The folding period derivative (s/s),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP -pdd
 The folding period 2nd derivative (s/s^2),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP -f
 The folding frequency (hz),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -fd
 The folding frequency derivative (hz/s),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP -fdd
 The folding frequency 2nd derivative (hz/s^2),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP -n
 The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period,
 .br
-1 integer value.
+1 Int value.
 .IP -psr
 Name of pulsar to fold (do not include J or B),
 .br
-1 string value.
+1 String value
 .IP -rzwcand
 The candidate number to fold from 'infile'_rzw.cand,
 .br
-1 integer value between 1 and oo.
+1 Int value between 1 and oo.
 .IP -rzwfile
 Name of the rzw search file to use (include the full name of the file),
 .br
-1 string value.
+1 String value
 .IP -bincand
 Fold a binary pulsar but take the input data from this candidate number in 'infile'_bin.cand,
 .br
-1 integer value between 1 and oo.
+1 Int value between 1 and oo.
 .IP -onoff
 A list of white-space separated pairs of numbers from 0.0 to 1.0 that designate barycentric times in our data set when we will actually keep the data. (i.e. '-onoff 0.1 0.4 0.7 0.9' means that we will fold the data set during the barycentric times 0.1-0.4 and 0.7-0.9 of the total time length of the data set),
 .br
-1 string value.
+1 String value
 .IP -bin
 Fold a binary pulsar.  Must include all of the following parameters.
 .IP -pb
 The orbital period (s),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -x
 The projected orbital semi-major axis (lt-sec),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -e
 The orbital eccentricity,
 .br
-1 double precision value between 0 and 0.9999999.
+1 Double value between 0 and 0.9999999.
 .br
 Default: `0'
 .IP -To
 The time of periastron passage (MJD),
 .br
-1 double precision value between 0 and oo.
+1 Double value between 0 and oo.
 .IP -w
 Longitude of periastron (deg),
 .br
-1 double precision value between 0 and 360.
+1 Double value between 0 and 360.
 .IP -wdot
 Rate of advance of periastron (deg/yr),
 .br
-1 double precision value.
+1 Double value.
 .br
 Default: `0'
 .IP -xwin
