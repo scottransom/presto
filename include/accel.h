@@ -26,7 +26,7 @@ typedef struct accelobs{
   long long lobin;     /* Lowest spectral bin present in the file */
   long long highestbin;/* Highest spectral bin present in the file */
   int fftlen;          /* Length of short FFTs to us in search */
-  int numharm;         /* Number of harmonics searched */
+  int numharmstages;   /* Number of stages of harmonic summing */
   int numz;            /* Number of f-dots searched */
   int numbetween;      /* Highest fourier freq resolution (2=interbin) */
   int numzap;          /* Number of birdies to zap */
@@ -97,13 +97,13 @@ typedef struct ffdotpows{
 
 /* accel_utils.c */
 
-subharminfo **create_subharminfos(int numharm, int zmax);
-void free_subharminfos(int numharm, subharminfo **shis);
+subharminfo **create_subharminfos(int numharmstages, int zmax);
+void free_subharminfos(int numharmstages, subharminfo **shis);
 GSList *sort_accelcands(GSList *list);
 void optimize_accelcand(accelcand *cand, accelobs *obs);
 void output_fundamentals(fourierprops *props, GSList *list, 
 			 accelobs *obs, infodata *idata);
-void output_harmonics(GSList *list, accelobs *obs);
+void output_harmonics(GSList *list, accelobs *obs, infodata *idata);
 void free_accelcand(gpointer data, gpointer user_data);
 void print_accelcand(gpointer data, gpointer user_data);
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 

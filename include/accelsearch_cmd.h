@@ -13,7 +13,7 @@ typedef struct s_Cmdline {
   char lobinP;
   int lobin;
   int lobinC;
-  /***** -numharm: The number of harmonics to sum */
+  /***** -numharm: The number of harmonics to sum (power-of-two) */
   char numharmP;
   int numharm;
   int numharmC;
