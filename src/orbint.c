@@ -52,7 +52,8 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
   double df, dE, dEold, f, fh, fl;
   double temp, Eh, El, rEs;
 
-  z = TWOPI * t / p_orb;
+  twopif = TWOPI / p_orb;
+  z = twopif * t;
   fl = E1 - e * sin(E1) - z;
   fh = E2 - e * sin(E2) - z;
   if ((fl > 0.0 && fh > 0.0) || 
