@@ -1,13 +1,13 @@
 Test data set with an f-dot
-Num data pts      = 1048576
-dt per bin (s)    =         9.53674316406e-07
+Num data pts      = 8388608
+dt per bin (s)    =    1.1920928955078125e-07
 Pulse shape       = Sine
 Rounding format   = Fractional
-Pulse freq (hz)   =                 20000.345
-fdot (s-2)        =                    25.789
+Pulse freq (hz)   =               1000000.345
+fdot (s-2)        =                     5.789
 fdotdot (s-3)     =                         0
 Pulse amp         =                      0.15
-Pulse phs (deg)   =                   324.657
+Pulse phs (deg)   =                   224.657
 DC backgrnd level =                       200
 Binary period (s) =                         0
 Bin asini/c (s)   =                         0
