@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "31Jan01" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "15May01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -42,11 +42,11 @@ The first Fourier frequency in the data file,
 .br
 Default: `0'
 .IP -numharm
-The number of harmonics to sum,
+The number of harmonics to sum (power-of-two),
 .br
-1 Int value between 1 and 4.
+1 Int value between 1 and 16.
 .br
-Default: `4'
+Default: `8'
 .IP -zmax
 The max (+ and -) Fourier freq deriv to search,
 .br

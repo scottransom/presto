@@ -12,8 +12,8 @@ Commandline full_cmd_line
 
 Int -lobin   lobin      {The first Fourier frequency in the data file} \
 	-r 0 oo  -d 0
-Int -numharm numharm    {The number of harmonics to sum}\
-	-r 1 4 -d 4
+Int -numharm numharm    {The number of harmonics to sum (power-of-two)}\
+	-r 1 16 -d 8
 Int -zmax    zmax       {The max (+ and -) Fourier freq deriv to search} \
 	-r 0 300  -d 100
 Float -sigma sigma      {Cutoff sigma for choosing candidates}\
