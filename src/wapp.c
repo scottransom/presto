@@ -453,8 +453,8 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   padpts_st[0] = padpts_st[numfiles-1] = 0;
   for (ii=1; ii<numfiles; ii++){
     /* Skip the ASCII header file */
-    cc=1;
-    while((cc=fgetc(files[ii]))!='\0');
+    chkfseek(files[ii], asciihdrlen, SEEK_SET);
+    /* Read the header */
     chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[ii]);
     /* See if we need to byte-swap and if so, doit */
     need_byteswap_st = check_WAPP_byteswap(&hdr);
@@ -475,7 +475,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
     /* length of the previous file and add it to the      */
     /* previous files MJD to get the current MJD.         */
     mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
-    if (mjds_st[ii]==mjds_st[0]){
+    if (fabs(mjds_st[ii]-mjds_st[0]) < 1.0e-6 / SECPERDAY){
       elapsed_st[ii] = (filedatalen_st[ii-1] / bytesperpt_st) * dt_st;
       idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + elapsed_st[ii] / SECPERDAY;
       idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
@@ -488,8 +488,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
       elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
 				    idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
     }
-    padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / 
-				  dt_st + 0.5);
+    padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1])/dt_st + 0.5);
     elapsed_st[ii] += elapsed_st[ii-1];
     N_st += numpts_st[ii] + padpts_st[ii-1];
     startblk_st[ii] = (double) (N_st - numpts_st[ii]) /

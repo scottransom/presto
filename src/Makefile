@@ -6,7 +6,7 @@
 DATABASE = "$(PRESTO)/lib"
 
 # Path to PGPLOT includes
-PGPLOTINCDIR = -I/usr/local/include
+PGPLOTINCDIR = -I/home/ransom/pgplot
 # Path to PGPLOT libraries
 PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
@@ -21,15 +21,22 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I/usr/local/include
+FFTINCDIR = -I/home/ransom/fftw/include
 # Path to FFT libraries
-FFTLIBDIR = -L/usr/local/lib
+FFTLIBDIR = -L/home/ransom/fftw/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lsfftw
 RFFTLINK = -lsrfftw
+# Path to Special Athlon version of FFTW for correlations
+FFTATHINCDIR = -I/home/ransom/fftw_athlon/include
+# Path to FFT libraries
+FFTATHLIBDIR = -L/home/ransom/fftw_athlon/lib
+# How to link with the FFTW libs
+FFTATHLINK = $(FFTATHLIBDIR) -lfftw
+RFFTATHLINK = $(FFTATHLIBDIR) -lrfftw
 
 # Other include directoried (i.e. glib.h)
-OTHERINCDIR = -I/usr/include/glib-1.2
+OTHERINCDIR = -I/home/ransom/include/glib-1.2
 
 # The name of the library to produce
 PRESTOLIB = presto
@@ -47,10 +54,11 @@ PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
+ATHLON_PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTATHLINK) $(DMALLOCLINK)
 
 # For Pentium with GCC
-CC = gcc-3.0
-FC = g77-3.0
+CC = gcc
+FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
@@ -159,7 +167,7 @@ timetest:
 	rm -f timetest
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o 
-	$(CC) $(CFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(PRESTOLINK) -lglib -lm
+	$(CC) $(CFLAGS) -o $@ accelsearch_cmd.o accel_utils.o accelsearch.o $(ATHLON_PRESTOLINK) -L/home/ransom/lib -lglib -lm
 	cp $@ ../bin
 
 bary: bary.o 
@@ -217,15 +225,15 @@ plotfft: plotfft.o $(PLOT2DOBJS)
 	cp $@ ../bin
 
 prepdata: prepdata_cmd.c prepdata_cmd.o prepdata.o $(INSTRUMENTOBJS)
-	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
+	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
 	cp $@ ../bin
 
 prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
-	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) $(RFFTLINK) -lm
+	$(CC) $(CFLAGS) -o $@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
 	cp $@ ../bin
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(RFFTLINK) $(PGPLOTLINK) -lm
+	$(FLINK) $(FLINKFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 show_pfd: show_pfd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
@@ -273,7 +281,7 @@ testbinresp: testbinresp.o $(PLOT2DOBJS)
 	cp $@ ../bin
 
 quicklook: quicklook.o
-	$(CC) $(CFLAGS) -o $@ quicklook.o $(PRESTOLINK) -lm
+	$(CC) $(CFLAGS) -o $@ quicklook.o $(ATHLON_PRESTOLINK) -lm
 	cp $@ ../bin
 
 readfile: readfile_cmd.c readfile_cmd.o readfile.o $(INSTRUMENTOBJS)
@@ -289,11 +297,11 @@ realfft: realfft_cmd.c realfft_cmd.o realfft.o
 #	cp $@ ../bin
 
 search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o 
-	$(CC) $(CFLAGS) -o $@ search_bin.o search_bin_cmd.o $(PRESTOLINK)  -lm
+	$(CC) $(CFLAGS) -o $@ search_bin.o search_bin_cmd.o $(ATHLON_PRESTOLINK)  -lm
 	cp $@ ../bin
 
 search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o 
-	$(CC) $(CFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(PRESTOLINK) -lm
+	$(CC) $(CFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(ATHLON_PRESTOLINK) -lm
 	cp $@ ../bin
 
 taperaw: taperaw.o
@@ -317,7 +325,7 @@ window: window.o $(PLOT2DOBJS)
 	cp $@ ../bin
 
 zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS)
-	$(FLINK) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lglib -lm
+	$(FLINK) $(FLINKFLAGS) -o $@ zapbirds_cmd.o zapbirds.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -L/home/ransom/lib -lglib -lm
 	cp $@ ../bin
 
 clean:
