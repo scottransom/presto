@@ -871,9 +871,6 @@ int read_SPIGOT(FILE *infiles[], int numfiles, float *data,
 	starttime = currentblock*timeperblk;
 	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
 	if (*nummasked==-1){ /* If all channels are masked */
-for (ii=0; ii<5; ii++)
-  printf("%d ", padvals[ii]);
-printf("\n");
 	  for (ii=0; ii<numpts; ii++)
 	    memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
 	} else if (*nummasked > 0){ /* Only some of the channels are masked */
