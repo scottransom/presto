@@ -43,6 +43,10 @@ typedef struct accelobs{
   long long *numindep; /* Number of independent spectra (per harmsummed) */
   FILE *fftfile;       /* The FFT file that we are analyzing */
   FILE *workfile;      /* A text file with candidates as they are found */
+  char *rootfilenm;    /* The root filename for associated files. */
+  char *candnm;        /* The fourierprop save file for the fundamentals */
+  char *accelnm;       /* The filename of the final candidates in text */
+  char *workfilenm;    /* The filename of the working candidates in text */
 } accelobs;
 
 typedef struct accelcand{
@@ -83,9 +87,13 @@ typedef struct ffdotpows{
 } ffdotpows;
 
 /* accel_utils.c */
+
 subharminfo *create_subharminfo_vect(int numharm, int zmax);
 void free_subharminfo_vect(int numharm, subharminfo *shi);
 GSList *sort_accelcands(GSList *list);
+void optimize_accelcand(accelcand *cand, accelobs *obs);
+void output_fundamentals(fourierprops *props, GSList *list, 
+			 accelobs *obs, infodata *idata);
 void print_accelcand(gpointer data, gpointer user_data);
 void free_accelcand(gpointer data, gpointer user_data);
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 
@@ -95,8 +103,7 @@ ffdotpows *copy_ffdotpows(ffdotpows *orig);
 void free_ffdotpows(ffdotpows *ffd);
 void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
 		   int numharm, int harmnum);
-void search_ffdotpows(ffdotpows *ffdot, int numharm, 
-		      accelobs *obs, GSList *cands);
-void create_accelobs(FILE *infile, FILE *workfile, accelobs *obs, 
-		     infodata *idata, Cmdline *cmd);
+void search_ffdotpows(ffdotpows *ffdot, int numharm, accelobs *obs, 
+		      GSList *cands);
+void create_accelobs(accelobs *obs, infodata *idata, Cmdline *cmd);
 void free_accelobs(accelobs *obs);
