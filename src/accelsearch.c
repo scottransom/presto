@@ -220,7 +220,7 @@ int main(int argc, char *argv[])
   printf("  Total time: %.3f sec\n\n", tott);
 
   printf("Candidates in binary format are stored in '%s'.\n", obs.candnm);
-  printf("Candidates in a text format are stored in '%s'.\n", obs.accelnm);
+  printf("Candidates in a text format are stored in '%s'.\n\n", obs.accelnm);
 
   free_accelobs(&obs);
   g_slist_foreach(cands, free_accelcand, NULL);

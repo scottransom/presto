@@ -383,44 +383,57 @@ double candidate_sigma(double power, int numsum, int numtrials)
 /* sigmas of a candidate of numsum summed powers,        */
 /* taking into account the number of independent trials. */
 {
-  int which, status;
-  double p, q, x, bound, mean=0.0, sd=1.0, shape, scale=1.0;
+  double x=0.0;
   
-  which = 1;
-  status = 0;
-  shape = (double) numsum;
-  x = power;
-  cdfgam(&which, &p, &q, &x, &shape, &scale, &status, &bound);
-  if (status){
-    printf("\nError in cdfgam() (candidate_sigma()):\n");
-    printf("   status = %d, bound = %f\n", status, bound);
-    printf("   p = %f, q = %f, x = %f, shape = %f, scale = %f\n\n", 
-	   p, q, x, shape, scale);
-    exit(1);
-  }
-  if (p==1.0)
-    q *= numtrials;
-  else
-    q = 1.0 - pow(p, numtrials);
-  p = 1.0 - q;
-  /*
-  if (numsum==4){
-    printf("   p = %f, q = %f, x = %f, shape = %f, scale = %f\n\n", 
-	   p, q, x, shape, scale);
-  }
-  */
-  which = 2;
-  status = 0;
-  cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
-  if (status){
-    if (status != -3){
-      printf("\nError in cdfnor() (candidate_sigma()):\n");
-      printf("   status = %d, bound = %f\n", status, bound);
-      printf("   p = %f, q = %f, x = %f, mean = %f, sd = %f\n\n", 
-	     p, q, x, mean, sd);
+  if (numsum==1 && numtrials==1 && power>2.0){
+    /* from Abramowitz and Stegun 26.2.23 (p. 933) */
+    /* x error is < 4.5e-4 (absolute)              */
+    double t, num, den;
+
+    t = sqrt(2.0*power);
+    num = 2.515517 + t * (0.802853 + t * 0.010328);
+    den = 1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308));
+    x = t - num / den;
+  } else {
+    int which, status;
+    double p, q, bound, mean=0.0, sd=1.0, shape, scale=1.0;
+
+    which = 1;
+    status = 0;
+    shape = (double) numsum;
+    x = power;
+    cdfgam(&which, &p, &q, &x, &shape, &scale, &status, &bound);
+    if (status){
+      printf("\nError in cdfgam() (candidate_sigma()):\n");
+      printf("   status = %d, bound = %g\n", status, bound);
+      printf("   p = %g, q = %g, x = %g, shape = %g, scale = %g\n\n", 
+	     p, q, x, shape, scale);
       exit(1);
-    } else {
-      x = 38.5;
+    }
+    /*
+    if (numsum==4){
+      printf("p = %g, q = %g, x = %g, shape = %g, scale = %g, numtrials = %d\n\n", 
+	     p, q, x, shape, scale, numtrials);
+    }
+    */
+    if (p==1.0)
+      q *= numtrials;
+    else
+      q = 1.0 - pow(p, numtrials);
+    p = 1.0 - q;
+    which = 2;
+    status = 0;
+    cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
+    if (status){
+      if (status != -3){
+	printf("\nError in cdfnor() (candidate_sigma()):\n");
+	printf("   status = %d, bound = %g\n", status, bound);
+	printf("   p = %g, q = %g, x = %g, mean = %g, sd = %g\n\n", 
+	       p, q, x, mean, sd);
+	exit(1);
+      } else {
+	x = 38.5;
+      }
     }
   }
   return x;
@@ -440,8 +453,8 @@ double power_for_sigma(double sigma, int numsum, int numtrials)
   cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
   if (status){
     printf("\nError in cdfnor() (power_for_sigma()):\n");
-    printf("   cdfstatus = %d, bound = %f\n\n", status, bound);
-    printf("   p = %f, q = %f, x = %f, mean = %f, sd = %f\n\n", 
+    printf("   cdfstatus = %d, bound = %g\n\n", status, bound);
+    printf("   p = %g, q = %g, x = %g, mean = %g, sd = %g\n\n", 
 	   p, q, x, mean, sd);
     exit(1);
   }
@@ -453,8 +466,8 @@ double power_for_sigma(double sigma, int numsum, int numtrials)
   cdfchi(&which, &p, &q, &x, &df, &status, &bound);
   if (status){
     printf("\nError in cdfchi() (power_for_sigma()):\n");
-    printf("   status = %d, bound = %f\n", status, bound);
-    printf("   p = %f, q = %f, x = %f, df = %f, scale = %f\n\n", 
+    printf("   status = %d, bound = %g\n", status, bound);
+    printf("   p = %g, q = %g, x = %g, df = %g, scale = %g\n\n", 
 	   p, q, x, df, scale);
     exit(1);
   }

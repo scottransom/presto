@@ -38,7 +38,7 @@ static inline int index_from_r(double r, double lor)
 
 static inline int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
-/* has stepsize ACCEL_DR and low freq 'lor'.              */
+/* has stepsize ACCEL_DZ and low freq 'lor'.              */
 {
   return (int) ((z - loz) * ACCEL_RDZ + DBLCORRECT);
 }
@@ -310,7 +310,7 @@ void optimize_accelcand(accelcand *cand, accelobs *obs)
     cand->hirs[ii] += obs->lobin;
   }
   cand->sigma = candidate_sigma(cand->power, cand->numharm, 
-				obs->numindep[cand->numharm]);
+				obs->numindep[cand->numharm-1]);
 }
 
 
@@ -660,12 +660,12 @@ void add_ffdotpows(ffdotpows *fundamental,
   double subr;
   float lastpow=0;
   
+  zz = fundamental->zlo; 
   for (ii=0; ii<fundamental->numzs; ii++){
-    zz = fundamental->zlo; 
     subz = calc_required_z(numharm, harmnum, zz);
     zind = index_from_z(subz, subharmonic->zlo);
+    rr = fundamental->rlo; 
     for (jj=0; jj<fundamental->numrs; jj++){
-      rr = fundamental->rlo; 
       subr = calc_required_r(numharm, harmnum, rr);
       rind = index_from_r(subr, subharmonic->rlo);
       if (rind!=lastrind)
