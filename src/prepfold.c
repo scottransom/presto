@@ -1491,7 +1491,8 @@ int main(int argc, char *argv[])
 		 search.numdms, search.numperiods, search.numpdots);
       } else {  /* No DM searches are to be done */
 	/* Allocate our p-pdot plane to speed up plotting */
-	ppdot = gen_fvect(search.numpdots*search.numperiods);
+	if (!cmd->searchpddP)
+	  ppdot = gen_fvect(search.numpdots*search.numperiods);
 	if (cmd->searchpddP)
 	  printf("  Searching %d periods, %d p-dots, and %d p-dotdots...\n", 
 		 search.numperiods, search.numpdots, search.numpdots);
@@ -1529,7 +1530,7 @@ int main(int argc, char *argv[])
 			    delays, currentprof, &currentstats);
 
 	      /* If this is a simple fold, create the chi-square p-pdot plane */
-	      if (cmd->nsub==1)
+	      if (cmd->nsub==1 && !cmd->searchpddP)
 		ppdot[ipd*search.numpdots+ip] = currentstats.redchi;
 
 	      /* If this is the best profile or if it is the specific */
@@ -1719,7 +1720,7 @@ int main(int argc, char *argv[])
 
   /* Free our memory  */
 
-  if (cmd->nsub==1)
+  if (cmd->nsub==1 && !cmd->searchpddP)
     free(ppdot);
   delete_prepfoldinfo(&search);
   free(data);
