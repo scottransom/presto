@@ -188,6 +188,12 @@ int main(int argc, char *argv[])
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
     }
     printf("\n");
+    if (cmd->maskfileP){
+      read_mask(cmd->maskfile, &obsmask);
+      printf("Read mask information from '%s'\n", cmd->maskfile);
+    } else {
+      obsmask.numchan = obsmask.numint = 0;
+    }
   }
 
   /* Manipulate the file names we will use  */

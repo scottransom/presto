@@ -1319,7 +1319,7 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
   /* Hack to zap known bad channels */
 
   /* BCPM1 */
-  /*bytes[0] = bytes[1] = bytes[8] = bytes[9] = bytes[94] = 0;*/
+  /* bytes[0] = bytes[1] = bytes[8] = bytes[9] = bytes[94] = 0; */
   /* BCPM2 */
   /*
   bytes[0] = bytes[1] = bytes[8] = bytes[9] = 0;

@@ -135,11 +135,13 @@ int main(int argc, char *argv[])
 
   /* Read an input mask if wanted */
 
-  if (cmd->maskfileP)
+  if (cmd->maskfileP){
     read_mask(cmd->maskfile, &obsmask);
-  else
+    printf("Read mask information from '%s'\n", cmd->maskfile);
+  } else {
     obsmask.numchan = obsmask.numint = 0;
-  
+  }
+
   /* Set-up values if we are using the Parkes multibeam */
 
   if (cmd->pkmbP) {
