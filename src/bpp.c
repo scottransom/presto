@@ -444,9 +444,9 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   splitbytes_st[0] = filedatalen_st[0] % bytesperblk_st;
   if (splitbytes_st[0]){
     splitbytes_st[0] = bytesperblk_st - filedatalen_st[0] % bytesperblk_st;
-    printf("  File %2d has a non-integer number of complete samples!.  "
-	   "Applying work-around.  (bytes split = %d)\n", 1, splitbytes_st[0]);
     if (numfiles > 1){
+      printf("  File %2d has a non-integer number of complete blocks and/or samples!\n"
+	     "\tApplying work-around.  (bytes split = %d)\n", 1, splitbytes_st[0]);
       numblks_st[0]++;
       /* This makes a memory leak as it is never freed (although the OS */
       /* does free it when the program exits -- which is usually when   */
