@@ -76,12 +76,12 @@ autocal2d(float *a, int rn, int cn,
 void prepfold_plot(prepfoldinfo *search)
 /* Make the beautiful 1 page prepfold output */
 {
-  int ii, jj, kk, ll, mm, len, profindex=0;
+  int ii, jj, kk, ll, mm, profindex=0;
   int totpdelay=0, totpddelay=0, pdelay, pddelay;
   double profavg=0.0, profvar=0.0;
   double N=0.0, T, dphase, pofact, *currentprof, *lastprof;
-  double delay, parttime, *pdprofs, *dtmparr, bestp, bestpd, bestpdd;
-  float *ftmparr1, *ftmparr2;
+  double parttime, *pdprofs, bestp, bestpd, bestpdd;
+  float *ftmparr1;
   foldstats currentstats, beststats;
   /* Best Fold Plot */
   float *bestprof=NULL, *phasetwo=NULL;
@@ -550,10 +550,20 @@ strcpy(search->pgdev, "/CPS");
 
     {
       int mincol, maxcol, numcol, nr, nc;
-      float l[7] = {0.0, 0.167, 0.333, 0.5, 0.667, 0.833, 1.0};
-      float r[7] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0};
-      float g[7] = {0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0};
-      float b[7] = {0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0};
+      /* "Astro" (BG=Black, FG=White) (Better for X-win) */
+      /*       float l[7] = {0.0, 0.167, 0.333, 0.5, 0.667, 0.833, 1.0}; */
+      /*       float r[7] = {0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0}; */
+      /*       float g[7] = {0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0}; */
+      /*       float b[7] = {0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0}; */
+      /* "Anti-Rainbow" (BG=White, FG=Red) (Better for printing) */
+      float l[10] = {0.0, 0.035, 0.045, 0.225, 
+		     0.4, 0.41, 0.6, 0.775, 0.985, 1.0};
+      float r[10] = {1.0, 1.0, 0.947, 0.0, 0.0, 
+		     0.0, 0.0, 1.0, 1.0, 1.0};
+      float g[10] = {1.0, 0.844, 0.8, 0.0, 0.946, 
+		     1.0, 1.0, 1.0, 0.0, 0.0};
+      float b[10] = {1.0, 1.0, 1.0, 1.0, 1.0, 0.95, 
+		     0.0, 0.0, 0.0, 0.0};
       float fg = 0.0, bg = 0.0, tr[6], *levels;
       float x1, x2, y1, y2;
       double pfold, pdfold;
@@ -567,8 +577,8 @@ strcpy(search->pgdev, "/CPS");
       for (ii = 0; ii < search->numperiods; ii++)
 	ftmparr1[ii] = search->periods[ii] * 1000.0 - pfold;
       find_min_max_arr(search->numperiods, periodchi, &min, &max);
-      x1 = ftmparr1[search->numperiods-1];
-      x2 = ftmparr1[0];
+      x1 = ftmparr1[0];
+      x2 = ftmparr1[search->numperiods-1];
       cpgswin(x1, x2, 0.0, 1.1 * max);
       cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
       sprintf(pout, "Period - %-.8f (ms)", pfold);
@@ -585,12 +595,14 @@ strcpy(search->pgdev, "/CPS");
       for (ii = 0; ii < search->numpdots; ii++)
 	ftmparr1[ii] = search->pdots[ii] - pdfold;
       find_min_max_arr(search->numpdots, pdotchi, &min, &max);
-      y1 = ftmparr1[search->numpdots-1];
-      y2 = ftmparr1[0];
+      y1 = ftmparr1[0];
+      y2 = ftmparr1[search->numpdots-1];
       cpgswin(y1, y2, 0.0, 1.1 * max);
       cpgbox ("BCNST", 0.0, 0, "BCMST", 0.0, 0);
       if (pdfold < 0.0)
 	sprintf(pdout, "Pdot + %-.5g (s/s)", fabs(pdfold));
+      else if (pdfold == 0.0)
+	sprintf(pdout, "Pdot (s/s)");
       else
 	sprintf(pdout, "Pdot-%-.5g (s/s)", pdfold);
       cpgmtxt("B", 2.4, 0.5, 0.5, pdout);
@@ -616,11 +628,11 @@ strcpy(search->pgdev, "/CPS");
       cpgbox("BNST", 0.0, 0, "BNST", 0.0, 0);
       cpgmtxt("B", 2.6, 0.5, 0.5, pout);
       cpgmtxt("L", 2.1, 0.5, 0.5, pdout);
-      x1 = 1.0 / search->periods[search->numperiods-1] - search->fold.p1;
-      x2 = 1.0 / search->periods[0] - search->fold.p1;
-      y1 = -search->pdots[search->numperiods-1] * 
+      x1 = 1.0 / search->periods[0] - search->fold.p1;
+      x2 = 1.0 / search->periods[search->numperiods-1] - search->fold.p1;
+      y1 = -search->pdots[0] * 
 	search->fold.p1 * search->fold.p1 - search->fold.p2;
-      y2 = -search->pdots[0] * 
+      y2 = -search->pdots[search->numperiods-1] * 
 	search->fold.p1 * search->fold.p1 - search->fold.p2;
       cpgswin(x1, x2, y1, y2);
       cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
@@ -628,6 +640,8 @@ strcpy(search->pgdev, "/CPS");
       cpgmtxt("T", 1.9, 0.5, 0.5, pout);
       if (search->fold.p2 < 0.0)
 	sprintf(pdout, "F-dot + %-.5g (Hz)", fabs(search->fold.p2));
+      else if (search->fold.p2 == 0.0)
+	sprintf(pdout, "F-dot (Hz)");
       else
 	sprintf(pdout, "F-dot - %-.5g (Hz)", search->fold.p2);
       cpgmtxt("R", 2.5, 0.5, 0.5, pdout);
@@ -649,24 +663,44 @@ strcpy(search->pgdev, "/CPS");
       cpgtext(0.0, 1.0, out);
       sprintf(out, "Telescope:  %-s", search->telescope);
       cpgtext(0.0, 0.9, out);
-      sprintf(out, "Epoch\\dtopo\\u = %-.12f", search->tepoch);
+      if (search->tepoch==0.0)
+	sprintf(out, "Epoch\\dtopo\\u = N/A");
+      else
+	sprintf(out, "Epoch\\dtopo\\u = %-.12f", search->tepoch);
       cpgtext(0.0, 0.8, out);
-      sprintf(out, "Epoch\\dbary\\u = %-.12f", search->bepoch);
+      if (search->bepoch==0.0)
+	sprintf(out, "Epoch\\dbary\\u = N/A");
+      else
+	sprintf(out, "Epoch\\dbary\\u = %-.12f", search->bepoch);
       cpgtext(0.0, 0.7, out);
-      sprintf(out, "T\\dsamp\\u = %f", search->dt);
+      sprintf(out, "T\\dsample\\u");
       cpgtext(0.0, 0.6, out);
-      sprintf(out, "N\\dfolded\\u = %-.0f", N);
+      sprintf(out, "=  %f", search->dt);
+      cpgtext(0.45, 0.6, out);
+      sprintf(out, "Data Folded");
       cpgtext(0.0, 0.5, out);
-      sprintf(out, "Data Avg = %.3f", beststats.data_avg);
+      sprintf(out, "=  %-.0f", N);
+      cpgtext(0.45, 0.5, out);
+      sprintf(out, "Data Avg");
       cpgtext(0.0, 0.4, out);
-      sprintf(out, "\\gs\\ddata\\u = %.2f", sqrt(beststats.data_var));
+      sprintf(out, "=  %.2f", beststats.data_avg);
+      cpgtext(0.45, 0.4, out);
+      sprintf(out, "Data StdDev"); 
       cpgtext(0.0, 0.3, out);
-      sprintf(out, "Bins/profile = %d", search->proflen);
+      sprintf(out, "=  %.2f", sqrt(beststats.data_var));
+      cpgtext(0.45, 0.3, out);
+      sprintf(out, "Profile Bins");
       cpgtext(0.0, 0.2, out);
-      sprintf(out, "Prof Avg = %.3f", beststats.prof_avg);
+      sprintf(out, "=  %d", search->proflen);
+      cpgtext(0.45, 0.2, out);
+      sprintf(out, "Profile Avg");
       cpgtext(0.0, 0.1, out);
-      sprintf(out, "\\gs\\dprof\\u = %.2f", sqrt(beststats.prof_var));
+      sprintf(out, "=  %.2f", beststats.prof_avg);
+      cpgtext(0.45, 0.1, out);
+      sprintf(out, "Profile StdDev");
       cpgtext(0.0, 0.0, out);
+      sprintf(out, "=  %.2f", sqrt(beststats.prof_var));
+      cpgtext(0.45, 0.0, out);
 
       /* Calculate the values of P and Q since we know X and DF */
 
@@ -712,21 +746,85 @@ strcpy(search->pgdev, "/CPS");
 		beststats.redchi, chiq, out2);
 	cpgtext(0.0, 0.9, out);
 	if (search->nsub > 1){
-	  sprintf(out, "Best DM = %.3f", search->bestdm);
+	  sprintf(out, "Best Dispersion Measure (DM)  =  %.3f", search->bestdm);
 	  cpgtext(0.0, 0.8, out);
 	}
-	cpgtext(0.0, 0.7, "P\\dtopo\\u = 11.232312424562(88)");
-	cpgtext(0.58, 0.7, "P\\dbary\\u = 11.232312424562(88)");
-	cpgtext(0.0, 0.6, "P'\\dtopo\\u = 1.2345e-12");
-	cpgtext(0.58, 0.6, "P'\\dbary\\u = 1.2345e-12");
-	cpgtext(0.0, 0.5, "P''\\dtopo\\u = 1.2345e-12");
-	cpgtext(0.58, 0.5, "P''\\dbary\\u = 1.2345e-12");
+
+	{
+	  double perr, pderr, pdderr, *dbestprof;
+
+	  /* Copy our best profile */
+
+	  dbestprof = gen_dvect(search->proflen);
+	  for (ii = 0; ii < search->proflen; ii++)
+	    dbestprof[ii] = bestprof[ii];
+
+	  /* Calculate the errors in the pulsation quantities */
+	
+	  if (search->tepoch != 0.0){
+
+	    fold_errors(dbestprof, search->proflen, search->dt, N, 
+			beststats.data_var, search->topo.p1, search->topo.p2, 
+			search->topo.p3, &perr, &pderr, &pdderr);
+	    
+	    nice_output_2(out2, search->topo.p1*1000.0, perr*1000.0, 0);
+	    sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
+	    cpgtext(0.0, 0.7, out);
+	    nice_output_2(out2, search->topo.p2, pderr, 0);
+	    sprintf(out, "P'\\dtopo\\u (s/s) = %s", out2);
+	    cpgtext(0.0, 0.6, out);
+	    nice_output_2(out2, search->topo.p3, pdderr, 0);
+	    sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
+	    cpgtext(0.0, 0.5, out);
+
+	  } else {
+	    cpgtext(0.0, 0.7, "P\\dtopo\\u (ms) = N/A");
+	    cpgtext(0.0, 0.6, "P'\\dtopo\\u (s/s) = N/A");
+	    cpgtext(0.0, 0.5, "P''\\dtopo\\u (s/s\\u2\\d) = N/A");
+	  }
+
+	  if (search->bepoch != 0.0){
+
+	    fold_errors(dbestprof, search->proflen, search->dt, N, 
+			beststats.data_var, search->bary.p1, search->bary.p2, 
+			search->bary.p3, &perr, &pderr, &pdderr);
+	    
+	    nice_output_2(out2, search->bary.p1*1000.0, perr*1000.0, 0);
+	    sprintf(out, "P\\dbary\\u (ms) = %s", out2);
+	    cpgtext(0.6, 0.7, out);
+	    nice_output_2(out2, search->bary.p2, pderr, 0);
+	    sprintf(out, "P'\\dbary\\u (s/s) = %s", out2);
+	    cpgtext(0.6, 0.6, out);
+	    nice_output_2(out2, search->bary.p3, pdderr, 0);
+	    sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
+	    cpgtext(0.6, 0.5, out);
+
+	  } else {
+	    cpgtext(0.0, 0.7, "P\\dbary\\u (ms) = N/A");
+	    cpgtext(0.0, 0.6, "P'\\dbary\\u (s/s) = N/A");
+	    cpgtext(0.0, 0.5, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
+	  }
+	  free(dbestprof);
+	}
 	cpgtext(0.0, 0.3, "   Binary Parameters");
-	cpgtext(0.0, 0.2, "P\\dorb\\u (s) = 65636.123213");
-	cpgtext(0.58, 0.2, "a\\d1\\usin(i)/c (s) = 1.132213");
-	cpgtext(0.0, 0.1, "e = 0.0000");
-	cpgtext(0.58, 0.1, "\\gw (rad) = 1.232456");
-	cpgtext(0.0, 0.0, "T\\dperi\\u = 50000.123234221323");
+	if (search->orb.p==0.0){
+	  cpgtext(0.0, 0.2, "P\\dorb\\u (s) = N/A");
+	  cpgtext(0.0, 0.1, "a\\d1\\usin(i)/c (s) = N/A");
+	  cpgtext(0.6, 0.2, "e = N/A");
+	  cpgtext(0.6, 0.1, "\\gw (rad) = N/A");
+	  cpgtext(0.0, 0.0, "T\\dperi\\u = N/A");
+	} else {
+	  sprintf(out, "P\\dorb\\u (s) = %f", search->orb.p);
+	  cpgtext(0.0, 0.2, out);
+	  sprintf(out, "a\\d1\\usin(i)/c (s) = %f", search->orb.x);
+	  cpgtext(0.0, 0.1, out);
+	  sprintf(out, "e = %f", search->orb.e);
+	  cpgtext(0.6, 0.2, out);
+	  sprintf(out, "\\gw (rad) = %f", search->orb.w);
+	  cpgtext(0.6, 0.1, out);
+	  sprintf(out, "T\\dperi\\u = %17.12f", search->orb.t);
+	  cpgtext(0.0, 0.0, out);
+	}
       }
     }
     cpgclos();

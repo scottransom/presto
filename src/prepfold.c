@@ -119,12 +119,12 @@ int main(int argc, char *argv[])
 
     /* Determine the output and plot file names */
     
-    slen = strlen(rootnm) + strlen(search.candnm) + 7;
+    slen = strlen(rootnm) + strlen(search.candnm) + 6;
     outfilenm = (char *)calloc(slen, sizeof(char));
-    sprintf(outfilenm, "%s_%s.msv", rootnm, search.candnm);
-    plotfilenm = (char *)calloc(slen, sizeof(char));
-    sprintf(plotfilenm, "%s_%s.ps", rootnm, search.candnm);
-    search.pgdev = (char *)calloc(slen+5, sizeof(char));
+    sprintf(outfilenm, "%s_%s.pfd", rootnm, search.candnm);
+    plotfilenm = (char *)calloc(slen + 3, sizeof(char));
+    sprintf(plotfilenm, "%s_%s.pfd.ps", rootnm, search.candnm);
+    search.pgdev = (char *)calloc(slen + 7, sizeof(char));
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
 sprintf(search.pgdev, "/XWIN");
     printf("Folding a %s candidate.\n\n", search.candnm);
@@ -952,24 +952,44 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
     /* Convert best params from/to barycentric to/from topocentric */
     
     if (cmd->nobaryP){
-      search.bary.pow = 1.0; /* Flag */
-      
-      /* Calculate the errors in our new pulsation quantities */
-      
-      fold_errors(bestprof, search.proflen, search.dt, N, 
-		  beststats.data_var, search.bary.p1, search.bary.p2, 
-		  search.bary.p3, &perr, &pderr, &pdderr);
 
-      nice_output_2(out, search.bary.p1, perr, 0);
-      printf("Best period        (s)  =  %s\n", out);
-      nice_output_2(out, search.bary.p2, pderr, 0);
-      printf("Best p-dot       (s/s)  =  %s\n", out);
-      nice_output_2(out, search.bary.p3, pdderr, 0);
-      printf("Best p-dotdot  (s/s^2)  =  %s\n", out);
+      /* Data was barycentered */
+
+      if (idata.bary){
+
+	/* Calculate the errors in our new pulsation quantities */
+	
+	fold_errors(bestprof, search.proflen, search.dt, N, 
+		    beststats.data_var, search.bary.p1, search.bary.p2, 
+		    search.bary.p3, &perr, &pderr, &pdderr);
+	
+	nice_output_2(out, search.bary.p1, perr, 0);
+	printf("Best period        (s)  =  %s\n", out);
+	nice_output_2(out, search.bary.p2, pderr, 0);
+	printf("Best p-dot       (s/s)  =  %s\n", out);
+	nice_output_2(out, search.bary.p3, pdderr, 0);
+	printf("Best p-dotdot  (s/s^2)  =  %s\n", out);
+
+      /* Data was topocentric */
+
+      } else {
+
+	/* Calculate the errors in our new pulsation quantities */
+	
+	fold_errors(bestprof, search.proflen, search.dt, N, 
+		    beststats.data_var, search.topo.p1, search.topo.p2, 
+		    search.topo.p3, &perr, &pderr, &pdderr);
+	
+	nice_output_2(out, search.topo.p1, perr, 0);
+	printf("Best period        (s)  =  %s\n", out);
+	nice_output_2(out, search.topo.p2, pderr, 0);
+	printf("Best p-dot       (s/s)  =  %s\n", out);
+	nice_output_2(out, search.topo.p3, pdderr, 0);
+	printf("Best p-dotdot  (s/s^2)  =  %s\n", out);
+
+      }
 
     } else {
-      search.bary.pow = 1.0; /* Flag */
-      search.topo.pow = 1.0; /* Flag */
 
       if (idata.bary){
 
