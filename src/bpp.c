@@ -928,7 +928,7 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, numblocks * sampperblk);
+	memset(raw, bytepadval, numblocks * bytesperblk_st);
     }
 
     if (numifs_st==2){
@@ -971,7 +971,7 @@ int read_BPP(FILE *infiles[], int numfiles, float *data,
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, bytepadval, numblocks * sampperblk);
+	memset(raw, bytepadval, numblocks * bytesperblk_st);
     }
 
     if (numifs_st==2){
