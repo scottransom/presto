@@ -1,7 +1,8 @@
+#include <glib.h>
 #include "accel.h"
-#include "accel_cmd.h"
+#include "accelsearch_cmd.h"
 
-void create_accel_obs(FILE *infile, accel_obs *obs, 
+void create_accelobs(FILE *infile, accelobs *obs, 
 		      infodata *idata, Cmdline *cmd)
 {
   int ii;
@@ -38,7 +39,8 @@ void create_accel_obs(FILE *infile, accel_obs *obs,
     obs->numzap = 0;
 }
 
-void free_accel_obs(accel_obs *obs)
+
+void free_accelobs(accelobs *obs)
 {
   free(obs->numindep);
   free(obs->powcut);
@@ -47,3 +49,51 @@ void free_accel_obs(accel_obs *obs)
     free(obs->zapwidths);
   }
 }
+
+
+accelcand *create_accelcand(float power, float sigma, 
+			    int numharm, double r, double z);
+{
+  accelcand *obj;
+
+  obj = (accelcand *)malloc(sizeof(accelcand));
+  obj->power = power;
+  obj->sigma = sigma;
+  obj->numharm = numharm;
+  obj->r = r;
+  obj->z = z;
+  return obj;
+}
+
+
+int compare_accelcand(gconstpointer ca, gconstpointer cb)
+/* Sorts from high to low sigma (ties are sorted by increasing r) */
+{
+  int result;
+  accelcand *a, *b;
+
+  a = (accelcand *) ca;
+  b = (accelcand *) cb;
+  result = (a->val < b->val) - (a->val > b->val);
+  if (result) 
+    return result;
+  else
+    return (a->r > b->r) - (a->r < b->r);
+}
+
+
+void print_accelcand(gpointer data, gpointer user_data)
+{
+  accelcand *obj=(accelcand *)data;
+
+  printf("sigma: %-7.4f  pow: %-7.2f  harm: %-2d  r: %-14.4f  z: %-10.4f\n", 
+	 obj->sigma, obj->power, obj->numharm, obj->r, obj->z); 
+}
+
+
+void free_accelcand(gpointer data, gpointer user_data)
+{
+  free((accelcand *)data);
+}
+
+

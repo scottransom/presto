@@ -66,6 +66,7 @@ int main(int argc, char *argv[])
 
   if (argc == 1) {
     Program = argv[0];
+    printf("\n");
     usage();
     exit(1);
   }

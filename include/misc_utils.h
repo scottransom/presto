@@ -11,6 +11,15 @@ long long next2_to_n(long long x);
 int gcd(int a, int b);
 /* Return the greatest common divisor of a and b */
 
+char *rmtrail(char *str);
+/* Removes trailing space from a string */
+ 
+char *rmlead(char *str);
+/* Removes leading space from a string */
+
+char *remove_whitespace(char *str);
+/* Remove leading and trailing space from a string */
+
 void split_path_file(char *input, char **path, char **file);
 /* This routine splits an input string into a path and */
 /* a filename.  Since is allocates the memory for the  */

@@ -12,6 +12,42 @@
 /* return the max of two double values */
 #define DMAX(a,b) ((a)>(b)?(a):(b))
 
+
+char *rmtrail(char *str)
+/* Removes trailing space from a string */
+{
+  int i;
+  
+  if (str && 0 != (i = strlen(str))){
+    while (--i >= 0){
+      if (!isspace(str[i]))
+	break;
+    }
+    str[++i] = NUL;
+  }
+  return str;
+}
+ 
+char *rmlead(char *str)
+/* Removes leading space from a string */
+{
+  char *obuf;
+ 
+  if (str){
+    for (obuf = str; *obuf && isspace(*obuf); ++obuf);
+    if (str != obuf)
+      strMove(str, obuf);
+  }
+  return str;
+}
+
+char *remove_whitespace(char *str)
+/* Remove leading and trailing space from a string */
+{
+  return rmlead(rmtrail(str));
+}
+
+
 void split_path_file(char *input, char **path, char **file)
 /* This routine splits an input string into a path and */
 /* a filename.  Since it allocates the memory for the  */

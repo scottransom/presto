@@ -1,6 +1,6 @@
 #include "presto.h"
 
-typedef struct accel_obs{
+typedef struct accelobs{
   long long N;         /* Number of data points in observation */
   long long numbins;   /* Number of spectral bins in the file */
   long long lobin;     /* Lowest spectral bin present in the file */
@@ -23,34 +23,29 @@ typedef struct accel_obs{
   double *zapfreqs;    /* The central frequencies to zap (RFI) */
   double *zapwidths;   /* The frequency widths to zap (RFI) */
   long long *numindep; /* Number of independent spectra (per harmsummed) */
-} accel_obs;
+} accelobs;
 
-typedef struct accel_cand{
+typedef struct accelcand{
   float power;         /* Power level (normalized) */
   float sigma;         /* Equivalent sigma based on numindep (above) */
+  int numharm;         /* Number of harmonics summed */
   double r;            /* Fourier freq */
-  float z;             /* Fourier f-dot */
-  float numharm;       /* Number of harmonics summed */
-} accel_cand;
+  double z;            /* Fourier f-dot */
+} accelcand;
 
-typedef struct accel_candvec{
-  int numcands;        /* Number of candidates in the vector */
-  accel_cand *cand;    /* The candidates themselves */
-} accel_candvec;
-
-typedef struct accel_kern{
-  int fftlen;          /* Number of points in the work ffts */
-  int z;               /* The fourier f-dot of the kernel */
+typedef struct accelkern{
+  double z;            /* The fourier f-dot of the kernel */
+  int fftlen;          /* Number of complex points in the kernel */
   int harmnum;         /* The harmonic number of this kernel */
   int numgoodbins;     /* The number of good points you get back */
   int numbetween;      /* Fourier freq resolution (2=interbin) */
   int kern_half_width; /* Half width (bins) of the raw kernel. */
   fcomplex *kern;      /* The FFTd kernel itself */
-} accel_kern;
+} accelkern;
 
-typedef struct accel_kernvec{
+typedef struct accelkernvec{
   int numkerns;        /* Number of kernels in the vector */
-  accel_kern *kern;    /* The kernels themselves */
-} accel_kernvec;
+  accelkern *kern;     /* The kernels themselves */
+} accelkernvec;
 
 
