@@ -2,10 +2,11 @@
 #include "presto.h"
 #include "accelsearch_cmd.h"
 
-/* #define ACCEL_USELEN 64000 */
 /* Note:  In order to make add_ffdotpows() much more efficient and  */
 /* allow table look-ups of the required indices to add, this number */
 /* _must_ be an even multiple of all of the harmonics to sum.       */
+/* This number must also be less than 65536 since we use unsigned   */
+/* short ints to index our arrays...                                */
 #define ACCEL_USELEN 32160
 #define ACCEL_NUMBETWEEN 2
 /* Stepsize in Fourier Freq */
@@ -78,7 +79,9 @@ typedef struct subharminfo{
   int harmnum;       /* The sub-harmonic number (fundamental = numharm) */
   int zmax;          /* The maximum Fourier f-dot for this harmonic */
   int numkern;       /* Number of kernels in the vector */
+  int rinds_init;    /* True if rinds has been initialized */
   kernel *kern;      /* The kernels themselves */
+  unsigned short int **rinds; /* Table of indices for Fourier Freqs */
 } subharminfo;
 
 typedef struct ffdotpows{
@@ -87,6 +90,7 @@ typedef struct ffdotpows{
   int rlo;            /* Lowest Fourier freq present */
   int zlo;            /* Lowest Fourier f-dot present */
   float **powers;     /* Matrix of the powers */
+  unsigned short int **rinds; /* Ptr to table of indices for Fourier Freqs */
 } ffdotpows;
 
 /* accel_utils.c */
