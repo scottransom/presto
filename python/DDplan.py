@@ -86,7 +86,7 @@ class dedisp_method:
         plotxy(log10(zeros(self.numDMs)+1000.0*self.obs.dt*self.downsamp), self.DMs, width=1, color='green')
         plotxy(log10(zeros(self.numDMs)+self.BW_smearing), self.DMs, width=1, color='red')
         ppgplot.pgptxt(midDM, log10(0.85*self.BW_smearing), 0.0, 0.5,
-                       "%.g" % self.dDM)
+                       "%g" % self.dDM)
         plotxy(log10(self.chan_smear(self.DMs)), self.DMs, width=1, color='blue')
         ppgplot.pgsci(1)
         ppgplot.pgsch(1.0)
@@ -305,13 +305,13 @@ if __name__=='__main__':
     #dm_steps(0.0, 500.0, obs, ok_smearing=0.3, device="GBT_350_DD.ps/CPS")
 
     # Example for 1st generation ALFA survey
-    #obs = observation(0.000064, 1450.0, 100.0, 256)
-    #dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
+    obs = observation(0.000064, 1450.0, 100.0, 256)
+    dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
     #dm_steps(0.0, 1500.0, obs, device="ALFA_DD.ps/CPS")
 
     # Example for Parkes survey
-    obs = observation(0.000250, 1374.0, 288.0, 96)
-    dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
+    #obs = observation(0.000250, 1374.0, 288.0, 96)
+    #dm_steps(0.0, 1500.0, obs) # Create an X-window is the default
     #dm_steps(0.0, 1500.0, obs, device="PKMB_DD.ps/CPS")
 
 
