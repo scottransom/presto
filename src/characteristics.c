@@ -378,7 +378,7 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result)
 }
 
 
-double candidate_sigma(double power, int numsum, int numtrials)
+double candidate_sigma(double power, int numsum, double numtrials)
 /* Return the approximate significance in Gaussian       */
 /* sigmas of a candidate of numsum summed powers,        */
 /* taking into account the number of independent trials. */
@@ -410,12 +410,6 @@ double candidate_sigma(double power, int numsum, int numtrials)
 	     p, q, x, shape, scale);
       exit(1);
     }
-    /*
-    if (numsum==4){
-      printf("p = %g, q = %g, x = %g, shape = %g, scale = %g, numtrials = %d\n\n", 
-	     p, q, x, shape, scale, numtrials);
-    }
-    */
     if (p==1.0)
       q *= numtrials;
     else
@@ -439,7 +433,7 @@ double candidate_sigma(double power, int numsum, int numtrials)
   return x;
 }
 
-double power_for_sigma(double sigma, int numsum, int numtrials)
+double power_for_sigma(double sigma, int numsum, double numtrials)
 /* Return the approximate summed power level required */
 /* to get a Gaussian significance of 'sigma', taking  */
 /* into account the number of independent trials.     */
