@@ -6350,7 +6350,10 @@ static unsigned long qbdd,qcond,qdum1,qdum2,qincr,qlim,qok,qup;
 DINVR:
     if(*status > 0) goto S310;
     qcond = !qxmon(small,*x,big);
-    if(qcond) ftnstop(" SMALL, X, BIG not monotone in INVR");
+    if(qcond) {
+      fprintf(stderr," SMALL, X, BIG not monotone in INVR\n");
+      exit(EXIT_FAILURE); /* EXIT_FAILURE from stdlib.h, or use an int */
+    }
     xsave = *x;
 /*
      See that SMALL and BIG bound the zero and set QINCR
@@ -9078,14 +9081,4 @@ long fifmod(long a,long b)
 /* b - denominator */
 {
   return a % b;
-}
-/************************************************************************
-FTNSTOP:
-Prints msg to standard error and then exits
-************************************************************************/
-void ftnstop(char* msg)
-/* msg - error message */
-{
-  if (msg != NULL) fprintf(stderr,"%s\n",msg);
-  exit(EXIT_FAILURE); /* EXIT_FAILURE from stdlib.h, or use an int */
 }
