@@ -86,7 +86,9 @@ void barycenter(double *topotimes, double *barytimes, \
 	    topotimes[i], obs);
   }
   fprintf(outfile, "topocent %19.13f  0.00     0.0000  0.000000  %s\n", \
-	  topotimes[N-1] + 100.0 / SECPERDAY, obs);
+	  topotimes[N-1] + 10.0 / SECPERDAY, obs);
+  fprintf(outfile, "topocent %19.13f  0.00     0.0000  0.000000  %s\n", \
+	  topotimes[N-1] + 20.0 / SECPERDAY, obs);
   fclose(outfile);
 
   /* Call TEMPO */
@@ -140,7 +142,9 @@ void barycenter(double *topotimes, double *barytimes, \
 	    topotimes[i], fobs, obs);
   }
   fprintf(outfile, "topocent %19.13f  0.00  %9.4f  0.000000  %s\n", \
-	  topotimes[N-1] + 100.0 / SECPERDAY, fobs, obs);
+	  topotimes[N-1] + 10.0 / SECPERDAY, fobs, obs);
+  fprintf(outfile, "topocent %19.13f  0.00  %9.4f  0.000000  %s\n", \
+	  topotimes[N-1] + 20.0 / SECPERDAY, fobs, obs);
   fclose(outfile);
 
   /* Call TEMPO */
