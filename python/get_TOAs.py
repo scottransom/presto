@@ -450,21 +450,47 @@ def measure_phase_corr(profile, template, zoom=10):
 
 def usage():
     print """
-usage:  get_TOAs.py [-h, --help] \\
-           [-s numsub, --subbands=numsub] \\
-           [-n numTOAs, --numtoas=numTOAs] \\
-           [-d DM, --dm=DM] \\
-           [-g gausswidth, --gaussian=width] \\
-           [-t templateprof, --template=templateprof] \\
-           [-k list_of_subs, --kill=list_of_subs] \\
-           [-e, --event] pfd_file
+usage:  get_TOAs.py [options which must include -t or -g] pfd_file
+     [-h, --help]                            : Display this help
+     [-s numsub, --subbands=numsub]          : Divide the fold into numsub subbands
+     [-n numTOAs, --numtoas=numTOAs]         : Divide the fold into numTOAs parts
+     [-d DM, --dm=DM]                        : Re-combine subbands at DM
+     [-f, --FFTFITouts]                      : Print the other FFTFIT outputs and errors
+     [-g gausswidth, --gaussian=width]       : Use a Gaussian template of FWHM width
+     [-t templateprof, --template=prof]      : The .bestprof file to use as a template
+     [-k list_of_subs, --kill=list_of_subs]  : List of subbands to ignore
+     [-e, --event]                           : Assume the .pfd file was made with events
+     pfd_file                                : The .pfd file containing the folds
+
+  The program generates TOAs from a .pfd file using Joe Taylor's FFTFIT program. The
+  TOAs are output to STDOUT.  Typically, the .pfd file is created using prepfold with
+  the "-timing" flag and an appropriate .par file on either a topocentric time series
+  or raw telescope data.  But barycentric folds or folds of barycentered events are
+  also acceptable.  The most important thing about the fold, though, is that it
+  must have been made using "-nosearch"! (Note: "-timing" implies "-nosearch")
+  
+  A typical example would be something like:
+      
+      get_TOAs.py -n 30 -t myprof.bestprof -k 0,20-23 myprof.pfd | tail -28 >> good.tim
+      
+  which would extract 30 TOAs (the default number of slices or parts in time for 
+  "prepfold -timing" is 60) from a fold made from some raw radio telescope data.
+  The command would ignore (i.e. zero-out) subbands 0, 20, 21, 22, and 23 (e.g.
+  due to interference) and then ignore the first 2 TOAs with the tail command.
+  
+  If you don't specify "-n", the default number of parts in the fold is assumed, but if
+  you don't specify "-s", all the subbands (if any are present) are integrated together.
+  
+  If you specify the "-f" flag, an additional line of output is displayed for each
+  TOA that shows the "b +/- berr" and "SNR +/- SNRerr" params from FFTFIT.
+  
 """
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hes:n:d:g:t:o:k:e:",
-                                   ["help", "event", "subbands=", "numtoas=",
-                                    "dm=", "gaussian=", "template=",
+        opts, args = getopt.getopt(sys.argv[1:], "hefs:n:d:g:t:o:k:e:",
+                                   ["help", "event", "FFTFITouts", "subbands=", 
+				    "numtoas=", "dm=", "gaussian=", "template=",
                                     "offset=", "kill="])
                                     
     except getopt.GetoptError:
@@ -481,6 +507,7 @@ if __name__ == '__main__':
     numchannels = 1
     numsubbands = 1
     numtoas = 1
+    otherouts = 0
     offset = 0.0
     events = 0
     kill = []
@@ -488,7 +515,9 @@ if __name__ == '__main__':
         if o in ("-h", "--help"):
             usage()
             sys.exit()
-        if o in ("-e", "--event"):
+        if o in ("-f", "--FFTFITouts"):
+	    otherouts = 1
+	if o in ("-e", "--event"):
 	    lowfreq = 0.0
 	    DM = 0.0
 	    events = 1
@@ -653,5 +682,8 @@ if __name__ == '__main__':
 		write_princeton_toa(t0+(tau*p+offset)/SECPERDAY+sumsubdelays[jj],
                                     tau_err*p*1000000.0,
                                     sumsubfreqs[jj], fold_pfd.bestdm, obs=obs)
-            except ValueError, fftfit.error:
+		if (otherouts):
+		    print "FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" % \
+		        (b, errb, snr, esnr)
+	    except ValueError, fftfit.error:
                 pass
