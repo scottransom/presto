@@ -173,8 +173,8 @@ void set_BPP_padvals(float *fpadvals, int good_padvals);
 int compare_findex(const void *ca, const void *cb);
 void calc_BPP_chans(BPP_SEARCH_HEADER *hdr);
 void BPP_hdr_to_inf(BPP_SEARCH_HEADER *hdr, infodata *idata);
-void get_BPP_file_info(FILE *files[], int numfiles, long long *N, 
-		       int *ptsperblock, int *numchan, double *dt, 
+void get_BPP_file_info(FILE *files[], int numfiles, float clipsig, 
+		       long long *N, int *ptsperblock, int *numchan, double *dt, 
 		       double *T, infodata *idata, int output);
 void BPP_update_infodata(int numfiles, infodata *idata);
 int skip_to_BPP_rec(FILE *infiles[], int numfiles, int rec);

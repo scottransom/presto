@@ -25,14 +25,16 @@ typedef struct s_Cmdline {
   int ifsC;
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   char wappP;
-  /***** -clip: For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipping is performed. */
-  char clipP;
-  float clip;
-  int clipC;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;
   int numwappsC;
+  /***** -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default */
+  char clipP;
+  float clip;
+  int clipC;
+  /***** -noclip: Do not clip the data.  (The default is to _always_ clip!) */
+  char noclipP;
   /***** -sub: Write subbands instead of de-dispersed data */
   char subP;
   /***** -subdm: The DM to use when de-dispersing subbands for -sub */

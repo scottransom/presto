@@ -89,6 +89,10 @@ void davg_dvar(double *x, int n, double *mean, double *var);
 /* For a double vector, *x, of length n, this routine  */
 /* returns the mean and variance of *x.                */
 
+inline void update_stats(int N, double x, double *min, double *max,
+			 double *avg, double *var);
+/* Update time series statistics using one-pass technique */
+
 void ra_dec_to_string(char *radec, int h_or_d, int m, double s);
 /* Return a properly formatted string containing RA or DEC values   */
 /*   radec is a string with J2000 RA  in the format 'hh:mm:ss.ssss' */

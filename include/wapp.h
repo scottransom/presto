@@ -106,8 +106,7 @@ typedef struct WAPP_HEADERv234{
 } WAPP_HEADERv234;
 
 /* wapp.c */
-int new_clip_times(unsigned char *rawpows);
-int clip_times(unsigned char *rawpows);
+void set_WAPP_padvals(float *fpadvals, int good_padvals);
 void print_WAPP_hdr(char *hdr);
 int read_WAPP_rawblock(FILE *infiles[], int numfiles, unsigned char *data, 
 		       int *padding);

@@ -1408,3 +1408,23 @@ short transpose_float(float *a, int nx, int ny, unsigned char *move,
  * 
  * Note: move[i] will stay zero for fixed points.
  */
+
+/* NEW Clipping Routine (uses channel running averages) */
+int new_clip_times(unsigned char *rawdata, int ptsperblk, int numchan, 
+		   float clip_sigma, unsigned char *good_chan_levels);
+/* Perform time-domain clipping of rawdata.   This is a 2D   */
+/* array with ptsperblk*numchan points, each of which is an  */
+/* unsigned char.  The clipping is done at clip_sigma sigma  */
+/* above/below the running mean.  The up-to-date running     */
+/* averages of the channels are returned in good_chan_levels */
+/* (which must be pre-allocated).                            */
+
+/* Old Clipping Routine (uses channel medians) */
+int clip_times(unsigned char *rawdata, int ptsperblk, int numchan, 
+	       float clip_sigma, unsigned char *good_chan_levels);
+/* Perform time-domain clipping of rawdata.   This is a 2D   */
+/* array with ptsperblk*numchan points, each of which is an  */
+/* unsigned char.  The clipping is done at clip_sigma sigma  */
+/* above/below the running mean.  The up-to-date running     */
+/* averages of the channels are returned in good_chan_levels */
+/* (which must be pre-allocated).                            */
