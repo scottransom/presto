@@ -7,7 +7,7 @@
 /* time between correlator dumps in us */
 #define WAPP_DEADTIME 0.34
 /* Maximum number of lags we can have per WAPP */
-#define WAPP_MAXLAGS 512
+#define WAPP_MAXLAGS 1024
 /* Maximum data block length in bytes */
 #define WAPP_MAXDATLEN WAPP_MAXPTSPERBLOCK*WAPP_MAXLAGS*WAPP_MAXNUMWAPPS
 /* Maximum block length in bytes for the raw lags */

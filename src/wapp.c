@@ -376,6 +376,10 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   WAPP_hdr_to_inf(hdr, idata);
   for (ii=1; ii<numwapps_st; ii++)
     center_freqs_st[ii] = center_freqs_st[0]+ii*idata->freqband;
+  if (center_freqs_st[ii] < 400.0){
+    decreasing_freqs_st = 1;
+    printf("Inverting the band...\n");
+  }
   /* Are we going to clip the data? */
   if (clipsig > 0.0)
     clip_sigma_st = clipsig;
@@ -392,13 +396,13 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   bytesperpt_st = (numwappchan_st * numifs_st * bits_per_samp_st) / 8;
   numpts_st[0] = filedatalen_st[0] / bytesperpt_st;
   if (filedatalen_st[0] % bytesperpt_st)
-    printf("\n\nWARNING!!!:\n\t"
+    printf("\nWARNING!!!:\n\t"
 	   "File 0 has a non-integer number of complete samples!\n\n");
   ptsperblk_st = WAPP_MAXPTSPERBLOCK;
   while (numpts_st[0] % ptsperblk_st) ptsperblk_st /= 2;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   if (filedatalen_st[0] % bytesperblk_st)
-    printf("\n\nWARNING!!!:\n\t"
+    printf("\nWARNING!!!:\n\t"
 	   "File 0 has a non-integer number of complete blocks!\n\n");
   *ptsperblock = ptsperblk_st;
   sampperblk_st = ptsperblk_st * numchan_st;
@@ -407,6 +411,9 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   dtus_st = idata_st[0].dt * 1000000.0;
   corr_rate_st = 1.0 / (dtus_st - WAPP_DEADTIME);
   corr_scale_st = corr_rate_st / idata->freqband;
+  /* Correction for narrow band use */
+  if (idata->freqband < 50.0)
+    corr_scale_st = corr_rate_st / 50.0;
   if (corr_level_st==9) /* 9-level sampling */
     corr_scale_st /= 16.0;
   if (header_version_st==1){
@@ -416,6 +423,10 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
     if (hdr234->sum) /* summed IFs (search mode) */
       corr_scale_st /= 2.0;
   }
+  if (header_version_st==1)
+    corr_scale_st*pow(2.0,(double)hdr1->lagtrunc);
+  else
+    corr_scale_st*pow(2.0,(double)hdr234->lagtrunc);
   idata->freqband *= numwapps_st;
   idata->num_chan *= numwapps_st;
   dt_st = *dt = idata_st[0].dt;
