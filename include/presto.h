@@ -55,6 +55,8 @@
 #endif
 /* Maximum number of input files to try and patch together */
 #define MAXPATCHFILES 100
+/* Blocksize to use when reading datafiles or subbands */
+#define SUBSBLOCKLEN 1024
 
 /* various function-like macros */
 

@@ -113,6 +113,26 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan)
 }
 
 
+int read_subbands(FILE *infiles[], int numfiles, float *subbanddata)
+/* Read short int subband data written by prepsubband     */
+/* Note:  This version returns a transpose of the version */
+/*        listed in prepsubband.c                         */
+{
+  int ii, jj, index, numread=0;
+  short subsdata[SUBSBLOCKLEN];
+
+  for (ii=0; ii<numfiles; ii++){
+    index = ii*SUBSBLOCKLEN;
+    numread = chkfread(subsdata, sizeof(short), SUBSBLOCKLEN, infiles[ii]);
+    for (jj=0; jj<numread; jj++, index++)
+      subbanddata[index] = (float)subsdata[jj];
+    for (jj=numread; jj<SUBSBLOCKLEN; jj++, index++)
+      subbanddata[index] = 0.0;
+  }
+  return numread;
+}
+
+
 double *read_events(FILE *infile, int bin, int days, int *numevents,
 		    double MJD0, double Ttot, double startfrac, double endfrac, 
 		    double offset)

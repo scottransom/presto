@@ -8,7 +8,6 @@
 #include "wapp.h"
 
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP)
-#define SUBSBLOCKLEN 1000
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -847,6 +846,7 @@ static void write_padding(FILE *outfiles[], int numfiles, float value,
 
 static int read_subbands(FILE *infiles[], int numfiles, 
 			 float *subbanddata)
+/* Read short int subband data written by prepsubband */
 {
   int ii, jj, index, numread=0;
   short subsdata[SUBSBLOCKLEN];

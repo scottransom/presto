@@ -79,6 +79,9 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan);
 /* The equivalent floats are placed in *data.               */
 /* It returns the number of points read.                    */
 
+int read_subbands(FILE *infiles[], int numfiles, float *subbanddata);
+/* Read short int subband data written by prepsubband */
+
 double *read_events(FILE *infile, int bin, int days, int *numevents,
 		    double MJD0, double Ttot, double startfrac, double endfrac, 
 		    double offset);
