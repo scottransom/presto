@@ -1,0 +1,37 @@
+# @ environment = "LL_JOB=TRUE"
+# @ initialdir = /u/user4/ransom
+# @ job_type = parallel
+# @ comment = protect_hsm
+# @ min_processors = 40
+# @ environment = COPY_ALL
+# @ notification = always
+# @ notify_user = ransom@cfa.harvard.edu
+# @ error = montebinresp.err
+# @ output = montebinresp.out
+# @ wall_clock_limit = 11:00:00
+# @ queue
+# --------------------------------------------------------------------
+tokens
+set echo
+date
+setenv MP_NEWJOB yes
+setenv MP_STDINMODE none
+setenv HOMEDIR "/afs/theory.cornell.edu/user/user4/ransom"
+setenv SCRATCH "/tmp/scratch/ransom"
+set spnodes = `echo $LOADL_PROCESSOR_LIST`
+set counter = 0
+  foreach node ( ${spnodes} )
+    rsh ${node} mkdir -p $SCRATCH
+      set node$counter = $node
+      @ counter++
+  end
+setenv NODEZERO $node0
+cd $SCRATCH
+poe << EOF
+pwd
+mcp $HOMEDIR/bin/parpython parpython
+mcp $HOMEDIR/montebinresp.py montebinresp.py
+./parpython montebinresp.py
+rm -f parpython montebinresp.py
+cp *.out $HOMEDIR
+EOF
