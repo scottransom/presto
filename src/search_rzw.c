@@ -96,7 +96,8 @@ int main(int argc, char *argv[])
 
   readinf(&idata, cmd->argv[0]);
   if (idata.object) {
-    printf("Analyzing %s data from '%s'.\n\n", idata.object, filenm);
+    printf("Analyzing '%s' data from '%s'.\n\n", 
+	   remove_whitespace(idata.object), filenm);
   } else {
     printf("Analyzing data from '%s'.\n\n", filenm);
   }

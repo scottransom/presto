@@ -18,7 +18,7 @@ static double amotry(double p[3][2], double *y, double *psum,
 void amoeba(double p[3][2], double *y, double ftol,
 	    double (*funk)(double []), int *nfunk)
 {
-  int ii, ihi, ilo, inhi, jj;
+  int ii, ihi, ilo, inhi;
   double rtol, ysave, ytry, psum[2], tempzz;
   
   *nfunk = 0;
@@ -45,8 +45,11 @@ void amoeba(double p[3][2], double *y, double ftol,
       break;
     }
     if (*nfunk >= 5000){
-      printf("\n Max # of iterations exceeded in amoeba().  Exiting.\n\n");
-      exit(1);
+      /*
+      printf("\nWarning:  amoeba() exceeded %d iterations for r=%f  z=%f.\n",
+	     *nfunk, p[0][0], p[0][1]);
+      */
+      return;
     }
     *nfunk += 2;
     ytry = amotry(p, y, psum, funk, ihi, -1.0);
@@ -56,10 +59,10 @@ void amoeba(double p[3][2], double *y, double ftol,
       ysave = y[ihi];
       ytry = amotry(p, y, psum, funk, ihi, 0.5);
       if (ytry >= ysave) {
-	for (ii=0; ii<3; ii++) {
+	for (ii=0; ii<=2; ii++) {
 	  if (ii != ilo) {
-	    for (jj=0; jj<2; jj++)
-	      p[ii][jj] = psum[jj] = 0.5 * (p[ii][jj] + p[ilo][jj]);
+	    p[ii][0] = psum[0] = 0.5 * (p[ii][0] + p[ilo][0]);
+	    p[ii][1] = psum[1] = 0.5 * (p[ii][1] + p[ilo][1]);
 	    y[ii] = (*funk)(psum);
 	  }
 	}

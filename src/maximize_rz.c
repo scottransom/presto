@@ -28,7 +28,7 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin,
 {
   double y[3], x[3][2], step=0.4;
   float locpow;
-  int numeval=0;
+  int numeval;
 
   maxdata = data;
   nummaxdata = numdata;
@@ -59,6 +59,7 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin,
 
   /* Call the solver: */
 
+  numeval = 0;
   amoeba(x, y, 1.0e-7, power_call_rz, &numeval);
 
   /*  Restart at minimum using HIGHACC to get a better result */
@@ -80,6 +81,7 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin,
 
   /* Call the solver: */
 
+  numeval = 0;
   amoeba(x, y, 1.0e-10, power_call_rz, &numeval);
 
   /* The following calculates derivatives at the peak           */
