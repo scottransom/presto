@@ -324,8 +324,8 @@ clean:
 	rm -f *.o *~ *#
 
 cleaner:  clean
-	rm -f makedata makeinf mjd2cal realfft timetest cal2mjd
-	rm -f quicklook search_bin search_rzw swap_endian        
+	rm -f makedata makeinf mjd2cal realfft timetest cal2mjd plotdat
+	rm -f quicklook search_bin search_rzw swap_endian plotfft
 	rm -f prepdata prepfold check_parkes_raw bary toas2dat
 	rm -f shiftdata patchdata readfile psrorbit window       
 	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
@@ -350,4 +350,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
 	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
 	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles accelsearch
-	cd $(PRESTO)/bin ; rm -f prepsubband
+	cd $(PRESTO)/bin ; rm -f prepsubband plotdat plotfft
