@@ -31,19 +31,15 @@ void split_path_file(char *input, char **path, char **file)
       exit(1);
     }
     pathlen = strlen(stmp);
-    *path = (char *)malloc(pathlen+1);
-    (*path)[pathlen] = '\0';
-    *file = (char *)malloc(len+1);
-    (*file)[len] = '\0';
+    *path = (char *)calloc(pathlen+1, sizeof(char));
+    *file = (char *)calloc(len+1, sizeof(char));
     strcpy(*path, stmp);
     strncpy(*file, input, len);
   } else {
     pathlen = sptr - input;
     filelen = len - pathlen - 1;
-    *path = (char *)malloc(pathlen+1);
-    (*path)[pathlen] = '\0';
-    *file = (char *)malloc(filelen+1);
-    (*file)[filelen] = '\0';
+    *path = (char *)calloc(pathlen+1, sizeof(char));
+    *file = (char *)calloc(filelen+1, sizeof(char));
     strncpy(*path, input, pathlen);
     strncpy(*file, sptr+1, filelen);
   }
@@ -62,18 +58,16 @@ int split_root_suffix(char *input, char **root, char **suffix)
   len = strlen(input);
   sptr = strrchr(input, '.');
   if (sptr==NULL){
-    *root = (char *)malloc(len+1);
+    *root = (char *)calloc(len+1, sizeof(char));
     (*root)[len] = '\0';
     strncpy(*root, input, len);
     return 0;
   } else {
     rootlen = sptr - input;
-    *root = (char *)malloc(rootlen+1);
-    (*root)[rootlen] = '\0';
+    *root = (char *)calloc(rootlen+1, sizeof(char));
     strncpy(*root, input, rootlen);
     suffixlen = len - rootlen - 1;
-    *suffix = (char *)malloc(suffixlen+1);
-    (*suffix)[suffixlen] = '\0';
+    *suffix = (char *)calloc(suffixlen+1, sizeof(char));
     strncpy(*suffix, sptr+1, suffixlen);
     return 1;
   }

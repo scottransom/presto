@@ -39,7 +39,7 @@ LIBSUFFIX = so
 PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 
 # Use the following if we are using DMALLOC
-DMALLOCLINK = -ldmalloc
+#DMALLOCLINK = -ldmalloc
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
@@ -49,7 +49,8 @@ CC = gcc
 F77 = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -ansi -pedantic -Wall -W -O -fpic -DUSEDMALLOC
+	-g -ansi -pedantic -Wall -W -O -fpic
+#-DUSEDMALLOC
 #	-Dinline= -Wmissing-prototypes \
 #	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \
@@ -241,8 +242,8 @@ prepdata: prepdata.o prepdata_cmd.o multibeam.o
 	$(CC) $(CFLAGS) -o $@ prepdata.o prepdata_cmd.o multibeam.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
-prepfold: prepfold.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS)
-	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+prepfold: prepfold.o prepfold_utils.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS)
+	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_utils.o prepfold_cmd.o multibeam.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 	cp $@ ../bin
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)

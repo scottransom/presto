@@ -1,124 +1,33 @@
-#include "presto.h"
-#include "plot2d.h"
-#include "prepfold_cmd.h"
-#include "multibeam.h"
+#include "prepfold.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
 
-/* This causes the barycentric motion to be calculated once per second */
-
-#define TDT 10.0
-
-/* Simple linear interpolation macro */
-#define LININTERP(X, xlo, xhi, ylo, yhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
-
-/* Some function definitions */
-
-int (*readrec_ptr)(FILE * infile, float *data, int numpts,
-		   double *dispdelays, int numsubbands, int numchan);
-int read_resid_rec(FILE * file, double *toa, double *obsf);
-int read_floats(FILE * file, float *data, int numpts,
-		double *dispdelays, int numsubbands, int numchan);
-void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
-int dgels_(char *trans, int *mm, int *nn, int *nrhs, 
-	   double *aa, int *lda, double *bb, int *ldb, 
-	   double *work, int *lwork, int *info);
-
-double calc_phase(double t, double f, double fd, double fdd)
-/* Calculate the instantaneout phase at time t given f, fd and fdd */
-{
-  return t * (f + t * (0.5 * fd  + fdd / 6.0 * t));
-}
-
-int bary2topo(double *topotimes, double *barytimes, int numtimes, 
-	      double fb, double fbd, double fbdd, 
-	      double *ft, double *ftd, double *ftdd)
-/* Convert a set of barycentric pulsar spin parameters (fb, fbd, fbdd) */
-/* into topocentric spin parameters (ft, ftd, ftdd) by performing      */
-/* a linear least-squares fit (using LAPACK routine DGELS).  The       */
-/* routine equates the pulse phase using topcentric parameters and     */
-/* times to the pulse phase using barycentric parameters and times.    */
-{
-  double *work, *aa, *bb, dtmp;
-  int ii, mm=3, nn, nrhs=1, lwork, info, index;
-  char trans='T';
-
-  if (numtimes < 4){
-    printf("\n'numtimes' < 4 in bary2topo():  Cannot solve.\n\n");
-    exit(0);
-  }
-  nn = numtimes; 
-  lwork = mm + nn * 9;
-  aa = gen_dvect(mm * nn);
-  bb = gen_dvect(nn);
-  work = gen_dvect(lwork);
-  for (ii = 0; ii < nn; ii++){
-    index = ii * 3;
-    dtmp = (topotimes[ii] - topotimes[0]) * SECPERDAY;
-    aa[index] = dtmp;
-    aa[index+1] = dtmp * dtmp;
-    aa[index+2] = dtmp * dtmp * dtmp;
-    dtmp = (barytimes[ii] - barytimes[0]) * SECPERDAY;
-    bb[ii] = dtmp * (fb + dtmp * (0.5 * fbd + fbdd * dtmp / 6.0));
-  }
-  dgels_(&trans, &mm, &nn, &nrhs, aa, &mm, bb, &nn, work, &lwork, &info);
-  *ft = bb[0];
-  *ftd = bb[1];
-  *ftdd = bb[2];
-  free(aa);
-  free(bb);
-  free(work);
-  return info;
-}
-
-
-void quick_plot(double *data, int numdata)
-{
-  int ii;
-  double *phases;
-
-  phases = gen_dvect(numdata);
-  for (ii=0; ii<numdata; ii++)
-    phases[ii] = ii / (double) numdata;
-  cpgstart_x("landscape");
-  dxyline(numdata, phases, data, "Profile Phase", "Intensity", 1);
-  cpgend();
-  free(phases);
-}
-
-/* The main program */
+/* 
+ * The main program 
+ */
 
 int main(int argc, char *argv[])
 {
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
-  double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
-  double bestdm=0.0, bestp=0.0, bestpd=0.0;
-  double difft, tt, recdt=0.0, *dispdts=NULL;
-  double *periods, *pdots, *parttimes, *dms=NULL, *bestprof;
-  double orb_baryepoch=0.0, topoepoch=0.0, baryepoch=0.0, barydispdt;
-  double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
-  double N=0.0, dt=0.0, T=0.0, endtime=0.0, dtdays, avgvoverc=0.0;
-  double *voverc=NULL, *obsf=NULL, foldf=0.0, foldfd=0.0, foldfdd=0.0;
-  double *profs=NULL, *barytimes=NULL, *topotimes=NULL, proftime;
-  char obs[3], ephem[10], *outfilenm, *rootfilenm;
-  char pname[30], rastring[50], decstring[50], *cptr;
-  int numchan=1, binary=0, np, pnum, numdelays=0;
-  int info, slen, ptsperrec=1, flags=1;
-  long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part=0;
-  long totnumfolded=0, lorec=0, hirec=0;
-  long numbinpoints=0, proflen, currentrec=0;
+  double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
+  double dtmp, recdt=0.0, orb_baryepoch=0.0, barydispdt;
+  double N=0.0, T=0.0, endtime=0.0, avgvoverc=0.0, proftime;
+  double *obsf=NULL, *dispdts=NULL, *parttimes, *Ep=NULL, *tp=NULL;
+  double *barytimes=NULL, *topotimes=NULL;
+  char *plotfilenm, *outfilenm, *rootnm;
+  char obs[3], ephem[6], pname[30], rastring[50], decstring[50];
+  int numchan=1, binary=0, numdelays=0, numbarypts=0;
+  int info, ptsperrec=1, flags=1;
+  long ii, jj, kk, worklen=0, numread=0, reads_per_part=0;
+  long totnumfolded=0, lorec=0, hirec=0, numbinpoints=0, currentrec=0;
   unsigned long numrec=0, arrayoffset=0;
-  multibeam_tapehdr hdr;
-  fourierprops rzwcand;
-  orbitparams orb;
-  psrparams psr;
-  psrdatabase pdata;
-  infodata idata, rzwidata;
+  infodata idata;
+  foldstats beststats;
+  prepfoldinfo search;
   Cmdline *cmd;
-  foldstats *stats, beststats;
 
   /* Call usage() if we have no command line arguments */
 
@@ -139,46 +48,93 @@ int main(int argc, char *argv[])
   printf("        Pulsar Raw-Data Folding Search Routine\n");
   printf(" Used for DM and/or period determination of PSR candidates.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("                    23 Dec, 1999\n\n");
+  printf("                     12 Jan 2000\n\n");
 
-  /* Determine the root input file name and the input info file name */
+  init_prepfoldinfo(&search);
 
-  cptr = strrchr(cmd->argv[0], '.');
-  if (cptr==NULL){
-    printf("\nThe input filename (%s) must have a suffix!\n\n", 
-	   cmd->argv[0]);
-    exit(1);
-  }
-  slen = cptr - cmd->argv[0];
-  rootfilenm = (char *)malloc(slen+1);
-  rootfilenm[slen] = '\0';
-  strncpy(rootfilenm, cmd->argv[0], slen);
-  if (!cmd->pkmbP && !cmd->ebppP){
-    printf("Reading input data from '%s'\n", cmd->argv[0]);
-    printf("Reading information from '%s.inf'\n\n", rootfilenm);
+  /* Manipulate the file names we will use  */
 
-    /* Read the info file if available */
+  {
+    char *path, *root, *suffix;
+    int slen;
 
-    readinf(&idata, rootfilenm);
-  } else if (cmd->pkmbP){
-    printf("Reading Parkes Multibeam data from '%s'\n\n", 
-	   cmd->argv[0]);
-  } else if (cmd->pkmbP){
-    printf("Reading New Effelsberg PSR data from '%s'\n\n", 
-	   cmd->argv[0]);
+    /* Split argv[0] into a path and a file name */
+
+    split_path_file(cmd->argv[0], &path, &search.filenm);
+    free(path);
+
+    /* Split the filename into a rootname and a suffix */
+
+    if (split_root_suffix(search.filenm, &root, &suffix)==0){
+      printf("\nThe input filename (%s) must have a suffix!\n\n", 
+	     search.filenm);
+      free(search.filenm);
+      exit(1);
+    }
+    free(suffix);
+
+    /* Split argv[0] into a rootname and a suffix */
+
+    split_root_suffix(cmd->argv[0], &rootnm, &suffix);
+    free(suffix);
+
+    if (!cmd->pkmbP && !cmd->ebppP){
+      printf("Reading input data from '%s'\n", search.filenm);
+      printf("Reading information from '%s.inf'\n\n", root);
+      
+      /* Read the info file if available */
+      
+      readinf(&idata, rootnm);
+    } else if (cmd->pkmbP){
+      printf("Reading Parkes Multibeam data from '%s'\n\n", 
+	     search.filenm);
+    } else if (cmd->ebppP){
+      printf("Reading New Effelsberg PSR data from '%s'\n\n", 
+	     search.filenm);
+    }
+    free(root);
+
+    /* Determine the candidate name */
+    
+    if (cmd->psrnameP){
+      slen = strlen(cmd->psrname) + 5;
+      search.candnm = (char *)calloc(slen, sizeof(char));
+      sprintf(search.candnm, "PSR_%s", cmd->psrname);
+    } else if (cmd->rzwcandP) {						
+      slen = 20;
+      search.candnm = (char *)calloc(slen, sizeof(char));
+      sprintf(search.candnm, "RZW_Cand_%d", cmd->rzwcand);
+    } else {
+      slen = 20;
+      search.candnm = (char *)calloc(slen, sizeof(char));
+      if (cmd->pP)
+	sprintf(search.candnm, "%.2fms_Cand", cmd->p / 1000.0);
+      else if (cmd->fP)
+	sprintf(search.candnm, "%.2fHz_Cand", cmd->f);
+      else {
+	printf("\nYou must specify candidate parameters (i.e period).\n\n");
+	exit(1);
+      }
+    }
+
+    /* Determine the output and plot file names */
+    
+    slen = strlen(rootnm) + strlen(search.candnm) + 5;
+    outfilenm = (char *)calloc(slen, sizeof(char));
+    sprintf(outfilenm, "%s_%s.msv", rootnm, search.candnm);
+    plotfilenm = (char *)calloc(slen, sizeof(char));
+    sprintf(plotfilenm, "%s_%s.ps", rootnm, search.candnm);
+    search.pgdev = (char *)calloc(slen+5, sizeof(char));
+    sprintf(search.pgdev, "%s/CPS", plotfilenm);
+    printf("Folding a %s candidate.\n\n", search.candnm);
+    printf("Output data file is '%s'.\n", outfilenm);
+    printf("Output plot file is '%s'.\n", plotfilenm);
   }
 
   /* Open the raw data file */
-
+  
   infile = chkfopen(cmd->argv[0], "rb");
-
-  /* Determine the output file name */
-
-  slen = strlen(rootfilenm)+5;
-  outfilenm = (char *)malloc(slen);
-  outfilenm[slen-1] = '\0';
-  sprintf(outfilenm, "%s.msv", rootfilenm);
-
+    
   /* What ephemeris will we use?  (Default is DE200) */
   
   if (cmd->de405P)
@@ -189,6 +145,7 @@ int main(int argc, char *argv[])
   /* Set-up values if we are using the Parkes Multibeam System */
 
   if (cmd->pkmbP){
+    multibeam_tapehdr hdr;
 
     /* Read the first header file and generate an infofile from it */
 
@@ -196,12 +153,6 @@ int main(int argc, char *argv[])
     rewind(infile);
     multibeam_hdr_to_inf(&hdr, &idata);
     idata.dm = cmd->dm;
-    if (idata.object) {						
-      printf("Folding a %s candidate from '%s'.\n", \
-	     idata.object, cmd->argv[0]);
-    } else {
-      printf("Folding a candidate from '%s'.\n", cmd->argv[0]);
-    }
 
     /* Some information about the size of the records */
 
@@ -211,6 +162,8 @@ int main(int argc, char *argv[])
     /* OBS code for TEMPO */
 
     strcpy(obs, "PK");
+    search.telescope = (char *)calloc(20, sizeof(char));
+    strcpy(search.telescope, "Parkes Multibeam");
 
     /* Define the RA and DEC of the observation */
   
@@ -219,9 +172,8 @@ int main(int argc, char *argv[])
 
     /* Define some variables */
 
-    dt = idata.dt;
-    dtdays = idata.dt / SECPERDAY;
-    recdt = dt * ptsperrec;
+    search.dt = idata.dt;
+    recdt = search.dt * ptsperrec;
 
     /* Determine the number of records to use from the command line */
 
@@ -240,14 +192,14 @@ int main(int argc, char *argv[])
     numrec = reads_per_part * cmd->npart;
     T = numrec * recdt;
     N = numrec * ptsperrec;
-    endtime = T + 2 * TDT;
+    endtime = T + TDT;
 
     /* Topocentric and barycentric times of folding epoch data */
 
     if (idata.mjd_i && idata.mjd_f) {
-      topoepoch = (double) idata.mjd_i + idata.mjd_f + 
+      search.tepoch = (double) idata.mjd_i + idata.mjd_f + 
 	lorec * recdt / SECPERDAY;
-      barycenter(&topoepoch, &baryepoch, &dtmp, 1, rastring,
+      barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
 		 decstring, obs, ephem);
 
       /* Correct the barycentric time for the dispersion delay.     */
@@ -255,7 +207,7 @@ int main(int argc, char *argv[])
 
       barydispdt = delay_from_dm(cmd->dm, idata.freq + 
 				 (idata.num_chan - 1) * idata.chan_wid);
-      baryepoch -= (barydispdt / SECPERDAY);
+      search.bepoch -= (barydispdt / SECPERDAY);
     }
 
     /* The data collection routine to use */
@@ -286,28 +238,20 @@ int main(int argc, char *argv[])
     /* OBS code for TEMPO */
 
     strcpy(obs, "EF");
+    search.telescope = (char *)calloc(20, sizeof(char));
+    strcpy(search.telescope, "Effelsberg");
   }
 
   /* Raw floating point data (already de-dispersed if radio data) */
 
   if (!cmd->ebppP && !cmd->pkmbP){
 
-    /* Read the first header file and generate an infofile from it */
-
-    if (idata.object) {
-      printf("Folding a %s candidate from '%s'.\n", \
-	     idata.object, cmd->argv[0]);
-    } else {
-      printf("Folding a candidate from '%s'.\n", cmd->argv[0]);
-    }
-
     /* Some information about the size of the records */
 
     cmd->nsub = 1;
     numchan = 1;
     worklen = 1024;
-    dt = idata.dt;
-    dtdays = idata.dt / SECPERDAY;
+    search.dt = idata.dt;
     N = chkfilelen(infile, sizeof(float));
 
     /* Determine the number of records to use from the command line */
@@ -327,18 +271,25 @@ int main(int argc, char *argv[])
 
     numrec = reads_per_part * cmd->npart;
     N = numrec * worklen;
-    T = N * dt;
-    endtime = T + 2 * TDT;
+    T = N * search.dt;
+    endtime = T + TDT;
 
     if (cmd->nobaryP){
-      if (idata.mjd_i && idata.mjd_f)
-	baryepoch = (double) idata.mjd_i + 
-	  idata.mjd_f + lorec * dt / SECPERDAY;
+      if (idata.mjd_i && idata.mjd_f){
+	if (idata.bary)
+	  search.bepoch = (double) idata.mjd_i + 
+	    idata.mjd_f + lorec * search.dt / SECPERDAY;
+	else
+	  search.tepoch = (double) idata.mjd_i + 
+	    idata.mjd_f + lorec * search.dt / SECPERDAY;
+      }
     } else {
       
       /* OBS code for TEMPO */
       
       strcpy(obs, "PK");
+      search.telescope = (char *)calloc(20, sizeof(char));
+      strcpy(search.telescope, "Parkes Assumed");
       
       /* Define the RA and DEC of the observation */
       
@@ -348,17 +299,21 @@ int main(int argc, char *argv[])
       /* Topocentric and barycentric times of folding epoch data */
       
       if (idata.mjd_i && idata.mjd_f) {
-	topoepoch = (double) idata.mjd_i + 
-	  idata.mjd_f + lorec * dt / SECPERDAY;
-	barycenter(&topoepoch, &baryepoch, &dtmp, 1, rastring,
+	search.tepoch = (double) idata.mjd_i + 
+	  idata.mjd_f + lorec * search.dt / SECPERDAY;
+	barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
 		   decstring, obs, ephem);
 
-      /* Correct the barycentric time for the dispersion delay.     */
-      /* This converts the barycentric time to infinite frequency.  */
+	if (!strcmp(idata.band, "Radio")) {
 
-	barydispdt = delay_from_dm(idata.dm, idata.freq + 
-				   (idata.num_chan - 1) * idata.chan_wid);
-	baryepoch -= (barydispdt / SECPERDAY);
+	  /* Correct the barycentric time for the dispersion delay.    */
+	  /* This converts the barycentric time to infinite frequency. */
+
+	  barydispdt = delay_from_dm(idata.dm, idata.freq + 
+				     (idata.num_chan - 1) * 
+				     idata.chan_wid);
+	  search.bepoch -= (barydispdt / SECPERDAY);
+	}
       }
     }
 
@@ -370,19 +325,29 @@ int main(int argc, char *argv[])
   /* Read the pulsar database if needed */
 
   if (cmd->psrnameP) {
+    int np, pnum;
+    psrparams psr;
+    psrdatabase pdata;
+
     np = read_database(&pdata);
-    pnum = get_psr_at_epoch(cmd->psrname, baryepoch, &pdata, &psr);
+    if (search.bepoch==0.0){
+      printf("\nYou must not use the '-nobary' flag if you want to\n");
+      printf("access the pulsar database.  Exiting.\n\n");
+      exit(1);
+    }
+    pnum = get_psr_at_epoch(cmd->psrname, search.bepoch, &pdata, &psr);
     if (!pnum) {
       printf("The pulsar is not in the database.  Exiting.\n\n");
       exit(1);
     }
     if (psr.ntype & 8){  /* Checks if the pulsar is in a binary */
       binary = 1;
-      orb = psr.orb;
+      search.orb = psr.orb;
       orb_baryepoch = psr.orb.t / SECPERDAY;
     }
-    p = psr.p;
-    pd = psr.pd;
+    search.bary.p1 = psr.p;
+    search.bary.p2 = psr.pd;
+    search.bary.p3 = psr.pdd;
     f = psr.f;
     fd = psr.fd;
     fdd = psr.fdd;
@@ -395,27 +360,32 @@ int main(int argc, char *argv[])
     /* Assume that the psr characteristics were measured at the time */
     /* of periastron passage (cmd->To)                               */
     
-    difft = SECPERDAY * (baryepoch - cmd->To);				
-    orb.p = cmd->pb;							
-    orb.x = cmd->asinic;						
-    orb.e = cmd->e;							
-    orb.t = fmod(difft, orb.p);					
-    if (orb.t < 0.0)							
-      orb.t += orb.p;							
-    orb.w = (cmd->w + difft * cmd->wdot / SECPERJULYR);		
+    if (search.bepoch==0.0)
+      dtmp = SECPERDAY * (search.tepoch - cmd->To);
+    else 
+      dtmp = SECPERDAY * (search.bepoch - cmd->To);
+    search.orb.p = cmd->pb;
+    search.orb.x = cmd->asinic;
+    search.orb.e = cmd->e;
+    search.orb.t = fmod(dtmp, search.orb.p);
+    if (search.orb.t < 0.0)
+      search.orb.t += search.orb.p;
+    search.orb.w = (cmd->w + dtmp * cmd->wdot / SECPERJULYR);
     binary = 1;
-    
-  } else if (cmd->rzwcandP) {						
 
-    if (!cmd->rzwfileP) {						
-      printf("\nYou must enter a name for the rzw candidate ");	
-      printf("file (-rzwfile filename)\n");				
-      printf("Exiting.\n\n");						
-      exit(1);							
+  } else if (cmd->rzwcandP) {
+    fourierprops rzwcand;
+    infodata rzwidata;
+    char *cptr;
+
+    if (!cmd->rzwfileP) {					
+      printf("\nYou must enter a name for the rzw candidate ");
+      printf("file (-rzwfile filename)\n");
+      printf("Exiting.\n\n");
+      exit(1);
     } else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))){
       ii = (long) (cptr - cmd->rzwfile);
-      cptr = (char *)malloc(ii + 1);
-      cptr[ii] = '\0';
+      cptr = (char *)calloc(ii + 1, sizeof(char));
       strncpy(cptr, cmd->rzwfile, ii);
       fprintf(stderr, "\nAttempting to read '%s.inf'.  ", cptr);
       readinf(&rzwidata, cptr);
@@ -433,20 +403,26 @@ int main(int argc, char *argv[])
       if (cmd->pkmbP)
 	f += lorec * recdt * fd;
       else if (!cmd->pkmbP && !cmd->ebppP)
-	f += lorec * dt * fd;
-      p = 1.0 / f;
-      pd = -fd / (f * f);
+	f += lorec * search.dt * fd;
+      if (rzwidata.bary){
+	search.bary.p1 = 1.0 / f;
+	search.bary.p2  = -fd / (f * f);
+      } else {
+	search.topo.p1 = 1.0 / f;
+	search.topo.p2  = -fd / (f * f);
+      }
     } else {
       printf("\nCould not read the rzwfile.\nExiting.\n\n");
       exit(1);
     }
-
+    if (rzwidata.onoff) free(idata.onoff);
   }
   
   /* Determine the pulsar parameters to fold if we are not getting   */
   /* the data from a .cand file, the pulsar database, or a makefile. */
   
   if (!cmd->rzwcandP && !cmd->psrnameP) {
+    double p=0.0, pd=0.0, pdd=0.0;
 
     if (cmd->pP) {
       p = cmd->p;
@@ -474,36 +450,50 @@ int main(int argc, char *argv[])
       pdd = 2 * fd * fd / (f * f * f) - 
 	fdd / (f * f);
     }
+    if (idata.bary){
+      search.bary.p1 = p;
+      search.bary.p2 = pd;
+      search.bary.p3 = pdd;
+    } else {
+      search.topo.p1 = p;
+      search.topo.p2 = pd;
+      search.topo.p3 = pdd;
+    }
   }
   
   /* Determine the length of the profile */				
   
   if (cmd->proflenP)
-    proflen = cmd->proflen;
+    search.proflen = cmd->proflen;
   else
-    proflen = (long) (p / dt + 0.5);
+    if (idata.bary)
+      search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
+    else
+      search.proflen = (long) (search.topo.p1 / search.dt + 0.5);
 
   /* Determine the phase delays caused by the orbit if needed */
 
   if (binary) {
-    
+    double orbdt = 1.0, startE=0.0;
+
     /* Save the orbital solution every half second               */
     /* The times in *tp are now calculated as barycentric times. */
     /* Later, we will change them to topocentric times after     */
     /* applying corrections to Ep using TEMPO.                   */
     
-    startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+    startE = keplars_eqn(search.orb.t, search.orb.p, 
+			 search.orb.e, 1.0E-15);
     if (endtime > 2048) orbdt = 0.5;
     else orbdt = endtime / 4096.0;
     numbinpoints = (long) floor(endtime/orbdt + 0.5) + 1;
-    Ep = dorbint(startE, numbinpoints, orbdt, &orb);
+    Ep = dorbint(startE, numbinpoints, orbdt, &search.orb);
     tp = gen_dvect(numbinpoints);
     for (ii = 0; ii < numbinpoints; ii++) tp[ii] = ii * orbdt;
 
     /* Convert Eccentric anomaly to time delays */			
     
-    orb.w *= DEGTORAD;
-    E_to_phib(Ep, numbinpoints, &orb);
+    search.orb.w *= DEGTORAD;
+    E_to_phib(Ep, numbinpoints, &search.orb);
     numdelays = numbinpoints;
   }
 
@@ -516,26 +506,39 @@ int main(int argc, char *argv[])
     if (cmd->psrnameP)
       fprintf(filemarker, 
 	      "Pulsar                       =  %s\n", pname);
-    if (topoepoch != 0.0)
+    if (search.tepoch != 0.0)
       fprintf(filemarker, 
-	      "Folding (topo) epoch  (MJD)  =  %-17.11f\n", topoepoch);
-    if (baryepoch != 0.0)
+	      "Folding (topo) epoch  (MJD)  =  %-17.11f\n", search.tepoch);
+    if (search.bepoch != 0.0)
       fprintf(filemarker, 
-	      "Folding (bary) epoch  (MJD)  =  %-17.11f\n", baryepoch);
+	      "Folding (bary) epoch  (MJD)  =  %-17.11f\n", search.bepoch);
     fprintf(filemarker, 
-	    "Data pt duration (dt)   (s)  =  %-.12f\n", dt);
+	    "Data pt duration (dt)   (s)  =  %-.12f\n", search.dt);
     fprintf(filemarker, 
 	    "Total number of data points  =  %-.0f\n", N);
     fprintf(filemarker, 
-	    "Number of profile bins       =  %ld\n", proflen);
-    fprintf(filemarker, 
-	    "Folding period          (s)  =  %-.15f\n", p);
-    if (pd != 0.0)
-      fprintf(filemarker, 
-	      "Folding p-dot         (s/s)  =  %-.10e\n", pd);
-    if (pdd != 0.0)
-      fprintf(filemarker, 
-	      "Folding p-dotdot    (s/s^2)  =  %-.10e\n", pdd);
+	    "Number of profile bins       =  %d\n", search.proflen);
+    if (idata.bary==0.0){
+      if (search.topo.p1 != 0.0)
+	fprintf(filemarker, "Folding period (topo)   (s)  =  %-.15f\n", 
+		search.topo.p1);
+      if (search.topo.p2 != 0.0)
+	fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n", 
+		search.topo.p2);
+      if (search.topo.p3 != 0.0)
+	fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n", 
+		search.topo.p3);
+    } else {
+      if (search.bary.p1 != 0.0)
+	fprintf(filemarker, "Folding period (bary)   (s)  =  %-.15f\n", 
+		search.bary.p1);
+      if (search.bary.p2 != 0.0)
+	fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n", 
+		search.bary.p2);
+      if (search.bary.p3 != 0.0)
+	fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n", 
+		search.bary.p3);
+    }
     fprintf(filemarker, 
 	    "Folding frequency      (hz)  =  %-.12f\n", f);
     if (fd != 0.0)
@@ -546,34 +549,45 @@ int main(int argc, char *argv[])
 	      "Folding f-dotdot   (hz/s^2)  =  %-.8e\n", fdd);
     if (binary) {							
       fprintf(filemarker, 
-	      "Orbital period          (s)  =  %-.10f\n", orb.p);
+	      "Orbital period          (s)  =  %-.10f\n", search.orb.p);
       fprintf(filemarker, 
-	      "a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", orb.x);
+	      "a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", search.orb.x);
       fprintf(filemarker, 
-	      "Eccentricity                 =  %-.10f\n", orb.e);
+	      "Eccentricity                 =  %-.10f\n", search.orb.e);
       fprintf(filemarker, 
-	      "Longitude of peri (w) (deg)  =  %-.10f\n", orb.w/DEGTORAD); 
-      if (cmd->psrnameP){
+	      "Longitude of peri (w) (deg)  =  %-.10f\n", 
+	      search.orb.w / DEGTORAD); 
+      if (cmd->psrnameP)
 	fprintf(filemarker, 
 		"Epoch of periapsis    (MJD)  =  %-17.11f\n",
-		baryepoch + orb_baryepoch);
-      }
+		search.bepoch + orb_baryepoch);
+      else if (search.bepoch==0.0)
+	fprintf(filemarker, 
+		"Epoch of periapsis      (s)  =  %-.10f\n",
+		search.tepoch);
+      else
+	fprintf(filemarker, 
+		"Epoch of periapsis      (s)  =  %-.10f\n",
+		search.bepoch);
     }
   }
 
-  printf("\nStarting work on '%s'...\n\n", cmd->argv[0]);
+  printf("\nStarting work on '%s'...\n\n", search.filenm);
     
   /* Allocate and initialize some arrays and other information */
   
+  search.nsub = cmd->nsub;
+  search.npart = cmd->npart;
   data = gen_fvect(cmd->nsub * worklen);
-  profs = gen_dvect(cmd->nsub * cmd->npart * proflen);
-  stats = (foldstats *)malloc(sizeof(foldstats) * cmd->nsub * cmd->npart);
+  search.rawfolds = gen_dvect(cmd->nsub * cmd->npart * search.proflen);
+  search.stats = (foldstats *)malloc(sizeof(foldstats) * 
+				     cmd->nsub * cmd->npart);
   for (ii = 0; ii < cmd->nsub * cmd->npart; ii++){
-    for (jj = 0 ; jj < proflen; jj++)
-      profs[ii * proflen + jj] = 0.0;
-    stats[ii].numdata = 0.0;
-    stats[ii].data_avg = 0.0;
-    stats[ii].data_var = 0.0;
+    for (jj = 0 ; jj < search.proflen; jj++)
+      search.rawfolds[ii * search.proflen + jj] = 0.0;
+    search.stats[ii].numdata = 0.0;
+    search.stats[ii].data_avg = 0.0;
+    search.stats[ii].data_var = 0.0;
   }
   if (numdelays == 0) flags = 0;
     
@@ -590,6 +604,7 @@ int main(int argc, char *argv[])
   if (cmd->nobaryP) {
     foldf = f;  foldfd = fd;  foldfdd = fdd;
   } else {
+    double *voverc;
 
     /* The number of topo to bary points to generate with TEMPO */
     
@@ -601,7 +616,7 @@ int main(int argc, char *argv[])
     /* topocentric times in days from data start */
 
     for (ii = 0 ; ii < numbarypts ; ii++)
-      topotimes[ii] = topoepoch + (double) ii * TDT / SECPERDAY;
+      topotimes[ii] = search.tepoch + (double) ii * TDT / SECPERDAY;
 
     /* Call TEMPO for the barycentering */
 
@@ -619,13 +634,16 @@ int main(int argc, char *argv[])
       avgvoverc += voverc[ii];
     avgvoverc /= (numbarypts - 1.0);
     free(voverc);
-    printf("The average topocentric velocity is %.3g (units of c).\n", 
+    printf("The average topocentric velocity is %.3g (units of c).\n\n", 
 	   avgvoverc);
+    printf("Barycentric folding frequency    (hz)  =  %-.12f\n", f);
+    printf("Barycentric folding f-dot      (hz/s)  =  %-.8e\n", fd);
+    printf("Barycentric folding f-dotdot (hz/s^2)  =  %-.8e\n", fdd);
 
     /* Convert the barycentric folding parameters into topocentric */
 
     if ((info=bary2topo(topotimes, barytimes, numbarypts, 
-		   f, fd, fdd, &foldf, &foldfd, &foldfdd))<0)
+			f, fd, fdd, &foldf, &foldfd, &foldfdd)) < 0)
       printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
     printf("Topocentric folding frequency    (hz)  =  %-.12f\n", foldf);
     if (foldfd != 0.0)
@@ -640,7 +658,7 @@ int main(int argc, char *argv[])
     if (binary){
       for (ii = 0; ii < numbinpoints; ii++){
 	arrayoffset++;  /* Beware nasty NR zero-offset kludges! */
-	dtmp = baryepoch + tp[ii] / SECPERDAY;
+	dtmp = search.bepoch + tp[ii] / SECPERDAY;
 	hunt(barytimes, numbarypts, dtmp, &arrayoffset);
 	arrayoffset--;
 	tp[ii] = LININTERP(dtmp, barytimes[arrayoffset], 
@@ -672,38 +690,46 @@ int main(int argc, char *argv[])
 	obsf[ii] = doppler(obsf[ii], avgvoverc);
     } 
     dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
-				    idata.freq, idata.chan_wid, avgvoverc); 
+				    idata.freq, idata.chan_wid, 
+				    avgvoverc); 
 
     /* Convert the delays in seconds to delays in bins */
 
     for (ii = 0; ii < numchan; ii++)
-      dispdts[ii] /= dt;
+      dispdts[ii] /= search.dt;
   }
   
   /* 
    *   Perform the actual folding of the data
    */
 
-  proftime = worklen * dt;
+  proftime = worklen * search.dt;
   parttimes = gen_dvect(cmd->npart);
   printf("Folded %ld points of %.0f", totnumfolded, N);
-  for (ii = 0; ii < cmd->npart; ii++){        /* sub-integrations in time  */
+
+  /* sub-integrations in time  */
+
+  for (ii = 0; ii < cmd->npart; ii++){
     parttimes[ii] = ii * reads_per_part * proftime;
-    for (jj = 0; jj < reads_per_part; jj++){  /* reads per sub-integration */
+
+    /* reads per sub-integration */
+
+    for (jj = 0; jj < reads_per_part; jj++){
       numread = readrec_ptr(infile, data, worklen, dispdts, 
 			    cmd->nsub, numchan);
-      /* tt is (topocentric) time from first point in sec */
-      tt = parttimes[ii] + jj * proftime;
-      for (kk = 0; kk < cmd->nsub; kk++)      /* frequency sub-bands */
-	fold(data + kk * worklen, numread, dt, tt, 
-	     profs + (ii * cmd->nsub + kk) * proflen, proflen, 
-	     cmd->phs, foldf, foldfd, foldfdd, flags, Ep, tp, 
-	     numdelays, NULL, &(stats[ii * cmd->nsub + kk]));
+
+      /* frequency sub-bands */
+
+      for (kk = 0; kk < cmd->nsub; kk++)
+	fold(data + kk * worklen, numread, search.dt, 
+	     parttimes[ii] + jj * proftime, 
+	     search.rawfolds + (ii * cmd->nsub + kk) * search.proflen, 
+	     search.proflen, cmd->phs, foldf, foldfd, foldfdd, 
+	     flags, Ep, tp, numdelays, NULL, 
+	     &(search.stats[ii * cmd->nsub + kk]));
       totnumfolded += numread;
     }
     printf("\rFolded %ld points of %.0f", totnumfolded, N);
-/* for (kk = 0; kk < cmd->nsub; kk++) */
-/* quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen); */
   }
   fclose(infile);
 
@@ -713,8 +739,8 @@ int main(int argc, char *argv[])
 
   printf("\n\nWriting %s.\n", outfilenm);
   infile = chkfopen(outfilenm,"wb");
-  chkfwrite(&topoepoch, sizeof(double), 1, infile);
-  chkfwrite(&baryepoch, sizeof(double), 1, infile);
+  chkfwrite(&search.tepoch, sizeof(double), 1, infile);
+  chkfwrite(&search.bepoch, sizeof(double), 1, infile);
   chkfwrite(&f, sizeof(double), 1, infile);
   chkfwrite(&fd, sizeof(double), 1, infile);
   chkfwrite(&fdd, sizeof(double), 1, infile);
@@ -725,11 +751,12 @@ int main(int argc, char *argv[])
   chkfwrite(&dtmp, sizeof(double), 1, infile);
   dtmp = cmd->nsub;
   chkfwrite(&dtmp, sizeof(double), 1, infile);
-  dtmp = proflen;
+  dtmp = search.proflen;
   chkfwrite(&dtmp, sizeof(double), 1, infile);
-  chkfwrite(profs, sizeof(double), cmd->nsub * cmd->npart * proflen, 
-	    infile);
-  chkfwrite(stats, sizeof(foldstats), cmd->nsub * cmd->npart, infile);
+  chkfwrite(search.rawfolds, sizeof(double), cmd->nsub * 
+	    cmd->npart * search.proflen, infile);
+  chkfwrite(search.stats, sizeof(foldstats), 
+	    cmd->nsub * cmd->npart, infile);
   fclose(infile);
 
   /*
@@ -745,15 +772,16 @@ int main(int argc, char *argv[])
 
     /* The number of trials for the P-dot and P searches */
 
-    numtrials = 2 * proflen + 1;
+    numtrials = 2 * search.proflen + 1;
 
     /* Initialize a bunch of variables */
 
-    periods = gen_dvect(numtrials);
-    pdots = gen_dvect(numtrials);
-    pdprofs = gen_dvect(cmd->npart * proflen);
-    currentprof = gen_dvect(proflen);
-    bestprof = gen_dvect(proflen);
+    search.periods = gen_dvect(numtrials);
+    search.numperiods = numtrials;
+    search.pdots = gen_dvect(numtrials);
+    search.numpdots = numtrials;
+    pdprofs = gen_dvect(cmd->npart * search.proflen);
+    currentprof = gen_dvect(search.proflen);
     initialize_foldstats(&beststats);
 
     /* Convert the folding freqs and derivs to periods */
@@ -763,7 +791,7 @@ int main(int argc, char *argv[])
     /* Our P and P-dot steps are the changes that cause the pulse */
     /* to be delayed 1 bin between the first and last bins.       */
     
-    dphase = po / proflen;
+    dphase = po / search.proflen;
     pofact = 1.0 / (po * po);
     dtmp = po / T;
     dp = dphase / T;
@@ -771,8 +799,8 @@ int main(int argc, char *argv[])
     lop = po - (numtrials - 1) / 2 * dp;
     lopd = pdo - (numtrials - 1) / 2 * dpd;
     for (ii = 0; ii < numtrials; ii++){
-      periods[ii] = lop + ii * dp;
-      pdots[ii] = lopd + ii * dpd;
+      search.periods[ii] = lop + ii * dp;
+      search.pdots[ii] = lopd + ii * dpd;
     }
 
     /* If we are searching through DM space */
@@ -783,7 +811,7 @@ int main(int argc, char *argv[])
       foldstats *ddstats;
       
       dmdelays = gen_ivect(cmd->nsub);
-      ddprofs = gen_dvect(cmd->npart * proflen);
+      ddprofs = gen_dvect(cmd->npart * search.proflen);
       ddstats = (foldstats *)malloc(cmd->npart * sizeof(foldstats));
       
       /* Our DM step is the change in DM that would cause the pulse */
@@ -793,42 +821,44 @@ int main(int argc, char *argv[])
       
       /* Insure that we don't try a dm < 0.0 */
       
-      if (cmd->dm - proflen * ddm < 0.0){
-	numdmtrials = (int)(cmd->dm / ddm) + proflen + 1;
+      if (cmd->dm - search.proflen * ddm < 0.0){
+	numdmtrials = (int)(cmd->dm / ddm) + search.proflen + 1;
 	lodm = cmd->dm - (int)(cmd->dm / ddm);
       } else {
-	numdmtrials = 4 * proflen + 1;
+	numdmtrials = 4 * search.proflen + 1;
 	lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
       }
-      dms = gen_dvect(numdmtrials);
+      search.dms = gen_dvect(numdmtrials);
+      search.numdms = numdmtrials;
       
       /* De-disperse and combine the subbands */
       
       for (ii = 0; ii < numdmtrials; ii++){  /* Loop over DMs */
-	dms[ii] = lodm + ii * ddm;
-	hifdelay = delay_from_dm(dms[ii], obsf[numchan - 1]);
-	subbanddelays = subband_delays(numchan, cmd->nsub, dms[ii], 
-				       idata.freq, idata.chan_wid,
-				       avgvoverc);
+	search.dms[ii] = lodm + ii * ddm;
+	hifdelay = delay_from_dm(search.dms[ii], obsf[numchan - 1]);
+	subbanddelays = subband_delays(numchan, cmd->nsub, 
+				       search.dms[ii], idata.freq, 
+				       idata.chan_wid, avgvoverc);
 	for (jj = 0; jj < cmd->nsub; jj++)
 	  dmdelays[jj] = ((int) ((subbanddelays[jj] - hifdelay) / 
-				 dphase + 0.5)) % proflen;
+				 dphase + 0.5)) % search.proflen;
 	free(subbanddelays);
-	combine_subbands(profs, stats, cmd->npart, cmd->nsub, proflen, 
-			 dmdelays, ddprofs, ddstats);
+	combine_subbands(search.rawfolds, search.stats, cmd->npart, 
+			 cmd->nsub, search.proflen, dmdelays, 
+			 ddprofs, ddstats);
 	
 	/* Perform the P-dot and Period searches */
 
 	for (jj = 0; jj < numtrials; jj++){
-	  currentfd = -pdots[jj] * pofact;
+	  currentfd = -search.pdots[jj] * pofact;
 
 	  /* Correct each part for the current pdot */
 
 	  for (kk = 0; kk < cmd->npart; kk++){
-	    profindex = kk * proflen;
+	    profindex = kk * search.proflen;
 	    pddelay = (int) (((currentfd - foldfd) * parttimes[kk] * 
 			     parttimes[kk]) / (2.0 * dphase) + 0.5);
-	    shift_prof(ddprofs + profindex, proflen, pddelay, 
+	    shift_prof(ddprofs + profindex, search.proflen, pddelay, 
 		       pdprofs + profindex);
 	  }
 
@@ -836,17 +866,22 @@ int main(int argc, char *argv[])
 
 	  for (kk = 0; kk < numtrials; kk++){
 	    pdelay = kk - (numtrials - 1) / 2;
-	    combine_profs(pdprofs, ddstats, cmd->npart, proflen, pdelay, 
-			  currentprof, &currentstats);
+	    combine_profs(pdprofs, ddstats, cmd->npart, search.proflen, 
+			  pdelay, currentprof, &currentstats);
 	    if (currentstats.redchi > beststats.redchi){
-	      bestdm = dms[ii];
-	      bestp = periods[kk];
-	      bestpd = pdots[jj];
+	      search.bestdm = search.dms[ii];
+	      if (idata.bary){
+		search.bary.p1 = search.periods[kk];
+		search.bary.p2 = search.pdots[jj];
+	      } else {
+		search.topo.p1 = search.periods[kk];
+		search.topo.p2 = search.pdots[jj];
+	      }
 	      beststats = currentstats;
-	      memcpy(bestprof, currentprof, sizeof(double) * proflen);
 
 printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
-       kk, jj, dms[ii], bestp, bestpd, beststats.redchi);
+       kk, jj, search.bestdm, search.topo.p1, search.topo.p2, 
+       beststats.redchi);
 
 	    }
 	  }
@@ -863,15 +898,15 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
       /* Perform the P-dot and Period searches */
 
       for (jj = 0; jj < numtrials; jj++){
-	currentfd = -pdots[jj] * pofact;
+	currentfd = -search.pdots[jj] * pofact;
 	
 	/* Correct each part for the current pdot */
 	
 	for (kk = 0; kk < cmd->npart; kk++){
-	  profindex = kk * proflen;
+	  profindex = kk * search.proflen;
 	  pddelay = (int) (((currentfd - foldfd) * parttimes[kk] * 
 			    parttimes[kk]) / (2.0 * dphase) + 0.5);
-	  shift_prof(profs + profindex, proflen, pddelay, 
+	  shift_prof(search.rawfolds + profindex, search.proflen, pddelay, 
 		     pdprofs + profindex);
 	}
 
@@ -879,75 +914,54 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
 	
 	for (kk = 0; kk < numtrials; kk++){
 	  pdelay = kk - (numtrials - 1) / 2;
-	  combine_profs(pdprofs, stats, cmd->npart, proflen, pdelay, 
-			currentprof, &currentstats);
+	  combine_profs(pdprofs, search.stats, cmd->npart, search.proflen, 
+			pdelay, currentprof, &currentstats);
 	  if (currentstats.redchi > beststats.redchi){
-	    bestp = periods[kk];
-	    bestpd = pdots[jj];
+	    if (idata.bary){
+	      search.bary.p1 = search.periods[kk];
+	      search.bary.p2 = search.pdots[jj];
+	    } else {
+	      search.topo.p1 = search.periods[kk];
+	      search.topo.p2 = search.pdots[jj];
+	    }
 	    beststats = currentstats;
-	    memcpy(bestprof, currentprof, sizeof(double) * proflen);
 
 printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
-       kk, jj, bestp, bestpd, beststats.redchi);
+       kk, jj, search.bary.p1, search.bary.p2, beststats.redchi);
 
 	  }
 	}
       }
     }
-
-quick_plot(bestprof, proflen);
-
     free(pdprofs);
     free(currentprof);
   }
+
+  printf("Done searching.\nMaking plots.\n\n");
 
   /*
    *   Plot our results
    */
 
-  printf("Done.\n\n");
-
   /* Free our memory  */
 
+  delete_prepfoldinfo(&search);
   free(data);
-  free(profs);
-  free(stats);
-  free(rootfilenm);
+  free(rootnm);
   free(outfilenm);
+  free(plotfilenm);
   free(parttimes);
-  free(periods);
-  free(pdots);
-  free(bestprof);
-  if (cmd->nsub > 1) free(dms);
   if (binary){
     free(Ep);
     free(tp);
+  }
+  if (!cmd->nobaryP){
+    free(barytimes);
+    free(topotimes);
   }
   if (obsf) free(obsf);
   if (dispdts) free(dispdts);
   if (idata.onoff) free(idata.onoff);
   return (0);
 }
-
-    
-int read_floats(FILE *file, float *data, int numpts,
-		double *dispdelays, int numsubbands, int numchan)
-/* This routine reads a numpts records of numchan each from */
-/* the input file *file which contains normal floating      */
-/* point data.                                              */
-/* It returns the number of points read.                    */
-{
-  /* The following 2 lines just get rid of some compiler warnings */
-
-  *dispdelays = *dispdelays;
-  numsubbands = numsubbands;
-
-  /* Read the raw data and return numbar read */
-
-  return chkfread(data, sizeof(float),
-		  (unsigned long) (numpts * numchan), file) / numchan;
-}
-
-
-
-
+  
