@@ -13,7 +13,7 @@ typedef struct MULTIFILE {
   long long *filelens;  /* Array of lengths in bytes of each file    */
   char **filenames;     /* Array of the full paths of the files      */
   char mode[4];         /* Mode that the current file was opened     */
-  FILE **fileptrs;      /* Array of pointers to each of the files    */
+  FILE **fileptrs;      /* Array of FILE pointers for the files      */
 } multifile;
 
 void print_multifile(multifile *mfile, int full);

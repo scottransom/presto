@@ -9,20 +9,16 @@
 *****/
 
 typedef struct s_Cmdline {
-  /***** -del: Delete the original data file when performing the FFT */
+  /***** -fwd: Force an forward FFT (sign=-1) to be performed */
+  char forwardP;
+  /***** -inv: Force an inverse FFT (sign=+1) to be performed */
+  char inverseP;
+  /***** -del: Delete the original file(s) when performing the FFT */
   char deleteP;
-  /***** -huge: Force the use of the out-of-core FFT */
-  char hugefftP;
-  /***** -core: Force the use of the in-core memory FFT */
-  char corefftP;
-  /***** -padlen: Pad or chop the data to the prescribed length */
-  char padlenP;
-  double padlen;
-  int padlenC;
-  /***** -padval: The value to pad the data with */
-  char padvalP;
-  float padval;
-  int padvalC;
+  /***** -disk: Force the use of the out-of-core memory FFT */
+  char diskfftP;
+  /***** -mem: Force the use of the in-core memory FFT */
+  char memfftP;
   /***** -tmpdir: Scratch directory for temp file(s) in out-of-core FFT */
   char tmpdirP;
   char* tmpdir;

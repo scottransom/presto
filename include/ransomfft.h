@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include "meminfo.h"
 #include "vectors.h"
+#include "multifiles.h"
 
 #ifndef SWAP
 #define SWAP(a,b) tempzz=(a);(a)=(b);(b)=tempzz;
@@ -60,12 +61,15 @@ typedef fcomplex rawtype;
 /* Note:  A standard forward transform (with negative exponent)  */
 /*        is called by setting isign=-1                          */
 
+long long good_factor(long long nn);
 void tablesixstepfft(fcomplex *indata, long nn, int isign);
 void realfft(float data[], long n, int isign);
-void twopassfft_scratch(FILE * infile, FILE * scratch, \
-			long nn, int isign);
-void realfft_scratch_fwd(FILE * infile, FILE * scratch, long nn);
-void realfft_scratch_inv(FILE * infile, FILE * scratch, long nn);
+void twopassfft_scratch(multifile* infile, multifile* scratch,
+			long long nn, int isign);
+void realfft_scratch_fwd(multifile* infile, multifile* scratch, 
+			 long long nn);
+void realfft_scratch_inv(multifile* infile, multifile* scratch, 
+			 long long nn);
 void realsingfft(FILE * bigfft[5], long numdata, int isign, \
 		 char *inpath, char *outpath);
 void fourew(FILE * file[5], int *na, int *nb, int *nc, int *nd);

@@ -1,9 +1,9 @@
 #include "cpgplot.h"
-#include "ransomfft.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "vectors.h"
 
 #ifndef EXIT_FAILURE
 #define EXIT_FAILURE 1
