@@ -1233,8 +1233,8 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
 /* ifs is which ifs to return (assuming both IFs have been       */
 /* recorded. Legal values are IF0, IF1, SUMIFS.                  */
 {
-  static unsigned char *rawdata;
   static int firsttime=1;
+  static unsigned char *rawdata;
   
   if (firsttime) {
     rawdata = gen_bvect(bytesperblk_st);

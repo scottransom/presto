@@ -1267,7 +1267,7 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 /* to use for masking.  If 'transpose'==0, the data will be kept */
 /* in time order instead of arranged by subband as above.        */
 {
-  static int firsttime=0;
+  static int firsttime=1;
   static unsigned char rawdata[WAPP_MAXDATLEN]; 
 
   if (firsttime){
