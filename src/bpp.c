@@ -340,6 +340,8 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
     /* Sort IF2 according to index */
     qsort(chanmaparr+MAXNUMCHAN, MAXNUMCHAN, sizeof(chanmap), compare_index);
   }
+  for (ii=0; ii<nchans; ii++)
+    chan_mapping[ii] = chanmaparr[ii].mapping;
   /* 
   for (ii=0; ii<nchans; ii++){
     chan_mapping[ii] = chanmaparr[ii].mapping;
@@ -1301,6 +1303,7 @@ void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes)
 
   rawdataptr = rawdata;
   indexptr = chan_mapping;
+
   for (ii=0; ii<numchan_st/2; ii++, rawdataptr++){
     bytes[*indexptr++] = (*rawdataptr >> 0x04);
     bytes[*indexptr++] = (*rawdataptr & 0x0F);
