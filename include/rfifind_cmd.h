@@ -23,6 +23,10 @@ typedef struct s_Cmdline {
   char xwinP;
   /***** -nocompute: Just plot and remake the mask */
   char nocomputeP;
+  /***** -rfixwin: Show the RFI instances on screen */
+  char rfixwinP;
+  /***** -rfips: Plot the RFI instances in a PS file */
+  char rfipsP;
   /***** -time: Minutes to integrate for stats and FFT calcs */
   char timeP;
   float time;

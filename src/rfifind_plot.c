@@ -14,7 +14,55 @@ static double single_power_pdf(double power, int numpowers)
   return tmp * numpowers * pow(1.0-tmp, numpowers-1);
 }
 
-static void plot_stats(float *median, float *average, float *stdev);
+static void plot_rfi(rfi *plotrfi, float top, int numint, int numchan,
+		     float T, float lof, float hif)
+{
+  int ii;
+  float period, perioderr, dy=0.035, *temparr;
+  float tr[6] = {-0.5, 1.0, 0.0, -0.5, 0.0, 1.0};
+  char temp[40];
+
+  if (plotrfi->freq_avg==0.0)
+    period = 0.0;
+  else 
+    period = 1000.0 / plotrfi->freq_avg;
+  if (plotrfi->freq_var==0.0) /* Why are these zero? */
+    perioderr = 0.0;
+  else
+    perioderr = 1000.0 * sqrt(plotrfi->freq_var) / 
+      (plotrfi->freq_avg * plotrfi->freq_avg);
+  cpgsvp(0.0, 1.0, 0.0, 1.0);
+  cpgswin(0.0, 1.0, 0.0, 1.0);
+  cpgnice_output_2(temp, plotrfi->freq_avg, sqrt(plotrfi->freq_var), 0);
+  cpgptxt(0.03, top-0.6*dy, 0.0, 0.0, temp);
+  cpgnice_output_2(temp, period, perioderr, 0);
+  cpgptxt(0.12, top-0.6*dy, 0.0, 0.0, temp);
+  sprintf(temp, "%-5.2f", plotrfi->sigma_avg);
+  cpgptxt(0.21, top-0.6*dy, 0.0, 0.0, temp);
+  sprintf(temp, "%d", plotrfi->numobs);
+  cpgptxt(0.27, top-0.6*dy, 0.0, 0.0, temp);
+  ii = (numint > numchan) ? numint : numchan;
+  temparr = gen_fvect(ii);
+  for (ii=0; ii<numchan; ii++)
+    temparr[ii] = GET_BIT(plotrfi->chans, ii);
+  cpgsvp(0.33, 0.64, top-dy, top);
+  cpgswin(0.0, numchan, 0.0, 1.0);
+  cpgimag(temparr, numchan, 1, 1, numchan, 1, 1, 0.0, 1.0, tr);
+  cpgswin(0.0, numchan, 0.0, 1.0);
+  cpgbox ("BST", 0.0, 0, "BC", 0.0, 0);
+  cpgswin(lof, hif, 0.0, 1.0);
+  cpgbox ("CST", 0.0, 0, "", 0.0, 0);
+  for (ii=0; ii<numint; ii++)
+    temparr[ii] = GET_BIT(plotrfi->times, ii);
+  cpgsvp(0.65, 0.96, top-dy, top);
+  cpgswin(0.0, numint, 0.0, 1.0);
+  cpgimag(temparr, numint, 1, 1, numint, 1, 1, 0.0, 1.0, tr);
+  cpgswin(0.0, numint, 0.0, 1.0);
+  cpgbox ("BST", 0.0, 0, "BC", 0.0, 0);
+  cpgswin(0.0, T, 0.0, 1.0);
+  cpgbox ("CST", 0.0, 0, "", 0.0, 0);
+  free(temparr);
+}
 
 static void calc_avgmedstd(float *arr, int numarr, float fraction, 
 			   int step, float *avg, float *med, float *std)
@@ -50,7 +98,9 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 		  int *userchan, int numuserchan, 
 		  int *userints, int numuserints, 
 		  infodata *idata, unsigned char **bytemask, 
-		  mask *oldmask, mask *newmask, int xwin)
+		  mask *oldmask, mask *newmask, 
+		  rfi *rfivect, int numrfi, 
+		  int rfixwin, int rfips, int xwin)
 /* Make the beautiful multi-page rfifind plots */
 {
   int ii, jj, ct, loops=1;
@@ -233,7 +283,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
    */
 
   if (xwin) loops = 2;
-  for (ct=0; ct<loops; ct++){
+  for (ct=0; ct<loops; ct++){ /* PS/XWIN Plot Loop */
     float min, max, tr[6], locut, hicut;
     float left, right, top, bottom;
     float xl, xh, yl, yh;
@@ -277,8 +327,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     fh = 0.55;
     th = tt * 11.0/8.5;
 
-    /* Powers Histogram */
-    {
+    { /* Powers Histogram */
       float *theo, *hist, *hpows, *tpows, maxhist=0.0, maxtheo=0.0;
       int numhist=40, numtheo=200, bin, numpows;
       double dtheo, dhist, spacing;
@@ -641,9 +690,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
     cpgbox ("CMST", 0.0, 0, "", 0.0, 0);
     cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (MHz)");
 
-    /* Plot the Mask */
-
-    {
+    { /* Plot the Mask */
       unsigned char byte;
       float **plotmask, rr, gg, bb;
 
@@ -724,9 +771,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
       free(plotmask[0]); free(plotmask);
     }
 
-    /* Add the Data Info area */
-
-    {
+    { /* Add the Data Info area */
       char out[200], out2[100];
       float dy = 0.025;
       
@@ -849,8 +894,71 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
       sprintf(out, "= %-.3f", max);
       cpgtext(left+0.245,   top-7*dy, out);
     }
-    cpgclos();
-  }
+  
+    if (ct==0)
+      printf("There are %d RFI instances.\n\n", numrfi);
+
+    if ((ct==0 && rfips) ||
+	(ct==1 && rfixwin)){ /* Plot the RFI instances */
+      int maxcol, mincol, numperpage=25, numtoplot;
+      float dy=0.035, top=0.95, rr, gg, bb;
+      char temp[200];
+      
+      qsort(rfivect, numrfi, sizeof(rfi), compare_rfi_freq);
+      /* qsort(rfivect, numrfi, sizeof(rfi), compare_rfi_sigma); */
+      for (ii=0; ii<=(numrfi-1)/numperpage; ii++){
+	cpgpage();
+	cpgiden();
+	cpgsvp(0.0, 1.0, 0.0, 1.0);
+	cpgswin(0.0, 1.0, 0.0, 1.0);
+	cpgsch(0.8);
+	sprintf(temp, "%-s", idata->name);
+	cpgtext(0.05, 0.985, temp);
+	cpgsch(0.6);
+	sprintf(temp, "Freq (Hz)");
+	cpgptxt(0.03, 0.96, 0.0, 0.0, temp);
+	sprintf(temp, "Period (ms)");
+	cpgptxt(0.12, 0.96, 0.0, 0.0, temp);
+	sprintf(temp, "Sigma");
+	cpgptxt(0.21, 0.96, 0.0, 0.0, temp);
+	sprintf(temp, "Number");
+	cpgptxt(0.27, 0.96, 0.0, 0.0, temp);
+	cpgsvp(0.33, 0.64, top-dy, top);
+	cpgswin(lof, hif, 0.0, 1.0);
+	cpgbox ("CIMST", 0.0, 0, "", 0.0, 0);
+	cpgmtxt("T", 2.5, 0.5, 0.5, "Frequency (MHz)");
+	cpgsvp(0.65, 0.96, top-dy, top);
+	cpgswin(0.0, T, 0.0, 1.0);
+	cpgbox ("CIMST", 0.0, 0, "", 0.0, 0);
+	cpgmtxt("T", 2.5, 0.5, 0.5, "Time (s)");
+	cpgqcir(&mincol, &maxcol);
+	maxcol = mincol + 1;
+	cpgscir(mincol, maxcol);
+	cpgqcr(0, &rr, &gg, &bb);
+	cpgscr(mincol, rr, gg, bb );   /* background */
+	cpgqcr(1, &rr, &gg, &bb);
+	/* cpgscr(maxcol, rr, gg, bb);  foreground */
+	cpgscr(maxcol, 0.5, 0.5, 0.5); /* grey */
+	if (ii==(numrfi-1)/numperpage)
+	  numtoplot = numrfi % numperpage;
+	else
+	  numtoplot = numperpage;
+	for (jj=0; jj<numtoplot; jj++)
+	  plot_rfi(rfivect+ii*numperpage+jj, 
+		   top-jj*dy, numint, numchan, T, lof, hif);
+	cpgsvp(0.33, 0.64, top-jj*dy, top-(jj-1)*dy);
+	cpgswin(0.0, numchan, 0.0, 1.0);
+	cpgbox ("BINST", 0.0, 0, "", 0.0, 0);
+	cpgmtxt("B", 2.5, 0.5, 0.5, "Channel");
+	cpgsvp(0.65, 0.96, top-jj*dy, top-(jj-1)*dy);
+	cpgswin(0.0, numint, 0.0, 1.0);
+	cpgbox ("BINST", 0.0, 0, "", 0.0, 0);
+	cpgmtxt("B", 2.5, 0.5, 0.5, "Interval");
+      }
+    }
+  } /* Plot for loop */
+
+  cpgclos();
 
   /* Free our arrays */
     

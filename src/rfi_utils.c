@@ -132,13 +132,31 @@ int find_rfi(rfi *rfivect, int numrfi,
   return -1;
 }
 
-int compare_rfi(void *ca, void *cb)
+int compare_rfi_freq(const void *ca, const void *cb)
 /*  Used as compare function for qsort() */
 {
   rfi *a, *b;
 
   a = (rfi *) ca;
   b = (rfi *) cb;
+  if ((b->freq_avg - a->freq_avg) < 0.0)
+    return 1;
+  if ((b->freq_avg - a->freq_avg) > 0.0)
+    return -1;
+  return 0;
+}
+
+int compare_rfi_sigma(const void *ca, const void *cb)
+/*  Used as compare function for qsort() */
+{
+  rfi *a, *b;
+
+  a = (rfi *) ca;
+  b = (rfi *) cb;
+  if ((b->sigma_avg - a->sigma_avg) < 0.0)
+    return -1;
+  if ((b->sigma_avg - a->sigma_avg) > 0.0)
+    return 1;
   if ((b->freq_avg - a->freq_avg) < 0.0)
     return -1;
   if ((b->freq_avg - a->freq_avg) > 0.0)

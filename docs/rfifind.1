@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "01Jan01" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "04Jan01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -28,6 +28,8 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 [-gbpp]
 [-xwin]
 [-nocompute]
+[-rfixwin]
+[-rfips]
 [-time time]
 [-timesig timesigma]
 [-freqsig freqsigma]
@@ -53,6 +55,10 @@ Raw data in GBPP (Green Bank) format.
 Draw plots to the screen as well as a PS file.
 .IP -nocompute
 Just plot and remake the mask.
+.IP -rfixwin
+Show the RFI instances on screen.
+.IP -rfips
+Plot the RFI instances in a PS file.
 .IP -time
 Minutes to integrate for stats and FFT calcs,
 .br

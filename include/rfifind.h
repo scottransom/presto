@@ -45,5 +45,8 @@ int find_rfi(rfi *rfivect, int numrfi,
 /* finds one with a freq within fractional error, it  */
 /* returns the number of the birdie -- otherwise, -1. */
 
-int compare_rfi(void *ca, void *cb);
+int compare_rfi_freq(const void *ca, const void *cb);
+/*  Used as compare function for qsort() */
+
+int compare_rfi_sigma(const void *ca, const void *cb);
 /*  Used as compare function for qsort() */

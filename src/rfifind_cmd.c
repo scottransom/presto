@@ -36,6 +36,10 @@ static Cmdline cmd = {
   /* xwinP = */ 0,
   /***** -nocompute: Just plot and remake the mask */
   /* nocomputeP = */ 0,
+  /***** -rfixwin: Show the RFI instances on screen */
+  /* rfixwinP = */ 0,
+  /***** -rfips: Plot the RFI instances in a PS file */
+  /* rfipsP = */ 0,
   /***** -time: Minutes to integrate for stats and FFT calcs */
   /* timeP = */ 1,
   /* time = */ 1,
@@ -811,6 +815,20 @@ showOptionValues(void)
     printf("-nocompute found:\n");
   }
 
+  /***** -rfixwin: Show the RFI instances on screen */
+  if( !cmd.rfixwinP ) {
+    printf("-rfixwin not found.\n");
+  } else {
+    printf("-rfixwin found:\n");
+  }
+
+  /***** -rfips: Plot the RFI instances in a PS file */
+  if( !cmd.rfipsP ) {
+    printf("-rfips not found.\n");
+  } else {
+    printf("-rfips found:\n");
+  }
+
   /***** -time: Minutes to integrate for stats and FFT calcs */
   if( !cmd.timeP ) {
     printf("-time not found.\n");
@@ -906,7 +924,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-ebpp] [-gbpp] [-xwin] [-nocompute] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-ebpp] [-gbpp] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-zapchan zapchan] [-zapints zapints] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
@@ -915,6 +933,8 @@ usage(void)
        -gbpp: Raw data in GBPP (Green Bank) format\n\
        -xwin: Draw plots to the screen as well as a PS file\n\
   -nocompute: Just plot and remake the mask\n\
+    -rfixwin: Show the RFI instances on screen\n\
+      -rfips: Plot the RFI instances in a PS file\n\
        -time: Minutes to integrate for stats and FFT calcs\n\
               1 float value between 0 and oo\n\
               default: `1'\n\
@@ -932,7 +952,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...20 values\n\
-version: 01Jan01\n\
+version: 04Jan01\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -981,6 +1001,16 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-nocompute", argv[i]) ) {
       cmd.nocomputeP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-rfixwin", argv[i]) ) {
+      cmd.rfixwinP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-rfips", argv[i]) ) {
+      cmd.rfipsP = 1;
       continue;
     }
 

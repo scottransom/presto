@@ -12,7 +12,9 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 		  int *userchan, int numuserchan, 
 		  int *userints, int numuserints, 
 		  infodata *idata, unsigned char **bytemask, 
-		  mask *oldmask, mask *newmask, int xwin);
+		  mask *oldmask, mask *newmask, 
+		  rfi *rfivect, int numrfi, 
+		  int rfixwin, int rfips, int xwin);
 static void write_rfifile(char *rfifilenm, rfi *rfivect, int numrfi,
 			  int numchan, int numint, int ptsperint, 
 			  int lobin, int numbetween, int harmsum,
@@ -307,7 +309,8 @@ int main(int argc, char *argv[])
   rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
 	       dataavg, datastd, datapow, cmd->zapchan, cmd->zapchanC,
 	       cmd->zapints, cmd->zapintsC, &idata, bytemask, 
-	       &oldmask, &newmask, cmd->xwinP);
+	       &oldmask, &newmask, rfivect, numrfi, 
+	       cmd->rfixwinP, cmd->rfipsP, cmd->xwinP);
 
   /* Write the new mask and bytemask to the file */
 

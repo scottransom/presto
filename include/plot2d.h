@@ -35,5 +35,9 @@ void multi_prof_plot(int proflen, int numprofs, double *profiles, \
 void plot_profile(int proflen, float *profile, const char *title, \
 		  const char *probtxt, const char *foldtxt, \
 		  int showerr, float *errors, int showid);
+int cpgnice_output_2(char *out, double val, double err, int len);
+/* Return a string that has the same formatting as       */
+/* nice_output_2(), but for PGPLOT.  This way, exponents */
+/* are actually in superscript!  Woo-hoo!                */
 
 
