@@ -90,6 +90,11 @@ int PMsurv_phasemod_search(char *header, int N, fcomplex *bigfft,
 /* We should be sensitive to pulsars in very-low to very-high mass      */
 /* binaries with orbital periods <~ 20min and flux densities of 1 mJy   */
 /* or a little less (if the duty cycle of the pulsar is short enough).  */
+/* Return value is 0 if the code didn't find any candidates with        */
+/* significance greater than THRESH.  If the return value is positive,  */
+/* than a significant candidate (or more) was found in the FFT (this    */
+/* could be the trigger to save the bigFFT to a file for more in depth  */
+/* analysis...)                                                         */
 {
   int ii, jj, worklen, fftlen, binsleft, overlaplen;
   int bigfft_offset=0, powers_offset, wrkblk=WORKBLOCK;
