@@ -56,18 +56,18 @@ static void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
       if (fabs(list[ii].r - list[jj].r) < 15.0 && \
 	  fabs(list[ii].z - list[jj].z) > 1.0 && \
 	  list[ii].pow > list[jj].pow) {
-	sprintf(tmp, "%.20s", notes + jj * 20);
-	if (!strcmp("                    ", tmp)) {
-	  sprintf(notes + jj * 20, "SL? of Cand %d", ii + 1);
+	if (strncmp(notes+jj*20, "                      ", 20)==0){
+	  sprintf(tmp, "SL? of Cand %d", ii+1);
+	  strncpy(notes+jj*20, tmp, 20);
 	}
 	continue;
       }
       for (kk = 1; kk < 61; kk++) {
 	if ((fabs(list[ii].r - list[jj].r / kk) < list[jj].rerr * 3) && \
 	    (fabs(list[ii].z - list[jj].z / kk) < list[jj].zerr * 2)) {
-	  sprintf(tmp, "%.20s", notes + jj * 20);
-	  if (!strcmp("                    ", tmp)) {
-	    sprintf(notes + jj * 20, "H %d of Cand %d", kk, ii + 1);
+	  if (strncmp(notes+jj*20, "                      ", 20)==0){
+	    sprintf(tmp, "H %d of Cand %d", kk, ii+1);
+	    strncpy(notes+jj*20, tmp, 20);
 	    break;
 	  }
 	}
@@ -164,6 +164,7 @@ static void free_subharminfo(subharminfo *shi)
 
   for (ii=0; ii<shi->numkern; ii++)
     free_kernel(&shi->kern[ii]);
+  free(shi->kern);
 }
 
 

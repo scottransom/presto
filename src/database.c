@@ -362,14 +362,14 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
   /*   the results of the search in *output.                          */
 
   int i, j;
-  static int np = 0;
+  static int np=0;
   static psrdatabase pdata;
   static infodata *old_idata;
-  double theop, theoz, sidedp, sidedr = 20.0;
+  double theop, theoz, sidedp, sidedr=20.0;
   double p_criteria, z_criteria, pdiff, zdiff;
-  double errmult = 3.0, difft = 0;
+  double errmult=3.0, difft=0;
   static double T, beam2, ra, dec, epoch;
-  char tmp1[80], tmp2[80], tmp3[80], tmp4[80];
+  char tmp1[80], tmp2[80], tmp3[80], shortout[30], psrname[20];
   rzwerrs rzws;
 
   /* If calling for the first time, read the database. */
@@ -453,72 +453,53 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
 
 	  pdiff = fabs(theop / j - rzws.p);
 	  zdiff = fabs(theoz / j - cand->z);
-	  sprintf(tmp4, "%.8s", pdata.bname + i * 8);
 
 	  if (pdiff < p_criteria && zdiff < z_criteria) {
+	    sprintf(tmp2, "%.8s", pdata.bname + i * 8);
+	    if (strcmp("        ", tmp2)==0){
+	      sprintf(tmp2, "%.12s", pdata.jname + i * 12);
+	      sprintf(psrname, "J%s", remove_whitespace(tmp2));
+	    } else {
+	      sprintf(psrname, "B%s", remove_whitespace(tmp2));
+	    }
 	    if (j == 1) {
-	      if (!strcmp("        ", tmp4)) {
-		if (full) {
-		  sprintf(tmp1, "the fundamental of ");
-		  sprintf(tmp2, "PSR J%.12s. (predicted p = %11.7f s).\n", \
-			  pdata.jname + i * 12, theop);
-		  sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-		} else {
-		  sprintf(output, "PSR J%.12s%s", \
-			  pdata.jname + i * 12, tmp1);
-		}
+	      if (full) {
+		sprintf(tmp1, "the fundamental of ");
+		sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n", \
+			psrname, theop);
+		sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
 	      } else {
-		if (full) {
-		  sprintf(tmp1, "the fundamental of ");
-		  sprintf(tmp2, "PSR B%s. (predicted p = %11.7f s).\n", \
-			  tmp4, theop);
-		  sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-		} else {
-		  sprintf(output, "PSR B%s%s", tmp4, tmp1);
-		}
+		sprintf(shortout, "PSR %s%s", psrname, tmp1);
+		strncpy(output, shortout, 20);
 	      }
 	    } else {
-	      if (!strcmp("        ", tmp4)) {
-		if (full) {
-		  sprintf(tmp1, "the %s harmonic of ", num[j]);
-		  sprintf(tmp2, "PSR J%.12s. (predicted p = %11.7f s).\n", \
-			  pdata.jname + i * 12, theop);
-		  sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-		} else {
-		  sprintf(output, "%s H J%.12s%s", num[j], \
-			  pdata.jname + i * 12, tmp1);
-		}
+	      if (full) {
+		sprintf(tmp1, "the %s harmonic of ", num[j]);
+		sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n", \
+			psrname, theop);
+		sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
 	      } else {
-		if (full) {
-		  sprintf(tmp1, "the %s harmonic of ", num[j]);
-		  sprintf(tmp2, "PSR B%s. (predicted p = %11.7f s).\n", \
-			  tmp4, theop);
-		  sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-		} else {
-		  sprintf(output, "%s H B%s%s", num[j], tmp4, tmp1);
-		}
+		sprintf(shortout, "%s H %s%s", num[j], psrname, tmp1);
+		strncpy(output, shortout, 20);
 	      }
 	    }
 	    return i + 1;
 	  } else if (pdiff < sidedp) {
-	    if (!strcmp("        ", tmp4)) {
-	      if (full) {
-		sprintf(tmp1, "a sidelobe of the %s harmonic of ", num[j]);
-		sprintf(tmp2, "PSR J%.12s. (predicted p = %11.7f s).\n", \
-			pdata.jname + i * 12, theop);
-		sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-	      } else {
-		sprintf(output, "SL H%d J%.12s", j, pdata.jname + i * 12);
-	      }
+	    sprintf(tmp2, "%.8s", pdata.bname + i * 8);
+	    if (strcmp("        ", tmp2)==0){
+	      sprintf(tmp2, "%.12s", pdata.jname + i * 12);
+	      sprintf(psrname, "J%s", remove_whitespace(tmp2));
 	    } else {
-	      if (full) {
-		sprintf(tmp1, "a sidelobe of the %s harmonic of ", num[j]);
-		sprintf(tmp2, "PSR B%s. (predicted p = %11.7f s).\n", \
-			tmp4, theop);
-		sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
-	      } else {
-		sprintf(output, "SL H%d B%s", j, tmp4);
-	      }
+	      sprintf(psrname, "B%s", remove_whitespace(tmp2));
+	    }
+	    if (full) {
+	      sprintf(tmp1, "a sidelobe of the %s harmonic of ", num[j]);
+	      sprintf(tmp2, "PSR %s. (predicted p = %11.7f s).\n", \
+		      psrname, theop);
+	      sprintf(output, "%s%s\n     %s", tmp3, tmp1, tmp2);
+	    } else {
+	      sprintf(shortout, "SL H%d %s", j, psrname);
+	      strncpy(output, shortout, 20);
 	    }
 	    return i + 1;
 	  }
@@ -533,7 +514,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, \
     sprintf(output, \
 	    "I don't recognize this candidate in the pulsar database.\n");
   } else {
-    sprintf(output, "                    ");
+    strncpy(output, "                       ", 20);
   }
   return 0;
 }
@@ -551,7 +532,7 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, \
   static psrdatabase pdata;
   double T, theop, ra, dec, beam2, difft = 0.0, epoch;
   double bmod, pmod;
-  char tmp1[80], tmp2[80], tmp3[80], tmp4[20];
+  char tmp1[80], tmp2[80], tmp3[80], psrname[20], shortout[30];
 
   /* If calling for the first time, read the database. */
 
@@ -597,7 +578,6 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, \
 
 	  difft = SECPERDAY * (epoch - pdata.epoch[i]);
 	  theop = pdata.p[i] + pdata.pdot[i] * difft;
-	  sprintf(tmp4, "%.8s", pdata.bname + i * 8);
 
 	  /* Check the predicted period and its harmonics against the */
 	  /* measured period.  Use both pulsar and binary periods.    */
@@ -609,47 +589,32 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, \
 		   k++, bmod = 1.0 / (double) k) {
 		if (fabs(pdata.pb[i] * bmod - cand->pbin / SECPERDAY) < \
 		    (4 * cand->pbinerr / SECPERDAY)) {
-		  if (!strcmp("        ", tmp4)) {
-		    if (j > 1) {
-		      if (full) {
-			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
-			sprintf(tmp2, "of the %s harmonic of PSR ", num[j]);
-			sprintf(tmp3, "J%.12s (p = %11.7f s, pbin = %9.4f d).\n", \
-				pdata.jname + i * 12, theop, pdata.pb[i]);
-			sprintf(output, "%s%s%s", tmp1, tmp2, tmp3);
-		      } else {
-			sprintf(output, "%s H J%.12s", num[k], pdata.jname + i * 12);
-		      }
+		  sprintf(tmp2, "%.8s", pdata.bname + i * 8);
+		  if (strcmp("        ", tmp2)==0){
+		    sprintf(tmp2, "%.12s", pdata.jname + i * 12);
+		    sprintf(psrname, "J%s", remove_whitespace(tmp2));
+		  } else {
+		    sprintf(psrname, "B%s", remove_whitespace(tmp2));
+		  }
+		  if (j > 1) {
+		    sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
+		    if (full) {
+		      sprintf(tmp2, "of the %s harmonic of PSR ", num[j]);
+		      sprintf(tmp3, "%s (p = %11.7f s, pbin = %9.4f d).\n", \
+			      psrname, theop, pdata.pb[i]);
+		      sprintf(output, "%s%s%s", tmp1, tmp2, tmp3);
 		    } else {
-		      if (full) {
-			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
-			sprintf(tmp2, "of PSR J%.12s (p = %11.7f s, pbin = %9.4f d).\n", \
-				pdata.jname + i * 12, theop, pdata.pb[i]);
-			sprintf(output, "%s%s", tmp1, tmp2);
-		      } else {
-			sprintf(output, "PSR J%.12s", pdata.jname + i * 12);
-		      }
+		      sprintf(shortout, "%s H %s", num[k], psrname);
+		      strncpy(output, shortout, 20);
 		    }
 		  } else {
-		    if (j > 1) {
-		      if (full) {
-			sprintf(tmp1, "Possibly the %s modulation harmonic ", num[k]);
-			sprintf(tmp2, "of the %s harmonic of PSR ", num[j]);
-			sprintf(tmp3, "B%s (p = %11.7f s, pbin = %9.4f d).\n", \
-				tmp4, theop, pdata.pb[i]);
-			sprintf(output, "%s%s%s", tmp1, tmp2, tmp3);
-		      } else {
-			sprintf(output, "%s H B%s", num[k], tmp4);
-		      }
+		    if (full) {
+		      sprintf(tmp2, "of PSR %s (p = %11.7f s, pbin = %9.4f d).\n", \
+			      psrname, theop, pdata.pb[i]);
+		      sprintf(output, "%s%s", tmp1, tmp2);
 		    } else {
-		      if (full) {
-			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
-			sprintf(tmp2, "of PSR B%s (p = %11.7f s, pbin = %9.4f d).\n", \
-				tmp4, theop, pdata.pb[i]);
-			sprintf(output, "%s%s", tmp1, tmp2);
-		      } else {
-			sprintf(output, "PSR B%s", tmp4);
-		      }
+		      sprintf(shortout, "PSR %s", psrname);
+		      strncpy(output, shortout, 20);
 		    }
 		  }
 		}
@@ -667,7 +632,7 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, \
   if (full) {
     sprintf(output, "I don't recognize this candidate in the pulsar database.\n");
   } else {
-    sprintf(output, "                  ");
+    strncpy(output, "                       ", 20);
   }
   return 0;
 }

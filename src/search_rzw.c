@@ -528,12 +528,12 @@ void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
 
 	/* Check if the note has already been written */
 
-	sprintf(tmp, "%.20s", notes + jj * 20);
-	if (!strcmp("                    ", tmp)) {
+	if (strncmp(notes+jj*20, "                      ", 20)==0){
 
 	  /* Write the note */
 
-	  sprintf(notes + jj * 20, "SL? of Cand %d", ii + 1);
+	  sprintf(tmp, "SL? of Cand %d", ii+1);
+	  strncpy(notes+jj*20, tmp, 20);
 	}
 	continue;
       }
@@ -548,13 +548,12 @@ void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
 
 	  /* Check if the note has already been written */
 
-	  sprintf(tmp, "%.20s", notes + jj * 20);
-	  if (!strcmp("                    ", tmp)) {
+	  if (strncmp(notes+jj*20, "                      ", 20)==0){
 
 	    /* Write the note */
 
-	    sprintf(notes + jj * 20, "H %d of Cand %d", kk, ii + 1);
-
+	    sprintf(tmp, "H %d of Cand %d", kk, ii+1);
+	    strncpy(notes+jj*20, tmp, 20);
 	    break;
 	  }
 	}
