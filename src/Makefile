@@ -49,9 +49,10 @@ CC = gcc
 FC = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -ansi -pedantic -Wall -W -fpic \
-	-D_FILE_OFFSET_BITS=64 -DUSEDMALLOC
-#	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
+	-g -ansi -pedantic -Wall -W -O2 -mpentiumpro -fpic \
+	-D_FILE_OFFSET_BITS=64
+#       -DUSEDMALLOC
+#	-g -ansi -pedantic -Wall -W -fpic \
 #	-Dinline= -Wmissing-prototypes \
 #	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \

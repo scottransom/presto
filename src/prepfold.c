@@ -697,7 +697,7 @@ int main(int argc, char *argv[])
   
   proftime = worklen * search.dt;
   parttimes = gen_dvect(cmd->npart);
-  printf("Folded %ld points of %.0f", totnumfolded, N);
+  printf("  Folded %ld points of %.0f", totnumfolded, N);
   
   /* sub-integrations in time  */
   
@@ -737,7 +737,7 @@ int main(int argc, char *argv[])
 		search.proflen, sizeof(double), search.proflen, 
 		binproffile);
     }
-    printf("\rFolded %ld points of %.0f", totnumfolded, N);
+    printf("\r  Folded %ld points of %.0f", totnumfolded, N);
     fflush(NULL);
   }
   fclose(infile);
@@ -747,7 +747,7 @@ int main(int argc, char *argv[])
    *   Perform the candidate optimization search
    */
 
-  printf("\nOptimizing...\n\n");
+  printf("\n\nOptimizing...\n\n");
   bestprof = gen_dvect(search.proflen);
   {
     int numtrials, pdelay, pddelay, profindex;
@@ -818,7 +818,7 @@ int main(int argc, char *argv[])
       search.dms = gen_dvect(numdmtrials);
       search.numdms = numdmtrials;
       
-      printf("Searching %d DMs, %d periods, and %d p-dots...\n\n", 
+      printf("  Searching %d DMs, %d periods, and %d p-dots...\n", 
 	     search.numdms, search.numperiods, search.numpdots);
 
       /* De-disperse and combine the subbands */
@@ -881,7 +881,7 @@ int main(int argc, char *argv[])
       
     } else {
 
-      printf("Searching %d periods, and %d p-dots...\n\n", 
+      printf("  Searching %d periods, and %d p-dots...\n", 
 	     search.numperiods, search.numpdots);
 
       /* Perform the P-dot and Period searches */
@@ -922,7 +922,7 @@ int main(int argc, char *argv[])
     free(currentprof);
     free(fdots);
   }
-  printf("Done searching.\n\n");
+  printf("  Done searching.\n\n");
 
   {
     double perr, pderr, pdderr;
