@@ -108,7 +108,7 @@ FLINKFLAGS = $(FFLAGS)
 	cp ../clig/$*.1 ../docs/
 
 PRESTOOBJS = amoeba.o barycenter.o birdzap.o cand_output.o\
-	characteristics.o chkio.o corr_prep.o corr_routines.o\
+	characteristics.o cldj.o chkio.o corr_prep.o corr_routines.o\
 	correlations.o database.o dcdflib.o dispersion.o\
 	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
 	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
@@ -128,7 +128,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat bincand taperaw\
-	accelsearch prepsubband
+	accelsearch prepsubband cal2mjd
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd\
@@ -239,6 +239,10 @@ makewisdom:
 
 mjd2cal: djcl.o mjd2cal.o
 	$(CC) $(CFLAGS) -o $@ djcl.o mjd2cal.o $(DMALLOCLINK) -lm
+	cp $@ ../bin
+
+cal2mjd: cldj.o cal2mjd.o
+	$(CC) $(CFLAGS) -o $@ cldj.o cal2mjd.o $(DMALLOCLINK) -lm
 	cp $@ ../bin
 
 plotbincand: plotbincand.o $(PLOT2DOBJS)
