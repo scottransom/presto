@@ -197,7 +197,7 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 /*      'pdderr' is the returned p-dotdot standard deviation */
 {
   int ii, gotone=0;
-  double T, T2, pwr, norm, sigpow=2.7, r2, r4, z2, sr2, sz2, errvar=0.0;
+  double T, pwr, norm, sigpow=2.7, r2, r4, z2, sr2, sz2, errvar=0.0;
   double err, r, z, w, pwrfact=0.0, pwrerr=0.0, rerr, zerr, werr, dtmp;
   double rerrn=0.0, zerrn=0.0, werrn=0.0, rerrd=0.0, zerrd=0.0, werrd=0.0;
   float powargr, powargi;
@@ -209,14 +209,12 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 
   /* Convert p, pd, and pdd into r, z, and w */
 
-  dtmp = p * p;
-  T2 = T * T;
   r = T / p;
-  z = T2 * -pd / dtmp;
+  z = -pd * r * r;
   if (pdd==0.0)
     w = 0.0;
   else 
-    w = T2 * T * (2.0 * pd * pd / (dtmp * p) - pdd / dtmp);
+    w = 2.0 * z * z / r - pdd * r * r * T;
 
   /* Calculate the normalization constant which converts the raw */
   /* powers into normalized powers -- just as if we had FFTd the */
@@ -297,14 +295,14 @@ void fold_errors(double *prof, int proflen, double dt, double N,
   r4 = r2 * r2;
   z2 = z * z;
   sz2 = zerr * zerr;
-  dtmp = r * w - 3 * z2;
+  dtmp = r * w - 3.0 * z2;
 
   /* Convert the standard deviations to periods */
   
   *perr = T * rerr / r2;
-  *pderr = sqrt(4 * z2 * sr2 / (r4 * r2) + sz2 / r4);
-  *pdderr = sqrt((werr * werr * r4 + 16 * sz2 * r2 + \
-		  4 * dtmp * dtmp * sr2) / (r4 * r4 * T2));
+  *pderr = sqrt(4.0 * z2 * sr2 / (r4 * r2) + sz2 / r4);
+  *pdderr = sqrt((werr * werr * r4 + 16 * z2 * sz2 * r2 + \
+		  4.0 * dtmp * dtmp * sr2) / (r4 * r4 * T * T));
 
   /* Free our FFT array */
 
