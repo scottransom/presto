@@ -97,61 +97,14 @@ FLINKFLAGS = $(FFLAGS)
 #FLINK = $(FC)
 #FLINKFLAGS = $(FFLAGS)
 
-# For IBM SP2
-#CC = cc
-#FC = f77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-DUSE_PIOFS -g -O2 -qarch=pwr2 -qtune=pwr2
-#EXTRALINK = -bI:/usr/include/piofs/piofs.exp
-#LINKCOMMAND = ar rcs
-#FFLAGS = -O
-#FLINK = xlf
-#FLINKFLAGS = 
+# Rules for CLIG generated files
 
-# For SGI 64bit
-#CC = cc
-#FC = f77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-64 -Ofast=ip27 -r10000
-#LINKCOMMAND = ar rcs
-#FFLAGS = -64 -Ofast=ip27 -r10000
-#FLINK = $(FC)
-#FLINKFLAGS = $(FFLAGS)
-
-# For SGI 32bit
-#CC = cc
-#FC = f77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-32 -O2
-#LINKCOMMAND = ar rcs
-#FFLAGS = -O
-#FLINK = $(FC)
-#FLINKFLAGS = $(FFLAGS)
-
-# For Cray T3E
-#CC = cc
-#FC = f90 -dp
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-O3 -h aggress -X m
-#LINKCOMMAND = ar rcs
-#FFLAGS = -O
-#FLINK = $(FC)
-#FLINKFLAGS = $(FFLAGS)
-
-# For Cray T90
-#CC = cc
-#FC = cf77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-O3
-#LINKCOMMAND = ar rcs
-#FFLAGS = -O
-#FLINK = $(FC)
-#FLINKFLAGS = $(FFLAGS)
+%_cmd.o : %_cmd.c
+%_cmd.c : ../clig/%_cmd.cli
+	cd ../clig ; clig -o $*_cmd -d $<
+	mv ../clig/$*_cmd.h ../include/
+	mv ../clig/$*_cmd.c .
+	cp ../clig/$*.1 ../docs/
 
 PRESTOOBJS = apprgrdn.o barycenter.o birdzap.o cand_output.o\
 	characteristics.o chkio.o corr_prep.o corr_routines.o\
@@ -176,26 +129,10 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	patchdata readfile toas2dat bincand taperaw
 
 xwin: psrorbit window plotbincand profile showmulti\
-	prepfold showmulti_dm searchmultidms show_pfd
+	prepfold showmulti_dm searchmultidms show_pfd\
+	rfifind
 
 geomview: togeomview
-
-cligs:
-	rm -f *_cmd.*
-	cd ../clig ; clig -o profile_cmd -d profile_cmd.cli
-	cd ../clig ; clig -o prepdata_cmd -d prepdata_cmd.cli
-	cd ../clig ; clig -o prepfold_cmd -d prepfold_cmd.cli
-	cd ../clig ; clig -o bincand_cmd -d bincand_cmd.cli
-	cd ../clig ; clig -o search_bin_cmd -d search_bin_cmd.cli
-	cd ../clig ; clig -o search_rzw_cmd -d search_rzw_cmd.cli
-	cd ../clig ; clig -o readfile_cmd -d readfile_cmd.cli
-	cd ../clig ; clig -o toas2dat_cmd -d toas2dat_cmd.cli
-	cd ../clig ; clig -o dftfold_cmd -d dftfold_cmd.cli
-	cd ../clig ; clig -o realfft_cmd -d realfft_cmd.cli
-	cd ../clig ; clig -o rfifind_cmd -d rfifind_cmd.cli
-	mv ../clig/*_cmd.h ../include/
-	mv ../clig/*_cmd.c .
-	cp ../clig/*.1 ../docs/
 
 $(PRESTOLIBNM): $(PRESTOOBJS)
 	$(LINKCOMMAND) $@ $(PRESTOOBJS)
@@ -370,6 +307,9 @@ cleaner:  clean
 squeaky:  cleaner
 	rm -f *.dat *.fft *.inf fftw_wisdom.txt
 	rm -f core *.win* *.ps *_rzw *.tmp
+	cd $(PRESTO)/clig ; rm -f *# *~
+	cd $(PRESTO)/docs ; rm -f *# *~
+	cd $(PRESTO)/python ; rm -f *# *~ *.o *.pyc *.pyo
 	cd $(PRESTO)/include ; rm -f *# *~
 	cd $(PRESTO)/lib ; rm -f bincat.dat
 	cd $(PRESTO)/bin ; rm -f makedata makeinf mjd2cal realfft
