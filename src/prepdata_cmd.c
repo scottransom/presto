@@ -28,6 +28,8 @@ static Cmdline cmd = {
   /* outfileC = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ 0,
+  /***** -gmrt: Raw data in GMRT Phased Array format */
+  /* gmrtP = */ 0,
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   /* bcpmP = */ 0,
   /***** -if: For BPP format only:  A specific IF to use. */
@@ -792,6 +794,13 @@ showOptionValues(void)
     printf("-pkmb found:\n");
   }
 
+  /***** -gmrt: Raw data in GMRT Phased Array format */
+  if( !cmd.gmrtP ) {
+    printf("-gmrt not found.\n");
+  } else {
+    printf("-gmrt found:\n");
+  }
+
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   if( !cmd.bcpmP ) {
     printf("-bcpm not found.\n");
@@ -914,11 +923,12 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-numout numout] [-nobary] [-shorts] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-gmrt] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-numout numout] [-nobary] [-shorts] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n\
     Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
       -pkmb: Raw data in Parkes Multibeam format\n\
+      -gmrt: Raw data in GMRT Phased Array format\n\
       -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
         -if: For BPP format only:  A specific IF to use.\n\
              1 int value between 0 and 1\n\
@@ -941,7 +951,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 02Dec02\n\
+version: 31Mar03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -970,6 +980,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-pkmb", argv[i]) ) {
       cmd.pkmbP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-gmrt", argv[i]) ) {
+      cmd.gmrtP = 1;
       continue;
     }
 

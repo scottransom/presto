@@ -28,6 +28,8 @@ static Cmdline cmd = {
   /* outfileC = */ 0,
   /***** -pkmb: Raw data in Parkes Multibeam format */
   /* pkmbP = */ 0,
+  /***** -gmrt: Raw data in GMRT Phased Array format */
+  /* gmrtP = */ 0,
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   /* bcpmP = */ 0,
   /***** -if: For BPP format only:  A specific IF to use. */
@@ -950,6 +952,13 @@ showOptionValues(void)
     printf("-pkmb found:\n");
   }
 
+  /***** -gmrt: Raw data in GMRT Phased Array format */
+  if( !cmd.gmrtP ) {
+    printf("-gmrt not found.\n");
+  } else {
+    printf("-gmrt found:\n");
+  }
+
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   if( !cmd.bcpmP ) {
     printf("-bcpm not found.\n");
@@ -1587,11 +1596,12 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-o outfile] [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n\
+ [-o outfile] [-pkmb] [-gmrt] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n\
     Prepares (if required) and folds raw radio data, standard time series, or events.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
         -pkmb: Raw data in Parkes Multibeam format\n\
+        -gmrt: Raw data in GMRT Phased Array format\n\
         -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
           -if: For BPP format only:  A specific IF to use.\n\
                1 int value between 0 and 1\n\
@@ -1716,7 +1726,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 02Dec02\n\
+version: 31Mar03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1744,6 +1754,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-pkmb", argv[i]) ) {
       cmd.pkmbP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-gmrt", argv[i]) ) {
+      cmd.gmrtP = 1;
       continue;
     }
 

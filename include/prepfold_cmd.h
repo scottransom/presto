@@ -15,6 +15,8 @@ typedef struct s_Cmdline {
   int outfileC;
   /***** -pkmb: Raw data in Parkes Multibeam format */
   char pkmbP;
+  /***** -gmrt: Raw data in GMRT Phased Array format */
+  char gmrtP;
   /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
   char bcpmP;
   /***** -if: For BPP format only:  A specific IF to use. */

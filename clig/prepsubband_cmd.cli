@@ -13,6 +13,7 @@ Commandline full_cmd_line
 String -o       outfile {Root of the output file names} \
 	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
+Flag   -gmrt    gmrt    {Raw data in GMRT Phased Array format}
 Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
 Int    -if      ifs     {For BPP format only:  A specific IF to use.} \
         -r 0 1
