@@ -81,6 +81,15 @@ int main(int argc, char *argv[])
   cmd = parseCmdline(argc, argv);
   numinfiles = cmd->argc;
   if (cmd->noclipP) cmd->clip = 0.0;
+  /* Which IFs will we use? */
+  if (cmd->ifsP){
+    if (cmd->ifs==0)
+      ifs = IF0;
+    else if (cmd->ifs==1)
+      ifs = IF1;
+    else
+      ifs = SUMIFS;
+  }
 
 #ifdef DEBUG
   showOptionValues();
@@ -302,15 +311,6 @@ int main(int argc, char *argv[])
 			&numchan, &dt, &T, &idata, 1);
       BPP_update_infodata(numinfiles, &idata);
       set_BPP_padvals(padvals, good_padvals);
-      /* Which IFs will we use? */
-      if (cmd->ifsP){
-	if (cmd->ifs==0)
-	  ifs = IF0;
-	else if (cmd->ifs==1)
-	  ifs = IF1;
-	else
-	  ifs = SUMIFS;
-      }
       /* OBS code for TEMPO */
       strcpy(obs, "GB");
     }
@@ -902,7 +902,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  numread = read_WAPP_subbands(infiles, numfiles, 
 				       currentdata+ii*blocksize,
 				       dispdts, cmd->nsub, 0, &tmppad, 
-				       maskchans, &nummasked, obsmask);
+				       maskchans, &nummasked, obsmask, ifs);
 	else if (cmd->gmrtP)
 	  numread = read_GMRT_subbands(infiles, numfiles, 
 				       currentdata+ii*blocksize,

@@ -8,8 +8,8 @@
 #define WAPP_DEADTIME 0.34
 /* Maximum number of lags we can have per WAPP */
 #define WAPP_MAXLAGS 1024
-/* Maximum data block length in bytes */
-#define WAPP_MAXDATLEN WAPP_MAXPTSPERBLOCK*WAPP_MAXLAGS*WAPP_MAXNUMWAPPS
+/* Maximum data block length in bytes (the 2 is for 2IFs) */
+#define WAPP_MAXDATLEN WAPP_MAXPTSPERBLOCK*WAPP_MAXLAGS*WAPP_MAXNUMWAPPS*2
 /* Maximum block length in bytes for the raw lags */
 #define WAPP_MAXLAGLEN WAPP_MAXDATLEN*4
 
@@ -109,12 +109,12 @@ typedef struct WAPP_HEADERv234{
 void set_WAPP_padvals(float *fpadvals, int good_padvals);
 void print_WAPP_hdr(char *hdr);
 int read_WAPP_rawblock(FILE *infiles[], int numfiles, unsigned char *data, 
-		       int *padding);
-int read_WAPP_rawblocks(FILE *infiles[], int numfiles, 
-			unsigned char rawdata[], int numblocks, int *padding);
+		       int *padding, IFs ifs);
+int read_WAPP_rawblocks(FILE *infiles[], int numfiles, unsigned char rawdata[], 
+			int numblocks, int *padding, IFs ifs);
 int read_WAPP(FILE *infiles[], int numfiles, float *data, int numpts, 
 	      double *dispdelays, int *padding, int *maskchans, 
-	      int *nummasked, mask *obsmask);
+	      int *nummasked, mask *obsmask, IFs ifs);
 void get_WAPP_channel(int channum, float chandat[], 
 		      unsigned char rawdata[], int numblocks);
 void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, 
@@ -128,8 +128,8 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
 int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data, 
 		       double *dispdelays, int numsubbands, int transpose, 
 		       int *padding, int *maskchans, int *nummasked, 
-		       mask *obsmask);
-void convert_WAPP_point(void *rawdata, unsigned char *bytes);
+		       mask *obsmask, IFs ifs);
+void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs);
 void WAPP_update_infodata(int numfiles, infodata *idata);
 int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec);
 int check_WAPP_byteswap(char *hdr);

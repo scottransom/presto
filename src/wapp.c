@@ -36,18 +36,20 @@ static double inv_cerf(double input);
 static void vanvleck3lev(float *rho, int npts);
 static void vanvleck9lev(float *rho, int npts);
 
-void get_WAPP_static(int *bytesperpt, int *bytesperblk, float *clip_sigma){
+void get_WAPP_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma){
   *bytesperpt = bytesperpt_st;
   *bytesperblk = bytesperblk_st;
+  *numifs = numifs_st;
   *clip_sigma = clip_sigma_st;
 }
 
 void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-		     int numchan, float clip_sigma, double dt){
+		     int numchan, int numifs, float clip_sigma, double dt){
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
   numchan_st = numchan;
+  numifs_st = numifs;
   sampperblk_st = ptsperblk_st * numchan_st;
   clip_sigma_st = clip_sigma;
   dt_st = dt;
@@ -688,7 +690,7 @@ void print_WAPP_hdr(char *hdr)
 }
  
 int read_WAPP_rawblock(FILE *infiles[], int numfiles, 
-		       unsigned char *data, int *padding)
+		       unsigned char *data, int *padding, IFs ifs)
 /* This routine reads a single record from the          */
 /* input files *infiles which contain 16 or 32 bit lags */
 /* data from the WAPP correlator at Arecibo.            */
@@ -741,7 +743,7 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
     for (ii=0; ii<ptsperblk_st; ii++)
       for (jj=0; jj<numwapps_st; jj++)
 	convert_WAPP_point(lagbuffer+jj*bytesperblk_st+ii*bytesperpt_st,
-			   dataptr+jj*numwappchan_st+ii*numchan_st);
+			   dataptr+jj*numwappchan_st+ii*numchan_st, ifs);
 
     /* Clip nasty RFI if requested */
     if (clip_sigma_st > 0.0)
@@ -791,12 +793,12 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 	  currentfile++;
 	  shiftbuffer = 0;
 	  bufferpts += numtopad;
-	  return read_WAPP_rawblock(infiles, numfiles, data, &pad);
+	  return read_WAPP_rawblock(infiles, numfiles, data, &pad, ifs);
 	}
       } else {  /* No padding needed.  Try reading the next file */
 	currentfile++;
 	shiftbuffer = 0;
-	return read_WAPP_rawblock(infiles, numfiles, data, padding);
+	return read_WAPP_rawblock(infiles, numfiles, data, padding, ifs);
       }
     } else {
       printf("\nProblem reading record from WAPP data file:\n");
@@ -810,7 +812,7 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 
 int read_WAPP_rawblocks(FILE *infiles[], int numfiles, 
 			unsigned char rawdata[], int numblocks,
-			int *padding)
+			int *padding, IFs ifs)
 /* This routine reads numblocks WAPP records from the input */
 /* files *infiles.  The 8-bit filterbank data is returned   */
 /* in rawdata which must have a size of numblocks*          */
@@ -823,7 +825,7 @@ int read_WAPP_rawblocks(FILE *infiles[], int numfiles,
   *padding = 0;
   for (ii=0; ii<numblocks; ii++){
     retval += read_WAPP_rawblock(infiles, numfiles, 
-				 rawdata + ii * sampperblk_st, &pad);
+				 rawdata + ii * sampperblk_st, &pad, ifs);
     if (pad)
       numpad++;
   }
@@ -842,7 +844,7 @@ int read_WAPP_rawblocks(FILE *infiles[], int numfiles,
 
 int read_WAPP(FILE *infiles[], int numfiles, float *data, 
 	      int numpts, double *dispdelays, int *padding, 
-	      int *maskchans, int *nummasked, mask *obsmask)
+	      int *maskchans, int *nummasked, mask *obsmask, IFs ifs)
 /* This routine reads numpts from the WAPP raw input   */
 /* files *infiles.  These files contain raw correlator */
 /* data from WAPP at Arecibo.  Time delays             */
@@ -884,7 +886,7 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
   if (allocd){
     while(1){
       numread = read_WAPP_rawblocks(infiles, numfiles, currentdata, 
-				    numblocks, padding);
+				    numblocks, padding, ifs);
       if (mask){
 	starttime = currentblock * timeperblk;
 	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
@@ -1023,7 +1025,7 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
 int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data, 
 		       double *dispdelays, int numsubbands, 
 		       int transpose, int *padding, 
-		       int *maskchans, int *nummasked, mask *obsmask)
+		       int *maskchans, int *nummasked, mask *obsmask, IFs ifs)
 /* This routine reads a record from the input files *infiles[]   */
 /* which contain data from the WAPP system.  The routine uses    */
 /* dispersion delays in 'dispdelays' to de-disperse the data     */
@@ -1044,7 +1046,7 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
   static unsigned char rawdata[WAPP_MAXDATLEN]; 
 
   if (firsttime){
-    if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding)){
+    if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding, ifs)){
       printf("Problem reading the raw WAPP data file.\n\n");
       return 0;
     }
@@ -1055,7 +1057,7 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
     }
     firsttime = 0;
   }
-  if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding)){
+  if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding, ifs)){
     printf("Problem reading the raw WAPP data file.\n\n");
     return 0;
   }
@@ -1064,69 +1066,94 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 }
 
 
-void convert_WAPP_point(void *rawdata, unsigned char *bytes)
+void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
 /* This routine converts a single point of WAPP lags   */
 /* into a filterbank style array of bytes.             */
 /* Van Vleck corrections are applied but no window     */
 /* functions can be applied as of yet...               */
 {
-  int ii, two_nlags;
+  int ii, two_nlags, ifnum=0, index=0;
   double power, pfact;
-  static float acf[2*WAPP_MAXLAGS], lag[2*WAPP_MAXLAGS];
+  static float acf[2*WAPP_MAXLAGS], lag[2*WAPP_MAXLAGS], templag[WAPP_MAXLAGS];
   double scale_min_st=0.0, scale_max_st=3.0;
 
-  /* Fill lag array with scaled CFs */
-  if (bits_per_samp_st==16){
-    unsigned short *sdata=(unsigned short *)rawdata;
-    for (ii=0; ii<numwappchan_st; ii++)
-      lag[ii] = corr_scale_st * sdata[ii] - 1.0;
-  } else {
-    unsigned int *idata=(unsigned int *)rawdata;
-    for (ii=0; ii<numwappchan_st; ii++)
-      lag[ii] = corr_scale_st * idata[ii] - 1.0;
+  if (ifs==IF1){
+    ifnum = 1;
+    index = numwappchan_st;
+  } else if (ifs==SUMIFS) {
+    scale_min_st *= 2.0;
+    scale_max_st *= 2.0;
   }
 
-  /* Calculate power */
-  power = inv_cerf(lag[0]);
-  power = 0.1872721836 / (power * power);
-  
-  /* Apply Van Vleck Corrections to the Lags */
-  if (corr_level_st==3)
-    vanvleck3lev(lag, numwappchan_st);
-  else if (corr_level_st==9)
-    vanvleck9lev(lag, numwappchan_st);
-  else
-    printf("\nError:  corr_level_st (%d) does not equal 3 or 9!\n\n", 
-	   corr_level_st);
-  
-  /* Form even ACF in array */
-  two_nlags = 2 * numwappchan_st;
-  for(ii=1; ii<numwappchan_st; ii++)
-    acf[ii] = acf[two_nlags-ii] = power * lag[ii];
-  acf[0] = power * lag[0];
-  acf[numwappchan_st] = 0.0;
- 
-  /* FFT the ACF (which is real and even) -> real and even FFT */
-  rfftw_one(fftplan, acf, lag);
+  /* Loop over the IFs */
+  for (;ifnum < numifs_st; ifnum++, index+=numwappchan_st){
+    
+    /* Fill lag array with scaled CFs */
+    if (bits_per_samp_st==16){
+      unsigned short *sdata=(unsigned short *)rawdata;
+      for (ii=0; ii<numwappchan_st; ii++)
+	lag[ii] = corr_scale_st * sdata[ii+index] - 1.0;
+    } else {
+      unsigned int *idata=(unsigned int *)rawdata;
+      for (ii=0; ii<numwappchan_st; ii++)
+	lag[ii] = corr_scale_st * idata[ii+index] - 1.0;
+    }
 
-  /* Reverse band if it needs it */
-  if (decreasing_freqs_st){
-    float tempzz=0.0, *loptr, *hiptr;
-    loptr = lag + 0;
-    hiptr = lag + numwappchan_st - 1;
-    for (ii=0; ii<numwappchan_st/2; ii++, loptr++, hiptr--){
-      SWAP(*loptr, *hiptr);
+    /* Calculate power */
+    power = inv_cerf(lag[0]);
+    power = 0.1872721836 / (power * power);
+  
+    /* Apply Van Vleck Corrections to the Lags */
+    if (corr_level_st==3)
+      vanvleck3lev(lag, numwappchan_st);
+    else if (corr_level_st==9)
+      vanvleck9lev(lag, numwappchan_st);
+    else
+      printf("\nError:  corr_level_st (%d) does not equal 3 or 9!\n\n", 
+	     corr_level_st);
+  
+    /* Form even ACF in array */
+    two_nlags = 2 * numwappchan_st;
+    for(ii=1; ii<numwappchan_st; ii++)
+      acf[ii] = acf[two_nlags-ii] = power * lag[ii];
+    acf[0] = power * lag[0];
+    acf[numwappchan_st] = 0.0;
+ 
+    /* FFT the ACF (which is real and even) -> real and even FFT */
+    rfftw_one(fftplan, acf, lag);
+
+    /* Reverse band if it needs it */
+    if (decreasing_freqs_st){
+      float tempzz=0.0, *loptr, *hiptr;
+      loptr = lag + 0;
+      hiptr = lag + numwappchan_st - 1;
+      for (ii=0; ii<numwappchan_st/2; ii++, loptr++, hiptr--){
+	SWAP(*loptr, *hiptr);
+      }
+    }
+    
+    if (numifs_st==2 && ifs==SUMIFS){
+      if (ifnum==0){
+	/* Copy the unscaled values to the templag array */
+	for(ii=0; ii<numwappchan_st; ii++)
+	  templag[ii] = lag[ii];
+      } else {
+	/* Sum the unscaled IFs */
+	for(ii=0; ii<numwappchan_st; ii++)
+	  lag[ii] += templag[ii];
+      }
+    } else {
+      /* Scale and pack the powers */
+      pfact = 255.0 / (scale_max_st - scale_min_st);
+      for(ii=0; ii<numwappchan_st; ii++){
+	double templag;
+	templag = (lag[ii] > scale_max_st) ? scale_max_st : lag[ii];
+	templag = (templag < scale_min_st) ? scale_min_st : templag;
+	bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
+      }
     }
   }
-
-  /* Scale and pack the powers */
-  pfact = 255.0 / (scale_max_st - scale_min_st);
-  for(ii=0; ii<numwappchan_st; ii++){
-    double templag;
-    templag = (lag[ii] > scale_max_st) ? scale_max_st : lag[ii];
-    templag = (templag < scale_min_st) ? scale_min_st : templag;
-    bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
-  }
+  
 #if 0
   { /* Show what the raw powers are (avg ~1.05, var ~0.2) */
     double avg, var;

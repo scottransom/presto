@@ -182,8 +182,7 @@ int read_BPP_rawblocks(FILE *infiles[], int numfiles, unsigned char rawdata[],
 int read_BPP(FILE *infiles[], int numfiles, float *data, int numpts, 
 	     double *dispdelays, int *padding, int *maskchans, 
 	     int *nummasked, mask *obsmask, IFs ifs);
-void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes, 
-			IFs ifs);
+void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes, IFs ifs);
 void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
 void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
 int prep_BPP_subbands(unsigned char *rawdata, float *data, 
@@ -192,9 +191,7 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
 		      mask *obsmask, IFs ifs);
 int read_BPP_subbands(FILE *infiles[], int numfiles, float *data, 
 		      double *dispdelays, int numsubbands, 
-		      int transpose, int *padding, 
-		      int *maskchans, int *nummasked, mask *obsmask,
-		      IFs ifs);
+		      int transpose, int *padding, int *maskchans, 
+		      int *nummasked, mask *obsmask, IFs ifs);
 void get_BPP_channel(int channum, float chandat[], 
-		     unsigned char rawdata[], int numblocks,
-		     IFs ifs);
+		     unsigned char rawdata[], int numblocks, IFs ifs);

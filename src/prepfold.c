@@ -94,6 +94,15 @@ int main(int argc, char *argv[])
     else
       cmd->pstep = 6;
   }
+  /* Which IFs will we use? */
+  if (cmd->ifsP){
+    if (cmd->ifs==0)
+      ifs = IF0;
+    else if (cmd->ifs==1)
+      ifs = IF1;
+    else
+      ifs = SUMIFS;
+  }
   pflags.events = cmd->eventsP;
   pflags.nosearch = cmd->nosearchP;
   pflags.scaleparts = cmd->scalepartsP;
@@ -401,17 +410,6 @@ int main(int argc, char *argv[])
       BPP_update_infodata(numfiles, &idata);
       set_BPP_padvals(padvals, good_padvals);
 
-      /* Which IFs will we use? */
-      
-      if (cmd->ifsP){
-	if (cmd->ifs==0)
-	  ifs = IF0;
-	else if (cmd->ifs==1)
-	  ifs = IF1;
-	else
-	  ifs = SUMIFS;
-      }
-      
       /* OBS code for TEMPO */
       
       /* The following is for the Green Bank 85-3
@@ -1298,12 +1296,11 @@ int main(int argc, char *argv[])
 	else if (cmd->bcpmP)
 	  numread = read_BPP_subbands(infiles, numfiles, data, 
 				      dispdts, cmd->nsub, 1, &padding,
-				      maskchans, &nummasked, &obsmask, 
-				      ifs);
+				      maskchans, &nummasked, &obsmask, ifs);
 	else if (cmd->wappP)
 	  numread = read_WAPP_subbands(infiles, numfiles, data, 
 				       dispdts, cmd->nsub, 1, &padding,
-				       maskchans, &nummasked, &obsmask);
+				       maskchans, &nummasked, &obsmask, ifs);
 	else if (cmd->gmrtP)
 	  numread = read_GMRT_subbands(infiles, numfiles, data, 
 				       dispdts, cmd->nsub, 1, &padding,

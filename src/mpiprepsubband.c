@@ -41,9 +41,9 @@ extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs,
 extern void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk, 
 			    int numchan, int numifs, float clip_sigma, 
 			    double dt, int *chan_map);
-extern void get_WAPP_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
+extern void get_WAPP_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma);
 extern void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-			    int numchan, float clip_sigma, double dt);
+			    int numchan, int numifs, float clip_sigma, double dt);
 extern void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
 extern void set_GMRT_static(int ptsperblk, int bytesperpt, int bytesperblk, 
 			    int numchan, float clip_sigma, double dt);
@@ -371,7 +371,7 @@ int main(int argc, char *argv[])
 	get_WAPP_file_info(infiles, cmd->numwapps, numinfiles, cmd->clip,
 			   &N, &ptsperblk, &numchan, 
 			   &dt, &T, &idata, 1);
-	get_WAPP_static(&bytesperpt, &bytesperblk, &clip_sigma);
+	get_WAPP_static(&bytesperpt, &bytesperblk, &numifs, &clip_sigma);
 	WAPP_update_infodata(numinfiles, &idata);
 	set_WAPP_padvals(padvals, good_padvals);
 	strcpy(obs, "AO");  /* OBS code for TEMPO */
@@ -406,18 +406,16 @@ int main(int argc, char *argv[])
 			numchan, numifs, clip_sigma, dt, chan_mapping);
       if (cmd->wappP)
 	set_WAPP_static(ptsperblk, bytesperpt, bytesperblk, 
-			numchan, clip_sigma, dt);
+			numchan, numifs, clip_sigma, dt);
     }
-    if (cmd->bcpmP) {
-      /* Which IFs will we use? */
-      if (cmd->ifsP){
-	if (cmd->ifs==0)
-	  ifs = IF0;
-	else if (cmd->ifs==1)
-	  ifs = IF1;
-	else
-	  ifs = SUMIFS;
-      }
+    /* Which IFs will we use? */
+    if (cmd->ifsP){
+      if (cmd->ifs==0)
+	ifs = IF0;
+      else if (cmd->ifs==1)
+	ifs = IF1;
+      else
+	ifs = SUMIFS;
     }
     /* For the WAPP, the number of bytes returned in get_WAPP_rawblock()  */
     /* is ptsperblk since the correlator lags are converted to 1 byte     */
@@ -962,7 +960,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	  else if (cmd->bcpmP)
 	    numread = read_BPP_rawblock(infiles, numfiles, rawdata, &tmppad);
 	  else if (cmd->wappP)
-	    numread = read_WAPP_rawblock(infiles, numfiles, rawdata, &tmppad);
+	    numread = read_WAPP_rawblock(infiles, numfiles, rawdata, &tmppad, ifs);
 	  numread *= blocklen;
 	}
 	MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);

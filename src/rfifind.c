@@ -94,6 +94,15 @@ int main(int argc, char *argv[])
   slen = strlen(cmd->outfile)+20;
   numfiles = cmd->argc;
   if (cmd->noclipP) cmd->clip = 0.0;
+  /* Which IFs will we use? */
+  if (cmd->ifsP){
+    if (cmd->ifs==0)
+      ifs = IF0;
+    else if (cmd->ifs==1)
+      ifs = IF1;
+    else
+      ifs = SUMIFS;
+  }
 
 #ifdef DEBUG
   showOptionValues();
@@ -253,17 +262,6 @@ int main(int argc, char *argv[])
       idata.dm = 0.0;
       writeinf(&idata);
 
-      /* Which IFs will we use? */
-      
-      if (cmd->ifsP){
-	if (cmd->ifs==0)
-	  ifs = IF0;
-	else if (cmd->ifs==1)
-	  ifs = IF1;
-	else
-	  ifs = SUMIFS;
-      }
-
     } else if (cmd->wappP){
 
       /* Set-up for the WAPP machine at Arecibo */
@@ -352,7 +350,7 @@ int main(int argc, char *argv[])
 				     rawdata, blocksperint, &padding);
       else if (cmd->wappP)
 	numread = read_WAPP_rawblocks(infiles, numfiles, 
-				      rawdata, blocksperint, &padding);
+				      rawdata, blocksperint, &padding, ifs);
       else if (cmd->gmrtP)
 	numread = read_GMRT_rawblocks(infiles, numfiles, 
 				      rawdata, blocksperint, &padding);
