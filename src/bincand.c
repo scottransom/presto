@@ -67,7 +67,6 @@ int main(int argc, char *argv[]){
   orbitparams trialorb, orb, bestorb;
   infodata idata;
   makedata mdata;
-  psrdatabase pdata;
   psrparams psr;
   Cmdline *cmd;
 
@@ -88,8 +87,7 @@ int main(int argc, char *argv[]){
 
   printf("\n\n");
   printf("     Binary Candidate Optimization Routine\n");
-  printf("            by Scott M. Ransom\n");
-  printf("               19 June, 2000\n\n");
+  printf("            by Scott M. Ransom\n\n");
 
   /* Initialize the filenames and some data: */
 
@@ -129,16 +127,13 @@ int main(int argc, char *argv[]){
   /* Read the pulsar database if needed */
 
   if (cmd->psrnameP) {
-    int numpsrs;
-
-    numpsrs = read_database(&pdata);
-    pnum = get_psr_at_epoch(cmd->psrname, epoch, &pdata, &psr);
+    pnum = get_psr_at_epoch(cmd->psrname, epoch, &psr);
     if (!pnum) {
       printf("The pulsar '%s' is not in the database.  Exiting.\n\n",
 	     cmd->psrname);
       exit(1);
     }
-    if (psr.ntype & 8){
+    if (psr.orb.p != 0.0){
       trialorb = psr.orb;
     } else {
       printf("The pulsar '%s' is not in a binary.  Exiting.\n\n",
