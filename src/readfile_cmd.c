@@ -23,8 +23,8 @@ char *Program;
 static int indexDefault[] = {0,  -1};
 
 static Cmdline cmd = {
-  /***** -more: Paginate the output like 'more' */
-  /* moreP = */ 0,
+  /***** -nopage: Don't paginate the output like 'more' */
+  /* nopageP = */ 0,
   /***** -byte: Raw data in byte format */
   /* bytP = */ 0,
   /***** -b: Raw data in byte format */
@@ -775,11 +775,11 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -more: Paginate the output like 'more' */
-  if( !cmd.moreP ) {
-    printf("-more not found.\n");
+  /***** -nopage: Don't paginate the output like 'more' */
+  if( !cmd.nopageP ) {
+    printf("-nopage not found.\n");
   } else {
-    printf("-more found:\n");
+    printf("-nopage found:\n");
   }
 
   /***** -byte: Raw data in byte format */
@@ -986,9 +986,9 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-more] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-fortran] [-index [index]] [-nph nph] [--] file\n\
+ [-nopage] [-byte] [-b] [-float] [-f] [-double] [-d] [-fcomplex] [-fc] [-dcomplex] [-dc] [-int] [-i] [-long] [-l] [-rzwcand] [-rzw] [-bincand] [-bin] [-position] [-pos] [-pkmb] [-pk] [-fortran] [-index [index]] [-nph nph] [--] file\n\
     Reads raw data from a binary file and displays it on stdout.\n\
-      -more: Paginate the output like 'more'\n\
+    -nopage: Don't paginate the output like 'more'\n\
       -byte: Raw data in byte format\n\
          -b: Raw data in byte format\n\
      -float: Raw data in floating point format\n\
@@ -1020,7 +1020,7 @@ usage(void)
              default: `1.0'\n\
        file: Input data file name.\n\
              1 value\n\
-version: 03Oct00\n\
+version: 06Oct00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1038,8 +1038,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-more", argv[i]) ) {
-      cmd.moreP = 1;
+    if( 0==strcmp("-nopage", argv[i]) ) {
+      cmd.nopageP = 1;
       continue;
     }
 

@@ -10,7 +10,7 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-Flag   	-more		more	{Paginate the output like 'more'}
+Flag   	-nopage		nopage	{Don't paginate the output like 'more'}
 Flag   	-byte		byt	{Raw data in byte format}
 Flag   	-b		sbyt	{Raw data in byte format}
 Flag   	-float		flt	{Raw data in floating point format}

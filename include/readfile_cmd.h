@@ -9,8 +9,8 @@
 *****/
 
 typedef struct s_Cmdline {
-  /***** -more: Paginate the output like 'more' */
-  char moreP;
+  /***** -nopage: Don't paginate the output like 'more' */
+  char nopageP;
   /***** -byte: Raw data in byte format */
   char bytP;
   /***** -b: Raw data in byte format */

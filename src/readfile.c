@@ -226,7 +226,7 @@ int main(int argc, char **argv)
     for(j = 0; j < objs_read; j++)
       print_funct_ptrs[index](i + j, data + j * type_sizes[index]);
     i += objs_read;
-    if (cmd->moreP){
+    if (!cmd->nopageP){
       fflush(NULL);
       fprintf(stderr, "\nPress ENTER for next page, or any other key and ");
       fprintf(stderr, "then ENTER to exit.\n\n");
