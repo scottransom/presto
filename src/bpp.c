@@ -141,7 +141,8 @@ static double UT_strings_to_MJD(char *date, char *start_time,
   }
   day = julday;
   sscanf(start_time, "%2d:%2d:%2d", &hour, &min, &sec);
-  *mjd_fracday = (hour + (min + (sec / 60.0)) / 60.0) / 24.0;
+  /* Recorded BCPM start time is 1 second late */
+  *mjd_fracday = (hour + (min + ((sec + 1) / 60.0)) / 60.0) / 24.0;
   *mjd_day = slaCldj(year, month, day, &err);
   return *mjd_day + *mjd_fracday;
 }
