@@ -35,24 +35,21 @@ static inline int twon_to_index(int n)
 }
 
 
-static inline int calc_required_z(int numharm, int harmnum, double zfull)
+static inline int calc_required_z(double harm_fract, double zfull)
 /* Calculate the 'z' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'z' at the fundamental harmonic is 'zfull'.    */
 {
-  double zz;
-  
-  zz = ACCEL_RDZ * (zfull / numharm) * harmnum;
-  return NEAREST_INT(zz) * ACCEL_DZ;
+  return NEAREST_INT(ACCEL_RDZ*zfull*harm_fract)*ACCEL_DZ;
 }
 
 
-static inline double calc_required_r(int numharm, int harmnum, double rfull)
+static inline double calc_required_r(double harm_fract, double rfull)
 /* Calculate the 'r' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'r' at the fundamental harmonic is 'rfull'.    */
 {
-  return (int) ((ACCEL_RDR * (rfull / numharm) * harmnum) + 0.5) * ACCEL_DR;
+  return (int) (ACCEL_RDR*rfull*harm_fract + 0.5)*ACCEL_DR;
 }
 
 
@@ -60,7 +57,7 @@ static inline int index_from_r(double r, double lor)
 /* Return an index for a Fourier Freq given an array that */
 /* has stepsize ACCEL_DR and low freq 'lor'.              */
 {
-  return (int) ((r - lor) * ACCEL_RDR + DBLCORRECT);
+  return (int) ((r - lor)*ACCEL_RDR + DBLCORRECT);
 }
 
 
@@ -68,7 +65,7 @@ static inline int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
 /* has stepsize ACCEL_DZ and low freq 'lor'.              */
 {
-  return (int) ((z - loz) * ACCEL_RDZ + DBLCORRECT);
+  return (int) ((z - loz)*ACCEL_RDZ + DBLCORRECT);
 }
 
 
@@ -109,10 +106,12 @@ static int calc_fftlen(int numharm, int harmnum, int max_zfull)
 /* The fft length needed to properly process a subharmonic */
 {
   int bins_needed, end_effects;
+  double harm_fract;
 
-  bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
-  end_effects = z_resp_halfwidth(calc_required_z(numharm, harmnum, max_zfull), 
-				 LOWACC) * 2 * ACCEL_NUMBETWEEN;
+  harm_fract = (double)harmnum/(double)numharm;
+  bins_needed = (ACCEL_USELEN*harmnum)/numharm + 2;
+  end_effects = 2*ACCEL_NUMBETWEEN*\
+    z_resp_halfwidth(calc_required_z(harm_fract, max_zfull), LOWACC);
   return next2_to_n(bins_needed + end_effects);
 }
 
@@ -147,23 +146,18 @@ static void init_subharminfo(int numharm, int harmnum,
 /* Note:  'zmax' is the overall maximum 'z' in the search */
 {
   int ii, fftlen, numz_full;
+  double harm_fract;
 
+  harm_fract = (double)harmnum/(double)numharm;
   shi->numharm = numharm;
   shi->harmnum = harmnum;
-  shi->zmax = calc_required_z(numharm, harmnum, zmax);
-  numz_full = (zmax / ACCEL_DZ) * 2 + 1;
-  shi->rinds_init = 0;
-  if (numharm > 1){
-    shi->rinds = (unsigned short int **) malloc(numz_full * 
-						sizeof(unsigned short int *));
-    shi->rinds[0] = (unsigned short int *) malloc(numz_full * ACCEL_USELEN * 
-						  sizeof(unsigned short int));
-    for (ii=1; ii<numz_full; ii++)
-      shi->rinds[ii] = shi->rinds[ii-1] + ACCEL_USELEN;
-  }
+  shi->zmax = calc_required_z(harm_fract, zmax);
+  numz_full = (zmax/ACCEL_DZ)*2 + 1;
+  if (numharm > 1)
+    shi->rinds = (unsigned short*)malloc(ACCEL_USELEN*sizeof(unsigned short));
   fftlen = calc_fftlen(numharm, harmnum, zmax); 
-  shi->numkern = (shi->zmax / ACCEL_DZ) * 2 + 1;
-  shi->kern = (kernel *)malloc(shi->numkern * sizeof(kernel)); 
+  shi->numkern = (shi->zmax/ACCEL_DZ)*2 + 1;
+  shi->kern = (kernel *)malloc(shi->numkern*sizeof(kernel)); 
   for (ii=0; ii<shi->numkern; ii++)
     init_kernel(-shi->zmax+ii*ACCEL_DZ, fftlen, &shi->kern[ii]);
 }
@@ -203,10 +197,8 @@ static void free_subharminfo(subharminfo *shi)
 
   for (ii=0; ii<shi->numkern; ii++)
     free_kernel(&shi->kern[ii]);
-  if (shi->numharm > 1){
-    free(shi->rinds[0]);
+  if (shi->numharm > 1)
     free(shi->rinds);
-  }
   free(shi->kern);
 }
 
@@ -540,7 +532,8 @@ void output_fundamentals(fourierprops *props, GSList *list,
 
   /* Close the old work file and open the cand file */
   
-  fclose(obs->workfile);
+  if (!obs->dat_input)
+    fclose(obs->workfile);
   obs->workfile = chkfopen(obs->accelnm, "w");
   
   /* Set our candidate notes to all spaces */
@@ -778,10 +771,13 @@ void print_accelcand(gpointer data, gpointer user_data)
 
 fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs *obs)
 {
-  if (obs->mmap_file || obs->dat_input)
+  if (obs->mmap_file || obs->dat_input){
+    if (lobin-obs->lobin < 0)
+      printf("\nWARNING!!!:  Accessing memory before the beginning of the FFT!\n");
     return (fcomplex *)obs->fft+(lobin-obs->lobin);
-  else
+  } else {
     return read_fcomplex_file(obs->fftfile, lobin-obs->lobin, numbins);
+  }
 }
 
 
@@ -792,7 +788,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
   int ii, lobin, hibin, numdata, nrs, fftlen, binoffset;
   static int numrs_full=0, numzs_full=0;
   float powargr, powargi;
-  double drlo, drhi, norm;
+  double drlo, drhi, norm, harm_fract;
   ffdotpows *ffdot;
   fcomplex *data, **result;
   presto_datainf datainf;
@@ -811,21 +807,20 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 
   /* Calculate and get the required amplitudes */
 
-  drlo = calc_required_r(numharm, harmnum, fullrlo);
-  drhi = calc_required_r(numharm, harmnum, fullrhi);
+  harm_fract = (double)harmnum/(double)numharm;
+  drlo = calc_required_r(harm_fract, fullrlo);
+  drhi = calc_required_r(harm_fract, fullrhi);
   ffdot->rlo = (int) floor(drlo);
-  ffdot->zlo = calc_required_z(numharm, harmnum, obs->zlo);
-  if (shi->rinds_init==0 && numharm > 1){
-    int jj;
+  ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
+
+  /* Initialize the lookup indices */
+  if (numharm > 1){
     double rr, subr;
-    for (ii=0; ii<numzs_full; ii++){
-      for (jj=0; jj<numrs_full; jj++){
-	rr = fullrlo + jj * ACCEL_DR; 
-	subr = calc_required_r(numharm, harmnum, rr);
-	shi->rinds[ii][jj] = index_from_r(subr, ffdot->rlo);
-      }
+    for (ii=0; ii<numrs_full; ii++){
+      rr = fullrlo + ii*ACCEL_DR; 
+      subr = calc_required_r(harm_fract, rr);
+      shi->rinds[ii] = index_from_r(subr, ffdot->rlo);
     }
-    shi->rinds_init = 1;
   }
   ffdot->rinds = shi->rinds;
   ffdot->numrs = (int) ((ceil(drhi) - floor(drlo)) 
@@ -914,13 +909,15 @@ void add_ffdotpows(ffdotpows *fundamental,
 {
   int ii, jj, zz, rind, zind, subz, lastrind=-1;
   float lastpow=0;
-  
+  double harm_fract;
+
+  harm_fract = (double)harmnum/(double)numharm;
   for (ii=0; ii<fundamental->numzs; ii++){
     zz = fundamental->zlo + ii * ACCEL_DZ; 
-    subz = calc_required_z(numharm, harmnum, zz);
+    subz = calc_required_z(harm_fract, zz);
     zind = index_from_z(subz, subharmonic->zlo);
     for (jj=0; jj<fundamental->numrs; jj++){
-      rind = subharmonic->rinds[ii][jj];
+      rind = subharmonic->rinds[jj];
       if (rind!=lastrind)
 	lastpow = subharmonic->powers[zind][rind];
       fundamental->powers[ii][jj] += lastpow;
@@ -953,7 +950,7 @@ GSList *search_ffdotpows(ffdotpows *ffdot, int numharm,
 	zz = (ffdot->zlo + ii * ACCEL_DZ) / numharm;
 	cands = insert_new_accelcand(cands, pow, sig, numharm, 
 				     rr, zz, &added);
-	if (added)
+	if (added && !obs->dat_input)
 	  fprintf(obs->workfile,
 		  "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n", 
 		  pow, sig, numharm, rr, rr / obs->T, zz);
@@ -1088,7 +1085,8 @@ void create_accelobs(accelobs *obs, infodata *idata,
 
   if (cmd->zmax % ACCEL_DZ)
     cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
-  obs->workfile = chkfopen(obs->workfilenm, "w");
+  if (!obs->dat_input)
+    obs->workfile = chkfopen(obs->workfilenm, "w");
   obs->N = (long long) idata->N;
   if (cmd->photonP){
     if (obs->mmap_file || obs->dat_input){

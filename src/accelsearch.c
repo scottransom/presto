@@ -38,7 +38,6 @@ static void print_percent_complete(int current, int number,
   }
 }
 
-
 int main(int argc, char *argv[])
 {
   int ii;
@@ -115,8 +114,11 @@ int main(int argc, char *argv[])
   subharminfs = create_subharminfos(obs.numharmstages, (int) obs.zhi);
   printf("Done generating kernels.\n\n");
   printf("Starting the search.\n");
-  printf("  Working candidates in a test format are in '%s'.\n\n", 
-	 obs.workfilenm);
+  /* Don't use the *.txtcand files on short in-memory searches */
+  if (!obs.dat_input){
+    printf("  Working candidates in a test format are in '%s'.\n\n", 
+	   obs.workfilenm);
+  }
   
   /* Start the main search loop */
   
