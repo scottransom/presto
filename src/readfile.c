@@ -227,6 +227,7 @@ int main(int argc, char **argv)
       print_funct_ptrs[index](i + j, data + j * type_sizes[index]);
     i += objs_read;
     if (cmd->moreP){
+      fflush(NULL);
       fprintf(stderr, "\nPress ENTER for next page, or any other key and ");
       fprintf(stderr, "then ENTER to exit.\n\n");
       key = getchar();
@@ -332,7 +333,7 @@ int POSITION_print(long count, char *obj_ptr)
   position *object;
 
   object = (position *) obj_ptr;
-  printf("\n%ld:  pow = %-7g    p1 = %-13.2f   p2 = %-9.2f   p3 = %-9.2f", 
+  printf("%ld:  pow = %-7g    p1 = %-13.2f   p2 = %-9.2f   p3 = %-9.2f\n", 
 	 count + 1, object->pow, object->p1, object->p2, object->p3);
   return 0;
 }

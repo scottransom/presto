@@ -469,15 +469,11 @@ int not_already_there_rzw(position * newpos, position * list, int nlist)
     /* Do not add the candidate to the list if it is a lower power */
     /* version of an already listed candidate.                     */
 
-    if (fabs(newpos->p1 - list[ii].p1) < 0.6) {
-      if (fabs(newpos->p2 - list[ii].p2) < 2.1) {
-	if (fabs(newpos->p3 - list[ii].p3) < 5.0) {
-	  if (newpos->pow < list[ii].pow) {
-	    return 0;
-	  }
-	}
-      }
-    }
+    if ((fabs(newpos->p1 - list[ii].p1) < 0.51) &&
+	(fabs(newpos->p2 - list[ii].p2) < 2.01) &&
+	(fabs(newpos->p3 - list[ii].p3) < 5.0) &&
+	(newpos->pow < list[ii].pow))
+      return 0;
   }
   return 1;
 }
