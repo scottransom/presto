@@ -302,7 +302,7 @@ int FLOAT_print(long count, char *obj_ptr)
   float *object;
 
   object = (float *) obj_ptr;
-  printf("%9ld:  %12.6g\n", count, *object);
+  printf("%9ld:  %11.7g\n", count, *object);
   return 0;
 }
 
@@ -311,7 +311,7 @@ int DOUBLE_print(long count, char *obj_ptr)
   double *object;
 
   object = (double *) obj_ptr;
-  printf("%9ld:  %20.14g\n", count, *object);
+  printf("%9ld:  %20.15g\n", count, *object);
   return 0;
 }
 
@@ -320,7 +320,7 @@ int FCPLEX_print(long count, char *obj_ptr)
   fcplex *object;
 
   object = (fcplex *) obj_ptr;
-  printf("%9ld:  %12.6g + %12.6g i\n", count, object->r, object->i);
+  printf("%9ld:  %11.7g + %11.7g i\n", count, object->r, object->i);
   return 0;
 }
 
@@ -329,7 +329,7 @@ int DCPLEX_print(long count, char *obj_ptr)
   dcplex *object;
 
   object = (dcplex *) obj_ptr;
-  printf("%9ld:  %20.14g + %20.14g i\n", count, object->r, object->i);
+  printf("%9ld:  %20.15g + %20.15g i\n", count, object->r, object->i);
   return 0;
 }
 
