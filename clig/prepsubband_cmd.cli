@@ -21,8 +21,8 @@ Float  -clip    clip    {For WAPP format only:  Time-domain sigma to use for cli
 	-r 0 20.0  -d 0.0
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 7    -d 1
-Flag   -subs    subs    {Write subbands instead of de-dispersed data}
-Double -subsdm  subsdm  {The DM to use when de-dispersing subbands for -subs} \
+Flag   -sub     sub     {Write subbands instead of de-dispersed data}
+Double -subdm   subdm   {The DM to use when de-dispersing subbands for -sub} \
 	-r 0 2000.0  -d 0.0
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
@@ -34,7 +34,7 @@ Double  -dmstep dmstep  {The stepsize in dispersion measure to use(cm^-3 pc)} \
 	-r 0 oo  -d 1.0
 Int     -numdms numdms  {The number of DMs to de-disperse} \
 	-r 1 100 -d 10
-Int     -numsub numsub  {The number of sub-bands to use} \
+Int     -nsub   nsub    {The number of sub-bands to use} \
 	-r 1 512 -d 32
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
 	-r 1 8 -d 1

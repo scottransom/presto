@@ -44,12 +44,12 @@ static Cmdline cmd = {
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
   /* numwappsC = */ 1,
-  /***** -subs: Write subbands instead of de-dispersed data */
-  /* subsP = */ 0,
-  /***** -subsdm: The DM to use when de-dispersing subbands for -subs */
-  /* subsdmP = */ 1,
-  /* subsdm = */ 0.0,
-  /* subsdmC = */ 1,
+  /***** -sub: Write subbands instead of de-dispersed data */
+  /* subP = */ 0,
+  /***** -subdm: The DM to use when de-dispersing subbands for -sub */
+  /* subdmP = */ 1,
+  /* subdm = */ 0.0,
+  /* subdmC = */ 1,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (int)0,
@@ -70,10 +70,10 @@ static Cmdline cmd = {
   /* numdmsP = */ 1,
   /* numdms = */ 10,
   /* numdmsC = */ 1,
-  /***** -numsub: The number of sub-bands to use */
-  /* numsubP = */ 1,
-  /* numsub = */ 32,
-  /* numsubC = */ 1,
+  /***** -nsub: The number of sub-bands to use */
+  /* nsubP = */ 1,
+  /* nsub = */ 32,
+  /* nsubC = */ 1,
   /***** -downsamp: The number of neighboring bins to co-add */
   /* downsampP = */ 1,
   /* downsamp = */ 1,
@@ -862,22 +862,22 @@ showOptionValues(void)
     }
   }
 
-  /***** -subs: Write subbands instead of de-dispersed data */
-  if( !cmd.subsP ) {
-    printf("-subs not found.\n");
+  /***** -sub: Write subbands instead of de-dispersed data */
+  if( !cmd.subP ) {
+    printf("-sub not found.\n");
   } else {
-    printf("-subs found:\n");
+    printf("-sub found:\n");
   }
 
-  /***** -subsdm: The DM to use when de-dispersing subbands for -subs */
-  if( !cmd.subsdmP ) {
-    printf("-subsdm not found.\n");
+  /***** -subdm: The DM to use when de-dispersing subbands for -sub */
+  if( !cmd.subdmP ) {
+    printf("-subdm not found.\n");
   } else {
-    printf("-subsdm found:\n");
-    if( !cmd.subsdmC ) {
+    printf("-subdm found:\n");
+    if( !cmd.subdmC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.subsdm);
+      printf("  value = `%.40g'\n", cmd.subdm);
     }
   }
 
@@ -943,15 +943,15 @@ showOptionValues(void)
     }
   }
 
-  /***** -numsub: The number of sub-bands to use */
-  if( !cmd.numsubP ) {
-    printf("-numsub not found.\n");
+  /***** -nsub: The number of sub-bands to use */
+  if( !cmd.nsubP ) {
+    printf("-nsub not found.\n");
   } else {
-    printf("-numsub found:\n");
-    if( !cmd.numsubC ) {
+    printf("-nsub found:\n");
+    if( !cmd.nsubC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.numsub);
+      printf("  value = `%d'\n", cmd.nsub);
     }
   }
 
@@ -994,7 +994,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-subs] [-subsdm subsdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-numsub numsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n\
     Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n\
          -o: Root of the output file names\n\
              1 char* value\n\
@@ -1009,8 +1009,8 @@ usage(void)
   -numwapps: Number of WAPPs used with contiguous frequencies\n\
              1 int value between 1 and 7\n\
              default: `1'\n\
-      -subs: Write subbands instead of de-dispersed data\n\
-    -subsdm: The DM to use when de-dispersing subbands for -subs\n\
+       -sub: Write subbands instead of de-dispersed data\n\
+     -subdm: The DM to use when de-dispersing subbands for -sub\n\
              1 double value between 0 and 2000.0\n\
              default: `0.0'\n\
     -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n\
@@ -1026,7 +1026,7 @@ usage(void)
     -numdms: The number of DMs to de-disperse\n\
              1 int value between 1 and 100\n\
              default: `10'\n\
-    -numsub: The number of sub-bands to use\n\
+      -nsub: The number of sub-bands to use\n\
              1 int value between 1 and 512\n\
              default: `32'\n\
   -downsamp: The number of neighboring bins to co-add\n\
@@ -1036,7 +1036,7 @@ usage(void)
              1 char* value\n\
      infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
              1...100 values\n\
-version: 25Mar03\n\
+version: 28Mar03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1108,18 +1108,18 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-subs", argv[i]) ) {
-      cmd.subsP = 1;
+    if( 0==strcmp("-sub", argv[i]) ) {
+      cmd.subP = 1;
       continue;
     }
 
-    if( 0==strcmp("-subsdm", argv[i]) ) {
+    if( 0==strcmp("-subdm", argv[i]) ) {
       int keep = i;
-      cmd.subsdmP = 1;
-      i = getDoubleOpt(argc, argv, i, &cmd.subsdm, 1);
-      cmd.subsdmC = i-keep;
-      checkDoubleLower("-subsdm", &cmd.subsdm, cmd.subsdmC, 2000.0);
-      checkDoubleHigher("-subsdm", &cmd.subsdm, cmd.subsdmC, 0);
+      cmd.subdmP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.subdm, 1);
+      cmd.subdmC = i-keep;
+      checkDoubleLower("-subdm", &cmd.subdm, cmd.subdmC, 2000.0);
+      checkDoubleHigher("-subdm", &cmd.subdm, cmd.subdmC, 0);
       continue;
     }
 
@@ -1170,13 +1170,13 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-numsub", argv[i]) ) {
+    if( 0==strcmp("-nsub", argv[i]) ) {
       int keep = i;
-      cmd.numsubP = 1;
-      i = getIntOpt(argc, argv, i, &cmd.numsub, 1);
-      cmd.numsubC = i-keep;
-      checkIntLower("-numsub", &cmd.numsub, cmd.numsubC, 512);
-      checkIntHigher("-numsub", &cmd.numsub, cmd.numsubC, 1);
+      cmd.nsubP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
+      cmd.nsubC = i-keep;
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 512);
+      checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
       continue;
     }
 
