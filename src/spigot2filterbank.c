@@ -70,7 +70,6 @@ int main(int argc, char *argv[])
 
   /* Attempt to read a file with lag scalings in it */
   sprintf(scalingnm, "%s.scaling", filenmbase);
-  printf("Trying to read from %s...", scalingnm);
   if ((scalingfile=fopen(scalingnm, "rb"))){
     /* Determine the length of the file */
     numscalings = (int)chkfilelen(scalingfile, sizeof(float));
