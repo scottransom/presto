@@ -250,9 +250,6 @@ void float_dedisp(float *data, float *lastdata,
 {
   int ii, jj, kk;
 
-  /* Set the result array to negative of numchan / 2. */
-  /* This will result in data with approx zero mean.  */
-  
   for (ii = 0; ii < numpts; ii++)
     result[ii] = -approx_mean;
   

@@ -41,11 +41,11 @@ int main(int argc, char *argv[])
   FILE **infiles, **outfiles;
   float **outdata;
   double dtmp, *dms, avgdm=0.0, maxdm;
-  double *dispdt, *tobsf=NULL, tlotoa=0.0, blotoa=0.0;
+  double *dispdt, tlotoa=0.0, blotoa=0.0;
   double max=-9.9E30, min=9.9E30, var=0.0, avg=0.0;
-  double *bobsf=NULL, *btoa=NULL, *ttoa=NULL;
+  double *btoa=NULL, *ttoa=NULL, avgvoverc=0.0;
   char obs[3], ephem[10], rastring[50], decstring[50];
-  int numfiles, numchan=1, totnumtowrite, **offsets;
+  int numinfiles, numchan=1, totnumtowrite, **offsets;
   int ii, jj, numadded=0, numremoved=0, padding=0;
   int numbarypts=0, blocklen=0, blocksperread=0, worklen=0;
   int numread=0, numtowrite=0, totwrote=0, datawrote=0;
@@ -75,28 +75,30 @@ int main(int argc, char *argv[])
   printf("\n\n");
   printf("          Pulsar Subband De-dispersion Routine\n");
   printf("                 by Scott M. Ransom\n");
-  printf("            Last Modification:  14 Mar, 2001\n\n");
+  printf("            Last Modification:  18 Mar, 2001\n\n");
 
-  numfiles = cmd->argc;
+  numinfiles = cmd->argc;
   if (cmd->pkmbP){
-    if (numfiles > 1)
-      printf("Reading Parkes PKMB data from %d files:\n", numfiles);
+    if (numinfiles > 1)
+      printf("Reading Parkes PKMB data from %d files:\n", numinfiles);
     else
       printf("Reading Parkes PKMB data from 1 file:\n");
   } else if (cmd->ebppP){
-    if (numfiles > 1)
-      printf("Reading Effelsberg RBPP data from %d files:\n", numfiles);
+    if (numinfiles > 1)
+      printf("Reading Effelsberg RBPP data from %d files:\n", numinfiles);
     else
       printf("Reading Effelsberg RBPP data from 1 file:\n");
   }
 
   /* Open the raw data files */
 
-  infiles = (FILE **)malloc(numfiles * sizeof(FILE *));
-  for (ii=0; ii<numfiles; ii++){
+  infiles = (FILE **)malloc(numinfiles * sizeof(FILE *));
+  for (ii=0; ii<numinfiles; ii++){
     printf("  '%s'\n", cmd->argv[ii]);
     infiles[ii] = chkfopen(cmd->argv[ii], "rb");
   }
+  if (!cmd->numoutP)
+    cmd->numout = INT_MAX;
 
   /* Determine the output file names and open them */
 
@@ -128,34 +130,23 @@ int main(int argc, char *argv[])
     int ptsperblock;
     long long N;
 
-    get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+    printf("\nPKMB input file information:\n");
+    get_PKMB_file_info(infiles, numinfiles, &N, &ptsperblock, &numchan, 
 		       &dt, &T, 1);
     chkfread(&hdr, 1, HDRLEN, infiles[0]);
     rewind(infiles[0]);
     PKMB_hdr_to_inf(&hdr, &idata);
-    PKMB_update_infodata(numfiles, &idata);
+    PKMB_update_infodata(numinfiles, &idata);
     idata.dm = avgdm;
     blocklen = ptsperblock;
-    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)) 
+    blocksperread = ((int)(delay_from_dm(maxdm, idata.freq)/dt) 
 		     / ptsperblock + 1);
     worklen = blocklen * blocksperread;
     strcpy(obs, "PK");  /* OBS code for TEMPO */
 
-    /* Compare the size of the data to the size of output we request */
-
-    if (cmd->numoutP) {
-      dtmp = idata.N;
-      idata.N = cmd->numout;
-      writeinf(&idata);
-      idata.N = dtmp;
-    } else {
-      cmd->numout = INT_MAX;
-      writeinf(&idata);
-    }
-
     /* The number of topo to bary time points to generate with TEMPO */
 
-    numbarypts = (int) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
+    numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
   }
 
   /* Set-up values if we are using the Effelsberg-Berkeley Pulsar Processor */
@@ -166,6 +157,7 @@ int main(int argc, char *argv[])
   }
 
   tlotoa = idata.mjd_i + idata.mjd_f;  /* Topocentric epoch */
+
   if (cmd->numoutP)
     totnumtowrite = cmd->numout;
   else
@@ -198,12 +190,14 @@ int main(int argc, char *argv[])
     /* Allocate our data array and start getting data */
     
     outdata = gen_fmatrix(cmd->numsub, worklen);
-    numread = get_data(infiles, numfiles, outdata, 
+    numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
 		       &obsmask, dispdt, offsets, &padding);
-    printf("Massaging the data ...\n\n");
+    printf("De-dispersing using:\n");
+    printf("     Subbands = %d\n", cmd->numsub);
+    printf("   Average DM = %.7g\n\n", avgdm);
     
-    while (numread){
+    while (numread==worklen){
 
       print_percent_complete(totwrote, totnumtowrite);
 
@@ -229,14 +223,14 @@ int main(int argc, char *argv[])
       if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
       
-      numread = get_data(infiles, numfiles, outdata, 
+      numread = get_data(infiles, numinfiles, outdata, 
 			 numchan, blocklen, blocksperread, 
 			 &obsmask, dispdt, offsets, &padding);
     }
     datawrote = totwrote;
 
   } else { /* Main loop if we are barycentering... */
-    double avgvoverc=0.0, maxvoverc=-1.0, minvoverc=1.0, *voverc=NULL;
+    double maxvoverc=-1.0, minvoverc=1.0, *voverc=NULL;
 
     /* What ephemeris will we use?  (Default is DE200) */
 
@@ -252,7 +246,6 @@ int main(int argc, char *argv[])
 
     /* Allocate some arrays */
 
-    bobsf = gen_dvect(numchan);
     btoa = gen_dvect(numbarypts);
     ttoa = gen_dvect(numbarypts);
     voverc = gen_dvect(numbarypts);
@@ -278,7 +271,9 @@ int main(int argc, char *argv[])
     printf("   Average topocentric velocity (c) = %.5g.\n", avgvoverc);
     printf("   Maximum topocentric velocity (c) = %.5g.\n", maxvoverc);
     printf("   Minimum topocentric velocity (c) = %.5g.\n\n", minvoverc);
-    printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
+    printf("De-dispersing and barycentering using:\n");
+    printf("     Subbands = %d\n", cmd->numsub);
+    printf("   Average DM = %.7g\n\n", avgdm);
 
     /* Dispersion delays (in bins).  The high freq gets no delay   */
     /* All other delays are positive fractions of bin length (dt)  */
@@ -301,11 +296,6 @@ int main(int argc, char *argv[])
 	offsets[ii][jj] = (int)((subdispdt[jj] - dtmp) / idata.dt + 0.5);
       free(subdispdt);
     }
-
-    /* If the data is de-dispersed radio data...*/
-
-    printf("Topocentric epoch (at data start) is:\n");
-    printf("   %17.11f\n\n", tlotoa);
 
     /* Convert the bary TOAs to differences from the topo TOAs in */
     /* units of bin length (dt) rounded to the nearest integer.   */
@@ -352,12 +342,11 @@ int main(int argc, char *argv[])
     /* Now perform the barycentering */
 
     outdata = gen_fmatrix(cmd->numsub, worklen);
-    numread = get_data(infiles, numfiles, outdata, 
+    numread = get_data(infiles, numinfiles, outdata, 
 		       numchan, blocklen, blocksperread, 
 		       &obsmask, dispdt, offsets, &padding);
-    printf("Massaging the data ...\n\n");
     
-    while (numread){ /* Loop to read and write the data */
+    while (numread==worklen){ /* Loop to read and write the data */
       int numwritten=0;
 
       print_percent_complete(totwrote, totnumtowrite);
@@ -443,7 +432,7 @@ int main(int argc, char *argv[])
       if (cmd->numoutP && (totwrote == cmd->numout))
 	break;
 
-      numread = get_data(infiles, numfiles, outdata, 
+      numread = get_data(infiles, numinfiles, outdata, 
 			 numchan, blocklen, blocksperread, 
 			 &obsmask, dispdt, offsets, &padding);
     }
@@ -460,9 +449,10 @@ int main(int argc, char *argv[])
   for (ii=0; ii<cmd->numdms; ii++){
     idata.dm = dms[ii];
     if (!cmd->nobaryP) {
-      double baryepoch, barydispdt;
+      double baryepoch, barydispdt, baryhifreq;
 
-      barydispdt = delay_from_dm(dms[ii], bobsf[numchan-1]);
+      baryhifreq = idata.freq+(numchan-1)*idata.chan_wid;
+      barydispdt = delay_from_dm(dms[ii], doppler(baryhifreq, avgvoverc));
       baryepoch = blotoa - (barydispdt / SECPERDAY);
       idata.bary = 1;
       idata.mjd_i = (int) floor(baryepoch);
@@ -499,6 +489,7 @@ int main(int argc, char *argv[])
   /* Print simple stats and results */
 
   var /= (datawrote - 1);
+  print_percent_complete(1, 1);
   printf("\n\nDone.\n\nSimple statistics of the output data:\n");
   printf("             Data points written:  %d\n", totwrote);
   if (padwrote)
@@ -519,18 +510,20 @@ int main(int argc, char *argv[])
 
   if (cmd->maskfileP)
     free_mask(obsmask);
-  for (ii=0; ii<numfiles; ii++)
+  for (ii=0; ii<numinfiles; ii++)
     fclose(infiles[ii]);
+  free(infiles);
   for (ii=0; ii<cmd->numdms; ii++)
     fclose(outfiles[ii]);
+  free(outdata[0]);
+  free(outdata);
+  free(outfiles);
   free(dms);
-  free(tobsf);
   free(dispdt);
   free(offsets[0]);
   free(offsets);
   free(datafilenm);
   if (!cmd->nobaryP){
-    free(bobsf);
     free(btoa);
     free(ttoa);
     free(diffbins);
@@ -587,11 +580,10 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 		    mask *obsmask, double *dispdts, int **offsets, 
 		    int *padding)
 {
-  static int firsttime=1, worklen, *maskchans=NULL, move_size=0, blocksize;
+  static int firsttime=1, worklen, *maskchans=NULL, blocksize;
   static float *tempzz, *data1, *data2; 
   static float *currentdata, *lastdata;
-  static unsigned char *move;
-  int totnumread=0, numread, ii, jj, tmppad=0, nummasked, trtn;
+  int totnumread=0, numread, ii, jj, tmppad=0, nummasked;
   
   if (firsttime){
     if (cmd->maskfileP)
@@ -602,8 +594,6 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
     data2 = gen_fvect(cmd->numsub * worklen);
     currentdata = data1;
     lastdata = data2;
-    move_size = (worklen + cmd->numsub) / 2;
-    move = gen_bvect(move_size);
     if (cmd->pkmbP){
       for (ii=0; ii<blocksperread; ii++){
 	numread = read_PKMB_subbands(infiles, numfiles, 
@@ -617,9 +607,6 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	if (tmppad) 
 	  *padding = 1;
       }
-      if ((trtn = transpose_float(currentdata, worklen, cmd->numsub,
-				  move, move_size))<0)
-	printf("Error %d in transpose_float().\n", trtn);
     }
     SWAP(currentdata, lastdata);
     firsttime = 0;
@@ -638,9 +625,6 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       if (tmppad) 
 	*padding = 1;
     }
-    if ((trtn = transpose_float(currentdata, worklen, cmd->numsub,
-				move, move_size))<0)
-      printf("Error %d in transpose_float().\n", trtn);
   }
   for (ii=0; ii<cmd->numdms; ii++){
     float_dedisp(currentdata, lastdata, worklen, cmd->numsub, 
@@ -652,7 +636,6 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       free(maskchans);
     free(data1);
     free(data2);
-    free(move);
   }
   return totnumread;
 }
