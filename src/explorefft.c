@@ -276,6 +276,7 @@ static fftpart *get_fftpart(int rlo, int numr)
     fp->numamps = numr;
     fp->amps = read_fcomplex_file(fftfile, rlo, fp->numamps);
     if (rlo==0){
+      r0 = fp->amps[0].r;
       fp->amps[0].r = 1.0;
       fp->amps[0].i = 0.0;
     }
@@ -547,7 +548,6 @@ int main(int argc, char *argv[])
   
   numamps = (Nfft > MAXBINS) ? (int) MAXBINS : (int) Nfft;
   lofp = get_fftpart(0, numamps);
-  r0 = lofp->amps[0].r;
   centerr = 0.5 * INITIALNUMBINS;
   zoomlevel = LOGDISPLAYNUM - LOGINITIALNUMBINS;
   minzoom = LOGDISPLAYNUM - LOGMAXBINS;
