@@ -25,13 +25,6 @@ def measure_phase(profile, template):
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
-def read_profile(filenm):
-    prof = []
-    for line in file(filenm):
-        if line.startswith("#"): continue
-        else: prof.append(float(line.split()[-1]))
-    return Num.asarray(prof)
-
 def usage():
     print """
 usage:  sum_profiles.py [options which must include -t or -g] profs_file
@@ -96,7 +89,7 @@ if __name__ == '__main__':
 
     # Read the template profile or create an appropriate Gaussian
     if templatefilenm is not None:
-        template = read_profile(templatefilenm)
+        template = psr_utils.read_profile(templatefilenm)
         # Resample the template profile to have the correct number of bins (if required)
         if not len(template)==numbins:
             oldlen = len(template)

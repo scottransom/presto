@@ -170,8 +170,7 @@ if __name__ == '__main__':
 
     # Read the template profile
     if templatefilenm is not None:
-        template_fold = bestprof(templatefilenm)
-        template = template_fold.normalize()
+        template = psr_utils.read_profile(templatefilenm, normalize=1)
     else:
         template = psr_utils.gaussian_profile(fold_pfd.proflen, 0.0, gaussianwidth)
         template = template / max(template)

@@ -584,6 +584,24 @@ def smin_noise(Ttot, G, BW, dt):
     """
     return Ttot / (G * umath.sqrt(2 * BW * dt))
 
+def read_profile(filenm, normalize=0):
+    """
+    read_profile(filenm, normalize=0):
+        Read a simple ASCII profile with one bin per line
+            from the file 'filenm'.  Comments are allowed
+            if they begin with '#'.  The profile is pseudo-
+            normalized if 'normalize' is true.
+    """
+    prof = []
+    for line in file(filenm):
+        if line.startswith("#"): continue
+        else: prof.append(float(line.split()[-1]))
+    prof = Numeric.asarray(prof)
+    if normalize:
+        prof -= min(prof)
+        prof /= max(prof)
+    return prof
+
 def calc_phs(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0): 
     """
     calc_phs(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
