@@ -1,4 +1,5 @@
 #include "prepfold.h"
+#include "plot2d.h"
 #include "float.h" 
 
 #define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
@@ -136,6 +137,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     bestpdd = search->topo.p3;
   }
   pfold = 1.0 / search->fold.p1;
+  pdfold = switch_pfdot(search->fold.p1, search->fold.p2);
 
   /* Time interval of 1 profile bin */
 
@@ -689,21 +691,17 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       /* Plot Boundaries */ 
 
       /* Period / P-dot */
-      pfold = 1000.0 / search->fold.p1;
-      pdfold = -search->fold.p2 / (search->fold.p1 * search->fold.p1);
-      if (pdfold==-0) pdfold = 0.0;
-      x1l = search->periods[0] * 1000.0 - pfold;
-      x1h = search->periods[search->numperiods-1] * 1000.0 - pfold;
+      x1l = (search->periods[0] - pfold) * 1000.0;
+      x1h = (search->periods[search->numperiods-1] - pfold) * 1000.0;
       y1l = search->pdots[0] - pdfold;
       y1h = search->pdots[search->numpdots-1] - pdfold;
       /* Frequency / F-dot */
       x2l = 1.0 / search->periods[0] - search->fold.p1;
       x2h = 1.0 / search->periods[search->numperiods-1] - search->fold.p1;
       y2l = switch_pfdot(pfold, search->pdots[0]) - search->fold.p2;
-      if (y2l==-0) y2l = 0.0;
       y2h = switch_pfdot(pfold, search->pdots[search->numperiods-1]) - 
 	search->fold.p2;
-      sprintf(pout, "Period - %-.8f (ms)", pfold);
+      sprintf(pout, "Period - %-.8f (ms)", pfold * 1000.0);
       sprintf(fout, "Freq - %-.6f (Hz)", search->fold.p1);
       if (pdfold < 0.0)
 	sprintf(pdout, "P-dot + %-.5g (s/s)", fabs(pdfold));
@@ -723,7 +721,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       cpgsch(0.8);
       ftmparr1 = gen_fvect(search->numperiods);
       for (ii = 0; ii < search->numperiods; ii++)
-	ftmparr1[ii] = search->periods[ii] * 1000.0 - pfold;
+	ftmparr1[ii] = (search->periods[ii] - pfold) * 1000.0;
       find_min_max_arr(search->numperiods, periodchi, &min, &max);
       if (search->nsub > 1){
 	cpgsvp (0.74, 0.94, 0.41, 0.51);
@@ -795,7 +793,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       autocal2d(ppdot2d, nr, nc, &fg, &bg, numcol,
 		levels, &x1l, &x1h, &y1l, &y1h, tr);
       cpgimag(ppdot2d, nc, nr, 0+1, nc, 0+1, nr, bg, fg, tr);
-      x1l = (float) (bestp * 1000.0 - pfold);
+      x1l = (float) ((bestp - pfold) * 1000.0);
       y1l = (float) (bestpd - pdfold);
       /* Plot the error bars on the P-Pdot diagram */
       cpgpt(1, &x1l, &y1l, 5);

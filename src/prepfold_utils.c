@@ -2,15 +2,28 @@
 
 double switch_pfdot(double pf, double pfdot)
 {
+  double retval;
+
   if (pf == 0.0)
     return 0.0;
-  else
-    return -pfdot / (pf * pf);
+  else {
+    retval = -pfdot / (pf * pf);
+    if (retval==-0)
+      return 0.0;
+    else
+      return retval;
+  }
 }
 
 double fdot2phasedelay(double fdot, double time)
 {
-  return 0.5 * fdot * time * time;
+  double retval;
+
+  retval = 0.5 * fdot * time * time;
+  if (retval==-0)
+    return 0.0;
+  else
+    return retval;
 }
 
 double phasedelay2fdot(double phasedelay, double time)
@@ -38,135 +51,6 @@ int read_floats(FILE *file, float *data, int numpts,
 
   return chkfread(data, sizeof(float),
 		  (unsigned long) (numpts * numchan), file) / numchan;
-}
-
-
-void fold_errors(double *prof, int proflen, double dt, double N, 
-		 double datavar, double p, double pd, double pdd, 
-		 double *perr, double *pderr, double *pdderr)
-/* Calculate estimates for the errors in period p-dot and   */
-/* p-dotdot using Middleditch's error formula.  The routine */
-/* calculates the errors for each Fourier harmonic present  */
-/* in the profile that is significant.  Then it combines    */
-/* the errors for the harmonics into an error for the       */
-/* fundamental.                                             */
-/*   Arguments:                                             */
-/*      'prof' is and array pointing to the profile         */
-/*      'proflen' is the number of bins in 'prof'           */
-/*      'dt' is the sample interval of the original data    */
-/*      'N' is the total number of points folded            */
-/*      'datavar' is the variance of the original data      */
-/*      'p' is the folding period                           */
-/*      'pd' is the folding period derivative               */
-/*      'pdd' is the folding period 2nd dervivative         */
-/*      'perr' is the returned period error                 */
-/*      'pderr' is the returned p-dot error                 */
-/*      'pdderr' is the returned p-dotdot error             */
-{
-  int ii, gotone=0;
-  double T, T2, pwr, norm, sigpow=2.7, r2, r4, z2, sr2, sz2;
-  double dtmp, r, z, w, pwrfact=0.0, pwrfact2=0.0, rerr, zerr, werr;
-  double rerrn=0.0, zerrn=0.0, werrn=0.0, rerrd=0.0, zerrd=0.0, werrd=0.0;
-  float powargr, powargi;
-  fcomplex *fftprof;
-
-  /* Total length in time of data set */
-
-  T = N * dt;
-
-  /* Convert p, pd, and pdd into r, z, and w */
-
-  dtmp = p * p;
-  T2 = T * T;
-  r = T / p;
-  z = T2 * -pd / dtmp;
-  if (pdd==0.0)
-    w = 0.0;
-  else 
-    w = T2 * T * (2.0 * pd * pd / (dtmp * p) - pdd / dtmp);
-
-  /* Calculate the normalization constant which converts the raw */
-  /* powers into normalized powers -- just as if we had FFTd the */
-  /* full data set.                                              */
-
-  norm = 1.0 / (N * datavar);
-
-  /* Place the profile into a complex array */
-
-  fftprof = gen_cvect(proflen);
-  for (ii = 0; ii < proflen; ii++){
-    fftprof[ii].r = (float) prof[ii];
-    fftprof[ii].i = 0.0;
-  }
-
-  /* FFT the profile */
-
-  COMPLEXFFT(fftprof, proflen, -1);
-
-  /* Step through the powers and find the significant ones.  */
-  /* Estimate the error of the fundamental using each one.   */
-  /* Combine these errors into a unified error of the freq.  */
-  /* Note:  In our case the errors are the data points and   */
-  /*        we are combining them using a weighted mean.     */
-  /*        The weights come from the fact that the powers   */
-  /*        have a measurements error = sqrt(2 * P).  This   */
-  /*        causes an error in our estimates of rerr.        */
-
-  for (ii = 1; ii < proflen / 2; ii++){
-    pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
-    pwrfact = 2.0 * pwr;
-    pwrfact2 = 1.0 / (sqrt(pwr) * ii);
-    if (pwr > sigpow){
-      gotone = 1;
-      dtmp = 0.38984840062 * pwrfact2;
-      rerrn += pwrfact / dtmp;
-      rerrd += pwrfact / (dtmp * dtmp);
-      dtmp = 3.01975272627 * pwrfact2;
-      zerrn += pwrfact / dtmp;
-      zerrd += pwrfact / (dtmp * dtmp);
-      dtmp = 19.5702343923 * pwrfact2;
-      werrn += pwrfact / dtmp;
-      werrd += pwrfact / (dtmp * dtmp);
-    }
-  }
-
-  if (gotone){
-
-    /* Calculate the standard deviations */
-
-    rerr = rerrn / rerrd;
-    zerr = zerrn / zerrd;
-    werr = werrn / werrd;
-
-    /* Help protect against really low significance profiles.  */
-    /* And note that this is probably _underestimating_ the    */
-    /* errors in this case...                                  */
-
-  } else {
-    rerr = 0.5;
-    zerr = 7.8;
-    werr = 50.2;
-  }
-
-  /* Some useful values */
-
-  r2 = r * r;
-  sr2 = rerr * rerr;
-  r4 = r2 * r2;
-  z2 = z * z;
-  sz2 = zerr * zerr;
-  dtmp = r * w - 3 * z2;
-
-  /* Convert the standard deviations to periods */
-  
-  *perr = T * rerr / r2;
-  *pderr = sqrt(4 * z2 * sr2 / (r4 * r2) + sz2 / r4);
-  *pdderr = sqrt((werr * werr * r4 + 16 * sz2 * r2 + \
-		  4 * dtmp * dtmp * sr2) / (r4 * r4 * T2));
-
-  /* Free our FFT array */
-
-  free(fftprof);
 }
 
 
