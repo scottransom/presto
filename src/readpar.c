@@ -48,6 +48,19 @@ int main(int argc, char *argv[])
 
 #define DEBUGOUT 0
 
+char *fortran_double_convert(char str*)
+/* Convert 'D' scientific notation into 'E' */
+/* scientific notation that C can handle.   */
+{
+  char *ss;
+  
+  if (str){
+    for (ss=str; *ss; ++ss)
+      if (*ss=='D') *ss = 'E';
+  }
+  return str;
+}
+
 int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
 /* Converts info from a "par" file to the "current" epoch.  */
 /* Returned values go in *psr.  The name of the parfile is  */
@@ -87,29 +100,29 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     } else if (strncmp("F0", keyword, 80)==0 ||
 	       strncmp("F", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      f = strtod(value, &value);
+      f = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("The freq is %.15g\n", f);
     } else if (strncmp("P0", keyword, 80)==0 ||
 	       strncmp("P", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      f = 1.0/strtod(value, &value);
+      f = 1.0/strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("The period is %.15g\n", 1.0/f);
     } else if (strncmp("F1", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      fd = strtod(value, &value);
+      fd = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("The f-dot is %.15g\n", fd);
     } else if (strncmp("P1", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      fd = -strtod(value, &value)*f*f;
+      fd = -strtod(fortran_double_convert(value), &value)*f*f;
       if (DEBUGOUT) printf("The p-dot is %.15g\n", -fd/(f*f));
     } else if (strncmp("F2", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->fdd = strtod(value, &value);
+      psr->fdd = strtod(fortran_double_convert(value), &value);
       psr->pdd = (2.0*(fd*fd)/f - psr->fdd)/(f*f);
       if (DEBUGOUT) printf("The f-dotdot is %.15g\n", psr->fdd);
     } else if (strncmp("PEPOCH", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->timepoch = strtod(value, &value);
+      psr->timepoch = strtod(fortran_double_convert(value), &value);
       difft = (epoch - psr->timepoch)*SECPERDAY;
       psr->f = f + fd*difft + 0.5*psr->fdd*difft*difft;
       psr->fd = fd + psr->fdd*difft;
@@ -118,7 +131,7 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
       psr->pdd = (2.0*(fd*fd)/f - psr->fdd)/(f*f);
     } else if (strncmp("DM", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->dm = strtod(value, &value);
+      psr->dm = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("The DM is %.15g\n", psr->dm);
     } else if (strncmp("BINARY", keyword, 80)==0){
       binary = 1;
@@ -126,63 +139,63 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
       if (DEBUGOUT) printf("This is a binary PSR ('%s')...\n", value);
     } else if (strncmp("PB", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->orb.p = strtod(value, &value)*SECPERDAY;
+      psr->orb.p = strtod(fortran_double_convert(value), &value)*SECPERDAY;
       if (DEBUGOUT) printf("  P_orb  = %.15g\n", psr->orb.p);
     } else if (strncmp("PBDOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->orb.pd = strtod(value, &value)*1.0E-12;
+      psr->orb.pd = strtod(fortran_double_convert(value), &value)*1.0E-12;
       psr->orb.p += psr->orb.pd*difft;
       if (DEBUGOUT) printf("  P_orb-dot  = %.15g\n", psr->orb.pd);
     } else if (strncmp("OM", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->orb.w = strtod(value, &value);
+      psr->orb.w = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  w_orb  = %.15g\n", psr->orb.w);
     } else if (strncmp("OMDOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->orb.wd = strtod(value, &value)/SECPERJULYR;
+      psr->orb.wd = strtod(fortran_double_convert(value), &value)/SECPERJULYR;
       psr->orb.w += psr->orb.wd*difft;
       if (DEBUGOUT) printf("  w_orb-dot  = %.15g\n", psr->orb.wd);
     } else if (strncmp("A1", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->orb.x = strtod(value, &value);
+      psr->orb.x = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  x_orb  = %.15g\n", psr->orb.x);
     } else if (strncmp("XDOT", keyword, 80)==0){
       double xd;
       value = strtok(NULL, " \t\n");
-      xd = strtod(value, &value)*1.0E-12;
+      xd = strtod(fortran_double_convert(value), &value)*1.0E-12;
       psr->orb.x += xd*difft;
       if (DEBUGOUT) printf("  x_orb-dot  = %.15g\n", xd);
     } else if (strncmp("E", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->orb.e = strtod(value, &value);
+      psr->orb.e = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  e_orb  = %.15g\n", psr->orb.e);
     } else if (strncmp("EDOT", keyword, 80)==0){
       double ed;
       value = strtok(NULL, " \t\n");
-      ed = strtod(value, &value)*1.0E-12;
+      ed = strtod(fortran_double_convert(value), &value)*1.0E-12;
       psr->orb.e += ed*difft;
       if (DEBUGOUT) printf("  e_orb-dot  = %.15g\n", ed);
     } else if (strncmp("T0", keyword, 80)==0 ||
 	       strncmp("TASC", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      psr->orb.t = strtod(value, &value);
+      psr->orb.t = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  T_orb  = %.15g\n", psr->orb.t);
     } else if (strncmp("EPS1", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      eps1 = strtod(value, &value);
+      eps1 = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  EPS1  = %.15g\n", eps1);
     } else if (strncmp("EPS2", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      eps2 = strtod(value, &value);
+      eps2 = strtod(fortran_double_convert(value), &value);
       if (DEBUGOUT) printf("  EPS2  = %.15g\n", eps2);
     } else if (strncmp("EPS1DOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      eps1d = strtod(value, &value);
+      eps1d = strtod(fortran_double_convert(value), &value);
       eps1 += eps1d*difft;
       if (DEBUGOUT) printf("  EPS1DOT  = %.15g\n", eps1d);
     } else if (strncmp("EPS2DOT", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
-      eps2d = strtod(value, &value);
+      eps2d = strtod(fortran_double_convert(value), &value);
       eps2 += eps1d*difft;
       if (DEBUGOUT) printf("  EPS2DOT  = %.15g\n", eps2d);
     } else if (strncmp("OM2DOT", keyword, 80)==0 ||
