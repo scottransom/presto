@@ -214,16 +214,35 @@ if __name__ == '__main__':
         for jj in range(numsubbands):
             prof = profs[ii][jj]
 
+            # Make sure that the template and the data have the same number of bins
+            if (not len(template)==fold_pfd.proflen):
+                if (not ((len(template)%fold_pfd.proflen)==0 or
+                         (fold_pfd.proflen%len(template))==0)):
+                    if not ii and not jj:
+                        sys.stderr.write("WARNING!: Lengths of template (%d) and data (%d) are incompatible!  Skipping '%s'!\n" % (len(template), fold_pfd.proflen, fold_pfd.filenm))
+                    continue
+                # Interpolate the data
+                if (len(template) > fold_pfd.proflen):
+                    prof = psr_utils.linear_interpolate(prof, len(template)/fold_pfd.proflen)
+                    if not ii and not jj:
+                        sys.stderr.write("Note: Interpolating the data for '%s'\n"%fold_pfd.filenm)
+                # Interpolate the template
+                elif (1):
+                    template = psr_utils.linear_interpolate(template, fold_pfd.proflen/len(template))
+                    if not ii and not jj:
+                        sys.stderr.write("Note: Interpolating the template for '%s'\n"%fold_pfd.filenm)
+                # Downsample the data (Probably not a good idea)
+                else:
+                    prof = psr_utils.downsample(prof, fold_pfd.proflen/len(template))
+                    if not ii and not jj:
+                        sys.stderr.write("Note:  Downsampling the data for '%s'\n"%fold_pfd.filenm)
+
             try:
                 # Try using FFTFIT first
-		if (len(template)==len(prof)):
-		    shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template)
-                    # tau and tau_err are the predicted phase of the pulse arrival
-		    tau, tau_err = shift/fold_pfd.proflen, eshift/fold_pfd.proflen
-		else:
-                    # These are "error" flags
-		    shift = 0.0
-		    eshift = 999.0
+                shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template)
+                # tau and tau_err are the predicted phase of the pulse arrival
+                tau, tau_err = shift/len(prof), eshift/len(prof)
+                # Note: "error" flags are shift = 0.0 and eshift = 999.0
                 
                 # If that failed, use a time-domain correlation
 		if (umath.fabs(shift) < 1e-7 and

@@ -681,6 +681,18 @@ def linear_interpolate(vector, zoom=10):
         loy = hiy
     return ivect
 
+def downsample(vector, factor):
+    """
+    downsample(vector, factor):
+        Downsample (i.e. co-add consecutive numbers) a short section
+            of a vector by an integer factor.
+    """
+    if (len(vector) % factor):
+        print "Lenght of 'vector' is not divisible by 'factor'=%d!" % factor
+        return 0
+    newvector = Numeric.reshape(vector, (len(vector)/factor, factor))
+    return umath.add.reduce(newvector, 1)
+
 def measure_phase_corr(profile, template, zoom=10):
     """
     measure_phase_corr(profile, template, zoom=10):
@@ -1089,23 +1101,3 @@ def psr_info(porf, pdorfd, time=None, input=None):
     print " Characteristic Age = %g years" % age
     print "          Assumed I = %g g cm^2" % I
     print ""
-
-def rebin_prof(profile, newlen):
-    """
-    rebin_prof(profile, newlen):
-        Return a profile (i.e. any array) that has been
-            resampled to a length of newlen.
-    """
-    n = len(profile)
-    m = newlen
-    numprofs = n / m
-    rotprof = Numeric.zeros(n)
-    phases = Numeric.arange(m, typecode='d') / m
-    for ii in xrange(numprofs):
-        rotprof[:n-ii] = profile[ii:]
-        rotprof[n-ii:] = profile[:ii]
-        rotprof.shape = (m, numprofs)
-        newprof = umath.add.reduce(Numeric.transpose(rotprof))
-        Pgplot.plotbinned(newprof, phases)
-        Pgplot.closeplot()
-        rotprof.shape = (n,)
