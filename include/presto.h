@@ -67,7 +67,7 @@
 #ifndef POWER
 /* Returns unnormalized Fourier power  */
 /*   Requires the following variables in calling function */
-/*   float powargr, powargi; */
+/*   double powargr, powargi; */
 #define POWER(r,i) (powargr=(r),powargi=(i),\
 		    powargr*powargr+powargi*powargi)
 #endif
@@ -75,7 +75,7 @@
 #ifndef PHASE
 /* Returns Fourier phase (degrees)  */
 /*   Requires the following variables in calling function */
-/*   float phsargr, phsargi, phstmp; */
+/*   double phsargr, phsargi, phstmp; */
 #define PHASE(r,i) (phsargr=(r),phsargi=(i),\
 		    ((phstmp=RADTODEG*atan2(phsargi,phsargr)) > 0.0) ? \
 		    phstmp : phstmp+360.0)
@@ -84,7 +84,7 @@
 #ifndef RADIAN_PHASE
 /* Returns Fourier phase (radians)  */
 /*   Requires the following variables in calling function */
-/*   float radargr, radargi, radtmp; */
+/*   double radargr, radargi, radtmp; */
 #define RADIAN_PHASE(r,i) (radargr=(r),radargi=(i),\
 		    ((radtmp=atan2(radargi,radargr)) > 0.0) ? \
 		    radtmp : radtmp+TWOPI)
@@ -153,13 +153,13 @@ typedef struct POWINDEX {
 } powindex;
 
 typedef struct RDERIVS {
-    float pow;	    /* Power normalized with local power             */
-    float phs;	    /* Signal phase                                  */
-    float dpow;	    /* 1st deriv of power wrt fourier freq           */
-    float dphs;	    /* 1st deriv of phase wrt fourier freq           */
-    float d2pow;    /* 2nd deriv of power wrt fourier freq           */
-    float d2phs;    /* 2nd deriv of power wrt fourier freq           */
-    float locpow;   /* Local mean power level                        */
+    double pow;	     /* Power normalized with local power   */
+    double phs;	     /* Signal phase                        */
+    double dpow;     /* 1st deriv of power wrt fourier freq */
+    double dphs;     /* 1st deriv of phase wrt fourier freq */
+    double d2pow;    /* 2nd deriv of power wrt fourier freq */
+    double d2phs;    /* 2nd deriv of power wrt fourier freq */
+    double locpow;   /* Local mean power level              */
 } rderivs;
 
 typedef struct FOURIERPROPS {
@@ -384,7 +384,7 @@ float get_numphotons(FILE * file);
   /* Arguments:                                              */
   /*   'file' is a pointer to the file you want to access.   */
 
-float get_localpower(fcomplex *data, int numdata, double r);
+double get_localpower(fcomplex *data, int numdata, double r);
   /* Return the local power level at specific FFT frequency.  */
   /* Arguments:                                               */
   /*   'data' is a pointer to a complex FFT.                  */
@@ -392,8 +392,8 @@ float get_localpower(fcomplex *data, int numdata, double r);
   /*   'r' is the Fourier frequency in data that we want to   */
   /*      interpolate.                                        */
 
-float get_localpower3d(fcomplex *data, int numdata, double r, \
-		       double z, double w);
+double get_localpower3d(fcomplex *data, int numdata, double r, \
+			double z, double w);
   /* Return the local power level around a specific FFT           */
   /* frequency, f-dot, and f-dotdot.                              */
   /* Arguments:                                                   */
@@ -407,7 +407,7 @@ float get_localpower3d(fcomplex *data, int numdata, double r, \
   /*       Fourier f-dot during the observation).                 */
 
 void get_derivs3d(fcomplex *data, int numdata, double r, \
-		  double z, double w, float localpower, \
+		  double z, double w, double localpower, \
 		  rderivs *result);
   /* Return an rderives structure that contains the power,      */
   /* phase, and their first and second derivatives at a point   */

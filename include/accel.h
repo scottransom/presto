@@ -1,3 +1,4 @@
+#include <glib.h>
 #include "presto.h"
 #include "accelsearch_cmd.h"
 
@@ -45,11 +46,15 @@ typedef struct accelobs{
 } accelobs;
 
 typedef struct accelcand{
-  float power;         /* Power level (normalized) */
+  float power;         /* Summed power level (normalized) */
   float sigma;         /* Equivalent sigma based on numindep (above) */
   int numharm;         /* Number of harmonics summed */
-  double r;            /* Fourier freq */
-  double z;            /* Fourier f-dot */
+  double r;            /* Fourier freq of first harmonic */
+  double z;            /* Fourier f-dot of first harmonic */
+  double *pows;        /* Optimized powers for the harmonics */
+  double *hirs;        /* Optimized freqs for the harmonics */
+  double *hizs;        /* Optimized fdots for the harmonics */
+  rderivs *derivs;     /* An rderivs structure for each harmonic */
 } accelcand;
 
 typedef struct kernel{
@@ -77,8 +82,12 @@ typedef struct ffdotpows{
   float **powers;     /* Matrix of the powers */
 } ffdotpows;
 
+/* accel_utils.c */
 subharminfo *create_subharminfo_vect(int numharm, int zmax);
 void free_subharminfo_vect(int numharm, subharminfo *shi);
+GSList *sort_accelcands(GSList *list);
+void print_accelcand(gpointer data, gpointer user_data);
+void free_accelcand(gpointer data, gpointer user_data);
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs);
@@ -88,11 +97,6 @@ void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic,
 		   int numharm, int harmnum);
 void search_ffdotpows(ffdotpows *ffdot, int numharm, 
 		      accelobs *obs, GSList *cands);
-void create_accelobs(FILE *infile, FILE *workfile, 
-		     accelobs *obs, infodata *idata, Cmdline *cmd);
+void create_accelobs(FILE *infile, FILE *workfile, accelobs *obs, 
+		     infodata *idata, Cmdline *cmd);
 void free_accelobs(accelobs *obs);
-accelcand *create_accelcand(float power, float sigma, 
-			    int numharm, double r, double z);
-int compare_accelcand(gconstpointer ca, gconstpointer cb);
-void print_accelcand(gpointer data, gpointer user_data);
-void free_accelcand(gpointer data, gpointer user_data);
