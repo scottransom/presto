@@ -1,0 +1,32 @@
+# Admin data
+
+Name toas2dat
+
+Usage "Converts TOAs into a binned time series."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+Int 	-n 	numout 	{The number of bins in the output time series} \
+			{range = 0,oo} \
+			mandatory
+Float 	-dt	dt	{Time interval in seconds for output time bins} \
+			{range = 0,oo} \
+			mandatory
+String	-o	outfile {Name of the output time series file} \
+			mandatory
+Flag   	-text	text	{TOAs are ASCII text (default is binary double)}
+Flag   	-float	float	{TOAs are binary floats (default is binary double)}
+Flag	-sec	sec	{TOA unit is seconds (default is days)}
+
+# Rest of command line:
+
+Rest 		file 	{Input TOA file name} \
+			{count = 1,1}
+
+
+
+
