@@ -7,6 +7,11 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.6  2000/12/06 13:41:37  ransom
+ * Added new function to multibeam.h
+ * Added fftcand structure in presto.h
+ * Modified calling sequence to power/sigma routines.
+ *
  * Revision 1.5  1999/12/02 20:26:49  ransom
  * Made a multibeam subband de-dispersion routine.
  *
@@ -115,6 +120,12 @@ int skip_to_multibeam_rec(FILE * infile, int rec);
 /* *infile.  *infile contains 1 bit digitized data from the */
 /* multibeam receiver at Parkes                             */
 /* Returns the record that was skipped to.                  */
+
+int read_rawmultibeam(FILE *infile, float *data, int numchan, 
+		      int numblocks);
+/* This routine reads numblocks PKMB records with numchan */
+/* channels each from the input file *infile.  The number */
+/* of blocks read is returned.                            */
 
 int read_multibeam_recs(FILE * infile, multibeam_tapehdr * hdr,
 			unsigned char *data, int blocks_to_read);
