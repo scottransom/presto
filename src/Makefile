@@ -211,8 +211,8 @@ split_parkes_beams: split_parkes_beams.o
 test_multifiles: test_multifiles.o
 	$(CC) $(CLINKFLAGS) -o $@ test_multifiles.o $(PRESTOLINK) -lm
 
-rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm
+rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o range_parse.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
+	$(FC) $(FLINKFLAGS) -o $@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o range_parse.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 #showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
 #	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lm

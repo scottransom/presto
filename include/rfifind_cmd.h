@@ -71,14 +71,14 @@ typedef struct s_Cmdline {
   char inttrigfracP;
   float inttrigfrac;
   int inttrigfracC;
-  /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
-  char zapchanP;
-  int *zapchan;
-  int zapchanC;
-  /***** -zapints: Intervals to explicitly remove from analysis (zero-offset) */
-  char zapintsP;
-  int *zapints;
-  int zapintsC;
+  /***** -zapchan: Comma separated string (no spaces!) of channels to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step] */
+  char zapchanstrP;
+  char* zapchanstr;
+  int zapchanstrC;
+  /***** -zapints: Comma separated string (no spaces!) of intervals to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step] */
+  char zapintsstrP;
+  char* zapintsstr;
+  int zapintsstrC;
   /***** -mask: File containing masking information to use */
   char maskfileP;
   char* maskfile;

@@ -46,6 +46,7 @@ int compare_rfi_numobs(const void *ca, const void *cb);
 int read_subband_rawblocks(FILE *infiles[], int numfiles, short *subbanddata, 
 			   int numsamples, int *padding);
 void get_subband(int subbandnum, float chandat[], short srawdata[], int numsamples);
+extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 
 /* The main program */
 
@@ -527,20 +528,24 @@ int main(int argc, char *argv[])
 
   {
     int *zapints, *zapchan;
+    int numzapints=0, numzapchan=0;
 
-    if (cmd->zapintsC)
-      zapints = cmd->zapints;
-    else
+    if (cmd->zapintsstrP){
+      zapints = ranges_to_ivect(cmd->zapintsstr, 0, numint-1, &numzapints);
+      zapints = (int *)realloc(zapints, (size_t) (sizeof(int) * numint));
+    } else {
       zapints = gen_ivect(numint);
-    if (cmd->zapchanC)
-      zapchan = cmd->zapchan;
-    else
+    }
+    if (cmd->zapchanstrP) {
+      zapchan = ranges_to_ivect(cmd->zapchanstr, 0, numchan-1, &numzapchan);
+      zapchan = (int *)realloc(zapchan, (size_t) (sizeof(int) * numchan));
+    } else {
       zapchan = gen_ivect(numchan);
-    
+    }    
     rfifind_plot(numchan, numint, ptsperint, timesigma, freqsigma, 
 		 cmd->inttrigfrac, cmd->chantrigfrac, 
-		 dataavg, datastd, datapow, zapchan, cmd->zapchanC,
-		 zapints, cmd->zapintsC, &idata, bytemask, 
+		 dataavg, datastd, datapow, zapchan, numzapchan,
+		 zapints, numzapints, &idata, bytemask, 
 		 &oldmask, &newmask, rfivect, numrfi, 
 		 cmd->rfixwinP, cmd->rfipsP, cmd->xwinP);
 
