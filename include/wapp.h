@@ -2,10 +2,12 @@
 #define MAX_WAPP_HEADER_SIZE 4096
 /* Maximum number of samples to process at a time */
 #define WAPP_MAXPTSPERBLOCK 64
+/* Maximum number of WAPPs we can handle at once */
+#define WAPP_MAXNUMWAPPS 4
 /* time between correlator dumps in us */
 #define WAPP_DEADTIME 0.34
-/* Maximum number of lags we can have */
-#define WAPP_MAXLAGS 1024
+/* Maximum number of lags we can have per WAPP */
+#define WAPP_MAXLAGS 512*WAPP_MAXNUMWAPPS
 /* Maximum data block length in bytes */
 #define WAPP_MAXDATLEN WAPP_MAXPTSPERBLOCK*WAPP_MAXLAGS
 /* Maximum lag block length in bytes */
@@ -116,9 +118,10 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data, int numpts,
 	      int *nummasked, mask *obsmask);
 void get_WAPP_channel(int channum, float chandat[], 
 		      unsigned char rawdata[], int numblocks);
-void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig, 
-			long long *N, int *ptsperblock, int *numchan, 
-			double *dt, double *T, infodata *idata, int output);
+void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, 
+			float clipsig, long long *N, int *ptsperblock, 
+			int *numchan, double *dt, double *T, 
+			infodata *idata, int output);
 int prep_WAPP_subbands(unsigned char *rawdata, float *data, 
 		       double *dispdelays, int numsubbands, 
 		       int transpose, int *maskchans, 
