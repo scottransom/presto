@@ -1173,7 +1173,7 @@ int main(int argc, char *argv[])
 	search.avgvoverc += voverc[ii];
       search.avgvoverc /= (numbarypts-1.0);
       free(voverc);
-      printf("The average topocentric velocity is %.4f (units of c).\n\n", 
+      printf("The average topocentric velocity is %.6g (units of c).\n\n", 
 	     search.avgvoverc);
       printf("Barycentric folding frequency    (hz)  =  %-.12g\n", f);
       printf("Barycentric folding f-dot      (hz/s)  =  %-.8g\n", fd);
