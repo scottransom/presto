@@ -1,7 +1,7 @@
 import umath
+import Numeric as Num
 import struct
 import psr_utils
-import Numeric
 import Pgplot
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
@@ -29,7 +29,7 @@ class pfd:
         swapchar = '<' # this is little-endian
         data = infile.read(5*4)
         testswap = struct.unpack(swapchar+"i"*5, data)
-        if min(umath.fabs(Numeric.asarray(testswap))) > 100000:
+        if min(umath.fabs(Num.asarray(testswap))) > 100000:
             swapchar = '>' # this is big-endian
         (self.numdms, self.numperiods, self.numpdots, self.nsub, self.npart) = \
                       struct.unpack(swapchar+"i"*5, data)
@@ -67,25 +67,25 @@ class pfd:
                                                                    infile.read(3*8))
         (self.orb_p, self.orb_e, self.orb_x, self.orb_w, self.orb_t, self.orb_pd, \
          self.orb_wd) = struct.unpack(swapchar+"d"*7, infile.read(7*8))
-        self.dms = Numeric.asarray(struct.unpack(swapchar+"d"*self.numdms, \
-                                                 infile.read(self.numdms*8)))
+        self.dms = Num.asarray(struct.unpack(swapchar+"d"*self.numdms, \
+                                             infile.read(self.numdms*8)))
         if self.numdms==1:
             self.dms = self.dms[0]
-        self.periods = Numeric.asarray(struct.unpack(swapchar+"d"*self.numperiods, \
-                                                     infile.read(self.numperiods*8)))
-        self.pdots = Numeric.asarray(struct.unpack(swapchar+"d"*self.numpdots, \
-                                                   infile.read(self.numpdots*8)))
+        self.periods = Num.asarray(struct.unpack(swapchar+"d"*self.numperiods, \
+                                                 infile.read(self.numperiods*8)))
+        self.pdots = Num.asarray(struct.unpack(swapchar+"d"*self.numpdots, \
+                                               infile.read(self.numpdots*8)))
         self.numprofs = self.nsub*self.npart
-        self.profs = Numeric.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
-                                                   infile.read(self.numprofs*self.proflen*8)))
-        self.profs = Numeric.reshape(self.profs, (self.npart, self.nsub, self.proflen))
+        self.profs = Num.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
+                                               infile.read(self.numprofs*self.proflen*8)))
+        self.profs = Num.reshape(self.profs, (self.npart, self.nsub, self.proflen))
 	self.binspersec = self.fold_p1*self.proflen
 	self.chanpersub = self.numchan/self.nsub
 	self.subdeltafreq = self.chan_wid*self.chanpersub
 	self.losubfreq = self.lofreq + self.subdeltafreq - self.chan_wid
-	self.subfreqs = Numeric.arange(self.nsub, typecode='d')*self.subdeltafreq + \
+	self.subfreqs = Num.arange(self.nsub, typecode='d')*self.subdeltafreq + \
                         self.losubfreq
-        self.subdelays_bins = Numeric.zeros(self.nsub, typecode='d')
+        self.subdelays_bins = Num.zeros(self.nsub, typecode='d')
         self.killed_subbands = []
         self.killed_intervals = []
         self.stats = []
@@ -94,7 +94,7 @@ class pfd:
             for jj in range(self.nsub):
                 self.stats[ii].append(foldstats(struct.unpack(swapchar+"d"*7, \
                                                               infile.read(7*8))))
-        self.avgprof = sum(sum(sum(self.profs)))/self.proflen
+        self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
         infile.close()
     def __str__(self):
@@ -122,37 +122,37 @@ class pfd:
         # The following allows multiple DM trials
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
 	new_subdelays_bins = umath.floor(delaybins+0.5)
-        for ii in range(self.npart):
-            for jj in range(self.nsub):
-                self.profs[ii][jj] = psr_utils.rotate(self.profs[ii][jj],
-                                                      int(new_subdelays_bins[jj]))
+        for ii in range(self.nsub):
+            rotbins = int(new_subdelays_bins[ii])%self.proflen
+            if rotbins:  # i.e. if not zero
+                subdata = self.profs[:,ii,:]
+                self.profs[:,ii] = Num.concatenate((subdata[:,rotbins:],
+                                                    subdata[:,:rotbins]), 1)
         self.subdelays_bins += new_subdelays_bins
-        self.sumprof = sum(sum(self.profs))
-    def kill_intervals(self, killarr):
+        self.sumprof = Num.sum(Num.sum(self.profs))
+    def kill_intervals(self, intervals):
         """
-        pfd.kill_intervals(killarr):
+        pfd.kill_intervals(intervals):
             Set all the subintervals (internally) from the list of
-                subintervals (killarr) to all zeros, effectively 'killing' them.
+                subintervals to all zeros, effectively 'killing' them.
         """
-        killchan = Numeric.zeros((self.nsub, self.proflen), typecode='d')
-        for part in killarr:
-            self.profs[part,:,:] *= killchan
+        for part in intervals:
+            self.profs[part,:,:] *= 0.0
             self.killed_intervals.append(part)
         # Update the stats
-        self.avgprof = sum(sum(sum(self.profs)))/self.proflen
+        self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
-    def kill_subbands(self, killarr):
+    def kill_subbands(self, subbands):
         """
-        pfd.kill_subbands(killarr):
+        pfd.kill_subbands(subbands):
             Set all the profiles (internally) from the list of
-                subbands (killarr) to all zeros, effectively 'killing' them.
+                subbands to all zeros, effectively 'killing' them.
         """
-        killchan = Numeric.zeros((self.npart, self.proflen), typecode='d')
-        for sub in killarr:
-            self.profs[:,sub,:] *= killchan
+        for sub in subbands:
+            self.profs[:,sub,:] *= 0.0
             self.killed_subbands.append(sub)
         # Update the stats
-        self.avgprof = sum(sum(sum(self.profs)))/self.proflen
+        self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
     def plot_sumprof(self, device='/xwin'):
         """
@@ -175,11 +175,11 @@ class pfd:
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
             self.dedisperse()
-        profs = Numeric.sum(self.profs, 1)
+        profs = Num.sum(self.profs, 1)
         # Use the same scaling as in prepfold_plot.c
-        global_max = Numeric.maximum.reduce(Numeric.maximum.reduce(profs))
-        min_parts = Numeric.minimum.reduce(profs, 1)
-        profs = (profs-min_parts[:,Numeric.NewAxis])/global_max
+        global_max = Num.maximum.reduce(Num.maximum.reduce(profs))
+        min_parts = Num.minimum.reduce(profs, 1)
+        profs = (profs-min_parts[:,Num.NewAxis])/global_max
         Pgplot.plot2d(profs, rangex=[0.0,self.proflen], rangey=[0.0, self.npart],
                       labx="Phase Bins", laby="Time Intervals",
                       image='antigrey', device=device)
@@ -192,11 +192,11 @@ class pfd:
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
             self.dedisperse()
-        profs = Numeric.sum(self.profs)
+        profs = Num.sum(self.profs)
         # Use the same scaling as in prepfold_plot.c
-        global_max = Numeric.maximum.reduce(Numeric.maximum.reduce(profs))
-        min_subs = Numeric.minimum.reduce(profs, 1)
-        profs = (profs-min_subs[:,Numeric.NewAxis])/global_max
+        global_max = Num.maximum.reduce(Num.maximum.reduce(profs))
+        min_subs = Num.minimum.reduce(profs, 1)
+        profs = (profs-min_subs[:,Num.NewAxis])/global_max
         lof = self.lofreq - 0.5*self.chan_wid
         hif = lof + self.chan_wid*self.numchan
         Pgplot.plot2d(profs, rangex=[0.0,self.proflen], rangey=[0.0, self.nsub],
@@ -233,9 +233,9 @@ class pfd:
                 DM (N DMs spanning loDM-hiDM).
         """
         # Sum the profiles in time
-        profs = Numeric.sum(self.profs)
+        profs = Num.sum(self.profs)
         DMs = psr_utils.span(loDM, hiDM, N)
-        chis = Numeric.zeros(N, typecode='f')
+        chis = Num.zeros(N, typecode='f')
         subdelays_bins = self.subdelays_bins.copy()
         for ii, DM in enumerate(DMs):
             subdelays = psr_utils.delay_from_DM(DM, self.subfreqs)
@@ -247,8 +247,8 @@ class pfd:
             for jj in range(self.nsub):
                 profs[jj] = psr_utils.rotate(profs[jj], int(new_subdelays_bins[jj]))
             subdelays_bins += new_subdelays_bins
-            sumprof = sum(profs)
-            chis[ii] = sum((sumprof-self.avgprof)**2.0/self.varprof)/(self.proflen-1.0)
+            sumprof = Num.sum(profs)
+            chis[ii] = Num.sum((sumprof-self.avgprof)**2.0/self.varprof)/(self.proflen-1.0)
         # Now plot it
         Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d")
         Pgplot.closeplot()
@@ -260,9 +260,9 @@ class pfd:
                 the subband number.
         """
         # Sum the profiles in each subband
-        profs = Numeric.sum(self.profs)
+        profs = Num.sum(self.profs)
         # Compute the averages and variances for the subbands
-        avgs = Numeric.add.reduce(profs, 1)/self.proflen
+        avgs = Num.add.reduce(profs, 1)/self.proflen
         vars = []
         for sub in range(self.nsub):
             var = 0.0
@@ -274,36 +274,41 @@ class pfd:
                     continue
                 var += self.stats[part][sub].prof_var
             vars.append(var)
-        chis = Numeric.zeros(self.nsub, typecode='f')
+        chis = Num.zeros(self.nsub, typecode='f')
         for ii in range(self.nsub):
-            chis[ii] = sum((profs[ii]-avgs[ii])**2.0/vars[ii])/(self.proflen-1.0)
+            chis[ii] = Num.sum((profs[ii]-avgs[ii])**2.0/vars[ii])/(self.proflen-1.0)
         # Now plot it
-        Pgplot.plotxy(chis, labx="Subband Number", laby="Reduced-\gx\u2\d")
+        Pgplot.plotxy(chis, labx="Subband Number", laby="Reduced-\gx\u2\d",
+                      rangey=[0.0, max(chis)*1.1])
         Pgplot.closeplot()
         return chis
 
 if __name__ == "__main__":
     
-    #testpfd = pfd("/home/ransom/tmp_pfd/M13_52724_W234_PSR_1641+3627C.pfd")
-    testpfd = pfd("/home/ransom/tmp_pfd/M5_52725_W234_PSR_1518+0204A.pfd")
-    print testpfd
+    testpfd = "/home/ransom/tmp_pfd/M5_52725_W234_PSR_1518+0204A.pfd"
+    #testpfd = "/home/ransom/tmp_pfd/M13_52724_W234_PSR_1641+3627C.pfd"
 
-    testpfd.kill_subbands([6,7,8,9,30,31,32,33])
+    tp = pfd(testpfd)
 
-    testpfd.kill_intervals([2,3,4,5,6])
-        
-    testpfd.plot_chi2_vs_sub()
+    tp.kill_subbands([6,7,8,9,30,31,32,33])
+    tp.kill_intervals([2,3,4,5,6])
 
-    testpfd.plot_chi2_vs_DM(0.0, 50.0, 1000)
+    tp.plot_chi2_vs_sub()
+    tp.plot_chi2_vs_DM(0.0, 50.0, 1000)
     
-    testpfd.dedisperse()
-    testpfd.plot_subbands()
-    testpfd.plot_sumprof()
-    print testpfd.calc_redchi2()
+    tp.dedisperse()
+    tp.plot_subbands()
+    tp.plot_sumprof()
+    print "DM =", tp.bestdm, "gives reduced chi^2 =", tp.calc_redchi2()
 
-    testpfd.dedisperse(33.0)
-    testpfd.plot_subbands()
-    testpfd.plot_sumprof()
-    print testpfd.calc_redchi2()
+    tp.dedisperse(27.0)
+    tp.plot_subbands()
+    tp.plot_sumprof()
+    print "DM = 27.0 gives reduced chi^2 =", tp.calc_redchi2()
 
-    testpfd.plot_intervals()
+    tp.dedisperse(33.0)
+    tp.plot_subbands()
+    tp.plot_sumprof()
+    print "DM = 33.0 gives reduced chi^2 =", tp.calc_redchi2()
+
+    tp.plot_intervals()
