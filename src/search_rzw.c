@@ -42,16 +42,14 @@ int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile, *poscandfile;
   double dt, nph, T, N, bigz, hir, hiz, dz=2.0, dr;
-  double powavg, powsdev, powvar, powskew, powkurt;
   double *zapfreqs=NULL, *zapwidths=NULL, totnumsearched=0.0;
-  float powargr, powargi, locpow=1.0, *powlist;
-  float powdiff, hipowchop, lowpowlim;
+  float powargr, powargi, locpow=1.0, *powlist, lowpowlim;
   float chkpow=0.0, hipow=0.0, minpow=0.0, numr=0.0;
   fcomplex *response, **kernels, *corrdata, *filedata; 
   unsigned long startbin, nextbin, nbins, highestbin;
   int numbetween=2, numkern, kern_half_width;
   int nr=1, nz, corrsize=0, mincorrsize, worknumbins=0;
-  int ii, ct, zct, filedatalen, numzap=0;
+  int ii, zct, filedatalen, numzap=0;
   int ncand, newncand, oldper=0, newper=0;
   char filenm[200], candnm[200], poscandnm[200], *notes;
   char rzwnm[200];
