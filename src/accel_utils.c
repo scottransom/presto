@@ -589,7 +589,7 @@ void output_harmonics(GSList *list, accelobs *obs, infodata *idata)
   center_string(ctrstr, titles1[ii], widths[ii]);
   fprintf(obs->workfile, "%s\n", ctrstr);
   for (ii=0; ii<numcols-1; ii++){
-    if (ii==3) /*  HAAACK!!! */
+    if (obs->nph > 0.0 && ii==3) /*  HAAACK!!! */
       center_string(ctrstr, "NumPhot", widths[ii]);
     else 
       center_string(ctrstr, titles2[ii], widths[ii]);
