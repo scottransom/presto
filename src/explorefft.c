@@ -1,5 +1,12 @@
 #include "presto.h"
 #include "cpgplot.h"
+#ifdef USEMMAP
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#endif
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -26,7 +33,11 @@ static long long Nfft; /* Number of bins in the FFT */
 static double T;       /* The time duration of FFT */
 static float r0;       /* The value of the zeroth Fourier freq */
 static infodata idata;
+#ifdef USEMMAP
+static int mmap_file;
+#else
 static FILE *fftfile;
+#endif
 static double norm_const=0.0;  /* Used if the user specifies a power normalization. */
 static int numzaplist=0; /* The number of actual lobin/hibin pairs in zaplist */
 static int lenzaplist=0; /* The number of possible lobin/hibin pairs in zaplist */
@@ -274,12 +285,14 @@ static fftpart *get_fftpart(int rlo, int numr)
     fp = (fftpart *)malloc(sizeof(fftpart));
     fp->rlo = rlo;
     fp->numamps = numr;
-    fp->amps = read_fcomplex_file(fftfile, rlo, fp->numamps);
-    if (rlo==0){
+#ifdef USEMMAP
+    fp->amps = (fcomplex *)mmap(0, sizeof(fcomplex)*numr, PROT_READ, 
+				MAP_SHARED, mmap_file, 0);
+#else
+    fp->amps = read_fcomplex_file(fftfile, rlo, numr);
+#endif
+    if (rlo==0)
       r0 = fp->amps[0].r;
-      fp->amps[0].r = 1.0;
-      fp->amps[0].i = 0.0;
-    }
     fp->rawpowers = gen_fvect(fp->numamps);
     fp->medians = gen_fvect(fp->numamps/LOCALCHUNK);
     fp->normvals = gen_fvect(fp->numamps/LOCALCHUNK);
@@ -289,9 +302,14 @@ static fftpart *get_fftpart(int rlo, int numr)
       for (jj=0; jj<LOCALCHUNK; jj++, index++){
 	tmppwr = POWER(fp->amps[index].r, fp->amps[index].i);
 	if (tmppwr > fp->maxrawpow)
-	  fp->maxrawpow = tmppwr;
+	  if (rlo || (rlo==0 && index>0))
+	    fp->maxrawpow = tmppwr;
 	fp->rawpowers[index] = tmppwr;
 	chunk[jj] = tmppwr;
+      }
+      if (rlo==0 && ii==0){
+	chunk[0] = 1.0;
+	fp->rawpowers[0] = 1.0;
       }
       fp->medians[ii] = median(chunk, LOCALCHUNK);
       fp->normvals[ii] = 1.0 / (1.4426950408889634 * fp->medians[ii]);
@@ -305,7 +323,11 @@ static void free_fftpart(fftpart *fp)
   free(fp->normvals);
   free(fp->medians);
   free(fp->rawpowers);
+#ifdef USEMMAP
+  munmap(fp->amps, sizeof(fcomplex)*fp->numamps);
+#else
   free(fp->amps);
+#endif
   free(fp);
 }
 
@@ -344,8 +366,10 @@ static void print_help(void)
 	 " Left Mouse or I     Zoom in  by a factor of 2\n"
 	 " Right Mouse or O    Zoom out by a factor of 2\n"
 	 " Middle Mouse or D   Show details about a selected frequency\n"
-	 " < or ,              Shift left  by 15%% of the screen width\n"
-	 " > or .              Shift right by 15%% of the screen width\n"
+	 " <                   Shift left  by a full screen width\n"
+	 " >                   Shift right by a full screen width\n"
+	 " ,                   Shift left  by 1/8 of the screen width\n"
+	 " .                   Shift right by 1/8 of the screen width\n"
 	 " + or =              Increase the power scale (make them taller)\n"
 	 " - or _              Decrease the power scale (make them shorter)\n"
 	 " S                   Scale the powers automatically\n"
@@ -496,7 +520,7 @@ int main(int argc, char *argv[])
 {
   float maxpow=0.0;
   double centerr, offsetf;
-  int numamps, zoomlevel, maxzoom, minzoom, xid, psid;
+  int zoomlevel, maxzoom, minzoom, xid, psid;
   char *rootfilenm, inchar;
   fftpart *lofp;
   fftview *fv;
@@ -541,13 +565,34 @@ int main(int argc, char *argv[])
   }
   N = idata.N;
   T = idata.dt * idata.N;
-  fftfile = chkfopen(argv[1], "rb");
-  Nfft = chkfilelen(fftfile, sizeof(fcomplex));
+#ifdef USEMMAP
+  mmap_file = open(argv[1], O_RDONLY);
+  {
+    int rt;
+    struct stat buf;
+    
+    rt = fstat(mmap_file, &buf);
+    if (rt == -1){
+      perror("\nError in fstat() in explorefft.c");
+      printf("\n");
+      exit(-1);
+    }
+    Nfft = buf.st_size / sizeof(fcomplex);
+  }
+  lofp = get_fftpart(0, Nfft);
+#else
+  {
+    int numamps;
 
-  /* Get and plot the initial data */
+    fftfile = chkfopen(argv[1], "rb");
+    Nfft = chkfilelen(fftfile, sizeof(fcomplex));
+    numamps = (Nfft > MAXBINS) ? (int) MAXBINS : (int) Nfft;
+    lofp = get_fftpart(0, numamps);
+  }
+#endif
+
+  /* Plot the initial data */
   
-  numamps = (Nfft > MAXBINS) ? (int) MAXBINS : (int) Nfft;
-  lofp = get_fftpart(0, numamps);
   centerr = 0.5 * INITIALNUMBINS;
   zoomlevel = LOGDISPLAYNUM - LOGINITIALNUMBINS;
   minzoom = LOGDISPLAYNUM - LOGMAXBINS;
@@ -558,8 +603,12 @@ int main(int argc, char *argv[])
 
   xid = cpgopen("/XWIN");
   if (xid <= 0){
-    fclose(fftfile);
     free(fv);
+#ifdef USEMMAP
+    close(mmap_file);
+#else
+    fclose(fftfile);
+#endif
     free_fftpart(lofp);
     exit(EXIT_FAILURE);
   }
@@ -604,10 +653,11 @@ int main(int argc, char *argv[])
       } else 
 	printf("  Already at minimum zoom level (%d).\n", zoomlevel);
       break;
-    case '<': /* Shift left */
-    case ',':
+    case '<': /* Shift left 1 full screen */
+      centerr -= fv->numbins + fv->numbins / 8;
+    case ',': /* Shift left 1/8 screen */
       if (DEBUGOUT) printf("  Shifting left...\n");
-      centerr -= 0.15 * fv->numbins;
+      centerr -= fv->numbins / 8;
       { /* Should probably get the previous chunk from the fftfile... */
 	double lowestr;
 
@@ -620,10 +670,11 @@ int main(int argc, char *argv[])
       cpgpage();
       offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       break;
-    case '>': /* Shift right */
-    case '.':
+    case '>': /* Shift right 1 full screen */
+      centerr += fv->numbins - fv->numbins / 8;
+    case '.': /* Shift right 1/8 screen */
       if (DEBUGOUT) printf("  Shifting right...\n");
-      centerr += 0.15 * fv->numbins;
+      centerr += fv->numbins / 8;
       { /* Should probably get the next chunk from the fftfile... */
 	double highestr;
 
@@ -920,7 +971,11 @@ int main(int argc, char *argv[])
   } while (inchar != 'Q' && inchar != 'q');
 
   free_fftpart(lofp);
+#ifdef USEMMAP
+  close(mmap_file);
+#else
   fclose(fftfile);
+#endif
   if (lenzaplist)
     free(zaplist);
   printf("Done\n\n");

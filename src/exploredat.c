@@ -314,7 +314,7 @@ static datapart *get_datapart(int nlo, int numn)
 static void free_datapart(datapart *dp)
 {
 #ifdef USEMMAP
-  munmap(dp->data, sizeof(float)*Ndat);
+  munmap(dp->data, sizeof(float)*dp->nn);
 #else
   free(dp->data);
 #endif
@@ -331,8 +331,8 @@ static void print_help(void)
 	 " Right Mouse or O or X    Zoom out by a factor of 2\n"
 	 " <                        Shift left  by a full screen width\n"
 	 " >                        Shift right by a full screen width\n"
-	 " ,                        Shift left  by 15%% of the screen width\n"
-	 " .                        Shift right by 15%% of the screen width\n"
+	 " ,                        Shift left  by 1/8 of the screen width\n"
+	 " .                        Shift right by 1/8 of the screen width\n"
 	 " +/_                      Increase/Decrease the top edge\n"
 	 " =/-                      Increase/Decrease the bottom edge\n"
 	 " SPACE                    Toggle statistics and sample plotting on/off\n"
@@ -403,7 +403,7 @@ int main(int argc, char *argv[])
     
     rt = fstat(mmap_file, &buf);
     if (rt == -1){
-      perror("\nError in chkfilelen()");
+      perror("\nError in fstat() in exploredat.c");
       printf("\n");
       exit(-1);
     }
@@ -708,6 +708,7 @@ int main(int argc, char *argv[])
       break;
     }
   } while (inchar != 'Q' && inchar != 'q');
+
   free_datapart(lodp);
 #ifdef USEMMAP
   close(mmap_file);
