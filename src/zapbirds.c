@@ -228,8 +228,8 @@ static void process_bird(double basebin, int harm,
 static void zapbirds(double lobin, double hibin)
 {
   int ii, ilobin, ihibin, binstozap, lodatabin;
-  float median_lo, median_hi, avgamp, phase;
-  double radargr, radargi, radtmp;
+  float median_lo, median_hi, avgamp;
+  /* double phase, radargr, radargi, radtmp; */
   fcomplex *data;
 
   ilobin = (int) floor(lobin);
@@ -246,11 +246,16 @@ static void zapbirds(double lobin, double hibin)
   /* Read the data to zap */
   chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
   chkfread(data, sizeof(fcomplex), binstozap, fftfile);
-  /* Change the amplitudes but not the phases */
   for (ii=0; ii<binstozap; ii++){
-    phase = RADIAN_PHASE(data[ii].r, data[ii].i);
-    data[ii].r = avgamp * cos(phase);
-    data[ii].i = avgamp * sin(phase);
+    /* Change the amplitudes but not the phases */
+    /*
+      phase = RADIAN_PHASE(data[ii].r, data[ii].i);
+      data[ii].r = avgamp * cos(phase);
+      data[ii].i = avgamp * sin(phase);
+    */
+    /* Just set the amplitudes to the avgvalue */
+    data[ii].r = avgamp;
+    data[ii].i = 0.0;
   }
   /* Write the modified data */
   chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);

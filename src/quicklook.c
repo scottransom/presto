@@ -7,15 +7,15 @@
 int main(int argc, char *argv[])
 {
   FILE *fftfile;
-  double flook, flook_in_data, dt, nph, t, maxz, pwr, hipow = 0.0;
-  double zlo = -30.0, zhi = 30.0, dr, dz = 2.0;
-  double hir = 0.0, hiz = 0.0, newhir, newhiz;
+  double flook, dt, nph, t, maxz, pwr, hipow=0.0;
+  double zlo=-30.0, zhi=30.0, dr, dz=2.0;
+  double hir=0.0, hiz=0.0, newhir, newhiz;
   fcomplex **ffdotplane, *data;
   float powargr, powargi;
   int startbin, numdata, nextbin, nr, nz, numkern;
-  int i, j, realpsr, kernel_half_width, numbetween = 4;
-  int n, corrsize = 1024;
-  char filenm[80], infonm[80], compare[200];
+  int i, j, realpsr, kernel_half_width, numbetween=4;
+  int n, corrsize=1024;
+  char filenm[80], compare[200];
   rderivs derivs;
   fourierprops props;
   infodata idata;
@@ -24,12 +24,11 @@ int main(int argc, char *argv[])
 
 
   tott = times(&runtimes) / (double) CLK_TCK;
-  if (argc != 4) {
+  if (argc != 3) {
     printf("\nUsage:  'quicklook filename fftfreq dt'\n\n");
     printf("   'filename' = a string containing the FFT file's name.\n");
-    printf("                   Do not add a '.fft' at the end\n");
+    printf("                (do not include the '.fft' suffix)\n");
     printf("    'fftfreq' = the central fourier frequency to examine.\n");
-    printf("         'dt' = the duration (s) of each time series bin.\n\n");
     printf("  Quicklook will search a region of the f-fdot plane\n");
     printf("  of a file containing a long, single precision FFT\n");
     printf("  using the Correlation method (i.e. Ransom and \n");
@@ -42,21 +41,21 @@ int main(int argc, char *argv[])
     printf("  to show the power of the Correlation method, and the\n");
     printf("  forthcoming power of Scott Ransom's Pulsar Finder\n");
     printf("  Software.\n");
-    printf("                                        7 Nov 1997\n\n");
+    printf("                                        2 March 2001\n\n");
     exit(0);
   }
   printf("\n\n");
   printf("  Quick-Look Pulsation Search\n");
   printf("     With database lookup.\n");
   printf("      by Scott M. Ransom\n");
-  printf("         17 June, 1999\n\n");
+  printf("         2 March, 2001\n\n");
 
   /*  Initialize our data: */
 
   sprintf(filenm, "%s.fft", argv[1]);
-  strcpy(infonm, argv[1]);
+  readinf(&idata, argv[1]);
   flook = atof(argv[2]);
-  dt = atof(argv[3]);
+  dt = idata.dt;
   dr = 1.0 / (double) numbetween;
   fftfile = chkfopen(filenm, "r");
   nph = get_numphotons(fftfile);
@@ -71,24 +70,23 @@ int main(int argc, char *argv[])
   numkern = 2 * numbetween * kernel_half_width;
   while (numkern > 2 * corrsize)
     corrsize *= 2;
-  startbin = (int) (flook) - corrsize / ( 2 * numbetween);
+  startbin = (int) (flook) - corrsize / (2 * numbetween);
   numdata = corrsize / numbetween;
   data = read_fcomplex_file(fftfile, startbin, numdata);
 
   /*  Do the f-fdot plane correlations: */
 
-  flook_in_data = (int) flook - startbin;
-  ffdotplane = corr_rz_plane(data, numdata, numbetween, flook_in_data, \
+  ffdotplane = corr_rz_plane(data, numdata, numbetween, kernel_half_width,
 			     zlo, zhi, nz, corrsize, LOWACC, &nextbin);
-  nr = (nextbin - flook_in_data) * numbetween;
-
+  nr = corrsize - 2 * kernel_half_width * numbetween;
+  
   /*  Search the resulting data set: */
-
+  
   for (i = 0; i < nz; i++) {
     for (j = 0; j < nr; j++) {
       pwr = POWER(ffdotplane[i][j].r, ffdotplane[i][j].i);
       if (pwr > hipow) {
-	hir = j * dr + flook_in_data;
+	hir = j * dr + kernel_half_width;
 	hiz = i * dz + zlo;
 	hipow = pwr;
       }
@@ -102,8 +100,8 @@ int main(int argc, char *argv[])
   calc_props(derivs, newhir, newhiz, 0.0, &props);
 
   printf("Searched %d pts ", nz * nr);
-  printf("(r: %.1f to %.1f, ", (double) startbin, \
-	 startbin + nextbin - 0.5);
+  printf("(r: %.1f to %.1f, ", (double) startbin+kernel_half_width, \
+	 (double) startbin+kernel_half_width+dr*(nr-1));
   printf("z: %.1f to %.1f)\n\n", zlo, zhi);
 
   printf("Timing summary:\n");
@@ -118,7 +116,6 @@ int main(int argc, char *argv[])
   printf("The best candidate is:\n");
   
   print_candidate(&props, dt, n, nph, 2);
-  readinf(&idata, infonm);
   realpsr = comp_psr_to_cand(&props, &idata, compare, 1);
   printf("%s\n", compare);
   fclose(fftfile);
