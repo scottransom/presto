@@ -6,12 +6,13 @@
 #include "wapp.h"
 #include "gmrt.h"
 #include "spigot.h"
+#include "sigproc_fb.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP)
 
 extern int getpoly(double mjd, double duration, double *dm, FILE *fp, char *pname);
 extern int phcalc(double mjd0, double mjd1, int last_index,
@@ -162,6 +163,10 @@ int main(int argc, char *argv[])
 		 strcmp(suffix, "bcpm2")==0){
 	printf("Assuming the data is from a GBT BCPM...\n");
 	cmd->bcpmP = 1;
+      } else if (strcmp(suffix, "fil")==0 || 
+		 strcmp(suffix, "fb")==0){
+	printf("Assuming the data is in SIGPROC filterbank format...\n");
+	cmd->filterbankP = 1;
       } else if (strcmp(suffix, "fits")==0 &&
 		 strstr(root, "spigot_5")!=NULL){
 	printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
@@ -297,6 +302,11 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->filterbankP){
+    if (numfiles > 1)
+      printf("Reading SIGPROC filterbank data from %d files:\n", numfiles);
+    else
+      printf("Reading SIGPROC filterbank data from 1 file:\n");
   } else if (cmd->spigotP){
     if (numfiles > 1)
       printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
@@ -487,6 +497,40 @@ int main(int argc, char *argv[])
       strcpy(obs, "GM");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "GMRT");
+
+    } else if (cmd->filterbankP){
+      int headerlen;
+      sigprocfb fb;
+
+      /* Read the first header file and generate an infofile from it */
+      rewind(infiles[0]);
+      headerlen = read_filterbank_header(&fb, infiles[0]);
+      sigprocfb_to_inf(&fb, &idata);
+      rewind(infiles[0]);
+      printf("SIGPROC filterbank input file information:\n");
+      get_filterbank_file_info(infiles, numfiles, cmd->clip,
+			       &local_N, &ptsperrec, &numchan, 
+			       &local_dt, &local_T, 1);
+      filterbank_update_infodata(numfiles, &idata);
+      set_filterbank_padvals(padvals, good_padvals);
+      /* What telescope are we using? */
+      if (!strcmp(idata.telescope, "Arecibo")) {
+        strcpy(obs, "AO");
+      } else if (!strcmp(idata.telescope, "Parkes")) {
+        strcpy(obs, "PK");
+      } else if (!strcmp(idata.telescope, "Jodrell")) {
+	strcpy(obs, "JB");
+      } else if (!strcmp(idata.telescope, "Effelsberg")) {
+        strcpy(obs, "EF");
+      } else if (!strcmp(idata.telescope, "GBT")) {
+        strcpy(obs, "GB");
+      } else {
+        printf("\nYou need to choose a telescope whose data is in\n");
+        printf("$TEMPO/obsys.dat.  Exiting.\n\n");
+        exit(1);
+      }
+      search.telescope = (char *)calloc(strlen(idata.telescope)+1, sizeof(char));
+      strcpy(search.telescope, idata.telescope);
 
     } else if (insubs){
 
@@ -1162,6 +1206,8 @@ int main(int argc, char *argv[])
       skip_to_WAPP_rec(infiles, numfiles, lorec+1);
     else if (cmd->gmrtP)
       skip_to_GMRT_rec(infiles, numfiles, lorec+1);
+    else if (cmd->filterbankP)
+      skip_to_filterbank_rec(infiles, numfiles, lorec+1);
     else {
       if (useshorts){
 	int reclen=1;
@@ -1335,6 +1381,10 @@ int main(int argc, char *argv[])
 	  numread = read_GMRT_subbands(infiles, numfiles, data, 
 				       dispdts, cmd->nsub, 1, &padding,
 				       maskchans, &nummasked, &obsmask);
+	else if (cmd->filterbankP)
+	  numread = read_filterbank_subbands(infiles, numfiles, data, 
+					     dispdts, cmd->nsub, 1, &padding,
+					     maskchans, &nummasked, &obsmask);
 	else if (insubs)
 	  numread = read_subbands(infiles, numfiles, data, recdt, 
 				  maskchans, &nummasked, &obsmask, padvals);

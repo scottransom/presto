@@ -10,8 +10,9 @@
 #include "mpi.h"
 #include "gmrt.h"
 #include "spigot.h"
+#include "sigproc_fb.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -51,6 +52,9 @@ extern void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk,
 extern void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
 extern void set_GMRT_static(int ptsperblk, int bytesperpt, int bytesperblk, 
 			    int numchan, float clip_sigma, double dt);
+extern void get_filterbank_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
+extern void set_filterbank_static(int ptsperblk, int bytesperpt, int bytesperblk, 
+				  int numchan, float clip_sigma, double dt);
 
 static int get_data(FILE *infiles[], int numfiles, float **outdata, 
 		    mask *obsmask, double *dispdts, int **offsets, 
@@ -144,6 +148,10 @@ int main(int argc, char *argv[])
 	    strcmp(suffix, "bcpm2")==0){
 	  printf("Assuming the data is from a GBT BCPM...\n");
 	  cmd->bcpmP = 1;
+	} else if (strcmp(suffix, "fil")==0 || 
+		   strcmp(suffix, "fb")==0){
+	  printf("Assuming the data is in SIGPROC filterbank format...\n");
+	  cmd->filterbankP = 1;
 	} else if (strcmp(suffix, "fits")==0 &&
 		   strstr(root, "spigot_5")!=NULL){
 	  printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
@@ -185,6 +193,11 @@ int main(int argc, char *argv[])
 	printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
       else
 	printf("Reading Green Bank BCPM data from 1 file:\n");
+    } else if (cmd->filterbankP){
+      if (numinfiles > 1)
+	printf("Reading SIGPROC filterbank data from %d files:\n", numinfiles);
+      else
+	printf("Reading SIGPROC filterbank data from 1 file:\n");
     } else if (cmd->spigotP){
       if (numinfiles > 1)
 	printf("Reading Green Bank Spigot data from %d files:\n", numinfiles);
@@ -225,6 +238,8 @@ int main(int argc, char *argv[])
   MPI_Bcast(&cmd->gmrtP, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&cmd->bcpmP, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&cmd->wappP, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&cmd->spigotP, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  MPI_Bcast(&cmd->filterbankP, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&cmd->numout, 1, MPI_INT, 0, MPI_COMM_WORLD);
   MPI_Bcast(&insubs, 1, MPI_INT, 0, MPI_COMM_WORLD);
   if (insubs) cmd->nsub = cmd->argc;
@@ -376,6 +391,40 @@ int main(int argc, char *argv[])
 	strcpy(obs, "GM");
       }
       
+      /* Set-up values if we are using SIGPROC filterbank-style data */
+      if (cmd->filterbankP){
+	int headerlen;
+	sigprocfb fb;
+	
+	/* Read the first header file and generate an infofile from it */
+	rewind(infiles[0]);
+	headerlen = read_filterbank_header(&fb, infiles[0]);
+	sigprocfb_to_inf(&fb, &idata);
+	rewind(infiles[0]);
+	printf("\nSIGPROC filterbank input file information:\n");
+	get_filterbank_file_info(infiles, numinfiles, cmd->clip,
+				 &N, &ptsperblk, &numchan, 
+				 &dt, &T, 1);
+	filterbank_update_infodata(numinfiles, &idata);
+	set_filterbank_padvals(padvals, good_padvals);
+	/* What telescope are we using? */
+	if (!strcmp(idata.telescope, "Arecibo")) {
+	  strcpy(obs, "AO");
+	} else if (!strcmp(idata.telescope, "Parkes")) {
+	  strcpy(obs, "PK");
+	} else if (!strcmp(idata.telescope, "Jodrell")) {
+	  strcpy(obs, "JB");
+	} else if (!strcmp(idata.telescope, "Effelsberg")) {
+	  strcpy(obs, "EF");
+	} else if (!strcmp(idata.telescope, "GBT")) {
+	  strcpy(obs, "GB");
+	} else {
+	  printf("\nYou need to choose a telescope whose data is in\n");
+	  printf("$TEMPO/obsys.dat.  Exiting.\n\n");
+	  exit(1);
+	}
+    }
+
       /* Set-up values if we are using the Berkeley-Caltech */
       /* Pulsar Machine (or BPP) format.                    */
       
@@ -447,6 +496,9 @@ int main(int argc, char *argv[])
       if (cmd->gmrtP)
 	set_GMRT_static(ptsperblk, bytesperpt, bytesperblk, 
 			numchan, clip_sigma, dt);
+      if (cmd->filterbankP)
+	set_filterbank_static(ptsperblk, bytesperpt, bytesperblk, 
+			      numchan, clip_sigma, dt);
       if (cmd->bcpmP)
 	set_BCPM_static(ptsperblk, bytesperpt, bytesperblk, 
 			numchan, numifs, clip_sigma, dt, chan_mapping);
@@ -469,7 +521,7 @@ int main(int argc, char *argv[])
     /* For the WAPP (and others) , the number of bytes returned in         */
     /* get_WAPP_rawblock() is ptsperblk since the correlator lags          */
     /* are converted to 1 byte filterbank channels in read_WAPP_rawblock() */
-    if (cmd->wappP || cmd->gmrtP || cmd->spigotP){
+    if (cmd->wappP || cmd->gmrtP || cmd->filterbankP || cmd->spigotP){
       bytesperblk = ptsperblk*numchan;
       bytesperpt = numchan;
     }
@@ -1020,10 +1072,14 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	    numread = read_PKMB_rawblock(infiles, numfiles, &hdr, rawdata, &tmppad);
 	  else if (cmd->gmrtP)
 	    numread = read_GMRT_rawblock(infiles, numfiles, rawdata, &tmppad);
+	  else if (cmd->filterbankP)
+	    numread = read_filterbank_rawblock(infiles, numfiles, rawdata, &tmppad);
 	  else if (cmd->bcpmP)
 	    numread = read_BPP_rawblock(infiles, numfiles, rawdata, &tmppad);
 	  else if (cmd->wappP)
 	    numread = read_WAPP_rawblock(infiles, numfiles, rawdata, &tmppad, ifs);
+	  else if (cmd->spigotP)
+	    numread = read_SPIGOT_rawblock(infiles, numfiles, rawdata, &tmppad, ifs);
 	  numread *= blocklen;
 	}
 	MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -1039,6 +1095,10 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	      tmpnumread = prep_GMRT_subbands(rawdata, currentdata+ii*blocksize, 
 					      dispdts, cmd->nsub, 0, 
 					      maskchans, &nummasked, obsmask);
+	    else if (cmd->filterbankP)
+	      tmpnumread = prep_filterbank_subbands(rawdata, currentdata+ii*blocksize, 
+						    dispdts, cmd->nsub, 0, 
+						    maskchans, &nummasked, obsmask);
 	    else if (cmd->bcpmP)
 	      tmpnumread = prep_BPP_subbands(rawdata, currentdata+ii*blocksize, 
 					     dispdts, cmd->nsub, 0, 
@@ -1047,6 +1107,10 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 	      tmpnumread = prep_WAPP_subbands(rawdata, currentdata+ii*blocksize, 
 					      dispdts, cmd->nsub, 0, 
 					      maskchans, &nummasked, obsmask);
+	    else if (cmd->spigotP)
+	      tmpnumread = prep_SPIGOT_subbands(rawdata, currentdata+ii*blocksize, 
+						dispdts, cmd->nsub, 0, 
+						maskchans, &nummasked, obsmask);
 	  } else {
 	    *padding = 1;
 	    for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)

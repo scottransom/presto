@@ -8,9 +8,10 @@
 #include "wapp.h"
 #include "gmrt.h"
 #include "spigot.h"
+#include "sigproc_fb.h"
 #include "rfifind.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP)
 
 /* Some function definitions */
 
@@ -111,8 +112,7 @@ int main(int argc, char *argv[])
 
   printf("\n\n");
   printf("               Pulsar Data RFI Finder\n");
-  printf("                 by Scott M. Ransom\n");
-  printf("           Last Modification:  4 Jan, 2001\n\n");
+  printf("                 by Scott M. Ransom\n\n");
 
   /* The following is the root of all the output files */
 
@@ -155,6 +155,10 @@ int main(int argc, char *argv[])
 	    strcmp(suffix, "bcpm2")==0){
 	  printf("Assuming the data is from a GBT BCPM...\n");
 	  cmd->bcpmP = 1;
+	} else if (strcmp(suffix, "fil")==0 || 
+		   strcmp(suffix, "fb")==0){
+	  printf("Assuming the data is in SIGPROC filterbank format...\n");
+	  cmd->filterbankP = 1;
 	} else if (strcmp(suffix, "fits")==0 &&
                    strstr(root, "spigot_5")!=NULL){
 	  printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
@@ -192,6 +196,11 @@ int main(int argc, char *argv[])
 	printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
       else
 	printf("Reading Green Bank BCPM data from 1 file:\n");
+    } else if (cmd->filterbankP){
+      if (numfiles > 1)
+	printf("Reading SIGPROC filterbank data from %d files:\n", numfiles);
+      else
+	printf("Reading SIGPROC filterbank data from 1 file:\n");
     } else if (cmd->spigotP){
       if (numfiles > 1)
 	printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
@@ -324,6 +333,26 @@ int main(int argc, char *argv[])
       set_GMRT_padvals(padvals, good_padvals);
       idata.dm = 0.0;
       writeinf(&idata);
+
+    } else if (cmd->filterbankP){
+      int headerlen;
+      sigprocfb fb;
+
+      /* Set-up for SIGPROC filterbank-style data */
+
+      /* Read the first header file and generate an infofile from it */
+      rewind(infiles[0]);
+      headerlen = read_filterbank_header(&fb, infiles[0]);
+      sigprocfb_to_inf(&fb, &idata);
+      rewind(infiles[0]);
+      printf("SIGPROC filterbank input file information:\n");
+      get_filterbank_file_info(infiles, numfiles, cmd->clip,
+			       &N, &ptsperblock, &numchan, 
+			       &dt, &T, 1);
+      filterbank_update_infodata(numfiles, &idata);
+      set_filterbank_padvals(padvals, good_padvals);
+      idata.dm = 0.0;
+      writeinf(&idata);
     }
     
     /* The number of data points and blocks to work with at a time */
@@ -362,7 +391,7 @@ int main(int argc, char *argv[])
     
     if (cmd->pkmbP)
       rawdata = gen_bvect(DATLEN * blocksperint);
-    else if (cmd->bcpmP || cmd->spigotP || cmd->wappP || cmd->gmrtP)
+    else if (cmd->bcpmP || cmd->spigotP || cmd->wappP || cmd->gmrtP || cmd->filterbankP)
       /* This allocates extra incase both IFs were stored */
       rawdata = gen_bvect(idata.num_chan * ptsperblock * blocksperint);
     else if (insubs)
@@ -415,6 +444,9 @@ int main(int argc, char *argv[])
       else if (cmd->gmrtP)
 	numread = read_GMRT_rawblocks(infiles, numfiles, 
 				      rawdata, blocksperint, &padding);
+      else if (cmd->filterbankP)
+	numread = read_filterbank_rawblocks(infiles, numfiles, 
+					    rawdata, blocksperint, &padding);
       else if (insubs)
 	numread = read_subband_rawblocks(infiles, numfiles, 
 					 srawdata, blocksperint, &padding);
@@ -435,6 +467,8 @@ int main(int argc, char *argv[])
 	  get_WAPP_channel(jj, chandata, rawdata, blocksperint);
 	else if (cmd->gmrtP)
 	  get_GMRT_channel(jj, chandata, rawdata, blocksperint);
+	else if (cmd->filterbankP)
+	  get_filterbank_channel(jj, chandata, rawdata, blocksperint);
 	else if (insubs)
 	  get_subband(jj, chandata, srawdata, blocksperint);
 	

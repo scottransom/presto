@@ -6,12 +6,13 @@
 #include "bpp.h"
 #include "wapp.h"
 #include "spigot.h"
+#include "sigproc_fb.h"
 #include "readfile_cmd.h"
 
 /* #define DEBUG */
 
 #define PAGELEN 32   /* Set the page length to 32 lines */
-#define NUMTYPES 15
+#define NUMTYPES 16
 
 int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
@@ -28,11 +29,12 @@ int PKMBHDR_print(long count, char *obj_ptr);
 int BCPMHDR_print(long count, char *obj_ptr);
 int WAPPHDR_print(long count, char *obj_ptr);
 int SPIGOTHDR_print(long count, char *obj_ptr);
+int SIGPROCHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 
 typedef enum{
   BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, SHORT, INT, LONG, 
-    RZWCAND, BINCAND, POSITION, PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR
+  RZWCAND, BINCAND, POSITION, PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR, SIGPROCHDR
 } rawtypes;
 
 typedef struct fcplex{
@@ -59,12 +61,14 @@ int type_sizes[NUMTYPES] = {
   sizeof(position), \
   49792,  /* This is the length of a Parkes Multibeam record */
   32768,  /* This is the length of a BCPM header */
-  2048    /* This is the length of a WAPP header (Not correct for vers 2+!!) */
+  2048,   /* This is the length of a WAPP header (at least for v1 files! */
+  0,      /* "Special" length for a SPIGOT header */
+  0       /* "Special" length for a SIGPROC header */
 };
 
 int objs_at_a_time[NUMTYPES] = {
   PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 
-  PAGELEN, 1, 1, PAGELEN, 1, 1, 1, 1
+  PAGELEN, 1, 1, PAGELEN, 1, 1, 1, 1, 1
 };
 
 /* You don't see this every day -- An array of pointers to functions: */
@@ -84,7 +88,8 @@ int (*print_funct_ptrs[NUMTYPES])() = {
   PKMBHDR_print, \
   BCPMHDR_print, \
   WAPPHDR_print, \
-  SPIGOTHDR_print
+  SPIGOTHDR_print, \
+  SIGPROCHDR_print, \
 };
 
 /* A few global variables */
@@ -124,8 +129,7 @@ int main(int argc, char **argv)
 #endif
 
   fprintf(stderr, "\n\n  PRESTO Binary File Reader\n");
-  fprintf(stderr, "     by Scott M. Ransom\n");
-  fprintf(stderr, "       20 March 1999\n\n");
+  fprintf(stderr, "     by Scott M. Ransom\n\n");
 
   /* Set our index value */
 
@@ -144,6 +148,7 @@ int main(int argc, char **argv)
   else if (cmd->bcpmP) index = BCPMHDR;
   else if (cmd->wappP) index = WAPPHDR;
   else if (cmd->spigotP) index = SPIGOTHDR;
+  else if (cmd->filterbankP) index = SIGPROCHDR;
 
   /* Try to determine the data type from the file name */
 
@@ -185,6 +190,12 @@ int main(int argc, char **argv)
 	  index = PKMBHDR;
 	  fprintf(stderr, \
 		  "Assuming the data is from the Parkes Multibeam machine.\n\n");
+	} else if (0 == strcmp(extension, "fil") ||
+		   0 == strcmp(extension, "fb")){
+	  cmd->filterbankP = 1;
+	  index = SIGPROCHDR;
+	  fprintf(stderr, \
+		  "Assuming the data is a SIGPROC filterbank file.\n\n");
 	} else if (isdigit(extension[0]) &&
 		   isdigit(extension[1]) &&
 		   isdigit(extension[2])){
@@ -279,6 +290,19 @@ int main(int argc, char **argv)
     exit(0);
   }
 
+  if (cmd->filterbankP){
+    sigprocfb fb;
+
+    infile = chkfopen(cmd->argv[0], "rb");
+    if (read_filterbank_header(&fb, infile)){
+      print_filterbank_header(&fb);
+      printf("\n");
+    } else {
+      printf("\n  Error reading SIGPROC filterbank file!\n\n");
+    }
+    exit(0);
+  }
+
   /* Open the file */
 
   infile = chkfopen(cmd->argv[0], "rb");
@@ -318,7 +342,7 @@ int main(int argc, char **argv)
     if (index==BCPMHDR || index==WAPPHDR || index==SPIGOTHDR)
       break;
     i += objs_read;
-    if (!cmd->nopageP){
+    if (cmd->pageP){
       fflush(NULL);
       fprintf(stderr, "\nPress ENTER for next page, or any other key and ");
       fprintf(stderr, "then ENTER to exit.\n\n");
@@ -478,6 +502,13 @@ int SPIGOTHDR_print(long count, char *obj_ptr)
 
   printf("\n%ld:", count + 1);
   bogus = (int)obj_ptr;
+  return 0;
+}
+
+int SIGPROCHDR_print(long count, char *obj_ptr)
+{
+  printf("\n%ld:", count + 1);
+  print_filterbank_header((sigprocfb *)obj_ptr);
   return 0;
 }
 
