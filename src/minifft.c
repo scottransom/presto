@@ -54,6 +54,10 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   nmini2 = numminifft * 2;
   nmini4 = numminifft * 4;
   numspread = padfftlen(numminifft, 2, &kern_half_width);
+  for (ii = 0; ii < numcands; ii++){
+    cands[ii].mini_sigma = 0.0;
+    cands[ii].mini_power = 0.0;
+  }
 
   /* Prep the interpolation kernel if needed */
 
