@@ -12,11 +12,11 @@ Commandline full_cmd_line
 
 Int 	-factor factor 	{The factor to downsample the data} \
 			-r 1 100 -m
-String	-o	outfile {Name of the output time series file}
+String	-o	outfile {Name of the output time series file (with suffix)}
 
 # Rest of command line:
 
-Rest 		file 	{Input *.dat file name} \
+Rest 		file 	{Input '.dat' or '.sdat' file name} \
 			-c 1 1
 
 

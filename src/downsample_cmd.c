@@ -26,7 +26,7 @@ static Cmdline cmd = {
   /* factorP = */ 0,
   /* factor = */ (int)0,
   /* factorC = */ 0,
-  /***** -o: Name of the output time series file */
+  /***** -o: Name of the output time series file (with suffix) */
   /* outfileP = */ 0,
   /* outfile = */ (char*)0,
   /* outfileC = */ 0,
@@ -753,7 +753,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -o: Name of the output time series file */
+  /***** -o: Name of the output time series file (with suffix) */
   if( !cmd.outfileP ) {
     printf("-o not found.\n");
   } else {
@@ -784,11 +784,11 @@ usage(void)
     Downsamples a time series.\n\
   -factor: The factor to downsample the data\n\
            1 int value between 1 and 100\n\
-       -o: Name of the output time series file\n\
+       -o: Name of the output time series file (with suffix)\n\
            1 char* value\n\
-     file: Input *.dat file name\n\
+     file: Input '.dat' or '.sdat' file name\n\
            1 value\n\
-version: 26Sep02\n\
+version: 02Oct02\n\
 ");
   exit(EXIT_FAILURE);
 }

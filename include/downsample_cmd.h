@@ -13,7 +13,7 @@ typedef struct s_Cmdline {
   char factorP;
   int factor;
   int factorC;
-  /***** -o: Name of the output time series file */
+  /***** -o: Name of the output time series file (with suffix) */
   char outfileP;
   char* outfile;
   int outfileC;
