@@ -2143,4 +2143,74 @@ def pcorr(data, kernel, numbetween, lo, hi):
    return result
 
 
+def ra_dec_to_string(h_or_d, m, s):
+   """
+   ra_dec_to_string(h_or_d, m, s):
+      Return a formatted string of RA or DEC values as
+      'hh:mm:ss.ssss' if RA, or 'dd:mm:ss.ssss' if DEC.
+   """
+   if (s >= 10.0):
+      return "%.2d:%.2d:%.4f" % (h_or_d, m, s)
+   else:
+      return "%.2d:%.2d:0%.4f" % (h_or_d, m, s)
+
+
+def p_to_f(p, pd, pdd):
+   """
+   p_to_f(p, pd, pdd):
+      Convert period, period derivative and period second
+      derivative to the equivalent frequency counterparts.
+      Will also convert from f to p.
+   """
+   f = 1.0 / p
+   fd = -pd / (p * p)
+   fdd = 2.0 * pd * pd / (p**3.0) - pdd / (p * p)
+   return [f, fd, fdd]
+
    
+def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
+   """
+   bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
+      Use least squares to calculate topocentric period
+      period derivative, and period second derivative
+      for the corresponding barycentric values.  The data
+      for the observation must be found in the info file.
+   """
+   from LinearAlgebra import linear_least_squares
+   if infofilenm[-4:]==".inf":  infofilenm = infofilenm[:-4]
+   obs = read_inffile(infofilenm)
+   T = obs.N * obs.dt
+   dt = 10.0
+   tto = obs.mjd_i + obs.mjd_f
+   tts = Numeric.arange(tto, tto + (T + dt) / SECPERDAY, dt / SECPERDAY)
+   nn = len(tts)
+   bts = Numeric.zeros(nn, 'd')
+   vel = Numeric.zeros(nn, 'd')
+   ra = ra_dec_to_string(obs.ra_h, obs.ra_m, obs.ra_s)
+   dec = ra_dec_to_string(obs.dec_d, obs.dec_m, obs.dec_s)
+   if (obs.telescope == 'Parkes'):  tel = 'PK'
+   elif (obs.telescope == 'Effelsberg'):  tel = 'EB'
+   elif (obs.telescope == 'Arecibo'):  tel = 'AO'
+   elif (obs.telescope == 'MMT'):  tel = 'MT'
+   else:
+      print "Telescope not recognized."
+      return 0
+   barycenter(tts, bts, vel, nn, ra, dec, tel, ephem)
+   print "Topocentric start time = %17.11f" % tts[0]
+   print "Barycentric start time = %17.11f" % bts[0]
+   avgvel = Numeric.add.reduce(vel) / nn
+   print "Average Earth velocity = %10.5e c" % (avgvel)
+   tts = Numeric.arange(nn, typecode='d') * dt
+   bts = (bts - bts[0]) * SECPERDAY
+   [fb, fbd, fbdd] = p_to_f(pb, pbd, pbdd)
+   b = fb * bts + fbd * bts**2.0 / 2.0 + fbdd * bts**3.0 / 6.0
+   a = Numeric.transpose(Numeric.asarray([tts, tts**2.0, tts**3.0]))
+   [ft, ftd, ftdd], residuals, rank, sv = linear_least_squares(a,b)
+   [pt, ptd, ptdd] = p_to_f(ft, ftd, ftdd)
+   print "    Topocentric period = %15.12f" % pt
+   print "     Topocentric p-dot = %15.9e" % ptd
+   print "  Topocentric p-dotdot = %15.9e" % ptdd
+   print "     Quick Topo period = %15.12f" % (pb * (1.0 + avgvel))
+   print "      Quick Topo p-dot = %15.9e" % (pbd * (1.0 + avgvel))
+   print "   Quick Topo p-dotdot = %15.9e" % (pbdd * (1.0 + avgvel))
+   return [pt, ptd, ptdd]
