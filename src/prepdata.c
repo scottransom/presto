@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
 {
   /* Any variable that begins with 't' means topocentric */
   /* Any variable that begins with 'b' means barycentric */
-  FILE *infiles[MAXPATCHFILES], *outfile;
+  FILE **infiles, *outfile;
   float *outdata=NULL, *padvals;
   double tdf=0.0, dtmp=0.0, barydispdt=0.0, dsdt=0.0;
   double *dispdt, *tobsf=NULL, tlotoa=0.0, blotoa=0.0;
@@ -69,6 +69,7 @@ int main(int argc, char *argv[])
 
   cmd = parseCmdline(argc, argv);
   numfiles = cmd->argc;
+  infiles = (FILE **)malloc(numfiles * sizeof(FILE *));
   if (cmd->noclipP) cmd->clip = 0.0;
   /* Which IFs will we use? */
   if (cmd->ifsP){
@@ -784,6 +785,7 @@ int main(int argc, char *argv[])
 
   for (ii=0; ii<numfiles; ii++)
     fclose(infiles[ii]);
+  free(infiles);
   fclose(outfile);
 
   /* Print simple stats and results */

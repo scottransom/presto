@@ -55,7 +55,7 @@ void get_subband(int subbandnum, float chandat[], short srawdata[], int numsampl
 
 int main(int argc, char *argv[])
 {
-  FILE *infiles[MAXPATCHFILES], *bytemaskfile;
+  FILE **infiles=NULL, *bytemaskfile;
   float **dataavg=NULL, **datastd=NULL, **datapow=NULL, *padvals;
   float *chandata=NULL, powavg, powstd, powmax;
   float inttime, norm, fracterror=RFI_FRACTERROR, freqsigma, timesigma;
@@ -212,6 +212,7 @@ int main(int argc, char *argv[])
 
     /* Open the raw data files */
 
+    infiles = (FILE **)malloc(numfiles * sizeof(FILE *));
     for (ii=0; ii<numfiles; ii++){
       printf("  '%s'\n", cmd->argv[ii]);
       infiles[ii] = chkfopen(cmd->argv[ii], "rb");
@@ -642,6 +643,7 @@ int main(int argc, char *argv[])
   if (!cmd->nocomputeP){
     for (ii=0; ii<numfiles; ii++)
       fclose(infiles[ii]);
+    free(infiles);
     free(chandata);
     if (insubs)
       free(srawdata);

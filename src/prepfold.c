@@ -28,7 +28,7 @@ void set_posn(prepfoldinfo *in, infodata *idata);
 
 int main(int argc, char *argv[])
 {
-  FILE *infiles[MAXPATCHFILES], *filemarker;
+  FILE **infiles, *filemarker;
   float *data=NULL, *padvals, *ppdot=NULL;
   double f=0.0, fd=0.0, fdd=0.0, foldf=0.0, foldfd=0.0, foldfdd=0.0;
   double recdt=0.0, barydispdt=0.0, N=0.0, T=0.0, proftime, startTday=0.0;
@@ -126,6 +126,7 @@ int main(int argc, char *argv[])
   init_prepfoldinfo(&search);
 
   numfiles = cmd->argc;
+  infiles = (FILE **)malloc(numfiles * sizeof(FILE *));
   {
     char *path;
 
@@ -1397,6 +1398,7 @@ int main(int argc, char *argv[])
     foldf = orig_foldf;
   for (ii=0; ii<numfiles; ii++)
     fclose(infiles[ii]);
+  free(infiles);
   
   /*
    *   Perform the candidate optimization search
