@@ -25,10 +25,6 @@ static Cmdline cmd = {
   /* ncandP = */ TRUE,
   /* ncand = */ 100,
   /* ncandC = */ 1,
-  /***** -plev: Closely examine candidates above this power level */
-  /* plevP = */ FALSE,
-  /* plev = */ (double)0,
-  /* plevC = */ 0,
   /***** -minfft: Power-of-2 length of the shortest miniFFT */
   /* minfftP = */ TRUE,
   /* minfft = */ 32,
@@ -49,10 +45,18 @@ static Cmdline cmd = {
   /* lobinP = */ TRUE,
   /* lobin = */ 0,
   /* lobinC = */ 1,
-  /***** -sum: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
-  /* sumP = */ TRUE,
-  /* sum = */ 0,
-  /* sumC = */ 1,
+  /***** -harmsum: Number of harmonics to sum in the miniFFTs */
+  /* harmsumP = */ TRUE,
+  /* harmsum = */ 3,
+  /* harmsumC = */ 1,
+  /***** -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
+  /* stackP = */ TRUE,
+  /* stack = */ 0,
+  /* stackC = */ 1,
+  /***** -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive) */
+  /* interbinP = */ FALSE,
+  /***** -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive) */
+  /* noaliasP = */ FALSE,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -406,18 +410,6 @@ showOptionValues(void)
     }
   }
 
-  /***** -plev: Closely examine candidates above this power level */
-  if( !cmd.plevP ) {
-    printf("-plev not found.\n");
-  } else {
-    printf("-plev found:\n");
-    if( !cmd.plevC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%f'\n", cmd.plev);
-    }
-  }
-
   /***** -minfft: Power-of-2 length of the shortest miniFFT */
   if( !cmd.minfftP ) {
     printf("-minfft not found.\n");
@@ -478,16 +470,42 @@ showOptionValues(void)
     }
   }
 
-  /***** -sum: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
-  if( !cmd.sumP ) {
-    printf("-sum not found.\n");
+  /***** -harmsum: Number of harmonics to sum in the miniFFTs */
+  if( !cmd.harmsumP ) {
+    printf("-harmsum not found.\n");
   } else {
-    printf("-sum found:\n");
-    if( !cmd.sumC ) {
+    printf("-harmsum found:\n");
+    if( !cmd.harmsumC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.sum);
+      printf("  value = `%d'\n", cmd.harmsum);
     }
+  }
+
+  /***** -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes) */
+  if( !cmd.stackP ) {
+    printf("-stack not found.\n");
+  } else {
+    printf("-stack found:\n");
+    if( !cmd.stackC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.stack);
+    }
+  }
+
+  /***** -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive) */
+  if( !cmd.interbinP ) {
+    printf("-interbin not found.\n");
+  } else {
+    printf("-interbin found:\n");
+  }
+
+  /***** -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive) */
+  if( !cmd.noaliasP ) {
+    printf("-noalias not found.\n");
+  } else {
+    printf("-noalias found:\n");
   }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
@@ -505,33 +523,36 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-ncand ncand] [-plev plev] [-minfft minfft] [-maxfft maxfft] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-sum sum] infile\n\
+ [-ncand ncand] [-minfft minfft] [-maxfft maxfft] [-rlo rlo] [-rhi rhi] [-lobin lobin] [-harmsum harmsum] [-stack stack] [-interbin] [-noalias] infile\n\
     Searches a long FFT for binary pulsar candidates using a phase modulation search.\n\
-   -ncand: Number of candidates to try to return\n\
-           1 integer value between 1 and 10000\n\
-           default: `100'\n\
-    -plev: Closely examine candidates above this power level\n\
-           1 double precision value between 5 and oo\n\
-  -minfft: Power-of-2 length of the shortest miniFFT\n\
-           1 integer value between 8 and 1048576\n\
-           default: `32'\n\
-  -maxfft: Power-of-2 length of the longest miniFFT\n\
-           1 integer value between 8 and 1048576\n\
-           default: `262144'\n\
-     -rlo: The low Fourier frequency to check\n\
-           1 integer value between 0 and oo\n\
-           default: `0'\n\
-     -rhi: The high Fourier frequency to check\n\
-           1 integer value between 0 and oo\n\
-   -lobin: The first Fourier frequency in the data file\n\
-           1 integer value between 0 and oo\n\
-           default: `0'\n\
-     -sum: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes)\n\
-           1 integer value between 0 and oo\n\
-           default: `0'\n\
-   infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
-           1 string value\n\
-version: 23Sep99\n\
+     -ncand: Number of candidates to try to return\n\
+             1 integer value between 1 and 10000\n\
+             default: `100'\n\
+    -minfft: Power-of-2 length of the shortest miniFFT\n\
+             1 integer value between 8 and 1048576\n\
+             default: `32'\n\
+    -maxfft: Power-of-2 length of the longest miniFFT\n\
+             1 integer value between 8 and 1048576\n\
+             default: `262144'\n\
+       -rlo: The low Fourier frequency to check\n\
+             1 integer value between 0 and oo\n\
+             default: `0'\n\
+       -rhi: The high Fourier frequency to check\n\
+             1 integer value between 0 and oo\n\
+     -lobin: The first Fourier frequency in the data file\n\
+             1 integer value between 0 and oo\n\
+             default: `0'\n\
+   -harmsum: Number of harmonics to sum in the miniFFTs\n\
+             1 integer value between 1 and 20\n\
+             default: `3'\n\
+     -stack: Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes)\n\
+             1 integer value between 0 and oo\n\
+             default: `0'\n\
+  -interbin: Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive)\n\
+   -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n\
+     infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n\
+             1 string value\n\
+version: 13Oct99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -556,15 +577,6 @@ parseCmdline(int argc, char **argv)
       cmd.ncandC = i-keep;
       checkIntLower("-ncand", &cmd.ncand, cmd.ncandC, 10000);
       checkIntHigher("-ncand", &cmd.ncand, cmd.ncandC, 1);
-      continue;
-    }
-
-    if( 0==strcmp("-plev", argv[i]) ) {
-      cmd.plevP = TRUE;
-      keep = i;
-      i = getdoubleOpt(argc, argv, i, &cmd.plev, 1);
-      cmd.plevC = i-keep;
-      checkdoubleHigher("-plev", &cmd.plev, cmd.plevC, 5);
       continue;
     }
 
@@ -615,12 +627,32 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-sum", argv[i]) ) {
-      cmd.sumP = TRUE;
+    if( 0==strcmp("-harmsum", argv[i]) ) {
+      cmd.harmsumP = TRUE;
       keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.sum, 1);
-      cmd.sumC = i-keep;
-      checkIntHigher("-sum", &cmd.sum, cmd.sumC, 0);
+      i = getIntOpt(argc, argv, i, &cmd.harmsum, 1);
+      cmd.harmsumC = i-keep;
+      checkIntLower("-harmsum", &cmd.harmsum, cmd.harmsumC, 20);
+      checkIntHigher("-harmsum", &cmd.harmsum, cmd.harmsumC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-stack", argv[i]) ) {
+      cmd.stackP = TRUE;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.stack, 1);
+      cmd.stackC = i-keep;
+      checkIntHigher("-stack", &cmd.stack, cmd.stackC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-interbin", argv[i]) ) {
+      cmd.interbinP = TRUE;
+      continue;
+    }
+
+    if( 0==strcmp("-noalias", argv[i]) ) {
+      cmd.noaliasP = TRUE;
       continue;
     }
 

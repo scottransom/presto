@@ -1,53 +1,49 @@
 #include "presto.h"
 #include "search_bin_cmd.h"
 
-/* The number of candidates we would like to examine more closely for    */
-/*    every maxfft number of freqs we search.  Used to determine cutoff  */
-#define NUMEXPECT 10
-
-/* The number of harmonics to sum in the search */
-#define HARMSUM 3
-
 /* The number of candidates to return from the search of each miniFFT */
-#define MININCANDS 10
+#define MININCANDS 4
+
+/* Minimum binary period (s) to accept as 'real' */
+#define MINORBP 300.0
+
+/* Minimum miniFFT bin number to accept as 'real' */
+#define MINMINIBIN 5.0
 
 /* Function definitions */
+static int not_already_there_rawbin(rawbincand newcand, 
+				    rawbincand *list, int nlist);
+static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
+			       char *output, int full);
+static void compare_rawbin_cands(rawbincand *list, int nlist, 
+				 char *notes);
+static void file_rawbin_candidates(rawbincand *cand, char *notes,
+				   int numcands, char name[]);
+float percolate_rawbincands(rawbincand *cands, int numcands);
 
-int not_already_there_bin(binaryprops * binprops, \
-			  binaryprops * list, int nlist);
-void compare_bin_cands(binaryprops * list, \
-		       int nlist, char *output);
-int comp_bin_pow(const void *ca, const void *cb);
-   /*  Used as compare function for qsort() */
-int comp_bin_nfftbins(const void *ca, const void *cb);
-   /*  Used as compare function for qsort() */
-int remove_dupes_bin(binaryprops * list, int nlist);
-   /*  Removes list values that are within 1 Fourier bin of the PSR freq */
-   /*  from a higher power candidate. Returns # removed.                 */
-int remove_other_bin(binaryprops * list, int nlist);
-   /*  Removes list values whose binary parameters are unrealistic.   */
-   /*  For example, orbital periods under 200 sec.                    */
-   /*  Returns # removed.                                             */
-
+static char num[41][5] =
+{"0th", "1st", "2nd", "3rd", "4th", "5th", "6th", \
+ "7th", "8th", "9th", "10th", "11th", "12th", \
+ "13th", "14th", "15th", "16th", "17th", "18th", \
+ "19th", "20th", "21st", "22nd", "23rd", "24th", \
+ "25th", "26th", "27th", "28th", "29th", "30th", \
+ "31st", "32nd", "33rd", "34th", "35th", "36th", \
+ "37th", "38th", "39th", "40th"};
 
 /* Main routine */
 
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile;
-  float powargr, powargi, *powr, *minifft;
-  float highpows[MININCANDS], highfreqs[MININCANDS];
-  float norm, numchunks, *fptr1;
-  int nbins, newncand, N, nfftsizes, fftlen, halffftlen, binsleft;
-  int numtoread, filepos = 0, loopct = 0;
+  float powargr, powargi, *powers, *minifft;
+  float norm, numchunks, *powers_pos;
+  int nbins, newncand, nfftsizes, fftlen, halffftlen, binsleft;
+  int numtoread, filepos = 0, loopct = 0, powers_offset, ncand2;
   int ii, ct, newper = 0, oldper = 0, numsumpow = 1;
-  double maxpow = 0.0, maxfreq = 0.0, dt, T;
-  double totnumsearched = 0.0, minpow = 0.0;
+  double T, totnumsearched = 0.0, minsig = 0.0;
   char filenm[200], candnm[200], binnm[200], *notes;
   fcomplex *data = NULL;
-  rderivs derivs;
-  fourierprops props;
-  binaryprops binprops, *list;
+  rawbincand tmplist[MININCANDS], *list;
   infodata idata;
   struct tms runtimes;
   double ttim, utim, stim, tott;
@@ -87,9 +83,7 @@ int main(int argc, char *argv[])
   /* Read the info file */
 
   readinf(&idata, cmd->argv[0]);
-  N = idata.N;
-  dt = idata.dt;
-  T = N * dt;
+  T = idata.N * idata.dt;
   if (idata.object) {
     printf("Analyzing %s data from '%s'.\n\n", idata.object, filenm);
   } else {
@@ -152,22 +146,19 @@ int main(int argc, char *argv[])
   /* For numtoread, the 6 just lets us read extra data at once */
 
   numtoread = 6 * cmd->maxfft + cmd->maxfft / 2;
-  if (cmd->sum == 0){
+  if (cmd->stack == 0){
     data = gen_cvect(numtoread);
   }
-  powr = gen_fvect(numtoread);
+  powers = gen_fvect(numtoread);
   minifft = gen_fvect(cmd->maxfft);
-  list = (binaryprops *)malloc(sizeof(binaryprops) * cmd->ncand);
-  for (ii = 0; ii < cmd->ncand; ii++)
-    list[ii].pow = 0.0;
-
-  /* Determine the cutoff level to examine candidates more closely */
-
-  if (cmd->plevP == 0){
-    cmd->plev = -log(NUMEXPECT / (double) cmd->maxfft);
-  }
+  ncand2 = 2 * cmd->ncand;
+  list = (rawbincand *)malloc(sizeof(rawbincand) * ncand2);
+  for (ii = 0; ii < ncand2; ii++)
+    list[ii].mini_sigma = 0.0;
+  for (ii = 0; ii < MININCANDS; ii++)
+    tmplist[ii].mini_sigma = 0.0;
   filepos = cmd->rlo - cmd->lobin;
-  numchunks = (float) (cmd->rhi - cmd->rlo) / cmd->maxfft;
+  numchunks = (float) (cmd->rhi - cmd->rlo) / numtoread;
   printf("Searching...\n");
   printf("   Amount complete = %3d%%", 0);
   fflush(stdout);
@@ -205,33 +196,35 @@ int main(int argc, char *argv[])
 
     /* Read from fftfile */
 
-    if (cmd->sum == 0){
+    if (cmd->stack == 0){
       data = read_fcomplex_file(fftfile, filepos, numtoread);
       for (ii = 0; ii < numtoread; ii++)
-	powr[ii] = POWER(data[ii].r, data[ii].i);
+	powers[ii] = POWER(data[ii].r, data[ii].i);
+      numsumpow = 1;
     } else {
-      powr = read_float_file(fftfile, filepos, numtoread);
+      powers = read_float_file(fftfile, filepos, numtoread);
+      numsumpow = cmd->stack;
     }
-    if (filepos == 0) powr[0] = 1.0;
+    if (filepos == 0) powers[0] = 1.0;
       
     /* Chop the powers that are way above the average level */
 
-    prune_powers(powr, numtoread, numsumpow);
+    prune_powers(powers, numtoread, numsumpow);
 
     /* Loop through the different small FFT sizes */
 
     while (fftlen >= cmd->minfft) {
 
       halffftlen = fftlen / 2;
-      fptr1 = powr;
+      powers_pos = powers;
 
-      /* Perform miniffts at each section of the powr array */
+      /* Perform miniffts at each section of the powers array */
 
-      while ((fptr1 - powr) < cmd->maxfft) {
+      while ((powers_offset = powers_pos - powers) < cmd->maxfft) {
 
-	/* Copy the proper amount and portion of powr into minifft */
+	/* Copy the proper amount and portion of powers into minifft */
 
-	memcpy(minifft, fptr1, fftlen * sizeof(float));
+	memcpy(minifft, powers_pos, fftlen * sizeof(float));
 
 	/* Perform the minifft */
 
@@ -241,45 +234,42 @@ int main(int argc, char *argv[])
 
 	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
-	search_minifft((fcomplex *)minifft, halffftlen, \
-		       HARMSUM, MININCANDS, highpows, highfreqs);
-
-	/* Check if the measured powers are greater than cmd->plev */
+	for (ii = 0; ii < MININCANDS; ii++)
+	  tmplist[ii].mini_sigma = 0.0;
+	search_minifft((fcomplex *)minifft, halffftlen, tmplist, \
+		       MININCANDS, cmd->harmsum, idata.N, T, \
+		       (double) (powers_offset + filepos + cmd->lobin), \
+		       cmd->interbinP ? INTERBIN : INTERPOLATE, \
+		       cmd->noaliasP ? NO_CHECK_ALIASED : CHECK_ALIASED);
+		       
+	/* Check if the new cands should go into the master cand list */
 
 	for (ii = 0; ii < MININCANDS; ii++){
-	  
-	  if (highpows[ii] > cmd->plev) {
-	    maxpow = max_r_arr((fcomplex *)minifft, halffftlen, \
-			       highfreqs[ii], &maxfreq, &derivs);
+	  if (tmplist[ii].mini_sigma > minsig) {
 
-	    /* Check if the measured power is greater than the lowest */
-	    /* power we already have in the list.                     */
+	    /* Insure the candidate is semi-realistic */
 
-	    if (maxpow > minpow) {
-	      derivs.locpow = 1.0;
-	      calc_props(derivs, maxfreq, 0.0, 0.0, &props);
-	      calc_binprops(&props, T, filepos + cmd->lobin + 
-			    (fptr1 - powr), fftlen, &binprops);
+	    if (tmplist[ii].orb_p > MINORBP && 
+		tmplist[ii].mini_r > MINMINIBIN) {
 
-	      /* Insure the candidate is semi-realistic */
-
-	      if (binprops.pbin > 300.0 || binprops.rbin < 2.0) {
-
-		/* Check to see if another candidate with these properties */
-		/* is already in the list.                                 */
-
-		if (not_already_there_bin(&binprops, list, cmd->ncand)) {
-		  list[cmd->ncand - 1] = binprops;
-		  minpow = percolate_bin(list, cmd->ncand);
-		}
+	      /* Check to see if another candidate with these properties */
+	      /* is already in the list.                                 */
+	      
+	      if (not_already_there_rawbin(tmplist[ii], list, ncand2)) {
+		list[ncand2 - 1] = tmplist[ii];
+		minsig = percolate_rawbincands(list, ncand2);
 	      }
+	    } else {
+	      continue;
 	    }
+	  } else {
+	    break;
 	  }
 	  /* Mini-fft search for loop */
 	}
 
 	totnumsearched += fftlen;
-	fptr1 += halffftlen;
+	powers_pos += halffftlen;
 
 	/* Position of mini-fft in data set while loop */
       }
@@ -317,18 +307,9 @@ int main(int argc, char *argv[])
   /* Count how many candidates we actually have */
 
   ii = 0;
-  while (ii < cmd->ncand && list[ii].pow != 0)
+  while (ii < ncand2 && list[ii].mini_sigma != 0)
     ii++;
-  newncand = ii;
-
-  /* Sort the results in decreasing power levels */
-
-  qsort(list, (unsigned long) newncand, sizeof(binaryprops), \
-	comp_bin_pow);
-
-  /* Remove duplicate candidates */
-
-  newncand -= remove_dupes_bin(list, newncand);
+  newncand = (ii > cmd->ncand) ? cmd->ncand : ii;
 
   /* Set our candidate notes to all spaces */
 
@@ -341,28 +322,29 @@ int main(int argc, char *argv[])
 
   if (idata.ra_h && idata.dec_d) {
     for (ii = 0; ii < newncand; ii++) {
-      comp_bin_to_cand(&list[ii], &idata, notes + ii * 18, 0);
+      comp_rawbin_to_cand(&list[ii], &idata, notes + ii * 18, 0);
     }
   }
+
   /* Compare the candidates with each other */
 
-  compare_bin_cands(list, newncand, notes);
+  compare_rawbin_cands(list, newncand, notes);
 
   /* Send the candidates to the text file */
 
-  file_bin_candidates(list, notes, newncand, cmd->argv[0]);
+  file_rawbin_candidates(list, notes, newncand, cmd->argv[0]);
 
   /* Write the binary candidate file */
 
   candfile = chkfopen(candnm, "wb");
-  chkfwrite(list, sizeof(binaryprops), (unsigned long) newncand, candfile);
+  chkfwrite(list, sizeof(rawbincand), (unsigned long) newncand, candfile);
   fclose(candfile);
 
   /* Free our arrays and close our files */
 
-  if (cmd->sum == 0) free(data);
+  if (cmd->stack == 0) free(data);
   free(list);
-  free(powr);
+  free(powers);
   free(minifft);
   free(notes);
   fclose(fftfile);
@@ -371,25 +353,24 @@ int main(int argc, char *argv[])
 }
 
 
-int not_already_there_bin(binaryprops * binprops, binaryprops * list, int nlist)
+static int not_already_there_rawbin(rawbincand newcand, 
+				    rawbincand *list, int nlist)
 {
   int ii;
 
   /* Loop through the candidates already in the list */
 
   for (ii = 0; ii < nlist; ii++) {
-    if (list[ii].pow == 0.0)
+    if (list[ii].mini_sigma == 0.0)
       break;
 
     /* Do not add the candidate to the list if it is a lower power */
     /* version of an already listed candidate.                     */
 
-    if (binprops->lowbin == list[ii].lowbin) {
-      if (binprops->nfftbins == list[ii].nfftbins) {
-	if (fabs(binprops->rdetect - list[ii].rdetect) < 0.6) {
-	  if (binprops->pow < list[ii].pow) {
-	    return 0;
-	  }
+    if (list[ii].mini_N == newcand.mini_N) {
+      if (fabs(list[ii].mini_r - newcand.mini_r) < 0.6) {
+	if (list[ii].mini_sigma > newcand.mini_sigma) {
+	  return 0;
 	}
       }
     }
@@ -398,7 +379,8 @@ int not_already_there_bin(binaryprops * binprops, binaryprops * list, int nlist)
 }
 
 
-void compare_bin_cands(binaryprops * list, int nlist, char *notes)
+static void compare_rawbin_cands(rawbincand *list, int nlist, 
+				 char *notes)
 {
   int ii, jj, kk, ll;
   char tmp[30];
@@ -419,7 +401,8 @@ void compare_bin_cands(binaryprops * list, int nlist, char *notes)
 
 	/* Check if the PSR Fourier freqs are close enough */
 
-	if (fabs(list[ii].rpsr - list[jj].rpsr / kk) < list[ii].nfftbins) {
+	if (fabs(list[ii].full_lo_r - list[jj].full_lo_r / kk) < 
+	    list[ii].mini_N) {
 
 	  /* Loop through the possible binary period harmonics */
 
@@ -427,8 +410,7 @@ void compare_bin_cands(binaryprops * list, int nlist, char *notes)
 
 	    /* Check if the binary Fourier freqs are close enough */
 
-	    if (fabs(list[ii].rbin - list[jj].rbin * ll) < \
-		list[jj].rbinerr * 20.0) {
+	    if (fabs(list[ii].orb_p - list[jj].orb_p * ll) < 20.0) {
 
 	      /* Check if the note has already been written */
 
@@ -448,3 +430,202 @@ void compare_bin_cands(binaryprops * list, int nlist, char *notes)
     }
   }
 }
+
+
+static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
+			       char *output, int full)
+  /* Compares a binary PSR candidate defined by its props found in    */
+  /*   *cand, and *idata with all of the pulsars in the pulsar        */
+  /*   database.  It returns a string (verbose if full==1) describing */
+  /*   the results of the search in *output.                          */
+{
+  int i, j, k;
+  static int np = 0;
+  static psrdatabase pdata;
+  double T, theop, ra, dec, beam2, difft = 0.0, epoch;
+  double bmod, pmod;
+  char tmp1[80], tmp2[80], tmp3[80], tmp4[20];
+
+  /* If calling for the first time, read the database. */
+
+  if (!np) {
+    np = read_database(&pdata);
+  }
+  /* Convert the beam width to radians */
+
+  beam2 = 2.0 * ARCSEC2RAD * idata->fov;
+
+  /* Convert RA and DEC to radians  (Use J2000) */
+
+  ra = hms2rad(idata->ra_h, idata->ra_m, idata->ra_s);
+  dec = dms2rad(idata->dec_d, idata->dec_m, idata->dec_s);
+
+  /* Calculate the time related variables  */
+
+  T = idata->N * idata->dt;
+  epoch = (double) idata->mjd_i + idata->mjd_f;
+
+  /* Run through RAs in database looking for things close  */
+  /* If find one, check the DEC as well (the angle between */
+  /* the sources < 2*beam diam).  If find one, check its   */
+  /* period.  If this matches within 2*perr, return the    */
+  /* number of the pulsar.  If no matches, return 0.       */
+
+  for (i = 0; i < np; i++) {
+
+    /* See if we're close in RA */
+
+    if (fabs(pdata.ra2000[i] - ra) < beam2) {
+
+      /* See if we're close in RA and DEC */
+
+      if (sphere_ang_diff(pdata.ra2000[i], pdata.dec2000[i], \
+			  ra, dec) < beam2) {
+
+	/* Check that the psr in the database is in a binary   */
+
+	if (pdata.ntype[i] & 8) {
+
+	  /* Predict the period of the pulsar at the observation MJD */
+
+	  difft = SECPERDAY * (epoch - pdata.epoch[i]);
+	  theop = pdata.p[i] + pdata.pdot[i] * difft;
+	  sprintf(tmp4, "%.8s", pdata.bname + i * 8);
+
+	  /* Check the predicted period and its harmonics against the */
+	  /* measured period.  Use both pulsar and binary periods.    */
+
+	  for (j = 1, pmod = 1.0; j < 41; j++, pmod = 1.0 / (double) j) {
+	    if (fabs(theop * pmod - cand->psr_p) < \
+		(cand->full_T / cand->mini_N)) {
+	      for (k = 1, bmod = 1.0; k < 10; \
+		   k++, bmod = 1.0 / (double) k) {
+		if (fabs(pdata.pb[i] * bmod - cand->orb_p / SECPERDAY) < \
+		    (10.0 / SECPERDAY)) {
+		  if (!strcmp("        ", tmp4)) {
+		    if (j > 1) {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
+			sprintf(tmp2, "of the %s harmonic of PSR ", num[j]);
+			sprintf(tmp3, "J%.12s (p = %11.7f s, pbin = %9.4f d).\n", \
+				pdata.jname + i * 12, theop, pdata.pb[i]);
+			sprintf(output, "%s%s%s", tmp1, tmp2, tmp3);
+		      } else {
+			sprintf(output, "%s H J%.12s", num[k], pdata.jname + i * 12);
+		      }
+		    } else {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
+			sprintf(tmp2, "of PSR J%.12s (p = %11.7f s, pbin = %9.4f d).\n", \
+				pdata.jname + i * 12, theop, pdata.pb[i]);
+			sprintf(output, "%s%s", tmp1, tmp2);
+		      } else {
+			sprintf(output, "PSR J%.12s", pdata.jname + i * 12);
+		      }
+		    }
+		  } else {
+		    if (j > 1) {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s modulation harmonic ", num[k]);
+			sprintf(tmp2, "of the %s harmonic of PSR ", num[j]);
+			sprintf(tmp3, "B%s (p = %11.7f s, pbin = %9.4f d).\n", \
+				tmp4, theop, pdata.pb[i]);
+			sprintf(output, "%s%s%s", tmp1, tmp2, tmp3);
+		      } else {
+			sprintf(output, "%s H B%s", num[k], tmp4);
+		      }
+		    } else {
+		      if (full) {
+			sprintf(tmp1, "Possibly the %s phasemod harmonic ", num[k]);
+			sprintf(tmp2, "of PSR B%s (p = %11.7f s, pbin = %9.4f d).\n", \
+				tmp4, theop, pdata.pb[i]);
+			sprintf(output, "%s%s", tmp1, tmp2);
+		      } else {
+			sprintf(output, "PSR B%s", tmp4);
+		      }
+		    }
+		  }
+		}
+		return i + 1;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+
+  /* Didn't find a match */
+
+  if (full) {
+    sprintf(output, "I don't recognize this candidate in the pulsar database.\n");
+  } else {
+    sprintf(output, "                  ");
+  }
+  return 0;
+}
+
+
+static void file_rawbin_candidates(rawbincand *cand, char *notes,
+				   int numcands, char name[])
+/* Outputs a .ps file describing all the binary candidates from a    */
+/*   binary search. */
+{
+  FILE *fname;
+  int i, j, k = 0;
+  int nlines = 77, pages, extralines, linestoprint;
+  char filenm[100], infonm[100], command[200];
+
+  sprintf(filenm, "%s_bin", name);
+  sprintf(infonm, "%s.inf", name);
+  fname = chkfopen(filenm, "w");
+
+  if (numcands <= 0) {
+    printf(" Must have at least 1 candidate in ");
+    printf("file_bin_candidates().\n\n");
+    exit(1);
+  }
+  pages = numcands / nlines + 1;
+  extralines = numcands % nlines;
+
+  for (i = 1; i <= pages; i++) {
+
+    /*                       1         2         3         4         5         6         7         8         9      */  
+    /*              123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456*/
+    fprintf(fname, " Cand           Orb Period   PSR Period     FullFFT  MiniFFT   MiniFFT  Num    Sum                \n");
+    fprintf(fname, "Number  Sigma      (sec)        (sec)       Low Bin  Length      Bin    Harm  Power    Notes      \n");
+    fprintf(fname, "------------------------------------------------------------------------------------------------\n");
+
+    if (i == pages) {
+      linestoprint = extralines;
+    } else {
+      linestoprint = nlines;
+    }
+
+    for (j = 0; j < linestoprint; j++, k++) {
+
+      /*  Now output it... */
+
+      fprintf(fname, " %-4d %7.3f  ", k + 1, cand[k].mini_sigma);
+      fprintf(fname, " %10.3f ", cand[k].orb_p);
+      fprintf(fname, " %13.11f ", cand[k].psr_p);
+      fprintf(fname, " %10.0f ", cand[k].full_lo_r);
+      fprintf(fname, " %6.0f ", cand[k].mini_N);
+      fprintf(fname, " %7.1f ", cand[k].mini_r);
+      fprintf(fname, " %2.0f ", cand[k].mini_numsum);
+      fprintf(fname, " %8.2f ", cand[k].mini_power);
+      fprintf(fname, " %.18s\n", notes + k * 18);
+      fflush(fname);
+    }
+  }
+  fprintf(fname, "\n Notes:  MH = Modulation harmonic.  ");
+  fprintf(fname, "H = Pulsar harmonic.  # indicates the candidate number.\n\n");
+  fclose(fname);
+  sprintf(command, "cat %s >> %s", infonm, filenm);
+  system(command);
+  sprintf(command, \
+	  "$PRESTO/bin/a2x -l -c1 -n80 -title -date -num %s > %s.ps", \
+	  filenm, filenm);
+  system(command);
+}
+

@@ -6,7 +6,7 @@
 /* Routines defined at the bottom */
 
 static int padfftlen(int minifftlen, int numbetween, int *padlen);
-static float percolate_rawbincands(rawbincand *cands, int numcands);
+float percolate_rawbincands(rawbincand *cands, int numcands);
 void print_rawbincand(rawbincand cand);
 
 void search_minifft(fcomplex *minifft, int numminifft, \
@@ -148,14 +148,12 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Add the rest of the rawbincand data to the candidate array */
 
   for (ii = 0; ii < numcands; ii++){
-    cands[numcands].full_N = numfullfft;
-    cands[numcands].full_T = timefullfft;
-    cands[numcands].full_lo_r = lorfullfft;
-    cands[numcands].mini_N = numminifft * 2.0;
-    cands[numcands].psr_p = (lorfullfft + numminifft) / 
-      timefullfft;
-    cands[numcands].orb_p = timefullfft * cands[numcands].mini_r / 
-      numminifft;
+    cands[ii].full_N = numfullfft;
+    cands[ii].full_T = timefullfft;
+    cands[ii].full_lo_r = lorfullfft;
+    cands[ii].mini_N = nmini2;
+    cands[ii].psr_p = timefullfft / (lorfullfft + numminifft);
+    cands[ii].orb_p = timefullfft * cands[ii].mini_r / nmini2;
   }
   free(fullpows);
 }
@@ -198,19 +196,19 @@ static int padfftlen(int minifftlen, int numbetween, int *padlen)
 }
 
 void print_rawbincand(rawbincand cand){
-  printf("  N(full)   = %f\n", cand.full_N);
-  printf("  T(full)   = %f\n", cand.full_T);
-  printf("  rlo(full) = %f\n", cand.full_lo_r);
-  printf("  N(mini)   = %f\n", cand.mini_N);
-  printf("  r(detect) = %f\n", cand.mini_r);
-  printf("  power     = %f\n", cand.mini_power);
-  printf("  numsum    = %f\n", cand.mini_numsum);
-  printf("  sigma     = %f\n", cand.mini_sigma);
-  printf("  pulsar p  = %f\n", cand.psr_p);
-  printf("  orbit p   = %f\n\n", cand.orb_p);
+  printf("  N(full)   = %10.0f\n", cand.full_N);
+  printf("  T(full)   = %13.6f\n", cand.full_T);
+  printf("  rlo(full) = %10.0f\n", cand.full_lo_r);
+  printf("  N(mini)   = %6.0f\n", cand.mini_N);
+  printf("  r(detect) = %9.3f\n", cand.mini_r);
+  printf("  power     = %8.3f\n", cand.mini_power);
+  printf("  numsum    = %2.0f\n", cand.mini_numsum);
+  printf("  sigma     = %6.3f\n", cand.mini_sigma);
+  printf("  pulsar p  = %13.11f\n", cand.psr_p);
+  printf("  orbit p   = %10.3f\n\n", cand.orb_p);
 }
 
-static float percolate_rawbincands(rawbincand *cands, int numcands)
+float percolate_rawbincands(rawbincand *cands, int numcands)
   /*  Pushes a rawbincand candidate as far up the array of   */
   /*  candidates as it shoud go to keep the array sorted in  */
   /*  indecreasing significance.  Returns the new lowest     */

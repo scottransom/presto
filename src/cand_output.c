@@ -346,5 +346,4 @@ int file_nice_output(char *output, double val, double err)
   return strlen(output);
 }
 
-
 #undef COPYSIGN
