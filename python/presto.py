@@ -1010,6 +1010,8 @@ max_r_arr = prestoc.max_r_arr
 
 max_rz_arr = prestoc.max_rz_arr
 
+fold_errors = prestoc.fold_errors
+
 foldfile = prestoc.foldfile
 
 fold = prestoc.fold

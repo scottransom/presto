@@ -1110,6 +1110,30 @@ double max_rz_arr(fcomplex *data, int numdata, double rin, double zin,
 /* Return the Fourier frequency and Fourier f-dot that      */ 
 /* maximizes the power.                                     */
 
+%apply double* IN_1D_DOUBLE { double *prof }
+%apply double *OUTPUT { double *perr, double *pderr, double *pdderr };
+void fold_errors(double *prof, int proflen, double dt, double N, 
+		 double datavar, double p, double pd, double pdd, 
+		 double *perr, double *pderr, double *pdderr);
+/* Calculate estimates for the errors in period p-dot and   */
+/* p-dotdot using Middleditch's error formula.  The routine */
+/* calculates the errors for each Fourier harmonic present  */
+/* in the profile that is significant.  Then it combines    */
+/* the errors for the harmonics into an error for the       */
+/* fundamental.                                             */
+/*   Arguments:                                             */
+/*      'prof' is and array pointing to the profile         */
+/*      'proflen' is the number of bins in 'prof'           */
+/*      'dt' is the sample interval of the original data    */
+/*      'N' is the total number of points folded            */
+/*      'datavar' is the variance of the original data      */
+/*      'p' is the folding period                           */
+/*      'pd' is the folding period derivative               */
+/*      'pdd' is the folding period 2nd dervivative         */
+/*      'perr' is the returned period error                 */
+/*      'pderr' is the returned p-dot error                 */
+/*      'pdderr' is the returned p-dotdot error             */
+
 %apply double* IN_1D_DOUBLE { double *prof, 
 			      double *delays, 
 			      double *delaytimes, 
