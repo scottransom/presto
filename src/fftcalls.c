@@ -20,13 +20,11 @@ void fftwcall(fcomplex *indata, long nn, int isign)
 
   /* Call the six-step algorithm if the FFT is too big to     */
   /* be efficiently handled by FFTW.                          */
-  /* With the improvements in FFTW, this is no longer needed  */
-  /*
+
   if (nn > BIGFFTWSIZE){
     tablesixstepfft(indata, nn, isign);
     return;
   }
-  */
 
   /* If calling for the first time, read the wisdom file */
 
