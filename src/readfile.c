@@ -128,8 +128,8 @@ int main(int argc, char **argv)
   showOptionValues();
 #endif
 
-  fprintf(stderr, "\n\n  PRESTO Binary File Reader\n");
-  fprintf(stderr, "     by Scott M. Ransom\n\n");
+  //fprintf(stdout, "\n\n  PRESTO Binary File Reader\n");
+  //fprintf(stdout, "     by Scott M. Ransom\n\n");
 
   /* Set our index value */
 
@@ -163,94 +163,94 @@ int main(int argc, char **argv)
       } else {
 	if (0 == strcmp(extension, "dat")){
 	  index = FLOAT;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is floating point.\n\n");
 	} else if (0 == strcmp(extension, "sdat")){
 	  index = SHORT;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is short integers.\n\n");
 	} else if (0 == strcmp(extension, "fft")){
 	  index = FCPLEX;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is single precision complex.\n\n");
 	} else if (0 == strcmp(extension, "fits") &&
                    strstr(short_filenm, "spigot_5")!=NULL){
 	  cmd->spigotP = 1;
 	  index = SPIGOTHDR;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is from the Caltech/NRAO Spigot.\n\n");
 	} else if (0 == strcmp(extension, "bcpm1") ||
 		   0 == strcmp(extension, "bcpm2")){
 	  cmd->bcpmP = 1;
 	  index = BCPMHDR;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is from a BCPM machine.\n\n");
 	} else if (0 == strcmp(extension, "pkmb")){
 	  cmd->pkmbP = 1;
 	  index = PKMBHDR;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is from the Parkes Multibeam machine.\n\n");
 	} else if (0 == strcmp(extension, "fil") ||
 		   0 == strcmp(extension, "fb")){
 	  cmd->filterbankP = 1;
 	  index = SIGPROCHDR;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is a SIGPROC filterbank file.\n\n");
 	} else if (isdigit(extension[0]) &&
 		   isdigit(extension[1]) &&
 		   isdigit(extension[2])){
 	  cmd->wappP = 1;
 	  index = WAPPHDR;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data is from a WAPP machine.\n\n");
 	} else if (0 == strcmp(extension, "pos")){
 	  index = POSITION;
-	  fprintf(stderr, \
+	  fprintf(stdout, \
 		  "Assuming the data contains 'position' structures.\n\n");
 	} else if (0 == strcmp(extension, "cand")){
 	  /* A binary or RZW search file? */
 	  if (NULL != (cptr = strstr(cmd->argv[0], "_bin"))){
 	    index = BINCAND;
-	    fprintf(stderr, \
+	    fprintf(stdout, \
 		    "Assuming the file contains binary candidates.\n\n");
 	  } else if (NULL != (cptr = strstr(cmd->argv[0], "_rzw"))){
 	    index = RZWCAND;
 	    ct = (long) (cptr - cmd->argv[0]);
-	    fprintf(stderr, \
+	    fprintf(stdout, \
 		    "Assuming the file contains 'RZW' candidates.\n");
 	    free(short_filenm);
 	    short_filenm = (char *)malloc(ct + 1);
 	    short_filenm[ct] = '\0';
 	    strncpy(short_filenm, cmd->argv[0], ct);	    
-	    fprintf(stderr, \
+	    fprintf(stdout, \
 		    "\nAttempting to read '%s.inf'.  ", short_filenm);
 	    readinf(&inf, short_filenm);
-	    fprintf(stderr, "Successful.\n");
+	    fprintf(stdout, "Successful.\n");
 	    N = (long)(inf.N + DBLCORRECT);
 	    dt = inf.dt;
 	    if (cmd->nphP) nph = cmd->nph;
 	    else nph = 1.0;
-	    fprintf(stderr, \
+	    fprintf(stdout, \
 		    "\nUsing N = %ld, dt = %g, and DC Power = %f\n\n", \
 		    N, dt, nph);
 	  } else if (NULL != (cptr = strstr(cmd->argv[0], "_ACCEL"))){
 	    index = RZWCAND;
 	    ct = (long) (cptr - cmd->argv[0]);
-	    fprintf(stderr, \
+	    fprintf(stdout, \
 		    "Assuming the file contains 'RZW' candidates.\n");
 	    free(short_filenm);
 	    short_filenm = (char *)malloc(ct + 1);
 	    short_filenm[ct] = '\0';
 	    strncpy(short_filenm, cmd->argv[0], ct);	    
-	    fprintf(stderr, \
+	    fprintf(stdout, \
 		    "\nAttempting to read '%s.inf'.  ", short_filenm);
 	    readinf(&inf, short_filenm);
-	    fprintf(stderr, "Successful.\n");
+	    fprintf(stdout, "Successful.\n");
 	    N = (long)(inf.N + DBLCORRECT);
 	    dt = inf.dt;
 	    if (cmd->nphP) nph = cmd->nph;
 	    else nph = 1.0;
-	    fprintf(stderr, \
+	    fprintf(stdout, \
 		    "\nUsing N = %ld, dt = %g, and DC Power = %f\n\n", \
 		    N, dt, nph);
 	  }
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
     /* If no file extension or if we don't understand the extension, exit */
 
     if (need_type){
-      fprintf(stderr, \
+      fprintf(stdout, \
 	      "You must specify a data type for this file.\n\n");
       free(short_filenm);
       exit(-1);
@@ -273,8 +273,8 @@ int main(int argc, char **argv)
 
   if (cmd->index[1] == -1 || cmd->index[1] == 0) cmd->index[1] = INT_MAX;
   if (cmd->index[1] < cmd->index[0]){
-    fprintf(stderr, "\nThe high index must be >= the low index.");
-    fprintf(stderr, "  Exiting.\n\n");
+    fprintf(stdout, "\nThe high index must be >= the low index.");
+    fprintf(stdout, "  Exiting.\n\n");
     exit(-1);
   }
 
@@ -344,15 +344,15 @@ int main(int argc, char **argv)
     i += objs_read;
     if (cmd->pageP){
       fflush(NULL);
-      fprintf(stderr, "\nPress ENTER for next page, or any other key and ");
-      fprintf(stderr, "then ENTER to exit.\n\n");
+      fprintf(stdout, "\nPress ENTER for next page, or any other key and ");
+      fprintf(stdout, "then ENTER to exit.\n\n");
       key = getchar();
     }
   } while (!feof(infile) && i < cmd->index[1] && key == '\n');
 
   fflush(NULL);
   if (feof(infile)){
-    fprintf(stderr, "\nEnd of file.\n\n");
+    fprintf(stdout, "\nEnd of file.\n\n");
   }
 
   free(data);
