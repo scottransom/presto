@@ -26,15 +26,15 @@ typedef struct MASKBASE {
 
 void make_maskbase_struct(void)
 {
-  int ii, blockcounts[2] = {6, 5};
+  int blockcounts[2] = {6, 5};
   MPI_Datatype types[2] = {MPI_DOUBLE, MPI_INT};
   MPI_Aint displs[2];
   maskbase mbase;
 
   MPI_Address(&mbase.timesigma, &displs[0]);
   MPI_Address(&mbase.numchan, &displs[1]);
-  for (ii=0; ii<2; ii++)
-    displs[ii] -= displs[0];
+  displs[1] -= displs[0];
+  displs[0] = 0;
   MPI_Type_struct(2, blockcounts, displs, types, &maskbase_type);
   MPI_Type_commit(&maskbase_type);
 }
@@ -81,17 +81,28 @@ void broadcast_mask(mask *obsmask, int myid){
 
 void make_infodata_struct(void)
 {
-  int ii, blockcounts[3] = {MAXNUMONOFF*2+14, 8, 1187};
-  MPI_Datatype types[3] = {MPI_DOUBLE, MPI_INT, MPI_CHAR};
-  MPI_Aint displs[3];
+  int ii, blockcounts[11]={MAXNUMONOFF*2+14, 8, 500, 200, 100, 
+			   100, 100, 100, 40, 40, 7};
+  MPI_Datatype types[11]={MPI_DOUBLE, MPI_INT, MPI_CHAR, MPI_CHAR, 
+			  MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR, 
+			  MPI_CHAR, MPI_CHAR, MPI_CHAR};
+  MPI_Aint displs[11];
   infodata idata;
 
   MPI_Address(&idata.ra_s, &displs[0]);
   MPI_Address(&idata.num_chan, &displs[1]);
   MPI_Address(&idata.notes, &displs[2]);
-  for (ii=0; ii<3; ii++)
+  MPI_Address(&idata.name, &displs[3]);
+  MPI_Address(&idata.object, &displs[4]);
+  MPI_Address(&idata.instrument, &displs[5]);
+  MPI_Address(&idata.observer, &displs[6]);
+  MPI_Address(&idata.analyzer, &displs[7]);
+  MPI_Address(&idata.telescope, &displs[8]);
+  MPI_Address(&idata.band, &displs[9]);
+  MPI_Address(&idata.filt, &displs[10]);
+  for (ii=10; ii>=0; ii--)
     displs[ii] -= displs[0];
-  MPI_Type_struct(3, blockcounts, displs, types, &infodata_type);
+  MPI_Type_struct(11, blockcounts, displs, types, &infodata_type);
   MPI_Type_commit(&infodata_type);
 }
 
