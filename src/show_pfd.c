@@ -24,6 +24,12 @@ int main(int argc, char *argv[])
   read_prepfoldinfo(&search, argv[1]);
 
   /*
+   *   Print the main prepfoldinfo structure values
+   */
+
+  print_prepfoldinfo(&search);
+
+  /*
    *   Plot our results
    */
 

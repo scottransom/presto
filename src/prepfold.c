@@ -405,13 +405,12 @@ int main(int argc, char *argv[])
 	f += lorec * recdt * fd;
       else if (!cmd->pkmbP && !cmd->ebppP)
 	f += lorec * search.dt * fd;
-      if (rzwidata.bary){
-	search.bary.p1 = 1.0 / f;
-	search.bary.p2  = -fd / (f * f);
-      } else {
-	search.topo.p1 = 1.0 / f;
-	search.topo.p2  = -fd / (f * f);
-      }
+      if (rzwidata.bary)
+	switch_f_and_p(f, fd, fdd, &search.bary.p1, \
+		       &search.bary.p2, &search.bary.p3);
+      else
+	switch_f_and_p(f, fd, fdd, &search.topo.p1, \
+		       &search.topo.p2, &search.topo.p3);
     } else {
       printf("\nCould not read the rzwfile.\nExiting.\n\n");
       exit(1);
@@ -497,9 +496,9 @@ int main(int argc, char *argv[])
     E_to_phib(Ep, numbinpoints, &search.orb);
     numdelays = numbinpoints;
     if (search.bepoch == 0.0)
-      search.orb.t = search.orb.t / SECPERDAY + search.tepoch;
+      search.orb.t = -search.orb.t / SECPERDAY + search.tepoch;
     else 
-      search.orb.t = search.orb.t / SECPERDAY + search.bepoch;
+      search.orb.t = -search.orb.t / SECPERDAY + search.bepoch;
   }
 
   /* Output some informational data on the screen and to the */
@@ -689,79 +688,40 @@ int main(int argc, char *argv[])
       dispdts[ii] /= search.dt;
   }
   
-  {
-    int ll;
-    float *sumsubs;
-    double davg=0.0, dvar=0.0, tavg, tvar;
-
-    /* 
-     *   Perform the actual folding of the data
-     */
+  /* 
+   *   Perform the actual folding of the data
+   */
+  
+  proftime = worklen * search.dt;
+  parttimes = gen_dvect(cmd->npart);
+  printf("Folded %ld points of %.0f", totnumfolded, N);
+  
+  /* sub-integrations in time  */
+  
+  for (ii = 0; ii < cmd->npart; ii++){
+    parttimes[ii] = ii * reads_per_part * proftime;
     
-    proftime = worklen * search.dt;
-    parttimes = gen_dvect(cmd->npart);
-    printf("Folded %ld points of %.0f", totnumfolded, N);
-    sumsubs = gen_fvect(worklen);
+    /* reads per sub-integration */
     
-    /* sub-integrations in time  */
-    
-    for (ii = 0; ii < cmd->npart; ii++){
-      parttimes[ii] = ii * reads_per_part * proftime;
+    for (jj = 0; jj < reads_per_part; jj++){
+      numread = readrec_ptr(infile, data, worklen, dispdts, 
+			    cmd->nsub, numchan);
+     
+      /* frequency sub-bands */
       
-      /* reads per sub-integration */
-      
-      davg = 0.0;
-      dvar = 0.0;
-      for (kk = 0; kk < worklen; kk++) 
-	sumsubs[kk]=0.0;
-      for (jj = 0; jj < reads_per_part; jj++){
-	numread = readrec_ptr(infile, data, worklen, dispdts, 
-			      cmd->nsub, numchan);
-	
-	/* Sum the subbands so that we can calculate the data     */
-	/* variance.  (Cannot calculate it by adding the sub-band */
-	/* variances in quadrature since there is sinificant      */
-	/* covariance between the subbands).                      */
-
-	for (kk = 0; kk < worklen; kk++) 
-	  sumsubs[kk]=0.0;
-	for (kk = 0; kk < cmd->nsub; kk++)
-	  for (ll = 0; ll < worklen; ll++)
-	    sumsubs[ll] += data[kk * worklen + ll];
-	avg_var(sumsubs, worklen, &tavg, &tvar);
-/* printf("tavg = %f  tvar = %f\n", tavg, tvar); */
-	davg += tavg;
-	dvar += tvar;
-
-	/* frequency sub-bands */
-	
-	for (kk = 0; kk < cmd->nsub; kk++)
-	  fold(data + kk * worklen, numread, search.dt, 
-	       parttimes[ii] + jj * proftime, 
-	       search.rawfolds + (ii * cmd->nsub + kk) * search.proflen, 
-	       search.proflen, cmd->phs, foldf, foldfd, foldfdd, 
-	       flags, Ep, tp, numdelays, NULL, 
-	       &(search.stats[ii * cmd->nsub + kk]));
-	totnumfolded += numread;
-      } 
-      davg /= reads_per_part;
-      dvar /= reads_per_part;
-      for (kk = 0; kk < cmd->nsub; kk++){
-/* 	search.stats[ii * cmd->nsub + kk].data_var = dvar; */
-/* 	search.stats[ii * cmd->nsub + kk].prof_var =  */
-/* 	  dvar * reads_per_part * worklen * search.dt * foldf; */
-printf("ns = %d  da = %f  dv = %f  pa = %f  pv = %f\n", kk, 
-       search.stats[ii * cmd->nsub + kk].data_avg,
-       search.stats[ii * cmd->nsub + kk].data_var,
-       search.stats[ii * cmd->nsub + kk].prof_avg,
-       search.stats[ii * cmd->nsub + kk].prof_var);
-      }
-      printf("\rFolded %ld points of %.0f", totnumfolded, N);
-    }
-    fclose(infile);
-    free(sumsubs);
+      for (kk = 0; kk < cmd->nsub; kk++)
+	fold(data + kk * worklen, numread, search.dt, 
+	     parttimes[ii] + jj * proftime, 
+	     search.rawfolds + (ii * cmd->nsub + kk) * search.proflen, 
+	     search.proflen, cmd->phs, foldf, foldfd, foldfdd, 
+	     flags, Ep, tp, numdelays, NULL, 
+	     &(search.stats[ii * cmd->nsub + kk]));
+      totnumfolded += numread;
+    } 
+    printf("\rFolded %ld points of %.0f", totnumfolded, N);
   }
-    
+  fclose(infile);
+
   /*
    *   Perform the candidate optimization search
    */
@@ -809,6 +769,7 @@ printf("ns = %d  da = %f  dv = %f  pa = %f  pv = %f\n", kk,
       search.periods[ii] = 1.0 / (foldf + dtmp / T);
       dtmp = pdelay * dphase * search.pdstep;
       search.pdots[ii] = -((2.0 * dtmp / (T * T) + foldfd) / pofact);
+      if (search.pdots[ii]==-0) search.pdots[ii] = 0.0;
     }
 
     /* If we are searching through DM space */
@@ -865,6 +826,7 @@ printf("ns = %d  da = %f  dv = %f  pa = %f  pv = %f\n", kk,
 	    pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
 			      (search.pdots[jj] * foldf * foldf + 
 			       foldfd) / dphase) + 0.5);
+	    if (pddelay==-0) pddelay = 0.0;
 	    shift_prof(ddprofs + profindex, search.proflen, pddelay, 
 		       pdprofs + profindex);
 	  }
@@ -913,6 +875,7 @@ printf("ns = %d  da = %f  dv = %f  pa = %f  pv = %f\n", kk,
 	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
 			    (search.pdots[jj] * foldf * foldf + 
 			     foldfd) / dphase) + 0.5);
+	  if (pddelay==-0) pddelay = 0.0;
 	  shift_prof(search.rawfolds + profindex, search.proflen, pddelay, 
 		     pdprofs + profindex);
 	}

@@ -132,26 +132,26 @@ int main(int argc, char **argv)
       fdd = psr.fdd;
       strcpy(pname, psr.jname);
 
-    /* If the user specifies all of the binaries parameters */	
-    
-    } else if (cmd->binaryP) {				
-							
+    /* If the user specifies all of the binaries parameters */
+
+    } else if (cmd->binaryP) {
+
       /* Assume that the psr characteristics were measured at the time */
       /* of periastron passage (cmd->To)                               */
- 
-      difft = SECPERDAY * (epoch - cmd->To);				
-      orb.p = cmd->pb;							
-      orb.x = cmd->asinic;						
-      orb.e = cmd->e;							
-      orb.t = fmod(difft, orb.p);					
-      if (orb.t < 0.0)							
-	orb.t += orb.p;							
-      orb.w = (cmd->w + difft * cmd->wdot / SECPERJULYR);		
-      binary = 1;							
-									
+
+      difft = SECPERDAY * (epoch - cmd->To);
+      orb.p = cmd->pb;
+      orb.x = cmd->asinic;
+      orb.e = cmd->e;
+      orb.t = fmod(difft, orb.p);
+      if (orb.t < 0.0)
+	orb.t += orb.p;
+      orb.w = (cmd->w + difft * cmd->wdot / SECPERJULYR);
+      binary = 1;
+
       /* If the data set was generated using a makefile ('filename.mak')  */
       /* read it to determine the binary parameters.                      */
-     					
+
     } else if (cmd->makefileP) {
       
       epoch = 0.0;
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
     if (binary) {							
 									
       /* Save the orbital solution every half second */
-	
+
       startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
       if (endtime > 2048) orbdt = 0.5;
       else orbdt = endtime / 4096.0;
@@ -323,8 +323,8 @@ int main(int argc, char **argv)
 		"Longitude of peri (w) (deg)  =  %-.10f\n", orb.w/DEGTORAD);
 	if (cmd->psrnameP)
 	  fprintf(filemarker, "Epoch of periapsis    (MJD)  =  %-17.11f\n", 
-		  epoch + dbepoch);
-	else if (cmd->makefileP)
+		  epoch - dbepoch);
+	else if (cmd->makefileP || cmd->To)
 	  fprintf(filemarker, 
 		  "Epoch of periapsis    (MJD)  =  %-17.11f\n", cmd->To);
       }									

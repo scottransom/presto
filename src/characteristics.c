@@ -481,7 +481,10 @@ void switch_f_and_p(double in, double ind, double indd,
 
   *out = 1.0 / in;
   dtmp = in * in;
-  *outd = -ind / dtmp;
+  if (ind==0.0)
+    *outd = 0.0;
+  else
+    *outd = -ind / dtmp;
   if (indd==0.0)
     *outdd = 0.0;
   else

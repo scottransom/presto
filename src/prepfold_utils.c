@@ -244,6 +244,57 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->orb.wd = 0.0;
 }
 
+void print_prepfoldinfo(prepfoldinfo *in)
+/* Print a prepfoldinfo data structure to STDOUT */
+{
+  printf("\n\n");
+  printf("numdms      =  %d\n", in->numdms);
+  printf("numperiods  =  %d\n", in->numperiods);
+  printf("numpdots    =  %d\n", in->numpdots);
+  printf("nsub        =  %d\n", in->nsub);
+  printf("npart       =  %d\n", in->npart);
+  printf("proflen     =  %d\n", in->proflen);
+  printf("numchan     =  %d\n", in->numchan);
+  printf("pstep       =  %d\n", in->pstep);
+  printf("pdstep      =  %d\n", in->pdstep);
+  printf("dmstep      =  %d\n", in->dmstep);
+  printf("ndmfact     =  %d\n", in->ndmfact);
+  printf("npfact      =  %d\n", in->npfact);
+  printf("filenm      =  '%s'\n", in->filenm);
+  printf("candnm      =  '%s'\n", in->candnm);
+  printf("telescope   =  '%s'\n", in->telescope);
+  printf("pgdev       =  '%s'\n", in->pgdev);
+  printf("dt          =  %.14g\n", in->dt);
+  printf("startT      =  %.14g\n", in->startT);
+  printf("endT        =  %.14g\n", in->endT);
+  printf("tepoch      =  %.14g\n", in->tepoch);
+  printf("bepoch      =  %.14g\n", in->bepoch);
+  printf("avgvoverc   =  %.14g\n", in->avgvoverc);
+  printf("lofreq      =  %.14g\n", in->lofreq);
+  printf("chan_wid    =  %.14g\n", in->chan_wid);
+  printf("bestdm      =  %.14g\n", in->bestdm);
+  printf("topo.pow    =  %.14g\n", in->topo.pow);
+  printf("topo.p1     =  %.14g\n", in->topo.p1);
+  printf("topo.p2     =  %.14g\n", in->topo.p2);
+  printf("topo.p3     =  %.14g\n", in->topo.p3);
+  printf("bary.pow    =  %.14g\n", in->bary.pow);
+  printf("bary.p1     =  %.14g\n", in->bary.p1);
+  printf("bary.p2     =  %.14g\n", in->bary.p2);
+  printf("bary.p3     =  %.14g\n", in->bary.p3);
+  printf("fold.pow    =  %.14g\n", in->fold.pow);
+  printf("fold.p1     =  %.14g\n", in->fold.p1);
+  printf("fold.p2     =  %.14g\n", in->fold.p2);
+  printf("fold.p3     =  %.14g\n", in->fold.p3);
+  printf("orb.p       =  %.14g\n", in->orb.p);
+  printf("orb.e       =  %.14g\n", in->orb.e);
+  printf("orb.x       =  %.14g\n", in->orb.x);
+  printf("orb.w       =  %.14g\n", in->orb.w);
+  printf("orb.t       =  %.14g\n", in->orb.t);
+  printf("orb.pd      =  %.14g\n", in->orb.pd);
+  printf("orb.wd      =  %.14g\n", in->orb.wd);
+  printf("\n\n");
+}
+
 void write_prepfoldinfo(prepfoldinfo *in, char *filename)
 /* Write a prepfoldinfo data structure to a binary file */
 {

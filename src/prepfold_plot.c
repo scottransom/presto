@@ -208,8 +208,6 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       /* Make the DM vs subband plot */
 
       if (TEST_EQUAL(search->dms[ii], search->bestdm)){
-double *sumdmprof, dmavg=0, dmvar=0;
-sumdmprof = gen_dvect(search->proflen);
 
 	for (jj = 0; jj < search->nsub; jj++){
 
@@ -229,6 +227,7 @@ sumdmprof = gen_dvect(search->proflen);
 	    pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
 			      (bestpd * search->fold.p1 * search->fold.p1 + 
 			       search->fold.p2) / dphase) + 0.5);
+	    if (pddelay==-0) pddelay = 0.0;
 	    shift_prof(ddprofs + profindex, search->proflen, 
 		       pddelay - dmdelays[jj], pdprofs + profindex);
 	  }
@@ -242,19 +241,7 @@ sumdmprof = gen_dvect(search->proflen);
 	  
 	  double2float(currentprof, dmprofs + jj * search->proflen, 
 		       search->proflen);
-
-for (kk=0;kk<search->proflen;kk++) 
-  sumdmprof[kk] += currentprof[kk];
-printf("%d  avg = %f  var = %f  chi = %f\n", jj, currentstats.prof_avg,
-       currentstats.prof_var, currentstats.redchi);
-dmavg += currentstats.prof_avg;
-dmvar += currentstats.prof_var;
-
 	}
-
-printf("avg = %f  var = %f  sum chi = %f\n", dmavg, dmvar, chisqr(sumdmprof, search->proflen, dmavg, dmvar) / (search->proflen - 1.0));
-free(sumdmprof); 
-
       }
 
       combine_subbands(search->rawfolds, search->stats, search->npart, 
@@ -275,6 +262,7 @@ free(sumdmprof);
 			     (search->pdots[jj] * search->fold.p1 * 
 			      search->fold.p1 + search->fold.p2) / dphase) 
 			     + 0.5);
+	    if (pddelay==-0) pddelay = 0.0;
 	    shift_prof(ddprofs + profindex, search->proflen, pddelay, 
 		       pdprofs + profindex);
 	  }
@@ -315,7 +303,7 @@ free(sumdmprof);
 	      /* Add this point to dmchi */
 
 	      dmchi[ii] = currentstats.redchi;
-printf("P/Pd search chi = %f\n", dmchi[ii]);
+
 	      /* Copy these statistics */
 
 	      beststats = currentstats;
@@ -358,6 +346,7 @@ printf("P/Pd search chi = %f\n", dmchi[ii]);
 	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
 			    (bestpd * search->fold.p1 * search->fold.p1 + 
 			     search->fold.p2) / dphase) + 0.5);
+	  if (pddelay==-0) pddelay = 0.0;
 	  shift_prof(ddprofs + profindex, search->proflen, pddelay, 
 		     pdprofs + profindex);
 	}
@@ -367,8 +356,6 @@ printf("P/Pd search chi = %f\n", dmchi[ii]);
 	combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
 		      totpdelay, currentprof, &currentstats);
 	dmchi[ii] = currentstats.redchi;
-printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii], 
-       currentstats.data_avg, currentstats.data_var);
       }
     }
     free(ddprofs);
@@ -389,6 +376,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
 			  (search->pdots[jj] * search->fold.p1 * 
 			   search->fold.p1 + search->fold.p2) / dphase) 
 			 + 0.5);
+	if (pddelay==-0) pddelay = 0.0;
 	shift_prof(search->rawfolds + profindex, search->proflen, 
 		   pddelay, pdprofs + profindex);
       }
@@ -421,6 +409,8 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
 	    TEST_EQUAL(search->pdots[jj], bestpd)){
 	  int wrap;
 	  
+printf("%.14g  %.14g", search->periods[kk], bestp); 
+printf("  %.14g  %.14g", search->pdots[jj], bestpd); 
 	  /* The Best Prof */
 
 	  double2float(currentprof, bestprof, search->proflen);
@@ -448,6 +438,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
 	      lastprof[mm] += currentprof[mm];
 	    profavg += search->stats[ll].prof_avg;
 	    profvar += search->stats[ll].prof_var;
+printf("Writing timechi()\n");
 	    timechi[ll+1] = (chisqr(lastprof, search->proflen, 
 				    profavg, profvar) / 
 			     (double) (search->proflen - 1.0));
@@ -532,12 +523,14 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
       cpgsvp (0.27, 0.36, 0.09, 0.68);
     else
       cpgsvp (0.27, 0.39, 0.09, 0.68);
+printf("1\n");
     cpgswin(0.0, 1.1 * max, 0.0, T);
 
     cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
     cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
     cpgline(search->npart+1, timechi, parttimes);
+printf("2\n");
     cpgswin(0.0, 1.1 * max, search->startT-0.0001, search->endT+0.0001);
     if (search->nsub > 1)
       cpgsch(0.7);
@@ -576,6 +569,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
 
       cpgsvp (0.44, 0.66, 0.09, 0.22);
       find_min_max_arr(search->numdms, dmchi, &min, &max);
+printf("3\n");
       cpgswin(search->dms[0], search->dms[search->numdms-1], 
 	      0.0, 1.1 * max);
       cpgsch(0.7);
@@ -654,6 +648,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
       /* Period / P-dot */
       pfold = 1000.0 / search->fold.p1;
       pdfold = -search->fold.p2 / (search->fold.p1 * search->fold.p1);
+      if (pdfold==-0) pdfold = 0.0;
       x1l = search->periods[0] * 1000.0 - pfold;
       x1h = search->periods[search->numperiods-1] * 1000.0 - pfold;
       y1l = search->pdots[0] - pdfold;
@@ -663,8 +658,10 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
       x2h = 1.0 / search->periods[search->numperiods-1] - search->fold.p1;
       y2l = -search->pdots[0] * 
 	search->fold.p1 * search->fold.p1 - search->fold.p2;
+      if (y2l==-0) y2l = 0.0;
       y2h = -search->pdots[search->numperiods-1] * 
 	search->fold.p1 * search->fold.p1 - search->fold.p2;
+      if (y2h==-0) y2h = 0.0;
       sprintf(pout, "Period - %-.8f (ms)", pfold);
       sprintf(fout, "Freq - %-.6f (Hz)", search->fold.p1);
       if (pdfold < 0.0)
@@ -689,6 +686,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
       find_min_max_arr(search->numperiods, periodchi, &min, &max);
       if (search->nsub > 1){
 	cpgsvp (0.74, 0.94, 0.41, 0.51);
+printf("4\n");
 	cpgswin(x1l, x1h, 0.0, 1.1 * max);
 	cpgline(search->numperiods, ftmparr1, periodchi);
 	cpgsch(0.5);
@@ -717,6 +715,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
       find_min_max_arr(search->numpdots, pdotchi, &min, &max);
       if (search->nsub > 1){
 	cpgsvp (0.74, 0.94, 0.58, 0.68);
+printf("5\n");
 	cpgswin(y1l, y1h, 0.0, 1.1 * max);
 	cpgline(search->numpdots, ftmparr1, pdotchi);
 	cpgsch(0.5);
@@ -745,6 +744,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
 	cpgsvp (0.74, 0.94, 0.09, 0.29);
       else
 	cpgsvp (0.51, 0.82, 0.09, 0.49);
+printf("6\n");
       cpgswin(x1l, x1h, y1l, y1h);
       nr = search->numpdots;
       nc = search->numperiods;
@@ -771,6 +771,7 @@ printf("DM[%d] = %f  pavg = %f  pvar = %f\n", ii, dmchi[ii],
 	cpgsch(0.7);
 	cpgmtxt("B", 2.4, 0.5, 0.5, pout);
 	cpgmtxt("L", 2.0, 0.5, 0.5, pdout);
+printf("7\n");
 	cpgswin(x2l, x2h, y2l, y2h);
 	cpgsch(0.5);
 	cpgbox("CMST", 0.0, 0, "CMST", 0.0, 0);
