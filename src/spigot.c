@@ -543,7 +543,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
       spigot[ii].elapsed_time = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
 					     idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
     }
-    spigot[ii].padding_samples = (int)((spigot[ii].elapsed_time - 
+    spigot[ii-1].padding_samples = (int)((spigot[ii].elapsed_time - 
 					spigot[ii-1].file_duration)/dt_st + 0.5);
     spigot[ii].elapsed_time += spigot[ii-1].elapsed_time;
     N_st += numpts + spigot[ii-1].padding_samples;
@@ -677,17 +677,16 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
 /* and statistics should not be calculated.               */
 {
   int offset=0, numtopad=0, ii;
-  unsigned char *dataptr;
+  unsigned char *dataptr=data;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
-  if (bufferpts && shiftbuffer){
-    offset = bufferpts * numchan_st;
-    memcpy(databuffer, databuffer+sampperblk_st, offset);
+  if (bufferpts){
+    offset = bufferpts*numchan_st;
     dataptr = databuffer + offset;
-  } else {
-    dataptr = data;
+    if (shiftbuffer)
+      memcpy(databuffer, databuffer+sampperblk_st, offset);
   }
   shiftbuffer=1;
 
@@ -720,7 +719,7 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
 
     /* Put the new data into the databuffer if needed */
     if (bufferpts){
-      memcpy(data, dataptr, sampperblk_st);
+      memcpy(data, databuffer, sampperblk_st);
     }
     currentblock++;
     return 1;
@@ -756,10 +755,10 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
 	  /* then get a block from the next file. */
           memset(databuffer+bufferpts*numchan_st, 
 		 padval, numtopad*numchan_st);
-	  padnum = 0;
-	  currentfile++;
-	  shiftbuffer = 0;
 	  bufferpts += numtopad;
+	  padnum = 0;
+	  shiftbuffer = 0;
+	  currentfile++;
 	  return read_SPIGOT_rawblock(infiles, numfiles, data, &pad, ifs);
 	}
       } else {  /* No padding needed.  Try reading the next file */
@@ -886,7 +885,7 @@ int read_SPIGOT(FILE *infiles[], int numfiles, float *data,
       if (firsttime) firsttime = 0;
       else break;
     }
-    return numread*ptsperblk_st;
+    return numblocks*ptsperblk_st;
   } else {
     return 0;
   }
