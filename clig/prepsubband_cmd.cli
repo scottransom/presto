@@ -23,11 +23,11 @@ Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 Int    -if      ifs     {A specific IF to use if available (summed IFs is the default)} \
         -r 0 1
 Float  -clip    clip    {Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default} \
-	-r 0 20.0  -d 6.0
+	-r 0 40.0  -d 6.0
 Flag   -noclip  noclip  {Do not clip the data.  (The default is to _always_ clip!)}
 Flag   -sub     sub     {Write subbands instead of de-dispersed data}
 Double -subdm   subdm   {The DM to use when de-dispersing subbands for -sub} \
-	-r 0 2000.0  -d 0.0
+	-r 0 4000.0  -d 0.0
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}
@@ -37,17 +37,17 @@ Double  -lodm   lodm    {The lowest dispersion measure to de-disperse (cm^-3 pc)
 Double  -dmstep dmstep  {The stepsize in dispersion measure to use(cm^-3 pc)} \
 	-r 0 oo  -d 1.0
 Int     -numdms numdms  {The number of DMs to de-disperse} \
-	-r 1 100 -d 10
+	-r 1 1000 -d 10
 Int     -nsub   nsub    {The number of sub-bands to use} \
-	-r 1 512 -d 32
+	-r 1 1024 -d 32
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
-	-r 1 32 -d 1
+	-r 1 128 -d 1
 String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
 
-Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
-        -c 1 250
+Rest infile {Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
+        -c 1 512
 
 
 

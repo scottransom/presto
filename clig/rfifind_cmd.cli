@@ -49,5 +49,5 @@ String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
 
-Rest infile {Input data file name.} \
-        -c 1 250
+Rest infile {Input data file name(s).} \
+        -c 1 512
