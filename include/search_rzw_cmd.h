@@ -42,6 +42,10 @@ typedef struct s_Cmdline {
   char zapfileP;
   char* zapfile;
   int zapfileC;
+  /***** -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric) */
+  char baryvP;
+  double baryv;
+  int baryvC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;
