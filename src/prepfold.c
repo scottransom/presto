@@ -29,16 +29,16 @@ int main(int argc, char *argv[])
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
-  double difft, tt, nc, pl, recdt, *disp_dts=NULL;
-  double orb_baryepoch=0.0, topoepoch, baryepoch, barydispdt;
+  double difft, tt, nc, pl, recdt, *dispdts=NULL;
+  double orb_baryepoch=0.0, topoepoch=0.0, baryepoch=0.0, barydispdt;
   double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
   double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
-  double *voverc=NULL, *bobsf=NULL, *tobsf=NULL;
+  double *voverc=NULL, *tobsf=NULL;
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
   int numchan=1, binary=0, np, pnum, numdelays, slen, ptsperrec=1;
-  long ii, jj, numbarypts=0, worklen=0;
+  long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part;
   long numfolded=0, totnumfolded=0;
   long lorec=0, hirec=0, numrecs=0, totnumrecs=0;
   long numbinpoints=0, proflen, currentrec;
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
   psrdatabase pdata;
   infodata idata, rzwidata;
   Cmdline *cmd;
-  foldstats stats;
+  foldstats *stats, beststats, currentstats;
 
   /* Call usage() if we have no command line arguments */
 
@@ -158,8 +158,8 @@ int main(int argc, char *argv[])
 
     /* Determine the number of records to use from the command line */
 
-    lorec = (long) (cmd->startT / T * numrec + DBLCORRECT);
-    hirec = (long) (cmd->endT / T * numrec + DBLCORRECT);
+    lorec = (long) (cmd->startT * numrec + DBLCORRECT);
+    hirec = (long) (cmd->endT * numrec + DBLCORRECT);
     numrec = hirec - lorec;
     T = numrec * recdt;
     N = numrec * ptsperrec;
@@ -197,7 +197,8 @@ int main(int argc, char *argv[])
     
     if (!cmd->nsubP)
       cmd->nsub = numchan / 8;
-    
+    else if (cmd->nsub > numchan)
+      cmd->nsub = numchan;
   }
 
   /* Using the Effelsberg-Berkeley Pulsar Processor routines   */
@@ -218,6 +219,53 @@ int main(int argc, char *argv[])
     /* The number of data points to work with at a time */
 
     worklen = 1024;
+  }
+
+  /* Raw floating point data (already de-dispersed if radio data) */
+  /* and already barycentered.                                    */
+
+  if (!cmd->ebppP && !cmd->pkmbP){
+
+    if (!cmd->nobaryP){
+      printf("\nIf you are trying to fold single channel data, \n");
+      printf("the data must be barycentered and you must specify\n");
+      printf("'-nobary' on the command line.  Exiting.\n\n");
+      exit(0);
+    }
+
+    /* Read the first header file and generate an infofile from it */
+
+    if (idata.object) {
+      printf("Folding a %s candidate from '%s'.\n", \
+	     idata.object, cmd->argv[0]);
+    } else {
+      printf("Folding a candidate from '%s'.\n", cmd->argv[0]);
+    }
+
+    /* Some information about the size of the records */
+
+    cmd->nsub = 1;
+    numchan = 1;
+    worklen = 1024;
+    dt = idata.dt;
+    dtdays = idata.dt / SECPERDAY;
+    N = chkfilelen(infile, sizeof(float));
+
+    /* Determine the number of records to use from the command line */
+
+    lorec = (long) (cmd->startT * N + DBLCORRECT);
+    hirec = (long) (cmd->endT * N + DBLCORRECT);
+    N = hirec - lorec;
+    T = N * dt;
+    numrec = N / worklen;
+    endtime = T + 2 * TDT;
+    if (idata.mjd_i && idata.mjd_f)
+      baryepoch = (double) idata.mjd_i + 
+	idata.mjd_f + lorec * dt / SECPERDAY;
+
+    /* The data collection routine to use */
+
+    readrec_ptr = read_floats;
   }
 
   /* Read the pulsar database if needed */
@@ -248,7 +296,7 @@ int main(int argc, char *argv[])
     /* Assume that the psr characteristics were measured at the time */
     /* of periastron passage (cmd->To)                               */
     
-    difft = SECPERDAY * (topoepoch - cmd->To);				
+    difft = SECPERDAY * (baryepoch - cmd->To);				
     orb.p = cmd->pb;							
     orb.x = cmd->asinic;						
     orb.e = cmd->e;							
@@ -277,9 +325,16 @@ int main(int argc, char *argv[])
       get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);	
       f = (rzwcand.r - 0.5 * rzwcand.z) / 
 	(rzwidata.dt * rzwidata.N);
-      p = 1.0 / f;
       fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
 			  (rzwidata.dt * rzwidata.N));
+      /* Now correct for the fact that we may not be starting */
+      /* to fold at the same start time as the rzw search.    */
+
+      if (cmd->pkmbP)
+	f += lorec * recdt * fd;
+      else if (!cmd->pkmbP && !cmd->ebppP)
+	f += lorec * dt * fd;
+      p = 1.0 / f;
       pd = -fd / (f * f);
     } else {
       printf("\nCould not read the rzwfile.\nExiting.\n\n");
@@ -418,23 +473,75 @@ int main(int argc, char *argv[])
     tobsf[0] = idata.freq;
     for (ii = 0; ii < numchan; ii++)
       tobsf[ii] = tobsf[0] + ii * tdf;
-    
-  } else {
-    
-    /*****  Need to do this  *****/
-
-    printf("\n  This routine is only for use with multi-channel radio\n");
-    printf("  data.  Exiting.\n\n");
-    exit(1);
-    
+    dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
+				    tobsf[0], tdf); 
   }
   
+  printf("Starting work on '%s'...\n\n", cmd->argv[0]);
+    
+  /* Allocate and initialize some arrays and other information */
+  
+  data = gen_fvect(cmd->nsub * worklen);
+  profs = gen_dvect(cmd->nsub * cmd->npart * proflen);
+  stats = (foldstats *)malloc(sizeof(stats) * cmd->nsub * cmd->npart);
+  for (ii = 0 ; ii < cmd->nsub * cmd->npart; ii++){
+    for (jj = 0 ; jj < proflen; jj++)
+      profs[jj] = 0.0;
+    stats[ii].numdata = 0.0;
+    stats[ii].data_avg = 0.0;
+    stats[ii].data_var = 0.0;
+  }
+  currentrec = 0;
+    
+  /* Move to the correct starting record */
+  
+  printf("Folded %ld points of %ld", totnumfolded, N);
+  if (cmd->pkmbP)
+    currentrec = skip_to_multibeam_rec(infile, lorec);
+  else
+    currentrec = chkfileseek(infile, sizeof(float) * lorec, 
+			     SEEKSET) / sizeof(float);
+
+  /* The number of reads from the file we need for */
+  /* each sub-integration.                         */
+  
+  reads_per_part = numrec / cmd->npart;
+
   /* Main loop if we are not barycentering... */
   
   if (cmd->nobaryP) {
     
-    printf("Massaging the data ...\n\n");
-    
+    /* Step through the sub-integrations of time */
+
+    for (ii = 0; ii < cmd->npart; ii++){
+
+      /* Step through the records in the sub-integration */
+      
+      for (jj = 0; jj < reads_per_part; ii++){
+	
+	printf("\rFolded %ld points of %ld", totnumfolded, N);
+	fflush(stdout);
+	
+	/* Read the next record (or records) */
+	
+	numread = readrec_ptr(infile, data, worklen, dispdts, 
+			      cmd->nsub, numchan);
+
+	/* tt is (topocentric) seconds from first point */
+      
+	tt = (ii * reads_per_part + jj) * worklen * dt;
+      
+	/* Step through channels */
+      
+	for (kk = 0; kk < numchan ; kk++)
+	  fold(data + kk * worklen, numread, dt, tt, 
+	       profs + kk * proflen, proflen, cmd->phs, 
+	       f, fd, fdd, 1, Ep, tp, numdelays, NULL, &stats);
+      totnumfolded += numfolded;
+      numrecs++;
+    }
+
+
     /*****  Need to do this  *****/
     
   /* Main loop if we are barycentering... */
@@ -447,7 +554,6 @@ int main(int argc, char *argv[])
 
     /* Allocate some arrays */
     
-    bobsf = gen_dvect(numchan);
     barytimes = gen_dvect(numbarypts);
     topotimes = gen_dvect(numbarypts);
     voverc = gen_dvect(numbarypts);
@@ -496,25 +602,6 @@ int main(int argc, char *argv[])
       numdelays = numbarypts;
     }
 
-    printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
-    
-    /* Allocate and initialize some arrays and other information */
-    
-    data = gen_fvect(cmd->nsub * worklen);
-    profs = gen_dvect(cmd->nsub * proflen);
-    tt = 0;
-    for (ii = 0 ; ii < cmd->nsub * proflen ; ii++) profs[ii] = 0.0;
-    currentrec = 0;
-    
-    /* Move to the correct starting record */
-    
-    if (cmd->pkmbP){
-      currentrec = skip_to_multibeam_rec(infile, lorec);
-      printf("Completed record 0 of %ld", totnumrecs);
-    }
-
-    /* Now, fold the data for each channel */
-    
     /* Step through records */
     
     for (ii = lorec; ii <= hirec; ii++){
@@ -524,7 +611,7 @@ int main(int argc, char *argv[])
       
       /* Read the next record (or records) */
       
-      readrec_ptr(infile, data, worklen, disp_dts, cmd->nsub, 
+      readrec_ptr(infile, data, worklen, dispdts, cmd->nsub, 
 		  numchan);
       
       /* tt is topocentric seconds from data start */
@@ -582,7 +669,7 @@ int main(int argc, char *argv[])
     free(tp);
   }
   if (tobsf) free(tobsf);
-  if (bobsf) free(bobsf);
+  if (dispdts) free(dispdts);
   if (idata.onoff) free(idata.onoff);
   return (0);
 }

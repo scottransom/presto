@@ -37,6 +37,10 @@ static Cmdline cmd = {
   /* nsubP = */ TRUE,
   /* nsub = */ 16,
   /* nsubC = */ 1,
+  /***** -npart: The number of sub-integrations to use for the period search */
+  /* npartP = */ TRUE,
+  /* npart = */ 16,
+  /* npartC = */ 1,
   /***** -p: The nominative folding period (s) */
   /* pP = */ FALSE,
   /* p = */ (double)0,
@@ -508,6 +512,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -npart: The number of sub-integrations to use for the period search */
+  if( !cmd.npartP ) {
+    printf("-npart not found.\n");
+  } else {
+    printf("-npart found:\n");
+    if( !cmd.npartC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.npart);
+    }
+  }
+
   /***** -p: The nominative folding period (s) */
   if( !cmd.pP ) {
     printf("-p not found.\n");
@@ -758,7 +774,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-pkmb] [-ebpp] [-nobary] [-DE405] [-dm dm] [-nsub nsub] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] infile\n\
+ [-pkmb] [-ebpp] [-nobary] [-DE405] [-dm dm] [-nsub nsub] [-npart npart] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] infile\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
@@ -768,7 +784,10 @@ usage(void)
             1 double precision value between 0 and oo\n\
             default: `0'\n\
      -nsub: The number of sub-bands to use for the DM search\n\
-            1 integer value between 1 and 256\n\
+            1 integer value between 1 and 512\n\
+            default: `16'\n\
+    -npart: The number of sub-integrations to use for the period search\n\
+            1 integer value between 1 and 512\n\
             default: `16'\n\
         -p: The nominative folding period (s)\n\
             1 double precision value between 0 and oo\n\
@@ -820,7 +839,7 @@ usage(void)
             default: `0'\n\
     infile: Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
             1 string value\n\
-version: 15Dec99\n\
+version: 21Dec99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -872,8 +891,18 @@ parseCmdline(int argc, char **argv)
       keep = i;
       i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
       cmd.nsubC = i-keep;
-      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 256);
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 512);
       checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-npart", argv[i]) ) {
+      cmd.npartP = TRUE;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.npart, 1);
+      cmd.npartC = i-keep;
+      checkIntLower("-npart", &cmd.npart, cmd.npartC, 512);
+      checkIntHigher("-npart", &cmd.npart, cmd.npartC, 1);
       continue;
     }
 
