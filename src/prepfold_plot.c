@@ -8,7 +8,7 @@
 /* This is a hack that allows the raw profile data */
 /* to be printed on STDOUT so that they can be     */
 /* easily imported into Python....                 */
-#define PRINT_PROFILES 1
+/* #define PRINT_PROFILES 1 */
 
 /********************************************/
 /* The following is taken from ppgplot.c by */
@@ -503,7 +503,7 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
       for (jj = 0; jj < search->proflen - 1; jj++)
 	printf("%.2f, ", timeprofs[ii * 2 * search->proflen + jj]);
       if (ii == search->npart - 1)
-	printf("%.2f]]\n\n", timeprofs[ii * 2 * search->proflen + jj]);
+	printf("%.2f]])\n\n", timeprofs[ii * 2 * search->proflen + jj]);
       else
 	printf("%.2f],\n", timeprofs[ii * 2 * search->proflen + jj]);
     }
