@@ -827,7 +827,7 @@ usage(void)
    -text: TOAs are ASCII text (default is binary double)\n\
   -float: TOAs are binary floats (default is binary double)\n\
     -sec: TOA unit is seconds (default is days)\n\
-version: 13Jan00\n\
+version: 16Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }

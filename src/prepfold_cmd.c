@@ -30,17 +30,19 @@ static Cmdline cmd = {
   /* nobaryP = */ 0,
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   /* de405P = */ 0,
+  /***** -xwin: Show the result plots on-screen as well as make a plotfile */
+  /* xwinP = */ 0,
   /***** -dm: The central DM of the search (cm^-3 pc) */
   /* dmP = */ 1,
   /* dm = */ 0,
   /* dmC = */ 1,
   /***** -nsub: The number of sub-bands to use for the DM search */
   /* nsubP = */ 1,
-  /* nsub = */ 16,
+  /* nsub = */ 32,
   /* nsubC = */ 1,
   /***** -npart: The number of sub-integrations to use for the period search */
   /* npartP = */ 1,
-  /* npart = */ 16,
+  /* npart = */ 64,
   /* npartC = */ 1,
   /***** -p: The nominative folding period (s) */
   /* pP = */ 0,
@@ -844,6 +846,13 @@ showOptionValues(void)
     printf("-DE405 found:\n");
   }
 
+  /***** -xwin: Show the result plots on-screen as well as make a plotfile */
+  if( !cmd.xwinP ) {
+    printf("-xwin not found.\n");
+  } else {
+    printf("-xwin found:\n");
+  }
+
   /***** -dm: The central DM of the search (cm^-3 pc) */
   if( !cmd.dmP ) {
     printf("-dm not found.\n");
@@ -1130,21 +1139,22 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-pkmb] [-ebpp] [-nobary] [-DE405] [-dm dm] [-nsub nsub] [-npart npart] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
+ [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-nsub nsub] [-npart npart] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
    -nobary: Do not barycenter (assume input parameters are topocentric)\n\
     -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n\
+     -xwin: Show the result plots on-screen as well as make a plotfile\n\
        -dm: The central DM of the search (cm^-3 pc)\n\
             1 double value between 0 and oo\n\
             default: `0'\n\
      -nsub: The number of sub-bands to use for the DM search\n\
             1 int value between 1 and 512\n\
-            default: `16'\n\
+            default: `32'\n\
     -npart: The number of sub-integrations to use for the period search\n\
             1 int value between 1 and 512\n\
-            default: `16'\n\
+            default: `64'\n\
         -p: The nominative folding period (s)\n\
             1 double value between 0 and oo\n\
        -pd: The nominative period derivative (s/s)\n\
@@ -1193,7 +1203,7 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
-version: 13Jan00\n\
+version: 16Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1228,6 +1238,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-DE405", argv[i]) ) {
       cmd.de405P = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-xwin", argv[i]) ) {
+      cmd.xwinP = 1;
       continue;
     }
 

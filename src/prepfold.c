@@ -125,7 +125,6 @@ int main(int argc, char *argv[])
     sprintf(plotfilenm, "%s_%s.pfd.ps", rootnm, search.candnm);
     search.pgdev = (char *)calloc(slen + 7, sizeof(char));
     sprintf(search.pgdev, "%s/CPS", plotfilenm);
-sprintf(search.pgdev, "/XWIN");
     printf("Folding a %s candidate.\n\n", search.candnm);
     printf("Output data file is '%s'.\n", outfilenm);
     printf("Output plot file is '%s'.\n", plotfilenm);
@@ -218,16 +217,6 @@ sprintf(search.pgdev, "/XWIN");
 
     numchan = idata.num_chan;
     worklen = ptsperrec;
-
-    /* How many sub-bands will we de-disperse to     */
-    /* This should be made more robust by selecting  */
-    /* a sub-bandwidth that keeps the smearing below */
-    /* an acceptable level.                         */
-    
-    if (!cmd->nsubP)
-      cmd->nsub = numchan / 8;
-    else if (cmd->nsub > numchan)
-      cmd->nsub = numchan;
   }
 
   /* Using the Effelsberg-Berkeley Pulsar Processor routines   */
@@ -469,7 +458,7 @@ sprintf(search.pgdev, "/XWIN");
   if (cmd->proflenP)
     search.proflen = cmd->proflen;
   else
-    if (idata.bary)
+    if (idata.bary || cmd->psrnameP)
       search.proflen = (long) (search.bary.p1 / search.dt + 0.5);
     else
       search.proflen = (long) (search.topo.p1 / search.dt + 0.5);
@@ -566,9 +555,9 @@ sprintf(search.pgdev, "/XWIN");
   search.rawfolds = gen_dvect(cmd->nsub * cmd->npart * search.proflen);
   search.stats = (foldstats *)malloc(sizeof(foldstats) * 
 				     cmd->nsub * cmd->npart);
-  for (ii = 0; ii < cmd->nsub * cmd->npart; ii++){
-    for (jj = 0 ; jj < search.proflen; jj++)
-      search.rawfolds[ii * search.proflen + jj] = 0.0;
+  for (ii = 0 ; ii < cmd->npart * cmd->nsub * search.proflen; ii++)
+    search.rawfolds[ii] = 0.0;
+  for (ii = 0 ; ii < cmd->npart * cmd->nsub; ii++){
     search.stats[ii].numdata = 0.0;
     search.stats[ii].data_avg = 0.0;
     search.stats[ii].data_var = 0.0;
@@ -760,7 +749,7 @@ sprintf(search.pgdev, "/XWIN");
   {
     int numtrials, pdelay, pddelay, profindex;
     double dphase, po, pdo, pddo, pofact;
-    double *pdprofs, currentfd=0.0, *currentprof;
+    double *pdprofs, *currentprof;
     foldstats currentstats;
 
     /* The number of trials for the P-dot and P searches */
@@ -840,7 +829,6 @@ sprintf(search.pgdev, "/XWIN");
 	/* Perform the P-dot and Period searches */
 
 	for (jj = 0; jj < numtrials; jj++){
-	  currentfd = -search.pdots[jj] * pofact;
 
 	  /* Correct each part for the current pdot */
 
@@ -890,7 +878,6 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
       /* Perform the P-dot and Period searches */
 
       for (jj = 0; jj < numtrials; jj++){
-	currentfd = -search.pdots[jj] * pofact;
 	
 	/* Correct each part for the current pdot */
 	
@@ -1056,7 +1043,10 @@ printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
    *   Plot our results
    */
 
-  prepfold_plot(&search);
+  if (cmd->xwinP)
+    prepfold_plot(&search, 1);
+  else 
+    prepfold_plot(&search, 0);
 
   /* Free our memory  */
 

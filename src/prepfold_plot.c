@@ -73,10 +73,10 @@ autocal2d(float *a, int rn, int cn,
 /********************************************/
 
 
-void prepfold_plot(prepfoldinfo *search)
+void prepfold_plot(prepfoldinfo *search, int xwin)
 /* Make the beautiful 1 page prepfold output */
 {
-  int ii, jj, kk, ll, mm, profindex=0;
+  int ii, jj, kk, ll, mm, profindex=0, loops=1, ct;
   int totpdelay=0, totpddelay=0, pdelay, pddelay;
   double profavg=0.0, profvar=0.0;
   double N=0.0, T, dphase, pofact, *currentprof, *lastprof;
@@ -100,7 +100,7 @@ void prepfold_plot(prepfoldinfo *search)
   /* Period P-dot 2D */  
   float *ppdot2d=NULL;
 
-/* strcpy(search->pgdev, "/CPS"); */
+  if (xwin) loops = 2;
 
   if (search->fold.pow==1.0){ /* Barycentric periods */
     bestp = search->bary.p1;
@@ -167,7 +167,7 @@ void prepfold_plot(prepfoldinfo *search)
 
     /* Allocate DM specific arrays */
 
-    dmprofs = gen_fvect(search->proflen * search->npart);
+    dmprofs = gen_fvect(search->nsub * search->proflen);
     phaseone = gen_freqs(search->proflen + 1, 0.0, 
 			 1.0 / search->proflen);
     dmchi = gen_fvect(search->numdms);
@@ -178,11 +178,10 @@ void prepfold_plot(prepfoldinfo *search)
     ddstats = (foldstats *)malloc(search->npart * sizeof(foldstats));
     dmdelays = gen_ivect(search->nsub);
 
-    /* Doppler corrected hi freq and its delay at best DM */
+    /* Doppler corrected hi freq */
 
     hif = doppler(search->lofreq + (search->numchan - 1.0) * 
 		  search->chan_wid, search->avgvoverc);
-    hifdelay = delay_from_dm(search->bestdm, hif);
 
     /* De-disperse and combine the subbands */
     
@@ -198,45 +197,47 @@ void prepfold_plot(prepfoldinfo *search)
 
       /* Make the DM vs subband plot */
 
-      for (jj = 0; jj < search->nsub; jj++){
+      if (search->dms[ii]==search->bestdm){
+	for (jj = 0; jj < search->nsub; jj++){
 
-	/* Copy the subband parts into a single array */
-
-	for (kk = 0; kk < search->npart; kk++)
-	  memcpy(ddprofs + kk * search->proflen, search->rawfolds + 
-		 (kk * search->nsub + jj) * search->proflen, 
-		 sizeof(double) * search->proflen);
-
-	/* Correct each part for the current pdot */
+	  /* Copy the subband parts into a single array */
 	  
-	for (kk = 0; kk < search->npart; kk++){
-	  profindex = kk * search->proflen;
-	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
-			    (search->pdots[jj] * search->fold.p1 * 
-			     search->fold.p1 + search->fold.p2) / dphase) 
-			   + 0.5);
-	  shift_prof(ddprofs + profindex, search->proflen, pddelay, 
-		     pdprofs + profindex);
+	  for (kk = 0; kk < search->npart; kk++)
+	    memcpy(ddprofs + kk * search->proflen, search->rawfolds + 
+		   (kk * search->nsub + jj) * search->proflen, 
+		   sizeof(double) * search->proflen);
+	  
+	  /* Correct each part for the best pdot and the DM delay */
+	  
+	  for (kk = 0; kk < search->npart; kk++){
+	    profindex = kk * search->proflen;
+	    pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
+			      (bestpd * search->fold.p1 * search->fold.p1 + 
+			       search->fold.p2) / dphase) + 0.5);
+	    shift_prof(ddprofs + profindex, search->proflen, 
+		       pddelay + dmdelays[jj], pdprofs + profindex);
+	  }
+	  
+	  /* Correct each part for the best period and sum */
+	  
+	  combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
+			totpdelay, currentprof, &currentstats);
+	  
+	  /* Place the profile into the DM array */
+	  
+	  double2float(currentprof, dmprofs + jj * search->proflen, 
+		       search->proflen);
 	}
-	
-	/* Correct each part for the current pdot */
-
-	combine_profs(pdprofs, ddstats, search->npart, search->proflen, 
-		      totpdelay, currentprof, &currentstats);
-
-	/* Place the profile into the DM array */
-
-	double2float(currentprof, dmprofs + jj * search->proflen, 
-		     search->proflen);
       }
 
       combine_subbands(search->rawfolds, search->stats, search->npart, 
 		       search->nsub, search->proflen, dmdelays, 
 		       ddprofs, ddstats);
-
+      
       /* Perform the P-dot and Period searches */
       
       if (search->dms[ii]==search->bestdm){
+
 	for (jj = 0; jj < search->numpdots; jj++){
 	  
 	  /* Correct each part for the current pdot */
@@ -315,19 +316,18 @@ void prepfold_plot(prepfoldinfo *search)
 	    }
 	  }
 	}
-
+	
       /* Only check the best P and P-dot */
 
       } else {
 
-	/* Correct each part for the current pdot */
+	/* Correct each part for the best pdot */
 	  
 	for (kk = 0; kk < search->npart; kk++){
 	  profindex = kk * search->proflen;
 	  pddelay = (int) ((-0.5 * parttimes[kk] * parttimes[kk] * 
-			    (search->pdots[jj] * search->fold.p1 * 
-			     search->fold.p1 + search->fold.p2) / dphase) 
-			   + 0.5);
+			    (bestpd * search->fold.p1 * search->fold.p1 + 
+			     search->fold.p2) / dphase) + 0.5);
 	  shift_prof(ddprofs + profindex, search->proflen, pddelay, 
 		     pdprofs + profindex);
 	}
@@ -428,8 +428,13 @@ void prepfold_plot(prepfoldinfo *search)
    *  Now plot the results
    */
 
-  {
+  for (ct = 0; ct < loops; ct++){
     float min, max, over;
+
+    /*Set the PGPLOT device to an X-Window */
+    
+    if (ct==1)
+      strcpy(search->pgdev, "/XWIN");
 
     /* Open and prep our device */
 
@@ -484,11 +489,13 @@ void prepfold_plot(prepfoldinfo *search)
       float x[2] = {-0.2, 2.0}, avg[2];
       float errx = -0.1, erry = profavg, errlen;
 
+      cpgsvp (0.06, 0.27, 0.68, 0.94);
+      cpgswin(0.0, 1.999, 0.0, 1.0);
+      cpgbox ("BST", 0.0, 0, "", 0.0, 0);
       cpgsvp (0.039, 0.27, 0.68, 0.94);
       find_min_max_arr(2 * search->proflen, bestprof, &min, &max);
       over = 0.1 * (max - min);
       cpgswin(-0.2, 2.0, min - over, max + over);
-      cpgbox ("BCST", 1.0, 4, "BC", 0.0, 0);
       cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
       cpgline(2 * search->proflen, phasetwo, bestprof);
       cpgsls(4);
@@ -505,7 +512,7 @@ void prepfold_plot(prepfoldinfo *search)
       /* DM vs reduced chisqr */
 
       cpgsvp (0.43, 0.66, 0.09, 0.22);
-      find_min_max_arr(search->proflen, dmchi, &min, &max);
+      find_min_max_arr(search->numdms, dmchi, &min, &max);
       cpgswin(search->dms[0], search->dms[search->numdms-1], 
 	      0.0, 1.1 * max);
       cpgbox ("BCNST", 0.0, 0, "BCNST", 0.0, 0);
@@ -520,28 +527,29 @@ void prepfold_plot(prepfoldinfo *search)
 
       {
 	int chanpersb;
-	float lofreq, losubfreq, hisubfreq, *tmpprof, df, foffset, fnorm;
+	double lofreq, hifreq, losubfreq, hisubfreq;
+	float *tmpprof, dsubf, foffset, fnorm;
 
 	tmpprof = gen_fvect(search->proflen + 1);
 	chanpersb = search->numchan / search->nsub; 
-	df = chanpersb * search->chan_wid;
-	lofreq = search->lofreq + (chanpersb - 1) * search->chan_wid;
+	dsubf = chanpersb * search->chan_wid;
+	lofreq = search->lofreq + dsubf - search->chan_wid;
+	hifreq = search->lofreq + search->nsub * dsubf - search->chan_wid;
 	losubfreq = doppler(lofreq, search->avgvoverc);
-	hisubfreq = doppler(search->lofreq + (search->numchan - 1) * 
-			    search->chan_wid, search->avgvoverc);
+	hisubfreq = doppler(hifreq, search->avgvoverc);
 	cpgsvp (0.43, 0.66, 0.3, 0.68);
-	cpgswin(0.0-0.01, 1.0+0.01, 0.0, (float) search->nsub);
-	cpgbox("BCNST", 0.25, 2, "BNST", 0.0, 0);
+	cpgswin(0.0-0.01, 1.0+0.01, 0.001, search->nsub + 0.999);
+	cpgbox("BCNST", 0.2, 2, "BNST", 0.0, 0);
 	cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
-	cpgswin(0.0-0.01, 1.0+0.01, losubfreq, losubfreq);
+	cpgswin(0.0-0.01, 1.0+0.01, losubfreq - dsubf, hisubfreq + dsubf);
 	cpgbox("", 0.2, 2, "CMST", 0.0, 0);
 	cpgmtxt("R", 2.3, 0.5, 0.5, "Frequency (MHz)");
 	cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
 	for (ii = 0; ii < search->nsub; ii++){
 	  find_min_max_arr(search->proflen, dmprofs + ii * 
 			   search->proflen, &min, &max);
-	  foffset = doppler(lofreq + ii * df, search->avgvoverc);
-	  fnorm = 0.9 * df / (max - min);
+	  foffset = doppler(lofreq + (ii - 0.45) * dsubf, search->avgvoverc);
+	  fnorm = 0.9 * dsubf / (max - min);
 	  for (jj = 0; jj < search->proflen; jj++)
 	    tmpprof[jj] = (dmprofs[ii * search->proflen + jj] - min) * 
 	      fnorm + foffset;
@@ -693,7 +701,7 @@ void prepfold_plot(prepfoldinfo *search)
       cpgsvp (0.27, 0.519, 0.68, 0.94);
       cpgswin(-0.1, 1.00, -0.1, 1.1);
       cpgsch(1.0);
-      sprintf(out, "File:  %-s", search->filenm);
+      sprintf(out, "%-s", search->filenm);
       cpgmtxt("T", 1.0, 0.5, 0.5, out);
       cpgsch(0.7);
       sprintf(out, "Candidate:  %-s", search->candnm);

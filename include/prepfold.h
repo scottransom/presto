@@ -87,7 +87,7 @@ int dgels_(char *trans, int *mm, int *nn, int *nrhs,
 void double2float(double *in, float *out, int numpts);
 /* Copy a double vector into a float vector */
 
-void prepfold_plot(prepfoldinfo *in);
+void prepfold_plot(prepfoldinfo *in, int xwin);
 /* Make the beautiful 1 page prepfold output */
 
 int bary2topo(double *topotimes, double *barytimes, int numtimes, 
@@ -105,6 +105,10 @@ void init_prepfoldinfo(prepfoldinfo *in);
 void delete_prepfoldinfo(prepfoldinfo *in);
 /* Free all dynamic arrays in the prepfold array */
 
+int cpgnice_output_2(char *out, double val, double err, int len);
+/* Return a string that has the same formatting as       */
+/* nice_output_2(), but for PGPLOT.  This way, exponents */
+/* are actually in superscript!  Woo-hoo!                */
 
 
 		   

@@ -17,6 +17,8 @@ typedef struct s_Cmdline {
   char nobaryP;
   /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
   char de405P;
+  /***** -xwin: Show the result plots on-screen as well as make a plotfile */
+  char xwinP;
   /***** -dm: The central DM of the search (cm^-3 pc) */
   char dmP;
   double dm;
