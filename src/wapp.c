@@ -285,6 +285,12 @@ static void WAPP_hdr_to_inf(char *hdr, infodata *idata)
     MJD = UT_strings_to_MJD(hdr234->obs_date, hdr234->start_time, 
 			    &(idata->mjd_i), &(idata->mjd_f));
     idata->dt = (wappcorrect(MJD) + hdr234->wapp_time) / 1000000.0;
+    /* This is to allow folding starting from files that aren't the first of an obs */
+    idata->mjd_f += hdr234->timeoff * idata->dt / SECPERDAY;
+    if (idata->mjd_f > 1.0){
+      idata->mjd_f -= 1.0;
+      idata->mjd_i += 1;
+    }
     idata->N = hdr234->obs_time / idata->dt;
     idata->freqband = hdr234->bandwidth;
     idata->chan_wid = fabs(idata->freqband / idata->num_chan);
@@ -402,6 +408,12 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, int usewindow
   if (center_freqs_st[0] < 400.0){
     decreasing_freqs_st = 1;
     printf("Inverting the band since the center frequency is < 400MHz...\n");
+  }
+  /* Hack to invert band when using the 12.5 MHz mode */
+  if (center_freqs_st[0] > 400.0 &&
+      idata_st[0].freqband < 13.0){
+    decreasing_freqs_st = 1;
+    printf("Inverting the band since the BW < 12.5 MHz...\n");
   }
   /* Are we going to clip the data? */
   if (clipsig > 0.0)
@@ -714,6 +726,7 @@ void print_WAPP_hdr(char *hdr)
     printf("      Total Bandwidth (MHz) = %-17.15g\n", hdr234->bandwidth);
     printf("             Number of lags = %ld\n", hdr234->num_lags);
     printf("              Number of IFs = %d\n", hdr234->nifs);
+    printf("    Samples since obs start = %lld\n", hdr234->timeoff);
     printf("   Other information:\n");
     if (hdr234->sum==1)
       printf("      IFs are summed.\n");
