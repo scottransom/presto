@@ -1160,9 +1160,12 @@ int main(int argc, char *argv[])
       skip_to_GMRT_rec(infiles, numfiles, lorec+1);
     else {
       if (useshorts){
+	int reclen=1;
+
+	if (insubs) reclen=SUBSBLOCKLEN;
 	/* Use a loop to accommodate subband data */
 	for (ii=0; ii<numfiles; ii++)
-	  chkfileseek(infiles[ii], lorec, sizeof(short), SEEK_SET);
+	  chkfileseek(infiles[ii], lorec*reclen, sizeof(short), SEEK_SET);
       } else {
 	chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
       }
