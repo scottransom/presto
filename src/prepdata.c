@@ -161,7 +161,6 @@ int main(int argc, char *argv[])
     /* The number of topo to bary time points to generate with TEMPO */
 
     numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
-
   }
 
   /* Set-up values if we are using the Effelsberg-Berkeley Pulsar Processor */

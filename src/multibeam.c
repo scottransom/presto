@@ -68,23 +68,22 @@ int read_multibeam(FILE * infile, float *data, int numpts,
 /* from the multibeam correlator at Parkes.                    */
 /* It returns the number of points read.                       */
 {
-  static unsigned char raw[DATLEN], *ptr;
-  static unsigned char *rawdata1, *rawdata2;
+  static unsigned char *raw, *ptr, *rawdata1, *rawdata2;
   static unsigned char *currentdata, *lastdata, *tmp;
   static int firsttime = 1, recsize = 0, blocklen = 0, worklen = 0;
-  static int decreasing_f = 0, blocks_per_read = 0, pts_per_read = 0;
+  static int decreasing_f = 0, blocks_per_read = 0;
   static multibeam_tapehdr hdr;
   int ii, numread;
 
   if (firsttime) {
-    recsize = numchan / 8;    /* bytes per time interval        */
-    blocklen = DATLEN * 8;    /* 1 byte per sample in a block   */
-    blocks_per_read = ((int)(fabs(dispdelays[0])) / numpts) + 1;
-    worklen = blocks_per_read * blocklen;
-    pts_per_read = blocks_per_read * numpts;
+    recsize = numchan / 8;    /* bytes per time interval           */
+    blocklen = DATLEN * 8;    /* total samples / block (1 bit per) */
+    blocks_per_read = numpts * numchan / blocklen;
+    worklen = blocks_per_read * blocklen; /* 1 byte per data point */
 
     /* Create our data storage for the raw byte data */
-
+ 
+    raw  = gen_bvect(blocks_per_read * DATLEN);
     rawdata1 = gen_bvect(worklen);
     rawdata2 = gen_bvect(worklen);
     firsttime = 0;
@@ -112,7 +111,7 @@ int read_multibeam(FILE * infile, float *data, int numpts,
     /* Convert the data to floats */
 
     ptr = raw;
-    for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+    for (ii = 0; ii < numpts; ii++, ptr += recsize)
       convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
 			      decreasing_f);
 
@@ -121,7 +120,6 @@ int read_multibeam(FILE * infile, float *data, int numpts,
     tmp = currentdata;
     currentdata = lastdata;
     lastdata = tmp;
-
   }
 
   /* Read the multibeam records */
@@ -131,13 +129,13 @@ int read_multibeam(FILE * infile, float *data, int numpts,
   /* Convert the data to floats */
 
   ptr = raw;
-  for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+  for (ii = 0; ii < numpts; ii++, ptr += recsize)
     convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
 			    decreasing_f);
 
   /* De-disperse the data */
 
-  dedisp(currentdata, lastdata, pts_per_read, numchan, dispdelays, data);
+  dedisp(currentdata, lastdata, numpts, numchan, dispdelays, data);
 
   /* Exit if we have reached the EOF */
 
@@ -155,7 +153,7 @@ int read_multibeam(FILE * infile, float *data, int numpts,
 
   /* Return the number of points we actually read */
 
-  return pts_per_read;
+  return numpts;
 }
 
 
@@ -173,26 +171,24 @@ int read_multibeam_subbands(FILE * infile, float *data, int numpts,
 /* It returns the number of points (pts_per_read) read if        */
 /* succesful or 0 if unsuccessful.                               */
 {
-  static unsigned char raw[DATLEN], *ptr;
-  static unsigned char *rawdata1, *rawdata2, *move;
+  static unsigned char *raw, *ptr, *rawdata1, *rawdata2, *move;
   static unsigned char *currentdata, *lastdata, *tmp;
   static int firsttime = 1, recsize = 0, blocklen = 0, worklen = 0;
-  static int decreasing_f = 0, blocks_per_read = 0, pts_per_read = 0;
-  static int move_size = 0;
+  static int decreasing_f = 0, pts_per_read = 0, move_size = 0;
   static multibeam_tapehdr hdr;
   short trtn;
   int ii, numread;
 
   if (firsttime) {
-    recsize = numchan / 8;    /* bytes per time interval        */
-    blocklen = DATLEN * 8;    /* 1 byte per sample in a block   */
-    blocks_per_read = ((int)(fabs(dispdelays[0])) / numpts) + 1;
-    worklen = blocks_per_read * blocklen;
-    pts_per_read = blocks_per_read * numpts;
-    move_size = (pts_per_read + numsubbands) / 2;
+    recsize = numchan / 8;    /* bytes per time interval           */
+    blocklen = DATLEN * 8;    /* total samples / block (1 bit per) */
+    blocks_per_read = numpts * numchan / blocklen;
+    worklen = blocks_per_read * blocklen; /* 1 byte per data point */
+    move_size = (numpts + numsubbands) / 2;
 
     /* Create our data storage for the raw byte data */
 
+    raw  = gen_bvect(blocks_per_read * DATLEN);
     rawdata1 = gen_bvect(worklen);
     rawdata2 = gen_bvect(worklen);
     move = gen_bvect(move_size);
@@ -221,7 +217,7 @@ int read_multibeam_subbands(FILE * infile, float *data, int numpts,
     /* Convert the data to floats */
 
     ptr = raw;
-    for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+    for (ii = 0; ii < numpts; ii++, ptr += recsize)
       convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
 			      decreasing_f);
 
@@ -240,18 +236,18 @@ int read_multibeam_subbands(FILE * infile, float *data, int numpts,
   /* Convert the data to floats */
 
   ptr = raw;
-  for (ii = 0; ii < pts_per_read; ii++, ptr += recsize)
+  for (ii = 0; ii < numpts; ii++, ptr += recsize)
     convert_multibeam_point(ptr, currentdata + ii * numchan, numchan, 
 			    decreasing_f);
 
   /* De-disperse the data into subbands */
 
-  dedisp_subbands(currentdata, lastdata, pts_per_read, numchan, 
+  dedisp_subbands(currentdata, lastdata, numpts, numchan, 
 		  dispdelays, numsubbands, data);
 
   /* Transpose the data into vectors in the result array */
 
-  if((trtn = TOMS_transpose_2d(data, pts_per_read, numsubbands,
+  if((trtn = TOMS_transpose_2d(data, numpts, numsubbands,
 			       move, move_size))<0){
     printf("Error %d in TOMS_transpose_2d().\n",trtn);
   }
@@ -273,7 +269,7 @@ int read_multibeam_subbands(FILE * infile, float *data, int numpts,
 
   /* Return the number of points we actually read */
 
-  return pts_per_read;
+  return numpts;
 }
 
 
