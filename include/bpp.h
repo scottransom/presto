@@ -11,7 +11,7 @@
 #define MAXREGS 8
 #define NIBPERREG 4
 #define MAXNUMCHAN (MAXNUMDFB*FB_CHAN_PER_BRD)
-#define PTSPERBLOCK 1024
+#define PTSPERBLOCK 1000
 #define MAXDATLEN (MAXNUMCHAN*PTSPERBLOCK)
 /* The following were taken from various header files */
 #define NBOARDS         16      /* number of boards in the PSPM             */

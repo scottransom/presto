@@ -4,6 +4,7 @@
 
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
+static long long filedatalen_st[MAXPATCHFILES];
 static int numblks_st[MAXPATCHFILES];
 static int bytesperpt_st, bytesperblk_st;
 static int numchan_st, numifs_st, ptsperblk_st=PTSPERBLOCK;
@@ -422,7 +423,8 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     numifs_st = 1;
   bytesperpt_st = (numchan_st * numifs_st * 4) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
-  numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
+  filedatalen_st[0] = chkfilelen(files[0], 1) - BPP_HEADER_SIZE;
+  numblks_st[0] = filedatalen_st[0] / bytesperblk_st;
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
   dt_st = *dt = idata_st[0].dt;
@@ -443,12 +445,28 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     if (idata_st[ii].dt != dt_st){
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
     }
-    numblks_st[ii] = chkfilelen(files[ii], bytesperblk_st);
+    filedatalen_st[ii] = chkfilelen(files[ii], 1) - BPP_HEADER_SIZE;
+    numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
     times_st[ii] = numpts_st[ii] * dt_st;
+    /* If the MJDs are equal, then this is a continuation */
+    /* file.  In that case, calculate the _real_ time     */
+    /* length of the previous file and add it to the      */
+    /* previous files MJD to get the current MJD.         */
     mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
-    elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
-				  idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+    if (fabs(mjds_st[ii]-mjds_st[0]) < 1.0e-6 / SECPERDAY){
+      elapsed_st[ii] = (filedatalen_st[ii-1] / bytesperpt_st) * dt_st;
+      idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + elapsed_st[ii] / SECPERDAY;
+      idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
+      if (idata_st[ii].mjd_f >= 1.0){
+	idata_st[ii].mjd_f -= 1.0;
+	idata_st[ii].mjd_i++;
+      }
+      mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
+    } else {
+      elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
+				    idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+    }
     padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / 
 				  dt_st + 0.5);
     elapsed_st[ii] += elapsed_st[ii-1];
