@@ -25,7 +25,7 @@
 /* Nick Patavalis (npat@ariadne.di.uoa.gr)  */
 /********************************************/
 
-void minmax (float *v, int nsz, float *min, float *max)
+void minmax(float *v, int nsz, float *min, float *max)
 {
   register float *e;
   register float mn, mx;
@@ -37,25 +37,33 @@ void minmax (float *v, int nsz, float *min, float *max)
   *max = mx;
 }
 
+void dminmax(double *v, int nsz, double *min, double *max)
+{
+  register double *e;
+  register double mn, mx;
+  
+  for (mn=mx=*v, e=v+nsz; v < e; v++)
+    if (*v > mx) mx = *v;
+    else if (*v < mn) mn = *v;
+  *min = mn;
+  *max = mx;
+}
 
-void scaleprof(double *in, float *out, int n, int scalesep)
+
+void scaleprof(double *in, float *out, int n, int scalesep, double gmax)
 /* Scales an input vector so that it goes from 0.0 to 1.0 */
 {
   int ii;
-  double min=1e100, max=-1e100, norm;
+  double norm, min=1e100, max=-1e100;
   
-  for (ii=0; ii<n; ii++){
-    if (in[ii] > max) max = in[ii];
-    if (in[ii] < min) min = in[ii];
-  }
-
-  if (scalesep)
+  dminmax(in, n, &min, &max);
+  if (scalesep){
     /* Each plot is normalized independently */
     norm = 1.0 / (max - min);
-  else
+  } else {
     /* All plots are normalized together */
-    norm = 1.0 / max;
-
+    norm = 1.0 / gmax;
+  }
   if (TEST_CLOSE(min, max, 1.0e-7)){
     for (ii=0; ii<n; ii++)
       out[ii] = 0.0;
@@ -460,25 +468,34 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 
 	      /* The profs at each of the npart times */
 
-	      for (ll = 0; ll < search->npart; ll++){
-		profindex = ll * search->proflen;
-		wrap = (NEAREST_INT((double) (ll * pdelay) / 
-				    ((double) search->npart)) % 
-			search->proflen);
-		shift_prof(pdprofs + profindex, search->proflen, wrap, 
-			   currentprof);
-		scaleprof(currentprof, timeprofs + 2 * profindex, 
-			  search->proflen, flags->scaleparts);
-		memcpy(timeprofs + 2 * profindex + search->proflen,
-		       timeprofs + 2 * profindex, 
-		       search->proflen * sizeof(float));
-		for (mm = 0; mm < search->proflen; mm++)
-		  lastprof[mm] += currentprof[mm];
-		profavg += ddstats[ll].prof_avg;
-		profvar += ddstats[ll].prof_var;
-		timechi[ll+1] = (chisqr(lastprof, search->proflen, 
-					profavg, profvar) / 
-				 (double) (search->proflen - 1.0));
+	      {
+		double min, max, gmax=-1.0e100;
+
+		for (ll = 0; ll < search->npart; ll++){
+		  profindex = ll * search->proflen;
+ 		  dminmax(pdprofs + profindex, search->proflen, &min, &max);
+		  if (max > gmax) gmax = max;
+		}
+		for (ll = 0; ll < search->npart; ll++){
+		  profindex = ll * search->proflen;
+		  wrap = (NEAREST_INT((double) (ll * pdelay) / 
+				      ((double) search->npart)) % 
+			  search->proflen);
+		  shift_prof(pdprofs + profindex, search->proflen, wrap, 
+			     currentprof);
+		  scaleprof(currentprof, timeprofs + 2 * profindex, 
+			    search->proflen, flags->scaleparts, gmax);
+		  memcpy(timeprofs + 2 * profindex + search->proflen,
+			 timeprofs + 2 * profindex, 
+			 search->proflen * sizeof(float));
+		  for (mm = 0; mm < search->proflen; mm++)
+		    lastprof[mm] += currentprof[mm];
+		  profavg += ddstats[ll].prof_avg;
+		  profvar += ddstats[ll].prof_var;
+		  timechi[ll+1] = (chisqr(lastprof, search->proflen, 
+					  profavg, profvar) / 
+				   (double) (search->proflen - 1.0));
+		}
 	      }
 	    }
 	  }
@@ -586,25 +603,34 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
 	  
 	  /* The profs at each of the npart times */
 	  
-	  for (ll = 0; ll < search->npart; ll++){
-	    profindex = ll * search->proflen;
-	    wrap = (NEAREST_INT((double) (ll * pdelay) / 
-				((double) search->npart)) % 
-		    search->proflen);
-	    shift_prof(pdprofs + profindex, search->proflen, wrap, 
-			   currentprof);
-	    scaleprof(currentprof, timeprofs + 2 * profindex, 
-		      search->proflen, flags->scaleparts);
-	    memcpy(timeprofs + 2 * profindex + search->proflen,
-		   timeprofs + 2 * profindex, 
-		   search->proflen * sizeof(float));
-	    for (mm = 0; mm < search->proflen; mm++)
-	      lastprof[mm] += currentprof[mm];
-	    profavg += search->stats[ll].prof_avg;
-	    profvar += search->stats[ll].prof_var;
-	    timechi[ll+1] = (chisqr(lastprof, search->proflen, 
-				    profavg, profvar) / 
-			     (double) (search->proflen - 1.0));
+	  {
+	    double min, max, gmax=-1.0e100;
+
+	    for (ll = 0; ll < search->npart; ll++){
+	      profindex = ll * search->proflen;
+	      dminmax(pdprofs + profindex, search->proflen, &min, &max);
+	      if (max > gmax) gmax = max;
+	    }
+	    for (ll = 0; ll < search->npart; ll++){
+	      profindex = ll * search->proflen;
+	      wrap = (NEAREST_INT((double) (ll * pdelay) / 
+				  ((double) search->npart)) % 
+		      search->proflen);
+	      shift_prof(pdprofs + profindex, search->proflen, wrap, 
+			 currentprof);
+	      scaleprof(currentprof, timeprofs + 2 * profindex, 
+			search->proflen, flags->scaleparts, gmax);
+	      memcpy(timeprofs + 2 * profindex + search->proflen,
+		     timeprofs + 2 * profindex, 
+		     search->proflen * sizeof(float));
+	      for (mm = 0; mm < search->proflen; mm++)
+		lastprof[mm] += currentprof[mm];
+	      profavg += search->stats[ll].prof_avg;
+	      profvar += search->stats[ll].prof_var;
+	      timechi[ll+1] = (chisqr(lastprof, search->proflen, 
+				      profavg, profvar) / 
+			       (double) (search->proflen - 1.0));
+	    }
 	  }
 	}
       }
