@@ -680,7 +680,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
   static int dsworklen;
   static float *tempzz, *data1, *data2, *dsdata1=NULL, *dsdata2=NULL; 
   static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
-  int totnumread=0, numread=0, ii, jj, tmppad=0, nummasked;
+  int totnumread=0, numread=0, ii, jj, tmppad=0, nummasked=0;
   
   if (firsttime){
     if (cmd->maskfileP)

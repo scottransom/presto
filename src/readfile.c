@@ -404,15 +404,13 @@ int BPPHDR_print(long count, char *obj_ptr)
 int WAPPHDR_print(long count, char *obj_ptr)
 {
   int swapped;
-  WAPP_HEADER *object;
 
-  object = (WAPP_HEADER *) obj_ptr;
   printf("\n%ld:", count + 1);
-  swapped = check_WAPP_byteswap(object);
+  swapped = check_WAPP_byteswap(obj_ptr);
   printf("  Skipped ASCII header of length %d bytes.\n", asciihdrlen);
   if (swapped)
     printf("    Byte-swapped from little-endian to big-endian.\n");
-  print_WAPP_hdr(object);
+  print_WAPP_hdr(obj_ptr);
   return 0;
 }
 

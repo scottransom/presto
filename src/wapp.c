@@ -250,48 +250,101 @@ int clip_times(unsigned char *rawpows)
   return clipped;
 }
 
-int check_WAPP_byteswap(WAPP_HEADER *hdr)
+static int get_WAPP_HEADER_version(char *header)
 {
-  int ii;
+  long header_version;
+  long header_size;
+
+  memcpy(&header_version, header, sizeof(long));
+  memcpy(&header_size, header+4, sizeof(long));
+  if (header_size != WAPP_HEADER_SIZE){
+    printf("\n\nYIKES!!!  The reported WAPP header length (%ld) does\n"
+	   "not equal the historical value (%d)!  Data will be wrong!\n\n",
+	   header_size, WAPP_HEADER_SIZE);
+  }
+  if (1){
+    printf("Header version:  %ld\n", header_version);
+    printf("Header  length:  %ld\n", header_size);
+  }
+  return header_version;
+}
+
+
+int check_WAPP_byteswap(char *hdr)
+{
+  int hdr_vers;
+  WAPP_HEADERv1 *hdr1=NULL;
+  WAPP_HEADERv234 *hdr234=NULL;
   
-  if ((hdr->header_size != 2048) &&
-      (hdr->nifs < 1 || hdr->nifs > 4)){
-    hdr->src_ra = swap_double(hdr->src_ra);
-    hdr->src_dec = swap_double(hdr->src_dec);
-    hdr->start_az = swap_double(hdr->start_az);
-    hdr->start_za = swap_double(hdr->start_za);
-    hdr->start_ast = swap_double(hdr->start_ast);
-    hdr->start_lst = swap_double(hdr->start_lst);
-    hdr->cent_freq = swap_double(hdr->cent_freq);
-    hdr->obs_time = swap_double(hdr->obs_time);
-    hdr->samp_time = swap_double(hdr->samp_time);
-    hdr->wapp_time = swap_double(hdr->wapp_time);
-    hdr->bandwidth = swap_double(hdr->bandwidth);
-    hdr->power_analog[0] = swap_double(hdr->power_analog[0]);
-    hdr->power_analog[1] = swap_double(hdr->power_analog[1]);
-    hdr->psr_dm = swap_double(hdr->psr_dm);
-    hdr->num_lags = swap_int(hdr->num_lags);
-    hdr->scan_number = swap_int(hdr->scan_number);
-    hdr->header_version = swap_int(hdr->header_version);
-    hdr->header_size = swap_int(hdr->header_size);    
-    hdr->nifs = swap_int(hdr->nifs);
-    hdr->level = swap_int(hdr->level);
-    hdr->sum = swap_int(hdr->sum);
-    hdr->freqinversion = swap_int(hdr->freqinversion);
-    hdr->lagformat = swap_int(hdr->lagformat);
-    hdr->lagtrunc = swap_int(hdr->lagtrunc);
-    hdr->timeoff = swap_longlong(hdr->timeoff);
-    for (ii=0; ii<9; ii++){
-      hdr->rphase[ii] = swap_double(hdr->rphase[ii]);
-      hdr->psr_f0[ii] = swap_double(hdr->psr_f0[ii]);
-      hdr->poly_tmid[ii] = swap_double(hdr->poly_tmid[ii]);
-      hdr->num_coeffs[ii] = swap_int(hdr->num_coeffs[ii]);
+  hdr_vers = get_WAPP_HEADER_version(hdr);
+  if (hdr_vers==1)
+    hdr1 = (WAPP_HEADERv1 *)hdr;
+  else
+    hdr234 = (WAPP_HEADERv234 *)hdr;
+
+  if (hdr_vers==1){
+    if ((hdr1->header_size != 2048) &&
+	(hdr1->nifs < 1 || hdr1->nifs > 4)){
+      hdr1->src_ra = swap_double(hdr1->src_ra);
+      hdr1->src_dec = swap_double(hdr1->src_dec);
+      hdr1->start_az = swap_double(hdr1->start_az);
+      hdr1->start_za = swap_double(hdr1->start_za);
+      hdr1->start_ast = swap_double(hdr1->start_ast);
+      hdr1->start_lst = swap_double(hdr1->start_lst);
+      hdr1->cent_freq = swap_double(hdr1->cent_freq);
+      hdr1->obs_time = swap_double(hdr1->obs_time);
+      hdr1->samp_time = swap_double(hdr1->samp_time);
+      hdr1->wapp_time = swap_double(hdr1->wapp_time);
+      hdr1->bandwidth = swap_double(hdr1->bandwidth);
+      hdr1->power_analog[0] = swap_double(hdr1->power_analog[0]);
+      hdr1->power_analog[1] = swap_double(hdr1->power_analog[1]);
+      hdr1->num_lags = swap_int(hdr1->num_lags);
+      hdr1->scan_number = swap_int(hdr1->scan_number);
+      hdr1->header_version = swap_int(hdr1->header_version);
+      hdr1->header_size = swap_int(hdr1->header_size);    
+      hdr1->nifs = swap_int(hdr1->nifs);
+      hdr1->level = swap_int(hdr1->level);
+      hdr1->sum = swap_int(hdr1->sum);
+      hdr1->freqinversion = swap_int(hdr1->freqinversion);
+      hdr1->lagformat = swap_int(hdr1->lagformat);
+      hdr1->lagtrunc = swap_int(hdr1->lagtrunc);
+      hdr1->timeoff = swap_longlong(hdr1->timeoff);
+      return 1;
+    } else {
+      return 0;
     }
-    for (ii=0; ii<144; ii++)
-      hdr->coeff[ii] = swap_double(hdr->coeff[ii]);
-    return 1;
   } else {
-    return 0;
+    if ((hdr234->header_size != 2048) &&
+	(hdr234->nifs < 1 || hdr234->nifs > 4)){
+      hdr234->src_ra = swap_double(hdr234->src_ra);
+      hdr234->src_dec = swap_double(hdr234->src_dec);
+      hdr234->start_az = swap_double(hdr234->start_az);
+      hdr234->start_za = swap_double(hdr234->start_za);
+      hdr234->start_ast = swap_double(hdr234->start_ast);
+      hdr234->start_lst = swap_double(hdr234->start_lst);
+      hdr234->cent_freq = swap_double(hdr234->cent_freq);
+      hdr234->obs_time = swap_double(hdr234->obs_time);
+      hdr234->samp_time = swap_double(hdr234->samp_time);
+      hdr234->wapp_time = swap_double(hdr234->wapp_time);
+      hdr234->bandwidth = swap_double(hdr234->bandwidth);
+      hdr234->power_analog[0] = swap_double(hdr234->power_analog[0]);
+      hdr234->power_analog[1] = swap_double(hdr234->power_analog[1]);
+      hdr234->num_lags = swap_int(hdr234->num_lags);
+      hdr234->scan_number = swap_int(hdr234->scan_number);
+      hdr234->header_version = swap_int(hdr234->header_version);
+      hdr234->header_size = swap_int(hdr234->header_size);    
+      hdr234->nifs = swap_int(hdr234->nifs);
+      hdr234->level = swap_int(hdr234->level);
+      hdr234->sum = swap_int(hdr234->sum);
+      hdr234->freqinversion = swap_int(hdr234->freqinversion);
+      hdr234->lagformat = swap_int(hdr234->lagformat);
+      hdr234->lagtrunc = swap_int(hdr234->lagtrunc);
+      hdr234->firstchannel = swap_int(hdr234->firstchannel);
+      hdr234->timeoff = swap_longlong(hdr234->timeoff);
+      return 1;
+    } else {
+      return 0;
+    }
   }
 }
 
@@ -308,7 +361,7 @@ static double UT_strings_to_MJD(char *obs_date, char *start_time,
   return *mjd_day + *mjd_fracday;
 }
 
-double wappcorrect(double mjd)
+static double wappcorrect(double mjd)
 /* subroutine to return correction to wapp_time (us) based on mjd */
 {
   double correction;
@@ -329,51 +382,102 @@ double wappcorrect(double mjd)
   return(correction);
 }
 
-void WAPP_hdr_to_inf(WAPP_HEADER *hdr, infodata *idata)
+static void WAPP_hdr_to_inf(char *hdr, infodata *idata)
 /* Convert WAPP header into an infodata structure */
 {
   double MJD;
   char ctmp[80];
-
-  strncpy(idata->object, hdr->src_name, 24);
-  idata->ra_h = (int) floor(hdr->src_ra / 10000.0);
-  idata->ra_m = (int) floor((hdr->src_ra - 
-			     idata->ra_h * 10000) / 100.0);
-  idata->ra_s = hdr->src_ra - idata->ra_h * 10000 - 
-    idata->ra_m * 100;
-  idata->dec_d = (int) floor(fabs(hdr->src_dec) / 10000.0);
-  idata->dec_m = (int) floor((fabs(hdr->src_dec) - 
-			      idata->dec_d * 10000) / 100.0);
-  idata->dec_s = fabs(hdr->src_dec) - idata->dec_d * 10000 - 
-    idata->dec_m * 100;
-  if (hdr->src_dec < 0.0)
-    idata->dec_d = -idata->dec_d;
-  strcpy(idata->telescope, "Arecibo");
-  strcpy(idata->instrument, "WAPP");
-  idata->num_chan = hdr->num_lags;
-  MJD = UT_strings_to_MJD(hdr->obs_date, hdr->start_time, 
-			  &(idata->mjd_i), &(idata->mjd_f));
-  idata->dt = (wappcorrect(MJD) + hdr->wapp_time) / 1000000.0;
-  idata->N = hdr->obs_time / idata->dt;
-  idata->freqband = hdr->bandwidth;
-  idata->chan_wid = fabs(idata->freqband / idata->num_chan);
-  idata->freq = hdr->cent_freq - 0.5*idata->freqband + 0.5*idata->chan_wid;
-  idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 300.0 * DEGTORAD);
-  idata->bary = 0;
-  idata->numonoff = 0;
-  strcpy(idata->band, "Radio");
-  strcpy(idata->analyzer, "Scott Ransom");
-  strncpy(idata->observer, hdr->observers, 24);
-  if (hdr->sum)
-    sprintf(ctmp, 
-	    "%d %d-level IF(s) were summed.  Lags are %d bit ints.", 
-	    numifs_st, corr_level_st, bits_per_samp_st);
+  int hdr_vers;
+  WAPP_HEADERv1 *hdr1=NULL;
+  WAPP_HEADERv234 *hdr234=NULL;
+  
+  hdr_vers = get_WAPP_HEADER_version(hdr);
+  if (hdr_vers==1)
+    hdr1 = (WAPP_HEADERv1 *)hdr;
   else
-    sprintf(ctmp, "%d %d-level IF(s) were not summed.  Lags are %d bit ints.", 
-	    numifs_st, corr_level_st, bits_per_samp_st);
-  sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %ld, Date: %s %s.\n    %s\n", 
-	  hdr->start_az, hdr->start_za, hdr->project_id, hdr->scan_number, 
-	  hdr->obs_date, hdr->start_time, ctmp);
+    hdr234 = (WAPP_HEADERv234 *)hdr;
+
+  if (hdr_vers==1){
+    strncpy(idata->object, hdr1->src_name, 24);
+    idata->ra_h = (int) floor(hdr1->src_ra / 10000.0);
+    idata->ra_m = (int) floor((hdr1->src_ra - 
+			       idata->ra_h * 10000) / 100.0);
+    idata->ra_s = hdr1->src_ra - idata->ra_h * 10000 - 
+      idata->ra_m * 100;
+    idata->dec_d = (int) floor(fabs(hdr1->src_dec) / 10000.0);
+    idata->dec_m = (int) floor((fabs(hdr1->src_dec) - 
+				idata->dec_d * 10000) / 100.0);
+    idata->dec_s = fabs(hdr1->src_dec) - idata->dec_d * 10000 - 
+    idata->dec_m * 100;
+    if (hdr1->src_dec < 0.0)
+    idata->dec_d = -idata->dec_d;
+    strcpy(idata->telescope, "Arecibo");
+    strcpy(idata->instrument, "WAPP");
+    idata->num_chan = hdr1->num_lags;
+    MJD = UT_strings_to_MJD(hdr1->obs_date, hdr1->start_time, 
+			    &(idata->mjd_i), &(idata->mjd_f));
+    idata->dt = (wappcorrect(MJD) + hdr1->wapp_time) / 1000000.0;
+    idata->N = hdr1->obs_time / idata->dt;
+    idata->freqband = hdr1->bandwidth;
+    idata->chan_wid = fabs(idata->freqband / idata->num_chan);
+    idata->freq = hdr1->cent_freq - 0.5*idata->freqband + 0.5*idata->chan_wid;
+    idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 300.0 * DEGTORAD);
+    idata->bary = 0;
+    idata->numonoff = 0;
+    strcpy(idata->band, "Radio");
+    strcpy(idata->analyzer, "Scott Ransom");
+    strncpy(idata->observer, hdr1->observers, 24);
+    if (hdr1->sum)
+      sprintf(ctmp, 
+	      "%d %d-level IF(s) were summed.  Lags are %d bit ints.", 
+	      numifs_st, corr_level_st, bits_per_samp_st);
+    else
+      sprintf(ctmp, "%d %d-level IF(s) were not summed.  Lags are %d bit ints.", 
+	      numifs_st, corr_level_st, bits_per_samp_st);
+    sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %ld, Date: %s %s.\n    %s\n", 
+	    hdr1->start_az, hdr1->start_za, hdr1->project_id, hdr1->scan_number, 
+	    hdr1->obs_date, hdr1->start_time, ctmp);
+  } else {
+    strncpy(idata->object, hdr234->src_name, 24);
+    idata->ra_h = (int) floor(hdr234->src_ra / 10000.0);
+    idata->ra_m = (int) floor((hdr234->src_ra - 
+			       idata->ra_h * 10000) / 100.0);
+    idata->ra_s = hdr234->src_ra - idata->ra_h * 10000 - 
+      idata->ra_m * 100;
+    idata->dec_d = (int) floor(fabs(hdr234->src_dec) / 10000.0);
+    idata->dec_m = (int) floor((fabs(hdr234->src_dec) - 
+				idata->dec_d * 10000) / 100.0);
+    idata->dec_s = fabs(hdr234->src_dec) - idata->dec_d * 10000 - 
+    idata->dec_m * 100;
+    if (hdr234->src_dec < 0.0)
+    idata->dec_d = -idata->dec_d;
+    strcpy(idata->telescope, "Arecibo");
+    strcpy(idata->instrument, "WAPP");
+    idata->num_chan = hdr234->num_lags;
+    MJD = UT_strings_to_MJD(hdr234->obs_date, hdr234->start_time, 
+			    &(idata->mjd_i), &(idata->mjd_f));
+    idata->dt = (wappcorrect(MJD) + hdr234->wapp_time) / 1000000.0;
+    idata->N = hdr234->obs_time / idata->dt;
+    idata->freqband = hdr234->bandwidth;
+    idata->chan_wid = fabs(idata->freqband / idata->num_chan);
+    idata->freq = hdr234->cent_freq - 0.5*idata->freqband + 0.5*idata->chan_wid;
+    idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 300.0 * DEGTORAD);
+    idata->bary = 0;
+    idata->numonoff = 0;
+    strcpy(idata->band, "Radio");
+    strcpy(idata->analyzer, "Scott Ransom");
+    strncpy(idata->observer, hdr234->observers, 24);
+    if (hdr234->sum)
+      sprintf(ctmp, 
+	      "%d %d-level IF(s) were summed.  Lags are %d bit ints.", 
+	      numifs_st, corr_level_st, bits_per_samp_st);
+    else
+      sprintf(ctmp, "%d %d-level IF(s) were not summed.  Lags are %d bit ints.", 
+	      numifs_st, corr_level_st, bits_per_samp_st);
+    sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %ld, Date: %s %s.\n    %s\n", 
+	    hdr234->start_az, hdr234->start_za, hdr234->project_id, hdr234->scan_number, 
+	    hdr234->obs_date, hdr234->start_time, ctmp);
+  }
 }
 
 
@@ -386,9 +490,10 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 {
-  int ii, asciihdrlen=1;
-  char cc=1;
-  WAPP_HEADER hdr;
+  int ii, asciihdrlen=1, hdr_vers;
+  char cc=1, hdr[WAPP_HEADER_SIZE];
+  WAPP_HEADERv1 *hdr1=NULL;
+  WAPP_HEADERv234 *hdr234=NULL;
 
   if (numfiles > MAXPATCHFILES){
     printf("\nThe number of input files (%d) is greater than \n", numfiles);
@@ -398,33 +503,58 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   /* Skip the ASCII header file */
   while((cc=fgetc(files[0]))!='\0')
     asciihdrlen++;
-  /* Read the binary header (no byte-swapping capabilities yet) */
-  chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[0]);
+  /* Read the binary header */
+  chkfread(hdr, WAPP_HEADER_SIZE, 1, files[0]);
+  /* Check the header version and use the correct header structure */
+  hdr_vers = get_WAPP_HEADER_version(hdr);
   /* See if we need to byte-swap and if so, doit */
-  need_byteswap_st = check_WAPP_byteswap(&hdr);
+  need_byteswap_st = check_WAPP_byteswap(hdr);
+  if (hdr_vers==1){
+    hdr1 = (WAPP_HEADERv1 *)hdr;
+    numifs_st = hdr1->nifs;
+    if (numifs_st > 1)
+      printf("\nNumber of IFs (%d) is > 1!  I can't handle this yet!\n\n",
+	     numifs_st);
+    if (hdr1->freqinversion)
+      decreasing_freqs_st = 1;
+    if (hdr1->level==1)
+      corr_level_st = 3;
+    else if (hdr1->level==2)
+      corr_level_st = 9;
+    else
+      printf("\nError:  Unrecognized level setting!\n\n");
+    if (hdr1->lagformat==0)
+      bits_per_samp_st = 16;
+    else if (hdr1->lagformat==1)
+      bits_per_samp_st = 32;
+    else
+      printf("\nError:  Unrecognized number of bits per sample!\n\n");
+  } else {
+    hdr234 = (WAPP_HEADERv234 *)hdr;
+    numifs_st = hdr234->nifs;
+    if (numifs_st > 1)
+      printf("\nNumber of IFs (%d) is > 1!  I can't handle this yet!\n\n",
+	     numifs_st);
+    if (hdr234->freqinversion)
+      decreasing_freqs_st = 1;
+    if (hdr234->level==1)
+      corr_level_st = 3;
+    else if (hdr234->level==2)
+      corr_level_st = 9;
+    else
+      printf("\nError:  Unrecognized level setting!\n\n");
+    if (hdr234->lagformat==0)
+      bits_per_samp_st = 16;
+    else if (hdr234->lagformat==1)
+      bits_per_samp_st = 32;
+    else
+      printf("\nError:  Unrecognized number of bits per sample!\n\n");
+  }
+  WAPP_hdr_to_inf(hdr, &idata_st[0]);
+  WAPP_hdr_to_inf(hdr, idata);
   /* Are we going to clip the data? */
   if (clipsig > 0.0)
     clip_sigma_st = clipsig;
-  numifs_st = hdr.nifs;
-  if (numifs_st > 1)
-    printf("\nNumber of IFs (%d) is > 1!  I can't handle this yet!\n\n",
-	   numifs_st);
-  if (hdr.freqinversion)
-    decreasing_freqs_st = 1;
-  if (hdr.level==1)
-    corr_level_st = 3;
-  else if (hdr.level==2)
-    corr_level_st = 9;
-  else
-    printf("\nError:  Unrecognized level setting!\n\n");
-  if (hdr.lagformat==0)
-    bits_per_samp_st = 16;
-  else if (hdr.lagformat==1)
-    bits_per_samp_st = 32;
-  else
-    printf("\nError:  Unrecognized number of bits per sample!\n\n");
-  WAPP_hdr_to_inf(&hdr, &idata_st[0]);
-  WAPP_hdr_to_inf(&hdr, idata);
   *numchan = numchan_st = idata_st[0].num_chan;
   fftplan = rfftw_create_plan(2 * numchan_st, 
 			      FFTW_REAL_TO_COMPLEX, 
@@ -443,8 +573,13 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   corr_scale_st = corr_rate_st / idata->freqband;
   if (corr_level_st==9) /* 9-level sampling */
     corr_scale_st /= 16.0;
-  if (hdr.sum) /* summed IFs (search mode) */
-    corr_scale_st /= 2.0;
+  if (hdr_vers==1){
+    if (hdr1->sum) /* summed IFs (search mode) */
+      corr_scale_st /= 2.0;
+  } else {
+    if (hdr234->sum) /* summed IFs (search mode) */
+      corr_scale_st /= 2.0;
+  }
   dt_st = *dt = idata_st[0].dt;
   times_st[0] = numpts_st[0] * dt_st;
   mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
@@ -458,8 +593,8 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
     /* Read the header */
     chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[ii]);
     /* See if we need to byte-swap and if so, doit */
-    need_byteswap_st = check_WAPP_byteswap(&hdr);
-    WAPP_hdr_to_inf(&hdr, &idata_st[ii]);
+    need_byteswap_st = check_WAPP_byteswap(hdr);
+    WAPP_hdr_to_inf(hdr, &idata_st[ii]);
     if (idata_st[ii].num_chan != numchan_st){
       printf("Number of channels (file %d) is not the same!\n\n", ii+1);
     }
@@ -510,7 +645,10 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
     printf("  Sample time (dt) = %-14.14g\n", dt_st);
     printf("    Total time (s) = %-14.14g\n", T_st);
     printf("  ASCII Header (B) = %d\n", asciihdrlen);
-    printf(" Binary Header (B) = %ld\n\n", hdr.header_size);
+    if (hdr_vers==1)
+      printf(" Binary Header (B) = %ld\n\n", hdr1->header_size);
+    else
+      printf(" Binary Header (B) = %ld\n\n", hdr234->header_size);
     printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles; ii++)
@@ -612,49 +750,93 @@ int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec)
 }
 
 
-void print_WAPP_hdr(WAPP_HEADER *hdr)
+void print_WAPP_hdr(char *hdr)
 /* Output a WAPP header in human readable form */
 {
   int mjd_i;
   double mjd_d;
-
-  printf("\n             Header version = %ld\n", hdr->header_version);
-  printf("        Header size (bytes) = %ld\n", hdr->header_size);
-  printf("                Source Name = %s\n", hdr->src_name);
-  printf(" Observation Date (YYYMMDD) = %s\n", hdr->obs_date);
-  printf("    Obs Start UT (HH:MM:SS) = %s\n", hdr->start_time);
-  printf("             MJD start time = %.12f\n", 
-	 UT_strings_to_MJD(hdr->obs_date, hdr->start_time, &mjd_i, &mjd_d));
-  printf("                 Project ID = %s\n", hdr->project_id);
-  printf("                  Observers = %s\n", hdr->observers);
-  printf("                Scan Number = %ld\n", hdr->scan_number);
-  printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", hdr->src_ra);
-  printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", hdr->src_dec);
-  printf("        Start Azimuth (deg) = %-17.15g\n", hdr->start_az);
-  printf("     Start Zenith Ang (deg) = %-17.15g\n", hdr->start_za);
-  printf("            Start AST (sec) = %-17.15g\n", hdr->start_ast);
-  printf("            Start LST (sec) = %-17.15g\n", hdr->start_lst);
-  printf("           Obs Length (sec) = %-17.15g\n", hdr->obs_time);
-  printf("      Requested T_samp (us) = %-17.15g\n", hdr->samp_time);
-  printf("         Actual T_samp (us) = %-17.15g\n", hdr->wapp_time);
-  printf("         Central freq (MHz) = %-17.15g\n", hdr->cent_freq);
-  printf("      Total Bandwidth (MHz) = %-17.15g\n", hdr->bandwidth);
-  printf("             Number of lags = %ld\n", hdr->num_lags);
-  printf("              Number of IFs = %d\n", hdr->nifs);
-  printf("   Other information:\n");
-  if (hdr->sum==1)
-    printf("      IFs are summed.\n");
-  if (hdr->freqinversion==1)
-    printf("      Frequency band is inverted.\n");
-  if (hdr->lagformat==0)
-    printf("      Lags are 16 bit integers.\n\n");
+  int hdr_vers;
+  WAPP_HEADERv1 *hdr1=NULL;
+  WAPP_HEADERv234 *hdr234=NULL;
+  
+  hdr_vers = get_WAPP_HEADER_version(hdr);
+  if (hdr_vers==1)
+    hdr1 = (WAPP_HEADERv1 *)hdr;
   else
-    printf("      Lags are 32 bit integers.\n\n");
+    hdr234 = (WAPP_HEADERv234 *)hdr;
+
+  if (hdr_vers==1){
+    printf("\n             Header version = %ld\n", hdr1->header_version);
+    printf("        Header size (bytes) = %ld\n", hdr1->header_size);
+    printf("                Source Name = %s\n", hdr1->src_name);
+    printf(" Observation Date (YYYMMDD) = %s\n", hdr1->obs_date);
+    printf("    Obs Start UT (HH:MM:SS) = %s\n", hdr1->start_time);
+    printf("             MJD start time = %.12f\n", 
+	   UT_strings_to_MJD(hdr1->obs_date, hdr1->start_time, &mjd_i, &mjd_d));
+    printf("                 Project ID = %s\n", hdr1->project_id);
+    printf("                  Observers = %s\n", hdr1->observers);
+    printf("                Scan Number = %ld\n", hdr1->scan_number);
+    printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", hdr1->src_ra);
+    printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", hdr1->src_dec);
+    printf("        Start Azimuth (deg) = %-17.15g\n", hdr1->start_az);
+    printf("     Start Zenith Ang (deg) = %-17.15g\n", hdr1->start_za);
+    printf("            Start AST (sec) = %-17.15g\n", hdr1->start_ast);
+    printf("            Start LST (sec) = %-17.15g\n", hdr1->start_lst);
+    printf("           Obs Length (sec) = %-17.15g\n", hdr1->obs_time);
+    printf("      Requested T_samp (us) = %-17.15g\n", hdr1->samp_time);
+    printf("         Actual T_samp (us) = %-17.15g\n", hdr1->wapp_time);
+    printf("         Central freq (MHz) = %-17.15g\n", hdr1->cent_freq);
+    printf("      Total Bandwidth (MHz) = %-17.15g\n", hdr1->bandwidth);
+    printf("             Number of lags = %ld\n", hdr1->num_lags);
+    printf("              Number of IFs = %d\n", hdr1->nifs);
+    printf("   Other information:\n");
+    if (hdr1->sum==1)
+      printf("      IFs are summed.\n");
+    if (hdr1->freqinversion==1)
+      printf("      Frequency band is inverted.\n");
+    if (hdr1->lagformat==0)
+      printf("      Lags are 16 bit integers.\n\n");
+    else
+      printf("      Lags are 32 bit integers.\n\n");
+  } else {
+    printf("\n             Header version = %ld\n", hdr234->header_version);
+    printf("        Header size (bytes) = %ld\n", hdr234->header_size);
+    printf("                Source Name = %s\n", hdr234->src_name);
+    printf("           Observation Type = %s\n", hdr234->obs_type);
+    printf(" Observation Date (YYYMMDD) = %s\n", hdr234->obs_date);
+    printf("    Obs Start UT (HH:MM:SS) = %s\n", hdr234->start_time);
+    printf("             MJD start time = %.12f\n", 
+	   UT_strings_to_MJD(hdr234->obs_date, hdr234->start_time, &mjd_i, &mjd_d));
+    printf("                 Project ID = %s\n", hdr234->project_id);
+    printf("                  Observers = %s\n", hdr234->observers);
+    printf("                Scan Number = %ld\n", hdr234->scan_number);
+    printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", hdr234->src_ra);
+    printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", hdr234->src_dec);
+    printf("        Start Azimuth (deg) = %-17.15g\n", hdr234->start_az);
+    printf("     Start Zenith Ang (deg) = %-17.15g\n", hdr234->start_za);
+    printf("            Start AST (sec) = %-17.15g\n", hdr234->start_ast);
+    printf("            Start LST (sec) = %-17.15g\n", hdr234->start_lst);
+    printf("           Obs Length (sec) = %-17.15g\n", hdr234->obs_time);
+    printf("      Requested T_samp (us) = %-17.15g\n", hdr234->samp_time);
+    printf("         Actual T_samp (us) = %-17.15g\n", hdr234->wapp_time);
+    printf("         Central freq (MHz) = %-17.15g\n", hdr234->cent_freq);
+    printf("      Total Bandwidth (MHz) = %-17.15g\n", hdr234->bandwidth);
+    printf("             Number of lags = %ld\n", hdr234->num_lags);
+    printf("              Number of IFs = %d\n", hdr234->nifs);
+    printf("   Other information:\n");
+    if (hdr234->sum==1)
+      printf("      IFs are summed.\n");
+    if (hdr234->freqinversion==1)
+      printf("      Frequency band is inverted.\n");
+    if (hdr234->lagformat==0)
+      printf("      Lags are 16 bit integers.\n\n");
+    else
+      printf("      Lags are 32 bit integers.\n\n");
+  }
 }
-
-
+ 
 int read_WAPP_rawblock(FILE *infiles[], int numfiles, 
-		      unsigned char *data, int *padding)
+		       unsigned char *data, int *padding)
 /* This routine reads a single record from the          */
 /* input files *infiles which contain 16 or 32 bit lags */
 /* data from the WAPP correlator at Arecibo.            */
@@ -769,8 +951,8 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 
 
 int read_WAPP_rawblocks(FILE *infiles[], int numfiles, 
-		       unsigned char rawdata[], int numblocks,
-		       int *padding)
+			unsigned char rawdata[], int numblocks,
+			int *padding)
 /* This routine reads numblocks WAPP records from the input  */
 /* files *infiles.  The 8-bit filterbank data is returned    */
 /* in rawdata which must have a size of numblocks *          */
@@ -801,8 +983,8 @@ int read_WAPP_rawblocks(FILE *infiles[], int numfiles,
 
 
 int read_WAPP(FILE *infiles[], int numfiles, float *data, 
-	     int numpts, double *dispdelays, int *padding, 
-	     int *maskchans, int *nummasked, mask *obsmask)
+	      int numpts, double *dispdelays, int *padding, 
+	      int *maskchans, int *nummasked, mask *obsmask)
 /* This routine reads numpts from the WAPP raw input   */
 /* files *infiles.  These files contain raw correlator */
 /* data from WAPP at Arecibo.  Time delays             */
@@ -855,15 +1037,15 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
 	memset(currentdata, padval, numblocks * sampperblk_st);
-    }
-    if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<numpts; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+      if (*nummasked > 0){ /* Only some of the channels are masked */
+	for (ii=0; ii<numpts; ii++){
+	  offset = ii * numchan_st;
+	  for (jj=0; jj<*nummasked; jj++)
+	    currentdata[offset+maskchans[jj]] = padval;
+	}
       }
     }
-
+    
     SWAP(currentdata, lastdata);
     firsttime=0;
   }
@@ -878,18 +1060,18 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
 	memset(currentdata, padval, numblocks * sampperblk_st);
-    }
-    if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<numpts; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+      if (*nummasked > 0){ /* Only some of the channels are masked */
+	for (ii=0; ii<numpts; ii++){
+	  offset = ii * numchan_st;
+	  for (jj=0; jj<*nummasked; jj++)
+	    currentdata[offset+maskchans[jj]] = padval;
+	}
       }
     }
-
+    
     dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
     SWAP(currentdata, lastdata);
-
+    
     if (numread != numblocks){
       free(rawdata1);
       free(rawdata2);
@@ -971,12 +1153,12 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
 	memset(currentdata, padval, ptsperblk_st);
-    }
-    if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<ptsperblk_st; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = padval;
+      if (*nummasked > 0){ /* Only some of the channels are masked */
+	for (ii=0; ii<ptsperblk_st; ii++){
+	  offset = ii * numchan_st;
+	  for (jj=0; jj<*nummasked; jj++)
+	    currentdata[offset+maskchans[jj]] = padval;
+	}
       }
     }
     SWAP(currentdata, lastdata);
@@ -991,12 +1173,12 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
     if (*nummasked==-1) /* If all channels are masked */
       memset(currentdata, padval, ptsperblk_st);
-  }
-  if (*nummasked > 0){ /* Only some of the channels are masked */
-    for (ii=0; ii<ptsperblk_st; ii++){
-      offset = ii * numchan_st;
-      for (jj=0; jj<*nummasked; jj++)
-	currentdata[offset+maskchans[jj]] = padval;
+    if (*nummasked > 0){ /* Only some of the channels are masked */
+      for (ii=0; ii<ptsperblk_st; ii++){
+	offset = ii * numchan_st;
+	for (jj=0; jj<*nummasked; jj++)
+	  currentdata[offset+maskchans[jj]] = padval;
+      }
     }
   }
   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
