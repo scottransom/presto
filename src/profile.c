@@ -306,10 +306,10 @@ int main(int argc, char **argv)
 		"Folding p-dotdot    (s/s^2)  =  %-.10e\n", pdd);
       fprintf(filemarker, 
 	      "Folding frequency      (hz)  =  %-.12f\n", f);
-      if (pd != 0.0)
+      if (fd != 0.0)
 	fprintf(filemarker, 
 		"Folding f-dot        (hz/s)  =  %-.8e\n", fd);
-      if (pdd != 0.0)
+      if (fdd != 0.0)
 	fprintf(filemarker, 
 		"Folding f-dotdot   (hz/s^2)  =  %-.8e\n", fdd);
       if (binary) {							

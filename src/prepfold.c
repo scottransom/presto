@@ -2,6 +2,13 @@
 #include "prepfold_cmd.h"
 #include "multibeam.h"
 
+/* This causes the barycentric motion to be calculated once per second */
+
+#define TDT 10.0
+
+/* Simple linear interpolation macro */
+#define LININTERP(X, xlo, xhi, ylo, yhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
+
 /* Some function definitions */
 
 int (*readrec_ptr)(FILE * infile, float *data, int numpts,
@@ -9,6 +16,7 @@ int (*readrec_ptr)(FILE * infile, float *data, int numpts,
 int read_resid_rec(FILE * file, double *toa, double *obsf);
 int read_floats(FILE * file, float *data, int numpts,
 		double *dispdelays, int numsubbands, int numchan);
+void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 
 /* The main program */
 
@@ -22,19 +30,18 @@ int main(int argc, char *argv[])
   float *data=NULL;
   double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
   double difft, tt, nc, pl, diff_epoch, recdt, *disp_dts=NULL;
-  double orb_baryepoch=0.0, topoepoch, baryepoch;
-  double dtmp, dtmp2, tmptopoepoch=0.0, tmpbaryepoch=0.0;
-  double *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
+  double orb_baryepoch=0.0, topoepoch, baryepoch, barydispdt;
+  double dtmp, dtmp2, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
   double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays;
   double *btoa=NULL, *voverc=NULL, *bobsf=NULL, *tobsf=NULL;
   double *profs=NULL, *delta_ts=NULL, *topo_ts=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
-  int numchan=1, binary=0, np, pnum, lorec=0, hirec=0;
+  int numchan=1, binary=0, np, pnum;
   int slen, ptsperrec=1, numpoints=0;
   long ii, jj, numbarypts=0, worklen=0;
   long numfolded=0, totnumfolded=0;
-  long numrecs=0, totnumrecs=0;
+  long lorec=0, hirec=0, numrecs=0, totnumrecs=0;
   long numbinpoints, proflen, currentrec;
   unsigned long numrec=0;
   multibeam_tapehdr hdr;
@@ -119,7 +126,7 @@ int main(int argc, char *argv[])
     /* Read the first header file and generate an infofile from it */
 
     chkfread(&hdr, 1, HDRLEN, infile);
-    chkfileseek(infile, 0L, sizeof(char), SEEK_SET);
+    rewind(infile);
     multibeam_hdr_to_inf(&hdr, &idata);
     idata.dm = cmd->dm;
     if (idata.object) {						
@@ -152,15 +159,12 @@ int main(int argc, char *argv[])
 
     /* Determine the number of records to use from the command line */
 
-    lorec = (int) (cmd->startT / T * numrec + DBLCORRECT);
-    hirec = (int) (cmd->endT / T * numrec + DBLCORRECT);
+    lorec = (long) (cmd->startT / T * numrec + DBLCORRECT);
+    hirec = (long) (cmd->endT / T * numrec + DBLCORRECT);
     numrec = hirec - lorec;
     T = numrec * recdt;
     N = numrec * ptsperrec;
-    
-    /* 1000.0 extra secs allows for worst case barycentric correction */
-
-    endtime = T + 1000;
+    endtime = T + 2 * TDT;
 
     /* Topocentric and barycentric times of folding epoch data */
 
@@ -169,6 +173,13 @@ int main(int argc, char *argv[])
 	lorec * recdt / SECPERDAY;
       barycenter(&topoepoch, &baryepoch, &dtmp, 1, rastring,
 		 decstring, obs, ephem);
+
+      /* Correct the barycentric time for the dispersion delay.     */
+      /* This converts the barycentric time to infinite frequency.  */
+
+      barydispdt = delay_from_dm(cmd->dm, idata.freq + 
+				 (idata.num_chan - 1) * idata.chan_wid);
+      baryepoch -= (barydispdt / SECPERDAY);
     }
 
     /* The data collection routine to use */
@@ -180,7 +191,10 @@ int main(int argc, char *argv[])
     numchan = idata.num_chan;
     worklen = ptsperrec;
 
-    /* How many sub-bands will we de-disperse to */
+    /* How many sub-bands will we de-disperse to     */
+    /* This should be made more robust by selecting  */
+    /* a sub-bandwidth that keeps the smearing below */
+    /* an acceptable level.                         */
     
     if (!cmd->nsubP)
       cmd->nsub = numchan / 8;
@@ -310,15 +324,15 @@ int main(int argc, char *argv[])
   
   /* Determine the length of the profile */				
   
-  if (cmd->proflenP) {						
-    proflen = cmd->proflen;						
-  } else {								
-    proflen = (long) (p / dt + 0.5);				
-  }									
-  
-  /* Determine the frequency shifts caused by the orbit if needed */	
-  
-  if (binary) {							
+  if (cmd->proflenP) {
+    proflen = cmd->proflen;
+  } else {
+    proflen = (long) (p / dt + 0.5);
+  }
+
+  /* Determine the frequency shifts caused by the orbit if needed */
+
+  if (binary) {
     
     /* Save the orbital solution every half second               */
     /* The times in *tp are now calculated as barycentric times. */
@@ -330,8 +344,8 @@ int main(int argc, char *argv[])
     else orbdt = endtime / 4096.0;
     numbinpoints = (long) floor(endtime/orbdt + 0.5) + 1;
     Ep = dorbint(startE, numbinpoints, orbdt, &orb);
-    tp = gen_dvect(numpoints);
-    for (ii = 0; ii < numpoints; ii++) tp[ii] = ii * orbdt;
+    tp = gen_dvect(numbinpoints);
+    for (ii = 0; ii < numbinpoints; ii++) tp[ii] = ii * orbdt;
 
     /* Convert Eccentric anomaly to time delays */			
     
@@ -348,12 +362,12 @@ int main(int argc, char *argv[])
     if (cmd->psrnameP)
       fprintf(filemarker, 
 	      "Pulsar                       =  %s\n", pname);
-    if (tmptopoepoch != 0.0)
+    if (topoepoch != 0.0)
       fprintf(filemarker, 
-	      "Folding (topo) epoch  (MJD)  =  %-17.11f\n", tmptopoepoch);
-    if (tmpbaryepoch != 0.0)
+	      "Folding (topo) epoch  (MJD)  =  %-17.11f\n", topoepoch);
+    if (baryepoch != 0.0)
       fprintf(filemarker, 
-	      "Folding (bary) epoch  (MJD)  =  %-17.11f\n", tmpbaryepoch);
+	      "Folding (bary) epoch  (MJD)  =  %-17.11f\n", baryepoch);
     fprintf(filemarker, 
 	    "Data pt duration (dt)   (s)  =  %-.12f\n", dt);
     fprintf(filemarker, 
@@ -370,10 +384,10 @@ int main(int argc, char *argv[])
 	      "Folding p-dotdot    (s/s^2)  =  %-.10e\n", pdd);
     fprintf(filemarker, 
 	    "Folding frequency      (hz)  =  %-.12f\n", f);
-    if (pd != 0.0)
+    if (fd != 0.0)
       fprintf(filemarker, 
 	      "Folding f-dot        (hz/s)  =  %-.8e\n", fd);
-    if (pdd != 0.0)
+    if (fdd != 0.0)
       fprintf(filemarker, 
 	      "Folding f-dotdot   (hz/s^2)  =  %-.8e\n", fdd);
     if (binary) {							
@@ -395,7 +409,10 @@ int main(int argc, char *argv[])
     
   /* The number of topo to bary time points to generate with TEMPO */
 
-  numbarypts = (long) floor((endtime - 400.0)/ orbdt);
+  if (binary)
+    numbarypts = (long) floor((endtime - 400.0)/ orbdt);
+  else
+    numbarypts = (long) floor((endtime - 400.0)/ orbdt);
 
   if (!strcmp(idata.band, "Radio")) {
     
@@ -406,7 +423,6 @@ int main(int argc, char *argv[])
     /* The topocentric observation frequencies */
     
     tobsf = gen_dvect(numchan);
-    
     tobsf[0] = idata.freq;
     for (ii = 0; ii < numchan; ii++) {
       tobsf[ii] = tobsf[0] + ii * tdf;

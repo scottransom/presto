@@ -11,7 +11,7 @@
 #define MINMINIBIN 3.0
 
 /* Bins to ignore at the beginning and end of the big FFT */
-#define BINSTOIGNORE 1024
+#define BINSTOIGNORE 0
 
 /* Function definitions */
 static int not_already_there_rawbin(rawbincand newcand, 
@@ -133,7 +133,7 @@ int main(int argc, char *argv[])
 
   /* Low and high Fourier freqs to check */
 
-  if (cmd->rlo < cmd->lobin){
+  if (!cmd->rloP || (cmd->rloP && cmd->rlo < cmd->lobin)){
     if (cmd->lobin == 0)
       cmd->rlo = BINSTOIGNORE;
     else
@@ -192,17 +192,15 @@ int main(int argc, char *argv[])
 
     /* Adjust our search parameters if close to end of zone to search */
 
-    binsleft = cmd->rhi - cmd->lobin - filepos;
+    binsleft = cmd->rhi - (filepos + cmd->lobin);
     if (binsleft < cmd->minfft) 
       break;
-    if (binsleft < numtoread)     /* 1st try decreasing the numtoread  */
+    if (binsleft < numtoread) {  /* Change numtoread */
       numtoread = cmd->maxfft;
-    if (binsleft <= numtoread) {  /* Next try changing our maxfft size */
-      for (cmd->maxfft = cmd->minfft; \
-	   cmd->maxfft <= binsleft; \
-	   cmd->maxfft *= 2);
-      cmd->maxfft /= 2;
-      numtoread = cmd->maxfft;
+      while (binsleft < numtoread){
+	cmd->maxfft /= 2;
+	numtoread = cmd->maxfft;
+      }
     }
     fftlen = cmd->maxfft;
 
@@ -492,8 +490,12 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
   
   /* Calculate the approximate error in our value of spin period */
 
-  psrperr = fabs(cand->full_T / (cand->full_lo_r + 0.5 * cand->mini_N) -
-		 cand->full_T / cand->full_lo_r);
+  if (cand[k].full_lo_r == 0.0)
+    psrperr = cand[k].psr_p;
+  else 
+    psrperr = fabs(cand->full_T / 
+		   (cand->full_lo_r + 0.5 * cand->mini_N) -
+		   cand->full_T / cand->full_lo_r);
 
   /* Run through RAs in database looking for things close  */
   /* If find one, check the DEC as well (the angle between */
@@ -637,8 +639,13 @@ static void file_rawbin_candidates(rawbincand *cand, char *notes,
       orbperr = 0.5 * cand[k].full_T / cand[k].mini_N;
       
       /* Calculate the approximate error in our value of spin period */
-      psrperr = fabs(cand[k].full_T / (cand[k].full_lo_r + 0.5 * cand[k].mini_N) -
-		     cand[k].full_T / cand[k].full_lo_r);
+
+      if (cand[k].full_lo_r == 0.0)
+	psrperr = cand[k].psr_p;
+      else 
+	psrperr = fabs(cand[k].full_T / (cand[k].full_lo_r + 
+					 0.5 * cand[k].mini_N) -
+		       cand[k].full_T / cand[k].full_lo_r);
       
       /*  Now output it... */
 
