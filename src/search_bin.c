@@ -451,7 +451,7 @@ static void compare_rawbin_cands(rawbincand *list, int nlist,
 }
 
 
-static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
+static int comp_rawbin_to_cand(rawbincand *cand, infodata *idata,
 			       char *output, int full)
   /* Compares a binary PSR candidate defined by its props found in    */
   /*   *cand, and *idata with all of the pulsars in the pulsar        */
@@ -467,9 +467,9 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
 
   /* If calling for the first time, read the database. */
 
-  if (!np) {
+  if (!np)
     np = read_database(&pdata);
-  }
+
   /* Convert the beam width to radians */
 
   beam2 = 2.0 * ARCSEC2RAD * idata->fov;
@@ -490,8 +490,8 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
   
   /* Calculate the approximate error in our value of spin period */
 
-  if (cand[k].full_lo_r == 0.0)
-    psrperr = cand[k].psr_p;
+  if (cand->full_lo_r == 0.0)
+    psrperr = cand->psr_p;
   else 
     psrperr = fabs(cand->full_T / 
 		   (cand->full_lo_r + 0.5 * cand->mini_N) -

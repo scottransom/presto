@@ -29,20 +29,19 @@ int main(int argc, char *argv[])
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
-  double difft, tt, nc, pl, diff_epoch, recdt, *disp_dts=NULL;
+  double difft, tt, nc, pl, recdt, *disp_dts=NULL;
   double orb_baryepoch=0.0, topoepoch, baryepoch, barydispdt;
-  double dtmp, dtmp2, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
+  double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
   double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
   double *voverc=NULL, *bobsf=NULL, *tobsf=NULL;
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
-  int numchan=1, binary=0, np, pnum, numdelays;
-  int slen, ptsperrec=1, numpoints=0;
+  int numchan=1, binary=0, np, pnum, numdelays, slen, ptsperrec=1;
   long ii, jj, numbarypts=0, worklen=0;
   long numfolded=0, totnumfolded=0;
   long lorec=0, hirec=0, numrecs=0, totnumrecs=0;
-  long numbinpoints, proflen, currentrec;
+  long numbinpoints=0, proflen, currentrec;
   unsigned long numrec=0, arrayoffset=0;
   multibeam_tapehdr hdr;
   fourierprops rzwcand;
@@ -70,9 +69,9 @@ int main(int argc, char *argv[])
 
   printf("\n\n");
   printf("        Pulsar Raw-Data Folding Search Routine\n");
-  printf("  Used for DM and period determination of a PSR candidate.\n");
+  printf(" Used for DM and/or period determination of PSR candidates.\n");
   printf("                 by Scott M. Ransom\n");
-  printf("                    25 Nov, 1999\n\n");
+  printf("                    23 Dec, 1999\n\n");
 
   /* Determine the root input file name and the input info file name */
 
@@ -87,8 +86,8 @@ int main(int argc, char *argv[])
   rootfilenm[slen] = '\0';
   strncpy(rootfilenm, cmd->argv[0], slen);
   if (!cmd->pkmbP && !cmd->ebppP){
-    printf("Reading input  data from '%s'.\n", cmd->argv[0]);
-    printf("Reading information from '%s.inf'.\n\n", rootfilenm);
+    printf("Reading input data from '%s'\n", cmd->argv[0]);
+    printf("Reading information from '%s.inf'\n\n", rootfilenm);
 
     /* Read the info file if available */
 
@@ -119,7 +118,7 @@ int main(int argc, char *argv[])
   else
     strcpy(ephem, "DE200");
     
-  /* Set-up values if we are using the Parkes multibeam */
+  /* Set-up values if we are using the Parkes Multibeam System */
 
   if (cmd->pkmbP){
 
@@ -351,7 +350,6 @@ int main(int argc, char *argv[])
     
     orb.w *= DEGTORAD;
     E_to_phib(Ep, numbinpoints, &orb);
-    numdelays = numbinpoints;
   }
 
   /* Output some informational data on the screen and to the */
@@ -423,6 +421,8 @@ int main(int argc, char *argv[])
     
   } else {
     
+    /*****  Need to do this  *****/
+
     printf("\n  This routine is only for use with multi-channel radio\n");
     printf("  data.  Exiting.\n\n");
     exit(1);
@@ -444,7 +444,6 @@ int main(int argc, char *argv[])
     /* The number of topo to bary points to generate with TEMPO */
     
     numbarypts = endtime / TDT + 1;
-    if (numdelays == 0) numdelays = numbarypts;
 
     /* Allocate some arrays */
     
@@ -463,6 +462,9 @@ int main(int argc, char *argv[])
     printf("\nGenerating barycentric corrections...\n");
     barycenter(topotimes, barytimes, voverc, numbarypts, \
 	       rastring, decstring, obs, ephem);
+    printf("   Insure you check the file %s.tempo_out for\n", \
+	   cmd->argv[0]);
+    printf("   errors from TEMPO when complete.\n\n");
 
     /* Determine the average V/c */
 
@@ -472,60 +474,29 @@ int main(int argc, char *argv[])
     avg_voverc /= (numbarypts - 1.0);
     free(voverc);
 
-    /* printf("Given... (topoepoch = %15.9f, baryepoch = %15.9f)\n", \ */
-    /*        topoepoch, baryepoch); */
-    /* for (i = 0 ; i < 20 ; i++){ */
-    /*   printf("Tt = %15.9f  Tb = %15.9f  orbcorr = %15.9f\n", \ */
-    /* 	 (topo_ts[i] - topoepoch) * SECPERDAY, \ */
-    /* 	 (btoa[i] - baryepoch) * SECPERDAY, \ */
-    /* 	 (btoa[i] - baryepoch) * SECPERDAY - Ep[i]); */
-    /* } */
-
-    printf("   Insure you check the file %s.tempo_out for\n", \
-	   cmd->argv[0]);
-    printf("   errors from TEMPO when complete.\n\n");
-
-    printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
-    
     if (binary){
 
       /* Modify the binary times so that they refer to topocentric   */
       /* reference times.  This way we can barycenter while we fold. */
       
       for (ii = 0; ii < numbinpoints; ii++){
-	arrayoffset += 2;  /* Beware nasty NR zero-offset kludges! */
-	hunt(barytimes, numbarypts, 
-	     baryepoch + tp[ii] / SECPERDAY, &arrayoffset);
+	arrayoffset++;  /* Beware nasty NR zero-offset kludges! */
+	dtmp = baryepoch + tp[ii] / SECPERDAY;
+	hunt(barytimes, numbarypts, dtmp, &arrayoffset);
 	arrayoffset--;
-	tp[ii] = LININTERP(X, xlo, xhi, ylo, yhi);    
-
-
-    diff_epoch = (baryepoch - topoepoch) * SECPERDAY;
-    if (binary){
-      for (ii = 0 ; ii < numbarypts ; ii++){
-	dtmp = (btoa[ii] - baryepoch) * SECPERDAY;
-	dtmp2 = (topo_ts[ii] - btoa[ii]) * SECPERDAY + diff_epoch;
-	/* delta_ts are offsets from the appropriate topocentric times */
-	delta_ts[ii] = lin_interp_E(Ep, dtmp, 0.0, orbdt, \
-				    endtime - orbdt) + dtmp2;
+	tp[ii] = LININTERP(dtmp, barytimes[arrayoffset], 
+			   barytimes[arrayoffset+1], 
+			   topotimes[arrayoffset], 
+			   topotimes[arrayoffset+1]);    
       }
-      free(Ep);
+      numdelays = numbinpoints;
     } else {
-      for (ii = 0 ; ii < numbarypts ; ii++){
-	/* delta_ts are offsets from the appropriate topocentric times */
-	delta_ts[ii] = diff_epoch - (btoa[ii] - topo_ts[ii]) * SECPERDAY;
-      }
+      tp = topotimes;
+      Ep = barytimes;
+      numdelays = numbarypts;
     }
 
-    /* printf("Calculated...\n"); */
-    /* for (i = 0 ; i < 20 ; i++){ */
-    /*   printf("Tt = %15.9f  Tb = %15.9f\n", i * orbdt, \ */
-    /* 	 i * orbdt - lin_interp_E(delta_ts, i * orbdt, \ */
-    /* 				  0.0, orbdt, endtime - orbdt)); */
-    /* } */
-
-    free(btoa);
-    free(topo_ts);
+    printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
     
     /* Allocate and initialize some arrays and other information */
     
@@ -537,11 +508,10 @@ int main(int argc, char *argv[])
     
     /* Move to the correct starting record */
     
-    currentrec = skip_to_multibeam_rec(infile, lorec);
-    
-    /* Count the total number of records to fold */
-
-    printf("Completed record 0 of %ld", totnumrecs);
+    if (cmd->pkmbP){
+      currentrec = skip_to_multibeam_rec(infile, lorec);
+      printf("Completed record 0 of %ld", totnumrecs);
+    }
 
     /* Now, fold the data for each channel */
     
@@ -567,12 +537,13 @@ int main(int argc, char *argv[])
 	numfolded = 0;
 	fold(data + jj * worklen, worklen, dt, tt, 
 	     profs + jj * proflen, proflen, cmd->phs, 
-	     f, fd, fdd, 1, delta_ts, tp,
-	     numbarypts, NULL, &stats);
+	     f, fd, fdd, 1, Ep, tp, numdelays, NULL, &stats);
       }
       totnumfolded += numfolded;
       numrecs++;
     }
+    free(barytimes);
+    free(topotimes);
   }
   
   printf("\rCompleted record #%ld of %ld\n\n", 
@@ -600,12 +571,18 @@ int main(int argc, char *argv[])
   fclose(infile);
   printf("Done.\n\n");
 
-  /* Close the files and cleanup */
+  /* Free our memory  */
+
   free(data);
-  free(tobsf);
-  free(bobsf);
   free(profs);
-  free(delta_ts);
+  free(rootfilenm);
+  free(outfilenm);
+  if (binary){
+    free(Ep);
+    free(tp);
+  }
+  if (tobsf) free(tobsf);
+  if (bobsf) free(bobsf);
   if (idata.onoff) free(idata.onoff);
   return (0);
 }
