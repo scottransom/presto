@@ -666,12 +666,17 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	  find_min_max_arr(search->proflen, dmprofs + ii * 
 			   search->proflen, &min, &max);
 	  foffset = doppler(lofreq + (ii - 0.45) * dsubf, search->avgvoverc);
-	  fnorm = 0.9 * dsubf / (max - min);
-	  for (jj = 0; jj < search->proflen; jj++)
-	    tmpprof[jj] = (dmprofs[ii * search->proflen + jj] - min) * 
-	      fnorm + foffset;
+	  if (min==max){
+	    for (jj = 0; jj < search->proflen; jj++)
+	      tmpprof[jj] = 0.45 * dsubf + foffset;
+	  } else {
+	    fnorm = 0.9 * dsubf / (max - min);
+	    for (jj = 0; jj < search->proflen; jj++)
+	      tmpprof[jj] = (dmprofs[ii * search->proflen + jj] - min) * 
+		fnorm + foffset;
+	  }
 	  tmpprof[search->proflen] = tmpprof[0];
-	  cpgline(search->proflen + 1, phaseone, tmpprof);
+	  cpgline(search->proflen+1, phaseone, tmpprof);
 	}
 	free(tmpprof);
       }
