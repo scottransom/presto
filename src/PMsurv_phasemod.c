@@ -20,7 +20,7 @@
 /*    1 = no overlap of successive miniFFTs           */
 /*    2 = overlap 1/2 of each miniFFT                 */
 /*    4 = overlap 3/4 of each miniFFT                 */
-#define OVERLAPFACT 2
+#define OVERLAPFACT 4
 
 /* Blocks of length maxfft to work with at a time */
 #define WORKBLOCK 4
