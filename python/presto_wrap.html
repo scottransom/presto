@@ -2135,9 +2135,34 @@ presto_wrap.c</TITLE>
 <BLOCKQUOTE>[ returns void  ]
 <BR></BLOCKQUOTE>
 
-<P><TT><B>fold(data,N,dt,tb,prof,proflen,fo,fdot,fdotdot,binary,delays,orbto,orbdt,numdelays,onoffpairs)</B></TT>
-<BLOCKQUOTE>[ returns void  ]
+<P><TT><B>fold(data,numdata,dt,tlo,prof,numprof,startphase,fo,fdot,fdotdot,flags,delays,delaytimes,numdelays,onoffpairs,stats)</B></TT>
+<BLOCKQUOTE>[ returns double  ]
 <BR></BLOCKQUOTE>
+
+<P><TT><B>simplefold(data,numdata,dt,tlo,prof,numprof,startphase,fo,fdot,fdotdot)</B></TT>
+<BLOCKQUOTE>[ returns double  ]
+<BR>  
+ * This routine is a simplified pulsar folding algorithm.  It will fold
+ * data for a pulsar with single and double frequency derivatives.  The
+ * profile will have the data corresponding to time 'tlo' placed at
+ * the phase corresponding to time 'tlo' using 'fo', 'fdot', and 'fdotdot'
+ * plus 'startphs'.  The function arguments are:
+ *
+ * float *data:       A float pointer containing the data to fold.
+ * int numdata:       The number of points in *data (or number to fold).
+ * double dt:         The integration length of each data bin.
+ * double tlo;        Time corresponding to the start of the 1st data pt.
+ * double *prof:      A double precision array of length numprof
+ *                       to contain the profile.
+ * int numprof:       The length of the profile array.
+ * double startphs:   The profile phase [0-1] to place the first point.
+ * double fo:         The starting frequency to fold.
+ * double fdot:       The starting frequency derivative.
+ * double fdotdot:    The frequency double-derivative.
+ * NOTE:  fo, fdot, and fdotdot are the values corresponding to T=0 (i.e.
+ *        to the beginning of the first data point)
+   
+</BLOCKQUOTE>
 
 <P><TT><B>doppler(freq_observed,voverc)</B></TT>
 <BLOCKQUOTE>[ returns double  ]
@@ -2295,6 +2320,9 @@ presto_wrap.c</TITLE>
    'lofreq' is the center frequency in MHz of the lowest frequency      
    channel.  'chanwidth' is the width in MHz of each channel.  The      
    returned array is allocated by this routine.                         
+   Note:  When performing a subband search, the delays for each         
+     subband must be calculated with the frequency of the highest       
+     channel in each subband, _not_ the center subband frequency.       
 </BLOCKQUOTE>
 
 

@@ -1079,15 +1079,40 @@ void foldfile(FILE *datafile, double dt, double *prof, long proflen,
 	      int poisson, double *avg, double *var, float *chiarr, 
 	      double *onoffpairs, long *totnumfolded);
 
-%apply double* IN_1D_DOUBLE { double *prof, 
-			      double *delays, 
-			      double *onoffpairs};
 %apply float* IN_1D_FLOAT { float *data };
-%apply long *OUTPUT { long *totnumfolded };
-void fold(float *data, long N, double dt, double tb, double *prof, 
-	  long proflen, double fo, double fdot, double fdotdot, 
-	  int binary, double *delays, double orbto, double orbdt, 
-	  long numdelays, double *onoffpairs, long *totnumfolded);
+%apply double* IN_1D_DOUBLE { double *prof, 
+			      double *delays,
+			      double *delaytimes };
+%apply int* IN_1D_INTEGER { int *onoffpairs }; 
+double fold(float *data, int numdata, double dt, double tlo, 
+	    double *prof, int numprof, double startphase, 
+	    double fo, double fdot, double fdotdot, int flags, 
+	    double *delays, double *delaytimes, int numdelays, 
+	    int *onoffpairs, foldstats *stats);
+
+%apply float* IN_1D_FLOAT { float *data };
+%apply double* IN_1D_DOUBLE { double *prof };
+double simplefold(float *data, int numdata, double dt, double tlo,
+		  double *prof, int numprof, double startphase, 
+		  double fo, double fdot, double fdotdot);
+/* This routine is a simplified pulsar folding algorithm.  It    */
+/* folds data for a pulsar with single and double frequency      */
+/* derivatives.  The profile will have the data corresponding    */
+/* to time 'tlo' placed at the phase corresponding to time 'tlo' */
+/* using 'fo', 'fdot', and 'fdotdot' plus 'startphs'.            */
+/* Arguments:                                                    */
+/*    'data' is a float array containing the data to fold.       */
+/*    'numdata' is the number of points in *data.                */
+/*    'dt' is the time duration of each data bin.                */
+/*    'tlo' is the time of the start of the 1st data pt.         */
+/*    'prof' is a double prec array to contain the profile.      */
+/*    'numprof' is the length of the profile array.              */
+/*    'startphs'is the phase offset [0-1] for the first point.   */
+/*    'fo' the starting frequency to fold.                       */
+/*    'fdot' the starting frequency derivative.                  */
+/*    'fdotdot' the frequency second derivative.                 */
+/* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0        */
+/*    (i.e. to the beginning of the first data point)            */
 
 
 double doppler(double freq_observed, double voverc);
