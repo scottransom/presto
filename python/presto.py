@@ -1848,12 +1848,9 @@ def alias(r, rny):
     return 2.0 * rny - r
 
 def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
-                     numr = 300, numz = 300, 
-                     contours = None,
-                     title = None, 
-                     image = "astro",
-                     device = "/XWIN",
-                     norm = 1.0):
+                     numr = 300, numz = 300, T = None, 
+                     contours = None, title = None, 
+                     image = "astro", device = "/XWIN", norm = 1.0):
    """
    show_ffdot_plane(data, r, z):
        Show a color plot of the F-Fdot plane centered on the point 'r', 'z'.
@@ -1875,10 +1872,19 @@ def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
    print "The max value is located at:  r =", startbin + hir * dr, \
          "  z =", startz + hiz * dz
    print ""
-   Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency (bins)", \
-                 laby = "Fourier Frequency Derivative", \
-                 title = title, image = image, \
-                 contours = contours, device = device)
+   if (T == None):
+      Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency (bins)", \
+                    laby = "Fourier Frequency Derivative", \
+                    title = title, image = image, \
+                    contours = contours, device = device)
+   else:
+      Pgplot.plot2d(ffdpow, x/T, y/T**2.0, labx = "Frequency (hz)", \
+                    laby = "Frequency Derivative (Hz/sec)", \
+                    labx = "Fourier Frequency", laby = \
+                    "Fourier Frequency Derivative", \
+                    title = title, image = image, \
+                    contours = contours, device = device)
+
 
 def v_from_e(e, psr):
    """
