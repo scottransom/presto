@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-import struct, getopt, sys
-from umath import *
-from Numeric import *
-from fftfit import *
+import struct, getopt, sys, umath, fftfit, psr_utils
+import Numeric as Num
 from infodata import infodata
 from bestprof import bestprof
 from prepfold import pfd
@@ -20,11 +18,11 @@ def measure_phase(profile, template):
             (returned as a tuple).  These are defined as in Taylor's
             talk at the Royal Society.
     """
-    c,amp,pha = cprof(template)
+    c,amp,pha = fftfit.cprof(template)
     pha.savespace()
     pha1 = pha[0]
-    pha = fmod(pha-arange(1,len(pha)+1)*pha1,TWOPI)
-    shift,eshift,snr,esnr,b,errb,ngood = fftfit(profile,amp,pha)
+    pha = umath.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
+    shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
 def usage():
@@ -130,9 +128,13 @@ if __name__ == '__main__':
 
     # Read key information from the bestprof file
     fold = bestprof(sys.argv[-1]+".bestprof")
+    timestep_sec = fold.T / numtoas
+    timestep_day = timestep_sec / SECPERDAY
+    fold.epoch = fold.epochi+fold.epochf
 
     # Read the prepfold output file and the binary profiles
     fold_pfd = pfd(sys.argv[-1])
+    
     # Over-ride the DM that was used during the fold
     if (DM!=0.0):
         fold_pfd.bestdm = DM
@@ -149,62 +151,45 @@ if __name__ == '__main__':
             fold_pfd.bestdm = DM
             fold_pfd.numchan = numchannels
 
+    # Kill any required channels and/or subband
+    fold_pfd.kill_subbands(kill)
+
+    # De-disperse at the requested DM
+    fold_pfd.dedisperse()
+    
+    # Combine the profiles as required
+    profs = fold_pfd.combine_profs(numtoas, numsubbands)
+
+    # PRESTO de-disperses at the high frequency channel so determine a
+    # correction to the middle of the band
+    if not events:
+	subpersumsub = fold_pfd.nsub/numsubbands
+	# Calculate the center of the summed subband freqs and delays
+	sumsubfreqs = (Num.arange(numsubbands)+0.5)*subpersumsub*fold_pfd.subdeltafreq + \
+                      (fold_pfd.lofreq-0.5*fold_pfd.chan_wid)
+	sumsubdelays = (psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) -
+                        fold_pfd.hifreqdelay)/SECPERDAY
+    else:
+	fold_pfd.subfreqs = asarray([0.0])
+	sumsubfreqs = asarray([0.0])
+	sumsubdelays = asarray([0.0])
+
     # Read the template profile
     if templatefilenm is not None:
         template_fold = bestprof(templatefilenm)
         template = template_fold.normalize()
     else:
-        template = gaussian_profile(fold_pfd.proflen, 0.0, gaussianwidth)
+        template = psr_utils.gaussian_profile(fold_pfd.proflen, 0.0, gaussianwidth)
         template = template / max(template)
 
-    timestep_sec = fold.T / numtoas
-    timestep_day = timestep_sec / SECPERDAY
-
-    # PRESTO de-disperses at the high frequency channel so determine a
-    # correction to the middle of the band
-    if not events:
-	binspersec = fold_pfd.fold_p1*fold_pfd.proflen
-	chanpersub = fold_pfd.numchan/fold_pfd.nsub
-	subdeltafreq = fold_pfd.chan_wid*chanpersub
-	losubfreq = fold_pfd.lofreq + subdeltafreq - fold_pfd.chan_wid
-	subfreqs = arange(fold_pfd.nsub, typecode='d')*subdeltafreq + losubfreq
-	subdelays = delay_from_DM(fold_pfd.bestdm, subfreqs)
-	hifreqdelay = subdelays[-1]
-	subdelays = subdelays-hifreqdelay
-	subdelays_bins = floor(subdelays*binspersec+0.5)
-	subpersumsub = fold_pfd.nsub/numsubbands
-	# Calculate the center of the summed subband freqs and delays
-	sumsubfreqs = (arange(numsubbands)+0.5)*subpersumsub*subdeltafreq + \
-                      (fold_pfd.lofreq-0.5*fold_pfd.chan_wid)
-	sumsubdelays = (delay_from_DM(fold_pfd.bestdm, sumsubfreqs)-hifreqdelay)/SECPERDAY
-    else:
-	subdelays = asarray([0.0])
-	subdelays_bins = asarray([0.0])
-	sumsubdelays = asarray([0.0])
-	subfreqs = asarray([0.0])
-	sumsubfreqs = asarray([0.0])
-	
-    # Shift the profiles by the correct amount required by the best DM
-    for ii in range(fold_pfd.npart):
-        for jj in range(fold_pfd.nsub):
-            if jj in kill:
-                fold_pfd.profs[ii][jj] *= 0.0
-            else:
-                fold_pfd.profs[ii][jj] = rotate(fold_pfd.profs[ii][jj],
-                                                int(subdelays_bins[jj]))
-    #fold.epochf += DM_delay/SECPERDAY
-    if fold.epochf > 1.0:
-        fold.epochf -= 1.0
-        fold.epochi += 1
-    fold.epoch = fold.epochi+fold.epochf
-
+    # Determine the Telescope used
     if (not fold.topo):
         obs = '@'  # Solarsystem Barycenter
     else:
         try: obs = scopes[fold_pfd.telescope.split()[0]]
 	except KeyError:  print "Unknown telescope!!!"
 
-    # Read the polyco file
+    # Read the polyco file (if required)
     if (fold.psr and fold.topo):
         pcs = polycos(fold.psr, sys.argv[-1]+".polycos")
         (fold.phs0, fold.f0) = pcs.get_phs_and_freq(fold.epochi, fold.epochf)
@@ -214,59 +199,58 @@ if __name__ == '__main__':
         fold.phs0 = 0.0
         (fold.f0, fold.f1, fold.f2) = p_to_f(fold.p0, fold.p1, fold.p2)
 
-    # Combine the sub-integration profiles
-    profs = zeros((numtoas, numsubbands, fold_pfd.proflen), 'd')
-    dp = fold_pfd.npart/numtoas
-    ds = fold_pfd.nsub/numsubbands
-    for ii in range(numtoas):
-        # Combine the subbands if required
-        if (fold_pfd.nsub > 1):
-            for jj in range(numsubbands):
-                subprofs = add.reduce(fold_pfd.profs[:,jj*ds:(jj+1)*ds], 1)
-                # Combine the time intervals
-                profs[ii][jj] = add.reduce(subprofs[ii*dp:(ii+1)*dp])
-        else:
-            profs[ii][0] = add.reduce(fold_pfd.profs[ii*dp:(ii+1)*dp,0])
-
-    #if (0):
-    #    for ii in range(numtoas):
-    #        profs[ii][0] = (profs[ii][0]-min(profs[ii][0]))/max(profs[ii][0])
-    #    plot2d(profs[:,0], arange(64.0)/64.0, arange(numtoas, typecode='d'), image='antigrey')
-    #    closeplot()
-
+    #
     # Calculate the TOAs
+    #
+
     for ii in range(numtoas):
+
+        # The .pfd file was generated using -nosearch and a specified
+        # folding period, p-dot, and p-dotdot (or f, f-dot, and f-dotdot).
         if (pcs is None):
+            # Time at the middle of the interval in question
             midtime = fold.epoch + (ii+0.5)*timestep_day
             p = 1.0/calc_freq(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
             t0 = calc_t0(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
+        # The .pfd file was folded using polycos
         else:
+            # Time at the middle of the interval in question
             mjdf = fold.epochf + (ii+0.5)*timestep_day
             (phs, f0) = pcs.get_phs_and_freq(fold.epochi, mjdf)
             phs -= fold.phs0
             p = 1.0/fold.f0
             t0 = fold.epochi+mjdf - phs*p/SECPERDAY
+
         for jj in range(numsubbands):
             prof = profs[ii][jj]
+
             try:
+                # Try using FFTFIT first
 		if (len(template)==len(prof)):
 		    shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template)
+                    # tau and tau_err are the predicted phase of the pulse arrival
 		    tau, tau_err = shift/fold_pfd.proflen, eshift/fold_pfd.proflen
 		else:
+                    # These are "error" flags
 		    shift = 0.0
 		    eshift = 999.0
-		if (fabs(shift) < 1e-7 and
-		    fabs(eshift-999.0) < 1e-7):
+                
+                # If that failed, use a time-domain correlation
+		if (umath.fabs(shift) < 1e-7 and
+		    umath.fabs(eshift-999.0) < 1e-7):
 		    # Not enough structure in the template profile for FFTFIT
 		    # so use time-domain correlations instead
-		    tau = measure_phase_corr(prof, template)
+		    tau = psr_utils.measure_phase_corr(prof, template)
 		    # This needs to be changed
 		    tau_err = 0.1/len(prof)
-		write_princeton_toa(t0+(tau*p+offset)/SECPERDAY+sumsubdelays[jj],
-                                    tau_err*p*1000000.0,
-                                    sumsubfreqs[jj], fold_pfd.bestdm, obs=obs)
+
+                # Send the TOA to STDOUT
+		psr_utils.write_princeton_toa(t0+(tau*p+offset)/SECPERDAY+sumsubdelays[jj],
+                                              tau_err*p*1000000.0,
+                                              sumsubfreqs[jj], fold_pfd.bestdm, obs=obs)
 		if (otherouts):
 		    print "FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" % \
 		        (b, errb, snr, esnr)
+
 	    except ValueError, fftfit.error:
                 pass

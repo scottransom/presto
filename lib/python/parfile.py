@@ -1,5 +1,5 @@
 from types import StringType, FloatType
-from miscutils import ra_to_rad, dec_to_rad, pferrs
+from psr_utils import ra_to_rad, dec_to_rad, pferrs
 #
 # The following are the parameters that are accepted in a
 # par file when trying to determine a pulsar ephemeris.

@@ -7,9 +7,11 @@ from types import StringType, FloatType, IntType
 from bestprof import bestprof
 
 class foldstats:
+
     def __init__(self, intuple):
         (self.numdata, self.data_avg, self.data_var, self.numprof, \
          self.prof_avg, self.prof_var, self.redchi) = intuple
+
     def __str__(self):
         out = ""
         for k, v in self.__dict__.items():
@@ -19,6 +21,7 @@ class foldstats:
         return out
 
 class pfd:
+
     def __init__(self, filename):
         infile = open(filename, "rb")
         # See if the .bestprof file is around
@@ -97,6 +100,7 @@ class pfd:
         self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
         infile.close()
+
     def __str__(self):
         out = ""
         for k, v in self.__dict__.items():
@@ -108,9 +112,10 @@ class pfd:
                 elif type(self.__dict__[k]) is FloatType:
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
+
     def dedisperse(self, DM=None):
         """
-        pfd.dedisperse(DM=self.bestdm):
+        dedisperse(DM=self.bestdm):
             Rotate (internally) the profiles so that they are de-dispersed
                 at a dispersion measure of DM.
         """
@@ -130,9 +135,42 @@ class pfd:
                                                     subdata[:,:rotbins]), 1)
         self.subdelays_bins += new_subdelays_bins
         self.sumprof = Num.sum(Num.sum(self.profs))
+
+    def combine_profs(self, new_npart, new_nsub):
+        """
+        combine_profs(self, new_npart, new_nsub):
+            Combine intervals and/or subbands together and return a new
+                array of profiles.
+        """
+        if (self.npart % new_npart):
+            print "Warning!  The new number of intervals (%d) is not a" % new_npart
+            print "          divisor of the original number of intervals (%d)!"  % self.npart
+            print "Doing nothing."
+            return None
+        if (self.nsub % new_nsub):
+            print "Warning!  The new number of subbands (%d) is not a" % new_nsub
+            print "          divisor of the original number of subbands (%d)!"  % self.nsub
+            print "Doing nothing."
+            return None
+
+        dp = self.npart/new_npart
+        ds = self.nsub/new_nsub
+
+        newprofs = Num.zeros((new_npart, new_nsub, self.proflen), 'd')
+        for ii in range(new_npart):
+            # Combine the subbands if required
+            if (self.nsub > 1):
+                for jj in range(new_nsub):
+                    subprofs = umath.add.reduce(self.profs[:,jj*ds:(jj+1)*ds], 1)
+                    # Combine the time intervals
+                    newprofs[ii][jj] = umath.add.reduce(subprofs[ii*dp:(ii+1)*dp])
+            else:
+                newprofs[ii][0] = umath.add.reduce(self.profs[ii*dp:(ii+1)*dp,0])
+        return newprofs
+
     def kill_intervals(self, intervals):
         """
-        pfd.kill_intervals(intervals):
+        kill_intervals(intervals):
             Set all the subintervals (internally) from the list of
                 subintervals to all zeros, effectively 'killing' them.
         """
@@ -142,9 +180,10 @@ class pfd:
         # Update the stats
         self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
+
     def kill_subbands(self, subbands):
         """
-        pfd.kill_subbands(subbands):
+        kill_subbands(subbands):
             Set all the profiles (internally) from the list of
                 subbands to all zeros, effectively 'killing' them.
         """
@@ -154,6 +193,7 @@ class pfd:
         # Update the stats
         self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
+
     def plot_sumprof(self, device='/xwin'):
         """
         plot_sumprof(self, device='/xwin'):
@@ -167,9 +207,10 @@ class pfd:
         Pgplot.plotxy(normprof, labx="Phase Bins", laby="Normalized Flux",
                       device=device)
         Pgplot.closeplot()
+
     def plot_intervals(self, device='/xwin'):
         """
-        pfd.plot_intervals(self, device='/xwin'):
+        plot_intervals(self, device='/xwin'):
             Plot the subband-summed profiles vs time.
         """
         if not self.__dict__.has_key('subdelays'):
@@ -184,9 +225,10 @@ class pfd:
                       labx="Phase Bins", laby="Time Intervals",
                       image='antigrey', device=device)
         Pgplot.closeplot()
+
     def plot_subbands(self, device='/xwin'):
         """
-        pfd.plot_subbands(self, device='/xwin'):
+        plot_subbands(self, device='/xwin'):
             Plot the interval-summed profiles vs subband.
         """
         if not self.__dict__.has_key('subdelays'):
@@ -204,9 +246,10 @@ class pfd:
                       laby2="Frequency (MHz)", rangey2=[lof, hif],
                       image='antigrey', device=device)
         Pgplot.closeplot()
+
     def calc_varprof(self):
         """
-        pfd.calc_varprof(self):
+        calc_varprof(self):
             This function calculates the summed profile variance of the
                 current pfd file.  Killed profiles are ignored.
         """
@@ -217,18 +260,20 @@ class pfd:
                 if sub in self.killed_subbands: continue
                 varprof += self.stats[part][sub].prof_var
         return varprof
+
     def calc_redchi2(self):
         """
-        pfd.calc_redchi2(self):
+        calc_redchi2(self):
             Return the calculated reduced-chi^2 of the current summed profile.
         """
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
             self.dedisperse()
         return sum((self.sumprof-self.avgprof)**2.0/self.varprof)/(self.proflen-1.0)
+
     def plot_chi2_vs_DM(self, loDM, hiDM, N=100):
         """
-        pfd.plot_chi2_vs_DM(self, loDM, hiDM, N=100):
+        plot_chi2_vs_DM(self, loDM, hiDM, N=100):
             Plot (and return) an array showing the reduced-chi^2 versus
                 DM (N DMs spanning loDM-hiDM).
         """
@@ -253,9 +298,10 @@ class pfd:
         Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d")
         Pgplot.closeplot()
         return (chis, DMs)
+
     def plot_chi2_vs_sub(self):
         """
-        pfd.plot_chi2_vs_sub(self):
+        plot_chi2_vs_sub(self):
             Plot (and return) an array showing the reduced-chi^2 versus
                 the subband number.
         """
@@ -282,6 +328,7 @@ class pfd:
                       rangey=[0.0, max(chis)*1.1])
         Pgplot.closeplot()
         return chis
+
 
 if __name__ == "__main__":
     
