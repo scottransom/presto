@@ -168,9 +168,6 @@ int read_PKMB_rawblock(FILE *infiles[], int numfiles,
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
-  if (bufferpts)
-    printf("currentblock = %d  bufferpts = %d\n", currentblock, bufferpts);
-
   if (bufferpts && shiftbuffer)
     memcpy(databuffer, databuffer+DATLEN, bufferpts);
   shiftbuffer=1;
