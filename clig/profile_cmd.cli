@@ -10,15 +10,27 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
+Float -phs  phs  {Offset phase for the profile} \
+	{range = 0,1} \
+	{default = 0}
+
 Float -p    p    {The folding period (s)} {range = 0,oo}
 
-Float -pd   pdot {The folding period derivative (s/s)} \
+Float -pd   pd {The folding period derivative (s/s)} \
 	{range = -oo,oo} \
 	{default = 0}
     
-Float -f    freq  {The folding frequency (hz)} {range = 0,oo}
+Float -pdd  pdd {The folding period 2nd derivative (s/s^2)} \
+	{range = -oo,oo} \
+	{default = 0}
+    
+Float -f    f  {The folding frequency (hz)} {range = 0,oo}
 
-Float -fd   dfdt  {The folding frequency derivative (hz/s)} \
+Float -fd   fd  {The folding frequency derivative (hz/s)} \
+	{range = -oo,oo} \
+	{default = 0}
+    
+Float -fdd  fdd  {The folding frequency 2nd derivative (hz/s^2)} \
 	{range = -oo,oo} \
 	{default = 0}
     
@@ -71,8 +83,6 @@ Flag -disp  disp  {Don't calculate a new profile.  Just display a previously cal
 Flag -mak   makefile  {Determine folding parameters from 'infile.mak'}
 
 Flag -noerr   noerr  {Do not plot error bars}
-
-Flag -poisson poisson {Assume the data is Poisson distributed (for statistics)}
 
 # Rest of command line:
 
