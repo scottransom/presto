@@ -2,7 +2,7 @@
 
 #-------------- Extra Stuff to Make Things Easier -----------------
 
-import math, umath, Numeric, Pgplot, string, numpyio, miscutils
+import math, umath, Numeric, Pgplot, string, scipy.io.numpyio, miscutils
 
 def read_foldstats(file, byteswap=0):
    stats = foldstats()
