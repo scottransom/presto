@@ -8,7 +8,7 @@
 #define BINSTOGET      FFTLEN/NUMBETWEEN
 #define MAXPTSTOSHOW   64000
 #define MAXBINSTOSHOW  MAXPTSTOSHOW/NUMBETWEEN
-#define MEDIANBINS     1000   
+#define MEDIANBINS     200
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -235,10 +235,10 @@ static void zapbirds(double lobin, double hibin)
   ilobin = (int) floor(lobin);
   ihibin = (int) ceil(hibin);
   binstozap = ihibin - ilobin + 1;
-  data = get_rawbins(fftfile, lobin-0.5*MEDIANBINS, 
+  data = get_rawbins(fftfile, lobin-MEDIANBINS, 
 		     MEDIANBINS, &median_lo, &lodatabin);
   free(data);
-  data = get_rawbins(fftfile, hibin+0.5*MEDIANBINS, 
+  data = get_rawbins(fftfile, hibin, 
 		     MEDIANBINS, &median_hi, &lodatabin);
   free(data);
   avgamp = sqrt(0.5 * (median_lo + median_hi) / -log(0.5));
