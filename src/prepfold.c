@@ -1,5 +1,4 @@
 #include "prepfold.h"
-#include "plot2d.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"

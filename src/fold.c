@@ -434,7 +434,7 @@ double fold(float *data, int numdata, double dt, double tlo,
   double profbinwidth, loprofphase, hiprofphase;
   double lopart, midpart, hipart, tmpphase, dtmp, rdeltaphase;
   double dev, delaytlo=0.0, delaythi=0.0, delaylo=0.0, delayhi=0.0;
-  double *delayptr=NULL, *delaytimeptr=NULL;
+  double *delayptr=NULL, *delaytimeptr=NULL, *buf;
 
   /* Initialize some variables and save some FLOPs later... */
 
@@ -445,6 +445,11 @@ double fold(float *data, int numdata, double dt, double tlo,
   stats->numprof = (double) numprof;
   stats->data_var *= (stats->numdata - 1.0);
 
+  /* Create a buffer that we must be at least half full */
+  /* before transferring the first half to the profile  */
+
+  buf = gen_dvect(numprof * 2);
+  
   do { /* Loop over the on-off pairs */
 
     /* Set the on-off pointers and variables */
@@ -617,6 +622,7 @@ double fold(float *data, int numdata, double dt, double tlo,
 
   phasenext = (phasenext < 0.0) ? 
     1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
+  free(buf);
   return(phasenext);
 }
 
