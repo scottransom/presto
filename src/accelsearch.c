@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
     ffdotpows *fundamental;
     
     while (startr + ACCEL_USELEN * ACCEL_DR < obs.highestbin){
+printf("startr = %f\n", startr);
       /* Search the fundamental */
       print_percent_complete(startr-obs.rlo, 
 			     obs.highestbin-obs.rlo, "search", 0);
@@ -97,15 +98,15 @@ int main(int argc, char *argv[])
 					&subharminfs[0][0], &obs);
       cands = search_ffdotpows(fundamental, 1, &obs, cands);
       
-      if (obs.numharmstages >= 2){   /* Search the subharmonics */
+      if (obs.numharmstages > 1){   /* Search the subharmonics */
 	int stage, harmtosum, harm;
 	ffdotpows *subharmonic;
 	
-	for (stage=2; stage<=obs.numharmstages; stage++){
-	  harmtosum = 1<<(stage-1);
+	for (stage=1; stage<obs.numharmstages; stage++){
+	  harmtosum = 1<<stage;
 	  for (harm=1; harm<harmtosum; harm+=2){
 	    subharmonic = subharm_ffdot_plane(harmtosum, harm, startr, lastr, 
-					      &subharminfs[stage-1][harm-1], 
+					      &subharminfs[stage][harm-1], 
 					      &obs);
 	    add_ffdotpows(fundamental, subharmonic, harmtosum, harm);
 	    free_ffdotpows(subharmonic);
