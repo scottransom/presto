@@ -1,0 +1,101 @@
+\documentclass[11pt]{article}
+
+\newcommand{\fdot}{$\dot{f}$}
+\newcommand{\ffdot}{$f$--$\dot{f}$}
+\newcommand{\PRESTO}{{\tt PRESTO}}
+
+\title{\huge \PRESTO\thanks{That's the \emph{PulsaR Exploration and Search TOolkit}, according to Steve Eikenberry.}\\
+  {\large Users Manual, Version 1.0}}
+\author{Scott Ransom}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+\PRESTO\ is a large suite of pulsar search and analysis software
+developed almost from scratch and written primarily in ANSI C.
+Written with portability, ease-of-use, and memory efficiency in mind,
+it can currently handle data from the Berkeley-Caltech Pulsar Machine
+(BCPM; located at the GBT), the Wideband Arecibo Pulsar
+Processor (WAPP), the Parkes Multibeam system, or any individual time
+series composed of single precision floating point data.  This last
+format is useful for analyzing X-ray, optical, or dedispersed radio
+data from any source.  Additional data formats such as phased-array
+data from the GMRT and the SPIGOT card from the GBT are in the works.
+
+The software is composed of numerous routines designed to handle three
+main areas of pulsar analysis:
+\begin{enumerate}
+\item Data Preparation:  Interference detection and removal, de-dispersion, barycentering.
+\item Searching:  Acceleration and phase-modulation (or sideband) searches.
+\item Folding:  Candidate optimization and TOA generation.
+\end{enumerate}
+Additional utilities are provided for various tasks that are often
+required when working with pulsar data such as time conversions, time
+series and FFT exploration, byte-swapping, etc.
+
+The intent of this manual is to provide an overview of \PRESTO's
+capabilities, describe in some details the functioning of each of the
+main programs, and to present various simple ``recipes'' that can be
+used to accomplish typical pulsar analysis tasks.
+
+
+\begin{enumerate}
+\item Data Preparation
+  \begin{enumerate}
+  \item {\bf\tt rfifind} searches the raw data in both the time and
+    frequency domains for interference or other problems.  Each
+    channel is analyzed for short time intervals throughout the
+    observation.  The result is a list of recommended portions of the
+    data to mask.
+  \item {\bf\tt prepsubband} clips, masks, dedisperses, barycenters,
+    and pads raw data into numerous time series over a range of trial
+    DMs.
+  \item {\bf\tt realfft} performs either an in-core or out-of-core FFT
+    based on the length of the time series to be transformed.  The
+    input data is not required to be a power-of-two in length.
+  \item {\bf\tt zapbirds} removes known sources of interference (or
+    strong pulsars) from a Fourier transform by replacing them with
+    the local average Fourier amplitudes.
+  \end{enumerate}
+\item Searching
+  \begin{enumerate}
+  \item {\bf\tt accelsearch} performs a Fourier domain acceleration
+    search with Fourier interpolation and harmonic summing on an FFT.
+    The code is written such that it uses a minimum of memory
+    ($\sim200$\,MB for a search over 200 independent accelerations no
+    matter what the length of the FFT) and utilizes the processor
+    cache as much as possible.
+  \item {\bf\tt search\_bin} performs a phase modulation sideband
+    search on an FFT including harmonic summing and Fourier
+    interpolation.
+  \end{enumerate}
+\item Candidate Optimization
+  \begin{enumerate}
+  \item {\bf\tt prepfold} folds known pulsars or candidates from {\tt
+      accelsearch} over a range of DMs, periods, and period
+    derivatives around the ``best-guess'' values and returns the
+    optimized pulse profile.  All plots of new and candidate pulsars
+    in this chapter were generated using {\tt prepfold}.
+  \item {\bf\tt bincand} attempts to find an orbital solution for a
+    sideband search candidate uncovered with {\tt search\_bin}.  Brute
+    force matched filtering is used to search the orbital parameters
+    around the ``best-guess'' values as discussed in
+    chapter~\ref{chapter3}.
+  \end{enumerate}
+\end{enumerate}
+Many other utilities for displaying, plotting, and working with data
+and have been written in C or as Python\footnote{A free and
+  aesthetically pleasing scripting language available from {\tt
+    http://www.python.org}} scripts.  Since the software is coded in a
+modular form and is relatively mature, adding new capabilities, such
+as the ability to handle a new pulsar back-end, can be accomplished in
+only a few hours of programming.  Similarly, with a large library of
+routines that implement the ``building-block'' functionality of
+Fourier-domain searches (such as complex correlations and template
+generation), new searches or analysis techniques can be coded quickly
+and efficiently.
+
+\end{document}
