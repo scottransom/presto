@@ -494,7 +494,7 @@ void combine_profs(double *profs, int numprofs, int proflen,
 /* into a single profile of length 'proflen'.  The profiles are       */
 /* summed after being shifted (+:right, -:left) by an an appropriate  */
 /* amount such that the phase would drift 'shift' bins over the time  */
-/* represented by all of the profiles.  Ruturns the summed profile in */
+/* represented by all of the profiles.  Returns the summed profile in */
 /* 'outprof'.  Note that 'profs' must contain all of the profiles     */
 /* arranged end-to-end.  Also, 'outprof' must already be allocated.   */
 {

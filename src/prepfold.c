@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
   double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
   double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
   double *voverc=NULL, *tobsf=NULL, foldf=0.0, foldfd=0.0, foldfdd=0.0;
-  double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
+  double *profs=NULL, *barytimes=NULL, *topotimes=NULL, proftime;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
   int numchan=1, binary=0, np, pnum, numdelays=0;
@@ -266,19 +266,9 @@ int main(int argc, char *argv[])
 
   if (cmd->ebppP) {
 
-    /* Read the first header file and generate an infofile from it */
-
     /* OBS code for TEMPO */
 
     strcpy(obs, "EF");
-
-    /* The data collection routine to use */
-
-    /* readrec_ptr = read_ebpp; */
-
-    /* The number of data points to work with at a time */
-
-    worklen = 1024;
   }
 
   /* Raw floating point data (already de-dispersed if radio data) */
@@ -635,7 +625,7 @@ int main(int argc, char *argv[])
     /* Convert the barycentric folding parameters into topocentric */
 
     if ((info=bary2topo(topotimes, barytimes, numbarypts, 
-			f, fd, fdd, &foldf, &foldfd, &foldfdd))==0)
+		   f, fd, fdd, &foldf, &foldfd, &foldfdd))<0)
       printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
     printf("Topocentric folding frequency    (hz)  =  %-.12f\n", foldf);
     if (foldfd != 0.0)
@@ -671,13 +661,14 @@ int main(int argc, char *argv[])
    *   Perform the actual folding of the data
    */
 
+  proftime = worklen * dt;
   printf("Folded %ld points of %.0f", totnumfolded, N);
   for (ii = 0; ii < cmd->npart; ii++){        /* sub-integrations in time  */
     for (jj = 0; jj < reads_per_part; jj++){  /* reads per sub-integration */
       numread = readrec_ptr(infile, data, worklen, dispdts, 
 			    cmd->nsub, numchan);
       /* tt is (topocentric) time from first point in sec */
-      tt = (ii * reads_per_part + jj) * worklen * dt;
+      tt = (ii * reads_per_part + jj) * proftime;
       for (kk = 0; kk < cmd->nsub; kk++)      /* frequency sub-bands */
 	fold(data + kk * worklen, numread, dt, tt, 
 	     profs + (ii * cmd->nsub + kk) * proflen, proflen, 
@@ -686,13 +677,11 @@ int main(int argc, char *argv[])
       totnumfolded += numread;
     }
     printf("\rFolded %ld points of %.0f", totnumfolded, N);
-    for (kk = 0; kk < cmd->nsub; kk++)
-      quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
   }
   fclose(infile);
 
   /*
-   *   Write the raw folds
+   *   Write the raw (unsummed) profiles
    */
 
   printf("\nWriting %s.\n", outfilenm);
@@ -711,13 +700,29 @@ int main(int argc, char *argv[])
   chkfwrite(&dtmp, sizeof(double), 1, infile);
   dtmp = proflen;
   chkfwrite(&dtmp, sizeof(double), 1, infile);
-  chkfwrite(profs, sizeof(double), cmd->nsub * cmd->npart * proflen, infile);
+  chkfwrite(profs, sizeof(double), cmd->nsub * cmd->npart * proflen, 
+	    infile);
   chkfwrite(stats, sizeof(foldstats), cmd->nsub * cmd->npart, infile);
   fclose(infile);
 
   /*
    *   Perform the candidate optimization search
    */
+
+  {
+    int numtrials;
+    double dm, ddm, dispdt, p, pd, dedispprofs;
+
+    numtrials = 2 * proflen + 1;
+
+    for (ii = -proflen; ii <= proflen; ii++){  /* Loop over DMs*/
+      
+    }
+  }
+
+/* for (kk = 0; kk < cmd->nsub; kk++) */
+/* quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen); */
+  
 
   /*
    *   Plot our results
