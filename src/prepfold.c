@@ -68,14 +68,18 @@ int main(int argc, char *argv[])
     cmd->nopsearchP = 1;
     cmd->nopdsearchP = 1;
     cmd->nodmsearchP = 1;
-    cmd->npart = 60;
+    if (cmd->npart==64) /* The default value */
+      cmd->npart = 60;
     cmd->fineP = 1;
   }
   if (cmd->slowP){
     cmd->fineP = 1;
-    cmd->proflenP = 1;
-    cmd->proflen = 100;
-    cmd->nsub = 16;
+    if (!cmd->proflen){
+      cmd->proflenP = 1;
+      cmd->proflen = 100;
+    }
+    if (cmd->nsub==32) /* The default value */
+      cmd->nsub = 16;
   }
   if (cmd->fineP){
     cmd->ndmfact = 1;
