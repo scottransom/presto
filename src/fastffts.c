@@ -99,7 +99,7 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   /* then do n2 transforms of length n1 */
 
 #if defined USEFFTW
-printf("Hello!!!\n");
+
   /* Use FFTW for the small transforms if available. */
 
   if (n1 == lastn){
