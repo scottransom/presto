@@ -1,268 +1,122 @@
 #include "presto.h"
 
-/* The number of points to work with at a time from the input file */
-#define WORKLEN  8192
+/* The number of points to work with at a time         */
+/* This must be the same as the WORKLEN in profile.c!  */
+#define WORKLEN   16384
 
-void foldfile(FILE *datafile, double dt, double *prof, long proflen, \
-	      double fo, double fdot, double fdotdot, int binary, \
-	      double *delays, double orbto, double orbdt, long numdelays, \
-	      int poisson, double *avg, double *var, float *chiarr, \
-	      double *onoffpairs, long *totnumfolded)
-/*
- * This routine is a general pulsar folding algorithm.  It will fold
- * pulsar data for a pulsar with frequency derivatives and double
- * derivatives as well as pulsars in binary orbits.  Additional
- * applications can be added by changing the makeup of the arrays
- * *delays and *delaytimes.  The array *delays describes the sum
- * of all time-of-arrival delays that act on the pulses.  For a binary
- * system, the dominant component is the light-propagation delay caused
- * by the pulsar orbit.  The array *delaytimes simply describes the
- * times where the delays were sampled.  The delays are linearly
- * interpolated using both *delays and *delaytimes.  The function
- * arguments are as follows:
- *
- * FILE *datafile:         The input data file pointer containing the
- *                         floating point data.
- * double dt:              The integration length of each bin in
- *                         the input file.
- * double *prof:           A double precision array of length proflen
- *                         to contain the profile.
- * long proflen:           The length of the profile array.
- * double fo:              The starting frequency (hz) to fold.
- * double fdot:            The starting frequency derivative (hz/s).
- * double fdotdot:         The frequency double-derivative (hz/s^2).
- * int binary:             1 = Use the delays, 0 = do not use the delays.
- * double *delays:         An array of pulse TOA delays (s).
- * double orbto:           The starting time of the evenly spaced *delays
- * double orbdt:           The time interval used in sampling the orbit (s).
- * long numdelays:         The number of delays in *delays.
- * int poisson:            True if we think the data is Poisson distributed.
- * double *avg:            (Return val) The average value per time series bin.
- * double *var:            (Return val) The variance per time series bin.
- * float *chiarr:          An array containing the instant chi-square
- *                         during the folding (1 point each WORKLEN data).
- * double *onoffpairs:     An array containing pairs of numbers that represent
- *                         the bin numbers when to actively add to the profile.
- *                         for the whole file, the array should be [0,N-1].
- * long *totnumfolded:     (Return val) The total number of bins folded.
- */
+/* Some macros to make the flag checking easier */
+#define DELAYS (flags % 2 == 1)
+#define ONOFF (flags > 1)
+
+/* Simple linear interpolation macro */
+#define LININTERP(X, ylo, yhi, xlo, xhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
+
+void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
+
+double foldfile(FILE *datafile, double dt, double tlo, 
+		double *prof, int numprof, double startphs, 
+		double fo, double fdot, double fdotdot, int flags, 
+		double *delays, double *delaytimes, int numdelays, 
+		double *onoffpairs, foldstats *stats, float *chiarr)
+/* This routine is a general pulsar folding algorithm.  It will fold  */
+/* data for a pulsar with single and double frequency derivatives and */
+/* with arbitrary pulse delays (for example: variable time delays     */
+/* due to light travel time in a binary).  These delays are described */
+/* in the arrays '*delays' and '*delaytimes'. The folding may also be */
+/* turned on and off throughout the data by using 'onoffpairs'. The   */
+/* profile will have the data corresponding to time 'tlo' placed at   */
+/* the phase corresponding to time 'tlo' using 'fo', 'fdot', and      */
+/* 'fdotdot' plus 'startphs' and the appropriate delay.               */
+/* Arguments:                                                         */
+/*    'datafile' is FILE ptr for the input floating point data file.  */
+/*    'dt' is the time duration of each data bin.                     */
+/*    'tlo' is the time of the start of the 1st data pt.              */
+/*    'prof' is a double prec array to contain the profile.           */
+/*    'numprof' is the length of the profile array.                   */
+/*    'startphs'is the phase offset [0-1] for the first point.        */
+/*    'fo' the starting frequency to fold.                            */
+/*    'fdot' the starting frequency derivative.                       */
+/*    'fdotdot' the frequency second derivative.                      */
+/*    'flags' is an integer containing flags of how to fold:          */
+/*            0 = No *delays and no *onoffpairs                       */
+/*            1 = Use *delays but no *onoffpairs                      */
+/*            2 = No *delays but use *onoffpairs                      */
+/*            3 = Use *delays and use *onoffpairs                     */
+/*    'delays' is an array of time delays.                            */
+/*    'delaytimes' are the times where 'delays' were calculated.      */
+/*    'numdelays' is how many points are in 'delays' and 'delaytimes' */
+/*    'onoffpairs' is array containing pairs of normalized times      */
+/*            that represent the bins when we will actively add       */
+/*            to the profile.  To fold the full file,                 */
+/*            onoffpairs should be [0.0, T_obs].                      */
+/*    'stats' are statistics of the data and the profile.             */
+/*    'chiarr' is an array containing the instant reduced chi-square  */
+/*            during the folding (1 point each WORKLEN data).  This   */
+/*            array must have been allocated and set to 0.            */
+/* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
+/*    (i.e. to the beginning of the first data point)                 */
 {
-  int loprofbin = 0, hiprofbin, numbins, modhiprofbin, stopit = 0;
-  float data[WORKLEN];
-  unsigned long N;
-  long i, j, numread, numreads, pt = 1;
-  double phasenext, loprofphase = 0.0, hiprofphase, deltaphase, T;
-  double phase = 0.0, Tnext, tbnext = 0.0, tbkeep, integer;
-  double *profbinphases, profbinwidth, dtmp, dev = 0.0;
-  double lopart = 0.0, midpart = 0.0, hipart = 0.0;
-  double avgph = 0.0, varph = 0.0, chitmp = 0.0;
-  double *onptr, *offptr, tbon, tboff, tbtmp, orbmaxt;
+  float *data;
+  double *onoffptr=NULL, phase=0.0;
+  int ourflags;
+  unsigned long ii, N, onbin, offbin, numbins, binstoread, numreads;
 
-  /* Get the data file length */
+  /* Get the data file length and initialize some variables */
 
   N = chkfilelen(datafile, sizeof(float));
-  T = N * dt;
-  numreads = N / WORKLEN;
-  orbmaxt = orbto + numdelays * orbdt;
-  *totnumfolded = 0;
-  *avg = 0.0;
-  *var = 0.0;
-  
-  /* Initiate the on-off pointers and variables */
+  if (ONOFF) onoffptr = onoffpairs - 2;
+  stats->numdata = stats->data_avg = stats->data_var = 0.0;
+  if (DELAYS) ourflags = 1;
+  else ourflags = 0;
 
-  onptr = onoffpairs;
-  offptr = onoffpairs + 1;
-  tbon = *onptr * dt;
-  tboff = *offptr * dt;
-  tbkeep = tbon;
+  do { /* Loop over the on-off pairs */
 
-  /* Save some floating point ops later... */
-
-  fdot /= 2.0;
-  fdotdot /= 6.0;
-  profbinwidth = 1.0 / proflen;
-
-  /* Set up the initial phase values and the file */
-
-  tbtmp = tbon;
-  if (binary){
-    tbtmp -= lin_interp_E(delays, tbon, orbto, orbdt, orbmaxt);
-  }
-  phase = tbtmp * (tbtmp * (tbtmp * fdotdot + fdot) + fo);
-  loprofphase = (phase >= 0.0) ? \
-    modf(phase, &integer) : 1.0 + modf(phase, &integer);
-
-  /* Move to the first data point to fold */
-
-  chkfileseek(datafile, (long) (*onptr),  sizeof(float), SEEK_SET);
-
-  /* Generate an array that contains the starting cyclic (0.0-1.0) */
-  /* pulse phase that each profile array bin represents.           */
-
-  profbinphases = gen_dvect(proflen+1);
-  for (i = 0; i <= proflen; i++)
-    profbinphases[i] = (double) (i) / proflen;
-
-  /* Generate the profile */
-
-  while ((numread = chkfread(data, sizeof(float),			
-			     WORKLEN, datafile)) == WORKLEN) {		
-
-    for (i = 0; i < WORKLEN; i++) {
-
-      /* Check if we are within the current onoff boundary.      */
-      /* Advance the pointers and other variables if we are not. */
-
-      if (tbnext >= tboff){
-	onptr += 2;
-	offptr += 2;
-	if (*onptr == 0.0){
-	  stopit = 1;
-	  break;
-	}
-	tbon = *onptr * dt;
-	tboff = *offptr * dt;
-	tbnext = tbon;
-	chkfileseek(datafile, (long) (*onptr), sizeof(float), SEEK_SET);
-	tbtmp = tbon;
-	if (binary){
-	  tbtmp -= lin_interp_E(delays, tbon, orbto, orbdt, orbmaxt);
-	}
-	phase = tbtmp * (tbtmp * (tbtmp * fdotdot + fdot) + fo);
-	loprofphase = (phase >= 0.0) ? \
-	  modf(phase, &integer) : 1.0 + modf(phase, &integer);
-	loprofbin = (int) floor(proflen * loprofphase + DBLCORRECT);
-	break;
-      }
-
-      /* Calculate the barycentric time for the next point. */
-      
-      tbnext = tbkeep + (i + 1) * dt;
-      
-      /* Correct the next barycentric time to pulsar proper time. */
-      
-      if (binary)
-	Tnext = tbnext - \
-	  lin_interp_E(delays, tbnext, orbto, orbdt, orbmaxt);
-      else 
-	Tnext = tbnext;
-
-      /* Get the pulsar phase (cyclic) for the next point. */
-      
-      phasenext = Tnext * (Tnext * (Tnext * fdotdot + fdot) + fo);
-
-      /* How much total phase does the data point cover? */
-
-      deltaphase = phasenext - phase;
-
-      /* Find the highest numbered bin we will add data to.   */
-      /* Note:  This number will be used modulo proflen so it */
-      /*        could be greater than proflen.                */
-      
-      hiprofphase = loprofphase + deltaphase;
-      hiprofbin = (int) floor(proflen * hiprofphase + DBLCORRECT);
-      modhiprofbin = hiprofbin % proflen;
-      
-      /* How many profile bins we will spread the data over? */
-
-      numbins = hiprofbin - loprofbin + 1;
-
-      /* Spread the data into the proper bins. */
-
-      if (numbins >= 3){
-
-	/* Data point will be spread over 3 or more profile bins */
-
-	hipart = data[i] * \
-	  (profbinphases[loprofbin + 1] - loprofphase) / deltaphase;
-	dtmp = modf(hiprofphase, &integer);
-	if (dtmp == 0.0) dtmp = 1.0;
-	lopart = data[i] * \
-	  (dtmp - profbinphases[modhiprofbin]) / deltaphase;
-	midpart = data[i] * profbinwidth / deltaphase;
-	prof[loprofbin] += hipart;
-	prof[modhiprofbin] += lopart;
-	for (j = loprofbin + 1; j < hiprofbin; j++){
-	  prof[j % proflen] += midpart;
-	}
-
-      } else if (numbins == 2) {
-
-	/* Data point will be spread over 2 profile bins */
-
-	dtmp = profbinphases[modhiprofbin];
-	if (dtmp == 0.0) dtmp = 1.0;
-	hipart = data[i] * (dtmp - loprofphase) / deltaphase;
-	lopart = data[i] - hipart;
-	prof[loprofbin] += hipart;
-	prof[modhiprofbin] += lopart;
-
-      } else {
-
-	/* Data point will go into only 1 profile bin */
-
-	prof[loprofbin] += data[i];
-
-      }
-	
-      /* Update variables */
-      
-      loprofphase = modf(hiprofphase, &integer);
-      loprofbin = (int) floor(proflen * loprofphase + DBLCORRECT);
-      phase = phasenext;
-
-      /* Use clever single pass mean and variance calculation */
-      
-      dev = data[i] - *avg;
-      *avg += dev / (*totnumfolded + i + 1);
-      *var += dev * (data[i] - *avg);
-      
-    }
+    /* Set the on-off variables */
     
-    *totnumfolded += i;
-    tbkeep = tbnext;
-
-    /* Average value of a profile bin... */
-    
-    avgph = *avg * *totnumfolded * profbinwidth;
-
-    /* Variance of a profile bin... */
-
-    varph = *var * profbinwidth;
-
-    /* Compute the Chi-Squared probability that there is a signal */
-    /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
-
-    pt = (long) floor((tbkeep / T) * (numreads+1));
-
-    if (poisson){
-      for (i = 0 ; i < proflen ; i++){
-	dtmp = prof[i];
-	chitmp = dtmp - avgph;
-	dtmp = (dtmp == 0.0) ? 1.0 : dtmp;
-	chiarr[pt] += ((chitmp * chitmp) / dtmp);
-      }
+    if (ONOFF){
+      onoffptr += 2;
+      onbin = (unsigned long) (*onoffptr * N + DBLCORRECT);
+      offbin = (unsigned long) (*(onoffptr + 1) * N  + DBLCORRECT) - 1;
     } else {
-      for (i = 0 ; i < proflen ; i++){
-	chitmp = prof[i] - avgph;
-	chiarr[pt] += chitmp * chitmp;
-      }
-      chiarr[pt] /= varph;
-    }      
-    chiarr[pt] /= (proflen - 1.0);
+      onbin = 0;
+      offbin = N - 1;
+    }
+    numbins = offbin - onbin + 1;
+    numreads = numbins / WORKLEN;
+    if (numbins % WORKLEN) numreads++;
+    binstoread = WORKLEN;
 
-    /* Break out of the loop if we are done due to onoff */
+    /* Loop over the number of reads we have to perform for */
+    /* the current on-off pair.                             */
 
-    if (stopit) break;
+    for (ii = 0; ii < numreads; ii++, onbin += binstoread){
+      
+      /* Correct for the fact that our last read might be short */
+      
+      if ((numbins % WORKLEN) && (ii == numreads - 1))
+	binstoread = numbins % WORKLEN;
 
-  }
-  
-  *var /= (*totnumfolded - 1.0);
+      /* Read the current chunk of data */
 
-  /* Cleanup */
+      data = read_float_file(datafile, onbin, binstoread);
 
-  free(profbinphases);
+      /* Fold the current chunk of data */
 
+      phase = fold(data, binstoread, dt, tlo + onbin * dt, prof, 
+		   numprof, startphs, fo, fdot, fdotdot, ourflags, 
+		   delays, delaytimes, numdelays, NULL, stats);
+      free(data);
+
+      /* Set the current chiarr value */
+
+      chiarr[onbin / WORKLEN] = stats->redchi;
+    }
+
+  } while (offbin < N - 1);
+
+  /* Return the ending phase from folding */
+
+  return phase;
 }
 
 
@@ -366,7 +220,6 @@ double simplefold(float *data, int numdata, double dt, double tlo,
       /* Data point will go into only 1 profile bin */
       
       prof[loprofbin] += data[ii];
-
     }
     
     /* Update variables */
@@ -374,7 +227,9 @@ double simplefold(float *data, int numdata, double dt, double tlo,
     loprofphase = hiprofphase - (int) hiprofphase;
     loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
     phase = phasenext;
+
   }
+
   phasenext = (phasenext < 0.0) ? 
     1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
   return phasenext;
@@ -428,159 +283,194 @@ double fold(float *data, int numdata, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
 {
-  int loprofbin = 0, hiprofbin, numbins, modhiprofbin, stopit = 0;
-  int ii, jj, totnumfolded, *onptr, *offptr;
-  double phase = 0.0, phasenext = 0.0, deltaphase = 0.0, Tnext = 0.0, tbnext;
-  double *profbinphases, profbinwidth, loprofphase = 0.0, hiprofphase = 0.0;
-  double lopart = 0.0, midpart = 0.0, hipart = 0.0, integer, dtmp;
-  double tbtmp = 0.0, orbmaxt, rdeltaphase;
-  double orbto = 0.0, orbdt = 0.0;
+  int loprofbin, hiprofbin, numbins, modhiprofbin;
+  int ii, jj, onbin, offbin, *onoffptr=NULL;
+  unsigned long arrayoffset=0;
+  double phase, phasenext=0.0, deltaphase, T, Tnext, TD, TDnext;
+  double profbinwidth, loprofphase, hiprofphase;
+  double lopart, midpart, hipart, tmpphase, dtmp, rdeltaphase;
+  double dev, delaytlo=0.0, delaythi=0.0, delaylo=0.0, delayhi=0.0;
+  double *delayptr=NULL, *delaytimeptr=NULL;
 
-  /* Save some floating point ops later... */
+  /* Initialize some variables and save some FLOPs later... */
 
-  orbmaxt = orbto + numdelays * orbdt;
   fdot /= 2.0;
   fdotdot /= 6.0;
   profbinwidth = 1.0 / numprof;
+  if (ONOFF) onoffptr = onoffpairs - 2;
+  stats->numprof = (double) numprof;
+  stats->data_var *= (stats->numdata - 1.0);
 
-  /* Initiate the on-off pointers and variables */
+  do { /* Loop over the on-off pairs */
 
-  onptr = onoffpairs;
-  offptr = onoffpairs + 1;
-  tbnext = tlo;
-
-  /* Correct the starting barycentric time to pulsar proper time. */
-  
-  if (flags)
-    tbtmp = tlo - lin_interp_E(delays, tlo, orbto, orbdt, orbmaxt);
-  else 
-    tbtmp = tlo;
-
-  /* Get the starting pulsar phase (cyclic). */
-  
-  phase = tbtmp * (tbtmp * (tbtmp * fdotdot + fdot) + fo);
-  loprofphase = (phase >= 0.0) ? \
-    modf(phase, &integer) : 1.0 + modf(phase, &integer);
-  loprofbin = (int) floor(numprof * loprofphase + DBLCORRECT);
-  
-  /* Generate an array that contains the starting cyclic (0.0-1.0) */
-  /* pulse phase that each profile array bin represents.           */
-
-  profbinphases = gen_dvect(numprof+1);
-  for (ii = 0; ii <= numprof; ii++)
-    profbinphases[ii] = (double) (ii) / numprof;
-
-  /* Generate the profile */
-
-  for (ii = 0; ii < numdata; ii++) {
+    /* Set the on-off pointers and variables */
     
-    /* Check if we are within the current onoff boundary.      */
-    /* Advance the pointers and other variables if we are not. */
-    
-    if (ii > *offptr){
-      onptr += 2;
-      offptr += 2;
-      if (*onptr == 0.0){
-	stopit = 1;
-	break;
-      }
-      tbnext = *onptr * dt + tlo;
-      ii = *onptr;
-      tbtmp = tbnext;
-      if (flags){
-	tbtmp -= lin_interp_E(delays, tbnext, orbto, orbdt, orbmaxt);
-      }
-      phase = tbtmp * (tbtmp * (tbtmp * fdotdot + fdot) + fo);
-      loprofphase = (phase >= 0.0) ? \
-	modf(phase, &integer) : 1.0 + modf(phase, &integer);
-      loprofbin = (int) floor(numprof * loprofphase + DBLCORRECT);
-      break;
-    }
-    
-    /* Calculate the barycentric time for the next point. */
-    
-    tbnext = tlo + (ii + 1) * dt;
-    
-    /* Correct the next barycentric time to pulsar proper time. */
-    
-    if (flags)
-      Tnext = tbnext - lin_interp_E(delays, tbnext, orbto, orbdt, orbmaxt);
-    else 
-      Tnext = tbnext;
-    
-    /* Get the pulsar phase (cyclic) for the next point. */
-    
-    phasenext = Tnext * (Tnext * (Tnext * fdotdot + fdot) + fo);
-    
-    /* How much total phase does the data point cover? */
-    
-    deltaphase = phasenext - phase;
-    rdeltaphase = 1.0 / deltaphase;
-
-    /* Find the highest numbered bin we will add data to.   */
-    /* Note:  This number will be used modulo numprof so it */
-    /*        could be greater than numprof.                */
-    
-    hiprofphase = loprofphase + deltaphase;
-    hiprofbin = (int) floor(numprof * hiprofphase + DBLCORRECT);
-    modhiprofbin = hiprofbin % numprof;
-    
-    /* How many profile bins we will spread the data over? */
-    
-    numbins = hiprofbin - loprofbin + 1;
-    
-    /* Spread the data into the proper bins. */
-    
-    if (numbins >= 3){
-      
-      /* Data point will be spread over 3 or more profile bins */
-      
-      hipart = data[ii] * \
-	(profbinphases[loprofbin + 1] - loprofphase) * rdeltaphase;
-      dtmp = modf(hiprofphase, &integer);
-      if (dtmp == 0.0) dtmp = 1.0;
-      lopart = data[ii] * \
-	(dtmp - profbinphases[modhiprofbin]) * rdeltaphase;
-      midpart = data[ii] * profbinwidth * rdeltaphase;
-      prof[loprofbin] += hipart;
-      prof[modhiprofbin] += lopart;
-      for (jj = loprofbin + 1; jj < hiprofbin; jj++){
-	prof[jj % numprof] += midpart;
-      }
-      
-    } else if (numbins == 2) {
-      
-      /* Data point will be spread over 2 profile bins */
-      
-      dtmp = profbinphases[modhiprofbin];
-      if (dtmp == 0.0) dtmp = 1.0;
-      hipart = data[ii] * (dtmp - loprofphase) * rdeltaphase;
-      lopart = data[ii] - hipart;
-      prof[loprofbin] += hipart;
-      prof[modhiprofbin] += lopart;
-      
+    if (ONOFF){
+      onoffptr += 2;
+      onbin = *onoffptr;
+      offbin = *(onoffptr + 1);
     } else {
-      
-      /* Data point will go into only 1 profile bin */
-      
-      prof[loprofbin] += data[ii];
-      
+      onbin = 0;
+      offbin = numdata - 1;
     }
     
-    /* Update variables */
+    /* Initiate the folding start time */
     
-    loprofphase = modf(hiprofphase, &integer);
-    loprofbin = (int) floor(numprof * loprofphase + DBLCORRECT);
-    phase = phasenext;
-    totnumfolded++;
+    T = tlo + onbin * dt;
+    TD = T;
     
-  }
-  
-  /* Cleanup */
+    /* Set the delay pointers and variables */
+    
+    if (DELAYS){
+      arrayoffset++;  /* Beware nasty NR zero-offset kludges! */
+      hunt(delaytimes-1, numdelays, T, &arrayoffset);
+      arrayoffset--;
+      delaytimeptr = delaytimes + arrayoffset;
+      delayptr = delays + arrayoffset;
+      delaytlo = *delaytimeptr;
+      delaythi = *(delaytimeptr + 1);
+      delaylo = *delayptr;
+      delayhi = *(delayptr + 1);
+      
+      /* Adjust the folding start time for the delays */
+      
+      TD -= LININTERP(TD, delaytlo, delaythi, delaylo, delayhi);
+    }
 
-  free(profbinphases);
+    /* Get the starting pulsar phase (cyclic). */
+    
+    phase = TD * (TD * (TD * fdotdot + fdot) + fo) + startphs;
+    loprofphase = (phase >= 0.0) ?
+      1.0 + phase - (int) phase : phase - (int) phase;
+    loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
+    
+    /* Generate the profile for this onoff pair */
+    
+    for (ii = onbin; ii < offbin; ii++) {
+
+      /* Calculate the barycentric time for the next point. */
+      
+      Tnext = tlo + (ii + 1) * dt;
+      TDnext = Tnext;
+
+      /* Set the delay pointers and variables */
+    
+      if (DELAYS){
+	if (Tnext > delaythi){
+	  arrayoffset++;  /* Beware nasty NR zero-offset kludges! */
+	  hunt(delaytimes-1, numdelays, Tnext, &arrayoffset);
+	  arrayoffset--;
+	  delaytimeptr = delaytimes + arrayoffset;
+	  delayptr = delays + arrayoffset;
+	  delaytlo = *delaytimeptr;
+	  delaythi = *(delaytimeptr + 1);
+	  delaylo = *delayptr;
+	  delayhi = *(delayptr + 1);
+	}
+
+	/* Adjust the folding start time for the delays */
+
+	TDnext -= LININTERP(TDnext, delaytlo, delaythi, delaylo, delayhi);
+      }
+
+      /* Get the pulsar phase (cyclic) for the next point. */
+      
+      phasenext = TDnext * (TDnext * (TDnext * fdotdot + fdot) 
+			    + fo) + startphs;
+      
+      /* How much total phase does the data point cover? */
+      
+      deltaphase = phasenext - phase;
+      rdeltaphase = 1.0 / deltaphase;
+      
+      /* Find the highest numbered bin we will add data to.   */
+      /* Note:  This number will be used modulo numprof so it */
+      /*        could be greater than numprof.                */
+      
+      hiprofphase = loprofphase + deltaphase;
+      hiprofbin = (int) (hiprofphase * numprof + DBLCORRECT);
+      modhiprofbin = hiprofbin % numprof;
+      
+      /* How many profile bins we will spread the data over? */
+      
+      numbins = hiprofbin - loprofbin + 1;
+      
+      /* Spread the data into the proper bins. */
+      
+      if (numbins >= 3){
+	
+	/* Data point will be spread over 3 or more profile bins */
+	
+	dtmp = data[ii] * rdeltaphase;
+	hipart = dtmp * ((loprofbin + 1) * profbinwidth - loprofphase);
+	tmpphase = hiprofphase - (int) hiprofphase;
+	tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
+	lopart = dtmp * (tmpphase - modhiprofbin * profbinwidth);
+	midpart = dtmp * profbinwidth;
+	prof[loprofbin] += hipart;
+	prof[modhiprofbin] += lopart;
+	for (jj = loprofbin + 1; jj < hiprofbin; jj++)
+	  prof[jj % numprof] += midpart;
+	
+      } else if (numbins == 2) {
+	
+	/* Data point will be spread over 2 profile bins */
+	
+	tmpphase = modhiprofbin * profbinwidth;
+	tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
+	hipart = data[ii] * (tmpphase - loprofphase) * rdeltaphase;
+	lopart = data[ii] - hipart;
+	prof[loprofbin] += hipart;
+	prof[modhiprofbin] += lopart;
+	
+      } else {
+	
+	/* Data point will go into only 1 profile bin */
+	
+	prof[loprofbin] += data[ii];
+      }
+    
+      /* Update variables */
+      
+      loprofphase = hiprofphase - (int) hiprofphase;
+      loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
+      phase = phasenext;
+
+      /* Use clever single pass mean and variance calculation */
+      
+      stats->numdata += 1.0;
+      dev = data[ii] - stats->data_avg;
+      stats->data_avg += dev / (stats->numdata + 1.0);
+      stats->data_var += dev * (data[ii] - stats->data_avg);
+    }
+
+  } while (offbin < numdata - 1);
+  
+  /* Update and correct the statistics */
+
+  stats->data_var /= (stats->numdata - 1.0);
+  stats->prof_avg = 0.0;
+  for (ii = 0; ii < numprof; ii++)
+    stats->prof_avg += prof[ii];
+  stats->prof_avg /= numprof;
+  stats->prof_var = stats->data_var * profbinwidth;
+  stats->redchi = 0.0;
+
+  /* Compute the Chi-Squared probability that there is a signal */
+  /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
+  
+  for (ii = 0 ; ii < numprof ; ii++){
+    dtmp = prof[ii] - stats->prof_avg;
+    stats->redchi += dtmp * dtmp;
+  }
+  stats->redchi /= (stats->prof_var * (numprof - 1));
+
+  phasenext = (phasenext < 0.0) ? 
+    1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
   return(phasenext);
 }
 
-
-
+#undef WORKLEN
+#undef DELAYS
+#undef ONOFF
+#undef LININTERP

@@ -59,7 +59,7 @@ int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths,
 /* _must_ be in increasing order since this routine keeps track of its */
 /* place in the file.  Also, numzap _must be >= 2.                     */
 {
-  static unsigned long index;
+  static unsigned long index=0;
 
   if (numzap < 2){
     printf("\n\n'numzap' = %d must be >= 2 in check_to_zap().", 
@@ -75,6 +75,7 @@ int check_to_zap(double candfreq, double *zapfreqs, double *zapwidths,
 
   /* Find the indices for the birdies above and below our candidate */
 
+  index++;
   hunt(zapfreqs-1, numzap, candfreq, &index);
   index--;
 

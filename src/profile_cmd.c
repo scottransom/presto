@@ -21,22 +21,34 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
+  /***** -phs: Offset phase for the profile */
+  /* phsP = */ TRUE,
+  /* phs = */ 0,
+  /* phsC = */ 1,
   /***** -p: The folding period (s) */
   /* pP = */ FALSE,
   /* p = */ (double)0,
   /* pC = */ 0,
   /***** -pd: The folding period derivative (s/s) */
-  /* pdotP = */ TRUE,
-  /* pdot = */ 0,
-  /* pdotC = */ 1,
+  /* pdP = */ TRUE,
+  /* pd = */ 0,
+  /* pdC = */ 1,
+  /***** -pdd: The folding period 2nd derivative (s/s^2) */
+  /* pddP = */ TRUE,
+  /* pdd = */ 0,
+  /* pddC = */ 1,
   /***** -f: The folding frequency (hz) */
-  /* freqP = */ FALSE,
-  /* freq = */ (double)0,
-  /* freqC = */ 0,
+  /* fP = */ FALSE,
+  /* f = */ (double)0,
+  /* fC = */ 0,
   /***** -fd: The folding frequency derivative (hz/s) */
-  /* dfdtP = */ TRUE,
-  /* dfdt = */ 0,
-  /* dfdtC = */ 1,
+  /* fdP = */ TRUE,
+  /* fd = */ 0,
+  /* fdC = */ 1,
+  /***** -fdd: The folding frequency 2nd derivative (hz/s^2) */
+  /* fddP = */ TRUE,
+  /* fdd = */ 0,
+  /* fddC = */ 1,
   /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
   /* proflenP = */ FALSE,
   /* proflen = */ (int)0,
@@ -99,8 +111,6 @@ static Cmdline cmd = {
   /* makefileP = */ FALSE,
   /***** -noerr: Do not plot error bars */
   /* noerrP = */ FALSE,
-  /***** -poisson: Assume the data is Poisson distributed (for statistics) */
-  /* poissonP = */ FALSE,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -442,6 +452,18 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
+  /***** -phs: Offset phase for the profile */
+  if( !cmd.phsP ) {
+    printf("-phs not found.\n");
+  } else {
+    printf("-phs found:\n");
+    if( !cmd.phsC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%f'\n", cmd.phs);
+    }
+  }
+
   /***** -p: The folding period (s) */
   if( !cmd.pP ) {
     printf("-p not found.\n");
@@ -455,38 +477,62 @@ showOptionValues(void)
   }
 
   /***** -pd: The folding period derivative (s/s) */
-  if( !cmd.pdotP ) {
+  if( !cmd.pdP ) {
     printf("-pd not found.\n");
   } else {
     printf("-pd found:\n");
-    if( !cmd.pdotC ) {
+    if( !cmd.pdC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.pdot);
+      printf("  value = `%f'\n", cmd.pd);
+    }
+  }
+
+  /***** -pdd: The folding period 2nd derivative (s/s^2) */
+  if( !cmd.pddP ) {
+    printf("-pdd not found.\n");
+  } else {
+    printf("-pdd found:\n");
+    if( !cmd.pddC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%f'\n", cmd.pdd);
     }
   }
 
   /***** -f: The folding frequency (hz) */
-  if( !cmd.freqP ) {
+  if( !cmd.fP ) {
     printf("-f not found.\n");
   } else {
     printf("-f found:\n");
-    if( !cmd.freqC ) {
+    if( !cmd.fC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.freq);
+      printf("  value = `%f'\n", cmd.f);
     }
   }
 
   /***** -fd: The folding frequency derivative (hz/s) */
-  if( !cmd.dfdtP ) {
+  if( !cmd.fdP ) {
     printf("-fd not found.\n");
   } else {
     printf("-fd found:\n");
-    if( !cmd.dfdtC ) {
+    if( !cmd.fdC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%f'\n", cmd.dfdt);
+      printf("  value = `%f'\n", cmd.fd);
+    }
+  }
+
+  /***** -fdd: The folding frequency 2nd derivative (hz/s^2) */
+  if( !cmd.fddP ) {
+    printf("-fdd not found.\n");
+  } else {
+    printf("-fdd found:\n");
+    if( !cmd.fddC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%f'\n", cmd.fdd);
     }
   }
 
@@ -682,13 +728,6 @@ showOptionValues(void)
   } else {
     printf("-noerr found:\n");
   }
-
-  /***** -poisson: Assume the data is Poisson distributed (for statistics) */
-  if( !cmd.poissonP ) {
-    printf("-poisson not found.\n");
-  } else {
-    printf("-poisson found:\n");
-  }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
   } else {
@@ -705,16 +744,25 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-p p] [-pd pdot] [-f freq] [-fd dfdt] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bincand bincand] [-onoff onoff] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-xwin] [-ps] [-both] [-disp] [-mak] [-noerr] [-poisson] infile\n\
+ [-phs phs] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bincand bincand] [-onoff onoff] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-xwin] [-ps] [-both] [-disp] [-mak] [-noerr] infile\n\
     Folds a time series at a given period and period derivative to make a pulse profile.  May be used for binary pulsars as well.\n\
+      -phs: Offset phase for the profile\n\
+            1 double precision value between 0 and 1\n\
+            default: `0'\n\
         -p: The folding period (s)\n\
             1 double precision value between 0 and oo\n\
        -pd: The folding period derivative (s/s)\n\
             1 double precision value\n\
             default: `0'\n\
+      -pdd: The folding period 2nd derivative (s/s^2)\n\
+            1 double precision value\n\
+            default: `0'\n\
         -f: The folding frequency (hz)\n\
             1 double precision value between 0 and oo\n\
        -fd: The folding frequency derivative (hz/s)\n\
+            1 double precision value\n\
+            default: `0'\n\
+      -fdd: The folding frequency 2nd derivative (hz/s^2)\n\
             1 double precision value\n\
             default: `0'\n\
         -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
@@ -750,10 +798,9 @@ usage(void)
      -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin\n\
       -mak: Determine folding parameters from 'infile.mak'\n\
     -noerr: Do not plot error bars\n\
-  -poisson: Assume the data is Poisson distributed (for statistics)\n\
     infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.\n\
             1 string value\n\
-version: 27Nov99\n\
+version: 01Dec99\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -771,6 +818,16 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-phs", argv[i]) ) {
+      cmd.phsP = TRUE;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.phs, 1);
+      cmd.phsC = i-keep;
+      checkFloatLower("-phs", &cmd.phs, cmd.phsC, 1);
+      checkFloatHigher("-phs", &cmd.phs, cmd.phsC, 0);
+      continue;
+    }
+
     if( 0==strcmp("-p", argv[i]) ) {
       cmd.pP = TRUE;
       keep = i;
@@ -781,27 +838,43 @@ parseCmdline(int argc, char **argv)
     }
 
     if( 0==strcmp("-pd", argv[i]) ) {
-      cmd.pdotP = TRUE;
+      cmd.pdP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.pdot, 1);
-      cmd.pdotC = i-keep;
+      i = getFloatOpt(argc, argv, i, &cmd.pd, 1);
+      cmd.pdC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-pdd", argv[i]) ) {
+      cmd.pddP = TRUE;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.pdd, 1);
+      cmd.pddC = i-keep;
       continue;
     }
 
     if( 0==strcmp("-f", argv[i]) ) {
-      cmd.freqP = TRUE;
+      cmd.fP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.freq, 1);
-      cmd.freqC = i-keep;
-      checkFloatHigher("-f", &cmd.freq, cmd.freqC, 0);
+      i = getFloatOpt(argc, argv, i, &cmd.f, 1);
+      cmd.fC = i-keep;
+      checkFloatHigher("-f", &cmd.f, cmd.fC, 0);
       continue;
     }
 
     if( 0==strcmp("-fd", argv[i]) ) {
-      cmd.dfdtP = TRUE;
+      cmd.fdP = TRUE;
       keep = i;
-      i = getFloatOpt(argc, argv, i, &cmd.dfdt, 1);
-      cmd.dfdtC = i-keep;
+      i = getFloatOpt(argc, argv, i, &cmd.fd, 1);
+      cmd.fdC = i-keep;
+      continue;
+    }
+
+    if( 0==strcmp("-fdd", argv[i]) ) {
+      cmd.fddP = TRUE;
+      keep = i;
+      i = getFloatOpt(argc, argv, i, &cmd.fdd, 1);
+      cmd.fddC = i-keep;
       continue;
     }
 
@@ -942,11 +1015,6 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-noerr", argv[i]) ) {
       cmd.noerrP = TRUE;
-      continue;
-    }
-
-    if( 0==strcmp("-poisson", argv[i]) ) {
-      cmd.poissonP = TRUE;
       continue;
     }
 

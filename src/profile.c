@@ -2,8 +2,9 @@
 #include "plot2d.h"
 #include "profile_cmd.h"
 
-/* The number of points to work with at a time from the input file */
-#define WORKLEN       8192
+/* The number of points to work with at a time      */
+/* This must be the same as the WORKLEN in fold.c!  */
+#define WORKLEN   16384
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -21,16 +22,17 @@ int main(int argc, char **argv)
   float *fprof = NULL, *chiarr = NULL, *freqs = NULL, *errors = NULL;
   double freq = 0.0, dt, dfdt = 0.0, orbdt = 0.5;
   double *prof = NULL, endtime, N, *psrtime = NULL;
-  double *Ep = NULL, *d2phib = NULL, startE = 0.0;
+  double *Ep = NULL, *tp = NULL, *d2phib = NULL, startE = 0.0;
   double epoch = 0.0, difft = 0.0, p_psr = 0.0, pdot_psr = 0.0;
+  double pdotdot_psr = 0.0, d2fdt2 = 0.0;
   double chip = 0.0, chiq = 0.0, chidf = 0.0;
   double chixmeas = 0.0, chitmp = 0.0;
   double varph = 0.0, numph = 0.0, avgph = 0.0;  
   double normz = 0.0, normmean = 0.0, normstdev = 1.0;
-  int chistatus = 0, chiwhich = 1, poisson = 0, showerr = 0;
+  int chistatus = 0, chiwhich = 1, showerr = 0, flags = 0;
   double dbepoch = 0.0, onoffpairs[40], dtmp;
   int np, pnum, binary = 0, dochi = 0, numonoffpairs = 1;
-  long totnumread = 0, numreads = 0, numpoints = 0;
+  long numreads = 0, numpoints = 0;
   unsigned long filelen;
   long i = 0, proflen = 0;
   char datanm[200], profnm[200], psfilenm[200], chifilenm[200];
@@ -42,6 +44,7 @@ int main(int argc, char **argv)
   infodata idata;
   psrdatabase pdata;
   Cmdline *cmd;
+  foldstats stats;
 
   /* Call usage() if we have no command line arguments */
 
@@ -61,7 +64,7 @@ int main(int argc, char **argv)
   printf("\n\n");
   printf("          Pulse Folding Routine\n");
   printf("            by Scott M. Ransom\n");
-  printf("             1 February, 1998\n\n");
+  printf("             1 December, 1999\n\n");
 
   /* Initialize the filenames and some data: */
 						
@@ -122,8 +125,10 @@ int main(int argc, char **argv)
       }
       p_psr = psr.p;
       pdot_psr = psr.pd;
+      pdotdot_psr = psr.pdd;
       freq = psr.f;						
       dfdt = psr.fd;				
+      d2fdt2 = psr.fdd;
       strcpy(pname, psr.jname);
 
     /* If the user specifies all of the binaries parameters */	
@@ -152,9 +157,11 @@ int main(int argc, char **argv)
       binary = mdata.binary;
       p_psr = mdata.p;
       pdot_psr = mdata.pd;
+      pdotdot_psr = mdata.pdd;
       orb = mdata.orb;
       freq = mdata.f;
       dfdt = mdata.fd;
+      d2fdt2 = mdata.fdd;
       dbepoch = mdata.orb.t / SECPERDAY;
 
       /* Determine the pulsar parameters to fold from a _rzw.cand file */
@@ -172,6 +179,7 @@ int main(int argc, char **argv)
       freq = (rzwcand.r - 0.5 * rzwcand.z) / (dt * idata.N);	
       p_psr = 1.0 / freq;						
       dfdt = rzwcand.z / ((dt * idata.N) * (dt * idata.N));	
+      d2fdt2 = 0.0;
       pdot_psr = -dfdt / (freq * freq);					
     }
 									
@@ -180,23 +188,34 @@ int main(int argc, char **argv)
 									
     if (!cmd->rzwcandP && !cmd->makefileP && !cmd->psrnameP) {		
 									
-      if (cmd->pP) {							
-	p_psr = cmd->p;							
-	freq = 1.0 / p_psr;						
-      }									
-      if (cmd->freqP) {							
-	freq = cmd->freq;						
-	p_psr = 1.0 / freq;						
-      }									
-      if (cmd->pdot != 0.0) {						
-	pdot_psr = cmd->pdot;						
-	dfdt = -pdot_psr / (p_psr * p_psr);				
-      }									
-      if (cmd->dfdt != 0.0) {						
-	dfdt = cmd->dfdt;						
-	pdot_psr = -dfdt / (freq * freq);				
-      }									
-    }									
+      if (cmd->pP) {
+	p_psr = cmd->p;
+	freq = 1.0 / p_psr;
+      }
+      if (cmd->fP) {
+	freq = cmd->f;
+	p_psr = 1.0 / freq;
+      }
+      if (cmd->pd != 0.0) {
+	pdot_psr = cmd->pd;
+	dfdt = -pdot_psr / (p_psr * p_psr);
+      }
+      if (cmd->fd != 0.0) {
+	dfdt = cmd->fd;
+	pdot_psr = -dfdt / (freq * freq);
+      }
+      if (cmd->pdd != 0.0) {
+	pdotdot_psr = cmd->pd;
+	d2fdt2 = 2 * pdot_psr * pdot_psr / (p_psr * p_psr * p_psr) - 
+	  pdotdot_psr / (p_psr * p_psr);
+      }
+      if (cmd->fdd != 0.0) {
+	d2fdt2 = cmd->fdd;
+	pdotdot_psr = 2 * dfdt * dfdt / (freq * freq * freq) - 
+	  d2fdt2 / (freq * freq);
+      }
+    }
+
     /* Determine the length of the profile */				
 									
     if (cmd->proflenP) {						
@@ -216,7 +235,9 @@ int main(int argc, char **argv)
       else orbdt = endtime / 4096.0;
       numpoints = (long) floor(endtime/orbdt + 0.5) + 1;
       Ep = dorbint(startE, numpoints, orbdt, &orb);
-									
+      tp = gen_dvect(numpoints);
+      for (i = 0; i < numpoints; i++) tp[i] = i * orbdt;
+      
       /* Convert Eccentric anomaly to time delays */			
 									
       orb.w *= DEGTORAD;
@@ -236,25 +257,23 @@ int main(int argc, char **argv)
 	  printf("\nonoff pairs must be between 0.0 and 1.0 inclusive.\n\n");
 	  exit(1);
 	}
-	if (onoffpairs[i] == 1.0) onoffpairs[i] = N-1.0;
-	else onoffpairs[i] = floor(onoffpairs[i] * (N-1));
 	if (i >= 1 && onoffpairs[i] < onoffpairs[i-1]){
 	  printf("\nonoff values must increase from left to right.\n\n");
 	  exit(1);
 	}
-	if (onoffpairs[i] >= N) ctmp = NULL;
+	if (onoffpairs[i] > 1.0) ctmp = NULL;
 	if (!(i & 1)) numonoffpairs++;
 	i++;
 	ctmp = strtok(NULL, " \t\n");
       }
-      if (i & 1) onoffpairs[i] = N - 1;
+      if (i & 1) onoffpairs[i] = 1.0;
 
       /* Adjust the epoch of the beginning of the first bin */
 
-      epoch += onoffpairs[0] * dt / SECPERDAY;
+      epoch += (onoffpairs[0] * N * dt) / SECPERDAY;
     } else {
       onoffpairs[0] = 0.0;
-      onoffpairs[1] = N-1.0;
+      onoffpairs[1] = 1.0;
     }
 
     /* Output some informational data on the screen and to the */	
@@ -279,13 +298,18 @@ int main(int argc, char **argv)
       if (pdot_psr != 0.0) {						
 	fprintf(filemarker, "Folding p-dot         (s/s)  =  %-.10e\n",	
 		pdot_psr);						
-      }									
-      fprintf(filemarker, "Folding frequency      (hz)  =  %-.12f\n",	
-	      1.0 / p_psr);						
+      }
+      if (pdotdot_psr != 0.0) {
+	fprintf(filemarker, "Folding p-dotdot    (s/s^2)  =  %-.10e\n",	
+		pdotdot_psr);
+      }
+      fprintf(filemarker, "Folding frequency      (hz)  =  %-.12f\n", freq);
       if (pdot_psr != 0.0) {						
-	fprintf(filemarker, "Folding f-dot        (hz/s)  =  %-.8e\n",	
-		-pdot_psr / (p_psr * p_psr));				
-      }									
+	fprintf(filemarker, "Folding f-dot        (hz/s)  =  %-.8e\n", dfdt);
+      }
+      if (pdotdot_psr != 0.0) {
+	fprintf(filemarker, "Folding f-dotdot   (hz/s^2)  =  %-.8e\n", d2fdt2);
+      }
       if (binary) {							
 	fprintf(filemarker, "Orbital period          (s)  =  %-.10f\n", orb.p);
 	fprintf(filemarker, "a*sin(i)/c (x)     (lt-sec)  =  %-.10f\n", orb.x);
@@ -312,11 +336,11 @@ int main(int argc, char **argv)
 
     /* The heart of the routine: */
 
-    if (cmd->poissonP) poisson = 1;
-    foldfile(datafile, dt, prof, proflen, freq, dfdt, 0.0, \
-	     binary, Ep, 0.0, orbdt, numpoints, poisson, \
-	     &avgph, &varph, chiarr, onoffpairs, &totnumread);
-
+    if (binary) flags = 3;
+    else flags = 2;
+    foldfile(datafile, dt, 0.0, prof, proflen, cmd->phs, 
+	     freq, dfdt, d2fdt2, flags, Ep, tp, numpoints, 
+	     onoffpairs, &stats, chiarr);
     fclose(datafile);
 			
     /* The total number of "photons"... */
@@ -326,30 +350,21 @@ int main(int argc, char **argv)
 
     /* Average value of a profile bin... */
 
-    avgph *= (double) (totnumread) / (double) proflen;
+    avgph = stats.prof_avg;
 
     /* Variance of a profile bin... */
 
-    varph *= (double) (totnumread) / (double) proflen;
+    varph = stats.prof_var;
 
     /* Compute the Chi-Squared probability that there is a signal */
     /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
 
     chixmeas = 0.0;
-    if (cmd->poissonP){
-      for (i = 0 ; i < proflen ; i++){
-	dtmp = prof[i];
-	chitmp = dtmp - avgph;
-	dtmp = (dtmp == 0.0) ? 1.0 : dtmp;
-	chixmeas += ((chitmp * chitmp) / dtmp);
-      }
-    } else {
-      for (i = 0 ; i < proflen ; i++){
-	chitmp = prof[i] - avgph;
-	chixmeas += chitmp * chitmp;
-      }
-      chixmeas /= varph;
-    }      
+    for (i = 0 ; i < proflen ; i++){
+      chitmp = prof[i] - avgph;
+      chixmeas += chitmp * chitmp;
+    }
+    chixmeas /= varph;
 
     freqs = gen_freqs(numreads+1, 0.0, 1.0 / (float) numreads);
     dochi = 1;
@@ -460,16 +475,12 @@ int main(int argc, char **argv)
 
   /* Calculate the errors for each profile bin */
   
-  if (!cmd->dispP || (cmd->dispP && cmd->poissonP)){
+  if (!cmd->dispP){
     showerr = 1;
     errors = gen_fvect(proflen);						
-    if (cmd->poissonP)
-      for (i = 0; i < proflen; i++)
-	errors[i] = sqrt(fprof[i]);
-    else
-      for (i = 0; i < proflen; i++)
-	errors[i] = sqrt(varph);
-
+    for (i = 0; i < proflen; i++)
+      errors[i] = sqrt(varph);
+    
     /* Re-calculate chi-squared if needed */
 
     if (chixmeas == 0.0){
@@ -582,12 +593,12 @@ int main(int argc, char **argv)
 
   if (!cmd->dispP && binary) {
     free(Ep);
+    free(tp);
     free(d2phib);
     free(psrtime);
   }
-  if (!cmd->dispP || (cmd->dispP && cmd->poissonP)){
+  if (!cmd->dispP)
     free(errors);
-  }
   free(freqs);
   free(fprof);
   free(chiarr);
