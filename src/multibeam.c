@@ -108,7 +108,7 @@ int read_multibeam(FILE * infile, float *data, int numpts,
     currentdata = rawdata1;
     lastdata = rawdata2;
 
-    /* Convert the data to floats */
+    /* Convert the data to 1 byte points */
 
     ptr = raw;
     for (ii = 0; ii < numpts; ii++, ptr += recsize)
@@ -126,7 +126,7 @@ int read_multibeam(FILE * infile, float *data, int numpts,
 
   numread = read_multibeam_recs(infile, &hdr, raw, blocks_per_read);
 
-  /* Convert the data to floats */
+  /* Convert the data to 1 byte points */
 
   ptr = raw;
   for (ii = 0; ii < numpts; ii++, ptr += recsize)
@@ -154,6 +154,48 @@ int read_multibeam(FILE * infile, float *data, int numpts,
   /* Return the number of points we actually read */
 
   return numpts;
+}
+
+
+int read_rawmultibeam(FILE *infile, float *data, int numchan, 
+		      int numblocks)
+/* This routine reads numblocks PKMB records with numchan */
+/* channels each from the input file *infile.  The number */
+/* of blocks read is returned.                            */
+{
+  static unsigned char *rawblocks, *sample;
+  static int firsttime=1, decreasing_f=-1, recsize, ptsperblock;
+  static multibeam_tapehdr hdr;
+  int ii, jj, numread, dataindex;
+
+  if (firsttime){
+    recsize = numchan / 8; /* bytes per time interval */
+    ptsperblock = DATLEN / recsize;
+    rawblocks = gen_bvect(DATLEN * numblocks);
+    sample = gen_bvect(numchan);
+    firsttime = 0;
+  }
+   
+  /* Read raw multibeam records */
+
+  numread = read_multibeam_recs(infile, &hdr, rawblocks, numblocks);
+
+  /* If decreasing_f is true, then the data has been  */
+  /* recorded with high frequencies first.            */
+  
+  if (decreasing_f < 0)
+    decreasing_f = (strtod(hdr.chanbw[1], NULL) > 0.0) ? 0 : 1;
+
+  /* Convert the data to floats */
+
+  for (ii=0; ii<ptsperblock*numread; ii++){
+    convert_multibeam_point(rawblocks+ii*recsize, 
+			    sample, numchan, decreasing_f);
+    dataindex = ii * numchan;
+    for (jj=0; jj<numchan; jj++)
+      data[dataindex+jj] = (float) sample[jj];
+  }
+  return numread;
 }
 
 
