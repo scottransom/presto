@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepdata" 1 "28Aug01" "Clig-manuals" "Programmer's Manual"
+.TH "prepdata" 1 "02Dec02" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -28,8 +28,10 @@ prepdata \- Prepares a raw data file for pulsar searching or folding (conversion
 [-if ifs]
 [-wapp]
 [-clip clip]
+[-numwapps numwapps]
 [-numout numout]
 [-nobary]
+[-shorts]
 [-DE405]
 [-dm dm]
 [-mask maskfile]
@@ -58,12 +60,20 @@ For WAPP format only:  Time-domain sigma to use for clipping.  If zero, no clipp
 1 Float value between 0 and 20.0.
 .br
 Default: `0.0'
+.IP -numwapps
+Number of WAPPs used with contiguous frequencies,
+.br
+1 Int value between 1 and 7.
+.br
+Default: `1'
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br
 1 Int value between 1 and oo.
 .IP -nobary
 Do not barycenter the data.
+.IP -shorts
+Use short ints for the output data instead of floats.
 .IP -DE405
 Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -dm
