@@ -708,6 +708,8 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       currentdsdata = data1;
       lastdsdata = data2;
     }
+  }
+  while (firsttime >= 0){
     if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
       for (ii=0; ii<blocksperread; ii++){
 	if (cmd->pkmbP)
@@ -725,6 +727,7 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
 				       currentdata+ii*blocksize, 
 				       dispdts, cmd->numsub, 0, &tmppad, 
 				       maskchans, &nummasked, obsmask);
+	if (firsttime==0) totnumread += numread;
 	if (numread!=blocklen){
 	  for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
 	    currentdata[jj] = 0.0;
@@ -752,51 +755,9 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
     }
     SWAP(currentdata, lastdata);
     SWAP(currentdsdata, lastdsdata);
-    firsttime = 0;
+    firsttime--;
   }
-  if (cmd->pkmbP || cmd->bcpmP || cmd->wappP){
-    for (ii=0; ii<blocksperread; ii++){
-      if (cmd->pkmbP)
-	numread = read_PKMB_subbands(infiles, numfiles, 
-				     currentdata+ii*blocksize, 
-				     dispdts, cmd->numsub, 0, &tmppad, 
-				     maskchans, &nummasked, obsmask);
-      else if (cmd->bcpmP)
-	  numread = read_BPP_subbands(infiles, numfiles, 
-				      currentdata+ii*blocksize, 
-				      dispdts, cmd->numsub, 0, &tmppad, 
-				      maskchans, &nummasked, obsmask, bppifs);
-      else if (cmd->wappP)
-	  numread = read_WAPP_subbands(infiles, numfiles, 
-				       currentdata+ii*blocksize, 
-				       dispdts, cmd->numsub, 0, &tmppad, 
-				       maskchans, &nummasked, obsmask);
-      totnumread += numread;
-      if (numread!=blocklen){
-	for (jj=ii*blocksize; jj<(ii+1)*blocksize; jj++)
-	  currentdata[jj] = 0.0;
-      }
-      if (tmppad) 
-	*padding = 1;
-    }
-  }
-  /* Downsample the subband data if needed */
-  if (cmd->downsamp > 1){
-    int kk, offset, dsoffset, index, dsindex;
-    for (ii=0; ii<dsworklen; ii++){
-      dsoffset = ii * cmd->numsub;
-      offset = dsoffset * cmd->downsamp;
-      for (jj=0; jj<cmd->numsub; jj++){
-	dsindex = dsoffset + jj;
-	index = offset + jj;
-	currentdsdata[dsindex] = 0.0;
-	for (kk=0; kk<cmd->downsamp; kk++){
-	  currentdsdata[dsindex] += currentdata[index];
-	  index += cmd->numsub;
-	}
-      }
-    }
-  }
+  firsttime = 0;
   for (ii=0; ii<cmd->numdms; ii++)
     float_dedisp(currentdsdata, lastdsdata, dsworklen, 
 		 cmd->numsub, offsets[ii], 0.0, outdata[ii]);
