@@ -65,7 +65,7 @@ static int floor_log2(int nn)
 }
 
 
-static double plot_fftview(fftview *fv, float maxpow)
+static double plot_fftview(fftview *fv, float maxpow, float charhgt)
 /* The return value is offsetf */
 {
   int ii;
@@ -79,8 +79,9 @@ static double plot_fftview(fftview *fv, float maxpow)
 
   cpgsls(1);
   cpgslw(1);
-  cpgsch(1);
+  cpgsch(charhgt);
   cpgsci(1);
+  cpgvstd();
 
   if (maxpow==0.0) /* Autoscale for the maximum value */
     maxpow = 1.1 * fv->maxpow;
@@ -90,6 +91,7 @@ static double plot_fftview(fftview *fv, float maxpow)
   offsetf = 0.0;
 
   /* Period Labels */
+
   if (fv->zoomlevel >= 0 && lof > 1.0){
     double lop, hip, offsetp=0.0;
     lop = 1.0/lof;
@@ -102,9 +104,9 @@ static double plot_fftview(fftview *fv, float maxpow)
       
       offsetp = 0.5*(hip+lop);
       numchar = snprintf(label, 50, "Period - %.15g (s)", offsetp);
-      cpgmtxt("T", 3, 0.5, 0.5, label);
+      cpgmtxt("T", 2.5, 0.5, 0.5, label);
     } else {
-      cpgmtxt("T", 3, 0.5, 0.5, "Period (s)");
+      cpgmtxt("T", 2.5, 0.5, 0.5, "Period (s)");
     }
     cpgswin(lop-offsetp, hip-offsetp, 0.0, maxpow);
     cpgbox("CIMST", 0.0, 0, "", 0.0, 0);
@@ -118,9 +120,9 @@ static double plot_fftview(fftview *fv, float maxpow)
 
     offsetf = 0.5*(hif+lof);
     numchar = snprintf(label, 50, "Frequency - %.15g (Hz)", offsetf);
-    cpgmtxt("B", 3, 0.5, 0.5, label);
+    cpgmtxt("B", 2.8, 0.5, 0.5, label);
   } else {
-    cpgmtxt("B", 3, 0.5, 0.5, "Frequency (Hz)");
+    cpgmtxt("B", 2.8, 0.5, 0.5, "Frequency (Hz)");
   }
   cpgswin(lof-offsetf, hif-offsetf, 0.0, maxpow);
   if (fv->zoomlevel >= 0 && lof > 1.0)
@@ -142,7 +144,7 @@ static double plot_fftview(fftview *fv, float maxpow)
     }
   }
   free(freqs);
-  cpgmtxt("L", 3, 0.5, 0.5, "Normalized Power");
+  cpgmtxt("L", 2.5, 0.5, 0.5, "Normalized Power");
   cpgebuf();
   cpgunsa();
   return offsetf;
@@ -299,21 +301,22 @@ static double find_peak(float inf, fftview *fv, fftpart *fp)
 static void print_help(void)
 {
   printf("\n"
-	 " Button or Key      Effect\n"
-	 " -------------      ------\n"
-	 " Mouse1 or A        Zoom in by a factor of 2\n"
-	 " Mouse3 or X        Zoom in by a factor of 2\n"
-	 " J                  Shift left  by 15%% of the screen width\n"
-	 " L                  Shift right by 15%% of the screen width\n"
-	 " I                  Increase the power scale (make them taller)\n"
-	 " K                  Decrease the power scale (make them shorter)\n"
-	 " Space              Auto-scale the powers\n"
-	 " N                  Renormalize the nowers by one of several methods\n"
-	 " P                  Print the current plot to a file\n"
-	 " Mouse2 or S or D   Select and optimize a frequency\n"
-	 " H                  Show the harmonics of the center frequency\n"
-	 " ?                  Show this help screen\n"
-	 " Q                  Quit\n"
+	 " Button or Key            Effect\n"
+	 " -------------            ------\n"
+	 " Left Mouse or I or A     Zoom in  by a factor of 2\n"
+	 " Right Mouse or O or X    Zoom out by a factor of 2\n"
+	 " Middle Mouse or D        Show details about a selected frequency\n"
+	 " < or ,                   Shift left  by 15%% of the screen width\n"
+	 " > or .                   Shift right by 15%% of the screen width\n"
+	 " + or =                   Increase the power scale (make them taller)\n"
+	 " - or _                   Decrease the power scale (make them shorter)\n"
+	 " S                        Scale the powers automatically\n"
+	 " N                        Re-normalize the nowers by one of several methods\n"
+	 " P                        Print the current plot to a file\n"
+	 " G                        Go to a specified frequency\n"
+	 " H                        Show the harmonics of the center frequency\n"
+	 " ?                        Show this help screen\n"
+	 " Q                        Quit\n"
 	 "\n");
 }
 
@@ -345,9 +348,11 @@ static void plot_harmonics(double rr)
     cpgpanl(ii%4+1, ii/4+1);
     harmview = get_harmonic(hh*rr);
     if (harmview != NULL){
-      offsetf = plot_fftview(harmview, 0.0);
+      offsetf = plot_fftview(harmview, 0.0, 2.0);
       snprintf(label, 20, "Harmonic %d", hh);
-      cpgmtxt("T", -3, 0.1, 0.0, label);
+      cpgsch(2.0);
+      cpgmtxt("T", -1.8, 0.05, 0.0, label);
+      cpgsch(1.0);
       cpgsci(2); /* red */
       cpgmove((hh*rr)/T-offsetf, 0.0);
       cpgdraw((hh*rr)/T-offsetf, 1.1*harmview->maxpow);
@@ -359,9 +364,11 @@ static void plot_harmonics(double rr)
     cpgpanl(ii%4+1, ii/4+1);
     harmview = get_harmonic(rr/(double)hh);
     if (harmview != NULL){
-      offsetf = plot_fftview(harmview, 0.0);
+      offsetf = plot_fftview(harmview, 0.0, 2.0);
       snprintf(label, 20, "Harmonic 1/%d", hh);
-      cpgmtxt("T", -3, 0.1, 0.0, label);
+      cpgsch(2.0);
+      cpgmtxt("T", -1.8, 0.05, 0.0, label);
+      cpgsch(1.0);
       cpgsci(2); /* red */
       cpgmove((rr/(double)hh)/T-offsetf, 0.0);
       cpgdraw((rr/(double)hh)/T-offsetf, 1.1*harmview->maxpow);
@@ -373,6 +380,10 @@ static void plot_harmonics(double rr)
   cpgpanl(1, 1);
   cpgsvp(0.0, 1.0, 0.0, 1.0);
   cpgswin(2.0, 6.0, -2.0, 2.0);
+  cpgmove(2.0, 0.0);
+  cpgslw(3);
+  cpgdraw(6.0, 0.0);
+  cpgslw(1);
 }
 
 static double harmonic_loop(int xid, double rr)
@@ -383,6 +394,7 @@ static double harmonic_loop(int xid, double rr)
   char choice;
 
   xid2 = cpgopen("/XWIN");
+  cpgpap(10.25, 8.5/11.0);
   cpgask(0);
   cpgslct(xid2);
   plot_harmonics(rr);
@@ -409,11 +421,12 @@ static double harmonic_loop(int xid, double rr)
       filename[len+4] = '\0';
       psid = cpgopen(filename);
       cpgslct(psid);
-      cpgpap(11.0, 8.5/11.0);
+      cpgpap(10.25, 8.5/11.0);
+      cpgiden();
       harmpart = get_fftpart((int)(rr-NUMHARMBINS), 2*NUMHARMBINS);
       harmview = get_fftview(rr, LOGDISPLAYNUM-LOGNUMHARMBINS, harmpart);
       free_fftpart(harmpart);
-      offsetf = plot_fftview(harmview, 0.0);
+      offsetf = plot_fftview(harmview, 0.0, 1.0);
       cpgpage();
       plot_harmonics(rr);
       cpgclos();
@@ -510,7 +523,7 @@ int main(int argc, char *argv[])
   }
   cpgask(0);
   cpgpage();
-  offsetf = plot_fftview(fv, maxpow);
+  offsetf = plot_fftview(fv, maxpow, 1.0);
 
   do {
     float inx, iny;
@@ -521,32 +534,35 @@ int main(int argc, char *argv[])
     switch (inchar){
     case 'A': /* Zoom in */
     case 'a':
-      if (DEBUGOUT) printf("  Zooming in  (zoomlevel = %d)...\n", zoomlevel);
       centerr = (inx + offsetf) * T;
+    case 'I':
+    case 'i':
+      if (DEBUGOUT) printf("  Zooming in  (zoomlevel = %d)...\n", zoomlevel);
       if (zoomlevel < maxzoom){
 	zoomlevel++;
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow);
+	offsetf = plot_fftview(fv, maxpow, 1.0);
       } else 
 	printf("  Already at maximum zoom level (%d).\n", zoomlevel);
       break;
     case 'X': /* Zoom out */
     case 'x':
+    case 'O':
+    case 'o':
       if (DEBUGOUT) printf("  Zooming out  (zoomlevel = %d)...\n", zoomlevel);
-      centerr = (inx + offsetf) * T;
       if (zoomlevel > minzoom){
 	zoomlevel--;
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow);
+	offsetf = plot_fftview(fv, maxpow, 1.0);
       } else 
 	printf("  Already at minimum zoom level (%d).\n", zoomlevel);
       break;
-    case 'J': /* Shift left */
-    case 'j':
+    case '<': /* Shift left */
+    case ',':
       if (DEBUGOUT) printf("  Shifting left...\n");
       centerr -= 0.15 * fv->numbins;
       { /* Should probably get the previous chunk from the fftfile... */
@@ -559,10 +575,10 @@ int main(int argc, char *argv[])
       free(fv);
       fv = get_fftview(centerr, zoomlevel, lofp);
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow);
+      offsetf = plot_fftview(fv, maxpow, 1.0);
       break;
-    case 'L': /* Shift left */
-    case 'l':
+    case '>': /* Shift right */
+    case '.':
       if (DEBUGOUT) printf("  Shifting right...\n");
       centerr += 0.15 * fv->numbins;
       { /* Should probably get the next chunk from the fftfile... */
@@ -575,36 +591,37 @@ int main(int argc, char *argv[])
       free(fv);
       fv = get_fftview(centerr, zoomlevel, lofp);
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow);
+      offsetf = plot_fftview(fv, maxpow, 1.0);
       break;
-    case 'I': /* Scaling down */
-    case 'i':
+    case '+': /* Increase height of powers */
+    case '=':
       if (maxpow==0.0){
 	printf("  Auto-scaling is off.\n");
 	maxpow = 1.1 * fv->maxpow;
       }
       maxpow = 3.0/4.0 * maxpow;
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow);
+      offsetf = plot_fftview(fv, maxpow, 1.0);
       break;
-    case 'K': /* Scaling up */
-    case 'k':
+    case '-': /* Decrease height of powers */
+    case '_':
       if (maxpow==0.0){ 
 	printf("  Auto-scaling is off.\n");
 	maxpow = 1.1 * fv->maxpow;
       }
       maxpow = 4.0/3.0 * maxpow;
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow);
+      offsetf = plot_fftview(fv, maxpow, 1.0);
       break;
-    case ' ': /* Auto-scale */
+    case 'S': /* Auto-scale */
+    case 's':
       if (maxpow==0.0)
 	break;
       else {
 	printf("  Auto-scaling is on.\n");
 	maxpow = 0.0;
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow);
+	offsetf = plot_fftview(fv, maxpow, 1.0);
 	break;
       }
     case 'G': /* Goto a frequency */
@@ -621,11 +638,11 @@ int main(int argc, char *argv[])
 	}
 	offsetf = 0.0;
 	centerr = freq * T;
-	printf("  Moving to frequency %.12f.\n", freq);
+	printf("  Moving to frequency %.15g.\n", freq);
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow);
+	offsetf = plot_fftview(fv, maxpow, 1.0);
       }
       break;
     case 'H': /* Show harmonics */
@@ -641,16 +658,14 @@ int main(int argc, char *argv[])
 	  free(fv);
 	  fv = get_fftview(centerr, zoomlevel, lofp);
 	  cpgpage();
-	  offsetf = plot_fftview(fv, maxpow);
+	  offsetf = plot_fftview(fv, maxpow, 1.0);
 	}
       }
       break;
     case '?': /* Print help screen */
       print_help();
       break;
-    case 'S': /* Select a point */
-    case 's':
-    case 'D':
+    case 'D': /* Show details about a selected point  */
     case 'd':
       {
 	double newr;
@@ -663,7 +678,7 @@ int main(int argc, char *argv[])
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow);
+	offsetf = plot_fftview(fv, maxpow, 1.0);
 	/*
 	  cpgsci(2);
 	  cpgmove(newr/T-offsetf, 0.0);
@@ -686,8 +701,9 @@ int main(int argc, char *argv[])
 	filename[len+3] = '\0';
 	psid = cpgopen(filename);
 	cpgslct(psid);
-	cpgpap(11.0, 8.5/11.0);
-	offsetf = plot_fftview(fv, maxpow);
+	cpgpap(10.25, 8.5/11.0);
+	cpgiden();
+	offsetf = plot_fftview(fv, maxpow, 1.0);
 	cpgclos();
 	cpgslct(xid);
 	filename[len] = '\0';
@@ -778,7 +794,7 @@ int main(int argc, char *argv[])
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow);
+	offsetf = plot_fftview(fv, maxpow, 1.0);
       }
       break;
     case 'Q': /* Quit */
