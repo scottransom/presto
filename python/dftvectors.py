@@ -85,7 +85,7 @@ class dftvector:
       u = self.timefract
       return (2.0 * umath.pi * u *
               (przw[1] + u * (0.5 * przw[2] + przw[3] / 6.0 * u)) + przw[0])
-   def fitrzw(self):
+   def fitrzw(self, przw=None):
       """
       dftvector.fitrzw():
            Fit a model consisting of and arbitrary phase, Fourier
@@ -96,8 +96,18 @@ class dftvector:
       def funct(przw, self):
          x = Numeric.zeros(4, 'd')
          x[0:3] = przw
-         return self.phases() - self.rzw_phases(x)
-      retval = leastsq(funct, [0.0, 0.0, 0.0], args=(self))
+         corrvect = umath.add.accumulate(dv.rotate(-dv.rzw_phases(x)))
+         phases = umath.arctan2(corrvect.imag, corrvect.real)
+         #self.plotvector(corrvect)
+         #Pgplot.closeplot()
+         return smooth_phases(phases)
+         #weights = self.timefract
+         #Pgplot.plotxy(weights * (self.phases() - self.rzw_phases(x)))
+         #Pgplot.closeplot()
+         #return weights * (self.phases() - self.rzw_phases(x))
+      if not przw:
+         przw = [0.0, 0.0, 0.0]
+      retval = leastsq(funct, przw, args=(self))
       print retval[1]
       x = Numeric.zeros(4, 'd')
       x[0:3] = retval[0]
@@ -128,12 +138,25 @@ class dftvector:
 #print dv.amplitude()
 #dv.plot()
 
-dv = dftvector("/pulsar/data/parkes/Ter5_1_Part/Ter5_DM243_76375.000.dftvec")
+dv = dftvector("testz_20000.000.dftvec")
 print dv.maxamplitude()
 print dv.amplitude()
-dv.plot(amp=12)
-przw = dv.fitrzw()
+przw = dv.fitrzw([2.0, 2.0, 6.0])
+print "przw =", przw
 rot = dv.rzw_phases(przw)
+#rot = dv.rzw_phases([0.0, 0.345, 0.0, 0.0])
 corrvect = dv.rotate(-rot)
+dv.plot()
 dv.plotvector(umath.add.accumulate(corrvect))
 Pgplot.closeplot()
+
+
+#dv = dftvector("/pulsar/data/parkes/Ter5_1_Part/Ter5_DM243_76375.000.dftvec")
+#print dv.maxamplitude()
+#print dv.amplitude()
+#dv.plot(amp=12)
+#przw = dv.fitrzw()
+#rot = dv.rzw_phases(przw)
+#corrvect = dv.rotate(-rot)
+#dv.plotvector(umath.add.accumulate(corrvect))
+#Pgplot.closeplot()
