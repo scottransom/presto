@@ -892,7 +892,7 @@ float *real_corr_conv(float *data, float *kernel, int numdata,
   /*      'type' = INPLACE_CONV:  convolution over-writes 'data'.   */
   /*      'type' = INPLACE_CORR:  correlation over-writes 'data'.   */
 
-%apply fcomplex* IN_1D_CFLOAT { fcomplex *data, fcomplex *kernel, fcomplex *result };
+%apply fcomplex* IN_1D_CFLOAT { fcomplex *data, fcomplex *kern, fcomplex *result };
 int corr_complex(fcomplex *data, int numdata, presto_datainf datainf, 
 		 fcomplex *kern, int numkern, presto_datainf kerninf, 
 		 fcomplex *result, int numresult, int lobin, 
