@@ -5,9 +5,11 @@
 
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
+static long long filedatalen_st[MAXPATCHFILES];
 static int numblks_st[MAXPATCHFILES], corr_level_st, decreasing_freqs_st=0;
 static int bytesperpt_st, bytesperblk_st, bits_per_samp_st, numifs_st;
-static int numchan_st, numifs_st, ptsperblk_st=WAPP_PTSPERBLOCK, sampperblk_st;
+static int numchan_st, numifs_st, ptsperblk_st=WAPP_PTSPERBLOCK;
+static int need_byteswap_st, sampperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st, dtus_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
@@ -24,6 +26,52 @@ double slaCldj(int iy, int im, int id, int *j);
 static double inv_cerf(double input);
 static void vanvleck3lev(float *rho, int npts);
 static void vanvleck9lev(float *rho, int npts);
+
+int check_WAPP_byteswap(WAPP_HEADER *hdr)
+{
+  int ii;
+  
+  if ((hdr->header_size != 2048) &&
+      (hdr->nifs < 1 || hdr->nifs > 4)){
+    hdr->src_ra = swap_double(hdr->src_ra);
+    hdr->src_dec = swap_double(hdr->src_dec);
+    hdr->start_az = swap_double(hdr->start_az);
+    hdr->start_za = swap_double(hdr->start_za);
+    hdr->start_ast = swap_double(hdr->start_ast);
+    hdr->start_lst = swap_double(hdr->start_lst);
+    hdr->cent_freq = swap_double(hdr->cent_freq);
+    hdr->obs_time = swap_double(hdr->obs_time);
+    hdr->samp_time = swap_double(hdr->samp_time);
+    hdr->wapp_time = swap_double(hdr->wapp_time);
+    hdr->bandwidth = swap_double(hdr->bandwidth);
+    hdr->power_analog[0] = swap_double(hdr->power_analog[0]);
+    hdr->power_analog[1] = swap_double(hdr->power_analog[1]);
+    hdr->psr_dm = swap_double(hdr->psr_dm);
+    hdr->num_lags = swap_int(hdr->num_lags);
+    hdr->scan_number = swap_int(hdr->scan_number);
+    hdr->header_version = swap_int(hdr->header_version);
+    hdr->header_size = swap_int(hdr->header_size);    
+    hdr->nifs = swap_int(hdr->nifs);
+    hdr->level = swap_int(hdr->level);
+    hdr->sum = swap_int(hdr->sum);
+    hdr->freqinversion = swap_int(hdr->freqinversion);
+    hdr->lagformat = swap_int(hdr->lagformat);
+    hdr->lagtrunc = swap_int(hdr->lagtrunc);
+    hdr->timeoff = swap_longlong(hdr->timeoff);
+    for (ii=0; ii<9; ii++){
+      hdr->rphase[ii] = swap_double(hdr->rphase[ii]);
+      hdr->psr_f0[ii] = swap_double(hdr->psr_f0[ii]);
+      hdr->poly_tmid[ii] = swap_double(hdr->poly_tmid[ii]);
+      hdr->num_coeffs[ii] = swap_int(hdr->num_coeffs[ii]);
+    }
+    for (ii=0; ii<144; ii++)
+      hdr->coeff[ii] = swap_double(hdr->coeff[ii]);
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
 
 static double UT_strings_to_MJD(char *obs_date, char *start_time, 
 				int *mjd_day, double *mjd_fracday)
@@ -115,8 +163,8 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 {
-  int ii, asciihdrlen=0;
-  char cc;
+  int ii, asciihdrlen=1;
+  char cc=1;
   WAPP_HEADER hdr;
 
   if (numfiles > MAXPATCHFILES){
@@ -129,6 +177,8 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
     asciihdrlen++;
   /* Read the binary header (no byte-swapping capabilities yet) */
   chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[0]);
+  /* See if we need to byte-swap and if so, doit */
+  need_byteswap_st = check_WAPP_byteswap(&hdr);
   numifs_st = hdr.nifs;
   if (numifs_st > 1)
     printf("\nNumber of IFs (%d) is > 1!  I can't handle this yet!\n\n",
@@ -157,8 +207,9 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
   sampperblk_st = ptsperblk_st * numchan_st;
   bytesperpt_st = (numchan_st * numifs_st * bits_per_samp_st) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
-  numblks_st[0] = (chkfilelen(files[0], 1) 
-		   - asciihdrlen - WAPP_HEADER_SIZE) / bytesperblk_st;
+  filedatalen_st[0] = chkfilelen(files[0], 1) - 
+    asciihdrlen - WAPP_HEADER_SIZE;
+  numblks_st[0] = filedatalen_st[0] / bytesperblk_st;
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
   dtus_st = idata_st[0].dt * 1000000.0;
@@ -177,8 +228,11 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
   padpts_st[0] = padpts_st[numfiles-1] = 0;
   for (ii=1; ii<numfiles; ii++){
     /* Skip the ASCII header file */
-    while((cc=fgetc(files[0]))!='\0');
+    cc=1;
+    while((cc=fgetc(files[ii]))!='\0');
     chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[ii]);
+    /* See if we need to byte-swap and if so, doit */
+    need_byteswap_st = check_WAPP_byteswap(&hdr);
     WAPP_hdr_to_inf(&hdr, &idata_st[ii]);
     if (idata_st[ii].num_chan != numchan_st){
       printf("Number of channels (file %d) is not the same!\n\n", ii+1);
@@ -186,13 +240,29 @@ void get_WAPP_file_info(FILE *files[], int numfiles, long long *N,
     if (idata_st[ii].dt != dt_st){
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
     }
-    numblks_st[ii] = (chkfilelen(files[ii], 1) 
-		      - asciihdrlen - WAPP_HEADER_SIZE) / bytesperblk_st;
+    filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
+      asciihdrlen - WAPP_HEADER_SIZE;
+    numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
     times_st[ii] = numpts_st[ii] * dt_st;
+    /* If the MJDs are equal, then this is a continuation */
+    /* file.  In that case, calculate the _real_ time     */
+    /* length of the previous file and add it to the      */
+    /* previous files MJD to get the current MJD.         */
     mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
-    elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
-				  idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+    if (mjds_st[ii]==mjds_st[0]){
+      elapsed_st[ii] = (filedatalen_st[ii-1] / bytesperpt_st) * dt_st;
+      idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + elapsed_st[ii] / SECPERDAY;
+      idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
+      if (idata_st[ii].mjd_f >= 1.0){
+	idata_st[ii].mjd_f -= 1.0;
+	idata_st[ii].mjd_i++;
+      }
+      mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
+    } else {
+      elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
+				    idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+    }
     padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / 
 				  dt_st + 0.5);
     elapsed_st[ii] += elapsed_st[ii-1];
@@ -391,6 +461,19 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
   
   if (fread(lagbuffer, bytesperblk_st, 
 	    1, infiles[currentfile])){ /* Got Data */
+    /* See if we need to byte-swap and if so, doit */
+    if (need_byteswap_st){
+      if (bits_per_samp_st==16){
+	short *sptr = (short *)lagbuffer;
+	for (ii=0; ii<sampperblk_st; ii++, sptr++)
+	  *sptr = swap_short(*sptr);
+      }
+      if (bits_per_samp_st==32){
+	int *iptr = (int *)lagbuffer;
+	for (ii=0; ii<sampperblk_st; ii++, iptr++)
+	  *iptr = swap_int(*iptr);
+      }
+    }      
     /* Convert from Correlator Lags to Filterbank Powers */
     for (ii=0; ii<ptsperblk_st; ii++)
       convert_WAPP_point(lagbuffer + ii * bytesperpt_st, 

@@ -400,10 +400,14 @@ int BPPHDR_print(long count, char *obj_ptr)
 
 int WAPPHDR_print(long count, char *obj_ptr)
 {
+  int swapped;
   WAPP_HEADER *object;
 
   object = (WAPP_HEADER *) obj_ptr;
   printf("\n%ld:", count + 1);
+  swapped = check_WAPP_byteswap(object);
+  if (swapped)
+    printf("  Byte-swapped from little-endian to big-endian...\n");
   print_WAPP_hdr(object);
   return 0;
 }
