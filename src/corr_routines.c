@@ -1,6 +1,6 @@
 #include "presto.h"
 
-/* #define DEBUGPRINT */
+/* define DEBUGPRINT */
 
 int corr_complex(fcomplex *data, int numdata, presto_datainf datainf, \
 		 fcomplex *kern, int numkern, presto_datainf kerninf, \
@@ -108,7 +108,12 @@ int corr_complex(fcomplex *data, int numdata, presto_datainf datainf, \
 	exit(1);
       }
     }
+  } else if (datainf == SAME || kerninf == SAME){
+    fftlen = oldfftlen;
   } else {
+#ifdef DEBUGPRINT
+      printf("Yikes!!\n");
+#endif
     fftlen = next2_to_n(numresult + 2 * kern_half_width * numbetween);
   }
   if (fftlen > MAXREALFFT/4){
@@ -131,6 +136,10 @@ int corr_complex(fcomplex *data, int numdata, presto_datainf datainf, \
       exit(1);
     }
   }
+
+#ifdef DEBUGPRINT
+      printf("numdata = %d  fftlen = %d\n", numdata, fftlen);
+#endif
 
   /* Prep the data array */
 

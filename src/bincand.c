@@ -6,6 +6,12 @@
 #include "dmalloc.h"
 #endif
 
+static double orbit_trial(fcomplex *data, int datalen,
+			  presto_datainf datainf,  int lodata, 
+			  double ppsr, double T, orbitparams orb, 
+			  float *bestpowr, double *bestpsrp,
+			  orbitparams *bestorb, fcomplex *buffer);
+
 int main(int argc, char *argv[]){
 /* bincand: tries to optimize a binary PSR candidate based  */
 /* on the mini-FFT method in a large FFT.  Uses an orbit    */
@@ -13,20 +19,17 @@ int main(int argc, char *argv[]){
 /* correlates these with the initial FFT.                   */
   FILE *fftfile;
   char fftnm[200];
-  float powr, bestpowr=0.0, binr, bini, nextbinr, nextbini;
+  float bestpowr=0.0, bestrawpowr=0.0, tmppowr;
   double N, T, rlo, rhi, rorb=0.0, norm, bestpsrp=0.0;
-  double phiorb=0.0, ro=0.0, plo, phi;
+  double phiorb=0.0, ro=0.0, plo, phi, powargr, powargi;
   double epoch=0.0, freq=0.0, ppsr=0.0;
-  double powargr, powargi, interbinfact;
-  int pnum, ii, resplen, resphw;
-  int pct, xct, tct, datalen, lodata;
+  int pnum, ii, pct, xct, tct, datalen, lodata;
   double dp=0.0, dx=0.0, dt=0.0, de=0.016, dw=0.8;
   double lop=0.0, lox=0.0, lot=0.0, loe, low;
-  int np=0, nx=0, nt=0, ne, nw, numgood;
+  int np=0, nx=0, nt=0, ne, nw;
   unsigned long filelen;
-  double numsearched=0.0, numtosearch=0.0, tott;
-  struct tms runtimes;
-  fcomplex *data=NULL, *resp=NULL, *corrdata=NULL;
+  double numsearched=0.0, numtosearch=0.0, trial_time, avg_time;
+  fcomplex *data=NULL, *corrdata=NULL;
   orbitparams trialorb, orb, bestorb;
   infodata idata;
   makedata mdata;
@@ -40,7 +43,6 @@ int main(int argc, char *argv[]){
     usage();
     exit(1);
   }
-  interbinfact = 1.0 / (PIBYTWO * PIBYTWO);
 
   /* Parse the command line using the excellent program Clig */
 
@@ -73,7 +75,7 @@ int main(int argc, char *argv[]){
   /* Read the info file */
 
   printf("Reading observation information from \n\t'%s.inf'.\n\n", 
-	 fftnm);
+	 cmd->argv[0]);
   readinf(&idata, cmd->argv[0]);
 
   /* The MJD of the beginning of the observation */
@@ -280,6 +282,9 @@ int main(int argc, char *argv[]){
     trialorb.w = 0.0;
     trialorb.t = 0.0;
     trialorb.wd = 0.0;
+    phiorb = TWOPI * trialorb.x / ppsr;
+    rorb = T / trialorb.p;
+    ro = T / ppsr;
     print_bin_candidate(&binprops, 2);
 
     dp = trialorb.p * \
@@ -288,8 +293,8 @@ int main(int argc, char *argv[]){
       exp(0.9572412 * log(1.0/phiorb) + 0.7110553);
     dt = trialorb.p * \
       exp(0.9420009 * log(1.0/phiorb) - 1.1676730);
-    np = 8.0 * binprops.pbinerr / dp + 1;
-    nx = 8.0 * binprops.asinicerr / dx + 1;
+    np = 4.0 * binprops.pbinerr / dp + 1;
+    nx = 6.0 * binprops.asinicerr / dx + 1;
     nt = trialorb.p / dt + 1;
     ne = 1;  /* This only works for circular orbs */
     nw = 1;  /* This only works for circular orbs */
@@ -354,12 +359,12 @@ int main(int argc, char *argv[]){
 
   /* Extract the necessary data from the fftfile */
 
-  datalen = next2_to_n(2.0 * rorb * phiorb);
+  datalen = next2_to_n(10.0 * rorb * phiorb);
   lodata = (int) (ro - datalen / 2);
   printf("Extracting frequencies from\n\t'%s.fft':\n", 
 	 cmd->argv[0]);
-  printf("\tNumber of frequencies = %d\n", datalen);
-  printf("\tLow Fourier frequency = %d\n", lodata);
+  printf("   Number of frequencies = %d\n", datalen);
+  printf("   Low Fourier frequency = %d\n", lodata);
   data = read_fcomplex_file(fftfile, lodata, datalen);
   fclose(fftfile);
 
@@ -367,10 +372,17 @@ int main(int argc, char *argv[]){
   /* using the local power level, then FFT.         */
 
   norm = 0.0;
-  for (ii = 0; ii < datalen; ii++)
-    norm += POWER(data[ii].r, data[ii].i);
-  norm = 1.0 / sqrt(norm / datalen);
   for (ii = 0; ii < datalen; ii++){
+    tmppowr = POWER(data[ii].r, data[ii].i);
+    if (tmppowr > bestrawpowr) 
+      bestrawpowr = tmppowr;
+    norm += tmppowr;
+  }
+  norm = datalen / norm;
+  bestrawpowr *= norm;
+  norm = sqrt(norm);
+  printf("   Highest RawFFT power  = %.2f\n", bestrawpowr);
+    for (ii = 0; ii < datalen; ii++){
     data[ii].r *= norm;
     data[ii].i *= norm;
   }
@@ -381,70 +393,115 @@ int main(int argc, char *argv[]){
 
   numtosearch = np * nx * nt;
   corrdata = gen_cvect(datalen);
-  printf("\nWill search:\n");
-  printf("\tOrbital periods = %d\n", np);
-  printf("\tSemi-major axes = %d\n", nx);
-  printf("\tPeriapsis times = %d\n", nt);
-  printf("  For a total of %.0f candidates.\n\n", numtosearch);
+  printf("\nWill search...\n");
+  printf("   Orbital periods = %d\n", np);
+  printf("   Semi-major axes = %d\n", nx);
+  printf("   Periapsis times = %d\n", nt);
+  printf("      ...for a total of %.0f candidates.\n\n", numtosearch);
 
+  /* Do a search through the */
+
+  trial_time = orbit_trial(data, datalen, FFT, lodata, ppsr, T, trialorb, 
+			   &bestpowr, &bestpsrp, &bestorb, corrdata);
+  printf("Approx %f sec per trial.  Estimate %.3f hours for full search.", 
+	 trial_time, numtosearch * trial_time / 3600.0);
+  fflush(NULL);
+  orb.e = 0.0;
+  orb.w = 0.0;
+  orb.pd = 0.0;
+  orb.wd = 0.0;
   for (pct = 0; pct < np; pct++){
     orb.p = lop + pct * dp;
     for (xct = 0; xct < nx; xct++){
       orb.x = lox + xct * dx;
+      avg_time = 0.0;
       for (tct = 0; tct < nt; tct++){
 	orb.t = lot + tct * dt;
-	printf("p = %f, x = %f, t = %f\n", orb.p, orb.x, orb.t);
-	tott = times(&runtimes) / (double) CLK_TCK;
-
-	/* Generate the response */
-
-	resphw = bin_resp_halfwidth(ppsr, T, &orb);
-	resplen = 2 * resphw;
-	resp = gen_bin_response(0.0, 1, ppsr, T, &orb, resplen);
-
-	/* Perform the correlation */
-
-	numgood = corr_complex(data, datalen, FFT, \
-			       resp, resplen, RAW, \
-			       corrdata, datalen, resphw, \
-			       1, resphw, CORR);
-
-	/* Search the correlation */
-
-	binr = corrdata[resphw].r;
-	bini = corrdata[resphw].i;
-	for (ii = resphw; ii < resphw + numgood; ii++){
-	  /* Check the integer bin */
-	  powr = POWER(binr, bini);
-	  if (powr > bestpowr){
-	    bestpowr = powr;
-	    bestpsrp = lodata + ii;
-	    bestorb = orb;
-	  }
-	  /* Check the interbin */
-	  nextbinr = corrdata[ii+1].r;
-	  nextbini = corrdata[ii+1].i;
-	  binr -= nextbinr;
-	  bini -= nextbini;
-	  powr = interbinfact * POWER(binr, bini);
-	  if (powr > bestpowr){
-	    bestpowr = powr;
-	    bestpsrp = lodata + ii + 0.5;
-	    bestorb = orb;
-	  }
-	  binr = nextbinr;
-	  binr = nextbini;
-	}
-	free(resp);
-	tott = times(&runtimes) / (double) CLK_TCK - tott;
+	trial_time = orbit_trial(data, datalen, SAME, lodata, ppsr, T, 
+				 orb, &bestpowr, &bestpsrp, &bestorb, 
+				 corrdata);
+	avg_time += trial_time;
 	numsearched = numsearched + 1.0;
-	printf("\tt = %fs per cand.  Estimate %.3f hours for full search.\n", 
-	       tott, (numtosearch - numsearched) * tott / 3600.0);
-	printf("\tBestpow = %f  BestPsrP = %f  BestOrbP = %f\n", 
-	       bestpowr, bestpsrp, bestorb.p);
       }
+/*       printf("\tBestpow = %f  BestPsrP = %f  BestOrbP = %f\n",  */
+/* 	     *bestpowr, *bestpsrp, bestorb->p); */
+      avg_time /= nt;
+      printf("\rApprox %.2f hrs remaining.  Current best:  Power = %.2f  P_psr = %.12f  P_orb = %.2f  x = %.3f  To = %.3f", 
+	     (numtosearch - numsearched) * avg_time / 3600.0,
+	     bestpowr, bestpsrp, bestorb.p, bestorb.x, bestorb.t);
+      fflush(NULL);
     }
   }
   free(data);
+  free(corrdata);
+  printf("\n\nResults:\n");
+  printf("\tHighest power found = %f\n", bestpowr);
+  printf("\t        Power ratio = %f\n\n", bestpowr / bestrawpowr);
+  printf("\t Best Pulsar period = %.15f\n", bestpsrp);
+  printf("\tBest Orbital period = %f\n", bestorb.p);
+  printf("\t    Best a*sin(i)/c = %f\n", bestorb.x);
+  printf("\tBest Time of Periap = %f\n", bestorb.t);
+  printf("\nNote:  These results have not been optimized!\n\n");
   exit(0);
+}
+
+
+static double orbit_trial(fcomplex *data, int datalen,
+			  presto_datainf datainf,  int lodata, 
+			  double ppsr, double T, orbitparams orb, 
+			  float *bestpowr, double *bestpsrp,
+			  orbitparams *bestorb, fcomplex *buffer)
+{
+  /* Returns the time it takes to search one trial */
+
+  int resphw, resplen, numgood, numbetween = 1, ii;
+  float powr, ipowr, binr, bini, nextbinr, nextbini;
+  double powargr, powargi, interbinfact, tott;
+  struct tms runtimes;
+  fcomplex *resp;
+
+  tott = times(&runtimes) / (double) CLK_TCK;
+  interbinfact = 1.0 / (PIBYTWO * PIBYTWO);
+
+  /* Generate the response */
+  
+  resphw = bin_resp_halfwidth(ppsr, T, &orb);
+  resplen = 2 * numbetween * resphw;
+  resp = gen_bin_response(0.0, numbetween, ppsr, T, &orb, resplen);
+  
+  /* Perform the correlation */
+  
+  numgood = corr_complex(data, datalen, datainf, resp, resplen, RAW,
+			 buffer, datalen, resphw, numbetween, 
+			 resphw, CORR);
+  
+  /* Search the correlation */
+  
+  binr = buffer[0].r;
+  bini = buffer[0].i;
+  for (ii = 1; ii <= numgood; ii++){
+    /* Check the regular bin */
+    powr = POWER(binr, bini);
+    /* Check the interbin */
+    nextbinr = buffer[ii].r;
+    nextbini = buffer[ii].i;
+    binr -= nextbinr;
+    bini -= nextbini;
+    ipowr = interbinfact * POWER(binr, bini);
+    binr = nextbinr;
+    bini = nextbini;
+    if (powr > *bestpowr || ipowr > *bestpowr){
+      if (powr > *bestpowr){
+	*bestpowr = powr;
+	*bestpsrp = T / (lodata + resphw + ii - 1.0);
+      } else {
+	*bestpowr = ipowr;
+	*bestpsrp = T / (lodata + resphw + ii - 0.5);
+      }
+      *bestorb = orb;
+    }
+  }
+  free(resp);
+  tott = times(&runtimes) / (double) CLK_TCK - tott;
+  return tott;
 }

@@ -146,7 +146,7 @@ fcomplex *gen_r_response(double roffset, int numbetween, int numkern)
   /*    'roffset' is the offset in Fourier bins for the full response  */
   /*       (i.e. At this point, the response would equal 1.0)          */
   /*    'numbetween' is the number of points to interpolate between    */
-  /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 2 = interbins) */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
 {
@@ -216,7 +216,7 @@ fcomplex *gen_z_response(double roffset, int numbetween, double z, \
   /*    'roffset' is the offset in Fourier bins for the full response  */
   /*       (i.e. At this point, the response would equal 1.0)          */
   /*    'numbetween' is the number of points to interpolate between    */
-  /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 2 = interbins) */
   /*    'z' is the Fourier Frequency derivative (# of bins the signal  */
   /*       smears over during the observation).                        */
   /*    'numkern' is the number of complex points that the kernel will */
@@ -311,7 +311,7 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z, \
   /*    'roffset' is the offset in Fourier bins for the full response  */
   /*       (i.e. At this point, the response would equal 1.0)          */
   /*    'numbetween' is the number of points to interpolate between    */
-  /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 2 = interbins) */
   /*    'z' is the average Fourier Frequency derivative (# of bins     */
   /*       the signal smears over during the observation).             */
   /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
@@ -447,7 +447,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /*    'roffset' is the offset in Fourier bins for the full response  */
   /*       (i.e. At this point, the response would equal 1.0)          */
   /*    'numbetween' is the number of points to interpolate between    */
-  /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 2 = interbins) */
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
@@ -532,69 +532,79 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /* FFT the data */
 
   realfft(data, numdata, -1);
+  beginbin = numdata/4 - numkern / (2 * numbetween);
 
   /* The following block saves us from having to re-compute */
   /* the Fourier interpolation kernels if 'numkern' is the  */
   /* same length as on prior calls.                         */
 
-  numintkern = 2 * numbetween * r_resp_halfwidth(HIGHACC);
-  fftlen = next2_to_n(numkern + numintkern);
-  if (fftlen > numdata){
-    printf("WARNING:  fftlen > numdata in gen_bin_response().\n");
-  }
-  beginbin = numdata/4 - numkern / (2 * numbetween);
-  if (firsttime || 
-      old_numkern != numkern || 
-      old_numbetween != numbetween ||
-      old_fftlen != fftlen){
+  if (numbetween > 1){
+    numintkern = 2 * numbetween * r_resp_halfwidth(HIGHACC);
+    fftlen = next2_to_n(numkern + numintkern);
+    if (fftlen > numdata){
+      printf("WARNING:  fftlen > numdata in gen_bin_response().\n");
+    }
+    if (firsttime || 
+	old_numkern != numkern || 
+	old_numbetween != numbetween ||
+	old_fftlen != fftlen){
+      
+      /* Generate an interpolation kernel for the data */
+      
+      rresp = gen_r_response(0.0, numbetween, numintkern);
+      
+      /* Free the old kernelarray if one exists */
+      
+      if (!firsttime) free(kernelarray);
+      
+      /* Generate the interpolating kernel array */
+      
+      kernelarray = gen_cvect(fftlen);
+      place_complex_kernel(rresp, numintkern, kernelarray, fftlen);
+      free(rresp);
+      
+      /* FFT the kernel array */
+      
+      COMPLEXFFT(kernelarray, fftlen, -1);
+      
+      /* Set our new static variables */
+      
+      old_numkern = numkern;
+      old_numbetween = numbetween;
+      old_fftlen = fftlen;
+      firsttime = 0;
+    }
 
-    /* Generate an interpolation kernel for the data */
-
-    rresp = gen_r_response(0.0, numbetween, numintkern);
-
-    /* Free the old kernelarray if one exists */
-
-    if (!firsttime) free(kernelarray);
-
-    /* Generate the interpolating kernel array */
-
-    kernelarray = gen_cvect(fftlen);
-    place_complex_kernel(rresp, numintkern, kernelarray, fftlen);
-    free(rresp);
-
-    /* FFT the kernel array */
-
-    COMPLEXFFT(kernelarray, fftlen, -1);
-
-    /* Set our new static variables */
-
-    old_numkern = numkern;
-    old_numbetween = numbetween;
-    old_fftlen = fftlen;
-    firsttime = 0;
-  }
-
-  /* Generate the data array */
-
-  dataarray = gen_cvect(fftlen);
-  if (fftlen / numbetween >= numdata - beginbin){
-    printf("WARNING:  fftlen too large in gen_bin_response().\n");
-  }
-  spread_no_pad(((fcomplex *) data) + beginbin, numkern / numbetween, \
-		dataarray, fftlen, numbetween);
-  free(data);
-
-  /* Generate the final response */
-
-  response = gen_cvect(numkern);
-  tmpresponse = complex_corr_conv(dataarray, kernelarray, fftlen, \
-				  FFTD, CORR);
+    /* Generate the data array */
+    
+    dataarray = gen_cvect(fftlen);
+    if (fftlen / numbetween >= numdata - beginbin){
+      printf("WARNING:  fftlen too large in gen_bin_response().\n");
+    }
+    spread_no_pad(((fcomplex *) data) + beginbin, numkern / numbetween, \
+		  dataarray, fftlen, numbetween);
+    free(data);
+    
+    /* Generate the final response */
+    
+    response = gen_cvect(numkern);
+    tmpresponse = complex_corr_conv(dataarray, kernelarray, fftlen, \
+				    FFTD, CORR);
   
-  /* Chop off the extra data */
-
-  memcpy(response, tmpresponse, sizeof(fcomplex) * numkern);
-  free(tmpresponse);
-  free(dataarray);
-
+    /* Chop off the extra data */
+    
+    memcpy(response, tmpresponse, sizeof(fcomplex) * numkern);
+    free(tmpresponse);
+    free(dataarray);
+  
+  } else {
+    
+    /* Generate the final response */
+    
+    response = gen_cvect(numkern);
+    memcpy(response, ((fcomplex *) data) + beginbin, 
+	   sizeof(fcomplex) * numkern);
+    free(data);
+  }
   return response;
 }
