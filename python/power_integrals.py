@@ -14,16 +14,13 @@ def prob_power_series(power, signal_power, n=1, TOL=1.0e-14):
     sum = 0.0
     term = 1.0
     m = 0
-    flag = 1
-    while (term > TOL and flag):
-        # print m, term
+    while (1):
         kmax = m + n
         term = fact * add.reduce(exp((arange(kmax) * lp + m * lps) -
                                      (lf[0:kmax] + lf[m])))
         sum = sum + term
+        if (m > signal_power and term < TOL):  break
         m = m + 1
-        if (m > power + signal_power):  flag = 0
-    print m
     return 1.0 - sum
 
 def prob_power_integral(power, signal_power, n=1):
@@ -38,7 +35,6 @@ def prob_power_integral(power, signal_power, n=1):
                 (sin(A - theta) - exp(-2.0 * p * sin2theta) *
                  sin(B - theta)) / sintheta)
     (val, err) = quad(integrand, 0.0, pi/2.0, (power, signal_power, n))
-    # print val/pi, ' +/-', err/pi
     return val/pi
 
 if __name__ == '__main__':
@@ -50,19 +46,19 @@ if __name__ == '__main__':
         print '\nusage:  python power_integrals.py signal_power\n'
         sys.exit(0)
     signal_power = float(sys.argv[1])
-    powers = arange(300.0) * 0.1 + 0.1
+    powers = arange(signal_power * 20.0) * 0.1 + 0.1
     series_probs = []
     integral_probs = []
     integral_time = time.clock()
     for power in powers:
         integral_probs.append(prob_power_integral(power, signal_power))
     integral_time = time.clock() - integral_time
-    print 'Integral method took', integral_time, ' seconds.'
+    print 'Integral method took', integral_time, 'seconds.'
     series_time = time.clock()
     for power in powers:
         series_probs.append(prob_power_series(power, signal_power))
     series_time = time.clock() - series_time
-    print 'Series method took', series_time, ' seconds.'
+    print 'Series method took', series_time, 'seconds.'
     plotxy(integral_probs, powers, labx='Power', laby='Probability',
            color='red')
     plotxy(series_probs, powers, labx='Power', laby='Probability',
