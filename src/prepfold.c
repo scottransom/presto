@@ -427,6 +427,33 @@ int main(int argc, char *argv[])
       else
 	switch_f_and_p(f, fd, fdd, &search.topo.p1, \
 		       &search.topo.p2, &search.topo.p3);
+    } else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))){
+      ii = (long) (cptr - cmd->rzwfile);
+      cptr = (char *)calloc(ii + 1, sizeof(char));
+      strncpy(cptr, cmd->rzwfile, ii);
+      fprintf(stderr, "\nAttempting to read '%s.inf'.  ", cptr);
+      readinf(&rzwidata, cptr);
+      free(cptr);
+      fprintf(stderr, "Successful.\n");
+      get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);	
+      f = (rzwcand.r - 0.5 * rzwcand.z) / 
+	(rzwidata.dt * rzwidata.N);
+      fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * 
+			  (rzwidata.dt * rzwidata.N));
+
+      /* Now correct for the fact that we may not be starting */
+      /* to fold at the same start time as the rzw search.    */
+
+      if (cmd->pkmbP)
+	f += lorec * recdt * fd;
+      else if (!cmd->pkmbP && !cmd->ebppP)
+	f += lorec * search.dt * fd;
+      if (rzwidata.bary)
+	switch_f_and_p(f, fd, fdd, &search.bary.p1, \
+		       &search.bary.p2, &search.bary.p3);
+      else
+	switch_f_and_p(f, fd, fdd, &search.topo.p1, \
+		       &search.topo.p2, &search.topo.p3);
     } else {
       printf("\nCould not read the rzwfile.\nExiting.\n\n");
       exit(1);

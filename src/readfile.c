@@ -173,6 +173,26 @@ int main(int argc, char **argv)
 	    fprintf(stderr, \
 		    "\nUsing N = %ld, dt = %g, and DC Power = %f\n\n", \
 		    N, dt, nph);
+	  } else if (NULL != (cptr = strstr(cmd->argv[0], "_ACCEL"))){
+	    index = RZWCAND;
+	    ct = (long) (cptr - cmd->argv[0]);
+	    fprintf(stderr, \
+		    "Assuming the file contains 'RZW' candidates.\n");
+	    free(short_filenm);
+	    short_filenm = (char *)malloc(ct + 1);
+	    short_filenm[ct] = '\0';
+	    strncpy(short_filenm, cmd->argv[0], ct);	    
+	    fprintf(stderr, \
+		    "\nAttempting to read '%s.inf'.  ", short_filenm);
+	    readinf(&inf, short_filenm);
+	    fprintf(stderr, "Successful.\n");
+	    N = (long)(inf.N + DBLCORRECT);
+	    dt = inf.dt;
+	    if (cmd->nphP) nph = cmd->nph;
+	    else nph = 1.0;
+	    fprintf(stderr, \
+		    "\nUsing N = %ld, dt = %g, and DC Power = %f\n\n", \
+		    N, dt, nph);
 	  }
 	  else need_type = 1;
 	} else need_type = 1;
