@@ -90,7 +90,7 @@ void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles,
   times_st[0] = numpts_st[0] * dt_st;
   mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
   elapsed_st[0] = 0.0;
-  startblk_st[0] = 0;
+  startblk_st[0] = 1;
   endblk_st[0] = numblks_st[0] - 1;
   padpts_st[0] = padpts_st[numfiles-1] = 0;
   for (ii=1; ii<numfiles; ii++){
@@ -111,7 +111,7 @@ void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles,
 				  dt_st + 0.5);
     elapsed_st[ii] += elapsed_st[ii-1];
     N_st += numpts_st[ii] + padpts_st[ii-1];
-    startblk_st[ii] = (double) (N_st-numpts_st[ii])/ptsperblk_st;
+    startblk_st[ii] = (double) (N_st-numpts_st[ii])/ptsperblk_st + 1;
     endblk_st[ii] = (double) (N_st)/ptsperblk_st - 1;
   }
   padpts_st[numfiles-1] = ((long long) ceil(endblk_st[numfiles-1]+1.0) * \
@@ -571,7 +571,7 @@ int read_GMRT_subbands(FILE *infiles[], int numfiles, float *data,
     firsttime = 0;
   }
   if (!read_GMRT_rawblock(infiles, numfiles, rawdata, padding)){
-    printf("Problem reading the raw GMRT data file.\n\n");
+    /* printf("Problem reading the raw GMRT data file.\n\n"); */
     return 0;
   }
   return prep_GMRT_subbands(rawdata, data, dispdelays, numsubbands, 
