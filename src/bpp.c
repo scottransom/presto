@@ -415,8 +415,9 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 {
-  int ii;
+  int ii, newscan=0;
   char rawhdr[BPP_HEADER_SIZE];
+  double last_file_epoch=0.0;
   BPP_SEARCH_HEADER *header;
 
   if (numfiles > MAXPATCHFILES){
@@ -459,6 +460,7 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
   dt_st = *dt = idata_st[0].dt;
   times_st[0] = numpts_st[0] * dt_st;
   mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
+  last_file_epoch = mjds_st[0];
   elapsed_st[0] = 0.0;
   startblk_st[0] = 1;
   endblk_st[0] = (double) numpts_st[0] / ptsperblk_st;
@@ -474,10 +476,27 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     if (idata_st[ii].dt != dt_st){
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
     } 
-    if (splitbytes_st[ii-1])
-      chkfread(splitbytes_buffer[ii-1], splitbytes_st[ii-1], 1, files[ii]);
-    filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
-      BPP_HEADER_SIZE - splitbytes_st[ii-1];
+    /* If the MJDs are equal, then this is a continuation    */
+    /* of the same scan.  In that case, calculate the _real_ */
+    /* duration of the previous file and add it to the       */
+    /* previous files MJD to get the current MJD.            */
+    mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
+    if (fabs(mjds_st[ii]-last_file_epoch)*SECPERDAY > 1.0e-5)
+      newscan = 1;
+    else
+      newscan = 0;
+    last_file_epoch = mjds_st[ii];
+    if (splitbytes_st[ii-1]){
+      if (newscan){ /* Fill the buffer with padding */
+	memset(splitbytes_buffer[ii-1], (padval<<4)+padval, 
+	       splitbytes_st[ii-1]);
+	filedatalen_st[ii] = chkfilelen(files[ii], 1) - BPP_HEADER_SIZE;
+      } else { /* Fill the buffer with the data from the missing block part */
+	chkfread(splitbytes_buffer[ii-1], splitbytes_st[ii-1], 1, files[ii]);
+	filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
+	  BPP_HEADER_SIZE - splitbytes_st[ii-1];
+      }
+    }
     numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
     splitbytes_st[ii] = filedatalen_st[ii] % bytesperblk_st;
     if (splitbytes_st[ii]){
@@ -494,12 +513,10 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     }
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
     times_st[ii] = numpts_st[ii] * dt_st;
-    /* If the MJDs are equal, then this is a continuation */
-    /* file.  In that case, calculate the _real_ time     */
-    /* length of the previous file and add it to the      */
-    /* previous files MJD to get the current MJD.         */
-    mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
-    if (fabs(mjds_st[ii]-mjds_st[0]) < 1.0e-6 / SECPERDAY){
+    if (newscan){
+      elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
+				    idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+    } else {
       elapsed_st[ii] = times_st[ii-1];
       idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + elapsed_st[ii] / SECPERDAY;
       idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
@@ -508,9 +525,6 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
 	idata_st[ii].mjd_i++;
       }
       mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
-    } else {
-      elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
-				    idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
     }
     padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / 
 				  dt_st + 0.5);
