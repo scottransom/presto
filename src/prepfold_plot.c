@@ -153,7 +153,10 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
   timeprofs = gen_fvect(2 * search->proflen * search->npart);
   parttimes = gen_freqs(search->npart + 1, 0.0, parttime);
   timechi = gen_fvect(search->npart + 1);
-  timechi[0] = 0.0;
+
+  /* Since the reduced chi-sqrt of folded noise = 1 */
+
+  timechi[0] = 1.0;
   periodchi = gen_fvect(search->numperiods);
   pdotchi = gen_fvect(search->numpdots);
   ppdot2d = gen_fvect(search->numperiods * search->numpdots);

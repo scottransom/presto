@@ -432,8 +432,12 @@ void hours2hms(double hours, int *h, int *m, double *s)
 double dms2rad(int deg, int min, double sec)
 /* Convert degrees, minutes, and seconds of arc to radians */
 {
-  return ARCSEC2RAD * (60.0 * (60.0 * (double) deg \
-                               +(double) min) + sec);
+  double sign = 1.0;
+
+  if (deg < 0.0) sign = -1.0;
+  return sign * ARCSEC2RAD * 
+    (60.0 * (60.0 * (double) abs(deg) \
+	     + (double) abs(min)) + fabs(sec));
 }
 
 double hms2rad(int hour, int min, double sec)
