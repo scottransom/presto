@@ -750,8 +750,11 @@ int main(int argc, char *argv[])
 /* 	search.stats[ii * cmd->nsub + kk].data_var = dvar; */
 /* 	search.stats[ii * cmd->nsub + kk].prof_var =  */
 /* 	  dvar * reads_per_part * worklen * search.dt * foldf; */
-printf("nsub = %d  data_avg = %f  data_var = %f  prof_var = %f\n", kk, davg, 
-       dvar, search.stats[ii * cmd->nsub + kk].prof_var);
+printf("ns = %d  da = %f  dv = %f  pa = %f  pv = %f\n", kk, 
+       search.stats[ii * cmd->nsub + kk].data_avg,
+       search.stats[ii * cmd->nsub + kk].data_var,
+       search.stats[ii * cmd->nsub + kk].prof_avg,
+       search.stats[ii * cmd->nsub + kk].prof_var);
       }
       printf("\rFolded %ld points of %.0f", totnumfolded, N);
     }
