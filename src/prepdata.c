@@ -7,6 +7,7 @@
 #include "bpp.h"
 #include "wapp.h"
 #include "gmrt.h"
+#include "spigot.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -18,7 +19,7 @@
 /* x.5s get rounded away from zero.                */
 #define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP)
 
 /* Some function definitions */
 
@@ -101,6 +102,9 @@ int main(int argc, char *argv[])
 		 strcmp(suffix, "bcpm2")==0){
 	printf("Assuming the data is from a GBT BCPM...\n");
 	cmd->bcpmP = 1;
+      } else if (strcmp(suffix, "fits")==0){
+	printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+	cmd->spigotP = 1;
       } else if (strcmp(suffix, "pkmb")==0){
 	printf("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
 	cmd->pkmbP = 1;
@@ -138,6 +142,11 @@ int main(int argc, char *argv[])
       printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
     else
       printf("Reading Green Bank BCPM data from 1 file:\n");
+  } else if (cmd->spigotP){
+    if (numfiles > 1)
+      printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
+    else
+      printf("Reading Green Bank Spigot data from 1 file:\n");
   } else if (cmd->gmrtP){
     if (numfiles > 1)
       printf("Reading GMRT Phased Array data from %d files:\n", numfiles);

@@ -5,12 +5,13 @@
 #include "multibeam.h"
 #include "bpp.h"
 #include "wapp.h"
+#include "spigot.h"
 #include "readfile_cmd.h"
 
 /* #define DEBUG */
 
 #define PAGELEN 32   /* Set the page length to 32 lines */
-#define NUMTYPES 14
+#define NUMTYPES 15
 
 int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
@@ -24,13 +25,14 @@ int RZWCAND_print(long count, char *obj_ptr);
 int BINCAND_print(long count, char *obj_ptr);
 int POSITION_print(long count, char *obj_ptr);
 int PKMBHDR_print(long count, char *obj_ptr);
-int BPPHDR_print(long count, char *obj_ptr);
+int BCPMHDR_print(long count, char *obj_ptr);
 int WAPPHDR_print(long count, char *obj_ptr);
+int SPIGOTHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 
 typedef enum{
   BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, SHORT, INT, LONG, 
-    RZWCAND, BINCAND, POSITION, PKMBHDR, BPPHDR, WAPPHDR
+    RZWCAND, BINCAND, POSITION, PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR
 } rawtypes;
 
 typedef struct fcplex{
@@ -56,13 +58,13 @@ int type_sizes[NUMTYPES] = {
   sizeof(rawbincand), \
   sizeof(position), \
   49792,  /* This is the length of a Parkes Multibeam record */
-  32768,  /* This is the length of a BPP header */
+  32768,  /* This is the length of a BCPM header */
   2048    /* This is the length of a WAPP header (Not correct for vers 2+!!) */
 };
 
 int objs_at_a_time[NUMTYPES] = {
   PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 
-  PAGELEN, 1, 1, PAGELEN, 1, 1, 1 
+  PAGELEN, 1, 1, PAGELEN, 1, 1, 1, 1
 };
 
 /* You don't see this every day -- An array of pointers to functions: */
@@ -80,8 +82,9 @@ int (*print_funct_ptrs[NUMTYPES])() = {
   BINCAND_print, \
   POSITION_print, \
   PKMBHDR_print, \
-  BPPHDR_print, \
-  WAPPHDR_print
+  BCPMHDR_print, \
+  WAPPHDR_print, \
+  SPIGOTHDR_print
 };
 
 /* A few global variables */
@@ -137,9 +140,10 @@ int main(int argc, char **argv)
   else if (cmd->rzwP || cmd->srzwP) index = RZWCAND;
   else if (cmd->binP || cmd->sbinP) index = BINCAND;
   else if (cmd->posP || cmd->sposP) index = POSITION;
-  else if (cmd->pksP || cmd->spksP) index = PKMBHDR;
-  else if (cmd->bppP) index = BPPHDR;
+  else if (cmd->pkmbP) index = PKMBHDR;
+  else if (cmd->bcpmP) index = BCPMHDR;
   else if (cmd->wappP) index = WAPPHDR;
+  else if (cmd->spigotP) index = SPIGOTHDR;
 
   /* Try to determine the data type from the file name */
 
@@ -164,14 +168,19 @@ int main(int argc, char **argv)
 	  index = FCPLEX;
 	  fprintf(stderr, \
 		  "Assuming the data is single precision complex.\n\n");
+	} else if (0 == strcmp(extension, "fits")){
+	  cmd->spigotP = 1;
+	  index = SPIGOTHDR;
+	  fprintf(stderr, \
+		  "Assuming the data is from the Caltech/NRAO Spigot.\n\n");
 	} else if (0 == strcmp(extension, "bcpm1") ||
 		   0 == strcmp(extension, "bcpm2")){
-	  cmd->bppP = 1;
-	  index = BPPHDR;
+	  cmd->bcpmP = 1;
+	  index = BCPMHDR;
 	  fprintf(stderr, \
 		  "Assuming the data is from a BCPM machine.\n\n");
 	} else if (0 == strcmp(extension, "pkmb")){
-	  cmd->pksP = 1;
+	  cmd->pkmbP = 1;
 	  index = PKMBHDR;
 	  fprintf(stderr, \
 		  "Assuming the data is from the Parkes Multibeam machine.\n\n");
@@ -257,6 +266,18 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
+  if (cmd->spigotP){
+    SPIGOT_INFO spigot;
+
+    if (read_SPIGOT_header(cmd->argv[0], &spigot)){
+      print_SPIGOT_header(&spigot);
+      printf("\n");
+    } else {
+      printf("\n  Error reading spigot file!\n\n");
+    }
+    exit(0);
+  }
+
   /* Open the file */
 
   infile = chkfopen(cmd->argv[0], "rb");
@@ -292,8 +313,8 @@ int main(int argc, char **argv)
     objs_read = chkfread(data, type_sizes[index], objs_to_read, infile);
     for(j = 0; j < objs_read; j++)
       print_funct_ptrs[index](i + j, data + j * type_sizes[index]);
-    /* Just print 1 header for BPP and WAPP files */
-    if (index==BPPHDR || index==WAPPHDR)
+    /* Just print 1 header for BCPM and WAPP files */
+    if (index==BCPMHDR || index==WAPPHDR || index==SPIGOTHDR)
       break;
     i += objs_read;
     if (!cmd->nopageP){
@@ -427,7 +448,7 @@ int PKMBHDR_print(long count, char *obj_ptr)
   return 0;
 }
 
-int BPPHDR_print(long count, char *obj_ptr)
+int BCPMHDR_print(long count, char *obj_ptr)
 {
   BPP_SEARCH_HEADER *object;
 
@@ -447,6 +468,15 @@ int WAPPHDR_print(long count, char *obj_ptr)
   if (swapped)
     printf("    Byte-swapped from little-endian to big-endian.\n");
   print_WAPP_hdr(obj_ptr);
+  return 0;
+}
+
+int SPIGOTHDR_print(long count, char *obj_ptr)
+{
+  int bogus;
+
+  printf("\n%ld:", count + 1);
+  bogus = (int)obj_ptr;
   return 0;
 }
 
