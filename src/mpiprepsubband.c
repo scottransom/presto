@@ -75,13 +75,23 @@ int main(int argc, char *argv[])
   int padwrote=0, padtowrite=0, statnum=0;
   int numdiffbins=0, *diffbins=NULL, *diffbinptr=NULL;
   double local_lodm;
-  char *datafilenm, *outpath, *outfilenm;
+  char *datafilenm, *outpath, *outfilenm, *hostname;
   infodata idata;
   mask obsmask;
 
   MPI_Init(&argc,&argv);
   MPI_Comm_size(MPI_COMM_WORLD,&numprocs);
   MPI_Comm_rank(MPI_COMM_WORLD,&myid);
+  {
+    FILE *hostfile;
+    char tmpname[100];
+
+    hostfile = chkfopen("/etc/hostname", "r");
+    fscanf(hostfile, "%s\n", tmpname);
+    hostname = (char *)calloc(strlen(tmpname)+1, 1);
+    memcpy(hostname, tmpname, strlen(tmpname));
+    fclose(hostfile);
+  }
 
   /* Call usage() if we have no command line arguments */
 
@@ -327,7 +337,23 @@ int main(int argc, char *argv[])
 	printf("Downsampling by a factor of %d (new dt = %.10g)\n", cmd->downsamp, dsdt);
       printf("\n");
     }
-
+    {
+      int kk;
+      MPI_Barrier(MPI_COMM_WORLD);
+      for (jj=0; jj<numprocs; jj++){
+	if (myid==jj && jj){
+	  printf("%s\t\t", hostname);
+	  for (kk=0; kk<local_numdms-1; kk++)
+	    printf("%.2f\t", dms[kk]);
+	  printf("%.2f\n", dms[kk]);
+	}
+	fflush(NULL);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+    }
+    if (myid==0)
+      printf("\n");
+    
     outdata = gen_fmatrix(cmd->numsub, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       &obsmask, dispdt, offsets, &padding);
@@ -414,6 +440,22 @@ int main(int argc, char *argv[])
 	       cmd->downsamp, dsdt);
       printf("\n");
     }
+    {
+      int kk;
+      for (jj=1; jj<numprocs; jj++){
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (myid==jj && jj){
+	  printf("%s\t\t", hostname);
+	  for (kk=0; kk<local_numdms-1; kk++)
+	    printf("%.2f\t", dms[kk]);
+	  printf("%.2f\n", dms[kk]);
+	}
+	fflush(NULL);
+	MPI_Barrier(MPI_COMM_WORLD);
+      }
+    }
+    if (myid==0)
+      printf("\n");
     MPI_Bcast(btoa, numbarypts, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Bcast(&avgvoverc, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     blotoa = btoa[0];
@@ -674,6 +716,7 @@ int main(int argc, char *argv[])
   free(outdata[0]);
   free(outdata);
   free(dms);
+  free(hostname);
   free(dispdt);
   free(offsets[0]);
   free(offsets);
