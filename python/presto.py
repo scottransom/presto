@@ -1551,7 +1551,7 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    return [pt, ptd, ptdd]
 
 
-def measure_phase(profile, template, sigma, fwhm, phs):
+def measure_phase(profile, template, sigma, fwhm):
     """
     measure_phase(profile, template, sigma, fwhm):
        TOA measurement technique from J. H. Taylor's talk
