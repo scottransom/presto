@@ -439,6 +439,14 @@ def dm_smear(dm, BW, center_freq):
     """
     return dm * BW / (0.0001205 * center_freq * center_freq * center_freq)
 
+def guess_DMstep(DM, dt, BW, f_ctr):
+    """
+    guess_DMstep(DM, dt, BW, f_ctr):
+        Choose a reasonable DMstep by setting the maximum smearing across the
+        'BW' to equal the sampling time 'dt'.
+    """
+    return dt*0.0001205*f_ctr**3.0/(0.5*BW)
+
 def delay_from_DM(DM, freq_emitted):
     """
     Return the delay in seconds caused by dispersion, given
