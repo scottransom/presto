@@ -1316,7 +1316,7 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
-version: 21Feb00\n\
+version: 15May00\n\
 ");
   exit(EXIT_FAILURE);
 }

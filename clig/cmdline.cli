@@ -32,59 +32,73 @@ String -title title {title of x/y-plot}
 
 ## To let them have exactly two parameters, use the following
 String -xytitles xytitles {title of x- and y-axis} \
-    {count = 2,2}
+    -c 2 2 
 
 ## To impose no upper limit on the number of parameters, use oo,
 ## i.e. double-`o'
 String -plotnames plotnames {names of curves to plot} \
-    {count = 1,oo}
+    -c 1 oo
 
 ## An option you really need should be made mandatory. (I'm not sure
 ## whether it can be called an `option' then?)
 String -colors colors {colors to use in plots} \
-    mandatory \
-    {count = 1,5}
+    -m \
+    -c 1 5
 
 ## Non-mandatory options can have default values
 String -bg background {background color} \
-    {default = red}
+    -d red
 
 ########################################################################
 ## EXAMPLES OF FLOAT OPTIONS
 
-## The simplest Double-option has a default-count of 1, is not
+## The simplest Float-option has a default-count of 1, is not
 ## mandatory, imposes no limit on the parameter and has no default
-Double -o offset {offset to add to all curves to plot}
+Float -o offset {offset to add to all curves to plot}
 
-## Double-option parameters can be forced to lie in a given range
-Double -p p {probability} \
-    {range = 0,1}
+## Float-option parameters can be forced to lie in a given range
+Float -p p {probability} \
+    -r 0.0 1.0 
     
 ## `count', `mandatory' and `default' work as for String-options
-Double -f f {frequencies} \
-    {count = 2, 10} \
-    {range = 0, 47.11 } \
-    {default = 2 4 8 16.11}
+Float -f f {frequencies} \
+    -c 2 10 \
+    -r 0 47.11 \
+    -d 2 4 8 16.11
 
 ## special values for range-specs are -oo and oo denoting minus
 ## infinity and infinity
-Double -negscale negscale {negative scale value} \
-    {range = -oo, 0.0}
+Float -negscale negscale {negative scale value} \
+    -r -oo 0.0
 
-Double -scale scale {scale value} \
-    {range = 0.0, oo}
+Float -scale scale {scale value} \
+    -r 0.0 oo
+
+########################################################################
+## EXAMPLES OF DOUBLE OPTIONS
+## These are identical to Float, except that they have a larger range, 
+## of course.
+Double -huge huge {try a really huge value or `inf' or `-inf'} 
+
+Double -pd pd {probability with higher precision than -p} \
+    -r 0 1
 
 ########################################################################
 ## EXAMPLES OF INT OPTIONS
 
-## Int-options work like Double options.
+## Int-options work like Float options.
 Int -a a {flog quarx flirim poli gam i nabgala} \
-    mandatory
+    -m
 
 Int -b b {ram dibum gabalabarum deri pum pam} \
-    {count = 3,4} \
-    {range = -10, 10} \
-    {default = -1 0 1}
+    -c 3 4 \
+    -r -10 10 \
+    -d  " -1" 0 1
+
+########################################################################
+## EXAMPLES OF LONG OPTIONS
+Long -lol lol {list of longs} \
+    -c 1 5
 
 ########################################################################
 ## EXAMPLES OF REST COMMAND
@@ -93,6 +107,4 @@ Int -b b {ram dibum gabalabarum deri pum pam} \
 ## after all options have extracted their parameters. The Rest-command
 ## has a default `count' of 1,oo, but here we set it to 1,10.
 Rest infiles {list of input files} \
-    {count = 1,10}
-
-
+    -c 1 10

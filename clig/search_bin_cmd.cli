@@ -11,51 +11,32 @@ Commandline full_cmd_line
 # Options (in order you want them to appear)
 
 Int -ncand   ncand   {Number of candidates to try to return} \
-	{range = 1, 10000} \
-	{default = 100}
-
+	-r 1 10000  -d 100
 Int -minfft  minfft  {Power-of-2 length of the shortest miniFFT} \
-	{range = 8, 1048576} \
-	{default = 32}
-
+	-r 8 1048576  -d 32
 Int -maxfft  maxfft  {Power-of-2 length of the longest miniFFT} \
-	{range = 8, 1048576} \
-	{default = 262144}
-
+	-r 8 1048576  -d 262144
 Int -rlo     rlo     {The low Fourier frequency to check} \
-	{range = 0, oo}
-	
+	-r 0 oo
 Int -rhi     rhi     {The high Fourier frequency to check} \
-	{range = 0, oo}
-
+	-r 0 oo
 Int -lobin   lobin   {The first Fourier frequency in the data file} \
-	{range = 0, oo} \
-	{default = 0}
-	
+	-r 0 oo  -d 0
 Double -overlap overlap {Fraction of a short FFT length to shift before performing another} \
-	{range = 0.05, 1.0} \
-	{default = 0.25}
-
+	-r 0.05 1.0  -d 0.25
 Int -harmsum harmsum {Number of harmonics to sum in the miniFFTs} \
-	{range = 1, 20} \
-	{default = 3}
- 
+	-r 1 20  -d 3
 Int -numbetween numbetween {Number of points to interpolate per Fourier bin (2 gives the usual bin value and an interbin)} \
-	{range = 1, 16} \
-	{default = 2}
-
+	-r 1 16  -d 2
 Int -stack   stack   {Number of stacked power spectra making up the data.  (The default means the data are complex amplitudes)} \
-	{range = 0, oo} \
-	{default = 0}
-
+	-r 0 oo  -d 0
 Flag -interbin interbin {Use interbinning instead of full-blown Fourier interpolation.  (Faster but less accurate and sensitive)}
-
 Flag -noalias noalias {Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)}
 
 # Rest of command line:
 
 Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
-        {count = 1,1}
+        -c 1 1
 
 
 

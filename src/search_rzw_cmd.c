@@ -28,7 +28,7 @@ static Cmdline cmd = {
   /* ncandC = */ 1,
   /***** -zlo: The low Fourier frequency to check */
   /* zloP = */ 1,
-  /* zlo = */ -50,
+  /* zlo = */  -50,
   /* zloC = */ 1,
   /***** -zhi: The high Fourier frequency to check */
   /* zhiP = */ 1,
@@ -868,7 +868,7 @@ usage(void)
             default: `100'\n\
       -zlo: The low Fourier frequency to check\n\
             1 int value between -2000000 and 2000000\n\
-            default: `-50'\n\
+            default: ` -50'\n\
       -zhi: The high Fourier frequency to check\n\
             1 int value between -2000000 and 2000000\n\
             default: `50'\n\
@@ -885,7 +885,7 @@ usage(void)
     -baryv: The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)\n\
             1 double value between -0.1 and 0.1\n\
             default: `0.0'\n\
-version: 21Jan00\n\
+version: 15May00\n\
 ");
   exit(EXIT_FAILURE);
 }

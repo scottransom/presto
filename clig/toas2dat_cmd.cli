@@ -11,13 +11,11 @@ Commandline full_cmd_line
 # Options (in order you want them to appear)
 
 Int 	-n 	numout 	{The number of bins in the output time series} \
-			{range = 0,oo} \
-			mandatory
+			-r 0 oo  -m
 Double 	-dt	dt	{Time interval in seconds for output time bins} \
-			{range = 0,oo} \
-			mandatory
+			-r 0 oo  -m
 String	-o	outfile {Name of the output time series file} \
-			mandatory
+			-m
 Flag   	-text	text	{TOAs are ASCII text (default is binary double)}
 Flag   	-float	float	{TOAs are binary floats (default is binary double)}
 Flag	-sec	sec	{TOA unit is seconds (default is days)}
@@ -25,7 +23,7 @@ Flag	-sec	sec	{TOA unit is seconds (default is days)}
 # Rest of command line:
 
 Rest 		file 	{Input TOA file name} \
-			{count = 1,1}
+			-c 1 1
 
 
 

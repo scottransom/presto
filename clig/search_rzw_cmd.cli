@@ -11,38 +11,25 @@ Commandline full_cmd_line
 # Options (in order you want them to appear)
 
 Int -ncand   ncand   {Number of candidates to try to return} \
-	{range = 1, 10000} \
-	{default = 100}
-
+	-r 1 10000  -d 100
 Int -zlo     zlo     {The low Fourier frequency to check} \
-	{range = -2000000, 2000000} \
-	{default = -50}
-	
+	-r -2000000 2000000  -d " -50"
 Int -zhi     zhi     {The high Fourier frequency to check} \
-	{range = -2000000, 2000000} \
-	{default = 50}
-
+	-r -2000000 2000000  -d 50
 Int -rlo     rlo     {The lowest Fourier frequency to check} \
-	{range = 0, oo} \
-	{default = 300}
-	
+	-r 0 oo  -d 300
 Int -rhi     rhi     {The highest Fourier frequency to check} \
-	{range = 0, oo}
-
+	-r 0 oo
 Int -lobin   lobin   {The first Fourier frequency in the data file} \
-	{range = 0, oo} \
-	{default = 0}
-
+	-r 0 oo  -d 0
 String -zapfile zapfile {A file containing a list of freqs to ignore (i.e. RFI)}
-
 Double -baryv baryv   {The earth's radial velocity component (v/c) towards the observation (used to convert topocentric birdie freqs to barycentric)} \
-	{range = -0.1, 0.1} \
-	{default = 0.0}
+	-r -0.1 0.1  -d 0.0
 
 # Rest of command line:
 
 Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
-        {count = 1,1}
+        -c 1 1
 
 
 

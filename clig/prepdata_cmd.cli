@@ -11,31 +11,22 @@ Commandline full_cmd_line
 # Options (in order you want them to appear)
 
 String -o       outfile {Output data file name (no suffix)} \
-	mandatory
-
+	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
-
 Flag   -ebpp    ebpp    {Raw data in Efflesberg-Berkeley Pulsar Processor format}
-
 Flag   -pad0    pad0    {Pad the data to the next power-of-2 with zeros}
-
 Flag   -padavg  padavg  {Pad the data to the next power-of-2 with the average value}
-
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
-                {range = 1,oo}
-
+	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}
-
 Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
-
 Double  -dm      dm      {The dispersion measure to de-disperse (cm^-3 pc)} \
-                {range = 0,oo} \
-                {default = 0}
+	-r 0 oo  -d 0
 
 # Rest of command line:
 
 Rest infile {Input data file name.  If the data is not in PKMB or EBPP format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
-        {count = 1,1}
+        -c 1 1
 
 
 

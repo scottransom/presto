@@ -34,20 +34,15 @@ Flag   	-pos	    	spos	{Raw data in position struct format}
 Flag   	-pkmb    	pks	{Raw data in Parkes Multibeam format}
 Flag   	-pk	    	spks	{Raw data in Parkes Multibeam format}
 Flag	-fortran        fortran {Raw data was written by a fortran program}
-
 Int 	-index 		index 	{The range of objects to display} \
-				{range = -1,oo} \
-				{default = 0 -1} \
-				{count = 0,2}
-
+				-r -1 oo  -d 0 " -1"  -c 0 2
 Double 	-nph		nph	{0th FFT bin amplitude (for 'RZW' data)} \
-				{range = -oo,oo} \
-				{default = 1.0}
+				-r -oo oo  -d 1.0
 
 # Rest of command line:
 
 Rest 			file 	{Input data file name.} \
-				{count = 1,1}
+				-c  1 1
 
 
 

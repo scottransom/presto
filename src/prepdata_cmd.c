@@ -858,7 +858,7 @@ usage(void)
       -dm: The dispersion measure to de-disperse (cm^-3 pc)\n\
            1 double value between 0 and oo\n\
            default: `0'\n\
-version: 21Jan00\n\
+version: 15May00\n\
 ");
   exit(EXIT_FAILURE);
 }

@@ -20,7 +20,7 @@
 char *Program;
 
 /*@-null*/
-static int indexDefault[] = {0, -1};
+static int indexDefault[] = {0,  -1};
 
 static Cmdline cmd = {
   /***** -more: Paginate the output like 'more' */
@@ -1014,11 +1014,11 @@ usage(void)
    -fortran: Raw data was written by a fortran program\n\
      -index: The range of objects to display\n\
              0...2 int values between -1 and oo\n\
-             default: `0' `-1'\n\
+             default: `0' ` -1'\n\
        -nph: 0th FFT bin amplitude (for 'RZW' data)\n\
              1 double value\n\
              default: `1.0'\n\
-version: 21Jan00\n\
+version: 15May00\n\
 ");
   exit(EXIT_FAILURE);
 }
