@@ -104,11 +104,23 @@ class pfd:
         self.killed_subbands = []
         self.killed_intervals = []
         self.stats = []
+        self.pts_per_fold = []
         for ii in range(self.npart):
             self.stats.append([])
             for jj in range(self.nsub):
                 self.stats[ii].append(foldstats(struct.unpack(swapchar+"d"*7, \
                                                               infile.read(7*8))))
+            self.pts_per_fold.append(self.stats[ii][0].numdata)
+        self.start_secs = umath.add.accumulate([0]+self.pts_per_fold[:-1])*self.dt
+        self.pts_per_fold = Num.asarray(self.pts_per_fold)
+        self.mid_secs = self.start_secs + 0.5*self.dt*self.pts_per_fold
+        if (not self.tepoch==0.0):
+            self.start_topo_MJDs = self.start_secs/86400.0 + self.tepoch
+            self.mid_topo_MJDs = self.mid_secs/86400.0 + self.tepoch
+        if (not self.bepoch==0.0):
+            self.start_bary_MJDs = self.start_secs/86400.0 + self.bepoch
+            self.mid_bary_MJDs = self.mid_secs/86400.0 + self.bepoch
+        self.T = umath.add.reduce(self.pts_per_fold)*self.dt
         self.avgprof = Num.sum(Num.sum(Num.sum(self.profs)))/self.proflen
         self.varprof = self.calc_varprof()
         infile.close()
@@ -235,6 +247,7 @@ class pfd:
         profs = (profs-min_parts[:,Num.NewAxis])/global_max
         Pgplot.plot2d(profs, rangex=[0.0,self.proflen], rangey=[0.0, self.npart],
                       labx="Phase Bins", laby="Time Intervals",
+                      laby2="Time (s)", rangey2=[0.0, self.T], 
                       image='antigrey', device=device)
         Pgplot.closeplot()
 
@@ -348,6 +361,12 @@ if __name__ == "__main__":
     #testpfd = "/home/ransom/tmp_pfd/M13_52724_W234_PSR_1641+3627C.pfd"
 
     tp = pfd(testpfd)
+
+    print tp.start_secs
+    print tp.mid_secs
+    print tp.start_topo_MJDs
+    print tp.mid_topo_MJDs
+    print tp.T
 
     tp.kill_subbands([6,7,8,9,30,31,32,33])
     tp.kill_intervals([2,3,4,5,6])
