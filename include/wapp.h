@@ -1,14 +1,13 @@
 /* Length of the header in bytes */
 #define MAX_WAPP_HEADER_SIZE 4096
-/* Number of samples to process at a time */
-/*#define WAPP_PTSPERBLOCK 16*/
-#define WAPP_PTSPERBLOCK 64
+/* Maximum number of samples to process at a time */
+#define WAPP_MAXPTSPERBLOCK 64
 /* time between correlator dumps in us */
 #define WAPP_DEADTIME 0.34
 /* Maximum number of lags we can have */
 #define WAPP_MAXLAGS 1024
 /* Maximum data block length in bytes */
-#define WAPP_MAXDATLEN WAPP_PTSPERBLOCK*WAPP_MAXLAGS
+#define WAPP_MAXDATLEN WAPP_MAXPTSPERBLOCK*WAPP_MAXLAGS
 /* Maximum lag block length in bytes */
 #define WAPP_MAXLAGLEN WAPP_MAXDATLEN*4
 
@@ -51,7 +50,6 @@ typedef struct WAPP_HEADERv1{
   int lagformat;       /* 0=16 bit unsigned ints, 1=32 bit unsigned ints */
   int lagtrunc;        /* (reserved) number bits truncated (0 if no trunc) */
   double power_analog[2];   /* Power measured by Analog Detector */
-  char filler[1776];    /* this pads out the header to 2048 bytes */
 } WAPP_HEADERv1;
 
 typedef struct WAPP_HEADERv234{
