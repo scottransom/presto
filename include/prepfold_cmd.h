@@ -35,10 +35,18 @@ typedef struct s_Cmdline {
   char npartP;
   int npart;
   int npartC;
-  /***** -step: The minimum search stepsize over the full integration in profile bins */
-  char stepP;
-  int step;
-  int stepC;
+  /***** -pstep: The minimum period stepsize over the observation in profile bins */
+  char pstepP;
+  int pstep;
+  int pstepC;
+  /***** -pdstep: The minimum P-dot stepsize over the observation in profile bins */
+  char pdstepP;
+  int pdstep;
+  int pdstepC;
+  /***** -dmstep: The minimum DM stepsize over the observation in profile bins */
+  char dmstepP;
+  int dmstep;
+  int dmstepC;
   /***** -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched */
   char npfactP;
   int npfact;
