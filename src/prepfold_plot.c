@@ -108,6 +108,120 @@ static void autocal2d(float *a, int rn, int cn,
 
 /********************************************/
 
+void write_bestprof(prepfoldinfo *search, foldstats *beststats, 
+		    float *bestprof, double N, double perr, 
+		    double pderr, double pdderr)
+{
+  FILE *outfile;
+  char outfilenm[200];
+  int ii;
+
+  sprintf(outfilenm, "%.*s.bestprof", 
+	  strlen(search->pgdev)-7, search->pgdev);
+  outfile = chkfopen(outfilenm, "w");
+
+  fprintf(outfile, "# Input file       =  %-s\n", search->filenm);
+  fprintf(outfile, "# Candidate        =  %-s\n", search->candnm);
+  fprintf(outfile, "# Telescope        =  %-s\n", search->telescope);
+  if (TEST_EQUAL(search->tepoch, 0.0))
+    fprintf(outfile, "# Epoch_topo       =  N/A\n");
+  else
+    fprintf(outfile, "# Epoch_topo       =  %-.12f\n", search->tepoch);
+  if (TEST_EQUAL(search->bepoch, 0.0))
+    fprintf(outfile, "# Epoch_bary       =  N/A\n");
+  else
+    fprintf(outfile, "# Epoch_bary (MJD) =  %-.12f\n", search->bepoch);
+  fprintf(outfile, "# T_sample         =  %f\n", search->dt);
+  fprintf(outfile, "# Data Folded      =  %-.0f\n", N);
+  fprintf(outfile, "# Data Avg         =  %-17.15g\n", beststats->data_avg);
+  fprintf(outfile, "# Data StdDev      =  %-17.15g\n", sqrt(beststats->data_var));
+  fprintf(outfile, "# Profile Bins     =  %d\n", search->proflen);
+  fprintf(outfile, "# Profile Avg      =  %-17.15g\n", beststats->prof_avg);
+  fprintf(outfile, "# Profile StdDev   =  %-17.15g\n", sqrt(beststats->prof_var));
+  
+  /* Calculate the values of P and Q since we know X and DF */
+  
+  {
+    int chiwhich=1, chistatus=0, goodsig=1;
+    double chip=0.0, chiq=0.0, chixmeas=0.0, chidf=0.0, chitmp=0.0;
+    double normz=0.0, normmean=0.0, normstdev=1.0;
+    char out2[80];
+    
+    chidf = search->proflen - 1.0;
+    chixmeas = beststats->redchi * chidf;
+    cdfchi(&chiwhich, &chip, &chiq, &chixmeas, &chidf, &chistatus, &chitmp);
+    if (chistatus != 0){
+      if (chistatus < 0)
+	printf("\nInput parameter %d to cdfchi() was out of range.\n", 
+	       chistatus);
+      else if (chistatus == 3)
+	printf("\nP + Q do not equal 1.0 in cdfchi().\n");
+      else if (chistatus == 10)
+	printf("\nError in cdfgam().\n");
+      else printf("\nUnknown error in cdfchi().\n");
+    }
+    
+    /* Calculate the equivalent sigma */
+    
+    chiwhich = 2;
+    cdfnor(&chiwhich, &chip, &chiq, &normz, &normmean, &normstdev, 
+	   &chistatus, &chitmp);
+    if (chistatus != 0) goodsig=0;
+    
+    if (goodsig)
+      sprintf(out2, "(~%.1f sigma)", normz);
+    else 
+      sprintf(out2, " ");
+    fprintf(outfile, "# Reduced chi-sqr  =  %.3f\n", beststats->redchi);
+    fprintf(outfile, "# Prob(Noise)      <  %.3g   %s\n", chiq, out2);
+    if (search->nsub > 1)
+      fprintf(outfile, "# Best DM          =  %.3f\n", search->bestdm);
+    {
+      if (search->tepoch != 0.0){
+	fprintf(outfile, "# P_topo (ms)      =  %-17.15g +/- %-.3g\n", 
+		search->topo.p1*1000.0, perr*1000.0);
+	fprintf(outfile, "# P'_topo (s/s)    =  %-17.15g +/- %-.3g\n", 
+		search->topo.p2, pderr);
+	fprintf(outfile, "# P''_topo (s/s^2) =  %-17.15g +/- %-.3g\n", 
+		search->topo.p3, pdderr);
+      } else {
+	fprintf(outfile, "# P_topo (ms)      =  N/A\n");
+	fprintf(outfile, "# P'_topo (s/s)    =  N/A\n");
+	fprintf(outfile, "# P''_topo (s/s^2) =  N/A\n");
+      }
+      if (search->bepoch != 0.0){
+	fprintf(outfile, "# P_bary (ms)      =  %-17.15g +/- %-.3g\n", 
+		search->bary.p1*1000.0, perr*1000.0);
+	fprintf(outfile, "# P'_bary (s/s)    =  %-17.15g +/- %-.3g\n", 
+		search->bary.p2, pderr);
+	fprintf(outfile, "# P''_bary (s/s^2) =  %-17.15g +/- %-.3g\n", 
+		search->bary.p3, pdderr);
+      } else {
+	fprintf(outfile, "# P_bary (ms)      =  N/A\n");
+	fprintf(outfile, "# P'_bary (s/s)    =  N/A\n");
+	fprintf(outfile, "# P''_bary (s/s^2) =  N/A\n");
+      }
+    }
+    if (TEST_EQUAL(search->orb.p, 0.0)){
+      fprintf(outfile, "# P_orb (s)        =  N/A\n");
+      fprintf(outfile, "# asin(i)/c (s)    =  N/A\n");
+      fprintf(outfile, "# eccentricity     =  N/A\n");
+      fprintf(outfile, "# w (rad)          =  N/A\n");
+      fprintf(outfile, "# T_peri           =  N/A\n");
+    } else {
+      fprintf(outfile, "# P_orb (s)        =  %-17.15g\n", search->orb.p);
+      fprintf(outfile, "# asin(i)/c (s)    =  %-17.15g\n", search->orb.x);
+      fprintf(outfile, "# eccentricity     =  %-17.15g\n", search->orb.e);
+      fprintf(outfile, "# w (rad)          =  %-17.15g\n", search->orb.w);
+      fprintf(outfile, "# T_peri           =  %-.12f\n", search->orb.t);
+    }
+  }
+  fprintf(outfile, "######################################################\n");
+  for (ii=0; ii<search->proflen; ii++)
+    fprintf(outfile, "%4d  %.7g\n", ii, bestprof[ii]);
+  fclose(outfile);
+}
+
 
 void prepfold_plot(prepfoldinfo *search, int xwin)
 /* Make the beautiful 1 page prepfold output */
@@ -489,6 +603,8 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 		search->bary.p3, &perr, &pderr, &pdderr);
   free(dbestprof);
 
+  write_bestprof(search, &beststats, bestprof, N, perr, pderr, pdderr);
+    
   /*
    *  Now plot the results
    */
