@@ -42,6 +42,27 @@ class pfd:
                              numpyio.fread(infile, self.proflen, 'd')
       infile.close()
    
+def val_with_err(value, error, len=0, digits=2):
+   """
+   val_with_err(value, error, len=0, digits=2):
+       Returns a string of length len (auto if 0) with 'value'
+          rounded to the appropriate decimal place and the
+          'error' in parenthesis as in scientific journals.
+          The error has 'digits' decimal places.    
+       Notes:
+          'len' should be ~20 to show full double precision          
+             if the base 10 exponent of the error needs to be shown.       
+          If len == 0, left-justified minimum length string is returned.
+          If len > 0, the string returned is right justified.       
+          If len < 0, the string returned is left justified.       
+   """
+   slen = 40
+   if abs(len) > slen: slen = abs(len)
+   if digits==2:
+      return nice_output_2(' '*slen, value, error, len)
+   else:
+      return nice_output_1(' '*slen, value, error, len)
+
 def read_inffile(filename):
    """
    read_inffile(filename):

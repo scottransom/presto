@@ -766,26 +766,6 @@ double chisqr(double *data, int numdata, double avg, double var);
   /* Calculates the chi-square of the 'data' which has average */
   /* 'avg', and variance 'var'.                                */
 
-%apply char *OUTPUT { char *output };
-int nice_output_1(char *output, double val, double err, int len);
-/* Generates a string in "output" of length len with "val" rounded  */
-/*   to the appropriate decimal place and the error in parenthesis  */
-/*   as in scientific journals.  The error has 1 decimal place.     */
-/* Note:  len should be ~ 20 to show full double precision          */
-/*   if the base 10 exponent of the error needs to be shown.        */
-/*   If len == 0, left-justified minimum length string is returned. */
-/*   If len > 0, the string returned has is right justified.        */
-
-%apply char *OUTPUT { char *output };
-int nice_output_2(char *output, double val, double err, int len);
-/* Generates a string in "output" of length len with "val" rounded  */
-/*   to the appropriate decimal place and the error in parenthesis  */
-/*   as in scientific journals.  The error has 2 decimal places.    */
-/* Note:  len should be ~ 20 to show full double precision          */
-/*   if the base 10 exponent of the error needs to be shown.        */
-/*   If len == 0, left-justified minimum length string is returned. */
-/*   If len > 0, the string returned has is right justified.        */
-
 void print_candidate(fourierprops * cand, double dt, unsigned long N, 
 		     float nph, int numerrdigits);
 /* Outputs a 2 column summary of all the properties or a fourier peak  */
@@ -1302,87 +1282,6 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign);
 %apply long ARRAYLEN { long n };
 void realfft(float *data, unsigned long n, int isign);
 
-//
-//Note:  The following must be the last declarations in the file
-//
-
-%typemap(python, out) fcomplex ** {
-  PyArrayObject *arr;
-  int n[2];
-
-  n[0] = _output_matrixcols;
-  n[1] = _output_matrixrows;
-  _output_matrixrows = 0;
-  _output_matrixcols = 0;
-  arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$source[0]);
-  free($source);
-  if (arr == NULL) return NULL;
-  arr->dimensions[1] = ((int) (*_arg9) - _arg3) * _arg2 ;
-  arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
-  arr->flags |= OWN_DATA;
-  PyArray_INCREF(arr);
-  $target = (PyObject *)arr;
-}
-
-%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
-%apply int MATRIXROWS { int fftlen };
-%apply int MATRIXCOLS { int numz };
-%apply int *OUTPUT { int *nextbin };
-fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
-			 int startbin, double zlo, double zhi,
-			 int numz, int fftlen,
-			 presto_interp_acc accuracy, int *nextbin);
-  /* This routine uses the correlation method to do Fourier          */
-  /* complex interpolations of the f-fdot plane.                     */
-  /* Arguments:                                                      */
-  /*   'data' is a complex array of the data to be interpolated.     */
-  /*   'numdata' is the number of complex points (bins) in data.     */
-  /*   'numbetween' is the number of points to interpolate per bin.  */
-  /*   'startbin' is the first bin to use in data for interpolation. */
-  /*   'zlo' is the lowest fdot to use (z=f-dot/T^2)                 */
-  /*   'zhi' is the highest fdot to use (z=f-dot/T^2)                */
-  /*   'numz' is the number of z values to use to make the plane     */
-  /*   'fftlen' is the # of complex pts in kernel and result.        */
-  /*   'accuracy' is either HIGHACC or LOWACC.                       */
-  /*   'nextbin' will contain the bin number of the first bin not    */
-  /*      interpolated in data.                                      */
-
-%typemap(python, out) fcomplex * {
-  PyArrayObject *arr;
-  int n;
-  
-  n = _output_arraylen;
-  _output_arraylen = 0;
-  arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$source);
-  if (arr == NULL) return NULL;
-  arr->flags |= OWN_DATA;
-  arr->dimensions[0] = ((int) (*_arg7) - _arg3) * _arg2;
-  arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
-  PyArray_INCREF(arr);
-  $target = (PyObject *)arr;
-}
-
-%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
-%apply int ARRAYLEN { int fftlen };
-%apply int *OUTPUT { int *nextbin };
-fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween,
-			 int startbin, double z, int fftlen,
-			 presto_interp_acc accuracy, int *nextbin);
-  /* This routine uses the correlation method to do a Fourier        */
-  /* complex interpolation of a slice of the f-fdot plane.           */
-  /* Arguments:                                                      */
-  /*   'data' is a complex array of the data to be interpolated.     */
-  /*   'numdata' is the number of complex points (bins) in data.     */
-  /*   'numbetween' is the number of points to interpolate per bin.  */
-  /*   'startbin' is the first bin to use in data for interpolation. */
-  /*   'z' is the fdot to use (z=f-dot/T^2).                         */
-  /*   'fftlen' is the # of complex pts in kernel and result.        */
-  /*   'accuracy' is either HIGHACC or LOWACC.                       */
-  /*   'nextbin' will contain the bin number of the first bin not    */
-  /*      interpolated in data.                                      */
-
 double tree_max_dm(int numchan, double dt, double lofreq, double hifreq);
 /* Return the maximum Dispersion Measure (dm) in cm-3 pc, the  */
 /* tree de-dispersion technique can correct for given a sample */
@@ -1435,3 +1334,109 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /* Note:  When performing a subband search, the delays for each       */
 /*   subband must be calculated with the frequency of the highest     */
 /*   channel in each subband, _not_ the center subband frequency.     */
+
+//
+//Note:  The following must be the last declarations in the file
+//
+
+%typemap(python, argout) char * {
+  $target = (PyObject *) PyString_FromString($source);
+}
+
+%apply signed char *OUTPUT { char *output };
+int nice_output_1(char *output, double val, double err, int len);
+/* Generates a string in "output" of length len with "val" rounded  */
+/*   to the appropriate decimal place and the error in parenthesis  */
+/*   as in scientific journals.  The error has 1 decimal place.     */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
+
+%apply signed char *OUTPUT { char *output };
+int nice_output_2(char *output, double val, double err, int len);
+/* Generates a string in "output" of length len with "val" rounded  */
+/*   to the appropriate decimal place and the error in parenthesis  */
+/*   as in scientific journals.  The error has 2 decimal places.    */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
+
+%typemap(python, out) fcomplex ** {
+  PyArrayObject *arr;
+  int n[2];
+
+  n[0] = _output_matrixcols;
+  n[1] = _output_matrixrows;
+  _output_matrixrows = 0;
+  _output_matrixcols = 0;
+  arr = (PyArrayObject *) \
+    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$source[0]);
+  free($source);
+  if (arr == NULL) return NULL;
+  arr->dimensions[1] = ((int) (*arg9) - arg3) * arg2 ;
+  arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
+  arr->flags |= OWN_DATA;
+  PyArray_INCREF(arr);
+  $target = (PyObject *)arr;
+}
+
+%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
+%apply int MATRIXROWS { int fftlen };
+%apply int MATRIXCOLS { int numz };
+%apply int *OUTPUT { int *nextbin };
+fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
+			 int startbin, double zlo, double zhi,
+			 int numz, int fftlen,
+			 presto_interp_acc accuracy, int *nextbin);
+  /* This routine uses the correlation method to do Fourier          */
+  /* complex interpolations of the f-fdot plane.                     */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'numbetween' is the number of points to interpolate per bin.  */
+  /*   'startbin' is the first bin to use in data for interpolation. */
+  /*   'zlo' is the lowest fdot to use (z=f-dot/T^2)                 */
+  /*   'zhi' is the highest fdot to use (z=f-dot/T^2)                */
+  /*   'numz' is the number of z values to use to make the plane     */
+  /*   'fftlen' is the # of complex pts in kernel and result.        */
+  /*   'accuracy' is either HIGHACC or LOWACC.                       */
+  /*   'nextbin' will contain the bin number of the first bin not    */
+  /*      interpolated in data.                                      */
+
+%typemap(python, out) fcomplex * {
+  PyArrayObject *arr;
+  int n;
+  
+  n = _output_arraylen;
+  _output_arraylen = 0;
+  arr = (PyArrayObject *) \
+    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$source);
+  if (arr == NULL) return NULL;
+  arr->flags |= OWN_DATA;
+  arr->dimensions[0] = ((int) (*arg7) - arg3) * arg2;
+  arr->strides[0] = arr->dimensions[1] * sizeof(fcomplex);
+  PyArray_INCREF(arr);
+  $target = (PyObject *)arr;
+}
+
+%apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
+%apply int ARRAYLEN { int fftlen };
+%apply int *OUTPUT { int *nextbin };
+fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween,
+			 int startbin, double z, int fftlen,
+			 presto_interp_acc accuracy, int *nextbin);
+  /* This routine uses the correlation method to do a Fourier        */
+  /* complex interpolation of a slice of the f-fdot plane.           */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'numbetween' is the number of points to interpolate per bin.  */
+  /*   'startbin' is the first bin to use in data for interpolation. */
+  /*   'z' is the fdot to use (z=f-dot/T^2).                         */
+  /*   'fftlen' is the # of complex pts in kernel and result.        */
+  /*   'accuracy' is either HIGHACC or LOWACC.                       */
+  /*   'nextbin' will contain the bin number of the first bin not    */
+  /*      interpolated in data.                                      */
+

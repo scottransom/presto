@@ -1,6 +1,5 @@
 # This file was created automatically by SWIG.
 import prestoc
-import new
 class orbitparams:
     def __init__(self,*args):
         self.this = apply(prestoc.new_orbitparams,args)
@@ -334,6 +333,12 @@ class DoubleArray:
     def __del__(self,prestoc=prestoc):
         if self.thisown == 1 :
             prestoc.delete_DoubleArray(self)
+    def __getitem__(*args):
+        val = apply(prestoc.DoubleArray___getitem__,args)
+        return val
+    def __setitem__(*args):
+        val = apply(prestoc.DoubleArray___setitem__,args)
+        return val
     __setmethods__ = {
         "dptr" : prestoc.DoubleArray_dptr_set,
     }
@@ -358,8 +363,6 @@ class DoubleArrayPtr(DoubleArray):
         self.__class__ = DoubleArray
 
 
-DoubleArray.__getitem__ = new.instancemethod(prestoc.DoubleArray___getitem__, None, DoubleArray)
-DoubleArray.__setitem__ = new.instancemethod(prestoc.DoubleArray___setitem__, None, DoubleArray)
 
 class infodata:
     def __init__(self,*args):
@@ -944,10 +947,6 @@ sumpows_from_sigma = prestoc.sumpows_from_sigma
 
 chisqr = prestoc.chisqr
 
-nice_output_1 = prestoc.nice_output_1
-
-nice_output_2 = prestoc.nice_output_2
-
 print_candidate = prestoc.print_candidate
 
 print_bin_candidate = prestoc.print_bin_candidate
@@ -1032,10 +1031,6 @@ tablesixstepfft = prestoc.tablesixstepfft
 
 realfft = prestoc.realfft
 
-corr_rz_plane = prestoc.corr_rz_plane
-
-corr_rz_interp = prestoc.corr_rz_interp
-
 tree_max_dm = prestoc.tree_max_dm
 
 smearing_from_bw = prestoc.smearing_from_bw
@@ -1047,6 +1042,14 @@ dm_from_delay = prestoc.dm_from_delay
 dedisp_delays = prestoc.dedisp_delays
 
 subband_search_delays = prestoc.subband_search_delays
+
+nice_output_1 = prestoc.nice_output_1
+
+nice_output_2 = prestoc.nice_output_2
+
+corr_rz_plane = prestoc.corr_rz_plane
+
+corr_rz_interp = prestoc.corr_rz_interp
 
 
 
@@ -1085,7 +1088,7 @@ SAME = prestoc.SAME
 
 #-------------- Extra Stuff to Make Things Easier -----------------
 
-import math, umath, Numeric, Pgplot, string, numpyio
+import math, umath, Numeric, Pgplot, string, numpyio, miscutils
 
 def read_foldstats(file):
    stats = foldstats()
@@ -1125,6 +1128,27 @@ class pfd:
                              numpyio.fread(infile, self.proflen, 'd')
       infile.close()
    
+def val_with_err(value, error, len=0, digits=2):
+   """
+   val_with_err(value, error, len=0, digits=2):
+       Returns a string of length len (auto if 0) with 'value'
+          rounded to the appropriate decimal place and the
+          'error' in parenthesis as in scientific journals.
+          The error has 'digits' decimal places.    
+       Notes:
+          'len' should be ~20 to show full double precision          
+             if the base 10 exponent of the error needs to be shown.       
+          If len == 0, left-justified minimum length string is returned.
+          If len > 0, the string returned is right justified.       
+          If len < 0, the string returned is left justified.       
+   """
+   slen = 40
+   if abs(len) > slen: slen = abs(len)
+   if digits==2:
+      return nice_output_2(' '*slen, value, error, len)
+   else:
+      return nice_output_1(' '*slen, value, error, len)
+
 def read_inffile(filename):
    """
    read_inffile(filename):
@@ -1497,43 +1521,6 @@ def pcorr(data, kernel, numbetween, lo, hi):
                 numbetween, kern_half_width, CORR)
    return result
 
-def ra_dec_to_string(h_or_d, m, s):
-   """
-   ra_dec_to_string(h_or_d, m, s):
-      Return a formatted string of RA or DEC values as
-      'hh:mm:ss.ssss' if RA, or 'dd:mm:ss.ssss' if DEC.
-   """
-   if (s >= 10.0):
-      return "%.2d:%.2d:%.4f" % (h_or_d, m, s)
-   else:
-      return "%.2d:%.2d:0%.4f" % (h_or_d, m, s)
-
-def ra_to_hours(ra_string):
-   """
-   ra_to_hours(ar_string):
-      Given a string containing RA information as
-      'hh:mm:ss.ssss', return the equivalent decimal
-      hours.
-   """
-   h, m, s = string.split(ra_string, ":")
-   h = int(h)
-   m = int(m)
-   s = float(s)
-   return 12.0/PI * hms2rad(h, m, s)
-
-def dec_to_deg(dec_string):
-   """
-   dec_to_deg(dec_string):
-      Given a string containing DEC information as
-      'dd:mm:ss.ssss', return the equivalent decimal
-      degrees.
-   """
-   d, m, s = string.split(dec_string, ":")
-   d = int(d)
-   m = int(m)
-   s = float(s)
-   return RADTODEG * dms2rad(d, m, s)
-
 def p_to_f(p, pd, pdd):
    """
    p_to_f(p, pd, pdd):
@@ -1567,8 +1554,8 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    nn = len(tts)
    bts = Numeric.zeros(nn, 'd')
    vel = Numeric.zeros(nn, 'd')
-   ra = ra_dec_to_string(obs.ra_h, obs.ra_m, obs.ra_s)
-   dec = ra_dec_to_string(obs.dec_d, obs.dec_m, obs.dec_s)
+   ra = miscutils.coord_to_string(obs.ra_h, obs.ra_m, obs.ra_s)
+   dec = miscutils.coord_to_string(obs.dec_d, obs.dec_m, obs.dec_s)
    if (obs.telescope == 'Parkes'):  tel = 'PK'
    elif (obs.telescope == 'Effelsberg'):  tel = 'EB'
    elif (obs.telescope == 'Arecibo'):  tel = 'AO'
