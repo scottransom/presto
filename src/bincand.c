@@ -6,6 +6,8 @@
 #include "dmalloc.h"
 #endif
 
+#define DEBUG_OUT 1
+
 static double orbit_trial(fcomplex *data, int datalen,
 			  presto_datainf datainf,  int lodata, 
 			  double ppsr, double T, orbitparams orb, 
@@ -413,11 +415,20 @@ int main(int argc, char *argv[]){
   orb.wd = 0.0;
   for (pct = 0; pct < np; pct++){
     orb.p = lop + pct * dp;
+#ifdef DEBUG_OUT
+    printf("p_orb = %.2f:\n", orb.p);
+#endif
     for (xct = 0; xct < nx; xct++){
       orb.x = lox + xct * dx;
       avg_time = 0.0;
+#ifdef DEBUG_OUT
+      printf("  x_orb = %.4f:\n", orb.x);
+#endif
       for (tct = 0; tct < nt; tct++){
 	orb.t = lot + tct * dt;
+#ifdef DEBUG_OUT
+	printf("    t_orb = %.2f:\n", orb.t);
+#endif
 	trial_time = orbit_trial(data, datalen, SAME, lodata, ppsr, T, 
 				 orb, &bestpowr, &bestpsrp, &bestorb, 
 				 corrdata);
@@ -427,7 +438,7 @@ int main(int argc, char *argv[]){
 /*       printf("\tBestpow = %f  BestPsrP = %f  BestOrbP = %f\n",  */
 /* 	     *bestpowr, *bestpsrp, bestorb->p); */
       avg_time /= nt;
-      printf("\rApprox %.2f hrs remaining.  Current best:  Power = %.2f  P_psr = %.12f  P_orb = %.2f  x = %.3f  To = %.3f", 
+      printf("\rApprox %.2f hrs remaining.  Current best:  Power = %.2f  P_psr = %.12f  P_orb = %.2f  x = %.4f  To = %.3f", 
 	     (numtosearch - numsearched) * avg_time / 3600.0,
 	     bestpowr, bestpsrp, bestorb.p, bestorb.x, bestorb.t);
       fflush(NULL);
