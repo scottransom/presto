@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
 #define DEBUGOUT 0
 
-char *fortran_double_convert(char str*)
+char *fortran_double_convert(char *str)
 /* Convert 'D' scientific notation into 'E' */
 /* scientific notation that C can handle.   */
 {
@@ -123,6 +123,7 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
     } else if (strncmp("PEPOCH", keyword, 80)==0){
       value = strtok(NULL, " \t\n");
       psr->timepoch = strtod(fortran_double_convert(value), &value);
+      if (DEBUGOUT) printf("The PEPOCH is %.15g\n", psr->timepoch);
       difft = (epoch - psr->timepoch)*SECPERDAY;
       psr->f = f + fd*difft + 0.5*psr->fdd*difft*difft;
       psr->fd = fd + psr->fdd*difft;
