@@ -378,84 +378,85 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result)
 }
 
 
-double sigma_from_sumpows(double powersum, int numsum)
-  /* Return the approximate significance in Gaussian  */
-  /* sigmas of a sum of 'numsum' powers.              */
+double candidate_sigma(double power, int numsum, int numtrials)
+/* Return the approximate significance in Gaussian       */
+/* sigmas of a candidate of numsum summed powers,        */
+/* taking into account the number of independent trials. */
 {
-  int cdfwhich, cdfstatus;
-  double p, q, x, df, bound, mean = 0.0, sd = 1.0;
+  int which, status;
+  double p, q, x, bound, mean=0.0, sd=1.0, shape, scale=1.0;
   
-  if (numsum == 1)
-    return sqrt(2.0 * powersum - log(PI * powersum));
-  else {
-    df = 2.0 * numsum;
-    x = 2.0 * powersum;
-    cdfwhich = 1;
-    cdfstatus = 0;
-    cdfchi(&cdfwhich, &p, &q, &x, &df, &cdfstatus, &bound);
-    if (cdfstatus){
-      printf("\nError in cdfchi() (sigma_from_sumpows()):\n");
-      printf("   cdfstatus = %d, bound = %f\n", cdfstatus, bound);
-      printf("   p = %f, q = %f, x = %f, df = %f\n\n", p, q, x, df);
-      exit(1);
-    }
-    cdfwhich = 2;
-    cdfstatus = 0;
-    cdfnor(&cdfwhich, &p, &q, &x, &mean, &sd, &cdfstatus, &bound);
-    if (cdfstatus){
-      if (cdfstatus != -3){
-	printf("\nError in cdfnor() (sigma_from_sumpows()):\n");
-	printf("   cdfstatus = %d, bound = %f\n", cdfstatus, bound);
-	printf("   p = %f, q = %f, x = %f, mean = %f, sd = %f\n\n", 
-	       p, q, x, mean, sd);
-	exit(1);
-      } else {
-	x = 38.5;
-      }
-    }
-    return x;
+  which = 1;
+  status = 0;
+  shape = (double) numsum;
+  x = power;
+  cdfgam(&which, &p, &q, &x, &shape, &scale, &status, &bound);
+  if (status){
+    printf("\nError in cdfgam() (candidate_sigma()):\n");
+    printf("   status = %d, bound = %f\n", status, bound);
+    printf("   p = %f, q = %f, x = %f, shape = %f, scale = %f\n\n", 
+	   p, q, x, shape, scale);
+    exit(1);
   }
-}
-
-
-double sumpows_from_sigma(double sigma, int numsum)
-  /* Return the summed ('numsum' powers) power required */
-  /* to achieve a Gaussian significance of 'sigma'.     */
-{
-  int cdfwhich, cdfstatus;
-  double p, q, x, df, bound, mean = 0.0, sd = 1.0;
-  
-  if (numsum == 1)
-    return 0.5 * sigma * sigma + log(1.25331413732 * sigma);
-  else {
-    cdfwhich = 1;
-    cdfstatus = 0;
-    x = sigma;
-    cdfnor(&cdfwhich, &p, &q, &x, &mean, &sd, &cdfstatus, &bound);
-    if (cdfstatus){
-      printf("\nError in cdfnor() (sumpows_from_sigma()):\n");
-      printf("   cdfstatus = %d, bound = %f\n\n", cdfstatus, bound);
+  if (p==1.0)
+    q *= numtrials;
+  else
+    q = 1.0 - pow(p, numtrials);
+  p = 1.0 - q;
+  which = 2;
+  status = 0;
+  cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
+  if (status){
+    if (status != -3){
+      printf("\nError in cdfnor() (candidate_sigma()):\n");
+      printf("   status = %d, bound = %f\n", status, bound);
       printf("   p = %f, q = %f, x = %f, mean = %f, sd = %f\n\n", 
 	     p, q, x, mean, sd);
       exit(1);
+    } else {
+      x = 38.5;
     }
-    df = 2.0 * numsum;
-    cdfwhich = 2;
-    cdfstatus = 0;
-    cdfchi(&cdfwhich, &p, &q, &x, &df, &cdfstatus, &bound);
-    if (cdfstatus){
-      if (cdfstatus != -3){
-	printf("\nError in cdfchi() (sumpows_from_sigma()):\n");
-	printf("   cdfstatus = %d, bound = %f\n", cdfstatus, bound);
-	printf("   p = %f, q = %f, x = %f, df = %f\n\n", p, q, x, df);
-	exit(1);
-      } else {
-	x = 750.0;
-      }
-    }
-    return 0.5 * x;
   }
+  return x;
 }
+
+double power_for_sigma(double sigma, int numsum, int numtrials)
+/* Return the approximate summed power level required */
+/* to get a Gaussian significance of 'sigma', taking  */
+/* into account the number of independent trials.     */
+{
+  int which, status;
+  double p, q, x, bound, mean=0.0, sd=1.0, df, scale=1.0;
+  
+  which = 1;
+  status = 0;
+  x = sigma;
+  cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
+  if (status){
+    printf("\nError in cdfnor() (power_for_sigma()):\n");
+    printf("   cdfstatus = %d, bound = %f\n\n", status, bound);
+    printf("   p = %f, q = %f, x = %f, mean = %f, sd = %f\n\n", 
+	   p, q, x, mean, sd);
+    exit(1);
+  }
+  printf("%g  %g\n", p, q);
+  q = q / numtrials;
+  p = 1.0 - q;
+  which = 2;
+  df = 2.0 * numsum;
+  status = 0;
+  printf("%g  %g\n", p, q);
+  cdfchi(&which, &p, &q, &x, &df, &status, &bound);
+  if (status){
+    printf("\nError in cdfchi() (power_for_sigma()):\n");
+    printf("   status = %d, bound = %f\n", status, bound);
+    printf("   p = %f, q = %f, x = %f, df = %f, scale = %f\n\n", 
+	   p, q, x, df, scale);
+    exit(1);
+  }
+  return 0.5 * x;
+}
+
 
 double chisqr(double *data, int numdata, double avg, double var)
 /* Calculates the chi-square of the 'data' which has average */

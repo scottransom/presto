@@ -16,7 +16,202 @@ static char num[41][5] =
 
 static int padfftlen(int minifftlen, int numbetween, int *padlen);
 float percolate_rawbincands(rawbincand *cands, int numcands);
+float percolate_fftcands(fftcand *cands, int numcands);
 void print_rawbincand(rawbincand cand);
+
+
+fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int numharmsum,
+		    int numbetween, presto_interptype interptype,
+		    float norm, float sigmacutoff, int *numcands, 
+		    float *powavg, float *powvar, float *powmax)
+/* This routine searches a short FFT of 'numfft' complex freqs      */
+/* and returns a candidate vector of fftcand structures containing  */
+/* information about the best candidates found.                     */
+/* The routine uses either interbinning or interpolation as well    */
+/* as harmonic summing during the search.                           */
+/* The number of candidates returned is either 'numcands' if != 0,  */
+/* or is determined automatically by 'sigmacutoff' -- which         */
+/* takes into account the number of bins searched.                  */
+/* The returned vector is sorted in order of decreasing power.      */
+/* Arguments:                                                       */
+/*   'fft' is the FFT to search (complex valued)                    */
+/*   'numfft' is the number of complex points in 'fft'              */
+/*   'lobin' is the lowest Fourier freq to search                   */
+/*   'numharmsum' the number of harmonics to sum during the search  */
+/*   'numbetween' the points to interpolate per bin                 */
+/*   'interptype' is either INTERBIN or INTERPOLATE.                */
+/*      INTERBIN = (interbinning) is fast but less sensitive.       */
+/*      INTERPOLATE = (Fourier interpolation) is slower but more    */
+/*        sensitive.                                                */
+/*   'norm' is the normalization constant to multiply each power by */
+/*   'sigmacutoff' if the number of candidates will be determined   */
+/*      automatically, is the minimum Gaussian significance of      */
+/*      candidates to keep -- taking into account the number of     */
+/*      bins searched                                               */
+/*   'numcands' if !0, is the number of candates to return.         */
+/*      if 0, is a return value giving the number of candidates.    */
+/*   'powavg' is a return value giving the average power level      */
+/*   'powvar' is a return value giving the power level variance     */
+/*   'powmax' is a return value giving the maximum power            */
+{
+  int ii, jj, offset, numtosearch, dynamic=0;
+  int numspread=0, kern_half_width, numkern=0, nc=0, startnc=10;
+  float powargr, powargi, *fullpows=NULL, *sumpows, ftmp;
+  double twobypi, minpow=0.0, tmpminpow, dr, davg, dvar;
+  static int firsttime=1, old_numfft=0;
+  static fcomplex *kernel;
+  fftcand *cands;
+  fcomplex *spread, *kern;
+
+  /* Override the value of numbetween if interbinning */
+
+  if (interptype == INTERBIN)
+    numbetween = 2;
+  lobin = lobin * numbetween;
+  norm = 1.0 / norm;
+
+  /* Decide if we will manage the number of candidates */
+
+  if (*numcands > 0)
+    startnc = *numcands;
+  else {
+    dynamic = 1;
+    minpow = power_for_sigma(sigmacutoff, 1, numfft-lobin);
+  }
+  cands = (fftcand *)malloc(startnc * sizeof(fftcand));
+  for (ii=0; ii<startnc; ii++)
+    cands[ii].p = 0.0;
+
+  /* Prep some other values we will need */
+
+  dr = 1.0 / (double) numbetween;
+  twobypi = 1.0 / PIBYTWO;
+  numtosearch = numfft * numbetween;
+  numspread = padfftlen(numfft, numbetween, &kern_half_width);
+
+  /* Prep the interpolation kernel if needed */
+
+  if (interptype == INTERPOLATE){
+    if (firsttime || (old_numfft != numfft)){
+      if (!firsttime) free(kernel);
+      numkern = 2 * numbetween * kern_half_width;
+      kern = gen_r_response(0.0, numbetween, numkern);
+      kernel = gen_cvect(numspread);
+      place_complex_kernel(kern, numkern, kernel, numspread);
+      COMPLEXFFT(kernel, numspread, -1);
+      free(kern);
+      firsttime = 0;
+      old_numfft = numfft;
+    }
+  }
+  
+  /* Spread and interpolate the fft */
+  
+  spread = gen_cvect(numspread);
+  spread_with_pad(fft, numfft, spread, numspread, numbetween, 0);
+  /* Nyquist is in spread[0].i, but it is usually */
+  /* _big_ so we won't use it.                    */
+  spread[0].r = spread[numtosearch].r = 1.0;
+  spread[0].i = spread[numtosearch].i = 0.0;
+  if (interptype == INTERPOLATE){  /* INTERPOLATE */
+    spread = complex_corr_conv(spread, kernel, numspread, \
+			       FFTD, INPLACE_CORR);
+  } else {                         /* INTERBIN */
+    for (ii = 1; ii < numtosearch; ii += 2){
+      spread[ii].r = twobypi * (spread[ii-1].r - spread[ii+1].r);
+      spread[ii].i = twobypi * (spread[ii-1].i - spread[ii+1].i);
+    }
+  }
+  fullpows = gen_fvect(numtosearch);
+
+  /* First generate the original powers in order to         */
+  /* calculate the statistics.  Yes, this is inefficient... */
+
+  for (ii = lobin, jj = 0; ii < numfft; ii++, jj++){
+    ftmp = POWER(fft[ii].r, fft[ii].i) * norm;
+    fullpows[jj] = ftmp;
+    if (ftmp > *powmax) *powmax = ftmp;
+  }
+  avg_var(fullpows, numfft-lobin, &davg, &dvar);
+  *powavg = davg;
+  *powvar = dvar;
+  fullpows[0] = 1.0;
+  for (ii = 1; ii < numtosearch; ii++)
+    fullpows[ii] = POWER(spread[ii].r, spread[ii].i) * norm;
+  free(spread);
+
+  /* Search the raw powers */
+  
+  for (ii = lobin; ii < numtosearch; ii++) {
+    if (fullpows[ii] > minpow){
+      cands[startnc-1].r = dr * (double) ii;
+      cands[startnc-1].p = fullpows[ii];
+      tmpminpow = percolate_fftcands(cands, startnc);
+      if (dynamic){
+	if (nc==startnc){
+	  startnc *= 2;
+	  cands = (fftcand *)realloc(cands, startnc * sizeof(fftcand));
+	  for (jj=nc; jj<startnc; jj++)
+	    cands[jj].p = 0.0;
+	}
+	nc++;
+      } else {
+	minpow = tmpminpow;
+	if (nc<startnc) nc++;
+      }
+    }
+  }
+
+  /* If needed, sum and search the harmonics */
+  
+  if (numharmsum > 1){
+    sumpows = gen_fvect(numtosearch);
+    memcpy(sumpows, fullpows, sizeof(float) * numtosearch);
+    for (ii = 2; ii <= numharmsum; ii++){
+      offset = ii / 2;
+      if (dynamic)
+	minpow = power_for_sigma(sigmacutoff, ii, numfft-lobin);
+      else
+	minpow = cands[startnc-1].p;
+      for (jj = lobin; jj < numtosearch; jj++){
+	sumpows[jj] += fullpows[(jj + offset) / ii];
+	if (sumpows[jj] > minpow) {
+	  cands[startnc-1].r = dr * (double) ii;
+	  cands[startnc-1].p = sumpows[ii];
+	  tmpminpow = percolate_fftcands(cands, startnc);
+	  if (dynamic){
+	    if (nc==startnc){
+	      startnc *= 2;
+	      cands = (fftcand *)realloc(cands, startnc * sizeof(fftcand));
+	      for (jj=nc; jj<startnc; jj++)
+		cands[jj].p = 0.0;
+	    }
+	    nc++;
+	  } else {
+	    minpow = tmpminpow;
+	    if (nc<startnc) nc++;
+	  }
+	}
+      }
+    }
+    free(sumpows);
+  }
+  free(fullpows);
+
+  /* Add the rest of the fftcand data to the candidate array */
+
+  for (ii=0; ii<startnc; ii++)
+    cands[ii].nsum = numharmsum;
+
+  /* Chop off the unused parts of the dynamic array */
+  
+  if (dynamic)
+    cands = (fftcand *)realloc(cands, nc * sizeof(fftcand));
+  *numcands = nc;
+  return cands;
+}
+
+
 void search_minifft(fcomplex *minifft, int numminifft, \
 		    rawbincand *cands, int numcands, int numharmsum, \
 		    int numbetween, double numfullfft, double timefullfft, \
@@ -109,7 +304,8 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   numtosearch = (checkaliased == CHECK_ALIASED) ? 2 * fftlen : fftlen;
   fullpows = gen_fvect(numtosearch);
   fullpows[0] = 1.0;
-  fullpows[fftlen] = 1.0;  /* used to be nyquist^2 */
+  if (checkaliased == CHECK_ALIASED)
+    fullpows[fftlen] = 1.0;  /* used to be nyquist^2 */
 
   /* The following wraps the data around the Nyquist freq such that */
   /* we consider aliased frequencies as well (If CHECK_ALIASED).    */
@@ -130,7 +326,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
       cands[numcands-1].mini_power = fullpows[ii];
       cands[numcands-1].mini_numsum = 1.0;
       cands[numcands-1].mini_sigma = 
-	sigma_from_sumpows(fullpows[ii], 1);
+	candidate_sigma(fullpows[ii], 1, 1);
       minsig = percolate_rawbincands(cands, numcands);
       minpow = cands[numcands-1].mini_power;
     }
@@ -143,7 +339,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     memcpy(sumpows, fullpows, sizeof(float) * numtosearch);
     for (ii = 2; ii <= numharmsum; ii++){
       offset = ii / 2;
-      minpow = sumpows_from_sigma(cands[numcands-1].mini_sigma, ii);
+      minpow = power_for_sigma(cands[numcands-1].mini_sigma, ii, 1);
       for (jj = 0; jj < numtosearch; jj++){
 	sumpows[jj] += fullpows[(jj + offset) / ii];
 	if (sumpows[jj] > minpow) {
@@ -151,10 +347,10 @@ void search_minifft(fcomplex *minifft, int numminifft, \
 	  cands[numcands-1].mini_power = sumpows[jj];
 	  cands[numcands-1].mini_numsum = (double) ii;
 	  cands[numcands-1].mini_sigma = 
-	    sigma_from_sumpows(sumpows[jj], ii);
+	    candidate_sigma(sumpows[jj], ii, 1);
 	  minsig = percolate_rawbincands(cands, numcands);
 	  minpow = 
-	    sumpows_from_sigma(cands[numcands-1].mini_sigma, ii);
+	    power_for_sigma(cands[numcands-1].mini_sigma, ii, 1);
 	}
       }
     }
@@ -226,6 +422,26 @@ void print_rawbincand(rawbincand cand){
   printf("  N (full)    =  %-10.0f\n", cand.full_N);
   printf("  T (full)    =  %-13.6f\n\n", cand.full_T);
 }
+
+float percolate_fftcands(fftcand *cands, int numcands)
+  /*  Pushes a fftcand candidate as far up the array of   */
+  /*  candidates as it shoud go to keep the array sorted  */
+  /*  in indecreasing powers.  Returns the new lowest     */
+  /*  power in the array.                                 */
+{
+  int ii;
+  fftcand tempzz;
+
+  for (ii = numcands - 2; ii >= 0; ii--) {
+    if (cands[ii].p < cands[ii + 1].p) {
+      SWAP(cands[ii], cands[ii + 1]);
+    } else {
+      break;
+    }
+  }
+  return cands[numcands - 1].p;
+}
+
 
 float percolate_rawbincands(rawbincand *cands, int numcands)
   /*  Pushes a rawbincand candidate as far up the array of   */
