@@ -29,6 +29,15 @@ unsigned long getfilelen(FILE *file, size_t size)
   return (unsigned long) (buf.st_size / size);
 }
 
+int compare_doubles (const void *a, const void *b)
+/* qsort comparison function for doubles */
+{
+  const double *da = (const double *) a;
+  const double *db = (const double *) b;
+  
+  return (*da > *db) - (*da < *db);
+}
+
 int read_toas(FILE *toafile, double **toas)
 /* Read a text file containing ASCII text TOAs. */
 /* The number of TOAs read is returned.         */
@@ -70,7 +79,7 @@ int main(int argc, char *argv[])
 /* have 'cmd->numout' points with each bin of length        */
 /* 'cmd->dt' seconds.                                       */
 {
-  long ii, jj, ntoas, numwrites, numtowrite;
+  long ii, jj, ntoas, numwrites, numtowrite, numplaced=0;
   double To, toa, *toaptr, *ddata, lotime, hitime, dtfract, blockt;
   float *fdata;
   FILE *infile, *outfile;
@@ -94,7 +103,7 @@ int main(int argc, char *argv[])
 
   fprintf(stderr, "\n\n  TOA to Time Series Converter\n");
   fprintf(stderr, "      by Scott M. Ransom\n");
-  fprintf(stderr, "        2 December 1999\n\n");
+  fprintf(stderr, "        17 October 2000\n\n");
 
   /* Open our files and read the TOAs */
 
@@ -102,12 +111,12 @@ int main(int argc, char *argv[])
   if (cmd->textP){ /* Text data */
     infile = fopen(cmd->argv[0], "r");
     ntoas = read_toas(infile, &ddata);
-    printf("Found %ld TOAs.\n", ntoas);
+    printf("   Found %ld TOAs.\n", ntoas);
   } else { /* Binary data */
     infile = fopen(cmd->argv[0], "rb");
     if (cmd->floatP){  /* Floating point data */
       ntoas = getfilelen(infile, sizeof(float));
-      printf("Found %ld TOAs.\n", ntoas);
+      printf("   Found %ld TOAs.\n", ntoas);
       ddata = (double *)malloc(sizeof(double) * ntoas);
       fdata = (float *)malloc(sizeof(float) * ntoas);
       jj = fread(fdata, sizeof(float), ntoas, infile);
@@ -119,7 +128,7 @@ int main(int argc, char *argv[])
       free(fdata);
     } else {  /* Double precision data */
       ntoas = getfilelen(infile, sizeof(double));
-      printf("Found %ld TOAs.\n", ntoas);
+      printf("   Found %ld TOAs.\n", ntoas);
       ddata = (double *)malloc(sizeof(double) * ntoas);
       jj = fread(ddata, sizeof(double), ntoas, infile);
       if (jj != ntoas){
@@ -136,6 +145,10 @@ int main(int argc, char *argv[])
   fdata = (float *)malloc(sizeof(float) * WORKLEN);
   printf("\nWriting time series of %d points of\n", cmd->numout); 
   printf("length %f seconds to '%s'.\n\n", cmd->dt, cmd->outfile); 
+
+  /* Sort the TOAs */
+
+  qsort(ddata, ntoas, sizeof(double), compare_doubles);
 
   /* Convert the TOAs to seconds offset from the first TOA */
 
@@ -175,8 +188,9 @@ int main(int argc, char *argv[])
     /* Place any TOAs we need to in the current output array */
 
     while ((toa >= lotime && toa < hitime)
-	   && (toaptr - ddata) < ntoas-1){
+	   && (toaptr - ddata) < ntoas){
       fdata[(int)((toa - lotime) * dtfract)] += 1.0;
+      numplaced++;
       toaptr++;
       toa = *toaptr;
     }
@@ -188,7 +202,7 @@ int main(int argc, char *argv[])
 
   /* Cleanup */
 
-  printf("Done.\n\n");
+  printf("Done.\n   Placed %ld TOAs.\n\n", numplaced);
   fclose(outfile);
   free(fdata);
   free(ddata);
