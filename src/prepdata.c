@@ -474,7 +474,7 @@ int main(int argc, char *argv[])
       else 
 	newper = (int) ((float) totwrote / idata.N * 100.0) + 1;
       if (newper > oldper) {
-	printf("\rAmount Complete = %3d%%", newper);
+/* 	printf("\rAmount Complete = %3d%%", newper); */
 	fflush(stdout);
 	oldper = newper;
       }
@@ -546,12 +546,11 @@ int main(int argc, char *argv[])
 	  fact = ((lobin + 1) - lopoint) * rdeltapoints;
 	  dtmp = idata.dt * rdeltapoints;
 	  outdata[index] += data[ii] * fact;
-	  outdata[index+1] += data[ii] * dtmp;
-	  outdata[index+2] += data[ii] * (1.0 - (fact + dtmp));
+	  outdata[index+1] += data[ii] * rdeltapoints;
+	  outdata[index+2] += data[ii] * (1.0 - (fact + rdeltapoints));
 	  index += 2;
-
 	}
-
+ 
 	/* Increment our time steps */
 
 	intime = intimenext;
@@ -589,9 +588,11 @@ int main(int argc, char *argv[])
 	outdata[ii] = 0.0;
       }
 
-      /* Set the lowest output  point to the last fractional point */
+      /* Set the lowest output point to the last fractional point */
+      /* And reset the last fractional point to 0.0               */
 
       outdata[0] = dtmp;
+      outdata[index] = 0.0;
 
       /* Update the total number of points written */
 
