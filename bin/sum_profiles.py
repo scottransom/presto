@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import struct, getopt, sys, umath, fftfit, psr_utils, os.path, sinc_interp, Pgplot
 import Numeric as Num
-from Scientific.Statistics import standardDeviation, average
+from Scientific.Statistics import standardDeviation, average, median
 from infodata import infodata
 from prepfold import pfd
 from polycos import polycos
@@ -99,7 +99,10 @@ if __name__ == '__main__':
     # Normalize it
     template -= min(template)
     template /= max(template)
-
+    # Rotate it so that it becomes a "true" template according to FFTFIT
+    shift,eshift,snr,esnr,b,errb,ngood = measure_phase(template, template)
+    template = psr_utils.interp_rotate(template, shift)
+        
     if (0):
         Pgplot.plotxy(template)
         Pgplot.closeplot()
@@ -107,6 +110,13 @@ if __name__ == '__main__':
     # Determine the off-pulse bins
     offpulse_inds = Num.compress(template<=bkgd_cutoff, Num.arange(numbins))
     onpulse_inds = Num.compress(template>bkgd_cutoff, Num.arange(numbins))
+    # If the number of bins in the offpulse section is < 10% of the total
+    # use the statistics in the .pfd file to set the RMS
+    if (len(offpulse_inds) < 0.1*numbins):
+        usestats = 1
+    else:
+        usestats = 0    
+    
     if (1):
         Pgplot.plotxy(template)
         Pgplot.plotxy([bkgd_cutoff, bkgd_cutoff], [0.0, numbins], color='red')
@@ -124,6 +134,8 @@ if __name__ == '__main__':
 
     sumprof = Num.zeros(numbins, typecode='d')
 
+    base_T = None
+    
     # Step through the profiles and determine the offsets
     for pfdfilenm in pfdfilenms:
 
@@ -131,7 +143,9 @@ if __name__ == '__main__':
 
         # Read the fold data and de-disperse at the requested DM
         current_pfd = pfd(pfdfilenm)
-        current_pfd.dedisperse(DM)
+        if base_T is None:
+            base_T = current_pfd.T
+	current_pfd.dedisperse(DM)
         prof = current_pfd.sumprof
 
         # Resample the current profile to have the correct number of bins
@@ -145,11 +159,21 @@ if __name__ == '__main__':
         # Rotate the profile to match the template
         newprof = psr_utils.interp_rotate(prof, shift)
 
-        # Now shift and scale the profile
+        # Now shift and scale the profile so that it has an off-pulse
+	# mean of ~0 and an off-pulse RMS of ~1
         offpulse = Num.take(newprof, offpulse_inds)
-        newprof -= average(offpulse)
-        newprof /= standardDeviation(offpulse)
-
+        newprof -= median(offpulse)
+        if usestats:
+            offpulse_rms = umath.sqrt(current_pfd.varprof)
+        else:
+            offpulse_rms = standardDeviation(offpulse)
+        newprof /= offpulse_rms
+        print "    Approx SNR = %.3f" % sum(newprof)
+        
+	# Now weight the profile based on the observation duration
+        # as compared to the first profile 
+        newprof *= umath.sqrt(current_pfd.T/base_T)
+        
         if (0):
             Pgplot.plotxy(newprof)
             Pgplot.closeplot()
@@ -159,8 +183,9 @@ if __name__ == '__main__':
 
     # Now normalize, plot, and write the summed profile
     offpulse = Num.take(sumprof, offpulse_inds)
-    sumprof -= average(offpulse)
+    sumprof -= median(offpulse)
     sumprof /= standardDeviation(offpulse)
+    print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
     Pgplot.plotxy(sumprof, Num.arange(numbins),
                   labx="Pulse Phase", laby="Relative Flux")
     Pgplot.closeplot()
