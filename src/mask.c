@@ -211,26 +211,24 @@ int determine_padvals(char *maskfilenm, mask *obsmask, float *padvals[])
       chkfread(&lobin, sizeof(int), 1, statsfile);
       chkfread(&numbetween, sizeof(int), 1, statsfile);
       dataavg = gen_fmatrix(numint, numchan);
+      printf("numint = %d  numchan = %d\n", numint, numchan);
       /* These are the powers */
       chkfread(dataavg[0], sizeof(float), numchan*numint, statsfile);
       /* These are the averages */
       chkfread(dataavg[0], sizeof(float), numchan*numint, statsfile);
       /* Set the padding values equal to the mid-80% channel averages */
-      for (ii=0; ii<numchan; ii++){
+      for (ii=0; ii<numchan; ii++)
 	calc_avgmedstd(dataavg[0]+ii, numint, 0.8, numchan, 
 		       *padvals+ii, &tmp1, &tmp2);
-	printf("%d  %f\n", ii, *padvals[ii]);
-      }
       printf("succeded.\n  Set the padding values equal to the mid-80%% channel averages.\n");
       free(dataavg[0]);
       free(dataavg);
-      free(statsfilenm);
       fclose(statsfile);
       return 1;
     } else {
       /* This is a temporary solution */
       for (ii=0; ii<obsmask->numchan; ii++)
-	*padvals[ii] = 0.0;
+	(*padvals)[ii] = 0.0;
       printf("failed.\n  Set the padding values to 0.\n");
       return 0;
     }
