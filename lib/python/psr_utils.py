@@ -455,6 +455,17 @@ def diagonal_DM(dt, chanBW, center_freq):
     """
     return (0.0001205 * center_freq * center_freq * center_freq) * dt / chanBW
 
+def pulse_broadening(DM, f_ctr):
+    """
+    pulse_broadening(DM, f_ctr):
+        Return the approximate pulse broadening (tau) in ms due to scattering
+        based on the rough relation in Cordes' 'Pulsar Observations I' paper.
+        'f_ctr' should be in MHz.  The approximate error is 0.65 in log(tau).
+    """
+    logDM = umath.log10(DM)
+    return 10.0**(-3.59 + 0.129*logDM + 1.02*logDM**2.0 -
+                  4.4*umath.log10(f_ctr/1000.0))/1000.0
+
 def guess_DMstep(DM, dt, BW, f_ctr):
     """
     guess_DMstep(DM, dt, BW, f_ctr):
