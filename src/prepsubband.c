@@ -190,8 +190,11 @@ int main(int argc, char *argv[])
     }
 
     /* OBS code for TEMPO */
-    /* The following is for the Green Bank 85-3 */
+    /* The following is for the Green Bank 85-3
     strcpy(obs, "G8");
+    */
+    /* The following is for the Green Bank Telescope */
+    strcpy(obs, "GB");
 
     /* The number of topo to bary time points to generate with TEMPO */
 

@@ -220,10 +220,17 @@ int main(int argc, char *argv[])
       
       /* OBS code for TEMPO */
       
-      /* The following is for the Green Bank 85-3 */
+      /* The following is for the Green Bank 85-3
+
       strcpy(obs, "G8");
       search.telescope = (char *)calloc(20, sizeof(char));
-      strcpy(search.telescope, "Green Bank 85-3");
+      strcpy(search.telescope, "GBT");
+      */
+
+      /* The following is for the Green Bank Telescope */
+      strcpy(obs, "GB");
+      search.telescope = (char *)calloc(20, sizeof(char));
+      strcpy(search.telescope, "GBT");
 
     } else if (cmd->wappP){
 

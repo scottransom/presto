@@ -184,6 +184,8 @@ static void swapendian_BPP_header(BPP_SEARCH_HEADER *hdr)
   hdr->Har_Clk = swap_double(hdr->Har_Clk);
   hdr->bandwidth = swap_double(hdr->bandwidth);
   hdr->rf_lo = swap_double(hdr->rf_lo);
+  if (hdr->rf_lo > 1.0e6)
+    hdr->rf_lo /= 1.0e6;
   hdr->max_dfb_freq = swap_double(hdr->max_dfb_freq);
   hdr->mjd_start = swap_longdouble(hdr->mjd_start);
   for (ii=0; ii<FB_CHAN_PER_BRD; ii++){
@@ -281,8 +283,12 @@ void calc_BPP_chans(BPP_SEARCH_HEADER *hdr)
         u_or_l = sideband_lookup[regid][nibble];
         f_sram = hdr->dfb_sram_freqs[dfb_chan];
 	fc = f_aib + f_sram + u_or_l * hdr->bandwidth/4.0;
-        chan_freqs[n] = (hdr->rf_lo + fc) / 1000000.0;
-	n++;
+        /* chan_freqs[n] = (hdr->rf_lo + fc) / 1000000.0; */
+	/* obs below 10 GHz are LSB; above 10 GHz are USB */
+	if (hdr->rf_lo < 1.e10)
+	  chan_freqs[n++] = hdr->rf_lo + 800 - fc/1.0e6;
+	else
+	  chan_freqs[n++] = hdr->rf_lo + fc/1.0e6;
       }
     }
   }
@@ -626,6 +632,7 @@ void print_BPP_hdr(BPP_SEARCH_HEADER *hdr)
   printf("    Channel bandwidth (MHz) = %.17g\n", delta_freq_st);
   printf("  Lowest channel freq (MHz) = %.17g\n", ch1_freq_st);
   printf("          Middle freq (MHz) = %.17g\n", mid_freq_st);
+  printf("  LO freq used for IF (MHz) = %.17g\n", hdr->rf_lo);
   printf("\n");
 }
 
