@@ -494,9 +494,9 @@ int main(int argc, char *argv[])
 
     printf("   Insure you check the files tempoout_times.tmp and\n");
     printf("   tempoout_vels.tmp for errors from TEMPO when complete.\n");
-    printf("   Average topocentric velocity (c) = %.5g.\n", avgvoverc);
-    printf("   Maximum topocentric velocity (c) = %.5g.\n", maxvoverc);
-    printf("   Minimum topocentric velocity (c) = %.5g.\n\n", minvoverc);
+    printf("   Average topocentric velocity (c) = %.7g\n", avgvoverc);
+    printf("   Maximum topocentric velocity (c) = %.7g\n", maxvoverc);
+    printf("   Minimum topocentric velocity (c) = %.7g\n\n", minvoverc);
     printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
 
     /* Determine the initial dispersion time delays for each channel */
