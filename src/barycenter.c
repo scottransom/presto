@@ -50,7 +50,7 @@ void barycenter(double *topotimes, double *barytimes, \
 /* "dd:mm:ss.ssss" for DEC.  The observatory site is passed */
 /* as a 2 letter ITOA code.  This observatory code must be  */
 /* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
-/* is either "DE200" or "DE400".                            */
+/* is either "DE200" or "DE405".                            */
 {
 
   FILE *outfile;
@@ -62,21 +62,22 @@ void barycenter(double *topotimes, double *barytimes, \
   
   strcpy(temporaryfile, "bary.tmp");
   outfile = chkfopen(temporaryfile, "w");
-  fprintf(outfile, "C  Header Section         \n");
-  fprintf(outfile, "  HEAD                    \n");
-  fprintf(outfile, "  PSR                 bary\n");
-  fprintf(outfile, "  NPRNT                  2\n");
-  fprintf(outfile, "  P0                   1.0 1\n");
-  fprintf(outfile, "  P1                   0.0\n");
-  fprintf(outfile, "  CLK            UTC(NIST)\n");
-  fprintf(outfile, "  PEPOCH            %11.5f\n", topotimes[0]);
-  fprintf(outfile, "  COORD              J2000\n");
-  fprintf(outfile, "  RA                    %s\n", ra);
-  fprintf(outfile, "  DEC                   %s\n", dec);
-  fprintf(outfile, "  DM                   0.0\n");
-  fprintf(outfile, "  EPHEM                 %s\n", ephem);
-  fprintf(outfile, "C  TOA Section (uses ITAO Format)\n");
-  fprintf(outfile, "  TOA\n");
+  fprintf(outfile, "C  Header Section\n"
+	  "  HEAD                    \n"
+	  "  PSR                 bary\n"
+	  "  NPRNT                  2\n"
+	  "  P0                   1.0 1\n"
+	  "  P1                   0.0\n"
+	  "  CLK            UTC(NIST)\n"
+	  "  PEPOCH           %19.13f\n"
+	  "  COORD              J2000\n"
+	  "  RA                    %s\n"
+	  "  DEC                   %s\n"
+	  "  DM                   0.0\n"
+	  "  EPHEM                 %s\n"
+	  "C  TOA Section (uses ITAO Format)\n"
+	  "  TOA\n",
+	  topotimes[0], ra, dec, ephem);
 
   /* Write the TOAs for infinite frequencies */
 
@@ -115,21 +116,22 @@ void barycenter(double *topotimes, double *barytimes, \
   
   strcpy(temporaryfile, "bary.tmp");
   outfile = chkfopen(temporaryfile, "w");
-  fprintf(outfile, "C  Header Section         \n");
-  fprintf(outfile, "  HEAD                    \n");
-  fprintf(outfile, "  PSR                 bary\n");
-  fprintf(outfile, "  NPRNT                  2\n");
-  fprintf(outfile, "  P0                   1.0 1\n");
-  fprintf(outfile, "  P1                   0.0\n");
-  fprintf(outfile, "  CLK            UTC(NIST)\n");
-  fprintf(outfile, "  PEPOCH            %11.5f\n", topotimes[0]);
-  fprintf(outfile, "  COORD              J2000\n");
-  fprintf(outfile, "  RA                    %s\n", ra);
-  fprintf(outfile, "  DEC                   %s\n", dec);
-  fprintf(outfile, "  DM                   0.0\n");
-  fprintf(outfile, "  EPHEM                 %s\n", ephem);
-  fprintf(outfile, "C  TOA Section (uses ITAO Format)\n");
-  fprintf(outfile, "  TOA\n");
+  fprintf(outfile, "C  Header Section\n"
+	  "  HEAD                    \n"
+	  "  PSR                 bary\n"
+	  "  NPRNT                  2\n"
+	  "  P0                   1.0 1\n"
+	  "  P1                   0.0\n"
+	  "  CLK            UTC(NIST)\n"
+	  "  PEPOCH           %19.13f\n"
+	  "  COORD              J2000\n"
+	  "  RA                    %s\n"
+	  "  DEC                   %s\n"
+	  "  DM                   0.0\n"
+	  "  EPHEM                 %s\n"
+	  "C  TOA Section (uses ITAO Format)\n"
+	  "  TOA\n",
+	  topotimes[0], ra, dec, ephem);
 
   /* Write the TOAs for finite frequencies */
 
