@@ -87,6 +87,10 @@ typedef struct s_Cmdline {
   char psrnameP;
   char* psrname;
   int psrnameC;
+  /***** -obs: Two letter TEMPO observatory code (for barycentering) */
+  char obscodeP;
+  char* obscode;
+  int obscodeC;
   /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
   char rzwcandP;
   int rzwcand;

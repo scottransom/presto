@@ -33,6 +33,8 @@ typedef struct PREPFOLDINFO {
   char *telescope;    /* Telescope where observation took place */
   char *pgdev;        /* PGPLOT device to use */
   double dt;          /* Sampling interval of the data */
+  double startT;      /* Fraction of observation file to start folding */
+  double endT;        /* Fraction of observation file to stop folding */
   double tepoch;      /* Topocentric eopch of data in MJD */
   double bepoch;      /* Barycentric eopch of data in MJD */
   double avgvoverc;   /* Average topocentric velocity */
