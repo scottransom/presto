@@ -7,8 +7,11 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
- * Revision 1.1  1999/07/02 02:04:45  ransom
- * Initial revision
+ * Revision 1.2  1999/07/12 20:42:20  ransom
+ * Changed convert_multibeam_point() to accept a variable number of channels.
+ *
+ * Revision 1.1.1.1  1999/07/02 02:04:45  ransom
+ * Imported PRESTO sources
  *
  * Revision 1.1.1.1  1997/08/20 05:07:11  rmanches
  * CVS import
@@ -88,9 +91,10 @@ typedef struct MULTIBEAM_TAPEHDR {
 
 /* Routines to read and convert Parkes Multibeam data files */
 
-void convert_multibeam_point(unsigned char *rec, float *data);
-/* This routine converts 1 bit digitized data with */
-/* 256 channels to a 256 array of floats.          */
+void convert_multibeam_point(unsigned char *rec, float *data, \
+			     int numchan);
+/* This routine converts 1 bit digitized data with      */
+/* 'numchan' channels to an array of 'numchan' floats.  */
 
 void multibeam_hdr_to_inf(multibeam_tapehdr *hdr, infodata *idata);
 /* Convert appropriate Multibeam header portions to make */
