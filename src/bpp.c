@@ -486,15 +486,14 @@ void get_BPP_file_info(FILE *files[], int numfiles, long long *N,
     else
       newscan = 0;
     last_file_epoch = mjds_st[ii];
+    filedatalen_st[ii] = chkfilelen(files[ii], 1) - BPP_HEADER_SIZE;
     if (splitbytes_st[ii-1]){
       if (newscan){ /* Fill the buffer with padding */
 	memset(splitbytes_buffer[ii-1], (padval<<4)+padval, 
 	       splitbytes_st[ii-1]);
-	filedatalen_st[ii] = chkfilelen(files[ii], 1) - BPP_HEADER_SIZE;
       } else { /* Fill the buffer with the data from the missing block part */
 	chkfread(splitbytes_buffer[ii-1], splitbytes_st[ii-1], 1, files[ii]);
-	filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
-	  BPP_HEADER_SIZE - splitbytes_st[ii-1];
+	filedatalen_st[ii] -= splitbytes_st[ii-1];
       }
     }
     numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
