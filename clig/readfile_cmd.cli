@@ -21,6 +21,8 @@ Flag   	-fcomplex    	fcx	{Raw data in float-complex format}
 Flag   	-fc	    	sfcx	{Raw data in float-complex format}
 Flag   	-dcomplex    	dcx	{Raw data in double-complex format}
 Flag   	-dc	    	sdcx	{Raw data in double-complex format}
+Flag   	-short    	sht    	{Raw data in short format}
+Flag   	-s    		ssht    {Raw data in short format}
 Flag   	-int    	igr    	{Raw data in integer format}
 Flag   	-i    		sigr    {Raw data in integer format}
 Flag   	-long    	lng	{Raw data in long format}
