@@ -18,6 +18,7 @@ static infodata idata_st[MAXPATCHFILES];
 static unsigned char databuffer[2*WAPP_MAXDATLEN], padval=128;
 static unsigned char lagbuffer[WAPP_MAXLAGLEN];
 static int currentfile, currentblock;
+static int header_version_st, header_size_st;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 static fftw_plan fftplan;
 double slaCldj(int iy, int im, int id, int *j);
@@ -250,39 +251,29 @@ int clip_times(unsigned char *rawpows)
   return clipped;
 }
 
-static int get_WAPP_HEADER_version(char *header)
+static void get_WAPP_HEADER_version(char *header, int *header_version, 
+				    int *header_size)
 {
-  long header_version;
-  long header_size;
-
-  memcpy(&header_version, header, sizeof(long));
-  memcpy(&header_size, header+4, sizeof(long));
-  if (header_size != WAPP_HEADER_SIZE){
-    printf("\n\nYIKES!!!  The reported WAPP header length (%ld) does\n"
-	   "not equal the historical value (%d)!  Data will be wrong!\n\n",
-	   header_size, WAPP_HEADER_SIZE);
+  memcpy(header_version, header, sizeof(long));
+  memcpy(header_size, header+4, sizeof(long));
+  if (0){
+    printf("Header version:  %d\n", *header_version);
+    printf("Header  length:  %d\n", *header_size);
   }
-  if (1){
-    printf("Header version:  %ld\n", header_version);
-    printf("Header  length:  %ld\n", header_size);
-  }
-  return header_version;
 }
 
 
 int check_WAPP_byteswap(char *hdr)
 {
-  int hdr_vers;
   WAPP_HEADERv1 *hdr1=NULL;
   WAPP_HEADERv234 *hdr234=NULL;
   
-  hdr_vers = get_WAPP_HEADER_version(hdr);
-  if (hdr_vers==1)
+  get_WAPP_HEADER_version(hdr, &header_version_st, &header_size_st);
+  if (header_version_st==1)
     hdr1 = (WAPP_HEADERv1 *)hdr;
   else
     hdr234 = (WAPP_HEADERv234 *)hdr;
-
-  if (hdr_vers==1){
+  if (header_version_st==1){
     if ((hdr1->header_size != 2048) &&
 	(hdr1->nifs < 1 || hdr1->nifs > 4)){
       hdr1->src_ra = swap_double(hdr1->src_ra);
@@ -387,17 +378,15 @@ static void WAPP_hdr_to_inf(char *hdr, infodata *idata)
 {
   double MJD;
   char ctmp[80];
-  int hdr_vers;
   WAPP_HEADERv1 *hdr1=NULL;
   WAPP_HEADERv234 *hdr234=NULL;
   
-  hdr_vers = get_WAPP_HEADER_version(hdr);
-  if (hdr_vers==1)
+  if (header_version_st==1)
     hdr1 = (WAPP_HEADERv1 *)hdr;
   else
     hdr234 = (WAPP_HEADERv234 *)hdr;
 
-  if (hdr_vers==1){
+  if (header_version_st==1){
     strncpy(idata->object, hdr1->src_name, 24);
     idata->ra_h = (int) floor(hdr1->src_ra / 10000.0);
     idata->ra_m = (int) floor((hdr1->src_ra - 
@@ -490,8 +479,8 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
 /* the files with the required padding.  If output is true, prints    */
 /* a table showing a summary of the values.                           */
 {
-  int ii, asciihdrlen=1, hdr_vers;
-  char cc=1, hdr[WAPP_HEADER_SIZE];
+  int ii, asciihdrlen=1;
+  char cc=1, hdr[MAX_WAPP_HEADER_SIZE];
   WAPP_HEADERv1 *hdr1=NULL;
   WAPP_HEADERv234 *hdr234=NULL;
 
@@ -504,12 +493,14 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   while((cc=fgetc(files[0]))!='\0')
     asciihdrlen++;
   /* Read the binary header */
-  chkfread(hdr, WAPP_HEADER_SIZE, 1, files[0]);
+  chkfread(hdr, 2*sizeof(long), 1, files[0]);
   /* Check the header version and use the correct header structure */
-  hdr_vers = get_WAPP_HEADER_version(hdr);
+  get_WAPP_HEADER_version(hdr, &header_version_st, &header_size_st);
+  chkfread(hdr+2*sizeof(long), 
+	   header_size_st-2*sizeof(long), 1, files[0]);
   /* See if we need to byte-swap and if so, doit */
   need_byteswap_st = check_WAPP_byteswap(hdr);
-  if (hdr_vers==1){
+  if (header_version_st==1){
     hdr1 = (WAPP_HEADERv1 *)hdr;
     numifs_st = hdr1->nifs;
     if (numifs_st > 1)
@@ -564,7 +555,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   bytesperpt_st = (numchan_st * numifs_st * bits_per_samp_st) / 8;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   filedatalen_st[0] = chkfilelen(files[0], 1) - 
-    asciihdrlen - WAPP_HEADER_SIZE;
+    asciihdrlen - MAX_WAPP_HEADER_SIZE;
   numblks_st[0] = filedatalen_st[0] / bytesperblk_st;
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
@@ -573,7 +564,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
   corr_scale_st = corr_rate_st / idata->freqband;
   if (corr_level_st==9) /* 9-level sampling */
     corr_scale_st /= 16.0;
-  if (hdr_vers==1){
+  if (header_version_st==1){
     if (hdr1->sum) /* summed IFs (search mode) */
       corr_scale_st /= 2.0;
   } else {
@@ -591,7 +582,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
     /* Skip the ASCII header file */
     chkfseek(files[ii], asciihdrlen, SEEK_SET);
     /* Read the header */
-    chkfread(&hdr, WAPP_HEADER_SIZE, 1, files[ii]);
+    chkfread(&hdr, MAX_WAPP_HEADER_SIZE, 1, files[ii]);
     /* See if we need to byte-swap and if so, doit */
     need_byteswap_st = check_WAPP_byteswap(hdr);
     WAPP_hdr_to_inf(hdr, &idata_st[ii]);
@@ -602,7 +593,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
       printf("Sample time (file %d) is not the same!\n\n", ii+1);
     }
     filedatalen_st[ii] = chkfilelen(files[ii], 1) - 
-      asciihdrlen - WAPP_HEADER_SIZE;
+      asciihdrlen - MAX_WAPP_HEADER_SIZE;
     numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
     numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
     times_st[ii] = numpts_st[ii] * dt_st;
@@ -645,7 +636,7 @@ void get_WAPP_file_info(FILE *files[], int numfiles, float clipsig,
     printf("  Sample time (dt) = %-14.14g\n", dt_st);
     printf("    Total time (s) = %-14.14g\n", T_st);
     printf("  ASCII Header (B) = %d\n", asciihdrlen);
-    if (hdr_vers==1)
+    if (header_version_st==1)
       printf(" Binary Header (B) = %ld\n\n", hdr1->header_size);
     else
       printf(" Binary Header (B) = %ld\n\n", hdr234->header_size);
@@ -755,17 +746,15 @@ void print_WAPP_hdr(char *hdr)
 {
   int mjd_i;
   double mjd_d;
-  int hdr_vers;
   WAPP_HEADERv1 *hdr1=NULL;
   WAPP_HEADERv234 *hdr234=NULL;
   
-  hdr_vers = get_WAPP_HEADER_version(hdr);
-  if (hdr_vers==1)
+  if (header_version_st==1)
     hdr1 = (WAPP_HEADERv1 *)hdr;
   else
     hdr234 = (WAPP_HEADERv234 *)hdr;
 
-  if (hdr_vers==1){
+  if (header_version_st==1){
     printf("\n             Header version = %ld\n", hdr1->header_version);
     printf("        Header size (bytes) = %ld\n", hdr1->header_size);
     printf("                Source Name = %s\n", hdr1->src_name);

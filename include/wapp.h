@@ -1,5 +1,5 @@
 /* Length of the header in bytes */
-#define WAPP_HEADER_SIZE 2048
+#define MAX_WAPP_HEADER_SIZE 4096
 /* Number of samples to process at a time */
 /*#define WAPP_PTSPERBLOCK 16*/
 #define WAPP_PTSPERBLOCK 64
@@ -103,7 +103,6 @@ typedef struct WAPP_HEADERv234{
                        /* doulbles as maxrecs for snap mode */
   double dumptime;     /* folded integrations for this period of time */
   double power_analog[2];   /* Power measured by Analog Detector */
-  char filler[1736];    /* this pads out the header to 2048 bytes */
 } WAPP_HEADERv234;
 
 /* wapp.c */

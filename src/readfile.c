@@ -54,7 +54,7 @@ int type_sizes[NUMTYPES] = {
   sizeof(position), \
   49792,  /* This is the length of a Parkes Multibeam record */
   32768,  /* This is the length of a BPP header */
-  2048    /* This is the length of a WAPP header */
+  2048    /* This is the length of a WAPP header (Not correct for vers 2+!!) */
 };
 
 int objs_at_a_time[NUMTYPES] = {
