@@ -326,7 +326,8 @@ int main(int argc, char **argv)
 		  epoch - dbepoch);
 	else if (cmd->makefileP || cmd->To)
 	  fprintf(filemarker, 
-		  "Epoch of periapsis    (MJD)  =  %-17.11f\n", cmd->To);
+		  "Epoch of periapsis      (d)  =  %-17.11f\n", 
+		  -(orb.t - orb.p)/SECPERDAY);
       }									
       filemarker = proffile;						
     }									
