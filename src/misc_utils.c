@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include "misc_utils.h"
 
 #ifndef ARCSEC2RAD
@@ -12,6 +13,9 @@
 /* return the max of two double values */
 #define DMAX(a,b) ((a)>(b)?(a):(b))
 
+/* like strcpy, except guaranteed to work with overlapping strings      */
+#define strMove(d,s) memmove(d,s,strlen(s)+1)
+
 
 char *rmtrail(char *str)
 /* Removes trailing space from a string */
@@ -23,7 +27,7 @@ char *rmtrail(char *str)
       if (!isspace(str[i]))
 	break;
     }
-    str[++i] = NUL;
+    str[++i] = '\0';
   }
   return str;
 }
