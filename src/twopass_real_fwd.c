@@ -9,7 +9,7 @@ extern long long find_blocksize(long long n1, long long n2);
 void realfft_scratch_fwd(multifile* infile, multifile* scratch, 
 			 long long nn)
 {
-  long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, s1;
+  long long n1, n2, bb, bb2, fp1, fp2, ii, jj, kk, kind;
   int i1, i2, move_size;
   unsigned char *move;
   rawtype *data, *dp;
@@ -79,18 +79,18 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     /* Use recursion formulas from Numerical Recipes.            */
 
     for (jj=0; jj<bb; jj++){
-      theta = -(jj + ii) * TWOPI / (nn >> 1);
+      theta = -TWOPI * (ii + jj) / (double) (nn >> 1);
+      wr = cos(theta);
+      wi = sin(theta);
       wtemp = sin(0.5 * theta);
       wpr = -2.0 * wtemp * wtemp;
-      wpi = sin(theta);
-      wr = 1.0 + wpr;
-      wi = wpi;
-      for (kk=0; kk<n1; kk++){
-	s1 = jj * n1 + kk;
-	tmp1 = data[s1].r;
-	tmp2 = data[s1].i;
-	data[s1].r = tmp1 * wr - tmp2 * wi;
-	data[s1].i = tmp2 * wr + tmp1 * wi;
+      wpi = wi;
+      kind = jj * n1 + 1;
+      for (kk=1; kk<n1; kk++, kind++){
+	tmp1 = data[kind].r;
+	tmp2 = data[kind].i;
+	data[kind].r = tmp1 * wr - tmp2 * wi;
+	data[kind].i = tmp2 * wr + tmp1 * wi;
 	wtemp = wr;
 	wr = wtemp * wpr - wi * wpi + wr;
 	wi = wi * wpr + wtemp * wpi + wi;
@@ -220,8 +220,8 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
   /* Read the n2 data points */
 
-  for (jj=0, s1=0; jj<n2; jj++, s1+=n1){
-    fseek_multifile(scratch, sizeof(rawtype) * s1, SEEK_SET);
+  for (jj=0, kind=0; jj<n2; jj++, kind+=n1){
+    fseek_multifile(scratch, sizeof(rawtype) * kind, SEEK_SET);
     fread_multifile(data+jj, sizeof(rawtype), 1, scratch);
   }
 
@@ -254,8 +254,8 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
   /* Write the n2 data points and clean up */
 
-  for (jj=0, s1=0; jj<n2; jj++, s1+=n1){
-    fseek_multifile(infile, sizeof(rawtype) * s1, SEEK_SET);
+  for (jj=0, kind=0; jj<n2; jj++, kind+=n1){
+    fseek_multifile(infile, sizeof(rawtype) * kind, SEEK_SET);
     fwrite_multifile(data+jj, sizeof(rawtype), 1, infile);
   }
   free(data);

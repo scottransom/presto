@@ -43,25 +43,19 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 /*  The forward transform (i.e. normal FFT) is isign=-1              */
 
 {
-  long n1, n2, twon2, j, k, kind;
-  double wpr, wpi, wr, wi, wtemp, theta, tmp = 0.0;
-  float *p1;
-  rawtype *data;
+  long n1, n2, jj, kk, kind;
+  double wpr, wpi, wr, wi, theta, tmp1, tmp2;
   int move_size;
   unsigned char *move;
-
 #if defined USEFFTW
-
   FILE *wisdomfile;
   fftw_plan plan_forward, plan_inverse;
   static fftw_plan last_plan_forward = NULL, last_plan_inverse = NULL;
   static int firsttime = 1, lastn = 0;
   static char wisdomfilenm[120];
-
 #else
-
+  float *p1;
   double *table;
-
 #endif
 
 #if defined USEFFTW
@@ -90,8 +84,6 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
   if (nn < 2)
     return;
 
-  data = (rawtype *) indata;
-
   /* treat the input data as a n1 x n2 matrix */
   /* with n2 >= n1                            */
 
@@ -113,7 +105,7 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 
   /* first transpose the matrix */
 
-  transpose_fcomplex((fcomplex *) data, n1, n2, move, move_size); 
+  transpose_fcomplex(indata, n1, n2, move, move_size); 
 
   /* then do n2 transforms of length n1 */
 
@@ -152,7 +144,8 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 #else
 
   table = maketable(n1, 1);
-  for (k = 0, p1 = (float *)indata; k < n2; k++, p1 += 2 * n1) {
+  for (kk=0; kk<n2; kk++){
+    p1 = (float *)(indata + kk * n1);
     tablesplitfftraw(p1, table, n1, isign);
     fft_scramble(p1, n1);
   }
@@ -162,25 +155,27 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 
   /* transpose the matrix */
 
-  transpose_fcomplex((fcomplex *) data, n2, n1, move, move_size); 
+  transpose_fcomplex(indata, n2, n1, move, move_size); 
 
   /* then multiply the matrix A_jk by exp(isign * 2 pi i j k / nn) */
   /* Use recursion formulas from NR */
 
-  twon2 = 2 * n2;
-
-  for (j = 1, p1 = (float *)indata + twon2; j < n1; j++, p1 += twon2) {
-    theta = isign * j * TWOPI / nn;
-    wtemp = sin(0.5 * theta);
-    wpr = -2.0 * wtemp * wtemp;
-    wpi = sin(theta);
-    wr = 1.0 + wpr;
-    wi = wpi;
-    for (k = 1, kind = 2; k < n2; k++, kind += 2) {
-      p1[kind] = (tmp = p1[kind]) * wr - p1[kind + 1] * wi;
-      p1[kind + 1] = p1[kind + 1] * wr + tmp * wi;
-      wr = (wtemp = wr) * wpr - wi * wpi + wr;
-      wi = wi * wpr + wtemp * wpi + wi;
+  for (jj=1; jj<n1; jj++){
+    theta = isign * jj * TWOPI / nn;
+    wr = cos(theta);
+    wi = sin(theta);
+    tmp1 = sin(0.5 * theta);
+    wpr = -2.0 * tmp1 * tmp1;
+    wpi = wi;
+    kind = jj * n2 + 1;
+    for (kk=1; kk<n2; kk++, kind++){
+      tmp1 = indata[kind].r;
+      tmp2 = indata[kind].i;
+      indata[kind].r = tmp1 * wr - tmp2 * wi;
+      indata[kind].i = tmp2 * wr + tmp1 * wi;
+      tmp1 = wr;
+      wr = tmp1 * wpr - wi * wpi + wr;
+      wi = wi * wpr + tmp1 * wpi + wi;
     }
   }
 
@@ -220,7 +215,8 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 #else
 
   table = maketable(n2, 1);
-  for (k = 0, p1 = (float *)indata; k < n1; k++, p1 += 2 * n2) {
+  for (kk=0; kk<n1; kk++){
+    p1 = (float *)(indata + kk * n2);
     tablesplitfftraw(p1, table, n2, isign);
     fft_scramble(p1, n2);
   }
@@ -230,75 +226,74 @@ void tablesixstepfft(fcomplex *indata, long nn, int isign)
 
   /* last transpose the matrix */
 
-  transpose_fcomplex((fcomplex *) data, n1, n2, move, move_size); 
+  transpose_fcomplex(indata, n1, n2, move, move_size); 
   free(move);
 }
-
 
 
 void realfft(float idata[], long n, int isign)
 /*  This is a modified version of the NR routine with correct (-)  */
 /*  exponent.  It uses the above tablesixstepfft making it very    */
 /*  fast.  The forward transform (i.e. normal FFT) is isign=-1     */
-
 {
-  long i, i1, i2, i3, i4, np3;
-  float c1=0.5, c2, h1r, h1i, h2r, h2i;
-  double wr, wi, wpr, wpi, wtemp, theta;
-  float *data;
+  long nby2, il, ih;
+  double cc, h1r, h1i, h2r, h2i, h2rwr, h2iwr, h2rwi, h2iwi;
+  double wr, wi, wpr, wpi, tmp1, theta;
+  fcomplex *data;
 
   if (n % 2){
-    printf("\nrealfft() can only handle arrays of even length.\n\n");
+    printf("\nrealfft() arrays lengths must be evenly divisible by 2.\n\n");
     exit(-1);
   }
-  data = idata - 1;
-  theta = TWOPI / (double) (n);
+  nby2 = n >> 1;
+  data = (fcomplex *)idata;
   if (isign == -1) {
-    c2 = -0.5;
-    COMPLEXFFT((fcomplex *)idata, n >> 1, -1);
-    theta = -theta;
+    cc = -0.5;
+    theta = -TWOPI / (double) n;
+    COMPLEXFFT(data, nby2, -1);
   } else {
-    c2 = 0.5;
-    /* Numerical Recipes gives a sign error for */
-    /* the imaginary part of frequency n/2.     */
-    if ((n+2)%4)
-      data[(n>>1)+2] = -data[(n>>1)+2];
+    cc = 0.5;
+    theta = TWOPI / (double) n;
   }
-  wtemp = sin(0.5 * theta);
-  wpr = -2.0 * wtemp * wtemp;
-  wpi = sin(theta);
-  wr = 1.0 + wpr;
-  wi = wpi;
-  np3 = n + 3;
-  for (i = 2; i <= ((n + 2) >> 2); i++) {
-    i4 = 1 + (i3 = np3 - (i2 = 1 + (i1 = i + i - 1)));
-    h1r = c1 * (data[i1] + data[i3]);
-    h1i = c1 * (data[i2] - data[i4]);
-    h2r = -c2 * (data[i2] + data[i4]);
-    h2i = c2 * (data[i1] - data[i3]);
-    data[i1] = h1r + wr * h2r - wi * h2i;
-    data[i2] = h1i + wr * h2i + wi * h2r;
-    data[i3] = h1r - wr * h2r + wi * h2i;
-    data[i4] = -h1i + wr * h2i + wi * h2r;
-    wr = (wtemp = wr) * wpr - wi * wpi + wr;
-    wi = wi * wpr + wtemp * wpi + wi;
+  /* Prep the trig recursion */
+  wr = cos(theta);
+  wi = sin(theta);
+  tmp1 = sin(0.5 * theta);
+  wpr = -2.0 * tmp1 * tmp1;
+  wpi = wi;
+  il = 1;          /* n     */
+  ih = nby2 - il;  /* N/2-n */
+  for (; il<=(n>>2); il++, ih--){
+    h1r = 0.5 * (data[il].r + data[ih].r);
+    h1i = 0.5 * (data[il].i - data[ih].i);
+    h2r = -cc * (data[il].i + data[ih].i);
+    h2i =  cc * (data[il].r - data[ih].r);
+    h2rwr = h2r * wr;
+    h2rwi = h2r * wi;
+    h2iwr = h2i * wr;
+    h2iwi = h2i * wi;
+    data[il].r = h1r + h2rwr - h2iwi;
+    data[il].i = h1i + h2iwr + h2rwi;
+    data[ih].r = h1r - h2rwr + h2iwi;
+    data[ih].i = -h1i + h2iwr + h2rwi;
+    tmp1 = wr;
+    wr = tmp1 * wpr - wi * wpi + wr;
+    wi = wi * wpr + tmp1 * wpi + wi;
   }
   if (isign == -1) {
-    /* Numerical Recipes gives a sign error for */
-    /* the imaginary part of frequency n/2.     */
-    if ((n+2)%4)
-      data[(n>>1)+2] = -data[(n>>1)+2];
-    data[1] = (h1r = data[1]) + data[2];
-    /* This sets data[2]=Nyquist Freq value */
-    data[2] = h1r - data[2];
+    /* Set data[0].r to Freq 0 value  */
+    /* Set data[0].i to Nyquist value */
+    tmp1 = data[0].r;
+    data[0].r = tmp1 + data[0].i;
+    data[0].i = tmp1 - data[0].i;
   } else {
-    double norm;
-    data[1] = c1 * ((h1r = data[1]) + data[2]);
-    data[2] = c1 * (h1r - data[2]);
-    COMPLEXFFT((fcomplex *)idata, n >> 1, 1);
-    norm = 2.0 / (double) n;
-    for (i = 0; i < n; i++)
-      idata[i] *= norm;
+    tmp1 = data[0].r;
+    data[0].r = 0.5 * (tmp1 + data[0].i);
+    data[0].i = 0.5 * (tmp1 - data[0].i);
+    COMPLEXFFT(data, nby2, 1);
+    tmp1 = 2.0 / (double) n;
+    for (il=0; il<n; il++)
+      idata[il] *= tmp1;
   }
 }
 
@@ -337,7 +332,7 @@ void tablefft(float data[], long nn, int isign)
 double *maketable(long nn, int isign)
 {
   long i, n;
-  double wtemp, wr, wpr, wpi, wi, theta;
+  double tmp1, wr, wpr, wpi, wi, theta;
   double *table;
 
   n = (nn << 1);
@@ -345,16 +340,16 @@ double *maketable(long nn, int isign)
   table[0] = 1.0;
   table[1] = 0.0;
   theta = isign * (TWOPI / nn);
-  wtemp = sin(0.5 * theta);
-  wpr = -2.0 * wtemp * wtemp;
-  wpi = sin(theta);
-  wr = 1 + wpr;
-  wi = wpi;
+  wr = cos(theta);
+  wi = sin(theta);
+  tmp1 = sin(0.5 * theta);
+  wpr = -2.0 * tmp1 * tmp1;
+  wpi = wi;
   for (i = 2; i < n; i += 2) {
     table[i] = wr;
     table[i + 1] = wi;
-    wr = (wtemp = wr) * wpr - wi * wpi + wr;
-    wi = wi * wpr + wtemp * wpi + wi;
+    wr = (tmp1 = wr) * wpr - wi * wpi + wr;
+    wi = wi * wpr + tmp1 * wpi + wi;
   }
   /* To check trig recursion above...
      for (i = 0; i < n; i += 2) {
