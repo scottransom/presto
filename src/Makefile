@@ -364,6 +364,7 @@ cleaner:  clean
 	rm -f searchmultidms togeomview meminit bincat makewisdom
 	rm -f taperaw bincand dftfold rfifind zapbirds test_multifiles 
 	rm -f accelsearch prepsubband explorefft exploredat $(PRESTOLIBNM)
+	rm -f mpiprepsubband
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
 
 squeaky:  cleaner
@@ -383,3 +384,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand dftfold rfifind
 	cd $(PRESTO)/bin ; rm -f zapbirds test_multifiles accelsearch
 	cd $(PRESTO)/bin ; rm -f prepsubband plotdat plotfft explorefft exploredat
+	cd $(PRESTO)/bin ; rm -f mpiprepsubband
