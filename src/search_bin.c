@@ -2,13 +2,13 @@
 #include "search_bin_cmd.h"
 
 /* The number of candidates to return from the search of each miniFFT */
-#define MININCANDS 4
+#define MININCANDS 6
 
 /* Minimum binary period (s) to accept as 'real' */
 #define MINORBP 300.0
 
 /* Minimum miniFFT bin number to accept as 'real' */
-#define MINMINIBIN 5.0
+#define MINMINIBIN 3.0
 
 /* Function definitions */
 static int not_already_there_rawbin(rawbincand newcand, 
@@ -39,7 +39,7 @@ static char num[41][5] =
 int main(int argc, char *argv[])
 {
   FILE *fftfile, *candfile;
-  float powargr, powargi, *powers, *minifft;
+  float powargr, powargi, *powers = NULL, *minifft;
   float norm, numchunks, *powers_pos;
   int nbins, newncand, nfftsizes, fftlen, halffftlen, binsleft;
   int numtoread, filepos = 0, loopct = 0, powers_offset, ncand2;
@@ -236,8 +236,6 @@ int main(int argc, char *argv[])
 
 	norm = sqrt((double) fftlen * (double) numsumpow) / minifft[0];
 	for (ii = 0; ii < fftlen; ii++) minifft[ii] *= norm;
-	for (ii = 0; ii < MININCANDS; ii++)
-	  tmplist[ii].mini_sigma = 0.0;
 	search_minifft((fcomplex *)minifft, halffftlen, tmplist, \
 		       MININCANDS, cmd->harmsum, idata.N, T, \
 		       (double) (powers_offset + filepos + cmd->lobin), \
@@ -253,7 +251,8 @@ int main(int argc, char *argv[])
 
 	    if (tmplist[ii].orb_p > MINORBP && 
 		tmplist[ii].mini_r > MINMINIBIN &&
-		tmplist[ii].mini_r < tmplist[ii].mini_N - MINMINIBIN) {
+		tmplist[ii].mini_r < tmplist[ii].mini_N - MINMINIBIN &&
+		fabs(tmplist[ii].mini_r - 0.5 * tmplist[ii].mini_N) > 2.0){
 
 	      /* Check to see if another candidate with these properties */
 	      /* is already in the list.                                 */
@@ -296,7 +295,7 @@ int main(int argc, char *argv[])
 
   /* Print the number of frequencies searched */
 
-  printf("Searched %12.0f pts (including interbins).\n\n", totnumsearched);
+  printf("Searched %.0f pts (including interbins).\n\n", totnumsearched);
 
   printf("Timing summary:\n");
   tott = times(&runtimes) / (double) CLK_TCK - tott;
@@ -321,9 +320,9 @@ int main(int argc, char *argv[])
   notes = malloc(sizeof(char) * newncand * 18 + 1);
   for (ii = 0; ii < newncand; ii++)
     strncpy(notes + ii * 18, "                     ", 18);
- 
+  
   /* Check the database for possible known PSR detections */
-
+  
   if (idata.ra_h && idata.dec_d) {
     for (ii = 0; ii < newncand; ii++) {
       comp_rawbin_to_cand(&list[ii], &idata, notes + ii * 18, 0);
@@ -386,6 +385,7 @@ static int not_already_there_rawbin(rawbincand newcand,
 static void compare_rawbin_cands(rawbincand *list, int nlist, 
 				 char *notes)
 {
+  double perr;
   int ii, jj, kk, ll;
   char tmp[30];
 
@@ -398,11 +398,12 @@ static void compare_rawbin_cands(rawbincand *list, int nlist,
     for (jj = 0; jj < nlist; jj++) {
       if (ii == jj)
 	continue;
+      perr = 0.5 * list[jj].full_T / list[jj].mini_N;
 
       /* Loop through the possible PSR period harmonics */
-
+      
       for (kk = 1; kk < 41; kk++) {
-
+	
 	/* Check if the PSR Fourier freqs are close enough */
 
 	if (fabs(list[ii].full_lo_r - list[jj].full_lo_r / kk) < 
@@ -414,7 +415,7 @@ static void compare_rawbin_cands(rawbincand *list, int nlist,
 
 	    /* Check if the binary Fourier freqs are close enough */
 
-	    if (fabs(list[ii].orb_p - list[jj].orb_p / ll) < 20.0) {
+	    if (fabs(list[ii].orb_p - list[jj].orb_p / ll) < perr) {
 
 	      /* Check if the note has already been written */
 
@@ -450,7 +451,7 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
   static int np = 0;
   static psrdatabase pdata;
   double T, theop, ra, dec, beam2, difft = 0.0, epoch;
-  double bmod, pmod;
+  double bmod, pmod, orbperr, psrperr;
   char tmp1[80], tmp2[80], tmp3[80], tmp4[20];
 
   /* If calling for the first time, read the database. */
@@ -461,7 +462,7 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
   /* Convert the beam width to radians */
 
   beam2 = 2.0 * ARCSEC2RAD * idata->fov;
-
+  
   /* Convert RA and DEC to radians  (Use J2000) */
 
   ra = hms2rad(idata->ra_h, idata->ra_m, idata->ra_s);
@@ -471,6 +472,15 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
 
   T = idata->N * idata->dt;
   epoch = (double) idata->mjd_i + idata->mjd_f;
+  
+  /* Calculate the approximate error in our value of orbital period */
+  
+  orbperr = 0.5 * cand->full_T / cand->mini_N;
+  
+  /* Calculate the approximate error in our value of spin period */
+
+  psrperr = fabs(cand->full_T / (cand->full_lo_r + 0.5 * cand->mini_N) -
+		 cand->full_T / cand->full_lo_r);
 
   /* Run through RAs in database looking for things close  */
   /* If find one, check the DEC as well (the angle between */
@@ -479,13 +489,13 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
   /* number of the pulsar.  If no matches, return 0.       */
 
   for (i = 0; i < np; i++) {
-
+    
     /* See if we're close in RA */
-
+    
     if (fabs(pdata.ra2000[i] - ra) < beam2) {
-
+      
       /* See if we're close in RA and DEC */
-
+      
       if (sphere_ang_diff(pdata.ra2000[i], pdata.dec2000[i], \
 			  ra, dec) < beam2) {
 
@@ -503,12 +513,10 @@ static int comp_rawbin_to_cand(rawbincand *cand, infodata * idata,
 	  /* measured period.  Use both pulsar and binary periods.    */
 
 	  for (j = 1, pmod = 1.0; j < 41; j++, pmod = 1.0 / (double) j) {
-	    if (fabs(theop * pmod - cand->psr_p) < \
-		(cand->full_T / cand->mini_N)) {
+	    if (fabs(theop * pmod - cand->psr_p) < psrperr) {
 	      for (k = 1, bmod = 1.0; k < 10; \
 		   k++, bmod = 1.0 / (double) k) {
-		if (fabs(pdata.pb[i] * bmod - cand->orb_p / SECPERDAY) < \
-		    (10.0 / SECPERDAY)) {
+		if (fabs(pdata.pb[i] * bmod - cand->orb_p / SECPERDAY) < orbperr) {
 		  if (!strcmp("        ", tmp4)) {
 		    if (j > 1) {
 		      if (full) {
@@ -580,9 +588,10 @@ static void file_rawbin_candidates(rawbincand *cand, char *notes,
 {
   FILE *fname;
   int i, j, k = 0;
-  int nlines = 77, pages, extralines, linestoprint;
+  int nlines = 87, pages, extralines, linestoprint;
   char filenm[100], infonm[100], command[200];
-
+  double orbperr, psrperr;
+  
   sprintf(filenm, "%s_bin", name);
   sprintf(infonm, "%s.inf", name);
   fname = chkfopen(filenm, "w");
@@ -597,31 +606,43 @@ static void file_rawbin_candidates(rawbincand *cand, char *notes,
 
   for (i = 1; i <= pages; i++) {
 
-    /*                       1         2         3         4         5         6         7         8         9         0   */  
-    /*              1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123*/
-    fprintf(fname, "#              Orb Period   PSR Period    FullFFT   MiniFFT   MiniFFT  Num    Sum                    \n");
-    fprintf(fname, "# Cand  Sigma     (sec)        (sec)      Low Bin   Length      Bin    Sum   Power   Notes           \n");
-    fprintf(fname, "#----------------------------------------------------------------------------------------------------\n");
-
+    /*                       1         2         3         4         5         6         7         8         9         0         1    */  
+    /*              123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234*/
+    fprintf(fname, "#               P_orbit +/- Error   P_pulsar +/- Error   FullFFT   MiniFFT   MiniFFT  Num   Sum                   \n");
+    fprintf(fname, "# Cand  Sigma         (sec)                (sec)         Low Bin   Length      Bin    Sum  Power  Notes           \n");
+    fprintf(fname, "#------------------------------------------------------------------------------------------------------------------\n");
+    
     if (i == pages) {
       linestoprint = extralines;
     } else {
       linestoprint = nlines;
     }
-
+    
     for (j = 0; j < linestoprint; j++, k++) {
-
+      
+      /* Calculate the approximate error in our value of orbital period */
+      orbperr = 0.5 * cand[k].full_T / cand[k].mini_N;
+      
+      /* Calculate the approximate error in our value of spin period */
+      psrperr = fabs(cand[k].full_T / (cand[k].full_lo_r + 0.5 * cand[k].mini_N) -
+		     cand[k].full_T / cand[k].full_lo_r);
+      
       /*  Now output it... */
 
       fprintf(fname, " %4d %7.3f  ", k + 1, cand[k].mini_sigma);
-      fprintf(fname, " %9.3f ", cand[k].orb_p);
-      fprintf(fname, " %12.9f ", cand[k].psr_p);
+      fprintf(fname, " %8.2f", cand[k].orb_p);
+      fprintf(fname, " %-7.2g ", orbperr);
+      if (cand[k].psr_p < 0.001)
+	fprintf(fname, " %12.5e", cand[k].psr_p);
+      else
+	fprintf(fname, " %12.9f", cand[k].psr_p);
+      fprintf(fname, " %-7.2g ", psrperr);
       fprintf(fname, " %9.0f  ", cand[k].full_lo_r);
       fprintf(fname, " %6.0f ", cand[k].mini_N);
       fprintf(fname, " %8.1f ", cand[k].mini_r);
       fprintf(fname, " %2.0f ", cand[k].mini_numsum);
-      fprintf(fname, " %7.2f ", cand[k].mini_power);
-      fprintf(fname, "  %.18s\n", notes + k * 18);
+      fprintf(fname, "%7.2f ", cand[k].mini_power);
+      fprintf(fname, " %.18s\n", notes + k * 18);
       fflush(fname);
     }
   }
@@ -631,7 +652,7 @@ static void file_rawbin_candidates(rawbincand *cand, char *notes,
   sprintf(command, "cat %s >> %s", infonm, filenm);
   system(command);
   sprintf(command, \
-	  "$PRESTO/bin/a2x -c1 -n80 -title -date -num %s > %s.ps", \
+	  "$PRESTO/bin/a2x -c1 -n90 -title -date -num %s > %s.ps", \
 	  filenm, filenm);
   system(command);
 }
