@@ -1457,6 +1457,8 @@ r_resp_halfwidth = prestoc.r_resp_halfwidth
 
 z_resp_halfwidth = prestoc.z_resp_halfwidth
 
+w_resp_halfwidth = prestoc.w_resp_halfwidth
+
 def bin_resp_halfwidth(arg0,arg1):
     val = prestoc.bin_resp_halfwidth(arg0,arg1.this)
     return val
@@ -1464,6 +1466,8 @@ def bin_resp_halfwidth(arg0,arg1):
 gen_r_response = prestoc.gen_r_response
 
 gen_z_response = prestoc.gen_z_response
+
+gen_w_response = prestoc.gen_w_response
 
 def gen_bin_response(arg0,arg1,arg2,arg3,arg4,arg5):
     val = prestoc.gen_bin_response(arg0,arg1,arg2,arg3,arg4.this,arg5)

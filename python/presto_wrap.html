@@ -1516,6 +1516,23 @@ presto_wrap.c</TITLE>
       length of the array required to hold such a kernel.              
 </BLOCKQUOTE>
 
+<P><TT><B>w_resp_halfwidth(z,w,accuracy)</B></TT>
+<BLOCKQUOTE>[ returns int  ]
+<BR>    Return the approximate kernel half width in FFT bins required      
+    to achieve a fairly high accuracy correlation based correction     
+    or interpolation for a Fourier signal with an f-dot that (i.e      
+    varies linearly in time -- a constant f-dotdot)                    
+    Arguments:                                                         
+      'z' is the average Fourier Frequency derivative (# of bins       
+         the signal smears over during the observation).               
+      'w' is the Fourier Frequency 2nd derivative (change in the       
+         Fourier f-dot during the observation).                        
+      'accuracy' is either LOWACC or HIGHACC.                          
+    Notes:                                                             
+      The result must be multiplied by 2*'numbetween' to get the       
+      length of the array required to hold such a kernel.              
+</BLOCKQUOTE>
+
 <P><TT><B>bin_resp_halfwidth(ppsr,orbit)</B></TT>
 <BLOCKQUOTE>[ returns int  ]
 <BR>    Return the approximate kernel half width in FFT bins required      
@@ -1552,6 +1569,22 @@ presto_wrap.c</TITLE>
          each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins)   
       'z' is the Fourier Frequency derivative (# of bins the signal    
          smears over during the observation).                          
+      'numkern' is the number of complex points that the kernel will   
+         contain.                                                      
+</BLOCKQUOTE>
+
+<P><TT><B>gen_w_response(roffset,numbetween,z,w,numkern)</B></TT>
+<BLOCKQUOTE>[ returns fcomplex * ]
+<BR>    Generate the response function for Fourier f-dot interpolation.    
+    Arguments:                                                         
+      'roffset' is the offset in Fourier bins for the full response    
+         (i.e. At this point, the response would equal 1.0)            
+      'numbetween' is the number of points to interpolate between      
+         each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins)   
+      'z' is the average Fourier Frequency derivative (# of bins       
+         the signal smears over during the observation).               
+      'w' is the Fourier Frequency 2nd derivative (change in the       
+         Fourier f-dot during the observation).                        
       'numkern' is the number of complex points that the kernel will   
          contain.                                                      
 </BLOCKQUOTE>

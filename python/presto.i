@@ -524,6 +524,21 @@ int z_resp_halfwidth(double z, presto_interp_acc accuracy);
   /*    The result must be multiplied by 2*'numbetween' to get the     */
   /*    length of the array required to hold such a kernel.            */
 
+int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy);
+  /*  Return the approximate kernel half width in FFT bins required    */
+  /*  to achieve a fairly high accuracy correlation based correction   */
+  /*  or interpolation for a Fourier signal with an f-dot that (i.e    */
+  /*  varies linearly in time -- a constant f-dotdot)                  */
+  /*  Arguments:                                                       */
+  /*    'z' is the average Fourier Frequency derivative (# of bins     */
+  /*       the signal smears over during the observation).             */
+  /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
+  /*       Fourier f-dot during the observation).                      */
+  /*    'accuracy' is either LOWACC or HIGHACC.                        */
+  /*  Notes:                                                           */
+  /*    The result must be multiplied by 2*'numbetween' to get the     */
+  /*    length of the array required to hold such a kernel.            */
+
 int bin_resp_halfwidth(double ppsr, orbitparams * orbit);
   /*  Return the approximate kernel half width in FFT bins required    */
   /*  to achieve a fairly high accuracy correlation based correction   */
@@ -558,6 +573,22 @@ fcomplex *gen_z_response(double roffset, int numbetween, double z,
   /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
   /*    'z' is the Fourier Frequency derivative (# of bins the signal  */
   /*       smears over during the observation).                        */
+  /*    'numkern' is the number of complex points that the kernel will */
+  /*       contain.                                                    */
+
+%apply int ARRAYLEN { int numkern };
+fcomplex *gen_w_response(double roffset, int numbetween, double z,
+			 double w, int numkern);
+  /*  Generate the response function for Fourier f-dot interpolation.  */
+  /*  Arguments:                                                       */
+  /*    'roffset' is the offset in Fourier bins for the full response  */
+  /*       (i.e. At this point, the response would equal 1.0)          */
+  /*    'numbetween' is the number of points to interpolate between    */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
+  /*    'z' is the average Fourier Frequency derivative (# of bins     */
+  /*       the signal smears over during the observation).             */
+  /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
+  /*       Fourier f-dot during the observation).                      */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
 
