@@ -224,7 +224,6 @@ int main(int argc, char *argv[])
 	printf("$TEMPO/obsys.dat.  Exiting.\n\n");
 	exit(1);
       }
-
     } else {			/* No barycentering... */
 
       /* The number of data points to work with at a time */
@@ -232,9 +231,7 @@ int main(int argc, char *argv[])
       if (worklen > idata.N)
 	worklen = idata.N;
       worklen = (long) (worklen / 1024) * 1024;
-
     }
-
   }
 
   printf("Writing output data to '%s'.\n", datafilenm);
@@ -566,7 +563,7 @@ int main(int argc, char *argv[])
 	  numwritten += numtowrite;
 	  datawrote += numtowrite;
 	  totwrote += numtowrite;
-	  
+	   
 	  /* Update the statistics and counters */
 	  
 	  if (!padding){
@@ -576,8 +573,13 @@ int main(int argc, char *argv[])
 	    statnum += numtowrite;
 	  }
 	  skip += numtowrite;
+
+	   /* Stop if we have written out all the data we need to */
+      
+	  if (cmd->numoutP && (totwrote == cmd->numout)) 
+	    break;
 	} while (numwritten < numread);
-      } 
+      }
       /* Stop if we have written out all the data we need to */
       
       if (cmd->numoutP && (totwrote == cmd->numout))
