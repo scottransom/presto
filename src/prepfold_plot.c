@@ -736,7 +736,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin)
       find_min_max_arr(2 * search->proflen, bestprof, &min, &max);
       over = 0.1 * (max - min);
       cpgswin(-0.2, 2.0, min - over, max + over);
-      if (flags->justprofs)
+      if (!flags->justprofs)
 	cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
       cpgline(2 * search->proflen, phasetwo, bestprof);
       cpgsls(4);
