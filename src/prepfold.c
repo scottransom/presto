@@ -32,18 +32,18 @@ int main(int argc, char *argv[])
   double difft, tt, nc, pl, diff_epoch, recdt, *disp_dts=NULL;
   double orb_baryepoch=0.0, topoepoch, baryepoch, barydispdt;
   double dtmp, dtmp2, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
-  double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays;
-  double *btoa=NULL, *voverc=NULL, *bobsf=NULL, *tobsf=NULL;
-  double *profs=NULL, *delta_ts=NULL, *topo_ts=NULL;
+  double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
+  double *voverc=NULL, *bobsf=NULL, *tobsf=NULL;
+  double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
-  int numchan=1, binary=0, np, pnum;
+  int numchan=1, binary=0, np, pnum, numdelays;
   int slen, ptsperrec=1, numpoints=0;
   long ii, jj, numbarypts=0, worklen=0;
   long numfolded=0, totnumfolded=0;
   long lorec=0, hirec=0, numrecs=0, totnumrecs=0;
   long numbinpoints, proflen, currentrec;
-  unsigned long numrec=0;
+  unsigned long numrec=0, arrayoffset=0;
   multibeam_tapehdr hdr;
   fourierprops rzwcand;
   orbitparams orb;
@@ -350,7 +350,8 @@ int main(int argc, char *argv[])
     /* Convert Eccentric anomaly to time delays */			
     
     orb.w *= DEGTORAD;
-    E_to_phib(Ep, numbinpoints, &orb);		
+    E_to_phib(Ep, numbinpoints, &orb);
+    numdelays = numbinpoints;
   }
 
   /* Output some informational data on the screen and to the */
@@ -406,13 +407,6 @@ int main(int argc, char *argv[])
       }
     }
   }
-    
-  /* The number of topo to bary time points to generate with TEMPO */
-
-  if (binary)
-    numbarypts = (long) floor((endtime - 400.0)/ orbdt);
-  else
-    numbarypts = (long) floor((endtime - 400.0)/ orbdt);
 
   if (!strcmp(idata.band, "Radio")) {
     
@@ -424,9 +418,8 @@ int main(int argc, char *argv[])
     
     tobsf = gen_dvect(numchan);
     tobsf[0] = idata.freq;
-    for (ii = 0; ii < numchan; ii++) {
+    for (ii = 0; ii < numchan; ii++)
       tobsf[ii] = tobsf[0] + ii * tdf;
-    }
     
   } else {
     
@@ -448,23 +441,35 @@ int main(int argc, char *argv[])
 
   } else {
     
+    /* The number of topo to bary points to generate with TEMPO */
+    
+    numbarypts = endtime / TDT + 1;
+    if (numdelays == 0) numdelays = numbarypts;
+
     /* Allocate some arrays */
     
     bobsf = gen_dvect(numchan);
-    btoa = gen_dvect(numbarypts);
+    barytimes = gen_dvect(numbarypts);
+    topotimes = gen_dvect(numbarypts);
     voverc = gen_dvect(numbarypts);
-    delta_ts = gen_dvect(numbarypts);
-    topo_ts = gen_dvect(numbarypts);
-    for (ii = 0 ; ii < numbarypts ; ii++){
-      /* topocentric times in days from data start */
-      topo_ts[ii] = topoepoch + (double) ii * orbdt / SECPERDAY;
-    }
+
+    /* topocentric times in days from data start */
+
+    for (ii = 0 ; ii < numbarypts ; ii++)
+      topotimes[ii] = topoepoch + (double) ii * TDT / SECPERDAY;
 
     /* Call TEMPO for the barycentering */
 
     printf("\nGenerating barycentric corrections...\n");
-    barycenter(topo_ts, btoa, voverc, numbarypts, \
+    barycenter(topotimes, barytimes, voverc, numbarypts, \
 	       rastring, decstring, obs, ephem);
+
+    /* Determine the average V/c */
+
+    avg_voverc = 0.0;
+    for (ii = 0 ; ii < numbarypts - 1 ; ii++)
+      avg_voverc += voverc[ii];
+    avg_voverc /= (numbarypts - 1.0);
     free(voverc);
 
     /* printf("Given... (topoepoch = %15.9f, baryepoch = %15.9f)\n", \ */
@@ -482,8 +487,18 @@ int main(int argc, char *argv[])
 
     printf("Collecting and barycentering %s...\n\n", cmd->argv[0]);
     
-    /* Modify the binary times so that they refer to topocentric   */
-    /* reference times.  This way we can barycenter while we fold. */
+    if (binary){
+
+      /* Modify the binary times so that they refer to topocentric   */
+      /* reference times.  This way we can barycenter while we fold. */
+      
+      for (ii = 0; ii < numbinpoints; ii++){
+	arrayoffset += 2;  /* Beware nasty NR zero-offset kludges! */
+	hunt(barytimes, numbarypts, 
+	     baryepoch + tp[ii] / SECPERDAY, &arrayoffset);
+	arrayoffset--;
+	tp[ii] = LININTERP(X, xlo, xhi, ylo, yhi);    
+
 
     diff_epoch = (baryepoch - topoepoch) * SECPERDAY;
     if (binary){
