@@ -164,29 +164,27 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
       theta = (jj * n1 + ii + 1) * delta;
       wr = cos(theta);
       wi = sin(theta);
-      
+
       /* Combine n and N/2-n terms as per Numerical Recipes. */
       
-      i1 = jj * bb;            /* n     */
-      i2 = bb * n2 - i1 - 1;   /* N/2-n */
-      for (kk=0; kk<bb2; kk++){
-	h1r = 0.5 * (data[i1].r + data[i2].r);
-	h1i = 0.5 * (data[i1].i - data[i2].i);
-	h2r = 0.5 * (data[i1].i + data[i2].i);
+      i1 = jj * bb;           /* n     */
+      i2 = bb * n2 - i1 - 1;  /* N/2-n */
+      for (kk=0; kk<bb2; kk++, i1++, i2--){
+	h1r =  0.5 * (data[i1].r + data[i2].r);
+	h1i =  0.5 * (data[i1].i - data[i2].i);
+	h2r =  0.5 * (data[i1].i + data[i2].i);
 	h2i = -0.5 * (data[i1].r - data[i2].r);
 	h2rwr = h2r * wr;
 	h2rwi = h2r * wi;
 	h2iwr = h2i * wr;
 	h2iwi = h2i * wi;
-	data[i1].r = h1r + h2rwr - h2iwi;
-	data[i1].i = h1i + h2iwr + h2rwi;
-	data[i2].r = h1r - h2rwr + h2iwi;
+	data[i1].r =  h1r + h2rwr - h2iwi;
+	data[i1].i =  h1i + h2iwr + h2rwi;
+	data[i2].r =  h1r - h2rwr + h2iwi;
 	data[i2].i = -h1i + h2iwr + h2rwi;
 	wtemp = wr;
 	wr = wtemp * wpr - wi * wpi + wr;
 	wi = wi * wpr + wtemp * wpi + wi;
-	i1++;
-	i2--;
       }
     }
 
@@ -237,17 +235,17 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     theta = delta * n1 * jj;
     wr = cos(theta);
     wi = sin(theta);
-    h1r = 0.5 * (data[jj].r + data[kk].r);
-    h1i = 0.5 * (data[jj].i - data[kk].i);
-    h2r = 0.5 * (data[jj].i + data[kk].i);
+    h1r =  0.5 * (data[jj].r + data[kk].r);
+    h1i =  0.5 * (data[jj].i - data[kk].i);
+    h2r =  0.5 * (data[jj].i + data[kk].i);
     h2i = -0.5 * (data[jj].r - data[kk].r);
     h2rwr = h2r * wr;
     h2rwi = h2r * wi;
     h2iwr = h2i * wr;
     h2iwi = h2i * wi;
-    data[jj].r = h1r + h2rwr - h2iwi;
-    data[jj].i = h1i + h2iwr + h2rwi;
-    data[kk].r = h1r - h2rwr + h2iwi;
+    data[jj].r =  h1r + h2rwr - h2iwi;
+    data[jj].i =  h1i + h2iwr + h2rwi;
+    data[kk].r =  h1r - h2rwr + h2iwi;
     data[kk].i = -h1i + h2iwr + h2rwi;
   }
 
