@@ -498,13 +498,21 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 
 #ifdef PRINT_PROFILES
     {
+      float min, max;
       FILE *proffile;
-      printf("\n\template = Numeric.asarray([");
-      for (ii = 0; ii < search->proflen; ii++){
-	if (ii == search->proflen - 1)
-	  printf("%.2f])\n\n", bestprof[ii]);
+/*       printf("\n\ntemplate = Numeric.asarray(["); */
+/*       for (ii = 0; ii < search->proflen; ii++){ */
+/* 	if (ii == search->proflen - 1) */
+/* 	  printf("%.2f])\n\n", bestprof[ii]); */
+/* 	else */
+/* 	  printf("%.2f, ", bestprof[ii]); */
+/*       } */
+      printf("\n\navgs = Numeric.asarray([");
+      for (ii = 0; ii < search->npart; ii++){
+	if (ii == search->npart - 1)
+	  printf("%.2f])\n\n", search->stats[ii].prof_avg);
 	else
-	  printf("%.2f, ", bestprof[ii]);
+	  printf("%.2f, ", search->stats[ii].prof_avg);
       }
       printf("\n\nstdevs = Numeric.asarray([");
       for (ii = 0; ii < search->npart; ii++){
@@ -513,11 +521,20 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
 	else
 	  printf("%.2f, ", sqrt(search->stats[ii].prof_var));
       }
-      proffile = chkfopen("NGC6544_profs.bin", "wb");
-      for (ii = 0; ii < search->npart; ii++)
-	chkfwrite(timeprofs + ii * 2 * search->proflen, sizeof(float),
-		  search->proflen, proffile);
-      fclose(proffile);
+      printf("\n\nmaxvals = Numeric.asarray([");
+      for (ii = 0; ii < search->npart; ii++){
+	minmax(timeprofs + ii * 2 * search->proflen, 
+	       search->proflen, &min, &max);	
+	if (ii == search->npart - 1)
+	  printf("%.2f])\n\n", max);
+	else
+	  printf("%.2f, ", max);
+      }
+/*       proffile = chkfopen("NGC6544_profs.bin", "wb"); */
+/*       for (ii = 0; ii < search->npart; ii++) */
+/* 	chkfwrite(timeprofs + ii * 2 * search->proflen, sizeof(float), */
+/* 		  search->proflen, proffile); */
+/*       fclose(proffile); */
     }
 #endif
 

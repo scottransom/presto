@@ -110,5 +110,23 @@ unsigned long chkfilelen(FILE *file, size_t size)
   return (unsigned long) (buf.st_size / size);
 }
 
+int read_int(FILE *infile)
+/* Reads a binary integer value from the file 'infile' */
+{
+  int itmp;
+
+  chkfread(&itmp, sizeof(int), 1, infile);
+  return itmp;
+}
+
+double read_double(FILE *infile)
+/* Reads a double precision value from the file 'infile' */
+{
+  double dtmp;
+
+  chkfread(&dtmp, sizeof(double), 1, infile);
+  return dtmp;
+}
+
 
 
