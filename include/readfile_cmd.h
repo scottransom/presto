@@ -5,7 +5,7 @@
   (http://wsd.iitb.fhg.de/~kir/clighome/)
 
   The command line parser `clig':
-  (C) 1995,1997,1998,1999,2000 Harald Kirsch (kir@iitb.fhg.de)
+  (C) 1995---2001 Harald Kirsch (kirschh@lionbioscience.com)
 *****/
 
 typedef struct s_Cmdline {
@@ -31,6 +31,10 @@ typedef struct s_Cmdline {
   char dcxP;
   /***** -dc: Raw data in double-complex format */
   char sdcxP;
+  /***** -short: Raw data in short format */
+  char shtP;
+  /***** -s: Raw data in short format */
+  char sshtP;
   /***** -int: Raw data in integer format */
   char igrP;
   /***** -i: Raw data in integer format */
