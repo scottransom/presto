@@ -53,8 +53,9 @@ void spigot2sigprocfb(SPIGOT_INFO *spigot, sigprocfb *fb, char *filenmbase)
 
 int main(int argc, char *argv[])
 {
-  FILE **infiles, *outfile, *scalingfile;
-  int filenum, ii=0, ptsperblock, numchan, numfiles, bytes_per_read, scaling=0, numscalings;
+  FILE **infiles, *outfile=NULL, *scalingfile;
+  int filenum, argnum=1, ii=0, ptsperblock, numchan, numfiles;
+  int bytes_per_read, scaling=0, numscalings, output=1;
   long long N;
   char outfilenm[200], filenmbase[200], scalingnm[200], rawlags[4096];
   unsigned char output_samples[2048];
@@ -65,23 +66,31 @@ int main(int argc, char *argv[])
   infodata idata;
 
   if (argc==1){
-    fprintf(stderr, "Usage: spigot2filterbank SPIGOT_files\n");
+    fprintf(stderr, "Usage: spigot2filterbank [-stdout] SPIGOT_files\n");
     exit(0);
   }
-  printf("\nConverting raw SPIGOT FITs data into SIGPROC filterbank format.\n\n");
-  strncpy(filenmbase, argv[1], strlen(argv[1])-10);
-  filenmbase[strlen(argv[1])-10] = '\0';
+
+  if (!strcmp(argv[argnum], "-stdout")){ /* Use STDOUT */
+    argnum++;
+    output = 0;
+    outfile = stdout;
+  } else {
+    printf("\nConverting raw SPIGOT FITs data into SIGPROC filterbank format.\n\n");
+  }
+  strncpy(filenmbase, argv[argnum], strlen(argv[argnum])-10);
+  filenmbase[strlen(argv[argnum])-10] = '\0';
   {
     char *path, *filenm, newfilenmbase[100];
-
-    split_path_file(argv[1], &path, &filenm);
+    
+    split_path_file(argv[argnum], &path, &filenm);
     strncpy(newfilenmbase, filenm, strlen(filenm)-10);
     newfilenmbase[strlen(filenm)-10] = '\0';
     sprintf(outfilenm, "%s.fil", newfilenmbase);
     free(path);
     free(filenm);
   }
-  printf("Writing data to file '%s'.\n\n", outfilenm);
+  if (outfile!=stdout)
+    printf("Writing data to file '%s'.\n\n", outfilenm);
 
   /* Attempt to read a file with lag scalings in it */
   sprintf(scalingnm, "%s.scaling", filenmbase);
@@ -94,46 +103,50 @@ int main(int argc, char *argv[])
     scaling = 1;
     /* close the scaling file */
     fclose(scalingfile);
-    printf("Scaling the lags with the %d values found in '%s'\n\n", 
-	   numscalings, scalingnm);
+    if (outfile!=stdout)
+      printf("Scaling the lags with the %d values found in '%s'\n\n", 
+	     numscalings, scalingnm);
   }
-
 
   /* Read and convert the basic SPIGOT file information */
   
   numfiles = argc-1;
-  printf("Spigot card input file information:\n");
+  if (outfile==stdout) numfiles--;
+  else printf("Spigot card input file information:\n");
   spigots = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO)*numfiles);
   infiles = (FILE **)malloc(sizeof(FILE *)*numfiles);
-  for (filenum=1; filenum<=numfiles; filenum++){
-    printf("  '%s'\n", argv[filenum]);
-    infiles[filenum-1] = chkfopen(argv[filenum], "rb");
-    read_SPIGOT_header(argv[filenum], spigots+filenum-1);
-    rewind(infiles[filenum-1]);
+  for (filenum=0; filenum<numfiles; filenum++, argnum++){
+    if (outfile!=stdout) printf("  '%s'\n", argv[argnum]);
+    infiles[filenum] = chkfopen(argv[argnum], "rb");
+    read_SPIGOT_header(argv[argnum], spigots+filenum);
+    rewind(infiles[filenum]);
   }
   spigot0 = spigots[0];
-  printf("\n");
+  if (outfile!=stdout) printf("\n");
+
   /* The following is necessary in order to initialize all the */
   /* static variables in spigot.c                              */
   get_SPIGOT_file_info(infiles, spigots, numfiles, 0, 0, &N, 
-		       &ptsperblock, &numchan, &dt, &T, &idata, 1);
+		       &ptsperblock, &numchan, &dt, &T, &idata, output);
   spigot2sigprocfb(&(spigots[0]), &fb, filenmbase);
   fb.N = N;
   free(spigots);
 
   /* Write the header */
-  outfile = chkfopen(outfilenm, "wb");
+  if (outfile!=stdout) outfile = chkfopen(outfilenm, "wb");
   write_filterbank_header(&fb, outfile);
 
   /* Step throught he SPIGOT files */
   ii = 0;
-  for (filenum=1; filenum<argc; filenum++){
-    printf("Reading from file '%s'...\n", argv[filenum]);
-    chkfseek(infiles[filenum-1], spigot0.header_len, SEEK_SET);
+  if (outfile==stdout) argnum = 2;
+  else argnum = 1;
+  for (filenum=0; filenum<numfiles; filenum++, argnum++){
+    if (outfile!=stdout) printf("Reading from file '%s'...\n", argv[argnum]);
+    chkfseek(infiles[filenum], spigot0.header_len, SEEK_SET);
     bytes_per_read = spigot0.lags_per_sample*spigot0.bits_per_lag/8;
     
     /* Loop over the samples in the file */
-    while (chkfread(rawlags, bytes_per_read, 1, infiles[filenum-1])){
+    while (chkfread(rawlags, bytes_per_read, 1, infiles[filenum])){
       if (scaling)
 	convert_SPIGOT_point(rawlags, output_samples, SUMIFS, scalings[ii]);
       else
@@ -152,12 +165,13 @@ int main(int argc, char *argv[])
       }
       chkfwrite(output_samples, sizeof(unsigned char), fb.nchans, outfile);
     }
-    fclose(infiles[filenum-1]);
+    fclose(infiles[filenum]);
   }
-  fclose(outfile);
-  if (scaling)
-    free(scalings);
-  fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
+  if (scaling) free(scalings);
+  if (outfile!=stdout){
+    fclose(outfile);
+    fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
+  }
   free(infiles);
   return 0;
 }

@@ -437,7 +437,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
     if (envval!=NULL){
       double dblval=strtod(envval, NULL);
       if (dblval){
-	printf("Offsetting band by %.4g MHz as per SPIGOT_FREQ_ADJ env variable.\n", dblval);
+	if (output) printf("Offsetting band by %.4g MHz as per SPIGOT_FREQ_ADJ env variable.\n", dblval);
 	spigot[0].freq_ctr += dblval;
       }
     }
@@ -455,26 +455,26 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   /* Override the numifs_st if the polarizations are summed in hardware */
   if (spigot[0].summed_pols){
     numifs_st = 1;
-    if (numifs_st==2) printf("Both IFs are present and summed.\n");
+    if (numifs_st==2 && output) printf("Both IFs are present and summed.\n");
   } else {
-    if (numifs_st==1) printf("A single IF is present.\n");
-    if (numifs_st==2) printf("Both IFs are present.\n");
+    if (numifs_st==1 && output) printf("A single IF is present.\n");
+    if (numifs_st==2 && output) printf("Both IFs are present.\n");
   }
   /* Flip the band if required */
   if (!spigot[0].upper_sideband){
        decreasing_freqs_st = 1;
-       printf("Flipping the band.");
+       if (output) printf("Flipping the band.");
   }
   /* We currently can't do full stokes */
   if (numifs_st > 2){
-    printf("\n  Error:  There are more than 2 IFs present!  We can't handle this yet!\n\n");
+    fprintf(stderr, "\n  Error:  There are more than 2 IFs present!  We can't handle this yet!\n\n");
     exit(0);
   }
   /* Are we going to clip the data? */
   if (clipsig > 0.0) clip_sigma_st = clipsig;
   if (usewindow){
     usewindow_st = 1;
-    printf("Calculated Hamming window for use.\n");
+    if (output) printf("Calculated Hamming window for use.\n");
     /* Note:  Since the lags we get are only half of the lags that  */
     /* we really need to FFT in order to get spectra (i.e. the      */
     /* transform that we compute is real and even so we comute a    */
@@ -492,13 +492,13 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   calc_filedatalen = (spigot[0].lags_per_sample * (long long)spigot[0].samples_per_file *
 		      bits_per_lag_st)/8;
   if (filedatalen != calc_filedatalen)
-    printf("\n  Warning!  The calculated (%lld) and measured (%lld) data lengths of file %d are different!\n\n", 
+    fprintf(stderr, "\n  Warning!  The calculated (%lld) and measured (%lld) data lengths of file %d are different!\n\n", 
 	   calc_filedatalen, filedatalen, 0);
   numpts = filedatalen/bytesperpt_st;
   if (filedatalen % bytesperpt_st)
-    printf("\n  Warning!  File %d has a non-integer number of complete samples!\n\n", 0);
+    fprintf(stderr, "\n  Warning!  File %d has a non-integer number of complete samples!\n\n", 0);
   if (numpts != spigot[0].samples_per_file){
-    printf("\n  Warning!  The calculated (%lld) and reported (%d) number of samples in file %d are different!\n\n", 
+    fprintf(stderr, "\n  Warning!  The calculated (%lld) and reported (%d) number of samples in file %d are different!\n\n", 
 	   numpts, spigot[0].samples_per_file, 0);
     spigot[0].samples_per_file = numpts;
   }
@@ -507,7 +507,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   while (numpts % ptsperblk_st) ptsperblk_st--;
   bytesperblk_st = ptsperblk_st * bytesperpt_st;
   if (filedatalen % bytesperblk_st)
-    printf("\n  Warning!  File %d has a non-integer number of complete blocks!\n\n", 0);
+    fprintf(stderr, "\n  Warning!  File %d has a non-integer number of complete blocks!\n\n", 0);
   *ptsperblock = ptsperblk_st;
   sampperblk_st = ptsperblk_st * numchan_st;
   spigot[0].num_blocks = filedatalen/bytesperblk_st;
@@ -526,16 +526,16 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
     chkfseek(files[ii], spigot[ii].header_len, SEEK_SET);
     SPIGOT_INFO_to_inf(spigot+ii, &idata_st[ii]);
     if (idata_st[ii].num_chan != numchan_st){
-      printf("\n  Warning!  Number of channels (file %d) is not the same!\n\n", ii+1);
+      fprintf(stderr, "\n  Warning!  Number of channels (file %d) is not the same!\n\n", ii+1);
     }
     if (idata_st[ii].dt != dt_st){
-      printf("\n  Warning!  Sample time (file %d) is not the same!\n\n", ii+1);
+      fprintf(stderr, "\n  Warning!  Sample time (file %d) is not the same!\n\n", ii+1);
     }
     filedatalen = chkfilelen(files[ii], 1) - spigot[ii].header_len;
     spigot[ii].num_blocks = filedatalen/bytesperblk_st;
     numpts = spigot[ii].num_blocks*ptsperblk_st;
     if (numpts != spigot[ii].samples_per_file){
-      printf("\n  Warning!  The calculated and reported number of samples in file %d are different!\n\n", ii);
+      fprintf(stderr, "\n  Warning!  The calculated and reported number of samples in file %d are different!\n\n", ii);
       spigot[ii].samples_per_file = numpts;
     }
     spigot[ii].file_duration = numpts*dt_st;
