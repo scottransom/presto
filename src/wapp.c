@@ -3,12 +3,19 @@
 #include "wapp.h"
 #include "srfftw.h"
 
+/*
+NOTES:
+
+bytesperblk_st is the number of bytes in the RAW LAGS for a _single_ WAPP
+sampperblk_st  is the number of samples (i.e. lags) in a block for all WAPPs together
+*/
+
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
 static long long filedatalen_st[MAXPATCHFILES];
 static int numblks_st[MAXPATCHFILES], corr_level_st, decreasing_freqs_st=0;
 static int bytesperpt_st, bytesperblk_st, bits_per_samp_st, numifs_st;
-static int numwapps_st, numwappchan_st, numchan_st, numifs_st, ptsperblk_st;
+static int numwapps_st=0, numwappchan_st, numchan_st, numifs_st, ptsperblk_st;
 static int need_byteswap_st, sampperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st, dtus_st;
@@ -571,6 +578,7 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
   for (ii=1; ii<numwapps; ii++)
     center_freqs_st[ii] = center_freqs_st[0]+ii*idata->freqband;
   idata->freqband *= numwapps_st;
+  idata->num_chan *= numwapps_st;
   /* Are we going to clip the data? */
   if (clipsig > 0.0)
     clip_sigma_st = clipsig;
@@ -878,7 +886,7 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
 /* input files *infiles which contain 16 or 32 bit lags */
 /* data from the WAPP correlator at Arecibo.            */
 /* A WAPP record is ptsperblk_st*numchan_st*#bits long. */
-/* *data must be bytesperblk_st*numwapps_st bytes long. */
+/* *data must be sampperblk_st bytes long.              */
 /* If padding is returned as 1, then padding was added  */
 /* and statistics should not be calculated.             */
 {
@@ -926,7 +934,7 @@ int read_WAPP_rawblock(FILE *infiles[], int numfiles,
     for (ii=0; ii<ptsperblk_st; ii++)
       for (jj=0; jj<numwapps_st; jj++)
 	convert_WAPP_point(lagbuffer+jj*bytesperblk_st+ii*bytesperpt_st,
-			   dataptr+(ii*numwapps_st+jj)*numwappchan_st);
+			   dataptr+ii*numchan_st+jj*numwappchan_st);
 
     /* Clip nasty RFI if requested */
     if (clip_sigma_st > 0.0)
@@ -1169,7 +1177,7 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
   int ii, jj, trtn, offset;
   double starttime=0.0;
   static unsigned char *tempzz;
-  static unsigned char rawdata1[4*WAPP_MAXDATLEN], rawdata2[4*WAPP_MAXDATLEN]; 
+  static unsigned char rawdata1[WAPP_MAXDATLEN], rawdata2[WAPP_MAXDATLEN]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0, mask=0;
   static double timeperblk=0.0;
@@ -1181,8 +1189,7 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
     move = gen_bvect(move_size);
     currentdata = rawdata1;
     lastdata = rawdata2;
-    printf("%d  %d\n", WAPP_MAXDATLEN, bytesperblk_st*numwapps_st);
-    memcpy(currentdata, rawdata, bytesperblk_st*numwapps_st);
+    memcpy(currentdata, rawdata, sampperblk_st);
     timeperblk = ptsperblk_st * dt_st;
     if (mask){
       starttime = currentblock * timeperblk;
@@ -1203,7 +1210,7 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
 
   /* Read and de-disperse */
 
-  memcpy(currentdata, rawdata, bytesperblk_st*numwapps_st);
+  memcpy(currentdata, rawdata, sampperblk_st);
   if (mask){
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
@@ -1281,7 +1288,7 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes)
       lag[ii] = corr_scale_st * sdata[ii] - 1.0;
   } else {
     unsigned int *idata=(unsigned int *)rawdata;
-    for (ii=0; ii<numchan_st; ii++)
+    for (ii=0; ii<numwappchan_st; ii++)
       lag[ii] = corr_scale_st * idata[ii] - 1.0;
   }
 
@@ -1303,7 +1310,7 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes)
   for(ii=1; ii<numwappchan_st; ii++)
     acf[ii] = acf[two_nlags-ii] = power * lag[ii];
   acf[0] = power * lag[0];
-  acf[numchan_st] = 0.0;
+  acf[numwappchan_st] = 0.0;
  
   /* FFT the ACF (which is real and even) -> real and even FFT */
   rfftw_one(fftplan, acf, lag);

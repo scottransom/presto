@@ -211,7 +211,7 @@ int main(int argc, char *argv[])
     long long N;
 
     printf("\nWAPP input file information:\n");
-    get_WAPP_file_info(infiles, numinfiles, cmd->clip,
+    get_WAPP_file_info(infiles, cmd->numwapps, numinfiles, cmd->clip,
 		       &N, &ptsperblock, &numchan, 
 		       &dt, &T, &idata, 1);
     WAPP_update_infodata(numinfiles, &idata);

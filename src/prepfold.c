@@ -350,7 +350,6 @@ int main(int argc, char *argv[])
       /* OBS code for TEMPO */
       
       /* The following is for the Green Bank 85-3
-
       strcpy(obs, "G8");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "GBT");
@@ -364,14 +363,14 @@ int main(int argc, char *argv[])
     } else if (cmd->wappP){
 
       printf("WAPP input file information:\n");
-      get_WAPP_file_info(infiles, numfiles, cmd->clip,
+      get_WAPP_file_info(infiles, cmd->numwapps, numfiles, cmd->clip,
 			 &local_N, &ptsperrec, &numchan, 
 			 &local_dt, &local_T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
 
       /* OBS code for TEMPO */
       
-      /* The following is for the Green Bank 85-3 */
+      /* The following is for Arecibo */
       strcpy(obs, "AO");
       search.telescope = (char *)calloc(20, sizeof(char));
       strcpy(search.telescope, "Arecibo");
