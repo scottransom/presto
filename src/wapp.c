@@ -1213,6 +1213,7 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
     }
     SWAP(currentdata, lastdata);
     firsttime=0;
+    return 0;
   }
 
   /* Read and de-disperse */
@@ -1266,8 +1267,21 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 /* to use for masking.  If 'transpose'==0, the data will be kept */
 /* in time order instead of arranged by subband as above.        */
 {
+  static int firsttime=0;
   static unsigned char rawdata[WAPP_MAXDATLEN]; 
 
+  if (firsttime){
+    if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding)){
+      printf("Problem reading the raw WAPP data file.\n\n");
+      return 0;
+    }
+    if (0!=prep_WAPP_subbands(rawdata, data, dispdelays, numsubbands, 
+			      transpose, maskchans, nummasked, obsmask)){
+      printf("Problem initializing prep_WAPP_subbands()\n\n");
+      return 0;
+    }
+    firsttime = 0;
+  }
   if (!read_WAPP_rawblock(infiles, numfiles, rawdata, padding)){
     printf("Problem reading the raw WAPP data file.\n\n");
     return 0;

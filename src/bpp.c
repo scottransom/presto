@@ -1238,6 +1238,15 @@ int read_BPP_subbands(FILE *infiles[], int numfiles, float *data,
   
   if (firsttime) {
     rawdata = gen_bvect(bytesperblk_st);
+    if (!read_BPP_rawblock(infiles, numfiles, rawdata, padding)){
+      printf("Problem reading the raw BPP data file.\n\n");
+      return 0;
+    }
+    if (0!=prep_BPP_subbands(rawdata, data, dispdelays, numsubbands, 
+			      transpose, maskchans, nummasked, obsmask, ifs)){
+      printf("Problem initializing prep_BPP_subbands()\n\n");
+      return 0;
+    }
     firsttime = 0;
   }
   if (!read_BPP_rawblock(infiles, numfiles, rawdata, padding)){
