@@ -8,7 +8,7 @@ from orbitstuff import *
 
 # Some admin variables
 parallel = 0          # True or false
-showplots = 1         # True or false
+showplots = 0         # True or false
 debugout = 1          # True or false
 #outfiledir = '/tmp/scratch'
 outfiledir = '/home/ransom'
@@ -69,11 +69,13 @@ if parallel:
     from mpihelp import *
     myid = mpi.comm_rank()
     numprocs = mpi.comm_size()
-    outfilenm = outfiledir+'/'+outfilenm+`myid`+'_'+searchtype+'.out'
+    outfilenm = (outfiledir+'/'+outfilenm+`myid`+
+                 '_'+searchtype+'_'+ctype+'.out')
 else:
     myid = 0
     numprocs = 1
-    outfilenm = outfiledir+'/'+outfilenm+'_'+searchtype+'.out'
+    outfilenm = (outfiledir+'/'+outfilenm+
+                 '_'+searchtype+'_'+ctype+'.out')
 
 # Calculate the values of our X and Y axis points
 logTbyPb = span(log(minTbyPb), log(maxTbyPb), numTbyPb)
@@ -111,11 +113,15 @@ for x in range(numTbyPb):
                 for ct in range(orbsperpt):
                     stim = clock()
                     if (eb == 0.0):
-                        wb, tp = 0.0, 0.0
+                        wb, tp = ct * 180.0 / orbsperpt, 0.0
                     else:
                         (orbf, orbi)  = modf(ct / sqrt(orbsperpt))
                         orbi = orbi / sqrt(orbsperpt)
                         wb, tp = orbf * 180.0, Pb * orbi
+                    if debugout:
+                        print 'T = '+`T[x]`+'  ppsr = '+`ppsr[y]`+\
+                              ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
+                              `eb`+' wb = '+`wb`+' tp = '+`tp`
                     psr = psrparams_from_list([ppsr[y], Pb, xb,
                                                eb, wb, tp])
                     psr_numbins = 2 * bin_resp_halfwidth(psr.p, psr.orb)
@@ -134,8 +140,12 @@ for x in range(numTbyPb):
                         (tryr, tryz) = estimate_rz(psr, T[x], eo)
                         tryr = T[x] / psr.p - tryr + len(data) / 2.0
                         width = 201
-                        print psr_numbins, TbyPb[x], ppsr[y], eo, len(data),
-                        print tryr, tryz,
+                        if debugout:
+                            print 'psr_numbins = '+`psr_numbins`+\
+                                  ' TbyPb[x] = '+`TbyPb[x]`+\
+                                  ' ppsr[y] = '+`ppsr[y]`+' eo = '+\
+                                  `eo`+' len(data) = '+`len(data)`+\
+                                  ' tryr = '+`tryr`+' tryz = '+`tryz`,
                         ffd = ffdot_plane(data, tryr, 0.5, width,
                                           tryz, 2.0, width)
                         maxarg = argmax(spectralpower(ffd.flat))
@@ -143,9 +153,11 @@ for x in range(numTbyPb):
                                  int(tryr - (width * 0.5) / 2))
                         peakz = ((maxarg / width) * 2.0 +
                                  int(tryz - (width * 2.0) / 2))
-                        print peakr, peakz
+                        if debugout:
+                            print ' peakr = '+`peakr`+' peakz = '+`peakz`
                         [pows[ct], rmax, zmax, rd] = \
-                                   maximize_rz(data, peakr, peakz, norm=1.0)
+                                   maximize_rz(data, peakr, peakz, \
+                                               norm=1.0)
                     elif searchtype == 'sideband':
                         psr_pows = spectralpower(psr_resp)
                         data = zeros(next2_to_n(psr_numbins * 2), 'd')
@@ -156,10 +168,12 @@ for x in range(numTbyPb):
                     tim = clock() - stim
                     if debugout:
                         print 'Time for this point was ',tim, ' s.'
-            print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
-            print `ppsr[y]`+'  '+`average(pows)`+'  ',
-            print `max(pows)`+'  '+`min(pows)`
+            if debugout:
+                print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
+                print `ppsr[y]`+'  '+`average(pows)`+'  ',
+                print `max(pows)`+'  '+`min(pows)`
             file.write(`x`+'  '+`y`+'  '+`TbyPb[x]`+'  ')
             file.write(`ppsr[y]`+'  '+`average(pows)`+'  ')
             file.write(`max(pows)`+'  '+`min(pows)`+'\n')
+            file.flush()
 file.close()
