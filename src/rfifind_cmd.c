@@ -64,10 +64,14 @@ static Cmdline cmd = {
   /* freqsigmaP = */ 1,
   /* freqsigma = */ 4,
   /* freqsigmaC = */ 1,
-  /***** -trigfrac: The fraction of bad channels or intervals to zap the whole interval or channel */
-  /* trigfracP = */ 1,
-  /* trigfrac = */ 0.3,
-  /* trigfracC = */ 1,
+  /***** -chanfrac: The fraction of bad channels that will mask a full interval */
+  /* chantrigfracP = */ 1,
+  /* chantrigfrac = */ 0.7,
+  /* chantrigfracC = */ 1,
+  /***** -intfrac: The fraction of bad intervals that will mask a full channel */
+  /* inttrigfracP = */ 1,
+  /* inttrigfrac = */ 0.3,
+  /* inttrigfracC = */ 1,
   /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
   /* zapchanP = */ 0,
   /* zapchan = */ (int*)0,
@@ -924,15 +928,27 @@ showOptionValues(void)
     }
   }
 
-  /***** -trigfrac: The fraction of bad channels or intervals to zap the whole interval or channel */
-  if( !cmd.trigfracP ) {
-    printf("-trigfrac not found.\n");
+  /***** -chanfrac: The fraction of bad channels that will mask a full interval */
+  if( !cmd.chantrigfracP ) {
+    printf("-chanfrac not found.\n");
   } else {
-    printf("-trigfrac found:\n");
-    if( !cmd.trigfracC ) {
+    printf("-chanfrac found:\n");
+    if( !cmd.chantrigfracC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.trigfrac);
+      printf("  value = `%.40g'\n", cmd.chantrigfrac);
+    }
+  }
+
+  /***** -intfrac: The fraction of bad intervals that will mask a full channel */
+  if( !cmd.inttrigfracP ) {
+    printf("-intfrac not found.\n");
+  } else {
+    printf("-intfrac found:\n");
+    if( !cmd.inttrigfracC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.inttrigfrac);
     }
   }
 
@@ -995,7 +1011,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-trigfrac trigfrac] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
+ -o outfile [-pkmb] [-bcpm] [-if ifs] [-wapp] [-clip clip] [-numwapps numwapps] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan [zapchan]] [-zapints [zapints]] [-mask maskfile] [--] infile ...\n\
     Examines radio data for narrow and wide band interference as well as problems with channels\n\
           -o: Root of the output file names\n\
               1 char* value\n\
@@ -1023,7 +1039,10 @@ usage(void)
     -freqsig: The +/-sigma cutoff to reject freq-domain chunks\n\
               1 float value between 0 and oo\n\
               default: `4'\n\
-   -trigfrac: The fraction of bad channels or intervals to zap the whole interval or channel\n\
+   -chanfrac: The fraction of bad channels that will mask a full interval\n\
+              1 float value between 0.0 and 1.0\n\
+              default: `0.7'\n\
+    -intfrac: The fraction of bad intervals that will mask a full channel\n\
               1 float value between 0.0 and 1.0\n\
               default: `0.3'\n\
     -zapchan: Channels to explicitly remove from analysis (zero-offset)\n\
@@ -1034,7 +1053,7 @@ usage(void)
               1 char* value\n\
       infile: Input data file name.\n\
               1...100 values\n\
-version: 11Nov02\n\
+version: 02Dec02\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1153,13 +1172,23 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-trigfrac", argv[i]) ) {
+    if( 0==strcmp("-chanfrac", argv[i]) ) {
       int keep = i;
-      cmd.trigfracP = 1;
-      i = getFloatOpt(argc, argv, i, &cmd.trigfrac, 1);
-      cmd.trigfracC = i-keep;
-      checkFloatLower("-trigfrac", &cmd.trigfrac, cmd.trigfracC, 1.0);
-      checkFloatHigher("-trigfrac", &cmd.trigfrac, cmd.trigfracC, 0.0);
+      cmd.chantrigfracP = 1;
+      i = getFloatOpt(argc, argv, i, &cmd.chantrigfrac, 1);
+      cmd.chantrigfracC = i-keep;
+      checkFloatLower("-chanfrac", &cmd.chantrigfrac, cmd.chantrigfracC, 1.0);
+      checkFloatHigher("-chanfrac", &cmd.chantrigfrac, cmd.chantrigfracC, 0.0);
+      continue;
+    }
+
+    if( 0==strcmp("-intfrac", argv[i]) ) {
+      int keep = i;
+      cmd.inttrigfracP = 1;
+      i = getFloatOpt(argc, argv, i, &cmd.inttrigfrac, 1);
+      cmd.inttrigfracC = i-keep;
+      checkFloatLower("-intfrac", &cmd.inttrigfrac, cmd.inttrigfracC, 1.0);
+      checkFloatHigher("-intfrac", &cmd.inttrigfrac, cmd.inttrigfracC, 0.0);
       continue;
     }
 

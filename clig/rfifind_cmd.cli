@@ -31,7 +31,9 @@ Float  -timesig timesigma {The +/-sigma cutoff to reject time-domain chunks} \
 	-r 0 oo  -d 10
 Float  -freqsig freqsigma {The +/-sigma cutoff to reject freq-domain chunks} \
 	-r 0 oo  -d 4
-Float  -trigfrac trigfrac {The fraction of bad channels or intervals to zap the whole interval or channel} \
+Float  -chanfrac chantrigfrac {The fraction of bad channels that will mask a full interval} \
+	-r 0.0 1.0 -d 0.7
+Float  -intfrac  inttrigfrac  {The fraction of bad intervals that will mask a full channel} \
 	-r 0.0 1.0 -d 0.3
 Int    -zapchan zapchan {Channels to explicitly remove from analysis (zero-offset)} \
 	-r 0 2047 -c 0 2047

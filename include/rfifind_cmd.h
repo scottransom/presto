@@ -51,10 +51,14 @@ typedef struct s_Cmdline {
   char freqsigmaP;
   float freqsigma;
   int freqsigmaC;
-  /***** -trigfrac: The fraction of bad channels or intervals to zap the whole interval or channel */
-  char trigfracP;
-  float trigfrac;
-  int trigfracC;
+  /***** -chanfrac: The fraction of bad channels that will mask a full interval */
+  char chantrigfracP;
+  float chantrigfrac;
+  int chantrigfracC;
+  /***** -intfrac: The fraction of bad intervals that will mask a full channel */
+  char inttrigfracP;
+  float inttrigfrac;
+  int inttrigfracC;
   /***** -zapchan: Channels to explicitly remove from analysis (zero-offset) */
   char zapchanP;
   int *zapchan;
