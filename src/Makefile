@@ -27,6 +27,10 @@ FFTLIBDIR = -L/usr/local/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lsfftw
 
+# The LAPACK library (and possibly BLAS) is needed by prepfold.
+# Place how to link to LAPACK here
+LAPACKLINK = -L/usr/lib -llapack
+
 # The name of the library to produce
 PRESTOLIB = presto
 
@@ -243,7 +247,7 @@ prepdata: prepdata.o prepdata_cmd.o multibeam.o
 	cp $@ ../bin
 
 prepfold: prepfold.o prepfold_cmd.o multibeam.o $(PLOT2DOBJS)
-	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_cmd.o multibeam.o $(PLOT2DOBJS) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+	$(FLINK) $(CFLAGS) -o $@ prepfold.o prepfold_cmd.o multibeam.o $(PLOT2DOBJS) $(LAPACKLINK) $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) $(LAPACKLINK) -lm
 	cp $@ ../bin
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)

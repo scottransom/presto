@@ -18,6 +18,9 @@ int read_resid_rec(FILE * file, double *toa, double *obsf);
 int read_floats(FILE * file, float *data, int numpts,
 		double *dispdelays, int numsubbands, int numchan);
 void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
+int dgels_(char *trans, int *mm, int *nn, int *nrhs, 
+	   double *aa, int *lda, double *bb, int *ldb, 
+	   double *work, int *lwork, int *info);
 
 int bary2topo(double *topotimes, double *barytimes, int numtimes, 
 	      double fb, double fbd, double fbdd, 
@@ -28,25 +31,35 @@ int bary2topo(double *topotimes, double *barytimes, int numtimes,
 /* routine equates the pulse phase using topcentric parameters and     */
 /* times to the pulse phase using barycentric parameters and times.    */
 {
-  double *tt, *bt, *work, *aa, *bb, dtmp;
-  int mm, nn, nrhs=1, lda, ldb=1, lwork, info;
-  char trans='N';
+  double *work, *aa, *bb, dtmp;
+  int ii, mm=3, nn, nrhs=1, lwork, info, index;
+  char trans='T';
 
   if (numtimes < 4){
     printf("\n'numtimes' < 4 in bary2topo():  Cannot solve.\n\n");
     exit(0);
   }
-  tt = gen_dvect(numtimes);
-  bt = gen_dvect(numtimes);
-  
-  lwork = 
-  work = 
-  dgels_(&trans, &mm, &nn, &nrhs, aa, &lda, bb, &ldb, work, &lwork, &info);
-  free(tt); 
-  free(bt);
-  free(work);
+  nn = numtimes; 
+  lwork = mm + nn * 9;
+  aa = gen_dvect(mm * nn);
+  bb = gen_dvect(nn);
+  work = gen_dvect(lwork);
+  for (ii = 0; ii < nn; ii++){
+    index = ii * 3;
+    dtmp = (topotimes[ii] - topotimes[0]) * SECPERDAY;
+    aa[index] = dtmp;
+    aa[index+1] = dtmp * dtmp;
+    aa[index+2] = dtmp * dtmp * dtmp;
+    dtmp = (barytimes[ii] - barytimes[0]) * SECPERDAY;
+    bb[ii] = dtmp * (fb + dtmp * (0.5 * fbd + fbdd * dtmp / 6.0));
+  }
+  dgels_(&trans, &mm, &nn, &nrhs, aa, &mm, bb, &nn, work, &lwork, &info);
+  *ft = bb[0];
+  *ftd = bb[1];
+  *ftdd = bb[2];
   free(aa);
   free(bb);
+  free(work);
   return info;
 }
 
@@ -76,7 +89,7 @@ int main(int argc, char *argv[])
   FILE *infile=NULL, *filemarker;
   float *data=NULL;
   double p=0.0, pd=0.0, pdd=0.0, f=0.0, fd=0.0, fdd=0.0;
-  double difft, tt, nc, pl, recdt, *dispdts=NULL;
+  double difft, tt, nc, pl, recdt=0.0, *dispdts=NULL;
   double orb_baryepoch=0.0, topoepoch=0.0, baryepoch=0.0, barydispdt;
   double dtmp, *Ep=NULL, *tp=NULL, startE=0.0, orbdt=1.0;
   double tdf=0.0, N=0.0, dt=0.0, T, endtime=0.0, dtdays, avg_voverc;
@@ -84,7 +97,8 @@ int main(int argc, char *argv[])
   double *profs=NULL, *barytimes=NULL, *topotimes=NULL;
   char obs[3], ephem[10], *outfilenm, *rootfilenm;
   char pname[30], rastring[50], decstring[50], *cptr;
-  int numchan=1, binary=0, np, pnum, numdelays, slen, ptsperrec=1, flags=1;
+  int numchan=1, binary=0, np, pnum, numdelays=0;
+  int info, slen, ptsperrec=1, flags=1;
   long ii, jj, kk, numbarypts=0, worklen=0, numread=0, reads_per_part;
   long totnumfolded=0, lorec=0, hirec=0, numrecs=0, totnumrecs=0;
   long numbinpoints=0, proflen, currentrec=0;
@@ -268,16 +282,8 @@ int main(int argc, char *argv[])
   }
 
   /* Raw floating point data (already de-dispersed if radio data) */
-  /* and already barycentered.                                    */
 
   if (!cmd->ebppP && !cmd->pkmbP){
-
-    if (!cmd->nobaryP){
-      printf("\nIf you are trying to fold single channel data, \n");
-      printf("the data must be barycentered and you must specify\n");
-      printf("'-nobary' on the command line.  Exiting.\n\n");
-      exit(0);
-    }
 
     /* Read the first header file and generate an infofile from it */
 
@@ -305,9 +311,38 @@ int main(int argc, char *argv[])
     T = N * dt;
     numrec = N / worklen;
     endtime = T + 2 * TDT;
-    if (idata.mjd_i && idata.mjd_f)
-      baryepoch = (double) idata.mjd_i + 
-	idata.mjd_f + lorec * dt / SECPERDAY;
+
+    if (cmd->nobaryP){
+      if (idata.mjd_i && idata.mjd_f)
+	baryepoch = (double) idata.mjd_i + 
+	  idata.mjd_f + lorec * dt / SECPERDAY;
+    } else {
+      
+      /* OBS code for TEMPO */
+      
+      strcpy(obs, "PK");
+      
+      /* Define the RA and DEC of the observation */
+      
+      ra_dec_to_string(rastring, idata.ra_h, idata.ra_m, idata.ra_s);
+      ra_dec_to_string(decstring, idata.dec_d, idata.dec_m, idata.dec_s);
+      
+      /* Topocentric and barycentric times of folding epoch data */
+      
+      if (idata.mjd_i && idata.mjd_f) {
+	topoepoch = (double) idata.mjd_i + 
+	  idata.mjd_f + lorec * dt / SECPERDAY;
+	barycenter(&topoepoch, &baryepoch, &dtmp, 1, rastring,
+		   decstring, obs, ephem);
+
+      /* Correct the barycentric time for the dispersion delay.     */
+      /* This converts the barycentric time to infinite frequency.  */
+
+	barydispdt = delay_from_dm(idata.dm, idata.freq + 
+				   (idata.num_chan - 1) * idata.chan_wid);
+	baryepoch -= (barydispdt / SECPERDAY);
+      }
+    }
 
     /* The data collection routine to use */
 
@@ -632,9 +667,10 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
     free(voverc);
     printf("The average topocentric velocity is %.3g (units of c).\n", 
 	   avg_voverc);
-    topof = f * (1.0 - avg_voverc);
-    topofd = fd * (1.0 - avg_voverc);
-    topofdd = fdd * (1.0 - avg_voverc);
+    info = bary2topo(topotimes, barytimes, numbarypts, 
+		     f, fd, fdd, &topof, &topofd, &topofdd);
+    if (info < 0)
+      printf("\nError in bary2topo().  Argument %d was bad.\n\n", -info);
     printf("Topocentric folding frequency    (hz)  =  %-.12f\n", topof);
     if (topofd != 0.0)
       printf("Topocentric folding f-dot      (hz/s)  =  %-.8e\n", topofd);
@@ -658,23 +694,10 @@ quick_plot(profs + (ii * cmd->nsub + kk) * proflen, proflen);
 			   topotimes[arrayoffset+1]);    
       }
       numdelays = numbinpoints;
-      dtmp = (tp[0] - Ep[0]);
+      dtmp = tp[0];
       for (ii = 0 ; ii < numdelays ; ii++)
-	Ep[ii] = ((tp[ii] - Ep[ii]) - dtmp) * SECPERDAY;
+	tp[ii] = (tp[ii] - dtmp) * SECPERDAY;
 
-    } else {
-
-      /* Convert the topo TOAs to seconds from start */
-      /* Convert the bary TOAs to delays from the topo TOAs */
-
-      tp = topotimes;
-      Ep = barytimes;
-      numdelays = numbarypts;
-      dtmp = (tp[0] - Ep[0]);
-      for (ii = 0 ; ii < numdelays ; ii++){
-	Ep[ii] = ((tp[ii] - Ep[ii]) - dtmp) * SECPERDAY;
-	tp[ii] = TDT * ii;
-      }
     }
 
     /* Step through the sub-integrations of time */
