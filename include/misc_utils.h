@@ -21,6 +21,10 @@ int split_root_suffix(char *input, char **root, char **suffix);
 /* must free both "root" and "suffix".                  */
 /* If the routine finds a suffix, it returns 1, else 0. */
 
+void strtofilename(char *string);
+/* Trim spaces off the end of *input and convert */
+/* all other spaces into underscores.            */
+
 float *gen_freqs(long numfreqs, double lof, double df);
 /* This routine generates a float vector of length numfreqs */
 /* with values set to lof, lof+df, lof+2df, ...             */
