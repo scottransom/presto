@@ -468,15 +468,23 @@ void dedisp(unsigned char *data, unsigned char *lastdata, long numpts,
 /*  output.c:  */
 /*  Functions for text-based ouput of information  */
 
-void nice_output_1(char *output, double val, double err, int len);
+int nice_output_1(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
 /*   as in scientific journals.  The error has 1 decimal place.     */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
 
-void nice_output_2(char *output, double val, double err, int len);
+int nice_output_2(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded  */
 /*   to the appropriate decimal place and the error in parenthesis  */
 /*   as in scientific journals.  The error has 2 decimal places.    */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
 
 void print_candidate(fourierprops * cand, double dt, long N, \
 		     double nph, int numerrdigits);
@@ -494,12 +502,6 @@ void file_bin_candidates(binaryprops cand[], char *notes, \
 			 int numcands, char name[]);
 /* Outputs a .ps file describing all the binary candidates from a    */
 /*   binary search.*/
-
-int file_nice_output(char *output, double val, double err);
-/* Generates a string in "output" of length len with "val" rounded   */
-/*   to the appropriate decimal place and the error in parenthesis   */
-/*   as in scientific journals.  The error has 2 decimal places.     */
-/*   Returns the number of characters written.                       */
 
 
 /*  get_candidates.c:  */
