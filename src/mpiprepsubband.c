@@ -559,7 +559,7 @@ int main(int argc, char *argv[])
       fflush(NULL);
     }
     
-    outdata = gen_fmatrix(cmd->nsub, worklen/cmd->downsamp);
+    outdata = gen_fmatrix(local_numdms, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       &obsmask, dispdt, offsets, &padding);
 
@@ -737,7 +737,7 @@ int main(int argc, char *argv[])
 
     /* Now perform the barycentering */
 
-    outdata = gen_fmatrix(cmd->nsub, worklen/cmd->downsamp);
+    outdata = gen_fmatrix(local_numdms, worklen/cmd->downsamp);
     numread = get_data(infiles, numinfiles, outdata, 
 		       &obsmask, dispdt, offsets, &padding);
     
