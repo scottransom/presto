@@ -26,6 +26,7 @@ Double -flo     flo     {The lowest frequency (Hz) to search} \
 	-r 0.0 oo -d 0.3
 Double -fhi     fhi     {The highest frequency (Hz) to search} \
 	-r 0.0 oo -d 4000.0
+Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
 
 # Rest of command line:
 

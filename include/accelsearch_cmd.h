@@ -41,6 +41,8 @@ typedef struct s_Cmdline {
   char fhiP;
   double fhi;
   int fhiC;
+  /***** -photon: Data is poissonian so use freq 0 as power normalization */
+  char photonP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

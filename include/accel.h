@@ -7,7 +7,8 @@
 /* _must_ be an even multiple of all of the harmonics to sum.       */
 /* This number must also be less than 65536 since we use unsigned   */
 /* short ints to index our arrays...                                */
-#define ACCEL_USELEN 32160
+/* #define ACCEL_USELEN 32160 */
+#define ACCEL_USELEN 16000
 #define ACCEL_NUMBETWEEN 2
 /* Stepsize in Fourier Freq */
 #define ACCEL_DR  0.5
@@ -39,7 +40,7 @@ typedef struct accelobs{
   double zhi;          /* Maximum fourier fdot to search */
   double dz;           /* Stepsize in fourier fdot */
   double baryv;        /* Average barycentric velocity during observation */
-  float nph;           /* Freq 0 level if present (1 otherwise) */
+  float nph;           /* Freq 0 level if requested, 0 otherwise */
   float sigma;         /* Cutoff sigma to choose a candidate */
   float *powcut;       /* Cutoff powers to choose a cand (per harmsummed) */
   double *lobins;      /* The low Fourier freq boundaries to zap (RFI) */

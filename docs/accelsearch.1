@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "15May01" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "21Jun01" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -30,6 +30,7 @@ accelsearch \- Searches an FFT for pulsar candidates using a Fourier domain acce
 [-rhi rhi]
 [-flo flo]
 [-fhi fhi]
+[-photon]
 infile
 .\" cligPart SYNOPSIS end
 
@@ -79,6 +80,8 @@ The highest frequency (Hz) to search,
 1 Double value between 0.0 and oo.
 .br
 Default: `4000.0'
+.IP -photon
+Data is poissonian so use freq 0 as power normalization.
 .IP infile
 Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end
