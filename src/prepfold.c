@@ -964,9 +964,9 @@ int main(int argc, char *argv[])
 	search.stats[ii].redchi += dtmp * dtmp;
       }
       search.stats[ii].redchi /= (search.stats[ii].prof_var * 
-				  (search.proflen - 1));
-      chkfwrite(search.stats + ii, sizeof(foldstats), 1, binproffile);
-      chkfwrite(search.rawfolds + ii*search.proflen, sizeof(double), 
+				  (search.proflen-1));
+      chkfwrite(search.stats+ii, sizeof(foldstats), 1, binproffile);
+      chkfwrite(search.rawfolds+ii*search.proflen, sizeof(double), 
 		search.proflen, binproffile);
     }
     printf("\r  Folded %d events.", numevents);
@@ -1087,10 +1087,10 @@ int main(int argc, char *argv[])
       search.lofreq = idata.freq;
       search.bestdm = idata.dm;
       search.chan_wid = idata.chan_wid;
-      for (ii = 0; ii < numchan; ii++)
-	obsf[ii] = obsf[0] + ii * idata.chan_wid;
+      for (ii=1; ii<numchan; ii++)
+	obsf[ii] = obsf[0] + ii*idata.chan_wid;
       if (RAWDATA){
-	for (ii = 0; ii < numchan; ii++)
+	for (ii=0; ii<numchan; ii++)
 	  obsf[ii] = doppler(obsf[ii], search.avgvoverc);
       } 
       dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
@@ -1099,7 +1099,7 @@ int main(int argc, char *argv[])
     
       /* Convert the delays in seconds to delays in bins */
     
-      for (ii = 0; ii < numchan; ii++)
+      for (ii=0; ii<numchan; ii++)
 	dispdts[ii] /= search.dt;
 
       if (cmd->nsub > 1 && RAWDATA){
@@ -1193,26 +1193,26 @@ int main(int argc, char *argv[])
 	  fold_time0 = parttimes[ii]+jj*proftime;
 	}
 
-	/* Fold the frequency sub-bands */
-	for (kk=0; kk<cmd->nsub; kk++)
+ 	/* Fold the frequency sub-bands */
+
+	for (kk=0; kk<cmd->nsub; kk++){
 	  fold(data+kk*worklen, numread, search.dt, 
 	       fold_time0, search.rawfolds+(ii*cmd->nsub+kk)*search.proflen, 
 	       search.proflen, cmd->phs, buffers+kk*search.proflen, 
 	       phasesadded+kk, foldf, foldfd, foldfdd, 
 	       flags, Ep, tp, numdelays, NULL, 
 	       &(search.stats[ii*cmd->nsub+kk]));
+	}
 	totnumfolded += numread;
-
       }
 
       /* Write the binary profiles */
       
       for (kk=0; kk<cmd->nsub; kk++){
-	chkfwrite(&(search.stats[ii * cmd->nsub + kk]), 
+	chkfwrite(&(search.stats[ii*cmd->nsub+kk]), 
 		  sizeof(foldstats), 1, binproffile);
-	chkfwrite(search.rawfolds + (ii*cmd->nsub + kk) * 
-		  search.proflen, sizeof(double), search.proflen, 
-		  binproffile);
+	chkfwrite(search.rawfolds+(ii*cmd->nsub+kk)*search.proflen, 
+		  sizeof(double), search.proflen, binproffile);
       }
       printf("\r  Folded %ld points of %.0f", totnumfolded, N);
       fflush(NULL);
@@ -1356,7 +1356,7 @@ int main(int argc, char *argv[])
 	if (!cmd->nodmsearchP)
 	  good_dm_index = ii;
 	search.dms[ii] = lodm + ii*ddm;
-	hifdelay = delay_from_dm(search.dms[ii], obsf[numchan - 1]);
+	hifdelay = delay_from_dm(search.dms[ii], obsf[numchan-1]);
 	subbanddelays = subband_delays(numchan, cmd->nsub, 
 				       search.dms[ii], idata.freq, 
 				       idata.chan_wid, search.avgvoverc);

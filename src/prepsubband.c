@@ -305,7 +305,7 @@ int main(int argc, char *argv[])
 				 idata.freq, idata.chan_wid, 0.0);
       dtmp = subdispdt[cmd->numsub-1];
       for (jj=0; jj<cmd->numsub; jj++)
-	offsets[ii][jj] = (int)((subdispdt[jj] - dtmp) / dsdt + 0.5);
+	offsets[ii][jj] = NEAREST_INT((subdispdt[jj]-dtmp)/dsdt);
       free(subdispdt);
     }
 
@@ -425,7 +425,7 @@ int main(int argc, char *argv[])
 				 idata.freq, idata.chan_wid, avgvoverc);
       dtmp = subdispdt[cmd->numsub-1];
       for (jj=0; jj<cmd->numsub; jj++)
-	offsets[ii][jj] = (int)((subdispdt[jj] - dtmp) / dsdt + 0.5);
+	offsets[ii][jj] = NEAREST_INT((subdispdt[jj]-dtmp)/dsdt);
       free(subdispdt);
     }
 
