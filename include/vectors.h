@@ -19,6 +19,9 @@ double *gen_dvect(long length);
 fcomplex *gen_cvect(long length);
 /* Generate a floating complex number vector */
 
+short *gen_svect(long length);
+/* Generate an short integer vector */
+
 int *gen_ivect(long length);
 /* Generate an integer vector */
 

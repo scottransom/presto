@@ -42,11 +42,25 @@ fcomplex *gen_cvect(long length)
 }
 
 
+short *gen_svect(long length)
+{
+  short *v;
+
+  v = (short *) malloc((size_t) (sizeof(short) * length));
+  if (!v) {
+    perror("\nError in gen_svect()");
+    printf("\n");
+    exit(-1);
+  }
+  return v;
+}
+
+
 int *gen_ivect(long length)
 {
   int *v;
 
-  v = (int *) malloc((size_t) (sizeof(float) * length));
+  v = (int *) malloc((size_t) (sizeof(int) * length));
   if (!v) {
     perror("\nError in gen_ivect()");
     printf("\n");
@@ -60,7 +74,7 @@ long *gen_lvect(long length)
 {
   long *v;
 
-  v = (long *) malloc((size_t) (sizeof(float) * length));
+  v = (long *) malloc((size_t) (sizeof(long) * length));
   if (!v) {
     perror("\nError in gen_lvect()");
     printf("\n");

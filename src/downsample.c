@@ -10,7 +10,8 @@ int main(int argc, char *argv[])
   FILE *infile, *outfile;
   int ii, jj, bufflen=10000, numread;
   long long N=0;
-  float *inbuffer, *outbuffer;
+  float *inbuffer=NULL, *outbuffer=NULL;
+  short useshorts=0, *sinbuffer=NULL, *soutbuffer=NULL;
   char *rootfilenm, *outname;
   infodata idata;
   Cmdline *cmd;
@@ -42,23 +43,29 @@ int main(int argc, char *argv[])
     
     hassuffix = split_root_suffix(cmd->argv[0], &rootfilenm, &suffix);
     if (hassuffix){
-      if (strcmp(suffix, "dat")!=0){
-        printf("\nInput file ('%s') must be a time series ('.dat')!\n\n",
+      if (strcmp(suffix, "dat")!=0 &&
+	  strcmp(suffix, "sdat")!=0){
+	if (strcmp(suffix, "sdat")==0)
+	  useshorts = 1;
+        printf("\nInput file ('%s') must be a time series ('.dat' or '.sdat')!\n\n",
                cmd->argv[0]);
         free(suffix);
         exit(0);
       }
       free(suffix);
     } else {
-      printf("\nInput file ('%s') must be a time series ('.dat')!\n\n",
+      printf("\nInput file ('%s') must be a time series ('.dat' or '.sdat')!\n\n",
              cmd->argv[0]);
       exit(0);
     }
     if (cmd->outfileP){
       outname = cmd->outfile;
     } else {
-      outname = (char *)calloc(strlen(rootfilenm)+10, sizeof(char));
-      sprintf(outname, "%s_D%d.dat", rootfilenm, cmd->factor);
+      outname = (char *)calloc(strlen(rootfilenm)+11, sizeof(char));
+      if (useshorts)
+	sprintf(outname, "%s_D%d.sdat", rootfilenm, cmd->factor);
+      else
+	sprintf(outname, "%s_D%d.dat", rootfilenm, cmd->factor);
     }
   }
 
@@ -76,21 +83,39 @@ int main(int argc, char *argv[])
 
   infile = chkfopen(argv[1], "rb");
   outfile = chkfopen(outname, "wb");
-  inbuffer = gen_fvect(bufflen*cmd->factor);
-  outbuffer = gen_fvect(bufflen);
 
   /* Read and downsample */
 
-  while ((numread=chkfread(inbuffer, sizeof(float), bufflen*cmd->factor, infile))){
-    for (ii=0; ii<numread/cmd->factor; ii++){
-      outbuffer[ii] = 0; 
-      for (jj=0; jj<cmd->factor; jj++)
-	outbuffer[ii] += inbuffer[cmd->factor*ii+jj];
+  if (useshorts){
+    sinbuffer = gen_svect(bufflen*cmd->factor);
+    soutbuffer = gen_svect(bufflen);
+    while ((numread=chkfread(sinbuffer, sizeof(short), bufflen*cmd->factor, infile))){
+      for (ii=0; ii<numread/cmd->factor; ii++){
+	soutbuffer[ii] = 0; 
+	for (jj=0; jj<cmd->factor; jj++)
+	  soutbuffer[ii] += sinbuffer[cmd->factor*ii+jj];
+      }
+      chkfwrite(soutbuffer, sizeof(short), numread/cmd->factor, outfile);
+      N += numread/cmd->factor;
     }
-    chkfwrite(outbuffer, sizeof(float), numread/cmd->factor, outfile);
-    N += numread/cmd->factor;
+    free(sinbuffer);
+    free(soutbuffer);
+  } else {
+    inbuffer = gen_fvect(bufflen*cmd->factor);
+    outbuffer = gen_fvect(bufflen);
+    while ((numread=chkfread(inbuffer, sizeof(float), bufflen*cmd->factor, infile))){
+      for (ii=0; ii<numread/cmd->factor; ii++){
+	outbuffer[ii] = 0; 
+	for (jj=0; jj<cmd->factor; jj++)
+	  outbuffer[ii] += inbuffer[cmd->factor*ii+jj];
+      }
+      chkfwrite(outbuffer, sizeof(float), numread/cmd->factor, outfile);
+      N += numread/cmd->factor;
+    } 
+    free(inbuffer);
+    free(outbuffer);
   }
-  printf("done.  Wrote %lld points.\n\n", N);
+  printf("Done.  Wrote %lld points.\n\n", N);
 
   /* Write the new info file */
 
@@ -103,8 +128,6 @@ int main(int argc, char *argv[])
 
   fclose(infile);
   fclose(outfile);
-  free(inbuffer);
-  free(outbuffer);
   free(rootfilenm);
   if (!cmd->outfileP)
     free(outname);
