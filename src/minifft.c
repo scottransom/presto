@@ -39,7 +39,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*      CHECK_ALIASED = harminic summing includes aliased freqs    */
   /*        making it slower but more sensitive.                     */
 {
-  int ii, jj, nmini2, nmini4, offset, numtosearch;
+  int ii, jj, fftlen, fftlen2, offset, numtosearch;
   int numspread = 0, kern_half_width, numkern = 0;
   float powargr, powargi, nyquist;
   float *fullpows = NULL, *sumpows;
@@ -51,8 +51,8 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* NOTE:  This routine is hard-wired for numbetween = 2 */
 
   twobypi = 1.0 / PIBYTWO;
-  nmini2 = numminifft * 2;
-  nmini4 = numminifft * 4;
+  fftlen = numminifft * 2;
+  fftlen2 = numminifft * 4;
   numspread = padfftlen(numminifft, 2, &kern_half_width);
   for (ii = 0; ii < numcands; ii++){
     cands[ii].mini_sigma = 0.0;
@@ -82,31 +82,31 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   nyquist = spread[0].i;
   spread[0].r = 1.0;
   spread[0].i = 0.0;
-  spread[nmini2].r = nyquist;
-  spread[nmini2].i = 0.0;
+  spread[fftlen].r = nyquist;
+  spread[fftlen].i = 0.0;
   if (interptype == INTERPOLATE){
     spread = complex_corr_conv(spread, kernel, numspread, \
 			       FFTD, INPLACE_CORR);
   } else {
-    for (ii = 1; ii < nmini2; ii += 2){
+    for (ii = 1; ii < fftlen; ii += 2){
       spread[ii].r = twobypi * (spread[ii-1].r - spread[ii+1].r);
       spread[ii].i = twobypi * (spread[ii-1].i - spread[ii+1].i);
     }
   }
 
-  numtosearch = (checkaliased == CHECK_ALIASED) ? nmini4 : nmini2 + 1;
+  numtosearch = (checkaliased == CHECK_ALIASED) ? fftlen2 : fftlen + 1;
   fullpows = gen_fvect(numtosearch);
   fullpows[0] = 1.0;
-  fullpows[nmini2] = nyquist * nyquist;
+  fullpows[fftlen] = nyquist * nyquist;
 
   /* The following wraps the data around the Nyquist freq such that */
   /* we consider aliased frequencies as well (If CHECK_ALIASED).    */
   
   if (checkaliased == CHECK_ALIASED)
-    for (ii = 1, jj = nmini4 - 1; ii < nmini2; ii++, jj--)
+    for (ii = 1, jj = fftlen2 - 1; ii < fftlen; ii++, jj--)
       fullpows[ii] = fullpows[jj] = POWER(spread[ii].r, spread[ii].i);
   else
-    for (ii = 1; ii < nmini2; ii++)
+    for (ii = 1; ii < fftlen; ii++)
       fullpows[ii] = POWER(spread[ii].r, spread[ii].i);
   free(spread);
 
@@ -156,9 +156,9 @@ void search_minifft(fcomplex *minifft, int numminifft, \
     cands[ii].full_N = numfullfft;
     cands[ii].full_T = timefullfft;
     cands[ii].full_lo_r = lorfullfft;
-    cands[ii].mini_N = nmini2;
+    cands[ii].mini_N = fftlen;
     cands[ii].psr_p = timefullfft / (lorfullfft + numminifft);
-    cands[ii].orb_p = timefullfft * cands[ii].mini_r / nmini2;
+    cands[ii].orb_p = timefullfft * cands[ii].mini_r / fftlen;
   }
 }
 

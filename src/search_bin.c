@@ -150,10 +150,8 @@ int main(int argc, char *argv[])
   /* For numtoread, the 6 just lets us read extra data at once */
 
   numtoread = 6 * cmd->maxfft + cmd->maxfft / 2;
-/*   if (cmd->stack == 0){ */
-/*     data = gen_cvect(numtoread); */
-/*   } */
-  powers = gen_fvect(numtoread);
+  if (cmd->stack == 0)
+    powers = gen_fvect(numtoread);
   minifft = gen_fvect(cmd->maxfft);
   ncand2 = 2 * cmd->ncand;
   list = (rawbincand *)malloc(sizeof(rawbincand) * ncand2);
@@ -211,7 +209,7 @@ int main(int argc, char *argv[])
     }
     if (filepos == 0) powers[0] = 1.0;
       
-    /* Chop the powers that are way above the average level */
+    /* Chop the powers that are way above the median level */
 
     prune_powers(powers, numtoread, numsumpow);
 
@@ -285,6 +283,7 @@ int main(int argc, char *argv[])
     }
 
     if (cmd->stack == 0) free(data);
+    else free(powers);
     filepos += numtoread - cmd->maxfft / 2;
     loopct++;
 
@@ -347,8 +346,9 @@ int main(int argc, char *argv[])
 
   /* Free our arrays and close our files */
 
+  if (cmd->stack == 0)
+    free(powers);
   free(list);
-  free(powers);
   free(minifft);
   free(notes);
   fclose(fftfile);

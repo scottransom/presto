@@ -787,10 +787,13 @@ float *read_float_file(FILE *file, int firstpt, int numpts);
 /*       file, the returned vector will be zero padded.           */
 
 %apply float* IN_1D_FLOAT { float *arr };
-int prune_powers(float *arr, long n, long numsumpows);
-/* Sets powers that are more than PRUNELEV standard devs above */
-/* the median value to the median value.  Thereby "cleaning"   */
-/* the spectrum of high power signals.                         */
+int prune_powers(float *arr, int n, int numsumpows);
+/* Sets powers that are more than approx PRUNELEV standard */
+/* devs above the median value to NEWLEV times the median  */
+/* value.  This helps 'clean' the spectrum of high power   */
+/* signals that probably have nothing to do with a phase   */
+/* modulation spectrum (i.e. they are RF noise or strong   */
+/* solitary pulsars.                                       */
 
 %apply float* IN_1D_FLOAT { float *arr };
 float selectkth(long k, long n, float *arr);

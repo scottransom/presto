@@ -1,7 +1,7 @@
 #include "presto.h"
 
 #define PRUNELEV 20
-#define NUMTOGET 15
+#define NEWLEV   5
 
 /* Function declarations */
 
@@ -9,19 +9,16 @@ int compare_powindex(const void *ca, const void *cb);
    /*  Used as compare function for qsort() */
 
 
-int prune_powers(float arr[], long n, long numsumpows)
-/* Sets powers that are more than PRUNELEV standard devs above */
-/* the median value to the median value.  Thereby 'cleaning'   */
-/* the spectrum of high power signals.                         */
+int prune_powers(float *arr, int n, int numsumpows)
+/* Sets powers that are more than approx PRUNELEV standard */
+/* devs above the median value to NEWLEV times the median  */
+/* value.  This helps 'clean' the spectrum of high power   */
+/* signals that probably have nothing to do with a phase   */
+/* modulation spectrum (i.e. they are RF noise or strong   */
+/* solitary pulsars.                                       */
 {
-  unsigned long m = NUMTOGET, i;
-  int ct = 0;
+  int ii, ct = 0;
   float median, cutoff, *tmparr;
-  powindex heap[NUMTOGET];
-
-  /* Determine the m largest powers */
-
-  hpselect(m, (unsigned long) n, arr - 1, heap - 1);
 
   /* Determine the median power */
 
@@ -33,9 +30,9 @@ int prune_powers(float arr[], long n, long numsumpows)
   /* Throw away powers that are bigger that PRUNELEV * median */
 
   cutoff = median * PRUNELEV / sqrt((float) numsumpows);
-  for (i = 0; i < m; i++) {
-    if (heap[i].pow > cutoff) {
-      arr[heap[i].ind] = median;
+  for (ii = 0; ii < n; ii++) {
+    if (arr[ii] > cutoff) {
+      arr[ii] = median;
       ct++;
     }
   }
