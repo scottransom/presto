@@ -8,19 +8,21 @@ def log_fact_table(maxn):
     return add.accumulate(log(table))
 
 def prob_power_series(power, signal_power, n=1, TOL=1.0e-14):
-    fact = exp(-(power+signal_power))
-    lf = log_fact_table(100)
+    fact = exp(-(power + signal_power))
+    lf = log_fact_table((power + signal_power) * 5)
     lp, lps = log(power), log(signal_power)
     sum = 0.0
     term = 1.0
     m = 0
-    while term > TOL:
+    flag = 1
+    while (term > TOL and flag):
         # print m, term
         kmax = m + n
         term = fact * add.reduce(exp((arange(kmax) * lp + m * lps) -
                                      (lf[0:kmax] + lf[m])))
         sum = sum + term
         m = m + 1
+        if (m > power + signal_power):  flag = 0
     print m
     return 1.0 - sum
 
