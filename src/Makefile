@@ -39,7 +39,7 @@ LIBSUFFIX = so
 PRESTOLIBNM = lib$(PRESTOLIB).$(LIBSUFFIX)
 
 # Use the following if we are using DMALLOC
-#DMALLOCLINK = -ldmalloc
+DMALLOCLINK = -ldmalloc
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = -L$(PRESTO)/lib -l$(PRESTOLIB) $(FFTLINK) $(DMALLOCLINK)
@@ -49,8 +49,7 @@ CC = gcc
 F77 = g77
 CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-	-g -ansi -pedantic -Wall -W -O -fpic
-#	-DUSEDMALLOC
+	-g -ansi -pedantic -Wall -W -O -fpic -DUSEDMALLOC
 #	-Dinline= -Wmissing-prototypes \
 #	-Wstrict-prototypes -Wtraditional -Wconversion -Wshadow \
 #	-Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings \

@@ -487,6 +487,7 @@ double fold(float *data, int numdata, double dt, double tlo,
 #undef ONOFF
 #undef LININTERP
 
+
 void shift_prof(double *prof, int proflen, int shift, double *outprof)
 /* Rotates a profile 'prof' by an integer 'shift' places.    */
 /* If 'shift' < 0 then shift left, 'shift' > 0, shift right. */ 
@@ -494,22 +495,21 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof)
 {
   int wrap=0, nowrap=0;
 
+  wrap = shift % proflen;
+
   /* no shift */
 
-  if (shift==0){
+  if (wrap==0){
     memcpy(outprof, prof, proflen * sizeof(double));
     return;
 
   /* Convert a left shift into the equivalent right shift */
 
-  } else if (shift < 0)
-    wrap = (shift % proflen) + proflen;
+  } else if (wrap < 0)
+    wrap += proflen;
 
   /* Perform a right shift */
 
-  else 
-    wrap = shift % proflen;
-  
   nowrap = proflen - wrap;
   memcpy(outprof, prof + nowrap, wrap * sizeof(double));
   memcpy(outprof + wrap, prof, nowrap * sizeof(double));
@@ -529,8 +529,7 @@ void combine_profs(double *profs, foldstats *instats, int numprofs,
 /* The input profile stats in 'instats' are combined and placed in    */
 /* the 'outstats' structure.                                          */
 {
-  int ii, jj, kk, index, numadd, offset, profoffset, negshift;
-  double doffset, absshift;
+  int ii, jj, kk, wrap, nowrap, profoffset;
 
   /* Note:  This routine uses only integer arithmetic in order to   */
   /*        speed up the computations.                              */
@@ -542,44 +541,38 @@ void combine_profs(double *profs, foldstats *instats, int numprofs,
   outstats->data_var = instats[0].data_var;
   outstats->numprof = proflen;
   outstats->prof_avg = instats[0].prof_avg;
-  outstats->prof_avg = instats[0].prof_var;
+  outstats->prof_var = instats[0].prof_var;
 
   /* Set the output array to the first profile */
 
-  for (ii = 0; ii < proflen; ii++) outprof[ii] = profs[ii];
-  absshift = fabs(shift);
-  negshift = (shift < 0) ? 1 : 0;
+  memcpy(outprof, profs, sizeof(double) * proflen);
 
-  if (numprofs > 1){
-
-    /* Loop over the profiles */
-
-    for (ii = 1; ii < numprofs; ii++){
-
-      /* Loop over the low index elements in each profile */
-      
-      profoffset = ii * proflen;
-      doffset = ((ii * absshift) / (proflen - 1.0)) + 0.5000000001;
-      offset = (negshift) ? -(int)(doffset) : (int)(doffset);
-      numadd = offset % proflen;
-      index = profoffset + numadd;
-      numadd = proflen - numadd;
-      for (jj = 0, kk = index; jj < numadd; jj++, kk++)
-	outprof[jj] += profs[kk];
-
-      /* Loop over the high index elements in each profile */
-      
-      for (kk = profoffset; jj < proflen; jj++, kk++)
-      	outprof[jj] += profs[kk];
-
-      /* Update the output statistics structure */
-
-      outstats->numdata += instats[ii].numdata;
-      outstats->data_avg += instats[ii].data_avg;
-      outstats->data_var += instats[ii].data_var;
-      outstats->prof_avg += instats[ii].prof_avg;
-      outstats->prof_avg += instats[ii].prof_var;
-    }
+  /* Loop over the profiles */
+  
+  for (ii = 1; ii < numprofs; ii++){
+    
+    /* Loop over the low index elements in each profile */
+    
+    profoffset = ii * proflen;
+    wrap = (int)((double) (ii * shift) / 
+		 (double) numprofs + 0.5) % proflen;
+    wrap = (wrap < 0) ? wrap + proflen : wrap;
+    nowrap = proflen - wrap;
+    for (jj = 0, kk = profoffset + nowrap; jj < wrap; jj++, kk++)
+      outprof[jj] += profs[kk];
+    
+    /* Loop over the high index elements in each profile */
+    
+    for (kk = profoffset; jj < proflen; jj++, kk++)
+      outprof[jj] += profs[kk];
+    
+    /* Update the output statistics structure */
+    
+    outstats->numdata += instats[ii].numdata;
+    outstats->data_avg += instats[ii].data_avg;
+    outstats->data_var += instats[ii].data_var;
+    outstats->prof_avg += instats[ii].prof_avg;
+    outstats->prof_var += instats[ii].prof_var;
   }
 
   /* Calculate the reduced chi-squared */

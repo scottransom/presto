@@ -118,7 +118,7 @@ int main(int argc, char *argv[])
   psrdatabase pdata;
   infodata idata, rzwidata;
   Cmdline *cmd;
-  foldstats *stats;
+  foldstats *stats, beststats;
 
   /* Call usage() if we have no command line arguments */
 
@@ -738,10 +738,10 @@ int main(int argc, char *argv[])
 
   printf("\nOptimizing...\n\n");
   {
-    int ll, numtrials, pdelay, pddelay, profindex;
+    int numtrials, pdelay, pddelay, profindex;
     double dphase, dp, dpd, po, pdo, pddo, lop, lopd, pofact;
-    double *pdprofs, currentf, currentfd, *currentprof;
-    foldstats beststats, currentstats;
+    double *pdprofs, currentfd, *currentprof;
+    foldstats currentstats;
 
     /* The number of trials for the P-dot and P searches */
 
@@ -835,26 +835,23 @@ int main(int argc, char *argv[])
 	  /* Search over the periods */
 
 	  for (kk = 0; kk < numtrials; kk++){
-	    currentf = 1.0 / periods[kk];
-	    pdelay = (int) ((currentf - foldf) * parttimes[kk] / 
-			    dphase + 0.5);
+	    pdelay = kk - (numtrials - 1) / 2;
 	    combine_profs(pdprofs, ddstats, cmd->npart, proflen, pdelay, 
 			  currentprof, &currentstats);
 	    if (currentstats.redchi > beststats.redchi){
-	      beststats = currentstats;
-	      for (ll = 0; ll < proflen; ll++)
-		bestprof[ll] = currentprof[ll];
 	      bestdm = dms[ii];
-	      bestpd = pdots[jj];
 	      bestp = periods[kk];
+	      bestpd = pdots[jj];
+	      beststats = currentstats;
+	      memcpy(bestprof, currentprof, sizeof(double) * proflen);
+
+printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
+       kk, jj, dms[ii], bestp, bestpd, beststats.redchi);
+
 	    }
-printf("dm = %g  p = %g  pd = %g  reduced chi = %f\n", 
-       dms[ii], periods[kk], pdots[jj], currentstats.redchi);
 	  }
 	}
       }
-printf("\nBest: p = %g  pd = %g  dm = %g\n\n", bestp, bestpd, bestdm); 
-      quick_plot(bestprof, proflen);
       free(dmdelays);
       free(ddprofs);
       free(ddstats);
@@ -862,8 +859,44 @@ printf("\nBest: p = %g  pd = %g  dm = %g\n\n", bestp, bestpd, bestdm);
       /* We are not searching through DM space */
       
     } else {
+
+      /* Perform the P-dot and Period searches */
+
+      for (jj = 0; jj < numtrials; jj++){
+	currentfd = -pdots[jj] * pofact;
+	
+	/* Correct each part for the current pdot */
+	
+	for (kk = 0; kk < cmd->npart; kk++){
+	  profindex = kk * proflen;
+	  pddelay = (int) (((currentfd - foldfd) * parttimes[kk] * 
+			    parttimes[kk]) / (2.0 * dphase) + 0.5);
+	  shift_prof(profs + profindex, proflen, pddelay, 
+		     pdprofs + profindex);
+	}
+
+	/* Search over the periods */
+	
+	for (kk = 0; kk < numtrials; kk++){
+	  pdelay = kk - (numtrials - 1) / 2;
+	  combine_profs(pdprofs, stats, cmd->npart, proflen, pdelay, 
+			currentprof, &currentstats);
+	  if (currentstats.redchi > beststats.redchi){
+	    bestp = periods[kk];
+	    bestpd = pdots[jj];
+	    beststats = currentstats;
+	    memcpy(bestprof, currentprof, sizeof(double) * proflen);
+
+printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
+       kk, jj, bestp, bestpd, beststats.redchi);
+
+	  }
+	}
+      }
     }
-  
+
+quick_plot(bestprof, proflen);
+
     free(pdprofs);
     free(currentprof);
   }
