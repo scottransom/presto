@@ -18,7 +18,6 @@ static fftwf_plan fftplan;
 static long long N_st;
 static int decreasing_freqs_st=0, bytesperpt_st, bytesperblk_st, bits_per_lag_st;
 static int numchan_st, numifs_st, ptsperblk_st;
-static int NomOffset_st;
 static int need_byteswap_st=0, sampperblk_st, usewindow_st=0, vanvleck_st=0;
 static int currentfile, currentblock, bufferpts=0, padnum=0, shiftbuffer=1;
 static double T_st, dt_st, center_freq_st, *window_st=NULL;
@@ -234,7 +233,7 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   hgeti4(hdr, "SPECTRA", &(spigot->tot_num_samples));
   /* Set the lag scaling and offset values if this is the firsttime */
   if (firsttime){
-    int ii;
+    int NomOffset=0, ii;
     char keyword[10], ctmp[100];
     float ftmp1, ftmp2;
     
@@ -248,42 +247,60 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
       /* Offset depends on sampling time & BW */
     case 32:
       if (spigot->bandwidth >= 200)
-	NomOffset_st=32780;
+	NomOffset=32780;
       else {
-	NomOffset_st=61444;
+	NomOffset=61444;
       }
       break;
     case 16:
       if (spigot->bandwidth >= 200)
-	NomOffset_st=32792;
+	NomOffset=32792;
       else
-	NomOffset_st=63492;
+	NomOffset=63492;
       break;
     case 8:
       if (spigot->bandwidth >= 200)
-	NomOffset_st=49176;
+	NomOffset=49176;
       else
-	NomOffset_st=64516;
+	NomOffset=64516;
       break;
     case 4:
       if (spigot->bandwidth >= 200)
-	NomOffset_st=57368;
+	NomOffset=57368;
       else
-	NomOffset_st=65028;
+	NomOffset=65028;
       break;
     case 2:
       if (spigot->bandwidth >= 200)
-	NomOffset_st=61464;
+	NomOffset=61464;
       else
-	NomOffset_st=65284;
+	NomOffset=65284;
       break;
     case 1:
       if (spigot->bandwidth >= 200)
-	NomOffset_st=63512;
+	NomOffset=63512;
       else
-	NomOffset_st=65412;
+	NomOffset=65412;
       break;
     }      
+    {
+      float other_fact=0.0;
+
+      if (spigot->bits_per_lag==16){
+	other_fact = 16.0;
+      } else if (spigot->bits_per_lag==8){
+	other_fact = 16.0*256.0;
+      } else if (spigot->bits_per_lag==4){
+	other_fact = 16.0*4096.0;
+      } else if (spigot->bits_per_lag==2){
+	other_fact = 16.0*65536.0;
+      }
+      /* Do this once so we don't have to do it later in the decoding loop */
+      for (ii=0; ii<spigot->lags_per_sample; ii++){
+	lag_offset[ii] = NomOffset - lag_offset[ii];
+	lag_factor[ii] = other_fact/lag_factor[ii];
+      }
+    }
   }
   free(hdr);
   return(1);
@@ -420,8 +437,19 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   center_freq_st = spigot[0].freq_ctr;
   *numchan = numchan_st = idata_st[0].num_chan;
   numifs_st = spigot[0].num_samplers;
-  if (!spigot[0].upper_sideband) decreasing_freqs_st = 1;
-  if (numifs_st==2) printf("Both IFs are present.\n");
+  /* Override the numifs_st if the polarizations are summed in hardware */
+  if (spigot[0].summed_pols){
+    numifs_st = 1;
+    if (numifs_st==2) printf("Both IFs are present and summed.\n");
+  } else {
+    if (numifs_st==1) printf("A single IF is present.\n");
+    if (numifs_st==2) printf("Both IFs are present.\n");
+  }
+  /* Flip the band if required */
+  if (!spigot[0].upper_sideband){
+       decreasing_freqs_st = 1;
+       printf("Flipping the band.");
+  }
   /* We currently can't do full stokes */
   if (numifs_st > 2){
     printf("\n  Error:  There are more than 2 IFs present!  We can't handle this yet!\n\n");
@@ -1063,15 +1091,11 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     if (bits_per_lag_st==16){
       short *data=(short *)rawdata;
       for (ii=0; ii<numchan_st; ii++) 
-	/*
-	  lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];*/
-	lags[ii] = data[ii+index]*(16.0/lag_factor[ii]) + (NomOffset_st-lag_offset[ii]);
+	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
     } else if (bits_per_lag_st==8){
       char *data=(char *)rawdata;
       for (ii=0; ii<numchan_st; ii++)
-	/*
-	  lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];*/
-      	lags[ii] = data[ii+index]*(16.0*256.0/lag_factor[ii]) + (NomOffset_st-lag_offset[ii]);
+      	lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
     } else if (bits_per_lag_st==4){
       int jj;
       char tmplag;
@@ -1079,18 +1103,13 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
       for (ii=0, jj=0; ii<numchan_st/2; ii++){
 	byte = data[ii+index/2];
 	/* Treat the 4 msbs as a twos-complement 4-bit int */
-	//tmplag = (byte&0x80) ? -((byte&0x70)>>4) : (byte>>4);
 	tmplag = ((byte&0x70)>>4) - ((byte&0x80)>>4);
-	/*
-	  lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;*/
-	lags[jj] = tmplag*(16.0*4096.0/lag_factor[jj]) + (NomOffset_st-lag_offset[jj]); jj++;
+	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
 	/* Treat the 4 lsbs as a twos-complement 4-bit int */
-	//tmplag = (byte&0x08) ? -(byte&0x07) : (byte&0x07);
 	tmplag = (byte&0x07) - (byte&0x08);
-	/*lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;*/
-	lags[jj] = tmplag*(16.0*4096.0/lag_factor[jj]) + (NomOffset_st-lag_offset[jj]); jj++;
+	lags[jj] = tmplag*lag_factor[jj] + lag_offset[jj]; jj++;
       }
-    } else if (bits_per_lag_st==2){
+    } else if (bits_per_lag_st==2){  /* The following is _not_ correct yet ! */
       int jj;
       unsigned char *data=(unsigned char *)rawdata, byte;
       for (ii=0, jj=0; ii<numchan_st/4; ii++){
@@ -1137,6 +1156,14 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, IFs ifs)
     /* Set the missing lag as per Carl Heiles, PASP paper */
     lags[numchan_st] = lags[numchan_st-1];
     fftwf_execute(fftplan);
+
+#if 0
+    printf("\n");
+    for(ii=0; ii<numchan_st; ii++)
+      printf("%d  %.7g\n", ii, lags[ii]);
+    printf("\n");
+    exit(0);
+#endif
 
     /* Determine some simple statistics of the spectra */
     if (counter % 10240 == 0){
