@@ -785,9 +785,9 @@ int main(int argc, char *argv[])
     pofact = foldf * foldf;
     for (ii = 0; ii < numtrials; ii++){
       pdelay = ii - (numtrials - 1) / 2;
-      dtmp = pdelay * dphase * search.pstep;
+      dtmp = (double) (pdelay * search.pstep) / search.proflen;
       search.periods[ii] = 1.0 / (foldf + dtmp / T);
-      dtmp = pdelay * dphase * search.pdstep;
+      dtmp = (double) (pdelay * search.pdstep) / search.proflen;
       search.pdots[ii] = -((2.0 * dtmp / (T * T) + foldfd) / pofact);
       if (search.pdots[ii]==-0) search.pdots[ii] = 0.0;
     }

@@ -10,6 +10,10 @@
 /* Simple linear interpolation macro */
 #define LININTERP(X, xlo, xhi, ylo, yhi) ((ylo)+((X)-(xlo))*((yhi)-(ylo))/((xhi)-(xlo)))
 
+/* Round a double or float to the nearest integer. */
+/* x.5s get rounded away from zero.                */
+#define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
+
 /* structure used to pass information to plotting routine */
 
 typedef struct PREPFOLDINFO {
@@ -90,6 +94,12 @@ void hunt(double *xx, unsigned long n, double x, unsigned long *jlo);
 int dgels_(char *trans, int *mm, int *nn, int *nrhs, 
 	   double *aa, int *lda, double *bb, int *ldb, 
 	   double *work, int *lwork, int *info);
+
+double pdot2fdot(double period, double pdot);
+
+double pdot_phasedelay(double pdot, double time);
+
+double phasedelay2pdot(double period, double phasedelay, double time);
 
 void double2float(double *in, float *out, int numpts);
 /* Copy a double vector into a float vector */

@@ -1,5 +1,24 @@
 #include "prepfold.h"
 
+double pdot2fdot(double period, double pdot)
+{
+  return -pdot / (period * period);
+}
+
+double pdot2phasedelay(double pdot, double time)
+{
+  return 0.5 * pdot * time * time;
+}
+
+double phasedelay2pdot(double period, double phasedelay, double time)
+{
+  if (time == 0.0)
+    return 0.0;
+  else 
+    return pdot2fdot(1.0 / period, 2.0 * phasedelay / (time * time));
+}
+
+
 int read_floats(FILE *file, float *data, int numpts,
 		double *dispdelays, int numsubbands, int numchan)
 /* This routine reads a numpts records of numchan each from */
