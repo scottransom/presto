@@ -161,6 +161,18 @@ typedef struct s_Cmdline {
   char maskfileP;
   char* maskfile;
   int maskfileC;
+  /***** -toas: Use a TOA file instead of a time series (.dat) file */
+  char toasP;
+  /***** -secs: TOAs are in seconds days since the MJD in the .inf file */
+  char secsP;
+  /***** -days: TOAs are in days since the MJD in the .inf file */
+  char daysP;
+  /***** -double: TOAs are in binary double precision instead of text format */
+  char doubleP;
+  /***** -toaoffset: Offset in days or sec from the .inf file MJD to the first TOA */
+  char toaoffsetP;
+  double toaoffset;
+  int toaoffsetC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

@@ -60,6 +60,17 @@ int read_floats(FILE *file, float *data, int numpts, int numchan);
 /* point data.                                              */
 /* It returns the number of points read.                    */
 
+double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
+                  double T0, double *firsttoa);
+/* This routine reads a set of TOAs from the open file 'infile'.    */
+/* It returns a double precision vector of TOAs in seconds from the */
+/* first TOA.  If 'bin' is true the routine treats the data as      */
+/* binary double precision (otherwise text).  If 'sec' is true the  */
+/* data is assumed to be in seconds (otherwise MJD).                */
+/* The number of TOAs read is placed in 'numtoas', and the raw      */
+/* TOA is placed in 'firsttoa'.  T0 is the time to ue for the zero  */
+/* time.  If it is negative it will default to the first TOA.       */
+
 void hunt(double *xx, int n, double x, int *jlo);
 
 int dgels_(char *trans, int *mm, int *nn, int *nrhs, 

@@ -1,6 +1,7 @@
 /* Length of the header in bytes */
 #define WAPP_HEADER_SIZE 2048
 /* Number of samples to process at a time */
+/*#define WAPP_PTSPERBLOCK 16*/
 #define WAPP_PTSPERBLOCK 64
 /* time between correlator dumps in us */
 #define WAPP_DEADTIME 0.34
