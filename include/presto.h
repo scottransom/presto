@@ -661,7 +661,7 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 
 /* In sorter.c */
 
-float percolate(position * list, int nlist);
+float percolate(position * list, int nlist, int spot);
   /*  Pushes a position structure as far up a sorted list of positions */
   /*  as it needs to go to keep the list sorted.  Returns the new low  */
   /*  power in the list.                                               */
