@@ -7,7 +7,7 @@ CWARN         = -Xa -vc
 CFLAGS        = -g -O -fpic $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
 #CFLAGS        = -g -O $(CWARN) $(INCLUDE) -DDATABASE='$(DATABASE)' -DUSEFFTW
 LIBPATHS      = -L"$(PRESTO)/lib" -L/home/ransom/lib
-LIBS          = -lpresto -lransomfft -lsfftw -lswig -lm -ldl
+LIBS          = -lpresto -lsfftw -lswig -lm -ldl
 SWIG          = swig 
 SWIGOPT       = -dhtml -python -shadow
 PRESTOOBJS    = presto_wrap.o
@@ -33,7 +33,7 @@ install:
 	cp presto.py $(INSTALLDIR)
 
 clean:
-	rm -f *~ *.o *.so *.pyc *_wrap.doc *_wrap.c 
+	rm -f *~ *.o *.so *.pyc
 
 
 
