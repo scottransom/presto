@@ -48,10 +48,10 @@ int main(int argc, char *argv[])
   float powdiff, hipowchop, lowpowlim;
   float chkpow = 0.0, hipow = 0.0, minpow = 0.0, numr = 0.0;
   fcomplex *response, **kernels, *corrdata, *filedata; 
-  unsigned long totnumsearched = 0;
-  int numbetween = 2, startbin, numkern, kern_half_width;
-  int nbins, nr = 1, nz, corrsize = 0, mincorrsize, worknumbins = 0;
-  int ii, ct, zct, nextbin, filedatalen, numzap = 0;
+  unsigned long totnumsearched = 0, startbin, nextbin, nbins, highestbin;
+  int numbetween = 2, numkern, kern_half_width;
+  int nr = 1, nz, corrsize = 0, mincorrsize, worknumbins = 0;
+  int ii, ct, zct, filedatalen, numzap = 0;
   int ncand, newncand, oldper = 0, newper = 0;
   char filenm[200], candnm[200], poscandnm[200], *notes;
   char rzwnm[200];
@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
 
   if (cmd->lobin > 0){
     nph = 1.0;
-    if (cmd->lobin > nbins - 1) {
+    if ((unsigned long) cmd->lobin > nbins - 1) {
       printf("\n'lobin' is greater than the total number of\n");
       printf("   frequencies in the data set.  Exiting.\n\n");
       exit(1);
@@ -204,14 +204,15 @@ int main(int argc, char *argv[])
   /* rlo and rhi */
 
   if (cmd->rlo < cmd->lobin) cmd->rlo = cmd->lobin;
-  if (cmd->rlo > nbins - 1) {
+  if ((unsigned long) cmd->rlo > nbins - 1) {
     printf("\nLow frequency to search 'rlo' is greater than\n");
     printf("   the available number of points.  Exiting.\n\n");
     exit(1);
   }
-  if (!cmd->rhiP || 
-      (cmd->rhi > nbins - 1)) cmd->rhi = nbins - 1;
-  if (cmd->rhi < cmd->rlo){
+  if (!cmd->rhiP) highestbin = nbins - 1;
+  else highestbin = (unsigned long) cmd->rhi;
+  if (highestbin > nbins - 1) highestbin = nbins - 1;
+  if (highestbin < (unsigned long) cmd->rlo){
     printf("\nHigh frequency to search 'rhi' is less than\n");
     printf("   the lowest frequency to search 'rlo'.  Exiting.\n\n");
     exit(1);
@@ -225,7 +226,7 @@ int main(int argc, char *argv[])
   corrdata = gen_cvect(corrsize);
 
   dr = 1.0 / (double) numbetween;
-  numr = (cmd->rhi - cmd->rlo + 1) * nz / dr;
+  numr = ((float) (highestbin - cmd->rlo + 1)) * nz / dr;
   filedatalen = corrsize / numbetween;
 
   /* We will automatically get rid of any candidates that have local */
@@ -247,11 +248,11 @@ int main(int argc, char *argv[])
 
   /* Start the main search loop */
 
-  nextbin = cmd->rlo;
+  nextbin = (unsigned long) cmd->rlo;
 
   do {
 
-    startbin = (unsigned long) nextbin;
+    startbin = nextbin;
 
     /* Get the data from the file */
 
@@ -289,8 +290,8 @@ int main(int argc, char *argv[])
 	/* Get approximate local power statistics */
 
 	powlist = gen_fvect(nr);
-	worknumbins = (nextbin > cmd->rhi) ? \
-	  (cmd->rhi - startbin) * numbetween : nr;
+	worknumbins = (nextbin > highestbin) ? \
+	  (highestbin - startbin) * numbetween : nr;
 	for (ii = 0; ii < worknumbins; ii++) 
 	  powlist[ii] = POWER(corrdata[ii].r, corrdata[ii].i);
 	stats(powlist, worknumbins, &powavg, &powvar, &powskew, &powkurt);
@@ -347,7 +348,7 @@ int main(int argc, char *argv[])
       totnumsearched += worknumbins;
     }
     free(filedata);
-  } while (nextbin <= cmd->rhi);
+  } while (nextbin <= highestbin);
 
   /* Free the memory used by the correlation kernels */
 
@@ -397,7 +398,7 @@ int main(int argc, char *argv[])
   /* Do fine scale duplicate removal and other cleaning */
 
   newncand -= remove_dupes2(props, newncand);
-  newncand -= remove_other(props, newncand, cmd->rlo, cmd->rhi, lowpowlim, 
+  newncand -= remove_other(props, newncand, cmd->rlo, highestbin, lowpowlim, 
 			   cmd->zapfileP, zapfreqs, zapwidths, numzap);
 
   /* Set our candidate notes to all spaces */
