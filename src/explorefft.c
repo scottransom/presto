@@ -8,13 +8,11 @@
 #define DEBUGOUT 0
  
 /* Note:  zoomlevel is simply (LOGDISPLAYNUM-Log_2(numbins)) */
-#define LOGNUMHARMBINS    7  /* 128: Number of bins to show for each harmonic */
 #define LOGDISPLAYNUM     10 /* 1024: Maximum number of points to display at once */
 #define LOGLOCALCHUNK     4  /* 16: Chunk size for polynomial fit */
 #define LOGMINBINS        5  /* 32 points */
 #define LOGMAXBINS        22 /* 4M points */
 #define LOGINITIALNUMBINS 16 /* 65536: The initial number of bins to plot */
-#define NUMHARMBINS    (1<<LOGNUMHARMBINS)
 #define DISPLAYNUM     (1<<LOGDISPLAYNUM)
 #define LOCALCHUNK     (1<<LOGLOCALCHUNK)
 #define MINBINS        (1<<LOGMINBINS)
@@ -65,7 +63,8 @@ static int floor_log2(int nn)
 }
 
 
-static double plot_fftview(fftview *fv, float maxpow, float charhgt)
+static double plot_fftview(fftview *fv, float maxpow, float charhgt, 
+			   float vertline, int vertline_color)
 /* The return value is offsetf */
 {
   int ii;
@@ -129,6 +128,17 @@ static double plot_fftview(fftview *fv, float maxpow, float charhgt)
     cpgbox("BINST", 0.0, 0, "BCNST", 0.0, 0);
   else
     cpgbox("BCINST", 0.0, 0, "BCNST", 0.0, 0);
+
+  /* Add a background vertical line if requested */
+
+  if (vertline != 0.0 && 
+      vertline_color != 0){
+    cpgsave();
+    cpgsci(vertline_color);
+    cpgmove(vertline/T - offsetf, 0.0);
+    cpgdraw(vertline/T - offsetf, maxpow);
+    cpgunsa();
+  }
 
   /* Plot the spectrum */
 
@@ -321,14 +331,16 @@ static void print_help(void)
 }
 
 
-static fftview *get_harmonic(double rr)
+static fftview *get_harmonic(double rr, int zoomlevel)
 {
+  int numharmbins;
   fftpart *harmpart;
   fftview *harmview;
 
-  harmpart = get_fftpart((int)(rr-NUMHARMBINS), 2*NUMHARMBINS);
+  numharmbins = (1<<(LOGDISPLAYNUM-zoomlevel));
+  harmpart = get_fftpart((int)(rr-numharmbins), 2*numharmbins);
   if (harmpart != NULL){
-    harmview = get_fftview(rr, LOGDISPLAYNUM-LOGNUMHARMBINS, harmpart);
+    harmview = get_fftview(rr, zoomlevel, harmpart);
     free_fftpart(harmpart);
     return harmview;
   } else {
@@ -336,7 +348,7 @@ static fftview *get_harmonic(double rr)
   }
 }
 
-static void plot_harmonics(double rr)
+static void plot_harmonics(double rr, int zoomlevel)
 {
   int ii, hh;
   double offsetf;
@@ -346,33 +358,27 @@ static void plot_harmonics(double rr)
   cpgsubp(4, 4);
   for (ii=0, hh=2; ii<8; ii++, hh++){
     cpgpanl(ii%4+1, ii/4+1);
-    harmview = get_harmonic(hh*rr);
+    harmview = get_harmonic(hh*rr, zoomlevel);
     if (harmview != NULL){
-      offsetf = plot_fftview(harmview, 0.0, 2.0);
+      offsetf = plot_fftview(harmview, 0.0, 2.0, hh*rr, 2);
       snprintf(label, 20, "Harmonic %d", hh);
+      cpgsave();
       cpgsch(2.0);
       cpgmtxt("T", -1.8, 0.05, 0.0, label);
-      cpgsch(1.0);
-      cpgsci(2); /* red */
-      cpgmove((hh*rr)/T-offsetf, 0.0);
-      cpgdraw((hh*rr)/T-offsetf, 1.1*harmview->maxpow);
-      cpgsci(1); /* foreground */
+      cpgunsa();
       free(harmview);
     }
   } 
   for (ii=8, hh=2; ii<16; ii++, hh++){
     cpgpanl(ii%4+1, ii/4+1);
-    harmview = get_harmonic(rr/(double)hh);
+    harmview = get_harmonic(rr/(double)hh, zoomlevel);
     if (harmview != NULL){
-      offsetf = plot_fftview(harmview, 0.0, 2.0);
+      offsetf = plot_fftview(harmview, 0.0, 2.0, rr/(double)hh, 2);
       snprintf(label, 20, "Harmonic 1/%d", hh);
+      cpgsave();
       cpgsch(2.0);
       cpgmtxt("T", -1.8, 0.05, 0.0, label);
-      cpgsch(1.0);
-      cpgsci(2); /* red */
-      cpgmove((rr/(double)hh)/T-offsetf, 0.0);
-      cpgdraw((rr/(double)hh)/T-offsetf, 1.1*harmview->maxpow);
-      cpgsci(1); /* foreground */
+      cpgunsa();
       free(harmview);
     }
   } 
@@ -386,7 +392,7 @@ static void plot_harmonics(double rr)
   cpgslw(1);
 }
 
-static double harmonic_loop(int xid, double rr)
+static double harmonic_loop(int xid, double rr, int zoomlevel)
 {
   float inx, iny;
   double retval=0.0;
@@ -397,7 +403,7 @@ static double harmonic_loop(int xid, double rr)
   cpgpap(10.25, 8.5/11.0);
   cpgask(0);
   cpgslct(xid2);
-  plot_harmonics(rr);
+  plot_harmonics(rr, zoomlevel);
   printf("  Click on the harmonic to go it,\n"
 	 "    press 'P' to print, or press 'Q' to close.\n");
   while (badchoice){
@@ -405,7 +411,7 @@ static double harmonic_loop(int xid, double rr)
     if (choice=='Q' || choice=='q'){
       badchoice = 0;
     } else if (choice=='P' || choice=='p'){
-      int len;
+      int len, numharmbins;
       double offsetf;
       char filename[200];
       fftpart *harmpart;
@@ -423,12 +429,13 @@ static double harmonic_loop(int xid, double rr)
       cpgslct(psid);
       cpgpap(10.25, 8.5/11.0);
       cpgiden();
-      harmpart = get_fftpart((int)(rr-NUMHARMBINS), 2*NUMHARMBINS);
-      harmview = get_fftview(rr, LOGDISPLAYNUM-LOGNUMHARMBINS, harmpart);
+      numharmbins = (1<<(LOGDISPLAYNUM-zoomlevel));
+      harmpart = get_fftpart((int)(rr-numharmbins), 2*numharmbins);
+      harmview = get_fftview(rr, zoomlevel, harmpart);
       free_fftpart(harmpart);
-      offsetf = plot_fftview(harmview, 0.0, 1.0);
+      offsetf = plot_fftview(harmview, 0.0, 1.0, rr, 2);
       cpgpage();
-      plot_harmonics(rr);
+      plot_harmonics(rr, zoomlevel);
       cpgclos();
       cpgslct(xid2);
       filename[len] = '\0';
@@ -463,6 +470,11 @@ int main(int argc, char *argv[])
   fftpart *lofp;
   fftview *fv;
  
+  if (argc==1){
+    printf("\nusage:  explorefft fftfilename\n\n");
+    exit(0);
+  }
+
   printf("\n\n");
   printf("      Interactive FFT Explorer\n");
   printf("         by Scott M. Ransom\n");
@@ -523,7 +535,7 @@ int main(int argc, char *argv[])
   }
   cpgask(0);
   cpgpage();
-  offsetf = plot_fftview(fv, maxpow, 1.0);
+  offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
 
   do {
     float inx, iny;
@@ -543,7 +555,7 @@ int main(int argc, char *argv[])
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow, 1.0);
+	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       } else 
 	printf("  Already at maximum zoom level (%d).\n", zoomlevel);
       break;
@@ -557,7 +569,7 @@ int main(int argc, char *argv[])
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow, 1.0);
+	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       } else 
 	printf("  Already at minimum zoom level (%d).\n", zoomlevel);
       break;
@@ -575,7 +587,7 @@ int main(int argc, char *argv[])
       free(fv);
       fv = get_fftview(centerr, zoomlevel, lofp);
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow, 1.0);
+      offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       break;
     case '>': /* Shift right */
     case '.':
@@ -591,7 +603,7 @@ int main(int argc, char *argv[])
       free(fv);
       fv = get_fftview(centerr, zoomlevel, lofp);
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow, 1.0);
+      offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       break;
     case '+': /* Increase height of powers */
     case '=':
@@ -601,7 +613,7 @@ int main(int argc, char *argv[])
       }
       maxpow = 3.0/4.0 * maxpow;
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow, 1.0);
+      offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       break;
     case '-': /* Decrease height of powers */
     case '_':
@@ -611,7 +623,7 @@ int main(int argc, char *argv[])
       }
       maxpow = 4.0/3.0 * maxpow;
       cpgpage();
-      offsetf = plot_fftview(fv, maxpow, 1.0);
+      offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       break;
     case 'S': /* Auto-scale */
     case 's':
@@ -621,7 +633,7 @@ int main(int argc, char *argv[])
 	printf("  Auto-scaling is on.\n");
 	maxpow = 0.0;
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow, 1.0);
+	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
 	break;
       }
     case 'G': /* Goto a frequency */
@@ -642,7 +654,7 @@ int main(int argc, char *argv[])
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow, 1.0);
+	offsetf = plot_fftview(fv, maxpow, 1.0, centerr, 2);
       }
       break;
     case 'H': /* Show harmonics */
@@ -650,15 +662,14 @@ int main(int argc, char *argv[])
       {
 	double retval;
 	
-	retval = harmonic_loop(xid, centerr);
+	retval = harmonic_loop(xid, centerr, zoomlevel);
 	if (retval > 0.0){
 	  offsetf = 0.0;
 	  centerr = retval;
-	  zoomlevel = LOGDISPLAYNUM - LOGNUMHARMBINS;
 	  free(fv);
 	  fv = get_fftview(centerr, zoomlevel, lofp);
 	  cpgpage();
-	  offsetf = plot_fftview(fv, maxpow, 1.0);
+	  offsetf = plot_fftview(fv, maxpow, 1.0, centerr, 2);
 	}
       }
       break;
@@ -673,17 +684,10 @@ int main(int argc, char *argv[])
 	printf("  Searching for peak near freq = %.7g Hz...\n", (inx + offsetf));
 	newr = find_peak(inx+offsetf, fv, lofp);
 	centerr = newr;
-	if (zoomlevel < maxzoom)
-	  zoomlevel++;
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow, 1.0);
-	/*
-	  cpgsci(2);
-	  cpgmove(newr/T-offsetf, 0.0);
-	  cpgdraw(newr/T-offsetf, 10.0*fv->maxpow);
-	*/
+	offsetf = plot_fftview(fv, maxpow, 1.0, centerr, 2);
       }
       break;
     case 'P': /* Print the current plot */
@@ -703,7 +707,7 @@ int main(int argc, char *argv[])
 	cpgslct(psid);
 	cpgpap(10.25, 8.5/11.0);
 	cpgiden();
-	offsetf = plot_fftview(fv, maxpow, 1.0);
+	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
 	cpgclos();
 	cpgslct(xid);
 	filename[len] = '\0';
@@ -794,7 +798,7 @@ int main(int argc, char *argv[])
 	free(fv);
 	fv = get_fftview(centerr, zoomlevel, lofp);
 	cpgpage();
-	offsetf = plot_fftview(fv, maxpow, 1.0);
+	offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
       }
       break;
     case 'Q': /* Quit */
