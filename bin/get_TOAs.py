@@ -87,7 +87,6 @@ if __name__ == '__main__':
     DM = 0.0
     gaussianwidth = 0.1
     templatefilenm = None
-    numchannels = 1
     numsubbands = 1
     numtoas = 1
     otherouts = 0
@@ -138,18 +137,9 @@ if __name__ == '__main__':
     # Over-ride the DM that was used during the fold
     if (DM!=0.0):
         fold_pfd.bestdm = DM
-    if (fold_pfd.numchan==1):
-        if (DM==0.0 and numchannels==1):
-            idata = infodata(fold_pfd.filenm[:fold_pfd.filenm.rfind('.')]+".inf")
-	    if (events):
-		fold_pfd.bestdm = 0.0
-		fold_pfd.numchan = 1
-	    else:
-		fold_pfd.bestdm = idata.DM
-		fold_pfd.numchan = idata.numchan
-	else:
-            fold_pfd.bestdm = DM
-            fold_pfd.numchan = numchannels
+    if (fold_pfd.numchan==1 and DM==0.0 and events):
+        fold_pfd.bestdm = 0.0
+        fold_pfd.numchan = 1
 
     # Kill any required channels and/or subband
     fold_pfd.kill_subbands(kill)
@@ -197,7 +187,7 @@ if __name__ == '__main__':
     else:
         pcs = None
         fold.phs0 = 0.0
-        (fold.f0, fold.f1, fold.f2) = p_to_f(fold.p0, fold.p1, fold.p2)
+        (fold.f0, fold.f1, fold.f2) = psr_utils.p_to_f(fold.p0, fold.p1, fold.p2)
 
     #
     # Calculate the TOAs
@@ -210,8 +200,8 @@ if __name__ == '__main__':
         if (pcs is None):
             # Time at the middle of the interval in question
             midtime = fold.epoch + (ii+0.5)*timestep_day
-            p = 1.0/calc_freq(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
-            t0 = calc_t0(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
+            p = 1.0/psr_utils.calc_freq(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
+            t0 = psr_utils.calc_t0(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
         # The .pfd file was folded using polycos
         else:
             # Time at the middle of the interval in question
