@@ -15,103 +15,37 @@
 #include <float.h>
 #include <math.h>
 
-#include "profile_cmd.h"
+#include "rfifind_cmd.h"
 
 char *Program;
 
 /*@-null*/
 
 static Cmdline cmd = {
-  /***** -phs: Offset phase for the profile */
-  /* phsP = */ 1,
-  /* phs = */ 0,
-  /* phsC = */ 1,
-  /***** -p: The folding period (s) */
-  /* pP = */ 0,
-  /* p = */ (double)0,
-  /* pC = */ 0,
-  /***** -pd: The folding period derivative (s/s) */
-  /* pdP = */ 1,
-  /* pd = */ 0,
-  /* pdC = */ 1,
-  /***** -pdd: The folding period 2nd derivative (s/s^2) */
-  /* pddP = */ 1,
-  /* pdd = */ 0,
-  /* pddC = */ 1,
-  /***** -f: The folding frequency (hz) */
-  /* fP = */ 0,
-  /* f = */ (double)0,
-  /* fC = */ 0,
-  /***** -fd: The folding frequency derivative (hz/s) */
-  /* fdP = */ 1,
-  /* fd = */ 0,
-  /* fdC = */ 1,
-  /***** -fdd: The folding frequency 2nd derivative (hz/s^2) */
-  /* fddP = */ 1,
-  /* fdd = */ 0,
-  /* fddC = */ 1,
-  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
-  /* proflenP = */ 0,
-  /* proflen = */ (int)0,
-  /* proflenC = */ 0,
-  /***** -psr: Name of pulsar to fold (do not include J or B) */
-  /* psrnameP = */ 0,
-  /* psrname = */ (char*)0,
-  /* psrnameC = */ 0,
-  /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
-  /* rzwcandP = */ 0,
-  /* rzwcand = */ (int)0,
-  /* rzwcandC = */ 0,
-  /***** -rzwfile: Name of the rzw search file to use (include the full name of the file) */
-  /* rzwfileP = */ 0,
-  /* rzwfile = */ (char*)0,
-  /* rzwfileC = */ 0,
-  /***** -bincand: Fold a binary pulsar but take the input data from this candidate number in 'infile'_bin.cand */
-  /* bincandP = */ 0,
-  /* bincand = */ (int)0,
-  /* bincandC = */ 0,
-  /***** -onoff: A list of white-space separated pairs of numbers from 0.0 to 1.0 that designate barycentric times in our data set when we will actually keep the data. (i.e. '-onoff 0.1 0.4 0.7 0.9' means that we will fold the data set during the barycentric times 0.1-0.4 and 0.7-0.9 of the total time length of the data set) */
-  /* onoffP = */ 0,
-  /* onoff = */ (char*)0,
-  /* onoffC = */ 0,
-  /***** -bin: Fold a binary pulsar.  Must include all of the following parameters */
-  /* binaryP = */ 0,
-  /***** -pb: The orbital period (s) */
-  /* pbP = */ 0,
-  /* pb = */ (double)0,
-  /* pbC = */ 0,
-  /***** -x: The projected orbital semi-major axis (lt-sec) */
-  /* asinicP = */ 0,
-  /* asinic = */ (double)0,
-  /* asinicC = */ 0,
-  /***** -e: The orbital eccentricity */
-  /* eP = */ 1,
-  /* e = */ 0,
-  /* eC = */ 1,
-  /***** -To: The time of periastron passage (MJD) */
-  /* ToP = */ 0,
-  /* To = */ (double)0,
-  /* ToC = */ 0,
-  /***** -w: Longitude of periastron (deg) */
-  /* wP = */ 0,
-  /* w = */ (double)0,
-  /* wC = */ 0,
-  /***** -wdot: Rate of advance of periastron (deg/yr) */
-  /* wdotP = */ 1,
-  /* wdot = */ 0,
-  /* wdotC = */ 1,
-  /***** -xwin: Send graphics output to the screen */
-  /* xwinP = */ 0,
-  /***** -ps: Send graphics output to a Postscript file */
-  /* psP = */ 0,
-  /***** -both: Send graphics output both the screen and a Postscript file */
-  /* bothP = */ 0,
-  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin */
-  /* dispP = */ 0,
-  /***** -mak: Determine folding parameters from 'infile.mak' */
-  /* makefileP = */ 0,
-  /***** -noerr: Do not plot error bars */
-  /* noerrP = */ 0,
+  /***** -o: Output data file name (no suffix) */
+  /* outfileP = */ 0,
+  /* outfile = */ (char*)0,
+  /* outfileC = */ 0,
+  /***** -pkmb: Raw data in Parkes Multibeam format */
+  /* pkmbP = */ 0,
+  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
+  /* ebppP = */ 0,
+  /***** -gbpp: Raw data in Green Bank-Berkeley Pulsar Processor format */
+  /* gbppP = */ 0,
+  /***** -nofft: Will not attempt to calculate the FFT of the zero-DM data */
+  /* nofftP = */ 0,
+  /***** -time: The number of minutes to integrate for statistics and FFT calculations */
+  /* timeP = */ 1,
+  /* time = */ 4,
+  /* timeC = */ 1,
+  /***** -sigma: The sigma above/below the noise to reject a chunk of data */
+  /* sigmaP = */ 1,
+  /* sigma = */ 4,
+  /* sigmaC = */ 1,
+  /***** -zapchan: Channels to explicitly remove from analysis */
+  /* zapchanP = */ 0,
+  /* zapchan = */ (int*)0,
+  /* zapchanC = */ 0,
   /***** uninterpreted rest of command line */
   /* argc = */ 0,
   /* argv = */ (char**)0,
@@ -777,6 +711,14 @@ checkDoubleHigher(char *opt, double *values, int count, double min)
 }
 /**********************************************************************/
 
+static void
+missingErr(char *opt)
+{
+  fprintf(stderr, "%s: mandatory option `%s' missing\n",
+	  Program, opt);
+}
+/**********************************************************************/
+
 static char *
 catArgv(int argc, char **argv)
 {
@@ -808,281 +750,84 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
-  /***** -phs: Offset phase for the profile */
-  if( !cmd.phsP ) {
-    printf("-phs not found.\n");
+  /***** -o: Output data file name (no suffix) */
+  if( !cmd.outfileP ) {
+    printf("-o not found.\n");
   } else {
-    printf("-phs found:\n");
-    if( !cmd.phsC ) {
+    printf("-o found:\n");
+    if( !cmd.outfileC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.phs);
+      printf("  value = `%s'\n", cmd.outfile);
     }
   }
 
-  /***** -p: The folding period (s) */
-  if( !cmd.pP ) {
-    printf("-p not found.\n");
+  /***** -pkmb: Raw data in Parkes Multibeam format */
+  if( !cmd.pkmbP ) {
+    printf("-pkmb not found.\n");
   } else {
-    printf("-p found:\n");
-    if( !cmd.pC ) {
+    printf("-pkmb found:\n");
+  }
+
+  /***** -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format */
+  if( !cmd.ebppP ) {
+    printf("-ebpp not found.\n");
+  } else {
+    printf("-ebpp found:\n");
+  }
+
+  /***** -gbpp: Raw data in Green Bank-Berkeley Pulsar Processor format */
+  if( !cmd.gbppP ) {
+    printf("-gbpp not found.\n");
+  } else {
+    printf("-gbpp found:\n");
+  }
+
+  /***** -nofft: Will not attempt to calculate the FFT of the zero-DM data */
+  if( !cmd.nofftP ) {
+    printf("-nofft not found.\n");
+  } else {
+    printf("-nofft found:\n");
+  }
+
+  /***** -time: The number of minutes to integrate for statistics and FFT calculations */
+  if( !cmd.timeP ) {
+    printf("-time not found.\n");
+  } else {
+    printf("-time found:\n");
+    if( !cmd.timeC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.p);
+      printf("  value = `%.40g'\n", cmd.time);
     }
   }
 
-  /***** -pd: The folding period derivative (s/s) */
-  if( !cmd.pdP ) {
-    printf("-pd not found.\n");
+  /***** -sigma: The sigma above/below the noise to reject a chunk of data */
+  if( !cmd.sigmaP ) {
+    printf("-sigma not found.\n");
   } else {
-    printf("-pd found:\n");
-    if( !cmd.pdC ) {
+    printf("-sigma found:\n");
+    if( !cmd.sigmaC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.pd);
+      printf("  value = `%.40g'\n", cmd.sigma);
     }
   }
 
-  /***** -pdd: The folding period 2nd derivative (s/s^2) */
-  if( !cmd.pddP ) {
-    printf("-pdd not found.\n");
+  /***** -zapchan: Channels to explicitly remove from analysis */
+  if( !cmd.zapchanP ) {
+    printf("-zapchan not found.\n");
   } else {
-    printf("-pdd found:\n");
-    if( !cmd.pddC ) {
+    printf("-zapchan found:\n");
+    if( !cmd.zapchanC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%.40g'\n", cmd.pdd);
+      printf("  values =");
+      for(i=0; i<cmd.zapchanC; i++) {
+        printf(" `%d'", cmd.zapchan[i]);
+      }
+      printf("\n");
     }
-  }
-
-  /***** -f: The folding frequency (hz) */
-  if( !cmd.fP ) {
-    printf("-f not found.\n");
-  } else {
-    printf("-f found:\n");
-    if( !cmd.fC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.f);
-    }
-  }
-
-  /***** -fd: The folding frequency derivative (hz/s) */
-  if( !cmd.fdP ) {
-    printf("-fd not found.\n");
-  } else {
-    printf("-fd found:\n");
-    if( !cmd.fdC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.fd);
-    }
-  }
-
-  /***** -fdd: The folding frequency 2nd derivative (hz/s^2) */
-  if( !cmd.fddP ) {
-    printf("-fdd not found.\n");
-  } else {
-    printf("-fdd found:\n");
-    if( !cmd.fddC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.fdd);
-    }
-  }
-
-  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
-  if( !cmd.proflenP ) {
-    printf("-n not found.\n");
-  } else {
-    printf("-n found:\n");
-    if( !cmd.proflenC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.proflen);
-    }
-  }
-
-  /***** -psr: Name of pulsar to fold (do not include J or B) */
-  if( !cmd.psrnameP ) {
-    printf("-psr not found.\n");
-  } else {
-    printf("-psr found:\n");
-    if( !cmd.psrnameC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%s'\n", cmd.psrname);
-    }
-  }
-
-  /***** -rzwcand: The candidate number to fold from 'infile'_rzw.cand */
-  if( !cmd.rzwcandP ) {
-    printf("-rzwcand not found.\n");
-  } else {
-    printf("-rzwcand found:\n");
-    if( !cmd.rzwcandC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.rzwcand);
-    }
-  }
-
-  /***** -rzwfile: Name of the rzw search file to use (include the full name of the file) */
-  if( !cmd.rzwfileP ) {
-    printf("-rzwfile not found.\n");
-  } else {
-    printf("-rzwfile found:\n");
-    if( !cmd.rzwfileC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%s'\n", cmd.rzwfile);
-    }
-  }
-
-  /***** -bincand: Fold a binary pulsar but take the input data from this candidate number in 'infile'_bin.cand */
-  if( !cmd.bincandP ) {
-    printf("-bincand not found.\n");
-  } else {
-    printf("-bincand found:\n");
-    if( !cmd.bincandC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.bincand);
-    }
-  }
-
-  /***** -onoff: A list of white-space separated pairs of numbers from 0.0 to 1.0 that designate barycentric times in our data set when we will actually keep the data. (i.e. '-onoff 0.1 0.4 0.7 0.9' means that we will fold the data set during the barycentric times 0.1-0.4 and 0.7-0.9 of the total time length of the data set) */
-  if( !cmd.onoffP ) {
-    printf("-onoff not found.\n");
-  } else {
-    printf("-onoff found:\n");
-    if( !cmd.onoffC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%s'\n", cmd.onoff);
-    }
-  }
-
-  /***** -bin: Fold a binary pulsar.  Must include all of the following parameters */
-  if( !cmd.binaryP ) {
-    printf("-bin not found.\n");
-  } else {
-    printf("-bin found:\n");
-  }
-
-  /***** -pb: The orbital period (s) */
-  if( !cmd.pbP ) {
-    printf("-pb not found.\n");
-  } else {
-    printf("-pb found:\n");
-    if( !cmd.pbC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.pb);
-    }
-  }
-
-  /***** -x: The projected orbital semi-major axis (lt-sec) */
-  if( !cmd.asinicP ) {
-    printf("-x not found.\n");
-  } else {
-    printf("-x found:\n");
-    if( !cmd.asinicC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.asinic);
-    }
-  }
-
-  /***** -e: The orbital eccentricity */
-  if( !cmd.eP ) {
-    printf("-e not found.\n");
-  } else {
-    printf("-e found:\n");
-    if( !cmd.eC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.e);
-    }
-  }
-
-  /***** -To: The time of periastron passage (MJD) */
-  if( !cmd.ToP ) {
-    printf("-To not found.\n");
-  } else {
-    printf("-To found:\n");
-    if( !cmd.ToC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.To);
-    }
-  }
-
-  /***** -w: Longitude of periastron (deg) */
-  if( !cmd.wP ) {
-    printf("-w not found.\n");
-  } else {
-    printf("-w found:\n");
-    if( !cmd.wC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.w);
-    }
-  }
-
-  /***** -wdot: Rate of advance of periastron (deg/yr) */
-  if( !cmd.wdotP ) {
-    printf("-wdot not found.\n");
-  } else {
-    printf("-wdot found:\n");
-    if( !cmd.wdotC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%.40g'\n", cmd.wdot);
-    }
-  }
-
-  /***** -xwin: Send graphics output to the screen */
-  if( !cmd.xwinP ) {
-    printf("-xwin not found.\n");
-  } else {
-    printf("-xwin found:\n");
-  }
-
-  /***** -ps: Send graphics output to a Postscript file */
-  if( !cmd.psP ) {
-    printf("-ps not found.\n");
-  } else {
-    printf("-ps found:\n");
-  }
-
-  /***** -both: Send graphics output both the screen and a Postscript file */
-  if( !cmd.bothP ) {
-    printf("-both not found.\n");
-  } else {
-    printf("-both found:\n");
-  }
-
-  /***** -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin */
-  if( !cmd.dispP ) {
-    printf("-disp not found.\n");
-  } else {
-    printf("-disp found:\n");
-  }
-
-  /***** -mak: Determine folding parameters from 'infile.mak' */
-  if( !cmd.makefileP ) {
-    printf("-mak not found.\n");
-  } else {
-    printf("-mak found:\n");
-  }
-
-  /***** -noerr: Do not plot error bars */
-  if( !cmd.noerrP ) {
-    printf("-noerr not found.\n");
-  } else {
-    printf("-noerr found:\n");
   }
   if( !cmd.argc ) {
     printf("no remaining parameters in argv\n");
@@ -1100,61 +845,23 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-phs phs] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bincand bincand] [-onoff onoff] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-xwin] [-ps] [-both] [-disp] [-mak] [-noerr] [--] infile\n\
-    Folds a time series at a given period and period derivative to make a pulse profile.  May be used for binary pulsars as well.\n\
-      -phs: Offset phase for the profile\n\
-            1 double value between 0 and 1\n\
-            default: `0'\n\
-        -p: The folding period (s)\n\
-            1 double value between 0 and oo\n\
-       -pd: The folding period derivative (s/s)\n\
-            1 double value\n\
-            default: `0'\n\
-      -pdd: The folding period 2nd derivative (s/s^2)\n\
-            1 double value\n\
-            default: `0'\n\
-        -f: The folding frequency (hz)\n\
-            1 double value between 0 and oo\n\
-       -fd: The folding frequency derivative (hz/s)\n\
-            1 double value\n\
-            default: `0'\n\
-      -fdd: The folding frequency 2nd derivative (hz/s^2)\n\
-            1 double value\n\
-            default: `0'\n\
-        -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
-            1 int value\n\
-      -psr: Name of pulsar to fold (do not include J or B)\n\
+ -o outfile [-pkmb] [-ebpp] [-gbpp] [-nofft] [-time time] [-sigma sigma] [-zapchan zapchan] [--] infile\n\
+    Examines radio data for narrow and wide band interference as well as problems with channels\n\
+        -o: Output data file name (no suffix)\n\
             1 char* value\n\
-  -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
-            1 int value between 1 and oo\n\
-  -rzwfile: Name of the rzw search file to use (include the full name of the file)\n\
-            1 char* value\n\
-  -bincand: Fold a binary pulsar but take the input data from this candidate number in 'infile'_bin.cand\n\
-            1 int value between 1 and oo\n\
-    -onoff: A list of white-space separated pairs of numbers from 0.0 to 1.0 that designate barycentric times in our data set when we will actually keep the data. (i.e. '-onoff 0.1 0.4 0.7 0.9' means that we will fold the data set during the barycentric times 0.1-0.4 and 0.7-0.9 of the total time length of the data set)\n\
-            1 char* value\n\
-      -bin: Fold a binary pulsar.  Must include all of the following parameters\n\
-       -pb: The orbital period (s)\n\
-            1 double value between 0 and oo\n\
-        -x: The projected orbital semi-major axis (lt-sec)\n\
-            1 double value between 0 and oo\n\
-        -e: The orbital eccentricity\n\
-            1 double value between 0 and 0.9999999\n\
-            default: `0'\n\
-       -To: The time of periastron passage (MJD)\n\
-            1 double value between 0 and oo\n\
-        -w: Longitude of periastron (deg)\n\
-            1 double value between 0 and 360\n\
-     -wdot: Rate of advance of periastron (deg/yr)\n\
-            1 double value\n\
-            default: `0'\n\
-     -xwin: Send graphics output to the screen\n\
-       -ps: Send graphics output to a Postscript file\n\
-     -both: Send graphics output both the screen and a Postscript file\n\
-     -disp: Don't calculate a new profile.  Just display a previously calculated profile in 'infile'.prof.  Must be called with either -ps or -xwin\n\
-      -mak: Determine folding parameters from 'infile.mak'\n\
-    -noerr: Do not plot error bars\n\
-    infile: Input data file name (without a suffix) of floating point data.  A '.inf' file of the same name must also exist.\n\
+     -pkmb: Raw data in Parkes Multibeam format\n\
+     -ebpp: Raw data in Efflesberg-Berkeley Pulsar Processor format\n\
+     -gbpp: Raw data in Green Bank-Berkeley Pulsar Processor format\n\
+    -nofft: Will not attempt to calculate the FFT of the zero-DM data\n\
+     -time: The number of minutes to integrate for statistics and FFT calculations\n\
+            1 float value between 0 and oo\n\
+            default: `4'\n\
+    -sigma: The sigma above/below the noise to reject a chunk of data\n\
+            1 float value between 0 and oo\n\
+            default: `4'\n\
+  -zapchan: Channels to explicitly remove from analysis\n\
+            1...1024 int values between 1 and 1024\n\
+    infile: Input data file name.\n\
             1 value\n\
 version: 06Dec00\n\
 ");
@@ -1165,6 +872,7 @@ Cmdline *
 parseCmdline(int argc, char **argv)
 {
   int i, keep;
+  char missingMandatory = 0;
 
   Program = argv[0];
   cmd.full_cmd_line = catArgv(argc, argv);
@@ -1174,203 +882,59 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-phs", argv[i]) ) {
-      cmd.phsP = 1;
+    if( 0==strcmp("-o", argv[i]) ) {
+      cmd.outfileP = 1;
       keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.phs, 1);
-      cmd.phsC = i-keep;
-      checkDoubleLower("-phs", &cmd.phs, cmd.phsC, 1);
-      checkDoubleHigher("-phs", &cmd.phs, cmd.phsC, 0);
+      i = getStringOpt(argc, argv, i, &cmd.outfile, 1);
+      cmd.outfileC = i-keep;
       continue;
     }
 
-    if( 0==strcmp("-p", argv[i]) ) {
-      cmd.pP = 1;
+    if( 0==strcmp("-pkmb", argv[i]) ) {
+      cmd.pkmbP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-ebpp", argv[i]) ) {
+      cmd.ebppP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-gbpp", argv[i]) ) {
+      cmd.gbppP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-nofft", argv[i]) ) {
+      cmd.nofftP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-time", argv[i]) ) {
+      cmd.timeP = 1;
       keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.p, 1);
-      cmd.pC = i-keep;
-      checkDoubleHigher("-p", &cmd.p, cmd.pC, 0);
+      i = getFloatOpt(argc, argv, i, &cmd.time, 1);
+      cmd.timeC = i-keep;
+      checkFloatHigher("-time", &cmd.time, cmd.timeC, 0);
       continue;
     }
 
-    if( 0==strcmp("-pd", argv[i]) ) {
-      cmd.pdP = 1;
+    if( 0==strcmp("-sigma", argv[i]) ) {
+      cmd.sigmaP = 1;
       keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.pd, 1);
-      cmd.pdC = i-keep;
+      i = getFloatOpt(argc, argv, i, &cmd.sigma, 1);
+      cmd.sigmaC = i-keep;
+      checkFloatHigher("-sigma", &cmd.sigma, cmd.sigmaC, 0);
       continue;
     }
 
-    if( 0==strcmp("-pdd", argv[i]) ) {
-      cmd.pddP = 1;
+    if( 0==strcmp("-zapchan", argv[i]) ) {
+      cmd.zapchanP = 1;
       keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.pdd, 1);
-      cmd.pddC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-f", argv[i]) ) {
-      cmd.fP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.f, 1);
-      cmd.fC = i-keep;
-      checkDoubleHigher("-f", &cmd.f, cmd.fC, 0);
-      continue;
-    }
-
-    if( 0==strcmp("-fd", argv[i]) ) {
-      cmd.fdP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.fd, 1);
-      cmd.fdC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-fdd", argv[i]) ) {
-      cmd.fddP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.fdd, 1);
-      cmd.fddC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-n", argv[i]) ) {
-      cmd.proflenP = 1;
-      keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.proflen, 1);
-      cmd.proflenC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-psr", argv[i]) ) {
-      cmd.psrnameP = 1;
-      keep = i;
-      i = getStringOpt(argc, argv, i, &cmd.psrname, 1);
-      cmd.psrnameC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-rzwcand", argv[i]) ) {
-      cmd.rzwcandP = 1;
-      keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.rzwcand, 1);
-      cmd.rzwcandC = i-keep;
-      checkIntHigher("-rzwcand", &cmd.rzwcand, cmd.rzwcandC, 1);
-      continue;
-    }
-
-    if( 0==strcmp("-rzwfile", argv[i]) ) {
-      cmd.rzwfileP = 1;
-      keep = i;
-      i = getStringOpt(argc, argv, i, &cmd.rzwfile, 1);
-      cmd.rzwfileC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-bincand", argv[i]) ) {
-      cmd.bincandP = 1;
-      keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.bincand, 1);
-      cmd.bincandC = i-keep;
-      checkIntHigher("-bincand", &cmd.bincand, cmd.bincandC, 1);
-      continue;
-    }
-
-    if( 0==strcmp("-onoff", argv[i]) ) {
-      cmd.onoffP = 1;
-      keep = i;
-      i = getStringOpt(argc, argv, i, &cmd.onoff, 1);
-      cmd.onoffC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-bin", argv[i]) ) {
-      cmd.binaryP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-pb", argv[i]) ) {
-      cmd.pbP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.pb, 1);
-      cmd.pbC = i-keep;
-      checkDoubleHigher("-pb", &cmd.pb, cmd.pbC, 0);
-      continue;
-    }
-
-    if( 0==strcmp("-x", argv[i]) ) {
-      cmd.asinicP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.asinic, 1);
-      cmd.asinicC = i-keep;
-      checkDoubleHigher("-x", &cmd.asinic, cmd.asinicC, 0);
-      continue;
-    }
-
-    if( 0==strcmp("-e", argv[i]) ) {
-      cmd.eP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.e, 1);
-      cmd.eC = i-keep;
-      checkDoubleLower("-e", &cmd.e, cmd.eC, 0.9999999);
-      checkDoubleHigher("-e", &cmd.e, cmd.eC, 0);
-      continue;
-    }
-
-    if( 0==strcmp("-To", argv[i]) ) {
-      cmd.ToP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.To, 1);
-      cmd.ToC = i-keep;
-      checkDoubleHigher("-To", &cmd.To, cmd.ToC, 0);
-      continue;
-    }
-
-    if( 0==strcmp("-w", argv[i]) ) {
-      cmd.wP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.w, 1);
-      cmd.wC = i-keep;
-      checkDoubleLower("-w", &cmd.w, cmd.wC, 360);
-      checkDoubleHigher("-w", &cmd.w, cmd.wC, 0);
-      continue;
-    }
-
-    if( 0==strcmp("-wdot", argv[i]) ) {
-      cmd.wdotP = 1;
-      keep = i;
-      i = getDoubleOpt(argc, argv, i, &cmd.wdot, 1);
-      cmd.wdotC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-xwin", argv[i]) ) {
-      cmd.xwinP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-ps", argv[i]) ) {
-      cmd.psP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-both", argv[i]) ) {
-      cmd.bothP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-disp", argv[i]) ) {
-      cmd.dispP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-mak", argv[i]) ) {
-      cmd.makefileP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-noerr", argv[i]) ) {
-      cmd.noerrP = 1;
+      i = getIntOpts(argc, argv, i, &cmd.zapchan, 1, 1024);
+      cmd.zapchanC = i-keep;
+      checkIntLower("-zapchan", cmd.zapchan, cmd.zapchanC, 1024);
+      checkIntHigher("-zapchan", cmd.zapchan, cmd.zapchanC, 1);
       continue;
     }
 
@@ -1382,6 +946,11 @@ parseCmdline(int argc, char **argv)
     argv[cmd.argc++] = argv[i];
   }/* for i */
 
+  if( !cmd.outfileP ) {
+    missingErr("-o");
+    missingMandatory = 1;
+  }
+  if( missingMandatory ) exit(EXIT_FAILURE);
 
   /*@-mustfree*/
   cmd.argv = argv+1;

@@ -823,7 +823,7 @@ usage(void)
            1 char* value\n\
   infiles: Input data file(s)\n\
            1...16 values\n\
-version: 06Oct00\n\
+version: 06Dec00\n\
 ");
   exit(EXIT_FAILURE);
 }

@@ -82,7 +82,7 @@ FLINKFLAGS = $(FFLAGS)
 #FC = f77
 #CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
 #	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-g -O -Xc -v -KPIC
+#	-g -O -v -KPIC
 #	-fast
 #LIBLINKFLAGS = -G
 #LINKCOMMAND = ld $(LIBLINKFLAGS) -o
@@ -185,6 +185,7 @@ cligs:
 	cd ../clig ; clig -o toas2dat_cmd -d toas2dat_cmd.cli
 	cd ../clig ; clig -o dftfold_cmd -d dftfold_cmd.cli
 	cd ../clig ; clig -o realfft_cmd -d realfft_cmd.cli
+	cd ../clig ; clig -o rfifind_cmd -d rfifind_cmd.cli
 	mv ../clig/*_cmd.h ../include/
 	mv ../clig/*_cmd.c .
 	cp ../clig/*.1 ../docs/
@@ -234,6 +235,10 @@ check_parkes_raw: check_parkes_raw.o
 
 test_multifiles: test_multifiles.o
 	$(CC) $(CFLAGS) -o $@ test_multifiles.o $(EXTRALINK) $(PRESTOLINK) -lm
+
+rfifind: rfifind.o rfi_utils.o rfifind_cmd.o
+	$(CC) $(CFLAGS) -o $@ rfifind.o rfi_utils.o rfifind_cmd.o $(EXTRALINK) $
+	(PRESTOLINK) -lm
 
 showmulti: showmulti.o multi_prof_plot.o $(PLOT2DOBJS)
 	$(FLINK) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) showmulti.o multi_prof_plot.o $(EXTRALINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
