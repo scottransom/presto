@@ -79,7 +79,7 @@ typedef struct INFODATA {
   double N;		/* Number of bins in the time series     */
   double dt;	 	/* Width of each time series bin (sec)   */
   int numonoff;		/* Any breaks in the data?  1=yes, 0=no  */
-  DoubleArray *onoff;	/* Bin number pairs where obs is "on"    */
+  double onoff[40];	/* Bin number pairs where obs is "on"    */
   double fov;		/* Diameter of Beam or FOV in arcsec     */
   int mjd_i;		/* Epoch of observation (MJD) int part   */
   double mjd_f;		/* Epoch of observation (MJD) frac part  */

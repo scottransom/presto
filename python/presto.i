@@ -752,13 +752,15 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result);
   /*   'T' is the length of the data set in sec (i.e. N*dt).  */
   /*   'result' is a pointer to the returned rzwerrs struct.  */
 
-double sigma_from_sumpows(double powersum, int numsum);
-  /* Return the approximate significance in Gaussian  */
-  /* sigmas of a sum of 'numsum' powers.              */
+double candidate_sigma(double power, int numsum, int numtrials);
+/* Return the approximate significance in Gaussian       */
+/* sigmas of a candidate of numsum summed powers,        */
+/* taking into account the number of independent trials. */
 
-double sumpows_from_sigma(double sigma, int numsum);
-  /* Return the summed ('numsum' powers) power required */
-  /* to achieve a Gaussian significance of 'sigma'.     */
+double power_for_sigma(double sigma, int numsum, int numtrials);
+/* Return the approximate summed power level required */
+/* to get a Gaussian significance of 'sigma', taking  */
+/* into account the number of independent trials.     */
 
 %apply double* IN_1D_DOUBLE { double *data };
 double chisqr(double *data, int numdata, double avg, double var);

@@ -387,7 +387,6 @@ class infodata:
         "N" : prestoc.infodata_N_set,
         "dt" : prestoc.infodata_dt_set,
         "numonoff" : prestoc.infodata_numonoff_set,
-        "onoff" : prestoc.infodata_onoff_set,
         "fov" : prestoc.infodata_fov_set,
         "mjd_i" : prestoc.infodata_mjd_i_set,
         "mjd_f" : prestoc.infodata_mjd_f_set,
@@ -426,7 +425,7 @@ class infodata:
         "N" : prestoc.infodata_N_get,
         "dt" : prestoc.infodata_dt_get,
         "numonoff" : prestoc.infodata_numonoff_get,
-        "onoff" : lambda x : DoubleArrayPtr(prestoc.infodata_onoff_get(x)),
+        "onoff" : prestoc.infodata_onoff_get,
         "fov" : prestoc.infodata_fov_get,
         "mjd_i" : prestoc.infodata_mjd_i_get,
         "mjd_f" : prestoc.infodata_mjd_f_get,
@@ -941,9 +940,9 @@ calc_binprops = prestoc.calc_binprops
 
 calc_rzwerrs = prestoc.calc_rzwerrs
 
-sigma_from_sumpows = prestoc.sigma_from_sumpows
+candidate_sigma = prestoc.candidate_sigma
 
-sumpows_from_sigma = prestoc.sumpows_from_sigma
+power_for_sigma = prestoc.power_for_sigma
 
 chisqr = prestoc.chisqr
 
