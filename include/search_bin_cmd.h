@@ -21,6 +21,14 @@ typedef struct s_Cmdline {
   char maxfftP;
   int maxfft;
   int maxfftC;
+  /***** -flo: The low frequency (Hz) to check */
+  char floP;
+  int flo;
+  int floC;
+  /***** -fhi: The high frequency (Hz) to check */
+  char fhiP;
+  int fhi;
+  int fhiC;
   /***** -rlo: The low Fourier frequency to check */
   char rloP;
   int rlo;

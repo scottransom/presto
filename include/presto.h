@@ -1287,10 +1287,11 @@ fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin,
 /*   'powvar' is a return value giving the power level variance     */
 /*   'powmax' is a return value giving the maximum power            */
 
-void search_minifft(fcomplex *minifft, int numminifft, \
-		    rawbincand *cands, int numcands, int numharmsum, \
-		    int numbetween, double numfullfft, double timefullfft, \
-		    double lorfullfft, presto_interptype interptype, \
+void search_minifft(fcomplex *minifft, int numminifft, 
+		    double min_orb_p, double max_orb_p,
+		    rawbincand *cands, int numcands, int numharmsum,
+		    int numbetween, double numfullfft, double timefullfft,
+		    double lorfullfft, presto_interptype interptype,
 		    presto_checkaliased checkaliased);
   /* This routine searches a short FFT (usually produced using the   */
   /* MiniFFT binary search method) and returns a candidte vector     */
@@ -1300,6 +1301,8 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /* Arguments:                                                      */
   /*   'minifft' is the FFT to search (complex valued)               */
   /*   'numminifft' is the number of complex points in 'minifft'     */
+  /*   'min_orb_p' is the minimum orbital period (s) to search       */
+  /*   'max_orb_p' is the maximum orbital period (s) to search       */
   /*   'cands' is a pre-allocated vector of rawbincand type in which */
   /*      the sorted (in decreasing sigma) candidates are returned   */
   /*   'numcands' is the length of the 'cands' vector                */
