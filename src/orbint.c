@@ -111,20 +111,6 @@ double keplars_eqn(double t, double f_orb, double e, double Eacc)
 }
 
 
-void E_to_phib(double *E, long numpoints, orbitparams *orb)
-/* Convert eccentric anomalys (*E) to time delays */
-/* This is the pulsar orbit Roemer delay.         */
-{
-  long i;
-  double c1, c2;
-
-  c1 = orb->x * sin(orb->w);
-  c2 = orb->x * cos(orb->w) * sqrt(1 - orb->e * orb->e);
-  for (i = 0; i < numpoints; i++)
-    E[i] = c1 * (cos(E[i]) - orb->e) + c2 * sin(E[i]);
-}
-
-
 void E_to_phib_BT(double *E, long numpoints, orbitparams *orb)
 /* Convert eccentric anomalys (*E) to time delays */
 /* using Blanford and Teukolsky Equations         */
@@ -175,6 +161,20 @@ void E_to_p(double *E, long numpoints, double p_psr, orbitparams *orb)
     E[i] = p_psr * (1 + c1 * (c2 * tmp - c3 * sin(E[i])) \
 		    /(1.0 - orb->e * tmp));
   }
+}
+
+
+void E_to_phib(double *E, long numpoints, orbitparams *orb)
+/* Convert eccentric anomalys (*E) to time delays */
+/* This is the pulsar orbit Roemer delay.         */
+{
+  long i;
+  double c1, c2;
+
+  c1 = orb->x * sin(orb->w);
+  c2 = orb->x * cos(orb->w) * sqrt(1 - orb->e * orb->e);
+  for (i = 0; i < numpoints; i++)
+    E[i] = c1 * (cos(E[i]) - orb->e) + c2 * sin(E[i]);
 }
 
 

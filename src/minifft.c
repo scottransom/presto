@@ -23,7 +23,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*   The returned vectors will be sorted by decreasing power.      */
 {
   int ii, numspread, kern_half_width, numkern = 0, numbetween = 2;
-  float minpow = 0.0, pwr, powargr, powargi;
+  float minpow = 0.0, pwr, powargr, powargi, sqrtnorm;
   static int firsttime = 1, old_numspread = 0;
   static fcomplex *kernel;
   fcomplex *fftcopy, *spread, *kern;
@@ -35,9 +35,10 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   memcpy(fftcopy, minifft, numminifft * sizeof(fcomplex));
   fftcopy[0].r = 1.0;
   fftcopy[0].i = 1.0;
+  sqrtnorm = sqrt(norm);
   for (ii = 0; ii < numminifft; ii++){
-    fftcopy[ii].r *= norm;
-    fftcopy[ii].i *= norm;
+    fftcopy[ii].r *= sqrtnorm;
+    fftcopy[ii].i *= sqrtnorm;
   }
 
   /* Prep the kernel if needed */

@@ -315,7 +315,6 @@ int main(int argc, char *argv[])
 	    maxpow = max_r_arr((fcomplex *)minifft, fftlen / 2, \
 			       ii / (double) numbetween, \
 			       &maxfreq, &derivs);
-printf("maxpow = %f at maxfreq = %f\n", maxpow, maxfreq);
 	    /* Check if the measured power is greater than the lowest */
 	    /* power we already have in the list.                     */
 
