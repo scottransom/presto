@@ -167,7 +167,6 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
       
       i1 = jj * bb;          /* n     */
       i2 = bb * n2 - i1 - 1; /* N/2-n */
-
       for (kk=0; kk<bb2; kk++, i1++, i2--){
 	h1r =  0.5 * (data[i1].r + data[i2].r);
 	h1i =  0.5 * (data[i1].i - data[i2].i);

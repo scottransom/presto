@@ -124,20 +124,18 @@ void realfft_scratch_inv(multifile* infile, multifile* scratch,
     fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
     fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
     for (jj=0; jj<n2; jj++){
-      fseek_multifile(scratch, fp1, SEEK_SET);
-      fread_multifile(dp, sizeof(rawtype), bb2, scratch);
+      fseek_multifile(infile, fp1, SEEK_SET);
+      fread_multifile(dp, sizeof(rawtype), bb2, infile);
       dp += bb2;   /* Data ptr */
       fp1 += tmp1; /* File ptr */
-      fseek_multifile(scratch, fp2, SEEK_SET);
-      fread_multifile(dp, sizeof(rawtype), bb2, scratch);
+      fseek_multifile(infile, fp2, SEEK_SET);
+      fread_multifile(dp, sizeof(rawtype), bb2, infile);
       dp += bb2;   /* Data ptr */
       fp2 += tmp1; /* File ptr */
     }
 
     /* Begin the re-assembly of the realFFT */
 
-    fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
-    fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
     for (jj=0; jj<n2; jj++){
 
       /* Start the trig recursion: */
