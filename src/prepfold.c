@@ -920,7 +920,7 @@ int main(int argc, char *argv[])
 
   if (cmd->eventsP){  /* Fold events instead of a time series */
     double event, dtmp, cts, phase, begphs, endphs, dphs, lphs, rphs;
-    double tf, tfd, tfdd, totalphs, numwraps;
+    double tf, tfd, tfdd, totalphs, calctotalphs, numwraps;
     int partnum, binnum;
     
     binproffile = chkfopen(binproffilenm, "wb");
@@ -973,30 +973,45 @@ int main(int argc, char *argv[])
       endphs = endphs < 0.0 ? fmod(endphs, 1.0)+1.0 : fmod(endphs, 1.0);
       dphs = 1.0/search.proflen;
       /* printf("%.4f %.4f %5.4f\n", begphs, endphs, totalphs); */
+      calctotalphs = 0.0;
       for (jj=0; jj<search.proflen; jj++){
 	   numwraps = floor(totalphs);
 	   lphs = jj*dphs;
 	   rphs = (jj+1)*dphs;
-	   if (begphs <= lphs){
-		if (rphs <= endphs) 
-		     numwraps += 1.0; 
-		else if (lphs < endphs)
+	   if (begphs <= lphs){ /* BLR */
+		if (rphs <= endphs){        /* LRE */ 
+		     numwraps += 1.0;
+		} else if (endphs <= lphs){ /* ELR */
+		     if (endphs <= begphs)
+			  numwraps += 1.0;
+		} else { /* LER */
 		     numwraps += (endphs-lphs)*search.proflen;
-	   } else if (rphs <= begphs){
-		if (lphs <= endphs && endphs <= rphs)
+		}
+	   } else if (rphs <= begphs){ /* LRB */
+		if (rphs <= endphs){ /* LRE */
+		     if (endphs <= begphs)
+			  numwraps += 1.0;
+		} else if (lphs <= endphs && endphs <= rphs){ /* LER */
 		     numwraps += (endphs-lphs)*search.proflen;
-	   } else {
-		numwraps += (rphs-begphs)*search.proflen;
-		if (lphs <= endphs && endphs <= rphs){
+		}
+	   } else { /* LBR */
+		numwraps += (rphs-begphs)*search.proflen; /* All E's */
+		if (lphs <= endphs && endphs <= rphs){    /* LER */
 		     numwraps += (endphs-lphs)*search.proflen;
 		     if (begphs <= endphs) numwraps -= 1.0;
 		}
 	   }
 	   /* printf("%.2f ", numwraps); */
+	   calctotalphs += numwraps;
 	   if (numwraps > 0)
 		search.rawfolds[ii*search.proflen+jj] /= numwraps;
       }
       /* printf("\n"); */
+      calctotalphs /= search.proflen;
+      if (fabs(totalphs-calctotalphs) > 0.00001)
+           printf("\nThere seems to be a problem in the \"exposure\" calculation\n"
+		  "  in prepfold (npart = %ld):  totalphs = %.6f but calctotalphs = %0.6f\n", 
+		  ii, totalphs, calctotalphs);
       for (jj=ii*search.proflen; jj<(ii+1)*search.proflen; jj++)
 	cts += search.rawfolds[jj];
       search.stats[ii].numdata = ceil((T/cmd->npart)/search.dt);
