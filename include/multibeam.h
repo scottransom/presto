@@ -10,6 +10,9 @@
 /* Structure defining the tape header 
 
  * $Log: multibeam.h,v $
+ * Revision 1.13  2001/03/09 21:22:01  ransom
+ * Modified calling convention for skip_to_PKMB_rec()
+ *
  * Revision 1.12  2001/01/03 04:55:25  ransom
  * Added masking ability to read_PKMB().  Seems to work.
  * Added running-average subtraction option to prepfold for single channel data.
@@ -154,10 +157,10 @@ void get_PKMB_file_info(FILE *files[], int numfiles, long long *N,
 void PKMB_update_infodata(int numfiles, infodata *idata);
 /* Update the onoff bins section in case we used multiple files */
 
-int skip_to_PKMB_rec(FILE * infile, int rec);
-/* This routine skips to the record 'rec' in the input file */
-/* *infile.  *infile contains 1 bit digitized data from the */
-/* PKMB backend at Parkes.  Returns the record skipped to.  */
+int skip_to_PKMB_rec(FILE *infiles[], int numfiles, int rec);
+/* This routine skips to the record 'rec' in the input files   */
+/* *infiles.  *infiles contains 1 bit digitized data from the  */
+/* PKMB backend at Parkes.  Returns the record skipped to.     */
 
 int read_PKMB_rawblock(FILE *infiles[], int numfiles, 
 		       PKMB_tapehdr *hdr, unsigned char *data,
