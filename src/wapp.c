@@ -1,7 +1,6 @@
 #include "presto.h"
 #include "mask.h"
 #include "wapp.h"
-#include "srfftw.h"
 
 /*  NOTES:
 bytesperblk_st is the number of bytes in the RAW LAGS for 
@@ -28,13 +27,16 @@ static unsigned char lagbuffer[WAPP_MAXLAGLEN];
 static int currentfile, currentblock;
 static int header_version_st, header_size_st;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
-static fftw_plan fftplan;
-static float clip_sigma_st=0.0;
+static fftwf_plan fftplan;
+static float clip_sigma_st=0.0, *lags=NULL;
 
 double slaCldj(int iy, int im, int id, int *j);
 static double inv_cerf(double input);
 static void vanvleck3lev(float *rho, int npts);
 static void vanvleck9lev(float *rho, int npts);
+extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move, 
+			     int move_size);
+
 
 void get_WAPP_static(int *bytesperpt, int *bytesperblk, int *numifs, float *clip_sigma){
   *bytesperpt = bytesperpt_st;
@@ -384,10 +386,9 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles,
     clip_sigma_st = clipsig;
   numwappchan_st = idata_st[0].num_chan;
   *numchan = numchan_st = numwapps_st * numwappchan_st;
-  printf("Creating FFTW plan...\n");
-  fftplan = rfftw_create_plan(2 * numwappchan_st, 
-			      FFTW_REAL_TO_COMPLEX, 
-			      FFTW_MEASURE);
+  /* The following should be freed sometime... */
+  lags = (float *)fftwf_malloc((numwappchan_st+1)*sizeof(float));
+  fftplan = fftwf_plan_r2r_1d(numwappchan_st+1, lags, lags, FFTW_REDFT00, FFTW_PATIENT);
   /* Calculate the maximum number of points we can have in a */
   /* block (power of two), based on the number of samples in */
   /* each file.                                              */
@@ -913,7 +914,8 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data,
       if (numread != numblocks){
 	free(rawdata1);
 	free(rawdata2);
-	rfftw_destroy_plan(fftplan);
+	fftwf_destroy_plan(fftplan);
+	fftwf_free(lags);
 	allocd = 0;
       }
       if (firsttime) firsttime = 0;
@@ -934,18 +936,39 @@ void get_WAPP_channel(int channum, float chandat[],
 /* 'numblocks' * 'ptsperblk_st' spaces.                        */
 /* Channel 0 is assumed to be the lowest freq channel.         */
 {
-  int ii, jj;
+  int ii, jj, ptsperchan;
 
   if (channum > numchan_st * numifs_st || channum < 0){
     printf("\nchannum = %d is out of range in get_WAPP_channel()!\n\n",
 	   channum);
     exit(1);
   }
+  ptsperchan = ptsperblk_st*numblocks;
+
+  /* Since the following is only called from rfifind, we know that the */
+  /* channel accesses will be in order from 0 to the numchan-1         */
+  if (channum==0){ /* Transpose the data */
+    short trtn;
+    int move_size;
+    unsigned char *move;
+
+    move_size = (ptsperchan+numchan_st)/2;
+    move = gen_bvect(move_size);
+    if ((trtn = transpose_bytes(rawdata, ptsperchan, numchan_st,
+				move, move_size))<0)
+      printf("Error %d in transpose_bytes().\n", trtn);
+    free(move);
+  }
+  
   /* Select the correct channel */
-  for (ii=0, jj=channum; 
-       ii<numblocks*ptsperblk_st; 
-       ii++, jj+=numchan_st)
-    chandat[ii] = rawdata[jj];
+  for (ii=0, jj=ptsperchan*channum; ii<ptsperchan; ii++, jj++)
+    chandat[ii] = (float)rawdata[jj];
+
+  /* Select the correct channel */
+/*   for (ii=0, jj=channum;  */
+/*        ii<numblocks*ptsperblk_st;  */
+/*        ii++, jj+=numchan_st) */
+/*     chandat[ii] = (float)rawdata[jj]; */
 }
 
 
@@ -1074,9 +1097,9 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
 /* Van Vleck corrections are applied but no window     */
 /* functions can be applied as of yet...               */
 {
-  int ii, two_nlags, ifnum=0, index=0;
+  int ii, ifnum=0, index=0;
+  float *templags=NULL;
   double power, pfact;
-  static float acf[2*WAPP_MAXLAGS], lag[2*WAPP_MAXLAGS], templag[WAPP_MAXLAGS];
   double scale_min_st=0.0, scale_max_st=3.0;
 
   if (ifs==IF0){
@@ -1099,41 +1122,35 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
     if (bits_per_samp_st==16){
       unsigned short *sdata=(unsigned short *)rawdata;
       for (ii=0; ii<numwappchan_st; ii++)
-	lag[ii] = corr_scale_st * sdata[ii+index] - 1.0;
+	lags[ii] = corr_scale_st * sdata[ii+index] - 1.0;
     } else {
       unsigned int *idata=(unsigned int *)rawdata;
       for (ii=0; ii<numwappchan_st; ii++)
-	lag[ii] = corr_scale_st * idata[ii+index] - 1.0;
+	lags[ii] = corr_scale_st * idata[ii+index] - 1.0;
     }
 
     /* Calculate power */
-    power = inv_cerf(lag[0]);
+    power = inv_cerf(lags[0]);
     power = 0.1872721836 / (power * power);
   
     /* Apply Van Vleck Corrections to the Lags */
     if (corr_level_st==3)
-      vanvleck3lev(lag, numwappchan_st);
+      vanvleck3lev(lags, numwappchan_st);
     else if (corr_level_st==9)
-      vanvleck9lev(lag, numwappchan_st);
+      vanvleck9lev(lags, numwappchan_st);
     else
       printf("\nError:  corr_level_st (%d) does not equal 3 or 9!\n\n", 
 	     corr_level_st);
   
-    /* Form even ACF in array */
-    two_nlags = 2 * numwappchan_st;
-    for(ii=1; ii<numwappchan_st; ii++)
-      acf[ii] = acf[two_nlags-ii] = power * lag[ii];
-    acf[0] = power * lag[0];
-    acf[numwappchan_st] = 0.0;
- 
-    /* FFT the ACF (which is real and even) -> real and even FFT */
-    rfftw_one(fftplan, acf, lag);
+    /* FFT the ACF lags (which are real and even) -> real and even FFT */
+    lags[numwappchan_st] = 0.0;
+    fftwf_execute(fftplan);
 
     /* Reverse band if it needs it */
     if (decreasing_freqs_st){
       float tempzz=0.0, *loptr, *hiptr;
-      loptr = lag + 0;
-      hiptr = lag + numwappchan_st - 1;
+      loptr = lags + 0;
+      hiptr = lags + numwappchan_st - 1;
       for (ii=0; ii<numwappchan_st/2; ii++, loptr++, hiptr--){
 	SWAP(*loptr, *hiptr);
       }
@@ -1141,13 +1158,15 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
     
     if (numifs_st==2 && ifs==SUMIFS){
       if (ifnum==0){
+	templags = gen_fvect(numwappchan_st);
 	/* Copy the unscaled values to the templag array */
 	for(ii=0; ii<numwappchan_st; ii++)
-	  templag[ii] = lag[ii];
+	  templags[ii] = lags[ii];
       } else {
 	/* Sum the unscaled IFs */
 	for(ii=0; ii<numwappchan_st; ii++)
-	  lag[ii] += templag[ii];
+	  lags[ii] += templags[ii];
+	free(templags);
       }
     }
   }
@@ -1155,7 +1174,7 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
   pfact = 255.0 / (scale_max_st - scale_min_st);
   for(ii=0; ii<numwappchan_st; ii++){
     double templag;
-    templag = (lag[ii] > scale_max_st) ? scale_max_st : lag[ii];
+    templag = (lags[ii] > scale_max_st) ? scale_max_st : lags[ii];
     templag = (templag < scale_min_st) ? scale_min_st : templag;
     bytes[ii] = (unsigned char) ((templag - scale_min_st) * pfact + 0.5);
   }
@@ -1163,8 +1182,9 @@ void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs)
 #if 0
   { /* Show what the raw powers are (avg ~1.05, var ~0.2) */
     double avg, var;
-    avg_var(lag, numwappchan_st, &avg, &var);
+    avg_var(lags, numwappchan_st, &avg, &var);
     printf("avg = %f    var = %f\n", avg, var);
+    exit(0);
   }
 #endif
 }
