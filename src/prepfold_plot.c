@@ -5,6 +5,9 @@
 /*
 #define JUST_GREYSCALE 1
 */
+/*
+#define SCALE_PARTS_SEPARATELY 1
+*/
 
 #define TEST_EQUAL(a, b) (fabs(a) == 0.0 ? \
 (fabs((a)-(b)) <= 2 * DBL_EPSILON ? 1 : 0) : \
@@ -47,10 +50,15 @@ void scaleprof(double *in, float *out, int n)
     if (in[ii] > max) max = in[ii];
     if (in[ii] < min) min = in[ii];
   }
+
+#ifdef SCALE_PARTS_SEPARATELY
   /* Each plot is normalized independently */
-  /* norm = 1.0 / (max - min); */
+  norm = 1.0 / (max - min);
+#else
   /* All plots are normalized together */
   norm = 1.0 / max;
+#endif
+
   if (TEST_CLOSE(min, max, 1.0e-7)){
     for (ii=0; ii<n; ii++)
       out[ii] = 0.0;
