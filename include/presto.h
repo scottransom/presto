@@ -272,6 +272,7 @@ double swap_double(double var);
 long double swap_longdouble(long double var);
 long long swap_longlong(long long var);
 int swap_int(int var);
+short swap_short(short var);
 unsigned int swap_uint(unsigned int var);
 
 /* From responses.c: */

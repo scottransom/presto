@@ -1,7 +1,7 @@
 /* Length of the header in bytes */
 #define WAPP_HEADER_SIZE 2048
 /* Number of samples to process at a time */
-#define WAPP_PTSPERBLOCK 512
+#define WAPP_PTSPERBLOCK 64
 /* time between correlator dumps in us */
 #define WAPP_DEADTIME 0.34
 /* Maximum number of lags we can have */
@@ -96,3 +96,4 @@ int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data,
 		       int *padding, int *maskchans, int *nummasked, 
 		       mask *obsmask);
 void convert_WAPP_point(void *rawdata, unsigned char *bytes);
+int check_WAPP_byteswap(WAPP_HEADER *hdr);
