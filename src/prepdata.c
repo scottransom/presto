@@ -306,6 +306,8 @@ int main(int argc, char *argv[])
 	strcpy(obs, "EF");
       } else if (!strcmp(idata.telescope, "MMT")) {
 	strcpy(obs, "MT");
+      } else if (!strcmp(idata.telescope, "GBT")) {
+	strcpy(obs, "GB");
       } else {
 	printf("\nYou need to choose a telescope whose data is in\n");
 	printf("$TEMPO/obsys.dat.  Exiting.\n\n");
