@@ -70,6 +70,12 @@ int read_floats(FILE *file, float *data, int numpts, int numchan);
 /* point data.                                              */
 /* It returns the number of points read.                    */
 
+int read_shorts(FILE *file, float *data, int numpts, int numchan);
+/* This routine reads a numpts records of numchan each from */
+/* the input file *file which contains short integer data.  */
+/* The equivalent floats are placed in *data.               */
+/* It returns the number of points read.                    */
+
 double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
                   double T0, double *firsttoa);
 /* This routine reads a set of TOAs from the open file 'infile'.    */
