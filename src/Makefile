@@ -10,7 +10,7 @@ PGPLOTINCDIR = -I$(PGPLOT_DIR)
 # Path to PGPLOT libraries
 PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
-PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11
+PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -ldl
 
 # You must define one of the following FFTTYPES (USEFFTW is default).
 # If you want to use FFTW for the FFTs, place sfftw.h and libsfftw.a
@@ -52,12 +52,12 @@ CLIG = /usr/local/clig/bin/clig
 CC = gcc
 FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
-	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP \
-	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
+	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
 	-g -Wall -W -O2 -march=k6 -fPIC
-CLINKFLAGS = $(CFLAGS) -static
+CLINKFLAGS = $(CFLAGS)
 FFLAGS = -g -O2 -march=k6 -fPIC
-FLINKFLAGS = $(FFLAGS) -static
+FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
 #  The following are other possibilities and/or options for the CCFLAGS
@@ -113,7 +113,7 @@ PRESTOOBJS = amoeba.o barycenter.o birdzap.o cand_output.o\
 	transpose.o twopass.o twopass_real_fwd.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o
 
-INSTRUMENTOBJS = multibeam.o bpp.o wapp.o
+INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
@@ -153,7 +153,7 @@ libpresto.a: $(PRESTOOBJS)
 text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
-	patchdata readfile toas2dat bincand taperaw\
+	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
 	dat2sdat sdat2dat downsample
 
@@ -325,6 +325,7 @@ clean:
 
 cleaner: clean
 	find . -type f -perm 755 | xargs rm -f
+	find . -type f -perm 775 | xargs rm -f
 	rm -f libpresto.*
 
 squeaky:  cleaner

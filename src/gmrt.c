@@ -1,21 +1,21 @@
 #include "presto.h"
 #include "mask.h"
-/* #include "gmrt.h" */
+#include "gmrt.h"
 
 #define MAXNUMCHAN 1024
 #define BLOCKLEN   1024
 
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
-static int numblks_st[MAXPATCHFILES], byteswap_st=0;
-static int numchan_st, ptsperblk_st=BLOCKLEN, bytesperpt_st=2, bytesperblk_st=0;
+static int numblks_st[MAXPATCHFILES], need_byteswap_st=0, sampperblk_st;
+static int numchan_st, ptsperblk_st, bytesperpt_st=2, bytesperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static char padval=0;
-static unsigned char chanmask[MAXNUMCHAN];
-static short databuffer[MAXNUMCHAN*BLOCKLEN];
+static unsigned char padval=128;
+static short sdatabuffer[MAXNUMCHAN*BLOCKLEN];
+static unsigned char databuffer[MAXNUMCHAN*BLOCKLEN];
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 
@@ -28,8 +28,8 @@ void set_GMRT_static(int numchan, double dt)
 
 
 void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles, 
-			long long *N, int *numchan, double *dt, 
-			int *ptsperblock, double *T, int output)
+			long long *N, int *ptsperblock, int *numchan, double *dt, 
+			double *T, int output)
 /* Read basic information into static variables and make padding      */
 /* calculations for a set of GMRT rawfiles that you want to patch     */
 /* together.  N, numchan, dt, and T are return values and include all */
@@ -37,8 +37,6 @@ void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles,
 /* a table showing a summary of the values.                           */
 {
   int ii;
-  double block_offset;
-  char ctmp[12];
   /** GMRT_hdr header; */
 
   if (numfiles > MAXPATCHFILES){
@@ -48,9 +46,9 @@ void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles,
   }
   GMRT_hdr_to_inf(datfilenms[0], &idata_st[0]);
   *numchan = numchan_st = idata_st[0].num_chan;
-  *ptsperblock = ptsperblk_st;
-  bytesperblk_st = bytesperpt_st * ptsperblk * numchan_st;
-  decreasing_freqs_st = 0;
+  *ptsperblock = ptsperblk_st = BLOCKLEN;
+  sampperblk_st = ptsperblk_st * numchan_st;
+  bytesperblk_st = bytesperpt_st * sampperblk_st;
   numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
   numpts_st[0] = numblks_st[0] * ptsperblk_st;
   N_st = numpts_st[0];
@@ -75,14 +73,14 @@ void get_GMRT_file_info(FILE *files[], char *datfilenms[], int numfiles,
     mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
     elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
 				  idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
-    padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / 
+    padpts_st[ii-1] = (long long)((elapsed_st[ii]-times_st[ii-1]) / \
 				  dt_st + 0.5);
     elapsed_st[ii] += elapsed_st[ii-1];
     N_st += numpts_st[ii] + padpts_st[ii-1];
     startblk_st[ii] = (double) (N_st-numpts_st[ii])/ptsperblk_st;
     endblk_st[ii] = (double) (N_st)/ptsperblk_st - 1;
   }
-  padpts_st[numfiles-1] = ((long long) ceil(endblk_st[numfiles-1]+1.0) * \ 
+  padpts_st[numfiles-1] = ((long long) ceil(endblk_st[numfiles-1]+1.0) * \
 			   ptsperblk_st - N_st);
   N_st += padpts_st[numfiles-1];
   *N = N_st;
@@ -205,14 +203,18 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
 /* added and statistics should not be calculated       */
 {
   int offset, numtopad=0, ii;
-  unsigned char record[MAXNUMCHAN*BLOCKLEN];
+  unsigned char *dataptr;
 
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
 
-  if (bufferpts && shiftbuffer)
-    memcpy(databuffer, databuffer + bytesperblk_st, 
-	   bufferpts * bytesperpt_st);
+  if (bufferpts && shiftbuffer){
+    offset = bufferpts * numchan_st;
+    memcpy(databuffer, databuffer+sampperblk_st, offset);
+    dataptr = databuffer + offset;
+  } else {
+    dataptr = data;
+  }
   shiftbuffer=1;
 
   /* Make sure our current file number is valid */
@@ -222,16 +224,18 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
 
   /* First, attempt to read data from the current file */
   
-  if (fread(record, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
+  if (chkfread(sdatabuffer, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
+    /* See if we need to byte-swap and if so, doit */
+    if (need_byteswap_st){
+      short *sptr = sdatabuffer;
+      for (ii=0; ii<sampperblk_st; ii++, sptr++)
+	*sptr = swap_short(*sptr);
+    }
+    convert_GMRT_block(sdatabuffer, dataptr);
     *padding = 0;
-    /* Put the new data into the databuffer or directly */
-    /* into the return array if the bufferoffset is 0.  */
+    /* Put the new data into the databuffer if needed */
     if (bufferpts){
-      offset = bufferpts * bytesperpt_st;
-      memcpy(databuffer + offset, record, bytesperblk_st);
-      memcpy(data, databuffer, bytesperblk_st);
-    } else {
-      memcpy(data, record, bytesperblk_st);
+      memcpy(data, dataptr, sampperblk_st);
     }
     currentblock++;
     return 1;
@@ -245,18 +249,13 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
 	    /* Add the amount of padding we need to */
 	    /* make our buffer offset = 0           */
 	    numtopad = ptsperblk_st - bufferpts;
-	    for (ii=0; ii<numtopad; ii++){
-	      databuffer
-	    }
-
-	    memset(databuffer + bufferpts * bytesperpt_st, 
-		   padval, numtopad * bytesperpt_st);
+	    memset(dataptr, padval, numtopad*numchan_st);
 	    /* Copy the new data/padding into the output array */
-	    memcpy(data, databuffer, bytesperblk_st);
+	    memcpy(data, databuffer, sampperblk_st);
 	    bufferpts = 0;
 	  } else {  /* Add a full record of padding */
 	    numtopad = ptsperblk_st;
-	    memset(data, padval, bytesperblk_st);
+	    memset(data, padval, sampperblk_st);
 	  }
 	  padnum += numtopad;
 	  currentblock++;
@@ -270,18 +269,18 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
 	  int pad;
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
-          memset(databuffer + bufferpts * bytesperpt_st, 
-		 padval, numtopad * bytesperpt_st);
+          memset(databuffer+bufferpts*numchan_st, 
+		 padval, numtopad*numchan_st);
 	  padnum = 0;
 	  currentfile++;
 	  shiftbuffer = 0;
 	  bufferpts += numtopad;
-	  return read_GMRT_rawblock(infiles, numfiles, hdr, data, &pad);
+	  return read_GMRT_rawblock(infiles, numfiles, data, &pad);
 	}
       } else {  /* No padding needed.  Try reading the next file */
 	currentfile++;
 	shiftbuffer = 0;
-	return read_GMRT_rawblock(infiles, numfiles, hdr, data, padding);
+	return read_GMRT_rawblock(infiles, numfiles, data, padding);
       }
     } else {
       printf("\nProblem reading record from GMRT data file:\n");
@@ -297,9 +296,9 @@ int read_GMRT_rawblocks(FILE *infiles[], int numfiles,
 			unsigned char rawdata[], int numblocks,
 			int *padding)
 /* This routine reads numblocks GMRT records from the input */
-/* files *infiles.  The raw bit data is returned in rawdata */
-/* which must have a size of numblocks*DATLEN.  The number  */
-/* of blocks read is returned.                              */
+/* files *infiles.  The 8-bit filterbank data is returned   */
+/* in rawdata which must have a size of numblocks*          */
+/* sampperblk_st.  The number  of blocks read is returned.  */
 /* If padding is returned as 1, then padding was added      */
 /* and statistics should not be calculated                  */
 {
@@ -308,7 +307,7 @@ int read_GMRT_rawblocks(FILE *infiles[], int numfiles,
   *padding = 0;
   for (ii=0; ii<numblocks; ii++){
     retval += read_GMRT_rawblock(infiles, numfiles, 
-				 rawdata+ii*bytesperblk_st, &pad);
+				 rawdata+ii*sampperblk_st, &pad);
     if (pad)
       numpad++;
   }
@@ -319,7 +318,8 @@ int read_GMRT_rawblocks(FILE *infiles[], int numfiles,
         *padding = 1;
   */
   /* Return padding 'true' if any block was padding */
-  if (numpad) *padding = 1;
+  if (numpad) 
+    *padding = 1;
   return retval;
 }
 
@@ -328,8 +328,8 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
 	      int numpts, double *dispdelays, int *padding,
 	      int *maskchans, int *nummasked, mask *obsmask)
 /* This routine reads numpts from the GMRT raw input   */
-/* files *infiles.  These files contain 1 bit data     */
-/* from the GMRT backend at Parkes.  Time delays and   */
+/* files *infiles.  These files contain 16 bit data    */
+/* from the GMRT backend.  Time delays and             */
 /* a mask are applied to each channel.  It returns     */
 /* the # of points read if successful, 0 otherwise.    */
 /* If padding is returned as 1, then padding was       */
@@ -341,7 +341,7 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
 {
   int ii, jj, numread=0, offset;
   double starttime=0.0;
-  static unsigned char *tempzz, *raw, *rawdata1, *rawdata2; 
+  static unsigned char *tempzz, *rawdata1, *rawdata2; 
   static unsigned char *currentdata, *lastdata;
   static int firsttime=1, numblocks=1, allocd=0, mask=0;
   static double duration=0.0, timeperblk=0.0;
@@ -356,45 +356,36 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
       numblocks = numpts / ptsperblk_st;
     
     if (obsmask->numchan) mask = 1;
-    raw  = gen_bvect(numblocks * DATLEN);
-    rawdata1 = gen_bvect(numblocks * SAMPPERBLK);
-    rawdata2 = gen_bvect(numblocks * SAMPPERBLK);
+    rawdata1 = gen_bvect(numblocks * sampperblk_st);
+    rawdata2 = gen_bvect(numblocks * sampperblk_st);
     allocd = 1;
     timeperblk = ptsperblk_st * dt_st;
     duration = numblocks * timeperblk;
     
-    numread = read_GMRT_rawblocks(infiles, numfiles, raw, 
+    currentdata = rawdata1;
+    lastdata = rawdata2;
+
+    numread = read_GMRT_rawblocks(infiles, numfiles, currentdata, 
 				  numblocks, padding);
     if (numread != numblocks && allocd){
       printf("Problem reading the raw GMRT data file.\n\n");
-      free(raw);
       free(rawdata1);
       free(rawdata2);
       allocd = 0;
       return 0;
     }
     
-    currentdata = rawdata1;
-    lastdata = rawdata2;
-
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, padval, numblocks * DATLEN);
-    }
-    
-    for (ii=0; ii<numpts; ii++)
-      convert_GMRT_point(raw + ii * bytesperpt_st, 
-			 currentdata + ii * numchan_st);
-    
-    if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<*nummasked; ii++)
-	chanmask[ii] = maskchans[ii] & 0x01;
-      for (ii=0; ii<numpts; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = chanmask[jj];
+	memset(currentdata, padval, numblocks * sampperblk_st);
+      if (*nummasked > 0){ /* Only some of the channels are masked */
+	for (ii=0; ii<numpts; ii++){
+	  offset = ii * numchan_st;
+	  for (jj=0; jj<*nummasked; jj++)
+	    currentdata[offset+maskchans[jj]] = padval;
+	}
       }
     }
 
@@ -405,27 +396,20 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
   /* Read, convert and de-disperse */
   
   if (allocd){
-    numread = read_GMRT_rawblocks(infiles, numfiles, raw, 
+    numread = read_GMRT_rawblocks(infiles, numfiles, currentdata, 
 				  numblocks, padding);
 
     if (mask){
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, duration, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(raw, padval, numblocks * DATLEN);
-    }
-
-    for (ii=0; ii<numpts; ii++)
-      convert_GMRT_point(raw + ii * bytesperpt_st, 
-			 currentdata + ii * numchan_st);
-
-    if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<*nummasked; ii++)
-	chanmask[ii] = maskchans[ii] & 0x01;
-      for (ii=0; ii<numpts; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = chanmask[jj];
+	memset(currentdata, padval, numblocks * sampperblk_st);
+      if (*nummasked > 0){ /* Only some of the channels are masked */
+	for (ii=0; ii<numpts; ii++){
+	  offset = ii * numchan_st;
+	  for (jj=0; jj<*nummasked; jj++)
+	    currentdata[offset+maskchans[jj]] = padval;
+	}
       }
     }
 
@@ -433,7 +417,6 @@ int read_GMRT(FILE *infiles[], int numfiles, float *data,
     SWAP(currentdata, lastdata);
 
     if (numread != numblocks){
-      free(raw);
       free(rawdata1);
       free(rawdata2);
       allocd = 0;
@@ -454,16 +437,18 @@ void get_GMRT_channel(int channum, float chandat[],
 /* 'numblocks' * 'ptsperblk_st' spaces.                        */
 /* Channel 0 is assumed to be the lowest freq channel.         */
 {
-  int ii, bit;
+  int ii, jj;
 
   if (channum > numchan_st || channum < 0){
-    printf("\nchannum = %d is out of range in get_GMRT_channel()!\n\n",
+    printf("\nchannum = %d is out of range in get_GMR_channel()!\n\n",
 	   channum);
     exit(1);
   }
-  bit = (decreasing_freqs_st) ? numchan_st - 1 - channum : channum;
-  for (ii=0; ii<numblocks*ptsperblk_st; ii++)
-    chandat[ii] = (float) GET_BIT(rawdata + ii * bytesperpt_st, bit);
+  /* Select the correct channel */
+  for (ii=0, jj=channum; 
+       ii<numblocks*ptsperblk_st; 
+       ii++, jj+=numchan_st)
+    chandat[ii] = rawdata[jj];
 }
 
 
@@ -486,7 +471,7 @@ int prep_GMRT_subbands(unsigned char *rawdata, float *data,
   int ii, jj, trtn, offset;
   double starttime=0.0;
   static unsigned char *tempzz;
-  static unsigned char rawdata1[SAMPPERBLK], rawdata2[SAMPPERBLK]; 
+  static unsigned char rawdata1[MAXNUMCHAN*BLOCKLEN], rawdata2[MAXNUMCHAN*BLOCKLEN]; 
   static unsigned char *currentdata, *lastdata, *move;
   static int firsttime=1, move_size=0, mask=0;
   static double timeperblk=0.0;
@@ -503,18 +488,13 @@ int prep_GMRT_subbands(unsigned char *rawdata, float *data,
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
       if (*nummasked==-1) /* If all channels are masked */
-	memset(rawdata, padval, DATLEN);
-    }
-    for (ii=0; ii<ptsperblk_st; ii++)
-      convert_GMRT_point(rawdata + ii * bytesperpt_st, 
-			 currentdata + ii * numchan_st);
-    if (*nummasked > 0){ /* Only some of the channels are masked */
-      for (ii=0; ii<*nummasked; ii++)
-	chanmask[ii] = maskchans[ii] & 0x01;
-      for (ii=0; ii<ptsperblk_st; ii++){
-	offset = ii * numchan_st;
-	for (jj=0; jj<*nummasked; jj++)
-	  currentdata[offset+maskchans[jj]] = chanmask[jj];
+	memset(currentdata, padval, ptsperblk_st);
+      if (*nummasked > 0){ /* Only some of the channels are masked */
+	for (ii=0; ii<ptsperblk_st; ii++){
+	  offset = ii * numchan_st;
+	  for (jj=0; jj<*nummasked; jj++)
+	    currentdata[offset+maskchans[jj]] = padval;
+	}
       }
     }
     SWAP(currentdata, lastdata);
@@ -524,22 +504,18 @@ int prep_GMRT_subbands(unsigned char *rawdata, float *data,
 
   /* Read, convert and de-disperse */
 
+  memcpy(currentdata, rawdata, sampperblk_st);
   if (mask){
     starttime = currentblock * timeperblk;
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
     if (*nummasked==-1) /* If all channels are masked */
-      memset(rawdata, padval, DATLEN);
-  }
-  for (ii=0; ii<ptsperblk_st; ii++)
-    convert_GMRT_point(rawdata + ii * bytesperpt_st, 
-		       currentdata + ii * numchan_st);
-  if (*nummasked > 0){ /* Only some of the channels are masked */
-    for (ii=0; ii<*nummasked; ii++)
-      chanmask[ii] = maskchans[ii] & 0x01;
-    for (ii=0; ii<ptsperblk_st; ii++){
-      offset = ii * numchan_st;
-      for (jj=0; jj<*nummasked; jj++)
-	currentdata[offset+maskchans[jj]] = chanmask[jj];
+      memset(currentdata, padval, sampperblk_st);
+    if (*nummasked > 0){ /* Only some of the channels are masked */
+      for (ii=0; ii<ptsperblk_st; ii++){
+	offset = ii * numchan_st;
+	for (jj=0; jj<*nummasked; jj++)
+	  currentdata[offset+maskchans[jj]] = padval;
+      }
     }
   }
   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
@@ -577,27 +553,26 @@ int read_GMRT_subbands(FILE *infiles[], int numfiles, float *data,
 /* to use for masking.  If 'transpose'==0, the data will be kept */
 /* in time order instead of arranged by subband as above.        */
 {
-  GMRT_tapehdr hdr;
   static int firsttime=1;
-  static unsigned char raw[DATLEN];
+  static unsigned char rawdata[MAXNUMCHAN*BLOCKLEN];
   
   if (firsttime){
-    if (!read_GMRT_rawblock(infiles, numfiles, &hdr, raw, padding)){
+    if (!read_GMRT_rawblock(infiles, numfiles, rawdata, padding)){
       printf("Problem reading the raw GMRT data file.\n\n");
       return 0;
     }
-    if (0!=prep_GMRT_subbands(raw, data, dispdelays, numsubbands, 
+    if (0!=prep_GMRT_subbands(rawdata, data, dispdelays, numsubbands, 
 			      transpose, maskchans, nummasked, obsmask)){
       printf("Problem initializing prep_GMRT_subbands()\n\n");
       return 0;
     }
     firsttime = 0;
   }
-  if (!read_GMRT_rawblock(infiles, numfiles, &hdr, raw, padding)){
+  if (!read_GMRT_rawblock(infiles, numfiles, rawdata, padding)){
     printf("Problem reading the raw GMRT data file.\n\n");
     return 0;
   }
-  return prep_GMRT_subbands(raw, data, dispdelays, numsubbands, 
+  return prep_GMRT_subbands(rawdata, data, dispdelays, numsubbands, 
 			    transpose, maskchans, nummasked, obsmask);
 }
 
@@ -643,23 +618,24 @@ void GMRT_hdr_to_inf(char *datfilenm, infodata *idata)
       sscanf(line,  "%*[^:]: %lf\n", &idata->freq);
     } else if (strncmp(line, "Sampling Time   ", 16)==0){
       sscanf(line,  "%*[^:]: %lf\n", &idata->dt);
+      idata->dt /= 1000000.0;  /* Convert from us to s */
     } else if (strncmp(line, "Num bits/sample ", 16)==0){
       continue;
     } else if (strncmp(line, "Data Format     ", 16)==0){
       if (strstr(line, "little")){
 	/* printf("Found 'little'  and %d\n", MACHINE_IS_LITTLE_ENDIAN); */
 	if (MACHINE_IS_LITTLE_ENDIAN)
-	  byteswap_st = 0;
+	  need_byteswap_st = 0;
 	else
-	  byteswap_st = 1;
+	  need_byteswap_st = 1;
       } else {
 	/* printf("Didn't find 'little' and %d\n", MACHINE_IS_LITTLE_ENDIAN); */
 	if (MACHINE_IS_LITTLE_ENDIAN)
-	  byteswap_st = 1;
+	  need_byteswap_st = 1;
 	else
-	  byteswap_st = 0;
+	  need_byteswap_st = 0;
       }
-      /* printf("byteswap_st = %d\n", byteswap_st); */
+      /* printf("need_byteswap_st = %d\n", need_byteswap_st); */
     } else if (strncmp(line, "Polarizations   ", 16)==0){
       sscanf(line,  "%*[^:]: %[^\n]\n", ctmp);
       if (strcmp(ctmp, "Total I")){
@@ -709,33 +685,17 @@ void GMRT_hdr_to_inf(char *datfilenm, infodata *idata)
 }
 
 
-void convert_GMRT_point(unsigned char *bits, unsigned char *bytes)
-/* This routine converts 1 bit digitized data */
-/* into an array of 'numchan' bytes.          */
+void convert_GMRT_block(short *indata, unsigned char *outdata)
+/* This routine converts 16 bit digitized data into bytes */
 {
-  int ii, jj;
+  int ii;
+  short inval;
 
-  if (decreasing_freqs_st){
-    for(ii=bytesperpt_st-1, jj=0; ii>=0; ii--, jj+=8){
-      bytes[jj]   = (bits[ii] >> 0x07) & 0x01;
-      bytes[jj+1] = (bits[ii] >> 0x06) & 0x01;
-      bytes[jj+2] = (bits[ii] >> 0x05) & 0x01;
-      bytes[jj+3] = (bits[ii] >> 0x04) & 0x01;
-      bytes[jj+4] = (bits[ii] >> 0x03) & 0x01;
-      bytes[jj+5] = (bits[ii] >> 0x02) & 0x01;
-      bytes[jj+6] = (bits[ii] >> 0x01) & 0x01;
-      bytes[jj+7] = bits[ii] & 0x01;
-    }
-  } else {
-    for(ii=0, jj=0; ii<bytesperpt_st; ii++, jj+=8){
-      bytes[jj]   = bits[ii] & 0x01;
-      bytes[jj+1] = (bits[ii] >> 0x01) & 0x01;
-      bytes[jj+2] = (bits[ii] >> 0x02) & 0x01;
-      bytes[jj+3] = (bits[ii] >> 0x03) & 0x01;
-      bytes[jj+4] = (bits[ii] >> 0x04) & 0x01;
-      bytes[jj+5] = (bits[ii] >> 0x05) & 0x01;
-      bytes[jj+6] = (bits[ii] >> 0x06) & 0x01;
-      bytes[jj+7] = (bits[ii] >> 0x07) & 0x01;
-    }
+  /* Note:  The LSB is the GPS bit.  The other bit that we throw */
+  /*        away is actually significant.  But we need a byte... */
+
+  for(ii=0; ii<numchan_st*ptsperblk_st; ii++){
+    inval = ~indata[ii] >> 2;
+    outdata[ii] = (inval > 255) ? 255 : inval;
   }
 }

@@ -6,6 +6,7 @@
 #include "multibeam.h"
 #include "bpp.h"
 #include "wapp.h"
+#include "gmrt.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -192,13 +193,11 @@ int main(int argc, char *argv[])
     /* Set-up values if we are using the GMRT Phased Array system */
     if (cmd->gmrtP) {
       printf("GMRT input file information:\n");
-      get_GMRT_file_info(infiles, numfiles, &N, &ptsperblock, &numchan, 
+      get_GMRT_file_info(infiles, argv+1, numfiles, &N, &ptsperblock, &numchan, 
 			 &dt, &T, 1);
       /* Read the first header file and generate an infofile from it */
-      chkfread(&hdr, 1, HDRLEN, infiles[0]);
-      rewind(infiles[0]);
-      PKMB_hdr_to_inf(&hdr, &idata);
-      PKMB_update_infodata(numfiles, &idata);
+      GMRT_hdr_to_inf(argv[1], &idata);
+      GMRT_update_infodata(numfiles, &idata);
       /* OBS code for TEMPO for the GMRT */
       strcpy(obs, "GM");
     }
@@ -284,6 +283,8 @@ int main(int argc, char *argv[])
 	strcpy(obs, "MT");
       } else if (!strcmp(idata.telescope, "GBT")) {
 	strcpy(obs, "GB");
+      } else if (!strcmp(idata.telescope, "Celeste")) {
+	strcpy(obs, "CE");
       } else {
 	printf("\nYou need to choose a telescope whose data is in\n");
 	printf("$TEMPO/obsys.dat.  Exiting.\n\n");
@@ -346,7 +347,7 @@ int main(int argc, char *argv[])
       worklen *= ((int)(fabs(dispdt[0])) / worklen) + 1;
     }
 
-  } else {     /* For non Parkes or Effelsberg raw data */
+  } else {     /* For unknown radio raw data (Why is this here?) */
     tobsf = gen_dvect(numchan);
     dispdt = gen_dvect(numchan);
     dispdt[0] = 0.0;
@@ -380,6 +381,10 @@ int main(int argc, char *argv[])
 			   &obsmask, bppifs);
       else if (cmd->wappP)
 	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding, maskchans, &nummasked, 
+			    &obsmask);
+      else if (cmd->gmrtP)
+	numread = read_GMRT(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked, 
 			    &obsmask);
       else
@@ -564,6 +569,10 @@ int main(int argc, char *argv[])
 			   &obsmask, bppifs);
       else if (cmd->wappP)
 	numread = read_WAPP(infiles, numfiles, outdata, worklen, 
+			    dispdt, &padding, maskchans, &nummasked, 
+			    &obsmask);
+      else if (cmd->gmrtP)
+	numread = read_GMRT(infiles, numfiles, outdata, worklen, 
 			    dispdt, &padding, maskchans, &nummasked, 
 			    &obsmask);
       else if (useshorts)
