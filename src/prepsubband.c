@@ -836,16 +836,16 @@ static void write_padding(FILE *outfiles[], int numfiles, float value,
 static int read_subbands(FILE *infiles[], int numfiles, 
 			 float *subbanddata)
 {
-  int ii, jj, index=0, numread=0;
+  int ii, jj, index, numread=0;
   short subsdata[SUBSBLOCKLEN];
 
   for (ii=0; ii<numfiles; ii++){
     numread = chkfread(subsdata, sizeof(short), SUBSBLOCKLEN, infiles[ii]);
-    for (jj=0, index=ii; jj<numread; jj++)
+    for (jj=0, index=ii; jj<numread; jj++, index+=numfiles)
       subbanddata[index] = (float)subsdata[jj];
-    for (jj=numread; jj<SUBSBLOCKLEN; jj++)
+    for (jj=numread; jj<SUBSBLOCKLEN; jj++, index+=numfiles)
       subbanddata[index] = 0.0;
-    index += numfiles;
+    index += numread;
   }
   return numread;
 }
@@ -941,10 +941,11 @@ static int get_data(FILE *infiles[], int numfiles, float **outdata,
       float_dedisp(currentdsdata, lastdsdata, dsworklen, 
 		   cmd->numsub, offsets[ii], 0.0, outdata[ii]);
   } else {
+    /* Input format is sub1[0], sub2[0], sub3[0], ..., sub1[1], sub2[1], sub3[1], ... */
     float infloat;
     for (ii=0; ii<cmd->numsub; ii++){
       for (jj=0; jj<dsworklen; jj++){
-	infloat = lastdsdata[ii*cmd->numsub+jj];
+	infloat = lastdsdata[ii+(cmd->numsub*jj)];
 	subsdata[ii][jj] = (short)infloat;
 	if ((float)subsdata[ii][jj] != infloat)
 	  printf("Warning:  We are incorrectly converting subband data! float = %f  short = %d\n", infloat, subsdata[ii][jj]);
