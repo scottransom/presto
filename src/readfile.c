@@ -9,13 +9,14 @@
 /* #define DEBUG */
 
 #define PAGELEN 32   /* Set the page length to 32 lines */
-#define NUMTYPES 13
+#define NUMTYPES 14
 
 int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
 int DOUBLE_print(long count, char *obj_ptr);
 int FCPLEX_print(long count, char *obj_ptr);
 int DCPLEX_print(long count, char *obj_ptr);
+int SHORT_print(long count, char *obj_ptr);
 int INT_print(long count, char *obj_ptr);
 int LONG_print(long count, char *obj_ptr);
 int RZWCAND_print(long count, char *obj_ptr);
@@ -27,7 +28,7 @@ int WAPPHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 
 typedef enum{
-  BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, INT, LONG, 
+  BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, SHORT, INT, LONG, 
     RZWCAND, BINCAND, POSITION, PKMBHDR, BPPHDR, WAPPHDR
 } rawtypes;
 
@@ -47,6 +48,7 @@ int type_sizes[NUMTYPES] = {
   sizeof(double), \
   sizeof(fcplex), \
   sizeof(dcplex), \
+  sizeof(short), \
   sizeof(int), \
   sizeof(long), \
   sizeof(fourierprops), \
@@ -58,7 +60,7 @@ int type_sizes[NUMTYPES] = {
 };
 
 int objs_at_a_time[NUMTYPES] = {
-  PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 
+  PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, PAGELEN, 
   PAGELEN, 1, 1, PAGELEN, 1, 1, 1 
 };
 
@@ -70,6 +72,7 @@ int (*print_funct_ptrs[NUMTYPES])() = {
   DOUBLE_print, \
   FCPLEX_print, \
   DCPLEX_print, \
+  SHORT_print, \
   INT_print, \
   LONG_print, \
   RZWCAND_print, \
@@ -127,6 +130,7 @@ int main(int argc, char **argv)
   else if (cmd->dblP || cmd->sdblP) index = DOUBLE;
   else if (cmd->fcxP || cmd->sfcxP) index = FCPLEX;
   else if (cmd->dcxP || cmd->sdcxP) index = DCPLEX;
+  else if (cmd->shtP || cmd->sshtP) index = SHORT;
   else if (cmd->igrP || cmd->sigrP) index = INT;
   else if (cmd->lngP || cmd->slngP) index = LONG;
   else if (cmd->rzwP || cmd->srzwP) index = RZWCAND;
@@ -151,6 +155,10 @@ int main(int argc, char **argv)
 	  index = FLOAT;
 	  fprintf(stderr, \
 		  "Assuming the data is floating point.\n\n");
+	if (0 == strcmp(extension, "sdat")){
+	  index = SHORT;
+	  fprintf(stderr, \
+		  "Assuming the data is short integers.\n\n");
 	} else if (0 == strcmp(extension, "fft")){
 	  index = FCPLEX;
 	  fprintf(stderr, \
@@ -330,6 +338,15 @@ int DCPLEX_print(long count, char *obj_ptr)
 
   object = (dcplex *) obj_ptr;
   printf("%9ld:  %20.15g + %20.15g i\n", count, object->r, object->i);
+  return 0;
+}
+
+int SHORT_print(long count, char *obj_ptr)
+{
+  short *object;
+
+  object = (short *) obj_ptr;
+  printf("%9ld:  %6d\n", count, *object);
   return 0;
 }
 
