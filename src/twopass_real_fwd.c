@@ -73,16 +73,16 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     /* Do bb transforms of length n1 */
 
     for (jj=0; jj<bb; jj++)
-      fftwcall(data + jj * n1, n1, -1);
+      COMPLEXFFT(data + jj * n1, n1, -1);
 
     /* Multiply the matrix A(ii,jj) by exp(- 2 pi i jj ii / nn). */
     /* Use recursion formulas from Numerical Recipes.            */
 
     for (jj=0; jj<bb; jj++){
-      theta = -TWOPI * (ii + jj) / (double) (nn >> 1);
-      wr = cos(theta);
-      wi = sin(theta);
-      wtemp = sin(0.5 * theta);
+      delta = -TWOPI * (ii + jj) / (double) (nn >> 1);
+      wr = cos(delta);
+      wi = sin(delta);
+      wtemp = sin(0.5 * delta);
       wpr = -2.0 * wtemp * wtemp;
       wpi = wi;
       kind = jj * n1 + 1;
@@ -149,7 +149,7 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
     /* Do bb transforms of length n2 */
 
     for (jj=0; jj<bb; jj++)
-      fftwcall(data + jj * n2, n2, -1);
+      COMPLEXFFT(data + jj * n2, n2, -1);
 
     /* Transpose the bb (rows) x n2 (cols) block of data */
 
@@ -157,8 +157,6 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
     /* Begin the re-assembly of the realFFT */
 
-    fp1 = sizeof(rawtype) * (ii + 1);        /* File ptr */
-    fp2 = sizeof(rawtype) * (n1 - ii - bb2); /* File ptr */
     for (jj=0; jj<n2; jj++){
 
       /* Start the trig recursion: */
@@ -220,14 +218,14 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
   /* Read the n2 data points */
 
-  for (jj=0, kind=0; jj<n2; jj++, kind+=n1){
-    fseek_multifile(scratch, sizeof(rawtype) * kind, SEEK_SET);
+  for (jj=0; jj<n2; jj++){
+    fseek_multifile(scratch, sizeof(rawtype) * jj * n1, SEEK_SET);
     fread_multifile(data+jj, sizeof(rawtype), 1, scratch);
   }
 
   /* FFT the array: */
 
-  fftwcall(data, n2, -1);
+  COMPLEXFFT(data, n2, -1);
 
   /* Do the special cases of freq=0 and Nyquist freq */
 
@@ -236,8 +234,9 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
   data[0].i = tmp1 - data[0].i;
 
   for (jj=1, kk=n2-1; jj<n2/2; jj++, kk--){
-    wr = cos(delta * n1 * jj);
-    wi = sin(delta * n1 * jj);
+    theta = delta * n1 * jj;
+    wr = cos(theta);
+    wi = sin(theta);
     h1r = 0.5 * (data[jj].r + data[kk].r);
     h1i = 0.5 * (data[jj].i - data[kk].i);
     h2r = 0.5 * (data[jj].i + data[kk].i);
@@ -254,8 +253,8 @@ void realfft_scratch_fwd(multifile* infile, multifile* scratch,
 
   /* Write the n2 data points and clean up */
 
-  for (jj=0, kind=0; jj<n2; jj++, kind+=n1){
-    fseek_multifile(infile, sizeof(rawtype) * kind, SEEK_SET);
+  for (jj=0; jj<n2; jj++){
+    fseek_multifile(infile, sizeof(rawtype) * jj * n1, SEEK_SET);
     fwrite_multifile(data+jj, sizeof(rawtype), 1, infile);
   }
   free(data);
