@@ -93,6 +93,10 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
     for (nn = 0; nn < N; nn++)
       fscanf(infile, "%lf", &t[nn]);
   }
+
+  /* Sort the TOAs */
+
+  qsort(t, N, sizeof(double), compare_doubles); 
   *firsttoa = t[0];
 
   /* Convert the times (if needed) from MJD to seconds from the first TOA */
@@ -108,10 +112,6 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
     for (nn = 0; nn < N; nn++)
       t[nn] = (t[nn] - dtmp) * 86400.0;
   }
-
-  /* Sort and return the TOAs */
-
-  qsort(t, N, sizeof(double), compare_doubles);
   return t;
 }
 
