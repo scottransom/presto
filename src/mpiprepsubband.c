@@ -378,7 +378,8 @@ int main(int argc, char *argv[])
       
       if (cmd->wappP){
 	printf("\nWAPP input file information:\n");
-	get_WAPP_file_info(infiles, cmd->numwapps, numinfiles, cmd->clip,
+	get_WAPP_file_info(infiles, cmd->numwapps, numinfiles, 
+			   cmd->windowP, cmd->clip,
 			   &N, &ptsperblk, &numchan, 
 			   &dt, &T, &idata, 1);
 	get_WAPP_static(&bytesperpt, &bytesperblk, &numifs, &clip_sigma);

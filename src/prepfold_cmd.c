@@ -34,6 +34,8 @@ static Cmdline cmd = {
   /* bcpmP = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
+  /***** -window: Window correlator lags with a Hamming window before FFTing */
+  /* windowP = */ 0,
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
@@ -975,6 +977,13 @@ showOptionValues(void)
     printf("-wapp found:\n");
   }
 
+  /***** -window: Window correlator lags with a Hamming window before FFTing */
+  if( !cmd.windowP ) {
+    printf("-window not found.\n");
+  } else {
+    printf("-window found:\n");
+  }
+
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   if( !cmd.numwappsP ) {
     printf("-numwapps not found.\n");
@@ -1605,7 +1614,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-o outfile] [-pkmb] [-gmrt] [-bcpm] [-wapp] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n\
+ [-o outfile] [-pkmb] [-gmrt] [-bcpm] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n\
     Prepares (if required) and folds raw radio data, standard time series, or events.\n\
            -o: Root of the output file names\n\
                1 char* value\n\
@@ -1613,6 +1622,7 @@ usage(void)
         -gmrt: Raw data in GMRT Phased Array format\n\
         -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n\
         -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n\
+      -window: Window correlator lags with a Hamming window before FFTing\n\
     -numwapps: Number of WAPPs used with contiguous frequencies\n\
                1 int value between 1 and 7\n\
                default: `1'\n\
@@ -1736,7 +1746,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...100 values\n\
-version: 02May03\n\
+version: 25May03\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1779,6 +1789,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-wapp", argv[i]) ) {
       cmd.wappP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-window", argv[i]) ) {
+      cmd.windowP = 1;
       continue;
     }
 

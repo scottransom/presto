@@ -117,7 +117,7 @@ int read_WAPP(FILE *infiles[], int numfiles, float *data, int numpts,
 	      int *nummasked, mask *obsmask, IFs ifs);
 void get_WAPP_channel(int channum, float chandat[], 
 		      unsigned char rawdata[], int numblocks);
-void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, 
+void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, int usewindow,
 			float clipsig, long long *N, int *ptsperblock, 
 			int *numchan, double *dt, double *T, 
 			infodata *idata, int output);

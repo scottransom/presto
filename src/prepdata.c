@@ -235,7 +235,8 @@ int main(int argc, char *argv[])
     /* Set-up values if we are using the Arecibo WAPP */
     if (cmd->wappP) {
       printf("WAPP input file information:\n");
-      get_WAPP_file_info(infiles, cmd->numwapps, numfiles, cmd->clip,
+      get_WAPP_file_info(infiles, cmd->numwapps, numfiles, 
+			 cmd->windowP, cmd->clip,
 			 &N, &ptsperblock, &numchan, 
 			 &dt, &T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);

@@ -431,7 +431,8 @@ int main(int argc, char *argv[])
     } else if (cmd->wappP){
 
       printf("WAPP input file information:\n");
-      get_WAPP_file_info(infiles, cmd->numwapps, numfiles, cmd->clip,
+      get_WAPP_file_info(infiles, cmd->numwapps, numfiles, 
+			 cmd->windowP, cmd->clip,
 			 &local_N, &ptsperrec, &numchan, 
 			 &local_dt, &local_T, &idata, 1);
       WAPP_update_infodata(numfiles, &idata);
@@ -1161,7 +1162,7 @@ int main(int argc, char *argv[])
     
       /* Call TEMPO for the barycentering */
     
-      printf("Generating barycentric corrections...\n");
+      printf("\nGenerating barycentric corrections...\n");
       barycenter(topotimes, barytimes, voverc, numbarypts, \
 		 rastring, decstring, obs, ephem);
     
@@ -1171,7 +1172,7 @@ int main(int argc, char *argv[])
 	search.avgvoverc += voverc[ii];
       search.avgvoverc /= (numbarypts-1.0);
       free(voverc);
-      printf("The average topocentric velocity is %.3g (units of c).\n\n", 
+      printf("The average topocentric velocity is %.4f (units of c).\n\n", 
 	     search.avgvoverc);
       printf("Barycentric folding frequency    (hz)  =  %-.12g\n", f);
       printf("Barycentric folding f-dot      (hz/s)  =  %-.8g\n", fd);
@@ -1255,7 +1256,7 @@ int main(int argc, char *argv[])
 	lodm = cmd->dm - (numdmtrials-1)/2*ddm;
 	if (lodm < 0.0) lodm = 0.0;
 	hidm = lodm + numdmtrials * ddm;
-	printf("\nWill search %d DMs from %.3f to %.3f (ddm = %.4f)\n", 
+	printf("Will search %d DMs from %.3f to %.3f (ddm = %.4f)\n", 
 	       numdmtrials, lodm, hidm, ddm);
       }
     }

@@ -21,6 +21,8 @@ typedef struct s_Cmdline {
   char bcpmP;
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   char wappP;
+  /***** -window: Window correlator lags with a Hamming window before FFTing */
+  char windowP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;
