@@ -164,7 +164,7 @@ prep: meminit timetest bincat
 text: makedata makeinf mjd2cal realfft_4step quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata\
-	patchdata readfile toas2dat
+	patchdata readfile toas2dat bincand taperaw
 
 xwin: psrorbit window plotbincand profile showmulti\
 	prepfold showmulti_dm searchmultidms show_pfd
@@ -310,6 +310,10 @@ search_rzw: search_rzw.o search_rzw_cmd.o
 	$(CC) $(CFLAGS) -o $@ search_rzw.o search_rzw_cmd.o $(EXTRALINK) $(PRESTOLINK) -lm
 	cp $@ ../bin
 
+taperaw: taperaw.o
+	$(CC) $(CFLAGS) -o $@ taperaw.o $(DMALLOCLINK) 
+	cp $@ ../bin
+
 toas2dat: toas2dat.o toas2dat_cmd.o
 	$(CC) $(CFLAGS) -o $@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK) 
 	cp $@ ../bin
@@ -336,7 +340,7 @@ cleaner:  clean
 	rm -f shiftdata patchdata readfile psrorbit window       
 	rm -f plotbincand profile showmulti showmulti_dm show_pfd         
 	rm -f searchmultidms togeomview meminit bincat makewisdom
-	rm -f $(PRESTOLIBNM)
+	rm -f taperaw bincand $(PRESTOLIBNM)
 	cd $(PRESTO)/lib ; rm -f $(PRESTOLIBNM)
 
 squeaky:  cleaner
@@ -350,4 +354,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/bin ; rm -f shiftdata patchdata readfile psrorbit
 	cd $(PRESTO)/bin ; rm -f plotbincand profile showmulti showmulti_dm
 	cd $(PRESTO)/bin ; rm -f searchmultidms togeomview window toas2dat
-	cd $(PRESTO)/bin ; rm -f show_pfd
+	cd $(PRESTO)/bin ; rm -f show_pfd taperaw bincand

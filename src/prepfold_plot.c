@@ -497,15 +497,27 @@ void prepfold_plot(prepfoldinfo *search, int xwin)
     /* Time versus phase */
 
 #ifdef PRINT_PROFILES
-    printf("\n\nprofs = Numeric.asarray([");
-    for (ii = 0; ii < search->npart; ii++){
-      printf("[");
-      for (jj = 0; jj < search->proflen - 1; jj++)
-	printf("%.2f, ", timeprofs[ii * 2 * search->proflen + jj]);
-      if (ii == search->npart - 1)
-	printf("%.2f]])\n\n", timeprofs[ii * 2 * search->proflen + jj]);
-      else
-	printf("%.2f],\n", timeprofs[ii * 2 * search->proflen + jj]);
+    {
+      FILE *proffile;
+      printf("\n\template = Numeric.asarray([");
+      for (ii = 0; ii < search->proflen; ii++){
+	if (ii == search->proflen - 1)
+	  printf("%.2f])\n\n", bestprof[ii]);
+	else
+	  printf("%.2f, ", bestprof[ii]);
+      }
+      printf("\n\nstdevs = Numeric.asarray([");
+      for (ii = 0; ii < search->npart; ii++){
+	if (ii == search->npart - 1)
+	  printf("%.2f])\n\n", sqrt(search->stats[ii].prof_var));
+	else
+	  printf("%.2f, ", sqrt(search->stats[ii].prof_var));
+      }
+      proffile = chkfopen("NGC6544_profs.bin", "wb");
+      for (ii = 0; ii < search->npart; ii++)
+	chkfwrite(timeprofs + ii * 2 * search->proflen, sizeof(float),
+		  search->proflen, proffile);
+      fclose(proffile);
     }
 #endif
 
