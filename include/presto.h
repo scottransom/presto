@@ -98,13 +98,9 @@
 /*    ignore (on each side) when determining local power. */
 #define DELTAAVGBINS  5
 
-/*  Number of bins on each side of the central            */
-/*    freq to sum for finterp                             */
-#define NUMFINTBINS   30
-
-/*  The min number of bins on each side of the central    */
-/*    freq to sum for ffdot (NUMFFDOTBINS >= NUMFINTBINS) */
-#define NUMFFDOTBINS  30
+/*  Number of bins on each side of the central frequency  */
+/*    to sum for Fourier interpolation (low accuracy)     */
+#define NUMFINTBINS   16
 
 /*  Constants used in the interpolation routines          */
 typedef enum {
@@ -504,6 +500,16 @@ fcomplex *read_fcomplex_file(FILE *file, int firstpt, int numpts);
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 
+float *read_float_file(FILE *file, int firstpt, int numpts);
+/* Return a float vector with complex data taken from a file.     */
+/* Argumants:                                                     */
+/*   'file' is a pointer to the file you want to access.          */
+/*   'firstpt' is the number of the first point to get. (0 = 1st  */
+/*       point in the file).  If < 0, the resulting array will    */
+/*       be zero padded.                                          */
+/*   'numpts' is the number of points to get from the file.       */
+/*       If the number of bins to read takes us past the end of   */
+/*       file, the returned vector will be zero padded.           */
 
 /* The following routines are used by the routines above to do         */
 /*   their thing..                                                     */
@@ -929,8 +935,8 @@ void barycenter(double *topotimes, double *barytimes, \
   /* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
   /* is either "DE200" or "DE400".                            */
   
-void search_minifft(fcomplex *minifft, int numminifft, \
-		    float norm, int numcands, float *highpows, \
+void search_minifft(fcomplex *minifft, int numminifft, float norm, \
+		    int harmsum, int numcands, float *highpows, \
 		    float *highfreqs);
   /* This routine searches a short FFT (usually produced using the   */
   /* MiniFFT binary search method) and returns two vectors which     */
@@ -941,6 +947,7 @@ void search_minifft(fcomplex *minifft, int numminifft, \
   /*   'numminifft' is the number of complex points in 'minifft'     */
   /*   'norm' is the value to multiply each pow power by to get      */
   /*      a normalized power spectrum.                               */
+  /*   'harmsum' the number of harmonics to sum during the search.   */
   /*   'numcands' is the length of the returned vectors.             */
   /*   'highpows' a vector containing the 'numcands' highest powers. */
   /*   'highfreqs' a vector containing the 'numcands' frequencies    */

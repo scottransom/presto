@@ -737,6 +737,17 @@ fcomplex *read_fcomplex_file(FILE *file, int firstpt, int numpts);
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 
+float *read_float_file(FILE *file, int firstpt, int numpts);
+/* Return a float vector with complex data taken from a file.     */
+/* Argumants:                                                     */
+/*   'file' is a pointer to the file you want to access.          */
+/*   'firstpt' is the number of the first point to get. (0 = 1st  */
+/*       point in the file).  If < 0, the resulting array will    */
+/*       be zero padded.                                          */
+/*   'numpts' is the number of points to get from the file.       */
+/*       If the number of bins to read takes us past the end of   */
+/*       file, the returned vector will be zero padded.           */
+
 %apply float* IN_1D_FLOAT { float *arr };
 int prune_powers(float *arr, long n, long numsumpows);
 /* Sets powers that are more than PRUNELEV standard devs above */
@@ -1043,8 +1054,8 @@ double doppler(double freq_observed, double voverc);
 
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *minifft };
 %apply float* IN_1D_FLOAT { float *highpows, float *highfreqs };
-void search_minifft(fcomplex *minifft, int numminifft,
-		    float norm, int numcands, float *highpows,
+void search_minifft(fcomplex *minifft, int numminifft, float norm, 
+		    int harmsum, int numcands, float *highpows,
 		    float *highfreqs);
   /* This routine searches a short FFT (usually produced using the   */
   /* MiniFFT binary search method) and returns two vectors which     */
@@ -1055,6 +1066,7 @@ void search_minifft(fcomplex *minifft, int numminifft,
   /*   'numminifft' is the number of complex points in 'minifft'     */
   /*   'norm' is the value to multiply each pow power by to get      */
   /*      a normalized power spectrum.                               */
+  /*   'harmsum' the number of harmonics to sum during the search.   */
   /*   'numcands' is the length of the returned vectors.             */
   /*   'highpows' a vector containing the 'numcands' highest powers. */
   /*   'highfreqs' a vector containing the 'numcands' frequencies    */
