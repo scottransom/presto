@@ -524,6 +524,7 @@ int main(int argc, char *argv[])
       }
       
       if ((datawrote == abs(*diffbinptr)) &&
+	  (numwritten != numread) &&
 	  (totwrote < cmd->numout)){ /* Add/remove a bin */
 	float favg;
 	int skip, nextdiffbin;
