@@ -956,9 +956,8 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 	cpgmtxt("B", 2.5, 0.5, 0.5, "Interval");
       }
     }
+    cpgclos();
   } /* Plot for loop */
-
-  cpgclos();
 
   /* Free our arrays */
     
