@@ -18,6 +18,10 @@ void xyline(int npts, float *x, float *y, const char *xlab, \
 	    const char *ylab, int id);
 void dxyline(int npts, double *x, double *y, const char *xlab, \
 	     const char *ylab, int id);
+void xybinned(int npts, float *x, float *y, const char *xlab, \
+	      const char *ylab, int id);
+void dxybinned(int npts, double *x, double *y, const char *xlab, \
+	       const char *ylab, int id);
 void xyline2lab(int npts, float *x, float *y, float *y2, const char *xlab, \
 		const char *ylab, const char *ylab2, int id);
 void powerplot(int npts, float *freqs, float *amp, float norm, int id);

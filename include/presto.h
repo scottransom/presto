@@ -253,6 +253,21 @@ int z_resp_halfwidth(double z, presto_interp_acc accuracy);
   /*    The result must be multiplied by 2*'numbetween' to get the     */
   /*    length of the array required to hold such a kernel.            */
 
+int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy);
+  /*  Return the approximate kernel half width in FFT bins required    */
+  /*  to achieve a fairly high accuracy correlation based correction   */
+  /*  or interpolation for a Fourier signal with an f-dot that (i.e    */
+  /*  varies linearly in time -- a constant f-dotdot)                  */
+  /*  Arguments:                                                       */
+  /*    'z' is the average Fourier Frequency derivative (# of bins     */
+  /*       the signal smears over during the observation).             */
+  /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
+  /*       Fourier f-dot during the observation).                      */
+  /*    'accuracy' is either LOWACC or HIGHACC.                        */
+  /*  Notes:                                                           */
+  /*    The result must be multiplied by 2*'numbetween' to get the     */
+  /*    length of the array required to hold such a kernel.            */
+
 int bin_resp_halfwidth(double ppsr, orbitparams * orbit);
   /*  Return the approximate kernel half width in FFT bins required    */
   /*  to achieve a fairly high accuracy correlation based correction   */
@@ -285,6 +300,21 @@ fcomplex *gen_z_response(double roffset, int numbetween, double z, \
   /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
   /*    'z' is the Fourier Frequency derivative (# of bins the signal  */
   /*       smears over during the observation).                        */
+  /*    'numkern' is the number of complex points that the kernel will */
+  /*       contain.                                                    */
+
+fcomplex *gen_w_response(double roffset, int numbetween, double z, \
+			 double w, int numkern);
+  /*  Generate the response function for Fourier f-dot interpolation.  */
+  /*  Arguments:                                                       */
+  /*    'roffset' is the offset in Fourier bins for the full response  */
+  /*       (i.e. At this point, the response would equal 1.0)          */
+  /*    'numbetween' is the number of points to interpolate between    */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
+  /*    'z' is the average Fourier Frequency derivative (# of bins     */
+  /*       the signal smears over during the observation).             */
+  /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
+  /*       Fourier f-dot during the observation).                      */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
 
@@ -323,23 +353,26 @@ float get_localpower(fcomplex *data, int numdata, double r);
   /*   'r' is the Fourier frequency in data that we want to   */
   /*      interpolate.                                        */
 
-float get_localpower2d(fcomplex *data, int numdata, double r, \
-		       double z);
-  /* Return the local power level around a specific FFT         */
-  /* frequency and f-dot.                                       */
-  /* Arguments:                                                 */
-  /*   'data' is a pointer to a complex FFT.                    */
-  /*   'numdata' is the number of complex points in 'data'.     */
-  /*   'r' is the Fourier frequency in data that we want to     */
-  /*      interpolate.                                          */
-  /*   'z' is the Fourier Frequency derivative (# of bins the   */
-  /*       signal smears over during the observation).          */
+float get_localpower3d(fcomplex *data, int numdata, double r, \
+		       double z, double w);
+  /* Return the local power level around a specific FFT           */
+  /* frequency, f-dot, and f-dotdot.                              */
+  /* Arguments:                                                   */
+  /*   'data' is a pointer to a complex FFT.                      */
+  /*   'numdata' is the number of complex points in 'data'.       */
+  /*   'r' is the Fourier frequency in data that we want to       */
+  /*      interpolate.                                            */
+  /*   'z' is the Fourier Frequency derivative (# of bins the     */
+  /*       signal smears over during the observation).            */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in the */
+  /*       Fourier f-dot during the observation).                 */
 
-void get_derivs2d(fcomplex *data, int numdata, double r, \
-		  double z, float localpower, rderivs *result);
+void get_derivs3d(fcomplex *data, int numdata, double r, \
+		  double z, double w, float localpower, \
+		  rderivs *result);
   /* Return an rderives structure that contains the power,      */
   /* phase, and their first and second derivatives at a point   */
-  /* in the F/F-dot plane.                                      */  
+  /* in the F/F-dot/F-dortdot volume.                           */  
   /* Arguments:                                                 */
   /*   'data' is a pointer to a complex FFT.                    */
   /*   'numdata' is the number of complex points in 'data'.     */
@@ -347,6 +380,8 @@ void get_derivs2d(fcomplex *data, int numdata, double r, \
   /*      interpolate.                                          */
   /*   'z' is the Fourier Frequency derivative (# of bins the   */
   /*       signal smears over during the observation).          */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in   */
+  /*       the Fourier f-dot during the observation).           */
   /*   'localpower' is the local power level around the signal. */
   /*   'result' is a pointer to an rderivs structure that will  */
   /*       contain the results.                                 */
@@ -768,6 +803,22 @@ fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween, \
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
+fcomplex *corr_rzw_interp(fcomplex *data, int numdata, int numbetween, \
+			  int startbin, double z, double w, int fftlen, \
+			  presto_interp_acc accuracy, int *nextbin);
+  /* This routine uses the correlation method to do a Fourier        */
+  /* complex interpolation of part of the f-fdot-fdotdot volume.     */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'numbetween' is the number of points to interpolate per bin.  */
+  /*   'startbin' is the first bin to use in data for interpolation. */
+  /*   'z' is the fdot to use (z=f-dot*T^2).                         */
+  /*   'w' is the fdotdot to use (z=f-dotdot*T^3).                   */
+  /*   'fftlen' is the # of complex pts in kernel and result.        */
+  /*   'accuracy' is either HIGHACC or LOWACC.                       */
+  /*   'nextbin' will contain the bin number of the first bin not    */
+  /*      interpolated in data.                                      */
 
 void rz_interp(fcomplex *data, int numdata, double r, double z, \
 	       int kern_half_width, fcomplex *ans);
@@ -783,6 +834,20 @@ void rz_interp(fcomplex *data, int numdata, double r, double z, \
   /*   'kern_half_width' is the half-width of the kernel in bins.    */
   /*   'ans' is the complex answer.                                  */
 
+void rzw_interp(fcomplex *data, int numdata, double r, double z, \
+	       double w, int kern_half_width, fcomplex *ans);
+  /* This routine uses the correlation method to do a Fourier        */
+  /* complex interpolation at a single point in the f-fdot plane.    */
+  /* It does the correlations manually. (i.e. no FFTs)               */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'r' is the Fourier frequency in data that we want to          */
+  /*      interpolate.  This can (and should) be fractional.         */
+  /*   'z' is the fdot to use (z=f-dot*T^2 (T is integration time)). */
+  /*   'w' is the fdotdot to use (z=f-dotdot*T^3).                   */
+  /*   'kern_half_width' is the half-width of the kernel in bins.    */
+  /*   'ans' is the complex answer.                                  */
 
 /* In maximize_r.c and maximize_rw.c */
 
@@ -800,6 +865,18 @@ double max_rz_file(FILE *fftfile, double rin, double zin, \
 		   double *rout, double *zout, rderivs * derivs);
 /* Return the Fourier frequency and Fourier f-dot that      */ 
 /* maximizes the power of the candidate in 'fftfile'.       */
+
+double max_rzw_arr(fcomplex *data, int numdata, double rin, double zin, \
+		   double win, double *rout, double *zout, \
+		   double *wout, rderivs * derivs);
+/* Return the Fourier frequency, f-dot, and fdotdot that    */ 
+/* maximizes the power.                                     */
+
+double max_rz_file(FILE *fftfile, double rin, double zin, \
+		   double *rout, double *zout, rderivs * derivs);
+/* Return the Fourier frequency and Fourier f-dot that      */ 
+/* maximizes the power of the candidate in 'fftfile'.       */
+
 
 /* In fold.c */
 
