@@ -138,11 +138,13 @@ int main(int argc, char *argv[])
     if (cmd->toasP){ /* Use TOAs instead of a time series */
       double MJD0=-1.0, firsttoa;
 
-      if (!cmd->secsP && !cmd->daysP && 
-	  cmd->toaoffset != 0.0 && idata.mjd_i) 
+      if (!cmd->secsP && !cmd->daysP && idata.mjd_i) 
 	MJD0 = (double) idata.mjd_i + idata.mjd_f;
-      if (cmd->toaoffset != 0.0) 
+      if (cmd->toaoffset != 0.0){
 	MJD0 = cmd->toaoffset;
+	idata.mjd_i = (int) MJD0;
+	idata.mjd_f = MJD0 - idata.mjd_i;
+      }
       if (!cmd->proflenP){
 	printf("\nYou must specify the number of bins in the profile\n"
 	       "when folding TOAs.  Use the '-n' parameter.\n\n");
@@ -157,7 +159,7 @@ int main(int argc, char *argv[])
       else
 	infiles[0] = chkfopen(cmd->argv[0], "r");
       TOAs = read_toas(infiles[0], cmd->doubleP, cmd->secsP, &numtoas,
-		       MJD0, &firsttoa);
+		       MJD0, idata.N*idata.dt, &firsttoa);
       T = TOAs[numtoas-1];
     } else {
       infiles[0] = chkfopen(cmd->argv[0], "rb");

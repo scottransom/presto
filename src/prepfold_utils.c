@@ -108,7 +108,7 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan)
 
 
 double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
-                  double T0, double *firsttoa)
+                  double T0, double Ttot, double *firsttoa)
 /* This routine reads a set of TOAs from the open file 'infile'.    */
 /* It returns a double precision vector of TOAs in seconds from the */
 /* first TOA.  If 'bin' is true the routine treats the data as      */
@@ -118,8 +118,8 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
 /* TOA is placed in 'firsttoa'.  T0 is the time to use for the zero */
 /* time.  If it is negative it will default to the first TOA.       */
 {
-  int N, nn;
-  double *t, dtmp;
+  int N, nn, goodN=0;
+  double *ts, *goodts, dtmp;
 
   if (bin){
     N = chkfilelen(infile, sizeof(double));
@@ -134,41 +134,64 @@ double *read_toas(FILE *infile, int bin, int sec, int *numtoas,
     }
     N--;
   }
-  *numtoas = N;
 
   /* Allocate the TOA arrays */
 
-  t = (double *)malloc(N * sizeof(double));
+  ts = (double *)malloc(N * sizeof(double));
 
   /* Rewind and read the TOAs for real */
 
   rewind(infile);
   if (bin){
-    fread(t, sizeof(double), N, infile);
+    fread(ts, sizeof(double), N, infile);
   } else {
-    for (nn = 0; nn < N; nn++)
-      fscanf(infile, "%lf", &t[nn]);
+    for (nn=0; nn<N; nn++)
+      fscanf(infile, "%lf", &ts[nn]);
   }
+
+  /* Count how many TOAs are within our range and only keep them */
+
+  if (!sec)
+    Ttot /= 86400.0;
+  for (nn=0; nn<N; nn++)
+    if (ts[nn] >= T0 && ts[nn] < T0+Ttot)
+      goodN++;
+  if (goodN != N){
+    goodts = (double *)malloc(goodN * sizeof(double));
+    goodN = 0;
+    for (nn=0; nn<N; nn++){
+      if (ts[nn] >= T0 && ts[nn] < T0+Ttot){
+	goodts[goodN] = ts[nn];
+	goodN++;
+      }
+    }
+    free(ts);
+    ts = goodts;
+    N = goodN;
+  } else {
+    goodts = ts;
+  }
+  *numtoas = N;
 
   /* Sort the TOAs */
 
-  qsort(t, N, sizeof(double), compare_doubles); 
-  *firsttoa = t[0];
+  qsort(ts, N, sizeof(double), compare_doubles); 
+  *firsttoa = ts[0];
 
   /* Convert the times (if needed) from MJD to seconds from the first TOA */
 
   if (T0 < 0.0)
-    dtmp = t[0];
+    dtmp = ts[0];
   else
     dtmp = T0;
   if (sec){
     for (nn = 0; nn < N; nn++)
-      t[nn] = t[nn] - dtmp;
+      ts[nn] = ts[nn] - dtmp;
   } else {
     for (nn = 0; nn < N; nn++)
-      t[nn] = (t[nn] - dtmp) * 86400.0;
+      ts[nn] = (ts[nn] - dtmp) * 86400.0;
   }
-  return t;
+  return goodts;
 }
 
 
