@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "search_bin" 1 "16Jan00" "Clig-manuals" "Programmer's Manual"
+.TH "search_bin" 1 "19Jan00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -103,14 +103,13 @@ Do not add aliased powers to the harmonic sum.  (Faster but less accurate and se
 Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end
 
-.\" cligPart DESCRIPTION
 .SH DESCRIPTION
-This manual page was generated automagically by clig, the
-Command Line Interface Generator. Actually the programmer
-using clig was supposed to edit this part of the manual
-page after
-generating it with clig, but obviously (s)he didn't.
+This program searches the Fourier transformed time series 
+found in the input file for binary pulsars whose periodicities are
+Doppler shifted to such an extent that their spread-out Fourier power
+forms a set of frequency modulation sidebands.  The frequency of
+modulation is simply the orbital frequency.  The routine outputs
+formatted statistics for the best candidates found in the search
+region.
 
-Sadly enough clig does not yet have the power to pick a good
-program description out of blue air ;-(
-.\" cligPart DESCRIPTION end
+Copyright 1999, Scott M. Ransom (ransom@cfa.harvard.edu)

@@ -208,8 +208,7 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
       offset[ii] = (int) (dispdelays[ii] + 0.5);
     }
     chan_per_subband = numchan / numsubbands;
-    approx_mean = -(numchan / 2 - 1);
-/*     approx_mean = -(chan_per_subband / 2); */
+    approx_mean = -(chan_per_subband / 2);
     firsttime = 0;
   }
 

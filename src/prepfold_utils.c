@@ -199,6 +199,9 @@ void init_prepfoldinfo(prepfoldinfo *in)
   in->npart = 0;
   in->proflen = 0;
   in->numchan = 1;
+  in->ndmfact = 2;
+  in->npfact = 1;
+  in->step = 1;
   in->filenm = NULL;
   in->candnm = NULL;
   in->telescope = NULL;

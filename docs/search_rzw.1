@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "search_rzw" 1 "16Jan00" "Clig-manuals" "Programmer's Manual"
+.TH "search_rzw" 1 "19Jan00" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -83,14 +83,28 @@ Default: `0.0'
 Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end
 
-.\" cligPart DESCRIPTION
 .SH DESCRIPTION
-This manual page was generated automagically by clig, the
-Command Line Interface Generator. Actually the programmer
-using clig was supposed to edit this part of the manual
-page after
-generating it with clig, but obviously (s)he didn't.
+This program searches an FFT found in the input file for pulsars using
+a Fourier domain acceleration search (i.e. Ransom and Eikenberry,
+2000, in prep.).  The search uses a spacing of 0.5 frequency bins in
+the fourier frequency (r) direction and 2 'bins' in the fdot (z)
+direction.
 
-Sadly enough clig does not yet have the power to pick a good
-program description out of blue air ;-(
-.\" cligPart DESCRIPTION end
+The 'zapfile', if present, contains a list of center frequencies (Hz)
+and widths (Hz), which the search routine should ignore (usually these
+are known noise sources in the data).  Lines beginning with '#' are
+ignored.  The example file would be:
+
+# Freq(Hz) Freq-width(Hz)
+.br
+60.0 0.02
+.br
+120.0 0.01
+.br
+
+The routine outputs formatted statistics for the 'ncand' best
+candidates found in the search region.  The routine currently cannot
+search the 'w' dimension.  This may be fixed shortly.
+
+
+Copyright 1999, Scott M. Ransom (ransom@cfa.harvard.edu)

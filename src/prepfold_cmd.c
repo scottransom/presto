@@ -36,6 +36,10 @@ static Cmdline cmd = {
   /* dmP = */ 1,
   /* dm = */ 0,
   /* dmC = */ 1,
+  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
+  /* proflenP = */ 0,
+  /* proflen = */ (int)0,
+  /* proflenC = */ 0,
   /***** -nsub: The number of sub-bands to use for the DM search */
   /* nsubP = */ 1,
   /* nsub = */ 32,
@@ -44,6 +48,18 @@ static Cmdline cmd = {
   /* npartP = */ 1,
   /* npart = */ 64,
   /* npartC = */ 1,
+  /***** -step: The minimum search stepsize over the full integration in profile bins */
+  /* stepP = */ 1,
+  /* step = */ 1,
+  /* stepC = */ 1,
+  /***** -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched */
+  /* npfactP = */ 1,
+  /* npfact = */ 1,
+  /* npfactC = */ 1,
+  /***** -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched */
+  /* ndmfactP = */ 1,
+  /* ndmfact = */ 2,
+  /* ndmfactC = */ 1,
   /***** -p: The nominative folding period (s) */
   /* pP = */ 0,
   /* p = */ (double)0,
@@ -80,10 +96,6 @@ static Cmdline cmd = {
   /* endTP = */ 1,
   /* endT = */ 1.0,
   /* endTC = */ 1,
-  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
-  /* proflenP = */ 0,
-  /* proflen = */ (int)0,
-  /* proflenC = */ 0,
   /***** -psr: Name of pulsar to fold (do not include J or B) */
   /* psrnameP = */ 0,
   /* psrname = */ (char*)0,
@@ -865,6 +877,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
+  if( !cmd.proflenP ) {
+    printf("-n not found.\n");
+  } else {
+    printf("-n found:\n");
+    if( !cmd.proflenC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.proflen);
+    }
+  }
+
   /***** -nsub: The number of sub-bands to use for the DM search */
   if( !cmd.nsubP ) {
     printf("-nsub not found.\n");
@@ -886,6 +910,42 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%d'\n", cmd.npart);
+    }
+  }
+
+  /***** -step: The minimum search stepsize over the full integration in profile bins */
+  if( !cmd.stepP ) {
+    printf("-step not found.\n");
+  } else {
+    printf("-step found:\n");
+    if( !cmd.stepC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.step);
+    }
+  }
+
+  /***** -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched */
+  if( !cmd.npfactP ) {
+    printf("-npfact not found.\n");
+  } else {
+    printf("-npfact found:\n");
+    if( !cmd.npfactC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.npfact);
+    }
+  }
+
+  /***** -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched */
+  if( !cmd.ndmfactP ) {
+    printf("-ndmfact not found.\n");
+  } else {
+    printf("-ndmfact found:\n");
+    if( !cmd.ndmfactC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.ndmfact);
     }
   }
 
@@ -994,18 +1054,6 @@ showOptionValues(void)
       printf("  no values\n");
     } else {
       printf("  value = `%.40g'\n", cmd.endT);
-    }
-  }
-
-  /***** -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period */
-  if( !cmd.proflenP ) {
-    printf("-n not found.\n");
-  } else {
-    printf("-n found:\n");
-    if( !cmd.proflenC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.proflen);
     }
   }
 
@@ -1139,7 +1187,7 @@ void
 usage(void)
 {
   fprintf(stderr, "usage: %s%s", Program, "\
- [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-nsub nsub] [-npart npart] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-n proflen] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
+ [-pkmb] [-ebpp] [-nobary] [-DE405] [-xwin] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-step step] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-rzwcand rzwcand] [-rzwfile rzwfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [--] infile\n\
     Prepares a raw, multichannel, radio data file and folds it looking for the correct dispersion measure.\n\
      -pkmb: Raw data in Parkes Multibeam format\n\
      -ebpp: Raw data in Effelsberg-Berkeley Pulsar Processor format.  CURRENTLY UNSUPPORTED\n\
@@ -1149,12 +1197,23 @@ usage(void)
        -dm: The central DM of the search (cm^-3 pc)\n\
             1 double value between 0 and oo\n\
             default: `0'\n\
+        -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
+            1 int value\n\
      -nsub: The number of sub-bands to use for the DM search\n\
             1 int value between 1 and 512\n\
             default: `32'\n\
     -npart: The number of sub-integrations to use for the period search\n\
             1 int value between 1 and 512\n\
             default: `64'\n\
+     -step: The minimum search stepsize over the full integration in profile bins\n\
+            1 int value between 1 and 10\n\
+            default: `1'\n\
+   -npfact: 2 * npfact * proflen + 1 periods and p-dots will be searched\n\
+            1 int value between 1 and 10\n\
+            default: `1'\n\
+  -ndmfact: 2 * ndmfact * proflen + 1 DMs will be searched\n\
+            1 int value between 1 and 10\n\
+            default: `2'\n\
         -p: The nominative folding period (s)\n\
             1 double value between 0 and oo\n\
        -pd: The nominative period derivative (s/s)\n\
@@ -1180,8 +1239,6 @@ usage(void)
       -end: The folding end time as a fraction of the full obs\n\
             1 double value between 0.0 and 1.0\n\
             default: `1.0'\n\
-        -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
-            1 int value\n\
       -psr: Name of pulsar to fold (do not include J or B)\n\
             1 char* value\n\
   -rzwcand: The candidate number to fold from 'infile'_rzw.cand\n\
@@ -1203,7 +1260,7 @@ usage(void)
      -wdot: Rate of advance of periastron (deg/yr)\n\
             1 double value\n\
             default: `0'\n\
-version: 16Jan00\n\
+version: 19Jan00\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1255,6 +1312,14 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-n", argv[i]) ) {
+      cmd.proflenP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.proflen, 1);
+      cmd.proflenC = i-keep;
+      continue;
+    }
+
     if( 0==strcmp("-nsub", argv[i]) ) {
       cmd.nsubP = 1;
       keep = i;
@@ -1272,6 +1337,36 @@ parseCmdline(int argc, char **argv)
       cmd.npartC = i-keep;
       checkIntLower("-npart", &cmd.npart, cmd.npartC, 512);
       checkIntHigher("-npart", &cmd.npart, cmd.npartC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-step", argv[i]) ) {
+      cmd.stepP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.step, 1);
+      cmd.stepC = i-keep;
+      checkIntLower("-step", &cmd.step, cmd.stepC, 10);
+      checkIntHigher("-step", &cmd.step, cmd.stepC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-npfact", argv[i]) ) {
+      cmd.npfactP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.npfact, 1);
+      cmd.npfactC = i-keep;
+      checkIntLower("-npfact", &cmd.npfact, cmd.npfactC, 10);
+      checkIntHigher("-npfact", &cmd.npfact, cmd.npfactC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-ndmfact", argv[i]) ) {
+      cmd.ndmfactP = 1;
+      keep = i;
+      i = getIntOpt(argc, argv, i, &cmd.ndmfact, 1);
+      cmd.ndmfactC = i-keep;
+      checkIntLower("-ndmfact", &cmd.ndmfact, cmd.ndmfactC, 10);
+      checkIntHigher("-ndmfact", &cmd.ndmfact, cmd.ndmfactC, 1);
       continue;
     }
 
@@ -1352,14 +1447,6 @@ parseCmdline(int argc, char **argv)
       cmd.endTC = i-keep;
       checkDoubleLower("-end", &cmd.endT, cmd.endTC, 1.0);
       checkDoubleHigher("-end", &cmd.endT, cmd.endTC, 0.0);
-      continue;
-    }
-
-    if( 0==strcmp("-n", argv[i]) ) {
-      cmd.proflenP = 1;
-      keep = i;
-      i = getIntOpt(argc, argv, i, &cmd.proflen, 1);
-      cmd.proflenC = i-keep;
       continue;
     }
 

@@ -752,9 +752,13 @@ int main(int argc, char *argv[])
     double *pdprofs, *currentprof;
     foldstats currentstats;
 
+    search.ndmfact = cmd->ndmfact;
+    search.npfact = cmd->npfact;
+    search.step = cmd->step;
+
     /* The number of trials for the P-dot and P searches */
 
-    numtrials = 2 * search.proflen + 1;
+    numtrials = 2 * search.npfact * search.proflen + 1;
 
     /* Initialize a bunch of variables */
 
@@ -770,10 +774,10 @@ int main(int argc, char *argv[])
     
     switch_f_and_p(foldf, foldfd, foldfdd, &po, &pdo, &pddo);
     
-    /* Our P and P-dot steps are the changes that cause the pulse */
-    /* to be delayed 1 bin between the first and last bins.       */
+    /* Our P and P-dot steps are the changes that cause the pulse      */
+    /* to be delayed search.step bins between the first and last bins. */
     
-    dphase = po / search.proflen;
+    dphase = po * search.step / search.proflen;
     pofact = foldf * foldf;
     for (ii = 0; ii < numtrials; ii++){
       pdelay = ii - (numtrials - 1) / 2;
@@ -800,7 +804,7 @@ int main(int argc, char *argv[])
       
       /* Insure that we don't try a dm < 0.0 */
       
-      numdmtrials = 4 * search.proflen + 1;
+      numdmtrials = 2 * search.ndmfact * search.proflen + 1;
       lodm = cmd->dm - (numdmtrials - 1) / 2 * ddm;
       if (lodm < 0.0) lodm = 0.0;
       search.dms = gen_dvect(numdmtrials);
@@ -840,7 +844,7 @@ int main(int argc, char *argv[])
 	  /* Search over the periods */
 
 	  for (kk = 0; kk < numtrials; kk++){
-	    pdelay = kk - (numtrials - 1) / 2;
+	    pdelay = search.step * (kk - (numtrials - 1) / 2);
 	    combine_profs(pdprofs, ddstats, cmd->npart, search.proflen, 
 			  pdelay, currentprof, &currentstats);
 	    if (currentstats.redchi > beststats.redchi){
@@ -855,10 +859,6 @@ int main(int argc, char *argv[])
 	      beststats = currentstats;
 	      memcpy(bestprof, currentprof, sizeof(double) * 
 		     search.proflen);
-printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
-       kk, jj, search.bestdm, search.topo.p1, search.topo.p2, 
-       beststats.redchi);
-
 	    }
 	  }
 	}
@@ -889,7 +889,7 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
 	/* Search over the periods */
 	
 	for (kk = 0; kk < numtrials; kk++){
-	  pdelay = kk - (numtrials - 1) / 2;
+	  pdelay = search.step * (kk - (numtrials - 1) / 2);
 	  combine_profs(pdprofs, search.stats, cmd->npart, search.proflen, 
 			pdelay, currentprof, &currentstats);
 	  if (currentstats.redchi > beststats.redchi){
@@ -903,9 +903,6 @@ printf("%ld %ld:  dm = %f  p = %17.15f   pd = %12.6e  reduced chi = %f\n",
 	    beststats = currentstats;
 	    memcpy(bestprof, currentprof, sizeof(double) * 
 		   search.proflen);
-printf("%ld %ld:  p = %17.15f   pd = %12.6e  reduced chi = %f\n", 
-       kk, jj, search.bary.p1, search.bary.p2, beststats.redchi);
-
 	  }
 	}
       }
