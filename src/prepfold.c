@@ -444,17 +444,19 @@ int main(int argc, char *argv[])
     /* Topocentric and barycentric times of folding epoch data */
 
     if (idata.mjd_i) {
-
       search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
-      barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
-		 decstring, obs, ephem);
 
-      /* Correct the barycentric time for the dispersion delay.     */
-      /* This converts the barycentric time to infinite frequency.  */
-      if (cmd->dm > 0.0){
-	barydispdt = delay_from_dm(cmd->dm, idata.freq + 
-				   (idata.num_chan - 1) * idata.chan_wid);
-	search.bepoch -= (barydispdt / SECPERDAY);
+      if (!cmd->polycofileP && !cmd->timingP && !cmd->parnameP) {
+	barycenter(&search.tepoch, &search.bepoch, &dtmp, 1, rastring,
+		   decstring, obs, ephem);
+	
+	/* Correct the barycentric time for the dispersion delay.     */
+	/* This converts the barycentric time to infinite frequency.  */
+	if (cmd->dm > 0.0){
+	  barydispdt = delay_from_dm(cmd->dm, idata.freq + 
+				     (idata.num_chan - 1) * idata.chan_wid);
+	  search.bepoch -= (barydispdt / SECPERDAY);
+	}
       }
     }
     worklen = ptsperrec;
@@ -517,16 +519,18 @@ int main(int argc, char *argv[])
   printf("Output plot file is '%s'.\n", plotfilenm);
   printf("Raw profile file is '%s'.\n", binproffilenm);
   printf("Best profile is in  '%s.bestprof'.\n", outfilenm);
-  if (cmd->timingP && !idata.bary)
-    printf("Polycos used are in '%s.polycos'.\n", outfilenm);
   
   /* Generate polycos if required and set the pulsar name */
-  if (cmd->timingP && !idata.bary){
+  if ((cmd->timingP || cmd->parnameP) && !idata.bary){
     char *polycofilenm;
     cmd->psrnameP = 1;
-    cmd->psrname = make_polycos(cmd->timing, &idata);
+    if (cmd->timingP)
+      cmd->psrname = make_polycos(cmd->timing, &idata);
+    else
+      cmd->psrname = make_polycos(cmd->parname, &idata);
     polycofilenm = (char *)calloc(strlen(outfilenm)+9, sizeof(char));
     sprintf(polycofilenm, "%s.polycos", outfilenm);
+    printf("Polycos used are in '%s'.\n", polycofilenm);
     rename("polyco.dat", polycofilenm);
     cmd->polycofileP = 1;
     cmd->polycofile = (char *)calloc(strlen(polycofilenm)+1, sizeof(char));
@@ -807,7 +811,7 @@ int main(int argc, char *argv[])
       search.orb.t = -search.orb.t/SECPERDAY + search.bepoch;
   }
 
-  if (RAWDATA && cmd->dm==0.0){
+  if (RAWDATA && cmd->dm==0.0 && !cmd->polycofileP){
     /* Correct the barycentric time for the dispersion delay.     */
     /* This converts the barycentric time to infinite frequency.  */
     barydispdt = delay_from_dm(cmd->dm, idata.freq + 
@@ -833,10 +837,10 @@ int main(int argc, char *argv[])
 	      "Pulsar                       =  %s\n", pname);
     if (search.tepoch != 0.0)
       fprintf(filemarker, 
-	      "Folding (topo) epoch  (MJD)  =  %-17.11f\n", search.tepoch);
+	      "Folding (topo) epoch  (MJD)  =  %-17.12f\n", search.tepoch);
     if (search.bepoch != 0.0)
       fprintf(filemarker, 
-	      "Folding (bary) epoch  (MJD)  =  %-17.11f\n", search.bepoch);
+	      "Folding (bary) epoch  (MJD)  =  %-17.12f\n", search.bepoch);
     fprintf(filemarker, 
 	    "Data pt duration (dt)   (s)  =  %-.12g\n", search.dt);
     fprintf(filemarker, 
@@ -990,8 +994,9 @@ int main(int argc, char *argv[])
       else
 	chkfileseek(infiles[0], lorec, sizeof(float), SEEK_SET);
     }
-
-    if (!RAWDATA){ /* Data is already barycentered */
+    
+    /* Data is already barycentered or the polycos will take care of the barycentering*/
+    if (!RAWDATA || cmd->polycofileP){
       foldf = f;  foldfd = fd;  foldfdd = fdd;
     } else { /* Correct our fold parameters if we are barycentering */
       double *voverc;
@@ -1103,7 +1108,7 @@ int main(int argc, char *argv[])
 	lodm = cmd->dm - (numdmtrials-1)/2*ddm;
 	if (lodm < 0.0) lodm = 0.0;
 	hidm = lodm + numdmtrials * ddm;
-	printf("Will search %d DMs from %.3f to %.3f (ddm = %.4f)\n\n", 
+	printf("\nWill search %d DMs from %.3f to %.3f (ddm = %.4f)\n", 
 	       numdmtrials, lodm, hidm, ddm);
       }
     }
@@ -1132,6 +1137,8 @@ int main(int argc, char *argv[])
       /* reads per sub-integration */
     
       for (jj = 0; jj < reads_per_part; jj++){
+	double fold_time0;
+
 	if (cmd->pkmbP)
 	  numread = read_PKMB_subbands(infiles, numfiles, data, 
 				       dispdts, cmd->nsub, 1, &padding,
@@ -1175,37 +1182,26 @@ int main(int argc, char *argv[])
 	  if (polyco_phase < 0.0) polyco_phase += 1.0;
 	  /* Calculate the folding frequency at the middle of the current block */
 	  phcalc(idata.mjd_i, mjdf+0.5*proftime/SECPERDAY, &offsetphase, &foldf);
-	  /* Note:  offsetphase is needed because the folding routines */
-	  /* do not count on the starting f0, f1, and f2 _changing_    */
-	  /* during the run.  They use those values to calculate the   */
-	  /* correct starting phase -- which turns out to drift slowly */
-	  /* when using polycos since f0 is changing slowly.           */
-	  /* offsetphase exactly compensates for the drift.            */
-	  offsetphase = polyco_phase - currentsec*foldf;
-	  offsetphase = (offsetphase < 0.0) ? 
-	    1.0 + offsetphase - (int) offsetphase : 
-	    offsetphase - (int) offsetphase;
-	  cmd->phs = orig_cmd_phs + offsetphase;
-	  for (kk=0; kk<cmd->nsub; kk++)
-	    phasesadded[kk] = offsetphase;
+	  cmd->phs = orig_cmd_phs + polyco_phase;
+	  fold_time0 = 0.0;
+	} else {
+	  fold_time0 = parttimes[ii]+jj*proftime;
 	}
 
-	/* frequency sub-bands */
-      
+	/* Fold the frequency sub-bands */
 	for (kk=0; kk<cmd->nsub; kk++)
 	  fold(data+kk*worklen, numread, search.dt, 
-	       parttimes[ii]+jj*proftime, 
-	       search.rawfolds+(ii*cmd->nsub+kk)*search.proflen, 
-	       search.proflen, cmd->phs, 
-	       buffers+kk*search.proflen, 
+	       fold_time0, search.rawfolds+(ii*cmd->nsub+kk)*search.proflen, 
+	       search.proflen, cmd->phs, buffers+kk*search.proflen, 
 	       phasesadded+kk, foldf, foldfd, foldfdd, 
 	       flags, Ep, tp, numdelays, NULL, 
 	       &(search.stats[ii*cmd->nsub+kk]));
 	totnumfolded += numread;
+
       }
 
       /* Write the binary profiles */
-    
+      
       for (kk=0; kk<cmd->nsub; kk++){
 	chkfwrite(&(search.stats[ii * cmd->nsub + kk]), 
 		  sizeof(foldstats), 1, binproffile);
@@ -1547,11 +1543,11 @@ int main(int argc, char *argv[])
     printf("Maximum reduced chi-squared found  =  %-.5f\n", 
 	   beststats.redchi);
     if (cmd->nsub > 1)
-      printf("Best DM  =  %-.4f\n", search.bestdm);
+      printf("Best DM     (pc cm^-3)  =  %-.4f\n", search.bestdm);
     
     /* Convert best params from/to barycentric to/from topocentric */
     
-    if (!RAWDATA){
+    if (!RAWDATA || cmd->polycofileP){
 
       /* Data was barycentered */
 

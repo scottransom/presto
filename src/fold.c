@@ -52,24 +52,8 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
   int ii;
   double addpart, deltaphase;
 
-  /* This is for folding with polycos where the phase can jump */
-  /* to a higher or lower value instantaneously.               */
-  if (*phaseadded > 1.0){
-    printf("Dumping buffer for phase %f\n", *phaseadded);
-    /* Dump the buffer */
-    for (ii=0; ii<numprof; ii++){
-      prof[ii] += buffer[ii];
-      buffer[ii] = 0.0;
-    }
-    *phaseadded -= 1.0;
-    add_to_prof(prof, buffer, numprof, lophase, 
-		partphase, dataval, phaseadded);
-    return;
-  }
-
-  if (*phaseadded < 0.0){
-    printf("Ack!\n");
-  }
+  if (*phaseadded < 0.0 || *phaseadded > 1.0)
+    printf("Ack!  phaseadded is %17.15g in dump_buffer()!\n", *phaseadded);
 
 
   if (lophase >= 1.0)
@@ -79,12 +63,9 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
 
   deltaphase = 1.0 - *phaseadded;
   addpart = dataval * deltaphase / partphase;
-/*   if (deltaphase > 0.0) */
-    add_to_prof(prof, buffer, numprof, lophase, 
-		deltaphase, addpart, phaseadded);
-/*   else */
-/*     printf("1. deltaphase = %g\n", deltaphase); */
-
+  add_to_prof(prof, buffer, numprof, lophase, 
+	      deltaphase, addpart, phaseadded);
+  
   /* Dump the buffer into the profile array */
   /* and reset the buffer array to zeros.   */
 
@@ -100,11 +81,8 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
     lophase -= (int) lophase;
   deltaphase = partphase - deltaphase;
   addpart = dataval - addpart;
-/*   if (deltaphase > 0.0) */
-    add_to_prof(prof, buffer, numprof, lophase, 
-		deltaphase, addpart, phaseadded);
-/*   else */
-/*     printf("2. deltaphase = %g\n", deltaphase); */
+  add_to_prof(prof, buffer, numprof, lophase, 
+	      deltaphase, addpart, phaseadded);
 
   /* Return the new value of phaseadded */
 
