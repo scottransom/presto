@@ -91,13 +91,28 @@ void strtofilename(char *string)
   } while (ii--);
 }
     
-long next2_to_n(long x)
+long long next2_to_n(long long x)
 /* Return the first value of 2^n >= x */
 {
-  long i = 1;
+  long long i = 1;
   
   while (i < x) i <<= 1;
   return i;
+}
+
+int gcd(int a, int b)
+/* Return the greatest common divisor of a and b */
+{
+  int aa, bb, tmpa;
+
+  aa = abs(a);
+  bb = abs(b);
+  while (a){
+    tmpa = a;
+    a = b % a;
+    b = tmpa;
+  }
+  return b;
 }
 
 

@@ -15,15 +15,6 @@
 #include "dmalloc.h"
 #endif
 
-long long llnext2_to_n(long long x)
-/* Return the first value of 2^n >= x */
-{
-  long long i = 1;
-  
-  while (i < x) i <<= 1;
-  return i;
-}
-
 /*  This program calculates the FFT of a file containing    */
 /*  a number of single-precision floats representing        */
 /*  real numbers.  (i.e. a normal time series)              */
@@ -153,14 +144,13 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-  /* Open and check data and output files */
+  /* Open and check data files */
 
   datfile = fopen_multifile(numfiles, datfilenms, "r", 0);
   for (ii=0; ii<numfiles; ii++){
     if (datfile->filelens[ii] > maxfilelen) 
       maxfilelen = datfile->filelens[ii];
   }
-  outfile = fopen_multifile(numfiles, outfilenms, "w", maxfilelen);
   for (ii=0; ii<numfiles; ii++)
     printf("   %d:  '%s'\n", ii+1, datfile->filenames[ii]);
   numdata = datfile->length / sizeof(float);
@@ -193,26 +183,92 @@ int main(int argc, char *argv[])
 
     /* Make sure the number of points is a power-of-two! */
 
-    if (llnext2_to_n(numdata) != numdata){
-      printf("\nMust have a power-of-two number of points for\n");
-      printf("   an Out-of-Core FFT!  Exiting.\n\n");
-      exit(1);
+/*     if (next2_to_n(numdata) != numdata){ */
+/*       printf("\nMust have a power-of-two number of points for\n"); */
+/*       printf("   an Out-of-Core FFT!  Exiting.\n\n"); */
+/*       exit(1); */
+/*     } */
+
+    /* Copy the input files if we want to keep them */
+
+    if (!cmd->deleteP){
+      int status, maxslen=0, slen, suf;
+      char *cmd, *root, *suffix;
+
+      for (ii=0; ii<datfile->numfiles; ii++){
+	slen = strlen(datfile->filenames[ii]);
+	if (slen > maxslen)
+	  maxslen = slen;
+      }
+      maxslen = 2 * maxslen + 10;
+      cmd = (char *)calloc(maxslen, 1);
+      for (ii=0; ii<datfile->numfiles; ii++){
+	suf = split_root_suffix(datfile->filenames[ii], &root, &suffix);
+	sprintf(cmd, "cp %s %s.bak", datfile->filenames[ii], root);
+	if ((status = (system(cmd))) == -1 || status == 127) {
+	  perror("\nSystem call (cp) failed");
+	  printf("\n");
+	  exit(1);
+	}
+	if (suf) free(suffix);
+	free(root);
+      }
+      free(cmd);
     }
 
+    /* Close the input files and re-open them in write mode */
+
+    fclose_multifile(datfile);
+    datfile = fopen_multifile(numfiles, datfilenms, "r+", 0);
     tmpfile = fopen_multifile(numfiles, tmpfilenms, "w", maxfilelen);
     if (isign==1) {
       realfft_scratch_inv(datfile, tmpfile, numdata);
     } else {
       realfft_scratch_fwd(datfile, tmpfile, numdata);
     }
+
+    /* Remove the scratch files*/
+
     fclose_multifile(tmpfile);
     for (ii=0; ii<numfiles; ii++)
       remove(tmpfilenms[ii]);
-    
+
+    /* Change the output filename to the correct suffix and   */
+    /* rename the back-up data files if needed.               */
+
+    {
+      int maxslen=0, slen, suf;
+      char *file1, *file2, *root, *suffix;
+      
+      for (ii=0; ii<datfile->numfiles; ii++){
+	slen = strlen(datfile->filenames[ii]);
+	if (slen > maxslen)
+	  maxslen = slen;
+      }
+      maxslen = maxslen + 5;
+      file1 = (char *)calloc(maxslen, 1);
+      file2 = (char *)calloc(maxslen, 1);
+      for (ii=0; ii<datfile->numfiles; ii++){
+	suf = split_root_suffix(datfile->filenames[ii], &root, &suffix);
+	if (!cmd->deleteP){
+	  sprintf(file1, "%s.bak", root);
+	  rename(file1, datfile->filenames[ii]);
+	}
+	sprintf(file1, "%s.%s", root, datsuffix);
+	sprintf(file2, "%s.%s", root, outsuffix);
+	rename(file1, file2);
+	if (suf) free(suffix);
+	free(root);
+      }
+      free(file1);
+      free(file2);
+    }
+
   } else {
 
     /* Perform standard FFT for real functions  */
     
+    outfile = fopen_multifile(numfiles, outfilenms, "w", maxfilelen);
     printf("\nPerforming In-Core FFT on data:\n");
     printf("   Reading.\n");
     data = gen_fvect(numdata);
@@ -221,20 +277,20 @@ int main(int argc, char *argv[])
     realfft(data, numdata, isign);
     printf("   Writing.\n");
     fwrite_multifile(data, sizeof(float), numdata, outfile);
+    fclose_multifile(outfile);
+
+    /* Delete the input files if requested */
+  
+    if (cmd->deleteP){
+      for (ii=0; ii<numfiles; ii++)
+	remove(datfilenms[ii]);
+    }
   }
 
-  /* Close our input and output files */
+  /* Close our input files */
 
   fclose_multifile(datfile);
-  fclose_multifile(outfile);
   
-  /* Delete the input files if requested */
-  
-  if (cmd->deleteP){
-    for (ii=0; ii<numfiles; ii++)
-      remove(datfilenms[ii]);
-  }
-
   /* Output the timing information */
   
   printf("Finished.\n\n");

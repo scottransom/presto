@@ -4,6 +4,21 @@
 /* This version utilizes a scratch file the same size as the        */
 /*     original data set.                                           */
 
+long long find_blocksize(long long n1, long long n2)
+{
+  long long ii, minb=8, maxb, b=0, b1, b2;
+
+  b1 = Maxblocksize / n1;
+  b2 = Maxblocksize / n2;
+  maxb = (b1 < b2) ? b1 : b2;
+  for (ii=minb; ii<=maxb; ii++){
+    if (!(n1 % ii) && !(n2 % ii))
+      b = ii;
+  }
+  return b;
+}
+
+
 void twopassfft_scratch(multifile* infile, multifile* scratch, \
 			long long nn, int isign)
 {
@@ -20,19 +35,25 @@ void twopassfft_scratch(multifile* infile, multifile* scratch, \
   /* treat the input data as a n1 x n2 matrix */
   /* n2 >= n1 */
 
-  for (n1 = 1, n2 = 0; n1 < nn; n1 <<= 1, n2++);
-  n1 = n2 >> 1;
-  n2 -= n1;
-  
-  n1 = 1 << n1;
-  n2 = 1 << n2;
+  if (nn % 4 != 0){
+    printf("\nLength of FFT in twopassfft_scratch() must be divisible by 4.\n\n");
+    exit(1);
+  }
+  n1 = good_factor(nn / 4) * 2;
+  if (n1 == 0){
+    printf("\nLength of FFT in twopassfft_scratch() must be factorable\n\n");
+    exit(1);
+  }
+  n2 = nn / n1;
+  b = find_blocksize(n1, n2);
+  if (b==0){
+    printf("\nCan't factor the FFT length in twopassfft_scratch()\n");
+    printf("   into useful sizes.\n\n");
+    exit(1);
+  }
 
   /* first do n2 transforms of length n1 */
   /* by fetching n1 x b blocks in memory */
-
-  b = Maxblocksize / n1;
-  if (b > n1)
-    b = n1;
 
   data = gen_rawvect(nn < Maxblocksize ? nn : Maxblocksize);
 
@@ -84,10 +105,6 @@ void twopassfft_scratch(multifile* infile, multifile* scratch, \
 
   /* then do n1 transforms of length n2  */
   /* by fetching n2 x b blocks in memory */
-
-  b = Maxblocksize / n2;
-  if (b > n1)
-    b = n1;
 
   /* transpose scratch space */
 

@@ -209,8 +209,9 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
 /*   'whence' is either SEEK_SET, SEEK_CUR, or SEEK_END. */
 /*   Note:  Return is 0 for success, -1 for failure      */
 {
-  int findex=0;
+  int findex=0, rt;
   long long cumlen=0;
+  fpos_t pos;
 
   if (whence==SEEK_SET){
     mfile->position = offset;
@@ -227,16 +228,25 @@ int fseek_multifile(multifile *mfile, long long offset, int whence)
     mfile->position = 0;
   if (mfile->position > mfile->length) 
     mfile->position = mfile->length;
-  while (cumlen <= mfile->position){
-    cumlen += mfile->filelens[findex];
-    findex++;
+  if (mfile->position == 0){
+    mfile->currentfile = 0;
+    mfile->currentpos = 0;
+  } else {
+    while (cumlen < mfile->position){
+      cumlen += mfile->filelens[findex];
+      findex++;
+    }
+    findex--;
+    mfile->currentfile = findex;
+    mfile->currentpos = mfile->position - 
+      (cumlen - mfile->filelens[findex]);
   }
-  findex--;
-  mfile->currentfile = findex;
-  mfile->currentpos = mfile->position - 
-    (cumlen - mfile->filelens[findex]);
-  return chkfseek(mfile->fileptrs[findex], 
-		  mfile->currentpos, SEEK_SET);
+  pos = (fpos_t) mfile->currentpos;
+  if ((rt = fsetpos(mfile->fileptrs[findex], &pos)) == -1){
+    perror("\nError in fseek_multifile()");
+    printf("\n");
+  }
+  return rt;
 }
 
 void rewind_multifile(multifile *mfile)
