@@ -1,5 +1,5 @@
 #include "accel.h"
-#include "mmaccelsearch_cmd.h"
+#include "accelsearch_cmd.h"
 
 #if defined (__GNUC__)
 #  define inline __inline__
