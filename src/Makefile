@@ -136,6 +136,18 @@ PLOT2DOBJS = powerplot.o xyline.o
 
 all: $(PRESTOLIBNM) text xwin
 
+mpi: mpiprepsubband
+
+mpiprepsubband_utils.o: mpiprepsubband_utils.c 
+	mpicc $(CFLAGS) -c mpiprepsubband_utils.c 
+
+mpiprepsubband.o: mpiprepsubband.c 
+	mpicc $(CFLAGS) -c mpiprepsubband.c 
+
+mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
+	mpicc $(CFLAGS) -o $@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(ATHLON_PRESTOLINK) $(RFFTATHLINK) -lm
+	cp $@ ../bin
+
 prep: meminit timetest bincat
 
 text: makedata makeinf mjd2cal realfft quicklook\

@@ -34,7 +34,7 @@ void get_WAPP_static(int *bytesperpt, int *bytesperblk, float *clip_sigma){
 }
 
 void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-		     int numchan, double clip_sigma, double dt){
+		     int numchan, float clip_sigma, double dt){
   ptsperblk_st = ptsperblk;
   bytesperpt_st = bytesperpt;
   bytesperblk_st = bytesperblk;
