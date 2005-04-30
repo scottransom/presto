@@ -387,6 +387,23 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
     bestidm = 0;
   }
 
+/* This zaps subbands and or parts in the folds */
+#if (0)
+  int part, sub, phase;
+
+  for (part=0; part<search->npart; part++){
+    for (sub=0; sub<search->nsub; sub++){
+      for (phase=0; phase<search->proflen; phase++){
+	if (part == 30 ||
+	    sub > 31)
+	  search->rawfolds[part*(search->proflen*search->nsub) +
+			   sub*search->proflen + 
+			   phase] = 0.0;
+      }
+    }
+  }
+#endif
+
   /* Attempt to make show_pfd work on polyco-folded files */
   if (search->fold.pow==0.0 && ppdot==NULL &&
       bestip==(search->numperiods-1)/2 &&
@@ -698,7 +715,7 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
     /*  Time versus Reduced chisqr */
 
     find_min_max_arr(search->npart+1, timechi, &min, &max);
-    if (1){ /* if 0 skip the chi-squared vs time plot */
+    if (!flags->justprofs){ /* if 0 skip the chi-squared vs time plot */
       if (search->nsub > 1)
 	cpgsvp (0.27, 0.36, 0.09, 0.68);
       else
@@ -708,14 +725,14 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
       cpgbox ("BCNST", 0.0, 0, "BST", 0.0, 0);
       cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
       cpgline(search->npart+1, timechi, parttimes);
+      cpgswin(1.1 * max, 0.0, search->startT-0.0001, search->endT+0.0001);
+      if (search->nsub > 1)
+	cpgsch(0.7);
+      cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
+      cpgmtxt("R", 2.3, 0.5, 0.5, "Fraction of Observation");
+      if (search->nsub > 1)
+	cpgsch(0.8);
     }
-    cpgswin(1.1 * max, 0.0, search->startT-0.0001, search->endT+0.0001);
-    if (search->nsub > 1)
-      cpgsch(0.7);
-    cpgbox ("", 0.0, 0, "CMST", 0.0, 0);
-    cpgmtxt("R", 2.3, 0.5, 0.5, "Fraction of Observation");
-    if (search->nsub > 1)
-      cpgsch(0.8);
 
     /* Combined best profile */
 
@@ -736,13 +753,15 @@ void prepfold_plot(prepfoldinfo *search, plotflags *flags, int xwin, float *ppdo
       phasetwo = gen_freqs(2*search->proflen, 0.0, 1.0/search->proflen);
       cpgline(2 * search->proflen, phasetwo, bestprof);
       free(phasetwo);
-      cpgsls(4);
-      avg[0] = avg[1] = beststats.prof_avg;
-      cpgline(2, x, avg);
-      cpgsls(1);
-      errlen = sqrt(beststats.prof_var);
-      cpgerrb(6, 1, &errx, &erry, &errlen, 2);
-      cpgpt(1, &errx, &erry, 5);
+      if (!flags->justprofs){
+	cpgsls(4);
+	avg[0] = avg[1] = beststats.prof_avg;
+	cpgline(2, x, avg);
+	cpgsls(1);
+	errlen = sqrt(beststats.prof_var);
+	cpgerrb(6, 1, &errx, &erry, &errlen, 2);
+	cpgpt(1, &errx, &erry, 5);
+      }
     }
 
     if (!flags->justprofs){
