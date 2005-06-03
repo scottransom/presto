@@ -22,3 +22,4 @@ int read_GMRT_subbands(FILE *infiles[], int numfiles, float *data,
 		       mask *obsmask);
 void GMRT_hdr_to_inf(char *datfilenm, infodata *idata);
 void convert_GMRT_block(short *indata, unsigned char *outdata);
+void convert_GMRT_block_8bit(unsigned char *indata, unsigned char *outdata);

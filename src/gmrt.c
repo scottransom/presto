@@ -8,7 +8,7 @@
 /* All of the following have an _st to indicate static */
 static long long numpts_st[MAXPATCHFILES], padpts_st[MAXPATCHFILES], N_st;
 static int numblks_st[MAXPATCHFILES], need_byteswap_st=0, sampperblk_st;
-static int numchan_st, ptsperblk_st, bytesperpt_st=2, bytesperblk_st;
+static int numchan_st, ptsperblk_st, bytesperpt_st, bytesperblk_st;
 static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
@@ -19,6 +19,12 @@ static unsigned char databuffer[MAXNUMCHAN*BLOCKLEN];
 static int currentfile, currentblock;
 static int bufferpts=0, padnum=0, shiftbuffer=1;
 static float clip_sigma_st=0.0;
+static unsigned char cdatabuffer[MAXNUMCHAN*BLOCKLEN];
+static int sb_flag;
+static int bitshift=2;
+static int bits;
+static char badch[100];
+
 
 
 void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma){
@@ -256,69 +262,161 @@ int read_GMRT_rawblock(FILE *infiles[], int numfiles,
     return 0;
 
   /* First, attempt to read data from the current file */
-  
-  if (chkfread(sdatabuffer, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
-    /* See if we need to byte-swap and if so, doit */
-    if (need_byteswap_st){
-      short *sptr = sdatabuffer;
-      for (ii=0; ii<sampperblk_st; ii++, sptr++)
-	*sptr = swap_short(*sptr);
-    }
-    convert_GMRT_block(sdatabuffer, dataptr);
-    *padding = 0;
-    /* Put the new data into the databuffer if needed */
-    if (bufferpts)
-      memcpy(data, databuffer, sampperblk_st);
-    currentblock++;
-    return 1;
-  } else { /* Didn't get data */
-    if (feof(infiles[currentfile])){  /* End of file? */
-      numtopad = padpts_st[currentfile] - padnum;
-      if (numtopad){  /* Pad the data? */
-	*padding = 1;
-	if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
-	  if (bufferpts){  /* Buffer the padding? */
-	    /* Add the amount of padding we need to */
-	    /* make our buffer offset = 0           */
-	    numtopad = ptsperblk_st - bufferpts;
-	    memset(dataptr, padval, numtopad*numchan_st);
-	    /* Copy the new data/padding into the output array */
-	    memcpy(data, databuffer, sampperblk_st);
-	    bufferpts = 0;
-	  } else {  /* Add a full record of padding */
-	    numtopad = ptsperblk_st;
-	    memset(data, padval, sampperblk_st);
-	  }
-	  padnum += numtopad;
-	  currentblock++;
-	  /* If done with padding reset padding variables */
-	  if (padnum==padpts_st[currentfile]){
-	    padnum = 0;
-	    currentfile++;
-	  }
-	  return 1;
-	} else {  /* Need < 1 block (or remaining block) of padding */
-	  int pad;
-	  /* Add the remainder of the padding and */
-	  /* then get a block from the next file. */
-          memset(databuffer+bufferpts*numchan_st, 
-		 padval, numtopad*numchan_st);
-	  bufferpts += numtopad;
-	  padnum = 0;
-	  shiftbuffer = 0;
-	  currentfile++;
-	  return read_GMRT_rawblock(infiles, numfiles, data, &pad);
-	}
-      } else {  /* No padding needed.  Try reading the next file */
-	currentfile++;
-	shiftbuffer = 0;
-	return read_GMRT_rawblock(infiles, numfiles, data, padding);
+  if (bits == 16) { 
+    if (chkfread(sdatabuffer, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
+      /* See if we need to byte-swap and if so, doit */
+      if (need_byteswap_st){
+        short *sptr = sdatabuffer;
+        for (ii=0; ii<sampperblk_st; ii++, sptr++)
+	  *sptr = swap_short(*sptr);
       }
-    } else {
-      printf("\nProblem reading record from GMRT data file:\n");
-      printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
-	     currentfile, currentblock);
-      exit(1);
+      convert_GMRT_block(sdatabuffer, dataptr);
+
+/*********************************************************************************/
+/*    this is simply copied from wapp.c to provide the clip option...  Sarala 9 May 05 */
+      /* Clip nasty RFI if requested */
+      if (clip_sigma_st > 0.0)
+        clip_times(dataptr, ptsperblk_st, numchan_st, 
+		   clip_sigma_st, padvals);
+
+/*********************************************************************************/
+      *padding = 0;
+
+      /* Put the new data into the databuffer if needed */
+      if (bufferpts)
+        memcpy(data, databuffer, sampperblk_st);
+      currentblock++;
+      return 1;
+    } else { /* Didn't get data */
+      if (feof(infiles[currentfile])){  /* End of file? */
+        numtopad = padpts_st[currentfile] - padnum;
+        if (numtopad){  /* Pad the data? */
+	  *padding = 1;
+	  if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
+	    if (bufferpts){  /* Buffer the padding? */
+	      /* Add the amount of padding we need to */
+	      /* make our buffer offset = 0           */
+	      numtopad = ptsperblk_st - bufferpts;
+	      memset(dataptr, padval, numtopad*numchan_st);
+	      /* Copy the new data/padding into the output array */
+	      memcpy(data, databuffer, sampperblk_st);
+	      bufferpts = 0;
+	    } else {  /* Add a full record of padding */
+	      numtopad = ptsperblk_st;
+	      memset(data, padval, sampperblk_st);
+	    }
+	    padnum += numtopad;
+	    currentblock++;
+	    /* If done with padding reset padding variables */
+	    if (padnum==padpts_st[currentfile]){
+	      padnum = 0;
+	      currentfile++;
+	    }
+	    return 1;
+	  } else {  /* Need < 1 block (or remaining block) of padding */
+	    int pad;
+	    /* Add the remainder of the padding and */
+	    /* then get a block from the next file. */
+            memset(databuffer+bufferpts*numchan_st, 
+		   padval, numtopad*numchan_st);
+	    bufferpts += numtopad;
+	    padnum = 0;
+	    shiftbuffer = 0;
+	    currentfile++;
+	    return read_GMRT_rawblock(infiles, numfiles, data, &pad);
+	  }
+        } else {  /* No padding needed.  Try reading the next file */
+	  currentfile++;
+	  shiftbuffer = 0;
+	  return read_GMRT_rawblock(infiles, numfiles, data, padding);
+        }
+      } else {
+        printf("\nProblem reading record from GMRT data file:\n");
+        printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
+	       currentfile, currentblock);
+        exit(1);
+      }
+    }
+  }
+  else{  /* here if handling 8 bit data files */
+
+    /* First, attempt to read data from the current file */
+  
+    if (chkfread(cdatabuffer, bytesperblk_st, 1, infiles[currentfile])){ /* Got Data */
+      /* See if we need to byte-swap and if so, doit */
+/*
+      if (need_byteswap_st){
+          short *sptr = cdatabuffer;
+          for (ii=0; ii<sampperblk_st; ii++, sptr++)
+  	  *sptr = swap_short(*sptr);
+      }
+*/
+      convert_GMRT_block_8bit(cdatabuffer, dataptr);
+
+/*********************************************************************************/
+/*    this is simply copied from wapp.c to provide the clip option...  Sarala 9 May 05 */
+      /* Clip nasty RFI if requested */
+      if (clip_sigma_st > 0.0)
+        clip_times(dataptr, ptsperblk_st, numchan_st, 
+		   clip_sigma_st, padvals);
+
+/*********************************************************************************/
+      *padding = 0;
+
+      /* Put the new data into the databuffer if needed */
+      if (bufferpts)
+        memcpy(data, databuffer, sampperblk_st);
+      currentblock++;
+      return 1;
+    } else { /* Didn't get data */
+      if (feof(infiles[currentfile])){  /* End of file? */
+        numtopad = padpts_st[currentfile] - padnum;
+        if (numtopad){  /* Pad the data? */
+	  *padding = 1;
+	  if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
+	    if (bufferpts){  /* Buffer the padding? */
+	      /* Add the amount of padding we need to */
+	      /* make our buffer offset = 0           */
+	      numtopad = ptsperblk_st - bufferpts;
+	      memset(dataptr, padval, numtopad*numchan_st);
+	      /* Copy the new data/padding into the output array */
+	      memcpy(data, databuffer, sampperblk_st);
+	      bufferpts = 0;
+	    } else {  /* Add a full record of padding */
+	      numtopad = ptsperblk_st;
+	      memset(data, padval, sampperblk_st);
+	    }
+	    padnum += numtopad;
+	    currentblock++;
+	    /* If done with padding reset padding variables */
+	    if (padnum==padpts_st[currentfile]){
+	      padnum = 0;
+	      currentfile++;
+	    }
+	    return 1;
+	  } else {  /* Need < 1 block (or remaining block) of padding */
+	    int pad;
+	    /* Add the remainder of the padding and */
+	    /* then get a block from the next file. */
+            memset(databuffer+bufferpts*numchan_st, 
+		   padval, numtopad*numchan_st);
+	    bufferpts += numtopad;
+	    padnum = 0;
+	    shiftbuffer = 0;
+	    currentfile++;
+	    return read_GMRT_rawblock(infiles, numfiles, data, &pad);
+	  }
+        } else {  /* No padding needed.  Try reading the next file */
+	  currentfile++;
+	  shiftbuffer = 0;
+	  return read_GMRT_rawblock(infiles, numfiles, data, padding);
+        }
+      } else {
+        printf("\nProblem reading record from GMRT data file:\n");
+        printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
+	       currentfile, currentblock);
+        exit(1);
+      }
     }
   }
 }
@@ -571,7 +669,7 @@ int read_GMRT_subbands(FILE *infiles[], int numfiles, float *data,
     firsttime = 0;
   }
   if (!read_GMRT_rawblock(infiles, numfiles, rawdata, padding)){
-    /* printf("Problem reading the raw GMRT data file.\n\n"); */
+    printf("Problem reading the raw GMRT data file.\n\n");
     return 0;
   }
   return prep_GMRT_subbands(rawdata, data, dispdelays, numsubbands, 
@@ -616,13 +714,20 @@ void GMRT_hdr_to_inf(char *datfilenm, infodata *idata)
       sscanf(line,  "%*[^:]: %d\n", &idata->num_chan);
     } else if (strncmp(line, "Channel width   ", 16)==0){
       sscanf(line,  "%*[^:]: %lf\n", &idata->chan_wid);
+ /* Flag is made to handle LSB and USB data.... S.Sarala, 25 Apr 2005 */
+      if(idata->chan_wid <0.0) sb_flag = -1; 
+      else sb_flag = 1; 
+      if(idata->chan_wid <0.0) idata->chan_wid = -(idata->chan_wid);
     } else if (strncmp(line, "Frequency Ch.1  ", 16)==0){
       sscanf(line,  "%*[^:]: %lf\n", &idata->freq);
     } else if (strncmp(line, "Sampling Time   ", 16)==0){
       sscanf(line,  "%*[^:]: %lf\n", &idata->dt);
       idata->dt /= 1000000.0;  /* Convert from us to s */
     } else if (strncmp(line, "Num bits/sample ", 16)==0){
-      continue;
+      sscanf(line,  "%*[^:]: %d\n", &bits);
+ /* to handle 16 and 8 bit data.... S.Sarala, 28 May 2005 */
+      if(bits == 16) bytesperpt_st = 2 ; 
+      else bytesperpt_st = 1; 
     } else if (strncmp(line, "Data Format     ", 16)==0){
       if (strstr(line, "little")){
 	/* printf("Found 'little'  and %d\n", MACHINE_IS_LITTLE_ENDIAN); */
@@ -667,6 +772,8 @@ void GMRT_hdr_to_inf(char *datfilenm, infodata *idata)
       continue;
     } else if (strncmp(line, "Bad Channels    ", 16)==0){
       sscanf(line,  "%*[^:]: %[^\n]\n", ctmp);
+    } else if (strncmp(line, "Bit shift value ", 16)==0){
+      sscanf(line,  "%*[^:]: %d\n", &bitshift);
     } else {
       continue;
     }
@@ -679,6 +786,11 @@ void GMRT_hdr_to_inf(char *datfilenm, infodata *idata)
   idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 45 * DEGTORAD);
   strcpy(idata->band, "Radio");
   strcpy(idata->analyzer, "Scott Ransom");
+  strcpy(badch,ctmp);
+  printf("bad channels are %s\n",badch);
+  printf("bit shift value set to %d\n",bitshift);
+  printf("No of bits/sample is %d\n",bits);
+  
   sprintf(idata->notes, "%d antenna observation for Project %s\n"\
 	  "    UT Date at file start = %s\n"\
 	  "    Bad channels: %s\n", numantennas, project, date, ctmp);
@@ -688,16 +800,194 @@ void GMRT_hdr_to_inf(char *datfilenm, infodata *idata)
 
 
 void convert_GMRT_block(short *indata, unsigned char *outdata)
-/* This routine converts 16 bit digitized data into bytes */
+/* This routine converts 16 bit digitized data into bytes      */
+/* Modified to handle both LSB and USB data...                 */
+/* Also included featuring for zeroing bad channels given      */
+/* in hdr file ...                                             */
+/*               S.Sarala  and  Y. Gupta  29 Apr 2005          */
+/* Included the clip option for GMRT data files...             */
+/*               S.Sarala  and  Y. Gupta  9 May 2005           */
 {
-  int ii;
+  int ii,jj;
   short inval;
+  char str[100];
+  char *ptr;
+  int j,k,jump=0;
+  static int firsttime=1, b[20][20], no;
 
   /* Note:  The LSB is the GPS bit.  The other bit that we throw */
   /*        away is actually significant.  But we need a byte... */
 
-  for(ii=0; ii<numchan_st*ptsperblk_st; ii++){
-    inval = ~indata[ii] >> 2;
-    outdata[ii] = (inval > 255) ? 255 : inval;
+  if (firsttime){
+    printf("\n");
+    no=0; /* make sure that it does not crash evenif the bad channel string is empty...*/ 
+    printf("Inside convert_gmrt_block for FIRSTTIME \n");
+    printf("BAD ch. string is %s\n",badch);
+    sscanf(badch,"%d:%s",&no,str);
+
+/*  parsing the string "str" for bands of bad channels   */
+    if (no!=0){  /* if the number of bands of bad channels are zero no need to go through this loop */
+      j=0;
+      ptr=strtok(str, ",");
+      sscanf(ptr,"%d-%d",&b[j][0],&b[j][1]);
+      b[j][1] = (b[j][1]-b[j][0])+1;
+      printf("band # %d : %d %d\n",j+1,b[j][0],b[j][1]);
+  
+      while ( (ptr=strtok(NULL, ",")) != NULL){
+      	j++;
+       	sscanf(ptr,"%d-%d",&b[j][0],&b[j][1]);
+       	b[j][1] = (b[j][1]-b[j][0])+1;
+       	printf("band # %d : %d %d\n",j+1,b[j][0],b[j][1]);
+      }
+    }
+
+    firsttime=0;
   }
+
+  if (sb_flag<0) {                           /*   This Loop handles LSB data  */
+    for(ii=0; ii<numchan_st; ii++){
+      for(j=0;j<no;j++){  
+        if(ii==b[j][0]-1){   /* masking the band of bad channels  */  
+          for(k=ii;k<ii+b[j][1];k++){
+            for(jj=0; jj<ptsperblk_st; jj++)
+              outdata[(jj*numchan_st) + (numchan_st-k-1)] = 0.0;
+          }
+	  ii=ii+b[j][1]-1;
+          jump=1; /* jump is introduced to make sure that ii does not exceed the value 255 */
+        }
+      }
+      if (!jump) {
+          for(jj=0; jj<ptsperblk_st; jj++){
+        	inval = indata[jj*numchan_st+ii] >> bitshift; 
+        	outdata[(jj*numchan_st) + (numchan_st-ii-1)] = (inval > 255) ? 255 : inval;
+          }
+      }
+      else{
+        jump=0;
+      }
+    }
+  }
+  else{ 				/*   This Loop handles USB data   */
+    for(ii=0; ii<numchan_st; ii++){
+      for(j=0;j<no;j++){
+        if(ii==b[j][0]-1) { /* masking the band of bad channels  */
+          for(k=ii;k<ii+b[j][1];k++){
+            for(jj=0; jj<ptsperblk_st; jj++)
+              outdata[jj*numchan_st+k] = 0.0;
+          }
+          ii=ii+b[j][1]-1;
+          jump=1;
+        }
+      }
+      if (!jump) {
+        for(jj=0; jj<ptsperblk_st; jj++){
+          inval = indata[jj*numchan_st+ii] >> bitshift; 
+          outdata[jj*numchan_st+ii] = (inval > 255) ? 255 : inval;
+        }
+      }
+      else{
+        jump=0;
+      }
+    }					/* end of the USB data loop	*/
+  }                                     /* end of the loop covering all chans, all data points */
 }
+
+
+void convert_GMRT_block_8bit(unsigned char *indata, unsigned char *outdata)
+/* This routine is modified to handle both LSB and USB data... */
+/* Modified to handle both LSB and USB data...                 */
+/* Also included featuring for zeroing bad channels given      */
+/* in hdr file...                                              */
+/*               S.Sarala  and  Y. Gupta  29 Apr 2005          */
+/* Included the clip option for GMRT data files...             */
+/*               S.Sarala  and  Y. Gupta  9 May 2005           */
+/*                                                             */
+/* Further modified convert_GMRT_block to work with 8-bit data */
+/* input files...                                              */
+/*               S.Sarala  and  Y. Gupta  20 May 2005	       */
+{
+  int ii,jj;
+  unsigned char inval;
+  char str[100];
+  char *ptr;
+  int j,k,jump=0;
+  static int firsttime=1, b[20][20], no;
+
+  /* Note:  The LSB is the GPS bit.  The other bit that we throw */
+  /*        away is actually significant.  But we need a byte... */
+
+  if (firsttime){
+    printf("\n");
+    no=0; /* make sure that it does not crash evenif the bad channel string is empty...*/ 
+    printf("Inside convert_gmrt_block for FIRSTTIME \n");
+    printf("BAD ch. string is %s\n",badch);
+    sscanf(badch,"%d:%s",&no,str);
+
+/*  parsing the string "str" for bands of bad channels   */
+    if (no!=0){  /* if the number of bands of bad channels are zero no need to go through this loop */
+      j=0;
+      ptr=strtok(str, ",");
+      sscanf(ptr,"%d-%d",&b[j][0],&b[j][1]);
+      b[j][1] = (b[j][1]-b[j][0])+1;
+      printf("band # %d : %d %d\n",j+1,b[j][0],b[j][1]);
+  
+      while ( (ptr=strtok(NULL, ",")) != NULL){
+      	j++;
+       	sscanf(ptr,"%d-%d",&b[j][0],&b[j][1]);
+       	b[j][1] = (b[j][1]-b[j][0])+1;
+       	printf("band # %d : %d %d\n",j+1,b[j][0],b[j][1]);
+      }
+    }
+
+    firsttime=0;
+  }
+
+  if (sb_flag<0) {                           /*   This Loop handles LSB data  */
+    for(ii=0; ii<numchan_st; ii++){
+      for(j=0;j<no;j++){  
+        if(ii==b[j][0]-1){   /* masking the band of bad channels  */  
+          for(k=ii;k<ii+b[j][1];k++){
+            for(jj=0; jj<ptsperblk_st; jj++)
+              outdata[(jj*numchan_st) + (numchan_st-k-1)] = 0.0;
+          }
+	  ii=ii+b[j][1]-1;
+          jump=1; /* jump is introduced to make sure that ii does not exceed the value 255 */
+        }
+      }
+      if (!jump) {
+          for(jj=0; jj<ptsperblk_st; jj++){
+        	inval = indata[jj*numchan_st+ii]; 
+        	outdata[(jj*numchan_st) + (numchan_st-ii-1)] = inval;
+          }
+      }
+      else{
+        jump=0;
+      }
+    }
+  }
+  else{ 				/*   This Loop handles USB data   */
+    for(ii=0; ii<numchan_st; ii++){
+      for(j=0;j<no;j++){
+        if(ii==b[j][0]-1) { /* masking the band of bad channels  */
+          for(k=ii;k<ii+b[j][1];k++){
+            for(jj=0; jj<ptsperblk_st; jj++)
+              outdata[jj*numchan_st+k] = 0.0;
+          }
+          ii=ii+b[j][1]-1;
+          jump=1;
+        }
+      }
+      if (!jump) {
+        for(jj=0; jj<ptsperblk_st; jj++){
+          inval = indata[jj*numchan_st+ii] ; 
+          outdata[jj*numchan_st+ii] = inval;
+        }
+      }
+      else{
+        jump=0;
+      }
+    }					/* end of the USB data loop	*/
+  }                                     /* end of the loop covering all chans, all data points */
+}
+
+
