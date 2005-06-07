@@ -374,7 +374,7 @@ def OMDOT_to_Mtot(OMDOT, porb, e):
         Return the total mass (in solar units) of a system given an advance
         of periastron (OMDOT) in deg/yr.  The opbital period should be in sec.
     """
-    prob /= SECPERDAY
+    porb /= SECPERDAY
     wd = OMDOT/SECPERJULYR*DEGTORAD # rad/s
     return (wd/3.0*(1.0-e*e)*(porb*SECPERDAY/TWOPI)**(5.0/3.0))**(3.0/2.0)/Tsun
 
@@ -752,7 +752,8 @@ def measure_phase_corr(profile, template, zoom=10):
             print "Warning!:  The lengths of the template (%d) and profile (%d)" % \
                   (len(template), len(profile))
             print "           are not the same!"
-    itemp = linear_interpolate(rotate(template, Numeric.argmax(template)), zoomtemp)
+    #itemp = linear_interpolate(rotate(template, Numeric.argmax(template)), zoomtemp)
+    itemp = linear_interpolate(template, zoomtemp)
     iprof = linear_interpolate(profile, zoomprof)
     return maxphase(iprof, itemp)
 
@@ -926,6 +927,75 @@ def gauss_profile_params(profile, output=0):
         print "         Residuals standard deviation  = ", resid_std
         print ""
     return (ret[0][0], ret[0][1], ret[0][2], ret[0][3], resid_avg, resid_std)
+
+def twogauss_profile_params(profile, output=0):
+    """
+    twogauss_profile_params(profile, output=0):
+        Return parameters of a two best-fit gaussians to a profile.
+        The function returns a tuple containg the following values:
+           ret[0] = Best-fit gaussian integrated 'flux'.
+           ret[1] = Best-fit gaussian FWHM.
+           ret[2] = Best-fit gaussian phase (0.0-1.0).
+           ret[3] = Best-fit gaussian integrated 'flux'.
+           ret[4] = Best-fit gaussian FWHM.
+           ret[5] = Best-fit gaussian phase (0.0-1.0).
+           ret[6] = Baseline (i.e. noise) average value.
+           ret[7] = Residuals average value.
+           ret[8] = Residuals standard deviation.
+        If 'output' is true, the fit will be plotted and
+           the return values will be printed.
+    """
+    def yfunct(afpo, n):
+        return afpo[0] * gaussian_profile(n, afpo[2], afpo[1]) + \
+               afpo[3] * gaussian_profile(n, afpo[5], afpo[4]) + afpo[6]
+    def min_funct(afpo, profile):
+        return yfunct(afpo, len(profile)) - profile
+    ret = leastsq(min_funct, [max(profile)-min(profile),
+                              0.05,
+                              Numeric.argmax(profile)/float(len(profile)),
+                              0.2 * max(profile)-min(profile),
+                              0.1,
+                              umath.fmod(Numeric.argmax(profile)/float(len(profile))+0.5, 1.0),
+                              min(profile)], args=(profile))
+    if (output):
+        phases = Numeric.arange(0.0, 1.0,
+                                1.0 / len(profile)) + 0.5 / len(profile)
+        Pgplot.plotxy(profile, phases, rangex=[0.0, 1.0],
+                      labx='Pulse Phase', laby='Pulse Intensity')
+    bestfit = yfunct(ret[0], len(profile))
+    if (output):
+        Pgplot.plotxy(bestfit, phases, color='red')
+        Pgplot.closeplot()
+    residuals = bestfit - profile
+    resid_avg = average(residuals)
+    resid_std = standardDeviation(residuals)
+    if (output):
+        Pgplot.plotxy(residuals, phases, rangex=[0.0, 1.0],
+                      rangey=[min(residuals) - 2 * resid_std,
+                              max(residuals) + 2 * resid_std],
+                      labx='Pulse Phase', laby='Residuals',
+                      line=None, symbol=3)
+        ppgplot.pgerrb(6, phases, residuals,
+                       Numeric.zeros(len(residuals), 'd') + \
+                       resid_std, 2)
+        Pgplot.plotxy([resid_avg, resid_avg], [0.0, 1.0], line=2)
+        Pgplot.closeplot()
+        print ""
+        print "  Best-fit gaussian integrated 'flux'  = ", ret[0][0]
+        print "               Best-fit gaussian FWHM  = ", ret[0][1]
+        print "    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][2]
+        print "  Best-fit gaussian integrated 'flux'  = ", ret[0][3]
+        print "               Best-fit gaussian FWHM  = ", ret[0][4]
+        print "    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][5]
+        print "        Baseline (i.e. noise) average  = ", ret[0][6]
+        print "                    Residuals average  = ", resid_avg
+        print "         Residuals standard deviation  = ", resid_std
+        print ""
+    return (ret[0][0], ret[0][1], ret[0][2], ret[0][3], ret[0][4],
+            ret[0][5], ret[0][6], resid_avg, resid_std)
+
+
+
 
 def estimate_flux_density(profile, N, dt, Ttot, G, BW, prof_stdev, display=0):
     """
