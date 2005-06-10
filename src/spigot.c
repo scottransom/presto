@@ -747,13 +747,15 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
 	    /* Add the amount of padding we need to */
 	    /* make our buffer offset = 0           */
 	    numtopad = ptsperblk_st - bufferpts;
-	    memset(dataptr, padval, numtopad*numchan_st);
+		for (ii=0; ii<numtopad; ii++)
+		  memcpy(dataptr+ii*numchan_st, padvals, numchan_st);
 	    /* Copy the new data/padding into the output array */
 	    memcpy(data, databuffer, sampperblk_st);
 	    bufferpts = 0;
 	  } else {  /* Add a full record of padding */
 	    numtopad = ptsperblk_st;
-	    memset(data, padval, sampperblk_st);
+		for (ii=0; ii<numtopad; ii++)
+		  memcpy(data+ii*numchan_st, padvals, numchan_st);
 	  }
 	  padnum += numtopad;
 	  currentblock++;
@@ -767,8 +769,9 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
 	  int pad;
 	  /* Add the remainder of the padding and */
 	  /* then get a block from the next file. */
-          memset(databuffer+bufferpts*numchan_st, 
-		 padval, numtopad*numchan_st);
+	  for (ii=0; ii<numtopad; ii++)
+		memcpy(databuffer+bufferpts*numchan_st+ii*numchan_st, 
+			   padvals, numchan_st);
 	  bufferpts += numtopad;
 	  padnum = 0;
 	  shiftbuffer = 0;
@@ -776,7 +779,7 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
 	  return read_SPIGOT_rawblock(infiles, numfiles, data, &pad, ifs);
 	}
       } else {  /* No padding needed.  Try reading the next file */
-	currentfile++;
+		currentfile++;
 	shiftbuffer = 0;
 	return read_SPIGOT_rawblock(infiles, numfiles, data, padding, ifs);
       }
@@ -1149,7 +1152,8 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
 {
   int ii, ifnum=0, index=0;
   float *templags=NULL;
-  double power, pfact;
+  double pfact;
+  //double power;
   static int counter=0;
   static double scale_min=9e19, scale_max=-9e19;
 
