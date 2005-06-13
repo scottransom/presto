@@ -76,7 +76,7 @@ def KS_test(data, cumdist, output=0):
     D2 = umath.maximum.reduce(umath.absolute(cumdist(sdata)-
                                              Numeric.arange(1,nn+1, typecode='d')/nn))
     D = max((D1, D2))
-    P = kolmogorov(sqrt(nn)*D)
+    P = kolmogorov(umath.sqrt(nn)*D)
     if (output):
         print "Max distance between the cumulative distributions (D) = %.5g" % D
         print "Prob the data is from the specified distrbution   (P) = %.3g" % P
