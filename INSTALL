@@ -22,6 +22,9 @@ Basic steps to install:
   For Athlon:
   --enable-k7
 
+  For Opteron:
+  --enable-sse
+
   NOTE:  If you will do lots of precessing of WAPP data from
   Arecibo, I have a specially modified verion of FFTW3 that
   computes very fast custom DCTs for converting the correlator
@@ -67,6 +70,10 @@ Basic steps to install:
   all the extra stuff in the 'src' directory.
 
 11.  Go find pulsars.
+
+12.  If you want to use all the python routines, you need Python >=
+  version 2.3, and SciPy.  You can get the latter here:
+  http://www.scipy.org/download/
 
 Platform specific information:
 

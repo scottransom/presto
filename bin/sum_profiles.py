@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import struct, getopt, sys, umath, fftfit, psr_utils, os.path, sinc_interp, Pgplot
 import Numeric as Num
-from Scientific.Statistics import standardDeviation, average, median
+from scipy.stats import std, median
 from infodata import infodata
 from prepfold import pfd
 from polycos import polycos
@@ -49,8 +49,14 @@ usage:  sum_profiles.py [options which must include -t or -g] profs_file
 """
 
 if __name__ == '__main__':
+    # Import Psyco if available
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hb:d:n:g:t:o:",
+	import psyco
+	psyco.full()
+    except ImportError:
+	pass
+    try:
+	opts, args = getopt.getopt(sys.argv[1:], "hb:d:n:g:t:o:",
                                    ["help", "background=", "dm=",
                                     "numbins=", "gaussian=", "template="])
                                     
@@ -166,7 +172,7 @@ if __name__ == '__main__':
         if usestats:
             offpulse_rms = umath.sqrt(current_pfd.varprof)
         else:
-            offpulse_rms = standardDeviation(offpulse)
+            offpulse_rms = std(offpulse)
         newprof /= offpulse_rms
         print "    Approx SNR = %.3f" % sum(newprof)
         
@@ -184,7 +190,7 @@ if __name__ == '__main__':
     # Now normalize, plot, and write the summed profile
     offpulse = Num.take(sumprof, offpulse_inds)
     sumprof -= median(offpulse)
-    sumprof /= standardDeviation(offpulse)
+    sumprof /= std(offpulse)
     print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
     Pgplot.plotxy(sumprof, Num.arange(numbins),
                   labx="Pulse Phase", laby="Relative Flux")

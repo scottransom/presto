@@ -1,9 +1,8 @@
 import Numeric, umath, FFT, Pgplot, ppgplot, bisect, sinc_interp
-from Scientific.Functions.FindRoot import newtonRaphson
-from Scientific.Statistics import average, standardDeviation
-from Scientific.Statistics.Histogram import Histogram
+from scipy.stats import mean, std, histogram
 from scipy.special.cephes import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov
 from scipy.optimize import leastsq
+from scipy.optimize.minpack import bisection
 from psr_constants import *
 
 isintorlong = lambda x: type(x) == type(0) or type(x) == type(0L)
@@ -53,15 +52,16 @@ def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
                data values are used to define the interval.
     Note:  This command also accepts some basic flags for the plot,
            like labx, laby, aspect, color, line, width, and device.
-     """
-    rawh = Histogram(data, bins, range)
-    h = Numeric.transpose(rawh[:])
-    maxy = int(1.1*max(h[1]))
-    if maxy==int(1.1*max(h[1])): maxy += 1
-    Pgplot.plotbinned(h[1], h[0], rangey=[0,maxy], width=width,
+    """
+    (ys, lox, dx, out) = histogram(data, bins, range)
+    xs = Numeric.arange(bins, typecode='d')*dx + lox + 0.5*dx
+    maxy = int(1.1*max(ys))
+    if maxy < max(ys):
+        maxy = max(ys) + 1.0
+    Pgplot.plotbinned(ys, xs, rangey=[0,maxy], width=width,
                       labx=labx, laby=laby, color=color, line=line,
                       aspect=aspect, device=device)
-    return h
+    return (xs, ys)
 
 def KS_test(data, cumdist, output=0):
     """
@@ -310,9 +310,9 @@ def bins_to_accel(rdot, T, f=[1.0, 1000.0], device="/XWIN"):
     else:
         return accels
 
-def companion_mass(pb, x, inc=60.0, mpsr=1.35):
+def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
-    companion_mass(pb, x, inc=60.0, mpsr=1.35):
+    companion_mass(pb, x, inc=60.0, mpsr=1.4):
         Return the companion mass (in solar mass units) for a binary
         system with the following characteristics:
             'pb' is the binary period in sec.
@@ -323,11 +323,11 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.35):
     massfunct = mass_funct(pb, x)
     def localmf(mc, mp=mpsr, mf=massfunct, i=inc*DEGTORAD):
         return (mc*umath.sin(i))**3.0/(mp + mc)**2.0 - mf
-    return newtonRaphson(localmf, 0.0, 1000.0, 0.00000001)
+    return bisection(localmf, 0.0, 1000.0)
         
-def companion_mass_limit(pb, x, mpsr=1.35):
+def companion_mass_limit(pb, x, mpsr=1.4):
     """
-    companion_mass_limit(pb, x, mpsr=1.35):
+    companion_mass_limit(pb, x, mpsr=1.4):
         Return the lower limit (corresponding to i = 90 degrees) of the
         companion mass (in solar mass units) in a binary system with
         the following characteristics:
@@ -905,8 +905,8 @@ def gauss_profile_params(profile, output=0):
         Pgplot.plotxy(bestfit, phases, color='red')
         Pgplot.closeplot()
     residuals = bestfit - profile
-    resid_avg = average(residuals)
-    resid_std = standardDeviation(residuals)
+    resid_avg = mean(residuals)
+    resid_std = std(residuals)
     if (output):
         Pgplot.plotxy(residuals, phases, rangex=[0.0, 1.0],
                       rangey=[min(residuals) - 2 * resid_std,
@@ -967,8 +967,8 @@ def twogauss_profile_params(profile, output=0):
         Pgplot.plotxy(bestfit, phases, color='red')
         Pgplot.closeplot()
     residuals = bestfit - profile
-    resid_avg = average(residuals)
-    resid_std = standardDeviation(residuals)
+    resid_avg = mean(residuals)
+    resid_std = std(residuals)
     if (output):
         Pgplot.plotxy(residuals, phases, rangex=[0.0, 1.0],
                       rangey=[min(residuals) - 2 * resid_std,
