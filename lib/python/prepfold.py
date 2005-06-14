@@ -155,9 +155,9 @@ class pfd:
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
 
-    def dedisperse(self, DM=None, interp=1):
+    def dedisperse(self, DM=None, interp=0):
         """
-        dedisperse(DM=self.bestdm, interp=1):
+        dedisperse(DM=self.bestdm, interp=0):
             Rotate (internally) the profiles so that they are de-dispersed
                 at a dispersion measure of DM.  Use sinc-interpolation if
                 'interp' is non-zero (NOTE: It is _on_ by default!).
@@ -264,42 +264,62 @@ class pfd:
                       device=device)
         Pgplot.closeplot()
 
-    def plot_intervals(self, device='/xwin'):
+    def plot_intervals(self, phasebins='All', device='/xwin'):
         """
-        plot_intervals(self, device='/xwin'):
-            Plot the subband-summed profiles vs time.
+        plot_intervals(self, phasebins='All', device='/xwin'):
+            Plot the subband-summed profiles vs time.  Restrict
+                the bins in the plot to the (low:high) slice defined
+                by the phasebins option if it is a tuple (low,high)
+                instead of the string 'All'. 
         """
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
             self.dedisperse()
-        profs = Num.sum(self.profs, 1)
+        if phasebins is not 'All':
+            lo, hi = phasebins
+            profs = Num.sum(self.profs[:,:,lo:hi], 1)
+            hi += 1
+        else:
+            lo, hi = 0.0, self.proflen
+            profs = Num.sum(self.profs, 1)
         # Use the same scaling as in prepfold_plot.c
         global_max = Num.maximum.reduce(Num.maximum.reduce(profs))
         min_parts = Num.minimum.reduce(profs, 1)
         profs = (profs-min_parts[:,Num.NewAxis])/global_max
-        Pgplot.plot2d(profs, rangex=[0.0,self.proflen], rangey=[0.0, self.npart],
-                      labx="Phase Bins", laby="Time Intervals",
+        Pgplot.plot2d(profs, rangex=[lo, hi], rangey=[0.0, self.npart],
+                      labx="Phase Bins", labx2="Pulse Phase", laby="Time Intervals",
+                      rangex2=Num.asarray([lo, hi])*1.0/self.proflen,
                       laby2="Time (s)", rangey2=[0.0, self.T], 
                       image='antigrey', device=device)
         Pgplot.closeplot()
 
-    def plot_subbands(self, device='/xwin'):
+    def plot_subbands(self, phasebins='All', device='/xwin'):
         """
-        plot_subbands(self, device='/xwin'):
-            Plot the interval-summed profiles vs subband.
+        plot_subbands(self, phasebins='All', device='/xwin'):
+            Plot the interval-summed profiles vs subband.  Restrict
+                the bins in the plot to the (low:high) slice defined
+                by the phasebins option if it is a tuple (low,high)
+                instead of the string 'All'. 
         """
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
             self.dedisperse()
-        profs = Num.sum(self.profs)
+        if phasebins is not 'All':
+            lo, hi = phasebins
+            profs = Num.sum(self.profs[:,:,lo:hi])
+            hi += 1
+        else:
+            lo, hi = 0.0, self.proflen
+            profs = Num.sum(self.profs)
         # Use the same scaling as in prepfold_plot.c
         global_max = Num.maximum.reduce(Num.maximum.reduce(profs))
         min_subs = Num.minimum.reduce(profs, 1)
         profs = (profs-min_subs[:,Num.NewAxis])/global_max
         lof = self.lofreq - 0.5*self.chan_wid
         hif = lof + self.chan_wid*self.numchan
-        Pgplot.plot2d(profs, rangex=[0.0,self.proflen], rangey=[0.0, self.nsub],
-                      labx="Phase Bins", laby="Subbands",
+        Pgplot.plot2d(profs, rangex=[lo, hi], rangey=[0.0, self.nsub],
+                      labx="Phase Bins", labx2="Pulse Phase", laby="Subbands",
+                      rangex2=Num.asarray([lo, hi])*1.0/self.proflen,
                       laby2="Frequency (MHz)", rangey2=[lof, hif],
                       image='antigrey', device=device)
         Pgplot.closeplot()
@@ -331,9 +351,9 @@ class pfd:
         if var is None:  var = self.varprof
         return Num.sum((prof-avg)**2.0/var)/(len(prof)-1.0)
 
-    def plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0):
+    def plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0, device='/xwin'):
         """
-        plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0):
+        plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0, device='/xwin'):
             Plot (and return) an array showing the reduced-chi^2 versus
                 DM (N DMs spanning loDM-hiDM).  Use sinc_interpolation
                 if 'interp' is non-zero.
@@ -369,13 +389,13 @@ class pfd:
             sumprof = Num.sum(profs)
             chis[ii] = self.calc_redchi2(prof=sumprof, avg=avgprof)
         # Now plot it
-        Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d")
+        Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d", device=device)
         Pgplot.closeplot()
         return (chis, DMs)
 
-    def plot_chi2_vs_sub(self):
+    def plot_chi2_vs_sub(self, device='/xwin'):
         """
-        plot_chi2_vs_sub(self):
+        plot_chi2_vs_sub(self, device='/xwin'):
             Plot (and return) an array showing the reduced-chi^2 versus
                 the subband number.
         """
@@ -399,7 +419,7 @@ class pfd:
             chis[ii] = self.calc_redchi2(prof=profs[ii], avg=avgs[ii], var=vars[ii])
         # Now plot it
         Pgplot.plotxy(chis, labx="Subband Number", laby="Reduced-\gx\u2\d",
-                      rangey=[0.0, max(chis)*1.1])
+                      rangey=[0.0, max(chis)*1.1], device=device)
         Pgplot.closeplot()
         return chis
 
@@ -419,6 +439,15 @@ class pfd:
                     prof += psr_utils.rotate(tmpprof, random.randrange(0,self.proflen))
             redchi2s.append(self.calc_redchi2(prof=prof))
         return psr_utils.average(redchi2s)
+
+    def dynamic_spectra(onbins, calibrated=False, plot=True):
+        """
+        dynamic_spectra(onbins, calibrated=False):
+            Return (and plot) the dynamic spectrum resulting from
+            the folds in the .pfd assuming that the pulsar is 'on'
+            during the bins specified in 'onbins' and off elsewhere.
+        """
+        return 0
 
 if __name__ == "__main__":
     import sys
