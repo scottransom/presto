@@ -278,7 +278,6 @@ class pfd:
         if phasebins is not 'All':
             lo, hi = phasebins
             profs = Num.sum(self.profs[:,:,lo:hi], 1)
-            hi += 1
         else:
             lo, hi = 0.0, self.proflen
             profs = Num.sum(self.profs, 1)
@@ -307,7 +306,6 @@ class pfd:
         if phasebins is not 'All':
             lo, hi = phasebins
             profs = Num.sum(self.profs[:,:,lo:hi])
-            hi += 1
         else:
             lo, hi = 0.0, self.proflen
             profs = Num.sum(self.profs)
