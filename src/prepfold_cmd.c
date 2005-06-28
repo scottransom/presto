@@ -1693,7 +1693,7 @@ usage(void)
            -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n\
                1 int value\n\
         -nsub: The number of sub-bands to use for the DM search\n\
-               1 int value between 1 and 1024\n\
+               1 int value between 1 and 2048\n\
                default: `32'\n\
        -npart: The number of sub-integrations to use for the period search\n\
                1 int value between 1 and 2048\n\
@@ -1786,7 +1786,7 @@ usage(void)
                default: `0'\n\
        infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n\
                1...512 values\n\
-version: 27Oct04\n\
+version: 27Jun05\n\
 ");
   exit(EXIT_FAILURE);
 }
@@ -1989,7 +1989,7 @@ parseCmdline(int argc, char **argv)
       cmd.nsubP = 1;
       i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
       cmd.nsubC = i-keep;
-      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 1024);
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 2048);
       checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
       continue;
     }
