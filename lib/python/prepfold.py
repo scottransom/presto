@@ -4,20 +4,7 @@ import struct
 import sys, psr_utils, infodata, polycos, Pgplot, sinc_interp, copy, random
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
-
-class foldstats:
-
-    def __init__(self, intuple):
-        (self.numdata, self.data_avg, self.data_var, self.numprof, \
-         self.prof_avg, self.prof_var, self.redchi) = intuple
-
-    def __str__(self):
-        out = ""
-        for k, v in self.__dict__.items():
-            if k[:2]!="__":
-                out += "%10s = '%s' " % (k, v)
-        out += '\n'
-        return out
+from scipy.io.numpyio import fread
 
 class pfd:
 
@@ -78,9 +65,14 @@ class pfd:
                                                  infile.read(self.numperiods*8)))
         self.pdots = Num.asarray(struct.unpack(swapchar+"d"*self.numpdots, \
                                                infile.read(self.numpdots*8)))
-        self.numprofs = self.nsub*self.npart
-        self.profs = Num.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
-                                               infile.read(self.numprofs*self.proflen*8)))
+	self.numprofs = self.nsub*self.npart
+	if (swapchar=='<'):  # little endian
+	    self.profs = Num.zeros(self.numprofs*self.proflen, typecode='d')
+	    for ii in range(self.numprofs):
+		self.profs[ii*self.proflen:(ii+1)*self.proflen] = fread(infile, self.proflen, 'd')
+	else:
+	    self.profs = Num.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
+	                                           infile.read(self.numprofs*self.proflen*8)))
         self.profs = Num.reshape(self.profs, (self.npart, self.nsub, self.proflen))
         if (self.numchan==1):
             try:
@@ -103,14 +95,20 @@ class pfd:
         self.subdelays_bins = Num.zeros(self.nsub, typecode='d')
         self.killed_subbands = []
         self.killed_intervals = []
-        self.stats = []
         self.pts_per_fold = []
-        for ii in range(self.npart):
-            self.stats.append([])
-            for jj in range(self.nsub):
-                self.stats[ii].append(foldstats(struct.unpack(swapchar+"d"*7, \
-                                                              infile.read(7*8))))
-            self.pts_per_fold.append(self.stats[ii][0].numdata)
+	# Note: a foldstats struct is read in as a group of 7 doubles
+	# the correspond to, in order: 
+	#    numdata, data_avg, data_var, numprof, prof_avg, prof_var, redchi
+        self.stats = Num.zeros((self.npart, self.nsub, 7), typecode='d')
+	for ii in range(self.npart):
+	    currentstats = self.stats[ii]
+	    for jj in range(self.nsub):
+		if (swapchar=='<'):  # little endian
+		    currentstats[jj] = fread(infile, 7, 'd')
+		else:
+		    currentstats[jj] = Num.asarray(struct.unpack(swapchar+"d"*7, \
+				                                 infile.read(7*8)))
+            self.pts_per_fold.append(self.stats[ii][0][0])  # numdata from foldstats
         self.start_secs = umath.add.accumulate([0]+self.pts_per_fold[:-1])*self.dt
         self.pts_per_fold = Num.asarray(self.pts_per_fold)
         self.mid_secs = self.start_secs + 0.5*self.dt*self.pts_per_fold
@@ -264,6 +262,19 @@ class pfd:
                       device=device)
         Pgplot.closeplot()
 
+    def greyscale(self, array2d, **kwargs):
+        """
+        greyscale(array2d, **kwargs):
+            Plot a 2D array as a greyscale image using the same scalings
+                as in prepfold.
+        """
+        # Use the same scaling as in prepfold_plot.c
+        global_max = Num.maximum.reduce(Num.maximum.reduce(array2d))
+        min_parts = Num.minimum.reduce(array2d, 1)
+        array2d = (array2d-min_parts[:,Num.NewAxis])/global_max
+        Pgplot.plot2d(array2d, image='antigrey', **kwargs)
+        Pgplot.closeplot()
+
     def plot_intervals(self, phasebins='All', device='/xwin'):
         """
         plot_intervals(self, phasebins='All', device='/xwin'):
@@ -281,16 +292,11 @@ class pfd:
         else:
             lo, hi = 0.0, self.proflen
             profs = Num.sum(self.profs, 1)
-        # Use the same scaling as in prepfold_plot.c
-        global_max = Num.maximum.reduce(Num.maximum.reduce(profs))
-        min_parts = Num.minimum.reduce(profs, 1)
-        profs = (profs-min_parts[:,Num.NewAxis])/global_max
-        Pgplot.plot2d(profs, rangex=[lo, hi], rangey=[0.0, self.npart],
-                      labx="Phase Bins", labx2="Pulse Phase", laby="Time Intervals",
-                      rangex2=Num.asarray([lo, hi])*1.0/self.proflen,
-                      laby2="Time (s)", rangey2=[0.0, self.T], 
-                      image='antigrey', device=device)
-        Pgplot.closeplot()
+        self.greyscale(profs, rangex=[lo, hi], rangey=[0.0, self.npart],
+                       labx="Phase Bins", labx2="Pulse Phase", laby="Time Intervals",
+                       rangex2=Num.asarray([lo, hi])*1.0/self.proflen,
+                       laby2="Time (s)", rangey2=[0.0, self.T], 
+                       device=device)
 
     def plot_subbands(self, phasebins='All', device='/xwin'):
         """
@@ -309,18 +315,13 @@ class pfd:
         else:
             lo, hi = 0.0, self.proflen
             profs = Num.sum(self.profs)
-        # Use the same scaling as in prepfold_plot.c
-        global_max = Num.maximum.reduce(Num.maximum.reduce(profs))
-        min_subs = Num.minimum.reduce(profs, 1)
-        profs = (profs-min_subs[:,Num.NewAxis])/global_max
         lof = self.lofreq - 0.5*self.chan_wid
         hif = lof + self.chan_wid*self.numchan
-        Pgplot.plot2d(profs, rangex=[lo, hi], rangey=[0.0, self.nsub],
+        self.greyscale(profs, rangex=[lo, hi], rangey=[0.0, self.nsub],
                       labx="Phase Bins", labx2="Pulse Phase", laby="Subbands",
                       rangex2=Num.asarray([lo, hi])*1.0/self.proflen,
                       laby2="Frequency (MHz)", rangey2=[lof, hif],
-                      image='antigrey', device=device)
-        Pgplot.closeplot()
+                      device=device)
 
     def calc_varprof(self):
         """
@@ -333,7 +334,7 @@ class pfd:
             if part in self.killed_intervals: continue
             for sub in range(self.nsub):
                 if sub in self.killed_subbands: continue
-                varprof += self.stats[part][sub].prof_var
+                varprof += self.stats[part][sub][5] # foldstats prof_var
         return varprof
 
     def calc_redchi2(self, prof=None, avg=None, var=None):
@@ -410,7 +411,7 @@ class pfd:
             for part in range(self.npart):
                 if part in self.killed_intervals:
                     continue
-                var += self.stats[part][sub].prof_var
+                var += self.stats[part][sub][5] # foldstats prof_var
             vars.append(var)
         chis = Num.zeros(self.nsub, typecode='f')
         for ii in range(self.nsub):
@@ -437,6 +438,41 @@ class pfd:
                     prof += psr_utils.rotate(tmpprof, random.randrange(0,self.proflen))
             redchi2s.append(self.calc_redchi2(prof=prof))
         return psr_utils.average(redchi2s)
+
+    def adjust_fold_frequency(self, phasebins, profs=None, shiftsubs=False):
+        """
+        adjust_fold_frequency(phasebins, profs=None, shiftsubs=False):
+            Linearly shift the intervals by phasebins over the course of
+                the observation in order to change the apparent folding
+                frequency.  Return a 2D array containing the de-dispersed
+                profiles as a function of time (i.e. shape = (npart, proflen)),
+				and the reduced chi^2 of the resulting summed profile.
+                If profs is not None, then use profs instead of self.profs.
+				If shiftsubs is not False, then actually correct the subbands
+				instead of a 2D projection of them.
+        """
+        if not self.__dict__.has_key('subdelays'):
+            print "Dedispersing first..."
+            self.dedisperse()
+        if shiftsubs:
+            print "Shifting all the subbands..."
+            if profs is None:
+                profs = self.profs
+            for ii in range(self.npart):
+                bins_to_shift = int(round(float(ii)/self.npart * phasebins))
+                for jj in range(self.nsub):
+                    profs[ii,jj] = psr_utils.rotate(profs[ii,jj], bins_to_shift)
+            redchi = self.calc_redchi2(prof=Num.sum(Num.sum(profs)))
+        else:
+            print "Shifting just the projected intervals (not individual subbands)..."
+            if profs is None:
+                profs = Num.sum(self.profs, 1)
+            for ii in range(self.npart):
+                bins_to_shift = int(round(float(ii)/self.npart * phasebins))
+                profs[ii] = psr_utils.rotate(profs[ii], bins_to_shift)
+            redchi = self.calc_redchi2(prof=Num.sum(profs))
+        print "New reduced-chi^2 =", redchi
+        return profs, redchi
 
     def dynamic_spectra(onbins, calibrated=False, plot=True):
         """
