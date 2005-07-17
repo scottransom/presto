@@ -474,14 +474,83 @@ class pfd:
         print "New reduced-chi^2 =", redchi
         return profs, redchi
 
-    def dynamic_spectra(onbins, calibrated=False, plot=True):
+    def dynamic_spectra(self, onbins, combineints=1, combinechans=1,
+                        calibrate=True, plot=True, device='/xwin'):
         """
-        dynamic_spectra(onbins, calibrated=False):
-            Return (and plot) the dynamic spectrum resulting from
-            the folds in the .pfd assuming that the pulsar is 'on'
-            during the bins specified in 'onbins' and off elsewhere.
+        dynamic_spectra(onbins, combineints=1, combinechans=1,
+                        calibrate=True, plot=True, device='/xwin'):
+            Return (and plot) the dynamic spectrum (DS) resulting
+                from the folds in the .pfd assuming that the pulsar
+                is 'on' during the bins specified in 'onbins' and
+                off elsewhere (ON-OFF).  If calibrate is True, the
+                DS will be (ON-OFF)/OFF.  combineints and combinechans
+                describe how many adjacent intervals or frequency
+                channels will be combined when making the DS.
         """
-        return 0
+        # Determine the indices of the off-pulse region
+        indices = Num.arange(self.proflen)
+        Num.put(indices, Num.asarray(onbins), -1)
+        offbins = Num.compress(indices >= 0, Num.arange(self.proflen))
+        numon = len(onbins)
+        numoff = len(offbins)
+        # De-disperse if required first
+        if not self.__dict__.has_key('subdelays'):
+            print "Dedispersing first..."
+            self.dedisperse()
+        # The following is the average offpulse level
+        offpulse = Num.sum(Num.take(self.profs, offbins, 2), 2)/float(numoff)
+        # The following is the average onpulse level
+        onpulse  = Num.sum(Num.take(self.profs,  onbins, 2), 2)/float(numon)
+        # Now make the DS
+        self.DS = onpulse - offpulse
+        self.DSnpart = self.npart
+        self.DSstart_secs = self.start_secs
+        self.DSintdt = self.DSstart_secs[1] - self.DSstart_secs[0]
+        self.DSnsub = self.nsub
+        self.DSsubfreqs = self.subfreqs
+        self.DSsubdeltafreq = self.subdeltafreq
+        if (calibrate):
+            self.DS /= offpulse
+        # Combine intervals if required
+        if (combineints > 1):
+            # First chop off any extra intervals
+            if (self.npart % combineints):
+                self.DSnpart = (self.npart/combineints) * combineints
+                self.DS = self.DS[:self.DSnpart,:]
+            # Now reshape and add the neighboring intervals
+            self.DS = Num.reshape(self.DS, (self.DSnpart/combineints,
+                                            combineints, self.DSnsub))
+            print Num.shape(self.DS)
+            self.DS = Num.sum(self.DS, 1)
+            self.DSstart_secs = self.DSstart_secs[::combineints]
+            self.DSintdt *= combineints
+            self.DSnpart /= combineints
+        # Combine channels if required
+        if (combinechans > 1):
+            # First chop off any extra channels
+            if (self.nsub % combinechans):
+                self.DSnsub = (self.nsub/combinechans) * combinechans
+                self.DS = self.DS[:,:self.DSnsub]
+            # Now reshape and add the neighboring intervals
+            self.DS = Num.reshape(self.DS, (self.DSnpart,
+                                            self.DSnsub/combinechans, combinechans))
+            self.DS = Num.sum(self.DS, 2)
+            self.DSsubfreqs = psr_utils.running_avg(self.subfreqs[:self.DSnsub], combinechans)
+            self.DSsubdeltafreq *= combinechans
+            self.DSnsub /= combinechans
+        print "DS shape = ", Num.shape(self.DS)
+        # Plot it if required
+        if plot:
+            lof = self.subfreqs[0]-0.5*self.DSsubdeltafreq
+            hif = self.subfreqs[-1]+0.5*self.DSsubdeltafreq
+            lot = 0.0
+            hit = self.DSstart_secs[-1] + self.DSintdt
+            self.greyscale(self.DS, rangex=[lof, hif], rangey=[lot, hit],
+                           labx="Frequency (MHz)", labx2="Subband Number",
+                           laby="Time (s)", laby2="Interval Number",
+                           rangex2=[0, self.DSnsub], rangey2=[0, self.DSnpart], 
+                           device=device)
+        return self.DS
 
 if __name__ == "__main__":
     import sys
