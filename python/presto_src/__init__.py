@@ -538,3 +538,20 @@ def measure_phase(profile, template, sigma, fwhm):
     # Solve for a
     a = (p0 - b * s0) / float(N)
     return (tau / TWOPI, tau_err / TWOPI, b, b_err, a)
+
+def get_baryv(ra, dec, mjd, T, obs="PK"):
+   """
+   get_baryv(ra, dec, mjd, T, obs="PK"):
+     Determine the average barycentric velocity towards 'ra', 'dec'
+     during an observation from 'obs'.  The RA and DEC are in the
+     standard string format (i.e. 'hh:mm:ss.ssss' and 'dd:mm:ss.ssss').
+     'T' is in sec and 'mjd' is (of course) in MJD.  The obs variable
+     is the standard two character string from TEMPO:  PK, GB, AO, GM, JB, ...
+   """
+   tts = psr_utils.span(mjd, mjd+T/86400.0, 100)
+   nn = len(tts)
+   bts = Numeric.zeros(nn, 'd')
+   vel = Numeric.zeros(nn, 'd')
+   barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
+   avgvel = Numeric.add.reduce(vel)/nn
+   return avgvel
