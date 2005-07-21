@@ -198,8 +198,14 @@ int main(int argc, char *argv[])
       listptr = cands;
       for (ii=0; ii<numcands; ii++){
 	cand = (accelcand *)(listptr->data);
-	calc_props(cand->derivs[0], cand->hirs[0], cand->hizs[0], 
-		   0.0, props + ii);
+	/* In case the fundamental harmonic is not significant,  */
+	/* send the originally determined r and z from the       */
+	/* harmonic sum in the search.  Note that the derivs are */
+	/* not used for the computations with the fundamental.   */
+	calc_props(cand->derivs[0], cand->r, cand->z, 0.0, props+ii);
+	/* Override the error estimates based on power */
+	props[ii].rerr = (float) (ACCEL_DR)/cand->numharm;
+	props[ii].zerr = (float) (ACCEL_DZ)/cand->numharm;
 	listptr = listptr->next;
       }
       

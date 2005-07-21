@@ -525,7 +525,7 @@ void output_fundamentals(fourierprops *props, GSList *list,
 			  "Accel", ""};
   static char *titles2[]={"Cand", "Sigma", "Power", "Power", "Harm", "(ms)",
 			  "(Hz)", "(bin)", "(Hz/s)", "(bins)", 
-			  "(m/s)", "Notes"};
+			  "(m/s^2)", "Notes"};
 
   numcands = g_slist_length(list);
   listptr = list;
@@ -585,7 +585,8 @@ void output_fundamentals(fourierprops *props, GSList *list,
   /* Print the fundamentals */
   
   for (ii=0; ii<numcands; ii++){
-    width = widths;  error = errors;
+    width = widths;  
+    error = errors;
     cand = (accelcand *)(listptr->data);
     calc_rzwerrs(props+ii, obs->T, &errs);
     
