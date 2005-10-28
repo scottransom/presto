@@ -1,5 +1,9 @@
 #include "presto.h"
 
+static double extended_equiv_gaussian_sigma(double logp);
+static double log_asymtotic_incomplete_gamma(double a, double z);
+static double log_asymtotic_gamma(double z);
+
 float get_numphotons(FILE * file)
   /* Return the total number of photons in the FFT file      */
   /* i.e.  it returns the value of the 0th frequency bin.    */
@@ -378,6 +382,65 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result)
 }
 
 
+double extended_equiv_gaussian_sigma(double logp)
+/*
+  extended_equiv_gaussian_sigma(double logp):
+      Return the equivalent gaussian sigma corresponding
+          to the log of the cumulative gaussian probability logp.
+          In other words, return x, such that Q(x) = p, where Q(x)
+          is the cumulative normal distribution.  This version uses
+          the rational approximation from Abramowitz and Stegun,
+          eqn 26.2.23.  Using the log(P) as input gives a much
+          extended range.
+*/
+{
+  double t, num, denom;
+
+  t = sqrt(-2.0 * logp);
+  num = 2.515517 + t * (0.802853 + t * 0.010328);
+  denom = 1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308));
+  return t - num / denom;
+}
+
+
+double log_asymtotic_incomplete_gamma(double a, double z)
+/*
+  log_asymtotic_incomplete_gamma(double a, double z):
+      Return the log of the incomplete gamma function in its
+          asymtotic limit as z->infty.  This is from Abramowitz
+          and Stegun eqn 6.5.32.
+*/
+{
+  double x=1.0, newxpart=1.0, term=1.0;
+  int ii=1;
+
+  while (fabs(newxpart) > 1e-15){
+    term *= (a - ii);
+    newxpart = term / pow(z, ii);
+    x += newxpart;
+    ii += 1;
+  }
+  return (a - 1.0) * log(z) - z + log(x);
+}
+
+double log_asymtotic_gamma(double z)
+/*
+  log_asymtotic_gamma(double z):
+      Return the log of the gamma function in its asymtotic limit
+          as z->infty.  This is from Abramowitz and Stegun eqn 6.1.41.
+*/
+{
+  double x, y;
+
+  x = (z - 0.5) * log(z) - z + 0.91893853320467267;
+  y = 1.0 / (z * z);
+  x += (((- 5.9523809523809529e-4 * y
+	  + 7.9365079365079365079365e-4) * y
+	 - 2.7777777777777777777778e-3) * y
+	+ 8.3333333333333333333333e-2) / z;
+  return x;
+}
+
 double candidate_sigma(double power, int numsum, double numtrials)
 /* Return the approximate significance in Gaussian       */
 /* sigmas of a candidate of numsum summed powers,        */
@@ -385,15 +448,16 @@ double candidate_sigma(double power, int numsum, double numtrials)
 {
   double x=0.0;
   
-  if (numsum==1 && numtrials==1 && power>2.0){
-    /* from Abramowitz and Stegun 26.2.23 (p. 933) */
-    /* x error is < 4.5e-4 (absolute)              */
-    double t, num, den;
+  if (power > 100.0){
+    double logp;
 
-    t = sqrt(2.0*power);
-    num = 2.515517 + t * (0.802853 + t * 0.010328);
-    den = 1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308));
-    x = t - num / den;
+    /* Use some asymtotic expansions for the chi^2 distribution */
+    logp = log_asymtotic_incomplete_gamma(numsum, power) - 
+      log_asymtotic_gamma(numsum);
+    /* Now adjust for the number of trials */
+    logp += log(numtrials);
+    /* Convert to a sigma */
+    x = extended_equiv_gaussian_sigma(logp);
   } else {
     int which, status;
     double p, q, bound, mean=0.0, sd=1.0, shape, scale=1.0;
@@ -402,6 +466,7 @@ double candidate_sigma(double power, int numsum, double numtrials)
     status = 0;
     shape = (double) numsum;
     x = power;
+    /* Determine the basic probability */
     cdfgam(&which, &p, &q, &x, &shape, &scale, &status, &bound);
     if (status){
       printf("\nError in cdfgam() (candidate_sigma()):\n");
@@ -410,6 +475,7 @@ double candidate_sigma(double power, int numsum, double numtrials)
 	     p, q, x, shape, scale);
       exit(1);
     }
+    /* Adjust it for the number of trials */
     if (p==1.0)
       q *= numtrials;
     else
@@ -417,6 +483,7 @@ double candidate_sigma(double power, int numsum, double numtrials)
     p = 1.0 - q;
     which = 2;
     status = 0;
+    /* Convert to a sigma */
     cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
     if (status){
       if (status == -2){
