@@ -195,7 +195,7 @@ def coord_to_string(h_or_d, m, s):
        Return a formatted string of RA or DEC values as
        'hh:mm:ss.ssss' if RA, or 'dd:mm:ss.ssss' if DEC.
     """
-    if (s >= 10.0):
+    if (s >= 9.9995):
         return "%.2d:%.2d:%.4f" % (h_or_d, m, s)
     else:
         return "%.2d:%.2d:0%.4f" % (h_or_d, m, s)
