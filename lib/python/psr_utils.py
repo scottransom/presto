@@ -1082,13 +1082,117 @@ def prob_power(power):
     """
     return umath.exp(-power)
 
+def equivalent_gaussian_sigma(p):
+    """
+    equivalent_gaussian_sigma(p):
+        Return the equivalent gaussian sigma corresponding
+            to the cumulative gaussian probability p.  In other
+            words, return x, such that Q(x) = p, where Q(x) is the
+            cumulative normal distribution.  For very small 
+    """
+    logp = umath.log(p)
+    if type(1.0) == type(logp):
+        if logp > -30.0:
+            return ndtri(1.0 - p)
+        else:
+            return extended_equiv_gaussian_sigma(logp)
+    else:  # Array input
+        return Numeric.where(logp>-30.0,
+                             ndtri(1.0-p),
+                             extended_equiv_gaussian_sigma(logp))
+
+def extended_equiv_gaussian_sigma(logp):
+    """
+    extended_equiv_gaussian_sigma(logp):
+        Return the equivalent gaussian sigma corresponding
+            to the log of the cumulative gaussian probability logp.
+            In other words, return x, such that Q(x) = p, where Q(x)
+            is the cumulative normal distribution.  This version uses
+            the rational approximation from Abramowitz and Stegun,
+            eqn 26.2.23.  Using the log(P) as input gives a much
+            extended range.
+    """
+    t = umath.sqrt(-2.0 * logp)
+    num = 2.515517 + t * (0.802853 + t * 0.010328)
+    denom = 1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308))
+    return t - num / denom
+
+def log_asymtotic_incomplete_gamma(a, z):
+    """
+    log_asymtotic_incomplete_gamma(a, z):
+        Return the log of the incomplete gamma function in its
+            asymtotic limit as z->infty.  This is from Abramowitz
+            and Stegun eqn 6.5.32.
+    """
+    x = 1.0
+    newxpart = 1.0
+    term = 1.0
+    ii = 1
+    while (umath.fabs(newxpart) > 1e-15):
+        term *= (a - ii)
+        newxpart = term / z**ii
+        x += newxpart
+        ii += 1
+    return (a-1.0)*umath.log(z) - z + umath.log(x)
+
+def log_asymtotic_gamma(z):
+    """
+    log_asymtotic_gamma(a, z):
+        Return the log of the gamma function in its asymtotic limit
+            as z->infty.  This is from Abramowitz and Stegun eqn 6.1.41.
+    """
+    x = (z-0.5) * umath.log(z) - z + 0.91893853320467267
+    y = 1.0/(z*z)
+    x += (((- 5.9523809523809529e-4 * y
+            + 7.9365079365079365079365e-4) * y
+            - 2.7777777777777777777778e-3) * y
+            + 8.3333333333333333333333e-2) / z;
+    return x
+
 def prob_sum_powers(power, nsum):
     """
     prob_sum_powers(power, nsum):
         Return the probability for noise to exceed 'power' in
         the sum of 'nsum' normalized powers from a power spectrum.
     """
+    # Notes:
+    # prob_sum_powers(power, nsum)
+    # = scipy.special.gammaincc(nsum, power)
+    # = statdists.chi_prob(power*2, nsum*2)
+    # = scipy.special.chdtrc(nsum*2, power*2)
+    # = Q(power*2|nsum*2)  (from A&S 26.4.19)
+    # = Gamma(nsum,power)/Gamma(nsum)
+    # = [Gamma(nsum) - gamma(nsum,power)]/Gamma(nsum)
     return chdtrc(2*nsum, 2.0*power)
+
+def log_prob_sum_powers(power, nsum):
+    """
+    log_prob_sum_powers(power, nsum):
+        Return the log of the probability for noise to exceed
+        'power' in the sum of 'nsum' normalized powers from a
+        power spectrum.  This version uses allows the use of
+        very large powers by using asymtotic expansions from
+        Abramowitz and Stegun Chap 6.
+    """
+    # Notes:
+    # prob_sum_powers(power, nsum)
+    # = scipy.special.gammaincc(nsum, power)
+    # = statdists.chi_prob(power*2, nsum*2)
+    # = scipy.special.chdtrc(nsum*2, power*2)
+    # = Q(power*2|nsum*2)  (from A&S 26.4.19)
+    # = Gamma(nsum,power)/Gamma(nsum)
+    # = [Gamma(nsum) - gamma(nsum,power)]/Gamma(nsum)
+    if type(1.0) == type(power):
+        if power < 100.0:
+            return umath.log(prob_sum_powers(power, nsum))
+        else:
+            return log_asymtotic_incomplete_gamma(nsum, power) - \
+                   log_asymtotic_gamma(nsum)
+    else:
+        return Numeric.where(power < 100.0,
+                             umath.log(prob_sum_powers(power, nsum)),
+                             log_asymtotic_incomplete_gamma(nsum, power) - \
+                             log_asymtotic_gamma(nsum))
 
 def sigma_power(power):
     """
@@ -1097,10 +1201,16 @@ def sigma_power(power):
         to exceed a normalized power level given as 'power'
         in a power spectrum.
     """
-    if power > 36.0: return umath.sqrt(2.0 * power -
-                                       umath.log(PI * power))
-    else: return ndtri(1.0 - prob_power(power))
-
+    if type(1.0) == type(power):
+        if power > 36.0:
+            return umath.sqrt(2.0 * power - umath.log(PI * power))
+        else:
+            return equivalent_gaussian_sigma(prob_power(power))
+    else:
+        return Numeric.where(power > 36.0,
+                             umath.sqrt(2.0 * power - umath.log(PI * power)),
+                             extended_equiv_gaussian_sigma(log_prob_sum_powers(power, 1)))
+        
 def sigma_sum_powers(power, nsum):
     """
     sigma_sum_powers(power, nsum):
@@ -1108,7 +1218,15 @@ def sigma_sum_powers(power, nsum):
         to exceed a sum of 'nsum' normalized powers given by 'power'
         in a power spectrum.
     """
-    return ndtri(1.0 - prob_sum_powers(power, nsum))
+    if type(1.0) == type(power):
+        if power < 100.0:
+            return equivalent_gaussian_sigma(prob_sum_powers(power, nsum))
+        else:
+            return extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum))
+    else: # Array input
+        return Numeric.where(power < 100.0,
+                             equivalent_gaussian_sigma(prob_sum_powers(power, nsum)),
+                             extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum)))
 
 def power_at_sigma(sigma):
     """
