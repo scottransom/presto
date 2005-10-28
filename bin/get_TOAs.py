@@ -25,6 +25,37 @@ def measure_phase(profile, template):
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
+def read_gaussfitfile(gaussfitfile, proflen):
+    phass = []
+    ampls = []
+    fwhms = []
+    for line in open(gaussfitfile):
+        if line.lstrip().startswith("phas"):
+            phass.append(float(line.split()[2]))
+        if line.lstrip().startswith("ampl"):
+            ampls.append(float(line.split()[2]))
+        if line.lstrip().startswith("fwhm"):
+            fwhms.append(float(line.split()[2]))
+    if not (len(phass) == len(ampls) == len(fwhms)):
+        print "Number of phases, amplitudes, and FWHMs are not the same in '%s'!"%gaussfitfile
+        return 0.0
+    phass = Num.asarray(phass)
+    ampls = Num.asarray(ampls)
+    fwhms = Num.asarray(fwhms)
+    # Now sort them all according to decreasing amplitude
+    new_order = Num.argsort(ampls)
+    new_order = new_order[::-1]
+    ampls = Num.take(ampls, new_order)
+    phass = Num.take(phass, new_order)
+    fwhms = Num.take(fwhms, new_order)
+    # Now put the biggest gaussian at phase = 0.0
+    phass = phass - phass[0]
+    phass = Num.where(phass<0.0, phass+1.0, phass)
+    template = Num.zeros(proflen, typecode='d')
+    for ii in range(len(ampls)):
+        template += ampls[ii]*psr_utils.gaussian_profile(proflen, phass[ii], fwhms[ii])
+    return template
+
 def usage():
     print """
 usage:  get_TOAs.py [options which must include -t or -g] pfd_file
@@ -34,6 +65,8 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-d DM, --dm=DM]                   : Re-combine subbands at DM
   [-f, --FFTFITouts]                 : Print all FFTFIT outputs and errors
   [-g gausswidth, --gaussian=width]  : Use a Gaussian template of FWHM width
+                                       or, if the arg is a string, read the file
+									   to get multiple-gaussian parameters
   [-t templateprof, --template=prof] : The template .bestprof file to use
   [-k subs_list, --kill=subs_list]   : List of subbands to ignore
   [-i ints_list, --kints=ints_list]  : List of intervals to ignore
@@ -87,6 +120,7 @@ if __name__ == '__main__':
     lowfreq = None
     DM = 0.0
     gaussianwidth = 0.1
+    gaussfitfile = None
     templatefilenm = None
     numsubbands = 1
     numtoas = 1
@@ -114,7 +148,10 @@ if __name__ == '__main__':
         if o in ("-d", "--dm"):
             DM = float(a)
         if o in ("-g", "--gaussian"):
-            gaussianwidth = float(a)
+            try:
+                gaussianwidth = float(a)
+            except ValueError:
+                gaussfitfile = a
         if o in ("-t", "--template"):
             templatefilenm = a
         if o in ("-o", "--offset"):
@@ -184,7 +221,10 @@ if __name__ == '__main__':
     if templatefilenm is not None:
         template = psr_utils.read_profile(templatefilenm, normalize=1)
     else:
-        template = psr_utils.gaussian_profile(fold_pfd.proflen, 0.0, gaussianwidth)
+        if (gaussfitfile):
+            template = read_gaussfitfile(gaussfitfile, fold_pfd.proflen)
+        else:
+            template = psr_utils.gaussian_profile(fold_pfd.proflen, 0.0, gaussianwidth)
         template = template / max(template)
 
     # Determine the Telescope used
