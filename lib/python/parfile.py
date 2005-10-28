@@ -40,7 +40,7 @@ float_keys = ["F", "F0", "F1", "F2", "F3", "F4", "F5", "F6",
               "TRES", "TZRMJD", "TZRFRQ", "TZRSITE", "NITS",
               "A1", "XDOT", "E", "EDOT", "T0", "PB", "PBDOT", "OM", "OMDOT",
               "EPS1", "EPS2", "EPS1DOT", "EPS2DOT", "TASC",
-              "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT"]
+              "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT", "FB0", "FB1", "FB2"]
 str_keys = ["FILE", "PSR", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
 
 class psr_par:
@@ -69,6 +69,8 @@ class psr_par:
             self.__dict__['F0'] = 1.0/self.P0
         if self.__dict__.has_key('F0'):
             self.__dict__['P0'] = 1.0/self.F0
+        if self.__dict__.has_key('FB0'):
+            self.__dict__['PB'] = (1.0/self.FB0)/86400.0
         if self.__dict__.has_key('P0_ERR'):
             if self.__dict__.has_key('P1_ERR'):
                 (f, self.__dict__['F0_ERR'], self.__dict__['F1'], self.__dict__['F1_ERR']) = \
