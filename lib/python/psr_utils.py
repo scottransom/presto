@@ -1137,7 +1137,7 @@ def log_asymtotic_incomplete_gamma(a, z):
 
 def log_asymtotic_gamma(z):
     """
-    log_asymtotic_gamma(a, z):
+    log_asymtotic_gamma(z):
         Return the log of the gamma function in its asymtotic limit
             as z->infty.  This is from Abramowitz and Stegun eqn 6.1.41.
     """
