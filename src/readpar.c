@@ -84,6 +84,13 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
       if (strncmp("PSR", keyword, 80)==0 ||
 	  strncmp("PSRJ", keyword, 80)==0){
 	strncpy(psr->jname, strtok(NULL, " \t\n"), 20);
+	if (psr->jname[0]=='J' || psr->jname[0]=='B'){
+	  int ii=0;
+	  do {
+	    ii++;
+	    psr->jname[ii-1] = psr->jname[ii];
+	  } while (psr->jname[ii]!='\0');
+	}
 	if (DEBUGOUT) printf("The pulsar is '%s'\n", psr->jname);
       } else if (strncmp("RAJ", keyword, 80)==0 ||
 		 strncmp("RA", keyword, 80)==0){
@@ -125,13 +132,8 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
       } else if (strncmp("PEPOCH", keyword, 80)==0){
 	value = strtok(NULL, " \t\n");
 	psr->timepoch = strtod(fortran_double_convert(value), &value);
-	if (DEBUGOUT) printf("The PEPOCH is %.15g\n", psr->timepoch);
 	difft = (epoch - psr->timepoch)*SECPERDAY;
-	psr->f = f + fd*difft + 0.5*psr->fdd*difft*difft;
-	psr->fd = fd + psr->fdd*difft;
-	psr->p = 1.0/psr->f;
-	psr->pd = -psr->fd*psr->p*psr->p;
-	psr->pdd = (2.0*(fd*fd)/f - psr->fdd)/(f*f);
+	if (DEBUGOUT) printf("The PEPOCH is %.15g\n", psr->timepoch);
       } else if (strncmp("DM", keyword, 80)==0){
 	value = strtok(NULL, " \t\n");
 	psr->dm = strtod(fortran_double_convert(value), &value);
@@ -164,7 +166,8 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
 	value = strtok(NULL, " \t\n");
 	xd = strtod(fortran_double_convert(value), &value)*1.0E-12;
 	if (DEBUGOUT) printf("  x_orb-dot  = %.15g\n", xd);
-      } else if (strncmp("E", keyword, 80)==0){
+      } else if (strncmp("E", keyword, 80)==0 ||
+		 strncmp("ECC", keyword, 80)==0){
 	value = strtok(NULL, " \t\n");
 	psr->orb.e = strtod(fortran_double_convert(value), &value);
 	if (DEBUGOUT) printf("  e_orb  = %.15g\n", psr->orb.e);
@@ -204,6 +207,12 @@ int get_psr_from_parfile(char *parfilenm, double epoch, psrparams *psr)
       }
     }
   }
+  /* Update the spin parameters */
+  psr->f = f + fd*difft + 0.5*psr->fdd*difft*difft;
+  psr->fd = fd + psr->fdd*difft;
+  psr->p = 1.0/psr->f;
+  psr->pd = -psr->fd*psr->p*psr->p;
+  psr->pdd = (2.0*(fd*fd)/f - psr->fdd)/(f*f);
   if (binary){
     psr->orb.p += psr->orb.pd*orbdifft;
     psr->orb.w += psr->orb.wd*orbdifft;
