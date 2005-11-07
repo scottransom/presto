@@ -73,11 +73,15 @@ char *make_polycos(char *parfilenm, infodata *idata)
   } else if (strcmp(idata->telescope, "GMRT")==0){
     scopechar = 'r';
     tracklen = 12;
+  } else if (strcmp(idata->telescope, "Geocenter")==0){
+    scopechar = 'o';
+    tracklen = 24;
   } else {  /*  Barycenter */
     scopechar = '@';
     tracklen = 12;
   }
-  if (scopechar!='@'){
+  /* For optical, X-ray, or gamma-ray data */
+  if (scopechar!='@' && scopechar!='o'){
     fmid = idata->freq+(idata->num_chan/2-0.5)*idata->chan_wid;
   } else {
     fmid = 0.0;

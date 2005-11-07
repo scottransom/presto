@@ -8,7 +8,11 @@ from polycos import polycos
 from psr_constants import *
 from types import StringType, FloatType, IntType
 
-scopes = {'GBT':'1', 'Arecibo':'3', 'Parkes':'7', 'GMRT': 'r'}
+scopes = {'GBT':'1',
+          'Arecibo':'3',
+          'Parkes':'7',
+          'GMRT': 'r',
+          'Geocenter': 'o'}
 
 def measure_phase(profile, template):
     """

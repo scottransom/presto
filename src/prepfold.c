@@ -267,7 +267,7 @@ int main(int argc, char *argv[])
 	idata.N = rzwidata.N;
 	idata.dt = rzwidata.dt;
       }
-      printf("Assuming the events are barycentered.\n");
+      printf("Assuming the events are barycentered or geocentered.\n");
       if (!cmd->proflenP){
 	cmd->proflenP = 1;
 	cmd->proflen = 20;
