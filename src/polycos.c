@@ -75,7 +75,7 @@ char *make_polycos(char *parfilenm, infodata *idata)
     tracklen = 12;
   } else if (strcmp(idata->telescope, "Geocenter")==0){
     scopechar = 'o';
-    tracklen = 24;
+    tracklen = 12;
   } else {  /*  Barycenter */
     scopechar = '@';
     tracklen = 12;
