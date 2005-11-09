@@ -87,8 +87,8 @@ void set_WAPP_padvals(float *fpadvals, int good_padvals)
 static void get_WAPP_HEADER_version(char *header, int *header_version, 
 				    int *header_size)
 {
-  memcpy(header_version, header, sizeof(long));
-  memcpy(header_size, header+sizeof(long), sizeof(long));
+  memcpy(header_version, header, sizeof(int));
+  memcpy(header_size, header+sizeof(int), sizeof(int));
   if ((*header_version < 1 || *header_version > 20) &&
       (*header_size < 1000 || *header_size > 3000)){
     *header_version = swap_int(*header_version);
@@ -264,7 +264,7 @@ static void WAPP_hdr_to_inf(char *hdr, infodata *idata)
     else
       sprintf(ctmp, "%d %d-level IF(s) were not summed.  Lags are %d bit ints.", 
 	      numifs_st, corr_level_st, bits_per_samp_st);
-    sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %ld, Date: %s %s.\n    %s\n", 
+    sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %d, Date: %s %s.\n    %s\n", 
 	    hdr1->start_az, hdr1->start_za, hdr1->project_id, hdr1->scan_number, 
 	    hdr1->obs_date, hdr1->start_time, ctmp);
   } else {
@@ -310,7 +310,7 @@ static void WAPP_hdr_to_inf(char *hdr, infodata *idata)
     else
       sprintf(ctmp, "%d %d-level IF(s) were not summed.  Lags are %d bit ints.", 
 	      numifs_st, corr_level_st, bits_per_samp_st);
-    sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %ld, Date: %s %s.\n    %s\n", 
+    sprintf(idata->notes, "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n    Project ID %s, Scan number %d, Date: %s %s.\n    %s\n", 
 	    hdr2plus->start_az, hdr2plus->start_za, hdr2plus->project_id, hdr2plus->scan_number, 
 	    hdr2plus->obs_date, hdr2plus->start_time, ctmp);
   }
@@ -342,11 +342,11 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, int usewindow
   while((cc=fgetc(files[0]))!='\0')
     asciihdrlen++;
   /* Read the binary header */
-  chkfread(hdr, 2*sizeof(long), 1, files[0]);
+  chkfread(hdr, 2*sizeof(int), 1, files[0]);
   /* Check the header version and use the correct header structure */
   get_WAPP_HEADER_version(hdr, &header_version_st, &header_size_st);
-  chkfread(hdr+2*sizeof(long), 
-	   header_size_st-2*sizeof(long), 1, files[0]);
+  chkfread(hdr+2*sizeof(int), 
+	   header_size_st-2*sizeof(int), 1, files[0]);
   /* Skip the ASCII and binary headers of the other WAPP files */
   for (ii=1; ii<numwapps_st; ii++)
     chkfseek(files[ii], asciihdrlen + header_size_st, SEEK_SET);
@@ -557,9 +557,9 @@ void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, int usewindow
     printf("    Total time (s) = %-14.14g\n", T_st);
     printf("  ASCII Header (B) = %d\n", asciihdrlen);
     if (header_version_st==1)
-      printf(" Binary Header (B) = %ld\n\n", hdr1->header_size);
+      printf(" Binary Header (B) = %d\n\n", hdr1->header_size);
     else
-      printf(" Binary Header (B) = %ld\n\n", hdr2plus->header_size);
+      printf(" Binary Header (B) = %d\n\n", hdr2plus->header_size);
     printf("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
     printf("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
     for (ii=0; ii<numfiles/numwapps_st; ii++)
@@ -677,8 +677,8 @@ void print_WAPP_hdr(char *hdr)
     hdr2plus = (WAPP_HEADERv2plus *)hdr;
 
   if (header_version_st==1){
-    printf("\n             Header version = %ld\n", hdr1->header_version);
-    printf("        Header size (bytes) = %ld\n", hdr1->header_size);
+    printf("\n             Header version = %d\n", hdr1->header_version);
+    printf("        Header size (bytes) = %d\n", hdr1->header_size);
     printf("                Source Name = %s\n", hdr1->src_name);
     printf(" Observation Date (YYYMMDD) = %s\n", hdr1->obs_date);
     printf("    Obs Start UT (HH:MM:SS) = %s\n", hdr1->start_time);
@@ -686,7 +686,7 @@ void print_WAPP_hdr(char *hdr)
 	   UT_strings_to_MJD(hdr1->obs_date, hdr1->start_time, &mjd_i, &mjd_d));
     printf("                 Project ID = %s\n", hdr1->project_id);
     printf("                  Observers = %s\n", hdr1->observers);
-    printf("                Scan Number = %ld\n", hdr1->scan_number);
+    printf("                Scan Number = %d\n", hdr1->scan_number);
     printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", hdr1->src_ra);
     printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", hdr1->src_dec);
     printf("        Start Azimuth (deg) = %-17.15g\n", hdr1->start_az);
@@ -698,7 +698,7 @@ void print_WAPP_hdr(char *hdr)
     printf("         Actual T_samp (us) = %-17.15g\n", hdr1->wapp_time);
     printf("         Central freq (MHz) = %-17.15g\n", hdr1->cent_freq);
     printf("      Total Bandwidth (MHz) = %-17.15g\n", hdr1->bandwidth);
-    printf("             Number of lags = %ld\n", hdr1->num_lags);
+    printf("             Number of lags = %d\n", hdr1->num_lags);
     printf("              Number of IFs = %d\n", hdr1->nifs);
     printf("   Other information:\n");
     if (hdr1->sum==1)
@@ -710,8 +710,8 @@ void print_WAPP_hdr(char *hdr)
     else
       printf("      Lags are 32 bit integers.\n\n");
   } else {
-    printf("\n             Header version = %ld\n", hdr2plus->header_version);
-    printf("        Header size (bytes) = %ld\n", hdr2plus->header_size);
+    printf("\n             Header version = %d\n", hdr2plus->header_version);
+    printf("        Header size (bytes) = %d\n", hdr2plus->header_size);
     printf("                Source Name = %s\n", hdr2plus->src_name);
     printf("           Observation Type = %s\n", hdr2plus->obs_type);
     printf(" Observation Date (YYYMMDD) = %s\n", hdr2plus->obs_date);
@@ -720,7 +720,7 @@ void print_WAPP_hdr(char *hdr)
 	   UT_strings_to_MJD(hdr2plus->obs_date, hdr2plus->start_time, &mjd_i, &mjd_d));
     printf("                 Project ID = %s\n", hdr2plus->project_id);
     printf("                  Observers = %s\n", hdr2plus->observers);
-    printf("                Scan Number = %ld\n", hdr2plus->scan_number);
+    printf("                Scan Number = %d\n", hdr2plus->scan_number);
     printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", hdr2plus->src_ra);
     printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", hdr2plus->src_dec);
     printf("        Start Azimuth (deg) = %-17.15g\n", hdr2plus->start_az);
@@ -732,7 +732,7 @@ void print_WAPP_hdr(char *hdr)
     printf("         Actual T_samp (us) = %-17.15g\n", hdr2plus->wapp_time);
     printf("         Central freq (MHz) = %-17.15g\n", hdr2plus->cent_freq);
     printf("      Total Bandwidth (MHz) = %-17.15g\n", hdr2plus->bandwidth);
-    printf("             Number of lags = %ld\n", hdr2plus->num_lags);
+    printf("             Number of lags = %d\n", hdr2plus->num_lags);
     printf("              Number of IFs = %d\n", hdr2plus->nifs);
     printf("    Samples since obs start = %lld\n", hdr2plus->timeoff);
     printf("   Other information:\n");

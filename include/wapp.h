@@ -14,8 +14,8 @@
 #define WAPP_MAXLAGLEN WAPP_MAXDATLEN*4
 
 typedef struct WAPP_HEADERv1{
-  long header_version; /* some integer that increments with each revision */
-  long header_size;    /* size (in bytes) of this header (nom = 2048) */
+  int header_version;  /* some integer that increments with each revision */
+  int header_size;     /* size (in bytes) of this header (nom = 2048) */
   /*
     The following are obtained from current telescope status display
     note that start AST/LST are for reference purposes only and should
@@ -37,8 +37,8 @@ typedef struct WAPP_HEADERv1{
   double samp_time;    /* user-requested sample time (us) */
   double wapp_time;    /* actual sample time (us) i.e. requested+dead time */
   double bandwidth;    /* total bandwidth (MHz) for this observation */
-  long num_lags;       /* user-requested number of lags per dump per spect */
-  long scan_number;    /* built by WAPP from year+daynumber+3-digit-number */
+  int num_lags;        /* user-requested number of lags per dump per spect */
+  int scan_number;     /* built by WAPP from year+daynumber+3-digit-number */
   char src_name[24];   /* user-supplied source name (usually pulsar name) */
   char obs_date[24];   /* Date of OBS in format yyyymmdd */
   char start_time[24]; /* UT of OBS start in hh:mm:ss (start on 1-sec tick) */
@@ -55,8 +55,8 @@ typedef struct WAPP_HEADERv1{
 } WAPP_HEADERv1;
 
 typedef struct WAPP_HEADERv2plus{
-  long header_version; /* some integer that increments with each revision */
-  long header_size;    /* size (in bytes) of this header (nom = 2048) */
+  int header_version;  /* some integer that increments with each revision */
+  int header_size;     /* size (in bytes) of this header (nom = 2048) */
   char obs_type[24];   /* what kind of observation is this: */
                        /* PULSAR_SEARCH, PULSAR_FOLDING, SPECTRA_TOTALPOWER */
   /*
@@ -80,8 +80,8 @@ typedef struct WAPP_HEADERv2plus{
   double samp_time;    /* user-requested sample time (us) */
   double wapp_time;    /* actual sample time (us) i.e. requested+dead time */
   double bandwidth;    /* total bandwidth (MHz) for this observation */
-  long num_lags;       /* user-requested number of lags per dump per spect */
-  long scan_number;    /* built by WAPP from year+daynumber+3-digit-number */
+  int num_lags;        /* user-requested number of lags per dump per spect */
+  int scan_number;     /* built by WAPP from year+daynumber+3-digit-number */
   char src_name[24];   /* user-supplied source name (usually pulsar name) */
   char obs_date[24];   /* Date of OBS in format yyyymmdd */
   char start_time[24]; /* UT of OBS start in hh:mm:ss (start on 1-sec tick) */
