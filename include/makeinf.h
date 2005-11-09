@@ -16,7 +16,7 @@
 #define NUMSCOPES  8
 #define NUMBANDS   6
 #define NUMFILTERS 11
-#define MAXNUMONOFF 20
+#define MAXNUMONOFF 40
 
 typedef struct INFODATA {
     double ra_s;		/* Right ascension seconds (J2000)       */
