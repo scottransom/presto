@@ -54,14 +54,17 @@ class bestprof:
                 if ((not self.topo and line.startswith("# P_bary")) or
                      (self.topo and line.startswith("# P_topo"))):
                     self.p0 = float(line.split("=")[-1].split("+")[0])/1000.0
+                    self.p0err = float(line.split("=")[-1].split("+")[1][2:])/1000.0
                     continue
                 if ((not self.topo and line.startswith("# P'_bary")) or
                      (self.topo and line.startswith("# P'_topo"))):
                     self.p1 = float(line.split("=")[-1].split("+")[0])
+                    self.p1err = float(line.split("=")[-1].split("+")[1][2:])
                     continue
                 if ((not self.topo and line.startswith("# P''_bary")) or
                      (self.topo and line.startswith("# P''_topo"))):
                     self.p2 = float(line.split("=")[-1].split("+")[0])
+                    self.p2err = float(line.split("=")[-1].split("+")[1][2:])
                     continue
             else:
                 self.profile.append(float(line.split()[-1]))
