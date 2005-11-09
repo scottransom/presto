@@ -260,7 +260,6 @@ class pfd:
         normprof /= max(normprof)
         Pgplot.plotxy(normprof, labx="Phase Bins", laby="Normalized Flux",
                       device=device)
-        Pgplot.closeplot()
 
     def greyscale(self, array2d, **kwargs):
         """
@@ -273,7 +272,6 @@ class pfd:
         min_parts = Num.minimum.reduce(array2d, 1)
         array2d = (array2d-min_parts[:,Num.NewAxis])/global_max
         Pgplot.plot2d(array2d, image='antigrey', **kwargs)
-        Pgplot.closeplot()
 
     def plot_intervals(self, phasebins='All', device='/xwin'):
         """
@@ -389,7 +387,6 @@ class pfd:
             chis[ii] = self.calc_redchi2(prof=sumprof, avg=avgprof)
         # Now plot it
         Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d", device=device)
-        Pgplot.closeplot()
         return (chis, DMs)
 
     def plot_chi2_vs_sub(self, device='/xwin'):
@@ -419,7 +416,6 @@ class pfd:
         # Now plot it
         Pgplot.plotxy(chis, labx="Subband Number", laby="Reduced-\gx\u2\d",
                       rangey=[0.0, max(chis)*1.1], device=device)
-        Pgplot.closeplot()
         return chis
 
     def estimate_offsignal_redchi2(self):
