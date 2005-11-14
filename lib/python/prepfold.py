@@ -66,14 +66,15 @@ class pfd:
         self.pdots = Num.asarray(struct.unpack(swapchar+"d"*self.numpdots, \
                                                infile.read(self.numpdots*8)))
 	self.numprofs = self.nsub*self.npart
-	if (swapchar=='<'):  # little endian
-	    self.profs = Num.zeros(self.numprofs*self.proflen, typecode='d')
-	    for ii in range(self.numprofs):
-		self.profs[ii*self.proflen:(ii+1)*self.proflen] = fread(infile, self.proflen, 'd')
-	else:
-	    self.profs = Num.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
-	                                           infile.read(self.numprofs*self.proflen*8)))
-        self.profs = Num.reshape(self.profs, (self.npart, self.nsub, self.proflen))
+        if (swapchar=='<'):  # little endian
+            self.profs = Num.zeros((self.npart, self.nsub, self.proflen), typecode='d')
+            for ii in range(self.npart):
+                for jj in range(self.nsub):
+                    self.profs[ii,jj,:] = fread(infile, self.proflen, 'd')
+        else:
+            self.profs = Num.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
+                                                   infile.read(self.numprofs*self.proflen*8)))
+            self.profs = Num.reshape(self.profs, (self.npart, self.nsub, self.proflen))
         if (self.numchan==1):
             try:
                 idata = infodata.infodata(self.filenm[:self.filenm.rfind('.')]+".inf")
