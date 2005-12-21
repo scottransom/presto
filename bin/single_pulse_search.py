@@ -145,7 +145,6 @@ if __name__ == '__main__':
             dataptr = 0
 
             # Step through the file
-            chunk = zeros(fileblocklen, typecode='d')
             dm_candlist = []
             while (fileptr < N):
                 if (N-fileptr < fileblocklen):
@@ -165,10 +164,12 @@ if __name__ == '__main__':
 
                 # Take care of beginning and end of file overlap issues
                 if fileptr==0: # Beginning of file
+                    chunk = zeros(fileblocklen, typecode='d')
                     chunk[overlap:] += tmpchunk[:-overlap]
                     infile.seek(-overlap*float_len, 1)
                     fileptr -= overlap
                 elif (len(tmpchunk) < fileblocklen):  # End of file
+                    chunk = zeros(fileblocklen, typecode='d')
                     chunk[:len(tmpchunk)] += tmpchunk
                     chunk[len(tmpchunk):] = scipy.stats.mean(tmpchunk)
                 else:
@@ -284,6 +285,7 @@ if __name__ == '__main__':
             num_v_DMstr[DMstr] = len(dm_candlist)
 
     # Step through the candidates to make a SNR list
+    DMs.sort()
     maxsnr = 0.0
     snrs = []
     for cand in candlist:
@@ -308,10 +310,11 @@ if __name__ == '__main__':
     DMs = asarray(DMs)
 
     # open the plot device
+    short_filenmbase = filenmbase[:filenmbase.find("_DM")]
     if pgplot_device:
         ppgplot.pgopen(pgplot_device)
     else:
-        ppgplot.pgopen(filenmbase+'_singlepulse.ps/VPS')
+        ppgplot.pgopen(short_filenmbase+'_singlepulse.ps/VPS')
     ppgplot.pgpap(7.5, 1.0)  # Width in inches, aspect
 
     # plot the SNR histogram
@@ -369,8 +372,7 @@ if __name__ == '__main__':
     ppgplot.pgsvp(0.05, 0.95, 0.87, 0.97)
     ppgplot.pgsch(1.0)
     ppgplot.pgmtxt('T', 0.5, 0.0, 0.0,
-                   "Single pulse results for '%s'"%\
-                   filenmbase[:filenmbase.find("_DM")])
+                   "Single pulse results for '%s'"%short_filenmbase)
     ppgplot.pgsch(0.8)
     # first row
     ppgplot.pgmtxt('T', -1.1, 0.02, 0.0, 'Source: %s'%\
