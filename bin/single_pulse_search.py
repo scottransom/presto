@@ -2,7 +2,7 @@
 import bisect, os, sys, getopt
 import scipy, scipy.signal, umath, ppgplot
 from Numeric import *
-from presto import read_inffile
+from presto import read_inffile, rfft
 from psr_utils import coord_to_string
 from TableIO import readColumns
 
@@ -17,11 +17,106 @@ class candidate:
         return "%7.2f %7.2f %13.6f %10d     %3d\n"%\
                (self.DM, self.sigma, self.time, self.bin, self.downfact)
     def __cmp__(self, other):
+	# Sort by time (i.e. bin) by default)
         return cmp(self.bin, other.bin)
 
 def cmp_sigma(self, other):
+    #Comparison function to sort candidates by significance
     retval = -cmp(self.sigma, other.sigma)
     return retval
+
+def fft_convolve(fftd_data, fftd_kern, lo, hi):
+    """
+    fft_convolve(fftd_data, fftd_kern, lo, hi):
+        Perform a convolution with the complex floating point vectors
+            'fftd_data' and 'fftd_kern'.  The returned vector will start at
+            at bin 'lo' (must be an integer), and go up to but not
+            include bin 'hi' (also an integer).
+    """
+    # Note:  The initial FFTs should be done like:
+    # fftd_kern = rfft(kernel, -1)
+    # fftd_data = rfft(data, -1)
+    prod = fftd_data * fftd_kern
+    prod[0].real = fftd_kern[0].real * fftd_data[0].real
+    prod[0].imag = fftd_kern[0].imag * fftd_data[0].imag
+    return rfft(prod, 1)[lo:hi]
+
+def make_fftd_kerns(downfacts, fftlen):
+    fftd_kerns = []
+    for downfact in downfacts:
+        kern = zeros(fftlen, typecode='f')
+        kern.savespace()
+        if downfact % 2:  # Odd number
+            kern[:downfact/2+1] += 1.0 / sqrt(downfact)
+            kern[-(downfact/2):] += 1.0 / sqrt(downfact)
+        else:  # Even number
+            kern[:downfact/2+1] += 1.0 / sqrt(downfact)
+            kern[-(downfact/2-1):] += 1.0 / sqrt(downfact)
+        fftd_kerns.append(rfft(kern, -1))
+    return fftd_kerns
+
+def prune_related1(hibins, hivals, downfact):
+    # Remove candidates that are close to other candidates
+    # but less significant.  This one works on the raw 
+    # candidate arrays and uses the single downfact
+    # that they were selected with.
+    toremove = []
+    for ii in range(0, len(hibins)-1):
+        if ii in toremove:  continue
+        xbin, xsigma = hibins[ii], hivals[ii]
+        for jj in range(ii+1, len(hibins)):
+            ybin, ysigma = hibins[jj], hivals[jj]
+            if (abs(ybin-xbin) > downfact/2):
+                break
+            else:
+                if jj in toremove:
+                    continue
+                if (xsigma > ysigma):
+                    if jj not in toremove:
+                        toremove.append(jj)
+                else:
+                    if ii not in toremove:
+                        toremove.append(ii)
+    # Now zap them starting from the end
+    toremove.sort()
+    toremove.reverse()
+    for bin in toremove:
+        del(hibins[bin])
+        del(hivals[bin])
+    return hibins, hivals
+    
+def prune_related2(dm_candlist, downfacts):
+    # Remove candidates that are close to other candidates
+    # but less significant.  This one works on the candidate 
+    # instances and looks at the different downfacts of the
+    # the different candidates.
+    toremove = []
+    for ii in range(0, len(dm_candlist)-1):
+        if ii in toremove:  continue
+        xx = dm_candlist[ii]
+        xbin, xsigma = xx.bin, xx.sigma
+        for jj in range(ii+1, len(dm_candlist)):
+            yy = dm_candlist[jj]
+            ybin, ysigma = yy.bin, yy.sigma
+            if (abs(ybin-xbin) > max(downfacts)/2):
+                break
+            else:
+                if jj in toremove:
+                    continue
+                prox = max([xx.downfact/2, yy.downfact/2, 1])
+                if (abs(ybin-xbin) <= prox):
+                    if (xsigma > ysigma):
+                        if jj not in toremove:
+                            toremove.append(jj)
+                    else:
+                        if ii not in toremove:
+                            toremove.append(ii)
+    # Now zap them starting from the end
+    toremove.sort()
+    toremove.reverse()
+    for bin in toremove:
+        del(dm_candlist[bin])
+    return dm_candlist
 
 def usage():
     print """
@@ -77,7 +172,7 @@ def read_singlepulse_files(infiles, threshold):
     DMs.sort()
     return info0, DMs, candlist, num_v_DMstr
 
-if __name__ == '__main__':
+def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hxm:t:",
                                    ["help", "xwin", "maxfact=", "threshold="])
@@ -88,9 +183,11 @@ if __name__ == '__main__':
     if len(sys.argv)==1:
         usage()
         sys.exit(2)
+    useffts = True
     dosearch = True
     threshold = 5.0
-    chunklen = 10000
+    fftlen = 8192    # Should be a power-of-two for best speed
+    chunklen = 8000  # Must be at least max_downfact less than fftlen
     default_downfacts = [2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150]
     max_downfact = 30
     pgplot_device = ""
@@ -106,8 +203,10 @@ if __name__ == '__main__':
             pgplot_device = "/XWIN"
 
     downfacts = [x for x in default_downfacts if x <= max_downfact]
+    if useffts: fftd_kerns = make_fftd_kerns(downfacts, fftlen)
     break_points = chunklen/5 * arange(1,5)
-    overlap = max(downfacts)/2
+    overlap = (fftlen - chunklen)/2
+    fileblocklen = chunklen + 2*overlap  # currently it is fftlen...
     float_len = 4
     if args[0].endswith(".singlepulse"):
         filenmbase = args[0].rstrip(".singlepulse")
@@ -129,7 +228,6 @@ if __name__ == '__main__':
         # Loop over the input files
         for filenm in args:
             filenmbase = filenm.rstrip(".dat")
-            fileblocklen = chunklen + 2*overlap
             info = read_inffile(filenmbase)
             DMstr = "%.2f"%info.dm
             DMs.append(info.dm)
@@ -151,13 +249,13 @@ if __name__ == '__main__':
                     tmpchunk = scipy.io.fread(infile, N-fileptr, 'f')
                 else:
                     tmpchunk = scipy.io.fread(infile, fileblocklen, 'f')
-                fileptr += len(tmpchunk)
+                numread = len(tmpchunk)
 
                 # Detrend the data in a piece-wise linear fashion
-                bp = compress(break_points<len(tmpchunk), break_points)
+                bp = compress(break_points<numread, break_points)
                 tmpchunk = scipy.signal.detrend(tmpchunk, bp=bp)
                 # Compute the standard deviation of the data
-                if (len(tmpchunk) > 0.1*fileblocklen):
+                if (numread > 0.1*fileblocklen):
                     stdev = scipy.stats.std(tmpchunk)
                 # Normalize so that the data has mean=0, std=1.0
                 tmpchunk = tmpchunk/stdev
@@ -168,17 +266,23 @@ if __name__ == '__main__':
                     chunk[overlap:] += tmpchunk[:-overlap]
                     infile.seek(-overlap*float_len, 1)
                     fileptr -= overlap
-                elif (len(tmpchunk) < fileblocklen):  # End of file
+                elif (numread < fileblocklen):  # End of file
                     chunk = zeros(fileblocklen, typecode='d')
-                    chunk[:len(tmpchunk)] += tmpchunk
-                    chunk[len(tmpchunk):] = scipy.stats.mean(tmpchunk)
+                    chunk[:numread] += tmpchunk
+                    chunk[numread:] = scipy.stats.mean(tmpchunk)
                 else:
                     chunk = tmpchunk
+                fileptr += numread
 
                 # This is the good part of the data (end effects removed)
                 goodchunk = chunk[overlap:-overlap]
 
                 # Search non-downsampled data first
+                #
+                # NOTE:  these compress() calls (and the nonzeros() that result) are
+                #        currently the most expensive call in the program.  Best
+                #        bet would probably be to simply iterate over the goodchunk
+                #        in C and append to the candlist there.
                 hibins = compress(goodchunk>threshold, arange(chunklen))
                 hivals = take(goodchunk, hibins)
                 hibins += dataptr
@@ -187,13 +291,19 @@ if __name__ == '__main__':
                     time = bin * dt
                     dm_candlist.append(candidate(info.dm, val, time, bin, 1))
 
+                # Prepare our data for the convolution
+                if useffts: fftd_chunk = rfft(chunk, -1)
+
                 # Now do the downsampling...
                 for ii, downfact in enumerate(downfacts):
-                    # The normalization of this kernel keeps the
-                    # post-smoothing RMS = 1
-                    kernel = ones(downfact, typecode='d') / sqrt(downfact)
-                    smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
-                    goodchunk = smoothed_chunk[overlap:-overlap]
+                    if useffts:
+                        # Note:  FFT convolution is faster for _all_ downfacts, even 2
+                        goodchunk = fft_convolve(fftd_chunk, fftd_kerns[ii], overlap, -overlap)
+                    else:
+                        # The normalization of this kernel keeps the post-smoothing RMS = 1
+                        kernel = ones(downfact, typecode='d') / sqrt(downfact)
+                        smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
+                        goodchunk = smoothed_chunk[overlap:-overlap]
                     hibins = compress(goodchunk>threshold, arange(chunklen))
                     hivals = take(goodchunk, hibins)
                     hibins += dataptr
@@ -202,30 +312,7 @@ if __name__ == '__main__':
                     # Now walk through the new candidates and remove those
                     # that are not the highest but are within downfact/2
                     # bins of a higher signal pulse
-                    toremove = []
-                    for ii in range(0, len(hibins)-1):
-                        if ii in toremove:  continue
-                        xbin, xsigma = hibins[ii], hivals[ii]
-                        for jj in range(ii+1, len(hibins)):
-                            ybin, ysigma = hibins[jj], hivals[jj]
-                            if (abs(ybin-xbin) > downfact/2):
-                                break
-                            else:
-                                if jj in toremove:
-                                    continue
-                                if (xsigma > ysigma):
-                                    if jj not in toremove:
-                                        toremove.append(jj)
-                                else:
-                                    if ii not in toremove:
-                                        toremove.append(ii)
-                    # Now zap them starting from the end
-                    toremove.sort()
-                    toremove.reverse()
-                    for bin in toremove:
-                        del(hibins[bin])
-                        del(hivals[bin])
-
+                    hibins, hivals = prune_related1(hibins, hivals, downfact)
                     # Insert the new candidates into the candlist, but
                     # keep it sorted...
                     for bin, val in zip(hibins, hivals):
@@ -234,43 +321,17 @@ if __name__ == '__main__':
                                       candidate(info.dm, val, time, bin, downfact))
 
                 # Backup in the infile by the overlap
-                infile.seek(-overlap*float_len, 1)
-                if (fileptr < N):
-                    fileptr -= overlap
+                infile.seek(-2*overlap*float_len, 1)
+                if (fileptr < N): fileptr -= 2*overlap
                 # Update the data pointer
                 dataptr += chunklen
 
             # Now walk through the dm_candlist and remove the ones that
             # are within the downsample proximity of a higher
             # signal-to-noise pulse
-            toremove = []
-            for ii in range(0, len(dm_candlist)-1):
-                if ii in toremove:  continue
-                xx = dm_candlist[ii]
-                xbin, xsigma = xx.bin, xx.sigma
-                for jj in range(ii+1, len(dm_candlist)):
-                    yy = dm_candlist[jj]
-                    ybin, ysigma = yy.bin, yy.sigma
-                    if (abs(ybin-xbin) > max(downfacts)/2):
-                        break
-                    else:
-                        if jj in toremove:
-                            continue
-                        prox = max([xx.downfact/2, yy.downfact/2, 1])
-                        if (abs(ybin-xbin) <= prox):
-                            if (xsigma > ysigma):
-                                if jj not in toremove:
-                                    toremove.append(jj)
-                            else:
-                                if ii not in toremove:
-                                    toremove.append(ii)
-            # Now zap them starting from the end
-            toremove.sort()
-            toremove.reverse()
-            for bin in toremove:
-                del(dm_candlist[bin])
+            dm_candlist = prune_related2(dm_candlist, downfacts)
             print "  Found %d pulse candidates"%len(dm_candlist)
-
+            
             # Write the pulses to an ASCII output file
             if len(dm_candlist):
                 #dm_candlist.sort(cmp_sigma)
@@ -405,3 +466,13 @@ if __name__ == '__main__':
                    ((info.num_chan/2-0.5)*info.chan_wid+info.freq))
     ppgplot.pgiden()
     ppgplot.pgend()
+
+if __name__ == '__main__':
+    if (0):
+        # The following is for profiling
+        import hotshot
+        prof = hotshot.Profile("hotshot_edi_stats")
+        prof.runcall(main)
+        prof.close()
+    else:
+        main()
