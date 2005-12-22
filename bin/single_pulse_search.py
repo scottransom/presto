@@ -46,13 +46,18 @@ def make_fftd_kerns(downfacts, fftlen):
     for downfact in downfacts:
         kern = zeros(fftlen, typecode='d')
         kern.savespace()
+        # These offsets produce kernels that give results
+        # equal to scipy.signal.convolve
         if downfact % 2:  # Odd number
-            kern[:downfact/2+1] += 1.0 / sqrt(downfact)
-            kern[-(downfact/2):] += 1.0 / sqrt(downfact)
-        else:  # Even number
-            kern[:downfact/2+1] += 1.0 / sqrt(downfact)
-            kern[-(downfact/2-1):] += 1.0 / sqrt(downfact)
-        fftd_kerns.append(rfft(kern, -1))
+            kern[:downfact/2+1] += 1.0
+            kern[-(downfact/2):] += 1.0
+        else:             # Even number
+            kern[:downfact/2+1] += 1.0
+            if (downfact > 2):
+                kern[-(downfact/2-1):] += 1.0
+        # The following normalization preserves the
+        # RMS=1 characteristic of the data
+        fftd_kerns.append(rfft(kern/sqrt(downfact), -1))
     return fftd_kerns
 
 def prune_related1(hibins, hivals, downfact):
@@ -296,20 +301,10 @@ def main():
 
                 # Now do the downsampling...
                 for ii, downfact in enumerate(downfacts):
-                    # The extra check fileptr > fftlen avoids having 0's at the beginning
-                    # of the array to be FFTd.  Somehow that seems to be able to mess things
-                    # up, but only sometimes...
                     if useffts: 
                         # Note:  FFT convolution is faster for _all_ downfacts, even 2
-                        goodchunk = fft_convolve(fftd_chunk, fftd_kerns[ii], overlap, -overlap)
-                        # Add a safety check for the mean.  For some strange reason, it seems
-                        # to somehow become offset from 0.0.  I have no idea why.  Memory corruption?
-                        # This only happens with the FFT convolution, and possibly on the first read
-                        # from the file.
-                        mn = scipy.stats.mean(goodchunk)
-                        if (abs(mn) > 0.1):
-                            print "  Warning!!  Strange behaviour of the mean %.3f!  dataptr = %d"%(mn,dataptr)
-                            goodchunk -= mn
+                        goodchunk = fft_convolve(fftd_chunk, fftd_kerns[ii],
+                                                 overlap, -overlap)
                     else:
                         # The normalization of this kernel keeps the post-smoothing RMS = 1
                         kernel = ones(downfact, typecode='d') / sqrt(downfact)
