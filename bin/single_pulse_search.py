@@ -39,12 +39,12 @@ def fft_convolve(fftd_data, fftd_kern, lo, hi):
     prod = fftd_data * fftd_kern
     prod[0].real = fftd_kern[0].real * fftd_data[0].real
     prod[0].imag = fftd_kern[0].imag * fftd_data[0].imag
-    return rfft(prod, 1)[lo:hi]
+    return rfft(prod, 1)[lo:hi].astype('d')
 
 def make_fftd_kerns(downfacts, fftlen):
     fftd_kerns = []
     for downfact in downfacts:
-        kern = zeros(fftlen, typecode='f')
+        kern = zeros(fftlen, typecode='d')
         kern.savespace()
         if downfact % 2:  # Odd number
             kern[:downfact/2+1] += 1.0 / sqrt(downfact)
@@ -252,6 +252,7 @@ def main():
                 numread = len(tmpchunk)
 
                 # Detrend the data in a piece-wise linear fashion
+                tmpchunk = tmpchunk.astype('d') # keep the precision high for detrend
                 bp = compress(break_points<numread, break_points)
                 tmpchunk = scipy.signal.detrend(tmpchunk, bp=bp)
                 # Compute the standard deviation of the data
@@ -261,22 +262,21 @@ def main():
                 tmpchunk = tmpchunk/stdev
 
                 # Take care of beginning and end of file overlap issues
-                if fileptr==0: # Beginning of file
+                if (fileptr==0 and numread==fileblocklen): # Beginning of file
                     chunk = zeros(fileblocklen, typecode='d')
-                    chunk[overlap:] += tmpchunk[:-overlap]
+                    chunk[overlap:] = tmpchunk[:-overlap]
                     infile.seek(-overlap*float_len, 1)
                     fileptr -= overlap
-                elif (numread < fileblocklen):  # End of file
+                elif (numread < fileblocklen): # End of file
                     chunk = zeros(fileblocklen, typecode='d')
-                    chunk[:numread] += tmpchunk
-                    chunk[numread:] = scipy.stats.mean(tmpchunk)
+                    chunk[:numread] = tmpchunk
                 else:
                     chunk = tmpchunk
                 fileptr += numread
 
                 # This is the good part of the data (end effects removed)
                 goodchunk = chunk[overlap:-overlap]
-
+		
                 # Search non-downsampled data first
                 #
                 # NOTE:  these compress() calls (and the nonzeros() that result) are
@@ -296,9 +296,20 @@ def main():
 
                 # Now do the downsampling...
                 for ii, downfact in enumerate(downfacts):
-                    if useffts:
+                    # The extra check fileptr > fftlen avoids having 0's at the beginning
+                    # of the array to be FFTd.  Somehow that seems to be able to mess things
+                    # up, but only sometimes...
+                    if useffts: 
                         # Note:  FFT convolution is faster for _all_ downfacts, even 2
                         goodchunk = fft_convolve(fftd_chunk, fftd_kerns[ii], overlap, -overlap)
+                        # Add a safety check for the mean.  For some strange reason, it seems
+                        # to somehow become offset from 0.0.  I have no idea why.  Memory corruption?
+                        # This only happens with the FFT convolution, and possibly on the first read
+                        # from the file.
+                        mn = scipy.stats.mean(goodchunk)
+                        if (abs(mn) > 0.1):
+                            print "  Warning!!  Strange behaviour of the mean %.3f!  dataptr = %d"%(mn,dataptr)
+                            goodchunk -= mn
                     else:
                         # The normalization of this kernel keeps the post-smoothing RMS = 1
                         kernel = ones(downfact, typecode='d') / sqrt(downfact)
