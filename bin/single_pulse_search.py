@@ -45,7 +45,6 @@ def make_fftd_kerns(downfacts, fftlen):
     fftd_kerns = []
     for downfact in downfacts:
         kern = zeros(fftlen, typecode='d')
-        kern.savespace()
         # These offsets produce kernels that give results
         # equal to scipy.signal.convolve
         if downfact % 2:  # Odd number
