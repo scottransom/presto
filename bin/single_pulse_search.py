@@ -126,8 +126,9 @@ def usage():
     print """
 usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-h, --help]        : Display this help
-  [-t, --threshold]   : Set a different threshold SNR (default=5.0)
   [-m, --maxfact]     : Set the max downsample factor (see below for default)
+  [-p, --noplot]      : Look for pulses but do not generate a plot
+  [-t, --threshold]   : Set a different threshold SNR (default=5.0)
   [-x, --xwin]        : Don't make a postscript plot, just use an X-window
 
   Perform a single-pulse search (or simply re-plot the results of a
@@ -178,8 +179,9 @@ def read_singlepulse_files(infiles, threshold):
 
 def main():
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hxm:t:",
-                                   ["help", "xwin", "maxfact=", "threshold="])
+        opts, args = getopt.getopt(sys.argv[1:], "hxpm:t:",
+                                   ["help", "xwin", "noplot",
+                                    "maxfact=", "threshold="])
     except getopt.GetoptError:
         # print help information and exit:
         usage()
@@ -189,6 +191,7 @@ def main():
         sys.exit(2)
     useffts = True
     dosearch = True
+    makeplot = True
     threshold = 5.0
     fftlen = 8192    # Should be a power-of-two for best speed
     chunklen = 8000  # Must be at least max_downfact less than fftlen
@@ -199,6 +202,8 @@ def main():
         if o in ("-h", "--help"):
             usage()
             sys.exit()
+        if o in ("-p", "--noplot"):
+            makeplot = False
         if o in ("-m", "--maxfact"):
             max_downfact = int(a)
         if o in ("-t", "--threshold"):
@@ -350,127 +355,129 @@ def main():
                 candlist.append(cand)
             num_v_DMstr[DMstr] = len(dm_candlist)
 
-    # Step through the candidates to make a SNR list
-    DMs.sort()
-    maxsnr = 0.0
-    snrs = []
-    for cand in candlist:
-        snrs.append(cand.sigma)
-        if cand.sigma > maxsnr:
-            maxsnr = cand.sigma
-    maxsnr = int(maxsnr) + 3
+    if (makeplot):
 
-    # Generate the SNR histogram
-    snrs = asarray(snrs)
-    (num_v_snr, lo_snr, d_snr, num_out_of_range) = \
-                scipy.stats.histogram(snrs,
-                                      int(maxsnr-threshold+1),
-                                      [threshold, maxsnr])
-    snrs = arange(maxsnr-threshold+1, typecode='d')*d_snr + lo_snr + 0.5*d_snr
-    num_v_snr = where(num_v_snr==0, 0.001, num_v_snr)
+        # Step through the candidates to make a SNR list
+        DMs.sort()
+        maxsnr = 0.0
+        snrs = []
+        for cand in candlist:
+            snrs.append(cand.sigma)
+            if cand.sigma > maxsnr:
+                maxsnr = cand.sigma
+        maxsnr = int(maxsnr) + 3
 
-    # Generate the DM histogram
-    num_v_DM = zeros(len(DMs))
-    for ii, DM in enumerate(DMs):
-        num_v_DM[ii] = num_v_DMstr["%.2f"%DM]
-    DMs = asarray(DMs)
+        # Generate the SNR histogram
+        snrs = asarray(snrs)
+        (num_v_snr, lo_snr, d_snr, num_out_of_range) = \
+                    scipy.stats.histogram(snrs,
+                                          int(maxsnr-threshold+1),
+                                          [threshold, maxsnr])
+        snrs = arange(maxsnr-threshold+1, typecode='d')*d_snr + lo_snr + 0.5*d_snr
+        num_v_snr = where(num_v_snr==0, 0.001, num_v_snr)
 
-    # open the plot device
-    short_filenmbase = filenmbase[:filenmbase.find("_DM")]
-    if pgplot_device:
-        ppgplot.pgopen(pgplot_device)
-    else:
-        ppgplot.pgopen(short_filenmbase+'_singlepulse.ps/VPS')
-    ppgplot.pgpap(7.5, 1.0)  # Width in inches, aspect
+        # Generate the DM histogram
+        num_v_DM = zeros(len(DMs))
+        for ii, DM in enumerate(DMs):
+            num_v_DM[ii] = num_v_DMstr["%.2f"%DM]
+        DMs = asarray(DMs)
 
-    # plot the SNR histogram
-    ppgplot.pgsvp(0.06, 0.31, 0.6, 0.87)
-    ppgplot.pgswin(threshold, maxsnr, log10(0.5), log10(2*max(num_v_snr)))
-    ppgplot.pgsch(0.8)
-    ppgplot.pgbox("BCNST", 0, 0, "BCLNST", 0, 0)
-    ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Signal-to-Noise")
-    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Number of Pulses")
-    ppgplot.pgsch(1.0)
-    ppgplot.pgbin(snrs, log10(num_v_snr), 1)
+        # open the plot device
+        short_filenmbase = filenmbase[:filenmbase.find("_DM")]
+        if pgplot_device:
+            ppgplot.pgopen(pgplot_device)
+        else:
+            ppgplot.pgopen(short_filenmbase+'_singlepulse.ps/VPS')
+        ppgplot.pgpap(7.5, 1.0)  # Width in inches, aspect
 
-    # plot the DM histogram
-    ppgplot.pgsvp(0.39, 0.64, 0.6, 0.87)
-    ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, 0.0, 1.1*max(num_v_DM))
-    ppgplot.pgsch(0.8)
-    ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
-    ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
-    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Number of Pulses")
-    ppgplot.pgsch(1.0)
-    ppgplot.pgbin(DMs, num_v_DM, 1)
-    
-    # plot the SNR vs DM plot 
-    ppgplot.pgsvp(0.72, 0.97, 0.6, 0.87)
-    ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, threshold, maxsnr)
-    ppgplot.pgsch(0.8)
-    ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
-    ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
-    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-Noise")
-    ppgplot.pgsch(1.0)
-    cand_ts = zeros(len(candlist), typecode='f')
-    cand_SNRs = zeros(len(candlist), typecode='f')
-    cand_DMs = zeros(len(candlist), typecode='f')
-    for ii, cand in enumerate(candlist):
-        cand_ts[ii], cand_SNRs[ii], cand_DMs[ii] = \
-                     cand.time, cand.sigma, cand.DM
-    ppgplot.pgpt(cand_DMs, cand_SNRs, 20)
+        # plot the SNR histogram
+        ppgplot.pgsvp(0.06, 0.31, 0.6, 0.87)
+        ppgplot.pgswin(threshold, maxsnr, log10(0.5), log10(2*max(num_v_snr)))
+        ppgplot.pgsch(0.8)
+        ppgplot.pgbox("BCNST", 0, 0, "BCLNST", 0, 0)
+        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Signal-to-Noise")
+        ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Number of Pulses")
+        ppgplot.pgsch(1.0)
+        ppgplot.pgbin(snrs, log10(num_v_snr), 1)
 
-    # plot the DM vs Time plot
-    ppgplot.pgsvp(0.06, 0.97, 0.08, 0.52)
-    ppgplot.pgswin(0.0, obstime, min(DMs)-0.5, max(DMs)+0.5)
-    ppgplot.pgsch(0.8)
-    ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
-    ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
-    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
-    # Circles are symbols 20-26 in increasing order
-    snr_range = 15.0-threshold
-    cand_symbols = (cand_SNRs-threshold)/snr_range * 6.0 + 0.5 + 20.0
-    cand_symbols = cand_symbols.astype('i')
-    cand_symbols = where(cand_symbols>26, 26, cand_symbols)
-    for ii in range(len(cand_symbols)):
-        ppgplot.pgpt(cand_ts[ii:ii+1], cand_DMs[ii:ii+1], cand_symbols[ii:ii+1])
+        # plot the DM histogram
+        ppgplot.pgsvp(0.39, 0.64, 0.6, 0.87)
+        ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, 0.0, 1.1*max(num_v_DM))
+        ppgplot.pgsch(0.8)
+        ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
+        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
+        ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Number of Pulses")
+        ppgplot.pgsch(1.0)
+        ppgplot.pgbin(DMs, num_v_DM, 1)
 
-    # Now fill the infomation area
-    ppgplot.pgsvp(0.05, 0.95, 0.87, 0.97)
-    ppgplot.pgsch(1.0)
-    ppgplot.pgmtxt('T', 0.5, 0.0, 0.0,
-                   "Single pulse results for '%s'"%short_filenmbase)
-    ppgplot.pgsch(0.8)
-    # first row
-    ppgplot.pgmtxt('T', -1.1, 0.02, 0.0, 'Source: %s'%\
-                   info.object)
-    ppgplot.pgmtxt('T', -1.1, 0.33, 0.0, 'RA (J2000):')
-    ppgplot.pgmtxt('T', -1.1, 0.5, 0.0,
-                   coord_to_string(info.ra_h, info.ra_m, info.ra_s))
-    ppgplot.pgmtxt('T', -1.1, 0.73, 0.0, 'N samples: %.0f'%orig_N)
-    # second row
-    ppgplot.pgmtxt('T', -2.4, 0.02, 0.0, 'Telescope: %s'%\
-                   info.telescope)
-    ppgplot.pgmtxt('T', -2.4, 0.33, 0.0, 'DEC (J2000):')
-    ppgplot.pgmtxt('T', -2.4, 0.5, 0.0,
-                   coord_to_string(info.dec_d, info.dec_m, info.dec_s))
-    ppgplot.pgmtxt('T', -2.4, 0.73, 0.0, 'Sampling time: %.2f \gms'%\
-                   (orig_dt*1e6))
-    # third row
-    if info.instrument.find("pigot"):
-        instrument = "Spigot"
-    else:
-        instrument = info.instrument
-    ppgplot.pgmtxt('T', -3.7, 0.02, 0.0, 'Instrument: %s'%instrument)
-    if (info.bary):
-        ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dbary\u: %.12f'%\
-                       (info.mjd_i+info.mjd_f))
-    else:
-        ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dtopo\u: %.12f'%\
-                       (info.mjd_i+info.mjd_f))
-    ppgplot.pgmtxt('T', -3.7, 0.73, 0.0, 'Freq\dctr\u: %.1f MHz'%\
-                   ((info.num_chan/2-0.5)*info.chan_wid+info.freq))
-    ppgplot.pgiden()
-    ppgplot.pgend()
+        # plot the SNR vs DM plot 
+        ppgplot.pgsvp(0.72, 0.97, 0.6, 0.87)
+        ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, threshold, maxsnr)
+        ppgplot.pgsch(0.8)
+        ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
+        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
+        ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-Noise")
+        ppgplot.pgsch(1.0)
+        cand_ts = zeros(len(candlist), typecode='f')
+        cand_SNRs = zeros(len(candlist), typecode='f')
+        cand_DMs = zeros(len(candlist), typecode='f')
+        for ii, cand in enumerate(candlist):
+            cand_ts[ii], cand_SNRs[ii], cand_DMs[ii] = \
+                         cand.time, cand.sigma, cand.DM
+        ppgplot.pgpt(cand_DMs, cand_SNRs, 20)
+
+        # plot the DM vs Time plot
+        ppgplot.pgsvp(0.06, 0.97, 0.08, 0.52)
+        ppgplot.pgswin(0.0, obstime, min(DMs)-0.5, max(DMs)+0.5)
+        ppgplot.pgsch(0.8)
+        ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
+        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
+        ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
+        # Circles are symbols 20-26 in increasing order
+        snr_range = 15.0-threshold
+        cand_symbols = (cand_SNRs-threshold)/snr_range * 6.0 + 0.5 + 20.0
+        cand_symbols = cand_symbols.astype('i')
+        cand_symbols = where(cand_symbols>26, 26, cand_symbols)
+        for ii in range(len(cand_symbols)):
+            ppgplot.pgpt(cand_ts[ii:ii+1], cand_DMs[ii:ii+1], cand_symbols[ii:ii+1])
+
+        # Now fill the infomation area
+        ppgplot.pgsvp(0.05, 0.95, 0.87, 0.97)
+        ppgplot.pgsch(1.0)
+        ppgplot.pgmtxt('T', 0.5, 0.0, 0.0,
+                       "Single pulse results for '%s'"%short_filenmbase)
+        ppgplot.pgsch(0.8)
+        # first row
+        ppgplot.pgmtxt('T', -1.1, 0.02, 0.0, 'Source: %s'%\
+                       info.object)
+        ppgplot.pgmtxt('T', -1.1, 0.33, 0.0, 'RA (J2000):')
+        ppgplot.pgmtxt('T', -1.1, 0.5, 0.0,
+                       coord_to_string(info.ra_h, info.ra_m, info.ra_s))
+        ppgplot.pgmtxt('T', -1.1, 0.73, 0.0, 'N samples: %.0f'%orig_N)
+        # second row
+        ppgplot.pgmtxt('T', -2.4, 0.02, 0.0, 'Telescope: %s'%\
+                       info.telescope)
+        ppgplot.pgmtxt('T', -2.4, 0.33, 0.0, 'DEC (J2000):')
+        ppgplot.pgmtxt('T', -2.4, 0.5, 0.0,
+                       coord_to_string(info.dec_d, info.dec_m, info.dec_s))
+        ppgplot.pgmtxt('T', -2.4, 0.73, 0.0, 'Sampling time: %.2f \gms'%\
+                       (orig_dt*1e6))
+        # third row
+        if info.instrument.find("pigot"):
+            instrument = "Spigot"
+        else:
+            instrument = info.instrument
+        ppgplot.pgmtxt('T', -3.7, 0.02, 0.0, 'Instrument: %s'%instrument)
+        if (info.bary):
+            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dbary\u: %.12f'%\
+                           (info.mjd_i+info.mjd_f))
+        else:
+            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dtopo\u: %.12f'%\
+                           (info.mjd_i+info.mjd_f))
+        ppgplot.pgmtxt('T', -3.7, 0.73, 0.0, 'Freq\dctr\u: %.1f MHz'%\
+                       ((info.num_chan/2-0.5)*info.chan_wid+info.freq))
+        ppgplot.pgiden()
+        ppgplot.pgend()
 
 if __name__ == '__main__':
     if (0):
