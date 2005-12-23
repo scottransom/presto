@@ -1,6 +1,6 @@
 import Numeric, umath, FFT, Pgplot, ppgplot, bisect, sinc_interp
 from scipy.stats import mean, std, histogram
-from scipy.special.cephes import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov
+from scipy.special import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov
 from scipy.optimize import leastsq
 from scipy.optimize.minpack import bisection
 from psr_constants import *

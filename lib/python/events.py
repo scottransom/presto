@@ -3,7 +3,7 @@ import umath
 import Numeric as Num
 from psr_constants import PI, TWOPI, PIBYTWO
 from simple_roots import newton_raphson
-from scipy.special.cephes import iv, chdtri, ndtr, ndtri
+from scipy.special import iv, chdtri, ndtr, ndtri
 
 def gauss_sigma_to_prob(sigma):
     """
@@ -45,7 +45,8 @@ def xray_time_to_detect(ctrate, pfract, dt, fpsr, bins=0, confidence=0.99,
     if (bins):
         P_detect = max_noise_power(bins, confidence=confidence)
         power_required = required_signal_power(P_detect, confidence=detectfract)
-        return 4 * ctrate * dt**2.0 / (A**2.0 * factor) * power_required
+	# The following is from para 1, sect 3.3, of Ransom, Gaensler, and Slane, 2002
+	#return  (power_required - 1.0)          4 * ctrate * dt**2.0 / (A**2.0 * factor) * 
     else:
         print "Not implemented yet...I think we need to iterate."
 
