@@ -254,6 +254,7 @@ def main():
             # Step through the file
             dm_candlist = []
             while (fileptr < N):
+                search_chunk = True
                 if (N-fileptr < fileblocklen):
                     tmpchunk = scipy.io.fread(infile, N-fileptr, 'f')
                 else:
@@ -267,6 +268,11 @@ def main():
                 # Compute the standard deviation of the data
                 if (numread > 0.1*fileblocklen):
                     stdev = scipy.stats.std(tmpchunk)
+
+                # Make sure that we are not searching a section of padding
+                if stdev < 1e-7:
+                    search_chunk = False
+
                 # Normalize so that the data has mean=0, std=1.0
                 tmpchunk = tmpchunk/stdev
 
@@ -283,52 +289,53 @@ def main():
                     chunk = tmpchunk
                 fileptr += numread
 
-                # This is the good part of the data (end effects removed)
-                goodchunk = chunk[overlap:-overlap]
-		
-                # Search non-downsampled data first
-                #
-                # NOTE:  these compress() calls (and the nonzeros() that result) are
-                #        currently the most expensive call in the program.  Best
-                #        bet would probably be to simply iterate over the goodchunk
-                #        in C and append to the candlist there.
-                hibins = compress(goodchunk>threshold, arange(chunklen))
-                hivals = take(goodchunk, hibins)
-                hibins += dataptr
-                # Add the candidates (which are sorted by bin)
-                for bin, val in zip(hibins, hivals):
-                    time = bin * dt
-                    dm_candlist.append(candidate(info.dm, val, time, bin, 1))
+                if search_chunk:
+                    # This is the good part of the data (end effects removed)
+                    goodchunk = chunk[overlap:-overlap]
 
-                # Prepare our data for the convolution
-                if useffts: fftd_chunk = rfft(chunk, -1)
-
-                # Now do the downsampling...
-                for ii, downfact in enumerate(downfacts):
-                    if useffts: 
-                        # Note:  FFT convolution is faster for _all_ downfacts, even 2
-                        goodchunk = fft_convolve(fftd_chunk, fftd_kerns[ii],
-                                                 overlap, -overlap)
-                    else:
-                        # The normalization of this kernel keeps the post-smoothing RMS = 1
-                        kernel = ones(downfact, typecode='d') / sqrt(downfact)
-                        smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
-                        goodchunk = smoothed_chunk[overlap:-overlap]
+                    # Search non-downsampled data first
+                    #
+                    # NOTE:  these compress() calls (and the nonzeros() that result) are
+                    #        currently the most expensive call in the program.  Best
+                    #        bet would probably be to simply iterate over the goodchunk
+                    #        in C and append to the candlist there.
                     hibins = compress(goodchunk>threshold, arange(chunklen))
                     hivals = take(goodchunk, hibins)
                     hibins += dataptr
-                    hibins = hibins.tolist()
-                    hivals = hivals.tolist()
-                    # Now walk through the new candidates and remove those
-                    # that are not the highest but are within downfact/2
-                    # bins of a higher signal pulse
-                    hibins, hivals = prune_related1(hibins, hivals, downfact)
-                    # Insert the new candidates into the candlist, but
-                    # keep it sorted...
+                    # Add the candidates (which are sorted by bin)
                     for bin, val in zip(hibins, hivals):
                         time = bin * dt
-                        bisect.insort(dm_candlist,
-                                      candidate(info.dm, val, time, bin, downfact))
+                        dm_candlist.append(candidate(info.dm, val, time, bin, 1))
+
+                    # Prepare our data for the convolution
+                    if useffts: fftd_chunk = rfft(chunk, -1)
+
+                    # Now do the downsampling...
+                    for ii, downfact in enumerate(downfacts):
+                        if useffts: 
+                            # Note:  FFT convolution is faster for _all_ downfacts, even 2
+                            goodchunk = fft_convolve(fftd_chunk, fftd_kerns[ii],
+                                                     overlap, -overlap)
+                        else:
+                            # The normalization of this kernel keeps the post-smoothing RMS = 1
+                            kernel = ones(downfact, typecode='d') / sqrt(downfact)
+                            smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
+                            goodchunk = smoothed_chunk[overlap:-overlap]
+                        hibins = compress(goodchunk>threshold, arange(chunklen))
+                        hivals = take(goodchunk, hibins)
+                        hibins += dataptr
+                        hibins = hibins.tolist()
+                        hivals = hivals.tolist()
+                        # Now walk through the new candidates and remove those
+                        # that are not the highest but are within downfact/2
+                        # bins of a higher signal pulse
+                        hibins, hivals = prune_related1(hibins, hivals, downfact)
+                        # Insert the new candidates into the candlist, but
+                        # keep it sorted...
+                        for bin, val in zip(hibins, hivals):
+                            time = bin * dt
+                            bisect.insort(dm_candlist,
+                                          candidate(info.dm, val, time, bin, downfact))
 
                 # Backup in the infile by the overlap
                 infile.seek(-2*overlap*float_len, 1)
