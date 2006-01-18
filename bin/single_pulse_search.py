@@ -37,8 +37,8 @@ def fft_convolve(fftd_data, fftd_kern, lo, hi):
     # fftd_kern = rfft(kernel, -1)
     # fftd_data = rfft(data, -1)
     prod = fftd_data * fftd_kern
-    prod[0].real = fftd_kern[0].real * fftd_data[0].real
-    prod[0].imag = fftd_kern[0].imag * fftd_data[0].imag
+    prod.real[0] = fftd_kern.real[0] * fftd_data.real[0]
+    prod.imag[0] = fftd_kern.imag[0] * fftd_data.imag[0]
     return rfft(prod, 1)[lo:hi].astype('d')
 
 def make_fftd_kerns(downfacts, fftlen):
@@ -198,7 +198,7 @@ def main():
     default_downfacts = [2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150]
     max_downfact = 30
     pgplot_device = ""
-    for ii, (o, a) in enumerate(opts):
+    for o, a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit()
