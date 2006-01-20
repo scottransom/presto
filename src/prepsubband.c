@@ -1126,20 +1126,22 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
       }
       /* Downsample the subband data if needed */
       if (cmd->downsamp > 1) {
-	 int kk, offset, dsoffset, index, dsindex;
-	 for (ii = 0; ii < dsworklen; ii++) {
-	    dsoffset = ii * cmd->nsub;
-	    offset = dsoffset * cmd->downsamp;
-	    for (jj = 0; jj < cmd->nsub; jj++) {
-	       dsindex = dsoffset + jj;
-	       index = offset + jj;
-	       currentdsdata[dsindex] = 0.0;
-	       for (kk = 0; kk < cmd->downsamp; kk++) {
-		  currentdsdata[dsindex] += currentdata[index];
-		  index += cmd->nsub;
-	       }
-	    }
-	 }
+         int kk, offset, dsoffset, index, dsindex, itmp;
+         for (ii = 0; ii < dsworklen; ii++) {
+            dsoffset = ii * cmd->nsub;
+            offset = dsoffset * cmd->downsamp;
+            for (jj = 0; jj < cmd->nsub; jj++) {
+               dsindex = dsoffset + jj;
+               index = offset + jj;
+               currentdsdata[dsindex] = 0.0;
+               for (kk = 0, itmp = 0; kk < cmd->downsamp; kk++) {
+                  itmp += currentdata[index];
+                  index += cmd->nsub;
+               }
+	       /* Keep the short ints from overflowing */
+	       currentdsdata[dsindex] += itmp / cmd->downsamp;
+            }
+         }
       }
       if (firsttime) {
 	 SWAP(currentdata, lastdata);
