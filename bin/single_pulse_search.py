@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-import bisect, os, sys, getopt
+import bisect, os, sys, getopt, infodata
 import scipy, scipy.signal, umath, ppgplot
 from Numeric import *
-from presto import read_inffile, rfft
+from presto import rfft
 from psr_utils import coord_to_string
 from TableIO import readColumns
 
@@ -104,7 +104,7 @@ def prune_related2(dm_candlist, downfacts):
             ybin, ysigma = yy.bin, yy.sigma
             if (abs(ybin-xbin) > max(downfacts)/2):
                 break
-            else:
+	    else:
                 if jj in toremove:
                     continue
                 prox = max([xx.downfact/2, yy.downfact/2, 1])
@@ -120,6 +120,26 @@ def prune_related2(dm_candlist, downfacts):
     toremove.reverse()
     for bin in toremove:
         del(dm_candlist[bin])
+    return dm_candlist
+
+def prune_border_cases(dm_candlist, info):
+    # Ignore those that are locate in a half-width
+    # of the boundary between data and padding
+    offregions = zip([x[1] for x in info.onoff[:-1]],
+                     [x[0] for x in info.onoff[1:]])
+    #print offregions
+    toremove = []
+    for ii, cand in enumerate(dm_candlist):
+        loside = cand.bin-cand.downfact/2
+        hiside = cand.bin+cand.downfact/2
+        for off, on in offregions:
+            if (hiside > off and loside < on):
+                toremove.append(ii)
+    # Now zap them starting from the end
+    toremove.sort()
+    toremove.reverse()
+    for ii in toremove:
+        del(dm_candlist[ii])
     return dm_candlist
 
 def usage():
@@ -162,9 +182,9 @@ def read_singlepulse_files(infiles, threshold):
     num_v_DMstr = {}
     for ii, infile in enumerate(infiles):
         filenmbase = infile.rstrip(".singlepulse")
-        info = read_inffile(filenmbase)
-        DMstr = "%.2f"%info.dm
-        DMs.append(info.dm)
+        info = infodata.infodata(filenmbase+".inf")
+        DMstr = "%.2f"%info.DM
+        DMs.append(info.DM)
         num_v_DMstr[DMstr] = 0
         if ii==0:
             info0 = info
@@ -237,9 +257,9 @@ def main():
         # Loop over the input files
         for filenm in args:
             filenmbase = filenm.rstrip(".dat")
-            info = read_inffile(filenmbase)
-            DMstr = "%.2f"%info.dm
-            DMs.append(info.dm)
+            info = infodata.infodata(filenmbase+".inf")
+            DMstr = "%.2f"%info.DM
+            DMs.append(info.DM)
             N, dt = int(info.N), info.dt
             obstime = N * dt
             if (filenm == args[0]):
@@ -250,6 +270,8 @@ def main():
             print 'Single-pulse searching   "%s"...'%filenm
             fileptr = 0
             dataptr = 0
+            oldstdev = 0.0
+            stdev = 0.0
 
             # Step through the file
             dm_candlist = []
@@ -268,9 +290,11 @@ def main():
                 # Compute the standard deviation of the data
                 if (numread > 0.1*fileblocklen):
                     stdev = scipy.stats.std(tmpchunk)
+                    if oldstdev==0.0:  oldstdev = stdev
+                    oldstdev = 0.9*oldstdev + 0.1*stdev
 
                 # Make sure that we are not searching a section of padding
-                if stdev < 1e-7:
+                if stdev < 1e-7 or stdev < 0.3*oldstdev:
                     search_chunk = False
 
                 # Normalize so that the data has mean=0, std=1.0
@@ -305,7 +329,7 @@ def main():
                     # Add the candidates (which are sorted by bin)
                     for bin, val in zip(hibins, hivals):
                         time = bin * dt
-                        dm_candlist.append(candidate(info.dm, val, time, bin, 1))
+                        dm_candlist.append(candidate(info.DM, val, time, bin, 1))
 
                     # Prepare our data for the convolution
                     if useffts: fftd_chunk = rfft(chunk, -1)
@@ -335,7 +359,7 @@ def main():
                         for bin, val in zip(hibins, hivals):
                             time = bin * dt
                             bisect.insort(dm_candlist,
-                                          candidate(info.dm, val, time, bin, downfact))
+                                          candidate(info.DM, val, time, bin, downfact))
 
                 # Backup in the infile by the overlap
                 infile.seek(-2*overlap*float_len, 1)
@@ -349,6 +373,9 @@ def main():
             dm_candlist = prune_related2(dm_candlist, downfacts)
             print "  Found %d pulse candidates"%len(dm_candlist)
             
+            # Get rid of those near padding regions
+            if info.breaks: prune_border_cases(dm_candlist, info)
+
             # Write the pulses to an ASCII output file
             if len(dm_candlist):
                 #dm_candlist.sort(cmp_sigma)
@@ -458,15 +485,13 @@ def main():
         ppgplot.pgmtxt('T', -1.1, 0.02, 0.0, 'Source: %s'%\
                        info.object)
         ppgplot.pgmtxt('T', -1.1, 0.33, 0.0, 'RA (J2000):')
-        ppgplot.pgmtxt('T', -1.1, 0.5, 0.0,
-                       coord_to_string(info.ra_h, info.ra_m, info.ra_s))
+        ppgplot.pgmtxt('T', -1.1, 0.5, 0.0, info.RA)
         ppgplot.pgmtxt('T', -1.1, 0.73, 0.0, 'N samples: %.0f'%orig_N)
         # second row
         ppgplot.pgmtxt('T', -2.4, 0.02, 0.0, 'Telescope: %s'%\
                        info.telescope)
         ppgplot.pgmtxt('T', -2.4, 0.33, 0.0, 'DEC (J2000):')
-        ppgplot.pgmtxt('T', -2.4, 0.5, 0.0,
-                       coord_to_string(info.dec_d, info.dec_m, info.dec_s))
+        ppgplot.pgmtxt('T', -2.4, 0.5, 0.0, info.DEC)
         ppgplot.pgmtxt('T', -2.4, 0.73, 0.0, 'Sampling time: %.2f \gms'%\
                        (orig_dt*1e6))
         # third row
@@ -476,13 +501,11 @@ def main():
             instrument = info.instrument
         ppgplot.pgmtxt('T', -3.7, 0.02, 0.0, 'Instrument: %s'%instrument)
         if (info.bary):
-            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dbary\u: %.12f'%\
-                           (info.mjd_i+info.mjd_f))
+            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dbary\u: %.12f'%info.epoch)
         else:
-            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dtopo\u: %.12f'%\
-                           (info.mjd_i+info.mjd_f))
+            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dtopo\u: %.12f'%info.epoch)
         ppgplot.pgmtxt('T', -3.7, 0.73, 0.0, 'Freq\dctr\u: %.1f MHz'%\
-                       ((info.num_chan/2-0.5)*info.chan_wid+info.freq))
+                       ((info.numchan/2-0.5)*info.chan_width+info.lofreq))
         ppgplot.pgiden()
         ppgplot.pgend()
 
