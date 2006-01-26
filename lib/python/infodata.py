@@ -1,5 +1,6 @@
 class infodata:
     def __init__(self, filenm):
+        self.breaks = 0
         for line in open(filenm):
             if line.startswith(" Data file name"):
                 self.basenm = line.split("=")[-1].strip()
