@@ -299,7 +299,7 @@ def main():
                     for off, on in offregions:
                         if ((off < fileptr < on) or
                             (off < newfileptr < on) or
-                            (fileptr < off and newfilptr > on)):
+                            (fileptr < off and newfileptr > on)):
                             padding = 1
                             break
 
