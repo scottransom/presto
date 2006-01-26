@@ -1,7 +1,6 @@
 class infodata:
     def __init__(self, filenm):
-        infile = open(filenm)
-        for line in infile.readlines():
+        for line in open(filenm):
             if line.startswith(" Data file name"):
                 self.basenm = line.split("=")[-1].strip()
                 continue
@@ -37,6 +36,12 @@ class infodata:
                 continue
             if line.startswith(" Any breaks in the data?"):
                 self.breaks = int(line.split("=")[-1].strip())
+                if self.breaks:
+                    self.onoff = []
+                continue
+            if line.startswith(" On/Off bin pair"):
+                vals = line.split("=")[-1].strip().split(",")
+                self.onoff.append((int(vals[0]), int(vals[1])))
                 continue
             if line.startswith(" Type of observation"):
                 self.waveband = line.split("=")[-1].strip()
@@ -62,5 +67,4 @@ class infodata:
             if line.startswith(" Data analyzed by"):
                 self.analyzer = line.split("=")[-1].strip()
                 continue
-        infile.close()
-        
+            
