@@ -122,16 +122,16 @@ def prune_related2(dm_candlist, downfacts):
         del(dm_candlist[bin])
     return dm_candlist
 
-def prune_border_cases(dm_candlist, info):
+def prune_border_cases(dm_candlist, offregions):
     # Ignore those that are locate in a half-width
     # of the boundary between data and padding
-    offregions = zip([x[1] for x in info.onoff[:-1]],
-                     [x[0] for x in info.onoff[1:]])
     #print offregions
     toremove = []
-    for ii, cand in enumerate(dm_candlist):
+    for ii in range(len(dm_candlist))[::-1]:
+        cand = dm_candlist[ii]
         loside = cand.bin-cand.downfact/2
         hiside = cand.bin+cand.downfact/2
+        if hiside < offregions[0][0]: break
         for off, on in offregions:
             if (hiside > off and loside < on):
                 toremove.append(ii)
@@ -265,6 +265,9 @@ def main():
             if (filenm == args[0]):
                 orig_N = N
                 orig_dt = dt
+            if info.breaks:
+                offregions = zip([x[1] for x in info.onoff[:-1]],
+                                 [x[0] for x in info.onoff[1:]])
             infile = open(filenmbase+'.dat', mode='rb')
             outfile = open(filenmbase+'.singlepulse', mode='w')
             print 'Single-pulse searching   "%s"...'%filenm
@@ -287,14 +290,26 @@ def main():
                 tmpchunk = tmpchunk.astype('d') # keep the precision high for detrend
                 bp = compress(break_points<numread, break_points)
                 tmpchunk = scipy.signal.detrend(tmpchunk, bp=bp)
-                # Compute the standard deviation of the data
-                if (numread > 0.1*fileblocklen):
+
+                # Compute the standard deviation of the data if we are not
+                # in a padding region
+                padding = 0
+                if info.breaks:
+                    newfileptr = fileptr+numread
+                    for off, on in offregions:
+                        if ((off < fileptr < on) or
+                            (off < newfileptr < on) or
+                            (fileptr < off and newfilptr > on)):
+                            padding = 1
+                            break
+
+                if (numread > 0.1*fileblocklen and not padding):
                     stdev = scipy.stats.std(tmpchunk)
                     if oldstdev==0.0:  oldstdev = stdev
-                    oldstdev = 0.9*oldstdev + 0.1*stdev
+                    oldstdev = 0.5*oldstdev + 0.5*stdev
 
                 # Make sure that we are not searching a section of padding
-                if stdev < 1e-7 or stdev < 0.3*oldstdev:
+                if padding or stdev < 1e-7 or stdev < 0.3*oldstdev:
                     search_chunk = False
 
                 # Normalize so that the data has mean=0, std=1.0
@@ -374,7 +389,7 @@ def main():
             print "  Found %d pulse candidates"%len(dm_candlist)
             
             # Get rid of those near padding regions
-            if info.breaks: prune_border_cases(dm_candlist, info)
+            if info.breaks: prune_border_cases(dm_candlist, offregions)
 
             # Write the pulses to an ASCII output file
             if len(dm_candlist):
