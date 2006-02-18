@@ -122,7 +122,8 @@ int fread_multifile(void *data, size_t type, size_t number,
 /*   'number' is the number of nuggets to read               */
 /*   'mfile' is a pointer to a valid multifile structure     */
 {
-  int findex, readbytes, bytesread, tmpbytesread;
+  int findex;
+  size_t readbytes, bytesread, tmpbytesread;
   
   findex = mfile->currentfile;
   readbytes = number * type;
@@ -164,9 +165,9 @@ int fwrite_multifile(void *data, size_t type, size_t number,
 /*   'number' is the number of nuggets to write              */
 /*   'mfile' is a pointer to a valid multifile structure     */
 {
-  long long bytesleft;
   int findex;
-  int writebytes, tmpwritebytes, byteswritten, tmpbyteswritten;
+  long long bytesleft;
+  size_t writebytes, tmpwritebytes, byteswritten, tmpbyteswritten;
   
   findex = mfile->currentfile;
   writebytes = number * type;
