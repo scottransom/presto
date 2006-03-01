@@ -1080,7 +1080,9 @@ int read_SPIGOT_subbands(FILE *infiles[], int numfiles, float *data,
 void scale_rawlags(void *rawdata, int index)
 /* Scale the raw lags so that they are "calibrated" */
 {
-  int ii;
+  int ii, lag0;
+  static int last_lag0=0, wrapval=0;
+  static double ravg=0.0;
   
   /* Fill lag array with scaled CFs */
   /* Note:  The 2 and 4 bit options will almost certainly need to be fixed */
@@ -1088,7 +1090,19 @@ void scale_rawlags(void *rawdata, int index)
   /*        Also, I have no idea how multiple IFs/RFs are stored...        */
   if (bits_per_lag_st==16){
     short *data=(short *)rawdata;
-    for (ii=0; ii<numchan_st; ii++) 
+    /* Attempt to fix zerolags that have either over-flowed or under-flowed */
+    {
+      lag0 = (int)data[index];
+      if (abs(lag0 - last_lag0) > 40000){  // 40K is quite arbitrary...
+	if (lag0 < last_lag0)
+	  lag0 += 65536;
+	else
+	  lag0 -= 65536;
+      }
+      lags[0] = lag0*lag_factor[0] + lag_offset[0];
+      last_lag0 = lag0;
+    }
+    for (ii=1; ii<numchan_st; ii++) 
       lags[ii] = data[ii+index]*lag_factor[ii] + lag_offset[ii];
   } else if (bits_per_lag_st==8){
     char *data=(char *)rawdata;
@@ -1098,7 +1112,28 @@ void scale_rawlags(void *rawdata, int index)
     int jj;
     char tmplag;
     unsigned char *data=(unsigned char *)rawdata, byte;
-    for (ii=0, jj=0; ii<numchan_st/2; ii++){
+    /* Attempt to fix zerolags that have either over-flowed or under-flowed */
+    {
+      byte = data[index/2];
+      lag0 = ((byte&0x70)>>4) - ((byte&0x80)>>4);
+      lag0 += wrapval;
+
+      if (fabs(lag0 - ravg) > 12){  // 12 is quite arbitrary
+	if (lag0 < ravg) {
+	  if (wrapval <= 32) wrapval += 16; // Prevent the wrapval from skyrocketting
+	  lag0 += 16;
+	} else {
+	  if (wrapval >= -32) wrapval -= 16; // Prevent the wrapval from skyrocketting
+	  lag0 -= 16;
+	}
+	// printf("wrapping at %d.  wrapval = %d\n", ii, wrapval);
+      }
+      ravg = 0.1*ravg + 0.9*lag0;
+      lags[0] = lag0*lag_factor[0] + lag_offset[0];
+      tmplag = (byte&0x07) - (byte&0x08);
+      lags[1] = tmplag*lag_factor[1] + lag_offset[1];
+    }
+    for (ii=1, jj=2; ii<numchan_st/2; ii++){
       byte = data[ii+index/2];
       /* Treat the 4 msbs as a twos-complement 4-bit int */
       tmplag = ((byte&0x70)>>4) - ((byte&0x80)>>4);
