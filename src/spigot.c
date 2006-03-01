@@ -108,7 +108,7 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
 /* Read and convert SPIGOT header information and place it into */
 /* a SPIGOT_INFO structure.  Return 1 if successful, 0 if not.  */
 {
-  int hdrlen, data_offset, itmp;
+  int hdrlen, data_offset, itmp, first_spectrum;
   double dtmp1, dtmp2;
   char *hdr;
   static int firsttime=1;
@@ -238,6 +238,10 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   spigot->file_duration = spigot->samples_per_file * 1e6 * spigot->dt_us;
   /* Total (planned) number of spectra */
   hgeti4(hdr, "SPECTRA", &(spigot->tot_num_samples));
+  /* The initial spectrum number in the file  */
+  hgeti4(hdr, "FRSTSPEC", &first_spectrum);
+  /* Update the MJD based on the number of spectra */
+  spigot->MJD_obs += (first_spectrum * 1e-6 * spigot->dt_us)/SECPERDAY;
   /* Set the lag scaling and offset values if this is the firsttime */
   if (firsttime){
     int NomOffset=0, ii;
@@ -552,8 +556,10 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
       }
       spigot[ii].MJD_obs = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
     } else {
-      spigot[ii].elapsed_time = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
-                                             idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+      //printf("%.15f  %.15f\n", idata_st[ii].mjd_f, spigot[ii].MJD_obs);
+      //spigot[ii].elapsed_time = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
+      //				     idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+      spigot[ii].elapsed_time = (spigot[ii].MJD_obs - spigot[ii-1].MJD_obs) * 86400.0;
       base_MJD_obs = spigot[ii].MJD_obs;
     }
     spigot[ii-1].padding_samples = (int)((spigot[ii].elapsed_time - 
