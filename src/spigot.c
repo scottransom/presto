@@ -32,15 +32,14 @@ static void vanvleck3lev(float *rho, int npts);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move, 
 			     int move_size);
 
-static double *hamming_window(int numlags)
+static double *hanning_window(int numlags)
 {
   double *win;
   int ii;
 
   win = gen_dvect(numlags);
-  /* Hanning would have win[ii] = 0.5 - 0.5*cos(TWOPI*ii/(numlags-1)) */
   for (ii=0; ii<numlags; ii++)
-    win[ii] = 0.54 - 0.46*cos(TWOPI*ii/(numlags-1));
+    win[ii] = 0.5 + 0.5*cos(PI*ii/(numlags-1));
   return win;
 }
 
@@ -474,15 +473,15 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   if (clipsig > 0.0) clip_sigma_st = clipsig;
   if (usewindow){
     usewindow_st = 1;
-    if (output) printf("Calculated Hamming window for use.\n");
-    /* Note:  Since the lags we get are only half of the lags that  */
-    /* we really need to FFT in order to get spectra (i.e. the      */
-    /* transform that we compute is real and even so we comute a    */
-    /* DCT-I instead of an FFT), we will multiply the lags by the   */
-    /* first half of the window.  The other half of the data (which */
-    /* we don't store since it is redundant)  gets the 2nd half of  */
-    /* the window implicitly since the data wraps around.           */
-    window_st = hamming_window(numchan_st*2);
+    if (output) printf("Calculated Hanning window for use.\n");
+    /* Note:  Since the lags we get are only half of the lags that   */
+    /* we really need to FFT in order to get spectra (i.e. the       */
+    /* transform that we compute is real and even so we comute a     */
+    /* DCT-I instead of an FFT), we will multiply the lags by the    */
+    /* second half of the window.  The other half of the data (which */
+    /* we don't store since it is redundant)  gets the 1st half of   */
+    /* the window implicitly since the data wraps around.            */
+    window_st = hanning_window(numchan_st);
   }
   /* Calculate the maximum number of points we can have in a */
   /* block (power of two), based on the number of samples in */
