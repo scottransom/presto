@@ -492,13 +492,13 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
 		      bits_per_lag_st)/8;
   if (filedatalen != calc_filedatalen)
     fprintf(stderr, "\n  Warning!  The calculated (%lld) and measured (%lld) data lengths of file %d are different!\n\n", 
-	   calc_filedatalen, filedatalen, 0);
+            calc_filedatalen, filedatalen, 0);
   numpts = filedatalen/bytesperpt_st;
   if (filedatalen % bytesperpt_st)
     fprintf(stderr, "\n  Warning!  File %d has a non-integer number of complete samples!\n\n", 0);
   if (numpts != spigot[0].samples_per_file){
     fprintf(stderr, "\n  Warning!  The calculated (%lld) and reported (%d) number of samples in file %d are different!\n\n", 
-	   numpts, spigot[0].samples_per_file, 0);
+            numpts, spigot[0].samples_per_file, 0);
     spigot[0].samples_per_file = numpts;
   }
   /* Calculate the largest block size the fits evenly in each file */
@@ -547,24 +547,24 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
       idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + spigot[ii].elapsed_time/SECPERDAY;
       idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
       if (idata_st[ii].mjd_f >= 1.0){
-	idata_st[ii].mjd_f -= 1.0;
-	idata_st[ii].mjd_i++;
+        idata_st[ii].mjd_f -= 1.0;
+        idata_st[ii].mjd_i++;
       }
       spigot[ii].MJD_obs = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
     } else {
       spigot[ii].elapsed_time = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
-					     idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
+                                             idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
       base_MJD_obs = spigot[ii].MJD_obs;
     }
     spigot[ii-1].padding_samples = (int)((spigot[ii].elapsed_time - 
-					spigot[ii-1].file_duration)/dt_st + 0.5);
+                                          spigot[ii-1].file_duration)/dt_st + 0.5);
     spigot[ii].elapsed_time += spigot[ii-1].elapsed_time;
     N_st += numpts + spigot[ii-1].padding_samples;
     spigot[ii].start_block = (double) (N_st-numpts)/ptsperblk_st + 1;
     spigot[ii].end_block = (double) (N_st)/ptsperblk_st;
   }
   spigot[numfiles-1].padding_samples = ((int) ceil(spigot[numfiles-1].end_block) *
-					ptsperblk_st - N_st);
+                                        ptsperblk_st - N_st);
   N_st += spigot[numfiles-1].padding_samples;
   *N = N_st;
   *T = T_st = N_st*dt_st;
@@ -584,7 +584,7 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
       printf("%2d    %12.11g  %12.11g  %10d  %14.13g  %14.13g  %17.12f  %10d\n",
              ii+1, spigot[ii].start_block, spigot[ii].end_block, spigot[ii].samples_per_file,
              spigot[ii].elapsed_time, spigot[ii].file_duration, spigot[ii].MJD_obs, 
-	     spigot[ii].padding_samples);
+             spigot[ii].padding_samples);
     printf("\n");
   }
 }
@@ -624,7 +624,7 @@ void SPIGOT_update_infodata(int numfiles, infodata *idata)
 
 int skip_to_SPIGOT_rec(FILE *infiles[], int numfiles, int rec)
 /* This routine skips to the record 'rec' in the input files   */
-/* *infiles.  *infiles contain data from the SPIGOT at Arecibo   */
+/* *infiles.  *infiles contain data from the SPIGOT at GBT     */
 /* Returns the record skipped to.                              */
 {
   double floor_blk;
@@ -691,10 +691,10 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
 {
   int offset=0, numtopad=0, ii;
   unsigned char *dataptr=data;
-
+  
   /* If our buffer array is offset from last time */
   /* copy the second part into the first.         */
-
+  
   if (bufferpts){
     offset = bufferpts*numchan_st;
     dataptr = databuffer + offset;
@@ -702,34 +702,34 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
       memcpy(databuffer, databuffer+sampperblk_st, offset);
   }
   shiftbuffer=1;
-
+  
   /* Make sure our current file number is valid */
-
+  
   if (currentfile >= numfiles)
     return 0;
-
+  
   /* First, attempt to read data from the current file */
   
   if (chkfread(lagbuffer, bytesperblk_st, 1, infiles[currentfile])){ /* Got data */
     /* See if we need to byte-swap and if so, doit */
     if (need_byteswap_st){
       if (bits_per_lag_st==16){
-	unsigned short *sptr = (unsigned short *)lagbuffer;
-	for (ii=0; ii<sampperblk_st; ii++, sptr++)
-	  *sptr = swap_ushort(*sptr);
+        unsigned short *sptr = (unsigned short *)lagbuffer;
+        for (ii=0; ii<sampperblk_st; ii++, sptr++)
+          *sptr = swap_ushort(*sptr);
       }
     }
     /* Convert from Correlator Lags to Filterbank Powers */
     for (ii=0; ii<ptsperblk_st; ii++)
       convert_SPIGOT_point(lagbuffer+ii*bytesperpt_st, 
-			   dataptr+ii*numchan_st, ifs, 1.0);
-
+                           dataptr+ii*numchan_st, ifs, 1.0);
+    
     /* Clip nasty RFI if requested */
     if (clip_sigma_st > 0.0)
       clip_times(dataptr, ptsperblk_st, numchan_st, 
-		 clip_sigma_st, padvals);
+                 clip_sigma_st, padvals);
     *padding = 0;
-
+    
     /* Put the new data into the databuffer if needed */
     if (bufferpts){
       memcpy(data, databuffer, sampperblk_st);
@@ -740,52 +740,52 @@ int read_SPIGOT_rawblock(FILE *infiles[], int numfiles,
     if (feof(infiles[currentfile])){  /* End of file? */
       numtopad = spigot[currentfile].padding_samples - padnum;
       if (numtopad){  /* Pad the data? */
-	*padding = 1;
-	if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
-	  if (bufferpts){  /* Buffer the padding? */
-	    /* Add the amount of padding we need to */
-	    /* make our buffer offset = 0           */
-	    numtopad = ptsperblk_st - bufferpts;
-		for (ii=0; ii<numtopad; ii++)
-		  memcpy(dataptr+ii*numchan_st, padvals, numchan_st);
-	    /* Copy the new data/padding into the output array */
-	    memcpy(data, databuffer, sampperblk_st);
-	    bufferpts = 0;
-	  } else {  /* Add a full record of padding */
-	    numtopad = ptsperblk_st;
-		for (ii=0; ii<numtopad; ii++)
-		  memcpy(data+ii*numchan_st, padvals, numchan_st);
-	  }
-	  padnum += numtopad;
-	  currentblock++;
-	  /* If done with padding reset padding variables */
-	  if (padnum==spigot[currentfile].padding_samples){
-	    padnum = 0;
-	    currentfile++;
-	  }
-	  return 1;
-	} else {  /* Need < 1 block (or remaining block) of padding */
-	  int pad;
-	  /* Add the remainder of the padding and */
-	  /* then get a block from the next file. */
-	  for (ii=0; ii<numtopad; ii++)
-		memcpy(databuffer+bufferpts*numchan_st+ii*numchan_st, 
-			   padvals, numchan_st);
-	  bufferpts += numtopad;
-	  padnum = 0;
-	  shiftbuffer = 0;
-	  currentfile++;
-	  return read_SPIGOT_rawblock(infiles, numfiles, data, &pad, ifs);
-	}
+        *padding = 1;
+        if (numtopad >= ptsperblk_st - bufferpts){  /* Lots of padding */
+          if (bufferpts){  /* Buffer the padding? */
+            /* Add the amount of padding we need to */
+            /* make our buffer offset = 0           */
+            numtopad = ptsperblk_st - bufferpts;
+            for (ii=0; ii<numtopad; ii++)
+              memcpy(dataptr+ii*numchan_st, padvals, numchan_st);
+            /* Copy the new data/padding into the output array */
+            memcpy(data, databuffer, sampperblk_st);
+            bufferpts = 0;
+          } else {  /* Add a full record of padding */
+            numtopad = ptsperblk_st;
+            for (ii=0; ii<numtopad; ii++)
+              memcpy(data+ii*numchan_st, padvals, numchan_st);
+          }
+          padnum += numtopad;
+          currentblock++;
+          /* If done with padding reset padding variables */
+          if (padnum==spigot[currentfile].padding_samples){
+            padnum = 0;
+            currentfile++;
+          }
+          return 1;
+        } else {  /* Need < 1 block (or remaining block) of padding */
+          int pad;
+          /* Add the remainder of the padding and */
+          /* then get a block from the next file. */
+          for (ii=0; ii<numtopad; ii++)
+            memcpy(databuffer+bufferpts*numchan_st+ii*numchan_st, 
+                   padvals, numchan_st);
+          bufferpts += numtopad;
+          padnum = 0;
+          shiftbuffer = 0;
+          currentfile++;
+          return read_SPIGOT_rawblock(infiles, numfiles, data, &pad, ifs);
+        }
       } else {  /* No padding needed.  Try reading the next file */
 		currentfile++;
-	shiftbuffer = 0;
-	return read_SPIGOT_rawblock(infiles, numfiles, data, padding, ifs);
+        shiftbuffer = 0;
+        return read_SPIGOT_rawblock(infiles, numfiles, data, padding, ifs);
       }
     } else {
       printf("\nProblem reading record from SPIGOT data file:\n");
       printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
-	     currentfile, currentblock);
+             currentfile, currentblock);
       exit(1);
     }
   }
@@ -807,7 +807,7 @@ int read_SPIGOT_rawblocks(FILE *infiles[], int numfiles,
   *padding = 0;
   for (ii=0; ii<numblocks; ii++){
     retval += read_SPIGOT_rawblock(infiles, numfiles, 
-				   rawdata+ii*sampperblk_st, &pad, ifs);
+                                   rawdata+ii*sampperblk_st, &pad, ifs);
     if (pad)
       numpad++;
   }
@@ -815,7 +815,7 @@ int read_SPIGOT_rawblocks(FILE *infiles[], int numfiles,
   /* half of the blocks are padding.    */
   /* 
      if (numpad > numblocks / 2)
-        *padding = 1;
+     *padding = 1;
   */
   /* Return padding 'true' if any block was padding */
   if (numpad) 
@@ -848,7 +848,7 @@ int read_SPIGOT(FILE *infiles[], int numfiles, float *data,
   if (firsttime) {
     if (numpts % ptsperblk_st){
       printf("numpts must be a multiple of %d in read_SPIGOT()!\n",
-	     ptsperblk_st);
+             ptsperblk_st);
       exit(1);
     } else
       numblocks = numpts/ptsperblk_st;
@@ -868,35 +868,35 @@ int read_SPIGOT(FILE *infiles[], int numfiles, float *data,
   if (allocd){
     while(1){
       numread = read_SPIGOT_rawblocks(infiles, numfiles, currentdata, 
-				      numblocks, padding, ifs);
+                                      numblocks, padding, ifs);
       if (mask){
-	starttime = currentblock*timeperblk;
-	*nummasked = check_mask(starttime, duration, obsmask, maskchans);
-	if (*nummasked==-1){ /* If all channels are masked */
-	  for (ii=0; ii<numpts; ii++)
-	    memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
-	} else if (*nummasked > 0){ /* Only some of the channels are masked */
-	  int channum;
-	  for (ii=0; ii<numpts; ii++){
-	    offset = ii*numchan_st;
-	    for (jj=0; jj<*nummasked; jj++){
-	      channum = maskchans[jj];
-	      currentdata[offset+channum] = padvals[channum];
-	    }
-	  }
-	}
+        starttime = currentblock*timeperblk;
+        *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+        if (*nummasked==-1){ /* If all channels are masked */
+          for (ii=0; ii<numpts; ii++)
+            memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+        } else if (*nummasked > 0){ /* Only some of the channels are masked */
+          int channum;
+          for (ii=0; ii<numpts; ii++){
+            offset = ii*numchan_st;
+            for (jj=0; jj<*nummasked; jj++){
+              channum = maskchans[jj];
+              currentdata[offset+channum] = padvals[channum];
+            }
+          }
+        }
       }
-    
+      
       if (!firsttime)
-	dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
+        dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
       SWAP(currentdata, lastdata);
       if (numread != numblocks){	
-	free(rawdata1);
-	free(rawdata2);
-	fftwf_destroy_plan(fftplan);
-	fftwf_free(lags);
-	free(window_st);
-	allocd = 0;
+        free(rawdata1);
+        free(rawdata2);
+        fftwf_destroy_plan(fftplan);
+        fftwf_free(lags);
+        free(window_st);
+        allocd = 0;
       }
       if (firsttime) firsttime = 0;
       else break;
@@ -909,7 +909,7 @@ int read_SPIGOT(FILE *infiles[], int numfiles, float *data,
 
 
 void get_SPIGOT_channel(int channum, float chandat[], 
-			unsigned char rawdata[], int numblocks)
+                        unsigned char rawdata[], int numblocks)
 /* Return the values for channel 'channum' of a block of         */
 /* 'numblocks' raw SPIGOT data stored in 'rawdata' in 'chandat'. */
 /* 'rawdata' should have been initialized using                  */
@@ -921,22 +921,22 @@ void get_SPIGOT_channel(int channum, float chandat[],
 
   if (channum > numchan_st*numifs_st || channum < 0){
     printf("\nchannum = %d is out of range in get_SPIGOT_channel()!\n\n",
-	   channum);
+           channum);
     exit(1);
   }
   ptsperchan = ptsperblk_st*numblocks;
-
+  
   /* Since the following is only called from rfifind, we know that the */
   /* channel accesses will be in order from 0 to the numchan-1         */
   if (channum==0){ /* Transpose the data */
     short trtn;
     int move_size;
     unsigned char *move;
-
+    
     move_size = (ptsperchan+numchan_st)/2;
     move = gen_bvect(move_size);
     if ((trtn = transpose_bytes(rawdata, ptsperchan, numchan_st,
-				move, move_size))<0)
+                                move, move_size))<0)
       printf("Error %d in transpose_bytes().\n", trtn);
     free(move);
   }
@@ -944,7 +944,7 @@ void get_SPIGOT_channel(int channum, float chandat[],
   /* Select the correct channel */
   for (ii=0, jj=ptsperchan*channum; ii<ptsperchan; ii++, jj++)
     chandat[ii] = (float)rawdata[jj];
-
+  
   /* Select the correct channel */
   /*   for (ii=0, jj=channum;  */
   /*        ii<numblocks*ptsperblk_st;  */
@@ -987,7 +987,7 @@ int prep_SPIGOT_subbands(unsigned char *rawdata, float *data,
     memcpy(currentdata, rawdata, sampperblk_st);
     timeperblk = ptsperblk_st*dt_st;
   }
-
+  
   /* Read and de-disperse */
 
   memcpy(currentdata, rawdata, sampperblk_st);
@@ -996,32 +996,32 @@ int prep_SPIGOT_subbands(unsigned char *rawdata, float *data,
     *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
     if (*nummasked==-1){ /* If all channels are masked */
       for (ii=0; ii<ptsperblk_st; ii++)
-	memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
+        memcpy(currentdata+ii*numchan_st, padvals, numchan_st);
     } else if (*nummasked > 0){ /* Only some of the channels are masked */
       int channum;
       for (ii=0; ii<ptsperblk_st; ii++){
-	offset = ii*numchan_st;
-	for (jj=0; jj<*nummasked; jj++){
-	  channum = maskchans[jj];
-	  currentdata[offset+channum] = padvals[channum];
-	}
+        offset = ii*numchan_st;
+        for (jj=0; jj<*nummasked; jj++){
+          channum = maskchans[jj];
+          currentdata[offset+channum] = padvals[channum];
+        }
       }
     }
   }
-    
+  
   if (firsttime){
     SWAP(currentdata, lastdata);
     firsttime = 0;
     return 0;
   } else {
     dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st, 
-		    dispdelays, numsubbands, data);
+                    dispdelays, numsubbands, data);
     SWAP(currentdata, lastdata);
     /* Transpose the data into vectors in the result array */
     if (transpose){
       if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-				  move, move_size))<0)
-	printf("Error %d in transpose_float().\n", trtn);
+                                  move, move_size))<0)
+        printf("Error %d in transpose_float().\n", trtn);
     }
     return ptsperblk_st;
   }
@@ -1057,7 +1057,7 @@ int read_SPIGOT_subbands(FILE *infiles[], int numfiles, float *data,
       return 0;
     }
     if (0!=prep_SPIGOT_subbands(rawdata, data, dispdelays, numsubbands, 
-				transpose, maskchans, nummasked, obsmask)){
+                                transpose, maskchans, nummasked, obsmask)){
       printf("Problem initializing prep_SPIGOT_subbands()\n\n");
       return 0;
     }
@@ -1066,15 +1066,15 @@ int read_SPIGOT_subbands(FILE *infiles[], int numfiles, float *data,
   if (!read_SPIGOT_rawblock(infiles, numfiles, rawdata, padding, ifs)){
     /* printf("Problem reading the raw SPIGOT data file.\n\n"); */
     if (!memfreed){
-       fftwf_destroy_plan(fftplan);
-       fftwf_free(lags);
-       free(window_st);
-       memfreed=1;
+      fftwf_destroy_plan(fftplan);
+      fftwf_free(lags);
+      free(window_st);
+      memfreed=1;
     }
     return 0;
   }
   return prep_SPIGOT_subbands(rawdata, data, dispdelays, numsubbands, 
-			      transpose, maskchans, nummasked, obsmask);
+                              transpose, maskchans, nummasked, obsmask);
 }
 
 void scale_rawlags(void *rawdata, int index)
@@ -1094,10 +1094,10 @@ void scale_rawlags(void *rawdata, int index)
     {
       lag0 = (int)data[index];
       if (abs(lag0 - last_lag0) > 40000){  // 40K is quite arbitrary...
-	if (lag0 < last_lag0)
-	  lag0 += 65536;
-	else
-	  lag0 -= 65536;
+        if (lag0 < last_lag0)
+          lag0 += 65536;
+        else
+          lag0 -= 65536;
       }
       lags[0] = lag0*lag_factor[0] + lag_offset[0];
       last_lag0 = lag0;
@@ -1117,16 +1117,16 @@ void scale_rawlags(void *rawdata, int index)
       byte = data[index/2];
       lag0 = ((byte&0x70)>>4) - ((byte&0x80)>>4);
       lag0 += wrapval;
-
+      
       if (fabs(lag0 - ravg) > 12){  // 12 is quite arbitrary
-	if (lag0 < ravg) {
-	  if (wrapval <= 32) wrapval += 16; // Prevent the wrapval from skyrocketting
-	  lag0 += 16;
-	} else {
-	  if (wrapval >= -32) wrapval -= 16; // Prevent the wrapval from skyrocketting
-	  lag0 -= 16;
-	}
-	// printf("wrapping at %d.  wrapval = %d\n", ii, wrapval);
+        if (lag0 < ravg) {
+          if (wrapval <= 32) wrapval += 16; // Prevent the wrapval from skyrocketting
+          lag0 += 16;
+        } else {
+          if (wrapval >= -32) wrapval -= 16; // Prevent the wrapval from skyrocketting
+          lag0 -= 16;
+        }
+        // printf("wrapping at %d.  wrapval = %d\n", ii, wrapval);
       }
       ravg = 0.1*ravg + 0.9*lag0;
       lags[0] = lag0*lag_factor[0] + lag_offset[0];
@@ -1184,7 +1184,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
 /* This routine converts a single point of SPIGOT lags   */
 /* into a filterbank style array of bytes.               */
 {
-  int ii, ifnum=0, index=0;
+  int ii, hiclipcount=0, loclipcount=0, ifnum=0, index=0;
   float *templags=NULL;
   double pfact;
   //double power;
@@ -1213,9 +1213,9 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
     /* Apply the user-specified scaling */
     if (lag_scaling!=1.0){
       for (ii=0; ii<numchan_st; ii++)
-	lags[ii] *= lag_scaling;
+        lags[ii] *= lag_scaling;
     }
-
+    
     /* Calculate power */
     //power = sqrt(2.0)*inv_cerf(lags[0]);
     //power = 1.0/(power*power);
@@ -1230,15 +1230,15 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
     /* Window the Lags */
     if (usewindow_st)
       for (ii=0; ii<numchan_st; ii++)
-	lags[ii] *= window_st[ii];
-
+        lags[ii] *= window_st[ii];
+    
 #if 0
     printf("\n");
     for(ii=0; ii<numchan_st; ii++)
       printf("%d  %.7g\n", ii, lags[ii]);
     printf("\n");
 #endif
-
+    
     /* FFT the ACF lags (which are real and even) -> real and even FFT */
     /* Set the missing lag as per Carl Heiles, PASP paper */
     lags[numchan_st] = lags[numchan_st-1];
@@ -1251,26 +1251,29 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
     printf("\n");
     exit(0);
 #endif
-
+    
     /* Determine some simple statistics of the spectra */
     if (counter % 10240 == 0){
       static double min=0, max=0;
       double avg=0, var=0;
-
+      
       avg_var(lags, numchan_st, &avg, &var);
       for (ii=0; ii<numchan_st; ii++){
-	if (lags[ii] < min) min = lags[ii];
-	if (lags[ii] > max) max = lags[ii];
+        if (lags[ii] < min) min = lags[ii];
+        if (lags[ii] > max) max = lags[ii];
       }
       if (counter==0){
-	double range;
-	range = max - min;
-	scale_max = max + 0.1*range;
-	scale_min = min - 0.1*range;
+        double range;
+        range = max - min;
+        //  The maximum power tends to vary more (due to RFI) than the
+        //  minimum power.  (I think)
+        scale_max = max + 0.4*range;
+        scale_min = min - 0.2*range;
       }
-      if (0)
-	printf("counter = %d  avg = %.3g  stdev = %.3g  min = %.3g  max = %.3g\n", 
-	  counter, avg, sqrt(var), min, max);
+#if 0
+      printf("counter = %d  avg = %.3g  stdev = %.3g  min = %.3g  max = %.3g\n", 
+             counter, avg, sqrt(var), min, max);
+#endif
     }
     counter++;
     
@@ -1280,33 +1283,46 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       loptr = lags + 0;
       hiptr = lags + numchan_st - 1;
       for (ii=0; ii<numchan_st/2; ii++, loptr++, hiptr--){
-	SWAP(*loptr, *hiptr);
+        SWAP(*loptr, *hiptr);
       }
     }
     
     if (numifs_st==2 && ifs==SUMIFS){
       if (ifnum==0){
-	templags = gen_fvect(numchan_st);
-	/* Copy the unscaled values to the templag array */
-	for(ii=0; ii<numchan_st; ii++)
-	  templags[ii] = lags[ii];
+        templags = gen_fvect(numchan_st);
+        /* Copy the unscaled values to the templag array */
+        for(ii=0; ii<numchan_st; ii++)
+          templags[ii] = lags[ii];
       } else {
-	/* Sum the unscaled IFs */
-	for(ii=0; ii<numchan_st; ii++)
-	  lags[ii] += templags[ii];
-	free(templags);
+        /* Sum the unscaled IFs */
+        for(ii=0; ii<numchan_st; ii++)
+          lags[ii] += templags[ii];
+        free(templags);
       }
     }
   }
-
+  
   /* Scale and pack the powers into unsigned chars */
   pfact = 255.0 / (scale_max - scale_min);
   for(ii=0; ii<numchan_st; ii++){
     double templag;
-    templag = (lags[ii] > scale_max) ? scale_max : lags[ii];
-    templag = (templag < scale_min) ? scale_min : templag;
+    //templag = (lags[ii] > scale_max) ? scale_max : lags[ii];
+    //templag = (templag < scale_min) ? scale_min : templag;
+    if (lags[ii] > scale_max){
+      templag = scale_max;
+      hiclipcount++;
+    } else {
+      templag = lags[ii];
+    }
+    if (templag < scale_min){
+      templag = scale_min;
+      loclipcount++;
+    }
     bytes[ii] = (unsigned char) ((templag - scale_min) * pfact + 0.5);
   }
+  if (hiclipcount > 100 || loclipcount > 100)
+    fprintf(stderr, "Warning:  For sample %d, (lo, hi) clipcounts = %d, %d\n", 
+            counter, loclipcount, hiclipcount);
 }
 
 
