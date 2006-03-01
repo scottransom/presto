@@ -42,6 +42,7 @@ typedef struct SPIGOT_INFO{
   int bits_per_lag;	  /* Bits/lag */
   int lags_per_sample;	  /* Number of lags/sample */
   int samples_per_file;	  /* Number of samples in this file */
+  int first_spectrum;     /* Overall number of the first spectra in this file */
   int tot_num_samples;    /* Total (planned) number of samples */
   int num_blocks;         /* Number of working data blocks in this file */
   int padding_samples;    /* Number of padding samples to add after this file */

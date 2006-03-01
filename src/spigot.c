@@ -3,6 +3,7 @@
 #include "spigot.h"
 #include "fitsfile.h"
 #include "fitshead.h"
+#include <unistd.h>
 
 #define DEBUGOUT 0
 
@@ -108,7 +109,7 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
 /* Read and convert SPIGOT header information and place it into */
 /* a SPIGOT_INFO structure.  Return 1 if successful, 0 if not.  */
 {
-  int hdrlen, data_offset, itmp, first_spectrum;
+  int hdrlen, data_offset, itmp;
   double dtmp1, dtmp2;
   char *hdr;
   static int firsttime=1;
@@ -239,9 +240,9 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot)
   /* Total (planned) number of spectra */
   hgeti4(hdr, "SPECTRA", &(spigot->tot_num_samples));
   /* The initial spectrum number in the file  */
-  hgeti4(hdr, "FRSTSPEC", &first_spectrum);
+  hgeti4(hdr, "FRSTSPEC", &(spigot->first_spectrum));
   /* Update the MJD based on the number of spectra */
-  spigot->MJD_obs += (first_spectrum * 1e-6 * spigot->dt_us)/SECPERDAY;
+  spigot->MJD_obs += (spigot->first_spectrum * 1e-6 * spigot->dt_us)/SECPERDAY;
   /* Set the lag scaling and offset values if this is the firsttime */
   if (firsttime){
     int NomOffset=0, ii;
@@ -336,9 +337,14 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO *spigot, infodata *idata)
   strcpy(idata->telescope, "GBT");
   strcpy(idata->instrument, spigot->instrument);
   idata->num_chan = spigot->lags_per_sample;
+  idata->dt = spigot->dt_us * 1e-6;
   MJD = UT_strings_to_MJD(spigot->date_obs, spigot->time_obs, 
 			  &(idata->mjd_i), &(idata->mjd_f));
-  idata->dt = spigot->dt_us / 1000000.0;
+  idata->mjd_f += spigot->first_spectrum * idata->dt / SECPERDAY;
+  if (idata->mjd_f >= 1.0){
+    idata->mjd_f -= 1.0;
+    idata->mjd_i++;
+  }
   idata->N = spigot->samples_per_file;
   idata->freqband = spigot->bandwidth;
   idata->chan_wid = fabs(idata->freqband / idata->num_chan);
@@ -347,7 +353,7 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO *spigot, infodata *idata)
   idata->bary = 0;
   idata->numonoff = 0;
   strcpy(idata->band, "Radio");
-  strcpy(idata->analyzer, "Scott Ransom");
+  strcpy(idata->analyzer, getlogin());
   strncpy(idata->observer, spigot->observer, 24);
   if (spigot->summed_pols)
     sprintf(ctmp, 
@@ -400,7 +406,8 @@ void print_SPIGOT_header(SPIGOT_INFO *spigot)
   printf("          Polarization type = '%s'\n", spigot->pol_type);
   printf("               Bits per lag = %d\n", spigot->bits_per_lag);
   printf("            Lags per sample = %d\n", spigot->lags_per_sample);
-  printf("           Samples per file = %d\n", spigot->samples_per_file);
+  printf("      First spectra in file = %d\n", spigot->first_spectrum);
+  printf("           Spectra per file = %d\n", spigot->samples_per_file);
   printf("            Correlator mode = '%s'\n", spigot->corr_mode);
   printf("   Other information:\n");
   if (spigot->summed_pols)
@@ -425,7 +432,6 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
 {
   long long filedatalen, calc_filedatalen, numpts;
   int ii;
-  double base_MJD_obs;
    
   /* Allocate memory for our information structures */
   spigot = (SPIGOT_INFO *)malloc(sizeof(SPIGOT_INFO) * numfiles);
@@ -516,7 +522,6 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
   spigot[0].num_blocks = filedatalen/bytesperblk_st;
   N_st = numpts;
   *dt = dt_st = idata_st[0].dt;
-  base_MJD_obs = spigot[0].MJD_obs;
   spigot[0].file_duration = numpts*dt_st;
   spigot[0].elapsed_time = 0.0;
   spigot[0].start_block = 1.0;
@@ -542,26 +547,9 @@ void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files,
       spigot[ii].samples_per_file = numpts;
     }
     spigot[ii].file_duration = numpts*dt_st;
-    /* If the MJDs are equal, then this is a continuation */
-    /* file.  In that case, calculate the _real_ time     */
-    /* length of the previous file and add it to the      */
-    /* previous files MJD to get the current MJD.         */
-    if (fabs(spigot[ii].MJD_obs-base_MJD_obs) < 1.0e-6/SECPERDAY){
-      spigot[ii].elapsed_time = spigot[ii-1].file_duration;
-      idata_st[ii].mjd_f = idata_st[ii-1].mjd_f + spigot[ii].elapsed_time/SECPERDAY;
-      idata_st[ii].mjd_i = idata_st[ii-1].mjd_i;
-      if (idata_st[ii].mjd_f >= 1.0){
-        idata_st[ii].mjd_f -= 1.0;
-        idata_st[ii].mjd_i++;
-      }
-      spigot[ii].MJD_obs = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
-    } else {
-      //printf("%.15f  %.15f\n", idata_st[ii].mjd_f, spigot[ii].MJD_obs);
-      //spigot[ii].elapsed_time = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
-      //				     idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
-      spigot[ii].elapsed_time = (spigot[ii].MJD_obs - spigot[ii-1].MJD_obs) * 86400.0;
-      base_MJD_obs = spigot[ii].MJD_obs;
-    }
+    spigot[ii].MJD_obs = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
+    spigot[ii].elapsed_time = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
+					   idata_st[ii-1].mjd_i, idata_st[ii-1].mjd_f);
     spigot[ii-1].padding_samples = (int)((spigot[ii].elapsed_time - 
                                           spigot[ii-1].file_duration)/dt_st + 0.5);
     spigot[ii].elapsed_time += spigot[ii-1].elapsed_time;
@@ -1326,7 +1314,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
     }
     bytes[ii] = (unsigned char) ((templag - scale_min) * pfact + 0.5);
   }
-  if (hiclipcount > 100 || loclipcount > 100)
+  if (0 &&( hiclipcount > 100 || loclipcount > 100))
     fprintf(stderr, "Warning:  For sample %d, (lo, hi) clipcounts = %d, %d\n", 
             counter, loclipcount, hiclipcount);
 }
