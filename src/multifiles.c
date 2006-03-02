@@ -141,7 +141,7 @@ int fread_multifile(void *data, size_t type, size_t number, multifile * mfile)
          }
       } else {
          printf("\nRead error in read_multifile():\n");
-         printf("\tTried to read %d bytes, only read %d!\n\n",
+         printf("\tTried to read %zd bytes, only read %zd!\n\n",
                 number * type, bytesread);
          return bytesread / type;
       }
@@ -157,7 +157,7 @@ int fwrite_multifile(void *data, size_t type, size_t number, multifile * mfile)
 /*   'mfile' is a pointer to a valid multifile structure     */
 {
    int findex;
-   long long bytesleft;
+   unsigned long long bytesleft;
    size_t writebytes, tmpwritebytes, byteswritten, tmpbyteswritten;
 
    findex = mfile->currentfile;
@@ -198,7 +198,7 @@ int fwrite_multifile(void *data, size_t type, size_t number, multifile * mfile)
          }
       } else {
          printf("\nWrite error in write_multifile():\n");
-         printf("\tTried to write %d bytes, only wrote %d!\n\n",
+         printf("\tTried to write %zd bytes, only wrote %zd!\n\n",
                 number * type, byteswritten);
          return byteswritten / type;
       }
