@@ -10,7 +10,7 @@ PGPLOTINCDIR = -I$(PGPLOT_DIR)
 # Path to PGPLOT libraries
 PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
-PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -ldl
+PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -lpng -lz -ldl
 
 # You must define one of the following FFTTYPES (USEFFTW is default).
 # If you want to use FFTW for the FFTs, place sfftw.h and libsfftw.a
@@ -44,14 +44,16 @@ CLIG = /usr/bin/clig
 # For Athlons use -march=k6 or -march=k7
 CC = gcc-3.4
 FC = g77-3.4
+#CC = gcc
+#FC = gfortran
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -O3 -ffast-math -march=athlon-xp -mfpmath=sse -msse -mmmx -m3dnow -Wall -W
+	-g -O3 -ffast-math -march=pentium4 -Wall -W
 #	-g -O2 -march=pentium4 -Wall -W
 #  
 CLINKFLAGS = $(CFLAGS)
-FFLAGS = -g -O3 -ffast-math -march=athlon-xp -mfpmath=sse -msse -mmmx -m3dnow 
+FFLAGS = -g -O3 -ffast-math -march=pentium4
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
@@ -152,7 +154,7 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
-	dump_spigot_zerolag spigot2filterbank
+	dump_spigot_zerolag spigot2filterbank spigotSband2filterbank
 
 xwin: psrorbit window plotbincand profile \
 	prepfold show_pfd\
@@ -239,6 +241,9 @@ dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o
 
 spigot2filterbank: spigot2filterbank.o spigot.o sigproc_fb.o
 	$(CC) $(CLINKFLAGS) -o $@ spigot2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
+
+spigotSband2filterbank: spigotSband2filterbank.o spigot.o sigproc_fb.o
+	$(CC) $(CLINKFLAGS) -o $@ spigotSband2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
 
 show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
