@@ -30,18 +30,15 @@ FFTLINK = $(FFTLIBDIR) -lfftw3f
 # Other include directoried (i.e. glib.h)
 OTHERINCDIR = -I/usr/include/glib-1.2
 
-# Use the following if we are using DMALLOC
-#DMALLOCLINK = -ldmalloc
-
 # The standard PRESTO libraries to link into executables
-PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTLINK) $(DMALLOCLINK)
+PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTLINK)
 
 # When modifying the CLIG files, the is the location of the clig binary
 CLIG = /usr/bin/clig
 
-# For Pentium or Athlon with GCC
-# For Pentium3 or Pentium4s, use -march=pentiumpro
-# For Athlons use -march=k6 or -march=k7
+# For Pentium IVs, use -march=pentium4
+# For Opterons, use -march=opteron
+# For Athlons,  use -march=k6 or -march=k7
 CC = gcc-3.4
 FC = g77-3.4
 #CC = gcc
@@ -49,50 +46,14 @@ FC = g77-3.4
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -O3 -ffast-math -march=pentium4 -Wall -W
-#	-g -O2 -march=pentium4 -Wall -W
-#  
+	-g -O3 -ffast-math -march=pentium4 -mfpmath=sse -msse2 -mmmx -Wall -W
 CLINKFLAGS = $(CFLAGS)
-FFLAGS = -g -O3 -ffast-math -march=pentium4
+FFLAGS = -g -O3 -ffast-math -march=pentium4 -mfpmath=sse -msse2 -mmmx -Wall -W 
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
-#  The following are other possibilities and/or options for the CCFLAGS
-#	-DUSEDMALLOC \
-
-# For DEC Alpha
-#CC = cc
-#FC = f77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-newc -w0 -O4 -fast -ansi_alias -ansi_args -tune host -std
-#	-g -newc -w0 -ansi_alias -ansi_args -std
-#LINKCOMMAND = ar rcs
-#FFLAGS = -O
-#FLINK = $(FC) -nofor_main
-#FLINKFLAGS = $(CFLAGS)
-
-# For Solaris
-#CC = gcc
-#FC = g77
-#CFLAGS = -I$(PRESTO)/include $(PGPLOTINCDIR) $(FFTINCDIR) \
-#	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) \
-#	-g -O2 -fPIC -Wall -W 
-#	-g -O -v -KPIC
-#	-fast
-#LIBLINKFLAGS = -shared
-#LINKCOMMAND = $(CC) $(LIBLINKFLAGS) -o
-#FFLAGS = -g -O -fPIC
-#FLINK = f77
-#FLINKFLAGS = 
-#LIBLINKFLAGS = -G
-#LINKCOMMAND = ld $(LIBLINKFLAGS) -o
-#FFLAGS = -O
-#FLINK = $(FC)
-#FLINKFLAGS = $(FFLAGS)
 
 # Rules for CLIG generated files
-
 %_cmd.c : ../clig/%_cmd.cli
 	cd ../clig ; $(CLIG) -o $*_cmd -d $<
 	mv ../clig/$*_cmd.h ../include/
@@ -116,6 +77,12 @@ INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o spigot.o sigproc_fb.o
 PLOT2DOBJS = powerplot.o xyline.o
 
 all: libpresto text xwin
+
+# Default indentation is K&R style with no-tabs,
+# an indentation level of 3, and a line-length of 85
+indent:
+	indent -kr -nut -i3 -l85 *.c
+	rm *.c~
 
 prep: meminit timetest bincat
 
