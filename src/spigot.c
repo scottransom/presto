@@ -1261,8 +1261,8 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
         range = max - min;
         //  The maximum power tends to vary more (due to RFI) than the
         //  minimum power.  (I think)
-        scale_max = max + 0.4*range;
-        scale_min = min - 0.2*range;
+        scale_max = max + 2.0*range;
+        scale_min = min - 0.5*range;
       }
 #if 0
       printf("counter = %d  avg = %.3g  stdev = %.3g  min = %.3g  max = %.3g\n", 
