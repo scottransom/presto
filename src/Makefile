@@ -21,9 +21,9 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I/usr/local/include
+FFTINCDIR = -I/users/sransom/include
 # Path to FFT libraries
-FFTLIBDIR = -L/usr/local/lib
+FFTLIBDIR = -L/users/sransom/lib
 # How to link with the FFTW libs
 FFTLINK = $(FFTLIBDIR) -lfftw3f
 

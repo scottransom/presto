@@ -11,82 +11,81 @@
 
 int main(int argc, char *argv[])
 {
-  prepfoldinfo search;
-  Cmdline *cmd;
-  plotflags flags;
+   prepfoldinfo search;
+   Cmdline *cmd;
+   plotflags flags;
 
-  /* Call usage() if we have no command line arguments */
+   /* Call usage() if we have no command line arguments */
 
-  if (argc == 1) {
-    Program = argv[0];
-    usage();
-    exit(0);
-  }
-  /* Parse the command line using the excellent program Clig */
+   if (argc == 1) {
+      Program = argv[0];
+      usage();
+      exit(0);
+   }
+   /* Parse the command line using the excellent program Clig */
 
-  cmd = parseCmdline(argc, argv);
-  flags.events = cmd->eventsP;
-  flags.scaleparts = cmd->scalepartsP;
-  flags.justprofs = cmd->justprofsP;
-  flags.allgrey = cmd->allgreyP;
-  flags.nosearch = 1;
+   cmd = parseCmdline(argc, argv);
+   flags.events = cmd->eventsP;
+   flags.scaleparts = cmd->scalepartsP;
+   flags.justprofs = cmd->justprofsP;
+   flags.allgrey = cmd->allgreyP;
+   flags.nosearch = 1;
 
-  /*
-   *   Read the raw prepfoldinfo structure
-   */
+   /*
+    *   Read the raw prepfoldinfo structure
+    */
 
-  read_prepfoldinfo(&search, argv[1]);
+   read_prepfoldinfo(&search, argv[1]);
 
-  /*
-   *   Print the main prepfoldinfo structure values
-   */
+   /*
+    *   Print the main prepfoldinfo structure values
+    */
 
-  print_prepfoldinfo(&search);
+   print_prepfoldinfo(&search);
 
-  /* Switch to portrait mode */
+   /* Switch to portrait mode */
 
-  if (cmd->portraitP){
-    int goodlen;
-    char *substr, *tmpdev;
+   if (cmd->portraitP) {
+      int goodlen;
+      char *substr, *tmpdev;
 
-    substr = strstr(search.pgdev, "/CPS");
-    goodlen = substr - search.pgdev;
-    *substr = '\0';
-    tmpdev = calloc(goodlen+6, sizeof(char));
-    sprintf(tmpdev, "%s/VCPS", search.pgdev);
-    free(search.pgdev);
-    search.pgdev = calloc(goodlen+6, sizeof(char));
-    strncpy(search.pgdev, tmpdev, strlen(tmpdev));
-    free(tmpdev);
-    printf("New device is '%s'\n", search.pgdev);
-  }
+      substr = strstr(search.pgdev, "/CPS");
+      goodlen = substr - search.pgdev;
+      *substr = '\0';
+      tmpdev = calloc(goodlen + 6, sizeof(char));
+      sprintf(tmpdev, "%s/VCPS", search.pgdev);
+      free(search.pgdev);
+      search.pgdev = calloc(goodlen + 6, sizeof(char));
+      strncpy(search.pgdev, tmpdev, strlen(tmpdev));
+      free(tmpdev);
+      printf("New device is '%s'\n", search.pgdev);
+   }
 
-  if (0){
-    int goodlen;
-    char *substr, *tmpdev;
+   if (0) {
+      int goodlen;
+      char *substr, *tmpdev;
 
-    substr = strstr(search.pgdev, "ps/CPS");
-    goodlen = substr - search.pgdev;
-    *substr = '\0';
-    tmpdev = calloc(goodlen+9, sizeof(char));
-    strncpy(tmpdev, search.pgdev, goodlen);   
-    strcpy(tmpdev+goodlen, "png/TPNG");   
-    free(search.pgdev);
-    search.pgdev = calloc(goodlen+9, sizeof(char));
-    strncpy(search.pgdev, tmpdev, strlen(tmpdev));
-    free(tmpdev);
-    printf("New device is '%s'\n", search.pgdev);
-  }
+      substr = strstr(search.pgdev, "ps/CPS");
+      goodlen = substr - search.pgdev;
+      *substr = '\0';
+      tmpdev = calloc(goodlen + 9, sizeof(char));
+      strncpy(tmpdev, search.pgdev, goodlen);
+      strcpy(tmpdev + goodlen, "png/TPNG");
+      free(search.pgdev);
+      search.pgdev = calloc(goodlen + 9, sizeof(char));
+      strncpy(search.pgdev, tmpdev, strlen(tmpdev));
+      free(tmpdev);
+      printf("New device is '%s'\n", search.pgdev);
+   }
 
-  /*
-   *   Plot our results
-   */
+   /*
+    *   Plot our results
+    */
 
-  prepfold_plot(&search, &flags, !cmd->noxwinP, NULL);
+   prepfold_plot(&search, &flags, !cmd->noxwinP, NULL);
 
-  /* Free our memory  */
+   /* Free our memory  */
 
-  delete_prepfoldinfo(&search);
-  return (0);
+   delete_prepfoldinfo(&search);
+   return (0);
 }
-

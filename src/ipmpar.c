@@ -1,4 +1,4 @@
-int ipmpar(int*);
+int ipmpar(int *);
 /*
 -----------------------------------------------------------------------
  
@@ -67,8 +67,8 @@ int ipmpar(int*);
 */
 int ipmpar(int *i)
 {
-static int imach[11];
-static int ipmparval;
+   static int imach[11];
+   static int ipmparval;
 /*     MACHINE CONSTANTS FOR AMDAHL MACHINES. */
 /*
    imach[1] = 2;
@@ -421,6 +421,6 @@ static int ipmparval;
    imach[9] = -127;
    imach[10] = 127;
 */
-    ipmparval = imach[*i];
-    return ipmparval;
+   ipmparval = imach[*i];
+   return ipmparval;
 }
