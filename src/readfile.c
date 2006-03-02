@@ -503,10 +503,10 @@ int WAPPHDR_print(long count, char *obj_ptr)
 
 int SPIGOTHDR_print(long count, char *obj_ptr)
 {
-   int bogus;
+   char *bogus;
 
    printf("\n%ld:", count + 1);
-   bogus = (int) obj_ptr;
+   bogus = (char *) obj_ptr;
    return 0;
 }
 
