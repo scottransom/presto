@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
    get_SPIGOT_file_info(infiles, spigots, numfiles, 0, 0, &N,
                         &ptsperblock, &numlags, &dt, &T, &idata, output);
 
-   /* Step throught he SPIGOT files */
+   /* Step through the SPIGOT files */
    ii = 0;
    if (outfile == stdout)
       argnum = 2;
@@ -168,13 +168,13 @@ int main(int argc, char *argv[])
          chkfwrite(output_samples, sizeof(unsigned char), fb.nchans, outfile);
       }
       fclose(infiles[filenum]);
+      if (outfile != stdout)
+         fclose(outfile);
    }
+   if (outfile != stdout)
+      fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
    if (scaling)
       free(scalings);
-   if (outfile != stdout) {
-      fclose(outfile);
-      fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
-   }
    free(spigots);
    free(path);
    free(filenm);
