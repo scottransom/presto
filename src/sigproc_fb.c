@@ -4,18 +4,16 @@
 
 #define MAXNUMCHAN 2048
 #define BLOCKLEN   512
-#define MAXFBFILES 10
 
 /* All of the following have an _st to indicate static */
-static sigprocfb fb_st[MAXFBFILES];
-static infodata idata_st[MAXFBFILES];
-static long long numpts_st[MAXFBFILES], padpts_st[MAXFBFILES], N_st;
-static int numblks_st[MAXFBFILES], need_byteswap_st = 0, sampperblk_st;
+static sigprocfb *fb_st;
+static infodata *idata_st;
+static long long *numpts_st, *padpts_st, N_st;
+static int *numblks_st, need_byteswap_st = 0, sampperblk_st;
 static int numchan_st, ptsperblk_st, bytesperpt_st = 1, bytesperblk_st;
-static double times_st[MAXFBFILES], mjds_st[MAXFBFILES];
-static double elapsed_st[MAXFBFILES], T_st, dt_st;
-static double startblk_st[MAXFBFILES], endblk_st[MAXFBFILES];
-static infodata idata_st[MAXFBFILES];
+static double *times_st, *mjds_st;
+static double *elapsed_st, T_st, dt_st;
+static double *startblk_st, *endblk_st;
 static unsigned char padvals[MAXNUMCHAN], padval = 128;
 static int rawdatabuffer[MAXNUMCHAN * BLOCKLEN];
 static unsigned char databuffer[MAXNUMCHAN * BLOCKLEN];
@@ -449,11 +447,19 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
 {
    int ii, headerlen;
 
-   if (numfiles > MAXFBFILES) {
-      printf("\nThe number of input files (%d) is greater than \n", numfiles);
-      printf("   MAXFBFILES=%d.  Exiting.\n\n", MAXFBFILES);
-      exit(0);
-   }
+   /* Allocate memory for our information structures */
+   fb_st = (sigprocfb *) malloc(sizeof(sigprocfb) * numfiles);
+   idata_st = (infodata *) malloc(sizeof(infodata) * numfiles);
+   numpts_st = (long long *) malloc(sizeof(long long) * numfiles);
+   padpts_st = (long long *) malloc(sizeof(long long) * numfiles);
+   numblks_st = (int *) malloc(sizeof(int) * numfiles);
+   times_st = (double *) malloc(sizeof(double) * numfiles);
+   mjds_st = (double *) malloc(sizeof(double) * numfiles);
+   elapsed_st = (double *) malloc(sizeof(double) * numfiles);
+   startblk_st = (double *) malloc(sizeof(double) * numfiles);
+   endblk_st = (double *) malloc(sizeof(double) * numfiles);
+
+   /* Now read the first header... */
    headerlen = read_filterbank_header(&(fb_st[0]), files[0]);
    if (fb_st[0].nbits != 8) {
       printf("\nThe number of bits per sample (%d) does not equal 8!",
@@ -481,6 +487,7 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
    startblk_st[0] = 1;
    endblk_st[0] = numblks_st[0] - 1;
    padpts_st[0] = padpts_st[numfiles - 1] = 0;
+   /* And read the rest of the headers */
    for (ii = 1; ii < numfiles; ii++) {
       headerlen = read_filterbank_header(&(fb_st[ii]), files[ii]);
       sigprocfb_to_inf(fb_st + ii, idata_st + ii);
