@@ -84,8 +84,8 @@ int main(int argc, char *argv[])
    /* Any variable that begins with 'b' means barycentric */
    FILE **infiles = NULL, **outfiles = NULL;
    float **outdata, *padvals;
-   double dtmp, *dms, avgdm = 0.0, dsdt = 0;
-   double *dispdt, tlotoa = 0.0, blotoa = 0.0;
+   double dtmp, *dms, avgdm = 0.0, dsdt = 0, maxdm;
+   double *dispdt, tlotoa = 0.0, blotoa = 0.0, BW_ddelay = 0.0;
    double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0;
    double *btoa = NULL, *ttoa = NULL, avgvoverc = 0.0;
    char obs[3], ephem[10], rastring[50], decstring[50];
@@ -548,9 +548,10 @@ int main(int argc, char *argv[])
    }
    idata.dm = avgdm;
    dsdt = cmd->downsamp * idata.dt;
-   blocksperread = ((int)
-                    (delay_from_dm(cmd->lodm + cmd->numdms * cmd->dmstep, idata.freq)
-                     / dsdt) / blocklen + 1);
+   maxdm = cmd->lodm + cmd->numdms * cmd->dmstep;
+   BW_ddelay = delay_from_dm(maxdm, idata.freq) - 
+      delay_from_dm(maxdm, idata.freq + (idata.num_chan-1) * idata.chan_wid);
+   blocksperread = ((int) (BW_ddelay / idata.dt) / blocklen + 1);
    worklen = blocklen * blocksperread;
 
    if (blocklen % cmd->downsamp) {

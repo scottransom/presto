@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
    float **outdata = NULL, *padvals;
    short **subsdata = NULL;
    double dtmp, *dms = NULL, avgdm = 0.0, maxdm, dsdt = 0;
-   double *dispdt, tlotoa = 0.0, blotoa = 0.0;
+   double *dispdt, tlotoa = 0.0, blotoa = 0.0, BW_ddelay = 0.0;
    double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0;
    double *btoa = NULL, *ttoa = NULL, avgvoverc = 0.0;
    char obs[3], ephem[10], rastring[50], decstring[50];
@@ -271,14 +271,17 @@ int main(int argc, char *argv[])
             exit(1);
          }
       }
+
       cmd->nsub = cmd->argc;
       numchan = idata.num_chan;
       dsdt = cmd->downsamp * idata.dt;
       avgdm = idata.dm;
       blocklen = SUBSBLOCKLEN;
-      blocksperread = ((int) (delay_from_dm(maxdm, idata.freq) / dsdt)
-                       / blocklen + 1);
+      BW_ddelay = delay_from_dm(maxdm, idata.freq) - 
+         delay_from_dm(maxdm, idata.freq + (idata.num_chan-1) * idata.chan_wid);
+      blocksperread = ((int) (BW_ddelay / idata.dt) / blocklen + 1);
       worklen = blocklen * blocksperread;
+
       /* What telescope are we using? */
       if (!strcmp(idata.telescope, "Arecibo")) {
          strcpy(obs, "AO");
@@ -452,8 +455,9 @@ int main(int argc, char *argv[])
          }
       }
 
-      blocksperread = ((int) (delay_from_dm(maxdm, idata.freq) / dsdt)
-                       / ptsperblock + 1);
+      BW_ddelay = delay_from_dm(maxdm, idata.freq) - 
+         delay_from_dm(maxdm, idata.freq + (idata.num_chan-1) * idata.chan_wid);
+      blocksperread = ((int) (BW_ddelay / idata.dt) / blocklen + 1);
       worklen = blocklen * blocksperread;
       /* The number of topo to bary time points to generate with TEMPO */
       numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
@@ -723,12 +727,14 @@ int main(int argc, char *argv[])
             statnum += numtowrite;
          }
 
-         if ((datawrote == abs(*diffbinptr)) && (numwritten != numread) && (totwrote < cmd->numout)) {  /* Add/remove a bin */
+         if ((datawrote == abs(*diffbinptr)) && 
+             (numwritten != numread) && 
+             (totwrote < cmd->numout)) {  /* Add/remove a bin */
             int skip, nextdiffbin;
 
             skip = numtowrite;
 
-            do {                /* Write the rest of the data after adding/removing a bin  */
+            do {  /* Write the rest of the data after adding/removing a bin  */
 
                if (*diffbinptr > 0) {
                   /* Add a bin */
@@ -1009,8 +1015,8 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
                     mask * obsmask, float *padvals, double dt,
                     double *dispdts, int **offsets, int *padding, short **subsdata)
 {
-   static int firsttime = 1, worklen, *maskchans = NULL, blocksize;
-   static int dsworklen;
+   static int firsttime = 1, *maskchans = NULL, blocksize;
+   static int worklen, dsworklen;
    static float *tempzz, *data1, *data2, *dsdata1 = NULL, *dsdata2 = NULL;
    static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
    static double blockdt;
@@ -1021,6 +1027,21 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
          maskchans = gen_ivect(numchan);
       worklen = blocklen * blocksperread;
       dsworklen = worklen / cmd->downsamp;
+      { // Make sure that out working blocks are long enough...
+         for (ii = 0; ii < numchan; ii++) {
+            if (dispdts[ii] > worklen)
+               printf("WARNING!:  (dispdts[%d] = %.0f) > (worklen = %d)\n", 
+                      ii, dispdts[ii], worklen);
+         }
+         for (ii = 0; ii < cmd->numdms; ii++) {
+            for (jj = 0; jj < cmd->nsub; jj++) {
+               if (offsets[ii][jj] > dsworklen)
+                  printf("WARNING!:  (offsets[%d][%d] = %d) > (dsworklen = %d)\n", 
+                         ii, jj, offsets[ii][jj], dsworklen);
+            }
+         }
+      }
+
       blocksize = blocklen * cmd->nsub;
       blockdt = blocklen * dt;
       data1 = gen_fvect(cmd->nsub * worklen);
