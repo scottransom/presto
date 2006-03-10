@@ -510,7 +510,7 @@ def main():
         ppgplot.pgmtxt('T', -2.4, 0.73, 0.0, 'Sampling time: %.2f \gms'%\
                        (orig_dt*1e6))
         # third row
-        if info.instrument.find("pigot"):
+        if info.instrument.find("pigot") >= 0:
             instrument = "Spigot"
         else:
             instrument = info.instrument
