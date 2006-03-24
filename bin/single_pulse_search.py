@@ -5,6 +5,7 @@ from Numeric import *
 from presto import rfft
 from psr_utils import coord_to_string
 from TableIO import readColumns
+from optparse import OptionParser
 
 class candidate:
     def __init__(self, DM, sigma, time, bin, downfact):
@@ -142,14 +143,15 @@ def prune_border_cases(dm_candlist, offregions):
         del(dm_candlist[ii])
     return dm_candlist
 
-def usage():
-    print """
+full_usage = """
 usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-h, --help]        : Display this help
-  [-m, --maxfact]     : Set the max downsample factor (see below for default)
+  [-m, --maxwidth]    : Set the max downsampling in sec (see below for default)
   [-p, --noplot]      : Look for pulses but do not generate a plot
   [-t, --threshold]   : Set a different threshold SNR (default=5.0)
   [-x, --xwin]        : Don't make a postscript plot, just use an X-window
+  [-s, --start]       : Only plot events occuring after this time (s)
+  [-e, --end]         : Only plot events occuring before this time (s)
 
   Perform a single-pulse search (or simply re-plot the results of a
   single-pulse search) on a set of de-dispersed time series (.dat
@@ -158,8 +160,8 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   The search attempts to find pulses by matched-filtering the data
   with a series of different width boxcar functions.  The possible
   boxcar sizes are [1, 2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150]
-  bins.  By default the the boxcars <= 30 are used.  You can specify
-  that the larger boxcars are used with the -m (or --maxfact) option.
+  bins.  By default the boxcars <= 30 are used.  You can specify
+  that the larger boxcars are used with the -m (or --maxwidth) option.
 
   The matched filtering (and accounting for all the possible 'phase'
   offsets of each boxcar) is accomplished by convolving the boxcars
@@ -175,8 +177,9 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
 
   Copyright Scott Ransom <sransom@nrao.edu>, 2005
 """
+usage = "usage: %prog [options] .dat files _or_ .singlepulse files"
     
-def read_singlepulse_files(infiles, threshold):
+def read_singlepulse_files(infiles, threshold, T_start, T_end):
     DMs = []
     candlist = []
     num_v_DMstr = {}
@@ -191,6 +194,8 @@ def read_singlepulse_files(infiles, threshold):
         if os.stat(infile)[6]:
             cands = transpose(readColumns(infile, "#"))
             for cand in cands:
+                if cand[2] < T_start: continue
+                if cand[2] > T_end: break
                 if cand[1] >= threshold:
                     candlist.append(candidate(*cand))
                     num_v_DMstr[DMstr] += 1
@@ -198,41 +203,33 @@ def read_singlepulse_files(infiles, threshold):
     return info0, DMs, candlist, num_v_DMstr
 
 def main():
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], "hxpm:t:",
-                                   ["help", "xwin", "noplot",
-                                    "maxfact=", "threshold="])
-    except getopt.GetoptError:
-        # print help information and exit:
-        usage()
-        sys.exit(2)
-    if len(sys.argv)==1:
-        usage()
-        sys.exit(2)
+    parser = OptionParser(usage)
+    parser.add_option("-x", "--xwin", action="store_true", dest="xwin",
+                      default=False, help="Don't make a postscript plot, just use an X-window")
+    parser.add_option("-p", "--noplot", action="store_false", dest="makeplot",
+                      default=True, help="Look for pulses but do not generate a plot")
+    parser.add_option("-m", "--maxwidth", type="float", dest="maxwidth", default=0.0,
+                      help="Set the max downsampling in sec (see below for default)")
+    parser.add_option("-t", "--threshold", type="float", dest="threshold", default=5.0,
+                      help="Set a different threshold SNR (default=5.0)")
+    parser.add_option("-s", "--start", type="float", dest="T_start", default=0.0,
+                      help="Only plot events occuring after this time (s)")
+    parser.add_option("-e", "--end", type="float", dest="T_end", default=1e9,
+                      help="Only plot events occuring before this time (s)")
+    (opts, args) = parser.parse_args()
+    if len(args)==0:
+        print full_usage
+        sys.exit(0)
     useffts = True
     dosearch = True
-    makeplot = True
-    threshold = 5.0
+    max_downfact = 30
     fftlen = 8192    # Should be a power-of-two for best speed
     chunklen = 8000  # Must be at least max_downfact less than fftlen
     default_downfacts = [2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150]
-    max_downfact = 30
-    pgplot_device = ""
-    for o, a in opts:
-        if o in ("-h", "--help"):
-            usage()
-            sys.exit()
-        if o in ("-p", "--noplot"):
-            makeplot = False
-        if o in ("-m", "--maxfact"):
-            max_downfact = int(a)
-        if o in ("-t", "--threshold"):
-            threshold = float(a)
-        if o in ("-x", "--xwin"):
-            pgplot_device = "/XWIN"
-
-    downfacts = [x for x in default_downfacts if x <= max_downfact]
-    if useffts: fftd_kerns = make_fftd_kerns(downfacts, fftlen)
+    if opts.xwin:
+        pgplot_device = "/XWIN"
+    else:
+        pgplot_device = ""
     break_points = chunklen/5 * arange(1,5)
     overlap = (fftlen - chunklen)/2
     fileblocklen = chunklen + 2*overlap  # currently it is fftlen...
@@ -246,7 +243,7 @@ def main():
     # Don't do a search, just read results and plot
     if not dosearch:
         info, DMs, candlist, num_v_DMstr = \
-              read_singlepulse_files(args, threshold)
+              read_singlepulse_files(args, opts.threshold, opts.T_start, opts.T_end)
         orig_N, orig_dt = int(info.N), info.dt
         obstime = orig_N * orig_dt
     else:
@@ -262,9 +259,18 @@ def main():
             DMs.append(info.DM)
             N, dt = int(info.N), info.dt
             obstime = N * dt
+            # Choose the maximum width to search based on time instead
+            # of bins.  This helps prevent increased S/N when the downsampling
+            # changes as the DM gets larger.
+            if opts.maxwidth > 0.0:
+                downfacts = [x for x in default_downfacts if x*dt <= opts.maxwidth]
+            else:
+                downfacts = [x for x in default_downfacts if x <= max_downfact]
             if (filenm == args[0]):
                 orig_N = N
                 orig_dt = dt
+                if useffts:
+                    fftd_kerns = make_fftd_kerns(downfacts, fftlen)
             if info.breaks:
                 offregions = zip([x[1] for x in info.onoff[:-1]],
                                  [x[0] for x in info.onoff[1:]])
@@ -338,7 +344,7 @@ def main():
                     #        currently the most expensive call in the program.  Best
                     #        bet would probably be to simply iterate over the goodchunk
                     #        in C and append to the candlist there.
-                    hibins = compress(goodchunk>threshold, arange(chunklen))
+                    hibins = compress(goodchunk>opts.threshold, arange(chunklen))
                     hivals = take(goodchunk, hibins)
                     hibins += dataptr
                     # Add the candidates (which are sorted by bin)
@@ -360,7 +366,7 @@ def main():
                             kernel = ones(downfact, typecode='d') / sqrt(downfact)
                             smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
                             goodchunk = smoothed_chunk[overlap:-overlap]
-                        hibins = compress(goodchunk>threshold, arange(chunklen))
+                        hibins = compress(goodchunk>opts.threshold, arange(chunklen))
                         hivals = take(goodchunk, hibins)
                         hibins += dataptr
                         hibins = hibins.tolist()
@@ -404,7 +410,7 @@ def main():
                 candlist.append(cand)
             num_v_DMstr[DMstr] = len(dm_candlist)
 
-    if (makeplot):
+    if (opts.makeplot):
 
         # Step through the candidates to make a SNR list
         DMs.sort()
@@ -420,9 +426,9 @@ def main():
         snrs = asarray(snrs)
         (num_v_snr, lo_snr, d_snr, num_out_of_range) = \
                     scipy.stats.histogram(snrs,
-                                          int(maxsnr-threshold+1),
-                                          [threshold, maxsnr])
-        snrs = arange(maxsnr-threshold+1, typecode='d')*d_snr + lo_snr + 0.5*d_snr
+                                          int(maxsnr-opts.threshold+1),
+                                          [opts.threshold, maxsnr])
+        snrs = arange(maxsnr-opts.threshold+1, typecode='d')*d_snr + lo_snr + 0.5*d_snr
         num_v_snr = where(num_v_snr==0, 0.001, num_v_snr)
 
         # Generate the DM histogram
@@ -436,12 +442,16 @@ def main():
         if pgplot_device:
             ppgplot.pgopen(pgplot_device)
         else:
-            ppgplot.pgopen(short_filenmbase+'_singlepulse.ps/VPS')
+            if (opts.T_start > 0.0 or opts.T_end < obstime):
+                ppgplot.pgopen(short_filenmbase+'_%.0f-%.0fs_singlepulse.ps/VPS'%
+                               (opts.T_start, opts.T_end))
+            else:
+                ppgplot.pgopen(short_filenmbase+'_singlepulse.ps/VPS')
         ppgplot.pgpap(7.5, 1.0)  # Width in inches, aspect
 
         # plot the SNR histogram
         ppgplot.pgsvp(0.06, 0.31, 0.6, 0.87)
-        ppgplot.pgswin(threshold, maxsnr, log10(0.5), log10(2*max(num_v_snr)))
+        ppgplot.pgswin(opts.threshold, maxsnr, log10(0.5), log10(2*max(num_v_snr)))
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCLNST", 0, 0)
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Signal-to-Noise")
@@ -461,7 +471,7 @@ def main():
 
         # plot the SNR vs DM plot 
         ppgplot.pgsvp(0.72, 0.97, 0.6, 0.87)
-        ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, threshold, maxsnr)
+        ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, opts.threshold, maxsnr)
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
@@ -477,14 +487,16 @@ def main():
 
         # plot the DM vs Time plot
         ppgplot.pgsvp(0.06, 0.97, 0.08, 0.52)
-        ppgplot.pgswin(0.0, obstime, min(DMs)-0.5, max(DMs)+0.5)
+        if opts.T_end > obstime:
+            opts.T_end == obstime
+        ppgplot.pgswin(opts.T_start, opts.T_end, min(DMs)-0.5, max(DMs)+0.5)
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
         ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
         # Circles are symbols 20-26 in increasing order
-        snr_range = 15.0-threshold
-        cand_symbols = (cand_SNRs-threshold)/snr_range * 6.0 + 0.5 + 20.0
+        snr_range = 15.0-opts.threshold
+        cand_symbols = (cand_SNRs-opts.threshold)/snr_range * 6.0 + 0.5 + 20.0
         cand_symbols = cand_symbols.astype('i')
         cand_symbols = where(cand_symbols>26, 26, cand_symbols)
         for ii in range(len(cand_symbols)):
