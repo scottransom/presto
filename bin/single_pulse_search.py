@@ -105,7 +105,7 @@ def prune_related2(dm_candlist, downfacts):
             ybin, ysigma = yy.bin, yy.sigma
             if (abs(ybin-xbin) > max(downfacts)/2):
                 break
-	    else:
+            else:
                 if jj in toremove:
                     continue
                 prox = max([xx.downfact/2, yy.downfact/2, 1])
@@ -266,6 +266,8 @@ def main():
                 downfacts = [x for x in default_downfacts if x*dt <= opts.maxwidth]
             else:
                 downfacts = [x for x in default_downfacts if x <= max_downfact]
+            if len(downfacts) == 0:
+                downfacts = [default_downfacts]
             if (filenm == args[0]):
                 orig_N = N
                 orig_dt = dt
