@@ -267,7 +267,7 @@ def main():
             else:
                 downfacts = [x for x in default_downfacts if x <= max_downfact]
             if len(downfacts) == 0:
-                downfacts = [default_downfacts]
+                downfacts = [default_downfacts[0]]
             if (filenm == args[0]):
                 orig_N = N
                 orig_dt = dt
