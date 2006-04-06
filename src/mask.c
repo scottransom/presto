@@ -43,7 +43,8 @@ void fill_mask(double timesigma, double freqsigma, double mjd,
       count = 0;
       /* Count the bad channels first */
       for (jj = 0; jj < obsmask->numchan; jj++)
-         if (bytemask[ii][jj] & BADDATA)
+         if ((bytemask[ii][jj] & BADDATA) | 
+             (bytemask[ii][jj] & USERZAP))
             count++;
       obsmask->num_chans_per_int[ii] = count;
       if (count) {
@@ -51,7 +52,8 @@ void fill_mask(double timesigma, double freqsigma, double mjd,
          count = 0;
          obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
          for (jj = 0; jj < obsmask->numchan; jj++) {
-            if (bytemask[ii][jj] & BADDATA)
+            if ((bytemask[ii][jj] & BADDATA) | 
+                (bytemask[ii][jj] & USERZAP))
                obsmask->chans[ii][count++] = jj;
          }
       }
