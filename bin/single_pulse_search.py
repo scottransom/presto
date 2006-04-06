@@ -441,6 +441,8 @@ def main():
 
         # open the plot device
         short_filenmbase = filenmbase[:filenmbase.find("_DM")]
+        if opts.T_end > obstime:
+            opts.T_end = obstime
         if pgplot_device:
             ppgplot.pgopen(pgplot_device)
         else:
@@ -489,8 +491,6 @@ def main():
 
         # plot the DM vs Time plot
         ppgplot.pgsvp(0.06, 0.97, 0.08, 0.52)
-        if opts.T_end > obstime:
-            opts.T_end = obstime
         ppgplot.pgswin(opts.T_start, opts.T_end, min(DMs)-0.5, max(DMs)+0.5)
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
