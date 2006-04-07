@@ -235,7 +235,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
          if (!(bytemask[ii][0] & USERINTS)) {
             badnum = 0;
             for (jj = 0; jj < numchan; jj++)
-               if (bytemask[ii][jj] & BAD_POW)
+               if (bytemask[ii][jj] & BADDATA)
                   badnum++;
             if (badnum > trignum) {
                userints[numuserints++] = ii;
@@ -251,7 +251,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
          if (!(bytemask[0][ii] & USERCHAN)) {
             badnum = 0;
             for (jj = 0; jj < numint; jj++)
-               if (bytemask[jj][ii] & BAD_POW)
+               if (bytemask[jj][ii] & BADDATA)
                   badnum++;
             if (badnum > trignum) {
                userchan[numuserchan++] = ii;
