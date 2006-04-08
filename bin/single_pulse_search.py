@@ -497,12 +497,15 @@ def main():
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
         ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
         # Circles are symbols 20-26 in increasing order
-        snr_range = 15.0-opts.threshold
+        snr_range = 12.0
         cand_symbols = (cand_SNRs-opts.threshold)/snr_range * 6.0 + 0.5 + 20.0
         cand_symbols = cand_symbols.astype('i')
         cand_symbols = where(cand_symbols>26, 26, cand_symbols)
-        for ii in range(len(cand_symbols)):
-            ppgplot.pgpt(cand_ts[ii:ii+1], cand_DMs[ii:ii+1], cand_symbols[ii:ii+1])
+        for ii in [26, 25, 24, 23, 22, 21, 20]:
+            inds = nonzero(equal(cand_symbols, ii))
+            ts = take(cand_ts, inds)
+            DMs = take(cand_DMs, inds)
+            ppgplot.pgpt(ts, DMs, ii)
 
         # Now fill the infomation area
         ppgplot.pgsvp(0.05, 0.95, 0.87, 0.97)
