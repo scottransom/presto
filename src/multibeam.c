@@ -17,7 +17,7 @@ static unsigned char chanmask[MAXNUMCHAN];
 static unsigned char databuffer[DATLEN * 2];
 static int currentfile, currentblock;
 static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
-
+static int using_MPI = 0;
 
 void get_PKMB_static(int *decreasing_freqs)
 {
@@ -27,6 +27,8 @@ void get_PKMB_static(int *decreasing_freqs)
 void set_PKMB_static(int ptsperblk, int bytesperpt,
                      int numchan, int decreasing_freqs, double dt)
 {
+   using_MPI = 1;
+   currentblock = 0;
    ptsperblk_st = ptsperblk;
    bytesperpt_st = bytesperpt;
    numchan_st = numchan;
@@ -543,30 +545,9 @@ int prep_PKMB_subbands(unsigned char *rawdata, float *data,
       currentdata = rawdata1;
       lastdata = rawdata2;
       timeperblk = ptsperblk_st * dt_st;
-      if (mask) {
-         starttime = currentblock * timeperblk;
-         *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-         if (*nummasked == -1)  /* If all channels are masked */
-            memset(rawdata, padval, DATLEN);
-      }
-      for (ii = 0; ii < ptsperblk_st; ii++)
-         convert_PKMB_point(rawdata + ii * bytesperpt_st,
-                            currentdata + ii * numchan_st);
-      if (*nummasked > 0) {     /* Only some of the channels are masked */
-         for (ii = 0; ii < *nummasked; ii++)
-            chanmask[ii] = maskchans[ii] & 0x01;
-         for (ii = 0; ii < ptsperblk_st; ii++) {
-            offset = ii * numchan_st;
-            for (jj = 0; jj < *nummasked; jj++)
-               currentdata[offset + maskchans[jj]] = chanmask[jj];
-         }
-      }
-      SWAP(currentdata, lastdata);
-      firsttime = 0;
-      return 0;
    }
 
-   /* Read, convert and de-disperse */
+   /* Read, convert */
 
    if (mask) {
       starttime = currentblock * timeperblk;
@@ -586,18 +567,28 @@ int prep_PKMB_subbands(unsigned char *rawdata, float *data,
             currentdata[offset + maskchans[jj]] = chanmask[jj];
       }
    }
-   dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st,
-                   dispdelays, numsubbands, data);
-   SWAP(currentdata, lastdata);
 
-   /* Transpose the data into vectors in the result array */
+   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
+   /* where currentblock gets incremented.                       */
+   if (using_MPI) currentblock++;
 
-   if (transpose) {
-      if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-                                  move, move_size)) < 0)
-         printf("Error %d in transpose_float().\n", trtn);
+   if (firsttime) {
+      SWAP(currentdata, lastdata);
+      firsttime = 0;
+      return 0;
+   } else { /* and now dedisperse */
+      dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st,
+                      dispdelays, numsubbands, data);
+      SWAP(currentdata, lastdata);
+
+      /* Transpose the data into vectors in the result array */
+      if (transpose) {
+         if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
+                                     move, move_size)) < 0)
+            printf("Error %d in transpose_float().\n", trtn);
+      }
+      return ptsperblk_st;
    }
-   return ptsperblk_st;
 }
 
 

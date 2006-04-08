@@ -499,28 +499,39 @@ int main(int argc, char *argv[])
       MPI_Bcast(&clip_sigma, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
       MPI_Bcast(&dt, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
       blocklen = ptsperblk;
-      if (cmd->maskfileP)
-         free(padvals);
 
       if (myid > 0) {           /* Slave */
          if (cmd->pkmbP)
             set_PKMB_static(ptsperblk, bytesperpt, numchan, decreasing_freqs, dt);
-         if (cmd->gmrtP)
+         if (cmd->gmrtP) {
             set_GMRT_static(ptsperblk, bytesperpt, bytesperblk,
                             numchan, clip_sigma, dt);
-         if (cmd->filterbankP)
+            set_GMRT_padvals(padvals, good_padvals);
+         }
+         if (cmd->filterbankP) {
             set_filterbank_static(ptsperblk, bytesperpt, bytesperblk,
                                   numchan, clip_sigma, dt);
-         if (cmd->bcpmP)
+            set_filterbank_padvals(padvals, good_padvals);
+         }
+         if (cmd->bcpmP) {
             set_BCPM_static(ptsperblk, bytesperpt, bytesperblk,
                             numchan, numifs, clip_sigma, dt, chan_mapping);
-         if (cmd->spigotP)
+            set_BPP_padvals(padvals, good_padvals);
+         }
+         if (cmd->spigotP) {
             set_SPIGOT_static(ptsperblk, bytesperpt, bytesperblk,
                               numchan, numifs, clip_sigma, dt);
-         if (cmd->wappP)
+            set_SPIGOT_padvals(padvals, good_padvals);
+         }
+         if (cmd->wappP) {
             set_WAPP_static(ptsperblk, bytesperpt, bytesperblk,
                             numchan, numifs, clip_sigma, dt);
+            set_WAPP_padvals(padvals, good_padvals);
+         }
       }
+      if (cmd->maskfileP)
+         free(padvals);
+
       /* Which IFs will we use? */
       if (cmd->ifsP) {
          if (cmd->ifs == 0)

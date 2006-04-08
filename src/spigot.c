@@ -17,17 +17,17 @@ static SPIGOT_INFO *spigot;
 static infodata *idata_st;
 static fftwf_plan fftplan;
 static long long N_st;
-static int decreasing_freqs_st = 0, bytesperpt_st, bytesperblk_st, bits_per_lag_st =
-    0;
-static int numchan_st = 0, numifs_st, ptsperblk_st;
+static int decreasing_freqs_st = 0, bytesperpt_st, bits_per_lag_st = 0;
+static int numchan_st = 0, numifs_st, ptsperblk_st, bytesperblk_st;
 static int need_byteswap_st = 0, sampperblk_st, usewindow_st = 0, vanvleck_st = 0;
 static int currentfile, currentblock, bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static double T_st, dt_st, center_freq_st, *window_st = NULL;
 static float clip_sigma_st = 0.0, *lags = NULL;
 static float lag_factor[SPIGOT_MAXLAGLEN], lag_offset[SPIGOT_MAXLAGLEN];
-static unsigned char databuffer[2 * SPIGOT_MAXDATLEN], padvals[SPIGOT_MAXLAGLEN],
-    padval = 128;
+static unsigned char padvals[SPIGOT_MAXLAGLEN], newpadvals[SPIGOT_MAXLAGLEN];
+static unsigned char databuffer[2 * SPIGOT_MAXDATLEN], padval = 128;
 static unsigned char lagbuffer[SPIGOT_MAXLAGLEN];
+static int using_MPI = 0;
 
 double slaCldj(int iy, int im, int id, int *j);
 static double inv_cerf(double input);
@@ -62,6 +62,8 @@ void set_SPIGOT_static(int ptsperblk, int bytesperpt, int bytesperblk,
 /* This is used by the MPI-based mpiprepsubband code to insure that each */
 /* processor can access (correctly) the required static variables.       */
 {
+   using_MPI = 1;
+   currentblock = 0;
    ptsperblk_st = ptsperblk;
    bytesperpt_st = bytesperpt;
    bytesperblk_st = bytesperblk;
@@ -83,13 +85,13 @@ void set_SPIGOT_padvals(float *fpadvals, int good_padvals)
 
    if (good_padvals) {
       for (ii = 0; ii < numchan_st; ii++) {
-         padvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
+         padvals[ii] = newpadvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
          sum_padvals += fpadvals[ii];
       }
       padval = (unsigned char) (sum_padvals / numchan_st + 0.5);
    } else {
       for (ii = 0; ii < numchan_st; ii++)
-         padvals[ii] = padval;
+         padvals[ii] = newpadvals[ii] = padval;
    }
 }
 
@@ -755,7 +757,7 @@ int read_SPIGOT_rawblock(FILE * infiles[], int numfiles,
 
       /* Clip nasty RFI if requested */
       if (clip_sigma_st > 0.0)
-         clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, padvals);
+         clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, newpadvals);
       *padding = 0;
 
       /* Put the new data into the databuffer if needed */
@@ -775,14 +777,14 @@ int read_SPIGOT_rawblock(FILE * infiles[], int numfiles,
                   /* make our buffer offset = 0           */
                   numtopad = ptsperblk_st - bufferpts;
                   for (ii = 0; ii < numtopad; ii++)
-                     memcpy(dataptr + ii * numchan_st, padvals, numchan_st);
+                     memcpy(dataptr + ii * numchan_st, newpadvals, numchan_st);
                   /* Copy the new data/padding into the output array */
                   memcpy(data, databuffer, sampperblk_st);
                   bufferpts = 0;
                } else {         /* Add a full record of padding */
                   numtopad = ptsperblk_st;
                   for (ii = 0; ii < numtopad; ii++)
-                     memcpy(data + ii * numchan_st, padvals, numchan_st);
+                     memcpy(data + ii * numchan_st, newpadvals, numchan_st);
                }
                padnum += numtopad;
                currentblock++;
@@ -798,7 +800,7 @@ int read_SPIGOT_rawblock(FILE * infiles[], int numfiles,
                /* then get a block from the next file. */
                for (ii = 0; ii < numtopad; ii++)
                   memcpy(databuffer + bufferpts * numchan_st + ii * numchan_st,
-                         padvals, numchan_st);
+                         newpadvals, numchan_st);
                bufferpts += numtopad;
                padnum = 0;
                shiftbuffer = 0;
@@ -900,6 +902,13 @@ int read_SPIGOT(FILE * infiles[], int numfiles, float *data,
          if (mask) {
             starttime = currentblock * timeperblk;
             *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+         }
+
+         /* Only use the recently measured padding if all the channels aren't masked */
+         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+            memcpy(padvals, newpadvals, SPIGOT_MAXLAGLEN);
+
+         if (mask) {
             if (*nummasked == -1) {     /* If all channels are masked */
                for (ii = 0; ii < numpts; ii++)
                   memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -1019,11 +1028,17 @@ int prep_SPIGOT_subbands(unsigned char *rawdata, float *data,
    }
 
    /* Read and de-disperse */
-
    memcpy(currentdata, rawdata, sampperblk_st);
    if (mask) {
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+   }
+
+   /* Only use the recently measured padding if all the channels aren't masked */
+   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+      memcpy(padvals, newpadvals, SPIGOT_MAXLAGLEN);
+
+   if (mask) {
       if (*nummasked == -1) {   /* If all channels are masked */
          for (ii = 0; ii < ptsperblk_st; ii++)
             memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -1038,6 +1053,10 @@ int prep_SPIGOT_subbands(unsigned char *rawdata, float *data,
          }
       }
    }
+
+   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
+   /* where currentblock gets incremented.                       */
+   if (using_MPI) currentblock++;
 
    if (firsttime) {
       SWAP(currentdata, lastdata);

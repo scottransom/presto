@@ -22,14 +22,15 @@ static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static double corr_rate_st, corr_scale_st;
 static double center_freqs_st[WAPP_MAXNUMWAPPS], *window_st = NULL;
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char databuffer[2 * WAPP_MAXDATLEN], padvals[WAPP_MAXLAGLEN],
-    padval = 128;
+static unsigned char padvals[WAPP_MAXLAGLEN], newpadvals[WAPP_MAXLAGLEN];
+static unsigned char databuffer[2 * WAPP_MAXDATLEN], padval = 128;
 static unsigned char lagbuffer[WAPP_MAXLAGLEN];
 static int currentfile, currentblock;
 static int header_version_st, header_size_st;
 static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static fftwf_plan fftplan;
 static float clip_sigma_st = 0.0, *lags = NULL;
+static int using_MPI = 0;
 
 double slaCldj(int iy, int im, int id, int *j);
 static double inv_cerf(double input);
@@ -61,6 +62,8 @@ void get_WAPP_static(int *bytesperpt, int *bytesperblk, int *numifs,
 void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk,
                      int numchan, int numifs, float clip_sigma, double dt)
 {
+   using_MPI = 1;
+   currentblock = 0;
    ptsperblk_st = ptsperblk;
    bytesperpt_st = bytesperpt;
    bytesperblk_st = bytesperblk;
@@ -78,13 +81,13 @@ void set_WAPP_padvals(float *fpadvals, int good_padvals)
 
    if (good_padvals) {
       for (ii = 0; ii < numchan_st; ii++) {
-         padvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
+         padvals[ii] = newpadvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
          sum_padvals += fpadvals[ii];
       }
       padval = (unsigned char) (sum_padvals / numchan_st + 0.5);
    } else {
       for (ii = 0; ii < numchan_st; ii++)
-         padvals[ii] = padval;
+         padvals[ii] = newpadvals[ii] = padval;
    }
 }
 
@@ -819,7 +822,7 @@ int read_WAPP_rawblock(FILE * infiles[], int numfiles,
 
       /* Clip nasty RFI if requested */
       if (clip_sigma_st > 0.0)
-         clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, padvals);
+         clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, newpadvals);
       *padding = 0;
 
       /* Put the new data into the databuffer if needed */
@@ -838,13 +841,15 @@ int read_WAPP_rawblock(FILE * infiles[], int numfiles,
                   /* Add the amount of padding we need to */
                   /* make our buffer offset = 0           */
                   numtopad = ptsperblk_st - bufferpts;
-                  memset(dataptr, padval, numtopad * numchan_st);
+                  for (ii = 0; ii < numtopad; ii++)
+                     memcpy(dataptr + ii * numchan_st, newpadvals, numchan_st);
                   /* Copy the new data/padding into the output array */
                   memcpy(data, databuffer, sampperblk_st);
                   bufferpts = 0;
                } else {         /* Add a full record of padding */
                   numtopad = ptsperblk_st;
-                  memset(data, padval, sampperblk_st);
+                  for (ii = 0; ii < numtopad; ii++)
+                     memcpy(data + ii * numchan_st, newpadvals, numchan_st);
                }
                padnum += numtopad;
                currentblock++;
@@ -858,8 +863,9 @@ int read_WAPP_rawblock(FILE * infiles[], int numfiles,
                int pad;
                /* Add the remainder of the padding and */
                /* then get a block from the next file. */
-               memset(databuffer + bufferpts * numchan_st,
-                      padval, numtopad * numchan_st);
+               for (ii = 0; ii < numtopad; ii++)
+                  memcpy(databuffer + bufferpts * numchan_st + ii * numchan_st,
+                         newpadvals, numchan_st);
                bufferpts += numtopad;
                padnum = 0;
                shiftbuffer = 0;
@@ -958,9 +964,17 @@ int read_WAPP(FILE * infiles[], int numfiles, float *data,
       while (1) {
          numread = read_WAPP_rawblocks(infiles, numfiles, currentdata,
                                        numblocks, padding, ifs);
+
          if (mask) {
             starttime = currentblock * timeperblk;
             *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+         }
+
+         /* Only use the recently measured padding if all the channels aren't masked */
+         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+            memcpy(padvals, newpadvals, WAPP_MAXLAGLEN);
+         
+         if (mask) {
             if (*nummasked == -1) {     /* If all channels are masked */
                for (ii = 0; ii < numpts; ii++)
                   memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -1083,6 +1097,13 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
    if (mask) {
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+   }
+
+   /* Only use the recently measured padding if all the channels aren't masked */
+   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+      memcpy(padvals, newpadvals, WAPP_MAXLAGLEN);
+         
+   if (mask) {
       if (*nummasked == -1) {   /* If all channels are masked */
          for (ii = 0; ii < ptsperblk_st; ii++)
             memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -1097,6 +1118,10 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
          }
       }
    }
+
+   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
+   /* where currentblock gets incremented.                       */
+   if (using_MPI) currentblock++;
 
    if (firsttime) {
       SWAP(currentdata, lastdata);

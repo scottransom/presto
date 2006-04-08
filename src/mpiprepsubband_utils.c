@@ -86,8 +86,14 @@ void broadcast_mask(mask * obsmask, int myid)
             obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
          MPI_Bcast(obsmask->chans[ii], obsmask->num_chans_per_int[ii],
                    MPI_INT, 0, MPI_COMM_WORLD);
+         //int jj;
+         //printf("%d: ", myid);
+         //for (jj=0; jj<obsmask->num_chans_per_int[ii]; jj++)
+         //   printf("%d ", obsmask->chans[ii][jj]);
+         //printf("\n");
       } else if (obsmask->num_chans_per_int[ii] == obsmask->numchan) {
          int jj;
+         //printf("%d: all zapped\n", myid);
          if (myid > 0) {
             obsmask->chans[ii] = gen_ivect(obsmask->num_chans_per_int[ii]);
             for (jj = 0; jj < obsmask->numchan; jj++)

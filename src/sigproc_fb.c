@@ -20,6 +20,7 @@ static unsigned char databuffer[MAXNUMCHAN * BLOCKLEN];
 static int currentfile, currentblock;
 static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static float clip_sigma_st = 0.0;
+static int using_MPI = 0;
 
 /* Note:  Much of this has been ripped out of SIGPROC v2.8 */
 /* and then slightly modified.  Thanks Dunc!               */
@@ -370,6 +371,8 @@ void get_filterbank_static(int *bytesperpt, int *bytesperblk, float *clip_sigma)
 void set_filterbank_static(int ptsperblk, int bytesperpt, int bytesperblk,
                            int numchan, float clip_sigma, double dt)
 {
+   using_MPI = 1;
+   currentblock = 0;
    ptsperblk_st = ptsperblk;
    bytesperpt_st = bytesperpt;
    bytesperblk_st = bytesperblk;
@@ -764,9 +767,9 @@ int read_filterbank_rawblocks(FILE * infiles[], int numfiles,
 int read_filterbank(FILE * infiles[], int numfiles, float *data,
                     int numpts, double *dispdelays, int *padding,
                     int *maskchans, int *nummasked, mask * obsmask)
-/* This routine reads numpts from the filterbank raw input   */
+/* This routine reads numpts from the filterbank raw   */
 /* files *infiles.  These files contain 16 bit data    */
-/* from the filterbank backend.  Time delays and             */
+/* from the filterbank backend.  Time delays and       */
 /* a mask are applied to each channel.  It returns     */
 /* the # of points read if successful, 0 otherwise.    */
 /* If padding is returned as 1, then padding was       */
@@ -803,7 +806,6 @@ int read_filterbank(FILE * infiles[], int numfiles, float *data,
    }
 
    /* Read, convert and de-disperse */
-
    if (allocd) {
       while (1) {
          numread = read_filterbank_rawblocks(infiles, numfiles, currentdata,
@@ -811,6 +813,13 @@ int read_filterbank(FILE * infiles[], int numfiles, float *data,
          if (mask) {
             starttime = currentblock * timeperblk;
             *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+         }
+
+         /* Clip nasty RFI if requested and we're not masking all the channels */
+         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+            clip_times(currentdata, numpts, numchan_st, clip_sigma_st, padvals);
+
+         if (mask) {
             if (*nummasked == -1) {     /* If all channels are masked */
                for (ii = 0; ii < numpts; ii++)
                   memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -903,11 +912,17 @@ int prep_filterbank_subbands(unsigned char *rawdata, float *data,
    }
 
    /* Read and de-disperse */
-
    memcpy(currentdata, rawdata, sampperblk_st);
    if (mask) {
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+   }
+
+   /* Clip nasty RFI if requested and we're not masking all the channels*/
+   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+      clip_times(currentdata, ptsperblk_st, numchan_st, clip_sigma_st, padvals);
+
+   if (mask) {
       if (*nummasked == -1) {   /* If all channels are masked */
          for (ii = 0; ii < ptsperblk_st; ii++)
             memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -922,6 +937,10 @@ int prep_filterbank_subbands(unsigned char *rawdata, float *data,
          }
       }
    }
+
+   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
+   /* where currentblock gets incremented.                       */
+   if (using_MPI) currentblock++;
 
    if (firsttime) {
       SWAP(currentdata, lastdata);

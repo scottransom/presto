@@ -22,6 +22,7 @@ static double mid_freq_st, ch1_freq_st, delta_freq_st;
 static double chan_freqs[2 * MAXNUMCHAN];
 static int chan_index[2 * MAXNUMCHAN], chan_mapping[2 * MAXNUMCHAN];
 static float clip_sigma_st = 0.0;
+static int using_MPI = 0;
 
 #if 0
 static double chan_freqs2[2 * MAXNUMCHAN];
@@ -76,6 +77,8 @@ void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk,
                      int numchan, int numifs, float clip_sigma,
                      double dt, int *chan_map)
 {
+   using_MPI = 1;
+   currentblock = 0;
    ptsperblk_st = ptsperblk;
    bytesperpt_st = bytesperpt;
    bytesperblk_st = bytesperblk;
@@ -980,8 +983,8 @@ int read_BPP(FILE * infiles[], int numfiles, float *data,
                                  currentdata + ii * numchan_st);
          }
 
-         /* Clip nasty RFI if requested */
-         if (clip_sigma_st > 0.0)
+         /* Clip nasty RFI if requested and we're not masking all the channels*/
+         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
             clip_times(currentdata, numpts, numchan_st, clip_sigma_st, padvals);
 
          if (mask) {
@@ -1161,8 +1164,8 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
                            currentdata + ii * numchan_st);
    }
 
-   /* Clip nasty RFI if requested */
-   if (clip_sigma_st > 0.0)
+   /* Clip nasty RFI if requested and we're not masking all the channels*/
+   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
       clip_times(currentdata, ptsperblk_st, numchan_st, clip_sigma_st, padvals);
 
    if (mask) {
@@ -1180,6 +1183,10 @@ int prep_BPP_subbands(unsigned char *rawdata, float *data,
          }
       }
    }
+
+   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
+   /* where currentblock gets incremented.                       */
+   if (using_MPI) currentblock++;
 
    if (firsttime) {
       SWAP(currentdata, lastdata);

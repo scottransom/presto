@@ -13,7 +13,7 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char padvals[MAXNUMCHAN], padval = 128;
+static unsigned char padvals[MAXNUMCHAN], newpadvals[MAXNUMCHAN], padval = 128;
 static short sdatabuffer[MAXNUMCHAN * BLOCKLEN];
 static unsigned char databuffer[MAXNUMCHAN * BLOCKLEN];
 static int currentfile, currentblock;
@@ -24,7 +24,7 @@ static int sb_flag;
 static int bitshift = 2;
 static int bits;
 static char badch[100];
-
+static int using_MPI = 0;
 
 
 void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma)
@@ -38,6 +38,8 @@ void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma)
 void set_GMRT_static(int ptsperblk, int bytesperpt, int bytesperblk,
                      int numchan, float clip_sigma, double dt)
 {
+   using_MPI = 1;
+   currentblock = 0;
    ptsperblk_st = ptsperblk;
    bytesperpt_st = bytesperpt;
    bytesperblk_st = bytesperblk;
@@ -55,13 +57,13 @@ void set_GMRT_padvals(float *fpadvals, int good_padvals)
 
    if (good_padvals) {
       for (ii = 0; ii < numchan_st; ii++) {
-         padvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
+         padvals[ii] = newpadvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
          sum_padvals += fpadvals[ii];
       }
       padval = (unsigned char) (sum_padvals / numchan_st + 0.5);
    } else {
       for (ii = 0; ii < numchan_st; ii++)
-         padvals[ii] = padval;
+         padvals[ii] = newpadvals[ii] = padval;
    }
 }
 
@@ -277,13 +279,9 @@ int read_GMRT_rawblock(FILE * infiles[], int numfiles,
          }
          convert_GMRT_block(sdatabuffer, dataptr);
 
-/*********************************************************************************/
-/*    this is simply copied from wapp.c to provide the clip option...  Sarala 9 May 05 */
          /* Clip nasty RFI if requested */
          if (clip_sigma_st > 0.0)
-            clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, padvals);
-
-/*********************************************************************************/
+            clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, newpadvals);
          *padding = 0;
 
          /* Put the new data into the databuffer if needed */
@@ -301,13 +299,15 @@ int read_GMRT_rawblock(FILE * infiles[], int numfiles,
                      /* Add the amount of padding we need to */
                      /* make our buffer offset = 0           */
                      numtopad = ptsperblk_st - bufferpts;
-                     memset(dataptr, padval, numtopad * numchan_st);
+                     for (ii = 0; ii < numtopad; ii++)
+                        memcpy(dataptr + ii * numchan_st, newpadvals, numchan_st);
                      /* Copy the new data/padding into the output array */
                      memcpy(data, databuffer, sampperblk_st);
                      bufferpts = 0;
                   } else {      /* Add a full record of padding */
                      numtopad = ptsperblk_st;
-                     memset(data, padval, sampperblk_st);
+                     for (ii = 0; ii < numtopad; ii++)
+                        memcpy(data + ii * numchan_st, newpadvals, numchan_st);
                   }
                   padnum += numtopad;
                   currentblock++;
@@ -321,8 +321,9 @@ int read_GMRT_rawblock(FILE * infiles[], int numfiles,
                   int pad;
                   /* Add the remainder of the padding and */
                   /* then get a block from the next file. */
-                  memset(databuffer + bufferpts * numchan_st,
-                         padval, numtopad * numchan_st);
+                  for (ii = 0; ii < numtopad; ii++)
+                     memcpy(databuffer + bufferpts * numchan_st + ii * numchan_st,
+                            newpadvals, numchan_st);
                   bufferpts += numtopad;
                   padnum = 0;
                   shiftbuffer = 0;
@@ -356,13 +357,9 @@ int read_GMRT_rawblock(FILE * infiles[], int numfiles,
 */
          convert_GMRT_block_8bit(cdatabuffer, dataptr);
 
-/*********************************************************************************/
-/*    this is simply copied from wapp.c to provide the clip option...  Sarala 9 May 05 */
          /* Clip nasty RFI if requested */
          if (clip_sigma_st > 0.0)
-            clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, padvals);
-
-/*********************************************************************************/
+            clip_times(dataptr, ptsperblk_st, numchan_st, clip_sigma_st, newpadvals);
          *padding = 0;
 
          /* Put the new data into the databuffer if needed */
@@ -380,13 +377,15 @@ int read_GMRT_rawblock(FILE * infiles[], int numfiles,
                      /* Add the amount of padding we need to */
                      /* make our buffer offset = 0           */
                      numtopad = ptsperblk_st - bufferpts;
-                     memset(dataptr, padval, numtopad * numchan_st);
+                     for (ii = 0; ii < numtopad; ii++)
+                        memcpy(dataptr + ii * numchan_st, newpadvals, numchan_st);
                      /* Copy the new data/padding into the output array */
                      memcpy(data, databuffer, sampperblk_st);
                      bufferpts = 0;
                   } else {      /* Add a full record of padding */
                      numtopad = ptsperblk_st;
-                     memset(data, padval, sampperblk_st);
+                     for (ii = 0; ii < numtopad; ii++)
+                        memcpy(data + ii * numchan_st, newpadvals, numchan_st);
                   }
                   padnum += numtopad;
                   currentblock++;
@@ -400,8 +399,9 @@ int read_GMRT_rawblock(FILE * infiles[], int numfiles,
                   int pad;
                   /* Add the remainder of the padding and */
                   /* then get a block from the next file. */
-                  memset(databuffer + bufferpts * numchan_st,
-                         padval, numtopad * numchan_st);
+                  for (ii = 0; ii < numtopad; ii++)
+                     memcpy(databuffer + bufferpts * numchan_st + ii * numchan_st,
+                            newpadvals, numchan_st);
                   bufferpts += numtopad;
                   padnum = 0;
                   shiftbuffer = 0;
@@ -504,6 +504,13 @@ int read_GMRT(FILE * infiles[], int numfiles, float *data,
          if (mask) {
             starttime = currentblock * timeperblk;
             *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+         }
+
+         /* Only use the recently measured padding if all the channels aren't masked */
+         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+            memcpy(padvals, newpadvals, MAXNUMCHAN);
+
+         if (mask) {
             if (*nummasked == -1) {     /* If all channels are masked */
                for (ii = 0; ii < numpts; ii++)
                   memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -600,6 +607,13 @@ int prep_GMRT_subbands(unsigned char *rawdata, float *data,
    if (mask) {
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+   }
+
+   /* Only use the recently measured padding if all the channels aren't masked */
+   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+      memcpy(padvals, newpadvals, MAXNUMCHAN);
+
+   if (mask) {
       if (*nummasked == -1) {   /* If all channels are masked */
          for (ii = 0; ii < ptsperblk_st; ii++)
             memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
@@ -614,6 +628,10 @@ int prep_GMRT_subbands(unsigned char *rawdata, float *data,
          }
       }
    }
+
+   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
+   /* where currentblock gets incremented.                       */
+   if (using_MPI) currentblock++;
 
    if (firsttime) {
       SWAP(currentdata, lastdata);
