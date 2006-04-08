@@ -139,9 +139,8 @@ int clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
    static float median_chan_levels[2048];
    static float running_avg = 0.0, running_std = 0.0, median_sum = 0.0;
    static int blocksread = 0;
-   static long long current_point = 0;
    float *zero_dm_block, *median_temp;
-   float current_med, trigger, running_wgt = 0.1;
+   float current_med, trigger, running_wgt = 0.05;
    double current_avg = 0.0, current_std = 0.0, scaling;
    unsigned char *powptr;
    int ii, jj, clipit = 0, clipped = 0;
@@ -234,12 +233,8 @@ int clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
             for (jj = 0; jj < numchan; jj++)
                *powptr++ = good_chan_levels[jj];
             clipped++;
-            /* fprintf(stderr, "%lld\n", current_point); */
          }
-         current_point++;
       }
-   } else {
-      current_point += ptsperblk;
    }
    blocksread++;
 
