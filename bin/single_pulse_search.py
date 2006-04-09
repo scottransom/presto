@@ -314,10 +314,10 @@ def main():
                 if (numread > 0.1*fileblocklen and not padding):
                     stdev = scipy.stats.std(tmpchunk)
                     if oldstdev==0.0:  oldstdev = stdev
-                    oldstdev = 0.5*oldstdev + 0.5*stdev
+                    oldstdev = 0.9*oldstdev + 0.1*stdev
 
                 # Make sure that we are not searching a section of padding
-                if padding or stdev < 1e-7 or stdev < 0.3*oldstdev:
+                if padding or stdev < 1e-7 or stdev < 0.5*oldstdev:
                     search_chunk = False
 
                 # Normalize so that the data has mean=0, std=1.0
