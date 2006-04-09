@@ -1196,7 +1196,8 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
       /* Downsample the subband data if needed */
       if (myid > 0) {
          if (cmd->downsamp > 1) {
-            int kk, offset, dsoffset, index, dsindex, itmp;
+            int kk, offset, dsoffset, index, dsindex;
+            float ftmp;
             for (ii = 0; ii < dsworklen; ii++) {
                dsoffset = ii * cmd->nsub;
                offset = dsoffset * cmd->downsamp;
@@ -1204,11 +1205,11 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
                   dsindex = dsoffset + jj;
                   index = offset + jj;
                   currentdsdata[dsindex] = 0.0;
-                  for (kk = 0, itmp = 0; kk < cmd->downsamp; kk++) {
-                     itmp += currentdata[index];
+                  for (kk = 0, ftmp = 0.0; kk < cmd->downsamp; kk++) {
+                     ftmp += currentdata[index];
                      index += cmd->nsub;
                   }
-                  currentdsdata[dsindex] += itmp / cmd->downsamp;
+                  currentdsdata[dsindex] += ftmp / cmd->downsamp;
                }
             }
          }
