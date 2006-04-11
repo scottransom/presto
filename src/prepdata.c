@@ -207,8 +207,8 @@ int main(int argc, char *argv[])
          PKMB_tapehdr hdr;
 
          printf("Filterbank input file information:\n");
-         get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan,
-                            &dt, &T, 1);
+         get_PKMB_file_info(infiles, numfiles, cmd->clip, &N, &ptsperblock, 
+                            &numchan, &dt, &T, 1);
          /* Read the first header file and generate an infofile from it */
          chkfread(&hdr, 1, HDRLEN, infiles[0]);
          rewind(infiles[0]);

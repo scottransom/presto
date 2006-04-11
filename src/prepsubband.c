@@ -314,8 +314,8 @@ int main(int argc, char *argv[])
       /* Set-up values if we are using the Parkes multibeam */
       if (cmd->pkmbP) {
          printf("\nFilterbank input file information:\n");
-         get_PKMB_file_info(infiles, numinfiles, &N, &ptsperblock,
-                            &numchan, &dt, &T, 1);
+         get_PKMB_file_info(infiles, numinfiles, cmd->clip, &N, 
+                            &ptsperblock, &numchan, &dt, &T, 1);
          chkfread(&hdr, 1, HDRLEN, infiles[0]);
          rewind(infiles[0]);
          PKMB_hdr_to_inf(&hdr, &idata);

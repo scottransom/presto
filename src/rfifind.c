@@ -262,8 +262,8 @@ int main(int argc, char *argv[])
          /* Set-up values if we are using the Parkes multibeam */
 
          printf("Filterbank input file information:\n");
-         get_PKMB_file_info(infiles, numfiles, &N, &ptsperblock, &numchan,
-                            &dt, &T, 1);
+         get_PKMB_file_info(infiles, numfiles, cmd->clip, &N, 
+                            &ptsperblock, &numchan, &dt, &T, 1);
 
          /* Read the first header file and generate an infofile from it */
 

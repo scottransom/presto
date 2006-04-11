@@ -35,9 +35,10 @@ extern void make_infodata_struct(void);
 extern void make_maskbase_struct(void);
 extern void broadcast_mask(mask * obsmask, int myid);
 
-extern void get_PKMB_static(int *decreasing_freqs);
+extern void get_PKMB_static(int *decreasing_freqs, float *clip_sigma);
 extern void set_PKMB_static(int ptsperblk, int bytesperpt,
-                            int numchan, int decreasing_freqs, double dt);
+                            int numchan, int decreasing_freqs, 
+                            float clip_sigma, double dt);
 extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs,
                             int *chan_map, float *clip_sigma);
 extern void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk,
@@ -370,9 +371,9 @@ int main(int argc, char *argv[])
 
          if (cmd->pkmbP) {
             printf("\nFilterbank input file information:\n");
-            get_PKMB_file_info(infiles, numinfiles, &N, &ptsperblk,
-                               &numchan, &dt, &T, 1);
-            get_PKMB_static(&decreasing_freqs);
+            get_PKMB_file_info(infiles, numinfiles, cmd->clip, 
+                               &N, &ptsperblk, &numchan, &dt, &T, 1);
+            get_PKMB_static(&decreasing_freqs, &clip_sigma);
             bytesperpt = numchan / 8;
             bytesperblk = DATLEN;
             chkfread(&hdr, 1, HDRLEN, infiles[0]);
@@ -396,6 +397,7 @@ int main(int argc, char *argv[])
             printf("\nGMRT input file information:\n");
             get_GMRT_file_info(infiles, argv + 1, numinfiles,
                                cmd->clip, &N, &ptsperblk, &numchan, &dt, &T, 1);
+            get_GMRT_static(&bytesperpt, &bytesperblk, &clip_sigma);
             /* Read the first header file and generate an infofile from it */
             GMRT_hdr_to_inf(argv[1], &idata);
             GMRT_update_infodata(numinfiles, &idata);
@@ -417,6 +419,7 @@ int main(int argc, char *argv[])
             printf("\nSIGPROC filterbank input file information:\n");
             get_filterbank_file_info(infiles, numinfiles, cmd->clip,
                                      &N, &ptsperblk, &numchan, &dt, &T, 1);
+            get_filterbank_static(&bytesperpt, &bytesperblk, &clip_sigma);
             filterbank_update_infodata(numinfiles, &idata);
             set_filterbank_padvals(padvals, good_padvals);
             /* What telescope are we using? */

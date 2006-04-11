@@ -74,9 +74,9 @@ typedef struct PKMB_TAPEHDR {
 
 /* Routines to read and convert Parkes Multibeam data files */
 
-void get_PKMB_file_info(FILE *files[], int numfiles, long long *N, 
-			int *ptsperblock, int *numchan, double *dt, 
-			double *T, int output);
+void get_PKMB_file_info(FILE *files[], int numfiles, float clipsig, 
+                        long long *N, int *ptsperblock, int *numchan, 
+                        double *dt, double *T, int output);
 void PKMB_update_infodata(int numfiles, infodata *idata);
 int skip_to_PKMB_rec(FILE *infiles[], int numfiles, int rec);
 int read_PKMB_rawblock(FILE *infiles[], int numfiles, 

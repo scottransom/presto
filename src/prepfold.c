@@ -411,8 +411,8 @@ int main(int argc, char *argv[])
          PKMB_tapehdr hdr;
 
          printf("Filterbank input file information:\n");
-         get_PKMB_file_info(infiles, numfiles, &local_N, &ptsperrec,
-                            &numchan, &local_dt, &local_T, 1);
+         get_PKMB_file_info(infiles, numfiles, cmd->clip, &local_N, 
+                            &ptsperrec, &numchan, &local_dt, &local_T, 1);
 
          /* Read the first header file and generate an infofile from it */
 

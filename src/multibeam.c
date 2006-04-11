@@ -12,20 +12,26 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static const unsigned char padval = 0x55;       /* 01010101 (even channels are 0) */
+static const unsigned char padval = 0x55; /* 01010101 (even channels are 0) */
 static unsigned char chanmask[MAXNUMCHAN];
 static unsigned char databuffer[DATLEN * 2];
 static int currentfile, currentblock;
 static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static int using_MPI = 0;
+static float clip_sigma_st = 0.0;
 
-void get_PKMB_static(int *decreasing_freqs)
+static int clip_PKMB_times(unsigned char *rawdata, int ptsperblk, int numchan,
+                           float clip_sigma);
+
+void get_PKMB_static(int *decreasing_freqs, float *clip_sigma)
 {
    *decreasing_freqs = decreasing_freqs_st;
+   *clip_sigma = clip_sigma_st;
 }
 
 void set_PKMB_static(int ptsperblk, int bytesperpt,
-                     int numchan, int decreasing_freqs, double dt)
+                     int numchan, int decreasing_freqs, 
+                     float clip_sigma, double dt)
 {
    using_MPI = 1;
    currentblock = 0;
@@ -33,13 +39,14 @@ void set_PKMB_static(int ptsperblk, int bytesperpt,
    bytesperpt_st = bytesperpt;
    numchan_st = numchan;
    decreasing_freqs_st = decreasing_freqs;
+   clip_sigma_st = clip_sigma;
    dt_st = dt;
 }
 
 
-void get_PKMB_file_info(FILE * files[], int numfiles, long long *N,
-                        int *ptsperblock, int *numchan, double *dt,
-                        double *T, int output)
+void get_PKMB_file_info(FILE * files[], int numfiles, float clipsig, 
+                        long long *N, int *ptsperblock, int *numchan, 
+                        double *dt, double *T, int output)
 /* Read basic information into static variables and make padding      */
 /* calculations for a set of PKMB rawfiles that you want to patch     */
 /* together.  N, numchan, dt, and T are return values and include all */
@@ -75,6 +82,9 @@ void get_PKMB_file_info(FILE * files[], int numfiles, long long *N,
          printf("Looks like this is 10cm/50cm data.  Using 50cm part.\n");
       }
    }
+   /* Are we going to clip the data? */
+   if (clipsig > 0.0)
+      clip_sigma_st = clipsig;
    PKMB_hdr_to_inf(&header, &idata_st[0]);
    numchan_st = *numchan = idata_st[0].num_chan;
    bytesperpt_st = numchan_st / 8;
@@ -436,6 +446,10 @@ int read_PKMB(FILE * infiles[], int numfiles, float *data,
       for (ii = 0; ii < numpts; ii++)
          convert_PKMB_point(raw + ii * bytesperpt_st, currentdata + ii * numchan_st);
 
+      /* Clip nasty RFI if requested */
+      if (clip_sigma_st > 0.0)
+         clip_PKMB_times(currentdata, numpts, numchan_st, clip_sigma_st);
+
       if (*nummasked > 0) {     /* Only some of the channels are masked */
          for (ii = 0; ii < *nummasked; ii++)
             chanmask[ii] = maskchans[ii] & 0x01;
@@ -464,6 +478,10 @@ int read_PKMB(FILE * infiles[], int numfiles, float *data,
 
       for (ii = 0; ii < numpts; ii++)
          convert_PKMB_point(raw + ii * bytesperpt_st, currentdata + ii * numchan_st);
+
+      /* Clip nasty RFI if requested */
+      if (clip_sigma_st > 0.0)
+         clip_PKMB_times(currentdata, numpts, numchan_st, clip_sigma_st);
 
       if (*nummasked > 0) {     /* Only some of the channels are masked */
          for (ii = 0; ii < *nummasked; ii++)
@@ -555,9 +573,15 @@ int prep_PKMB_subbands(unsigned char *rawdata, float *data,
       if (*nummasked == -1)     /* If all channels are masked */
          memset(rawdata, padval, DATLEN);
    }
+
    for (ii = 0; ii < ptsperblk_st; ii++)
       convert_PKMB_point(rawdata + ii * bytesperpt_st,
                          currentdata + ii * numchan_st);
+
+   /* Clip nasty RFI if requested */
+   if (clip_sigma_st > 0.0)
+      clip_PKMB_times(currentdata, ptsperblk_st, numchan_st, clip_sigma_st);
+
    if (*nummasked > 0) {        /* Only some of the channels are masked */
       for (ii = 0; ii < *nummasked; ii++)
          chanmask[ii] = maskchans[ii] & 0x01;
@@ -864,3 +888,100 @@ void convert_PKMB_point(unsigned char *bits, unsigned char *bytes)
       }
    }
 }
+
+int clip_PKMB_times(unsigned char *rawdata, int ptsperblk, int numchan,
+                    float clip_sigma)
+/* Perform time-domain clipping of rawdata.   This is a 2D   */
+/* array with ptsperblk*numchan points, each of which is an  */
+/* unsigned char.  The clipping is done at clip_sigma sigma  */
+/* above/below the running mean.                             */
+{
+   static float running_avg = 0.0, running_std = 0.0;
+   static int blocksread = 0;
+   float *zero_dm_block, *median_temp;
+   float current_med, trigger, running_wgt = 0.05;
+   double current_avg = 0.0, current_std = 0.0;
+   unsigned char *powptr;
+   int ii, jj, clipit = 0, clipped = 0;
+
+   zero_dm_block = gen_fvect(ptsperblk);
+   median_temp = gen_fvect(ptsperblk);
+
+   /* Calculate the zero DM time series */
+   for (ii = 0; ii < ptsperblk; ii++) {
+      zero_dm_block[ii] = 0.0;
+      powptr = rawdata + ii * numchan;
+      for (jj = 0; jj < numchan; jj++)
+         zero_dm_block[ii] += *powptr++;
+      median_temp[ii] = zero_dm_block[ii];
+   }
+   current_med = median(median_temp, ptsperblk);
+
+   /* Calculate the current standard deviation and mean  */
+   /* but only for data points that are within a certain */
+   /* fraction of the median value.  This removes the    */
+   /* really strong RFI from the calculation.            */
+   {
+      float lo_cutoff, hi_cutoff;
+      int numgoodpts = 0;
+
+      lo_cutoff = 0.7 * current_med;
+      hi_cutoff = 1.3 * current_med;
+      /* Find the "good" points */
+      for (ii = 0; ii < ptsperblk; ii++) {
+         if (zero_dm_block[ii] > lo_cutoff && zero_dm_block[ii] < hi_cutoff) {
+            median_temp[numgoodpts] = zero_dm_block[ii];
+            numgoodpts++;
+         }
+      }
+      /* Calculate the current average and stddev */
+      if (numgoodpts < 1) {
+         current_avg = running_avg;
+         current_std = running_std;
+      } else {
+         avg_var(median_temp, numgoodpts, &current_avg, &current_std);
+         current_std = sqrt(current_std);
+      }
+   }
+
+   /* Update a pseudo running average and stdev */
+   if (blocksread) {
+      running_avg = (running_avg * (1.0 - running_wgt) + running_wgt * current_avg);
+      running_std = (running_std * (1.0 - running_wgt) + running_wgt * current_std);
+   } else {
+      running_avg = current_avg;
+      running_std = current_std;
+      if (running_avg == 0.0 || current_avg == 0.0)
+         printf("BAD RFI IN BLOCK#1!!!\n\n");
+   }
+
+   /* See if any points need clipping */
+   trigger = clip_sigma * running_std;
+   for (ii = 0; ii < ptsperblk; ii++) {
+      if (fabs(zero_dm_block[ii] - running_avg) > trigger) {
+         clipit = 1;
+         break;
+      }
+   }
+
+   /* Replace the bad channel data with alternating zeros and ones */
+   if (clipit) {
+      for (ii = 0; ii < ptsperblk; ii++) {
+         if (fabs(zero_dm_block[ii] - running_avg) > trigger) {
+            powptr = rawdata + ii * numchan;
+            for (jj = 0; jj < numchan/2; jj++) {
+               *powptr++ = 0;  /**/
+               *powptr++ = 1;
+            }
+            clipped++;
+         }
+      }
+   }
+   blocksread++;
+
+   free(zero_dm_block);
+   free(median_temp);
+
+   return clipped;
+}
+
