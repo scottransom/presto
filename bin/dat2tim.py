@@ -20,7 +20,11 @@ def prep_int(name, value):
 def infodata_to_sigproc_header(inf):
     hdr = prep_string("HEADER_START")
     hdr += prep_int("telescope_id", telescope_ids[inf.telescope.strip()])
-    hdr += prep_int("machine_id", machine_ids[inf.instrument.strip()])
+    if (len(inf.instrument.split()) > 1):
+        if (inf.instrument.split()[0]=="Multibeam"):
+            hdr += prep_int("machine_id", machine_ids["SCAMP"])
+    else:
+        hdr += prep_int("machine_id", machine_ids[inf.instrument.strip()])
     hdr += prep_int("data_type", 2) # 1 = filterbank, 2 = timeseries
     hdr += prep_string("source_name")
     hdr += prep_string(inf.object)
