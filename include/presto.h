@@ -1429,3 +1429,12 @@ int clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
 /* above/below the running mean.  The up-to-date running     */
 /* averages of the channels are returned in good_chan_levels */
 /* (which must be pre-allocated).                            */
+
+int subs_clip_times(float *rawdata, int ptsperblk, int numchan,
+                    float clip_sigma, float *good_chan_levels);
+/* Perform time-domain clipping of rawdata.   This is a 2D   */
+/* array with ptsperblk*numchan points, each of which is a   */
+/* 32-bit float.  The clipping is done at clip_sigma sigma   */
+/* above/below the running mean.  The up-to-date running     */
+/* averages of the channels are returned in good_chan_levels */
+/* (which must be pre-allocated).                            */

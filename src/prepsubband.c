@@ -31,7 +31,7 @@ static void write_padding(FILE * outfiles[], int numfiles, float value,
 static int read_subbands(FILE * infiles[], int numfiles,
                          float *subbanddata, double timeperblk,
                          int *maskchans, int *nummasked, mask * obsmask,
-                         float *padvals);
+                         float clip_sigma, float *padvals);
 static int get_data(FILE * infiles[], int numfiles, float **outdata,
                     int numchan, int blocklen, int blocksperread,
                     mask * obsmask, float *padvals, double dt,
@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
    /* Any variable that begins with 't' means topocentric */
    /* Any variable that begins with 'b' means barycentric */
    FILE **infiles, **outfiles;
-   float **outdata = NULL, *padvals;
+   float **outdata = NULL, *padvals = NULL;
    short **subsdata = NULL;
    double dtmp, *dms = NULL, avgdm = 0.0, maxdm, dsdt = 0;
    double *dispdt, tlotoa = 0.0, blotoa = 0.0, BW_ddelay = 0.0;
@@ -271,8 +271,12 @@ int main(int argc, char *argv[])
             exit(1);
          }
       }
-
       cmd->nsub = cmd->argc;
+      if (padvals==NULL) {
+         padvals = gen_fvect(cmd->nsub);
+         for (ii = 0 ; ii < cmd->nsub ; ii++)
+            padvals[ii] = 0.0;
+      }
       numchan = idata.num_chan;
       dsdt = cmd->downsamp * idata.dt;
       avgdm = idata.dm;
@@ -969,13 +973,16 @@ static void write_padding(FILE * outfiles[], int numfiles, float value,
 static int read_subbands(FILE * infiles[], int numfiles,
                          float *subbanddata, double timeperblk,
                          int *maskchans, int *nummasked, mask * obsmask,
-                         float *padvals)
+                         float clip_sigma, float *padvals)
 /* Read short int subband data written by prepsubband */
 {
-   int ii, jj, index, numread = 0;
-   short subsdata[SUBSBLOCKLEN];
+   int ii, jj, index, numread = 0, mask = 0;
+   short subsdata[SUBSBLOCKLEN]; 
+   double starttime;
    static int currentblock = 0;
 
+   if (obsmask->numchan) mask = 1;
+   
    /* Read the data */
    for (ii = 0; ii < numfiles; ii++) {
       numread = chkfread(subsdata, sizeof(short), SUBSBLOCKLEN, infiles[ii]);
@@ -986,11 +993,18 @@ static int read_subbands(FILE * infiles[], int numfiles,
       index += numread;
    }
 
-   /* Mask it if required */
-   if (obsmask->numchan && numread) {
-      double starttime;
+   if (mask) {
       starttime = currentblock * timeperblk;
       *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+   }
+
+   /* Clip nasty RFI if requested and we're not masking all the channels*/
+   if ((clip_sigma > 0.0) && !(mask && (*nummasked == -1))){
+      subs_clip_times(subbanddata, SUBSBLOCKLEN, numfiles, clip_sigma, padvals);
+   }
+
+   /* Mask it if required */
+   if (mask && numread) {
       if (*nummasked == -1) {   /* If all channels are masked */
          for (ii = 0; ii < SUBSBLOCKLEN; ii++)
             memcpy(subbanddata + ii * numfiles, padvals, sizeof(float) * numfiles);
@@ -1097,7 +1111,7 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
                numread = read_subbands(infiles, numfiles,
                                        currentdata + ii * blocksize,
                                        blockdt, maskchans, &nummasked,
-                                       obsmask, padvals);
+                                       obsmask, cmd->clip, padvals);
             if (!firsttime)
                totnumread += numread;
             if (numread != blocklen) {
