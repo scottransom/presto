@@ -1,6 +1,6 @@
 Basic steps to install:
 
-1.  Install FFTW3.  You need to compile FFTW for _single_
+1.  Install FFTW3.1  You need to compile FFTW for _single_
   precision (see the config flags I recommend below).
 
   For all architectures I recommend the following configuration:
@@ -11,25 +11,22 @@ Basic steps to install:
   your machine, --prefix=/usr/local is the default for FFTW and
   is a safe bet).
 
-  If you have a modern version of GCC installed (v3.2 or
-  better) and a modern CPU (Intel Pentium III, IV, or newer;
-  AMD Athlon or better), you can get drastically better performance 
-  by using the following options:
+  If you have a modern version of GCC installed (v3.2 or better) 
+  and a modern CPU (Intel Pentium III, IV, or newer; AMD Athlon 
+  or better), you can get drastically better performance by 
+  adding the following options:
 
-  For Intel:
-  --enable-sse --enable-sse2
+  For Intel PIVs or AMD64s:
+  --enable-sse
   
   For Athlon:
   --enable-k7
-
-  For Opteron:
-  --enable-sse
 
   NOTE:  If you will do lots of precessing of WAPP data from
   Arecibo, I have a specially modified verion of FFTW3 that
   computes very fast custom DCTs for converting the correlator
   lags into spectra.  Let me know if you want it and I'll send
-  it to you.
+  it to you.  It is also available on the PRESTO ftp site.
 
 2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
   You need the X-windows and postscript drivers at a minimum.
@@ -56,7 +53,12 @@ Basic steps to install:
   only user on the machine when you run this, as it is very
   computation intensive and may take a while.
 
-8.  Do a 'make'.  This will make all of the executables.
+8.  Do a 'make'.  This will make all of the executables.  If 
+  this is your first time building PRESTO, you will want to
+  do a 'make links' which will make soft links to the executables
+  in the src directory to the bin directory.  If you want
+  mpiprepsubband (for parallel de-dispersion on clusters) you 
+  will need to do a 'make mpi' as well (before the 'make links').
 
 9.  The required libraries and miscellaneous files will be
   located in presto/lib.  You may copy or move the executables
@@ -71,15 +73,12 @@ Basic steps to install:
 
 11.  Go find pulsars.
 
-12.  If you want to use all the python routines, you need Python >=
-  version 2.3, and SciPy.  You can get the latter here:
-  http://www.scipy.org/download/
-
-Platform specific information:
-
-DEC ALPHA --------- 
-1.  In order to link the routines which use the pgplot libraries, 
-  you may need to chance the Makefile so that instead of linking 
-  with f77, you link with cc and the $(CFLAGS) variable.
+12.  If you want to use all the python routines (which if you are
+  doing anything but the most rudimentary analyses you will want 
+  to), you need Python >= version 2.3, and the _new_ Numpy/SciPy.  
+  You can get Numpy/Scipy here:  http://www.scipy.org/download/
+  I recommend using the Subversion versions (and for PRESTO 
+  as well).
 
 Scott Ransom
+Apr 2006
