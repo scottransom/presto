@@ -6,7 +6,7 @@
 %include typemaps.i
 
 %{
-#include "arrayobject.h"
+#include "numpy/arrayobject.h"
 
 #define ISCONTIGUOUS(m) ((m)->flags & CONTIGUOUS)
 

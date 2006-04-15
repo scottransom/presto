@@ -1,5 +1,7 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 import math
-import Numeric 
+import numpy as Numeric 
 
 # Most of these routines were taken from TEMPO v11.004 (arrtim.f, setup.f)
 

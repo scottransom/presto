@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import struct, getopt, sys, umath, fftfit, psr_utils, os.path, sinc_interp, Pgplot
-import Numeric as Num
+import struct, getopt, sys, fftfit, psr_utils, os.path, sinc_interp, Pgplot
+import numpy as Num
 from scipy.stats import std, median
 from infodata import infodata
 from prepfold import pfd
@@ -19,9 +19,8 @@ def measure_phase(profile, template):
             talk at the Royal Society.
     """
     c,amp,pha = fftfit.cprof(template)
-    pha.savespace()
     pha1 = pha[0]
-    pha = umath.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
+    pha = Num.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
@@ -138,7 +137,7 @@ if __name__ == '__main__':
             else:
                 print "Can't find '%s'.  Skipping it."
 
-    sumprof = Num.zeros(numbins, typecode='d')
+    sumprof = Num.zeros(numbins, dtype='d')
 
     base_T = None
     
@@ -170,7 +169,7 @@ if __name__ == '__main__':
         offpulse = Num.take(newprof, offpulse_inds)
         newprof -= median(offpulse)
         if usestats:
-            offpulse_rms = umath.sqrt(current_pfd.varprof)
+            offpulse_rms = Num.sqrt(current_pfd.varprof)
         else:
             offpulse_rms = std(offpulse)
         newprof /= offpulse_rms
@@ -178,7 +177,7 @@ if __name__ == '__main__':
         
 	# Now weight the profile based on the observation duration
         # as compared to the first profile 
-        newprof *= umath.sqrt(current_pfd.T/base_T)
+        newprof *= Num.sqrt(current_pfd.T/base_T)
         
         if (0):
             Pgplot.plotxy(newprof)

@@ -1,11 +1,12 @@
-import umath, Numeric, parfile, psr_utils
+import numpy as Num
+import parfile, psr_utils
 from psr_constants import *
 
 def myasarray(a):
     if type(a) in [type(1.0),type(1L),type(1),type(1j)]:
-        a = Numeric.asarray([a])
+        a = Num.asarray([a])
     if len(a) == 0:
-        a = Numeric.asarray([a])
+        a = Num.asarray([a])
     return a
 
 class binary_psr:
@@ -39,8 +40,8 @@ class binary_psr:
         """
         MJD = myasarray(MJD)
         difft = (MJD - self.T0)*SECPERDAY
-        sec_since_peri = umath.fmod(difft, self.PBsec)
-        if (sec_since_peri < 0.0): sec_since_peri += self.PBsec
+        sec_since_peri = Num.fmod(difft, self.PBsec)
+        sec_since_peri[sec_since_peri < 0.0] += self.PBsec
         mean_anom = sec_since_peri/self.PBsec*TWOPI
         ecc_anom = self.eccentric_anomaly(mean_anom)
         true_anom = psr_utils.true_anomaly(ecc_anom, self.par.E)
@@ -54,7 +55,7 @@ class binary_psr:
         """
         MJD = myasarray(MJD)
         difft = MJD - self.T0
-        days_since_peri = umath.fmod(difft, self.par.PB)
+        days_since_peri = Num.fmod(difft, self.par.PB)
         if (days_since_peri < 0.0): days_since_peri += self.par.PB
         return MJD - days_since_peri
 
@@ -64,15 +65,15 @@ class binary_psr:
             Return the eccentric anomaly in radians, given a set of mean_anomalies
             in radians.
         """
-        ma = umath.fmod(mean_anomaly, TWOPI)
-        ma = Numeric.where(ma < 0.0, ma+TWOPI, ma)
+        ma = Num.fmod(mean_anomaly, TWOPI)
+        ma = Num.where(ma < 0.0, ma+TWOPI, ma)
         eccentricity = self.par.E
         ecc_anom_old = ma
-        ecc_anom = ma + eccentricity*umath.sin(ecc_anom_old)
+        ecc_anom = ma + eccentricity*Num.sin(ecc_anom_old)
         # This is a simple iteration to solve Kepler's Equation
-        while (umath.maximum.reduce(umath.fabs(ecc_anom-ecc_anom_old)) > 5e-15):
+        while (Num.maximum.reduce(Num.fabs(ecc_anom-ecc_anom_old)) > 5e-15):
             ecc_anom_old = ecc_anom[:]
-            ecc_anom = ma + eccentricity*umath.sin(ecc_anom_old)
+            ecc_anom = ma + eccentricity*Num.sin(ecc_anom_old)
         return ecc_anom
 
     def calc_omega(self, MJD):
@@ -96,10 +97,10 @@ class binary_psr:
         ma, ea, ta = self.calc_anoms(MJD)
         ws = self.calc_omega(MJD)
         c1 = TWOPI*self.par.A1/self.PBsec;
-        c2 = umath.cos(ws)*umath.sqrt(1-self.par.E*self.par.E);
-        sws = umath.sin(ws);
-        cea = umath.cos(ea)
-        return SOL/1000.0*c1*(c2*cea - sws*umath.sin(ea)) / (1.0 - self.par.E*cea)
+        c2 = Num.cos(ws)*Num.sqrt(1-self.par.E*self.par.E);
+        sws = Num.sin(ws);
+        cea = Num.cos(ea)
+        return SOL/1000.0*c1*(c2*cea - sws*Num.sin(ea)) / (1.0 - self.par.E*cea)
 
     def doppler_period(self, MJD):
         """
@@ -124,10 +125,10 @@ class binary_psr:
         ma, ea, ta = self.calc_anoms(MJD)
         ws = self.calc_omega(MJD)
         orb_phs = ta + ws
-        sini = umath.sin(inc*DEGTORAD)
+        sini = Num.sin(inc*DEGTORAD)
         x = self.par.A1/sini
-        r = x*(1.0-self.par.E*self.par.E)/(1.0+self.par.E*umath.cos(ta))
-        return -r*umath.sin(orb_phs)*sini, -r*umath.cos(orb_phs)
+        r = x*(1.0-self.par.E*self.par.E)/(1.0+self.par.E*Num.cos(ta))
+        return -r*Num.sin(orb_phs)*sini, -r*Num.cos(orb_phs)
 
 
 if __name__=='__main__':

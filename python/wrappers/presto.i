@@ -41,7 +41,7 @@ arrtofloatvector (PyObject *o, float **v, int *vsz){
 	break;
     case PyArray_CHAR: 
     case PyArray_UBYTE: 
-    case PyArray_SBYTE:
+//    case PyArray_SBYTE:
     case PyArray_SHORT: 
     case PyArray_INT: 
     case PyArray_LONG:

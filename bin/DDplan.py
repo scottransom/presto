@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-from umath import *
-from Numeric import *
+from numpy import *
 from Pgplot import *
 
 class observation:
@@ -58,7 +57,7 @@ class dedisp_method:
         else:
             self.numDMs = numDMs
         self.hiDM = loDM + self.numDMs*dDM
-        self.DMs = arange(self.numDMs, typecode='d')*dDM + loDM
+        self.DMs = arange(self.numDMs, dtype='d')*dDM + loDM
     def chan_smear(self, DM):
         """
         Return the smearing (in ms) in each channel at the specified DM
@@ -281,8 +280,8 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
             
     # Calculate the DMs to search and the smearing at each
     total_numDMs = sum(numDMs)
-    DMs = zeros(total_numDMs, typecode='d')
-    total_smears = zeros(total_numDMs, typecode='d')
+    DMs = zeros(total_numDMs, dtype='d')
+    total_smears = zeros(total_numDMs, dtype='d')
 
     # Calculate the DMs and optimal smearing for all the DMs
     for ii, offset in enumerate(add.accumulate([0]+numDMs[:-1])):

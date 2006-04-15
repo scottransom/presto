@@ -1,6 +1,10 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 import bisect
-import umath
-import Numeric as Num
+import numpy.core.umath as umath
+import numpy as Num
 from psr_constants import PI, TWOPI, PIBYTWO
 from simple_roots import newton_raphson
 from scipy.special import iv, chdtri, ndtr, ndtri
@@ -87,7 +91,7 @@ def log_fact_table(maxn):
         Return a table of the natural logarithms of the
         first 'maxn'+1 factorials.
     """
-    table = Num.arange(maxn+1, typecode='d')
+    table = Num.arange(maxn+1, dtype='d')
     table[0] = 1.0
     return Num.add.accumulate(umath.log(table))
 
@@ -288,7 +292,7 @@ def exact_DFT(times, f, maxnumharms=20):
             corresponding to the the harmonics of the times
             (in sec) with a fundamental at frequency f
     """
-    const = -TWOPI*(Num.arange(maxnumharms, typecode='d')+1.0)*f*complex(0.0, 1.0)
+    const = -TWOPI*(Num.arange(maxnumharms, dtype='d')+1.0)*f*complex(0.0, 1.0)
     return umath.add.reduce(umath.exp(Num.outerproduct(const,times)), axis=1)
 
 def exact_H_test(phases, maxnumharms=20):
@@ -305,7 +309,7 @@ def exact_H_test(phases, maxnumharms=20):
         Zm2s[harmnum-1] = 2.0/N * (umath.add.reduce(umath.sin(phss))**2.0 +
                                    umath.add.reduce(umath.cos(phss))**2.0)
     hs = umath.add.accumulate(Zm2s) - \
-         4.0*Num.arange(1, maxnumharms+1, typecode='d') + 4.0
+         4.0*Num.arange(1, maxnumharms+1, dtype='d') + 4.0
     bestharm = Num.argmax(hs)
     return (hs[bestharm]/2.0, bestharm+1)
 

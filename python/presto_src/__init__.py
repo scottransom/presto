@@ -1,11 +1,6 @@
 from prestoswig import *
-import math
-import umath
-import Numeric
+import numpy as Num
 import Pgplot
-import ppgplot
-import string
-import scipy.io.numpyio
 import psr_utils
 
 def val_with_err(value, error, len=0, digits=2, latex=0):
@@ -128,7 +123,7 @@ def rfft(data, sign=-1):
        The optional value 'sign' should be positive or negative 1.
    """
    # Default to sign = -1 if the user gives a bad value
-   tmp = Numeric.array(data, copy=1)
+   tmp = Num.array(data, copy=1)
    if (sign == -1 or sign != 1):
       tmp = tofloatvector(tmp)
       realfft(tmp, len(tmp), -1)
@@ -143,10 +138,10 @@ def spectralpower(fftarray):
     spectralpower(fftarray):
         Return the power spectrum of a complex FFT 'fftarray'.
     """
-    fftarray = Numeric.asarray(fftarray)
-    if fftarray.typecode()=='F':
+    fftarray = Num.asarray(fftarray)
+    if fftarray.dtype.char=='F':
        return power_arr(fftarray, len(fftarray))
-    elif fftarray.typecode()=='D':
+    elif fftarray.dtype.char=='D':
        return dpower_arr(fftarray, len(fftarray))
     else:
        print 'fftarray must be complex in spectralpower()'
@@ -157,10 +152,10 @@ def spectralphase(fftarray):
     spectralphase(fftarray):
         Return the spectral phase (deg) of a complex FFT 'fftarray'.
     """
-    fftarray = Numeric.asarray(fftarray)
-    if fftarray.typecode()=='F':
+    fftarray = Num.asarray(fftarray)
+    if fftarray.dtype.char=='F':
        return phase_arr(fftarray, len(fftarray))
-    elif fftarray.typecode()=='D':
+    elif fftarray.dtype.char=='D':
        return dphase_arr(fftarray, len(fftarray))
     else:
        print 'fftarray must be complex in spectralpower()'
@@ -207,8 +202,8 @@ def search_fft(data, numcands, norm='default'):
          a normalized power spectrum (defaults to  1.0/(Freq 0) value)
    """
    if (norm=='default'): norm = 1.0/data[0].real
-   hp = Numeric.zeros(numcands, 'f')
-   hf = Numeric.zeros(numcands, 'f')
+   hp = Num.zeros(numcands, 'f')
+   hf = Num.zeros(numcands, 'f')
    search_minifft(data, len(data), norm, numcands, hp, hf) 
    cands = []
    for i in range(numcands):
@@ -237,7 +232,7 @@ def ffdot_plane(data, r, dr, numr, z, dz, numz):
    (ffdraw, nextbin) = corr_rz_plane(data, len(data), numbetween,
                                      startbin, loz, hiz, numz,
                                      fftlen, LOWACC)
-   return Numeric.array(ffdraw[:,0:numr], copy=1)
+   return Num.array(ffdraw[:,0:numr], copy=1)
 
 def estimate_rz(psr, T, show=0, device='/XWIN'):
     """
@@ -258,7 +253,7 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
     z = z_from_e(E, psr, T)
     r = T/p_from_e(E, psr) - T/psr.p
     if show:
-        times = Numeric.arange(numorbpts) * dt
+        times = Num.arange(numorbpts) * dt
         Pgplot.plotxy(r, times, labx = 'Time', \
                       laby = 'Fourier Frequency (r)', device=device)
         if device=='/XWIN':
@@ -291,13 +286,13 @@ def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
        Show a color plot of the F-Fdot plane centered on the point 'r', 'z'.
    """
    ffdp = ffdot_plane(data, r, dr, numr, z, dz, numz)
-   ffdpow = spectralpower(ffdp.flat)
+   ffdpow = spectralpower(ffdp.ravel())
    ffdpow.shape = (numz, numr)
    startbin = int(r - (numr * dr) / 2)
    startz = int(z - (numz * dz) / 2)
-   x = Numeric.arange(numr, typecode="d") * dr + startbin
-   y = Numeric.arange(numz, typecode="d") * dz + startz
-   highpt = Numeric.argmax(ffdpow.flat)
+   x = Num.arange(numr, dtype="d") * dr + startbin
+   y = Num.arange(numz, dtype="d") * dz + startz
+   highpt = Num.argmax(ffdpow.ravel())
    hir = highpt % numr
    hiz = highpt / numr
    print ""
@@ -332,7 +327,7 @@ def v_from_e(e, psr):
    """
    oldw = psr.orb.w
    psr.orb.w = psr.orb.w * DEGTORAD
-   v = Numeric.array(e, copy=1)
+   v = Num.array(e, copy=1)
    E_to_v(v, len(v), psr.orb)
    psr.orb.w = oldw
    return v
@@ -347,7 +342,7 @@ def d_from_e(e, psr):
    """
    oldw = psr.orb.w
    psr.orb.w = psr.orb.w * DEGTORAD
-   d = Numeric.array(e, copy=1)
+   d = Num.array(e, copy=1)
    E_to_phib(d, len(d), psr.orb)
    psr.orb.w = oldw
    return d
@@ -362,7 +357,7 @@ def p_from_e(e, psr):
    """
    oldw = psr.orb.w
    psr.orb.w = psr.orb.w * DEGTORAD
-   p = Numeric.array(e, copy=1)
+   p = Num.array(e, copy=1)
    E_to_p(p, len(p), psr.p, psr.orb)
    psr.orb.w = oldw
    return p
@@ -378,7 +373,7 @@ def z_from_e(e, psr, T):
    """
    oldw = psr.orb.w
    psr.orb.w = psr.orb.w * DEGTORAD
-   z = Numeric.array(e, copy=1)
+   z = Num.array(e, copy=1)
    E_to_z(z, len(z), psr.p, T, psr.orb)
    psr.orb.w = oldw
    return z
@@ -392,7 +387,7 @@ def pcorr(data, kernel, numbetween, lo, hi):
        (also an integer).
    """
    kern_half_width = len(kernel)/(2 * numbetween)
-   result = Numeric.zeros((hi-lo)*numbetween, 'F')
+   result = Num.zeros((hi-lo)*numbetween, 'F')
    corr_complex(data, len(data), RAW,
                 kernel, len(kernel), RAW,
                 result, len(result), lo,
@@ -422,16 +417,16 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
       for the corresponding barycentric values.  The data
       for the observation must be found in the info file.
    """
-   from LinearAlgebra import linear_least_squares
+   from numpy.linalg.old import linear_least_squares
    if infofilenm[-4:]==".inf":  infofilenm = infofilenm[:-4]
    obs = read_inffile(infofilenm)
    T = obs.N * obs.dt
    dt = 10.0
    tto = obs.mjd_i + obs.mjd_f
-   tts = Numeric.arange(tto, tto + (T + dt) / SECPERDAY, dt / SECPERDAY)
+   tts = Num.arange(tto, tto + (T + dt) / SECPERDAY, dt / SECPERDAY)
    nn = len(tts)
-   bts = Numeric.zeros(nn, 'd')
-   vel = Numeric.zeros(nn, 'd')
+   bts = Num.zeros(nn, 'd')
+   vel = Num.zeros(nn, 'd')
    ra = psr_utils.coord_to_string(obs.ra_h, obs.ra_m, obs.ra_s)
    dec = psr_utils.coord_to_string(obs.dec_d, obs.dec_m, obs.dec_s)
    if (obs.telescope == 'Parkes'):  tel = 'PK'
@@ -444,13 +439,13 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    barycenter(tts, bts, vel, nn, ra, dec, tel, ephem)
    print "Topocentric start time = %17.11f" % tts[0]
    print "Barycentric start time = %17.11f" % bts[0]
-   avgvel = Numeric.add.reduce(vel) / nn
+   avgvel = Num.add.reduce(vel) / nn
    print "Average Earth velocity = %10.5e c" % (avgvel)
-   tts = Numeric.arange(nn, typecode='d') * dt
+   tts = Num.arange(nn, dtype='d') * dt
    bts = (bts - bts[0]) * SECPERDAY
    [fb, fbd, fbdd] = p_to_f(pb, pbd, pbdd)
    b = fb * bts + fbd * bts**2.0 / 2.0 + fbdd * bts**3.0 / 6.0
-   a = Numeric.transpose(Numeric.asarray([tts, tts**2.0, tts**3.0]))
+   a = Num.transpose(Num.asarray([tts, tts**2.0, tts**3.0]))
    [ft, ftd, ftdd], residuals, rank, sv = linear_least_squares(a,b)
    [pt, ptd, ptdd] = p_to_f(ft, ftd, ftdd)
    print "    Topocentric period = %15.12f" % pt
@@ -475,7 +470,7 @@ def measure_phase(profile, template, sigma, fwhm):
        approximate width of the template pulse (0-1).  The phase
        returned is cyclic (i.e. from 0-1).  The routine
        returns a tuple comtaining (tau, tau_err, b, b_err, a).
-       Where 'tau' is the phase, 'b' is the scaling factor,
+       Where 'tau' is the phase, 'B' is the scaling factor,
        and 'a' is the DC offset.  The error values are
        estimates of the 1 sigma errors.
     """
@@ -491,7 +486,7 @@ def measure_phase(profile, template, sigma, fwhm):
     ft[0] = complex(ft[0].imag, 0.0)
     P_k = abs(ft)
     frotate(P_k, len(ft), 1)
-    Theta_k = umath.arctan2(-ft.imag, ft.real)
+    Theta_k = Num.arctan2(-ft.imag, ft.real)
     frotate(Theta_k, len(ft), 1)
     ft = rfft(template)
     s0 = ft[0].real
@@ -499,42 +494,42 @@ def measure_phase(profile, template, sigma, fwhm):
     ft[0] = complex(ft[0].imag, 0.0)
     S_k = abs(ft)
     frotate(S_k, len(ft), 1)
-    Phi_k = umath.arctan2(-ft.imag, ft.real)
+    Phi_k = Num.arctan2(-ft.imag, ft.real)
     frotate(Phi_k, len(ft), 1)
     # Estimate of the noise sigma (This needs to be checked)
     # Note:  Checked 10 Jul 2000.  Looks OK.
-    sig = sigma * math.sqrt(N)
-    k = Numeric.arange(len(ft), typecode='d') + 1.0
+    sig = sigma * Num.sqrt(N)
+    k = Num.arange(len(ft), dtype='d') + 1.0
     def fn(tau, k=k, p=P_k, s=S_k, theta=Theta_k, phi=Phi_k):
        # Since Nyquist freq always has phase = 0.0
        k[-1] = 0.0
-       return Numeric.add.reduce(k * p * s *
-                                 umath.sin(phi - theta + k * tau))
+       return Num.add.reduce(k * p * s *
+                                 Num.sin(phi - theta + k * tau))
     def dfn(tau, k=k, p=P_k, s=S_k, theta=Theta_k, phi=Phi_k):
        # Since Nyquist freq always has phase = 0.0
        k[-1] = 0.0
-       return Numeric.add.reduce(k * k * p * s *
-                                 umath.cos(phi - theta + k * tau))
+       return Num.add.reduce(k * k * p * s *
+                                 Num.cos(phi - theta + k * tau))
     numphases = 200
-    ddchidt = Numeric.zeros(numphases, 'd')
-    phases = Numeric.arange(numphases, typecode='d') / \
+    ddchidt = Num.zeros(numphases, 'd')
+    phases = Num.arange(numphases, dtype='d') / \
              float(numphases-1) * TWOPI - PI
-    for i in Numeric.arange(numphases):
+    for i in Num.arange(numphases):
        ddchidt[i] = dfn(phases[i])
-    maxdphase = phases[Numeric.argmax(ddchidt)] + \
+    maxdphase = phases[Num.argmax(ddchidt)] + \
                 0.5 * TWOPI / (numphases - 1.0)
     # Solve for tau
     tau = newton_raphson(fn, dfn, maxdphase - 0.5 * fwhm * TWOPI,
                          maxdphase + 0.5 * fwhm * TWOPI)
     # Solve for b
-    c = P_k * S_k * umath.cos(Phi_k - Theta_k + k * tau)
-    d = Numeric.add.reduce(S_k**2.0)
-    b = Numeric.add.reduce(c) / d
+    c = P_k * S_k * Num.cos(Phi_k - Theta_k + k * tau)
+    d = Num.add.reduce(S_k**2.0)
+    b = Num.add.reduce(c) / d
     # tau sigma
-    tau_err = sig * umath.sqrt(1.0 / (2.0 * b *
-                                      Numeric.add.reduce(k**2.0 * c)))
+    tau_err = sig * Num.sqrt(1.0 / (2.0 * b *
+                                    Num.add.reduce(k**2.0 * c)))
     # b sigma  (Note:  This seems to be an underestimate...)
-    b_err = sig * umath.sqrt(1.0 / (2.0 * d))
+    b_err = sig * Num.sqrt(1.0 / (2.0 * d))
     # Solve for a
     a = (p0 - b * s0) / float(N)
     return (tau / TWOPI, tau_err / TWOPI, b, b_err, a)
@@ -550,8 +545,8 @@ def get_baryv(ra, dec, mjd, T, obs="PK"):
    """
    tts = psr_utils.span(mjd, mjd+T/86400.0, 100)
    nn = len(tts)
-   bts = Numeric.zeros(nn, 'd')
-   vel = Numeric.zeros(nn, 'd')
+   bts = Num.zeros(nn, 'd')
+   vel = Num.zeros(nn, 'd')
    barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
-   avgvel = Numeric.add.reduce(vel)/nn
+   avgvel = Num.add.reduce(vel)/nn
    return avgvel

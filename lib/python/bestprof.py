@@ -1,4 +1,6 @@
-import Numeric as num
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
+import numpy as num
 
 class bestprof:
     def __init__(self, filenm):

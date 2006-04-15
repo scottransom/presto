@@ -1,16 +1,18 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 from Numeric import *
-import Numeric
+import numpy as Numeric
 N = Numeric
 import scipy.io.numpyio as numpyio
 import struct
 
 def getsize_type(mtype):
-    if mtype in ['b','uchar','byte','unsigned char','integer*1', 'int8']:
-        mtype = 'b'
+    if mtype in ['B','uchar','byte','unsigned char','integer*1', 'int8']:
+        mtype = 'B'
     elif (mtype == 'c') or mtype in ['char','char*1']:
         mtype = 'c'
-    elif mtype in ['1','schar', 'signed char']:
-        mtype = '1'
+    elif mtype in ['b','schar', 'signed char']:
+        mtype = 'b'
     elif mtype in ['s','short','int16','integer*2']:
         mtype = 's'
     elif mtype in ['l','i','int','long','int32','integer*4']:
@@ -26,7 +28,7 @@ def getsize_type(mtype):
     else:
         raise TypeError, 'Bad datatype -- ' + mtype
 
-    argout = (array(0,mtype).itemsize(),mtype)
+    argout = (array(0,mtype).itemsize,mtype)
     return argout
 
 class binary_file:
@@ -41,7 +43,7 @@ class binary_file:
         elif format in ['ieee-le','l']:
             self.bs = not LittleEndian
             self.format = 'ieee-le'
-        elif format in ['ieee-be','b']:
+        elif format in ['ieee-be','B']:
             self.bs = LittleEndian
             self.format = 'ieee-be'
 
@@ -146,7 +148,7 @@ fopen = binary_file
 
 def read_raw(name,size,type,bs=0):
     if bs:
-        fid = fopen(name,'r','b')
+        fid = fopen(name,'r','B')
     else:
         fid = fopen(name,'r')
     numels = N.product(size)
@@ -157,7 +159,7 @@ def read_raw(name,size,type,bs=0):
     
 def write_raw(name,arr,type,bs=0):
     if bs:
-        fid = fopen(name,'w','b')
+        fid = fopen(name,'w','B')
     else:
         fid = fopen(name,'w')
     fid.fwrite(arr,type)

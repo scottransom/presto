@@ -1,4 +1,7 @@
-import Numeric, umath, scipy.special, FFT
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
+import numpy as Num
+import scipy.special, FFT
 
 def sinc(xs):
     """
@@ -6,8 +9,8 @@ def sinc(xs):
         Return the sinc function [i.e. sin(pi * xs)/(pi * xs)]
             for the values xs.
     """
-    pxs = umath.pi*xs
-    return Numeric.where(umath.fabs(pxs)<1e-3, 1.0-pxs*pxs/6.0, umath.sin(pxs)/pxs)
+    pxs = Num.pi*xs
+    return Num.where(Num.fabs(pxs)<1e-3, 1.0-pxs*pxs/6.0, Num.sin(pxs)/pxs)
 
 def kaiser_window(xs, halfwidth, alpha):
     """
@@ -24,8 +27,8 @@ def kaiser_window(xs, halfwidth, alpha):
             6           Similar to Hanning window
             8.6         Almost identical to the Blackman window 
     """
-    win = i0(alpha*umath.sqrt(1.0-(xs/halfwidth)**2.0))/i0(alpha)
-    return Numeric.where(umath.fabs(xs)<=halfwidth, win, 0.0)
+    win = i0(alpha*Num.sqrt(1.0-(xs/halfwidth)**2.0))/i0(alpha)
+    return Num.where(Num.fabs(xs)<=halfwidth, win, 0.0)
 
 def hanning_window(xs, halfwidth):
     """
@@ -33,8 +36,8 @@ def hanning_window(xs, halfwidth):
         Return the Hanning window of halfwidth 'halfwidth' evaluated at
             the values 'xs'.
     """
-    win =  0.5 + 0.5*umath.cos(umath.pi*xs/halfwidth)
-    return Numeric.where(umath.fabs(xs)<=halfwidth, win, 0.0)
+    win =  0.5 + 0.5*Num.cos(Num.pi*xs/halfwidth)
+    return Num.where(Num.fabs(xs)<=halfwidth, win, 0.0)
 
 def hamming_window(xs, halfwidth):
     """
@@ -42,8 +45,8 @@ def hamming_window(xs, halfwidth):
         Return the Hamming window of halfwidth 'halfwidth' evaluated at
             the values 'xs'.
     """
-    win =  0.54 + 0.46*umath.cos(umath.pi*xs/halfwidth)
-    return Numeric.where(umath.fabs(xs)<=halfwidth, win, 0.0)
+    win =  0.54 + 0.46*Num.cos(Num.pi*xs/halfwidth)
+    return Num.where(Num.fabs(xs)<=halfwidth, win, 0.0)
 
 def blackman_window(xs, halfwidth):
     """
@@ -51,9 +54,9 @@ def blackman_window(xs, halfwidth):
         Return the Blackman window of halfwidth 'halfwidth' evaluated at
             the values 'xs'.
     """
-    rat = umath.pi*xs/halfwidth
-    win =  0.42 + 0.5*umath.cos(rat) + 0.08*umath.cos(2.0*rat) 
-    return Numeric.where(umath.fabs(xs)<=halfwidth, win, 0.0)
+    rat = Num.pi*xs/halfwidth
+    win =  0.42 + 0.5*Num.cos(rat) + 0.08*Num.cos(2.0*rat) 
+    return Num.where(Num.fabs(xs)<=halfwidth, win, 0.0)
 
 def rectangular_window(xs, halfwidth):
     """
@@ -61,7 +64,7 @@ def rectangular_window(xs, halfwidth):
         Return a rectangular window of halfwidth 'halfwidth' evaluated at
             the values 'xs'.
     """
-    return Numeric.where(umath.fabs(xs)<=halfwidth, 1.0, 0.0)
+    return Num.where(Num.fabs(xs)<=halfwidth, 1.0, 0.0)
     
 _window_function = {"rectangular": rectangular_window,
                     "none": rectangular_window,
@@ -77,12 +80,12 @@ def windowed_sinc_interp(data, newx, halfwidth=None,
                          window='hanning', alpha=6.0):
         Return a single windowed-sinc-interpolated point from the data.
     """
-    if umath.fabs(round(newx)-newx) < 1e-5:
+    if Num.fabs(round(newx)-newx) < 1e-5:
         return data[int(round(newx))]
-    num_pts = (int(umath.floor(newx)), len(data)-int(umath.ceil(newx))-1)
+    num_pts = (int(Num.floor(newx)), len(data)-int(Num.ceil(newx))-1)
     if halfwidth is None:
         halfwidth = min(num_pts)
-    lo_pt = int(umath.floor(newx)) - halfwidth
+    lo_pt = int(Num.floor(newx)) - halfwidth
     if lo_pt < 0:
         lo_pt < 0
         print "Warning:  trying to access below the lowest index!"
@@ -91,13 +94,13 @@ def windowed_sinc_interp(data, newx, halfwidth=None,
         hi_pt = len(data)-1
         print "Warning:  trying to access above the highest index!"
     halfwidth = (hi_pt-lo_pt)/2
-    pts = Numeric.arange(2*halfwidth)+lo_pt
+    pts = Num.arange(2*halfwidth)+lo_pt
     xs = newx - pts
     if window.lower() is "kaiser":
         win = _window_function[window](xs, len(data)/2, alpha)
     else:
         win = _window_function[window](xs, len(data)/2)
-    return umath.add.reduce(Numeric.take(data, pts) * win * sinc(xs))
+    return Num.add.reduce(Num.take(data, pts) * win * sinc(xs))
 
 def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
     """
@@ -113,12 +116,12 @@ def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
         return data
     newN = len(data)*zoomfact
     # Space out the data
-    comb = Numeric.zeros((zoomfact, len(data)), typecode='d')
+    comb = Num.zeros((zoomfact, len(data)), dtype='d')
     comb[0] += data
-    comb = Numeric.reshape(Numeric.transpose(comb), (newN,))
+    comb = Num.reshape(Num.transpose(comb), (newN,))
     # Compute the offsets
-    xs = Numeric.zeros(newN, typecode='d')
-    xs[:newN/2+1] = Numeric.arange(newN/2+1, typecode='d')/zoomfact
+    xs = Num.zeros(newN, dtype='d')
+    xs[:newN/2+1] = Num.arange(newN/2+1, dtype='d')/zoomfact
     xs[-newN/2:]  = xs[::-1][newN/2-1:-1]
     # Calculate the sinc times window for the kernel
     if window.lower()=="kaiser":
@@ -137,8 +140,8 @@ def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
 if __name__=='__main__':
     from psr_utils import *
     from Pgplot import *
-    from RandomArray import normal
-    #from scipy import interpolate
+    from numpy.random import normal
+    from scipy import interpolate
     from spline import *
     
     fwhm = 0.01
@@ -148,7 +151,7 @@ if __name__=='__main__':
     # The theoretical profile with noise
     Ntheo = 1000
     theo = gaussian_profile(Ntheo, ctr_phase, fwhm) + normal(0.0, noise_sigma, Ntheo)
-    theo_phases = Numeric.arange(Ntheo, typecode='d')/Ntheo
+    theo_phases = Num.arange(Ntheo, dtype='d')/Ntheo
 
     # The "sampled" data
     Ndata = 100
@@ -173,7 +176,7 @@ if __name__=='__main__':
     # Interpolate the full profile using convolution
     zoomfact = 10
     newvals = periodic_interp(data, 10)
-    new_phases = Numeric.arange(Ndata*zoomfact, typecode='d')/(Ndata*zoomfact)
+    new_phases = Num.arange(Ndata*zoomfact, dtype='d')/(Ndata*zoomfact)
     plotxy(newvals, new_phases, line=1, symbol=None, color='yellow')
 
     # Interpolate using cubic splines
@@ -181,7 +184,7 @@ if __name__=='__main__':
         sdata = interpolate.splrep(data, data_phases, s=0)
         svals = interpolate.splrep(new_phases, sdata, der=0)
         plotxy(svals, new_phases, line=1, symbol=None, color='cyan')
-    else:
+    elif (0):
         sdata = Spline(data_phases, data)
         svals = sdata(new_phases)
         plotxy(svals, new_phases, line=1, symbol=None, color='cyan')

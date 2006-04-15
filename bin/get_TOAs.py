@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import struct, getopt, sys, umath, fftfit, psr_utils
-import Numeric as Num
+import struct, getopt, sys, fftfit, psr_utils
+import numpy as Num
 from infodata import infodata
 from bestprof import bestprof
 from prepfold import pfd
@@ -23,9 +23,8 @@ def measure_phase(profile, template):
             talk at the Royal Society.
     """
     c,amp,pha = fftfit.cprof(template)
-    pha.savespace()
     pha1 = pha[0]
-    pha = umath.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
+    pha = Num.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
@@ -55,7 +54,7 @@ def read_gaussfitfile(gaussfitfile, proflen):
     # Now put the biggest gaussian at phase = 0.0
     phass = phass - phass[0]
     phass = Num.where(phass<0.0, phass+1.0, phass)
-    template = Num.zeros(proflen, typecode='d')
+    template = Num.zeros(proflen, dtype='d')
     for ii in range(len(ampls)):
         template += ampls[ii]*psr_utils.gaussian_profile(proflen, phass[ii], fwhms[ii])
     return template
@@ -70,7 +69,7 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-f, --FFTFITouts]                 : Print all FFTFIT outputs and errors
   [-g gausswidth, --gaussian=width]  : Use a Gaussian template of FWHM width
                                        or, if the arg is a string, read the file
-									   to get multiple-gaussian parameters
+                                       to get multiple-gaussian parameters
   [-t templateprof, --template=prof] : The template .bestprof file to use
   [-k subs_list, --kill=subs_list]   : List of subbands to ignore
   [-i ints_list, --kints=ints_list]  : List of intervals to ignore
@@ -111,7 +110,7 @@ if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hefs:n:d:g:t:o:k:i:",
                                    ["help", "event", "FFTFITouts", "subbands=", 
-									"numtoas=", "dm=", "gaussian=", "template=",
+                                    "numtoas=", "dm=", "gaussian=", "template=",
                                     "offset=", "kill=", "kints="])
                                     
     except getopt.GetoptError:
@@ -138,12 +137,12 @@ if __name__ == '__main__':
             usage()
             sys.exit()
         if o in ("-f", "--FFTFITouts"):
-	    otherouts = 1
-	if o in ("-e", "--event"):
-	    lowfreq = 0.0
-	    DM = 0.0
-	    events = 1
-	if o in ("-s", "--subbands"):
+            otherouts = 1
+        if o in ("-e", "--event"):
+            lowfreq = 0.0
+            DM = 0.0
+            events = 1
+        if o in ("-s", "--subbands"):
             numsubbands = int(a)
         if o in ("-n", "--numtoas"):
             numtoas = int(a)
@@ -206,20 +205,20 @@ if __name__ == '__main__':
     # PRESTO de-disperses at the high frequency channel so determine a
     # correction to the middle of the band
     if not events:
-	subpersumsub = fold_pfd.nsub/numsubbands
-	# Calculate the center of the summed subband freqs and delays
-	sumsubfreqs = (Num.arange(numsubbands)+0.5)*subpersumsub*fold_pfd.subdeltafreq + \
+        subpersumsub = fold_pfd.nsub/numsubbands
+        # Calculate the center of the summed subband freqs and delays
+        sumsubfreqs = (Num.arange(numsubbands)+0.5)*subpersumsub*fold_pfd.subdeltafreq + \
                       (fold_pfd.lofreq-0.5*fold_pfd.chan_wid)
-	# Note:  In the following, we cannot use fold_pfd.hifreqdelay since that
-	#        is based on the _barycentric_ high frequency (if the barycentric 
-	#        conversion was available).  For TOAs, we need a topocentric
-	#        delay, which is based on the topocentric frequency fold_pfd.hifreq
-	sumsubdelays = (psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) -
+        # Note:  In the following, we cannot use fold_pfd.hifreqdelay since that
+        #        is based on the _barycentric_ high frequency (if the barycentric 
+        #        conversion was available).  For TOAs, we need a topocentric
+        #        delay, which is based on the topocentric frequency fold_pfd.hifreq
+        sumsubdelays = (psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) -
                         psr_utils.delay_from_DM(fold_pfd.bestdm, fold_pfd.hifreq))/SECPERDAY
     else:
-	fold_pfd.subfreqs = asarray([0.0])
-	sumsubfreqs = asarray([0.0])
-	sumsubdelays = asarray([0.0])
+        fold_pfd.subfreqs = asarray([0.0])
+        sumsubfreqs = asarray([0.0])
+        sumsubdelays = asarray([0.0])
 
     # Read the template profile
     if templatefilenm is not None:
@@ -230,21 +229,23 @@ if __name__ == '__main__':
         else:
             template = psr_utils.gaussian_profile(fold_pfd.proflen, 0.0, gaussianwidth)
         template = template / max(template)
-
+    #from Pgplot import *
+    #plotxy(template)
+    #closeplot()
     # Determine the Telescope used
     if (not fold.topo):
         obs = '@'  # Solarsystem Barycenter
     else:
         try: obs = scopes[fold_pfd.telescope.split()[0]]
-	except KeyError:  print "Unknown telescope!!!"
+        except KeyError:  print "Unknown telescope!!!"
 
     # Read the polyco file (if required)
     if (fold.psr and fold.topo):
-	if (fold_pfd.__dict__.has_key("polycos") and
-	    not fold_pfd.polycos==0):
-		pcs = fold_pfd.polycos
-	else:
-	    pcs = polycos(fold.psr, sys.argv[-1]+".polycos")
+        if (fold_pfd.__dict__.has_key("polycos") and
+            not fold_pfd.polycos==0):
+            pcs = fold_pfd.polycos
+        else:
+            pcs = polycos(fold.psr, sys.argv[-1]+".polycos")
         (fold.phs0, fold.f0) = pcs.get_phs_and_freq(fold.epochi, fold.epochf)
         fold.f1 = fold.f2 = 0.0
     else:
@@ -306,23 +307,23 @@ if __name__ == '__main__':
                 # tau and tau_err are the predicted phase of the pulse arrival
                 tau, tau_err = shift/len(prof), eshift/len(prof)
                 # Note: "error" flags are shift = 0.0 and eshift = 999.0
-                
+
                 # If that failed, use a time-domain correlation
-		if (umath.fabs(shift) < 1e-7 and
-		    umath.fabs(eshift-999.0) < 1e-7):
-		    # Not enough structure in the template profile for FFTFIT
-		    # so use time-domain correlations instead
-		    tau = psr_utils.measure_phase_corr(prof, template)
-		    # This needs to be changed
-		    tau_err = 0.1/len(prof)
+                if (Num.fabs(shift) < 1e-7 and
+                    Num.fabs(eshift-999.0) < 1e-7):
+                    # Not enough structure in the template profile for FFTFIT
+                    # so use time-domain correlations instead
+                    tau = psr_utils.measure_phase_corr(prof, template)
+                    # This needs to be changed
+                    tau_err = 0.1/len(prof)
 
                 # Send the TOA to STDOUT
-		psr_utils.write_princeton_toa(t0+(tau*p+offset)/SECPERDAY+sumsubdelays[jj],
+                psr_utils.write_princeton_toa(t0+(tau*p+offset)/SECPERDAY+sumsubdelays[jj],
                                               tau_err*p*1000000.0,
                                               sumsubfreqs[jj], fold_pfd.bestdm, obs=obs)
-		if (otherouts):
-		    print "FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" % \
-		        (b, errb, snr, esnr)
+                if (otherouts):
+                    print "FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" % \
+                          (b, errb, snr, esnr)
 
-	    except ValueError, fftfit.error:
+            except ValueError, fftfit.error:
                 pass

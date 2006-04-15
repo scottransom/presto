@@ -1,3 +1,5 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 import struct, os, os.path, presto, psr_utils, math
 
 ## The most recent catalogs are available here:

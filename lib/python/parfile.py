@@ -1,3 +1,5 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 from types import StringType, FloatType
 from psr_utils import ra_to_rad, dec_to_rad, pferrs
 #

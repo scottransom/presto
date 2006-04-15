@@ -1,5 +1,5 @@
 from math import *
-from Numeric import *
+from numpy import *
 from Pgplot import *
 from presto import *
 
@@ -30,16 +30,13 @@ kern_halfwidth = z_resp_halfwidth(0.0, HIGHACC)
 numkern = 2 * numbetween * kern_halfwidth
 for i in range(numpts):
     ca[i] = rz_interp(data, filelen, cf[i], 0.0, kern_halfwidth)
-cpow = spectralpower(ca) / nph
+cpow = spectralpower(asarray(ca)) / nph
 cphs = spectralphase(ca)
 maxval = argmax(cpow)
-plotxy(cpow, cf, labx="Fourier Frequency", laby="Power")
+plotxy(cpow, cf-1e6, labx="Fourier Frequency - 1e6", laby="Power")
 print "Maximum value is at r =", startbin + maxval / float(numbetween)
 print "   Power =", cpow[maxval], "  Phase =", cphs[maxval]
-
-print 'Press enter to continue:'
-i = raw_input()
-nextplotpage()
+closeplot()
 
 # Show the power spectrum with f-dot correction
 kern_halfwidth = z_resp_halfwidth(md.z, HIGHACC)
@@ -49,11 +46,8 @@ for i in range(numpts):
 cpow = spectralpower(ca) / nph
 cphs = spectralphase(ca)
 maxval = argmax(cpow)
-plotxy(cpow, cf, labx="Fourier Frequency", laby="Power")
+plotxy(cpow, cf-1e6, labx="Fourier Frequency - 1e6", laby="Power")
 print "Maximum value is at r =", startbin + maxval / float(numbetween)
 print "   Power =", cpow[maxval], "  Phase =", cphs[maxval]
-
-print 'Press enter to finish:'
-i = raw_input()
 closeplot()
 

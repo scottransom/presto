@@ -1,3 +1,5 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 from math import *
 import struct, os, os.path
 

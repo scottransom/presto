@@ -32,9 +32,9 @@ def infodata_to_sigproc_header(inf):
     hdr += prep_int("pulsarcentric", 0)
     hdr += prep_double("src_raj", inf.ra_h*10000.0 + inf.ra_m*100.0 + inf.ra_s)
     if inf.dec_d > 0.0:
-	hdr += prep_double("src_dej", inf.dec_d*10000.0 + inf.dec_m*100.0 + inf.dec_s)
+        hdr += prep_double("src_dej", inf.dec_d*10000.0 + inf.dec_m*100.0 + inf.dec_s)
     else:
-	hdr += prep_double("src_dej", inf.dec_d*10000.0 - inf.dec_m*100.0 - inf.dec_s)
+        hdr += prep_double("src_dej", inf.dec_d*10000.0 - inf.dec_m*100.0 - inf.dec_s)
     hdr += prep_int("nbits", 32)
     hdr += prep_int("nifs", 1)
     hdr += prep_int("nchans", 1)

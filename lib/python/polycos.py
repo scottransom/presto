@@ -1,5 +1,6 @@
-import Numeric
-import umath
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
+import numpy as Num
 import sys
 
 class polyco:
@@ -27,7 +28,7 @@ class polyco:
 	    self.obsfreq = float(sl[5])
             if (len(sl)==7):
                 self.binphase = float(sl[6])
-	    self.coeffs = Numeric.zeros(self.numcoeff, 'd')
+	    self.coeffs = Num.zeros(self.numcoeff, 'd')
 	    for linenum in range(self.numcoeff/3):
 		sl = fileptr.readline().split()
 		self.coeffs[linenum*3+0] = float(sl[0])
@@ -43,7 +44,7 @@ class polyco:
         for ii in range(self.numcoeff-1, 0, -1):
             phase = DT*phase + self.coeffs[ii-1]
         phase += self.RPHASE + DT*60.0*self.F0
-        return phase - umath.floor(phase)
+        return phase - Num.floor(phase)
     def freq(self, mjdi, mjdf):
         """
         self.freq(mjdi, mjdf):
@@ -75,7 +76,7 @@ class polycos:
                 self.TMIDs.append(tmppoly.TMID)
             tmppoly = polyco(infile)
         sys.stderr.write("Read %d polycos for PSR %s\n" % (len(self.polycos), psrname))
-        self.TMIDs = Numeric.asarray(self.TMIDs)
+        self.TMIDs = Num.asarray(self.TMIDs)
         infile.close()
         self.validrange = 0.5*self.dataspan/1440.0
 
@@ -84,8 +85,8 @@ class polycos:
         self.select_polyco(mjdi, mjdf):
             Return the polyco number that is valid for the specified time.
         """
-        goodpoly = Numeric.argmin(umath.fabs(self.TMIDs-(mjdi+mjdf)))
-        if (umath.fabs(self.TMIDs[goodpoly]-(mjdi+mjdf)) > self.validrange):
+        goodpoly = Num.argmin(Num.fabs(self.TMIDs-(mjdi+mjdf)))
+        if (Num.fabs(self.TMIDs[goodpoly]-(mjdi+mjdf)) > self.validrange):
             sys.stderr.write("Cannot find a valid polyco at %f!\n" % (mjdi+mjdf))
         return goodpoly
 

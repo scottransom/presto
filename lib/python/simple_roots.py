@@ -1,3 +1,5 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 # 'Safe' Newton-Raphson and Secant method
 #    for numerical root-finding
 #
@@ -105,7 +107,7 @@ def newton_raphson(func, dfunc, lox, hix, TOL=1.0e-14):
 
 if __name__ == '__main__':
 
-    from umath import pi, sin, cos
+    from numpy.core.umath import pi, sin, cos
 
     def func(x):
         return sin(x) - x + pi/4.0

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import bisect, os, sys, getopt, infodata
-import scipy, scipy.signal, umath, ppgplot
-from Numeric import *
+import scipy, scipy.signal, ppgplot
+import numpy as Num
 from presto import rfft
 from psr_utils import coord_to_string
 from TableIO import readColumns
@@ -45,7 +45,7 @@ def fft_convolve(fftd_data, fftd_kern, lo, hi):
 def make_fftd_kerns(downfacts, fftlen):
     fftd_kerns = []
     for downfact in downfacts:
-        kern = zeros(fftlen, typecode='d')
+        kern = Num.zeros(fftlen, dtype='d')
         # These offsets produce kernels that give results
         # equal to scipy.signal.convolve
         if downfact % 2:  # Odd number
@@ -57,7 +57,7 @@ def make_fftd_kerns(downfacts, fftlen):
                 kern[-(downfact/2-1):] += 1.0
         # The following normalization preserves the
         # RMS=1 characteristic of the data
-        fftd_kerns.append(rfft(kern/sqrt(downfact), -1))
+        fftd_kerns.append(rfft(kern / Num.sqrt(downfact), -1))
     return fftd_kerns
 
 def prune_related1(hibins, hivals, downfact):
@@ -192,7 +192,7 @@ def read_singlepulse_files(infiles, threshold, T_start, T_end):
         if ii==0:
             info0 = info
         if os.stat(infile)[6]:
-            cands = transpose(readColumns(infile, "#"))
+            cands = Num.transpose(readColumns(infile, "#"))
             for cand in cands:
                 if cand[2] < T_start: continue
                 if cand[2] > T_end: break
@@ -230,7 +230,7 @@ def main():
         pgplot_device = "/XWIN"
     else:
         pgplot_device = ""
-    break_points = chunklen/5 * arange(1,5)
+    break_points = chunklen/5 * Num.arange(1,5)
     overlap = (fftlen - chunklen)/2
     fileblocklen = chunklen + 2*overlap  # currently it is fftlen...
     float_len = 4
@@ -325,12 +325,12 @@ def main():
 
                 # Take care of beginning and end of file overlap issues
                 if (fileptr==0 and numread==fileblocklen): # Beginning of file
-                    chunk = zeros(fileblocklen, typecode='d')
+                    chunk = Num.zeros(fileblocklen, dtype='d')
                     chunk[overlap:] = tmpchunk[:-overlap]
                     infile.seek(-overlap*float_len, 1)
                     fileptr -= overlap
                 elif (numread < fileblocklen): # End of file
-                    chunk = zeros(fileblocklen, typecode='d')
+                    chunk = Num.zeros(fileblocklen, dtype='d')
                     chunk[:numread] = tmpchunk
                 else:
                     chunk = tmpchunk
@@ -346,8 +346,9 @@ def main():
                     #        currently the most expensive call in the program.  Best
                     #        bet would probably be to simply iterate over the goodchunk
                     #        in C and append to the candlist there.
-                    hibins = compress(goodchunk>opts.threshold, arange(chunklen))
-                    hivals = take(goodchunk, hibins)
+                    hibins = Num.compress(goodchunk>opts.threshold,
+                                          Num.arange(chunklen))
+                    hivals = Num.take(goodchunk, hibins)
                     hibins += dataptr
                     # Add the candidates (which are sorted by bin)
                     for bin, val in zip(hibins, hivals):
@@ -365,11 +366,12 @@ def main():
                                                      overlap, -overlap)
                         else:
                             # The normalization of this kernel keeps the post-smoothing RMS = 1
-                            kernel = ones(downfact, typecode='d') / sqrt(downfact)
+                            kernel = Num.ones(downfact, dtype='d') / Num.sqrt(downfact)
                             smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
                             goodchunk = smoothed_chunk[overlap:-overlap]
-                        hibins = compress(goodchunk>opts.threshold, arange(chunklen))
-                        hivals = take(goodchunk, hibins)
+                        hibins = Num.compress(goodchunk>opts.threshold,
+                                              Num.arange(chunklen))
+                        hivals = Num.take(goodchunk, hibins)
                         hibins += dataptr
                         hibins = hibins.tolist()
                         hivals = hivals.tolist()
@@ -425,19 +427,19 @@ def main():
         maxsnr = int(maxsnr) + 3
 
         # Generate the SNR histogram
-        snrs = asarray(snrs)
+        snrs = Num.asarray(snrs)
         (num_v_snr, lo_snr, d_snr, num_out_of_range) = \
                     scipy.stats.histogram(snrs,
                                           int(maxsnr-opts.threshold+1),
                                           [opts.threshold, maxsnr])
-        snrs = arange(maxsnr-opts.threshold+1, typecode='d')*d_snr + lo_snr + 0.5*d_snr
-        num_v_snr = where(num_v_snr==0, 0.001, num_v_snr)
+        snrs = Num.arange(maxsnr-opts.threshold+1, dtype='d')*d_snr + lo_snr + 0.5*d_snr
+        num_v_snr = Num.where(num_v_snr==0, 0.001, num_v_snr)
 
         # Generate the DM histogram
-        num_v_DM = zeros(len(DMs))
+        num_v_DM = Num.zeros(len(DMs))
         for ii, DM in enumerate(DMs):
             num_v_DM[ii] = num_v_DMstr["%.2f"%DM]
-        DMs = asarray(DMs)
+        DMs = Num.asarray(DMs)
 
         # open the plot device
         short_filenmbase = filenmbase[:filenmbase.find("_DM")]
@@ -481,9 +483,9 @@ def main():
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
         ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-Noise")
         ppgplot.pgsch(1.0)
-        cand_ts = zeros(len(candlist), typecode='f')
-        cand_SNRs = zeros(len(candlist), typecode='f')
-        cand_DMs = zeros(len(candlist), typecode='f')
+        cand_ts = Num.zeros(len(candlist), dtype='f')
+        cand_SNRs = Num.zeros(len(candlist), dtype='f')
+        cand_DMs = Num.zeros(len(candlist), dtype='f')
         for ii, cand in enumerate(candlist):
             cand_ts[ii], cand_SNRs[ii], cand_DMs[ii] = \
                          cand.time, cand.sigma, cand.DM
@@ -500,11 +502,11 @@ def main():
         snr_range = 12.0
         cand_symbols = (cand_SNRs-opts.threshold)/snr_range * 6.0 + 0.5 + 20.0
         cand_symbols = cand_symbols.astype('i')
-        cand_symbols = where(cand_symbols>26, 26, cand_symbols)
+        cand_symbols = Num.where(cand_symbols>26, 26, cand_symbols)
         for ii in [26, 25, 24, 23, 22, 21, 20]:
-            inds = nonzero(equal(cand_symbols, ii))
-            ts = take(cand_ts, inds)
-            DMs = take(cand_DMs, inds)
+            inds = Num.nonzero(equal(cand_symbols, ii))
+            ts = Num.take(cand_ts, inds)
+            DMs = Num.take(cand_DMs, inds)
             ppgplot.pgpt(ts, DMs, ii)
 
         # Now fill the infomation area

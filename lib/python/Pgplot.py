@@ -1,3 +1,7 @@
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
 # Routine for easy to use 1-D and 2-D plotting using 'PGPLOT'
 #       and the Python 'PPGPLOT' package
 #
@@ -13,7 +17,8 @@
 # where this file was found:  ftp://cfa-ftp.harvard.edu/pub/ransom 
 #
 
-import types, math, Numeric, ppgplot
+import numpy as Num
+import types, math, ppgplot
 
 # True if we have an /XWIN or /XSERVE device open yet
 ppgplot_dev_open_ = 0
@@ -76,15 +81,15 @@ ppgplot_colors_ = { \
     'light gray':15, 'Light Gray':15, 'LIGHT GRAY':15 \
     }
 
-# Data should be a Numeric Array
+# Data should be a Numpy Array
 def scalerange(data):
     """
     scalerange(data):
         Adjust the range to be plotted so that it fits nicely on the page.
         Return a list with adjusted minimum and maximum values from 'data'.
     """
-    min = Numeric.minimum.reduce(data)
-    max = Numeric.maximum.reduce(data)
+    min = Num.minimum.reduce(data)
+    max = Num.maximum.reduce(data)
     extra = 0.1 * (max - min)
     return [min - extra, max + extra]
 
@@ -311,18 +316,18 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
             with names like ppgplot_font_ or ppgplot_device_.
     """
     # Make sure the input data is an array
-    y = Numeric.asarray(y);
+    y = Num.asarray(y);
     # Announce the global variables we will be using
     global ppgplot_dev_open_, ppgplot_dev_prep_, ppgplot_colors_
     # Define the X axis limits if needed
-    if x is None: x=Numeric.arange(len(y), typecode='f')
-    else: x = Numeric.asarray(x)
+    if x is None: x=Num.arange(len(y), dtype='f')
+    else: x = Num.asarray(x)
     # Determine the scaling to use for the first axis
-    if rangex is None: rangex=[Numeric.minimum.reduce(x), \
-                             Numeric.maximum.reduce(x)]
+    if rangex is None: rangex=[Num.minimum.reduce(x), \
+                             Num.maximum.reduce(x)]
     if rangey is None:
-        if noscale: rangey=[Numeric.minimum.reduce(y), \
-                            Numeric.maximum.reduce(y)]
+        if noscale: rangey=[Num.minimum.reduce(y), \
+                            Num.maximum.reduce(y)]
         else: rangey=scalerange(y)
     # Prep the plotting device...
     if (not ppgplot_dev_prep_ and setup):
@@ -340,10 +345,10 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
         ppgplot.pgpt(x, y, symbol)
     # Error bars
     if errx:
-        errx = Numeric.asarray(errx)
+        errx = Num.asarray(errx)
         ppgplot.pgerrx(x+errx, x-errx, y, 1.0)
     if erry:
-        erry = Numeric.asarray(erry)
+        erry = Num.asarray(erry)
         ppgplot.pgerry(x, y+erry, y-erry, 1.0)
     # Plot connecting lines if requested
     if not line is None:
@@ -400,20 +405,20 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
         Note:  Many default values are defined in global variables
             with names like ppgplot_font_ or ppgplot_device_.
     """
-    # Make sure our entry sequences are Numeric arrays
-    Numeric.asarray(y)
-    Numeric.asarray(x)
-    if x is None:  x = Numeric.arange(len(y)) + 0.5
+    # Make sure our entry sequences are Num arrays
+    Num.asarray(y)
+    Num.asarray(x)
+    if x is None:  x = Num.arange(len(y)) + 0.5
     dx = x[1] - x[0]
     # Correct for the fact that 'x' are the bin centers
     x = x - 0.5 * dx
     # Make the repeat array
-    r = Numeric.zeros(len(x))+2
-    ny = Numeric.repeat(y, r)
+    r = Num.zeros(len(x))+2
+    ny = Num.repeat(y, r)
     r[0] = 1
-    nx = Numeric.repeat(x, r)
+    nx = Num.repeat(x, r)
     # Add the right side of the right-most bin
-    nx = Numeric.concatenate((nx, Numeric.zeros(1)+nx[-1]+dx))
+    nx = Num.concatenate((nx, Num.zeros(1)+nx[-1]+dx))
     plotxy(ny, nx, title, labx=labx, laby=laby, line=line, \
            labx2=labx2, laby2=laby2, \
            rangex2=rangex2, rangey2=rangey2, logx=logx, logy=logy, \
@@ -422,7 +427,7 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
            id=id, aspect=aspect, rangex=rangex, rangey=rangey, \
            ticks=ticks, panels=panels, device=device, setup=setup)
     if (erry):
-        ppgplot.pgerry(Numeric.arange(len(y))+0.5, y+erry, y-erry, 1.0)
+        ppgplot.pgerry(Num.arange(len(y))+0.5, y+erry, y-erry, 1.0)
 
 # Show a 2D color intensity plot with optional arguments and keywords
 def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
@@ -438,7 +443,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
     """
     plot2d(z, ...)
         An interface to make various 2D plots using PGPLOT.
-            'z' is the 2D Numeric array to be plotted.
+            'z' is the 2D Numpy array to be plotted.
         The optional entries are:
             x:         x values                    (default = 0, 1, ...) 
             y:         y values                    (default = 0, 1, ...) 
@@ -476,24 +481,24 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
             with names like ppgplot_font_ or ppgplot_device_.
     """
     # Make sure the input data is a 2D array
-    z = Numeric.asarray(z);
+    z = Num.asarray(z);
     if not len(z.shape)==2:
         print 'Input data array must be 2 dimensional.'
         return
     # Announce the global variables we will be using
     global ppgplot_dev_open_, ppgplot_dev_prep_, pgpalette
     # Define the X and Y axis limits if needed
-    if x is None: x=Numeric.arange(z.shape[1], typecode='f')
-    else: x = Numeric.asarray(x)
-    if y is None: y=Numeric.arange(z.shape[0], typecode='f')
-    else: y = Numeric.asarray(y)
+    if x is None: x=Num.arange(z.shape[1], dtype='f')
+    else: x = Num.asarray(x)
+    if y is None: y=Num.arange(z.shape[0], dtype='f')
+    else: y = Num.asarray(y)
     # Determine the scaling to use for the axes
-    if rangex is None: rangex=[Numeric.minimum.reduce(x), \
-                             Numeric.maximum.reduce(x)]
-    if rangey is None: rangey=[Numeric.minimum.reduce(y), \
-                             Numeric.maximum.reduce(y)]
-    if rangez is None: rangez=[Numeric.minimum.reduce(Numeric.ravel(z)), \
-                             Numeric.maximum.reduce(Numeric.ravel(z))]
+    if rangex is None: rangex=[Num.minimum.reduce(x), \
+                             Num.maximum.reduce(x)]
+    if rangey is None: rangey=[Num.minimum.reduce(y), \
+                             Num.maximum.reduce(y)]
+    if rangez is None: rangez=[Num.minimum.reduce(Num.ravel(z)), \
+                             Num.maximum.reduce(Num.ravel(z))]
     # Prep the plotting device...
     if (not ppgplot_dev_prep_):
         prepplot(rangex, rangey, title, labx, laby, \
@@ -512,7 +517,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
                          rangex[1], rangey[1])  
         reset_colors()
     if contours is not None:
-        contours = Numeric.asarray(contours)
+        contours = Num.asarray(contours)
         # Choose the line style
         ppgplot.pgsls(line)
         # Choose the line width
@@ -547,60 +552,60 @@ class Palette:
             Set the color palette for imag-style routines
         """
         if (palette == 'rainbow'):
-            self.l = Numeric.array([0.0, 0.015, 0.225, 0.4, 0.59,
+            self.l = Num.array([0.0, 0.015, 0.225, 0.4, 0.59,
                                     0.6, 0.775, 0.955, 0.965, 1.0])
-            self.r = Numeric.array([1.0, 1.0, 1.0, 0.0, 0.0,
+            self.r = Num.array([1.0, 1.0, 1.0, 0.0, 0.0,
                                     0.0, 0.0, 0.947, 1.0, 1.0])
-            self.g = Numeric.array([0.0, 0.0, 1.0, 1.0, 1.0,
+            self.g = Num.array([0.0, 0.0, 1.0, 1.0, 1.0,
                                     0.946, 0.0, 0.8, 0.844, 1.0])
-            self.b = Numeric.array([0.0, 0.0, 0.0, 0.0, 0.95,
+            self.b = Num.array([0.0, 0.0, 0.0, 0.0, 0.95,
                                     1.0, 1.0, 1.0, 1.0, 1.0])
         if (palette == 'antirainbow'):
-            self.l = Numeric.array([0.0, 0.035, 0.045, 0.225, 0.4, \
+            self.l = Num.array([0.0, 0.035, 0.045, 0.225, 0.4, \
                                     0.41, 0.6, 0.775, 0.985, 1.0])
-            self.r = Numeric.array([1.0, 1.0, 0.947, 0.0, 0.0,
+            self.r = Num.array([1.0, 1.0, 0.947, 0.0, 0.0,
                                     0.0, 0.0, 1.0, 1.0, 1.0])
-            self.g = Numeric.array([1.0, 0.844, 0.8, 0.0, 0.946,
+            self.g = Num.array([1.0, 0.844, 0.8, 0.0, 0.946,
                                     1.0, 1.0, 1.0, 0.0, 0.0])
-            self.b = Numeric.array([1.0, 1.0, 1.0, 1.0, 1.0,
+            self.b = Num.array([1.0, 1.0, 1.0, 1.0, 1.0,
                                     0.95, 0.0, 0.0, 0.0, 0.0])
         elif (palette == 'astro'):
-            self.l = Numeric.array([0.0, 0.167, 0.333, 0.5,
+            self.l = Num.array([0.0, 0.167, 0.333, 0.5,
                                     0.667, 0.833, 1.0])
-            self.r = Numeric.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0])
-            self.g = Numeric.array([0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0])
-            self.b = Numeric.array([0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0])
+            self.r = Num.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0])
+            self.g = Num.array([0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 1.0])
+            self.b = Num.array([0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0])
         elif (palette == 'hue'):
-            self.l = Numeric.array([0.0, 0.167, 0.333, 0.5,
+            self.l = Num.array([0.0, 0.167, 0.333, 0.5,
                                     0.667, 0.833, 1.0])
-            self.r = Numeric.array([1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0])
-            self.g = Numeric.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
-            self.b = Numeric.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0])
+            self.r = Num.array([1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0])
+            self.g = Num.array([0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+            self.b = Num.array([0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0])
         elif (palette == 'heat'):
-            self.l = Numeric.array([0.0, 0.48, 0.7, 0.75, 1.0])
-            self.r = Numeric.array([0.0, 1.0, 1.0, 1.0, 1.0])
-            self.g = Numeric.array([0.0, 0.0, 0.423, 0.519, 1.0])
-            self.b = Numeric.array([0.0, 0.0, 0.0, 0.0, 1.0])
+            self.l = Num.array([0.0, 0.48, 0.7, 0.75, 1.0])
+            self.r = Num.array([0.0, 1.0, 1.0, 1.0, 1.0])
+            self.g = Num.array([0.0, 0.0, 0.423, 0.519, 1.0])
+            self.b = Num.array([0.0, 0.0, 0.0, 0.0, 1.0])
         elif (palette == 'gamma'):
-            self.l = Numeric.array([0.0, 0.33, 0.66, 1.0])
-            self.r = Numeric.array([0.3, 1.0, 0.0, 0.0])
-            self.g = Numeric.array([0.0, 0.3, 1.0, 0.0])
-            self.b = Numeric.array([0.0, 0.0, 0.3, 1.0])
+            self.l = Num.array([0.0, 0.33, 0.66, 1.0])
+            self.r = Num.array([0.3, 1.0, 0.0, 0.0])
+            self.g = Num.array([0.0, 0.3, 1.0, 0.0])
+            self.b = Num.array([0.0, 0.0, 0.3, 1.0])
         elif (palette == 'antigray' or palette == 'antigrey'):
-            self.l = Numeric.array([0.0, 1.0])
-            self.r = Numeric.array([1.0, 0.0])
-            self.g = Numeric.array([1.0, 0.0])
-            self.b = Numeric.array([1.0, 0.0])
+            self.l = Num.array([0.0, 1.0])
+            self.r = Num.array([1.0, 0.0])
+            self.g = Num.array([1.0, 0.0])
+            self.b = Num.array([1.0, 0.0])
         elif (palette == 'apjgray' or palette == 'apjgrey'):
-            self.l = Numeric.array([0.0, 1.0])
-            self.r = Numeric.array([1.0, 0.25])
-            self.g = Numeric.array([1.0, 0.25])
-            self.b = Numeric.array([1.0, 0.25])
+            self.l = Num.array([0.0, 1.0])
+            self.r = Num.array([1.0, 0.25])
+            self.g = Num.array([1.0, 0.25])
+            self.b = Num.array([1.0, 0.25])
         else:
-            self.l = Numeric.array([0.0, 1.0])
-            self.r = Numeric.array([0.0, 1.0])
-            self.g = Numeric.array([0.0, 1.0])
-            self.b = Numeric.array([0.0, 1.0])
+            self.l = Num.array([0.0, 1.0])
+            self.r = Num.array([0.0, 1.0])
+            self.g = Num.array([0.0, 1.0])
+            self.b = Num.array([0.0, 1.0])
 
 pgpalette = Palette()
 
@@ -610,17 +615,17 @@ pgpalette = Palette()
 if __name__ == '__main__':
 
     from math import *
-    from Numeric import *
+    from numpy import *
 
     def distance(width):
         """
         distance(width):
-            Return a 'width' x 'width' Numeric Python array with each
+            Return a 'width' x 'width' Numpy array with each
                 point set to the geometric distance from the array's center.
         """
-        x = Numeric.arange(-width/2.0+0.5, width/2.0+0.5, 1.0)**2
-        x = Numeric.resize(x, (width,width))
-        return Numeric.sqrt(x + Numeric.transpose(x))
+        x = Num.arange(-width/2.0+0.5, width/2.0+0.5, 1.0)**2
+        x = Num.resize(x, (width,width))
+        return Num.sqrt(x + Num.transpose(x))
 
     # Do a couple 1-D plots
 

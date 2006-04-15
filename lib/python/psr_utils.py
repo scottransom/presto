@@ -1,4 +1,7 @@
-import Numeric, umath, FFT, Pgplot, ppgplot, bisect, sinc_interp
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
+import numpy as Num
+import FFT, Pgplot, ppgplot, bisect, sinc_interp
 from scipy.stats import mean, std, histogram
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov
 from scipy.optimize import leastsq
@@ -7,26 +10,26 @@ from psr_constants import *
 
 isintorlong = lambda x: type(x) == type(0) or type(x) == type(0L)
 
-def span(Min, Max, Num):
+def span(Min, Max, Number):
     """
-    span(Min, Max, Num):
+    span(Min, Max, Number):
         Create a range of 'Num' floats given inclusive 'Min' and 'Max' values.
     """
-    assert isintorlong(Num)
+    assert isintorlong(Number)
     if isintorlong(Min) and isintorlong(Max) and \
-       (Max-Min) % (Num-1) != 0:
+       (Max-Min) % (Number-1) != 0:
         Max = float(Max) # force floating points
-    return Min+(Max-Min)*Numeric.arange(Num)/(Num-1)
+    return Min+(Max-Min)*Num.arange(Number)/(Number-1)
 
 def distance(width):
     """
     distance(width):
-        Return a 'width' x 'width' Numeric Python array with each
+        Return a 'width' x 'width' Num Python array with each
             point set to the geometric distance from the array's center.
     """
-    x = Numeric.arange(-width/2.0+0.5, width/2.0+0.5, 1.0)**2
-    x = Numeric.resize(x, (width,width))
-    return Numeric.sqrt(x + Numeric.transpose(x))
+    x = Num.arange(-width/2.0+0.5, width/2.0+0.5, 1.0)**2
+    x = Num.resize(x, (width,width))
+    return Num.sqrt(x + Num.transpose(x))
 
 def running_avg(arr, navg):
     """
@@ -34,9 +37,9 @@ def running_avg(arr, navg):
         Return an array of the running average of 'navg' bins from the
         input array 'arr'.
     """
-    a = Numeric.asarray(arr, 'd')
+    a = Num.asarray(arr, 'd')
     a.shape = (len(a) / navg, navg)
-    return umath.add.reduce(Numeric.transpose(a)) / navg
+    return Num.add.reduce(Num.transpose(a)) / navg
 
 def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
          width=2, aspect=0.7727, device='/XWIN'):
@@ -54,7 +57,7 @@ def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
            like labx, laby, aspect, color, line, width, and device.
     """
     (ys, lox, dx, out) = histogram(data, bins, range)
-    xs = Numeric.arange(bins, typecode='d')*dx + lox + 0.5*dx
+    xs = Num.arange(bins, dtype='d')*dx + lox + 0.5*dx
     maxy = int(1.1*max(ys))
     if maxy < max(ys):
         maxy = max(ys) + 1.0
@@ -70,13 +73,13 @@ def KS_test(data, cumdist, output=0):
             cumulative-distribution function cumdist.
     """
     nn = len(data)
-    sdata = Numeric.sort(Numeric.asarray(data))
-    D1 = umath.maximum.reduce(umath.absolute(cumdist(sdata)-
-                                             Numeric.arange(nn, typecode='d')/nn))
-    D2 = umath.maximum.reduce(umath.absolute(cumdist(sdata)-
-                                             Numeric.arange(1,nn+1, typecode='d')/nn))
+    sdata = Num.sort(Num.asarray(data))
+    D1 = Num.maximum.reduce(Num.absolute(cumdist(sdata)-
+                                         Num.arange(nn, dtype='d')/nn))
+    D2 = Num.maximum.reduce(Num.absolute(cumdist(sdata)-
+                                         Num.arange(1,nn+1, dtype='d')/nn))
     D = max((D1, D2))
-    P = kolmogorov(umath.sqrt(nn)*D)
+    P = kolmogorov(Num.sqrt(nn)*D)
     if (output):
         print "Max distance between the cumulative distributions (D) = %.5g" % D
         print "Prob the data is from the specified distrbution   (P) = %.3g" % P
@@ -132,7 +135,7 @@ def rad_to_dms(rad):
     """
     if (rad < 0.0): sign = -1
     else: sign = 1
-    arc = RADTODEG * umath.fmod(umath.fabs(rad), PI)
+    arc = RADTODEG * Num.fmod(Num.fabs(rad), PI)
     d = int(arc)
     arc = (arc - d) * 60.0
     m = int(arc)
@@ -147,8 +150,8 @@ def dms_to_rad(deg, min, sec):
     if (deg < 0.0): sign = -1
     else: sign = 1
     return sign * ARCSECTORAD * \
-           (60.0 * (60.0 * umath.fabs(deg) +
-                    umath.fabs(min)) + umath.fabs(sec))
+           (60.0 * (60.0 * Num.fabs(deg) +
+                    Num.fabs(min)) + Num.fabs(sec))
 
 def dms_to_deg(deg, min, sec):
     """
@@ -162,7 +165,7 @@ def rad_to_hms(rad):
     rad_to_hms(rad):
        Convert radians to hours, minutes, and seconds of arc.
     """
-    rad = umath.fmod(rad, TWOPI)
+    rad = Num.fmod(rad, TWOPI)
     if (rad < 0.0): rad = rad + TWOPI
     arc = RADTOHRS * rad
     h = int(arc)
@@ -179,8 +182,8 @@ def hms_to_rad(hour, min, sec):
     if (hour < 0.0): sign = -1
     else: sign = 1
     return sign * SECTORAD * \
-           (60.0 * (60.0 * umath.fabs(hour) +
-                    umath.fabs(min)) + umath.fabs(sec))
+           (60.0 * (60.0 * Num.fabs(hour) +
+                    Num.fabs(min)) + Num.fabs(sec))
 
 def hms_to_hrs(hour, min, sec):
     """
@@ -226,7 +229,7 @@ def delta_m(flux_factor):
         Return the change in magnitudes caused by a change
             in flux of flux_factor.
     """
-    return -2.5*umath.log10(flux_factor)
+    return -2.5*Num.log10(flux_factor)
 
 def flux_factor(delta_m):
     """
@@ -250,7 +253,7 @@ def distance_to_distance_modulus(d, absorption=0.0):
         Return the distance modulus given a distance d and
             an optional absorption.
     """
-    return 5.0*umath.log10(d*1000.0)-5.0+absorption
+    return 5.0*Num.log10(d*1000.0)-5.0+absorption
 
 def true_anomaly(E, ecc):
     """
@@ -258,7 +261,7 @@ def true_anomaly(E, ecc):
         Return the True Anomaly (in radians) given the Eccentric anomaly
             (E in radians) and the eccentricity (ecc)
     """
-    return 2.0*umath.arctan(umath.sqrt((1.0+ecc)/(1.0-ecc))*umath.tan(E/2.0))
+    return 2.0*Num.arctan(Num.sqrt((1.0+ecc)/(1.0-ecc))*Num.tan(E/2.0))
 
 def mass_funct(pb, x):
     """
@@ -278,7 +281,7 @@ def mass_funct2(mp, mc, i):
             'i' is the orbital inclination (rad).
         Note:  An 'average' orbit has cos(i) = 0.5, or i = 60 deg
     """
-    return (mc * umath.sin(i))**3 / (mc + mp)**2
+    return (mc * Num.sin(i))**3 / (mc + mp)**2
 
 def asini_c(pb, mf):
     """
@@ -297,10 +300,10 @@ def bins_to_accel(rdot, T, f=[1.0, 1000.0], device="/XWIN"):
         to a certain number of Fourier bins drifted 'rdot' during
         an observation of length 'T'.
     """
-    fs = span(umath.log10(f[0]), umath.log10(f[1]), 1000)
+    fs = span(Num.log10(f[0]), Num.log10(f[1]), 1000)
     accels = rdot * SOL / (T * T * 10.0**fs)
     if (device):
-        Pgplot.plotxy(umath.log10(accels), fs, logx=1, logy=1,
+        Pgplot.plotxy(Num.log10(accels), fs, logx=1, logy=1,
                       labx="Frequency (Hz)",
                       laby="Acceleration (m/s\u2\d)", device=device)
         ppgplot.pgmtxt("T", -2.0, 0.75, 0.0, "T = %.0f sec"%T)
@@ -322,7 +325,7 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
     massfunct = mass_funct(pb, x)
     def localmf(mc, mp=mpsr, mf=massfunct, i=inc*DEGTORAD):
-        return (mc*umath.sin(i))**3.0/(mp + mc)**2.0 - mf
+        return (mc*Num.sin(i))**3.0/(mp + mc)**2.0 - mf
     return bisection(localmf, 0.0, 1000.0)
         
 def companion_mass_limit(pb, x, mpsr=1.4):
@@ -407,7 +410,7 @@ def limiting_flux_dens(Ttot, G, BW, T, P=0.01, W=0.05, polar=2, factor=15.0):
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
     w = W * P
-    return umath.sqrt(w/((P-w)*polar*BW*T))*factor*Ttot/G
+    return Num.sqrt(w/((P-w)*polar*BW*T))*factor*Ttot/G
 
 def dm_info(dm=None, dmstep=1.0, freq=1390.0, numchan=512, chanwidth=0.5):
     """
@@ -439,7 +442,7 @@ def best_dm_step(maxsmear=0.1, dt=0.00080, dm=0.0, freq=1390.0, numchan=512, cha
         print "The requested total smearing is smaller than one or more of the components."
         return 0.0
     else:
-        return 0.0001205*freq**3.0*2.0/BW*umath.sqrt(tau_tot**2.0-tau_chan**2.0-tau_samp**2.0)
+        return 0.0001205*freq**3.0*2.0/BW*Num.sqrt(tau_tot**2.0-tau_chan**2.0-tau_samp**2.0)
 
 def dm_smear(dm, BW, center_freq):
     """
@@ -464,9 +467,9 @@ def pulse_broadening(DM, f_ctr):
         based on the rough relation in Cordes' 'Pulsar Observations I' paper.
         'f_ctr' should be in MHz.  The approximate error is 0.65 in log(tau).
     """
-    logDM = umath.log10(DM)
+    logDM = Num.log10(DM)
     return 10.0**(-3.59 + 0.129*logDM + 1.02*logDM**2.0 -
-                  4.4*umath.log10(f_ctr/1000.0))/1000.0
+                  4.4*Num.log10(f_ctr/1000.0))/1000.0
 
 def guess_DMstep(DM, dt, BW, f_ctr):
     """
@@ -482,10 +485,14 @@ def delay_from_DM(DM, freq_emitted):
     a Dispersion Measure (DM) in cm-3 pc, and the emitted
     frequency (freq_emitted) of the pulsar in MHz.
     """
-    if (freq_emitted > 0.0):
-        return DM/(0.000241*freq_emitted*freq_emitted)
+    if (type(freq_emitted)==type(0.0)):
+        if (freq_emitted > 0.0):
+            return DM/(0.000241*freq_emitted*freq_emitted)
+        else:
+            return 0.0
     else:
-        return 0.0
+        return Num.where(freq_emitted > 0.0,
+                         DM/(0.000241*freq_emitted*freq_emitted), 0.0)
 
 def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
                numchan=512, numsub=32, chanwidth=0.5, dt=0.000125,
@@ -502,24 +509,24 @@ def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
     subBW = numchan / numsub * chanwidth
     maxDMerror = 0.5 * dmstep
     maxsubDMerror = 0.5 * subdmstep
-    ldms = span(umath.log10(dm[0]), umath.log10(dm[1]), numpts)
+    ldms = span(Num.log10(dm[0]), Num.log10(dm[1]), numpts)
     dms = 10.0**ldms
     # Smearing from sample rate
-    dts = Numeric.zeros(numpts) + 1000.0 * dt
+    dts = Num.zeros(numpts) + 1000.0 * dt
     # Smearing due to the intrinsic channel width
     chan_smear = 1000.0 * dm_smear(dms, chanwidth, freq)
     # Smearing across the full BW due to max DM mismatch
-    BW_smear = Numeric.zeros(numpts) + \
+    BW_smear = Num.zeros(numpts) + \
                1000.0 * dm_smear(maxDMerror, BW, freq)
     # Smearing in each subband due to max DM mismatch
-    subband_smear = Numeric.zeros(numpts) + \
+    subband_smear = Num.zeros(numpts) + \
                     1000.0 * dm_smear(maxsubDMerror, subBW, freq)
-    total_smear = umath.sqrt(dts**2.0 + chan_smear**2.0 +
-                             subband_smear**2.0 + BW_smear**2.0)
-    maxval = umath.log10(2.0 * max(total_smear))
-    minval = umath.log10(0.5 * min([min(dts), min(chan_smear),
+    total_smear = Num.sqrt(dts**2.0 + chan_smear**2.0 +
+                           subband_smear**2.0 + BW_smear**2.0)
+    maxval = Num.log10(2.0 * max(total_smear))
+    minval = Num.log10(0.5 * min([min(dts), min(chan_smear),
                                     min(BW_smear), min(subband_smear)]))
-    Pgplot.plotxy(umath.log10(total_smear), ldms, rangey=[minval, maxval],
+    Pgplot.plotxy(Num.log10(total_smear), ldms, rangey=[minval, maxval],
                   logx=1, logy=1, labx="Dispersion Measure",
                   laby="Smearing (ms)", device=device)
     ppgplot.pgsch(0.8)
@@ -531,16 +538,16 @@ def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
     ppgplot.pgmtxt("t", 1.5, 11.0/12.0, 0.5, "\gDDM\dsub\u = %g" % subdmstep)
     ppgplot.pgsch(1.0)
     ppgplot.pgmtxt("b", -7.5, 0.95, 1.0, "Total")
-    Pgplot.plotxy(umath.log10(dts), ldms, color="green",
+    Pgplot.plotxy(Num.log10(dts), ldms, color="green",
                   logx=1, logy=1)
     ppgplot.pgmtxt("b", -6.0, 0.95, 1.0, "Sample Rate")
-    Pgplot.plotxy(umath.log10(chan_smear), ldms, color="purple",
+    Pgplot.plotxy(Num.log10(chan_smear), ldms, color="purple",
                   logx=1, logy=1)
     ppgplot.pgmtxt("b", -4.5, 0.95, 1.0, "Channel")
-    Pgplot.plotxy(umath.log10(BW_smear), ldms, color="red",
+    Pgplot.plotxy(Num.log10(BW_smear), ldms, color="red",
                   logx=1, logy=1)
     ppgplot.pgmtxt("b", -3.0, 0.95, 1.0, "Full BW")
-    Pgplot.plotxy(umath.log10(subband_smear), ldms, color="blue",
+    Pgplot.plotxy(Num.log10(subband_smear), ldms, color="blue",
                   logx=1, logy=1)
     ppgplot.pgmtxt("b", -1.5, 0.95, 1.0, "Subband")
     ppgplot.pgsci(1)
@@ -575,10 +582,10 @@ def search_sensitivity(Ttot, G, BW, chan, freq, T, dm, ddm, dt, Pmin=0.001,
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
     periods = span(Pmin, Pmax, pts)
-    widths = umath.sqrt((W * periods)**2.0 +
-                        dm_smear(dm, BW/chan, freq)**2.0 + \
-                        dm_smear(ddm/2.0, BW, freq)**2.0 + \
-                        dt**2.0) / periods
+    widths = Num.sqrt((W * periods)**2.0 +
+                      dm_smear(dm, BW/chan, freq)**2.0 + \
+                      dm_smear(ddm/2.0, BW, freq)**2.0 + \
+                      dt**2.0) / periods
     return (periods, limiting_flux_dens(Ttot, G, BW, T, periods, widths, 
                                         polar=polar, factor=factor))
 
@@ -595,7 +602,7 @@ def smin_noise(Ttot, G, BW, dt):
         Observatories:
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
-    return Ttot / (G * umath.sqrt(2 * BW * dt))
+    return Ttot / (G * Num.sqrt(2 * BW * dt))
 
 def read_profile(filenm, normalize=0):
     """
@@ -609,7 +616,7 @@ def read_profile(filenm, normalize=0):
     for line in file(filenm):
         if line.startswith("#"): continue
         else: prof.append(float(line.split()[-1]))
-    prof = Numeric.asarray(prof)
+    prof = Num.asarray(prof)
     if normalize:
         prof -= min(prof)
         prof /= max(prof)
@@ -622,7 +629,7 @@ def calc_phs(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
             rotational freq (f0) and optional freq derivs (f1-f5).
     """
     t = (MJD-refMJD)*SECPERDAY
-    return umath.fmod(t*(f0 +t*(f1/2.0 +
+    return Num.fmod(t*(f0 +t*(f1/2.0 +
                                 t*(f2/6.0 +
                                    t*(f3/24.0 +
                                       t*(f4/120.0 +
@@ -679,7 +686,7 @@ def rotate(arr, bins):
     if bins==0:
         return arr
     else:
-        return Numeric.concatenate((arr[bins:], arr[:bins]))
+        return Num.concatenate((arr[bins:], arr[:bins]))
 
 def interp_rotate(arr, bins, zoomfact=10):
     """
@@ -690,7 +697,7 @@ def interp_rotate(arr, bins, zoomfact=10):
             have the same length as the oiginal.
     """
     newlen = len(arr)*zoomfact
-    rotbins = int(umath.floor(bins*zoomfact+0.5)) % newlen
+    rotbins = int(Num.floor(bins*zoomfact+0.5)) % newlen
     newarr = sinc_interp.periodic_interp(arr, zoomfact)  
     return rotate(newarr, rotbins)[::zoomfact]
 
@@ -699,7 +706,7 @@ def corr(profile, template):
     corr(profile, template):
         Cross-correlate (using FFTs) a 'profile' and a 'template'.
     """
-    return FFT.inverse_real_fft(FFT.real_fft(template) * umath.conjugate(FFT.real_fft(profile)))
+    return FFT.inverse_real_fft(FFT.real_fft(template) * Num.conjugate(FFT.real_fft(profile)))
 
 def maxphase(profile, template):
     """
@@ -707,7 +714,7 @@ def maxphase(profile, template):
         Return the phase offset required to get the 'profile' to best
             match the 'template'.
     """
-    return float(Numeric.argmax(corr(profile, template))) / len(profile)
+    return float(Num.argmax(corr(profile, template))) / len(profile)
 
 def linear_interpolate(vector, zoom=10):
     """
@@ -715,9 +722,9 @@ def linear_interpolate(vector, zoom=10):
         Linearly interpolate 'vector' by a factor of 'zoom'.
     """
     n = len(vector)
-    ivect = Numeric.zeros(zoom*n, typecode='d')
-    nvect = Numeric.concatenate((vector, vector[:1]))
-    ivals = Numeric.arange(zoom, typecode='d')/zoom
+    ivect = Num.zeros(zoom*n, dtype='d')
+    nvect = Num.concatenate((vector, vector[:1]))
+    ivals = Num.arange(zoom, dtype='d')/zoom
     loy = nvect[0]
     for ii in range(n):
         hiy = nvect[ii+1]
@@ -734,8 +741,8 @@ def downsample(vector, factor):
     if (len(vector) % factor):
         print "Lenght of 'vector' is not divisible by 'factor'=%d!" % factor
         return 0
-    newvector = Numeric.reshape(vector, (len(vector)/factor, factor))
-    return umath.add.reduce(newvector, 1)
+    newvector = Num.reshape(vector, (len(vector)/factor, factor))
+    return Num.add.reduce(newvector, 1)
 
 def measure_phase_corr(profile, template, zoom=10):
     """
@@ -752,7 +759,7 @@ def measure_phase_corr(profile, template, zoom=10):
             print "Warning!:  The lengths of the template (%d) and profile (%d)" % \
                   (len(template), len(profile))
             print "           are not the same!"
-    #itemp = linear_interpolate(rotate(template, Numeric.argmax(template)), zoomtemp)
+    #itemp = linear_interpolate(rotate(template, Num.argmax(template)), zoomtemp)
     itemp = linear_interpolate(template, zoomtemp)
     iprof = linear_interpolate(profile, zoomprof)
     return maxphase(iprof, itemp)
@@ -766,23 +773,23 @@ def spike_profile(N, phase, fwhm):
             'phase' = the pulse phase (0-1)
             'fwhm' = the triangular pulses full width at half-max
     """
-    phsval = Numeric.arange(N, typecode='d') / float(N)
+    phsval = Num.arange(N, dtype='d') / float(N)
     peakst = 0.5 - fwhm
     peakend = 0.5 + fwhm
     normalize = 1.0 / fwhm
     if (mean < 0.5):
-        phsval = Numeric.where(umath.greater(phsval, mean+0.5),
-                               phsval-1.0, phsval)
+        phsval = Num.where(Num.greater(phsval, mean+0.5),
+                           phsval-1.0, phsval)
     else:
-        phsval = Numeric.where(umath.less(phsval, mean-0.5),
+        phsval = Num.where(Num.less(phsval, mean-0.5),
                                phsval+1.0, phsval)
-    return Numeric.where(umath.less_equal(phsval, 0.5),
-                         Numeric.where(umath.less_equal(phsval, peakst),
-                                       0.0, (phsval - peakst) *
-                                       normalize * normalize),
-                         Numeric.where(umath.greater(phsval, peakend),
-                                       0.0, (1.0 - (phsval - 0.5) *
-                                             normalize) * normalize))
+    return Num.where(Num.less_equal(phsval, 0.5),
+                     Num.where(Num.less_equal(phsval, peakst),
+                               0.0, (phsval - peakst) *
+                               normalize * normalize),
+                     Num.where(Num.greater(phsval, peakend),
+                               0.0, (1.0 - (phsval - 0.5) *
+                                     normalize) * normalize))
 
 def harm_to_sum(fwhm):
     """
@@ -809,38 +816,38 @@ def expcos_profile(N, phase, fwhm):
     from simple_roots import secant
     def fwhm_func(k, fwhm=fwhm):
         if (fwhm < 0.02):
-            return umath.arccos(1.0-umath.log(2.0)/k)/PI-fwhm
+            return Num.arccos(1.0-Num.log(2.0)/k)/PI-fwhm
         else:
-            return umath.arccos(umath.log(0.5*(umath.exp(k)+
-                                               umath.exp(-k)))/k)/PI-fwhm
-    phsval = TWOPI * Numeric.arange(N, typecode='d') / float(N)
+            return Num.arccos(Num.log(0.5*(Num.exp(k)+
+                                           Num.exp(-k)))/k)/PI-fwhm
+    phsval = TWOPI * Num.arange(N, dtype='d') / float(N)
     phi = -phase * TWOPI
     if (fwhm >= 0.5):
-        return umath.cos(phsval + phi) + 1.0
+        return Num.cos(phsval + phi) + 1.0
     elif (fwhm < 0.02):
         # The following is from expanding of iO(x) as x->Infinity.
-        k = umath.log(2.0) / (1.0 - umath.cos(PI * fwhm))
+        k = Num.log(2.0) / (1.0 - Num.cos(PI * fwhm))
         # print "Expansion:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0))
-        phsval = umath.fmod(phsval + phi, TWOPI)
-        phsval = Numeric.where(Numeric.greater(phsval, PI),
-                               phsval - TWOPI, phsval)
+        phsval = Num.fmod(phsval + phi, TWOPI)
+        phsval = Num.where(Num.greater(phsval, PI),
+                           phsval - TWOPI, phsval)
         denom = ((1 + 1/(8*k) + 9/(128*k*k) + 75/(1024*k**3) + 
-                 3675/(32768*k**4) + 59535/(262144*k**5)) / umath.sqrt(TWOPI*k))
-        return Numeric.where(umath.greater(umath.fabs(phsval/TWOPI), 3.0*fwhm), 0.0, 
-                             umath.exp(k*(umath.cos(phsval)-1.0))/denom)
+                 3675/(32768*k**4) + 59535/(262144*k**5)) / Num.sqrt(TWOPI*k))
+        return Num.where(Num.greater(Num.fabs(phsval/TWOPI), 3.0*fwhm), 0.0, 
+                         Num.exp(k*(Num.cos(phsval)-1.0))/denom)
     else:
         k = secant(fwhm_func, 1e-8, 0.5)
-        norm = 1.0 / (i0(k) - umath.exp(-k))
+        norm = 1.0 / (i0(k) - Num.exp(-k))
         # print "Full Calc:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0))
     if (k < 0.05):
-        tmp = umath.cos(phsval + phi)
+        tmp = Num.cos(phsval + phi)
         tmp2 = tmp * tmp
         return norm * (k * (tmp + 1) +
                        k * k * (tmp2 - 1.0) / 2.0 +
                        k * k * k * (tmp2 * tmp + 1.0) / 6.0)
     else:
-        return norm * (umath.exp(k * umath.cos(phsval + phi)) -
-                       umath.exp(-k))
+        return norm * (Num.exp(k * Num.cos(phsval + phi)) -
+                       Num.exp(-k))
 
 def gaussian_profile(N, phase, fwhm):
     """
@@ -854,24 +861,24 @@ def gaussian_profile(N, phase, fwhm):
     """
     sigma = fwhm / 2.35482
     mean = phase % 1.0
-    phsval = Numeric.arange(N, typecode='d') / float(N)
+    phsval = Num.arange(N, dtype='d') / float(N)
     if (mean < 0.5):
-        phsval = Numeric.where(umath.greater(phsval, mean+0.5),
-                               phsval-1.0, phsval)
+        phsval = Num.where(Num.greater(phsval, mean+0.5),
+                           phsval-1.0, phsval)
     else:
-        phsval = Numeric.where(umath.less(phsval, mean-0.5),
-                               phsval+1.0, phsval)
+        phsval = Num.where(Num.less(phsval, mean-0.5),
+                           phsval+1.0, phsval)
     try:
         zs = (phsval-mean)/sigma
-        okzinds = Numeric.compress(umath.fabs(zs)<20.0, Numeric.arange(N))
-        okzs = Numeric.take(zs, okzinds)
-        retval = Numeric.zeros(N, 'd')
-        Numeric.put(retval, okzinds, umath.exp(-0.5*(okzs)**2.0)/(sigma*umath.sqrt(2*PI)))
+        okzinds = Num.compress(Num.fabs(zs)<20.0, Num.arange(N))
+        okzs = Num.take(zs, okzinds)
+        retval = Num.zeros(N, 'd')
+        Num.put(retval, okzinds, Num.exp(-0.5*(okzs)**2.0)/(sigma*Num.sqrt(2*PI)))
         return retval
     except OverflowError:
         print "Problem in gaussian prof:  mean = %f  sigma = %f" % \
               (mean, sigma)
-        return Numeric.zeros(N, 'd')
+        return Num.zeros(N, 'd')
         
 def gauss_profile_params(profile, output=0):
     """
@@ -891,11 +898,11 @@ def gauss_profile_params(profile, output=0):
         return afpo[0] * gaussian_profile(len(profile), afpo[2], afpo[1]) \
                + afpo[3] - profile
     ret = leastsq(funct, [max(profile)-min(profile),
-                          0.25, Numeric.argmax(profile)/float(len(profile)),
+                          0.25, Num.argmax(profile)/float(len(profile)),
                           min(profile)], args=(profile))
     if (output):
-        phases = Numeric.arange(0.0, 1.0,
-                                1.0 / len(profile)) + 0.5 / len(profile)
+        phases = Num.arange(0.0, 1.0,
+                            1.0 / len(profile)) + 0.5 / len(profile)
         Pgplot.plotxy(profile, phases, rangex=[0.0, 1.0],
                       labx='Pulse Phase', laby='Pulse Intensity')
     bestfit = ret[0][0] * gaussian_profile(len(profile),
@@ -914,7 +921,7 @@ def gauss_profile_params(profile, output=0):
                       labx='Pulse Phase', laby='Residuals',
                       line=None, symbol=3)
         ppgplot.pgerrb(6, phases, residuals,
-                       Numeric.zeros(len(residuals), 'd') + \
+                       Num.zeros(len(residuals), 'd') + \
                        resid_std, 2)
         Pgplot.plotxy([resid_avg, resid_avg], [0.0, 1.0], line=2)
         Pgplot.closeplot()
@@ -952,13 +959,13 @@ def twogauss_profile_params(profile, output=0):
         return yfunct(afpo, len(profile)) - profile
     ret = leastsq(min_funct, [max(profile)-min(profile),
                               0.05,
-                              Numeric.argmax(profile)/float(len(profile)),
+                              Num.argmax(profile)/float(len(profile)),
                               0.2 * max(profile)-min(profile),
                               0.1,
-                              umath.fmod(Numeric.argmax(profile)/float(len(profile))+0.5, 1.0),
+                              Num.fmod(Num.argmax(profile)/float(len(profile))+0.5, 1.0),
                               min(profile)], args=(profile))
     if (output):
-        phases = Numeric.arange(0.0, 1.0,
+        phases = Num.arange(0.0, 1.0,
                                 1.0 / len(profile)) + 0.5 / len(profile)
         Pgplot.plotxy(profile, phases, rangex=[0.0, 1.0],
                       labx='Pulse Phase', laby='Pulse Intensity')
@@ -976,7 +983,7 @@ def twogauss_profile_params(profile, output=0):
                       labx='Pulse Phase', laby='Residuals',
                       line=None, symbol=3)
         ppgplot.pgerrb(6, phases, residuals,
-                       Numeric.zeros(len(residuals), 'd') + \
+                       Num.zeros(len(residuals), 'd') + \
                        resid_std, 2)
         Pgplot.plotxy([resid_avg, resid_avg], [0.0, 1.0], line=2)
         Pgplot.closeplot()
@@ -1017,7 +1024,7 @@ def estimate_flux_density(profile, N, dt, Ttot, G, BW, prof_stdev, display=0):
     T = N * dt
     norm_fact = (prof_stdev * len(profile)) / \
                  smin_noise(Ttot, G, BW, T / len(profile))
-    return umath.add.reduce(profile - offset) / norm_fact
+    return Num.add.reduce(profile - offset) / norm_fact
 
 def max_spike_power(FWHM):
     """
@@ -1060,7 +1067,7 @@ def incoherent_sum(amps):
         Given a series of complex Fourier amplitudes, return a vector
             showing the accumulated incoherently-summed powers.
     """
-    return umath.add.accumulate(umath.absolute(amps)**2.0)
+    return Num.add.accumulate(Num.absolute(amps)**2.0)
 
 def coherent_sum(amps):
     """
@@ -1068,11 +1075,11 @@ def coherent_sum(amps):
         Given a series of complex Fourier amplitudes, return a vector
             showing the accumulated coherently-summed powers.
     """
-    phss = umath.arctan2(amps.imag, amps.real)
+    phss = Num.arctan2(amps.imag, amps.real)
     phs0 = phss[0]
-    phscorr = phs0 - umath.fmod((Num.arange(len(amps), typecode='d')+1.0)*phs0, TWOPI)
-    sumamps = umath.add.accumulate(amps*umath.exp(complex(0.0, 1.0)*phscorr))
-    return umath.absolute(sumamps)**2.0
+    phscorr = phs0 - Num.fmod((Num.arange(len(amps), dtype='d')+1.0)*phs0, TWOPI)
+    sumamps = Num.add.accumulate(amps*Num.exp(complex(0.0, 1.0)*phscorr))
+    return Num.absolute(sumamps)**2.0
 
 def prob_power(power):
     """
@@ -1080,7 +1087,7 @@ def prob_power(power):
         Return the probability for noise to exceed a normalized power
         level of 'power' in a power spectrum.
     """
-    return umath.exp(-power)
+    return Num.exp(-power)
 
 def equivalent_gaussian_sigma(p):
     """
@@ -1090,16 +1097,16 @@ def equivalent_gaussian_sigma(p):
             words, return x, such that Q(x) = p, where Q(x) is the
             cumulative normal distribution.  For very small 
     """
-    logp = umath.log(p)
+    logp = Num.log(p)
     if type(1.0) == type(logp):
         if logp > -30.0:
             return ndtri(1.0 - p)
         else:
             return extended_equiv_gaussian_sigma(logp)
     else:  # Array input
-        return Numeric.where(logp>-30.0,
-                             ndtri(1.0-p),
-                             extended_equiv_gaussian_sigma(logp))
+        return Num.where(logp>-30.0,
+                         ndtri(1.0-p),
+                         extended_equiv_gaussian_sigma(logp))
 
 def extended_equiv_gaussian_sigma(logp):
     """
@@ -1112,7 +1119,7 @@ def extended_equiv_gaussian_sigma(logp):
             eqn 26.2.23.  Using the log(P) as input gives a much
             extended range.
     """
-    t = umath.sqrt(-2.0 * logp)
+    t = Num.sqrt(-2.0 * logp)
     num = 2.515517 + t * (0.802853 + t * 0.010328)
     denom = 1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308))
     return t - num / denom
@@ -1128,12 +1135,12 @@ def log_asymtotic_incomplete_gamma(a, z):
     newxpart = 1.0
     term = 1.0
     ii = 1
-    while (umath.fabs(newxpart) > 1e-15):
+    while (Num.fabs(newxpart) > 1e-15):
         term *= (a - ii)
         newxpart = term / z**ii
         x += newxpart
         ii += 1
-    return (a-1.0)*umath.log(z) - z + umath.log(x)
+    return (a-1.0)*Num.log(z) - z + Num.log(x)
 
 def log_asymtotic_gamma(z):
     """
@@ -1141,7 +1148,7 @@ def log_asymtotic_gamma(z):
         Return the log of the gamma function in its asymtotic limit
             as z->infty.  This is from Abramowitz and Stegun eqn 6.1.41.
     """
-    x = (z-0.5) * umath.log(z) - z + 0.91893853320467267
+    x = (z-0.5) * Num.log(z) - z + 0.91893853320467267
     y = 1.0/(z*z)
     x += (((- 5.9523809523809529e-4 * y
             + 7.9365079365079365079365e-4) * y
@@ -1184,15 +1191,15 @@ def log_prob_sum_powers(power, nsum):
     # = [Gamma(nsum) - gamma(nsum,power)]/Gamma(nsum)
     if type(1.0) == type(power):
         if power < 100.0:
-            return umath.log(prob_sum_powers(power, nsum))
+            return Num.log(prob_sum_powers(power, nsum))
         else:
             return log_asymtotic_incomplete_gamma(nsum, power) - \
                    log_asymtotic_gamma(nsum)
     else:
-        return Numeric.where(power < 100.0,
-                             umath.log(prob_sum_powers(power, nsum)),
-                             log_asymtotic_incomplete_gamma(nsum, power) - \
-                             log_asymtotic_gamma(nsum))
+        return Num.where(power < 100.0,
+                         Num.log(prob_sum_powers(power, nsum)),
+                         log_asymtotic_incomplete_gamma(nsum, power) - \
+                         log_asymtotic_gamma(nsum))
 
 def sigma_power(power):
     """
@@ -1203,13 +1210,13 @@ def sigma_power(power):
     """
     if type(1.0) == type(power):
         if power > 36.0:
-            return umath.sqrt(2.0 * power - umath.log(PI * power))
+            return Num.sqrt(2.0 * power - Num.log(PI * power))
         else:
             return equivalent_gaussian_sigma(prob_power(power))
     else:
-        return Numeric.where(power > 36.0,
-                             umath.sqrt(2.0 * power - umath.log(PI * power)),
-                             extended_equiv_gaussian_sigma(log_prob_sum_powers(power, 1)))
+        return Num.where(power > 36.0,
+                         Num.sqrt(2.0 * power - Num.log(PI * power)),
+                         extended_equiv_gaussian_sigma(log_prob_sum_powers(power, 1)))
         
 def sigma_sum_powers(power, nsum):
     """
@@ -1224,9 +1231,9 @@ def sigma_sum_powers(power, nsum):
         else:
             return extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum))
     else: # Array input
-        return Numeric.where(power < 100.0,
-                             equivalent_gaussian_sigma(prob_sum_powers(power, nsum)),
-                             extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum)))
+        return Num.where(power < 100.0,
+                         equivalent_gaussian_sigma(prob_sum_powers(power, nsum)),
+                         extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum)))
 
 def power_at_sigma(sigma):
     """
@@ -1234,7 +1241,7 @@ def power_at_sigma(sigma):
         Return the approximate normalized power level that is
         equivalent to a detection of significance 'sigma'.
     """
-    return sigma**2 / 2.0 + umath.log(umath.sqrt(PIBYTWO)
+    return sigma**2 / 2.0 + Num.log(Num.sqrt(PIBYTWO)
                                       * sigma)
 def powersum_at_sigma(sigma, nsum):
     """
@@ -1266,8 +1273,8 @@ def fft_max_pulsed_frac(N, numphot, sigma=3.0):
     # The following is the power level required to get a
     # noise spike that would appear somewhere in N bins
     # at the 'sigma' level
-    power_required = -umath.log((1.0-ndtr(sigma))/N)
-    return umath.sqrt(4.0 * numphot * power_required)/N
+    power_required = -Num.log((1.0-ndtr(sigma))/N)
+    return Num.sqrt(4.0 * numphot * power_required)/N
 
 def p_to_f(p, pd, pdd=None):
    """
@@ -1297,7 +1304,7 @@ def pferrs(porf, porferr, pdorfd=None, pdorfderr=None):
         return [1.0 / porf, porferr / porf**2.0]
     else:
         forperr = porferr / porf**2.0
-        fdorpderr = umath.sqrt((4.0 * pdorfd**2.0 * porferr**2.0) / porf**6.0 +
+        fdorpderr = Num.sqrt((4.0 * pdorfd**2.0 * porferr**2.0) / porf**6.0 +
                                pdorfderr**2.0 / porf**4.0)
         [forp, fdorpd] = p_to_f(porf, pdorfd)
         return [forp, forperr, fdorpd, fdorpderr]
@@ -1317,7 +1324,7 @@ def psr_info(porf, pdorfd, time=None, input=None):
         porf = 1.0 / porf
     I = 1.0e45  # Moment of Inertia in g cm^2
     Edot = 4.0 * PI * PI * I * pdorfd / porf ** 3.0
-    Bo = 3.2e19 * umath.sqrt(porf * pdorfd)
+    Bo = 3.2e19 * Num.sqrt(porf * pdorfd)
     age = porf / (2.0 * pdorfd * 31557600.0) 
     [f, fd] = p_to_f(porf, pdorfd)
     print ""

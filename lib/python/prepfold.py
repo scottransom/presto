@@ -1,5 +1,6 @@
-import umath
-import Numeric as Num
+## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+
+import numpy as Num
 import struct
 import sys, psr_utils, infodata, polycos, Pgplot, sinc_interp, copy, random
 from types import StringType, FloatType, IntType
@@ -19,7 +20,7 @@ class pfd:
         swapchar = '<' # this is little-endian
         data = infile.read(5*4)
         testswap = struct.unpack(swapchar+"i"*5, data)
-        if min(umath.fabs(Num.asarray(testswap))) > 100000:
+        if min(Num.fabs(Num.asarray(testswap))) > 100000:
             swapchar = '>' # this is big-endian
         (self.numdms, self.numperiods, self.numpdots, self.nsub, self.npart) = \
                       struct.unpack(swapchar+"i"*5, data)
@@ -67,7 +68,7 @@ class pfd:
                                                infile.read(self.numpdots*8)))
 	self.numprofs = self.nsub*self.npart
         if (swapchar=='<'):  # little endian
-            self.profs = Num.zeros((self.npart, self.nsub, self.proflen), typecode='d')
+            self.profs = Num.zeros((self.npart, self.nsub, self.proflen), dtype='d')
             for ii in range(self.npart):
                 for jj in range(self.nsub):
                     self.profs[ii,jj,:] = fread(infile, self.proflen, 'd')
@@ -91,16 +92,16 @@ class pfd:
 	self.subdeltafreq = self.chan_wid*self.chanpersub
 	self.hifreq = self.lofreq + (self.numchan-1)*self.chan_wid
 	self.losubfreq = self.lofreq + self.subdeltafreq - self.chan_wid
-	self.subfreqs = Num.arange(self.nsub, typecode='d')*self.subdeltafreq + \
+	self.subfreqs = Num.arange(self.nsub, dtype='d')*self.subdeltafreq + \
                         self.losubfreq
-        self.subdelays_bins = Num.zeros(self.nsub, typecode='d')
+        self.subdelays_bins = Num.zeros(self.nsub, dtype='d')
         self.killed_subbands = []
         self.killed_intervals = []
         self.pts_per_fold = []
 	# Note: a foldstats struct is read in as a group of 7 doubles
 	# the correspond to, in order: 
 	#    numdata, data_avg, data_var, numprof, prof_avg, prof_var, redchi
-        self.stats = Num.zeros((self.npart, self.nsub, 7), typecode='d')
+        self.stats = Num.zeros((self.npart, self.nsub, 7), dtype='d')
 	for ii in range(self.npart):
 	    currentstats = self.stats[ii]
 	    for jj in range(self.nsub):
@@ -110,7 +111,7 @@ class pfd:
 		    currentstats[jj] = Num.asarray(struct.unpack(swapchar+"d"*7, \
 				                                 infile.read(7*8)))
             self.pts_per_fold.append(self.stats[ii][0][0])  # numdata from foldstats
-        self.start_secs = umath.add.accumulate([0]+self.pts_per_fold[:-1])*self.dt
+        self.start_secs = Num.add.accumulate([0]+self.pts_per_fold[:-1])*self.dt
         self.pts_per_fold = Num.asarray(self.pts_per_fold)
         self.mid_secs = self.start_secs + 0.5*self.dt*self.pts_per_fold
         if (not self.tepoch==0.0):
@@ -119,7 +120,7 @@ class pfd:
         if (not self.bepoch==0.0):
             self.start_bary_MJDs = self.start_secs/86400.0 + self.bepoch
             self.mid_bary_MJDs = self.mid_secs/86400.0 + self.bepoch
-        self.Nfolded = umath.add.reduce(self.pts_per_fold)
+        self.Nfolded = Num.add.reduce(self.pts_per_fold)
         self.T = self.Nfolded*self.dt
         self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
         self.varprof = self.calc_varprof()
@@ -169,7 +170,7 @@ class pfd:
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
         if interp:
             interp_factor = 16
-            new_subdelays_bins = umath.floor(delaybins*interp_factor+0.5)/float(interp_factor)
+            new_subdelays_bins = Num.floor(delaybins*interp_factor+0.5)/float(interp_factor)
             for ii in range(self.npart):
                 for jj in range(self.nsub):
                     tmp_prof = self.profs[ii,jj,:]
@@ -179,7 +180,7 @@ class pfd:
             # profs, we need to re-calculate the average profile value
             self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
         else:
-            new_subdelays_bins = umath.floor(delaybins+0.5)
+            new_subdelays_bins = Num.floor(delaybins+0.5)
             for ii in range(self.nsub):
                 rotbins = int(new_subdelays_bins[ii])%self.proflen
                 if rotbins:  # i.e. if not zero
@@ -188,7 +189,7 @@ class pfd:
                                                         subdata[:,:rotbins]), 1)
         self.subdelays_bins += new_subdelays_bins
         self.sumprof = Num.sum(Num.sum(self.profs))
-        if umath.fabs(Num.sum(self.sumprof)/self.proflen - self.avgprof) > 1.0:
+        if Num.fabs(Num.sum(self.sumprof)/self.proflen - self.avgprof) > 1.0:
             print "self.avgprof is not the correct value!"
 
     def combine_profs(self, new_npart, new_nsub):
@@ -216,11 +217,11 @@ class pfd:
             # Combine the subbands if required
             if (self.nsub > 1):
                 for jj in range(new_nsub):
-                    subprofs = umath.add.reduce(self.profs[:,jj*ds:(jj+1)*ds], 1)
+                    subprofs = Num.add.reduce(self.profs[:,jj*ds:(jj+1)*ds], 1)
                     # Combine the time intervals
-                    newprofs[ii][jj] = umath.add.reduce(subprofs[ii*dp:(ii+1)*dp])
+                    newprofs[ii][jj] = Num.add.reduce(subprofs[ii*dp:(ii+1)*dp])
             else:
-                newprofs[ii][0] = umath.add.reduce(self.profs[ii*dp:(ii+1)*dp,0])
+                newprofs[ii][0] = Num.add.reduce(self.profs[ii*dp:(ii+1)*dp,0])
         return newprofs
 
     def kill_intervals(self, intervals):
@@ -361,9 +362,9 @@ class pfd:
         if not interp:
             profs = sumprofs
         else:
-            profs = Num.zeros(Num.shape(sumprofs), typecode='d')
+            profs = Num.zeros(Num.shape(sumprofs), dtype='d')
         DMs = psr_utils.span(loDM, hiDM, N)
-        chis = Num.zeros(N, typecode='f')
+        chis = Num.zeros(N, dtype='f')
         subdelays_bins = self.subdelays_bins.copy()
         for ii, DM in enumerate(DMs):
             subdelays = psr_utils.delay_from_DM(DM, self.barysubfreqs)
@@ -379,7 +380,7 @@ class pfd:
                 # profs, we need to re-calculate the average profile value
                 avgprof = Num.sum(Num.ravel(profs))/self.proflen
             else:
-                new_subdelays_bins = umath.floor(delaybins+0.5)
+                new_subdelays_bins = Num.floor(delaybins+0.5)
                 for jj in range(self.nsub):
                     profs[jj] = psr_utils.rotate(profs[jj], int(new_subdelays_bins[jj]))
                 subdelays_bins += new_subdelays_bins
@@ -411,7 +412,7 @@ class pfd:
                     continue
                 var += self.stats[part][sub][5] # foldstats prof_var
             vars.append(var)
-        chis = Num.zeros(self.nsub, typecode='f')
+        chis = Num.zeros(self.nsub, dtype='f')
         for ii in range(self.nsub):
             chis[ii] = self.calc_redchi2(prof=profs[ii], avg=avgs[ii], var=vars[ii])
         # Now plot it
@@ -428,7 +429,7 @@ class pfd:
         numtrials = 20
         redchi2s = []
         for count in range(numtrials):
-            prof = Num.zeros(self.proflen, typecode='d')
+            prof = Num.zeros(self.proflen, dtype='d')
             for ii in range(self.npart):
                 for jj in range(self.nsub):
                     tmpprof = copy.copy(self.profs[ii][jj])

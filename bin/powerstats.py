@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import umath, Numeric
+import numpy as Num
 from events import *
 
 def answer_yes(question):
@@ -59,7 +59,7 @@ if __name__ == '__main__':
         "Was the data composed of binned counts (y/n)?  [y]  "):
         numphot = ask_int("How many counts (photons) were there?  ")
         lofreq, hifreq = rlo / T, rhi / T
-        trial_freqs = (10.0**(Numeric.arange(7.0)-2.0)).tolist()
+        trial_freqs = (10.0**(Num.arange(7.0)-2.0)).tolist()
         trial_freqs = filter(lambda x:  x > lofreq and x < hifreq,
                              trial_freqs)
         print "\nThe trial frequencies (Hz) are:", trial_freqs
