@@ -505,7 +505,8 @@ int main(int argc, char *argv[])
 
       if (myid > 0) {           /* Slave */
          if (cmd->pkmbP)
-            set_PKMB_static(ptsperblk, bytesperpt, numchan, decreasing_freqs, dt);
+            set_PKMB_static(ptsperblk, bytesperpt, numchan, 
+                            decreasing_freqs, clip_sigma, dt);
          if (cmd->gmrtP) {
             set_GMRT_static(ptsperblk, bytesperpt, bytesperblk,
                             numchan, clip_sigma, dt);
