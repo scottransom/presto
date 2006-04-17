@@ -560,7 +560,7 @@ def main():
         ppgplot.pgend()
 
 if __name__ == '__main__':
-    if (1):
+    if (0):
         # The following is for profiling
         import hotshot
         prof = hotshot.Profile("hotshot_edi_stats")
