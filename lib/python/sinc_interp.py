@@ -1,7 +1,6 @@
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
 import numpy as Num
-import scipy.special, FFT
+import scipy.special
+import numpy.dft as FFT
 
 def sinc(xs):
     """
@@ -142,7 +141,7 @@ if __name__=='__main__':
     from Pgplot import *
     from numpy.random import normal
     from scipy import interpolate
-    from spline import *
+    # from spline import *
     
     fwhm = 0.01
     ctr_phase = 0.505

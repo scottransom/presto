@@ -1,7 +1,6 @@
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
 import numpy as Num
-import FFT, Pgplot, ppgplot, bisect, sinc_interp
+import numpy.dft as FFT
+import Pgplot, ppgplot, bisect, sinc_interp
 from scipy.stats import mean, std, histogram
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov
 from scipy.optimize import leastsq
