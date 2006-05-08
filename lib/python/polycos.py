@@ -1,39 +1,42 @@
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
 import numpy as Num
 import sys
 
 class polyco:
     def __init__(self, fileptr):
-	line = fileptr.readline()
-	if (line==""):
-	    self.psr = None
-	else:
-	    sl = line.split()
-	    self.psr = sl[0]
-	    self.date = sl[1]
-	    self.UTC = sl[2]
+        line = fileptr.readline()
+        if (line==""):
+            self.psr = None
+        else:
+            sl = line.split()
+            self.psr = sl[0]
+            self.date = sl[1]
+            self.UTC = sl[2]
             self.TMIDi = float(sl[3].split(".")[0])
             self.TMIDf = float("0."+sl[3].split(".")[1])
-	    self.TMID = self.TMIDi+self.TMIDf
+            self.TMID = self.TMIDi+self.TMIDf
             self.DM = float(sl[4])
-	    self.doppler = float(sl[5])*1e-4
-	    self.log10rms = float(sl[6])
-	    sl = fileptr.readline().split()
-	    self.RPHASE = float(sl[0])
-	    self.F0 = float(sl[1])
-	    self.obs = sl[2]
-	    self.dataspan = int(sl[3])
-	    self.numcoeff = int(sl[4])
-	    self.obsfreq = float(sl[5])
+            if (len(sl)==7):
+                self.doppler = float(sl[5])*1e-4
+                self.log10rms = float(sl[6])
+            else:
+                self.log10rms = "-"+sl[-1].split("-")[-1]
+                self.doppler = float(sl[-1][:sl[-1].find(self.log10rms)])*1e-4
+                self.log10rms = float(self.log10rms)
+            sl = fileptr.readline().split()
+            self.RPHASE = float(sl[0])
+            self.F0 = float(sl[1])
+            self.obs = sl[2]
+            self.dataspan = int(sl[3])
+            self.numcoeff = int(sl[4])
+            self.obsfreq = float(sl[5])
             if (len(sl)==7):
                 self.binphase = float(sl[6])
-	    self.coeffs = Num.zeros(self.numcoeff, 'd')
-	    for linenum in range(self.numcoeff/3):
-		sl = fileptr.readline().split()
-		self.coeffs[linenum*3+0] = float(sl[0])
-		self.coeffs[linenum*3+1] = float(sl[1])
-		self.coeffs[linenum*3+2] = float(sl[2])
+            self.coeffs = Num.zeros(self.numcoeff, 'd')
+            for linenum in range(self.numcoeff/3):
+                sl = fileptr.readline().split()
+                self.coeffs[linenum*3+0] = float(sl[0])
+                self.coeffs[linenum*3+1] = float(sl[1])
+                self.coeffs[linenum*3+2] = float(sl[2])
     def phase(self, mjdi, mjdf):
         """
         self.phase(mjdi, mjdf):
