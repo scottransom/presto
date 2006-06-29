@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
 {
    FILE *infile, *outfile;
    int filenum, ii = 0, offset = 0;
+   char *path, *filenm;
    char outfilenm[200], rawlags[4096];
    float lags[2048];
    SPIGOT_INFO spigot;
@@ -18,8 +19,11 @@ int main(int argc, char *argv[])
       fprintf(stderr, "Usage: dump_spigot_zerolags SPIGOT_files\n");
       exit(0);
    }
-   strncpy(outfilenm, argv[1], strlen(argv[1]) - 10);
-   strncpy(outfilenm + strlen(argv[1]) - 10, ".zerolags", 10);
+   split_path_file(argv[1], &path, &filenm);
+   strncpy(outfilenm, filenm, strlen(filenm) - 10);
+   strncpy(outfilenm + strlen(filenm) - 10, ".zerolags", 10);
+   free(path);
+   free(filenm);
    outfile = chkfopen(outfilenm, "wb");
 
    for (filenum = 1; filenum < argc; filenum++) {

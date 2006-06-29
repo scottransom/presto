@@ -4,6 +4,8 @@
 #include "fitsfile.h"
 #include "fitshead.h"
 #include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
 
 #define DEBUGOUT 0
 
@@ -337,6 +339,7 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO * spigot, infodata * idata)
 {
    double MJD;
    char ctmp[100];
+   struct passwd *pwd;
 
    strncpy(idata->object, spigot->object, 24);
    hours2hms(spigot->ra / 15.0, &(idata->ra_h), &(idata->ra_m), &(idata->ra_s));
@@ -360,7 +363,9 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO * spigot, infodata * idata)
    idata->bary = 0;
    idata->numonoff = 0;
    strcpy(idata->band, "Radio");
-   strcpy(idata->analyzer, getlogin());
+   // strcpy(idata->analyzer, getlogin());
+   pwd = getpwuid(geteuid());
+   strcpy(idata->analyzer, pwd->pw_name);
    strncpy(idata->observer, spigot->observer, 24);
    if (spigot->summed_pols)
       sprintf(ctmp,
@@ -1237,7 +1242,7 @@ void get_calibrated_lags(void *rawlags, float *calibrated_lags)
 
 
 void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
-                          IFs ifs, float lag_scaling)
+                          IFs ifs, float power_offset)
 /* This routine converts a single point of SPIGOT lags   */
 /* into a filterbank style array of bytes.               */
 {
@@ -1259,6 +1264,13 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       /* Scale the raw lags */
       scale_rawlags(rawdata, index);
 
+      /* Apply the user-specified scaling */
+      if (power_offset != 0.0) {
+         lags[0] -= power_offset;
+         //for (ii = 0; ii < numchan_st; ii++)
+         //   lags[ii] -= tmp_offset;
+      }
+
 #if 0
       printf("\n");
       for (ii = 0; ii < numchan_st; ii++)
@@ -1266,12 +1278,6 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       printf("\n");
       exit(0);
 #endif
-
-      /* Apply the user-specified scaling */
-      if (lag_scaling != 1.0) {
-         for (ii = 0; ii < numchan_st; ii++)
-            lags[ii] *= lag_scaling;
-      }
 
       /* Calculate power */
       //power = sqrt(2.0)*inv_cerf(lags[0]);

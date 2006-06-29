@@ -47,6 +47,7 @@ CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
 	-g -O3 -ffast-math -march=pentium4 -mfpmath=sse -msse2 -mmmx -Wall -W
+#	-g -Wall -W
 CLINKFLAGS = $(CFLAGS)
 FFLAGS = -g -O3 -ffast-math -march=pentium4 -mfpmath=sse -msse2 -mmmx -Wall -W 
 FLINKFLAGS = $(FFLAGS)
@@ -121,7 +122,8 @@ text: makedata makeinf mjd2cal realfft quicklook\
 	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
-	dump_spigot_zerolag spigot2filterbank spigotSband2filterbank
+	dump_spigot_zerolag spigot2filterbank\
+	spigotSband2filterbank GBT350filterbank
 
 xwin: psrorbit window plotbincand profile \
 	prepfold show_pfd\
@@ -208,6 +210,9 @@ dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o
 
 spigot2filterbank: spigot2filterbank.o spigot.o sigproc_fb.o
 	$(CC) $(CLINKFLAGS) -o $@ spigot2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
+
+GBT350filterbank: GBT350filterbank.o spigot.o sigproc_fb.o
+	$(CC) $(CLINKFLAGS) -o $@ GBT350filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
 
 spigotSband2filterbank: spigotSband2filterbank.o spigot.o sigproc_fb.o
 	$(CC) $(CLINKFLAGS) -o $@ spigotSband2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
