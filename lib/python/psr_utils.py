@@ -1308,12 +1308,56 @@ def pferrs(porf, porferr, pdorfd=None, pdorfderr=None):
         [forp, fdorpd] = p_to_f(porf, pdorfd)
         return [forp, forperr, fdorpd, fdorpderr]
 
+def pdot_from_B(p, B):
+    """
+    pdot_from_B(p, B):
+        Return a pdot (or p, actually) that a pulsar with spin
+        period (or pdot) 'p' (in sec) would experience given a
+        magnetic field strength 'B' in gauss.
+    """
+    return (B / 3.2e19)**2.0 / p
+
+def pdot_from_age(p, age):
+    """
+    pdot_from_B(p, B):
+        Return the pdot that a pulsar with spin period 'p' (in sec)
+        would experience given a characteristic age 'age' (in yrs).
+    """
+    return p / (2.0 * age * SECPERJULYR)
+
+def pulsar_age(f, fdot, n=3, fo=1e99):
+    """
+    pulsar_age(f, fdot, n=3, fo=1e99):
+        Return the age of a pulsar (in years) given the spin frequency
+        and frequency derivative.  By default, the characteristic age
+        is returned (assuming a braking index 'n'=3 and an initial
+        spin freqquency fo >> f).  But 'n' and 'fo' can be set.
+    """
+    return -f / ((n-1.0) * fdot) * (1.0 - (f / fo)**(n-1.0)) / SECPERJULYR
+
+def pulsar_edot(f, fdot, I=1.0e45):
+    """
+    pulsar_edot(f, fdot, I=1.0e45):
+        Return the pulsar Edot (in erg/s) given the spin frequency and
+        frequency derivative. The NS moment of inertia is assumed to be
+        I = 1.0e45 g cm^2
+    """
+    return -4.0 * PI * PI * I * f * fdot
+
+def pulsar_B(f, fdot):
+    """
+    pulsar_B(f, fdot):
+        Return the estimated pulsar surface magnetic field strength
+        (in Gauss) given the spin frequency and frequency derivative.
+    """
+    return 3.2e19 * Num.sqrt(-fdot/f**3.0)
+
 def psr_info(porf, pdorfd, time=None, input=None):
     """
     psr_info(porf, pdorfd, input=None):
         Print a list of standard derived pulsar parameters based
         on the period (or frequency) and its first derivative.  The
-        routine will automaticallu assume you are using periods if
+        routine will automatically assume you are using periods if
         'porf' <= 1.0 and frequencies otherwise.  You can override this
         by setting input='p' or 'f' appropriately.
     """
