@@ -1,4 +1,3 @@
-from math import *
 from numpy import *
 from Pgplot import *
 from presto import *
@@ -22,7 +21,7 @@ nph = data[0].real
 # Set up some useful things
 centerr = md.r + md.z / 2.0
 startbin = floor(centerr - displaybins / 2.0)
-ca = zeros(numpts, "F")
+ca = zeros(numpts, dtype=complex64)
 cf = arange(startbin, startbin + displaybins, 1.0 / numbetween)
 
 # Show the power spectrum without f-dot correction

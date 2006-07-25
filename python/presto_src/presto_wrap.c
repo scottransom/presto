@@ -688,32 +688,6 @@ SWIG_UnpackDataName(const char *c, void *ptr, size_t sz, const char *name) {
 /* Python.h has to appear first */
 #include <Python.h>
 
-static PyObject* t_output_helper(PyObject* target, PyObject* o) {
-    PyObject*   o2;
-    PyObject*   o3;
-
-    if (!target) {
-        target = o;
-    } else if (target == Py_None) {
-        Py_DECREF(Py_None);
-        target = o;
-    } else {
-        if (!PyTuple_Check(target)) {
-            o2 = target;
-            target = PyTuple_New(1);
-            PyTuple_SetItem(target, 0, o2);
-        }
-        o3 = PyTuple_New(1);
-        PyTuple_SetItem(o3, 0, o);
-
-        o2 = target;
-        target = PySequence_Concat(o2, o3);
-        Py_DECREF(o2);
-        Py_DECREF(o3);
-    }
-    return target;
-}
-
 /* Add PyOS_snprintf for old Pythons */
 #if PY_VERSION_HEX < 0x02020000
 # if defined(_MSC_VER) || defined(__BORLANDC__) || defined(_WATCOM)
@@ -2390,7 +2364,7 @@ static swig_module_info swig_module = {swig_types, 24, 0, 0, 0, 0};
 #include "presto.h"
 
 
-#include "numpy/arrayobject.h"
+#include "numpy/noprefix.h"
 
 #define ISCONTIGUOUS(m) ((m)->flags & CONTIGUOUS)
 
@@ -16111,7 +16085,8 @@ SWIGINTERN PyObject *_wrap_rz_interp(PyObject *SWIGUNUSEDPARM(self), PyObject *a
     rl = (double) arg6->r;
     im = (double) arg6->i;
     o = PyComplex_FromDoubles(rl, im);
-    resultobj = t_output_helper(resultobj, o);
+    // resultobj = t_output_helper(resultobj, o);
+    resultobj = SWIG_Python_AppendOutput(resultobj, o);
   }
   return resultobj;
 fail:
@@ -18438,6 +18413,7 @@ SWIGINTERN PyObject *_wrap_corr_rz_interp(PyObject *SWIGUNUSEDPARM(self), PyObje
 fail:
   return NULL;
 }
+
 
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"tofloatvector", tofloatvector, METH_VARARGS, NULL},

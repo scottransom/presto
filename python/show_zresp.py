@@ -1,12 +1,11 @@
-from math import *
-from Numeric import *
+from numpy import *
 from Pgplot import *
 from presto import *
 
 kern_half_width = 10
 numbetween = 10
 numkern = 2 * numbetween * kern_half_width
-f = arange(numkern, typecode="d") / numbetween - kern_half_width
+f = arange(numkern, dtype=float64) / numbetween - kern_half_width
 kern = gen_z_response(0.0, numbetween, 0.0, numkern)
 pkern = spectralpower(kern)
 print "Freq ", f[len(f)/2], " = ", pkern[len(f)/2]

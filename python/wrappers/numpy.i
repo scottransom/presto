@@ -6,7 +6,7 @@
 %include typemaps.i
 
 %{
-#include "numpy/arrayobject.h"
+#include "numpy/noprefix.h"
 
 #define ISCONTIGUOUS(m) ((m)->flags & CONTIGUOUS)
 
@@ -312,7 +312,8 @@ static long _output_matrixcols = 0;
   rl = (double) $1->r;
   im = (double) $1->i;
   o = PyComplex_FromDoubles(rl, im);
-  $result = t_output_helper($result, o);
+  // $result = t_output_helper($result, o);
+  $result = SWIG_Python_AppendOutput($result, o);
 }
 
 #ifdef OUTPUT_LIST

@@ -21,7 +21,8 @@ presto_library_dirs = []
 
 # Use NumPy instead of Numeric or numarray
 make_extension = Extension
-include_dirs.append(numpy.get_numpy_include())
+#include_dirs.append(numpy.get_numpy_include())
+include_dirs.append(numpy.get_include())
 ppgplot_include_dirs = include_dirs
 presto_include_dirs = include_dirs
 undef_macros.append('USE_NUMARRAY')

@@ -2364,7 +2364,7 @@ static swig_module_info swig_module = {swig_types, 24, 0, 0, 0, 0};
 #include "presto.h"
 
 
-#include "numpy/arrayobject.h"
+#include "numpy/noprefix.h"
 
 #define ISCONTIGUOUS(m) ((m)->flags & CONTIGUOUS)
 
@@ -16085,7 +16085,8 @@ SWIGINTERN PyObject *_wrap_rz_interp(PyObject *SWIGUNUSEDPARM(self), PyObject *a
     rl = (double) arg6->r;
     im = (double) arg6->i;
     o = PyComplex_FromDoubles(rl, im);
-    resultobj = t_output_helper(resultobj, o);
+    // resultobj = t_output_helper(resultobj, o);
+    resultobj = SWIG_Python_AppendOutput(resultobj, o);
   }
   return resultobj;
 fail:
