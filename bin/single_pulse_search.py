@@ -566,5 +566,10 @@ if __name__ == '__main__':
         prof = hotshot.Profile("hotshot_edi_stats")
         prof.runcall(main)
         prof.close()
+        # To see the results:
+        if (0):
+            from hotshot import stats
+            s = stats.load("hotshot_edi_stats")
+            s.sort_stats("time").print_stats()
     else:
         main()
