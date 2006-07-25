@@ -6,7 +6,8 @@ telescope_ids = {"Fake": 0, "Arecibo": 1, "Ooty": 2, "Nancay": 3,
                  "Effelsberg": 8}
 
 machine_ids = {"FAKE": 0, "PSPM": 1, "Wapp": 2,"AOFTM": 3,
-               "BCPM1": 4, "OOTY": 5, "SCAMP": 6, "GBT Pulsar Spigot": 7}
+               "BCPM1": 4, "OOTY": 5, "SCAMP": 6, 
+               "GBT Pulsar Spigot": 7, "SPIGOT": 7}
 
 def prep_string(string):
     return struct.pack('i', len(string))+string
