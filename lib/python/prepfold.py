@@ -272,7 +272,7 @@ class pfd:
         # Use the same scaling as in prepfold_plot.c
         global_max = Num.maximum.reduce(Num.maximum.reduce(array2d))
         min_parts = Num.minimum.reduce(array2d, 1)
-        array2d = (array2d-min_parts[:,Num.NewAxis])/global_max
+        array2d = (array2d-min_parts[:,Num.newaxis])/global_max
         Pgplot.plot2d(array2d, image='antigrey', **kwargs)
 
     def plot_intervals(self, phasebins='All', device='/xwin'):
