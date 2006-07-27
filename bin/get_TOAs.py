@@ -278,6 +278,13 @@ if __name__ == '__main__':
         for jj in range(numsubbands):
             prof = profs[ii][jj]
 
+            # If we have zapped intervals or subbands, or added padding
+            # sometimes we can get folds with no signal at all.  Skip these.
+
+            if Num.std(prof)==0.0:
+                sys.stderr.write("Skipping TOA %d for subband %d due to lack of signal\n"%(ii+1, jj+1))
+                continue
+
             # Make sure that the template and the data have the same number of bins
             if (not len(template)==fold_pfd.proflen):
                 if (not ((len(template)%fold_pfd.proflen)==0 or
