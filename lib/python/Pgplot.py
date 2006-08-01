@@ -39,7 +39,7 @@ ppgplot_font_size_ = 1.0
 ppgplot_linestyle_ = 1
 
 # Default line width to use
-ppgplot_linewidth_ = 1
+ppgplot_linewidth_ = 2
 
 # Default symbol to plot
 ppgplot_symbol_ = None
@@ -210,6 +210,8 @@ def prepplot(rangex, rangey, title=None, labx=None, laby=None, \
     ppgplot.pgscf(font)
     # Choose the font size
     ppgplot.pgsch(fontsize)
+    # Choose the font size
+    ppgplot.pgslw(ppgplot_linewidth_)
     # Plot the 2nd axis if needed first
     if otherxaxis or otheryaxis:
         ppgplot.pgvstd()
@@ -323,11 +325,9 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
     if x is None: x=Num.arange(len(y), dtype='f')
     else: x = Num.asarray(x)
     # Determine the scaling to use for the first axis
-    if rangex is None: rangex=[Num.minimum.reduce(x), \
-                             Num.maximum.reduce(x)]
+    if rangex is None: rangex=[x.min(), x.max()]
     if rangey is None:
-        if noscale: rangey=[Num.minimum.reduce(y), \
-                            Num.maximum.reduce(y)]
+        if noscale: rangey=[y.min(), y.max()]
         else: rangey=scalerange(y)
     # Prep the plotting device...
     if (not ppgplot_dev_prep_ and setup):
@@ -344,12 +344,20 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
     if not symbol is None:
         ppgplot.pgpt(x, y, symbol)
     # Error bars
-    if errx:
-        errx = Num.asarray(errx)
-        ppgplot.pgerrx(x+errx, x-errx, y, 1.0)
-    if erry:
-        erry = Num.asarray(erry)
-        ppgplot.pgerry(x, y+erry, y-erry, 1.0)
+    if errx is not None:
+        if not logx:
+            errx = Num.asarray(errx)
+            ppgplot.pgerrx(x+errx, x-errx, y, 1.0)
+        else:
+            errx = 10.0**Num.asarray(errx)
+            ppgplot.pgerrx(Num.log10(10.0**x + errx), Num.log10(10.0**x - errx), y, 1.0)
+    if erry is not None:
+        if not logy:
+            erry = Num.asarray(erry)
+            ppgplot.pgerry(x, y+erry, y-erry, 1.0)
+        else:
+            erry = 10.0**Num.asarray(erry)
+            ppgplot.pgerry(x, Num.log10(10.0**y + erry), Num.log10(10.0**y - erry), 1.0)
     # Plot connecting lines if requested
     if not line is None:
         # Choose the line style
@@ -426,7 +434,7 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
            width=width, color=color, font=font, fontsize=fontsize, \
            id=id, aspect=aspect, rangex=rangex, rangey=rangey, \
            ticks=ticks, panels=panels, device=device, setup=setup)
-    if (erry):
+    if erry is not None:
         ppgplot.pgerry(Num.arange(len(y))+0.5, y+erry, y-erry, 1.0)
 
 # Show a 2D color intensity plot with optional arguments and keywords
