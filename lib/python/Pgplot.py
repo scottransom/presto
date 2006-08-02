@@ -421,7 +421,7 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
     # Correct for the fact that 'x' are the bin centers
     x = x - 0.5 * dx
     # Make the repeat array
-    r = Num.zeros(len(x))+2
+    r = Num.zeros(len(x), dtype=Num.int32)+2
     ny = Num.repeat(y, r)
     r[0] = 1
     nx = Num.repeat(x, r)
