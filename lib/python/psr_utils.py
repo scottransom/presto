@@ -1,5 +1,5 @@
 import numpy as Num
-import numpy.dft as FFT
+import numpy.fft as FFT
 import Pgplot, ppgplot, bisect, sinc_interp
 from scipy.stats import mean, std, histogram
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov

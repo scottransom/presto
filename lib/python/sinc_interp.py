@@ -1,6 +1,6 @@
 import numpy as Num
 import scipy.special
-import numpy.dft as FFT
+import numpy.fft as FFT
 
 def sinc(xs):
     """
