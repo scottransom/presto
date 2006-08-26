@@ -350,14 +350,16 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
             ppgplot.pgerrx(x+errx, x-errx, y, 1.0)
         else:
             errx = 10.0**Num.asarray(errx)
-            ppgplot.pgerrx(Num.log10(10.0**x + errx), Num.log10(10.0**x - errx), y, 1.0)
+            ppgplot.pgerrx(Num.log10(10.0**x + errx),
+                           Num.log10(10.0**x - errx), y, 1.0)
     if erry is not None:
         if not logy:
             erry = Num.asarray(erry)
             ppgplot.pgerry(x, y+erry, y-erry, 1.0)
         else:
             erry = 10.0**Num.asarray(erry)
-            ppgplot.pgerry(x, Num.log10(10.0**y + erry), Num.log10(10.0**y - erry), 1.0)
+            ppgplot.pgerry(x, Num.log10(10.0**y + erry),
+                           Num.log10(10.0**y - erry), 1.0)
     # Plot connecting lines if requested
     if not line is None:
         # Choose the line style

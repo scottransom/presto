@@ -896,9 +896,9 @@ def gauss_profile_params(profile, output=0):
     def funct(afpo, profile):
         return afpo[0] * gaussian_profile(len(profile), afpo[2], afpo[1]) \
                + afpo[3] - profile
-    ret = leastsq(funct, [max(profile)-min(profile),
-                          0.25, Num.argmax(profile)/float(len(profile)),
-                          min(profile)], args=(profile))
+    ret = leastsq(funct, [profile.max()-profile.min(),
+                          0.25, profile.argmax()/float(len(profile)),
+                          profile.min()], args=(profile))
     if (output):
         phases = Num.arange(0.0, 1.0,
                             1.0 / len(profile)) + 0.5 / len(profile)
