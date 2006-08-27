@@ -89,6 +89,9 @@ fcomplex **corr_rz_plane(fcomplex * data, int numdata, int numbetween,
    /* Allocate the result matrix */
 
    numgoodbins = fftlen - 2 * kern_half_width * numbetween;
+   if (numgoodbins % numbetween) {
+      while (numgoodbins % numbetween) numgoodbins--;
+   }
    *nextbin = startbin + numgoodbins / numbetween;
    result = gen_cmatrix(numz, numgoodbins);
 
