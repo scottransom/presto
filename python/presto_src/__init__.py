@@ -210,27 +210,28 @@ def search_fft(data, numcands, norm='default'):
       cands.append([hp[i],hf[i]])
    return cands
 
-def ffdot_plane(data, r, dr, numr, z, dz, numz):
+def ffdot_plane(data, lor, dr, numr, loz, dz, numz):
    """
-   ffdot_plane(data, r, dr, numr, z, dz, numz):
-       Generate an F-Fdot plane centered on the point 'r', 'z'.
-       There will be a total of 'numr' x 'numz' points in the array.
-       The F-Fdot plane will be interpolated such the points are
-       separated by 'dr' in the 'r' (i.e. f) direction and 'dz'
-       in the 'z' (i.e. fdot) direction.  'data' is the input FFT.
+   ffdot_plane(data, lor, dr, numr, loz, dz, numz):
+       Generate an F-Fdot plane with the 'lower-left' corners
+       at the point 'lor', 'loz'.  The plane will have 'numr' frequency
+       bins and 'numz' slices in the fdot direction, separated by 'dr'
+       and 'dz' respectively.  'lor', 'numr', and 'numz' should all be
+       integers.  'data' is the input FFT.
        Note:  'dr' much be the reciprocal of an integer
               (i.e. 1 / numbetween).  Also, 'r' is considered to be
               the average frequency (r = ro + z / 2).
    """
+   lor = int(lor)
+   numr = int(numr)
+   numz = int(numz)
    numbetween = int(1.0 / dr)
-   startbin = int(r - (numr * dr) / 2)
-   loz = z - (numz * dz) / 2
-   hiz = loz + (numz - 1) * dz
+   hiz = loz + (numz-1) * dz
    maxabsz = max(abs(loz), abs(hiz))
    kern_half_width = z_resp_halfwidth(maxabsz, LOWACC)
    fftlen = next2_to_n(numr + 2 * numbetween * kern_half_width)
    (ffdraw, nextbin) = corr_rz_plane(data, len(data), numbetween,
-                                     startbin, loz, hiz, numz,
+                                     lor, loz, hiz, numz,
                                      fftlen, LOWACC)
    return Num.array(ffdraw[:,0:numr], copy=1)
 
