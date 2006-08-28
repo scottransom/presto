@@ -1334,6 +1334,28 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
             //  minimum power.  (I think)
             scale_max = max + 2.0 * range;
             scale_min = min - 0.5 * range;
+            /* Check to see if we are overriding the scaling values */
+            {
+               char *envval;
+               envval = getenv("SPIGOT_SCALING_MIN");
+               if (envval != NULL) {
+                  double dblval = strtod(envval, NULL);
+                  if (dblval) {
+                     fprintf(stderr, "Measured scaling min = %20.15f\n", scale_min);
+                     scale_min = dblval;
+                     fprintf(stderr, "    User scaling min = %20.15f\n", scale_min);
+                  }
+               }
+               envval = getenv("SPIGOT_SCALING_MAX");
+               if (envval != NULL) {
+                  double dblval = strtod(envval, NULL);
+                  if (dblval) {
+                     fprintf(stderr, "Measured scaling max = %20.15f\n", scale_max);
+                     scale_max = dblval;
+                     fprintf(stderr, "    User scaling min = %20.15f\n", scale_max);
+                  }
+               }
+            }
          }
 #if 0
          printf("counter = %d  avg = %.3g  stdev = %.3g  min = %.3g  max = %.3g\n",
