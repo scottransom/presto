@@ -319,7 +319,7 @@ def main():
             lo_std = median_stds - 4.0 * std_stds
             hi_std = median_stds + 4.0 * std_stds
             # Determine a list of "bad" chunks.  We will not search these.
-            bad_blocks = Num.nonzero((stds < lo_std) | (stds > hi_std))
+            bad_blocks = Num.nonzero((stds < lo_std) | (stds > hi_std))[0]
             print "    pseudo-median block standard deviation = %.2f" % (median_stds)
             print "    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
                   (len(bad_blocks), len(stds),
@@ -364,7 +364,7 @@ def main():
                     #        currently the most expensive call in the program.  Best
                     #        bet would probably be to simply iterate over the goodchunk
                     #        in C and append to the candlist there.
-                    hibins = Num.nonzero(goodchunk>opts.threshold)
+                    hibins = Num.nonzero(goodchunk>opts.threshold)[0]
                     hivals = goodchunk[hibins]
                     hibins += chunknum * chunklen
                     hiblocks = hibins/chunklen
@@ -389,7 +389,7 @@ def main():
                                      Num.sqrt(downfact)
                             smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
                             goodchunk = smoothed_chunk[overlap:-overlap]
-                        hibins = Num.nonzero(goodchunk>opts.threshold)
+                        hibins = Num.nonzero(goodchunk>opts.threshold)[0]
                         hivals = goodchunk[hibins]
                         hibins += chunknum * chunklen
                         hiblocks = hibins/chunklen
@@ -522,7 +522,7 @@ def main():
         cand_symbols = cand_symbols.astype(Num.int32)
         cand_symbols[cand_symbols>26] = 26
         for ii in [26, 25, 24, 23, 22, 21, 20]:
-            inds = Num.nonzero(cand_symbols==ii)
+            inds = Num.nonzero(cand_symbols==ii)[0]
             ppgplot.pgpt(cand_ts[inds], cand_DMs[inds], ii)
 
         # Now fill the infomation area

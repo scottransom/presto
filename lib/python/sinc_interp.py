@@ -133,7 +133,7 @@ def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
         plotxy(win)
         plotxy(kernel, color='red')
         closeplot()
-    return FFT.inverse_real_fft(FFT.real_fft(kernel) * FFT.real_fft(comb))
+    return FFT.irfft(FFT.rfft(kernel) * FFT.rfft(comb))
 
 
 if __name__=='__main__':

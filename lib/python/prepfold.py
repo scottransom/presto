@@ -122,7 +122,7 @@ class pfd:
             self.mid_bary_MJDs = self.mid_secs/86400.0 + self.bepoch
         self.Nfolded = Num.add.reduce(self.pts_per_fold)
         self.T = self.Nfolded*self.dt
-        self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
+        self.avgprof = (self.profs/self.proflen).sum()
         self.varprof = self.calc_varprof()
         infile.close()
         self.barysubfreqs = None
@@ -178,7 +178,7 @@ class pfd:
                                                                 zoomfact=interp_factor)
             # Note: Since the interpolation process slightly changes the values of the
             # profs, we need to re-calculate the average profile value
-            self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
+            self.avgprof = (self.profs/self.proflen).sum()
         else:
             new_subdelays_bins = Num.floor(delaybins+0.5)
             for ii in range(self.nsub):
@@ -188,8 +188,8 @@ class pfd:
                     self.profs[:,ii] = Num.concatenate((subdata[:,rotbins:],
                                                         subdata[:,:rotbins]), 1)
         self.subdelays_bins += new_subdelays_bins
-        self.sumprof = Num.sum(Num.sum(self.profs))
-        if Num.fabs(Num.sum(self.sumprof)/self.proflen - self.avgprof) > 1.0:
+        self.sumprof = self.profs.sum(0).sum(0)
+        if Num.fabs((self.sumprof/self.proflen).sum() - self.avgprof) > 1.0:
             print "self.avgprof is not the correct value!"
 
     def combine_profs(self, new_npart, new_nsub):
@@ -234,7 +234,7 @@ class pfd:
             self.profs[part,:,:] *= 0.0
             self.killed_intervals.append(part)
         # Update the stats
-        self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
+        self.avgprof = (self.profs/self.proflen).sum()
         self.varprof = self.calc_varprof()
 
     def kill_subbands(self, subbands):
@@ -247,7 +247,7 @@ class pfd:
             self.profs[:,sub,:] *= 0.0
             self.killed_subbands.append(sub)
         # Update the stats
-        self.avgprof = Num.sum(Num.ravel(self.profs))/self.proflen
+        self.avgprof = (self.profs/self.proflen).sum()
         self.varprof = self.calc_varprof()
 
     def plot_sumprof(self, device='/xwin'):
@@ -288,10 +288,10 @@ class pfd:
             self.dedisperse()
         if phasebins is not 'All':
             lo, hi = phasebins
-            profs = Num.sum(self.profs[:,:,lo:hi], 1)
+            profs = self.profs[:,:,lo:hi].sum(1)
         else:
             lo, hi = 0.0, self.proflen
-            profs = Num.sum(self.profs, 1)
+            profs = self.profs.sum(1)
         self.greyscale(profs, rangex=[lo, hi], rangey=[0.0, self.npart],
                        labx="Phase Bins", labx2="Pulse Phase", laby="Time Intervals",
                        rangex2=Num.asarray([lo, hi])*1.0/self.proflen,
@@ -311,10 +311,10 @@ class pfd:
             self.dedisperse()
         if phasebins is not 'All':
             lo, hi = phasebins
-            profs = Num.sum(self.profs[:,:,lo:hi])
+            profs = self.profs[:,:,lo:hi].sum(0)
         else:
             lo, hi = 0.0, self.proflen
-            profs = Num.sum(self.profs)
+            profs = self.profs.sum(0)
         lof = self.lofreq - 0.5*self.chan_wid
         hif = lof + self.chan_wid*self.numchan
         self.greyscale(profs, rangex=[lo, hi], rangey=[0.0, self.nsub],
@@ -348,7 +348,7 @@ class pfd:
         if prof is None:  prof = self.sumprof
         if avg is None:  avg = self.avgprof
         if var is None:  var = self.varprof
-        return Num.sum((prof-avg)**2.0/var)/(len(prof)-1.0)
+        return ((prof-avg)**2.0/var).sum()/(len(prof)-1.0)
 
     def plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0, device='/xwin'):
         """
@@ -358,7 +358,7 @@ class pfd:
                 if 'interp' is non-zero.
         """
         # Sum the profiles in time
-        sumprofs = Num.sum(self.profs)
+        sumprofs = self.profs.sum(0)
         if not interp:
             profs = sumprofs
         else:
@@ -378,14 +378,14 @@ class pfd:
                                                         zoomfact=interp_factor)
                 # Note: Since the interpolation process slightly changes the values of the
                 # profs, we need to re-calculate the average profile value
-                avgprof = Num.sum(Num.ravel(profs))/self.proflen
+                avgprof = (profs/self.proflen).sum()
             else:
                 new_subdelays_bins = Num.floor(delaybins+0.5)
                 for jj in range(self.nsub):
                     profs[jj] = psr_utils.rotate(profs[jj], int(new_subdelays_bins[jj]))
                 subdelays_bins += new_subdelays_bins
                 avgprof = self.avgprof
-            sumprof = Num.sum(profs)
+            sumprof = profs.sum(1)
             chis[ii] = self.calc_redchi2(prof=sumprof, avg=avgprof)
         # Now plot it
         Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d", device=device)
@@ -398,9 +398,9 @@ class pfd:
                 the subband number.
         """
         # Sum the profiles in each subband
-        profs = Num.sum(self.profs)
+        profs = self.profs.sum(0)
         # Compute the averages and variances for the subbands
-        avgs = Num.add.reduce(profs, 1)/self.proflen
+        avgs = profs.sum(1)/self.proflen
         vars = []
         for sub in range(self.nsub):
             var = 0.0
@@ -460,15 +460,15 @@ class pfd:
                 bins_to_shift = int(round(float(ii)/self.npart * phasebins))
                 for jj in range(self.nsub):
                     profs[ii,jj] = psr_utils.rotate(profs[ii,jj], bins_to_shift)
-            redchi = self.calc_redchi2(prof=Num.sum(Num.sum(profs)))
+            redchi = self.calc_redchi2(prof=profs.sum(0).sum(0))
         else:
             print "Shifting just the projected intervals (not individual subbands)..."
             if profs is None:
-                profs = Num.sum(self.profs, 1)
+                profs = self.profs.sum(1)
             for ii in range(self.npart):
                 bins_to_shift = int(round(float(ii)/self.npart * phasebins))
                 profs[ii] = psr_utils.rotate(profs[ii], bins_to_shift)
-            redchi = self.calc_redchi2(prof=Num.sum(profs))
+            redchi = self.calc_redchi2(prof=profs.sum(0))
         print "New reduced-chi^2 =", redchi
         return profs, redchi
 
