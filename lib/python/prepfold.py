@@ -385,7 +385,7 @@ class pfd:
                     profs[jj] = psr_utils.rotate(profs[jj], int(new_subdelays_bins[jj]))
                 subdelays_bins += new_subdelays_bins
                 avgprof = self.avgprof
-            sumprof = profs.sum(1)
+            sumprof = profs.sum(0)
             chis[ii] = self.calc_redchi2(prof=sumprof, avg=avgprof)
         # Now plot it
         Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d", device=device)
