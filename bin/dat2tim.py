@@ -29,7 +29,7 @@ def infodata_to_sigproc_header(inf):
     hdr += prep_int("data_type", 2) # 1 = filterbank, 2 = timeseries
     hdr += prep_string("source_name")
     hdr += prep_string(inf.object)
-    hdr += prep_int("barycentric", 0)
+    hdr += prep_int("barycentric", inf.bary)
     hdr += prep_int("pulsarcentric", 0)
     hdr += prep_double("src_raj", inf.ra_h*10000.0 + inf.ra_m*100.0 + inf.ra_s)
     if inf.dec_d > 0.0:
