@@ -33,7 +33,6 @@ sifting.known_birds_f = []
 sifting.r_err = 1.1
 # Shortest period candidates to consider (s)
 sifting.short_period = 0.0005
-sifting.short_period = 0.0015
 # Longest period candidates to consider (s)
 sifting.long_period = 15.0
 # Ignore any candidates where at least one harmonic does exceed this power
