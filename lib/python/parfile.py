@@ -41,7 +41,7 @@ float_keys = ["F", "F0", "F1", "F2", "F3", "F4", "F5", "F6",
               "PEPOCH", "DM", "START", "FINISH", "NTOA",
               "TRES", "TZRMJD", "TZRFRQ", "TZRSITE", "NITS",
               "A1", "XDOT", "E", "EDOT", "T0", "PB", "PBDOT", "OM", "OMDOT",
-              "EPS1", "EPS2", "EPS1DOT", "EPS2DOT", "TASC",
+              "EPS1", "EPS2", "EPS1DOT", "EPS2DOT", "TASC", "LAMBDA", "BETA",
               "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT", "FB0", "FB1", "FB2"]
 str_keys = ["FILE", "PSR", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
 
