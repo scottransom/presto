@@ -58,15 +58,19 @@ dmstrs = ["%.2f"%x for x in dms]
 cands = sifting.read_candidates(candfiles)
 
 # Remove candidates that are duplicated in other ACCEL files
-cands = sifting.remove_duplicate_candidates(cands)
+if len(cands):
+    cands = sifting.remove_duplicate_candidates(cands)
 
 # Remove candidates with DM problems
-cands = sifting.remove_DM_problems(cands, min_num_DMs, dmstrs, low_DM_cutoff)
+if len(cands):
+    cands = sifting.remove_DM_problems(cands, min_num_DMs, dmstrs, low_DM_cutoff)
 
 # Remove candidates that are harmonically related to each other
 # Note:  this includes only a small set of harmonics
-cands = sifting.remove_harmonics(cands)
+if len(cands):
+    cands = sifting.remove_harmonics(cands)
 
 # Write candidates to STDOUT
-cands.sort(sifting.cmp_snr)
-sifting.write_candlist(cands)
+if len(cands):
+    cands.sort(sifting.cmp_snr)
+    sifting.write_candlist(cands)
