@@ -28,7 +28,7 @@ cutoff = flo/fnyq
 # Determine an "average" standard deviation
 stds = []
 for ii in range(100):
-    loind = int(N.rand() * (numpts-1001))
+    loind = int(N.random.rand() * (numpts-1001))
     hiind = loind + 1000
     stds.append(N.std(zls[loind:hiind]))
 goodstd = N.median(stds)
