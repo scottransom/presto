@@ -96,10 +96,10 @@ int main(int argc, char *argv[])
          cmd->pstep = 2;
       else
          cmd->pstep = 3;
-      if (cmd->pstep == 2)
-         cmd->pstep = 4;
+      if (cmd->pdstep == 2)
+         cmd->pdstep = 4;
       else
-         cmd->pstep = 6;
+         cmd->pdstep = 6;
    }
    /* Which IFs will we use? */
    if (cmd->ifsP) {
