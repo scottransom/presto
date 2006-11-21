@@ -217,8 +217,8 @@ GBT350filterbank: GBT350filterbank.o spigot.o sigproc_fb.o
 spigotSband2filterbank: spigotSband2filterbank.o spigot.o sigproc_fb.o
 	$(CC) $(CLINKFLAGS) -o $@ spigotSband2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
 
-show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
+show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o range_parse.o $(PLOT2DOBJS)
+	$(FC) $(FLINKFLAGS) -o $@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o range_parse.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 testresp: ../tests/testresp.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $@ $(PLOT2DOBJS) testresp.o $(PRESTOLINK) $(PGPLOTLINK) -lm

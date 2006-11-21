@@ -5,6 +5,8 @@
 #include "dmalloc.h"
 #endif
 
+extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
+
 /* 
  * The main program 
  */
@@ -42,6 +44,49 @@ int main(int argc, char *argv[])
     */
 
    print_prepfoldinfo(&search);
+
+   /*
+    *   Zap requested subbands or intervals
+    */
+
+   {
+      int *killparts, *killsubs, ii, jj, kk, index;
+      int numkillparts = 0, numkillsubs = 0;
+
+      if (cmd->killpartsstrP) {
+         killparts = ranges_to_ivect(cmd->killpartsstr, 0, 
+                                     search.npart - 1, &numkillparts);
+         for (ii = 0; ii < numkillparts; ii++) {
+            if ((killparts[ii] >= 0) && (killparts[ii] < search.npart)) {
+               index = killparts[ii] * search.proflen * search.nsub;
+               for (jj = 0; jj < search.nsub; jj++) {
+                  search.stats[killparts[ii] * search.nsub + jj].prof_var = 0.0;
+                  search.stats[killparts[ii] * search.nsub + jj].prof_avg = 0.0;
+                  for (kk = 0; kk < search.proflen ; kk++)
+                     search.rawfolds[index + kk] = 0.0;
+                  index += search.proflen;
+               }
+            }
+         }
+         free(killparts);
+      }
+      if (cmd->killsubsstrP) {
+         killsubs = ranges_to_ivect(cmd->killsubsstr, 0, 
+                                    search.nsub - 1, &numkillsubs);
+         for (ii = 0; ii < numkillsubs; ii++) {
+            if ((killsubs[ii] >= 0) && (killsubs[ii] < search.nsub)) {
+               for (jj = 0; jj < search.npart; jj++) {
+                  index = search.proflen * (jj * search.nsub + killsubs[ii]);
+                  search.stats[jj * search.nsub + killsubs[ii]].prof_var = 0.0;
+                  search.stats[jj * search.nsub + killsubs[ii]].prof_avg = 0.0;
+                  for (kk = 0; kk < search.proflen ; kk++)
+                     search.rawfolds[index + kk] = 0.0;
+               }
+            }
+         }
+         free(killsubs);
+      }
+   }
 
    /* Switch to portrait mode */
 
