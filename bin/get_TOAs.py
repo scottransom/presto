@@ -2,7 +2,6 @@
 import struct, getopt, sys, fftfit, psr_utils
 import numpy as Num
 from infodata import infodata
-from bestprof import bestprof
 from prepfold import pfd
 from polycos import polycos
 from psr_constants import *
@@ -12,6 +11,7 @@ scopes = {'GBT':'1',
           'Arecibo':'3',
           'Parkes':'7',
           'GMRT': 'r',
+          'IRAM': 's',
           'Geocenter': 'o'}
 
 def measure_phase(profile, template):
@@ -174,15 +174,18 @@ if __name__ == '__main__':
                 else:
                     kints.append(int(ints))
 
+    # Read the prepfold output file and the binary profiles
+    fold_pfd = pfd(sys.argv[-1])
+    
     # Read key information from the bestprof file
-    fold = bestprof(sys.argv[-1]+".bestprof")
+    if fold_pfd.bestprof:
+	fold = fold_pfd.bestprof
+    else:
+	sys.sterr.write("Warning:  Could not open the bestprof file!")
     timestep_sec = fold.T / numtoas
     timestep_day = timestep_sec / SECPERDAY
     fold.epoch = fold.epochi+fold.epochf
 
-    # Read the prepfold output file and the binary profiles
-    fold_pfd = pfd(sys.argv[-1])
-    
     # Over-ride the DM that was used during the fold
     if (DM!=0.0):
         fold_pfd.bestdm = DM
@@ -318,6 +321,7 @@ if __name__ == '__main__':
                 # If that failed, use a time-domain correlation
                 if (Num.fabs(shift) < 1e-7 and
                     Num.fabs(eshift-999.0) < 1e-7):
+                    print "Warning!  Bad return from FFTFIT.  Using PRESTO correlation..."
                     # Not enough structure in the template profile for FFTFIT
                     # so use time-domain correlations instead
                     tau = psr_utils.measure_phase_corr(prof, template)

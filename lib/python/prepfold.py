@@ -47,6 +47,32 @@ class pfd:
             (self.dt, self.startT) = struct.unpack(swapchar+"dd", test)
         (self.endT, self.tepoch, self.bepoch, self.avgvoverc, self.lofreq, \
          self.chan_wid, self.bestdm) = struct.unpack(swapchar+"d"*7, infile.read(7*8))
+        # The following "fixes" (we think) the observing frequency of the Spigot
+        # based on tests done by Ingrid on 0737 (comparing it to GASP)
+        # The same sorts of corrections should be made to WAPP data as well...
+        if self.telescope=='GBT':
+            if self.dt==8.192e-05:
+                if self.chan_wid==800.0/1024: # Spigot 800 MHz mode 2
+                    self.lofreq -= 0.5 * self.chan_wid
+                    # The following are the empirically determined timing corrections
+                    # Note that epoch is only double precision and so the floating
+                    # point accuracy is ~1 us!
+                    if self.tepoch > 0.0: self.tepoch += 0.039334/86400.0
+		    if self.bestprof: self.bestprof.epochf += 0.039334/86400.0
+                elif self.chan_wid==800.0/2048 and self.tepoch < 53700.0: # Spigot 800 MHz mode 16 (downsampled)
+                    self.lofreq -= 0.5 * self.chan_wid
+                    # The following are the empirically determined timing corrections
+                    # Note that epoch is only double precision and so the floating
+                    # point accuracy is ~1 us!
+                    if self.tepoch > 0.0: self.tepoch += 0.039352/86400.0
+		    if self.bestprof: self.bestprof.epochf += 0.039352/86400.0
+                elif self.chan_wid==50.0/1024: # Spigot 50 MHz mode 42
+                    self.lofreq += 0.5 * self.chan_wid
+                    # The following are the empirically determined timing corrections
+                    # Note that epoch is only double precision and so the floating
+                    # point accuracy is ~1 us!
+                    if self.tepoch > 0.0: self.tepoch += 0.039450/86400.0
+		    if self.bestprof: self.bestprof.epochf += 0.039450/86400.0
         (self.topo_pow, tmp) = struct.unpack(swapchar+"f"*2, infile.read(2*4))
         (self.topo_p1, self.topo_p2, self.topo_p3) = struct.unpack(swapchar+"d"*3, \
                                                                    infile.read(3*8))
@@ -135,7 +161,7 @@ class pfd:
                                                    filenm=self.pfd_filename+".polycos")
                     midMJD = self.tepoch + 0.5*self.T/86400.0
                     self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
-                    sys.stderr.write("Approximate Doppler velocity (in c) is:  %.4g\n"%self.avgvoverc)
+                    #sys.stderr.write("Approximate Doppler velocity (in c) is:  %.4g\n"%self.avgvoverc)
                     # Make the Doppler correction
                     self.barysubfreqs = self.subfreqs*(1.0+self.avgvoverc)
                 except IOError:
@@ -160,13 +186,13 @@ class pfd:
         dedisperse(DM=self.bestdm, interp=0):
             Rotate (internally) the profiles so that they are de-dispersed
                 at a dispersion measure of DM.  Use sinc-interpolation if
-                'interp' is non-zero (NOTE: It is _on_ by default!).
+                'interp' is non-zero (NOTE: It is off by default!).
         """
         if DM is None:
             DM = self.bestdm
         self.subdelays = psr_utils.delay_from_DM(DM, self.barysubfreqs)
-	self.hifreqdelay = self.subdelays[-1]
-	self.subdelays = self.subdelays-self.hifreqdelay
+        self.hifreqdelay = self.subdelays[-1]
+        self.subdelays = self.subdelays-self.hifreqdelay
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
         if interp:
             interp_factor = 16
@@ -508,6 +534,8 @@ class pfd:
         self.DSsubfreqs = self.subfreqs
         self.DSsubdeltafreq = self.subdeltafreq
         if (calibrate):
+            # Protect against division by zero
+            offpulse[offpulse==0.0] = 1.0
             self.DS /= offpulse
         # Combine intervals if required
         if (combineints > 1):
