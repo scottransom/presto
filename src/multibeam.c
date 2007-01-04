@@ -91,6 +91,12 @@ void get_PKMB_file_info(FILE * files[], int numfiles, float clipsig,
    if (nfilter_st == 1) {
       ptsperblk_st = *ptsperblock = DATLEN * 8 / numchan_st;
       offsetbytes_st = 0;
+      /* New 256 channel wide-band mode */
+      if ((idata_st[0].num_chan == 256) && (idata_st[0].chan_wid==3.0)) {
+         ptsperblk_st = *ptsperblock = DATLEN * 8 / 384;
+         bytesperpt_st = 384 / 8;
+         // offsetbytes_st = 96 / 8;
+      }
    } else {                     /* 10cm/50cm data */
       ptsperblk_st = *ptsperblock = DATLEN * 8 / 512;
       bytesperpt_st = 512 / 8;
@@ -681,13 +687,21 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
       strcpy(idata->telescope, "Jodrell");
    itmp1 = strtol(hdr->ibeam, NULL, 10);
    itmp2 = strtol(hdr->nbeam, NULL, 10);
-   if (nfilter_st == 2)
-      sprintf(idata->instrument, "10cm+50cm Receiver");
-   else
-      sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);
+   tmp1 = strtod(hdr->chanbw[filter_st], NULL);
+   idata->chan_wid = fabs(tmp1);
    sscanf(hdr->nchan[filter_st], "%4d", &idata->num_chan);
    ptsperrec = DATLEN / (idata->num_chan / 8);
-   /* hrow away the top 64 channels of the 10cm filterbank */
+   if (nfilter_st == 2) {
+      sprintf(idata->instrument, "10cm+50cm Receiver");
+   } else {
+      if ((idata->num_chan == 384) && (idata->chan_wid==3.0)) {
+         sprintf(idata->instrument, "256 channel wideband");
+         idata->num_chan = 256;
+      } else {
+         sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);
+      }
+   }
+   /* throw away the top 64 channels of the 10cm filterbank */
    if (nfilter_st == 2 && filter_st == 0)
       idata->num_chan = 192;
    sscanf(hdr->samp_int[filter_st], "%12lf", &idata->dt);
