@@ -91,11 +91,10 @@ void get_PKMB_file_info(FILE * files[], int numfiles, float clipsig,
    if (nfilter_st == 1) {
       ptsperblk_st = *ptsperblock = DATLEN * 8 / numchan_st;
       offsetbytes_st = 0;
-      /* New 256 channel wide-band mode */
-      if ((idata_st[0].num_chan == 256) && (idata_st[0].chan_wid==3.0)) {
+      /* New 288 channel wide-band mode */
+      if ((idata_st[0].num_chan == 288) && (idata_st[0].chan_wid==3.0)) {
          ptsperblk_st = *ptsperblock = DATLEN * 8 / 384;
          bytesperpt_st = 384 / 8;
-         // offsetbytes_st = 96 / 8;
       }
    } else {                     /* 10cm/50cm data */
       ptsperblk_st = *ptsperblock = DATLEN * 8 / 512;
@@ -695,8 +694,8 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
       sprintf(idata->instrument, "10cm+50cm Receiver");
    } else {
       if ((idata->num_chan == 384) && (idata->chan_wid==3.0)) {
-         sprintf(idata->instrument, "256 channel wideband");
-         idata->num_chan = 256;
+         sprintf(idata->instrument, "288 channel wideband");
+         idata->num_chan = 288;
       } else {
          sprintf(idata->instrument, "Multibeam (Beam %d of %d)", itmp1, itmp2);
       }
