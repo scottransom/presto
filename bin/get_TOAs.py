@@ -73,6 +73,7 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-t templateprof, --template=prof] : The template .bestprof file to use
   [-k subs_list, --kill=subs_list]   : List of subbands to ignore
   [-i ints_list, --kints=ints_list]  : List of intervals to ignore
+  [-o seconds, --offset=seconds]     : Add the offset in seconds to any TOAs
   [-e, --event]                      : The .pfd file was made with events
   pfd_file                           : The .pfd file containing the folds
 
