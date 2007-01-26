@@ -893,6 +893,7 @@ def gauss_profile_params(profile, output=0):
         If 'output' is true, the fit will be plotted and 
            the return values will be printed.
     """
+    profile = Num.asarray(profile)
     def funct(afpo, profile):
         return afpo[0] * gaussian_profile(len(profile), afpo[2], afpo[1]) \
                + afpo[3] - profile
