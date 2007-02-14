@@ -244,7 +244,7 @@ def main():
     if args[0].endswith(".singlepulse"):
         filenmbase = args[0][:args[0].rfind(".singlepulse")]
         dosearch = False
-    else if args[0].endswith(".dat"):
+    elif args[0].endswith(".dat"):
         filenmbase = args[0][:args[0].rfind(".dat")]
     else:
         filenmbase = args[0]
