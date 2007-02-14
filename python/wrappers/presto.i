@@ -1415,3 +1415,40 @@ fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween,
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
+
+%apply double* IN_1D_DOUBLE { double *events };
+%apply int ARRAYLEN { int Nevents };
+double *events_fdot_correct(double *events, int Nevents, 
+                            double freq, double fdot);
+/* Correct a set of sorted events (in sec) for a specific */
+/* 'fdot' at the frequency 'freq' as per Chandler et al., */
+/* 2001.  tnew_i = t_i + 0.5*fdot/freq*t_i^2.  Return a   */
+/* new array of events.                                   */
+
+// Return a complex array where each value is a float
+%typemap(python, out) fcomplex * {
+  PyArrayObject *arr;
+  int n;
+  
+  n = _output_arraylen/2;
+  _output_arraylen = 0;
+  arr = (PyArrayObject *) \
+    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$1);
+  if (arr == NULL) return NULL;
+  arr->flags |= OWN_DATA;
+  PyArray_INCREF(arr);
+  $result = (PyObject *)arr;
+}
+
+%apply double* IN_1D_DOUBLE { double *events , double *weights };
+%apply int ARRAYLEN { int Nwin };
+fcomplex *atwood_search(double *events, double *weights, 
+                        int Nevents, int Nwin, double dt);
+/* Perform the time-differencing, incoherent, autocorrelation-like */
+/* search for sparse event data described in                       */
+/* Atwood et al. 2006, ApJL, 652, 49                               */
+/*    events:  a sorted, double prec, array of event times in sec  */
+/*    weights:  a weight factor (0-1) for each of the events       */
+/*    Nevents:  the number of events                               */
+/*    Nwin:  number of bins that make up a "window" (the FFT len)  */
+/*    dt:  the time duration to use for the binning                */
