@@ -185,7 +185,10 @@ def read_singlepulse_files(infiles, threshold, T_start, T_end):
     candlist = []
     num_v_DMstr = {}
     for ii, infile in enumerate(infiles):
-        filenmbase = infile.rstrip(".singlepulse")
+        if infile.endswith(".singlepulse"):
+            filenmbase = infile[:infile.rfind(".singlepulse")]
+        else:
+            filenmbase = infile
         info = infodata.infodata(filenmbase+".inf")
         DMstr = "%.2f"%info.DM
         DMs.append(info.DM)
@@ -239,10 +242,12 @@ def main():
     default_downfacts = [2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150]
 
     if args[0].endswith(".singlepulse"):
-        filenmbase = args[0].rstrip(".singlepulse")
+        filenmbase = args[0][:args[0].rfind(".singlepulse")]
         dosearch = False
+    else if args[0].endswith(".dat"):
+        filenmbase = args[0][:args[0].rfind(".dat")]
     else:
-        filenmbase = args[0].rstrip(".dat")
+        filenmbase = args[0]
 
     # Don't do a search, just read results and plot
     if not dosearch:
@@ -257,7 +262,10 @@ def main():
 
         # Loop over the input files
         for filenm in args:
-            filenmbase = filenm.rstrip(".dat")
+            if filenm.endswith(".dat"):
+                filenmbase = filenm[:filenm.rfind(".dat")]
+            else:
+                filenmbase = filenm
             info = infodata.infodata(filenmbase+".inf")
             DMstr = "%.2f"%info.DM
             DMs.append(info.DM)

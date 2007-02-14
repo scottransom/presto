@@ -157,7 +157,7 @@ class pfd:
                 # If this doesn't work, we should try to use the barycentering calcs
                 # in the presto module.
                 try:
-                    self.polycos = polycos.polycos(self.candnm.lstrip("PSR_"),
+                    self.polycos = polycos.polycos(self.candnm[4:],
                                                    filenm=self.pfd_filename+".polycos")
                     midMJD = self.tepoch + 0.5*self.T/86400.0
                     self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
