@@ -170,6 +170,9 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO * spigot)
    /* RA and DEC of observation (deg, J2000) */
    hgetr8(hdr, "RA", &(spigot->ra));
    hgetr8(hdr, "DEC", &(spigot->dec));
+   /* Al and El of GBT in degrees */
+   hgetr8(hdr, "AZIMUTH", &(spigot->az));
+   hgetr8(hdr, "ELEVATN", &(spigot->el));
    /* Polarization recorded (L or C) */
    hgets(hdr, "POL-TYPE", 8, spigot->pol_type);
    remove_whitespace(spigot->pol_type);
@@ -409,6 +412,8 @@ void print_SPIGOT_header(SPIGOT_INFO * spigot)
    deg2dms(spigot->dec, &h_or_d, &m, &s);
    ra_dec_to_string(pos_str, h_or_d, m, s);
    printf("                DEC (J2000) = %s\n", pos_str);
+   printf("              Azimuth (deg) = %-17.15g\n", spigot->az);
+   printf("            Elevation (deg) = %-17.15g\n", spigot->el);
    printf(" Planned Obs Duration (sec) = %-17.15g\n",
           spigot->tot_num_samples * spigot->dt_us / 1e6);
    printf("                T_samp (us) = %-17.15g\n", spigot->dt_us);

@@ -24,6 +24,8 @@ typedef struct SPIGOT_INFO{
   char corr_mode[8];	  /* Spigot correlator mode */
   double ra;	          /* RA  of observation (decimal deg, J2000) */
   double dec;	          /* Dec of observation (decimal deg, J2000) */
+  double az;	          /* Azimuth (commanded) at the start of the obs (deg) */
+  double el;	          /* Elevation (commanded) at the start of the obs (deg) */
   double dt_us;		  /* Sampling time (us) */
   double freq_ctr;	  /* Sky center freq (MHz) for sampler 1 */
   double bandwidth;	  /* Bandwidth (MHz) for sampler 1 */

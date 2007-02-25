@@ -352,10 +352,10 @@ void print_filterbank_header(sigprocfb * fb)
    printf("      Total Bandwidth (MHz) = %-17.15g\n", fabs(fb->foff * fb->nchans));
    printf("      Number of IFs present = %d\n", fb->nifs);
    printf("            Bits per sample = %d\n", fb->nbits);
-   if (fb->az_start != 0.0)
+   if (fb->az_start != 0.0 || fb->za_start != 0.0){
       printf("        Start azimuth (deg) = %.3f\n", fb->az_start);
-   if (fb->za_start != 0.0)
       printf("   Start zenith angle (deg) = %.3f\n", fb->za_start);
+   }
    if (fb->sumifs)
       printf(" Note:  IFs were summed in hardware.\n");
 }
