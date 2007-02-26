@@ -146,8 +146,12 @@ def dms_to_rad(deg, min, sec):
     dms_to_rad(deg, min, sec):
        Convert degrees, minutes, and seconds of arc to radians.
     """
-    if (deg < 0.0): sign = -1
-    else: sign = 1
+    if (deg < 0.0):
+        sign = -1
+    elif (deg==0.0 and (min < 0.0 or sec < 0.0)):
+        sign = -1
+    else:
+        sign = 1
     return sign * ARCSECTORAD * \
            (60.0 * (60.0 * Num.fabs(deg) +
                     Num.fabs(min)) + Num.fabs(sec))
@@ -220,6 +224,8 @@ def dec_to_rad(dec_string):
        radians.
     """
     d, m, s = dec_string.split(":")
+    if "-" in d and int(d)==0:
+        m, s = '-'+m, '-'+s
     return dms_to_rad(int(d), int(m), float(s))
 
 def delta_m(flux_factor):
