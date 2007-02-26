@@ -511,7 +511,12 @@ void ra_dec_from_string(char *radec, int *h_or_d, int *m, double *s)
 /*   radec is a string with J2000 RA  in the format 'hh:mm:ss.ssss' */
 /*   or a string with J2000 DEC in the format 'dd:mm:ss.ssss'       */
 {
+   radec = remove_whitespace(radec);
    sscanf(radec, "%d:%d:%lf\n", h_or_d, m, s);
+   if (radec[0]=='-' && *h_or_d==0) {
+      *m = -*m;
+      *s = -*s;
+   }
 }
 
 
@@ -552,8 +557,8 @@ double dms2rad(int deg, int min, double sec)
 {
    double sign = 1.0;
 
-   if (deg < 0.0)
-      sign = -1.0;
+   if (deg < 0) sign = -1.0;
+   if (deg==0 && (min < 0 || sec < 0.0)) sign = -1.0;
    return sign * ARCSEC2RAD * (60.0 * (60.0 * (double) abs(deg)
                                        + (double) abs(min)) + fabs(sec));
 }
