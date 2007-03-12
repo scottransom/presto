@@ -1159,11 +1159,11 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
       for (ii = 0; ii < cmd->nsub; ii++) {
          for (jj = 0; jj < dsworklen; jj++) {
             infloat = lastdsdata[ii + (cmd->nsub * jj)];
-            subsdata[ii][jj] = (short) infloat;
-            if ((float) subsdata[ii][jj] != infloat)
-               printf
-                   ("Warning:  We are incorrectly converting subband data! float = %f  short = %d\n",
-                    infloat, subsdata[ii][jj]);
+            subsdata[ii][jj] = (short) (infloat + 0.5);
+            //if ((float) subsdata[ii][jj] != infloat)
+            //   printf
+            //       ("Warning:  We are incorrectly converting subband data! float = %f  short = %d\n",
+            //         infloat, subsdata[ii][jj]);
          }
       }
    }
