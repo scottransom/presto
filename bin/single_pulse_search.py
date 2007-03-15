@@ -5,7 +5,6 @@ import numpy as Num
 from sets import *
 from presto import rfft
 from psr_utils import coord_to_string
-from TableIO import readColumns
 from optparse import OptionParser
 from Pgplot import *
 
@@ -196,7 +195,7 @@ def read_singlepulse_files(infiles, threshold, T_start, T_end):
         if ii==0:
             info0 = info
         if os.stat(infile)[6]:
-            cands = Num.transpose(readColumns(infile, "#"))
+            cands = scipy.io.read_array(infile)
             for cand in cands:
                 if cand[2] < T_start: continue
                 if cand[2] > T_end: break
