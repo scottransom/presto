@@ -195,13 +195,18 @@ def read_singlepulse_files(infiles, threshold, T_start, T_end):
         if ii==0:
             info0 = info
         if os.stat(infile)[6]:
-            cands = scipy.io.read_array(infile)
-            for cand in cands:
-                if cand[2] < T_start: continue
-                if cand[2] > T_end: break
-                if cand[1] >= threshold:
-                    candlist.append(candidate(*cand))
-                    num_v_DMstr[DMstr] += 1
+            try:
+                cands = scipy.io.read_array(infile)
+                if len(cands.shape)==1:
+                    cands = Num.asarray([cands])
+                for cand in cands:
+                    if cand[2] < T_start: continue
+                    if cand[2] > T_end: break
+                    if cand[1] >= threshold:
+                        candlist.append(candidate(*cand))
+                        num_v_DMstr[DMstr] += 1
+            except:  # No candidates in the file
+                IndexError
     DMs.sort()
     return info0, DMs, candlist, num_v_DMstr
 
