@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import bisect, os, sys, getopt, infodata
-import scipy, scipy.signal, ppgplot
+import scipy, scipy.io, scipy.signal, ppgplot
 import numpy as Num
 from sets import *
 from presto import rfft
