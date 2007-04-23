@@ -1092,7 +1092,7 @@ int main(int argc, char *argv[])
          }
          partnum = (int) floor(event * dtmp);
          phase = event * (event * (event * tfdd + tfd) + tf);
-         binnum = (int) ((phase - (int) phase) * search.proflen);
+         binnum = (int) ((phase - (long long) phase) * search.proflen);
          search.rawfolds[partnum * search.proflen + binnum] += 1.0;
       }
       if (binary) {
