@@ -652,6 +652,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
       }                         /* else {
                                    cpgpap(10.0, 1.0);
                                    } */
+      cpgslw(2);
       cpgsch(0.8);
 
       /* Time versus phase */
