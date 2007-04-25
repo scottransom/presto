@@ -1,13 +1,125 @@
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
 import bisect
-import numpy.core.umath as umath
 import numpy as Num
 from psr_constants import PI, TWOPI, PIBYTWO
 from simple_roots import newton_raphson
 from scipy.special import iv, chdtri, ndtr, ndtri
+from cosine_rand import *
+
+def sine_events(pulsed_frac, Nevents, phase=0.0):
+    """
+    sine_events(pulsed_frac, Nevents, phase=0.0):
+       Return an array of 'Nevents' of phase values [0,1)
+       simulating a folded profile with a pulsed fraction
+       'pulsed_frac', a phase offset 'phase', and with a
+       sinusoidal pulse profile.
+    """
+    Nsrc = int(pulsed_frac*Nevents+0.5)
+    Nbak = Nevents - Nsrc
+    phases = Num.zeros(Nevents, dtype=Num.float)
+    phases[:Nsrc] += cosine_rand(Nsrc) + phase
+    phases[Nsrc:] += Num.random.random(Nbak)
+    phases = Num.fmod(phases, 1.0)
+    phases[phases<0.0] += 1.0
+    return phases
+
+def gaussian_events(pulsed_frac, Nevents, fwhm, phase=0.0):
+    """
+    gaussian_events(pulsed_frac, Nevents, phase=0.0):
+       Return an array of 'Nevents' of phase values [0,1)
+       simulating a folded profile with a pulsed fraction
+       'pulsed_frac', a phase offset 'phase', and with a
+       gaussian pulse profile of width 'fwhm'
+    """
+    sigma = fwhm / 2.35482
+    Nsrc = int(pulsed_frac*Nevents+0.5)
+    Nbak = Nevents - Nsrc
+    phases = Num.zeros(Nevents, dtype=Num.float)
+    phases[:Nsrc] += Num.random.standard_normal(Nsrc)*sigma + phase
+    phases[Nsrc:] += Num.random.random(Nbak)
+    phases = Num.fmod(phases, 1.0)
+    phases[phases<0.0] += 1.0
+    return phases
+
+def harm_to_sum(fwhm):
+    """
+    harm_to_sum(fwhm):
+       For an MVMD profile of width 'fwhm', returns the
+       optimal number of harmonics to sum incoherently
+    """
+    fwhms = [0.0108, 0.0110, 0.0113, 0.0117, 0.0119, 0.0124, 0.0127, 0.0132,
+             0.0134, 0.0140, 0.0145, 0.0151, 0.0154, 0.0160, 0.0167, 0.0173,
+             0.0180, 0.0191, 0.0199, 0.0207, 0.0220, 0.0228, 0.0242, 0.0257,
+             0.0273, 0.0295, 0.0313, 0.0338, 0.0366, 0.0396, 0.0437, 0.0482,
+             0.0542, 0.0622, 0.0714, 0.0836, 0.1037, 0.1313, 0.1799, 0.2883]
+    return len(fwhms)-bisect.bisect(fwhms, fwhm)+1
+
+def DFTexact(times, f, maxnumharms=20):
+    """
+    DFTexact(times, f, maxnumharms=20):
+       Return an array of 'maxnumharms' complex amplitudes
+       corresponding to the harmonics of the 'times' (in sec)
+       with a fundamental at frequency 'f' Hz.
+    """
+    const = -TWOPI*(Num.arange(maxnumharms, dtype=Num.float)+1.0)*f*complex(0.0, 1.0)
+    return Num.add.reduce(Num.exp(Num.outerproduct(const,times)), axis=1)
+
+def incoherent_sum(amps):
+    """
+    incoherent_sum(amps):
+       Return the incoherent sum of an array of complex Fourier
+       amplitudes.  Usually these correspond to the complex
+       harmonics of a periodic signal.
+    """
+    return Num.add.accumulate(Num.abs(amps)**2.0)
+
+def coherent_sum(amps):
+    """
+    coherent_sum(amps):
+       Return the coherent sum (i.e. including phase information)
+       of an array of complex Fourier amplitudes.  Usually these
+       correspond to the complex harmonics of a periodic signal.
+    """
+    phss = Num.arctan2(amps.imag, amps.real)
+    phs0 = phss[0]
+    phscorr = phs0 - Num.fmod(Num.arange(1.0, len(amps)+1,
+                                         dtype=Num.float)*phs0, TWOPI)
+    sumamps = Num.add.accumulate(amps*Num.exp(complex(0.0, 1.0)*phscorr))
+    return Num.abs(sumamps)**2.0
+
+def Htest_exact(phases, maxnumharms=20):
+    """
+    Htest_exact(phases, maxnumharms=20):
+       Return an exactly computed (i.e. unbinned) H-test statistic
+       for periodicity for the events with folded phases 'phases' [0,1).
+       Also return the best number of harmonics.  The H-statistic and
+       harmonic number are returned as a tuple: (hstat, harmnum)
+    """
+    N = len(phases)
+    Zm2s = Num.zeros(maxnumharms, dtype=Num.float)
+    rad_phases = TWOPI*phases
+    for harmnum in range(1, maxnumharms+1):
+        phss = harmnum*rad_phases
+        Zm2s[harmnum-1] = 2.0/N*(Num.add.reduce(Num.sin(phss))**2.0+
+                                 Num.add.reduce(Num.cos(phss))**2.0)
+    hs = Num.add.accumulate(Zm2s) - \
+         4.0*Num.arange(1, maxnumharms+1, dtype=Num.float)+4.0
+    bestharm = hs.argmax()
+    # Note that we are returning the _non_ Leahy normalized H!
+    return (hs[bestharm]/2.0, bestharm+1)
+
+def Hstat_prob(h):
+    """
+    Hstat_prob(h):
+       Return the probability associated with an H-test statistic
+       of value 'h'.
+    """
+    h *= 2.0
+    if (h <= 23.0):
+        return 1.210597 * Num.exp(-0.45901*h + 0.0022900*h*h)
+    elif (h < 50.0):
+        return 0.9999755 * Num.exp(-0.39802*h)
+    else:  # I need something here...
+        return Num.exp(-0.398*h)
 
 def gauss_sigma_to_prob(sigma):
     """
@@ -83,7 +195,7 @@ def power_sigma(signal_power, n=1):
         given a signal with intrinsic power 'signal_power' and
         'n' summed powers.  This is from equation 14 in Groth, 1975.
     """
-    return umath.sqrt(power_variance(signal_power, n))
+    return Num.sqrt(power_variance(signal_power, n))
 
 def log_fact_table(maxn):
     """
@@ -93,7 +205,7 @@ def log_fact_table(maxn):
     """
     table = Num.arange(maxn+1, dtype='d')
     table[0] = 1.0
-    return Num.add.accumulate(umath.log(table))
+    return Num.add.accumulate(Num.log(table))
 
 def binning_factor(freq, nyquist_freq):
     """
@@ -109,7 +221,7 @@ def binning_factor(freq, nyquist_freq):
     if (x == 0.0):
         return 1.0
     else:
-        return (umath.sin(x) / x)
+        return (Num.sin(x) / x)
 
 def max_noise_power(bins, n=1, confidence=0.99):
     """
@@ -122,7 +234,7 @@ def max_noise_power(bins, n=1, confidence=0.99):
         known as P_threshold.
     """
     if (n==1):
-        return -umath.log((1.0 - confidence) / bins)
+        return -Num.log((1.0 - confidence) / bins)
     else:
         return 0.5 * chdtri(2.0 * n, (1.0 - confidence) / bins)
 
@@ -135,16 +247,16 @@ def prob_power_series(power, signal_power, n=1, TOL=1.0e-14):
         This method evaluates the integral using an infinite
         sum and is equation 16 in Groth, 1975.
     """
-    fact = umath.exp(-(power + signal_power))
+    fact = Num.exp(-(power + signal_power))
     lf = log_fact_table((power + signal_power) * 5)
-    lp, lps = umath.log(power), umath.log(signal_power)
+    lp, lps = Num.log(power), Num.log(signal_power)
     sum = 0.0
     term = 1.0
     m = 0
     while (1):
         kmax = m + n
-        term = fact * Num.add.reduce(umath.exp((Num.arange(kmax)*lp + m*lps) - \
-                                               (lf[0:kmax] + lf[m])))
+        term = fact * Num.add.reduce(Num.exp((Num.arange(kmax)*lp + m*lps) - \
+                                             (lf[0:kmax] + lf[m])))
         sum = sum + term
         if (m > signal_power and term < TOL):  break
         m = m + 1
@@ -161,14 +273,14 @@ def prob_power_integral(power, signal_power, n=1):
     """
     def integrand(theta, p, ps, n):
         t1 = 2 * n * theta
-        t2 = umath.sin(2.0 * theta)
+        t2 = Num.sin(2.0 * theta)
         A = t1 + ps * t2
         B = t1 + (ps - p) * t2
-        sintheta = umath.sin(theta)
+        sintheta = Num.sin(theta)
         sin2theta = sintheta**2.0
-        return (umath.exp(-2.0 * ps * sin2theta) *
-                (umath.sin(A - theta) - umath.exp(-2.0 * p * sin2theta) *
-                 umath.sin(B - theta)) / sintheta)
+        return (Num.exp(-2.0 * ps * sin2theta) *
+                (Num.sin(A - theta) - Num.exp(-2.0 * p * sin2theta) *
+                 Num.sin(B - theta)) / sintheta)
     (val, err) = quad(integrand, 0.0, PIBYTWO, (power, signal_power, n))
     return val/PI
 
@@ -182,8 +294,8 @@ def power_probability(power, signal_power, n=1):
         two functions (which integrate it from 0 to P)
     """
     return (power / signal_power)**(0.5 * (n - 1)) * \
-           umath.exp(-(power + signal_power)) * \
-           iv(n - 1.0, 2 * umath.sqrt(power * signal_power))
+           Num.exp(-(power + signal_power)) * \
+           iv(n - 1.0, 2 * Num.sqrt(power * signal_power))
 
 def required_signal_power(power, n=1, confidence=0.99):
     """
@@ -283,49 +395,7 @@ def pulsed_fraction_limit(numphot, power_limit):
         contain a total of 'numphot' photons and the largest
         measured power is 'power_limit'.
     """
-    return umath.sqrt(4.0 * (power_limit - 1.0) / numphot)
-
-def exact_DFT(times, f, maxnumharms=20):
-    """
-    exact_DFT(times, f, maxnumharms=20):
-        Return an array of maxnumharms complex amplitudes
-            corresponding to the the harmonics of the times
-            (in sec) with a fundamental at frequency f
-    """
-    const = -TWOPI*(Num.arange(maxnumharms, dtype='d')+1.0)*f*complex(0.0, 1.0)
-    return umath.add.reduce(umath.exp(Num.outerproduct(const,times)), axis=1)
-
-def exact_H_test(phases, maxnumharms=20):
-    """
-    exact_H_test(phases, maxnumharms=20):
-        Return the value of 'h' and the corresponding harmonic
-            after calculating an 'exact' H-test on the phases (0-1).
-    """
-    N = len(phases)
-    Zm2s = Num.zeros(maxnumharms, 'd')
-    rad_phases = TWOPI*phases
-    for harmnum in range(1, maxnumharms+1):
-        phss = harmnum*rad_phases
-        Zm2s[harmnum-1] = 2.0/N * (umath.add.reduce(umath.sin(phss))**2.0 +
-                                   umath.add.reduce(umath.cos(phss))**2.0)
-    hs = umath.add.accumulate(Zm2s) - \
-         4.0*Num.arange(1, maxnumharms+1, dtype='d') + 4.0
-    bestharm = Num.argmax(hs)
-    return (hs[bestharm]/2.0, bestharm+1)
-
-def H_prob(h):
-    """
-    H_prob(h):
-        Return the probability of getting a vaule 'h' or greater
-            from the H-test.
-    """
-    h *= 2.0
-    if (h <= 23.0):
-        return 1.210597*umath.exp(-0.45901*h+0.0022900*h*h)
-    elif (h < 50.0):
-        return 0.9999755*umath.exp(-0.39802*h)
-    else:
-        return 0.0
+    return Num.sqrt(4.0 * (power_limit - 1.0) / numphot)
 
 if __name__=="__main__":
     from psr_utils import *
@@ -337,9 +407,9 @@ if __name__=="__main__":
     plotxy(prof)
     closeplot()
     fprof = rfft(prof)
-    fprof = fprof/umath.sqrt(fprof[0].real)
+    fprof = fprof/Num.sqrt(fprof[0].real)
     pows = spectralpower(fprof)
-    tcsum =  umath.add.accumulate(umath.sqrt(pows[1:10]))**2.0
+    tcsum =  Num.add.accumulate(Num.sqrt(pows[1:10]))**2.0
     csum = coherent_sum(fprof[1:10])
     isum = incoherent_sum(fprof[1:10])
     print isum
