@@ -1247,7 +1247,7 @@ void get_calibrated_lags(void *rawlags, float *calibrated_lags)
 
 
 void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
-                          IFs ifs, float power_offset)
+                          IFs ifs, float lag_scaling)
 /* This routine converts a single point of SPIGOT lags   */
 /* into a filterbank style array of bytes.               */
 {
@@ -1270,10 +1270,11 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       scale_rawlags(rawdata, index);
 
       /* Apply the user-specified scaling */
-      if (power_offset != 0.0) {
-         lags[0] -= power_offset;
-         //for (ii = 0; ii < numchan_st; ii++)
-         //   lags[ii] -= tmp_offset;
+      if (lag_scaling != 0.0) {
+         //lags[0] += lag_scaling;
+         // Should we scale all the lags?
+         for (ii = 0; ii < numchan_st; ii++)
+            lags[ii] *= lag_scaling;
       }
 
 #if 0

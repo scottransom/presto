@@ -83,6 +83,11 @@ int main(int argc, char *argv[])
    }
 
    /* Attempt to read a file with lag scalings in it */
+   split_path_file(argv[argnum], &path, &filenm);
+   strncpy(filenmbase, filenm, strlen(filenm) - 5);
+   filenmbase[strlen(filenm) - 5] = '\0';
+   free(path);
+   free(filenm);
    sprintf(scalingnm, "%s.scaling", filenmbase);
    if ((scalingfile = fopen(scalingnm, "rb"))) {
       /* Determine the length of the file */
@@ -167,14 +172,14 @@ int main(int argc, char *argv[])
       fclose(infiles[filenum]);
       if (outfile != stdout)
          fclose(outfile);
+      free(path);
+      free(filenm);
    }
    if (outfile != stdout)
       fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
    if (scaling)
       free(scalings);
    free(spigots);
-   free(path);
-   free(filenm);
    free(infiles);
    return 0;
 }
