@@ -1429,6 +1429,14 @@ int main(int argc, char *argv[])
             /* Fold the frequency sub-bands */
 
             for (kk = 0; kk < cmd->nsub; kk++) {
+               /* This is a quick hack to see if it will remove power drifts */
+               if (cmd->runavgP && (numread > 0)) {
+                  int dataptr;
+                  double avg, var;
+                  avg_var(data + kk * worklen, numread, &avg, &var);
+                  for (dataptr = 0; dataptr < worklen; dataptr++)
+                     data[kk * worklen + dataptr] -= avg;
+               }
                fold(data + kk * worklen, numread, search.dt,
                     fold_time0,
                     search.rawfolds + (ii * cmd->nsub + kk) * search.proflen,
