@@ -5,6 +5,8 @@
 #include "fitsfile.h"
 #include "fitshead.h"
 
+extern void get_calibrated_lags(void *rawlags, float *calibrated_lags);
+
 void spigot2sigprocfb(SPIGOT_INFO * spigot, sigprocfb * fb, char *filenmbase)
 {
    int h_or_d, m;
@@ -55,14 +57,14 @@ void spigot2sigprocfb(SPIGOT_INFO * spigot, sigprocfb * fb, char *filenmbase)
 
 int main(int argc, char *argv[])
 {
-   FILE **infiles, *outfile = NULL, *scalingfile;
+   FILE **infiles, *outfile = NULL, *scalingfile, *zerolagfile;
    int filenum, argnum = 1, ii = 0, ptsperblock, numlags, numfiles;
    int bytes_per_read, scaling = 0, numscalings, output = 1;
    long long N;
    char *path, *filenm;
-   char outfilenm[200], filenmbase[200], scalingnm[200], rawlags[4096];
+   char outfilenm[200], filenmbase[200], zerolagnm[200], scalingnm[200], rawlags[4096];
    unsigned char output_samples[2048];
-   float *scalings = NULL;
+   float *scalings = NULL, lags[2048];
    double dt, T;
    SPIGOT_INFO *spigots;
    sigprocfb fb;
@@ -82,12 +84,17 @@ int main(int argc, char *argv[])
           ("\nConverting SPIGOT FITs lags into SIGPROC filterbank format...\n\n");
    }
 
-   /* Attempt to read a file with lag scalings in it */
    split_path_file(argv[argnum], &path, &filenm);
    strncpy(filenmbase, filenm, strlen(filenm) - 5);
    filenmbase[strlen(filenm) - 5] = '\0';
    free(path);
    free(filenm);
+
+   /* Open a file to store the zerolags */
+   sprintf(zerolagnm, "%s.zerolags", filenmbase);
+   zerolagfile = chkfopen(zerolagnm, "wb");
+
+   /* Attempt to read a file with lag scalings in it */
    sprintf(scalingnm, "%s.scaling", filenmbase);
    if ((scalingfile = fopen(scalingnm, "rb"))) {
       /* Determine the length of the file */
@@ -151,6 +158,9 @@ int main(int argc, char *argv[])
 
       /* Loop over the samples in the file */
       while (chkfread(rawlags, bytes_per_read, 1, infiles[filenum])) {
+         /* Correct the lags so we can write the zerolag */
+         get_calibrated_lags(rawlags, lags);
+         chkfwrite(lags, sizeof(float), 1, zerolagfile);
          if (scaling)
             convert_SPIGOT_point(rawlags, output_samples, SUMIFS, scalings[ii]);
          else
@@ -175,6 +185,7 @@ int main(int argc, char *argv[])
       free(path);
       free(filenm);
    }
+   fclose(zerolagfile);
    if (outfile != stdout)
       fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
    if (scaling)
