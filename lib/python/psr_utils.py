@@ -139,7 +139,10 @@ def rad_to_dms(rad):
     arc = (arc - d) * 60.0
     m = int(arc)
     s = (arc - m) * 60.0
-    return (sign * d, m, s)
+    if sign==-1 and d==0:
+        return (sign * d, sign * m, sign * s)
+    else:
+        return (sign * d, m, s)
 
 def dms_to_rad(deg, min, sec):
     """
