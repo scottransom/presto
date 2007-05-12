@@ -1165,7 +1165,19 @@ void scale_rawlags(void *rawdata, int index)
          lags[ii] = data[ii + index] * lag_factor[ii] + lag_offset[ii];
    } else if (bits_per_lag_st == 8) {
       char *data = (char *) rawdata;
-      for (ii = 0; ii < numchan_st; ii++)
+      /* Attempt to fix zerolags that have either over-flowed or under-flowed */
+      {
+         lag0 = (int) data[index];
+         if (abs(lag0 - last_lag0) > 170) {   // 170 is quite arbitrary...
+            if (lag0 < last_lag0)
+               lag0 += 256;
+            else
+               lag0 -= 256;
+         }
+         lags[0] = lag0 * lag_factor[0] + lag_offset[0];
+         last_lag0 = lag0;
+      }
+      for (ii = 1; ii < numchan_st; ii++)
          lags[ii] = data[ii + index] * lag_factor[ii] + lag_offset[ii];
    } else if (bits_per_lag_st == 4) {
       int jj;
