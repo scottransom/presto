@@ -329,6 +329,10 @@ for psr in psrs:
         psr.To = 54063.840229
         psr.pb = 95.174120296
         psr.w  = 141.6524672
+        psr.dm = 297.53
+        psr.l  = 37.336
+        psr.b  = -1.014
+        psr.dist = 6.36
     if psr.name=="1614-2230":
         psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
         psr.x  = 11.291206
@@ -336,6 +340,10 @@ for psr in psrs:
         psr.To = 52334.287405
         psr.pb = 8.68661942 
         psr.w  = 129.190240
+        psr.dm = 34.494
+        psr.l  = 352.6357
+        psr.b  = 20.1922
+        psr.dist = 1.27
     if psr.name=="1614-2318":
         psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
         psr.x  = 1.327490
@@ -343,6 +351,10 @@ for psr in psrs:
         psr.To = 52819.878171
         psr.pb = 3.15238573
         psr.w  = 0.0
+        psr.dm = 52.43
+        psr.l  = 351.91856
+        psr.b  = 19.74496
+        psr.dist = 1.80
     if psr.name=="1744-3922":
         psr.pd = 1.64533617e-18
         psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
@@ -351,6 +363,14 @@ for psr in psrs:
         psr.To = 52608.255816212
         psr.pb = 0.191406326680
         psr.w  = 360.0-53.552804
+    if psr.name=="1618-39":
+        psr.e = 0.0237
+    if psr.name=="1855+09":
+        psr.e = 0.000022
+    if psr.name=="1738+0333":
+        psr.e = 0.0000001
+    if psr.name=="1933-6211":
+        psr.e = 0.000001
 
 # If calling this as a main program, then write out the new pulsars.cat file
 if __name__ == '__main__' :
