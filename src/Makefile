@@ -38,18 +38,18 @@ CLIG = /usr/bin/clig
 
 # For Pentium IVs, use -march=pentium4
 # For Opterons, use -march=opteron
-# For Athlons,  use -march=k6 or -march=k7
-CC = gcc-3.4
-FC = g77-3.4
-#CC = gcc
-#FC = gfortran
+# For Intel Core2 chips, use -march=nocona
+# For gcc-4.X, use -mtune=native
+CC = gcc
+# FC = gfortran
+FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP\
 	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1\
-	-g -O3 -ffast-math -march=pentium4 -mfpmath=sse -msse2 -mmmx -Wall -W
+	-g -O3 -ffast-math -Wall -W -fPIC
 #	-g -Wall -W
 CLINKFLAGS = $(CFLAGS)
-FFLAGS = -g -O3 -ffast-math -march=pentium4 -mfpmath=sse -msse2 -mmmx -Wall -W 
+FFLAGS = -g -O3 -ffast-math -Wall -W -fPIC
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) -shared -o
 LINKCOMMAND2 = ar rcs
@@ -116,6 +116,16 @@ libpresto.so: $(PRESTOOBJS)
 libpresto.a: $(PRESTOOBJS)
 	$(LINKCOMMAND2) $@ $(PRESTOOBJS)
 
+libsla: libsla.so
+	@cd ../lib ; cp -sf ../src/libsla.so .
+
+libsla.so:
+	@cd slalib ; $(FC) $(FFLAGS) -fno-second-underscore -c -I. *.f *.F
+	rm slalib/sla_test.o
+	@cd slalib ; $(FC) -shared -o ../libsla.so -fno-second-underscore *.o
+	@cd slalib ; $(FC) -o sla_test sla_test.f -fno-second-underscore -L.. -lsla
+	slalib/sla_test
+
 text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
@@ -134,6 +144,7 @@ links:
 	cd ../bin ; find ../src -type f -perm 755 | xargs -n 1 -iXXX cp -fs XXX .
 	cd ../bin ; find ../src -type f -perm 775 | xargs -n 1 -iXXX cp -fs XXX .
 	rm -f ../bin/libpresto.so
+	rm -f ../bin/libsla.so
 
 geomview: togeomview
 
@@ -294,11 +305,12 @@ exploredat: exploredat.o $(PLOT2DOBJS)
 
 clean:
 	rm -f *.o *~ *#
+	rm -f slalib/*.o slalib/sla_test
 
 cleaner: clean
 	find . -type f -perm 755 | xargs rm -f
 	find . -type f -perm 775 | xargs rm -f
-	rm -f libpresto.*
+	rm -f libpresto.* libsla.*
 
 squeaky:  cleaner
 	rm -f *.dat *.fft *.inf fftw_wisdom.txt
