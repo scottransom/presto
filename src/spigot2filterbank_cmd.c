@@ -1012,4 +1012,3 @@ parseCmdline(int argc, char **argv)
   }
   /*@-compmempass*/  return &cmd;
 }
-
