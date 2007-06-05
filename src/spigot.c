@@ -246,7 +246,7 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO * spigot)
    /* Number of spectra in this file */
    hgeti4(hdr, "NAXIS2", &(spigot->samples_per_file));
    /* Total duration of the file in sec */
-   spigot->file_duration = spigot->samples_per_file * 1e6 * spigot->dt_us;
+   spigot->file_duration = spigot->samples_per_file * 1e-6 * spigot->dt_us;
    /* Total (planned) number of spectra */
    hgeti4(hdr, "SPECTRA", &(spigot->tot_num_samples));
    /* The initial spectrum number in the file  */
@@ -1355,22 +1355,22 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
             if (numchan_st==2048) {
                double left_lo = 0, right_lo = 0;
                
-               printf("Using modified spectra scaling for 8-bit 2048-lag data...\n");
+               // printf("Using modified spectra scaling for 8-bit 2048-lag data...\n");
                avg_var(lags+1, 5, &left_lo, &var);
                avg_var(lags+numchan_st-7, 5, &right_lo, &var);
                avg_var(lags+1, numchan_st-1, &avg, &var);
                if (left_lo < right_lo) min = left_lo;
                else  min = right_lo;
-               fprintf(stderr, "  freq[0] = %f  'lo'-freq avg = %f  'hi'-freq avg = %f\n", lags[0], left_lo, right_lo);
-               fprintf(stderr, "  freqs_mean = %f  freqs_std = %f  freq_max1,2,3 = %f,%f,%f\n", avg, sqrt(var), max, max2, max3);
+               //fprintf(stderr, "  freq[0] = %f  'lo'-freq avg = %f  'hi'-freq avg = %f\n", lags[0], left_lo, right_lo);
+               //fprintf(stderr, "  freqs_mean = %f  freqs_std = %f  freq_max1,2,3 = %f,%f,%f\n", avg, sqrt(var), max, max2, max3);
             }
             range = max3 - min;
             //  The maximum power tends to vary more (due to RFI) than the
             //  minimum power.  (I think)
             scale_max = max3 + 1.0 * range;
             scale_min = min  - 0.5 * range;
-            if (numchan_st==2048)
-               fprintf(stderr, "  scale_min = %f  scale_max = %f\n", scale_min, scale_max);
+            //if (numchan_st==2048)
+            //   fprintf(stderr, "  scale_min = %f  scale_max = %f\n", scale_min, scale_max);
             /* Check to see if we are overriding the scaling values */
             {
                char *envval;

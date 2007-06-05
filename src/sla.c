@@ -37,6 +37,7 @@
 *     RFWS: R.F. Warren-Smith (STARLINK)
 *     DSB: David S. Berry (STARLINK)
 *     TIMJ: Tim Jenness (JAC, Hawaii)
+*     SMR: Scott M. RAnsom (NRAO)
 
 *  History:
 *     12-NOV-1996 (RFWS):
@@ -71,6 +72,9 @@
 *        Add SLA_DTT and SLA_DAT
 *     21-DEC-2006 (TIMJ):
 *        Add SLA_RDPLAN
+*     04-JUN-2007 (SMR):
+*        Add SLA_OAP and SLA_AMP
+
 *-
 */
 
@@ -264,6 +268,35 @@ void slaAddet ( double rm, double dm, double eq, double *rc, double *dc ) {
 }
 
 /* etc... */
+F77_SUBROUTINE(sla_amp)( DOUBLE(RA),
+                         DOUBLE(DA),
+                         DOUBLE(DATE),
+                         DOUBLE(EQ),
+                         DOUBLE(RM),
+                         DOUBLE(DM) );
+
+void slaAmp ( double ra, double da, double date, double eq,
+              double *rm, double *dm ) {
+   DECLARE_DOUBLE(RA);
+   DECLARE_DOUBLE(DA);
+   DECLARE_DOUBLE(DATE);
+   DECLARE_DOUBLE(EQ);
+   DECLARE_DOUBLE(RM);
+   DECLARE_DOUBLE(DM);
+   RA = ra;
+   DA = da;
+   DATE = date;
+   EQ = eq;
+   F77_CALL(sla_amp)( DOUBLE_ARG(&RA),
+                      DOUBLE_ARG(&DA),
+                      DOUBLE_ARG(&DATE),
+                      DOUBLE_ARG(&EQ),
+                      DOUBLE_ARG(&RM),
+                      DOUBLE_ARG(&DM) );
+   *rm = RM;
+   *dm = DM;
+}
+
 F77_SUBROUTINE(sla_ampqk)( DOUBLE(RA),
                            DOUBLE(DA),
                            DOUBLE_ARRAY(AMPRMS),
@@ -1506,6 +1539,91 @@ void slaDh2e ( double az, double el, double phi, double *ha, double *dec ) {
    *dec = DEC;
 }
 
+
+F77_SUBROUTINE(sla_oap)( CHARACTER(TYPE),
+                         DOUBLE(OB1),
+                         DOUBLE(OB2),
+                         DOUBLE(DATE),
+                         DOUBLE(DUT),
+                         DOUBLE(ELONGM),
+                         DOUBLE(PHIM),
+                         DOUBLE(HM), 
+                         DOUBLE(XP), 
+                         DOUBLE(YP), 
+                         DOUBLE(TDK),
+                         DOUBLE(PMB),
+                         DOUBLE(RH), 
+                         DOUBLE(WL), 
+                         DOUBLE(TLR),
+                         DOUBLE(RAP),
+                         DOUBLE(DAP)
+                         TRAIL(TYPE) );
+
+/* Note that SLA insists that "c" has space for 10 characters + nul
+   and "name" has space for 40 characters + nul */
+
+void 
+slaOap ( char *type, double ob1, double ob2, double date,
+         double dut, double elongm, double phim, double hm,
+         double xp, double yp, double tdk, double pmb,
+         double rh, double wl, double tlr,
+         double *rap, double *dap ) {
+   
+   DECLARE_CHARACTER( TYPE, 1 );
+   DECLARE_DOUBLE( OB1 );
+   DECLARE_DOUBLE( OB2 );
+   DECLARE_DOUBLE( DATE );
+   DECLARE_DOUBLE( DUT );
+   DECLARE_DOUBLE( ELONGM );
+   DECLARE_DOUBLE( PHIM );
+   DECLARE_DOUBLE( HM ); 
+   DECLARE_DOUBLE( XP ); 
+   DECLARE_DOUBLE( YP ); 
+   DECLARE_DOUBLE( TDK );
+   DECLARE_DOUBLE( PMB );
+   DECLARE_DOUBLE( RH ); 
+   DECLARE_DOUBLE( WL ); 
+   DECLARE_DOUBLE( TLR );
+   DECLARE_DOUBLE( RAP );
+   DECLARE_DOUBLE( DAP );
+   OB1 = ob1;
+   OB2 = ob2;
+   DATE = date;
+   DUT = dut;
+   ELONGM = elongm;
+   PHIM = phim;
+   HM = hm;
+   XP = xp;
+   YP = yp;
+   TDK = tdk;
+   PMB = pmb;
+   RH = rh;
+   WL = wl;
+   TLR = tlr;
+   slaStringExport( type, TYPE, 1 );
+   
+   /* call the routine */
+   F77_CALL(sla_oap)( CHARACTER_ARG(TYPE),
+                      DOUBLE_ARG(&OB1),
+                      DOUBLE_ARG(&OB2),
+                      DOUBLE_ARG(&DATE),
+                      DOUBLE_ARG(&DUT),
+                      DOUBLE_ARG(&ELONGM),
+                      DOUBLE_ARG(&PHIM),
+                      DOUBLE_ARG(&HM), 
+                      DOUBLE_ARG(&XP), 
+                      DOUBLE_ARG(&YP), 
+                      DOUBLE_ARG(&TDK),
+                      DOUBLE_ARG(&PMB),
+                      DOUBLE_ARG(&RH), 
+                      DOUBLE_ARG(&WL), 
+                      DOUBLE_ARG(&TLR),
+                      DOUBLE_ARG(&RAP),
+                      DOUBLE_ARG(&DAP)
+                      TRAIL_ARG(TYPE) );
+   *rap = RAP;
+   *dap = DAP;
+}
 
 F77_SUBROUTINE(sla_obs)( INTEGER(I),
 			 CHARACTER(C),

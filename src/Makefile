@@ -77,7 +77,7 @@ INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o spigot.o sigproc_fb.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
-all: libpresto text xwin
+all: libpresto slalib text xwin
 
 # Default indentation is K&R style with no-tabs,
 # an indentation level of 3, and a line-length of 85
@@ -110,14 +110,14 @@ timetest:
 libpresto: libpresto.a libpresto.so
 	@cd ../lib ; cp -sf ../src/libpresto* .
 
+slalib: libsla.so
+	@cd ../lib ; cp -sf ../src/libsla.so .
+
 libpresto.so: $(PRESTOOBJS)
 	$(LINKCOMMAND1) $@ $(PRESTOOBJS)
 
 libpresto.a: $(PRESTOOBJS)
 	$(LINKCOMMAND2) $@ $(PRESTOOBJS)
-
-libsla: libsla.so
-	@cd ../lib ; cp -sf ../src/libsla.so .
 
 libsla.so:
 	@cd slalib ; $(FC) $(FFLAGS) -fno-second-underscore -c -I. *.f *.F
@@ -219,8 +219,8 @@ prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plo
 dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o
 	$(CC) $(CLINKFLAGS) -o $@ dump_spigot_zerolag.o spigot.o $(PRESTOLINK) -lm
 
-spigot2filterbank: spigot2filterbank.o spigot.o sigproc_fb.o
-	$(CC) $(CLINKFLAGS) -o $@ spigot2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
+spigot2filterbank: spigot2filterbank_cmd.c spigot2filterbank_cmd.o spigot2filterbank.o spigot.o sigproc_fb.o sla.o
+	$(CC) $(CLINKFLAGS) -o $@ spigot2filterbank.o spigot.o sigproc_fb.o spigot2filterbank_cmd.o sla.o $(PRESTOLINK) -lsla -lm
 
 GBT350filterbank: GBT350filterbank.o spigot.o sigproc_fb.o
 	$(CC) $(CLINKFLAGS) -o $@ GBT350filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm

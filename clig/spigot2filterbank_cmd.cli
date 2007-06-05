@@ -1,0 +1,32 @@
+# Admin data
+
+Name spigot2filterbank
+
+Usage "Converts raw GBT Spigot FITs files (lag data) into SIGPROC-style filterbank format."
+
+Version [exec date +%d%b%y]
+
+Commandline full_cmd_line
+
+# Options (in order you want them to appear)
+
+String -o       outfile  {Output file name (optional; for a single output file)}
+Flag  -nohdr    nohdr    {Output just raw data.  No headers are output}
+Flag  -stdout   stdout   {Send the data to STDOUT instead of files}
+Flag  -floats   floats   {Output data as 32-bit floats instead of 8-bit unsigned chars}
+Flag  -zerolags zerolags {Dump the raw spigot zerolags in 32-bit floats format to a file}
+Int  -skip     skip     {Number of spectra to skip from the initial value} \
+	-r 0 oo   -d 0
+Int  -numout   numout   {Number of spectra to output (default is all)} \
+	-r 0 oo
+Int  -downsamp downsamp {Number of spectra to average on output} \
+	-r 0 oo   -d 1
+Int  -lokill lokill {Number of  low-freq channels to ignore} \
+	-r 0 oo   -d 0
+Int  -hikill hikill {Number of high-freq channels to ignore} \
+	-r 0 oo   -d 0
+
+# Rest of command line:
+
+Rest fitsfiles {Input Spigot FITs files.} \
+    -c 1 1024
