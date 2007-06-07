@@ -124,16 +124,19 @@ def addto_hdr(paramname, value):
 def read_header(infile):
     """
     read_header(infile):
-       Read a SIGPROC-style header and return the keys/values in a dictionary.
+       Read a SIGPROC-style header and return the keys/values in a dictionary,
+          as well as the length of the header: (hdrdict, hdrlen)
     """
     hdrdict = {}
     if type(infile) == type("abc"):
-        infile = file(infile)
+        infile = open(infile)
     param = ""
     while (param != "HEADER_END"):
         param, val = read_hdr_val(infile, stdout=False)
         hdrdict[param] = val
-    return hdrdict
+    hdrlen = infile.tell()
+    infile.close()
+    return hdrdict, hdrlen
 
 if __name__ == "__main__":
     if len(sys.argv)==1:
