@@ -102,10 +102,6 @@ double *read_events(FILE *infile, int bin, int days, int *numevents,
 
 void hunt(double *xx, int n, double x, int *jlo);
 
-int dgels_(char *trans, int *mm, int *nn, int *nrhs, 
-	   double *aa, int *lda, double *bb, int *ldb, 
-	   double *work, int *lwork, int *info);
-
 double switch_pfdot(double pf, double pfdot);
 
 double switch_pfdotdot(double pf, double pfdot, double pfdotdot);
