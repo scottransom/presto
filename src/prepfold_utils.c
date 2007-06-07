@@ -1,7 +1,73 @@
 #include "prepfold.h"
 #include "prepfold_cmd.h"
+#include "f77.h"
 
 int compare_doubles(const void *a, const void *b);
+
+static void slaStringExport(const char *source_c, char *dest_f, int dest_len) {
+   int i;
+   
+   /* Check the supplied pointers. */
+   if (!source_c || !dest_f) return;
+   
+   /* Copy the characters of the input C string to the output FORTRAN
+     string, taking care not to go beyond the end of the FORTRAN
+     string.*/
+   for (i = 0; source_c[i] && (i < dest_len); i++) {
+      dest_f[i] = source_c[i];
+   }
+
+   /* Fill the rest of the output FORTRAN string with blanks. */
+   for ( ; i < dest_len; i++ ) dest_f[i] = ' ';
+}
+
+
+F77_SUBROUTINE(dgels)( CHARACTER(TRANS),
+                       INTEGER(M),
+                       INTEGER(N),
+                       INTEGER(NRHS),
+                       DOUBLE_ARRAY(A),
+                       INTEGER(LDA),
+                       DOUBLE_ARRAY(B),
+                       INTEGER(LDB),
+                       DOUBLE_ARRAY(WORK),
+                       INTEGER(LWORK),
+                       INTEGER(INFO)
+                       TRAIL(TRANS) );
+
+void call_dgels(char *trans, int m, int n, int nrhs, 
+                double *a, int lda, double *b, int ldb, 
+                double *work, int lwork, int *info) {
+   DECLARE_CHARACTER( TRANS, 1 );
+   DECLARE_INTEGER(M);
+   DECLARE_INTEGER(N);
+   DECLARE_INTEGER(NRHS);
+   DECLARE_INTEGER(LDA);
+   DECLARE_INTEGER(LDB);
+   DECLARE_INTEGER(LWORK);
+   DECLARE_INTEGER(INFO);
+
+   slaStringExport(trans, TRANS, 1);
+   M = m;
+   N = n;
+   NRHS = nrhs;
+   LDA = lda;
+   LDB = ldb;
+   LWORK = lwork;
+   F77_CALL(dgels)( CHARACTER_ARG(TRANS), 
+                    INTEGER_ARG(&M),
+                    INTEGER_ARG(&N),
+                    INTEGER_ARG(&NRHS),
+                    DOUBLE_ARRAY_ARG(a),
+                    INTEGER_ARG(&LDA),
+                    DOUBLE_ARRAY_ARG(b),
+                    INTEGER_ARG(&LDB),
+                    DOUBLE_ARRAY_ARG(work),
+                    INTEGER_ARG(&LWORK),
+                    INTEGER_ARG(&INFO)
+                    TRAIL_ARG(TRANS) );
+   *info = INFO;
+}
 
 double switch_pfdot(double pf, double pfdot)
 {
@@ -304,7 +370,8 @@ int bary2topo(double *topotimes, double *barytimes, int numtimes,
       dtmp = (barytimes[ii] - barytimes[0]) * SECPERDAY;
       bb[ii] = dtmp * (fb + dtmp * (0.5 * fbd + fbdd * dtmp / 6.0));
    }
-   dgels_(&trans, &mm, &nn, &nrhs, aa, &mm, bb, &nn, work, &lwork, &info);
+   // dgels_(&trans, &mm, &nn, &nrhs, aa, &mm, bb, &nn, work, &lwork, &info);
+   call_dgels(&trans, mm, nn, nrhs, aa, mm, bb, nn, work, lwork, &info);
    *ft = bb[0];
    *ftd = bb[1];
    *ftdd = bb[2];
