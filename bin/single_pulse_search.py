@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import bisect, os, sys, getopt, infodata
+import bisect, os, sys, getopt, infodata, glob
 import scipy, scipy.io, scipy.signal, ppgplot
 import numpy as Num
 from sets import *
@@ -152,6 +152,7 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-x, --xwin]        : Don't make a postscript plot, just use an X-window
   [-s, --start]       : Only plot events occuring after this time (s)
   [-e, --end]         : Only plot events occuring before this time (s)
+  [-g, --glob]        : Use the files determined by this glob expression
 
   Perform a single-pulse search (or simply re-plot the results of a
   single-pulse search) on a set of de-dispersed time series (.dat
@@ -224,10 +225,15 @@ def main():
                       help="Only plot events occuring after this time (s)")
     parser.add_option("-e", "--end", type="float", dest="T_end", default=1e9,
                       help="Only plot events occuring before this time (s)")
+    parser.add_option("-g", "--glob", type="string", dest="globexp", default=None,
+                      help="Process the files from this glob expression")
     (opts, args) = parser.parse_args()
     if len(args)==0:
-        print full_usage
-        sys.exit(0)
+        if opts.globexp==None:
+            print full_usage
+            sys.exit(0)
+        else:
+            args = glob.glob(opts.globexp)
     useffts = True
     dosearch = True
     if opts.xwin:
