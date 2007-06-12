@@ -276,6 +276,9 @@ int main(int argc, char *argv[])
          update_posn = 0;
          time_offset = 0.0;
       }
+      /* Adjust the Spigot start time for the skip */
+      spigots[filenum].elapsed_time += cmd->skip * spigots[filenum].dt_us * 1e-6;
+      /* Determine the SIGPROC header */
       spigot2sigprocfb(&(spigots[filenum]), &fb, filenmbase, 
                        cmd->lokill, cmd->hikill, cmd->downsamp, 
                        update_posn, time_offset);
