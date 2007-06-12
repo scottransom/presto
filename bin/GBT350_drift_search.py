@@ -5,7 +5,7 @@ import psr_utils as pu
 
 institution = "NRAOCV" 
 base_tmp_dir = "/dev/shm/"
-base_output_dir = "/data1/GBT/drift/results"
+base_output_dir = "/home/sransom/results/GBT/drift"
 
 #-------------------------------------------------------------------
 # Tunable parameters for searching and folding
@@ -293,8 +293,8 @@ def main(fil_filenm, workdir, ddplans):
             subbasenm = "%s_DM%s"%(job.basefilenm, ddplan.subdmlist[passnum])
 
             # Now de-disperse 
-            cmd = "prepsubband -lodm %.2f -dmstep %.2f -numdms %d -numout %d -o %s/%s %s"%\
-                  (ddplan.lodm+passnum*ddplan.sub_dmstep, ddplan.dmstep,
+            cmd = "prepsubband -mask %s -lodm %.2f -dmstep %.2f -numdms %d -numout %d -o %s/%s %s"%\
+                  (maskfilenm, ddplan.lodm+passnum*ddplan.sub_dmstep, ddplan.dmstep,
                    ddplan.dmsperpass, job.N/ddplan.downsamp,
                    tmpdir, job.basefilenm, fil_filenm)
             job.dedispersing_time += timed_execute(cmd)
