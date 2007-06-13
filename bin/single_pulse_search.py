@@ -152,7 +152,7 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-x, --xwin]        : Don't make a postscript plot, just use an X-window
   [-s, --start]       : Only plot events occuring after this time (s)
   [-e, --end]         : Only plot events occuring before this time (s)
-  [-g, --glob]        : Use the files determined by this glob expression
+  [-g, --glob]        : Use the files from these glob expressions (in quotes)
 
   Perform a single-pulse search (or simply re-plot the results of a
   single-pulse search) on a set of de-dispersed time series (.dat
@@ -233,7 +233,9 @@ def main():
             print full_usage
             sys.exit(0)
         else:
-            args = glob.glob(opts.globexp)
+            args = []
+            for globexp in opts.globexp.split():
+                args += glob.glob(globexp)
     useffts = True
     dosearch = True
     if opts.xwin:
