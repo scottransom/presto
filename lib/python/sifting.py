@@ -220,7 +220,14 @@ class file_candidates:
 
                     # Insure that the sum of the optimized powers is > threshold
                     opt_ipow = sum(cand.harm_pows)
-                    opt_sigma = candidate_sigma(opt_ipow, cand.numharm, 1)
+                    # Try to correct for the fact that by optimizing each
+                    # harmonic power, we get a power that is slightly higher
+                    # than it should be.  Simulations suggest that the average
+                    # increase in power is ~2 per hamonic.  For single harmonics,
+                    # though, the optimized power should be correct.  So the
+                    # correction should be approx -2*(cand.numharm-1)
+                    opt_sigma = candidate_sigma(opt_ipow-2.0*(cand.numharm-1),
+                                                cand.numharm, 1)
                     self.cands[current_goodcandnum].sigma = opt_sigma
                     self.cands[current_goodcandnum].ipow_det = opt_ipow
                     if (opt_sigma < sigma_threshold):
@@ -342,7 +349,7 @@ def remove_harmonics(candlist):
     """
     # Note:  should probably put the harmonics into the fundamental as hits (use sets)
     numcands = 0
-    candlist.sort(cmp_snr)
+    candlist.sort(cmp_sigma)
     f_err = r_err/candlist[0].T
     print "\nSearching for duplicate harmonics..."
     ii = 0
@@ -398,7 +405,7 @@ def remove_DM_problems(candlist, numdms, dmlist, low_DM_cutoff):
     for ii in range(len(dmlist)):
         dmdict[dmlist[ii]] = ii
     numcands = 0
-    candlist.sort(cmp_snr)
+    candlist.sort(cmp_sigma)
     for ii in range(len(candlist)-1, -1, -1):
         # Remove all the candidates without enough DM hits
         if len(candlist[ii].hits) < numdms:
