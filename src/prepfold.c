@@ -828,10 +828,10 @@ int main(int argc, char *argv[])
          cptr = (char *) calloc(ii + 1, sizeof(char));
          strncpy(cptr, cmd->accelfile, ii);
       }
-      fprintf(stderr, "\nAttempting to read '%s.inf'.  ", cptr);
+      printf("\nAttempting to read '%s.inf'.  ", cptr);
       readinf(&rzwidata, cptr);
       free(cptr);
-      fprintf(stderr, "Successful.\n");
+      printf("Successful.\n");
       if (cmd->rzwfileP)
          get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);
       if (cmd->accelfileP)
