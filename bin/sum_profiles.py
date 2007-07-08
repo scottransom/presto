@@ -24,6 +24,32 @@ def measure_phase(profile, template):
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
+def parse_vals(valstring):
+    """
+    parse_vals(valstring):
+       Return a list of integers that corresponds to each of the numbers
+          in a string representation where '-' gives an inclusive range
+          and ',' separates individual values or ranges.  For example:
+
+          > parse_vals('5,8,10-13,17')
+
+          would return:  [5, 8, 10, 11, 12, 13, 17]
+    """
+    if (len(valstring)==0 or
+        (len(valstring)==1 and not valstring.isdigit())):
+        return None
+    vals = set()
+    for xx in valstring.split(','):
+        if (xx.find("-") > 0):
+            lo, hi = xx.split("-")
+            vals = vals.union(set(range(int(lo), int(hi)+1)))
+        else:
+            vals.add(int(xx))
+    vals = list(vals)
+    vals.sort()
+    return vals
+
+
 def usage():
     print """
 usage:  sum_profiles.py [options which must include -t or -g] profs_file
@@ -34,6 +60,7 @@ usage:  sum_profiles.py [options which must include -t or -g] profs_file
   [-g gausswidth, --gaussian=width]     : Use a Gaussian template of FWHM width
   [-t templateprof, --template=prof]    : The template .bestprof file to use
   [-o outputfilenm, --output=filenm]    : The output file to use for the summed profile
+  [-s SEFD, --sefd=SEFD]                : For rough flux calcs, the SEFD (i.e. Tsys/G)
 
   This program reads in a list of *.pfd files from profs_file and then
   de-disperses each of these using the DM specified.  The de-dispersed
@@ -43,35 +70,38 @@ usage:  sum_profiles.py [options which must include -t or -g] profs_file
 
   To-do:  -- add a .par option so that the profiles can be added based on
              an ephemeris.
-          -- add ability to kill subbands or intervals in the profs_file?
 
 """
 
 if __name__ == '__main__':
     # Import Psyco if available
     try:
-	import psyco
-	psyco.full()
+        import psyco
+        psyco.full()
     except ImportError:
-	pass
+        pass
+
     try:
-	opts, args = getopt.getopt(sys.argv[1:], "hb:d:n:g:t:o:",
+        opts, args = getopt.getopt(sys.argv[1:], "hb:d:n:g:t:o:s:",
                                    ["help", "background=", "dm=",
-                                    "numbins=", "gaussian=", "template="])
-                                    
+                                    "numbins=", "gaussian=", "template=",
+                                    "sefd="])
     except getopt.GetoptError:
         # print help information and exit:
         usage()
         sys.exit(2)
+
     if len(sys.argv)==1:
         usage()
         sys.exit(2)
+
     lowfreq = None
     DM = 0.0
     bkgd_cutoff = 0.1
     gaussianwidth = 0.1
     templatefilenm = None
     numbins = 128
+    SEFD = 0.0
     outfilenm = "sum_profiles.bestprof"
     for o, a in opts:
         if o in ("-h", "--help"):
@@ -89,6 +119,8 @@ if __name__ == '__main__':
             templatefilenm = a
         if o in ("-o", "--output"):
             outfilenm = a
+        if o in ("-s", "--sefd"):
+            SEFD = float(a)
 
     print "Creating a summed profile of length %d bins using DM = %f"%(numbins, DM)
 
@@ -129,29 +161,70 @@ if __name__ == '__main__':
 
     # Read the list of *.pfd files to process
     pfdfilenms = []
+    killsubss = []
+    killintss = []
     for line in file(sys.argv[-1]):
-        pfdfilenm = line.split()[0]
-        if not pfdfilenm.startswith("#"):
+        if not line.startswith("#"):
+            sline = line.split()
+            pfdfilenm = sline[0]
+            if len(sline)==1:
+                killsubs, killints = None, None
+            elif len(sline)==2:
+                killsubs = parse_vals(sline[1])
+                killints = None
+            elif len(sline)>=3:
+                killsubs = parse_vals(sline[1])
+                killints = parse_vals(sline[2])
             if os.path.exists(pfdfilenm):
                 pfdfilenms.append(pfdfilenm)
+                killsubss.append(killsubs)
+                killintss.append(killints)
             else:
                 print "Can't find '%s'.  Skipping it."
 
     sumprof = Num.zeros(numbins, dtype='d')
 
     base_T = None
-    
+    base_BW = None
+    orig_fctr = None
+    total_T = 0.0
+    avg_S = 0.0
+
     # Step through the profiles and determine the offsets
-    for pfdfilenm in pfdfilenms:
+    for pfdfilenm, killsubs, killints in zip(pfdfilenms, killsubss, killintss):
 
         print "\n  Processing '%s'..."%pfdfilenm
 
         # Read the fold data and de-disperse at the requested DM
         current_pfd = pfd(pfdfilenm)
+        current_pfd.dedisperse(DM)
+        T = current_pfd.T
+        BW = current_pfd.nsub*current_pfd.subdeltafreq
+        fctr = current_pfd.lofreq + 0.5*BW
+
+        # If there are subbands to kill, kill em'
+        if killsubs is not None:
+            print "    killing subbands:  ", killsubs
+            current_pfd.kill_subbands(killsubs)
+            BW *= (current_pfd.nsub-len(killsubs))/float(current_pfd.nsub)
+        # If there are intervals to kill, kill em'
+        if killints is not None:
+            print "    killing intervals: ", killints
+            current_pfd.kill_intervals(killints)
+            T *= (current_pfd.npart-len(killints))/float(current_pfd.npart)
+
         if base_T is None:
-            base_T = current_pfd.T
-	current_pfd.dedisperse(DM)
-        prof = current_pfd.sumprof
+            base_T = T
+        if base_BW is None:
+            base_BW = BW
+        if orig_fctr is None:
+            orig_fctr = fctr
+        else:
+            if fctr != orig_fctr:
+                print "Warning!:  fctr = %f, but original f_ctr = %f!" % (fctr, orig_fctr)
+        total_T += T
+
+        prof = current_pfd.profs.sum(0).sum(0)
 
         # Resample the current profile to have the correct number of bins
         if not len(prof)==numbins:
@@ -165,19 +238,24 @@ if __name__ == '__main__':
         newprof = psr_utils.interp_rotate(prof, shift)
 
         # Now shift and scale the profile so that it has an off-pulse
-	# mean of ~0 and an off-pulse RMS of ~1
+        # mean of ~0 and an off-pulse RMS of ~1
         offpulse = Num.take(newprof, offpulse_inds)
         newprof -= median(offpulse)
         if usestats:
             offpulse_rms = Num.sqrt(current_pfd.varprof)
         else:
-            offpulse_rms = std(offpulse)
+            offpulse_rms = offpulse.std()
         newprof /= offpulse_rms
-        print "    Approx SNR = %.3f" % sum(newprof)
+        SNR = newprof.sum()
+        print "    Approx SNR = %.3f" % SNR
+        if SEFD:
+            S = SEFD * SNR / Num.sqrt(2.0 * BW * T / numbins) / numbins
+            avg_S += S
+            print "    Approx flux density = %.3f mJy" % S
         
-	# Now weight the profile based on the observation duration
-        # as compared to the first profile 
-        newprof *= Num.sqrt(current_pfd.T/base_T)
+        # Now weight the profile based on the observation duration
+        # and BW as compared to the first profile 
+        newprof *= Num.sqrt(T/base_T * BW/base_BW)
         
         if (0):
             Pgplot.plotxy(newprof)
@@ -189,8 +267,14 @@ if __name__ == '__main__':
     # Now normalize, plot, and write the summed profile
     offpulse = Num.take(sumprof, offpulse_inds)
     sumprof -= median(offpulse)
-    sumprof /= std(offpulse)
+    sumprof /= offpulse.std()
     print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
+    if SEFD:
+        avg_S /= len(pfdfilenms)
+        S = SEFD * sumprof.sum() / Num.sqrt(2.0 * BW * total_T / numbins) / numbins
+        print "     Approx sum profile flux density = %.3f mJy" % S
+        print "    Avg of individual flux densities = %.3f mJy" % avg_S
+
     Pgplot.plotxy(sumprof, Num.arange(numbins),
                   labx="Pulse Phase", laby="Relative Flux")
     Pgplot.closeplot()
