@@ -63,7 +63,11 @@ class psr:
                     elif len(dms)==1:
                         d = dms
                         m = s = 0.0
-                    self.dec = psr_utils.dms_to_rad(d, m, s)
+		    # Fixed silly dec=-0.0 bug
+		    if parts[part_index].split(":")[0]=="-00":
+			m = -m
+			s = -s
+		    self.dec = psr_utils.dms_to_rad(d, m, s)
                     self.decerr = float(parts[part_index+1]) * psr_utils.ARCSECTORAD
                 part_index += 1
             elif param=="PMRA":
