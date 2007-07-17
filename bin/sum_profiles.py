@@ -187,7 +187,8 @@ if __name__ == '__main__':
     base_T = None
     base_BW = None
     orig_fctr = None
-    total_T = 0.0
+    Tprerfi = 0.0
+    Tpostrfi = 0.0
     avg_S = 0.0
 
     # Step through the profiles and determine the offsets
@@ -199,6 +200,7 @@ if __name__ == '__main__':
         current_pfd = pfd(pfdfilenm)
         current_pfd.dedisperse(DM)
         T = current_pfd.T
+        Tprerfi += T
         BW = current_pfd.nsub*current_pfd.subdeltafreq
         fctr = current_pfd.lofreq + 0.5*BW
 
@@ -222,7 +224,7 @@ if __name__ == '__main__':
         else:
             if fctr != orig_fctr:
                 print "Warning!:  fctr = %f, but original f_ctr = %f!" % (fctr, orig_fctr)
-        total_T += T
+        Tpostrfi += T
 
         prof = current_pfd.profs.sum(0).sum(0)
 
@@ -271,9 +273,11 @@ if __name__ == '__main__':
     print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
     if SEFD:
         avg_S /= len(pfdfilenms)
-        S = SEFD * sumprof.sum() / Num.sqrt(2.0 * BW * total_T / numbins) / numbins
+        S = SEFD * sumprof.sum() / Num.sqrt(2.0 * BW * Tpostrfi / numbins) / numbins
         print "     Approx sum profile flux density = %.3f mJy" % S
         print "    Avg of individual flux densities = %.3f mJy" % avg_S
+        print "     Total (RFI cleaned) integration = %.0f s (%.2f hrs)" % \
+              (Tpostrfi, Tpostrfi/3600.0)
 
     Pgplot.plotxy(sumprof, Num.arange(numbins),
                   labx="Pulse Phase", laby="Relative Flux")
