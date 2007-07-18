@@ -1,6 +1,6 @@
 Basic steps to install:
 
-1.  Install FFTW3.1  You need to compile FFTW for _single_
+1.  Install FFTW3.X  You need to compile FFTW for _single_
   precision (see the config flags I recommend below).
 
   For all architectures I recommend the following configuration:
@@ -21,12 +21,6 @@ Basic steps to install:
   
   For Athlon:
   --enable-k7
-
-  NOTE:  If you will do lots of precessing of WAPP data from
-  Arecibo, I have a specially modified verion of FFTW3 that
-  computes very fast custom DCTs for converting the correlator
-  lags into spectra.  Let me know if you want it and I'll send
-  it to you.  It is also available on the PRESTO ftp site.
 
 2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
   You need the X-windows and postscript drivers at a minimum.
@@ -59,6 +53,7 @@ Basic steps to install:
   in the src directory to the bin directory.  If you want
   mpiprepsubband (for parallel de-dispersion on clusters) you 
   will need to do a 'make mpi' as well (before the 'make links').
+  If you get errors about "clig", do a "make prep" and then "make".
 
 9.  The required libraries and miscellaneous files will be
   located in presto/lib.  You may copy or move the executables
@@ -81,4 +76,4 @@ Basic steps to install:
   as well).
 
 Scott Ransom
-Apr 2006
+Jul 2007
