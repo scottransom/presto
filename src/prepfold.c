@@ -284,8 +284,12 @@ int main(int argc, char *argv[])
                               cmd->startT, cmd->endT, cmd->offset);
          if (cmd->rzwcandP || cmd->accelcandP)
             T = idata.N * idata.dt;
-         else
-            T = events[numevents - 1];
+         else {
+            /* The 1e-8 prevents floating point rounding issues from
+               causing the last event to go into slice npart+1.
+               Thanks to Paul Ray for finding this. */
+            T = events[numevents - 1] + 1e-8;
+         }
       } else {
          infiles[0] = chkfopen(cmd->argv[0], "rb");
       }
