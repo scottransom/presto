@@ -85,7 +85,8 @@ indent:
 	indent -kr -nut -i3 -l85 *.c
 	rm *.c~
 
-prep: meminit timetest bincat
+prep:
+	touch *_cmd.c
 
 makewisdom:
 	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
@@ -110,21 +111,21 @@ timetest:
 libpresto: libpresto.a libpresto.so
 	@cd ../lib ; cp -sf ../src/libpresto* .
 
-slalib: libsla.so
-	@cd ../lib ; cp -sf ../src/libsla.so .
-
 libpresto.so: $(PRESTOOBJS)
 	$(LINKCOMMAND1) $@ $(PRESTOOBJS)
 
 libpresto.a: $(PRESTOOBJS)
 	$(LINKCOMMAND2) $@ $(PRESTOOBJS)
 
+slalib: libsla.so
+	@cd ../lib ; cp -sf ../src/libsla.so .
+	@cd slalib ; $(FC) -o sla_test sla_test.f -fno-second-underscore -L.. -lsla
+	slalib/sla_test
+
 libsla.so:
 	@cd slalib ; $(FC) $(FFLAGS) -fno-second-underscore -c -I. *.f *.F
 	rm slalib/sla_test.o
 	@cd slalib ; $(FC) -shared -o ../libsla.so -fno-second-underscore *.o
-	@cd slalib ; $(FC) -o sla_test sla_test.f -fno-second-underscore -L.. -lsla
-	slalib/sla_test
 
 text: makedata makeinf mjd2cal realfft quicklook\
 	search_bin search_rzw swap_endian prepdata\
