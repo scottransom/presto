@@ -458,6 +458,10 @@ double candidate_sigma(double power, int numsum, double numtrials)
 {
    double x = 0.0;
 
+   if (power <= 0.0) {
+      return 0.0;
+   }
+
    if (power > 100.0) {
       double logp;
 
