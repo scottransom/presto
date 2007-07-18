@@ -20,7 +20,9 @@ class pfd:
         swapchar = '<' # this is little-endian
         data = infile.read(5*4)
         testswap = struct.unpack(swapchar+"i"*5, data)
-        if min(Num.fabs(Num.asarray(testswap))) > 100000:
+        # This is a hack to try and test the endianness of the data.
+        # None of the 5 values should be a large positive number.
+        if (Num.fabs(Num.asarray(testswap))).max() > 100000:
             swapchar = '>' # this is big-endian
         (self.numdms, self.numperiods, self.numpdots, self.nsub, self.npart) = \
                       struct.unpack(swapchar+"i"*5, data)
