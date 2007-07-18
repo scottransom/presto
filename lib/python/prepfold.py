@@ -192,7 +192,10 @@ class pfd:
         """
         if DM is None:
             DM = self.bestdm
-        self.subdelays = psr_utils.delay_from_DM(DM, self.barysubfreqs)
+        # Note:  Since TEMPO Doppler corrects observing frequencies, for
+        #        TOAs, at least, we need to de-disperse using topocentric
+        #        observing frequencies.
+        self.subdelays = psr_utils.delay_from_DM(DM, self.subfreqs)
         self.hifreqdelay = self.subdelays[-1]
         self.subdelays = self.subdelays-self.hifreqdelay
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
