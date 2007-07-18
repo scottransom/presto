@@ -220,9 +220,9 @@ if __name__ == '__main__':
         sumsubdelays = (psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) -
                         psr_utils.delay_from_DM(fold_pfd.bestdm, fold_pfd.hifreq))/SECPERDAY
     else:
-        fold_pfd.subfreqs = asarray([0.0])
-        sumsubfreqs = asarray([0.0])
-        sumsubdelays = asarray([0.0])
+        fold_pfd.subfreqs = Num.asarray([0.0])
+        sumsubfreqs = Num.asarray([0.0])
+        sumsubdelays = Num.asarray([0.0])
 
     # Read the template profile
     if templatefilenm is not None:
