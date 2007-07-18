@@ -44,6 +44,8 @@ static Cmdline cmd = {
   /* topoP = */ 0,
   /***** -invert: For rawdata, flip (or invert) the band */
   /* invertP = */ 0,
+  /***** -absphase: Use the absolute phase associated with polycos */
+  /* absphaseP = */ 0,
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
@@ -1020,6 +1022,13 @@ showOptionValues(void)
     printf("-invert found:\n");
   }
 
+  /***** -absphase: Use the absolute phase associated with polycos */
+  if( !cmd.absphaseP ) {
+    printf("-absphase not found.\n");
+  } else {
+    printf("-absphase found:\n");
+  }
+
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   if( !cmd.numwappsP ) {
     printf("-numwapps not found.\n");
@@ -1649,7 +1658,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-o outfile] [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-wapp] [-window] [-topo] [-invert] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-o outfile] [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-wapp] [-window] [-topo] [-invert] [-absphase] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n");
   fprintf(stderr,"%s","      Prepares (if required) and folds raw radio data, standard time series, or events.\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1662,6 +1671,7 @@ usage(void)
   fprintf(stderr,"%s","        -window: Window correlator lags with a Hamming window before FFTing\n");
   fprintf(stderr,"%s","          -topo: Fold the data topocentrically (i.e. don't barycenter)\n");
   fprintf(stderr,"%s","        -invert: For rawdata, flip (or invert) the band\n");
+  fprintf(stderr,"%s","      -absphase: Use the absolute phase associated with polycos\n");
   fprintf(stderr,"%s","      -numwapps: Number of WAPPs used with contiguous frequencies\n");
   fprintf(stderr,"%s","                 1 int value between 1 and 7\n");
   fprintf(stderr,"%s","                 default: `1'\n");
@@ -1695,7 +1705,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 int value between 1 and 2048\n");
   fprintf(stderr,"%s","                 default: `32'\n");
   fprintf(stderr,"%s","         -npart: The number of sub-integrations to use for the period search\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 2048\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and 4096\n");
   fprintf(stderr,"%s","                 default: `64'\n");
   fprintf(stderr,"%s","         -pstep: The minimum period stepsize over the observation in profile bins\n");
   fprintf(stderr,"%s","                 1 int value between 1 and 10\n");
@@ -1785,7 +1795,7 @@ usage(void)
   fprintf(stderr,"%s","                 default: `0'\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...1024 values\n");
-  fprintf(stderr,"%s","  version: 27Aug06\n");
+  fprintf(stderr,"%s","  version: 22Jun07\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1853,6 +1863,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-invert", argv[i]) ) {
       cmd.invertP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-absphase", argv[i]) ) {
+      cmd.absphaseP = 1;
       continue;
     }
 
@@ -1998,7 +2013,7 @@ parseCmdline(int argc, char **argv)
       cmd.npartP = 1;
       i = getIntOpt(argc, argv, i, &cmd.npart, 1);
       cmd.npartC = i-keep;
-      checkIntLower("-npart", &cmd.npart, cmd.npartC, 2048);
+      checkIntLower("-npart", &cmd.npart, cmd.npartC, 4096);
       checkIntHigher("-npart", &cmd.npart, cmd.npartC, 1);
       continue;
     }

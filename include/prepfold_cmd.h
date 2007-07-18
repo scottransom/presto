@@ -31,6 +31,8 @@ typedef struct s_Cmdline {
   char topoP;
   /***** -invert: For rawdata, flip (or invert) the band */
   char invertP;
+  /***** -absphase: Use the absolute phase associated with polycos */
+  char absphaseP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;

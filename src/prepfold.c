@@ -1418,7 +1418,8 @@ int main(int argc, char *argv[])
                /* Calculate the pulse phase at the start of the current block */
                polyco_index =
                    phcalc(idata.mjd_i, mjdf, polyco_index, &polyco_phase, &foldf);
-               polyco_phase -= polyco_phase0;
+               if (!cmd->absphaseP)
+                  polyco_phase -= polyco_phase0;
                if (polyco_phase < 0.0)
                   polyco_phase += 1.0;
                /* Calculate the folding frequency at the middle of the current block */

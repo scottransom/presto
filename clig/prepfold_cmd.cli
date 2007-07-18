@@ -20,6 +20,7 @@ Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) fo
 Flag   -window  window  {Window correlator lags with a Hamming window before FFTing}
 Flag   -topo    topo    {Fold the data topocentrically (i.e. don't barycenter)}
 Flag   -invert  invert  {For rawdata, flip (or invert) the band}
+Flag   -absphase absphase  {Use the absolute phase associated with polycos}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 7    -d 1
 Int    -if      ifs     {A specific IF to use if available (summed IFs is the default)} \
@@ -48,7 +49,7 @@ Int    -n       proflen {The number of bins in the profile.  Defaults to the num
 Int    -nsub    nsub    {The number of sub-bands to use for the DM search} \
 	-r 1 2048  -d 32
 Int    -npart   npart   {The number of sub-integrations to use for the period search} \
-	-r 1 2048  -d 64
+	-r 1 4096  -d 64
 Int    -pstep    pstep   {The minimum period stepsize over the observation in profile bins} \
 	-r 1 10  -d 2
 Int    -pdstep    pdstep   {The minimum P-dot stepsize over the observation in profile bins} \
