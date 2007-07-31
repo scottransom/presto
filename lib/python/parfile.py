@@ -1,7 +1,6 @@
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
 from types import StringType, FloatType
-from psr_utils import ra_to_rad, dec_to_rad, pferrs
+import psr_utils as pu
+from slalib import sla_ecleq, sla_eqecl, sla_eqgal
 #
 # The following are the parameters that are accepted in a
 # par file when trying to determine a pulsar ephemeris.
@@ -38,11 +37,12 @@ from psr_utils import ra_to_rad, dec_to_rad, pferrs
 
 float_keys = ["F", "F0", "F1", "F2", "F3", "F4", "F5", "F6",
               "P", "P0", "P1", "P2", "P3", "P4", "P5", "P6",
-              "PEPOCH", "DM", "START", "FINISH", "NTOA",
+              "PEPOCH", "POSEPOCH", "DM", "START", "FINISH", "NTOA",
               "TRES", "TZRMJD", "TZRFRQ", "TZRSITE", "NITS",
               "A1", "XDOT", "E", "EDOT", "T0", "PB", "PBDOT", "OM", "OMDOT",
               "EPS1", "EPS2", "EPS1DOT", "EPS2DOT", "TASC", "LAMBDA", "BETA",
-              "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT", "FB0", "FB1", "FB2"]
+              "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT",
+              "FB0", "FB1", "FB2", "ELAT", "ELONG", "LAMBDA", "BETA"]
 str_keys = ["FILE", "PSR", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
 
 class psr_par:
@@ -53,38 +53,72 @@ class psr_par:
             splitline = line.split()
             key = splitline[0]
             if key in str_keys:
-                self.__dict__[key] = splitline[1]
+                setattr(self, key, splitline[1])
             elif key in float_keys:
                 try:
-                    self.__dict__[key] = float(splitline[1])
+                    setattr(self, key, float(splitline[1]))
                 except ValueError:
                     pass
             if len(splitline)==4:
-                self.__dict__[key+'_ERR'] = float(splitline[3])
-        if self.__dict__.has_key('RAJ'):
-            self.__dict__['RA_RAD'] = ra_to_rad(self.RAJ)
-        if self.__dict__.has_key('DECJ'):
-            self.__dict__['DEC_RAD'] = dec_to_rad(self.DECJ)
-        if self.__dict__.has_key('P'):
-            self.__dict__['P0'] = self.P
-        if self.__dict__.has_key('P0'):
-            self.__dict__['F0'] = 1.0/self.P0
-        if self.__dict__.has_key('F0'):
-            self.__dict__['P0'] = 1.0/self.F0
-        if self.__dict__.has_key('FB0'):
-            self.__dict__['PB'] = (1.0/self.FB0)/86400.0
-        if self.__dict__.has_key('P0_ERR'):
-            if self.__dict__.has_key('P1_ERR'):
-                (f, self.__dict__['F0_ERR'], self.__dict__['F1'], self.__dict__['F1_ERR']) = \
-                    pferrs(self.P0, self.P0_ERR, self.P1, self.P1_ERR)
+                setattr(self, key+'_ERR', float(splitline[3]))
+        # Deal with Ecliptic coords
+        if (hasattr(self, 'BETA') and hasattr(self, 'LAMBDA')):
+            setattr(self, 'ELAT', self.BETA)
+            setattr(self, 'ELONG', self.LAMBDA)
+        if (hasattr(self, 'ELAT') and hasattr(self, 'ELONG')):
+            if hasattr(self, 'POSEPOCH'):
+                epoch = self.POSEPOCH
             else:
-                self.__dict__['F0_ERR'] = self.P0_ERR/(self.P0*self.P0)
-        if self.__dict__.has_key('F0_ERR'):
-	    if self.__dict__.has_key('F1_ERR'):
-                (p, self.__dict__['P0_ERR'], self.__dict__['P1'], self.__dict__['P1_ERR']) = \
-                    pferrs(self.F0, self.F0_ERR, self.F1, self.F1_ERR)
+                epoch = self.PEPOCH
+            ra_rad, dec_rad = sla_ecleq(self.ELONG, self.ELAT, epoch)
+            rstr = pu.coord_to_string(*pu.rad_to_hms(ra_rad))
+            dstr = pu.coord_to_string(*pu.rad_to_dms(dec_rad))
+            setattr(self, 'RAJ', rstr)
+            setattr(self, 'DECJ', dstr)
+        if hasattr(self, 'RAJ'):
+            setattr(self, 'RA_RAD', pu.ra_to_rad(self.RAJ))
+        if hasattr(self, 'DECJ'):
+            setattr(self, 'DEC_RAD', pu.dec_to_rad(self.DECJ))
+        # Compute the Galactic coords
+        if (hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
+            l, b = sla_eqgal(self.RA_RAD, self.DEC_RAD)
+            setattr(self, 'GLONG', l*pu.RADTODEG)
+            setattr(self, 'GLAT', b*pu.RADTODEG)
+        # Compute the Ecliptic coords
+        if (hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
+            if hasattr(self, 'POSEPOCH'):
+                epoch = self.POSEPOCH
             else:
-                self.__dict__['P0_ERR'] = self.F0_ERR/(self.F0*self.F0)
+                epoch = self.PEPOCH
+            elon, elat = sla_eqecl(self.RA_RAD, self.DEC_RAD, epoch)
+            setattr(self, 'ELONG', elon*pu.RADTODEG)
+            setattr(self, 'ELAT', elat*pu.RADTODEG)
+        if hasattr(self, 'P'):
+            setattr(self, 'P0', self.P)
+        if hasattr(self, 'P0'):
+            setattr(self, 'F0', 1.0/self.P0)
+        if hasattr(self, 'F0'):
+            setattr(self, 'P0', 1.0/self.F0)
+        if hasattr(self, 'FB0'):
+            setattr(self, 'PB', (1.0/self.FB0)/86400.0)
+        if hasattr(self, 'P0_ERR'):
+            if hasattr(self, 'P1_ERR'):
+                f, ferr, fd, fderr = pu.pferrs(self.P0, self.P0_ERR,
+                                               self.P1, self.P1_ERR)
+                setattr(self, 'F0_ERR', ferr) 
+                setattr(self, 'F1', fd) 
+                setattr(self, 'F1_ERR', fderr) 
+            else:
+                setattr(self, 'F0_ERR', self.P0_ERR/(self.P0*self.P0))
+        if hasattr(self, 'F0_ERR'):
+            if hasattr(self, 'F1_ERR'):
+                p, perr, pd, pderr = pu.pferrs(self.F0, self.F0_ERR,
+                                               self.F1, self.F1_ERR)
+                setattr(self, 'P0_ERR', perr) 
+                setattr(self, 'P1', pd) 
+                setattr(self, 'P1_ERR', pderr) 
+            else:
+                setattr(self, 'P0_ERR', self.F0_ERR/(self.F0*self.F0))
         pf.close()
     def __str__(self):
         out = ""
