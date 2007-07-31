@@ -75,7 +75,8 @@ class psr_par:
                 epoch = self.POSEPOCH
             else:
                 epoch = self.PEPOCH
-            ra_rad, dec_rad = sla_ecleq(self.ELONG, self.ELAT, epoch)
+            ra_rad, dec_rad = sla_ecleq(self.ELONG*pu.DEGTORAD,
+                                        self.ELAT*pu.DEGTORAD, epoch)
             rstr = pu.coord_to_string(*pu.rad_to_hms(ra_rad))
             dstr = pu.coord_to_string(*pu.rad_to_dms(dec_rad))
             setattr(self, 'RAJ', rstr)
