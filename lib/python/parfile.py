@@ -1,6 +1,11 @@
 from types import StringType, FloatType
 import psr_utils as pu
-from slalib import sla_ecleq, sla_eqecl, sla_eqgal
+try:
+    from slalib import sla_ecleq, sla_eqecl, sla_eqgal
+    slalib = True
+except ImportError:
+    slalib = False
+    
 #
 # The following are the parameters that are accepted in a
 # par file when trying to determine a pulsar ephemeris.
@@ -65,7 +70,7 @@ class psr_par:
         if (hasattr(self, 'BETA') and hasattr(self, 'LAMBDA')):
             setattr(self, 'ELAT', self.BETA)
             setattr(self, 'ELONG', self.LAMBDA)
-        if (hasattr(self, 'ELAT') and hasattr(self, 'ELONG')):
+        if (slalib and hasattr(self, 'ELAT') and hasattr(self, 'ELONG')):
             if hasattr(self, 'POSEPOCH'):
                 epoch = self.POSEPOCH
             else:
@@ -80,12 +85,12 @@ class psr_par:
         if hasattr(self, 'DECJ'):
             setattr(self, 'DEC_RAD', pu.dec_to_rad(self.DECJ))
         # Compute the Galactic coords
-        if (hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
+        if (slalib and hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
             l, b = sla_eqgal(self.RA_RAD, self.DEC_RAD)
             setattr(self, 'GLONG', l*pu.RADTODEG)
             setattr(self, 'GLAT', b*pu.RADTODEG)
         # Compute the Ecliptic coords
-        if (hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
+        if (slalib and hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
             if hasattr(self, 'POSEPOCH'):
                 epoch = self.POSEPOCH
             else:
