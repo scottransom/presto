@@ -707,6 +707,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
          nr = search->npart;
          nc = 2 * search->proflen;
+
          cpgqcol(&mincol, &maxcol);
          mincol += 2;
          cpgscir(mincol, maxcol);
@@ -718,9 +719,12 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
          cpgimag(timeprofs, nc, nr, 0 + 1, nc, 0 + 1, nr, bg, fg, tr);
          free(levels);
       }
-      if (1)                    /* if 0 skip the chi-squared vs time plot */
-         cpgbox("BCNST", 0.0, 0, "BCNST", 0.0, 0);
-      else
+      if (1) {                  /* if 0 skip the chi-squared vs time plot */
+         cpgbox("BCNST", 0.0, 0, "BNST", 0.0, 0);
+         // Rescale window and provide ticks for each subint
+         cpgswin(0.0, 1.999, 0.0, search->npart);
+         cpgbox("", 0.0, 0, "CTSI", 5.0, 5);
+      } else
          cpgbox("BCNST", 0.0, 0, "BNST", 0.0, 0);
       cpgmtxt("B", 2.6, 0.5, 0.5, "Phase");
       cpgmtxt("L", 2.1, 0.5, 0.5, "Time (s)");
@@ -734,8 +738,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
          else
             cpgsvp(0.27, 0.39, 0.09, 0.68);
          cpgswin(1.1 * max, 0.0, 0.0, T);
-         cpgbox("BCNST", 0.0, 0, "BST", 0.0, 0);
-         cpgbox("BCNST", 0.0, 0, "BST", 0.0, 0);
+         //         cpgbox("BCNST", 0.0, 0, "BST", 0.0, 0);
+         cpgbox("BCNST", 0.0, 0, "B", 0.0, 0);
          cpgmtxt("B", 2.6, 0.5, 0.5, "Reduced \\gx\\u2\\d");
          cpgline(search->npart + 1, timechi, parttimes);
          cpgswin(1.1 * max, 0.0, search->startT - 0.0001, search->endT + 0.0001);
@@ -752,17 +756,26 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
       {
          float x[2] = { -0.2, 2.0 }, avg[2];
          float errx = -0.1, erry = beststats.prof_avg, errlen;
+         float fmid, tdms;
          float *phasetwo = NULL;
 
+         // Dispersion smearing from a single channel in 
+         // units of a fraction of a period
+         fmid = search->lofreq + 0.5*(search->numchan-1.0)*search->chan_wid;
+         tdms = smearing_from_bw(search->bestdm, fmid, search->chan_wid);
+         if (search->bepoch != 0.0)
+            tdms /= search->bary.p1;
+         else
+            tdms /= search->topo.p1;
          cpgsvp(0.06, 0.27, 0.68, 0.94);
          cpgswin(0.0, 1.999, 0.0, 1.0);
          cpgbox("BST", 0.0, 0, "", 0.0, 0);
          cpgsvp(0.039, 0.27, 0.68, 0.94);
          find_min_max_arr(2 * search->proflen, bestprof, &min, &max);
          over = 0.1 * (max - min);
-         cpgswin(-0.2, 2.0, min - over, max + over);
+         cpgswin(-0.2, 2.0, min - 2.0 * over, max + over);
          if (!flags->justprofs)
-            cpgmtxt("T", 1.0, 0.5, 0.5, "2 Pulses of Best Profile");
+            cpgmtxt("T", 0.0, 0.5, 0.5, "2 Pulses of Best Profile");
          phasetwo = gen_freqs(2 * search->proflen, 0.0, 1.0 / search->proflen);
          cpgline(2 * search->proflen, phasetwo, bestprof);
          free(phasetwo);
@@ -772,8 +785,9 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             cpgline(2, x, avg);
             cpgsls(1);
             errlen = sqrt(beststats.prof_var);
-            cpgerrb(6, 1, &errx, &erry, &errlen, 2);
+            cpgerr1(6, errx, erry, errlen, 2);
             cpgpt(1, &errx, &erry, 5);
+            cpgerr1(5, 1.0, min - over, tdms, 2);
          }
       }
 
@@ -862,7 +876,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                losubfreq = doppler(lofreq, search->avgvoverc);
                hisubfreq = doppler(hifreq, search->avgvoverc);
                cpgsvp(0.44, 0.66, 0.3, 0.68);
-               cpgswin(0.0, 1.0, 0.0, search->nsub);
+               cpgswin(0.0, 2.0, 0.0, search->nsub);
                {
                   int mincol, maxcol, numcol, nr, nc;
                   float min, max, gmax = -1.0e100;
@@ -898,16 +912,18 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                   autocal2d(subprofs, nr, nc, &fg, &bg, numcol,
                             levels, &x1, &x2, &y1, &y2, tr);
                   cpgimag(subprofs, nc, nr, 0 + 1, nc, 0 + 1, nr, bg, fg, tr);
+                  tr[0] += 1.0;
+                  cpgimag(subprofs, nc, nr, 0 + 1, nc, 0 + 1, nr, bg, fg, tr);
                   free(subprofs);
                   free(levels);
                }
-               cpgswin(0.0 - 0.01, 1.0 + 0.01, 0.0, search->nsub);
+               cpgswin(0.0 - 0.01, 2.0 + 0.01, 0.0, search->nsub);
                cpgsch(0.7);
-               cpgbox("CST", 0.2, 2, "", 0.0, 0);
-               cpgbox("BNSTI", 0.2, 2, "BNSTI", 0.0, 0);
+               cpgbox("CST", 0.4, 2, "", 0.0, 0);
+               cpgbox("BNSTI", 0.4, 2, "BNSTI", 0.0, 0);
                cpgmtxt("L", 2.0, 0.5, 0.5, "Sub-band");
-               cpgswin(0.0 - 0.01, 1.0 + 0.01, losubfreq, hisubfreq);
-               cpgbox("", 0.2, 2, "CMSTI", 0.0, 0);
+               cpgswin(0.0 - 0.01, 2.0 + 0.01, losubfreq, hisubfreq);
+               cpgbox("", 0.4, 2, "CMSTI", 0.0, 0);
                cpgmtxt("R", 2.5, 0.5, 0.5, "Frequency (MHz)");
                cpgsch(0.8);
                cpgmtxt("B", 2.5, 0.5, 0.5, "Phase");
@@ -1091,11 +1107,13 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
             /* Add the Data Info area */
 
+            cpgsvp(0.06, 0.94, 0.09, 0.94);
+            cpgsch(0.8);
+            sprintf(out, "%-s", search->filenm);
+            cpgmtxt("B", 4.0, 0.0, 0.0, out);
+            cpgsch(1.0);
             cpgsvp(0.27, 0.519, 0.68, 0.94);
             cpgswin(-0.1, 1.00, -0.1, 1.1);
-            cpgsch(1.0);
-            sprintf(out, "%-s", search->filenm);
-            cpgmtxt("T", 1.0, 0.5, 0.5, out);
             cpgsch(0.7);
             sprintf(out, "Candidate:  %-s", search->candnm);
             cpgtext(0.0, 1.0, out);
@@ -1186,7 +1204,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                cpgsvp(0.519, 0.94, 0.68, 0.94);
                cpgswin(-0.05, 1.05, -0.1, 1.1);
                cpgsch(0.8);
-               cpgmtxt("T", 1.0, 0.5, 0.5, "Search Information");
+               cpgmtxt("T", 0.0, 0.5, 0.5, "Search Information");
                cpgsch(0.7);
                sprintf(out, "RA\\dJ2000\\u = %s", search->rastr);
                cpgtext(0.0, 1.0, out);
