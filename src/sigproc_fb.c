@@ -301,6 +301,12 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
       } else if (strings_equal(string, "nifs")) {
          chkfread(&(fb->nifs), sizeof(int), 1, inputfile);
          totalbytes += sizeof(int);
+      } else if (strings_equal(string, "nbeams")) {
+         chkfread(&(fb->nbeams),sizeof(int),1,inputfile);
+         totalbytes += sizeof(int);
+      } else if(strings_equal(string, "ibeam")) {
+         chkfread(&(fb->ibeam),sizeof(int),1,inputfile);
+         totalbytes += sizeof(int);
       } else if (expecting_rawdatafile) {
          strcpy(fb->inpfile, string);
          expecting_rawdatafile = 0;

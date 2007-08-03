@@ -16,6 +16,8 @@ typedef struct SIGPROCFB {
   int nchans;            /* Number of finterbank channels */
   int nbits;             /* Number of bits in the filterbank samples */
   int nifs;              /* Number if IFs present */
+  int nbeams;            /* Number of beams in the observing system */
+  int ibeam;             /* Beam number used for this data */
   int sumifs;            /* Whether the IFs are summed or not */
   int headerlen;         /* Header length in bytes */
 } sigprocfb;
