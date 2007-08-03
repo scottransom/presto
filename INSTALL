@@ -47,28 +47,32 @@ Basic steps to install:
   only user on the machine when you run this, as it is very
   computation intensive and may take a while.
 
-8.  Do a 'make'.  This will make all of the executables.  If 
+8.  Just for safety's sake (and because SVN sometimes messes up
+  file access times), do a "make prep".  That will make sure
+  that make does not try to run Clig to re-generate all of the
+  command line interface files.
+
+9.  Do a 'make'.  This will make all of the executables.  If 
   this is your first time building PRESTO, you will want to
   do a 'make links' which will make soft links to the executables
   in the src directory to the bin directory.  If you want
   mpiprepsubband (for parallel de-dispersion on clusters) you 
   will need to do a 'make mpi' as well (before the 'make links').
-  If you get errors about "clig", do a "make prep" and then "make".
 
-9.  The required libraries and miscellaneous files will be
+10.  The required libraries and miscellaneous files will be
   located in presto/lib.  You may copy or move the executables
   wherever you like, but the library files should stay put.
   (That's why you define the PRESTO variable -- so the routines
   can find them).
 
-10.  If you want to save some disk space, do a 'make clean' in
+11.  If you want to save some disk space, do a 'make clean' in
   the 'src' directory.  This will leave the libraries and
   binaries in their respective directories but will get rid of
   all the extra stuff in the 'src' directory.
 
-11.  Go find pulsars.
+12.  Go find pulsars.
 
-12.  If you want to use all the python routines (which if you are
+13.  If you want to use all the python routines (which if you are
   doing anything but the most rudimentary analyses you will want 
   to), you need Python >= version 2.3, and the _new_ Numpy/SciPy.  
   You can get Numpy/Scipy here:  http://www.scipy.org/download/
@@ -76,4 +80,4 @@ Basic steps to install:
   as well).
 
 Scott Ransom
-Jul 2007
+Aug 2007
