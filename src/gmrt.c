@@ -753,20 +753,25 @@ void GMRT_hdr_to_inf(char *datfilenm, infodata * idata)
          else
             bytesperpt_st = 1;
       } else if (strncmp(line, "Data Format     ", 16) == 0) {
-         if (strstr(line, "little")) {
-            /* printf("Found 'little'  and %d\n", MACHINE_IS_LITTLE_ENDIAN); */
-            if (MACHINE_IS_LITTLE_ENDIAN)
-               need_byteswap_st = 0;
-            else
-               need_byteswap_st = 1;
-         } else {
-            /* printf("Didn't find 'little' and %d\n", MACHINE_IS_LITTLE_ENDIAN); */
-            if (MACHINE_IS_LITTLE_ENDIAN)
-               need_byteswap_st = 1;
-            else
-               need_byteswap_st = 0;
+         {
+            /* The following is from question 20.9 of the comp.lang.c FAQ */
+            int x = 1, machine_is_little_endian = 0;
+            if(*(char *)&x == 1) {
+               machine_is_little_endian = 1;
+            }
+
+            if (strstr(line, "little")) {
+               if (machine_is_little_endian)
+                  need_byteswap_st = 0;
+               else
+                  need_byteswap_st = 1;
+            } else {
+               if (machine_is_little_endian)
+                  need_byteswap_st = 1;
+               else
+                  need_byteswap_st = 0;
+            }
          }
-         /* printf("need_byteswap_st = %d\n", need_byteswap_st); */
       } else if (strncmp(line, "Polarizations   ", 16) == 0) {
          sscanf(line, "%*[^:]: %[^\n]\n", ctmp);
          if (strcmp(ctmp, "Total I")) {

@@ -64,11 +64,14 @@ CC = gcc
 FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP \
-	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DMACHINE_IS_LITTLE_ENDIAN=1 \
+	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-g -O3 -ffast-math -Wall -W -fPIC
 #	-g -Wall -W
 CLINKFLAGS = $(CFLAGS)
-FFLAGS = -g -O3 -ffast-math -Wall -W -fPIC
+# NOTE:  Be careful of upping the optimization on the
+#        FFLAGs.  Certain compilers (i.e. on Intel Macs) will
+#        cause errors for the code in least_squares.f
+FFLAGS = -g -O -Wall -W -fPIC
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) $(LIBCMD) -o
 LINKCOMMAND2 = ar rcs
@@ -125,16 +128,6 @@ makewisdom:
 	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
 	./makewisdom
 	cp fftw_wisdom.txt $(PRESTO)/lib
-
-meminit:
-	$(CC) $(CLINKFLAGS) -o $@ meminit.c $(DMALLOCLINK)
-	./meminit
-	rm -f meminit
-
-bincat:
-	$(FC) -o $@ bincat.f rdascat.f
-	./bincat
-	rm -f bincat
 
 timetest: 
 	$(CC) -o $@ timetest.c $(DMALLOCLINK)
@@ -326,7 +319,6 @@ cleaner: clean
 squeaky:  cleaner
 	rm -f *.dat *.fft *.inf fftw_wisdom.txt
 	rm -f core *.win* *.ps *_rzw *.tmp
-	cd $(PRESTO)/lib ; rm -f bincat.dat
 	cd $(PRESTO)/clig ; rm -f *# *~
 	cd $(PRESTO)/docs ; rm -f *# *~
 	cd $(PRESTO)/python ; rm -f *# *~ *.o *.pyc *.pyo
