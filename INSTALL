@@ -12,15 +12,15 @@ Basic steps to install:
   is a safe bet).
 
   If you have a modern version of GCC installed (v3.2 or better) 
-  and a modern CPU (Intel Pentium III, IV, or newer; AMD Athlon 
-  or better), you can get drastically better performance by 
+  and a modern CPU (Intel Pentium IV, or newer; AMD Opteron 
+  or better, G5), you can get _drastically_ better performance by
   adding the following options:
 
-  For Intel PIVs or AMD64s:
+  For Intel PIVs or later, EM64Ts, or AMD64s:
   --enable-sse
   
-  For Athlon:
-  --enable-k7
+  For Mac G5s:
+  --enable-altivec
 
 2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
   You need the X-windows and postscript drivers at a minimum.
