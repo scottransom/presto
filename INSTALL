@@ -74,7 +74,11 @@ Basic steps to install:
   to), you need Python >= version 2.3, and the _new_ Numpy/SciPy.  
   You can get Numpy/Scipy here:  http://www.scipy.org/download/
   I recommend using the Subversion versions (and for PRESTO 
-  as well).
+  as well).  In general, the following should work:
+     "cd $PRESTO/python ; make ; make fftfit"
+  If it doesnt, you will probably need to edit the Makefile 
+  or setup.py.
+
 
 Scott Ransom
 Aug 2007
