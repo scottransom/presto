@@ -756,17 +756,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
       {
          float x[2] = { -0.2, 2.0 }, avg[2];
          float errx = -0.1, erry = beststats.prof_avg, errlen;
-         float fmid, tdms;
          float *phasetwo = NULL;
 
-         // Dispersion smearing from a single channel in 
-         // units of a fraction of a period
-         fmid = search->lofreq + 0.5*(search->numchan-1.0)*search->chan_wid;
-         tdms = smearing_from_bw(search->bestdm, fmid, search->chan_wid);
-         if (search->bepoch != 0.0)
-            tdms /= search->bary.p1;
-         else
-            tdms /= search->topo.p1;
          cpgsvp(0.06, 0.27, 0.68, 0.94);
          cpgswin(0.0, 1.999, 0.0, 1.0);
          cpgbox("BST", 0.0, 0, "", 0.0, 0);
@@ -787,7 +778,26 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             errlen = sqrt(beststats.prof_var);
             cpgerr1(6, errx, erry, errlen, 2);
             cpgpt(1, &errx, &erry, 5);
-            cpgerr1(5, 1.0, min - over, tdms, 2);
+            // Only do the following for radio data
+            if (search->lofreq > 0.0 && search->chan_wid > 0.0) {
+               float fmid, tdms, tdt, tcbw, ttot=0.0;
+               // Middle observing freq
+               fmid = search->lofreq + 0.5*(search->numchan-1.0)*search->chan_wid;
+               // Dispersion smearing from a single channel
+               tdms = smearing_from_bw(search->bestdm, fmid, search->chan_wid);
+               // Sample time
+               tdt = search->dt;
+               // 1/channel BW (i.e. best possible time res)
+               tcbw = 1.0/(search->chan_wid*1e6);
+               // total time resolution
+               ttot = sqrt(tdms*tdms + tdt*tdt + tcbw*tcbw);
+               // The above in units of a fraction of a period
+               if (search->bepoch != 0.0)
+                  ttot /= search->bary.p1;
+               else
+                  ttot /= search->topo.p1;
+               cpgerr1(5, 1.0, min - over, ttot, 2);
+            }
          }
       }
 
