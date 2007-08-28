@@ -864,6 +864,44 @@ def expcos_profile(N, phase, fwhm):
         return norm * (Num.exp(k * Num.cos(phsval + phi)) -
                        Num.exp(-k))
 
+def read_gaussfitfile(gaussfitfile, proflen):
+    """
+    read_gaussfitfile(gaussfitfile, proflen):
+        Read a Gaussian-fit file as created by the output of pygaussfit.py.
+            The input parameters are the name of the file and the number of
+            bins to include in the resulting template file.  A numpy array
+            of that length is returned.
+    """
+    phass = []
+    ampls = []
+    fwhms = []
+    for line in open(gaussfitfile):
+        if line.lstrip().startswith("phas"):
+            phass.append(float(line.split()[2]))
+        if line.lstrip().startswith("ampl"):
+            ampls.append(float(line.split()[2]))
+        if line.lstrip().startswith("fwhm"):
+            fwhms.append(float(line.split()[2]))
+    if not (len(phass) == len(ampls) == len(fwhms)):
+        print "Number of phases, amplitudes, and FWHMs are not the same in '%s'!"%gaussfitfile
+        return 0.0
+    phass = Num.asarray(phass)
+    ampls = Num.asarray(ampls)
+    fwhms = Num.asarray(fwhms)
+    # Now sort them all according to decreasing amplitude
+    new_order = Num.argsort(ampls)
+    new_order = new_order[::-1]
+    ampls = Num.take(ampls, new_order)
+    phass = Num.take(phass, new_order)
+    fwhms = Num.take(fwhms, new_order)
+    # Now put the biggest gaussian at phase = 0.0
+    phass = phass - phass[0]
+    phass = Num.where(phass<0.0, phass+1.0, phass)
+    template = Num.zeros(proflen, dtype='d')
+    for ii in range(len(ampls)):
+        template += ampls[ii]*gaussian_profile(proflen, phass[ii], fwhms[ii])
+    return template
+
 def gaussian_profile(N, phase, fwhm):
     """
     gaussian_profile(N, phase, fwhm):
