@@ -28,37 +28,6 @@ def measure_phase(profile, template):
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
-def read_gaussfitfile(gaussfitfile, proflen):
-    phass = []
-    ampls = []
-    fwhms = []
-    for line in open(gaussfitfile):
-        if line.lstrip().startswith("phas"):
-            phass.append(float(line.split()[2]))
-        if line.lstrip().startswith("ampl"):
-            ampls.append(float(line.split()[2]))
-        if line.lstrip().startswith("fwhm"):
-            fwhms.append(float(line.split()[2]))
-    if not (len(phass) == len(ampls) == len(fwhms)):
-        print "Number of phases, amplitudes, and FWHMs are not the same in '%s'!"%gaussfitfile
-        return 0.0
-    phass = Num.asarray(phass)
-    ampls = Num.asarray(ampls)
-    fwhms = Num.asarray(fwhms)
-    # Now sort them all according to decreasing amplitude
-    new_order = Num.argsort(ampls)
-    new_order = new_order[::-1]
-    ampls = Num.take(ampls, new_order)
-    phass = Num.take(phass, new_order)
-    fwhms = Num.take(fwhms, new_order)
-    # Now put the biggest gaussian at phase = 0.0
-    phass = phass - phass[0]
-    phass = Num.where(phass<0.0, phass+1.0, phass)
-    template = Num.zeros(proflen, dtype='d')
-    for ii in range(len(ampls)):
-        template += ampls[ii]*psr_utils.gaussian_profile(proflen, phass[ii], fwhms[ii])
-    return template
-
 def usage():
     print """
 usage:  get_TOAs.py [options which must include -t or -g] pfd_file
