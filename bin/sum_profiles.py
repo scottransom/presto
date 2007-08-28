@@ -271,9 +271,23 @@ if __name__ == '__main__':
             offpulse_rms = offpulse.std()
         newprof /= offpulse_rms
         SNR = newprof.sum()
+        # For the time in the radiometer eqn, we need to use an
+        # "effective" time that compensates for the fact that
+        # prepfold spreads bins of data over different bins in the
+        # profile.  This causes smoothing of profiles if you try
+        # to fold with too many bins.  Thanks to Paul Demorest and
+        # Walter Brisken for helping we work this out.
+        Ppsr = 1.0/current_pfd.fold_p1      # Pulsar period
+        tau_bin = Ppsr/current_pfd.proflen  # Duration of profile bin
+        tau_dt = current_pfd.dt             # Duration of data sample
+        num_pulses = T / Ppsr               # # of pulses summed
+        # Note:  if tau_bin >> tau_dt, Teff -> T/numbins
+        #        if tau_bin << tau_dt, Teff -> dt*num_pulses
+        Teff = (tau_bin + tau_dt) * num_pulses
+
         print "    Approx SNR = %.3f" % SNR
         if SEFD:
-            S = SEFD * SNR / Num.sqrt(2.0 * BW * T / numbins) / numbins
+            S = SEFD * SNR / Num.sqrt(2.0 * BW * Teff) / numbins
             avg_S += S
             print "    Approx flux density = %.3f mJy" % S
         
@@ -294,8 +308,10 @@ if __name__ == '__main__':
     sumprof /= offpulse.std()
     print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
     if SEFD:
+        num_pulses = Tpostrfi / Ppsr
+        Teff = (tau_bin + tau_dt) * num_pulses
         avg_S /= len(pfdfilenms)
-        S = SEFD * sumprof.sum() / Num.sqrt(2.0 * BW * Tpostrfi / numbins) / numbins
+        S = SEFD * sumprof.sum() / Num.sqrt(2.0 * BW * Teff) / numbins
         print "     Approx sum profile flux density = %.3f mJy" % S
         print "    Avg of individual flux densities = %.3f mJy" % avg_S
         print "     Total (RFI cleaned) integration = %.0f s (%.2f hrs)" % \
