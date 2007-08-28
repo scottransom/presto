@@ -55,9 +55,14 @@ def usage():
 usage:  sum_profiles.py [options which must include -t or -g] profs_file
   [-h, --help]                          : Display this help
   [-b bkgd_cutoff, --background=cutoff] : Fractional cutoff for the background level
+                                          or, if the arg is a string (i.e. containing
+                                          ',' and/or '-'), use the bins specified (as
+                                          for parse_vals()) as the background values
   [-d DM, --dm=DM]                      : Re-combine subbands at DM
   [-n N, --numbins=N]                   : The number of bins to use in the resulting profile
   [-g gausswidth, --gaussian=width]     : Use a Gaussian template of FWHM width
+                                          or, if the arg is a string, read the file
+                                          to get multiple-gaussian parameters
   [-t templateprof, --template=prof]    : The template .bestprof file to use
   [-o outputfilenm, --output=filenm]    : The output file to use for the summed profile
   [-s SEFD, --sefd=SEFD]                : For rough flux calcs, the SEFD (i.e. Tsys/G)
@@ -98,7 +103,9 @@ if __name__ == '__main__':
     lowfreq = None
     DM = 0.0
     bkgd_cutoff = 0.1
+    bkgd_vals = None
     gaussianwidth = 0.1
+    gaussfitfile = None
     templatefilenm = None
     numbins = 128
     SEFD = 0.0
@@ -108,13 +115,22 @@ if __name__ == '__main__':
             usage()
             sys.exit()
         if o in ("-b", "--background"):
-            bkgd_cutoff = float(a)
+            if '-' in a or ',' in a:
+                bkgd_vals = Num.asarray(parse_vals(a))
+            else:
+                try:
+                    bkgd_cutoff = float(a)
+                except ValueError:
+                    bkgd_vals = Num.asarray(parse_vals(a))
         if o in ("-d", "--dm"):
             DM = float(a)
         if o in ("-n", "--numbins"):
             numbins = int(a)
         if o in ("-g", "--gaussian"):
-            gaussianwidth = float(a)
+            try:
+                gaussianwidth = float(a)
+            except ValueError:
+                gaussfitfile = a
         if o in ("-t", "--template"):
             templatefilenm = a
         if o in ("-o", "--output"):
@@ -132,7 +148,10 @@ if __name__ == '__main__':
             oldlen = len(template)
             template = sinc_interp.periodic_interp(template, numbins)[::oldlen]
     else:
-        template = psr_utils.gaussian_profile(numbins, 0.0, gaussianwidth)
+        if gaussfitfile is not None:
+            template = psr_utils.read_gaussfitfile(gaussfitfile, numbins)
+        else:
+            template = psr_utils.gaussian_profile(numbins, 0.0, gaussianwidth)
     # Normalize it
     template -= min(template)
     template /= max(template)
@@ -140,24 +159,27 @@ if __name__ == '__main__':
     shift,eshift,snr,esnr,b,errb,ngood = measure_phase(template, template)
     template = psr_utils.interp_rotate(template, shift)
         
-    if (0):
-        Pgplot.plotxy(template)
-        Pgplot.closeplot()
-
     # Determine the off-pulse bins
-    offpulse_inds = Num.compress(template<=bkgd_cutoff, Num.arange(numbins))
-    onpulse_inds = Num.compress(template>bkgd_cutoff, Num.arange(numbins))
-    # If the number of bins in the offpulse section is < 10% of the total
-    # use the statistics in the .pfd file to set the RMS
-    if (len(offpulse_inds) < 0.1*numbins):
-        usestats = 1
+    if bkgd_vals is not None:
+        Pgplot.plotxy(template, labx="Phase bins")
+        Pgplot.plotxy(template[bkgd_vals], Num.arange(numbins)[bkgd_vals],
+                      line=None, symbol=2, color='red')
+        Pgplot.closeplot()
+        offpulse_inds = bkgd_vals
+        onpulse_inds = set(Num.arange(numbins)) - set(bkgd_vals)
     else:
-        usestats = 0    
-    
-    if (1):
+        offpulse_inds = Num.compress(template<=bkgd_cutoff, Num.arange(numbins))
+        onpulse_inds = Num.compress(template>bkgd_cutoff, Num.arange(numbins))
         Pgplot.plotxy(template)
         Pgplot.plotxy([bkgd_cutoff, bkgd_cutoff], [0.0, numbins], color='red')
         Pgplot.closeplot()
+    # If the number of bins in the offpulse section is < 10% of the total
+    # use the statistics in the .pfd file to set the RMS
+    if (len(offpulse_inds) < 0.1*numbins):
+        print "Number of off-pulse bins to use for RMS is too low.  Using .pfd stats."
+        usestats = 1
+    else:
+        usestats = 0    
 
     # Read the list of *.pfd files to process
     pfdfilenms = []
@@ -279,6 +301,8 @@ if __name__ == '__main__':
         print "     Total (RFI cleaned) integration = %.0f s (%.2f hrs)" % \
               (Tpostrfi, Tpostrfi/3600.0)
 
+    # Rotate the summed profile so that the max value is at the phase ~ 0.25 mark
+    sumprof = psr_utils.rotate(sumprof, -len(sumprof)/4)
     Pgplot.plotxy(sumprof, Num.arange(numbins),
                   labx="Pulse Phase", laby="Relative Flux")
     Pgplot.closeplot()
