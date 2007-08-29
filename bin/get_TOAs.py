@@ -198,7 +198,7 @@ if __name__ == '__main__':
         template = psr_utils.read_profile(templatefilenm, normalize=1)
     else:
         if (gaussfitfile):
-            template = read_gaussfitfile(gaussfitfile, fold_pfd.proflen)
+            template = psr_utils.read_gaussfitfile(gaussfitfile, fold_pfd.proflen)
         else:
             template = psr_utils.gaussian_profile(fold_pfd.proflen, 0.0, gaussianwidth)
         template = template / max(template)
