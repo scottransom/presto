@@ -716,6 +716,19 @@ def interp_rotate(arr, bins, zoomfact=10):
     newarr = sinc_interp.periodic_interp(arr, zoomfact)  
     return rotate(newarr, rotbins)[::zoomfact]
 
+def fft_rotate(arr, bins):
+    """
+    fft_rotate(arr, bins):
+        Return array 'arr' rotated by 'bins' places to the left.  The
+            rotation is done in the Fourier domain using the Shift Theorem.
+            'bins' can be fractional.  The resulting vector will have
+            the same length as the oiginal.
+    """
+    arr = Num.asarray(arr)
+    freqs = Num.arange(arr.size/2+1, dtype=Num.float)
+    phasor = Num.exp(complex(0.0, TWOPI) * freqs * bins / float(arr.size))
+    return Num.fft.irfft(phasor * Num.fft.rfft(arr))
+
 def corr(profile, template):
     """
     corr(profile, template):
