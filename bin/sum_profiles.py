@@ -202,7 +202,7 @@ if __name__ == '__main__':
                 killsubss.append(killsubs)
                 killintss.append(killints)
             else:
-                print "Can't find '%s'.  Skipping it."
+                print "Can't find '%s'.  Skipping it."%pfdfilenm
 
     sumprof = Num.zeros(numbins, dtype='d')
 
