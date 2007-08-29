@@ -157,7 +157,7 @@ if __name__ == '__main__':
     template /= max(template)
     # Rotate it so that it becomes a "true" template according to FFTFIT
     shift,eshift,snr,esnr,b,errb,ngood = measure_phase(template, template)
-    template = psr_utils.interp_rotate(template, shift)
+    template = psr_utils.fft_rotate(template, shift)
         
     # Determine the off-pulse bins
     if bkgd_vals is not None:
@@ -259,7 +259,7 @@ if __name__ == '__main__':
         shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template)
 
         # Rotate the profile to match the template
-        newprof = psr_utils.interp_rotate(prof, shift)
+        newprof = psr_utils.fft_rotate(prof, shift)
 
         # Now shift and scale the profile so that it has an off-pulse
         # mean of ~0 and an off-pulse RMS of ~1
