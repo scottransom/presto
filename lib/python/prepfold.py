@@ -52,29 +52,32 @@ class pfd:
         # The following "fixes" (we think) the observing frequency of the Spigot
         # based on tests done by Ingrid on 0737 (comparing it to GASP)
         # The same sorts of corrections should be made to WAPP data as well...
+        # The tepoch corrections are empirically determined timing corrections
+        # Note that epoch is only double precision and so the floating
+        # point accuracy is ~1 us!
         if self.telescope=='GBT':
             if self.dt==8.192e-05:
                 if self.chan_wid==800.0/1024: # Spigot 800 MHz mode 2
                     self.lofreq -= 0.5 * self.chan_wid
-                    # The following are the empirically determined timing corrections
-                    # Note that epoch is only double precision and so the floating
-                    # point accuracy is ~1 us!
-                    if self.tepoch > 0.0: self.tepoch += 0.039334/86400.0
-		    if self.bestprof: self.bestprof.epochf += 0.039334/86400.0
-                elif self.chan_wid==800.0/2048 and self.tepoch < 53700.0: # Spigot 800 MHz mode 16 (downsampled)
-                    self.lofreq -= 0.5 * self.chan_wid
-                    # The following are the empirically determined timing corrections
-                    # Note that epoch is only double precision and so the floating
-                    # point accuracy is ~1 us!
-                    if self.tepoch > 0.0: self.tepoch += 0.039352/86400.0
-		    if self.bestprof: self.bestprof.epochf += 0.039352/86400.0
+                    # original values
+                    #if self.tepoch > 0.0: self.tepoch += 0.039334/86400.0
+                    #if self.bestprof: self.bestprof.epochf += 0.039334/86400.0
+                    # values measured with 1713+0747 wrt BCPM2 on 13 Sept 2007
+                    if self.tepoch > 0.0: self.tepoch += 0.039365/86400.0
+                    if self.bestprof: self.bestprof.epochf += 0.039365/86400.0
+                elif self.chan_wid==800.0/2048:
+                    self.lofreq -= 0.5 * self.chan_wid 
+                    if self.tepoch < 53700.0:  # Spigot 800 MHz mode 16 (downsampled)
+                        if self.tepoch > 0.0: self.tepoch += 0.039352/86400.0
+                        if self.bestprof: self.bestprof.epochf += 0.039352/86400.0
+                    else:  # Spigot 800 MHz mode 14 
+                        # values measured with 1713+0747 wrt BCPM2 on 13 Sept 2007
+                        if self.tepoch > 0.0: self.tepoch += 0.039365/86400.0
+                        if self.bestprof: self.bestprof.epochf += 0.039365/86400.0
                 elif self.chan_wid==50.0/1024: # Spigot 50 MHz mode 42
                     self.lofreq += 0.5 * self.chan_wid
-                    # The following are the empirically determined timing corrections
-                    # Note that epoch is only double precision and so the floating
-                    # point accuracy is ~1 us!
                     if self.tepoch > 0.0: self.tepoch += 0.039450/86400.0
-		    if self.bestprof: self.bestprof.epochf += 0.039450/86400.0
+                    if self.bestprof: self.bestprof.epochf += 0.039450/86400.0
         (self.topo_pow, tmp) = struct.unpack(swapchar+"f"*2, infile.read(2*4))
         (self.topo_p1, self.topo_p2, self.topo_p3) = struct.unpack(swapchar+"d"*3, \
                                                                    infile.read(3*8))
@@ -94,7 +97,7 @@ class pfd:
                                                  infile.read(self.numperiods*8)))
         self.pdots = Num.asarray(struct.unpack(swapchar+"d"*self.numpdots, \
                                                infile.read(self.numpdots*8)))
-	self.numprofs = self.nsub*self.npart
+        self.numprofs = self.nsub*self.npart
         if (swapchar=='<'):  # little endian
             self.profs = Num.zeros((self.npart, self.nsub, self.proflen), dtype='d')
             for ii in range(self.npart):
@@ -115,29 +118,29 @@ class pfd:
                     self.numchan = 1
             except IOError:
                 print "Warning!  Can't open the .inf file for "+filename+"!"
-	self.binspersec = self.fold_p1*self.proflen
-	self.chanpersub = self.numchan/self.nsub
-	self.subdeltafreq = self.chan_wid*self.chanpersub
-	self.hifreq = self.lofreq + (self.numchan-1)*self.chan_wid
-	self.losubfreq = self.lofreq + self.subdeltafreq - self.chan_wid
-	self.subfreqs = Num.arange(self.nsub, dtype='d')*self.subdeltafreq + \
+        self.binspersec = self.fold_p1*self.proflen
+        self.chanpersub = self.numchan/self.nsub
+        self.subdeltafreq = self.chan_wid*self.chanpersub
+        self.hifreq = self.lofreq + (self.numchan-1)*self.chan_wid
+        self.losubfreq = self.lofreq + self.subdeltafreq - self.chan_wid
+        self.subfreqs = Num.arange(self.nsub, dtype='d')*self.subdeltafreq + \
                         self.losubfreq
         self.subdelays_bins = Num.zeros(self.nsub, dtype='d')
         self.killed_subbands = []
         self.killed_intervals = []
         self.pts_per_fold = []
-	# Note: a foldstats struct is read in as a group of 7 doubles
-	# the correspond to, in order: 
-	#    numdata, data_avg, data_var, numprof, prof_avg, prof_var, redchi
+        # Note: a foldstats struct is read in as a group of 7 doubles
+        # the correspond to, in order: 
+        #    numdata, data_avg, data_var, numprof, prof_avg, prof_var, redchi
         self.stats = Num.zeros((self.npart, self.nsub, 7), dtype='d')
-	for ii in range(self.npart):
-	    currentstats = self.stats[ii]
-	    for jj in range(self.nsub):
-		if (swapchar=='<'):  # little endian
-		    currentstats[jj] = fread(infile, 7, 'd')
-		else:
-		    currentstats[jj] = Num.asarray(struct.unpack(swapchar+"d"*7, \
-				                                 infile.read(7*8)))
+        for ii in range(self.npart):
+            currentstats = self.stats[ii]
+            for jj in range(self.nsub):
+                if (swapchar=='<'):  # little endian
+                    currentstats[jj] = fread(infile, 7, 'd')
+                else:
+                    currentstats[jj] = Num.asarray(struct.unpack(swapchar+"d"*7, \
+                                                                 infile.read(7*8)))
             self.pts_per_fold.append(self.stats[ii][0][0])  # numdata from foldstats
         self.start_secs = Num.add.accumulate([0]+self.pts_per_fold[:-1])*self.dt
         self.pts_per_fold = Num.asarray(self.pts_per_fold)
