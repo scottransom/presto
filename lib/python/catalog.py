@@ -375,6 +375,8 @@ for psr in psrs:
         psr.e = 0.0000001
     if psr.name=="1933-6211":
         psr.e = 0.000001
+    if psr.name=="1909-3744":
+        psr.s1400 = 3.0
 
 # If calling this as a main program, then write out the new pulsars.cat file
 if __name__ == '__main__' :
