@@ -41,7 +41,7 @@ def running_avg(arr, navg):
     return Num.add.reduce(Num.transpose(a)) / navg
 
 def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
-         width=2, aspect=0.7727, device='/XWIN'):
+         width=2, aspect=0.7727, logx=0, device='/XWIN'):
     """
     hist(data, bins, range=None):
     Return and plot a histogram in one variable.
@@ -62,7 +62,7 @@ def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
         maxy = max(ys) + 1.0
     Pgplot.plotbinned(ys, xs, rangey=[0,maxy], width=width,
                       labx=labx, laby=laby, color=color, line=line,
-                      aspect=aspect, device=device)
+                      aspect=aspect, logx=logx, device=device)
     return (xs, ys)
 
 def KS_test(data, cumdist, output=0):
