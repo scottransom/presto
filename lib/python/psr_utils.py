@@ -40,10 +40,9 @@ def running_avg(arr, navg):
     a.shape = (len(a) / navg, navg)
     return Num.add.reduce(Num.transpose(a)) / navg
 
-def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
-         width=2, aspect=0.7727, logx=0, device='/XWIN'):
+def hist(data, bins, range=None, laby="Number", **kwargs):
     """
-    hist(data, bins, range=None):
+    hist(data, bins, range=None, laby="Number", **kwargs):
     Return and plot a histogram in one variable.
       data  -- a sequence of data points
       bins  -- the number of bins into which the data is to be sorted
@@ -52,17 +51,16 @@ def hist(data, bins, range=None, labx="", laby="Number", color=1, line=1,
                Any data point outside this interval will be ignored.
                If no range is given, the smallest and largest
                data values are used to define the interval.
-    Note:  This command also accepts some basic flags for the plot,
-           like labx, laby, aspect, color, line, width, and device.
+    Note:  This command also accepts all the keyword arge of plotbinned().
     """
     (ys, lox, dx, out) = histogram(data, bins, range)
     xs = Num.arange(bins, dtype='d')*dx + lox + 0.5*dx
     maxy = int(1.1*max(ys))
     if maxy < max(ys):
         maxy = max(ys) + 1.0
-    Pgplot.plotbinned(ys, xs, rangey=[0,maxy], width=width,
-                      labx=labx, laby=laby, color=color, line=line,
-                      aspect=aspect, logx=logx, device=device)
+    if 'rangey' not in kwargs.keys():
+        kwargs['rangey']=[0,maxy]
+    Pgplot.plotbinned(ys, xs, laby=laby, **kwargs)
     return (xs, ys)
 
 def KS_test(data, cumdist, output=0):
