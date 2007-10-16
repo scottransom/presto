@@ -36,8 +36,8 @@ class psr:
             elif param=="PSRJ":
                 if not parts[part_index]=='*':
                     self.jname = parts[part_index][1:]
-                    #if self.name == self.jname:
-                    #    self.name = ""
+                    if self.name == self.jname:
+                        self.name = ""
             elif param=="RAJ":
                 if not parts[part_index]=='*':
                     hms = map(float, parts[part_index].split(':'))
@@ -326,7 +326,7 @@ for psr in psrs:
 
 # Add a couple important pulsars
 for psr in psrs:
-    if psr.name=="1903+0327":
+    if psr.jname=="1903+0327":
         psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
         psr.x  = 105.593483
         psr.e  = 0.4366786
@@ -337,7 +337,7 @@ for psr in psrs:
         psr.l  = 37.336
         psr.b  = -1.014
         psr.dist = 6.36
-    if psr.name=="1614-2230":
+    if psr.jname=="1614-2230":
         psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
         psr.x  = 11.291206
         psr.e  = 0.00000128
@@ -348,7 +348,7 @@ for psr in psrs:
         psr.l  = 352.6357
         psr.b  = 20.1922
         psr.dist = 1.27
-    if psr.name=="1614-2318":
+    if psr.jname=="1614-2318":
         psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
         psr.x  = 1.327490
         psr.e  = 0.0
@@ -359,7 +359,7 @@ for psr in psrs:
         psr.l  = 351.91856
         psr.b  = 19.74496
         psr.dist = 1.80
-    if psr.name=="1744-3922":
+    if psr.jname=="1744-3922":
         psr.pd = 1.64533617e-18
         psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
         psr.x  = 0.212202068
@@ -371,11 +371,11 @@ for psr in psrs:
         psr.e = 0.0237
     if psr.name=="1855+09":
         psr.e = 0.000022
-    if psr.name=="1738+0333":
+    if psr.jname=="1738+0333":
         psr.e = 0.0000001
-    if psr.name=="1933-6211":
+    if psr.jname=="1933-6211":
         psr.e = 0.000001
-    if psr.name=="1909-3744":
+    if psr.jname=="1909-3744":
         psr.s1400 = 3.0
 
 # If calling this as a main program, then write out the new pulsars.cat file
