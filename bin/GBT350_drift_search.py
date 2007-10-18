@@ -502,12 +502,9 @@ def main(fil_filenm, workdir, ddplans):
     job.write_report(os.path.join(job.outputdir, job.basefilenm+".report"))
 
     # Move all the important stuff to the output directory
-    try:
-        cmd = "mv *rfifind.[bimors]* *out.gz *.tgz *.ps.gz *.png *.report "+\
-              job.outputdir
-        os.system(cmd)
-    except: pass
-
+    cmd = "mv *rfifind.[bimors]* *out.gz *.tgz *.ps.gz *.png *.report "+\
+          job.outputdir
+    os.system(cmd)
 
 if __name__ == "__main__":
     # Create our de-dispersion plans
