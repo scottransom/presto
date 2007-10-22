@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import glob, os, os.path, shutil, socket, struct
-import numpy, sys, psr_utils, presto, time, sifting
+import glob, os, os.path, shutil, socket, struct, sys, time
+import numpy, psr_utils, presto, sifting, sigproc
 
 # Calling convention:
 #
@@ -261,29 +261,21 @@ class obs_info:
         self.fil_filenm = fil_filenm
         self.basefilenm = fil_filenm.rstrip(".fil")
         self.beam = int(self.basefilenm[-1])
-        for line in os.popen("readfile %s"%fil_filenm):
-            if "=" in line:
-                key, val = line.split("=")
-                if "Header" in key:
-                    self.hdrlen = int(val)
-                if "Original" in key:
-                    split_orig_filenm = os.path.split(val.strip().strip("'"))[1].split(".")
-                    self.orig_filenm = ".".join(split_orig_filenm[0:-2] +
-                                                split_orig_filenm[-1:])
-                if "MJD" in key:
-                    self.MJD = float(val)
-                if "RA" in key:
-                    val = val.strip()
-                    self.ra_string = val[:-9]+":"+val[-9:-7]+":"+val[-7:]
-                if "DEC" in key:
-                    val = val.strip()
-                    self.dec_string = val[:-9]+":"+val[-9:-7]+":"+val[-7:]
-                if "samples" in key:
-                    self.orig_N = int(val)
-                if "T_samp" in key:
-                    self.dt = float(val) * 1e-6  # in sec
-                if "Total Bandwidth" in key:
-                    self.BW = float(val)
+        filhdr, self.hdrlen = sigproc.read_header(fil_filenm)
+        self.orig_filenm = filhdr['rawdatafile']
+        self.MJD = filhdr['tstart']
+        self.nchans = filhdr['nchans']
+        self.ra_rad = sigproc.ra2radians(filhdr['src_raj'])
+        self.ra_string = psr_utils.coord_to_string(\
+            *psr_utils.rad_to_hms(self.ra_rad))
+        self.dec_rad = sigproc.dec2radians(filhdr['src_dej'])
+        self.dec_string = psr_utils.coord_to_string(\
+            *psr_utils.rad_to_dms(self.dec_rad))
+        self.az = filhdr['az_start']
+        self.el = 90.0-filhdr['za_start']
+        self.BW = abs(filhdr['foff']) * filhdr['nchans']
+        self.dt = filhdr['tsamp']
+        self.orig_N = sigproc.samples_per_file(fil_filenm, filhdr, self.hdrlen)
         self.orig_T = self.orig_N * self.dt
         self.N = choose_N(self.orig_N)
         self.T = self.N * self.dt
