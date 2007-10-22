@@ -138,6 +138,20 @@ def read_header(infile):
     infile.close()
     return hdrdict, hdrlen
 
+def samples_per_file(infile, hdrdict, hdrlen):
+    """
+    samples_per_file(infile, hdrdict, hdrlen):
+       Given an input SIGPROC-style filterbank file and a header
+           dictionary and length (as returned by read_header()),
+           return the number of (time-domain) samples in the file.
+    """
+    numbytes = os.stat(infile)[6] - hdrlen
+    bytes_per_sample = hdrdict['nchans'] / (hdrdict['nbits']/8)
+    if numbytes % bytes_per_sample:
+        print "Warning!:  File does not appear to be of the correct length!"
+    numsamples = numbytes / bytes_per_sample
+    return numsamples
+
 if __name__ == "__main__":
     if len(sys.argv)==1:
         print "\nusage:  mod_filterbank_hdr.py infile.fil [outfile.fil]\n"
