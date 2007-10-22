@@ -535,6 +535,7 @@ def main(fil_filenm, workdir):
                 # Remove the .dat and .fft files
                 try:
                     os.remove(datnm)
+                    os.remove(fftnm)
                 except: pass
 
     # Make the single-pulse plot
