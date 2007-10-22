@@ -1,26 +1,71 @@
 #!/usr/bin/env python
-
 import glob, os, os.path, shutil, socket, struct
-import numpy, sys, psr_utils, presto, time
+import numpy, sys, psr_utils, presto, time, sifting
 
-# Read in the configuration
-from PALFA_config import *
+# Calling convention:
+#
+# PALFA_presto_search.py fil_file working_dir
+#
+#   fil_file is the filterbank file name
+#   working_dir is the scratch directory where the work should be done
+#       In general, there should be ~30GB of scratch disk per beam.
+#       If you do not have that much scratch space, you will likely
+#       need to to use set the use_subbands flag below.
 
-debug = 0
+# Basic parameters
+# institution is one of: 'UBC', 'NRAOCV', 'McGill', 'Columbia', 'Cornell', 'UTB'
+institution           = "NRAOCV" 
+base_output_directory = "/home/sransom/results/ALFA"
+db_pointing_file      = "/home/sransom/results/ALFA/PALFA_coords_table.txt"
 
-# A list of numbers that are highly factorable
+# The following determines if we'll dedisperse and fold using subbands.
+# In general, it is a very good idea to use them if there is enough scratch
+# space on the machines that are processing (~30GB/beam processed)
+use_subbands          = True
+
+# Tunable parameters for searching and folding
+# (you probably don't need to tune any of them)
+rfifind_chunk_time    = 2**15 * 0.000064  # ~2.1 sec for dt = 64us 
+singlepulse_threshold = 5.0  # threshold SNR for candidate determination
+singlepulse_plot_SNR  = 6.0  # threshold SNR for singlepulse plot
+singlepulse_maxwidth  = 0.1  # max pulse width in seconds
+to_prepfold_sigma     = 6.0  # incoherent sum significance to fold candidates
+max_cands_to_fold     = 50   # Never fold more than this many candidates
+numhits_to_fold       = 2    # Number of DMs with a detection needed to fold
+low_DM_cutoff         = 2.0  # Lowest DM to consider as a "real" pulsar
+lo_accel_numharm      = 16   # max harmonics
+lo_accel_sigma        = 2.0  # threshold gaussian significance
+lo_accel_zmax         = 0    # bins
+lo_accel_flo          = 2.0  # Hz
+hi_accel_numharm      = 8    # max harmonics
+hi_accel_sigma        = 3.0  # threshold gaussian significance
+hi_accel_zmax         = 50   # bins
+hi_accel_flo          = 1.0  # Hz
+low_T_to_search       = 20.0 # sec
+
+# Sifting specific parameters (don't touch without good reason!)
+sifting.sigma_threshold = to_prepfold_sigma-1.0  # incoherent power threshold (sigma)
+sifting.c_pow_threshold = 100.0                  # coherent power threshold
+sifting.r_err           = 1.1    # Fourier bin tolerence for candidate equivalence
+sifting.short_period    = 0.0005 # Shortest period candidates to consider (s)
+sifting.long_period     = 15.0   # Longest period candidates to consider (s)
+sifting.harm_pow_cutoff = 8.0    # Power required in at least one harmonic
+
+# A list of 4-digit numbers that are highly factorable by small primes
 #goodfactors = [int(x) for x in open("ALFA_goodfacts.txt")]
 goodfactors = [1008, 1024, 1056, 1120, 1152, 1200, 1232, 1280, 1296,
-1344, 1408, 1440, 1536, 1568, 1584, 1600, 1680, 1728, 1760, 1792,
-1920, 1936, 2000, 2016, 2048, 2112, 2160, 2240, 2304, 2352, 2400,
-2464, 2560, 2592, 2640, 2688, 2800, 2816, 2880, 3024, 3072, 3136,
-3168, 3200, 3360, 3456, 3520, 3584, 3600, 3696, 3840, 3872, 3888,
-3920, 4000, 4032, 4096, 4224, 4320, 4400, 4480, 4608, 4704, 4752,
-4800, 4928, 5040, 5120, 5184, 5280, 5376, 5488, 5600, 5632, 5760,
-5808, 6000, 6048, 6144, 6160, 6272, 6336, 6400, 6480, 6720, 6912,
-7040, 7056, 7168, 7200, 7392, 7680, 7744, 7776, 7840, 7920, 8000,
-8064, 8192, 8400, 8448, 8624, 8640, 8800, 8960, 9072, 9216, 9408,
-9504, 9600, 9680, 9856]
+               1344, 1408, 1440, 1536, 1568, 1584, 1600, 1680, 1728,
+               1760, 1792, 1920, 1936, 2000, 2016, 2048, 2112, 2160,
+               2240, 2304, 2352, 2400, 2464, 2560, 2592, 2640, 2688,
+               2800, 2816, 2880, 3024, 3072, 3136, 3168, 3200, 3360,
+               3456, 3520, 3584, 3600, 3696, 3840, 3872, 3888, 3920,
+               4000, 4032, 4096, 4224, 4320, 4400, 4480, 4608, 4704,
+               4752, 4800, 4928, 5040, 5120, 5184, 5280, 5376, 5488,
+               5600, 5632, 5760, 5808, 6000, 6048, 6144, 6160, 6272,
+               6336, 6400, 6480, 6720, 6912, 7040, 7056, 7168, 7200,
+               7392, 7680, 7744, 7776, 7840, 7920, 8000, 8064, 8192,
+               8400, 8448, 8624, 8640, 8800, 8960, 9072, 9216, 9408,
+               9504, 9600, 9680, 9856]
 
 def choose_N(orig_N):
     """
@@ -51,20 +96,20 @@ def choose_N(orig_N):
     else: return new_N
 
 def get_baryv(ra, dec, mjd, T, obs="AO"):
+    """
+    get_baryv(ra, dec, mjd, T):
+         Determine the average barycentric velocity towards 'ra', 'dec'
+             during an observation from 'obs'.  The RA and DEC are in the
+             standard string format (i.e. 'hh:mm:ss.ssss' and
+             'dd:mm:ss.ssss').  'T' is in sec and 'mjd' is (of course) in MJD.
    """
-   get_baryv(ra, dec, mjd, T):
-     Determine the average barycentric velocity towards 'ra', 'dec'
-       during an observation from 'obs'.  The RA and DEC are in the
-       standard string format (i.e. 'hh:mm:ss.ssss' and 'dd:mm:ss.ssss').
-       'T' is in sec and 'mjd' is (of course) in MJD.
-   """
-   tts = psr_utils.span(mjd, mjd+T/86400.0, 100)
-   nn = len(tts)
-   bts = numpy.zeros(nn, dtype=numpy.float64)
-   vel = numpy.zeros(nn, dtype=numpy.float64)
-   presto.barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
-   avgvel = numpy.add.reduce(vel)/nn
-   return avgvel
+    tts = psr_utils.span(mjd, mjd+T/86400.0, 100)
+    nn = len(tts)
+    bts = numpy.zeros(nn, dtype=numpy.float64)
+    vel = numpy.zeros(nn, dtype=numpy.float64)
+    presto.barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
+    avgvel = numpy.add.reduce(vel)/nn
+    return avgvel
 
 def fix_fil_posn(fil_filenm, hdrlen, ra, dec):
     """
@@ -151,11 +196,11 @@ def timed_execute(cmd):
     end = time.time()
     return end - start
 
-def get_folding_command(cand, obs, subdms):
+def get_folding_command(cand, obs, ddplans):
     """
-    get_folding_command(cand, obs, subdms):
+    get_folding_command(cand, obs, ddplans):
         Return a command for prepfold for folding the subbands using
-            an obs_info instance, an array of the subdms, and a candidate 
+            an obs_info instance, a list of the ddplans, and a candidate 
             instance that describes the observations and searches.
     """
     # Folding rules are based on the facts that we want:
@@ -170,23 +215,42 @@ def get_folding_command(cand, obs, subdms):
     #       not search in period-derivative.
     zmax = cand.filename.split("_")[-1]
     outfilenm = obs.basefilenm+"_DM%s_Z%s"%(cand.DMstr, zmax)
-    subfiles = find_closest_subbands(obs, subdms, cand.DM)
+
+    # Note:  the following calculations should probably only be done once,
+    #        but in general, these calculation are effectively instantaneous
+    #        compared to the folding itself
+    if use_subbands:  # Fold the subbands
+        subdms = get_all_subdms(ddplans)
+        subfiles = find_closest_subbands(obs, subdms, cand.DM)
+        foldfiles = subfiles
+    else:  # Folding the downsampled filterbank files instead
+        hidms = [x.lodm for x in ddplans[1:]] + [2000]
+        dfacts = [x.downsamp for x in ddplans]
+        for hidm, dfact in zip(hidms, dfacts):
+            if cand.DM < hidm:
+                downsamp = dfact
+                break
+        if downsamp==1:
+            filfile = obs.fil_filenm
+        else:
+            filfile = obs.basefilenm+"_DS%d.fil"%downsamp
+        foldfiles = filfile
     p = 1.0 / cand.f
     if p < 0.002:
         Mp, Mdm, N = 2, 2, 24
-        otheropts = "-npart 50"
+        otheropts = "-npart 50 -ndmfact 3"
     elif p < 0.05:
         Mp, Mdm, N = 2, 1, 50
-        otheropts = "-npart 40 -pstep 1"
+        otheropts = "-npart 40 -pstep 1 -pdstep 2 -dmstep 3"
     elif p < 0.5:
         Mp, Mdm, N = 1, 1, 100
-        otheropts = "-npart 30 -pstep 1 -dmstep 1"
+        otheropts = "-npart 30 -pstep 1 -pdstep 2 -dmstep 1"
     else:
         Mp, Mdm, N = 1, 1, 200
-        otheropts = "-npart 30 -nopdsearch -pstep 1 -dmstep 1"
+        otheropts = "-npart 30 -nopdsearch -pstep 1 -pdstep 2 -dmstep 1"
     return "prepfold -noxwin -accelcand %d -accelfile %s.cand -dm %.2f -o %s %s -n %d -npfact %d -ndmfact %d %s" % \
            (cand.candnum, cand.filename, cand.DM, outfilenm,
-            otheropts, N, Mp, Mdm, subfiles)
+            otheropts, N, Mp, Mdm, foldfiles)
 
 class obs_info:
     """
@@ -246,6 +310,7 @@ class obs_info:
         self.masked_fraction = 0.0
         # Initialize our timers
         self.rfifind_time = 0.0
+        self.downsample_time = 0.0
         self.subbanding_time = 0.0
         self.dedispersing_time = 0.0
         self.FFT_time = 0.0
@@ -272,8 +337,12 @@ class obs_info:
         report_file.write("---------------------------------------------------------\n")
         report_file.write("          rfifind time = %7.1f sec (%5.2f%%)\n"%\
                           (self.rfifind_time, self.rfifind_time/self.total_time*100.0))
-        report_file.write("       subbanding time = %7.1f sec (%5.2f%%)\n"%\
-                          (self.subbanding_time, self.subbanding_time/self.total_time*100.0))
+        if use_subbands:
+            report_file.write("       subbanding time = %7.1f sec (%5.2f%%)\n"%\
+                              (self.subbanding_time, self.subbanding_time/self.total_time*100.0))
+        else:
+            report_file.write("     downsampling time = %7.1f sec (%5.2f%%)\n"%\
+                              (self.downsample_time, self.downsample_time/self.total_time*100.0))
         report_file.write("     dedispersing time = %7.1f sec (%5.2f%%)\n"%\
                           (self.dedispersing_time, self.dedispersing_time/self.total_time*100.0))
         report_file.write("     single-pulse time = %7.1f sec (%5.2f%%)\n"%\
@@ -304,7 +373,7 @@ class dedisp_plan:
         self.numsub = int(numsub)
         self.downsamp = int(downsamp)
         # Downsample less for the subbands so that folding
-        # candidates is more acurate
+        # candidates is more accurate
         self.sub_downsamp = self.downsamp / 2
         if self.sub_downsamp==0: self.sub_downsamp = 1
         # The total downsampling is:
@@ -360,9 +429,10 @@ def main(fil_filenm, workdir):
     except: pass
 
     # Create a directory to hold all the subbands
-    try:
-        os.makedirs("subbands")
-    except: pass
+    if use_subbands:
+        try:
+            os.makedirs("subbands")
+        except: pass
     
     print "\nBeginning PALFA search of '%s'"%job.fil_filenm
     print "UTC time is:  %s"%(time.asctime(time.gmtime()))
@@ -382,23 +452,41 @@ def main(fil_filenm, workdir):
     dmstrs = []
     for ddplan in ddplans:
 
+        # Make a downsampled filterbank file if we are not using subbands
+        if not use_subbands:
+            if ddplan.downsamp > 1:
+                cmd = "downsample_filterbank.py %d %s"%(ddplan.downsamp, job.fil_filenm)
+                job.downsample_time += timed_execute(cmd)
+                fil_filenm = job.fil_filenm[:job.fil_filenm.find(".fil")] + \
+                             "_DS%d.fil"%ddplan.downsamp
+            else:
+                fil_filenm = job.fil_filenm
+
         # Iterate over the individual passes through the .fil file
         for passnum in range(ddplan.numpasses):
             subbasenm = "%s_DM%s"%(job.basefilenm, ddplan.subdmlist[passnum])
 
-            # Create a set of subbands
-            cmd = "prepsubband -sub -subdm %s -downsamp %d -nsub %d -mask %s -o subbands/%s %s > %s.subout"%\
-                  (ddplan.subdmlist[passnum], ddplan.sub_downsamp,
-                   ddplan.numsub, maskfilenm, job.basefilenm,
-                   job.fil_filenm, subbasenm)
-            job.subbanding_time += timed_execute(cmd)
+            if use_subbands:
+                # Create a set of subbands
+                cmd = "prepsubband -sub -subdm %s -downsamp %d -nsub %d -mask %s -o subbands/%s %s > %s.subout"%\
+                      (ddplan.subdmlist[passnum], ddplan.sub_downsamp,
+                       ddplan.numsub, maskfilenm, job.basefilenm,
+                       job.fil_filenm, subbasenm)
+                job.subbanding_time += timed_execute(cmd)
             
-            # Now de-disperse using the subbands
-            cmd = "prepsubband -lodm %.2f -dmstep %.2f -numdms %d -downsamp %d -numout %d -o %s subbands/%s.sub[0-9]* > %s.prepout"%\
-                  (ddplan.lodm+passnum*ddplan.sub_dmstep, ddplan.dmstep,
-                   ddplan.dmsperpass, ddplan.dd_downsamp, job.N/ddplan.downsamp,
-                   job.basefilenm, subbasenm, subbasenm)
-            job.dedispersing_time += timed_execute(cmd)
+                # Now de-disperse using the subbands
+                cmd = "prepsubband -lodm %.2f -dmstep %.2f -numdms %d -downsamp %d -numout %d -o %s subbands/%s.sub[0-9]* > %s.prepout"%\
+                      (ddplan.lodm+passnum*ddplan.sub_dmstep, ddplan.dmstep,
+                       ddplan.dmsperpass, ddplan.dd_downsamp, job.N/ddplan.downsamp,
+                       job.basefilenm, subbasenm, subbasenm)
+                job.dedispersing_time += timed_execute(cmd)
+
+            else:  # Not using subbands
+                cmd = "prepsubband -mask %s -lodm %.2f -dmstep %.2f -numdms %d -numout %d -o %s %s"%\
+                      (maskfilenm, ddplan.lodm+passnum*ddplan.sub_dmstep, ddplan.dmstep,
+                       ddplan.dmsperpass, job.N/ddplan.downsamp,
+                       job.basefilenm, fil_filenm)
+                job.dedispersing_time += timed_execute(cmd)
             
             # Iterate over all the new DMs
             for dmstr in ddplan.dmlist[passnum]:
@@ -456,9 +544,6 @@ def main(fil_filenm, workdir):
                 try:
                     os.remove(datnm)
                 except: pass
-                try:
-                    os.remove(fftnm)
-                except: pass
 
     # Make the single-pulse plot
     cmd = "single_pulse_search.py -t %f *.singlepulse"%singlepulse_plot_SNR
@@ -498,13 +583,12 @@ def main(fil_filenm, workdir):
 
     # Fold the best candidates
 
-    subdms = get_all_subdms(ddplans)
     cands_folded = 0
     for cand in all_accel_cands:
         if cands_folded == max_cands_to_fold:
             break
         if cand.sigma > to_prepfold_sigma:
-            job.folding_time += timed_execute(get_folding_command(cand, job, subdms))
+            job.folding_time += timed_execute(get_folding_command(cand, job, ddplans))
             cands_folded += 1
 
     # Now step through the .ps files and convert them to .png and gzip them
