@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import struct, getopt, sys, fftfit, psr_utils, os.path, sinc_interp, Pgplot
 import numpy as Num
-from scipy.stats import std, median
 from infodata import infodata
 from prepfold import pfd
 from polycos import polycos
@@ -23,6 +22,23 @@ def measure_phase(profile, template):
     pha = Num.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
+
+def rms_correction(rms, dt_per_bin):
+    """
+    rms_correction(rms, dt_per_bin):
+        Correct the measured RMS (from the total pulse profile) for the
+            correlations between the bins caused by the way that prepfold
+            folds data (i.e. treating a sample as finite duration and
+            smearing it over potenitally several bins in the profile as
+            opposed to instantaneous and going into just one profile bin).
+            The correction is semi-analytic (thanks to Paul Demorest and
+            Walter Brisken) but the value for 'power' has been determined
+            from Monte Carlos.  The correction should gives at most 6% flux
+            errors which are largest near dt_per_bin = 1.  dt_per_bin is
+            the number of samples per profile bin (a float).
+    """
+    power = 1.311
+    return rms/Num.sqrt(dt_per_bin * (1.0+dt_per_bin**power)**(-1.0/power))
 
 def parse_vals(valstring):
     """
@@ -58,6 +74,14 @@ usage:  sum_profiles.py [options which must include -t or -g] profs_file
                                           or, if the arg is a string (i.e. containing
                                           ',' and/or '-'), use the bins specified (as
                                           for parse_vals()) as the background values
+  [-f, --fitbaseline]                   : Fit a 3-rd order polynomial to the specified
+                                          background values before determining the RMS
+  [-p pulsebins, --pulsebins=pulsebins] : A 'parse_vals' string that specifies the bins
+                                          to include when integrating flux.  The minimum
+                                          value (plus 1/2 of the std-dev) is substracted.
+                                          This is not usually needed, but is used when there
+                                          are pulse artifacts or if you want the flux of
+                                          only part of a profile.
   [-d DM, --dm=DM]                      : Re-combine subbands at DM
   [-n N, --numbins=N]                   : The number of bins to use in the resulting profile
   [-g gausswidth, --gaussian=width]     : Use a Gaussian template of FWHM width
@@ -87,10 +111,10 @@ if __name__ == '__main__':
         pass
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hb:d:n:g:t:o:s:",
-                                   ["help", "background=", "dm=",
-                                    "numbins=", "gaussian=", "template=",
-                                    "sefd="])
+        opts, args = getopt.getopt(sys.argv[1:], "hfb:p:d:n:g:t:o:s:",
+                                   ["help", "fitbaselibe", "background=", "pulsebins=",
+                                    "dm=", "numbins=", "gaussian=", "template=",
+                                    "outputfilenm=", "sefd="])
     except getopt.GetoptError:
         # print help information and exit:
         usage()
@@ -100,6 +124,7 @@ if __name__ == '__main__':
         usage()
         sys.exit(2)
 
+    fitbaseline = False
     lowfreq = None
     DM = 0.0
     bkgd_cutoff = 0.1
@@ -107,6 +132,7 @@ if __name__ == '__main__':
     gaussianwidth = 0.1
     gaussfitfile = None
     templatefilenm = None
+    pulsebins = None
     numbins = 128
     SEFD = 0.0
     outfilenm = "sum_profiles.bestprof"
@@ -114,6 +140,8 @@ if __name__ == '__main__':
         if o in ("-h", "--help"):
             usage()
             sys.exit()
+        if o in ("-f", "--fitbaseline"):
+            fitbaseline = True
         if o in ("-b", "--background"):
             if '-' in a or ',' in a:
                 bkgd_vals = Num.asarray(parse_vals(a))
@@ -122,6 +150,8 @@ if __name__ == '__main__':
                     bkgd_cutoff = float(a)
                 except ValueError:
                     bkgd_vals = Num.asarray(parse_vals(a))
+        if o in ("-p", "--pulsebins"):
+            pulsebins = Num.asarray(parse_vals(a))
         if o in ("-d", "--dm"):
             DM = float(a)
         if o in ("-n", "--numbins"):
@@ -260,34 +290,54 @@ if __name__ == '__main__':
 
         # Rotate the profile to match the template
         newprof = psr_utils.fft_rotate(prof, shift)
+        offpulse = newprof[offpulse_inds]
 
-        # Now shift and scale the profile so that it has an off-pulse
-        # mean of ~0 and an off-pulse RMS of ~1
-        offpulse = Num.take(newprof, offpulse_inds)
-        newprof -= median(offpulse)
+        # Remove a polynomial fit from the off-pulse region if required
+        if fitbaseline:
+            pfit = Num.poly1d(Num.polyfit(offpulse_inds, offpulse, 3))
+            offpulse -= pfit(offpulse_inds)
+            if 0:
+                Pgplot.plotxy(offpulse)
+                Pgplot.closeplot()
+
+        # Determine the off-pulse RMS
         if usestats:
+            print "Using raw data statistics instead of off-pulse region"
             offpulse_rms = Num.sqrt(current_pfd.varprof)
         else:
             offpulse_rms = offpulse.std()
-        newprof /= offpulse_rms
-        SNR = newprof.sum()
-        # For the time in the radiometer eqn, we need to use an
-        # "effective" time that compensates for the fact that
-        # prepfold spreads bins of data over different bins in the
-        # profile.  This causes smoothing of profiles if you try
-        # to fold with too many bins.  Thanks to Paul Demorest and
-        # Walter Brisken for helping we work this out.
-        Ppsr = 1.0/current_pfd.fold_p1      # Pulsar period
-        tau_bin = Ppsr/current_pfd.proflen  # Duration of profile bin
-        tau_dt = current_pfd.dt             # Duration of data sample
-        num_pulses = T / Ppsr               # # of pulses summed
-        # Note:  if tau_bin >> tau_dt, Teff -> T/numbins
-        #        if tau_bin << tau_dt, Teff -> dt*num_pulses
-        Teff = (tau_bin + tau_dt) * num_pulses
+            
+        Ppsr = 1.0 / current_pfd.fold_p1      # Pulsar period
+        tau_bin = Ppsr / current_pfd.proflen  # Duration of profile bin
+        dt_per_bin = tau_bin / current_pfd.dt
+        corr_rms = rms_correction(offpulse_rms, dt_per_bin)
+        print "samples/bin = ", dt_per_bin
+        print "RMSs  (uncorr, corr)  = ", offpulse_rms, corr_rms
 
+        # Now attempt to shift and scale the profile so that it has
+        # an off-pulse mean of ~0 and an off-pulse RMS of ~1
+        offset = Num.median(newprof[offpulse_inds])
+        newprof -= offset
+        newprof /= corr_rms
+        if 0:
+            Pgplot.plotxy(newprof, labx="Phase bins")
+            if fitbaseline:
+                Pgplot.plotxy((pfit(offpulse_inds)-offset)/corr_rms, offpulse_inds,
+                              color='yellow')
+            Pgplot.plotxy(newprof[offpulse_inds], offpulse_inds,
+                          line=None, symbol=2, color='red')
+            if pulsebins is not None:
+                Pgplot.plotxy(newprof[pulsebins], pulsebins,
+                              line=None, symbol=2, color='blue')
+            Pgplot.closeplot()
+
+        if pulsebins is not None:
+            SNR = newprof.sum()  # integrate everything
+        else:
+            SNR = newprof[pulsebins].sum()
         print "    Approx SNR = %.3f" % SNR
         if SEFD:
-            S = SEFD * SNR / Num.sqrt(2.0 * BW * Teff) / numbins
+            S = SEFD * SNR / Num.sqrt(2.0 * BW * T / numbins) / numbins
             avg_S += S
             print "    Approx flux density = %.3f mJy" % S
         
@@ -303,15 +353,25 @@ if __name__ == '__main__':
         sumprof += newprof
 
     # Now normalize, plot, and write the summed profile
-    offpulse = Num.take(sumprof, offpulse_inds)
-    sumprof -= median(offpulse)
-    sumprof /= offpulse.std()
+    offpulse = sumprof[offpulse_inds]
+    # Remove a polynomial fit from the off-pulse region if required
+    if fitbaseline:
+        pfit = Num.poly1d(Num.polyfit(offpulse_inds, offpulse, 3))
+        offpulse -= pfit(offpulse_inds)
+        Pgplot.plotxy(offpulse)
+        Pgplot.closeplot()
+    # Now attempt to shift and scale the profile so that it has
+    # an off-pulse mean of ~0 and an off-pulse RMS of ~1
+    sumprof -= Num.median(offpulse)
+    sumprof /= rms_correction(offpulse.std(), dt_per_bin)
     print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
     if SEFD:
-        num_pulses = Tpostrfi / Ppsr
-        Teff = (tau_bin + tau_dt) * num_pulses
         avg_S /= len(pfdfilenms)
-        S = SEFD * sumprof.sum() / Num.sqrt(2.0 * BW * Teff) / numbins
+        if pulsebins is not None:
+            SNR = sumprof.sum()  # integrate everything
+        else:
+            SNR = sumprof[pulsebins].sum()
+        S = SEFD * SNR / Num.sqrt(2.0 * BW * Tpostrfi / numbins) / numbins
         print "     Approx sum profile flux density = %.3f mJy" % S
         print "    Avg of individual flux densities = %.3f mJy" % avg_S
         print "     Total (RFI cleaned) integration = %.0f s (%.2f hrs)" % \
