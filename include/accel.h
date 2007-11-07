@@ -18,6 +18,8 @@
 #define ACCEL_RDZ 0.5
 /* Closest candidates we will accept as independent */
 #define ACCEL_CLOSEST_R 15.0
+/* Padding for .dat file reading so that we don't SEGFAULT */
+#define ACCEL_PADDING 2000
 
 typedef struct accelobs{
   long long N;         /* Number of data points in observation */

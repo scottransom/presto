@@ -778,7 +778,7 @@ void print_accelcand(gpointer data, gpointer user_data)
 fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
 {
    if (obs->mmap_file || obs->dat_input) {
-      if (lobin - obs->lobin < 0)
+      if (lobin - obs->lobin < -ACCEL_PADDING)
          printf
              ("\nWARNING!!!:  Accessing memory before the beginning of the FFT!\n");
       return (fcomplex *) obs->fft + (lobin - obs->lobin);
@@ -1099,16 +1099,23 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       }
 
       /* Read the time series into a temporary buffer */
+      /* Note:  The padding allows us to search very short time series */
+      /*        using correlations without having to worry about       */
+      /*        accessing data before or after the valid FFT freqs.    */
       if (input_shorts) {
          short *stmp = gen_svect(filelen);
-         ftmp = gen_fvect(filelen);
+         ftmp = gen_fvect(filelen+2*ACCEL_PADDING);
+         for (ii = 0; ii < filelen+2*ACCEL_PADDING; ii++) ftmp[ii] = 0.0;
          chkfread(stmp, sizeof(short), filelen, datfile);
-         for (ii = 0; ii < filelen; ii++)
+         for (ii = ACCEL_PADDING; ii < filelen; ii++)
             ftmp[ii] = (float) stmp[ii];
          free(stmp);
       } else {
-         ftmp = read_float_file(datfile, 0, filelen);
+         ftmp = read_float_file(datfile, -ACCEL_PADDING, filelen+2*ACCEL_PADDING);
       }
+      /* Now, offset the pointer so that we are pointing at the first */
+      /* bits of valid data.                                          */
+      ftmp += ACCEL_PADDING;
       fclose(datfile);
 
       /* FFT it */
@@ -1277,7 +1284,7 @@ void free_accelobs(accelobs * obs)
    if (obs->mmap_file)
       close(obs->mmap_file);
    else if (obs->dat_input)
-      free(obs->fft);
+      free(obs->fft-ACCEL_PADDING/2);
    else
       fclose(obs->fftfile);
    free(obs->powcut);
