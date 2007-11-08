@@ -1105,10 +1105,13 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       if (input_shorts) {
          short *stmp = gen_svect(filelen);
          ftmp = gen_fvect(filelen+2*ACCEL_PADDING);
-         for (ii = 0; ii < filelen+2*ACCEL_PADDING; ii++) ftmp[ii] = 0.0;
+         for (ii = 0; ii < ACCEL_PADDING; ii++) {
+             ftmp[ii] = 0.0;
+             ftmp[ii+filelen+ACCEL_PADDING] = 0.0;
+         }
          chkfread(stmp, sizeof(short), filelen, datfile);
-         for (ii = ACCEL_PADDING; ii < filelen; ii++)
-            ftmp[ii] = (float) stmp[ii];
+         for (ii = 0; ii < filelen; ii++)
+            ftmp[ii+ACCEL_PADDING] = (float) stmp[ii];
          free(stmp);
       } else {
          ftmp = read_float_file(datfile, -ACCEL_PADDING, filelen+2*ACCEL_PADDING);
