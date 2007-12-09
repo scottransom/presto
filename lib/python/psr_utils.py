@@ -2,7 +2,7 @@ import numpy as Num
 import numpy.fft as FFT
 import Pgplot, ppgplot, bisect, sinc_interp
 from scipy.stats import mean, std, histogram
-from scipy.special import ndtr, ndtri, chdtrc, chdtri, i0, kolmogorov
+from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
 from scipy.optimize.minpack import bisection
 from psr_constants import *
@@ -1153,6 +1153,27 @@ def prob_power(power):
         level of 'power' in a power spectrum.
     """
     return Num.exp(-power)
+
+def Ftest(chi2_1, dof_1, chi2_2, dof_2):
+    """
+    Ftest(chi2_1, dof_1, chi2_2, dof_2):
+        Compute an F-test to see if a model with extra parameters is
+        significant compared to a simpler model.  The input values are the
+        (non-reduced) chi^2 values and the numbers of DOF for '1' the
+        original model and '2' for the new model (with more fit params).
+        The probability is computed exactly like Sherpa's F-test routine
+        (in Ciao) and is also described in the Wikipedia article on the
+        F-test:  http://en.wikipedia.org/wiki/F-test
+        The returned value is the probability that the improvement in
+        chi2 is due to chance (i.e. a low probability means that the
+        new fit is quantitatively better, while a value near 1 means
+        that the new model should likely be rejected).
+    """
+    delta_chi2 = chi2_1 - chi2_2
+    delta_dof = dof_1 - dof_2
+    new_redchi2 = chi2_2 / dof_2
+    F = (delta_chi2 / delta_dof) / new_redchi2
+    return 1.0 - fdtr(delta_dof, dof_2, F)
 
 def equivalent_gaussian_sigma(p):
     """
