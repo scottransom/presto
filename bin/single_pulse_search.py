@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import bisect, os, sys, getopt, infodata, glob
-import scipy, scipy.io, scipy.signal, ppgplot
+import scipy, scipy.signal, ppgplot
 import numpy as Num
 from sets import *
 from presto import rfft
@@ -197,7 +197,7 @@ def read_singlepulse_files(infiles, threshold, T_start, T_end):
             info0 = info
         if os.stat(infile)[6]:
             try:
-                cands = scipy.io.read_array(infile)
+                cands = Num.loadtxt(infile)
                 if len(cands.shape)==1:
                     cands = Num.asarray([cands])
                 for cand in cands:

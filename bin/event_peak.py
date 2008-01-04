@@ -1,12 +1,13 @@
+#!/usr/bin/env python
 import numpy as num
 import events as evts
-import sys, kuiper, scipy.io
+import sys, kuiper
 from Pgplot import *
 
 def calc_phases(events, f, fd):
     return num.fmod(events*(f+(0.5*fd*events)), 1.0)
 
-events = scipy.io.read_array(sys.argv[1], comment="#", atype='d')
+events = num.loadtxt(sys.argv[1])
 events.sort()
 print "Read %d events from '%s'." % (events.size, sys.argv[1])
 minT, maxT = events.min(), events.max()
