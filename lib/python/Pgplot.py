@@ -503,10 +503,12 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
     if y is None: y=Num.arange(z.shape[0], dtype='f')
     else: y = Num.asarray(y)
     # Determine the scaling to use for the axes
-    if rangex is None: rangex=[Num.minimum.reduce(x), \
-                             Num.maximum.reduce(x)]
-    if rangey is None: rangey=[Num.minimum.reduce(y), \
-                             Num.maximum.reduce(y)]
+    if rangex is None:
+        dx =  x[-1]-x[-2]
+        rangex=[x[0], x[-1]+dx]
+    if rangey is None:
+        dy =  y[-1]-y[-2]
+        rangey=[y[0], y[-1]+dy]
     if rangez is None: rangez=[Num.minimum.reduce(Num.ravel(z)), \
                              Num.maximum.reduce(Num.ravel(z))]
     # Prep the plotting device...
