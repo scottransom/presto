@@ -4,7 +4,7 @@
 #include "mask.h"
 #include "multibeam.h"
 #include "bpp.h"
-#include "wapp.h"
+#include "wapp_key.h"
 #include "spigot.h"
 #include "sigproc_fb.h"
 #include "readfile_cmd.h"
@@ -31,10 +31,14 @@ int WAPPHDR_print(long count, char *obj_ptr);
 int SPIGOTHDR_print(long count, char *obj_ptr);
 int SIGPROCHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
+void set_WAPP_HEADER_version(struct HEADERP *hdr);
 
 typedef enum {
-   BYTE, FLOAT, DOUBLE, FCPLEX, DCPLEX, SHORT, INT, LONG,
-   RZWCAND, BINCAND, POSITION, PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR, SIGPROCHDR
+    BYTE, FLOAT, 
+    DOUBLE, FCPLEX, 
+    DCPLEX, SHORT, INT, LONG,
+    RZWCAND, BINCAND, POSITION, 
+    PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR, SIGPROCHDR
 } rawtypes;
 
 typedef struct fcplex {
@@ -59,11 +63,11 @@ int type_sizes[NUMTYPES] = {
    sizeof(fourierprops),
    sizeof(rawbincand),
    sizeof(position),
-   49792,                       /* This is the length of a Parkes Multibeam record */
-   32768,                       /* This is the length of a BCPM header */
-   2048,                        /* This is the length of a WAPP header (at least for v1 files! */
-   0,                           /* "Special" length for a SPIGOT header */
-   0                            /* "Special" length for a SIGPROC header */
+   49792, /* This is the length of a Parkes Multibeam record */
+   32768, /* This is the length of a BCPM header */
+   0,     /* "Special" length for a WAPP header */
+   0,     /* "Special" length for a SPIGOT header */
+   0      /* "Special" length for a SIGPROC header */
 };
 
 int objs_at_a_time[NUMTYPES] = {
@@ -73,24 +77,25 @@ int objs_at_a_time[NUMTYPES] = {
 
 /* You don't see this every day -- An array of pointers to functions: */
 
-int (*print_funct_ptrs[NUMTYPES]) () = {
-BYTE_print,
-       FLOAT_print,
-       DOUBLE_print,
-       FCPLEX_print,
-       DCPLEX_print,
-       SHORT_print,
-       INT_print,
-       LONG_print,
-       RZWCAND_print,
-       BINCAND_print,
-       POSITION_print,
-       PKMBHDR_print,
-       BCPMHDR_print, WAPPHDR_print, SPIGOTHDR_print, SIGPROCHDR_print,};
+int (*print_funct_ptrs[NUMTYPES]) () = {BYTE_print,
+                                        FLOAT_print,
+                                        DOUBLE_print,
+                                        FCPLEX_print,
+                                        DCPLEX_print,
+                                        SHORT_print,
+                                        INT_print,
+                                        LONG_print,
+                                        RZWCAND_print,
+                                        BINCAND_print,
+                                        POSITION_print,
+                                        PKMBHDR_print,
+                                        BCPMHDR_print, 
+                                        WAPPHDR_print, 
+                                        SPIGOTHDR_print, 
+                                        SIGPROCHDR_print};
 
 /* A few global variables */
 
-int asciihdrlen;
 long N;
 double dt, nph;
 
@@ -309,20 +314,27 @@ int main(int argc, char **argv)
       exit(0);
    }
 
+   if (cmd->wappP) {
+       struct HEADERP *hdr = NULL;
+       
+       infile = chkfopen(cmd->argv[0], "rb");
+       hdr = head_parse(infile);
+       set_WAPP_HEADER_version(hdr);
+       if (hdr) {
+           print_WAPP_hdr(hdr);
+           printf("\n");
+       } else {
+           printf("\n  Error reading WAPP file!\n\n");
+       }
+       exit(0);
+   }
+
    /* Open the file */
 
    infile = chkfopen(cmd->argv[0], "rb");
 
    if (cmd->fortranP) {
       chkfileseek(infile, 1, sizeof(long), SEEK_SET);
-   }
-
-   /* Skip over the ASCII header if this is a WAPP file */
-   if (cmd->wappP) {
-      char cc;
-      while ((cc = fgetc(infile)) != '\0')
-         asciihdrlen++;
-      asciihdrlen++;
    }
 
    /* Skip to the correct first object */
@@ -490,14 +502,10 @@ int BCPMHDR_print(long count, char *obj_ptr)
 
 int WAPPHDR_print(long count, char *obj_ptr)
 {
-   int swapped;
+   char *bogus;
 
    printf("\n%ld:", count + 1);
-   swapped = check_WAPP_byteswap(obj_ptr);
-   printf("  Skipped ASCII header of length %d bytes.\n", asciihdrlen);
-   if (swapped)
-      printf("    Byte-swapped from little-endian to big-endian.\n");
-   print_WAPP_hdr(obj_ptr);
+   bogus = (char *) obj_ptr;
    return 0;
 }
 

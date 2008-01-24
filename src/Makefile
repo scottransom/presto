@@ -98,7 +98,8 @@ PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o\
 	fitsfile.o hget.o hput.o imio.o
 
-INSTRUMENTOBJS = multibeam.o bpp.o wapp.o gmrt.o spigot.o sigproc_fb.o
+INSTRUMENTOBJS = multibeam.o bpp.o gmrt.o spigot.o sigproc_fb.o\
+	wapp.o wapp_head_parse.o wapp_y.tab.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
