@@ -9,6 +9,26 @@ def myasarray(a):
         a = Num.asarray([a])
     return a
 
+def shapR(m2):
+    """
+    shapR(m2):
+        Return the Shapiro 'R' parameter (in sec) with m2 in
+            solar units.
+    """
+    return Tsun * m2
+
+def shapS(m1, m2, x, pb):
+    """
+    shapS(m1, m2, x, pb):
+        Return the Shapiro 'S' parameter with m1 and m2 in
+            solar units, x (asini/c) in sec, and pb in days.
+            The Shapiro S param is also equal to sin(i).
+    """
+    return x * (pb*86400.0/(2.0*Num.pi))**(-2.0/3.0) * \
+           Tsun**(-1.0/3.0) * (m1 + m2)**(2.0/3.0) * 1.0/m2
+
+# Note:  S is also equal to sin(i)
+
 class binary_psr:
     """
     class binary_psr
@@ -129,6 +149,25 @@ class binary_psr:
         x = self.par.A1/sini
         r = x*(1.0-self.par.E*self.par.E)/(1.0+self.par.E*Num.cos(ta))
         return -r*Num.sin(orb_phs)*sini, -r*Num.cos(orb_phs)
+
+    def shapiro_delays(self, R, S, ecc_anoms):
+        """
+        shapiro_delays(R, S, ecc_anoms):
+            Return the predicted Shapiro delays for a variety of
+                eccentric anomalies (in radians) given the R and
+                S parameters, the eccentricity (ecc), and the
+                argument of periastron (omega, in radians).
+        """
+        canoms = Num.cos(ecc_anoms)
+        sanoms = Num.sin(ecc_anoms)
+        ecc = self.par.E
+        omega = self.par.OM * DEGTORAD
+        cw = Num.cos(omega)
+        sw = Num.sin(omega)
+        delay = -2.0e6*R*Num.log(1.0 - ecc*canoms -
+                                 S*(sw*(canoms-ecc) +
+                                    Num.sqrt((1.0 - ecc*ecc)) * cw * sanoms))
+        return delay
 
 
 if __name__=='__main__':
