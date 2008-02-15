@@ -1335,7 +1335,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       if (vanvleck_st) {
           double power;
           
-          if (0 && counter % 10000 == 0)
+          if ((lag_scale_env != 1.0) && (counter % 10000 == 0))
               printf("For Van Vleck correction:  power = %.4f\n", lags[0]);
           /* Calculate power */
           //power = inv_cerf(lags[0]);
