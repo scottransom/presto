@@ -21,7 +21,7 @@ static fftwf_plan fftplan;
 static long long N_st;
 static int decreasing_freqs_st = 0, bytesperpt_st, bits_per_lag_st = 0;
 static int numchan_st = 0, numifs_st, ptsperblk_st, bytesperblk_st;
-static int need_byteswap_st = 0, sampperblk_st, usewindow_st = 0, vanvleck_st = 0;
+static int need_byteswap_st = 0, sampperblk_st, usewindow_st = 0, vanvleck_st = 1;
 static int currentfile, currentblock, bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static double T_st, dt_st, center_freq_st, *window_st = NULL;
 static float clip_sigma_st = 0.0, *lags = NULL;
@@ -30,6 +30,7 @@ static unsigned char padvals[SPIGOT_MAXLAGLEN], newpadvals[SPIGOT_MAXLAGLEN];
 static unsigned char databuffer[2 * SPIGOT_MAXDATLEN], padval = 128;
 static unsigned char lagbuffer[SPIGOT_MAXLAGLEN];
 static int using_MPI = 0;
+static float lag_scale_env = 1.0;
 
 double slaCldj(int iy, int im, int id, int *j);
 static double inv_cerf(double input);
@@ -471,6 +472,23 @@ void get_SPIGOT_file_info(FILE * files[], SPIGOT_INFO * spigot_files,
          }
       }
    }
+
+   /* Quick hack to allow scaling of lags without recompiling */
+   {
+       char *envval = getenv("SPIGOT_LAG_SCALE");
+       if (envval != NULL) {
+           double dblval = strtod(envval, NULL);
+           if (dblval) {
+               if (output)
+                   printf
+                       ("Scaling lags by %f as per SPIGOT_LAG_SCALE env variable.\n",
+                        dblval);
+           }
+           lag_scale_env = dblval;
+       }
+   }
+
+
 
    /* Convert the SPIGOT_INFO structures into infodata structures */
    SPIGOT_INFO_to_inf(spigot, &idata_st[0]);
@@ -1161,8 +1179,10 @@ void scale_rawlags(void *rawdata, int index)
          lags[0] = lag0 * lag_factor[0] + lag_offset[0];
          last_lag0 = lag0;
       }
+      lags[0] /= lag_scale_env;
       for (ii = 1; ii < numchan_st; ii++)
-         lags[ii] = data[ii + index] * lag_factor[ii] + lag_offset[ii];
+          lags[ii] = (data[ii + index] * lag_factor[ii] + lag_offset[ii]) / 
+              lag_scale_env;
    } else if (bits_per_lag_st == 8) {
       char *data = (char *) rawdata;
       /* Attempt to fix zerolags that have either over-flowed or under-flowed */
@@ -1177,8 +1197,10 @@ void scale_rawlags(void *rawdata, int index)
          lags[0] = lag0 * lag_factor[0] + lag_offset[0];
          last_lag0 = lag0;
       }
+      lags[0] /= lag_scale_env;
       for (ii = 1; ii < numchan_st; ii++)
-         lags[ii] = data[ii + index] * lag_factor[ii] + lag_offset[ii];
+          lags[ii] = (data[ii + index] * lag_factor[ii] + lag_offset[ii]) /
+              lag_scale_env;
    } else if (bits_per_lag_st == 4) {
       int jj;
       char tmplag;
@@ -1238,23 +1260,33 @@ void scale_rawlags(void *rawdata, int index)
 void get_calibrated_lags(void *rawlags, float *calibrated_lags)
 /* Return the calibrated lags for a single sample of raw lags */
 {
-   int ii;
+    int ii;
+    
+    /* Scale the raw lags */
+    scale_rawlags(rawlags, 0);
+    
+    /* Apply Van Vleck Corrections to the Lags */
+    if (vanvleck_st) {
+        double power;
+        
+        /* Calculate power */
+        //power = inv_cerf(lags[0]);
+        //power = 0.1872721836 / (power * power);
+        power = sqrt(2.0)*inv_cerf(lags[0]);
+        power = 1.0/(power*power);
+        vanvleck3lev(lags, numchan_st);
+        for (ii=0; ii<numchan_st; ii++)
+            lags[ii] *= power;
+    }
 
-   /* Scale the raw lags */
-   scale_rawlags(rawlags, 0);
-
-   /* Apply Van Vleck Corrections to the Lags */
-   if (vanvleck_st)
-      vanvleck3lev(lags, numchan_st);
-
-   /* Window the Lags */
-   if (usewindow_st)
-      for (ii = 0; ii < numchan_st; ii++)
-         lags[ii] *= window_st[ii];
-
-   /* Copy the lags into the output array */
-   for (ii = 0; ii < numchan_st; ii++)
-      calibrated_lags[ii] = lags[ii];
+    /* Window the Lags */
+    if (usewindow_st)
+        for (ii = 0; ii < numchan_st; ii++)
+            lags[ii] *= window_st[ii];
+    
+    /* Copy the lags into the output array */
+    for (ii = 0; ii < numchan_st; ii++)
+        calibrated_lags[ii] = lags[ii];
 }
 
 
@@ -1282,11 +1314,13 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       scale_rawlags(rawdata, index);
 
       /* Apply the user-specified scaling */
-      if (lag_scaling != 0.0) {
-         //lags[0] += lag_scaling;
-         // Should we scale all the lags?
-         for (ii = 0; ii < numchan_st; ii++)
-            lags[ii] *= lag_scaling;
+      if (lag_scaling != 1.0) {
+          if (counter==0)
+              printf("Scaling the lags by %f\n", lag_scaling);
+          //lags[0] += lag_scaling;
+          // Should we scale all the lags?
+          for (ii = 0; ii < numchan_st; ii++)
+              lags[ii] *= lag_scaling;
       }
 
 #if 0
@@ -1297,16 +1331,21 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       exit(0);
 #endif
 
-      /* Calculate power */
-      //power = sqrt(2.0)*inv_cerf(lags[0]);
-      //power = 1.0/(power*power);
-
       /* Apply Van Vleck Corrections to the Lags */
-      if (vanvleck_st)
-         vanvleck3lev(lags, numchan_st);
-
-      //for (ii=0; ii<numchan_st; ii++)
-      // lags[ii] *= power;
+      if (vanvleck_st) {
+          double power;
+          
+          if (0 && counter % 10000 == 0)
+              printf("For Van Vleck correction:  power = %.4f\n", lags[0]);
+          /* Calculate power */
+          //power = inv_cerf(lags[0]);
+          //power = 0.1872721836 / (power * power);
+          power = sqrt(2.0)*inv_cerf(lags[0]);
+          power = 1.0/(power*power);
+          vanvleck3lev(lags, numchan_st);
+          for (ii=0; ii<numchan_st; ii++)
+              lags[ii] *= power;
+      }
 
       /* Window the Lags */
       if (usewindow_st)
