@@ -21,7 +21,7 @@ static fftwf_plan fftplan;
 static long long N_st;
 static int decreasing_freqs_st = 0, bytesperpt_st, bits_per_lag_st = 0;
 static int numchan_st = 0, numifs_st, ptsperblk_st, bytesperblk_st;
-static int need_byteswap_st = 0, sampperblk_st, usewindow_st = 0, vanvleck_st = 1;
+static int need_byteswap_st = 0, sampperblk_st, usewindow_st = 0, vanvleck_st = 0;
 static int currentfile, currentblock, bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static double T_st, dt_st, center_freq_st, *window_st = NULL;
 static float clip_sigma_st = 0.0, *lags = NULL;
