@@ -2,6 +2,19 @@
 
 import numpy as num
 
+def get_epochs(line):
+    i, f = line.split("=")[-1].split(".")
+    f = "0."+f
+    epochi = float(i)
+    epochf = float(f)
+    # Check to see if it is very close to 1 sec
+    # If it is, assume the epoch was _exactly_ at the second
+    fsec = epochf*86400.0 + 1e-10
+    if (num.fabs(fsec - int(fsec)) < 1e-6):
+        # print "Looks like an exact second"
+        epochf = float(int(fsec))/86400.0
+    return epochi, epochf
+
 class bestprof:
     def __init__(self, filenm):
         infile = open(filenm)
@@ -41,16 +54,14 @@ class bestprof:
                     continue 
                 if line.startswith("# Epoch_topo"):
                     try:
-                        self.epochi = float(line.split("=")[-1].split(".")[0])
-                        self.epochf = float("0."+line.split("=")[-1].split(".")[1])
+                        self.epochi, self.epochf = get_epochs(line)
                         self.topo = 1
                     except ValueError:
                         pass
                     continue
                 if (not self.topo and line.startswith("# Epoch_bary")):
                     try:
-                        self.epochi = float(line.split("=")[-1].split(".")[0])
-                        self.epochf = float("0."+line.split("=")[-1].split(".")[1])
+                        self.epochi, self.epochf = get_epochs(line)
                     except ValueError:
                         pass
                 if ((not self.topo and line.startswith("# P_bary")) or

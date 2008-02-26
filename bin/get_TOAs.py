@@ -14,7 +14,7 @@ scopes = {'GBT':'1',
           'IRAM': 's',
           'Geocenter': 'o'}
 
-def measure_phase(profile, template):
+def measure_phase(profile, template, rotate_prof=True):
     """
     measure_phase(profile, template):
         Call FFTFIT on the profile and template to determine the
@@ -24,7 +24,8 @@ def measure_phase(profile, template):
     """
     c,amp,pha = fftfit.cprof(template)
     pha1 = pha[0]
-    pha = Num.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
+    if (rotate_prof):
+        pha = Num.fmod(pha-Num.arange(1,len(pha)+1)*pha1,TWOPI)
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
@@ -44,6 +45,7 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-i ints_list, --kints=ints_list]  : List of intervals to ignore
   [-o seconds, --offset=seconds]     : Add the offset in seconds to any TOAs
   [-e, --event]                      : The .pfd file was made with events
+  [-r, --norotate]                   : Do not rotate the template for FFTFIT
   pfd_file                           : The .pfd file containing the folds
 
   The program generates TOAs from a .pfd file using Joe Taylor's
@@ -78,10 +80,10 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hefs:n:d:g:t:o:k:i:",
-                                   ["help", "event", "FFTFITouts", "subbands=", 
-                                    "numtoas=", "dm=", "gaussian=", "template=",
-                                    "offset=", "kill=", "kints="])
+        opts, args = getopt.getopt(sys.argv[1:], "herfs:n:d:g:t:o:k:i:",
+                                   ["help", "event", "norotate", "FFTFITouts",
+                                    "subbands=", "numtoas=", "dm=", "gaussian=",
+                                    "template=", "offset=", "kill=", "kints="])
                                     
     except getopt.GetoptError:
         # print help information and exit:
@@ -95,6 +97,7 @@ if __name__ == '__main__':
     gaussianwidth = 0.1
     gaussfitfile = None
     templatefilenm = None
+    rotate_prof = True
     numsubbands = 1
     numtoas = 1
     otherouts = 0
@@ -108,6 +111,8 @@ if __name__ == '__main__':
             sys.exit()
         if o in ("-f", "--FFTFITouts"):
             otherouts = 1
+        if o in ("-r", "--norotate"):
+            rotate_prof = False
         if o in ("-e", "--event"):
             lowfreq = 0.0
             DM = 0.0
@@ -239,6 +244,8 @@ if __name__ == '__main__':
             midtime = fold.epoch + (ii+0.5)*timestep_day
             p = 1.0/psr_utils.calc_freq(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
             t0 = psr_utils.calc_t0(midtime, fold.epoch, fold.f0, fold.f1, fold.f2)
+            t0i= int(t0 + 1e-9)
+            t0f = t0 - t0i
         # The .pfd file was folded using polycos
         else:
             # Time at the middle of the interval in question
@@ -246,7 +253,8 @@ if __name__ == '__main__':
             (phs, f0) = pcs.get_phs_and_freq(fold.epochi, mjdf)
             phs -= fold.phs0
             p = 1.0/fold.f0
-            t0 = fold.epochi+mjdf - phs*p/SECPERDAY
+            t0f = mjdf - phs*p/SECPERDAY
+            t0i = fold.epochi
 
         for jj in range(numsubbands):
             prof = profs[ii][jj]
@@ -283,7 +291,7 @@ if __name__ == '__main__':
 
             try:
                 # Try using FFTFIT first
-                shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template)
+                shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template, rotate_prof)
                 # tau and tau_err are the predicted phase of the pulse arrival
                 tau, tau_err = shift/len(prof), eshift/len(prof)
                 # Note: "error" flags are shift = 0.0 and eshift = 999.0
@@ -299,7 +307,9 @@ if __name__ == '__main__':
                     tau_err = 0.1/len(prof)
 
                 # Send the TOA to STDOUT
-                psr_utils.write_princeton_toa(t0+(tau*p+offset)/SECPERDAY+sumsubdelays[jj],
+                toaf = t0f + (tau*p + offset)/SECPERDAY + sumsubdelays[jj]
+                newdays = int(Num.floor(toaf))
+                psr_utils.write_princeton_toa(t0i+newdays, toaf-newdays,
                                               tau_err*p*1000000.0,
                                               sumsubfreqs[jj], fold_pfd.bestdm, obs=obs)
                 if (otherouts):

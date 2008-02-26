@@ -671,7 +671,7 @@ def calc_t0(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
     return MJD-phs*p/SECPERDAY
 
 
-def write_princeton_toa(toa, toaerr, freq, dm, obs='@', name=' '*13):
+def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' '*13):
     """
     Princeton Format
 
@@ -683,11 +683,13 @@ def write_princeton_toa(toa, toaerr, freq, dm, obs='@', name=' '*13):
     45-53   TOA uncertainty (microseconds)
     69-78   DM correction (pc cm^-3)
     """
+    # Splice together the fractional and integer MJDs
+    toa = "%5d"%int(toa_MJDi) + ("%.13f"%toa_MJDf)[1:]
     if dm!=0.0:
-        print obs+" %13s %8.3f %19.13f %8.2f              %9.4f" % \
+        print obs+" %13s %8.3f %s %8.2f              %9.4f" % \
               (name, freq, toa, toaerr, dm)
     else:
-        print obs+" %13s %8.3f %19.13f %8.2f" % \
+        print obs+" %13s %8.3f %s %8.2f" % \
               (name, freq, toa, toaerr)
 
 def rotate(arr, bins):
