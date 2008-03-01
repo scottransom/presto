@@ -10,9 +10,10 @@
 #include "mpi.h"
 #include "gmrt.h"
 #include "spigot.h"
+#include "psrfits.h"
 #include "sigproc_fb.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -157,6 +158,14 @@ int main(int argc, char *argv[])
             } else if (strcmp(suffix, "fil") == 0 || strcmp(suffix, "fb") == 0) {
                printf("Assuming the data is in SIGPROC filterbank format...\n");
                cmd->filterbankP = 1;
+            } else if (strcmp(suffix, "fits") == 0) {
+               if (strstr(root, "spigot_5") != NULL) {
+                  printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+                  cmd->spigotP = 1;
+               } else if (is_PSRFITS(cmd->argv[0])) {
+                  printf("Assuming the data is in PSRFITS format.\n");
+                  cmd->psrfitsP = 1;
+               } 
             } else if (strcmp(suffix, "fits") == 0 &&
                        strstr(root, "spigot_5") != NULL) {
                printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
@@ -207,6 +216,11 @@ int main(int argc, char *argv[])
             printf("Reading SIGPROC filterbank data from %d files:\n", numinfiles);
          else
             printf("Reading SIGPROC filterbank data from 1 file:\n");
+      } else if (cmd->psrfitsP) {
+         if (numinfiles > 1)
+            printf("Reading PSRFITS search-mode data from %d files:\n", numinfiles);
+         else
+            printf("Reading PSRFITS search-mode data from 1 file:\n");
       } else if (cmd->spigotP) {
          if (numinfiles > 1)
             printf("Reading Green Bank Spigot data from %d files:\n", numinfiles);
@@ -248,6 +262,7 @@ int main(int argc, char *argv[])
    MPI_Bcast(&cmd->bcpmP, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Bcast(&cmd->wappP, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Bcast(&cmd->spigotP, 1, MPI_INT, 0, MPI_COMM_WORLD);
+   MPI_Bcast(&cmd->psrfitsP, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Bcast(&cmd->filterbankP, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Bcast(&cmd->numout, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Bcast(&insubs, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -393,6 +408,7 @@ int main(int argc, char *argv[])
          }
 
          /* Set-up values if we are using the GMRT Phased Array system */
+
          if (cmd->gmrtP) {
             printf("\nGMRT input file information:\n");
             get_GMRT_file_info(infiles, argv + 1, numinfiles,
@@ -407,6 +423,7 @@ int main(int argc, char *argv[])
          }
 
          /* Set-up values if we are using SIGPROC filterbank-style data */
+
          if (cmd->filterbankP) {
             int headerlen;
             sigprocfb fb;
@@ -456,6 +473,7 @@ int main(int argc, char *argv[])
          }
 
          /* Set-up values if we are using the NRAO-Caltech Spigot card */
+
          if (cmd->spigotP) {
             SPIGOT_INFO *spigots;
 
@@ -472,6 +490,40 @@ int main(int argc, char *argv[])
             /* OBS code for TEMPO for the GBT */
             strcpy(obs, "GB");
             free(spigots);
+         }
+
+         /* Set-up values if we are using search-mode PSRFITS data */
+
+         if (cmd->psrfitsP) {
+            struct spectra_info s;
+            char scope[40];
+         
+            printf("PSRFITS input file information:\n");
+            read_PSRFITS_files(cmd->argv, cmd->argc, &s);
+            N = s.N;
+            ptsperblock = s.spectra_per_subint;
+            numchan = s.num_channels;
+            dt = s.dt;
+            T = s.T;
+            get_PSRFITS_file_info(cmd->argv, cmd->argc, cmd->clip, 
+                                  &s, &idata, 1);
+            PSRFITS_update_infodata(&idata);
+            set_PSRFITS_padvals(padvals, good_padvals);
+            strncpy(scope, idata.telescope, 40);
+            strlower(scope);
+            /* OBS codes for TEMPO */
+            if (!strcmp(scope, "parkes")) {
+               strcpy(obs, "PK");
+            } else if (!strcmp(idata.telescope, "jodrell")) {
+               strcpy(obs, "JB");
+            } else if (!strcmp(idata.telescope, "gbt")) {
+               strcpy(obs, "GB");
+            } else if (!strcmp(idata.telescope, "arecibo")) {
+               strcpy(obs, "AO");
+            } else {
+               printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
+                      idata.telescope);
+            }
          }
 
          /* Set-up values if we are using the Arecobo WAPP */
@@ -527,6 +579,11 @@ int main(int argc, char *argv[])
                               numchan, numifs, clip_sigma, dt);
             set_SPIGOT_padvals(padvals, good_padvals);
          }
+         if (cmd->psrfitsP) {
+            set_PSRFITS_static(ptsperblk, bytesperpt, bytesperblk,
+                               numchan, numifs, clip_sigma, dt);
+            set_PSRFITS_padvals(padvals, good_padvals);
+         }
          if (cmd->wappP) {
             set_WAPP_static(ptsperblk, bytesperpt, bytesperblk,
                             numchan, numifs, clip_sigma, dt);
@@ -548,7 +605,7 @@ int main(int argc, char *argv[])
       /* For the WAPP (and others) , the number of bytes returned in         */
       /* get_WAPP_rawblock() is ptsperblk since the correlator lags          */
       /* are converted to 1 byte filterbank channels in read_WAPP_rawblock() */
-      if (cmd->wappP || cmd->gmrtP || cmd->filterbankP || cmd->spigotP) {
+      if (cmd->wappP || cmd->gmrtP || cmd->filterbankP || cmd->spigotP || cmd->psrfitsP) {
          bytesperblk = ptsperblk * numchan;
          bytesperpt = numchan;
       }
@@ -1120,6 +1177,9 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
                else if (cmd->spigotP)
                   numread =
                       read_SPIGOT_rawblock(infiles, numfiles, rawdata, &tmppad, ifs);
+               else if (cmd->psrfitsP)
+                  numread =
+                      read_PSRFITS_rawblock(rawdata, &tmppad);
                numread *= blocklen;
             }
             MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -1170,6 +1230,13 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
                                               ii * blocksize,
                                               dispdts, cmd->nsub, 0,
                                               maskchans, &nummasked, obsmask);
+                  else if (cmd->psrfitsP)
+                     tmpnumread =
+                         prep_PSRFITS_subbands(rawdata,
+                                               currentdata +
+                                               ii * blocksize,
+                                               dispdts, cmd->nsub, 0,
+                                               maskchans, &nummasked, obsmask);
                } else {
                   *padding = 1;
                   for (jj = ii * blocksize; jj < (ii + 1) * blocksize; jj++)

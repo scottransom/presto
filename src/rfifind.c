@@ -9,9 +9,10 @@
 #include "gmrt.h"
 #include "spigot.h"
 #include "sigproc_fb.h"
+#include "psrfits.h"
 #include "rfifind.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
 /* Some function definitions */
 
@@ -155,10 +156,14 @@ int main(int argc, char *argv[])
             } else if (strcmp(suffix, "fil") == 0 || strcmp(suffix, "fb") == 0) {
                printf("Assuming the data is in SIGPROC filterbank format...\n");
                cmd->filterbankP = 1;
-            } else if (strcmp(suffix, "fits") == 0 &&
-                       strstr(root, "spigot_5") != NULL) {
-               printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
-               cmd->spigotP = 1;
+            } else if (strcmp(suffix, "fits") == 0) {
+                if (strstr(root, "spigot_5") != NULL) {
+                    printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+                    cmd->spigotP = 1;
+                } else if (is_PSRFITS(cmd->argv[0])) {
+                    printf("Assuming the data is in PSRFITS format.\n");
+                    cmd->psrfitsP = 1;
+                } 
             } else if (strcmp(suffix, "pkmb") == 0) {
                printf
                    ("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
@@ -199,6 +204,11 @@ int main(int argc, char *argv[])
             printf("Reading SIGPROC filterbank data from %d files:\n", numfiles);
          else
             printf("Reading SIGPROC filterbank data from 1 file:\n");
+      } else if (cmd->psrfitsP) {
+          if (numfiles > 1)
+              printf("Reading PSRFITS search-mode data from %d files:\n", numfiles);
+          else
+              printf("Reading PSRFITS search-mode data from 1 file:\n");
       } else if (cmd->spigotP) {
          if (numfiles > 1)
             printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
@@ -303,6 +313,25 @@ int main(int argc, char *argv[])
          writeinf(&idata);
          free(spigots);
 
+      } else if (cmd->psrfitsP) {
+
+         /* Set-up values if we are using search-mode PSRFITS data */
+
+         struct spectra_info s;
+         
+         printf("PSRFITS input file information:\n");
+         read_PSRFITS_files(cmd->argv, cmd->argc, &s);
+         N = s.N;
+         ptsperblock = s.spectra_per_subint;
+         numchan = s.num_channels;
+         dt = s.dt;
+         T = s.T;
+         get_PSRFITS_file_info(cmd->argv, cmd->argc, cmd->clip, 
+                               &s, &idata, 1);
+         PSRFITS_update_infodata(&idata);
+         set_PSRFITS_padvals(padvals, good_padvals);
+         writeinf(&idata);
+
       } else if (cmd->wappP) {
 
          /* Set-up for the WAPP machine at Arecibo */
@@ -387,7 +416,7 @@ int main(int argc, char *argv[])
       if (cmd->pkmbP)
          rawdata = gen_bvect(DATLEN * blocksperint);
       else if (cmd->bcpmP || cmd->spigotP || cmd->wappP || cmd->gmrtP
-               || cmd->filterbankP)
+               || cmd->filterbankP || cmd->psrfitsP)
          /* This allocates extra incase both IFs were stored */
          rawdata = gen_bvect(idata.num_chan * ptsperblock * blocksperint);
       else if (insubs)
@@ -437,6 +466,8 @@ int main(int argc, char *argv[])
          else if (cmd->wappP)
             numread = read_WAPP_rawblocks(infiles, numfiles,
                                           rawdata, blocksperint, &padding, ifs);
+         else if (cmd->psrfitsP)
+             numread = read_PSRFITS_rawblocks(rawdata, blocksperint, &padding);
          else if (cmd->gmrtP)
             numread = read_GMRT_rawblocks(infiles, numfiles,
                                           rawdata, blocksperint, &padding);
@@ -461,6 +492,8 @@ int main(int argc, char *argv[])
                get_SPIGOT_channel(jj, chandata, rawdata, blocksperint);
             else if (cmd->wappP)
                get_WAPP_channel(jj, chandata, rawdata, blocksperint);
+            else if (cmd->psrfitsP)
+               get_PSRFITS_channel(jj, chandata, rawdata, blocksperint);
             else if (cmd->gmrtP)
                get_GMRT_channel(jj, chandata, rawdata, blocksperint);
             else if (cmd->filterbankP)

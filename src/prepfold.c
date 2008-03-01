@@ -7,12 +7,13 @@
 #include "gmrt.h"
 #include "spigot.h"
 #include "sigproc_fb.h"
+#include "psrfits.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
 #endif
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
 extern int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname);
 extern int phcalc(double mjd0, double mjd1, int last_index,
@@ -42,7 +43,7 @@ int main(int argc, char *argv[])
    int *maskchans = NULL, nummasked = 0, polyco_index = 0, insubs = 0, good_padvals =
        0;
    long ii = 0, jj, kk, worklen = 0, numread = 0, reads_per_part = 0;
-   long totnumfolded = 0, lorec = 0, hirec = 0, numbinpoints = 0, currentrec = 0;
+   long totnumfolded = 0, lorec = 0, hirec = 0, numbinpoints = 0;
    unsigned long numrec = 0;
    IFs ifs = SUMIFS;
    infodata idata;
@@ -165,9 +166,14 @@ int main(int argc, char *argv[])
          } else if (strcmp(suffix, "fil") == 0 || strcmp(suffix, "fb") == 0) {
             printf("Assuming the data is in SIGPROC filterbank format...\n");
             cmd->filterbankP = 1;
-         } else if (strcmp(suffix, "fits") == 0 && strstr(root, "spigot_5") != NULL) {
-            printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
-            cmd->spigotP = 1;
+         } else if (strcmp(suffix, "fits") == 0) {
+             if (strstr(root, "spigot_5") != NULL) {
+                 printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+                 cmd->spigotP = 1;
+             } else if (is_PSRFITS(cmd->argv[0])) {
+                 printf("Assuming the data is in PSRFITS format.\n");
+                 cmd->psrfitsP = 1;
+             } 
          } else if (strcmp(suffix, "pkmb") == 0) {
             printf
                 ("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
@@ -309,6 +315,11 @@ int main(int argc, char *argv[])
          printf("Reading SIGPROC filterbank data from %d files:\n", numfiles);
       else
          printf("Reading SIGPROC filterbank data from 1 file:\n");
+   } else if (cmd->psrfitsP) {
+      if (numfiles > 1)
+         printf("Reading PSRFITS search-mode data from %d files:\n", numfiles);
+      else
+         printf("Reading PSRFITS search-mode data from 1 file:\n");
    } else if (cmd->spigotP) {
       if (numfiles > 1)
          printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
@@ -470,6 +481,43 @@ int main(int argc, char *argv[])
          search.telescope = (char *) calloc(20, sizeof(char));
          strcpy(search.telescope, "GBT");
          free(spigots);
+
+      } else if (cmd->psrfitsP) {
+         struct spectra_info s;
+         char scope[40];
+         
+         printf("PSRFITS input file information:\n");
+         read_PSRFITS_files(cmd->argv, cmd->argc, &s);
+         local_N = s.N;
+         ptsperrec = s.spectra_per_subint;
+         numchan = s.num_channels;
+         local_dt = s.dt;
+         local_T = s.T;
+         get_PSRFITS_file_info(cmd->argv, cmd->argc, cmd->clip, 
+                               &s, &idata, 1);
+         PSRFITS_update_infodata(&idata);
+         set_PSRFITS_padvals(padvals, good_padvals);
+         strncpy(scope, idata.telescope, 40);
+         strlower(scope);
+         search.telescope = (char *) calloc(20, sizeof(char));
+         /* OBS codes for TEMPO */
+         if (!strcmp(scope, "parkes")) {
+            strcpy(obs, "PK");
+            strcpy(search.telescope, "Parkes");
+         } else if (!strcmp(idata.telescope, "jodrell")) {
+            strcpy(obs, "JB");
+            strcpy(search.telescope, "Jodrell Bank");
+         } else if (!strcmp(idata.telescope, "gbt")) {
+            strcpy(obs, "GB");
+            strcpy(search.telescope, "GBT");
+         } else if (!strcmp(idata.telescope, "arecibo")) {
+            strcpy(obs, "AO");
+            strcpy(search.telescope, "Arecibo");
+         } else {
+            printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
+                   idata.telescope);
+            strcpy(search.telescope, "Unknown");
+         }
 
       } else if (cmd->wappP) {
 
@@ -1191,7 +1239,6 @@ int main(int argc, char *argv[])
       /* Move to the correct starting record */
 
       data = gen_fvect(cmd->nsub * worklen);
-      currentrec = lorec;
       if (cmd->pkmbP)
          skip_to_PKMB_rec(infiles, numfiles, lorec + 1);
       else if (cmd->bcpmP)
@@ -1204,6 +1251,8 @@ int main(int argc, char *argv[])
          skip_to_GMRT_rec(infiles, numfiles, lorec + 1);
       else if (cmd->filterbankP)
          skip_to_filterbank_rec(infiles, numfiles, lorec + 1);
+      else if (cmd->psrfitsP)
+          skip_to_PSRFITS_samp(lorec*worklen);
       else {
          if (useshorts) {
             int reclen = 1;
@@ -1387,6 +1436,9 @@ int main(int argc, char *argv[])
                numread = read_filterbank_subbands(infiles, numfiles, data,
                                                   dispdts, cmd->nsub, 1, &padding,
                                                   maskchans, &nummasked, &obsmask);
+            else if (cmd->psrfitsP)
+               numread = read_PSRFITS_subbands(data, dispdts, cmd->nsub, 1, &padding,
+                                               maskchans, &nummasked, &obsmask);
             else if (insubs)
                numread = read_subbands(infiles, numfiles, data, recdt,
                                        maskchans, &nummasked, &obsmask, padvals);

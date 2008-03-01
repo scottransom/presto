@@ -6,13 +6,16 @@
 #include "bpp.h"
 #include "wapp_key.h"
 #include "spigot.h"
+#include "psrfits.h"
 #include "sigproc_fb.h"
 #include "readfile_cmd.h"
 
 /* #define DEBUG */
 
 #define PAGELEN 32              /* Set the page length to 32 lines */
-#define NUMTYPES 16
+#define NUMTYPES 17
+
+void print_WAPP_hdr(struct HEADERP *hdr);
 
 int BYTE_print(long count, char *obj_ptr);
 int FLOAT_print(long count, char *obj_ptr);
@@ -30,6 +33,7 @@ int BCPMHDR_print(long count, char *obj_ptr);
 int WAPPHDR_print(long count, char *obj_ptr);
 int SPIGOTHDR_print(long count, char *obj_ptr);
 int SIGPROCHDR_print(long count, char *obj_ptr);
+int PSRFITSHDR_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 void set_WAPP_HEADER_version(struct HEADERP *hdr);
 
@@ -38,7 +42,7 @@ typedef enum {
     DOUBLE, FCPLEX, 
     DCPLEX, SHORT, INT, LONG,
     RZWCAND, BINCAND, POSITION, 
-    PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR, SIGPROCHDR
+    PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR, SIGPROCHDR, PSRFITSHDR
 } rawtypes;
 
 typedef struct fcplex {
@@ -92,7 +96,8 @@ int (*print_funct_ptrs[NUMTYPES]) () = {BYTE_print,
                                         BCPMHDR_print, 
                                         WAPPHDR_print, 
                                         SPIGOTHDR_print, 
-                                        SIGPROCHDR_print};
+                                        SIGPROCHDR_print,
+                                        PSRFITSHDR_print};
 
 /* A few global variables */
 
@@ -166,7 +171,9 @@ int main(int argc, char **argv)
       index = SPIGOTHDR;
    else if (cmd->filterbankP)
       index = SIGPROCHDR;
-
+   else if (cmd->psrfitsP)
+      index = PSRFITSHDR;
+   
    /* Try to determine the data type from the file name */
 
    if (index == -1) {
@@ -186,12 +193,18 @@ int main(int argc, char **argv)
             } else if (0 == strcmp(extension, "fft")) {
                index = FCPLEX;
                fprintf(stdout, "Assuming the data is single precision complex.\n\n");
-            } else if (0 == strcmp(extension, "fits") &&
-                       strstr(short_filenm, "spigot_5") != NULL) {
-               cmd->spigotP = 1;
-               index = SPIGOTHDR;
-               fprintf(stdout,
-                       "Assuming the data is from the Caltech/NRAO Spigot.\n\n");
+            } else if (0 == strcmp(extension, "fits")) {
+                if (strstr(short_filenm, "spigot_5") != NULL) {
+                    cmd->spigotP = 1;
+                    index = SPIGOTHDR;
+                    fprintf(stdout,
+                            "Assuming the data is from the Caltech/NRAO Spigot.\n\n");
+                } else if (is_PSRFITS(cmd->argv[0])) {
+                    cmd->psrfitsP = 1;
+                    index = PSRFITSHDR;
+                    fprintf(stdout,
+                            "Assuming the data is in PSRFITS format.\n\n");
+                }
             } else if (0 == strcmp(extension, "bcpm1") ||
                        0 == strcmp(extension, "bcpm2")) {
                cmd->bcpmP = 1;
@@ -287,6 +300,18 @@ int main(int argc, char **argv)
       fprintf(stdout, "\nThe high index must be >= the low index.");
       fprintf(stdout, "  Exiting.\n\n");
       exit(-1);
+   }
+
+   if (cmd->psrfitsP) {
+       struct spectra_info s;
+       
+       if (read_PSRFITS_files(cmd->argv, cmd->argc, &s)) {
+           print_PSRFITS_info(&s);
+           printf("\n");
+       } else {
+           printf("\n  Error reading PSRFITS file!\n\n");
+       }
+       exit(0);
    }
 
    if (cmd->spigotP) {
@@ -513,6 +538,15 @@ int SPIGOTHDR_print(long count, char *obj_ptr)
 {
    char *bogus;
 
+   printf("\n%ld:", count + 1);
+   bogus = (char *) obj_ptr;
+   return 0;
+}
+
+int PSRFITSHDR_print(long count, char *obj_ptr)
+{
+   char *bogus;
+   
    printf("\n%ld:", count + 1);
    bogus = (char *) obj_ptr;
    return 0;

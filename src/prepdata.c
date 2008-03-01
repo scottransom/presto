@@ -9,6 +9,7 @@
 #include "gmrt.h"
 #include "spigot.h"
 #include "sigproc_fb.h"
+#include "psrfits.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 10.0
@@ -20,7 +21,7 @@
 /* x.5s get rounded away from zero.                */
 #define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
 /* Some function definitions */
 
@@ -106,9 +107,14 @@ int main(int argc, char *argv[])
          } else if (strcmp(suffix, "fil") == 0 || strcmp(suffix, "fb") == 0) {
             printf("Assuming the data is in SIGPROC filterbank format...\n");
             cmd->filterbankP = 1;
-         } else if (strcmp(suffix, "fits") == 0 && strstr(root, "spigot_5") != NULL) {
-            printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
-            cmd->spigotP = 1;
+         } else if (strcmp(suffix, "fits") == 0) {
+             if (strstr(root, "spigot_5") != NULL) {
+                 printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
+                 cmd->spigotP = 1;
+             } else if (is_PSRFITS(cmd->argv[0])) {
+                 printf("Assuming the data is in PSRFITS format.\n");
+                 cmd->psrfitsP = 1;
+             } 
          } else if (strcmp(suffix, "pkmb") == 0) {
             printf
                 ("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
@@ -151,6 +157,11 @@ int main(int argc, char *argv[])
          printf("Reading SIGPROC filterbank data from %d files:\n", numfiles);
       else
          printf("Reading SIGPROC filterbank data from 1 file:\n");
+   } else if (cmd->psrfitsP) {
+      if (numfiles > 1)
+         printf("Reading PSRFITS search-mode data from %d files:\n", numfiles);
+      else
+         printf("Reading PSRFITS search-mode data from 1 file:\n");
    } else if (cmd->spigotP) {
       if (numfiles > 1)
          printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
@@ -297,6 +308,39 @@ int main(int argc, char *argv[])
          /* OBS code for TEMPO for the GBT */
          strcpy(obs, "GB");
          free(spigots);
+      }
+
+      /* Set-up values if we are using search-mode PSRFITS data */
+      if (cmd->psrfitsP) {
+         struct spectra_info s;
+         char scope[40];
+         
+         printf("PSRFITS input file information:\n");
+         read_PSRFITS_files(cmd->argv, cmd->argc, &s);
+         N = s.N;
+         ptsperblock = s.spectra_per_subint;
+         numchan = s.num_channels;
+         dt = s.dt;
+         T = s.T;
+         get_PSRFITS_file_info(cmd->argv, cmd->argc, cmd->clip, 
+                               &s, &idata, 1);
+         PSRFITS_update_infodata(&idata);
+         set_PSRFITS_padvals(padvals, good_padvals);
+         strncpy(scope, idata.telescope, 40);
+         strlower(scope);
+         /* OBS codes for TEMPO */
+         if (!strcmp(scope, "parkes")) {
+            strcpy(obs, "PK");
+         } else if (!strcmp(idata.telescope, "jodrell")) {
+            strcpy(obs, "JB");
+         } else if (!strcmp(idata.telescope, "gbt")) {
+            strcpy(obs, "GB");
+         } else if (!strcmp(idata.telescope, "arecibo")) {
+            strcpy(obs, "AO");
+         } else {
+            printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
+                   idata.telescope);
+         }
       }
 
       /* Set-up values if we are using the Arecibo WAPP */
@@ -462,6 +506,9 @@ int main(int argc, char *argv[])
             numread = read_SPIGOT(infiles, numfiles, outdata, worklen,
                                   dispdt, &padding, maskchans, &nummasked,
                                   &obsmask, ifs);
+         else if (cmd->psrfitsP)
+            numread = read_PSRFITS(outdata, worklen, dispdt, &padding, 
+                                   maskchans, &nummasked, &obsmask);
          else if (cmd->wappP)
             numread = read_WAPP(infiles, numfiles, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked,
@@ -650,6 +697,9 @@ int main(int argc, char *argv[])
             numread = read_SPIGOT(infiles, numfiles, outdata, worklen,
                                   dispdt, &padding, maskchans, &nummasked,
                                   &obsmask, ifs);
+         else if (cmd->psrfitsP)
+            numread = read_PSRFITS(outdata, worklen, dispdt, &padding, 
+                                   maskchans, &nummasked, &obsmask);
          else if (cmd->wappP)
             numread = read_WAPP(infiles, numfiles, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked,

@@ -363,7 +363,7 @@ void SPIGOT_INFO_to_inf(SPIGOT_INFO * spigot, infodata * idata)
    idata->freqband = spigot->bandwidth;
    idata->chan_wid = fabs(idata->freqband / idata->num_chan);
    idata->freq = spigot->freq_ctr - 0.5 * idata->freqband + 0.5 * idata->chan_wid;
-   idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 300.0 * DEGTORAD);
+   idata->fov = 1.2 * SOL * 3600.0 / (idata->freq * 1.0e6) / 100.0 * RADTODEG;
    idata->bary = 0;
    idata->numonoff = 0;
    strcpy(idata->band, "Radio");

@@ -23,6 +23,8 @@ typedef struct s_Cmdline {
   char spigotP;
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   char filterbankP;
+  /***** -psrfits: Raw data in PSRFITS format */
+  char psrfitsP;
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   char wappP;
   /***** -window: Window correlator lags with a Hamming window before FFTing */

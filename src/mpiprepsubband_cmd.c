@@ -36,6 +36,8 @@ static Cmdline cmd = {
   /* spigotP = */ 0,
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   /* filterbankP = */ 0,
+  /***** -psrfits: Raw data in PSRFITS format */
+  /* psrfitsP = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
   /***** -window: Window correlator lags with a Hamming window before FFTing */
@@ -844,6 +846,13 @@ showOptionValues(void)
     printf("-filterbank found:\n");
   }
 
+  /***** -psrfits: Raw data in PSRFITS format */
+  if( !cmd.psrfitsP ) {
+    printf("-psrfits not found.\n");
+  } else {
+    printf("-psrfits found:\n");
+  }
+
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   if( !cmd.wappP ) {
     printf("-wapp not found.\n");
@@ -1013,7 +1022,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1022,6 +1031,7 @@ usage(void)
   fprintf(stderr,"%s","          -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n");
   fprintf(stderr,"%s","        -spigot: Raw data in Caltech-NRAO Spigot Card format\n");
   fprintf(stderr,"%s","    -filterbank: Raw data in SIGPROC filterbank format\n");
+  fprintf(stderr,"%s","       -psrfits: Raw data in PSRFITS format\n");
   fprintf(stderr,"%s","          -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n");
   fprintf(stderr,"%s","        -window: Window correlator lags with a Hamming window before FFTing\n");
   fprintf(stderr,"%s","      -numwapps: Number of WAPPs used with contiguous frequencies\n");
@@ -1056,7 +1066,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...1024 values\n");
-  fprintf(stderr,"%s","  version: 27Aug06\n");
+  fprintf(stderr,"%s","  version: 29Feb08\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1105,6 +1115,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-filterbank", argv[i]) ) {
       cmd.filterbankP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-psrfits", argv[i]) ) {
+      cmd.psrfitsP = 1;
       continue;
     }
 
