@@ -38,10 +38,10 @@ C  of snr.  In that case you could also return the noise estimate rms.
 	complex cp(0:MAXSAM/2)
 	logical low,high
 
-    	if (phi(1).ne.0) then
-    	  print *,' Phase of fundamental not zero, check .hm file'
-    	  stop
-    	end if
+C    	if (phi(1).ne.0) then
+C    	  print *,' Phase of fundamental not zero, check .hm file'
+C    	  stop
+C    	end if
 
 	nh=nmax/2
 	sum=0.
