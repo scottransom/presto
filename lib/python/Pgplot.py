@@ -377,7 +377,7 @@ def plotbinned(y, x=None, title=None, labx='Bins', laby='Counts', \
                color=ppgplot_color_, font=ppgplot_font_, logx=0, logy=0, \
                logx2=0, logy2=0, erry=None, id=0, noscale=0, \
                aspect=0.7727, fontsize=ppgplot_font_size_, \
-               ticks='in', panels=[1,1], device=ppgplot_device_, setup=1):
+               ticks='out', panels=[1,1], device=ppgplot_device_, setup=1):
     """
     plotbinned(y, ...):
         Plot x-y data that is binned.  This routine differs from
