@@ -12,6 +12,12 @@ if __name__ == "__main__":
     filhdr = {}
     newhdr = ""
     infile = open(sys.argv[2], 'rb')
+
+    # Determine the full size of the file
+    infile.seek(0, 2)
+    infilelen = infile.tell()
+    infile.seek(0, 0)
+    
     outfile = open(basefilenm+"_DS%d.fil"%DS_fact, 'wb')
 
     # Loop over the values in the .fil file
@@ -32,9 +38,17 @@ if __name__ == "__main__":
     # Write the new header to the output file
     outfile.write(newhdr)
 
-    # Now loop over the spectra
     nchans = filhdr['nchans']
-    while (1):
+
+    # Remove the header length from infilelen and then
+    # determine how many spectra are in the file
+    infilelen -= infile.tell()
+    numspec = infilelen / nchans
+    if infilelen % nchans:
+        print "Whoops!  File length calculation is not right..."
+
+    # Now loop over the spectra
+    for ii in xrange(numspec / DS_fact):
         try:
             x = num.fromfile(infile, dtype=num.ubyte, count=DS_fact*nchans)
             x.shape = (DS_fact, nchans)
