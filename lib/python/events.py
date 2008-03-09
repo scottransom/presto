@@ -217,11 +217,8 @@ def binning_factor(freq, nyquist_freq):
         interest and 'nyquist_freq' is the Nyquist Frequency
         which can be defined as N/(2*T).
     """
-    x = PIBYTWO * freq / nyquist_freq
-    if (x == 0.0):
-        return 1.0
-    else:
-        return (Num.sin(x) / x)
+    x = 0.5 * Num.asarray(freq) / nyquist_freq
+    return Num.sinc(x)  # numpy sinc is defined with pi
 
 def max_noise_power(bins, n=1, confidence=0.99):
     """
@@ -290,8 +287,8 @@ def power_probability(power, signal_power, n=1):
         Return the probability of a signal with power
         'signal_power' actually showing up with power
         'power' in a power spectrum'  This is equation
-        12 in Groth, 1975 and is the integrand of the previous
-        two functions (which integrate it from 0 to P)
+        12 in Groth, 1975 and is the integrand of the
+        prob_power_* functions (which integrate it from 0 to P)
     """
     return (power / signal_power)**(0.5 * (n - 1)) * \
            Num.exp(-(power + signal_power)) * \
@@ -329,6 +326,8 @@ def fft_sensitivity(N, bins=0, n=1, confidence=0.99):
         is performed).  'confidence' is our fractional confidence in
         the result (i.e. 0.99 = 99% limit).  This calculation does not
         include the correction to sensitivity due to binning effects.
+        These calculations are based on the Vaughan et al 1994 paper
+        and compute P_sens.
     """
     if not (bins): bins = N / 2
     P_threshold = max_noise_power(bins, n, confidence)
@@ -344,6 +343,8 @@ def rzw_sensitivity(N, zlo=-100.0, zhi=100.0, n=1, confidence=0.99):
         and 'zhi'.  'confidence' is our fractional confidence in
         the result (i.e. 0.99 = 99% limit).  This calculation does not
         include the correction to sensitivity due to binning effects.
+        These calculations are based on the Vaughan et al 1994 paper
+        and compute P_sens.
     """
     bins = N / 2.0 * (zhi - zlo + 1.0) / 6.95
     P_threshold = max_noise_power(bins, n, confidence)
@@ -362,7 +363,8 @@ def binned_fft_sensitivity(N, dt, freq, bins=0, n=1, confidence=0.99):
         acceleration search is performed).  'confidence' is our
         fractional confidence in the result (i.e. 0.99 = 99% limit).
         This calculation includes the correction to sensitivity
-        due to binning effects.
+        due to binning effects.  These calculations are based on
+        the Vaughan et al 1994 paper and compute P_sens.
     """
     nyquist_freq = 0.5 / dt
     factor = binning_factor(freq, nyquist_freq)**2.0
@@ -380,20 +382,27 @@ def binned_rzw_sensitivity(N, dt, freq, zlo=-100.0, zhi=100.0,
         Low and high acceleration values of 'zlo' and 'zhi' were used.
         'confidence' is our fractional confidence in the result (i.e.
         0.99 = 99% limit).  This calculation includes the correction to
-        sensitivity due to binning effects.
+        sensitivity due to binning effects.  These calculations are
+        based on the Vaughan et al 1994 paper and compute P_sens.
     """
     bins = N / 2.0 * (zhi - zlo + 1.0) / 6.95
     nyquist_freq = 0.5 / dt
     factor = binning_factor(freq, nyquist_freq)**2.0
     return fft_sensitivity(N, bins, n, confidence) / factor
 
-def pulsed_fraction_limit(numphot, power_limit):
+def pulsed_fraction_limit(Nphot, power):
     """
-    pulsed_fraction_limit(numphot, power_limit):
-        Return an upper limit to the pulsed fraction of a signal
-        that is in the data but was not detected.  The data
-        contain a total of 'numphot' photons and the largest
-        measured power is 'power_limit'.
+    pulsed_fraction_limit(phot, power):
+        Return an _observational_ (i.e. not intrinsic) upper limit
+        to the pulsed fraction of a signal that is in the data but
+        was not detected.  By observational, I mean that some of the
+        unpulsed events do not come from the source you are looking
+        for pulsations in.  The data contain a total of 'Nphot'
+        photons and the largest measured power (or P_sens as
+        calculated using the *_sensitivity functions in this module)
+        is 'power'.  If you want the _intrinsic_ pulsed fraction,
+        you should divide the returned value by the fraction of Nphot
+        that actually comes from the _source_ (i.e. the NS).
     """
     return Num.sqrt(4.0 * (power_limit - 1.0) / numphot)
 
