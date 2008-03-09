@@ -390,9 +390,9 @@ def binned_rzw_sensitivity(N, dt, freq, zlo=-100.0, zhi=100.0,
     factor = binning_factor(freq, nyquist_freq)**2.0
     return fft_sensitivity(N, bins, n, confidence) / factor
 
-def pulsed_fraction_limit(Nphot, power):
+def pulsed_fraction_limit(Nphot, Pow):
     """
-    pulsed_fraction_limit(phot, power):
+    pulsed_fraction_limit(phot, Pow):
         Return an _observational_ (i.e. not intrinsic) upper limit
         to the pulsed fraction of a signal that is in the data but
         was not detected.  By observational, I mean that some of the
@@ -400,11 +400,11 @@ def pulsed_fraction_limit(Nphot, power):
         for pulsations in.  The data contain a total of 'Nphot'
         photons and the largest measured power (or P_sens as
         calculated using the *_sensitivity functions in this module)
-        is 'power'.  If you want the _intrinsic_ pulsed fraction,
+        is 'Pow'.  If you want the _intrinsic_ pulsed fraction,
         you should divide the returned value by the fraction of Nphot
         that actually comes from the _source_ (i.e. the NS).
     """
-    return Num.sqrt(4.0 * (power - 1.0) / numphot)
+    return Num.sqrt(4.0 * (Pow - 1.0) / Nphot)
 
 if __name__=="__main__":
     from psr_utils import *
