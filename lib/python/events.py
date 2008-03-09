@@ -404,7 +404,7 @@ def pulsed_fraction_limit(Nphot, power):
         you should divide the returned value by the fraction of Nphot
         that actually comes from the _source_ (i.e. the NS).
     """
-    return Num.sqrt(4.0 * (power_limit - 1.0) / numphot)
+    return Num.sqrt(4.0 * (power - 1.0) / numphot)
 
 if __name__=="__main__":
     from psr_utils import *
