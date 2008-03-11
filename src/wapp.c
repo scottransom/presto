@@ -361,18 +361,16 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
     /* Now start getting the technical info */
     numifs_st = get_hdr_int(hdr, "nifs");
     
-    if (header_version_st < 2) {
-        if (get_hdr_int(hdr, "freqinversion")) {
-            decreasing_freqs_st = (decreasing_freqs_st==1 ? 0 : 1);
-        }
-    } else {
-        if (get_hdr_int(hdr, "iflo_flip")) {
-            decreasing_freqs_st = (decreasing_freqs_st==1 ? 0 : 1);
-        }
+    if (get_hdr_int(hdr, "freqinversion")) {
+        decreasing_freqs_st = (decreasing_freqs_st==1 ? 0 : 1);
     }
-    printf("freqinversion = %d   iflo_flip = %d\n", 
+    if (get_hdr_int(hdr, "iflo_flip")) {
+        decreasing_freqs_st = (decreasing_freqs_st==1 ? 0 : 1);
+    }
+    printf("freqinversion = %d   iflo_flip = %d : using decreasing_freqs = %d\n", 
            get_hdr_int(hdr, "freqinversion"),
-           get_hdr_int(hdr, "iflo_flip"));
+           get_hdr_int(hdr, "iflo_flip"),
+           decreasing_freqs_st);
 
     ival = get_hdr_int(hdr, "level");
     if (ival==1)
