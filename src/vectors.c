@@ -4,7 +4,7 @@ float *gen_fvect(long length)
 {
    float *v;
 
-   v = (float *) malloc((size_t) (sizeof(float) * length));
+   v = (float *) fftwf_malloc((size_t) (sizeof(float) * length));
    if (!v) {
       perror("\nError in gen_fvect()");
       printf("\n");
@@ -18,7 +18,7 @@ double *gen_dvect(long length)
 {
    double *v;
 
-   v = (double *) malloc((size_t) (sizeof(double) * length));
+   v = (double *) fftwf_malloc((size_t) (sizeof(double) * length));
    if (!v) {
       perror("\nError in gen_dvect()");
       printf("\n");
@@ -32,7 +32,7 @@ fcomplex *gen_cvect(long length)
 {
    fcomplex *v;
 
-   v = (fcomplex *) malloc((size_t) (sizeof(fcomplex) * length));
+   v = (fcomplex *) fftwf_malloc((size_t) (sizeof(fcomplex) * length));
    if (!v) {
       perror("\nError in gen_cvect()");
       printf("\n");
@@ -46,7 +46,7 @@ short *gen_svect(long length)
 {
    short *v;
 
-   v = (short *) malloc((size_t) (sizeof(short) * length));
+   v = (short *) fftwf_malloc((size_t) (sizeof(short) * length));
    if (!v) {
       perror("\nError in gen_svect()");
       printf("\n");
@@ -60,7 +60,7 @@ int *gen_ivect(long length)
 {
    int *v;
 
-   v = (int *) malloc((size_t) (sizeof(int) * length));
+   v = (int *) fftwf_malloc((size_t) (sizeof(int) * length));
    if (!v) {
       perror("\nError in gen_ivect()");
       printf("\n");
@@ -74,7 +74,7 @@ long *gen_lvect(long length)
 {
    long *v;
 
-   v = (long *) malloc((size_t) (sizeof(long) * length));
+   v = (long *) fftwf_malloc((size_t) (sizeof(long) * length));
    if (!v) {
       perror("\nError in gen_lvect()");
       printf("\n");
@@ -88,7 +88,7 @@ unsigned char *gen_bvect(long length)
 {
    unsigned char *v;
 
-   v = (unsigned char *) malloc((size_t) (sizeof(unsigned char) * length));
+   v = (unsigned char *) fftwf_malloc((size_t) (sizeof(unsigned char) * length));
    if (!v) {
       perror("\nError in gen_bvect()");
       printf("\n");
@@ -103,7 +103,7 @@ rawtype *gen_rawvect(long length)
 {
    rawtype *v;
 
-   v = (rawtype *) malloc((size_t) (sizeof(rawtype) * length));
+   v = (rawtype *) fftwf_malloc((size_t) (sizeof(rawtype) * length));
    if (!v) {
       perror("\nError in gen_rawvect()");
       printf("\n");
@@ -124,14 +124,14 @@ unsigned char **gen_bmatrix(long nrows, long ncols)
    long i;
    unsigned char **m;
 
-   m = (unsigned char **) malloc((size_t) (nrows * sizeof(unsigned char *)));
+   m = (unsigned char **) fftwf_malloc((size_t) (nrows * sizeof(unsigned char *)));
    if (!m) {
       perror("\nError in 1st malloc() in gen_bmatrix()");
       printf("\n");
       exit(-1);
    }
    m[0] =
-       (unsigned char *) malloc((size_t) ((nrows * ncols) * sizeof(unsigned char)));
+       (unsigned char *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(unsigned char)));
    if (!m[0]) {
       perror("\nError in 2nd malloc() in gen_bmatrix()");
       printf("\n");
@@ -154,13 +154,13 @@ short **gen_smatrix(long nrows, long ncols)
    long i;
    short **m;
 
-   m = (short **) malloc((size_t) (nrows * sizeof(short *)));
+   m = (short **) fftwf_malloc((size_t) (nrows * sizeof(short *)));
    if (!m) {
       perror("\nError in 1st malloc() in gen_smatrix()");
       printf("\n");
       exit(-1);
    }
-   m[0] = (short *) malloc((size_t) ((nrows * ncols) * sizeof(short)));
+   m[0] = (short *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(short)));
    if (!m[0]) {
       perror("\nError in 2nd malloc() in gen_smatrix()");
       printf("\n");
@@ -183,13 +183,13 @@ int **gen_imatrix(long nrows, long ncols)
    long i;
    int **m;
 
-   m = (int **) malloc((size_t) (nrows * sizeof(int *)));
+   m = (int **) fftwf_malloc((size_t) (nrows * sizeof(int *)));
    if (!m) {
       perror("\nError in 1st malloc() in gen_imatrix()");
       printf("\n");
       exit(-1);
    }
-   m[0] = (int *) malloc((size_t) ((nrows * ncols) * sizeof(int)));
+   m[0] = (int *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(int)));
    if (!m[0]) {
       perror("\nError in 2nd malloc() in gen_imatrix()");
       printf("\n");
@@ -212,13 +212,13 @@ float **gen_fmatrix(long nrows, long ncols)
    long i;
    float **m;
 
-   m = (float **) malloc((size_t) (nrows * sizeof(float *)));
+   m = (float **) fftwf_malloc((size_t) (nrows * sizeof(float *)));
    if (!m) {
       perror("\nError in 1st malloc() in gen_fmatrix()");
       printf("\n");
       exit(-1);
    }
-   m[0] = (float *) malloc((size_t) ((nrows * ncols) * sizeof(float)));
+   m[0] = (float *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(float)));
    if (!m[0]) {
       perror("\nError in 2nd malloc() in gen_fmatrix()");
       printf("\n");
@@ -241,13 +241,13 @@ double **gen_dmatrix(long nrows, long ncols)
    long i;
    double **m;
 
-   m = (double **) malloc((size_t) (nrows * sizeof(double *)));
+   m = (double **) fftwf_malloc((size_t) (nrows * sizeof(double *)));
    if (!m) {
       perror("\nError in 1st malloc() in gen_dmatrix()");
       printf("\n");
       exit(-1);
    }
-   m[0] = (double *) malloc((size_t) ((nrows * ncols) * sizeof(double)));
+   m[0] = (double *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(double)));
    if (!m[0]) {
       perror("\nError in 2nd malloc() in gen_dmatrix()");
       printf("\n");
@@ -272,7 +272,7 @@ fcomplex **gen_cmatrix(long nrows, long ncols)
 
    /* allocate pointers to rows */
 
-   m = (fcomplex **) malloc((size_t) (nrows * sizeof(fcomplex *)));
+   m = (fcomplex **) fftwf_malloc((size_t) (nrows * sizeof(fcomplex *)));
    if (!m) {
       perror("\nError in 1st malloc() in gen_cmatrix()");
       printf("\n");
@@ -280,7 +280,7 @@ fcomplex **gen_cmatrix(long nrows, long ncols)
    }
    /* allocate rows and set pointers to them */
 
-   m[0] = (fcomplex *) malloc((size_t) ((nrows * ncols) * sizeof(fcomplex)));
+   m[0] = (fcomplex *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(fcomplex)));
    if (!m[0]) {
       perror("\nError in 2nd malloc() in gen_cmatrix()");
       printf("\n");
