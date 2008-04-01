@@ -1085,7 +1085,7 @@ usage(void)
   fprintf(stderr,"%s","          -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n");
   fprintf(stderr,"%s","        -window: Window correlator lags with a Hamming window before FFTing\n");
   fprintf(stderr,"%s","      -numwapps: Number of WAPPs used with contiguous frequencies\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 7\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and 8\n");
   fprintf(stderr,"%s","                 default: `1'\n");
   fprintf(stderr,"%s","            -if: A specific IF to use if available (summed IFs is the default)\n");
   fprintf(stderr,"%s","                 1 int value between 0 and 1\n");
@@ -1122,7 +1122,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name(s).\n");
   fprintf(stderr,"%s","                 1...1024 values\n");
-  fprintf(stderr,"%s","  version: 29Feb08\n");
+  fprintf(stderr,"%s","  version: 01Apr08\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1194,7 +1194,7 @@ parseCmdline(int argc, char **argv)
       cmd.numwappsP = 1;
       i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
       cmd.numwappsC = i-keep;
-      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 7);
+      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 8);
       checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
       continue;
     }
