@@ -5,7 +5,7 @@
 /* Maximum number of samples to process at a time */
 #define WAPP_MAXPTSPERBLOCK 64
 /* Maximum number of WAPPs we can handle at once */
-#define WAPP_MAXNUMWAPPS 4
+#define WAPP_MAXNUMWAPPS 8
 /* time between correlator dumps in us */
 #define WAPP_DEADTIME 0.34
 /* Maximum number of lags we can have per WAPP */
