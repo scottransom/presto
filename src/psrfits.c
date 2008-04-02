@@ -7,11 +7,11 @@
 #define DEBUGOUT 1
 
 static struct spectra_info S;
-static unsigned char *rawbuffer, *ringbuffer;
-static float *padvals, *newpadvals, *databuffer;
+static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
+static float *padvals, *newpadvals, *offsets, *scales;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1;
-static int using_MPI = 0;
+static int using_MPI = 0, default_poln = 0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move,
@@ -211,6 +211,18 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         get_hdr_double("TBIN", s->dt);
         get_hdr_int("NCHAN", s->num_channels);
         get_hdr_int("NPOL", s->num_polns);
+        {
+            char *envval = getenv("PSRFITS_POLN");
+            if (envval != NULL) {
+                int ival = strtol(envval, NULL, 10);
+                if ((ival > -1) && (ival < s->num_polns)) {
+                    printf
+                        ("Using polarization %d (from 0-%d) from PSRFITS_POLN.\n",
+                         ival, s->num_polns);
+                    default_poln = ival;
+                }
+            }
+        }
         get_hdr_string("POL_TYPE", s->poln_order);
         fits_read_key(s->files[ii], TINT, "NCHNOFFS", &itmp, comment, &status);
         if (itmp > 0)
@@ -335,7 +347,8 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                 status = 0; // Reset status
             } else {
                 int jj;
-                float *fvec = (float *)malloc(sizeof(float) * s->num_channels);
+                float *fvec = (float *)malloc(sizeof(float) * 
+                                              s->num_channels * s->num_polns);
                 fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
                               s->num_channels, 0, fvec, &anynull, &status);
                 for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
@@ -351,7 +364,8 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                 status = 0; // Reset status
             } else {
                 int jj;
-                float *fvec = (float *)malloc(sizeof(float) * s->num_channels);
+                float *fvec = (float *)malloc(sizeof(float) * 
+                                              s->num_channels * s->num_polns);
                 fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
                               s->num_channels, 0, fvec, &anynull, &status);
                 for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
@@ -420,12 +434,19 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     S = *s;
 
     // Allocate the buffers
-    rawbuffer = gen_bvect(s->bytes_per_subint);
-    ringbuffer = gen_bvect(2 * s->bytes_per_subint);
-    databuffer = gen_fvect(s->samples_per_subint);
+    rawbuffer = gen_bvect(s->bytes_per_subint/s->num_polns);
+    ringbuffer = gen_bvect(2 * s->bytes_per_subint/s->num_polns);
+    if (s->num_polns > 1)
+        tmpbuffer = gen_bvect(s->samples_per_subint);
     // The following is temporary, until I fix the padding
-    padvals = gen_fvect(s->samples_per_spectra);
-    for (ii = 0 ; ii < s->samples_per_spectra ; ii++)
+    padvals = gen_fvect(s->samples_per_spectra/s->num_polns);
+    offsets = gen_fvect(s->samples_per_spectra);
+    scales = gen_fvect(s->samples_per_spectra);
+    for (ii = 0 ; ii < s->samples_per_spectra ; ii++) {
+        offsets[ii] = 0.0;
+        scales[ii] = 1.0;
+    }
+    for (ii = 0 ; ii < s->samples_per_spectra/s->num_polns ; ii++)
         padvals[ii] = 0.0;
     newpadvals = padvals;
     return 1;
@@ -661,7 +682,7 @@ int skip_to_PSRFITS_samp(long long samplenum)
 #endif
     } else {  // We are in the padding part
         // Fill the buffer with padding (use zeros for now)
-        memset(rawbuffer, 0, S.samples_per_subint);
+        memset(rawbuffer, 0, S.samples_per_subint/S.num_polns);
         cur_subint = 1; // placeholder
         bufferspec = 0;
         padnum = 0;
@@ -688,13 +709,13 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
     // non-contiguous files together
 
     if (bufferspec) {
-        offset = bufferspec * S.bytes_per_spectra;
+        offset = bufferspec * S.bytes_per_spectra/S.num_polns;
         dataptr = ringbuffer + offset;
         // If our buffer array is offset from last time, 
         // copy the previously offset part into the beginning.
         // New data comes after the old data in the buffer.
         if (shiftbuffer)
-            memcpy(ringbuffer, ringbuffer + S.bytes_per_subint, offset);
+            memcpy(ringbuffer, ringbuffer + S.bytes_per_subint/S.num_polns, offset);
     }
     shiftbuffer = 1;
     
@@ -703,9 +724,19 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
 
     // Read the first bunch of data from the DATA col
     if (cur_subint <= S.num_subint[cur_file]) {
+        if (S.num_polns==1) tmpbuffer = dataptr;
         fits_read_col(S.files[cur_file], S.FITS_typecode, 
                       S.data_col, cur_subint, 1L, S.samples_per_subint, 
-                      0, dataptr, &anynull, &status);
+                      0, tmpbuffer, &anynull, &status);
+        // This loop
+        if (S.num_polns > 1) {
+            int ii, offset;
+            unsigned char *tmpptr = dataptr;
+            for (ii = 0 ; ii < S.samples_per_subint ; ii++) {
+                offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
+                memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
+            }
+        }
         if (0) {  //  Hack to flip each byte of data
             unsigned char uctmp;
             int ii, jj;
@@ -734,7 +765,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         *padding = 0;
         // Pull the new data from the ringbuffer if there is an offset
         if (bufferspec)
-            memcpy(data, ringbuffer, S.bytes_per_subint);
+            memcpy(data, ringbuffer, S.bytes_per_subint/S.num_polns);
         cur_subint++;
         return 1;
         
@@ -750,16 +781,16 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                     // make our buffer offset = 0
                     numtopad = S.spectra_per_subint - bufferspec;
                     for (ii = 0; ii < numtopad; ii++)
-                        memcpy(dataptr + ii * S.bytes_per_spectra, 
-                               newpadvals, S.bytes_per_spectra);
+                        memcpy(dataptr + ii * S.bytes_per_spectra/S.num_polns, 
+                               newpadvals, S.bytes_per_spectra/S.num_polns);
                     // Copy the new data/padding into the output array
-                    memcpy(data, ringbuffer, S.bytes_per_subint);
+                    memcpy(data, ringbuffer, S.bytes_per_subint/S.num_polns);
                     bufferspec = 0;
                 } else {  // Add a full record of padding
                     numtopad = S.spectra_per_subint;
                     for (ii = 0; ii < numtopad; ii++)
-                        memcpy(data + ii * S.bytes_per_spectra, 
-                               newpadvals, S.bytes_per_spectra);
+                        memcpy(data + ii * S.bytes_per_spectra/S.num_polns, 
+                               newpadvals, S.bytes_per_spectra/S.num_polns);
                 }
                 padnum += numtopad;
                 cur_subint++;
@@ -775,9 +806,9 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 // Add the remainder of the padding and then get a
                 // block from the next file.
                 for (ii = 0; ii < numtopad; ii++) {
-                    offset = bufferspec * S.bytes_per_spectra;
-                    memcpy(ringbuffer + offset + ii * S.bytes_per_spectra,
-                           newpadvals, S.bytes_per_spectra);
+                    offset = bufferspec * S.bytes_per_spectra/S.num_polns;
+                    memcpy(ringbuffer + offset + ii * S.bytes_per_spectra/S.num_polns,
+                           newpadvals, S.bytes_per_spectra/S.num_polns);
                 }
                 bufferspec += numtopad;
                 padnum = 0;
@@ -810,7 +841,7 @@ int read_PSRFITS_rawblocks(unsigned char rawdata[], int numblocks,
    *padding = 0;
    for (ii = 0; ii < numblocks; ii++) {
        pad = 0;
-       retval += read_PSRFITS_rawblock(rawdata + ii * S.samples_per_subint, &pad);
+       retval += read_PSRFITS_rawblock(rawdata + ii * S.samples_per_subint/S.num_polns, &pad);
        if (pad) numpad++;
    }
    if (numpad)
@@ -847,8 +878,8 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
        
        if (obsmask->numchan)
            mask = 1;
-       rawdata1 = gen_bvect(numblocks * S.bytes_per_subint);
-       rawdata2 = gen_bvect(numblocks * S.bytes_per_subint);
+       rawdata1 = gen_bvect(numblocks * S.bytes_per_subint/S.num_polns);
+       rawdata2 = gen_bvect(numblocks * S.bytes_per_subint/S.num_polns);
        allocd = 1;
        timeperblk = S.spectra_per_subint * S.dt;
        duration = numblocks * timeperblk;
@@ -867,15 +898,15 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
            }
            // Only use the recently measured padding if all the channels aren't masked
            if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
-               memcpy(padvals, newpadvals, S.bytes_per_spectra);
+               memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
            if (mask) {
                if (S.num_polns > 1 && !S.summed_polns) {
                    printf("WARNING!:  masking does not currently work with multiple polns!\n");
                }
                if (*nummasked == -1) {  // If all channels are masked
                    for (ii = 0; ii < numspec; ii++)
-                       memcpy(currentdata + ii * S.bytes_per_spectra, 
-                              padvals, S.bytes_per_spectra);
+                       memcpy(currentdata + ii * S.bytes_per_spectra/S.num_polns, 
+                              padvals, S.bytes_per_spectra/S.num_polns);
                } else if (*nummasked > 0) { // Only some of the channels are masked
                    int channum;
                    for (ii = 0; ii < numspec; ii++) {
@@ -974,18 +1005,18 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
     if (firsttime) {
         if (obsmask->numchan)
             mask = 1;
-        rawdata1 = gen_bvect(S.bytes_per_subint);
-        rawdata2 = gen_bvect(S.bytes_per_subint);
+        rawdata1 = gen_bvect(S.bytes_per_subint/S.num_polns);
+        rawdata2 = gen_bvect(S.bytes_per_subint/S.num_polns);
         move_size = (S.spectra_per_subint + numsubbands) / 2;
         move = gen_bvect(move_size);
         currentdata = rawdata1;
         lastdata = rawdata2;
-        memcpy(currentdata, rawdata, S.bytes_per_subint);
+        memcpy(currentdata, rawdata, S.bytes_per_subint/S.num_polns);
         timeperblk = S.spectra_per_subint * S.dt;
     }
     
     // Read and de-disperse
-    memcpy(currentdata, rawdata, S.bytes_per_subint);
+    memcpy(currentdata, rawdata, S.bytes_per_subint/S.num_polns);
     if (mask) {
         printf("Note:  block times for masking are not correct!\n");
         starttime = (cur_subint - 1) * timeperblk;
@@ -994,7 +1025,7 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
     
     // Only use the recently measured padding if all the channels aren't masked
     if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
-        memcpy(padvals, newpadvals, S.bytes_per_spectra);
+        memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
     
     if (mask) {
         if (S.num_polns > 1 && !S.summed_polns) {
@@ -1061,7 +1092,7 @@ int read_PSRFITS_subbands(float *data, double *dispdelays, int numsubbands,
     static unsigned char *rawdata;
     
     if (firsttime) {
-        rawdata = gen_bvect(S.bytes_per_subint);
+        rawdata = gen_bvect(S.bytes_per_subint/S.num_polns);
         if (!read_PSRFITS_rawblock(rawdata, padding)) {
             printf("Problem reading the raw PSRFITS data.\n\n");
             return 0;
