@@ -1157,52 +1157,52 @@ int read_SPIGOT_subbands(FILE * infiles[], int numfiles, float *data,
 void scale_rawlags(void *rawdata, int index)
 /* Scale the raw lags so that they are "calibrated" */
 {
-   int ii, lag0;
-   static int last_lag0 = 0, wrapval = 0;
-   static double ravg = 0.0;
+   int ii, lag;
+   static int hilag = 20, last_lags[20], wrapval = 0;
+   static double ravg = 0.0, firsttime = 1;
 
+   if (firsttime) {
+      for (ii = 0; ii < hilag; ii++) last_lags[ii] = 0;
+      firsttime = 0;
+   }
    /* Fill lag array with scaled CFs */
    /* Note:  The 2 and 4 bit options will almost certainly need to be fixed */
    /*        since I don't know the precise data layout. SMR 15Aug2003      */
    /*        Also, I have no idea how multiple IFs/RFs are stored...        */
    if (bits_per_lag_st == 16) {
       short *data = (short *) rawdata;
-      /* Attempt to fix zerolags that have either over-flowed or under-flowed */
-      {
-         lag0 = (int) data[index];
-         if (abs(lag0 - last_lag0) > 40000) {   // 40K is quite arbitrary...
-            if (lag0 < last_lag0)
-               lag0 += 65536;
-            else
-               lag0 -= 65536;
+      for (ii = 0; ii < numchan_st; ii++) {
+         lag = (int) data[ii + index];
+         /* Attempt to lags that have either over-flowed or under-flowed */
+         if (ii < hilag) {
+            if (abs(lag - last_lags[ii]) > 40000) {   // 40K is quite arbitrary...
+               if (lag < last_lags[ii])
+                  lag += 65536;
+               else
+                  lag -= 65536;
+            }
+            last_lags[ii] = lag;
          }
-         lags[0] = lag0 * lag_factor[0] + lag_offset[0];
-         last_lag0 = lag0;
+         lags[ii] = (lag * lag_factor[ii] + lag_offset[ii]) / lag_scale_env;
       }
-      lags[0] /= lag_scale_env;
-      for (ii = 1; ii < numchan_st; ii++)
-          lags[ii] = (data[ii + index] * lag_factor[ii] + lag_offset[ii]) / 
-              lag_scale_env;
    } else if (bits_per_lag_st == 8) {
       char *data = (char *) rawdata;
-      /* Attempt to fix zerolags that have either over-flowed or under-flowed */
-      {
-         lag0 = (int) data[index];
-         if (abs(lag0 - last_lag0) > 170) {   // 170 is quite arbitrary...
-            if (lag0 < last_lag0)
-               lag0 += 256;
-            else
-               lag0 -= 256;
+      for (ii = 0; ii < numchan_st; ii++) {
+         lag = (int) data[ii + index];
+         /* Attempt to lags that have either over-flowed or under-flowed */
+         if (ii < hilag) {
+            if (abs(lag - last_lags[ii]) > 170) {   // 170 is quite arbitrary...
+               if (lag < last_lags[ii])
+                  lag += 256;
+               else
+                  lag -= 256;
+            }
+            last_lags[ii] = lag;
          }
-         lags[0] = lag0 * lag_factor[0] + lag_offset[0];
-         last_lag0 = lag0;
+         lags[ii] = (lag * lag_factor[ii] + lag_offset[ii]) / lag_scale_env;
       }
-      lags[0] /= lag_scale_env;
-      for (ii = 1; ii < numchan_st; ii++)
-          lags[ii] = (data[ii + index] * lag_factor[ii] + lag_offset[ii]) /
-              lag_scale_env;
    } else if (bits_per_lag_st == 4) {
-      int jj;
+      int jj, lag0;
       char tmplag;
       unsigned char *data = (unsigned char *) rawdata, byte;
       /* Attempt to fix zerolags that have either over-flowed or under-flowed */
