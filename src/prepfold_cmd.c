@@ -1712,7 +1712,7 @@ usage(void)
   fprintf(stderr,"%s","             -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n");
   fprintf(stderr,"%s","                 1 int value\n");
   fprintf(stderr,"%s","          -nsub: The number of sub-bands to use for the DM search\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 2048\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and 4096\n");
   fprintf(stderr,"%s","                 default: `32'\n");
   fprintf(stderr,"%s","         -npart: The number of sub-integrations to use for the period search\n");
   fprintf(stderr,"%s","                 1 int value between 1 and 4096\n");
@@ -1805,7 +1805,7 @@ usage(void)
   fprintf(stderr,"%s","                 default: `0'\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...1024 values\n");
-  fprintf(stderr,"%s","  version: 01Apr08\n");
+  fprintf(stderr,"%s","  version: 02Apr08\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -2018,7 +2018,7 @@ parseCmdline(int argc, char **argv)
       cmd.nsubP = 1;
       i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
       cmd.nsubC = i-keep;
-      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 2048);
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 4096);
       checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
       continue;
     }
