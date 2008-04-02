@@ -102,29 +102,29 @@ int is_PSRFITS(char *filename)
     return 1;  // it is search-mode  PSRFITS
 }
 
-#define get_hdr_string(name, param) {                                       \
-        fits_read_key(s->files[ii], TSTRING, (name), ctmp, comment, &status);\
+#define get_hdr_string(name, param) {                                   \
+        fits_read_key(s->files[ii], TSTRING, (name), ctmp, comment, &status); \
         if (ii==0) strncpy((param), ctmp, 40);                          \
         else if (strcmp((param), ctmp)!=0)                              \
             printf("Warning!:  %s values don't match for files 0 and %d!\n", \
-                   (name), ii); \
-}
+                   (name), ii);                                         \
+    }
 
-#define get_hdr_int(name, param) {                                          \
-        fits_read_key(s->files[ii], TLONG, (name), &itmp, comment, &status); \
+#define get_hdr_int(name, param) {                                      \
+        fits_read_key(s->files[ii], TINT, (name), &itmp, comment, &status); \
         if (ii==0) param = itmp;                                        \
         else if (param != itmp)                                         \
             printf("Warning!:  %s values don't match for files 0 and %d!\n", \
-                   (name), ii); \
-}
+                   (name), ii);                                         \
+    }
 
-#define get_hdr_double(name, param) {                                          \
-        fits_read_key(s->files[ii], TDOUBLE, (name), &dtmp, comment, &status);\
+#define get_hdr_double(name, param) {                                   \
+        fits_read_key(s->files[ii], TDOUBLE, (name), &dtmp, comment, &status); \
         if (ii==0) param = dtmp;                                        \
         else if (param != dtmp)                                         \
             printf("Warning!:  %s values don't match for files 0 and %d!\n", \
-                   (name), ii); \
-}
+                   (name), ii);                                         \
+    }
 
 int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
 // Read and convert PSRFITS information from a group of files 
@@ -193,9 +193,9 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         get_hdr_double("BMIN", s->beam_FWHM);
 
         // Don't use the macros unless you are using the struct!
-        fits_read_key(s->files[ii], TLONG, "STT_IMJD", &IMJD, comment, &status);
+        fits_read_key(s->files[ii], TINT, "STT_IMJD", &IMJD, comment, &status);
         s->start_MJD[ii] = (long double) IMJD;
-        fits_read_key(s->files[ii], TLONG, "STT_SMJD", &SMJD, comment, &status);
+        fits_read_key(s->files[ii], TINT, "STT_SMJD", &SMJD, comment, &status);
         fits_read_key(s->files[ii], TDOUBLE, "STT_OFFS", &OFFS, comment, &status);
         s->start_MJD[ii] += ((long double) SMJD + (long double) OFFS) / SECPERDAY;
 
@@ -212,14 +212,14 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         get_hdr_int("NCHAN", s->num_channels);
         get_hdr_int("NPOL", s->num_polns);
         get_hdr_string("POL_TYPE", s->poln_order);
-        fits_read_key(s->files[ii], TLONG, "NCHNOFFS", &itmp, comment, &status);
+        fits_read_key(s->files[ii], TINT, "NCHNOFFS", &itmp, comment, &status);
         if (itmp > 0)
             printf("Warning!:  First freq channel is not 0 in file %d!\n", ii);
         get_hdr_int("NSBLK", s->spectra_per_subint);
         get_hdr_int("NBITS", s->bits_per_sample);
-        fits_read_key(s->files[ii], TLONG, "NAXIS2", 
+        fits_read_key(s->files[ii], TINT, "NAXIS2", 
                       &(s->num_subint[ii]), comment, &status);
-        fits_read_key(s->files[ii], TLONG, "NSUBOFFS", 
+        fits_read_key(s->files[ii], TINT, "NSUBOFFS", 
                       &(s->start_subint[ii]), comment, &status);
 
         // This is the MJD offset based on the starting subint number
@@ -706,7 +706,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         fits_read_col(S.files[cur_file], S.FITS_typecode, 
                       S.data_col, cur_subint, 1L, S.samples_per_subint, 
                       0, dataptr, &anynull, &status);
-        if (1) {  //  Hack to flip each byte of data
+        if (0) {  //  Hack to flip each byte of data
             unsigned char uctmp;
             int ii, jj;
             for (ii = 0 ; ii < S.bytes_per_subint/8 ; ii++) {
