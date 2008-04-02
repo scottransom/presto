@@ -728,11 +728,11 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         fits_read_col(S.files[cur_file], S.FITS_typecode, 
                       S.data_col, cur_subint, 1L, S.samples_per_subint, 
                       0, tmpbuffer, &anynull, &status);
-        // This loop
+        // This loop allows us to work with single polns out of many
         if (S.num_polns > 1) {
             int ii, offset;
             unsigned char *tmpptr = dataptr;
-            for (ii = 0 ; ii < S.samples_per_subint ; ii++) {
+            for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
                 offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
                 memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
             }

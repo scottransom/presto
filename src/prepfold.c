@@ -504,13 +504,13 @@ int main(int argc, char *argv[])
          if (!strcmp(scope, "parkes")) {
             strcpy(obs, "PK");
             strcpy(search.telescope, "Parkes");
-         } else if (!strcmp(idata.telescope, "jodrell")) {
+         } else if (!strcmp(scope, "jodrell")) {
             strcpy(obs, "JB");
             strcpy(search.telescope, "Jodrell Bank");
-         } else if (!strcmp(idata.telescope, "gbt")) {
+         } else if (!strcmp(scope, "gbt")) {
             strcpy(obs, "GB");
             strcpy(search.telescope, "GBT");
-         } else if (!strcmp(idata.telescope, "arecibo")) {
+         } else if (!strcmp(scope, "arecibo")) {
             strcpy(obs, "AO");
             strcpy(search.telescope, "Arecibo");
          } else {

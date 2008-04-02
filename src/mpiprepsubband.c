@@ -514,11 +514,11 @@ int main(int argc, char *argv[])
             /* OBS codes for TEMPO */
             if (!strcmp(scope, "parkes")) {
                strcpy(obs, "PK");
-            } else if (!strcmp(idata.telescope, "jodrell")) {
+            } else if (!strcmp(scope, "jodrell")) {
                strcpy(obs, "JB");
-            } else if (!strcmp(idata.telescope, "gbt")) {
+            } else if (!strcmp(scope, "gbt")) {
                strcpy(obs, "GB");
-            } else if (!strcmp(idata.telescope, "arecibo")) {
+            } else if (!strcmp(scope, "arecibo")) {
                strcpy(obs, "AO");
             } else {
                printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
