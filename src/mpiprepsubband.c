@@ -501,7 +501,7 @@ int main(int argc, char *argv[])
             printf("PSRFITS input file information:\n");
             read_PSRFITS_files(cmd->argv, cmd->argc, &s);
             N = s.N;
-            ptsperblock = s.spectra_per_subint;
+            ptsperblk = s.spectra_per_subint;
             numchan = s.num_channels;
             dt = s.dt;
             T = s.T;
