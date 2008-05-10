@@ -15,23 +15,23 @@ int read_resid_rec(FILE * file, double *toa, double *obsf)
 /* the file resid2.tmp which is written by TEMPO.       */
 /* It returns 1 if successful, 0 if unsuccessful.       */
 {
-   static long l;
+   static int l;
    static double d[9];
 
-   fread(&l, sizeof(long), 1, file);
+   fread(&l, sizeof(int), 1, file);
    fread(&d, sizeof(double), 9, file);
-   /* printf("Barycentric TOA = %17.10f\n", d[0]); */
-   /* printf("Postfit residual (pulse phase) = %g\n", d[1]); */
-   /* printf("Postfit residual (seconds) = %g\n", d[2]); */
-   /* printf("Orbital phase = %g\n", d[3]); */
-   /* printf("Barycentric Observing freq = %g\n", d[4]); */
-   /* printf("Weight of point in the fit = %g\n", d[5]); */
-   /* printf("Timing uncertainty = %g\n", d[6]); */
-   /* printf("Prefit residual (seconds) = %g\n", d[7]); */
-   /* printf("??? = %g\n\n", d[8]); */
+   //printf("Barycentric TOA = %17.10f\n", d[0]);
+   //printf("Postfit residual (pulse phase) = %g\n", d[1]);
+   //printf("Postfit residual (seconds) = %g\n", d[2]);
+   //printf("Orbital phase = %g\n", d[3]);
+   //printf("Barycentric Observing freq = %g\n", d[4]);
+   //printf("Weight of point in the fit = %g\n", d[5]);
+   //printf("Timing uncertainty = %g\n", d[6]);
+   //printf("Prefit residual (seconds) = %g\n", d[7]);
+   //printf("??? = %g\n\n", d[8]);
    *toa = d[0];
    *obsf = d[4];
-   return fread(&l, sizeof(long), 1, file);
+   return fread(&l, sizeof(int), 1, file);
 }
 
 void barycenter(double *topotimes, double *barytimes,
