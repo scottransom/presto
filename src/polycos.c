@@ -71,6 +71,19 @@ char *make_polycos(char *parfilenm, infodata * idata)
    } else if (strcmp(idata->telescope, "Jodrell") == 0) {
       scopechar = '8';
       tracklen = 12;
+   } else if ((strcmp(idata->telescope, "GB43m") == 0) ||
+              (strcmp(idata->telescope, "GB 140FT") == 0)){
+      scopechar = 'a';
+      tracklen = 12;
+   } else if (strcmp(idata->telescope, "Nancay") == 0) {
+      scopechar = 'f';
+      tracklen = 4;
+   } else if (strcmp(idata->telescope, "Effelsberg") == 0) {
+      scopechar = 'g';
+      tracklen = 12;
+   } else if (strcmp(idata->telescope, "WSRT") == 0) {
+      scopechar = 'i';
+      tracklen = 12;
    } else if (strcmp(idata->telescope, "GMRT") == 0) {
       scopechar = 'r';
       tracklen = 12;
@@ -78,6 +91,7 @@ char *make_polycos(char *parfilenm, infodata * idata)
       scopechar = 'o';
       tracklen = 12;
    } else {                     /*  Barycenter */
+      printf("Defaulting to barycenter for polyco generation...\n");
       scopechar = '@';
       tracklen = 12;
    }

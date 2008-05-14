@@ -435,19 +435,6 @@ int main(int argc, char *argv[])
          rewind(infiles[0]);
          PKMB_hdr_to_inf(&hdr, &idata);
          PKMB_update_infodata(numfiles, &idata);
-         /* OBS code for TEMPO */
-         search.telescope = (char *) calloc(20, sizeof(char));
-         if (!strcmp(idata.telescope, "Parkes")) {
-            strcpy(obs, "PK");
-            strcpy(search.telescope, "Parkes Multibeam");
-         } else if (!strcmp(idata.telescope, "Jodrell")) {
-            strcpy(obs, "JB");
-            strcpy(search.telescope, "Jodrell Bank");
-         } else {
-            printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
-                   idata.telescope);
-            strcpy(search.telescope, "Unknown");
-         }
 
       } else if (cmd->bcpmP) {
 
@@ -456,12 +443,6 @@ int main(int argc, char *argv[])
                            &numchan, &local_dt, &local_T, &idata, 1);
          BPP_update_infodata(numfiles, &idata);
          set_BPP_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for the Green Bank 85-3 */
-         /* strcpy(obs, "G8"); */
-         /* OBS code for TEMPO for the GBT */
-         strcpy(obs, "GB");
-         search.telescope = (char *) calloc(20, sizeof(char));
-         strcpy(search.telescope, "GBT");
 
       } else if (cmd->spigotP) {
          SPIGOT_INFO *spigots;
@@ -476,15 +457,10 @@ int main(int argc, char *argv[])
                               &local_dt, &local_T, &idata, 1);
          SPIGOT_update_infodata(numfiles, &idata);
          set_SPIGOT_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for the GBT */
-         strcpy(obs, "GB");
-         search.telescope = (char *) calloc(20, sizeof(char));
-         strcpy(search.telescope, "GBT");
          free(spigots);
 
       } else if (cmd->psrfitsP) {
          struct spectra_info s;
-         char scope[40];
          
          printf("PSRFITS input file information:\n");
          read_PSRFITS_files(cmd->argv, cmd->argc, &s);
@@ -497,27 +473,6 @@ int main(int argc, char *argv[])
                                &s, &idata, 1);
          PSRFITS_update_infodata(&idata);
          set_PSRFITS_padvals(padvals, good_padvals);
-         strncpy(scope, idata.telescope, 40);
-         strlower(scope);
-         search.telescope = (char *) calloc(20, sizeof(char));
-         /* OBS codes for TEMPO */
-         if (!strcmp(scope, "parkes")) {
-            strcpy(obs, "PK");
-            strcpy(search.telescope, "Parkes");
-         } else if (!strcmp(scope, "jodrell")) {
-            strcpy(obs, "JB");
-            strcpy(search.telescope, "Jodrell Bank");
-         } else if (!strcmp(scope, "gbt")) {
-            strcpy(obs, "GB");
-            strcpy(search.telescope, "GBT");
-         } else if (!strcmp(scope, "arecibo")) {
-            strcpy(obs, "AO");
-            strcpy(search.telescope, "Arecibo");
-         } else {
-            printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
-                   idata.telescope);
-            strcpy(search.telescope, "Unknown");
-         }
 
       } else if (cmd->wappP) {
 
@@ -528,10 +483,6 @@ int main(int argc, char *argv[])
                             &local_dt, &local_T, &idata, 1);
          WAPP_update_infodata(numfiles, &idata);
          set_WAPP_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for Arecibo */
-         strcpy(obs, "AO");
-         search.telescope = (char *) calloc(20, sizeof(char));
-         strcpy(search.telescope, "Arecibo");
 
       } else if (cmd->gmrtP) {
 
@@ -542,10 +493,6 @@ int main(int argc, char *argv[])
          GMRT_hdr_to_inf(argv[1], &idata);
          GMRT_update_infodata(numfiles, &idata);
          set_GMRT_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for the GMRT */
-         strcpy(obs, "GM");
-         search.telescope = (char *) calloc(20, sizeof(char));
-         strcpy(search.telescope, "GMRT");
 
       } else if (cmd->filterbankP) {
          int headerlen;
@@ -562,25 +509,6 @@ int main(int argc, char *argv[])
                                   &local_dt, &local_T, 1);
          filterbank_update_infodata(numfiles, &idata);
          set_filterbank_padvals(padvals, good_padvals);
-         /* What telescope are we using? */
-         if (!strcmp(idata.telescope, "Arecibo")) {
-            strcpy(obs, "AO");
-         } else if (!strcmp(idata.telescope, "Parkes")) {
-            strcpy(obs, "PK");
-         } else if (!strcmp(idata.telescope, "Jodrell")) {
-            strcpy(obs, "JB");
-         } else if (!strcmp(idata.telescope, "Effelsberg")) {
-            strcpy(obs, "EF");
-         } else if (!strcmp(idata.telescope, "GBT")) {
-            strcpy(obs, "GB");
-         } else {
-            printf("\nYou need to choose a telescope whose data is in\n");
-            printf("$TEMPO/obsys.dat.  Exiting.\n\n");
-            exit(1);
-         }
-         search.telescope =
-             (char *) calloc(strlen(idata.telescope) + 1, sizeof(char));
-         strcpy(search.telescope, idata.telescope);
 
       } else if (insubs) {
 
@@ -590,26 +518,56 @@ int main(int argc, char *argv[])
          local_T = local_N * local_T;
          numchan = idata.num_chan;
          ptsperrec = SUBSBLOCKLEN;
-         search.telescope = (char *) calloc(strlen(idata.telescope) + 1,
-                                            sizeof(char));
-         strcpy(search.telescope, idata.telescope);
-         /* What telescope are we using? */
-         if (!strcmp(idata.telescope, "Arecibo")) {
-            strcpy(obs, "AO");
-         } else if (!strcmp(idata.telescope, "Parkes")) {
-            strcpy(obs, "PK");
-         } else if (!strcmp(idata.telescope, "Jodrell")) {
-            strcpy(obs, "JB");
-         } else if (!strcmp(idata.telescope, "Effelsberg")) {
-            strcpy(obs, "EF");
-         } else if (!strcmp(idata.telescope, "MMT")) {
-            strcpy(obs, "MT");
-         } else if (!strcmp(idata.telescope, "GBT")) {
-            strcpy(obs, "GB");
+
+      }
+
+      { // Set the correct observatory information
+         char scope[40];
+
+         strncpy(scope, idata.telescope, 40);
+         strlower(scope);
+         search.telescope = (char *) calloc(40, sizeof(char));
+
+         if (strcmp(scope, "gbt") == 0) {
+             strcpy(obs, "GB");
+             strcpy(search.telescope, "GBT");
+         } else if (strcmp(scope, "arecibo") == 0) {
+             strcpy(obs, "AO");
+             strcpy(search.telescope, "Arecibo");
+         } else if (strcmp(scope, "vla") == 0) {
+             strcpy(obs, "VL");
+             strcpy(search.telescope, "VLA");
+         } else if (strcmp(scope, "parkes") == 0) {
+             strcpy(obs, "PK");
+             strcpy(search.telescope, "Parkes");
+         } else if (strcmp(scope, "jodrell") == 0) {
+             strcpy(obs, "JB");
+             strcpy(search.telescope, "Jodrell Bank");
+         } else if ((strcmp(scope, "gb43m") == 0) ||
+                    (strcmp(scope, "gb 140ft") == 0)){
+             strcpy(obs, "G1");
+             strcpy(search.telescope, "GB43m");
+         } else if (strcmp(scope, "nancay") == 0) {
+             strcpy(obs, "NC");
+             strcpy(search.telescope, "Nancay");
+         } else if (strcmp(scope, "effelsberg") == 0) {
+             strcpy(obs, "EF");
+             strcpy(search.telescope, "Effelsberg");
+         } else if (strcmp(scope, "wsrt") == 0) {
+             strcpy(obs, "WT");
+             strcpy(search.telescope, "WSRT");
+         } else if (strcmp(scope, "gmrt") == 0) {
+             strcpy(obs, "GM");
+             strcpy(search.telescope, "GMRT");
+         } else if (strcmp(scope, "geocenter") == 0) {
+             strcpy(obs, "EC");
+             strcpy(search.telescope, "Geocenter");
          } else {
-            printf("\nYou need to choose a telescope whose data is in\n");
-            printf("$TEMPO/obsys.dat.  Exiting.\n\n");
-            exit(1);
+             printf("\nWARNING!!!:  I don't recognize the observatory (%s)!\n",
+                    idata.telescope);
+             printf("                 Defaulting to the Geocenter for TEMPO.\n");
+             strcpy(obs, "EC");
+             strcpy(search.telescope, "Unknown");
          }
       }
 
