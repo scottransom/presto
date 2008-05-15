@@ -11,7 +11,7 @@ static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
 static float *padvals, *newpadvals, *offsets, *scales;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1;
-static int using_MPI = 0, default_poln = 0;
+static int using_MPI = 0, default_poln = 0, user_poln = 0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move,
@@ -218,8 +218,9 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                 if ((ival > -1) && (ival < s->num_polns)) {
                     printf
                         ("Using polarization %d (from 0-%d) from PSRFITS_POLN.\n",
-                         ival, s->num_polns);
+                         ival, s->num_polns-1);
                     default_poln = ival;
+                    user_poln = 1;
                 }
             }
         }
@@ -300,6 +301,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                 float *freqs = (float *)malloc(sizeof(float) * s->num_channels);
                 fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
                               s->num_channels, 0, freqs, &anynull, &status);
+                
                 if (ii==0) {
                     s->df = freqs[1]-freqs[0];
                     s->lo_freq = freqs[0];
@@ -729,12 +731,49 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                       S.data_col, cur_subint, 1L, S.samples_per_subint, 
                       0, tmpbuffer, &anynull, &status);
         // This loop allows us to work with single polns out of many
+        // or to sum polarizations if required
         if (S.num_polns > 1) {
-            int ii, offset;
-            unsigned char *tmpptr = dataptr;
-            for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
-                offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
-                memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
+            if (user_poln || S.num_polns > 2) {  // The user chose the poln
+                int ii, offset;
+                unsigned char *tmpptr = dataptr;
+                for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
+                    offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
+                    memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
+                }
+            } else if (S.num_polns == 2) { // sum the polns if there are 2 by default
+                int ii, jj, itmp, offset0, offset1;
+                unsigned char *tmpptr = dataptr;
+                for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
+                    offset0 = ii * S.samples_per_spectra;
+                    offset1 = offset0 + S.num_channels;
+                    for (jj = 0 ; jj < S.num_channels ; jj++) {
+                        itmp = (int) tmpbuffer[offset0+jj] + (int) tmpbuffer[offset1+jj];
+                        tmpptr[ii*S.num_channels+jj] = (unsigned char) (itmp >> 1);
+                    }
+                }
+            }
+        }
+        if (0) {  //  Hack to shift the band
+            unsigned char uctmp, buf[2048];
+            //int jj, shift=196, offset = 0;
+            int jj, shift=1599, offset;
+            for (jj = 0 ; jj < S.spectra_per_subint ; jj++) {
+                offset = jj * S.num_channels;
+                memcpy(buf, dataptr+offset+shift, S.num_channels-shift);
+                memcpy(buf+S.num_channels-shift, dataptr+offset, shift);
+                memcpy(dataptr+offset, buf, S.num_channels);
+            }
+        }
+        if (S.need_flipband) {  //  Hack to flip the band
+            unsigned char uctmp;
+            int ii, jj, offset;
+            for (jj = 0 ; jj < S.spectra_per_subint ; jj++) {
+                offset = jj * S.num_channels;
+                for (ii = 0 ; ii < S.num_channels/2 ; ii++) {
+                    uctmp = dataptr[offset+ii];
+                    dataptr[offset+ii] = dataptr[offset+S.num_channels-ii];
+                    dataptr[offset+S.num_channels-ii] = uctmp;
+                }
             }
         }
         if (0) {  //  Hack to flip each byte of data
