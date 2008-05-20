@@ -11,7 +11,7 @@ static infodata *idata_st;
 static long long *numpts_st, *padpts_st, N_st;
 static int *numblks_st, need_byteswap_st = 0, sampperblk_st;
 static int numchan_st, ptsperblk_st, bytesperpt_st = 1, bytesperblk_st;
-static double *times_st, *mjds_st;
+static double *times_st, *mjds_st, Tdiam=100.0;
 static double *elapsed_st, T_st, dt_st;
 static double *startblk_st, *endblk_st;
 static unsigned char padvals[MAXNUMCHAN], padval = 128;
@@ -88,6 +88,7 @@ static char *telescope_name(int telescope_id)
       break;
    case 1:
       strcpy(string, "Arecibo");
+      Tdiam = 305.0;
       break;
    case 2:
       strcpy(string, "Ooty");
@@ -97,18 +98,23 @@ static char *telescope_name(int telescope_id)
       break;
    case 4:
       strcpy(string, "Parkes");
+      Tdiam = 64.0;
       break;
    case 5:
       strcpy(string, "Jodrell");
+      Tdiam = 76.0;
       break;
    case 6:
       strcpy(string, "GBT");
+      Tdiam = 100.0;
       break;
    case 7:
       strcpy(string, "GMRT");
+      Tdiam = 45.0;  // possibly not right if using phased array
       break;
    case 8:
       strcpy(string, "Effelsberg");
+      Tdiam = 100.0;
       break;
    default:
       strcpy(string, "???????");
@@ -233,8 +239,8 @@ void write_filterbank_header(sigprocfb * fb, FILE * outfile)
 int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
 {
    char string[80], message[80];
-   int itmp, nbytes, totalbytes, expecting_rawdatafile = 0, expecting_source_name =
-       0;
+   int itmp, nbytes = 0, totalbytes;
+   int expecting_rawdatafile = 0, expecting_source_name = 0;
    /* try to read in the first line of the header */
    get_string(inputfile, &nbytes, string);
    if (!strings_equal(string, "HEADER_START")) {
@@ -434,7 +440,7 @@ void sigprocfb_to_inf(sigprocfb * fb, infodata * idata)
    idata->num_chan = fb->nchans;
    idata->freqband = idata->chan_wid * idata->num_chan;
    idata->freq = fb->fch1 - (idata->num_chan - 1) * idata->chan_wid;
-   idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 300.0 * DEGTORAD);
+   idata->fov = 1.2 * SOL * 3600.0 / (idata->freq * 1.0e6) / Tdiam * RADTODEG;
    idata->bary = 0;
    idata->numonoff = 0;
    idata->dm = 0.0;
