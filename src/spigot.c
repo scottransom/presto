@@ -1158,11 +1158,16 @@ void scale_rawlags(void *rawdata, int index)
 /* Scale the raw lags so that they are "calibrated" */
 {
    int ii, lag;
-   static int hilag = 20, last_lags[20], wrapval = 0;
+   static int hilag = 20, last_lags[20], wrapvals[20];
    static double ravg = 0.0, firsttime = 1;
 
    if (firsttime) {
-      for (ii = 0; ii < hilag; ii++) last_lags[ii] = 0;
+      if (bits_per_lag_st==16)
+         hilag = 1;  // For 16-bit data only check the zero lag for wrap issues
+      for (ii = 0; ii < hilag; ii++) {
+         last_lags[ii] = 0;
+         wrapvals[ii] = 0;
+      }
       firsttime = 0;
    }
    /* Fill lag array with scaled CFs */
@@ -1175,11 +1180,21 @@ void scale_rawlags(void *rawdata, int index)
          lag = (int) data[ii + index];
          /* Attempt to lags that have either over-flowed or under-flowed */
          if (ii < hilag) {
+            lag += wrapvals[ii];
             if (abs(lag - last_lags[ii]) > 40000) {   // 40K is quite arbitrary...
-               if (lag < last_lags[ii])
-                  lag += 65536;
-               else
-                  lag -= 65536;
+               if (lag < last_lags[ii]) {
+                  // Prevent the wrapping from skrocketting due to RFI
+                  if (wrapvals[ii] < 2*65536) {
+                     wrapvals[ii] += 65536;
+                     lag += 65536;
+                  }
+               } else {
+                  // Prevent the wrapping from skrocketting due to RFI
+                  if (wrapvals[ii] > -2*65536) {
+                     wrapvals[ii] -= 65536;
+                     lag -= 65536;
+                  }
+               }
             }
             last_lags[ii] = lag;
          }
@@ -1191,17 +1206,28 @@ void scale_rawlags(void *rawdata, int index)
          lag = (int) data[ii + index];
          /* Attempt to lags that have either over-flowed or under-flowed */
          if (ii < hilag) {
+            lag += wrapvals[ii];
             if (abs(lag - last_lags[ii]) > 170) {   // 170 is quite arbitrary...
-               if (lag < last_lags[ii])
-                  lag += 256;
-               else
-                  lag -= 256;
+               if (lag < last_lags[ii]) {
+                  // Prevent the wrapping from skrocketting due to RFI
+                  if (wrapvals[ii] < 2*256) {
+                     wrapvals[ii] += 256;
+                     lag += 256;
+                  }
+               } else {
+                  // Prevent the wrapping from skrocketting due to RFI
+                  if (wrapvals[ii] > -2*256) {
+                     wrapvals[ii] -= 256;
+                     lag -= 256;
+                  }
+               }
             }
             last_lags[ii] = lag;
          }
          lags[ii] = (lag * lag_factor[ii] + lag_offset[ii]) / lag_scale_env;
       }
    } else if (bits_per_lag_st == 4) {
+      static int wrapval;
       int jj, lag0;
       char tmplag;
       unsigned char *data = (unsigned char *) rawdata, byte;
@@ -1362,6 +1388,27 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
       /* FFT the ACF lags (which are real and even) -> real and even FFT */
       /* Set the missing lag as per Carl Heiles, PASP paper */
       lags[numchan_st] = lags[numchan_st - 1];
+
+# if 0
+      if (counter > 200000) { 
+         static int sctr=0, nsum=1000;
+         static float spectrum[1024];
+         
+         if (sctr==0)
+            for (ii = 0; ii < numchan_st; ii++) 
+               spectrum[ii] = 0.0;
+         if (sctr<nsum){
+            for (ii = 0; ii < numchan_st; ii++)
+               spectrum[ii] += lags[ii];
+         } else {
+            for (ii = 0; ii < numchan_st; ii++)
+               printf("%.7g\n", spectrum[ii]/nsum);
+            exit(0);
+         }
+         sctr++;
+      }
+#endif
+
       fftwf_execute(fftplan);
 
 #if 0
@@ -1406,10 +1453,10 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
             range = max3 - min;
             //  The maximum power tends to vary more (due to RFI) than the
             //  minimum power.  (I think)
-            scale_max = max3 + 1.0 * range;
+            scale_max = max3 + 1.5 * range;
             scale_min = min  - 0.5 * range;
             //if (numchan_st==2048)
-            //   fprintf(stderr, "  scale_min = %f  scale_max = %f\n", scale_min, scale_max);
+            // fprintf(stderr, "  scale_min = %f  scale_max = %f\n", scale_min, scale_max);
             /* Check to see if we are overriding the scaling values */
             {
                char *envval;
