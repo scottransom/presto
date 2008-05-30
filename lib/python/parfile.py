@@ -56,6 +56,9 @@ class psr_par:
         self.FILE = parfilenm
         pf = open(parfilenm)
         for line in pf.readlines():
+            # Convert any 'D-' or 'D+' to 'E-' or 'E+'
+            line = line.replace("D-", "E-")
+            line = line.replace("D+", "E+")
             splitline = line.split()
             key = splitline[0]
             if key in str_keys:
