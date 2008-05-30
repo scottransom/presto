@@ -280,10 +280,11 @@ def mass_funct(pb, x):
     """
     mass_funct(pb, x):
         Return the mass function of an orbit given the following:
-            'pb' is the binary period in sec.
+            'pb' is the binary period in days.
             'x' is the projected semi-major axis in lt-sec.
     """
-    return 8015123.37129 * x**3.0 / (pb * pb)
+    pbs = pb * 86400.0
+    return 8015123.37129 * x**3.0 / (pbs * pbs)
 
 def mass_funct2(mp, mc, i):
     """
@@ -331,7 +332,7 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     companion_mass(pb, x, inc=60.0, mpsr=1.4):
         Return the companion mass (in solar mass units) for a binary
         system with the following characteristics:
-            'pb' is the binary period in sec.
+            'pb' is the binary period in days.
             'x' is the projected semi-major axis in lt-sec.
             'inc' is the orbital inclination in degrees.
             'mpsr' is the mass of the pulsar in solar mass units.
@@ -347,7 +348,7 @@ def companion_mass_limit(pb, x, mpsr=1.4):
         Return the lower limit (corresponding to i = 90 degrees) of the
         companion mass (in solar mass units) in a binary system with
         the following characteristics:
-            'pb' is the binary period in sec.
+            'pb' is the binary period in days.
             'x' is the projected semi-major axis in lt-sec.
             'mpsr' is the mass of the pulsar in solar mass units.
     """
@@ -357,20 +358,20 @@ def OMDOT(porb, e, Mp, Mc):
     """
     OMDOT(porb, e, Mp, Mc):
         Return the predicted advance of periaston (deg/yr) given the
-        orbital period (s), eccentricity, and pulsar and companion masses.
+        orbital period (days), eccentricity, and pulsar and companion masses.
     """
-    return 3.0 * (porb/TWOPI)**(-5.0/3.0) * \
+    return 3.0 * (porb*86400.0/TWOPI)**(-5.0/3.0) * \
            (Tsun*(Mp+Mc))**(2.0/3.0) / (1.0-e**2.0) * \
            RADTODEG * SECPERJULYR
 
-def gamma(porb, e, Mp, Mc):
+def GAMMA(porb, e, Mp, Mc):
     """
-    gamma(porb, e, Mp, Mc):
-        Return the predicted value of relativistic gamma (ms) given the
-        orbital period (s), eccentricity, and pulsar and companion masses.
+    GAMMA(porb, e, Mp, Mc):
+        Return the predicted value of relativistic gamma (sec) given the
+        orbital period (days), eccentricity, and pulsar and companion masses.
     """
-    return e * (porb/TWOPI)**(1.0/3.0) * Tsun**(2.0/3.0) * \
-           (Mp+Mc)**(-4.0/3.0) * Mc * (Mp+2.0*Mc) * 1000.0
+    return e * (porb*86400.0/TWOPI)**(1.0/3.0) * Tsun**(2.0/3.0) * \
+           (Mp+Mc)**(-4.0/3.0) * Mc * (Mp+2.0*Mc)
 
 def PBDOT(porb, e, Mp, Mc):
     """
@@ -378,21 +379,30 @@ def PBDOT(porb, e, Mp, Mc):
         Return the predicted orbital period derivative (s/s) given the
         orbital period (s), eccentricity, and pulsar and companion masses.
     """
-    return -192.0*PI/5.0 * (porb/TWOPI)**(-5.0/3.0) * \
+    return -192.0*PI/5.0 * (porb*86400.0/TWOPI)**(-5.0/3.0) * \
            (1.0 + 73.0/24.0*e**2.0 + 37.0/96.0*e**4.0) * \
            (1.0-e**2.0)**(-7.0/2.0) * Tsun**(5.0/3.0) * \
            Mp * Mc * (Mp+Mc)**(-1.0/3.0)
-
 
 def OMDOT_to_Mtot(OMDOT, porb, e):
     """
     OMDOT_to_Mtot(OMDOT, porb, e):
         Return the total mass (in solar units) of a system given an advance
-        of periastron (OMDOT) in deg/yr.  The opbital period should be in sec.
+        of periastron (OMDOT) in deg/yr.  The orbital period should be in days.
     """
-    porb /= SECPERDAY
     wd = OMDOT/SECPERJULYR*DEGTORAD # rad/s
     return (wd/3.0*(1.0-e*e)*(porb*SECPERDAY/TWOPI)**(5.0/3.0))**(3.0/2.0)/Tsun
+
+def GAMMA_to_Mc(gamma, porb, e, Mp):
+    """
+    GAMMA_to_Mc(gamma, porb, e, Mp):
+        Given the relativistic gamma in sec, the orbital period in days,
+        the eccentricity and the pulsar mass in solar units, return the
+        predicted companion mass.
+    """
+    def funct(mc, mp=Mp, porb=porb, e=e, gamma=gamma):
+        return GAMMA(porb, e, mp, mc) - gamma
+    return bisection(funct, 0.01, 20.0)
 
 def beam_halfwidth(obs_freq, dish_diam):
     """
