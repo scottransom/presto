@@ -175,7 +175,7 @@ if __name__ == '__main__':
     fold_pfd.kill_intervals(kints)
 
     # De-disperse at the requested DM
-    fold_pfd.dedisperse()
+    fold_pfd.dedisperse(interp=1)
     
     # Combine the profiles as required
     profs = fold_pfd.combine_profs(numtoas, numsubbands)

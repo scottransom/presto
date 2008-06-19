@@ -2,7 +2,7 @@
 
 import numpy as Num
 import struct
-import sys, psr_utils, infodata, polycos, Pgplot, sinc_interp, copy, random
+import sys, psr_utils, infodata, polycos, Pgplot, copy, random
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
 from scipy.io.numpyio import fread
@@ -190,7 +190,7 @@ class pfd:
         """
         dedisperse(DM=self.bestdm, interp=0):
             Rotate (internally) the profiles so that they are de-dispersed
-                at a dispersion measure of DM.  Use sinc-interpolation if
+                at a dispersion measure of DM.  Use FFT-based interpolation if
                 'interp' is non-zero (NOTE: It is off by default!).
         """
         if DM is None:
@@ -203,14 +203,12 @@ class pfd:
         self.subdelays = self.subdelays-self.hifreqdelay
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
         if interp:
-            interp_factor = 16
-            new_subdelays_bins = Num.floor(delaybins*interp_factor+0.5)/float(interp_factor)
+            new_subdelays_bins = delaybins
             for ii in range(self.npart):
                 for jj in range(self.nsub):
                     tmp_prof = self.profs[ii,jj,:]
-                    self.profs[ii,jj] = psr_utils.interp_rotate(tmp_prof, delaybins[jj],
-                                                                zoomfact=interp_factor)
-            # Note: Since the interpolation process slightly changes the values of the
+                    self.profs[ii,jj] = psr_utils.fft_rotate(tmp_prof, delaybins[jj])
+            # Note: Since the rotation process slightly changes the values of the
             # profs, we need to re-calculate the average profile value
             self.avgprof = (self.profs/self.proflen).sum()
         else:
