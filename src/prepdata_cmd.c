@@ -1001,7 +1001,7 @@ usage(void)
   fprintf(stderr,"%s","            -if: A specific IF to use if available (summed IFs is the default)\n");
   fprintf(stderr,"%s","                 1 int value between 0 and 1\n");
   fprintf(stderr,"%s","          -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n");
-  fprintf(stderr,"%s","                 1 float value between 0 and 20.0\n");
+  fprintf(stderr,"%s","                 1 float value between 0 and 1000.0\n");
   fprintf(stderr,"%s","                 default: `6.0'\n");
   fprintf(stderr,"%s","        -noclip: Do not clip the data.  (The default is to _always_ clip!)\n");
   fprintf(stderr,"%s","        -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n");
@@ -1019,7 +1019,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...512 values\n");
-  fprintf(stderr,"%s","  version: 01Apr08\n");
+  fprintf(stderr,"%s","  version: 20Jul08\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1111,7 +1111,7 @@ parseCmdline(int argc, char **argv)
       cmd.clipP = 1;
       i = getFloatOpt(argc, argv, i, &cmd.clip, 1);
       cmd.clipC = i-keep;
-      checkFloatLower("-clip", &cmd.clip, cmd.clipC, 20.0);
+      checkFloatLower("-clip", &cmd.clip, cmd.clipC, 1000.0);
       checkFloatHigher("-clip", &cmd.clip, cmd.clipC, 0);
       continue;
     }

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "mpiprepsubband" 1 "29Feb08" "Clig-manuals" "Programmer's Manual"
+.TH "mpiprepsubband" 1 "20Jul08" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -72,7 +72,7 @@ Window correlator lags with a Hamming window before FFTing.
 .IP -numwapps
 Number of WAPPs used with contiguous frequencies,
 .br
-1 Int value between 1 and 7.
+1 Int value between 1 and 8.
 .br
 Default: `1'
 .IP -if
@@ -82,7 +82,7 @@ A specific IF to use if available (summed IFs is the default),
 .IP -clip
 Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 .br
-1 Float value between 0 and 40.0.
+1 Float value between 0 and 1000.0.
 .br
 Default: `6.0'
 .IP -noclip
