@@ -48,6 +48,7 @@ int read_subband_rawblocks(FILE * infiles[], int numfiles, short *subbanddata,
                            int numsamples, int *padding);
 void get_subband(int subbandnum, float chandat[], short srawdata[], int numsamples);
 extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
+extern void read_offsets(float **loptr, float **optr, int numpts, int numchan);
 
 /* The main program */
 
@@ -61,6 +62,7 @@ int main(int argc, char *argv[])
    float **dataavg = NULL, **datastd = NULL, **datapow = NULL, *padvals;
    float *chandata = NULL, powavg, powstd, powmax;
    float inttime, norm, fracterror = RFI_FRACTERROR;
+   float *offsets, *nextoffsets;
    unsigned char *rawdata = NULL, **bytemask = NULL;
    short *srawdata = NULL;
    char *outfilenm, *statsfilenm, *maskfilenm;
@@ -444,6 +446,9 @@ int main(int argc, char *argv[])
       printf("Amount Complete = %3d%%", oldper);
       fflush(stdout);
 
+      /* Prep the offset file if required */
+      read_offsets(&offsets, &nextoffsets, ptsperint, numchan);
+
       for (ii = 0; ii < numint; ii++) { /* Loop over the intervals */
          newper = (int) ((float) ii / numint * 100.0 + 0.5);
          if (newper > oldper) {
@@ -482,6 +487,9 @@ int main(int argc, char *argv[])
             for (jj = 0; jj < numchan; jj++)
                bytemask[ii][jj] |= PADDING;
 
+         /* Read the offset file if required */
+         read_offsets(&offsets, &nextoffsets, ptsperint, numchan);
+
          for (jj = 0; jj < numchan; jj++) {     /* Loop over the channels */
 
             if (cmd->pkmbP)
@@ -500,6 +508,11 @@ int main(int argc, char *argv[])
                get_filterbank_channel(jj, chandata, rawdata, blocksperint);
             else if (insubs)
                get_subband(jj, chandata, srawdata, blocksperint);
+
+            /* Adjust the channels based on the offsets */
+            for (kk = 0; kk < ptsperint; kk++) {
+                chandata[kk] -= offsets[kk];
+            }
 
             /* Calculate the averages and standard deviations */
             /* for each point in time.                        */
