@@ -34,7 +34,7 @@ FILE *chkfopen(char *path, const char *mode)
 }
 
 
-int chkfread(void *data, size_t type, size_t number, FILE * stream)
+size_t chkfread(void *data, size_t type, size_t number, FILE * stream)
 {
    unsigned int num;
 
@@ -48,7 +48,7 @@ int chkfread(void *data, size_t type, size_t number, FILE * stream)
 }
 
 
-int chkfwrite(void *data, size_t type, size_t number, FILE * stream)
+size_t chkfwrite(void *data, size_t type, size_t number, FILE * stream)
 {
    unsigned int num;
 
@@ -62,7 +62,7 @@ int chkfwrite(void *data, size_t type, size_t number, FILE * stream)
 }
 
 
-int chkfseek(FILE * stream, long offset, int whence)
+size_t chkfseek(FILE * stream, long offset, int whence)
 /* NOTE:  This is meant only for backwards compatibility.  */
 /* You should probably be calling chkfileseek() directly.  */
 {
@@ -70,7 +70,7 @@ int chkfseek(FILE * stream, long offset, int whence)
 }
 
 
-int chkfileseek(FILE * stream, long offset, size_t size, int whence)
+size_t chkfileseek(FILE * stream, long offset, size_t size, int whence)
 {
    int rt;
 
