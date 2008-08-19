@@ -627,7 +627,7 @@ int main(int argc, char *argv[])
       }
       worklen = ptsperrec;
 
-   } else {                     /* Raw floating point or event data (already de-dispersed if radio data) */
+   } else {  /* Raw floating point or event data (already de-dispersed if radio data) */
 
       cmd->nsub = 1;
       search.startT = cmd->startT;
@@ -677,6 +677,13 @@ int main(int argc, char *argv[])
          else
             search.tepoch = idata.mjd_i + idata.mjd_f + startTday;
       }
+   }
+
+   /* Make sure that the number of subbands evenly divides the number of channels */
+   if (numchan % cmd->nsub != 0) {
+       printf("Error:  # of channels (%d) not divisible by # of subbands (%d)!\n", 
+              numchan, cmd->nsub);
+       exit(1);
    }
 
    set_posn(&search, &idata);
