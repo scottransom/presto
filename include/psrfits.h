@@ -28,6 +28,7 @@ struct spectra_info {
     double azimuth;         // Azimuth (commanded) at the start of the obs (deg)
     double zenith_ang;      // Zenith angle (commanded) at the start of the obs (deg)
     double beam_FWHM;       // Beam FWHM (deg)
+    double time_per_subint; // Duration (in sec) of a full SUBINT entry
     int scan_number;        // Number of scan
     int tracking;           // Tracking (1) or drift scan (0)
     int orig_num_chan;      // Number of spectral channels per sample
@@ -42,7 +43,8 @@ struct spectra_info {
     int spectra_per_subint; // Number of spectra per SUBINT entry
     int samples_per_subint; // Number of samples per SUBINT entry
     int num_files;          // Number of files in the observation
-    int data_col;           // The number of the data column in the SUBINT HDU
+    int offs_sub_col;       // The number of the OFFS_SUB column in the SUBINT HDU
+    int data_col;           // The number of the DATA column in the SUBINT HDU
     int need_scale;         // Do we need to scale the data? (1=Yes, 0=No)
     int need_offset;        // Do we need to offset the data? (1=Yes, 0=No)
     int need_weight;        // Do we need to weight the data? (1=Yes, 0=No)
