@@ -10,12 +10,16 @@ static struct spectra_info S;
 static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
 static float *padvals, *newpadvals, *offsets, *scales;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
-static int bufferspec = 0, padnum = 0, shiftbuffer = 1;
+static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
 static int using_MPI = 0, default_poln = 0, user_poln = 0;
+static double last_offs_sub = 0.0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move,
                              int move_size);
+
+// This tests to see if 2 times are within 100ns of each other
+#define TEST_CLOSE(a, b) (fabs((a)-(b)) <= 1e-7 ? 1 : 0)
 
 void get_PSRFITS_static(int *bytesperpt, int *bytesperblk, int *numifs,
                        float *clip_sigma)
@@ -142,7 +146,6 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     }
     s->num_files = numfiles;
     s->N = 0;
-    s->clip_sigma = 0.0;
 
     // The following should default to 0 (i.e. False)
     s->need_scale = 0;
@@ -234,9 +237,10 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                       &(s->num_subint[ii]), comment, &status);
         fits_read_key(s->files[ii], TINT, "NSUBOFFS", 
                       &(s->start_subint[ii]), comment, &status);
+        s->time_per_subint = s->dt * s->spectra_per_subint;
 
         // This is the MJD offset based on the starting subint number
-        MJDf = (s->dt * s->spectra_per_subint * s->start_subint[ii]) / SECPERDAY;
+        MJDf = (s->time_per_subint * s->start_subint[ii]) / SECPERDAY;
         // The start_MJD values should always be correct
         s->start_MJD[ii] += MJDf;
 
@@ -254,7 +258,20 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             long repeat, width;
             int colnum, anynull;
             
-            // Observing frequencies
+            // Identify the OFFS_SUB column number
+            fits_get_colnum(s->files[ii], 0, "OFFS_SUB", &colnum, &status);
+            if (status==COL_NOT_FOUND) {
+                printf("Warning!:  Can't find the OFFS_SUB column!\n");
+                status = 0; // Reset status
+            } else {
+                if (ii==0) {
+                    s->offs_sub_col = colnum;
+                } else if (colnum != s->offs_sub_col) {
+                    printf("Warning!:  OFFS_SUB column changes between files!\n");
+                }
+            }
+            
+            // Identify the data column and the data type
             fits_get_colnum(s->files[ii], 0, "DATA", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 printf("Warning!:  Can't find the DATA column!\n");
@@ -705,6 +722,8 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
 {
     int offset = 0, numtopad = 0, ii, anynull, status = 0;
     unsigned char *dataptr = data;
+    double offs_sub;
+    static int firsttime = 1;
     
     // The data will go directly into *data unless there is buffered
     // data in the ring buffer (this really only happens if patching
@@ -724,12 +743,52 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
     // Make sure our current file number is valid
     if (cur_file >= S.num_files) return 0;
 
-    // Read the first bunch of data from the DATA col
+    // Read a subint of data from the DATA col
     if (cur_subint <= S.num_subint[cur_file]) {
         if (S.num_polns==1) tmpbuffer = dataptr;
-        fits_read_col(S.files[cur_file], S.FITS_typecode, 
-                      S.data_col, cur_subint, 1L, S.samples_per_subint, 
-                      0, tmpbuffer, &anynull, &status);
+        // Read the OFFS_SUB column value in case there were dropped blocks
+        fits_read_col(S.files[cur_file], TDOUBLE, 
+                      S.offs_sub_col, cur_subint, 1L, 1L, 
+                      0, &offs_sub, &anynull, &status);
+        if (firsttime) {
+            last_offs_sub = offs_sub - S.time_per_subint;
+            firsttime = 0;
+        }
+        // The following determines if there were lost blocks
+        if TEST_CLOSE(offs_sub-last_offs_sub, S.time_per_subint) {
+            // if so, read the data from the column
+            fits_read_col(S.files[cur_file], S.FITS_typecode, 
+                          S.data_col, cur_subint, 1L, S.samples_per_subint, 
+                          0, tmpbuffer, &anynull, &status);
+            last_offs_sub = offs_sub;
+        } else {
+            // if not, use padding instead
+            double dnumblocks;
+            int numblocks;
+            dnumblocks = (offs_sub-last_offs_sub)/S.time_per_subint;
+            numblocks = (int) (dnumblocks + 1e-7);
+            //printf("\n%d  %20.15f  %20.15f  %20.15f  %20.15f  %20.15f  \n", 
+            //      cur_subint, last_offs_sub, offs_sub, 
+            //     offs_sub-last_offs_sub, S.time_per_subint, dnumblocks);
+
+            missing_blocks++;
+            if (fabs(dnumblocks - (double)numblocks) > 1e-6)
+                printf("\nYikes!  We missed a fraction of a subint!\n");
+            printf("\nAt subint %d found %d dropped subints (%d total), adding 1.", 
+                   cur_subint, numblocks, missing_blocks);
+            // Add a full block of padding
+            numtopad = S.spectra_per_subint * S.num_polns;
+            for (ii = 0; ii < numtopad; ii++)
+                memcpy(tmpbuffer + ii * S.bytes_per_spectra/S.num_polns, 
+                       newpadvals, S.bytes_per_spectra/S.num_polns);
+            // Update the time of the last subs based on this padding
+            last_offs_sub += S.time_per_subint;
+            // Set the padding flag
+            *padding = 1;
+            // Decrement the subint counter since it gets incremented later
+            // but we don't want to move to the next subint yet
+            cur_subint--;
+        }
         // This loop allows us to work with single polns out of many
         // or to sum polarizations if required
         if (S.num_polns > 1) {
@@ -751,17 +810,6 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                         tmpptr[ii*S.num_channels+jj] = (unsigned char) (itmp >> 1);
                     }
                 }
-            }
-        }
-        if (0) {  //  Hack to shift the band
-            unsigned char uctmp, buf[2048];
-            //int jj, shift=196, offset = 0;
-            int jj, shift=1599, offset;
-            for (jj = 0 ; jj < S.spectra_per_subint ; jj++) {
-                offset = jj * S.num_channels;
-                memcpy(buf, dataptr+offset+shift, S.num_channels-shift);
-                memcpy(buf+S.num_channels-shift, dataptr+offset, shift);
-                memcpy(dataptr+offset, buf, S.num_channels);
             }
         }
         if (S.need_flipband) {  //  Hack to flip the band
@@ -796,10 +844,9 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             exit(1);
         }
         // Clip nasty RFI if requested
-        if (S.clip_sigma > 0.0)  { // NEED TO MAKE THIS FOR FLOATS
-            //clip_times(dataptr, S.samples_per_subint, S.num_channels, 
-            //           S.clip_sigma, newpadvals);
-            printf("WARNING:  Clipping is currently not implemented!\n");
+        if (S.clip_sigma > 0.0)  {
+            clip_times(dataptr, S.spectra_per_subint, S.num_channels, 
+                       S.clip_sigma, newpadvals);
         }
         *padding = 0;
         // Pull the new data from the ringbuffer if there is an offset
