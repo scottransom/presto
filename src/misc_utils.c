@@ -497,10 +497,16 @@ void ra_dec_to_string(char *radec, int h_or_d, int m, double s)
 /*   radec is a string with J2000 RA  in the format 'hh:mm:ss.ssss' */
 /*   or a string with J2000 DEC in the format 'dd:mm:ss.ssss'       */
 {
-   if (s >= 10.0) {
-      sprintf(radec, "%.2d:%.2d:%.4f", h_or_d, m, s);
+   int offset=0;
+
+   if (h_or_d==0 && (m < 0 || s < 0.0)) {
+       radec[0] = '-';
+       offset = 1;
+   }
+   if (fabs(s) >= 10.0) {
+       sprintf(radec+offset, "%.2d:%.2d:%.4f", h_or_d, abs(m), fabs(s));
    } else {
-      sprintf(radec, "%.2d:%.2d:0%.4f", h_or_d, m, s);
+       sprintf(radec+offset, "%.2d:%.2d:0%.4f", h_or_d, abs(m), fabs(s));
    }
 }
 
@@ -550,6 +556,10 @@ void deg2dms(double degrees, int *d, int *m, double *s)
    *m = (int) floor(tmp);
    *s = (tmp - *m) * 60.0;
    *d *= sign;
+   if (*d==0) {
+       *m *= sign;
+       *s *= sign;
+   }
 }
 
 double dms2rad(int deg, int min, double sec)
