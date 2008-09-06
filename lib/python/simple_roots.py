@@ -119,7 +119,7 @@ if __name__ == '__main__':
     theo = 1.766340286602865756325301235707
     print ''
     print 'Finding the root (between 0.0 and 3.0) of:'
-    print '    x - sin(x) - x = pi/4'
+    print '    x - sin(x) = pi/4'
     print ''
     print '         Newton-Raphson gives (default accuracy) = %15.14f' % nr
     print '          Secant method gives (default accuracy) = %15.14f' % s
