@@ -1,14 +1,11 @@
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
 # 'Safe' Newton-Raphson and Secant method
 #    for numerical root-finding
 #
-# Written by Scott M. Ransom <ransom@cfa.harvard.edu>
-# last revision: 9 Jul 20
+# Written by Scott M. Ransom <sransom@nrao.edu>
 
-def bisect(func, lox, hix, TOL=1e-10, MAXIT=200):
+def bisect(func, lox, hix, TOL=1e-14, MAXIT=200):
     """
-    bisect(func, lox, hix, TOL=1e-10, MAXIT=200):
+    bisect(func, lox, hix, TOL=1e-14, MAXIT=200):
        Try to find a root between 'lox' and 'hix' using a simple
        bisection of the region.  'TOL' is an _absolute_
        tolerance.  'MAXIT' is the maximum number of iterations
@@ -116,6 +113,7 @@ if __name__ == '__main__':
     
     nr = newton_raphson(func, dfunc, 0.0, 3.0)
     s = secant(func, 0.0, 3.0)
+    bs = bisect(func, 0.0, 3.0)
     theo = 1.766340286602865756325301235707
     print ''
     print 'Finding the root (between 0.0 and 3.0) of:'
@@ -123,5 +121,6 @@ if __name__ == '__main__':
     print ''
     print '         Newton-Raphson gives (default accuracy) = %15.14f' % nr
     print '          Secant method gives (default accuracy) = %15.14f' % s
+    print '       Bisection method gives (default accuracy) = %15.14f' % bs
     print 'Theoretical result (correct to all shown digits) = %15.14f' % theo
     print ''
