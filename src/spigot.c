@@ -1158,11 +1158,12 @@ void scale_rawlags(void *rawdata, int index)
 /* Scale the raw lags so that they are "calibrated" */
 {
    int ii, lag;
-   static int hilag = 20, last_lags[20], wrapvals[20];
+   //  To turn off the wrap correction, set hilag = -1
+   static int hilag = -1, last_lags[20], wrapvals[20];
    static double ravg = 0.0, firsttime = 1;
 
    if (firsttime) {
-      if (bits_per_lag_st==16)
+      if (bits_per_lag_st==16 && hilag > 0)
          hilag = 1;  // For 16-bit data only check the zero lag for wrap issues
       for (ii = 0; ii < hilag; ii++) {
          last_lags[ii] = 0;
@@ -1208,15 +1209,15 @@ void scale_rawlags(void *rawdata, int index)
          if (ii < hilag) {
             lag += wrapvals[ii];
             if (abs(lag - last_lags[ii]) > 170) {   // 170 is quite arbitrary...
-               if (lag < last_lags[ii]) {
+		 if (lag < last_lags[ii]) {
                   // Prevent the wrapping from skrocketting due to RFI
-                  if (wrapvals[ii] < 2*256) {
+                  if (wrapvals[ii] < 1*256) {
                      wrapvals[ii] += 256;
                      lag += 256;
                   }
                } else {
                   // Prevent the wrapping from skrocketting due to RFI
-                  if (wrapvals[ii] > -2*256) {
+                  if (wrapvals[ii] > -1*256) {
                      wrapvals[ii] -= 256;
                      lag -= 256;
                   }
@@ -1475,7 +1476,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
                   if (dblval) {
                      fprintf(stderr, "Measured scaling max = %20.15f\n", scale_max);
                      scale_max = dblval;
-                     fprintf(stderr, "    User scaling min = %20.15f\n", scale_max);
+                     fprintf(stderr, "    User scaling max = %20.15f\n", scale_max);
                   }
                }
             }
