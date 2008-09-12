@@ -413,12 +413,12 @@ static long _output_matrixcols = 0;
 // Return an array where each value is a float
 %typemap(python, out) float * {
   PyArrayObject *arr;
-  int n;
+  npy_intp n;
   
   n = _output_arraylen;
   _output_arraylen = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_FLOAT, (char *)$1);
+    PyArray_SimpleNewFromData(1, &n, PyArray_FLOAT, (char *)$1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);
@@ -429,12 +429,12 @@ static long _output_matrixcols = 0;
 // Return a complex array where each value is a double
 %typemap(python, out) double * {
   PyArrayObject *arr;
-  int n;
+  npy_intp n;
   
   n = _output_arraylen;
   _output_arraylen = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_DOUBLE, (char *)$1);
+    PyArray_SimpleNewFromData(1, &n, PyArray_DOUBLE, (char *)$1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);
@@ -445,12 +445,12 @@ static long _output_matrixcols = 0;
 // Return a complex array where each value is a float
 %typemap(python, out) fcomplex * {
   PyArrayObject *arr;
-  int n;
+  npy_intp n;
   
   n = _output_arraylen;
   _output_arraylen = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$1);
+    PyArray_SimpleNewFromData(1, &n, PyArray_CFLOAT, (char *)$1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);
@@ -461,14 +461,14 @@ static long _output_matrixcols = 0;
 // Return a complex matrix where each value is a float
 %typemap(python, out) fcomplex ** {
   PyArrayObject *arr;
-  int n[2];
+  npy_intp n[2];
 
   n[0] = _output_matrixcols;
   n[1] = _output_matrixrows;
   _output_matrixrows = 0;
   _output_matrixcols = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$1[0]);
+  PyArray_SimpleNewFromData(2, n, PyArray_CFLOAT, (char *)$1[0]);
   free($1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
@@ -480,11 +480,11 @@ static long _output_matrixcols = 0;
 // Return a complex array where each value is a double
 %typemap(python, out) dcomplex * {
   PyArrayObject *arr;
-  int n;
+  npy_intp n;
   
   n = _output_arraylen;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CDOUBLE, (char *)$1);
+    PyArray_SimpleNewFromData(1, &n, PyArray_CDOUBLE, (char *)$1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);

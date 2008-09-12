@@ -1340,14 +1340,14 @@ int nice_output_2(char *output, double val, double err, int len);
 
 %typemap(python, out) fcomplex ** {
   PyArrayObject *arr;
-  int n[2];
+  npy_intp n[2];
 
   n[0] = _output_matrixcols;
   n[1] = _output_matrixrows;
   _output_matrixrows = 0;
   _output_matrixcols = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(2, n, PyArray_CFLOAT, (char *)$1[0]);
+      PyArray_SimpleNewFromData(2, n, PyArray_CFLOAT, (char *)$1[0]);
   free($1);
   if (arr == NULL) return NULL;
   arr->dimensions[1] = (*arg10 - arg4) * arg3 ;
@@ -1382,12 +1382,12 @@ fcomplex **corr_rz_plane(fcomplex *data, int numdata, int numbetween,
 
 %typemap(python, out) fcomplex * {
   PyArrayObject *arr;
-  int n;
+  npy_intp n;
   
   n = _output_arraylen;
   _output_arraylen = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$1);
+    PyArray_SimpleNewFromData(1, &n, PyArray_CFLOAT, (char *)$1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
   arr->dimensions[0] = (*arg8 - arg4) * arg3;
@@ -1428,12 +1428,12 @@ double *events_fdot_correct(double *events, int Nevents,
 // Return a complex array where each value is a float
 %typemap(python, out) fcomplex * {
   PyArrayObject *arr;
-  int n;
+  npy_intp n;
   
   n = _output_arraylen/2;
   _output_arraylen = 0;
   arr = (PyArrayObject *) \
-    PyArray_FromDimsAndData(1, (int *)&n, PyArray_CFLOAT, (char *)$1);
+    PyArray_SimpleNewFromData(1, &n, PyArray_CFLOAT, (char *)$1);
   if (arr == NULL) return NULL;
   arr->flags |= OWN_DATA;
   PyArray_INCREF(arr);
