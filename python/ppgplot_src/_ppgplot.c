@@ -69,6 +69,8 @@ static PyObject *
 tofloatvector (PyObject *o, float **v, int *vsz)
 {
     PyArrayObject *a1, *af1, *af2;
+    PyArray_Descr *descr;
+    npy_intp dims;
     int ownedaf1=0;
 
     /* Check if args are arrays. */
@@ -119,11 +121,13 @@ tofloatvector (PyObject *o, float **v, int *vsz)
 #endif
     
     af2 = af1;
-    if (PyArray_As1D((PyObject **)&af2, (char **)v, vsz,
-					 PyArray_FLOAT) == -1) {
+    descr = PyArray_DescrFromType(PyArray_FLOAT); 
+    if (PyArray_AsCArray((PyObject **)&af2, (void *)v, &dims, 1,
+                         descr) == -1) {
 		af2 = NULL;
     }
-    
+    *vsz = dims;
+
     if (ownedaf1) { Py_DECREF(af1); }
 
     return((PyObject *)af2);
