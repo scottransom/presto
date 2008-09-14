@@ -5,7 +5,6 @@ import struct
 import sys, psr_utils, infodata, polycos, Pgplot, copy, random
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
-from scipy.io.numpyio import fread
 
 class pfd:
 
@@ -102,7 +101,7 @@ class pfd:
             self.profs = Num.zeros((self.npart, self.nsub, self.proflen), dtype='d')
             for ii in range(self.npart):
                 for jj in range(self.nsub):
-                    self.profs[ii,jj,:] = fread(infile, self.proflen, 'd')
+                    self.profs[ii,jj,:] = Num.fromfile(infile, Num.float64, self.proflen)
         else:
             self.profs = Num.asarray(struct.unpack(swapchar+"d"*self.numprofs*self.proflen, \
                                                    infile.read(self.numprofs*self.proflen*8)))
@@ -137,7 +136,7 @@ class pfd:
             currentstats = self.stats[ii]
             for jj in range(self.nsub):
                 if (swapchar=='<'):  # little endian
-                    currentstats[jj] = fread(infile, 7, 'd')
+                    currentstats[jj] = Num.fromfile(infile, Num.float64, 7)
                 else:
                     currentstats[jj] = Num.asarray(struct.unpack(swapchar+"d"*7, \
                                                                  infile.read(7*8)))
