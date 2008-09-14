@@ -139,6 +139,8 @@ static PyObject *
 tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 {
     PyArrayObject *a1, *af1, *af2;
+    PyArray_Descr *descr;
+    npy_intp dims[2];
     int ownedaf1=0;
     char **tmpdat;
     
@@ -190,11 +192,14 @@ tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 #endif
     
     af2 = af1;
-    if (PyArray_As2D((PyObject **)&af2, (char ***)&tmpdat, nr, nc, 
-					 PyArray_FLOAT) == -1) {
+    descr = PyArray_DescrFromType(PyArray_FLOAT); 
+    if (PyArray_AsCArray((PyObject **)&af2, (void *)&tmpdat, dims, 2,
+                         descr) == -1) {
 		af2 = NULL;
 		goto bailout;
     }
+    *nr = dims[0];
+    *nc = dims[1];
     
     /* WARNING: What follows is a little tricky and I dunno if I'm 
        really allowed to do this. On the other hand it really conserves 
