@@ -52,12 +52,12 @@ int main(int argc, char *argv[]) {
 
     // Read the weights and offsets
     read_wgts_and_offs(argv[1], &nchan, &weights, &offsets);
-    printf("Read in %d channels of weights and offsets from '%s'\n", 
+    printf("Read in %d channels of weights and offsets from\n\t'%s'\n", 
            nchan, argv[1]);
 
     // Step through the FITS files
     for (ii = 0 ; ii < argc-2 ; ii++) {
-        printf("Working on '%s'\n", argv[ii+2]);
+        printf("Updating '%s'\n", argv[ii+2]);
         
         // Is the file a PSRFITS file?
         if (!is_PSRFITS(argv[ii+2])) {
@@ -72,6 +72,14 @@ int main(int argc, char *argv[]) {
         if (status) {
             printf("  Error!  Cannot open '%s'!\n", argv[ii+2]);
             exit(1);
+        }
+
+        // Move to the SUBINT HDU
+        fits_movnam_hdu(infile, BINARY_TBL, "SUBINT", 0, &status);
+        if (status) {
+            printf("  Warning!  Cannot find NPOL in '%s'!  Assuming NPOL=1\n", 
+                   argv[ii+2]);
+            status = 0;
         }
 
         // Read the number of channels and polarizations
@@ -92,14 +100,6 @@ int main(int argc, char *argv[]) {
             status = 0;
         }
         
-        // Move to the SUBINT HDU
-        fits_movnam_hdu(infile, BINARY_TBL, "SUBINT", 0, &status);
-        if (status) {
-            printf("  Warning!  Cannot find NPOL in '%s'!  Assuming NPOL=1\n", 
-                   argv[ii+2]);
-            status = 0;
-        }
-
         // How many rows are there?
         fits_get_num_rows(infile, &nrows, &status);
         if (status) {
@@ -115,8 +115,7 @@ int main(int argc, char *argv[]) {
             status = 0;
         } else {
             // update the weights, row by row
-            for (jj = 0 ; jj < nrows ; jj++)
-                printf("writing %d\n", jj);
+            for (jj = 1 ; jj < nrows+1 ; jj++)
                 fits_write_col(infile, TFLOAT, wgts_col, jj, 
                                1L, nchan, weights, &status);
         }
@@ -128,16 +127,17 @@ int main(int argc, char *argv[]) {
             status = 0;
         } else {
             // update the offsets, row by row
-            for (jj = 0 ; jj < nrows ; jj++)
+            for (jj = 1 ; jj < nrows+1 ; jj++)
                 for (kk = 0 ; kk < npol ; kk++)
                     fits_write_col(infile, TFLOAT, offs_col, jj, 
-                                   kk*nchan, nchan, offsets, &status);
+                                   kk*nchan+1L, nchan, offsets, &status);
         }
         
         // Close the file
         fits_close_file(infile, &status);
         if (status) {
-            printf("  Warning!:  Cannot properly close '%s'!\n", argv[ii+2]);
+            printf("  Warning!:  Cannot properly close '%s' (status=%d)!\n", 
+                   argv[ii+2], status);
             status = 0;
         }
     }
