@@ -226,4 +226,16 @@ class rfifind:
             outfile.write("%5d     %7.5f   %7.5f\n" % (c, w, o))
         outfile.close()
 
-        
+if __name__=="__main__":
+    import sys
+    a = rfifind(sys.argv[1])
+    a.set_zap_chans(power=1000.0,
+                    edges=0.01,
+                    asigma=5.0,
+                    ssigma=2.0,
+                    usemask=True,
+                    plot=True,
+                    chans=[])
+    a.write_zap_chans()
+    a.set_weights_and_offsets()
+    a.write_weights_and_offsets()
