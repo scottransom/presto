@@ -121,16 +121,18 @@ int main(int argc, char *argv[]) {
         }
         
         // Get the column numbers for the offsets
-        fits_get_colnum(infile, 0, "DAT_OFFS", &offs_col, &status);
-        if (status==COL_NOT_FOUND) {
-            printf("  Warning!:  Can't find the channel offsets!\n");
-            status = 0;
-        } else {
-            // update the offsets, row by row
-            for (jj = 1 ; jj < nrows+1 ; jj++)
-                for (kk = 0 ; kk < npol ; kk++)
-                    fits_write_col(infile, TFLOAT, offs_col, jj, 
-                                   kk*nchan+1L, nchan, offsets, &status);
+        if (0) {
+            fits_get_colnum(infile, 0, "DAT_OFFS", &offs_col, &status);
+            if (status==COL_NOT_FOUND) {
+                printf("  Warning!:  Can't find the channel offsets!\n");
+                status = 0;
+            } else {
+                // update the offsets, row by row
+                for (jj = 1 ; jj < nrows+1 ; jj++)
+                    for (kk = 0 ; kk < npol ; kk++)
+                        fits_write_col(infile, TFLOAT, offs_col, jj, 
+                                       kk*nchan+1L, nchan, offsets, &status);
+            }
         }
         
         // Close the file

@@ -44,6 +44,8 @@ struct spectra_info {
     int samples_per_subint; // Number of samples per SUBINT entry
     int num_files;          // Number of files in the observation
     int offs_sub_col;       // The number of the OFFS_SUB column in the SUBINT HDU
+    int dat_wts_col;        // The number of the DAT_WTS column in the SUBINT HDU
+    int dat_offs_col;       // The number of the DAT_OFFS column in the SUBINT HDU
     int data_col;           // The number of the DATA column in the SUBINT HDU
     int need_scale;         // Do we need to scale the data? (1=Yes, 0=No)
     int need_offset;        // Do we need to offset the data? (1=Yes, 0=No)

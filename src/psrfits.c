@@ -8,7 +8,8 @@
 
 static struct spectra_info S;
 static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
-static float *padvals, *newpadvals, *offsets, *scales;
+static float *offsets, *scales;
+static char *padvals, *newpadvals;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
 static int using_MPI = 0, default_poln = 0, user_poln = 0;
@@ -59,10 +60,10 @@ void set_PSRFITS_padvals(float *fpadvals, int good_padvals)
 
    if (good_padvals) {
       for (ii = 0; ii < S.num_channels; ii++) {
-         padvals[ii] = newpadvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
+         padvals[ii] = newpadvals[ii] = (char) (fpadvals[ii] + 0.5);
          sum_padvals += fpadvals[ii];
       }
-      padval = (unsigned char) (sum_padvals / S.num_channels + 0.5);
+      padval = (char) (sum_padvals / S.num_channels + 0.5);
    } else {
       for (ii = 0; ii < S.num_channels; ii++)
          padvals[ii] = newpadvals[ii] = padval;
@@ -350,8 +351,13 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                 status = 0; // Reset status
             } else {
                 int jj;
+                if (ii==0) {
+                    s->dat_wts_col = colnum;
+                } else if (colnum != s->dat_wts_col) {
+                    printf("Warning!:  DAT_WTS column changes between files!\n");
+                }
                 float *fvec = (float *)malloc(sizeof(float) * s->num_channels);
-                fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
+                fits_read_col(s->files[ii], TFLOAT, s->dat_wts_col, 1L, 1L, 
                               s->num_channels, 0, fvec, &anynull, &status);
                 for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
                     if (fvec[jj] != 1.0) s->need_weight = 1;
@@ -366,9 +372,14 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                 status = 0; // Reset status
             } else {
                 int jj;
+                if (ii==0) {
+                    s->dat_offs_col = colnum;
+                } else if (colnum != s->dat_offs_col) {
+                    printf("Warning!:  DAT_OFFS column changes between files!\n");
+                }
                 float *fvec = (float *)malloc(sizeof(float) * 
                                               s->num_channels * s->num_polns);
-                fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
+                fits_read_col(s->files[ii], TFLOAT, s->dat_offs_col, 1L, 1L, 
                               s->num_channels, 0, fvec, &anynull, &status);
                 for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
                     if (fvec[jj] != 0.0) s->need_offset = 1;
@@ -458,7 +469,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     if (s->num_polns > 1)
         tmpbuffer = gen_bvect(s->samples_per_subint);
     // The following is temporary, until I fix the padding
-    padvals = gen_fvect(s->samples_per_spectra/s->num_polns);
+    padvals = (char *)gen_bvect(s->samples_per_spectra/s->num_polns);
     offsets = gen_fvect(s->samples_per_spectra);
     scales = gen_fvect(s->samples_per_spectra);
     for (ii = 0 ; ii < s->samples_per_spectra ; ii++) {
@@ -466,7 +477,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         scales[ii] = 1.0;
     }
     for (ii = 0 ; ii < s->samples_per_spectra/s->num_polns ; ii++)
-        padvals[ii] = 0.0;
+        padvals[ii] = 0;
     newpadvals = padvals;
     return 1;
 }
@@ -724,6 +735,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
     unsigned char *dataptr = data;
     double offs_sub;
     static int firsttime = 1;
+    static float *weights, *offsets;
     
     // The data will go directly into *data unless there is buffered
     // data in the ring buffer (this really only happens if patching
@@ -751,8 +763,19 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                       S.offs_sub_col, cur_subint, 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
         if (firsttime) {
+            if (S.need_weight) {
+                weights = gen_fvect(S.num_channels);
+                offsets = gen_fvect(S.num_channels);
+            }
             last_offs_sub = offs_sub - S.time_per_subint;
             firsttime = 0;
+        }
+        // Read the weights and offsets if required
+        if (S.need_weight) {
+            fits_read_col(S.files[cur_file], TFLOAT, S.dat_wts_col, cur_subint, 1L, 
+                          S.num_channels, 0, weights, &anynull, &status);
+            fits_read_col(S.files[cur_file], TFLOAT, S.dat_offs_col, cur_subint, 1L, 
+                          S.num_channels, 0, offsets, &anynull, &status);
         }
         // The following determines if there were lost blocks
         if TEST_CLOSE(offs_sub-last_offs_sub, S.time_per_subint) {
@@ -794,14 +817,14 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         if (S.num_polns > 1) {
             if (user_poln || S.num_polns > 2) {  // The user chose the poln
                 int ii, offset;
-                unsigned char *tmpptr = dataptr;
+                char *tmpptr = (char *)dataptr;
                 for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
                     offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
                     memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
                 }
             } else if (S.num_polns == 2) { // sum the polns if there are 2 by default
                 int ii, jj, itmp, offset0, offset1;
-                unsigned char *tmpptr = dataptr;
+                char *tmpptr = (char *)dataptr;
                 for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
                     offset0 = ii * S.samples_per_spectra;
                     offset1 = offset0 + S.num_channels;
@@ -809,6 +832,24 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                         itmp = (int) tmpbuffer[offset0+jj] + (int) tmpbuffer[offset1+jj];
                         tmpptr[ii*S.num_channels+jj] = (unsigned char) (itmp >> 1);
                     }
+                }
+            }
+        }
+        if (S.need_weight) { // Apply weights and offsets (only have 1 poln now)
+            int ii, jj, offset;
+            char *tmpptr;
+            float ftmp;
+            for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
+                offset = ii * S.num_channels;
+                tmpptr = (char *)dataptr + offset;
+                for (jj = 0 ; jj < S.num_channels ; jj++) {
+                    // Note:  there are potential signed/vs unsigned problems!
+                    // The following causes negative pulses!
+                    // ftmp = ((float)tmpptr[jj] - offsets[jj]) * weights[jj] + 0.5;
+                    // This one works, but gives a large DC term
+                    // ftmp = ((float)tmpptr[jj] - offsets[jj]) * weights[jj] + 128.5;
+                    ftmp = (float)tmpptr[jj] * weights[jj] + 0.5;
+                    tmpptr[jj] = (char)ftmp;
                 }
             }
         }
