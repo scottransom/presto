@@ -5,6 +5,7 @@
 %}
 
 %include numpy.i
+%include typemaps.i
 
 %{
 
@@ -806,6 +807,12 @@ double dms2rad(int deg, int min, double sec);
 
 double hms2rad(int hour, int min, double sec);
 /* Convert hours, minutes and seconds into radians */
+
+void hours2hms(double hours, int *OUTPUT, int *OUTPUT, double *OUTPUT);
+/* Convert decimal hours to hours, minutes, and seconds */
+
+void deg2dms(double degrees, int *OUTPUT, int *OUTPUT, double *OUTPUT);
+/* Convert decimal degrees to degrees, minutes, and seconds */
 
 double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 /* Return the spherical angle (radians) between two RA and DECS */
