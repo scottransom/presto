@@ -44,13 +44,8 @@ void spigot2sigprocfb(SPIGOT_INFO * spigot, sigprocfb * fb, char *filenmbase,
    hours2hms(spigot->ra / 15.0, &h_or_d, &m, &s);
    fb->src_raj = h_or_d * 10000.0 + m * 100.0 + s;
    deg2dms(spigot->dec, &h_or_d, &m, &s);
-   if (h_or_d < 0) {
-      h_or_d = abs(h_or_d);
-      fb->src_dej = h_or_d * 10000.0 + m * 100.0 + s;
-      fb->src_dej *= -1.0;
-   } else {
-      fb->src_dej = h_or_d * 10000.0 + m * 100.0 + s;
-   }
+   fb->src_dej = abs(h_or_d) * 10000.0 + abs(m) * 100.0 + fabs(s);
+   if (spigot->dec < 0) fb->src_dej *= -fb->src_dej;
    fb->az_start = spigot->az;
    fb->za_start = 90.0-spigot->el;
    fb->nchans = spigot->lags_per_sample;
@@ -108,13 +103,8 @@ void spigot2sigprocfb(SPIGOT_INFO * spigot, sigprocfb * fb, char *filenmbase,
       hours2hms(rmn * RADTODEG / 15.0, &h_or_d, &m, &s);
       fb->src_raj = h_or_d * 10000.0 + m * 100.0 + s;
       deg2dms(dmn * RADTODEG, &h_or_d, &m, &s);
-      if (h_or_d < 0) {
-         h_or_d = abs(h_or_d);
-         fb->src_dej = h_or_d * 10000.0 + m * 100.0 + s;
-         fb->src_dej *= -1.0;
-      } else {
-         fb->src_dej = h_or_d * 10000.0 + m * 100.0 + s;
-      }
+      fb->src_dej = abs(h_or_d) * 10000.0 + abs(m) * 100.0 + fabs(s);
+      if (dmn < 0) fb->src_dej *= -fb->src_dej;
    }
 }
 
