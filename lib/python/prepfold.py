@@ -73,8 +73,9 @@ class pfd:
                         # values measured with 1713+0747 wrt BCPM2 on 13 Sept 2007
                         if self.tepoch > 0.0: self.tepoch += 0.039365/86400.0
                         if self.bestprof: self.bestprof.epochf += 0.039365/86400.0
-                elif self.chan_wid==50.0/1024: # Spigot 50 MHz mode 42
+                elif self.chan_wid==50.0/1024 or self.chan_wid==50.0/2048: # Spigot 50 MHz modes
                     self.lofreq += 0.5 * self.chan_wid
+                    # Note: the offset has _not_ been measured for the 2048-lag mode
                     if self.tepoch > 0.0: self.tepoch += 0.039450/86400.0
                     if self.bestprof: self.bestprof.epochf += 0.039450/86400.0
         (self.topo_pow, tmp) = struct.unpack(swapchar+"f"*2, infile.read(2*4))
