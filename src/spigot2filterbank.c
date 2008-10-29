@@ -45,7 +45,7 @@ void spigot2sigprocfb(SPIGOT_INFO * spigot, sigprocfb * fb, char *filenmbase,
    fb->src_raj = h_or_d * 10000.0 + m * 100.0 + s;
    deg2dms(spigot->dec, &h_or_d, &m, &s);
    fb->src_dej = abs(h_or_d) * 10000.0 + abs(m) * 100.0 + fabs(s);
-   if (spigot->dec < 0) fb->src_dej *= -fb->src_dej;
+   if (spigot->dec < 0) fb->src_dej = -fb->src_dej;
    fb->az_start = spigot->az;
    fb->za_start = 90.0-spigot->el;
    fb->nchans = spigot->lags_per_sample;
