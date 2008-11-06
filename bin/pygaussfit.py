@@ -3,6 +3,7 @@ from pylab import *
 from psr_utils import gaussian_profile, span, read_profile
 from matplotlib.widgets import RectangleSelector
 from matplotlib.patches import Rectangle
+from bestprof import bestprof
 import numpy as Num
 import mpfit, sys
 
@@ -268,7 +269,11 @@ if __name__ == '__main__':
         if len(sys.argv)>=3:
             noise_stdev = float(sys.argv[2])
         else:
-            noise_stdev = 1.0
+            try:
+                bprof = bestprof(sys.argv[1])
+                noise_stdev = bprof.prof_std
+            except:
+                noise_stdev = 1.0
     figure(1)
     dataplot = subplot(211)
     GaussianSelector(dataplot, prof, noise_stdev, filenm)
