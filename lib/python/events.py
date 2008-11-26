@@ -125,9 +125,17 @@ def gauss_sigma_to_prob(sigma):
     """
     gauss_sigma_to_prob(sigma):
         Returns the area under the Gaussian probability density
-        function, integrated from minus infinity to 'sigma'.
+        function, integrated from 'sigma' to infinity.
     """
-    return ndtr(sigma)
+    if sigma < 5.0:
+        return 1.0 - ndtr(sigma)
+    else:
+        # From A&S page 932, eqn 26.2.12 for Q(x)
+        x = sigma
+        Z = 1.0/Num.sqrt(2.0*Num.pi) * Num.exp(-0.5*x*x)
+        series = Num.sum(Num.asarray([1.0, -1.0/(x*x), 3.0/(x**4.0),
+                                      -15.0/(x**6.0), 105.0/(x**8.0)]))
+        return Z/x*series
 
 def prob_to_gauss_sigma(prob):
     """
