@@ -36,10 +36,11 @@ extern void make_infodata_struct(void);
 extern void make_maskbase_struct(void);
 extern void broadcast_mask(mask * obsmask, int myid);
 
-extern void get_PKMB_static(int *decreasing_freqs, float *clip_sigma);
+extern void get_PKMB_static(int *decreasing_freqs, float *clip_sigma,
+                            int *bytesperpt, int *offsetbytes);
 extern void set_PKMB_static(int ptsperblk, int bytesperpt,
                             int numchan, int decreasing_freqs, 
-                            float clip_sigma, double dt);
+                            int offsetbytes, float clip_sigma, double dt);
 extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs,
                             int *chan_map, float *clip_sigma);
 extern void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk,
@@ -96,6 +97,7 @@ int main(int argc, char *argv[])
    int numbarypts = 0, numread = 0, numtowrite = 0, totwrote = 0, datawrote = 0;
    int padwrote = 0, padtowrite = 0, statnum = 0;
    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
+   int offsetbytes = 0; // For packed 1-bit Parkes data
    double local_lodm;
    char *datafilenm, *outpath, *outfilenm, *hostname;
    infodata idata;
@@ -388,8 +390,8 @@ int main(int argc, char *argv[])
             printf("\nFilterbank input file information:\n");
             get_PKMB_file_info(infiles, numinfiles, cmd->clip, 
                                &N, &ptsperblk, &numchan, &dt, &T, 1);
-            get_PKMB_static(&decreasing_freqs, &clip_sigma);
-            bytesperpt = numchan / 8;
+            get_PKMB_static(&decreasing_freqs, &clip_sigma,
+                            &bytesperpt, &offsetbytes);
             bytesperblk = DATLEN;
             chkfread(&hdr, 1, HDRLEN, infiles[0]);
             rewind(infiles[0]);
@@ -553,12 +555,16 @@ int main(int argc, char *argv[])
       MPI_Bcast(chan_mapping, 2 * MAXNUMCHAN, MPI_INT, 0, MPI_COMM_WORLD);
       MPI_Bcast(&clip_sigma, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
       MPI_Bcast(&dt, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+      if (cmd->pkmbP) {  // Pass the packed bits info for special Parkes data
+          MPI_Bcast(&offsetbytes, 1, MPI_INT, 0, MPI_COMM_WORLD);
+      }
       blocklen = ptsperblk;
 
       if (myid > 0) {           /* Slave */
          if (cmd->pkmbP)
             set_PKMB_static(ptsperblk, bytesperpt, numchan, 
-                            decreasing_freqs, clip_sigma, dt);
+                            decreasing_freqs, offsetbytes, 
+                            clip_sigma, dt);
          if (cmd->gmrtP) {
             set_GMRT_static(ptsperblk, bytesperpt, bytesperblk,
                             numchan, clip_sigma, dt);

@@ -23,15 +23,18 @@ static float clip_sigma_st = 0.0;
 static int clip_PKMB_times(unsigned char *rawdata, int ptsperblk, int numchan,
                            float clip_sigma);
 
-void get_PKMB_static(int *decreasing_freqs, float *clip_sigma)
+void get_PKMB_static(int *decreasing_freqs, float *clip_sigma,
+                     int *bytesperpt, int *offsetbytes)
 {
    *decreasing_freqs = decreasing_freqs_st;
    *clip_sigma = clip_sigma_st;
+   *bytesperpt = bytesperpt_st;
+   *offsetbytes = offsetbytes_st;
 }
 
 void set_PKMB_static(int ptsperblk, int bytesperpt,
                      int numchan, int decreasing_freqs, 
-                     float clip_sigma, double dt)
+                     int offsetbytes, float clip_sigma, double dt)
 {
    using_MPI = 1;
    currentblock = 0;
@@ -39,6 +42,7 @@ void set_PKMB_static(int ptsperblk, int bytesperpt,
    bytesperpt_st = bytesperpt;
    numchan_st = numchan;
    decreasing_freqs_st = decreasing_freqs;
+   offsetbytes_st = offsetbytes;
    clip_sigma_st = clip_sigma;
    dt_st = dt;
 }
