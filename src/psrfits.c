@@ -927,6 +927,8 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                     cur_file++;
                     cur_subint = 1;
                 }
+                // Update the time of the last subs based on this padding
+                last_offs_sub += S.dt * numtopad;
                 return 1;
             } else {  // Need < 1 block (or remaining block) of padding
                 int pad;
@@ -942,6 +944,8 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 cur_file++;
                 cur_subint = 1;
                 shiftbuffer = 0;  // Since recursively calling, don't shift again
+                // Update the time of the last subs based on this padding
+                last_offs_sub += S.dt * numtopad;
                 return read_PSRFITS_rawblock(data, &pad);
             }
         }
