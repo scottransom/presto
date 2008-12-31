@@ -992,11 +992,10 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
 // that were masked.
 {
    int ii, jj, numread = 0, offset;
-   double starttime = 0.0;
    static unsigned char *tempzz, *rawdata1, *rawdata2;
    static unsigned char *currentdata, *lastdata;
    static int firsttime = 1, numblocks = 1, allocd = 0, mask = 0;
-   static double duration = 0.0, timeperblk = 0.0;
+   static double duration = 0.0;
 
    *nummasked = 0;
    if (firsttime) {
@@ -1012,8 +1011,7 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
        rawdata1 = gen_bvect(numblocks * S.bytes_per_subint/S.num_polns);
        rawdata2 = gen_bvect(numblocks * S.bytes_per_subint/S.num_polns);
        allocd = 1;
-       timeperblk = S.spectra_per_subint * S.dt;
-       duration = numblocks * timeperblk;
+       duration = numblocks * S.time_per_subint;
        currentdata = rawdata1;
        lastdata = rawdata2;
    }
@@ -1023,9 +1021,12 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
        while (1) {
            numread = read_PSRFITS_rawblocks(currentdata, numblocks, padding);
            if (mask) {
-               printf("Note:  block times for masking are not correct!\n");
-               starttime = (cur_subint - 1) * timeperblk;
-               *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+               // Remember that last_offs_sub gets updated before 
+               // read_PSRFITS_rawblock returns.  And also, offs_sub is the
+               // midpoint of each subint.  (note:  this is only correct 
+               // if numblocks is 1, which it should be, I think)
+               *nummasked = check_mask(last_offs_sub - 0.5 * duration, 
+                                       duration, obsmask, maskchans);
            }
            // Only use the recently measured padding if all the channels aren't masked
            if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
@@ -1126,11 +1127,9 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
 // arranged by subband as above.
 {
     int ii, jj, trtn, offset;
-    double starttime = 0.0;
     static unsigned char *tempzz, *rawdata1, *rawdata2;
     static unsigned char *currentdata, *lastdata, *move;
     static int firsttime = 1, move_size = 0, mask = 0;
-    static double timeperblk = 0.0;
     
     *nummasked = 0;
     if (firsttime) {
@@ -1143,15 +1142,16 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
         currentdata = rawdata1;
         lastdata = rawdata2;
         memcpy(currentdata, rawdata, S.bytes_per_subint/S.num_polns);
-        timeperblk = S.spectra_per_subint * S.dt;
     }
     
     // Read and de-disperse
     memcpy(currentdata, rawdata, S.bytes_per_subint/S.num_polns);
     if (mask) {
-        printf("Note:  block times for masking are not correct!\n");
-        starttime = (cur_subint - 1) * timeperblk;
-        *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
+        // Remember that last_offs_sub gets updated before 
+        // read_PSRFITS_rawblock returns.  And also, offs_sub is the
+        // midpoint of each subint.  (note:  this is only correct 
+        *nummasked = check_mask(last_offs_sub - 0.5 * S.time_per_subint, 
+                                S.time_per_subint, obsmask, maskchans);
     }
     
     // Only use the recently measured padding if all the channels aren't masked
