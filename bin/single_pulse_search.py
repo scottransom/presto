@@ -387,7 +387,7 @@ def main():
                     hibins = Num.nonzero(goodchunk>opts.threshold)[0]
                     hivals = goodchunk[hibins]
                     hibins += chunknum * chunklen
-                    hiblocks = hibins/chunklen
+                    hiblocks = hibins/detrendlen
                     # Add the candidates (which are sorted by bin)
                     for bin, val, block in zip(hibins, hivals, hiblocks):
                         if block not in bad_blocks:
@@ -412,7 +412,7 @@ def main():
                         hibins = Num.nonzero(goodchunk>opts.threshold)[0]
                         hivals = goodchunk[hibins]
                         hibins += chunknum * chunklen
-                        hiblocks = hibins/chunklen
+                        hiblocks = hibins/detrendlen
                         hibins = hibins.tolist()
                         hivals = hivals.tolist()
                         # Now walk through the new candidates and remove those
