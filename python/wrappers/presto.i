@@ -15,31 +15,33 @@
 static PyObject *
 arrtofloatvector (PyObject *o, float **v, int *vsz){
 /* arrtofloatvector(array, pointer to data, number of points):
-      Convert a 1-D Numeric array into single-precision floats.
-      NOTE:  You could lose some accuracy!!!  */
-
+   Convert a 1-D Numeric array into single-precision floats.
+   NOTE:  You could lose some accuracy!!!  */
+    
     PyArrayObject *a1, *af1, *af2;
+    PyArray_Descr *descr;
+    npy_intp dims;
     int ownedaf1=0;
     
     /* Check if args are arrays. */
     if (!PyArray_Check(o)) {
-	PyErr_SetString(PyExc_TypeError,\
-			"tofloatvector() object is not an array");
-	return(NULL);
+        PyErr_SetString(PyExc_TypeError,                \
+                        "tofloatvector() object is not an array");
+        return(NULL);
     }
     a1 = (PyArrayObject *)o;
-
+    
     /* Check if args are vectors. */
     if (a1->nd != 1) {
-	PyErr_SetString(PyExc_TypeError,\
-			"tofloatvector() object is not a vector");
-	return(NULL);
+        PyErr_SetString(PyExc_TypeError,                            \
+                        "tofloatvector() object is not a vector");
+        return(NULL);
     }
     
     switch (a1->descr->type_num) {
     case PyArray_FLOAT:
-	af1 = a1;
-	break;
+        af1 = a1;
+        break;
     case PyArray_CHAR: 
     case PyArray_UBYTE: 
 //    case PyArray_SBYTE:
@@ -47,28 +49,29 @@ arrtofloatvector (PyObject *o, float **v, int *vsz){
     case PyArray_INT: 
     case PyArray_LONG:
     case PyArray_DOUBLE:
-	if (!(af1 = (PyArrayObject *)PyArray_Cast(a1,PyArray_FLOAT))) {
-	    PyErr_SetString(PyExc_TypeError,\
-			    "tofloatvector() cannot cast vector to floats");
-	    return(NULL);
-	}
-	ownedaf1 = 1;
-	break;
+        if (!(af1 = (PyArrayObject *)PyArray_Cast(a1,PyArray_FLOAT))) {
+            PyErr_SetString(PyExc_TypeError,                        \
+                            "tofloatvector() cannot cast vector to floats");
+            return(NULL);
+        }
+        ownedaf1 = 1;
+        break;
     default:
-	PyErr_SetString(PyExc_TypeError,\
-			"tofloatvector() cannot cast vector to floats");
-	return(NULL);
-	break;
+        PyErr_SetString(PyExc_TypeError,                        \
+                        "tofloatvector() cannot cast vector to floats");
+        return(NULL);
+        break;
     }
     
     af2 = af1;
-    if (PyArray_As1D((PyObject **)&af2, (char **)v, vsz, 
-		     PyArray_FLOAT) == -1) {
-	af2 = NULL;
+    descr = PyArray_DescrFromType(PyArray_FLOAT);
+    if (PyArray_AsCArray((PyObject **)&af2, (void *)v, &dims, 1,
+                         descr) == -1) {
+        af2 = NULL;
     }
+    *vsz = dims;
     
-    if (ownedaf1)
-	Py_DECREF(af1);
+    if (ownedaf1) { Py_DECREF(af1); }
     return((PyObject *)af2);
 }
 
@@ -78,159 +81,155 @@ tofloatvector(PyObject* self, PyObject* args) {
 /* tofloatvector(array):
       Convert a 1-D Numeric array into single-precision floats.
       NOTE:  You could lose some accuracy!!!  */
-  PyObject *arr;
-  float *data=NULL;
-  int numdata=0;
-
-  if (!PyArg_ParseTuple(args, "O", &arr))
-    return NULL;
-  return (PyObject *)arrtofloatvector(arr, &data, &numdata);
+    PyObject *arr;
+    float *data=NULL;
+    int numdata=0;
+    
+    if (!PyArg_ParseTuple(args, "O", &arr))
+        return NULL;
+    return (PyObject *)arrtofloatvector(arr, &data, &numdata);
 }
 
 static PyObject* 
 float_to_complex(PyObject* self, PyObject* args) {
 /* float_to_complex(array):
-      Convert a 1-D Numeric float array into a 1-D
-      single-precision complex array.  (i.e. assume that
-      the float array really held the real and complex values
-      of a complex array)                                      */
-  PyArrayObject *arr;
-  float *data=NULL;
-  int numdata=0;
-
-  if (!PyArg_ParseTuple(args, "O", &arr))
+   Convert a 1-D Numeric float array into a 1-D
+   single-precision complex array.  (i.e. assume that
+   the float array really held the real and complex values
+   of a complex array)                                      */
+    PyArrayObject *arr;
+    
+    if (!PyArg_ParseTuple(args, "O", &arr))
     return NULL;
-  /* Check that obj is really an array */
-  if (!PyArray_Check(arr)) {
-    PyErr_SetString(PyExc_TypeError,\
-		    "float_to_complex() Argument is not an array");
-    return NULL;
-  }
-  /* Check the type */
-  if (arr->descr->type_num != PyArray_FLOAT) {
-    PyErr_SetString(PyExc_TypeError,\
-		    "float_to_complex() Array is not made of floats.");
-    return NULL;
-  }
-  /* Insure that the array is really 1-D */
-  if (arr->nd != 1) {
-    PyErr_SetString(PyExc_TypeError,\
-		    "float_to_complex() Array is not 1-D.");
-    return NULL;
-  }
-  /* Insure that the array has an even number of points */
-  if (arr->dimensions[0] & 1) {
-    PyErr_SetString(PyExc_TypeError,\
-		    "float_to_complex() Array needs an even number of points.");
-    return NULL;
-  }
-  /* Perform the conversion  (NOTE:  This is probably _way_ unsafe...)*/
-  arr->descr = PyArray_DescrFromType(PyArray_CFLOAT);
-  arr->dimensions[0] >>= 1;
-  arr->strides[0] = arr->descr->elsize;
-  Py_INCREF(Py_None);
-  return Py_None;
+    /* Check that obj is really an array */
+    if (!PyArray_Check(arr)) {
+        PyErr_SetString(PyExc_TypeError,                    \
+                        "float_to_complex() Argument is not an array");
+        return NULL;
+    }
+    /* Check the type */
+    if (arr->descr->type_num != PyArray_FLOAT) {
+        PyErr_SetString(PyExc_TypeError,                        \
+                        "float_to_complex() Array is not made of floats.");
+        return NULL;
+    }
+    /* Insure that the array is really 1-D */
+    if (arr->nd != 1) {
+        PyErr_SetString(PyExc_TypeError,                \
+                        "float_to_complex() Array is not 1-D.");
+        return NULL;
+    }
+    /* Insure that the array has an even number of points */
+    if (arr->dimensions[0] & 1) {
+        PyErr_SetString(PyExc_TypeError,                                \
+                        "float_to_complex() Array needs an even number of points.");
+        return NULL;
+    }
+    /* Perform the conversion  (NOTE:  This is probably _way_ unsafe...)*/
+    arr->descr = PyArray_DescrFromType(PyArray_CFLOAT);
+    arr->dimensions[0] >>= 1;
+    arr->strides[0] = arr->descr->elsize;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 
 static PyObject* 
 complex_to_float(PyObject* self, PyObject* args) {
 /* complex_to_float(array):
-      Convert a 1-D Numeric complex array into a 1-D
-      single-precision float array holding the real and imaginary
-      values in contiguous memory locations. */
-  PyArrayObject *arr;
-  float *data=NULL;
-  int numdata=0;
-
-  if (!PyArg_ParseTuple(args, "O", &arr))
-    return NULL;
-  /* Check that obj is really an array */
-  if (!PyArray_Check(arr)) {
-    PyErr_SetString(PyExc_TypeError,\
-		    "complex_to_float() Argument is not an array");
-    return NULL;
-  }
-  /* Check the type */
-  if (arr->descr->type_num != PyArray_CFLOAT) {
-    PyErr_SetString(PyExc_TypeError,\
-		    "complex_to_float() Array is not made of complex #'s.");
-    return NULL;
-  }
-  /* Insure that the array is really 1-D */
-  if (arr->nd != 1) {
-    PyErr_SetString(PyExc_TypeError,\
-		    "complex_to_float() Array is not 1-D.");
-    return NULL;
-  }
-  /* Perform the conversion  (NOTE:  This is probably _way_ unsafe...)*/
-  arr->descr = PyArray_DescrFromType(PyArray_FLOAT);
-  arr->dimensions[0] <<= 1;
-  arr->strides[0] = arr->descr->elsize;
-  Py_INCREF(Py_None);
-  return Py_None;
+   Convert a 1-D Numeric complex array into a 1-D
+   single-precision float array holding the real and imaginary
+   values in contiguous memory locations. */
+    PyArrayObject *arr;
+    
+    if (!PyArg_ParseTuple(args, "O", &arr))
+        return NULL;
+    /* Check that obj is really an array */
+    if (!PyArray_Check(arr)) {
+        PyErr_SetString(PyExc_TypeError,                    \
+                        "complex_to_float() Argument is not an array");
+        return NULL;
+    }
+    /* Check the type */
+    if (arr->descr->type_num != PyArray_CFLOAT) {
+        PyErr_SetString(PyExc_TypeError,                                \
+                        "complex_to_float() Array is not made of complex #'s.");
+        return NULL;
+    }
+    /* Insure that the array is really 1-D */
+    if (arr->nd != 1) {
+        PyErr_SetString(PyExc_TypeError,                \
+                        "complex_to_float() Array is not 1-D.");
+        return NULL;
+    }
+    /* Perform the conversion  (NOTE:  This is probably _way_ unsafe...)*/
+    arr->descr = PyArray_DescrFromType(PyArray_FLOAT);
+    arr->dimensions[0] <<= 1;
+    arr->strides[0] = arr->descr->elsize;
+    Py_INCREF(Py_None);
+    return Py_None;
 }
 
 float *power_arr(fcomplex *dft, long numfreqs){
-  /* Determine the spectral powers of the Fourier amplitudes 'dft'*/
-  float powargr, powargi, *powers;
-  long i;
-
-  powers = gen_fvect(numfreqs);
-  for (i=0; i<numfreqs; i++)
-    powers[i] = POWER(dft[i].r, dft[i].i);
-  return powers;
+    /* Determine the spectral powers of the Fourier amplitudes 'dft'*/
+    float powargr, powargi, *powers;
+    long i;
+    
+    powers = gen_fvect(numfreqs);
+    for (i=0; i<numfreqs; i++)
+        powers[i] = POWER(dft[i].r, dft[i].i);
+    return powers;
 }
 
 float *phase_arr(fcomplex *dft, long numfreqs){
-  /* Determine the spectral phases of the Fourier amplitudes 'dft'*/
-  float phsargr, phsargi, phstmp, *phases;
-  long i;
-
-  phases = gen_fvect(numfreqs);
-  for (i=0; i<numfreqs; i++)
-    phases[i] = PHASE(dft[i].r, dft[i].i);
-  return phases;
+    /* Determine the spectral phases of the Fourier amplitudes 'dft'*/
+    float phsargr, phsargi, phstmp, *phases;
+    long i;
+    
+    phases = gen_fvect(numfreqs);
+    for (i=0; i<numfreqs; i++)
+        phases[i] = PHASE(dft[i].r, dft[i].i);
+    return phases;
 }
 
 double *dpower_arr(dcomplex *dft,  long numfreqs){
-  /* Determine the spectral powers of the Fourier amplitudes 'dft'*/
-  double powargr, powargi, *powers;
-  long i;
-
-  powers = gen_dvect(numfreqs);
-  for (i=0; i<numfreqs; i++)
-    powers[i] = POWER(dft[i].r, dft[i].i);
-  return powers;
+    /* Determine the spectral powers of the Fourier amplitudes 'dft'*/
+    double powargr, powargi, *powers;
+    long i;
+    
+    powers = gen_dvect(numfreqs);
+    for (i=0; i<numfreqs; i++)
+        powers[i] = POWER(dft[i].r, dft[i].i);
+    return powers;
 }
 
 double *dphase_arr(dcomplex *dft, long numfreqs){
-  /* Determine the spectral phases of the Fourier amplitudes 'dft'*/
-  double phsargr, phsargi, phstmp, *phases;
-  long i;
-
-  phases = gen_dvect(numfreqs);
-  for (i=0; i<numfreqs; i++)
-    phases[i] = PHASE(dft[i].r, dft[i].i);
-  return phases;
+    /* Determine the spectral phases of the Fourier amplitudes 'dft'*/
+    double phsargr, phsargi, phstmp, *phases;
+    long i;
+    
+    phases = gen_dvect(numfreqs);
+    for (i=0; i<numfreqs; i++)
+        phases[i] = PHASE(dft[i].r, dft[i].i);
+    return phases;
 }
 
 %}
 
 %native(tofloatvector) PyObject *tofloatvector(PyObject *, PyObject *);
 /* tofloatvector(arr):
-      Convert the vector 'arr' into a vector of single-precision floats. */
+   Convert the vector 'arr' into a vector of single-precision floats. */
 %native(float_to_complex) PyObject *float_to_complex(PyObject *, PyObject *);
 /* float_to_complex(array):
-      Convert a 1-D Numeric float array into a 1-D
-      single-precision complex array.  (i.e. assume that
-      the float array really held the real and complex values
-      of a complex array)                                      */
+   Convert a 1-D Numeric float array into a 1-D
+   single-precision complex array.  (i.e. assume that
+   the float array really held the real and complex values
+   of a complex array)                                      */
 %native(complex_to_float) PyObject *complex_to_float(PyObject *, PyObject *);
 /* complex_to_float(array):
-      Convert a 1-D Numeric complex array into a 1-D
-      single-precision float array holding the real and imaginary
-      values in contiguous memory locations. */
+   Convert a 1-D Numeric complex array into a 1-D
+   single-precision float array holding the real and imaginary
+   values in contiguous memory locations. */
 
 
 #ifndef SQRT2
