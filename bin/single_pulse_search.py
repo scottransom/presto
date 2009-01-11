@@ -38,7 +38,7 @@ def fft_convolve(fftd_data, fftd_kern, lo, hi):
     # Note:  The initial FFTs should be done like:
     # fftd_kern = rfft(kernel, -1)
     # fftd_data = rfft(data, -1)
-    prod = fftd_data * fftd_kern
+    prod = Num.multiply(fftd_data, fftd_kern)
     prod.real[0] = fftd_kern.real[0] * fftd_data.real[0]
     prod.imag[0] = fftd_kern.imag[0] * fftd_data.imag[0]
     return rfft(prod, 1)[lo:hi].astype(Num.float32)
@@ -82,9 +82,7 @@ def prune_related1(hibins, hivals, downfact):
                 else:
                     toremove.add(ii)
     # Now zap them starting from the end
-    toremove = list(toremove)
-    toremove.sort()
-    toremove.reverse()
+    toremove = sorted(toremove, reverse=True)
     for bin in toremove:
         del(hibins[bin])
         del(hivals[bin])
@@ -115,9 +113,7 @@ def prune_related2(dm_candlist, downfacts):
                     else:
                         toremove.add(ii)
     # Now zap them starting from the end
-    toremove = list(toremove)
-    toremove.sort()
-    toremove.reverse()
+    toremove = sorted(toremove, reverse=True)
     for bin in toremove:
         del(dm_candlist[bin])
     return dm_candlist
@@ -136,9 +132,7 @@ def prune_border_cases(dm_candlist, offregions):
             if (hiside > off and loside < on):
                 toremove.add(ii)
     # Now zap them starting from the end
-    toremove = list(toremove)
-    toremove.sort()
-    toremove.reverse()
+    toremove = sorted(toremove, reverse=True)
     for ii in toremove:
         del(dm_candlist[ii])
     return dm_candlist
@@ -153,6 +147,7 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-s, --start]       : Only plot events occuring after this time (s)
   [-e, --end]         : Only plot events occuring before this time (s)
   [-g, --glob]        : Use the files from these glob expressions (in quotes)
+  [-f, --fast]        : Use a less-accurate but much faster method of detrending
 
   Perform a single-pulse search (or simply re-plot the results of a
   single-pulse search) on a set of de-dispersed time series (.dat
@@ -227,6 +222,8 @@ def main():
                       help="Only plot events occuring before this time (s)")
     parser.add_option("-g", "--glob", type="string", dest="globexp", default=None,
                       help="Process the files from this glob expression")
+    parser.add_option("-f", "--fast", action="store_true", dest="fast",
+                      default=False, help="Use a faster method of de-trending (2x speedup)")
     (opts, args) = parser.parse_args()
     if len(args)==0:
         if opts.globexp==None:
@@ -315,15 +312,26 @@ def main():
             # de-trend the data one chunk at a time
             print '  De-trending the data and computing statistics...'
             for ii, chunk in enumerate(timeseries):
-                timeseries[ii] = scipy.signal.detrend(chunk, type='linear')
-                tmpchunk = timeseries[ii].copy()
-                tmpchunk.sort()
+                if opts.fast:  # use median removal instead of detrending (2x speedup)
+                    tmpchunk = chunk.copy()
+                    tmpchunk.sort()
+                    med = tmpchunk[detrendlen/2]
+                    chunk -= med
+                    tmpchunk -= med
+                else:
+                    # The detrend calls are the most expensive in the program
+                    chunk = scipy.signal.detrend(chunk, type='linear')
+                    tmpchunk = chunk.copy()
+                    tmpchunk.sort()
                 # The following gets rid of (hopefully) most of the 
                 # outlying values (i.e. power dropouts and single pulses)
                 # If you throw out 5% (2.5% at bottom and 2.5% at top)
                 # of random gaussian deviates, the measured stdev is ~0.871
-                # of the true stdev.  Thus the 1.0/0.871 correction
-                stds[ii] = scipy.std(tmpchunk[detrendlen/40:-detrendlen/40])/0.871
+                # of the true stdev.  Thus the 1.0/0.871=1.148 correction below.
+                # The following is roughly .std() since we already removed the median
+                stds[ii] = Num.sqrt((tmpchunk[detrendlen/40:-detrendlen/40]**2.0).sum() /
+                                    (0.95*detrendlen))
+            stds *= 1.148
             # sort the standard deviations and separate those with
             # very low or very high values
             sort_stds = stds.copy()
@@ -351,12 +359,14 @@ def main():
             timeseries /= stds[:,Num.newaxis]
             timeseries.shape = (roundN,)
             # And set the data in the bad blocks to zeros
+            # Even though we don't search these parts, it is important
+            # because of the overlaps for the convolutions
             for bad_block in bad_blocks:
                 loind, hiind = bad_block*detrendlen, (bad_block+1)*detrendlen
                 timeseries[loind:hiind] = 0.0
             # Convert to a set for faster lookups below
             bad_blocks = Set(bad_blocks)
-            
+
             # Step through the data
             dm_candlist = []
             for chunknum in range(numchunks):
@@ -373,18 +383,24 @@ def main():
                     chunk = timeseries[loind:hiind]
 
                 # Make a set with the current block numbers
-                currentblocks = Set(Num.arange(blocks_per_chunk) +
-                                    blocks_per_chunk*chunknum)
+                lowblock = blocks_per_chunk * chunknum
+                currentblocks = Set(Num.arange(blocks_per_chunk) + lowblock)
+                localgoodblocks = Num.asarray(list(currentblocks -
+                                                   bad_blocks)) - lowblock
                 # Search this chunk if it is not all bad
-                if not currentblocks.issubset(bad_blocks):
+                if len(localgoodblocks):
                     # This is the good part of the data (end effects removed)
                     goodchunk = chunk[overlap:-overlap]
+
+                    # need to pass blocks/chunklen, localgoodblocks
+                    # dm_candlist, dt, opts.threshold to cython routine
+
                     # Search non-downsampled data first
-                    # NOTE:  these compress() calls (and the nonzeros() that result) are
-                    #        currently the most expensive call in the program.  Best
-                    #        bet would probably be to simply iterate over the goodchunk
+                    # NOTE:  these nonzero() calls are some of the most
+                    #        expensive calls in the program.  Best bet would 
+                    #        probably be to simply iterate over the goodchunk
                     #        in C and append to the candlist there.
-                    hibins = Num.nonzero(goodchunk>opts.threshold)[0]
+                    hibins = Num.flatnonzero(goodchunk>opts.threshold)
                     hivals = goodchunk[hibins]
                     hibins += chunknum * chunklen
                     hiblocks = hibins/detrendlen
@@ -409,7 +425,8 @@ def main():
                                      Num.sqrt(downfact)
                             smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
                             goodchunk = smoothed_chunk[overlap:-overlap]
-                        hibins = Num.nonzero(goodchunk>opts.threshold)[0]
+                        #hibins = Num.nonzero(goodchunk>opts.threshold)[0]
+                        hibins = Num.flatnonzero(goodchunk>opts.threshold)
                         hivals = goodchunk[hibins]
                         hibins += chunknum * chunklen
                         hiblocks = hibins/detrendlen
