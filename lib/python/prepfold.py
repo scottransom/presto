@@ -55,7 +55,8 @@ class pfd:
         # Note that epoch is only double precision and so the floating
         # point accuracy is ~1 us!
         if self.telescope=='GBT':
-            if self.dt==8.192e-05:
+            if Num.fabs(Num.fmod(self.dt, 8.192e-05) < 1e-12) and \
+               ("spigot" in filename.lower() or "guppi" not in filename.lower()):
                 if self.chan_wid==800.0/1024: # Spigot 800 MHz mode 2
                     self.lofreq -= 0.5 * self.chan_wid
                     # original values
