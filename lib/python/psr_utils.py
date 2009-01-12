@@ -1,7 +1,7 @@
 import numpy as Num
 import numpy.fft as FFT
 import Pgplot, ppgplot, bisect, sinc_interp
-from scipy.stats import mean, std, histogram
+from scipy.stats import histogram
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
 from scipy.optimize.minpack import bisection
@@ -1031,8 +1031,8 @@ def gauss_profile_params(profile, output=0):
         Pgplot.plotxy(bestfit, phases, color='red')
         Pgplot.closeplot()
     residuals = bestfit - profile
-    resid_avg = mean(residuals)
-    resid_std = std(residuals)
+    resid_avg = residuals.mean()
+    resid_std = residuals.std()
     if (output):
         Pgplot.plotxy(residuals, phases, rangex=[0.0, 1.0],
                       rangey=[min(residuals) - 2 * resid_std,
@@ -1093,8 +1093,8 @@ def twogauss_profile_params(profile, output=0):
         Pgplot.plotxy(bestfit, phases, color='red')
         Pgplot.closeplot()
     residuals = bestfit - profile
-    resid_avg = mean(residuals)
-    resid_std = std(residuals)
+    resid_avg = residuals.mean()
+    resid_std = residuals.std()
     if (output):
         Pgplot.plotxy(residuals, phases, rangex=[0.0, 1.0],
                       rangey=[min(residuals) - 2 * resid_std,
