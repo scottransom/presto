@@ -320,8 +320,8 @@ def main():
                     tmpchunk -= med
                 else:
                     # The detrend calls are the most expensive in the program
-                    chunk = scipy.signal.detrend(chunk, type='linear')
-                    tmpchunk = chunk.copy()
+                    timeseries[ii] = scipy.signal.detrend(chunk, type='linear')
+                    tmpchunk = timeseries[ii].copy()
                     tmpchunk.sort()
                 # The following gets rid of (hopefully) most of the 
                 # outlying values (i.e. power dropouts and single pulses)
