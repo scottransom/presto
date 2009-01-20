@@ -15,11 +15,11 @@
 #define DEBUGOUT 0
 
 /* Note:  zoomlevel is simply (LOGMAXDISPNUM-Log_2(numsamps)) */
-#define LOGMAXDISPNUM      10   /* 1024: Maximum number of points to display at once */
+#define LOGMAXDISPNUM      13   /* 8192: Maximum number of points to display at once */
 #define LOGMINDISPNUM      3    /* 8: Minimum number of points to display at once */
 #define LOGMINCHUNKLEN     3    /* 8: The minimum number of real points in a stats chunk */
-#define LOGMAXPTS          24   /* 16M points */
-#define LOGINITIALNUMPTS   16   /* 65536: The initial number of samples to plot */
+#define LOGMAXPTS          28   /* 256M points */
+#define LOGINITIALNUMPTS   17   /* 131072: The initial number of samples to plot */
 #define MAXDISPNUM      (1<<LOGMAXDISPNUM)
 #define MINDISPNUM      (1<<LOGMINDISPNUM)
 #define MINCHUNKLEN     (1<<LOGMINCHUNKLEN)
