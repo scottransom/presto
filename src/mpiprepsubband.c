@@ -509,6 +509,7 @@ int main(int argc, char *argv[])
             T = s.T;
             get_PSRFITS_file_info(cmd->argv, cmd->argc, cmd->clip, 
                                   &s, &idata, 1);
+            get_PSRFITS_static(&bytesperpt, &bytesperblk, &numifs, &clip_sigma);
             PSRFITS_update_infodata(&idata);
             set_PSRFITS_padvals(padvals, good_padvals);
             strncpy(scope, idata.telescope, 40);

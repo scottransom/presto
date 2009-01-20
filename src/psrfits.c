@@ -9,7 +9,7 @@
 static struct spectra_info S;
 static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
 static float *offsets, *scales;
-static char *padvals, *newpadvals;
+static char *padvals=NULL, *newpadvals=NULL;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
 static int using_MPI = 0, default_poln = 0, user_poln = 0;
@@ -46,8 +46,14 @@ void set_PSRFITS_static(int ptsperblk, int bytesperpt, int bytesperblk,
    S.bits_per_sample = (bytesperpt * 8) / numchan / numifs;
    S.num_channels = numchan;
    S.num_polns = numifs;
+   S.summed_polns = (numifs==1) ? 1 : 0;
    S.clip_sigma = clip_sigma;
    S.dt = dt;
+   S.time_per_subint = S.dt * S.spectra_per_subint;
+   // Note: the following only makes this correct for starting at 
+   // the beginning of the data
+   if (last_offs_sub==0.0)
+       last_offs_sub = - S.time_per_subint;
 }
 
 void set_PSRFITS_padvals(float *fpadvals, int good_padvals)
@@ -57,6 +63,11 @@ void set_PSRFITS_padvals(float *fpadvals, int good_padvals)
 {
    int ii;
    float sum_padvals = 0.0;
+
+   if (padvals==NULL) { // This is for the clients in mpiprepsubband
+       padvals = (char *)gen_bvect(S.num_channels);
+       newpadvals = padvals;
+   }
 
    if (good_padvals) {
       for (ii = 0; ii < S.num_channels; ii++) {
@@ -468,7 +479,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     ringbuffer = gen_bvect(2 * s->bytes_per_subint/s->num_polns);
     if (s->num_polns > 1)
         tmpbuffer = gen_bvect(s->samples_per_subint);
-    // The following is temporary, until I fix the padding
+    // TODO:  The following is temporary, until I fix the padding
     padvals = (char *)gen_bvect(s->samples_per_spectra/s->num_polns);
     offsets = gen_fvect(s->samples_per_spectra);
     scales = gen_fvect(s->samples_per_spectra);
@@ -1149,7 +1160,7 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
     if (mask) {
         // Remember that last_offs_sub gets updated before 
         // read_PSRFITS_rawblock returns.  And also, offs_sub is the
-        // midpoint of each subint.  (note:  this is only correct 
+        // midpoint of each subint.
         *nummasked = check_mask(last_offs_sub - 0.5 * S.time_per_subint, 
                                 S.time_per_subint, obsmask, maskchans);
     }
@@ -1180,7 +1191,10 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
     
     // In mpiprepsubband, the nodes do not call read_*_rawblock()
     // where cur_subint gets incremented.
-    if (using_MPI) cur_subint++;
+    if (using_MPI) {
+        cur_subint++;
+        last_offs_sub += S.time_per_subint;
+    }
     
     if (firsttime) {
         SWAP(currentdata, lastdata);
