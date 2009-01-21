@@ -104,7 +104,7 @@ void spigot2sigprocfb(SPIGOT_INFO * spigot, sigprocfb * fb, char *filenmbase,
       fb->src_raj = h_or_d * 10000.0 + m * 100.0 + s;
       deg2dms(dmn * RADTODEG, &h_or_d, &m, &s);
       fb->src_dej = abs(h_or_d) * 10000.0 + abs(m) * 100.0 + fabs(s);
-      if (dmn < 0) fb->src_dej *= -fb->src_dej;
+      if (dmn < 0) fb->src_dej = -fb->src_dej;
    }
 }
 
