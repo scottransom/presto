@@ -21,6 +21,7 @@ struct spectra_info {
     double lo_freq;         // Center freq of the lowest channel (MHz)
     double hi_freq;         // Center freq of the highest channel (MHz)
     double orig_df;         // Original frequency spacing between the channels (MHz)
+    double chan_dm;         // DM used to de-disperse the freq channels
     double df;              // Frequency spacing between the channels (MHz)
     double BW;              // Bandwidth of the observing band (MHz)
     double ra2000;          // RA  of observation (deg, J2000) at obs start

@@ -205,6 +205,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         get_hdr_double("OBSFREQ", s->fctr);
         get_hdr_int("OBSNCHAN", s->orig_num_chan);
         get_hdr_double("OBSBW", s->orig_df);
+        get_hdr_double("CHAN_DM", s->chan_dm);
         get_hdr_double("BMIN", s->beam_FWHM);
 
         // Don't use the macros unless you are using the struct!
@@ -537,6 +538,11 @@ void print_PSRFITS_info(struct spectra_info *s)
     printf("         High channel (MHz) = %-17.15g\n", s->hi_freq);
     printf("        Channel width (MHz) = %-17.15g\n", s->df);
     printf("         Number of channels = %d\n", s->num_channels);
+    if (s->chan_dm != 0.0) {
+        printf("   Orig Channel width (MHz) = %-17.15g\n", s->orig_df);
+        printf("    Orig Number of channels = %d\n", s->orig_num_chan);
+        printf("    DM used for chan dedisp = %-17.15g\n", s->chan_dm);
+    }
     printf("      Total Bandwidth (MHz) = %-17.15g\n", s->BW);
     printf("         Spectra per subint = %d\n", s->spectra_per_subint);
     printf("            Starting subint = %d\n", s->start_subint[0]);
