@@ -536,6 +536,32 @@ def pulse_broadening(DM, f_ctr):
     return 10.0**(-3.59 + 0.129*logDM + 1.02*logDM**2.0 -
                   4.4*Num.log10(f_ctr/1000.0))/1000.0
 
+def rrat_period(times, numperiods=20, output=True):
+    """
+    rrat_period(times, numperiods=20, output=True):
+        Try to determine a RRAT pulse period using a brute force
+        search when the input times are (real!) single-pulse
+        arrival times.  numperiods is the number of integer pulses
+        to try between the first two pulses.  If output is True,
+        print some diagnostic information
+    """
+    ts = Num.asarray(sorted(times))
+    ps = (ts[1]-ts[0])/Num.arange(1, numperiods+1)
+    dts = Num.diff(ts)
+    xs = dts / ps[:,Num.newaxis]
+    metric = Num.sum(Num.fabs((xs - xs.round())), axis=1)
+    pnum = metric.argmin()
+    numrots = xs.round()[pnum].sum()
+    p = (ts[-1] - ts[0]) / numrots
+    if output:
+        print "Min, avg, std metric values are %.4f, %.4f, %.4f" % \
+              (metric.min(), metric.mean(), metric.std())
+        print " Approx period is likely:", ps[pnum]
+        print "Refined period is likely:", p
+        print "Rotations between pulses are:"
+        print dts / p
+    return p
+
 def guess_DMstep(DM, dt, BW, f_ctr):
     """
     guess_DMstep(DM, dt, BW, f_ctr):
