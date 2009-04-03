@@ -28,12 +28,12 @@ Basic steps to install:
 3.  Install TEMPO.  Make sure to set the TEMPO environment variable.
   http://pulsar.princeton.edu/tempo/index.html
 
-4.  Install GLIB (currently v1.2, but v2.X may work as well).
-  ftp://ftp.gnome.org/pub/GNOME/stable/sources/glib/ On Linux
-  machines this is almost certainly already on your system
-  (check in /usr/lib and /usr/include/glib*).  Although you may
-  need to install a glib development package in order to have
-  the required include files...
+4.  Install GLIB (v2.X). 
+  http://library.gnome.org/devel/glib/ On Linux machines this 
+  is almost certainly already on your system (check in /usr/lib 
+  and /usr/include/glib*).  Although you may need to install a 
+  glib development package in order to have the required include 
+  files...
 
 5.  Install CFITSIO.
   http://heasarc.gsfc.nasa.gov/fitsio/
