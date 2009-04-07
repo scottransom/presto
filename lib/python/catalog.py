@@ -326,19 +326,11 @@ for psr in psrs:
 
 # Add a couple important pulsars
 for psr in psrs:
-    if psr.jname=="1903+0327":
-        psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
-        psr.x  = 105.593483
-        psr.e  = 0.4366786
-        psr.To = 54063.840229
-        psr.pb = 95.174120296
-        psr.w  = 141.6524672
-        psr.dm = 297.53
-        psr.l  = 37.336
-        psr.b  = -1.014
-        psr.dist = 6.36
-    if psr.jname=="1614-2230":
-        psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
+    if psr.jname=="1614-22":
+        psr.jname = "1614-2230"
+        psr.f = 317.3789421870334877
+        psr.fd = -9.712602853462e-16
+        psr.p, psr.pd = psr_utils.p_to_f(psr.f, psr.fd)
         psr.x  = 11.291206
         psr.e  = 0.00000128
         psr.To = 52334.287405
@@ -348,8 +340,11 @@ for psr in psrs:
         psr.l  = 352.6357
         psr.b  = 20.1922
         psr.dist = 1.27
-    if psr.jname=="1614-2318":
-        psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
+    if psr.jname=="1614-23":
+        psr.jname=="1614-2318"
+        psr.f = 29.8475387364133766
+        psr.fd = -4.683105034721e-17
+        psr.p, psr.pd = psr_utils.p_to_f(psr.f, psr.fd)
         psr.x  = 1.327490
         psr.e  = 0.0
         psr.To = 52819.878171
@@ -359,24 +354,9 @@ for psr in psrs:
         psr.l  = 351.91856
         psr.b  = 19.74496
         psr.dist = 1.80
-    if psr.jname=="1744-3922":
-        psr.pd = 1.64533617e-18
-        psr.f, psr.fd = psr_utils.p_to_f(psr.p, psr.pd)
-        psr.x  = 0.212202068
-        psr.e  = 0.001047
-        psr.To = 52608.255816212
-        psr.pb = 0.191406326680
-        psr.w  = 360.0-53.552804
-    if psr.name=="1618-39":
+    if psr.jname=="1618-39":
         psr.e = 0.0237
-    if psr.name=="1855+09":
-        psr.e = 0.000022
-    if psr.jname=="1738+0333":
-        psr.e = 0.0000001
-    if psr.jname=="1933-6211":
-        psr.e = 0.000001
-    if psr.jname=="1909-3744":
-        psr.s1400 = 3.0
+        psr.eerr = 0.0001
 
 # If calling this as a main program, then write out the new pulsars.cat file
 if __name__ == '__main__' :
