@@ -227,6 +227,19 @@ class rfifind:
             outfile.write("%5d     %7.5f   %7.5f\n" % (c, w, o))
         outfile.close()
 
+    def write_weights(self, threshold=0.05, filename=None):
+        # This weights file works for psrfits_subband
+        if filename is None:
+            filename = self.basename+".weights"
+        outfile = open(filename, "w")
+        outfile.write("# Chan    Weight\n")
+        for c, w in zip(np.arange(self.nchan), self.weights):
+            if w > threshold:
+                outfile.write("%5d     1\n" % (c))
+            else:
+                outfile.write("%5d     0\n" % (c))
+        outfile.close()
+
 if __name__=="__main__":
     import sys
     a = rfifind(sys.argv[1])
@@ -239,4 +252,5 @@ if __name__=="__main__":
                     chans=[])
     a.write_zap_chans()
     a.set_weights_and_offsets()
-    a.write_weights_and_offsets()
+    a.write_weights()
+    #a.write_weights_and_offsets()
