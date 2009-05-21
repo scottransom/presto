@@ -210,7 +210,22 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         }
 
         // Now get the stuff we need from the primary HDU header
-        get_hdr_string("TELESCOP", s->telescope);
+        fits_read_key(s->files[ii], TSTRING, "TELESCOP", ctmp, comment, &status); \
+        // Quick fix for MockSpec data...
+        if (strcmp("ARECIBO 305m", ctmp)==0) {
+            strncpy(ctmp, "Arecibo", 40);
+        }
+        if (status) {
+            printf("Error %d reading key %s\n", status, "TELESCOP");
+            if (ii==0) s->telescope[0]='\0';
+            if (status==KEY_NO_EXIST) status=0;
+        } else {
+            if (ii==0) strncpy(s->telescope, ctmp, 40);
+            else if (strcmp(s->telescope, ctmp)!=0)
+                printf("Warning!:  %s values don't match for files 0 and %d!\n",
+                       "TELESCOP", ii);
+        }
+
         get_hdr_string("OBSERVER", s->observer);
         get_hdr_string("SRC_NAME", s->source);
         get_hdr_string("FRONTEND", s->frontend);
