@@ -120,26 +120,44 @@ int is_PSRFITS(char *filename)
 
 #define get_hdr_string(name, param) {                                   \
         fits_read_key(s->files[ii], TSTRING, (name), ctmp, comment, &status); \
-        if (ii==0) strncpy((param), ctmp, 40);                          \
-        else if (strcmp((param), ctmp)!=0)                              \
-            printf("Warning!:  %s values don't match for files 0 and %d!\n", \
-                   (name), ii);                                         \
+        if (status) {\
+            printf("Error %d reading key %s\n", status, name); \
+            if (ii==0) param[0]='\0'; \
+            if (status==KEY_NO_EXIST) status=0;\
+        } else {                                                          \
+            if (ii==0) strncpy((param), ctmp, 40);                          \
+            else if (strcmp((param), ctmp)!=0)                              \
+                printf("Warning!:  %s values don't match for files 0 and %d!\n", \
+                       (name), ii);                                         \
+        }                                                               \
     }
 
 #define get_hdr_int(name, param) {                                      \
         fits_read_key(s->files[ii], TINT, (name), &itmp, comment, &status); \
-        if (ii==0) param = itmp;                                        \
-        else if (param != itmp)                                         \
-            printf("Warning!:  %s values don't match for files 0 and %d!\n", \
-                   (name), ii);                                         \
+        if (status) {\
+            printf("Error %d reading key %s\n", status, name); \
+            if (ii==0) param=0; \
+            if (status==KEY_NO_EXIST) status=0;\
+        } else {                                                          \
+            if (ii==0) param = itmp;                                        \
+            else if (param != itmp)                                         \
+                printf("Warning!:  %s values don't match for files 0 and %d!\n", \
+                       (name), ii);                                         \
+        }                                                               \
     }
 
 #define get_hdr_double(name, param) {                                   \
         fits_read_key(s->files[ii], TDOUBLE, (name), &dtmp, comment, &status); \
-        if (ii==0) param = dtmp;                                        \
-        else if (param != dtmp)                                         \
-            printf("Warning!:  %s values don't match for files 0 and %d!\n", \
-                   (name), ii);                                         \
+        if (status) {\
+            printf("Error %d reading key %s\n", status, name); \
+            if (ii==0.0) param=0.0; \
+            if (status==KEY_NO_EXIST) status=0;\
+        } else {                                                          \
+            if (ii==0) param = dtmp;                                        \
+            else if (param != dtmp)                                         \
+                printf("Warning!:  %s values don't match for files 0 and %d!\n", \
+                       (name), ii);                                         \
+        }                                                               \
     }
 
 int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
@@ -205,8 +223,17 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         get_hdr_double("OBSFREQ", s->fctr);
         get_hdr_int("OBSNCHAN", s->orig_num_chan);
         get_hdr_double("OBSBW", s->orig_df);
-        get_hdr_double("CHAN_DM", s->chan_dm);
+        //get_hdr_double("CHAN_DM", s->chan_dm);
         get_hdr_double("BMIN", s->beam_FWHM);
+
+        /* This is likely not in earlier versions of PSRFITS so */
+        /* treat it a bit differently                           */
+        fits_read_key(s->files[ii], TDOUBLE, "CHAN_DM", 
+                      &(s->chan_dm), comment, &status);
+        if (status==KEY_NO_EXIST) {
+            status = 0;
+            s->chan_dm = 0.0;
+        }
 
         // Don't use the macros unless you are using the struct!
         fits_read_key(s->files[ii], TINT, "STT_IMJD", &IMJD, comment, &status);
@@ -1049,9 +1076,9 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
            if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
                memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
            if (mask) {
-               if (S.num_polns > 1 && !S.summed_polns) {
-                   printf("WARNING!:  masking does not currently work with multiple polns!\n");
-               }
+               //if (S.num_polns > 1 && !S.summed_polns) {
+               //    printf("WARNING!:  masking does not currently work with multiple polns!\n");
+               //}
                if (*nummasked == -1) {  // If all channels are masked
                    for (ii = 0; ii < numspec; ii++)
                        memcpy(currentdata + ii * S.bytes_per_spectra/S.num_polns, 
