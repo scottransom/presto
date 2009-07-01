@@ -17,26 +17,18 @@ FILE *chkfopen(char *path, const char *mode)
 {
    FILE *file;
 
-#ifdef USE_PIOFS
-   if ((file = fopen64(path, mode)) == NULL) {
-      perror("\nError in chkfopen()");
-      printf("   path = '%s'\n", path);
-      exit(-1);
-   }
-#else
    if ((file = fopen(path, mode)) == NULL) {
       perror("\nError in chkfopen()");
       printf("   path = '%s'\n", path);
       exit(-1);
    }
-#endif
    return (file);
 }
 
 
 size_t chkfread(void *data, size_t type, size_t number, FILE * stream)
 {
-   unsigned int num;
+   size_t num;
 
    num = fread(data, type, number, stream);
    if (num != number && ferror(stream)) {
@@ -50,7 +42,7 @@ size_t chkfread(void *data, size_t type, size_t number, FILE * stream)
 
 size_t chkfwrite(void *data, size_t type, size_t number, FILE * stream)
 {
-   unsigned int num;
+   size_t num;
 
    num = fwrite(data, type, number, stream);
    if (num != number && ferror(stream)) {
@@ -70,28 +62,15 @@ size_t chkfseek(FILE * stream, long offset, int whence)
 }
 
 
-size_t chkfileseek(FILE * stream, long offset, size_t size, int whence)
+size_t chkfileseek(FILE * stream, off_t offset, size_t size, int whence)
 {
    int rt;
 
-#ifdef USE_PIOFS
-   {
-      off64_t pos;
-
-      pos = (long long) offset *(long long) size;
-      if ((rt = fseeko64(stream, pos, whence)) == -1) {
-         perror("\nError in chkfileseek()");
-         printf("\n");
-         exit(-1);
-      }
-   }
-#else
    if ((rt = fseeko(stream, offset * size, whence)) == -1) {
       perror("\nError in chkfileseek()");
       printf("\n");
       exit(-1);
    }
-#endif
    return (rt);
 }
 
@@ -99,17 +78,6 @@ size_t chkfileseek(FILE * stream, long offset, size_t size, int whence)
 long long chkfilelen(FILE * file, size_t size)
 {
    int filenum, rt;
-#ifdef USE_PIOFS
-   piofs_fstat_t buf;
-
-   filenum = fileno(file);
-   rt = piofsioctl(filenum, PIOFS_FSTAT, &buf);
-   if (rt == -1) {
-      perror("\nError in chkfilelen()");
-      printf("\n");
-      exit(-1);
-   }
-#else
    struct stat buf;
 
    filenum = fileno(file);
@@ -119,7 +87,6 @@ long long chkfilelen(FILE * file, size_t size)
       printf("\n");
       exit(-1);
    }
-#endif
    return (long long) (buf.st_size / size);
 }
 
