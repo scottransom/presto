@@ -23,7 +23,7 @@ size_t chkfseek(FILE * stream, long offset, int whence);
 /* NOTE:  This is meant only for backwards compatibility.  */
 /* You should probably be calling chkfileseek() directly.  */
 
-size_t chkfileseek(FILE * stream, long offset, size_t size, int whence);
+size_t chkfileseek(FILE * stream, off_t offset, size_t size, int whence);
 /* Preform a file seek with error checking.  */
 
 long long chkfilelen(FILE *file, size_t size);
