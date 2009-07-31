@@ -203,26 +203,7 @@ int main(int argc, char *argv[])
    fflush(stdout);
 
    /* Prep FFTW */
-   {
-      FILE *wisdomfile;
-      char wisdomfilenm[120];
-
-      /* First try to import the system wisdom if available */
-      fftwf_import_system_wisdom();
-      sprintf(wisdomfilenm, "%s/fftw_wisdom.txt", DATABASE);
-      wisdomfile = fopen(wisdomfilenm, "r");
-      if (wisdomfile == NULL) {
-         printf("Error opening '%s'.  Run makewisdom again.\n", wisdomfilenm);
-         printf("Exiting.\n");
-         exit(1);
-      }
-      if (!fftwf_import_wisdom_from_file(wisdomfile)) {
-         printf("Error importing FFTW wisdom.\n");
-         printf("Exiting.\n");
-         exit(1);
-      }
-      fclose(wisdomfile);
-   }
+   read_wisdom();
 
    /* Loop through fftfile */
 

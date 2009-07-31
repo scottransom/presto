@@ -47,37 +47,17 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
    int move_size;
    unsigned char *move;
 #if defined USEFFTW
-   FILE *wisdomfile;
    fftwf_plan plan;
    static fftwf_plan last_plan = NULL;
    static int firsttime = 1, lastn = 0, lastisign = 0;
-   static char wisdomfilenm[120];
 #else
    float *p1;
    double *table;
 #endif
 
 #if defined USEFFTW
-
    /* If calling for the first time, read the wisdom file */
-
-   if (firsttime) {
-      /* First try to import the system wisdom if available */
-      fftwf_import_system_wisdom();
-      sprintf(wisdomfilenm, "%s/fftw_wisdom.txt", DATABASE);
-      wisdomfile = fopen(wisdomfilenm, "r");
-      if (wisdomfile == NULL) {
-         printf("Error opening '%s'.  Run makewisdom again.\n", wisdomfilenm);
-         printf("Exiting.\n");
-         exit(1);
-      }
-      if (!fftwf_import_wisdom_from_file(wisdomfile)) {
-         printf("Error importing FFTW wisdom.\n");
-         printf("Exiting.\n");
-         exit(1);
-      }
-      fclose(wisdomfile);
-   }
+   if (firsttime) read_wisdom();
 #endif
 
    if (nn < 2)

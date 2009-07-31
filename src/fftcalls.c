@@ -2,12 +2,34 @@
 
 #if defined USEFFTW
 
+void read_wisdom(void)
+{
+    FILE *wisdomfile;
+    static char wisdomfilenm[120];
+
+    /* First try to import the system wisdom if available */
+    fftwf_import_system_wisdom();
+    sprintf(wisdomfilenm, "%s/lib/fftw_wisdom.txt", getenv("PRESTO"));
+    wisdomfile = fopen(wisdomfilenm, "r");
+    if (wisdomfile == NULL) {
+        printf("Warning:  Couldn't open '%s'\n"
+               "          You should run 'makewisdom'.  See $PRESTO/INSTALL.\n", 
+               wisdomfilenm);
+    } else {
+        if (!fftwf_import_wisdom_from_file(wisdomfile))
+            printf("Warning:  '%s' is not up-to-date.\n"
+                   "          You should run 'makewisdom'.  See $PRESTO/INSTALL.\n", 
+                   wisdomfilenm);
+        fclose(wisdomfile);
+    }
+}
+
+
 void fftwcall(fcomplex * indata, long nn, int isign)
 /* This routine calls the FFTW complex-complex FFT using stored wisdom */
 /* files.  It is VERY fast.  nn does _not_ have to be a power of two   */
 /* size.  indata is a complex array but stored as floats.              */
 {
-   FILE *wisdomfile;
    fftwf_plan *plan_forward, *plan_inverse;
    int ii;
    unsigned long oldestplan = 0;
@@ -16,7 +38,6 @@ void fftwcall(fcomplex * indata, long nn, int isign)
    static fcomplex *indatacache[4] = { NULL, NULL, NULL, NULL };
    static int firsttime = 1, nncache[4] = { 0, 0, 0, 0 };
    static unsigned long lastuse[4] = { 0, 0, 0, 0 };
-   static char wisdomfilenm[120];
 
    /* Call the six-step algorithm if the FFT is too big to     */
    /* be efficiently handled by FFTW.                          */
@@ -27,24 +48,7 @@ void fftwcall(fcomplex * indata, long nn, int isign)
    }
 
    /* If calling for the first time, read the wisdom file */
-
-   if (firsttime) {
-      /* First try to import the system wisdom if available */
-      fftwf_import_system_wisdom();
-      sprintf(wisdomfilenm, "%s/fftw_wisdom.txt", DATABASE);
-      wisdomfile = fopen(wisdomfilenm, "r");
-      if (wisdomfile == NULL) {
-         printf("Error opening '%s'.  Run makewisdom again.\n", wisdomfilenm);
-         printf("Exiting.\n");
-         exit(1);
-      }
-      if (!fftwf_import_wisdom_from_file(wisdomfile)) {
-         printf("Error importing FFTW wisdom.\n");
-         printf("Exiting.\n");
-         exit(1);
-      }
-      fclose(wisdomfile);
-   }
+   if (firsttime) read_wisdom();
 
    /* If we used the same plan during the last few calls, use it again */
    /* We keep, in effect, a stack of the 4 most recent plans.          */

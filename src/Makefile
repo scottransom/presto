@@ -20,9 +20,6 @@ else
 	LOCDIR = /sw
 endif
 
-# Path to pulsar database files
-DATABASE = "$(PRESTO)/lib"
-
 # Path to PGPLOT includes
 PGPLOTINCDIR = -I$(PGPLOT_DIR)
 # Path to PGPLOT libraries
@@ -61,18 +58,17 @@ CLIG = /usr/bin/clig
 # For Intel Core2 chips, use -march=nocona
 # For gcc-4.X, use -mtune=native
 CC = gcc
-# FC = gfortran
-FC = g77
+FC = gfortran
+#FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
-	-DDATABASE='$(DATABASE)' -D$(FFTTYPE) -DUSEMMAP \
-	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+	-D$(FFTTYPE) -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-O3 -ffast-math -Wall -W -fPIC
 #	-g -Wall -W
 CLINKFLAGS = $(CFLAGS)
 # NOTE:  Be careful of upping the optimization on the
 #        FFLAGs.  Certain compilers (i.e. on Intel Macs) will
 #        cause errors for the code in least_squares.f
-FFLAGS = -g -O -fPIC
+FFLAGS = -g -fPIC
 FLINKFLAGS = $(FFLAGS)
 LINKCOMMAND1 = $(CC) $(LIBCMD) -o
 LINKCOMMAND2 = ar rcs
