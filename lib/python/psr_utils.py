@@ -337,7 +337,7 @@ def mass_funct2(mp, mc, i):
             'i' is the orbital inclination (rad).
         Note:  An 'average' orbit has cos(i) = 0.5, or i = 60 deg
     """
-    return (mc * Num.sin(i))**3 / (mc + mp)**2
+    return (mc * Num.sin(i))**3.0 / (mc + mp)**2.0
 
 def asini_c(pb, mf):
     """
@@ -369,6 +369,21 @@ def bins_to_accel(rdot, T, f=[1.0, 1000.0], device="/XWIN"):
     else:
         return accels
 
+def pulsar_mass(pb, x, mc, inc):
+    """
+    pulsar_mass(pb, x, mc, inc):
+        Return the pulsar mass (in solar mass units) for a binary
+        system with the following characteristics:
+            'pb' is the binary period in days.
+            'x' is the projected semi-major axis in lt-sec.
+            'inc' is the orbital inclination in degrees.
+            'mc' is the mass of the companion in solar mass units.
+    """
+    massfunct = mass_funct(pb, x)
+    def localmf(mp, mc=mc, mf=massfunct, i=inc*DEGTORAD):
+        return mass_funct2(mp, mc, i) - mf
+    return bisection(localmf, 0.0, 1000.0)
+        
 def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
     companion_mass(pb, x, inc=60.0, mpsr=1.4):
@@ -381,7 +396,7 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
     massfunct = mass_funct(pb, x)
     def localmf(mc, mp=mpsr, mf=massfunct, i=inc*DEGTORAD):
-        return (mc*Num.sin(i))**3.0/(mp + mc)**2.0 - mf
+        return mass_funct2(mp, mc, i) - mf
     return bisection(localmf, 0.0, 1000.0)
         
 def companion_mass_limit(pb, x, mpsr=1.4):
