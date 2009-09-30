@@ -1,0 +1,7 @@
+*.[oa]
+*.so
+*.pyc
+*~
+TAGS
+*egg-info
+fftw_wisdom.txt
