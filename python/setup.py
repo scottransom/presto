@@ -13,7 +13,7 @@ undef_macros = []
 extra_compile_args = []
 include_dirs = []
 
-ppgplot_libraries = ["cpgplot", "pgplot", "X11", "png", "m", "g2c"]
+ppgplot_libraries = ["cpgplot", "pgplot", "X11", "png", "m"]
 ppgplot_library_dirs = ["/usr/X11R6/lib"]
 
 presto_libraries = ["presto", "fftw3f", "m"]
