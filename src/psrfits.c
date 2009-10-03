@@ -541,6 +541,7 @@ void print_PSRFITS_info(struct spectra_info *s)
 {
     int ii, numhdus, hdutype, status = 0, itmp;
     char ctmp[40], comment[120];
+    double dtmp;
 
     printf("From the PSRFITS file '%s':\n", s->files[0]->Fptr->filename);
     fits_get_num_hdus(s->files[0], &numhdus, &status);
@@ -556,9 +557,12 @@ void print_PSRFITS_info(struct spectra_info *s)
     printf("                   Frontend = %s\n", s->frontend);
     printf("                    Backend = %s\n", s->backend);
     printf("                 Project ID = %s\n", s->project_id);
-    printf("                Scan Number = %d\n", s->scan_number);
+    // printf("                Scan Number = %d\n", s->scan_number);
     printf("            Obs Date String = %s\n", s->date_obs);
-    printf("             MJD start time = %19.14Lf\n", s->start_MJD[0]);
+    DATEOBS_to_MJD(s->date_obs, &itmp, &dtmp);
+    sprintf(ctmp, "%.14f", dtmp);
+    printf("  MJD start time (DATE-OBS) = %5i.%14s\n", itmp, ctmp+2);
+    printf("     MJD start time (STT_*) = %19.14Lf\n", s->start_MJD[0]);
     printf("                   RA J2000 = %s\n", s->ra_str);
     printf("             RA J2000 (deg) = %-17.15g\n", s->ra2000);
     printf("                  Dec J2000 = %s\n", s->dec_str);
@@ -647,8 +651,8 @@ void spectra_info_to_inf(struct spectra_info * s, infodata * idata)
     else
         sprintf(ctmp, "%d polns were not summed.  Samples have %d bits.",
                 s->num_polns, s->bits_per_sample);
-    sprintf(idata->notes, "Project ID %s, Scan #%d, Date: %s.\n    %s\n",
-            s->project_id, s->scan_number, s->date_obs, ctmp);
+    sprintf(idata->notes, "Project ID %s, Date: %s.\n    %s\n",
+            s->project_id, s->date_obs, ctmp);
 }
 
 
