@@ -632,7 +632,9 @@ void spectra_info_to_inf(struct spectra_info * s, infodata * idata)
     strcpy(idata->instrument, s->backend);
     idata->num_chan = s->num_channels;
     idata->dt = s->dt;
-    DATEOBS_to_MJD(s->date_obs, &(idata->mjd_i), &(idata->mjd_f));
+    // DATEOBS_to_MJD(s->date_obs, &(idata->mjd_i), &(idata->mjd_f));
+    idata->mjd_i = (int)(s->start_MJD[0]);
+    idata->mjd_f = s->start_MJD[0] - idata->mjd_i;
     idata->N = s->N;
     idata->freqband = s->BW;
     idata->chan_wid = s->df;
