@@ -138,7 +138,7 @@ class psr_par:
                 setattr(self, 'P1', pd) 
         if hasattr(self, 'EPS1') and hasattr(self, 'EPS2'):
             ecc = math.sqrt(self.EPS1 * self.EPS1 + self.EPS2 * self.EPS2)
-            omega = math.atan2(self.EPS1, self.EPS2)
+            omega = math.atan2(self.EPS1, self.EPS2) * pu.RADTODEG
             setattr(self, 'E', ecc)
             setattr(self, 'OM', omega)
         if hasattr(self, 'PB') and hasattr(self, 'A1') and not hasattr(self, 'E'):
