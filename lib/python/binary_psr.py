@@ -51,8 +51,8 @@ class binary_psr:
     def calc_anoms(self, MJD):
         """
         calc_anoms(MJD):
-            Return a tuple of the mean, eccentric, and true anomalies (all in radians)
-                at the barycentric epoch MJD(s).
+            Return a tuple of the mean, eccentric, and true anomalies (all
+                in radians) at the barycentric epoch MJD(s).
         """
         MJD = myasarray(MJD)
         difft = (MJD - self.T0)*SECPERDAY
@@ -67,7 +67,7 @@ class binary_psr:
         """
         most_recent_peri(MJD):
             Return the MJD(s) of the most recent periastrons that occurred
-            before the input MJD(s).
+                before the input MJD(s).
         """
         MJD = myasarray(MJD)
         difft = MJD - self.T0
@@ -79,7 +79,7 @@ class binary_psr:
         """
         eccentric_anomaly(mean_anomaly):
             Return the eccentric anomaly in radians, given a set of mean_anomalies
-            in radians.
+                in radians.
         """
         ma = Num.fmod(mean_anomaly, TWOPI)
         ma = Num.where(ma < 0.0, ma+TWOPI, ma)
@@ -95,7 +95,8 @@ class binary_psr:
     def calc_omega(self, MJD):
         """
         calc_omega(MJD):
-            Return the argument of periastron (omega in radians) at time (or times) MJD(s).
+            Return the argument of periastron (omega in radians) at
+            time (or times) MJD(s).
         """
         MJD = myasarray(MJD)
         difft = (MJD - self.T0)*SECPERDAY
@@ -112,9 +113,9 @@ class binary_psr:
         """
         ma, ea, ta = self.calc_anoms(MJD)
         ws = self.calc_omega(MJD)
-        c1 = TWOPI*self.par.A1/self.PBsec;
-        c2 = Num.cos(ws)*Num.sqrt(1-self.par.E*self.par.E);
-        sws = Num.sin(ws);
+        c1 = TWOPI*self.par.A1/self.PBsec
+        c2 = Num.cos(ws)*Num.sqrt(1-self.par.E*self.par.E)
+        sws = Num.sin(ws)
         cea = Num.cos(ea)
         return SOL/1000.0*c1*(c2*cea - sws*Num.sin(ea)) / (1.0 - self.par.E*cea)
 
@@ -151,7 +152,7 @@ class binary_psr:
         demodulate_TOAs(MJD):
             Return arrival times correctly orbitally de-modulated using
                 the iterative procedure described in Deeter, Boynton, and Pravdo
-                (1981ApJ...247.1003D, thanks, Deepto!).  The corrects for the
+                (1981ApJ...247.1003D, thanks, Deepto!).  This corrects for the
                 fact that the emitted times are what you want when you only
                 have the arrival times.  MJD can be an array.  The returned
                 values are in MJD as well.
