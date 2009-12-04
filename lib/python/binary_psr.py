@@ -42,15 +42,11 @@ class binary_psr:
 
     def __init__(self, parfilenm):
         self.par = parfile.psr_par(parfilenm)
-        if not self.par.__dict__.has_key('BINARY'):
+        if not hasattr(self.par, 'BINARY'):
             print "'%s' doesn't contain parameters for a binary pulsar!"
             return None
-        else:
-            if self.par.__dict__.has_key("TASC"):
-                self.T0 = self.par.TASC
-            else:
-                self.T0 = self.par.T0
         self.PBsec = self.par.PB*SECPERDAY
+        self.T0 = self.par.T0
 
     def calc_anoms(self, MJD):
         """
@@ -103,7 +99,7 @@ class binary_psr:
         """
         MJD = myasarray(MJD)
         difft = (MJD - self.T0)*SECPERDAY
-        if self.par.__dict__.has_key('OMDOT'):
+        if hasattr(self.par, 'OMDOT'):
             # Note:  This is an array
             return (self.par.OM + difft/SECPERJULYR*self.par.OMDOT)*DEGTORAD
         else:
