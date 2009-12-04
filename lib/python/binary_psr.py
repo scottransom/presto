@@ -146,6 +146,29 @@ class binary_psr:
         r = x*(1.0-self.par.E*self.par.E)/(1.0+self.par.E*Num.cos(ta))
         return -r*Num.sin(orb_phs)*sini, -r*Num.cos(orb_phs)
 
+    def demodulate_TOAs(self, MJD):
+        """
+        demodulate_TOAs(MJD):
+            Return arrival times correctly orbitally de-modulated using
+                the iterative procedure described in Deeter, Boynton, and Pravdo
+                (1981ApJ...247.1003D, thanks, Deepto!).  The corrects for the
+                fact that the emitted times are what you want when you only
+                have the arrival times.  MJD can be an array.  The returned
+                values are in MJD as well.
+        """
+        ts = MJD[:]  # start of iteration
+        dts = Num.ones_like(MJD)
+        # This is a simple Newton's Method iteration based on
+        # the code orbdelay.c written by Deepto Chakrabarty
+        while (Num.maximum.reduce(Num.fabs(dts)) > 1e-10):
+            # radial position in lt-days
+            xs = -self.position(ts, inc=90.0)[0]/86400.0
+            # radial velocity in units of C
+            dxs = self.radial_velocity(ts)*1000.0/SOL
+            dts = (ts + xs - MJD) / (1.0 + dxs)
+            ts = ts - dts
+        return ts
+
     def shapiro_delays(self, R, S, ecc_anoms):
         """
         shapiro_delays(R, S, ecc_anoms):
