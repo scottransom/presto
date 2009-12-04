@@ -1,8 +1,6 @@
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 
-from Numeric import *
-import numpy as Numeric
-N = Numeric
+from numpy import *
 import scipy.io.numpyio as numpyio
 import struct
 
@@ -151,7 +149,7 @@ def read_raw(name,size,type,bs=0):
         fid = fopen(name,'r','B')
     else:
         fid = fopen(name,'r')
-    numels = N.product(size)
+    numels = product(size)
     data = fid.fread(numels,type)
     data.shape = size
     fid.close()
