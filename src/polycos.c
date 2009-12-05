@@ -172,7 +172,7 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
          *dm = dm0;
          binary = (binpha[0] != ' ');
          mjdcheck = mjdmid[j] + mjd1mid[j];
-         /*      printf("mjd, mjdcheck,j: %lf %lf %d\n",mjd,mjdcheck,j);   */
+         // printf("mjd, mjdcheck,j: %lf %lf %d\n",mjd,mjdcheck,j);
          if (mjdcheck > mjd - 0.5 && mjdcheck < mjdend + 0.5) {
             nblk = nblk0;
             ncoeff = ncoeff0;
@@ -216,9 +216,10 @@ int phcalc(double mjd0, double mjd1, int last_index, double *phase, double *psrf
    for (j = last_index; j < isets; j++) {
       dtmin = (mjd0 - mjdmid[j]);
       dtmin = (dtmin + (mjd1 - mjd1mid[j])) * 1440.;    /* Time from center of this set */
-      if (fabs(dtmin) < (nblk / 2.0 + 1e-10)) { /* The extra bit avoids a subtle bug since
+      // printf("j, dtmin, comp = %d  %.16g  %.16g  %.16g\n", j, fabs(dtmin), nblk / 2.0 + 1e-10, fabs(dtmin)-(nblk / 2.0 + 1e-10));
+      if (fabs(dtmin) < (nblk / 2.0 + 1e-7)) { /* The extra bit avoids a subtle bug since
                                                    roundoff can cause fabs(dtmin)>(nblk/2) */
-         /*      printf("j, mjds: %d %f %f %f %f\n",j,mjd0,mjd1,mjdmid[j],mjd1mid[j]); */
+          // printf("j, mjds: %d %f %f %f %f\n",j,mjd0,mjd1,mjdmid[j],mjd1mid[j]);
          *psrfreq = 0.;         /* Compute psrfreq and phase from */
          *phase = coeff[j][ncoeff - 1]; /* the polynomial coeffs. */
          if (show)
