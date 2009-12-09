@@ -796,7 +796,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                   ttot /= search->bary.p1;
                else
                   ttot /= search->topo.p1;
-               cpgerr1(5, 1.0, min - over, ttot, 2);
+               // Following is 0.5 * ttot since cpgerr1 gives +/- err in plot
+               cpgerr1(5, 1.0, min - over, 0.5*ttot, 2);
             }
          }
       }
