@@ -29,10 +29,8 @@ void readinf(infodata * data, char *filenm)
       fscanf(infofile, "%*[^=]= %[^\n]\n", data->object);
       
       fscanf(infofile, "%*[^=]= %s\n", tmp1);
-      printf("tmp1 = '%s'\n", tmp1);
       ra_dec_from_string(tmp1, &data->ra_h, &data->ra_m, &data->ra_s);
       fscanf(infofile, "%*[^=]= %s\n", tmp1);
-      printf("tmp1 = '%s'\n", tmp1);
       ra_dec_from_string(tmp1, &data->dec_d, &data->dec_m, &data->dec_s);
       fscanf(infofile, "%*[^=]= %[^\n]\n", data->observer);
       fscanf(infofile, "%*[^=]= %d.%s", &data->mjd_i, tmp1);
