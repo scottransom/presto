@@ -107,7 +107,8 @@ char *make_polycos(char *parfilenm, infodata * idata)
            scopechar, tracklen, psr.jname, tracklen, fmid);
    fclose(tmpfile);
    sprintf(command, "echo %d %d | tempo -z -f %s > /dev/null",
-           idata->mjd_i, (int) ceil(epoch + T), parfilenm);
+           idata->mjd_i-1, (int) ceil(epoch + T), parfilenm);
+   // printf("making polycos:  '%s'\n", command);
    system(command);
    remove("tz.in");
    psrname = (char *) calloc(strlen(psr.jname) + 1, sizeof(char));
@@ -172,7 +173,7 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
          *dm = dm0;
          binary = (binpha[0] != ' ');
          mjdcheck = mjdmid[j] + mjd1mid[j];
-         // printf("mjd, mjdcheck,j: %lf %lf %d\n",mjd,mjdcheck,j);
+         // printf("mjd, mjdcheck, j: %lf %lf %d\n",mjd,mjdcheck,j);
          if (mjdcheck > mjd - 0.5 && mjdcheck < mjdend + 0.5) {
             nblk = nblk0;
             ncoeff = ncoeff0;
