@@ -445,7 +445,8 @@ def write_candlist(candlist, candfilenm=None):
         if (len(goodcand.hits) > 1):
             goodcand.hits.sort(cmp_dms)
             for hit in goodcand.hits:
-                candfile.write("  DM=%.2f SNR=%.2f\n" % hit)
+                numstars = int(hit[1]/3.0)
+                candfile.write("  DM=%6.2f SNR=%5.2f   "%hit + numstars*'*' + '\n')
     if candfilenm is not None:
         candfile.close()
 
