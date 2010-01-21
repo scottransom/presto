@@ -494,8 +494,9 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     s->orig_df /= (double) s->orig_num_chan;
     s->samples_per_spectra = s->num_polns * s->num_channels;
     // Note:  the following is the number of bytes that will be in
-    //        the returned array from CFITSIO.  It turns bits and
-    //        nibbles into bytes.
+    //        the returned array from CFITSIO.
+    //        CFITSIO turns bits into bytes when FITS_typecode=1
+    //        and we turn 2-bits or 4-bits into bytes if bits_per_sample < 8
     if (s->bits_per_sample < 8)
         s->bytes_per_spectra = s->samples_per_spectra;
     else
@@ -845,9 +846,27 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         // The following determines if there were lost blocks
         if TEST_CLOSE(offs_sub-last_offs_sub, S.time_per_subint) {
             // if so, read the data from the column
-            fits_read_col(S.files[cur_file], S.FITS_typecode, 
-                          S.data_col, cur_subint, 1L, S.samples_per_subint, 
-                          0, tmpbuffer, &anynull, &status);
+            {
+                int num_to_read = S.samples_per_subint;
+                // The following allows us to read byte-packed data
+                if ((S.bits_per_sample > 1) && (S.bits_per_sample < 8))
+                    num_to_read = S.samples_per_subint * S.bits_per_sample / 8;
+                fits_read_col(S.files[cur_file], S.FITS_typecode, 
+                              S.data_col, cur_subint, 1L, num_to_read, 
+                              0, tmpbuffer, &anynull, &status);
+                // The following converts that byte-packed data into 
+                // bytes, in place
+                if (S.bits_per_sample == 4) {
+                    int ii, jj;
+                    unsigned char uctmp;
+                    for (ii = num_to_read - 1, jj = 2 * num_to_read - 1 ; 
+                         ii >= 0 ; ii--, jj -= 2) {
+                        uctmp = (unsigned char)tmpbuffer[ii];
+                        tmpbuffer[jj] = uctmp & 0x0F;
+                        tmpbuffer[jj-1] = uctmp >> 4;
+                    }
+                }
+            }
             last_offs_sub = offs_sub;
         } else {
             // if not, use padding instead
