@@ -12,17 +12,22 @@ int new_clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
 /* averages of the channels are returned in good_chan_levels */
 /* (which must be pre-allocated).                            */
 {
-   static float chan_running_avg[2048];
+   static float *chan_running_avg;
    static float running_avg = 0.0, running_std = 0.0;
-   static int blocksread = 0;
+   static int blocksread = 0, firsttime = 1;
    static long long current_point = 0;
    float *zero_dm_block, *median_temp;
-   double chan_avg_temp[2048];
+   double *chan_avg_temp;
    float current_med, trigger;
    double current_avg = 0.0, current_std = 0.0;
    unsigned char *powptr;
    int ii, jj, clipit = 0, clipped = 0;
 
+   if (firsttime) {
+       chan_running_avg = gen_fvect(numchan);
+       firsttime = 0;
+   }
+   chan_avg_temp = gen_dvect(numchan);
    zero_dm_block = gen_fvect(ptsperblk);
    median_temp = gen_fvect(ptsperblk);
 
@@ -119,6 +124,7 @@ int new_clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
    }
    blocksread++;
 
+   free(chan_avg_temp);
    free(zero_dm_block);
    free(median_temp);
 
@@ -136,14 +142,19 @@ int clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
 /* averages of the channels are returned in good_chan_levels */
 /* (which must be pre-allocated).                            */
 {
-   static float median_chan_levels[2048];
+   static float *median_chan_levels;
    static float running_avg = 0.0, running_std = 0.0, median_sum = 0.0;
-   static int blocksread = 0;
+   static int blocksread = 0, firsttime = 1;
    float *zero_dm_block, *median_temp;
    float current_med, trigger, running_wgt = 0.05;
    double current_avg = 0.0, current_std = 0.0, scaling;
    unsigned char *powptr;
    int ii, jj, clipit = 0, clipped = 0;
+
+   if (firsttime) {
+       median_chan_levels = gen_fvect(numchan);
+       firsttime = 0;
+   }
 
    zero_dm_block = gen_fvect(ptsperblk);
    median_temp = gen_fvect(ptsperblk);
@@ -256,13 +267,18 @@ int subs_clip_times(float *rawdata, int ptsperblk, int numchan,
 /* averages of the channels are returned in good_chan_levels */
 /* (which must be pre-allocated).                            */
 {
-   static float median_chan_levels[2048];
+   static float *median_chan_levels;
    static float running_avg = 0.0, running_std = 0.0, median_sum = 0.0;
-   static int blocksread = 0;
+   static int blocksread = 0, firsttime = 1;
    float *zero_dm_block, *median_temp, *powptr;
    float current_med, trigger, running_wgt = 0.05;
    double current_avg = 0.0, current_std = 0.0, scaling;
    int ii, jj, clipit = 0, clipped = 0;
+
+   if (firsttime) {
+       median_chan_levels = gen_fvect(numchan);
+       firsttime = 0;
+   }
 
    zero_dm_block = gen_fvect(ptsperblk);
    median_temp = gen_fvect(ptsperblk);
