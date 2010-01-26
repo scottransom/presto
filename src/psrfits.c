@@ -8,7 +8,7 @@
 
 static struct spectra_info S;
 static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
-static float *offsets, *scales;
+static float *offsets, *scales, global_scale = 1.0;
 static char *padvals=NULL, *newpadvals=NULL;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
@@ -843,7 +843,6 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             if (S.need_scale)
                 scales = gen_fvect(S.num_channels*S.num_polns);
             last_offs_sub = offs_sub - S.time_per_subint;
-            firsttime = 0;
         }
 
         // Read the weights, offsets, and scales if required
@@ -916,14 +915,14 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         if (S.num_polns > 1) {
             if (user_poln || S.num_polns > 2) {  // The user chose the poln
                 int ii, offset;
-                char *tmpptr = (char *)dataptr;
+                unsigned char *tmpptr = dataptr;
                 for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
                     offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
                     memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
                 }
             } else if (S.num_polns == 2) { // sum the polns if there are 2 by default
                 int ii, jj, itmp, offset0, offset1;
-                char *tmpptr = (char *)dataptr;
+                unsigned char *tmpptr = dataptr;
                 for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
                     offset0 = ii * S.samples_per_spectra;
                     offset1 = offset0 + S.num_channels;
@@ -935,22 +934,69 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             }
         }
 
+        if (firsttime) {
+            // Determine overall scaling of the data so it will fit
+            // into an unsigned char.  If we used _floats_ we wouldn't
+            // need to do that!  TODO:  fix this!
+            if (S.need_offset || S.need_scale) {
+                int ii, jj, d_idx, os_idx;
+                unsigned char *tmpptr;
+                float *fvec, offset, scale, fmed;
+                fvec = gen_fvect(S.spectra_per_subint*S.num_channels);
+                for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
+                    d_idx = ii * S.num_channels;
+                    os_idx = default_poln * S.num_channels;
+                    tmpptr = dataptr + d_idx;
+                    for (jj = 0 ; jj < S.num_channels ; jj++, os_idx++) {
+                        offset = (S.need_offset) ? offsets[os_idx] : 0.0;
+                        scale = (S.need_scale) ? scales[os_idx] : 1.0;
+                        fvec[d_idx+jj] = ((float)tmpptr[jj] * scale) + offset;
+                    }
+                }
+                // Now determine the median of the data...
+                fmed = median(fvec, S.spectra_per_subint*S.num_channels);
+                // Set the scale so that the median is at about 1/3 of the
+                // dynamic range of an unsigned char.  Note that this assumes
+                // that the data is properly offset so that the min values
+                // are at values of zero...
+                global_scale = (256.0/3.0) / fmed;
+                printf("\nSetting PSRFITS global scale to %f\n", global_scale);
+                free(fvec);
+
+            }
+            firsttime = 0;
+        }
+
+        // Apply offsets and scales if needed
+        if (S.need_offset || S.need_scale) {
+            int ii, jj, d_idx, os_idx;
+            unsigned char *tmpptr;
+            float ftmp, offset, scale;
+            for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
+                d_idx = ii * S.num_channels;
+                os_idx = default_poln * S.num_channels;
+                tmpptr = dataptr + d_idx;
+                for (jj = 0 ; jj < S.num_channels ; jj++, os_idx++) {
+                    offset = (S.need_offset) ? offsets[os_idx] : 0.0;
+                    scale = (S.need_scale) ? scales[os_idx] : 1.0;
+                    ftmp = ((float)tmpptr[jj] * scale) + offset;
+                    ftmp = (ftmp < 0.0) ? 0.0 : ftmp;
+                    tmpptr[jj] = (unsigned char)(ftmp * global_scale + 0.5);
+                }
+            }
+        }
+
         // Apply weights if needed
         if (S.need_weight) {
             int ii, jj, offset;
-            char *tmpptr;
+            unsigned char *tmpptr;
             float ftmp;
             for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
                 offset = ii * S.num_channels;
-                tmpptr = (char *)dataptr + offset;
+                tmpptr = dataptr + offset;
                 for (jj = 0 ; jj < S.num_channels ; jj++) {
-                    // Note:  there are potential signed/vs unsigned problems!
-                    // The following causes negative pulses!
-                    // ftmp = ((float)tmpptr[jj] - offsets[jj]) * weights[jj] + 0.5;
-                    // This one works, but gives a large DC term
-                    // ftmp = ((float)tmpptr[jj] - offsets[jj]) * weights[jj] + 128.5;
                     ftmp = (float)tmpptr[jj] * weights[jj] + 0.5;
-                    tmpptr[jj] = (char)ftmp;
+                    tmpptr[jj] = (unsigned char)ftmp;
                 }
             }
         }
