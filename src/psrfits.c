@@ -448,6 +448,11 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                 status = 0; // Reset status
             } else {
                 int jj;
+                if (ii==0) {
+                    s->dat_scl_col = colnum;
+                } else if (colnum != s->dat_scl_col) {
+                    printf("Warning!:  DAT_SCL column changes between files!\n");
+                }
                 float *fvec = (float *)malloc(sizeof(float) * 
                                               s->num_channels * s->num_polns);
                 fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
@@ -824,25 +829,34 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
     // Read a subint of data from the DATA col
     if (cur_subint <= S.num_subint[cur_file]) {
         if (S.num_polns==1) tmpbuffer = dataptr;
+
         // Read the OFFS_SUB column value in case there were dropped blocks
         fits_read_col(S.files[cur_file], TDOUBLE, 
                       S.offs_sub_col, cur_subint, 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
+
         if (firsttime) {
-            if (S.need_weight) {
+            if (S.need_weight)
                 weights = gen_fvect(S.num_channels);
-                offsets = gen_fvect(S.num_channels);
-            }
+            if (S.need_offset)
+                offsets = gen_fvect(S.num_channels*S.num_polns);
+            if (S.need_scale)
+                scales = gen_fvect(S.num_channels*S.num_polns);
             last_offs_sub = offs_sub - S.time_per_subint;
             firsttime = 0;
         }
-        // Read the weights and offsets if required
-        if (S.need_weight) {
+
+        // Read the weights, offsets, and scales if required
+        if (S.need_weight)
             fits_read_col(S.files[cur_file], TFLOAT, S.dat_wts_col, cur_subint, 1L, 
                           S.num_channels, 0, weights, &anynull, &status);
+        if (S.need_offset)
             fits_read_col(S.files[cur_file], TFLOAT, S.dat_offs_col, cur_subint, 1L, 
-                          S.num_channels, 0, offsets, &anynull, &status);
-        }
+                          S.num_channels*S.num_polns, 0, offsets, &anynull, &status);
+        if (S.need_scale)
+            fits_read_col(S.files[cur_file], TFLOAT, S.dat_scl_col, cur_subint, 1L, 
+                          S.num_channels*S.num_polns, 0, scales, &anynull, &status);
+
         // The following determines if there were lost blocks
         if TEST_CLOSE(offs_sub-last_offs_sub, S.time_per_subint) {
             // if so, read the data from the column
@@ -896,6 +910,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             // but we don't want to move to the next subint yet
             cur_subint--;
         }
+
         // This loop allows us to work with single polns out of many
         // or to sum polarizations if required
         if (S.num_polns > 1) {
@@ -919,7 +934,9 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 }
             }
         }
-        if (S.need_weight) { // Apply weights and offsets (only have 1 poln now)
+
+        // Apply weights if needed
+        if (S.need_weight) {
             int ii, jj, offset;
             char *tmpptr;
             float ftmp;
@@ -937,7 +954,9 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 }
             }
         }
-        if (S.need_flipband) {  //  Hack to flip the band
+
+        // Flip the band if needed
+        if (S.need_flipband) {
             unsigned char uctmp;
             int ii, jj, offset;
             for (jj = 0 ; jj < S.spectra_per_subint ; jj++) {
@@ -949,6 +968,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 }
             }
         }
+
         if (0) {  //  Hack to flip each byte of data
             unsigned char uctmp;
             int ii, jj;
