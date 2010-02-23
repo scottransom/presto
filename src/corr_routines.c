@@ -321,7 +321,7 @@ float *corr_loc_pow(float *powers, int numpowers)
    static int firsttime = 1;
    static int old_numpowers;
 
-   normal = 1.0 / NUMLOCPOWAVG;
+   normal = (numpowers / 2) / NUMLOCPOWAVG;
    kern_half_width = NUMLOCPOWAVG / 2 + DELTAAVGBINS;
 
    /* Make sure our powers array is long enough. */
