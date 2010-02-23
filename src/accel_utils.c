@@ -792,10 +792,10 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
                                double fullrlo, double fullrhi,
                                subharminfo * shi, accelobs * obs)
 {
-   int ii, lobin, hibin, numdata, nrs, fftlen, binoffset;
+   int ii, lobin, hibin, numdata, nice_numdata, nrs, fftlen, binoffset;
    static int numrs_full = 0, numzs_full = 0;
    float powargr, powargi;
-   double drlo, drhi, norm, harm_fract;
+   double drlo, drhi, harm_fract;
    ffdotpows *ffdot;
    fcomplex *data, **result;
    presto_datainf datainf;
@@ -845,20 +845,48 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    lobin = ffdot->rlo - binoffset;
    hibin = (int) ceil(drhi) + binoffset;
    numdata = hibin - lobin + 1;
-   data = get_fourier_amplitudes(lobin - obs->lobin, numdata, obs);
+   nice_numdata = next2_to_n(numdata);  // for FFTs
+   data = get_fourier_amplitudes(lobin - obs->lobin, nice_numdata, obs);
 
-   /* Determine the mean local power level (via median) */
+   // Normalize the Fourier amplitudes
 
-   if (obs->nph > 0.0) {        /* Unless freq 0 normalization is requested */
-      norm = 1.0 / obs->nph;
+   if (obs->nph > 0.0) {
+       //  Use freq 0 normalization if requested (i.e. photons)
+       double norm = 1.0 / sqrt(obs->nph);
+       for (ii = 0; ii < numdata; ii++) {
+           data[ii].r *= norm;
+           data[ii].i *= norm;
+       }
+   } else if (obs->norm_type == 0) {
+       //  old-style block median normalization
+       float *powers;
+       double norm;
+
+       powers = gen_fvect(numdata);
+       for (ii = 0; ii < numdata; ii++)
+           powers[ii] = POWER(data[ii].r, data[ii].i);
+       norm = 1.0 / sqrt(median(powers, numdata)/log(2.0));
+       free(powers);
+       for (ii = 0; ii < numdata; ii++) {
+           data[ii].r *= norm;
+           data[ii].i *= norm;
+       }
    } else {
-      float *powers;
+       //  new-style running double-tophat local-power normalization
+       float *powers, *loc_powers;
 
-      powers = gen_fvect(numdata);
-      for (ii = 0; ii < numdata; ii++)
-         powers[ii] = POWER(data[ii].r, data[ii].i);
-      norm = 1.0 / (1.442695 * median(powers, numdata));
-      free(powers);
+       powers = gen_fvect(nice_numdata);
+       for (ii = 0; ii < nice_numdata; ii++) {
+           powers[ii] = POWER(data[ii].r, data[ii].i);
+       }
+       loc_powers = corr_loc_pow(powers, nice_numdata);
+       for (ii = 0; ii < numdata; ii++) {
+           float norm = 1.0 / sqrt(loc_powers[ii]);
+           data[ii].r *= norm;
+           data[ii].i *= norm;
+       }
+       free(powers);
+       free(loc_powers);
    }
 
    /* Perform the correlations */
@@ -879,7 +907,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 
    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
    for (ii = 0; ii < (ffdot->numzs * ffdot->numrs); ii++)
-      ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i) * norm;
+      ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i);
    free(result[0]);
    free(result);
    return ffdot;
@@ -1184,6 +1212,18 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       /* For short FFTs insure that we don't pick up the DC */
       /* or Nyquist component as part of the interpolation  */
       /* for higher frequencies.                            */
+      if (cmd->locpowP) {
+          obs->norm_type = 1;
+          printf("Normalizing powers using new-style local-power determination.\n\n");
+      } else if (cmd->medianP) {
+          obs->norm_type = 0;
+          printf("Normalizing powers using old-style median-blocks.\n\n");
+      } else {
+          obs->norm_type = 0;
+          printf("WARNING:  No power normalization selected!\n"
+                 "          Using old-style block-median normalization.\n"
+                 "          Recommend '-locpow' in the future...\n\n");
+      }
       if (obs->dat_input) {
          obs->fft[0].r = 1.0;
          obs->fft[0].i = 1.0;

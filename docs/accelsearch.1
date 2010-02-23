@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "22Aug05" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "23Feb10" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -31,6 +31,8 @@ accelsearch \- Search an FFT or short time series for pulsars using a Fourier do
 [-flo flo]
 [-fhi fhi]
 [-photon]
+[-median]
+[-locpow]
 [-zaplist zaplist]
 [-baryv baryv]
 infile
@@ -84,6 +86,10 @@ The highest frequency (Hz) (of the highest harmonic!) to search,
 Default: `10000.0'
 .IP -photon
 Data is poissonian so use freq 0 as power normalization.
+.IP -median
+Use old-style block-median power normalization (current default).
+.IP -locpow
+Use new-style double-tophat local-power normalization.
 .IP -zaplist
 A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file),
 .br
