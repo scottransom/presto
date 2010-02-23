@@ -1018,18 +1018,6 @@ void stretch_fft(fcomplex *data, int numdata,
   /*   'numresult' is twice 'numdata', then the data will be        */
   /*   stretched by a factor of two (i.e. interbinned).             */
 
-%apply float* IN_1D_FLOAT { float *powers };
-float *corr_loc_pow(float *powers, int numpowers);
-  /* This routine determines the local power levels for every         */
-  /* frequency in an FFT containing 'numpowers' complex frequencies.  */
-  /* It sets the areas where end-effects are a problem to the         */
-  /* local power level of the closest bin without end effect          */
-  /* problems.  It returns a vector with the local power levels.      */
-  /* Arguments:                                                       */
-  /*   'powers' is a pointer to a fcomplex vector containing the FFT. */
-  /*   'numpowers' is the number of complex points in 'powers'.       */
-
-
 %apply fcomplex* IN_1D_CFLOAT { fcomplex *data };
 %apply fcomplex *OUTPUT { fcomplex *ans }; 
 void rz_interp(fcomplex *data, int numdata, double r, double z,
@@ -1458,3 +1446,30 @@ fcomplex *atwood_search(double *events, double *weights,
 /*    Nevents:  the number of events                               */
 /*    Nwin:  number of bins that make up a "window" (the FFT len)  */
 /*    dt:  the time duration to use for the binning                */
+
+// Return an array where each value is a float
+%typemap(python, out) float * {
+  PyArrayObject *arr;
+  npy_intp n;
+  
+  n = _output_arraylen;
+  _output_arraylen = 0;
+  arr = (PyArrayObject *) \
+    PyArray_SimpleNewFromData(1, &n, PyArray_FLOAT, (char *)$1);
+  if (arr == NULL) return NULL;
+  arr->flags |= OWN_DATA;
+  PyArray_INCREF(arr);
+  $result = (PyObject *)arr;
+}
+
+%apply float* IN_1D_FLOAT { float *powers };
+%apply int ARRAYLEN { int numpowers };
+float *corr_loc_pow(float *powers, int numpowers);
+  /* This routine determines the local power levels for every         */
+  /* frequency in an FFT containing 'numpowers' complex frequencies.  */
+  /* It sets the areas where end-effects are a problem to the         */
+  /* local power level of the closest bin without end effect          */
+  /* problems.  It returns a vector with the local power levels.      */
+  /* Arguments:                                                       */
+  /*   'powers' is a pointer to a fcomplex vector containing the FFT. */
+  /*   'numpowers' is the number of complex points in 'powers'.       */
