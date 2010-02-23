@@ -312,7 +312,7 @@ float *corr_loc_pow(float *powers, int numpowers)
   /* local power level of the closest bin without end effect          */
   /* problems.  It returns a vector with the local power levels.      */
   /* Arguments:                                                       */
-  /*   'powers' is a pointer to a fcomplex vector containing the FFT. */
+  /*   'powers' is a pointer to a float vector of powers.             */
   /*   'numpowers' is the number of complex points in 'powers'.       */
 {
    int ii, kern_half_width;

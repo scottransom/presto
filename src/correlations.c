@@ -121,7 +121,7 @@ float *real_corr_conv(float *data, float *kernel, int numdata,
       tmpdat = data;
    } else {
       tmpdat = gen_fvect(numdata);
-      memcpy(tmpdat, data, sizeof(fcomplex) * numdata);
+      memcpy(tmpdat, data, sizeof(float) * numdata);
    }
    if (ffts == FFTDK || ffts == FFTD) {
       realfft(tmpdat, numdata, -1);
