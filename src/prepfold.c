@@ -1410,6 +1410,8 @@ int main(int argc, char *argv[])
             else {
                int mm;
                float runavg = 0.0;
+               static float oldrunavg = 0.0;
+               static int firsttime = 1;
 
                if (useshorts)
                   numread = read_shorts(infiles[0], data, worklen, numchan);
@@ -1419,6 +1421,13 @@ int main(int argc, char *argv[])
                   for (mm = 0; mm < numread; mm++)
                      runavg += data[mm];
                   runavg /= numread;
+                  if (firsttime) {
+                      firsttime = 0;
+                  } else {
+                      // Use a running average of the block averages to subtract...
+                      runavg = 0.95 * oldrunavg + 0.05 * runavg;
+                  }
+                  oldrunavg = runavg;
                   for (mm = 0; mm < numread; mm++)
                      data[mm] -= runavg;
                }

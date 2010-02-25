@@ -727,7 +727,7 @@ double fold(float *data, int numdata, double dt, double tlo,
 
          stats->numdata += 1.0;
          dev = data[ii] - stats->data_avg;
-         stats->data_avg += dev / (stats->numdata + 1.0);
+         stats->data_avg += dev / stats->numdata;
          stats->data_var += dev * (data[ii] - stats->data_avg);
       }
 
