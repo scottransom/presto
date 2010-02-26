@@ -846,7 +846,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    hibin = (int) ceil(drhi) + binoffset;
    numdata = hibin - lobin + 1;
    nice_numdata = next2_to_n(numdata);  // for FFTs
-   data = get_fourier_amplitudes(lobin - obs->lobin, nice_numdata, obs);
+   data = get_fourier_amplitudes(lobin, nice_numdata, obs);
 
    // Normalize the Fourier amplitudes
 
