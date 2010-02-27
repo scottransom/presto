@@ -34,6 +34,7 @@ String  -zaplist    zaplist \
 Double  -baryv      baryv \
         {The radial velocity component (v/c) towards the target during the obs} \
         -r -0.1 0.1  -d 0.0
+Flag   -harmpolish  harmpolish  {Constrain harmonics to be harmonically related during polishing}
 	
 # Rest of command line:
 

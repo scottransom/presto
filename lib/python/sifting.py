@@ -44,6 +44,13 @@ def print_sift_globals():
     print "known_birds_p =", known_birds_p   
     print "known_birds_f =", known_birds_f
 
+def parse_power(pow):
+    power = float(pow.split("(")[0])
+    if ("^" in pow):  # add exponent...
+        expon = float(pow.split("^")[1])
+        power *= 10.0**(expon)
+    return power
+
 def cmp_sigma(self, other):
     retval = -cmp(self.sigma, other.sigma)
     if retval==0:
@@ -175,8 +182,8 @@ class file_candidates:
                 # rejected in the initial pass
                 if self.cands.has_key(candnum):
                     self.cands[candnum].harm_pows = Num.zeros(self.cands[candnum].numharm, dtype=Num.float64)
-                    self.cands[candnum].harm_amps = Num.zeros(self.cands[candnum].numharm, dtype=Num.complex64)
-                    power = float(split_line[3].split("(")[0])
+                    self.cands[candnum].harm_amps = Num.zeros(self.cands[candnum].numharm, dtype=Num.complex64) 
+                    power = parse_power(split_line[3])
                     phase = float(split_line[9].split("(")[0])
                     self.cands[candnum].harm_pows[0] = power
                     self.cands[candnum].harm_amps[0] = Num.sqrt(power) * Num.exp(phase*1.0j)
@@ -204,7 +211,7 @@ class file_candidates:
             # Parse the higher (than the first) harmonic powers
             if current_goodcandnum:
                 cand = self.cands[current_goodcandnum]
-                power = float(line.split()[2].split("(")[0])
+                power = parse_power(line.split()[2])
                 phase = float(line.split()[8].split("(")[0])
                 cand.harm_pows[current_harmnum] = power
                 cand.harm_amps[current_harmnum] = Num.sqrt(power) * Num.exp(phase*1.0j)

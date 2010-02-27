@@ -436,31 +436,69 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
 }
 
 
-
+// FIXME: this shouldn't be a #define, or it shouldn't be here
 void optimize_accelcand(accelcand * cand, accelobs * obs)
 {
    int ii;
+   int r_offset[MAX_HARMONICS];
+   fcomplex *data[MAX_HARMONICS];
+   double r, z;
 
    cand->pows = gen_dvect(cand->numharm);
    cand->hirs = gen_dvect(cand->numharm);
    cand->hizs = gen_dvect(cand->numharm);
    cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
-   for (ii = 0; ii < cand->numharm; ii++) {
-      if (obs->mmap_file || obs->dat_input)
-         cand->pows[ii] = max_rz_arr(obs->fft,
-                                     obs->numbins,
-                                     cand->r * (ii + 1) - obs->lobin,
-                                     cand->z * (ii + 1),
-                                     &(cand->hirs[ii]),
-                                     &(cand->hizs[ii]), &(cand->derivs[ii]));
-      else
-         cand->pows[ii] = max_rz_file(obs->fftfile,
-                                      cand->r * (ii + 1) - obs->lobin,
-                                      cand->z * (ii + 1),
-                                      &(cand->hirs[ii]),
-                                      &(cand->hizs[ii]), &(cand->derivs[ii]));
-      cand->hirs[ii] += obs->lobin;
+
+   if (obs->use_harmonic_polishing) {
+       if (obs->mmap_file || obs->dat_input) {
+           for(ii=0;ii<cand->numharm;ii++) {
+               r_offset[ii]=obs->lobin;
+               data[ii] = obs->fft;
+           }
+           max_rz_arr_harmonics(data,
+                                cand->numharm,
+                                r_offset,
+                                obs->numbins,
+                                cand->r-obs->lobin,
+                                cand->z,
+                                &r,
+                                &z,
+                                cand->derivs,
+                                cand->pows);
+       } else {
+           max_rz_file_harmonics(obs->fftfile,
+                                 cand->numharm,
+                                 obs->lobin,
+                                 cand->r-obs->lobin,
+                                 cand->z,
+                                 &r,
+                                 &z,
+                                 cand->derivs,
+                                 cand->pows);
+       }
+       for(ii=0;ii<cand->numharm;ii++) {
+           cand->hirs[ii]=(r+obs->lobin)*(ii+1);
+           cand->hizs[ii]=z*(ii+1);
+       }
+   } else {
+       for (ii = 0; ii < cand->numharm; ii++) {
+          if (obs->mmap_file || obs->dat_input)
+             cand->pows[ii] = max_rz_arr(obs->fft,
+                                         obs->numbins,
+                                         cand->r * (ii + 1) - obs->lobin,
+                                         cand->z * (ii + 1),
+                                         &(cand->hirs[ii]),
+                                         &(cand->hizs[ii]), &(cand->derivs[ii]));
+          else
+             cand->pows[ii] = max_rz_file(obs->fftfile,
+                                          cand->r * (ii + 1) - obs->lobin,
+                                          cand->z * (ii + 1),
+                                          &(cand->hirs[ii]),
+                                          &(cand->hizs[ii]), &(cand->derivs[ii]));
+          cand->hirs[ii] += obs->lobin;
+       }
    }
+
    cand->sigma = candidate_sigma(cand->power, cand->numharm,
                                  obs->numindep[twon_to_index(cand->numharm)]);
 }
@@ -530,7 +568,7 @@ void output_fundamentals(fourierprops * props, GSList * list,
    /* Close the old work file and open the cand file */
 
    if (!obs->dat_input)
-      fclose(obs->workfile);
+      fclose(obs->workfile); /* Why is this here? -A */
    obs->workfile = chkfopen(obs->accelnm, "w");
 
    /* Set our candidate notes to all spaces */
@@ -594,6 +632,8 @@ void output_fundamentals(fourierprops * props, GSList * list,
          double phs0, phscorr, amp;
          rderivs harm;
 
+         /* These phase calculations assume the fundamental is best */
+         /* Better to irfft them and check the amplitude */
          phs0 = cand->derivs[0].phs;
          for (jj = 0; jj < cand->numharm; jj++) {
             harm = cand->derivs[jj];
@@ -893,8 +933,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
        }
        loc_powers = corr_loc_pow(powers, nice_numdata);
        for (ii = 0; ii < numdata; ii++) {
-           // Maybe use the fast-inverse-sqrt function for this?
-           float norm = 1.0 / sqrt(loc_powers[ii]);
+           float norm = invsqrt(loc_powers[ii]);
            data[ii].r *= norm;
            data[ii].i *= norm;
        }
@@ -1109,6 +1148,8 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
          exit(0);
       }
    }
+
+   obs->use_harmonic_polishing = cmd->harmpolishP;
 
    /* Read the info file */
 

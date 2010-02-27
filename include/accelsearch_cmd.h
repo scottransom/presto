@@ -55,6 +55,8 @@ typedef struct s_Cmdline {
   char baryvP;
   double baryv;
   int baryvC;
+  /***** -harmpolish: Constrain harmonics to be harmonically related during polishing */
+  char harmpolishP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;
