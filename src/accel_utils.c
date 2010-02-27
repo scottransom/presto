@@ -777,14 +777,24 @@ void print_accelcand(gpointer data, gpointer user_data)
 
 fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
 {
-   if (obs->mmap_file || obs->dat_input) {
-      if (lobin - obs->lobin < -ACCEL_PADDING)
-         printf
-             ("\nWARNING!!!:  Accessing memory before the beginning of the FFT!\n");
-      return (fcomplex *) obs->fft + (lobin - obs->lobin);
-   } else {
-      return read_fcomplex_file(obs->fftfile, lobin - obs->lobin, numbins);
-   }
+    if (obs->mmap_file || obs->dat_input) {
+        fcomplex *tmpdata = gen_cvect(numbins);
+        int offset = 0;
+        // zero-pad if we try to read before the beginning of the FFT
+        if (lobin - obs->lobin < 0) {
+            fcomplex zeros = {0.0, 0.0};
+            int ii;
+            offset = abs(lobin - obs->lobin);
+            for (ii = 0 ; ii < offset ; ii++)
+                tmpdata[ii] = zeros;
+        }            
+        memcpy(tmpdata + offset, 
+               (fcomplex *) (obs->fft + (lobin - obs->lobin) + offset),
+               sizeof(fcomplex) * (numbins - offset));
+        return tmpdata;
+    } else {
+        return read_fcomplex_file(obs->fftfile, lobin - obs->lobin, numbins);
+    }
 }
 
 
@@ -847,6 +857,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    numdata = hibin - lobin + 1;
    nice_numdata = next2_to_n(numdata);  // for FFTs
    data = get_fourier_amplitudes(lobin, nice_numdata, obs);
+   if (!obs->mmap_file && !obs->dat_input)
+       printf("This is newly malloc'd!\n");
 
    // Normalize the Fourier amplitudes
 
@@ -901,8 +913,9 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
                          ACCEL_NUMBETWEEN, binoffset, CORR);
       datainf = SAME;
    }
-   if (!obs->mmap_file && !obs->dat_input)
-      free(data);
+
+   // Always free data
+   free(data);
 
    /* Convert the amplitudes to normalized powers */
 
