@@ -933,8 +933,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
        }
        loc_powers = corr_loc_pow(powers, nice_numdata);
        for (ii = 0; ii < numdata; ii++) {
-           // Maybe use the fast-inverse-sqrt function for this?
-           float norm = 1.0 / sqrt(loc_powers[ii]);
+           float norm = invsqrt(loc_powers[ii]);
            data[ii].r *= norm;
            data[ii].i *= norm;
        }

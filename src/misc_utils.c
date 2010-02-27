@@ -143,6 +143,21 @@ void strtofilename(char *string)
    } while (ii--);
 }
 
+
+float invsqrt(float x)
+// See http://en.wikipedia.org/wiki/Fast_inverse_square_root
+{
+    union {
+        float f;
+        int i;
+    } tmp;
+    tmp.f = x;
+    tmp.i = 0x5f3759df - (tmp.i >> 1);
+    float y = tmp.f;
+    return y * (1.5f - 0.5f * x * y * y);
+}
+
+
 long long next2_to_n(long long x)
 /* Return the first value of 2^n >= x */
 {

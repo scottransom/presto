@@ -8,6 +8,9 @@
 long long next2_to_n(long long x);
 /* Return the first value of 2^n >= x */
 
+float invsqrt(float x);
+// See http://en.wikipedia.org/wiki/Fast_inverse_square_root
+
 int gcd(int a, int b);
 /* Return the greatest common divisor of a and b */
 
