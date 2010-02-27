@@ -56,6 +56,7 @@ typedef struct accelobs{
   char *candnm;        /* The fourierprop save file for the fundamentals */
   char *accelnm;       /* The filename of the final candidates in text */
   char *workfilenm;    /* The filename of the working candidates in text */
+  int use_harmonic_polishing; /* Should we force harmonics to be related */
 } accelobs;
 
 typedef struct accelcand{

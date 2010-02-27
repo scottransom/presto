@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "23Feb10" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "27Feb10" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -35,6 +35,7 @@ accelsearch \- Search an FFT or short time series for pulsars using a Fourier do
 [-locpow]
 [-zaplist zaplist]
 [-baryv baryv]
+[-harmpolish]
 infile
 .\" cligPart SYNOPSIS end
 
@@ -100,6 +101,8 @@ The radial velocity component (v/c) towards the target during the obs,
 1 Double value between -0.1 and 0.1.
 .br
 Default: `0.0'
+.IP -harmpolish
+Constrain harmonics to be harmonically related during polishing.
 .IP infile
 Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist.
 .\" cligPart OPTIONS end
