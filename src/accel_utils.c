@@ -440,13 +440,15 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
 void optimize_accelcand(accelcand * cand, accelobs * obs)
 {
    int ii;
-   int r_offset[MAX_HARMONICS];
-   fcomplex *data[MAX_HARMONICS];
+   int *r_offset;
+   fcomplex **data;
    double r, z;
 
    cand->pows = gen_dvect(cand->numharm);
    cand->hirs = gen_dvect(cand->numharm);
    cand->hizs = gen_dvect(cand->numharm);
+   r_offset = (int*) malloc(sizeof(int)*cand->numharm);
+   data = (fcomplex**) malloc(sizeof(fcomplex*)*cand->numharm);
    cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
 
    if (obs->use_harmonic_polishing) {
@@ -498,6 +500,8 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
           cand->hirs[ii] += obs->lobin;
        }
    }
+   free(r_offset);
+   free(data);
 
    cand->sigma = candidate_sigma(cand->power, cand->numharm,
                                  obs->numindep[twon_to_index(cand->numharm)]);
