@@ -21,11 +21,9 @@ else
 endif
 
 # Path to PGPLOT includes
-#PGPLOTINCDIR = -I$(PGPLOT_DIR)
-PGPLOTINCDIR = 
+PGPLOTINCDIR = -I$(PGPLOT_DIR)
 # Path to PGPLOT libraries
-#PGPLOTLIBDIR = -L$(PGPLOT_DIR)
-PGPLOTLIBDIR = 
+PGPLOTLIBDIR = -L$(PGPLOT_DIR)
 # How to link with the PGPLOT libs
 PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -lpng -lz -ldl
 
