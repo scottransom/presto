@@ -207,7 +207,7 @@ class pfd:
             freqs = psr_utils.doppler(self.subfreqs, self.avgvoverc)
         else:
             freqs = self.subfreqs
-        self.subdelays = psr_utils.delay_from_DM(DM, self.subfreqs)
+        self.subdelays = psr_utils.delay_from_DM(DM, freqs)
         self.hifreqdelay = self.subdelays[-1]
         self.subdelays = self.subdelays-self.hifreqdelay
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
@@ -292,12 +292,11 @@ class pfd:
             Other than running self.dedisperse(), the datacube
                 is not modified.
         """
-        # Dedisperse
-        if not self.__dict__.has_key('subdelays'):
-            print "Dedispersing first..."
-            self.dedisperse(interp=interp, doppler=1)
-
-        parttimes = self.start_secs
+	# Cast to single precision and back to double precision to
+	# emulate prepfold_plot.c, where parttimes is of type "float"
+	# but values are upcast to "double" during computations.
+	# (surprisingly, it affects the resulting profile occasionally.)
+	parttimes = self.start_secs.astype('float32').astype('float64')
 
 	# Get delays
 	f_diff, fd_diff, fdd_diff = self.freq_offsets(p, pd, pdd)
