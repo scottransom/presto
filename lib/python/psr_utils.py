@@ -1579,9 +1579,9 @@ def psr_info(porf, pdorfd, time=None, input=None):
 
 def doppler(freq_observed, voverc):
     """doppler(freq_observed, voverc):
-    	This routine returns the frequency emitted by a pulsar 
-	(in MHz) given that we observe the pulsar at frequency 
-	freq_observed (MHz) while moving with radial velocity 
-	(in units of v/c) of voverc wrt the pulsar.
+        This routine returns the frequency emitted by a pulsar 
+        (in MHz) given that we observe the pulsar at frequency 
+        freq_observed (MHz) while moving with radial velocity 
+        (in units of v/c) of voverc wrt the pulsar.
     """
     return freq_observed * (1.0 + voverc)
