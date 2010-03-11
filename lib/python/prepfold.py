@@ -191,7 +191,7 @@ class pfd:
 
     def dedisperse(self, DM=None, interp=0, doppler=0):
         """
-        dedisperse(DM=self.bestdm, interp=0):
+        dedisperse(DM=self.bestdm, interp=0, doppler=0):
             Rotate (internally) the profiles so that they are de-dispersed
                 at a dispersion measure of DM.  Use FFT-based interpolation if
                 'interp' is non-zero (NOTE: It is off by default!).
@@ -235,7 +235,7 @@ class pfd:
 
     def freq_offsets(self, p=None, pd=None, pdd=None):
         """
-        freq_offsets(p=*bestp*, pd=*bestpd, pdd=*bestpdd*):
+        freq_offsets(p=*bestp*, pd=*bestpd*, pdd=*bestpdd*):
             Return the offsets between given frequencies
             and fold frequencies.
     
