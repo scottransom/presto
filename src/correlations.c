@@ -99,7 +99,8 @@ float *real_corr_conv(float *data, float *kernel, int numdata,
   /*      'type' = INPLACE_CORR:  correlation over-writes 'data'.   */
 {
    int ii;
-   float *tmpdat, normal, tmpd, tmpk, *dataptr, *kernptr;
+   float normal, tmpd, tmpk, *tmpdat;
+   fcomplex *fcdata, *fckern;
 
    /* Get the normalization factor */
 
@@ -121,7 +122,7 @@ float *real_corr_conv(float *data, float *kernel, int numdata,
       tmpdat = data;
    } else {
       tmpdat = gen_fvect(numdata);
-      memcpy(tmpdat, data, sizeof(fcomplex) * numdata);
+      memcpy(tmpdat, data, sizeof(float) * numdata);
    }
    if (ffts == FFTDK || ffts == FFTD) {
       realfft(tmpdat, numdata, -1);
@@ -129,37 +130,40 @@ float *real_corr_conv(float *data, float *kernel, int numdata,
    if (ffts == FFTDK || ffts == FFTK) {
       realfft(kernel, numdata, -1);
    }
-   /* Do the complex multiplications */
 
-   dataptr = tmpdat + 2;
-   kernptr = kernel + 2;
+   // Act like our packed-complex floats are really fcomplex values
+
+   fcdata = (fcomplex *)tmpdat;
+   fckern = (fcomplex *)kernel;
+
+   // Do the complex multiplications
 
    if (type == CORR || type == INPLACE_CORR) {
       for (ii = 1; ii < numdata / 2; ii++) {
-         tmpd = *(dataptr++);
-         tmpk = *(kernptr++);
-         *(dataptr - 1) = (tmpd * tmpk + (*dataptr) * (*kernptr)) * normal;
-         *dataptr = ((*dataptr) * tmpk - (*kernptr) * tmpd) * normal;
-         dataptr++;
-         kernptr++;
+         tmpd = fcdata[ii].r;
+         tmpk = fckern[ii].r;
+         fcdata[ii].r = (tmpd * tmpk + fcdata[ii].i * fckern[ii].i)
+             * normal;
+         fcdata[ii].i = (fcdata[ii].i * tmpk - fckern[ii].i * tmpd)
+             * normal;
       }
    } else {
       for (ii = 1; ii < numdata / 2; ii++) {
-         tmpd = *(dataptr++);
-         tmpk = *(kernptr++);
-         *(dataptr - 1) = (tmpd * tmpk - (*dataptr) * (*kernptr)) * normal;
-         *dataptr = ((*dataptr) * tmpk + (*kernptr) * tmpd) * normal;
-         dataptr++;
-         kernptr++;
+         tmpd = fcdata[ii].r;
+         tmpk = fckern[ii].r;
+         fcdata[ii].r = (tmpd * tmpk - fcdata[ii].i * fckern[ii].i)
+             * normal;
+         fcdata[ii].i = (fcdata[ii].i * tmpk + fckern[ii].i * tmpd)
+             * normal;
       }
    }
 
-   /* Pack the first bin */
+   // Now handle bin zero
 
-   tmpdat[0] *= kernel[0] * normal;
-   tmpdat[1] *= kernel[1] * normal;
+   fcdata[0].r *= fckern[0].r * normal;
+   fcdata[0].i *= fckern[0].i * normal;
 
-   /* Perform the inverse FFT on the result and return */
+   // Perform the inverse FFT on the result and return
 
    realfft(tmpdat, numdata, 1);
    return tmpdat;
