@@ -669,7 +669,7 @@ int main(int argc, char *argv[])
                oldbin = currentbin;
             }
          }
-         *diffbinptr = INT_MAX; /* Used as a marker */
+         *diffbinptr = cmd->numout; /* Used as a marker */
       }
       diffbinptr = diffbins;
 
@@ -743,6 +743,7 @@ int main(int argc, char *argv[])
          /* the next bin that will be added or removed.      */
 
          numtowrite = abs(*diffbinptr) - datawrote;
+         /* FIXME: numtowrite+totwrote can wrap! */
          if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
             numtowrite = cmd->numout - totwrote;
          if (numtowrite > numread)
