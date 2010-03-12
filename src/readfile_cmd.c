@@ -1086,7 +1086,7 @@ usage(void)
   fprintf(stderr,"%s","                 default: `1.0'\n");
   fprintf(stderr,"%s","           file: Input data file name.\n");
   fprintf(stderr,"%s","                 1 value\n");
-  fprintf(stderr,"%s","  version: 20Feb08\n");
+  fprintf(stderr,"%s","  version: 12Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }

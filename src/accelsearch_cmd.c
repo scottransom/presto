@@ -970,7 +970,7 @@ usage(void)
   fprintf(stderr,"%s","    -harmpolish: Constrain harmonics to be harmonically related during polishing\n");
   fprintf(stderr,"%s","         infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                 1 value\n");
-  fprintf(stderr,"%s","  version: 27Feb10\n");
+  fprintf(stderr,"%s","  version: 12Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }

@@ -895,7 +895,7 @@ usage(void)
   fprintf(stderr,"%s","               default: `0'\n");
   fprintf(stderr,"%s","    fitsfiles: Input Spigot FITs files.\n");
   fprintf(stderr,"%s","               1...1024 values\n");
-  fprintf(stderr,"%s","  version: 04Jun07\n");
+  fprintf(stderr,"%s","  version: 12Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1012,3 +1012,4 @@ parseCmdline(int argc, char **argv)
   }
   /*@-compmempass*/  return &cmd;
 }
+

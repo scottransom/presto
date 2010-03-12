@@ -989,7 +989,7 @@ usage(void)
   fprintf(stderr,"%s","       -noalias: Do not add aliased powers to the harmonic sum.  (Faster but less accurate and sensitive)\n");
   fprintf(stderr,"%s","         infile: Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                 1 value\n");
-  fprintf(stderr,"%s","  version: 16Sep08\n");
+  fprintf(stderr,"%s","  version: 12Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
