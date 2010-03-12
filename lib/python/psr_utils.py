@@ -600,6 +600,17 @@ def delay_from_DM(DM, freq_emitted):
         return Num.where(freq_emitted > 0.0,
                          DM/(0.000241*freq_emitted*freq_emitted), 0.0)
 
+def delay_from_foffsets(df, dfd, dfdd, times):
+    """
+    Return the delays in phase caused by offsets in
+    frequency (df), and two frequency derivatives (dfd, dfdd)
+    at the given times in seconds.
+    """
+    f_delays = df * times
+    fd_delays = dfd * times**2 / 2.0
+    fdd_delays = dfdd * times**3 / 6.0
+    return (f_delays + fd_delays + fdd_delays)
+
 def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
                numchan=512, numsub=32, chanwidth=0.5, dt=0.000125,
                device='/xwin'):
@@ -1565,3 +1576,12 @@ def psr_info(porf, pdorfd, time=None, input=None):
     print " Characteristic Age = %g years" % age
     print "          Assumed I = %g g cm^2" % I
     print ""
+
+def doppler(freq_observed, voverc):
+    """doppler(freq_observed, voverc):
+        This routine returns the frequency emitted by a pulsar 
+        (in MHz) given that we observe the pulsar at frequency 
+        freq_observed (MHz) while moving with radial velocity 
+        (in units of v/c) of voverc wrt the pulsar.
+    """
+    return freq_observed * (1.0 + voverc)

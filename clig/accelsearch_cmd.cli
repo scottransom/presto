@@ -27,11 +27,14 @@ Double -flo     flo     {The lowest frequency (Hz) (of the highest harmonic!) to
 Double -fhi     fhi     {The highest frequency (Hz) (of the highest harmonic!) to search} \
 	-r 0.0 oo -d 10000.0
 Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
+Flag   -median  median  {Use old-style block-median power normalization (current default)}
+Flag   -locpow  locpow  {Use new-style double-tophat local-power normalization}
 String  -zaplist    zaplist \
         {A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file)}
 Double  -baryv      baryv \
         {The radial velocity component (v/c) towards the target during the obs} \
         -r -0.1 0.1  -d 0.0
+Flag   -harmpolish  harmpolish  {Constrain harmonics to be harmonically related during polishing}
 	
 # Rest of command line:
 

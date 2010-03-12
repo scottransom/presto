@@ -1122,7 +1122,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name(s).\n");
   fprintf(stderr,"%s","                 1...1024 values\n");
-  fprintf(stderr,"%s","  version: 20Jul08\n");
+  fprintf(stderr,"%s","  version: 12Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }

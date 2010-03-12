@@ -476,6 +476,7 @@ def main():
             snrs.append(cand.sigma)
             if cand.sigma > maxsnr:
                 maxsnr = cand.sigma
+        maxsnr = min(maxsnr,2e9)
         maxsnr = int(maxsnr) + 3
 
         # Generate the SNR histogram

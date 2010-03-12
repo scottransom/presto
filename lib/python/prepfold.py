@@ -189,19 +189,25 @@ class pfd:
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
 
-    def dedisperse(self, DM=None, interp=0):
+    def dedisperse(self, DM=None, interp=0, doppler=0):
         """
-        dedisperse(DM=self.bestdm, interp=0):
+        dedisperse(DM=self.bestdm, interp=0, doppler=0):
             Rotate (internally) the profiles so that they are de-dispersed
                 at a dispersion measure of DM.  Use FFT-based interpolation if
                 'interp' is non-zero (NOTE: It is off by default!).
+                Doppler shift subband frequencies if doppler is non-zero.
+                (NOTE: It is also off by default.)
         """
         if DM is None:
             DM = self.bestdm
         # Note:  Since TEMPO Doppler corrects observing frequencies, for
         #        TOAs, at least, we need to de-disperse using topocentric
         #        observing frequencies.
-        self.subdelays = psr_utils.delay_from_DM(DM, self.subfreqs)
+        if doppler:
+            freqs = psr_utils.doppler(self.subfreqs, self.avgvoverc)
+        else:
+            freqs = self.subfreqs
+        self.subdelays = psr_utils.delay_from_DM(DM, freqs)
         self.hifreqdelay = self.subdelays[-1]
         self.subdelays = self.subdelays-self.hifreqdelay
         delaybins = self.subdelays*self.binspersec - self.subdelays_bins
@@ -226,6 +232,91 @@ class pfd:
         self.sumprof = self.profs.sum(0).sum(0)
         if Num.fabs((self.sumprof/self.proflen).sum() - self.avgprof) > 1.0:
             print "self.avgprof is not the correct value!"
+
+    def freq_offsets(self, p=None, pd=None, pdd=None):
+        """
+        freq_offsets(p=*bestp*, pd=*bestpd*, pdd=*bestpdd*):
+            Return the offsets between given frequencies
+            and fold frequencies.
+    
+            If p, pd or pdd are None use the best values.
+
+            A 3-tuple is returned.
+        """
+        if self.fold_pow == 1.0:
+            bestp = self.bary_p1
+            bestpd = self.bary_p2
+            bestpdd = self.bary_p3
+        else:
+            bestp = self.topo_p1
+            bestpd = self.topo_p2
+            bestpdd = self.topo_p3
+        if p is not None:
+            bestp = p
+        if pd is not None:
+            bestpd = pdot
+        if pdd is not None:
+            bestpdd = pdotdot
+
+        # self.fold_p[123] are actually frequencies, convert to periods
+        foldf, foldfd, foldfdd = self.fold_p1, self.fold_p2, self.fold_p3
+        foldp, foldpd, foldpdd = psr_utils.p_to_f(self.fold_p1, \
+                                        self.fold_p2, self.fold_p3)
+
+        # Get best f, fd, fdd
+        # Use folding values to be consistent with prepfold_plot.c
+        bestfdd = psr_utils.p_to_f(foldp, foldpd, bestpdd)[2]
+        bestfd = psr_utils.p_to_f(foldp, bestpd)[1]
+        bestf = 1.0/bestp
+
+        # Get frequency and frequency derivative offsets
+        f_diff = bestf - foldf
+        fd_diff = bestfd - foldfd
+        # bestpdd=0.0 only if there was no searching over pdd
+        if bestpdd != 0.0:
+            fdd_diff = bestfdd - foldfdd
+        else:
+            fdd_diff = 0.0
+
+        return (f_diff, fd_diff, fdd_diff)
+
+    def time_vs_phase(self, p=None, pd=None, pdd=None, interp=0):
+        """
+        time_vs_phase(p=*bestp*, pd=*bestpd*, pdd=*bestpdd*):
+            Return the 2D time vs. phase profiles shifted so that
+                the given period and period derivative are applied.
+                Use FFT-based interpolation if 'interp' is non-zero 
+                (NOTE: It is off by default!).
+
+            Dedisperses the datacube, if necessary.
+            Other than running self.dedisperse(), the datacube
+                is not modified.
+        """
+        # Cast to single precision and back to double precision to
+        # emulate prepfold_plot.c, where parttimes is of type "float"
+        # but values are upcast to "double" during computations.
+        # (surprisingly, it affects the resulting profile occasionally.)
+        parttimes = self.start_secs.astype('float32').astype('float64')
+
+        # Get delays
+        f_diff, fd_diff, fdd_diff = self.freq_offsets(p, pd, pdd)
+        delays = psr_utils.delay_from_foffsets(f_diff, fd_diff, fdd_diff, parttimes)
+
+        # Convert from delays in phase to delays in bins
+        bin_delays = Num.fmod(delays * self.proflen, self.proflen)
+
+        # Rotate subintegrations
+        subints = self.combine_profs(self.npart, 1)[:,0,:]
+        for ii in range(self.npart):
+            tmp_prof = subints[ii,:]
+            # Negative sign in num bins to shift because we calculated delays
+            # Assuming +ve is shift-to-right, psr_utils.rotate assumes +ve
+            # is shift-to-left
+            if interp:
+                subints[ii,:] = psr_utils.fft_rotate(tmp_prof, -bin_delays[ii])
+            else:
+                subints[ii,:] = psr_utils.rotate(tmp_prof, -Num.floor(bin_delays[ii]+0.5))
+        return subints
 
     def combine_profs(self, new_npart, new_nsub):
         """

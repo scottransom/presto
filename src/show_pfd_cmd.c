@@ -839,7 +839,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: The input 'pfd' file name.\n");
   fprintf(stderr,"%s","                 1...100 values\n");
-  fprintf(stderr,"%s","  version: 21Nov06\n");
+  fprintf(stderr,"%s","  version: 12Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }

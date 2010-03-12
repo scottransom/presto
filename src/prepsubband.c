@@ -725,7 +725,7 @@ int main(int argc, char *argv[])
                oldbin = currentbin;
             }
          }
-         *diffbinptr = INT_MAX; /* Used as a marker */
+         *diffbinptr = cmd->numout; /* Used as a marker */
       }
       diffbinptr = diffbins;
 
