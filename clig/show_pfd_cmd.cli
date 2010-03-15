@@ -16,6 +16,7 @@ Flag -allgrey    allgrey    {Make all the images greyscale instead of color}
 Flag -justprofs  justprofs  {Only output the profile portions of the plot}
 Flag -portrait   portrait   {Orient the output in portrait mode (for -justprofs)}
 Flag -events     events     {The folded data were events instead of samples or bins}
+Flag -infoonly   infoonly   {Display the pfd info and exit without generating plots.}
 String -killsubs killsubsstr {Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step]}
 String -killparts killpartsstr {Comma separated string (no spaces!) of intervals to explicitly remove from analysis (i.e. zero-out).  Ranges are specified by min:max[:step]}
 
