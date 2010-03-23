@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 from pylab import *
-from psr_utils import gaussian_profile, span, read_profile
 from matplotlib.widgets import RectangleSelector
+from psr_utils import gaussian_profile, span, read_profile
 from matplotlib.patches import Rectangle
-from bestprof import bestprof
+from scipy.stats import mean, std
 import numpy as Num
 import mpfit, sys
 
@@ -13,7 +13,7 @@ class GaussianSelector:
         self.ax = ax
         self.profile = profile
         self.proflen = len(profile)
-        self.profnm = profnm
+        self.profnm = filenm
         self.phases = Num.arange(self.proflen, dtype='d')/self.proflen
         self.errs = errs
         self.visible = True
@@ -234,8 +234,8 @@ def fit_gaussians(data, initial_params, errs, profnm):
     print "chi-sq: %.2f" % chi_sq
     print "reduced chi-sq: %.2f" % (chi_sq/dof)
     residuals = data - gen_gaussians(fit_params, len(data))
-    print "residuals  mean: %.3g" % Num.mean(residuals)
-    print "residuals stdev: %.3g" % Num.std(residuals)
+    print "residuals  mean: %.3g"%mean(residuals)
+    print "residuals stdev: %.3g"%std(residuals)
     print "--------------------------------------"
     print " const = %.5f +/- %.5f" % (fit_params[0], fit_errs[0])
     for ii in range(numgaussians):
@@ -269,11 +269,7 @@ if __name__ == '__main__':
         if len(sys.argv)>=3:
             noise_stdev = float(sys.argv[2])
         else:
-            try:
-                bprof = bestprof(sys.argv[1])
-                noise_stdev = bprof.prof_std
-            except:
-                noise_stdev = 1.0
+            noise_stdev = 1.0
     figure(1)
     dataplot = subplot(211)
     GaussianSelector(dataplot, prof, noise_stdev, filenm)
