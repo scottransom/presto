@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "show_pfd" 1 "12Mar10" "Clig-manuals" "Programmer's Manual"
+.TH "show_pfd" 1 "15Mar10" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -28,6 +28,7 @@ show_pfd \- Displays or regenerates the Postscript for a 'pfd' file created by p
 [-justprofs]
 [-portrait]
 [-events]
+[-infoonly]
 [-killsubs killsubsstr]
 [-killparts killpartsstr]
 infile ...
@@ -47,6 +48,8 @@ Only output the profile portions of the plot.
 Orient the output in portrait mode (for -justprofs).
 .IP -events
 The folded data were events instead of samples or bins.
+.IP -infoonly
+Display the pfd info and exit without generating plots..
 .IP -killsubs
 Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step],
 .br

@@ -34,6 +34,8 @@ static Cmdline cmd = {
   /* portraitP = */ 0,
   /***** -events: The folded data were events instead of samples or bins */
   /* eventsP = */ 0,
+  /***** -infoonly: Display the pfd info and exit without generating plots. */
+  /* infoonlyP = */ 0,
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   /* killsubsstrP = */ 0,
   /* killsubsstr = */ (char*)0,
@@ -787,6 +789,13 @@ showOptionValues(void)
     printf("-events found:\n");
   }
 
+  /***** -infoonly: Display the pfd info and exit without generating plots. */
+  if( !cmd.infoonlyP ) {
+    printf("-infoonly not found.\n");
+  } else {
+    printf("-infoonly found:\n");
+  }
+
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   if( !cmd.killsubsstrP ) {
     printf("-killsubs not found.\n");
@@ -825,7 +834,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-noxwin] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-noxwin] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-infoonly] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
   fprintf(stderr,"%s","      Displays or regenerates the Postscript for a 'pfd' file created by prepfold.\n");
   fprintf(stderr,"%s","        -noxwin: Do not show the result plots on-screen, only make postscript files\n");
   fprintf(stderr,"%s","    -scaleparts: Scale the part profiles independently\n");
@@ -833,13 +842,14 @@ usage(void)
   fprintf(stderr,"%s","     -justprofs: Only output the profile portions of the plot\n");
   fprintf(stderr,"%s","      -portrait: Orient the output in portrait mode (for -justprofs)\n");
   fprintf(stderr,"%s","        -events: The folded data were events instead of samples or bins\n");
+  fprintf(stderr,"%s","      -infoonly: Display the pfd info and exit without generating plots.\n");
   fprintf(stderr,"%s","      -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step]\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","     -killparts: Comma separated string (no spaces!) of intervals to explicitly remove from analysis (i.e. zero-out).  Ranges are specified by min:max[:step]\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: The input 'pfd' file name.\n");
   fprintf(stderr,"%s","                 1...100 values\n");
-  fprintf(stderr,"%s","  version: 12Mar10\n");
+  fprintf(stderr,"%s","  version: 15Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -884,6 +894,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-events", argv[i]) ) {
       cmd.eventsP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-infoonly", argv[i]) ) {
+      cmd.infoonlyP = 1;
       continue;
     }
 

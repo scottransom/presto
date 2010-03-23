@@ -1020,7 +1020,7 @@ int main(int argc, char *argv[])
 
       /* Set the padded points equal to the average data point */
 
-      if (idata.numonoff > 1) {
+      if (idata.numonoff >= 1) {
          int index, startpad, endpad;
 
          for (ii = 0; ii < local_numdms; ii++) {
