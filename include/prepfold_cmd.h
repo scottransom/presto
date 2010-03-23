@@ -25,6 +25,12 @@ typedef struct s_Cmdline {
   char filterbankP;
   /***** -psrfits: Raw data in PSRFITS format */
   char psrfitsP;
+  /***** -noweights: Do not apply PSRFITS weights */
+  char noweightsP;
+  /***** -noscales: Do not apply PSRFITS scales */
+  char noscalesP;
+  /***** -nooffsets: Do not apply PSRFITS offsets */
+  char nooffsetsP;
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   char wappP;
   /***** -window: Window correlator lags with a Hamming window before FFTing */

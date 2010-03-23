@@ -18,6 +18,9 @@ Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) forma
 Flag   -spigot  spigot  {Raw data in Caltech-NRAO Spigot Card format}
 Flag   -filterbank  filterbank  {Raw data in SIGPROC filterbank format}
 Flag   -psrfits     psrfits     {Raw data in PSRFITS format}
+Flag   -noweights  noweights  {Do not apply PSRFITS weights}
+Flag   -noscales   noscales   {Do not apply PSRFITS scales}
+Flag   -nooffsets  nooffsets  {Do not apply PSRFITS offsets}
 Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) format}
 Flag   -window  window  {Window correlator lags with a Hamming window before FFTing}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \

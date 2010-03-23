@@ -38,6 +38,12 @@ static Cmdline cmd = {
   /* filterbankP = */ 0,
   /***** -psrfits: Raw data in PSRFITS format */
   /* psrfitsP = */ 0,
+  /***** -noweights: Do not apply PSRFITS weights */
+  /* noweightsP = */ 0,
+  /***** -noscales: Do not apply PSRFITS scales */
+  /* noscalesP = */ 0,
+  /***** -nooffsets: Do not apply PSRFITS offsets */
+  /* nooffsetsP = */ 0,
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   /* wappP = */ 0,
   /***** -window: Window correlator lags with a Hamming window before FFTing */
@@ -865,6 +871,27 @@ showOptionValues(void)
     printf("-psrfits found:\n");
   }
 
+  /***** -noweights: Do not apply PSRFITS weights */
+  if( !cmd.noweightsP ) {
+    printf("-noweights not found.\n");
+  } else {
+    printf("-noweights found:\n");
+  }
+
+  /***** -noscales: Do not apply PSRFITS scales */
+  if( !cmd.noscalesP ) {
+    printf("-noscales not found.\n");
+  } else {
+    printf("-noscales found:\n");
+  }
+
+  /***** -nooffsets: Do not apply PSRFITS offsets */
+  if( !cmd.nooffsetsP ) {
+    printf("-nooffsets not found.\n");
+  } else {
+    printf("-nooffsets found:\n");
+  }
+
   /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
   if( !cmd.wappP ) {
     printf("-wapp not found.\n");
@@ -1072,7 +1099,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-blocks blocks] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan zapchanstr] [-zapints zapintsstr] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-blocks blocks] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan zapchanstr] [-zapints zapintsstr] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Examines radio data for narrow and wide band interference as well as problems with channels\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1082,6 +1109,9 @@ usage(void)
   fprintf(stderr,"%s","        -spigot: Raw data in Caltech-NRAO Spigot Card format\n");
   fprintf(stderr,"%s","    -filterbank: Raw data in SIGPROC filterbank format\n");
   fprintf(stderr,"%s","       -psrfits: Raw data in PSRFITS format\n");
+  fprintf(stderr,"%s","     -noweights: Do not apply PSRFITS weights\n");
+  fprintf(stderr,"%s","      -noscales: Do not apply PSRFITS scales\n");
+  fprintf(stderr,"%s","     -nooffsets: Do not apply PSRFITS offsets\n");
   fprintf(stderr,"%s","          -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n");
   fprintf(stderr,"%s","        -window: Window correlator lags with a Hamming window before FFTing\n");
   fprintf(stderr,"%s","      -numwapps: Number of WAPPs used with contiguous frequencies\n");
@@ -1122,7 +1152,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name(s).\n");
   fprintf(stderr,"%s","                 1...1024 values\n");
-  fprintf(stderr,"%s","  version: 12Mar10\n");
+  fprintf(stderr,"%s","  version: 23Mar10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1176,6 +1206,21 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-psrfits", argv[i]) ) {
       cmd.psrfitsP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-noweights", argv[i]) ) {
+      cmd.noweightsP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-noscales", argv[i]) ) {
+      cmd.noscalesP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-nooffsets", argv[i]) ) {
+      cmd.nooffsetsP = 1;
       continue;
     }
 
