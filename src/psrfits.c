@@ -417,8 +417,12 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                                   s->num_channels, 0, fvec, &anynull, &status);
                     for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
                         // If the weights are not 1, apply them
-                        if (fvec[jj] != 1.0) s->apply_weight = 1;
+                        if (fvec[jj] != 1.0) {
+                            s->apply_weight = 1;
+                            break;
+                        }
                     }
+                    if (s->apply_weight < 0) s->apply_weight = 0;
                     free(fvec);
                 } else {
                     s->apply_weight = 0; // Do not apply if not needed
@@ -444,8 +448,12 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                                   s->num_channels, 0, fvec, &anynull, &status);
                     for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
                         // If the offsets are not 0, apply them
-                        if (fvec[jj] != 0.0) s->apply_offset = 1;
+                        if (fvec[jj] != 0.0) {
+                            s->apply_offset = 1;
+                            break;
+                        }
                     }
+                    if (s->apply_offset < 0) s->apply_offset = 0;
                     free(fvec);
                 } else {
                     s->apply_offset = 0; // Do not apply if not needed
@@ -471,8 +479,12 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                                   s->num_channels, 0, fvec, &anynull, &status);
                     for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
                         // If the scales are not 1, apply them
-                        if (fvec[jj] != 1.0) s->apply_scale = 1;
+                        if (fvec[jj] != 1.0) {
+                            s->apply_scale = 1;
+                            break;
+                        }
                     }
+                    if (s->apply_scale < 0) s->apply_scale = 0;
                     free(fvec);
                 } else {
                     s->apply_scale = 0; // Do not apply if not needed
