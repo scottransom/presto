@@ -415,18 +415,16 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     float *fvec = (float *)malloc(sizeof(float) * s->num_channels);
                     fits_read_col(s->files[ii], TFLOAT, s->dat_wts_col, 1L, 1L, 
                                   s->num_channels, 0, fvec, &anynull, &status);
-                    for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
+                    for (jj = 0 ; jj < s->num_channels - 1 ; jj++) {
                         // If the weights are not 1, apply them
                         if (fvec[jj] != 1.0) {
                             s->apply_weight = 1;
                             break;
                         }
                     }
-                    if (s->apply_weight < 0) s->apply_weight = 0;
                     free(fvec);
-                } else {
-                    s->apply_weight = 0; // Do not apply if not needed
                 }
+                if (s->apply_weight < 0) s->apply_weight = 0;  // not needed
             }
             
             // Data offsets
@@ -445,19 +443,18 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     float *fvec = (float *)malloc(sizeof(float) * 
                                                   s->num_channels * s->num_polns);
                     fits_read_col(s->files[ii], TFLOAT, s->dat_offs_col, 1L, 1L, 
-                                  s->num_channels, 0, fvec, &anynull, &status);
-                    for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
+                                  s->num_channels * s->num_polns, 
+                                  0, fvec, &anynull, &status);
+                    for (jj = 0 ; jj < s->num_channels * s->num_polns - 1 ; jj++) {
                         // If the offsets are not 0, apply them
                         if (fvec[jj] != 0.0) {
                             s->apply_offset = 1;
                             break;
                         }
                     }
-                    if (s->apply_offset < 0) s->apply_offset = 0;
                     free(fvec);
-                } else {
-                    s->apply_offset = 0; // Do not apply if not needed
                 }
+                if (s->apply_offset < 0) s->apply_offset = 0; // not needed
             }
             
             // Data scalings
@@ -476,19 +473,18 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     float *fvec = (float *)malloc(sizeof(float) * 
                                                   s->num_channels * s->num_polns);
                     fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
-                                  s->num_channels, 0, fvec, &anynull, &status);
-                    for (jj = 0 ; jj < s->num_channels-1 ; jj++) {
+                                  s->num_channels * s->num_polns, 
+                                  0, fvec, &anynull, &status);
+                    for (jj = 0 ; jj < s->num_channels * s->num_polns - 1 ; jj++) {
                         // If the scales are not 1, apply them
                         if (fvec[jj] != 1.0) {
                             s->apply_scale = 1;
                             break;
                         }
                     }
-                    if (s->apply_scale < 0) s->apply_scale = 0;
                     free(fvec);
-                } else {
-                    s->apply_scale = 0; // Do not apply if not needed
                 }
+                if (s->apply_scale < 0) s->apply_scale = 0; // not needed
             }
         }
         
