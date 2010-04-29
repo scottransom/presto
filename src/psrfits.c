@@ -913,14 +913,17 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         // This loop allows us to work with single polns out of many
         // or to sum polarizations if required
         if (S.num_polns > 1) {
-            if (user_poln || S.num_polns > 2) {  // The user chose the poln
+            int sum_polns = 0;
+
+            if ((0==strncmp(S.poln_order, "AABB", 4)) || (S.num_polns == 2)) sum_polns = 1;
+            if (user_poln || ((S.num_polns > 2) && !sum_polns)) {  // The user chose the poln
                 int ii, offset;
                 unsigned char *tmpptr = dataptr;
                 for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
                     offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
                     memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
                 }
-            } else if (S.num_polns == 2) { // sum the polns if there are 2 by default
+            } else if (sum_polns) { // sum the polns if there are 2 by default
                 int ii, jj, itmp, offset0, offset1;
                 unsigned char *tmpptr = dataptr;
                 for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
