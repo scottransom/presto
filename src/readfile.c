@@ -305,6 +305,8 @@ int main(int argc, char **argv)
    if (cmd->psrfitsP) {
        struct spectra_info s;
        
+       // -1 causes the data to determine if we use weights, scales, & offsets
+       s.apply_weight = s.apply_scale = s.apply_offset = -1;
        if (read_PSRFITS_files(cmd->argv, cmd->argc, &s)) {
            print_PSRFITS_info(&s);
            printf("\n");

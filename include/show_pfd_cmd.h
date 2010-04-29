@@ -21,6 +21,8 @@ typedef struct s_Cmdline {
   char portraitP;
   /***** -events: The folded data were events instead of samples or bins */
   char eventsP;
+  /***** -infoonly: Display the pfd info and exit without generating plots. */
+  char infoonlyP;
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   char killsubsstrP;
   char* killsubsstr;

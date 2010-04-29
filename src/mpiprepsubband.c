@@ -501,6 +501,10 @@ int main(int argc, char *argv[])
             char scope[40];
          
             printf("PSRFITS input file information:\n");
+            // -1 causes the data to determine if we use weights, scales, & offsets
+            s.apply_weight = (cmd->noweightsP) ? 0 : -1;
+            s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
+            s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
             read_PSRFITS_files(cmd->argv, cmd->argc, &s);
             N = s.N;
             ptsperblk = s.spectra_per_subint;
@@ -1020,7 +1024,7 @@ int main(int argc, char *argv[])
 
       /* Set the padded points equal to the average data point */
 
-      if (idata.numonoff > 1) {
+      if (idata.numonoff >= 1) {
          int index, startpad, endpad;
 
          for (ii = 0; ii < local_numdms; ii++) {

@@ -49,10 +49,10 @@ struct spectra_info {
     int dat_offs_col;       // The number of the DAT_OFFS column in the SUBINT HDU
     int dat_scl_col;        // The number of the DAT_SCL column in the SUBINT HDU
     int data_col;           // The number of the DATA column in the SUBINT HDU
-    int need_scale;         // Do we need to scale the data? (1=Yes, 0=No)
-    int need_offset;        // Do we need to offset the data? (1=Yes, 0=No)
-    int need_weight;        // Do we need to weight the data? (1=Yes, 0=No)
-    int need_flipband;      // Do we need to invert the band? (1=Yes, 0=No)
+    int apply_scale;         // Do we apply the scales to the data? (1=Yes, 0=No)
+    int apply_offset;        // Do we apply the offsets to the data? (1=Yes, 0=No)
+    int apply_weight;        // Do we apply the weights to the data? (1=Yes, 0=No)
+    int apply_flipband;      // Do we invert the band? (1=Yes, 0=No)
     float clip_sigma;       // Clipping value in standard deviations to use
     long double start_MJD[MAXPFITSFILES]; // Array of long double MJDs for the file starts
     fitsfile *files[MAXPFITSFILES];       // Array of num_files FITS file pointers
