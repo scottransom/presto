@@ -20,6 +20,7 @@ bin/explorefft
 bin/makedata
 bin/makeinf
 bin/mjd2cal
+bin/mpiprepsubband
 bin/patchdata
 bin/plotbincand
 bin/prepdata
@@ -50,3 +51,4 @@ lib/python/ppgplot/
 lib/python/presto/
 python/build/
 src/slalib/sla_test
+src/makewisdom
