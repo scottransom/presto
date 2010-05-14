@@ -51,7 +51,7 @@ OTHERLIBDIR = -L.
 PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTLINK)
 
 # When modifying the CLIG files, the is the location of the clig binary
-CLIG = /usr/local/bin/clig
+CLIG = clig
 
 # For Pentium IVs, use -march=pentium4
 # For Opterons, use -march=opteron
