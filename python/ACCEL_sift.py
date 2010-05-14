@@ -72,5 +72,5 @@ if len(cands):
 
 # Write candidates to STDOUT
 if len(cands):
-    cands.sort(sifting.cmp_snr)
+    cands.sort(sifting.cmp_sigma)
     sifting.write_candlist(cands)
