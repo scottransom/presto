@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "mpiprepsubband" 1 "20Jul08" "Clig-manuals" "Programmer's Manual"
+.TH "mpiprepsubband" 1 "14May10" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -29,6 +29,9 @@ mpiprepsubband \- Converts a raw radio data file into many de-dispersed time-ser
 [-spigot]
 [-filterbank]
 [-psrfits]
+[-noweights]
+[-noscales]
+[-nooffsets]
 [-wapp]
 [-window]
 [-numwapps numwapps]
@@ -65,6 +68,12 @@ Raw data in Caltech-NRAO Spigot Card format.
 Raw data in SIGPROC filterbank format.
 .IP -psrfits
 Raw data in PSRFITS format.
+.IP -noweights
+Do not apply PSRFITS weights.
+.IP -noscales
+Do not apply PSRFITS scales.
+.IP -nooffsets
+Do not apply PSRFITS offsets.
 .IP -wapp
 Raw data in Wideband Arecibo Pulsar Processor (WAPP) format.
 .IP -window
