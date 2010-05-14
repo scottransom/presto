@@ -196,7 +196,7 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
         use the best values based only on the data.
     """
     # Allowable DM stepsizes
-    allow_dDMs = [0.005, 0.01, 0.015, 0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0,
+    allow_dDMs = [0.01, 0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0,
                   2.0, 3.0, 5.0, 10.0, 20.0, 30.0, 50.0, 100.0, 200.0, 300.0]
     # Allowable number of downsampling factors
     allow_downsamps = [1, 2, 4, 8, 16, 32, 64]
@@ -209,7 +209,7 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
     
     # Fudge factor that "softens" the boundary defining
     # if 2 time scales are equal or not
-    ff = 1.1
+    ff = 1.2
     
     # This is the array that will hold the de-dispersion plans
     methods = []
