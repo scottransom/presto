@@ -15,23 +15,48 @@ int read_resid_rec(FILE * file, double *toa, double *obsf)
 /* the file resid2.tmp which is written by TEMPO.       */
 /* It returns 1 if successful, 0 if unsuccessful.       */
 {
-   static int l;
+   static int use_ints = 1;
    static double d[9];
 
-   fread(&l, sizeof(int), 1, file);
-   fread(&d, sizeof(double), 9, file);
-   //printf("Barycentric TOA = %17.10f\n", d[0]);
-   //printf("Postfit residual (pulse phase) = %g\n", d[1]);
-   //printf("Postfit residual (seconds) = %g\n", d[2]);
-   //printf("Orbital phase = %g\n", d[3]);
-   //printf("Barycentric Observing freq = %g\n", d[4]);
-   //printf("Weight of point in the fit = %g\n", d[5]);
-   //printf("Timing uncertainty = %g\n", d[6]);
-   //printf("Prefit residual (seconds) = %g\n", d[7]);
-   //printf("??? = %g\n\n", d[8]);
+   // The default Fortran binary block marker has 
+   // changed several times in recent versions of g77
+   // and gfortran.  So try to auto-detect what is going on.
+   // Hopefully this works for 32- and 64-bit issues too...
+   {
+       int ii;
+       long ll;
+
+       chkfread(&ii, sizeof(int), 1, file);
+       if (0) printf("(int) index = %d\n", ii);
+       if (ii != 72) { // 9 * doubles
+           rewind(file);
+           chkfread(&ll, sizeof(long), 1, file);
+           if (0) printf("(long) index = %ld\n", ll);
+           if (ll == 72) use_ints = 0;
+       }
+   }
+   //  Now read the rest of the binary record
+   chkfread(&d, sizeof(double), 9, file);
+   if (0) { // For debugging
+       printf("Barycentric TOA = %17.10f\n", d[0]);
+       printf("Postfit residual (pulse phase) = %g\n", d[1]);
+       printf("Postfit residual (seconds) = %g\n", d[2]);
+       printf("Orbital phase = %g\n", d[3]);
+       printf("Barycentric Observing freq = %g\n", d[4]);
+       printf("Weight of point in the fit = %g\n", d[5]);
+       printf("Timing uncertainty = %g\n", d[6]);
+       printf("Prefit residual (seconds) = %g\n", d[7]);
+       printf("??? = %g\n\n", d[8]);
+   }
    *toa = d[0];
    *obsf = d[4];
-   return fread(&l, sizeof(int), 1, file);
+   if (use_ints) {
+       int ii;
+       return chkfread(&ii, sizeof(int), 1, file);
+   } else {
+       long ll;
+       return chkfread(&ll, sizeof(long), 1, file);
+   }
 }
 
 void barycenter(double *topotimes, double *barytimes,
@@ -95,7 +120,10 @@ void barycenter(double *topotimes, double *barytimes,
    /* Check the TEMPO *.tmp and *.lis files for errors when done. */
 
    sprintf(command, "tempo bary.tmp > tempoout_times.tmp");
-   system(command);
+   if (system(command)==-1) {
+       fprintf(stderr, "\nError calling TEMPO in barycenter.c!\n");
+       exit(1);
+   }
 
    /* Now read the TEMPO results */
 
@@ -152,7 +180,10 @@ void barycenter(double *topotimes, double *barytimes,
    /* errors from TEMPO when complete.            */
 
    sprintf(command, "tempo bary.tmp > tempoout_vels.tmp");
-   system(command);
+   if (system(command)==-1) {
+       fprintf(stderr, "\nError calling TEMPO in barycenter.c!\n");
+       exit(1);
+   }
 
    /* Now read the TEMPO results */
 
