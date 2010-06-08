@@ -15,25 +15,42 @@ int read_resid_rec(FILE * file, double *toa, double *obsf)
 /* the file resid2.tmp which is written by TEMPO.       */
 /* It returns 1 if successful, 0 if unsuccessful.       */
 {
-   static int use_ints = 1;
+   static int firsttime = 1, use_ints = 0;
    static double d[9];
 
    // The default Fortran binary block marker has 
    // changed several times in recent versions of g77
    // and gfortran.  So try to auto-detect what is going on.
    // Hopefully this works for 32- and 64-bit issues too...
-   {
+   if (firsttime) {
        int ii;
        long ll;
+       double dd;
 
-       chkfread(&ii, sizeof(int), 1, file);
-       if (0) printf("(int) index = %d\n", ii);
-       if (ii != 72) { // 9 * doubles
+       chkfread(&ll, sizeof(long), 1, file);
+       chkfread(&dd, sizeof(double), 1, file);
+       if (0) printf("(long) index = %ld  (MJD = %17.10f)\n", ll, dd);
+       if (ll != 72 || dd < 40000.0 || dd > 60000.0) { // 9 * doubles
            rewind(file);
-           chkfread(&ll, sizeof(long), 1, file);
-           if (0) printf("(long) index = %ld\n", ll);
-           if (ll == 72) use_ints = 0;
+           chkfread(&ii, sizeof(int), 1, file);
+           chkfread(&dd, sizeof(double), 1, file);
+           if (0) printf("(int) index = %d    (MJD = %17.10f)\n", ii, dd);
+           if (ii == 72 && (dd > 40000.0 && dd < 60000.0)) {
+               use_ints = 1;
+           } else {
+               fprintf(stderr, "\nError:  Can't read the TEMPO residuals correctly!\n");
+               exit(1);
+           }
        }
+       rewind(file);
+       firsttime = 0;
+   }
+   if (use_ints) {
+       int ii;
+       chkfread(&ii, sizeof(int), 1, file);
+   } else {
+       long ll;
+       chkfread(&ll, sizeof(long), 1, file);
    }
    //  Now read the rest of the binary record
    chkfread(&d, sizeof(double), 9, file);
