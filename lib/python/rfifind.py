@@ -218,22 +218,25 @@ class rfifind:
         self.weights[self.zap_chans] = 0.0
         self.offsets = self.bandpass_avg
 
-    def write_weights_and_offsets(self, filename=None):
+    def write_weights_and_offsets(self, filename=None, invertband=False):
         if filename is None:
             filename = self.basename+".weights"
         outfile = open(filename, "w")
         outfile.write("# Chan    Weight    Offset\n")
+        weights = self.weights[::-1] if invertband else self.weights
+        offsets = self.offsets[::-1] if invertband else self.offsets
         for c, w, o in zip(np.arange(self.nchan), self.weights, self.offsets):
             outfile.write("%5d     %7.5f   %7.5f\n" % (c, w, o))
         outfile.close()
 
-    def write_weights(self, threshold=0.05, filename=None):
+    def write_weights(self, threshold=0.05, filename=None, invertband=False):
         # This weights file works for psrfits_subband
         if filename is None:
             filename = self.basename+".weights"
         outfile = open(filename, "w")
         outfile.write("# Chan    Weight\n")
-        for c, w in zip(np.arange(self.nchan), self.weights):
+        weights = self.weights[::-1] if invertband else self.weights
+        for c, w in zip(np.arange(self.nchan), weights):
             if w > threshold:
                 outfile.write("%5d     1\n" % (c))
             else:
@@ -243,6 +246,15 @@ class rfifind:
 if __name__=="__main__":
     import sys
     a = rfifind(sys.argv[1])
+    sys.stderr.write("\nWARNING!:  If raw data have channels in decreasing freq\n")
+    sys.stderr.write("           order, the channel ordering as given will be\n")
+    sys.stderr.write("           inverted!  Use 'invertband=True' in \n")
+    sys.stderr.write("           write_weights() in that case!\n")
+    if (a.idata.telescope=='GBT' and a.idata.lofreq < 1000.0):
+        sys.stderr.write("Data is from GBT Prime Focus, auto-flipping the weights/offsets...\n\n")
+        invert = True
+    else:
+        invert = False
     a.set_zap_chans(power=200.0,
                     edges=0.01,
                     asigma=2.0,
@@ -252,5 +264,5 @@ if __name__=="__main__":
                     chans=[])
     a.write_zap_chans()
     a.set_weights_and_offsets()
-    a.write_weights()
-    #a.write_weights_and_offsets()
+    a.write_weights(invertband=invert)
+    #a.write_weights_and_offsets(invertband=invert)
