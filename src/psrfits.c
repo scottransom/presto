@@ -1036,8 +1036,8 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 offset = jj * S.num_channels;
                 for (ii = 0 ; ii < S.num_channels/2 ; ii++) {
                     uctmp = dataptr[offset+ii];
-                    dataptr[offset+ii] = dataptr[offset+S.num_channels-ii];
-                    dataptr[offset+S.num_channels-ii] = uctmp;
+                    dataptr[offset+ii] = dataptr[offset+S.num_channels-ii-1];
+                    dataptr[offset+S.num_channels-ii-1] = uctmp;
                 }
             }
         }
