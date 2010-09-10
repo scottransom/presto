@@ -16,7 +16,8 @@ Written with portability, ease-of-use, and memory efficiency in mind,
 it can currently handle raw data from the following pulsar machines or
 formats:
 
-    * PSRFITS search-format data (as from GUPPI at the GBT and the Mock Spectrometers at Arecibo)
+    * PSRFITS search-format data (as from GUPPI at the GBT and the 
+      Mock Spectrometers at Arecibo)
     * SPIGOT at the GBT
     * Most Wideband Arecibo Pulsar Processor (WAPP) at Arecibo
     * The Parkes and Jodrell Bank 1-bit filterbank formats
@@ -144,7 +145,8 @@ main areas of pulsar analysis:
       de-dispersion, barycentering (via TEMPO).
    2. Searching: Fourier-domain acceleration, single-pulse, and 
       phase-modulation (or sideband) searches.
-   3. Folding: Candidate optimization and Time-of-Arrival (TOA) generation.
+   3. Folding: Candidate optimization and Time-of-Arrival (TOA) 
+      generation.
 
 Many additional utilities are provided for various tasks that are
 often required when working with pulsar data such as time conversions,
