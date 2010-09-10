@@ -74,8 +74,8 @@ int read_resid_rec(FILE * file, double *toa, double *obsf)
        int ii;
        return chkfread(&ii, sizeof(int), 1, file);
    } else {
-       long ll;
-       return chkfread(&ll, sizeof(long), 1, file);
+       long long ll;
+       return chkfread(&ll, sizeof(long long), 1, file);
    }
 }
 
