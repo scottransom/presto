@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import glob, os, os.path, shutil, socket, struct, sys, time
+import glob, os, os.path, shutil, socket, struct, sys, time, tarfile
 import numpy, psr_utils, presto, sifting, sigproc
 
 # Calling convention:
@@ -30,7 +30,7 @@ singlepulse_threshold = 5.0  # threshold SNR for candidate determination
 singlepulse_plot_SNR  = 6.0  # threshold SNR for singlepulse plot
 singlepulse_maxwidth  = 0.1  # max pulse width in seconds
 to_prepfold_sigma     = 6.0  # incoherent sum significance to fold candidates
-max_cands_to_fold     = 50   # Never fold more than this many candidates
+max_cands_to_fold     = 150   # Never fold more than this many candidates
 numhits_to_fold       = 2    # Number of DMs with a detection needed to fold
 low_DM_cutoff         = 2.0  # Lowest DM to consider as a "real" pulsar
 lo_accel_numharm      = 16   # max harmonics
@@ -448,9 +448,6 @@ def main(fil_filenm, workdir):
                 cmd = "single_pulse_search.py -p -m %f -t %f %s"%\
                       (singlepulse_maxwidth, singlepulse_threshold, datnm)
                 job.singlepulse_time += timed_execute(cmd)
-                try:
-                    shutil.copy(basenm+".singlepulse", job.outputdir)
-                except: pass
 
                 # FFT, zap, and de-redden
                 cmd = "realfft %s"%datnm
@@ -465,27 +462,19 @@ def main(fil_filenm, workdir):
                 except: pass
                 
                 # Do the low-acceleration search
-                cmd = "accelsearch -numharm %d -sigma %f -zmax %d -flo %f %s"%\
+                cmd = "accelsearch -locpow -harmpolish -numharm %d -sigma %f -zmax %d -flo %f %s"%\
                       (lo_accel_numharm, lo_accel_sigma, lo_accel_zmax, lo_accel_flo, fftnm)
                 job.lo_accelsearch_time += timed_execute(cmd)
                 try:
                     os.remove(basenm+"_ACCEL_%d.txtcand"%lo_accel_zmax)
                 except: pass
-                try:  # This prevents errors if there are no cand files to copy
-                    shutil.copy(basenm+"_ACCEL_%d.cand"%lo_accel_zmax, job.outputdir)
-                    shutil.copy(basenm+"_ACCEL_%d"%lo_accel_zmax, job.outputdir)
-                except: pass
         
                 # Do the high-acceleration search
-                cmd = "accelsearch -numharm %d -sigma %f -zmax %d -flo %f %s"%\
+                cmd = "accelsearch -locpow -harmpolish -numharm %d -sigma %f -zmax %d -flo %f %s"%\
                       (hi_accel_numharm, hi_accel_sigma, hi_accel_zmax, hi_accel_flo, fftnm)
                 job.hi_accelsearch_time += timed_execute(cmd)
                 try:
                     os.remove(basenm+"_ACCEL_%d.txtcand"%hi_accel_zmax)
-                except: pass
-                try:  # This prevents errors if there are no cand files to copy
-                    shutil.copy(basenm+"_ACCEL_%d.cand"%hi_accel_zmax, job.outputdir)
-                    shutil.copy(basenm+"_ACCEL_%d"%hi_accel_zmax, job.outputdir)
                 except: pass
 
                 # Remove the .dat and .fft files
@@ -494,9 +483,28 @@ def main(fil_filenm, workdir):
                     os.remove(fftnm)
                 except: pass
 
-    # Make the single-pulse plot
-    cmd = "single_pulse_search.py -t %f *.singlepulse"%singlepulse_plot_SNR
-    job.singlepulse_time += timed_execute(cmd)
+    # Make the single-pulse plots
+    basedmb = job.basefilenm+"_DM"
+    basedme = ".singlepulse "
+    # The following will make plots for DM ranges:
+    #    0-110, 100-310, 300-1000+
+    dmglobs = [basedmb+"[0-9].[0-9][0-9]"+basedme +
+               basedmb+"[0-9][0-9].[0-9][0-9]"+basedme +
+               basedmb+"10[0-9].[0-9][0-9]"+basedme,
+               basedmb+"[12][0-9][0-9].[0-9][0-9]"+basedme +
+               basedmb+"30[0-9].[0-9][0-9]"+basedme,
+               basedmb+"[3-9][0-9][0-9].[0-9][0-9]"+basedme +
+               basedmb+"1[0-9][0-9][0-9].[0-9][0-9]"+basedme]
+    dmrangestrs = ["0-110", "100-310", "300-1000+"]
+    psname = job.basefilenm+"_singlepulse.ps"
+    for dmglob, dmrangestr in zip(dmglobs, dmrangestrs):
+        cmd = 'single_pulse_search.py -t %f -g "%s"' % \
+              (singlepulse_plot_SNR, dmglob)
+        job.singlepulse_time += timed_execute(cmd)
+        try:
+            os.rename(psname,
+                      job.basefilenm+"_DMs%s_singlepulse.ps"%dmrangestr)
+        except: pass
 
     # Sift through the candidates to choose the best to fold
     
@@ -558,6 +566,32 @@ def main(fil_filenm, workdir):
     
     # NOTE:  need to add database commands
 
+    # Tar up the results files 
+
+    tar_suffixes = ["_ACCEL_%d.tgz"%lo_accel_zmax,
+                    "_ACCEL_%d.tgz"%hi_accel_zmax,
+                    "_ACCEL_%d.cand.tgz"%lo_accel_zmax,
+                    "_ACCEL_%d.cand.tgz"%hi_accel_zmax,
+                    "_singlepulse.tgz",
+                    "_inf.tgz",
+                    "_pfd.tgz",
+                    "_bestprof.tgz"]
+    tar_globs = ["*_ACCEL_%d"%lo_accel_zmax,
+                 "*_ACCEL_%d"%hi_accel_zmax,
+                 "*_ACCEL_%d.cand"%lo_accel_zmax,
+                 "*_ACCEL_%d.cand"%hi_accel_zmax,
+                 "*.singlepulse",
+                 "*_DM[0-9]*.inf",
+                 "*.pfd",
+                 "*.pfd.bestprof"]
+    for (tar_suffix, tar_glob) in zip(tar_suffixes, tar_globs):
+        tf = tarfile.open(job.basefilenm+tar_suffix, "w:gz")
+        for infile in glob.glob(tar_glob):
+            tf.add(infile)
+            os.remove(infile)
+    tf.close()
+           
+
     # And finish up
 
     job.total_time = time.time() - job.total_time
@@ -571,7 +605,7 @@ def main(fil_filenm, workdir):
 
     # Copy all the important stuff to the output directory
     try:
-        cmd = "cp *rfifind.[bimors]* *.pfd *.ps.gz *.png "+job.outputdir
+        cmd = "cp *rfifind.[bimors]* *.ps.gz *.tgz *.png "+job.outputdir
         os.system(cmd)
     except: pass
     

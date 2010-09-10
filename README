@@ -1,0 +1,82 @@
+             PRESTO
+             ------
+
+http://www.cv.nrao.edu/~sransom/presto/
+
+PRESTO is a large suite of pulsar search and analysis software
+developed by Scott Ransom mostly from scratch (and released under the
+GPL).  It was primarily designed to efficiently search for binary
+millisecond pulsars from long observations of globular clusters
+(although it has since been used in several surveys with short
+integrations and to process a lot of X-ray data as well).  It is
+written primarily in ANSI C, with many of the recent routines in
+Python.  According to Steve Eikenberry, PRESTO stands for: PulsaR
+Exploration and Search TOolkit!
+
+Written with portability, ease-of-use, and memory efficiency in mind,
+it can currently handle raw data from the following pulsar machines or
+formats:
+
+    * PSRFITS search-format data (as from GUPPI at the GBT)
+    * SPIGOT at the GBT
+    * Most Wideband Arecibo Pulsar Processor (WAPP) at Arecibo
+    * The Parkes and Jodrell Bank 1-bit filterbank formats
+    * Berkeley-Caltech Pulsar Machine (BCPM) at the GBT (may it RIP...)
+    * 8-bit filterbank format from SIGPROC (other formats will 
+      be added if required)
+    * A time series composed of single precision (i.e. 4-byte) 
+      floating point data
+    * Photon arrival times (or events) in ASCII or double-precision 
+      binary formats
+
+The software is composed of numerous routines designed to handle three
+main areas of pulsar analysis:
+
+   1. Data Preparation: Interference detection and removal, 
+      de-dispersion, barycentering (via TEMPO).
+   2. Searching: Fourier-domain acceleration, single-pulse, and 
+      phase-modulation (or sideband) searches.
+   3. Folding: Candidate optimization and Time-of-Arrival (TOA) generation.
+
+Many additional utilities are provided for various tasks that are
+often required when working with pulsar data such as time conversions,
+Fourier transforms, time series and FFT exploration, byte-swapping,
+etc.
+
+The Fourier-Domain acceleration search technique that PRESTO uses in
+the routine accelsearch is described in Ransom, Eikenberry, and
+Middleditch (2002), and the phase-modulation search technique used by
+search_bin is described in Ransom, Cordes, and Eikenberry (2003).
+Some other basic information about PRESTO can be found in my thesis.
+I will eventually get around to finishing the documentation for
+PRESTO, but until then you should know that each routine returns its
+basic usage when you call it with no arguments.  I am also willing to
+provide limited support via email or telephone (434-296-0320).
+
+To date, PRESTO has discovered well over a hundred pulsars, including
+more than 70 recycled pulsars, over 50 of which are in binaries!
+
+Getting it: The PRESTO source code is released under the GPL and can
+be browsed or gotten from here in many different ways (including
+zipped or tar'd or via git).  If you plan to tweak the code, I highly
+suggest that you use git and clone the directory (or fork it using an
+account on github).  If you plan on doing any significant development,
+please let me know and I'll either add you as a developer, or we can
+push/pull changes via git/github.  Code contributions are most
+welcome!
+
+Please let me know if you decide to use PRESTO for any "real"
+searches.  And if you find anything with it, it would be great if you
+would cite either my thesis or whichever of the two papers listed
+above is appropriate.  Thanks!
+
+Acknowledgements: Big thanks go to Steve Eikenberry for his help
+developing the algorithms, Dunc Lorimer for the basic code which is
+used to process BCPM and WAPP data, David Kaplan for lots of help with
+the GBT SPIGOT code, Jason Hessels for many contributions to the
+Python routines (and along with Maggie Livingstone for the rednoise
+reduction routine), and Paul Ray, Ingrid Stairs, Fernando Camilo, Cees
+Bassa, Patrick Lazarus and Paulo Freire for many comments and
+suggestions (and even some patches!).
+
+Scott Ransom <sransom@nrao.edu>
