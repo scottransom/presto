@@ -1159,6 +1159,17 @@ double simplefold(float *data, int numdata, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0        */
 /*    (i.e. to the beginning of the first data point)            */
 
+%apply double* IN_1D_DOUBLE { double *profs,
+         double *instats,
+         double *outprof };
+void combine_profs(double *profs, double * instats, int numprofs,
+                   int proflen, double *delays, double *outprof,
+                   foldstats * outstats);
+/* Combine a series of 'numprofs' profiles, each of length 'proflen',   */
+/* into a single profile of length 'proflen'.  The profiles are         */
+/* summed after the appropriate 'delays' are added to each profile.     */
+/* The result is a profile in 'outprof' (which must be pre-allocated)   */
+/* The input stats in 'instats' are combined and placed in 'outstats'   */
 
 double doppler(double freq_observed, double voverc);
 /* This routine returns the frequency emitted by a pulsar */
