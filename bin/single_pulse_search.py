@@ -2,7 +2,6 @@
 import bisect, os, sys, getopt, infodata, glob
 import scipy, scipy.signal, ppgplot
 import numpy as Num
-from sets import *
 from presto import rfft
 from psr_utils import coord_to_string
 from optparse import OptionParser
