@@ -295,6 +295,39 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                       &(s->start_subint[ii]), comment, &status);
         s->time_per_subint = s->dt * s->spectra_per_subint;
 
+        // Get the time offset column info and the offset for the 1st row
+        {
+            double offs_sub;
+            int colnum, anynull, numrows;
+
+            // Identify the OFFS_SUB column number
+            fits_get_colnum(s->files[ii], 0, "OFFS_SUB", &colnum, &status);
+            if (status==COL_NOT_FOUND) {
+                printf("Warning!:  Can't find the OFFS_SUB column!\n");
+                status = 0; // Reset status
+            } else {
+                if (ii==0) {
+                    s->offs_sub_col = colnum;
+                } else if (colnum != s->offs_sub_col) {
+                    printf("Warning!:  OFFS_SUB column changes between files!\n");
+                }
+            }
+
+            // Read the OFFS_SUB column value for the 1st row
+            fits_read_col(s->files[ii], TDOUBLE,
+                          s->offs_sub_col, 1L, 1L, 1L,
+                          0, &offs_sub, &anynull, &status);
+            numrows = (int)((offs_sub - 0.5 * s->time_per_subint) /
+                            s->time_per_subint + 1e-7);
+            // Check to see if any rows have been deleted or are missing
+            if (numrows > s->start_subint[ii]) {
+                printf("Warning: NSUBOFFS reports %d previous rows\n"
+                       "         but OFFS_SUB implies %d.  Using OFFS_SUB.\n",
+                       s->start_subint[ii], numrows);
+            }
+            s->start_subint[ii] = numrows;
+        }
+
         // This is the MJD offset based on the starting subint number
         MJDf = (s->time_per_subint * s->start_subint[ii]) / SECPERDAY;
         // The start_MJD values should always be correct
@@ -308,24 +341,11 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         }
         s->start_spec[ii] = (long long)(MJDf * SECPERDAY / s->dt + 0.5);
 
-        // Now pull stuff from the columns
+        // Now pull stuff from the other columns
         {
             float ftmp;
             long repeat, width;
             int colnum, anynull;
-            
-            // Identify the OFFS_SUB column number
-            fits_get_colnum(s->files[ii], 0, "OFFS_SUB", &colnum, &status);
-            if (status==COL_NOT_FOUND) {
-                printf("Warning!:  Can't find the OFFS_SUB column!\n");
-                status = 0; // Reset status
-            } else {
-                if (ii==0) {
-                    s->offs_sub_col = colnum;
-                } else if (colnum != s->offs_sub_col) {
-                    printf("Warning!:  OFFS_SUB column changes between files!\n");
-                }
-            }
             
             // Identify the data column and the data type
             fits_get_colnum(s->files[ii], 0, "DATA", &colnum, &status);
