@@ -17,6 +17,7 @@ bin/downsample
 bin/dump_spigot_zerolag
 bin/exploredat
 bin/explorefft
+bin/fitsdelrow
 bin/makedata
 bin/makeinf
 bin/mjd2cal
