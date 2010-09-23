@@ -131,7 +131,7 @@ class rfifind:
 
     def get_no_signal_chans(self):
         med_std = np.median(self.median_bandpass_std)
-        return np.where(self.bandpass_std<0.05*med_std)[0]
+        return np.where(self.bandpass_std<0.15*med_std)[0]
 
     def get_edge_chans(self, edges=0.01):
         nedge = int(self.nchan * edges)
