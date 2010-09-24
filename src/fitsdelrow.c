@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     if (argc==1) {
         printf("usage:  fitsdelrow fitsfile.fits[3] 1 7\n"
                "        where the optional [#] means the HDU number, and 1 and 7\n"
-               "        are the start and ending rows inclusive to delete\n\n");
+               "        are the start row and number of rows to delete\n\n");
         exit(0);
     }
 
