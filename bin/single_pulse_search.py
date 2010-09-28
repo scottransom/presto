@@ -65,7 +65,7 @@ def prune_related1(hibins, hivals, downfact):
     # but less significant.  This one works on the raw 
     # candidate arrays and uses the single downfact
     # that they were selected with.
-    toremove = Set()
+    toremove = set()
     for ii in range(0, len(hibins)-1):
         if ii in toremove:  continue
         xbin, xsigma = hibins[ii], hivals[ii]
@@ -92,7 +92,7 @@ def prune_related2(dm_candlist, downfacts):
     # but less significant.  This one works on the candidate 
     # instances and looks at the different downfacts of the
     # the different candidates.
-    toremove = Set()
+    toremove = set()
     for ii in range(0, len(dm_candlist)-1):
         if ii in toremove:  continue
         xx = dm_candlist[ii]
@@ -121,7 +121,7 @@ def prune_border_cases(dm_candlist, offregions):
     # Ignore those that are locate in a half-width
     # of the boundary between data and padding
     #print offregions
-    toremove = Set()
+    toremove = set()
     for ii in range(len(dm_candlist))[::-1]:
         cand = dm_candlist[ii]
         loside = cand.bin-cand.downfact/2
@@ -364,7 +364,7 @@ def main():
                 loind, hiind = bad_block*detrendlen, (bad_block+1)*detrendlen
                 timeseries[loind:hiind] = 0.0
             # Convert to a set for faster lookups below
-            bad_blocks = Set(bad_blocks)
+            bad_blocks = set(bad_blocks)
 
             # Step through the data
             dm_candlist = []
@@ -383,7 +383,7 @@ def main():
 
                 # Make a set with the current block numbers
                 lowblock = blocks_per_chunk * chunknum
-                currentblocks = Set(Num.arange(blocks_per_chunk) + lowblock)
+                currentblocks = set(Num.arange(blocks_per_chunk) + lowblock)
                 localgoodblocks = Num.asarray(list(currentblocks -
                                                    bad_blocks)) - lowblock
                 # Search this chunk if it is not all bad
