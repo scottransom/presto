@@ -8,8 +8,8 @@
 int main(int argc, char *argv[])
 {
    FILE *datfile, *rawfile;
-   char hdr[HDRLEN], filenm[100];
-   unsigned char dat[DATLEN];
+   char hdr[HDRLEN+8], filenm[100];
+   unsigned char dat[DATLEN+8];
    int ii = 0, numread;
 
    if (argc != 2) {
