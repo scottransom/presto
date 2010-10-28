@@ -1037,8 +1037,8 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
 
             pow = ffdot->powers[ii][jj];
             sig = candidate_sigma(pow, numharm, numindep);
-            rr = (ffdot->rlo + jj * ACCEL_DR) / numharm;
-            zz = (ffdot->zlo + ii * ACCEL_DZ) / numharm;
+            rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
+            zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
             cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz, &added);
             if (added && !obs->dat_input)
                fprintf(obs->workfile,
