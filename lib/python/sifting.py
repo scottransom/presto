@@ -47,7 +47,10 @@ def print_sift_globals():
 def parse_power(pow):
     power = float(pow.split("(")[0])
     if ("^" in pow):  # add exponent...
-        expon = float(pow.split("^")[1])
+        try:
+            expon = float(pow.split("^")[1])
+        except ValueError:
+            expon = 5 # power gets chopped off if this large
         power *= 10.0**(expon)
     return power
 
