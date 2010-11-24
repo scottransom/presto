@@ -1084,19 +1084,19 @@ usage(void)
   fprintf(stderr,"%s","                 1 double value between 0 and oo\n");
   fprintf(stderr,"%s","                 default: `1.0'\n");
   fprintf(stderr,"%s","        -numdms: The number of DMs to de-disperse\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 4000\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and 128000\n");
   fprintf(stderr,"%s","                 default: `10'\n");
   fprintf(stderr,"%s","          -nsub: The number of sub-bands to use\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 1024\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and 4096\n");
   fprintf(stderr,"%s","                 default: `32'\n");
   fprintf(stderr,"%s","      -downsamp: The number of neighboring bins to co-add\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 32\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and 64\n");
   fprintf(stderr,"%s","                 default: `1'\n");
   fprintf(stderr,"%s","          -mask: File containing masking information to use\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...1024 values\n");
-  fprintf(stderr,"%s","  version: 14May10\n");
+  fprintf(stderr,"%s","  version: 24Nov10\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1255,7 +1255,7 @@ parseCmdline(int argc, char **argv)
       cmd.numdmsP = 1;
       i = getIntOpt(argc, argv, i, &cmd.numdms, 1);
       cmd.numdmsC = i-keep;
-      checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 4000);
+      checkIntLower("-numdms", &cmd.numdms, cmd.numdmsC, 128000);
       checkIntHigher("-numdms", &cmd.numdms, cmd.numdmsC, 1);
       continue;
     }
@@ -1265,7 +1265,7 @@ parseCmdline(int argc, char **argv)
       cmd.nsubP = 1;
       i = getIntOpt(argc, argv, i, &cmd.nsub, 1);
       cmd.nsubC = i-keep;
-      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 1024);
+      checkIntLower("-nsub", &cmd.nsub, cmd.nsubC, 4096);
       checkIntHigher("-nsub", &cmd.nsub, cmd.nsubC, 1);
       continue;
     }
@@ -1275,7 +1275,7 @@ parseCmdline(int argc, char **argv)
       cmd.downsampP = 1;
       i = getIntOpt(argc, argv, i, &cmd.downsamp, 1);
       cmd.downsampC = i-keep;
-      checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 32);
+      checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 64);
       checkIntHigher("-downsamp", &cmd.downsamp, cmd.downsampC, 1);
       continue;
     }

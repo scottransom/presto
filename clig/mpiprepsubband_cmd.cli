@@ -39,11 +39,11 @@ Double  -lodm   lodm    {The lowest dispersion measure to de-disperse (cm^-3 pc)
 Double  -dmstep dmstep  {The stepsize in dispersion measure to use(cm^-3 pc)} \
 	-r 0 oo  -d 1.0
 Int     -numdms numdms  {The number of DMs to de-disperse} \
-	-r 1 4000 -d 10
+	-r 1 128000 -d 10
 Int     -nsub   nsub    {The number of sub-bands to use} \
-	-r 1 1024 -d 32
+	-r 1 4096 -d 32
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
-	-r 1 32 -d 1
+	-r 1 64 -d 1
 String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
