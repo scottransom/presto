@@ -112,7 +112,8 @@ int is_PSRFITS(char *filename)
 
     // See if the data are search-mode
     fits_read_key(fptr, TSTRING, "OBS_MODE", ctmp, comment, &status);
-    if (status || strcmp(ctmp, "SEARCH")) return 0;
+    if (status || (strcmp(ctmp, "SEARCH") && 
+                   strcmp(ctmp, "SRCH"))) return 0;
 
     fits_close_file(fptr, &status);
     return 1;  // it is search-mode  PSRFITS
@@ -123,8 +124,8 @@ int is_PSRFITS(char *filename)
         if (status) {\
             printf("Error %d reading key %s\n", status, name); \
             if (ii==0) param[0]='\0'; \
-            if (status==KEY_NO_EXIST) status=0;\
-        } else {                                                          \
+            if (status==KEY_NO_EXIST) status=0;                      \
+        } else {                                                     \
             if (ii==0) strncpy((param), ctmp, 40);                          \
             else if (strcmp((param), ctmp)!=0)                              \
                 printf("Warning!:  %s values don't match for files 0 and %d!\n", \
@@ -203,7 +204,11 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
 
         // Is the data in search mode?
         fits_read_key(s->files[ii], TSTRING, "OBS_MODE", ctmp, comment, &status);
-        if (strcmp(ctmp, "SEARCH")!=0) {
+        // Quick fix for Parkes DFB data (SRCH?  why????)...
+        if (strcmp("SRCH", ctmp)==0) {
+            strncpy(ctmp, "SEARCH", 40);
+        }
+        if (strcmp(ctmp, "SEARCH")) {
             fprintf(stderr, 
                     "\nError!  File '%s' does not contain SEARCH-mode data!\n", 
                     filenames[ii]);
@@ -215,6 +220,10 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         // Quick fix for MockSpec data...
         if (strcmp("ARECIBO 305m", ctmp)==0) {
             strncpy(ctmp, "Arecibo", 40);
+        }
+        // Quick fix for Parkes DFB data...
+        if (strcmp("parkes", strlower(remove_whitespace(ctmp)))==0) {
+            strncpy(ctmp, "Parkes", 40);
         }
         if (status) {
             printf("Error %d reading key %s\n", status, "TELESCOP");
