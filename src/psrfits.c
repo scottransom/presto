@@ -222,8 +222,14 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             strncpy(ctmp, "Arecibo", 40);
         }
         // Quick fix for Parkes DFB data...
-        if (strcmp("parkes", strlower(remove_whitespace(ctmp)))==0) {
-            strncpy(ctmp, "Parkes", 40);
+        {
+            char newctmp[80];
+
+            // Copy ctmp first since strlower() is in-place
+            strcpy(newctmp, ctmp);
+            if (strcmp("parkes", strlower(remove_whitespace(newctmp)))==0) {
+                strncpy(ctmp, "Parkes", 40);
+            }
         }
         if (status) {
             printf("Error %d reading key %s\n", status, "TELESCOP");
