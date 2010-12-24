@@ -901,7 +901,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    numdata = hibin - lobin + 1;
    nice_numdata = next2_to_n(numdata);  // for FFTs
    data = get_fourier_amplitudes(lobin, nice_numdata, obs);
-   if (!obs->mmap_file && !obs->dat_input)
+   if (!obs->mmap_file && !obs->dat_input && 0)
        printf("This is newly malloc'd!\n");
 
    // Normalize the Fourier amplitudes
@@ -1247,6 +1247,12 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
          }
          obs->fft = (fcomplex *) mmap(0, sizeof(fcomplex) * obs->numbins, PROT_READ,
                                       MAP_SHARED, obs->mmap_file, 0);
+         if (obs->fft == MAP_FAILED) {
+            perror("\nError in mmap() in accel_utils.c");
+            printf("Falling back to a non-mmaped approach\n");
+            obs->fftfile = chkfopen(cmd->argv[0], "rb");
+            obs->mmap_file = 0;
+         }
       } else {
          obs->mmap_file = 0;
       }
