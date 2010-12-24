@@ -461,6 +461,16 @@ def GAMMA_to_Mc(gamma, porb, e, Mp):
         return GAMMA(porb, e, mp, mc) - gamma
     return bisection(funct, 0.01, 20.0)
 
+def shklovskii_effect(pm, D):
+    """
+    shklovskii_effect(pm, D):
+        Return the 'acceleration' due to the transverse Doppler effect
+        (i.e. the Shklovskii Effect) given the proper motion (pm) in mas/yr
+        and the distance (D) in kpc.  Note:  What is returned is a_pm/C,
+        or equivalently, Pdot_pm/P.
+    """
+    return (pm/1000.0*ARCSECTORAD/SECPERJULYR)**2.0 * KMPERKPC*D / (C/1000.0)
+
 def beam_halfwidth(obs_freq, dish_diam):
     """
     beam_halfwidth(obs_freq, dish_diam):
