@@ -417,8 +417,8 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     s->lo_freq = freqs[0];
                     s->hi_freq = freqs[s->num_channels-1];
                     // Now check that the channel spacing is the same throughout
-                    for (jj = 0 ; jj < s->num_channels-2 ; jj++) {
-                        ftmp = freqs[jj+1]-freqs[jj];
+                    for (jj = 0 ; jj < s->num_channels - 1 ; jj++) {
+                        ftmp = freqs[jj+1] - freqs[jj];
                         if (fabs(ftmp - s->df) > 1e-7)
                             printf("Warning!:  Channel spacing changes in file %d!\n", ii);
                     }
@@ -452,7 +452,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     float *fvec = (float *)malloc(sizeof(float) * s->num_channels);
                     fits_read_col(s->files[ii], TFLOAT, s->dat_wts_col, 1L, 1L, 
                                   s->num_channels, 0, fvec, &anynull, &status);
-                    for (jj = 0 ; jj < s->num_channels - 1 ; jj++) {
+                    for (jj = 0 ; jj < s->num_channels ; jj++) {
                         // If the weights are not 1, apply them
                         if (fvec[jj] != 1.0) {
                             s->apply_weight = 1;
@@ -482,7 +482,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     fits_read_col(s->files[ii], TFLOAT, s->dat_offs_col, 1L, 1L, 
                                   s->num_channels * s->num_polns, 
                                   0, fvec, &anynull, &status);
-                    for (jj = 0 ; jj < s->num_channels * s->num_polns - 1 ; jj++) {
+                    for (jj = 0 ; jj < s->num_channels * s->num_polns ; jj++) {
                         // If the offsets are not 0, apply them
                         if (fvec[jj] != 0.0) {
                             s->apply_offset = 1;
@@ -512,7 +512,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
                                   s->num_channels * s->num_polns, 
                                   0, fvec, &anynull, &status);
-                    for (jj = 0 ; jj < s->num_channels * s->num_polns - 1 ; jj++) {
+                    for (jj = 0 ; jj < s->num_channels * s->num_polns ; jj++) {
                         // If the scales are not 1, apply them
                         if (fvec[jj] != 1.0) {
                             s->apply_scale = 1;
@@ -1022,7 +1022,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 fmed = median(fvec, S.spectra_per_subint*S.num_channels);
                 // Set the scale so that the median is at about 1/3 of the
                 // dynamic range of an unsigned char.  Note that this assumes
-                // that the data is properly offset so that the min values
+                // that the data are properly offset so that the min values
                 // are at values of zero...
                 global_scale = (256.0/3.0) / fmed;
                 printf("\nSetting PSRFITS global scale to %f\n", global_scale);
