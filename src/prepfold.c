@@ -525,55 +525,9 @@ int main(int argc, char *argv[])
 
       }
 
-      { // Set the correct observatory information
-         char scope[40];
-
-         strncpy(scope, idata.telescope, 40);
-         strlower(scope);
-         search.telescope = (char *) calloc(40, sizeof(char));
-
-         if (strcmp(scope, "gbt") == 0) {
-             strcpy(obs, "GB");
-             strcpy(search.telescope, "GBT");
-         } else if (strcmp(scope, "arecibo") == 0) {
-             strcpy(obs, "AO");
-             strcpy(search.telescope, "Arecibo");
-         } else if (strcmp(scope, "vla") == 0) {
-             strcpy(obs, "VL");
-             strcpy(search.telescope, "VLA");
-         } else if (strcmp(scope, "parkes") == 0) {
-             strcpy(obs, "PK");
-             strcpy(search.telescope, "Parkes");
-         } else if (strcmp(scope, "jodrell") == 0) {
-             strcpy(obs, "JB");
-             strcpy(search.telescope, "Jodrell Bank");
-         } else if ((strcmp(scope, "gb43m") == 0) ||
-                    (strcmp(scope, "gb 140ft") == 0)){
-             strcpy(obs, "G1");
-             strcpy(search.telescope, "GB43m");
-         } else if (strcmp(scope, "nancay") == 0) {
-             strcpy(obs, "NC");
-             strcpy(search.telescope, "Nancay");
-         } else if (strcmp(scope, "effelsberg") == 0) {
-             strcpy(obs, "EF");
-             strcpy(search.telescope, "Effelsberg");
-         } else if (strcmp(scope, "wsrt") == 0) {
-             strcpy(obs, "WT");
-             strcpy(search.telescope, "WSRT");
-         } else if (strcmp(scope, "gmrt") == 0) {
-             strcpy(obs, "GM");
-             strcpy(search.telescope, "GMRT");
-         } else if (strcmp(scope, "geocenter") == 0) {
-             strcpy(obs, "EC");
-             strcpy(search.telescope, "Geocenter");
-         } else {
-             printf("\nWARNING!!!:  I don't recognize the observatory (%s)!\n",
-                    idata.telescope);
-             printf("                 Defaulting to the Geocenter for TEMPO.\n");
-             strcpy(obs, "EC");
-             strcpy(search.telescope, "Unknown");
-         }
-      }
+      // Identify the TEMPO observatory code
+      search.telescope = (char *) calloc(40, sizeof(char));
+      telescope_to_tempocode(idata.telescope, search.telescope, obs);
 
       idata.dm = cmd->dm;
       numrec = local_N / ptsperrec;
