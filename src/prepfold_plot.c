@@ -826,7 +826,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             cpgbox("BCNST", 0.0, 0, "BCNST", 0.0, 0);
             cpgmtxt("L", 2.0, 0.5, 0.5, "Reduced \\gx\\u2\\d");
             cpgsch(0.8);
-            cpgmtxt("B", 2.6, 0.5, 0.5, "DM");
+            cpgmtxt("B", 2.6, 0.5, 0.5, "DM (pc/cm\\u3\\d)");
             ftmparr1 = gen_fvect(search->numdms);
             double2float(search->dms, ftmparr1, search->numdms);
             cpgline(search->numdms, ftmparr1, dmchi);
@@ -1238,7 +1238,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
                cpgtext(0.0, 0.8, out);
                if (search->nsub > 1) {
-                  sprintf(out, "Dispersion Measure (DM) = %.3f", search->bestdm);
+                  sprintf(out, "Dispersion Measure (DM; pc/cm\\u3\\d) = %.3f", search->bestdm);
                   cpgtext(0.0, 0.7, out);
                } else {
                   sprintf(out, "Dispersion Measure (DM) = N/A");
