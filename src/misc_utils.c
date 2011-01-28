@@ -144,6 +144,59 @@ void strtofilename(char *string)
 }
 
 
+void telescope_to_tempocode(char *inname, char *outname, char*obscode)
+// Return the 2 character TEMPO string for an observatory
+// whose name is in the string "inname".  Return a nice
+// name in "outname".
+{
+    char scope[40];
+    
+    strncpy(scope, inname, 40);
+    strlower(scope);
+    if (strcmp(scope, "gbt") == 0) {
+        strcpy(obscode, "GB");
+        strcpy(outname, "GBT");
+    } else if (strcmp(scope, "arecibo") == 0) {
+        strcpy(obscode, "AO");
+        strcpy(outname, "Arecibo");
+    } else if (strcmp(scope, "vla") == 0) {
+        strcpy(obscode, "VL");
+        strcpy(outname, "VLA");
+    } else if (strcmp(scope, "parkes") == 0) {
+        strcpy(obscode, "PK");
+        strcpy(outname, "Parkes");
+    } else if (strcmp(scope, "jodrell") == 0) {
+        strcpy(obscode, "JB");
+        strcpy(outname, "Jodrell Bank");
+    } else if ((strcmp(scope, "gb43m") == 0) ||
+               (strcmp(scope, "gb 140ft") == 0)){
+        strcpy(obscode, "G1");
+        strcpy(outname, "GB43m");
+    } else if (strcmp(scope, "nancay") == 0) {
+        strcpy(obscode, "NC");
+        strcpy(outname, "Nancay");
+    } else if (strcmp(scope, "effelsberg") == 0) {
+        strcpy(obscode, "EF");
+        strcpy(outname, "Effelsberg");
+    } else if (strcmp(scope, "wsrt") == 0) {
+        strcpy(obscode, "WT");
+        strcpy(outname, "WSRT");
+    } else if (strcmp(scope, "gmrt") == 0) {
+        strcpy(obscode, "GM");
+        strcpy(outname, "GMRT");
+    } else if (strcmp(scope, "geocenter") == 0) {
+        strcpy(obscode, "EC");
+        strcpy(outname, "Geocenter");
+    } else {
+        printf("\nWARNING!!!:  I don't recognize the observatory (%s)!\n",
+               inname);
+        printf("                 Defaulting to the Geocenter for TEMPO.\n");
+        strcpy(obscode, "EC");
+        strcpy(outname, "Unknown");
+    }
+}
+
+
 float invsqrt(float x)
 // See http://en.wikipedia.org/wiki/Fast_inverse_square_root
 {

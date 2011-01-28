@@ -225,15 +225,6 @@ int main(int argc, char *argv[])
          rewind(infiles[0]);
          PKMB_hdr_to_inf(&hdr, &idata);
          PKMB_update_infodata(numfiles, &idata);
-         /* OBS code for TEMPO for Parkes */
-         if (!strcmp(idata.telescope, "Parkes"))
-            strcpy(obs, "PK");
-         else if (!strcmp(idata.telescope, "Jodrell"))
-            strcpy(obs, "JB");
-         else {
-            printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
-                   idata.telescope);
-         }
       }
 
       /* Set-up values if we are using the GMRT Phased Array system */
@@ -263,22 +254,6 @@ int main(int argc, char *argv[])
                                   &N, &ptsperblock, &numchan, &dt, &T, 1);
          filterbank_update_infodata(numfiles, &idata);
          set_filterbank_padvals(padvals, good_padvals);
-         /* What telescope are we using? */
-         if (!strcmp(idata.telescope, "Arecibo")) {
-            strcpy(obs, "AO");
-         } else if (!strcmp(idata.telescope, "Parkes")) {
-            strcpy(obs, "PK");
-         } else if (!strcmp(idata.telescope, "Jodrell")) {
-            strcpy(obs, "JB");
-         } else if (!strcmp(idata.telescope, "Effelsberg")) {
-            strcpy(obs, "EF");
-         } else if (!strcmp(idata.telescope, "GBT")) {
-            strcpy(obs, "GB");
-         } else {
-            printf("\nYou need to choose a telescope whose data is in\n");
-            printf("$TEMPO/obsys.dat.  Exiting.\n\n");
-            exit(1);
-         }
       }
 
       /* Set-up values if we are using the Berkeley-Caltech */
@@ -289,8 +264,6 @@ int main(int argc, char *argv[])
                            &dt, &T, &idata, 1);
          BPP_update_infodata(numfiles, &idata);
          set_BPP_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for the GBT */
-         strcpy(obs, "GB");
       }
 
       /* Set-up values if we are using the NRAO-Caltech Spigot card */
@@ -305,15 +278,12 @@ int main(int argc, char *argv[])
                               &N, &ptsperblock, &numchan, &dt, &T, &idata, 1);
          SPIGOT_update_infodata(numfiles, &idata);
          set_SPIGOT_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for the GBT */
-         strcpy(obs, "GB");
          free(spigots);
       }
 
       /* Set-up values if we are using search-mode PSRFITS data */
       if (cmd->psrfitsP) {
          struct spectra_info s;
-         char scope[40];
          
          printf("PSRFITS input file information:\n");
           // -1 causes the data to determine if we use weights, scales, & offsets
@@ -330,21 +300,6 @@ int main(int argc, char *argv[])
                                &s, &idata, 1);
          PSRFITS_update_infodata(&idata);
          set_PSRFITS_padvals(padvals, good_padvals);
-         strncpy(scope, idata.telescope, 40);
-         strlower(scope);
-         /* OBS codes for TEMPO */
-         if (!strcmp(scope, "parkes")) {
-            strcpy(obs, "PK");
-         } else if (!strcmp(scope, "jodrell")) {
-            strcpy(obs, "JB");
-         } else if (!strcmp(scope, "gbt")) {
-            strcpy(obs, "GB");
-         } else if (!strcmp(scope, "arecibo")) {
-            strcpy(obs, "AO");
-         } else {
-            printf("\nWARNING!!!:  I don't recognize the observatory (%s)!",
-                   idata.telescope);
-         }
       }
 
       /* Set-up values if we are using the Arecibo WAPP */
@@ -355,8 +310,6 @@ int main(int argc, char *argv[])
                             1);
          WAPP_update_infodata(numfiles, &idata);
          set_WAPP_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for Arecibo */
-         strcpy(obs, "AO");
       }
 
       /* Finish setting up stuff common to all raw formats */
@@ -376,6 +329,13 @@ int main(int argc, char *argv[])
       }
       /* The number of topo to bary time points to generate with TEMPO */
       numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
+
+      // Identify the TEMPO observatory code
+      {
+          char *outscope = (char *) calloc(40, sizeof(char));
+          telescope_to_tempocode(idata.telescope, outscope, obs);
+          free(outscope);
+      }
    }
 
    /* Determine our initialization data if we do _not_ have Parkes, */
@@ -387,48 +347,26 @@ int main(int argc, char *argv[])
 
          /* The number of topo to bary time points to generate with TEMPO */
          numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
-
-         /* The number of data points to work with at a time */
-         if (worklen > idata.N)
-            worklen = idata.N;
-         worklen = (long) (worklen / 1024) * 1024;
-
-         /* What telescope are we using? */
-         if (!strcmp(idata.telescope, "Arecibo")) {
-            strcpy(obs, "AO");
-         } else if (!strcmp(idata.telescope, "Parkes")) {
-            strcpy(obs, "PK");
-         } else if (!strcmp(idata.telescope, "Jodrell")) {
-            strcpy(obs, "JB");
-         } else if (!strcmp(idata.telescope, "Effelsberg")) {
-            strcpy(obs, "EF");
-         } else if (!strcmp(idata.telescope, "MMT")) {
-            strcpy(obs, "MT");
-         } else if (!strcmp(idata.telescope, "GBT")) {
-            strcpy(obs, "GB");
-         } else if (!strcmp(idata.telescope, "Celeste")) {
-            strcpy(obs, "CE");
-         } else if (!strcmp(idata.telescope, "GMRT")) {
-            strcpy(obs, "GM");
-         } else {
-            printf("\nYou need to choose a telescope whose data is in\n");
-            printf("$TEMPO/obsys.dat.  Exiting.\n\n");
-            exit(1);
+         
+         // Identify the TEMPO observatory code
+         {
+             char *outscope = (char *) calloc(40, sizeof(char));
+             telescope_to_tempocode(idata.telescope, outscope, obs);
+             free(outscope);
          }
 
-      } else {                  /* No barycentering... */
-
-         /* The number of data points to work with at a time */
-         if (worklen > idata.N)
-            worklen = idata.N;
-         worklen = (long) (worklen / 1024) * 1024;
       }
+
+      /* The number of data points to work with at a time */
+      if (worklen > idata.N)
+          worklen = idata.N;
+      worklen = (long) (worklen / 1024) * 1024;
 
       /* Compare the size of the data to the size of output we request */
       if (!cmd->numoutP)
          cmd->numout = INT_MAX;
    }
-
+   
    /* Check if we are downsampling */
    dsdt = idata.dt * cmd->downsamp;
    if (cmd->downsamp > 1) {

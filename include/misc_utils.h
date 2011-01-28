@@ -43,6 +43,11 @@ void strtofilename(char *string);
 /* Trim spaces off the end of *input and convert */
 /* all other spaces into underscores.            */
 
+void telescope_to_tempocode(char *inname, char *outname, char*obscode);
+// Return the 2 character TEMPO string for an observatory
+// whose name is in the string "inname".  Return a nice
+// name in "outname".
+
 float *gen_freqs(long numfreqs, double lof, double df);
 /* This routine generates a float vector of length numfreqs */
 /* with values set to lof, lof+df, lof+2df, ...             */
