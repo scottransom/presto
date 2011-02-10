@@ -4,7 +4,7 @@ import Pgplot, ppgplot, bisect, sinc_interp
 from scipy.stats import histogram
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
-from scipy.optimize.minpack import bisection
+import scipy.optimize.zeros as zeros
 from psr_constants import *
 
 isintorlong = lambda x: type(x) == type(0) or type(x) == type(0L)
@@ -382,7 +382,7 @@ def pulsar_mass(pb, x, mc, inc):
     massfunct = mass_funct(pb, x)
     def localmf(mp, mc=mc, mf=massfunct, i=inc*DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
-    return bisection(localmf, 0.0, 1000.0)
+    return zeros.bisect(localmf, 0.0, 1000.0)
         
 def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
@@ -397,7 +397,7 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     massfunct = mass_funct(pb, x)
     def localmf(mc, mp=mpsr, mf=massfunct, i=inc*DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
-    return bisection(localmf, 0.0, 1000.0)
+    return zeros.bisect(localmf, 0.0, 1000.0)
         
 def companion_mass_limit(pb, x, mpsr=1.4):
     """
@@ -459,7 +459,7 @@ def GAMMA_to_Mc(gamma, porb, e, Mp):
     """
     def funct(mc, mp=Mp, porb=porb, e=e, gamma=gamma):
         return GAMMA(porb, e, mp, mc) - gamma
-    return bisection(funct, 0.01, 20.0)
+    return zeros.bisect(funct, 0.01, 20.0)
 
 def shklovskii_effect(pm, D):
     """
