@@ -63,6 +63,7 @@ class GaussianSelector:
       
     def press(self, event):
         'on button press event'
+        print 'on button press event'
         # Is the correct button pressed within the correct axes?
         if self.ignore(event): return         
         # make the drawed box/line visible get the click-coordinates,
