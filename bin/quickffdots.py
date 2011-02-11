@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 from infodata import *
 from presto import ffdot_plane, spectralpower
 from pylab import *
