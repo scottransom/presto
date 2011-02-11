@@ -1,23 +1,22 @@
 #!/usr/bin/env python
-from pylab import *
 from psr_utils import gaussian_profile, span, read_profile
-from matplotlib.widgets import RectangleSelector
 from matplotlib.patches import Rectangle
 from bestprof import bestprof
+import matplotlib.pyplot as plt
 import numpy as Num
 import mpfit, sys
 
 class GaussianSelector:
     def __init__(self, ax, profile, errs, profnm, minspanx=None,
                  minspany=None, useblit=True):
-        self.ax = ax
+        self.ax = ax.axes
         self.profile = profile
         self.proflen = len(profile)
         self.profnm = profnm
         self.phases = Num.arange(self.proflen, dtype='d')/self.proflen
         self.errs = errs
         self.visible = True
-        self.DCguess = sort(profile)[len(profile)/10+1]
+        self.DCguess = sorted(profile)[len(profile)/10+1]
         self.init_params = [self.DCguess]
         self.numgaussians = 0
         self.canvas = ax.figure.canvas
@@ -28,7 +27,7 @@ class GaussianSelector:
         self.background = None
         self.rectprops = dict(facecolor='white', edgecolor = 'black',
                               alpha=0.5, fill=False)
-        self.to_draw = Rectangle((0,0), 0, 1,visible=False,**self.rectprops)
+        self.to_draw = Rectangle((0,0), 0, 1, visible=False, **self.rectprops)
         self.ax.add_patch(self.to_draw)
         self.useblit = useblit
         self.minspanx = minspanx
@@ -38,12 +37,6 @@ class GaussianSelector:
         # will save the data (pos. at mouserelease)
         self.eventrelease = None          
         self.plot_gaussians(self.init_params)
-        draw()
-        #subplot(212)
-        #cla()
-        #xlabel('Pulse Phase')
-        #ylabel('Data-Fit Residuals')
-        #draw()
 
     def update_background(self, event):
         'force an update of the background'
@@ -58,12 +51,11 @@ class GaussianSelector:
             return event.inaxes!= self.ax       
         # If a button was pressed, check if the release-button is the
         # same.
-        return  (event.inaxes!=self.ax or
-                 event.button != self.eventpress.button)
+        return (event.inaxes!=self.ax or
+                event.button != self.eventpress.button)
       
     def press(self, event):
         'on button press event'
-        print 'on button press event'
         # Is the correct button pressed within the correct axes?
         if self.ignore(event): return         
         # make the drawed box/line visible get the click-coordinates,
@@ -72,7 +64,6 @@ class GaussianSelector:
         if event.button==1:
             self.to_draw.set_visible(self.visible)
             self.eventpress.ydata = self.DCguess
-        return False
 
     def release(self, event):
         'on button release event'
@@ -96,7 +87,6 @@ class GaussianSelector:
         self.onselect()
         self.eventpress = None                # reset the variables to their
         self.eventrelease = None              #   inital values
-        return False
 
     def update(self):
         'draw using newfangled blit or oldfangled draw depending on useblit'
@@ -107,7 +97,6 @@ class GaussianSelector:
             self.canvas.blit(self.ax.bbox)
         else:
             self.canvas.draw_idle()
-        return False
 
     def onmove(self, event):
         if self.eventpress is None or self.ignore(event): return
@@ -121,20 +110,19 @@ class GaussianSelector:
         self.to_draw.set_width(maxx-minx)     # set width and height of box
         self.to_draw.set_height(maxy-miny)
         self.update()
-        return False
     
     def plot_gaussians(self, params):
-        subplot(211)
-        cla()
+        plt.subplot(211)
+        plt.cla()
         # Re-plot the original profile
-        plot(self.phases, self.profile, c='black', lw=3, alpha=0.3)
-        xlabel('Pulse Phase')
-        ylabel('Pulse Amplitude')
+        plt.plot(self.phases, self.profile, c='black', lw=3, alpha=0.3)
+        plt.xlabel('Pulse Phase')
+        plt.ylabel('Pulse Amplitude')
         DC = params[0]
         # Plot the individual gaussians
         for ii in range(self.numgaussians):
             phase, FWHM, amp = params[1+ii*3:4+ii*3]
-            plot(self.phases, DC + amp*gaussian_profile(self.proflen, phase, FWHM))
+            plt.plot(self.phases, DC + amp*gaussian_profile(self.proflen, phase, FWHM))
 
     def onselect(self):
         event1 = self.eventpress
@@ -149,7 +137,7 @@ class GaussianSelector:
             self.init_params += [phase, FWHM, amp]
             self.numgaussians += 1
             self.plot_gaussians(self.init_params)
-            draw()
+            plt.draw()
         # Middle mouse button = fit the gaussians
         elif event1.button == event2.button == 2:
             fit_params, fit_errs, chi_sq, dof = \
@@ -162,29 +150,29 @@ class GaussianSelector:
             # Plot the best-fit profile
             self.plot_gaussians(fit_params)
             fitprof = gen_gaussians(fit_params, self.proflen)
-            plot(self.phases, fitprof, c='black', lw=1)
-            draw()
+            plt.plot(self.phases, fitprof, c='black', lw=1)
+            plt.draw()
             
             # Plot the residuals
-            subplot(212)
-            cla()
+            plt.subplot(212)
+            plt.cla()
             residuals = prof - fitprof
-            plot(self.phases, residuals)
-            xlabel('Pulse Phase')
-            ylabel('Data-Fit Residuals')
-            draw()
+            plt.plot(self.phases, residuals)
+            plt.xlabel('Pulse Phase')
+            plt.ylabel('Data-Fit Residuals')
+            plt.draw()
         # Right mouse button = remove last gaussian
         elif event1.button == event2.button == 3:
             if self.numgaussians:
                 self.init_params = self.init_params[:-3]
                 self.numgaussians -= 1
                 self.plot_gaussians(self.init_params)
-                draw()
-                subplot(212)
-                cla()
-                xlabel('Pulse Phase')
-                ylabel('Data-Fit Residuals')
-                draw()
+                plt.draw()
+                plt.subplot(212)
+                plt.cla()
+                plt.xlabel('Pulse Phase')
+                plt.ylabel('Data-Fit Residuals')
+                plt.draw()
 
 def gen_gaussians(params, N):
     """
@@ -275,8 +263,8 @@ if __name__ == '__main__':
                 noise_stdev = bprof.prof_std
             except:
                 noise_stdev = 1.0
-    figure(1)
-    dataplot = subplot(211)
-    GaussianSelector(dataplot, prof, noise_stdev, filenm)
-    show()
+    fig = plt.figure()
+    dataplot = fig.add_subplot(211)
+    interactor = GaussianSelector(dataplot, prof, noise_stdev, filenm)
+    plt.show()
     
