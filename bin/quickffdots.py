@@ -3,7 +3,6 @@ from infodata import *
 from presto import ffdot_plane, spectralpower
 from pylab import *
 import numpy as N
-from scipy.io import fread
 import sys
 
 numharm = 4
@@ -69,7 +68,7 @@ for harmnum in range(1, numharm+1):
 
     # Read and normalize the raw spectrum
     infile.seek(lo_file_r * 8, 0)
-    fftamps = fread(infile, hi_file_r-lo_file_r+1, 'F')
+    fftamps = N.fromfile(infile, 'F', hi_file_r-lo_file_r+1)
     fftpows = spectralpower(fftamps)
     pownorm = 1.0 / (1.442695 * N.median(fftpows))
     fftamps *= sqrt(pownorm)
