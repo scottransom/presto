@@ -108,7 +108,7 @@
       PARAMETER (AS2R=0.484813681109535994D-5)
 
 *  Table of station identifiers
-      PARAMETER (NMAX=83)
+      PARAMETER (NMAX=84)
       CHARACTER*10 CTAB(NMAX)
       DATA CTAB  (1) /'AAT       '/
       DATA CTAB  (2) /'LPO4.2    '/
@@ -193,6 +193,7 @@
       DATA CTAB (81) /'KOSMA3M   '/
       DATA CTAB (82) /'MAGELLAN1 '/
       DATA CTAB (83) /'MAGELLAN2 '/
+      DATA CTAB (84) /'NRT       '/
 
 *  Degrees, arcminutes, arcseconds to radians
       WEST(ID,IAM,AS)=AS2R*(DBLE(60*(60*ID+IAM))+DBLE(AS))
@@ -244,7 +245,7 @@
      :       510,520,530,540,550,560,570,580,590,600,
      :       610,620,630,640,650,660,670,680,690,700,
      :       710,720,730,740,750,760,770,780,790,800,
-     :       810,820,830) M
+     :       810,820,830,840) M
       GO TO 9000
 
 *  AAT (Observer's Guide)                                            AAT
@@ -930,6 +931,14 @@
       W=WEST(70,41,33.5)
       P=SOUTH(29,00,50.3)
       H=2408D0
+      GO TO 9999
+
+*  Nancay Radio Telescope, France, 94m equivalent               NRT
+ 840  CONTINUE
+      NAME='Nancay Radio Telescope, France, 94m equivalent'
+      W=EAST(2,11,50.92)
+      P=NORTH(47,22,24.97)
+      H=191.0
       GO TO 9999
 
 *  Unrecognized station
