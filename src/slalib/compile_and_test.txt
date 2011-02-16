@@ -1,6 +1,6 @@
 rm *.o
-g77 -fPIC -g -O2 -fno-second-underscore -c -I. *.f *.F
+gfortran -fPIC -g -O2 -fno-second-underscore -c -I. *.f *.F
 rm sla_test.o
-g77 -shared -o libsla.so -fno-second-underscore -g *.o
-g77 -o sla_test sla_test.f -fno-second-underscore -L. -lsla
+gfortran -shared -o libsla.so -fno-second-underscore -g *.o
+gfortran -o sla_test sla_test.f -fno-second-underscore -L. -lsla
 ./sla_test

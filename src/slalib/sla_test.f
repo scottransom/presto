@@ -4110,7 +4110,7 @@
       CALL VVD ( H, 2408D0, 1D-10, 'sla_OBS',
      :           '3/H', STATUS )
 
-      N = 84
+      N = 85
       CALL sla_OBS ( N, C, NAME, W, P, H )
       CALL VCS ( NAME, '?', 'sla_OBS', '4/NAME', STATUS )
 
