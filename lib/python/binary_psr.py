@@ -24,7 +24,7 @@ def shapS(m1, m2, x, pb):
             solar units, x (asini/c) in sec, and pb in days.
             The Shapiro S param is also equal to sin(i).
     """
-    return x * (pb*86400.0/(2.0*Num.pi))**(-2.0/3.0) * \
+    return x * (pb*SECPERDAY/TWOPI)**(-2.0/3.0) * \
            Tsun**(-1.0/3.0) * (m1 + m2)**(2.0/3.0) * 1.0/m2
 
 # Note:  S is also equal to sin(i)
@@ -173,10 +173,9 @@ class binary_psr:
     def shapiro_delays(self, R, S, ecc_anoms):
         """
         shapiro_delays(R, S, ecc_anoms):
-            Return the predicted Shapiro delays for a variety of
+            Return the predicted Shapiro delay (in us) for a variety of
                 eccentric anomalies (in radians) given the R and
-                S parameters, the eccentricity (ecc), and the
-                argument of periastron (omega, in radians).
+                S parameters.
         """
         canoms = Num.cos(ecc_anoms)
         sanoms = Num.sin(ecc_anoms)
@@ -187,6 +186,26 @@ class binary_psr:
         delay = -2.0e6*R*Num.log(1.0 - ecc*canoms -
                                  S*(sw*(canoms-ecc) +
                                     Num.sqrt((1.0 - ecc*ecc)) * cw * sanoms))
+        return delay
+
+
+    def shapiro_measurable(self, R, S, mean_anoms):
+        """
+        shapiro_measurable(R, S, mean_anoms):
+            Return the predicted _measurable_ Shapiro delay (in us) for a
+                variety of mean anomalies (in radians) given the R
+                and S parameters.  This is eqn 28 in Freire & Wex
+                2010 and is only valid in the low eccentricity limit.
+        """
+        Phi = mean_anoms + self.par.OM * DEGTORAD
+        cbar = Num.sqrt(1.0 - S**2.0)
+        zeta = S / (1.0 + cbar)
+        h3 = R * zeta**3.0
+        sPhi = Num.sin(Phi)
+        delay = -2.0e6 * h3 * (
+            Num.log(1.0 + zeta*zeta - 2.0 * zeta * sPhi) / zeta**3.0 +
+            2.0 * sPhi / zeta**2.0 -
+            Num.cos(2.0 * Phi) / zeta)
         return delay
 
 
