@@ -21,8 +21,9 @@ static int currentfile, currentblock;
 static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static float clip_sigma_st = 0.0;
 static int using_MPI = 0;
+static int ptperbytes_st = 1;
 
-/* Note:  Much of this has been ripped out of SIGPROC v2.8 */
+/* Note:  Much of this has been ripped out of SIGPROC      */
 /* and then slightly modified.  Thanks Dunc!               */
 
 static void send_string(char *string, FILE * outfile)
@@ -115,6 +116,12 @@ static char *telescope_name(int telescope_id)
    case 8:
       strcpy(string, "Effelsberg");
       Tdiam = 100.0;
+      break;
+   case 9:
+      strcpy(string, "ATA");
+      break;
+   case 10:
+      strcpy(string, "UTR-2");
       break;
    default:
       strcpy(string, "???????");
@@ -241,6 +248,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
    char string[80], message[80];
    int itmp, nbytes = 0, totalbytes;
    int expecting_rawdatafile = 0, expecting_source_name = 0;
+   int barycentric,pulsarcentric;
    /* try to read in the first line of the header */
    get_string(inputfile, &nbytes, string);
    if (!strings_equal(string, "HEADER_START")) {
@@ -300,6 +308,12 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
       } else if (strings_equal(string, "nbits")) {
          chkfread(&(fb->nbits), sizeof(int), 1, inputfile);
          totalbytes += sizeof(int);
+      } else if (strings_equal(string,"barycentric")) {
+         chkfread(&barycentric,sizeof(int),1,inputfile);
+	 totalbytes+=sizeof(int);
+      } else if (strings_equal(string,"pulsarcentric")) {
+         chkfread(&pulsarcentric,sizeof(int),1,inputfile);
+         totalbytes+=sizeof(int);
       } else if (strings_equal(string, "nsamples")) {
          /* read this one only for backwards compatibility */
          chkfread(&itmp, sizeof(int), 1, inputfile);
@@ -476,13 +490,13 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
 
    /* Now read the first header... */
    headerlen = read_filterbank_header(&(fb_st[0]), files[0]);
-   if (fb_st[0].nbits != 8) {
-      printf("\nThe number of bits per sample (%d) does not equal 8!",
-             fb_st[0].nbits);
-      printf("   Exiting.\n\n");
-      exit(0);
-   } else {
-      bytesperpt_st = 1;
+   if (fb_st[0].nbits == 8) {
+      printf("\nThe number of bits per sample (%d)",fb_st[0].nbits);
+      ptperbytes_st = 1;
+   } 
+   if (fb_st[0].nbits == 4) {
+      printf("\nThe number of bits per sample (%d)",fb_st[0].nbits);
+      ptperbytes_st = 2;
    }
    sigprocfb_to_inf(fb_st + 0, idata_st + 0);
    chkfseek(files[0], fb_st[0].headerlen, SEEK_SET);
@@ -491,7 +505,7 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
    *numchan = numchan_st = idata_st[0].num_chan;
    *ptsperblock = ptsperblk_st = BLOCKLEN;
    sampperblk_st = ptsperblk_st * numchan_st;
-   bytesperblk_st = bytesperpt_st * sampperblk_st;
+   bytesperblk_st = sampperblk_st / ptperbytes_st;
    numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
    numpts_st[0] = numblks_st[0] * ptsperblk_st;
    N_st = numpts_st[0];
@@ -686,6 +700,7 @@ int read_filterbank_rawblock(FILE * infiles[], int numfiles,
          /* Need to add this later */
       }
       convert_filterbank_block(rawdatabuffer, dataptr);
+
       *padding = 0;
       /* Put the new data into the databuffer if needed */
       if (bufferpts)
@@ -1022,17 +1037,26 @@ void convert_filterbank_block(int *indata, unsigned char *outdata)
 {
    int ii, jj, samp_ct, offset;
 
-   if (bytesperpt_st == 1) {
+   if (ptperbytes_st == 1) {
       unsigned char *chardata = (unsigned char *) indata;
       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
          offset = samp_ct * numchan_st;
          for (ii = 0, jj = numchan_st - 1; ii < numchan_st; ii++, jj--)
             outdata[ii + offset] = chardata[jj + offset];
       }
-   } else if (bytesperpt_st == 2) {
+   } else if (ptperbytes_st == 2) {
+      unsigned char c;
+      unsigned char *chardata = (unsigned char *) indata;
+      for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
+         offset = samp_ct * numchan_st;
+         for (ii = 0, jj = numchan_st/2 - 1; ii < numchan_st; ii+=2, jj--) {
+	    c = chardata[(jj + offset/2)];
+	    outdata[(ii+1) + offset] = (unsigned char ) (c & 15);
+	    outdata[ii + offset] = (unsigned char ) ( (c & 240) >> 4 );
+	 }
+      }
+   } else if (ptperbytes_st == 4) {
       printf("Can't handle 2-byte data yet!\n");
-   } else if (bytesperpt_st == 4) {
-      printf("Can't handle 4-byte data yet!\n");
    } else {
       printf("\nYikes!!! Not supposed to be here in convert_filterbank_block()\n\n");
    }
