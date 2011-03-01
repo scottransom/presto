@@ -8,8 +8,8 @@
 #define CacheL2size           262144
 #define Cacheburst            32
 #define Maxblocksize          67108864
-#define MAXREALFFT            300000000
-#define BIGFFTWSIZE           2000000
+#define MAXREALFFT            1000000000
+#define BIGFFTWSIZE           200000000
 #define KBF                   33554432
 #define Cachetreshold         32768
 #define Cacheburstblocksize   4
