@@ -44,11 +44,11 @@ FFTLINK = $(FFTLIBDIR) -lfftw3f
 
 # Other include directories (i.e. glib.h)
 OTHERINCDIR = -I$(SYSDIR)/include/glib-2.0 -I$(SYSDIR)/lib/glib-2.0/include
-# Other link directories (i.e. libcfitsio)
-OTHERLIBDIR = -L.
+# Other link directories (i.e. libcfitsio if in different location)
+OTHERLIBDIR =
 
 # The standard PRESTO libraries to link into executables
-PRESTOLINK = -L$(PRESTO)/lib -lpresto $(FFTLINK)
+PRESTOLINK = $(OTHERLIBDIR) -L$(PRESTO)/lib -lpresto $(FFTLINK)
 
 # When modifying the CLIG files, the is the location of the clig binary
 CLIG = clig
@@ -110,14 +110,14 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	spigotSband2filterbank GBT350filterbank\
 	psrorbit window plotbincand prepfold show_pfd\
 	rfifind zapbirds explorefft exploredat\
-	weight_psrfits fitsdelrow
+	weight_psrfits fitsdelrow fitsdelcol
 
 all: libpresto slalib binaries
 
 # Default indentation is K&R style with no-tabs,
-# an indentation level of 3, and a line-length of 85
+# an indentation level of 4 (default), and a line-length of 85
 indent:
-	indent -kr -nut -i3 -l85 *.c
+	indent -kr -nut -l85 *.c
 	rm *.c~
 
 prep:
@@ -161,7 +161,7 @@ mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o
 	mpicc $(CLINKFLAGS) -o $(PRESTO)/bin/$@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(OTHERLIB) -lglib-2.0 -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) -lglib-2.0 -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ bary.o $(PRESTOLINK) -lm
@@ -281,7 +281,7 @@ window: window.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ $(PLOT2DOBJS) window.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) $(OTHERLIB) -lglib-2.0 -lm
+	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lglib-2.0 -lm
 
 explorefft: explorefft.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ explorefft.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
@@ -293,7 +293,10 @@ weight_psrfits: weight_psrfits.o psrfits.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ weight_psrfits.o psrfits.o $(PRESTOLINK) -lcfitsio -lm
 
 fitsdelrow: fitsdelrow.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelrow.o -lcfitsio -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelrow.o $(OTHERLIBDIR) -lcfitsio -lm
+
+fitsdelcol: fitsdelcol.o
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelcol.o $(OTHERLIBDIR) -lcfitsio -lm
 
 clean:
 	rm -f *.o *~ *#
