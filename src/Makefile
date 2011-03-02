@@ -110,7 +110,7 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	spigotSband2filterbank GBT350filterbank\
 	psrorbit window plotbincand prepfold show_pfd\
 	rfifind zapbirds explorefft exploredat\
-	weight_psrfits fitsdelrow fitsdelcol
+	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays
 
 all: libpresto slalib binaries
 
@@ -291,6 +291,9 @@ exploredat: exploredat.o $(PLOT2DOBJS)
 
 weight_psrfits: weight_psrfits.o psrfits.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ weight_psrfits.o psrfits.o $(PRESTOLINK) -lcfitsio -lm
+
+psrfits_dumparrays: psrfits_dumparrays.o
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ psrfits_dumparrays.o $(OTHERLIBDIR) -lcfitsio -lm
 
 fitsdelrow: fitsdelrow.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelrow.o $(OTHERLIBDIR) -lcfitsio -lm

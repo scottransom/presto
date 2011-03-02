@@ -29,6 +29,7 @@ bin/prepdata
 bin/prepfold
 bin/prepsubband
 bin/psrorbit
+bin/psrfits_dumparrays
 bin/quicklook
 bin/readfile
 bin/realfft
