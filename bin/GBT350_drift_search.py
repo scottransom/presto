@@ -294,9 +294,9 @@ def main(fil_filenm, workdir, ddplans):
             subbasenm = "%s_DM%s"%(job.basefilenm, ddplan.subdmlist[passnum])
 
             # Now de-disperse 
-            cmd = "prepsubband -mask %s -lodm %.2f -dmstep %.2f -numdms %d -numout %d -o %s/%s %s"%\
+            cmd = "prepsubband -mask %s -lodm %.2f -dmstep %.2f -nsub %d -numdms %d -numout %d -o %s/%s %s"%\
                   (maskfilenm, ddplan.lodm+passnum*ddplan.sub_dmstep, ddplan.dmstep,
-                   ddplan.dmsperpass, job.N/ddplan.downsamp,
+                   ddplan.numsub, ddplan.dmsperpass, job.N/ddplan.downsamp,
                    tmpdir, job.basefilenm, fil_filenm)
             job.dedispersing_time += timed_execute(cmd)
             
