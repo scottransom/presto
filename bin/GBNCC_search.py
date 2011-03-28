@@ -4,9 +4,9 @@ import numpy, sys, presto, time, sigproc, sifting
 import psr_utils as pu
 import pyfits
 
-institution = "NRAOCV" 
+institution = "UTB" 
 base_tmp_dir = "/dev/shm/"
-base_output_dir = "/results/"
+base_output_dir = "/home/kstovall/data/GBNCC/newsearch_results/"
 
 #-------------------------------------------------------------------
 # Tunable parameters for searching and folding
@@ -152,6 +152,8 @@ class obs_info:
         self.dt=fitshandle[1].header['TBIN']*1000000
         self.raw_T = self.raw_N * self.dt
         self.N = orig_N
+        if self.dt == 163.84:
+          self.N=self.N/2
         self.T = self.N * self.dt
         self.srcname=fitshandle[0].header['SRC_NAME']
         # Determine the average barycentric velocity of the observation
@@ -240,21 +242,28 @@ def remove_crosslist_duplicate_candidates(candlist1,candlist2):
     removelist1 = []
     removelist2 = []
     candlist2.sort(sifting.cmp_freq)
+    candlist1.sort(sifting.cmp_freq)
     print "  Searching for crosslist dupes..."
     ii = 0
     while ii < n1:
         jj=0
         while jj < n2:
             if numpy.fabs(candlist1[ii].r-candlist2[jj].r) < sifting.r_err:
-              if sifting.cmp_sigma(candlist1[ii],candlist2[jj])>0:
-                  removelist2.append(jj)
+              if sifting.cmp_sigma(candlist1[ii],candlist2[jj])<0:
+                  print "Crosslist remove from candlist 2, %f > %f, %d:%f~%f" % (candlist1[ii].sigma,candlist2[jj].sigma,jj,candlist1[ii].r,candlist2[jj].r)
+                  if jj not in removelist2:
+                      removelist2.append(jj)
               else:
-                  removelist1.append(ii)
+                  print "Crosslist remove from candlist 1, %f > %f, %d:%f~%f" % (candlist2[jj].sigma,candlist1[ii].sigma,ii,candlist1[ii].r,candlist2[jj].r)
+                  if ii not in removelist1:
+                      removelist1.append(ii)
             jj += 1
         ii += 1
     for ii in range(len(removelist2)-1,-1,-1):
+      print "Removing %d from candlist2" % removelist2[ii]
       del(candlist2[removelist2[ii]])
     for ii in range(len(removelist1)-1,-1,-1):
+      print "Removing %d from candlist1" % removelist1[ii]
       del(candlist1[removelist1[ii]])
     print "Removed %d crosslist candidates\n" % (len(removelist1)+len(removelist2))
     print "Found %d candidates.  Sorting them by significance...\n" % (len(candlist1)+len(candlist2))
@@ -320,7 +329,7 @@ def main(fits_filenm, workdir, ddplans):
 
         # Make a downsampled filterbank file
         if ddplan.downsamp > 1:
-            cmd = "psrfits_subband -dstime %d -nsub %d -o %s_DS%d %s"%\
+            cmd = "/home/kstovall/src/psrfits_utils/psrfits_subband -dstime %d -nsub %d -o %s_DS%d %s"%\
                   (ddplan.downsamp, job.nchans, job.dsbasefilenm, ddplan.downsamp, job.dsbasefilenm )
             job.downsample_time += timed_execute(cmd)
             fits_filenm = job.dsbasefilenm + "_DS%d%s"%\
@@ -524,9 +533,9 @@ def main(fits_filenm, workdir, ddplans):
             
     # Remove all the downsampled .fil files
 
-    fitsfiles = glob.glob("*_DS*.fits")
-    for fitsfile in fitsfiles:
-        os.remove(fitsfile)
+    filfiles = glob.glob("*_DS?.fil") + glob.glob("*_DS??.fil")
+    for filfile in filfiles:
+        os.remove(filfile)
 
     # Remove the tmp directory (in a tmpfs mount)
     try:
@@ -558,7 +567,7 @@ if __name__ == "__main__":
         #
         # If there is <=1GB of RAM per CPU core, the following are preferred
         #
-        # For 4096slow chan data:               lodm dmstep dms/call #calls #subs downsamp
+        # For 4096slow chan data:               lodm    dmstep  dms/call #calls #subs downsamp
         ddplans['4096slow'].append(dedisp_plan(   0.0,  0.02,      86,    81,  128,       1))
         ddplans['4096slow'].append(dedisp_plan(139.32,  0.03,     102,    27,  128,       2))
         ddplans['4096slow'].append(dedisp_plan(221.94,  0.05,     102,    33,  128,       4))
