@@ -16,7 +16,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-import slalib
+import pyslalib.slalib as slalib
 import binary_psr
 import parfile as par
 import residuals
