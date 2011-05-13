@@ -478,7 +478,7 @@ def main(fil_filenm, workdir, ddplans):
         for infile in glob.glob(tar_glob):
             tf.add(infile)
             os.remove(infile)
-    tf.close()
+        tf.close()
             
     # Remove all the downsampled .fil files
 

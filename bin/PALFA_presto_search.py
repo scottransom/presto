@@ -589,7 +589,7 @@ def main(fil_filenm, workdir):
         for infile in glob.glob(tar_glob):
             tf.add(infile)
             os.remove(infile)
-    tf.close()
+        tf.close()
            
 
     # And finish up
