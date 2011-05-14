@@ -915,8 +915,10 @@ int read_WAPP(FILE * infiles[], int numfiles, float *data,
          }
 
          /* Only use the recently measured padding if all the channels aren't masked */
-         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-            memcpy(padvals, newpadvals, WAPP_MAXLAGLEN);
+         if ((clip_sigma_st > 0.0) && 
+             !(mask && (*nummasked == -1)) &&
+             (padvals != newpadvals))
+             memcpy(padvals, newpadvals, WAPP_MAXLAGLEN);
          
          if (mask) {
             if (*nummasked == -1) {     /* If all channels are masked */
@@ -1044,8 +1046,10 @@ int prep_WAPP_subbands(unsigned char *rawdata, float *data,
    }
 
    /* Only use the recently measured padding if all the channels aren't masked */
-   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-      memcpy(padvals, newpadvals, WAPP_MAXLAGLEN);
+   if ((clip_sigma_st > 0.0) && 
+       !(mask && (*nummasked == -1)) &&
+       (padvals != newpadvals))
+       memcpy(padvals, newpadvals, WAPP_MAXLAGLEN);
          
    if (mask) {
       if (*nummasked == -1) {   /* If all channels are masked */

@@ -1256,7 +1256,9 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
                                        duration, obsmask, maskchans);
            }
            // Only use the recently measured padding if all the channels aren't masked
-           if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
+           if ((S.clip_sigma > 0.0) && 
+               !(mask && (*nummasked == -1)) &&
+               (padvals != newpadvals))
                memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
            if (mask) {
                //if (S.num_polns > 1 && !S.summed_polns) {
@@ -1382,7 +1384,9 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
     }
     
     // Only use the recently measured padding if all the channels aren't masked
-    if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
+    if ((S.clip_sigma > 0.0) && 
+        !(mask && (*nummasked == -1)) &&
+        (padvals != newpadvals))
         memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
     
     if (mask) {
