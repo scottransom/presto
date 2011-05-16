@@ -702,7 +702,7 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
    int ii, jj, numcols = 13, numcands;
    int widths[13] = { 5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 10, 10, 20 };
    int errors[13] = { 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 0 };
-   char tmpstr[30], ctrstr[30], command[200], notes[21];
+   char tmpstr[30], ctrstr[30], notes[21], *command;
    accelcand *cand;
    GSList *listptr;
    fourierprops props;
@@ -804,8 +804,10 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
    }
    fprintf(obs->workfile, "\n\n");
    fclose(obs->workfile);
+   command = malloc(strlen(obs->rootfilenm) + strlen(obs->accelnm) + 20);
    sprintf(command, "cat %s.inf >> %s", obs->rootfilenm, obs->accelnm);
    system(command);
+   free(command);
 }
 
 
