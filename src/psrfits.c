@@ -9,7 +9,7 @@
 static struct spectra_info S;
 static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
 static float *offsets, *scales, global_scale = 1.0;
-static char *padvals=NULL, *newpadvals=NULL;
+static unsigned char *padvals=NULL, *newpadvals=NULL;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
 static int using_MPI = 0, default_poln = 0, user_poln = 0;
@@ -65,16 +65,16 @@ void set_PSRFITS_padvals(float *fpadvals, int good_padvals)
    float sum_padvals = 0.0;
 
    if (padvals==NULL) { // This is for the clients in mpiprepsubband
-       padvals = (char *)gen_bvect(S.num_channels);
+       padvals = gen_bvect(S.num_channels);
        newpadvals = padvals;
    }
 
    if (good_padvals) {
       for (ii = 0; ii < S.num_channels; ii++) {
-         padvals[ii] = newpadvals[ii] = (char) (fpadvals[ii] + 0.5);
+         padvals[ii] = newpadvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
          sum_padvals += fpadvals[ii];
       }
-      padval = (char) (sum_padvals / S.num_channels + 0.5);
+      padval = (unsigned char) (sum_padvals / S.num_channels + 0.5);
    } else {
       for (ii = 0; ii < S.num_channels; ii++)
          padvals[ii] = newpadvals[ii] = padval;
@@ -590,7 +590,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     if (s->num_polns > 1)
         tmpbuffer = gen_bvect(s->samples_per_subint);
     // TODO:  The following is temporary, until I fix the padding
-    padvals = (char *)gen_bvect(s->samples_per_spectra/s->num_polns);
+    padvals = gen_bvect(s->samples_per_spectra/s->num_polns);
     offsets = gen_fvect(s->samples_per_spectra);
     scales = gen_fvect(s->samples_per_spectra);
     for (ii = 0 ; ii < s->samples_per_spectra ; ii++) {
