@@ -581,6 +581,16 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     // Compute the bandwidth
     s->BW = s->num_channels * s->df;
 
+    // Flip the bytes for Parkes FB_1BIT data
+    if (s->bits_per_sample==1 &&
+        strcmp(s->telescope, "Parkes")==0 &&
+        strcmp(s->backend, "FB_1BIT")==0) {
+        printf("Flipping bit ordering since Parkes FB_1BIT data.\n");
+        s->flip_bytes = 1;
+    } else {
+        s->flip_bytes = 0;
+    }
+
     // Copy the structures and return success
     S = *s;
 
@@ -1080,7 +1090,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             }
         }
 
-        if (0) {  //  Hack to flip each byte of data
+        if (S.flip_bytes) {  //  Hack to flip each byte of data
             unsigned char uctmp;
             int ii, jj;
             for (ii = 0 ; ii < S.bytes_per_subint/8 ; ii++) {
