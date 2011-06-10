@@ -331,7 +331,7 @@ if __name__ == '__main__':
                               line=None, symbol=2, color='blue')
             Pgplot.closeplot()
 
-        if pulsebins is not None:
+        if pulsebins is None:
             SNR = newprof.sum()  # integrate everything
         else:
             SNR = newprof[pulsebins].sum()
@@ -367,7 +367,7 @@ if __name__ == '__main__':
     print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
     if SEFD:
         avg_S /= len(pfdfilenms)
-        if pulsebins is not None:
+        if pulsebins is None:
             SNR = sumprof.sum()  # integrate everything
         else:
             SNR = sumprof[pulsebins].sum()
