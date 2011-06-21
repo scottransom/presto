@@ -131,7 +131,7 @@ void binary_velocity(double T, orbitparams * orbit, double *minv, double *maxv)
          if (E[ii] > *maxv)
             *maxv = E[ii];
       }
-      free(E);
+      vect_free(E);
    }
    if (*maxv < *minv) {
       printf("Something is wrong in binary_velocity()\n");
@@ -410,13 +410,13 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
       /* Free the old kernelarray if one exists */
 
       if (!firsttime)
-         free(kernelarray);
+         vect_free(kernelarray);
 
       /* Generate the interpolating kernel array */
 
       kernelarray = gen_cvect(fftlen);
       place_complex_kernel(rresp, numintkern, kernelarray, fftlen);
-      free(rresp);
+      vect_free(rresp);
 
       /* FFT the kernel array */
 
@@ -435,7 +435,7 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
    dataarray = gen_cvect(fftlen);
    spread_no_pad(((fcomplex *) data) + beginbin, fftlen / numbetween,
                  dataarray, fftlen, numbetween);
-   free(data);
+   vect_free(data);
 
    /* Generate the final response */
 
@@ -445,8 +445,8 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
    /* Chop off the contaminated ends and/or the extra data */
 
    memcpy(response, tmpresponse + numkern / 2, sizeof(fcomplex) * numkern);
-   free(tmpresponse);
-   free(dataarray);
+   vect_free(tmpresponse);
+   vect_free(dataarray);
 
    return response;
 }
@@ -538,7 +538,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
       tp = t - ((fpart * (phi[index + 1] - dtemp)) + dtemp);
       data[ii] = amp * cos(f * tp);
    }
-   free(phi);
+   vect_free(phi);
 
    /* FFT the data */
 
@@ -566,13 +566,13 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
          /* Free the old kernelarray if one exists */
 
          if (!firsttime)
-            free(kernelarray);
+            vect_free(kernelarray);
 
          /* Generate the interpolating kernel array */
 
          kernelarray = gen_cvect(fftlen);
          place_complex_kernel(rresp, numintkern, kernelarray, fftlen);
-         free(rresp);
+         vect_free(rresp);
 
          /* FFT the kernel array */
 
@@ -594,7 +594,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
       }
       spread_no_pad(((fcomplex *) data) + beginbin, numkern / numbetween,
                     dataarray, fftlen, numbetween);
-      free(data);
+      vect_free(data);
 
       /* Generate the final response */
 
@@ -604,8 +604,8 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
       /* Chop off the extra data */
 
       memcpy(response, tmpresponse, sizeof(fcomplex) * numkern);
-      free(tmpresponse);
-      free(dataarray);
+      vect_free(tmpresponse);
+      vect_free(dataarray);
 
    } else {
 
@@ -613,7 +613,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
 
       response = gen_cvect(numkern);
       memcpy(response, ((fcomplex *) data) + beginbin, sizeof(fcomplex) * numkern);
-      free(data);
+      vect_free(data);
    }
    return response;
 }

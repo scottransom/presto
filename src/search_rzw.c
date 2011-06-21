@@ -182,7 +182,7 @@ int main(int argc, char *argv[])
    for (ii = 0; ii < nz; ii++) {
       response = gen_z_response(0.0, numbetween, cmd->zlo + ii * dz, numkern);
       place_complex_kernel(response, numkern, kernels[ii], corrsize);
-      free(response);
+      vect_free(response);
       COMPLEXFFT(kernels[ii], corrsize, -1);
    }
 
@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
          locpow = 1.0 / nph;
       else
          locpow = 1.0 / (1.442695 * median(powlist, filedatalen));
-      free(powlist);
+      vect_free(powlist);
 
       /*  Do the f-fdot plane correlations: */
 
@@ -363,13 +363,13 @@ int main(int argc, char *argv[])
          }
          totnumsearched += worknumbins;
       }
-      free(filedata);
+      vect_free(filedata);
    } while (nextbin <= highestbin);
 
    /* Free the memory used by the correlation kernels */
 
-   free(kernels[0]);
-   free(kernels);
+   vect_free(kernels[0]);
+   vect_free(kernels);
 
    printf("\rAmount of search complete = %3d%%", 100);
    fflush(stdout);
@@ -478,8 +478,8 @@ int main(int argc, char *argv[])
    free(props);
    free(notes);
    if (cmd->zapfileP) {
-      free(lozaps);
-      free(hizaps);
+      vect_free(lozaps);
+      vect_free(hizaps);
    }
    return (0);
 }

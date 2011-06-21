@@ -181,7 +181,7 @@ static void process_bird(double basebin, int harm, double *lofreq, double *hifre
       case 'n':
          *lofreq = *hifreq = 0.0;
          free(data);
-         free(result);
+         vect_free(result);
          printf("  Skipping to next harmonic.\n");
          return;
       default:
@@ -198,7 +198,7 @@ static void process_bird(double basebin, int harm, double *lofreq, double *hifre
       *hifreq = tmpfreq;
    }
    free(data);
-   free(result);
+   vect_free(result);
 }
 
 
@@ -299,8 +299,8 @@ int main(int argc, char *argv[])
          zapbirds(bird_lobins[ii], bird_hibins[ii], fftfile, NULL);
       }
 
-      free(bird_lobins);
-      free(bird_hibins);
+      vect_free(bird_lobins);
+      vect_free(bird_hibins);
 
    } else {                     /* Interactive */
 
@@ -324,7 +324,7 @@ int main(int argc, char *argv[])
          kernel = gen_cvect(FFTLEN);
          place_complex_kernel(resp, numkern, kernel, FFTLEN);
          COMPLEXFFT(kernel, FFTLEN, -1);
-         free(resp);
+         vect_free(resp);
       }
 
       /* Loop over the birdies */
@@ -366,9 +366,9 @@ int main(int argc, char *argv[])
 
       g_slist_foreach(zapped, birdie_free, NULL);
       g_slist_free(zapped);
-      free(kernel);
-      free(bird_numharms);
-      free(bird_basebins);
+      vect_free(kernel);
+      vect_free(bird_numharms);
+      vect_free(bird_basebins);
    }
    fclose(fftfile);
    free(rootfilenm);

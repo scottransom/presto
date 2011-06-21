@@ -339,7 +339,7 @@ void CSS_profs(double *inprofs, double *outprofs,
    sumstats->data_avg /= numprofs;
    sumstats->data_var /= numprofs;
    sumstats->redchi = redchi;
-   free(local_delays);
+   vect_free(local_delays);
 }
 
 
@@ -498,7 +498,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             memcpy(timeprofs + 2 * profindex + search->proflen,
                    timeprofs + 2 * profindex, search->proflen * sizeof(float));
          }
-         free(tmp_profs);
+         vect_free(tmp_profs);
       }
 
       if (ppdot == NULL) {      /* Generate the p-pdot plane */
@@ -579,7 +579,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             dmdelays = gen_dvect(search->nsub);
             for (ii = 0; ii < search->nsub; ii++)
                dmdelays[ii] = -(subbanddelays[ii] - hifdelay) * rdphase;
-            free(subbanddelays);
+            vect_free(subbanddelays);
 
             /* Fold each subband */
             for (ii = 0; ii < search->nsub; ii++) {
@@ -600,18 +600,18 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                double2float(currentprof, dmprofs + ii * search->proflen,
                             search->proflen);
             }
-            free(totdelays);
-            free(tmpprofs);
-            free(dmdelays);
+            vect_free(totdelays);
+            vect_free(tmpprofs);
+            vect_free(dmdelays);
          }
       }
 
-      free(delays);
-      free(pd_delays);
-      free(pdd_delays);
-      free(currentprof);
+      vect_free(delays);
+      vect_free(pd_delays);
+      vect_free(pdd_delays);
+      vect_free(currentprof);
       if (search->nsub > 1) {
-         free(ddprofs);
+         vect_free(ddprofs);
          free(ddstats);
       }
    }
@@ -626,7 +626,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
       fold_errors(dbestprof, search->proflen, search->dt, N,
                   beststats.data_var, search->bary.p1, search->bary.p2,
                   search->bary.p3, &perr, &pderr, &pdderr);
-   free(dbestprof);
+   vect_free(dbestprof);
 
    write_bestprof(search, &beststats, bestprof, N, perr, pderr, pdderr);
 
@@ -717,7 +717,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
          autocal2d(timeprofs, nr, nc, &fg, &bg, numcol,
                    levels, &x1, &x2, &y1, &y2, tr);
          cpgimag(timeprofs, nc, nr, 0 + 1, nc, 0 + 1, nr, bg, fg, tr);
-         free(levels);
+         vect_free(levels);
       }
       if (1) {                  /* if 0 skip the chi-squared vs time plot */
          cpgbox("BCNST", 0.0, 0, "BNST", 0.0, 0);
@@ -769,7 +769,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             cpgmtxt("T", 0.0, 0.5, 0.5, "2 Pulses of Best Profile");
          phasetwo = gen_freqs(2 * search->proflen, 0.0, 1.0 / search->proflen);
          cpgline(2 * search->proflen, phasetwo, bestprof);
-         free(phasetwo);
+         vect_free(phasetwo);
          if (!flags->justprofs) {
             cpgsls(4);
             avg[0] = avg[1] = beststats.prof_avg;
@@ -830,7 +830,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             ftmparr1 = gen_fvect(search->numdms);
             double2float(search->dms, ftmparr1, search->numdms);
             cpgline(search->numdms, ftmparr1, dmchi);
-            free(ftmparr1);
+            vect_free(ftmparr1);
 
             /* Plots for each subband */
 
@@ -873,8 +873,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                   tmpprof[search->proflen] = tmpprof[0];
                   cpgline(search->proflen + 1, phaseone, tmpprof);
                }
-               free(phaseone);
-               free(tmpprof);
+               vect_free(phaseone);
+               vect_free(tmpprof);
             } else {
                int chanpersb;
                double lofreq, hifreq, losubfreq, hisubfreq;
@@ -925,8 +925,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                   cpgimag(subprofs, nc, nr, 0 + 1, nc, 0 + 1, nr, bg, fg, tr);
                   tr[0] += 1.0;
                   cpgimag(subprofs, nc, nr, 0 + 1, nc, 0 + 1, nr, bg, fg, tr);
-                  free(subprofs);
-                  free(levels);
+                  vect_free(subprofs);
+                  vect_free(levels);
                }
                cpgswin(0.0 - 0.01, 2.0 + 0.01, 0.0, search->nsub);
                cpgsch(0.7);
@@ -1032,7 +1032,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                cpgsch(0.8);
                cpgmtxt("T", 1.8, 0.5, 0.5, fout);
             }
-            free(ftmparr1);
+            vect_free(ftmparr1);
 
             /* P-dot vs reduced chisqr */
 
@@ -1062,7 +1062,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                cpgmtxt("T", 2.8, 0.5, 0.5, "\\gx\\u2\\d");
                cpgmtxt("R", 2.4, 0.5, 0.5, fdout);
             }
-            free(ftmparr1);
+            vect_free(ftmparr1);
 
             /* P P-dot image */
 
@@ -1109,7 +1109,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                cpgmtxt("B", 2.6, 0.5, 0.5, pout);
                cpgmtxt("L", 2.1, 0.5, 0.5, pdout);
             }
-            free(levels);
+            vect_free(levels);
             cpgsch(0.8);
          }
 
@@ -1303,16 +1303,16 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
       }
       cpgclos();
    }
-   free(bestprof);
-   free(timeprofs);
-   free(parttimes);
-   free(timechi);
-   free(periodchi);
-   free(pdotchi);
+   vect_free(bestprof);
+   vect_free(timeprofs);
+   vect_free(parttimes);
+   vect_free(timechi);
+   vect_free(periodchi);
+   vect_free(pdotchi);
    if (ppdot == NULL)
-      free(ppdot2d);
+      vect_free(ppdot2d);
    if (search->nsub > 1) {
-      free(dmprofs);
-      free(dmchi);
+      vect_free(dmprofs);
+      vect_free(dmchi);
    }
 }

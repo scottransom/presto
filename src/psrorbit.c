@@ -218,10 +218,10 @@ int main(int argc, char *argv[])
    printf("  Length of Obs       (s) =  %-9.2f\n", endtime);
    printf("  Average 'z'      (bins) =  %-9.3f\n\n", avgz);
 
-   free(Erl);
-   free(Erl2);
-   free(trl);
-   free(tmpE);
-   free(Ep);
+   vect_free(Erl);
+   vect_free(Erl2);
+   vect_free(trl);
+   vect_free(tmpE);
+   vect_free(Ep);
    exit(0);
 }

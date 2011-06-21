@@ -539,7 +539,7 @@ int main(int argc, char *argv[])
          avgvoverc += voverc[ii];
       }
       avgvoverc /= numbarypts;
-      free(voverc);
+      vect_free(voverc);
       blotoa = btoa[0];
 
       printf("   Average topocentric velocity (c) = %.7g\n", avgvoverc);
@@ -768,9 +768,9 @@ int main(int argc, char *argv[])
 
       /* Free the arrays used in barycentering */
 
-      free(bobsf);
-      free(btoa);
-      free(ttoa);
+      vect_free(bobsf);
+      vect_free(btoa);
+      vect_free(ttoa);
    }
 
    /* Calculate what the amount of padding we need  */
@@ -814,7 +814,7 @@ int main(int argc, char *argv[])
          chkfwrite(outdata, sizeof(float), padtowrite % worklen, outfile);
       }
    }
-   free(outdata);
+   vect_free(outdata);
 
    /* Close the files */
 
@@ -871,8 +871,8 @@ int main(int argc, char *argv[])
          fclose(infile);
          fclose(outfile);
          remove(datafilenm);
-         free(fbuffer);
-         free(sbuffer);
+         vect_free(fbuffer);
+         vect_free(sbuffer);
       }
    }
 
@@ -898,14 +898,14 @@ int main(int argc, char *argv[])
 
    if (cmd->maskfileP) {
       free_mask(obsmask);
-      free(maskchans);
+      vect_free(maskchans);
    }
-   free(tobsf);
-   free(dispdt);
+   vect_free(tobsf);
+   vect_free(dispdt);
    free(outinfonm);
    free(datafilenm);
    if (!cmd->nobaryP)
-      free(diffbins);
+      vect_free(diffbins);
    return (0);
 }
 

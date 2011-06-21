@@ -99,7 +99,7 @@ static basicstats *calc_stats(dataview * dv, datapart * dp)
          &tmpstats->skewness, &tmpstats->kurtosis);
    tmpstats->stdev = sqrt(tmpstats->stdev);
    tmpstats->median = median(tmpdata, dv->numsamps);
-   free(tmpdata);
+   vect_free(tmpdata);
    return tmpstats;
 }
 
@@ -295,7 +295,7 @@ static dataview *get_dataview(int centern, int zoomlevel, datapart * dp)
       if (tmpmin < dv->minval)
          dv->minval = tmpmin;
    }
-   free(tmpchunk);
+   vect_free(tmpchunk);
    offset = dv->lon;
    if (zoomlevel > 0) {
       for (ii = 0, offset = dv->lon; ii < dv->numsamps; ii++, offset++)
@@ -332,7 +332,7 @@ static void free_datapart(datapart * dp)
 #ifdef USEMMAP
    munmap(dp->data, sizeof(float) * dp->nn);
 #else
-   free(dp->data);
+   vect_free(dp->data);
 #endif
    free(dp);
 }

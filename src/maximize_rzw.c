@@ -139,6 +139,6 @@ double max_rzw_file(FILE * fftfile, double rin, double zin, double win,
    maxpow = max_rzw_arr(filedata, filedatalen, rin_frac + filedatalen / 2,
                         zin, win, rout, zout, wout, derivs);
    *rout += startbin;
-   free(filedata);
+   vect_free(filedata);
    return maxpow;
 }

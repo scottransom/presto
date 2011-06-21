@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
    if (outfile != stdout)
       fprintf(stderr, "Converted and wrote %d samples.\n\n", ii);
    if (scaling)
-      free(scalings);
+      vect_free(scalings);
    free(spigots);
    free(path);
    free(filenm);

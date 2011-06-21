@@ -1036,7 +1036,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 // are at values of zero...
                 global_scale = (256.0/3.0) / fmed;
                 printf("\nSetting PSRFITS global scale to %f\n", global_scale);
-                free(fvec);
+                vect_free(fvec);
 
             }
             firsttime = 0;
@@ -1294,8 +1294,8 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
                dedisp(currentdata, lastdata, numspec, S.num_channels, dispdelays, data);
            SWAP(currentdata, lastdata);
            if (numread != numblocks) {
-               free(rawdata1);
-               free(rawdata2);
+               vect_free(rawdata1);
+               vect_free(rawdata2);
                allocd = 0;
            }
            if (firsttime)
@@ -1339,7 +1339,7 @@ void get_PSRFITS_channel(int channum, float chandat[],
         if ((trtn = transpose_bytes(rawdata, ptsperchan, S.num_channels,
                                     move, move_size)) < 0)
             printf("Error %d in transpose_bytes().\n", trtn);
-        free(move);
+        vect_free(move);
     }
 
     // Select the correct channel

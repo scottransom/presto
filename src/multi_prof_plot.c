@@ -68,7 +68,7 @@ void multi_prof_plot(int proflen, int numprofs, double *profiles,
    cpgbin(proflen + 1, x, y, 1);
 
    /* Cleanup */
-   free(x);
-   free(y);
+   vect_free(x);
+   vect_free(y);
 
 }

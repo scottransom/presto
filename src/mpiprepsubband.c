@@ -544,7 +544,7 @@ int main(int argc, char *argv[])
          }
       }
       if (cmd->maskfileP)
-         free(padvals);
+         vect_free(padvals);
 
       /* Which IFs will we use? */
       if (cmd->ifsP) {
@@ -618,7 +618,7 @@ int main(int argc, char *argv[])
          dtmp = subdispdt[cmd->nsub - 1];
          for (jj = 0; jj < cmd->nsub; jj++)
             offsets[ii][jj] = (int) ((subdispdt[jj] - dtmp) / dsdt + 0.5);
-         free(subdispdt);
+         vect_free(subdispdt);
       }
 
       /* Allocate our data array and start getting data */
@@ -730,7 +730,7 @@ int main(int argc, char *argv[])
             avgvoverc += voverc[ii];
          }
          avgvoverc /= numbarypts;
-         free(voverc);
+         vect_free(voverc);
 
          printf("   Average topocentric velocity (c) = %.7g\n", avgvoverc);
          printf("   Maximum topocentric velocity (c) = %.7g\n", maxvoverc);
@@ -790,7 +790,7 @@ int main(int argc, char *argv[])
          dtmp = subdispdt[cmd->nsub - 1];
          for (jj = 0; jj < cmd->nsub; jj++)
             offsets[ii][jj] = (int) ((subdispdt[jj] - dtmp) / dsdt + 0.5);
-         free(subdispdt);
+         vect_free(subdispdt);
       }
 
       /* Convert the bary TOAs to differences from the topo TOAs in */
@@ -1025,20 +1025,20 @@ int main(int argc, char *argv[])
          fclose(outfiles[ii]);
       free(outfiles);
    }
-   free(outdata[0]);
-   free(outdata);
-   free(dms);
+   vect_free(outdata[0]);
+   vect_free(outdata);
+   vect_free(dms);
    free(hostname);
-   free(dispdt);
-   free(offsets[0]);
-   free(offsets);
+   vect_free(dispdt);
+   vect_free(offsets[0]);
+   vect_free(offsets);
    free(datafilenm);
    free(outfilenm);
    free(outpath);
    if (!cmd->nobaryP) {
-      free(btoa);
-      free(ttoa);
-      free(diffbins);
+      vect_free(btoa);
+      vect_free(ttoa);
+      vect_free(diffbins);
    }
    MPI_Finalize();
    return (0);
@@ -1215,7 +1215,7 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
             if (!firsttime)
                totnumread += numread;
          }
-         free(subsdata);
+         vect_free(subsdata);
       }
       /* Downsample the subband data if needed */
       if (myid > 0) {
@@ -1263,13 +1263,13 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
       } */
    if (totnumread != worklen) {
       if (cmd->maskfileP)
-         free(maskchans);
-      free(data1);
-      free(data2);
-      free(rawdata);
+         vect_free(maskchans);
+      vect_free(data1);
+      vect_free(data2);
+      vect_free(rawdata);
       if (cmd->downsamp > 1) {
-         free(dsdata1);
-         free(dsdata2);
+         vect_free(dsdata1);
+         vect_free(dsdata2);
       }
    }
    return totnumread;

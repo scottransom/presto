@@ -122,8 +122,8 @@ int main(int argc, char *argv[])
 
    /* Cleanup */
 
-   free(profs);
-   free(sumprof);
+   vect_free(profs);
+   vect_free(sumprof);
 
    return 0;
 }

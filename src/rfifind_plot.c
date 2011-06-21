@@ -61,7 +61,7 @@ static void plot_rfi(rfi * plotrfi, float top, int numint, int numchan,
    cpgbox("BST", 0.0, 0, "BC", 0.0, 0);
    cpgswin(0.0, T, 0.0, 1.0);
    cpgbox("CST", 0.0, 0, "", 0.0, 0);
-   free(temparr);
+   vect_free(temparr);
 }
 
 
@@ -397,10 +397,10 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
          cpgsls(1);             /* Solid line */
          cpgsci(1);             /* Default color */
          cpgbox("BCLNST", 0.0, 0, "BC", 0.0, 0);
-         free(hist);
-         free(theo);
-         free(tpows);
-         free(hpows);
+         vect_free(hist);
+         vect_free(theo);
+         vect_free(tpows);
+         vect_free(hpows);
       }
 
       /* Maximum Powers */
@@ -977,8 +977,8 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
                cpgptxt(0.5, 0.985, 0.0, 0.5, temp);
             }
          }
-         free(plotmask[0]);
-         free(plotmask);
+         vect_free(plotmask[0]);
+         vect_free(plotmask);
       }
 
       if (ct == 0)
@@ -1046,26 +1046,26 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 
    /* Free our arrays */
 
-   free(freqs);
-   free(chans);
-   free(times);
-   free(ints);
-   free(avg_chan_avg);
-   free(std_chan_avg);
-   free(pow_chan_avg);
-   free(avg_int_avg);
-   free(std_int_avg);
-   free(pow_int_avg);
-   free(avg_chan_med);
-   free(std_chan_med);
-   free(pow_chan_med);
-   free(avg_int_med);
-   free(std_int_med);
-   free(pow_int_med);
-   free(avg_chan_std);
-   free(std_chan_std);
-   free(pow_chan_std);
-   free(avg_int_std);
-   free(std_int_std);
-   free(pow_int_std);
+   vect_free(freqs);
+   vect_free(chans);
+   vect_free(times);
+   vect_free(ints);
+   vect_free(avg_chan_avg);
+   vect_free(std_chan_avg);
+   vect_free(pow_chan_avg);
+   vect_free(avg_int_avg);
+   vect_free(std_int_avg);
+   vect_free(pow_int_avg);
+   vect_free(avg_chan_med);
+   vect_free(std_chan_med);
+   vect_free(pow_chan_med);
+   vect_free(avg_int_med);
+   vect_free(std_int_med);
+   vect_free(pow_int_med);
+   vect_free(avg_chan_std);
+   vect_free(std_chan_std);
+   vect_free(pow_chan_std);
+   vect_free(avg_int_std);
+   vect_free(std_int_std);
+   vect_free(pow_int_std);
 }

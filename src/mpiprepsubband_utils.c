@@ -171,7 +171,7 @@ void write_padding(FILE * outfiles[], int numfiles, float value, int numtowrite)
          for (jj = 0; jj < numfiles; jj++)
             chkfwrite(buffer, sizeof(float), numtowrite % veclen, outfiles[jj]);
       }
-      free(buffer);
+      vect_free(buffer);
    }
 }
 

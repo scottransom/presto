@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
 
       printf("Writing FFT data.\n\n");
       chkfwrite(data, sizeof(float), (unsigned long) numdata, datafile);
-      free(data);
+      vect_free(data);
 
       /* Output the timing information */
 

@@ -53,6 +53,8 @@ double **gen_dmatrix(long nrows, long ncols);
 fcomplex **gen_cmatrix(long nrows, long ncols);
 /* Generate a floating complex number matrix (2 dimensions) */
 
+void vect_free(void *vect);
+/* Free a generated vector */ 
 
 /*  Note:  To free memory allocated by these routines simply use  */
 /*         the free() function.                                   */

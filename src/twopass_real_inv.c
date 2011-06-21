@@ -249,5 +249,5 @@ void realfft_scratch_inv(multifile * infile, multifile * scratch, long long nn)
       }
    }
    free(move);
-   free(data);
+   vect_free(data);
 }

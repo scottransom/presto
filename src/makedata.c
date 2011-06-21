@@ -241,7 +241,7 @@ int main(int argc, char *argv[])
               "r_bin = %-8.4f, w_bin (rad) = %-7.3f\n", mdata.T,
               mdata.r, TWOPI * mdata.orb.x * mdata.f,
               mdata.T / mdata.orb.p, mdata.orb.w);
-      free(phib);
+      vect_free(phib);
    } else {
       sprintf(idata.notes, "   T = %f and r = %f\n", mdata.T, mdata.r);
    }
