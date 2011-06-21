@@ -93,7 +93,7 @@ void free_mask(mask obsmask)
           obsmask.num_chans_per_int[ii] <= obsmask.numchan)
          vect_free(obsmask.chans[ii]);
    }
-   vect_free(obsmask.chans);
+   free(obsmask.chans);
    vect_free(obsmask.num_chans_per_int);
    if (obsmask.num_zap_chans)
       vect_free(obsmask.zap_chans);

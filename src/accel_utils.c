@@ -247,9 +247,9 @@ void free_accelcand(gpointer data, gpointer user_data)
 {
    user_data = NULL;
    if (((accelcand *) data)->pows) {
-      free(((accelcand *) data)->pows);
-      free(((accelcand *) data)->hirs);
-      free(((accelcand *) data)->hizs);
+      vect_free(((accelcand *) data)->pows);
+      vect_free(((accelcand *) data)->hirs);
+      vect_free(((accelcand *) data)->hizs);
       free(((accelcand *) data)->derivs);
    }
    free((accelcand *) data);
@@ -993,7 +993,7 @@ void free_ffdotpows(ffdotpows * ffd)
 {
    vect_free(ffd->powers[0]);
    vect_free(ffd->powers);
-   vect_free(ffd);
+   free(ffd);
 }
 
 
