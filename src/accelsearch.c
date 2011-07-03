@@ -177,7 +177,8 @@ int main(int argc, char *argv[])
          cands = sort_accelcands(cands);
 
          /* Eliminate (most of) the harmonically related candidates */
-         eliminate_harmonics(cands, &numcands);
+         if ((cmd->numharm > 1) && !(cmd->noharmremoveP))
+             eliminate_harmonics(cands, &numcands);
 
          /* Now optimize each candidate and its harmonics */
 
