@@ -92,7 +92,12 @@ def Htest_exact(phases, maxnumharms=20):
        Return an exactly computed (i.e. unbinned) H-test statistic
        for periodicity for the events with folded phases 'phases' [0,1).
        Also return the best number of harmonics.  The H-statistic and
-       harmonic number are returned as a tuple: (hstat, harmnum)
+       harmonic number are returned as a tuple: (hstat, harmnum).
+       This routine returns the _non_ Leahy normalized H-statistic,
+       which means that it is a factor of 2 lower than the published
+       H-statistic.  This is so that it corresponds with all of the
+       other power normalizations done by PRESTO (where the average
+       noise powers are normalized to one rather than two).
     """
     N = len(phases)
     Zm2s = Num.zeros(maxnumharms, dtype=Num.float)
@@ -111,15 +116,12 @@ def Hstat_prob(h):
     """
     Hstat_prob(h):
        Return the probability associated with an H-test statistic
-       of value 'h'.
+       of value 'h'.  Uses de Jager & Busching 2010 result.  This
+       assumes that the H-statistic is _not_ Leahy normalized!
+       Divide 'h' by two if you are using the published H-test
+       normalization!.
     """
-    h *= 2.0
-    if (h <= 23.0):
-        return 1.210597 * Num.exp(-0.45901*h + 0.0022900*h*h)
-    elif (h < 50.0):
-        return 0.9999755 * Num.exp(-0.39802*h)
-    else:  # I need something here...
-        return Num.exp(-0.398*h)
+    return Num.exp(-0.4 * 2.0 * h)
 
 def gauss_sigma_to_prob(sigma):
     """
