@@ -1262,7 +1262,8 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
                // read_PSRFITS_rawblock returns.  And also, offs_sub is the
                // midpoint of each subint.  (note:  this is only correct 
                // if numblocks is 1, which it should be, I think)
-               *nummasked = check_mask(last_offs_sub - 0.5 * duration, 
+               *nummasked = check_mask(last_offs_sub - 0.5 * duration - \
+                                       S.start_subint[0] * S.time_per_subint, 
                                        duration, obsmask, maskchans);
            }
            // Only use the recently measured padding if all the channels aren't masked
@@ -1389,7 +1390,8 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
         // Remember that last_offs_sub gets updated before 
         // read_PSRFITS_rawblock returns.  And also, offs_sub is the
         // midpoint of each subint.
-        *nummasked = check_mask(last_offs_sub - 0.5 * S.time_per_subint, 
+        *nummasked = check_mask(last_offs_sub - 0.5 * S.time_per_subint - \
+                                S.start_subint[0] * S.time_per_subint, 
                                 S.time_per_subint, obsmask, maskchans);
     }
     

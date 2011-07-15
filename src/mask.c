@@ -298,13 +298,18 @@ int check_mask(double starttime, double duration, mask * obsmask, int *maskchans
 
    /* Mask the same channels as for the last call */
    if (loint == old_loint && hiint == old_hiint)
-      return old_numchan;
+       return old_numchan;
 
    /* Make sure that we aren't past the last interval */
    if (loint >= obsmask->numint)
-      loint = obsmask->numint - 1;
+       loint = obsmask->numint - 1;
    if (hiint >= obsmask->numint)
-      hiint = loint;
+       hiint = loint;
+
+   if ((loint >= obsmask->numint + 1) ||
+       (hiint >= obsmask->numint + 1)) {
+       printf("Warning!!  Trying to use a mask interval well after the mask ends!\n");
+   }
 
    /* Determine new channels to mask */
    if (loint == hiint) {
