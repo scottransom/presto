@@ -16,14 +16,15 @@ Written with portability, ease-of-use, and memory efficiency in mind,
 it can currently handle raw data from the following pulsar machines or
 formats:
 
-    * PSRFITS search-format data (as from GUPPI at the GBT and the 
-      Mock Spectrometers at Arecibo)
+    * PSRFITS search-format data (as from GUPPI at the GBT, the 
+      Mock Spectrometers at Arecibo, and much new and archived data
+      from Parkes, now.)
     * SPIGOT at the GBT
-    * Most Wideband Arecibo Pulsar Processor (WAPP) at Arecibo
+    * Wideband Arecibo Pulsar Processor (WAPP) at Arecibo
     * The Parkes and Jodrell Bank 1-bit filterbank formats
     * Berkeley-Caltech Pulsar Machine (BCPM) at the GBT (may it RIP...)
-    * 8-bit filterbank format from SIGPROC (other formats will 
-      be added if required)
+    * 4-bit and 8-bit filterbank format from SIGPROC (other formats 
+      will be added if required)
     * A time series composed of single precision (i.e. 4-byte) 
       floating point data
     * Photon arrival times (or events) in ASCII or double-precision 
@@ -63,8 +64,12 @@ PRESTO, but until then you should know that each routine returns its
 basic usage when you call it with no arguments.  I am also willing to
 provide limited support via email or telephone (434-296-0320).
 
-To date, PRESTO has discovered well over a hundred pulsars, including
-more than 70 recycled pulsars, over 50 of which are in binaries!
+Tutorial(!): Note that in the "docs" directory there is a now a
+tutorial which walks you through all the main steps of finding pulsars
+using PRESTO.
+
+To date, PRESTO has discovered nearly two hundred pulsars, including
+more than 100 recycled pulsars, most of which are in binaries!
 
 Getting it: The PRESTO source code is released under the GPL and can
 be browsed or gotten from here in many different ways (including
@@ -85,11 +90,14 @@ re-install a tarball whenever there are updates) you can get it from
 the "Download Source" link on the github page.
 
 If you plan to tweak the code, I highly suggest that you use git and
-clone the directory (or fork it using an account on github).  If you
-plan on doing any significant development, please let me know and I'll
-either add you as a developer, or we can push/pull changes via
-git/github.  Code contributions and/or patches to fix bugs are most
-welcome!
+clone the directory (or fork it using an account on github).  Read the
+following "living document" on how to develop and collaborate in a
+relatively sane way using git:
+  http://matthew-brett.github.com/pydagogue/gitwash_build.html
+If you plan on doing any significant development, please let me know
+and I'll either add you as a developer, or we can push/pull changes
+via git/github (see the "gitwash" document above).  Code contributions
+and/or patches to fix bugs are most welcome!
 
 NOTE: for barycentering data, PRESTO uses TEMPO.  You should get the
 newest version from Sourceforge.  You will also need FFTW, CFITSIO,
