@@ -850,6 +850,17 @@ def corr(profile, template):
     """
     return FFT.irfft(FFT.rfft(template) * Num.conjugate(FFT.rfft(profile)))
 
+def autocorr(x):
+    """
+    autocorr(x):
+        Circular normalized auto-correlation of the (real) function x
+        using FFTs.  Returns only N/2+1 points as the remaining N/2-1
+        points are symmetric (corresponding to negative lags).
+    """
+    fftx = FFT.rfft(x)
+    acf = FFT.irfft(fftx * Num.conjugate(fftx))[:len(x)/2+1]
+    return acf / acf[0]
+
 def maxphase(profile, template):
     """
     maxphase(profile, template):
