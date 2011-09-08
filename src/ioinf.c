@@ -11,12 +11,14 @@ char scopes[NUMSCOPES][40] =
 
 void readinf(infodata * data, char *filenm)
 {
-   char tmp1[100], tmp2[100], infofilenm[100];
+   char tmp1[100], tmp2[100], *infofilenm;
    int ii;
    FILE *infofile;
 
+   infofilenm = malloc(strlen(filenm)+5);
    sprintf(infofilenm, "%s.inf", filenm);
    infofile = chkfopen(infofilenm, "r");
+   free(infofilenm);
 
    fscanf(infofile, "%*[^=]= %s", data->name);
    fscanf(infofile, "%*[^=]= %[^\n]\n", data->telescope);
@@ -114,13 +116,14 @@ void readinf(infodata * data, char *filenm)
 
 void writeinf(infodata * data)
 {
-   char tmp1[100], tmp2[100];
-   char infofilenm[100];
+   char tmp1[100], tmp2[100], *infofilenm;
    int itmp, ii;
    FILE *infofile;
 
+   infofilenm = malloc(strlen(data->name)+5);
    sprintf(infofilenm, "%s.inf", data->name);
    infofile = chkfopen(infofilenm, "w");
+   free(infofilenm);
 
    fprintf(infofile, " Data file name without suffix          =  %s\n", data->name);
    fprintf(infofile,

@@ -46,7 +46,7 @@ Basic steps to install:
   directory of the PRESTO distribution (i.e. this directory).
 
 7.  cd to $PRESTO/src.  Check and modify the Makefile for your
-  machine of choice.  Insure that the library and include file
+  machine of choice.  Ensure that the library and include file
   directories are correct for FFTW, PGPLOT, GLIB, CFITSIO, 
   and TEMPO.
 

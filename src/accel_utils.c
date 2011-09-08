@@ -365,7 +365,7 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
 {
    GSList *currentptr, *otherptr, *toocloseptr;
    accelcand *current_cand, *other_cand;
-   int ii, maxharm = 16;
+   int ii, maxharm = 16, numremoved = 0;
    double tooclose = 1.5;
 
    currentptr = cands;
@@ -419,6 +419,7 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
          }
          /* Remove the "other" cand */
          if (remove) {
+            numremoved++;
             toocloseptr = otherptr;
             otherptr = otherptr->next;
             free_accelcand(other_cand, NULL);
@@ -431,6 +432,9 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
       } while (otherptr);
       if (currentptr->next)
          currentptr = currentptr->next;
+   }
+   if (numremoved) {
+       printf("Removed %d likely harmonically related candidates.\n", numremoved);
    }
    return cands;
 }
@@ -702,7 +706,7 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
    int ii, jj, numcols = 13, numcands;
    int widths[13] = { 5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 10, 10, 20 };
    int errors[13] = { 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 0 };
-   char tmpstr[30], ctrstr[30], command[200], notes[21];
+   char tmpstr[30], ctrstr[30], notes[21], *command;
    accelcand *cand;
    GSList *listptr;
    fourierprops props;
@@ -804,8 +808,10 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
    }
    fprintf(obs->workfile, "\n\n");
    fclose(obs->workfile);
+   command = malloc(strlen(obs->rootfilenm) + strlen(obs->accelnm) + 20);
    sprintf(command, "cat %s.inf >> %s", obs->rootfilenm, obs->accelnm);
    system(command);
+   free(command);
 }
 
 
@@ -1153,7 +1159,10 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       }
    }
 
-   obs->use_harmonic_polishing = cmd->harmpolishP;
+   if (cmd->noharmpolishP)
+       obs->use_harmonic_polishing = 0;
+   else
+       obs->use_harmonic_polishing = 1;  // now default
 
    /* Read the info file */
 
@@ -1279,15 +1288,13 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       /* for higher frequencies.                            */
       if (cmd->locpowP) {
           obs->norm_type = 1;
-          printf("Normalizing powers using new-style local-power determination.\n\n");
+          printf("Normalizing powers using local-power determination.\n\n");
       } else if (cmd->medianP) {
           obs->norm_type = 0;
-          printf("Normalizing powers using old-style median-blocks.\n\n");
+          printf("Normalizing powers using median-blocks.\n\n");
       } else {
           obs->norm_type = 0;
-          printf("WARNING:  No power normalization selected!\n"
-                 "          Using old-style block-median normalization.\n"
-                 "          Recommend '-locpow' in the future...\n\n");
+          printf("Normalizing powers using median-blocks (default).\n\n");
       }
       if (obs->dat_input) {
          obs->fft[0].r = 1.0;

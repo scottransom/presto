@@ -561,7 +561,7 @@ class pfd:
                     tmpprof = copy.copy(self.profs[ii][jj])
                     prof += psr_utils.rotate(tmpprof, random.randrange(0,self.proflen))
             redchi2s.append(self.calc_redchi2(prof=prof))
-        return psr_utils.mean(redchi2s)
+        return Num.mean(redchi2s)
 
     def adjust_fold_frequency(self, phasebins, profs=None, shiftsubs=False):
         """

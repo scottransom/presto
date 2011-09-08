@@ -43,9 +43,9 @@ typedef struct s_Cmdline {
   int fhiC;
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   char photonP;
-  /***** -median: Use old-style block-median power normalization (current default) */
+  /***** -median: Use block-median power normalization (default) */
   char medianP;
-  /***** -locpow: Use new-style double-tophat local-power normalization */
+  /***** -locpow: Use double-tophat local-power normalization (not usually recommended) */
   char locpowP;
   /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
   char zaplistP;
@@ -55,8 +55,12 @@ typedef struct s_Cmdline {
   char baryvP;
   double baryv;
   int baryvC;
-  /***** -harmpolish: Constrain harmonics to be harmonically related during polishing */
+  /***** -harmpolish: Constrain harmonics to be harmonically related during polishing (on by default) */
   char harmpolishP;
+  /***** -noharmpolish: Do not use 'harmpolish' by default */
+  char noharmpolishP;
+  /***** -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1) */
+  char noharmremoveP;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

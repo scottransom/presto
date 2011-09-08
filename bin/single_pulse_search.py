@@ -469,14 +469,13 @@ def main():
 
         # Step through the candidates to make a SNR list
         DMs.sort()
-        maxsnr = 0.0
         snrs = []
         for cand in candlist:
             snrs.append(cand.sigma)
-            if cand.sigma > maxsnr:
-                maxsnr = cand.sigma
-        maxsnr = min(maxsnr,2e9)
-        maxsnr = int(maxsnr) + 3
+        if snrs:
+            maxsnr = max(int(max(snrs)), int(opts.threshold)) + 3
+        else:
+            maxsnr = int(opts.threshold) + 3
 
         # Generate the SNR histogram
         snrs = Num.asarray(snrs)
@@ -522,7 +521,8 @@ def main():
 
         # plot the DM histogram
         ppgplot.pgsvp(0.39, 0.64, 0.6, 0.87)
-        ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, 0.0, 1.1*max(num_v_DM))
+        # Add [1] to num_v_DM in YMAX below so that YMIN != YMAX when max(num_v_DM)==0
+        ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, 0.0, 1.1*max(num_v_DM+[1]))
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")

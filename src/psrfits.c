@@ -9,7 +9,7 @@
 static struct spectra_info S;
 static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
 static float *offsets, *scales, global_scale = 1.0;
-static char *padvals=NULL, *newpadvals=NULL;
+static unsigned char *padvals=NULL, *newpadvals=NULL;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
 static int using_MPI = 0, default_poln = 0, user_poln = 0;
@@ -65,16 +65,16 @@ void set_PSRFITS_padvals(float *fpadvals, int good_padvals)
    float sum_padvals = 0.0;
 
    if (padvals==NULL) { // This is for the clients in mpiprepsubband
-       padvals = (char *)gen_bvect(S.num_channels);
+       padvals = gen_bvect(S.num_channels);
        newpadvals = padvals;
    }
 
    if (good_padvals) {
       for (ii = 0; ii < S.num_channels; ii++) {
-         padvals[ii] = newpadvals[ii] = (char) (fpadvals[ii] + 0.5);
+         padvals[ii] = newpadvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
          sum_padvals += fpadvals[ii];
       }
-      padval = (char) (sum_padvals / S.num_channels + 0.5);
+      padval = (unsigned char) (sum_padvals / S.num_channels + 0.5);
    } else {
       for (ii = 0; ii < S.num_channels; ii++)
          padvals[ii] = newpadvals[ii] = padval;
@@ -581,6 +581,16 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     // Compute the bandwidth
     s->BW = s->num_channels * s->df;
 
+    // Flip the bytes for Parkes FB_1BIT data
+    if (s->bits_per_sample==1 &&
+        strcmp(s->telescope, "Parkes")==0 &&
+        strcmp(s->backend, "FB_1BIT")==0) {
+        printf("Flipping bit ordering since Parkes FB_1BIT data.\n");
+        s->flip_bytes = 1;
+    } else {
+        s->flip_bytes = 0;
+    }
+
     // Copy the structures and return success
     S = *s;
 
@@ -590,7 +600,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     if (s->num_polns > 1)
         tmpbuffer = gen_bvect(s->samples_per_subint);
     // TODO:  The following is temporary, until I fix the padding
-    padvals = (char *)gen_bvect(s->samples_per_spectra/s->num_polns);
+    padvals = gen_bvect(s->samples_per_spectra/s->num_polns);
     offsets = gen_fvect(s->samples_per_spectra);
     scales = gen_fvect(s->samples_per_spectra);
     for (ii = 0 ; ii < s->samples_per_spectra ; ii++) {
@@ -1080,7 +1090,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             }
         }
 
-        if (0) {  //  Hack to flip each byte of data
+        if (S.flip_bytes) {  //  Hack to flip each byte of data
             unsigned char uctmp;
             int ii, jj;
             for (ii = 0 ; ii < S.bytes_per_subint/8 ; ii++) {
@@ -1252,11 +1262,14 @@ int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
                // read_PSRFITS_rawblock returns.  And also, offs_sub is the
                // midpoint of each subint.  (note:  this is only correct 
                // if numblocks is 1, which it should be, I think)
-               *nummasked = check_mask(last_offs_sub - 0.5 * duration, 
+               *nummasked = check_mask(last_offs_sub - 0.5 * duration - \
+                                       S.start_subint[0] * S.time_per_subint, 
                                        duration, obsmask, maskchans);
            }
            // Only use the recently measured padding if all the channels aren't masked
-           if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
+           if ((S.clip_sigma > 0.0) && 
+               !(mask && (*nummasked == -1)) &&
+               (padvals != newpadvals))
                memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
            if (mask) {
                //if (S.num_polns > 1 && !S.summed_polns) {
@@ -1377,12 +1390,15 @@ int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
         // Remember that last_offs_sub gets updated before 
         // read_PSRFITS_rawblock returns.  And also, offs_sub is the
         // midpoint of each subint.
-        *nummasked = check_mask(last_offs_sub - 0.5 * S.time_per_subint, 
+        *nummasked = check_mask(last_offs_sub - 0.5 * S.time_per_subint - \
+                                S.start_subint[0] * S.time_per_subint, 
                                 S.time_per_subint, obsmask, maskchans);
     }
     
     // Only use the recently measured padding if all the channels aren't masked
-    if ((S.clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
+    if ((S.clip_sigma > 0.0) && 
+        !(mask && (*nummasked == -1)) &&
+        (padvals != newpadvals))
         memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
     
     if (mask) {
