@@ -29,6 +29,8 @@ header_params = {
     "tsamp": 'd',  
     "nbits": 'i', 
     "nsamples": 'i', 
+    "nbeams": "i",
+    "ibeam": "i",
     "fch1": 'd',  
     "foff": 'd',
     "FREQUENCY_START": 'flag',
