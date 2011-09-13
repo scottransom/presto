@@ -79,6 +79,14 @@ class rfifind:
             self.mask_zap_ints = np.fromfile(x, dtype=np.int32, count=nzap)
         else:
             self.mask_zap_ints = np.asarray([])
+        nzap_per_int = np.fromfile(x, dtype=np.int32, count=nint)
+        self.mask_zap_chans_per_int = []
+        for nzap in nzap_per_int:
+            if nzap:
+                tozap = np.fromfile(x, dtype=np.int32, count=nzap)
+            else:
+                tozap = np.asarray([])
+            self.mask_zap_chans_per_int.append(tozap)
         x.close()
 
     def get_bandpass(self, plot=False):
