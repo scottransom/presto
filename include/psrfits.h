@@ -54,6 +54,7 @@ struct spectra_info {
     int apply_weight;       // Do we apply the weights to the data? (1=Yes, 0=No)
     int apply_flipband;     // Do we invert the band? (1=Yes, 0=No)
     int flip_bytes;         // Hack to flip the order of the bits in a byte of data
+    float zero_offset;      // A DC zero-offset value to apply to all the data
     float clip_sigma;       // Clipping value in standard deviations to use
     long double start_MJD[MAXPFITSFILES]; // Array of long double MJDs for the file starts
     fitsfile *files[MAXPFITSFILES];       // Array of num_files FITS file pointers

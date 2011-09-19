@@ -310,6 +310,16 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                       &(s->start_subint[ii]), comment, &status);
         s->time_per_subint = s->dt * s->spectra_per_subint;
 
+        /* This is likely not in earlier versions of PSRFITS so */
+        /* treat it a bit differently                           */
+        fits_read_key(s->files[ii], TFLOAT, "ZERO_OFF", 
+                      &(s->zero_offset), comment, &status);
+        if (status==KEY_NO_EXIST) {
+            status = 0;
+            s->zero_offset = 0.0;
+        }
+        s->zero_offset = fabs(s->zero_offset);
+
         // Get the time offset column info and the offset for the 1st row
         {
             double offs_sub;
@@ -671,9 +681,9 @@ void print_PSRFITS_info(struct spectra_info *s)
     printf("            Starting subint = %d\n", s->start_subint[0]);
     printf("           Subints per file = %d\n", s->num_subint[0]);
     printf("           Spectra per file = %lld\n", s->num_spec[0]);
+    printf("      Time per subint (sec) = %-.12g\n", s->time_per_subint);
     printf("        Time per file (sec) = %-.12g\n", s->num_spec[0]*s->dt);
     printf("              FITS typecode = %d\n", s->FITS_typecode);
-#if DEBUGOUT
     printf("                DATA column = %d\n", s->data_col);
     printf("            bits per sample = %d\n", s->bits_per_sample);
     if (s->bits_per_sample < 8)
@@ -688,11 +698,11 @@ void print_PSRFITS_info(struct spectra_info *s)
         itmp = s->bytes_per_subint;
     printf("           bytes per subint = %d\n", itmp);
     printf("         samples per subint = %d\n", s->samples_per_subint);
+    printf("                zero offset = %-17.15g\n", s->zero_offset);
     printf("             Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
     printf("             Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
     printf("             Apply weights? = %s\n", s->apply_weight ? "True" : "False");
     printf("           Invert the band? = %s\n", s->apply_flipband ? "True" : "False");
-#endif
 }
 
 
@@ -1025,7 +1035,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                     for (jj = 0 ; jj < S.num_channels ; jj++, os_idx++) {
                         offset = (S.apply_offset) ? offsets[os_idx] : 0.0;
                         scale = (S.apply_scale) ? scales[os_idx] : 1.0;
-                        fvec[d_idx+jj] = ((float)tmpptr[jj] * scale) + offset;
+                        fvec[d_idx+jj] = (((float)tmpptr[jj] - S.zero_offset) * scale) + offset;
                     }
                 }
                 // Now determine the median of the data...
@@ -1054,7 +1064,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 for (jj = 0 ; jj < S.num_channels ; jj++, os_idx++) {
                     offset = (S.apply_offset) ? offsets[os_idx] : 0.0;
                     scale = (S.apply_scale) ? scales[os_idx] : 1.0;
-                    ftmp = ((float)tmpptr[jj] * scale) + offset;
+                    ftmp = (((float)tmpptr[jj] - S.zero_offset) * scale) + offset;
                     ftmp = (ftmp < 0.0) ? 0.0 : ftmp;
                     tmpptr[jj] = (unsigned char)(ftmp * global_scale + 0.5);
                 }
@@ -1090,7 +1100,8 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             }
         }
 
-        if (S.flip_bytes) {  //  Hack to flip each byte of data
+        // Hack to flip each byte of data if needed
+        if (S.flip_bytes) {
             unsigned char uctmp;
             int ii, jj;
             for (ii = 0 ; ii < S.bytes_per_subint/8 ; ii++) {
