@@ -1529,6 +1529,8 @@ int main(int argc, char *argv[])
 
       {                         /* Do the optimization */
          int numdmtrials = 1, numpdds = 1, lodmnum = 0;
+         int totnumtrials, currtrial = 0;
+         int oldper = -1, newper = 0;
          int idm, ip, ipd, ipdd, bestidm = 0, bestip = 0, bestipd = 0, bestipdd = 0;
          double lodm = 0.0, ddm = 0.0;
          double *delays, *pd_delays, *pdd_delays, *ddprofs = search.rawfolds;
@@ -1601,6 +1603,8 @@ int main(int argc, char *argv[])
             lodmnum = good_idm;
             numdmtrials = lodmnum + 1;
          }
+         /* The total number of search trials */
+         totnumtrials=numdmtrials*numpdds*numtrials*numtrials;
 
          for (idm = lodmnum; idm < numdmtrials; idm++) {        /* Loop over DMs */
             if (cmd->nsub > 1) {        /* This is only for doing DM searches */
@@ -1639,7 +1643,7 @@ int main(int argc, char *argv[])
                      /* Combine the profiles usingthe above computed delays */
                      combine_profs(ddprofs, ddstats, cmd->npart, search.proflen,
                                    delays, currentprof, &currentstats);
-
+                    
                      /* If this is a simple fold, create the chi-square p-pdot plane */
                      if (cmd->nsub == 1 && !cmd->searchpddP)
                         ppdot[ipd * search.numpdots + ip] = currentstats.redchi;
@@ -1659,6 +1663,13 @@ int main(int argc, char *argv[])
                            memcpy(bestprof, currentprof,
                                   sizeof(double) * search.proflen);
                         }
+                     }
+                     currtrial+=1;
+                     newper = (int) ((float) currtrial/totnumtrials*100.0 + 0.5);
+                     if (newper > oldper) {
+                        printf("\r  Amount Complete = %3d%%", newper);
+                        fflush(stdout);
+                        oldper = newper;
                      }
                   }
                }
