@@ -491,12 +491,13 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
    /* Now read the first header... */
    headerlen = read_filterbank_header(&(fb_st[0]), files[0]);
    if (fb_st[0].nbits == 8) {
-      printf("\nThe number of bits per sample (%d)",fb_st[0].nbits);
-      ptperbytes_st = 1;
-   } 
-   if (fb_st[0].nbits == 4) {
-      printf("\nThe number of bits per sample (%d)",fb_st[0].nbits);
-      ptperbytes_st = 2;
+       ptperbytes_st = 1;
+   } else if (fb_st[0].nbits == 4) {
+       ptperbytes_st = 2;
+   } else if (fb_st[0].nbits == 2) {
+       ptperbytes_st = 4;
+   } else if (fb_st[0].nbits == 1) {
+       ptperbytes_st = 8;
    }
    sigprocfb_to_inf(fb_st + 0, idata_st + 0);
    chkfseek(files[0], fb_st[0].headerlen, SEEK_SET);
@@ -555,6 +556,7 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
       printf("        Instrument = %s (%d)\n", ctmp, fb_st[0].machine_id);
       free(ctmp);
       printf("   Number of files = %d\n", numfiles);
+      printf("    Bits per point = %d\n", fb_st[0].nbits);
       printf("      Points/block = %d\n", ptsperblk_st);
       printf("   Num of channels = %d\n", numchan_st);
       printf("  Total points (N) = %lld\n", N_st);
@@ -1038,26 +1040,43 @@ void convert_filterbank_block(int *indata, unsigned char *outdata)
    int ii, jj, samp_ct, offset;
 
    if (ptperbytes_st == 1) {
-      unsigned char *chardata = (unsigned char *) indata;
-      for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
-         offset = samp_ct * numchan_st;
-         for (ii = 0, jj = numchan_st - 1; ii < numchan_st; ii++, jj--)
-            outdata[ii + offset] = chardata[jj + offset];
-      }
+       unsigned char *chardata = (unsigned char *) indata;
+       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
+           offset = samp_ct * numchan_st;
+           for (ii = 0, jj = numchan_st - 1; ii < numchan_st; ii++, jj--)
+               outdata[ii + offset] = chardata[jj + offset];
+       }
    } else if (ptperbytes_st == 2) {
-      unsigned char c;
-      unsigned char *chardata = (unsigned char *) indata;
-      for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
-         offset = samp_ct * numchan_st;
-         for (ii = 0, jj = numchan_st/2 - 1; ii < numchan_st; ii+=2, jj--) {
-	    c = chardata[(jj + offset/2)];
-	    outdata[(ii+1) + offset] = (unsigned char ) (c & 15);
-	    outdata[ii + offset] = (unsigned char ) ( (c & 240) >> 4 );
-	 }
-      }
+       unsigned char c;
+       unsigned char *chardata = (unsigned char *) indata;
+       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
+           offset = samp_ct * numchan_st;
+           for (ii = 0, jj = numchan_st/2 - 1; ii < numchan_st; ii+=2, jj--) {
+               c = chardata[(jj + offset/2)];
+               outdata[(ii+1) + offset] = (unsigned char ) (c & 15);
+               outdata[ii + offset] = (unsigned char ) ( (c & 240) >> 4 );
+           }
+       }
    } else if (ptperbytes_st == 4) {
-      printf("Can't handle 2-byte data yet!\n");
+       printf("Can't handle 2-bit data yet!\n");
+   } else if (ptperbytes_st == 8) {
+       unsigned char c;
+       unsigned char *chardata = (unsigned char *) indata;
+       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
+           offset = samp_ct * numchan_st;
+           for (ii = 0, jj = numchan_st/8 - 1; ii < numchan_st; ii+=8, jj--) {
+               c = chardata[(jj + offset/8)];
+               outdata[ii + offset]     = (c >> 0x07) & 0x01;
+               outdata[(ii+1) + offset] = (c >> 0x06) & 0x01;
+               outdata[(ii+2) + offset] = (c >> 0x05) & 0x01;
+               outdata[(ii+3) + offset] = (c >> 0x04) & 0x01;
+               outdata[(ii+4) + offset] = (c >> 0x03) & 0x01;
+               outdata[(ii+5) + offset] = (c >> 0x02) & 0x01;
+               outdata[(ii+6) + offset] = (c >> 0x01) & 0x01;
+               outdata[(ii+7) + offset] = c & 0x01;
+           }
+       }
    } else {
-      printf("\nYikes!!! Not supposed to be here in convert_filterbank_block()\n\n");
+       printf("\nYikes!!! Not supposed to be here in convert_filterbank_block()\n\n");
    }
 }
