@@ -21,7 +21,7 @@ static int currentfile, currentblock;
 static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static float clip_sigma_st = 0.0;
 static int using_MPI = 0;
-static int ptperbytes_st = 1;
+static int ptsperbyte_st = 1;
 
 /* Note:  Much of this has been ripped out of SIGPROC      */
 /* and then slightly modified.  Thanks Dunc!               */
@@ -386,15 +386,18 @@ void print_filterbank_header(sigprocfb * fb)
       printf(" Note:  IFs were summed in hardware.\n");
 }
 
-void get_filterbank_static(int *bytesperpt, int *bytesperblk, float *clip_sigma)
+void get_filterbank_static(int *ptsperbyte, int *bytesperpt, 
+                           int *bytesperblk, float *clip_sigma)
 {
+   *ptsperbyte = ptsperbyte_st;
    *bytesperpt = bytesperpt_st;
    *bytesperblk = bytesperblk_st;
    *clip_sigma = clip_sigma_st;
 }
 
 
-void set_filterbank_static(int ptsperblk, int bytesperpt, int bytesperblk,
+void set_filterbank_static(int ptsperbyte, int ptsperblk, 
+                           int bytesperpt, int bytesperblk,
                            int numchan, float clip_sigma, double dt)
 {
    using_MPI = 1;
@@ -402,6 +405,7 @@ void set_filterbank_static(int ptsperblk, int bytesperpt, int bytesperblk,
    ptsperblk_st = ptsperblk;
    bytesperpt_st = bytesperpt;
    bytesperblk_st = bytesperblk;
+   ptsperbyte_st = ptsperbyte;
    numchan_st = numchan;
    sampperblk_st = ptsperblk_st * numchan_st;
    clip_sigma_st = clip_sigma;
@@ -491,13 +495,13 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
    /* Now read the first header... */
    headerlen = read_filterbank_header(&(fb_st[0]), files[0]);
    if (fb_st[0].nbits == 8) {
-       ptperbytes_st = 1;
+       ptsperbyte_st = 1;
    } else if (fb_st[0].nbits == 4) {
-       ptperbytes_st = 2;
+       ptsperbyte_st = 2;
    } else if (fb_st[0].nbits == 2) {
-       ptperbytes_st = 4;
+       ptsperbyte_st = 4;
    } else if (fb_st[0].nbits == 1) {
-       ptperbytes_st = 8;
+       ptsperbyte_st = 8;
    }
    sigprocfb_to_inf(fb_st + 0, idata_st + 0);
    chkfseek(files[0], fb_st[0].headerlen, SEEK_SET);
@@ -506,7 +510,7 @@ void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
    *numchan = numchan_st = idata_st[0].num_chan;
    *ptsperblock = ptsperblk_st = BLOCKLEN;
    sampperblk_st = ptsperblk_st * numchan_st;
-   bytesperblk_st = sampperblk_st / ptperbytes_st;
+   bytesperblk_st = sampperblk_st / ptsperbyte_st;
    numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
    numpts_st[0] = numblks_st[0] * ptsperblk_st;
    N_st = numpts_st[0];
@@ -1039,16 +1043,15 @@ void convert_filterbank_block(int *indata, unsigned char *outdata)
 {
    int ii, jj, samp_ct, offset;
 
-   if (ptperbytes_st == 1) {
+   if (ptsperbyte_st == 1) {
        unsigned char *chardata = (unsigned char *) indata;
        for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
            offset = samp_ct * numchan_st;
            for (ii = 0, jj = numchan_st - 1; ii < numchan_st; ii++, jj--)
                outdata[ii + offset] = chardata[jj + offset];
        }
-   } else if (ptperbytes_st == 2) {
-       unsigned char c;
-       unsigned char *chardata = (unsigned char *) indata;
+   } else if (ptsperbyte_st == 2) {
+       unsigned char c, *chardata = (unsigned char *) indata;
        for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
            offset = samp_ct * numchan_st;
            for (ii = 0, jj = numchan_st/2 - 1; ii < numchan_st; ii+=2, jj--) {
@@ -1057,23 +1060,36 @@ void convert_filterbank_block(int *indata, unsigned char *outdata)
                outdata[ii + offset] = (unsigned char ) ( (c & 240) >> 4 );
            }
        }
-   } else if (ptperbytes_st == 4) {
-       printf("Can't handle 2-bit data yet!\n");
-   } else if (ptperbytes_st == 8) {
-       unsigned char c;
-       unsigned char *chardata = (unsigned char *) indata;
+   } else if (ptsperbyte_st == 4) {
+       unsigned char c, *chardata = (unsigned char *) indata;
+       unsigned char *outdataptr;
        for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
            offset = samp_ct * numchan_st;
+           outdataptr = outdata + offset;
+           for (ii = 0, jj = numchan_st/4 - 1; ii < numchan_st; ii+=4, jj--) {
+               c = chardata[(jj + offset/4)];
+               *outdataptr++ = (c >> 0x06) & 0x03;
+               *outdataptr++ = (c >> 0x04) & 0x03;
+               *outdataptr++ = (c >> 0x02) & 0x03;
+               *outdataptr++ = c & 0x03;
+           }
+       }
+   } else if (ptsperbyte_st == 8) {
+       unsigned char c, *chardata = (unsigned char *) indata;
+       unsigned char *outdataptr;
+       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
+           offset = samp_ct * numchan_st;
+           outdataptr = outdata + offset;
            for (ii = 0, jj = numchan_st/8 - 1; ii < numchan_st; ii+=8, jj--) {
                c = chardata[(jj + offset/8)];
-               outdata[ii + offset]     = (c >> 0x07) & 0x01;
-               outdata[(ii+1) + offset] = (c >> 0x06) & 0x01;
-               outdata[(ii+2) + offset] = (c >> 0x05) & 0x01;
-               outdata[(ii+3) + offset] = (c >> 0x04) & 0x01;
-               outdata[(ii+4) + offset] = (c >> 0x03) & 0x01;
-               outdata[(ii+5) + offset] = (c >> 0x02) & 0x01;
-               outdata[(ii+6) + offset] = (c >> 0x01) & 0x01;
-               outdata[(ii+7) + offset] = c & 0x01;
+               *outdataptr++ = (c >> 0x07) & 0x01;
+               *outdataptr++ = (c >> 0x06) & 0x01;
+               *outdataptr++ = (c >> 0x05) & 0x01;
+               *outdataptr++ = (c >> 0x04) & 0x01;
+               *outdataptr++ = (c >> 0x03) & 0x01;
+               *outdataptr++ = (c >> 0x02) & 0x01;
+               *outdataptr++ = (c >> 0x01) & 0x01;
+               *outdataptr++ = c & 0x01;
            }
        }
    } else {

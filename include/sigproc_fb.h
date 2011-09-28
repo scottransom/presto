@@ -26,9 +26,11 @@ typedef struct SIGPROCFB {
 int read_filterbank_header(sigprocfb *fb, FILE *inputfile);
 void write_filterbank_header(sigprocfb *fb, FILE *outfile);
 void print_filterbank_header(sigprocfb *fb);
-void get_filterbank_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
-void set_filterbank_static(int ptsperblk, int bytesperpt, int bytesperblk, 
-			   int numchan, float clip_sigma, double dt);
+void get_filterbank_static(int *ptsperbyte, int *bytesperpt, 
+                           int *bytesperblk, float *clip_sigma);
+void set_filterbank_static(int ptsperbyte, int ptsperblk, 
+                           int bytesperpt, int bytesperblk, 
+                           int numchan, float clip_sigma, double dt);
 void set_filterbank_padvals(float *fpadvals, int good_padvals);
 void get_filterbank_file_info(FILE *files[], int numfiles, float clipsig, 
 			      long long *N, int *ptsperblock, 

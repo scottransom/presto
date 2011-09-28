@@ -329,7 +329,7 @@ int main(int argc, char *argv[])
    {
       float clip_sigma = 0.0;
       double dt, T;
-      int ptsperblk, bytesperpt, numifs = 0, decreasing_freqs = 1;
+      int ptsperbyte, ptsperblk, bytesperpt, numifs = 0, decreasing_freqs = 1;
       int chan_mapping[2 * MAXNUMCHAN];
       long long N;
 
@@ -410,7 +410,7 @@ int main(int argc, char *argv[])
             printf("\nSIGPROC filterbank input file information:\n");
             get_filterbank_file_info(infiles, numinfiles, cmd->clip,
                                      &N, &ptsperblk, &numchan, &dt, &T, 1);
-            get_filterbank_static(&bytesperpt, &bytesperblk, &clip_sigma);
+            get_filterbank_static(&ptsperbyte, &bytesperpt, &bytesperblk, &clip_sigma);
             filterbank_update_infodata(numinfiles, &idata);
             set_filterbank_padvals(padvals, good_padvals);
          }
@@ -492,6 +492,7 @@ int main(int argc, char *argv[])
          }
       }
 
+      MPI_Bcast(&ptsperbyte, 1, MPI_INT, 0, MPI_COMM_WORLD);
       MPI_Bcast(&ptsperblk, 1, MPI_INT, 0, MPI_COMM_WORLD);
       MPI_Bcast(&bytesperpt, 1, MPI_INT, 0, MPI_COMM_WORLD);
       MPI_Bcast(&bytesperblk, 1, MPI_INT, 0, MPI_COMM_WORLD);
@@ -518,8 +519,8 @@ int main(int argc, char *argv[])
             set_GMRT_padvals(padvals, good_padvals);
          }
          if (cmd->filterbankP) {
-            set_filterbank_static(ptsperblk, bytesperpt, bytesperblk,
-                                  numchan, clip_sigma, dt);
+            set_filterbank_static(ptsperbyte, ptsperblk, bytesperpt, bytesperblk,
+                                   numchan, clip_sigma, dt);
             set_filterbank_padvals(padvals, good_padvals);
          }
          if (cmd->bcpmP) {
