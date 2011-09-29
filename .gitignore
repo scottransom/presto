@@ -56,4 +56,3 @@ python/build/
 src/slalib/sla_test
 src/makewisdom
 src/fftw_wisdom.txt
-src/Makefile
