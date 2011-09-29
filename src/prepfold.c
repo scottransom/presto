@@ -1224,7 +1224,7 @@ int main(int argc, char *argv[])
          for (ii = 0; ii < numbarypts - 1; ii++)
             search.avgvoverc += voverc[ii];
          search.avgvoverc /= (numbarypts - 1.0);
-         free(voverc);
+         vect_free(voverc);
          printf("The average topocentric velocity is %.6g (units of c).\n\n",
                 search.avgvoverc);
          printf("Barycentric folding frequency    (hz)  =  %-.12g\n", f);
@@ -1439,8 +1439,8 @@ int main(int argc, char *argv[])
          printf("\r  Folded %ld points of %.0f", totnumfolded, N);
          fflush(NULL);
       }
-      free(buffers);
-      free(phasesadded);
+      vect_free(buffers);
+      vect_free(phasesadded);
    }
    /* This resets foldf (which is used below) to the original value */
    if (cmd->polycofileP)
@@ -1695,17 +1695,17 @@ int main(int argc, char *argv[])
                                                 foldfdd + fdotdots[bestipdd]);
          }
 
-         free(delays);
-         free(pd_delays);
-         free(pdd_delays);
+         vect_free(delays);
+         vect_free(pd_delays);
+         vect_free(pdd_delays);
          if (cmd->nsub > 1) {
-            free(ddprofs);
+            vect_free(ddprofs);
             free(ddstats);
          }
       }
-      free(currentprof);
-      free(fdots);
-      free(fdotdots);
+      vect_free(currentprof);
+      vect_free(fdots);
+      vect_free(fdotdots);
    }
    printf("  Done searching.\n\n");
 
@@ -1845,30 +1845,30 @@ int main(int argc, char *argv[])
    /* Free our memory  */
 
    if (cmd->nsub == 1 && !cmd->searchpddP)
-      free(ppdot);
+      vect_free(ppdot);
    delete_prepfoldinfo(&search);
-   free(data);
+   vect_free(data);
    if (!cmd->outfileP)
       free(rootnm);
    free(outfilenm);
    free(plotfilenm);
-   free(parttimes);
-   free(bestprof);
+   vect_free(parttimes);
+   vect_free(bestprof);
    if (binary) {
-      free(Ep);
-      free(tp);
+      vect_free(Ep);
+      vect_free(tp);
    }
    if (cmd->maskfileP) {
       free_mask(obsmask);
-      free(padvals);
+      vect_free(padvals);
    }
    if (RAWDATA || insubs) {
-      free(barytimes);
-      free(topotimes);
+      vect_free(barytimes);
+      vect_free(topotimes);
    }
    if (!strcmp(idata.band, "Radio")) {
-      free(obsf);
-      free(dispdts);
+      vect_free(obsf);
+      vect_free(dispdts);
    }
    printf("Done.\n\n");
    return (0);

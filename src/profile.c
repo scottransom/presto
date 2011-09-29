@@ -424,7 +424,7 @@ int main(int argc, char **argv)
       fprof = gen_fvect(proflen);
       for (i = 0; i < proflen; i++)
          fprof[i] = (float) prof[i];
-      free(prof);
+      vect_free(prof);
 
    } else {
 
@@ -595,13 +595,13 @@ int main(int argc, char **argv)
       if (mdata.onoff)
          free(mdata.onoff);
    if (!cmd->dispP && binary) {
-      free(Ep);
-      free(tp);
+      vect_free(Ep);
+      vect_free(tp);
    }
    if (!cmd->dispP)
-      free(errors);
-   free(times);
-   free(fprof);
-   free(chiarr);
+      vect_free(errors);
+   vect_free(times);
+   vect_free(fprof);
+   vect_free(chiarr);
    return (0);
 }

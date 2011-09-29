@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
       fprintf(stderr, "Converted %lld samples and wrote %lld.\n\n", 
               numconverted, numwritten);
    if (scaling)
-      free(scalings);
+      vect_free(scalings);
    free(spigots);
    free(infiles);
    return 0;

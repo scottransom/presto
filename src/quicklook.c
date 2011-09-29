@@ -122,8 +122,8 @@ int main(int argc, char *argv[])
 
    /* Cleanup and exit */
 
-   free(ffdotplane[0]);
-   free(ffdotplane);
-   free(data);
+   vect_free(ffdotplane[0]);
+   vect_free(ffdotplane);
+   vect_free(data);
    exit(0);
 }

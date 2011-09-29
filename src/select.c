@@ -26,7 +26,7 @@ int prune_powers(float *arr, int n, int numsumpows)
    tmparr = gen_fvect(n);
    memcpy(tmparr, arr, sizeof(float) * n);
    med = median(tmparr, n);
-   free(tmparr);
+   vect_free(tmparr);
 
    /* Throw away powers that are bigger that PRUNELEV * median */
 

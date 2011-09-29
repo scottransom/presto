@@ -333,13 +333,13 @@ static fftpart *get_fftpart(int rlo, int numr)
 
 static void free_fftpart(fftpart * fp)
 {
-   free(fp->normvals);
-   free(fp->medians);
-   free(fp->rawpowers);
+   vect_free(fp->normvals);
+   vect_free(fp->medians);
+   vect_free(fp->rawpowers);
 #ifdef USEMMAP
    munmap(fp->amps, sizeof(fcomplex) * fp->numamps);
 #else
-   free(fp->amps);
+   vect_free(fp->amps);
 #endif
    free(fp);
 }
@@ -823,8 +823,8 @@ int main(int argc, char *argv[])
                zaplist[ii].lobin = lobins[ii];
                zaplist[ii].hibin = hibins[ii];
             }
-            free(lobins);
-            free(hibins);
+            vect_free(lobins);
+            vect_free(hibins);
             printf("\n");
             cpgpage();
             offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);

@@ -159,10 +159,10 @@ int main(int argc, char *argv[])
 
    printf("\nDone.\n\n");
 
-   free(data);
-   free(window);
-   free(tmp);
-   free(freqs);
+   vect_free(data);
+   vect_free(window);
+   vect_free(tmp);
+   vect_free(freqs);
    exit(0);
 }
 

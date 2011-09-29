@@ -114,7 +114,7 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
       tablesplitfftraw(p1, table, n1, isign);
       fft_scramble(p1, n1);
    }
-   free(table);
+   vect_free(table);
 
 #endif
 
@@ -173,7 +173,7 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
       tablesplitfftraw(p1, table, n2, isign);
       fft_scramble(p1, n2);
    }
-   free(table);
+   vect_free(table);
 
 #endif
 
@@ -282,7 +282,7 @@ void tablesplitfft(float data[], long nn, int isign)
    table = maketable(nn, 1);
    tablesplitfftraw(data, table, nn, isign);
    fft_scramble(data, nn);
-   free(table);
+   vect_free(table);
 }
 
 
@@ -296,7 +296,7 @@ void tablefft(float data[], long nn, int isign)
    table = maketable(nn, isign);
    tablefftraw(data, table, nn);
    fft_scramble(data, nn);
-   free(table);
+   vect_free(table);
 }
 
 

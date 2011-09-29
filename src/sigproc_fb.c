@@ -871,8 +871,8 @@ int read_filterbank(FILE * infiles[], int numfiles, float *data,
             dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
          SWAP(currentdata, lastdata);
          if (numread != numblocks) {
-            free(rawdata1);
-            free(rawdata2);
+            vect_free(rawdata1);
+            vect_free(rawdata2);
             allocd = 0;
          }
          if (firsttime)

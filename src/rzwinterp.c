@@ -104,6 +104,6 @@ void rzw_interp(fcomplex * data, int numdata, double r, double z,
       respptr++;
    }
 
-   free(response);
+   vect_free(response);
    return;
 }

@@ -435,9 +435,9 @@ int read_PKMB(FILE * infiles[], int numfiles, float *data,
       numread = read_PKMB_rawblocks(infiles, numfiles, raw, numblocks, padding);
       if (numread != numblocks && allocd) {
          printf("Problem reading the raw PKMB data file.\n\n");
-         free(raw);
-         free(rawdata1);
-         free(rawdata2);
+         vect_free(raw);
+         vect_free(rawdata1);
+         vect_free(rawdata2);
          allocd = 0;
          return 0;
       }
@@ -506,9 +506,9 @@ int read_PKMB(FILE * infiles[], int numfiles, float *data,
       SWAP(currentdata, lastdata);
 
       if (numread != numblocks) {
-         free(raw);
-         free(rawdata1);
-         free(rawdata2);
+         vect_free(raw);
+         vect_free(rawdata1);
+         vect_free(rawdata2);
          allocd = 0;
       }
       return numread * ptsperblk_st;
@@ -996,8 +996,8 @@ int clip_PKMB_times(unsigned char *rawdata, int ptsperblk, int numchan,
    }
    blocksread++;
 
-   free(zero_dm_block);
-   free(median_temp);
+   vect_free(zero_dm_block);
+   vect_free(median_temp);
 
    return clipped;
 }

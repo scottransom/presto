@@ -325,7 +325,7 @@ void plot_profile(int proflen, float *profile, const char *title,
    cpgsch(1.0);
    cpgmtxt("T", +0.8, 0.5, 0.5, foldtxt);
    cpgmtxt("T", -1.5, 0.5, 0.5, probtxt);
-   free(x);
+   vect_free(x);
 }
 
 

@@ -12,7 +12,7 @@ float calc_median_powers(fcomplex * amplitudes, int numamps)
    for (ii = 0; ii < numamps; ii++)
       powers[ii] = POWER(amplitudes[ii].r, amplitudes[ii].i);
    med = median(powers, numamps);
-   free(powers);
+   vect_free(powers);
    return med;
 }
 
@@ -40,9 +40,9 @@ void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft)
       if (fftfile) {            /* If we are reading a file */
          data = get_rawbins(fftfile, lobin - MEDIANBINS,
                             MEDIANBINS, &median_lo, &lodatabin);
-         free(data);
+         vect_free(data);
          data = get_rawbins(fftfile, hibin, MEDIANBINS, &median_hi, &lodatabin);
-         free(data);
+         vect_free(data);
       } else {                  /* If we are working from memory */
          lodatabin = lobin - 3 * MEDIANBINS / 2;
          median_lo = calc_median_powers(fft + lodatabin, MEDIANBINS);
@@ -73,7 +73,7 @@ void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft)
       if (fftfile) {            /* If we are reading a file */
          chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
          chkfwrite(data, sizeof(fcomplex), binstozap, fftfile);
-         free(data);
+         vect_free(data);
          printf("Set bins %9d through %9d to amplitude of %.3g\n",
                 ilobin, ihibin, avgamp);
       }

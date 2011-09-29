@@ -293,3 +293,9 @@ fcomplex **gen_cmatrix(long nrows, long ncols)
 
    return m;
 }
+
+void vect_free( void *vect )
+{
+   fftwf_free(vect);
+}
+

@@ -124,9 +124,9 @@ int new_clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
    }
    blocksread++;
 
-   free(chan_avg_temp);
-   free(zero_dm_block);
-   free(median_temp);
+   vect_free(chan_avg_temp);
+   vect_free(zero_dm_block);
+   vect_free(median_temp);
 
    return clipped;
 }
@@ -253,8 +253,8 @@ int clip_times(unsigned char *rawdata, int ptsperblk, int numchan,
    }
    blocksread++;
 
-   free(zero_dm_block);
-   free(median_temp);
+   vect_free(zero_dm_block);
+   vect_free(median_temp);
 
    return clipped;
 }
@@ -376,8 +376,8 @@ int subs_clip_times(float *rawdata, int ptsperblk, int numchan,
    }
    blocksread++;
 
-   free(zero_dm_block);
-   free(median_temp);
+   vect_free(zero_dm_block);
+   vect_free(median_temp);
 
    return clipped;
 }
