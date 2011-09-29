@@ -254,5 +254,5 @@ void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
       fwrite_multifile(data + jj, sizeof(rawtype), 1, infile);
    }
    free(move);
-   free(data);
+   vect_free(data);
 }

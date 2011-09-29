@@ -300,14 +300,14 @@ int main(int argc, char *argv[])
       powers = gen_fvect(miniN);
       for (ii = 0; ii < miniN; ii++)
          powers[ii] = POWER(data[ii].r, data[ii].i);
-      free(data);
+      vect_free(data);
       realfft(powers, miniN, -1);
       norm = sqrt(miniN) / powers[0];
       for (ii = 0; ii < miniN; ii++)
          powers[ii] *= norm;
       powers[0] = 1.0;
       hipow = max_r_arr((fcomplex *) powers, miniN / 2, bincand.mini_r, &hir, &rd);
-      free(powers);
+      vect_free(powers);
       calc_props(rd, hir, 0.0, 0.0, &fp);
       calc_binprops(&fp, bincand.full_T, bincand.full_lo_r, miniN, &binprops);
       ppsr = binprops.ppsr;
@@ -492,8 +492,8 @@ int main(int argc, char *argv[])
       }
       orb.p += dp;
    }
-   free(data);
-   free(corrdata);
+   vect_free(data);
+   vect_free(corrdata);
    printf("\n\nResults:\n");
    printf("\tHighest power found = %f\n", bestpowr);
    printf("\t        Power ratio = %f\n\n", bestpowr / bestrawpowr);
@@ -560,7 +560,7 @@ static double orbit_trial(fcomplex * data, int datalen,
          *bestorb = orb;
       }
    }
-   free(resp);
+   vect_free(resp);
    tott = times(&runtimes) / (double) CLK_TCK - tott;
    return tott;
 }

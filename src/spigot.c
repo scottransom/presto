@@ -958,11 +958,11 @@ int read_SPIGOT(FILE * infiles[], int numfiles, float *data,
             dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
          SWAP(currentdata, lastdata);
          if (numread != numblocks) {
-            free(rawdata1);
-            free(rawdata2);
+            vect_free(rawdata1);
+            vect_free(rawdata2);
             fftwf_destroy_plan(fftplan);
             fftwf_free(lags);
-            free(window_st);
+            vect_free(window_st);
             allocd = 0;
          }
          if (firsttime)
@@ -1006,7 +1006,7 @@ void get_SPIGOT_channel(int channum, float chandat[],
       if ((trtn = transpose_bytes(rawdata, ptsperchan, numchan_st,
                                   move, move_size)) < 0)
          printf("Error %d in transpose_bytes().\n", trtn);
-      free(move);
+      vect_free(move);
    }
 
    /* Select the correct channel */
@@ -1512,7 +1512,7 @@ void convert_SPIGOT_point(void *rawdata, unsigned char *bytes,
             /* Sum the unscaled IFs */
             for (ii = 0; ii < numchan_st; ii++)
                lags[ii] += templags[ii];
-            free(templags);
+            vect_free(templags);
          }
       }
    }

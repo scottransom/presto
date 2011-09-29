@@ -123,7 +123,7 @@ fftcand *search_fft(fcomplex * fft, int numfft, int lobin, int hibin,
    for (ii = 1; ii < numtosearch; ii++)
       fullpows[ii] = POWER(spread[ii].r, spread[ii].i) * norm;
    if (interptype == INTERBIN)
-      free(spread);
+      vect_free(spread);
 
    /* Search the raw powers */
 
@@ -187,9 +187,9 @@ fftcand *search_fft(fcomplex * fft, int numfft, int lobin, int hibin,
             }
          }
       }
-      free(sumpows);
+      vect_free(sumpows);
    }
-   free(fullpows);
+   vect_free(fullpows);
 
    /* Chop off the unused parts of the dynamic array */
 
@@ -301,7 +301,7 @@ void search_minifft(fcomplex * minifft, int numminifft,
       for (ii = 1; ii < numtosearch; ii++)
          fullpows[ii] = POWER(spread[ii].r, spread[ii].i);
    if (interptype == INTERBIN)
-      free(spread);
+      vect_free(spread);
 
    /* Search the raw powers */
 
@@ -346,9 +346,9 @@ void search_minifft(fcomplex * minifft, int numminifft,
             }
          }
       }
-      free(sumpows);
+      vect_free(sumpows);
    }
-   free(fullpows);
+   vect_free(fullpows);
 
    /* Add the rest of the rawbincand data to the candidate array */
 

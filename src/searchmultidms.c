@@ -164,11 +164,11 @@ int main(int argc, char *argv[])
 
    /* Cleanup */
 
-   free(profs);
-   free(sumprof);
-   free(tmpprof);
-   free(chisq);
-   free(dms);
+   vect_free(profs);
+   vect_free(sumprof);
+   vect_free(tmpprof);
+   vect_free(chisq);
+   vect_free(dms);
 
    return 0;
 }

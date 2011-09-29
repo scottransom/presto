@@ -60,8 +60,8 @@ fcomplex **corr_rz_plane(fcomplex * data, int numdata, int numbetween,
       /* Cleanup old data if we need to */
 
       if (kernel) {
-         free(kernel[0]);
-         free(kernel);
+         vect_free(kernel[0]);
+         vect_free(kernel);
       }
       kernel = gen_cmatrix(numz, fftlen);
 
@@ -70,7 +70,7 @@ fcomplex **corr_rz_plane(fcomplex * data, int numdata, int numbetween,
       for (ii = 0; ii < numz; ii++) {
          response = gen_z_response(0.0, numbetween, zlo + ii * dz, numkern);
          place_complex_kernel(response, numkern, kernel[ii], fftlen);
-         free(response);
+         vect_free(response);
          COMPLEXFFT(kernel[ii], fftlen, -1);
       }
 
@@ -134,7 +134,7 @@ fcomplex *corr_rz_interp(fcomplex * data, int numdata, int numbetween,
    result = corr_rz_plane(data, numdata, numbetween, startbin, z, z, 1,
                           fftlen, accuracy, nextbin);
    tempreturn = result[0];
-   free(result);
+   vect_free(result);
    return tempreturn;
 }
 
@@ -229,6 +229,6 @@ void rz_interp(fcomplex * data, int numdata, double r, double z,
       respptr++;
    }
 
-   free(response);
+   vect_free(response);
    return;
 }

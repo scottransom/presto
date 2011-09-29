@@ -97,8 +97,8 @@ int main(int argc, char *argv[])
          zapbirds(bird_lobins[ii], bird_hibins[ii], NULL, obs.fft);
       }
 
-      free(bird_lobins);
-      free(bird_hibins);
+      vect_free(bird_lobins);
+      vect_free(bird_hibins);
    }
 
    printf("Searching with up to %d harmonics summed:\n",

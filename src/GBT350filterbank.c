@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
       fclose(infiles[filenum]);
    }
    if (offset)
-      free(offsets);
+      vect_free(offsets);
    fclose(outfile);
    printf("Converted and wrote %d samples.\n\n", ii);
    free(infiles);

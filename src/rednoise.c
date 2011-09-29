@@ -171,10 +171,10 @@ int main(int argc, char *argv[])
 
    printf("\nDone.  Rednoise removed.\n\n");
 
-   free(inbuffer_old);
-   free(inbuffer_new);
-   free(realbuffer);
-   free(outbuffer);
+   vect_free(inbuffer_old);
+   vect_free(inbuffer_new);
+   vect_free(realbuffer);
+   vect_free(outbuffer);
 
    fclose(infile);
    fclose(outfile);

@@ -83,8 +83,8 @@ int main(int argc, char *argv[])
    }
    /* Free stuff up */
 
-   free(data);
-   free(scratch);
+   vect_free(data);
+   vect_free(scratch);
    for (ii = 0; ii < numfiles; ii++)
       free(filenames[ii]);
    free(filenames);

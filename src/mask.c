@@ -91,14 +91,14 @@ void free_mask(mask obsmask)
    for (ii = 0; ii < obsmask.numint; ii++) {
       if (obsmask.num_chans_per_int[ii] > 0 &&
           obsmask.num_chans_per_int[ii] <= obsmask.numchan)
-         free(obsmask.chans[ii]);
+         vect_free(obsmask.chans[ii]);
    }
    free(obsmask.chans);
-   free(obsmask.num_chans_per_int);
+   vect_free(obsmask.num_chans_per_int);
    if (obsmask.num_zap_chans)
-      free(obsmask.zap_chans);
+      vect_free(obsmask.zap_chans);
    if (obsmask.num_zap_ints)
-      free(obsmask.zap_ints);
+      vect_free(obsmask.zap_ints);
 }
 
 
@@ -172,7 +172,7 @@ void calc_avgmedstd(float *arr, int numarr, float fraction,
    *avg = (float) davg;
    *med = tmparr[numarr / 2];
    *std = sqrt(dstd);
-   free(tmparr);
+   vect_free(tmparr);
 }
 
 
@@ -218,8 +218,8 @@ int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals[])
                            *padvals + ii, &tmp1, &tmp2);
          printf
              ("...succeded.  Set the padding values equal to the mid-80%% channel averages.\n");
-         free(dataavg[0]);
-         free(dataavg);
+         vect_free(dataavg[0]);
+         vect_free(dataavg);
          fclose(statsfile);
          return 1;
       } else {
@@ -359,7 +359,7 @@ int check_mask(double starttime, double duration, mask * obsmask, int *maskchans
                                    obsmask->chans[hiint],
                                    obsmask->num_chans_per_int[hiint], maskchans);
       if (obsmask->num_zap_chans)
-         free(tmpchans);
+         vect_free(tmpchans);
    }
    return old_numchan;
 }

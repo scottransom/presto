@@ -226,7 +226,7 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
    for (ii = 0; ii < numsubbands; ii++)
       for (jj = 0; jj < chan_per_subband; jj++)
          delays[ii * chan_per_subband + jj] -= subbanddelays[ii];
-   free(subbanddelays);
+   vect_free(subbanddelays);
 
    return delays;
 }

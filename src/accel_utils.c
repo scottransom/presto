@@ -129,14 +129,14 @@ static void init_kernel(int z, int fftlen, kernel * kern)
    kern->data = gen_cvect(kern->fftlen);
    tempkern = gen_z_response(0.0, kern->numbetween, kern->z, numkern);
    place_complex_kernel(tempkern, numkern, kern->data, kern->fftlen);
-   free(tempkern);
+   vect_free(tempkern);
    COMPLEXFFT(kern->data, kern->fftlen, -1);
 }
 
 
 static void free_kernel(kernel * kern)
 {
-   free(kern->data);
+   vect_free(kern->data);
 }
 
 
@@ -247,9 +247,9 @@ void free_accelcand(gpointer data, gpointer user_data)
 {
    user_data = NULL;
    if (((accelcand *) data)->pows) {
-      free(((accelcand *) data)->pows);
-      free(((accelcand *) data)->hirs);
-      free(((accelcand *) data)->hizs);
+      vect_free(((accelcand *) data)->pows);
+      vect_free(((accelcand *) data)->hirs);
+      vect_free(((accelcand *) data)->hizs);
       free(((accelcand *) data)->derivs);
    }
    free((accelcand *) data);
@@ -928,7 +928,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
        for (ii = 0; ii < numdata; ii++)
            powers[ii] = POWER(data[ii].r, data[ii].i);
        norm = 1.0 / sqrt(median(powers, numdata)/log(2.0));
-       free(powers);
+       vect_free(powers);
        for (ii = 0; ii < numdata; ii++) {
            data[ii].r *= norm;
            data[ii].i *= norm;
@@ -947,8 +947,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
            data[ii].r *= norm;
            data[ii].i *= norm;
        }
-       free(powers);
-       free(loc_powers);
+       vect_free(powers);
+       vect_free(loc_powers);
    }
 
    /* Perform the correlations */
@@ -964,15 +964,15 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    }
 
    // Always free data
-   free(data);
+   vect_free(data);
 
    /* Convert the amplitudes to normalized powers */
 
    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
    for (ii = 0; ii < (ffdot->numzs * ffdot->numrs); ii++)
       ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i);
-   free(result[0]);
-   free(result);
+   vect_free(result[0]);
+   vect_free(result);
    return ffdot;
 }
 
@@ -995,8 +995,8 @@ ffdotpows *copy_ffdotpows(ffdotpows * orig)
 
 void free_ffdotpows(ffdotpows * ffd)
 {
-   free(ffd->powers[0]);
-   free(ffd->powers);
+   vect_free(ffd->powers[0]);
+   vect_free(ffd->powers);
    free(ffd);
 }
 
@@ -1121,7 +1121,7 @@ void deredden(fcomplex * fft, int numamps)
    }
 
    /* Free the powers */
-   free(powers);
+   vect_free(powers);
 }
 
 
@@ -1208,7 +1208,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
          chkfread(stmp, sizeof(short), filelen, datfile);
          for (ii = 0; ii < filelen; ii++)
             ftmp[ii+ACCEL_PADDING] = (float) stmp[ii];
-         free(stmp);
+         vect_free(stmp);
       } else {
          ftmp = read_float_file(datfile, -ACCEL_PADDING, filelen+2*ACCEL_PADDING);
       }

@@ -313,7 +313,7 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 
    /* Free our FFT array */
 
-   free(fftprof);
+   vect_free(fftprof);
 }
 
 
@@ -438,7 +438,7 @@ double foldfile(FILE * datafile, double dt, double tlo,
 
    /* Free the buffer and return */
 
-   free(buffer);
+   vect_free(buffer);
    return phase;
 }
 
@@ -788,7 +788,7 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof)
       memcpy(tmpprof, prof + nowrap, wrap * sizeof(double));
       memcpy(tmpprof + wrap, prof, nowrap * sizeof(double));
       memcpy(outprof, tmpprof, proflen * sizeof(double));
-      free(tmpprof);
+      vect_free(tmpprof);
    } else {
       /* no shift */
       if (wrap == 0) {
@@ -867,7 +867,7 @@ void combine_profs(double *profs, foldstats * instats, int numprofs,
    /* Calculate the reduced chi-squared */
    outstats->redchi = chisqr(outprof, proflen, outstats->prof_avg,
                              outstats->prof_var) / (proflen - 1.0);
-   free(local_delays);
+   vect_free(local_delays);
 }
 
 

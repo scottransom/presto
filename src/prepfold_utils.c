@@ -375,9 +375,9 @@ int bary2topo(double *topotimes, double *barytimes, int numtimes,
    *ft = bb[0];
    *ftd = bb[1];
    *ftdd = bb[2];
-   free(aa);
-   free(bb);
-   free(work);
+   vect_free(aa);
+   vect_free(bb);
+   vect_free(work);
    return info;
 }
 
@@ -707,11 +707,11 @@ void read_prepfoldinfo(prepfoldinfo * in, char *filename)
 void delete_prepfoldinfo(prepfoldinfo * in)
 /* Free all dynamic arrays in the prepfold array */
 {
-   free(in->rawfolds);
+   vect_free(in->rawfolds);
    if (in->nsub > 1)
-      free(in->dms);
-   free(in->periods);
-   free(in->pdots);
+      vect_free(in->dms);
+   vect_free(in->periods);
+   vect_free(in->pdots);
    free(in->stats);
    free(in->filenm);
    free(in->candnm);
@@ -748,8 +748,8 @@ void correct_subbands_for_DM(double dm, prepfoldinfo * search,
    for (ii = 0; ii < search->nsub; ii++)
       dmdelays[ii] =
           NEAREST_INT((subbanddelays[ii] - hifdelay) * rdphase) % search->proflen;
-   free(subbanddelays);
+   vect_free(subbanddelays);
    combine_subbands(search->rawfolds, search->stats, search->npart,
                     search->nsub, search->proflen, dmdelays, ddprofs, ddstats);
-   free(dmdelays);
+   vect_free(dmdelays);
 }
