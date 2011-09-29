@@ -18,13 +18,12 @@ formats:
 
     * PSRFITS search-format data (as from GUPPI at the GBT, the 
       Mock Spectrometers at Arecibo, and much new and archived data
-      from Parkes, now.)
-    * SPIGOT at the GBT
+      from Parkes)
+    * 1-, 2-, 4-, and 8-bit filterbank format from SIGPROC
     * Wideband Arecibo Pulsar Processor (WAPP) at Arecibo
     * The Parkes and Jodrell Bank 1-bit filterbank formats
+    * SPIGOT at the GBT (may it RIP...)
     * Berkeley-Caltech Pulsar Machine (BCPM) at the GBT (may it RIP...)
-    * 4-bit and 8-bit filterbank format from SIGPROC (other formats 
-      will be added if required)
     * A time series composed of single precision (i.e. 4-byte) 
       floating point data
     * Photon arrival times (or events) in ASCII or double-precision 
