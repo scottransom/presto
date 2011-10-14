@@ -963,7 +963,7 @@ static int read_subbands(FILE * infiles[], int numfiles,
 {
    int ii, jj, index, numread = 0, mask = 0;
    short subsdata[SUBSBLOCKLEN]; 
-   double starttime;
+   double starttime, run_avg;
    static int currentblock = 0;
 
    if (obsmask->numchan) mask = 1;
@@ -971,8 +971,14 @@ static int read_subbands(FILE * infiles[], int numfiles,
    /* Read the data */
    for (ii = 0; ii < numfiles; ii++) {
       numread = chkfread(subsdata, sizeof(short), SUBSBLOCKLEN, infiles[ii]);
+      run_avg=0;
+      if(cmd->runavgP==1) {
+	for(jj = 0 ; jj < numread ; jj++) 
+	  run_avg += (float)subsdata[jj];
+	run_avg /= numread;
+      }
       for (jj = 0, index = ii; jj < numread; jj++, index += numfiles)
-         subbanddata[index] = (float) subsdata[jj];
+         subbanddata[index] = (float) subsdata[jj] - run_avg;
       for (jj = numread; jj < SUBSBLOCKLEN; jj++, index += numfiles)
          subbanddata[index] = 0.0;
       index += numread;
