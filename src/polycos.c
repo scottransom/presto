@@ -81,6 +81,9 @@ char *make_polycos(char *parfilenm, infodata * idata)
    } else if (strcmp(idata->telescope, "Effelsberg") == 0) {
       scopechar = 'g';
       tracklen = 12;
+   } else if (strcmp(idata->telescope, "LOFAR") == 0) {
+      scopechar = 't';
+      tracklen = 12;
    } else if (strcmp(idata->telescope, "WSRT") == 0) {
       scopechar = 'i';
       tracklen = 12;
