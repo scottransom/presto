@@ -127,4 +127,4 @@ Double -offset offset {A time offset to add to the 1st event in the same units a
 # Rest of command line:
 
 Rest infile {Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
-        -c 1 1024
+        -c 1 16384
