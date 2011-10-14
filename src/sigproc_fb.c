@@ -2,7 +2,7 @@
 #include "mask.h"
 #include "sigproc_fb.h"
 
-#define MAXNUMCHAN 4096
+#define MAXNUMCHAN 8192
 #define BLOCKLEN   512
 
 /* All of the following have an _st to indicate static */
@@ -123,6 +123,10 @@ static char *telescope_name(int telescope_id)
    case 10:
       strcpy(string, "UTR-2");
       break;
+   case 11:
+      strcpy(string, "LOFAR");
+      Tdiam = 999.0; // depends on configuration
+      break;
    default:
       strcpy(string, "???????");
       break;
@@ -159,6 +163,9 @@ static char *backend_name(int machine_id)
       break;
    case 7:
       strcpy(string, "SPIGOT");
+      break;
+   case 11:
+      strcpy(string, "BG/P");
       break;
    default:
       strcpy(string, "????");

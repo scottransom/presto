@@ -184,6 +184,9 @@ void telescope_to_tempocode(char *inname, char *outname, char*obscode)
     } else if (strcmp(scope, "gmrt") == 0) {
         strcpy(obscode, "GM");
         strcpy(outname, "GMRT");
+    } else if (strcmp(scope, "lofar") == 0 ) {
+      strcpy(obscode, "LF");
+      strcpy(outname, "LOFAR");
     } else if (strcmp(scope, "geocenter") == 0) {
         strcpy(obscode, "EC");
         strcpy(outname, "Geocenter");
