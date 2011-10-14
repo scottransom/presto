@@ -53,4 +53,4 @@ String -mask    maskfile {File containing masking information to use}
 # Rest of command line:
 
 Rest infile {Input data file name(s).} \
-        -c 1 1024
+        -c 1 16384
