@@ -38,6 +38,8 @@ mpiprepsubband \- Converts a raw radio data file into many de-dispersed time-ser
 [-if ifs]
 [-clip clip]
 [-noclip]
+[-runavg]
+[-zerodm]
 [-numout numout]
 [-nobary]
 [-DE405]
@@ -96,6 +98,10 @@ Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 Default: `6.0'
 .IP -noclip
 Do not clip the data.  (The default is to _always_ clip!).
+.IP -runavg
+Running mean subtraction from the input data.
+.IP -zerodm
+Subtract the mean of all channels from each sample (i.e. remove zero DM).
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br

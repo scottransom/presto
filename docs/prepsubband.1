@@ -38,6 +38,7 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 [-if ifs]
 [-clip clip]
 [-noclip]
+[-runavg]
 [-sub]
 [-subdm subdm]
 [-numout numout]
@@ -98,6 +99,8 @@ Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 Default: `6.0'
 .IP -noclip
 Do not clip the data.  (The default is to _always_ clip!).
+.IP -runavg
+Running mean subtraction from the input data.
 .IP -sub
 Write subbands instead of de-dispersed data.
 .IP -subdm
