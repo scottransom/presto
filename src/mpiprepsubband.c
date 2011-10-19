@@ -58,12 +58,11 @@ extern void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk,
 extern void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
 extern void set_GMRT_static(int ptsperblk, int bytesperpt, int bytesperblk,
                             int numchan, float clip_sigma, double dt);
-extern void get_filterbank_static(int *bytesperpt, int *bytesperblk,
-                                  float *clip_sigma);
-extern void set_filterbank_static(int ptsperblk, int bytesperpt,
-                                  int bytesperblk, int numchan,
-                                  float clip_sigma, double dt);
-
+extern void get_filterbank_static(int *ptsperbyte, int *bytesperpt,
+                                  int *bytesperblk, float *clip_sigma);
+extern void set_filterbank_static(int ptsperbyte, int ptsperblk,
+                                  int bytesperpt, int bytesperblk,
+                                  int numchan, float clip_sigma, double dt);
 static int get_data(FILE * infiles[], int numfiles, float **outdata,
                     mask * obsmask, float *padvals, double dt,
                     double *dispdts, int **offsets, int *padding);
@@ -110,9 +109,13 @@ int main(int argc, char *argv[])
    {
       FILE *hostfile;
       char tmpname[100];
+      int retval;
 
       hostfile = chkfopen("/etc/hostname", "r");
-      fscanf(hostfile, "%s\n", tmpname);
+      retval = fscanf(hostfile, "%s\n", tmpname);
+      if (retval==0) {
+          printf("Warning:  error reading /etc/hostname on proc %d\n", myid);
+      }
       hostname = (char *) calloc(strlen(tmpname) + 1, 1);
       memcpy(hostname, tmpname, strlen(tmpname));
       fclose(hostfile);
@@ -521,7 +524,7 @@ int main(int argc, char *argv[])
          }
          if (cmd->filterbankP) {
             set_filterbank_static(ptsperbyte, ptsperblk, bytesperpt, bytesperblk,
-                                   numchan, clip_sigma, dt);
+                                  numchan, clip_sigma, dt);
             set_filterbank_padvals(padvals, good_padvals);
          }
          if (cmd->bcpmP) {
@@ -1082,7 +1085,7 @@ static void convert_subbands(int numfiles, short *shortdata,
                              float clip_sigma, float *padvals)
 /* Convert and transpose the subband data, then mask it*/
 {
-   int ii, jj, index, shortindex, offset, channum, numread = 0, mask = 0;
+   int ii, jj, index, shortindex, offset, channum, mask = 0;
    double starttime;
    float subband_sum;
    static int currentblock = 0;
