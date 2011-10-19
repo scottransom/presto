@@ -971,11 +971,11 @@ static int read_subbands(FILE * infiles[], int numfiles,
    /* Read the data */
    for (ii = 0; ii < numfiles; ii++) {
       numread = chkfread(subsdata, sizeof(short), SUBSBLOCKLEN, infiles[ii]);
-      run_avg=0;
-      if(cmd->runavgP==1) {
-	for(jj = 0 ; jj < numread ; jj++) 
-	  run_avg += (float)subsdata[jj];
-	run_avg /= numread;
+      run_avg = 0.0;
+      if (cmd->runavgP==1) {
+          for (jj = 0; jj < numread ; jj++)
+              run_avg += (float) subsdata[jj];
+          run_avg /= numread;
       }
       for (jj = 0, index = ii; jj < numread; jj++, index += numfiles)
          subbanddata[index] = (float) subsdata[jj] - run_avg;
