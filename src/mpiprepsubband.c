@@ -66,7 +66,7 @@ extern void set_filterbank_static(int ptsperblk, int bytesperpt,
 
 static int get_data(FILE * infiles[], int numfiles, float **outdata,
                     mask * obsmask, float *padvals, double dt,
-		    double *dispdts, int **offsets, int *padding);
+                    double *dispdts, int **offsets, int *padding);
 
 MPI_Datatype infodata_type;
 MPI_Datatype maskbase_type;
@@ -659,7 +659,7 @@ int main(int argc, char *argv[])
       outdata = gen_fmatrix(local_numdms, worklen / cmd->downsamp);
       numread = get_data(infiles, numinfiles, outdata,
                          &obsmask, padvals, idata.dt,
-			 dispdt, offsets, &padding);
+                         dispdt, offsets, &padding);
 
       while (numread == worklen) {
 
@@ -691,7 +691,7 @@ int main(int argc, char *argv[])
 
          numread = get_data(infiles, numinfiles, outdata,
                             &obsmask, padvals, idata.dt,
-			    dispdt, offsets, &padding);
+                            dispdt, offsets, &padding);
       }
       datawrote = totwrote;
 
@@ -802,8 +802,8 @@ int main(int argc, char *argv[])
       for (ii = 0; ii < numbarypts; ii++)
          btoa[ii] = ((btoa[ii] - ttoa[ii]) - dtmp) * SECPERDAY / dsdt;
 
-      {                         /* Find the points where we need to add or remove bins */
-
+      /* Find the points where we need to add or remove bins */
+      {
          int oldbin = 0, currentbin;
          double lobin, hibin, calcpt;
 
@@ -843,7 +843,7 @@ int main(int argc, char *argv[])
       outdata = gen_fmatrix(local_numdms, worklen / cmd->downsamp);
       numread = get_data(infiles, numinfiles, outdata,
                          &obsmask, padvals, idata.dt,
-			 dispdt, offsets, &padding);
+                         dispdt, offsets, &padding);
 
       while (numread == worklen) {      /* Loop to read and write the data */
          int numwritten = 0;
@@ -883,7 +883,8 @@ int main(int argc, char *argv[])
 
             skip = numtowrite;
 
-            do {                /* Write the rest of the data after adding/removing a bin  */
+            /* Write the rest of the data after adding/removing a bin  */
+            do {
 
                if (*diffbinptr > 0) {
                   /* Add a bin */
@@ -936,7 +937,7 @@ int main(int argc, char *argv[])
 
          numread = get_data(infiles, numinfiles, outdata,
                             &obsmask, padvals, idata.dt,
-			    dispdt, offsets, &padding);
+                            dispdt, offsets, &padding);
       }
    }
 
@@ -1060,14 +1061,14 @@ static int read_subbands(FILE * infiles[], int numfiles, short *subbanddata)
       numread = chkfread(subbanddata + index, sizeof(short),
                          SUBSBLOCKLEN, infiles[ii]);
 
-      if (cmd->runavgP==1) {    
-	run_avg = 0;
-	for(jj = 0; jj < numread; jj++)
-	  run_avg += (float)subbanddata[jj+index];
-	run_avg /= numread;
-	for(jj = 0; jj < numread; jj++)
-	  subbanddata[jj+index] = (float)subbanddata[jj+index] - run_avg;
-      }     
+      if (cmd->runavgP==1) {
+          run_avg = 0.0;
+          for(jj = 0; jj < numread; jj++)
+              run_avg += (float) subbanddata[jj+index];
+          run_avg /= numread;
+          for(jj = 0; jj < numread; jj++)
+              subbanddata[jj+index] = (float) subbanddata[jj+index] - run_avg;
+      }
 
       for (jj = numread; jj < SUBSBLOCKLEN; jj++)
          subbanddata[index + jj] = 0.0;
@@ -1075,24 +1076,19 @@ static int read_subbands(FILE * infiles[], int numfiles, short *subbanddata)
    return numread;
 }
 
-static void convert_subbands(int numfiles, int my_id, short *shortdata,
-				   float *subbanddata, double timeperblk,
-				   int *maskchans, int *nummasked, mask * obsmask,
-				   float clip_sigma, float *padvals)
+static void convert_subbands(int numfiles, short *shortdata,
+                             float *subbanddata, double timeperblk,
+                             int *maskchans, int *nummasked, mask * obsmask,
+                             float clip_sigma, float *padvals)
 /* Convert and transpose the subband data, then mask it*/
 {
+   int ii, jj, index, shortindex, offset, channum, numread = 0, mask = 0;
+   double starttime;
+   float subband_sum;
+   static int currentblock = 0;
 
-	
-  int ii, jj, index, shortindex, offset, channum, numread = 0, mask = 0;
-  double starttime;
-  float subband_sum;
-  static int currentblock = 0;
-
-
-  *nummasked = 0;
-  if (obsmask->numchan) mask = 1;
-
-
+   *nummasked = 0;
+   if (obsmask->numchan) mask = 1;
 
    for (ii = 0; ii < numfiles; ii++) {
       shortindex = ii * SUBSBLOCKLEN;
@@ -1112,36 +1108,36 @@ static void convert_subbands(int numfiles, int my_id, short *shortdata,
 
    /* Mask it if required */
    if (mask) {
-     fflush(stdout);
-     if (*nummasked == -1) {   /* If all channels are masked */
-       for (ii = 0; ii < SUBSBLOCKLEN; ii++)
-	 memcpy(subbanddata + ii * numfiles, padvals, sizeof(float) * numfiles);
-     fflush(stdout);
-     } else if (*nummasked > 0) {      /* Only some of the channels are masked */
-       for (ii = 0; ii < SUBSBLOCKLEN; ii++) {
-	 offset = ii * numfiles;
-	 for (jj = 0; jj < *nummasked; jj++) {
-	   channum = maskchans[jj];
-	   subbanddata[offset + channum] = padvals[channum];
-	 }
+       fflush(stdout);
+       if (*nummasked == -1) {   /* If all channels are masked */
+           for (ii = 0; ii < SUBSBLOCKLEN; ii++)
+               memcpy(subbanddata + ii * numfiles, padvals, sizeof(float) * numfiles);
+           fflush(stdout);
+       } else if (*nummasked > 0) {      /* Only some of the channels are masked */
+           for (ii = 0; ii < SUBSBLOCKLEN; ii++) {
+               offset = ii * numfiles;
+               for (jj = 0; jj < *nummasked; jj++) {
+                   channum = maskchans[jj];
+                   subbanddata[offset + channum] = padvals[channum];
+               }
+           }
        }
-     }
    }
 
    /* Zero-DM removal if required */
    if (cmd->zerodmP==1) {
-     for (ii = 0; ii < SUBSBLOCKLEN; ii++) {
-       offset = ii * numfiles;
-       subband_sum = 0.0;
-       for (jj = offset; jj < offset+numfiles; jj++) {
-	 subband_sum += subbanddata[jj];
+       for (ii = 0; ii < SUBSBLOCKLEN; ii++) {
+           offset = ii * numfiles;
+           subband_sum = 0.0;
+           for (jj = offset; jj < offset+numfiles; jj++) {
+               subband_sum += subbanddata[jj];
+           }
+           subband_sum /= (float) numfiles;
+           /* Remove the channel average */
+           for (jj = offset; jj < offset+numfiles; jj++) {
+               subbanddata[jj] -= subband_sum;
+           }
        }
-       subband_sum /= (float) numfiles;
-       /* Remove the channel average */
-       for (jj = offset; jj < offset+numfiles; jj++) {
-	 subbanddata[jj] -= subband_sum;
-       }
-     }
    }
 
    currentblock += 1;
@@ -1150,7 +1146,7 @@ static void convert_subbands(int numfiles, int my_id, short *shortdata,
 
 static int get_data(FILE * infiles[], int numfiles, float **outdata,
                     mask * obsmask, float *padvals, double dt,
-		    double *dispdts, int **offsets, int *padding)
+                    double *dispdts, int **offsets, int *padding)
 {
    static int firsttime = 1, worklen, *maskchans = NULL, blocksize;
    static int dsworklen;
@@ -1158,8 +1154,8 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
    static float *currentdata, *lastdata, *currentdsdata, *lastdsdata;
    static double blockdt;
    static unsigned char *rawdata = NULL;
-   int totnumread = 0, numread = 0, tmpnumread = 0, ii, jj, tmppad =
-       0, nummasked = 0;
+   int totnumread = 0, numread = 0, tmpnumread = 0;
+   int ii, jj, tmppad = 0, nummasked = 0;
 
    if (firsttime) {
       /* For rawdata, we need to make two initial reads in order to        */
@@ -1288,10 +1284,10 @@ static int get_data(FILE * infiles[], int numfiles, float **outdata,
             MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);
             MPI_Bcast(subsdata, SUBSBLOCKLEN * numfiles, MPI_SHORT, 0,
                       MPI_COMM_WORLD);
-	    convert_subbands(numfiles, myid, subsdata,
-			     currentdata + ii * blocksize, blockdt, 
-			     maskchans, &nummasked, obsmask, 
-			     cmd->clip, padvals);
+            convert_subbands(numfiles, subsdata,
+                             currentdata + ii * blocksize, blockdt,
+                             maskchans, &nummasked, obsmask,
+                             cmd->clip, padvals);
             if (!firsttime)
                totnumread += numread;
          }
