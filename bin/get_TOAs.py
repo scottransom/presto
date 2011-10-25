@@ -193,6 +193,9 @@ if __name__ == '__main__':
         #        delay, which is based on the topocentric frequency fold_pfd.hifreq
         sumsubdelays = (psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) -
                         psr_utils.delay_from_DM(fold_pfd.bestdm, fold_pfd.hifreq))/SECPERDAY
+        sumsubdelays_phs = Num.fmod(sumsubdelays * SECPERDAY \
+                * fold_pfd.binspersec / fold_pfd.proflen, 1.0)
+
     else:
         fold_pfd.subfreqs = Num.asarray([0.0])
         sumsubfreqs = Num.asarray([0.0])
@@ -252,7 +255,7 @@ if __name__ == '__main__':
             mjdf = fold.epochf + (ii+0.5)*timestep_day
             (phs, f0) = pcs.get_phs_and_freq(fold.epochi, mjdf)
             phs -= fold.phs0
-            p = 1.0/fold.f0
+            p = 1.0/f0
             t0f = mjdf - phs*p/SECPERDAY
             t0i = fold.epochi
 
@@ -307,7 +310,7 @@ if __name__ == '__main__':
                     tau_err = 0.1/len(prof)
 
                 # Send the TOA to STDOUT
-                toaf = t0f + (tau*p + offset)/SECPERDAY + sumsubdelays[jj]
+                toaf = t0f + ((tau+sumsubdelays_phs[jj])*p + offset)/SECPERDAY
                 newdays = int(Num.floor(toaf))
                 psr_utils.write_princeton_toa(t0i+newdays, toaf-newdays,
                                               tau_err*p*1000000.0,
