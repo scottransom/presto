@@ -47,16 +47,21 @@ colors = {1: ['#000000'], # black
 def find_freq_clusters(freqs):
     # first make a histogram
     minf, maxf = freqs.min(), freqs.max()
-    df = 5.0 # MHz
+    maxbins = 8  # related to the max colors defined...
+    df = 4.0 # MHz
+    if ((maxf - minf) < df):  # Only a single freq to our resolution
+        return [[0.0, 'inf']]
     numbins = int((maxf - minf) / df) + 2
-    if numbins > 8:
-        numbins = 8
-        df = (maxf - minf) / float(numbins - 1)
     lobound = minf - 0.5 * df
     hibound = lobound + numbins * df
     hist, edges = np.histogram(freqs, numbins, [lobound, hibound])
-    # Now choose the bins where there are TOAs
-    ctrs = edges[hist > 0] + 0.5 * df
+    # Now choose the maxbins biggest bins where there are TOAs
+    hibins = hist.argsort()[::-1]
+    hibins = hibins[hist[hibins] > 0]
+    if len(hibins) > maxbins:
+        hibins = hibins[:maxbins]
+    ctrs = edges[hibins] + 0.5 * df
+    ctrs.sort()
     # and use these as starting points for kmeans
     kmeans, indices = kmeans2(freqs, ctrs)
     if len(kmeans)==1:
