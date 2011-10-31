@@ -54,7 +54,7 @@ def find_freq_clusters(freqs):
         df = (maxf - minf) / float(numbins - 1)
     lobound = minf - 0.5 * df
     hibound = lobound + numbins * df
-    hist, edges = np.histogram(freqs, numbins, [lobound, hibound], new=True)
+    hist, edges = np.histogram(freqs, numbins, [lobound, hibound])
     # Now choose the bins where there are TOAs
     ctrs = edges[hist > 0] + 0.5 * df
     # and use these as starting points for kmeans
