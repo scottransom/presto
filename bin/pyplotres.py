@@ -21,6 +21,8 @@ import binary_psr
 import parfile as par
 import residuals
 
+from scipy.cluster.vq import kmeans2
+
 # Available x-axis types
 xvals = ['mjd', 'year', 'numtoa', 'orbitphase']
 xind = 0
@@ -28,8 +30,49 @@ xind = 0
 yvals = ['phase', 'usec', 'sec']
 yind = 0
 
+colors = {1: ['#000000'], # black
+          2: ['#ff0000', '#0000ff'], # red blue
+          3: ['#ff0000', '#008000', '#0000ff'], # red green blue
+          4: ['#ff0000', '#FFA500', '#008000', '#0000ff'], # red orange green blue
+          # red orange green blue violet
+          5: ['#ff0000', '#FFA500', '#008000', '#0000ff', '#EE82EE'], 
+          # red orange green blue indigo violet
+          6: ['#ff0000', '#FFA500', '#008000', '#0000ff', '#4B0082', '#EE82EE'], 
+          # red orange yellow green blue indigo violet
+          7: ['#ff0000', '#FFA500', '#FFFF00', '#008000', '#0000ff', '#4B0082', '#EE82EE'], 
+          # red orange yellow green blue indigo violet black
+          8: ['#ff0000', '#FFA500', '#FFFF00', '#008000', '#0000ff', '#4B0082', '#EE82EE', '#000000']} 
+
+
+def find_freq_clusters(freqs):
+    # first make a histogram
+    minf, maxf = freqs.min(), freqs.max()
+    df = 5.0 # MHz
+    numbins = int((maxf - minf) / df) + 2
+    if numbins > 8:
+        numbins = 8
+        df = (maxf - minf) / float(numbins - 1)
+    lobound = minf - 0.5 * df
+    hibound = lobound + numbins * df
+    hist, edges = np.histogram(freqs, numbins, [lobound, hibound], new=True)
+    # Now choose the bins where there are TOAs
+    ctrs = edges[hist > 0] + 0.5 * df
+    # and use these as starting points for kmeans
+    kmeans, indices = kmeans2(freqs, ctrs)
+    if len(kmeans)==1:
+        return [[0.0, 'inf']]
+    elif len(kmeans)==2:
+        return [[0.0, kmeans.mean()], [kmeans.mean(), 'inf']]
+    else:
+        freqbands = [[0.0, kmeans[0:2].mean()]]
+        for ii in range(len(kmeans)-2):
+            freqbands.append([kmeans[ii:ii+2].mean(), kmeans[ii+1:ii+3].mean()])
+        freqbands.append([kmeans[-2:].mean(), 'inf'])
+        return freqbands
+
+
 class TempoResults:
-    def __init__(self, freqbands=[[0, 'inf']]):
+    def __init__(self, freqbands):
         """Read TEMPO results (resid2.tmp, tempo.lis, timfile and parfiles)
             freqbands is a list of frequency pairs to display.
         """
@@ -62,20 +105,15 @@ class TempoResults:
         self.outpar = par.psr_par(outparfn)
 
         # Read residuals
-        # Need to check if on 32-bit or 64-bit computer
-        #(the following is a hack to find out if we're on a borg or borgii node)
-#PATRICKS QUICK FIX 10/14   -   3/39/11 read_residuals_64bit does not work on nimrod or my machine, but 32bit does...
-        #print os.uname()[4]
-        if True: #os.uname()[4]=='i686':
-            # 32-bit computer
-            r = residuals.read_residuals()
-        else:
-            # 64-bit computer
-            r = residuals.read_residuals_64bit()
+        r = residuals.read_residuals()
 
         self.max_TOA = r.bary_TOA.max()
         self.min_TOA = r.bary_TOA.min()
-        self.freqbands = freqbands
+
+        if freqbands is None:
+            self.freqbands = find_freq_clusters(r.bary_freq)
+        else:
+            self.freqbands = freqbands
         self.residuals = {}
         for lo,hi in self.freqbands:
             indices = (r.bary_freq>=lo) & (r.bary_freq<hi)
@@ -254,7 +292,7 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
         tick_formatter.set_scientific(False)
         axes[-1].xaxis.set_major_formatter(tick_formatter)
 
-        for lo,hi in tempo_results.freqbands:
+        for ii,(lo,hi) in enumerate(tempo_results.freqbands):
             freq_label = get_freq_label(lo, hi)
             resids = tempo_results.residuals[freq_label]
             xlabel, xdata = resids.get_xdata(xkey)
@@ -262,7 +300,8 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
             if len(xdata):
                 # Plot the residuals
                 handle = plt.errorbar(xdata, ydata, yerr=yerr, fmt='.', \
-                                        label=freq_label, picker=5)
+                                      label=freq_label, picker=5,
+                                      c=colors[len(tempo_results.freqbands)][ii])
                 if subplot == 1:
                     handles.append(handle[0])
                     labels.append(freq_label)
@@ -315,7 +354,6 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
     leg.set_visible(show_legend)
     leg.legendPatch.set_alpha(0.5)
 
-
 def create_plot():
     # Set up the plot
     fig = plt.figure(figsize=(11,8.5))
@@ -325,7 +363,10 @@ def get_freq_label(lo, hi):
     """Return frequency label given a lo and hi
         frequency pair.
     """
-    return "%s - %s MHz" % (lo, hi)
+    if hi is 'inf':
+        return "%.0f - Inf MHz" % (lo)
+    else:
+        return "%.0f - %.0f MHz" % (lo, hi)
 
 
 def savefigure(savefn='./resid2.tmp.ps'):
@@ -333,6 +374,7 @@ def savefigure(savefn='./resid2.tmp.ps'):
     plt.savefig(savefn, orientation='landscape', papertype='letter')
 
 def reloadplot():
+    global options
     # Reload residuals and replot
     print "Plotting..."
     fig = plt.gcf()
@@ -393,6 +435,7 @@ def print_help():
     print "\th - Display this help"
     print "\tq - Quit"
     print "\ts - Save current plot(s) to PostScript file"
+    print "\tc - Try to determine optimal color pallete"
     print "\tp - Toggle prefit display on/off"
     print "\tP - Toggle postfit display on/off"
     print "\tz - Toggle Zoom-mode on/off"
@@ -420,6 +463,9 @@ def keypress(event):
             quit()
         elif event.key.lower() == 's':
             savefigure()
+        elif event.key.lower() == 'c':
+            options.freqbands = None
+            reloadplot()
         elif event.key.lower() == 'r':
             reloadplot()
         elif event.key.upper() == 'L':
@@ -530,7 +576,6 @@ def parse_options():
                      ['1000', '1600'],
                      ['1600', '2400'],
                      ['2400', 'inf']]
-        #freqbands = [['0', 'inf']]
     else:
         freqbands = []
         for fopt in options.freqs:
