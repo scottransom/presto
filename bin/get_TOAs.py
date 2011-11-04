@@ -175,7 +175,9 @@ if __name__ == '__main__':
     fold_pfd.kill_intervals(kints)
 
     # De-disperse at the requested DM
+    # Also save the pulse period used in dedispersion calc
     fold_pfd.dedisperse(interp=1)
+    p_dedisp = fold_pfd.proflen / fold_pfd.binspersec
     
     # Combine the profiles as required
     profs = fold_pfd.combine_profs(numtoas, numsubbands)
@@ -192,9 +194,14 @@ if __name__ == '__main__':
         #        conversion was available).  For TOAs, we need a topocentric
         #        delay, which is based on the topocentric frequency fold_pfd.hifreq
         sumsubdelays = (psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) -
-                        psr_utils.delay_from_DM(fold_pfd.bestdm, fold_pfd.hifreq))/SECPERDAY
-        sumsubdelays_phs = Num.fmod(sumsubdelays * SECPERDAY \
-                * fold_pfd.binspersec / fold_pfd.proflen, 1.0)
+                        psr_utils.delay_from_DM(fold_pfd.bestdm, fold_pfd.hifreq))
+        sumsubdelays_phs = Num.fmod(sumsubdelays / p_dedisp, 1.0)
+        # Save the "higest channel within a subband" freqs/delays for use in
+        # later DM/timing correction. PBD 2011/11/03
+        sumsubfreqs_hi = sumsubfreqs + \
+                fold_pfd.subdeltafreq/2.0 - fold_pfd.chan_wid/2.0
+        subdelays2 = psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs) - \
+                psr_utils.delay_from_DM(fold_pfd.bestdm, sumsubfreqs_hi)
 
     else:
         fold_pfd.subfreqs = Num.asarray([0.0])
@@ -256,6 +263,7 @@ if __name__ == '__main__':
             (phs, f0) = pcs.get_phs_and_freq(fold.epochi, mjdf)
             phs -= fold.phs0
             p = 1.0/f0
+            if (phs < 0.0): phs += 1.0 # Consistent with pat
             t0f = mjdf - phs*p/SECPERDAY
             t0i = fold.epochi
 
@@ -309,12 +317,21 @@ if __name__ == '__main__':
                     # This needs to be changed
                     tau_err = 0.1/len(prof)
 
+                # Calculate correction for dedispersion to true channel
+                # center freqs that used a slightly different pulse
+                # period.
+                dd_phs_2 = subdelays2[jj] * (1.0/p - 1.0/p_dedisp)
+
+                # Sum up several phase shifts
+                tau_tot = Num.fmod(tau+sumsubdelays_phs[jj]+dd_phs_2+3.0, 1.0)
+                if (tau_tot > 0.5): tau_tot -= 1.0
+
                 # Send the TOA to STDOUT
-                toaf = t0f + ((tau+sumsubdelays_phs[jj])*p + offset)/SECPERDAY
+                toaf = t0f + (tau_tot*p + offset)/SECPERDAY
                 newdays = int(Num.floor(toaf))
                 psr_utils.write_princeton_toa(t0i+newdays, toaf-newdays,
                                               tau_err*p*1000000.0,
-                                              sumsubfreqs[jj], fold_pfd.bestdm, obs=obs)
+                                              sumsubfreqs[jj], 0.0, obs=obs)
                 if (otherouts):
                     print "FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" % \
                           (b, errb, snr, esnr)
