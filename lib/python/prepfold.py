@@ -254,9 +254,9 @@ class pfd:
         if p is not None:
             bestp = p
         if pd is not None:
-            bestpd = pdot
+            bestpd = pd
         if pdd is not None:
-            bestpdd = pdotdot
+            bestpdd = pdd
 
         # self.fold_p[123] are actually frequencies, convert to periods
         foldf, foldfd, foldfdd = self.fold_p1, self.fold_p2, self.fold_p3
