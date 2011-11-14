@@ -34,8 +34,7 @@ int main(int argc, char *argv[])
    }
    printf("\n\n");
    printf("         Binary Candidate Display Routine\n");
-   printf("              by Scott M. Ransom\n");
-   printf("                3 January, 1998\n\n");
+   printf("              by Scott M. Ransom\n\n");
 
    /* Initialize the filenames: */
 
@@ -55,7 +54,7 @@ int main(int argc, char *argv[])
    /* Open the FFT file and get its length */
 
    fftfile = chkfopen(filenm, "rb");
-   nbins = chkfilelen(candfile, sizeof(fcomplex));
+   nbins = chkfilelen(fftfile, sizeof(fcomplex));
 
    /* Open the candidate file and get its length */
 
