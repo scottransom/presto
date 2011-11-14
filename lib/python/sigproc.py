@@ -148,7 +148,7 @@ def samples_per_file(infile, hdrdict, hdrlen):
            return the number of (time-domain) samples in the file.
     """
     numbytes = os.stat(infile)[6] - hdrlen
-    bytes_per_sample = hdrdict['nchans'] * (hdrdict['nbits']/8)
+    bytes_per_sample = hdrdict['nchans'] * (hdrdict['nbits']/8.)
     if numbytes % bytes_per_sample:
         print "Warning!:  File does not appear to be of the correct length!"
     numsamples = numbytes / bytes_per_sample
