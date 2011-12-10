@@ -239,7 +239,16 @@ if __name__ == '__main__':
     if len(sys.argv)==1:
         from numpy.random import normal
 
-        print "usage:  python pygaussfit.py bestprof_file prof_stdev"
+        print """usage:  python pygaussfit.py bestprof_file prof_stdev
+
+Left mouse draws a region roughly boxing where you'll place a gaussian.
+    Draw several to fit multiple gaussians.
+Middle mouse performs the fit.
+Right mouse removes the last gaussian from the fit.
+
+Paste the full resulting STDOUT to a '.gaussians' file for use
+in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template."""
+
 
         N = 128
         DC = 600.0
