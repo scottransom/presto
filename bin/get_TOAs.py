@@ -151,12 +151,22 @@ if __name__ == '__main__':
 
     # Read the prepfold output file and the binary profiles
     fold_pfd = pfd(sys.argv[-1])
+
+    # Check to make sure we can use this .pfd for timing purposes
+    if not fold_pfd.use_for_timing():
+        sys.stderr.write(
+            "Error: '%s' was made allowing prepfold to search!\n" % \
+            sys.argv[-1])
+        sys.exit(2)
     
     # Read key information from the bestprof file
     if fold_pfd.bestprof:
-	fold = fold_pfd.bestprof
+        fold = fold_pfd.bestprof
     else:
-	sys.sterr.write("Warning:  Could not open the bestprof file!")
+        sys.stderr.write(
+            "Error:  Can't open '%s.bestrof'!  Regenerate with show_pfd.\n" % \
+            sys.argv[-1])
+        sys.exit(2)
     timestep_sec = fold.T / numtoas
     timestep_day = timestep_sec / SECPERDAY
     fold.epoch = fold.epochi+fold.epochf

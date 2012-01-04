@@ -280,6 +280,24 @@ class pfd:
 
         return (f_diff, fd_diff, fdd_diff)
 
+    def use_for_timing(self):
+        """
+        use_for_timing():
+            This method returns True or False depending on whether
+            the .pfd file can be used for timing or not.  For this
+            to return true, the pulsar had to have been folded with
+            a parfile and -no[p/pd]search (this includes -timing), or
+            with a p/pdot/pdotdot and a corresponding -no[p/pd]search.
+            In other words, if you let prepfold search for the best
+            p/pdot/pdotdot, you will get bogus TOAs if you try timing
+            with it.
+        """
+        # If any of the offsets are non-zero, then prepfold searched
+        if any(self.freq_offsets()):
+            return False
+        else:
+            return True
+
     def time_vs_phase(self, p=None, pd=None, pdd=None, interp=0):
         """
         time_vs_phase(p=*bestp*, pd=*bestpd*, pdd=*bestpdd*):
