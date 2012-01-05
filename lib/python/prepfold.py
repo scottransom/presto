@@ -272,6 +272,7 @@ class pfd:
         # Get frequency and frequency derivative offsets
         f_diff = bestf - foldf
         fd_diff = bestfd - foldfd
+        print bestfd, foldfd
         # bestpdd=0.0 only if there was no searching over pdd
         if bestpdd != 0.0:
             fdd_diff = bestfdd - foldfdd
@@ -293,7 +294,7 @@ class pfd:
             with it.
         """
         # If any of the offsets are non-zero, then prepfold searched
-        if any(self.freq_offsets()):
+        if max(Num.fabs(Num.asarray(self.freq_offsets()))) > 2e-16:
             return False
         else:
             return True
