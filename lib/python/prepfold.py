@@ -293,8 +293,13 @@ class pfd:
             p/pdot/pdotdot, you will get bogus TOAs if you try timing
             with it.
         """
-        # If any of the offsets are non-zero, then prepfold searched
-        if max(Num.fabs(Num.asarray(self.freq_offsets()))) > 2e-16:
+        T = self.T
+        bin_dphi = 1.0/self.proflen
+        # If any of the offsets cause more than a 0.1-bin rotation over
+        # the observation, then reject the are non-zero, then prepfold searched
+        offsets = Num.fabs(Num.asarray(self.freq_offsets()))
+        dphis = offsets * Num.asarray([T, T**2.0/2.0, T**3.0/6.0])
+        if max(dphis) > 0.1 * bin_dphi:
             return False
         else:
             return True
