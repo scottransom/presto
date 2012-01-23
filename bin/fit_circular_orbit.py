@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import numpy as num
 import psr_utils as pu
 import parfile, bestprof, sys
