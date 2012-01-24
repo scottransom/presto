@@ -25,12 +25,12 @@ class bestprof:
                 if line.startswith("# Input file"):
                     self.datnm = line.split("=")[-1][:-1]
                     continue
-		if line.startswith("# Candidate"):
-		    if line.startswith("# Candidate        =  PSR_"):
-			self.psr = line.split("=")[-1].split("_")[1][:-1]
-			continue
-		    else:
-			self.psr = None
+                if line.startswith("# Candidate"):
+                    if line.startswith("# Candidate        =  PSR_"):
+                        self.psr = line.split("=")[-1].split("_")[1][:-1]
+                        continue
+                    else:
+                        self.psr = None
                 if line.startswith("# T_sample"):
                     self.dt = float(line.split("=")[-1])
                     continue
@@ -55,29 +55,53 @@ class bestprof:
                 if line.startswith("# Epoch_topo"):
                     try:
                         self.epochi, self.epochf = get_epochs(line)
+                        self.epochi_topo, self.epochf_topo = self.epochi, self.epochf
                         self.topo = 1
                     except ValueError:
                         pass
                     continue
-                if (not self.topo and line.startswith("# Epoch_bary")):
+                if line.startswith("# Epoch_bary"):
                     try:
-                        self.epochi, self.epochf = get_epochs(line)
+                        self.epochi_bary, self.epochf_bary = get_epochs(line)
+                        if not self.topo:
+                            self.epochi, self.epochf = self.epochi_bary, self.epochf_bary
                     except ValueError:
                         pass
-                if ((not self.topo and line.startswith("# P_bary")) or
-                     (self.topo and line.startswith("# P_topo"))):
-                    self.p0 = float(line.split("=")[-1].split("+")[0])/1000.0
-                    self.p0err = float(line.split("=")[-1].split("+")[1][2:])/1000.0
+                if line.startswith("# P_topo"):
+                    self.p0_topo = float(line.split("=")[-1].split("+")[0])/1000.0
+                    self.p0err_topo = float(line.split("=")[-1].split("+")[1][2:])/1000.0
+                    if self.topo:
+                        self.p0, self.p0err = self.p0_topo, self.p0err_topo
                     continue
-                if ((not self.topo and line.startswith("# P'_bary")) or
-                     (self.topo and line.startswith("# P'_topo"))):
-                    self.p1 = float(line.split("=")[-1].split("+")[0])
-                    self.p1err = float(line.split("=")[-1].split("+")[1][2:])
+                if line.startswith("# P_bary"):
+                    self.p0_bary = float(line.split("=")[-1].split("+")[0])/1000.0
+                    self.p0err_bary = float(line.split("=")[-1].split("+")[1][2:])/1000.0
+                    if not self.topo:
+                        self.p0, self.p0err = self.p0_bary, self.p0err_bary
                     continue
-                if ((not self.topo and line.startswith("# P''_bary")) or
-                     (self.topo and line.startswith("# P''_topo"))):
-                    self.p2 = float(line.split("=")[-1].split("+")[0])
-                    self.p2err = float(line.split("=")[-1].split("+")[1][2:])
+                if line.startswith("# P'_topo"):
+                    self.p1_topo = float(line.split("=")[-1].split("+")[0])
+                    self.p1err_topo = float(line.split("=")[-1].split("+")[1][2:])
+                    if self.topo:
+                        self.p1, self.p1err = self.p1_topo, self.p1err_topo
+                    continue
+                if line.startswith("# P'_bary"):
+                    self.p1_bary = float(line.split("=")[-1].split("+")[0])
+                    self.p1err_bary = float(line.split("=")[-1].split("+")[1][2:])
+                    if not self.topo:
+                        self.p1, self.p1err = self.p1_bary, self.p1err_bary
+                    continue
+                if line.startswith("# P''_topo"):
+                    self.p2_topo = float(line.split("=")[-1].split("+")[0])
+                    self.p2err_topo = float(line.split("=")[-1].split("+")[1][2:])
+                    if self.topo:
+                        self.p2, self.p2err = self.p2_topo, self.p2err_topo
+                    continue
+                if line.startswith("# P''_bary"):
+                    self.p2_bary = float(line.split("=")[-1].split("+")[0])
+                    self.p2err_bary = float(line.split("=")[-1].split("+")[1][2:])
+                    if not self.topo:
+                        self.p2, self.p2err = self.p2_bary, self.p2err_bary
                     continue
             else:
                 self.profile.append(float(line.split()[-1]))
