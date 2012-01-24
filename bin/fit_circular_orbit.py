@@ -13,9 +13,9 @@ def parse_eph(filenm):
     suffix = filenm.split(".")[-1]
     if suffix=="bestprof":
         x = bestprof.bestprof(filenm)
-        f0, f1, f2 = pu.p_to_f(x.p0, x.p1, x.p2)
+        f0, f1, f2 = pu.p_to_f(x.p0_bary, x.p1_bary, x.p2_bary)
         f3 = 0.0
-        epoch = x.epochi + x.epochf
+        epoch = x.epochi_bary + x.epochf_bary
         T = x.T
     elif suffix=="par":
         x = parfile.psr_par(filenm)
