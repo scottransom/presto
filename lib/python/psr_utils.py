@@ -786,8 +786,8 @@ def calc_t0(MJD, refMJD, *args):
         Return the closest previous MJD corresponding to phase=0 of the pulse.
             *args are the spin freq (f0) and optional freq derivs (f1...)
     """
-    phs = calc_phs(MJD, refMJD, *args):
-    p = 1.0 / calc_freq(MJD, refMJD, *args):
+    phs = calc_phs(MJD, refMJD, *args)
+    p = 1.0 / calc_freq(MJD, refMJD, *args)
     return MJD - phs*p/SECPERDAY
 
 def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' '*13):
