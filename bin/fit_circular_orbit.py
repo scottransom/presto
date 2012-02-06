@@ -5,35 +5,37 @@ import parfile, bestprof, sys
 import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 
-period = []
-time = []
+period = num.asarray([])
+time = num.asarray([])
 
 def parse_eph(filenm):
     global period, time
     suffix = filenm.split(".")[-1]
     if suffix=="bestprof":
         x = bestprof.bestprof(filenm)
-        f0, f1, f2 = pu.p_to_f(x.p0_bary, x.p1_bary, x.p2_bary)
-        f3 = 0.0
+        fs = pu.p_to_f(x.p0_bary, x.p1_bary, x.p2_bary)
         epoch = x.epochi_bary + x.epochf_bary
         T = x.T
     elif suffix=="par":
         x = parfile.psr_par(filenm)
-        if not hasattr(x, "F1"): x.F1 = 0.0
-        if not hasattr(x, "F2"): x.F2 = 0.0
-        if not hasattr(x, "F3"): x.F3 = 0.0
-        f0, f1, f2, f3 = x.F0, x.F1, x.F2, x.F3
+        # Try to see how many freq derivs we have
+        fs = [x.F0]
+        for ii in range(1, 20):  # hopefully 20 is an upper limit!
+            attrib = "F%d"%ii
+            if hasattr(x, attrib):
+                fs.append(getattr(x, attrib))
+            else:
+                break
         epoch = x.PEPOCH
         T = (x.FINISH - x.START) * 86400.0
     else:
         print "I don't recognize the file type for", filenm
         sys.exit()
-    for minute in num.arange(int(T/10.0+0.5), dtype=num.float):
-        t = epoch + minute/8640.0
-        time.append(t)
-        period.append(1.0 / pu.calc_freq(t, epoch, f0, f1, f2, f3))
-    print "%13.7f:  %12.7f Hz  %10.3e Hz/s  %10.3e Hz/s/s  (%0.1f sec)" % \
-          (epoch, f0, f1, f2, T)
+    newts = epoch + num.arange(int(T/10.0+0.5), dtype=num.float)/8640.0
+    time = num.concatenate((time, newts))
+    newps = 1.0 / pu.calc_freq(newts, epoch, *fs)
+    period = num.concatenate((period, newps))
+    print "%13.7f (%0.1f sec): " % (epoch, T), fs
 
 def orbeqn(Ppxt, times):
     # P = Ppsr, p = Porb, x = a*sin(i)/s, t = T_o
