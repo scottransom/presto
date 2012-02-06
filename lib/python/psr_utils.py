@@ -749,41 +749,46 @@ def read_profile(filenm, normalize=0):
         prof /= max(prof)
     return prof
 
-def calc_phs(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0): 
+def calc_phs2(MJD, refMJD, *args):
     """
-    calc_phs(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
-        Return the rotational phase (0-1) at MJD given a reference MJD and the
-            rotational freq (f0) and optional freq derivs (f1-f5).
-    """
-    t = (MJD-refMJD)*SECPERDAY
-    return Num.fmod(t*(f0 +t*(f1/2.0 +
-                                t*(f2/6.0 +
-                                   t*(f3/24.0 +
-                                      t*(f4/120.0 +
-                                         t*f5/720.0))))), 1.0)
-
-def calc_freq(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
-    """
-    calc_freq(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
-        Return the instantaneous frequency at an MJD given a reference
-            MJD and the rotational freq (f0) and optional freq derivs (f1-f5).
+    calc_phs(MJD, refMJD, *args):
+        Return the rotational phase (0-1) at MJD (can be an array)
+            given a reference MJD and the rotational freq (f0) and
+            optional freq derivs (f1...) as ordered in the *args
+            list (e.g. [f0, f1, f2, ...]).
     """
     t = (MJD-refMJD)*SECPERDAY
-    return f0 + t*(f1 +
-                   t*(f2/2.0 +
-                      t*(f3/6.0 +
-                         t*(f4/24.0 +
-                            t*f5/120.0))))
+    n = len(args) # polynomial order
+    nargs = Num.concatenate(([0.0], args))
+    taylor_coeffs = Num.concatenate(([0.0],
+                                     Num.cumprod(1.0/(Num.arange(float(n))+1.0))))
+    p = Num.poly1d((taylor_coeffs * nargs)[::-1])
+    return Num.fmod(p(t), 1.0)
 
-def calc_t0(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
+def calc_freq(MJD, refMJD, *args):
     """
-    calc_t0(MJD, refMJD, f0, f1=0.0, f2=0.0, f3=0.0, f4=0.0, f5=0.0):
+    calc_freq(MJD, refMJD, *args):
+        Return the instantaneous frequency at an MJD (can be an array)
+            given a reference MJD and the rotational freq (f0) and
+            optional freq derivs (f1...) as ordered in the *args
+            list (e.g. [f0, f1, f2, ...]).
+    """
+    t = (MJD-refMJD)*SECPERDAY
+    n = len(args) # polynomial order
+    taylor_coeffs = Num.concatenate(([1.0],
+                                     Num.cumprod(1.0/(Num.arange(float(n-1))+1.0))))
+    p = Num.poly1d((taylor_coeffs * args)[::-1])
+    return p(t)
+
+def calc_t0(MJD, refMJD, *args):
+    """
+    calc_t0(MJD, refMJD, *args):
         Return the closest previous MJD corresponding to phase=0 of the pulse.
+            *args are the spin freq (f0) and optional freq derivs (f1...)
     """
-    phs = calc_phs(MJD, refMJD, f0, f1, f2, f3, f4, f5)
-    p = 1.0/calc_freq(MJD, refMJD, f0, f1, f2, f3, f4, f5)
-    return MJD-phs*p/SECPERDAY
-
+    phs = calc_phs(MJD, refMJD, *args):
+    p = 1.0 / calc_freq(MJD, refMJD, *args):
+    return MJD - phs*p/SECPERDAY
 
 def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' '*13):
     """
