@@ -999,11 +999,11 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             else
                sprintf(pdout, "P-dot - %-.5g (s/s)", pdfold);
             if (search->fold.p2 < 0.0)
-               sprintf(fdout, "F-dot + %-.5g (Hz)", fabs(search->fold.p2));
+               sprintf(fdout, "F-dot + %-.5g (Hz/s)", fabs(search->fold.p2));
             else if (TEST_EQUAL(search->fold.p2, 0.0))
-               sprintf(fdout, "F-dot (Hz)");
+               sprintf(fdout, "F-dot (Hz/s)");
             else
-               sprintf(fdout, "F-dot - %-.5g (Hz)", search->fold.p2);
+               sprintf(fdout, "F-dot - %-.5g (Hz/s)", search->fold.p2);
 
             /* Period vs reduced chisqr */
 
