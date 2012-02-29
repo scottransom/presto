@@ -230,14 +230,7 @@ class file_candidates:
 
                     # Insure that the sum of the optimized powers is > threshold
                     opt_ipow = sum(cand.harm_pows)
-                    # Try to correct for the fact that by optimizing each
-                    # harmonic power, we get a power that is slightly higher
-                    # than it should be.  Simulations suggest that the average
-                    # increase in power is ~2 per hamonic.  For single harmonics,
-                    # though, the optimized power should be correct.  So the
-                    # correction should be approx -2*(cand.numharm-1)
-                    opt_sigma = candidate_sigma(opt_ipow-2.0*(cand.numharm-1),
-                                                cand.numharm, 1)
+                    opt_sigma = candidate_sigma(opt_ipow, cand.numharm, 1)
                     self.cands[current_goodcandnum].sigma = opt_sigma
                     self.cands[current_goodcandnum].ipow_det = opt_ipow
                     if (opt_sigma < sigma_threshold):
