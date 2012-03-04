@@ -64,6 +64,9 @@ class psr_par:
             line = line.replace("D-", "E-")
             line = line.replace("D+", "E+")
             splitline = line.split()
+            # Skip blank lines
+            if len(splitline)==0:
+                continue
             key = splitline[0]
             if key in str_keys:
                 setattr(self, key, splitline[1])
