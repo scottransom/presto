@@ -50,17 +50,23 @@ float_keys = ["F", "F0", "F1", "F2", "F3", "F4", "F5", "F6",
               "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT",
               "FB0", "FB1", "FB2", "ELAT", "ELONG", "LAMBDA", "BETA",
               "PMRA", "PMDEC"]
-str_keys = ["FILE", "PSR", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
+str_keys = ["FILE", "PSR", "PSRJ", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
 
 class psr_par:
     def __init__(self, parfilenm):
         self.FILE = parfilenm
         pf = open(parfilenm)
         for line in pf.readlines():
+            # Skip comments
+            if line[0]=='#':
+                continue
             # Convert any 'D-' or 'D+' to 'E-' or 'E+'
             line = line.replace("D-", "E-")
             line = line.replace("D+", "E+")
             splitline = line.split()
+            # Skip blank lines
+            if len(splitline)==0:
+                continue
             key = splitline[0]
             if key in str_keys:
                 setattr(self, key, splitline[1])
