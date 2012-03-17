@@ -749,7 +749,7 @@ def read_profile(filenm, normalize=0):
         prof /= max(prof)
     return prof
 
-def calc_phs2(MJD, refMJD, *args):
+def calc_phs(MJD, refMJD, *args):
     """
     calc_phs(MJD, refMJD, *args):
         Return the rotational phase (0-1) at MJD (can be an array)
