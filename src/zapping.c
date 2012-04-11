@@ -35,7 +35,7 @@ void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft)
 
    ilobin = (int) floor(lobin);
    ihibin = (int) ceil(hibin);
-   binstozap = ihibin - ilobin + 1;
+   binstozap = ihibin - ilobin;
    if (lobin - 1.5 * MEDIANBINS > 1) {
       if (fftfile) {            /* If we are reading a file */
          data = get_rawbins(fftfile, lobin - MEDIANBINS,
