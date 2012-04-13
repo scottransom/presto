@@ -162,6 +162,9 @@ void telescope_to_tempocode(char *inname, char *outname, char*obscode)
     } else if (strcmp(scope, "vla") == 0) {
         strcpy(obscode, "VL");
         strcpy(outname, "VLA");
+    } else if (strcmp(scope, "lwa") == 0) {
+        strcpy(obscode, "VL");
+        strcpy(outname, "LWA");
     } else if (strcmp(scope, "parkes") == 0) {
         strcpy(obscode, "PK");
         strcpy(outname, "Parkes");

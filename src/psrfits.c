@@ -13,6 +13,7 @@ static unsigned char *padvals=NULL, *newpadvals=NULL;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
 static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
 static int using_MPI = 0, default_poln = 0, user_poln = 0;
+static int nchanwarn = 0;
 static double last_offs_sub = 0.0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
@@ -429,8 +430,13 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     // Now check that the channel spacing is the same throughout
                     for (jj = 0 ; jj < s->num_channels - 1 ; jj++) {
                         ftmp = freqs[jj+1] - freqs[jj];
-                        if (fabs(ftmp - s->df) > 1e-7)
+                        if (fabs(ftmp - s->df) > 1e-7) {
+                          if(nchanwarn<5)
                             printf("Warning!:  Channel spacing changes in file %d!\n", ii);
+                          else if(nchanwarn==5)
+                            printf("(Suppressing further channel spacing warnings)\n");
+                            nchanwarn++;
+                        }
                     }
                 } else {
                     ftmp = fabs(s->df-(freqs[1]-freqs[0]));
