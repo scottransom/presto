@@ -841,19 +841,20 @@ def fft_rotate(arr, bins):
         Return array 'arr' rotated by 'bins' places to the left.  The
             rotation is done in the Fourier domain using the Shift Theorem.
             'bins' can be fractional.  The resulting vector will have
-            the same length as the oiginal.
+            the same length as the original.
     """
     arr = Num.asarray(arr)
     freqs = Num.arange(arr.size/2+1, dtype=Num.float)
     phasor = Num.exp(complex(0.0, TWOPI) * freqs * bins / float(arr.size))
-    return Num.fft.irfft(phasor * Num.fft.rfft(arr))
+    return Num.fft.irfft(phasor * Num.fft.rfft(arr), arr.size)
 
 def corr(profile, template):
     """
     corr(profile, template):
         Cross-correlate (using FFTs) a 'profile' and a 'template'.
     """
-    return FFT.irfft(FFT.rfft(template) * Num.conjugate(FFT.rfft(profile)))
+    return FFT.irfft(FFT.rfft(template) * Num.conjugate(FFT.rfft(profile)),
+                     profile.size)
 
 def autocorr(x):
     """
@@ -863,7 +864,7 @@ def autocorr(x):
         points are symmetric (corresponding to negative lags).
     """
     fftx = FFT.rfft(x)
-    acf = FFT.irfft(fftx * Num.conjugate(fftx))[:len(x)/2+1]
+    acf = FFT.irfft(fftx * Num.conjugate(fftx), x.size)[:len(x)/2+1]
     return acf / acf[0]
 
 def maxphase(profile, template):
