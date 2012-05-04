@@ -254,9 +254,14 @@ class pfd:
             bestpd = self.bary_p2
             bestpdd = self.bary_p3
         else:
-            bestp = self.topo_p1
-            bestpd = self.topo_p2
-            bestpdd = self.topo_p3
+            if self.topo_p1 == 0.0:
+                bestp = self.fold_p1
+                bestpd = self.fold_p2
+                bestpdd = self.fold_p3
+            else:
+                bestp = self.topo_p1
+                bestpd = self.topo_p2
+                bestpdd = self.topo_p3
         if p is not None:
             bestp = p
         if pd is not None:
