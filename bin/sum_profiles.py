@@ -251,6 +251,8 @@ if __name__ == '__main__':
         # Read the fold data and de-disperse at the requested DM
         current_pfd = pfd(pfdfilenm)
         current_pfd.dedisperse(DM)
+        # This corrects for any searching that prepfold did to find the peak
+        current_pfd.adjust_period()
         T = current_pfd.T
         Tprerfi += T
         BW = current_pfd.nsub*current_pfd.subdeltafreq
