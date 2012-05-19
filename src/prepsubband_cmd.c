@@ -64,6 +64,8 @@ static Cmdline cmd = {
   /* noclipP = */ 0,
   /***** -runavg: Running mean subtraction from the input data */
   /* runavgP = */ 0,
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  /* zerodmP = */ 0,
   /***** -sub: Write subbands instead of de-dispersed data */
   /* subP = */ 0,
   /***** -subdm: The DM to use when de-dispersing subbands for -sub */
@@ -952,6 +954,13 @@ showOptionValues(void)
     printf("-runavg found:\n");
   }
 
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  if( !cmd.zerodmP ) {
+    printf("-zerodm not found.\n");
+  } else {
+    printf("-zerodm found:\n");
+  }
+
   /***** -sub: Write subbands instead of de-dispersed data */
   if( !cmd.subP ) {
     printf("-sub not found.\n");
@@ -1083,7 +1092,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-runavg] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-runavg] [-zerodm] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1108,6 +1117,7 @@ usage(void)
   fprintf(stderr,"%s","                 default: `6.0'\n");
   fprintf(stderr,"%s","        -noclip: Do not clip the data.  (The default is to _always_ clip!)\n");
   fprintf(stderr,"%s","        -runavg: Running mean subtraction from the input data\n");
+  fprintf(stderr,"%s","        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n");
   fprintf(stderr,"%s","           -sub: Write subbands instead of de-dispersed data\n");
   fprintf(stderr,"%s","         -subdm: The DM to use when de-dispersing subbands for -sub\n");
   fprintf(stderr,"%s","                 1 double value between 0 and 4000.0\n");
@@ -1135,7 +1145,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...16384 values\n");
-  fprintf(stderr,"%s","  version: 14Oct11\n");
+  fprintf(stderr,"%s","  version: 08Feb12\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1254,6 +1264,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-runavg", argv[i]) ) {
       cmd.runavgP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-zerodm", argv[i]) ) {
+      cmd.zerodmP = 1;
       continue;
     }
 

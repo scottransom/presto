@@ -51,6 +51,8 @@ typedef struct s_Cmdline {
   char noclipP;
   /***** -runavg: Running mean subtraction from the input data */
   char runavgP;
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  char zerodmP;
   /***** -sub: Write subbands instead of de-dispersed data */
   char subP;
   /***** -subdm: The DM to use when de-dispersing subbands for -sub */

@@ -31,6 +31,7 @@ Float  -clip    clip    {Time-domain sigma to use for clipping (0.0 = no clippin
 	-r 0 1000.0  -d 6.0
 Flag   -noclip  noclip  {Do not clip the data.  (The default is to _always_ clip!)}
 Flag   -runavg  runavg  {Running mean subtraction from the input data}
+Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e. remove zero DM)}
 Flag   -sub     sub     {Write subbands instead of de-dispersed data}
 Double -subdm   subdm   {The DM to use when de-dispersing subbands for -sub} \
 	-r 0 4000.0  -d 0.0
