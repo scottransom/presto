@@ -961,9 +961,10 @@ static int read_subbands(FILE * infiles[], int numfiles,
                          float clip_sigma, float *padvals)
 /* Read short int subband data written by prepsubband */
 {
-   int ii, jj, index, numread = 0, mask = 0;
+   int ii, jj, index, numread = 0, mask = 0,offset;
    short subsdata[SUBSBLOCKLEN]; 
    double starttime, run_avg;
+   float subband_sum;
    static int currentblock = 0;
 
    if (obsmask->numchan) mask = 1;
@@ -1010,6 +1011,23 @@ static int read_subbands(FILE * infiles[], int numfiles,
          }
       }
    }
+
+   /* Zero-DM removal if required */
+   if (cmd->zerodmP==1) {
+       for (ii = 0; ii < SUBSBLOCKLEN; ii++) {
+           offset = ii * numfiles;
+           subband_sum = 0.0; 
+           for (jj = offset; jj < offset+numfiles; jj++) {
+               subband_sum += subbanddata[jj];
+           }    
+           subband_sum /= (float) numfiles;
+           /* Remove the channel average */
+           for (jj = offset; jj < offset+numfiles; jj++) {
+               subbanddata[jj] -= subband_sum;
+           }    
+       }    
+   }
+
    currentblock += 1;
    return numread;
 }
