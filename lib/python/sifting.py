@@ -41,6 +41,29 @@ fund_re = re.compile("^\d")
 harms_re = re.compile("^[ ]\d")
 DM_re = re.compile("DM(\d+\.\d{2})")
 
+# Add some functions to maintain support for the old
+# sifting API
+def remove_duplicate_candidates(candlist, *args, **kwargs):
+    copy_of_candlist = copy.deepcopy(candlist)
+    copy_of_candlist.remove_duplicate_candidates(*args, **kwargs)
+    return copy_of_candlist
+
+
+def remove_DM_problems(candlist, *args, **kwargs):
+    copy_of_candlist = copy.deepcopy(candlist)
+    copy_of_candlist.remove_DM_problems(*args, **kwargs)
+    return copy_of_candlist
+
+
+def remove_harmonics(candlist, *args, **kwargs):
+    copy_of_candlist = copy.deepcopy(candlist)
+    copy_of_candlist.remove_harmonics(*args, **kwargs)
+    return copy_of_candlist
+
+
+def write_candlist(candlist, *args, **kwargs):
+    candlist.to_file(*args, **kwargs)
+
 
 def print_sift_globals():
     print "r_err =", r_err
@@ -145,11 +168,14 @@ class Candlist(object):
         self.harmonic_cands = []
         self.dmproblem_cands = []
 
+    def sort(self, *args, **kwargs):
+        self.cands.sort(*args, **kwargs)
+
     def plot_summary(self):
         import matplotlib
         import matplotlib.pyplot as plt
 
-        fig = plt.figure(figsize=(11,8)) 
+        fig = plt.figure(figsize=(10,8)) 
         ax = plt.axes((0.08, 0.08, 0.87, 0.80)) 
         plt.set_cmap("Spectral") 
         
@@ -182,7 +208,7 @@ class Candlist(object):
         import matplotlib
         import matplotlib.pyplot as plt
 
-        fig = plt.figure(figsize=(11,8)) 
+        fig = plt.figure(figsize=(10,8)) 
         ax = plt.axes((0.08, 0.18, 0.87, 0.80)) 
         
         # Plot bad candidates
@@ -195,14 +221,15 @@ class Candlist(object):
                     'Threshold', 'Harm power cutoff', 'Rogue harm power', \
                     'Harmonic cand', 'DM problem', 'Good cands', 'Hits']
         colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
-                    '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'k', 'k']
-        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', '.']
+                    '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r', 'k']
+        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', ',']
         zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0, 0]
         sizes = [50, 50, 50, 50, 50, 50, 50, 50, 100, 10]
         fixedsizes = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
+        lws = [1,1,1,1,1,1,1,1,2,1]
         handles = []
-        for cands, colour, marker, zorder, size, fixedsize in \
-                zip(candlists, colours, markers, zorders, sizes, fixedsizes):
+        for cands, colour, marker, zorder, size, fixedsize, lw in \
+                zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws):
             sigmas = Num.array([c.sigma for c in cands])
             isort = sigmas.argsort()
             sigmas = sigmas[isort]
@@ -211,10 +238,10 @@ class Candlist(object):
             
             # Plot the candidates
             if fixedsize:
-                plt.scatter(freqs, dms, s=size, \
+                plt.scatter(freqs, dms, s=size, lw=lw, \
                             c=colour, marker=marker, alpha=0.7, zorder=zorder)
             else:
-                plt.scatter(freqs, dms, s=8+sigmas**1.7, \
+                plt.scatter(freqs, dms, s=8+sigmas**1.7, lw=lw, \
                             c=colour, marker=marker, alpha=0.7, zorder=zorder)
             handles.append(plt.scatter([], [], s=size, c=colour, \
                                     marker=marker, alpha=0.7))
@@ -257,6 +284,8 @@ class Candlist(object):
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p > long_period):
+                cand.note = "Period is too long (%g > %g)" % \
+                            (cand.p, long_period)
                 self.badcands_longperiod.append(self.cands.pop(ii))
     
     def reject_shortperiod(self):
@@ -272,6 +301,8 @@ class Candlist(object):
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p < short_period):
+                cand.note = "Period is too short (%g > %g)" % \
+                            (cand.p, short_period)
                 self.badcands_shortperiod.append(self.cands.pop(ii))
 
     def reject_knownbirds(self, birdie_freqs=[], birdie_periods=[]):
@@ -296,6 +327,9 @@ class Candlist(object):
             for bird, err in known_birds_f:
                 if (Num.fabs(cand.f-bird) < err):
                     known_bird = 1
+                    cand.note = "Freq (%.2f Hz) is within %g Hz " \
+                                    "of a known birdie centred at %.2f Hz" % \
+                                    (cand.f, err, bird)
                     break
             if known_bird:
                 self.badcands_knownbirds.append(self.cands.pop(ii))
@@ -303,6 +337,9 @@ class Candlist(object):
             for bird, err in known_birds_p:
                 if (Num.fabs(cand.p*1000.0-bird) < err):
                     known_bird = 1
+                    cand.note = "Period (%.2f ms) is within %g ms " \
+                                    "of a known birdie centred at %.2f ms" % \
+                                    (cand.f*1000, err, bird)
                     break
             if known_bird:
                 self.badcands_knownbirds.append(self.cands.pop(ii))
@@ -330,10 +367,17 @@ class Candlist(object):
                 # Single harmonic case
                 if (cand.sigma < sigma_threshold) and \
                                     (cand.cpow < c_pow_threshold):
+                    cand.note = "Only 1 harmonic and both sigma " \
+                                "(%g < %g) and coherent power (%g < %g) are " \
+                                "too low." % (cand.sigma, sigma_threshold, \
+                                                cand.cpow, c_pow_threshold)
                     self.badcands_threshold.append(self.cands.pop(ii))
             else:
                 # Multiple harmonic case
                 if cand.sigma < sigma_threshold:
+                    cand.note = "%d harmonics and sigma " \
+                                "(%g < %g) is too low." % \
+                                (cand.numharm, cand.sigma, sigma_threshold)
                     self.badcands_threshold.append(self.cands.pop(ii))
         
 
@@ -352,6 +396,7 @@ class Candlist(object):
             maxharm = Num.argmax(cand.harm_pows)
             maxpow = cand.harm_pows[maxharm]
             if maxpow < harm_pow_cutoff:
+                cand.note = "All harmonics have power < %g" % harm_pow_cutoff
                 self.badcands_harmpowcutoff.append(self.cands.pop(ii))
 
     def reject_rogueharmpow(self):
@@ -377,12 +422,16 @@ class Candlist(object):
                 # Max-power harmonic is at least 2x more powerful 
                 # than the next highest-power harmonic, and is the
                 # 4+th harmonic our of 8+ harmonics
+                cand.note = "High-numbered harmonic (%d) has too " \
+                            "much power" % maxharm
                 self.badcands_rogueharmpow.append(self.cands.pop(ii))
             elif (cand.numharm >= 4 and maxharm > 2 and \
                                         maxpow > 3*sortedpows[-2]):
                 # Max-power harmonic is at least 3x more powerful 
                 # than the next highest-power harmonic, and is the
                 # 2+th harmonic our of 4+ harmonics
+                cand.note = "High-numbered harmonic (%d) has too " \
+                            "much power" % maxharm
                 self.badcands_rogueharmpow.append(self.cands.pop(ii))
         
     def default_rejection(self):
@@ -452,9 +501,12 @@ class Candlist(object):
                         print "Removing %s:%d (index: %d)" % \
                                 (match.filename, match.candnum, matchind)
                         print "    %s" % match.note
-            ii += 1 # All matching candidates have been popped from
-                    # self.cands, therefore we only need to increment
-                    # to next candidate
+                # If the best candidate isn't at the same freq
+                # as ii, then it's possible even more hits should
+                # be added. So we don't increment the index
+                # (note that the best cand has moved into position ii).
+            else:
+                ii += 1 # No candidates to be added as hits, move on
         if verbosity >= 1:
             print "Found %d candidates.\n" % self.get_numcands()
         self.cands.sort(cmp_sigma)
@@ -619,27 +671,69 @@ class Candlist(object):
             print "  # with peak SNR too low:", num_toolow
             print "  # with gaps in DM hits:", num_gaps
 
-    def print_cand_summary(self):
-        print "   Candlist contains %d 'good' candidates" % len(self.cands)
-        print "      # Known RFI rejects:           %d" % \
-              len(self.badcands_knownbirds)
-        print "      # Short period rejects:        %d" % \
-              len(self.badcands_shortperiod)
-        print "      # Long period rejects:         %d" % \
-              len(self.badcands_longperiod)
-        print "      # Missed threshold:            %d" % \
-              len(self.badcands_threshold)
-        print "      # No good harmonics:           %d" % \
-              len(self.badcands_harmpowcutoff)
-        print "      # One bad harmonic:            %d" % \
-              len(self.badcands_rogueharmpow)
-        print "      # Duplicate candidates:        %d" % \
-              len(self.duplicate_cands)
-        print "      # Harmonic candidates:         %d" % \
-              len(self.harmonic_cands)
-        print "      # Candidates with DM problems: %d" % \
-              len(self.dmproblem_cands)
-   
+    def print_cand_summary(self, summaryfilenm=None):
+        """Write a summary of all candidates to file (or stdout).
+
+            Input:
+                summaryfilenm: Name of file to write to. If None write to stdout.
+                    (Default: write to stdout).
+
+            Outputs:
+                None
+        """
+        if summaryfilenm is None:
+            summaryfile = sys.stdout
+        else:
+            summaryfile = open(summaryfilenm, "w")
+        summaryfile.write("   Candlist contains %d 'good' candidates\n" % \
+                            len(self.cands))
+        summaryfile.write("      # Known RFI rejects:           %d\n" % \
+              len(self.badcands_knownbirds))
+        summaryfile.write("      # Short period rejects:        %d\n" % \
+              len(self.badcands_shortperiod))
+        summaryfile.write("      # Long period rejects:         %d\n" % \
+              len(self.badcands_longperiod))
+        summaryfile.write("      # Missed threshold:            %d\n" % \
+              len(self.badcands_threshold))
+        summaryfile.write("      # No good harmonics:           %d\n" % \
+              len(self.badcands_harmpowcutoff))
+        summaryfile.write("      # One bad harmonic:            %d\n" % \
+              len(self.badcands_rogueharmpow))
+        summaryfile.write("      # Duplicate candidates:        %d\n" % \
+              len(self.duplicate_cands))
+        summaryfile.write("      # Harmonic candidates:         %d\n" % \
+              len(self.harmonic_cands))
+        summaryfile.write("      # Candidates with DM problems: %d\n" % \
+              len(self.dmproblem_cands))
+        if summaryfilenm is not None:
+            summaryfile.close()
+  
+    def write_cand_report(self, reportfilenm=None):
+        """Write a report of all bad candidates to file (or stdout).
+
+            Input:
+                reportfilenm: Name of file to write to. If None write to stdout.
+                    (Default: write to stdout).
+
+            Outputs:
+                None
+        """
+        if reportfilenm is None:
+            reportfile = sys.stdout
+        else:
+            reportfile = open(reportfilenm, "w")
+        reportfile.write("#" + "file:candnum".center(66) + "DM".center(9) +
+                       "SNR".center(8) + "sigma".center(8) + "numharm".center(9) +
+                       "ipow".center(9) + "cpow".center(9) +  "P(ms)".center(14) +
+                       "r".center(12) + "z".center(8) + "numhits".center(9) + "\n")
+        badcands = self.get_all_badcands()
+        for badcand in badcands:
+            reportfile.write("%s (%d)\n" % (str(badcand), len(badcand.hits)))
+            reportfile.write("    Note: %s\n" % badcand.note)
+        if reportfilenm is not None:
+            reportfile.close()
+        
+
     def __add__(self, other):
         copy_of_self = copy.deepcopy(self)
         copy_of_self.extend(other)
@@ -799,20 +893,26 @@ def candlist_from_candfile(filename):
     return Candlist(cands)
 
 
-def read_candidates(filenms):
-    """
-    read_candidates(filenms):
-        Read in accelsearch candidates from the test ACCEL files.
-        Return a list of file_candidates instances.
+def read_candidates(filenms, prelim_reject=True):
+    """Read in accelsearch candidates from the test ACCEL files.
+        Return a Candlist object of Candidate instances.
+
+        Inputs:
+            filenms: A list of files to read candidates from.
+            prelim_reject: If True, perform preliminary rejection of
+                candidates. (Default: True)
+
     """
     if not len(filenms):
         print "Error:  There are no candidate files to read!"
         return None
-    print "\nReading candidates...."
+    print "\nReading candidates from %d files...." % len(filenms)
     candlist = Candlist()
     for filenm in filenms:
         curr_candlist = candlist_from_candfile(filenm)
         candlist.extend(curr_candlist)
+    if prelim_reject:
+        candlist.default_rejection()
     return candlist
 
 
@@ -839,7 +939,6 @@ def sift_directory(dir, outbasenm):
     lo_accel_cands = read_candidates(lo_accel_fns)
     print "Read %d candidates from %d files" % \
                 (len(lo_accel_cands), len(lo_accel_fns))
-    lo_accel_cands.default_rejection()
     print "%d candidates passed default rejection" % len(lo_accel_cands)
     if len(lo_accel_cands):
         lo_accel_cands.remove_duplicate_candidates()
@@ -852,7 +951,6 @@ def sift_directory(dir, outbasenm):
     hi_accel_cands = read_candidates(hi_accel_fns)
     print "Read %d candidates from %d files" % \
                 (len(hi_accel_cands), len(hi_accel_fns))
-    hi_accel_cands.default_rejection()
     print "%d candidates passed default rejection" % len(hi_accel_cands)
     if len(hi_accel_cands):
         hi_accel_cands.remove_duplicate_candidates()
@@ -867,9 +965,13 @@ def sift_directory(dir, outbasenm):
         all_accel_cands.cands.sort(cmp_sigma)
         print "Found %d good candidates" % len(all_accel_cands)
         all_accel_cands.to_file(outbasenm+".accelcands")
+    all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
     all_accel_cands.print_cand_summary()
     all_accel_cands.plot_goodbad()
-    plt.show()
+    plt.savefig(outbasenm+".accelcands.rejects.png")
+    all_accel_cands.plot_summary()
+    plt.savefig(outbasenm+".accelcands.summary.png")
+
 
 def main():
     # Sift candidates in PWD
