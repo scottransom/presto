@@ -22,7 +22,7 @@ long_period = 15.0
 # Shortest period candidates to consider (s)
 short_period = 0.0005
 # Ignore candidates with a sigma (from incoherent power summation) less than this
-sigma_threshold = 5.0 #6.0
+sigma_threshold = 6.0
 # Ignore candidates with a coherent power less than this
 c_pow_threshold = 100.0
 # Ignore any candidates where at least one harmonic does not exceed this power
@@ -284,8 +284,8 @@ class Candlist(object):
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p > long_period):
-                cand.note = "Period is too long (%g > %g)" % \
-                            (cand.p, long_period)
+                cand.note = "Period is too long (%g ms > %g ms)" % \
+                            (cand.p*1000, long_period*1000)
                 self.badcands_longperiod.append(self.cands.pop(ii))
     
     def reject_shortperiod(self):
@@ -301,8 +301,8 @@ class Candlist(object):
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p < short_period):
-                cand.note = "Period is too short (%g > %g)" % \
-                            (cand.p, short_period)
+                cand.note = "Period is too short (%g ms > %g ms)" % \
+                            (cand.p*1000, short_period*1000)
                 self.badcands_shortperiod.append(self.cands.pop(ii))
 
     def reject_knownbirds(self, birdie_freqs=[], birdie_periods=[]):
@@ -729,7 +729,7 @@ class Candlist(object):
         badcands = self.get_all_badcands()
         for badcand in badcands:
             reportfile.write("%s (%d)\n" % (str(badcand), len(badcand.hits)))
-            reportfile.write("    Note: %s\n" % badcand.note)
+            reportfile.write("    Note: %s\n\n" % badcand.note)
         if reportfilenm is not None:
             reportfile.close()
         
@@ -929,7 +929,13 @@ def sift_directory(dir, outbasenm):
     import os.path
     import glob
     import infodata
-    
+  
+    # TODO: Remove hard-coded values in this function
+    #       replace with command line options.
+
+    global sigma_threshold
+    sigma_threshold = 5.0
+
     # Get list of DMs from *.inf files
     inffns = glob.glob(os.path.join(dir, '*.inf'))
     dmstrs = ['%.2f'%infodata.infodata(inffn).DM for inffn in inffns]
