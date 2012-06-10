@@ -271,16 +271,19 @@ class Candlist(object):
                 self.badcands_harmpowcutoff + self.badcands_rogueharmpow + \
                 self.harmonic_cands + self.dmproblem_cands
 
-    def reject_longperiod(self):
+    def reject_longperiod(self, long_period=None):
         """Find and remove very long period candidates.
             Long period candidates are moved to the 'badcands_longperiod' list.
 
             Inputs:
-                None
+                long_period: The longest allowed period for a 'good' cand.
+                    (Default: Globally defined limit, "long_period")
 
             Outputs:
                 None
         """
+        if long_period is None:
+            long_period = globals()['long_period']
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p > long_period):
@@ -288,16 +291,19 @@ class Candlist(object):
                             (cand.p*1000, long_period*1000)
                 self.badcands_longperiod.append(self.cands.pop(ii))
     
-    def reject_shortperiod(self):
+    def reject_shortperiod(self, short_period=None):
         """Find and remove very short period candidates.
             Short period candidates are moved to the 'badcands_shortperiod' list.
 
             Inputs:
-                None
+                short_period: The shortest allowed period for a 'good' cand.
+                    (Default: Globally defined limit, "short_period")
 
             Outputs:
                 None
         """
+        if short_period is None:
+            short_period = globals()['short_period']
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p < short_period):
@@ -305,22 +311,26 @@ class Candlist(object):
                             (cand.p*1000, short_period*1000)
                 self.badcands_shortperiod.append(self.cands.pop(ii))
 
-    def reject_knownbirds(self, birdie_freqs=[], birdie_periods=[]):
+    def reject_knownbirds(self, known_birds_f=[], known_birds_p=[]):
         """Find and remove candidates conincident with known birds.
 
             Inputs:
-                birdie_freqs: A list of tuples containing bad frequencies
+                known_birds_f: A list of tuples containing bad frequencies
                     and widths. The tuples should contain
                         (<bad freq (Hz)>, <one-sided width (Hz)>)
-                    Default: No frequency birdies.
-                birdie_periods: A list of tuples containing bad peridocities
+                    (Default: Globally defined "known_birds_f")
+                known_birds_p: A list of tuples containing bad peridocities
                     and widths. The tuples should contain
                         (<bad freq (ms)>, <one-sided width (ms)>)
-                    Default: No periodicity birdies.
+                    (Default: Globally defined "known_birds_p")
 
             Outputs:
                 None
         """
+        if known_birds_f is None:
+            known_birds_f = globals()['known_birds_f']
+        if known_birds_p is None:
+            known_birds_p = globals()['known_birds_p']
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             known_bird = 0
@@ -345,8 +355,8 @@ class Candlist(object):
                 self.badcands_knownbirds.append(self.cands.pop(ii))
                 continue
 
-    def reject_threshold(self, sigma_threshold=sigma_threshold, \
-                    c_pow_threshold=c_pow_threshold):
+    def reject_threshold(self, sigma_threshold=None, \
+                    c_pow_threshold=None):
         """Find and remove candidates that don't pass our threshold.
             The conditions for rejection are different for candidates
             with a single harmonic, and multiple harmonics.
@@ -360,6 +370,10 @@ class Candlist(object):
             Outputs:
                 None
         """
+        if sigma_threshold is None:
+            sigma_threshold = globals()['sigma_threshold']
+        if c_pow_threshold is None:
+            c_pow_threshold = globals()['c_pow_threshold']
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             
@@ -381,16 +395,19 @@ class Candlist(object):
                     self.badcands_threshold.append(self.cands.pop(ii))
         
 
-    def reject_harmpowcutoff(self, harm_pow_cutoff=harm_pow_cutoff):
+    def reject_harmpowcutoff(self, harm_pow_cutoff=None):
         """Find and remove the candidates where the harmonic with the
             highest power is not more than harm_pow_cutoff.
 
             Inputs:
-                harm_pow_cutoff:
+                harm_pow_cutoff: Minimum power for a good harmonic.
+                    (Default: Globally defined "harm_pow_cutoff")
 
             Outputs:
                 None
         """
+        if harm_pow_cutoff is None:
+            harm_pow_cutoff = globals()['harm_pow_cutoff']
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             maxharm = Num.argmax(cand.harm_pows)
@@ -936,6 +953,7 @@ def sift_directory(dir, outbasenm):
     global sigma_threshold
     sigma_threshold = 5.0
 
+    print_sift_globals()
     # Get list of DMs from *.inf files
     inffns = glob.glob(os.path.join(dir, '*.inf'))
     dmstrs = ['%.2f'%infodata.infodata(inffn).DM for inffn in inffns]
