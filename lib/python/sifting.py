@@ -65,6 +65,20 @@ def write_candlist(candlist, *args, **kwargs):
     candlist.to_file(*args, **kwargs)
 
 
+def sigma_to_size(sigmas):
+    """Given a numpy array of sigma values, return an array
+        of same size with sizes of markers to plot.
+
+        Inputs:
+            sigmas: Numpy array of sigma values.
+
+        Output:
+            sizes: Numpy array of marker sizes.
+    """
+    # return 8+sigmas**1.7
+    return Num.clip(20**(sigmas/6), 5, 400)
+
+
 def print_sift_globals():
     print "r_err =", r_err
     print "short_period =", short_period     
@@ -171,7 +185,16 @@ class Candlist(object):
     def sort(self, *args, **kwargs):
         self.cands.sort(*args, **kwargs)
 
-    def plot_summary(self):
+    def plot_summary(self, usefreqs=True):
+        """Produce a plot summarizing the sifiting performed.
+
+            Input:
+                usefreqs: If True, the horizontal axis will use
+                    frequency. If False, use period.
+            
+            Output:
+                fig: A matplotlib figure instance.
+        """
         import matplotlib
         import matplotlib.pyplot as plt
 
@@ -184,12 +207,19 @@ class Candlist(object):
         sigmas = Num.array([c.sigma for c in allcands])
         isort = sigmas.argsort()
         sigmas = sigmas[isort]
-        freqs = Num.array([c.f for c in allcands])[isort]
+        if usefreqs:
+            xdata = Num.array([c.f for c in allcands])[isort]
+            xlabel = "Freq (Hz)"
+            xscale = "log"
+        else:
+            xdata = Num.array([c.p for c in allcands])[isort]
+            xlabel = "Period (s)"
+            xscale = "linear"
         dms = Num.array([c.DM for c in allcands])[isort]
         numharms = Num.array([c.numharm for c in allcands])[isort]
 
         # Plot the all candidates 
-        plt.scatter(freqs, dms, s=8+sigmas**1.7, c=Num.log2(numharms), \
+        plt.scatter(xdata, dms, s=sigma_to_size(sigmas), c=Num.log2(numharms), \
                                 marker='o', alpha=0.7, zorder=-1) 
   
         # Add colorbar 
@@ -197,14 +227,26 @@ class Candlist(object):
         cb = plt.colorbar(ticks=(0,1,2,3,4), format=fmtr) 
         cb.set_label("Num harmonics summed") 
          
-        plt.xscale('log', base=10.0) 
-        plt.xlim(0.5, 10000) 
-        plt.ylim(-10, 1200) 
-        plt.xlabel("Freq (Hz)") 
+        plt.xscale(xscale)
+        plt.xlabel(xlabel)
+        mindm = Num.min(dms)
+        maxdm = Num.max(dms)
+        dmrange = Num.ptp(dms)
+        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
         return fig
 
-    def plot_goodbad(self):
+    def plot_rejects(self, usefreqs=True):
+        """Produce a plot showing why candidates were rejected by
+            the sifiting performed.
+
+            Input:
+                usefreqs: If True, the horizontal axis will use
+                    frequency. If False, use period.
+            
+            Output:
+                fig: A matplotlib figure instance.
+        """
         import matplotlib
         import matplotlib.pyplot as plt
 
@@ -233,15 +275,22 @@ class Candlist(object):
             sigmas = Num.array([c.sigma for c in cands])
             isort = sigmas.argsort()
             sigmas = sigmas[isort]
-            freqs = Num.array([c.f for c in cands])[isort]
+            if usefreqs:
+                xdata = Num.array([c.f for c in cands])[isort]
+                xlabel = "Freq (Hz)"
+                xscale = "log"
+            else:
+                xdata = Num.array([c.p for c in allcands])[isort]
+                xlabel = "Period (s)"
+                xscale = "linear"
             dms = Num.array([c.DM for c in cands])[isort]
             
             # Plot the candidates
             if fixedsize:
-                plt.scatter(freqs, dms, s=size, lw=lw, \
+                plt.scatter(xdata, dms, s=size, lw=lw, \
                             c=colour, marker=marker, alpha=0.7, zorder=zorder)
             else:
-                plt.scatter(freqs, dms, s=8+sigmas**1.7, lw=lw, \
+                plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, \
                             c=colour, marker=marker, alpha=0.7, zorder=zorder)
             handles.append(plt.scatter([], [], s=size, c=colour, \
                                     marker=marker, alpha=0.7))
@@ -249,10 +298,100 @@ class Candlist(object):
         fig.legend(handles, labels, 'lower center', \
                         prop={'size':'x-small'}, ncol=4)
 
-        plt.xscale('log', base=10.0) 
-        plt.xlim(0.5, 10000) 
-        plt.ylim(-10, 1200) 
-        plt.xlabel("Freq (Hz)") 
+        plt.xscale(xscale) 
+        plt.xlabel(xlabel)
+        plt.xlim(0.05, 10000)
+        mindm = Num.min(dms)
+        maxdm = Num.max(dms)
+        dmrange = Num.ptp(dms)
+        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+        plt.ylabel(r"DM (pc cm$^{-3}$)") 
+        return fig
+
+    def plot_goodcands(self, usefreqs=True):
+        """Produce a plot highlighting good candidates as selected by
+            the sifiting performed.
+
+            Input:
+                usefreqs: If True, the horizontal axis will use
+                    frequency. If False, use period.
+            
+            Output:
+                fig: A matplotlib figure instance.
+        """
+        import matplotlib
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(figsize=(10,8)) 
+        ax = plt.axes((0.08, 0.18, 0.87, 0.80)) 
+        
+        # Plot candidates
+        candlists = [self.badcands_knownbirds, self.badcands_longperiod, \
+                     self.badcands_shortperiod, self.badcands_threshold, \
+                     self.badcands_harmpowcutoff, self.badcands_rogueharmpow, \
+                     self.harmonic_cands, self.dmproblem_cands, \
+                     self.cands]
+        labels = ['Known birdires', 'Long period', 'Short period', \
+                    'Threshold', 'Harm power cutoff', 'Rogue harm power', \
+                    'Harmonic cand', 'DM problem', 'Good cands']
+        colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
+                    '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r']
+        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o']
+        zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0]
+        sizes = [10, 10, 10, 10, 10, 10, 10, 10, 50]
+        fixedsizes = [1, 1, 1, 1, 1, 1, 1, 1, 0]
+        lws = [1,1,1,1,1,1,1,1,1,1]
+        ecs = ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'k']
+        alphas = [1,1,1,1,1,1,1,1,0.7]
+        handles = []
+        for cands, colour, marker, zorder, size, fixedsize, lw, alpha, ec in \
+                zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws, alphas, ecs):
+            sigmas = []
+            dms = []
+            xdata = []
+            for c in cands:
+                sigmas.extend([h[1]/c.snr*c.sigma for h in c.hits])
+                dms.extend([h[0] for h in c.hits])
+                if usefreqs:
+                    xval = c.f
+                else:
+                    xval = c.p
+                xdata.extend([xval]*len(c.hits))
+            sigmas = Num.array(sigmas)
+            dms = Num.array(dms)
+            xdata = Num.array(xdata)
+
+            isort = sigmas.argsort()
+            sigmas = sigmas[isort]
+            dms = dms[isort]
+            xdata = xdata[isort]
+            if usefreqs:
+                xlabel = "Freq (Hz)"
+                xscale = "log"
+            else:
+                xlabel = "Period (s)"
+                xscale = "linear"
+            
+            # Plot the candidates
+            if fixedsize:
+                plt.scatter(xdata, dms, s=size, lw=lw, edgecolors=ec, \
+                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
+            else:
+                plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, edgecolors=ec, \
+                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
+            handles.append(plt.scatter([], [], s=size, c=colour, \
+                                    marker=marker, alpha=0.7))
+
+        fig.legend(handles, labels, 'lower center', \
+                        prop={'size':'x-small'}, ncol=4)
+
+        plt.xscale(xscale) 
+        plt.xlabel(xlabel) 
+        plt.xlim(0.05, 10000)
+        mindm = Num.min(dms)
+        maxdm = Num.max(dms)
+        dmrange = Num.ptp(dms)
+        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
         return fig
 
@@ -991,10 +1130,14 @@ def sift_directory(dir, outbasenm):
         all_accel_cands.to_file(outbasenm+".accelcands")
     all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
     all_accel_cands.print_cand_summary()
-    all_accel_cands.plot_goodbad()
+    all_accel_cands.plot_rejects()
     plt.savefig(outbasenm+".accelcands.rejects.png")
+    all_accel_cands.plot_goodcands()
+    plt.savefig(outbasenm+".accelcands.goodcands.png")
     all_accel_cands.plot_summary()
-    plt.savefig(outbasenm+".accelcands.summary.png")
+    plt.savefig(outbasenm+".accelcands.fsummary.png")
+    all_accel_cands.plot_summary(usefreqs=False)
+    plt.savefig(outbasenm+".accelcands.psummary.png")
 
 
 def main():
