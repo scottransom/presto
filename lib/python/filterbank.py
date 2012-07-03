@@ -18,12 +18,25 @@ class Filterbank(object):
     def __init__(self, header, data):
         self.header = header
         self.data = data
-        self.number_of_samples = self.data.size / self.nchans        
-        self.samples = self.data.view()
-        self.samples.shape = (self.number_of_samples, self.nchans)
-        self.samples.T
+        self.number_of_samples = self.data.size / self.nchans
+        self.spectra = self.view_as_spectra(self.data)
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
+
+    def view_as_spectra(self, data):
+        """Return a view with data as spectra.
+
+            Input:
+                data: A 1-D numpy array of filterbank data.
+
+            Output:
+                spectra: A view of the input data arranged as spectra.
+        """
+        spectra = data.view()
+        spectra.shape = (data.size/self.nchans, self.nchans)
+        spectra = spectra.transpose()
+        return spectra
+
 
     def __getattr__(self, name):
         if DEBUG:
@@ -60,12 +73,12 @@ class Filterbank(object):
  
 
 class FilterbankFile(Filterbank):
-    def __init__(self, filfn):
+    def __init__(self, filfn, delayed_read=False):
         if not os.path.isfile(filfn):
             raise ValueError("ERROR: File does not exist!\n\t(%s)" % filfn)
         else:
             self.filename = filfn
-            self.filfile = open(filfn, 'rb')
+            self.filfile = open(filfn, 'r+b')
             header = self.read_header()
             self.header_size = self.filfile.tell()
             self.data_size = os.stat(self.filename)[6] - self.header_size
@@ -84,7 +97,10 @@ class FilterbankFile(Filterbank):
                 self.dtype = 'uint%d' % header['nbits']
             if self.data_size % bytes_per_sample:
                 warnings.warn("Not an integer number of samples in file.")
-            data = self.read_all_samples()
+            if delayed_read:
+                data = np.array([])
+            else:
+                data = self.read_all_samples()
             super(FilterbankFile, self).__init__(header, data)
 
     def close(self):
@@ -155,6 +171,21 @@ class FilterbankFile(Filterbank):
         """
         self.filfile.seek(posn)
 
+    def append_spectra(self, spectra):
+        """Append spectra to the filterbank file.
+            
+            Input:
+                spectra: An array of spectra.
+
+            Outputs:
+                None
+        """
+        if spectra.shape[0] != self.nchans:
+            raise ValueError("Bad number of channels (%d), expected (%d)" % \
+                            (spectra.shape[0], self.nchans))
+        spectra.T.flatten().astype(self.dtype).tofile(self.filfile)
+        self.data_size += int(spectra.size*self.nbits/8.0)
+        self.number_of_samples += spectra.shape[1]
 
 def main():
     fil = FilterbankFile(sys.argv[1])

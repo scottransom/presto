@@ -8,6 +8,7 @@ Patrick Lazarus, June 26, 2012
 import sys
 import optparse
 import warnings
+import copy
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -49,7 +50,7 @@ def main():
     print "%d input files provided" % len(args)
     for fn in args:
         print "Injecting pulsar signal into: %s" % fn
-        fil = filterbank.FilterbankFile(fn)
+        fil = filterbank.FilterbankFile(fn, delayed_read=True)
         nbin = int(np.round(options.period/fil.tsamp)) # Number of bins 
                                                        # across the profile
         delays = psr_utils.delay_from_DM(options.dm, fil.frequencies)
@@ -66,28 +67,41 @@ def main():
             plt.show()
             sys.exit()
 
-        profs = np.empty((nbin, fil.nchans))
+        profs = np.empty((fil.nchans, nbin))
         for ichan, bindelay in enumerate(delay_bins):
-            profs[:,ichan] = psr_utils.rotate(prof, -bindelay)
-        plt.imshow(profs.T, aspect='equal', origin='bottom', interpolation='nearest')
-        plt.show()
-        nprofs = fil.number_of_samples/nbin
-        remainder = fil.number_of_samples % nbin
+            profs[ichan,:] = psr_utils.rotate(prof, -bindelay)
+
+        # Read the first second of data to get the global scaling to use
+        fil.seek_to_data_start()
+        onesec_nspec = int(np.round(1.0/fil.tsamp))
+        onesec_data = fil.view_as_spectra(fil.read_Nsamples(onesec_nspec))
+        nprofs = onesec_nspec/nbin
+        remainder = onesec_nspec % nbin
         for iprof in np.arange(nprofs):
-            fil.samples[iprof*nbin:(iprof+1)*nbin] += profs
-        fil.samples[nprofs*nbin:] += profs[:remainder]
-        minimum = np.min(fil.samples[:int(NUMSECS/fil.tsamp)])
-        fil.samples -= minimum
-        median = np.median(fil.samples[:int(NUMSECS/fil.tsamp)])
+            onesec_data[:, iprof*nbin:(iprof+1)*nbin] += profs
+        onesec_data[:, -remainder:] += profs[:, :remainder]
+        minimum = np.min(onesec_data)
+        median = np.median(onesec_data)
         # Set median to 1/3 of dynamic range
         global_scale = (256.0/3.0) / median
-        fil.samples *= global_scale
-        fil.samples = np.clip(fil.samples, 0, 256)
-        fil.dtype = 'uint8'
-        fil.header['source_name'] += "_fake"
+        del onesec_data
+        
+        # Start an output file
+        outfil = filterbank.Filterbank(copy.deepcopy(fil.header), np.array([]))
+        outfil.dtype = 'uint8'
+        outfil.header['source_name'] += "_fake"
         outfn = options.outname % fil.header 
-        print "Writing out file: %s" % outfn
-        fil.write_filterbank_file(outfn) 
+        print "Creating out file: %s" % outfn
+        outfil.write_filterbank_file(outfn) 
+        outfil = filterbank.FilterbankFile(outfn)
+
+        fil.seek_to_data_start()
+        spectra = fil.view_as_spectra(fil.read_Nsamples(nbin))
+        while spectra.size:
+            spectra += profs[:, :spectra.shape[1]]
+            spectra = np.clip((spectra-minimum)*global_scale, 0, 256)
+            outfil.append_spectra(spectra)
+            spectra = fil.view_as_spectra(fil.read_Nsamples(nbin))
 
 
 if __name__ == '__main__':
