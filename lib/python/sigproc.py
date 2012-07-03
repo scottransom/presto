@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-import os, struct, sys, math
+import os
+import struct
+import sys
+import math
+import warnings
 from psr_constants import ARCSECTORAD
 
 telescope_ids = {"Fake": 0, "Arecibo": 1, "Ooty": 2, "Nancay": 3,
@@ -120,7 +124,7 @@ def addto_hdr(paramname, value):
     elif header_params[paramname] == 'flag':
         return prep_string(paramname)
     else:
-        print "Warning:  key '%s' is unknown!" % paramname
+        warnings.warning("key '%s' is unknown!" % paramname)
     return hdr
 
 def read_header(infile):
