@@ -8,7 +8,7 @@ Patrick Lazarus, June 26, 2012
 import sys
 import optparse
 import warnings
-import copy
+import shutil
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -50,7 +50,7 @@ def main():
     print "%d input files provided" % len(args)
     for fn in args:
         print "Injecting pulsar signal into: %s" % fn
-        fil = filterbank.FilterbankFile(fn, delayed_read=True)
+        fil = filterbank.FilterbankFile(fn, read_only=True)
         nbin = int(np.round(options.period/fil.tsamp)) # Number of bins 
                                                        # across the profile
         delays = psr_utils.delay_from_DM(options.dm, fil.frequencies)
@@ -67,41 +67,52 @@ def main():
             plt.show()
             sys.exit()
 
-        profs = np.empty((fil.nchans, nbin))
+        profs = np.empty((nbin, fil.nchans))
         for ichan, bindelay in enumerate(delay_bins):
-            profs[ichan,:] = psr_utils.rotate(prof, -bindelay)
+            profs[:,ichan] = psr_utils.rotate(prof, -bindelay)
+
+        # Copy the input file to the output file name and modify the output
+        # file in-place
+        outfn = options.outname % fil.header 
+        shutil.copy(fn, outfn) 
 
         # Read the first second of data to get the global scaling to use
-        fil.seek_to_data_start()
-        onesec_nspec = int(np.round(1.0/fil.tsamp))
-        onesec_data = fil.view_as_spectra(fil.read_Nsamples(onesec_nspec))
+        outfil = filterbank.FilterbankFile(outfn, read_only=False)
+        onesec = outfil.get_timeslice(0, 1).copy()
+        onesec_nspec = onesec.shape[0]
         nprofs = onesec_nspec/nbin
         remainder = onesec_nspec % nbin
         for iprof in np.arange(nprofs):
-            onesec_data[:, iprof*nbin:(iprof+1)*nbin] += profs
-        onesec_data[:, -remainder:] += profs[:, :remainder]
-        minimum = np.min(onesec_data)
-        median = np.median(onesec_data)
+            onesec[iprof*nbin:(iprof+1)*nbin] += profs
+        onesec[-remainder:] += profs[:remainder]
+        minimum = np.min(onesec)
+        median = np.median(onesec)
         # Set median to 1/3 of dynamic range
         global_scale = (256.0/3.0) / median
-        del onesec_data
+        del onesec
         
         # Start an output file
-        outfil = filterbank.Filterbank(copy.deepcopy(fil.header), np.array([]))
-        outfil.dtype = 'uint8'
-        outfil.header['source_name'] += "_fake"
-        outfn = options.outname % fil.header 
         print "Creating out file: %s" % outfn
-        outfil.write_filterbank_file(outfn) 
-        outfil = filterbank.FilterbankFile(outfn)
-
-        fil.seek_to_data_start()
-        spectra = fil.view_as_spectra(fil.read_Nsamples(nbin))
-        while spectra.size:
-            spectra += profs[:, :spectra.shape[1]]
-            spectra = np.clip((spectra-minimum)*global_scale, 0, 256)
-            outfil.append_spectra(spectra)
-            spectra = fil.view_as_spectra(fil.read_Nsamples(nbin))
+        nprofs = outfil.nspec/nbin
+        remainder = outfil.nspec % nbin
+        oldprogress = -1
+        for iprof in np.arange(nprofs):
+            spectra = outfil.get_spectra(iprof*nbin, (iprof+1)*nbin)
+            outfil.spectra[iprof*nbin:(iprof+1)*nbin] = \
+                    np.clip((spectra+profs-minimum)*global_scale, 0, 256)
+            outfil.spectra.flush()
+            progress = int(100.0*((iprof+1)*nbin)/outfil.nspec)
+            if progress > oldprogress: 
+                sys.stdout.write("%3f%%\r" % progress)
+                sys.stdout.flush()
+                oldprogress = progress
+        # Read all remaining spectra
+        spectra = outfil.get_spectra(-remainder, None)
+        outfil.spectra[-remainder:] = \
+                np.clip((spectra+profs[:remainder]-minimum)*global_scale, 0, 256)
+        outfil.spectra.flush()
+        sys.stdout.write("Done   \n")
+        sys.stdout.flush()
 
 
 if __name__ == '__main__':
