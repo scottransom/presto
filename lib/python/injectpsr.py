@@ -103,14 +103,15 @@ def main():
             outfil.spectra.flush()
             progress = int(100.0*((iprof+1)*nbin)/outfil.nspec)
             if progress > oldprogress: 
-                sys.stdout.write("%3f%%\r" % progress)
+                sys.stdout.write(" %3.0f %%\r" % progress)
                 sys.stdout.flush()
                 oldprogress = progress
         # Read all remaining spectra
-        spectra = outfil.get_spectra(-remainder, None)
-        outfil.spectra[-remainder:] = \
-                np.clip((spectra+profs[:remainder]-minimum)*global_scale, 0, 256)
-        outfil.spectra.flush()
+        if remainder:
+            spectra = outfil.get_spectra(-remainder, None)
+            outfil.spectra[-remainder:] = \
+                    np.clip((spectra+profs[:remainder]-minimum)*global_scale, 0, 256)
+            outfil.spectra.flush()
         sys.stdout.write("Done   \n")
         sys.stdout.flush()
 
