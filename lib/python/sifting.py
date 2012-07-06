@@ -308,6 +308,100 @@ class Candlist(object):
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
         return fig
 
+    def fancyplot_goodcands(self):
+        """Produce a fancier plot highlighting good candidaates as 
+            selected by the sifting performed.
+
+            Inputs:
+                None
+
+            Outputs:
+                fig: A matplotlib figure instance.
+        """
+        import matplotlib
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(figsize=(10,8)) 
+        axlog = plt.axes((0.08, 0.18, 0.435, 0.80)) 
+        axlin = plt.axes((0.515, 0.18, 0.435, 0.80)) 
+
+        axlog.spines['right'].set_visible(False)
+        axlin.spines['left'].set_linestyle('dashed')
+
+        # Plot candidates
+        candlists = [self.badcands_knownbirds, self.badcands_longperiod, \
+                     self.badcands_shortperiod, self.badcands_threshold, \
+                     self.badcands_harmpowcutoff, self.badcands_rogueharmpow, \
+                     self.harmonic_cands, self.dmproblem_cands, \
+                     self.cands]
+        labels = ['Known birdires', 'Long period', 'Short period', \
+                    'Threshold', 'Harm power cutoff', 'Rogue harm power', \
+                    'Harmonic cand', 'DM problem', 'Good cands']
+        colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
+                    '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r']
+        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o']
+        zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0]
+        sizes = [10, 10, 10, 10, 10, 10, 10, 10, 50]
+        fixedsizes = [1, 1, 1, 1, 1, 1, 1, 1, 0]
+        lws = [1,1,1,1,1,1,1,1,1,1]
+        ecs = ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'k']
+        alphas = [1,1,1,1,1,1,1,1,0.7]
+        handles = []
+        for cands, colour, marker, zorder, size, fixedsize, lw, alpha, ec in \
+                zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws, alphas, ecs):
+            sigmas = []
+            dms = []
+            xdata = []
+            for c in cands:
+                sigmas.extend([h[1]/c.snr*c.sigma for h in c.hits])
+                dms.extend([h[0] for h in c.hits])
+                xval = c.p
+                xdata.extend([xval]*len(c.hits))
+            sigmas = Num.array(sigmas)
+            dms = Num.array(dms)
+            xdata = Num.array(xdata)
+
+            isort = sigmas.argsort()
+            sigmas = sigmas[isort]
+            dms = dms[isort]
+            xdata = xdata[isort]
+            xlabel = "Period (s)"
+            
+            # Plot the candidates
+            if fixedsize:
+                axlin.scatter(xdata, dms, clip_on=True, \
+                            s=size, lw=lw, edgecolors=ec, \
+                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
+                axlog.scatter(xdata, dms, clip_on=True, \
+                            s=size, lw=lw, edgecolors=ec, \
+                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
+            else:
+                axlin.scatter(xdata, dms, clip_on=True, \
+                            s=sigma_to_size(sigmas), \
+                            lw=lw, edgecolors=ec, c=colour, \
+                            marker=marker, alpha=alpha, zorder=zorder)
+                axlog.scatter(xdata, dms, clip_on=True, \
+                            s=sigma_to_size(sigmas), \
+                            lw=lw, edgecolors=ec, c=colour, \
+                            marker=marker, alpha=alpha, zorder=zorder)
+            handles.append(plt.scatter([], [], s=size, c=colour, \
+                                    marker=marker, alpha=0.7))
+
+        fig.legend(handles, labels, 'lower center', \
+                        prop={'size':'x-small'}, ncol=4)
+
+        plt.xlabel(xlabel) 
+        mindm = Num.min(dms)
+        maxdm = Num.max(dms)
+        dmrange = Num.ptp(dms)
+        axlog.set_ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+        axlog.set_ylabel(r"DM (pc cm$^{-3}$)") 
+        axlog.set_xscale('log', base=10)
+        axlog.set_xlim(0.0005, 1)
+        axlin.set_ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+        axlin.set_xscale('linear')
+        axlin.set_xlim(1, 20)
+
     def plot_goodcands(self, usefreqs=True):
         """Produce a plot highlighting good candidates as selected by
             the sifiting performed.
@@ -1138,6 +1232,9 @@ def sift_directory(dir, outbasenm):
     plt.savefig(outbasenm+".accelcands.fsummary.png")
     all_accel_cands.plot_summary(usefreqs=False)
     plt.savefig(outbasenm+".accelcands.psummary.png")
+    #all_accel_cands.fancyplot_goodcands()
+    #plt.savefig(outbasenm+".accelcands.fancygood.png")
+    plt.show()
 
 
 def main():
