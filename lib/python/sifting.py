@@ -786,41 +786,55 @@ class Candlist(object):
                 harmcand = self.cands[jj]
                 if zapj:  print "Hey!"
                 for factor in Num.arange(1.0, 17.0):
-                    if (Num.fabs(fundcand.f - harmcand.f*factor) < f_err or
-                        Num.fabs(fundcand.f - harmcand.f/factor) < f_err):
+                    if Num.fabs(fundcand.f - harmcand.f*factor) < f_err*factor:
+                        zapj = 1
+                        harmstr = "1/%dth" % factor
+                    elif Num.fabs(fundcand.f - harmcand.f/factor) < f_err/factor:
+                        zapj = 1
+                        if factor==2.0:
+                            harmstr = "%dnd" % factor
+                        else:
+                            harmstr = "%dth" % factor
+                    if zapj:
                         if verbosity >= 2:
                             print "Removing %s:%d (%.2f Hz) because it is " \
-                                    "a harmonic of %s:%d (%.2f Hz)" % \
+                                    "a harmonic (%s) of %s:%d (%.2f Hz)" % \
                                     (harmcand.filename, \
                                         harmcand.candnum, \
                                         harmcand.f, \
+                                        harmstr, \
                                         fundcand.filename, \
                                         fundcand.candnum, \
                                         fundcand.f)
-                        zapj = 1
                         break
                 # Check a few other common ratios
-                for factor in [3.0/2.0, 5.0/2.0,
-                               2.0/3.0, 4.0/3.0, 5.0/3.0,
-                               3.0/4.0, 5.0/4.0,
-                               2.0/5.0, 3.0/5.0, 4.0/5.0]:
-                    if Num.fabs(fundcand.f-harmcand.f*factor) < f_err:
+                for numer,denom in zip([3.0, 5.0, 2.0, 4.0, 5.0, \
+                                        3.0, 5.0, 2.0, 3.0, 4.0],
+                                       [2.0, 2.0, 3.0, 3.0, 3.0, \
+                                        4.0, 4.0, 5.0, 5.0, 5.0]):
+                    factor = numer/denom
+                    if Num.fabs(fundcand.f-harmcand.f*factor) < f_err*factor:
                         if verbosity >= 2:
                             print "Removing %s:%d (%.2f Hz) because it is " \
-                                    "a harmonic of %s:%d (%.2f Hz)" % \
+                                    "a harmonic (%d/%dth) of %s:%d (%.2f Hz)" % \
                                     (harmcand.filename, \
                                         harmcand.candnum, \
                                         harmcand.f, \
+                                        denom, \
+                                        numer, \
                                         fundcand.filename, \
                                         fundcand.candnum, \
                                         fundcand.f)
+                        harmstr = "%d/%dth" % (denom, numer)
                         zapj = 1
                         break
                 if zapj:
                     harmcand.note = "This candidate (P=%.4f s, DM=%.2f) is " \
-                                    "a harmonic of %s:%d (P=%.4f s, DM=%.2f)." % \
-                                (harmcand.p, harmcand.DM, fundcand.filename, \
-                                    fundcand.candnum, fundcand.p, fundcand.DM)
+                                    "a harmonic (%s) of %s:%d " \
+                                    "(P=%.4f s, DM=%.2f)." % \
+                                (harmcand.p, harmcand.DM, harmstr, \
+                                    fundcand.filename, fundcand.candnum, \
+                                    fundcand.p, fundcand.DM)
                     numremoved += 1
                     self.harmonic_cands.append(self.cands.pop(jj))
                     if verbosity >= 2:
