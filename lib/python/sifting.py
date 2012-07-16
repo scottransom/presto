@@ -5,6 +5,7 @@ import os
 import copy
 
 import numpy as Num
+import matplotlib
 import matplotlib.pyplot as plt
 
 from presto import candidate_sigma
@@ -199,7 +200,7 @@ class Candlist(object):
         import matplotlib.pyplot as plt
 
         fig = plt.figure(figsize=(10,8)) 
-        ax = plt.axes((0.08, 0.08, 0.87, 0.80)) 
+        ax = plt.axes((0.08, 0.18, 0.87, 0.80)) 
         plt.set_cmap("Spectral") 
         
         # Get all candidates and sort by sigma
@@ -214,19 +215,23 @@ class Candlist(object):
         else:
             xdata = Num.array([c.p for c in allcands])[isort]
             xlabel = "Period (s)"
-            xscale = "linear"
+            xscale = "loglin"
         dms = Num.array([c.DM for c in allcands])[isort]
         numharms = Num.array([c.numharm for c in allcands])[isort]
 
         # Plot the all candidates 
-        plt.scatter(xdata, dms, s=sigma_to_size(sigmas), c=Num.log2(numharms), \
+        scatt = plt.scatter(xdata, dms, s=sigma_to_size(sigmas), \
+                                c=Num.log2(numharms), \
                                 marker='o', alpha=0.7, zorder=-1) 
   
         # Add colorbar 
-        fmtr = matplotlib.ticker.FuncFormatter(lambda x, pos: "%d" % 2**x) 
-        cb = plt.colorbar(ticks=(0,1,2,3,4), format=fmtr) 
+        fmtr = matplotlib.ticker.FuncFormatter(lambda x, pos: "%d" % 2**x)
+        cax = plt.axes((0.18, 0.06, 0.67, 0.035))
+        cb = plt.colorbar(scatt, cax=cax, ticks=(0,1,2,3,4), format=fmtr, \
+                            orientation="horizontal")
         cb.set_label("Num harmonics summed") 
-         
+        
+        plt.axes(ax) # Set scatter plot's axes as current
         plt.xscale(xscale)
         plt.xlabel(xlabel)
         mindm = Num.min(dms)
@@ -234,6 +239,16 @@ class Candlist(object):
         dmrange = Num.ptp(dms)
         plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
+        if not usefreqs:
+            plt.gca().xaxis.set_ticks(Num.concatenate((\
+                                        Num.logspace(-4,0,4, endpoint=False), \
+                                        Num.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
+                        r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
+                        "9", "11", "13", "15"])
+            plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
+                        min(long_period+0.5, max(xdata)+0.5))
         return fig
 
     def plot_rejects(self, usefreqs=True):
@@ -280,9 +295,9 @@ class Candlist(object):
                 xlabel = "Freq (Hz)"
                 xscale = "log"
             else:
-                xdata = Num.array([c.p for c in allcands])[isort]
+                xdata = Num.array([c.p for c in cands])[isort]
                 xlabel = "Period (s)"
-                xscale = "linear"
+                xscale = "loglin"
             dms = Num.array([c.DM for c in cands])[isort]
             
             # Plot the candidates
@@ -300,107 +315,22 @@ class Candlist(object):
 
         plt.xscale(xscale) 
         plt.xlabel(xlabel)
-        plt.xlim(0.05, 10000)
         mindm = Num.min(dms)
         maxdm = Num.max(dms)
         dmrange = Num.ptp(dms)
         plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
+        if not usefreqs:
+            plt.gca().xaxis.set_ticks(Num.concatenate((\
+                                        Num.logspace(-4,0,4, endpoint=False), \
+                                        Num.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
+                        r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
+                        "9", "11", "13", "15"])
+            plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
+                        min(long_period+0.5, max(xdata)+0.5))
         return fig
-
-    def fancyplot_goodcands(self):
-        """Produce a fancier plot highlighting good candidaates as 
-            selected by the sifting performed.
-
-            Inputs:
-                None
-
-            Outputs:
-                fig: A matplotlib figure instance.
-        """
-        import matplotlib
-        import matplotlib.pyplot as plt
-
-        fig = plt.figure(figsize=(10,8)) 
-        axlog = plt.axes((0.08, 0.18, 0.435, 0.80)) 
-        axlin = plt.axes((0.515, 0.18, 0.435, 0.80)) 
-
-        axlog.spines['right'].set_visible(False)
-        axlin.spines['left'].set_linestyle('dashed')
-
-        # Plot candidates
-        candlists = [self.badcands_knownbirds, self.badcands_longperiod, \
-                     self.badcands_shortperiod, self.badcands_threshold, \
-                     self.badcands_harmpowcutoff, self.badcands_rogueharmpow, \
-                     self.harmonic_cands, self.dmproblem_cands, \
-                     self.cands]
-        labels = ['Known birdires', 'Long period', 'Short period', \
-                    'Threshold', 'Harm power cutoff', 'Rogue harm power', \
-                    'Harmonic cand', 'DM problem', 'Good cands']
-        colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
-                    '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r']
-        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o']
-        zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0]
-        sizes = [10, 10, 10, 10, 10, 10, 10, 10, 50]
-        fixedsizes = [1, 1, 1, 1, 1, 1, 1, 1, 0]
-        lws = [1,1,1,1,1,1,1,1,1,1]
-        ecs = ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'k']
-        alphas = [1,1,1,1,1,1,1,1,0.7]
-        handles = []
-        for cands, colour, marker, zorder, size, fixedsize, lw, alpha, ec in \
-                zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws, alphas, ecs):
-            sigmas = []
-            dms = []
-            xdata = []
-            for c in cands:
-                sigmas.extend([h[1]/c.snr*c.sigma for h in c.hits])
-                dms.extend([h[0] for h in c.hits])
-                xval = c.p
-                xdata.extend([xval]*len(c.hits))
-            sigmas = Num.array(sigmas)
-            dms = Num.array(dms)
-            xdata = Num.array(xdata)
-
-            isort = sigmas.argsort()
-            sigmas = sigmas[isort]
-            dms = dms[isort]
-            xdata = xdata[isort]
-            xlabel = "Period (s)"
-            
-            # Plot the candidates
-            if fixedsize:
-                axlin.scatter(xdata, dms, clip_on=True, \
-                            s=size, lw=lw, edgecolors=ec, \
-                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
-                axlog.scatter(xdata, dms, clip_on=True, \
-                            s=size, lw=lw, edgecolors=ec, \
-                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
-            else:
-                axlin.scatter(xdata, dms, clip_on=True, \
-                            s=sigma_to_size(sigmas), \
-                            lw=lw, edgecolors=ec, c=colour, \
-                            marker=marker, alpha=alpha, zorder=zorder)
-                axlog.scatter(xdata, dms, clip_on=True, \
-                            s=sigma_to_size(sigmas), \
-                            lw=lw, edgecolors=ec, c=colour, \
-                            marker=marker, alpha=alpha, zorder=zorder)
-            handles.append(plt.scatter([], [], s=size, c=colour, \
-                                    marker=marker, alpha=0.7))
-
-        fig.legend(handles, labels, 'lower center', \
-                        prop={'size':'x-small'}, ncol=4)
-
-        plt.xlabel(xlabel) 
-        mindm = Num.min(dms)
-        maxdm = Num.max(dms)
-        dmrange = Num.ptp(dms)
-        axlog.set_ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
-        axlog.set_ylabel(r"DM (pc cm$^{-3}$)") 
-        axlog.set_xscale('log', base=10)
-        axlog.set_xlim(0.0005, 1)
-        axlin.set_ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
-        axlin.set_xscale('linear')
-        axlin.set_xlim(1, 20)
 
     def plot_goodcands(self, usefreqs=True):
         """Produce a plot highlighting good candidates as selected by
@@ -464,7 +394,7 @@ class Candlist(object):
                 xscale = "log"
             else:
                 xlabel = "Period (s)"
-                xscale = "linear"
+                xscale = "loglin"
             
             # Plot the candidates
             if fixedsize:
@@ -481,12 +411,21 @@ class Candlist(object):
 
         plt.xscale(xscale) 
         plt.xlabel(xlabel) 
-        plt.xlim(0.05, 10000)
         mindm = Num.min(dms)
         maxdm = Num.max(dms)
         dmrange = Num.ptp(dms)
         plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
-        plt.ylabel(r"DM (pc cm$^{-3}$)") 
+        plt.ylabel(r"DM (pc cm$^{-3}$)")
+        if not usefreqs:
+            plt.gca().xaxis.set_ticks(Num.concatenate((\
+                                        Num.logspace(-4,0,4, endpoint=False), \
+                                        Num.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
+                        r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
+                        "9", "11", "13", "15"])
+            plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
+                        min(long_period+0.5, max(xdata)+0.5))
         return fig
 
     def get_all_cands(self):
@@ -1238,18 +1177,78 @@ def sift_directory(dir, outbasenm):
         all_accel_cands.to_file(outbasenm+".accelcands")
     all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
     all_accel_cands.print_cand_summary()
-    all_accel_cands.plot_rejects()
+    all_accel_cands.plot_rejects(usefreqs=False)
     plt.savefig(outbasenm+".accelcands.rejects.png")
-    all_accel_cands.plot_goodcands()
+    all_accel_cands.plot_goodcands(usefreqs=False)
     plt.savefig(outbasenm+".accelcands.goodcands.png")
-    all_accel_cands.plot_summary()
-    plt.savefig(outbasenm+".accelcands.fsummary.png")
     all_accel_cands.plot_summary(usefreqs=False)
-    plt.savefig(outbasenm+".accelcands.psummary.png")
-    #all_accel_cands.fancyplot_goodcands()
-    #plt.savefig(outbasenm+".accelcands.fancygood.png")
+    plt.savefig(outbasenm+".accelcands.summary.png")
     plt.show()
 
+
+def LogLinScaleFactory(b):
+    class LogLinScale(matplotlib.scale.ScaleBase):
+        name = 'loglin'
+
+        def __init__(self, axis, **kwargs):
+            matplotlib.scale.ScaleBase.__init__(self)
+            self.thresh = kwargs.pop("thresh", 1e-5)
+            if self.thresh <= 0.0:
+                raise ValueError("thresh must be larger than 0")
+
+        def get_transform(self):
+            return self.LogLinTransform(self.thresh)
+
+        def set_default_locators_and_formatters(self, axis):
+            pass
+
+        def limit_range_for_scale(self, vmin, vmax, minpos):
+            return max(vmin, self.thresh), vmax
+
+        class LogLinTransform(matplotlib.transforms.Transform):
+            input_dims = 1
+            output_dims = 1
+            is_separable = True
+            brk = b
+
+            def __init__(self, thresh):
+                matplotlib.transforms.Transform.__init__(self)
+                self.thresh = thresh
+
+            def transform(self, a):
+                aa = Num.ma.masked_where(a<self.thresh, a)
+                if aa.mask.any():
+                    aa[a<self.brk] = Num.ma.log10(a[a<self.brk]) - \
+                                        Num.log10(self.brk)+self.brk
+                else:
+                    aa[a<self.brk] = Num.log10(a[a<self.brk]) - \
+                                        Num.log10(self.brk)+self.brk
+                return aa
+
+            def inverted(self):
+                return LogLinScale.InvertedLogLinTransform(self.thresh)
+
+        class InvertedLogLinTransform(matplotlib.transforms.Transform):
+            input_dims = 1
+            output_dims = 1
+            is_separable = True
+            brk = b
+
+            def __init__(self, thresh):
+                matplotlib.transforms.Transform.__init__(self)
+                self.thresh = thresh
+
+            def transform(self, a):
+                aa = a.copy()
+                aa[a<self.brk] = Num.ma.power(10, a[a<self.brk]-self.brk + \
+                                                Num.log10(self.brk))
+                return aa
+
+            def inverted(self):
+                return LogLinScale.LogLinTransform(self.thresh)
+    return LogLinScale
+
+matplotlib.scale.register_scale(LogLinScaleFactory(1))
 
 def main():
     # Sift candidates in PWD
