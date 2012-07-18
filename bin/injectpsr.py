@@ -1,4 +1,4 @@
-#/usr/bin/env python
+#!/usr/bin/env python
 
 """Inject a fake pulsar into real data, creating
 a filterbank file.
