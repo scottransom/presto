@@ -135,7 +135,9 @@ def vonmises_factory(amp,shape,loc):
     # to make sure the lambda uses amp,shape,loc from a local
     # scope. The values in a lambda function are stored by reference
     # and only looked up dynamically when the function is called.
-    return lambda ph: amp*np.exp(shape*(np.cos(2*np.pi*(ph-loc))-1))
+    def vm(ph): 
+        return amp*np.exp(shape*(np.cos(2*np.pi*(ph-loc))-1))
+    return vm
 
 
 def create_vonmises_components(vonmises_strs):
@@ -162,6 +164,67 @@ def create_vonmises_components(vonmises_strs):
     return vonmises_comps
 
 
+def inject(fn, outfn, prof, period, dm):
+    print "Injecting pulsar signal into: %s" % fn
+    fil = filterbank.FilterbankFile(fn, read_only=True)
+    nbin = int(np.round(period/fil.tsamp)) # Number of bins 
+                                                   # across the profile
+    # Because of manipulations performed on the arrays we need
+    # to flip the delays to get a proper DM sweep.
+    delays = psr_utils.delay_from_DM(dm, fil.frequencies)[::-1]
+    delays_phs = delays/period
+    delays_phs -= delays_phs[np.argmax(fil.frequencies)]
+    delays_phs %= 1
+    
+    # for ii, (freq, delay) in enumerate(zip(fil.frequencies, delays_phs)):
+    #     print "Channel %d: %g MHz, %g (phase)" % (ii, freq, delay)
+   
+    # Copy the input file to the output file name and modify the output
+    # file in-place
+    shutil.copy(fn, outfn) 
+
+    # Read the first second of data to get the global scaling to use
+    outfil = filterbank.FilterbankFile(outfn, read_only=False)
+    onesec = outfil.get_timeslice(0, 1).copy()
+    onesec_nspec = onesec.shape[0]
+    phases = np.tile(np.arange(onesec_nspec)*fil.tsamp/period % 1, \
+                        (fil.nchans,1)).T + delays_phs
+    onesec += prof(phases)
+    minimum = np.min(onesec)
+    median = np.median(onesec)
+    # Set median to 1/3 of dynamic range
+    global_scale = (256.0/3.0) / median
+    del onesec
+    
+    # Start an output file
+    print "Creating out file: %s" % outfn
+    nprofs = outfil.nspec/nbin
+    remainder = outfil.nspec % nbin
+    oldprogress = -1
+    for iprof in np.arange(nprofs):
+        spectra = outfil.get_spectra(iprof*nbin, (iprof+1)*nbin)
+        phases = np.tile(np.arange(iprof*nbin, (iprof+1)*nbin)*fil.tsamp/period % 1, (fil.nchans,1)).T + delays_phs
+        toinject = prof(phases)
+        outfil.spectra[iprof*nbin:(iprof+1)*nbin] = \
+                np.clip((spectra+toinject-minimum)*global_scale, 0, 256)
+        outfil.spectra.flush()
+        progress = int(100.0*((iprof+1)*nbin)/outfil.nspec)
+        if progress > oldprogress: 
+            sys.stdout.write(" %3.0f %%\r" % progress)
+            sys.stdout.flush()
+            oldprogress = progress
+    # Read all remaining spectra
+    if remainder:
+        spectra = outfil.get_spectra(-remainder, None)
+        phases = np.tile(np.arange(nprofs*nbin, nprofs*nbin+remainder)*fil.tsamp/period % 1, (fil.nchans,1)).T + delays_phs
+        toinject = prof(phases)
+        outfil.spectra[-remainder:] = \
+                np.clip((spectra+toinject-minimum)*global_scale, 0, 256)
+        outfil.spectra.flush()
+    sys.stdout.write("Done   \n")
+    sys.stdout.flush()
+    
+
 def main():
     comps = create_vonmises_components(options.vonmises)
     prof = MultiComponentProfile(comps, scale=options.scale)
@@ -173,65 +236,8 @@ def main():
 
     print "%d input files provided" % len(args)
     for fn in args:
-        print "Injecting pulsar signal into: %s" % fn
-        fil = filterbank.FilterbankFile(fn, read_only=True)
-        nbin = int(np.round(options.period/fil.tsamp)) # Number of bins 
-                                                       # across the profile
-        # Because of manipulations performed on the arrays we need
-        # to flip the delays to get a proper DM sweep.
-        delays = psr_utils.delay_from_DM(options.dm, fil.frequencies)[::-1]
-        delays_phs = delays/options.period
-        delays_phs -= delays_phs[np.argmax(fil.frequencies)]
-        delays_phs %= 1
-        
-        # for ii, (freq, delay) in enumerate(zip(fil.frequencies, delays_phs)):
-        #     print "Channel %d: %g MHz, %g (phase)" % (ii, freq, delay)
-   
-        # Copy the input file to the output file name and modify the output
-        # file in-place
         outfn = options.outname % fil.header 
-        shutil.copy(fn, outfn) 
-
-        # Read the first second of data to get the global scaling to use
-        outfil = filterbank.FilterbankFile(outfn, read_only=False)
-        onesec = outfil.get_timeslice(0, 1).copy()
-        onesec_nspec = onesec.shape[0]
-        phases = np.tile(np.arange(onesec_nspec)*fil.tsamp/options.period % 1, \
-                            (fil.nchans,1)).T + delays_phs
-        onesec += prof(phases)
-        minimum = np.min(onesec)
-        median = np.median(onesec)
-        # Set median to 1/3 of dynamic range
-        global_scale = (256.0/3.0) / median
-        del onesec
-        
-        # Start an output file
-        print "Creating out file: %s" % outfn
-        nprofs = outfil.nspec/nbin
-        remainder = outfil.nspec % nbin
-        oldprogress = -1
-        for iprof in np.arange(nprofs):
-            spectra = outfil.get_spectra(iprof*nbin, (iprof+1)*nbin)
-            phases = np.tile(np.arange(iprof*nbin, (iprof+1)*nbin)*fil.tsamp/options.period % 1, (fil.nchans,1)).T + delays_phs
-            toinject = prof(phases)
-            outfil.spectra[iprof*nbin:(iprof+1)*nbin] = \
-                    np.clip((spectra+toinject-minimum)*global_scale, 0, 256)
-            outfil.spectra.flush()
-            progress = int(100.0*((iprof+1)*nbin)/outfil.nspec)
-            if progress > oldprogress: 
-                sys.stdout.write(" %3.0f %%\r" % progress)
-                sys.stdout.flush()
-                oldprogress = progress
-        # Read all remaining spectra
-        if remainder:
-            spectra = outfil.get_spectra(-remainder, None)
-            phases = np.tile(np.arange(nprofs*nbin, nprofs*nbin+remainder)*fil.tsamp/options.period % 1, (fil.nchans,1)).T + delays_phs
-            toinject = prof(phases)
-            outfil.spectra[-remainder:] = \
-                    np.clip((spectra+toinject-minimum)*global_scale, 0, 256)
-            outfil.spectra.flush()
-        sys.stdout.write("Done   \n")
-        sys.stdout.flush()
+        inject(fn, outfn, prof, options.period, options.dm)
 
 
 def parse_model_file(modelfn):
