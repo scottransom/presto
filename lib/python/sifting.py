@@ -479,7 +479,7 @@ class Candlist(object):
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p < short_period):
-                cand.note = "Period is too short (%g ms > %g ms)" % \
+                cand.note = "Period is too short (%g ms < %g ms)" % \
                             (cand.p*1000, short_period*1000)
                 self.badcands_shortperiod.append(self.cands.pop(ii))
 
