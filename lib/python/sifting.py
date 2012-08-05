@@ -249,6 +249,7 @@ class Candlist(object):
                         "9", "11", "13", "15"])
             plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
                         min(long_period+0.5, max(xdata)+0.5))
+        ax.format_coord = lambda x,y: "x=%g, y=%g" % (x,y)
         return fig
 
     def plot_rejects(self, usefreqs=True):
