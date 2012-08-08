@@ -48,7 +48,6 @@ int read_subband_rawblocks(FILE * infiles[], int numfiles, short *subbanddata,
                            int numsamples, int *padding);
 void get_subband(int subbandnum, float chandat[], short srawdata[], int numsamples);
 extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
-extern void read_offsets(float **loptr, float **optr, int numpts, int numchan);
 
 /* The main program */
 
@@ -62,8 +61,8 @@ int main(int argc, char *argv[])
    float **dataavg = NULL, **datastd = NULL, **datapow = NULL, *padvals;
    float *chandata = NULL, powavg, powstd, powmax;
    float inttime, norm, fracterror = RFI_FRACTERROR;
-   float *offsets, *nextoffsets;
-   unsigned char *rawdata = NULL, **bytemask = NULL;
+   float *rawdata = NULL;
+   unsigned char **bytemask = NULL;
    short *srawdata = NULL;
    char *outfilenm, *statsfilenm, *maskfilenm;
    char *bytemaskfilenm, *rfifilenm;
@@ -366,14 +365,13 @@ int main(int argc, char *argv[])
          writeinf(&idata);
 
       } else if (cmd->filterbankP) {
-         int headerlen;
          sigprocfb fb;
 
          /* Set-up for SIGPROC filterbank-style data */
 
          /* Read the first header file and generate an infofile from it */
          rewind(infiles[0]);
-         headerlen = read_filterbank_header(&fb, infiles[0]);
+         read_filterbank_header(&fb, infiles[0]);
          sigprocfb_to_inf(&fb, &idata);
          rewind(infiles[0]);
          printf("SIGPROC filterbank input file information:\n");
@@ -420,11 +418,11 @@ int main(int argc, char *argv[])
       /* Allocate our workarrays */
 
       if (cmd->pkmbP)
-         rawdata = gen_bvect(DATLEN * blocksperint);
+         rawdata = gen_fvect(DATLEN * blocksperint);
       else if (cmd->bcpmP || cmd->spigotP || cmd->wappP || cmd->gmrtP
                || cmd->filterbankP || cmd->psrfitsP)
          /* This allocates extra incase both IFs were stored */
-         rawdata = gen_bvect(idata.num_chan * ptsperblock * blocksperint);
+         rawdata = gen_fvect(idata.num_chan * ptsperblock * blocksperint);
       else if (insubs)
          srawdata = gen_svect(idata.num_chan * ptsperblock * blocksperint);
       dataavg = gen_fmatrix(numint, numchan);
@@ -432,6 +430,7 @@ int main(int argc, char *argv[])
       datapow = gen_fmatrix(numint, numchan);
       chandata = gen_fvect(ptsperint);
       bytemask = gen_bmatrix(numint, numchan);
+printf("numint = %d  numchan = %d\n", numint, numchan);      
       for (ii = 0; ii < numint; ii++)
          for (jj = 0; jj < numchan; jj++)
             bytemask[ii][jj] = GOODDATA;
@@ -449,9 +448,6 @@ int main(int argc, char *argv[])
       printf("Massaging the data ...\n\n");
       printf("Amount Complete = %3d%%", oldper);
       fflush(stdout);
-
-      /* Prep the offset file if required */
-      read_offsets(&offsets, &nextoffsets, ptsperint, numchan);
 
       for (ii = 0; ii < numint; ii++) { /* Loop over the intervals */
          newper = (int) ((float) ii / numint * 100.0 + 0.5);
@@ -491,9 +487,6 @@ int main(int argc, char *argv[])
             for (jj = 0; jj < numchan; jj++)
                bytemask[ii][jj] |= PADDING;
 
-         /* Read the offset file if required */
-         read_offsets(&offsets, &nextoffsets, ptsperint, numchan);
-
          for (jj = 0; jj < numchan; jj++) {     /* Loop over the channels */
 
             if (cmd->pkmbP)
@@ -512,11 +505,6 @@ int main(int argc, char *argv[])
                get_filterbank_channel(jj, chandata, rawdata, blocksperint);
             else if (insubs)
                get_subband(jj, chandata, srawdata, blocksperint);
-
-            /* Adjust the channels based on the offsets */
-            for (kk = 0; kk < ptsperint; kk++) {
-                chandata[kk] -= offsets[kk];
-            }
 
             /* Calculate the averages and standard deviations */
             /* for each point in time.                        */

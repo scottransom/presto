@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
    double f = 0.0, fd = 0.0, fdd = 0.0, foldf = 0.0, foldfd = 0.0, foldfdd = 0.0;
    double recdt = 0.0, barydispdt = 0.0, N = 0.0, T = 0.0, proftime, startTday = 0.0;
    double polyco_phase = 0.0, polyco_phase0 = 0.0;
-   double *obsf = NULL, *dispdts = NULL, *parttimes = NULL, *Ep = NULL, *tp = NULL;
+   double *obsf = NULL, *parttimes = NULL, *Ep = NULL, *tp = NULL;
    double *barytimes = NULL, *topotimes = NULL, *bestprof, dtmp;
    double *buffers, *phasesadded, *events = NULL, orig_foldf = 0.0;
    char *plotfilenm, *outfilenm, *rootnm, *root, *suffix;
@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
    int info, ptsperrec = 1, flags = 1, padding = 0, arrayoffset = 0, useshorts = 0;
    int *maskchans = NULL, nummasked = 0, polyco_index = 0, insubs = 0, good_padvals =
        0;
+   int *idispdts = NULL;
    long ii = 0, jj, kk, worklen = 0, numread = 0, reads_per_part = 0;
    long totnumfolded = 0, lorec = 0, hirec = 0, numbinpoints = 0;
    unsigned long numrec = 0;
@@ -1290,14 +1291,17 @@ int main(int argc, char *argv[])
             for (ii = 0; ii < numchan; ii++)
                obsf[ii] = doppler(obsf[ii], search.avgvoverc);
          }
-         dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
-                                         idata.freq, idata.chan_wid,
-                                         search.avgvoverc);
-
-         /* Convert the delays in seconds to delays in bins */
-
-         for (ii = 0; ii < numchan; ii++)
-            dispdts[ii] /= search.dt;
+         {
+             double *dispdts;
+             dispdts = subband_search_delays(numchan, cmd->nsub, cmd->dm,
+                                             idata.freq, idata.chan_wid,
+                                             search.avgvoverc);
+             idispdts = gen_ivect(numchan);
+             /* Convert the delays in seconds to delays in bins */
+             for (ii = 0; ii < numchan; ii++)
+                 idispdts[ii] = (int) (dispdts[ii] / search.dt + 0.5);
+             vect_free(dispdts);
+         }
 
          if (cmd->nsub > 1 && (RAWDATA || insubs)) {
             int numdmtrials;
@@ -1337,30 +1341,30 @@ int main(int argc, char *argv[])
 
             if (cmd->pkmbP)
                numread = read_PKMB_subbands(infiles, numfiles, data,
-                                            dispdts, cmd->nsub, 1, &padding,
+                                            idispdts, cmd->nsub, 1, &padding,
                                             maskchans, &nummasked, &obsmask);
             else if (cmd->bcpmP)
                numread = read_BPP_subbands(infiles, numfiles, data,
-                                           dispdts, cmd->nsub, 1, &padding,
+                                           idispdts, cmd->nsub, 1, &padding,
                                            maskchans, &nummasked, &obsmask, ifs);
             else if (cmd->spigotP)
                numread = read_SPIGOT_subbands(infiles, numfiles, data,
-                                              dispdts, cmd->nsub, 1, &padding,
+                                              idispdts, cmd->nsub, 1, &padding,
                                               maskchans, &nummasked, &obsmask, ifs);
             else if (cmd->wappP)
                numread = read_WAPP_subbands(infiles, numfiles, data,
-                                            dispdts, cmd->nsub, 1, &padding,
+                                            idispdts, cmd->nsub, 1, &padding,
                                             maskchans, &nummasked, &obsmask, ifs);
             else if (cmd->gmrtP)
                numread = read_GMRT_subbands(infiles, numfiles, data,
-                                            dispdts, cmd->nsub, 1, &padding,
+                                            idispdts, cmd->nsub, 1, &padding,
                                             maskchans, &nummasked, &obsmask);
             else if (cmd->filterbankP)
                numread = read_filterbank_subbands(infiles, numfiles, data,
-                                                  dispdts, cmd->nsub, 1, &padding,
+                                                  idispdts, cmd->nsub, 1, &padding,
                                                   maskchans, &nummasked, &obsmask);
             else if (cmd->psrfitsP)
-               numread = read_PSRFITS_subbands(data, dispdts, cmd->nsub, 1, &padding,
+               numread = read_PSRFITS_subbands(data, idispdts, cmd->nsub, 1, &padding,
                                                maskchans, &nummasked, &obsmask);
             else if (insubs)
                numread = read_subbands(infiles, numfiles, data, recdt,
@@ -1868,7 +1872,7 @@ int main(int argc, char *argv[])
    }
    if (!strcmp(idata.band, "Radio")) {
       vect_free(obsf);
-      vect_free(dispdts);
+      vect_free(idispdts);
    }
    printf("Done.\n\n");
    return (0);

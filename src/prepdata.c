@@ -49,12 +49,12 @@ int main(int argc, char *argv[])
    char obs[3], ephem[10], *datafilenm, *outinfonm, *root, *suffix;
    char rastring[50], decstring[50];
    int numfiles, numchan = 1, newper = 0, oldper = 0, nummasked = 0, useshorts = 0;
-   int slen, numadded = 0, numremoved = 0, padding = 0, *maskchans = NULL, offset =
-       0;
-   long ii, numbarypts = 0, worklen = 65536;
+   int numadded = 0, numremoved = 0, padding = 0, *maskchans = NULL, offset = 0;
+   long slen, ii, numbarypts = 0, worklen = 65536;
    long numread = 0, numtowrite = 0, totwrote = 0, datawrote = 0;
    long padwrote = 0, padtowrite = 0, statnum = 0;
    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
+   int *idispdt;
    IFs ifs = SUMIFS;
    infodata idata;
    Cmdline *cmd;
@@ -398,7 +398,8 @@ int main(int argc, char *argv[])
          tobsf[ii] = tobsf[0] + ii * tdf;
 
       /* The dispersion delays (in time bins) */
-      dispdt = gen_dvect(numchan);
+      dispdt = gen_dvect(numchan);  // full float bins
+      idispdt = gen_ivect(numchan); // nearest integer bins
 
       if (cmd->nobaryP) {
 
@@ -409,15 +410,19 @@ int main(int argc, char *argv[])
          /* The highest frequency channel gets no delay                 */
          /* All other delays are positive fractions of bin length (dt)  */
          dtmp = dispdt[numchan - 1];
-         for (ii = 0; ii < numchan; ii++)
+         for (ii = 0; ii < numchan; ii++) {
             dispdt[ii] = (dispdt[ii] - dtmp) / idata.dt;
+            idispdt[ii] = (int) (dispdt[ii] + 0.5);
+         }
          worklen *= ((int) (fabs(dispdt[0])) / worklen) + 1;
       }
 
    } else {                     /* For unknown radio raw data (Why is this here?) */
       tobsf = gen_dvect(numchan);
       dispdt = gen_dvect(numchan);
+      idispdt = gen_ivect(numchan);
       dispdt[0] = 0.0;
+      idispdt[0] = 0;
       if (!strcmp(idata.band, "Radio")) {
          tobsf[0] = idata.freq + (idata.num_chan - 1) * idata.chan_wid;
          cmd->dm = idata.dm;
@@ -460,7 +465,7 @@ int main(int argc, char *argv[])
                                 dispdt, &padding, maskchans, &nummasked, &obsmask);
          else if (cmd->filterbankP)
             numread = read_filterbank(infiles, numfiles, outdata, worklen,
-                                      dispdt, &padding, maskchans, &nummasked,
+                                      idispdt, &padding, maskchans, &nummasked,
                                       &obsmask);
          else
             numread = read_floats(infiles[0], outdata, worklen, numchan);
@@ -556,8 +561,10 @@ int main(int argc, char *argv[])
       /* The highest frequency channel gets no delay                   */
       /* All other delays are positive fractions of bin length (dt)    */
       barydispdt = dispdt[numchan - 1];
-      for (ii = 0; ii < numchan; ii++)
+      for (ii = 0; ii < numchan; ii++) {
          dispdt[ii] = (dispdt[ii] - barydispdt) / idata.dt;
+         idispdt[ii] = (int) (dispdt[ii] + 0.5);
+      }
       if (RAWDATA)
          worklen *= ((int) (dispdt[0]) / worklen) + 1;
 
@@ -651,7 +658,7 @@ int main(int argc, char *argv[])
                                 dispdt, &padding, maskchans, &nummasked, &obsmask);
          else if (cmd->filterbankP)
             numread = read_filterbank(infiles, numfiles, outdata, worklen,
-                                      dispdt, &padding, maskchans, &nummasked,
+                                      idispdt, &padding, maskchans, &nummasked,
                                       &obsmask);
          else if (useshorts)
             numread = read_shorts(infiles[0], outdata, worklen, numchan);
@@ -902,6 +909,7 @@ int main(int argc, char *argv[])
    }
    vect_free(tobsf);
    vect_free(dispdt);
+   vect_free(idispdt);
    free(outinfonm);
    free(datafilenm);
    if (!cmd->nobaryP)

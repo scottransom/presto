@@ -71,58 +71,9 @@ double *dedisp_delays(int numchan, double dm, double lofreq,
    return delays;
 }
 
-void read_offsets(float **loptr, float **optr, int numpts, int numchan)
-{
-    static int firsttime = 1, useoffsets = 0;
-    static float *offsets1, *offsets2, *tempzz;
-    static FILE *offsetfile=NULL; //, *bandpassfile;
-    int ii;
-    
-    if (firsttime) {
-        char *envval = getenv("OFFSETFILE");
-        if (envval != NULL) {
-            offsetfile = chkfopen(envval, "r");
-            if (offsetfile) {
-                printf("\nUsing offsets from the file '%s'.\n", envval);
-                useoffsets = 1;
-            }
-        }
-        /* Read the bandpass file */
-        //*bandpass = gen_fvect(numchan);
-        //printf("Reading 'bandpass.dat'\n");
-        //bandpassfile = chkfopen("bandpass.dat", "r");
-        //chkfread(*bandpass, sizeof(float), numchan, bandpassfile);
-        //fclose(bandpassfile);
-        offsets1 = gen_fvect(numpts);
-        offsets2 = gen_fvect(numpts);
-        *loptr = offsets2;  // Start "backwards" since we'll switch them below
-        *optr  = offsets1;
-        if (useoffsets) {  // Read the data into offsets1
-            chkfread(*optr, sizeof(float), numpts, offsetfile);
-            for (ii = 0 ; ii < numpts ; ii++)
-                offsets1[ii] *= 1.0/(float)numchan;
-        } else { // Just fill the arrays with zeros 
-            for (ii = 0 ; ii < numpts ; ii++) {
-                offsets1[ii] = 0.0;
-                offsets2[ii] = 0.0;
-            }
-        }
-        firsttime = 0;
-        return;
-    }
-    if (useoffsets) {
-        SWAP(*loptr, *optr);  // Swap the buffer pointers
-        // Read the offsets and scale by the number of channels
-        chkfread(*optr, sizeof(float), numpts, offsetfile);
-        for (ii = 0 ; ii < numpts ; ii++)
-            (*optr)[ii] *= 1.0/(float)numchan;
-    }
-}
-
-
 
 void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
-            int numchan, double *dispdelays, float *result)
+            int numchan, double *delays, float *result)
 /* De-disperse a stretch of data with numpts * numchan points. */
 /* The delays (in bins) are in dispdelays for each channel.    */
 /* The result is returned in result.  The input data and       */
@@ -130,45 +81,23 @@ void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
 /* Input data are ordered in time, with the channels stored    */
 /* together at each time point.                                */
 {
-    static int approx_mean, firsttime = 1, *delays;
-    static float *lastoffsets, *offsets; //, *bandpass;
     int ii, jj, kk, ll;
 
-    if (firsttime) {
-        delays = gen_ivect(numchan);
-        /* Prep offsets (if required) to subtract from the raw values */
-        read_offsets(&lastoffsets, &offsets, numpts, numchan);
-        for (ii = 0; ii < numchan; ii++) {
-            if (dispdelays[ii] < 0.0) {
-                printf("\ndispdelays[%d] = %f is < 0.0 in dedisp().\n\n",
-                       ii, dispdelays[ii]);
-                exit(-1);
-            }
-            delays[ii] = (int) (dispdelays[ii] + 0.5);
-        }
-        approx_mean = 0;
-        firsttime = 0;
-    }
-    
     /* Initialize the result array */
     for (ii = 0; ii < numpts; ii++)
-        result[ii] = approx_mean;
+        result[ii] = 0.0;
     
-    /* Read offsets (if required) to subtract from the raw values */
-    read_offsets(&lastoffsets, &offsets, numpts, numchan);
-
     /* De-disperse */
     for (ii = 0; ii < numchan; ii++) {
         jj = ii + delays[ii] * numchan;
         for (kk = 0; kk < numpts - delays[ii]; kk++, jj += numchan)
-            result[kk] += (lastdata[jj] - lastoffsets[delays[ii]+kk]);
-        //result[kk] += (lastdata[jj] - lastoffsets[delays[ii]+kk]*bandpass[ii]);
+            result[kk] += lastdata[jj];
         jj = ii;
         for (ll = 0 ; kk < numpts; kk++, jj += numchan, ll++)
-            result[kk] += (data[jj] - offsets[ll]);
-        //result[kk] += (data[jj] - offsets[ll]*bandpass[ii]);
+            result[kk] += data[jj];
     }
 }
+
 
 double *subband_delays(int numchan, int numsubbands, double dm,
                        double lofreq, double chanwidth, double voverc)
@@ -232,45 +161,24 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 }
 
 
-void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
-                     int numpts, int numchan, double *dispdelays,
-                     int numsubbands, float *result)
-/* De-disperse a stretch of data with numpts * numchan points    */
-/* into numsubbands subbands.  Each time point for each subband  */
-/* is a float in the result array.  The result array order is    */
-/* subbands of increasing frequency together at each time pt.    */
-/* The delays (in bins) are in dispdelays for each channel.      */
-/* The input data and dispdelays are always in ascending         */
-/* frequency order.  Input data are ordered in time, with the    */
-/* channels stored together at each time point.                  */
+void dedisp_subbands(float *data, float *lastdata,
+                     int numpts, int numchan, 
+                     int *delays, int numsubbands, float *result)
+// De-disperse a stretch of data with numpts * numchan points into
+// numsubbands subbands.  Each time point for each subband is a float
+// in the result array.  The result array order is subbands of
+// increasing frequency together at each time pt.  The delays (in
+// bins) are in delays for each channel.  The input data and
+// dispdelays are always in ascending frequency order.  Input data are
+// ordered in time, with the channels stored together at each time
+// point.
 {
-    static int approx_mean, firsttime = 1, *delays, chan_per_subband;
-    static float *lastoffsets, *offsets; //, *bandpass;
-    int ii, jj, kk, ll, mm, chan;
-
-    if (firsttime) {
-        delays = gen_ivect(numchan);
-        /* Prep offsets (if required) to subtract from the raw values */
-        read_offsets(&lastoffsets, &offsets, numpts, numchan);
-        for (ii = 0; ii < numchan; ii++) {
-            if (dispdelays[ii] < 0.0) {
-                printf("\ndispdelays[%d] = %f is < 0.0 in dedisp_subbands().\n\n",
-                       ii, dispdelays[ii]);
-                exit(-1);
-            }
-            delays[ii] = (int) (dispdelays[ii] + 0.5);
-        }
-        chan_per_subband = numchan / numsubbands;
-        approx_mean = 0;
-        firsttime = 0;
-    }
+    int ii, jj, kk, ll, chan;
+    int chan_per_subband = numchan / numsubbands;
     
     /* Initialize the result array */
     for (ii = 0; ii < numpts * numsubbands; ii++)
-        result[ii] = approx_mean;
-    
-    /* Read  offsets (if required) to subtract from the raw values */
-    read_offsets(&lastoffsets, &offsets, numpts, numchan);
+        result[ii] = 0.0;
     
     /* De-disperse into the subbands */
     for (ii = 0; ii < numsubbands; ii++) {
@@ -278,11 +186,10 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
         for (jj = 0; jj < chan_per_subband; jj++, chan++) {
             kk = chan + delays[chan] * numchan;
             for (ll = 0; ll < numpts - delays[chan] ; ll++, kk += numchan)
-                result[ll * numsubbands + ii] += 
-                    (lastdata[kk] - lastoffsets[delays[chan]+ll]);
+                result[ll * numsubbands + ii] += lastdata[kk];
             kk = chan;
-            for (mm = 0 ; ll < numpts ; ll++, kk += numchan, mm++)
-                result[ll * numsubbands + ii] += (data[kk] - offsets[mm]);
+            for (; ll < numpts ; ll++, kk += numchan)
+                result[ll * numsubbands + ii] += data[kk];
         }
     }
 }
@@ -291,12 +198,11 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
 void float_dedisp(float *data, float *lastdata,
                   int numpts, int numchan,
                   int *delays, float approx_mean, float *result)
-/* De-disperse a stretch of data with numpts * numchan points. */
-/* The delays (in bins) are in delays for each channel.        */
-/* The result is returned in result.  The input data and       */
-/* delays are always in ascending frequency order.             */
-/* Input data are ordered in time, with the channels stored    */
-/* together at each time point.                                */
+// De-disperse a stretch of data with numpts * numchan points. The
+// delays (in bins) are in delays for each channel.  The result is
+// returned in result.  The input data and delays are always in
+// ascending frequency order.  Input data are ordered in time, with
+// the channels stored together at each time point.
 {
    int ii, jj, kk;
 
@@ -304,7 +210,6 @@ void float_dedisp(float *data, float *lastdata,
       result[ii] = -approx_mean;
 
    /* De-disperse */
-
    for (ii = 0; ii < numchan; ii++) {
       jj = ii + delays[ii] * numchan;
       for (kk = 0; kk < numpts - delays[ii]; kk++, jj += numchan)
