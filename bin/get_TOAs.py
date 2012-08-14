@@ -30,7 +30,7 @@ def measure_phase(profile, template, rotate_prof=True):
     return shift,eshift,snr,esnr,b,errb,ngood
 
 def usage():
-    print """
+    sys.stderr.write("""
 usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-h, --help]                       : Display this help
   [-s numsub, --subbands=numsub]     : Divide the fold into numsub subbands
@@ -49,13 +49,15 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   pfd_file                           : The .pfd file containing the folds
 
   The program generates TOAs from a .pfd file using Joe Taylor's
-  FFTFIT program. The TOAs are output to STDOUT.  Typically, the .pfd
+  FFTFIT program.  The TOAs are output to STDOUT.  Typically, the .pfd
   file is created using prepfold with the "-timing" flag and an
   appropriate .par file on either a topocentric time series or raw
   telescope data.  But barycentric folds or folds of barycentered
-  events are also acceptable.  The most important thing about the
-  fold, though, is that it must have been made using "-nosearch"! 
-  (Note: "-timing" implies "-nosearch")
+  events are also acceptable.  The number of bins in the folded profile
+  must be a power of two for FFTFIT to work.  The most important thing 
+  about the fold, though, is that it must have been made using "-nosearch"! 
+  (Note: "-timing" implies "-nosearch" and forces a power-of-two number 
+  of bins.)
   
   A typical example would be something like:
       
@@ -76,7 +78,7 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   displayed for each TOA that shows the "b +/- berr" and "SNR +/-
   SNRerr" params from FFTFIT.
   
-"""
+""")
 
 if __name__ == '__main__':
     try:
@@ -235,7 +237,7 @@ if __name__ == '__main__':
         obs = '@'  # Solarsystem Barycenter
     else:
         try: obs = scopes[fold_pfd.telescope.split()[0]]
-        except KeyError:  print "Unknown telescope!!!"
+        except KeyError:  sys.stderr.write("Unknown telescope!!!")
 
     # Read the polyco file (if required)
     if (fold.psr and fold.topo):
@@ -311,16 +313,25 @@ if __name__ == '__main__':
                         sys.stderr.write("Note:  Downsampling the data for '%s'\n"%fold_pfd.filenm)
 
             try:
-                # Try using FFTFIT first
-                shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template, rotate_prof)
-                # tau and tau_err are the predicted phase of the pulse arrival
-                tau, tau_err = shift/len(prof), eshift/len(prof)
-                # Note: "error" flags are shift = 0.0 and eshift = 999.0
+                tau = None
+                if len(prof) & 2*len(prof):
+                    sys.stderr.write("Profile length %d is not a power of two; unable to use FFTFIT.\n" % len(prof))
+                elif len(template) & 2*len(template):
+                    sys.stderr.write("Template length %d is not a power of two; unable to use FFTFIT.\n" % len(template))
+                else:
+                    # Try using FFTFIT first
+                    shift,eshift,snr,esnr,b,errb,ngood = measure_phase(prof, template, rotate_prof)
+                    # tau and tau_err are the predicted phase of the pulse arrival
+                    tau, tau_err = shift/len(prof), eshift/len(prof)
+                    # Note: "error" flags are shift = 0.0 and eshift = 999.0
 
-                # If that failed, use a time-domain correlation
-                if (Num.fabs(shift) < 1e-7 and
-                    Num.fabs(eshift-999.0) < 1e-7):
-                    print "Warning!  Bad return from FFTFIT.  Using PRESTO correlation..."
+                    # If that failed, use a time-domain correlation
+                    if (Num.fabs(shift) < 1e-7 and
+                        Num.fabs(eshift-999.0) < 1e-7):
+                        sys.stderr.write("Warning!  Bad return from FFTFIT. May be due to inadequate signal-to-noise.\n")
+                        tau = None
+                if tau is None:
+                    sys.stderr.write("Warning: using PRESTO correlation - reported error is incorrect...\n")
                     # Not enough structure in the template profile for FFTFIT
                     # so use time-domain correlations instead
                     tau = psr_utils.measure_phase_corr(prof, template)
@@ -343,8 +354,8 @@ if __name__ == '__main__':
                                               tau_err*p*1000000.0,
                                               sumsubfreqs[jj], 0.0, obs=obs)
                 if (otherouts):
-                    print "FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" % \
-                          (b, errb, snr, esnr)
+                    sys.stderr.write("FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" %
+                          (b, errb, snr, esnr))
 
             except ValueError, fftfit.error:
                 pass
