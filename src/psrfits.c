@@ -120,7 +120,7 @@ int is_PSRFITS(char *filename)
 }
 
 #define get_hdr_string(name, param) {                                   \
-        fits_read_key(s->files[ii], TSTRING, (name), ctmp, comment, &status); \
+        fits_read_key(s->fitsfiles[ii], TSTRING, (name), ctmp, comment, &status); \
         if (status) {\
             printf("Error %d reading key %s\n", status, name); \
             if (ii==0) param[0]='\0'; \
@@ -134,7 +134,7 @@ int is_PSRFITS(char *filename)
     }
 
 #define get_hdr_int(name, param) {                                      \
-        fits_read_key(s->files[ii], TINT, (name), &itmp, comment, &status); \
+        fits_read_key(s->fitsfiles[ii], TINT, (name), &itmp, comment, &status); \
         if (status) {\
             printf("Error %d reading key %s\n", status, name); \
             if (ii==0) param=0; \
@@ -148,7 +148,7 @@ int is_PSRFITS(char *filename)
     }
 
 #define get_hdr_double(name, param) {                                   \
-        fits_read_key(s->files[ii], TDOUBLE, (name), &dtmp, comment, &status); \
+        fits_read_key(s->fitsfiles[ii], TDOUBLE, (name), &dtmp, comment, &status); \
         if (status) {\
             printf("Error %d reading key %s\n", status, name); \
             if (ii==0.0) param=0.0; \
@@ -171,8 +171,8 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     long double MJDf;
     char ctmp[80], comment[120];
     
-    if (numfiles > MAXPFITSFILES) {
-        printf("Error!: There are more than %d input files!\n", MAXPFITSFILES);
+    if (numfiles > MAXNUMFILES) {
+        printf("Error!: There are more than %d input files!\n", MAXNUMFILES);
         exit(1);
     }
     s->num_files = numfiles;
@@ -200,10 +200,10 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         }
         
         // Open the PSRFITS file
-        fits_open_file(&(s->files[ii]), filenames[ii], READONLY, &status);
+        fits_open_file(&(s->fitsfiles[ii]), filenames[ii], READONLY, &status);
 
         // Is the data in search mode?
-        fits_read_key(s->files[ii], TSTRING, "OBS_MODE", ctmp, comment, &status);
+        fits_read_key(s->fitsfiles[ii], TSTRING, "OBS_MODE", ctmp, comment, &status);
         // Quick fix for Parkes DFB data (SRCH?  why????)...
         if (strcmp("SRCH", ctmp)==0) {
             strncpy(ctmp, "SEARCH", 40);
@@ -216,7 +216,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         }
 
         // Now get the stuff we need from the primary HDU header
-        fits_read_key(s->files[ii], TSTRING, "TELESCOP", ctmp, comment, &status); \
+        fits_read_key(s->fitsfiles[ii], TSTRING, "TELESCOP", ctmp, comment, &status); \
         // Quick fix for MockSpec data...
         if (strcmp("ARECIBO 305m", ctmp)==0) {
             strncpy(ctmp, "Arecibo", 40);
@@ -259,7 +259,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
 
         /* This is likely not in earlier versions of PSRFITS so */
         /* treat it a bit differently                           */
-        fits_read_key(s->files[ii], TDOUBLE, "CHAN_DM", 
+        fits_read_key(s->fitsfiles[ii], TDOUBLE, "CHAN_DM", 
                       &(s->chan_dm), comment, &status);
         if (status==KEY_NO_EXIST) {
             status = 0;
@@ -267,21 +267,21 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         }
 
         // Don't use the macros unless you are using the struct!
-        fits_read_key(s->files[ii], TINT, "STT_IMJD", &IMJD, comment, &status);
+        fits_read_key(s->fitsfiles[ii], TINT, "STT_IMJD", &IMJD, comment, &status);
         s->start_MJD[ii] = (long double) IMJD;
-        fits_read_key(s->files[ii], TINT, "STT_SMJD", &SMJD, comment, &status);
-        fits_read_key(s->files[ii], TDOUBLE, "STT_OFFS", &OFFS, comment, &status);
+        fits_read_key(s->fitsfiles[ii], TINT, "STT_SMJD", &SMJD, comment, &status);
+        fits_read_key(s->fitsfiles[ii], TDOUBLE, "STT_OFFS", &OFFS, comment, &status);
         s->start_MJD[ii] += ((long double) SMJD + (long double) OFFS) / SECPERDAY;
 
         // Are we tracking?
-        fits_read_key(s->files[ii], TSTRING, "TRK_MODE", ctmp, comment, &status);
+        fits_read_key(s->fitsfiles[ii], TSTRING, "TRK_MODE", ctmp, comment, &status);
         itmp = (strcmp("TRACK", ctmp)==0) ? 1 : 0;
         if (ii==0) s->tracking = itmp;
         else if (s->tracking != itmp)
             printf("Warning!:  TRK_MODE values don't match for files 0 and %d!\n", ii);
 
         // Now switch to the SUBINT HDU header
-        fits_movnam_hdu(s->files[ii], BINARY_TBL, "SUBINT", 0, &status);
+        fits_movnam_hdu(s->fitsfiles[ii], BINARY_TBL, "SUBINT", 0, &status);
         get_hdr_double("TBIN", s->dt);
         get_hdr_int("NCHAN", s->num_channels);
         get_hdr_int("NPOL", s->num_polns);
@@ -299,20 +299,20 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             }
         }
         get_hdr_string("POL_TYPE", s->poln_order);
-        fits_read_key(s->files[ii], TINT, "NCHNOFFS", &itmp, comment, &status);
+        fits_read_key(s->fitsfiles[ii], TINT, "NCHNOFFS", &itmp, comment, &status);
         if (itmp > 0)
             printf("Warning!:  First freq channel is not 0 in file %d!\n", ii);
         get_hdr_int("NSBLK", s->spectra_per_subint);
         get_hdr_int("NBITS", s->bits_per_sample);
-        fits_read_key(s->files[ii], TINT, "NAXIS2", 
+        fits_read_key(s->fitsfiles[ii], TINT, "NAXIS2", 
                       &(s->num_subint[ii]), comment, &status);
-        fits_read_key(s->files[ii], TINT, "NSUBOFFS", 
+        fits_read_key(s->fitsfiles[ii], TINT, "NSUBOFFS", 
                       &(s->start_subint[ii]), comment, &status);
         s->time_per_subint = s->dt * s->spectra_per_subint;
 
         /* This is likely not in earlier versions of PSRFITS so */
         /* treat it a bit differently                           */
-        fits_read_key(s->files[ii], TFLOAT, "ZERO_OFF", 
+        fits_read_key(s->fitsfiles[ii], TFLOAT, "ZERO_OFF", 
                       &(s->zero_offset), comment, &status);
         if (status==KEY_NO_EXIST) {
             status = 0;
@@ -326,7 +326,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             int colnum, anynull, numrows;
 
             // Identify the OFFS_SUB column number
-            fits_get_colnum(s->files[ii], 0, "OFFS_SUB", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "OFFS_SUB", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 printf("Warning!:  Can't find the OFFS_SUB column!\n");
                 status = 0; // Reset status
@@ -339,7 +339,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             }
 
             // Read the OFFS_SUB column value for the 1st row
-            fits_read_col(s->files[ii], TDOUBLE,
+            fits_read_col(s->fitsfiles[ii], TDOUBLE,
                           s->offs_sub_col, 1L, 1L, 1L,
                           0, &offs_sub, &anynull, &status);
 
@@ -375,14 +375,14 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             int colnum, anynull;
             
             // Identify the data column and the data type
-            fits_get_colnum(s->files[ii], 0, "DATA", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "DATA", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 printf("Warning!:  Can't find the DATA column!\n");
                 status = 0; // Reset status
             } else {
                 if (ii==0) {
                     s->data_col = colnum;
-                    fits_get_coltype(s->files[ii], colnum, &(s->FITS_typecode), 
+                    fits_get_coltype(s->fitsfiles[ii], colnum, &(s->FITS_typecode), 
                                      &repeat, &width, &status);
                 } else if (colnum != s->data_col) {
                     printf("Warning!:  DATA column changes between files!\n");
@@ -390,36 +390,36 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             }
             
             // Telescope azimuth
-            fits_get_colnum(s->files[ii], 0, "TEL_AZ", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "TEL_AZ", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 s->azimuth = 0.0;
                 status = 0; // Reset status
             } else {
-                fits_read_col(s->files[ii], TFLOAT, colnum, 
+                fits_read_col(s->fitsfiles[ii], TFLOAT, colnum, 
                               1L, 1L, 1L, 0, &ftmp, &anynull, &status);
                 if (ii==0) s->azimuth = (double) ftmp;
             }
             
             // Telescope zenith angle
-            fits_get_colnum(s->files[ii], 0, "TEL_ZEN", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "TEL_ZEN", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 s->zenith_ang = 0.0;
                 status = 0; // Reset status
             } else {
-                fits_read_col(s->files[ii], TFLOAT, colnum, 
+                fits_read_col(s->fitsfiles[ii], TFLOAT, colnum, 
                               1L, 1L, 1L, 0, &ftmp, &anynull, &status);
                 if (ii==0) s->zenith_ang = (double) ftmp;
             }
             
             // Observing frequencies
-            fits_get_colnum(s->files[ii], 0, "DAT_FREQ", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "DAT_FREQ", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 printf("Warning!:  Can't find the channel freq column!\n");
                 status = 0; // Reset status
             } else {
                 int jj;
                 float *freqs = (float *)malloc(sizeof(float) * s->num_channels);
-                fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
+                fits_read_col(s->fitsfiles[ii], TFLOAT, colnum, 1L, 1L, 
                               s->num_channels, 0, freqs, &anynull, &status);
                 
                 if (ii==0) {
@@ -447,7 +447,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             }
             
             // Data weights
-            fits_get_colnum(s->files[ii], 0, "DAT_WTS", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "DAT_WTS", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 printf("Warning!:  Can't find the channel weights!\n");
                 status = 0; // Reset status
@@ -460,7 +460,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                         printf("Warning!:  DAT_WTS column changes between files!\n");
                     }
                     float *fvec = (float *)malloc(sizeof(float) * s->num_channels);
-                    fits_read_col(s->files[ii], TFLOAT, s->dat_wts_col, 1L, 1L, 
+                    fits_read_col(s->fitsfiles[ii], TFLOAT, s->dat_wts_col, 1L, 1L, 
                                   s->num_channels, 0, fvec, &anynull, &status);
                     for (jj = 0 ; jj < s->num_channels ; jj++) {
                         // If the weights are not 1, apply them
@@ -475,7 +475,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             }
             
             // Data offsets
-            fits_get_colnum(s->files[ii], 0, "DAT_OFFS", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "DAT_OFFS", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 printf("Warning!:  Can't find the channel offsets!\n");
                 status = 0; // Reset status
@@ -489,7 +489,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     }
                     float *fvec = (float *)malloc(sizeof(float) * 
                                                   s->num_channels * s->num_polns);
-                    fits_read_col(s->files[ii], TFLOAT, s->dat_offs_col, 1L, 1L, 
+                    fits_read_col(s->fitsfiles[ii], TFLOAT, s->dat_offs_col, 1L, 1L, 
                                   s->num_channels * s->num_polns, 
                                   0, fvec, &anynull, &status);
                     for (jj = 0 ; jj < s->num_channels * s->num_polns ; jj++) {
@@ -505,7 +505,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
             }
             
             // Data scalings
-            fits_get_colnum(s->files[ii], 0, "DAT_SCL", &colnum, &status);
+            fits_get_colnum(s->fitsfiles[ii], 0, "DAT_SCL", &colnum, &status);
             if (status==COL_NOT_FOUND) {
                 printf("Warning!:  Can't find the channel scalings!\n");
                 status = 0; // Reset status
@@ -519,7 +519,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     }
                     float *fvec = (float *)malloc(sizeof(float) * 
                                                   s->num_channels * s->num_polns);
-                    fits_read_col(s->files[ii], TFLOAT, colnum, 1L, 1L, 
+                    fits_read_col(s->fitsfiles[ii], TFLOAT, colnum, 1L, 1L, 
                                   s->num_channels * s->num_polns, 
                                   0, fvec, &anynull, &status);
                     for (jj = 0 ; jj < s->num_channels * s->num_polns ; jj++) {
@@ -630,12 +630,12 @@ void print_PSRFITS_info(struct spectra_info *s)
     char ctmp[40], comment[120];
     double dtmp;
 
-    printf("From the PSRFITS file '%s':\n", s->files[0]->Fptr->filename);
-    fits_get_num_hdus(s->files[0], &numhdus, &status);
+    printf("From the PSRFITS file '%s':\n", s->fitsfiles[0]->Fptr->filename);
+    fits_get_num_hdus(s->fitsfiles[0], &numhdus, &status);
     printf("                       HDUs = primary, ");
     for (ii = 2 ; ii < numhdus + 1 ; ii++) {
-        fits_movabs_hdu(s->files[0], ii, &hdutype, &status);
-        fits_read_key(s->files[0], TSTRING, "EXTNAME", ctmp, comment, &status);
+        fits_movabs_hdu(s->fitsfiles[0], ii, &hdutype, &status);
+        fits_read_key(s->fitsfiles[0], TSTRING, "EXTNAME", ctmp, comment, &status);
         printf("%s%s", ctmp, (ii < numhdus) ? ", " : "\n");
     }
     printf("                  Telescope = %s\n", s->telescope);
