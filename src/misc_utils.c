@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include "misc_utils.h"
+#include "slamac.h"
 
 #ifndef ARCSEC2RAD
 /* arcseconds to radians */
@@ -16,6 +17,7 @@
 /* like strcpy, except guaranteed to work with overlapping strings      */
 #define strMove(d,s) memmove(d,s,strlen(s)+1)
 
+void slaDjcl(double djm, int *iy, int *im, int *id, double *fd, int *j);
 
 char *rmtrail(char *str)
 /* Removes trailing space from a string */
@@ -144,6 +146,32 @@ void strtofilename(char *string)
 }
 
 
+void mjd_to_datestr(double mjd, char *datestr)
+// Convert an MJD to a PSRFITS-style DATEOBS
+{
+    int year, month, day, hour, min, err;
+    double fracday, dh, dm, sec;
+    
+    slaDjcl(mjd, &year, &month, &day, &fracday, &err);
+    if (err == -1) {
+        printf("Error in mjd_to_datestr:  Bad MJD '%.12f'.\n", mjd);
+        exit(1);
+    }
+    dh = fracday * 24.0;
+    hour = (int) dh;
+    dm = (dh - hour) * 60.0;
+    min = (int) dm;
+    sec = (dm - min) * 60.0;
+    if (sec < 10.0) {
+        sprintf(datestr, "%4d-%2d-%2dT%2d:%2d:0%.6g",
+                year, month, day, hour, min, sec);
+    } else {
+        sprintf(datestr, "%4d-%2d-%2dT%2d:%2d:%.6g",
+                year, month, day, hour, min, sec);
+    }
+}
+
+
 void telescope_to_tempocode(char *inname, char *outname, char*obscode)
 // Return the 2 character TEMPO string for an observatory
 // whose name is in the string "inname".  Return a nice
@@ -240,6 +268,16 @@ int gcd(int a, int b)
    return b;
 }
 #endif
+
+
+float beam_halfwidth(float freq, float dish_diam)
+// Return the beam halfwidth in arcsec when freq
+// is in MHz and dish_diam is in meters
+{
+    return 0.5 * 1.2 * SOL / (freq*1e6) / \
+        dish_diam * RADTODEG * 3600.0;
+}
+
 
 float *gen_freqs(long numfreqs, double lof, double df)
 /* This routine generates a float vector of length numfreqs */

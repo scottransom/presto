@@ -11,6 +11,13 @@ long long next2_to_n(long long x);
 float invsqrt(float x);
 // See http://en.wikipedia.org/wiki/Fast_inverse_square_root
 
+float beam_halfwidth(float freq, float dish_diam);
+// Return the beam halfwidth in arcsec when freq
+// is in MHz and dish_diam is in meters
+
+void mjd_to_datestr(double mjd, char *datestr);
+// Convert an MJD to a PSRFITS-style DATEOBS
+
 int gcd(int a, int b);
 /* Return the greatest common divisor of a and b */
 
