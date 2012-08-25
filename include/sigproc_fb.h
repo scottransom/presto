@@ -15,7 +15,7 @@ typedef struct SIGPROCFB {
   int telescope_id;      /* Telescope ID (see telescope_name() */
   int nchans;            /* Number of finterbank channels */
   int nbits;             /* Number of bits in the filterbank samples */
-  int nifs;              /* Number if IFs present */
+  int nifs;              /* Number of IFs present */
   int nbeams;            /* Number of beams in the observing system */
   int ibeam;             /* Beam number used for this data */
   int sumifs;            /* Whether the IFs are summed or not */
@@ -39,4 +39,4 @@ int read_filterbank(FILE *infiles[], int numfiles, float *data, int numspect, in
 void get_filterbank_channel(int channum, float chandat[], float rawdata[], int numblocks);
 int prep_filterbank_subbands(float *rawdata, float *data, int *delays, int numsubbands, int transpose, int *maskchans, int *nummasked, mask *obsmask);
 int read_filterbank_subbands(FILE *infiles[], int numfiles, float *data, int *delays, int numsubbands, int transpose, int *padding, int *maskchans, int *nummasked, mask *obsmask);
-void convert_filterbank_block(unsigned char *indata, float *outdata);
+void convert_filterbank_block(float *outdata, unsigned char *indata, int numread);
