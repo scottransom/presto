@@ -12,7 +12,8 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static unsigned char databuffer[2 * MAXDATLEN], padvals[MAXNUMCHAN], padval = 4;
+static float padvals[MAXNUMCHAN], padval = 4;
+static unsigned char databuffer[2 * MAXDATLEN];
 static unsigned char *splitbytes_buffer[MAXPATCHFILES];
 static int currentfile, currentblock, both_IFs_present = 0;
 static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
@@ -473,6 +474,19 @@ void get_BPP_file_info(FILE * files[], int numfiles, float clipsig,
       numifs_st = 2;
    } else
       numifs_st = 1;
+   {
+       char *envval = getenv("BCPM_POLN");
+       if (envval != NULL) {
+           int ival = strtol(envval, NULL, 10);
+           if ((ival > -1) && (ival < s->num_polns)) {
+               printf
+                   ("Using polarization %d (from 0-%d) from PSRFITS_POLN.\n",
+                    ival, s->num_polns-1);
+               default_poln = ival;
+               user_poln = 1;
+           }
+       }
+   }
    /* The following is the number of bytes in the _raw_ data */
    bytesperpt_st = (numchan_st * numifs_st * 4) / 8;
    bytesperblk_st = ptsperblk_st * bytesperpt_st;
@@ -758,6 +772,33 @@ void print_BPP_hdr(BPP_SEARCH_HEADER * hdr)
 }
 
 
+void BPP_raw_to_float(unsigned char *raw, float *output, int numspec)
+{
+    int ii;
+    
+    // Convert from 4-bits to floats
+    if (numifs_st == 2) {
+        /* Choosing a single IF */
+        if (ifs == IF0 || ifs == IF1)
+            for (ii = 0; ii < numpts; ii++)
+                convert_BPP_one_IF(raw + ii * bytesperpt_st,
+                                   currentdata + ii * numchan_st, ifs);
+        /* Sum the IFs */
+        else
+            for (ii = 0; ii < numpts; ii++)
+                convert_BPP_sum_IFs(raw + ii * bytesperpt_st,
+                                    currentdata + ii * numchan_st);
+    } else {
+        /* Select the already summed IFs */
+        for (ii = 0; ii < numpts; ii++)
+            convert_BPP_point(raw + ii * bytesperpt_st,
+                              currentdata + ii * numchan_st);
+    }
+    
+    
+}
+
+
 int read_BPP_rawblock(FILE * infiles[], int numfiles,
                       unsigned char *data, int *padding)
 /* This routine reads a single record from the          */
@@ -794,12 +835,13 @@ int read_BPP_rawblock(FILE * infiles[], int numfiles,
    else
       bytesread = fread(dataptr, bytesperblk_st, 1, infiles[currentfile]) *
           bytesperblk_st;
+
    if (bytesread == bytesperblk_st) {   /* Got Data */
-      *padding = 0;
-      /* Put the new data into the databuffer if needed */
-      if (bufferpts)
-         memcpy(data, databuffer, bytesperblk_st);
-      currentblock++;
+       *padding = 0;
+       /* Put the new data into the databuffer if needed */
+       if (bufferpts)
+           memcpy(data, databuffer, bytesperblk_st);
+       currentblock++;
       return 1;
    } else {                     /* Didn't get data */
       if (feof(infiles[currentfile])) { /* End of file? */
@@ -879,7 +921,7 @@ int read_BPP_rawblock(FILE * infiles[], int numfiles,
 
 int read_BPP_rawblocks(FILE * infiles[], int numfiles,
                        unsigned char rawdata[], int numblocks, int *padding)
-     /* This routine reads numblocks BPP records from the input  */
+/* This routine reads numblocks BPP records from the input  */
 /* files *infiles.  The 4-bit data is returned in rawdata   */
 /* which must have a size of numblocks * bytesperblk_st.    */
 /* The number  of blocks read is returned.                  */
@@ -890,20 +932,13 @@ int read_BPP_rawblocks(FILE * infiles[], int numfiles,
 
    *padding = 0;
    for (ii = 0; ii < numblocks; ii++) {
-      retval += read_BPP_rawblock(infiles, numfiles,
-                                  rawdata + ii * bytesperblk_st, &pad);
-      if (pad)
-         numpad++;
+       retval += read_BPP_rawblock(infiles, numfiles,
+                                   rawdata + ii * bytesperblk_st, &pad);
+       if (pad)
+           numpad++;
    }
-   /* Return padding 'true' if more than */
-   /* half of the blocks are padding.    */
-   /* 
-      if (numpad > numblocks / 2)
-      *padding = 1;
-    */
-   /* Return padding 'true' if any block was padding */
    if (numpad)
-      *padding = 1;
+       *padding = 1;
    return retval;
 }
 
@@ -963,24 +998,6 @@ int read_BPP(FILE * infiles[], int numfiles, float *data,
          if (mask) {
             starttime = currentblock * timeperblk;
             *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-         }
-
-         if (numifs_st == 2) {
-            /* Choosing a single IF */
-            if (ifs == IF0 || ifs == IF1)
-               for (ii = 0; ii < numpts; ii++)
-                  convert_BPP_one_IF(raw + ii * bytesperpt_st,
-                                     currentdata + ii * numchan_st, ifs);
-            /* Sum the IFs */
-            else
-               for (ii = 0; ii < numpts; ii++)
-                  convert_BPP_sum_IFs(raw + ii * bytesperpt_st,
-                                      currentdata + ii * numchan_st);
-         } else {
-            /* Select the already summed IFs */
-            for (ii = 0; ii < numpts; ii++)
-               convert_BPP_point(raw + ii * bytesperpt_st,
-                                 currentdata + ii * numchan_st);
          }
 
          /* Clip nasty RFI if requested and we're not masking all the channels*/
