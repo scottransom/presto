@@ -310,15 +310,15 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
 
 
 
-int read_filterbank_files(char **filenames, int numfiles, struct spectra_info *s)
+int read_filterbank_files(struct spectra_info *s)
 {
     sigprocfb fb;
-    int ii=0;
+    int ii;
 
-    spectra_info_set_defaults(s);  // Move this to calling routines?
+    // s->num_files and s->filenames are assumed to be set
     s->datatype = SIGPROCFB;
     s->num_files = numfiles;
-    s->files = (FILE *)malloc(sizeof(FILE) * numfiles);
+    s->files = (FILE **)malloc(sizeof(FILE *) * numfiles);
     s->header_offset = get_ivect(numfiles);
     s->start_subint = get_ivect(numfiles);
     s->num_subint = get_ivect(numfiles);
@@ -365,6 +365,9 @@ int read_filterbank_files(char **filenames, int numfiles, struct spectra_info *s
     s->bytes_per_subint = s->bytes_per_spectra * s->spectra_per_subint;
     s->samples_per_subint = s->spectra_per_subint * s->samples_per_spectra;
     s->min_spect_per_read = 1;  // Can read a single spectra at a time
+    // allocate the raw data buffers
+    cdatabuffer = gen_bvect(s->bytes_per_subint);
+    fdatabuffer = gen_bvect(s->samples_per_subint);
     s->dt = fb->tsamp;
     s->time_per_subint = s->spectra_per_subint * s->dt;
     s->T = s->N * s->dt;
@@ -384,6 +387,9 @@ int read_filterbank_files(char **filenames, int numfiles, struct spectra_info *s
     s->start_spec[0] = 0L;
     s->num_spec[0] = fb->N;
     s->N = fb->N;
+    s->get_rawblock = &get_filterbank_rawblock;
+    s->offset_to_spectra = &offset_to_filterbank_spectra;
+
 
     // Step through the other files
     for (ii = 1 ; ii < numfiles ; ii++) {
@@ -428,94 +434,43 @@ int read_filterbank_files(char **filenames, int numfiles, struct spectra_info *s
 }
 
 
-void filterbank_update_infodata(int numfiles, infodata * idata)
-// Update the onoff bins section in case we used multiple files
+long long offset_to_filterbank_rec(long long specnum, struct spectra_info *s)
+// This routine offsets into the filterbank files to position
+// them at spectra number "specnum".  It returns the current spectra
+// number.
 {
+    int filenum = 0;
+    
+    if (specnum > s->N) {
+        printf("Error:  offset spectra %lld is > total spectra %lld\n\n", 
+               specnum, s->N);
+        exit(1);
+    }
 
-   int ii, index = 2;
+    // Find which file we need
+    while (specnum > s->start_spec[filenum+1])
+        filenum++;
 
-   idata->N = N_st;
-   if (numfiles == 1 && s->num_pad[0] == 0) {
-      idata->numonoff = 0;
-      return;
-   }
-   /* Determine the topocentric onoff bins */
-   idata->numonoff = 1;
-   idata->onoff[0] = 0.0;
-   idata->onoff[1] = s->num_spec[0] - 1.0;
-   for (ii = 1; ii < numfiles; ii++) {
-      if (s->num_pad[ii - 1]) {
-         idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[ii - 1];
-         idata->onoff[index + 1] = idata->onoff[index] + s->num_spec[ii];
-         idata->numonoff++;
-         index += 2;
-      } else {
-         idata->onoff[index - 1] += s->num_spec[ii];
-      }
-   }
-   if (s->num_pad[numfiles - 1]) {
-      idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[numfiles - 1];
-      idata->onoff[index + 1] = idata->onoff[index];
-      idata->numonoff++;
-   }
-}
+    // Shift to that file
+    currentfile = filenum;
 
+    // Are we in a padding zone?
+    if (specnum > (s->start_spec[currentfile] + s->num_spec[currentfile])) {
+        // Seek to the end of the file
+        chkfileseek(s->files[currentfile], 0, 1, SEEK_END);
+        numbuffered = 0;
+        numpadded = specnum - (s->start_spec[currentfile] + s->num_spec[currentfile]);
+        return specnum;
+    }
 
-int skip_to_filterbank_rec(FILE * infiles[], int numfiles, int rec)
-// This routine skips to the record 'rec' in the input files *infiles.
-// *infiles contains SIGPROC format data.  Returns the record skipped
-// to.
-{
-   double floor_blk;
-   int filenum = 0, ii;
-
-   if (rec < startblk_st[0])
-      rec += (startblk_st[0] - 1);
-   if (rec > 0 && rec < endblk_st[numfiles - 1]) {
-
-      /* Find which file we need */
-      while (rec > endblk_st[filenum])
-         filenum++;
-
-      currentblock = rec - 1;
-      shiftbuffer = 1;
-      floor_blk = floor(startblk_st[filenum]);
-
-      /* Set the data buffer to all padding just in case */
-      for (ii = 0; ii < MAXNUMCHAN * BLOCKLEN; ii++)
-         databuffer[ii] = padval;
-
-      /* Warning:  I'm not sure if the following is correct. */
-      /*   If really needs accurate testing to see if my     */
-      /*   offsets are correct.  Bottom line, don't trust    */
-      /*   a TOA determined using the following!             */
-
-      if (rec < startblk_st[filenum]) { /* Padding region */
-         currentfile = filenum - 1;
-         chkfileseek(infiles[currentfile], 0, 1, SEEK_END);
-         bufferspect = s->num_pad[currentfile] % s->spectra_per_subint;
-         padnum = s->spectra_per_subint * (rec - endblk_st[currentfile] - 1);
-         /*
-            printf("Padding:  currentfile = %d  bufferspect = %d  padnum = %d\n", 
-            currentfile, bufferspect, padnum);
-          */
-      } else {                  /* Data region */
-         currentfile = filenum;
-         chkfileseek(infiles[currentfile], rec - startblk_st[filenum],
-                     bytesperblk_st, SEEK_CUR);
-         bufferspect = (int) ((startblk_st[filenum] - floor_blk) * s->spectra_per_subint + 0.5);
-         padnum = 0;
-         /*
-            printf("Data:  currentfile = %d  bufferspect = %d  padnum = %d\n", 
-            currentfile, bufferspect, padnum);
-          */
-      }
-
-   } else {
-      printf("\n rec = %d out of range in skip_to_filterbank_rec()\n", rec);
-      exit(1);
-   }
-   return rec;
+    // Otherwise, seek to the spectra
+    // Skip the header first
+    chkfseek(s->files[currentfile], s->header_offset[currentfile], SEEK_SET);
+    offset_spec = specnum - s->start_spec[currentfile];
+    chkfseek(s->files[currentfile], offset_spec * s->bytes_per_spectra, SEEK_CUR);
+    numbuffered = 0;
+    numpadded = 0;
+    return specnum;
 }
 
 

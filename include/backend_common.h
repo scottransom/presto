@@ -1,11 +1,14 @@
 #include "fitsio.h"
 
 typedef enum {
-    SIGPROCFB, PSRFITS, SCAMP, BPP, GMRT, SPIGOT, SUBBBAND, UNSET;
+    SIGPROCFB, PSRFITS, SCAMP, BPP, WAPP, GMRT, SPIGOT, 
+    SUBBAND, DAT, SDAT, EVENTS, UNSET;
 } psrdatatype;
 
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
+                 cmd->gmrtP || cmd->spigotP || cmd->filterbankP || \
+                 cmd->psrfitsP)
 
-#define MAXNUMFILES 1000
 
 struct spectra_info {
     char telescope[40];     // Telescope used
@@ -19,7 +22,6 @@ struct spectra_info {
     char dec_str[40];       // Declination string (DD:MM:SS.SSSS)
     char poln_type[40];     // Polarization recorded (LIN or CIRC)
     char poln_order[40];    // Order of polarizations (i.e. XXYYXYYX)
-    psrdatatype datatype;   // The data format being used
     long long N;            // Total number of spectra in observation
     double T;               // Total observation time (N * dt)
     double dt;              // Sample duration (s)
@@ -36,6 +38,7 @@ struct spectra_info {
     double zenith_ang;      // Zenith angle (commanded) at the start of the obs (deg)
     double beam_FWHM;       // Beam FWHM (deg)
     double time_per_subint; // Duration (in sec) of a full SUBINT entry
+    psrdatatype datatype;   // The data format being used
     int scan_number;        // Number of scan
     int tracking;           // Tracking (1) or drift scan (0)
     int orig_num_chan;      // Number of spectral channels per sample
@@ -68,6 +71,7 @@ struct spectra_info {
     float zero_offset;      // A DC zero-offset value to apply to all the data
     float clip_sigma;       // Clipping value in standard deviations to use
     long double *start_MJD; // Array of long double MJDs for the file starts
+    char **filenames;       // Array of the input file names
     FILE **files;           // Array of normal file pointers if needed
     fitsfile **fitsfiles;   // Array of FITS file pointers if needed
     int *header_offset;     // Number of bytes to skip in each file to get to spectra
@@ -76,6 +80,8 @@ struct spectra_info {
     long long *start_spec;  // Starting spectra for each file (zero offset)
     long long *num_spec;    // Number of spectra per file
     long long *num_pad;     // Number of padding samples after each file
+    int (*get_rawblock)(struct spectra_info *);  // Raw data block function pointer
+    long long (*offset_to_spectra)(long long, struct spectra_info *);  // Shift into file(s) function pointer
 };
 
 

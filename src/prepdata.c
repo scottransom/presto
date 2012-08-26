@@ -21,10 +21,11 @@
 /* x.5s get rounded away from zero.                */
 #define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
+                 cmd->gmrtP || cmd->spigotP || cmd->filterbankP || \
+                 cmd->psrfitsP)
 
 /* Some function definitions */
-
 static int read_floats(FILE * file, float *data, int numpts, int numchan);
 static int read_shorts(FILE * file, float *data, int numpts, int numchan);
 static int downsample(float outdata[], int numread, int downsampfact);
@@ -46,9 +47,9 @@ int main(int argc, char *argv[])
    double tdf = 0.0, dtmp = 0.0, barydispdt = 0.0, dsdt = 0.0;
    double *dispdt, *tobsf = NULL, tlotoa = 0.0, blotoa = 0.0;
    double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0;
-   char obs[3], ephem[10], *datafilenm, *outinfonm, *root, *suffix;
+   char obs[3], ephem[10], *datafilenm, *outinfonm;
    char rastring[50], decstring[50];
-   int numfiles, numchan = 1, newper = 0, oldper = 0, nummasked = 0, useshorts = 0;
+   int numchan = 1, newper = 0, oldper = 0, nummasked = 0, useshorts = 0;
    int numadded = 0, numremoved = 0, padding = 0, *maskchans = NULL, offset = 0;
    long slen, ii, numbarypts = 0, worklen = 65536;
    long numread = 0, numtowrite = 0, totwrote = 0, datawrote = 0;
@@ -56,12 +57,12 @@ int main(int argc, char *argv[])
    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
    int *idispdt;
    IFs ifs = SUMIFS;
+   spectra_info s;
    infodata idata;
    Cmdline *cmd;
    mask obsmask;
 
    /* Call usage() if we have no command line arguments */
-
    if (argc == 1) {
       Program = argv[0];
       usage();
@@ -69,21 +70,21 @@ int main(int argc, char *argv[])
    }
 
    /* Parse the command line using the excellent program Clig */
-
    cmd = parseCmdline(argc, argv);
-   numfiles = cmd->argc;
-   infiles = (FILE **) malloc(numfiles * sizeof(FILE *));
-   if (cmd->noclipP)
-      cmd->clip = 0.0;
-   /* Which IFs will we use? */
-   if (cmd->ifsP) {
-      if (cmd->ifs == 0)
-         ifs = IF0;
-      else if (cmd->ifs == 1)
-         ifs = IF1;
-      else
-         ifs = SUMIFS;
+   spectra_info_set_defaults(&s);
+   s.filenames = cmd->argv;
+   s.num_files = cmd->argc;
+   s.clip_sigma = cmd->clip;
+   if (cmd->invertP) s.apply_flipband = 1;
+   if (cmd->noclipP) {
+       cmd->clip = 0.0;
+       s.clip_sigma = 0.0;
    }
+   if (cmd->ifsP) {
+       // 0 = default or summed, 1-4 are possible also
+       s.use_poln = cmd->ifs;
+   }
+
 #ifdef DEBUG
    showOptionValues();
 #endif
@@ -93,100 +94,43 @@ int main(int argc, char *argv[])
    printf("    Type conversion, de-dispersion, barycentering.\n");
    printf("                 by Scott M. Ransom\n\n");
 
-   if (!RAWDATA) {
-      /* Split the filename into a rootname and a suffix */
-      if (split_root_suffix(cmd->argv[0], &root, &suffix) == 0) {
-         printf("\nThe input filename (%s) must have a suffix!\n\n", cmd->argv[0]);
-         exit(1);
-      } else {
-         if (strcmp(suffix, "sdat") == 0) {
-            useshorts = 1;
-         } else if (strcmp(suffix, "bcpm1") == 0 || strcmp(suffix, "bcpm2") == 0) {
-            printf("Assuming the data is from a GBT BCPM...\n");
-            cmd->bcpmP = 1;
-         } else if (strcmp(suffix, "fil") == 0 || strcmp(suffix, "fb") == 0) {
-            printf("Assuming the data is in SIGPROC filterbank format...\n");
-            cmd->filterbankP = 1;
-         } else if (strcmp(suffix, "fits") == 0) {
-             if (strstr(root, "spigot_5") != NULL) {
-                 printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
-                 cmd->spigotP = 1;
-             } else if (is_PSRFITS(cmd->argv[0])) {
-                 printf("Assuming the data is in PSRFITS format.\n");
-                 cmd->psrfitsP = 1;
-             } 
-         } else if (strcmp(suffix, "pkmb") == 0) {
-            printf
-                ("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
-            cmd->pkmbP = 1;
-         } else if (strncmp(suffix, "gmrt", 4) == 0) {
-            printf("Assuming the data is from the GMRT Phased Array system...\n");
-            cmd->gmrtP = 1;
-         } else if (isdigit(suffix[0]) && isdigit(suffix[1]) && isdigit(suffix[2])) {
-            printf("Assuming the data is from the Arecibo WAPP system...\n");
-            cmd->wappP = 1;
-         }
-      }
-      if (RAWDATA) {            /* Clean-up a bit */
-         free(root);
-         free(suffix);
-      }
+   if (!RAWDATA) {  // Attempt to auto-identify the data
+       identify_psrdatatype(cmd->argv[0], &s, 1);
+       if (s.datatype==SIGPROCFB) cmd->filterbankP = 1;
+       else if (s.datatype==PSRFITS) cmd->psrfitsP = 1;
+       else if (s.datatype==SCAMP) cmd->pkmbP = 1;
+       else if (s.datatype==BPP) cmd->bcpmP = 1;
+       else if (s.datatype==GMRT) cmd->gmrtP = 1;
+       else if (s.datatype==WAPP) cmd->wappP = 1;
+       else if (s.datatype==SPIGOT) cmd->spigotP = 1;
+       else if (s.datatype==SDAT) useshorts = 1;
    }
 
    if (!RAWDATA) {
-      printf("Reading input data from '%s'.\n", cmd->argv[0]);
-      printf("Reading information from '%s.inf'.\n\n", root);
-      /* Read the info file if available */
-      readinf(&idata, root);
-      free(root);
-      free(suffix);
-      infiles[0] = chkfopen(cmd->argv[0], "rb");
-   } else if (cmd->pkmbP) {
-      if (numfiles > 1)
-         printf("Reading 1-bit filterbank (Parkes/Jodrell) data from %d files:\n",
-                numfiles);
-      else
-         printf("Reading 1-bit filterbank (Parkes/Jodrell) data from 1 file:\n");
-   } else if (cmd->bcpmP) {
-      if (numfiles > 1)
-         printf("Reading Green Bank BCPM data from %d files:\n", numfiles);
-      else
-         printf("Reading Green Bank BCPM data from 1 file:\n");
-   } else if (cmd->filterbankP) {
-      if (numfiles > 1)
-         printf("Reading SIGPROC filterbank data from %d files:\n", numfiles);
-      else
-         printf("Reading SIGPROC filterbank data from 1 file:\n");
-   } else if (cmd->psrfitsP) {
-      if (numfiles > 1)
-         printf("Reading PSRFITS search-mode data from %d files:\n", numfiles);
-      else
-         printf("Reading PSRFITS search-mode data from 1 file:\n");
-   } else if (cmd->spigotP) {
-      if (numfiles > 1)
-         printf("Reading Green Bank Spigot data from %d files:\n", numfiles);
-      else
-         printf("Reading Green Bank Spigot data from 1 file:\n");
-   } else if (cmd->gmrtP) {
-      if (numfiles > 1)
-         printf("Reading GMRT Phased Array data from %d files:\n", numfiles);
-      else
-         printf("Reading GMRT Phased Array data from 1 file:\n");
-   } else if (cmd->wappP) {
-      if (numfiles > 1)
-         printf("Reading Arecibo WAPP data from %d files:\n", numfiles);
-      else
-         printf("Reading Arecibo WAPP data from 1 file:\n");
-   }
-
-   /* Open the raw data files */
-
-   if (RAWDATA) {
-      for (ii = 0; ii < numfiles; ii++) {
-         printf("  '%s'\n", cmd->argv[ii]);
-         infiles[ii] = chkfopen(cmd->argv[ii], "rb");
-      }
-      printf("\n");
+       char *root, *suffix;
+       /* Split the filename into a rootname and a suffix */
+       if (split_root_suffix(s->filenames[0], &root, &suffix) == 0) {
+           printf("\nThe input filename (%s) must have a suffix!\n\n", s->filenames[0]);
+           exit(1);
+       }
+       printf("Reading input data from '%s'.\n", s.filenames[0]);
+       printf("Reading information from '%s.inf'.\n\n", root);
+       /* Read the info file if available */
+       readinf(&idata, root);
+       free(root);
+       free(suffix);
+       s.files[0] = chkfopen(s.filenames[0], "rb");
+   } else {
+       char description[40];
+       psrdatatype_description(description, s.datatype);
+       if (s.num_files > 1)
+           printf("Reading %s data from %d files:\n", description, s.num_files);
+       else
+           printf("Reading %s data from 1 file:\n", description);
+       for (ii = 0; ii < s.num_files; ii++) {
+           printf("  '%s'\n", cmd->argv[ii]);
+       }
+       printf("\n");
    }
 
    /* Determine the other file names and open the output data file */
@@ -218,23 +162,23 @@ int main(int argc, char *argv[])
          PKMB_tapehdr hdr;
 
          printf("Filterbank input file information:\n");
-         get_PKMB_file_info(infiles, numfiles, cmd->clip, &N, &ptsperblock, 
+         get_PKMB_file_info(infiles, s.num_files, cmd->clip, &N, &ptsperblock, 
                             &numchan, &dt, &T, 1);
          /* Read the first header file and generate an infofile from it */
          chkfread(&hdr, 1, HDRLEN, infiles[0]);
          rewind(infiles[0]);
          PKMB_hdr_to_inf(&hdr, &idata);
-         PKMB_update_infodata(numfiles, &idata);
+         PKMB_update_infodata(s.num_files, &idata);
       }
 
       /* Set-up values if we are using the GMRT Phased Array system */
       if (cmd->gmrtP) {
          printf("GMRT input file information:\n");
-         get_GMRT_file_info(infiles, argv + 1, numfiles, cmd->clip, &N, &ptsperblock,
+         get_GMRT_file_info(infiles, argv + 1, s.num_files, cmd->clip, &N, &ptsperblock,
                             &numchan, &dt, &T, 1);
          /* Read the first header file and generate an infofile from it */
          GMRT_hdr_to_inf(argv[1], &idata);
-         GMRT_update_infodata(numfiles, &idata);
+         GMRT_update_infodata(s.num_files, &idata);
          set_GMRT_padvals(padvals, good_padvals);
          /* OBS code for TEMPO for the GMRT */
          strcpy(obs, "GM");
@@ -250,9 +194,9 @@ int main(int argc, char *argv[])
          sigprocfb_to_inf(&fb, &idata);
          rewind(infiles[0]);
          printf("SIGPROC filterbank input file information:\n");
-         get_filterbank_file_info(infiles, numfiles, cmd->clip,
+         get_filterbank_file_info(infiles, s.num_files, cmd->clip,
                                   &N, &ptsperblock, &numchan, &dt, &T, 1);
-         filterbank_update_infodata(numfiles, &idata);
+         filterbank_update_infodata(s.num_files, &idata);
          set_filterbank_padvals(padvals, good_padvals);
       }
 
@@ -260,9 +204,9 @@ int main(int argc, char *argv[])
       /* Pulsar Machine (or BPP) format.                    */
       if (cmd->bcpmP) {
          printf("BCPM input file information:\n");
-         get_BPP_file_info(infiles, numfiles, cmd->clip, &N, &ptsperblock, &numchan,
+         get_BPP_file_info(infiles, s.num_files, cmd->clip, &N, &ptsperblock, &numchan,
                            &dt, &T, &idata, 1);
-         BPP_update_infodata(numfiles, &idata);
+         BPP_update_infodata(s.num_files, &idata);
          set_BPP_padvals(padvals, good_padvals);
       }
 
@@ -271,12 +215,12 @@ int main(int argc, char *argv[])
          SPIGOT_INFO *spigots;
 
          printf("Spigot card input file information:\n");
-         spigots = (SPIGOT_INFO *) malloc(sizeof(SPIGOT_INFO) * numfiles);
-         for (ii = 0; ii < numfiles; ii++)
+         spigots = (SPIGOT_INFO *) malloc(sizeof(SPIGOT_INFO) * s.num_files);
+         for (ii = 0; ii < s.num_files; ii++)
             read_SPIGOT_header(cmd->argv[ii], spigots + ii);
-         get_SPIGOT_file_info(infiles, spigots, numfiles, cmd->windowP, cmd->clip,
+         get_SPIGOT_file_info(infiles, spigots, s.num_files, cmd->windowP, cmd->clip,
                               &N, &ptsperblock, &numchan, &dt, &T, &idata, 1);
-         SPIGOT_update_infodata(numfiles, &idata);
+         SPIGOT_update_infodata(s.num_files, &idata);
          set_SPIGOT_padvals(padvals, good_padvals);
          free(spigots);
       }
@@ -305,10 +249,10 @@ int main(int argc, char *argv[])
       /* Set-up values if we are using the Arecibo WAPP */
       if (cmd->wappP) {
          printf("WAPP input file information:\n");
-         get_WAPP_file_info(infiles, cmd->numwapps, numfiles, cmd->windowP,
+         get_WAPP_file_info(infiles, cmd->numwapps, s.num_files, cmd->windowP,
                             cmd->clip, &N, &ptsperblock, &numchan, &dt, &T, &idata,
                             1);
-         WAPP_update_infodata(numfiles, &idata);
+         WAPP_update_infodata(s.num_files, &idata);
          set_WAPP_padvals(padvals, good_padvals);
       }
 
@@ -443,28 +387,28 @@ int main(int argc, char *argv[])
       do {
 
          if (cmd->pkmbP)
-            numread = read_PKMB(infiles, numfiles, outdata, worklen,
+            numread = read_PKMB(infiles, s.num_files, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked, &obsmask);
          else if (cmd->bcpmP)
-            numread = read_BPP(infiles, numfiles, outdata, worklen,
+            numread = read_BPP(infiles, s.num_files, outdata, worklen,
                                dispdt, &padding, maskchans, &nummasked,
                                &obsmask, ifs);
          else if (cmd->spigotP)
-            numread = read_SPIGOT(infiles, numfiles, outdata, worklen,
+            numread = read_SPIGOT(infiles, s.num_files, outdata, worklen,
                                   dispdt, &padding, maskchans, &nummasked,
                                   &obsmask, ifs);
          else if (cmd->psrfitsP)
             numread = read_PSRFITS(outdata, worklen, dispdt, &padding, 
                                    maskchans, &nummasked, &obsmask);
          else if (cmd->wappP)
-            numread = read_WAPP(infiles, numfiles, outdata, worklen,
+            numread = read_WAPP(infiles, s.num_files, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked,
                                 &obsmask, ifs);
          else if (cmd->gmrtP)
-            numread = read_GMRT(infiles, numfiles, outdata, worklen,
+            numread = read_GMRT(infiles, s.num_files, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked, &obsmask);
          else if (cmd->filterbankP)
-            numread = read_filterbank(infiles, numfiles, outdata, worklen,
+            numread = read_filterbank(infiles, s.num_files, outdata, worklen,
                                       idispdt, &padding, maskchans, &nummasked,
                                       &obsmask);
          else
@@ -636,28 +580,28 @@ int main(int argc, char *argv[])
          double block_avg, block_var;
 
          if (cmd->pkmbP)
-            numread = read_PKMB(infiles, numfiles, outdata, worklen,
+            numread = read_PKMB(infiles, s.num_files, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked, &obsmask);
          else if (cmd->bcpmP)
-            numread = read_BPP(infiles, numfiles, outdata, worklen,
+            numread = read_BPP(infiles, s.num_files, outdata, worklen,
                                dispdt, &padding, maskchans, &nummasked,
                                &obsmask, ifs);
          else if (cmd->spigotP)
-            numread = read_SPIGOT(infiles, numfiles, outdata, worklen,
+            numread = read_SPIGOT(infiles, s.num_files, outdata, worklen,
                                   dispdt, &padding, maskchans, &nummasked,
                                   &obsmask, ifs);
          else if (cmd->psrfitsP)
             numread = read_PSRFITS(outdata, worklen, dispdt, &padding, 
                                    maskchans, &nummasked, &obsmask);
          else if (cmd->wappP)
-            numread = read_WAPP(infiles, numfiles, outdata, worklen,
+            numread = read_WAPP(infiles, s.num_files, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked,
                                 &obsmask, ifs);
          else if (cmd->gmrtP)
-            numread = read_GMRT(infiles, numfiles, outdata, worklen,
+            numread = read_GMRT(infiles, s.num_files, outdata, worklen,
                                 dispdt, &padding, maskchans, &nummasked, &obsmask);
          else if (cmd->filterbankP)
-            numread = read_filterbank(infiles, numfiles, outdata, worklen,
+            numread = read_filterbank(infiles, s.num_files, outdata, worklen,
                                       idispdt, &padding, maskchans, &nummasked,
                                       &obsmask);
          else if (useshorts)
@@ -825,7 +769,7 @@ int main(int argc, char *argv[])
 
    /* Close the files */
 
-   for (ii = 0; ii < numfiles; ii++)
+   for (ii = 0; ii < s.num_files; ii++)
       fclose(infiles[ii]);
    free(infiles);
    fclose(outfile);
