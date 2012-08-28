@@ -3,13 +3,7 @@
 #include "prepdata_cmd.h"
 #include "presto.h"
 #include "mask.h"
-#include "multibeam.h"
-#include "bpp.h"
-#include "wapp.h"
-#include "gmrt.h"
-#include "spigot.h"
-#include "sigproc_fb.h"
-#include "psrfits.h"
+#include "backend_common.h"
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 20.0
@@ -56,7 +50,6 @@ int main(int argc, char *argv[])
    long padwrote = 0, padtowrite = 0, statnum = 0;
    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
    int *idispdt;
-   IFs ifs = SUMIFS;
    spectra_info s;
    infodata idata;
    Cmdline *cmd;
@@ -75,7 +68,11 @@ int main(int argc, char *argv[])
    s.filenames = cmd->argv;
    s.num_files = cmd->argc;
    s.clip_sigma = cmd->clip;
-   if (cmd->invertP) s.apply_flipband = 1;
+   s.apply_flipband = (cmd->invertP) ? 1 : 0;
+   // -1 causes the data to determine if we use weights, scales, & offsets for PSRFITS
+   s.apply_weight = (cmd->noweightsP) ? 0 : -1;
+   s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
+   s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
    if (cmd->noclipP) {
        cmd->clip = 0.0;
        s.clip_sigma = 0.0;
@@ -153,133 +150,34 @@ int main(int argc, char *argv[])
    }
 
    if (RAWDATA) {
-      double dt, T;
-      int ptsperblock;
-      long long N;
-
-      /* Set-up values if we are using the Parkes multibeam */
-      if (cmd->pkmbP) {
-         PKMB_tapehdr hdr;
-
-         printf("Filterbank input file information:\n");
-         get_PKMB_file_info(infiles, s.num_files, cmd->clip, &N, &ptsperblock, 
-                            &numchan, &dt, &T, 1);
-         /* Read the first header file and generate an infofile from it */
-         chkfread(&hdr, 1, HDRLEN, infiles[0]);
-         rewind(infiles[0]);
-         PKMB_hdr_to_inf(&hdr, &idata);
-         PKMB_update_infodata(s.num_files, &idata);
-      }
-
-      /* Set-up values if we are using the GMRT Phased Array system */
-      if (cmd->gmrtP) {
-         printf("GMRT input file information:\n");
-         get_GMRT_file_info(infiles, argv + 1, s.num_files, cmd->clip, &N, &ptsperblock,
-                            &numchan, &dt, &T, 1);
-         /* Read the first header file and generate an infofile from it */
-         GMRT_hdr_to_inf(argv[1], &idata);
-         GMRT_update_infodata(s.num_files, &idata);
-         set_GMRT_padvals(padvals, good_padvals);
-         /* OBS code for TEMPO for the GMRT */
-         strcpy(obs, "GM");
-      }
-
-      if (cmd->filterbankP) {
-         int headerlen;
-         sigprocfb fb;
-
-         /* Read the first header file and generate an infofile from it */
-         rewind(infiles[0]);
-         headerlen = read_filterbank_header(&fb, infiles[0]);
-         sigprocfb_to_inf(&fb, &idata);
-         rewind(infiles[0]);
-         printf("SIGPROC filterbank input file information:\n");
-         get_filterbank_file_info(infiles, s.num_files, cmd->clip,
-                                  &N, &ptsperblock, &numchan, &dt, &T, 1);
-         filterbank_update_infodata(s.num_files, &idata);
-         set_filterbank_padvals(padvals, good_padvals);
-      }
-
-      /* Set-up values if we are using the Berkeley-Caltech */
-      /* Pulsar Machine (or BPP) format.                    */
-      if (cmd->bcpmP) {
-         printf("BCPM input file information:\n");
-         get_BPP_file_info(infiles, s.num_files, cmd->clip, &N, &ptsperblock, &numchan,
-                           &dt, &T, &idata, 1);
-         BPP_update_infodata(s.num_files, &idata);
-         set_BPP_padvals(padvals, good_padvals);
-      }
-
-      /* Set-up values if we are using the NRAO-Caltech Spigot card */
-      if (cmd->spigotP) {
-         SPIGOT_INFO *spigots;
-
-         printf("Spigot card input file information:\n");
-         spigots = (SPIGOT_INFO *) malloc(sizeof(SPIGOT_INFO) * s.num_files);
-         for (ii = 0; ii < s.num_files; ii++)
-            read_SPIGOT_header(cmd->argv[ii], spigots + ii);
-         get_SPIGOT_file_info(infiles, spigots, s.num_files, cmd->windowP, cmd->clip,
-                              &N, &ptsperblock, &numchan, &dt, &T, &idata, 1);
-         SPIGOT_update_infodata(s.num_files, &idata);
-         set_SPIGOT_padvals(padvals, good_padvals);
-         free(spigots);
-      }
-
-      /* Set-up values if we are using search-mode PSRFITS data */
-      if (cmd->psrfitsP) {
-         struct spectra_info s;
-         
-         printf("PSRFITS input file information:\n");
-          // -1 causes the data to determine if we use weights, scales, & offsets
-         s.apply_weight = (cmd->noweightsP) ? 0 : -1;
-         s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
-         s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
-         read_PSRFITS_files(cmd->argv, cmd->argc, &s);
-         N = s.N;
-         ptsperblock = s.spectra_per_subint;
-         numchan = s.num_channels;
-         dt = s.dt;
-         T = s.T;
-         get_PSRFITS_file_info(cmd->argv, cmd->argc, cmd->clip, 
-                               &s, &idata, 1);
-         PSRFITS_update_infodata(&idata);
-         set_PSRFITS_padvals(padvals, good_padvals);
-      }
-
-      /* Set-up values if we are using the Arecibo WAPP */
-      if (cmd->wappP) {
-         printf("WAPP input file information:\n");
-         get_WAPP_file_info(infiles, cmd->numwapps, s.num_files, cmd->windowP,
-                            cmd->clip, &N, &ptsperblock, &numchan, &dt, &T, &idata,
-                            1);
-         WAPP_update_infodata(s.num_files, &idata);
-         set_WAPP_padvals(padvals, good_padvals);
-      }
-
-      /* Finish setting up stuff common to all raw formats */
-      idata.dm = cmd->dm;
-      worklen = ptsperblock;
-      if (cmd->maskfileP)
-         maskchans = gen_ivect(idata.num_chan);
-      /* Compare the size of the data to the size of output we request */
-      if (cmd->numoutP) {
-         dtmp = idata.N;
-         idata.N = cmd->numout;
-         writeinf(&idata);
-         idata.N = dtmp;
-      } else {
-         cmd->numout = INT_MAX;
-         writeinf(&idata);
-      }
-      /* The number of topo to bary time points to generate with TEMPO */
-      numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
-
-      // Identify the TEMPO observatory code
-      {
-          char *outscope = (char *) calloc(40, sizeof(char));
-          telescope_to_tempocode(idata.telescope, outscope, obs);
-          free(outscope);
-      }
+       read_rawdata_files(&s);
+       print_spectra_info_summary(&s);
+       spectra_info_to_inf(&s, &idata);
+       
+       /* Finish setting up stuff common to all raw formats */
+       idata.dm = cmd->dm;
+       worklen = s.spectra_per_subint;
+       if (cmd->maskfileP)
+           maskchans = gen_ivect(idata.num_chan);
+       /* Compare the size of the data to the size of output we request */
+       if (cmd->numoutP) {
+           dtmp = idata.N;
+           idata.N = cmd->numout;
+           writeinf(&idata);
+           idata.N = dtmp;
+       } else {
+           cmd->numout = INT_MAX;
+           writeinf(&idata);
+       }
+       /* The number of topo to bary time points to generate with TEMPO */
+       numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
+       
+       // Identify the TEMPO observatory code
+       {
+           char *outscope = (char *) calloc(40, sizeof(char));
+           telescope_to_tempocode(idata.telescope, outscope, obs);
+           free(outscope);
+       }
    }
 
    /* Determine our initialization data if we do _not_ have Parkes, */
@@ -385,75 +283,54 @@ int main(int argc, char *argv[])
       printf("Amount Complete = 0%%");
 
       do {
+          if (RAWDATA) 
+              numread = read_psrdata(outdata, worklen, &s, dispdt, &padding, 
+                                     maskchans, &nummasked, &obsmask);
+          else if (useshorts)
+              numread = read_shorts(infiles[0], outdata, worklen, numchan);
+          else
+              numread = read_floats(infiles[0], outdata, worklen, numchan);
+          if (numread == 0)
+              break;
+          
+          /* Downsample if requested */
+          if (cmd->downsamp > 1)
+              numread = downsample(outdata, numread, cmd->downsamp);
 
-         if (cmd->pkmbP)
-            numread = read_PKMB(infiles, s.num_files, outdata, worklen,
-                                dispdt, &padding, maskchans, &nummasked, &obsmask);
-         else if (cmd->bcpmP)
-            numread = read_BPP(infiles, s.num_files, outdata, worklen,
-                               dispdt, &padding, maskchans, &nummasked,
-                               &obsmask, ifs);
-         else if (cmd->spigotP)
-            numread = read_SPIGOT(infiles, s.num_files, outdata, worklen,
-                                  dispdt, &padding, maskchans, &nummasked,
-                                  &obsmask, ifs);
-         else if (cmd->psrfitsP)
-            numread = read_PSRFITS(outdata, worklen, dispdt, &padding, 
-                                   maskchans, &nummasked, &obsmask);
-         else if (cmd->wappP)
-            numread = read_WAPP(infiles, s.num_files, outdata, worklen,
-                                dispdt, &padding, maskchans, &nummasked,
-                                &obsmask, ifs);
-         else if (cmd->gmrtP)
-            numread = read_GMRT(infiles, s.num_files, outdata, worklen,
-                                dispdt, &padding, maskchans, &nummasked, &obsmask);
-         else if (cmd->filterbankP)
-            numread = read_filterbank(infiles, s.num_files, outdata, worklen,
-                                      idispdt, &padding, maskchans, &nummasked,
-                                      &obsmask);
-         else
-            numread = read_floats(infiles[0], outdata, worklen, numchan);
-         if (numread == 0)
-            break;
+          /* Print percent complete */
+          if (cmd->numoutP)
+              newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
+          else
+              newper = (int) ((float) totwrote * cmd->downsamp * 100.0 / idata.N) + 1;
+          if (newper > oldper) {
+              printf("\rAmount Complete = %3d%%", newper);
+              fflush(stdout);
+              oldper = newper;
+          }
+          
+          /* Write the latest chunk of data, but don't   */
+          /* write more than cmd->numout points.         */
+          numtowrite = numread;
+          if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+              numtowrite = cmd->numout - totwrote;
+          chkfwrite(outdata, sizeof(float), numtowrite, outfile);
+          totwrote += numtowrite;
+          
+          /* Update the statistics */
+          if (!padding) {
+              for (ii = 0; ii < numtowrite; ii++)
+                  update_stats(statnum + ii, outdata[ii], &min, &max, &avg, &var);
+              statnum += numtowrite;
+          }
 
-         /* Downsample if requested */
-         if (cmd->downsamp > 1)
-            numread = downsample(outdata, numread, cmd->downsamp);
-
-         /* Print percent complete */
-         if (cmd->numoutP)
-            newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
-         else
-            newper = (int) ((float) totwrote * cmd->downsamp * 100.0 / idata.N) + 1;
-         if (newper > oldper) {
-            printf("\rAmount Complete = %3d%%", newper);
-            fflush(stdout);
-            oldper = newper;
-         }
-
-         /* Write the latest chunk of data, but don't   */
-         /* write more than cmd->numout points.         */
-         numtowrite = numread;
-         if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
-            numtowrite = cmd->numout - totwrote;
-         chkfwrite(outdata, sizeof(float), numtowrite, outfile);
-         totwrote += numtowrite;
-
-         /* Update the statistics */
-         if (!padding) {
-            for (ii = 0; ii < numtowrite; ii++)
-               update_stats(statnum + ii, outdata[ii], &min, &max, &avg, &var);
-            statnum += numtowrite;
-         }
-
-         /* Stop if we have written out all the data we need to */
-         if (cmd->numoutP && (totwrote == cmd->numout))
-            break;
-
+          /* Stop if we have written out all the data we need to */
+          if (cmd->numoutP && (totwrote == cmd->numout))
+              break;
+          
       } while (numread);
-
+      
       datawrote = totwrote;
-
+      
    } else {                     /* Main loop if we are barycentering... */
 
       double avgvoverc = 0.0, maxvoverc = -1.0, minvoverc = 1.0, *voverc = NULL;
@@ -576,59 +453,37 @@ int main(int argc, char *argv[])
       outdata = gen_fvect(worklen);
 
       do {                      /* Loop to read and write the data */
-         int numwritten = 0;
-         double block_avg, block_var;
-
-         if (cmd->pkmbP)
-            numread = read_PKMB(infiles, s.num_files, outdata, worklen,
-                                dispdt, &padding, maskchans, &nummasked, &obsmask);
-         else if (cmd->bcpmP)
-            numread = read_BPP(infiles, s.num_files, outdata, worklen,
-                               dispdt, &padding, maskchans, &nummasked,
-                               &obsmask, ifs);
-         else if (cmd->spigotP)
-            numread = read_SPIGOT(infiles, s.num_files, outdata, worklen,
-                                  dispdt, &padding, maskchans, &nummasked,
-                                  &obsmask, ifs);
-         else if (cmd->psrfitsP)
-            numread = read_PSRFITS(outdata, worklen, dispdt, &padding, 
-                                   maskchans, &nummasked, &obsmask);
-         else if (cmd->wappP)
-            numread = read_WAPP(infiles, s.num_files, outdata, worklen,
-                                dispdt, &padding, maskchans, &nummasked,
-                                &obsmask, ifs);
-         else if (cmd->gmrtP)
-            numread = read_GMRT(infiles, s.num_files, outdata, worklen,
-                                dispdt, &padding, maskchans, &nummasked, &obsmask);
-         else if (cmd->filterbankP)
-            numread = read_filterbank(infiles, s.num_files, outdata, worklen,
-                                      idispdt, &padding, maskchans, &nummasked,
-                                      &obsmask);
-         else if (useshorts)
-            numread = read_shorts(infiles[0], outdata, worklen, numchan);
-         else
-            numread = read_floats(infiles[0], outdata, worklen, numchan);
-         if (numread == 0)
-            break;
-
-         /* Downsample if requested */
-         if (cmd->downsamp > 1)
-            numread = downsample(outdata, numread, cmd->downsamp);
-
-         /* Determine the approximate local average */
-         avg_var(outdata, numread, &block_avg, &block_var);
-
-         /* Print percent complete */
-
-         if (cmd->numoutP)
-            newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
-         else
-            newper = (int) ((float) totwrote * cmd->downsamp * 100.0 / idata.N) + 1;
-         if (newper > oldper) {
-            printf("\rAmount Complete = %3d%%", newper);
-            fflush(stdout);
-            oldper = newper;
-         }
+          int numwritten = 0;
+          double block_avg, block_var;
+          
+          if (RAWDATA) 
+              numread = read_psrdata(outdata, worklen, &s, dispdt, &padding, 
+                                     maskchans, &nummasked, &obsmask);
+          else if (useshorts)
+              numread = read_shorts(infiles[0], outdata, worklen, numchan);
+          else
+              numread = read_floats(infiles[0], outdata, worklen, numchan);
+          if (numread == 0)
+              break;
+          
+          /* Downsample if requested */
+          if (cmd->downsamp > 1)
+              numread = downsample(outdata, numread, cmd->downsamp);
+          
+          /* Determine the approximate local average */
+          avg_var(outdata, numread, &block_avg, &block_var);
+          
+          /* Print percent complete */
+          
+          if (cmd->numoutP)
+              newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
+          else
+              newper = (int) ((float) totwrote * cmd->downsamp * 100.0 / idata.N) + 1;
+          if (newper > oldper) {
+              printf("\rAmount Complete = %3d%%", newper);
+              fflush(stdout);
+              oldper = newper;
+          }
 
          /* Simply write the data if we don't have to add or */
          /* remove any bins from this batch.                 */
