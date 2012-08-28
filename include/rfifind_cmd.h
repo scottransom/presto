@@ -49,6 +49,8 @@ typedef struct s_Cmdline {
   int clipC;
   /***** -noclip: Do not clip the data.  (The default is to _always_ clip!) */
   char noclipP;
+  /***** -invert: For rawdata, flip (or invert) the band */
+  char invertP;
   /***** -xwin: Draw plots to the screen as well as a PS file */
   char xwinP;
   /***** -nocompute: Just plot and remake the mask */

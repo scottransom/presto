@@ -62,6 +62,8 @@ static Cmdline cmd = {
   /* clipC = */ 1,
   /***** -noclip: Do not clip the data.  (The default is to _always_ clip!) */
   /* noclipP = */ 0,
+  /***** -invert: For rawdata, flip (or invert) the band */
+  /* invertP = */ 0,
   /***** -runavg: Running mean subtraction from the input data */
   /* runavgP = */ 0,
   /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
@@ -941,6 +943,13 @@ showOptionValues(void)
     printf("-noclip found:\n");
   }
 
+  /***** -invert: For rawdata, flip (or invert) the band */
+  if( !cmd.invertP ) {
+    printf("-invert not found.\n");
+  } else {
+    printf("-invert found:\n");
+  }
+
   /***** -runavg: Running mean subtraction from the input data */
   if( !cmd.runavgP ) {
     printf("-runavg not found.\n");
@@ -1067,7 +1076,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-runavg] [-zerodm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-runavg] [-zerodm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1091,6 +1100,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 float value between 0 and 1000.0\n");
   fprintf(stderr,"%s","                 default: `6.0'\n");
   fprintf(stderr,"%s","        -noclip: Do not clip the data.  (The default is to _always_ clip!)\n");
+  fprintf(stderr,"%s","        -invert: For rawdata, flip (or invert) the band\n");
   fprintf(stderr,"%s","        -runavg: Running mean subtraction from the input data\n");
   fprintf(stderr,"%s","        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n");
   fprintf(stderr,"%s","        -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n");
@@ -1116,7 +1126,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...16384 values\n");
-  fprintf(stderr,"%s","  version: 14Oct11\n");
+  fprintf(stderr,"%s","  version: 28Aug12\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1230,6 +1240,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-noclip", argv[i]) ) {
       cmd.noclipP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-invert", argv[i]) ) {
+      cmd.invertP = 1;
       continue;
     }
 
