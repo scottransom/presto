@@ -18,6 +18,8 @@
 #define NUMFILTERS 11
 #define MAXNUMONOFF 40
 
+#ifndef INFODATA_DEFINED
+#define INFODATA_DEFINED
 typedef struct INFODATA {
     double ra_s;		/* Right ascension seconds (J2000)       */
     double dec_s;		/* Declination seconds (J2000)           */ 
@@ -52,6 +54,7 @@ typedef struct INFODATA {
     char band[40];		/* Type of observation (EM band)         */
     char filt[7];		/* IR,Opt,UV -- Photometric Filter       */
 } infodata;
+#endif
 
 void readinf(infodata * data, char *filenm);
 void writeinf(infodata * data);
