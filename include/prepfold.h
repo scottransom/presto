@@ -80,9 +80,9 @@ int read_shorts(FILE *file, float *data, int numpts, int numchan);
 /* The equivalent floats are placed in *data.               */
 /* It returns the number of points read.                    */
 
-int read_subbands(FILE *infiles[], int numfiles, float *subbanddata, 
-		  double timeperblk, int *maskchans, 
-		  int *nummasked, mask *obsmask, float *padvals);
+int read_PRESTO_subbands(FILE *infiles[], int numfiles, float *subbanddata, 
+                         double timeperblk, int *maskchans, 
+                         int *nummasked, mask *obsmask, float *padvals);
 /* Read short int subband data written by prepsubband */
 
 double *read_events(FILE *infile, int bin, int days, int *numevents,

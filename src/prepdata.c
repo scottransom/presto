@@ -16,8 +16,7 @@
 #define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
-                 cmd->gmrtP || cmd->spigotP || cmd->filterbankP || \
-                 cmd->psrfitsP)
+                 cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
 /* Some function definitions */
 static int read_floats(FILE * file, float *data, int numpts, int numchan);
@@ -97,7 +96,6 @@ int main(int argc, char *argv[])
        else if (s.datatype==PSRFITS) cmd->psrfitsP = 1;
        else if (s.datatype==SCAMP) cmd->pkmbP = 1;
        else if (s.datatype==BPP) cmd->bcpmP = 1;
-       else if (s.datatype==GMRT) cmd->gmrtP = 1;
        else if (s.datatype==WAPP) cmd->wappP = 1;
        else if (s.datatype==SPIGOT) cmd->spigotP = 1;
        else if (s.datatype==SDAT) useshorts = 1;
@@ -145,7 +143,7 @@ int main(int argc, char *argv[])
    if (cmd->maskfileP) {
       read_mask(cmd->maskfile, &obsmask);
       printf("Read mask information from '%s'\n\n", cmd->maskfile);
-      good_padvals = determine_padvals(cmd->maskfile, &obsmask, &s.padvals);
+      good_padvals = determine_padvals(cmd->maskfile, &obsmask, s.padvals);
    } else {
       obsmask.numchan = obsmask.numint = 0;
    }

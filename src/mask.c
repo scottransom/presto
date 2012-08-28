@@ -176,11 +176,11 @@ void calc_avgmedstd(float *arr, int numarr, float fraction,
 }
 
 
-int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals[])
-/* Determine reasonable padding values from the rfifind produced  */
-/* *.stats file if it is available.  Return the allocated vector  */
-/* (of length numchan) in padvals.  Return a '1' if the routine   */
-/* used the stats file, return 0 if the padding was set to aeros. */
+int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals)
+// Determine reasonable padding values from the rfifind produced
+// *.stats file if it is available.  The pre-allocated vector (of
+// length numchan) is in padvals.  Return a '1' if the routine used
+// the stats file, return 0 if the padding was set to aeros.
 {
    FILE *statsfile;
    int ii, numchan, numint, ptsperint, lobin, numbetween;
@@ -196,7 +196,6 @@ int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals[])
       sprintf(statsfilenm, "%s.stats", root);
       free(root);
       free(suffix);
-      *padvals = gen_fvect(obsmask->numchan);
       /* Check to see if the file exists */
       printf("Attempting to read the data statistics from '%s'...\n", statsfilenm);
       statsfile = chkfopen(statsfilenm, "rb");

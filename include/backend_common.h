@@ -4,7 +4,7 @@
 
 
 typedef enum {
-    SIGPROCFB, PSRFITS, SCAMP, BPP, WAPP, GMRT, SPIGOT, \
+    SIGPROCFB, PSRFITS, SCAMP, BPP, WAPP, SPIGOT, \
     SUBBAND, DAT, SDAT, EVENTS, UNSET
 } psrdatatype;
 

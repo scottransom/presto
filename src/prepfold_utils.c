@@ -180,9 +180,9 @@ int read_shorts(FILE * file, float *data, int numpts, int numchan)
 }
 
 
-int read_subbands(FILE * infiles[], int numfiles, float *subbanddata,
-                  double timeperblk, int *maskchans,
-                  int *nummasked, mask * obsmask, float *padvals)
+int read_PRESTO_subbands(FILE * infiles[], int numfiles, float *subbanddata,
+                         double timeperblk, int *maskchans,
+                         int *nummasked, mask * obsmask, float *padvals)
 /* Read short int subband data written by prepsubband     */
 /* Note:  This version returns a transpose of the version */
 /*        listed in prepsubband.c                         */

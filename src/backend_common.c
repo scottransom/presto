@@ -30,7 +30,6 @@ void psrdatatype_description(char *outstr, psrdatatype ptype)
     else if (ptype==PSRFITS) strcpy(outstr, "PSRFITS");
     else if (ptype==SCAMP)   strcpy(outstr, "SCAMP 1-bit filterbank");
     else if (ptype==BPP)     strcpy(outstr, "GBT BCPM");
-    else if (ptype==GMRT)    strcpy(outstr, "GMRT simple");
     else if (ptype==WAPP)    strcpy(outstr, "GBT/Caltech Spigot");
     else if (ptype==SPIGOT)  strcpy(outstr, "WAPP");
     else if (ptype==SUBBAND) strcpy(outstr, "PRESTO subband");
@@ -53,7 +52,7 @@ void identify_psrdatatype(struct spectra_info *s, int output)
     } else {
         if (strcmp(suffix, "dat") == 0) s->datatype = DAT;
         else if (strcmp(suffix, "sdat") == 0) s->datatype = SDAT;
-        else if (strncmp(suffix, "sub", 3) == 0) s->datatype = SUBBAND;
+        else if (strncmp(suffix, "sub0", 4) == 0) s->datatype = SUBBAND;
         else if (strcmp(suffix, "events") == 0) s->datatype = EVENTS;
         else if (strcmp(suffix, "bcpm1") == 0 || 
                  strcmp(suffix, "bcpm2") == 0) s->datatype = BPP;
@@ -65,7 +64,6 @@ void identify_psrdatatype(struct spectra_info *s, int output)
             else s->datatype = PSRFITS;
         }
         else if (strcmp(suffix, "pkmb") == 0) s->datatype = SCAMP;
-        else if (strncmp(suffix, "gmrt", 4) == 0) s->datatype = GMRT;
         else if (isdigit(suffix[0]) && 
                  isdigit(suffix[1]) &&
                  isdigit(suffix[2])) s->datatype = WAPP;
@@ -157,7 +155,6 @@ void read_rawdata_files(struct spectra_info *s)
     else if (s->datatype==PSRFITS) exit(1);
     else if (s->datatype==SCAMP) exit(1);
     else if (s->datatype==BPP) exit(1);
-    else if (s->datatype==GMRT) exit(1);
     else if (s->datatype==WAPP) exit(1);
     else if (s->datatype==SPIGOT) exit(1);
     return;
@@ -595,7 +592,7 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
 // 's->spectra_per_subint'.  The low freq subband is stored first,
 // then the next highest subband etc, with 's->spectra_per_subint'
 // floating points per subband.  It returns the # of points read if
-// succesful, 0 otherwise. If padding is returned as 1, then padding
+// successful, 0 otherwise. If padding is returned as 1, then padding
 // was added and statistics should not be calculated.  'maskchans' is
 // an array of length numchans which contains a list of the number of
 // channels that were masked.  The # of channels masked is returned in
