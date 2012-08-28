@@ -1,14 +1,39 @@
 #include "backend_common.h"
-#include "sigproc_fb.h"
 
 typedef enum {
     SIGPROCFB, PSRFITS, SCAMP, BPP, WAPP, GMRT, SPIGOT, 
     SUBBAND, DAT, SDAT, EVENTS, UNSET;
 } psrdatatype;
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
-                 cmd->gmrtP || cmd->spigotP || cmd->filterbankP || \
-                 cmd->psrfitsP)
+
+void psrdatatype_description(char *outstr, psrdatatype type)
+    switch(psrdatatype) {
+    case SIGPROCFB:
+        strcpy(outstr, "SIGPROC filterbank");
+        break;
+    case PSRFITS:
+        strcpy(outstr, "PSRFITS");
+        break;
+    case SCAMP:
+        strcpy(outstr, "SCAMP 1-bit filterbank");
+        break;
+    case BPP:
+        strcpy(outstr, "GBT BCPM");
+        break;
+    case GMRT:
+        strcpy(outstr, "GMRT simple");
+        break;
+    case SPIGOT:
+        strcpy(outstr, "GBT/Caltech Spigot");
+        break;
+    case WAPP:
+        strcpy(outstr, "WAPP");
+        break;
+    default:
+        strcpy(outstr, "Unknown");
+    }
+}
+
 
 void identify_psrdatatype(spectra_info *s, int output)
 {
@@ -60,35 +85,6 @@ void identify_psrdatatype(spectra_info *s, int output)
     free(suffix);
 }
 
-
-
-void psrdatatype_description(char *outstr, psrdatatype type)
-    switch(psrdatatype) {
-    case SIGPROCFB:
-        strcpy(outstr, "SIGPROC filterbank");
-        break;
-    case PSRFITS:
-        strcpy(outstr, "PSRFITS");
-        break;
-    case SCAMP:
-        strcpy(outstr, "SCAMP 1-bit filterbank");
-        break;
-    case BPP:
-        strcpy(outstr, "GBT BCPM");
-        break;
-    case GMRT:
-        strcpy(outstr, "GMRT simple");
-        break;
-    case SPIGOT:
-        strcpy(outstr, "GBT/Caltech Spigot");
-        break;
-    case WAPP:
-        strcpy(outstr, "WAPP");
-        break;
-    default:
-        strcpy(outstr, "Unknown");
-    }
-}
 
 
 void spectra_info_set_defaults(struct spectra_info *s) {
@@ -164,33 +160,37 @@ void spectra_info_set_defaults(struct spectra_info *s) {
 
 
 
-void print_PSRFITS_info(struct spectra_info *s)
+void print_spectra_info(struct spectra_info *s)
 // Output a spectra_info structure in human readable form
 {
-    int ii, numhdus, hdutype, status = 0, itmp;
-    char ctmp[40], comment[120];
-    double dtmp;
+    char ctmp[40];
 
-    printf("From the PSRFITS file '%s':\n", s->fitsfiles[0]->Fptr->filename);
-    fits_get_num_hdus(s->fitsfiles[0], &numhdus, &status);
-    printf("                       HDUs = primary, ");
-    for (ii = 2 ; ii < numhdus + 1 ; ii++) {
-        fits_movabs_hdu(s->fitsfiles[0], ii, &hdutype, &status);
-        fits_read_key(s->fitsfiles[0], TSTRING, "EXTNAME", ctmp, comment, &status);
-        printf("%s%s", ctmp, (ii < numhdus) ? ", " : "\n");
+    psrdatatype_description(ctmp, s->datatype);
+    printf("From the %s file '%s':\n", ctmp, s->fitsnames[0]);
+    if (strcmp(s->telescope, "unset"!=0))
+        printf("                  Telescope = %s\n", s->telescope);
+    if (strcmp(s->observer, "unset"!=0))
+        printf("                   Observer = %s\n", s->observer);
+    if (strcmp(s->source, "unset"!=0))
+        printf("                Source Name = %s\n", s->source);
+    if (strcmp(s->frontend, "unset"!=0))
+        printf("                   Frontend = %s\n", s->frontend);
+    if (strcmp(s->backend, "unset"!=0))
+        printf("                    Backend = %s\n", s->backend);
+    if (strcmp(s->project_id, "unset"!=0))
+        printf("                 Project ID = %s\n", s->project_id);
+    if (strcmp(s->date_obs, "unset"!=0))
+        printf("            Obs Date String = %s\n", s->date_obs);
+    if (s->datatype==PSRFITS) {
+        int itmp;
+        double dtmp;
+        DATEOBS_to_MJD(s->date_obs, &itmp, &dtmp);
+        sprintf(ctmp, "%.14f", dtmp);
+        printf("  MJD start time (DATE-OBS) = %5i.%14s\n", itmp, ctmp+2);
+        printf("     MJD start time (STT_*) = %19.14Lf\n", s->start_MJD[0]);
+    } else {
+        printf("             MJD start time = %19.14Lf\n", s->start_MJD[0]);
     }
-    printf("                  Telescope = %s\n", s->telescope);
-    printf("                   Observer = %s\n", s->observer);
-    printf("                Source Name = %s\n", s->source);
-    printf("                   Frontend = %s\n", s->frontend);
-    printf("                    Backend = %s\n", s->backend);
-    printf("                 Project ID = %s\n", s->project_id);
-    // printf("                Scan Number = %d\n", s->scan_number);
-    printf("            Obs Date String = %s\n", s->date_obs);
-    DATEOBS_to_MJD(s->date_obs, &itmp, &dtmp);
-    sprintf(ctmp, "%.14f", dtmp);
-    printf("  MJD start time (DATE-OBS) = %5i.%14s\n", itmp, ctmp+2);
-    printf("     MJD start time (STT_*) = %19.14Lf\n", s->start_MJD[0]);
     printf("                   RA J2000 = %s\n", s->ra_str);
     printf("             RA J2000 (deg) = %-17.15g\n", s->ra2000);
     printf("                  Dec J2000 = %s\n", s->dec_str);
@@ -198,14 +198,16 @@ void print_PSRFITS_info(struct spectra_info *s)
     printf("                  Tracking? = %s\n", s->tracking ? "True" : "False");
     printf("              Azimuth (deg) = %-.7g\n", s->azimuth);
     printf("           Zenith Ang (deg) = %-.7g\n", s->zenith_ang);
-    printf("          Polarization type = %s\n", s->poln_type);
+    if (strcmp(s->poln_type, "unset"!=0))
+        printf("          Polarization type = %s\n", s->poln_type);
     if (s->num_polns>=2 && !s->summed_polns)
         printf("            Number of polns = %d\n", s->num_polns);
     else if (s->summed_polns)
         printf("            Number of polns = 2 (summed)\n");
     else 
         printf("            Number of polns = 1\n");
-    printf("         Polarization order = %s\n", s->poln_order);
+    if (strcmp(s->poln_order, "unset"!=0))
+        printf("         Polarization order = %s\n", s->poln_order);
     printf("           Sample time (us) = %-17.15g\n", s->dt * 1e6);
     printf("         Central freq (MHz) = %-17.15g\n", s->fctr);
     printf("          Low channel (MHz) = %-17.15g\n", s->lo_freq);
@@ -218,6 +220,9 @@ void print_PSRFITS_info(struct spectra_info *s)
         printf("    DM used for chan dedisp = %-17.15g\n", s->chan_dm);
     }
     printf("      Total Bandwidth (MHz) = %-17.15g\n", s->BW);
+    if (s->num_beams > 0)
+        printf("                       Beam = %d of %d\n", s->beamnum, s->num_beams);
+    printf("            Beam FWHM (deg) = %.3f", s->beam_FWHM);
     printf("         Spectra per subint = %d\n", s->spectra_per_subint);
     printf("            Starting subint = %d\n", s->start_subint[0]);
     printf("           Subints per file = %d\n", s->num_subint[0]);
@@ -225,26 +230,66 @@ void print_PSRFITS_info(struct spectra_info *s)
     printf("      Time per subint (sec) = %-.12g\n", s->time_per_subint);
     printf("        Time per file (sec) = %-.12g\n", s->num_spec[0]*s->dt);
     printf("            bits per sample = %d\n", s->bits_per_sample);
-    if (s->bits_per_sample < 8)
-        itmp = (s->bytes_per_spectra * s->bits_per_sample) / 8;
-    else
-        itmp = s->bytes_per_spectra;
-    printf("          bytes per spectra = %d\n", itmp);
+    printf("          bytes per spectra = %d\n", s->bytes_per_spectra);
     printf("        samples per spectra = %d\n", s->samples_per_spectra);
-    if (s->bits_per_sample < 8)
-        itmp = (s->bytes_per_subint * s->bits_per_sample) / 8;
-    else
-        itmp = s->bytes_per_subint;
-    printf("           bytes per subint = %d\n", itmp);
+    printf("           bytes per subint = %d\n", s->bytes_per_subint);
     printf("         samples per subint = %d\n", s->samples_per_subint);
     printf("                zero offset = %-17.15g\n", s->zero_offset);
     printf("           Invert the band? = %s\n", s->apply_flipband ? "True" : "False");
+    if (s->header_offset!=NULL)
+        printf("       bytes in file header = %d\n", s->header_offset[0]);
+    if (s->datatype==PSRFITS) {
+        int ii, numhdus, hdutype, status = 0;
+        char comment[120];
+        printf("  PSRFITS Specific info:\n");
+        fits_get_num_hdus(s->fitsfiles[0], &numhdus, &status);
+        printf("                       HDUs = primary, ");
+        for (ii = 2 ; ii < numhdus + 1 ; ii++) {
+            fits_movabs_hdu(s->fitsfiles[0], ii, &hdutype, &status);
+            fits_read_key(s->fitsfiles[0], TSTRING, "EXTNAME", ctmp, comment, &status);
+            printf("%s%s", ctmp, (ii < numhdus) ? ", " : "\n");
+        }
+        printf("              FITS typecode = %d\n", s->FITS_typecode);
+        printf("                DATA column = %d\n", s->data_col);
+        printf("             Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
+        printf("             Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
+        printf("             Apply weights? = %s\n", s->apply_weight ? "True" : "False");
+    }
+}
 
-    printf("              FITS typecode = %d\n", s->FITS_typecode);
-    printf("                DATA column = %d\n", s->data_col);
-    printf("             Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
-    printf("             Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
-    printf("             Apply weights? = %s\n", s->apply_weight ? "True" : "False");
+
+void print_spectra_info_summary(struct spectra_info *s)
+// Print the basic details of the files that are being processed
+{
+    printf("    Number of files = %d\n", numfiles);
+    if (s->num_polns>=2 && !s->summed_polns)
+        printf("       Num of polns = %d\n", s->num_polns);
+    else if (s->summed_polns)
+        printf("       Num of polns = 2 (summed)\n");
+    else 
+        printf("       Num of polns = 1\n");
+    printf("  Center freq (MHz) = %.8g\n", s->fctr);
+    printf("    Num of channels = %d\n", s->num_channels);
+    printf("    Sample time (s) = %-14.14g\n", s->dt);
+    printf("     Spectra/subint = %d\n", s->spectra_per_subint);
+    printf("   Total points (N) = %lld\n", s->N);
+    printf("     Total time (s) = %-14.14g\n\n", s->T);
+    printf("     Clipping sigma = %.3f\n", s->clip_sigma);
+    if (s->zero_offset!=0.0)
+        printf("        zero offset = %-17.15g\n", s->zero_offset);
+    printf("   Invert the band? = %s\n", s->apply_flipband ? "True" : "False");
+    printf("          Byteswap? = %s\n", s->flip_bytes ? "True" : "False");
+    if (s->datatype==PSRFITS) {
+        printf("             Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
+        printf("             Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
+        printf("             Apply weights? = %s\n", s->apply_weight ? "True" : "False");
+    }
+    printf("File   Samples      Padding        Start MJD\n");
+    printf("----  ----------  ----------  --------------------\n");
+    for (ii = 0; ii < numfiles; ii++)
+        printf("%-4d  %10lld  %10lld  %19.14Lf\n", ii + 1,
+               s->num_spec[ii], s->num_pad[ii], s->start_MJD[ii]);
+    printf("\n");
 }
 
 
