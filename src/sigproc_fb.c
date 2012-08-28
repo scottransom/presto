@@ -309,7 +309,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
 
 
 
-int read_filterbank_files(struct spectra_info *s)
+void read_filterbank_files(struct spectra_info *s)
 {
     sigprocfb fb;
     int ii;

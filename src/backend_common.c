@@ -11,6 +11,7 @@ typedef enum {
     SUBBAND, DAT, SDAT, EVENTS, UNSET;
 } psrdatatype;
 
+extern void read_filterbank_files(struct spectra_info *s);
 
 void psrdatatype_description(char *outstr, psrdatatype type)
     switch(psrdatatype) {
@@ -165,6 +166,19 @@ void spectra_info_set_defaults(struct spectra_info *s) {
     s->num_pad = NULL;
 };
 
+void read_rawdata_files(struct spectra_info *s)
+{
+    if (s.datatype==SIGPROCFB) read_filterbank_files(s);
+    else if (s.datatype==PSRFITS) exit(1);
+    else if (s.datatype==SCAMP) exit(1);
+    else if (s.datatype==BPP) exit(1);
+    else if (s.datatype==GMRT) exit(1);
+    else if (s.datatype==WAPP) exit(1);
+    else if (s.datatype==SPIGOT) exit(1);
+    else if (s.datatype==SDAT) exit(1);
+    return;
+}
+
 
 
 void print_spectra_info(struct spectra_info *s)
@@ -303,6 +317,7 @@ void print_spectra_info_summary(struct spectra_info *s)
 void spectra_info_to_inf(struct spectra_info *s, infodata *idata)
 // Convert a spectra_info structure into an infodata structure
 {
+    int ii, index = 2;
     char ctmp[100];
     struct passwd *pwd;
     
@@ -336,6 +351,30 @@ void spectra_info_to_inf(struct spectra_info *s, infodata *idata)
                 s->num_polns, s->bits_per_sample);
     sprintf(idata->notes, "Project ID %s, Date: %s.\n    %s\n",
             s->project_id, s->date_obs, ctmp);
+    // If we have more than one input file, see it we need onoff bins
+    if (numfiles == 1 && s->num_pad[0] == 0) {
+        idata->numonoff = 0;
+        return;
+    }
+    /* Determine the topocentric onoff bins */
+    idata->numonoff = 1;
+    idata->onoff[0] = 0.0;
+    idata->onoff[1] = s->num_spec[0] - 1.0;
+    for (ii = 1; ii < numfiles; ii++) {
+        if (s->num_pad[ii - 1]) {
+            idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[ii - 1];
+            idata->onoff[index + 1] = idata->onoff[index] + s->num_spec[ii];
+            idata->numonoff++;
+            index += 2;
+        } else {
+            idata->onoff[index - 1] += s->num_spec[ii];
+        }
+    }
+    if (s->num_pad[numfiles - 1]) {
+        idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[numfiles - 1];
+        idata->onoff[index + 1] = idata->onoff[index];
+        idata->numonoff++;
+    }
 }
 
 
@@ -606,37 +645,4 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
    } else {
        return 0;
    }
-}
-
-
-
-void update_infodata(struct spectra_info *s, infodata *idata)
-// Update the onoff bins section in case we used multiple files
-{
-    int ii, index = 2;
-    
-    idata->N = s->N;
-    if (numfiles == 1 && s->num_pad[0] == 0) {
-        idata->numonoff = 0;
-        return;
-    }
-    /* Determine the topocentric onoff bins */
-    idata->numonoff = 1;
-    idata->onoff[0] = 0.0;
-    idata->onoff[1] = s->num_spec[0] - 1.0;
-    for (ii = 1; ii < numfiles; ii++) {
-        if (s->num_pad[ii - 1]) {
-            idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[ii - 1];
-            idata->onoff[index + 1] = idata->onoff[index] + s->num_spec[ii];
-            idata->numonoff++;
-            index += 2;
-        } else {
-            idata->onoff[index - 1] += s->num_spec[ii];
-        }
-    }
-    if (s->num_pad[numfiles - 1]) {
-        idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[numfiles - 1];
-        idata->onoff[index + 1] = idata->onoff[index];
-        idata->numonoff++;
-    }
 }
