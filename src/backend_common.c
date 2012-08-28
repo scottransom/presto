@@ -278,7 +278,7 @@ void print_spectra_info_summary(struct spectra_info *s)
     printf("    Sample time (s) = %-14.14g\n", s->dt);
     printf("     Spectra/subint = %d\n", s->spectra_per_subint);
     printf("   Total points (N) = %lld\n", s->N);
-    printf("     Total time (s) = %-14.14g\n\n", s->T);
+    printf("     Total time (s) = %-14.14g\n", s->T);
     printf("     Clipping sigma = %.3f\n", s->clip_sigma);
     if (s->zero_offset!=0.0)
         printf("        zero offset = %-17.15g\n", s->zero_offset);
@@ -289,7 +289,7 @@ void print_spectra_info_summary(struct spectra_info *s)
         printf("             Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
         printf("             Apply weights? = %s\n", s->apply_weight ? "True" : "False");
     }
-    printf("File   Samples      Padding        Start MJD\n");
+    printf("\nFile   Samples      Padding        Start MJD\n");
     printf("----  ----------  ----------  --------------------\n");
     for (ii = 0; ii < s->num_files; ii++)
         printf("%-4d  %10lld  %10lld  %19.14Lf\n", ii + 1,

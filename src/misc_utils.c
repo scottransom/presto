@@ -172,10 +172,10 @@ void mjd_to_datestr(double mjd, char *datestr)
     min = (int) dm;
     sec = (dm - min) * 60.0;
     if (sec < 10.0) {
-        sprintf(datestr, "%4d-%2d-%2dT%2d:%2d:0%.6g",
+        sprintf(datestr, "%4d-%02d-%02dT%2d:%02d:0%.6g",
                 year, month, day, hour, min, sec);
     } else {
-        sprintf(datestr, "%4d-%2d-%2dT%2d:%2d:%.6g",
+        sprintf(datestr, "%4d-%02d-%02dT%02d:%2d:%.6g",
                 year, month, day, hour, min, sec);
     }
 }

@@ -321,6 +321,7 @@ void read_filterbank_files(struct spectra_info *s)
     s->start_spec = (long long *)malloc(sizeof(long long) * s->num_files);
     s->num_spec = (long long *)malloc(sizeof(long long) * s->num_files);
     s->num_pad = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->start_MJD = (long double *)malloc(sizeof(long double) * s->num_files);
 #if DEBUG_OUT       
     printf("Reading '%s'\n", s->filenames[0]);
 #endif
@@ -424,8 +425,8 @@ void read_filterbank_files(struct spectra_info *s)
         s->num_pad[ii-1] = s->start_spec[ii] - s->N;
         s->num_spec[ii] = fb.N;
         s->N += s->num_spec[ii] + s->num_pad[ii-1];
-        s->T = s->N * s->dt;
     }
+    s->T = s->N * s->dt;
     s->num_pad[s->num_files-1] = 0L;
 }
 

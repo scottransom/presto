@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 {
    /* Any variable that begins with 't' means topocentric */
    /* Any variable that begins with 'b' means barycentric */
-   FILE **infiles, *outfile;
+   FILE *outfile;
    float *outdata = NULL;
    double tdf = 0.0, dtmp = 0.0, barydispdt = 0.0, dsdt = 0.0;
    double *dispdt, *tobsf = NULL, tlotoa = 0.0, blotoa = 0.0;
@@ -116,6 +116,7 @@ int main(int argc, char *argv[])
        readinf(&idata, root);
        free(root);
        free(suffix);
+       s.files = (FILE **)malloc(sizeof(FILE *));
        s.files[0] = chkfopen(s.filenames[0], "rb");
    } else {
        char description[40];
@@ -287,9 +288,9 @@ int main(int argc, char *argv[])
               numread = read_psrdata(outdata, worklen, &s, idispdt, &padding, 
                                      maskchans, &nummasked, &obsmask);
           else if (useshorts)
-              numread = read_shorts(infiles[0], outdata, worklen, numchan);
+              numread = read_shorts(s.files[0], outdata, worklen, numchan);
           else
-              numread = read_floats(infiles[0], outdata, worklen, numchan);
+              numread = read_floats(s.files[0], outdata, worklen, numchan);
           if (numread == 0)
               break;
           
@@ -460,9 +461,9 @@ int main(int argc, char *argv[])
               numread = read_psrdata(outdata, worklen, &s, idispdt, &padding, 
                                      maskchans, &nummasked, &obsmask);
           else if (useshorts)
-              numread = read_shorts(infiles[0], outdata, worklen, numchan);
+              numread = read_shorts(s.files[0], outdata, worklen, numchan);
           else
-              numread = read_floats(infiles[0], outdata, worklen, numchan);
+              numread = read_floats(s.files[0], outdata, worklen, numchan);
           if (numread == 0)
               break;
           
@@ -625,8 +626,8 @@ int main(int argc, char *argv[])
    /* Close the files */
 
    for (ii = 0; ii < s.num_files; ii++)
-      fclose(infiles[ii]);
-   free(infiles);
+      fclose(s.files[ii]);
+   free(s.files);
    fclose(outfile);
 
    /* Print simple stats and results */
