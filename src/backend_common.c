@@ -1,97 +1,81 @@
+#include <sys/types.h>
+#include <pwd.h>
+#include <ctype.h>
 #include "backend_common.h"
-
-// TODO:  need to handle currentblock and/or currentspectra
-//        also, using_MPI
+#include "misc_utils.h"
 
 static long long currentspectra = 0;
-static int using_MPI = 0;   // what about offset_to_spectra?
+static int using_MPI = 0;
 
-typedef enum {
-    SIGPROCFB, PSRFITS, SCAMP, BPP, WAPP, GMRT, SPIGOT, 
-    SUBBAND, DAT, SDAT, EVENTS, UNSET;
-} psrdatatype;
+#define SWAP(a,b) tmpswap=(a);(a)=(b);(b)=tmpswap;
+
+extern int clip_times(float *rawdata, int ptsperblk, int numchan, 
+                      float clip_sigma, float *good_chan_levels);
+extern void float_dedisp(float *data, float *lastdata,
+                         int numpts, int numchan,
+                         int *delays, float approx_mean, float *result);
+extern void dedisp_subbands(float *data, float *lastdata,
+                            int numpts, int numchan, 
+                            int *delays, int numsubbands, float *result);
+extern short transpose_float(float *a, int nx, int ny, unsigned char *move, 
+                             int move_size);
+
 
 extern void read_filterbank_files(struct spectra_info *s);
 
-void psrdatatype_description(char *outstr, psrdatatype type)
-    switch(psrdatatype) {
-    case SIGPROCFB:
-        strcpy(outstr, "SIGPROC filterbank");
-        break;
-    case PSRFITS:
-        strcpy(outstr, "PSRFITS");
-        break;
-    case SCAMP:
-        strcpy(outstr, "SCAMP 1-bit filterbank");
-        break;
-    case BPP:
-        strcpy(outstr, "GBT BCPM");
-        break;
-    case GMRT:
-        strcpy(outstr, "GMRT simple");
-        break;
-    case SPIGOT:
-        strcpy(outstr, "GBT/Caltech Spigot");
-        break;
-    case WAPP:
-        strcpy(outstr, "WAPP");
-        break;
-    default:
-        strcpy(outstr, "Unknown");
-    }
+
+void psrdatatype_description(char *outstr, psrdatatype ptype)
+{
+    if (ptype==SIGPROCFB)    strcpy(outstr, "SIGPROC filterbank");
+    else if (ptype==PSRFITS) strcpy(outstr, "PSRFITS");
+    else if (ptype==SCAMP)   strcpy(outstr, "SCAMP 1-bit filterbank");
+    else if (ptype==BPP)     strcpy(outstr, "GBT BCPM");
+    else if (ptype==GMRT)    strcpy(outstr, "GMRT simple");
+    else if (ptype==WAPP)    strcpy(outstr, "GBT/Caltech Spigot");
+    else if (ptype==SPIGOT)  strcpy(outstr, "WAPP");
+    else if (ptype==SUBBAND) strcpy(outstr, "PRESTO subband");
+    else if (ptype==DAT)     strcpy(outstr, "PRESTO time series of floats");
+    else if (ptype==SDAT)    strcpy(outstr, "PRESTO time series of shorts");
+    else if (ptype==EVENTS)  strcpy(outstr, "Event list");
+    else strcpy(outstr, "Unknown");
+    return;
 }
 
 
-void identify_psrdatatype(spectra_info *s, int output)
+void identify_psrdatatype(struct spectra_info *s, int output)
 {
-    char *root, *suffix;
+    char *root, *suffix, ctmp[40];
     
     /* Split the filename into a rootname and a suffix */
     if (split_root_suffix(s->filenames[0], &root, &suffix) == 0) {
-        printf("\nThe input filename (%s) must have a suffix!\n\n", s->filenames[0]);
+        printf("Error:  The input filename (%s) must have a suffix!\n\n", s->filenames[0]);
         exit(1);
     } else {
-        if (strcmp(suffix, "dat") == 0) {
-            if (output) printf("Assuming the data are a PRESTO dat time series...\n");
-            s->datatype = DAT;
-        } else if (strcmp(suffix, "sdat") == 0) {
-            if (output) printf("Assuming the data are a PRESTO sdat time series...\n");
-            s->datatype = SDAT;
-        } else if (strncmp(suffix, "sub", 3) == 0) {
-            if (output) printf("Assuming the data are in PRESTO subband format...\n");
-            s->datatype = SUBBAND;
-        } else if (strcmp(suffix, "events") == 0) {
-            if (output) printf("Assuming the data are an event list...\n");
-            s->datatype = EVENTS;
-        } else if (strcmp(suffix, "bcpm1") == 0 || strcmp(suffix, "bcpm2") == 0) {
-            if (output) printf("Assuming the data are from a GBT BCPM...\n");
-            s->datatype = BPP;
-        } else if (strcmp(suffix, "fil") == 0 || strcmp(suffix, "fb") == 0) {
-            if (output) printf("Assuming the data are in SIGPROC filterbank format...\n");
-            s->datatype = SIGPROCFB;
-        } else if (strcmp(suffix, "fits") == 0) {
-            if (strstr(root, "spigot_5") != NULL) {
-                if (output) printf("Assuming the data are from the NRAO/Caltech Spigot...\n");
-                s->datatype = SPIGOT;
-            } else if (is_PSRFITS(filename)) {
-                if (output) printf("Assuming the data are in PSRFITS search-mode format...\n");
-                s->datatype = PSRFITS;
-            } 
-        } else if (strcmp(suffix, "pkmb") == 0) {
-            if (output) printf("Assuming the data are in 'SCAMP' 1-bit filterbank system...\n");
-            s->datatype = SCAMP;
-        } else if (strncmp(suffix, "gmrt", 4) == 0) {
-            if (output) printf("Assuming the data are from the GMRT Phased Array system...\n");
-            s->datatype = GMRT;
-        } else if (isdigit(suffix[0]) && isdigit(suffix[1]) && isdigit(suffix[2])) {
-            if (output) printf("Assuming the data are from the Arecibo WAPP system...\n");
-            s->datatype = WAPP;
+        if (strcmp(suffix, "dat") == 0) s->datatype = DAT;
+        else if (strcmp(suffix, "sdat") == 0) s->datatype = SDAT;
+        else if (strncmp(suffix, "sub", 3) == 0) s->datatype = SUBBAND;
+        else if (strcmp(suffix, "events") == 0) s->datatype = EVENTS;
+        else if (strcmp(suffix, "bcpm1") == 0 || 
+                 strcmp(suffix, "bcpm2") == 0) s->datatype = BPP;
+        else if (strcmp(suffix, "fil") == 0 || 
+                 strcmp(suffix, "fb") == 0) s->datatype = SIGPROCFB;
+        else if (strcmp(suffix, "fits") == 0) {
+            if (strstr(root, "spigot_5") != NULL) s->datatype = SPIGOT;
+//            else if (is_PSRFITS(s->filenames[0])) s->datatype = PSRFITS;
+            else s->datatype = PSRFITS;
         }
+        else if (strcmp(suffix, "pkmb") == 0) s->datatype = SCAMP;
+        else if (strncmp(suffix, "gmrt", 4) == 0) s->datatype = GMRT;
+        else if (isdigit(suffix[0]) && 
+                 isdigit(suffix[1]) &&
+                 isdigit(suffix[2])) s->datatype = WAPP;
+        else s->datatype = UNSET;
     }
+    psrdatatype_description(ctmp, s->datatype);        
+    if (output) printf("Assuming the data are %s format...\n", ctmp);
     free(root);
     free(suffix);
 }
-
 
 
 void spectra_info_set_defaults(struct spectra_info *s) {
@@ -166,19 +150,18 @@ void spectra_info_set_defaults(struct spectra_info *s) {
     s->num_pad = NULL;
 };
 
+
 void read_rawdata_files(struct spectra_info *s)
 {
-    if (s.datatype==SIGPROCFB) read_filterbank_files(s);
-    else if (s.datatype==PSRFITS) exit(1);
-    else if (s.datatype==SCAMP) exit(1);
-    else if (s.datatype==BPP) exit(1);
-    else if (s.datatype==GMRT) exit(1);
-    else if (s.datatype==WAPP) exit(1);
-    else if (s.datatype==SPIGOT) exit(1);
-    else if (s.datatype==SDAT) exit(1);
+    if (s->datatype==SIGPROCFB) read_filterbank_files(s);
+    else if (s->datatype==PSRFITS) exit(1);
+    else if (s->datatype==SCAMP) exit(1);
+    else if (s->datatype==BPP) exit(1);
+    else if (s->datatype==GMRT) exit(1);
+    else if (s->datatype==WAPP) exit(1);
+    else if (s->datatype==SPIGOT) exit(1);
     return;
 }
-
 
 
 void print_spectra_info(struct spectra_info *s)
@@ -187,25 +170,25 @@ void print_spectra_info(struct spectra_info *s)
     char ctmp[40];
 
     psrdatatype_description(ctmp, s->datatype);
-    printf("From the %s file '%s':\n", ctmp, s->fitsnames[0]);
-    if (strcmp(s->telescope, "unset"!=0))
+    printf("From the %s file '%s':\n", ctmp, s->filenames[0]);
+    if (strcmp(s->telescope, "unset")!=0)
         printf("                  Telescope = %s\n", s->telescope);
-    if (strcmp(s->observer, "unset"!=0))
+    if (strcmp(s->observer, "unset")!=0)
         printf("                   Observer = %s\n", s->observer);
-    if (strcmp(s->source, "unset"!=0))
+    if (strcmp(s->source, "unset")!=0)
         printf("                Source Name = %s\n", s->source);
-    if (strcmp(s->frontend, "unset"!=0))
+    if (strcmp(s->frontend, "unset")!=0)
         printf("                   Frontend = %s\n", s->frontend);
-    if (strcmp(s->backend, "unset"!=0))
+    if (strcmp(s->backend, "unset")!=0)
         printf("                    Backend = %s\n", s->backend);
-    if (strcmp(s->project_id, "unset"!=0))
+    if (strcmp(s->project_id, "unset")!=0)
         printf("                 Project ID = %s\n", s->project_id);
-    if (strcmp(s->date_obs, "unset"!=0))
+    if (strcmp(s->date_obs, "unset")!=0)
         printf("            Obs Date String = %s\n", s->date_obs);
     if (s->datatype==PSRFITS) {
         int itmp;
         double dtmp;
-        DATEOBS_to_MJD(s->date_obs, &itmp, &dtmp);
+        //       DATEOBS_to_MJD(s->date_obs, &itmp, &dtmp);
         sprintf(ctmp, "%.14f", dtmp);
         printf("  MJD start time (DATE-OBS) = %5i.%14s\n", itmp, ctmp+2);
         printf("     MJD start time (STT_*) = %19.14Lf\n", s->start_MJD[0]);
@@ -219,7 +202,7 @@ void print_spectra_info(struct spectra_info *s)
     printf("                  Tracking? = %s\n", s->tracking ? "True" : "False");
     printf("              Azimuth (deg) = %-.7g\n", s->azimuth);
     printf("           Zenith Ang (deg) = %-.7g\n", s->zenith_ang);
-    if (strcmp(s->poln_type, "unset"!=0))
+    if (strcmp(s->poln_type, "unset")!=0)
         printf("          Polarization type = %s\n", s->poln_type);
     if (s->num_polns>=2 && !s->summed_polns)
         printf("            Number of polns = %d\n", s->num_polns);
@@ -227,7 +210,7 @@ void print_spectra_info(struct spectra_info *s)
         printf("            Number of polns = 2 (summed)\n");
     else 
         printf("            Number of polns = 1\n");
-    if (strcmp(s->poln_order, "unset"!=0))
+    if (strcmp(s->poln_order, "unset")!=0)
         printf("         Polarization order = %s\n", s->poln_order);
     printf("           Sample time (us) = %-17.15g\n", s->dt * 1e6);
     printf("         Central freq (MHz) = %-17.15g\n", s->fctr);
@@ -282,7 +265,8 @@ void print_spectra_info(struct spectra_info *s)
 void print_spectra_info_summary(struct spectra_info *s)
 // Print the basic details of the files that are being processed
 {
-    printf("    Number of files = %d\n", numfiles);
+    int ii;
+    printf("    Number of files = %d\n", s->num_files);
     if (s->num_polns>=2 && !s->summed_polns)
         printf("       Num of polns = %d\n", s->num_polns);
     else if (s->summed_polns)
@@ -307,7 +291,7 @@ void print_spectra_info_summary(struct spectra_info *s)
     }
     printf("File   Samples      Padding        Start MJD\n");
     printf("----  ----------  ----------  --------------------\n");
-    for (ii = 0; ii < numfiles; ii++)
+    for (ii = 0; ii < s->num_files; ii++)
         printf("%-4d  %10lld  %10lld  %19.14Lf\n", ii + 1,
                s->num_spec[ii], s->num_pad[ii], s->start_MJD[ii]);
     printf("\n");
@@ -352,7 +336,7 @@ void spectra_info_to_inf(struct spectra_info *s, infodata *idata)
     sprintf(idata->notes, "Project ID %s, Date: %s.\n    %s\n",
             s->project_id, s->date_obs, ctmp);
     // If we have more than one input file, see it we need onoff bins
-    if (numfiles == 1 && s->num_pad[0] == 0) {
+    if (s->num_files == 1 && s->num_pad[0] == 0) {
         idata->numonoff = 0;
         return;
     }
@@ -360,7 +344,7 @@ void spectra_info_to_inf(struct spectra_info *s, infodata *idata)
     idata->numonoff = 1;
     idata->onoff[0] = 0.0;
     idata->onoff[1] = s->num_spec[0] - 1.0;
-    for (ii = 1; ii < numfiles; ii++) {
+    for (ii = 1; ii < s->num_files; ii++) {
         if (s->num_pad[ii - 1]) {
             idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[ii - 1];
             idata->onoff[index + 1] = idata->onoff[index] + s->num_spec[ii];
@@ -370,8 +354,8 @@ void spectra_info_to_inf(struct spectra_info *s, infodata *idata)
             idata->onoff[index - 1] += s->num_spec[ii];
         }
     }
-    if (s->num_pad[numfiles - 1]) {
-        idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[numfiles - 1];
+    if (s->num_pad[s->num_files - 1]) {
+        idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[s->num_files - 1];
         idata->onoff[index + 1] = idata->onoff[index];
         idata->numonoff++;
     }
@@ -423,7 +407,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
 {
    int ii, jj, numread = 0, offset;
    double starttime = 0.0;
-   static float *tempzz, *rawdata1, *rawdata2;
+   static float *tmpswap, *rawdata1, *rawdata2;
    static float *currentdata, *lastdata;
    static int firsttime = 1, numsubints = 1, allocd = 0, mask = 0;
    static double duration = 0.0;
@@ -456,8 +440,8 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
            currentspectra += numread * s->spectra_per_subint;
            
            /* Clip nasty RFI if requested and we're not masking all the channels */
-           if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-               clip_times(currentdata, numspect, s->num_channels, clip_sigma_st, s->padvals);
+           if ((s->clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
+               clip_times(currentdata, numspect, s->num_channels, s->clip_sigma, s->padvals);
            
            if (mask) {
                if (*nummasked == -1) {     /* If all channels are masked */
@@ -476,7 +460,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
                }
            }
            if (!firsttime)
-               float_dedisp(currentdata, lastdata, numspect, s->num_channels, delays, 0.0, data);
+               float_dedisp(currentdata, lastdata, numspect, s->num_channels, delays, 0.0, fdata);
            
            SWAP(currentdata, lastdata);
            if (numread != numsubints) {
@@ -534,7 +518,7 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
 {
    int ii, jj, trtn, offset;
    double starttime = 0.0;
-   static float *tempzz, *rawdata1, *rawdata2;
+   static float *tmpswap, *rawdata1, *rawdata2;
    static float *currentdata, *lastdata;
    static unsigned char *move;
    static int firsttime = 1, move_size = 0, mask = 0;
@@ -558,8 +542,8 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
       *nummasked = check_mask(starttime, s->time_per_subint, obsmask, maskchans);
 
    /* Clip nasty RFI if requested and we're not masking all the channels*/
-   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-      clip_times(currentdata, s->spectra_per_subint, s->num_channels, clip_sigma_st, s->padvals);
+   if ((s->clip_sigma > 0.0) && !(mask && (*nummasked == -1)))
+      clip_times(currentdata, s->spectra_per_subint, s->num_channels, s->clip_sigma, s->padvals);
 
    if (mask) {
       if (*nummasked == -1) {   /* If all channels are masked */
@@ -581,22 +565,22 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
    // In mpiprepsubband, the nodes do not call read_subbands() where
    // currentspectra gets incremented.
    if (using_MPI) currentspectra += s->spectra_per_subint;
-
+   
    if (firsttime) {
-      SWAP(currentdata, lastdata);
-      firsttime = 0;
-      return 0;
+       SWAP(currentdata, lastdata);
+       firsttime = 0;
+       return 0;
    } else {
-      dedisp_subbands(currentdata, lastdata, s->spectra_per_subint, s->num_channels,
-                      delays, numsubbands, data);
-      SWAP(currentdata, lastdata);
-      /* Transpose the data into vectors in the result array */
-      if (transpose) {
-         if ((trtn = transpose_float(data, s->spectra_per_subint, numsubbands,
-                                     move, move_size)) < 0)
-            printf("Error %d in transpose_float().\n", trtn);
-      }
-      return s->spectra_per_subint;
+       dedisp_subbands(currentdata, lastdata, s->spectra_per_subint, s->num_channels,
+                       delays, numsubbands, fdata);
+       SWAP(currentdata, lastdata);
+       /* Transpose the data into vectors in the result array */
+       if (transpose) {
+           if ((trtn = transpose_float(fdata, s->spectra_per_subint, numsubbands,
+                                       move, move_size)) < 0)
+               printf("Error %d in transpose_float().\n", trtn);
+       }
+       return s->spectra_per_subint;
    }
 }
 
@@ -624,7 +608,7 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
 
    if (firsttime) {
        frawdata = gen_fvect(s->num_channels * s->spectra_per_subint);
-       if (!get_rawblock(frawdata, s, padding)) {
+       if (!s->get_rawblock(frawdata, s, padding)) {
            printf("Error: problem reading the raw data file in read_subbands()\n");
            return 0;
        }
@@ -635,11 +619,11 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
        }
        firsttime = 0;
    }
-   if (!get_rawblock(infiles, numfiles, rawdata, padding)) {
+   if (!s->get_rawblock(frawdata, s, padding)) {
        return 0;
    }
-   if (prep_subbands(rawdata, data, delays, numsubbands,
-                     transpose, maskchans, nummasked, obsmask)==s->spectra_per_subint) {
+   if (prep_subbands(fdata, frawdata, delays, numsubbands, s, transpose,
+                     maskchans, nummasked, obsmask)==s->spectra_per_subint) {
        currentspectra += s->spectra_per_subint;
        return s->spectra_per_subint;
    } else {

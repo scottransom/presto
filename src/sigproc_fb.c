@@ -2,9 +2,7 @@
 #include "mask.h"
 #include "sigproc_fb.h"
 
-static spectra_info *datainfo_st;
 static unsigned char *cdatabuffer;
-static float padval = 0.0;
 static float *fdatabuffer;
 static int currentfile = 0, currentblock = 0;
 static int numbuffered = 0, numpadded = 0;
@@ -66,9 +64,9 @@ static void send_coords(double raj, double dej, double az, double za, FILE * out
       send_double("za_start", za, outfile);
 }
 
-void get_telescope_name(int telescope_id, spectra_info *s)
+void get_telescope_name(int telescope_id, struct spectra_info *s)
 {
-    float default_diam = 100.0, default_beam = 1.0;
+    float default_beam = 1.0;
     switch (telescope_id) {
     case 0:
         strcpy(s->telescope, "Fake");
@@ -126,7 +124,7 @@ void get_telescope_name(int telescope_id, spectra_info *s)
     }
 }
 
-void get_backend_name(int machine_id, spectra_info *s)
+void get_backend_name(int machine_id, struct spectra_info *s)
 {
     switch (machine_id) {
     case 0:
@@ -316,48 +314,47 @@ void read_filterbank_files(struct spectra_info *s)
 
     // s->num_files and s->filenames are assumed to be set
     s->datatype = SIGPROCFB;
-    s->num_files = numfiles;
-    s->files = (FILE **)malloc(sizeof(FILE *) * numfiles);
-    s->header_offset = get_ivect(numfiles);
-    s->start_subint = get_ivect(numfiles);
-    s->num_subint = get_ivect(numfiles);
-    s->start_spec = (long long)malloc(sizeof(long long) * numfiles);
-    s->num_spec = (long long)malloc(sizeof(long long) * numfiles);
-    s->num_pad = (long long)malloc(sizeof(long long) * numfiles);
+    s->files = (FILE **)malloc(sizeof(FILE *) * s->num_files);
+    s->header_offset = gen_ivect(s->num_files);
+    s->start_subint = gen_ivect(s->num_files);
+    s->num_subint = gen_ivect(s->num_files);
+    s->start_spec = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->num_spec = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->num_pad = (long long *)malloc(sizeof(long long) * s->num_files);
 #if DEBUG_OUT       
-    printf("Reading '%s'\n", filenames[0]);
+    printf("Reading '%s'\n", s->filenames[0]);
 #endif
-    s->files[0] = chkfopen(filenames[0], 'r');
+    s->files[0] = chkfopen(s->filenames[0], "r");
     // Read the filterbank header into a SIGPROCFB struct
     s->header_offset[0] = read_filterbank_header(&fb, s->files[0]);
     // Make an initial offset into the file
     chkfseek(s->files[0], s->header_offset[0], SEEK_SET);
-    strncpy(s->source, fb->source_name, 40);
-    if (fb->sumifs) {
+    strncpy(s->source, fb.source_name, 40);
+    if (fb.sumifs) {
         s->summed_polns = 1;
         s->num_polns = 1;
     } else {
-        s->num_polns = fb->nifs;
-        strncpy(s->poln_order, fb->ifstream, 8);
+        s->num_polns = fb.nifs;
+        strncpy(s->poln_order, fb.ifstream, 8);
     }
     // Position info
     {
         int d, h, m;
         double sec;
-        h = (int) floor(fb->src_raj / 10000.0);
-        m = (int) floor((fb->src_raj - h * 10000) / 100.0);
-        sec = fb->src_raj - h * 10000 - m * 100;
+        h = (int) floor(fb.src_raj / 10000.0);
+        m = (int) floor((fb.src_raj - h * 10000) / 100.0);
+        sec = fb.src_raj - h * 10000 - m * 100;
         ra_dec_from_string(s->ra_str, &h, &m, &sec);
         s->ra2000 = hms2rad(h, m, sec) * RADTODEG;
-        d = (int) floor(fabs(fb->src_dej) / 10000.0);
-        m = (int) floor((fabs(fb->src_dej) - d * 10000) / 100.0);
-        sec = fabs(fb->src_dej) - d * 10000 - m * 100;
-        if (fb->src_dej < 0.0) d = -d;
+        d = (int) floor(fabs(fb.src_dej) / 10000.0);
+        m = (int) floor((fabs(fb.src_dej) - d * 10000) / 100.0);
+        sec = fabs(fb.src_dej) - d * 10000 - m * 100;
+        if (fb.src_dej < 0.0) d = -d;
         ra_dec_from_string(s->dec_str, &d, &m, &sec);
         s->dec2000 = dms2rad(d, m, sec) * RADTODEG;
     }
-    s->bits_per_sample = fb->nbits;
-    s->num_channels = fb->nchans;
+    s->bits_per_sample = fb.nbits;
+    s->num_channels = fb.nchans;
     s->samples_per_spectra = s->num_polns * s->num_channels;
     s->bytes_per_spectra = s->bits_per_sample * s->samples_per_spectra / 8;
     s->spectra_per_subint = 512;  // use this as the blocksize
@@ -366,70 +363,70 @@ void read_filterbank_files(struct spectra_info *s)
     s->min_spect_per_read = 1;  // Can read a single spectra at a time
     // allocate the raw data buffers
     cdatabuffer = gen_bvect(s->bytes_per_subint);
-    fdatabuffer = gen_bvect(s->samples_per_subint);
+    fdatabuffer = gen_fvect(s->samples_per_subint);
     s->padvals = gen_fvect(s->num_channels);
-    s->dt = fb->tsamp;
+    s->dt = fb.tsamp;
     s->time_per_subint = s->spectra_per_subint * s->dt;
     s->T = s->N * s->dt;
-    s->df = fabs(fb->foff);
+    s->df = fabs(fb.foff);
     s->BW = s->num_channels * s->df;
-    s->lo_freq = fb->fch1 - (s->num_channels - 1) * s->df;
-    s->hi_freq = fb->fch1;
+    s->lo_freq = fb.fch1 - (s->num_channels - 1) * s->df;
+    s->hi_freq = fb.fch1;
     s->fctr = s->lo_freq - 0.5 * s->df + 0.5 * s->BW;
-    s->azimuth = fb->az_start;
-    s->zenith_ang = fb->za_start;
+    s->azimuth = fb.az_start;
+    s->zenith_ang = fb.za_start;
     s->num_beams = 1;
-    s->beamnum = fb->ibeam;
-    get_telescope_name(fb->telescope_id, s);
-    get_backend_name(fb->machine_id, s);
-    s->start_MJD[0] = fb->tstart;
-    mjd_to_datestr(s->start_MJD, s->date_str);
+    s->beamnum = fb.ibeam;
+    get_telescope_name(fb.telescope_id, s);
+    get_backend_name(fb.machine_id, s);
+    s->start_MJD[0] = fb.tstart;
+    mjd_to_datestr(s->start_MJD[0], s->date_obs);
     s->start_spec[0] = 0L;
-    s->num_spec[0] = fb->N;
-    s->N = fb->N;
+    s->num_spec[0] = fb.N;
+    s->N = fb.N;
     s->get_rawblock = &get_filterbank_rawblock;
     s->offset_to_spectra = &offset_to_filterbank_spectra;
 
     // Step through the other files
-    for (ii = 1 ; ii < numfiles ; ii++) {
+    for (ii = 1 ; ii < s->num_files ; ii++) {
 
 #if DEBUG_OUT       
-        printf("Reading '%s'\n", filenames[ii]);
+        printf("Reading '%s'\n", s->filenames[ii]);
 #endif
-        s->files[ii] = chkfopen(filenames[ii], 'r');
+        s->files[ii] = chkfopen(s->filenames[ii], "r");
         s->header_offset[ii] = read_filterbank_header(&fb, s->files[ii]);
         // Make an initial offset into each file to the spactra
         chkfseek(s->files[ii], s->header_offset[ii], SEEK_SET);
         // Compare key values with s->XXX[0] to see if things are the same
-        if (s->num_channels != fb->nchans) {
-            printf("Error:  num chans %d in file #%d does not match original num chans %d!!\n", fb->nchans, ii+1, s->num_channels);
+        if (s->num_channels != fb.nchans) {
+            printf("Error:  num chans %d in file #%d does not match original num chans %d!!\n", fb.nchans, ii+1, s->num_channels);
             exit(1);
         }
-        if (s->bits_per_sample != fb->nbits) {
-            printf("Error:  bits per sample %d in file #%d does not match original bits per sample %d!!\n", fb->nbits, ii+1, s->bits_per_sample);
+        if (s->bits_per_sample != fb.nbits) {
+            printf("Error:  bits per sample %d in file #%d does not match original bits per sample %d!!\n", fb.nbits, ii+1, s->bits_per_sample);
             exit(1);
         }
-        if (s->dt != fb->tsamp) {
-            printf("Error:  sample time %f in file #%d does not match original sample time %f!!\n", fb->tsamp, ii+1, s->dt);
+        if (s->dt != fb.tsamp) {
+            printf("Error:  sample time %f in file #%d does not match original sample time %f!!\n", fb.tsamp, ii+1, s->dt);
             exit(1);
         }
-        if (s->df != fabs(fb->foff)){
-            printf("Error:  channel width %f in file #%d does not match original channel width %f!!\n", fabs(fb->foff), ii+1, s->df);
+        if (s->df != fabs(fb.foff)){
+            printf("Error:  channel width %f in file #%d does not match original channel width %f!!\n", fabs(fb.foff), ii+1, s->df);
             exit(1);
         }
-        if (s->hi_freq != fb->fch1) {
-            printf("Error:  high chan freq %f in file #%d does not match original high chan freq %f!!\n", fb->fch1, ii+1, s->hi_freq);
+        if (s->hi_freq != fb.fch1) {
+            printf("Error:  high chan freq %f in file #%d does not match original high chan freq %f!!\n", fb.fch1, ii+1, s->hi_freq);
             exit(1);
         }
-        s->start_MJD[ii] = fb->tstart;
+        s->start_MJD[ii] = fb.tstart;
         s->start_spec[ii] = (long long)((s->start_MJD[ii] - s->start_MJD[0]) \
                                         / s->dt + 0.5);
         s->num_pad[ii-1] = s->start_spec[ii] - s->N;
-        s->num_spec[ii] = fb->N;
+        s->num_spec[ii] = fb.N;
         s->N += s->num_spec[ii] + s->num_pad[ii-1];
         s->T = s->N * s->dt;
     }
-    s->num_pad[numfiles-1] = 0L;
+    s->num_pad[s->num_files-1] = 0L;
 }
 
 
@@ -437,6 +434,7 @@ long long offset_to_filterbank_spectra(long long specnum, struct spectra_info *s
 // This routine offsets into the filterbank files to the spectra
 // 'specnum'.  It returns the current spectra number.
 {
+    long long offset_spec;
     int filenum = 0;
     
     if (specnum > s->N) {
@@ -471,8 +469,8 @@ long long offset_to_filterbank_spectra(long long specnum, struct spectra_info *s
     return specnum;
 }
 
-                             
-int read_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
+
+int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
 // This routine reads a single block (i.e subint) from the input files
 // which contain raw data in SIGPROC filterbank format.  If padding is
 // returned as 1, then padding was added and statistics should not be
@@ -487,16 +485,18 @@ int read_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
     numtoread = s->spectra_per_subint - numbuffered;
     
     /* Make sure our current file number is valid */
-    if (currentfile >= numfiles)
+    if (currentfile >= s->num_files)
         return 0;
 
     /* First, attempt to read data from the current file */
     numread = chkfread(cdatabuffer, s->bytes_per_spectra, 
-                       numtoread, infiles[currentfile]);
+                       numtoread, s->files[currentfile]);
     if (s->flip_bytes) { // byte-swap if necessary
         /* Need to add this later */
     }
-    convert_filterbank_block(fdataptr, cdatabuffer, numread);
+    convert_filterbank_block(fdataptr, cdatabuffer, numread, s);
+
+    // Need to add -invert and zero-DMing
 
     if (numread==numtoread) {  // Got all we needed
         *padding = 0;
@@ -505,15 +505,16 @@ int read_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
         return 1;
     } else {  // Didn't get all the data we needed
         numbuffered += numread;
-        if (feof(infiles[currentfile])) { // End of file?
+        if (feof(s->files[currentfile])) { // End of file?
             numtopad = s->num_pad[currentfile] - numpadded;
             if (numtopad==0) {  // No padding needed.  Try reading the next file
                 currentfile++;
-                return read_filterbank_rawblock(infiles, numfiles, fdata, padding);
+                return get_filterbank_rawblock(fdata, s, padding);
             } else {   // Pad the data instead
                 *padding = 1;
                 fdataptr = fdata + numbuffered * s->num_channels;
                 if (numtopad >= numtoread - numread) { // Need lots of padding
+                    int ii;
                     // Fill the rest of the buffer with padding
                     numtopad = s->spectra_per_subint - numbuffered;
                     for (ii = 0; ii < numtopad; ii++)
@@ -529,6 +530,7 @@ int read_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
                     }
                     return 1;
                 } else {  // Need < 1 block (or remaining block) of padding
+                    int ii;
                     for (ii = 0; ii < numtopad; ii++)
                         memcpy(fdataptr + ii * s->num_channels, 
                                s->padvals, s->num_channels * sizeof(float));
@@ -536,7 +538,7 @@ int read_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
                     // Done with padding, so reset padding variables
                     numpadded = 0;
                     currentfile++;
-                    return read_filterbank_rawblock(infiles, numfiles, fdata, &pad);
+                    return get_filterbank_rawblock(fdata, s, padding);
                 }
             }
         } else {
@@ -549,7 +551,8 @@ int read_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
 }
 
 
-void convert_filterbank_block(float *outdata, unsigned char *indata, int numread)
+void convert_filterbank_block(float *outdata, unsigned char *indata, 
+                              int numread, struct spectra_info *s)
 /* This routine converts SIGPROC filterbank-format data into PRESTO format */
 {
    int ii, jj, spec_ct, offset;

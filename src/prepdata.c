@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
    /* Any variable that begins with 't' means topocentric */
    /* Any variable that begins with 'b' means barycentric */
    FILE **infiles, *outfile;
-   float *outdata = NULL, *padvals;
+   float *outdata = NULL;
    double tdf = 0.0, dtmp = 0.0, barydispdt = 0.0, dsdt = 0.0;
    double *dispdt, *tobsf = NULL, tlotoa = 0.0, blotoa = 0.0;
    double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0;
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
    long padwrote = 0, padtowrite = 0, statnum = 0;
    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
    int *idispdt;
-   spectra_info s;
+   struct spectra_info s;
    infodata idata;
    Cmdline *cmd;
    mask obsmask;
@@ -92,7 +92,7 @@ int main(int argc, char *argv[])
    printf("                 by Scott M. Ransom\n\n");
 
    if (!RAWDATA) {  // Attempt to auto-identify the data
-       identify_psrdatatype(cmd->argv[0], &s, 1);
+       identify_psrdatatype(&s, 1);
        if (s.datatype==SIGPROCFB) cmd->filterbankP = 1;
        else if (s.datatype==PSRFITS) cmd->psrfitsP = 1;
        else if (s.datatype==SCAMP) cmd->pkmbP = 1;
@@ -106,8 +106,8 @@ int main(int argc, char *argv[])
    if (!RAWDATA) {
        char *root, *suffix;
        /* Split the filename into a rootname and a suffix */
-       if (split_root_suffix(s->filenames[0], &root, &suffix) == 0) {
-           printf("\nThe input filename (%s) must have a suffix!\n\n", s->filenames[0]);
+       if (split_root_suffix(s.filenames[0], &root, &suffix) == 0) {
+           printf("\nThe input filename (%s) must have a suffix!\n\n", s.filenames[0]);
            exit(1);
        }
        printf("Reading input data from '%s'.\n", s.filenames[0]);
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
    if (cmd->maskfileP) {
       read_mask(cmd->maskfile, &obsmask);
       printf("Read mask information from '%s'\n\n", cmd->maskfile);
-      good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
+      good_padvals = determine_padvals(cmd->maskfile, &obsmask, &s.padvals);
    } else {
       obsmask.numchan = obsmask.numint = 0;
    }
@@ -284,7 +284,7 @@ int main(int argc, char *argv[])
 
       do {
           if (RAWDATA) 
-              numread = read_psrdata(outdata, worklen, &s, dispdt, &padding, 
+              numread = read_psrdata(outdata, worklen, &s, idispdt, &padding, 
                                      maskchans, &nummasked, &obsmask);
           else if (useshorts)
               numread = read_shorts(infiles[0], outdata, worklen, numchan);
@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
           double block_avg, block_var;
           
           if (RAWDATA) 
-              numread = read_psrdata(outdata, worklen, &s, dispdt, &padding, 
+              numread = read_psrdata(outdata, worklen, &s, idispdt, &padding, 
                                      maskchans, &nummasked, &obsmask);
           else if (useshorts)
               numread = read_shorts(infiles[0], outdata, worklen, numchan);
