@@ -152,7 +152,14 @@ int main(int argc, char *argv[])
       }
    }
 
-   if (!RAWDATA) {  // Attempt to auto-identify the data
+   if (RAWDATA) {
+       if (cmd->filterbankP) s.datatype = SIGPROCFB;
+       else if (cmd->psrfitsP) s.datatype = PSRFITS;
+       else if (cmd->pkmbP) s.datatype = SCAMP;
+       else if (cmd->bcpmP) s.datatype = BPP;
+       else if (cmd->wappP) s.datatype = WAPP;
+       else if (cmd->spigotP) s.datatype = SPIGOT;
+   } else {  // Attempt to auto-identify the data
        identify_psrdatatype(&s, 1);
        if (s.datatype==SIGPROCFB) cmd->filterbankP = 1;
        else if (s.datatype==PSRFITS) cmd->psrfitsP = 1;
@@ -169,6 +176,16 @@ int main(int argc, char *argv[])
    
    if (RAWDATA || insubs) {
        char description[40];
+       psrdatatype_description(description, s.datatype);
+       if (s.num_files > 1)
+           printf("Reading %s data from %d files:\n", description, s.num_files);
+       else
+           printf("Reading %s data from 1 file:\n", description);
+       for (ii = 0; ii < s.num_files; ii++) {
+           printf("  '%s'\n", cmd->argv[ii]);
+           if (insubs) s.files[ii] = chkfopen(cmd->argv[ii], "rb");
+       }
+       printf("\n");
        if (RAWDATA) {
            read_rawdata_files(&s);
            print_spectra_info_summary(&s);
@@ -195,16 +212,6 @@ int main(int argc, char *argv[])
            s.num_spec[0] = local_N;
            s.num_pad[0] = 0L;
        }
-       psrdatatype_description(description, s.datatype);
-       if (s.num_files > 1)
-           printf("Reading %s data from %d files:\n", description, s.num_files);
-       else
-           printf("Reading %s data from 1 file:\n", description);
-       for (ii = 0; ii < s.num_files; ii++) {
-           printf("  '%s'\n", cmd->argv[ii]);
-           if (insubs) s.files[ii] = chkfopen(cmd->argv[ii], "rb");
-       }
-       printf("\n");
        /* Read an input mask if wanted */
        if (cmd->maskfileP) {
            read_mask(cmd->maskfile, &obsmask);

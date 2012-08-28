@@ -90,7 +90,14 @@ int main(int argc, char *argv[])
    printf("    Type conversion, de-dispersion, barycentering.\n");
    printf("                 by Scott M. Ransom\n\n");
 
-   if (!RAWDATA) {  // Attempt to auto-identify the data
+   if (RAWDATA) {
+       if (cmd->filterbankP) s.datatype = SIGPROCFB;
+       else if (cmd->psrfitsP) s.datatype = PSRFITS;
+       else if (cmd->pkmbP) s.datatype = SCAMP;
+       else if (cmd->bcpmP) s.datatype = BPP;
+       else if (cmd->wappP) s.datatype = WAPP;
+       else if (cmd->spigotP) s.datatype = SPIGOT;
+   } else {  // Attempt to auto-identify the data
        identify_psrdatatype(&s, 1);
        if (s.datatype==SIGPROCFB) cmd->filterbankP = 1;
        else if (s.datatype==PSRFITS) cmd->psrfitsP = 1;
