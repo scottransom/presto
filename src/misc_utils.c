@@ -10,6 +10,15 @@
 /* seconds of time to radians */
 #define SEC2RAD    7.2722052166430399038487115353692196393452995355905e-5
 #endif
+/* Speef of light in m/s */
+#ifndef SOL
+#define SOL           299792458.0
+#endif
+/* Radians to degrees */ 
+#ifndef RADTODEG
+#define RADTODEG      57.29577951308232087679815481410517033240547246656
+#endif
+
 
 /* return the max of two double values */
 #define DMAX(a,b) ((a)>(b)?(a):(b))
