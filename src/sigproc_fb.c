@@ -4,11 +4,10 @@
 
 static spectra_info *datainfo_st;
 static unsigned char *cdatabuffer;
-static float *padvals, padval = 0.0;
+static float padval = 0.0;
 static float *fdatabuffer;
 static int currentfile = 0, currentblock = 0;
 static int numbuffered = 0, numpadded = 0;
-static int using_MPI = 0;
 
 /* Note:  Much of this has been ripped out of SIGPROC      */
 /* and then slightly modified.  Thanks Dunc!               */
@@ -368,6 +367,7 @@ int read_filterbank_files(struct spectra_info *s)
     // allocate the raw data buffers
     cdatabuffer = gen_bvect(s->bytes_per_subint);
     fdatabuffer = gen_bvect(s->samples_per_subint);
+    s->padvals = gen_fvect(s->num_channels);
     s->dt = fb->tsamp;
     s->time_per_subint = s->spectra_per_subint * s->dt;
     s->T = s->N * s->dt;
@@ -389,7 +389,6 @@ int read_filterbank_files(struct spectra_info *s)
     s->N = fb->N;
     s->get_rawblock = &get_filterbank_rawblock;
     s->offset_to_spectra = &offset_to_filterbank_spectra;
-
 
     // Step through the other files
     for (ii = 1 ; ii < numfiles ; ii++) {
@@ -434,10 +433,9 @@ int read_filterbank_files(struct spectra_info *s)
 }
 
 
-long long offset_to_filterbank_rec(long long specnum, struct spectra_info *s)
-// This routine offsets into the filterbank files to position
-// them at spectra number "specnum".  It returns the current spectra
-// number.
+long long offset_to_filterbank_spectra(long long specnum, struct spectra_info *s)
+// This routine offsets into the filterbank files to the spectra
+// 'specnum'.  It returns the current spectra number.
 {
     int filenum = 0;
     
@@ -473,13 +471,12 @@ long long offset_to_filterbank_rec(long long specnum, struct spectra_info *s)
     return specnum;
 }
 
-
-int read_filterbank_rawblock(FILE * infiles[], int numfiles,
-                             float *fdata, int *padding)
-// This routine reads a single record from the input files *infiles
+                             
+int read_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
+// This routine reads a single block (i.e subint) from the input files
 // which contain raw data in SIGPROC filterbank format.  If padding is
 // returned as 1, then padding was added and statistics should not be
-// calculated
+// calculated.  Return 1 on success.
 {
     int numread, numtopad = 0, numtoread;
     float *fdataptr = fdata;
@@ -521,7 +518,7 @@ int read_filterbank_rawblock(FILE * infiles[], int numfiles,
                     numtopad = s->spectra_per_subint - numbuffered;
                     for (ii = 0; ii < numtopad; ii++)
                         memcpy(fdataptr + ii * s->num_channels, 
-                               padvals, s->num_channels * sizeof(float));
+                               s->padvals, s->num_channels * sizeof(float));
                     numpadded += numtopad;
                     numbuffered = 0;
                     currentblock++;
@@ -534,7 +531,7 @@ int read_filterbank_rawblock(FILE * infiles[], int numfiles,
                 } else {  // Need < 1 block (or remaining block) of padding
                     for (ii = 0; ii < numtopad; ii++)
                         memcpy(fdataptr + ii * s->num_channels, 
-                               padvals, s->num_channels * sizeof(float));
+                               s->padvals, s->num_channels * sizeof(float));
                     numbuffered += numtopad;
                     // Done with padding, so reset padding variables
                     numpadded = 0;
@@ -543,7 +540,7 @@ int read_filterbank_rawblock(FILE * infiles[], int numfiles,
                 }
             }
         } else {
-            printf("\nProblem reading record from filterbank data file:\n");
+            printf("Error: Problem reading record from filterbank data file:\n");
             printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
                    currentfile, currentblock);
             exit(1);

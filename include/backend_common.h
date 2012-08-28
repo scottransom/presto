@@ -74,13 +74,14 @@ struct spectra_info {
     char **filenames;       // Array of the input file names
     FILE **files;           // Array of normal file pointers if needed
     fitsfile **fitsfiles;   // Array of FITS file pointers if needed
+    float *padvals;         // Array of length num_channels for current padding values
     int *header_offset;     // Number of bytes to skip in each file to get to spectra
     int *start_subint;      // Starting ISUBINT in each file (for PSRFITS)
     int *num_subint;        // Number of subints per file
     long long *start_spec;  // Starting spectra for each file (zero offset)
     long long *num_spec;    // Number of spectra per file
     long long *num_pad;     // Number of padding samples after each file
-    int (*get_rawblock)(struct spectra_info *);  // Raw data block function pointer
+    int (*get_rawblock)(float *, struct spectra_info *, int *);  // Raw data block function pointer
     long long (*offset_to_spectra)(long long, struct spectra_info *);  // Shift into file(s) function pointer
 };
 

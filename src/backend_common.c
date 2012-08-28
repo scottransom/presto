@@ -1,5 +1,11 @@
 #include "backend_common.h"
 
+// TODO:  need to handle currentblock and/or currentspectra
+//        also, using_MPI
+
+static long long currentspectra = 0;
+static int using_MPI = 0;   // what about offset_to_spectra?
+
 typedef enum {
     SIGPROCFB, PSRFITS, SCAMP, BPP, WAPP, GMRT, SPIGOT, 
     SUBBAND, DAT, SDAT, EVENTS, UNSET;
@@ -150,6 +156,7 @@ void spectra_info_set_defaults(struct spectra_info *s) {
     s->start_MJD = NULL;
     s->files = NULL;
     s->fitsfiles = NULL;
+    s->padvals = NULL;
     s->header_offset = NULL;
     s->start_subint = NULL;
     s->num_subint = NULL;
@@ -293,7 +300,7 @@ void print_spectra_info_summary(struct spectra_info *s)
 }
 
 
-void spectra_info_to_inf(struct spectra_info * s, infodata * idata)
+void spectra_info_to_inf(struct spectra_info *s, infodata *idata)
 // Convert a spectra_info structure into an infodata structure
 {
     char ctmp[100];
@@ -332,21 +339,29 @@ void spectra_info_to_inf(struct spectra_info * s, infodata * idata)
 }
 
 
+long long offset_to_spectra(long long specnum, struct spectra_info *s)
+// This routine offsets into the raw data files to the spectra
+// 'specnum'.  It returns the current spectra number.
+{
+    long long retval;
+    retval = s->offset_to_spectra(specnum, s);
+    currentspectra = retval;
+    return retval;
+}
 
-int read_filterbank_rawblocks(FILE * infiles[], int numfiles,
-                              float rawdata[], int numblocks, int *padding)
-// This routine reads numblocks filterbank records from the input
-// files *infiles.  The floating-point filterbank data is returned in
-// rawdata which must have a size of numblocks * s->samples_per_subint.  The
+
+int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s, int *padding)
+// This routine reads numsubints rawdata blocks from raw radio pulsar
+// data. The floating-point filterbank data is returned in rawdata
+// which must have a size of numsubints * s->samples_per_subint.  The
 // number of blocks read is returned.  If padding is returned as 1,
-// then padding was added and statistics should not be calculated
+// then padding was added and statistics should not be calculated.
 {
     int ii, retval = 0, pad, numpad = 0;
 
     *padding = 0;
-    for (ii = 0; ii < numblocks; ii++) {
-        retval += read_filterbank_rawblock(infiles, numfiles,
-                                           rawdata + ii * s->samples_per_subint, &pad);
+    for (ii = 0; ii < numsubints; ii++) {
+        retval += s->get_rawblock(fdata + ii * s->samples_per_subint, s, &pad);
         if (pad) numpad++;
     }
     /* Return padding 'true' if any block was padding */
@@ -355,184 +370,178 @@ int read_filterbank_rawblocks(FILE * infiles[], int numfiles,
 }
 
 
-int read_filterbank(FILE * infiles[], int numfiles, float *data,
-                    int numspect, int *delays, int *padding,
-                    int *maskchans, int *nummasked, mask * obsmask)
-// This routine reads numspect from the filterbank raw files *infiles.
-// These files contain raw data in filterbank format.  Time delays and
-// a mask are applied to each channel.  It returns the # of points
-// read if successful, 0 otherwise.  If padding is returned as 1, then
-// padding was added and statistics should not be calculated.
-// maskchans is an array of length numchans contains a list of the
-// number of channels that were masked.  The # of channels masked is
-// returned in nummasked.  obsmask is the mask structure to use for
-// masking.
+int read_psrdata(float *fdata, int numspect, struct spectra_info *s, 
+                 int *delays, int *padding,
+                 int *maskchans, int *nummasked, mask * obsmask)
+// This routine reads numspect from the raw pulsar data defined in
+// "s". Time delays and a mask are applied to each channel.  It
+// returns the # of points read if successful, 0 otherwise.  If
+// padding is returned as 1, then padding was added and statistics
+// should not be calculated.  maskchans is an array of length numchans
+// contains a list of the number of channels that were masked.  The #
+// of channels masked is returned in nummasked.  obsmask is the mask
+// structure to use for masking.
 {
    int ii, jj, numread = 0, offset;
    double starttime = 0.0;
    static float *tempzz, *rawdata1, *rawdata2;
    static float *currentdata, *lastdata;
-   static int firsttime = 1, numblocks = 1, allocd = 0, mask = 0;
+   static int firsttime = 1, numsubints = 1, allocd = 0, mask = 0;
    static double duration = 0.0;
-
+   
    *nummasked = 0;
    if (firsttime) {
-      if (numspect % s->spectra_per_subint) {
-         printf("numspect must be a multiple of %d in read_filterbank()!\n",
-                s->spectra_per_subint);
-         exit(1);
-      } else
-         numblocks = numspect / s->spectra_per_subint;
-      if (obsmask->numchan)
-         mask = 1;
-      rawdata1 = gen_fvect(numblocks * s->samples_per_subint);
-      rawdata2 = gen_fvect(numblocks * s->samples_per_subint);
-      allocd = 1;
-      duration = numblocks * s->time_per_subint;
-      currentdata = rawdata1;
-      lastdata = rawdata2;
+       if (numspect % s->spectra_per_subint) {
+           printf("Error:  numspect %d must be a multiple of %d in read_psrdata()!\n",
+                  numspect, s->spectra_per_subint);
+           exit(1);
+       } else
+           numsubints = numspect / s->spectra_per_subint;
+       if (obsmask->numchan)
+           mask = 1;
+       rawdata1 = gen_fvect(numsubints * s->samples_per_subint);
+       rawdata2 = gen_fvect(numsubints * s->samples_per_subint);
+       allocd = 1;
+       duration = numsubints * s->time_per_subint;
+       currentdata = rawdata1;
+       lastdata = rawdata2;
    }
-
+   
    /* Read, convert and de-disperse */
    if (allocd) {
-      while (1) {
-         numread = read_filterbank_rawblocks(infiles, numfiles, currentdata,
-                                             numblocks, padding);
-         if (mask) {
-            starttime = currentblock * s->time_per_subint;
-            *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-         }
-
-         /* Clip nasty RFI if requested and we're not masking all the channels */
-         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-            clip_times(currentdata, numspect, s->num_channels, clip_sigma_st, padvals);
-
-         if (mask) {
-            if (*nummasked == -1) {     /* If all channels are masked */
-               for (ii = 0; ii < numspect; ii++)
-                   memcpy(currentdata + ii * s->num_channels, 
-                          padvals, s->num_channels * sizeof(float));
-            } else if (*nummasked > 0) {        /* Only some of the channels are masked */
-               int channum;
-               for (ii = 0; ii < numspect; ii++) {
-                  offset = ii * s->num_channels;
-                  for (jj = 0; jj < *nummasked; jj++) {
-                     channum = maskchans[jj];
-                     currentdata[offset + channum] = padvals[channum];
-                  }
+       while (1) {
+           starttime = currentspectra * s->dt;
+           numread = read_rawblocks(currentdata, numsubints, s, padding);
+           if (mask)
+               *nummasked = check_mask(starttime, duration, obsmask, maskchans);
+           currentspectra += numread * s->spectra_per_subint;
+           
+           /* Clip nasty RFI if requested and we're not masking all the channels */
+           if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
+               clip_times(currentdata, numspect, s->num_channels, clip_sigma_st, s->padvals);
+           
+           if (mask) {
+               if (*nummasked == -1) {     /* If all channels are masked */
+                   for (ii = 0; ii < numspect; ii++)
+                       memcpy(currentdata + ii * s->num_channels, 
+                              s->padvals, s->num_channels * sizeof(float));
+               } else if (*nummasked > 0) {        /* Only some of the channels are masked */
+                   int channum;
+                   for (ii = 0; ii < numspect; ii++) {
+                       offset = ii * s->num_channels;
+                       for (jj = 0; jj < *nummasked; jj++) {
+                           channum = maskchans[jj];
+                           currentdata[offset + channum] = s->padvals[channum];
+                       }
+                   }
                }
-            }
-         }
-         if (!firsttime)
-             float_dedisp(currentdata, lastdata, numspect, s->num_channels, delays, 0.0, data);
-
-         SWAP(currentdata, lastdata);
-         if (numread != numblocks) {
-            vect_free(rawdata1);
-            vect_free(rawdata2);
-            allocd = 0;
-         }
-         if (firsttime)
-            firsttime = 0;
-         else
-            break;
-      }
-      return numblocks * s->spectra_per_subint;
+           }
+           if (!firsttime)
+               float_dedisp(currentdata, lastdata, numspect, s->num_channels, delays, 0.0, data);
+           
+           SWAP(currentdata, lastdata);
+           if (numread != numsubints) {
+               vect_free(rawdata1);
+               vect_free(rawdata2);
+               allocd = 0;
+           }
+           if (firsttime)
+               firsttime = 0;
+           else
+               break;
+       }
+       return numsubints * s->spectra_per_subint;
    } else {
-      return 0;
+       return 0;
    }
 }
 
 
-void get_filterbank_channel(int channum, float chandat[],
-                            float rawdata[], int numblocks)
-// Return the values for channel 'channum' of a block of 'numblocks'
-// filterbank floating-point data stored in 'rawdata' in 'chandat'.
-// 'rawdata' should have been initialized using
-// read_filterbank_rawblocks(), and 'chandat' must have at least
-// 'numblocks' * 's->spectra_per_subint' spaces.  Channel 0 is assumed to be
-// the lowest freq channel.
+void get_channel(float chandat[], int channum, int numsubints, float rawdata[], struct spectra_info *s)
+// Return the values for channel 'channum' in 'chandat' of a block of
+// 'numsubints' floating-point spectra data stored in 'rawdata'.
+// 'rawdata' should have been initialized and then filled using
+// read_rawblocks(), and 'chandat' must have at least 'numsubints' *
+// 's->spectra_per_subint' spaces.  Channel 0 is assumed to be the
+// lowest freq channel.
 {
    int ii, jj;
 
    if (channum > s->num_channels || channum < 0) {
-      printf("\nchannum = %d is out of range in get_GMR_channel()!\n\n", channum);
+      printf("Error: channum = %d is out of range in get_channel()!\n", channum);
       exit(1);
    }
    /* Select the correct channel */
-   for (ii = 0, jj = channum; ii < numblocks * s->spectra_per_subint; ii++, jj += s->num_channels)
+   for (ii = 0, jj = channum; ii < numsubints * s->spectra_per_subint; ii++, jj += s->num_channels)
       chandat[ii] = rawdata[jj];
 }
 
 
-int prep_filterbank_subbands(float *rawdata, float *data,
-                             int *delays, int numsubbands,
-                             int transpose, int *maskchans,
-                             int *nummasked, mask * obsmask)
-// This routine preps a block from from the filterbank system.  It
-// uses dispersion delays in 'delays' to de-disperse the data into
+int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
+                  struct spectra_info *s, int transpose, 
+                  int *maskchans, int *nummasked, mask * obsmask)
+// This routine preps a block of raw spectra for subbanding.  It uses
+// dispersion delays in 'delays' to de-disperse the data into
 // 'numsubbands' subbands.  It stores the resulting data in vector
-// 'data' of length 'numsubbands' * 's->spectra_per_subint'.  The low freq
-// subband is stored first, then the next highest subband etc, with
-// 's->spectra_per_subint' floating points per subband. It returns the # of
-// points read if succesful, 0 otherwise.  'maskchans' is an array of
-// length numchans which contains a list of the number of channels
-// that were masked.  The # of channels masked is returned in
-// 'nummasked'.  'obsmask' is the mask structure to use for masking.
-// If 'transpose'==0, the data will be kept in time order instead of
-// arranged by subband as above.
+// 'fdata' of length 'numsubbands' * 's->spectra_per_subint'.  The low
+// freq subband is stored first, then the next highest subband etc,
+// with 's->spectra_per_subint' floating points per subband. It
+// returns the # of points read if succesful, 0 otherwise.
+// 'maskchans' is an array of length numchans which contains a list of
+// the number of channels that were masked.  The # of channels masked
+// is returned in 'nummasked'.  'obsmask' is the mask structure to use
+// for masking.  If 'transpose'==0, the data will be kept in time
+// order instead of arranged by subband as above.
 {
    int ii, jj, trtn, offset;
    double starttime = 0.0;
-   static float *tempzz;
-   static float rawdata1[MAXNUMCHAN * BLOCKLEN],
-       rawdata2[MAXNUMCHAN * BLOCKLEN];
+   static float *tempzz, *rawdata1, *rawdata2;
    static float *currentdata, *lastdata;
    static unsigned char *move;
    static int firsttime = 1, move_size = 0, mask = 0;
 
    *nummasked = 0;
    if (firsttime) {
-      if (obsmask->numchan)
-         mask = 1;
-      move_size = (s->spectra_per_subint + numsubbands) / 2;
-      move = gen_bvect(move_size);
-      currentdata = rawdata1;
-      lastdata = rawdata2;
+       if (obsmask->numchan)
+           mask = 1;
+       move_size = (s->spectra_per_subint + numsubbands) / 2;
+       move = gen_bvect(move_size);
+       rawdata1 = gen_fvect(s->samples_per_subint);
+       rawdata2 = gen_fvect(s->samples_per_subint);
+       currentdata = rawdata1;
+       lastdata = rawdata2;
    }
 
    /* Read and de-disperse */
    memcpy(currentdata, rawdata, s->samples_per_subint * sizeof(float));
-   if (mask) {
-      starttime = currentblock * s->time_per_subint;
-      *nummasked = check_mask(starttime, s->time_per_subint, 
-                              obsmask, maskchans);
-   }
+   starttime = currentspectra * s->dt; // or -1 subint?
+   if (mask)
+      *nummasked = check_mask(starttime, s->time_per_subint, obsmask, maskchans);
 
    /* Clip nasty RFI if requested and we're not masking all the channels*/
    if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-      clip_times(currentdata, s->spectra_per_subint, s->num_channels, clip_sigma_st, padvals);
+      clip_times(currentdata, s->spectra_per_subint, s->num_channels, clip_sigma_st, s->padvals);
 
    if (mask) {
       if (*nummasked == -1) {   /* If all channels are masked */
          for (ii = 0; ii < s->spectra_per_subint; ii++)
              memcpy(currentdata + ii * s->num_channels, 
-                    padvals, s->num_channels * sizeof(float));
+                    s->padvals, s->num_channels * sizeof(float));
       } else if (*nummasked > 0) {      /* Only some of the channels are masked */
          int channum;
          for (ii = 0; ii < s->spectra_per_subint; ii++) {
             offset = ii * s->num_channels;
             for (jj = 0; jj < *nummasked; jj++) {
                channum = maskchans[jj];
-               currentdata[offset + channum] = padvals[channum];
+               currentdata[offset + channum] = s->padvals[channum];
             }
          }
       }
    }
 
-   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
-   /* where currentblock gets incremented.                       */
-   if (using_MPI) currentblock++;
+   // In mpiprepsubband, the nodes do not call read_subbands() where
+   // currentspectra gets incremented.
+   if (using_MPI) currentspectra += s->spectra_per_subint;
 
    if (firsttime) {
       SWAP(currentdata, lastdata);
@@ -553,16 +562,15 @@ int prep_filterbank_subbands(float *rawdata, float *data,
 }
 
 
-int read_filterbank_subbands(FILE *infiles[], int numfiles, float *data,
-                             int *delays, int numsubbands,
-                             int transpose, int *padding,
-                             int *maskchans, int *nummasked, mask * obsmask)
-// This routine reads a record from the input files *infiles[] in
-// SIGPROC filterbank format.  The routine uses dispersion delays in
-// 'delays' to de-disperse the data into 'numsubbands' subbands.
-// It stores the resulting data in vector 'data' of length
-// 'numsubbands' * 's->spectra_per_subint'.  The low freq subband is stored
-// first, then the next highest subband etc, with 's->spectra_per_subint'
+int read_subbands(float *fdata, int *delays, int numsubbands,
+                  struct spectra_info *s, int transpose, int *padding,
+                  int *maskchans, int *nummasked, mask * obsmask)
+// This routine reads a spectral block/subint from the input raw data
+// files. The routine uses dispersion delays in 'delays' to
+// de-disperse the data into 'numsubbands' subbands.  It stores the
+// resulting data in vector 'fdata' of length 'numsubbands' *
+// 's->spectra_per_subint'.  The low freq subband is stored first,
+// then the next highest subband etc, with 's->spectra_per_subint'
 // floating points per subband.  It returns the # of points read if
 // succesful, 0 otherwise. If padding is returned as 1, then padding
 // was added and statistics should not be calculated.  'maskchans' is
@@ -573,60 +581,62 @@ int read_filterbank_subbands(FILE *infiles[], int numfiles, float *data,
 // arranged by subband as above.
 {
    static int firsttime = 1;
-   static float rawdata[MAXNUMCHAN * BLOCKLEN];
+   static float *frawdata;
 
    if (firsttime) {
-      if (!read_filterbank_rawblock(infiles, numfiles, rawdata, padding)) {
-         printf("Problem reading the raw filterbank data file.\n\n");
-         return 0;
-      }
-      if (0 != prep_filterbank_subbands(rawdata, data, delays, numsubbands,
-                                        transpose, maskchans, nummasked, obsmask)) {
-         printf("Problem initializing prep_filterbank_subbands()\n\n");
-         return 0;
-      }
-      firsttime = 0;
+       frawdata = gen_fvect(s->num_channels * s->spectra_per_subint);
+       if (!get_rawblock(frawdata, s, padding)) {
+           printf("Error: problem reading the raw data file in read_subbands()\n");
+           return 0;
+       }
+       if (0 != prep_subbands(fdata, frawdata, delays, numsubbands, s,
+                              transpose, maskchans, nummasked, obsmask)) {
+           printf("Error: problem initializing prep_subbands() in read_subbands()\n");
+           return 0;
+       }
+       firsttime = 0;
    }
-   if (!read_filterbank_rawblock(infiles, numfiles, rawdata, padding)) {
-      /* printf("Problem reading the raw filterbank data file.\n\n"); */
-      return 0;
+   if (!get_rawblock(infiles, numfiles, rawdata, padding)) {
+       return 0;
    }
-   return prep_filterbank_subbands(rawdata, data, delays, numsubbands,
-                                   transpose, maskchans, nummasked, obsmask);
+   if (prep_subbands(rawdata, data, delays, numsubbands,
+                     transpose, maskchans, nummasked, obsmask)==s->spectra_per_subint) {
+       currentspectra += s->spectra_per_subint;
+       return s->spectra_per_subint;
+   } else {
+       return 0;
+   }
 }
 
 
 
-void filterbank_update_infodata(int numfiles, infodata * idata)
+void update_infodata(struct spectra_info *s, infodata *idata)
 // Update the onoff bins section in case we used multiple files
 {
-
-   int ii, index = 2;
-
-   idata->N = N_st;
-   if (numfiles == 1 && s->num_pad[0] == 0) {
-      idata->numonoff = 0;
-      return;
-   }
-   /* Determine the topocentric onoff bins */
-   idata->numonoff = 1;
-   idata->onoff[0] = 0.0;
-   idata->onoff[1] = s->num_spec[0] - 1.0;
-   for (ii = 1; ii < numfiles; ii++) {
-      if (s->num_pad[ii - 1]) {
-         idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[ii - 1];
-         idata->onoff[index + 1] = idata->onoff[index] + s->num_spec[ii];
-         idata->numonoff++;
-         index += 2;
-      } else {
-         idata->onoff[index - 1] += s->num_spec[ii];
-      }
-   }
-   if (s->num_pad[numfiles - 1]) {
-      idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[numfiles - 1];
-      idata->onoff[index + 1] = idata->onoff[index];
-      idata->numonoff++;
-   }
+    int ii, index = 2;
+    
+    idata->N = s->N;
+    if (numfiles == 1 && s->num_pad[0] == 0) {
+        idata->numonoff = 0;
+        return;
+    }
+    /* Determine the topocentric onoff bins */
+    idata->numonoff = 1;
+    idata->onoff[0] = 0.0;
+    idata->onoff[1] = s->num_spec[0] - 1.0;
+    for (ii = 1; ii < numfiles; ii++) {
+        if (s->num_pad[ii - 1]) {
+            idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[ii - 1];
+            idata->onoff[index + 1] = idata->onoff[index] + s->num_spec[ii];
+            idata->numonoff++;
+            index += 2;
+        } else {
+            idata->onoff[index - 1] += s->num_spec[ii];
+        }
+    }
+    if (s->num_pad[numfiles - 1]) {
+        idata->onoff[index] = idata->onoff[index - 1] + s->num_pad[numfiles - 1];
+        idata->onoff[index + 1] = idata->onoff[index];
+        idata->numonoff++;
+    }
 }
-
-
