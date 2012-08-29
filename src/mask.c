@@ -214,7 +214,7 @@ int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals)
          /* Set the padding values equal to the mid-80% channel averages */
          for (ii = 0; ii < numchan; ii++)
             calc_avgmedstd(dataavg[0] + ii, numint, 0.8, numchan,
-                           *padvals + ii, &tmp1, &tmp2);
+                           padvals + ii, &tmp1, &tmp2);
          printf
              ("...succeded.  Set the padding values equal to the mid-80%% channel averages.\n");
          vect_free(dataavg[0]);
@@ -222,11 +222,11 @@ int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals)
          fclose(statsfile);
          return 1;
       } else {
-         /* This is a temporary solution */
-         for (ii = 0; ii < obsmask->numchan; ii++)
-            (*padvals)[ii] = 0.0;
-         printf("...failed.\n  Set the padding values to 0.\n");
-         return 0;
+          /* This is a temporary solution */
+          for (ii = 0; ii < obsmask->numchan; ii++)
+              padvals[ii] = 0.0;
+          printf("...failed.\n  Set the padding values to 0.\n");
+          return 0;
       }
    }
 }
