@@ -57,8 +57,9 @@ int main(int argc, char *argv[])
    /* Call usage() if we have no command line arguments */
    if (argc == 1) {
       Program = argv[0];
+      printf("\n");
       usage();
-      exit(1);
+      exit(0);
    }
 
    /* Parse the command line using the excellent program Clig */

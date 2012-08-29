@@ -53,6 +53,7 @@ int main(int argc, char *argv[])
 
    if (argc == 1) {
       Program = argv[0];
+      printf("\n");
       usage();
       exit(0);
    }
@@ -198,7 +199,7 @@ int main(int argc, char *argv[])
            long long local_N;
            cmd->nsub = s.num_files;
            tmpfile = chkfopen(s.filenames[0], "r");
-           local_N = chkfilelen(s.files[0], sizeof(short));
+           local_N = chkfilelen(tmpfile, sizeof(short));
            ptsperrec = SUBSBLOCKLEN;
            numrec = local_N / ptsperrec;
            fclose(tmpfile);
