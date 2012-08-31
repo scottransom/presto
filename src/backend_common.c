@@ -236,7 +236,7 @@ void print_spectra_info(struct spectra_info *s)
     printf("           bytes per subint = %d\n", s->bytes_per_subint);
     printf("         samples per subint = %d\n", s->samples_per_subint);
     printf("                zero offset = %-17.15g\n", s->zero_offset);
-    printf("           Invert the band? = %s\n", s->apply_flipband ? "True" : "False");
+    printf("           Invert the band? = %s\n", (s->apply_flipband>0) ? "True" : "False");
     if (s->header_offset!=NULL)
         printf("       bytes in file header = %d\n", s->header_offset[0]);
     if (s->datatype==PSRFITS) {
@@ -262,7 +262,7 @@ void print_spectra_info(struct spectra_info *s)
 void print_spectra_info_summary(struct spectra_info *s)
 // Print the basic details of the files that are being processed
 {
-    int ii;
+    int ii, nn;
     printf("    Number of files = %d\n", s->num_files);
     if (s->num_polns>=2 && !s->summed_polns)
         printf("       Num of polns = %d\n", s->num_polns);
@@ -279,7 +279,7 @@ void print_spectra_info_summary(struct spectra_info *s)
     printf("     Clipping sigma = %.3f\n", s->clip_sigma);
     if (s->zero_offset!=0.0)
         printf("        zero offset = %-17.15g\n", s->zero_offset);
-    printf("   Invert the band? = %s\n", s->apply_flipband ? "True" : "False");
+    printf("   Invert the band? = %s\n", (s->apply_flipband>0) ? "True" : "False");
     printf("          Byteswap? = %s\n", s->flip_bytes ? "True" : "False");
     if (s->datatype==PSRFITS) {
         printf("             Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
@@ -288,7 +288,10 @@ void print_spectra_info_summary(struct spectra_info *s)
     }
     printf("\nFile   Samples      Padding        Start MJD\n");
     printf("----  ----------  ----------  --------------------\n");
-    for (ii = 0; ii < s->num_files; ii++)
+    if (s->datatype==SUBBAND || s->datatype==DAT ||
+        s->datatype==EVENTS || s->datatype==SDAT) nn = 1;
+    else nn = s->num_files;
+    for (ii = 0; ii < nn; ii++)
         printf("%-4d  %10lld  %10lld  %19.14Lf\n", ii + 1,
                s->num_spec[ii], s->num_pad[ii], s->start_MJD[ii]);
     printf("\n");

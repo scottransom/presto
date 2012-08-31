@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
            printf("Reading %s data from 1 file:\n", description);
        for (ii = 0; ii < s.num_files; ii++) {
            printf("  '%s'\n", cmd->argv[ii]);
-           if (insubs) s.files[ii] = chkfopen(s.filenames[0], "rb");
+           if (insubs) s.files[ii] = chkfopen(s.filenames[ii], "rb");
        }
        printf("\n");
        if (RAWDATA) {
@@ -207,7 +207,7 @@ int main(int argc, char *argv[])
        } else { // insubs
            cmd->nsub = s.num_files;
            s.N = chkfilelen(s.files[0], sizeof(short));
-           ptsperrec = SUBSBLOCKLEN;
+           s.spectra_per_subint = ptsperrec = SUBSBLOCKLEN;
            numrec = s.N / ptsperrec;
            s.padvals = gen_fvect(s.num_files);
            for (ii = 0 ; ii < s.num_files ; ii++)
@@ -252,6 +252,7 @@ int main(int argc, char *argv[])
                s.hi_freq = s.lo_freq + (s.num_channels - 1.0) * s.df;
                s.BW = s.num_channels * s.df;
                s.fctr = s.lo_freq - 0.5 * s.df + 0.5 * s.BW;
+               print_spectra_info_summary(&s);
            } else {
                printf("\nThe input files (%s) must be subbands!  (i.e. *.sub##)\n\n",
                       cmd->argv[0]);
