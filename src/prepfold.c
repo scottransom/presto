@@ -184,6 +184,7 @@ int main(int argc, char *argv[])
        }
    }
    
+   if (!RAWDATA) s.files = (FILE **)malloc(sizeof(FILE *) * s.num_files);
    if (RAWDATA || insubs) {
        char description[40];
        psrdatatype_description(description, s.datatype);
@@ -191,7 +192,6 @@ int main(int argc, char *argv[])
            printf("Reading %s data from %d files:\n", description, s.num_files);
        else
            printf("Reading %s data from 1 file:\n", description);
-       if (insubs) s.files = (FILE **)malloc(sizeof(FILE *) * s.num_files);
        for (ii = 0; ii < s.num_files; ii++) {
            printf("  '%s'\n", cmd->argv[ii]);
            if (insubs) s.files[ii] = chkfopen(s.filenames[0], "rb");
