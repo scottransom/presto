@@ -64,11 +64,14 @@ int main(int argc, char *argv[])
    s.filenames = cmd->argv;
    s.num_files = cmd->argc;
    s.clip_sigma = cmd->clip;
-   s.apply_flipband = (cmd->invertP) ? 1 : 0;
-   // -1 causes the data to determine if we use weights, scales, & offsets for PSRFITS
+   // -1 causes the data to determine if we use weights, scales, & 
+   // offsets for PSRFITS or flip the band for any data type where
+   // we can figure that out with the data
+   s.apply_flipband = (cmd->invertP) ? 1 : -1;
    s.apply_weight = (cmd->noweightsP) ? 0 : -1;
    s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
    s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
+   s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
    if (cmd->noclipP) {
        cmd->clip = 0.0;
        s.clip_sigma = 0.0;
@@ -168,10 +171,16 @@ int main(int argc, char *argv[])
        else if (s.datatype==BPP) cmd->bcpmP = 1;
        else if (s.datatype==WAPP) cmd->wappP = 1;
        else if (s.datatype==SPIGOT) cmd->spigotP = 1;
+       else if (s.datatype==EVENTS) cmd->eventsP = pflags.events = 1;
        else if (s.datatype==SDAT) useshorts = 1;
+       else if (s.datatype==DAT) useshorts = 0;
        else if (s.datatype==SUBBAND) {
            useshorts = 1;
            insubs = 1;
+       }
+       else {
+           printf("Error:  Unable to identify input data files.  Please specify type.\n\n");
+           exit(1);
        }
    }
    
@@ -184,7 +193,7 @@ int main(int argc, char *argv[])
            printf("Reading %s data from 1 file:\n", description);
        for (ii = 0; ii < s.num_files; ii++) {
            printf("  '%s'\n", cmd->argv[ii]);
-           if (insubs) s.files[ii] = chkfopen(cmd->argv[ii], "rb");
+           if (insubs) s.files[ii] = chkfopen(s.filenames[0], "rb");
        }
        printf("\n");
        if (RAWDATA) {
@@ -195,22 +204,20 @@ int main(int argc, char *argv[])
            numrec = s.N / ptsperrec;
            numchan = s.num_channels;
        } else { // insubs
-           FILE *tmpfile;
-           long long local_N;
            cmd->nsub = s.num_files;
-           tmpfile = chkfopen(s.filenames[0], "r");
-           local_N = chkfilelen(tmpfile, sizeof(short));
+           s.N = chkfilelen(s.files[0], sizeof(short));
            ptsperrec = SUBSBLOCKLEN;
-           numrec = local_N / ptsperrec;
-           fclose(tmpfile);
+           numrec = s.N / ptsperrec;
            s.padvals = gen_fvect(s.num_files);
+           for (ii = 0 ; ii < s.num_files ; ii++)
+               s.padvals[ii] = 0.0;
            s.files = (FILE **)malloc(sizeof(FILE *) * s.num_files);
            s.start_MJD = (long double *)malloc(sizeof(long double));
            s.start_spec = (long long *)malloc(sizeof(long long));
            s.num_spec = (long long *)malloc(sizeof(long long));
            s.num_pad = (long long *)malloc(sizeof(long long));
            s.start_spec[0] = 0L;
-           s.num_spec[0] = local_N;
+           s.num_spec[0] = s.N;
            s.num_pad[0] = 0L;
        }
        /* Read an input mask if wanted */
@@ -239,6 +246,7 @@ int main(int argc, char *argv[])
                s.num_channels = numchan = idata.num_chan;
                s.start_MJD[0] = idata.mjd_i + idata.mjd_f;
                s.dt = idata.dt;
+               s.T = s.N * s.dt;
                s.lo_freq = idata.freq;
                s.df = idata.chan_wid;
                s.hi_freq = s.lo_freq + (s.num_channels - 1.0) * s.df;
@@ -257,7 +265,6 @@ int main(int argc, char *argv[])
        }
        free(root);
        free(suffix);
-       s.files[0] = chkfopen(s.filenames[0], "rb");
        /* Use events instead of a time series */
        if (cmd->eventsP) {
            int eventtype = 0;     /* 0=sec since .inf, 1=days since .inf, 2=MJDs */
@@ -311,9 +318,9 @@ int main(int argc, char *argv[])
                       cmd->proflen);
            }
            if (cmd->doubleP)
-               s.files[0] = chkfopen(cmd->argv[0], "rb");
+               s.files[0] = chkfopen(s.filenames[0], "rb");
            else
-               s.files[0] = chkfopen(cmd->argv[0], "r");
+               s.files[0] = chkfopen(s.filenames[0], "r");
            if (cmd->daysP)
                eventtype = 1;
            else if (cmd->mjdsP)
@@ -330,7 +337,7 @@ int main(int argc, char *argv[])
                T = events[numevents - 1] + 1e-8;
            }
        } else {
-           s.files[0] = chkfopen(cmd->argv[0], "rb");
+           if (!insubs) s.files[0] = chkfopen(s.filenames[0], "rb");
        }
    }
 

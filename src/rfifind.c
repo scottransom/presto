@@ -91,11 +91,14 @@ int main(int argc, char *argv[])
    s.filenames = cmd->argv;
    s.num_files = cmd->argc;
    s.clip_sigma = cmd->clip;
-   s.apply_flipband = (cmd->invertP) ? 1 : 0;
-   // -1 causes the data to determine if we use weights, scales, & offsets for PSRFITS
+   // -1 causes the data to determine if we use weights, scales, & 
+   // offsets for PSRFITS or flip the band for any data type where
+   // we can figure that out with the data
+   s.apply_flipband = (cmd->invertP) ? 1 : -1;
    s.apply_weight = (cmd->noweightsP) ? 0 : -1;
    s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
    s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
+   s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
    if (cmd->noclipP) {
        cmd->clip = 0.0;
        s.clip_sigma = 0.0;
@@ -147,6 +150,10 @@ int main(int argc, char *argv[])
        else if (s.datatype==WAPP) cmd->wappP = 1;
        else if (s.datatype==SPIGOT) cmd->spigotP = 1;
        else if (s.datatype==SUBBAND) insubs = 1;
+       else {
+           printf("Error:  Unable to identify input data files.  Please specify type.\n\n");
+           exit(1);
+       }
    }
 
    /* Read an input mask if wanted */
