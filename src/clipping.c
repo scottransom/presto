@@ -3,8 +3,8 @@
 #define BLOCKSTOSKIP 100
 
 /* NEW Clipping Routine (uses channel running averages) */
-int new_clip_times(float *rawdata, int ptsperblk, int numchan,
-                   float clip_sigma, float *good_chan_levels)
+int clip_times(float *rawdata, int ptsperblk, int numchan,
+               float clip_sigma, float *good_chan_levels)
 // Perform time-domain clipping of rawdata.  This is a 2D array with
 // ptsperblk*numchan points, each of which is a float.  The clipping
 // is done at clip_sigma sigma above/below the running mean.  The
@@ -15,7 +15,7 @@ int new_clip_times(float *rawdata, int ptsperblk, int numchan,
    static float running_avg = 0.0, running_std = 0.0;
    static int blocksread = 0, firsttime = 1;
    static long long current_point = 0;
-   float *zero_dm_block, *median_temp;
+   float *zero_dm_block, *ftmp;
    double *chan_avg_temp;
    float current_med, trigger;
    double current_avg = 0.0, current_std = 0.0;
@@ -28,17 +28,22 @@ int new_clip_times(float *rawdata, int ptsperblk, int numchan,
    }
    chan_avg_temp = gen_dvect(numchan);
    zero_dm_block = gen_fvect(ptsperblk);
-   median_temp = gen_fvect(ptsperblk);
+   ftmp = gen_fvect(ptsperblk);
 
    /* Calculate the zero DM time series */
    for (ii = 0; ii < ptsperblk; ii++) {
       zero_dm_block[ii] = 0.0;
       powptr = rawdata + ii * numchan;
       for (jj = 0; jj < numchan; jj++)
-         zero_dm_block[ii] += *powptr++;
-      median_temp[ii] = zero_dm_block[ii];
+         zero_dm_block[ii] += rawdata[ii * numchan + jj];
+         //zero_dm_block[ii] += *powptr++;
+      ftmp[ii] = zero_dm_block[ii];
+      if (ii < 10) printf("%d %f", ii, ftmp[ii]);
    }
-   current_med = median(median_temp, ptsperblk);
+   printf("\n");
+   avg_var(ftmp, ptsperblk, &current_avg, &current_std);
+   current_std = sqrt(current_std);
+   current_med = median(ftmp, ptsperblk);
 
    /* Calculate the current standard deviation and mean  */
    /* but only for data points that are within a certain */
@@ -48,20 +53,22 @@ int new_clip_times(float *rawdata, int ptsperblk, int numchan,
       float lo_cutoff, hi_cutoff;
       int numgoodpts = 0;
 
-      lo_cutoff = 0.7 * current_med;
-      hi_cutoff = 1.3 * current_med;
+      lo_cutoff = current_med - 3.0 * current_std;
+      hi_cutoff = current_med + 3.0 * current_std;;
       for (jj = 0; jj < numchan; jj++)
          chan_avg_temp[jj] = 0.0;
       /* Find the "good" points */
       for (ii = 0; ii < ptsperblk; ii++) {
          if (zero_dm_block[ii] > lo_cutoff && zero_dm_block[ii] < hi_cutoff) {
-            median_temp[numgoodpts] = zero_dm_block[ii];
+            ftmp[numgoodpts] = zero_dm_block[ii];
             powptr = rawdata + ii * numchan;
             for (jj = 0; jj < numchan; jj++)
                chan_avg_temp[jj] += *powptr++;
             numgoodpts++;
          }
       }
+//printf("med = %f  std = %f  numgoodpts = %d\n", current_med, current_std, numgoodpts);
+
       /* Calculate the current average and stddev */
       if (numgoodpts < 1) {
          current_avg = running_avg;
@@ -69,7 +76,7 @@ int new_clip_times(float *rawdata, int ptsperblk, int numchan,
          for (jj = 0; jj < numchan; jj++)
             chan_avg_temp[jj] = chan_running_avg[jj];
       } else {
-         avg_var(median_temp, numgoodpts, &current_avg, &current_std);
+         avg_var(ftmp, numgoodpts, &current_avg, &current_std);
          current_std = sqrt(current_std);
          for (jj = 0; jj < numchan; jj++)
             chan_avg_temp[jj] /= numgoodpts;
@@ -87,8 +94,8 @@ int new_clip_times(float *rawdata, int ptsperblk, int numchan,
       running_std = current_std;
       for (ii = 0; ii < numchan; ii++)
          chan_running_avg[ii] = chan_avg_temp[ii];
-      if (running_avg == 0.0 || current_avg == 0.0)
-         printf("BAD RFI IN BLOCK#1!!!\n\n");
+      if (current_avg == 0.0)
+         printf("Warning:  problem with clipping in first block!!!\n\n");
    }
 
    /* See if any points need clipping */
@@ -124,15 +131,15 @@ int new_clip_times(float *rawdata, int ptsperblk, int numchan,
 
    vect_free(chan_avg_temp);
    vect_free(zero_dm_block);
-   vect_free(median_temp);
+   vect_free(ftmp);
 
    return clipped;
 }
 
 
 /* OLD Clipping Routine (uses channel medians) */
-int clip_times(float *rawdata, int ptsperblk, int numchan,
-               float clip_sigma, float *good_chan_levels)
+int old_clip_times(float *rawdata, int ptsperblk, int numchan,
+                   float clip_sigma, float *good_chan_levels)
 // Perform time-domain clipping of rawdata.  This is a 2D array with
 // ptsperblk*numchan points, each of which is a float.  The clipping
 // is done at clip_sigma sigma above/below the running mean.  The
