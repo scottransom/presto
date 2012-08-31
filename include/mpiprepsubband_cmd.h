@@ -51,10 +51,10 @@ typedef struct s_Cmdline {
   char noclipP;
   /***** -invert: For rawdata, flip (or invert) the band */
   char invertP;
-  /***** -runavg: Running mean subtraction from the input data */
-  char runavgP;
   /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
   char zerodmP;
+  /***** -runavg: Running mean subtraction from the input data */
+  char runavgP;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
   int numout;

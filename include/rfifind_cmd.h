@@ -51,6 +51,8 @@ typedef struct s_Cmdline {
   char noclipP;
   /***** -invert: For rawdata, flip (or invert) the band */
   char invertP;
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  char zerodmP;
   /***** -xwin: Draw plots to the screen as well as a PS file */
   char xwinP;
   /***** -nocompute: Just plot and remake the mask */

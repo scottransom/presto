@@ -24,6 +24,7 @@ Flag   -wapp    wapp    {Raw data in Wideband Arecibo Pulsar Processor (WAPP) fo
 Flag   -window  window  {Window correlator lags with a Hamming window before FFTing}
 Flag   -topo    topo    {Fold the data topocentrically (i.e. don't barycenter)}
 Flag   -invert  invert  {For rawdata, flip (or invert) the band}
+Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e. remove zero DM)}
 Flag   -absphase absphase  {Use the absolute phase associated with polycos}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 8    -d 1

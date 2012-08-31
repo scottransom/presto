@@ -64,6 +64,8 @@ static Cmdline cmd = {
   /* noclipP = */ 0,
   /***** -invert: For rawdata, flip (or invert) the band */
   /* invertP = */ 0,
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  /* zerodmP = */ 0,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (int)0,
@@ -936,6 +938,13 @@ showOptionValues(void)
     printf("-invert found:\n");
   }
 
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  if( !cmd.zerodmP ) {
+    printf("-zerodm not found.\n");
+  } else {
+    printf("-zerodm found:\n");
+  }
+
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   if( !cmd.numoutP ) {
     printf("-numout not found.\n");
@@ -1019,7 +1028,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-numout numout] [-downsamp downsamp] [-nobary] [-shorts] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-numout numout] [-downsamp downsamp] [-nobary] [-shorts] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1044,6 +1053,7 @@ usage(void)
   fprintf(stderr,"%s","                 default: `6.0'\n");
   fprintf(stderr,"%s","        -noclip: Do not clip the data.  (The default is to _always_ clip!)\n");
   fprintf(stderr,"%s","        -invert: For rawdata, flip (or invert) the band\n");
+  fprintf(stderr,"%s","        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n");
   fprintf(stderr,"%s","        -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n");
   fprintf(stderr,"%s","                 1 int value between 1 and oo\n");
   fprintf(stderr,"%s","      -downsamp: The number of neighboring bins to co-add\n");
@@ -1059,7 +1069,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...512 values\n");
-  fprintf(stderr,"%s","  version: 28Aug12\n");
+  fprintf(stderr,"%s","  version: 31Aug12\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1178,6 +1188,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-invert", argv[i]) ) {
       cmd.invertP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-zerodm", argv[i]) ) {
+      cmd.zerodmP = 1;
       continue;
     }
 

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "14Oct11" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -36,6 +36,7 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-window]
 [-topo]
 [-invert]
+[-zerodm]
 [-absphase]
 [-numwapps numwapps]
 [-if ifs]
@@ -132,6 +133,8 @@ Window correlator lags with a Hamming window before FFTing.
 Fold the data topocentrically (i.e. don't barycenter).
 .IP -invert
 For rawdata, flip (or invert) the band.
+.IP -zerodm
+Subtract the mean of all channels from each sample (i.e. remove zero DM).
 .IP -absphase
 Use the absolute phase associated with polycos.
 .IP -numwapps

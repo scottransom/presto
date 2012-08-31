@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "28Aug12" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -39,6 +39,7 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 [-clip clip]
 [-noclip]
 [-invert]
+[-zerodm]
 [-xwin]
 [-nocompute]
 [-rfixwin]
@@ -103,6 +104,8 @@ Default: `6.0'
 Do not clip the data.  (The default is to _always_ clip!).
 .IP -invert
 For rawdata, flip (or invert) the band.
+.IP -zerodm
+Subtract the mean of all channels from each sample (i.e. remove zero DM).
 .IP -xwin
 Draw plots to the screen as well as a PS file.
 .IP -nocompute

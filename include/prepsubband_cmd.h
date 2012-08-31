@@ -51,10 +51,10 @@ typedef struct s_Cmdline {
   char noclipP;
   /***** -invert: For rawdata, flip (or invert) the band */
   char invertP;
-  /***** -runavg: Running mean subtraction from the input data */
-  char runavgP;
   /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
   char zerodmP;
+  /***** -runavg: Running mean subtraction from the input data */
+  char runavgP;
   /***** -sub: Write subbands instead of de-dispersed data */
   char subP;
   /***** -subdm: The DM to use when de-dispersing subbands for -sub */
