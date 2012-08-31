@@ -210,7 +210,7 @@ int main(int argc, char *argv[])
 
    datafilenm = (char *) calloc(strlen(cmd->outfile) + 20, 1);
    if (!cmd->subP) {
-      printf("\nWriting output data to:\n");
+      printf("Writing output data to:\n");
       outfiles = (FILE **) malloc(cmd->numdms * sizeof(FILE *));
       dms = gen_dvect(cmd->numdms);
       for (ii = 0; ii < cmd->numdms; ii++) {
@@ -231,7 +231,7 @@ int main(int argc, char *argv[])
                 "          Setting the '-nobary' flag automatically.\n");
          cmd->nobaryP = 1;
       }
-      printf("\nWriting subbands to:\n");
+      printf("Writing subbands to:\n");
       cmd->numdms = 1;
       dms = gen_dvect(cmd->numdms);
       dms[0] = cmd->subdm;
@@ -318,7 +318,7 @@ int main(int argc, char *argv[])
 
       /* Allocate our data array and start getting data */
 
-      printf("De-dispersing using:\n");
+      printf("\nDe-dispersing using:\n");
       printf("       Subbands = %d\n", cmd->nsub);
       printf("     Average DM = %.7g\n", avgdm);
       if (cmd->downsamp > 1) {
