@@ -131,7 +131,7 @@ void spectra_info_set_defaults(struct spectra_info *s) {
     s->apply_offset = 0;
     s->apply_weight = 0;
     s->apply_flipband = 0;
-    s->remove_zeroDM = 0;
+    s->remove_zerodm = 0;
     s->use_poln = 0;
     s->flip_bytes = 0;
     s->zero_offset = 0.0;
