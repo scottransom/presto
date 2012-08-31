@@ -191,6 +191,7 @@ int main(int argc, char *argv[])
            printf("Reading %s data from %d files:\n", description, s.num_files);
        else
            printf("Reading %s data from 1 file:\n", description);
+       if (insubs) s.files = (FILE **)malloc(sizeof(FILE *) * s.num_files);
        for (ii = 0; ii < s.num_files; ii++) {
            printf("  '%s'\n", cmd->argv[ii]);
            if (insubs) s.files[ii] = chkfopen(s.filenames[0], "rb");
@@ -211,7 +212,6 @@ int main(int argc, char *argv[])
            s.padvals = gen_fvect(s.num_files);
            for (ii = 0 ; ii < s.num_files ; ii++)
                s.padvals[ii] = 0.0;
-           s.files = (FILE **)malloc(sizeof(FILE *) * s.num_files);
            s.start_MJD = (long double *)malloc(sizeof(long double));
            s.start_spec = (long long *)malloc(sizeof(long long));
            s.num_spec = (long long *)malloc(sizeof(long long));
