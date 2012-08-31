@@ -66,7 +66,7 @@ static void send_coords(double raj, double dej, double az, double za, FILE * out
 
 void get_telescope_name(int telescope_id, struct spectra_info *s)
 {
-    float default_beam = 1.0;
+    float default_beam = 1.0; // deg
     switch (telescope_id) {
     case 0:
         strcpy(s->telescope, "Fake");
@@ -75,7 +75,7 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
     case 1:
         strcpy(s->telescope, "Arecibo");
         // Don't use full 305m size for AO.  Use illuminated size.
-        s->beam_FWHM = beam_halfwidth(s->fctr, 200.0);
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 200.0);
         break;
     case 2:
         strcpy(s->telescope, "Ooty");
@@ -83,19 +83,19 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
         break;
     case 3:
         strcpy(s->telescope, "Nancay");
-        s->beam_FWHM = beam_halfwidth(s->fctr, 100.0);
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 100.0);
         break;
     case 4:
         strcpy(s->telescope, "Parkes");
-        s->beam_FWHM = beam_halfwidth(s->fctr, 64.0);
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 64.0);
         break;
     case 5:
         strcpy(s->telescope, "Jodrell");
-        s->beam_FWHM = beam_halfwidth(s->fctr, 76.0);
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 76.0);
         break;
     case 6:
         strcpy(s->telescope, "GBT");
-        s->beam_FWHM = beam_halfwidth(s->fctr, 100.0);
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 100.0);
         break;
     case 7:
         strcpy(s->telescope, "GMRT");
@@ -103,7 +103,7 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
         break;
     case 8:
         strcpy(s->telescope, "Effelsberg");
-        s->beam_FWHM = beam_halfwidth(s->fctr, 100.0);
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 100.0);
         break;
     case 9:
         strcpy(s->telescope, "ATA");
