@@ -281,6 +281,7 @@ void print_spectra_info_summary(struct spectra_info *s)
         printf("        zero offset = %-17.15g\n", s->zero_offset);
     printf("   Invert the band? = %s\n", (s->apply_flipband>0) ? "True" : "False");
     printf("          Byteswap? = %s\n", s->flip_bytes ? "True" : "False");
+    printf("     Remove zeroDM? = %s\n", s->remove_zerodm ? "True" : "False");
     if (s->datatype==PSRFITS) {
         printf("             Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
         printf("             Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
