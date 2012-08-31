@@ -481,6 +481,8 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
 {
     int numread, numtopad = 0, numtoread;
     float *fdataptr = fdata;
+    static float *bandpass = NULL;
+    static int firsttime = 1;
     
     // If we only made a partial read last time, adjust our pointer
     // offsetting into the output floating-point array
@@ -499,13 +501,11 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
     }
     convert_filterbank_block(fdataptr, cdatabuffer, numread, s);
 
-    // Need to add -invert and zero-DMing
-
     if (numread==numtoread) {  // Got all we needed
         *padding = 0;
         numbuffered = 0;
         currentblock++;
-        return 1;
+        goto return_block;
     } else {  // Didn't get all the data we needed
         numbuffered += numread;
         if (feof(s->files[currentfile])) { // End of file?
@@ -531,7 +531,7 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
                         numpadded = 0;
                         currentfile++;
                     }
-                    return 1;
+                    goto return_block;
                 } else {  // Need < 1 block (or remaining block) of padding
                     int ii;
                     for (ii = 0; ii < numtopad; ii++)
@@ -551,6 +551,95 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
             exit(1);
         }
     }
+
+return_block:
+    // Apply the corrections that need a full block
+
+    // Perform Zero-DMing if requested
+    if (s->remove_zerodm) {
+        int ii, jj, offset;
+        float zerodm, ftmp, padvalsum = 0.0, *chanwts;
+        
+        // Make a static copy of the bandpass to use as DC offsets for each
+        // channel. This is necessary when masking as the newpadvals are
+        // used to mask. So our post-zero-DM-subtracted band had better look
+        // kinda like newpadvals. We want it static so that we don't get a
+        // different DC offset for each row of the FITS file (which will put
+        // a nice periodicity in the data).
+        if (firsttime) {
+            float bpsum = 0.0;
+            bandpass = gen_fvect(s->num_channels);
+            for (ii = 0; ii < s->num_channels; ii++) {
+                bandpass[ii] = s->padvals[ii];
+                bpsum += bandpass[ii];
+            }
+            if (bpsum==0.0) { // i.e. no padding is set
+                float favg;
+                printf("\nUsing first block channel averages for zeroDM bandpass.\n");
+                printf("Would be better to use statistics from an rfifind mask...\n\n");
+                for (ii = 0; ii < s->num_channels; ii++) {
+                    favg = 0.0;
+                    for (jj = 0; jj < s->spectra_per_subint; jj++)
+                        favg += fdata[ii + jj * s->num_channels];
+                    bandpass[ii] = favg / s->spectra_per_subint;
+                }
+            }
+        }
+        
+        // Determine what weights to use for each channel for
+        // the zero-DM subtraction
+        chanwts = gen_fvect(s->num_channels);
+        if (s->clip_sigma > 0.0) {
+            // Determine the sum of newpadvals for weighting of the channels
+            for (ii = 0; ii < s->num_channels; ii++)
+                padvalsum += s->padvals[ii];
+            // Set the channel weights for this block
+            if (padvalsum!=0.0) {
+                for (ii = 0; ii < s->num_channels; ii++)
+                    chanwts[ii] = (float) s->padvals[ii] / padvalsum;
+            } else {
+                for (ii = 0; ii < s->num_channels; ii++)
+                    chanwts[ii] = 1.0 / s->num_channels;
+            }
+        } else {
+            for (ii = 0; ii < s->num_channels; ii++)
+                chanwts[ii] = 1.0 / s->num_channels;
+        }
+        
+        // Now loop over all the spectra...
+        for (ii = 0; ii < s->spectra_per_subint; ii++) {
+            // Determine the DM=0 total power for this spectra
+            zerodm = 0.0;
+            offset = ii * s->num_channels;
+            for (jj = 0; jj < s->num_channels; jj++)
+                zerodm += fdata[offset+jj];
+            // Subtract off the correct amount of power from each point
+            for (jj = 0; jj < s->num_channels; jj++) {
+                // Put the constant bandpass back in since we are subtracting 
+                // comparable sized numbers and don't (usually) want power < 0
+                ftmp = fdata[offset+jj] - chanwts[jj] * zerodm; // + bandpass[jj];
+                fdata[offset+jj] = ftmp;
+            }
+        }
+        vect_free(chanwts);
+        firsttime = 0;
+    }
+    
+    // Invert the band if explicitly requested 
+    if (s->apply_flipband==1) {
+        float ftmp;
+        int ii, jj, offset;
+        for (jj = 0 ; jj < s->spectra_per_subint ; jj++) {
+            offset = jj * s->num_channels;
+            for (ii = 0 ; ii < s->num_channels/2 ; ii++) {
+                ftmp = fdata[offset+ii];
+                fdata[offset+ii] = fdata[offset+s->num_channels-ii-1];
+                fdata[offset+s->num_channels-ii-1] = ftmp;
+            }
+        }
+    }
+
+    return 1;
 }
 
 
