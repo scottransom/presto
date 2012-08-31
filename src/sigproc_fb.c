@@ -366,6 +366,8 @@ void read_filterbank_files(struct spectra_info *s)
     cdatabuffer = gen_bvect(s->bytes_per_subint);
     fdatabuffer = gen_fvect(s->samples_per_subint);
     s->padvals = gen_fvect(s->num_channels);
+    for (ii = 0 ; ii < s->num_channels ; ii++)
+        s->padvals[ii] = 0.0;
     s->dt = fb.tsamp;
     s->time_per_subint = s->spectra_per_subint * s->dt;
     s->T = s->N * s->dt;
