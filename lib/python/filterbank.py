@@ -7,6 +7,7 @@ Patrick Lazarus, June 26, 2012
 
 import sys
 import warnings
+import os
 import os.path
 import numpy as np
 import sigproc
@@ -102,8 +103,13 @@ class FilterbankFile(object):
         self.header, self.header_size = read_header(self.filename)
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
-        self.data_size = os.stat(self.filename)[6] - self.header_size
         self.bytes_per_spectrum = self.nchans*self.nbits / 8
+        self.needs_sync = True
+        self.sync_spectra()
+
+    def sync_spectra(self):
+        self.file_size = os.stat(self.filename)[6]
+        self.data_size = self.file_size - self.header_size
         self.nspec = self.data_size / self.bytes_per_spectrum
 
         if self.data_size % self.bytes_per_spectrum:
@@ -113,6 +119,7 @@ class FilterbankFile(object):
         self.spectra = np.memmap(self.filename, dtype=get_dtype(self.nbits), \
                                     mode=mode, offset=self.header_size, \
                                     shape=(self.nspec, self.nchans))
+        self.needs_sync = False
 
     def get_timeslice(self, start, stop):
         startbins = int(np.round(start/self.tsamp))
@@ -120,7 +127,33 @@ class FilterbankFile(object):
         return self.get_spectra(startbins, stopbins)
 
     def get_spectra(self, start, stop):
+        if self.needs_sync:
+            warnings.warn("Spectra haven't been sync'ed recently.")
         return self.spectra[start:stop]
+
+    def append_spectra(self, spectra):
+        """Append spectra to the file if is not read-only.
+            
+            Input:
+                spectra: The spectra to append. The new spectra
+                    must have the correct number of channels (ie
+                    dimension of axis=1.
+
+            Outputs:
+                None
+        """
+        nspec, nchans = spectra.shape
+        if nchans != self.nchans:
+            raise ValueError("Cannot append spectra. Incorrect shape. " \
+                        "Number of channels in file: %d; Number of " \
+                        "channels in spectra to append: %d" % \
+                        (self.nchans, nchans))
+        f = open(self.filename, 'ab')
+        f.write(spectra.flat)
+        f.flush()
+        f.close()
+        os.fsync()
+        self.needs_sync = True
 
     def __getattr__(self, name):
         if DEBUG:
