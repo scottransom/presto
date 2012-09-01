@@ -236,7 +236,8 @@ def main():
 
     print "%d input files provided" % len(args)
     for fn in args:
-        outfn = options.outname % fil.header 
+        hdr, hdr_size = filterbank.read_header(fn)
+        outfn = options.outname % hdr 
         inject(fn, outfn, prof, options.period, options.dm)
 
 
