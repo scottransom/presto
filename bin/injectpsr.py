@@ -179,13 +179,12 @@ def inject(fn, outfn, prof, period, dm):
     # for ii, (freq, delay) in enumerate(zip(fil.frequencies, delays_phs)):
     #     print "Channel %d: %g MHz, %g (phase)" % (ii, freq, delay)
    
-    # Copy the input file to the output file name and modify the output
-    # file in-place
-    shutil.copy(fn, outfn) 
+    # Create the output filterbank file
+    filterbank.create_filterbank_file(outfn, fil.header)
+    outfil = filterbank.FilterbankFile(outfn, read_only=False)
 
     # Read the first second of data to get the global scaling to use
-    outfil = filterbank.FilterbankFile(outfn, read_only=False)
-    onesec = outfil.get_timeslice(0, 1).copy()
+    onesec = fil.get_timeslice(0, 1).copy()
     onesec_nspec = onesec.shape[0]
     phases = np.tile(np.arange(onesec_nspec)*fil.tsamp/period % 1, \
                         (fil.nchans,1)).T + delays_phs
@@ -198,17 +197,17 @@ def inject(fn, outfn, prof, period, dm):
     
     # Start an output file
     print "Creating out file: %s" % outfn
-    nprofs = outfil.nspec/nbin
-    remainder = outfil.nspec % nbin
+    nprofs = fil.nspec/nbin
+    remainder = fil.nspec % nbin
     oldprogress = -1
     for iprof in np.arange(nprofs):
-        spectra = outfil.get_spectra(iprof*nbin, (iprof+1)*nbin)
+        spectra = fil.get_spectra(iprof*nbin, (iprof+1)*nbin)
         phases = np.tile(np.arange(iprof*nbin, (iprof+1)*nbin)*fil.tsamp/period % 1, (fil.nchans,1)).T + delays_phs
         toinject = prof(phases)
-        outfil.spectra[iprof*nbin:(iprof+1)*nbin] = \
-                np.clip((spectra+toinject-minimum)*global_scale, 0, 256)
-        outfil.spectra.flush()
-        progress = int(100.0*((iprof+1)*nbin)/outfil.nspec)
+        injected = spectra+toinject
+        scaled = np.clip((injected-minimum)*global_scale, 0, 256)
+        outfil.append_spectra(scaled)
+        progress = int(100.0*((iprof+1)*nbin)/fil.nspec)
         if progress > oldprogress: 
             sys.stdout.write(" %3.0f %%\r" % progress)
             sys.stdout.flush()
@@ -218,9 +217,9 @@ def inject(fn, outfn, prof, period, dm):
         spectra = outfil.get_spectra(-remainder, None)
         phases = np.tile(np.arange(nprofs*nbin, nprofs*nbin+remainder)*fil.tsamp/period % 1, (fil.nchans,1)).T + delays_phs
         toinject = prof(phases)
-        outfil.spectra[-remainder:] = \
-                np.clip((spectra+toinject-minimum)*global_scale, 0, 256)
-        outfil.spectra.flush()
+        injected = spectra+toinject
+        scaled = np.clip((injected-minimum)*global_scale, 0, 256)
+        outfil.append_spectra(scaled)
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
     
