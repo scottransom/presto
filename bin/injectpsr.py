@@ -99,10 +99,11 @@ class MultiComponentProfile(Profile):
                 prof: The MultiComponentProfile object.
         """
         self.scale = scale
-        if components is None:
-            self.components = []
-        else:
-            self.components = components
+        self.components = []
+        for component in components:
+            component.scale = self.scale # Apply the same global
+                                         # scaling to all components
+            self.components.append(component)
 
     def _get_profile(self):
         """Private method to get the pulse profile vs. phase
