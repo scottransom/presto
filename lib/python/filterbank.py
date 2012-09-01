@@ -142,6 +142,9 @@ class FilterbankFile(object):
             Outputs:
                 None
         """
+        if self.read_only:
+            raise ValueError("FilterbankFile object for '%s' is read-only." % \
+                        self.filename)
         nspec, nchans = spectra.shape
         if nchans != self.nchans:
             raise ValueError("Cannot append spectra. Incorrect shape. " \
