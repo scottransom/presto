@@ -15,7 +15,7 @@ import sigproc
 
 DEBUG = False
 
-def create_filterbank_file(outfn, header, spectra=None, verbose=False):
+def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
     """Write filterbank header and spectra to file.
 
         Input:
@@ -23,21 +23,26 @@ def create_filterbank_file(outfn, header, spectra=None, verbose=False):
             header: A dictionary of header paramters and values.
             spectra: Spectra to write to file. (Default: don't write
                 any spectra - i.e. write out header only)
+            nbits: The number of bits per sample of the filterbank file.
+                (Default: 8 - i.e. each sample is an 8-bit integer)
             verbose: If True, be verbose (Default: be quiet)
 
         Output:
             None
     """
+    dtype = get_dtype(nbits) # Get dtype. This will check to ensure
+                             # 'nbits' is valid.
+    header['nbits'] = nbits
     outfile = open(outfn, 'wb')
     outfile.write(sigproc.addto_hdr("HEADER_START", None))
-    for paramname in self.header.keys():
+    for paramname in header.keys():
         if verbose:
             print "Writing header param (%s)" % paramname
-        value = self.header[paramname]
+        value = header[paramname]
         outfile.write(sigproc.addto_hdr(paramname, value))
     outfile.write(sigproc.addto_hdr("HEADER_END", None))
     if spectra:
-        self.spectra.flatten().astype(self.dtype).tofile(outfile)
+        spectra.flatten().astype(dtype).tofile(outfile)
     outfile.close()
 
 
@@ -152,10 +157,10 @@ class FilterbankFile(object):
                         "channels in spectra to append: %d" % \
                         (self.nchans, nchans))
         f = open(self.filename, 'ab')
-        f.write(spectra.flat)
+        f.write(spectra.flatten())
         f.flush()
+        os.fsync(f)
         f.close()
-        os.fsync()
         self.needs_sync = True
 
     def __getattr__(self, name):
