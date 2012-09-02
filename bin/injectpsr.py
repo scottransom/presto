@@ -218,27 +218,29 @@ def inject(infile, outfn, prof, period, dm):
     
     # Start an output file
     print "Creating out file: %s" % outfn
-    nblocks = int(outfil.nspec/BLOCKSIZE)
-    remainder = outfil.nspec % BLOCKSIZE
+    sys.stdout.write(" %3.0f %%\r" % 0)
+    sys.stdout.flush()
+    nblocks = int(fil.nspec/BLOCKSIZE)
+    remainder = fil.nspec % BLOCKSIZE
     oldprogress = -1
     for iblock in np.arange(nblocks):
         lobin = iblock*BLOCKSIZE
         hibin = (iblock+1)*BLOCKSIZE
-        spectra = outfil.get_spectra(lobin, hibin)
+        spectra = fil.get_spectra(lobin, hibin)
         times = np.atleast_2d(np.arange(lobin, hibin)*fil.tsamp).T - delays
         phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
         scaled = np.clip((injected-minimum)*global_scale, 0, 256)
         outfil.append_spectra(scaled)
-        progress = int(100.0*(hibin/outfil.nspec))
+        progress = int(100.0*(hibin/fil.nspec))
         if progress > oldprogress: 
             sys.stdout.write(" %3.0f %%\r" % progress)
             sys.stdout.flush()
             oldprogress = progress
     # Read all remaining spectra
     if remainder:
-        spectra = outfil.get_spectra(-remainder, None)
+        spectra = fil.get_spectra(-remainder, None)
         times = np.atleast_2d(np.arange(nblocks*BLOCKSIZE, nblocks*BLOCKSIZE+remainder) * \
                             fil.tsamp).T - delays
         phases = times/period % 1
@@ -252,6 +254,7 @@ def inject(infile, outfn, prof, period, dm):
 
 def main():
     comps = create_vonmises_components(options.vonmises)
+    print "Creating profile. Number of components: %d" % len(comps)
     prof = MultiComponentProfile(comps, scale=options.scale)
     if options.dryrun:
         print "Showing plot of profile to be injected..."
@@ -319,6 +322,10 @@ if __name__ == '__main__':
                     type='str', \
                     action="callback", callback=parse_mfile_callback, \
                     help="A model file (*.m) as written by 'paas'.")
+    parser.add_option("--block-size", dest='block_size', default=BLOCKSIZE, \
+                    help="Number of spectra per block. This is the amount " \
+                        "of data manipulated/written at a time. (Default: " \
+                        " %d spectra)" % BLOCKSIZE)
     parser.add_option("-n", "--dryrun", dest="dryrun", action="store_true", \
                     help="Show the pulse profile to be injected and exit. " \
                         "(Default: do not show profile, inject it)")
