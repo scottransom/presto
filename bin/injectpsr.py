@@ -12,6 +12,7 @@ import shutil
 
 import numpy as np
 import scipy.integrate
+import scipy.interpolate
 import matplotlib.pyplot as plt
 
 import filterbank
@@ -19,7 +20,7 @@ import psr_utils
 
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
-
+BLOCKSIZE = 1e5 # Number of spectra to manipulate at once
 
 class Profile(object):
     """A class to represent a generic pulse profile.
@@ -39,45 +40,64 @@ class Profile(object):
             Output:
                 prof: The profile object.
         """
+        self.spline = None
         self.scale = scale
-        self.prof_func = lambda phs: prof_func(phs % 1)*self.scale
+        self.prof_func = lambda phs: prof_func(phs % 1)
 
     def _get_profile(self):
         """Private method to get the pulse profile vs. phase
             function.
         """
-        return self.prof_func
+        prof = lambda ph: self.scale*self.prof_func(ph)
+        return prof
 
-    def __call__(self, phs, end_phs=None):
+    def _get_spline(self, npts=1024, remake=False, **spline_kwargs):
+        """Private method to get an interpolating spline of the profile.
+        """
+        if remake or self.spline is None:
+            phs = np.linspace(0,1, npts+1, endpoint=True)
+            prof = self._get_profile()
+            self.spline = scipy.interpolate.InterpolatedUnivariateSpline(phs, \
+                                                prof(phs), **spline_kwargs)
+        return self.spline
+
+    def __call__(self, phs, end_phs=None, direct=False):
         """Return the value of the profile at the given phase.
 
             Inputs:
                 phs: The phase of the profile (between 0 and 1) where
                     the profile should be evaluated.
-                end_phs: (option) If provided integrate the profile
+                end_phs: (optional) If provided integrate the profile
                     between phs and end_phs and return the result.
                     phs and end_phs should have the same shape.
+                direct: If True, evaluate the profile function directly.
+                    If False, use an interpolating spline. 
+                    (Default: use spline)
 
             Output:
                 vals: The values of the profile at the requested phases.
         """
-        prof = lambda ph: self.scale*self._get_profile()(ph)
+        if direct:
+            prof = lambda ph: self._get_profile()(ph % 1)
+        else:
+            prof = lambda ph: self._get_spline()(ph % 1)
+
         if end_phs is None:
-            return prof(phs)
+            vals = prof(phs.flatten())
         else:
             vals = np.empty(len(phs))
             for ii, (phs0, phs1) in enumerate(zip(phs, end_phs)):
-                vals[ii] = scipy.integrate.quad(prof, phs0, phs1)[0]
-            return vals
+                if direct:
+                    vals[ii] = scipy.integrate.quad(prof, phs0, phs1)[0]
+                else:
+                    vals[ii] = prof.integral(phs0, phs1)
+        vals.shape = phs.shape
+        return vals
 
     def plot(self, nbin=1024):
-        fig = plt.figure()
-        ax = plt.axes()
         x0 = np.linspace(0, 1.0, nbin, endpoint=False)
         x1 = np.linspace(0, 1.0, nbin+1, endpoint=True)[1:]
-        plt.plot((x0+x1)/2.0, self(x0, end_phs=x1), 'k-', lw=3)
-        plt.xlim(0,1)
-        plt.xlabel("Phase")
+        plt.plot(x0, self(x0))
 
 
 class MultiComponentProfile(Profile):
@@ -98,6 +118,7 @@ class MultiComponentProfile(Profile):
             Output:
                 prof: The MultiComponentProfile object.
         """
+        self.spline = None
         self.scale = scale
         self.components = []
         for component in components:
@@ -117,18 +138,15 @@ class MultiComponentProfile(Profile):
         return prof
 
     def add_component(self, comp):
+        comp.scale = self.scale
         self.components.append(comp)
+        self.spline = None
 
     def plot(self, nbin=1024):
-        fig = plt.figure()
-        ax = plt.axes()
         x0 = np.linspace(0, 1.0, nbin, endpoint=False)
-        x1 = np.linspace(0, 1.0, nbin+1, endpoint=True)[1:]
-        plt.plot((x0+x1)/2.0, self(x0, end_phs=x1), 'k-', lw=3)
+        plt.plot(x0, self(x0), 'k-', lw=3)
         for comp in self.components:
-            plt.plot((x0+x1)/2.0, comp(x0, end_phs=x1), lw=2)
-        plt.xlim(0,1)
-        plt.xlabel("Phase")
+            comp.plot(nbin=nbin)
 
 
 def vonmises_factory(amp,shape,loc):
@@ -165,21 +183,23 @@ def create_vonmises_components(vonmises_strs):
     return vonmises_comps
 
 
-def inject(fn, outfn, prof, period, dm):
-    print "Injecting pulsar signal into: %s" % fn
-    fil = filterbank.FilterbankFile(fn, read_only=True)
+def inject(infile, outfn, prof, period, dm):
+    if isinstance(infile, filterbank.FilterbankFile):
+        fil = infile
+    else:
+        fil = filterbank.FilterbankFile(infile, read_only=True)
+    print "Injecting pulsar signal into: %s" % fil.filename
     nbin = int(np.round(period/fil.tsamp)) # Number of bins 
                                                    # across the profile
     # Because of manipulations performed on the arrays we need
     # to flip the delays to get a proper DM sweep.
-    delays = psr_utils.delay_from_DM(dm, fil.frequencies)[::-1]
+    delays = psr_utils.delay_from_DM(dm, fil.frequencies)
+    delays -= delays[np.argmax(fil.frequencies)]
     delays_phs = delays/period
-    delays_phs -= delays_phs[np.argmax(fil.frequencies)]
     delays_phs %= 1
     
     # for ii, (freq, delay) in enumerate(zip(fil.frequencies, delays_phs)):
     #     print "Channel %d: %g MHz, %g (phase)" % (ii, freq, delay)
-   
     # Create the output filterbank file
     filterbank.create_filterbank_file(outfn, fil.header)
     outfil = filterbank.FilterbankFile(outfn, read_only=False)
@@ -187,8 +207,8 @@ def inject(fn, outfn, prof, period, dm):
     # Read the first second of data to get the global scaling to use
     onesec = fil.get_timeslice(0, 1).copy()
     onesec_nspec = onesec.shape[0]
-    phases = np.tile(np.arange(onesec_nspec)*fil.tsamp/period % 1, \
-                        (fil.nchans,1)).T + delays_phs
+    times = np.atleast_2d(np.arange(onesec_nspec)*fil.tsamp).T+delays
+    phases = times/period % 1
     onesec += prof(phases)
     minimum = np.min(onesec)
     median = np.median(onesec)
@@ -198,17 +218,20 @@ def inject(fn, outfn, prof, period, dm):
     
     # Start an output file
     print "Creating out file: %s" % outfn
-    nprofs = fil.nspec/nbin
-    remainder = fil.nspec % nbin
+    nblocks = int(outfil.nspec/BLOCKSIZE)
+    remainder = outfil.nspec % BLOCKSIZE
     oldprogress = -1
-    for iprof in np.arange(nprofs):
-        spectra = fil.get_spectra(iprof*nbin, (iprof+1)*nbin)
-        phases = np.tile(np.arange(iprof*nbin, (iprof+1)*nbin)*fil.tsamp/period % 1, (fil.nchans,1)).T + delays_phs
+    for iblock in np.arange(nblocks):
+        lobin = iblock*BLOCKSIZE
+        hibin = (iblock+1)*BLOCKSIZE
+        spectra = outfil.get_spectra(lobin, hibin)
+        times = np.atleast_2d(np.arange(lobin, hibin)*fil.tsamp).T - delays
+        phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
         scaled = np.clip((injected-minimum)*global_scale, 0, 256)
         outfil.append_spectra(scaled)
-        progress = int(100.0*((iprof+1)*nbin)/fil.nspec)
+        progress = int(100.0*(hibin/outfil.nspec))
         if progress > oldprogress: 
             sys.stdout.write(" %3.0f %%\r" % progress)
             sys.stdout.flush()
@@ -216,7 +239,9 @@ def inject(fn, outfn, prof, period, dm):
     # Read all remaining spectra
     if remainder:
         spectra = outfil.get_spectra(-remainder, None)
-        phases = np.tile(np.arange(nprofs*nbin, nprofs*nbin+remainder)*fil.tsamp/period % 1, (fil.nchans,1)).T + delays_phs
+        times = np.atleast_2d(np.arange(nblocks*BLOCKSIZE, nblocks*BLOCKSIZE+remainder) * \
+                            fil.tsamp).T - delays
+        phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
         scaled = np.clip((injected-minimum)*global_scale, 0, 256)
@@ -231,14 +256,16 @@ def main():
     if options.dryrun:
         print "Showing plot of profile to be injected..."
         prof.plot()
+        plt.xlim(0,1)
+        plt.xlabel("Phase")
         plt.show()
         sys.exit()
 
     print "%d input files provided" % len(args)
     for fn in args:
-        hdr, hdr_size = filterbank.read_header(fn)
-        outfn = options.outname % hdr 
-        inject(fn, outfn, prof, options.period, options.dm)
+        fil = filterbank.FilterbankFile(fn, read_only=True)
+        outfn = options.outname % fil.header 
+        inject(fil, outfn, prof, options.period, options.dm)
 
 
 def parse_model_file(modelfn):
