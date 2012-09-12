@@ -231,7 +231,7 @@ def inject(infile, outfn, prof, period, dm):
         phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
-        scaled = np.clip((injected-minimum)*global_scale, 0, 256)
+        scaled = (injected-minimum)*global_scale
         outfil.append_spectra(scaled)
         progress = int(100.0*(hibin/fil.nspec))
         if progress > oldprogress: 
@@ -246,7 +246,7 @@ def inject(infile, outfn, prof, period, dm):
         phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
-        scaled = np.clip((injected-minimum)*global_scale, 0, 256)
+        scaled = (injected-minimum)*global_scale
         outfil.append_spectra(scaled)
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
