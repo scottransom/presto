@@ -24,6 +24,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
             spectra: Spectra to write to file. (Default: don't write
                 any spectra - i.e. write out header only)
             nbits: The number of bits per sample of the filterbank file.
+                This value always overrides the value in the header dictionary.
                 (Default: 8 - i.e. each sample is an 8-bit integer)
             verbose: If True, be verbose (Default: be quiet)
 

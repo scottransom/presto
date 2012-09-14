@@ -183,7 +183,7 @@ def create_vonmises_components(vonmises_strs):
     return vonmises_comps
 
 
-def inject(infile, outfn, prof, period, dm):
+def inject(infile, outfn, prof, period, dm, nbitsout=8):
     if isinstance(infile, filterbank.FilterbankFile):
         fil = infile
     else:
@@ -201,7 +201,7 @@ def inject(infile, outfn, prof, period, dm):
     # for ii, (freq, delay) in enumerate(zip(fil.frequencies, delays_phs)):
     #     print "Channel %d: %g MHz, %g (phase)" % (ii, freq, delay)
     # Create the output filterbank file
-    filterbank.create_filterbank_file(outfn, fil.header)
+    filterbank.create_filterbank_file(outfn, fil.header, nbits=nbitsout)
     outfil = filterbank.FilterbankFile(outfn, read_only=False)
 
     # Read the first second of data to get the global scaling to use
@@ -268,7 +268,8 @@ def main():
     for fn in args:
         fil = filterbank.FilterbankFile(fn, read_only=True)
         outfn = options.outname % fil.header 
-        inject(fil, outfn, prof, options.period, options.dm)
+        inject(fil, outfn, prof, options.period, options.dm, \
+                nbitsout=options.output_nbits)
 
 
 def parse_model_file(modelfn):
@@ -326,6 +327,9 @@ if __name__ == '__main__':
                     help="Number of spectra per block. This is the amount " \
                         "of data manipulated/written at a time. (Default: " \
                         " %d spectra)" % BLOCKSIZE)
+    parser.add_option("--nbits", dest='output_nbits', default=8, \
+                    help="Number of bits per same to use in output " \
+                        "filterbank file. (Default: 8-bits)")
     parser.add_option("-n", "--dryrun", dest="dryrun", action="store_true", \
                     help="Show the pulse profile to be injected and exit. " \
                         "(Default: do not show profile, inject it)")
