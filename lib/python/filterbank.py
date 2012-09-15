@@ -29,7 +29,8 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
             verbose: If True, be verbose (Default: be quiet)
 
         Output:
-            None
+            fbfile: The resulting FilterbankFile object opened
+                in read-write mode.
     """
     dtype = get_dtype(nbits) # Get dtype. This will check to ensure
                              # 'nbits' is valid.
@@ -45,7 +46,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
     if spectra:
         spectra.flatten().astype(dtype).tofile(outfile)
     outfile.close()
-
+    return FilterbankFile(outfn, read_only=False)
 
 def is_float(nbits):
     """For a given number of bits per sample return
