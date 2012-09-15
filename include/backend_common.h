@@ -63,8 +63,8 @@ struct spectra_info {
     int apply_scale;        // Do we apply the scales to the data? (1=Yes, 0=No)
     int apply_offset;       // Do we apply the offsets to the data? (1=Yes, 0=No)
     int apply_weight;       // Do we apply the weights to the data? (1=Yes, 0=No)
-    int apply_flipband;     // Do we invert the band? (1=Yes, 0=No)
-    int remove_zerodm;      // Do zero-DM substraction
+    int apply_flipband;     // Do we invert the band?
+    int remove_zerodm;      // Do zero-DM substraction?
     int use_poln;           // The number of the specific polarization to use 0-num_polns-1
     int flip_bytes;         // Hack to flip the order of the bits in a byte of data
     float zero_offset;      // A DC zero-offset value to apply to all the data
@@ -99,3 +99,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s, int *delays
 void get_channel(float chandat[], int channum, int numsubints, float rawdata[], struct spectra_info *s);
 int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands, struct spectra_info *s, int transpose, int *maskchans, int *nummasked, mask *obsmask);
 int read_subbands(float *fdata, int *delays, int numsubbands, struct spectra_info *s, int transpose, int *padding, int *maskchans, int *nummasked, mask *obsmask);
+void flip_band(float *fdata, struct spectra_info *s);
+
+/* zerodm.c */
+void remove_zerodm(float *fdata, struct spectra_info *s);

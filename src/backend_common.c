@@ -631,3 +631,20 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
        return 0;
    }
 }
+
+
+void flip_band(float *fdata, struct spectra_info *s)
+// Flip the bandpass
+{
+    float ftmp;
+    int ii, jj, looffs, hioffs;
+    for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+        looffs = ii * s->num_channels;
+        hioffs = looffs + s->num_channels - 1;
+        for (jj = 0 ; jj < s->num_channels/2 ; jj++, looffs++, hioffs--) {
+            ftmp = fdata[looffs];
+            fdata[looffs] = fdata[hioffs];
+            fdata[hioffs] = ftmp;
+        }
+    }
+}
