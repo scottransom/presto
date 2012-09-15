@@ -402,23 +402,23 @@ void read_filterbank_files(struct spectra_info *s)
         chkfseek(s->files[ii], s->header_offset[ii], SEEK_SET);
         // Compare key values with s->XXX[0] to see if things are the same
         if (s->num_channels != fb.nchans) {
-            printf("Error:  num chans %d in file #%d does not match original num chans %d!!\n", fb.nchans, ii+1, s->num_channels);
+            fprintf(stderr, "Error:  num chans %d in file #%d does not match original num chans %d!!\n", fb.nchans, ii+1, s->num_channels);
             exit(1);
         }
         if (s->bits_per_sample != fb.nbits) {
-            printf("Error:  bits per sample %d in file #%d does not match original bits per sample %d!!\n", fb.nbits, ii+1, s->bits_per_sample);
+            fprintf(stderr, "Error:  bits per sample %d in file #%d does not match original bits per sample %d!!\n", fb.nbits, ii+1, s->bits_per_sample);
             exit(1);
         }
         if (s->dt != fb.tsamp) {
-            printf("Error:  sample time %f in file #%d does not match original sample time %f!!\n", fb.tsamp, ii+1, s->dt);
+            fprintf(stderr, "Error:  sample time %f in file #%d does not match original sample time %f!!\n", fb.tsamp, ii+1, s->dt);
             exit(1);
         }
         if (s->df != fabs(fb.foff)){
-            printf("Error:  channel width %f in file #%d does not match original channel width %f!!\n", fabs(fb.foff), ii+1, s->df);
+            fprintf(stderr, "Error:  channel width %f in file #%d does not match original channel width %f!!\n", fabs(fb.foff), ii+1, s->df);
             exit(1);
         }
         if (s->hi_freq != fb.fch1) {
-            printf("Error:  high chan freq %f in file #%d does not match original high chan freq %f!!\n", fb.fch1, ii+1, s->hi_freq);
+            fprintf(stderr, "Error:  high chan freq %f in file #%d does not match original high chan freq %f!!\n", fb.fch1, ii+1, s->hi_freq);
             exit(1);
         }
         s->start_MJD[ii] = fb.tstart;
@@ -441,7 +441,7 @@ long long offset_to_filterbank_spectra(long long specnum, struct spectra_info *s
     int filenum = 0;
     
     if (specnum > s->N) {
-        printf("Error:  offset spectra %lld is > total spectra %lld\n\n", 
+        fprintf(stderr, "Error:  offset spectra %lld is > total spectra %lld\n\n", 
                specnum, s->N);
         exit(1);
     }
@@ -543,8 +543,8 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
                 }
             }
         } else {
-            printf("Error: Problem reading record from filterbank data file:\n");
-            printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
+            fprintf(stderr, "Error: Problem reading record from filterbank data file:\n");
+            fprintf(stderr, "   currentfile = %d, currentblock = %d.  Exiting.\n",
                    currentfile, currentblock);
             exit(1);
         }
