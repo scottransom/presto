@@ -159,6 +159,16 @@ class FilterbankFile(object):
         self.needs_sync = True
         self.sync_spectra()
 
+        if not self.read_only:
+            self.file_append_mode = open(self.filename, 'ab')
+
+    def __del__(self):
+        self.close()
+        
+    def close(self):
+        if not self.read_only:
+            self.file_append_mode.close()
+
     def sync_spectra(self):
         self.file_size = os.stat(self.filename)[6]
         self.data_size = self.file_size - self.header_size
@@ -203,11 +213,11 @@ class FilterbankFile(object):
                         "Number of channels in file: %d; Number of " \
                         "channels in spectra to append: %d" % \
                         (self.nchans, nchans))
-        f = open(self.filename, 'ab')
-        f.write(spectra.flatten().clip(self.dtype_min, self.dtype_max).astype(self.dtype))
-        f.flush()
-        os.fsync(f)
-        f.close()
+        data = spectra.flatten()
+        np.clip(data, self.dtype_min, self.dtype_max, out=data)
+        self.file_append_mode.write(data.astype(self.dtype))
+        self.file_append_mode.flush()
+        os.fsync(self.file_append_mode)
         self.needs_sync = True
 
     def __getattr__(self, name):
