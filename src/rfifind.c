@@ -517,14 +517,13 @@ int main(int argc, char *argv[])
    vect_free(bytemask[0]);
    vect_free(bytemask);
    if (!cmd->nocomputeP) {
-      for (ii = 0; ii < s.num_files; ii++)
-         fclose(s.files[ii]);
-      free(s.files);
-      vect_free(chandata);
-      if (insubs)
-         vect_free(srawdata);
-      else
-         vect_free(rawdata);
+       //  Close all the raw files and free their vectors
+       close_rawfiles(&s);
+       vect_free(chandata);
+       if (insubs)
+           vect_free(srawdata);
+       else
+           vect_free(rawdata);
    }
    return (0);
 }

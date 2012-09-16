@@ -40,6 +40,20 @@ void psrdatatype_description(char *outstr, psrdatatype ptype)
     return;
 }
 
+void close_rawfiles(struct spectra_info *s)
+{
+    int ii;
+    if (s->datatype==PSRFITS) {
+        int status = 0;
+        for (ii = 0 ; ii < s->num_files ; ii++)
+            fits_close_file(s->fitsfiles[ii], &status);
+        free(s->fitsfiles);
+    } else {
+        for (ii = 0 ; ii < s->num_files ; ii++)
+            fclose(s->files[ii]);
+        free(s->files);
+    }
+}
 
 void read_rawdata_files(struct spectra_info *s)
 {

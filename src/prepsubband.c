@@ -687,9 +687,8 @@ int main(int argc, char *argv[])
    if (cmd->maskfileP) {
       free_mask(obsmask);
    }
-   for (ii = 0; ii < s.num_files; ii++)
-      fclose(s.files[ii]);
-   free(s.files);
+   //  Close all the raw files and free their vectors
+   close_rawfiles(&s);
    for (ii = 0; ii < cmd->numdms; ii++)
       fclose(outfiles[ii]);
    if (cmd->subP) {

@@ -636,12 +636,8 @@ int main(int argc, char *argv[])
    }
    vect_free(outdata);
 
-   /* Close the files */
-
-   for (ii = 0; ii < s.num_files; ii++)
-      fclose(s.files[ii]);
-   free(s.files);
-   fclose(outfile);
+   //  Close all the raw files and free their vectors
+   close_rawfiles(&s);
 
    /* Print simple stats and results */
 

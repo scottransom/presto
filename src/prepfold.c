@@ -1287,12 +1287,12 @@ int main(int argc, char *argv[])
       vect_free(buffers);
       vect_free(phasesadded);
    }
-   /* This resets foldf (which is used below) to the original value */
+   // This resets foldf (which is used below) to the original value
    if (cmd->polycofileP)
       foldf = orig_foldf;
-   for (ii = 0; ii < s.num_files; ii++)
-      fclose(s.files[ii]);
-   free(s.files);
+
+   //  Close all the raw files and free their vectors
+   close_rawfiles(&s);
 
    /*
     *   Perform the candidate optimization search

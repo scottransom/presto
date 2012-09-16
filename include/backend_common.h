@@ -88,6 +88,7 @@ struct spectra_info {
 /* backend_common.c */
 void psrdatatype_description(char *outstr, psrdatatype ptype);
 void identify_psrdatatype(struct spectra_info *s, int output);
+void close_rawfiles(struct spectra_info *s);
 void spectra_info_set_defaults(struct spectra_info *s);
 void read_rawdata_files(struct spectra_info *s);
 void print_spectra_info(struct spectra_info *s);
