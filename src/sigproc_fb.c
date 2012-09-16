@@ -7,6 +7,8 @@ static float *fdatabuffer;
 static int currentfile = 0, currentblock = 0;
 static int numbuffered = 0, numpadded = 0;
 
+extern void add_padding(float *fdata, float *padding, int numchan, int numtopad);
+
 /* Note:  Much of this has been ripped out of SIGPROC      */
 /* and then slightly modified.  Thanks Dunc!               */
 
@@ -518,9 +520,7 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
                     int ii;
                     // Fill the rest of the buffer with padding
                     numtopad = s->spectra_per_subint - numbuffered;
-                    for (ii = 0; ii < numtopad; ii++)
-                        memcpy(fdataptr + ii * s->num_channels, 
-                               s->padvals, s->num_channels * sizeof(float));
+                    add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
                     numpadded += numtopad;
                     numbuffered = 0;
                     currentblock++;
@@ -531,10 +531,7 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
                     }
                     goto return_block;
                 } else {  // Need < 1 block (or remaining block) of padding
-                    int ii;
-                    for (ii = 0; ii < numtopad; ii++)
-                        memcpy(fdataptr + ii * s->num_channels, 
-                               s->padvals, s->num_channels * sizeof(float));
+                    add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
                     numbuffered += numtopad;
                     // Done with padding, so reset padding variables
                     numpadded = 0;

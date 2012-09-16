@@ -52,6 +52,13 @@ void read_rawdata_files(struct spectra_info *s)
     return;
 }
 
+void add_padding(float *fdata, float *padding, int numchan, int numtopad)
+{
+    int ii;
+    for (ii = 0; ii < numtopad; ii++)
+        memcpy(fdata + ii * numchan, padding, numchan * sizeof(float));
+}
+
 
 void identify_psrdatatype(struct spectra_info *s, int output)
 {
