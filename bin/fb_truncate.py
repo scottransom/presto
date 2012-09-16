@@ -131,7 +131,7 @@ if __name__ == '__main__':
                         "to output file. Note: The actual end time will " \
                         "be rounded to the nearest sample. (Default: " \
                         "Don't truncate from end of file.)", default=None)
-    parser.add_option("--block-size", dest='block_size', default=options.block_size, \
+    parser.add_option("--block-size", dest='block_size', default=BLOCKSIZE, \
                     help="Number of spectra per block. This is the amount " \
                         "of data manipulated/written at a time. (Default: " \
                         " %d spectra)" % BLOCKSIZE)
