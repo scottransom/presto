@@ -85,12 +85,12 @@ def main():
     # Write data
     sys.stdout.write(" %3.0f %%\r" % 0)
     sys.stdout.flush()
-    nblocks = int(new_nspec/BLOCKSIZE)
-    remainder = new_nspec % BLOCKSIZE
+    nblocks = int(new_nspec/options.block_size)
+    remainder = new_nspec % options.block_size
     oldprogress = -1
     for iblock in np.arange(nblocks):
-        lobin = iblock*BLOCKSIZE + startbin
-        hibin = lobin+BLOCKSIZE
+        lobin = iblock*options.block_size + startbin
+        hibin = lobin+options.block_size
         spectra = fil.get_spectra(lobin, hibin)
         spectra = spectra[:,lochan:hichan] # restrict channels
         outfil.append_spectra(spectra)
@@ -131,6 +131,10 @@ if __name__ == '__main__':
                         "to output file. Note: The actual end time will " \
                         "be rounded to the nearest sample. (Default: " \
                         "Don't truncate from end of file.)", default=None)
+    parser.add_option("--block-size", dest='block_size', default=options.block_size, \
+                    help="Number of spectra per block. This is the amount " \
+                        "of data manipulated/written at a time. (Default: " \
+                        " %d spectra)" % BLOCKSIZE)
     parser.add_option("-o", "--outname", dest='outname', action='store', \
                     help="The name of the output file.")
     (options, args) = parser.parse_args()
