@@ -7,18 +7,18 @@
 #define DEBUG_OUT 1
 
 static unsigned char *cdatabuffer;
-static float *fdatabuffer, *ringbuffer;
-static float *offsets, *scales, *weights;
-static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
-static int numbuffered = 0, numpadded = 0, shiftbuffer = 1, missing_blocks = 0;
+static float *fdatabuffer, *offsets, *scales, *weights;
+static int cur_file = 0, cur_subint = 1, numbuffered = 0;
+static long long cur_spec = 0;
 static double last_offs_sub = 0.0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move,
                              int move_size);
+extern void add_padding(float *fdata, float *padding, int numchan, int numtopad);
 
-// This tests to see if 2 times are within 100ns of each other
-#define TEST_CLOSE(a, b) (fabs((a)-(b)) <= 1e-7 ? 1 : 0)
+void get_PSRFITS_subint(float *fdata, unsigned char *cdata, 
+                        struct spectra_info *s);
 
 
 double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday)
@@ -566,10 +566,9 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
 // returned as 1, then padding was added and statistics should not be
 // calculated.  Return 1 on success.
 {
-    int numread, numtopad = 0, numtoread;
+    int numtopad = 0, numtoread, status = 0, anynull;
     float *fdataptr = fdata;
     double offs_sub;
-    static int firsttime = 1;
     
     fdataptr = fdata + numbuffered * s->num_channels;
     // numtoread is always this size since we need to read
@@ -582,158 +581,121 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
     if (numbuffered)
         memcpy(fdata, fdata + numtoread * s->num_channels, 
                numbuffered * s->num_channels * sizeof(float));
-
+    
     // Make sure our current file number is valid
     if (cur_file >= s->num_files) return 0;
-
+    
     // Read a subint of data from the DATA col
     if (cur_subint <= s->num_subint[cur_file]) {
         
         // Read the OFFS_SUB column value in case there were dropped blocks
-        fits_read_col(s->files[cur_file], TDOUBLE, 
+        fits_read_col(s->fitsfiles[cur_file], TDOUBLE, 
                       s->offs_sub_col, cur_subint, 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
-
-        if (firsttime) {
-            last_offs_sub = offs_sub - s->time_per_subint;
-            firsttime = 0;
-        }
         
-        // The following determines if there were lost blocks
-        if TEST_CLOSE(offs_sub - last_offs_sub, s->time_per_subint) {
-            // if things look good, with no missing blocks, read the data
-            get_PSRFITS_subint(fdataptr, tmpbuffer, s);
-            last_offs_sub = offs_sub;
-        } else {
-            // if not, and there is some missing data, use padding instead
-            double dnumblocks;
-            int numblocks;
-            dnumblocks = (offs_sub - last_offs_sub) / s->time_per_subint;
-            numblocks = (int) round(dnumblocks);
-            //printf("\n%d  %20.15f  %20.15f  %20.15f  %20.15f  %20.15f  %d \n", 
-            //       cur_subint, last_offs_sub, offs_sub, 
-            //       offs_sub-last_offs_sub, s->time_per_subint, dnumblocks, numblocks);
-            missing_blocks++;
-            if (fabs(dnumblocks - (double)numblocks) > 1e-6) {
-                printf("\nYikes!  We missed a fraction (%.20f) of a subint!\n", 
-                       fabs(dnumblocks - (double)numblocks));
+        // Set last_offs_sub to proper value
+        if (cur_subint==1 && (offs_sub < s->time_per_subint)) {
+            if (cur_file==0) {
+                // This is for the first time
+                last_offs_sub = offs_sub - s->time_per_subint;
+            } else {
+                // And this is if we are combining observations
+                last_offs_sub = (s->start_spec[cur_file] - 
+                                 (cur_spec + numbuffered)) * s->dt - 
+                    0.5 * s->time_per_subint;
             }
-            printf("At subint %d found %d dropped subints (%d total), adding 1.\n", 
-                   cur_subint, numblocks-1, missing_blocks);
-            // Add a full block of padding
-            numtopad = s->spectra_per_subint * s->num_polns;
-            for (ii = 0; ii < numtopad; ii++)
-                memcpy(tmpbuffer + ii * s->bytes_per_spectra/s->num_polns, 
-                       newpadvals, s->bytes_per_spectra/s->num_polns);
-            // Update the time of the last subs based on this padding
-            last_offs_sub += s->time_per_subint;
-            // Set the padding flag
-            *padding = 1;
-            // Decrement the subint counter since it gets incremented later
-            // but we don't want to move to the next subint yet
-            cur_subint--;
         }
-
-        if (status) {
-            printf("\nProblem reading record from PSRFITS data file:\n");
-            printf("   currentfile = %d, currentsubint = %d.  Exiting.\n",
-                   cur_file, cur_subint);
-            exit(1);
-        }
-
-        // Clip nasty RFI if requested
-        if (s->clip_sigma > 0.0)  {
-            clip_times(dataptr, s->spectra_per_subint, s->num_channels, 
-                       s->clip_sigma, newpadvals);
-        }
-        *padding = 0;
-        // Pull the new data from the ringbuffer if there is an offset
-        if (bufferspec)
-            memcpy(data, ringbuffer, s->bytes_per_subint/s->num_polns);
-        cur_subint++;
-        return 1;
         
-    
-    } else { // We can't read anymore...  so read OFFS_SUB
-        // for the last row of the current file to see about padding
-        fits_read_col(s->files[cur_file], TDOUBLE, 
+        // The following determines if there were lost blocks.  We should
+        // always be within 0.5 sample (and only that big if we are putting
+        // two different observations together).
+        if (fabs((offs_sub - last_offs_sub) - s->time_per_subint) < 0.5 * s->dt) {
+            // if things look good, with no missing blocks, read the data
+            get_PSRFITS_subint(fdataptr, cdatabuffer, s);
+            last_offs_sub = offs_sub;
+            cur_subint++;
+            goto return_block;
+        } else {
+            if (offs_sub < last_offs_sub) { // Files out of order?  Shouldn't get here.
+                fprintf(stderr, "Error!:  Current subint has earlier time than previous!\n\n"
+                        "\tfilename = '%s', subint = %d\n"
+                        "\tlast_offs_sub = %20.15f  offs_sub = %20.15f\n",
+                        s->filenames[cur_file], cur_subint, last_offs_sub, offs_sub);
+                exit(1);
+            } else {  // there is some missing data, use padding
+                numtopad = (int)round((offs_sub - last_offs_sub) / s->dt) - numbuffered;
+                if (numtopad > s->spectra_per_subint) numtopad = s->spectra_per_subint;
+                add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
+                // Update the time of the last subs based on this padding
+                last_offs_sub += numtopad * s->dt;
+                // Update pointer into the buffer
+                numbuffered = (numbuffered + numtopad) % s->spectra_per_subint;
+                // Set the padding flag
+                *padding = 1;
+                // If we haven't gotten a full block, or completed the buffered one
+                // then recursively call get_PSRFITS_rawblock()
+                if (numbuffered)
+                    return get_PSRFITS_rawblock(fdata, s, padding);
+                else
+                    goto return_block;
+            }
+        }
+        
+    } else {
+        // We can't read anymore...  so read OFFS_SUB for the last row
+        // of the current file to see about padding
+        fits_read_col(s->fitsfiles[cur_file], TDOUBLE, 
                       s->offs_sub_col, s->num_subint[cur_file], 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
     }
-
+    
     if (s->num_pad[cur_file]==0 ||
-        TEST_CLOSE(last_offs_sub, offs_sub)) {  // No padding is necessary
-        // The TEST_CLOSE check means that the lack of data we noticed
-        // upon reading the file was due to dropped data in the
-        // middle of the file that we already fixed.  So no
-        // padding is really necessary.
+        (fabs(last_offs_sub - offs_sub) < 0.5 * s->dt)) {
+        // No padding is necessary.  The second check means that the
+        // lack of data we noticed upon reading the file was due to
+        // dropped data in the middle of the file that we already
+        // fixed.  So no padding is really necessary.
         cur_file++;
         cur_subint = 1;
-        shiftbuffer = 0;  // Since recursively calling, don't shift again
-        return read_PSRFITS_rawblock(data, padding);
+        return get_PSRFITS_rawblock(fdata, s, padding);
     } else { // add padding
-        numtopad = s->num_pad[cur_file] - padnum;
-        // The amount of padding still to be sent for this file
-        if (numtopad) {
-            *padding = 1;
-            if (numtopad >= s->spectra_per_subint - bufferspec) {
-                if (bufferspec) {  // Buffer the padding?
-                    // Add the amount of padding we need to
-                    // make our buffer offset = 0
-                    numtopad = s->spectra_per_subint - bufferspec;
-                    for (ii = 0; ii < numtopad; ii++)
-                        memcpy(dataptr + ii * s->bytes_per_spectra/s->num_polns, 
-                               newpadvals, s->bytes_per_spectra/s->num_polns);
-                    // Copy the new data/padding into the output array
-                    memcpy(data, ringbuffer, s->bytes_per_subint/s->num_polns);
-                    bufferspec = 0;
-                } else {  // Add a full record of padding
-                    numtopad = s->spectra_per_subint;
-                    for (ii = 0; ii < numtopad; ii++)
-                        memcpy(data + ii * s->bytes_per_spectra/s->num_polns, 
-                               newpadvals, s->bytes_per_spectra/s->num_polns);
-                }
-                padnum += numtopad;
-                cur_subint++;
-                // If done with padding reset padding variables and go to next file
-                if (padnum == s->num_pad[cur_file]) {
-                    padnum = 0;
-                    cur_file++;
-                    cur_subint = 1;
-                }
-                // Update the time of the last subs based on this padding
-                last_offs_sub += s->dt * numtopad;
-                return 1;
-            } else {  // Need < 1 block (or remaining block) of padding
-                int pad;
-                // Add the remainder of the padding and then get a
-                // block from the next file.
-                for (ii = 0; ii < numtopad; ii++) {
-                    offset = bufferspec * s->bytes_per_spectra/s->num_polns;
-                    memcpy(ringbuffer + offset + ii * s->bytes_per_spectra/s->num_polns,
-                           newpadvals, s->bytes_per_spectra/s->num_polns);
-                }
-                bufferspec += numtopad;
-                padnum = 0;
-                cur_file++;
-                cur_subint = 1;
-                shiftbuffer = 0;  // Since recursively calling, don't shift again
-                // Update the time of the last subs based on this padding
-                last_offs_sub += s->dt * numtopad;
-                return read_PSRFITS_rawblock(data, &pad);
-            }
-        }
+        // Set offs_sub to the correct offs_sub time for the first
+        // row of the next file.  Since that might or might not
+        // be from a different observation, use absolute times from
+        // the start of the observation for both offs_sub and last_offs_sub
+        offs_sub = s->start_spec[cur_file+1] * s->dt + 0.5 * s->time_per_subint;
+        last_offs_sub = (cur_spec + numbuffered) * s->dt - 0.5 * s->time_per_subint;
+        // Compute the amount of required padding
+        numtopad = (int)round((offs_sub - last_offs_sub) / s->dt) - numbuffered;
+        if (numtopad > s->spectra_per_subint) numtopad = s->spectra_per_subint;
+        add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
+        // Update the time of the last subs based on this padding
+        last_offs_sub += numtopad * s->dt;
+        // Update pointer into the buffer
+        numbuffered = (numbuffered + numtopad) % s->spectra_per_subint;
+        // Set the padding flag
+        *padding = 1;
+        // If we haven't gotten a full block, or completed the buffered one
+        // then recursively call get_PSRFITS_rawblock()
+        if (numbuffered)
+            return get_PSRFITS_rawblock(fdata, s, padding);
+        else
+            goto return_block;
     }
-
+    
 return_block:
     // Apply the corrections that need a full block
-
+    
     // Perform Zero-DMing if requested
     if (s->remove_zerodm) remove_zerodm(fdata, s);
     
     // Invert the band if requested 
     if (s->apply_flipband) flip_band(fdata, s);
-
+    
+    // Increment our static counter (to determine how much data we
+    // have written on the fly).
+    cur_spec += s->spectra_per_subint;
+    
     return 1;
 }
 
@@ -744,35 +706,40 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
     float *fptr;
     unsigned char *cptr;
     short *sptr;
-    int ii, jj;
-    int num_to_read = s->samples_per_subint;
+    int ii, jj, status = 0, anynull;
+    int numtoread = s->samples_per_subint;
     
     // The following allows us to read byte-packed data
     if ((s->bits_per_sample > 1) && (s->bits_per_sample < 8))
-        num_to_read = s->samples_per_subint * s->bits_per_sample / 8;
+        numtoread = s->samples_per_subint * s->bits_per_sample / 8;
 
     // Read the weights, offsets, and scales if required
     if (s->apply_weight)
-        fits_read_col(s->files[cur_file], TFLOAT, s->dat_wts_col, cur_subint, 1L, 
+        fits_read_col(s->fitsfiles[cur_file], TFLOAT, s->dat_wts_col, cur_subint, 1L, 
                       s->num_channels, 0, weights, &anynull, &status);
     if (s->apply_offset)
-        fits_read_col(s->files[cur_file], TFLOAT, s->dat_offs_col, cur_subint, 1L, 
+        fits_read_col(s->fitsfiles[cur_file], TFLOAT, s->dat_offs_col, cur_subint, 1L, 
                       s->num_channels*s->num_polns, 0, offsets, &anynull, &status);
     if (s->apply_scale)
-        fits_read_col(s->files[cur_file], TFLOAT, s->dat_scl_col, cur_subint, 1L, 
+        fits_read_col(s->fitsfiles[cur_file], TFLOAT, s->dat_scl_col, cur_subint, 1L, 
                       s->num_channels*s->num_polns, 0, scales, &anynull, &status);
 
     // Now actually read the subint into the temporary buffer
-    fits_read_col(s->files[cur_file], s->FITS_typecode, 
-                  s->data_col, cur_subint, 1L, num_to_read, 
+    fits_read_col(s->fitsfiles[cur_file], s->FITS_typecode, 
+                  s->data_col, cur_subint, 1L, numtoread, 
                   0, cdata, &anynull, &status);
 
-// should check all the statuses...
+    if (status) {
+        fprintf(stderr, "Error!:  Problem reading record from PSRFITS data file\n"
+                "\tfilename = '%s', subint = %d.  FITS status = %d.  Exiting.\n",
+                s->filenames[cur_file], cur_subint, status);
+        exit(1);
+    }
 
     // The following converts that byte-packed data into bytes, in place
     if (s->bits_per_sample == 4) {
         unsigned char uctmp;
-        for (ii = num_to_read - 1, jj = 2 * num_to_read - 1 ; 
+        for (ii = numtoread - 1, jj = 2 * numtoread - 1 ; 
              ii >= 0 ; ii--, jj -= 2) {
             uctmp = (unsigned char)cdata[ii];
             cdata[jj] = uctmp & 0x0F;
@@ -780,7 +747,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
         }
     } else if (s->bits_per_sample == 2) {
         unsigned char uctmp;
-        for (ii = num_to_read - 1, jj = 4 * num_to_read - 1 ; 
+        for (ii = numtoread - 1, jj = 4 * numtoread - 1 ; 
              ii >= 0 ; ii--, jj -= 4) {
             uctmp = (unsigned char)cdata[ii];
             cdata[jj] = (uctmp & 0x03);
@@ -790,6 +757,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
         }
     } else if (s->bits_per_sample == 1 && s->flip_bytes) {
         // Hack to flip each byte of data if needed
+        int offset;
         unsigned char uctmp;
         for (ii = 0 ; ii < s->bytes_per_subint/8 ; ii++) {
             offset = ii * 8;
