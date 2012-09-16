@@ -163,7 +163,7 @@ def create_vonmises_components(vonmises_strs):
     if not vonmises_strs:
         warnings.warn("Using default von Mises profile (Amplitude=1.0 " \
                         "b=5, and phase=0.5)")
-        vonmise_comps = [Profile(vonmises_factory(1.0, 5, 0.5))]
+        vonmises_comps = [Profile(vonmises_factory(1.0, 5, 0.5))]
     else:
         vonmises_comps = []
         for vonmises_str in vonmises_strs:
