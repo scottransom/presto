@@ -19,9 +19,9 @@ extern void dedisp_subbands(float *data, float *lastdata,
                             int *delays, int numsubbands, float *result);
 extern short transpose_float(float *a, int nx, int ny, unsigned char *move, 
                              int move_size);
-
-
+extern double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday);
 extern void read_filterbank_files(struct spectra_info *s);
+extern void read_PSRFITS_files(struct spectra_info *s);
 
 
 void psrdatatype_description(char *outstr, psrdatatype ptype)
@@ -37,6 +37,18 @@ void psrdatatype_description(char *outstr, psrdatatype ptype)
     else if (ptype==SDAT)    strcpy(outstr, "PRESTO time series of shorts");
     else if (ptype==EVENTS)  strcpy(outstr, "Event list");
     else strcpy(outstr, "Unknown");
+    return;
+}
+
+
+void read_rawdata_files(struct spectra_info *s)
+{
+    if (s->datatype==SIGPROCFB) read_filterbank_files(s);
+    else if (s->datatype==PSRFITS) read_PSRFITS_files(s);
+    else if (s->datatype==SCAMP) exit(1);
+    else if (s->datatype==BPP) exit(1);
+    else if (s->datatype==WAPP) exit(1);
+    else if (s->datatype==SPIGOT) exit(1);
     return;
 }
 
@@ -149,18 +161,6 @@ void spectra_info_set_defaults(struct spectra_info *s) {
 };
 
 
-void read_rawdata_files(struct spectra_info *s)
-{
-    if (s->datatype==SIGPROCFB) read_filterbank_files(s);
-    else if (s->datatype==PSRFITS) exit(1);
-    else if (s->datatype==SCAMP) exit(1);
-    else if (s->datatype==BPP) exit(1);
-    else if (s->datatype==WAPP) exit(1);
-    else if (s->datatype==SPIGOT) exit(1);
-    return;
-}
-
-
 void print_spectra_info(struct spectra_info *s)
 // Output a spectra_info structure in human readable form
 {
@@ -185,7 +185,7 @@ void print_spectra_info(struct spectra_info *s)
     if (s->datatype==PSRFITS) {
         int itmp;
         double dtmp;
-        //       DATEOBS_to_MJD(s->date_obs, &itmp, &dtmp);
+        DATEOBS_to_MJD(s->date_obs, &itmp, &dtmp);
         sprintf(ctmp, "%.14f", dtmp);
         printf("  MJD start time (DATE-OBS) = %5i.%14s\n", itmp, ctmp+2);
         printf("     MJD start time (STT_*) = %19.14Lf\n", s->start_MJD[0]);
@@ -283,9 +283,9 @@ void print_spectra_info_summary(struct spectra_info *s)
     printf("          Byteswap? = %s\n", s->flip_bytes ? "True" : "False");
     printf("     Remove zeroDM? = %s\n", s->remove_zerodm ? "True" : "False");
     if (s->datatype==PSRFITS) {
-        printf("             Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
-        printf("             Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
-        printf("             Apply weights? = %s\n", s->apply_weight ? "True" : "False");
+        printf("     Apply scaling? = %s\n", s->apply_scale ? "True" : "False");
+        printf("     Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
+        printf("     Apply weights? = %s\n", s->apply_weight ? "True" : "False");
     }
     printf("\nFile   Samples      Padding        Start MJD\n");
     printf("----  ----------  ----------  --------------------\n");

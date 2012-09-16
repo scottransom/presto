@@ -4,15 +4,13 @@
 #include "mask.h"
 #include "psrfits.h"
 
-#define DEBUGOUT 1
+#define DEBUG_OUT 1
 
-static struct spectra_info S;
-static unsigned char *rawbuffer, *ringbuffer, *tmpbuffer;
-static float *offsets, *scales, global_scale = 1.0;
-static unsigned char *padvals=NULL, *newpadvals=NULL;
+static unsigned char *cdatabuffer;
+static float *fdatabuffer, *ringbuffer;
+static float *offsets, *scales, *weights;
 static int cur_file = 0, cur_subint = 1, cur_specoffs = 0, padval = 0;
-static int bufferspec = 0, padnum = 0, shiftbuffer = 1, missing_blocks = 0;
-static int using_MPI = 0, default_poln = 0, user_poln = 0;
+static int numbuffered = 0, numpadded = 0, shiftbuffer = 1, missing_blocks = 0;
 static double last_offs_sub = 0.0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
@@ -22,66 +20,8 @@ extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *mo
 // This tests to see if 2 times are within 100ns of each other
 #define TEST_CLOSE(a, b) (fabs((a)-(b)) <= 1e-7 ? 1 : 0)
 
-void get_PSRFITS_static(int *bytesperpt, int *bytesperblk, int *numifs,
-                       float *clip_sigma)
-// This is used by the MPI-based mpiprepsubband code to insure that each
-// processor can access (correctly) the required static variables.
-{
-   *bytesperpt = S.bytes_per_spectra;
-   *bytesperblk = S.bytes_per_subint;
-   *numifs = S.num_polns;
-   *clip_sigma = S.clip_sigma;
-}
 
-void set_PSRFITS_static(int ptsperblk, int bytesperpt, int bytesperblk,
-                       int numchan, int numifs, float clip_sigma, double dt)
-// This is used by the MPI-based mpiprepsubband code to insure that each
-// processor can access (correctly) the required static variables.
-{
-   using_MPI = 1;
-   cur_subint = 1;
-   S.spectra_per_subint = ptsperblk;
-   S.bytes_per_spectra = bytesperpt;
-   S.bytes_per_subint = bytesperblk;
-   S.bits_per_sample = (bytesperpt * 8) / numchan / numifs;
-   S.num_channels = numchan;
-   S.num_polns = numifs;
-   S.summed_polns = (numifs==1) ? 1 : 0;
-   S.clip_sigma = clip_sigma;
-   S.dt = dt;
-   S.time_per_subint = S.dt * S.spectra_per_subint;
-   // Note: the following only makes this correct for starting at 
-   // the beginning of the data
-   if (last_offs_sub==0.0)
-       last_offs_sub = - S.time_per_subint;
-}
-
-void set_PSRFITS_padvals(float *fpadvals, int good_padvals)
-// If reasonable padding values are available from rifind,
-// use these as the padding values, otherwise, set them all
-// to the value of padval defined in the static variables above.
-{
-   int ii;
-   float sum_padvals = 0.0;
-
-   if (padvals==NULL) { // This is for the clients in mpiprepsubband
-       padvals = gen_bvect(S.num_channels);
-       newpadvals = padvals;
-   }
-
-   if (good_padvals) {
-      for (ii = 0; ii < S.num_channels; ii++) {
-         padvals[ii] = newpadvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
-         sum_padvals += fpadvals[ii];
-      }
-      padval = (unsigned char) (sum_padvals / S.num_channels + 0.5);
-   } else {
-      for (ii = 0; ii < S.num_channels; ii++)
-         padvals[ii] = newpadvals[ii] = padval;
-   }
-}
-
-static double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday)
+double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday)
 // Convert DATE-OBS string from PSRFITS primary HDU to a MJD
 {
    int year, month, day, hour, min, err;
@@ -161,46 +101,47 @@ int is_PSRFITS(char *filename)
         }                                                               \
     }
 
-int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
+
+
+void read_PSRFITS_files(struct spectra_info *s)
 // Read and convert PSRFITS information from a group of files 
 // and place the resulting info into a spectra_info structure.
-// Return 1 if successful, 0 if not.
 {
     int IMJD, SMJD, itmp, ii, status = 0;
     double OFFS, dtmp;
     long double MJDf;
     char ctmp[80], comment[120];
     
-    if (numfiles > MAXNUMFILES) {
-        printf("Error!: There are more than %d input files!\n", MAXNUMFILES);
-        exit(1);
-    }
-    s->num_files = numfiles;
+    s->datatype = PSRFITS;
+    s->fitsfiles = (fitsfile **)malloc(sizeof(fitsfile *) * s->num_files);
+    s->start_subint = gen_ivect(s->num_files);
+    s->num_subint = gen_ivect(s->num_files);
+    s->start_spec = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->num_spec = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->num_pad = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->start_MJD = (long double *)malloc(sizeof(long double) * s->num_files);
     s->N = 0;
+    s->num_beams = 1;
+    s->get_rawblock = &get_PSRFITS_rawblock;
+    s->offset_to_spectra = &offset_to_PSRFITS_spectra;
 
-    // The apply_{scale,offset,weight} flags should be -1 if 
-    // we are going to let the data decide if we need to apply
-    // them.  If they come preset to 0 (False), then we will
-    // not apply them even if the data suggests we should.
-    // However, by default, apply_flipband should start at 0
-    s->apply_flipband = 0;
+    // By default, don't flip the band.  But don't change
+    // the input value if it is aleady set to flip the band always
+    if (s->apply_flipband==-1) s->apply_flipband = 0;
 
     // Step through the other files
-    for (ii = 0 ; ii < numfiles ; ii++) {
+    for (ii = 0 ; ii < s->num_files ; ii++) {
 
-#if DEBUG_OUT       
-        printf("Reading '%s'\n", filenames[ii]);
-#endif
         // Is the file a PSRFITS file?
-        if (!is_PSRFITS(filenames[ii])) {
+        if (!is_PSRFITS(s->filenames[ii])) {
             fprintf(stderr, 
                     "\nError!  File '%s' does not appear to be PSRFITS!\n", 
-                    filenames[ii]);
-            return 0;
+                    s->filenames[ii]);
+            exit(1);
         }
         
         // Open the PSRFITS file
-        fits_open_file(&(s->fitsfiles[ii]), filenames[ii], READONLY, &status);
+        fits_open_file(&(s->fitsfiles[ii]), s->filenames[ii], READONLY, &status);
 
         // Is the data in search mode?
         fits_read_key(s->fitsfiles[ii], TSTRING, "OBS_MODE", ctmp, comment, &status);
@@ -211,8 +152,8 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         if (strcmp(ctmp, "SEARCH")) {
             fprintf(stderr, 
                     "\nError!  File '%s' does not contain SEARCH-mode data!\n", 
-                    filenames[ii]);
-            return 0;
+                    s->filenames[ii]);
+            exit(1);
         }
 
         // Now get the stuff we need from the primary HDU header
@@ -285,19 +226,6 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         get_hdr_double("TBIN", s->dt);
         get_hdr_int("NCHAN", s->num_channels);
         get_hdr_int("NPOL", s->num_polns);
-        {
-            char *envval = getenv("PSRFITS_POLN");
-            if (envval != NULL) {
-                int ival = strtol(envval, NULL, 10);
-                if ((ival > -1) && (ival < s->num_polns)) {
-                    printf
-                        ("Using polarization %d (from 0-%d) from PSRFITS_POLN.\n",
-                         ival, s->num_polns-1);
-                    default_poln = ival;
-                    user_poln = 1;
-                }
-            }
-        }
         get_hdr_string("POL_TYPE", s->poln_order);
         fits_read_key(s->fitsfiles[ii], TINT, "NCHNOFFS", &itmp, comment, &status);
         if (itmp > 0)
@@ -363,7 +291,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         // Compute the starting spectra from the times
         MJDf = s->start_MJD[ii] - s->start_MJD[0];
         if (MJDf < 0.0) {
-            printf("Error!: File %d seems to be from before file 0!\n", ii); 
+            fprintf(stderr, "Error!: File %d seems to be from before file 0!\n", ii); 
             exit(1);
         }
         s->start_spec[ii] = (long long)(MJDf * SECPERDAY / s->dt + 0.5);
@@ -601,254 +529,90 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
         s->flip_bytes = 0;
     }
 
-    // Copy the structures and return success
-    S = *s;
-
     // Allocate the buffers
-    rawbuffer = gen_bvect(s->bytes_per_subint/s->num_polns);
-    ringbuffer = gen_bvect(2 * s->bytes_per_subint/s->num_polns);
-    if (s->num_polns > 1)
-        tmpbuffer = gen_bvect(s->samples_per_subint);
-    // TODO:  The following is temporary, until I fix the padding
-    padvals = gen_bvect(s->samples_per_spectra/s->num_polns);
-    offsets = gen_fvect(s->samples_per_spectra);
-    scales = gen_fvect(s->samples_per_spectra);
-    for (ii = 0 ; ii < s->samples_per_spectra ; ii++) {
-        offsets[ii] = 0.0;
-        scales[ii] = 1.0;
-    }
+    cdatabuffer = gen_bvect(s->bytes_per_subint/s->num_polns);
+    // Following is twice as big because we use it as a ringbuffer too
+    fdatabuffer = gen_fvect(2 * s->samples_per_subint/s->num_polns);
+    s->padvals = gen_fvect(s->samples_per_spectra/s->num_polns);
     for (ii = 0 ; ii < s->samples_per_spectra/s->num_polns ; ii++)
-        padvals[ii] = 0;
-    newpadvals = padvals;
-    return 1;
-}
-
-void get_PSRFITS_file_info(char **filenames, int numfiles, float clipsig, 
-                           struct spectra_info * s, 
-                           infodata * idata, int output)
-// Read basic information into static variables and make padding
-// calculations for a set of PSRFITS rawfiles that you want to patch
-// together.  If output is true, prints a table showing a summary
-// of the values.
-{
-    int ii, status;
-    
-    // Are we going to clip the data?
-    if (clipsig > 0.0) s->clip_sigma = clipsig;
-    else s->clip_sigma = 0.0;
-    
-    // Read the information from the input files
-    status = read_PSRFITS_files(filenames, numfiles, s);
-
-    // Make an infodata struct
-    spectra_info_to_inf(s, idata);
-    
-    if (status && output) {
-        printf("    Number of files = %d\n", numfiles);
-        printf("     Spectra/subint = %d\n", s->spectra_per_subint);
-        if (s->num_polns>=2 && !s->summed_polns)
-            printf("       Num of polns = %d\n", s->num_polns);
-        else if (s->summed_polns)
-            printf("       Num of polns = 2 (summed)\n");
-        else 
-            printf("       Num of polns = 1\n");
-        printf("    Num of channels = %d\n", s->num_channels);
-        printf("  Center freq (MHz) = %.8g\n", s->fctr);
-        printf("   Total points (N) = %lld\n", s->N);
-        printf("   Sample time (dt) = %-14.14g\n", s->dt);
-        printf("     Total time (s) = %-14.14g\n\n", s->T);
-        printf("File   Samples      Padding        Start MJD\n");
-        printf("----  ----------  ----------  --------------------\n");
-        for (ii = 0; ii < numfiles; ii++)
-            printf("%-4d  %10lld  %10lld  %19.14Lf\n", ii + 1,
-                   s->num_spec[ii], s->num_pad[ii], s->start_MJD[ii]);
-        printf("\n");
-    }
+        s->padvals[ii] = 0.0;
+    offsets = gen_fvect(s->num_channels*s->num_polns);
+    scales = gen_fvect(s->num_channels*s->num_polns);
+    weights = gen_fvect(s->num_channels);
+    // Initialize these if we won't be reading them from the file
+    if (s->apply_offset==0) 
+        for (ii = 0 ; ii < s->num_channels*s->num_polns ; ii++)
+            offsets[ii] = 0.0;
+    if (s->apply_scale==0)
+        for (ii = 0 ; ii < s->num_channels*s->num_polns ; ii++)
+            scales[ii] = 1.0;
+   if (s->apply_weight==0)
+        for (ii = 0 ; ii < s->num_channels ; ii++)
+            scales[ii] = 1.0;
 }
 
 
-void PSRFITS_update_infodata(infodata * idata)
-// Update the onoff bins section in case we used multiple files
+long long offset_to_PSRFITS_spectra(long long specnum, struct spectra_info *s)
+// This routine offsets into the PSRFITS files to the spectra
+// 'specnum'.  It returns the current spectra number.
 {
-   int ii, index = 2;
-   
-   idata->N = S.N;
-   if (S.num_files == 1 && S.num_pad[0] == 0) {
-       idata->numonoff = 0;
-       return;
-   }
-   // Determine the topocentric onoff bins
-   idata->numonoff = 1;
-   idata->onoff[0] = 0.0;
-   idata->onoff[1] = S.num_spec[0] - 1.0;
-   for (ii = 1; ii < S.num_files; ii++) {
-       if (S.num_pad[ii - 1]) {
-           idata->onoff[index] =
-               idata->onoff[index - 1] + S.num_pad[ii - 1];
-           idata->onoff[index + 1] = idata->onoff[index] + S.num_spec[ii];
-           idata->numonoff++;
-           index += 2;
-       } else {
-           idata->onoff[index - 1] += S.num_spec[ii];
-       }
-   }
-   if (S.num_pad[S.num_files - 1]) {
-       idata->onoff[index] =
-           idata->onoff[index - 1] + S.num_pad[S.num_files - 1];
-       idata->onoff[index + 1] = idata->onoff[index];
-       idata->numonoff++;
-   }
+    return 0;
 }
 
 
-int skip_to_PSRFITS_samp(long long samplenum)
-// This routine skips to the sample samplenum in the input
-// PSRFITS files that are stored in S.  It returns 
-// 1 if successful, 0 if unsuccessful.
+int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
+// This routine reads a single block (i.e subint) from the input files
+// which contain raw data in PSRFITS format.  If padding is
+// returned as 1, then padding was added and statistics should not be
+// calculated.  Return 1 on success.
 {
-    long long dsamp = 0;
-    
-    if (samplenum > 0)
-        printf("\nWarning:  Offsetting by %lld > 0 samples.  This needs work!\n", 
-               samplenum);
-    else 
-        return 0;
-
-    // Find which file we should be in
-    cur_file = 0;
-    while (cur_file < S.num_files &&
-           samplenum > S.start_spec[cur_file])
-        cur_file++;
-    if (cur_file == S.num_files) {
-        printf("Error!:  Sample %lld does not exist in the input files!\n", 
-               samplenum);
-        exit(1);
-    }
-    
-    shiftbuffer = 1;
-    // If we are in the "data" part of the file
-    if (samplenum < S.start_spec[cur_file] + S.num_spec[cur_file]) {
-        dsamp = samplenum - S.start_spec[cur_file];
-        // Remember that the subints are ones-offset
-        cur_subint = dsamp / S.spectra_per_subint + 1;
-        // Compute the number of spectra we need to offset in the
-        // current subint to get to samplenum
-        cur_specoffs = dsamp % S.spectra_per_subint;
-        bufferspec = 0;
-        padnum = 0;
-#if DEBUGOUT        
-        printf("Data:  currentfile = %d  bufferspec = %d  padnum = %d\n",
-               cur_file, bufferspec, padnum);
-#endif
-    } else {  // We are in the padding part
-        // Fill the buffer with padding (use zeros for now)
-        memset(rawbuffer, 0, S.samples_per_subint/S.num_polns);
-        cur_subint = 1; // placeholder
-        bufferspec = 0;
-        padnum = 0;
-#if DEBUGOUT        
-        printf("Padding:  currentfile = %d  bufferspec = %d  padnum = %d\n",
-               cur_file, bufferspec, padnum);
-#endif
-    }
-    return 1;
-}
-
-
-int read_PSRFITS_rawblock(unsigned char *data, int *padding)
-// This routine reads a single subint (or equivalent) from the PSRFITs
-// files in the static structure S.  *data must be at least
-// S.bytes_per_subint bytes.  If padding is returned as 1, then
-// padding was added and statistics should not be calculated.
-{
-    int offset = 0, numtopad = 0, ii, anynull, status = 0;
-    unsigned char *dataptr = data;
+    int numread, numtopad = 0, numtoread;
+    float *fdataptr = fdata;
     double offs_sub;
     static int firsttime = 1;
-    static float *weights, *offsets;
     
-    // The data will go directly into *data unless there is buffered
-    // data in the ring buffer (this really only happens if patching
-    // non-contiguous files together
+    fdataptr = fdata + numbuffered * s->num_channels;
+    // numtoread is always this size since we need to read
+    // full PSRFITS subints...
+    numtoread = s->spectra_per_subint;
+    
+    // If our buffer array is offset from last time, 
+    // copy the previously offset part into the beginning.
+    // New data comes after the old data in the buffer.
+    if (numbuffered)
+        memcpy(fdata, fdata + numtoread * s->num_channels, 
+               numbuffered * s->num_channels * sizeof(float));
 
-    if (bufferspec) {
-        offset = bufferspec * S.bytes_per_spectra/S.num_polns;
-        dataptr = ringbuffer + offset;
-        // If our buffer array is offset from last time, 
-        // copy the previously offset part into the beginning.
-        // New data comes after the old data in the buffer.
-        if (shiftbuffer)
-            memcpy(ringbuffer, ringbuffer + S.bytes_per_subint/S.num_polns, offset);
-    }
-    shiftbuffer = 1;
-    
     // Make sure our current file number is valid
-    if (cur_file >= S.num_files) return 0;
+    if (cur_file >= s->num_files) return 0;
 
     // Read a subint of data from the DATA col
-    if (cur_subint <= S.num_subint[cur_file]) {
-        if (S.num_polns==1) tmpbuffer = dataptr;
-
+    if (cur_subint <= s->num_subint[cur_file]) {
+        
         // Read the OFFS_SUB column value in case there were dropped blocks
-        fits_read_col(S.files[cur_file], TDOUBLE, 
-                      S.offs_sub_col, cur_subint, 1L, 1L, 
+        fits_read_col(s->files[cur_file], TDOUBLE, 
+                      s->offs_sub_col, cur_subint, 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
 
         if (firsttime) {
-            if (S.apply_weight)
-                weights = gen_fvect(S.num_channels);
-            if (S.apply_offset)
-                offsets = gen_fvect(S.num_channels*S.num_polns);
-            if (S.apply_scale)
-                scales = gen_fvect(S.num_channels*S.num_polns);
-            last_offs_sub = offs_sub - S.time_per_subint;
+            last_offs_sub = offs_sub - s->time_per_subint;
+            firsttime = 0;
         }
-
-        // Read the weights, offsets, and scales if required
-        if (S.apply_weight)
-            fits_read_col(S.files[cur_file], TFLOAT, S.dat_wts_col, cur_subint, 1L, 
-                          S.num_channels, 0, weights, &anynull, &status);
-        if (S.apply_offset)
-            fits_read_col(S.files[cur_file], TFLOAT, S.dat_offs_col, cur_subint, 1L, 
-                          S.num_channels*S.num_polns, 0, offsets, &anynull, &status);
-        if (S.apply_scale)
-            fits_read_col(S.files[cur_file], TFLOAT, S.dat_scl_col, cur_subint, 1L, 
-                          S.num_channels*S.num_polns, 0, scales, &anynull, &status);
-
+        
         // The following determines if there were lost blocks
-        if TEST_CLOSE(offs_sub-last_offs_sub, S.time_per_subint) {
-            // if so, read the data from the column
-            {
-                int num_to_read = S.samples_per_subint;
-                // The following allows us to read byte-packed data
-                if ((S.bits_per_sample > 1) && (S.bits_per_sample < 8))
-                    num_to_read = S.samples_per_subint * S.bits_per_sample / 8;
-                fits_read_col(S.files[cur_file], S.FITS_typecode, 
-                              S.data_col, cur_subint, 1L, num_to_read, 
-                              0, tmpbuffer, &anynull, &status);
-                // The following converts that byte-packed data into 
-                // bytes, in place
-                if (S.bits_per_sample == 4) {
-                    int ii, jj;
-                    unsigned char uctmp;
-                    for (ii = num_to_read - 1, jj = 2 * num_to_read - 1 ; 
-                         ii >= 0 ; ii--, jj -= 2) {
-                        uctmp = (unsigned char)tmpbuffer[ii];
-                        tmpbuffer[jj] = uctmp & 0x0F;
-                        tmpbuffer[jj-1] = uctmp >> 4;
-                    }
-                }
-            }
+        if TEST_CLOSE(offs_sub - last_offs_sub, s->time_per_subint) {
+            // if things look good, with no missing blocks, read the data
+            get_PSRFITS_subint(fdataptr, tmpbuffer, s);
             last_offs_sub = offs_sub;
         } else {
-            // if not, use padding instead
+            // if not, and there is some missing data, use padding instead
             double dnumblocks;
             int numblocks;
-            dnumblocks = (offs_sub-last_offs_sub)/S.time_per_subint;
+            dnumblocks = (offs_sub - last_offs_sub) / s->time_per_subint;
             numblocks = (int) round(dnumblocks);
             //printf("\n%d  %20.15f  %20.15f  %20.15f  %20.15f  %20.15f  %d \n", 
             //       cur_subint, last_offs_sub, offs_sub, 
-            //       offs_sub-last_offs_sub, S.time_per_subint, dnumblocks, numblocks);
+            //       offs_sub-last_offs_sub, s->time_per_subint, dnumblocks, numblocks);
             missing_blocks++;
             if (fabs(dnumblocks - (double)numblocks) > 1e-6) {
                 printf("\nYikes!  We missed a fraction (%.20f) of a subint!\n", 
@@ -857,139 +621,17 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             printf("At subint %d found %d dropped subints (%d total), adding 1.\n", 
                    cur_subint, numblocks-1, missing_blocks);
             // Add a full block of padding
-            numtopad = S.spectra_per_subint * S.num_polns;
+            numtopad = s->spectra_per_subint * s->num_polns;
             for (ii = 0; ii < numtopad; ii++)
-                memcpy(tmpbuffer + ii * S.bytes_per_spectra/S.num_polns, 
-                       newpadvals, S.bytes_per_spectra/S.num_polns);
+                memcpy(tmpbuffer + ii * s->bytes_per_spectra/s->num_polns, 
+                       newpadvals, s->bytes_per_spectra/s->num_polns);
             // Update the time of the last subs based on this padding
-            last_offs_sub += S.time_per_subint;
+            last_offs_sub += s->time_per_subint;
             // Set the padding flag
             *padding = 1;
             // Decrement the subint counter since it gets incremented later
             // but we don't want to move to the next subint yet
             cur_subint--;
-        }
-
-        // This loop allows us to work with single polns out of many
-        // or to sum polarizations if required
-        if (S.num_polns > 1) {
-            int sum_polns = 0;
-
-            if ((0==strncmp(S.poln_order, "AABB", 4)) || (S.num_polns == 2)) sum_polns = 1;
-            if (user_poln || ((S.num_polns > 2) && !sum_polns)) {  // The user chose the poln
-                int ii, offset;
-                unsigned char *tmpptr = dataptr;
-                for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
-                    offset = ii * S.samples_per_spectra + default_poln * S.num_channels;
-                    memcpy(tmpptr+ii*S.num_channels, tmpbuffer+offset, S.num_channels);
-                }
-            } else if (sum_polns) { // sum the polns if there are 2 by default
-                int ii, jj, itmp, offset0, offset1;
-                unsigned char *tmpptr = dataptr;
-                for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
-                    offset0 = ii * S.samples_per_spectra;
-                    offset1 = offset0 + S.num_channels;
-                    for (jj = 0 ; jj < S.num_channels ; jj++) {
-                        itmp = (int) tmpbuffer[offset0+jj] + (int) tmpbuffer[offset1+jj];
-                        tmpptr[ii*S.num_channels+jj] = (unsigned char) (itmp >> 1);
-                    }
-                }
-            }
-        }
-
-        if (firsttime) {
-            // Determine overall scaling of the data so it will fit
-            // into an unsigned char.  If we used _floats_ we wouldn't
-            // need to do that!  TODO:  fix this!
-            if (S.apply_offset || S.apply_scale) {
-                int ii, jj, d_idx, os_idx;
-                unsigned char *tmpptr;
-                float *fvec, offset, scale, fmed;
-                fvec = gen_fvect(S.spectra_per_subint*S.num_channels);
-                for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
-                    d_idx = ii * S.num_channels;
-                    os_idx = default_poln * S.num_channels;
-                    tmpptr = dataptr + d_idx;
-                    for (jj = 0 ; jj < S.num_channels ; jj++, os_idx++) {
-                        offset = (S.apply_offset) ? offsets[os_idx] : 0.0;
-                        scale = (S.apply_scale) ? scales[os_idx] : 1.0;
-                        fvec[d_idx+jj] = (((float)tmpptr[jj] - S.zero_offset) * scale) + offset;
-                    }
-                }
-                // Now determine the median of the data...
-                fmed = median(fvec, S.spectra_per_subint*S.num_channels);
-                // Set the scale so that the median is at about 1/3 of the
-                // dynamic range of an unsigned char.  Note that this assumes
-                // that the data are properly offset so that the min values
-                // are at values of zero...
-                global_scale = (256.0/3.0) / fmed;
-                printf("\nSetting PSRFITS global scale to %f\n", global_scale);
-                vect_free(fvec);
-
-            }
-            firsttime = 0;
-        }
-
-        // Apply offsets and scales if needed
-        if (S.apply_offset || S.apply_scale) {
-            int ii, jj, d_idx, os_idx;
-            unsigned char *tmpptr;
-            float ftmp, offset, scale;
-            for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
-                d_idx = ii * S.num_channels;
-                os_idx = default_poln * S.num_channels;
-                tmpptr = dataptr + d_idx;
-                for (jj = 0 ; jj < S.num_channels ; jj++, os_idx++) {
-                    offset = (S.apply_offset) ? offsets[os_idx] : 0.0;
-                    scale = (S.apply_scale) ? scales[os_idx] : 1.0;
-                    ftmp = (((float)tmpptr[jj] - S.zero_offset) * scale) + offset;
-                    ftmp = (ftmp < 0.0) ? 0.0 : ftmp;
-                    tmpptr[jj] = (unsigned char)(ftmp * global_scale + 0.5);
-                }
-            }
-        }
-
-        // Apply weights if needed
-        if (S.apply_weight) {
-            int ii, jj, offset;
-            unsigned char *tmpptr;
-            float ftmp;
-            for (ii = 0 ; ii < S.spectra_per_subint ; ii++) {
-                offset = ii * S.num_channels;
-                tmpptr = dataptr + offset;
-                for (jj = 0 ; jj < S.num_channels ; jj++) {
-                    ftmp = (float)tmpptr[jj] * weights[jj] + 0.5;
-                    tmpptr[jj] = (unsigned char)ftmp;
-                }
-            }
-        }
-
-        // Flip the band if needed
-        if (S.apply_flipband) {
-            unsigned char uctmp;
-            int ii, jj, offset;
-            for (jj = 0 ; jj < S.spectra_per_subint ; jj++) {
-                offset = jj * S.num_channels;
-                for (ii = 0 ; ii < S.num_channels/2 ; ii++) {
-                    uctmp = dataptr[offset+ii];
-                    dataptr[offset+ii] = dataptr[offset+S.num_channels-ii-1];
-                    dataptr[offset+S.num_channels-ii-1] = uctmp;
-                }
-            }
-        }
-
-        // Hack to flip each byte of data if needed
-        if (S.flip_bytes) {
-            unsigned char uctmp;
-            int ii, jj;
-            for (ii = 0 ; ii < S.bytes_per_subint/8 ; ii++) {
-                offset = ii * 8;
-                for (jj = 0 ; jj < 4 ; jj++) {
-                    uctmp = dataptr[offset+jj];
-                    dataptr[offset+jj] = dataptr[offset+8-1-jj];
-                    dataptr[offset+8-1-jj] = uctmp;
-                }
-            }
         }
 
         if (status) {
@@ -998,27 +640,28 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                    cur_file, cur_subint);
             exit(1);
         }
+
         // Clip nasty RFI if requested
-        if (S.clip_sigma > 0.0)  {
-            clip_times(dataptr, S.spectra_per_subint, S.num_channels, 
-                       S.clip_sigma, newpadvals);
+        if (s->clip_sigma > 0.0)  {
+            clip_times(dataptr, s->spectra_per_subint, s->num_channels, 
+                       s->clip_sigma, newpadvals);
         }
         *padding = 0;
         // Pull the new data from the ringbuffer if there is an offset
         if (bufferspec)
-            memcpy(data, ringbuffer, S.bytes_per_subint/S.num_polns);
+            memcpy(data, ringbuffer, s->bytes_per_subint/s->num_polns);
         cur_subint++;
         return 1;
         
     
     } else { // We can't read anymore...  so read OFFS_SUB
         // for the last row of the current file to see about padding
-        fits_read_col(S.files[cur_file], TDOUBLE, 
-                      S.offs_sub_col, S.num_subint[cur_file], 1L, 1L, 
+        fits_read_col(s->files[cur_file], TDOUBLE, 
+                      s->offs_sub_col, s->num_subint[cur_file], 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
     }
 
-    if (S.num_pad[cur_file]==0 ||
+    if (s->num_pad[cur_file]==0 ||
         TEST_CLOSE(last_offs_sub, offs_sub)) {  // No padding is necessary
         // The TEST_CLOSE check means that the lack of data we noticed
         // upon reading the file was due to dropped data in the
@@ -1029,46 +672,46 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
         shiftbuffer = 0;  // Since recursively calling, don't shift again
         return read_PSRFITS_rawblock(data, padding);
     } else { // add padding
-        numtopad = S.num_pad[cur_file] - padnum;
+        numtopad = s->num_pad[cur_file] - padnum;
         // The amount of padding still to be sent for this file
         if (numtopad) {
             *padding = 1;
-            if (numtopad >= S.spectra_per_subint - bufferspec) {
+            if (numtopad >= s->spectra_per_subint - bufferspec) {
                 if (bufferspec) {  // Buffer the padding?
                     // Add the amount of padding we need to
                     // make our buffer offset = 0
-                    numtopad = S.spectra_per_subint - bufferspec;
+                    numtopad = s->spectra_per_subint - bufferspec;
                     for (ii = 0; ii < numtopad; ii++)
-                        memcpy(dataptr + ii * S.bytes_per_spectra/S.num_polns, 
-                               newpadvals, S.bytes_per_spectra/S.num_polns);
+                        memcpy(dataptr + ii * s->bytes_per_spectra/s->num_polns, 
+                               newpadvals, s->bytes_per_spectra/s->num_polns);
                     // Copy the new data/padding into the output array
-                    memcpy(data, ringbuffer, S.bytes_per_subint/S.num_polns);
+                    memcpy(data, ringbuffer, s->bytes_per_subint/s->num_polns);
                     bufferspec = 0;
                 } else {  // Add a full record of padding
-                    numtopad = S.spectra_per_subint;
+                    numtopad = s->spectra_per_subint;
                     for (ii = 0; ii < numtopad; ii++)
-                        memcpy(data + ii * S.bytes_per_spectra/S.num_polns, 
-                               newpadvals, S.bytes_per_spectra/S.num_polns);
+                        memcpy(data + ii * s->bytes_per_spectra/s->num_polns, 
+                               newpadvals, s->bytes_per_spectra/s->num_polns);
                 }
                 padnum += numtopad;
                 cur_subint++;
                 // If done with padding reset padding variables and go to next file
-                if (padnum == S.num_pad[cur_file]) {
+                if (padnum == s->num_pad[cur_file]) {
                     padnum = 0;
                     cur_file++;
                     cur_subint = 1;
                 }
                 // Update the time of the last subs based on this padding
-                last_offs_sub += S.dt * numtopad;
+                last_offs_sub += s->dt * numtopad;
                 return 1;
             } else {  // Need < 1 block (or remaining block) of padding
                 int pad;
                 // Add the remainder of the padding and then get a
                 // block from the next file.
                 for (ii = 0; ii < numtopad; ii++) {
-                    offset = bufferspec * S.bytes_per_spectra/S.num_polns;
-                    memcpy(ringbuffer + offset + ii * S.bytes_per_spectra/S.num_polns,
-                           newpadvals, S.bytes_per_spectra/S.num_polns);
+                    offset = bufferspec * s->bytes_per_spectra/s->num_polns;
+                    memcpy(ringbuffer + offset + ii * s->bytes_per_spectra/s->num_polns,
+                           newpadvals, s->bytes_per_spectra/s->num_polns);
                 }
                 bufferspec += numtopad;
                 padnum = 0;
@@ -1076,303 +719,160 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                 cur_subint = 1;
                 shiftbuffer = 0;  // Since recursively calling, don't shift again
                 // Update the time of the last subs based on this padding
-                last_offs_sub += S.dt * numtopad;
+                last_offs_sub += s->dt * numtopad;
                 return read_PSRFITS_rawblock(data, &pad);
             }
         }
     }
-    return 0;  // Should never get here
+
+return_block:
+    // Apply the corrections that need a full block
+
+    // Perform Zero-DMing if requested
+    if (s->remove_zerodm) remove_zerodm(fdata, s);
+    
+    // Invert the band if requested 
+    if (s->apply_flipband) flip_band(fdata, s);
+
+    return 1;
 }
 
 
-int read_PSRFITS_rawblocks(unsigned char rawdata[], int numblocks,
-                           int *padding)
-// This routine reads numblocks PSRFITS blocks (i.e. subints) from the
-// input fils.  The raw data is returned in rawdata which must have a
-// size of numblocks* S.bytes_per_subint.  The number of blocks read
-// is returned.  If padding is returned as 1, then padding was added
-// and statistics should not be calculated.
+void get_PSRFITS_subint(float *fdata, unsigned char *cdata, 
+                        struct spectra_info *s)
 {
-   int ii, retval = 0, pad, numpad = 0;
-   
-   *padding = 0;
-   for (ii = 0; ii < numblocks; ii++) {
-       pad = 0;
-       retval += read_PSRFITS_rawblock(rawdata + ii * S.samples_per_subint/S.num_polns, &pad);
-       if (pad) numpad++;
-   }
-   if (numpad)
-       *padding = 1;
-   return retval;
-}
-
-
-int read_PSRFITS(float *data, int numspec, double *dispdelays, int *padding,
-                 int *maskchans, int *nummasked, mask * obsmask)
-// This routine reads numspec from the PSRFITS raw input files.  These
-// files contain raw data in PSRFITS format.  Time delays and a mask
-// are applied to each channel.  It returns the # of points read if
-// successful, 0 otherwise.  If padding is returned as 1, then padding
-// was added and statistics should not be calculated.  maskchans is an
-// array of length numchans contains a list of the number of channels
-// that were masked.
-{
-   int ii, jj, numread = 0, offset;
-   static unsigned char *tempzz, *rawdata1, *rawdata2;
-   static unsigned char *currentdata, *lastdata;
-   static int firsttime = 1, numblocks = 1, allocd = 0, mask = 0;
-   static double duration = 0.0;
-
-   *nummasked = 0;
-   if (firsttime) {
-       if (numspec % S.spectra_per_subint) {
-           printf("numspec must be a multiple of %d in read_PSRFITS()!\n", 
-                  S.spectra_per_subint);
-           exit(1);
-       } else
-           numblocks = numspec / S.spectra_per_subint;
-       
-       if (obsmask->numchan)
-           mask = 1;
-       rawdata1 = gen_bvect(numblocks * S.bytes_per_subint/S.num_polns);
-       rawdata2 = gen_bvect(numblocks * S.bytes_per_subint/S.num_polns);
-       allocd = 1;
-       duration = numblocks * S.time_per_subint;
-       currentdata = rawdata1;
-       lastdata = rawdata2;
-   }
-
-   // Read and de-disperse
-   if (allocd) {
-       while (1) {
-           numread = read_PSRFITS_rawblocks(currentdata, numblocks, padding);
-           if (mask) {
-               // Remember that last_offs_sub gets updated before 
-               // read_PSRFITS_rawblock returns.  And also, offs_sub is the
-               // midpoint of each subint.  (note:  this is only correct 
-               // if numblocks is 1, which it should be, I think)
-               *nummasked = check_mask(last_offs_sub - 0.5 * duration - \
-                                       S.start_subint[0] * S.time_per_subint, 
-                                       duration, obsmask, maskchans);
-           }
-           // Only use the recently measured padding if all the channels aren't masked
-           if ((S.clip_sigma > 0.0) && 
-               !(mask && (*nummasked == -1)) &&
-               (padvals != newpadvals))
-               memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
-           if (mask) {
-               //if (S.num_polns > 1 && !S.summed_polns) {
-               //    printf("WARNING!:  masking does not currently work with multiple polns!\n");
-               //}
-               if (*nummasked == -1) {  // If all channels are masked
-                   for (ii = 0; ii < numspec; ii++)
-                       memcpy(currentdata + ii * S.bytes_per_spectra/S.num_polns, 
-                              padvals, S.bytes_per_spectra/S.num_polns);
-               } else if (*nummasked > 0) { // Only some of the channels are masked
-                   int channum;
-                   for (ii = 0; ii < numspec; ii++) {
-                       offset = ii * S.num_channels;
-                       for (jj = 0; jj < *nummasked; jj++) {
-                           channum = maskchans[jj];
-                           currentdata[offset + channum] = padvals[channum];
-                       }
-                   }
-               }
-           }
-
-           if (!firsttime)
-               dedisp(currentdata, lastdata, numspec, S.num_channels, dispdelays, data);
-           SWAP(currentdata, lastdata);
-           if (numread != numblocks) {
-               vect_free(rawdata1);
-               vect_free(rawdata2);
-               allocd = 0;
-           }
-           if (firsttime)
-               firsttime = 0;
-           else
-               break;
-       }
-       return numblocks * S.spectra_per_subint;
-   } else {
-       return 0;
-   }
-}
-
-
-void get_PSRFITS_channel(int channum, float chandat[],
-                         unsigned char rawdata[], int numblocks)
-// Return the values for channel 'channum' of a block of 'numblocks'
-// raw PSRFITS data stored in 'rawdata' in 'chandat'.  'rawdata'
-// should have been initialized using read_PSRFITS_rawblocks(), and
-// 'chandat' must have at least 'numblocks' * S.samples_per_subint
-// spaces.  Channel 0 is assumed to be the lowest freq channel.
-{
-    int ii, jj, ptsperchan;
+    float *fptr;
+    unsigned char *cptr;
+    short *sptr;
+    int ii, jj;
+    int num_to_read = s->samples_per_subint;
     
-    if (channum > S.num_channels || channum < 0) {
-        printf("\nchannum = %d is out of range in get_PSRFITS_channel()!\n\n", 
-               channum);
-        exit(1);
-    }
-    ptsperchan = S.spectra_per_subint * numblocks;
-    
-    // Since the following is only called from rfifind, we know that the
-    // channel accesses will be in order from 0 to numchan-1
-    if (channum == 0) {          // Transpose the data
-        short trtn;
-        int move_size;
-        unsigned char *move;
-        
-        move_size = (ptsperchan + S.num_channels) / 2;
-        move = gen_bvect(move_size);
-        if ((trtn = transpose_bytes(rawdata, ptsperchan, S.num_channels,
-                                    move, move_size)) < 0)
-            printf("Error %d in transpose_bytes().\n", trtn);
-        vect_free(move);
-    }
+    // The following allows us to read byte-packed data
+    if ((s->bits_per_sample > 1) && (s->bits_per_sample < 8))
+        num_to_read = s->samples_per_subint * s->bits_per_sample / 8;
 
-    // Select the correct channel
-    for (ii = 0, jj = ptsperchan * channum; ii < ptsperchan; ii++, jj++)
-        chandat[ii] = (float) rawdata[jj];
-}
+    // Read the weights, offsets, and scales if required
+    if (s->apply_weight)
+        fits_read_col(s->files[cur_file], TFLOAT, s->dat_wts_col, cur_subint, 1L, 
+                      s->num_channels, 0, weights, &anynull, &status);
+    if (s->apply_offset)
+        fits_read_col(s->files[cur_file], TFLOAT, s->dat_offs_col, cur_subint, 1L, 
+                      s->num_channels*s->num_polns, 0, offsets, &anynull, &status);
+    if (s->apply_scale)
+        fits_read_col(s->files[cur_file], TFLOAT, s->dat_scl_col, cur_subint, 1L, 
+                      s->num_channels*s->num_polns, 0, scales, &anynull, &status);
 
+    // Now actually read the subint into the temporary buffer
+    fits_read_col(s->files[cur_file], s->FITS_typecode, 
+                  s->data_col, cur_subint, 1L, num_to_read, 
+                  0, cdata, &anynull, &status);
 
-int prep_PSRFITS_subbands(unsigned char *rawdata, float *data,
-                          double *dispdelays, int numsubbands,
-                          int transpose, int *maskchans,
-                          int *nummasked, mask * obsmask)
-// This routine preps a block from PSRFITS files.  The routine uses
-// dispersion delays in 'dispdelays' to de-disperse the data into
-// 'numsubbands' subbands.  It stores the resulting data in vector
-// 'data' of length 'numsubbands' * S.spectra_per_subint.  The low
-// freq subband is stored first, then the next highest subband etc,
-// with S.spectra_per_subint floating points per subband.  It returns
-// the # of points read if succesful, 0 otherwise.  'maskchans' is an
-// array of length numchans which contains a list of the number of
-// channels that were masked.  The # of channels masked is returned in
-// 'nummasked'.  'obsmask' is the mask structure to use for masking.
-// If 'transpose'==0, the data will be kept in time order instead of
-// arranged by subband as above.
-{
-    int ii, jj, trtn, offset;
-    static unsigned char *tempzz, *rawdata1, *rawdata2;
-    static unsigned char *currentdata, *lastdata, *move;
-    static int firsttime = 1, move_size = 0, mask = 0;
-    
-    *nummasked = 0;
-    if (firsttime) {
-        if (obsmask->numchan)
-            mask = 1;
-        rawdata1 = gen_bvect(S.bytes_per_subint/S.num_polns);
-        rawdata2 = gen_bvect(S.bytes_per_subint/S.num_polns);
-        move_size = (S.spectra_per_subint + numsubbands) / 2;
-        move = gen_bvect(move_size);
-        currentdata = rawdata1;
-        lastdata = rawdata2;
-        memcpy(currentdata, rawdata, S.bytes_per_subint/S.num_polns);
-    }
-    
-    // Read and de-disperse
-    memcpy(currentdata, rawdata, S.bytes_per_subint/S.num_polns);
-    if (mask) {
-        // Remember that last_offs_sub gets updated before 
-        // read_PSRFITS_rawblock returns.  And also, offs_sub is the
-        // midpoint of each subint.
-        *nummasked = check_mask(last_offs_sub - 0.5 * S.time_per_subint - \
-                                S.start_subint[0] * S.time_per_subint, 
-                                S.time_per_subint, obsmask, maskchans);
-    }
-    
-    // Only use the recently measured padding if all the channels aren't masked
-    if ((S.clip_sigma > 0.0) && 
-        !(mask && (*nummasked == -1)) &&
-        (padvals != newpadvals))
-        memcpy(padvals, newpadvals, S.bytes_per_spectra/S.num_polns);
-    
-    if (mask) {
-        if (S.num_polns > 1 && !S.summed_polns) {
-            printf("WARNING!:  masking does not currently work with multiple polns!\n");
+// should check all the statuses...
+
+    // The following converts that byte-packed data into bytes, in place
+    if (s->bits_per_sample == 4) {
+        unsigned char uctmp;
+        for (ii = num_to_read - 1, jj = 2 * num_to_read - 1 ; 
+             ii >= 0 ; ii--, jj -= 2) {
+            uctmp = (unsigned char)cdata[ii];
+            cdata[jj] = uctmp & 0x0F;
+            cdata[jj-1] = uctmp >> 4;
         }
-        
-        if (*nummasked == -1) {  // If all channels are masked
-            for (ii = 0; ii < S.spectra_per_subint; ii++)
-                memcpy(currentdata + ii * S.num_channels, padvals, S.num_channels);
-        } else if (*nummasked > 0) {  // Only some of the channels are masked
-            int channum;
-            for (ii = 0; ii < S.spectra_per_subint; ii++) {
-                offset = ii * S.num_channels;
-                for (jj = 0; jj < *nummasked; jj++) {
-                    channum = maskchans[jj];
-                    currentdata[offset + channum] = padvals[channum];
-                }
+    } else if (s->bits_per_sample == 2) {
+        unsigned char uctmp;
+        for (ii = num_to_read - 1, jj = 4 * num_to_read - 1 ; 
+             ii >= 0 ; ii--, jj -= 4) {
+            uctmp = (unsigned char)cdata[ii];
+            cdata[jj] = (uctmp & 0x03);
+            cdata[jj-1] = ((uctmp >> 0x02) & 0x03);
+            cdata[jj-2] = ((uctmp >> 0x04) & 0x03);
+            cdata[jj-3] = ((uctmp >> 0x06) & 0x03);
+        }
+    } else if (s->bits_per_sample == 1 && s->flip_bytes) {
+        // Hack to flip each byte of data if needed
+        unsigned char uctmp;
+        for (ii = 0 ; ii < s->bytes_per_subint/8 ; ii++) {
+            offset = ii * 8;
+            for (jj = 0 ; jj < 4 ; jj++) {
+                uctmp = cdata[offset+jj];
+                cdata[offset+jj] = cdata[offset+8-1-jj];
+                cdata[offset+8-1-jj] = uctmp;
             }
         }
     }
-    
-    // In mpiprepsubband, the nodes do not call read_*_rawblock()
-    // where cur_subint gets incremented.
-    if (using_MPI) {
-        cur_subint++;
-        last_offs_sub += S.time_per_subint;
-    }
-    
-    if (firsttime) {
-        SWAP(currentdata, lastdata);
-        firsttime = 0;
-        return 0;
-    } else {
-        dedisp_subbands(currentdata, lastdata, S.spectra_per_subint, S.num_channels,
-                        dispdelays, numsubbands, data);
-        SWAP(currentdata, lastdata);
-        /* Transpose the data into vectors in the result array */
-        if (transpose) {
-            if ((trtn = transpose_float(data, S.spectra_per_subint, numsubbands,
-                                        move, move_size)) < 0)
-                printf("Error %d in transpose_float().\n", trtn);
-        }
-        return S.spectra_per_subint;
-    }
-}
 
+    // Now convert all of the data into floats
 
-int read_PSRFITS_subbands(float *data, double *dispdelays, int numsubbands,
-                          int transpose, int *padding,
-                          int *maskchans, int *nummasked, mask * obsmask)
-// This routine reads a record from the input files which contain
-// PSRFITS data.  The routine uses dispersion delays in 'dispdelays'
-// to de-disperse the data into 'numsubbands' subbands.  It stores the
-// resulting data in vector 'data' of length 'numsubbands' *
-// S.spectra_per_subint.  The low freq subband is stored first, then
-// the next highest subband etc, with S.spectra_per_subint floating
-// points per subband. It returns the # of points read if succesful, 0
-// otherwise.  If padding is returned as 1, then padding was added and
-// statistics should not be calculated.  'maskchans' is an array of
-// length numchans which contains a list of the number of channels
-// that were masked.  The # of channels masked is returned in
-// 'nummasked'.  'obsmask' is the mask structure to use for masking.
-// If 'transpose'==0, the data will be kept in time order instead of
-// arranged by subband as above.
-{
-    static int firsttime = 1;
-    static unsigned char *rawdata;
-    
-    if (firsttime) {
-        rawdata = gen_bvect(S.bytes_per_subint/S.num_polns);
-        if (!read_PSRFITS_rawblock(rawdata, padding)) {
-            printf("Problem reading the raw PSRFITS data.\n\n");
-            return 0;
+    // The following allows us to work with single polns out of many
+    // or to sum polarizations if required
+    if (s->num_polns > 1) {
+        int sum_polns = 0;
+        
+        if ((0==strncmp(s->poln_order, "AABB", 4)) || 
+            (s->num_polns == 2)) 
+            sum_polns = 1;
+        // User chose which poln to use
+        if (s->use_poln > 0 || ((s->num_polns > 2) && !sum_polns)) {
+            int idx;
+            fptr = fdata;
+            if (s->bits_per_sample==16) {
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                    idx = (s->use_poln-1) * s->num_channels;
+                    sptr = (short *)cdata + ii * s->samples_per_spectra + idx;
+                    for (jj = 0 ; jj < s->num_channels ; jj++)
+                        *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[idx+jj] + 
+                                   offsets[idx+jj]) * weights[idx+jj];
+                }
+            } else {
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                    idx = (s->use_poln-1) * s->num_channels;
+                    cptr = cdata + ii * s->samples_per_spectra + idx;
+                    for (jj = 0 ; jj < s->num_channels ; jj++)
+                        *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[idx+jj] + 
+                                   offsets[idx+jj]) * weights[idx+jj];
+                }
+            }
+        } else if (sum_polns) { // sum the polns if there are 2 by default
+            int idx = s->num_channels;
+            fptr = fdata;
+            if (s->bits_per_sample==16) {
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                    sptr = (short *)cdata + ii * s->samples_per_spectra;
+                    for (jj = 0 ; jj < s->num_channels ; jj++, sptr++) {
+                        *fptr = (((float)(*sptr) - s->zero_offset) * scales[jj] + 
+                                 offsets[jj]) * weights[jj];
+                        *fptr++ = (((float)(*(sptr+idx)) - s->zero_offset) * scales[idx+jj] + 
+                                   offsets[idx+jj]) * weights[idx+jj];
+                    }
+                }
+            } else {
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                    cptr = cdata + ii * s->samples_per_spectra;
+                    for (jj = 0 ; jj < s->num_channels ; jj++, cptr++) {
+                        *fptr = (((float)(*cptr) - s->zero_offset) * scales[jj] + 
+                                 offsets[jj]) * weights[jj];
+                        *fptr++ = (((float)(*(cptr+idx)) - s->zero_offset) * scales[idx+jj] + 
+                                   offsets[idx+jj]) * weights[idx+jj];
+                    }
+                }
+            }
         }
-        if (0 != prep_PSRFITS_subbands(rawdata, data, dispdelays, numsubbands,
-                                       transpose, maskchans, nummasked, obsmask)) {
-            printf("Problem initializing prep_PSRFITS_subbands()\n\n");
-            return 0;
+    } else {  // This is for normal single-polarization data
+        fptr = fdata;
+        if (s->bits_per_sample==16) {
+            for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                sptr = (short *)cdata + ii * s->samples_per_spectra;
+                for (jj = 0 ; jj < s->num_channels ; jj++)
+                    *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[jj] + 
+                               offsets[jj]) * weights[jj];
+            }
+        } else {
+            for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                cptr = cdata + ii * s->samples_per_spectra;
+                for (jj = 0 ; jj < s->num_channels ; jj++)
+                    *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[jj] + 
+                               offsets[jj]) * weights[jj];
+            }
         }
-        firsttime = 0;
     }
-    if (!read_PSRFITS_rawblock(rawdata, padding)) {
-        return 0;
-    }
-    return prep_PSRFITS_subbands(rawdata, data, dispdelays, numsubbands,
-                                 transpose, maskchans, nummasked, obsmask);
 }
