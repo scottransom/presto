@@ -530,21 +530,21 @@ void read_PSRFITS_files(struct spectra_info *s)
     }
 
     // Allocate the buffers
-    cdatabuffer = gen_bvect(s->bytes_per_subint/s->num_polns);
+    cdatabuffer = gen_bvect(s->bytes_per_subint);
     // Following is twice as big because we use it as a ringbuffer too
-    fdatabuffer = gen_fvect(2 * s->samples_per_subint/s->num_polns);
+    fdatabuffer = gen_fvect(2 * s->spectra_per_subint * s->num_channels);
     s->padvals = gen_fvect(s->num_channels);
     for (ii = 0 ; ii < s->num_channels ; ii++)
         s->padvals[ii] = 0.0;
-    offsets = gen_fvect(s->num_channels*s->num_polns);
-    scales = gen_fvect(s->num_channels*s->num_polns);
+    offsets = gen_fvect(s->num_channels * s->num_polns);
+    scales = gen_fvect(s->num_channels * s->num_polns);
     weights = gen_fvect(s->num_channels);
     // Initialize these if we won't be reading them from the file
     if (s->apply_offset==0) 
-        for (ii = 0 ; ii < s->num_channels*s->num_polns ; ii++)
+        for (ii = 0 ; ii < s->num_channels * s->num_polns ; ii++)
             offsets[ii] = 0.0;
     if (s->apply_scale==0)
-        for (ii = 0 ; ii < s->num_channels*s->num_polns ; ii++)
+        for (ii = 0 ; ii < s->num_channels * s->num_polns ; ii++)
             scales[ii] = 1.0;
    if (s->apply_weight==0)
         for (ii = 0 ; ii < s->num_channels ; ii++)
@@ -685,17 +685,17 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
     
 return_block:
     // Apply the corrections that need a full block
-    
+
+    // Invert the band if needed
+    if (s->apply_flipband) flip_band(fdata, s);
+
     // Perform Zero-DMing if requested
     if (s->remove_zerodm) remove_zerodm(fdata, s);
-    
-    // Invert the band if requested 
-    if (s->apply_flipband) flip_band(fdata, s);
-    
+
     // Increment our static counter (to determine how much data we
     // have written on the fly).
     cur_spec += s->spectra_per_subint;
-    
+
     return 1;
 }
 

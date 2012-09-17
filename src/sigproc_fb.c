@@ -366,7 +366,7 @@ void read_filterbank_files(struct spectra_info *s)
     s->min_spect_per_read = 1;  // Can read a single spectra at a time
     // allocate the raw data buffers
     cdatabuffer = gen_bvect(s->bytes_per_subint);
-    fdatabuffer = gen_fvect(s->samples_per_subint);
+    fdatabuffer = gen_fvect(s->spectra_per_subint * s->num_channels);
     s->padvals = gen_fvect(s->num_channels);
     for (ii = 0 ; ii < s->num_channels ; ii++)
         s->padvals[ii] = 0.0;
@@ -550,11 +550,11 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
 return_block:
     // Apply the corrections that need a full block
 
-    // Perform Zero-DMing if requested
-    if (s->remove_zerodm) remove_zerodm(fdata, s);
-    
     // Invert the band if requested 
     if (s->apply_flipband) flip_band(fdata, s);
+
+    // Perform Zero-DMing if requested
+    if (s->remove_zerodm) remove_zerodm(fdata, s);
 
     return 1;
 }
