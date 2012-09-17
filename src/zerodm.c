@@ -1,4 +1,5 @@
 #include "backend_common.h"
+#include "vectors.h"
 
 void remove_zerodm(float *fdata, struct spectra_info *s)
 // Remove the channel-weighted zero-DM from the raw data
@@ -6,7 +7,7 @@ void remove_zerodm(float *fdata, struct spectra_info *s)
 // from Eatough, Keane & Lyne 2009
 {
     int ii, jj;
-    float zerodm, ftmp, padvalsum = 0.0, *chanwts, *fptr;
+    float zerodm, padvalsum = 0.0, *chanwts, *fptr;
     static int firsttime = 1;
     static float *bandpass = NULL;
     
@@ -40,6 +41,7 @@ void remove_zerodm(float *fdata, struct spectra_info *s)
     // the zero-DM subtraction.  Use the padding if available, 
     // otherwise, use the initially-set bandpass
     chanwts = gen_fvect(s->num_channels);
+    //if (s->clip_sigma > 0.0 && !firsttime) fptr = s->padvals;
     if (s->clip_sigma > 0.0) fptr = s->padvals;
     else fptr = bandpass;
     // Determine the sum of the padding/bandpass for weighting of the channels
@@ -61,8 +63,7 @@ void remove_zerodm(float *fdata, struct spectra_info *s)
         for (jj = 0; jj < s->num_channels; jj++) {
             // Put the constant bandpass back in since we are subtracting 
             // comparable sized numbers and don't (usually) want power < 0
-            ftmp = *fptr - chanwts[jj] * zerodm + bandpass[jj];
-            *fptr++ = ftmp;
+            fptr[jj] -= (chanwts[jj] * zerodm - bandpass[jj]);
         }
     }
     vect_free(chanwts);
