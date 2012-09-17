@@ -80,7 +80,8 @@ void identify_psrdatatype(struct spectra_info *s, int output)
     
     /* Split the filename into a rootname and a suffix */
     if (split_root_suffix(s->filenames[0], &root, &suffix) == 0) {
-        printf("Error:  The input filename (%s) must have a suffix!\n\n", s->filenames[0]);
+        fprintf(stderr, "Error!:  The input filename (%s) must have a suffix!\n\n", 
+               s->filenames[0]);
         exit(1);
     } else {
         if (strcmp(suffix, "dat") == 0) s->datatype = DAT;
@@ -406,7 +407,8 @@ int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s, int *pa
 
     *padding = 0;
     for (ii = 0; ii < numsubints; ii++) {
-        retval += s->get_rawblock(fdata + ii * s->samples_per_subint, s, &pad);
+        retval += s->get_rawblock(fdata + ii * s->spectra_per_subint * 
+                                  s->num_channels, s, &pad);
         if (pad) numpad++;
     }
     /* Return padding 'true' if any block was padding */
@@ -437,15 +439,15 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
    *nummasked = 0;
    if (firsttime) {
        if (numspect % s->spectra_per_subint) {
-           printf("Error:  numspect %d must be a multiple of %d in read_psrdata()!\n",
+           fprintf(stderr, "Error!:  numspect %d must be a multiple of %d in read_psrdata()!\n",
                   numspect, s->spectra_per_subint);
            exit(1);
        } else
            numsubints = numspect / s->spectra_per_subint;
        if (obsmask->numchan)
            mask = 1;
-       rawdata1 = gen_fvect(numsubints * s->samples_per_subint);
-       rawdata2 = gen_fvect(numsubints * s->samples_per_subint);
+       rawdata1 = gen_fvect(numsubints * s->spectra_per_subint * s->num_channels);
+       rawdata2 = gen_fvect(numsubints * s->spectra_per_subint * s->num_channels);
        allocd = 1;
        duration = numsubints * s->time_per_subint;
        currentdata = rawdata1;
@@ -513,8 +515,8 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[], 
    int ii, jj;
 
    if (channum > s->num_channels || channum < 0) {
-      printf("Error: channum = %d is out of range in get_channel()!\n", channum);
-      exit(1);
+       fprintf(stderr, "Error!: channum = %d is out of range in get_channel()!\n", channum);
+       exit(1);
    }
    /* Select the correct channel */
    for (ii = 0, jj = channum; ii < numsubints * s->spectra_per_subint; ii++, jj += s->num_channels)
@@ -551,14 +553,14 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
            mask = 1;
        move_size = (s->spectra_per_subint + numsubbands) / 2;
        move = gen_bvect(move_size);
-       rawdata1 = gen_fvect(s->samples_per_subint);
-       rawdata2 = gen_fvect(s->samples_per_subint);
+       rawdata1 = gen_fvect(s->spectra_per_subint * s->num_channels);
+       rawdata2 = gen_fvect(s->spectra_per_subint * s->num_channels);
        currentdata = rawdata1;
        lastdata = rawdata2;
    }
 
    /* Read and de-disperse */
-   memcpy(currentdata, rawdata, s->samples_per_subint * sizeof(float));
+   memcpy(currentdata, rawdata, s->spectra_per_subint * s->num_channels * sizeof(float));
    starttime = currentspectra * s->dt; // or -1 subint?
    if (mask)
       *nummasked = check_mask(starttime, s->time_per_subint, obsmask, maskchans);
@@ -631,12 +633,12 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
    if (firsttime) {
        frawdata = gen_fvect(s->num_channels * s->spectra_per_subint);
        if (!s->get_rawblock(frawdata, s, padding)) {
-           printf("Error: problem reading the raw data file in read_subbands()\n");
+           fprintf(stderr, "Error: problem reading the raw data file in read_subbands()\n");
            return 0;
        }
        if (0 != prep_subbands(fdata, frawdata, delays, numsubbands, s,
                               transpose, maskchans, nummasked, obsmask)) {
-           printf("Error: problem initializing prep_subbands() in read_subbands()\n");
+           fprintf(stderr, "Error: problem initializing prep_subbands() in read_subbands()\n");
            return 0;
        }
        firsttime = 0;
