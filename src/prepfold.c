@@ -252,11 +252,22 @@ int main(int argc, char *argv[])
                s.hi_freq = s.lo_freq + (s.num_channels - 1.0) * s.df;
                s.BW = s.num_channels * s.df;
                s.fctr = s.lo_freq - 0.5 * s.df + 0.5 * s.BW;
+               s.padvals = gen_fvect(s.num_channels);
+               for (ii = 0 ; ii < s.num_channels ; ii++)
+                   s.padvals[ii] = 0.0;
                print_spectra_info_summary(&s);
            } else {
                printf("\nThe input files (%s) must be subbands!  (i.e. *.sub##)\n\n",
                       cmd->argv[0]);
                exit(1);
+           }
+           /* Read an input mask if wanted */
+           if (cmd->maskfileP) {
+               read_mask(cmd->maskfile, &obsmask);
+               printf("Read mask information from '%s'\n\n", cmd->maskfile);
+               good_padvals = determine_padvals(cmd->maskfile, &obsmask, s.padvals);
+           } else {
+               obsmask.numchan = obsmask.numint = 0;
            }
        } else {
            printf("Reading input data from '%s'.\n", cmd->argv[0]);

@@ -156,16 +156,6 @@ int main(int argc, char *argv[])
        }
    }
 
-   /* Read an input mask if wanted */
-
-   if (cmd->maskfileP) {
-      read_mask(cmd->maskfile, &oldmask);
-      printf("Read old mask information from '%s'\n\n", cmd->maskfile);
-      good_padvals = determine_padvals(cmd->maskfile, &oldmask, s.padvals);
-   } else {
-      oldmask.numchan = oldmask.numint = 0;
-   }
-
    if (!cmd->nocomputeP) {
 
        if (RAWDATA || insubs) {
@@ -220,6 +210,18 @@ int main(int argc, char *argv[])
            idata.dm = 0.0;
            sprintf(idata.name, "%s", outfilenm);
            writeinf(&idata);
+           s.padvals = gen_fvect(s.num_files);
+           for (ii = 0 ; ii < s.num_files ; ii++)
+               s.padvals[ii] = 0.0;
+       }
+
+       /* Read an input mask if wanted */
+       if (cmd->maskfileP) {
+           read_mask(cmd->maskfile, &oldmask);
+           printf("Read old mask information from '%s'\n\n", cmd->maskfile);
+           good_padvals = determine_padvals(cmd->maskfile, &oldmask, s.padvals);
+       } else {
+           oldmask.numchan = oldmask.numint = 0;
        }
 
       /* The number of data points and blocks to work with at a time */

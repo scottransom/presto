@@ -153,16 +153,6 @@ int main(int argc, char *argv[])
    outinfonm = (char *) calloc(slen, 1);
    sprintf(outinfonm, "%s.inf", cmd->outfile);
 
-   /* Read an input mask if wanted */
-
-   if (cmd->maskfileP) {
-      read_mask(cmd->maskfile, &obsmask);
-      printf("Read mask information from '%s'\n\n", cmd->maskfile);
-      good_padvals = determine_padvals(cmd->maskfile, &obsmask, s.padvals);
-   } else {
-      obsmask.numchan = obsmask.numint = 0;
-   }
-
    if (RAWDATA) {
        read_rawdata_files(&s);
        print_spectra_info_summary(&s);
@@ -192,6 +182,15 @@ int main(int argc, char *argv[])
            telescope_to_tempocode(idata.telescope, outscope, obs);
            free(outscope);
        }
+   }
+
+   /* Read an input mask if wanted */
+   if (cmd->maskfileP) {
+      read_mask(cmd->maskfile, &obsmask);
+      printf("Read mask information from '%s'\n\n", cmd->maskfile);
+      good_padvals = determine_padvals(cmd->maskfile, &obsmask, s.padvals);
+   } else {
+      obsmask.numchan = obsmask.numint = 0;
    }
 
    /* Determine our initialization data if we do _not_ have Parkes, */
