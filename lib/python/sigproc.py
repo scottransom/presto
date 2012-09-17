@@ -44,6 +44,8 @@ header_params = {
     "nifs": 'i', 
     "refdm": 'd',  
     "period": 'd',  
+    "npuls": 'q',
+    "nbins": 'i', 
     "HEADER_END": 'flag'}
 
 def dec2radians(src_dej):
@@ -78,6 +80,12 @@ def read_intval(filfile, stdout=False):
         print "  int value = '%d'"%intval
     return intval
 
+def read_longintval(filfile, stdout=False):
+    longintval = struct.unpack('q', filfile.read(8))[0]
+    if stdout:
+        print "  long int value = '%d'"%longintval
+    return longintval
+
 def read_string(filfile, stdout=False):
     strlen = struct.unpack('i', filfile.read(4))[0]
     strval = filfile.read(strlen)
@@ -97,6 +105,8 @@ def read_hdr_val(filfile, stdout=False):
         return paramname, read_doubleval(filfile, stdout)
     elif header_params[paramname] == 'i':
         return paramname, read_intval(filfile, stdout)
+    elif header_params[paramname] == 'q':
+        return paramname, read_longintval(filfile, stdout)
     elif header_params[paramname] == 'str':
         return paramname, read_string(filfile, stdout)
     elif header_params[paramname] == 'flag':

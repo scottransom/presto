@@ -147,7 +147,17 @@ class FilterbankFile(object):
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
         self.bytes_per_spectrum = self.nchans*self.nbits / 8
-        
+       
+        # Check if this file is a folded-filterbank file
+        if 'npuls' in self.header and 'period' in self.header and \
+                'nbins' in self.header and 'tsamp' not in self.header:
+            # Foleded file
+            self.isfold = True
+            self.dt = self.period/self.nbins
+        else:
+            self.isfold = False
+            self.dt = self.tsamp
+
         # Get info about dtype
         self.dtype = get_dtype(self.nbits)
         if is_float(self.nbits):
