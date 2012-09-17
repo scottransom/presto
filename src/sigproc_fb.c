@@ -374,6 +374,8 @@ void read_filterbank_files(struct spectra_info *s)
     s->time_per_subint = s->spectra_per_subint * s->dt;
     s->T = s->N * s->dt;
     s->df = fabs(fb.foff);
+    if (fb.foff < 0.0 && s->apply_flipband == -1)
+        s->apply_flipband = 0;  // we do this automatically
     s->BW = s->num_channels * s->df;
     s->lo_freq = fb.fch1 - (s->num_channels - 1) * s->df;
     s->hi_freq = fb.fch1;
