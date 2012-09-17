@@ -402,7 +402,7 @@ int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s, int *pa
 // number of blocks read is returned.  If padding is returned as 1,
 // then padding was added and statistics should not be calculated.
 {
-    int ii, retval = 0, pad, numpad = 0;
+    int ii, retval = 0, pad = 0, numpad = 0;
 
     *padding = 0;
     for (ii = 0; ii < numsubints; ii++) {
