@@ -20,7 +20,7 @@ import psr_utils
 
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
-BLOCKSIZE = 1e5 # Number of spectra to manipulate at once
+BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
 
 class Profile(object):
     """A class to represent a generic pulse profile.
