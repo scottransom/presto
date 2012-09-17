@@ -183,57 +183,56 @@ def create_vonmises_components(vonmises_strs):
     return vonmises_comps
 
 
-def inject(infile, outfn, prof, period, dm, nbitsout=8):
+def inject(infile, outfn, prof, period, dm, nbitsout=8, block_size=BLOCKSIZE):
     if isinstance(infile, filterbank.FilterbankFile):
         fil = infile
     else:
         fil = filterbank.FilterbankFile(infile, read_only=True)
     print "Injecting pulsar signal into: %s" % fil.filename
-    nbin = int(np.round(period/fil.tsamp)) # Number of bins 
-                                                   # across the profile
-    # Because of manipulations performed on the arrays we need
-    # to flip the delays to get a proper DM sweep.
     delays = psr_utils.delay_from_DM(dm, fil.frequencies)
     delays -= delays[np.argmax(fil.frequencies)]
-    delays_phs = delays/period
-    delays_phs %= 1
-    
-    # for ii, (freq, delay) in enumerate(zip(fil.frequencies, delays_phs)):
-    #     print "Channel %d: %g MHz, %g (phase)" % (ii, freq, delay)
+    print np.round(delays/fil.dt).astype('int')
+   
     # Create the output filterbank file
-    filterbank.create_filterbank_file(outfn, fil.header, nbits=nbitsout)
-    outfil = filterbank.FilterbankFile(outfn, read_only=False)
+    outfil = filterbank.create_filterbank_file(outfn, fil.header, nbits=nbitsout)
 
-    # Read the first second of data to get the global scaling to use
-    onesec = fil.get_timeslice(0, 1).copy()
-    onesec_nspec = onesec.shape[0]
-    times = np.atleast_2d(np.arange(onesec_nspec)*fil.tsamp).T+delays
-    phases = times/period % 1
-    onesec += prof(phases)
-    minimum = np.min(onesec)
-    median = np.median(onesec)
-    # Set median to 1/3 of dynamic range
-    global_scale = (256.0/3.0) / median
-    del onesec
-    
+    if outfil.nbits == 8:
+        # Read the first second of data to get the global scaling to use
+        onesec = fil.get_timeslice(0, 1).copy()
+        onesec_nspec = onesec.shape[0]
+        times = np.atleast_2d(np.arange(onesec_nspec)*fil.tsamp).T+delays
+        phases = times/period % 1
+        onesec += prof(phases)
+        minimum = np.min(onesec)
+        median = np.median(onesec)
+        # Set median to 1/3 of dynamic range
+        global_scale = (256.0/3.0) / median
+        toscale = True
+        del onesec
+    else:
+        toscale = False
+
     # Start an output file
     print "Creating out file: %s" % outfn
     sys.stdout.write(" %3.0f %%\r" % 0)
     sys.stdout.flush()
-    nblocks = int(fil.nspec/BLOCKSIZE)
-    remainder = fil.nspec % BLOCKSIZE
+    nblocks = int(fil.nspec/block_size)
+    remainder = fil.nspec % block_size
     oldprogress = -1
     for iblock in np.arange(nblocks):
-        lobin = iblock*BLOCKSIZE
-        hibin = (iblock+1)*BLOCKSIZE
+        lobin = iblock*block_size
+        hibin = (iblock+1)*block_size
         spectra = fil.get_spectra(lobin, hibin)
         times = np.atleast_2d(np.arange(lobin, hibin)*fil.tsamp).T - delays
         phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
-        scaled = (injected-minimum)*global_scale
+        if toscale:
+            scaled = (injected-minimum)*global_scale
+        else:
+            scaled = injected
         outfil.append_spectra(scaled)
-        progress = int(100.0*(hibin/fil.nspec))
+        progress = int(100.0*hibin/fil.nspec)
         if progress > oldprogress: 
             sys.stdout.write(" %3.0f %%\r" % progress)
             sys.stdout.flush()
@@ -241,12 +240,15 @@ def inject(infile, outfn, prof, period, dm, nbitsout=8):
     # Read all remaining spectra
     if remainder:
         spectra = fil.get_spectra(-remainder, None)
-        times = np.atleast_2d(np.arange(nblocks*BLOCKSIZE, nblocks*BLOCKSIZE+remainder) * \
+        times = np.atleast_2d(np.arange(nblocks*block_size, nblocks*block_size+remainder) * \
                             fil.tsamp).T - delays
         phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
-        scaled = (injected-minimum)*global_scale
+        if toscale:
+            scaled = (injected-minimum)*global_scale
+        else:
+            scaled = injected
         outfil.append_spectra(scaled)
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
@@ -269,7 +271,7 @@ def main():
         fil = filterbank.FilterbankFile(fn, read_only=True)
         outfn = options.outname % fil.header 
         inject(fil, outfn, prof, options.period, options.dm, \
-                nbitsout=options.output_nbits)
+                nbitsout=options.output_nbits, block_size=options.block_size)
 
 
 def parse_model_file(modelfn):
@@ -324,10 +326,11 @@ if __name__ == '__main__':
                     action="callback", callback=parse_mfile_callback, \
                     help="A model file (*.m) as written by 'paas'.")
     parser.add_option("--block-size", dest='block_size', default=BLOCKSIZE, \
+                    type='float', \
                     help="Number of spectra per block. This is the amount " \
                         "of data manipulated/written at a time. (Default: " \
                         " %d spectra)" % BLOCKSIZE)
-    parser.add_option("--nbits", dest='output_nbits', default=8, \
+    parser.add_option("--nbits", dest='output_nbits', default=8, type=int, \
                     help="Number of bits per same to use in output " \
                         "filterbank file. (Default: 8-bits)")
     parser.add_option("-n", "--dryrun", dest="dryrun", action="store_true", \
