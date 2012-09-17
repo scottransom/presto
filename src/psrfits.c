@@ -533,8 +533,8 @@ void read_PSRFITS_files(struct spectra_info *s)
     cdatabuffer = gen_bvect(s->bytes_per_subint/s->num_polns);
     // Following is twice as big because we use it as a ringbuffer too
     fdatabuffer = gen_fvect(2 * s->samples_per_subint/s->num_polns);
-    s->padvals = gen_fvect(s->samples_per_spectra/s->num_polns);
-    for (ii = 0 ; ii < s->samples_per_spectra/s->num_polns ; ii++)
+    s->padvals = gen_fvect(s->num_channels);
+    for (ii = 0 ; ii < s->num_channels ; ii++)
         s->padvals[ii] = 0.0;
     offsets = gen_fvect(s->num_channels*s->num_polns);
     scales = gen_fvect(s->num_channels*s->num_polns);
