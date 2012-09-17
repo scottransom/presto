@@ -15,11 +15,10 @@ int clip_times(float *rawdata, int ptsperblk, int numchan,
    static float running_avg = 0.0, running_std = 0.0;
    static int blocksread = 0, firsttime = 1;
    static long long current_point = 0;
-   float *zero_dm_block, *ftmp;
+   float *zero_dm_block, *ftmp, *powptr;
    double *chan_avg_temp;
    float current_med, trigger;
    double current_avg = 0.0, current_std = 0.0;
-   float *powptr;
    int ii, jj, clipit = 0, clipped = 0;
 
    if (firsttime) {
@@ -35,12 +34,9 @@ int clip_times(float *rawdata, int ptsperblk, int numchan,
       zero_dm_block[ii] = 0.0;
       powptr = rawdata + ii * numchan;
       for (jj = 0; jj < numchan; jj++)
-         zero_dm_block[ii] += rawdata[ii * numchan + jj];
-         //zero_dm_block[ii] += *powptr++;
+          zero_dm_block[ii] += *powptr++;
       ftmp[ii] = zero_dm_block[ii];
-      if (ii < 10) printf("%d %f", ii, ftmp[ii]);
    }
-   printf("\n");
    avg_var(ftmp, ptsperblk, &current_avg, &current_std);
    current_std = sqrt(current_std);
    current_med = median(ftmp, ptsperblk);
@@ -67,7 +63,9 @@ int clip_times(float *rawdata, int ptsperblk, int numchan,
             numgoodpts++;
          }
       }
-//printf("med = %f  std = %f  numgoodpts = %d\n", current_med, current_std, numgoodpts);
+
+      //printf("avg = %f  med = %f  std = %f  numgoodpts = %d\n", 
+      //       current_avg, current_med, current_std, numgoodpts);
 
       /* Calculate the current average and stddev */
       if (numgoodpts < 1) {
@@ -109,7 +107,7 @@ int clip_times(float *rawdata, int ptsperblk, int numchan,
 
    /* Update the good channel levels */
    for (ii = 0; ii < numchan; ii++)
-      good_chan_levels[ii] = chan_running_avg[jj];
+      good_chan_levels[ii] = chan_running_avg[ii];
 
    /* Replace the bad channel data with channel median values */
    /* that are scaled to equal the running_avg.               */
