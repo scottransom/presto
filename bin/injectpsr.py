@@ -207,49 +207,44 @@ def inject(infile, outfn, prof, period, dm, nbitsout=8, block_size=BLOCKSIZE):
         median = np.median(onesec)
         # Set median to 1/3 of dynamic range
         global_scale = (256.0/3.0) / median
-        toscale = True
         del onesec
     else:
-        toscale = False
+        # No scaling to be performed
+        # These values will cause scaling to keep data unchanged
+        minimum = 0
+        global_scale = 1
 
     # Start an output file
     print "Creating out file: %s" % outfn
     sys.stdout.write(" %3.0f %%\r" % 0)
     sys.stdout.flush()
-    nblocks = int(fil.nspec/block_size)
-    remainder = fil.nspec % block_size
     oldprogress = -1
-    for iblock in np.arange(nblocks):
-        lobin = iblock*block_size
-        hibin = (iblock+1)*block_size
-        spectra = fil.get_spectra(lobin, hibin)
+    
+    # Loop over data
+    lobin = 0
+    spectra = fil.get_spectra(0, block_size)
+    numread = spectra.shape[0]
+    while numread:
+        hibin = lobin+numread
         times = np.atleast_2d(np.arange(lobin, hibin)*fil.tsamp).T - delays
         phases = times/period % 1
         toinject = prof(phases)
         injected = spectra+toinject
-        if toscale:
-            scaled = (injected-minimum)*global_scale
-        else:
-            scaled = injected
+        scaled = (injected-minimum)*global_scale
         outfil.append_spectra(scaled)
+        
+        # Print progress to screen
         progress = int(100.0*hibin/fil.nspec)
         if progress > oldprogress: 
             sys.stdout.write(" %3.0f %%\r" % progress)
             sys.stdout.flush()
             oldprogress = progress
-    # Read all remaining spectra
-    if remainder:
-        spectra = fil.get_spectra(-remainder, None)
-        times = np.atleast_2d(np.arange(nblocks*block_size, nblocks*block_size+remainder) * \
-                            fil.tsamp).T - delays
-        phases = times/period % 1
-        toinject = prof(phases)
-        injected = spectra+toinject
-        if toscale:
-            scaled = (injected-minimum)*global_scale
-        else:
-            scaled = injected
-        outfil.append_spectra(scaled)
+        
+        # Prepare for next iteration
+        lobin = hibin 
+        spectra = fil.get_spectra(lobin, lobin+block_size)
+        numread = spectra.shape[0]
+
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
     
