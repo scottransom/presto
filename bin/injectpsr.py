@@ -208,7 +208,7 @@ def create_vonmises_components(vonmises_strs):
     return vonmises_comps
 
 
-def inject(infile, outfn, prof, period, dm, nbitsout=8, block_size=BLOCKSIZE):
+def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE):
     if isinstance(infile, filterbank.FilterbankFile):
         fil = infile
     else:
@@ -219,6 +219,8 @@ def inject(infile, outfn, prof, period, dm, nbitsout=8, block_size=BLOCKSIZE):
     get_phases = lambda times: (times-delays)/period % 1
 
     # Create the output filterbank file
+    if nbitsout is None:
+        nbitsout = fil.nbits
     outfil = filterbank.create_filterbank_file(outfn, fil.header, nbits=nbitsout)
 
     if outfil.nbits == 8:
@@ -352,9 +354,9 @@ if __name__ == '__main__':
                     help="Number of spectra per block. This is the amount " \
                         "of data manipulated/written at a time. (Default: " \
                         " %d spectra)" % BLOCKSIZE)
-    parser.add_option("--nbits", dest='output_nbits', default=8, type=int, \
+    parser.add_option("--nbits", dest='output_nbits', default=None, type=int, \
                     help="Number of bits per same to use in output " \
-                        "filterbank file. (Default: 8-bits)")
+                        "filterbank file. (Default: same as input file)")
     parser.add_option("-n", "--dryrun", dest="dryrun", action="store_true", \
                     help="Show the pulse profile to be injected and exit. " \
                         "(Default: do not show profile, inject it)")
