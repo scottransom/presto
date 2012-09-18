@@ -61,6 +61,41 @@ class Profile(object):
         x0 = np.linspace(0, 1.0, nbin+1, endpoint=True)
         plt.plot(x0, self(x0)*scale)
 
+    def delay(self, period, dm, freqs, npts=1024):
+        """Delay the profile by the appropriate amount (in phase)
+            for the given dm and frequencies, and return a VectorProfile
+            object.
+ 
+            The delayed profiles are sampled and interpolated (ie SplineProfile)
+            versions are used.
+ 
+            Inputs:
+                prof: The profile to delay.
+                period: The period of the profile (in seconds, to convert 
+                    delays in time to phase)
+                dm: The dispersion measure (in pc cm-3)
+                freqs: A list of centre frequencies for each channel (in MHz)
+                npts: The number of points to use when creating SplineProfile
+                    objects (Default: 1024).
+ 
+            Output:
+                delayed: The VectorProfile object made up of delayed versions
+                    of the input profile.
+        """
+        timedelays = psr_utils.delay_from_DM(dm, freqs)
+        # Reference all delays to highest frequency channel, which remains
+        # unchanged
+        # TODO: Do we really want to refer to high freq?
+        timedelays -= timedelays[np.argmax(freqs)]
+        phasedelays = timedelays/period
+        
+        profiles = []
+        for phdel in phasedelays:
+            delayed_prof = Profile(lambda ph: self((ph-phdel) % 1)/self.scale)
+            profiles.append(get_spline_profile(delayed_prof, npts))
+        delayed = VectorProfile(profiles, scale=self.scale)
+        return delayed
+
 
 class SplineProfile(Profile):
     def __init__(self, profvals, scale=1, **spline_kwargs):
@@ -144,6 +179,54 @@ class MultiComponentProfile(Profile):
         plt.plot(x0, self(x0), 'k-', lw=3)
         for comp in self.components:
             comp.plot(nbin=nbin, scale=self.scale)
+
+
+class VectorProfile(object):
+    """A class to represent a vector of pulse profiles.
+        This can be used to encode intrinsic profile variation, 
+        or extrisinc smearing/scattering across the band
+    """
+    def __init__(self, profiles, scale=1):
+        """Construct a vector of profiles.
+            
+            Inputs:
+                profiles: A list of Profile objects.
+                scale: An overall scaling factor to multiply
+                    the profile by.
+
+            Output:
+                prof: The profile object.
+        """
+        self.profiles = profiles
+        self.nprofs = len(profiles)
+        self.scale = scale
+    
+    def __call__(self, phs):
+        phs = np.atleast_1d(np.asarray(phs))
+        nphs = phs.shape[0]
+        vals = np.empty((nphs, self.nprofs))
+        if phs.ndim == 1:
+            # Evaluate all profiles at the same phases
+            for ii, prof in enumerate(self.profiles):
+                vals[:,ii] = prof(phs)
+        elif phs.ndim == 2:
+            # Evaluate each profile at a different set of phases
+            nphs_vecs = phs.shape[1]
+            if nphs_vecs != self.nprofs:
+                raise ValueError("Length of axis=1 of 'phs' (%d) must be " \
+                                "equal to the number of profiles in the " \
+                                "vector (%d)." % (nphs_vec, self.nprofs))
+            else:
+                for ii, (prof, ph) in enumerate(zip(self.profiles, phs)):
+                    vals[:,ii] = prof(ph)
+        else:
+            raise ValueError("VectorProfile can only be evaluated with " \
+                            "1D or 2D arrays")
+        return vals
+
+    def plot(self, nbin=1024, scale=1):
+        phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
+        plt.imshow(self(phs).transpose(), interpolation='nearest', aspect='auto')
 
 
 def get_spline_profile(prof, npts=1024, **spline_kwargs):
@@ -291,6 +374,11 @@ def main():
     print "%d input files provided" % len(args)
     for fn in args:
         fil = filterbank.FilterbankFile(fn, read_only=True)
+        if True: # options.delay:
+            prof = prof.delay(options.period, options.dm, fil.frequencies)
+            prof.plot()
+            plt.show()
+            sys.exit()
         outfn = options.outname % fil.header 
         inject(fil, outfn, prof, options.period, options.dm, \
                 nbitsout=options.output_nbits, block_size=options.block_size)
