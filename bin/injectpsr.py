@@ -21,6 +21,9 @@ import psr_utils
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
 BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
+USE_SPLINE = True # Whether or not to conver the input analytic profile to
+                  # a spline profile
+
 
 class Profile(object):
     """A class to represent a generic pulse profile.
@@ -28,11 +31,12 @@ class Profile(object):
     def __init__(self, prof_func, scale=1):
         """Construct a profile.
 
-            Input:
+            Inputs:
                 prof_func: A function of a single variable.
                     This function should:
                         1) Represent the pulse profile.
-                        2) Expect input values of phase ranging between 0 and 1.
+                        2) Expect input values of phase ranging between 
+                            0 and 1.
                         3) Work when provided with a numpy array.
                 scale: An overall scaling factor to multiply
                     the profile by.
@@ -40,64 +44,65 @@ class Profile(object):
             Output:
                 prof: The profile object.
         """
-        self.spline = None
+        self.prof_func = prof_func
         self.scale = scale
-        self.prof_func = lambda phs: prof_func(phs % 1)
 
-    def _get_profile(self):
-        """Private method to get the pulse profile vs. phase
-            function.
-        """
-        prof = lambda ph: self.scale*self.prof_func(ph)
-        return prof
-
-    def _get_spline(self, npts=1024, remake=False, **spline_kwargs):
-        """Private method to get an interpolating spline of the profile.
-        """
-        if remake or self.spline is None:
-            phs = np.linspace(0,1, npts+1, endpoint=True)
-            prof = self._get_profile()
-            self.spline = scipy.interpolate.InterpolatedUnivariateSpline(phs, \
-                                                prof(phs), **spline_kwargs)
-        return self.spline
-
-    def __call__(self, phs, end_phs=None, direct=False):
+    def __call__(self, phs):
         """Return the value of the profile at the given phase.
 
             Inputs:
                 phs: The phase of the profile (between 0 and 1) where
                     the profile should be evaluated.
-                end_phs: (optional) If provided integrate the profile
-                    between phs and end_phs and return the result.
-                    phs and end_phs should have the same shape.
-                direct: If True, evaluate the profile function directly.
-                    If False, use an interpolating spline. 
-                    (Default: use spline)
 
             Output:
                 vals: The values of the profile at the requested phases.
         """
-        if direct:
-            prof = lambda ph: self._get_profile()(ph % 1)
-        else:
-            prof = lambda ph: self._get_spline()(ph % 1)
-
-        if end_phs is None:
-            vals = prof(phs.flatten())
-        else:
-            vals = np.empty(len(phs))
-            for ii, (phs0, phs1) in enumerate(zip(phs, end_phs)):
-                if direct:
-                    vals[ii] = scipy.integrate.quad(prof, phs0, phs1)[0]
-                else:
-                    vals[ii] = prof.integral(phs0, phs1)
-        vals.shape = phs.shape
-        return vals
+        return self.scale*self.prof_func(phs)
 
     def plot(self, nbin=1024):
+        raise NotImplementedError
         x0 = np.linspace(0, 1.0, nbin, endpoint=False)
         x1 = np.linspace(0, 1.0, nbin+1, endpoint=True)[1:]
         plt.plot(x0, self(x0))
+
+
+class SplineProfile(Profile):
+    def __init__(self, profvals, scale=1, **spline_kwargs):
+        """Construct a profile that uses a spline to interpolate a function.
+
+            Inputs:
+                profvals: The values of the profile to be interpolated. 
+                scale: An overall scaling factor to multiply
+                    the profile by.
+                **All additional keyword arguments are passed to the 
+                    spline constructor.
+
+            Output:
+                prof: The profile object.
+        """
+        # TODO: Should we evaluate at the centre of the bins?
+        phs = np.linspace(0,1, len(profvals)+1, endpoint=True)
+        # Manually set value at phs=1.0 to the value at phs=0.0
+        vals = np.concatenate((profvals, [profvals[0]]))
+        # Create spline object and use it as the profile function
+        spline = scipy.interpolate.InterpolatedUnivariateSpline(phs, \
+                                                vals, **spline_kwargs)
+        super(SplineProfile, self).__init__(spline, scale)
+
+    def __call__(self, phs):
+        """Return the value of the profile at the given phase.
+
+            Inputs:
+                phs: The phase of the profile (between 0 and 1) where
+                    the profile should be evaluated.
+
+            Output:
+                vals: The values of the profile at the requested phases.
+        """
+        vals = super(SplineProfile, self).__call__(phs.flat)
+        # Re-shape values because spline return flattened array.
+        vals.shape = phs.shape
+        return vals
 
 
 class MultiComponentProfile(Profile):
@@ -108,7 +113,7 @@ class MultiComponentProfile(Profile):
         """Construct a multi-component profile.
 
             Input:
-                components: A list of Profile object that serve
+                components: A list of Profile objects that serve
                     as the components of this MultiComponentProfile 
                     object. (Default: Create a multi-component profile
                     with no components.)
@@ -118,35 +123,57 @@ class MultiComponentProfile(Profile):
             Output:
                 prof: The MultiComponentProfile object.
         """
-        self.spline = None
         self.scale = scale
         self.components = []
         for component in components:
-            component.scale = self.scale # Apply the same global
-                                         # scaling to all components
-            self.components.append(component)
+            self.add_component(component)
+        super(MultiComponentProfile, self).__init__(self._get_profile(), scale)
 
     def _get_profile(self):
         """Private method to get the pulse profile vs. phase
             function.
         """
         if self.components:
-            prof = lambda ph: np.sum([comp._get_profile()(ph) for comp \
+            prof = lambda ph: np.sum([comp(ph) for comp \
                                         in self.components], axis=0)
         else:
             prof = lambda ph: 0
         return prof
 
     def add_component(self, comp):
-        comp.scale = self.scale
         self.components.append(comp)
-        self.spline = None
 
     def plot(self, nbin=1024):
         x0 = np.linspace(0, 1.0, nbin, endpoint=False)
         plt.plot(x0, self(x0), 'k-', lw=3)
         for comp in self.components:
             comp.plot(nbin=nbin)
+
+
+def get_spline_profile(prof, npts=1024, **spline_kwargs):
+    """Given a profile object evaluate it and return
+        a SplineProfile object. If the input profile object
+        is already an instance of SplineProfile, do nothing
+        and return the input profile.
+
+        Inputs:
+            prof: The profile object to conver to a SplineProfile.
+            npts: The number of points to use when evaluating the
+                profile. (Default: 1024)
+            **All additional keyword arguments are passed to the 
+                spline constructor.
+
+        Outputs:
+            spline_prof: The resulting SplineProfile object.
+    """
+    if isinstance(prof, SplineProfile):
+        # Input profile is already a SplineProfile. Do nothing. Return it.
+        return prof
+    else:
+        phs = np.linspace(0,1, npts, endpoint=False)
+        profvals = prof(phs)/prof.scale
+        spline_prof = SplineProfile(profvals, scale=prof.scale, **spline_kwargs)
+        return spline_prof
 
 
 def vonmises_factory(amp,shape,loc):
@@ -253,6 +280,8 @@ def main():
     comps = create_vonmises_components(options.vonmises)
     print "Creating profile. Number of components: %d" % len(comps)
     prof = MultiComponentProfile(comps, scale=options.scale)
+    if USE_SPLINE:
+        prof = get_spline_profile(prof)
     if options.dryrun:
         print "Showing plot of profile to be injected..."
         prof.plot()
