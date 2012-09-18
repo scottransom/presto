@@ -61,40 +61,44 @@ class Profile(object):
         x0 = np.linspace(0, 1.0, nbin+1, endpoint=True)
         plt.plot(x0, self(x0)*scale)
 
-    def delay(self, period, dm, freqs, npts=1024):
-        """Delay the profile by the appropriate amount (in phase)
-            for the given dm and frequencies, and return a VectorProfile
-            object.
+    def delay(self, phasedelay):
+        """Delay the profile and return a new Profile object. 
  
-            The delayed profiles are sampled and interpolated (ie SplineProfile)
-            versions are used.
- 
-            Inputs:
-                prof: The profile to delay.
-                period: The period of the profile (in seconds, to convert 
-                    delays in time to phase)
-                dm: The dispersion measure (in pc cm-3)
-                freqs: A list of centre frequencies for each channel (in MHz)
-                npts: The number of points to use when creating SplineProfile
-                    objects (Default: 1024).
- 
+            Input:
+                phasedelay: The amount of phase to delay the profile by.
+
             Output:
-                delayed: The VectorProfile object made up of delayed versions
-                    of the input profile.
+                delayed: The delayed Profile.
         """
-        timedelays = psr_utils.delay_from_DM(dm, freqs)
-        # Reference all delays to highest frequency channel, which remains
-        # unchanged
-        # TODO: Do we really want to refer to high freq?
-        timedelays -= timedelays[np.argmax(freqs)]
-        phasedelays = timedelays/period
+        delayed_prof = Profile(lambda ph: self((ph-phasedelay) % 1)/self.scale, \
+                                scale=self.scale)
+        return delayed_prof
         
-        profiles = []
-        for phdel in phasedelays:
-            delayed_prof = Profile(lambda ph: self((ph-phdel) % 1)/self.scale)
-            profiles.append(get_spline_profile(delayed_prof, npts))
-        delayed = VectorProfile(profiles, scale=self.scale)
-        return delayed
+    def smear(self, smearphs, npts=1024):
+        """Smear the profile with a boxcar of width 'smearphs'. Return
+            a SplineProfile object sampled with 'npts' points.
+
+            Inputs:
+                smearphs: The amount (in phase) to smear the profile by.
+                npts: The number of points to used when creating the
+                    smeared SplineProfile.
+
+            Output:
+                smeared: The smeared Profile.
+        """
+        phs = np.linspace(0, 1, npts, endpoint=False)
+        window = np.linspace(-0.5*smearphs, 0.5*smearphs, smearphs*4*npts, \
+                                endpoint=True)
+        winsize = window.size
+        print "Smear window size:", winsize
+        if winsize == 0:
+            print "Can't smear by nothing"
+            return get_spline_profile(self, npts)
+        smearvals = np.empty(npts)
+        for ii, ph in enumerate(phs):
+            smearvals[ii] = np.sum(self((window+ph)%1))/winsize
+        smeared_prof = SplineProfile(smearvals/self.scale, scale=self.scale)
+        return smeared_prof
 
 
 class SplineProfile(Profile):
@@ -227,6 +231,41 @@ class VectorProfile(object):
     def plot(self, nbin=1024, scale=1):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
         plt.imshow(self(phs).transpose(), interpolation='nearest', aspect='auto')
+
+
+def delay_and_smear(prof, period, dm, chan_width, freqs):
+    """Given a profile apply DM delays and smearing within
+        each channel as is appropriate for the given params.
+
+        Inputs:
+            prof: The profile to delay and smear
+            period: The profiles period (in seconds)
+            dm: The DM (in pc cm-3)
+            chan_width: The width of each channel (in MHz)
+            freqs: The list of frequencies (in MHz)
+
+        Outputs:
+            vecprof: The delayed and smeared VectorProfile.
+    """
+    nfreqs = len(freqs)
+    profiles = []
+    timedelays = psr_utils.delay_from_DM(dm, freqs)
+    # Reference all delays to highest frequency channel, which remains
+    # unchanged
+    # TODO: Do we really want to refer to high freq?
+    timedelays -= timedelays[np.argmax(freqs)]
+    phasedelays = timedelays/period
+    
+    smeartimes = psr_utils.dm_smear(dm, chan_width, freqs)
+    smearphases = smeartimes/period
+    for ii, (delay, smear) in enumerate(zip(phasedelays, smearphases)):
+        print ii, delay, smear
+        delayed = prof.delay(delay)
+        smeared = delayed.smear(smear)
+        smeared.scale = 1
+        profiles.append(smeared)
+    vecprof = VectorProfile(profiles, scale=prof.scale)
+    return vecprof
 
 
 def get_spline_profile(prof, npts=1024, **spline_kwargs):
@@ -375,7 +414,8 @@ def main():
     for fn in args:
         fil = filterbank.FilterbankFile(fn, read_only=True)
         if True: # options.delay:
-            prof = prof.delay(options.period, options.dm, fil.frequencies)
+            prof = delay_and_smear(prof, options.period, options.dm, \
+                                    np.abs(fil.foff), fil.frequencies)
             prof.plot()
             plt.show()
             sys.exit()
