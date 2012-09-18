@@ -191,8 +191,8 @@ def inject(infile, outfn, prof, period, dm, nbitsout=8, block_size=BLOCKSIZE):
     print "Injecting pulsar signal into: %s" % fil.filename
     delays = psr_utils.delay_from_DM(dm, fil.frequencies)
     delays -= delays[np.argmax(fil.frequencies)]
-    print np.round(delays/fil.dt).astype('int')
-   
+    get_phases = lambda times: (times-delays)/period % 1
+
     # Create the output filterbank file
     outfil = filterbank.create_filterbank_file(outfn, fil.header, nbits=nbitsout)
 
@@ -226,8 +226,8 @@ def inject(infile, outfn, prof, period, dm, nbitsout=8, block_size=BLOCKSIZE):
     numread = spectra.shape[0]
     while numread:
         hibin = lobin+numread
-        times = np.atleast_2d(np.arange(lobin, hibin)*fil.tsamp).T - delays
-        phases = times/period % 1
+        times = np.atleast_2d((np.arange(lobin, hibin)+0.5)*fil.tsamp).T
+        phases = get_phases(times)
         toinject = prof(phases)
         injected = spectra+toinject
         scaled = (injected-minimum)*global_scale
