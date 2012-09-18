@@ -21,8 +21,6 @@ import psr_utils
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
 BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
-USE_SPLINE = True # Whether or not to conver the input analytic profile to
-                  # a spline profile
 
 
 class Profile(object):
@@ -280,7 +278,7 @@ def main():
     comps = create_vonmises_components(options.vonmises)
     print "Creating profile. Number of components: %d" % len(comps)
     prof = MultiComponentProfile(comps, scale=options.scale)
-    if USE_SPLINE:
+    if options.use_spline:
         prof = get_spline_profile(prof)
     if options.dryrun:
         print "Showing plot of profile to be injected..."
@@ -360,6 +358,12 @@ if __name__ == '__main__':
     parser.add_option("-n", "--dryrun", dest="dryrun", action="store_true", \
                     help="Show the pulse profile to be injected and exit. " \
                         "(Default: do not show profile, inject it)")
+    parser.add_option("--use-spline", dest='use_spline', action='store_true', \
+                    default=False, \
+                    help="Evaluate the analytic pulse profile and interpolate " \
+                        "with a spline. This is typically faster to execute, " \
+                        "especially when the profile is made up of multiple " \
+                        "components. (Default: Do not use spline.)")
     parser.add_option("-o", "--outname", dest='outname', action='store', \
                     default="injected.fil", \
                     help="The name of the output file.")
