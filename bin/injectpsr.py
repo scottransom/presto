@@ -57,11 +57,9 @@ class Profile(object):
         """
         return self.scale*self.prof_func(phs)
 
-    def plot(self, nbin=1024):
-        raise NotImplementedError
-        x0 = np.linspace(0, 1.0, nbin, endpoint=False)
-        x1 = np.linspace(0, 1.0, nbin+1, endpoint=True)[1:]
-        plt.plot(x0, self(x0))
+    def plot(self, nbin=1024, scale=1):
+        x0 = np.linspace(0, 1.0, nbin+1, endpoint=True)
+        plt.plot(x0, self(x0)*scale)
 
 
 class SplineProfile(Profile):
@@ -145,7 +143,7 @@ class MultiComponentProfile(Profile):
         x0 = np.linspace(0, 1.0, nbin, endpoint=False)
         plt.plot(x0, self(x0), 'k-', lw=3)
         for comp in self.components:
-            comp.plot(nbin=nbin)
+            comp.plot(nbin=nbin, scale=self.scale)
 
 
 def get_spline_profile(prof, npts=1024, **spline_kwargs):
