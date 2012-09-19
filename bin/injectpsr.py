@@ -90,9 +90,8 @@ class Profile(object):
         window = np.linspace(-0.5*smearphs, 0.5*smearphs, smearphs*4*npts, \
                                 endpoint=True)
         winsize = window.size
-        print "Smear window size:", winsize
         if winsize == 0:
-            print "Can't smear by nothing"
+            #print "Can't smear by nothing"
             return get_spline_profile(self, npts)
         smearvals = np.empty(npts)
         for ii, ph in enumerate(phs):
@@ -219,7 +218,7 @@ class VectorProfile(object):
             if nphs_vecs != self.nprofs:
                 raise ValueError("Length of axis=1 of 'phs' (%d) must be " \
                                 "equal to the number of profiles in the " \
-                                "vector (%d)." % (nphs_vec, self.nprofs))
+                                "vector (%d)." % (nphs_vecs, self.nprofs))
             else:
                 for ii, (prof, ph) in enumerate(zip(self.profiles, phs)):
                     vals[:,ii] = prof(ph)
@@ -259,7 +258,6 @@ def delay_and_smear(prof, period, dm, chan_width, freqs):
     smeartimes = psr_utils.dm_smear(dm, chan_width, freqs)
     smearphases = smeartimes/period
     for ii, (delay, smear) in enumerate(zip(phasedelays, smearphases)):
-        print ii, delay, smear
         delayed = prof.delay(delay)
         smeared = delayed.smear(smear)
         smeared.scale = 1
@@ -334,9 +332,12 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     else:
         fil = filterbank.FilterbankFile(infile, read_only=True)
     print "Injecting pulsar signal into: %s" % fil.filename
-    delays = psr_utils.delay_from_DM(dm, fil.frequencies)
-    delays -= delays[np.argmax(fil.frequencies)]
-    get_phases = lambda times: (times-delays)/period % 1
+    if False:
+        delays = psr_utils.delay_from_DM(dm, fil.frequencies)
+        delays -= delays[np.argmax(fil.frequencies)]
+        get_phases = lambda times: (times-delays)/period % 1
+    else:
+        get_phases = lambda times: times/period % 1
 
     # Create the output filterbank file
     if nbitsout is None:
@@ -344,6 +345,8 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     outfil = filterbank.create_filterbank_file(outfn, fil.header, nbits=nbitsout)
 
     if outfil.nbits == 8:
+        raise NotImplementedError("This code is out of date. 'delays' is not " \
+                                    "done in this way anymore..")
         # Read the first second of data to get the global scaling to use
         onesec = fil.get_timeslice(0, 1).copy()
         onesec_nspec = onesec.shape[0]
@@ -373,11 +376,24 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     numread = spectra.shape[0]
     while numread:
         hibin = lobin+numread
-        times = np.atleast_2d((np.arange(lobin, hibin)+0.5)*fil.tsamp).T
+        times = (np.arange(lobin, hibin)+0.5)*fil.tsamp
         phases = get_phases(times)
         toinject = prof(phases)
         injected = spectra+toinject
         scaled = (injected-minimum)*global_scale
+        plt.figure() 
+        plt.imshow(toinject.transpose(), interpolation='nearest', aspect='auto')
+        plt.title("toinject")
+        plt.figure() 
+        plt.imshow(spectra.transpose(), interpolation='nearest', aspect='auto')
+        plt.title("spectra")
+        plt.figure() 
+        plt.imshow(injected.transpose(), interpolation='nearest', aspect='auto')
+        plt.title("injected")
+        plt.figure() 
+        plt.imshow(scaled.transpose(), interpolation='nearest', aspect='auto')
+        plt.title("scaled")
+        plt.show()
         outfil.append_spectra(scaled)
         
         # Print progress to screen
@@ -416,9 +432,9 @@ def main():
         if True: # options.delay:
             prof = delay_and_smear(prof, options.period, options.dm, \
                                     np.abs(fil.foff), fil.frequencies)
-            prof.plot()
-            plt.show()
-            sys.exit()
+            #prof.plot()
+            #plt.show()
+            #sys.exit()
         outfn = options.outname % fil.header 
         inject(fil, outfn, prof, options.period, options.dm, \
                 nbitsout=options.output_nbits, block_size=options.block_size)
