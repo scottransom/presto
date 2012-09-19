@@ -60,6 +60,7 @@ class Profile(object):
     def plot(self, nbin=1024, scale=1):
         x0 = np.linspace(0, 1.0, nbin+1, endpoint=True)
         plt.plot(x0, self(x0)*scale)
+        plt.xlabel("Phase")
 
     def delay(self, phasedelay):
         """Delay the profile and return a new Profile object. 
@@ -178,10 +179,10 @@ class MultiComponentProfile(Profile):
         self.components.append(comp)
 
     def plot(self, nbin=1024):
-        x0 = np.linspace(0, 1.0, nbin, endpoint=False)
-        plt.plot(x0, self(x0), 'k-', lw=3)
+        super(MultiComponentProfile, self).plot(nbin=nbin)
         for comp in self.components:
             comp.plot(nbin=nbin, scale=self.scale)
+
 
 
 class VectorProfile(object):
@@ -229,7 +230,10 @@ class VectorProfile(object):
 
     def plot(self, nbin=1024, scale=1):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
-        plt.imshow(self(phs).transpose(), interpolation='nearest', aspect='auto')
+        plt.imshow(self(phs).transpose(), interpolation='nearest', \
+                    extent=(0, 1, 0, self.nprofs), aspect='auto')
+        plt.xlabel("Phase")
+        plt.ylabel("Channel number")
 
 
 def delay_and_smear(prof, period, dm, chan_width, freqs):
@@ -247,6 +251,8 @@ def delay_and_smear(prof, period, dm, chan_width, freqs):
             vecprof: The delayed and smeared VectorProfile.
     """
     nfreqs = len(freqs)
+    print "Smearing and delaying profile (DM = %.2f; %d channels)..." % \
+                (dm, nfreqs)
     profiles = []
     timedelays = psr_utils.delay_from_DM(dm, freqs)
     # Reference all delays to highest frequency channel, which remains
@@ -257,11 +263,22 @@ def delay_and_smear(prof, period, dm, chan_width, freqs):
     
     smeartimes = psr_utils.dm_smear(dm, chan_width, freqs)
     smearphases = smeartimes/period
+    oldprogress = 0
+    sys.stdout.write(" %3.0f %%\r" % oldprogress)
+    sys.stdout.flush()
     for ii, (delay, smear) in enumerate(zip(phasedelays, smearphases)):
         delayed = prof.delay(delay)
         smeared = delayed.smear(smear)
         smeared.scale = 1
         profiles.append(smeared)
+        # Print progress to screen
+        progress = int(100.0*ii/nfreqs)
+        if progress > oldprogress: 
+            sys.stdout.write(" %3.0f %%\r" % progress)
+            sys.stdout.flush()
+            oldprogress = progress
+    sys.stdout.write("Done   \n")
+    sys.stdout.flush()
     vecprof = VectorProfile(profiles, scale=prof.scale)
     return vecprof
 
@@ -418,6 +435,13 @@ def main():
     prof = MultiComponentProfile(comps, scale=options.scale)
     if options.use_spline:
         prof = get_spline_profile(prof)
+    
+    fn = args[0]
+    fil = filterbank.FilterbankFile(fn, read_only=True)
+    
+    if options.apply_dm:
+        prof = delay_and_smear(prof, options.period, options.dm, \
+                                np.abs(fil.foff), fil.frequencies)
     if options.dryrun:
         print "Showing plot of profile to be injected..."
         prof.plot()
@@ -426,18 +450,9 @@ def main():
         plt.show()
         sys.exit()
 
-    print "%d input files provided" % len(args)
-    for fn in args:
-        fil = filterbank.FilterbankFile(fn, read_only=True)
-        if True: # options.delay:
-            prof = delay_and_smear(prof, options.period, options.dm, \
-                                    np.abs(fil.foff), fil.frequencies)
-            #prof.plot()
-            #plt.show()
-            #sys.exit()
-        outfn = options.outname % fil.header 
-        inject(fil, outfn, prof, options.period, options.dm, \
-                nbitsout=options.output_nbits, block_size=options.block_size)
+    outfn = options.outname % fil.header 
+    inject(fil, outfn, prof, options.period, options.dm, \
+            nbitsout=options.output_nbits, block_size=options.block_size)
 
 
 def parse_model_file(modelfn):
@@ -508,6 +523,10 @@ if __name__ == '__main__':
                         "with a spline. This is typically faster to execute, " \
                         "especially when the profile is made up of multiple " \
                         "components. (Default: Do not use spline.)")
+    parser.add_option("--no-apply-dm", dest='apply_dm', action='store_false', \
+                    default=True, \
+                    help="Do not apply the DM (i.e. do not delay or smear " \
+                        "the pulse; Default: Apply DM)")
     parser.add_option("-o", "--outname", dest='outname', action='store', \
                     default="injected.fil", \
                     help="The name of the output file.")
