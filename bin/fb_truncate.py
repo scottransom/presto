@@ -132,6 +132,7 @@ if __name__ == '__main__':
                         "be rounded to the nearest sample. (Default: " \
                         "Don't truncate from end of file.)", default=None)
     parser.add_option("--block-size", dest='block_size', default=BLOCKSIZE, \
+                    type='float', \
                     help="Number of spectra per block. This is the amount " \
                         "of data manipulated/written at a time. (Default: " \
                         " %d spectra)" % BLOCKSIZE)
