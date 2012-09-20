@@ -8,7 +8,7 @@ Patrick Lazarus, June 26, 2012
 import sys
 import optparse
 import warnings
-import shutil
+import pickle
 
 import numpy as np
 import scipy.integrate
@@ -212,7 +212,7 @@ class VectorProfile(object):
         if phs.ndim == 1:
             # Evaluate all profiles at the same phases
             for ii, prof in enumerate(self.profiles):
-                vals[:,ii] = prof(phs)
+                vals[:,ii] = prof(phs)*self.scale
         elif phs.ndim == 2:
             # Evaluate each profile at a different set of phases
             nphs_vecs = phs.shape[1]
@@ -222,7 +222,7 @@ class VectorProfile(object):
                                 "vector (%d)." % (nphs_vecs, self.nprofs))
             else:
                 for ii, (prof, ph) in enumerate(zip(self.profiles, phs)):
-                    vals[:,ii] = prof(ph)
+                    vals[:,ii] = prof(ph)*self.scale
         else:
             raise ValueError("VectorProfile can only be evaluated with " \
                             "1D or 2D arrays")
@@ -398,19 +398,6 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
         toinject = prof(phases)
         injected = spectra+toinject
         scaled = (injected-minimum)*global_scale
-        plt.figure() 
-        plt.imshow(toinject.transpose(), interpolation='nearest', aspect='auto')
-        plt.title("toinject")
-        plt.figure() 
-        plt.imshow(spectra.transpose(), interpolation='nearest', aspect='auto')
-        plt.title("spectra")
-        plt.figure() 
-        plt.imshow(injected.transpose(), interpolation='nearest', aspect='auto')
-        plt.title("injected")
-        plt.figure() 
-        plt.imshow(scaled.transpose(), interpolation='nearest', aspect='auto')
-        plt.title("scaled")
-        plt.show()
         outfil.append_spectra(scaled)
         
         # Print progress to screen
@@ -430,18 +417,30 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     
 
 def main():
-    comps = create_vonmises_components(options.vonmises)
-    print "Creating profile. Number of components: %d" % len(comps)
-    prof = MultiComponentProfile(comps, scale=options.scale)
-    if options.use_spline:
-        prof = get_spline_profile(prof)
-    
     fn = args[0]
     fil = filterbank.FilterbankFile(fn, read_only=True)
+    if options.inprof is not None:
+        print "Loading profile from file (%s)" % options.inprof
+        infile = open(options.inprof, 'rb')
+        prof = pickle.load(infile)
+        infile.close()
+    else:
+        comps = create_vonmises_components(options.vonmises)
+        print "Creating profile. Number of components: %d" % len(comps)
+        prof = MultiComponentProfile(comps, scale=options.scale)
+        if options.use_spline:
+            prof = get_spline_profile(prof)
     
-    if options.apply_dm:
-        prof = delay_and_smear(prof, options.period, options.dm, \
-                                np.abs(fil.foff), fil.frequencies)
+        if options.apply_dm:
+            prof = delay_and_smear(prof, options.period, options.dm, \
+                                    np.abs(fil.foff), fil.frequencies)
+        if options.outprof is not None:
+            print "Writing %s instance to file (%s)" % \
+                    (type(prof).__name__, options.outprof)
+            outfile = open(options.outprof, 'wb')
+            pickle.dump(prof, outfile, protocol=pickle.HIGHEST_PROTOCOL)
+            outfile.close()
+
     if options.dryrun:
         print "Showing plot of profile to be injected..."
         prof.plot()
@@ -527,6 +526,12 @@ if __name__ == '__main__':
                     default=True, \
                     help="Do not apply the DM (i.e. do not delay or smear " \
                         "the pulse; Default: Apply DM)")
+    parser.add_option("--load-prof", dest="inprof", default=None, \
+                    help="Load a profile object from file. (Default: " \
+                        "create a fresh profile object.)")
+    parser.add_option("--save-prof", dest='outprof', default=None, \
+                    help="Save a profile object to file. (Default: " \
+                        "do not save profile object.)")
     parser.add_option("-o", "--outname", dest='outname', action='store', \
                     default="injected.fil", \
                     help="The name of the output file.")
