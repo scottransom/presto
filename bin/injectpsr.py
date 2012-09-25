@@ -260,7 +260,7 @@ def delay_and_smear(prof, period, dm, chan_width, freqs):
     # TODO: Do we really want to refer to high freq?
     timedelays -= timedelays[np.argmax(freqs)]
     phasedelays = timedelays/period
-    
+
     smeartimes = psr_utils.dm_smear(dm, chan_width, freqs)
     smearphases = smeartimes/period
     oldprogress = 0
@@ -393,7 +393,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     numread = spectra.shape[0]
     while numread:
         hibin = lobin+numread
-        times = (np.arange(lobin, hibin)+0.5)*fil.tsamp
+        times = (np.arange(lobin, hibin)+0.5)*fil.dt
         phases = get_phases(times)
         toinject = prof(phases)
         injected = spectra+toinject
