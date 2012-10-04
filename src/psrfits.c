@@ -546,9 +546,9 @@ void read_PSRFITS_files(struct spectra_info *s)
     if (s->apply_scale==0)
         for (ii = 0 ; ii < s->num_channels * s->num_polns ; ii++)
             scales[ii] = 1.0;
-   if (s->apply_weight==0)
+    if (s->apply_weight==0)
         for (ii = 0 ; ii < s->num_channels ; ii++)
-            scales[ii] = 1.0;
+            weights[ii] = 1.0;
 }
 
 
