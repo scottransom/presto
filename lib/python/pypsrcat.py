@@ -182,6 +182,7 @@ class psr:
             elif param=="EPS2":
                 if self.binary and self.binary_model=="ELL1" and not parts[part_index]=='*':
                     self.eps2, self.eps2err = float(parts[part_index]), float(parts[part_index+1])
+                    if not hasattr(self, 'eps1'): self.eps1 = 0.0
                     self.e = math.sqrt(self.eps1*self.eps1 + self.eps2*self.eps2)
                     self.eerr = 0.0001 # This needs fixing...
                     self.w = psr_utils.RADTODEG*math.atan2(self.eps1, self.eps2)
@@ -326,20 +327,6 @@ for psr in psrs:
 
 # Add a couple important pulsars
 for psr in psrs:
-    if psr.jname=="1614-22":
-        psr.jname = "1614-2230"
-        psr.f = 317.3789421870334877
-        psr.fd = -9.712602853462e-16
-        psr.p, psr.pd = psr_utils.p_to_f(psr.f, psr.fd)
-        psr.x  = 11.291206
-        psr.e  = 0.00000128
-        psr.To = 52334.287405
-        psr.pb = 8.68661942 
-        psr.w  = 129.190240
-        psr.dm = 34.494
-        psr.l  = 352.6357
-        psr.b  = 20.1922
-        psr.dist = 1.27
     if psr.jname=="1614-23":
         psr.jname=="1614-2318"
         psr.f = 29.8475387364133766
@@ -354,9 +341,6 @@ for psr in psrs:
         psr.l  = 351.91856
         psr.b  = 19.74496
         psr.dist = 1.80
-    if psr.jname=="1618-39":
-        psr.e = 0.0237
-        psr.eerr = 0.0001
 
 # If calling this as a main program, then write out the new pulsars.cat file
 if __name__ == '__main__' :
