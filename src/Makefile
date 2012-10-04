@@ -43,7 +43,7 @@ FFTLIBDIR = -L$(LOCDIR)/lib
 FFTLINK = $(FFTLIBDIR) -lfftw3f
 
 # Other include directories (i.e. glib.h)
-OTHERINCDIR = -I$(SYSDIR)/include/glib-2.0 -I$(SYSDIR)/lib/glib-2.0/include -I$(SYSDIR)/lib/i386-linux-gnu/glib-2.0/include/
+OTHERINCDIR = -I$(SYSDIR)/include/glib-2.0 -I$(SYSDIR)/lib/glib-2.0/include -I$(SYSDIR)/lib/x86_64-linux-gnu/glib-2.0/include/
 # Other link directories (i.e. libcfitsio if in different location)
 OTHERLIBDIR =
 
@@ -62,8 +62,8 @@ FC = gfortran
 #FC = g77
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-D$(FFTTYPE) -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-O3 -ffast-math -Wall -W -fPIC
-#	-g -Wall -W
+	-g -Wall -W -fPIC
+#	-O3 -ffast-math -Wall -W -fPIC
 CLINKFLAGS = $(CFLAGS)
 # NOTE:  Be careful of upping the optimization on the
 #        FFLAGs.  Certain compilers (i.e. on Intel Macs) will
@@ -93,10 +93,9 @@ PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
 	transpose.o twopass.o twopass_real_fwd.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o\
-	fitsfile.o hget.o hput.o imio.o
+	fitsfile.o hget.o hput.o imio.o djcl.o
 
-INSTRUMENTOBJS = multibeam.o bpp.o gmrt.o spigot.o sigproc_fb.o\
-	wapp.o wapp_head_parse.o wapp_y.tab.o psrfits.o
+INSTRUMENTOBJS = backend_common.o zerodm.o sigproc_fb.o psrfits.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
