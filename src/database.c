@@ -27,6 +27,11 @@ int read_database(void)
    database = chkfopen(databasenm, "rb");
 
    while (chkfread(&pdata, sizeof(psrdata), 1, database)) {
+      if (np >= NP) {
+          printf("NP value set to small (%d) in $PRESTO/include/database.h\n", NP);
+          printf("Please increase it and recompile\n");
+          exit(-1);
+      }
       strncpy(pulsardata[np].jname, pdata.jname, 13);
       strncpy(pulsardata[np].bname, pdata.bname, 9);
       strncpy(pulsardata[np].alias, pdata.alias, 10);
