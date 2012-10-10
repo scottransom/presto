@@ -1,5 +1,5 @@
 /* Number of entries in PSR database */
-#define NP  2000
+#define NP  3000
 #define NBP 200
 
 /* This is a structure that contains the "normal" information in the database */

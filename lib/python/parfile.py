@@ -132,17 +132,14 @@ class psr_par:
                 f, fd, = pu.p_to_f(self.P0, self.P1)
                 setattr(self, 'F0_ERR', self.P0_ERR/(self.P0*self.P0))
                 setattr(self, 'F1', fd) 
-        if hasattr(self, 'F0_ERR'):
-            if hasattr(self, 'F1_ERR'):
-                p, perr, pd, pderr = pu.pferrs(self.F0, self.F0_ERR,
-                                               self.F1, self.F1_ERR)
-                setattr(self, 'P0_ERR', perr) 
-                setattr(self, 'P1', pd) 
-                setattr(self, 'P1_ERR', pderr) 
-            else:
-                p, pd, = pu.p_to_f(self.F0, self.F1)
-                setattr(self, 'P0_ERR', self.F0_ERR/(self.F0*self.F0))
-                setattr(self, 'P1', pd) 
+        if (hasattr(self, 'F0_ERR') and hasattr(self, 'F1_ERR')):
+            p, perr, pd, pderr = pu.pferrs(self.F0, self.F0_ERR, 
+                                           self.F1, self.F1_ERR)
+            setattr(self, 'P0_ERR', perr) 
+            setattr(self, 'P1', pd) 
+            setattr(self, 'P1_ERR', pderr) 
+        elif (hasattr(self, 'F0') and hasattr(self, 'F0_ERR')):
+            setattr(self, 'P0_ERR', self.F0_ERR/(self.F0*self.F0))
         if hasattr(self, 'EPS1') and hasattr(self, 'EPS2'):
             ecc = math.sqrt(self.EPS1 * self.EPS1 + self.EPS2 * self.EPS2)
             omega = math.atan2(self.EPS1, self.EPS2)
