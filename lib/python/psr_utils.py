@@ -349,21 +349,43 @@ def asini_c(pb, mf):
     return (mf * pb * pb / 8015123.37129)**(1.0 / 3.0)
 
 
-def bins_to_accel(rdot, T, f=[1.0, 1000.0], device="/XWIN"):
+def accel_to_z(accel, T, reffreq, harm=1):
     """
-    bins_to_accel(rdot, T, f=[1.0, 1000.0], device="/XWIN"):
+    accel_to_z(accel, T, reffreq, harm=1):
+        Return the accelsearch 'z' (i.e. number of bins drifted)
+            at a reference frequency 'reffreq', for an observation
+            of duration 'T' seconds and with acceleration (in m/s/s)
+            'accel'.  You can specify the harmonic number in 'harm'.
+    """
+    return accel * harm * reffreq * T * T / SOL
+
+def z_to_accel(z, T, reffreq, harm=1):
+    """
+    z_to_accel(z, T, reffreq, harm=1):
+        Return the acceleration (in m/s/s) corresponding to the
+            accelsearch 'z' (i.e. number of bins drifted) at a 
+            reference frequency 'reffreq', for an observation
+            of duration 'T'. You can specify the harmonic number 
+            in 'harm'.
+    """
+    return z * SOL / (harm * reffreq * T * T)
+
+
+def bins_to_accel(z, T, f=[1.0, 1000.0], device="/XWIN"):
+    """
+    bins_to_accel(z, T, f=[1.0, 1000.0], device="/XWIN"):
         Make a plot showing the acceleration which corresponds
-        to a certain number of Fourier bins drifted 'rdot' during
+        to a certain number of Fourier bins drifted 'z' during
         an observation of length 'T'.
     """
     fs = span(Num.log10(f[0]), Num.log10(f[1]), 1000)
-    accels = rdot * SOL / (T * T * 10.0**fs)
+    accels = z_to_accel(z, T, 10.0**fs)
     if (device):
         Pgplot.plotxy(Num.log10(accels), fs, logx=1, logy=1,
                       labx="Frequency (Hz)",
                       laby="Acceleration (m/s\u2\d)", device=device)
         ppgplot.pgmtxt("T", -2.0, 0.75, 0.0, "T = %.0f sec"%T)
-        ppgplot.pgmtxt("T", -3.5, 0.75, 0.0, "r\B\u\.\d = %.1f bins"%rdot)
+        ppgplot.pgmtxt("T", -3.5, 0.75, 0.0, "r\B\u\.\d = %.1f bins"%z)
         if (device != '/XWIN'):
             Pgplot.closeplot()
     else:
