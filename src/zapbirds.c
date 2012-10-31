@@ -292,7 +292,7 @@ int main(int argc, char *argv[])
 
       fftfile = chkfopen(cmd->argv[0], "rb+");
       for (ii = 0; ii < numbirds; ii++) {
-         if (bird_lobins[ii] >= hibin)
+         if (bird_lobins[ii] >= hibin - 1)
             break;
          if (bird_hibins[ii] >= hibin)
             bird_hibins[ii] = hibin - 1;
