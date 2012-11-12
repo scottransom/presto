@@ -168,6 +168,9 @@ class Candlist(object):
         self.harmonic_cands = []
         self.dmproblem_cands = []
 
+    def __iter__(self):
+        return iter(self.cands)
+
     def sort(self, *args, **kwargs):
         self.cands.sort(*args, **kwargs)
 
