@@ -91,8 +91,14 @@ def translate_header(fits_file):
     subint_hdr = fits_file[1].header 
     fil_header = dict.fromkeys(fil_header_keys,None)
 
-    fil_header["telescope_id"] = telescope_ids[fits_hdr['TELESCOP']]
-    fil_header["machine_id"] = machine_ids[fits_hdr['BACKEND']]
+    if fits_hdr['TELESCOP'] in telescope_ids:
+        fil_header["telescope_id"] = telescope_ids[fits_hdr['TELESCOP']]
+    else:
+        fil_header["telescope_id"] = -1
+    if fits_hdr['BACKEND'] in machine_ids:
+        fil_header["machine_id"] = machine_ids[fits_hdr['BACKEND']]
+    else:
+        fil_header["machine_id"] = -1
 
     fil_header["data_type"] = 1 # filterbank
     # Get filename in a way that is safe for old versions of pyfits
