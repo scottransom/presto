@@ -753,3 +753,52 @@ void correct_subbands_for_DM(double dm, prepfoldinfo * search,
                     search->nsub, search->proflen, dmdelays, ddprofs, ddstats);
    vect_free(dmdelays);
 }
+
+
+float estimate_offpulse_redchi2(double *inprofs, foldstats *stats,
+                                int numparts, int numsubbands, 
+                                int proflen, int numtrials)
+// Randomly offset each pulse profile in a .pfd data square or cube
+// and combine them to estimate a "true" off-pulse level.  Do this
+// numtrials times in order to improve the statistics.  Return the
+// average of the off-pulse reduced-chi^2.
+{
+    int ii, jj, kk, offset, trialnum, phsindex, statindex;
+    float *chis;
+    double chi_avg, chi_var, redchi;
+    double prof_avg, prof_var, *prof_ptr, *sumprof;
+
+    sumprof = gen_dvect(proflen);
+    chis = gen_fvect(numtrials);
+
+    for (trialnum = 0; trialnum < numtrials; trialnum++) {
+        // Initialize the summed profile
+        for (ii = 0; ii < proflen; ii++)
+            sumprof[ii] = 0.0;
+        prof_avg = 0.0;
+        prof_var = 0.0;
+        prof_ptr = inprofs;
+        for (ii = 0; ii < numparts; ii++) {  // parts
+            for (jj = 0; jj < numsubbands; jj++) {  // subbands
+                statindex = ii * numsubbands + jj;
+                offset = random() % proflen;
+                phsindex = 0;
+                for (kk = offset; kk < proflen; kk++, phsindex++) // phases
+                    sumprof[phsindex] += prof_ptr[kk];
+                for (kk = 0; kk < offset; kk++, phsindex++) // phases
+                    sumprof[phsindex] += prof_ptr[kk];
+                prof_ptr += proflen;
+                prof_avg += stats[statindex].prof_avg;
+                prof_var += stats[statindex].prof_var;
+            }
+        }
+        /* Calculate the current chi-squared */
+        redchi = chisqr(sumprof, proflen, prof_avg, prof_var) / 
+            ((double) (proflen - 1));
+        chis[trialnum] = (float) redchi;
+    }
+    avg_var(chis, numtrials, &chi_avg, &chi_var);
+    vect_free(chis);
+    vect_free(sumprof);
+    return 1.0/chi_avg;
+}

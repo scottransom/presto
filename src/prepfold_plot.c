@@ -351,7 +351,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
    double parttime, bestp, bestpd, bestpdd;
    double perr, pderr, pdderr;
    double pfold, pdfold, pddfold = 0.0;
-   float *ftmparr1;
+   float ftmp, *ftmparr1;
    foldstats currentstats, beststats;
    /* Best Fold Plot */
    double *dbestprof = NULL;
@@ -629,6 +629,12 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
    vect_free(dbestprof);
 
    write_bestprof(search, &beststats, bestprof, N, perr, pderr, pdderr);
+
+   // Get off-pulse reduced-chi^2
+   ftmp = estimate_offpulse_redchi2(search->rawfolds, search->stats,
+                                    search->npart, search->nsub, 
+                                    search->proflen, 50); 
+   printf("Reduced chi^2 correction factor = %.2f\n", ftmp);
 
    /*
     *  Now plot the results
