@@ -761,7 +761,8 @@ float estimate_offpulse_redchi2(double *inprofs, foldstats *stats,
 // Randomly offset each pulse profile in a .pfd data square or cube
 // and combine them to estimate a "true" off-pulse level.  Do this
 // numtrials times in order to improve the statistics.  Return the
-// average of the off-pulse reduced-chi^2.
+// inverse of the average of the off-pulse reduced-chi^2 (i.e. the
+// correction factor).
 {
     int ii, jj, kk, offset, trialnum, phsindex, statindex;
     float *chis;
