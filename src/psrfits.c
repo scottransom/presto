@@ -493,6 +493,11 @@ void read_PSRFITS_files(struct spectra_info *s)
     else
         s->summed_polns = 0;
 
+    // Is the data IQUV and the user poln is not set?
+    if ((strncmp("IQUV", s->poln_order, 4)==0) &&
+        (s->use_poln==0))
+        s->use_poln = 1; // 1st poln = I
+        
     // Calculate some others
     s->T = s->N * s->dt;
     s->orig_df /= (double) s->orig_num_chan;
