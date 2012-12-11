@@ -83,6 +83,8 @@ typedef struct s_Cmdline {
   char scalepartsP;
   /***** -allgrey: Make all the images greyscale instead of color */
   char allgreyP;
+  /***** -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1 */
+  char fixchiP;
   /***** -justprofs: Only output the profile portions of the plot */
   char justprofsP;
   /***** -dm: The central DM of the search (cm^-3 pc) */

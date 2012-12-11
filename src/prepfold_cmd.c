@@ -96,6 +96,8 @@ static Cmdline cmd = {
   /* scalepartsP = */ 0,
   /***** -allgrey: Make all the images greyscale instead of color */
   /* allgreyP = */ 0,
+  /***** -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1 */
+  /* fixchiP = */ 0,
   /***** -justprofs: Only output the profile portions of the plot */
   /* justprofsP = */ 0,
   /***** -dm: The central DM of the search (cm^-3 pc) */
@@ -1206,6 +1208,13 @@ showOptionValues(void)
     printf("-allgrey found:\n");
   }
 
+  /***** -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1 */
+  if( !cmd.fixchiP ) {
+    printf("-fixchi not found.\n");
+  } else {
+    printf("-fixchi found:\n");
+  }
+
   /***** -justprofs: Only output the profile portions of the plot */
   if( !cmd.justprofsP ) {
     printf("-justprofs not found.\n");
@@ -1694,7 +1703,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-o outfile] [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-topo] [-invert] [-absphase] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-o outfile] [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-topo] [-invert] [-absphase] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-DE405] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n");
   fprintf(stderr,"%s","      Prepares (if required) and folds raw radio data, standard time series, or events.\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1735,6 +1744,7 @@ usage(void)
   fprintf(stderr,"%s","    -nodmsearch: Show but do not search over DM\n");
   fprintf(stderr,"%s","    -scaleparts: Scale the part profiles independently\n");
   fprintf(stderr,"%s","       -allgrey: Make all the images greyscale instead of color\n");
+  fprintf(stderr,"%s","        -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1\n");
   fprintf(stderr,"%s","     -justprofs: Only output the profile portions of the plot\n");
   fprintf(stderr,"%s","            -dm: The central DM of the search (cm^-3 pc)\n");
   fprintf(stderr,"%s","                 1 double value between 0 and oo\n");
@@ -1835,7 +1845,7 @@ usage(void)
   fprintf(stderr,"%s","                 default: `0'\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...16384 values\n");
-  fprintf(stderr,"%s","  version: 14Oct11\n");
+  fprintf(stderr,"%s","  version: 10Dec12\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -2033,6 +2043,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-allgrey", argv[i]) ) {
       cmd.allgreyP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-fixchi", argv[i]) ) {
+      cmd.fixchiP = 1;
       continue;
     }
 

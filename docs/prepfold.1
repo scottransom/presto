@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "14Oct11" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "10Dec12" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -55,6 +55,7 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-nodmsearch]
 [-scaleparts]
 [-allgrey]
+[-fixchi]
 [-justprofs]
 [-dm dm]
 [-n proflen]
@@ -180,6 +181,8 @@ Show but do not search over DM.
 Scale the part profiles independently.
 .IP -allgrey
 Make all the images greyscale instead of color.
+.IP -fixchi
+Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1.
 .IP -justprofs
 Only output the profile portions of the plot.
 .IP -dm

@@ -46,6 +46,7 @@ Flag   -nopdsearch nopdsearch {Show but do not search over p-dot}
 Flag   -nodmsearch nodmsearch {Show but do not search over DM}
 Flag   -scaleparts scaleparts {Scale the part profiles independently}
 Flag   -allgrey allgrey     {Make all the images greyscale instead of color}
+Flag   -fixchi  fixchi      {Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1}
 Flag   -justprofs justprofs {Only output the profile portions of the plot}
 Double -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	-r 0 oo  -d 0
