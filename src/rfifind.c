@@ -180,6 +180,7 @@ int main(int argc, char *argv[])
            ptsperblock = s.spectra_per_subint;
            numchan = s.num_channels;
            idata.dm = 0.0;
+           writeinf(&idata);
        }
        
        if (insubs) {
