@@ -794,7 +794,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     sptr = (short *)cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
                         *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                 }
             } else {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
@@ -802,7 +802,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     cptr = cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
                         *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                 }
             }
         } else if (sum_polns) { // sum the polns if there are 2 by default
@@ -815,7 +815,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                         *fptr = (((float)(*sptr) - s->zero_offset) * scales[jj] + 
                                  offsets[jj]) * weights[jj];
                         *fptr++ = (((float)(*(sptr+idx)) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                     }
                 }
             } else {
@@ -825,7 +825,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                         *fptr = (((float)(*cptr) - s->zero_offset) * scales[jj] + 
                                  offsets[jj]) * weights[jj];
                         *fptr++ = (((float)(*(cptr+idx)) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                     }
                 }
             }
