@@ -403,14 +403,33 @@ int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s, int *pa
 // number of blocks read is returned.  If padding is returned as 1,
 // then padding was added and statistics should not be calculated.
 {
-    int ii, retval = 0, pad = 0, numpad = 0;
+    int ii, retval = 0, gotblock = 0, pad = 0, numpad = 0, numvals;
+    static float *rawdata = NULL;
+    static int firsttime = 1;
 
+    numvals = s->spectra_per_subint * s->num_channels;
+    if (firsttime) {
+        rawdata = gen_fvect(2 * numvals);
+        firsttime = 0;
+    }
     *padding = 0;
     for (ii = 0; ii < numsubints; ii++) {
-        retval += s->get_rawblock(fdata + ii * s->spectra_per_subint * 
-                                  s->num_channels, s, &pad);
+        gotblock = s->get_rawblock(rawdata, s, &pad);
+        if (gotblock==0) break;
+        retval += gotblock;
+        memcpy(fdata + ii * numvals, rawdata, numvals * sizeof(float));
         if (pad) numpad++;
     }
+    if (gotblock==0) {  // Now fill the rest of the data with padding
+        for (; ii < numsubints; ii++) {
+            int jj;
+            for (jj = 0; jj < s->spectra_per_subint; jj++)
+                memcpy(fdata + ii * numvals + jj * s->num_channels, 
+                       s->padvals, s->num_channels * sizeof(float));
+        }
+        numpad++;
+    }
+
     /* Return padding 'true' if any block was padding */
     if (numpad) *padding = 1;
     return retval;
@@ -631,7 +650,7 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
    static float *frawdata;
 
    if (firsttime) {
-       frawdata = gen_fvect(s->num_channels * s->spectra_per_subint);
+       frawdata = gen_fvect(2 * s->num_channels * s->spectra_per_subint);
        if (!s->get_rawblock(frawdata, s, padding)) {
            fprintf(stderr, "Error: problem reading the raw data file in read_subbands()\n");
            return 0;
