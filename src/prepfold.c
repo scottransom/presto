@@ -122,6 +122,7 @@ int main(int argc, char *argv[])
    pflags.scaleparts = cmd->scalepartsP;
    pflags.justprofs = cmd->justprofsP;
    pflags.allgrey = cmd->allgreyP;
+   pflags.fixchi = cmd->fixchiP;
 
 #ifdef DEBUG
    showOptionValues();

@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
    flags.scaleparts = cmd->scalepartsP;
    flags.justprofs = cmd->justprofsP;
    flags.allgrey = cmd->allgreyP;
+   flags.fixchi = cmd->fixchiP;
    flags.nosearch = 1;
 
    /*
