@@ -10,7 +10,7 @@ static unsigned char *cdatabuffer;
 static float *fdatabuffer, *offsets, *scales, *weights;
 static int cur_file = 0, cur_subint = 1, numbuffered = 0;
 static long long cur_spec = 0;
-static double last_offs_sub = 0.0;
+static double offs_sub = 0.0, last_offs_sub = 0.0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move,
@@ -573,7 +573,6 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
 {
     int numtopad = 0, numtoread, status = 0, anynull;
     float *fdataptr = fdata;
-    double offs_sub;
     
     fdataptr = fdata + numbuffered * s->num_channels;
     // numtoread is always this size since we need to read
@@ -584,7 +583,7 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
     // copy the previously offset part into the beginning.
     // New data comes after the old data in the buffer.
     if (numbuffered)
-        memcpy(fdata, fdata + numtoread * s->num_channels, 
+        memcpy((char *)fdata, (char *)(fdata + numtoread * s->num_channels), 
                numbuffered * s->num_channels * sizeof(float));
     
     // Make sure our current file number is valid
@@ -605,12 +604,16 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
                 last_offs_sub = offs_sub - s->time_per_subint;
             } else {
                 // And this is if we are combining observations
+                // printf("file change:  %lld  %lld  %d\n", s->start_spec[cur_file], 
+                //       cur_spec, numbuffered);
                 last_offs_sub = (s->start_spec[cur_file] - 
                                  (cur_spec + numbuffered)) * s->dt - 
                     0.5 * s->time_per_subint;
             }
         }
-        
+        // printf("offs_sub = %f  last_offs_sub = %f  s->start_spec[cur_file](T) = %f  pred_offs_sub = %f\n", 
+        // offs_sub, last_offs_sub, s->start_spec[cur_file]*s->dt, last_offs_sub + s->time_per_subint);
+    
         // The following determines if there were lost blocks.  We should
         // always be within 0.5 sample (and only that big if we are putting
         // two different observations together).
@@ -629,7 +632,10 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
                 exit(1);
             } else {  // there is some missing data, use padding
                 numtopad = (int)round((offs_sub - last_offs_sub) / s->dt) - numbuffered;
-                if (numtopad > s->spectra_per_subint) numtopad = s->spectra_per_subint;
+                if (numtopad > s->spectra_per_subint) // Don't add more than a block 
+                    numtopad = s->spectra_per_subint;
+                if (numtopad > (s->spectra_per_subint - numbuffered)) // Re-align the buffer
+                    numtopad = s->spectra_per_subint - numbuffered;
                 add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
                 // Update the time of the last subs based on this padding
                 last_offs_sub += numtopad * s->dt;
@@ -647,32 +653,38 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
         }
         
     } else {
-        // We can't read anymore...  so read OFFS_SUB for the last row
-        // of the current file to see about padding
-        fits_read_col(s->fitsfiles[cur_file], TDOUBLE, 
-                      s->offs_sub_col, s->num_subint[cur_file], 1L, 1L, 
-                      0, &offs_sub, &anynull, &status);
+        // Since we are between files, set the offs_sub to the absolute time
+        // of the start of the next file.  This makes padding calcs easier.
+        if ((cur_file+1) <= s->num_files)
+            offs_sub = s->start_spec[cur_file+1] * s->dt;
     }
     
+    // if (numbuffered) 
+    // printf("last_offs_sub = %f  offs_sub = %f\n", last_offs_sub, offs_sub);
+
     if (s->num_pad[cur_file]==0 ||
         (fabs(last_offs_sub - offs_sub) < 0.5 * s->dt)) {
         // No padding is necessary.  The second check means that the
         // lack of data we noticed upon reading the file was due to
         // dropped data in the middle of the file that we already
         // fixed.  So no padding is really necessary.
+        // printf("YYYYa  last_offs_sub = %f  offs_sub = %f\n", last_offs_sub, offs_sub);
         cur_file++;
         cur_subint = 1;
         return get_PSRFITS_rawblock(fdata, s, padding);
     } else { // add padding
-        // Set offs_sub to the correct offs_sub time for the first
+        // Set offs_sub to the correct absolute time for the first
         // row of the next file.  Since that might or might not
         // be from a different observation, use absolute times from
         // the start of the observation for both offs_sub and last_offs_sub
-        offs_sub = s->start_spec[cur_file+1] * s->dt + 0.5 * s->time_per_subint;
-        last_offs_sub = (cur_spec + numbuffered) * s->dt - 0.5 * s->time_per_subint;
+        offs_sub = s->start_spec[cur_file+1] * s->dt;
+        last_offs_sub = (cur_spec + numbuffered) * s->dt;
         // Compute the amount of required padding
-        numtopad = (int)round((offs_sub - last_offs_sub) / s->dt) - numbuffered;
-        if (numtopad > s->spectra_per_subint) numtopad = s->spectra_per_subint;
+        numtopad = (int)round((offs_sub - last_offs_sub) / s->dt);
+        if (numtopad > s->spectra_per_subint) // Don't add more than a block 
+            numtopad = s->spectra_per_subint;
+        if (numtopad > (s->spectra_per_subint - numbuffered)) // Re-align the buffer
+            numtopad = s->spectra_per_subint - numbuffered;
         add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
         // Update the time of the last subs based on this padding
         last_offs_sub += numtopad * s->dt;
@@ -682,6 +694,7 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
         *padding = 1;
         // If we haven't gotten a full block, or completed the buffered one
         // then recursively call get_PSRFITS_rawblock()
+        // printf("YYYYb  l = %f  o = %f  numtopad = %d  numbuffered = %d\n", last_offs_sub, offs_sub, numtopad, numbuffered);
         if (numbuffered)
             return get_PSRFITS_rawblock(fdata, s, padding);
         else
@@ -794,7 +807,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     sptr = (short *)cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
                         *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                 }
             } else {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
@@ -802,7 +815,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     cptr = cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
                         *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                 }
             }
         } else if (sum_polns) { // sum the polns if there are 2 by default
@@ -815,7 +828,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                         *fptr = (((float)(*sptr) - s->zero_offset) * scales[jj] + 
                                  offsets[jj]) * weights[jj];
                         *fptr++ = (((float)(*(sptr+idx)) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                     }
                 }
             } else {
@@ -825,7 +838,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                         *fptr = (((float)(*cptr) - s->zero_offset) * scales[jj] + 
                                  offsets[jj]) * weights[jj];
                         *fptr++ = (((float)(*(cptr+idx)) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[idx+jj];
+                                   offsets[idx+jj]) * weights[jj];
                     }
                 }
             }
