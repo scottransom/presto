@@ -193,7 +193,7 @@ static double plot_fftview(fftview * fv, float maxpow, float charhgt,
          cpgdraw(freqs[ii], fv->powers[ii]);
       }
    }
-   free(freqs);
+   vect_free(freqs);
    cpgmtxt("L", 2.5, 0.5, 0.5, "Normalized Power");
    cpgebuf();
    cpgunsa();
@@ -240,7 +240,7 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart * fp)
             fv->powers[ii] = POWER(interp[ii].r, interp[ii].i) * norm_const;
          }
       }
-      free(interp);
+      vect_free(interp);
    } else {                     /* Down-sampled power spectrum */
       int jj, powindex, normindex, binstocombine;
       float *tmprawpwrs, maxpow;
