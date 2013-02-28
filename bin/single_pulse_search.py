@@ -147,6 +147,7 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-e, --end]         : Only plot events occuring before this time (s)
   [-g, --glob]        : Use the files from these glob expressions (in quotes)
   [-f, --fast]        : Use a less-accurate but much faster method of detrending
+  [-b, --nobadblocks] : Don't check for bad-blocks (may save strong pulses)
 
   Perform a single-pulse search (or simply re-plot the results of a
   single-pulse search) on a set of de-dispersed time series (.dat
@@ -163,7 +164,7 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   with the full resolution data.  'Duplicate' candidates from this
   process are filtered, leaving only the most significant.  The time
   series are initially smoothed using a piecewise linear fit to the
-  data where each piece is 2000 data points long.
+  data where each piece is 1000 data points long.
 
   If the input files are .singlepulse files, we won't actually perform
   a search, we'll only read in the output .singlepulse files and make
@@ -223,6 +224,8 @@ def main():
                       help="Process the files from this glob expression")
     parser.add_option("-f", "--fast", action="store_true", dest="fast",
                       default=False, help="Use a faster method of de-trending (2x speedup)")
+    parser.add_option("-b", "--nobadblocks", action="store_false", dest="badblocks",
+                      default=True, help="Don't check for bad-blocks (may save strong pulses)")
     (opts, args) = parser.parse_args()
     if len(args)==0:
         if opts.globexp==None:
@@ -343,15 +346,18 @@ def main():
                      sort_stds[numblocks/2:-1]).argmax() + numblocks/2 - 2
             std_stds = scipy.std(sort_stds[locut:hicut])
             median_stds = sort_stds[(locut+hicut)/2]
-            lo_std = median_stds - 4.0 * std_stds
-            hi_std = median_stds + 4.0 * std_stds
-            # Determine a list of "bad" chunks.  We will not search these.
-            bad_blocks = Num.nonzero((stds < lo_std) | (stds > hi_std))[0]
             print "    pseudo-median block standard deviation = %.2f" % (median_stds)
-            print "    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
-                  (len(bad_blocks), len(stds),
-                   100.0*float(len(bad_blocks))/float(len(stds)))
-            stds[bad_blocks] = median_stds
+            if (opts.badblocks):
+                lo_std = median_stds - 4.0 * std_stds
+                hi_std = median_stds + 4.0 * std_stds
+                # Determine a list of "bad" chunks.  We will not search these.
+                bad_blocks = Num.nonzero((stds < lo_std) | (stds > hi_std))[0]
+                print "    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
+                      (len(bad_blocks), len(stds),
+                       100.0*float(len(bad_blocks))/float(len(stds)))
+                stds[bad_blocks] = median_stds
+            else:
+                bad_blocks = []
             print "  Now searching..."
 
             # Now normalize all of the data and reshape it to 1-D
