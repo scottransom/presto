@@ -21,6 +21,7 @@ typedef struct plotflags {
   int justprofs;
   int scaleparts;
   int allgrey;
+  int fixchi;
 } plotflags;
 
 /* structure used to pass information to plotting routine */
@@ -153,3 +154,13 @@ void correct_subbands_for_DM(double dm, prepfoldinfo *search,
 			     double *ddprofs, foldstats *ddstats);
 /* Calculate the DM delays and apply them to the subbands */
 /* to create de-disopersed profiles.                      */
+
+
+float estimate_offpulse_redchi2(double *inprofs, foldstats * stats,
+                                int numparts, int numsubbands, 
+                                int proflen, int numtrials);
+// Randomly offset each pulse profile in a .pfd data square or cube
+// and combine them to estimate a "true" off-pulse level.  Do this
+// numtrials times in order to improve the statistics.  Return the
+// inverse of the average of the off-pulse reduced-chi^2 (i.e. the
+// correction factor).
