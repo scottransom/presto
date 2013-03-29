@@ -23,23 +23,6 @@ def measure_phase(profile, template):
     shift,eshift,snr,esnr,b,errb,ngood = fftfit.fftfit(profile,amp,pha)
     return shift,eshift,snr,esnr,b,errb,ngood
 
-def rms_correction(rms, dt_per_bin):
-    """
-    rms_correction(rms, dt_per_bin):
-        Correct the measured RMS (from the total pulse profile) for the
-            correlations between the bins caused by the way that prepfold
-            folds data (i.e. treating a sample as finite duration and
-            smearing it over potenitally several bins in the profile as
-            opposed to instantaneous and going into just one profile bin).
-            The correction is semi-analytic (thanks to Paul Demorest and
-            Walter Brisken) but the value for 'power' has been determined
-            from Monte Carlos.  The correction should gives at most 6% flux
-            errors which are largest near dt_per_bin = 1.  dt_per_bin is
-            the number of samples per profile bin (a float).
-    """
-    power = 1.311
-    return rms/Num.sqrt(dt_per_bin * (1.0+dt_per_bin**power)**(-1.0/power))
-
 def parse_vals(valstring):
     """
     parse_vals(valstring):
@@ -312,8 +295,8 @@ if __name__ == '__main__':
         Ppsr = 1.0 / current_pfd.fold_p1      # Pulsar period
         tau_bin = Ppsr / current_pfd.proflen  # Duration of profile bin
         dt_per_bin = tau_bin / current_pfd.dt
-        corr_rms = rms_correction(offpulse_rms, dt_per_bin)
-        print "samples/bin = ", dt_per_bin
+        corr_rms = offpulse_rms / Num.sqrt(current_pfd.DOF_corr())
+        print "samples/bin = ", current_pfd.dt_per_bin
         print "RMSs  (uncorr, corr)  = ", offpulse_rms, corr_rms
 
         # Now attempt to shift and scale the profile so that it has
@@ -365,7 +348,7 @@ if __name__ == '__main__':
     # Now attempt to shift and scale the profile so that it has
     # an off-pulse mean of ~0 and an off-pulse RMS of ~1
     sumprof -= Num.median(offpulse)
-    sumprof /= rms_correction(offpulse.std(), dt_per_bin)
+    sumprof *= Num.sqrt(current_pfd.DOF_corr()) / offpulse.std()
     print "\nSummed profile approx SNR = %.3f" % sum(sumprof)
     if SEFD:
         avg_S /= len(pfdfilenms)
