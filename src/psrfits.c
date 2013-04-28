@@ -312,6 +312,12 @@ void read_PSRFITS_files(struct spectra_info *s)
                     s->data_col = colnum;
                     fits_get_coltype(s->fitsfiles[ii], colnum, &(s->FITS_typecode), 
                                      &repeat, &width, &status);
+                    // This makes CFITSIO treat 1-bit data as written in 'B' mode
+                    // even if it was written in 'X' mode originally.  This means
+                    // that we unpack it ourselves.
+                    if (s->bits_per_sample==1 && s->FITS_typecode==1) {
+                        s->FITS_typecode = 11;
+                    }
                 } else if (colnum != s->data_col) {
                     printf("Warning!:  DATA column changes between files!\n");
                 }
@@ -503,9 +509,9 @@ void read_PSRFITS_files(struct spectra_info *s)
     s->orig_df /= (double) s->orig_num_chan;
     s->samples_per_spectra = s->num_polns * s->num_channels;
     // Note:  the following is the number of bytes that will be in
-    //        the returned array from CFITSIO.
-    //        CFITSIO turns bits into bytes when FITS_typecode=1
-    //        and we turn 2-bits or 4-bits into bytes if bits_per_sample < 8
+    //        the returned array from CFITSIO, possibly after processing by
+    //        us given that we turn 1-, 2-, and 4-bit data into bytes
+    //        immediately if bits_per_sample < 8
     if (s->bits_per_sample < 8)
         s->bytes_per_spectra = s->samples_per_spectra;
     else
@@ -728,7 +734,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
     int numtoread = s->samples_per_subint;
     
     // The following allows us to read byte-packed data
-    if ((s->bits_per_sample > 1) && (s->bits_per_sample < 8))
+    if (s->bits_per_sample < 8)
         numtoread = s->samples_per_subint * s->bits_per_sample / 8;
 
     // Read the weights, offsets, and scales if required
@@ -773,7 +779,23 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
             cdata[jj-2] = ((uctmp >> 0x04) & 0x03);
             cdata[jj-3] = ((uctmp >> 0x06) & 0x03);
         }
-    } else if (s->bits_per_sample == 1 && s->flip_bytes) {
+    } else if (s->bits_per_sample == 1) {
+        unsigned char uctmp;
+        for (ii = numtoread - 1, jj = 8 * numtoread - 1 ; 
+             ii >= 0 ; ii--, jj -= 8) {
+            uctmp = (unsigned char)cdata[ii];
+            cdata[jj] = (uctmp & 0x01);
+            cdata[jj-1] = ((uctmp >> 0x01) & 0x01);
+            cdata[jj-2] = ((uctmp >> 0x02) & 0x01);
+            cdata[jj-3] = ((uctmp >> 0x03) & 0x01);
+            cdata[jj-4] = ((uctmp >> 0x04) & 0x01);
+            cdata[jj-5] = ((uctmp >> 0x05) & 0x01);
+            cdata[jj-6] = ((uctmp >> 0x06) & 0x01);
+            cdata[jj-7] = ((uctmp >> 0x07) & 0x01);
+        }
+    }
+
+    if (s->bits_per_sample == 1 && s->flip_bytes) {
         // Hack to flip each byte of data if needed
         int offset;
         unsigned char uctmp;
