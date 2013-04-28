@@ -449,6 +449,13 @@ int main(int argc, char *argv[])
 
       reads_per_part = numrec / cmd->npart;
 
+      /* If the number of records is less than the number of parts    */
+      /* then set the number of parts equat to the number of records. */
+      if (numrec < cmd->npart) {
+          reads_per_part = 1;
+          cmd->npart = numrec;
+      }
+
       /* Correct numrec so that each part will contain */
       /* the same number of records.                   */
 
