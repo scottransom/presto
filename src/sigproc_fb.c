@@ -347,13 +347,13 @@ void read_filterbank_files(struct spectra_info *s)
         h = (int) floor(fb.src_raj / 10000.0);
         m = (int) floor((fb.src_raj - h * 10000) / 100.0);
         sec = fb.src_raj - h * 10000 - m * 100;
-        ra_dec_from_string(s->ra_str, &h, &m, &sec);
+        ra_dec_to_string(s->ra_str, h, m, sec);
         s->ra2000 = hms2rad(h, m, sec) * RADTODEG;
         d = (int) floor(fabs(fb.src_dej) / 10000.0);
         m = (int) floor((fabs(fb.src_dej) - d * 10000) / 100.0);
         sec = fabs(fb.src_dej) - d * 10000 - m * 100;
         if (fb.src_dej < 0.0) d = -d;
-        ra_dec_from_string(s->dec_str, &d, &m, &sec);
+        ra_dec_to_string(s->dec_str, d, m, sec);
         s->dec2000 = dms2rad(d, m, sec) * RADTODEG;
     }
     s->bits_per_sample = fb.nbits;
@@ -519,7 +519,6 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
                 *padding = 1;
                 fdataptr = fdata + numbuffered * s->num_channels;
                 if (numtopad >= numtoread - numread) { // Need lots of padding
-                    int ii;
                     // Fill the rest of the buffer with padding
                     numtopad = s->spectra_per_subint - numbuffered;
                     add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
