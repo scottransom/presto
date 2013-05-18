@@ -92,7 +92,8 @@ void identify_psrdatatype(struct spectra_info *s, int output)
                  strcmp(suffix, "bcpm2") == 0) s->datatype = BPP;
         else if (strcmp(suffix, "fil") == 0 || 
                  strcmp(suffix, "fb") == 0) s->datatype = SIGPROCFB;
-        else if (strcmp(suffix, "fits") == 0) {
+        else if ((strcmp(suffix, "fits") == 0) ||
+                 (strcmp(suffix, "sf") == 0)) {
             if (strstr(root, "spigot_5") != NULL) s->datatype = SPIGOT;
 //            else if (is_PSRFITS(s->filenames[0])) s->datatype = PSRFITS;
             else s->datatype = PSRFITS;
@@ -245,7 +246,7 @@ void print_spectra_info(struct spectra_info *s)
     printf("      Total Bandwidth (MHz) = %-17.15g\n", s->BW);
     if (s->num_beams > 0)
         printf("                       Beam = %d of %d\n", s->beamnum, s->num_beams);
-    printf("            Beam FWHM (deg) = %.3f", s->beam_FWHM);
+    printf("            Beam FWHM (deg) = %.3f\n", s->beam_FWHM);
     printf("         Spectra per subint = %d\n", s->spectra_per_subint);
     printf("            Starting subint = %d\n", s->start_subint[0]);
     printf("           Subints per file = %d\n", s->num_subint[0]);
