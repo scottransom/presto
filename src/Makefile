@@ -97,6 +97,10 @@ PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 
 INSTRUMENTOBJS = backend_common.o zerodm.o sigproc_fb.o psrfits.o
 
+# Use old header reading stuff for readfile
+READFILEOBJS = $(INSTRUMENTOBJS) multibeam.o bpp.o spigot.o \
+	wapp.o wapp_head_parse.o wapp_y.tab.o 
+
 PLOT2DOBJS = powerplot.o xyline.o
 
 BINARIES = makedata makeinf mjd2cal realfft quicklook\
@@ -105,11 +109,11 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
-	dump_spigot_zerolag spigot2filterbank\
-	spigotSband2filterbank GBT350filterbank\
 	psrorbit window plotbincand prepfold show_pfd\
 	rfifind zapbirds explorefft exploredat\
 	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays
+#	dump_spigot_zerolag spigot2filterbank\
+#	spigotSband2filterbank GBT350filterbank\
 
 all: libpresto slalib binaries
 
@@ -249,8 +253,8 @@ testbinresp: testbinresp.o $(PLOT2DOBJS)
 quicklook: quicklook.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ quicklook.o $(PRESTOLINK) -lm
 
-readfile: readfile_cmd.c readfile_cmd.o readfile.o $(INSTRUMENTOBJS)
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ readfile.o readfile_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
+readfile: readfile_cmd.c readfile_cmd.o readfile.o $(READFILEOBJS) 
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ readfile.o readfile_cmd.o $(READFILEOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 realfft: realfft_cmd.c realfft_cmd.o realfft.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ realfft.o realfft_cmd.o $(PRESTOLINK) -lm
@@ -288,8 +292,8 @@ explorefft: explorefft.o $(PLOT2DOBJS)
 exploredat: exploredat.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ exploredat.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
-weight_psrfits: weight_psrfits.o psrfits.o $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ weight_psrfits.o psrfits.o $(PRESTOLINK) -lcfitsio -lm
+weight_psrfits: weight_psrfits.o $(INSTRUMENTOBJS)
+	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ weight_psrfits.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 psrfits_dumparrays: psrfits_dumparrays.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ psrfits_dumparrays.o $(OTHERLIBDIR) -lcfitsio -lm
