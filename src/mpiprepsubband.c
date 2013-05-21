@@ -4,16 +4,11 @@
 #include "presto.h"
 #include "mpiprepsubband_cmd.h"
 #include "mask.h"
-#include "multibeam.h"
-#include "bpp.h"
-#include "wapp.h"
+#include "backend_common.h"
 #include "mpi.h"
-#include "gmrt.h"
-#include "spigot.h"
-#include "psrfits.h"
-#include "sigproc_fb.h"
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || cmd->gmrtP || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
+#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP \
+                 || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 20.0
@@ -34,48 +29,26 @@ extern void update_infodata(infodata * idata, int datawrote, int padwrote,
 extern void print_percent_complete(int current, int number);
 extern void make_infodata_struct(void);
 extern void make_maskbase_struct(void);
+extern void make_spectra_info_struct(void);
 extern void broadcast_mask(mask * obsmask, int myid);
 
-extern void get_PKMB_static(int *decreasing_freqs, float *clip_sigma,
-                            int *bytesperpt, int *offsetbytes);
-extern void set_PKMB_static(int ptsperblk, int bytesperpt,
-                            int numchan, int decreasing_freqs, 
-                            int offsetbytes, float clip_sigma, double dt);
-extern void get_BCPM_static(int *bytesperpt, int *bytesperblk, int *numifs,
-                            int *chan_map, float *clip_sigma);
-extern void set_BCPM_static(int ptsperblk, int bytesperpt, int bytesperblk,
-                            int numchan, int numifs, float clip_sigma,
-                            double dt, int *chan_map);
-extern void get_SPIGOT_static(int *bytesperpt, int *bytesperblk,
-                              int *numifs, float *clip_sigma);
-extern void set_SPIGOT_static(int ptsperblk, int bytesperpt,
-                              int bytesperblk, int numchan, int numifs,
-                              float clip_sigma, double dt);
-extern void get_WAPP_static(int *bytesperpt, int *bytesperblk, int *numifs,
-                            float *clip_sigma);
-extern void set_WAPP_static(int ptsperblk, int bytesperpt, int bytesperblk,
-                            int numchan, int numifs, float clip_sigma, double dt);
-extern void get_GMRT_static(int *bytesperpt, int *bytesperblk, float *clip_sigma);
-extern void set_GMRT_static(int ptsperblk, int bytesperpt, int bytesperblk,
-                            int numchan, float clip_sigma, double dt);
-extern void get_filterbank_static(int *ptsperbyte, int *bytesperpt,
-                                  int *bytesperblk, float *clip_sigma);
-extern void set_filterbank_static(int ptsperbyte, int ptsperblk,
-                                  int bytesperpt, int bytesperblk,
-                                  int numchan, float clip_sigma, double dt);
-static int get_data(FILE * infiles[], int numfiles, float **outdata,
-                    mask * obsmask, float *padvals, double dt,
-                    double *dispdts, int **offsets, int *padding);
+// From prepsubband.c
+static int get_data(float **outdata, int blocksperread,
+                    struct spectra_info *s,
+                    mask * obsmask, int *idispdts, int **offsets, 
+                    int *padding, short **subsdata);
+// old one
+//static int get_data(FILE * infiles[], int numfiles, float **outdata,
+//                    mask * obsmask, float *padvals, double dt,
+//                    double *dispdts, int **offsets, int *padding);
 
-MPI_Datatype infodata_type;
 MPI_Datatype maskbase_type;
+MPI_Datatype spectra_info_type;
 
 static Cmdline *cmd;
-static IFs ifs = SUMIFS;
 static int blocklen = 0, blocksperread = 0, bytesperblk = 0, worklen =
     0, numchan = 1, insubs = 0;
 static int local_numdms = 1, myid = 0, numprocs = 1;
-static PKMB_tapehdr hdr;
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -100,6 +73,7 @@ int main(int argc, char *argv[])
    int offsetbytes = 0; // For packed 1-bit Parkes data
    double local_lodm;
    char *datafilenm, *outpath, *outfilenm, *hostname;
+   struct spectra_info s;
    infodata idata;
    mask obsmask;
 
@@ -132,15 +106,24 @@ int main(int argc, char *argv[])
       exit(1);
    }
 
-   make_infodata_struct();
    make_maskbase_struct();
+   make_spectra_info_struct();
 
    /* Parse the command line using the excellent program Clig */
 
    cmd = parseCmdline(argc, argv);
-   numinfiles = cmd->argc;
-   if (cmd->noclipP)
-      cmd->clip = 0.0;
+   spectra_info_set_defaults(&s);
+   s.clip_sigma = cmd->clip;
+   if (cmd->noclipP) {
+       cmd->clip = 0.0;
+       s.clip_sigma = 0.0;
+   }
+   if (cmd->ifsP) {
+       // 0 = default or summed, 1-4 are possible also
+       s.use_poln = cmd->ifs;
+   }
+   if (!cmd->numoutP)
+      cmd->numout = INT_MAX;
 
 #ifdef DEBUG
    showOptionValues();
@@ -150,426 +133,184 @@ int main(int argc, char *argv[])
       printf("\n\n");
       printf("      Parallel Pulsar Subband De-dispersion Routine\n");
       printf("                 by Scott M. Ransom\n\n");
-      if (!RAWDATA) {
-         char *root, *suffix;
-         /* Split the filename into a rootname and a suffix */
-         if (split_root_suffix(cmd->argv[0], &root, &suffix) == 0) {
-            printf("\nThe input filename (%s) must have a suffix!\n\n",
-                   cmd->argv[0]);
-            good_inputs = 0;
-         } else {
-            if (strcmp(suffix, "bcpm1") == 0 || strcmp(suffix, "bcpm2") == 0) {
-               printf("Assuming the data is from a GBT BCPM...\n");
-               cmd->bcpmP = 1;
-            } else if (strcmp(suffix, "fil") == 0 || strcmp(suffix, "fb") == 0) {
-               printf("Assuming the data is in SIGPROC filterbank format...\n");
-               cmd->filterbankP = 1;
-            } else if (strcmp(suffix, "fits") == 0) {
-               if (strstr(root, "spigot_5") != NULL) {
-                  printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
-                  cmd->spigotP = 1;
-               } else if (is_PSRFITS(cmd->argv[0])) {
-                  printf("Assuming the data is in PSRFITS format.\n");
-                  cmd->psrfitsP = 1;
-               } 
-            } else if (strcmp(suffix, "fits") == 0 &&
-                       strstr(root, "spigot_5") != NULL) {
-               printf("Assuming the data is from the NRAO/Caltech Spigot card...\n");
-               cmd->spigotP = 1;
-            } else if (strcmp(suffix, "pkmb") == 0) {
-               printf
-                   ("Assuming the data is from the Parkes/Jodrell 1-bit filterbank system...\n");
-               cmd->pkmbP = 1;
-            } else if (strncmp(suffix, "gmrt", 4) == 0) {
-               printf("Assuming the data is from the GMRT Phased Array system...\n");
-               cmd->gmrtP = 1;
-            } else if (isdigit(suffix[0]) &&
-                       isdigit(suffix[1]) && isdigit(suffix[2])) {
-               printf("Assuming the data is from the Arecibo WAPP system...\n");
-               cmd->wappP = 1;
-            } else if (strcmp(suffix, "sub0") == 0 ||
-                       strcmp(suffix, "sub00") == 0 ||
-                       strcmp(suffix, "sub000") == 0 ||
-                       strcmp(suffix, "sub0000") == 0) {
-               printf
-                   ("Assuming the data is subband data generated by prepsubband...\n");
-               insubs = 1;
-            } else {
-               printf
-                   ("\nCannot determine the format of the input files '%s'...\n\n",
-                    cmd->argv[0]);
-               good_inputs = 0;
-            }
-            free(root);
-            free(suffix);
-         }
-      }
 
-      if (cmd->pkmbP) {
-         if (numinfiles > 1)
-            printf
-                ("Reading 1-bit filterbank (Parkes/Jodrell) data from %d files:\n",
-                 numinfiles);
-         else
-            printf("Reading 1-bit filterbank (Parkes/Jodrell) data from 1 file:\n");
-      } else if (cmd->bcpmP) {
-         if (numinfiles > 1)
-            printf("Reading Green Bank BCPM data from %d files:\n", numinfiles);
-         else
-            printf("Reading Green Bank BCPM data from 1 file:\n");
-      } else if (cmd->filterbankP) {
-         if (numinfiles > 1)
-            printf("Reading SIGPROC filterbank data from %d files:\n", numinfiles);
-         else
-            printf("Reading SIGPROC filterbank data from 1 file:\n");
-      } else if (cmd->psrfitsP) {
-         if (numinfiles > 1)
-            printf("Reading PSRFITS search-mode data from %d files:\n", numinfiles);
-         else
-            printf("Reading PSRFITS search-mode data from 1 file:\n");
-      } else if (cmd->spigotP) {
-         if (numinfiles > 1)
-            printf("Reading Green Bank Spigot data from %d files:\n", numinfiles);
-         else
-            printf("Reading Green Bank Spigot data from 1 file:\n");
-      } else if (cmd->gmrtP) {
-         if (numinfiles > 1)
-            printf("Reading GMRT Phased Array data from %d files:\n", numinfiles);
-         else
-            printf("Reading GMRT Phased Array data from 1 file:\n");
-      } else if (cmd->wappP) {
-         if (numinfiles > 1)
-            printf("Reading Arecibo WAPP data from %d files:\n", numinfiles);
-         else
-            printf("Reading Arecibo WAPP data from 1 file:\n");
-      } else if (insubs) {
-         if (numinfiles > 1)
-            printf("Reading subband data from %d files:\n", numinfiles);
-         else
-            printf("Reading subband data from 1 file:\n");
-      }
+      s.filenames = cmd->argv;
+      s.num_files = cmd->argc;
+      s.clip_sigma = cmd->clip;
+      s.apply_flipband = (cmd->invertP) ? 1 : -1;
+      s.apply_weight = (cmd->noweightsP) ? 0 : -1;
+      s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
+      s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
+      s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
 
-      /* Open the raw data files */
-
-      infiles = (FILE **) malloc(numinfiles * sizeof(FILE *));
-      for (ii = 0; ii < numinfiles; ii++) {
-         printf("  '%s'\n", cmd->argv[ii]);
-         if ((infiles[ii] = fopen(cmd->argv[ii], "rb")) == NULL) {
-            perror("\nError in fopen()");
-            printf("   filename = '%s'\n", cmd->argv[ii]);
-            good_inputs = 0;
-         }
+      if (RAWDATA) {
+          if (cmd->filterbankP) s.datatype = SIGPROCFB;
+          else if (cmd->psrfitsP) s.datatype = PSRFITS;
+          else if (cmd->pkmbP) s.datatype = SCAMP;
+          else if (cmd->bcpmP) s.datatype = BPP;
+          else if (cmd->wappP) s.datatype = WAPP;
+          else if (cmd->spigotP) s.datatype = SPIGOT;
+      } else {  // Attempt to auto-identify the data
+          identify_psrdatatype(&s, 1);
+          if (s.datatype==SUBBAND) insubs = 1;
+          else {
+              printf("Error:  Unable to identify input data files.  Please specify type.\n\n");
+              good_inputs = 0;
+          }
       }
-      if (!cmd->numoutP)
-         cmd->numout = INT_MAX;
+      // So far we can only handle PSRFITS, filterbank, and subbands
+      if (s.datatype!=PSRFITS && 
+          s.datatype!=SIGPROCFB && 
+          s.datatype!=SUBBAND) good_inputs = 0;
+
+      // For subbanded data
+      if (!RAWDATA) s.files = (FILE **)malloc(sizeof(FILE *) * s.num_files);
+
+      if (good_inputs && (RAWDATA || insubs)) {
+          char description[40];
+          psrdatatype_description(description, s.datatype);
+          if (s.num_files > 1)
+              printf("Reading %s data from %d files:\n", description, s.num_files);
+          else
+              printf("Reading %s data from 1 file:\n", description);
+          for (ii = 0; ii < s.num_files; ii++) {
+              printf("  '%s'\n", cmd->argv[ii]);
+              if (insubs) s.files[ii] = chkfopen(s.filenames[ii], "rb");
+          }
+          printf("\n");
+          if (RAWDATA) {
+              // -1 causes the data to determine if we use weights, scales, & 
+              // offsets for PSRFITS or flip the band for any data type where
+              // we can figure that out with the data
+              read_rawdata_files(&s);
+              print_spectra_info_summary(&s);
+              spectra_info_to_inf(&s, &idata);
+          } else { // insubs
+              char *root, *suffix;
+              cmd->nsub = s.num_files;
+              s.N = chkfilelen(s.files[0], sizeof(short));
+              s.padvals = gen_fvect(s.num_files);
+              for (ii = 0 ; ii < s.num_files ; ii++)
+                  s.padvals[ii] = 0.0;
+              s.start_MJD = (long double *)malloc(sizeof(long double));
+              s.start_spec = (long long *)malloc(sizeof(long long));
+              s.num_spec = (long long *)malloc(sizeof(long long));
+              s.num_pad = (long long *)malloc(sizeof(long long));
+              s.start_spec[0] = 0L;
+              s.num_spec[0] = s.N;
+              s.num_pad[0] = 0L;
+              if (split_root_suffix(s.filenames[0], &root, &suffix) == 0) {
+                  printf("Error:  The input filename (%s) must have a suffix!\n\n", s.filenames[0]);
+                  exit(1);
+              }
+              if (strncmp(suffix, "sub", 3) == 0) {
+                  char *tmpname;
+                  tmpname = calloc(strlen(root) + 10, 1);
+                  sprintf(tmpname, "%s.sub", root);
+                  readinf(&idata, tmpname);
+                  free(tmpname);
+                  s.num_channels = idata.num_chan;
+                  s.start_MJD[0] = idata.mjd_i + idata.mjd_f;
+                  s.dt = idata.dt;
+                  s.T = s.N * s.dt;
+                  s.lo_freq = idata.freq;
+                  s.df = idata.chan_wid;
+                  s.hi_freq = s.lo_freq + (s.num_channels - 1.0) * s.df;
+                  s.BW = s.num_channels * s.df;
+                  s.fctr = s.lo_freq - 0.5 * s.df + 0.5 * s.BW;
+                  s.spectra_per_subint = SUBSBLOCKLEN;
+                  print_spectra_info_summary(&s);
+              } else {
+                  printf("\nThe input files (%s) must be subbands!  (i.e. *.sub##)\n\n",
+                         cmd->argv[0]);
+                  MPI_Finalize();
+                  exit(1);
+              }
+              free(root);
+              free(suffix);
+          }
+      }
    }
-   MPI_Bcast(&cmd->pkmbP, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Bcast(&cmd->gmrtP, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Bcast(&cmd->bcpmP, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Bcast(&cmd->wappP, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Bcast(&cmd->spigotP, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Bcast(&cmd->psrfitsP, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   MPI_Bcast(&cmd->filterbankP, 1, MPI_INT, 0, MPI_COMM_WORLD);
+
+   //  If we don't have good input data, exit
+   MPI_Bcast(&good_inputs, 1, MPI_INT, 0, MPI_COMM_WORLD);
+   if (!good_inputs) {
+       MPI_Finalize();
+       exit(1);
+   }
+   
    MPI_Bcast(&cmd->numout, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Bcast(&insubs, 1, MPI_INT, 0, MPI_COMM_WORLD);
    if (insubs)
-      cmd->nsub = cmd->argc;
-
-   MPI_Bcast(&good_inputs, 1, MPI_INT, 0, MPI_COMM_WORLD);
-   if (!good_inputs) {
-      MPI_Finalize();
-      exit(1);
-   }
+       cmd->nsub = cmd->argc;
 
    /* Determine the output file names and open them */
 
    local_numdms = cmd->numdms / (numprocs - 1);
    dms = gen_dvect(local_numdms);
    if (cmd->numdms % (numprocs - 1)) {
-      if (myid == 0)
-         printf
-             ("\nThe number of DMs must be divisible by (the number of processors - 1).\n\n");
-      MPI_Finalize();
-      exit(1);
+       if (myid == 0)
+           printf
+               ("\nThe number of DMs must be divisible by (the number of processors - 1).\n\n");
+       MPI_Finalize();
+       exit(1);
    }
    local_lodm = cmd->lodm + (myid - 1) * local_numdms * cmd->dmstep;
-
+   
    split_path_file(cmd->outfile, &outpath, &outfilenm);
    datafilenm = (char *) calloc(strlen(outfilenm) + 20, 1);
    if (myid > 0) {
-      if (chdir(outpath) == -1) {
-         printf("\nProcess %d cannot chdir() to '%s'.  Exiting.\n\n", myid, outpath);
-         MPI_Finalize();
-         exit(1);
-      }
-      outfiles = (FILE **) malloc(local_numdms * sizeof(FILE *));
-      for (ii = 0; ii < local_numdms; ii++) {
-         dms[ii] = local_lodm + ii * cmd->dmstep;
-         avgdm += dms[ii];
-         sprintf(datafilenm, "%s_DM%.2f.dat", outfilenm, dms[ii]);
-         outfiles[ii] = chkfopen(datafilenm, "wb");
-      }
-      avgdm /= local_numdms;
+       if (chdir(outpath) == -1) {
+           printf("\nProcess %d on %s cannot chdir() to '%s'.  Exiting.\n\n", 
+                  myid, hostname, outpath);
+           MPI_Finalize();
+           exit(1);
+       }
+       outfiles = (FILE **) malloc(local_numdms * sizeof(FILE *));
+       for (ii = 0; ii < local_numdms; ii++) {
+           dms[ii] = local_lodm + ii * cmd->dmstep;
+           avgdm += dms[ii];
+           sprintf(datafilenm, "%s_DM%.2f.dat", outfilenm, dms[ii]);
+           outfiles[ii] = chkfopen(datafilenm, "wb");
+       }
+       avgdm /= local_numdms;
    }
-
+   
    /* Read an input mask if wanted */
-
+   
    if (cmd->maskfileP) {
-      if (myid == 0) {
-         read_mask(cmd->maskfile, &obsmask);
-         printf("Read mask information from '%s'\n\n", cmd->maskfile);
-         good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
-      }
-      broadcast_mask(&obsmask, myid);
-      if (myid != 0)
-         padvals = gen_fvect(obsmask.numchan);
-      MPI_Bcast(&good_padvals, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(padvals, obsmask.numchan, MPI_FLOAT, 0, MPI_COMM_WORLD);
+       if (myid == 0) {
+           read_mask(cmd->maskfile, &obsmask);
+           printf("Read mask information from '%s'\n\n", cmd->maskfile);
+           good_padvals = determine_padvals(cmd->maskfile, &obsmask, &padvals);
+       }
+       broadcast_mask(&obsmask, myid);
+       if (myid != 0)
+           padvals = gen_fvect(obsmask.numchan);
+       MPI_Bcast(&good_padvals, 1, MPI_INT, 0, MPI_COMM_WORLD);
+       MPI_Bcast(padvals, obsmask.numchan, MPI_FLOAT, 0, MPI_COMM_WORLD);
    } else {
-      obsmask.numchan = obsmask.numint = 0;
-      MPI_Bcast(&good_padvals, 1, MPI_INT, 0, MPI_COMM_WORLD);
+       obsmask.numchan = obsmask.numint = 0;
+       MPI_Bcast(&good_padvals, 1, MPI_INT, 0, MPI_COMM_WORLD);
    }
 
+   // Broadcast the raw data information
+   broadcast_spectra_info(&s, myid);
+   if (myid > 0)
+       spectra_info_to_inf(&s, &idata);
+   s.filenames = cmd->argv;
+
+   // The number of topo to bary time points to generate with TEMPO
+   numbarypts = (int) (s.T * 1.1 / TDT + 5.5) + 1;
+
+   // Identify the TEMPO observatory code
    {
-      float clip_sigma = 0.0;
-      double dt, T;
-      int ptsperbyte, ptsperblk, bytesperpt, numifs = 0, decreasing_freqs = 1;
-      int chan_mapping[2 * MAXNUMCHAN];
-      long long N;
-
-      if (myid == 0) {          /* Master */
-
-         /* Set-up values if we are reading subband data  */
-
-         if (insubs) {
-            char *root, *suffix, *tmpname;
-            /* Split the filename into a rootname and a suffix */
-            if (split_root_suffix(cmd->argv[0], &root, &suffix) == 0) {
-               printf
-                   ("\nThe input filename (%s) must have a suffix!\n\n",
-                    cmd->argv[0]);
-               exit(1);
-            } else {
-               if (strncmp(suffix, "sub", 3) == 0) {
-                  tmpname = calloc(strlen(root) + 6, 1);
-                  sprintf(tmpname, "%s.sub", root);
-                  readinf(&idata, tmpname);
-                  free(tmpname);
-                  free(root);
-                  free(suffix);
-               } else {
-                  printf
-                      ("\nThe input files (%s) must be subbands!  (i.e. *.sub##)\n\n",
-                       cmd->argv[0]);
-                  exit(1);
-               }
-            }
-            T = idata.N * idata.dt;
-            N = (long long) idata.N;
-            dt = idata.dt;
-            ptsperblk = SUBSBLOCKLEN;
-            bytesperpt = sizeof(short); /* Subbands are shorts */
-            bytesperblk = cmd->nsub * bytesperpt * ptsperblk;
-         }
-
-         /* Set-up values if we are using the Parkes multibeam */
-
-         if (cmd->pkmbP) {
-            printf("\nFilterbank input file information:\n");
-            get_PKMB_file_info(infiles, numinfiles, cmd->clip, 
-                               &N, &ptsperblk, &numchan, &dt, &T, 1);
-            get_PKMB_static(&decreasing_freqs, &clip_sigma,
-                            &bytesperpt, &offsetbytes);
-            bytesperblk = DATLEN;
-            chkfread(&hdr, 1, HDRLEN, infiles[0]);
-            rewind(infiles[0]);
-            PKMB_hdr_to_inf(&hdr, &idata);
-            PKMB_update_infodata(numinfiles, &idata);
-         }
-
-         /* Set-up values if we are using the GMRT Phased Array system */
-
-         if (cmd->gmrtP) {
-            printf("\nGMRT input file information:\n");
-            get_GMRT_file_info(infiles, argv + 1, numinfiles,
-                               cmd->clip, &N, &ptsperblk, &numchan, &dt, &T, 1);
-            get_GMRT_static(&bytesperpt, &bytesperblk, &clip_sigma);
-            /* Read the first header file and generate an infofile from it */
-            GMRT_hdr_to_inf(argv[1], &idata);
-            GMRT_update_infodata(numinfiles, &idata);
-            set_GMRT_padvals(padvals, good_padvals);
-         }
-
-         /* Set-up values if we are using SIGPROC filterbank-style data */
-
-         if (cmd->filterbankP) {
-            int headerlen;
-            sigprocfb fb;
-
-            /* Read the first header file and generate an infofile from it */
-            rewind(infiles[0]);
-            headerlen = read_filterbank_header(&fb, infiles[0]);
-            sigprocfb_to_inf(&fb, &idata);
-            rewind(infiles[0]);
-            printf("\nSIGPROC filterbank input file information:\n");
-            get_filterbank_file_info(infiles, numinfiles, cmd->clip,
-                                     &N, &ptsperblk, &numchan, &dt, &T, 1);
-            get_filterbank_static(&ptsperbyte, &bytesperpt, &bytesperblk, &clip_sigma);
-            filterbank_update_infodata(numinfiles, &idata);
-            set_filterbank_padvals(padvals, good_padvals);
-         }
-
-         /* Set-up values if we are using the Berkeley-Caltech */
-         /* Pulsar Machine (or BPP) format.                    */
-
-         if (cmd->bcpmP) {
-            printf("\nBCPM input file information:\n");
-            get_BPP_file_info(infiles, numinfiles, cmd->clip, &N,
-                              &ptsperblk, &numchan, &dt, &T, &idata, 1);
-            get_BCPM_static(&bytesperpt, &bytesperblk, &numifs,
-                            chan_mapping, &clip_sigma);
-            BPP_update_infodata(numinfiles, &idata);
-            set_BPP_padvals(padvals, good_padvals);
-         }
-
-         /* Set-up values if we are using the NRAO-Caltech Spigot card */
-
-         if (cmd->spigotP) {
-            SPIGOT_INFO *spigots;
-
-            printf("\nSpigot card input file information:\n");
-            spigots = (SPIGOT_INFO *) malloc(sizeof(SPIGOT_INFO) * numinfiles);
-            for (ii = 0; ii < numinfiles; ii++)
-               read_SPIGOT_header(cmd->argv[ii], spigots + ii);
-            get_SPIGOT_file_info(infiles, spigots, numinfiles,
-                                 cmd->windowP, cmd->clip, &N,
-                                 &ptsperblk, &numchan, &dt, &T, &idata, 1);
-            get_SPIGOT_static(&bytesperpt, &bytesperblk, &numifs, &clip_sigma);
-            SPIGOT_update_infodata(numinfiles, &idata);
-            set_SPIGOT_padvals(padvals, good_padvals);
-            free(spigots);
-         }
-
-         /* Set-up values if we are using search-mode PSRFITS data */
-
-         if (cmd->psrfitsP) {
-            struct spectra_info s;
-         
-            printf("PSRFITS input file information:\n");
-            // -1 causes the data to determine if we use weights, scales, & offsets
-            s.apply_weight = (cmd->noweightsP) ? 0 : -1;
-            s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
-            s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
-            read_PSRFITS_files(cmd->argv, cmd->argc, &s);
-            N = s.N;
-            ptsperblk = s.spectra_per_subint;
-            numchan = s.num_channels;
-            dt = s.dt;
-            T = s.T;
-            get_PSRFITS_file_info(cmd->argv, cmd->argc, cmd->clip, 
-                                  &s, &idata, 1);
-            get_PSRFITS_static(&bytesperpt, &bytesperblk, &numifs, &clip_sigma);
-            PSRFITS_update_infodata(&idata);
-            set_PSRFITS_padvals(padvals, good_padvals);
-         }
-
-         /* Set-up values if we are using the Arecobo WAPP */
-
-         if (cmd->wappP) {
-            printf("\nWAPP input file information:\n");
-            get_WAPP_file_info(infiles, cmd->numwapps, numinfiles,
-                               cmd->windowP, cmd->clip,
-                               &N, &ptsperblk, &numchan, &dt, &T, &idata, 1);
-            get_WAPP_static(&bytesperpt, &bytesperblk, &numifs, &clip_sigma);
-            WAPP_update_infodata(numinfiles, &idata);
-            set_WAPP_padvals(padvals, good_padvals);
-         }
-
-         /* The number of topo to bary time points to generate with TEMPO */
-         numbarypts = (int) (T * 1.1 / TDT + 5.5) + 1;
-
-         // Identify the TEMPO observatory code
-         {
-             char *outscope = (char *) calloc(40, sizeof(char));
-             telescope_to_tempocode(idata.telescope, outscope, obs);
-             free(outscope);
-         }
-      }
-
-      MPI_Bcast(&ptsperbyte, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&ptsperblk, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&bytesperpt, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&bytesperblk, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&numchan, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&numifs, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&numbarypts, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&decreasing_freqs, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(chan_mapping, 2 * MAXNUMCHAN, MPI_INT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&clip_sigma, 1, MPI_FLOAT, 0, MPI_COMM_WORLD);
-      MPI_Bcast(&dt, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-      if (cmd->pkmbP) {  // Pass the packed bits info for special Parkes data
-          MPI_Bcast(&offsetbytes, 1, MPI_INT, 0, MPI_COMM_WORLD);
-      }
-      blocklen = ptsperblk;
-
-      if (myid > 0) {           /* Slave */
-         if (cmd->pkmbP)
-            set_PKMB_static(ptsperblk, bytesperpt, numchan, 
-                            decreasing_freqs, offsetbytes, 
-                            clip_sigma, dt);
-         if (cmd->gmrtP) {
-            set_GMRT_static(ptsperblk, bytesperpt, bytesperblk,
-                            numchan, clip_sigma, dt);
-            set_GMRT_padvals(padvals, good_padvals);
-         }
-         if (cmd->filterbankP) {
-            set_filterbank_static(ptsperbyte, ptsperblk, bytesperpt, bytesperblk,
-                                  numchan, clip_sigma, dt);
-            set_filterbank_padvals(padvals, good_padvals);
-         }
-         if (cmd->bcpmP) {
-            set_BCPM_static(ptsperblk, bytesperpt, bytesperblk,
-                            numchan, numifs, clip_sigma, dt, chan_mapping);
-            set_BPP_padvals(padvals, good_padvals);
-         }
-         if (cmd->spigotP) {
-            set_SPIGOT_static(ptsperblk, bytesperpt, bytesperblk,
-                              numchan, numifs, clip_sigma, dt);
-            set_SPIGOT_padvals(padvals, good_padvals);
-         }
-         if (cmd->psrfitsP) {
-            set_PSRFITS_static(ptsperblk, bytesperpt, bytesperblk,
-                               numchan, numifs, clip_sigma, dt);
-            set_PSRFITS_padvals(padvals, good_padvals);
-         }
-         if (cmd->wappP) {
-            set_WAPP_static(ptsperblk, bytesperpt, bytesperblk,
-                            numchan, numifs, clip_sigma, dt);
-            set_WAPP_padvals(padvals, good_padvals);
-         }
-      }
-
-      /* Which IFs will we use? */
-      if (cmd->ifsP) {
-         if (cmd->ifs == 0)
-            ifs = IF0;
-         else if (cmd->ifs == 1)
-            ifs = IF1;
-         else
-            ifs = SUMIFS;
-      }
-      /* For the WAPP (and others) , the number of bytes returned in         */
-      /* get_WAPP_rawblock() is ptsperblk since the correlator lags          */
-      /* are converted to 1 byte filterbank channels in read_WAPP_rawblock() */
-      if (cmd->wappP || cmd->gmrtP || cmd->filterbankP || cmd->spigotP || cmd->psrfitsP) {
-         bytesperblk = ptsperblk * numchan;
-         bytesperpt = numchan;
-      }
+       char *outscope = (char *) calloc(40, sizeof(char));
+       telescope_to_tempocode(idata.telescope, outscope, obs);
+       free(outscope);
    }
 
-   /* Broadcast or calculate a few extra important values */
-
-   MPI_Bcast(&idata, 1, infodata_type, 0, MPI_COMM_WORLD);
+   // Broadcast or calculate a few extra important values
    if (insubs) {
       avgdm = idata.dm;
       numchan = idata.num_chan;
