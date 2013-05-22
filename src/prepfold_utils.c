@@ -753,3 +753,80 @@ void correct_subbands_for_DM(double dm, prepfoldinfo * search,
                     search->nsub, search->proflen, dmdelays, ddprofs, ddstats);
    vect_free(dmdelays);
 }
+
+
+double DOF_corr(double dt_per_bin)
+// Return a multiplicative correction for the effective number of
+// degrees of freedom in the chi^2 measurement resulting from a pulse
+// profile folded by PRESTO's fold() function (i.e. prepfold).  This
+// is required because there are correlations between the bins caused
+// by the way that prepfold folds data (i.e. treating a sample as
+// finite duration and smearing it over potenitally several bins in
+// the profile as opposed to instantaneous and going into just one
+// profile bin).  The correction is semi-analytic (thanks to Paul
+// Demorest and Walter Brisken) but the values for 'power' and
+// 'factor' have been determined from Monte Carlos.  The correction is
+// good to a fractional error of less than a few percent as long as
+// dt_per_bin is > 0.5 or so (which it usually is for pulsar
+// candidates).  There is a very minimal number-of-bins dependence,
+// which is apparent when dt_per_bin < 0.7 or so.  dt_per_bin is the
+// width of a profile bin in samples (a float), and so for prepfold is
+// pulse period / nbins / sample time.  Note that the sqrt of this
+// factor can be used to 'inflate' the RMS of the profile as well, for
+// radiometer eqn flux density estimates, for instance.
+{
+    double power = 1.806;  // From Monte Carlos
+    double factor = 0.96;  // From Monte Carlos
+    return dt_per_bin * factor * \
+        pow(1.0 + pow(dt_per_bin, power), -1.0/power);
+}
+
+
+float estimate_offpulse_redchi2(double *inprofs, foldstats *stats,
+                                int numparts, int numsubbands, 
+                                int proflen, int numtrials, double dofeff)
+// Randomly offset each pulse profile in a .pfd data square or cube
+// and combine them to estimate a "true" off-pulse level.  Do this
+// numtrials times in order to improve the statistics.  Return the
+// inverse of the average of the off-pulse reduced-chi^2 (i.e. the
+// correction factor).  dofeff is the effective number of DOF as
+// returned by DOF_corr().
+{
+    int ii, jj, kk, offset, trialnum, phsindex, statindex;
+    float *chis;
+    double chi_avg, chi_var, redchi;
+    double prof_avg, prof_var, *prof_ptr, *sumprof;
+
+    sumprof = gen_dvect(proflen);
+    chis = gen_fvect(numtrials);
+
+    for (trialnum = 0; trialnum < numtrials; trialnum++) {
+        // Initialize the summed profile
+        for (ii = 0; ii < proflen; ii++)
+            sumprof[ii] = 0.0;
+        prof_avg = 0.0;
+        prof_var = 0.0;
+        prof_ptr = inprofs;
+        for (ii = 0; ii < numparts; ii++) {  // parts
+            for (jj = 0; jj < numsubbands; jj++) {  // subbands
+                statindex = ii * numsubbands + jj;
+                offset = random() % proflen;
+                phsindex = 0;
+                for (kk = offset; kk < proflen; kk++, phsindex++) // phases
+                    sumprof[phsindex] += prof_ptr[kk];
+                for (kk = 0; kk < offset; kk++, phsindex++) // phases
+                    sumprof[phsindex] += prof_ptr[kk];
+                prof_ptr += proflen;
+                prof_avg += stats[statindex].prof_avg;
+                prof_var += stats[statindex].prof_var;
+            }
+        }
+        /* Calculate the current chi-squared */
+        redchi = chisqr(sumprof, proflen, prof_avg, prof_var) / dofeff;
+        chis[trialnum] = (float) redchi;
+    }
+    avg_var(chis, numtrials, &chi_avg, &chi_var);
+    vect_free(chis);
+    vect_free(sumprof);
+    return 1.0/chi_avg;
+}

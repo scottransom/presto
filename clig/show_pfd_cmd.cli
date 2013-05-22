@@ -17,6 +17,7 @@ Flag -justprofs  justprofs  {Only output the profile portions of the plot}
 Flag -portrait   portrait   {Orient the output in portrait mode (for -justprofs)}
 Flag -events     events     {The folded data were events instead of samples or bins}
 Flag -infoonly   infoonly   {Display the pfd info and exit without generating plots.}
+Flag -fixchi     fixchi     {Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1}
 String -killsubs killsubsstr {Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step]}
 String -killparts killpartsstr {Comma separated string (no spaces!) of intervals to explicitly remove from analysis (i.e. zero-out).  Ranges are specified by min:max[:step]}
 

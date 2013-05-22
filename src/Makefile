@@ -43,7 +43,7 @@ FFTLIBDIR = -L$(LOCDIR)/lib
 FFTLINK = $(FFTLIBDIR) -lfftw3f
 
 # Other include directories (i.e. glib.h)
-OTHERINCDIR = -I$(SYSDIR)/include/glib-2.0 -I$(SYSDIR)/lib/glib-2.0/include -I$(SYSDIR)/lib/i386-linux-gnu/glib-2.0/include/
+OTHERINCDIR = -I$(SYSDIR)/include/glib-2.0 -I$(SYSDIR)/lib/glib-2.0/include -I$(SYSDIR)/lib/x86_64-linux-gnu/glib-2.0/include/
 # Other link directories (i.e. libcfitsio if in different location)
 OTHERLIBDIR =
 

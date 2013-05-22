@@ -682,6 +682,11 @@ void PKMB_hdr_to_inf(PKMB_tapehdr * hdr, infodata * idata)
    sscanf(hdr->ra_start, "%3d:%2d:%9lf", &idata->ra_h, &idata->ra_m, &idata->ra_s);
    sscanf(hdr->dec_start,
           "%3d:%2d:%9lf", &idata->dec_d, &idata->dec_m, &idata->dec_s);
+   /* make sure to catch minus sign for "+/-00:XX:XX.XX" Dec string in header */
+   if (idata->dec_d == 0 && (hdr->dec_start)[0] == '-') {
+      idata->dec_m = -idata->dec_m;
+      idata->dec_s = -idata->dec_s;
+   }
    if (!strncmp(hdr->telid, "PARKES", 6))
       strcpy(idata->telescope, "Parkes");
    else if (strncmp(hdr->telid, "  0.", 4) == 0 ||

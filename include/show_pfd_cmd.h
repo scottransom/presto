@@ -23,6 +23,8 @@ typedef struct s_Cmdline {
   char eventsP;
   /***** -infoonly: Display the pfd info and exit without generating plots. */
   char infoonlyP;
+  /***** -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1 */
+  char fixchiP;
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   char killsubsstrP;
   char* killsubsstr;
