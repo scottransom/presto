@@ -236,6 +236,34 @@ void write_padding(FILE * outfiles[], int numfiles, float value, int numtowrite)
 }
 
 
+void print_dms(char *hostname, int myid, int numprocs,
+               int local_numdms, double *dms)
+{
+    /* Print the nodes and the DMs they are handling */
+    int jj, kk;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    fflush(NULL);
+    if (myid == 0)
+        printf("Node\t\tDMs\n----\t\t---\n");
+    fflush(NULL);
+    for (jj = 1; jj < numprocs; jj++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        if (myid == jj) {
+            printf("%s\t\t", hostname);
+            for (kk = 0; kk < local_numdms - 1; kk++)
+                printf("%.2f\t", dms[kk]);
+            printf("%.2f\n", dms[kk]);
+        }
+        fflush(NULL);
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    if (myid == 0)
+        printf("\n");
+    fflush(NULL);
+}
+
+
 void print_percent_complete(int current, int number)
 {
    static int newper = 0, oldper = -1;
