@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
                                       idata.freq, idata.chan_wid, 0.0);
        idispdt = gen_ivect(s.num_channels);
        for (ii = 0; ii < s.num_channels; ii++)
-           idispdt[ii] = (int) (dispdt[ii] / idata.dt + 0.5);
+           idispdt[ii] = NEAREST_INT(dispdt[ii] / idata.dt);
        vect_free(dispdt);
        
       /* The subband dispersion delays (see note above) */
@@ -427,7 +427,7 @@ int main(int argc, char *argv[])
                                      idata.freq, idata.chan_wid, avgvoverc);
       idispdt = gen_ivect(s.num_channels);
       for (ii = 0; ii < s.num_channels; ii++)
-          idispdt[ii] = (int) (dispdt[ii] / idata.dt + 0.5);
+          idispdt[ii] = NEAREST_INT(dispdt[ii] / idata.dt);
       vect_free(dispdt);
 
       /* The subband dispersion delays (see note above) */
@@ -771,7 +771,7 @@ static int read_PRESTO_subbands(FILE * infiles[], int numfiles,
                                 float clip_sigma, float *padvals)
 /* Read short int subband data written by prepsubband */
 {
-   int ii, jj, index, numread = 0, mask = 0,offset;
+   int ii, jj, index, numread = 0, mask = 0, offset;
    short subsdata[SUBSBLOCKLEN]; 
    double starttime, run_avg;
    float subband_sum;
@@ -861,7 +861,7 @@ static int get_data(float **outdata, int blocksperread,
          maskchans = gen_ivect(s->num_channels);
       worklen = s->spectra_per_subint * blocksperread;
       dsworklen = worklen / cmd->downsamp;
-      { // Make sure that out working blocks are long enough...
+      { // Make sure that our working blocks are long enough...
          for (ii = 0; ii < s->num_channels; ii++) {
             if (idispdts[ii] > worklen)
                printf("WARNING!:  (idispdts[%d] = %d) > (worklen = %d)\n", 
