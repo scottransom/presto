@@ -792,7 +792,6 @@ static int read_PRESTO_subbands(FILE * infiles[], int numfiles,
          subbanddata[index] = (float) subsdata[jj] - run_avg;
       for (jj = numread; jj < SUBSBLOCKLEN; jj++, index += numfiles)
          subbanddata[index] = 0.0;
-      index += numread;
    }
 
    if (mask) {
@@ -811,7 +810,7 @@ static int read_PRESTO_subbands(FILE * infiles[], int numfiles,
          for (ii = 0; ii < SUBSBLOCKLEN; ii++)
             memcpy(subbanddata + ii * numfiles, padvals, sizeof(float) * numfiles);
       } else if (*nummasked > 0) {      /* Only some of the channels are masked */
-         int offset, channum;
+         int channum;
          for (ii = 0; ii < SUBSBLOCKLEN; ii++) {
             offset = ii * numfiles;
             for (jj = 0; jj < *nummasked; jj++) {
@@ -929,7 +928,6 @@ static int get_data(float **outdata, int blocksperread,
                   ftmp += currentdata[index];
                   index += cmd->nsub;
                }
-               /* Keep the short ints from overflowing */
                currentdsdata[dsindex] += ftmp / cmd->downsamp;
             }
          }
