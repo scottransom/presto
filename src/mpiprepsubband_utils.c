@@ -4,7 +4,6 @@
 #include "backend_common.h"
 #include "mpi.h"
 
-MPI_Datatype infodata_type;
 MPI_Datatype maskbase_type;
 MPI_Datatype spectra_info_type;
 
@@ -143,54 +142,30 @@ void make_spectra_info_struct(void)
 
 void broadcast_spectra_info(struct spectra_info * s, int myid)
 {
+    int arrsize;
     // Broadcast the basic information first
     MPI_Bcast(s, 1, spectra_info_type, 0, MPI_COMM_WORLD);
+    if (s->datatype==SUBBAND) {
+        arrsize = 1;
+    } else {
+        arrsize = s->num_files;
+    }
     // Now allocate the arrays if we are not the master
     if (myid > 0) {
-        s->start_subint = gen_ivect(s->num_files);
-        s->num_subint = gen_ivect(s->num_files);
-        s->start_spec = (long long *)malloc(sizeof(long long) * s->num_files);
-        s->num_spec = (long long *)malloc(sizeof(long long) * s->num_files);
-        s->num_pad = (long long *)malloc(sizeof(long long) * s->num_files);
-        s->start_MJD = (long double *)malloc(sizeof(long double) * s->num_files);
+        s->start_subint = gen_ivect(arrsize);
+        s->num_subint = gen_ivect(arrsize);
+        s->start_spec = (long long *)malloc(sizeof(long long) * arrsize);
+        s->num_spec = (long long *)malloc(sizeof(long long) * arrsize);
+        s->num_pad = (long long *)malloc(sizeof(long long) * arrsize);
+        s->start_MJD = (long double *)malloc(sizeof(long double) * arrsize);
     }
     // Now broadcast all of the array information
-    MPI_Bcast(s->start_subint, s->num_files, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(s->num_subint, s->num_files, MPI_INT, 0, MPI_COMM_WORLD);
-    MPI_Bcast(s->start_spec, s->num_files, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
-    MPI_Bcast(s->num_spec, s->num_files, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
-    MPI_Bcast(s->num_pad, s->num_files, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
-    MPI_Bcast(s->start_MJD, s->num_files, MPI_LONG_DOUBLE, 0, MPI_COMM_WORLD);
-}
-
-
-void make_infodata_struct(void)
-{
-   int ii, blockcounts[11] = { MAXNUMONOFF * 2 + 14, 8, 500, 200, 100,
-      100, 100, 100, 40, 40, 7
-   };
-   MPI_Datatype types[11] = { MPI_DOUBLE, MPI_INT, MPI_CHAR, MPI_CHAR,
-      MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR,
-      MPI_CHAR, MPI_CHAR, MPI_CHAR
-   };
-   MPI_Aint displs[11];
-   infodata idata;
-
-   MPI_Address(&idata.ra_s, &displs[0]);
-   MPI_Address(&idata.num_chan, &displs[1]);
-   MPI_Address(&idata.notes, &displs[2]);
-   MPI_Address(&idata.name, &displs[3]);
-   MPI_Address(&idata.object, &displs[4]);
-   MPI_Address(&idata.instrument, &displs[5]);
-   MPI_Address(&idata.observer, &displs[6]);
-   MPI_Address(&idata.analyzer, &displs[7]);
-   MPI_Address(&idata.telescope, &displs[8]);
-   MPI_Address(&idata.band, &displs[9]);
-   MPI_Address(&idata.filt, &displs[10]);
-   for (ii = 10; ii >= 0; ii--)
-      displs[ii] -= displs[0];
-   MPI_Type_struct(11, blockcounts, displs, types, &infodata_type);
-   MPI_Type_commit(&infodata_type);
+    MPI_Bcast(s->start_subint, arrsize, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->num_subint, arrsize, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->start_spec, arrsize, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->num_spec, arrsize, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->num_pad, arrsize, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->start_MJD, arrsize, MPI_LONG_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
 
