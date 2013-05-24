@@ -40,6 +40,11 @@ void psrdatatype_description(char *outstr, psrdatatype ptype)
     return;
 }
 
+void set_using_MPI(void)
+{
+    using_MPI = 1;
+}
+
 void close_rawfiles(struct spectra_info *s)
 {
     int ii;
