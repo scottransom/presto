@@ -38,6 +38,7 @@ static int get_data(float **outdata, int blocksperread,
                     struct spectra_info *s,
                     mask * obsmask, int *idispdts, int **offsets, 
                     int *padding);
+extern void set_using_MPI(void);
 
 MPI_Datatype maskbase_type;
 MPI_Datatype spectra_info_type;
@@ -76,6 +77,7 @@ int main(int argc, char *argv[])
    MPI_Init(&argc, &argv);
    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+   set_using_MPI();
    {
       FILE *hostfile;
       char tmpname[100];
@@ -185,13 +187,20 @@ int main(int argc, char *argv[])
               char *root, *suffix;
               cmd->nsub = s.num_files;
               s.N = chkfilelen(s.files[0], sizeof(short));
+              s.start_subint = gen_ivect(1);
+              s.num_subint = gen_ivect(1);
               s.start_MJD = (long double *)malloc(sizeof(long double));
               s.start_spec = (long long *)malloc(sizeof(long long));
               s.num_spec = (long long *)malloc(sizeof(long long));
               s.num_pad = (long long *)malloc(sizeof(long long));
               s.start_spec[0] = 0L;
+              s.start_subint[0] = 0;
               s.num_spec[0] = s.N;
+              s.num_subint[0] = s.N / SUBSBLOCKLEN;
               s.num_pad[0] = 0L;
+              s.padvals = gen_fvect(s.num_files);
+              for (ii = 0 ; ii < ii ; ii++)
+                  s.padvals[ii] = 0.0;
               if (split_root_suffix(s.filenames[0], &root, &suffix) == 0) {
                   printf("\nError:  The input filename (%s) must have a suffix!\n\n", s.filenames[0]);
                   exit(1);
@@ -202,6 +211,7 @@ int main(int argc, char *argv[])
                   sprintf(tmpname, "%s.sub", root);
                   readinf(&idata, tmpname);
                   free(tmpname);
+                  strncpy(s.telescope, idata.telescope, 40);
                   s.num_channels = idata.num_chan;
                   s.start_MJD[0] = idata.mjd_i + idata.mjd_f;
                   s.dt = idata.dt;
@@ -278,8 +288,11 @@ int main(int argc, char *argv[])
    /* Read an input mask if wanted */
    
    if (myid > 0) {
-       s.padvals = gen_fvect(s.num_channels);
-       for (ii = 0 ; ii < s.num_channels ; ii++)
+       int numpad = s.num_channels;
+       if (insubs)
+           numpad = s.num_files;
+       s.padvals = gen_fvect(numpad);
+       for (ii = 0 ; ii < numpad ; ii++)
            s.padvals[ii] = 0.0;
    }
    if (cmd->maskfileP) {
@@ -753,25 +766,12 @@ int main(int argc, char *argv[])
 static int simple_read_subbands(FILE * infiles[], int numfiles, short *subbanddata)
 /* Read short int subband data written by prepsubband */
 {
-   int ii, jj, index, numread = 0;
-   double run_avg;
+   int ii, numread = 0;
 
+   /* Read the data */
    for (ii = 0; ii < numfiles; ii++) {
-      index = ii * SUBSBLOCKLEN;
-      numread = chkfread(subbanddata + index, sizeof(short),
-                         SUBSBLOCKLEN, infiles[ii]);
-
-      if (cmd->runavgP==1) {
-          run_avg = 0.0;
-          for(jj = 0; jj < numread; jj++)
-              run_avg += (float) subbanddata[jj+index];
-          run_avg /= numread;
-          for(jj = 0; jj < numread; jj++)
-              subbanddata[jj+index] = (float) subbanddata[jj+index] - run_avg;
-      }
-
-      for (jj = numread; jj < SUBSBLOCKLEN; jj++)
-         subbanddata[index + jj] = 0.0;
+       numread = chkfread(subbanddata + ii * SUBSBLOCKLEN, 
+                          sizeof(short), SUBSBLOCKLEN, infiles[ii]);
    }
    return numread;
 }
@@ -782,8 +782,8 @@ static void convert_subbands(int numfiles, short *shortdata,
                              float clip_sigma, float *padvals)
 /* Convert and transpose the subband data, then mask it*/
 {
-   int ii, jj, index, shortindex, offset, channum, mask = 0;
-   double starttime;
+    int ii, jj, index, shortindex, mask = 0, offset;
+   double starttime, run_avg;
    float subband_sum;
    static int currentblock = 0;
 
@@ -792,8 +792,14 @@ static void convert_subbands(int numfiles, short *shortdata,
 
    for (ii = 0; ii < numfiles; ii++) {
       shortindex = ii * SUBSBLOCKLEN;
+      run_avg = 0.0;
+      if (cmd->runavgP==1) {
+          for (jj = 0; jj < SUBSBLOCKLEN; jj++)
+              run_avg += (float) shortdata[shortindex+jj];
+          run_avg /= SUBSBLOCKLEN;
+      }
       for (jj = 0, index = ii; jj < SUBSBLOCKLEN; jj++, index += numfiles)
-         subbanddata[index] = (float) shortdata[shortindex + jj];
+         subbanddata[index] = (float) shortdata[shortindex + jj] - run_avg;
    }
 
    if (mask) {
@@ -812,6 +818,7 @@ static void convert_subbands(int numfiles, short *shortdata,
            for (ii = 0; ii < SUBSBLOCKLEN; ii++)
                memcpy(subbanddata + ii * numfiles, padvals, sizeof(float) * numfiles);
        } else if (*nummasked > 0) {      /* Only some of the channels are masked */
+           int channum;
            for (ii = 0; ii < SUBSBLOCKLEN; ii++) {
                offset = ii * numfiles;
                for (jj = 0; jj < *nummasked; jj++) {
@@ -863,6 +870,11 @@ static int get_data(float **outdata, int blocksperread,
        dsworklen = worklen / cmd->downsamp;
        blocksize = s->spectra_per_subint * cmd->nsub;
        blockdt = s->spectra_per_subint * s->dt;
+       if (RAWDATA) {
+           frawdata = gen_fvect(2 * s->num_channels * s->spectra_per_subint);
+           // To initialize the data reading and prep_subbands routines
+           firsttime = 2;
+       }           
        data1 = gen_fvect(cmd->nsub * worklen);
        data2 = gen_fvect(cmd->nsub * worklen);
        currentdata = data1;
@@ -892,104 +904,87 @@ static int get_data(float **outdata, int blocksperread,
            }
        }
        
-       // Initialize the data routines as in read_subbands()
+   }
+   while (1) {
        if (RAWDATA) {
-           // Needs to be twice block length for buffering if combining observations
-           frawdata = gen_fvect(2 * s->num_channels * s->spectra_per_subint);
-           if (myid==0) {
-               if (!s->get_rawblock(frawdata, s, &tmppad)) {
-                   fprintf(stderr, "Error: problem reading the raw data file for first time!\n");
-                   return 0;
+           for (ii = 0; ii < blocksperread; ii++) {
+               if (myid == 0) {
+                   gotblock = s->get_rawblock(frawdata, s, &tmppad);
+                   if (gotblock && !firsttime) totnumread += s->spectra_per_subint;
                }
-           }
-           MPI_Bcast(&tmppad, 1, MPI_INT, 0, MPI_COMM_WORLD);
-           MPI_Bcast(frawdata, s->num_channels * s->spectra_per_subint, 
-                     MPI_FLOAT, 0, MPI_COMM_WORLD);
-           if (myid > 0) {
-               if (0 != prep_subbands(currentdata, frawdata, idispdts, cmd->nsub, s,
-                                      0, maskchans, &nummasked, obsmask)) {
-                   fprintf(stderr, "Error: problem initializing prep_subbands()!\n");
-                   return 0;
-               }
-           }
-       }
-       SWAP(currentdata, lastdata);
-       SWAP(currentdsdata, lastdsdata);
-   }
-   if (RAWDATA) {
-       for (ii = 0; ii < blocksperread; ii++) {
-           if (myid == 0) {
-               gotblock = s->get_rawblock(frawdata, s, &tmppad);
-               if (gotblock) totnumread += s->spectra_per_subint;
-           }
-           MPI_Bcast(&gotblock, 1, MPI_INT, 0, MPI_COMM_WORLD);
-           MPI_Bcast(&tmppad, 1, MPI_INT, 0, MPI_COMM_WORLD);
-           MPI_Bcast(frawdata, s->num_channels * s->spectra_per_subint, 
-                     MPI_FLOAT, 0, MPI_COMM_WORLD);
-           
-           if (myid > 0) {
-               if (gotblock) {
-                   numread = 
-                       prep_subbands(currentdata + ii * blocksize, 
-                                     frawdata, idispdts, cmd->nsub, s,
-                                     0, maskchans, &nummasked, obsmask);
-                   totnumread += numread;
-               } else {
-                   *padding = 1;
-                   for (jj = ii * blocksize; jj < (ii + 1) * blocksize; jj++)
-                       currentdata[jj] = 0.0;
-               }
-               if (tmppad)
-                   *padding = 1;
-           }
-       }
-   } else if (insubs) {
-       short *subsdata = NULL;
-       
-       subsdata = gen_svect(SUBSBLOCKLEN * s->num_files);
-       for (ii = 0; ii < blocksperread; ii++) {
-           if (myid == 0)
-               numread = simple_read_subbands(s->files, s->num_files, subsdata);
-           MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);
-           MPI_Bcast(subsdata, SUBSBLOCKLEN * s->num_files, MPI_SHORT, 0,
-                     MPI_COMM_WORLD);
-           convert_subbands(s->num_files, subsdata,
-                            currentdata + ii * blocksize, blockdt,
-                            maskchans, &nummasked, obsmask,
-                            cmd->clip, s->padvals);
-           totnumread += numread;
-       }
-       vect_free(subsdata);
-   }
-   /* Downsample the subband data if needed */
-   if (myid > 0) {
-       if (cmd->downsamp > 1) {
-           int kk, offset, dsoffset, index, dsindex;
-           float ftmp;
-           for (ii = 0; ii < dsworklen; ii++) {
-               dsoffset = ii * cmd->nsub;
-               offset = dsoffset * cmd->downsamp;
-               for (jj = 0; jj < cmd->nsub; jj++) {
-                   dsindex = dsoffset + jj;
-                   index = offset + jj;
-                   currentdsdata[dsindex] = 0.0;
-                   for (kk = 0, ftmp = 0.0; kk < cmd->downsamp; kk++) {
-                       ftmp += currentdata[index];
-                       index += cmd->nsub;
+               MPI_Bcast(&gotblock, 1, MPI_INT, 0, MPI_COMM_WORLD);
+               MPI_Bcast(&tmppad, 1, MPI_INT, 0, MPI_COMM_WORLD);
+               MPI_Bcast(frawdata, s->num_channels * s->spectra_per_subint, 
+                         MPI_FLOAT, 0, MPI_COMM_WORLD);
+               
+               if (myid > 0) {
+                   if (gotblock) {
+                       numread = 
+                           prep_subbands(currentdata + ii * blocksize, 
+                                         frawdata, idispdts, cmd->nsub, s,
+                                         0, maskchans, &nummasked, obsmask);
+                       if (!firsttime)
+                           totnumread += numread;
+                   } else {
+                       *padding = 1;
+                       for (jj = ii * blocksize; jj < (ii + 1) * blocksize; jj++)
+                           currentdata[jj] = 0.0;
                    }
-                   currentdsdata[dsindex] += ftmp / cmd->downsamp;
+                   if (tmppad)
+                       *padding = 1;
+               }
+           }
+       } else if (insubs) {
+           short *subsdata = NULL;
+           
+           subsdata = gen_svect(SUBSBLOCKLEN * s->num_files);
+           for (ii = 0; ii < blocksperread; ii++) {
+               if (myid == 0)
+                   numread = simple_read_subbands(s->files, s->num_files, subsdata);
+               MPI_Bcast(&numread, 1, MPI_INT, 0, MPI_COMM_WORLD);
+               MPI_Bcast(subsdata, SUBSBLOCKLEN * s->num_files, MPI_SHORT, 0,
+                         MPI_COMM_WORLD);
+               convert_subbands(s->num_files, subsdata,
+                                currentdata + ii * blocksize, blockdt,
+                                maskchans, &nummasked, obsmask,
+                                cmd->clip, s->padvals);
+               totnumread += numread;
+           }
+           vect_free(subsdata);
+       }
+       /* Downsample the subband data if needed */
+       if (myid > 0) {
+           if (cmd->downsamp > 1) {
+               int kk, offset, dsoffset, index, dsindex;
+               float ftmp;
+               for (ii = 0; ii < dsworklen; ii++) {
+                   dsoffset = ii * cmd->nsub;
+                   offset = dsoffset * cmd->downsamp;
+                   for (jj = 0; jj < cmd->nsub; jj++) {
+                       dsindex = dsoffset + jj;
+                       index = offset + jj;
+                       currentdsdata[dsindex] = 0.0;
+                       for (kk = 0, ftmp = 0.0; kk < cmd->downsamp; kk++) {
+                           ftmp += currentdata[index];
+                           index += cmd->nsub;
+                       }
+                       currentdsdata[dsindex] += ftmp / cmd->downsamp;
+                   }
                }
            }
        }
+       if (firsttime) {
+           SWAP(currentdata, lastdata);
+           SWAP(currentdsdata, lastdsdata);
+           firsttime -= 1;
+       } else
+           break;
    }
-   firsttime = 0;
    if (myid > 0) {
        for (ii = 0; ii < local_numdms; ii++)
            float_dedisp(currentdsdata, lastdsdata, dsworklen,
                         cmd->nsub, offsets[ii], 0.0, outdata[ii]);
    }
-   SWAP(currentdata, lastdata);
-   SWAP(currentdsdata, lastdsdata);
    {
        int jj;
        for (jj=0; jj<numprocs; jj++){
@@ -999,10 +994,11 @@ static int get_data(float **outdata, int blocksperread,
            MPI_Barrier(MPI_COMM_WORLD);
        }
    }
+   SWAP(currentdata, lastdata);
+   SWAP(currentdsdata, lastdsdata);
    if (totnumread != worklen) {
-       if (cmd->maskfileP) {
+       if (cmd->maskfileP)
            vect_free(maskchans);
-       }
        vect_free(data1);
        vect_free(data2);
        if (RAWDATA) vect_free(frawdata);
