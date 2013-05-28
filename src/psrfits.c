@@ -602,7 +602,7 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
         fits_read_col(s->fitsfiles[cur_file], TDOUBLE, 
                       s->offs_sub_col, cur_subint, 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
-        
+
         // Set last_offs_sub to proper value
         if (cur_subint==1 && (offs_sub < s->time_per_subint)) {
             if (cur_file==0) {
