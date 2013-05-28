@@ -153,7 +153,13 @@ int main(int argc, char *argv[])
           else if (cmd->spigotP) s.datatype = SPIGOT;
       } else {  // Attempt to auto-identify the data
           identify_psrdatatype(&s, 1);
-          if (s.datatype==SUBBAND) insubs = 1;
+          if (s.datatype==SIGPROCFB) cmd->filterbankP = 1;
+          else if (s.datatype==PSRFITS) cmd->psrfitsP = 1;
+          else if (s.datatype==SCAMP) cmd->pkmbP = 1;
+          else if (s.datatype==BPP) cmd->bcpmP = 1;
+          else if (s.datatype==WAPP) cmd->wappP = 1;
+          else if (s.datatype==SPIGOT) cmd->spigotP = 1;
+          else if (s.datatype==SUBBAND) insubs = 1;
           else {
               printf("\nError:  Unable to identify input data files.  Please specify type.\n\n");
               good_inputs = 0;
@@ -212,6 +218,17 @@ int main(int argc, char *argv[])
                   readinf(&idata, tmpname);
                   free(tmpname);
                   strncpy(s.telescope, idata.telescope, 40);
+                  strncpy(s.backend, idata.instrument, 40);
+                  strncpy(s.observer, idata.observer, 40);
+                  strncpy(s.source, idata.object, 40);
+                  s.ra2000 = hms2rad(idata.ra_h, idata.ra_m,
+                                     idata.ra_s) * RADTODEG;
+                  s.dec2000 = dms2rad(idata.dec_d, idata.dec_m,
+                                      idata.dec_s) * RADTODEG;
+                  ra_dec_to_string(s.ra_str,
+                                   idata.ra_h, idata.ra_m, idata.ra_s);
+                  ra_dec_to_string(s.dec_str,
+                                   idata.dec_d, idata.dec_m, idata.dec_s);
                   s.num_channels = idata.num_chan;
                   s.start_MJD[0] = idata.mjd_i + idata.mjd_f;
                   s.dt = idata.dt;
@@ -221,6 +238,7 @@ int main(int argc, char *argv[])
                   s.hi_freq = s.lo_freq + (s.num_channels - 1.0) * s.df;
                   s.BW = s.num_channels * s.df;
                   s.fctr = s.lo_freq - 0.5 * s.df + 0.5 * s.BW;
+                  s.beam_FWHM = idata.fov / 3600.0;
                   s.spectra_per_subint = SUBSBLOCKLEN;
                   print_spectra_info_summary(&s);
               } else {
@@ -242,7 +260,6 @@ int main(int argc, char *argv[])
        exit(1);
    }
    
-   MPI_Bcast(&cmd->numout, 1, MPI_INT, 0, MPI_COMM_WORLD);
    MPI_Bcast(&insubs, 1, MPI_INT, 0, MPI_COMM_WORLD);
    if (insubs)
        cmd->nsub = cmd->argc;
@@ -282,7 +299,16 @@ int main(int argc, char *argv[])
    // Broadcast the raw data information
 
    broadcast_spectra_info(&s, myid);
-   if (myid > 0) spectra_info_to_inf(&s, &idata);
+   if (myid > 0) {
+       spectra_info_to_inf(&s, &idata);
+       if (s.datatype==SIGPROCFB) cmd->filterbankP = 1;
+       else if (s.datatype==PSRFITS) cmd->psrfitsP = 1;
+       else if (s.datatype==SCAMP) cmd->pkmbP = 1;
+       else if (s.datatype==BPP) cmd->bcpmP = 1;
+       else if (s.datatype==WAPP) cmd->wappP = 1;
+       else if (s.datatype==SPIGOT) cmd->spigotP = 1;
+       else if (s.datatype==SUBBAND) insubs = 1;
+   }
    s.filenames = cmd->argv;
 
    /* Read an input mask if wanted */
@@ -865,7 +891,7 @@ static int get_data(float **outdata, int blocksperread,
 
    if (firsttime) {
        if (cmd->maskfileP)
-           maskchans = gen_ivect(s->num_channels);
+           maskchans = gen_ivect(insubs ? s->num_files : s->num_channels);
        worklen = s->spectra_per_subint * blocksperread;
        dsworklen = worklen / cmd->downsamp;
        blocksize = s->spectra_per_subint * cmd->nsub;
@@ -890,7 +916,8 @@ static int get_data(float **outdata, int blocksperread,
        }
 
        { // Make sure that our working blocks are long enough...
-           for (ii = 0; ii < s->num_channels; ii++) {
+           int testlen = insubs ? s->num_files : s->num_channels;
+           for (ii = 0; ii < testlen; ii++) {
                if (idispdts[ii] > worklen)
                    printf("WARNING! (myid = %d):  (idispdts[%d] = %d) > (worklen = %d)\n", 
                           myid, ii, idispdts[ii], worklen);
@@ -948,7 +975,8 @@ static int get_data(float **outdata, int blocksperread,
                                 currentdata + ii * blocksize, blockdt,
                                 maskchans, &nummasked, obsmask,
                                 cmd->clip, s->padvals);
-               totnumread += numread;
+               if (!firsttime)
+                   totnumread += numread;
            }
            vect_free(subsdata);
        }
@@ -984,15 +1012,6 @@ static int get_data(float **outdata, int blocksperread,
        for (ii = 0; ii < local_numdms; ii++)
            float_dedisp(currentdsdata, lastdsdata, dsworklen,
                         cmd->nsub, offsets[ii], 0.0, outdata[ii]);
-   }
-   {
-       int jj;
-       for (jj=0; jj<numprocs; jj++){
-           if (myid==jj)
-               printf("%d:  %d  %d  %d\n", myid, numread, totnumread, worklen);
-           fflush(NULL);
-           MPI_Barrier(MPI_COMM_WORLD);
-       }
    }
    SWAP(currentdata, lastdata);
    SWAP(currentdsdata, lastdsdata);
