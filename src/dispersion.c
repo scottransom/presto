@@ -254,7 +254,7 @@ void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
         read_offsets(&lastoffsets, &offsets, numpts, numchan);
         for (ii = 0; ii < numchan; ii++) {
             if (dispdelays[ii] < 0.0) {
-                printf("\ndispdelays[%d] = %f is < 0.0 in dedisp_subbands().\n\n",
+                printf("\ndispdelays[%d] = %g is < 0.0 in dedisp_subbands().\n\n",
                        ii, dispdelays[ii]);
                 exit(-1);
             }
