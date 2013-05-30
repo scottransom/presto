@@ -43,7 +43,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
         value = header[paramname]
         outfile.write(sigproc.addto_hdr(paramname, value))
     outfile.write(sigproc.addto_hdr("HEADER_END", None))
-    if spectra:
+    if spectra is not None:
         spectra.flatten().astype(dtype).tofile(outfile)
     outfile.close()
     return FilterbankFile(outfn, read_only=False)
