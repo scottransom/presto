@@ -438,6 +438,7 @@ def determine_and_set_scale(fil, prof, smean, gain, tsys, rms):
     snr = smean*gain*np.sqrt(2*tint*bw)/tsys*np.sqrt(1/dutycycle-1)
     scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
 
+    print "Duty cycle: %f" % dutycycle
     print "Expected SNR of injected pulsar signal (after folding " \
             "and integrating over frequency): %g" % snr
     prof.set_scale(scale)
@@ -497,7 +498,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
         times = (np.arange(lobin, hibin)+0.5)*fil.dt
         phases = get_phases(times)
         toinject = prof(phases)
-        injected = spectra+toinject
+        injected = spectra+toinject[:,np.newaxis]
         scaled = (injected-minimum)*global_scale
         outfil.append_spectra(scaled)
         
