@@ -62,6 +62,67 @@ class Profile(object):
         plt.plot(x0, self(x0)*scale)
         plt.xlabel("Phase")
 
+    def get_area(self, npts=1024):
+        """Return the area under the pulse in units of (intensity x phase).
+            The area is calculated by evaluating the profile at many points
+            and numerically integrated using the trapezoid rule.
+
+            NOTE: the scale-factor will be applied.
+
+            Input:
+                npts: The number of points to use when evaluating the
+                    profile.
+
+            Ouput:
+                area: The area under the pulse in units of (intensity x phase).
+        """
+        phs = np.linspace(0, 1.0, npts+1, endpoint=True)
+        area = np.trapz(y=self(phs), x=phs)
+        return area
+
+    def get_max(self, npts=1024):
+        """Return the maximum value of the profile.
+            The profile is evaluated at many points. The quantity returned
+            is the maximum value evaluated.
+
+            NOTE: the scale-factor will be applied.
+
+            Inputs:
+                npts: The number of points to use when evaluating the
+                    profile.
+
+            Ouput:
+                profmax: The profile maximum.
+        """
+        phs = np.linspace(0, 1.0, npts+1, endpoint=True)
+        profmax = np.max(self(phs))
+        return profmax
+        
+    def get_equivalent_width(self, npts=1024):
+        """Determine and return the equivalent width of the profile, in phase.
+            The equivalent width is the area under the pulse divided
+            by the profile's maximum value.
+
+            Input:
+                npts: The number of points to use when evaluating the
+                    profile.
+
+            Ouput:
+                weq: The equivalent width of the profile, in phase.
+        """
+        return self.get_area(npts=npts)/self.get_max(npts=npts)
+
+    def set_scale(self, scale):
+        """Set the profile's scaling factor.
+
+            Input:
+                scale: The scaling factor to use.
+
+            Outputs:
+                None
+        """
+        self.scale = scale
+
     def delay(self, phasedelay):
         """Delay the profile and return a new Profile object. 
  
@@ -343,6 +404,46 @@ def create_vonmises_components(vonmises_strs):
     return vonmises_comps
 
 
+def determine_and_set_scale(fil, prof, smean, gain, tsys, rms):
+    """Set the profile's scaling factor such that the simulated 
+        injected pulsar signal will have the given Smean.
+
+        Inputs:
+            fil: A FilterbankFile object.
+            prof: The Profile object representing the profile to inject.
+            smean: The mean flux density to simulate, in mJy.
+            gain: The telescope's gain, in K/Jy.
+            tsys: The observing system's temperature, in K.
+            rms: The RMS of the recipient file's DM=0 time series.
+
+        Outputs:
+            None
+    """
+    # Set scale to 1, just in case it's be altered already.
+    prof.set_scale(1)
+    
+    # Characterise the pulse
+    area = prof.get_area()
+    profmax = prof.get_max()
+    width = prof.get_equivalent_width() # in phase
+    dutycycle = width # Because width is reported in phase, 
+                      # it is actually the duty cycle
+
+    # Characterise the recipient filterbank file
+    tint = fil.nspec*fil.tsamp
+    bw = np.abs(fil.foff*fil.nchans)
+
+    # Target SNR
+    warnings.warn("Assuming 2 (summed) polarizations.")
+    snr = smean*gain*np.sqrt(2*tint*bw)/tsys*np.sqrt(1/dutycycle-1)
+    scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
+
+    print "Expected SNR of injected pulsar signal (after folding " \
+            "and integrating over frequency): %g" % snr
+    prof.set_scale(scale)
+    print "Scale factor applied: %g" % scale
+
+
 def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE):
     if isinstance(infile, filterbank.FilterbankFile):
         fil = infile
@@ -427,9 +528,14 @@ def main():
     else:
         comps = create_vonmises_components(options.vonmises)
         print "Creating profile. Number of components: %d" % len(comps)
-        prof = MultiComponentProfile(comps, scale=options.scale)
+        prof = MultiComponentProfile(comps)
         if options.use_spline:
             prof = get_spline_profile(prof)
+        if options.scale is None:
+            scale = determine_and_set_scale(fil, prof, smean=options.smean, \
+                        gain=options.gain, tsys=options.tsys, rms=options.rms)
+        else:
+            prof.set_scale(options.scale)
     
         if options.apply_dm:
             prof = delay_and_smear(prof, options.period, options.dm, \
@@ -487,10 +593,27 @@ if __name__ == '__main__':
                     default=None, type='float', \
                     help="The period (in seconds) of the (fake) injected " \
                         "pulsar signal. (This argument is required.)")
+    parser.add_option("-F", "--smean", dest='smean', type='float', \
+                    default=None, \
+                    help="Mean flux density (in mJy) of the injected pulsar " \
+                        "signal. This will automatically set the scale factor " \
+                        "and thus the '-F/--smean' option _cannot_ be " \
+                        "combined with the '-s/--scale' option. " \
+                        "(Default: Don't scale)")
     parser.add_option("-s", "--scale", dest='scale', type='float', \
-                    default=1, \
+                    default=None, \
                     help="Overall scaling factor to multiply profile with. " \
                         "(Default: Don't scale.)")
+    parser.add_option("--rms", dest='rms', type='float', default=None, \
+                    help="The RMS of the recipient file's DM=0 timeseries. " \
+                        "This _must_ be provided if the '-F/--smean' option " \
+                        "is used.")
+    parser.add_option("--gain", dest='gain', type='float', default=None, \
+                    help="The telescope's gain (in K/Jy). This _must_ be " \
+                        "provided if the '-F/--smean' option is used.")
+    parser.add_option("--tsys", dest='tsys', type='float', default=None, \
+                    help="The observing system's temperature (in K). This " \
+                        "_must_ be provided if the '-F/--smean' option is used.")
     parser.add_option("-v", "--vonmises", dest='vonmises', action='append', \
                     help="A string of 3 parameters defining a vonmises " \
                         "component to be injected. Be sure to quote the " \
@@ -538,4 +661,20 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     if options.period is None or options.dm is None:
         raise ValueError("Both a period and a DM _must_ be provided!")
+    if options.smean is not None and options.scale is not None:
+        raise ValueError("Only one of '-F/--smean' and '-s/--scale' " \
+                        "options may be provided!")
+    if options.smean is not None and (options.rms is None or \
+                                        options.gain is None or \
+                                        options.tsys is None):
+        raise ValueError("When automatically determining the scaling " \
+                        "factor for a particular Smean, the '--rms', " \
+                        "'--gain', and '--tsys' options must all be " \
+                        "provided!")
+    
+    if (options.smean is not None or options.scale is not None) and \
+            options.inprof is not None:
+        raise ValueError("Loading a saved profile via the " \
+                        "'--load-prof' options is incompatible " \
+                        "with adjusting the profile's scale.")
     main()
