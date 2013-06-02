@@ -9,6 +9,7 @@ import sys
 import optparse
 import warnings
 import pickle
+import copy
 
 import numpy as np
 import scipy.integrate
@@ -136,7 +137,7 @@ class Profile(object):
                                 scale=self.scale)
         return delayed_prof
     
-    def convolve_with(self, other, npts=1024):
+    def convolve_with(self, other, npts=256):
         """Convolve Profile with another. Return a SplineProfile
             with the requested number of points.
 
@@ -150,19 +151,21 @@ class Profile(object):
                 convolution: The convolution, a SplineProfile object.
         """
         phs = np.linspace(0, 1, npts, endpoint=False)
-        window = np.linspace(0, 1, 100000, endpoint=False)
+        window = np.linspace(0, 1, 256, endpoint=False)
         conv_vals = np.empty(npts)
         for ii, ph in enumerate(phs):
             conv_vals[ii] = np.trapz(self(window)*other((ph-window)%1), x=window)
         convolution = SplineProfile(conv_vals/self.scale, scale=self.scale)
         return convolution
 
-    def smear(self, smearphs, npts=1024):
+    def smear(self, smearphs, delayphs=0, npts=256):
         """Smear the profile with a boxcar of width 'smearphs'. Return
             a SplineProfile object sampled with 'npts' points.
 
             Inputs:
                 smearphs: The amount (in phase) to smear the profile by.
+                delayphs: The amount (in phase) to delay the pulse by.
+                    (Default: No delay)
                 npts: The number of points to use when creating the
                     smeared SplineProfile. (Default: 1024)
 
@@ -175,9 +178,9 @@ class Profile(object):
         elif smearphs == 0:
             # No scattering to do, return profile
             return copy.deepcopy(self) 
-        return self.convolve_with(boxcar_factory(smearphs), npts=npts)
+        return self.convolve_with(boxcar_factory(smearphs, delayphs), npts=npts)
 
-    def scatter(self, scatterphs, npts=1024):
+    def scatter(self, scatterphs, npts=256):
         """Scatter the profile with a one-sided exponential of width
             'scatterphs'. Return a SplineProfile object sampled
             with 'npts' points.
@@ -380,13 +383,14 @@ def apply_dm(inprof, period, dm, chan_width, freqs, \
     sys.stdout.flush()
     for ii, (delayphs, smearphs, scattphs) in \
                 enumerate(zip(phasedelays, smearphases, scatterphases)):
-        tmpprof = inprof.delay(delayphs)
         if do_smear:
-            tmpprof = tmpprof.smear(smearphs)
+            tmpprof = inprof.smear(smearphs, delayphs)
+        else:
+            tmpprof = inprof.smear(0, delayphs)
         if do_scatter:
             tmpprof = tmpprof.scatter(scattphs)
-        smeared.set_scale(1)
-        profiles.append(smeared)
+        tmpprof.set_scale(1)
+        profiles.append(tmpprof)
         # Print progress to screen
         progress = int(100.0*ii/nfreqs)
         if progress > oldprogress: 
@@ -395,7 +399,7 @@ def apply_dm(inprof, period, dm, chan_width, freqs, \
             oldprogress = progress
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
-    vecprof = VectorProfile(profiles, scale=prof.scale)
+    vecprof = VectorProfile(profiles, scale=inprof.scale)
     return vecprof
 
 
@@ -447,18 +451,24 @@ def vonmises_factory(amp,shape,loc):
     return Profile(vm)
 
 
-def boxcar_factory(width):
+def boxcar_factory(width, delay=0):
     """Return a boxcar Profile scaled to have unit area.
 
         Inputs:
             width: The width of the boxcar function in phase.
                 NOTE: if width > 1, it will be folded
+            delay: The delay, in phase, to apply to the boxcar.
+                NOTE: positive delays cause the boxcar to be shifted
+                (Default: No delay)
+                to the right (i.e. larger pulse phase)
 
         Output:
             boxcar_prof: A boxcar Profile object with the given width.
     """
+    nwraps = int(width/1)
+    rem = (width%1)+delay
     def bc(ph):
-        return (int(width/1) + (ph<(width%1)).astype('int'))/width
+        return (nwraps + ((delay<=ph) & (ph<rem)).astype('int'))/width
     return Profile(bc)
 
 
@@ -471,9 +481,10 @@ def exponential_factory(efold):
         Output:
             exp_prof: A one-sided exponential Profile object.
     """
+    denom = (1-np.exp(-1/efold))*efold
     def osexp(ph):
         # Denominator comes from sum of geometric series
-        return np.exp(-ph/efold)/(1-np.exp(-1/efold))/efold
+        return np.exp(-ph/efold)/denom
     return Profile(osexp)
 
 
@@ -636,7 +647,7 @@ def main():
             prof.set_scale(options.scale)
     
         if options.apply_dm:
-            prof = delay_and_smear(prof, options.period, options.dm, \
+            prof = apply_dm(prof, options.period, options.dm, \
                                     np.abs(fil.foff), fil.frequencies)
         if options.outprof is not None:
             print "Writing %s instance to file (%s)" % \
@@ -645,15 +656,15 @@ def main():
             pickle.dump(prof, outfile, protocol=pickle.HIGHEST_PROTOCOL)
             outfile.close()
 
+    outfn = options.outname % fil.header 
     if options.dryrun:
         print "Showing plot of profile to be injected..."
         prof.plot()
         plt.xlim(0,1)
         plt.xlabel("Phase")
-        plt.show()
+        plt.savefig(outfn+".ps")
         sys.exit()
 
-    outfn = options.outname % fil.header 
     inject(fil, outfn, prof, options.period, options.dm, \
             nbitsout=options.output_nbits, block_size=options.block_size)
 
