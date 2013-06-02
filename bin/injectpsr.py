@@ -142,25 +142,58 @@ class Profile(object):
 
             Inputs:
                 smearphs: The amount (in phase) to smear the profile by.
-                npts: The number of points to used when creating the
-                    smeared SplineProfile.
+                npts: The number of points to use when creating the
+                    smeared SplineProfile. (Default: 1024)
 
             Output:
                 smeared: The smeared Profile.
         """
-        phs = np.linspace(0, 1, npts, endpoint=False)
-        window = np.linspace(-0.5*smearphs, 0.5*smearphs, smearphs*4*npts, \
-                                endpoint=True)
-        winsize = window.size
-        if winsize == 0:
-            #print "Can't smear by nothing"
+        if smearphs < 0:
+            raise ValueError("Amount of phase to smear by (%g) " \
+                                "cannot be negative!" % scatterphs)
+        elif smearphs == 0:
+            # No scattering to do, return spline profile
             return get_spline_profile(self, npts)
+
+        phs = np.linspace(0, 1, npts, endpoint=False)
+        window = np.linspace(0, smearphs, smearphs*npts, endpoint=True)
+        smearfunc = lambda tt: 1.0/smearphs
         smearvals = np.empty(npts)
         for ii, ph in enumerate(phs):
-            smearvals[ii] = np.sum(self((window+ph)%1))/winsize
+            smearvals[ii] = np.trapz(self(window%1)*smearfunc((ph-window))%1, x=window)
         smeared_prof = SplineProfile(smearvals/self.scale, scale=self.scale)
         return smeared_prof
 
+    def scatter(self, scatterphs, npts=1024):
+        """Scatter the profile with a one-sided exponential of width
+            'scatterphs'. Return a SplineProfile object sampled
+            with 'npts' points.
+
+            Inputs:
+                scatterphs: The time-scale (in phase) of the exponential
+                    scattering function.
+                npts: The number of points to use when creating the scattered
+                    SplineProfile. (Default: 1024)
+
+            Outputs:
+                scattered: The scattered Profile.
+        """
+        if scatterphs < 0:
+            raise ValueError("Amount of phase to scatter by (%g) " \
+                                "cannot be negative!" % scatterphs)
+        elif scatterphs == 0:
+            # No scattering to do, return spline profile
+            return get_spline_profile(self, npts)
+
+        # Apply scattering
+        phs = np.linspace(0, 1, npts, endpoint=False)
+        window = np.linspace(0, scatterphs*5, scatterphs*5*npts, endpoint=True)
+        scatterfunc = lambda tt: np.exp(-tt/scatterphs)/scatterphs
+        scattervals = np.empty(npts)
+        for ii, ph in enumerate(phs):
+            scattervals[ii] = np.trapz(self(window%1)*scatterfunc((ph-window)%1), x=window)
+        scattered_prof = SplineProfile(scattervals/self.scale, scale=self.scale)
+        return scattered_prof
 
 class SplineProfile(Profile):
     def __init__(self, profvals, scale=1, **spline_kwargs):
@@ -297,24 +330,32 @@ class VectorProfile(object):
         plt.ylabel("Channel number")
 
 
-def delay_and_smear(prof, period, dm, chan_width, freqs):
-    """Given a profile apply DM delays and smearing within
-        each channel as is appropriate for the given params.
+def apply_dm(inprof, period, dm, chan_width, freqs, \
+                do_smear=True, do_scatter=True):
+    """Given a profile apply DM delays, smearing, and scattering 
+        within each channel as is appropriate for the given params.
 
         Inputs:
-            prof: The profile to delay and smear
+            inprof: The profile to modify.
             period: The profiles period (in seconds)
             dm: The DM (in pc cm-3)
             chan_width: The width of each channel (in MHz)
             freqs: The list of frequencies (in MHz)
+            do_smear: Boolean, if True apply DM smearing to each channel.
+                (Default: True)
+            do_scatter: Boolean, if True apply scattering to each channel.
+                (Default: True)
 
         Outputs:
             vecprof: The delayed and smeared VectorProfile.
     """
     nfreqs = len(freqs)
-    print "Smearing and delaying profile (DM = %.2f; %d channels)..." % \
+    print "Applying DM to profile (DM = %.2f; %d channels)..." % \
                 (dm, nfreqs)
+    # A list of profiles, one for each channel
     profiles = []
+
+    # Prepare delays
     timedelays = psr_utils.delay_from_DM(dm, freqs)
     # Reference all delays to highest frequency channel, which remains
     # unchanged
@@ -322,15 +363,25 @@ def delay_and_smear(prof, period, dm, chan_width, freqs):
     timedelays -= timedelays[np.argmax(freqs)]
     phasedelays = timedelays/period
 
-    smeartimes = psr_utils.dm_smear(dm, chan_width, freqs)
+    # Prepare for smear campaign
+    smeartimes = psr_utils.dm_smear(dm, chan_width, freqs) # In seconds
     smearphases = smeartimes/period
+    
+    # Prepare to scatter
+    scattertimes = psr_utils.pulse_broadening(dm, freqs)*1e-3 # In seconds
+    scatterphases = scattertimes/period
+
     oldprogress = 0
     sys.stdout.write(" %3.0f %%\r" % oldprogress)
     sys.stdout.flush()
-    for ii, (delay, smear) in enumerate(zip(phasedelays, smearphases)):
-        delayed = prof.delay(delay)
-        smeared = delayed.smear(smear)
-        smeared.scale = 1
+    for ii, (delayphs, smearphs, scattphs) in \
+                enumerate(zip(phasedelays, smearphases, scatterphases)):
+        tmpprof = inprof.delay(delayphs)
+        if do_smear:
+            tmpprof = tmpprof.smear(smearphs)
+        if do_scatter:
+            tmpprof = tmpprof.scatter(scattphs)
+        smeared.set_scale(1)
         profiles.append(smeared)
         # Print progress to screen
         progress = int(100.0*ii/nfreqs)
