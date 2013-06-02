@@ -422,20 +422,32 @@ def get_spline_profile(prof, npts=1024, **spline_kwargs):
 
 
 def vonmises_factory(amp,shape,loc):
+    """Return a Profile with a single von Mises component.
+
+        Inputs:
+            amp: Amplitude of the von Mises function.
+            shape: A parameter characterising the width 
+                (NOTE: this value is not directly the width.)
+            loc: Phase of the peak of the von Mises function.
+
+        Output:
+            vm_prof: A Profile object with a von Mises profile described
+                by the input parameters.
+    """
     # Need to use a factory for the von Mises functions
     # to make sure the lambda uses amp,shape,loc from a local
     # scope. The values in a lambda function are stored by reference
     # and only looked up dynamically when the function is called.
     def vm(ph): 
         return amp*np.exp(shape*(np.cos(2*np.pi*(ph-loc))-1))
-    return vm
+    return Profile(vm)
 
 
 def create_vonmises_components(vonmises_strs):
     if not vonmises_strs:
         warnings.warn("Using default von Mises profile (Amplitude=1.0 " \
                         "b=5, and phase=0.5)")
-        vonmises_comps = [Profile(vonmises_factory(1.0, 5, 0.5))]
+        vonmises_comps = [vonmises_factory(1.0, 5, 0.5)]
     else:
         vonmises_comps = []
         for vonmises_str in vonmises_strs:
@@ -451,7 +463,7 @@ def create_vonmises_components(vonmises_strs):
             # to make sure the lambda uses amp,shape,loc from a local
             # scope. The values in a lambda function are stored by reference
             # and only looked up dynamically when the function is called.
-            vonmises_comps.append(Profile(vonmises_factory(amp,shape,loc)))
+            vonmises_comps.append(vonmises_factory(amp,shape,loc))
     return vonmises_comps
 
 
