@@ -135,7 +135,28 @@ class Profile(object):
         delayed_prof = Profile(lambda ph: self((ph-phasedelay) % 1)/self.scale, \
                                 scale=self.scale)
         return delayed_prof
-        
+    
+    def convolve_with(self, other, npts=1024):
+        """Convolve Profile with another. Return a SplineProfile
+            with the requested number of points.
+
+            Inputs:
+                other: The Profile to convolve with.
+                npts: The number of points to use when creating the
+                    resulting convolution (i.e. a SplineProfile). 
+                    (Default: 1024)
+
+            Other:
+                convolution: The convolution, a SplineProfile object.
+        """
+        phs = np.linspace(0, 1, npts, endpoint=False)
+        window = np.linspace(0, 1, 100000, endpoint=False)
+        conv_vals = np.empty(npts)
+        for ii, ph in enumerate(phs):
+            conv_vals[ii] = np.trapz(self(window)*other((ph-window)%1), x=window)
+        convolution = SplineProfile(conv_vals/self.scale, scale=self.scale)
+        return convolution
+
     def smear(self, smearphs, npts=1024):
         """Smear the profile with a boxcar of width 'smearphs'. Return
             a SplineProfile object sampled with 'npts' points.
@@ -152,17 +173,9 @@ class Profile(object):
             raise ValueError("Amount of phase to smear by (%g) " \
                                 "cannot be negative!" % scatterphs)
         elif smearphs == 0:
-            # No scattering to do, return spline profile
-            return get_spline_profile(self, npts)
-
-        phs = np.linspace(0, 1, npts, endpoint=False)
-        window = np.linspace(0, smearphs, smearphs*npts, endpoint=True)
-        smearfunc = lambda tt: 1.0/smearphs
-        smearvals = np.empty(npts)
-        for ii, ph in enumerate(phs):
-            smearvals[ii] = np.trapz(self(window%1)*smearfunc((ph-window))%1, x=window)
-        smeared_prof = SplineProfile(smearvals/self.scale, scale=self.scale)
-        return smeared_prof
+            # No scattering to do, return profile
+            return copy.deepcopy(self) 
+        return self.convolve_with(boxcar_factory(smearphs), npts=npts)
 
     def scatter(self, scatterphs, npts=1024):
         """Scatter the profile with a one-sided exponential of width
@@ -182,18 +195,9 @@ class Profile(object):
             raise ValueError("Amount of phase to scatter by (%g) " \
                                 "cannot be negative!" % scatterphs)
         elif scatterphs == 0:
-            # No scattering to do, return spline profile
-            return get_spline_profile(self, npts)
-
-        # Apply scattering
-        phs = np.linspace(0, 1, npts, endpoint=False)
-        window = np.linspace(0, scatterphs*5, scatterphs*5*npts, endpoint=True)
-        scatterfunc = lambda tt: np.exp(-tt/scatterphs)/scatterphs
-        scattervals = np.empty(npts)
-        for ii, ph in enumerate(phs):
-            scattervals[ii] = np.trapz(self(window%1)*scatterfunc((ph-window)%1), x=window)
-        scattered_prof = SplineProfile(scattervals/self.scale, scale=self.scale)
-        return scattered_prof
+            # No scattering to do, return profile
+            return copy.deepcopy(self)
+        return self.convolve_with(exponential_factory(scatterphs), npts=npts)
 
 class SplineProfile(Profile):
     def __init__(self, profvals, scale=1, **spline_kwargs):
@@ -441,6 +445,36 @@ def vonmises_factory(amp,shape,loc):
     def vm(ph): 
         return amp*np.exp(shape*(np.cos(2*np.pi*(ph-loc))-1))
     return Profile(vm)
+
+
+def boxcar_factory(width):
+    """Return a boxcar Profile scaled to have unit area.
+
+        Inputs:
+            width: The width of the boxcar function in phase.
+                NOTE: if width > 1, it will be folded
+
+        Output:
+            boxcar_prof: A boxcar Profile object with the given width.
+    """
+    def bc(ph):
+        return (int(width/1) + (ph<(width%1)).astype('int'))/width
+    return Profile(bc)
+
+
+def exponential_factory(efold):
+    """Return a one-sided exponential Profile.
+
+        Inputs:
+            efold: The e-folding phase of the exponential function.
+
+        Output:
+            exp_prof: A one-sided exponential Profile object.
+    """
+    def osexp(ph):
+        # Denominator comes from sum of geometric series
+        return np.exp(-ph/efold)/(1-np.exp(-1/efold))/efold
+    return Profile(osexp)
 
 
 def create_vonmises_components(vonmises_strs):
