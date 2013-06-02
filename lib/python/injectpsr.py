@@ -1,1 +1,1 @@
-/home/plazar/src/presto/bin/injectpsr.py
+../../bin/injectpsr.py
