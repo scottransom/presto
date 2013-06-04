@@ -14,7 +14,10 @@ import copy
 import numpy as np
 import scipy.integrate
 import scipy.interpolate
+import matplotlib
+matplotlib.use('agg') # Use a non-interactive backend
 import matplotlib.pyplot as plt
+#import scipy.integrate
 
 import filterbank
 import psr_utils
@@ -79,6 +82,7 @@ class Profile(object):
         """
         phs = np.linspace(0, 1.0, npts+1, endpoint=True)
         area = np.trapz(y=self(phs), x=phs)
+#        area, err = scipy.integrate.quadrature(self, 0, 1)
         return area
 
     def get_max(self, npts=1024):
@@ -137,7 +141,7 @@ class Profile(object):
                                 scale=self.scale)
         return delayed_prof
     
-    def convolve_with(self, other, npts=256):
+    def convolve_with(self, other, npts=1024):
         """Convolve Profile with another. Return a SplineProfile
             with the requested number of points.
 
@@ -151,14 +155,16 @@ class Profile(object):
                 convolution: The convolution, a SplineProfile object.
         """
         phs = np.linspace(0, 1, npts, endpoint=False)
-        window = np.linspace(0, 1, 256, endpoint=False)
+        window = np.linspace(0, 1, 4096, endpoint=False)
         conv_vals = np.empty(npts)
         for ii, ph in enumerate(phs):
             conv_vals[ii] = np.trapz(self(window)*other((ph-window)%1), x=window)
+#            integrand = lambda xx: self(xx)*other((ph-xx)%1)
+#            conv_vals[ii], err = scipy.integrate.quadrature(integrand, 0, 1, maxiter=200)
         convolution = SplineProfile(conv_vals/self.scale, scale=self.scale)
         return convolution
 
-    def smear(self, smearphs, delayphs=0, npts=256):
+    def smear(self, smearphs, delayphs=0, npts=1024):
         """Smear the profile with a boxcar of width 'smearphs'. Return
             a SplineProfile object sampled with 'npts' points.
 
@@ -178,9 +184,10 @@ class Profile(object):
         elif smearphs == 0:
             # No scattering to do, return profile
             return copy.deepcopy(self) 
-        return self.convolve_with(boxcar_factory(smearphs, delayphs), npts=npts)
+        bc = boxcar_factory(smearphs, delayphs)
+        return self.convolve_with(bc, npts=npts)
 
-    def scatter(self, scatterphs, npts=256):
+    def scatter(self, scatterphs, npts=1024):
         """Scatter the profile with a one-sided exponential of width
             'scatterphs'. Return a SplineProfile object sampled
             with 'npts' points.
@@ -200,7 +207,8 @@ class Profile(object):
         elif scatterphs == 0:
             # No scattering to do, return profile
             return copy.deepcopy(self)
-        return self.convolve_with(exponential_factory(scatterphs), npts=npts)
+        ex = exponential_factory(scatterphs)
+        return self.convolve_with(ex, npts=npts)
 
 class SplineProfile(Profile):
     def __init__(self, profvals, scale=1, **spline_kwargs):
@@ -237,6 +245,7 @@ class SplineProfile(Profile):
         """
         vals = super(SplineProfile, self).__call__(phs.flat)
         # Re-shape values because spline return flattened array.
+        vals = np.atleast_1d(vals)
         vals.shape = phs.shape
         return vals
 
@@ -387,10 +396,19 @@ def apply_dm(inprof, period, dm, chan_width, freqs, \
             tmpprof = inprof.smear(smearphs, delayphs)
         else:
             tmpprof = inprof.smear(0, delayphs)
-        if do_scatter:
-            tmpprof = tmpprof.scatter(scattphs)
-        tmpprof.set_scale(1)
+        #if do_scatter:
+        #    tmpprof = tmpprof.scatter(scattphs)
         profiles.append(tmpprof)
+        #########
+        # DEBUG: plot all profiles
+        plt.clf()
+        tmpprof.plot()
+        plt.xlim(0,1)
+        plt.ylim(0,2)
+        plt.xlabel("Phase")
+        plt.title("Prof %d (%f MHz)" % (ii, freqs[ii]))
+        plt.savefig("prof%d.png" % ii)
+        #########
         # Print progress to screen
         progress = int(100.0*ii/nfreqs)
         if progress > oldprogress: 
@@ -465,6 +483,8 @@ def boxcar_factory(width, delay=0):
         Output:
             boxcar_prof: A boxcar Profile object with the given width.
     """
+    width = float(width) # Make sure width is a floating-point number
+    delay = delay % 1 # Make sure delay is in [0, 1)
     nwraps = int(width/1)
     rem = (width%1)+delay
     def bc(ph):
@@ -482,10 +502,10 @@ def exponential_factory(efold):
             exp_prof: A one-sided exponential Profile object.
     """
     denom = (1-np.exp(-1/efold))*efold
-    def osexp(ph):
+    def ex(ph):
         # Denominator comes from sum of geometric series
         return np.exp(-ph/efold)/denom
-    return Profile(osexp)
+    return Profile(ex)
 
 
 def create_vonmises_components(vonmises_strs):
