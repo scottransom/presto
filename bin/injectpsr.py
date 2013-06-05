@@ -17,7 +17,7 @@ import scipy.interpolate
 import matplotlib
 matplotlib.use('agg') # Use a non-interactive backend
 import matplotlib.pyplot as plt
-#import scipy.integrate
+import scipy.integrate
 
 import filterbank
 import psr_utils
@@ -80,9 +80,9 @@ class Profile(object):
             Ouput:
                 area: The area under the pulse in units of (intensity x phase).
         """
-        phs = np.linspace(0, 1.0, npts+1, endpoint=True)
-        area = np.trapz(y=self(phs), x=phs)
-#        area, err = scipy.integrate.quadrature(self, 0, 1)
+#        phs = np.linspace(0, 1.0, npts+1, endpoint=True)
+#        area = np.trapz(y=self(phs), x=phs)
+        area, err = scipy.integrate.quadrature(self, 0, 1, maxiter=250)
         return area
 
     def get_max(self, npts=1024):
@@ -141,7 +141,7 @@ class Profile(object):
                                 scale=self.scale)
         return delayed_prof
     
-    def convolve_with(self, other, npts=1024):
+    def convolve_with(self, other, npts=4096):
         """Convolve Profile with another. Return a SplineProfile
             with the requested number of points.
 
@@ -155,16 +155,17 @@ class Profile(object):
                 convolution: The convolution, a SplineProfile object.
         """
         phs = np.linspace(0, 1, npts, endpoint=False)
-        window = np.linspace(0, 1, 4096, endpoint=False)
-        conv_vals = np.empty(npts)
-        for ii, ph in enumerate(phs):
-            conv_vals[ii] = np.trapz(self(window)*other((ph-window)%1), x=window)
-#            integrand = lambda xx: self(xx)*other((ph-xx)%1)
-#            conv_vals[ii], err = scipy.integrate.quadrature(integrand, 0, 1, maxiter=200)
+        conv_vals = np.fft.ifft(np.fft.fft(self(phs))*np.fft.fft(other(phs)))
+#        window = np.linspace(0, 1, 4096, endpoint=False)
+#        conv_vals = np.empty(npts)       
+#        for ii, ph in enumerate(phs):
+#            conv_vals[ii] = np.trapz(self(window)*other((ph-window)%1), x=window)
+##            integrand = lambda xx: self(xx)*other((ph-xx)%1)
+##            conv_vals[ii], err = scipy.integrate.quadrature(integrand, 0, 1, maxiter=200)
         convolution = SplineProfile(conv_vals/self.scale, scale=self.scale)
         return convolution
 
-    def smear(self, smearphs, delayphs=0, npts=1024):
+    def smear(self, smearphs, delayphs=0, npts=4096):
         """Smear the profile with a boxcar of width 'smearphs'. Return
             a SplineProfile object sampled with 'npts' points.
 
@@ -173,7 +174,7 @@ class Profile(object):
                 delayphs: The amount (in phase) to delay the pulse by.
                     (Default: No delay)
                 npts: The number of points to use when creating the
-                    smeared SplineProfile. (Default: 1024)
+                    smeared SplineProfile. (Default: 4096)
 
             Output:
                 smeared: The smeared Profile.
@@ -187,7 +188,7 @@ class Profile(object):
         bc = boxcar_factory(smearphs, delayphs)
         return self.convolve_with(bc, npts=npts)
 
-    def scatter(self, scatterphs, npts=1024):
+    def scatter(self, scatterphs, npts=4096):
         """Scatter the profile with a one-sided exponential of width
             'scatterphs'. Return a SplineProfile object sampled
             with 'npts' points.
@@ -196,7 +197,7 @@ class Profile(object):
                 scatterphs: The time-scale (in phase) of the exponential
                     scattering function.
                 npts: The number of points to use when creating the scattered
-                    SplineProfile. (Default: 1024)
+                    SplineProfile. (Default: 4096)
 
             Outputs:
                 scattered: The scattered Profile.
@@ -346,7 +347,7 @@ class VectorProfile(object):
         plt.ylabel("Channel number")
 
 
-def apply_dm(inprof, period, dm, chan_width, freqs, \
+def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
                 do_smear=True, do_scatter=True):
     """Given a profile apply DM delays, smearing, and scattering 
         within each channel as is appropriate for the given params.
@@ -357,6 +358,7 @@ def apply_dm(inprof, period, dm, chan_width, freqs, \
             dm: The DM (in pc cm-3)
             chan_width: The width of each channel (in MHz)
             freqs: The list of frequencies (in MHz)
+            tsamp: Sample time of the recipient filterbank file (in seconds).
             do_smear: Boolean, if True apply DM smearing to each channel.
                 (Default: True)
             do_scatter: Boolean, if True apply scattering to each channel.
@@ -365,6 +367,7 @@ def apply_dm(inprof, period, dm, chan_width, freqs, \
         Outputs:
             vecprof: The delayed and smeared VectorProfile.
     """
+    weq = inprof.get_equivalent_width()
     nfreqs = len(freqs)
     print "Applying DM to profile (DM = %.2f; %d channels)..." % \
                 (dm, nfreqs)
@@ -392,21 +395,36 @@ def apply_dm(inprof, period, dm, chan_width, freqs, \
     sys.stdout.flush()
     for ii, (delayphs, smearphs, scattphs) in \
                 enumerate(zip(phasedelays, smearphases, scatterphases)):
-        if do_smear:
-            tmpprof = inprof.smear(smearphs, delayphs)
-        else:
-            tmpprof = inprof.smear(0, delayphs)
-        #if do_scatter:
-        #    tmpprof = tmpprof.scatter(scattphs)
-        profiles.append(tmpprof)
         #########
         # DEBUG: plot all profiles
         plt.clf()
+        ax=plt.subplot(5,1,1)
+        inprof.plot()
+        if do_smear and not ((smearphs < 0.2*weq) or (smearphs < (tsamp/period))):
+            # Only smear if requested and smearing-phase is large enough
+            bc = boxcar_factory(smearphs, delayphs)
+            plt.subplot(5,1,2,sharex=ax)
+            bc.plot()
+            tmpprof = inprof.smear(smearphs, delayphs)
+        else:
+            print "Not smearing"
+            tmpprof = inprof.delay(delayphs)
+        plt.subplot(5,1,3,sharex=ax)
         tmpprof.plot()
+        if do_scatter and not ((scattphs < 0.2*weq) or (scattphs < (tsamp/period))):
+            # Only scatter if requested and scattering-phase is large enough
+            ex = exponential_factory(scattphs)
+            plt.subplot(5,1,4,sharex=ax)
+            ex.plot()
+            tmpprof = tmpprof.scatter(scattphs)
+        else:
+            print "Not scattering"
+        plt.subplot(5,1,5,sharex=ax)
+        tmpprof.plot()
+        profiles.append(tmpprof)
         plt.xlim(0,1)
-        plt.ylim(0,2)
         plt.xlabel("Phase")
-        plt.title("Prof %d (%f MHz)" % (ii, freqs[ii]))
+        plt.suptitle("Prof %d (%f MHz)" % (ii, freqs[ii]))
         plt.savefig("prof%d.png" % ii)
         #########
         # Print progress to screen
@@ -486,9 +504,15 @@ def boxcar_factory(width, delay=0):
     width = float(width) # Make sure width is a floating-point number
     delay = delay % 1 # Make sure delay is in [0, 1)
     nwraps = int(width/1)
-    rem = (width%1)+delay
-    def bc(ph):
-        return (nwraps + ((delay<=ph) & (ph<rem)).astype('int'))/width
+    rem = ((width%1)+delay)%1
+    if delay < rem:
+        # Boxcar does not straddle phase=1
+        def bc(ph):    
+            return (nwraps + ((delay<=ph) & (ph<rem)).astype('int'))/width
+    else:
+        # Boxcar is split
+        def bc(ph):
+            return (nwraps + ((ph<rem) | (delay<=ph)).astype('int'))/width
     return Profile(bc)
 
 
@@ -647,6 +671,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     
 
 def main():
+    plt.figure(figsize=(8,10))
     fn = args[0]
     fil = filterbank.FilterbankFile(fn, read_only=True)
     if options.inprof is not None:
@@ -665,10 +690,10 @@ def main():
                         gain=options.gain, tsys=options.tsys, rms=options.rms)
         else:
             prof.set_scale(options.scale)
-    
+   
         if options.apply_dm:
             prof = apply_dm(prof, options.period, options.dm, \
-                                    np.abs(fil.foff), fil.frequencies)
+                            np.abs(fil.foff), fil.frequencies, fil.tsamp)
         if options.outprof is not None:
             print "Writing %s instance to file (%s)" % \
                     (type(prof).__name__, options.outprof)
@@ -679,10 +704,13 @@ def main():
     outfn = options.outname % fil.header 
     if options.dryrun:
         print "Showing plot of profile to be injected..."
+        plt.clf()
         prof.plot()
         plt.xlim(0,1)
         plt.xlabel("Phase")
         plt.savefig(outfn+".ps")
+        plt.ylim(0,15)
+        plt.savefig(outfn+".zoom.ps")
         sys.exit()
 
     inject(fil, outfn, prof, options.period, options.dm, \
