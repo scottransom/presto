@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
    }
    if (cmd->ifsP) {
        // 0 = default or summed, 1-4 are possible also
-       s.use_poln = cmd->ifs;
+       s.use_poln = cmd->ifs + 1;
    }
 
 #ifdef DEBUG
