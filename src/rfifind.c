@@ -232,6 +232,8 @@ int main(int argc, char *argv[])
          cmd->time = blocksperint * ptsperblock * idata.dt;
       } else {
          blocksperint = (int) (cmd->time / (ptsperblock * idata.dt) + 0.5);
+         // Must process at least 1 block at a time
+         if (blocksperint==0) blocksperint = 1;
       }
       ptsperint = blocksperint * ptsperblock;
       numint = (long long) idata.N / ptsperint;
