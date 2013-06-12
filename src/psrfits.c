@@ -846,21 +846,21 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
             if (s->bits_per_sample==16) {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                     sptr = (short *)cdata + ii * s->samples_per_spectra;
-                    for (jj = 0 ; jj < s->num_channels ; jj++, sptr++) {
+                    for (jj = 0 ; jj < s->num_channels ; jj++, sptr++, fptr++) {
                         *fptr = (((float)(*sptr) - s->zero_offset) * scales[jj] + 
                                  offsets[jj]) * weights[jj];
-                        *fptr++ = (((float)(*(sptr+idx)) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[jj];
+                        *fptr += (((float)(*(sptr+idx)) - s->zero_offset) * scales[idx+jj] + 
+                                  offsets[idx+jj]) * weights[jj];
                     }
                 }
             } else {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                     cptr = cdata + ii * s->samples_per_spectra;
-                    for (jj = 0 ; jj < s->num_channels ; jj++, cptr++) {
+                    for (jj = 0 ; jj < s->num_channels ; jj++, cptr++, fptr++) {
                         *fptr = (((float)(*cptr) - s->zero_offset) * scales[jj] + 
                                  offsets[jj]) * weights[jj];
-                        *fptr++ = (((float)(*(cptr+idx)) - s->zero_offset) * scales[idx+jj] + 
-                                   offsets[idx+jj]) * weights[jj];
+                        *fptr += (((float)(*(cptr+idx)) - s->zero_offset) * scales[idx+jj] + 
+                                  offsets[idx+jj]) * weights[jj];
                     }
                 }
             }
