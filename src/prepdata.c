@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
        else if (s.datatype==WAPP) cmd->wappP = 1;
        else if (s.datatype==SPIGOT) cmd->spigotP = 1;
        else if (s.datatype==SDAT) useshorts = 1;
-       else {
+       else if (s.datatype!=DAT){
            printf("Error:  Unable to identify input data files.  Please specify type.\n\n");
            exit(1);
        }
