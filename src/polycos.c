@@ -90,6 +90,9 @@ char *make_polycos(char *parfilenm, infodata * idata)
    } else if (strcmp(idata->telescope, "GMRT") == 0) {
       scopechar = 'r';
       tracklen = 12;
+   } else if (strcmp(idata->telescope, "LWA") == 0) {
+     scopechar = 'x';
+     tracklen = 12;
    } else if (strcmp(idata->telescope, "Geocenter") == 0) {
       scopechar = 'o';
       tracklen = 12;
