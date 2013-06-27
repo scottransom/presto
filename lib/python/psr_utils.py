@@ -833,6 +833,17 @@ def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' '*
         print obs+" %13s %8.3f %s %8.2f" % \
               (name, freq, toa, toaerr)
 
+def write_tempo2_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name='unk', flags=""):
+    """
+    Write Tempo2 format TOAs.
+    Note that first line of file should be "FORMAT 1"
+    TOA format is "file freq sat satErr siteID <flags>"
+    """
+    toa = "%5d"%int(toa_MJDi) + ("%.13f"%toa_MJDf)[1:]
+    if dm != 0.0:
+        flags += "-dm %.4f" % (dm,)
+    print "%s %f %s %.2f %s %s" % (name,freq,toa,toaerr,obs,flags)
+
 def rotate(arr, bins):
     """
     rotate(arr, bins):

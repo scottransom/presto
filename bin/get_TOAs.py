@@ -12,6 +12,7 @@ scopes = {'GBT':'1',
           'Parkes':'7',
           'GMRT': 'r',
           'IRAM': 's',
+          'LWA': 'x',
           'Geocenter': 'o'}
 
 def measure_phase(profile, template, rotate_prof=True):
@@ -46,6 +47,7 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-o seconds, --offset=seconds]     : Add the offset in seconds to any TOAs
   [-e, --event]                      : The .pfd file was made with events
   [-r, --norotate]                   : Do not rotate the template for FFTFIT
+  [-2, --tempo2]                     : Write Tempo2 format TOAs
   pfd_file                           : The .pfd file containing the folds
 
   The program generates TOAs from a .pfd file using Joe Taylor's
@@ -82,9 +84,9 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "herfs:n:d:g:t:o:k:i:",
+        opts, args = getopt.getopt(sys.argv[1:], "herf2s:n:d:g:t:o:k:i:",
                                    ["help", "event", "norotate", "FFTFITouts",
-                                    "subbands=", "numtoas=", "dm=", "gaussian=",
+                                    "tempo2","subbands=", "numtoas=", "dm=", "gaussian=",
                                     "template=", "offset=", "kill=", "kints="])
                                     
     except getopt.GetoptError:
@@ -105,6 +107,7 @@ if __name__ == '__main__':
     otherouts = 0
     offset = 0.0
     events = 0
+    t2format = False
     kill = []
     kints = []
     for o, a in opts:
@@ -115,6 +118,8 @@ if __name__ == '__main__':
             otherouts = 1
         if o in ("-r", "--norotate"):
             rotate_prof = False
+        if o in ("-2", "--tempo2"):
+            t2format = True
         if o in ("-e", "--event"):
             lowfreq = 0.0
             DM = 0.0
@@ -257,6 +262,9 @@ if __name__ == '__main__':
     # Calculate the TOAs
     #
 
+    if t2format:
+        print "FORMAT 1"
+        
     for ii in range(numtoas):
 
         # The .pfd file was generated using -nosearch and a specified
@@ -350,9 +358,14 @@ if __name__ == '__main__':
                 # Send the TOA to STDOUT
                 toaf = t0f + (tau_tot*p + offset)/SECPERDAY
                 newdays = int(Num.floor(toaf))
-                psr_utils.write_princeton_toa(t0i+newdays, toaf-newdays,
-                                              tau_err*p*1000000.0,
-                                              sumsubfreqs[jj], 0.0, obs=obs)
+                if t2format:
+                    psr_utils.write_tempo2_toa(t0i+newdays, toaf-newdays,
+                                                  tau_err*p*1000000.0,
+                                                  sumsubfreqs[jj], 0.0, name=fold_pfd.pfd_filename, obs=obs)
+                else:
+                    psr_utils.write_princeton_toa(t0i+newdays, toaf-newdays,
+                                                  tau_err*p*1000000.0,
+                                                  sumsubfreqs[jj], 0.0, obs=obs)
                 if (otherouts):
                     sys.stderr.write("FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" %
                           (b, errb, snr, esnr))
