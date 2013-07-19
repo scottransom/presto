@@ -6,7 +6,7 @@ a filterbank file.
 Patrick Lazarus, June 26, 2012
 """
 import sys
-import optparse
+import argparse
 import warnings
 import pickle
 import copy
@@ -25,7 +25,7 @@ import psr_utils
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
 BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
-
+NUMPOINTS = 512 # Number of points to use for spline profiles when applying DM
 
 class Profile(object):
     """A class to represent a generic pulse profile.
@@ -66,7 +66,7 @@ class Profile(object):
         plt.plot(x0, self(x0)*scale)
         plt.xlabel("Phase")
 
-    def get_area(self, npts=1024):
+    def get_area(self, npts=4096, **kwargs):
         """Return the area under the pulse in units of (intensity x phase).
             The area is calculated by evaluating the profile at many points
             and numerically integrated using the trapezoid rule.
@@ -80,12 +80,12 @@ class Profile(object):
             Ouput:
                 area: The area under the pulse in units of (intensity x phase).
         """
-#        phs = np.linspace(0, 1.0, npts+1, endpoint=True)
-#        area = np.trapz(y=self(phs), x=phs)
-        area, err = scipy.integrate.quadrature(self, 0, 1, maxiter=250)
+        phs = np.linspace(0, 1.0, npts+1, endpoint=True)
+        area = np.trapz(y=self(phs), x=phs)
+        #area, err = scipy.integrate.quadrature(self, 0, 1, maxiter=250)
         return area
 
-    def get_max(self, npts=1024):
+    def get_max(self, npts=4096):
         """Return the maximum value of the profile.
             The profile is evaluated at many points. The quantity returned
             is the maximum value evaluated.
@@ -103,7 +103,7 @@ class Profile(object):
         profmax = np.max(self(phs))
         return profmax
         
-    def get_equivalent_width(self, npts=1024):
+    def get_equivalent_width(self, npts=4096):
         """Determine and return the equivalent width of the profile, in phase.
             The equivalent width is the area under the pulse divided
             by the profile's maximum value.
@@ -141,7 +141,7 @@ class Profile(object):
                                 scale=self.scale)
         return delayed_prof
     
-    def convolve_with(self, other, npts=4096):
+    def convolve_with(self, other, npts=4096, conserve_area=True):
         """Convolve Profile with another. Return a SplineProfile
             with the requested number of points.
 
@@ -149,20 +149,19 @@ class Profile(object):
                 other: The Profile to convolve with.
                 npts: The number of points to use when creating the
                     resulting convolution (i.e. a SplineProfile). 
-                    (Default: 1024)
+                    (Default: 4096)
+                conserve_area: If true, scale the covolution such that
+                    it has the same area as the input profile (i.e. 'self')
 
             Other:
                 convolution: The convolution, a SplineProfile object.
         """
         phs = np.linspace(0, 1, npts, endpoint=False)
-        conv_vals = np.fft.ifft(np.fft.fft(self(phs))*np.fft.fft(other(phs)))
-#        window = np.linspace(0, 1, 4096, endpoint=False)
-#        conv_vals = np.empty(npts)       
-#        for ii, ph in enumerate(phs):
-#            conv_vals[ii] = np.trapz(self(window)*other((ph-window)%1), x=window)
-##            integrand = lambda xx: self(xx)*other((ph-xx)%1)
-##            conv_vals[ii], err = scipy.integrate.quadrature(integrand, 0, 1, maxiter=200)
-        convolution = SplineProfile(conv_vals/self.scale, scale=self.scale)
+        conv_vals = np.fft.irfft(np.fft.rfft(self(phs))*np.fft.rfft(other(phs)))
+        # scale convolution such that area is same as before
+        # Isn't this already a property of convolutions? Should it always be true?
+        scale = self.get_area()/np.trapz(conv_vals, phs)
+        convolution = SplineProfile(conv_vals*scale)
         return convolution
 
     def smear(self, smearphs, delayphs=0, npts=4096):
@@ -211,6 +210,7 @@ class Profile(object):
         ex = exponential_factory(scatterphs)
         return self.convolve_with(ex, npts=npts)
 
+
 class SplineProfile(Profile):
     def __init__(self, profvals, scale=1, **spline_kwargs):
         """Construct a profile that uses a spline to interpolate a function.
@@ -225,6 +225,7 @@ class SplineProfile(Profile):
             Output:
                 prof: The profile object.
         """
+        self.profvals = profvals
         # TODO: Should we evaluate at the centre of the bins?
         phs = np.linspace(0,1, len(profvals)+1, endpoint=True)
         # Manually set value at phs=1.0 to the value at phs=0.0
@@ -320,24 +321,37 @@ class VectorProfile(object):
         phs = np.atleast_1d(np.asarray(phs))
         nphs = phs.shape[0]
         vals = np.empty((nphs, self.nprofs))
-        if phs.ndim == 1:
-            # Evaluate all profiles at the same phases
-            for ii, prof in enumerate(self.profiles):
-                vals[:,ii] = prof(phs)*self.scale
-        elif phs.ndim == 2:
-            # Evaluate each profile at a different set of phases
-            nphs_vecs = phs.shape[1]
-            if nphs_vecs != self.nprofs:
-                raise ValueError("Length of axis=1 of 'phs' (%d) must be " \
-                                "equal to the number of profiles in the " \
-                                "vector (%d)." % (nphs_vecs, self.nprofs))
-            else:
-                for ii, (prof, ph) in enumerate(zip(self.profiles, phs)):
-                    vals[:,ii] = prof(ph)*self.scale
-        else:
-            raise ValueError("VectorProfile can only be evaluated with " \
-                            "1D or 2D arrays")
+        for ii, prof in enumerate(self.profiles):
+             vals[:,ii] = prof(phs)*self.scale
+        #if phs.ndim == 1:
+        #    # Evaluate all profiles at the same phases
+        #    for ii, prof in enumerate(self.profiles):
+        #        vals[:,ii] = prof(phs)*self.scale
+        #elif phs.ndim == 2:
+        #    # Evaluate each profile at a different set of phases
+        #    nphs_vecs = phs.shape[1]
+        #    if nphs_vecs != self.nprofs:
+        #        raise ValueError("Length of axis=1 of 'phs' (%d) must be " \
+        #                        "equal to the number of profiles in the " \
+        #                        "vector (%d)." % (nphs_vecs, self.nprofs))
+        #    else:
+        #        for ii, (prof, ph) in enumerate(zip(self.profiles, phs)):
+        #            vals[:,ii] = prof(ph)*self.scale
+        #else:
+        #    raise ValueError("VectorProfile can only be evaluated with " \
+        #                    "1D or 2D arrays")
         return vals
+    
+    def set_scale(self, scale):
+        """Set the profile's scaling factor.
+
+            Input:
+                scale: The scaling factor to use.
+
+            Outputs:
+                None
+        """
+        self.scale = scale
 
     def plot(self, nbin=1024, scale=1):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
@@ -393,34 +407,59 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     oldprogress = 0
     sys.stdout.write(" %3.0f %%\r" % oldprogress)
     sys.stdout.flush()
+    ylim = None
+    ylim2 = None
+    ylim3 = None
+    ylim4 = None
+    ylim5 = None
     for ii, (delayphs, smearphs, scattphs) in \
                 enumerate(zip(phasedelays, smearphases, scatterphases)):
         #########
         # DEBUG: plot all profiles
         plt.clf()
-        ax=plt.subplot(5,1,1)
+        ax = plt.subplot(5,1,1)
         inprof.plot()
+        if ylim is not None:
+            ax.set_ylim(ylim)
+        else:
+            ylim = ax.get_ylim()
+
         if do_smear and not ((smearphs < 0.2*weq) or (smearphs < (tsamp/period))):
             # Only smear if requested and smearing-phase is large enough
             bc = boxcar_factory(smearphs, delayphs)
-            plt.subplot(5,1,2,sharex=ax)
+            ax2 = plt.subplot(5,1,2,sharex=ax)
             bc.plot()
-            tmpprof = inprof.smear(smearphs, delayphs)
+            if ylim2 is not None:
+                ax2.set_ylim(ylim2)
+            else:
+                ylim2 = ax2.get_ylim()
+            tmpprof = inprof.smear(smearphs, delayphs, npts=NUMPOINTS)
         else:
-            print "Not smearing"
             tmpprof = inprof.delay(delayphs)
-        plt.subplot(5,1,3,sharex=ax)
+            phs = np.linspace(0, 1, NUMPOINTS+1)
+            tmpprof = SplineProfile(tmpprof(phs))
+        ax3 = plt.subplot(5,1,3,sharex=ax)
+        if ylim3 is not None:
+            ax3.set_ylim(ylim3)
+        else:
+            ylim3 = ax3.get_ylim()
         tmpprof.plot()
         if do_scatter and not ((scattphs < 0.2*weq) or (scattphs < (tsamp/period))):
             # Only scatter if requested and scattering-phase is large enough
             ex = exponential_factory(scattphs)
-            plt.subplot(5,1,4,sharex=ax)
+            ax4 = plt.subplot(5,1,4,sharex=ax)
             ex.plot()
-            tmpprof = tmpprof.scatter(scattphs)
-        else:
-            print "Not scattering"
-        plt.subplot(5,1,5,sharex=ax)
+            if ylim4 is not None:
+                ax4.set_ylim(ylim4)
+            else:
+                ylim4 = ax4.get_ylim()
+            tmpprof = tmpprof.scatter(scattphs, npts=NUMPOINTS)
+        ax5 = plt.subplot(5,1,5,sharex=ax)
         tmpprof.plot()
+        if ylim5 is not None:
+            ax5.set_ylim(ylim5)
+        else:
+            ylim5 = ax5.get_ylim()
         profiles.append(tmpprof)
         plt.xlim(0,1)
         plt.xlabel("Phase")
@@ -556,7 +595,32 @@ def create_vonmises_components(vonmises_strs):
     return vonmises_comps
 
 
-def determine_and_set_scale(fil, prof, smean, gain, tsys, rms):
+def scale_from_snr(fil, prof, snr, rms):
+    """Set the profile's scaling factor such that the simulated 
+        injected pulsar signal will have the given Smean.
+
+        Inputs:
+            fil: A FilterbankFile object.
+            prof: The Profile object representing the profile to inject.
+            snr: The desired signal-to-noise ratio
+            rms: The RMS of the recipient file's DM=0 time series.
+
+        Outputs:
+            scale: The scaling factor to apply to the profile.
+    """
+    # Set scale to 1, just in case it's be altered already.
+    prof.set_scale(1)
+    
+    # Characterise the pulse
+    area = prof.get_area()
+    profmax = prof.get_max()
+
+    scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
+    print "Recommended scale factor: %g" % scale
+    return scale
+
+
+def snr_from_smean(fil, prof, smean, gain, tsys):
     """Set the profile's scaling factor such that the simulated 
         injected pulsar signal will have the given Smean.
 
@@ -566,20 +630,13 @@ def determine_and_set_scale(fil, prof, smean, gain, tsys, rms):
             smean: The mean flux density to simulate, in mJy.
             gain: The telescope's gain, in K/Jy.
             tsys: The observing system's temperature, in K.
-            rms: The RMS of the recipient file's DM=0 time series.
 
         Outputs:
-            None
+            snr: The target signal-to-noise ratio.
     """
-    # Set scale to 1, just in case it's be altered already.
-    prof.set_scale(1)
-    
-    # Characterise the pulse
-    area = prof.get_area()
-    profmax = prof.get_max()
-    width = prof.get_equivalent_width() # in phase
-    dutycycle = width # Because width is reported in phase, 
-                      # it is actually the duty cycle
+    dutycycle = prof.get_equivalent_width() # in phase
+                        # Because width is reported in phase, 
+                        # it is actually the duty cycle
 
     # Characterise the recipient filterbank file
     tint = fil.nspec*fil.tsamp
@@ -588,13 +645,9 @@ def determine_and_set_scale(fil, prof, smean, gain, tsys, rms):
     # Target SNR
     warnings.warn("Assuming 2 (summed) polarizations.")
     snr = smean*gain*np.sqrt(2*tint*bw)/tsys*np.sqrt(1/dutycycle-1)
-    scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
-
-    print "Duty cycle: %f" % dutycycle
     print "Expected SNR of injected pulsar signal (after folding " \
             "and integrating over frequency): %g" % snr
-    prof.set_scale(scale)
-    print "Scale factor applied: %g" % scale
+    return snr
 
 
 def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE):
@@ -650,7 +703,10 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
         times = (np.arange(lobin, hibin)+0.5)*fil.dt
         phases = get_phases(times)
         toinject = prof(phases)
-        injected = spectra+toinject[:,np.newaxis]
+        if np.ndim(toinject) > 1:
+            injected = spectra+toinject
+        else:
+            injected = spectra+toinject[:,np.newaxis]
         scaled = (injected-minimum)*global_scale
         outfil.append_spectra(scaled)
         
@@ -668,41 +724,65 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
 
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
-    
+
+
+def load_profile(infn):
+    print "Loading profile from file (%s)" % infn
+    data = np.load(infn)
+    profiles = []
+    for key in sorted(data.keys()):
+        profiles.append(SplineProfile(data[key]))
+    prof = VectorProfile(profiles)
+    data.close()
+    return prof
+
+
+def save_profile(prof, outfn):
+    print "Writing %s instance to file (%s)" % \
+            (type(prof).__name__, args.outprof)
+    outfile = open(outfn, 'wb')
+    profvals = {}
+    for ii, pp in enumerate(prof.profiles):
+        profvals['chan%d' % ii] = pp.profvals
+    np.savez(outfile, **profvals)
+    outfile.close()
+
 
 def main():
     plt.figure(figsize=(8,10))
-    fn = args[0]
+    fn = args.infile
     fil = filterbank.FilterbankFile(fn, read_only=True)
-    if options.inprof is not None:
-        print "Loading profile from file (%s)" % options.inprof
-        infile = open(options.inprof, 'rb')
-        prof = pickle.load(infile)
-        infile.close()
+    if args.inprof is not None:
+        warnings.warn("Saved profiles already may be tuned to a particular " \
+                        "DM, period and filterbank file (freq, nchans, " \
+                        "tsamp, etc).")
+        prof = load_profile(args.inprof)
+        prof.set_scale(args.scale)
     else:
-        comps = create_vonmises_components(options.vonmises)
+        comps = create_vonmises_components(args.vonmises)
         print "Creating profile. Number of components: %d" % len(comps)
         prof = MultiComponentProfile(comps)
-        if options.use_spline:
-            prof = get_spline_profile(prof)
-        if options.scale is None:
-            scale = determine_and_set_scale(fil, prof, smean=options.smean, \
-                        gain=options.gain, tsys=options.tsys, rms=options.rms)
+        prof = get_spline_profile(prof)
+        # Determine scaling
+        if args.smean is not None:
+            snr = snr_from_smean(fil, prof, smean=args.smean, \
+                                    gain=args.gain, tsys=args.tsys)
+            scale = scale_from_snr(fil, prof, snr, rms=args.rms)
+            prof.set_scale(scale)
+        elif args.snr is not None:
+            scale = scale_from_snr(fil, prof, snr=args.snr, rms=args.rms)
+            prof.set_scale(scale)
         else:
-            prof.set_scale(options.scale)
-   
-        if options.apply_dm:
-            prof = apply_dm(prof, options.period, options.dm, \
+            prof.set_scale(args.scale)
+       
+        if args.apply_dm:
+            prof = apply_dm(prof, args.period, args.dm, \
                             np.abs(fil.foff), fil.frequencies, fil.tsamp)
-        if options.outprof is not None:
-            print "Writing %s instance to file (%s)" % \
-                    (type(prof).__name__, options.outprof)
-            outfile = open(options.outprof, 'wb')
-            pickle.dump(prof, outfile, protocol=pickle.HIGHEST_PROTOCOL)
-            outfile.close()
+        if args.outprof is not None:
+            save_profile(prof, args.outprof)
 
-    outfn = options.outname % fil.header 
-    if options.dryrun:
+    outfn = args.outname % fil.header 
+    if args.dryrun:
         print "Showing plot of profile to be injected..."
         plt.clf()
         prof.plot()
@@ -713,8 +793,8 @@ def main():
         plt.savefig(outfn+".zoom.ps")
         sys.exit()
 
-    inject(fil, outfn, prof, options.period, options.dm, \
-            nbitsout=options.output_nbits, block_size=options.block_size)
+    inject(fil, outfn, prof, args.period, args.dm, \
+            nbitsout=args.output_nbits, block_size=args.block_size)
 
 
 def parse_model_file(modelfn):
@@ -734,44 +814,48 @@ def parse_model_file(modelfn):
                         for line in mfile.readlines()]
 
 
-def parse_mfile_callback(option, opt_str, value, parser):
-    vonmises = getattr(parser.values, 'vonmises')
-    vonmises.extend(parse_model_file(value))
+class ParseMfileAction(argparse.Action):
+    def __call__(self, parser, namepsace, values, option_string=None):
+        vonmises = getattr(namespace, self.dest)
+        vonmises.extend(parse_model_file(values))
 
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser(prog='injectpsr.py', \
-                    version="v0.1 Patrick Lazarus (June 26, 2012)")
-    parser.add_option("--dm", dest='dm', action='store', type='float', \
+    parser = argparse.ArgumentParser(prog='injectpsr.py', \
+                    description="v0.5 Patrick Lazarus (July 7, 2013)")
+    parser.add_argument("--dm", dest='dm', type=float, \
                     help="The DM of the (fake) injected pulsar signal. " \
                         "(This argument is required.", \
                     default=None)
-    parser.add_option("-p", "--period", dest='period', action='store', \
-                    default=None, type='float', \
+    parser.add_argument("-p", "--period", dest='period', \
+                    default=None, type=float, \
                     help="The period (in seconds) of the (fake) injected " \
                         "pulsar signal. (This argument is required.)")
-    parser.add_option("-F", "--smean", dest='smean', type='float', \
+    scalegroup = parser.add_mutually_exclusive_group()
+    scalegroup.add_argument("-F", "--smean", dest='smean', type=float, \
                     default=None, \
                     help="Mean flux density (in mJy) of the injected pulsar " \
-                        "signal. This will automatically set the scale factor " \
-                        "and thus the '-F/--smean' option _cannot_ be " \
-                        "combined with the '-s/--scale' option. " \
+                        "signal. This will automatically set the scale factor. " \
                         "(Default: Don't scale)")
-    parser.add_option("-s", "--scale", dest='scale', type='float', \
+    scalegroup.add_argument("--snr", dest='snr', type=float, \
                     default=None, \
+                    help="Desired signal to noise ratio. This will automatically " \
+                        "set the scale factor. (Default: Don't scale)")
+    scalegroup.add_argument("-s", "--scale", dest='scale', type=float, \
+                    default=1, \
                     help="Overall scaling factor to multiply profile with. " \
                         "(Default: Don't scale.)")
-    parser.add_option("--rms", dest='rms', type='float', default=None, \
+    parser.add_argument("--rms", dest='rms', type=float, \
                     help="The RMS of the recipient file's DM=0 timeseries. " \
-                        "This _must_ be provided if the '-F/--smean' option " \
+                        "This _must_ be provided if the '-F/--smean' argument " \
                         "is used.")
-    parser.add_option("--gain", dest='gain', type='float', default=None, \
+    parser.add_argument("--gain", dest='gain', type=float, \
                     help="The telescope's gain (in K/Jy). This _must_ be " \
-                        "provided if the '-F/--smean' option is used.")
-    parser.add_option("--tsys", dest='tsys', type='float', default=None, \
+                        "provided if the '-F/--smean' argument is used.")
+    parser.add_argument("--tsys", dest='tsys', type=float, \
                     help="The observing system's temperature (in K). This " \
-                        "_must_ be provided if the '-F/--smean' option is used.")
-    parser.add_option("-v", "--vonmises", dest='vonmises', action='append', \
+                        "_must_ be provided if the '-F/--smean' argument is used.")
+    parser.add_argument("-v", "--vonmises", dest='vonmises', action='append', \
                     help="A string of 3 parameters defining a vonmises " \
                         "component to be injected. Be sure to quote the " \
                         "3 parameters together. The params are: 'amplitude " \
@@ -781,57 +865,53 @@ if __name__ == '__main__':
                         "a von Mises with amplitude=1.0, shape=5, and " \
                         "phase=0.5 will be used.)", \
                     default=[])
-    parser.add_option("-m", "--model-file", dest="model_file", nargs=1, 
-                    type='str', \
-                    action="callback", callback=parse_mfile_callback, \
+    parser.add_argument("-m", "--model-file", dest="vonmises", nargs=1, \
+                    type=str, action=ParseMfileAction, \
                     help="A model file (*.m) as written by 'paas'.")
-    parser.add_option("--block-size", dest='block_size', default=BLOCKSIZE, \
-                    type='float', \
+    parser.add_argument("--block-size", dest='block_size', default=BLOCKSIZE, \
+                    type=float, \
                     help="Number of spectra per block. This is the amount " \
                         "of data manipulated/written at a time. (Default: " \
                         " %d spectra)" % BLOCKSIZE)
-    parser.add_option("--nbits", dest='output_nbits', default=None, type=int, \
+    parser.add_argument("--nbits", dest='output_nbits', default=None, type=int, \
                     help="Number of bits per same to use in output " \
                         "filterbank file. (Default: same as input file)")
-    parser.add_option("-n", "--dryrun", dest="dryrun", action="store_true", \
+    parser.add_argument("-n", "--dryrun", dest="dryrun", action="store_true", \
                     help="Show the pulse profile to be injected and exit. " \
                         "(Default: do not show profile, inject it)")
-    parser.add_option("--use-spline", dest='use_spline', action='store_true', \
-                    default=False, \
-                    help="Evaluate the analytic pulse profile and interpolate " \
-                        "with a spline. This is typically faster to execute, " \
-                        "especially when the profile is made up of multiple " \
-                        "components. (Default: Do not use spline.)")
-    parser.add_option("--no-apply-dm", dest='apply_dm', action='store_false', \
+    parser.add_argument("--no-apply-dm", dest='apply_dm', action='store_false', \
                     default=True, \
                     help="Do not apply the DM (i.e. do not delay or smear " \
                         "the pulse; Default: Apply DM)")
-    parser.add_option("--load-prof", dest="inprof", default=None, \
+    parser.add_argument("--load-prof", dest="inprof", default=None, \
                     help="Load a profile object from file. (Default: " \
                         "create a fresh profile object.)")
-    parser.add_option("--save-prof", dest='outprof', default=None, \
+    parser.add_argument("--save-prof", dest='outprof', default=None, \
                     help="Save a profile object to file. (Default: " \
                         "do not save profile object.)")
-    parser.add_option("-o", "--outname", dest='outname', action='store', \
+    parser.add_argument("-o", "--outname", dest='outname', \
                     default="injected.fil", \
                     help="The name of the output file.")
-    (options, args) = parser.parse_args()
-    if options.period is None or options.dm is None:
+    parser.add_argument("infile", \
+                    help="File that will receive synthetic pulses.")
+    args = parser.parse_args()
+    if args.period is None or args.dm is None:
         raise ValueError("Both a period and a DM _must_ be provided!")
-    if options.smean is not None and options.scale is not None:
+    if args.smean is not None and args.scale is not None:
         raise ValueError("Only one of '-F/--smean' and '-s/--scale' " \
-                        "options may be provided!")
-    if options.smean is not None and (options.rms is None or \
-                                        options.gain is None or \
-                                        options.tsys is None):
+                        "args may be provided!")
+    if args.smean is not None and (args.rms is None or \
+                                        args.gain is None or \
+                                        args.tsys is None):
         raise ValueError("When automatically determining the scaling " \
                         "factor for a particular Smean, the '--rms', " \
-                        "'--gain', and '--tsys' options must all be " \
+                        "'--gain', and '--tsys' args must all be " \
                         "provided!")
     
-    if (options.smean is not None or options.scale is not None) and \
-            options.inprof is not None:
+    if (args.smean is not None or args.snr is not None) and \
+            args.inprof is not None:
         raise ValueError("Loading a saved profile via the " \
-                        "'--load-prof' options is incompatible " \
-                        "with adjusting the profile's scale.")
+                        "'--load-prof' args is incompatible " \
+                        "with setting the mean flux desnity or " \
+                        "SNR.")
     main()
