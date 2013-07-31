@@ -12,6 +12,7 @@ scopes = {'GBT':'1',
           'Parkes':'7',
           'GMRT': 'r',
           'IRAM': 's',
+          'LWA1': 'x',
           'LWA': 'x',
           'Geocenter': 'o'}
 
@@ -242,7 +243,7 @@ if __name__ == '__main__':
         obs = '@'  # Solarsystem Barycenter
     else:
         try: obs = scopes[fold_pfd.telescope.split()[0]]
-        except KeyError:  sys.stderr.write("Unknown telescope!!!")
+        except KeyError:  sys.stderr.write("Unknown telescope!!! : " + fold_pfd.telescope)
 
     # Read the polyco file (if required)
     if (fold.psr and fold.topo):
