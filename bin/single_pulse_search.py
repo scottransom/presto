@@ -6,6 +6,14 @@ from presto import rfft
 from psr_utils import coord_to_string
 from optparse import OptionParser
 from Pgplot import *
+import warnings
+
+#Print warnings to stdout instead of stderr
+#  This is to prevent PRESTO pipeline from failing jobs because of warnings
+def warnings_to_stdout(message, category, filename, lineno, file=None, line=None):
+    sys.stdout.write(warnings.formatwarning(message, category, filename, lineno))
+
+warnings.showwarning = warnings_to_stdout
 
 class candidate:
     def __init__(self, DM, sigma, time, bin, downfact):
