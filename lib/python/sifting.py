@@ -925,7 +925,7 @@ def read_candidates(filenms, prelim_reject=True):
     """
     if not len(filenms):
         print "Error:  There are no candidate files to read!"
-        return None
+        return Candlist() # return empty candlist
     print "\nReading candidates from %d files...." % len(filenms)
     candlist = Candlist()
     for filenm in filenms:
