@@ -168,6 +168,9 @@ class Candlist(object):
         self.harmonic_cands = []
         self.dmproblem_cands = []
 
+    def __iter__(self):
+        return iter(self.cands)
+
     def sort(self, *args, **kwargs):
         self.cands.sort(*args, **kwargs)
 
@@ -222,7 +225,7 @@ class Candlist(object):
                     'Harmonic cand', 'DM problem', 'Good cands', 'Hits']
         colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
                     '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r', 'k']
-        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', ',']
+        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', 's']
         zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0, 0]
         sizes = [50, 50, 50, 50, 50, 50, 50, 50, 100, 10]
         fixedsizes = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
@@ -230,20 +233,23 @@ class Candlist(object):
         handles = []
         for cands, colour, marker, zorder, size, fixedsize, lw in \
                 zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws):
-            sigmas = Num.array([c.sigma for c in cands])
-            isort = sigmas.argsort()
-            sigmas = sigmas[isort]
-            freqs = Num.array([c.f for c in cands])[isort]
-            dms = Num.array([c.DM for c in cands])[isort]
-            
-            # Plot the candidates
-            if fixedsize:
-                plt.scatter(freqs, dms, s=size, lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
-            else:
-                plt.scatter(freqs, dms, s=8+sigmas**1.7, lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
-            handles.append(plt.scatter([], [], s=size, c=colour, \
+
+            if len(cands):
+                sigmas = Num.array([c.sigma for c in cands])
+                isort = sigmas.argsort()
+                sigmas = sigmas[isort]
+                freqs = Num.array([c.f for c in cands])[isort]
+                dms = Num.array([c.DM for c in cands])[isort]
+                
+                # Plot the candidates
+                
+                if fixedsize:
+                    plt.scatter(freqs, dms, s=size, lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
+                else:
+                    plt.scatter(freqs, dms, s=8+sigmas**1.7, lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
+            handles.append(plt.scatter([0], [0], s=size, c=colour, \
                                     marker=marker, alpha=0.7))
 
         fig.legend(handles, labels, 'lower center', \
@@ -922,7 +928,7 @@ def read_candidates(filenms, prelim_reject=True):
     """
     if not len(filenms):
         print "Error:  There are no candidate files to read!"
-        return None
+        return Candlist() # return empty candlist
     print "\nReading candidates from %d files...." % len(filenms)
     candlist = Candlist()
     for filenm in filenms:
