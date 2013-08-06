@@ -233,19 +233,22 @@ class Candlist(object):
         handles = []
         for cands, colour, marker, zorder, size, fixedsize, lw in \
                 zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws):
-            sigmas = Num.array([c.sigma for c in cands])
-            isort = sigmas.argsort()
-            sigmas = sigmas[isort]
-            freqs = Num.array([c.f for c in cands])[isort]
-            dms = Num.array([c.DM for c in cands])[isort]
-            
-            # Plot the candidates
-            if fixedsize:
-                plt.scatter(freqs, dms, s=size, lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
-            else:
-                plt.scatter(freqs, dms, s=8+sigmas**1.7, lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
+
+            if len(cands):
+                sigmas = Num.array([c.sigma for c in cands])
+                isort = sigmas.argsort()
+                sigmas = sigmas[isort]
+                freqs = Num.array([c.f for c in cands])[isort]
+                dms = Num.array([c.DM for c in cands])[isort]
+                
+                # Plot the candidates
+                
+                if fixedsize:
+                    plt.scatter(freqs, dms, s=size, lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
+                else:
+                    plt.scatter(freqs, dms, s=8+sigmas**1.7, lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
             handles.append(plt.scatter([], [], s=size, c=colour, \
                                     marker=marker, alpha=0.7))
 
