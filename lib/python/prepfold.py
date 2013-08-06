@@ -163,6 +163,11 @@ class pfd:
         self.T = self.Nfolded*self.dt
         self.avgprof = (self.profs/self.proflen).sum()
         self.varprof = self.calc_varprof()
+        # nominal number of degrees of freedom for reduced chi^2 calculation
+        self.DOFnom = float(self.proflen) - 1.0
+        # corrected number of degrees of freedom due to inter-bin correlations
+        self.dt_per_bin = self.curr_p1 / self.proflen / self.dt
+        self.DOFcor = self.DOFnom * self.DOF_corr()
         infile.close()
         self.barysubfreqs = None
         if self.avgvoverc==0:
@@ -291,6 +296,34 @@ class pfd:
             fdd_diff = 0.0
 
         return (f_diff, fd_diff, fdd_diff)
+
+    def DOF_corr(self):
+        """
+        DOF_corr():
+            Return a multiplicative correction for the effective number of
+            degrees of freedom in the chi^2 measurement resulting from a
+            pulse profile folded by PRESTO's fold() function
+            (i.e. prepfold).  This is required because there are
+            correlations between the bins caused by the way that prepfold
+            folds data (i.e. treating a sample as finite duration and
+            smearing it over potenitally several bins in the profile as
+            opposed to instantaneous and going into just one profile bin).
+            The correction is semi-analytic (thanks to Paul Demorest and
+            Walter Brisken) but the values for 'power' and 'factor' have
+            been determined from Monte Carlos.  The correction is good to
+            a fractional error of less than a few percent as long as
+            dt_per_bin is > 0.5 or so (which it usually is for pulsar
+            candidates).  There is a very minimal number-of-bins
+            dependence, which is apparent when dt_per_bin < 0.7 or so.
+            dt_per_bin is the width of a profile bin in samples (a float),
+            and so for prepfold is pulse period / nbins / sample time.  Note
+            that the sqrt of this factor can be used to 'inflate' the RMS
+            of the profile as well, for radiometer eqn flux density estimates,
+            for instance.
+        """
+        power, factor = 1.806, 0.96  # From Monte Carlo
+        return self.dt_per_bin * factor * \
+               (1.0 + self.dt_per_bin**(power))**(-1.0/power)
 
     def use_for_timing(self):
         """
@@ -581,7 +614,8 @@ class pfd:
         if prof is None:  prof = self.sumprof
         if avg is None:  avg = self.avgprof
         if var is None:  var = self.varprof
-        return ((prof-avg)**2.0/var).sum()/(len(prof)-1.0)
+        # Note:  use the _corrected_ DOF for reduced chi^2 calculation
+        return ((prof-avg)**2.0/var).sum() / self.DOFcor
 
     def plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0, device='/xwin'):
         """
@@ -653,13 +687,12 @@ class pfd:
                       rangey=[0.0, max(chis)*1.1], device=device)
         return chis
 
-    def estimate_offsignal_redchi2(self):
+    def estimate_offsignal_redchi2(self, numtrials=20):
         """
         estimate_offsignal_redchi2():
             Estimate the reduced-chi^2 off of the signal based on randomly shifting
                 and summing all of the component profiles.  
         """
-        numtrials = 20
         redchi2s = []
         for count in range(numtrials):
             prof = Num.zeros(self.proflen, dtype='d')

@@ -278,7 +278,8 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
 
 void CSS_profs(double *inprofs, double *outprofs,
                foldstats * instats, int numprofs, int proflen,
-               double *delays, double *sumprof, foldstats * sumstats, float *timechi)
+               double *delays, double *sumprof, foldstats * sumstats, 
+               float *timechi, float chifact)
 /* Combine, Scale and Shift 'numprofs' profiles, of length 'proflen',   */
 /* into a single profile of length 'proflen'.  The profiles are         */
 /* summed after the appropriate 'delays' are added to each profile.     */
@@ -330,7 +331,7 @@ void CSS_profs(double *inprofs, double *outprofs,
 
       /* Calculate the current chi-squared */
       redchi = chisqr(sumprof, proflen, sumstats->prof_avg,
-                      sumstats->prof_var) * rdof;
+                      sumstats->prof_var) * rdof * chifact;
       timechi[ii + 1] = (float) redchi;
    }
 
@@ -347,11 +348,11 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 /* Make the beautiful 1 page prepfold output */
 {
    int ii, jj, profindex = 0, loops = 1, ct, bestidm = 0, bestip = 0, bestipd = 0;
-   double N = 0.0, T, dphase;
+   double N = 0.0, T, dphase, dofeff;
    double parttime, bestp, bestpd, bestpdd;
    double perr, pderr, pdderr;
    double pfold, pdfold, pddfold = 0.0;
-   float *ftmparr1;
+   float ftmp, *ftmparr1, chifact, dt_per_bin;
    foldstats currentstats, beststats;
    /* Best Fold Plot */
    double *dbestprof = NULL;
@@ -382,6 +383,24 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
       bestp = search->topo.p1;
       bestpd = search->topo.p2;
       bestpdd = search->topo.p3;
+   }
+
+   // The number of samples that can fit across one profile bin
+   dt_per_bin = bestp / search->proflen / search->dt;
+
+   // Determine the chi^2 correction factor due to the correlations
+   // in the profile bins caused by fold()
+   dofeff = (search->proflen - 1.0) * DOF_corr(dt_per_bin); 
+   chifact = 1.0 / DOF_corr(dt_per_bin);
+   
+   // Get off-pulse reduced-chi^2
+   ftmp = estimate_offpulse_redchi2(search->rawfolds, search->stats,
+                                    search->npart, search->nsub, 
+                                    search->proflen, 50, dofeff); 
+   printf("Effective number of DOF = %.2f\n", dofeff);
+   printf("Off-pulse Reduced chi^2 correction factor = %.2f\n", ftmp);
+   if (flags->fixchi) {
+       chifact *= ftmp;
    }
 
    /* Find the indices for the best periods, p-dots, and DMs */
@@ -485,7 +504,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
          timechi = gen_fvect(search->npart + 1);
          tmp_profs = gen_dvect(search->npart * search->proflen);
          CSS_profs(ddprofs, tmp_profs, ddstats, search->npart,
-                   search->proflen, delays, dbestprof, &beststats, timechi);
+                   search->proflen, delays, dbestprof, &beststats, timechi, chifact);
          double2float(dbestprof, bestprof, search->proflen);
          double2float(dbestprof, bestprof + search->proflen, search->proflen);
 
@@ -523,7 +542,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                /* Combine the profiles usingthe above computed delays */
                combine_profs(ddprofs, ddstats, search->npart, search->proflen,
                              delays, currentprof, &currentstats);
-               ppdot2d[ipd * search->numperiods + ip] = currentstats.redchi;
+               ppdot2d[ipd * search->numperiods + ip] = currentstats.redchi * chifact;
             }
          }
       }
@@ -557,7 +576,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             correct_subbands_for_DM(search->dms[ii], search, ddprofs, ddstats);
             combine_profs(ddprofs, ddstats, search->npart,
                           search->proflen, delays, currentprof, &currentstats);
-            dmchi[ii] = currentstats.redchi;
+            dmchi[ii] = currentstats.redchi * chifact;
          }
 
          {                      /* Generate the Subband vs phase plot */
@@ -1226,15 +1245,15 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                else
                   cpgtext(0.0, 0.9, "        Best Fit Parameters");
                if (goodsig)
-                  sprintf(out2, "(\\(0248)%.1f\\gs)", normz);
+                  sprintf(out2, "(%.1f\\gs)", normz);
                else
                   sprintf(out2, " ");
                if (chiq == 0.0)
-                  sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) ~ 0   %s",
-                          beststats.redchi, out2);
+                  sprintf(out, "DOF\\deff\\u = %.2f  \\gx\\u2\\d\\dred\\u = %.3f  P(Noise) ~ 0   %s",
+                          dofeff, beststats.redchi, out2);
                else
-                  sprintf(out, "Reduced \\gx\\u2\\d = %.3f   P(Noise) < %.3g   %s",
-                          beststats.redchi, chiq, out2);
+                  sprintf(out, "DOF\\deff\\u = %.2f  \\gx\\u2\\d\\dred\\u = %.3f  P(Noise) < %.3g  %s",
+                          dofeff, beststats.redchi, chiq, out2);
 
                cpgtext(0.0, 0.8, out);
                if (search->nsub > 1) {

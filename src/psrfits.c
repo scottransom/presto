@@ -384,6 +384,12 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                     s->data_col = colnum;
                     fits_get_coltype(s->files[ii], colnum, &(s->FITS_typecode), 
                                      &repeat, &width, &status);
+                    // This makes CFITSIO treat 1-bit data as written in 'B' mode
+                    // even if it was written in 'X' mode originally.  This means
+                    // that we unpack it ourselves.
+                    if (s->bits_per_sample==1 && s->FITS_typecode==1) {
+                        s->FITS_typecode = 11;
+                    }
                 } else if (colnum != s->data_col) {
                     printf("Warning!:  DATA column changes between files!\n");
                 }
@@ -423,7 +429,7 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
                               s->num_channels, 0, freqs, &anynull, &status);
                 
                 if (ii==0) {
-                    s->df = freqs[1]-freqs[0];
+		  s->df = ((double)freqs[s->num_channels-1]-(double)freqs[0])/(double)(s->num_channels-1);
                     s->lo_freq = freqs[0];
                     s->hi_freq = freqs[s->num_channels-1];
                     // Now check that the channel spacing is the same throughout
@@ -570,9 +576,9 @@ int read_PSRFITS_files(char **filenames, int numfiles, struct spectra_info *s)
     s->orig_df /= (double) s->orig_num_chan;
     s->samples_per_spectra = s->num_polns * s->num_channels;
     // Note:  the following is the number of bytes that will be in
-    //        the returned array from CFITSIO.
-    //        CFITSIO turns bits into bytes when FITS_typecode=1
-    //        and we turn 2-bits or 4-bits into bytes if bits_per_sample < 8
+    //        the returned array from CFITSIO, possibly after processing by
+    //        us given that we turn 1-, 2-, and 4-bit data into bytes
+    //        immediately if bits_per_sample < 8
     if (s->bits_per_sample < 8)
         s->bytes_per_spectra = s->samples_per_spectra;
     else
@@ -943,7 +949,7 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
             {
                 int num_to_read = S.samples_per_subint;
                 // The following allows us to read byte-packed data
-                if ((S.bits_per_sample > 1) && (S.bits_per_sample < 8))
+                if (S.bits_per_sample < 8)
                     num_to_read = S.samples_per_subint * S.bits_per_sample / 8;
                 fits_read_col(S.files[cur_file], S.FITS_typecode, 
                               S.data_col, cur_subint, 1L, num_to_read, 
@@ -958,6 +964,32 @@ int read_PSRFITS_rawblock(unsigned char *data, int *padding)
                         uctmp = (unsigned char)tmpbuffer[ii];
                         tmpbuffer[jj] = uctmp & 0x0F;
                         tmpbuffer[jj-1] = uctmp >> 4;
+                    }
+                } else if (S.bits_per_sample == 2) {
+                    int ii, jj;
+                    unsigned char uctmp;
+                    for (ii = num_to_read - 1, jj = 4 * num_to_read - 1 ; 
+                         ii >= 0 ; ii--, jj -= 4) {
+                        uctmp = (unsigned char)tmpbuffer[ii];
+                        tmpbuffer[jj] = (uctmp & 0x03);
+                        tmpbuffer[jj-1] = ((uctmp >> 0x02) & 0x03);
+                        tmpbuffer[jj-2] = ((uctmp >> 0x04) & 0x03);
+                        tmpbuffer[jj-3] = ((uctmp >> 0x06) & 0x03);
+                    }
+                } else if (S.bits_per_sample == 1) {
+                    int ii, jj;
+                    unsigned char uctmp;
+                    for (ii = num_to_read - 1, jj = 8 * num_to_read - 1 ; 
+                         ii >= 0 ; ii--, jj -= 8) {
+                        uctmp = (unsigned char)tmpbuffer[ii];
+                        tmpbuffer[jj] = (uctmp & 0x01);
+                        tmpbuffer[jj-1] = ((uctmp >> 0x01) & 0x01);
+                        tmpbuffer[jj-2] = ((uctmp >> 0x02) & 0x01);
+                        tmpbuffer[jj-3] = ((uctmp >> 0x03) & 0x01);
+                        tmpbuffer[jj-4] = ((uctmp >> 0x04) & 0x01);
+                        tmpbuffer[jj-5] = ((uctmp >> 0x05) & 0x01);
+                        tmpbuffer[jj-6] = ((uctmp >> 0x06) & 0x01);
+                        tmpbuffer[jj-7] = ((uctmp >> 0x07) & 0x01);
                     }
                 }
             }

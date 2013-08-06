@@ -465,96 +465,27 @@ double simplefold(float *data, int numdata, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0        */
 /*    (i.e. to the beginning of the first data point)            */
 {
-   int ii, jj, loprofbin, hiprofbin, numbins, modhiprofbin;
-   double phase, phasenext = 0.0, deltaphase, rdeltaphase, Tnext;
-   double profbinwidth, loprofphase, hiprofphase, tmpphase;
-   double lopart, midpart, hipart, dtmp;
+   double *buffer, phase = 0.0, phaseadded = 0.0;
+   int ii, ourflags = 0;
+   foldstats stats;
 
-   /* Save some floating point ops later... */
+   /* Get the data file length and initialize some variables */
 
-   fdot /= 2.0;
-   fdotdot /= 6.0;
-   profbinwidth = 1.0 / numprof;
+   stats.numdata = stats.data_avg = stats.data_var = 0.0;
 
-   /* Get the starting pulsar phase (cyclic). */
+   /* Create and initialize the buffer needed by fold() */
+   buffer = gen_dvect(numprof);
+   for (ii = 0; ii < numprof; ii++)
+       buffer[ii] = 0.0;
 
-   phase = tlo * (tlo * (tlo * fdotdot + fdot) + fo) + startphs;
-   loprofphase = (phase < 0.0) ? 1.0 + phase - (int) phase : phase - (int) phase;
-   loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
-
-   /* Generate the profile */
-
-   for (ii = 0; ii < numdata; ii++) {
-
-      /* Get the pulsar phase (cyclic) for the next point. */
-
-      Tnext = tlo + (ii + 1) * dt;
-      phasenext = Tnext * (Tnext * (Tnext * fdotdot + fdot)
-                           + fo) + startphs;
-
-      /* How much total phase does the data point cover? */
-
-      deltaphase = phasenext - phase;
-      rdeltaphase = 1.0 / deltaphase;
-
-      /* Find the highest numbered bin we will add data to.   */
-      /* Note:  This number will be used modulo numprof so it */
-      /*        could be greater than numprof.                */
-
-      hiprofphase = loprofphase + deltaphase;
-      hiprofbin = (int) (hiprofphase * numprof + DBLCORRECT);
-      modhiprofbin = hiprofbin % numprof;
-
-      /* How many profile bins we will spread the data over? */
-
-      numbins = hiprofbin - loprofbin + 1;
-
-      /* Spread the data into the proper bins. */
-
-      if (numbins >= 3) {
-
-         /* Data point will be spread over 3 or more profile bins */
-
-         dtmp = data[ii] * rdeltaphase;
-         hipart = dtmp * ((loprofbin + 1) * profbinwidth - loprofphase);
-         tmpphase = hiprofphase - (int) hiprofphase;
-         tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
-         lopart = dtmp * (tmpphase - modhiprofbin * profbinwidth);
-         midpart = dtmp * profbinwidth;
-         prof[loprofbin] += hipart;
-         prof[modhiprofbin] += lopart;
-         for (jj = loprofbin + 1; jj < hiprofbin; jj++)
-            prof[jj % numprof] += midpart;
-
-      } else if (numbins == 2) {
-
-         /* Data point will be spread over 2 profile bins */
-
-         tmpphase = modhiprofbin * profbinwidth;
-         tmpphase = (tmpphase == 0.0) ? 1.0 : tmpphase;
-         hipart = data[ii] * (tmpphase - loprofphase) * rdeltaphase;
-         lopart = data[ii] - hipart;
-         prof[loprofbin] += hipart;
-         prof[modhiprofbin] += lopart;
-
-      } else {
-
-         /* Data point will go into only 1 profile bin */
-
-         prof[loprofbin] += data[ii];
-      }
-
-      /* Update variables */
-
-      loprofphase = hiprofphase - (int) hiprofphase;
-      loprofbin = (int) (loprofphase * numprof + DBLCORRECT);
-      phase = phasenext;
-
-   }
-
-   phasenext = (phasenext < 0.0) ?
-       1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
-   return phasenext;
+   /* Now fold */
+   phase = fold(data, numdata, dt, tlo, 
+                prof, numprof, startphs, 
+                buffer, &phaseadded,
+                fo, fdot, fdotdot, ourflags,
+                NULL, NULL, 0, NULL, &stats);
+   vect_free(buffer);
+   return phase;
 }
 
 
