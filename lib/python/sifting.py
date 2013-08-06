@@ -332,26 +332,27 @@ class Candlist(object):
         handles = []
         for cands, colour, marker, zorder, size, fixedsize, lw in \
                 zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws):
-            sigmas = Num.array([c.sigma for c in cands])
-            isort = sigmas.argsort()
-            sigmas = sigmas[isort]
-            if usefreqs:
-                xdata = Num.array([c.f for c in cands])[isort]
-                xlabel = "Freq (Hz)"
-                xscale = "log"
-            else:
-                xdata = Num.array([c.p for c in cands])[isort]
-                xlabel = "Period (s)"
-                xscale = "loglin"
-            dms = Num.array([c.DM for c in cands])[isort]
-            
-            # Plot the candidates
-            if fixedsize:
-                plt.scatter(xdata, dms, s=size, lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
-            else:
-                plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
+            if len(cands):
+                sigmas = Num.array([c.sigma for c in cands])
+                isort = sigmas.argsort()
+                sigmas = sigmas[isort]
+                if usefreqs:
+                    xdata = Num.array([c.f for c in cands])[isort]
+                    xlabel = "Freq (Hz)"
+                    xscale = "log"
+                else:
+                    xdata = Num.array([c.p for c in cands])[isort]
+                    xlabel = "Period (s)"
+                    xscale = "loglin"
+                dms = Num.array([c.DM for c in cands])[isort]
+                
+                # Plot the candidates
+                if fixedsize:
+                    plt.scatter(xdata, dms, s=size, lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
+                else:
+                    plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
             handles.append(plt.scatter([], [], s=size, c=colour, \
                                     marker=marker, alpha=0.7))
 
