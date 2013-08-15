@@ -69,17 +69,17 @@ def read_subint(fits,i_subint,nchan,nsamps, apply_weights=True, \
          Output: subint data with scales, weights, and offsets
                  applied in float32 dtype with shape (nsamps,nchan).
     """ 
-    data = read_4bit(fits[1].data[i_subint]['DATA'])
+    data = read_4bit(fits['SUBINT'].data[i_subint]['DATA'])
     if apply_weights:
-        offsets = fits[1].data[i_subint]['DAT_OFFS']
+        offsets = fits['SUBINT'].data[i_subint]['DAT_OFFS']
     else:
         offsets = 0
     if apply_scales:
-        scales = fits[1].data[i_subint]['DAT_SCL']
+        scales = fits['SUBINT'].data[i_subint]['DAT_SCL']
     else:
         scales = 1
     if apply_weights:
-        weights = fits[1].data[i_subint]['DAT_WTS']
+        weights = fits['SUBINT'].data[i_subint]['DAT_WTS']
     else:
         weights = 1
     data = data.reshape((nsamps,nchan))
@@ -88,7 +88,7 @@ def read_subint(fits,i_subint,nchan,nsamps, apply_weights=True, \
 
 def translate_header(fits_file):
     fits_hdr = fits_file[0].header
-    subint_hdr = fits_file[1].header 
+    subint_hdr = fits_file['SUBINT'].header 
     fil_header = dict.fromkeys(fil_header_keys,None)
 
     if fits_hdr['TELESCOP'] in telescope_ids:
@@ -108,8 +108,8 @@ def translate_header(fits_file):
     fil_header["source_name"] = fits_hdr['SRC_NAME']
     fil_header["barycentric"] = 0 # always not barycentered?
     fil_header["pulsarcentric"] = 0 # whats pulsarcentric?
-    fil_header["az_start"] = fits_file[1].data[0]['TEL_AZ']
-    fil_header["za_start"] = fits_file[1].data[0]['TEL_ZEN']
+    fil_header["az_start"] = fits_file['SUBINT'].data[0]['TEL_AZ']
+    fil_header["za_start"] = fits_file['SUBINT'].data[0]['TEL_ZEN']
     fil_header["src_raj"] = float(fits_hdr['RA'].replace(':',''))
     fil_header["src_dej"] = float(fits_hdr['DEC'].replace(':',''))
     fil_header["tstart"] = fits_hdr['STT_IMJD'] + \
@@ -134,9 +134,9 @@ def main(fits_fn, outfn, nbits, \
     start = time.time()
     fits = pyfits.open(fits_fn,memmap=True)
 
-    nchan = fits[1].header['NCHAN']
-    nsamps = fits[1].header['NSBLK']
-    nsubints = fits[1].header['NAXIS2']
+    nchan = fits['SUBINT'].header['NCHAN']
+    nsamps = fits['SUBINT'].header['NSBLK']
+    nsubints = fits['SUBINT'].header['NAXIS2']
 
     fil_header = translate_header(fits) 
     fil_header['nbits'] = nbits
@@ -145,7 +145,7 @@ def main(fits_fn, outfn, nbits, \
 
     # if frequency channels are in ascending order
     # band will need to be flipped
-    if fits[1].header['CHAN_BW'] > 0:
+    if fits['SUBINT'].header['CHAN_BW'] > 0:
         flip_band=True
         print "\nFits file frequencies in ascending order."
         print "\tFlipping frequency band.\n"
