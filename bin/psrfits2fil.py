@@ -51,7 +51,7 @@ def read_4bit(data):
     return np.dstack([first_piece,second_piece]).flatten()
 
 def read_subint(fits,i_subint,nchan,nsamps, apply_weights=True, \
-                apply_scales=True, apply_offsets=True):
+                apply_scales=True, apply_offsets=True, input_nbits=4):
     """
     Read a 4-bitized PSRFITS subint from a open pyfits file object.
      Applys scales, weights, and offsets to the data.
@@ -69,7 +69,11 @@ def read_subint(fits,i_subint,nchan,nsamps, apply_weights=True, \
          Output: subint data with scales, weights, and offsets
                  applied in float32 dtype with shape (nsamps,nchan).
     """ 
-    data = read_4bit(fits['SUBINT'].data[i_subint]['DATA'])
+
+    if input_nbits == 4:
+        data = read_4bit(fits['SUBINT'].data[i_subint]['DATA'])
+    elif input_nbits > 4:
+        data = fits['SUBINT'].data[i_subint]['DATA']
     if apply_weights:
         offsets = fits['SUBINT'].data[i_subint]['DAT_OFFS']
     else:
@@ -152,10 +156,16 @@ def main(fits_fn, outfn, nbits, \
     else:
         flip_band=False
 
+    # check nbits for input
+    input_nbits = fits['SUBINT'].header['NBITS']
+    if input_nbits < 4:
+        raise ValueError('Does not support %d-bit data' % input_4bits)
+
     if nbits != 32:
         print "\nCalculating statistics on first subintegration..."
         subint0 = read_subint(fits,0,nchan,nsamps, \
-                        apply_weights, apply_scales, apply_offsets)
+                        apply_weights, apply_scales, apply_offsets, \
+                        input_nbits=input_nbits)
         #new_max = np.mean(subint0) + 3*np.std(subint0)
         new_max = 3 * np.median(subint0)
         print "\t3*median =",new_max
@@ -181,7 +191,8 @@ def main(fits_fn, outfn, nbits, \
     oldpcnt = ""
     for i in range(nsubints):
 	subint = read_subint(fits,i,nchan,nsamps, \
-                    apply_weights, apply_scales, apply_offsets)
+                    apply_weights, apply_scales, apply_offsets, \
+                    input_nbits=input_nbits)
         if flip_band:
             subint = np.fliplr(subint)
 	subint /= scale_fac
