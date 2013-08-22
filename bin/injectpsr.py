@@ -407,64 +407,64 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     oldprogress = 0
     sys.stdout.write(" %3.0f %%\r" % oldprogress)
     sys.stdout.flush()
-    ylim = None
-    ylim2 = None
-    ylim3 = None
-    ylim4 = None
-    ylim5 = None
+#    ylim = None
+#    ylim2 = None
+#    ylim3 = None
+#    ylim4 = None
+#    ylim5 = None
     for ii, (delayphs, smearphs, scattphs) in \
                 enumerate(zip(phasedelays, smearphases, scatterphases)):
         #########
         # DEBUG: plot all profiles
-        plt.clf()
-        ax = plt.subplot(5,1,1)
-        inprof.plot()
-        if ylim is not None:
-            ax.set_ylim(ylim)
-        else:
-            ylim = ax.get_ylim()
+#        plt.clf()
+#        ax = plt.subplot(5,1,1)
+#        inprof.plot()
+#        if ylim is not None:
+#            ax.set_ylim(ylim)
+#        else:
+#            ylim = ax.get_ylim()
 
         if do_smear and not ((smearphs < 0.2*weq) or (smearphs < (tsamp/period))):
             # Only smear if requested and smearing-phase is large enough
-            bc = boxcar_factory(smearphs, delayphs)
-            ax2 = plt.subplot(5,1,2,sharex=ax)
-            bc.plot()
-            if ylim2 is not None:
-                ax2.set_ylim(ylim2)
-            else:
-                ylim2 = ax2.get_ylim()
+#            bc = boxcar_factory(smearphs, delayphs)
+#            ax2 = plt.subplot(5,1,2,sharex=ax)
+#            bc.plot()
+#            if ylim2 is not None:
+#                ax2.set_ylim(ylim2)
+#            else:
+#                ylim2 = ax2.get_ylim()
             tmpprof = inprof.smear(smearphs, delayphs, npts=NUMPOINTS)
         else:
             tmpprof = inprof.delay(delayphs)
             phs = np.linspace(0, 1, NUMPOINTS+1)
             tmpprof = SplineProfile(tmpprof(phs))
-        ax3 = plt.subplot(5,1,3,sharex=ax)
-        if ylim3 is not None:
-            ax3.set_ylim(ylim3)
-        else:
-            ylim3 = ax3.get_ylim()
-        tmpprof.plot()
+#        ax3 = plt.subplot(5,1,3,sharex=ax)
+#        if ylim3 is not None:
+#            ax3.set_ylim(ylim3)
+#        else:
+#            ylim3 = ax3.get_ylim()
+#        tmpprof.plot()
         if do_scatter and not ((scattphs < 0.2*weq) or (scattphs < (tsamp/period))):
             # Only scatter if requested and scattering-phase is large enough
-            ex = exponential_factory(scattphs)
-            ax4 = plt.subplot(5,1,4,sharex=ax)
-            ex.plot()
-            if ylim4 is not None:
-                ax4.set_ylim(ylim4)
-            else:
-                ylim4 = ax4.get_ylim()
+#            ex = exponential_factory(scattphs)
+#            ax4 = plt.subplot(5,1,4,sharex=ax)
+#            ex.plot()
+#            if ylim4 is not None:
+#                ax4.set_ylim(ylim4)
+#            else:
+#                ylim4 = ax4.get_ylim()
             tmpprof = tmpprof.scatter(scattphs, npts=NUMPOINTS)
-        ax5 = plt.subplot(5,1,5,sharex=ax)
-        tmpprof.plot()
-        if ylim5 is not None:
-            ax5.set_ylim(ylim5)
-        else:
-            ylim5 = ax5.get_ylim()
+#        ax5 = plt.subplot(5,1,5,sharex=ax)
+#        tmpprof.plot()
+#        if ylim5 is not None:
+#            ax5.set_ylim(ylim5)
+#        else:
+#            ylim5 = ax5.get_ylim()
         profiles.append(tmpprof)
-        plt.xlim(0,1)
-        plt.xlabel("Phase")
-        plt.suptitle("Prof %d (%f MHz)" % (ii, freqs[ii]))
-        plt.savefig("prof%d.png" % ii)
+#        plt.xlim(0,1)
+#        plt.xlabel("Phase")
+#        plt.suptitle("Prof %d (%f MHz)" % (ii, freqs[ii]))
+#        plt.savefig("prof%d.png" % ii)
         #########
         # Print progress to screen
         progress = int(100.0*ii/nfreqs)
@@ -474,7 +474,7 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
             oldprogress = progress
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
-    vecprof = VectorProfile(profiles, scale=inprof.scale)
+    vecprof = VectorProfile(profiles)
     return vecprof
 
 
@@ -616,6 +616,7 @@ def scale_from_snr(fil, prof, snr, rms):
     profmax = prof.get_max()
 
     scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
+    print "Area %g, Profile maximum: %g" % (area, profmax)
     print "Recommended scale factor: %g" % scale
     return scale
 
@@ -768,16 +769,15 @@ def main():
             snr = snr_from_smean(fil, prof, smean=args.smean, \
                                     gain=args.gain, tsys=args.tsys)
             scale = scale_from_snr(fil, prof, snr, rms=args.rms)
-            prof.set_scale(scale)
         elif args.snr is not None:
             scale = scale_from_snr(fil, prof, snr=args.snr, rms=args.rms)
-            prof.set_scale(scale)
         else:
-            prof.set_scale(args.scale)
+            scale = args.scale
        
         if args.apply_dm:
             prof = apply_dm(prof, args.period, args.dm, \
                             np.abs(fil.foff), fil.frequencies, fil.tsamp)
+        prof.set_scale(scale)
         if args.outprof is not None:
             save_profile(prof, args.outprof)
 
@@ -898,8 +898,9 @@ if __name__ == '__main__':
     if args.period is None or args.dm is None:
         raise ValueError("Both a period and a DM _must_ be provided!")
     if args.smean is not None and args.scale is not None:
-        raise ValueError("Only one of '-F/--smean' and '-s/--scale' " \
-                        "args may be provided!")
+        warnings.warn("The specified Smean value will be used to " \
+                    "determine the scaling of the profile. Any other " \
+                    "scaling (--snr/--scale) will be ignored.")
     if args.smean is not None and (args.rms is None or \
                                         args.gain is None or \
                                         args.tsys is None):
