@@ -1152,7 +1152,7 @@ def candlist_from_candfile(filename):
     return Candlist(cands)
 
 
-def read_candidates(filenms, prelim_reject=True):
+def read_candidates(filenms, prelim_reject=True, track=False):
     """Read in accelsearch candidates from the test ACCEL files.
         Return a Candlist object of Candidate instances.
 
@@ -1160,9 +1160,11 @@ def read_candidates(filenms, prelim_reject=True):
             filenms: A list of files to read candidates from.
             prelim_reject: If True, perform preliminary rejection of
                 candidates. (Default: True)
+            track: If True, keep track of bad/duplicate candidates.
+                (Default: False)
 
     """
-    candlist = Candlist()
+    candlist = Candlist(trackbad=track, trackdupes=track)
     numfiles = len(filenms)
     if filenms:
         print "\nReading candidates from %d files...." % len(filenms)
