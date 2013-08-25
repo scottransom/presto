@@ -5,6 +5,7 @@ import os
 import copy
 
 import numpy as Num
+import matplotlib
 import matplotlib.pyplot as plt
 
 from presto import candidate_sigma
@@ -34,7 +35,6 @@ harm_pow_cutoff = 8.0
 known_birds_p = []
 #                (Hz, err)
 known_birds_f = []
-
 #---------------------------------------------------
 
 fund_re = re.compile("^\d")
@@ -44,25 +44,78 @@ DM_re = re.compile("DM(\d+\.\d{2})")
 # Add some functions to maintain support for the old
 # sifting API
 def remove_duplicate_candidates(candlist, *args, **kwargs):
-    copy_of_candlist = copy.deepcopy(candlist)
-    copy_of_candlist.remove_duplicate_candidates(*args, **kwargs)
-    return copy_of_candlist
+    """Remove duplicate candidates. The candlist is modified
+        **in-place**.
+
+        Note: This function is defined to maintain support
+            for old code. It simply calls the 
+            'remove_duplicate_candidates' method of candlist.
+
+        Inputs:
+            ** All arguments are passed onto the
+            'remove_duplicate_candidates' method of candlist.
+
+        Output:
+            candlist: The modified candidate list.
+    """
+    candlist.remove_duplicate_candidates(*args, **kwargs)
+    return candlist
 
 
 def remove_DM_problems(candlist, *args, **kwargs):
-    copy_of_candlist = copy.deepcopy(candlist)
-    copy_of_candlist.remove_DM_problems(*args, **kwargs)
-    return copy_of_candlist
+    """Remove candidates with DM problems. The candlist is modified
+        **in-place**.
+
+        Note: This function is defined to maintain support
+            for old code. It simply calls the 
+            'remove_DM_problems' method of candlist.
+
+        Inputs:
+            ** All arguments are passed onto the
+            'remove_DM_problems' method of candlist.
+
+        Output:
+            candlist: The modified candidate list.
+    """
+    candlist.remove_DM_problems(*args, **kwargs)
+    return candlist
 
 
 def remove_harmonics(candlist, *args, **kwargs):
-    copy_of_candlist = copy.deepcopy(candlist)
-    copy_of_candlist.remove_harmonics(*args, **kwargs)
-    return copy_of_candlist
+    """Remove harmonics. The candlist is modified
+        **in-place**.
+
+        Note: This function is defined to maintain support
+            for old code. It simply calls the 
+            'remove_harmonics' method of candlist.
+
+        Inputs:
+            ** All arguments are passed onto the
+            'remove_harmonics' method of candlist.
+
+        Output:
+            candlist: The modified candidate list.
+    """
+    candlist.remove_harmonics(*args, **kwargs)
+    return candlist
 
 
 def write_candlist(candlist, *args, **kwargs):
     candlist.to_file(*args, **kwargs)
+
+
+def sigma_to_size(sigmas):
+    """Given a numpy array of sigma values, return an array
+        of same size with sizes of markers to plot.
+
+        Inputs:
+            sigmas: Numpy array of sigma values.
+
+        Output:
+            sizes: Numpy array of marker sizes.
+    """
+    # return 8+sigmas**1.7
+    return Num.clip(20**(sigmas/6), 5, 400)
 
 
 def print_sift_globals():
@@ -153,30 +206,45 @@ class Candidate(object):
 
 
 class Candlist(object):
-    def __init__(self, cands=None):
+    def __init__(self, cands=None, trackbad=False, trackdupes=False):
         if cands is None:
             self.cands = []
         else:
             self.cands = cands
-        self.badcands_knownbirds = []
-        self.badcands_longperiod = []
-        self.badcands_shortperiod = []
-        self.badcands_threshold = []
-        self.badcands_harmpowcutoff = []
-        self.badcands_rogueharmpow = []
-        self.duplicate_cands = []
-        self.harmonic_cands = []
-        self.dmproblem_cands = []
+        self.trackbad = trackbad # Should we keep track of bad candidates
+        self.trackdupes = trackdupes # Should we keep track of duplicates
+        # Set default badlists
+        self.badlists = {'knownbirds': [], \
+                         'longperiod': [], \
+                         'shortperiod': [], \
+                         'threshold': [], \
+                         'harmpowcutoff': [], \
+                         'rogueharmpow': [], \
+                         'harmonic': [], \
+                         'dmproblem': []}
+        self.duplicates = []
+
+    def __iter__(self):
+        return iter(self.cands)
 
     def sort(self, *args, **kwargs):
         self.cands.sort(*args, **kwargs)
 
-    def plot_summary(self):
+    def plot_summary(self, usefreqs=True):
+        """Produce a plot summarizing the sifiting performed.
+
+            Input:
+                usefreqs: If True, the horizontal axis will use
+                    frequency. If False, use period.
+            
+            Output:
+                fig: A matplotlib figure instance.
+        """
         import matplotlib
         import matplotlib.pyplot as plt
 
         fig = plt.figure(figsize=(10,8)) 
-        ax = plt.axes((0.08, 0.08, 0.87, 0.80)) 
+        ax = plt.axes((0.08, 0.18, 0.87, 0.80)) 
         plt.set_cmap("Spectral") 
         
         # Get all candidates and sort by sigma
@@ -184,27 +252,61 @@ class Candlist(object):
         sigmas = Num.array([c.sigma for c in allcands])
         isort = sigmas.argsort()
         sigmas = sigmas[isort]
-        freqs = Num.array([c.f for c in allcands])[isort]
+        if usefreqs:
+            xdata = Num.array([c.f for c in allcands])[isort]
+            xlabel = "Freq (Hz)"
+            xscale = "log"
+        else:
+            xdata = Num.array([c.p for c in allcands])[isort]
+            xlabel = "Period (s)"
+            xscale = "loglin"
         dms = Num.array([c.DM for c in allcands])[isort]
         numharms = Num.array([c.numharm for c in allcands])[isort]
 
         # Plot the all candidates 
-        plt.scatter(freqs, dms, s=8+sigmas**1.7, c=Num.log2(numharms), \
+        scatt = plt.scatter(xdata, dms, s=sigma_to_size(sigmas), \
+                                c=Num.log2(numharms), \
                                 marker='o', alpha=0.7, zorder=-1) 
   
         # Add colorbar 
-        fmtr = matplotlib.ticker.FuncFormatter(lambda x, pos: "%d" % 2**x) 
-        cb = plt.colorbar(ticks=(0,1,2,3,4), format=fmtr) 
+        fmtr = matplotlib.ticker.FuncFormatter(lambda x, pos: "%d" % 2**x)
+        cax = plt.axes((0.18, 0.06, 0.67, 0.035))
+        cb = plt.colorbar(scatt, cax=cax, ticks=(0,1,2,3,4), format=fmtr, \
+                            orientation="horizontal")
         cb.set_label("Num harmonics summed") 
-         
-        plt.xscale('log', base=10.0) 
-        plt.xlim(0.5, 10000) 
-        plt.ylim(-10, 1200) 
-        plt.xlabel("Freq (Hz)") 
+        
+        plt.axes(ax) # Set scatter plot's axes as current
+        plt.xscale(xscale)
+        plt.xlabel(xlabel)
+        mindm = Num.min(dms)
+        maxdm = Num.max(dms)
+        dmrange = Num.ptp(dms)
+        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
+        if not usefreqs:
+            plt.gca().xaxis.set_ticks(Num.concatenate((\
+                                        Num.logspace(-4,0,4, endpoint=False), \
+                                        Num.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
+                        r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
+                        "9", "11", "13", "15"])
+            plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
+                        min(long_period+0.5, max(xdata)+0.5))
+        ax.format_coord = lambda x,y: "x=%g, y=%g" % (x,y)
         return fig
 
-    def plot_goodbad(self):
+    def plot_rejects(self, usefreqs=True):
+        """Produce a plot showing why candidates were rejected by
+            the sifiting performed.
+
+            Input:
+                usefreqs: If True, the horizontal axis will use
+                    frequency. If False, use period.
+            
+            Output:
+                fig: A matplotlib figure instance.
+        """
         import matplotlib
         import matplotlib.pyplot as plt
 
@@ -222,7 +324,7 @@ class Candlist(object):
                     'Harmonic cand', 'DM problem', 'Good cands', 'Hits']
         colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
                     '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r', 'k']
-        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', ',']
+        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', 's']
         zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0, 0]
         sizes = [50, 50, 50, 50, 50, 50, 50, 50, 100, 10]
         fixedsizes = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
@@ -230,46 +332,170 @@ class Candlist(object):
         handles = []
         for cands, colour, marker, zorder, size, fixedsize, lw in \
                 zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws):
-            sigmas = Num.array([c.sigma for c in cands])
+            if len(cands):
+                sigmas = Num.array([c.sigma for c in cands])
+                isort = sigmas.argsort()
+                sigmas = sigmas[isort]
+                if usefreqs:
+                    xdata = Num.array([c.f for c in cands])[isort]
+                    xlabel = "Freq (Hz)"
+                    xscale = "log"
+                else:
+                    xdata = Num.array([c.p for c in cands])[isort]
+                    xlabel = "Period (s)"
+                    xscale = "loglin"
+                dms = Num.array([c.DM for c in cands])[isort]
+                
+                # Plot the candidates
+                if fixedsize:
+                    plt.scatter(xdata, dms, s=size, lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
+                else:
+                    plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, \
+                                c=colour, marker=marker, alpha=0.7, zorder=zorder)
+            handles.append(plt.scatter([0], [0], s=size, c=colour, \
+                                    marker=marker, alpha=0.7))
+
+        fig.legend(handles, labels, 'lower center', \
+                        prop={'size':'x-small'}, ncol=4)
+
+        plt.xscale(xscale) 
+        plt.xlabel(xlabel)
+        mindm = Num.min(dms)
+        maxdm = Num.max(dms)
+        dmrange = Num.ptp(dms)
+        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+        plt.ylabel(r"DM (pc cm$^{-3}$)") 
+        if not usefreqs:
+            plt.gca().xaxis.set_ticks(Num.concatenate((\
+                                        Num.logspace(-4,0,4, endpoint=False), \
+                                        Num.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
+                        r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
+                        "9", "11", "13", "15"])
+            plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
+                        min(long_period+0.5, max(xdata)+0.5))
+        return fig
+
+    def plot_goodcands(self, usefreqs=True):
+        """Produce a plot highlighting good candidates as selected by
+            the sifiting performed.
+
+            Input:
+                usefreqs: If True, the horizontal axis will use
+                    frequency. If False, use period.
+            
+            Output:
+                fig: A matplotlib figure instance.
+        """
+        import matplotlib
+        import matplotlib.pyplot as plt
+
+        fig = plt.figure(figsize=(10,8)) 
+        ax = plt.axes((0.08, 0.18, 0.87, 0.80)) 
+        
+        # Plot candidates
+        labels = []
+        candlists = []
+        for key in self.badlists:
+            labels.append(key.title())
+            candlists.append(self.badlists[key])
+        candlists.append(self.cands)
+        labels.append('Good cands')
+        colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
+                    '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r']
+        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'o']
+        zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0]
+        sizes = [10, 10, 10, 10, 10, 10, 10, 10, 50]
+        fixedsizes = [1, 1, 1, 1, 1, 1, 1, 1, 0]
+        lws = [1,1,1,1,1,1,1,1,1,1]
+        ecs = ['none', 'none', 'none', 'none', 'none', 'none', 'none', 'none', 'k']
+        alphas = [1,1,1,1,1,1,1,1,0.7]
+        handles = []
+        for cands, colour, marker, zorder, size, fixedsize, lw, alpha, ec in \
+                zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws, alphas, ecs):
+            sigmas = []
+            dms = []
+            xdata = []
+            for c in cands:
+                sigmas.extend([h.sigma for h in c.hits])
+                dms.extend([h[0] for h in c.hits])
+                if usefreqs:
+                    xval = c.f
+                else:
+                    xval = c.p
+                xdata.extend([xval]*len(c.hits))
+            sigmas = Num.array(sigmas)
+            dms = Num.array(dms)
+            xdata = Num.array(xdata)
+
             isort = sigmas.argsort()
             sigmas = sigmas[isort]
-            freqs = Num.array([c.f for c in cands])[isort]
-            dms = Num.array([c.DM for c in cands])[isort]
+            dms = dms[isort]
+            xdata = xdata[isort]
+            if usefreqs:
+                xlabel = "Freq (Hz)"
+                xscale = "log"
+            else:
+                xlabel = "Period (s)"
+                xscale = "loglin"
             
             # Plot the candidates
             if fixedsize:
-                plt.scatter(freqs, dms, s=size, lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
+                plt.scatter(xdata, dms, s=size, lw=lw, edgecolors=ec, \
+                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
             else:
-                plt.scatter(freqs, dms, s=8+sigmas**1.7, lw=lw, \
-                            c=colour, marker=marker, alpha=0.7, zorder=zorder)
+                plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, edgecolors=ec, \
+                            c=colour, marker=marker, alpha=alpha, zorder=zorder)
             handles.append(plt.scatter([], [], s=size, c=colour, \
                                     marker=marker, alpha=0.7))
 
         fig.legend(handles, labels, 'lower center', \
                         prop={'size':'x-small'}, ncol=4)
 
-        plt.xscale('log', base=10.0) 
-        plt.xlim(0.5, 10000) 
-        plt.ylim(-10, 1200) 
-        plt.xlabel("Freq (Hz)") 
-        plt.ylabel(r"DM (pc cm$^{-3}$)") 
+        plt.xscale(xscale) 
+        plt.xlabel(xlabel) 
+        mindm = Num.min(dms)
+        maxdm = Num.max(dms)
+        dmrange = Num.ptp(dms)
+        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+        plt.ylabel(r"DM (pc cm$^{-3}$)")
+        if not usefreqs:
+            plt.gca().xaxis.set_ticks(Num.concatenate((\
+                                        Num.logspace(-4,0,4, endpoint=False), \
+                                        Num.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
+                        r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
+                        "9", "11", "13", "15"])
+            plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
+                        min(long_period+0.5, max(xdata)+0.5))
         return fig
 
+    def mark_as_bad(self, icand, badlistname):
+        cand = self.cands.pop(icand)
+        if self.trackbad:
+            badlist = self.badlists.setdefault(badlistname, [])
+            badlist.append(cand)
+
+    def mark_as_duplicate(self, icand):
+        cand = self.cands.pop(icand)
+        if self.trackdupes:
+            self.duplicates.append(self.cands.pop(icand))
+
     def get_all_cands(self):
-        return self.cands + self.badcands_knownbirds + self.badcands_longperiod + \
-                self.badcands_shortperiod + self.badcands_threshold + \
-                self.badcands_harmpowcutoff + self.badcands_rogueharmpow + \
-                self.duplicate_cands + self.harmonic_cands + self.dmproblem_cands
+        cands = self.get_all_goodcands()
+        return self.get_all_goodcands() + self.get_all_badcands()
 
     def get_all_goodcands(self):
         return self.cands + self.duplicate_cands
 
     def get_all_badcands(self):
-        return self.badcands_knownbirds + self.badcands_longperiod + \
-                self.badcands_shortperiod + self.badcands_threshold + \
-                self.badcands_harmpowcutoff + self.badcands_rogueharmpow + \
-                self.harmonic_cands + self.dmproblem_cands
+        cands = []
+        for key in self.badlists.keys():
+            cands += self.badlists[key]
+        return cands
 
     def reject_longperiod(self, long_period=None):
         """Find and remove very long period candidates.
@@ -289,7 +515,7 @@ class Candlist(object):
             if (cand.p > long_period):
                 cand.note = "Period is too long (%g ms > %g ms)" % \
                             (cand.p*1000, long_period*1000)
-                self.badcands_longperiod.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'longperiod')
     
     def reject_shortperiod(self, short_period=None):
         """Find and remove very short period candidates.
@@ -307,9 +533,9 @@ class Candlist(object):
         for ii in reversed(range(len(self.cands))):
             cand = self.cands[ii]
             if (cand.p < short_period):
-                cand.note = "Period is too short (%g ms > %g ms)" % \
+                cand.note = "Period is too short (%g ms < %g ms)" % \
                             (cand.p*1000, short_period*1000)
-                self.badcands_shortperiod.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'shortperiod')
 
     def reject_knownbirds(self, known_birds_f=[], known_birds_p=[]):
         """Find and remove candidates conincident with known birds.
@@ -342,7 +568,7 @@ class Candlist(object):
                                     (cand.f, err, bird)
                     break
             if known_bird:
-                self.badcands_knownbirds.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'knownbirds')
                 continue
             for bird, err in known_birds_p:
                 if (Num.fabs(cand.p*1000.0-bird) < err):
@@ -352,7 +578,7 @@ class Candlist(object):
                                     (cand.f*1000, err, bird)
                     break
             if known_bird:
-                self.badcands_knownbirds.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'knownbirds')
                 continue
 
     def reject_threshold(self, sigma_threshold=None, \
@@ -385,14 +611,14 @@ class Candlist(object):
                                 "(%g < %g) and coherent power (%g < %g) are " \
                                 "too low." % (cand.sigma, sigma_threshold, \
                                                 cand.cpow, c_pow_threshold)
-                    self.badcands_threshold.append(self.cands.pop(ii))
+                    self.mark_as_bad(ii, 'threshold')
             else:
                 # Multiple harmonic case
                 if cand.sigma < sigma_threshold:
                     cand.note = "%d harmonics and sigma " \
                                 "(%g < %g) is too low." % \
                                 (cand.numharm, cand.sigma, sigma_threshold)
-                    self.badcands_threshold.append(self.cands.pop(ii))
+                    self.mark_as_bad(ii, 'threshold')
         
 
     def reject_harmpowcutoff(self, harm_pow_cutoff=None):
@@ -414,7 +640,7 @@ class Candlist(object):
             maxpow = cand.harm_pows[maxharm]
             if maxpow < harm_pow_cutoff:
                 cand.note = "All harmonics have power < %g" % harm_pow_cutoff
-                self.badcands_harmpowcutoff.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'harmpowcutoff')
 
     def reject_rogueharmpow(self):
         """Find and remove candidates which are dominated by a single
@@ -441,7 +667,7 @@ class Candlist(object):
                 # 4+th harmonic our of 8+ harmonics
                 cand.note = "High-numbered harmonic (%d) has too " \
                             "much power" % maxharm
-                self.badcands_rogueharmpow.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'rogueharmpow')
             elif (cand.numharm >= 4 and maxharm > 2 and \
                                         maxpow > 3*sortedpows[-2]):
                 # Max-power harmonic is at least 3x more powerful 
@@ -449,7 +675,7 @@ class Candlist(object):
                 # 2+th harmonic our of 4+ harmonics
                 cand.note = "High-numbered harmonic (%d) has too " \
                             "much power" % maxharm
-                self.badcands_rogueharmpow.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'rogueharmpow')
         
     def default_rejection(self):
         """Run all rejection methonds with default arguments.
@@ -513,7 +739,7 @@ class Candlist(object):
                     bestcand.add_as_hit(match)
                     match.note = "This candidate is a duplicate of %s:%d" % \
                                 (bestcand.filename, bestcand.candnum)
-                    self.duplicate_cands.append(self.cands.pop(matchind))
+                    self.mark_as_duplicate(matchind)
                     if verbosity >= 2:
                         print "Removing %s:%d (index: %d)" % \
                                 (match.filename, match.candnum, matchind)
@@ -553,43 +779,57 @@ class Candlist(object):
                 harmcand = self.cands[jj]
                 if zapj:  print "Hey!"
                 for factor in Num.arange(1.0, 17.0):
-                    if (Num.fabs(fundcand.f - harmcand.f*factor) < f_err or
-                        Num.fabs(fundcand.f - harmcand.f/factor) < f_err):
+                    if Num.fabs(fundcand.f - harmcand.f*factor) < f_err*factor:
+                        zapj = 1
+                        harmstr = "1/%dth" % factor
+                    elif Num.fabs(fundcand.f - harmcand.f/factor) < f_err/factor:
+                        zapj = 1
+                        if factor==2.0:
+                            harmstr = "%dnd" % factor
+                        else:
+                            harmstr = "%dth" % factor
+                    if zapj:
                         if verbosity >= 2:
                             print "Removing %s:%d (%.2f Hz) because it is " \
-                                    "a harmonic of %s:%d (%.2f Hz)" % \
+                                    "a harmonic (%s) of %s:%d (%.2f Hz)" % \
                                     (harmcand.filename, \
                                         harmcand.candnum, \
                                         harmcand.f, \
+                                        harmstr, \
                                         fundcand.filename, \
                                         fundcand.candnum, \
                                         fundcand.f)
-                        zapj = 1
                         break
                 # Check a few other common ratios
-                for factor in [3.0/2.0, 5.0/2.0,
-                               2.0/3.0, 4.0/3.0, 5.0/3.0,
-                               3.0/4.0, 5.0/4.0,
-                               2.0/5.0, 3.0/5.0, 4.0/5.0]:
-                    if Num.fabs(fundcand.f-harmcand.f*factor) < f_err:
+                for numer,denom in zip([3.0, 5.0, 2.0, 4.0, 5.0, \
+                                        3.0, 5.0, 2.0, 3.0, 4.0],
+                                       [2.0, 2.0, 3.0, 3.0, 3.0, \
+                                        4.0, 4.0, 5.0, 5.0, 5.0]):
+                    factor = numer/denom
+                    if Num.fabs(fundcand.f-harmcand.f*factor) < f_err*factor:
                         if verbosity >= 2:
                             print "Removing %s:%d (%.2f Hz) because it is " \
-                                    "a harmonic of %s:%d (%.2f Hz)" % \
+                                    "a harmonic (%d/%dth) of %s:%d (%.2f Hz)" % \
                                     (harmcand.filename, \
                                         harmcand.candnum, \
                                         harmcand.f, \
+                                        denom, \
+                                        numer, \
                                         fundcand.filename, \
                                         fundcand.candnum, \
                                         fundcand.f)
+                        harmstr = "%d/%dth" % (denom, numer)
                         zapj = 1
                         break
                 if zapj:
                     harmcand.note = "This candidate (P=%.4f s, DM=%.2f) is " \
-                                    "a harmonic of %s:%d (P=%.4f s, DM=%.2f)." % \
-                                (harmcand.p, harmcand.DM, fundcand.filename, \
-                                    fundcand.candnum, fundcand.p, fundcand.DM)
+                                    "a harmonic (%s) of %s:%d " \
+                                    "(P=%.4f s, DM=%.2f)." % \
+                                (harmcand.p, harmcand.DM, harmstr, \
+                                    fundcand.filename, fundcand.candnum, \
+                                    fundcand.p, fundcand.DM)
                     numremoved += 1
-                    self.harmonic_cands.append(self.cands.pop(jj))
+                    self.mark_as_bad(jj, 'harmonic')
                     if verbosity >= 2:
                         print "Removing %s:%d (index: %d)" % \
                                 (harmcand.filename, harmcand.candnum, jj)
@@ -639,24 +879,25 @@ class Candlist(object):
                 currcand.note = "Candidate has only %d DM hits. This is less " \
                                 "than minimum for 'good' cands (%d hits)" % \
                                 (len(currcand.hits), numdms)
-                self.dmproblem_cands.append(self.cands.pop(ii))
+                self.mark_as_bad(ii, 'dmproblem')
                 if verbosity >= 2:
                     print "Removing %s:%d (index: %d)" % \
                             (currcand.filename, currcand.candnum, ii)
                     print "    %s" % currcand.note
                 continue
 
-            # Remove all the candidates where the max SNR DM is 
+            # Remove all the candidates where the max sigma DM is 
             # less than the cutoff DM
-            imax = Num.argmax(Num.array([hit[1] for hit in currcand.hits]))
-            hitdm, hitsnr = currcand.hits[imax]
+            # Recall - A hit is a 3-tuple: (DM, SNR, sigma)
+            imax = Num.argmax(Num.array([hit[2] for hit in currcand.hits]))
+            hitdm, hitsnr, hitsigma = currcand.hits[imax]
             if float(hitdm) <= low_DM_cutoff:
                 numremoved += 1
                 num_toolow += 1
-                currcand.note = "Hit with max SNR (%g) has dm (%.2f) " \
+                currcand.note = "Hit with max sigma (%g) has dm (%.2f) " \
                                 "<= low DM cutoff (%.2f) " % \
-                                    (hitsnr, hitdm, low_DM_cutoff)
-                self.dmproblem_cands.append(self.cands.pop(ii))
+                                    (hitsigma, hitdm, low_DM_cutoff)
+                self.mark_as_bad(ii, 'dmproblem')
                 if verbosity >= 2:
                     print "Removing %s:%d (index: %d)" % \
                             (currcand.filename, currcand.candnum, ii)
@@ -674,7 +915,7 @@ class Candlist(object):
                     num_gaps += 1
                     currcand.note = "DM list of hits has gaps (i.e. " \
                                     "consecutive DMs don't have hits)."
-                    self.dmproblem_cands.append(self.cands.pop(ii))
+                    self.mark_as_bad(ii, 'dmproblem')
                     if verbosity >= 2:
                         print "Removing %s:%d (index: %d)" % \
                                 (currcand.filename, currcand.candnum, ii)
@@ -782,15 +1023,10 @@ class Candlist(object):
                 None - the original Candlist object is extended in place.
         """
         self.cands.extend(other.cands)
-        self.badcands_knownbirds.extend(other.badcands_knownbirds)
-        self.badcands_longperiod.extend(other.badcands_longperiod)
-        self.badcands_shortperiod.extend(other.badcands_shortperiod)
-        self.badcands_threshold.extend(other.badcands_threshold)
-        self.badcands_harmpowcutoff.extend(other.badcands_harmpowcutoff)
-        self.badcands_rogueharmpow.extend(other.badcands_rogueharmpow)
-        self.duplicate_cands.extend(other.duplicate_cands)
-        self.harmonic_cands.extend(other.harmonic_cands)
-        self.dmproblem_cands.extend(other.dmproblem_cands)
+        self.duplicates.extend(other.duplicates)
+        for key in other.badlists:
+            bad = self.badlists.setdefault(key, [])
+            bad.extend(other.badlists[key])
 
     def to_file(self, candfilenm=None):
         """Write Candlist to file (or stdout).
@@ -815,25 +1051,30 @@ class Candlist(object):
             if (len(goodcand.hits) > 1):
                 goodcand.hits.sort(cmp_dms)
                 for hit in goodcand.hits:
-                    numstars = int(hit[1]/3.0)
-                    candfile.write("  DM=%6.2f SNR=%5.2f   "%hit + numstars*'*' + '\n')
+                    numstars = int(hit[2]/3.0)
+                    candfile.write("  DM=%6.2f SNR=%5.2f Sigma=%5.2f   "%hit + \
+                                    numstars*'*' + '\n')
         if candfilenm is not None:
             candfile.close()
 
 
 def candlist_from_candfile(filename):
+    candfile = open(filename, 'r')
     # First identify the length of the observation searched
-    for line in open(filename, 'r'):
+    for line in candfile:
         if line.startswith(" Number of bins in the time series"):
             numsamp = int(line.split()[-1])
         if line.startswith(" Width of each time series bin (sec)"):
             dt = float(line.split()[-1])
     tobs = numsamp * dt
 
+    # Go back to the start of the file to read the candidates
+    candfile.seek(0)
+
     cands = []
     candnums = []
     current_goodcandnum = 0
-    for line in open(filename, 'r'):
+    for line in candfile:
         # Identify the candidates in the top of the file
         if fund_re.match(line):
             split_line = line.split()
@@ -875,14 +1116,14 @@ def candlist_from_candfile(filename):
                     current_goodcandnum = 0
                     # Compute the S/N
                     cand.harms_to_snr()
-                    # Now that S/N is available
-                    # List candidate as a hit of itself
-                    cand.hits = [(cand.DM, cand.snr)]
                     # These are the "optimized" power...
                     opt_ipow = cand.harm_pows[0]
                     # and sigma (calculated assuming _1_ trial!)
                     opt_sigma = candidate_sigma(opt_ipow, 1, 1)
                     cand.sigma = opt_sigma
+                    # Now that S/N and sigma are available
+                    # List candidate as a hit of itself
+                    cand.hits = [(cand.DM, cand.snr, cand.sigma)]
                     cand.ipow_det = opt_ipow
             continue
 
@@ -898,15 +1139,16 @@ def candlist_from_candfile(filename):
             if (current_harmnum==cand.numharm):
                 # Compute the S/N
                 cand.harms_to_snr()
-                # Now that S/N is available
-                # List candidate as a hit of itself
-                cand.hits = [(cand.DM, cand.snr)]
                 # Compute sigma and incoherent power
                 opt_ipow = sum(cand.harm_pows)
                 opt_sigma = candidate_sigma(opt_ipow, cand.numharm, 1)
                 cand.sigma = opt_sigma
+                # Now that S/N and sigma are available
+                # List candidate as a hit of itself
+                cand.hits = [(cand.DM, cand.snr, cand.sigma)]
                 cand.ipow_det = opt_ipow
                 current_goodcandnum = 0
+    candfile.close()
     return Candlist(cands)
 
 
@@ -920,16 +1162,20 @@ def read_candidates(filenms, prelim_reject=True):
                 candidates. (Default: True)
 
     """
-    if not len(filenms):
-        print "Error:  There are no candidate files to read!"
-        return None
-    print "\nReading candidates from %d files...." % len(filenms)
     candlist = Candlist()
-    for filenm in filenms:
-        curr_candlist = candlist_from_candfile(filenm)
-        candlist.extend(curr_candlist)
-    if prelim_reject:
-        candlist.default_rejection()
+    numfiles = len(filenms)
+    if filenms:
+        print "\nReading candidates from %d files...." % len(filenms)
+        for ii, filenm in enumerate(filenms):
+            curr_candlist = candlist_from_candfile(filenm)
+            if prelim_reject:
+                curr_candlist.default_rejection()
+            candlist.extend(curr_candlist)
+            sys.stdout.write(" Read %d of %d files (%d cands)\r" % (ii+1, numfiles, len(candlist)))
+            sys.stdout.flush()
+        print "\nDone"
+    else:
+        print "Error:  There are no candidate files to read!"
     return candlist
 
 
@@ -991,11 +1237,78 @@ def sift_directory(dir, outbasenm):
         all_accel_cands.to_file(outbasenm+".accelcands")
     all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
     all_accel_cands.print_cand_summary()
-    all_accel_cands.plot_goodbad()
+    all_accel_cands.plot_rejects(usefreqs=False)
     plt.savefig(outbasenm+".accelcands.rejects.png")
-    all_accel_cands.plot_summary()
+    all_accel_cands.plot_goodcands(usefreqs=False)
+    plt.savefig(outbasenm+".accelcands.goodcands.png")
+    all_accel_cands.plot_summary(usefreqs=False)
     plt.savefig(outbasenm+".accelcands.summary.png")
+    plt.show()
 
+
+def LogLinScaleFactory(b):
+    class LogLinScale(matplotlib.scale.ScaleBase):
+        name = 'loglin'
+
+        def __init__(self, axis, **kwargs):
+            matplotlib.scale.ScaleBase.__init__(self)
+            self.thresh = kwargs.pop("thresh", 1e-5)
+            if self.thresh <= 0.0:
+                raise ValueError("thresh must be larger than 0")
+
+        def get_transform(self):
+            return self.LogLinTransform(self.thresh)
+
+        def set_default_locators_and_formatters(self, axis):
+            pass
+
+        def limit_range_for_scale(self, vmin, vmax, minpos):
+            return max(vmin, self.thresh), vmax
+
+        class LogLinTransform(matplotlib.transforms.Transform):
+            input_dims = 1
+            output_dims = 1
+            is_separable = True
+            brk = b
+
+            def __init__(self, thresh):
+                matplotlib.transforms.Transform.__init__(self)
+                self.thresh = thresh
+
+            def transform(self, a):
+                aa = Num.ma.masked_where(a<self.thresh, a)
+                if aa.mask.any():
+                    aa[a<self.brk] = Num.ma.log10(a[a<self.brk]) - \
+                                        Num.log10(self.brk)+self.brk
+                else:
+                    aa[a<self.brk] = Num.log10(a[a<self.brk]) - \
+                                        Num.log10(self.brk)+self.brk
+                return aa
+
+            def inverted(self):
+                return LogLinScale.InvertedLogLinTransform(self.thresh)
+
+        class InvertedLogLinTransform(matplotlib.transforms.Transform):
+            input_dims = 1
+            output_dims = 1
+            is_separable = True
+            brk = b
+
+            def __init__(self, thresh):
+                matplotlib.transforms.Transform.__init__(self)
+                self.thresh = thresh
+
+            def transform(self, a):
+                aa = a.copy()
+                aa[a<self.brk] = Num.ma.power(10, a[a<self.brk]-self.brk + \
+                                                Num.log10(self.brk))
+                return aa
+
+            def inverted(self):
+                return LogLinScale.LogLinTransform(self.thresh)
+    return LogLinScale
+
+matplotlib.scale.register_scale(LogLinScaleFactory(1))
 
 def main():
     # Sift candidates in PWD
