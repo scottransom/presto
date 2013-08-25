@@ -415,7 +415,7 @@ class Candlist(object):
             dms = []
             xdata = []
             for c in cands:
-                sigmas.extend([h[1]/c.snr*c.sigma for h in c.hits])
+                sigmas.extend([h.sigma for h in c.hits])
                 dms.extend([h[0] for h in c.hits])
                 if usefreqs:
                     xval = c.f
@@ -882,10 +882,11 @@ class Candlist(object):
                     print "    %s" % currcand.note
                 continue
 
-            # Remove all the candidates where the max SNR DM is 
+            # Remove all the candidates where the max sigma DM is 
             # less than the cutoff DM
+            # Recall - A hit is a 3-tuple: (DM, SNR, sigma)
             imax = Num.argmax(Num.array([hit[1] for hit in currcand.hits]))
-            hitdm, hitsnr = currcand.hits[imax]
+            hitdm, hitsnr, hitsigma = currcand.hits[imax]
             if float(hitdm) <= low_DM_cutoff:
                 numremoved += 1
                 num_toolow += 1
@@ -1046,8 +1047,9 @@ class Candlist(object):
             if (len(goodcand.hits) > 1):
                 goodcand.hits.sort(cmp_dms)
                 for hit in goodcand.hits:
-                    numstars = int(hit[1]/3.0)
-                    candfile.write("  DM=%6.2f SNR=%5.2f   "%hit + numstars*'*' + '\n')
+                    numstars = int(hit[2]/3.0)
+                    candfile.write("  DM=%6.2f SNR=%5.2f Sigma=%5.2f   "%hit + \
+                                    numstars*'*' + '\n')
         if candfilenm is not None:
             candfile.close()
 
@@ -1110,14 +1112,14 @@ def candlist_from_candfile(filename):
                     current_goodcandnum = 0
                     # Compute the S/N
                     cand.harms_to_snr()
-                    # Now that S/N is available
-                    # List candidate as a hit of itself
-                    cand.hits = [(cand.DM, cand.snr)]
                     # These are the "optimized" power...
                     opt_ipow = cand.harm_pows[0]
                     # and sigma (calculated assuming _1_ trial!)
                     opt_sigma = candidate_sigma(opt_ipow, 1, 1)
                     cand.sigma = opt_sigma
+                    # Now that S/N and sigma are available
+                    # List candidate as a hit of itself
+                    cand.hits = [(cand.DM, cand.snr, cand.sigma)]
                     cand.ipow_det = opt_ipow
             continue
 
@@ -1133,13 +1135,13 @@ def candlist_from_candfile(filename):
             if (current_harmnum==cand.numharm):
                 # Compute the S/N
                 cand.harms_to_snr()
-                # Now that S/N is available
-                # List candidate as a hit of itself
-                cand.hits = [(cand.DM, cand.snr)]
                 # Compute sigma and incoherent power
                 opt_ipow = sum(cand.harm_pows)
                 opt_sigma = candidate_sigma(opt_ipow, cand.numharm, 1)
                 cand.sigma = opt_sigma
+                # Now that S/N and sigma are available
+                # List candidate as a hit of itself
+                cand.hits = [(cand.DM, cand.snr, cand.sigma)]
                 cand.ipow_det = opt_ipow
                 current_goodcandnum = 0
     candfile.close()
