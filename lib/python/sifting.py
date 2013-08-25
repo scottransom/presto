@@ -885,14 +885,14 @@ class Candlist(object):
             # Remove all the candidates where the max sigma DM is 
             # less than the cutoff DM
             # Recall - A hit is a 3-tuple: (DM, SNR, sigma)
-            imax = Num.argmax(Num.array([hit[1] for hit in currcand.hits]))
+            imax = Num.argmax(Num.array([hit[2] for hit in currcand.hits]))
             hitdm, hitsnr, hitsigma = currcand.hits[imax]
             if float(hitdm) <= low_DM_cutoff:
                 numremoved += 1
                 num_toolow += 1
-                currcand.note = "Hit with max SNR (%g) has dm (%.2f) " \
+                currcand.note = "Hit with max sigma (%g) has dm (%.2f) " \
                                 "<= low DM cutoff (%.2f) " % \
-                                    (hitsnr, hitdm, low_DM_cutoff)
+                                    (hitsigma, hitdm, low_DM_cutoff)
                 self.mark_as_bad(ii, 'dmproblem')
                 if verbosity >= 2:
                     print "Removing %s:%d (index: %d)" % \
