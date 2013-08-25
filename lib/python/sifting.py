@@ -324,7 +324,7 @@ class Candlist(object):
                     'Harmonic cand', 'DM problem', 'Good cands', 'Hits']
         colours = ['#FF0000', '#800000', '#008000', '#00FF00', \
                     '#00FFFF', '#0000FF', '#FF00FF', '#800080', 'r', 'k']
-        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', ',']
+        markers = ['o', 'o', 'o', 'o', 'o', 'o', 'o', 'o', 'x', 's']
         zorders = [-2, -2, -2, -2, -2, -2, -2, -2, 0, 0]
         sizes = [50, 50, 50, 50, 50, 50, 50, 50, 100, 10]
         fixedsizes = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1]
@@ -353,7 +353,7 @@ class Candlist(object):
                 else:
                     plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, \
                                 c=colour, marker=marker, alpha=0.7, zorder=zorder)
-            handles.append(plt.scatter([], [], s=size, c=colour, \
+            handles.append(plt.scatter([0], [0], s=size, c=colour, \
                                     marker=marker, alpha=0.7))
 
         fig.legend(handles, labels, 'lower center', \
