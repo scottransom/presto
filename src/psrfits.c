@@ -730,6 +730,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
     float *fptr;
     unsigned char *cptr;
     short *sptr;
+    float *ftptr;
     int ii, jj, status = 0, anynull;
     int numtoread = s->samples_per_subint;
     
@@ -831,6 +832,14 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                         *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[idx+jj] + 
                                    offsets[idx+jj]) * weights[jj];
                 }
+	    } else if (s->bits_per_sample==32) { 
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {                                            
+                    idx = (s->use_poln-1) * s->num_channels;                                                  
+                    ftptr = (float *)cdata + ii * s->samples_per_spectra + idx;                               
+                    for (jj = 0 ; jj < s->num_channels ; jj++)                                                
+                        *fptr++ = (((float)(*ftptr++) - s->zero_offset) * scales[idx+jj] +                    
+                                   offsets[idx+jj]) * weights[jj];                                            
+                }              
             } else {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                     idx = (s->use_poln-1) * s->num_channels;
@@ -853,6 +862,16 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                                   offsets[idx+jj]) * weights[jj];
                     }
                 }
+            } else if (s->bits_per_sample==32) {
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                    ftptr = (float *)cdata + ii * s->samples_per_spectra;
+		    for (jj = 0 ; jj < s->num_channels ; jj++, ftptr++, fptr++) {
+		        *fptr = (((float)(*ftptr) - s->zero_offset) * scales[jj] + 
+				offsets[jj]) * weights[jj];
+			*fptr += (((float)(*(ftptr+idx)) - s->zero_offset) * scales[idx+jj] + 
+				offsets[idx+jj]) * weights[jj];
+		    }	
+		}
             } else {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                     cptr = cdata + ii * s->samples_per_spectra;
