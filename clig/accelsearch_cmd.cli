@@ -26,6 +26,7 @@ Double -flo     flo     {The lowest frequency (Hz) (of the highest harmonic!) to
 	-r 0.0 oo -d 1.0
 Double -fhi     fhi     {The highest frequency (Hz) (of the highest harmonic!) to search} \
 	-r 0.0 oo -d 10000.0
+Flag   -inmem   inmem   {Make full f-fdot plane in memory.  Very fast, but only for short time series.}
 Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
 Flag   -median  median  {Use block-median power normalization (default)}
 Flag   -locpow  locpow  {Use double-tophat local-power normalization (not usually recommended)}

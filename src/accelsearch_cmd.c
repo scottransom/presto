@@ -54,6 +54,8 @@ static Cmdline cmd = {
   /* fhiP = */ 1,
   /* fhi = */ 10000.0,
   /* fhiC = */ 1,
+  /***** -inmem: Make full f-fdot plane in memory.  Very fast, but only for short time series. */
+  /* inmemP = */ 0,
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   /* photonP = */ 0,
   /***** -median: Use block-median power normalization (default) */
@@ -873,6 +875,13 @@ showOptionValues(void)
     }
   }
 
+  /***** -inmem: Make full f-fdot plane in memory.  Very fast, but only for short time series. */
+  if( !cmd.inmemP ) {
+    printf("-inmem not found.\n");
+  } else {
+    printf("-inmem found:\n");
+  }
+
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   if( !cmd.photonP ) {
     printf("-photon not found.\n");
@@ -953,7 +962,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-harmpolish] [-noharmpolish] [-noharmremove] [--] infile\n");
+  fprintf(stderr,"%s","   [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-harmpolish] [-noharmpolish] [-noharmremove] [--] infile\n");
   fprintf(stderr,"%s","      Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n");
   fprintf(stderr,"%s","           -lobin: The first Fourier frequency in the data file\n");
   fprintf(stderr,"%s","                   1 int value between 0 and oo\n");
@@ -977,6 +986,7 @@ usage(void)
   fprintf(stderr,"%s","             -fhi: The highest frequency (Hz) (of the highest harmonic!) to search\n");
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
   fprintf(stderr,"%s","                   default: `10000.0'\n");
+  fprintf(stderr,"%s","           -inmem: Make full f-fdot plane in memory.  Very fast, but only for short time series.\n");
   fprintf(stderr,"%s","          -photon: Data is poissonian so use freq 0 as power normalization\n");
   fprintf(stderr,"%s","          -median: Use block-median power normalization (default)\n");
   fprintf(stderr,"%s","          -locpow: Use double-tophat local-power normalization (not usually recommended)\n");
@@ -990,7 +1000,7 @@ usage(void)
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
   fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                   1 value\n");
-  fprintf(stderr,"%s","  version: 03Jul11\n");
+  fprintf(stderr,"%s","  version: 08Sep13\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1080,6 +1090,11 @@ parseCmdline(int argc, char **argv)
       i = getDoubleOpt(argc, argv, i, &cmd.fhi, 1);
       cmd.fhiC = i-keep;
       checkDoubleHigher("-fhi", &cmd.fhi, cmd.fhiC, 0.0);
+      continue;
+    }
+
+    if( 0==strcmp("-inmem", argv[i]) ) {
+      cmd.inmemP = 1;
       continue;
     }
 
