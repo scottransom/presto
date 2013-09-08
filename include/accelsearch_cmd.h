@@ -41,6 +41,8 @@ typedef struct s_Cmdline {
   char fhiP;
   double fhi;
   int fhiC;
+  /***** -inmem: Make full f-fdot plane in memory.  Very fast, but only for short time series. */
+  char inmemP;
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   char photonP;
   /***** -median: Use block-median power normalization (default) */
