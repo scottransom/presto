@@ -34,7 +34,7 @@ int main(void)
    printf("Generating plans for FFTs of length:\n");
 
    inout = fftwf_malloc(sizeof(fftwf_complex) * BIGFFTWSIZE + 2);
-   while (fftlen <= BIGFFTWSIZE) {
+   while (fftlen <= 1.1e6) {
       printf("   %d forward\n", fftlen);
       plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
       fftwf_destroy_plan(plan);
@@ -50,7 +50,7 @@ int main(void)
 
    fftlen = 10;
 
-   while (fftlen <= BIGFFTWSIZE) {
+   while (fftlen <= 1.1e6) {
       inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
       printf("   %d forward\n", fftlen);
       plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
