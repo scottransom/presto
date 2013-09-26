@@ -315,14 +315,14 @@ void print_spectra_info_summary(struct spectra_info *s)
         printf("     Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
         printf("     Apply weights? = %s\n", s->apply_weight ? "True" : "False");
     }
-    printf("\nFile   Samples      Padding        Start MJD\n");
-    printf("----  ----------  ----------  --------------------\n");
+    printf("\nFile  Start Spec   Samples     Padding        Start MJD\n");
+    printf("----  ----------  ----------  ----------  --------------------\n");
     if (s->datatype==SUBBAND || s->datatype==DAT ||
         s->datatype==EVENTS || s->datatype==SDAT) nn = 1;
     else nn = s->num_files;
     for (ii = 0; ii < nn; ii++)
-        printf("%-4d  %10lld  %10lld  %19.14Lf\n", ii + 1,
-               s->num_spec[ii], s->num_pad[ii], s->start_MJD[ii]);
+        printf("%-4d  %10lld  %10lld  %10lld  %19.14Lf\n", ii + 1,
+               s->start_spec[ii], s->num_spec[ii], s->num_pad[ii], s->start_MJD[ii]);
     printf("\n");
 }
 
