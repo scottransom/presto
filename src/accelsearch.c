@@ -110,6 +110,7 @@ int main(int argc, char *argv[])
    /* Generate the correlation kernels */
 
    printf("Generating correlation kernels:\n");
+// INMEM:  Only create all the stages if we are not using inmem...
    subharminfs = create_subharminfos(obs.numharmstages, (int) obs.zhi);
    printf("Done generating kernels.\n\n");
    printf("Starting the search.\n");
@@ -139,9 +140,12 @@ int main(int argc, char *argv[])
             int stage, harmtosum, harm;
             ffdotpows *subharmonic;
 
+// INMEM: copy the fundamental powers into the big ffdot plane
+
             for (stage = 1; stage < obs.numharmstages; stage++) {
                harmtosum = 1 << stage;
                for (harm = 1; harm < harmtosum; harm += 2) {
+// INMEM: Replace or supplement the following 3 calls
                   subharmonic = subharm_ffdot_plane(harmtosum, harm, startr, lastr,
                                                     &subharminfs[stage][harm - 1],
                                                     &obs);
