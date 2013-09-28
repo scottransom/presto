@@ -275,9 +275,9 @@ void read_PSRFITS_files(struct spectra_info *s)
                             s->time_per_subint + 1e-7);
             // Check to see if any rows have been deleted or are missing
             if (numrows > s->start_subint[ii]) {
-                printf("Warning: NSUBOFFS reports %d previous rows\n"
-                       "         but OFFS_SUB implies %d.  Using OFFS_SUB.\n"
-                       "         Will likely be able to correct for this.\n",
+                printf("Warning!:  NSUBOFFS reports %d previous rows\n"
+                       "           but OFFS_SUB implies %d.  Using OFFS_SUB.\n"
+                       "           Will likely be able to correct for this.\n",
                        s->start_subint[ii], numrows);
             }
             s->start_subint[ii] = numrows;
@@ -357,14 +357,18 @@ void read_PSRFITS_files(struct spectra_info *s)
                               s->num_channels, 0, freqs, &anynull, &status);
                 
                 if (ii==0) {
-                    s->df = freqs[1]-freqs[0];
+                    int trigger=0;
+                    s->df = ((double)freqs[s->num_channels-1]-
+                             (double)freqs[0])/(double)(s->num_channels-1);
                     s->lo_freq = freqs[0];
                     s->hi_freq = freqs[s->num_channels-1];
                     // Now check that the channel spacing is the same throughout
                     for (jj = 0 ; jj < s->num_channels - 1 ; jj++) {
                         ftmp = freqs[jj+1] - freqs[jj];
-                        if (fabs(ftmp - s->df) > 1e-7)
+                        if ((fabs(ftmp - s->df) > 1e-7) && !trigger) {
+                            trigger = 1;
                             printf("Warning!:  Channel spacing changes in file %d!\n", ii);
+                        }
                     }
                 } else {
                     ftmp = fabs(s->df-(freqs[1]-freqs[0]));
@@ -603,22 +607,26 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
                       s->offs_sub_col, cur_subint, 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
 
-        // Set last_offs_sub to proper value
-        if (cur_subint==1 && (offs_sub < s->time_per_subint)) {
+        // Set last_offs_sub to proper value, properly accounting for
+        // possibly missing initial rows of data and/or combining
+        // observations
+        if (cur_subint==1) {
+            // This looks like the start of an observation
             if (cur_file==0) {
                 // This is for the first time
                 last_offs_sub = offs_sub - s->time_per_subint;
             } else {
                 // And this is if we are combining observations
-                // printf("file change:  %lld  %lld  %d\n", s->start_spec[cur_file], 
-                //       cur_spec, numbuffered);
-                last_offs_sub = (s->start_spec[cur_file] - 
-                                 (cur_spec + numbuffered)) * s->dt - 
-                    0.5 * s->time_per_subint;
+                if (offs_sub < last_offs_sub) {
+                    // printf("file change:  %lld  %lld  %d\n", s->start_spec[cur_file], 
+                    //       cur_spec, numbuffered);
+                    last_offs_sub = offs_sub - s->time_per_subint;
+                }
             }
         }
-        // printf("offs_sub = %f  last_offs_sub = %f  s->start_spec[cur_file](T) = %f  pred_offs_sub = %f\n", 
-        // offs_sub, last_offs_sub, s->start_spec[cur_file]*s->dt, last_offs_sub + s->time_per_subint);
+
+        //printf("offs_sub = %f  last_offs_sub = %f  s->start_spec[cur_file](T) = %f  pred_offs_sub = %f\n", 
+        //        offs_sub, last_offs_sub, s->start_spec[cur_file]*s->dt, last_offs_sub + s->time_per_subint);
     
         // The following determines if there were lost blocks.  We should
         // always be within 0.5 sample (and only that big if we are putting
@@ -630,7 +638,7 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
             cur_subint++;
             goto return_block;
         } else {
-            if (offs_sub < last_offs_sub) { // Files out of order?  Shouldn't get here.
+            if (offs_sub+1e-12 < last_offs_sub) { // Files out of order?  Shouldn't get here.
                 fprintf(stderr, "Error!:  Current subint has earlier time than previous!\n\n"
                         "\tfilename = '%s', subint = %d\n"
                         "\tlast_offs_sub = %20.15f  offs_sub = %20.15f\n",
@@ -730,6 +738,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
     float *fptr;
     unsigned char *cptr;
     short *sptr;
+    float *ftptr;
     int ii, jj, status = 0, anynull;
     int numtoread = s->samples_per_subint;
     
@@ -828,7 +837,15 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     idx = (s->use_poln-1) * s->num_channels;
                     sptr = (short *)cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
-                        *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[idx+jj] + 
+                        *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[idx+jj] +
+                                   offsets[idx+jj]) * weights[jj];
+                }
+            } else if (s->bits_per_sample==32) {
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                    idx = (s->use_poln-1) * s->num_channels;
+                    ftptr = (float *)cdata + ii * s->samples_per_spectra + idx;
+                    for (jj = 0 ; jj < s->num_channels ; jj++)
+                        *fptr++ = (((float)(*ftptr++) - s->zero_offset) * scales[idx+jj] +
                                    offsets[idx+jj]) * weights[jj];
                 }
             } else {
@@ -836,7 +853,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     idx = (s->use_poln-1) * s->num_channels;
                     cptr = cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
-                        *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[idx+jj] + 
+                        *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[idx+jj] +
                                    offsets[idx+jj]) * weights[jj];
                 }
             }
@@ -849,17 +866,27 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     for (jj = 0 ; jj < s->num_channels ; jj++, sptr++, fptr++) {
                         *fptr = (((float)(*sptr) - s->zero_offset) * scales[jj] + 
                                  offsets[jj]) * weights[jj];
-                        *fptr += (((float)(*(sptr+idx)) - s->zero_offset) * scales[idx+jj] + 
+                        *fptr += (((float)(*(sptr+idx)) - s->zero_offset) * scales[idx+jj] +
                                   offsets[idx+jj]) * weights[jj];
                     }
+                }
+            } else if (s->bits_per_sample==32) {
+                for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                    ftptr = (float *)cdata + ii * s->samples_per_spectra;
+                    for (jj = 0 ; jj < s->num_channels ; jj++, ftptr++, fptr++) {
+                        *fptr = (((float)(*ftptr) - s->zero_offset) * scales[jj] +
+                                 offsets[jj]) * weights[jj];
+                        *fptr += (((float)(*(ftptr+idx)) - s->zero_offset) * scales[idx+jj] +
+                                  offsets[idx+jj]) * weights[jj];
+                    }	
                 }
             } else {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                     cptr = cdata + ii * s->samples_per_spectra;
                     for (jj = 0 ; jj < s->num_channels ; jj++, cptr++, fptr++) {
-                        *fptr = (((float)(*cptr) - s->zero_offset) * scales[jj] + 
+                        *fptr = (((float)(*cptr) - s->zero_offset) * scales[jj] +
                                  offsets[jj]) * weights[jj];
-                        *fptr += (((float)(*(cptr+idx)) - s->zero_offset) * scales[idx+jj] + 
+                        *fptr += (((float)(*(cptr+idx)) - s->zero_offset) * scales[idx+jj] +
                                   offsets[idx+jj]) * weights[jj];
                     }
                 }
@@ -871,14 +898,14 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
             for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                 sptr = (short *)cdata + ii * s->samples_per_spectra;
                 for (jj = 0 ; jj < s->num_channels ; jj++)
-                    *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[jj] + 
+                    *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[jj] +
                                offsets[jj]) * weights[jj];
             }
         } else {
             for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                 cptr = cdata + ii * s->samples_per_spectra;
                 for (jj = 0 ; jj < s->num_channels ; jj++)
-                    *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[jj] + 
+                    *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[jj] +
                                offsets[jj]) * weights[jj];
             }
         }
