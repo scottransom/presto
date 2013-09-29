@@ -633,6 +633,8 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
         // so we can see if any padding is necessary
         if (cur_file < s->num_files-1)
             new_spec = s->start_spec[cur_file+1];
+        else
+            new_spec = cur_spec + numbuffered;
     }
     
     if (new_spec == cur_spec + numbuffered) {
