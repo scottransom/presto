@@ -9,8 +9,7 @@
 static unsigned char *cdatabuffer;
 static float *fdatabuffer, *offsets, *scales, *weights;
 static int cur_file = 0, cur_subint = 1, numbuffered = 0;
-static long long cur_spec = 0;
-static double offs_sub = 0.0, last_offs_sub = 0.0;
+static long long cur_spec = 0, new_spec = 0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
 extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move,
@@ -601,120 +600,80 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
     
     // Read a subint of data from the DATA col
     if (cur_subint <= s->num_subint[cur_file]) {
-        
+        double offs_sub = 0.0;
         // Read the OFFS_SUB column value in case there were dropped blocks
         fits_read_col(s->fitsfiles[cur_file], TDOUBLE, 
                       s->offs_sub_col, cur_subint, 1L, 1L, 
                       0, &offs_sub, &anynull, &status);
+        // Set new_spec to proper value, accounting for possibly
+        // missing initial rows of data and/or combining observations
+        // Note: need to remove start_subint because that was already put
+        // into start_spec.  This is important if initial rows are gone.
+        new_spec = s->start_spec[cur_file] +
+            roundl((offs_sub - (s->start_subint[cur_file] + 0.5)
+                    * s->time_per_subint) / s->dt);
 
-        // Set last_offs_sub to proper value, properly accounting for
-        // possibly missing initial rows of data and/or combining
-        // observations
-        if (cur_subint==1) {
-            // This looks like the start of an observation
-            if (cur_file==0) {
-                // This is for the first time
-                last_offs_sub = offs_sub - s->time_per_subint;
-            } else {
-                // And this is if we are combining observations
-                if (offs_sub < last_offs_sub) {
-                    // printf("file change:  %lld  %lld  %d\n", s->start_spec[cur_file], 
-                    //       cur_spec, numbuffered);
-                    last_offs_sub = offs_sub - s->time_per_subint;
-                }
-            }
-        }
-
-        //printf("offs_sub = %f  last_offs_sub = %f  s->start_spec[cur_file](T) = %f  pred_offs_sub = %f\n", 
-        //        offs_sub, last_offs_sub, s->start_spec[cur_file]*s->dt, last_offs_sub + s->time_per_subint);
+        //printf("cur/new_spec = %lld, %lld  s->start_spec[cur_file] = %lld\n", 
+        //       cur_spec, new_spec, s->start_spec[cur_file]);
     
-        // The following determines if there were lost blocks.  We should
-        // always be within 0.5 sample (and only that big if we are putting
-        // two different observations together).
-        if (fabs((offs_sub - last_offs_sub) - s->time_per_subint) < 0.5 * s->dt) {
+        // The following determines if there were lost blocks, or if
+        // we are putting different observations together so that
+        // the blocks are not aligned
+        if (new_spec == cur_spec + numbuffered) {
             // if things look good, with no missing blocks, read the data
             get_PSRFITS_subint(fdataptr, cdatabuffer, s);
-            last_offs_sub = offs_sub;
             cur_subint++;
             goto return_block;
         } else {
-            if (offs_sub+1e-12 < last_offs_sub) { // Files out of order?  Shouldn't get here.
-                fprintf(stderr, "Error!:  Current subint has earlier time than previous!\n\n"
-                        "\tfilename = '%s', subint = %d\n"
-                        "\tlast_offs_sub = %20.15f  offs_sub = %20.15f\n",
-                        s->filenames[cur_file], cur_subint, last_offs_sub, offs_sub);
-                exit(1);
-            } else {  // there is some missing data, use padding
-                numtopad = (int)round((offs_sub - last_offs_sub) / s->dt) - numbuffered;
-                if (numtopad > s->spectra_per_subint) // Don't add more than a block 
-                    numtopad = s->spectra_per_subint;
-                if (numtopad > (s->spectra_per_subint - numbuffered)) // Re-align the buffer
-                    numtopad = s->spectra_per_subint - numbuffered;
-                add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
-                // Update the time of the last subs based on this padding
-                last_offs_sub += numtopad * s->dt;
-                // Update pointer into the buffer
-                numbuffered = (numbuffered + numtopad) % s->spectra_per_subint;
-                // Set the padding flag
-                *padding = 1;
-                // If we haven't gotten a full block, or completed the buffered one
-                // then recursively call get_PSRFITS_rawblock()
-                if (numbuffered)
-                    return get_PSRFITS_rawblock(fdata, s, padding);
-                else
-                    goto return_block;
-            }
+            goto padding_block;
         }
-        
     } else {
-        // Since we are between files, set the offs_sub to the absolute time
-        // of the start of the next file.  This makes padding calcs easier.
-        if ((cur_file+1) <= s->num_files)
-            offs_sub = s->start_spec[cur_file+1] * s->dt;
+        // We are going to move to the next file, so update
+        // new_spec to be the starting spectra from the next file
+        // so we can see if any padding is necessary
+        if (cur_file < s->num_files-1)
+            new_spec = s->start_spec[cur_file+1];
     }
     
-    // if (numbuffered) 
-    // printf("last_offs_sub = %f  offs_sub = %f\n", last_offs_sub, offs_sub);
-
-    if (s->num_pad[cur_file]==0 ||
-        (fabs(last_offs_sub - offs_sub) < 0.5 * s->dt)) {
-        // No padding is necessary.  The second check means that the
-        // lack of data we noticed upon reading the file was due to
-        // dropped data in the middle of the file that we already
-        // fixed.  So no padding is really necessary.
-        // printf("YYYYa  last_offs_sub = %f  offs_sub = %f\n", last_offs_sub, offs_sub);
+    if (new_spec == cur_spec + numbuffered) {
+        // No padding is necessary, so switch files
         cur_file++;
         cur_subint = 1;
         return get_PSRFITS_rawblock(fdata, s, padding);
     } else { // add padding
-        // Set offs_sub to the correct absolute time for the first
-        // row of the next file.  Since that might or might not
-        // be from a different observation, use absolute times from
-        // the start of the observation for both offs_sub and last_offs_sub
-        offs_sub = s->start_spec[cur_file+1] * s->dt;
-        last_offs_sub = (cur_spec + numbuffered) * s->dt;
-        // Compute the amount of required padding
-        numtopad = (int)round((offs_sub - last_offs_sub) / s->dt);
-        if (numtopad > s->spectra_per_subint) // Don't add more than a block 
-            numtopad = s->spectra_per_subint;
-        if (numtopad > (s->spectra_per_subint - numbuffered)) // Re-align the buffer
-            numtopad = s->spectra_per_subint - numbuffered;
-        add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
-        // Update the time of the last subs based on this padding
-        last_offs_sub += numtopad * s->dt;
-        // Update pointer into the buffer
-        numbuffered = (numbuffered + numtopad) % s->spectra_per_subint;
-        // Set the padding flag
-        *padding = 1;
-        // If we haven't gotten a full block, or completed the buffered one
-        // then recursively call get_PSRFITS_rawblock()
-        // printf("YYYYb  l = %f  o = %f  numtopad = %d  numbuffered = %d\n", last_offs_sub, offs_sub, numtopad, numbuffered);
-        if (numbuffered)
-            return get_PSRFITS_rawblock(fdata, s, padding);
-        else
-            goto return_block;
+        goto padding_block;
     }
     
+padding_block:
+    if (new_spec < cur_spec) {
+        // Files out of order?  Shouldn't get here.
+        fprintf(stderr, "Error!:  Current subint has earlier time than previous!\n\n"
+                "\tfilename = '%s', subint = %d\n"
+                "\tcur_spec = %lld  new_spec = %lld\n",
+                s->filenames[cur_file], cur_subint, cur_spec, new_spec);
+        exit(1);
+    }
+    numtopad = new_spec - cur_spec;
+    // Don't add more than 1 block and if buffered, then realign the buffer
+    if (numtopad > (s->spectra_per_subint - numbuffered))
+        numtopad = s->spectra_per_subint - numbuffered;
+    add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
+    // Update pointer into the buffer
+    numbuffered = (numbuffered + numtopad) % s->spectra_per_subint;
+    // Set the padding flag
+    *padding = 1;
+    // If we haven't gotten a full block, or completed the buffered one
+    // then recursively call get_PSRFITS_rawblock()
+    if (numbuffered) {
+        printf("Adding %d spectra of padding to buffer at subint %d\n",
+               numtopad, cur_subint);
+        return get_PSRFITS_rawblock(fdata, s, padding);
+    } else {
+        printf("Adding %d spectra of padding at subint %d\n",
+               numtopad, cur_subint);
+        goto return_block;
+    }
+
 return_block:
     // Apply the corrections that need a full block
 
