@@ -1004,8 +1004,7 @@ void free_ffdotpows(ffdotpows * ffd)
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
-   int ii, jj, zz, rind, zind, subz, lastrind = -1;
-   float lastpow = 0;
+   int ii, jj, zz, rind, zind, subz;
    double harm_fract;
 
    harm_fract = (double) harmnum / (double) numharm;
@@ -1015,10 +1014,7 @@ void add_ffdotpows(ffdotpows * fundamental,
       zind = index_from_z(subz, subharmonic->zlo);
       for (jj = 0; jj < fundamental->numrs; jj++) {
          rind = subharmonic->rinds[jj];
-         if (rind != lastrind)
-            lastpow = subharmonic->powers[zind][rind];
-         fundamental->powers[ii][jj] += lastpow;
-         lastrind = rind;
+         fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
       }
    }
 }
