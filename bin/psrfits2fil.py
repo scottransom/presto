@@ -159,7 +159,7 @@ def main(fits_fn, outfn, nbits, \
     # check nbits for input
     input_nbits = fits['SUBINT'].header['NBITS']
     if input_nbits < 4:
-        raise ValueError('Does not support %d-bit data' % input_4bits)
+        raise ValueError('Does not support %d-bit data' % input_nbits)
 
     if nbits != 32:
         print "\nCalculating statistics on first subintegration..."
