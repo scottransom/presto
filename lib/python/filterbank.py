@@ -46,6 +46,46 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
     outfile.close()
 
 
+def is_float(nbits):
+    """For a given number of bits per sample return
+        true if it corresponds to floating-point samples
+        in filterbank files.
+
+        Input:
+            nbits: Number of bits per sample, as recorded in the filterbank
+                file's header.
+
+        Output:
+            isfloat: True, if 'nbits' indicates the data in the file
+                are encoded as floats.
+    """
+    check_nbits(nbits)
+    if nbits == 32:
+        return True
+    else:
+        return False
+
+
+def check_nbits(nbits):
+    """Given a number of bits per sample check to make
+        sure 'filterbank.py' can cope with it.
+
+        An exception is raise if 'filterbank.py' cannot cope.
+
+        Input:
+            nbits: Number of bits per sample, as recorded in the filterbank
+                file's header.
+
+        Output:
+            None
+    """
+    if nbits not in [32, 16, 8]:
+        raise ValueError("'filterbank.py' only supports " \
+                                    "files with 8- or 16-bit " \
+                                    "integers, or 32-bit floats " \
+                                    "(nbits provided: %g)!" % nbits)
+
+
 def get_dtype(nbits):
     """For a given number of bits per sample return
         a numpy-recognized dtype.
@@ -57,13 +97,9 @@ def get_dtype(nbits):
         Output:
             dtype: A numpy-recognized dtype string.
     """
-    if nbits not in [32, 16, 8]:
-        raise NotImplementedError("'filterbank.py' only supports " \
-                                    "files with 8- or 16-bit " \
-                                    "integers, or 32-bit floats " \
-                                    "(nbits provided: %g)!" % nbits)
-    if nbits == 32:
-        dtype = 'float32'
+    check_nbits(nbits)
+    if is_float(nbits):
+        dtype = 'float%d' % nbits
     else:
         dtype = 'uint%d' % nbits
     return dtype
@@ -109,6 +145,16 @@ class FilterbankFile(object):
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
         self.bytes_per_spectrum = self.nchans*self.nbits / 8
+        
+        # Get info about dtype
+        self.dtype = get_dtype(self.nbits)
+        if is_float(self.nbits):
+            tinfo = np.finfo(self.dtype)
+        else:
+            tinfo = np.iinfo(self.dtype)
+        self.dtype_min = tinfo.min
+        self.dtype_max = tinfo.max
+
         self.needs_sync = True
         self.sync_spectra()
 
@@ -121,7 +167,7 @@ class FilterbankFile(object):
             warnings.warn("Not an integer number of spectra in file.")
 
         mode = (self.read_only and 'r') or 'r+'
-        self.spectra = np.memmap(self.filename, dtype=get_dtype(self.nbits), \
+        self.spectra = np.memmap(self.filename, dtype=self.dtype, \
                                     mode=mode, offset=self.header_size, \
                                     shape=(self.nspec, self.nchans))
         self.needs_sync = False
@@ -157,7 +203,7 @@ class FilterbankFile(object):
                         "channels in spectra to append: %d" % \
                         (self.nchans, nchans))
         f = open(self.filename, 'ab')
-        f.write(spectra.flatten())
+        f.write(spectra.flatten().clip(self.dtype_min, self.dtype_max).astype(self.dtype))
         f.flush()
         os.fsync(f)
         f.close()
