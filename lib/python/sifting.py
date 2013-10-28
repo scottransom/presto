@@ -227,9 +227,6 @@ class Candlist(object):
     def __iter__(self):
         return iter(self.cands)
 
-    def __iter__(self):
-        return iter(self.cands)
-
     def sort(self, *args, **kwargs):
         self.cands.sort(*args, **kwargs)
 
@@ -452,7 +449,6 @@ class Candlist(object):
                 plt.scatter(xdata, dms, s=sigma_to_size(sigmas), lw=lw, edgecolors=ec, \
                             c=colour, marker=marker, alpha=alpha, zorder=zorder)
             handles.append(plt.scatter([], [], s=size, c=colour, \
->>>>>>> d27f9d38163c6b693c2fd375dfbd383e731539c7
                                     marker=marker, alpha=0.7))
 
         fig.legend(handles, labels, 'lower center', \
@@ -1182,17 +1178,6 @@ def read_candidates(filenms, prelim_reject=True, track=False):
         print "\nDone"
     else:
         print "Error:  There are no candidate files to read!"
-<<<<<<< HEAD
-        return Candlist() # return empty candlist
-    print "\nReading candidates from %d files...." % len(filenms)
-    candlist = Candlist()
-    for filenm in filenms:
-        curr_candlist = candlist_from_candfile(filenm)
-        candlist.extend(curr_candlist)
-    if prelim_reject:
-        candlist.default_rejection()
-=======
->>>>>>> d27f9d38163c6b693c2fd375dfbd383e731539c7
     return candlist
 
 
