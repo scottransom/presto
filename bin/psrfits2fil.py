@@ -12,7 +12,7 @@ import time
 def translate_header(psrfits_file):
     fits_hdr = psrfits_file.header
     subint_hdr = psrfits_file.fits['SUBINT'].header 
-    subint_data = psrfits_file['SUBINT'].data
+    subint_data = psrfits_file.fits['SUBINT'].data
     fil_header = {} 
 
     if fits_hdr['TELESCOP'] in sigproc.telescope_ids:
@@ -79,7 +79,7 @@ def main(fits_fn, outfn, nbits, \
 
     if nbits != 32:
         print "\nCalculating statistics on first subintegration..."
-        subint0 = psrfits_file.read_subint(0
+        subint0 = psrfits_file.read_subint(0, \
                         apply_weights, apply_scales, apply_offsets)
         #new_max = np.mean(subint0) + 3*np.std(subint0)
         new_max = 3 * np.median(subint0)
@@ -111,7 +111,7 @@ def main(fits_fn, outfn, nbits, \
             subint = np.fliplr(subint)
 	subint /= scale_fac
 	outfil.append_spectra(subint)
-	pcnt = "%d" % (i*100.0/nsubints)
+	pcnt = "%d" % (isub*100.0/psrfits_file.nsubints)
 	if pcnt != oldpcnt:
             sys.stdout.write("% 4s%% complete\r" % pcnt)
             sys.stdout.flush()
