@@ -24,7 +24,7 @@ class PsrfitsFile(object):
             raise ValueError("ERROR: File does not exist!\n\t(%s)" % \
                                 psrfitsfn)
         self.filename = psrfitsfn
-        self.fits = pyfits.open(psrfitsfn, memmap=True)
+        self.fits = pyfits.open(psrfitsfn, mode='readonly', memmap=True)
         self.header = self.fits[0].header # Primary HDU
         self.nbits = self.fits['SUBINT'].header['NBITS']
         self.nchan = self.fits['SUBINT'].header['NCHAN']
