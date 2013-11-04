@@ -167,6 +167,9 @@ static char *backend_name(int machine_id)
    case 11:
       strcpy(string, "BG/P");
       break;
+   case 12:
+      strcpy(string, "PDEV");
+      break;
    default:
       strcpy(string, "????");
       break;
