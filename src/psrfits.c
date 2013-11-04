@@ -357,7 +357,7 @@ void read_PSRFITS_files(struct spectra_info *s)
                               s->num_channels, 0, freqs, &anynull, &status);
                 
                 if (ii==0) {
-                    s->df = freqs[1]-freqs[0];
+		  s->df = ((double)freqs[s->num_channels-1]-(double)freqs[0])/(double)(s->num_channels-1);
                     s->lo_freq = freqs[0];
                     s->hi_freq = freqs[s->num_channels-1];
                     // Now check that the channel spacing is the same throughout
