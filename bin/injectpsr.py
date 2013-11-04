@@ -117,7 +117,7 @@ class Profile(object):
         """
         return self.get_area(npts=npts)/self.get_max(npts=npts)
 
-    def set_scale(self, scale):
+    def set_scaling(self, scale):
         """Set the profile's scaling factor.
 
             Input:
@@ -302,27 +302,27 @@ class VectorProfile(object):
         This can be used to encode intrinsic profile variation, 
         or extrisinc smearing/scattering across the band
     """
-    def __init__(self, profiles, scale=1):
+    def __init__(self, profiles, scales=1):
         """Construct a vector of profiles.
             
             Inputs:
                 profiles: A list of Profile objects.
-                scale: An overall scaling factor to multiply
-                    the profile by.
+                scales: A numpy array of scaling factors to multiply
+                    the profile vector by when evaluating.
 
             Output:
                 prof: The profile object.
         """
         self.profiles = profiles
         self.nprofs = len(profiles)
-        self.scale = scale
+        self.scales = scales
     
     def __call__(self, phs):
         phs = np.atleast_1d(np.asarray(phs))
         nphs = phs.shape[0]
         vals = np.empty((nphs, self.nprofs))
-        for ii, prof in enumerate(self.profiles):
-             vals[:,ii] = prof(phs)*self.scale
+        for ii, prof, scale in enumerate(zip(self.profiles, self.scales)):
+             vals[:,ii] = prof(phs)*scale
         #if phs.ndim == 1:
         #    # Evaluate all profiles at the same phases
         #    for ii, prof in enumerate(self.profiles):
@@ -342,16 +342,21 @@ class VectorProfile(object):
         #                    "1D or 2D arrays")
         return vals
     
-    def set_scale(self, scale):
-        """Set the profile's scaling factor.
+    def set_scaling(self, scales):
+        """Set the profiles' scaling factors.
 
             Input:
-                scale: The scaling factor to use.
+                scales: The scaling factors to use.
 
             Outputs:
                 None
         """
-        self.scale = scale
+        arr = np.asarray(scales)
+        if arr.ndim not in (0, 1):
+            raise ValueError("Bad number of dimensions for 'scales'. " \
+                        "Number of dimensions must be 0 or 1. " \
+                        "Scales provided has %d dimensions." % arr.ndim) 
+        self.scales = arr
 
     def plot(self, nbin=1024, scale=1):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
@@ -609,7 +614,7 @@ def scale_from_snr(fil, prof, snr, rms):
             scale: The scaling factor to apply to the profile.
     """
     # Set scale to 1, just in case it's be altered already.
-    prof.set_scale(1)
+    prof.set_scaling(1)
     
     # Characterise the pulse
     area = prof.get_area()
@@ -758,7 +763,7 @@ def main():
                         "DM, period and filterbank file (freq, nchans, " \
                         "tsamp, etc).")
         prof = load_profile(args.inprof)
-        prof.set_scale(args.scale)
+        prof.set_scaling(args.scale)
     else:
         comps = create_vonmises_components(args.vonmises)
         print "Creating profile. Number of components: %d" % len(comps)
@@ -777,7 +782,7 @@ def main():
         if args.apply_dm:
             prof = apply_dm(prof, args.period, args.dm, \
                             np.abs(fil.foff), fil.frequencies, fil.tsamp)
-        prof.set_scale(scale)
+        prof.set_scaling(scale)
         if args.outprof is not None:
             save_profile(prof, args.outprof)
 
