@@ -35,7 +35,7 @@ static inline int twon_to_index(int n)
 }
 
 
-static inline int calc_required_z(double harm_fract, double zfull)
+static int calc_required_z(double harm_fract, double zfull)
 /* Calculate the 'z' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'z' at the fundamental harmonic is 'zfull'.    */
@@ -44,7 +44,7 @@ static inline int calc_required_z(double harm_fract, double zfull)
 }
 
 
-static inline double calc_required_r(double harm_fract, double rfull)
+static double calc_required_r(double harm_fract, double rfull)
 /* Calculate the 'r' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'r' at the fundamental harmonic is 'rfull'.    */
@@ -53,7 +53,7 @@ static inline double calc_required_r(double harm_fract, double rfull)
 }
 
 
-static inline int index_from_r(double r, double lor)
+static int index_from_r(double r, double lor)
 /* Return an index for a Fourier Freq given an array that */
 /* has stepsize ACCEL_DR and low freq 'lor'.              */
 {
@@ -61,7 +61,7 @@ static inline int index_from_r(double r, double lor)
 }
 
 
-static inline int index_from_z(double z, double loz)
+static int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
 /* has stepsize ACCEL_DZ and low freq 'lor'.              */
 {
@@ -1041,7 +1041,7 @@ void add_ffdotpows(ffdotpows * fundamental,
    }
 }
 
-void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
+void inmem_add_ffdotpows1(ffdotpows *fundamental, accelobs *obs, 
                          int numharm, int harmnum)
 {
     int ii, jj, zz, rind, zind, subr, subz;
@@ -1053,16 +1053,44 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
     double rr;
     long long fullind;
     
+    for (ii = 0; ii < numrs; ii++) {
+        rr = rlo + ii * ACCEL_DR;
+        subr = calc_required_r(harm_fract, rr);
+        rind = subr * ACCEL_RDR; // since rlo = 0
+        for (jj = 0; jj < numzs; jj++) {
+            zz = zlo + jj * ACCEL_DZ;
+            subz = calc_required_z(harm_fract, zz);
+            zind = index_from_z(subz, zlo);
+            fullind = rind * numzs + zind;
+            fundamental->powers[jj][ii] += obs->ffdotplane[fullind];
+        }
+    }
+}
+
+
+void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
+                         int numharm, int harmnum)
+{
+    int ii, jj, zz, rrint, rind, zind, subr, subz;
+    const int zlo = fundamental->zlo;
+    const int rlo = fundamental->rlo;
+    const int numrs = fundamental->numrs;
+    const int numzs = fundamental->numzs;
+    const double harm_fract = (double) harmnum / (double) numharm;
+    double rr;
+    long long fullind;
+    float *outpows;
+    
     for (ii = 0; ii < numzs; ii++) {
         zz = zlo + ii * ACCEL_DZ;
         subz = calc_required_z(harm_fract, zz);
         zind = index_from_z(subz, zlo);
-        for (jj = 0; jj < numrs; jj++) {
-            rr = rlo + jj * ACCEL_DR;
-            subr = calc_required_r(harm_fract, rr);
-            rind = subr * ACCEL_RDR; // since rlo = 0
+        outpows = fundamental->powers[0] + ii * numrs;
+        for (jj = 0, rrint = 2 * rlo; jj < numrs; jj++, rrint++) {
+            rind = (int)(rrint * harm_fract + 0.5);
+            //rind = (int)round(rrint * harm_fract);
             fullind = rind * numzs + zind;
-            fundamental->powers[ii][jj] += obs->ffdotplane[fullind];
+            *outpows++ += obs->ffdotplane[fullind];
         }
     }
 }
