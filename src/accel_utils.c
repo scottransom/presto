@@ -36,20 +36,20 @@ static inline int twon_to_index(int n)
 
 
 static inline int calc_required_z(double harm_fract, double zfull)
-/* Calculate the 'z' you need for subharmonic     */
-/* 'harmnum' out of 'numharm' subharmonics if the */
-/* 'z' at the fundamental harmonic is 'zfull'.    */
+/* Calculate the 'z' you need for subharmonic  */
+/* harm_fract = harmnum / numharm if the       */
+/* 'z' at the fundamental harmonic is 'zfull'. */
 {
    return NEAREST_INT(ACCEL_RDZ * zfull * harm_fract) * ACCEL_DZ;
 }
 
 
 static inline double calc_required_r(double harm_fract, double rfull)
-/* Calculate the 'r' you need for subharmonic     */
-/* 'harmnum' out of 'numharm' subharmonics if the */
-/* 'r' at the fundamental harmonic is 'rfull'.    */
+/* Calculate the 'r' you need for subharmonic  */
+/* harm_fract = harmnum / numharm if the       */
+/* 'r' at the fundamental harmonic is 'rfull'. */
 {
-   return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
+    return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
 }
 
 
