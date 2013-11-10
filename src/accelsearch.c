@@ -110,8 +110,7 @@ int main(int argc, char *argv[])
    /* Generate the correlation kernels */
 
    printf("Generating correlation kernels:\n");
-// INMEM:  Only create all the stages if we are not using inmem...
-   subharminfs = create_subharminfos(obs.numharmstages, (int) obs.zhi);
+   subharminfs = create_subharminfos(&obs);
    printf("Done generating kernels.\n\n");
    printf("Starting the search.\n");
    /* Don't use the *.txtcand files on short in-memory searches */

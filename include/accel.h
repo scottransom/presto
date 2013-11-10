@@ -104,10 +104,10 @@ typedef struct ffdotpows{
 
 /* accel_utils.c */
 
-subharminfo **create_subharminfos(int numharmstages, int zmax);
+subharminfo **create_subharminfos(accelobs *obs);
+void free_subharminfos(accelobs *obs, subharminfo **shis);
 void create_accelobs(accelobs *obs, infodata *idata, 
 		     Cmdline *cmd, int usemmap);
-void free_subharminfos(int numharmstages, subharminfo **shis);
 GSList *sort_accelcands(GSList *list);
 GSList *eliminate_harmonics(GSList *cands, int *numcands);
 void deredden(fcomplex *fft, int numamps);

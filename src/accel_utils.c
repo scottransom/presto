@@ -111,6 +111,8 @@ static int calc_fftlen(int numharm, int harmnum, int max_zfull)
    bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
    end_effects = 2 * ACCEL_NUMBETWEEN *
        z_resp_halfwidth(calc_required_z(harm_fract, max_zfull), LOWACC);
+   //printf("bins_needed = %d  end_effects = %d  FFTlen = %lld\n", 
+   //       bins_needed, end_effects, next2_to_n(bins_needed + end_effects));
    return next2_to_n(bins_needed + end_effects);
 }
 
@@ -160,33 +162,33 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, subharminfo * s
 }
 
 
-subharminfo **create_subharminfos(int numharmstages, int zmax)
+subharminfo **create_subharminfos(accelobs *obs)
 {
    int ii, jj, harmtosum;
    subharminfo **shis;
 
-   shis = (subharminfo **) malloc(numharmstages * sizeof(subharminfo *));
+   shis = (subharminfo **) malloc(obs->numharmstages * sizeof(subharminfo *));
    /* Prep the fundamental (actually, the highest harmonic) */
    shis[0] = (subharminfo *) malloc(2 * sizeof(subharminfo));
-   init_subharminfo(1, 1, zmax, &shis[0][0]);
+   init_subharminfo(1, 1, (int)obs->zhi, &shis[0][0]);
    printf
        ("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
-        shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax, calc_fftlen(1, 1,
-                                                                           shis[0]
-                                                                           [0].
-                                                                           zmax));
-   /* Prep the sub-harmonics */
-   for (ii = 1; ii < numharmstages; ii++) {
-      harmtosum = index_to_twon(ii);
-      shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
-      for (jj = 1; jj < harmtosum; jj += 2) {
-         init_subharminfo(harmtosum, jj, zmax, &shis[ii][jj - 1]);
-         printf
-             ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
-              jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax,
-              shis[ii][jj - 1].zmax, calc_fftlen(harmtosum, jj,
-                                                 shis[ii][jj - 1].zmax));
-      }
+        shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax, 
+        calc_fftlen(1, 1, (int)obs->zhi));
+   /* Prep the sub-harmonics if needed */
+   if (!obs->inmem) {
+       for (ii = 1; ii < obs->numharmstages; ii++) {
+           harmtosum = index_to_twon(ii);
+           shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
+           for (jj = 1; jj < harmtosum; jj += 2) {
+               init_subharminfo(harmtosum, jj, (int)obs->zhi, &shis[ii][jj - 1]);
+               printf
+                   ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
+                    jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax,
+                    shis[ii][jj - 1].zmax, 
+                    calc_fftlen(harmtosum, jj, (int)obs->zhi));
+           }
+       }
    }
    return shis;
 }
@@ -204,17 +206,19 @@ static void free_subharminfo(subharminfo * shi)
 }
 
 
-void free_subharminfos(int numharmstages, subharminfo ** shis)
+void free_subharminfos(accelobs *obs, subharminfo **shis)
 {
    int ii, jj, harmtosum;
 
    /* Free the sub-harmonics */
-   for (ii = 1; ii < numharmstages; ii++) {
-      harmtosum = index_to_twon(ii);
-      for (jj = 1; jj < harmtosum; jj += 2) {
-         free_subharminfo(&shis[ii][jj - 1]);
-      }
-      free(shis[ii]);
+   if (!obs->inmem) {
+       for (ii = 1; ii < obs->numharmstages; ii++) {
+           harmtosum = index_to_twon(ii);
+           for (jj = 1; jj < harmtosum; jj += 2) {
+               free_subharminfo(&shis[ii][jj - 1]);
+           }
+           free(shis[ii]);
+       }
    }
    /* Free the fundamental */
    free_subharminfo(&shis[0][0]);
