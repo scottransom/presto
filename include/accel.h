@@ -2,11 +2,20 @@
 #include "presto.h"
 #include "accelsearch_cmd.h"
 
-/* ACCEL_USELEN must be less than 65536 since we  */
-/* use unsigned short ints to index our arrays... */
-/* #define ACCEL_USELEN 32160 */
-/* #define ACCEL_USELEN 16000 */
-#define ACCEL_USELEN 7560
+// ACCEL_USELEN must be less than 65536 since we
+// use unsigned short ints to index our arrays...
+//
+// #define ACCEL_USELEN 32000 // This works up to zmax=300 to use 32K FFTs
+// #define ACCEL_USELEN 15660 // This works up to zmax=300 to use 16K FFTs
+//   The following is probably the best bet for general use given
+//   current speeds of FFTs.  However, if you only need to search up
+//   to zmax < 100, dropping to 4K FFTs is a few percent faster.  SMR 131110
+#define ACCEL_USELEN 7470 // This works up to zmax=300 to use 8K FFTs
+// #define ACCEL_USELEN 7960 // This works up to zmax=100 to use 8K FFTs
+// #define ACCEL_USELEN 3850 // This works up to zmax=100 to use 4K FFTs
+// #define ACCEL_USELEN 1820 // This works up to zmax=100 to use 2K FFTs
+
+/* Stepsize in Fourier Freq */
 #define ACCEL_NUMBETWEEN 2
 /* Stepsize in Fourier Freq */
 #define ACCEL_DR  0.5
