@@ -122,6 +122,9 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs);
 ffdotpows *copy_ffdotpows(ffdotpows *orig);
+void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs);
+void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
+                         int numharm, int harmnum);
 void free_ffdotpows(ffdotpows *ffd);
 void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
 		   int numharm, int harmnum);

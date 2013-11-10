@@ -883,7 +883,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
 
    /* Initialize the lookup indices */
-   if (numharm > 1) {
+   if (numharm > 1 && !obs->inmem) {
       double rr, subr;
       for (ii = 0; ii < numrs_full; ii++) {
          rr = fullrlo + ii * ACCEL_DR;
@@ -995,6 +995,26 @@ ffdotpows *copy_ffdotpows(ffdotpows * orig)
    return copy;
 }
 
+
+void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs)
+{
+    // This moves the fundamental's ffdot plane powers
+    // into the one for the full array, but with a transpose
+    // so that points in both r and z directions are more
+    // memory local (since numz << numr)
+    int ii, jj;
+    float *outpow = obs->ffdotplane + ffd->rlo * ffd->numzs;
+    //printf("rlo = %d, numrs = %d, nextrlo = %d\n", 
+    //       ffd->rlo, ffd->numrs, (int)(ffd->rlo+ffd->numrs*ACCEL_DR));
+    for (ii = 0 ; ii < ffd->numrs ; ii++) {
+        float *inpow = ffd->powers[0] + ii;
+        for (jj = 0 ; jj < ffd->numzs ; jj++, inpow += ffd->numrs) {
+            *outpow = *inpow;
+        }
+    }
+}
+
+
 void free_ffdotpows(ffdotpows * ffd)
 {
    vect_free(ffd->powers[0]);
@@ -1019,6 +1039,32 @@ void add_ffdotpows(ffdotpows * fundamental,
          fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
       }
    }
+}
+
+void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
+                         int numharm, int harmnum)
+{
+    int ii, jj, zz, rind, zind, subr, subz;
+    const int zlo = fundamental->zlo;
+    const int rlo = fundamental->rlo;
+    const int numrs = fundamental->numrs;
+    const int numzs = fundamental->numzs;
+    const double harm_fract = (double) harmnum / (double) numharm;
+    double rr;
+    long long fullind;
+    
+    for (ii = 0; ii < numzs; ii++) {
+        zz = zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, zlo);
+        for (jj = 0; jj < numrs; jj++) {
+            rr = rlo + jj * ACCEL_DR;
+            subr = calc_required_r(harm_fract, rr);
+            rind = subr * ACCEL_RDR; // since rlo = 0
+            fullind = rind * numzs + zind;
+            fundamental->powers[ii][jj] += obs->ffdotplane[fullind];
+        }
+    }
 }
 
 
@@ -1400,12 +1446,12 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
        memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN) \
            * obs->numbetween * obs->numz;
        printf("Full f-fdot plane would need %.2f GB: ", (float)memuse / gb);
-       if (memuse < MAXREALFFT/4) {
-           printf("using in-memory accelsearch.\n");
+       if (0 && memuse < MAXREALFFT/4) {
+           printf("using in-memory accelsearch.\n\n");
            obs->inmem = 1;
            obs->ffdotplane = (float *)malloc(memuse);
        } else {
-           printf("using standard accelsearch.\n");
+           printf("using standard accelsearch.\n\n");
            obs->inmem = 0;
            obs->ffdotplane = NULL;
        }
