@@ -49,7 +49,7 @@ float_keys = ["F", "F0", "F1", "F2", "F3", "F4", "F5", "F6",
               "EPS1", "EPS2", "EPS1DOT", "EPS2DOT", "TASC", "LAMBDA", "BETA",
               "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT",
               "FB0", "FB1", "FB2", "ELAT", "ELONG", "LAMBDA", "BETA",
-              "PMRA", "PMDEC"]
+              "PMRA", "PMDEC", "PB_2", "A1_2", "E_2", "T0_2", "OM_2"]
 str_keys = ["FILE", "PSR", "PSRJ", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
 
 class psr_par:
