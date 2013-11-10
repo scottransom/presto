@@ -1003,13 +1003,13 @@ void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs)
     // so that points in both r and z directions are more
     // memory local (since numz << numr)
     int ii, jj;
-    float *outpow = obs->ffdotplane + ffd->rlo * ffd->numzs;
+    float *outpow = obs->ffdotplane + ffd->rlo * ACCEL_RDR * ffd->numzs;
     //printf("rlo = %d, numrs = %d, nextrlo = %d\n", 
     //       ffd->rlo, ffd->numrs, (int)(ffd->rlo+ffd->numrs*ACCEL_DR));
     for (ii = 0 ; ii < ffd->numrs ; ii++) {
         float *inpow = ffd->powers[0] + ii;
         for (jj = 0 ; jj < ffd->numzs ; jj++, inpow += ffd->numrs) {
-            *outpow = *inpow;
+            *outpow++ = *inpow;
         }
     }
 }
@@ -1446,7 +1446,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
        memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN) \
            * obs->numbetween * obs->numz;
        printf("Full f-fdot plane would need %.2f GB: ", (float)memuse / gb);
-       if (0 && memuse < MAXREALFFT/4) {
+       if (memuse < MAXREALFFT/4) {
            printf("using in-memory accelsearch.\n\n");
            obs->inmem = 1;
            obs->ffdotplane = (float *)malloc(memuse);
