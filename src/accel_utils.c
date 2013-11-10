@@ -35,7 +35,7 @@ static inline int twon_to_index(int n)
 }
 
 
-static int calc_required_z(double harm_fract, double zfull)
+static inline int calc_required_z(double harm_fract, double zfull)
 /* Calculate the 'z' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'z' at the fundamental harmonic is 'zfull'.    */
@@ -44,7 +44,7 @@ static int calc_required_z(double harm_fract, double zfull)
 }
 
 
-static double calc_required_r(double harm_fract, double rfull)
+static inline double calc_required_r(double harm_fract, double rfull)
 /* Calculate the 'r' you need for subharmonic     */
 /* 'harmnum' out of 'numharm' subharmonics if the */
 /* 'r' at the fundamental harmonic is 'rfull'.    */
@@ -53,7 +53,7 @@ static double calc_required_r(double harm_fract, double rfull)
 }
 
 
-static int index_from_r(double r, double lor)
+static inline int index_from_r(double r, double lor)
 /* Return an index for a Fourier Freq given an array that */
 /* has stepsize ACCEL_DR and low freq 'lor'.              */
 {
@@ -61,7 +61,7 @@ static int index_from_r(double r, double lor)
 }
 
 
-static int index_from_z(double z, double loz)
+static inline int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
 /* has stepsize ACCEL_DZ and low freq 'lor'.              */
 {
