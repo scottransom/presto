@@ -1,4 +1,5 @@
 #include "ransomfft.h"
+#define Maxblocksize          67108864
 
 /* Optimized "two-pass" mass storage FFT function for complex data  */
 /* This version utilizes a scratch file the same size as the        */
