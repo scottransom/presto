@@ -143,14 +143,13 @@ static void free_kernel(kernel * kern)
 static void init_subharminfo(int numharm, int harmnum, int zmax, subharminfo * shi)
 /* Note:  'zmax' is the overall maximum 'z' in the search */
 {
-   int ii, fftlen, numz_full;
+   int ii, fftlen;
    double harm_fract;
 
    harm_fract = (double) harmnum / (double) numharm;
    shi->numharm = numharm;
    shi->harmnum = harmnum;
    shi->zmax = calc_required_z(harm_fract, zmax);
-   numz_full = (zmax / ACCEL_DZ) * 2 + 1;
    if (numharm > 1)
       shi->rinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
    fftlen = calc_fftlen(numharm, harmnum, zmax);
@@ -853,7 +852,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
                                subharminfo * shi, accelobs * obs)
 {
    int ii, lobin, hibin, numdata, nice_numdata, nrs, fftlen, binoffset;
-   static int numrs_full = 0, numzs_full = 0;
+   static int numrs_full = 0;
    float powargr, powargi;
    double drlo, drhi, harm_fract;
    ffdotpows *ffdot;
@@ -863,7 +862,6 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    if (numrs_full == 0) {
       if (numharm == 1 && harmnum == 1) {
          numrs_full = ACCEL_USELEN;
-         numzs_full = shi->numkern;
       } else {
          printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
          printf("harnum=1 before you use other values!  Exiting.\n\n");
@@ -1314,7 +1312,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
    }
    obs->numharmstages = twon_to_index(cmd->numharm) + 1;
    obs->dz = ACCEL_DZ;
-   obs->numz = cmd->zmax * 2 + 1;
+   obs->numz = (cmd->zmax / ACCEL_DZ) * 2 + 1;
    obs->numbetween = ACCEL_NUMBETWEEN;
    obs->dt = idata->dt;
    obs->T = idata->dt * idata->N;
@@ -1387,17 +1385,38 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       else
       obs->numzap = 0;
     */
+
+   /* Can we perform the search in-core memory? */
+   {
+       long long memuse;
+       double gb = (float)(1L<<30);
+
+       // This is the size of powers covering the full f-dot plane to search
+       // Need the extra ACCEL_USELEN since we generate the plane in blocks
+       memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN) \
+           * obs->numbetween * obs->numz;
+       printf("Full f-fdot plane would need %.2f GB: ", (float)memuse / gb);
+       if (memuse < MAXREALFFT/4) {
+           printf("using in-memory accelsearch.\n");
+           obs->inmem = 1;
+           obs->ffdotplane = (float *)malloc(memuse);
+       } else {
+           printf("using standard accelsearch.\n");
+           obs->inmem = 0;
+           obs->ffdotplane = NULL;
+       }
+   }
 }
 
 
 void free_accelobs(accelobs * obs)
 {
    if (obs->mmap_file)
-      close(obs->mmap_file);
+       close(obs->mmap_file);
    else if (obs->dat_input)
-      free(obs->fft-ACCEL_PADDING/2);
+       free(obs->fft-ACCEL_PADDING/2);
    else
-      fclose(obs->fftfile);
+       fclose(obs->fftfile);
    free(obs->powcut);
    free(obs->numindep);
    free(obs->rootfilenm);
@@ -1405,7 +1424,10 @@ void free_accelobs(accelobs * obs)
    free(obs->accelnm);
    free(obs->workfilenm);
    if (obs->numzap) {
-      free(obs->lobins);
-      free(obs->hibins);
+       free(obs->lobins);
+       free(obs->hibins);
+   }
+   if (obs->inmem) {
+       free(obs->ffdotplane);
    }
 }

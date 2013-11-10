@@ -33,6 +33,7 @@ typedef struct accelobs{
   int numzap;          /* Number of birdies to zap */
   int dat_input;       /* The input file is a short time series */
   int mmap_file;       /* The file number if using MMAP */
+  int inmem;           /* True if we want to keep the full f/fdot plan in RAM */
   int norm_type;       /* 0 = old-style block median, 1 = local-means power norm */
   double dt;           /* Data sample length (s) */           
   double T;            /* Total observation length */
@@ -46,6 +47,7 @@ typedef struct accelobs{
   float nph;           /* Freq 0 level if requested, 0 otherwise */
   float sigma;         /* Cutoff sigma to choose a candidate */
   float *powcut;       /* Cutoff powers to choose a cand (per harmsummed) */
+  float *ffdotplane;   /* The full F-Fdot plane if working in memory */
   double *lobins;      /* The low Fourier freq boundaries to zap (RFI) */
   double *hibins;      /* The high Fourier freq boundaries to zap (RFI) */
   long long *numindep; /* Number of independent spectra (per harmsummed) */
