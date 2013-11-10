@@ -141,12 +141,14 @@ int main(int argc, char *argv[])
 
             // Copy the fundamental's ffdot plane to the full in-core one
             if (obs.inmem) fund_to_ffdotplane(fundamental, &obs);
+            //if (obs.inmem) fund_to_ffdotplane_trans(fundamental, &obs);
 
             for (stage = 1; stage < obs.numharmstages; stage++) {
                harmtosum = 1 << stage;
                for (harm = 1; harm < harmtosum; harm += 2) {
                    if (obs.inmem) {
                        inmem_add_ffdotpows(fundamental, &obs, harmtosum, harm);
+                       //inmem_add_ffdotpows_trans(fundamental, &obs, harmtosum, harm);
                    } else {
                        subharmonic = subharm_ffdot_plane(harmtosum, harm, startr, lastr,
                                                          &subharminfs[stage][harm - 1],

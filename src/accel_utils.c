@@ -999,6 +999,20 @@ ffdotpows *copy_ffdotpows(ffdotpows * orig)
 void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs)
 {
     // This moves the fundamental's ffdot plane powers
+    // into the one for the full array
+    int ii, rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+    float *outpow;
+
+    for (ii = 0 ; ii < ffd->numzs ; ii++) {
+        outpow = obs->ffdotplane + ii * rlen + ffd->rlo * ACCEL_RDR;
+        memcpy(outpow, ffd->powers[ii], ffd->numrs*sizeof(float));
+    }
+}
+
+
+void fund_to_ffdotplane_trans(ffdotpows *ffd, accelobs *obs)
+{
+    // This moves the fundamental's ffdot plane powers
     // into the one for the full array, but with a transpose
     // so that points in both r and z directions are more
     // memory local (since numz << numr)
@@ -1041,35 +1055,37 @@ void add_ffdotpows(ffdotpows * fundamental,
    }
 }
 
-void inmem_add_ffdotpows1(ffdotpows *fundamental, accelobs *obs, 
+
+void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
                          int numharm, int harmnum)
 {
-    int ii, jj, zz, rind, zind, subr, subz;
+    int ii, jj, zz, rrint, rind, zind, subr, subz;
     const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
+    const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
     const double harm_fract = (double) harmnum / (double) numharm;
     double rr;
     long long fullind;
+    float *outpows, *inpows;
     
-    for (ii = 0; ii < numrs; ii++) {
-        rr = rlo + ii * ACCEL_DR;
-        subr = calc_required_r(harm_fract, rr);
-        rind = subr * ACCEL_RDR; // since rlo = 0
-        for (jj = 0; jj < numzs; jj++) {
-            zz = zlo + jj * ACCEL_DZ;
-            subz = calc_required_z(harm_fract, zz);
-            zind = index_from_z(subz, zlo);
-            fullind = rind * numzs + zind;
-            fundamental->powers[jj][ii] += obs->ffdotplane[fullind];
+    for (ii = 0; ii < numzs; ii++) {
+        zz = zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, zlo);
+        outpows = fundamental->powers[0] + ii * numrs;
+        inpows = obs->ffdotplane + zind * rlen;
+        for (jj = 0, rrint = ACCEL_RDR * rlo; jj < numrs; jj++, rrint++) {
+            rind = (int)(rrint * harm_fract + 0.5);
+            *outpows++ += *(inpows+rind);
         }
     }
 }
 
 
-void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
-                         int numharm, int harmnum)
+void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs, 
+                               int numharm, int harmnum)
 {
     int ii, jj, zz, rrint, rind, zind, subr, subz;
     const int zlo = fundamental->zlo;
@@ -1086,9 +1102,8 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
         subz = calc_required_z(harm_fract, zz);
         zind = index_from_z(subz, zlo);
         outpows = fundamental->powers[0] + ii * numrs;
-        for (jj = 0, rrint = 2 * rlo; jj < numrs; jj++, rrint++) {
+        for (jj = 0, rrint = ACCEL_RDR * rlo; jj < numrs; jj++, rrint++) {
             rind = (int)(rrint * harm_fract + 0.5);
-            //rind = (int)round(rrint * harm_fract);
             fullind = rind * numzs + zind;
             *outpows++ += obs->ffdotplane[fullind];
         }
