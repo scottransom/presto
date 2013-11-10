@@ -1036,7 +1036,6 @@ void free_ffdotpows(ffdotpows * ffd)
    free(ffd);
 }
 
-
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
@@ -1055,19 +1054,41 @@ void add_ffdotpows(ffdotpows * fundamental,
    }
 }
 
+void add_ffdotpows_ptrs(ffdotpows * fundamental,
+                        ffdotpows * subharmonic, int numharm, int harmnum)
+{
+    int ii, jj, zz, zind, subz;
+    const int zlo = fundamental->zlo;
+    const int numrs = fundamental->numrs;
+    const int numzs = fundamental->numzs;
+    double harm_fract;
+    float *outpows, *inpows;
+    unsigned short *indsptr;
+    
+    harm_fract = (double) harmnum / (double) numharm;
+    for (ii = 0; ii < numzs; ii++) {
+        zz = zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, subharmonic->zlo);
+        inpows = subharmonic->powers[zind];
+        outpows = fundamental->powers[ii];
+        indsptr = subharmonic->rinds;
+        for (jj = 0; jj < numrs; jj++)
+            *outpows++ += inpows[*indsptr++];
+    }
+}
+
 
 void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
                          int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, rind, zind, subr, subz;
+    int ii, jj, zz, rrint, rind, zind, subz;
     const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
     const double harm_fract = (double) harmnum / (double) numharm;
-    double rr;
-    long long fullind;
     float *outpows, *inpows;
     
     for (ii = 0; ii < numzs; ii++) {
@@ -1087,13 +1108,12 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
 void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs, 
                                int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, rind, zind, subr, subz;
+    int ii, jj, zz, rrint, rind, zind, subz;
     const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
-    double rr;
     long long fullind;
     float *outpows;
     
@@ -1489,7 +1509,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
        memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN) \
            * obs->numbetween * obs->numz;
        printf("Full f-fdot plane would need %.2f GB: ", (float)memuse / gb);
-       if (memuse < MAXREALFFT/4) {
+       if (memuse < MAXRAMUSE || cmd->inmemP) {
            printf("using in-memory accelsearch.\n\n");
            obs->inmem = 1;
            obs->ffdotplane = (float *)malloc(memuse);

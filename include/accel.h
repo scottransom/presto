@@ -123,11 +123,16 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 			       subharminfo *shi, accelobs *obs);
 ffdotpows *copy_ffdotpows(ffdotpows *orig);
 void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs);
-void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
+void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
                          int numharm, int harmnum);
+void fund_to_ffdotplane_trans(ffdotpows *ffd, accelobs *obs);
+void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
+                               int numharm, int harmnum);
 void free_ffdotpows(ffdotpows *ffd);
+void add_ffdotpows_ptrs(ffdotpows *fundamental, ffdotpows *subharmonic,
+                        int numharm, int harmnum);
 void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
-		   int numharm, int harmnum);
+                   int numharm, int harmnum);
 GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, 
-			 accelobs *obs, GSList *cands);
+                         accelobs *obs, GSList *cands);
 void free_accelobs(accelobs *obs);
