@@ -1039,19 +1039,18 @@ void free_ffdotpows(ffdotpows * ffd)
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
-   int ii, jj, zz, rind, zind, subz;
-   double harm_fract;
+    int ii, jj, zz, rind, zind, subz;
+    const double harm_fract = (double) harmnum / (double) numharm;
 
-   harm_fract = (double) harmnum / (double) numharm;
-   for (ii = 0; ii < fundamental->numzs; ii++) {
-      zz = fundamental->zlo + ii * ACCEL_DZ;
-      subz = calc_required_z(harm_fract, zz);
-      zind = index_from_z(subz, subharmonic->zlo);
-      for (jj = 0; jj < fundamental->numrs; jj++) {
-         rind = subharmonic->rinds[jj];
-         fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
-      }
-   }
+    for (ii = 0; ii < fundamental->numzs; ii++) {
+        zz = fundamental->zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, subharmonic->zlo);
+        for (jj = 0; jj < fundamental->numrs; jj++) {
+            rind = subharmonic->rinds[jj];
+            fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
+        }
+    }
 }
 
 void add_ffdotpows_ptrs(ffdotpows * fundamental,
@@ -1061,11 +1060,10 @@ void add_ffdotpows_ptrs(ffdotpows * fundamental,
     const int zlo = fundamental->zlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
-    double harm_fract;
+    const double harm_fract = (double) harmnum / (double) numharm;
     float *outpows, *inpows;
     unsigned short *indsptr;
-    
-    harm_fract = (double) harmnum / (double) numharm;
+
     for (ii = 0; ii < numzs; ii++) {
         zz = zlo + ii * ACCEL_DZ;
         subz = calc_required_z(harm_fract, zz);
