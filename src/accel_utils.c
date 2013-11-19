@@ -1082,7 +1082,7 @@ void add_ffdotpows_ptrs(ffdotpows * fundamental,
 void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
                          int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, rind, zind, subz;
+    int ii, jj, zz, rrint, zind, subz;
     const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
@@ -1090,44 +1090,55 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
     const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
     const double harm_fract = (double) harmnum / (double) numharm;
     float *outpows, *inpows;
+    int *indices;
     
+    // Pre-compute the frequency lookup table
+    indices = gen_ivect(numrs);
+    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+        indices[ii] = (int)(rrint * harm_fract + 0.5);
+
+    // Now add all the powers
     for (ii = 0; ii < numzs; ii++) {
         zz = zlo + ii * ACCEL_DZ;
         subz = calc_required_z(harm_fract, zz);
         zind = index_from_z(subz, zlo);
-        outpows = fundamental->powers[0] + ii * numrs;
         inpows = obs->ffdotplane + zind * rlen;
-        for (jj = 0, rrint = ACCEL_RDR * rlo; jj < numrs; jj++, rrint++) {
-            rind = (int)(rrint * harm_fract + 0.5);
-            *outpows++ += *(inpows+rind);
-        }
+        outpows = fundamental->powers[0] + ii * numrs;
+        for (jj = 0; jj < numrs; jj++)
+            outpows[jj] += inpows[indices[jj]];
     }
+    vect_free(indices);
 }
 
 
 void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs, 
                                int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, rind, zind, subz;
+    int ii, jj, zz, rrint, zind, subz;
     const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
-    long long fullind;
-    float *outpows;
+    long *indices;
+    float *inpows, *outpows;
     
+    // Pre-compute the frequency lookup table
+    indices = gen_lvect(numrs);
+    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+        indices[ii] = (long)(rrint * harm_fract + 0.5) * numzs;
+
+    // Now add all the powers
     for (ii = 0; ii < numzs; ii++) {
         zz = zlo + ii * ACCEL_DZ;
         subz = calc_required_z(harm_fract, zz);
         zind = index_from_z(subz, zlo);
+        inpows = obs->ffdotplane + zind;
         outpows = fundamental->powers[0] + ii * numrs;
-        for (jj = 0, rrint = ACCEL_RDR * rlo; jj < numrs; jj++, rrint++) {
-            rind = (int)(rrint * harm_fract + 0.5);
-            fullind = rind * numzs + zind;
-            *outpows++ += obs->ffdotplane[fullind];
-        }
+        for (jj = 0; jj < numrs; jj++)
+            outpows[jj] += inpows[indices[jj]];
     }
+    vect_free(indices);
 }
 
 
@@ -1502,7 +1513,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
    /* Can we perform the search in-core memory? */
    {
        long long memuse;
-       double gb = (float)(1L<<30);
+       double gb = (double)(1L<<30);
 
        // This is the size of powers covering the full f-dot plane to search
        // Need the extra ACCEL_USELEN since we generate the plane in blocks
@@ -1512,7 +1523,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
        if (memuse < MAXRAMUSE || cmd->inmemP) {
            printf("using in-memory accelsearch.\n\n");
            obs->inmem = 1;
-           obs->ffdotplane = (float *)malloc(memuse);
+           obs->ffdotplane = gen_fvect(memuse / sizeof(float));
        } else {
            printf("using standard accelsearch.\n\n");
            obs->inmem = 0;
@@ -1541,6 +1552,6 @@ void free_accelobs(accelobs * obs)
        free(obs->hibins);
    }
    if (obs->inmem) {
-       free(obs->ffdotplane);
+       vect_free(obs->ffdotplane);
    }
 }
