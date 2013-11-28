@@ -24,6 +24,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
             spectra: Spectra to write to file. (Default: don't write
                 any spectra - i.e. write out header only)
             nbits: The number of bits per sample of the filterbank file.
+                This value always overrides the value in the header dictionary.
                 (Default: 8 - i.e. each sample is an 8-bit integer)
             verbose: If True, be verbose (Default: be quiet)
 
@@ -42,7 +43,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
         value = header[paramname]
         outfile.write(sigproc.addto_hdr(paramname, value))
     outfile.write(sigproc.addto_hdr("HEADER_END", None))
-    if spectra:
+    if spectra is not None:
         spectra.flatten().astype(dtype).tofile(outfile)
     outfile.close()
     return FilterbankFile(outfn, read_only=False)
@@ -146,7 +147,17 @@ class FilterbankFile(object):
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
         self.bytes_per_spectrum = self.nchans*self.nbits / 8
-        
+       
+        # Check if this file is a folded-filterbank file
+        if 'npuls' in self.header and 'period' in self.header and \
+                'nbins' in self.header and 'tsamp' not in self.header:
+            # Foleded file
+            self.isfold = True
+            self.dt = self.period/self.nbins
+        else:
+            self.isfold = False
+            self.dt = self.tsamp
+
         # Get info about dtype
         self.dtype = get_dtype(self.nbits)
         if is_float(self.nbits):

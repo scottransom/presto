@@ -69,7 +69,6 @@ def read_subint(fits,i_subint,nchan,nsamps, apply_weights=True, \
          Output: subint data with scales, weights, and offsets
                  applied in float32 dtype with shape (nsamps,nchan).
     """ 
-
     if input_nbits == 4:
         data = read_4bit(fits['SUBINT'].data[i_subint]['DATA'])
     elif input_nbits > 4:
