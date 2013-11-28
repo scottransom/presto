@@ -22,6 +22,7 @@ import scipy.integrate
 import filterbank
 import psr_utils
 
+
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
 BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
@@ -754,6 +755,96 @@ def save_profile(prof, outfn):
     outfile.close()
 
 
+def parse_cfgstr(cfgstr):
+    cfgs = {}
+    for cfg in cfgstr.split(','):
+        key, val = cfg.split('=')
+        cfgs[key] = val
+    return cfgs
+
+
+def get_scaling(fil, prof, cfgstr):
+    """Given a target filterbank file, a profile, and
+        a configuration string return the corresponding 
+        scaling factor.
+
+        Inputs:
+            fil: A filterbank.FilterbankFile object.
+            prof: A Profile object.
+            cfgstr: A string containing configurations.
+
+        Output:
+            scaling: The corresponding scaling.
+    """
+    cfgs = parse_cfgstr(cfgstr)
+    return float(cfgs['scale'])
+
+
+def get_scaling_from_snr(fil, prof, cfgstr):
+    """Given a target filterbank file, a profile, and
+        a configuration string compute the scaling factor
+        given the SNR.
+
+        Inputs:
+            fil: A filterbank.FilterbankFile object.
+            prof: A Profile object.
+            cfgstr: A string containing configurations.
+
+        Output:
+            scaling: The corresponding scaling.
+    """
+    cfgs = parse_cfgstr(cfgstr)
+    snr = float(cfg['snr'])
+    rms = float(cfg['rms'])
+    scale = scale_from_snr(fil, prof, snr=snr, rms=rms)
+    return scale
+
+
+def get_scaling_from_smean(fil, prof, cfgstr):
+    """Given a target filterbank file, a profile, and
+        a configuration string compute the scaling factor
+        given the target mean flux density.
+
+        Inputs:
+            fil: A filterbank.FilterbankFile object.
+            prof: A Profile object.
+            cfgstr: A string containing configurations.
+
+        Output:
+            scaling: The corresponding scaling.
+    """
+    cfgs = parse_cfgstr(cfgstr)
+    smean = float(cfg['smean'])
+    rms = float(cfg['rms'])
+    gain = float(cfg['gain'])
+    tsys = float(cfg['tsys'])
+    snr = snr_from_smean(fil, prof, smean=smean, \
+                            gain=gain, tsys=tsys)
+    scale = scale_from_snr(fil, prof, snr, rms=rms)
+    return scale
+    
+
+def get_scaling_from_file(fil, prof, cfgstr):
+    """Given a target filterbank file, a profile, and
+        a configuration string read scaling factors from
+        a text file. The file should have one floating point
+        number per line. There should be as many lines as there
+        are frequency channels in the filterbank file.
+
+        Inputs:
+            fil: A filterbank.FilterbankFile object.
+            prof: A Profile object.
+            cfgstr: A string containing configurations.
+
+        Output:
+            scaling: The corresponding scaling.
+    """
+    cfgs = parse_cfgstr(cfgstr)
+    fn = cfgs['file']
+    scales = np.loadtxt(fn, usecols=(0,))
+    return scales
+
+
 def main():
     plt.figure(figsize=(8,10))
     fn = args.infile
@@ -770,18 +861,8 @@ def main():
         prof = MultiComponentProfile(comps)
         prof = get_spline_profile(prof)
         # Determine scaling
-        if args.smean is not None:
-            snr = snr_from_smean(fil, prof, smean=args.smean, \
-                                    gain=args.gain, tsys=args.tsys)
-            scale = scale_from_snr(fil, prof, snr, rms=args.rms)
-        elif args.snr is not None:
-            scale = scale_from_snr(fil, prof, snr=args.snr, rms=args.rms)
-        else:
-            scale = args.scale
-       
-        if args.apply_dm:
-            prof = apply_dm(prof, args.period, args.dm, \
-                            np.abs(fil.foff), fil.frequencies, fil.tsamp)
+        scale_getter = SCALE_METHOD[args.scale_name]
+        scaling = scale_getter(fil, prof, args.scale_cfgstr)
         prof.set_scaling(scale)
         if args.outprof is not None:
             save_profile(prof, args.outprof)
@@ -825,9 +906,40 @@ class ParseMfileAction(argparse.Action):
         vonmises.extend(parse_model_file(values))
 
 
+class ScaleHelpAction(argparse.Action):
+    def __call__(self, parser, namepsace, values, option_string=None):
+        helptext = "Scaling methods:\n\n" + \
+        "scale - Multiply injected signal by a scaling factor\n" + \
+        "Configs: 'scale' - (float) the scaling factor\n\n" + \
+        "snr - Scale the injected signal so the integrated \n"  + \
+        "      profile has the given SNR\n" + \
+        "Configs: 'snr' - (float) the target SNR\n" + \
+        "         'rms' - (float) the RMS of the cleaned DM=0 timeseries\n\n" + \
+        "smean - Scale the injected signal so the integrated \n" + \
+        "        profile has the given mean flux density\n" + \
+        "Configs: 'smean' - (float) the target mean flux density\n" + \
+        "         'gain' - (float) the telescope's gain (in K/Jy)\n" + \
+        "         'tsys' - (float) the observing system's temperature (in K)\n" + \
+        "         'rms' - (float) the RMS of the cleaned DM=0 timeseries\n\n" + \
+        "scalefile - Scale the signal in each channel independently\n" + \
+        "            according to the scaling factors in the file\n" + \
+        "Configs: 'file' - (string) a text file containing scale factors.\n" + \
+        "                  each row should have a single floating-point \n"  + \
+        "                  number. The number and order of the rows should \n" + \
+        "                  correspond to the input filterbank file.\n"
+        sys.stderr.write(helptext)
+        sys.exit(1)
+
+
+SCALE_METHODS = {'scale': get_scaling, \
+                 'snr': get_scaling_from_snr, \
+                 'radiometer': get_scaling_from_smean, \
+                 'scalefile': get_scaling_from_file}
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='injectpsr.py', \
-                    description="v0.5 Patrick Lazarus (July 7, 2013)")
+                    description="v0.6 Patrick Lazarus (Nov 5, 2013)")
     parser.add_argument("--dm", dest='dm', type=float, \
                     help="The DM of the (fake) injected pulsar signal. " \
                         "(This argument is required.", \
@@ -836,26 +948,24 @@ if __name__ == '__main__':
                     default=None, type=float, \
                     help="The period (in seconds) of the (fake) injected " \
                         "pulsar signal. (This argument is required.)")
-    scalegroup = parser.add_mutually_exclusive_group()
-    scalegroup.add_argument("-F", "--smean", dest='smean', type=float, \
-                    default=None, \
-                    help="Mean flux density (in mJy) of the injected pulsar " \
-                        "signal. This will automatically set the scale factor. " \
-                        "(Default: Don't scale)")
-    scalegroup.add_argument("--snr", dest='snr', type=float, \
-                    default=None, \
-                    help="Desired signal to noise ratio. This will automatically " \
-                        "set the scale factor. (Default: Don't scale)")
-    scalegroup.add_argument("-s", "--scale", dest='scale', type=float, \
-                    default=1, \
-                    help="Overall scaling factor to multiply profile with. " \
-                        "(Default: Don't scale.)")
+    parser.add_argument("-c", "--scale-configs", dest='scale_cfgstr', type=str, \
+                    required=True, \
+                    help="A string of comma-separated parameters to " \
+                        "configure how the injected signal is scaled. " \
+                        "Format is '<param-name>=<value>,...'")
+    parser.add_argument("-s", "--scale-method", dest='scale_name', type=str, \
+                    required=True, \
+                    help="Name of a method for determining how the " \
+                        "injected signal is scaled.")
+    parser.add_argument("--scale-help", dest='show_scale_help', \
+                    nargs=0, action=ScaleHelpAction, \
+                    help="Show help text for scaling methods, parameters.")
     parser.add_argument("--rms", dest='rms', type=float, \
                     help="The RMS of the recipient file's DM=0 timeseries. " \
                         "This _must_ be provided if the '-F/--smean' argument " \
                         "is used.")
     parser.add_argument("--gain", dest='gain', type=float, \
-                    help="The telescope's gain (in K/Jy). This _must_ be " \
+                    help=". This _must_ be " \
                         "provided if the '-F/--smean' argument is used.")
     parser.add_argument("--tsys", dest='tsys', type=float, \
                     help="The observing system's temperature (in K). This " \
