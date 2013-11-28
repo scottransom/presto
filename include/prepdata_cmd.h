@@ -49,6 +49,10 @@ typedef struct s_Cmdline {
   int clipC;
   /***** -noclip: Do not clip the data.  (The default is to _always_ clip!) */
   char noclipP;
+  /***** -invert: For rawdata, flip (or invert) the band */
+  char invertP;
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  char zerodmP;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
   int numout;

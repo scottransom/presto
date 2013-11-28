@@ -36,20 +36,20 @@ static inline int twon_to_index(int n)
 
 
 static inline int calc_required_z(double harm_fract, double zfull)
-/* Calculate the 'z' you need for subharmonic     */
-/* 'harmnum' out of 'numharm' subharmonics if the */
-/* 'z' at the fundamental harmonic is 'zfull'.    */
+/* Calculate the 'z' you need for subharmonic  */
+/* harm_fract = harmnum / numharm if the       */
+/* 'z' at the fundamental harmonic is 'zfull'. */
 {
    return NEAREST_INT(ACCEL_RDZ * zfull * harm_fract) * ACCEL_DZ;
 }
 
 
 static inline double calc_required_r(double harm_fract, double rfull)
-/* Calculate the 'r' you need for subharmonic     */
-/* 'harmnum' out of 'numharm' subharmonics if the */
-/* 'r' at the fundamental harmonic is 'rfull'.    */
+/* Calculate the 'r' you need for subharmonic  */
+/* harm_fract = harmnum / numharm if the       */
+/* 'r' at the fundamental harmonic is 'rfull'. */
 {
-   return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
+    return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
 }
 
 
@@ -111,6 +111,8 @@ static int calc_fftlen(int numharm, int harmnum, int max_zfull)
    bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
    end_effects = 2 * ACCEL_NUMBETWEEN *
        z_resp_halfwidth(calc_required_z(harm_fract, max_zfull), LOWACC);
+   //printf("bins_needed = %d  end_effects = %d  FFTlen = %lld\n", 
+   //       bins_needed, end_effects, next2_to_n(bins_needed + end_effects));
    return next2_to_n(bins_needed + end_effects);
 }
 
@@ -143,14 +145,13 @@ static void free_kernel(kernel * kern)
 static void init_subharminfo(int numharm, int harmnum, int zmax, subharminfo * shi)
 /* Note:  'zmax' is the overall maximum 'z' in the search */
 {
-   int ii, fftlen, numz_full;
+   int ii, fftlen;
    double harm_fract;
 
    harm_fract = (double) harmnum / (double) numharm;
    shi->numharm = numharm;
    shi->harmnum = harmnum;
    shi->zmax = calc_required_z(harm_fract, zmax);
-   numz_full = (zmax / ACCEL_DZ) * 2 + 1;
    if (numharm > 1)
       shi->rinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
    fftlen = calc_fftlen(numharm, harmnum, zmax);
@@ -161,33 +162,33 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, subharminfo * s
 }
 
 
-subharminfo **create_subharminfos(int numharmstages, int zmax)
+subharminfo **create_subharminfos(accelobs *obs)
 {
    int ii, jj, harmtosum;
    subharminfo **shis;
 
-   shis = (subharminfo **) malloc(numharmstages * sizeof(subharminfo *));
+   shis = (subharminfo **) malloc(obs->numharmstages * sizeof(subharminfo *));
    /* Prep the fundamental (actually, the highest harmonic) */
    shis[0] = (subharminfo *) malloc(2 * sizeof(subharminfo));
-   init_subharminfo(1, 1, zmax, &shis[0][0]);
+   init_subharminfo(1, 1, (int)obs->zhi, &shis[0][0]);
    printf
        ("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
-        shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax, calc_fftlen(1, 1,
-                                                                           shis[0]
-                                                                           [0].
-                                                                           zmax));
-   /* Prep the sub-harmonics */
-   for (ii = 1; ii < numharmstages; ii++) {
-      harmtosum = index_to_twon(ii);
-      shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
-      for (jj = 1; jj < harmtosum; jj += 2) {
-         init_subharminfo(harmtosum, jj, zmax, &shis[ii][jj - 1]);
-         printf
-             ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
-              jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax,
-              shis[ii][jj - 1].zmax, calc_fftlen(harmtosum, jj,
-                                                 shis[ii][jj - 1].zmax));
-      }
+        shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax, 
+        calc_fftlen(1, 1, (int)obs->zhi));
+   /* Prep the sub-harmonics if needed */
+   if (!obs->inmem) {
+       for (ii = 1; ii < obs->numharmstages; ii++) {
+           harmtosum = index_to_twon(ii);
+           shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
+           for (jj = 1; jj < harmtosum; jj += 2) {
+               init_subharminfo(harmtosum, jj, (int)obs->zhi, &shis[ii][jj - 1]);
+               printf
+                   ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
+                    jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax,
+                    shis[ii][jj - 1].zmax, 
+                    calc_fftlen(harmtosum, jj, (int)obs->zhi));
+           }
+       }
    }
    return shis;
 }
@@ -205,17 +206,19 @@ static void free_subharminfo(subharminfo * shi)
 }
 
 
-void free_subharminfos(int numharmstages, subharminfo ** shis)
+void free_subharminfos(accelobs *obs, subharminfo **shis)
 {
    int ii, jj, harmtosum;
 
    /* Free the sub-harmonics */
-   for (ii = 1; ii < numharmstages; ii++) {
-      harmtosum = index_to_twon(ii);
-      for (jj = 1; jj < harmtosum; jj += 2) {
-         free_subharminfo(&shis[ii][jj - 1]);
-      }
-      free(shis[ii]);
+   if (!obs->inmem) {
+       for (ii = 1; ii < obs->numharmstages; ii++) {
+           harmtosum = index_to_twon(ii);
+           for (jj = 1; jj < harmtosum; jj += 2) {
+               free_subharminfo(&shis[ii][jj - 1]);
+           }
+           free(shis[ii]);
+       }
    }
    /* Free the fundamental */
    free_subharminfo(&shis[0][0]);
@@ -853,7 +856,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
                                subharminfo * shi, accelobs * obs)
 {
    int ii, lobin, hibin, numdata, nice_numdata, nrs, fftlen, binoffset;
-   static int numrs_full = 0, numzs_full = 0;
+   static int numrs_full = 0;
    float powargr, powargi;
    double drlo, drhi, harm_fract;
    ffdotpows *ffdot;
@@ -863,7 +866,6 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    if (numrs_full == 0) {
       if (numharm == 1 && harmnum == 1) {
          numrs_full = ACCEL_USELEN;
-         numzs_full = shi->numkern;
       } else {
          printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
          printf("harnum=1 before you use other values!  Exiting.\n\n");
@@ -881,7 +883,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
 
    /* Initialize the lookup indices */
-   if (numharm > 1) {
+   if (numharm > 1 && !obs->inmem) {
       double rr, subr;
       for (ii = 0; ii < numrs_full; ii++) {
          rr = fullrlo + ii * ACCEL_DR;
@@ -993,6 +995,40 @@ ffdotpows *copy_ffdotpows(ffdotpows * orig)
    return copy;
 }
 
+
+void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs)
+{
+    // This moves the fundamental's ffdot plane powers
+    // into the one for the full array
+    int ii, rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+    float *outpow;
+
+    for (ii = 0 ; ii < ffd->numzs ; ii++) {
+        outpow = obs->ffdotplane + ii * rlen + ffd->rlo * ACCEL_RDR;
+        memcpy(outpow, ffd->powers[ii], ffd->numrs*sizeof(float));
+    }
+}
+
+
+void fund_to_ffdotplane_trans(ffdotpows *ffd, accelobs *obs)
+{
+    // This moves the fundamental's ffdot plane powers
+    // into the one for the full array, but with a transpose
+    // so that points in both r and z directions are more
+    // memory local (since numz << numr)
+    int ii, jj;
+    float *outpow = obs->ffdotplane + ffd->rlo * ACCEL_RDR * ffd->numzs;
+    //printf("rlo = %d, numrs = %d, nextrlo = %d\n", 
+    //       ffd->rlo, ffd->numrs, (int)(ffd->rlo+ffd->numrs*ACCEL_DR));
+    for (ii = 0 ; ii < ffd->numrs ; ii++) {
+        float *inpow = ffd->powers[0] + ii;
+        for (jj = 0 ; jj < ffd->numzs ; jj++, inpow += ffd->numrs) {
+            *outpow++ = *inpow;
+        }
+    }
+}
+
+
 void free_ffdotpows(ffdotpows * ffd)
 {
    vect_free(ffd->powers[0]);
@@ -1000,23 +1036,107 @@ void free_ffdotpows(ffdotpows * ffd)
    free(ffd);
 }
 
-
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
-   int ii, jj, zz, rind, zind, subz;
-   double harm_fract;
+    int ii, jj, zz, rind, zind, subz;
+    const double harm_fract = (double) harmnum / (double) numharm;
 
-   harm_fract = (double) harmnum / (double) numharm;
-   for (ii = 0; ii < fundamental->numzs; ii++) {
-      zz = fundamental->zlo + ii * ACCEL_DZ;
-      subz = calc_required_z(harm_fract, zz);
-      zind = index_from_z(subz, subharmonic->zlo);
-      for (jj = 0; jj < fundamental->numrs; jj++) {
-         rind = subharmonic->rinds[jj];
-         fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
-      }
-   }
+    for (ii = 0; ii < fundamental->numzs; ii++) {
+        zz = fundamental->zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, subharmonic->zlo);
+        for (jj = 0; jj < fundamental->numrs; jj++) {
+            rind = subharmonic->rinds[jj];
+            fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
+        }
+    }
+}
+
+void add_ffdotpows_ptrs(ffdotpows * fundamental,
+                        ffdotpows * subharmonic, int numharm, int harmnum)
+{
+    int ii, jj, zz, zind, subz;
+    const int zlo = fundamental->zlo;
+    const int numrs = fundamental->numrs;
+    const int numzs = fundamental->numzs;
+    const double harm_fract = (double) harmnum / (double) numharm;
+    float *outpows, *inpows;
+    unsigned short *indsptr;
+
+    for (ii = 0; ii < numzs; ii++) {
+        zz = zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, subharmonic->zlo);
+        inpows = subharmonic->powers[zind];
+        outpows = fundamental->powers[ii];
+        indsptr = subharmonic->rinds;
+        for (jj = 0; jj < numrs; jj++)
+            *outpows++ += inpows[*indsptr++];
+    }
+}
+
+
+void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
+                         int numharm, int harmnum)
+{
+    int ii, jj, zz, rrint, zind, subz;
+    const int zlo = fundamental->zlo;
+    const int rlo = fundamental->rlo;
+    const int numrs = fundamental->numrs;
+    const int numzs = fundamental->numzs;
+    const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+    const double harm_fract = (double) harmnum / (double) numharm;
+    float *outpows, *inpows;
+    int *indices;
+    
+    // Pre-compute the frequency lookup table
+    indices = gen_ivect(numrs);
+    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+        indices[ii] = (int)(rrint * harm_fract + 0.5);
+
+    // Now add all the powers
+    for (ii = 0; ii < numzs; ii++) {
+        zz = zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, zlo);
+        inpows = obs->ffdotplane + zind * rlen;
+        outpows = fundamental->powers[0] + ii * numrs;
+        for (jj = 0; jj < numrs; jj++)
+            outpows[jj] += inpows[indices[jj]];
+    }
+    vect_free(indices);
+}
+
+
+void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs, 
+                               int numharm, int harmnum)
+{
+    int ii, jj, zz, rrint, zind, subz;
+    const int zlo = fundamental->zlo;
+    const int rlo = fundamental->rlo;
+    const int numrs = fundamental->numrs;
+    const int numzs = fundamental->numzs;
+    const double harm_fract = (double) harmnum / (double) numharm;
+    long *indices;
+    float *inpows, *outpows;
+    
+    // Pre-compute the frequency lookup table
+    indices = gen_lvect(numrs);
+    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+        indices[ii] = (long)(rrint * harm_fract + 0.5) * numzs;
+
+    // Now add all the powers
+    for (ii = 0; ii < numzs; ii++) {
+        zz = zlo + ii * ACCEL_DZ;
+        subz = calc_required_z(harm_fract, zz);
+        zind = index_from_z(subz, zlo);
+        inpows = obs->ffdotplane + zind;
+        outpows = fundamental->powers[0] + ii * numrs;
+        for (jj = 0; jj < numrs; jj++)
+            outpows[jj] += inpows[indices[jj]];
+    }
+    vect_free(indices);
 }
 
 
@@ -1314,7 +1434,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
    }
    obs->numharmstages = twon_to_index(cmd->numharm) + 1;
    obs->dz = ACCEL_DZ;
-   obs->numz = cmd->zmax * 2 + 1;
+   obs->numz = (cmd->zmax / ACCEL_DZ) * 2 + 1;
    obs->numbetween = ACCEL_NUMBETWEEN;
    obs->dt = idata->dt;
    obs->T = idata->dt * idata->N;
@@ -1387,17 +1507,38 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       else
       obs->numzap = 0;
     */
+
+   /* Can we perform the search in-core memory? */
+   {
+       long long memuse;
+       double gb = (double)(1L<<30);
+
+       // This is the size of powers covering the full f-dot plane to search
+       // Need the extra ACCEL_USELEN since we generate the plane in blocks
+       memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN) \
+           * obs->numbetween * obs->numz;
+       printf("Full f-fdot plane would need %.2f GB: ", (float)memuse / gb);
+       if (memuse < MAXRAMUSE || cmd->inmemP) {
+           printf("using in-memory accelsearch.\n\n");
+           obs->inmem = 1;
+           obs->ffdotplane = gen_fvect(memuse / sizeof(float));
+       } else {
+           printf("using standard accelsearch.\n\n");
+           obs->inmem = 0;
+           obs->ffdotplane = NULL;
+       }
+   }
 }
 
 
 void free_accelobs(accelobs * obs)
 {
    if (obs->mmap_file)
-      close(obs->mmap_file);
+       close(obs->mmap_file);
    else if (obs->dat_input)
-      free(obs->fft-ACCEL_PADDING/2);
+       free(obs->fft-ACCEL_PADDING/2);
    else
-      fclose(obs->fftfile);
+       fclose(obs->fftfile);
    free(obs->powcut);
    free(obs->numindep);
    free(obs->rootfilenm);
@@ -1405,7 +1546,10 @@ void free_accelobs(accelobs * obs)
    free(obs->accelnm);
    free(obs->workfilenm);
    if (obs->numzap) {
-      free(obs->lobins);
-      free(obs->hibins);
+       free(obs->lobins);
+       free(obs->hibins);
+   }
+   if (obs->inmem) {
+       vect_free(obs->ffdotplane);
    }
 }

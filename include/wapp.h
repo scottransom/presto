@@ -235,29 +235,9 @@ typedef struct WAPP_HEADERv9{
 } WAPP_HEADERv9;
 
 /* wapp.c */
-void set_WAPP_padvals(float *fpadvals, int good_padvals);
 void print_WAPP_hdr(struct HEADERP *hdr);
-int read_WAPP_rawblock(FILE *infiles[], int numfiles, unsigned char *data, 
-		       int *padding, IFs ifs);
-int read_WAPP_rawblocks(FILE *infiles[], int numfiles, unsigned char rawdata[], 
-			int numblocks, int *padding, IFs ifs);
-int read_WAPP(FILE *infiles[], int numfiles, float *data, int numpts, 
-	      double *dispdelays, int *padding, int *maskchans, 
-	      int *nummasked, mask *obsmask, IFs ifs);
-void get_WAPP_channel(int channum, float chandat[], 
-		      unsigned char rawdata[], int numblocks);
 void get_WAPP_file_info(FILE *files[], int numwapps, int numfiles, int usewindow,
 			float clipsig, long long *N, int *ptsperblock, 
 			int *numchan, double *dt, double *T, 
 			infodata *idata, int output);
-int prep_WAPP_subbands(unsigned char *rawdata, float *data, 
-		       double *dispdelays, int numsubbands, 
-		       int transpose, int *maskchans, 
-		       int *nummasked, mask *obsmask);
-int read_WAPP_subbands(FILE *infiles[], int numfiles, float *data, 
-		       double *dispdelays, int numsubbands, int transpose, 
-		       int *padding, int *maskchans, int *nummasked, 
-		       mask *obsmask, IFs ifs);
-void convert_WAPP_point(void *rawdata, unsigned char *bytes, IFs ifs);
 void WAPP_update_infodata(int numfiles, infodata *idata);
-int skip_to_WAPP_rec(FILE *infiles[], int numfiles, int rec);

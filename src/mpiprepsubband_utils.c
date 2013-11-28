@@ -1,13 +1,11 @@
 #include <limits.h>
 #include "presto.h"
 #include "mask.h"
-#include "multibeam.h"
-#include "bpp.h"
-#include "wapp.h"
+#include "backend_common.h"
 #include "mpi.h"
 
-MPI_Datatype infodata_type;
 MPI_Datatype maskbase_type;
+MPI_Datatype spectra_info_type;
 
 typedef struct MASKBASE {
    double timesigma;            /* Cutoff time-domain sigma               */
@@ -104,33 +102,70 @@ void broadcast_mask(mask * obsmask, int myid)
 }
 
 
-void make_infodata_struct(void)
+void make_spectra_info_struct(void)
 {
-   int ii, blockcounts[11] = { MAXNUMONOFF * 2 + 14, 8, 500, 200, 100,
-      100, 100, 100, 40, 40, 7
-   };
-   MPI_Datatype types[11] = { MPI_DOUBLE, MPI_INT, MPI_CHAR, MPI_CHAR,
-      MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR,
-      MPI_CHAR, MPI_CHAR, MPI_CHAR
-   };
-   MPI_Aint displs[11];
-   infodata idata;
+    // Following assumes that enums are MPI_INT and pointers are MPI_LONG
+    int ii, blockcounts[17] = { 40, 40, 40, 40, 40, 40, 40, 40, 40, 40, 40,
+                                1, 15, 1, 29, 2,
+                                13
+    };
+    MPI_Datatype types[17] = { MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR,
+                               MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR, MPI_CHAR, 
+                               MPI_LONG_LONG, MPI_DOUBLE, MPI_INT, MPI_INT, MPI_FLOAT, 
+                               MPI_LONG
+    };
+    MPI_Aint displs[17];
+    struct spectra_info s;
+    
+    MPI_Address(&s.telescope, &displs[0]);
+    MPI_Address(&s.observer, &displs[1]);
+    MPI_Address(&s.source, &displs[2]);
+    MPI_Address(&s.frontend, &displs[3]);
+    MPI_Address(&s.backend, &displs[4]);
+    MPI_Address(&s.project_id, &displs[5]);
+    MPI_Address(&s.date_obs, &displs[6]);
+    MPI_Address(&s.ra_str, &displs[7]);
+    MPI_Address(&s.dec_str, &displs[8]);
+    MPI_Address(&s.poln_type, &displs[9]);
+    MPI_Address(&s.poln_order, &displs[10]);
+    MPI_Address(&s.N, &displs[11]);
+    MPI_Address(&s.T, &displs[12]);
+    MPI_Address(&s.datatype, &displs[13]);
+    MPI_Address(&s.scan_number, &displs[14]);
+    MPI_Address(&s.zero_offset, &displs[15]);
+    MPI_Address(&s.start_MJD, &displs[16]);
+    for (ii = 16; ii >= 0; ii--)
+        displs[ii] -= displs[0];
+    MPI_Type_struct(17, blockcounts, displs, types, &spectra_info_type);
+    MPI_Type_commit(&spectra_info_type);
+}
 
-   MPI_Address(&idata.ra_s, &displs[0]);
-   MPI_Address(&idata.num_chan, &displs[1]);
-   MPI_Address(&idata.notes, &displs[2]);
-   MPI_Address(&idata.name, &displs[3]);
-   MPI_Address(&idata.object, &displs[4]);
-   MPI_Address(&idata.instrument, &displs[5]);
-   MPI_Address(&idata.observer, &displs[6]);
-   MPI_Address(&idata.analyzer, &displs[7]);
-   MPI_Address(&idata.telescope, &displs[8]);
-   MPI_Address(&idata.band, &displs[9]);
-   MPI_Address(&idata.filt, &displs[10]);
-   for (ii = 10; ii >= 0; ii--)
-      displs[ii] -= displs[0];
-   MPI_Type_struct(11, blockcounts, displs, types, &infodata_type);
-   MPI_Type_commit(&infodata_type);
+void broadcast_spectra_info(struct spectra_info * s, int myid)
+{
+    int arrsize;
+    // Broadcast the basic information first
+    MPI_Bcast(s, 1, spectra_info_type, 0, MPI_COMM_WORLD);
+    if (s->datatype==SUBBAND) {
+        arrsize = 1;
+    } else {
+        arrsize = s->num_files;
+    }
+    // Now allocate the arrays if we are not the master
+    if (myid > 0) {
+        s->start_subint = gen_ivect(arrsize);
+        s->num_subint = gen_ivect(arrsize);
+        s->start_spec = (long long *)malloc(sizeof(long long) * arrsize);
+        s->num_spec = (long long *)malloc(sizeof(long long) * arrsize);
+        s->num_pad = (long long *)malloc(sizeof(long long) * arrsize);
+        s->start_MJD = (long double *)malloc(sizeof(long double) * arrsize);
+    }
+    // Now broadcast all of the array information
+    MPI_Bcast(s->start_subint, arrsize, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->num_subint, arrsize, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->start_spec, arrsize, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->num_spec, arrsize, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->num_pad, arrsize, MPI_LONG_LONG, 0, MPI_COMM_WORLD);
+    MPI_Bcast(s->start_MJD, arrsize, MPI_LONG_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
 
@@ -173,6 +208,34 @@ void write_padding(FILE * outfiles[], int numfiles, float value, int numtowrite)
       }
       vect_free(buffer);
    }
+}
+
+
+void print_dms(char *hostname, int myid, int numprocs,
+               int local_numdms, double *dms)
+{
+    /* Print the nodes and the DMs they are handling */
+    int jj, kk;
+
+    MPI_Barrier(MPI_COMM_WORLD);
+    fflush(NULL);
+    if (myid == 0)
+        printf("Node\t\tDMs\n----\t\t---\n");
+    fflush(NULL);
+    for (jj = 1; jj < numprocs; jj++) {
+        MPI_Barrier(MPI_COMM_WORLD);
+        if (myid == jj) {
+            printf("%s\t\t", hostname);
+            for (kk = 0; kk < local_numdms - 1; kk++)
+                printf("%.2f\t", dms[kk]);
+            printf("%.2f\n", dms[kk]);
+        }
+        fflush(NULL);
+        MPI_Barrier(MPI_COMM_WORLD);
+    }
+    if (myid == 0)
+        printf("\n");
+    fflush(NULL);
 }
 
 

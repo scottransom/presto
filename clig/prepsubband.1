@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "08Feb12" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -38,8 +38,9 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 [-if ifs]
 [-clip clip]
 [-noclip]
-[-runavg]
+[-invert]
 [-zerodm]
+[-runavg]
 [-sub]
 [-subdm subdm]
 [-numout numout]
@@ -100,10 +101,12 @@ Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 Default: `6.0'
 .IP -noclip
 Do not clip the data.  (The default is to _always_ clip!).
-.IP -runavg
-Running mean subtraction from the input data.
+.IP -invert
+For rawdata, flip (or invert) the band.
 .IP -zerodm
 Subtract the mean of all channels from each sample (i.e. remove zero DM).
+.IP -runavg
+Running mean subtraction from the input data.
 .IP -sub
 Write subbands instead of de-dispersed data.
 .IP -subdm

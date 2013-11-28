@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
    /* Generate the correlation kernels */
 
    printf("Generating correlation kernels:\n");
-   subharminfs = create_subharminfos(obs.numharmstages, (int) obs.zhi);
+   subharminfs = create_subharminfos(&obs);
    printf("Done generating kernels.\n\n");
    printf("Starting the search.\n");
    /* Don't use the *.txtcand files on short in-memory searches */
@@ -139,14 +139,31 @@ int main(int argc, char *argv[])
             int stage, harmtosum, harm;
             ffdotpows *subharmonic;
 
+            // Copy the fundamental's ffdot plane to the full in-core one
+            if (obs.inmem){
+                if (cmd->otheroptP)
+                    fund_to_ffdotplane_trans(fundamental, &obs);
+                else
+                    fund_to_ffdotplane(fundamental, &obs);
+            }
             for (stage = 1; stage < obs.numharmstages; stage++) {
                harmtosum = 1 << stage;
                for (harm = 1; harm < harmtosum; harm += 2) {
-                  subharmonic = subharm_ffdot_plane(harmtosum, harm, startr, lastr,
-                                                    &subharminfs[stage][harm - 1],
-                                                    &obs);
-                  add_ffdotpows(fundamental, subharmonic, harmtosum, harm);
-                  free_ffdotpows(subharmonic);
+                   if (obs.inmem) {
+                       if (cmd->otheroptP)
+                           inmem_add_ffdotpows_trans(fundamental, &obs, harmtosum, harm);
+                       else
+                           inmem_add_ffdotpows(fundamental, &obs, harmtosum, harm);
+                   } else {
+                       subharmonic = subharm_ffdot_plane(harmtosum, harm, startr, lastr,
+                                                         &subharminfs[stage][harm - 1],
+                                                         &obs);
+                       if (cmd->otheroptP)
+                           add_ffdotpows_ptrs(fundamental, subharmonic, harmtosum, harm);
+                       else
+                           add_ffdotpows(fundamental, subharmonic, harmtosum, harm);
+                       free_ffdotpows(subharmonic);
+                   }
                }
                cands = search_ffdotpows(fundamental, harmtosum, &obs, cands);
             }
@@ -159,7 +176,7 @@ int main(int argc, char *argv[])
    }
 
    printf("\n\nDone searching.  Now optimizing each candidate.\n\n");
-   free_subharminfos(obs.numharmstages, subharminfs);
+   free_subharminfos(&obs, subharminfs);
 
    {                            /* Candidate list trimming and optimization */
       int numcands;

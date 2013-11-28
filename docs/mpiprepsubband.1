@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "mpiprepsubband" 1 "14Oct11" "Clig-manuals" "Programmer's Manual"
+.TH "mpiprepsubband" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -38,8 +38,9 @@ mpiprepsubband \- Converts a raw radio data file into many de-dispersed time-ser
 [-if ifs]
 [-clip clip]
 [-noclip]
-[-runavg]
+[-invert]
 [-zerodm]
+[-runavg]
 [-numout numout]
 [-nobary]
 [-DE405]
@@ -98,10 +99,12 @@ Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 Default: `6.0'
 .IP -noclip
 Do not clip the data.  (The default is to _always_ clip!).
-.IP -runavg
-Running mean subtraction from the input data.
+.IP -invert
+For rawdata, flip (or invert) the band.
 .IP -zerodm
 Subtract the mean of all channels from each sample (i.e. remove zero DM).
+.IP -runavg
+Running mean subtraction from the input data.
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br

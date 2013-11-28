@@ -587,26 +587,26 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /*   subband must be calculated with the frequency of the highest     */
 /*   channel in each subband, _not_ the center subband frequency.     */
 
-void dedisp_subbands(unsigned char *data, unsigned char *lastdata,
-		     int numpts, int numchan, double *dispdelays,
-		     int numsubbands, float *result);
-/* De-disperse a stretch of data with numpts * numchan points    */
-/* into numsubbands subbands.  Each time point for each subband  */
-/* is a float in the result array.  The result array order is    */
-/* subbands of increasing frequency together at each time pt.    */
-/* The delays (in bins) are in dispdelays for each channel.      */
-/* The input data and dispdelays are always in ascending         */
-/* frequency order.  Input data are ordered in time, with the    */
+void dedisp_subbands(float *data, float *lastdata,
+                     int numpts, int numchan, 
+                     int *delays, int numsubbands, float *result);
+// De-disperse a stretch of data with numpts * numchan points into
+// numsubbands subbands.  Each time point for each subband is a float
+// in the result array.  The result array order is subbands of
+// increasing frequency together at each time pt.  The delays (in
+// bins) are in delays for each channel.  The input data and
+// dispdelays are always in ascending frequency order.  Input data are
+// ordered in time, with the channels stored together at each time
+// point.
 
-void float_dedisp(float *data, float *lastdata, 
-		  int numpts, int numchan, 
-		  int *offsets, float approx_mean, float *result);
-/* De-disperse a stretch of data with numpts * numchan points. */
-/* The delays (in bins) are in offsets for each channel.       */
-/* The result is returned in result.  The input data and       */
-/* delay offsets are always in ascending frequency order.      */
-/* Input data are ordered in time, with the channels stored    */
-/* together at each time point.                                */ 
+void float_dedisp(float *data, float *lastdata,
+                  int numpts, int numchan,
+                  int *delays, float approx_mean, float *result);
+// De-disperse a stretch of data with numpts * numchan points. The
+// delays (in bins) are in delays for each channel.  The result is
+// returned in result.  The input data and delays are always in
+// ascending frequency order.  Input data are ordered in time, with
+// the channels stored together at each time point.
 
 void combine_subbands(double *inprofs, foldstats *stats, 
 		      int numparts, int numsubbands, int proflen, 
@@ -1429,33 +1429,22 @@ short transpose_float(float *a, int nx, int ny, unsigned char *move,
  */
 
 /* NEW Clipping Routine (uses channel running averages) */
-int new_clip_times(unsigned char *rawdata, int ptsperblk, int numchan, 
-		   float clip_sigma, unsigned char *good_chan_levels);
-/* Perform time-domain clipping of rawdata.   This is a 2D   */
-/* array with ptsperblk*numchan points, each of which is an  */
-/* unsigned char.  The clipping is done at clip_sigma sigma  */
-/* above/below the running mean.  The up-to-date running     */
-/* averages of the channels are returned in good_chan_levels */
-/* (which must be pre-allocated).                            */
+int new_clip_times(float *rawdata, int ptsperblk, int numchan, 
+                   float clip_sigma, float *good_chan_levels);
+// Perform time-domain clipping of rawdata.  This is a 2D array with
+// ptsperblk*numchan points, each of which is a float.  The clipping
+// is done at clip_sigma sigma above/below the running mean.  The
+// up-to-date running averages of the channels are returned in
+// good_chan_levels (which must be pre-allocated).
 
 /* Old Clipping Routine (uses channel medians) */
-int clip_times(unsigned char *rawdata, int ptsperblk, int numchan, 
-	       float clip_sigma, unsigned char *good_chan_levels);
-/* Perform time-domain clipping of rawdata.   This is a 2D   */
-/* array with ptsperblk*numchan points, each of which is an  */
-/* unsigned char.  The clipping is done at clip_sigma sigma  */
-/* above/below the running mean.  The up-to-date running     */
-/* averages of the channels are returned in good_chan_levels */
-/* (which must be pre-allocated).                            */
-
-int subs_clip_times(float *rawdata, int ptsperblk, int numchan,
-                    float clip_sigma, float *good_chan_levels);
-/* Perform time-domain clipping of rawdata.   This is a 2D   */
-/* array with ptsperblk*numchan points, each of which is a   */
-/* 32-bit float.  The clipping is done at clip_sigma sigma   */
-/* above/below the running mean.  The up-to-date running     */
-/* averages of the channels are returned in good_chan_levels */
-/* (which must be pre-allocated).                            */
+int clip_times(float *rawdata, int ptsperblk, int numchan, 
+               float clip_sigma, float *good_chan_levels);
+// Perform time-domain clipping of rawdata.  This is a 2D array with
+// ptsperblk*numchan points, each of which is a float.  The clipping
+// is done at clip_sigma sigma above/below the running mean.  The
+// up-to-date running averages of the channels are returned in
+// good_chan_levels (which must be pre-allocated).
 
 double *events_fdot_correct(double *events, int Nevents, 
                             double freq, double fdot);
