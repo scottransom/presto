@@ -227,6 +227,12 @@ class Candlist(object):
     def __iter__(self):
         return iter(self.cands)
 
+    def __getitem__(self, key):
+        return self.cands[key]
+
+    def __delitem__(self, key):
+        del(self.cands[key])
+
     def sort(self, *args, **kwargs):
         self.cands.sort(*args, **kwargs)
 
