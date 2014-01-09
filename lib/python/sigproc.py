@@ -6,14 +6,16 @@ import math
 import warnings
 from psr_constants import ARCSECTORAD
 
-telescope_ids = {"Fake": 0, "Arecibo": 1, "Ooty": 2, "Nancay": 3,
+telescope_ids = {"Fake": 0, "Arecibo": 1, "ARECIBO 305m": 1, 
+                 "Ooty": 2, "Nancay": 3,
                  "Parkes": 4, "Jodrell": 5, "GBT": 6, "GMRT": 7,
-                 "Effelsberg": 8}
+                 "Effelsberg": 8, "ATA": 9, "UTR-2": 10, "LOFAR": 11}
 ids_to_telescope = dict(zip(telescope_ids.values(), telescope_ids.keys()))
 
-machine_ids = {"FAKE": 0, "PSPM": 1, "Wapp": 2,"AOFTM": 3,
-               "BCPM1": 4, "OOTY": 5, "SCAMP": 6, 
-               "GBT Pulsar Spigot": 7, "SPIGOT": 7}
+machine_ids = {"FAKE": 0, "PSPM": 1, "Wapp": 2, "WAPP": 2, "AOFTM": 3,
+               "BCPM1": 4, "BPP": 4, "OOTY": 5, "SCAMP": 6, 
+               "GBT Pulsar Spigot": 7, 
+               "SPIGOT": 7, "BG/P": 11, "PDEV": 12}
 ids_to_machine = dict(zip(machine_ids.values(), machine_ids.keys()))
 
 header_params = {
