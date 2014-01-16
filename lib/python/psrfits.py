@@ -57,17 +57,50 @@ class PsrfitsFile(object):
         else:
             data = np.array(subintdata)
         if apply_offsets:
-            offsets = self.fits['SUBINT'].data[isub]['DAT_OFFS']
+            offsets = self.get_offsets(isub)
         else:
             offsets = 0
         if apply_scales:
-            scales = self.fits['SUBINT'].data[isub]['DAT_SCL']
+            scales = self.get_scales(isub)
         else:
             scales = 1
         if apply_weights:
-            weights = self.fits['SUBINT'].data[isub]['DAT_WTS']
+            weights = self.get_weights(isub)
         else:
             weights = 1
         data = data.reshape((self.nsamp_per_subint,self.nchan))
         data_wso = ((data * scales) + offsets) * weights
         return data_wso
+
+    def get_weights(self, isub):
+        """Return weights for a particular subint.
+
+            Inputs:
+                isub: index of subint (first subint is 0)
+            
+            Output:
+                weights: Subint weights. (There is one value for each channel)
+        """
+        return self.fits['SUBINT'].data[isub]['DAT_WTS']
+
+    def get_scales(self, isub):
+        """Return scales for a particular subint.
+
+            Inputs:
+                isub: index of subint (first subint is 0)
+            
+            Output:
+                scales: Subint scales. (There is one value for each channel)
+        """
+        return self.fits['SUBINT'].data[isub]['DAT_SCL']
+
+    def get_offsets(self, isub):
+        """Return offsets for a particular subint.
+
+            Inputs:
+                isub: index of subint (first subint is 0)
+            
+            Output:
+                offsets: Subint offsets. (There is one value for each channel)
+        """
+        return self.fits['SUBINT'].data[isub]['DAT_OFFS']
