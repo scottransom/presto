@@ -10,7 +10,6 @@ void remove_zerodm(float *fdata, struct spectra_info *s)
     float zerodm, padvalsum = 0.0, *chanwts, *fptr;
     static int firsttime = 1;
     static float *bandpass = NULL;
-    static int use_padvals_for_bandpass = 1;
     
     // Make a static copy of the bandpass to use as DC offsets for each
     // channel. This is necessary when masking as the newpadvals are
@@ -29,7 +28,6 @@ void remove_zerodm(float *fdata, struct spectra_info *s)
             float favg;
             printf("\nUsing first block channel averages for zeroDM bandpass.\n");
             printf("Would be better to use statistics from an rfifind mask...\n\n");
-            use_padvals_for_bandpass = 0;
             for (ii = 0; ii < s->num_channels; ii++) {
                 favg = 0.0;
                 for (jj = 0; jj < s->spectra_per_subint; jj++)
@@ -44,8 +42,7 @@ void remove_zerodm(float *fdata, struct spectra_info *s)
     // otherwise, use the initially-set bandpass
     chanwts = gen_fvect(s->num_channels);
     //if (s->clip_sigma > 0.0 && !firsttime) fptr = s->padvals;
-    //if (s->clip_sigma > 0.0) fptr = s->padvals;
-    if (use_padvals_for_bandpass) fptr = s->padvals;
+    if (s->clip_sigma > 0.0) fptr = s->padvals;
     else fptr = bandpass;
     // Determine the sum of the padding/bandpass for weighting of the channels
     for (ii = 0; ii < s->num_channels; ii++)
@@ -60,7 +57,7 @@ void remove_zerodm(float *fdata, struct spectra_info *s)
         zerodm = 0.0;
         fptr = fdata + ii * s->num_channels;
         for (jj = 0; jj < s->num_channels; jj++)
-            zerodm += *(fptr++);
+            zerodm += *fptr++;
         // Subtract off the correct amount of power from each point
         fptr = fdata + ii * s->num_channels;
         for (jj = 0; jj < s->num_channels; jj++) {
