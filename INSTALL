@@ -11,22 +11,21 @@ Basic steps to install:
   your machine, --prefix=/usr/local is the default for FFTW and
   is a safe bet).
 
-  If you have a modern version of GCC installed (v3.2 or better) 
-  and a modern CPU (Intel Pentium IV, or newer; AMD Opteron 
-  or better, G5), you can get _drastically_ better performance by
-  adding the following options:
+  If you are on a modern Intel processor and have a recent version
+  of GCC, you can get much improved performance by adding:
+  --enable-sse2 --enable-avx
 
-  For Intel PIVs or later, EM64Ts, or AMD64s:
-  --enable-sse
-  
-  For Mac G5s:
-  --enable-altivec
+  Note that Ubuntu has good FFTW packages now.
 
 2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
   You need the X-windows and postscript drivers at a minimum.
+  Note that on 64-bit systems, compiling and linking PGPLOT can
+  be tricky!
+
+  Note that Ubuntu has good PGPLOT packages now.
 
 3.  Install TEMPO.  Make sure to set the TEMPO environment variable.
-  http://pulsar.princeton.edu/tempo/index.html
+  http://tempo.sourceforge.net/
 
 4.  Install GLIB (v2.X). 
   http://library.gnome.org/devel/glib/ On Linux machines this 
@@ -35,12 +34,16 @@ Basic steps to install:
   glib development package in order to have the required include 
   files...
 
+  On Ubuntu, the package you need is: libglib2.0-dev
+
 5.  Install CFITSIO.
   http://heasarc.gsfc.nasa.gov/fitsio/
   This is a very easy install and is now needed since PSRFITS
   is now being written by several pulsar instruments (Nice!
   a pulsar data standard that external tools can actually
   view!  How about that!)
+
+  Once again, Ubuntu has CFITSIO packages!
 
 6.  Define the PRESTO environment variable to the top level
   directory of the PRESTO distribution (i.e. this directory).
@@ -55,8 +58,7 @@ Basic steps to install:
   only user on the machine when you run this, as it is very
   computation intensive and may take a while.
 
-9.  Just for safety's sake (and because SVN sometimes messes up
-  file access times), do a "make prep".  That will make sure
+9.  Just for safety's sake, do a "make prep".  That will make sure
   that make does not try to run Clig to re-generate all of the
   command line interface files.
 
@@ -77,15 +79,17 @@ Basic steps to install:
 
 13.  If you want to use all the python routines (which if you are
   doing anything but the most rudimentary analyses you will want 
-  to), you need Python >= version 2.3, and the _new_ Numpy/SciPy.  
-  You can get Numpy/Scipy here:  http://www.scipy.org/download/
-  I recommend using the Subversion versions (and for PRESTO 
-  as well).  In general, the following should work:
+  to), you need Python >= version 2.3, and Numpy/Scipy
+  http://www.numpy.org  and  http://www.scipy.org
+  In general, the following should work:
      "cd $PRESTO/python ; make ; make fftfit"
   If it doesnt, you will probably need to edit the Makefile 
   or setup.py.
 
 14.  Go find pulsars!
 
+Note for Mac users having problems: Paul Ray has been running PRESTO a
+lot and knows the tricks to get it working...
+
 Scott Ransom
-Mar 2009
+Jan 2014
