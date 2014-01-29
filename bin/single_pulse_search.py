@@ -477,7 +477,8 @@ def main():
         DMs.sort()
         snrs = []
         for cand in candlist:
-            snrs.append(cand.sigma)
+            if not Num.isinf(cand.sigma):
+                snrs.append(cand.sigma)
         if snrs:
             maxsnr = max(int(max(snrs)), int(opts.threshold)) + 3
         else:
