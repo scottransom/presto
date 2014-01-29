@@ -144,20 +144,25 @@ class GaussianSelector:
                         fit_gaussians(self.profile, self.init_params,
                                       Num.zeros(self.proflen)+self.errs,
                                       self.profnm)
+            # Save the fit parameters so the caller can retrieve them if needed
+            self.fit_params = fit_params
+            self.fit_errs = fit_errs
             # scaled uncertainties
             #scaled_fit_errs = fit_errs * Num.sqrt(chi_sq / dof)
 
             # Plot the best-fit profile
             self.plot_gaussians(fit_params)
             fitprof = gen_gaussians(fit_params, self.proflen)
+            self.fitprof = fitprof
             plt.plot(self.phases, fitprof, c='black', lw=1)
             plt.draw()
             
             # Plot the residuals
             plt.subplot(212)
             plt.cla()
-            residuals = prof - fitprof
-            plt.plot(self.phases, residuals)
+            residuals = self.profile - fitprof
+            plt.errorbar(self.phases, residuals, self.errs,fmt='.')
+            plt.grid(True)
             plt.xlabel('Pulse Phase')
             plt.ylabel('Data-Fit Residuals')
             plt.draw()
