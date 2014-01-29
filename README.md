@@ -9,7 +9,7 @@ long observations of globular clusters (although it has since been
 used in several surveys with short integrations and to process a lot
 of X-ray data as well).  It is written primarily in ANSI C, with many
 of the recent routines in Python.  According to Steve Eikenberry,
-PRESTO stands for: PulsaR Exploration and Search TOolkit!
+PRESTO stands for: *PulsaR Exploration and Search TOolkit*!
 
 ## New in this release:
  * WAPP, BCPM, Spigot, and 1-bit analog filterbank data are deprecated! 
@@ -21,6 +21,8 @@ PRESTO stands for: PulsaR Exploration and Search TOolkit!
    by changing values in `include/meminfo.h`)
  * Many bug fixes and several new scripts (including new orbit fitters)
 
+
+## About PRESTO
 PRESTO is written with portability, ease-of-use, and memory efficiency
 in mind, it can currently handle raw data from the following pulsar
 machines or formats:
@@ -88,7 +90,7 @@ but until then you should know that each routine returns its basic
 usage when you call it with no arguments.  I am also willing to
 provide limited support via email or telephone (434-296-0320).
 
-Tutorial(!): Note that in the "docs" directory there is a now a
+**Tutorial**: Note that in the "docs" directory there is a now a
 tutorial which walks you through all the main steps of finding pulsars
 using PRESTO.
 
@@ -117,6 +119,7 @@ If you don't want to mess with git (which means that you will need to
 re-install a tarball whenever there are updates) you can get it from
 the "Download Source" link on the github page.
 
+### Development:
 If you plan to tweak the code, I highly suggest that you use git and
 clone the directory (or fork it using an account on github).  Read the
 following "living document" on how to develop and collaborate in a
@@ -124,21 +127,24 @@ relatively sane way using git:
   http://docs.scipy.org/doc/numpy/dev/gitwash/index.html
 If you plan on doing any significant development, please let me know
 and I'll either add you as a developer, or we can push/pull changes
-via git/github (see the "gitwash" document above).  Code contributions
-and/or patches to fix bugs are most welcome!
+via git/github (see the "gitwash" document above).
 
-Final Thoughts: Please let me know if you decide to use PRESTO for any
-"real" searches.  And if you find anything with it, it would be great
-if you would cite either my thesis or whichever of the two papers
-listed above is appropriate.  Thanks!
+*Code contributions and/or patches to fix bugs are most welcome!*
 
-Acknowledgements: Big thanks go to Steve Eikenberry for his help
-developing the algorithms, Dunc Lorimer for the basic code which is
-used to process BCPM and WAPP data, David Kaplan for lots of help with
-the GBT SPIGOT code, Jason Hessels for many contributions to the
-Python routines (and along with Maggie Livingstone for the rednoise
-reduction routine), Anne Archibald (for significant help with the
-recent accelsearch improvements), and Paul Demorest, Paul Ray, Ingrid
+### Final Thoughts:
+Please let me know if you decide to use PRESTO for any "real"
+searches.  And if you find anything with it, it would be great if you
+would cite either my thesis or whichever of the two papers listed
+above is appropriate.  Thanks!
+
+### Acknowledgements:
+Big thanks go to Steve Eikenberry for his help developing the
+algorithms, Dunc Lorimer for the basic code which is used to process
+BCPM and WAPP data, David Kaplan for lots of help with the GBT SPIGOT
+code, Jason Hessels for many contributions to the Python routines (and
+along with Maggie Livingstone for the rednoise reduction routine),
+Anne Archibald (for significant help with the recent accelsearch
+improvements), and Paul Demorest, Paul Ray, Paul Scholz, Ingrid
 Stairs, Fernando Camilo, Cees Bassa, Patrick Lazarus, Mike Keith,
 Slavko Bogdanov, and Paulo Freire for many comments and suggestions
 (and even some patches!).
