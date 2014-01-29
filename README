@@ -3,6 +3,20 @@
 
 http://www.cv.nrao.edu/~sransom/presto/
 
+NOTE: This is "CLASSIC" PRESTO.  This means that it is effectively
+version "1" and is not being actively developed any longer (except for
+bugfixes).  The difference between this branch and the new "master"
+branch of PRESTO is that it allows you to process data from several
+older pulsar backends which you (currently) cannot process with the
+mainline PRESTO.  This resulted from a massive internal cleanup where
+raw data which used to be passed as bytes are now being passed as
+floats.
+
+In general, if you need to process WAPP, Spigot, BCPM, or 1-bit
+Parkes/Jodrell filterbank formats, you should use this branch.
+Otherwise, use the mainline "master" branch of PRESTO.  It just works
+better.
+
 PRESTO is a large suite of pulsar search and analysis software
 developed by Scott Ransom mostly from scratch.  It was primarily
 designed to efficiently search for binary millisecond pulsars from
@@ -68,7 +82,7 @@ tutorial which walks you through all the main steps of finding pulsars
 using PRESTO.
 
 To date, PRESTO has discovered nearly two hundred pulsars, including
-more than 100 recycled pulsars, most of which are in binaries!
+more than 120 recycled pulsars, most of which are in binaries!
 
 Getting it: The PRESTO source code is released under the GPL and can
 be browsed or gotten from here in many different ways (including
@@ -115,7 +129,7 @@ Python routines (and along with Maggie Livingstone for the rednoise
 reduction routine), Anne Archibald (for significant help with the
 recent accelsearch improvements), and Paul Demorest, Paul Ray, Ingrid
 Stairs, Fernando Camilo, Cees Bassa, Patrick Lazarus, Mike Keith,
-Slavko Bogdanov, and Paulo Freire for many comments and suggestions
-(and even some patches!).
+Slavko Bogdanov, Paul Scholz, and Paulo Freire for many comments and
+suggestions (and even some patches!).
 
 Scott Ransom <sransom@nrao.edu>
