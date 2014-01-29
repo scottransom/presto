@@ -60,7 +60,8 @@ class Profile(object):
             Output:
                 vals: The values of the profile at the requested phases.
         """
-        return self.scale*self.prof_func(phs)
+        profvals = self.prof_func(phs)
+        return self.scale*profvals
 
     def plot(self, nbin=1024, scale=1):
         x0 = np.linspace(0, 1.0, nbin+1, endpoint=True)
@@ -159,9 +160,10 @@ class Profile(object):
         """
         phs = np.linspace(0, 1, npts, endpoint=False)
         conv_vals = np.fft.irfft(np.fft.rfft(self(phs))*np.fft.rfft(other(phs)))
-        # scale convolution such that area is same as before
-        # Isn't this already a property of convolutions? Should it always be true?
-        scale = self.get_area()/np.trapz(conv_vals, phs)
+        if conserve_area:
+            # scale convolution such that area is same as before
+            # Isn't this already a property of convolutions? Should it always be true?
+            scale = self.get_area()/np.trapz(conv_vals, phs)
         convolution = SplineProfile(conv_vals*scale)
         return convolution
 
@@ -320,27 +322,30 @@ class VectorProfile(object):
     
     def __call__(self, phs):
         phs = np.atleast_1d(np.asarray(phs))
-        nphs = phs.shape[0]
-        vals = np.empty((nphs, self.nprofs))
-        for ii, prof, scale in enumerate(zip(self.profiles, self.scales)):
-             vals[:,ii] = prof(phs)*scale
-        #if phs.ndim == 1:
-        #    # Evaluate all profiles at the same phases
-        #    for ii, prof in enumerate(self.profiles):
-        #        vals[:,ii] = prof(phs)*self.scale
-        #elif phs.ndim == 2:
-        #    # Evaluate each profile at a different set of phases
-        #    nphs_vecs = phs.shape[1]
-        #    if nphs_vecs != self.nprofs:
-        #        raise ValueError("Length of axis=1 of 'phs' (%d) must be " \
-        #                        "equal to the number of profiles in the " \
-        #                        "vector (%d)." % (nphs_vecs, self.nprofs))
-        #    else:
-        #        for ii, (prof, ph) in enumerate(zip(self.profiles, phs)):
-        #            vals[:,ii] = prof(ph)*self.scale
-        #else:
-        #    raise ValueError("VectorProfile can only be evaluated with " \
-        #                    "1D or 2D arrays")
+        nphs = phs.shape[-1]
+        vals = np.zeros((nphs, self.nprofs))
+        if phs.ndim == 1:
+            # Evaluate all profiles at the same phases
+            for ii, (prof, scale) in enumerate(zip(self.profiles, self.scales)):
+                # If scale is not a finite number don't inject anything for this
+                # channel
+                if np.isfinite(scale):
+                    vals[:,ii] = prof(phs)*scale
+        elif phs.ndim == 2:
+            # Evaluate each profile at a different set of phases
+            nphs_vecs = phs.shape[0]
+            if nphs_vecs != self.nprofs:
+                raise ValueError("Length of axis=1 of 'phs' (%d) must be " \
+                                "equal to the number of profiles in the " \
+                                "vector (%d)." % (nphs_vecs, self.nprofs))
+            for ii, (prof, ph, scale) in enumerate(zip(self.profiles, phs, self.scales)):
+                # If scale is not a finite number don't inject anything for this
+                # channel
+                if np.isfinite(scale):
+                    vals[:,ii] = prof(ph)*scale
+        else:
+            raise ValueError("VectorProfile can only be evaluated with " \
+                            "1D or 2D arrays")
         return vals
     
     def set_scaling(self, scales):
@@ -359,16 +364,104 @@ class VectorProfile(object):
                         "Scales provided has %d dimensions." % arr.ndim) 
         self.scales = arr
 
+    def get_area(self, *args, **kwargs):
+        """Return the area under the pulse in units of (intensity x phase).
+            The area is calculated by evaluating the profile at many points
+            and numerically integrated using the trapezoid rule.
+
+            NOTE: the scale-factor will be applied.
+
+            Input:
+                npts: The number of points to use when evaluating the
+                    profile.
+
+            Ouput:
+                area: The area under the pulse in units of (intensity x phase).
+        """
+        areas = np.zeros(len(self.profiles))
+        for ii, prof in enumerate(self.profiles):
+            areas[ii] = prof.get_area(*args, **kwargs)
+        return areas
+
     def plot(self, nbin=1024, scale=1):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
-        plt.imshow(self(phs).transpose(), interpolation='nearest', \
+        data = self(phs).transpose()
+        imax = plt.axes((0.1, 0.1, 0.6, 0.8))
+         
+        plt.imshow(data, interpolation='nearest', \
                     extent=(0, 1, 0, self.nprofs), aspect='auto')
         plt.xlabel("Phase")
         plt.ylabel("Channel number")
+        
+        plt.axes((0.7, 0.1, 0.25, 0.8), sharey=imax)
+        plt.plot(np.sum(data, axis=1)[::-1], np.arange(self.nprofs), 'k-')
+        
+        # Re-set axes for image
+        imax.set_xlim(0, 1)
+        imax.set_ylim(0, self.nprofs)
+
+
+class DispersedProfile(VectorProfile):
+    def __init__(self, profiles, dm, freqs, period, scales=1, intrinsic=None):
+        super(DispersedProfile, self).__init__(profiles, scales)
+        self.dm = dm
+        self.freqs = freqs
+        self.period = period
+        self.intrinsic = intrinsic
+
+    def plot(self, nbin=1024, scale=1):
+        phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
+        data = self(phs).transpose()
+        imax = plt.axes((0.1, 0.1, 0.6, 0.6))
+         
+        plt.imshow(data, interpolation='nearest', \
+                    extent=(0, 1, 0, self.nprofs), aspect='auto')
+        plt.set_cmap('gist_yarg')
+        plt.xlabel("Phase")
+        plt.ylabel("Channel number")
+        
+        plt.axes((0.7, 0.1, 0.25, 0.6), sharey=imax)
+        plt.plot(np.sum(data, axis=1)[::-1], np.arange(self.nprofs), 'k-')
+        
+        delays = get_phasedelays(self.dm, self.freqs, self.period)
+        delayedphs = (phs+delays[:,np.newaxis]) % 1
+        dedispdata = self(delayedphs).transpose()       
+        plt.axes((0.1, 0.7, 0.6, 0.25), sharex=imax)
+        plt.plot(phs, np.sum(dedispdata, axis=0), 'k-', label='Dedispersed')
+        if self.intrinsic is not None:
+            plt.plot(phs, self.intrinsic(phs)*np.ma.masked_invalid(self.scales).sum(), 'r--', label='Intrinsic')
+            plt.legend(loc='best')
+        plt.figtext(0.05, 0.05, "Period = %.3f ms" % (self.period*1000), size='xx-small')
+        plt.figtext(0.05, 0.035, r"DM = %.3f cm$\mathrm{^{-3}}$pc" % self.dm, size='xx-small')
+        
+        # Re-set axes for image
+        imax.set_xlim(0, 1)
+        imax.set_ylim(0, self.nprofs)
+
+
+def get_phasedelays(dm, freqs, period):
+    """Return phase delays corresponding to a particular DM.
+
+        Inputs:
+            dm: DM (in pc cm-3)
+            freqs: The list of frequencies (in MHz)
+            period: The profiles period (in seconds)
+
+        Outputs:
+            phasedelays: The corresponding phase delays.
+    """
+    # Prepare delays
+    timedelays = psr_utils.delay_from_DM(dm, freqs)
+    # Reference all delays to highest frequency channel, which remains
+    # unchanged
+    # TODO: Do we really want to refer to high freq?
+    timedelays -= timedelays[np.argmax(freqs)]
+    phasedelays = timedelays/period
+    return phasedelays
 
 
 def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
-                do_smear=True, do_scatter=True):
+                do_delay=True, do_smear=True, do_scatter=True):
     """Given a profile apply DM delays, smearing, and scattering 
         within each channel as is appropriate for the given params.
 
@@ -379,6 +472,8 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
             chan_width: The width of each channel (in MHz)
             freqs: The list of frequencies (in MHz)
             tsamp: Sample time of the recipient filterbank file (in seconds).
+            do_delay: Boolean, if True apply DM delays to each channel.
+                The highest freq channel is not shifted. (Default: True)
             do_smear: Boolean, if True apply DM smearing to each channel.
                 (Default: True)
             do_scatter: Boolean, if True apply scattering to each channel.
@@ -394,13 +489,10 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     # A list of profiles, one for each channel
     profiles = []
 
-    # Prepare delays
-    timedelays = psr_utils.delay_from_DM(dm, freqs)
-    # Reference all delays to highest frequency channel, which remains
-    # unchanged
-    # TODO: Do we really want to refer to high freq?
-    timedelays -= timedelays[np.argmax(freqs)]
-    phasedelays = timedelays/period
+    if do_delay:
+        phasedelays = get_phasedelays(dm, freqs, period)
+    else:
+        phasedelays = np.zeros(nfreqs)
 
     # Prepare for smear campaign
     smeartimes = psr_utils.dm_smear(dm, chan_width, freqs) # In seconds
@@ -480,8 +572,8 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
             oldprogress = progress
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
-    vecprof = VectorProfile(profiles)
-    return vecprof
+    dispersedprof = DispersedProfile(profiles, dm=dm, freqs=freqs, period=period, intrinsic=inprof)
+    return dispersedprof
 
 
 def get_spline_profile(prof, npts=1024, **spline_kwargs):
@@ -794,8 +886,8 @@ def get_scaling_from_snr(fil, prof, cfgstr):
             scaling: The corresponding scaling.
     """
     cfgs = parse_cfgstr(cfgstr)
-    snr = float(cfg['snr'])
-    rms = float(cfg['rms'])
+    snr = float(cfgs['snr'])
+    rms = float(cfgs['rms'])
     scale = scale_from_snr(fil, prof, snr=snr, rms=rms)
     return scale
 
@@ -814,10 +906,10 @@ def get_scaling_from_smean(fil, prof, cfgstr):
             scaling: The corresponding scaling.
     """
     cfgs = parse_cfgstr(cfgstr)
-    smean = float(cfg['smean'])
-    rms = float(cfg['rms'])
-    gain = float(cfg['gain'])
-    tsys = float(cfg['tsys'])
+    smean = float(cfgs['smean'])
+    rms = float(cfgs['rms'])
+    gain = float(cfgs['gain'])
+    tsys = float(cfgs['tsys'])
     snr = snr_from_smean(fil, prof, smean=smean, \
                             gain=gain, tsys=tsys)
     scale = scale_from_snr(fil, prof, snr, rms=rms)
@@ -841,8 +933,23 @@ def get_scaling_from_file(fil, prof, cfgstr):
     """
     cfgs = parse_cfgstr(cfgstr)
     fn = cfgs['file']
-    scales = np.loadtxt(fn, usecols=(0,))
+    smean = float(cfgs['smean'])
+    col = int(cfgs.get('col', 0))
+
+    area = prof.get_area()
+
+    # 'conversion_factors' contains the per-channel conversion between mJy 
+    # and receiver units (in units of mJy/rcvr)
+    conversion_factors = np.loadtxt(fn, usecols=(col,))
+
+    scales = smean/conversion_factors/area
     return scales
+
+
+SCALE_METHODS = {'scale': get_scaling, \
+                 'snr': get_scaling_from_snr, \
+                 'radiometer': get_scaling_from_smean, \
+                 'scalefile': get_scaling_from_file}
 
 
 def main():
@@ -854,16 +961,21 @@ def main():
                         "DM, period and filterbank file (freq, nchans, " \
                         "tsamp, etc).")
         prof = load_profile(args.inprof)
-        prof.set_scaling(args.scale)
     else:
         comps = create_vonmises_components(args.vonmises)
         print "Creating profile. Number of components: %d" % len(comps)
         prof = MultiComponentProfile(comps)
+        print "Profile area (intensity x phase): %g" % prof.get_area()
+        print "Equivalent width (phase): %g" % prof.get_equivalent_width()
+        print "Profile maximum: %g" % prof.get_max()
         prof = get_spline_profile(prof)
+        prof = apply_dm(prof, args.period, args.dm, \
+                            fil.foff, fil.frequencies, fil.tsamp)
         # Determine scaling
-        scale_getter = SCALE_METHOD[args.scale_name]
+        scale_getter = SCALE_METHODS[args.scale_name]
         scaling = scale_getter(fil, prof, args.scale_cfgstr)
-        prof.set_scaling(scale)
+        print "Band-averaged scale-factor: %g" % np.ma.masked_invalid(scaling).mean()
+        prof.set_scaling(scaling)
         if args.outprof is not None:
             save_profile(prof, args.outprof)
 
@@ -872,11 +984,7 @@ def main():
         print "Showing plot of profile to be injected..."
         plt.clf()
         prof.plot()
-        plt.xlim(0,1)
-        plt.xlabel("Phase")
         plt.savefig(outfn+".ps")
-        plt.ylim(0,15)
-        plt.savefig(outfn+".zoom.ps")
         sys.exit()
 
     inject(fil, outfn, prof, args.period, args.dm, \
@@ -901,7 +1009,7 @@ def parse_model_file(modelfn):
 
 
 class ParseMfileAction(argparse.Action):
-    def __call__(self, parser, namepsace, values, option_string=None):
+    def __call__(self, parser, namespace, values, option_string=None):
         vonmises = getattr(namespace, self.dest)
         vonmises.extend(parse_model_file(values))
 
@@ -915,31 +1023,31 @@ class ScaleHelpAction(argparse.Action):
         "      profile has the given SNR\n" + \
         "Configs: 'snr' - (float) the target SNR\n" + \
         "         'rms' - (float) the RMS of the cleaned DM=0 timeseries\n\n" + \
-        "smean - Scale the injected signal so the integrated \n" + \
-        "        profile has the given mean flux density\n" + \
+        "radiometer - Scale the injected signal so the integrated \n" + \
+        "             profile has the given mean flux density\n" + \
         "Configs: 'smean' - (float) the target mean flux density\n" + \
-        "         'gain' - (float) the telescope's gain (in K/Jy)\n" + \
-        "         'tsys' - (float) the observing system's temperature (in K)\n" + \
-        "         'rms' - (float) the RMS of the cleaned DM=0 timeseries\n\n" + \
+        "         'gain'  - (float) the telescope's gain (in K/Jy)\n" + \
+        "         'tsys'  - (float) the observing system's temperature (in K)\n" + \
+        "         'rms'   - (float) the RMS of the cleaned DM=0 timeseries\n\n" + \
         "scalefile - Scale the signal in each channel independently\n" + \
         "            according to the scaling factors in the file\n" + \
-        "Configs: 'file' - (string) a text file containing scale factors.\n" + \
-        "                  each row should have a single floating-point \n"  + \
-        "                  number. The number and order of the rows should \n" + \
-        "                  correspond to the input filterbank file.\n"
+        "Configs: 'smean' - (float) the target mean flux density\n" + \
+        "         'file'  - (string) a text file containing per-channel \n" + \
+        "                   conversion factors from flux-density to 'receiver' \n" + \
+        "                   units (in mJy/rcvr).\n" + \
+        "                   Each row should have a single floating-point \n"  + \
+        "                   number. The number and order of the rows should \n" + \
+        "                   correspond to the input filterbank file.\n" + \
+        "         'col'   - (int) The column number to read conversion factors \n" +\
+        "                   from. Columns are numbered starting at 0.\n" + \
+        "                   (Default: first column)\n\n"
         sys.stderr.write(helptext)
         sys.exit(1)
 
 
-SCALE_METHODS = {'scale': get_scaling, \
-                 'snr': get_scaling_from_snr, \
-                 'radiometer': get_scaling_from_smean, \
-                 'scalefile': get_scaling_from_file}
-
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(prog='injectpsr.py', \
-                    description="v0.6 Patrick Lazarus (Nov 5, 2013)")
+                    description="v0.7 Patrick Lazarus (Jan 16, 2014)")
     parser.add_argument("--dm", dest='dm', type=float, \
                     help="The DM of the (fake) injected pulsar signal. " \
                         "(This argument is required.", \
@@ -960,16 +1068,6 @@ if __name__ == '__main__':
     parser.add_argument("--scale-help", dest='show_scale_help', \
                     nargs=0, action=ScaleHelpAction, \
                     help="Show help text for scaling methods, parameters.")
-    parser.add_argument("--rms", dest='rms', type=float, \
-                    help="The RMS of the recipient file's DM=0 timeseries. " \
-                        "This _must_ be provided if the '-F/--smean' argument " \
-                        "is used.")
-    parser.add_argument("--gain", dest='gain', type=float, \
-                    help=". This _must_ be " \
-                        "provided if the '-F/--smean' argument is used.")
-    parser.add_argument("--tsys", dest='tsys', type=float, \
-                    help="The observing system's temperature (in K). This " \
-                        "_must_ be provided if the '-F/--smean' argument is used.")
     parser.add_argument("-v", "--vonmises", dest='vonmises', action='append', \
                     help="A string of 3 parameters defining a vonmises " \
                         "component to be injected. Be sure to quote the " \
@@ -980,7 +1078,7 @@ if __name__ == '__main__':
                         "a von Mises with amplitude=1.0, shape=5, and " \
                         "phase=0.5 will be used.)", \
                     default=[])
-    parser.add_argument("-m", "--model-file", dest="vonmises", nargs=1, \
+    parser.add_argument("-m", "--model-file", dest="vonmises", \
                     type=str, action=ParseMfileAction, \
                     help="A model file (*.m) as written by 'paas'.")
     parser.add_argument("--block-size", dest='block_size', default=BLOCKSIZE, \
@@ -1012,22 +1110,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     if args.period is None or args.dm is None:
         raise ValueError("Both a period and a DM _must_ be provided!")
-    if args.smean is not None and args.scale is not None:
-        warnings.warn("The specified Smean value will be used to " \
-                    "determine the scaling of the profile. Any other " \
-                    "scaling (--snr/--scale) will be ignored.")
-    if args.smean is not None and (args.rms is None or \
-                                        args.gain is None or \
-                                        args.tsys is None):
-        raise ValueError("When automatically determining the scaling " \
-                        "factor for a particular Smean, the '--rms', " \
-                        "'--gain', and '--tsys' args must all be " \
-                        "provided!")
-    
-    if (args.smean is not None or args.snr is not None) and \
-            args.inprof is not None:
+    if args.scale_name is not None and args.inprof is not None:
         raise ValueError("Loading a saved profile via the " \
                         "'--load-prof' args is incompatible " \
-                        "with setting the mean flux desnity or " \
-                        "SNR.")
+                        "with scaling the profile.")
     main()

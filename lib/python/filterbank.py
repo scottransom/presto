@@ -139,10 +139,11 @@ def read_header(filename, verbose=False):
 
 class FilterbankFile(object):
     def __init__(self, filfn, read_only=True):
-        if not os.path.isfile(filfn):
-            raise ValueError("ERROR: File does not exist!\n\t(%s)" % filfn)
         self.filename = filfn
         self.read_only = read_only
+        self.set_up = False
+        if not os.path.isfile(filfn):
+            raise ValueError("ERROR: File does not exist!\n\t(%s)" % filfn)
         self.header, self.header_size = read_header(self.filename)
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
@@ -171,13 +172,14 @@ class FilterbankFile(object):
         self.sync_spectra()
 
         if not self.read_only:
+            self.set_up = True
             self.file_append_mode = open(self.filename, 'ab')
 
     def __del__(self):
         self.close()
         
     def close(self):
-        if not self.read_only:
+        if not self.read_only and self.set_up:
             self.file_append_mode.close()
 
     def sync_spectra(self):
