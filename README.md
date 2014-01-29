@@ -104,12 +104,12 @@ can be browsed or gotten from here in many different ways
 (including zipped or tar'd or via git).  If you are too lazy to
 read how to get it but have git on your system do:
 
-> git clone git://github.com/scottransom/presto.git
+    git clone git://github.com/scottransom/presto.git
 
 To update it on a regular basis do
 
-> cd $PRESTO
-> git pull
+    cd $PRESTO
+    git pull
 
 and then re-make things in $PRESTO/src. 
 
@@ -121,10 +121,10 @@ the "Download Source" link on the github page.
 
 If you want the "classic" branch, do the following:
 
-> git clone git://github.com/scottransom/presto.git
-> cd presto
-> git remote add classic origin/classic 
-> git checkout -b classic origin/classic
+    git clone git://github.com/scottransom/presto.git
+    cd presto
+    git remote add classic origin/classic 
+    git checkout -b classic origin/classic
 
 then build as per the (old) INSTALL file.
 
