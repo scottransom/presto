@@ -155,7 +155,7 @@ along with Maggie Livingstone for the rednoise reduction routine),
 Anne Archibald (for significant help with the recent accelsearch
 improvements), and Paul Demorest, Paul Ray, Paul Scholz, Ingrid
 Stairs, Fernando Camilo, Cees Bassa, Patrick Lazarus, Mike Keith,
-Slavko Bogdanov, and Paulo Freire for many comments and suggestions
-(and even some patches!).
+Slavko Bogdanov, Kevin Stovall, and Paulo Freire for many comments and
+suggestions (and even some patches!).
 
 Scott Ransom <sransom@nrao.edu>
