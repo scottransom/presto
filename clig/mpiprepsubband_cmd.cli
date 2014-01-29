@@ -30,8 +30,9 @@ Int    -if      ifs     {A specific IF to use if available (summed IFs is the de
 Float  -clip    clip    {Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default} \
 	-r 0 1000.0  -d 6.0
 Flag   -noclip  noclip  {Do not clip the data.  (The default is to _always_ clip!)}
-Flag   -runavg  runavg  {Running mean subtraction from the input data}
+Flag   -invert  invert  {For rawdata, flip (or invert) the band}
 Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e. remove zero DM)}
+Flag   -runavg  runavg  {Running mean subtraction from the input data}
 Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}

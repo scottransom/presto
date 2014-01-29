@@ -9,6 +9,10 @@
 *****/
 
 typedef struct s_Cmdline {
+  /***** -ncpus: Number of processors to use with OpenMP */
+  char ncpusP;
+  int ncpus;
+  int ncpusC;
   /***** -lobin: The first Fourier frequency in the data file */
   char lobinP;
   int lobin;
@@ -25,11 +29,11 @@ typedef struct s_Cmdline {
   char sigmaP;
   float sigma;
   int sigmaC;
-  /***** -rlo: The lowest Fourier frequency to search */
+  /***** -rlo: The lowest Fourier frequency (of the highest harmonic!) to search */
   char rloP;
   double rlo;
   int rloC;
-  /***** -rhi: The highest Fourier frequency to search */
+  /***** -rhi: The highest Fourier frequency (of the highest harmonic!) to search */
   char rhiP;
   double rhi;
   int rhiC;
@@ -41,6 +45,8 @@ typedef struct s_Cmdline {
   char fhiP;
   double fhi;
   int fhiC;
+  /***** -inmem: Compute full f-fdot plane in memory.  Very fast, but only for short time series. */
+  char inmemP;
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   char photonP;
   /***** -median: Use block-median power normalization (default) */
@@ -55,8 +61,8 @@ typedef struct s_Cmdline {
   char baryvP;
   double baryv;
   int baryvC;
-  /***** -harmpolish: Constrain harmonics to be harmonically related during polishing (on by default) */
-  char harmpolishP;
+  /***** -otheropt: Use the alternative optimization (for testing/debugging) */
+  char otheroptP;
   /***** -noharmpolish: Do not use 'harmpolish' by default */
   char noharmpolishP;
   /***** -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1) */

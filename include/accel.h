@@ -2,11 +2,20 @@
 #include "presto.h"
 #include "accelsearch_cmd.h"
 
-/* ACCEL_USELEN must be less than 65536 since we  */
-/* use unsigned short ints to index our arrays... */
-/* #define ACCEL_USELEN 32160 */
-/* #define ACCEL_USELEN 16000 */
-#define ACCEL_USELEN 7560
+// ACCEL_USELEN must be less than 65536 since we
+// use unsigned short ints to index our arrays...
+//
+// #define ACCEL_USELEN 32000 // This works up to zmax=300 to use 32K FFTs
+// #define ACCEL_USELEN 15660 // This works up to zmax=300 to use 16K FFTs
+//   The following is probably the best bet for general use given
+//   current speeds of FFTs.  However, if you only need to search up
+//   to zmax < 100, dropping to 4K FFTs is a few percent faster.  SMR 131110
+#define ACCEL_USELEN 7470 // This works up to zmax=300 to use 8K FFTs
+// #define ACCEL_USELEN 7960 // This works up to zmax=100 to use 8K FFTs
+// #define ACCEL_USELEN 3850 // This works up to zmax=100 to use 4K FFTs
+// #define ACCEL_USELEN 1820 // This works up to zmax=100 to use 2K FFTs
+
+/* Stepsize in Fourier Freq */
 #define ACCEL_NUMBETWEEN 2
 /* Stepsize in Fourier Freq */
 #define ACCEL_DR  0.5
@@ -33,6 +42,7 @@ typedef struct accelobs{
   int numzap;          /* Number of birdies to zap */
   int dat_input;       /* The input file is a short time series */
   int mmap_file;       /* The file number if using MMAP */
+  int inmem;           /* True if we want to keep the full f/fdot plan in RAM */
   int norm_type;       /* 0 = old-style block median, 1 = local-means power norm */
   double dt;           /* Data sample length (s) */           
   double T;            /* Total observation length */
@@ -46,6 +56,7 @@ typedef struct accelobs{
   float nph;           /* Freq 0 level if requested, 0 otherwise */
   float sigma;         /* Cutoff sigma to choose a candidate */
   float *powcut;       /* Cutoff powers to choose a cand (per harmsummed) */
+  float *ffdotplane;   /* The full F-Fdot plane if working in memory */
   double *lobins;      /* The low Fourier freq boundaries to zap (RFI) */
   double *hibins;      /* The high Fourier freq boundaries to zap (RFI) */
   long long *numindep; /* Number of independent spectra (per harmsummed) */
@@ -102,10 +113,10 @@ typedef struct ffdotpows{
 
 /* accel_utils.c */
 
-subharminfo **create_subharminfos(int numharmstages, int zmax);
+subharminfo **create_subharminfos(accelobs *obs);
+void free_subharminfos(accelobs *obs, subharminfo **shis);
 void create_accelobs(accelobs *obs, infodata *idata, 
 		     Cmdline *cmd, int usemmap);
-void free_subharminfos(int numharmstages, subharminfo **shis);
 GSList *sort_accelcands(GSList *list);
 GSList *eliminate_harmonics(GSList *cands, int *numcands);
 void deredden(fcomplex *fft, int numamps);
@@ -120,9 +131,17 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs);
 ffdotpows *copy_ffdotpows(ffdotpows *orig);
+void fund_to_ffdotplane(ffdotpows *ffd, accelobs *obs);
+void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
+                         int numharm, int harmnum);
+void fund_to_ffdotplane_trans(ffdotpows *ffd, accelobs *obs);
+void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
+                               int numharm, int harmnum);
 void free_ffdotpows(ffdotpows *ffd);
+void add_ffdotpows_ptrs(ffdotpows *fundamental, ffdotpows *subharmonic,
+                        int numharm, int harmnum);
 void add_ffdotpows(ffdotpows *fundamental, ffdotpows *subharmonic, 
-		   int numharm, int harmnum);
+                   int numharm, int harmnum);
 GSList *search_ffdotpows(ffdotpows *ffdot, int numharm, 
-			 accelobs *obs, GSList *cands);
+                         accelobs *obs, GSList *cands);
 void free_accelobs(accelobs *obs);

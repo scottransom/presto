@@ -22,6 +22,10 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
+  /***** -ncpus: Number of processors to use with OpenMP */
+  /* ncpusP = */ 1,
+  /* ncpus = */ 1,
+  /* ncpusC = */ 1,
   /***** -lobin: The first Fourier frequency in the data file */
   /* lobinP = */ 1,
   /* lobin = */ 0,
@@ -38,11 +42,11 @@ static Cmdline cmd = {
   /* sigmaP = */ 1,
   /* sigma = */ 2.0,
   /* sigmaC = */ 1,
-  /***** -rlo: The lowest Fourier frequency to search */
+  /***** -rlo: The lowest Fourier frequency (of the highest harmonic!) to search */
   /* rloP = */ 0,
   /* rlo = */ (double)0,
   /* rloC = */ 0,
-  /***** -rhi: The highest Fourier frequency to search */
+  /***** -rhi: The highest Fourier frequency (of the highest harmonic!) to search */
   /* rhiP = */ 0,
   /* rhi = */ (double)0,
   /* rhiC = */ 0,
@@ -54,6 +58,8 @@ static Cmdline cmd = {
   /* fhiP = */ 1,
   /* fhi = */ 10000.0,
   /* fhiC = */ 1,
+  /***** -inmem: Compute full f-fdot plane in memory.  Very fast, but only for short time series. */
+  /* inmemP = */ 0,
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
   /* photonP = */ 0,
   /***** -median: Use block-median power normalization (default) */
@@ -68,8 +74,8 @@ static Cmdline cmd = {
   /* baryvP = */ 1,
   /* baryv = */ 0.0,
   /* baryvC = */ 1,
-  /***** -harmpolish: Constrain harmonics to be harmonically related during polishing (on by default) */
-  /* harmpolishP = */ 0,
+  /***** -otheropt: Use the alternative optimization (for testing/debugging) */
+  /* otheroptP = */ 0,
   /***** -noharmpolish: Do not use 'harmpolish' by default */
   /* noharmpolishP = */ 0,
   /***** -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1) */
@@ -777,6 +783,18 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
+  /***** -ncpus: Number of processors to use with OpenMP */
+  if( !cmd.ncpusP ) {
+    printf("-ncpus not found.\n");
+  } else {
+    printf("-ncpus found:\n");
+    if( !cmd.ncpusC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.ncpus);
+    }
+  }
+
   /***** -lobin: The first Fourier frequency in the data file */
   if( !cmd.lobinP ) {
     printf("-lobin not found.\n");
@@ -825,7 +843,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -rlo: The lowest Fourier frequency to search */
+  /***** -rlo: The lowest Fourier frequency (of the highest harmonic!) to search */
   if( !cmd.rloP ) {
     printf("-rlo not found.\n");
   } else {
@@ -837,7 +855,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -rhi: The highest Fourier frequency to search */
+  /***** -rhi: The highest Fourier frequency (of the highest harmonic!) to search */
   if( !cmd.rhiP ) {
     printf("-rhi not found.\n");
   } else {
@@ -871,6 +889,13 @@ showOptionValues(void)
     } else {
       printf("  value = `%.40g'\n", cmd.fhi);
     }
+  }
+
+  /***** -inmem: Compute full f-fdot plane in memory.  Very fast, but only for short time series. */
+  if( !cmd.inmemP ) {
+    printf("-inmem not found.\n");
+  } else {
+    printf("-inmem found:\n");
   }
 
   /***** -photon: Data is poissonian so use freq 0 as power normalization */
@@ -918,11 +943,11 @@ showOptionValues(void)
     }
   }
 
-  /***** -harmpolish: Constrain harmonics to be harmonically related during polishing (on by default) */
-  if( !cmd.harmpolishP ) {
-    printf("-harmpolish not found.\n");
+  /***** -otheropt: Use the alternative optimization (for testing/debugging) */
+  if( !cmd.otheroptP ) {
+    printf("-otheropt not found.\n");
   } else {
-    printf("-harmpolish found:\n");
+    printf("-otheropt found:\n");
   }
 
   /***** -noharmpolish: Do not use 'harmpolish' by default */
@@ -953,8 +978,11 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-harmpolish] [-noharmpolish] [-noharmremove] [--] infile\n");
+  fprintf(stderr,"%s","   [-ncpus ncpus] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile\n");
   fprintf(stderr,"%s","      Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n");
+  fprintf(stderr,"%s","           -ncpus: Number of processors to use with OpenMP\n");
+  fprintf(stderr,"%s","                   1 int value between 1 and oo\n");
+  fprintf(stderr,"%s","                   default: `1'\n");
   fprintf(stderr,"%s","           -lobin: The first Fourier frequency in the data file\n");
   fprintf(stderr,"%s","                   1 int value between 0 and oo\n");
   fprintf(stderr,"%s","                   default: `0'\n");
@@ -967,9 +995,9 @@ usage(void)
   fprintf(stderr,"%s","           -sigma: Cutoff sigma for choosing candidates\n");
   fprintf(stderr,"%s","                   1 float value between 1.0 and 30.0\n");
   fprintf(stderr,"%s","                   default: `2.0'\n");
-  fprintf(stderr,"%s","             -rlo: The lowest Fourier frequency to search\n");
+  fprintf(stderr,"%s","             -rlo: The lowest Fourier frequency (of the highest harmonic!) to search\n");
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
-  fprintf(stderr,"%s","             -rhi: The highest Fourier frequency to search\n");
+  fprintf(stderr,"%s","             -rhi: The highest Fourier frequency (of the highest harmonic!) to search\n");
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
   fprintf(stderr,"%s","             -flo: The lowest frequency (Hz) (of the highest harmonic!) to search\n");
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
@@ -977,6 +1005,7 @@ usage(void)
   fprintf(stderr,"%s","             -fhi: The highest frequency (Hz) (of the highest harmonic!) to search\n");
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
   fprintf(stderr,"%s","                   default: `10000.0'\n");
+  fprintf(stderr,"%s","           -inmem: Compute full f-fdot plane in memory.  Very fast, but only for short time series.\n");
   fprintf(stderr,"%s","          -photon: Data is poissonian so use freq 0 as power normalization\n");
   fprintf(stderr,"%s","          -median: Use block-median power normalization (default)\n");
   fprintf(stderr,"%s","          -locpow: Use double-tophat local-power normalization (not usually recommended)\n");
@@ -985,12 +1014,12 @@ usage(void)
   fprintf(stderr,"%s","           -baryv: The radial velocity component (v/c) towards the target during the obs\n");
   fprintf(stderr,"%s","                   1 double value between -0.1 and 0.1\n");
   fprintf(stderr,"%s","                   default: `0.0'\n");
-  fprintf(stderr,"%s","      -harmpolish: Constrain harmonics to be harmonically related during polishing (on by default)\n");
+  fprintf(stderr,"%s","        -otheropt: Use the alternative optimization (for testing/debugging)\n");
   fprintf(stderr,"%s","    -noharmpolish: Do not use 'harmpolish' by default\n");
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
   fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                   1 value\n");
-  fprintf(stderr,"%s","  version: 03Jul11\n");
+  fprintf(stderr,"%s","  version: 10Nov13\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1005,6 +1034,15 @@ parseCmdline(int argc, char **argv)
   for(i=1, cmd.argc=1; i<argc; i++) {
     if( 0==strcmp("--", argv[i]) ) {
       while( ++i<argc ) argv[cmd.argc++] = argv[i];
+      continue;
+    }
+
+    if( 0==strcmp("-ncpus", argv[i]) ) {
+      int keep = i;
+      cmd.ncpusP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.ncpus, 1);
+      cmd.ncpusC = i-keep;
+      checkIntHigher("-ncpus", &cmd.ncpus, cmd.ncpusC, 1);
       continue;
     }
 
@@ -1083,6 +1121,11 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-inmem", argv[i]) ) {
+      cmd.inmemP = 1;
+      continue;
+    }
+
     if( 0==strcmp("-photon", argv[i]) ) {
       cmd.photonP = 1;
       continue;
@@ -1116,8 +1159,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-harmpolish", argv[i]) ) {
-      cmd.harmpolishP = 1;
+    if( 0==strcmp("-otheropt", argv[i]) ) {
+      cmd.otheroptP = 1;
       continue;
     }
 

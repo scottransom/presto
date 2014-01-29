@@ -65,8 +65,8 @@ void calc_avgmedstd(float *arr, int numarr, float fraction,
 /* and average of the array 'arr'.  Values are returned in    */
 /* 'avg', 'med' and 'std'.  The array is not modified.        */
 
-int determine_padvals(char *maskfilenm, mask *obsmask, float *padvals[]);
-/* Determine reasonable padding values from the rfifind produced  */
-/* *.stats file if it is available.  Return the allocated vector  */
-/* (of length numchan) in padvals.  Return a '1' if the routine   */
-/* used the stats file, return 0 if the padding was set to aeros. */
+int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals);
+// Determine reasonable padding values from the rfifind produced
+// *.stats file if it is available.  The pre-allocated vector (of
+// length numchan) is in padvals.  Return a '1' if the routine used
+// the stats file, return 0 if the padding was set to aeros.

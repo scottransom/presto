@@ -2,26 +2,12 @@
 #include "mask.h"
 #include "sigproc_fb.h"
 
-#define MAXNUMCHAN 8192
-#define BLOCKLEN   512
+static unsigned char *cdatabuffer;
+static float *fdatabuffer;
+static int currentfile = 0, currentblock = 0;
+static int numbuffered = 0, numpadded = 0;
 
-/* All of the following have an _st to indicate static */
-static sigprocfb *fb_st;
-static infodata *idata_st;
-static long long *numpts_st, *padpts_st, N_st;
-static int *numblks_st, need_byteswap_st = 0, sampperblk_st;
-static int numchan_st, ptsperblk_st, bytesperpt_st = 1, bytesperblk_st;
-static double *times_st, *mjds_st, Tdiam=100.0;
-static double *elapsed_st, T_st, dt_st;
-static double *startblk_st, *endblk_st;
-static unsigned char padvals[MAXNUMCHAN], padval = 128;
-static int rawdatabuffer[MAXNUMCHAN * BLOCKLEN];
-static unsigned char databuffer[MAXNUMCHAN * BLOCKLEN];
-static int currentfile, currentblock;
-static int bufferpts = 0, padnum = 0, shiftbuffer = 1;
-static float clip_sigma_st = 0.0;
-static int using_MPI = 0;
-static int ptsperbyte_st = 1;
+extern void add_padding(float *fdata, float *padding, int numchan, int numtopad);
 
 /* Note:  Much of this has been ripped out of SIGPROC      */
 /* and then slightly modified.  Thanks Dunc!               */
@@ -80,137 +66,102 @@ static void send_coords(double raj, double dej, double az, double za, FILE * out
       send_double("za_start", za, outfile);
 }
 
-static char *telescope_name(int telescope_id)
+void get_telescope_name(int telescope_id, struct spectra_info *s)
 {
-   char *telescope, string[80];
-   switch (telescope_id) {
-   case 0:
-      strcpy(string, "Fake");
-      break;
-   case 1:
-      strcpy(string, "Arecibo");
-      Tdiam = 305.0;
-      break;
-   case 2:
-      strcpy(string, "Ooty");
-      break;
-   case 3:
-      strcpy(string, "Nancay");
-      break;
-   case 4:
-      strcpy(string, "Parkes");
-      Tdiam = 64.0;
-      break;
-   case 5:
-      strcpy(string, "Jodrell");
-      Tdiam = 76.0;
-      break;
-   case 6:
-      strcpy(string, "GBT");
-      Tdiam = 100.0;
-      break;
-   case 7:
-      strcpy(string, "GMRT");
-      Tdiam = 45.0;  // possibly not right if using phased array
-      break;
-   case 8:
-      strcpy(string, "Effelsberg");
-      Tdiam = 100.0;
-      break;
-   case 9:
-      strcpy(string, "ATA");
-      break;
-   case 10:
-      strcpy(string, "UTR-2");
-      break;
-   case 11:
-      strcpy(string, "LOFAR");
-      Tdiam = 999.0; // depends on configuration
-      break;
-   default:
-      strcpy(string, "???????");
-      break;
-   }
-   telescope = (char *) calloc(strlen(string) + 1, 1);
-   strcpy(telescope, string);
-   return telescope;
+    float default_beam = 1.0; // deg
+    switch (telescope_id) {
+    case 0:
+        strcpy(s->telescope, "Fake");
+        s->beam_FWHM = default_beam;
+        break;
+    case 1:
+        strcpy(s->telescope, "Arecibo");
+        // Don't use full 305m size for AO.  Use illuminated size.
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 200.0);
+        break;
+    case 2:
+        strcpy(s->telescope, "Ooty");
+        s->beam_FWHM = default_beam;
+        break;
+    case 3:
+        strcpy(s->telescope, "Nancay");
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 100.0);
+        break;
+    case 4:
+        strcpy(s->telescope, "Parkes");
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 64.0);
+        break;
+    case 5:
+        strcpy(s->telescope, "Jodrell");
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 76.0);
+        break;
+    case 6:
+        strcpy(s->telescope, "GBT");
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 100.0);
+        break;
+    case 7:
+        strcpy(s->telescope, "GMRT");
+        s->beam_FWHM = default_beam;
+        break;
+    case 8:
+        strcpy(s->telescope, "Effelsberg");
+        s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 100.0);
+        break;
+    case 9:
+        strcpy(s->telescope, "ATA");
+        s->beam_FWHM = default_beam;
+        break;
+    case 10:
+        strcpy(s->telescope, "UTR-2");
+        s->beam_FWHM = default_beam;
+        break;
+    case 11:
+        strcpy(s->telescope, "LOFAR");
+        s->beam_FWHM = default_beam;
+        break;
+    default:
+        strcpy(s->telescope, "Unknown");
+        s->beam_FWHM = default_beam;
+        break;
+    }
 }
 
-static char *backend_name(int machine_id)
+void get_backend_name(int machine_id, struct spectra_info *s)
 {
-   char *backend, string[80];
-   switch (machine_id) {
-   case 0:
-      strcpy(string, "FAKE");
-      break;
-   case 1:
-      strcpy(string, "PSPM");
-      break;
-   case 2:
-      strcpy(string, "WAPP");
-      break;
-   case 3:
-      strcpy(string, "AOFTM");
-      break;
-   case 4:
-      strcpy(string, "BPP");
-      break;
-   case 5:
-      strcpy(string, "OOTY");
-      break;
-   case 6:
-      strcpy(string, "SCAMP");
-      break;
-   case 7:
-      strcpy(string, "SPIGOT");
-      break;
-   case 11:
-      strcpy(string, "BG/P");
-      break;
-   default:
-      strcpy(string, "????");
-      break;
-   }
-   backend = (char *) calloc(strlen(string) + 1, 1);
-   strcpy(backend, string);
-   return backend;
+    switch (machine_id) {
+    case 0:
+        strcpy(s->backend, "FAKE");
+        break;
+    case 1:
+        strcpy(s->backend, "PSPM");
+        break;
+    case 2:
+        strcpy(s->backend, "WAPP");
+        break;
+    case 3:
+        strcpy(s->backend, "AOFTM");
+        break;
+    case 4:
+        strcpy(s->backend, "BPP");
+        break;
+    case 5:
+        strcpy(s->backend, "OOTY");
+        break;
+    case 6:
+        strcpy(s->backend, "SCAMP");
+        break;
+    case 7:
+        strcpy(s->backend, "SPIGOT");
+        break;
+    case 11:
+        strcpy(s->backend, "BG/P");
+        break;
+    default:
+        strcpy(s->backend, "Unknown");
+        break;
+    }
 }
 
-/*
-static char *data_category(int data_type)
-{
-  char *datatype, string[80];
-  switch (data_type) {
-  case 0:
-    strcpy(string,"raw data");
-    break;
-  case 1:
-    strcpy(string,"filterbank");
-    break;
-  case 2:
-    strcpy(string,"time series");
-    break;
-  case 3:
-    strcpy(string,"pulse profiles");
-    break;
-  case 4:
-    strcpy(string,"amplitude spectrum");
-    break;
-  case 5:
-    strcpy(string,"complex spectrum");
-    break;
-  case 6:
-    strcpy(string,"dedispersed subbands");
-    break;
-  default:
-    strcpy(string,"unknown!");
-    break;
-  }
-  datatype=(char *)calloc(strlen(string)+1, 1);
-  strcpy(datatype,string);
-  return datatype;
-}
-*/
 
 void write_filterbank_header(sigprocfb * fb, FILE * outfile)
 {
@@ -255,7 +206,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
    char string[80], message[80];
    int itmp, nbytes = 0, totalbytes;
    int expecting_rawdatafile = 0, expecting_source_name = 0;
-   int barycentric,pulsarcentric;
+   int barycentric, pulsarcentric;
    /* try to read in the first line of the header */
    get_string(inputfile, &nbytes, string);
    if (!strings_equal(string, "HEADER_START")) {
@@ -357,746 +308,319 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
 }
 
 
-void print_filterbank_header(sigprocfb * fb)
-/* Output a SIGPROC filterbank header in human readable form */
+
+void read_filterbank_files(struct spectra_info *s)
 {
-   char *ctmp;
+    sigprocfb fb;
+    int ii;
 
-   printf("\n        Header size (bytes) = %d\n", fb->headerlen);
-   ctmp = telescope_name(fb->telescope_id);
-   printf("                  Telescope = %s (%d)\n", ctmp, fb->telescope_id);
-   free(ctmp);
-   ctmp = backend_name(fb->machine_id);
-   printf("                 Instrument = %s (%d)\n", ctmp, fb->machine_id);
-   free(ctmp);
-   printf("                Source Name = %s\n", fb->source_name);
-   printf("   Original input file name = '%s'\n", fb->inpfile);
-   printf("             MJD start time = %.12f\n", fb->tstart);
-   printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", fb->src_raj);
-   printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", fb->src_dej);
-   printf("          Number of samples = %lld\n", fb->N);
-   printf("        File duration (sec) = %-17.15g\n", fb->N * fb->tsamp);
-   printf("                T_samp (us) = %-17.6g\n", fb->tsamp * 1e6);
-   printf("    High channel freq (MHz) = %-17.15g\n", fb->fch1);
-   printf("         Central freq (MHz) = %-17.15g\n",
-          fb->fch1 + (fb->nchans / 2 - 0.5) * fb->foff);
-   printf("         Number of channels = %d\n", fb->nchans);
-   printf("    Channel Bandwidth (MHz) = %-17.15g\n", fb->foff);
-   printf("      Total Bandwidth (MHz) = %-17.15g\n", fabs(fb->foff * fb->nchans));
-   printf("      Number of IFs present = %d\n", fb->nifs);
-   printf("            Bits per sample = %d\n", fb->nbits);
-   if (fb->az_start != 0.0 || fb->za_start != 0.0){
-      printf("        Start azimuth (deg) = %.3f\n", fb->az_start);
-      printf("   Start zenith angle (deg) = %.3f\n", fb->za_start);
-   }
-   if (fb->sumifs)
-      printf(" Note:  IFs were summed in hardware.\n");
-}
+    // s->num_files and s->filenames are assumed to be set
+    s->datatype = SIGPROCFB;
+    s->files = (FILE **)malloc(sizeof(FILE *) * s->num_files);
+    s->header_offset = gen_ivect(s->num_files);
+    s->start_subint = gen_ivect(s->num_files);
+    s->num_subint = gen_ivect(s->num_files);
+    s->start_spec = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->num_spec = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->num_pad = (long long *)malloc(sizeof(long long) * s->num_files);
+    s->start_MJD = (long double *)malloc(sizeof(long double) * s->num_files);
+#if DEBUG_OUT       
+    printf("Reading '%s'\n", s->filenames[0]);
+#endif
+    s->files[0] = chkfopen(s->filenames[0], "r");
+    // Read the filterbank header into a SIGPROCFB struct
+    s->header_offset[0] = read_filterbank_header(&fb, s->files[0]);
+    // Make an initial offset into the file
+    chkfseek(s->files[0], s->header_offset[0], SEEK_SET);
+    strncpy(s->source, fb.source_name, 40);
+    if (fb.sumifs) {
+        s->summed_polns = 1;
+        s->num_polns = 1;
+    } else {
+        s->num_polns = fb.nifs;
+        strncpy(s->poln_order, fb.ifstream, 8);
+    }
+    // Position info
+    {
+        int d, h, m;
+        double sec;
+        h = (int) floor(fb.src_raj / 10000.0);
+        m = (int) floor((fb.src_raj - h * 10000) / 100.0);
+        sec = fb.src_raj - h * 10000 - m * 100;
+        ra_dec_to_string(s->ra_str, h, m, sec);
+        s->ra2000 = hms2rad(h, m, sec) * RADTODEG;
+        d = (int) floor(fabs(fb.src_dej) / 10000.0);
+        m = (int) floor((fabs(fb.src_dej) - d * 10000) / 100.0);
+        sec = fabs(fb.src_dej) - d * 10000 - m * 100;
+        if (fb.src_dej < 0.0) d = -d;
+        ra_dec_to_string(s->dec_str, d, m, sec);
+        s->dec2000 = dms2rad(d, m, sec) * RADTODEG;
+    }
+    s->bits_per_sample = fb.nbits;
+    s->num_channels = fb.nchans;
+    s->samples_per_spectra = s->num_polns * s->num_channels;
+    s->bytes_per_spectra = s->bits_per_sample * s->samples_per_spectra / 8;
+    s->spectra_per_subint = 512;  // use this as the blocksize
+    s->bytes_per_subint = s->bytes_per_spectra * s->spectra_per_subint;
+    s->samples_per_subint = s->spectra_per_subint * s->samples_per_spectra;
+    s->min_spect_per_read = 1;  // Can read a single spectra at a time
+    // allocate the raw data buffers
+    cdatabuffer = gen_bvect(s->bytes_per_subint);
+    fdatabuffer = gen_fvect(s->spectra_per_subint * s->num_channels);
+    s->padvals = gen_fvect(s->num_channels);
+    for (ii = 0 ; ii < s->num_channels ; ii++)
+        s->padvals[ii] = 0.0;
+    s->dt = fb.tsamp;
+    s->time_per_subint = s->spectra_per_subint * s->dt;
+    s->T = s->N * s->dt;
+    s->df = fabs(fb.foff);
+    if (fb.foff < 0.0 && s->apply_flipband == -1)
+        s->apply_flipband = 0;  // we do this automatically
+    s->BW = s->num_channels * s->df;
+    s->lo_freq = fb.fch1 - (s->num_channels - 1) * s->df;
+    s->hi_freq = fb.fch1;
+    s->fctr = s->lo_freq - 0.5 * s->df + 0.5 * s->BW;
+    s->azimuth = fb.az_start;
+    s->zenith_ang = fb.za_start;
+    s->num_beams = 1;
+    s->beamnum = fb.ibeam;
+    get_telescope_name(fb.telescope_id, s);
+    get_backend_name(fb.machine_id, s);
+    s->start_MJD[0] = fb.tstart;
+    mjd_to_datestr(s->start_MJD[0], s->date_obs);
+    s->start_spec[0] = 0L;
+    s->num_spec[0] = fb.N;
+    s->N = fb.N;
+    s->get_rawblock = &get_filterbank_rawblock;
+    s->offset_to_spectra = &offset_to_filterbank_spectra;
 
-void get_filterbank_static(int *ptsperbyte, int *bytesperpt, 
-                           int *bytesperblk, float *clip_sigma)
-{
-   *ptsperbyte = ptsperbyte_st;
-   *bytesperpt = bytesperpt_st;
-   *bytesperblk = bytesperblk_st;
-   *clip_sigma = clip_sigma_st;
-}
+    // Step through the other files
+    for (ii = 1 ; ii < s->num_files ; ii++) {
 
-
-void set_filterbank_static(int ptsperbyte, int ptsperblk, 
-                           int bytesperpt, int bytesperblk,
-                           int numchan, float clip_sigma, double dt)
-{
-   using_MPI = 1;
-   currentblock = 0;
-   ptsperblk_st = ptsperblk;
-   bytesperpt_st = bytesperpt;
-   bytesperblk_st = bytesperblk;
-   ptsperbyte_st = ptsperbyte;
-   numchan_st = numchan;
-   sampperblk_st = ptsperblk_st * numchan_st;
-   clip_sigma_st = clip_sigma;
-   dt_st = dt;
-}
-
-
-void set_filterbank_padvals(float *fpadvals, int good_padvals)
-{
-   int ii;
-   float sum_padvals = 0.0;
-
-   if (good_padvals) {
-      for (ii = 0; ii < numchan_st; ii++) {
-         padvals[ii] = (unsigned char) (fpadvals[ii] + 0.5);
-         sum_padvals += fpadvals[ii];
-      }
-      padval = (unsigned char) (sum_padvals / numchan_st + 0.5);
-   } else {
-      for (ii = 0; ii < numchan_st; ii++)
-         padvals[ii] = padval;
-   }
-}
-
-
-void sigprocfb_to_inf(sigprocfb * fb, infodata * idata)
-/* Convert filterbank header structure into an infodata structure */
-{
-   char *tmpstr;
-   strncpy(idata->object, fb->source_name, 80);
-   idata->ra_h = (int) floor(fb->src_raj / 10000.0);
-   idata->ra_m = (int) floor((fb->src_raj - idata->ra_h * 10000) / 100.0);
-   idata->ra_s = fb->src_raj - idata->ra_h * 10000 - idata->ra_m * 100;
-   idata->dec_d = (int) floor(fabs(fb->src_dej) / 10000.0);
-   idata->dec_m = (int) floor((fabs(fb->src_dej) - idata->dec_d * 10000) / 100.0);
-   idata->dec_s = fabs(fb->src_dej) - idata->dec_d * 10000 - idata->dec_m * 100;
-   if (fb->src_dej < 0.0)
-      idata->dec_d = -idata->dec_d;
-   tmpstr = telescope_name(fb->telescope_id);
-   strcpy(idata->telescope, tmpstr);
-   free(tmpstr);
-   tmpstr = backend_name(fb->machine_id);
-   strcpy(idata->instrument, tmpstr);
-   free(tmpstr);
-   idata->mjd_i = (int) floor(fb->tstart);
-   idata->mjd_f = fb->tstart - idata->mjd_i;
-   idata->dt = fb->tsamp;
-   idata->N = (double) fb->N;
-   idata->chan_wid = fabs(fb->foff);
-   idata->num_chan = fb->nchans;
-   idata->freqband = idata->chan_wid * idata->num_chan;
-   idata->freq = fb->fch1 - (idata->num_chan - 1) * idata->chan_wid;
-   idata->fov = 1.2 * SOL * 3600.0 / (idata->freq * 1.0e6) / Tdiam * RADTODEG;
-   idata->bary = 0;
-   idata->numonoff = 0;
-   idata->dm = 0.0;
-   strcpy(idata->band, "Radio");
-   strcpy(idata->analyzer, "Scott Ransom");
-   strcpy(idata->observer, "Unknown");
-   sprintf(idata->notes, "Input filterbank samples have %d bits.\n", fb->nbits);
-}
-
-
-void get_filterbank_file_info(FILE * files[], int numfiles, float clipsig,
-                              long long *N, int *ptsperblock, int *numchan,
-                              double *dt, double *T, int output)
-/* Read basic information into static variables and make padding        */
-/* calculations for a set of filterbank rawfiles that you want to patch */
-/* together.  N, numchan, dt, and T are return values and include all   */
-/* the files with the required padding.  If output is true, prints      */
-/* a table showing a summary of the values.                             */
-{
-   int ii, headerlen;
-
-   /* Allocate memory for our information structures */
-   fb_st = (sigprocfb *) malloc(sizeof(sigprocfb) * numfiles);
-   idata_st = (infodata *) malloc(sizeof(infodata) * numfiles);
-   numpts_st = (long long *) malloc(sizeof(long long) * numfiles);
-   padpts_st = (long long *) malloc(sizeof(long long) * numfiles);
-   numblks_st = (int *) malloc(sizeof(int) * numfiles);
-   times_st = (double *) malloc(sizeof(double) * numfiles);
-   mjds_st = (double *) malloc(sizeof(double) * numfiles);
-   elapsed_st = (double *) malloc(sizeof(double) * numfiles);
-   startblk_st = (double *) malloc(sizeof(double) * numfiles);
-   endblk_st = (double *) malloc(sizeof(double) * numfiles);
-
-   /* Now read the first header... */
-   headerlen = read_filterbank_header(&(fb_st[0]), files[0]);
-   if (fb_st[0].nbits == 8) {
-       ptsperbyte_st = 1;
-   } else if (fb_st[0].nbits == 4) {
-       ptsperbyte_st = 2;
-   } else if (fb_st[0].nbits == 2) {
-       ptsperbyte_st = 4;
-   } else if (fb_st[0].nbits == 1) {
-       ptsperbyte_st = 8;
-   }
-   sigprocfb_to_inf(fb_st + 0, idata_st + 0);
-   chkfseek(files[0], fb_st[0].headerlen, SEEK_SET);
-   if (clipsig > 0.0)
-      clip_sigma_st = clipsig;
-   *numchan = numchan_st = idata_st[0].num_chan;
-   *ptsperblock = ptsperblk_st = BLOCKLEN;
-   sampperblk_st = ptsperblk_st * numchan_st;
-   bytesperblk_st = sampperblk_st / ptsperbyte_st;
-   numblks_st[0] = chkfilelen(files[0], bytesperblk_st);
-   numpts_st[0] = numblks_st[0] * ptsperblk_st;
-   N_st = numpts_st[0];
-   dt_st = *dt = idata_st[0].dt;
-   times_st[0] = numpts_st[0] * dt_st;
-   mjds_st[0] = idata_st[0].mjd_i + idata_st[0].mjd_f;
-   elapsed_st[0] = 0.0;
-   startblk_st[0] = 1;
-   endblk_st[0] = numblks_st[0] - 1;
-   padpts_st[0] = padpts_st[numfiles - 1] = 0;
-   /* And read the rest of the headers */
-   for (ii = 1; ii < numfiles; ii++) {
-      headerlen = read_filterbank_header(&(fb_st[ii]), files[ii]);
-      sigprocfb_to_inf(fb_st + ii, idata_st + ii);
-      chkfseek(files[ii], fb_st[ii].headerlen, SEEK_SET);
-      if (idata_st[ii].num_chan != numchan_st) {
-         printf("Number of channels (file %d) is not the same!\n\n", ii + 1);
-      }
-      if (idata_st[ii].dt != dt_st) {
-         printf("Sample time (file %d) is not the same!\n\n", ii + 1);
-      }
-      numblks_st[ii] = chkfilelen(files[ii], bytesperblk_st);
-      numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
-      times_st[ii] = numpts_st[ii] * dt_st;
-      mjds_st[ii] = idata_st[ii].mjd_i + idata_st[ii].mjd_f;
-      elapsed_st[ii] = mjd_sec_diff(idata_st[ii].mjd_i, idata_st[ii].mjd_f,
-                                    idata_st[ii - 1].mjd_i, idata_st[ii - 1].mjd_f);
-      padpts_st[ii - 1] = (long long) ((elapsed_st[ii] - times_st[ii - 1]) /
-                                       dt_st + 0.5);
-      elapsed_st[ii] += elapsed_st[ii - 1];
-      N_st += numpts_st[ii] + padpts_st[ii - 1];
-      startblk_st[ii] = (double) (N_st - numpts_st[ii]) / ptsperblk_st + 1;
-      endblk_st[ii] = (double) (N_st) / ptsperblk_st - 1;
-   }
-   padpts_st[numfiles - 1] = ((long long) ceil(endblk_st[numfiles - 1] + 1.0) *
-                              ptsperblk_st - N_st);
-   N_st += padpts_st[numfiles - 1];
-   *N = N_st;
-   *T = T_st = N_st * dt_st;
-   currentfile = currentblock = 0;
-   if (output) {
-      char *ctmp;
-      ctmp = telescope_name(fb_st[0].telescope_id);
-      printf("         Telescope = %s (%d)\n", ctmp, fb_st[0].telescope_id);
-      free(ctmp);
-      ctmp = backend_name(fb_st[0].machine_id);
-      printf("        Instrument = %s (%d)\n", ctmp, fb_st[0].machine_id);
-      free(ctmp);
-      printf("   Number of files = %d\n", numfiles);
-      printf("    Bits per point = %d\n", fb_st[0].nbits);
-      printf("      Points/block = %d\n", ptsperblk_st);
-      printf("   Num of channels = %d\n", numchan_st);
-      printf("  Total points (N) = %lld\n", N_st);
-      printf("  Sample time (dt) = %-14.14g\n", dt_st);
-      printf("    Total time (s) = %-14.14g\n", T_st);
-      printf(" Header length (B) = %d\n\n", headerlen);
-      printf
-          ("File  Start Block    Last Block     Points      Elapsed (s)      Time (s)            MJD           Padding\n");
-      printf
-          ("----  ------------  ------------  ----------  --------------  --------------  ------------------  ----------\n");
-      for (ii = 0; ii < numfiles; ii++)
-         printf
-             ("%2d    %12.11g  %12.11g  %10lld  %14.13g  %14.13g  %17.12f  %10lld\n",
-              ii + 1, startblk_st[ii], endblk_st[ii], numpts_st[ii], elapsed_st[ii],
-              times_st[ii], mjds_st[ii], padpts_st[ii]);
-      printf("\n");
-   }
-}
-
-void filterbank_update_infodata(int numfiles, infodata * idata)
-/* Update the onoff bins section in case we used multiple files */
-{
-
-   int ii, index = 2;
-
-   idata->N = N_st;
-   if (numfiles == 1 && padpts_st[0] == 0) {
-      idata->numonoff = 0;
-      return;
-   }
-   /* Determine the topocentric onoff bins */
-   idata->numonoff = 1;
-   idata->onoff[0] = 0.0;
-   idata->onoff[1] = numpts_st[0] - 1.0;
-   for (ii = 1; ii < numfiles; ii++) {
-      if (padpts_st[ii - 1]) {
-         idata->onoff[index] = idata->onoff[index - 1] + padpts_st[ii - 1];
-         idata->onoff[index + 1] = idata->onoff[index] + numpts_st[ii];
-         idata->numonoff++;
-         index += 2;
-      } else {
-         idata->onoff[index - 1] += numpts_st[ii];
-      }
-   }
-   if (padpts_st[numfiles - 1]) {
-      idata->onoff[index] = idata->onoff[index - 1] + padpts_st[numfiles - 1];
-      idata->onoff[index + 1] = idata->onoff[index];
-      idata->numonoff++;
-   }
+#if DEBUG_OUT       
+        printf("Reading '%s'\n", s->filenames[ii]);
+#endif
+        s->files[ii] = chkfopen(s->filenames[ii], "r");
+        s->header_offset[ii] = read_filterbank_header(&fb, s->files[ii]);
+        // Make an initial offset into each file to the spactra
+        chkfseek(s->files[ii], s->header_offset[ii], SEEK_SET);
+        // Compare key values with s->XXX[0] to see if things are the same
+        if (s->num_channels != fb.nchans) {
+            fprintf(stderr, "Error:  num chans %d in file #%d does not match original num chans %d!!\n", fb.nchans, ii+1, s->num_channels);
+            exit(1);
+        }
+        if (s->bits_per_sample != fb.nbits) {
+            fprintf(stderr, "Error:  bits per sample %d in file #%d does not match original bits per sample %d!!\n", fb.nbits, ii+1, s->bits_per_sample);
+            exit(1);
+        }
+        if (s->dt != fb.tsamp) {
+            fprintf(stderr, "Error:  sample time %f in file #%d does not match original sample time %f!!\n", fb.tsamp, ii+1, s->dt);
+            exit(1);
+        }
+        if (s->df != fabs(fb.foff)){
+            fprintf(stderr, "Error:  channel width %f in file #%d does not match original channel width %f!!\n", fabs(fb.foff), ii+1, s->df);
+            exit(1);
+        }
+        if (s->hi_freq != fb.fch1) {
+            fprintf(stderr, "Error:  high chan freq %f in file #%d does not match original high chan freq %f!!\n", fb.fch1, ii+1, s->hi_freq);
+            exit(1);
+        }
+        s->start_MJD[ii] = fb.tstart;
+        s->start_spec[ii] = (long long)((s->start_MJD[ii] - s->start_MJD[0]) \
+                                        / s->dt + 0.5);
+        s->num_pad[ii-1] = s->start_spec[ii] - s->N;
+        s->num_spec[ii] = fb.N;
+        s->N += s->num_spec[ii] + s->num_pad[ii-1];
+    }
+    s->T = s->N * s->dt;
+    s->num_pad[s->num_files-1] = 0L;
 }
 
 
-int skip_to_filterbank_rec(FILE * infiles[], int numfiles, int rec)
-/* This routine skips to the record 'rec' in the input files     */
-/* *infiles.  *infiles contains SIGPROC format data.             */
-/* Returns the record skipped to.                                */
+long long offset_to_filterbank_spectra(long long specnum, struct spectra_info *s)
+// This routine offsets into the filterbank files to the spectra
+// 'specnum'.  It returns the current spectra number.
 {
-   double floor_blk;
-   int filenum = 0, ii;
+    long long offset_spec;
+    int filenum = 0;
+    
+    if (specnum > s->N) {
+        fprintf(stderr, "Error:  offset spectra %lld is > total spectra %lld\n\n", 
+               specnum, s->N);
+        exit(1);
+    }
 
-   if (rec < startblk_st[0])
-      rec += (startblk_st[0] - 1);
-   if (rec > 0 && rec < endblk_st[numfiles - 1]) {
+    // Find which file we need
+    while (specnum > s->start_spec[filenum+1])
+        filenum++;
 
-      /* Find which file we need */
-      while (rec > endblk_st[filenum])
-         filenum++;
+    // Shift to that file
+    currentfile = filenum;
 
-      currentblock = rec - 1;
-      shiftbuffer = 1;
-      floor_blk = floor(startblk_st[filenum]);
+    // Are we in a padding zone?
+    if (specnum > (s->start_spec[currentfile] + s->num_spec[currentfile])) {
+        // Seek to the end of the file
+        chkfileseek(s->files[currentfile], 0, 1, SEEK_END);
+        numbuffered = 0;
+        numpadded = specnum - (s->start_spec[currentfile] + s->num_spec[currentfile]);
+        return specnum;
+    }
 
-      /* Set the data buffer to all padding just in case */
-      for (ii = 0; ii < MAXNUMCHAN * BLOCKLEN; ii++)
-         databuffer[ii] = padval;
-
-      /* Warning:  I'm not sure if the following is correct. */
-      /*   If really needs accurate testing to see if my     */
-      /*   offsets are correct.  Bottom line, don't trust    */
-      /*   a TOA determined using the following!             */
-
-      if (rec < startblk_st[filenum]) { /* Padding region */
-         currentfile = filenum - 1;
-         chkfileseek(infiles[currentfile], 0, 1, SEEK_END);
-         bufferpts = padpts_st[currentfile] % ptsperblk_st;
-         padnum = ptsperblk_st * (rec - endblk_st[currentfile] - 1);
-         /*
-            printf("Padding:  currentfile = %d  bufferpts = %d  padnum = %d\n", 
-            currentfile, bufferpts, padnum);
-          */
-      } else {                  /* Data region */
-         currentfile = filenum;
-         chkfileseek(infiles[currentfile], rec - startblk_st[filenum],
-                     bytesperblk_st, SEEK_CUR);
-         bufferpts = (int) ((startblk_st[filenum] - floor_blk) * ptsperblk_st + 0.5);
-         padnum = 0;
-         /*
-            printf("Data:  currentfile = %d  bufferpts = %d  padnum = %d\n", 
-            currentfile, bufferpts, padnum);
-          */
-      }
-
-   } else {
-      printf("\n rec = %d out of range in skip_to_filterbank_rec()\n", rec);
-      exit(1);
-   }
-   return rec;
+    // Otherwise, seek to the spectra
+    // Skip the header first
+    chkfseek(s->files[currentfile], s->header_offset[currentfile], SEEK_SET);
+    offset_spec = specnum - s->start_spec[currentfile];
+    chkfseek(s->files[currentfile], offset_spec * s->bytes_per_spectra, SEEK_CUR);
+    numbuffered = 0;
+    numpadded = 0;
+    return specnum;
 }
 
 
-int read_filterbank_rawblock(FILE * infiles[], int numfiles,
-                             unsigned char *data, int *padding)
-/* This routine reads a single record from the   */
-/* input files *infiles which contain 1 byte     */
-/* data in SIGPROC filterbank format.            */
-/* If padding is returned as 1, then padding was */
-/* added and statistics should not be calculated */
+int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
+// This routine reads a single block (i.e subint) from the input files
+// which contain raw data in SIGPROC filterbank format.  If padding is
+// returned as 1, then padding was added and statistics should not be
+// calculated.  Return 1 on success.
 {
-   int offset, numtopad = 0;
-   unsigned char *dataptr = data;
+    int numread, numtopad = 0, numtoread;
+    float *fdataptr = fdata;
+    
+    // If we only made a partial read last time, adjust our pointer
+    // offsetting into the output floating-point array
+    fdataptr = fdata + numbuffered * s->num_channels;
+    numtoread = s->spectra_per_subint - numbuffered;
+    
+    /* Make sure our current file number is valid */
+    if (currentfile >= s->num_files)
+        return 0;
 
-   /* If our buffer array is offset from last time */
-   /* copy the second part into the first.         */
+    /* First, attempt to read data from the current file */
+    numread = chkfread(cdatabuffer, s->bytes_per_spectra, 
+                       numtoread, s->files[currentfile]);
+    if (s->flip_bytes) { // byte-swap if necessary
+        /* Need to add this later */
+    }
+    convert_filterbank_block(fdataptr, cdatabuffer, numread, s);
 
-   if (bufferpts) {
-      offset = bufferpts * numchan_st;
-      dataptr = databuffer + offset;
-      if (shiftbuffer)
-         memcpy(databuffer, databuffer + sampperblk_st, offset);
-   }
-   shiftbuffer = 1;
-
-   /* Make sure our current file number is valid */
-
-   if (currentfile >= numfiles)
-      return 0;
-
-   /* First, attempt to read data from the current file */
-
-   if (chkfread((unsigned char *) rawdatabuffer, bytesperblk_st, 1, infiles[currentfile])) {    /* Got Data */
-      /* See if we need to byte-swap and if so, doit */
-      if (need_byteswap_st) {
-         /* Need to add this later */
-      }
-      convert_filterbank_block(rawdatabuffer, dataptr);
-
-      *padding = 0;
-      /* Put the new data into the databuffer if needed */
-      if (bufferpts)
-         memcpy(data, databuffer, sampperblk_st);
-      currentblock++;
-      return 1;
-   } else {                     /* Didn't get data */
-      if (feof(infiles[currentfile])) { /* End of file? */
-         numtopad = padpts_st[currentfile] - padnum;
-         if (numtopad) {        /* Pad the data? */
-            *padding = 1;
-            if (numtopad >= ptsperblk_st - bufferpts) { /* Lots of padding */
-               if (bufferpts) { /* Buffer the padding? */
-                  /* Add the amount of padding we need to */
-                  /* make our buffer offset = 0           */
-                  numtopad = ptsperblk_st - bufferpts;
-                  memset(dataptr, padval, numtopad * numchan_st);
-                  /* Copy the new data/padding into the output array */
-                  memcpy(data, databuffer, sampperblk_st);
-                  bufferpts = 0;
-               } else {         /* Add a full record of padding */
-                  numtopad = ptsperblk_st;
-                  memset(data, padval, sampperblk_st);
-               }
-               padnum += numtopad;
-               currentblock++;
-               /* If done with padding reset padding variables */
-               if (padnum == padpts_st[currentfile]) {
-                  padnum = 0;
-                  currentfile++;
-               }
-               return 1;
-            } else {            /* Need < 1 block (or remaining block) of padding */
-               int pad;
-               /* Add the remainder of the padding and */
-               /* then get a block from the next file. */
-               memset(databuffer + bufferpts * numchan_st,
-                      padval, numtopad * numchan_st);
-               bufferpts += numtopad;
-               padnum = 0;
-               shiftbuffer = 0;
-               currentfile++;
-               return read_filterbank_rawblock(infiles, numfiles, data, &pad);
+    if (numread==numtoread) {  // Got all we needed
+        *padding = 0;
+        numbuffered = 0;
+        currentblock++;
+        goto return_block;
+    } else {  // Didn't get all the data we needed
+        numbuffered += numread;
+        if (feof(s->files[currentfile])) { // End of file?
+            numtopad = s->num_pad[currentfile] - numpadded;
+            if (numtopad==0) {  // No padding needed.  Try reading the next file
+                currentfile++;
+                return get_filterbank_rawblock(fdata, s, padding);
+            } else {   // Pad the data instead
+                *padding = 1;
+                fdataptr = fdata + numbuffered * s->num_channels;
+                if (numtopad >= numtoread - numread) { // Need lots of padding
+                    // Fill the rest of the buffer with padding
+                    numtopad = s->spectra_per_subint - numbuffered;
+                    add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
+                    numpadded += numtopad;
+                    numbuffered = 0;
+                    currentblock++;
+                    // If done with padding reset padding variables
+                    if (numpadded == s->num_pad[currentfile]) {
+                        numpadded = 0;
+                        currentfile++;
+                    }
+                    goto return_block;
+                } else {  // Need < 1 block (or remaining block) of padding
+                    add_padding(fdataptr, s->padvals, s->num_channels, numtopad);
+                    numbuffered += numtopad;
+                    // Done with padding, so reset padding variables
+                    numpadded = 0;
+                    currentfile++;
+                    return get_filterbank_rawblock(fdata, s, padding);
+                }
             }
-         } else {               /* No padding needed.  Try reading the next file */
-            currentfile++;
-            shiftbuffer = 0;
-            return read_filterbank_rawblock(infiles, numfiles, data, padding);
-         }
-      } else {
-         printf("\nProblem reading record from filterbank data file:\n");
-         printf("   currentfile = %d, currentblock = %d.  Exiting.\n",
-                currentfile, currentblock);
-         exit(1);
-      }
-   }
+        } else {
+            fprintf(stderr, "Error: Problem reading record from filterbank data file:\n");
+            fprintf(stderr, "   currentfile = %d, currentblock = %d.  Exiting.\n",
+                   currentfile, currentblock);
+            exit(1);
+        }
+    }
+
+return_block:
+    // Apply the corrections that need a full block
+
+    // Invert the band if requested 
+    if (s->apply_flipband) flip_band(fdata, s);
+
+    // Perform Zero-DMing if requested
+    if (s->remove_zerodm) remove_zerodm(fdata, s);
+
+    return 1;
 }
 
 
-int read_filterbank_rawblocks(FILE * infiles[], int numfiles,
-                              unsigned char rawdata[], int numblocks, int *padding)
-/* This routine reads numblocks filterbank records from the input */
-/* files *infiles.  The 8-bit filterbank data is returned   */
-/* in rawdata which must have a size of numblocks*          */
-/* sampperblk_st.  The number  of blocks read is returned.  */
-/* If padding is returned as 1, then padding was added      */
-/* and statistics should not be calculated                  */
-{
-   int ii, retval = 0, pad, numpad = 0;
-
-   *padding = 0;
-   for (ii = 0; ii < numblocks; ii++) {
-      retval += read_filterbank_rawblock(infiles, numfiles,
-                                         rawdata + ii * sampperblk_st, &pad);
-      if (pad)
-         numpad++;
-   }
-   /* Return padding 'true' if more than */
-   /* half of the blocks are padding.    */
-   /* 
-      if (numpad > numblocks / 2)
-      *padding = 1;
-    */
-   /* Return padding 'true' if any block was padding */
-   if (numpad)
-      *padding = 1;
-   return retval;
-}
-
-
-int read_filterbank(FILE * infiles[], int numfiles, float *data,
-                    int numpts, double *dispdelays, int *padding,
-                    int *maskchans, int *nummasked, mask * obsmask)
-/* This routine reads numpts from the filterbank raw   */
-/* files *infiles.  These files contain 16 bit data    */
-/* from the filterbank backend.  Time delays and       */
-/* a mask are applied to each channel.  It returns     */
-/* the # of points read if successful, 0 otherwise.    */
-/* If padding is returned as 1, then padding was       */
-/* added and statistics should not be calculated.      */
-/* maskchans is an array of length numchans contains   */
-/* a list of the number of channels that were masked.  */
-/* The # of channels masked is returned in nummasked.  */
-/* obsmask is the mask structure to use for masking.   */
-{
-   int ii, jj, numread = 0, offset;
-   double starttime = 0.0;
-   static unsigned char *tempzz, *rawdata1, *rawdata2;
-   static unsigned char *currentdata, *lastdata;
-   static int firsttime = 1, numblocks = 1, allocd = 0, mask = 0;
-   static double duration = 0.0, timeperblk = 0.0;
-
-   *nummasked = 0;
-   if (firsttime) {
-      if (numpts % ptsperblk_st) {
-         printf("numpts must be a multiple of %d in read_filterbank()!\n",
-                ptsperblk_st);
-         exit(1);
-      } else
-         numblocks = numpts / ptsperblk_st;
-      if (obsmask->numchan)
-         mask = 1;
-      rawdata1 = gen_bvect(numblocks * sampperblk_st);
-      rawdata2 = gen_bvect(numblocks * sampperblk_st);
-      allocd = 1;
-      timeperblk = ptsperblk_st * dt_st;
-      duration = numblocks * timeperblk;
-      currentdata = rawdata1;
-      lastdata = rawdata2;
-   }
-
-   /* Read, convert and de-disperse */
-   if (allocd) {
-      while (1) {
-         numread = read_filterbank_rawblocks(infiles, numfiles, currentdata,
-                                             numblocks, padding);
-         if (mask) {
-            starttime = currentblock * timeperblk;
-            *nummasked = check_mask(starttime, duration, obsmask, maskchans);
-         }
-
-         /* Clip nasty RFI if requested and we're not masking all the channels */
-         if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-            clip_times(currentdata, numpts, numchan_st, clip_sigma_st, padvals);
-
-         if (mask) {
-            if (*nummasked == -1) {     /* If all channels are masked */
-               for (ii = 0; ii < numpts; ii++)
-                  memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
-            } else if (*nummasked > 0) {        /* Only some of the channels are masked */
-               int channum;
-               for (ii = 0; ii < numpts; ii++) {
-                  offset = ii * numchan_st;
-                  for (jj = 0; jj < *nummasked; jj++) {
-                     channum = maskchans[jj];
-                     currentdata[offset + channum] = padvals[channum];
-                  }
-               }
-            }
-         }
-         if (!firsttime)
-            dedisp(currentdata, lastdata, numpts, numchan_st, dispdelays, data);
-         SWAP(currentdata, lastdata);
-         if (numread != numblocks) {
-            vect_free(rawdata1);
-            vect_free(rawdata2);
-            allocd = 0;
-         }
-         if (firsttime)
-            firsttime = 0;
-         else
-            break;
-      }
-      return numblocks * ptsperblk_st;
-   } else {
-      return 0;
-   }
-}
-
-
-void get_filterbank_channel(int channum, float chandat[],
-                            unsigned char rawdata[], int numblocks)
-/* Return the values for channel 'channum' of a block of       */
-/* 'numblocks' raw filterbank data stored in 'rawdata' in 'chandat'. */
-/* 'rawdata' should have been initialized using                */
-/* read_filterbank_rawblocks(), and 'chandat' must have at least     */
-/* 'numblocks' * 'ptsperblk_st' spaces.                        */
-/* Channel 0 is assumed to be the lowest freq channel.         */
-{
-   int ii, jj;
-
-   if (channum > numchan_st || channum < 0) {
-      printf("\nchannum = %d is out of range in get_GMR_channel()!\n\n", channum);
-      exit(1);
-   }
-   /* Select the correct channel */
-   for (ii = 0, jj = channum; ii < numblocks * ptsperblk_st; ii++, jj += numchan_st)
-      chandat[ii] = rawdata[jj];
-}
-
-
-int prep_filterbank_subbands(unsigned char *rawdata, float *data,
-                             double *dispdelays, int numsubbands,
-                             int transpose, int *maskchans,
-                             int *nummasked, mask * obsmask)
-/* This routine preps a block from from the filterbank system.  It uses         */
-/* dispersion delays in 'dispdelays' to de-disperse the data into         */
-/* 'numsubbands' subbands.  It stores the resulting data in vector 'data' */
-/* of length 'numsubbands' * 'ptsperblk_st'.  The low freq subband is     */
-/* stored first, then the next highest subband etc, with 'ptsperblk_st'   */
-/* floating points per subband. It returns the # of points read if        */
-/* succesful, 0 otherwise.  'maskchans' is an array of length numchans    */
-/* which contains a list of the number of channels that were masked.  The */
-/* # of channels masked is returned in 'nummasked'.  'obsmask' is the     */
-/* mask structure to use for masking.  If 'transpose'==0, the data will   */
-/* be kept in time order instead of arranged by subband as above.         */
-{
-   int ii, jj, trtn, offset;
-   double starttime = 0.0;
-   static unsigned char *tempzz;
-   static unsigned char rawdata1[MAXNUMCHAN * BLOCKLEN],
-       rawdata2[MAXNUMCHAN * BLOCKLEN];
-   static unsigned char *currentdata, *lastdata, *move;
-   static int firsttime = 1, move_size = 0, mask = 0;
-   static double timeperblk = 0.0;
-
-   *nummasked = 0;
-   if (firsttime) {
-      if (obsmask->numchan)
-         mask = 1;
-      move_size = (ptsperblk_st + numsubbands) / 2;
-      move = gen_bvect(move_size);
-      currentdata = rawdata1;
-      lastdata = rawdata2;
-      timeperblk = ptsperblk_st * dt_st;
-   }
-
-   /* Read and de-disperse */
-   memcpy(currentdata, rawdata, sampperblk_st);
-   if (mask) {
-      starttime = currentblock * timeperblk;
-      *nummasked = check_mask(starttime, timeperblk, obsmask, maskchans);
-   }
-
-   /* Clip nasty RFI if requested and we're not masking all the channels*/
-   if ((clip_sigma_st > 0.0) && !(mask && (*nummasked == -1)))
-      clip_times(currentdata, ptsperblk_st, numchan_st, clip_sigma_st, padvals);
-
-   if (mask) {
-      if (*nummasked == -1) {   /* If all channels are masked */
-         for (ii = 0; ii < ptsperblk_st; ii++)
-            memcpy(currentdata + ii * numchan_st, padvals, numchan_st);
-      } else if (*nummasked > 0) {      /* Only some of the channels are masked */
-         int channum;
-         for (ii = 0; ii < ptsperblk_st; ii++) {
-            offset = ii * numchan_st;
-            for (jj = 0; jj < *nummasked; jj++) {
-               channum = maskchans[jj];
-               currentdata[offset + channum] = padvals[channum];
-            }
-         }
-      }
-   }
-
-   /* In mpiprepsubband, the nodes do not call read_*_rawblock() */
-   /* where currentblock gets incremented.                       */
-   if (using_MPI) currentblock++;
-
-   if (firsttime) {
-      SWAP(currentdata, lastdata);
-      firsttime = 0;
-      return 0;
-   } else {
-      dedisp_subbands(currentdata, lastdata, ptsperblk_st, numchan_st,
-                      dispdelays, numsubbands, data);
-      SWAP(currentdata, lastdata);
-      /* Transpose the data into vectors in the result array */
-      if (transpose) {
-         if ((trtn = transpose_float(data, ptsperblk_st, numsubbands,
-                                     move, move_size)) < 0)
-            printf("Error %d in transpose_float().\n", trtn);
-      }
-      return ptsperblk_st;
-   }
-}
-
-
-int read_filterbank_subbands(FILE * infiles[], int numfiles, float *data,
-                             double *dispdelays, int numsubbands,
-                             int transpose, int *padding,
-                             int *maskchans, int *nummasked, mask * obsmask)
-/* This routine reads a record from the input files *infiles[]   */
-/* in SIGPROC filterbank format.  The routine uses               */
-/* dispersion delays in 'dispdelays' to de-disperse the data     */
-/* into 'numsubbands' subbands.  It stores the resulting data    */
-/* in vector 'data' of length 'numsubbands' * 'ptsperblk_st'.    */
-/* The low freq subband is stored first, then the next highest   */
-/* subband etc, with 'ptsperblk_st' floating points per subband. */
-/* It returns the # of points read if succesful, 0 otherwise.    */
-/* If padding is returned as 1, then padding was added and       */
-/* statistics should not be calculated.  'maskchans' is an array */
-/* of length numchans which contains a list of the number of     */
-/* channels that were masked.  The # of channels masked is       */
-/* returned in 'nummasked'.  'obsmask' is the mask structure     */
-/* to use for masking.  If 'transpose'==0, the data will be kept */
-/* in time order instead of arranged by subband as above.        */
-{
-   static int firsttime = 1;
-   static unsigned char rawdata[MAXNUMCHAN * BLOCKLEN];
-
-   if (firsttime) {
-      if (!read_filterbank_rawblock(infiles, numfiles, rawdata, padding)) {
-         printf("Problem reading the raw filterbank data file.\n\n");
-         return 0;
-      }
-      if (0 != prep_filterbank_subbands(rawdata, data, dispdelays, numsubbands,
-                                        transpose, maskchans, nummasked, obsmask)) {
-         printf("Problem initializing prep_filterbank_subbands()\n\n");
-         return 0;
-      }
-      firsttime = 0;
-   }
-   if (!read_filterbank_rawblock(infiles, numfiles, rawdata, padding)) {
-      /* printf("Problem reading the raw filterbank data file.\n\n"); */
-      return 0;
-   }
-   return prep_filterbank_subbands(rawdata, data, dispdelays, numsubbands,
-                                   transpose, maskchans, nummasked, obsmask);
-}
-
-
-void convert_filterbank_block(int *indata, unsigned char *outdata)
+void convert_filterbank_block(float *outdata, unsigned char *indata, 
+                              int numread, struct spectra_info *s)
 /* This routine converts SIGPROC filterbank-format data into PRESTO format */
 {
-   int ii, jj, samp_ct, offset;
+   int ii, jj, spec_ct, offset;
 
-   if (ptsperbyte_st == 1) {
+   if (s->bits_per_sample == 32) {
+       float *floatdata = (float *) indata;
+       for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+           offset = spec_ct * s->num_channels;
+           for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
+               outdata[ii + offset] = floatdata[jj + offset];
+       }
+   } else if (s->bits_per_sample == 8) {
        unsigned char *chardata = (unsigned char *) indata;
-       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
-           offset = samp_ct * numchan_st;
-           for (ii = 0, jj = numchan_st - 1; ii < numchan_st; ii++, jj--)
-               outdata[ii + offset] = chardata[jj + offset];
+       for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+           offset = spec_ct * s->num_channels;
+           for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
+               outdata[ii + offset] = (float) chardata[jj + offset];
        }
-   } else if (ptsperbyte_st == 2) {
+   } else if (s->bits_per_sample == 4) {
        unsigned char c, *chardata = (unsigned char *) indata;
-       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
-           offset = samp_ct * numchan_st;
-           for (ii = 0, jj = numchan_st/2 - 1; ii < numchan_st; ii+=2, jj--) {
+       for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+           offset = spec_ct * s->num_channels;
+           for (ii = 0, jj = s->num_channels/2 - 1; ii < s->num_channels; ii+=2, jj--) {
                c = chardata[(jj + offset/2)];
-               outdata[(ii+1) + offset] = (unsigned char ) (c & 15);
-               outdata[ii + offset] = (unsigned char ) ( (c & 240) >> 4 );
+               outdata[(ii+1) + offset] = (float) (c & 15);
+               outdata[ii + offset] = (float) ((c & 240) >> 4 );
            }
        }
-   } else if (ptsperbyte_st == 4) {
+   } else if (s->bits_per_sample == 2) {
        unsigned char c, *chardata = (unsigned char *) indata;
-       unsigned char *outdataptr;
-       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
-           offset = samp_ct * numchan_st;
+       float *outdataptr;
+       for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+           offset = spec_ct * s->num_channels;
            outdataptr = outdata + offset;
-           for (ii = 0, jj = numchan_st/4 - 1; ii < numchan_st; ii+=4, jj--) {
+           for (ii = 0, jj = s->num_channels/4 - 1; ii < s->num_channels; ii+=4, jj--) {
                c = chardata[(jj + offset/4)];
-               *outdataptr++ = (c >> 0x06) & 0x03;
-               *outdataptr++ = (c >> 0x04) & 0x03;
-               *outdataptr++ = (c >> 0x02) & 0x03;
-               *outdataptr++ = c & 0x03;
+               *outdataptr++ = (float) ((c >> 0x06) & 0x03);
+               *outdataptr++ = (float) ((c >> 0x04) & 0x03);
+               *outdataptr++ = (float) ((c >> 0x02) & 0x03);
+               *outdataptr++ = (float) (c & 0x03);
            }
        }
-   } else if (ptsperbyte_st == 8) {
+   } else if (s->bits_per_sample == 1) {
        unsigned char c, *chardata = (unsigned char *) indata;
-       unsigned char *outdataptr;
-       for (samp_ct = 0; samp_ct < ptsperblk_st; samp_ct++) {
-           offset = samp_ct * numchan_st;
+       float *outdataptr;
+       for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+           offset = spec_ct * s->num_channels;
            outdataptr = outdata + offset;
-           for (ii = 0, jj = numchan_st/8 - 1; ii < numchan_st; ii+=8, jj--) {
+           for (ii = 0, jj = s->num_channels/8 - 1; ii < s->num_channels; ii+=8, jj--) {
                c = chardata[(jj + offset/8)];
-               *outdataptr++ = (c >> 0x07) & 0x01;
-               *outdataptr++ = (c >> 0x06) & 0x01;
-               *outdataptr++ = (c >> 0x05) & 0x01;
-               *outdataptr++ = (c >> 0x04) & 0x01;
-               *outdataptr++ = (c >> 0x03) & 0x01;
-               *outdataptr++ = (c >> 0x02) & 0x01;
-               *outdataptr++ = (c >> 0x01) & 0x01;
-               *outdataptr++ = c & 0x01;
+               *outdataptr++ = (float) ((c >> 0x07) & 0x01);
+               *outdataptr++ = (float) ((c >> 0x06) & 0x01);
+               *outdataptr++ = (float) ((c >> 0x05) & 0x01);
+               *outdataptr++ = (float) ((c >> 0x04) & 0x01);
+               *outdataptr++ = (float) ((c >> 0x03) & 0x01);
+               *outdataptr++ = (float) ((c >> 0x02) & 0x01);
+               *outdataptr++ = (float) ((c >> 0x01) & 0x01);
+               *outdataptr++ = (float) (c & 0x01);
            }
        }
    } else {

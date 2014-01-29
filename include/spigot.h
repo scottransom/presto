@@ -56,31 +56,10 @@ void set_SPIGOT_padvals(float *fpadvals, int good_padvals);
 int read_SPIGOT_header(char *filename, SPIGOT_INFO *spigot);
 void print_SPIGOT_header(SPIGOT_INFO *spigot);
 void SPIGOT_INFO_to_inf(SPIGOT_INFO *spigot, infodata *idata);
-
-int read_SPIGOT_rawblock(FILE *infiles[], int numfiles, unsigned char *data, 
-			 int *padding, IFs ifs);
-int read_SPIGOT_rawblocks(FILE *infiles[], int numfiles, unsigned char rawdata[], 
-			  int numblocks, int *padding, IFs ifs);
-int read_SPIGOT(FILE *infiles[], int numfiles, float *data, int numpts, 
-		double *dispdelays, int *padding, int *maskchans, 
-		int *nummasked, mask *obsmask, IFs ifs);
-void get_SPIGOT_channel(int channum, float chandat[], 
-			unsigned char rawdata[], int numblocks);
 void get_SPIGOT_file_info(FILE *files[], SPIGOT_INFO *spigot_files, 
 			  int numfiles, int usewindow,
 			  float clipsig, long long *N, int *ptsperblock, 
 			  int *numchan, double *dt, double *T, 
 			  infodata *idata, int output);
-int prep_SPIGOT_subbands(unsigned char *rawdata, float *data, 
-			 double *dispdelays, int numsubbands, 
-			 int transpose, int *maskchans, 
-			 int *nummasked, mask *obsmask);
-int read_SPIGOT_subbands(FILE *infiles[], int numfiles, float *data, 
-			 double *dispdelays, int numsubbands, int transpose, 
-			 int *padding, int *maskchans, int *nummasked, 
-			 mask *obsmask, IFs ifs);
-void convert_SPIGOT_point(void *rawdata, unsigned char *bytes, 
-			  IFs ifs, float lag_scaling);
 void SPIGOT_update_infodata(int numfiles, infodata *idata);
-int skip_to_SPIGOT_rec(FILE *infiles[], int numfiles, int rec);
 int check_SPIGOT_byteswap(char *hdr);

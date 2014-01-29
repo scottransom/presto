@@ -10,6 +10,8 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
+Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
+	-r 1 oo  -d 1
 Int -lobin   lobin      {The first Fourier frequency in the data file} \
 	-r 0 oo  -d 0
 Int -numharm numharm    {The number of harmonics to sum (power-of-two)}\
@@ -18,14 +20,15 @@ Int -zmax    zmax       {The max (+ and -) Fourier freq deriv to search} \
 	-r 0 1200  -d 200
 Float -sigma sigma      {Cutoff sigma for choosing candidates}\
 	-r 1.0 30.0 -d 2.0
-Double -rlo     rlo     {The lowest Fourier frequency to search} \
+Double -rlo     rlo     {The lowest Fourier frequency (of the highest harmonic!) to search} \
 	-r 0.0 oo
-Double -rhi     rhi     {The highest Fourier frequency to search} \
+Double -rhi     rhi     {The highest Fourier frequency (of the highest harmonic!) to search} \
 	-r 0.0 oo
 Double -flo     flo     {The lowest frequency (Hz) (of the highest harmonic!) to search} \
 	-r 0.0 oo -d 1.0
 Double -fhi     fhi     {The highest frequency (Hz) (of the highest harmonic!) to search} \
 	-r 0.0 oo -d 10000.0
+Flag   -inmem   inmem   {Compute full f-fdot plane in memory.  Very fast, but only for short time series.}
 Flag   -photon  photon  {Data is poissonian so use freq 0 as power normalization}
 Flag   -median  median  {Use block-median power normalization (default)}
 Flag   -locpow  locpow  {Use double-tophat local-power normalization (not usually recommended)}
@@ -34,7 +37,7 @@ String  -zaplist    zaplist \
 Double  -baryv      baryv \
         {The radial velocity component (v/c) towards the target during the obs} \
         -r -0.1 0.1  -d 0.0
-Flag   -harmpolish  harmpolish  {Constrain harmonics to be harmonically related during polishing (on by default)}
+Flag   -otheropt otheropt  {Use the alternative optimization (for testing/debugging)}
 Flag   -noharmpolish noharmpolish  {Do not use 'harmpolish' by default}
 Flag   -noharmremove noharmremove  {Do not remove harmonically related candidates (never removed for numharm = 1)}
 

@@ -62,6 +62,10 @@ static Cmdline cmd = {
   /* clipC = */ 1,
   /***** -noclip: Do not clip the data.  (The default is to _always_ clip!) */
   /* noclipP = */ 0,
+  /***** -invert: For rawdata, flip (or invert) the band */
+  /* invertP = */ 0,
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  /* zerodmP = */ 0,
   /***** -xwin: Draw plots to the screen as well as a PS file */
   /* xwinP = */ 0,
   /***** -nocompute: Just plot and remake the mask */
@@ -949,6 +953,20 @@ showOptionValues(void)
     printf("-noclip found:\n");
   }
 
+  /***** -invert: For rawdata, flip (or invert) the band */
+  if( !cmd.invertP ) {
+    printf("-invert not found.\n");
+  } else {
+    printf("-invert found:\n");
+  }
+
+  /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
+  if( !cmd.zerodmP ) {
+    printf("-zerodm not found.\n");
+  } else {
+    printf("-zerodm found:\n");
+  }
+
   /***** -xwin: Draw plots to the screen as well as a PS file */
   if( !cmd.xwinP ) {
     printf("-xwin not found.\n");
@@ -1099,7 +1117,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-blocks blocks] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan zapchanstr] [-zapints zapintsstr] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-xwin] [-nocompute] [-rfixwin] [-rfips] [-time time] [-blocks blocks] [-timesig timesigma] [-freqsig freqsigma] [-chanfrac chantrigfrac] [-intfrac inttrigfrac] [-zapchan zapchanstr] [-zapints zapintsstr] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Examines radio data for narrow and wide band interference as well as problems with channels\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1123,6 +1141,8 @@ usage(void)
   fprintf(stderr,"%s","                 1 float value between 0 and 1000.0\n");
   fprintf(stderr,"%s","                 default: `6.0'\n");
   fprintf(stderr,"%s","        -noclip: Do not clip the data.  (The default is to _always_ clip!)\n");
+  fprintf(stderr,"%s","        -invert: For rawdata, flip (or invert) the band\n");
+  fprintf(stderr,"%s","        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n");
   fprintf(stderr,"%s","          -xwin: Draw plots to the screen as well as a PS file\n");
   fprintf(stderr,"%s","     -nocompute: Just plot and remake the mask\n");
   fprintf(stderr,"%s","       -rfixwin: Show the RFI instances on screen\n");
@@ -1152,7 +1172,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name(s).\n");
   fprintf(stderr,"%s","                 1...16384 values\n");
-  fprintf(stderr,"%s","  version: 14Oct11\n");
+  fprintf(stderr,"%s","  version: 31Aug12\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1266,6 +1286,16 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-noclip", argv[i]) ) {
       cmd.noclipP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-invert", argv[i]) ) {
+      cmd.invertP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-zerodm", argv[i]) ) {
+      cmd.zerodmP = 1;
       continue;
     }
 

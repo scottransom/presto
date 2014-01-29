@@ -6,14 +6,15 @@
 #include "bpp.h"
 #include "wapp_key.h"
 #include "spigot.h"
-#include "psrfits.h"
-#include "sigproc_fb.h"
 #include "readfile_cmd.h"
+#include "backend_common.h"
+
+extern int is_PSRFITS(char *filename);
 
 /* #define DEBUG */
 
 #define PAGELEN 32              /* Set the page length to 32 lines */
-#define NUMTYPES 17
+#define NUMTYPES 16
 
 void print_WAPP_hdr(struct HEADERP *hdr);
 
@@ -32,8 +33,7 @@ int PKMBHDR_print(long count, char *obj_ptr);
 int BCPMHDR_print(long count, char *obj_ptr);
 int WAPPHDR_print(long count, char *obj_ptr);
 int SPIGOTHDR_print(long count, char *obj_ptr);
-int SIGPROCHDR_print(long count, char *obj_ptr);
-int PSRFITSHDR_print(long count, char *obj_ptr);
+int SPECTRAINFO_print(long count, char *obj_ptr);
 void print_rawbincand(rawbincand cand);
 void set_WAPP_HEADER_version(struct HEADERP *hdr);
 
@@ -42,7 +42,7 @@ typedef enum {
     DOUBLE, FCPLEX, 
     DCPLEX, SHORT, INT, LONG,
     RZWCAND, BINCAND, POSITION, 
-    PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR, SIGPROCHDR, PSRFITSHDR
+    PKMBHDR, BCPMHDR, WAPPHDR, SPIGOTHDR, SPECTRAINFO
 } rawtypes;
 
 typedef struct fcplex {
@@ -71,7 +71,7 @@ int type_sizes[NUMTYPES] = {
    32768, /* This is the length of a BCPM header */
    0,     /* "Special" length for a WAPP header */
    0,     /* "Special" length for a SPIGOT header */
-   0      /* "Special" length for a SIGPROC header */
+   0      /* "Special" length for a SIGPROC/PSRFITS header */
 };
 
 int objs_at_a_time[NUMTYPES] = {
@@ -96,8 +96,7 @@ int (*print_funct_ptrs[NUMTYPES]) () = {BYTE_print,
                                         BCPMHDR_print, 
                                         WAPPHDR_print, 
                                         SPIGOTHDR_print, 
-                                        SIGPROCHDR_print,
-                                        PSRFITSHDR_print};
+                                        SPECTRAINFO_print};
 
 /* A few global variables */
 
@@ -170,9 +169,9 @@ int main(int argc, char **argv)
    else if (cmd->spigotP)
       index = SPIGOTHDR;
    else if (cmd->filterbankP)
-      index = SIGPROCHDR;
+      index = SPECTRAINFO;
    else if (cmd->psrfitsP)
-      index = PSRFITSHDR;
+      index = SPECTRAINFO;
    
    /* Try to determine the data type from the file name */
 
@@ -181,7 +180,7 @@ int main(int argc, char **argv)
       if (!has_suffix) {
          need_type = 1;
       } else {
-         if (strlen(extension) < 3) {
+         if (strlen(extension) < 2) {
             need_type = 1;
          } else {
             if (0 == strcmp(extension, "dat")) {
@@ -193,7 +192,8 @@ int main(int argc, char **argv)
             } else if (0 == strcmp(extension, "fft")) {
                index = FCPLEX;
                fprintf(stdout, "Assuming the data is single precision complex.\n\n");
-            } else if (0 == strcmp(extension, "fits")) {
+            } else if ((0 == strcmp(extension, "fits")) ||
+                       (0 == strcmp(extension, "sf"))) {
                 if (strstr(short_filenm, "spigot_5") != NULL) {
                     cmd->spigotP = 1;
                     index = SPIGOTHDR;
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
                             "Assuming the data is from the Caltech/NRAO Spigot.\n\n");
                 } else if (is_PSRFITS(cmd->argv[0])) {
                     cmd->psrfitsP = 1;
-                    index = PSRFITSHDR;
+                    index = SPECTRAINFO;
                     fprintf(stdout,
                             "Assuming the data is in PSRFITS format.\n\n");
                 }
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
                        "Assuming the data is from the Parkes Multibeam machine.\n\n");
             } else if (0 == strcmp(extension, "fil") || 0 == strcmp(extension, "fb")) {
                cmd->filterbankP = 1;
-               index = SIGPROCHDR;
+               index = SPECTRAINFO;
                fprintf(stdout,
                        "Assuming the data is a SIGPROC filterbank file.\n\n");
             } else if (isdigit(extension[0]) &&
@@ -302,17 +302,23 @@ int main(int argc, char **argv)
       exit(-1);
    }
 
-   if (cmd->psrfitsP) {
+   // Use new-style backend reading stuff
+   if (cmd->psrfitsP || cmd->filterbankP) {
        struct spectra_info s;
-       
-       // -1 causes the data to determine if we use weights, scales, & offsets
-       s.apply_weight = s.apply_scale = s.apply_offset = -1;
-       if (read_PSRFITS_files(cmd->argv, cmd->argc, &s)) {
-           print_PSRFITS_info(&s);
-           printf("\n");
-       } else {
-           printf("\n  Error reading PSRFITS file!\n\n");
-       }
+
+       // Eventually we should use this...
+       // identify_psrdatatype(struct spectra_info *s, int output);
+       spectra_info_set_defaults(&s);
+       if (cmd->psrfitsP) s.datatype=PSRFITS;
+       if (cmd->filterbankP) s.datatype=SIGPROCFB;
+       s.filenames = cmd->argv;
+       s.num_files = cmd->argc;
+       s.clip_sigma = 0.0;
+       s.apply_flipband = s.apply_weight = s.apply_scale = s.apply_offset = -1;
+       s.remove_zerodm = 0;
+       read_rawdata_files(&s);
+       SPECTRAINFO_print(0, (char *)(&s));
+       printf("\n");
        exit(0);
    }
 
@@ -324,19 +330,6 @@ int main(int argc, char **argv)
          printf("\n");
       } else {
          printf("\n  Error reading spigot file!\n\n");
-      }
-      exit(0);
-   }
-
-   if (cmd->filterbankP) {
-      sigprocfb fb;
-
-      infile = chkfopen(cmd->argv[0], "rb");
-      if (read_filterbank_header(&fb, infile)) {
-         print_filterbank_header(&fb);
-         printf("\n");
-      } else {
-         printf("\n  Error reading SIGPROC filterbank file!\n\n");
       }
       exit(0);
    }
@@ -540,23 +533,14 @@ int SPIGOTHDR_print(long count, char *obj_ptr)
 {
    char *bogus;
 
-   printf("\n%ld:", count + 1);
+   printf("\n%ld: ", count + 1);
    bogus = (char *) obj_ptr;
    return 0;
 }
 
-int PSRFITSHDR_print(long count, char *obj_ptr)
+int SPECTRAINFO_print(long count, char *obj_ptr)
 {
-   char *bogus;
-   
-   printf("\n%ld:", count + 1);
-   bogus = (char *) obj_ptr;
-   return 0;
-}
-
-int SIGPROCHDR_print(long count, char *obj_ptr)
-{
-   printf("\n%ld:", count + 1);
-   print_filterbank_header((sigprocfb *) obj_ptr);
+   printf("\n%ld: ", count + 1);
+   print_spectra_info((struct spectra_info *)obj_ptr);
    return 0;
 }

@@ -165,7 +165,6 @@ typedef struct BPP_SEARCH_HEADER{
 
 
 /* bpp.c */
-void set_BPP_padvals(float *fpadvals, int good_padvals);
 int compare_findex(const void *ca, const void *cb);
 void calc_BPP_chans(BPP_SEARCH_HEADER *hdr);
 void BPP_hdr_to_inf(BPP_SEARCH_HEADER *hdr, infodata *idata);
@@ -173,25 +172,4 @@ void get_BPP_file_info(FILE *files[], int numfiles, float clipsig,
 		       long long *N, int *ptsperblock, int *numchan, double *dt, 
 		       double *T, infodata *idata, int output);
 void BPP_update_infodata(int numfiles, infodata *idata);
-int skip_to_BPP_rec(FILE *infiles[], int numfiles, int rec);
 void print_BPP_hdr(BPP_SEARCH_HEADER *hdr);
-int read_BPP_rawblock(FILE *infiles[], int numfiles, unsigned char *data, 
-		      int *padding);
-int read_BPP_rawblocks(FILE *infiles[], int numfiles, unsigned char rawdata[], 
-		       int numblocks, int *padding);
-int read_BPP(FILE *infiles[], int numfiles, float *data, int numpts, 
-	     double *dispdelays, int *padding, int *maskchans, 
-	     int *nummasked, mask *obsmask, IFs ifs);
-void convert_BPP_one_IF(unsigned char *rawdata, unsigned char *bytes, IFs ifs);
-void convert_BPP_sum_IFs(unsigned char *rawdata, unsigned char *bytes);
-void convert_BPP_point(unsigned char *rawdata, unsigned char *bytes);
-int prep_BPP_subbands(unsigned char *rawdata, float *data, 
-		      double *dispdelays, int numsubbands, 
-		      int transpose, int *maskchans, int *nummasked, 
-		      mask *obsmask, IFs ifs);
-int read_BPP_subbands(FILE *infiles[], int numfiles, float *data, 
-		      double *dispdelays, int numsubbands, 
-		      int transpose, int *padding, int *maskchans, 
-		      int *nummasked, mask *obsmask, IFs ifs);
-void get_BPP_channel(int channum, float chandat[], 
-		     unsigned char rawdata[], int numblocks, IFs ifs);

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepdata" 1 "23Mar10" "Clig-manuals" "Programmer's Manual"
+.TH "prepdata" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -38,6 +38,8 @@ prepdata \- Prepares a raw data file for pulsar searching or folding (conversion
 [-if ifs]
 [-clip clip]
 [-noclip]
+[-invert]
+[-zerodm]
 [-numout numout]
 [-downsamp downsamp]
 [-nobary]
@@ -94,6 +96,10 @@ Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default,
 Default: `6.0'
 .IP -noclip
 Do not clip the data.  (The default is to _always_ clip!).
+.IP -invert
+For rawdata, flip (or invert) the band.
+.IP -zerodm
+Subtract the mean of all channels from each sample (i.e. remove zero DM).
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br

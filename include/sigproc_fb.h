@@ -1,3 +1,5 @@
+#include "backend_common.h"
+
 typedef struct SIGPROCFB {
   char inpfile[80];      /* Input filename */
   char source_name[80];  /* Source name */
@@ -15,7 +17,7 @@ typedef struct SIGPROCFB {
   int telescope_id;      /* Telescope ID (see telescope_name() */
   int nchans;            /* Number of finterbank channels */
   int nbits;             /* Number of bits in the filterbank samples */
-  int nifs;              /* Number if IFs present */
+  int nifs;              /* Number of IFs present */
   int nbeams;            /* Number of beams in the observing system */
   int ibeam;             /* Beam number used for this data */
   int sumifs;            /* Whether the IFs are summed or not */
@@ -23,34 +25,11 @@ typedef struct SIGPROCFB {
 } sigprocfb;
 
 /* sigproc_fb.c */
-int read_filterbank_header(sigprocfb *fb, FILE *inputfile);
+void get_telescope_name(int telescope_id, struct spectra_info *s);
+void get_backend_name(int machine_id, struct spectra_info *s);
 void write_filterbank_header(sigprocfb *fb, FILE *outfile);
-void print_filterbank_header(sigprocfb *fb);
-void get_filterbank_static(int *ptsperbyte, int *bytesperpt, 
-                           int *bytesperblk, float *clip_sigma);
-void set_filterbank_static(int ptsperbyte, int ptsperblk, 
-                           int bytesperpt, int bytesperblk, 
-                           int numchan, float clip_sigma, double dt);
-void set_filterbank_padvals(float *fpadvals, int good_padvals);
-void get_filterbank_file_info(FILE *files[], int numfiles, float clipsig, 
-			      long long *N, int *ptsperblock, 
-			      int *numchan, double *dt, double *T, int output);
-void sigprocfb_to_inf(sigprocfb *fb, infodata *idata);
-void filterbank_update_infodata(int numfiles, infodata *idata);
-int skip_to_filterbank_rec(FILE *infiles[], int numfiles, int rec);
-int read_filterbank_rawblock(FILE *infiles[], int numfiles, unsigned char *data, 
-			     int *padding);
-int read_filterbank_rawblocks(FILE *infiles[], int numfiles, unsigned char rawdata[], 
-			      int numblocks, int *padding);
-int read_filterbank(FILE *infiles[], int numfiles, float *data, int numpts, 
-		    double *dispdelays, int *padding, int *maskchans, 
-		    int *nummasked, mask *obsmask);
-void get_filterbank_channel(int channum, float chandat[], unsigned char rawdata[], 
-			    int numblocks);
-int prep_filterbank_subbands(unsigned char *rawdata, float *data, double *dispdelays, 
-			     int numsubbands, int transpose, int *maskchans, 
-			     int *nummasked, mask *obsmask);
-int read_filterbank_subbands(FILE *infiles[], int numfiles, float *data, 
-			     double *dispdelays, int numsubbands, int transpose, 
-			     int *padding, int *maskchans, int *nummasked, mask *obsmask);
-void convert_filterbank_block(int *indata, unsigned char *outdata);
+int read_filterbank_header(sigprocfb *fb, FILE *inputfile);
+void read_filterbank_files(struct spectra_info *s);
+long long offset_to_filterbank_spectra(long long specnum, struct spectra_info *s);
+int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding);
+void convert_filterbank_block(float *outdata, unsigned char *indata, int numread, struct spectra_info *s);
