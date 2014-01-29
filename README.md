@@ -1,4 +1,4 @@
-# PRESTO v2
+# PRESTO
 
 http://www.cv.nrao.edu/~sransom/presto/
 
@@ -9,9 +9,9 @@ long observations of globular clusters (although it has since been
 used in several surveys with short integrations and to process a lot
 of X-ray data as well).  It is written primarily in ANSI C, with many
 of the recent routines in Python.  According to Steve Eikenberry,
-PRESTO stands for: *PulsaR Exploration and Search TOolkit*!
+PRESTO stands for: **PulsaR Exploration and Search TOolkit**!
 
-## New in this release:
+## New in version 2:
  * WAPP, BCPM, Spigot, and 1-bit analog filterbank data are deprecated! 
    (see below)
  * Dramatically improved internal handling (giving better dynamic
@@ -22,7 +22,7 @@ PRESTO stands for: *PulsaR Exploration and Search TOolkit*!
  * Many bug fixes and several new scripts (including new orbit fitters)
 
 
-## About PRESTO
+## About PRESTO:
 PRESTO is written with portability, ease-of-use, and memory efficiency
 in mind, it can currently handle raw data from the following pulsar
 machines or formats:
@@ -44,13 +44,13 @@ Notice that the following formats which *used* to be supported are not:
  * Berkeley-Caltech Pulsar Machine (BCPM) at the GBT (may it RIP...)
 
 If you need to process them, you can either checkout the "classic"
-branch of PRESTO, which is not being actively developed.  Or you can
-use `DSPSR` to convert those formats into SIGPROG filterbank format
-(and/or maybe someday soon, PSRFITS search format).  You can grab
-DSPSR [here](http://dspsr.sourceforge.net).  If you *really* need to
-get one of these machines working in PRESTO v2, let me know and we can
-probably make it happen.  It will take a day or two of porting for
-each backend.
+branch of PRESTO (see below), which is not being actively developed.
+Or you can use `DSPSR` to convert those formats into SIGPROG
+filterbank format (and/or maybe someday soon, PSRFITS search format).
+You can grab DSPSR [here](http://dspsr.sourceforge.net).  If you
+*really* need to get one of these machines working in PRESTO v2, let
+me know and we can probably make it happen.  It will take a day or two
+of porting for each backend.
 
 The software is composed of numerous routines designed to handle three
 main areas of pulsar analysis:
@@ -118,6 +118,15 @@ For more detailed installation instructions, see INSTALL.
 If you don't want to mess with git (which means that you will need to
 re-install a tarball whenever there are updates) you can get it from
 the "Download Source" link on the github page.
+
+If you want the "classic" branch, do the following:
+
+> git clone git://github.com/scottransom/presto.git
+> cd presto
+> git remote add classic origin/classic 
+> git checkout -b classic origin/classic
+
+then build as per the (old) INSTALL file.
 
 ### Development:
 If you plan to tweak the code, I highly suggest that you use git and
