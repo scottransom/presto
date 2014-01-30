@@ -48,7 +48,7 @@ Notice that the following formats which *used* to be supported are not:
 
 If you need to process them, you can either checkout the "classic"
 branch of PRESTO (see below), which is not being actively developed.
-Or you can use `DSPSR` to convert those formats into SIGPROG
+Or you can use `DSPSR` to convert those formats into SIGPROC
 filterbank format (and/or maybe someday soon, PSRFITS search format).
 You can grab DSPSR [here](http://dspsr.sourceforge.net).  If you
 *really* need to get one of these machines working in PRESTO v2, let
