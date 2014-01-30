@@ -1,5 +1,5 @@
-             PRESTO
-             ------
+# PRESTO
+--------
 
 http://www.cv.nrao.edu/~sransom/presto/
 
@@ -25,6 +25,9 @@ used in several surveys with short integrations and to process a lot
 of X-ray data as well).  It is written primarily in ANSI C, with many
 of the recent routines in Python.  According to Steve Eikenberry,
 PRESTO stands for: PulsaR Exploration and Search TOolkit!
+
+**To date, PRESTO has discovered more than 300 pulsars, including
+more than 150 recycled pulsars, most of which are in binaries!**
 
 Written with portability, ease-of-use, and memory efficiency in mind,
 it can currently handle raw data from the following pulsar machines or
@@ -81,9 +84,6 @@ Tutorial(!): Note that in the "docs" directory there is a now a
 tutorial which walks you through all the main steps of finding pulsars
 using PRESTO.
 
-To date, PRESTO has discovered nearly two hundred pulsars, including
-more than 120 recycled pulsars, most of which are in binaries!
-
 Getting it: The PRESTO source code is released under the GPL and can
 be browsed or gotten from here in many different ways (including
 zipped or tar'd or via git).  If you are too lazy to read how to get
@@ -122,14 +122,13 @@ if you would cite either my thesis or whichever of the two papers
 listed above is appropriate.  Thanks!
 
 Acknowledgements: Big thanks go to Steve Eikenberry for his help
-developing the algorithms, Dunc Lorimer for the basic code which is
+developing the algorithms, Dunc Lorimer for the basic code which was
 used to process BCPM and WAPP data, David Kaplan for lots of help with
 the GBT SPIGOT code, Jason Hessels for many contributions to the
-Python routines (and along with Maggie Livingstone for the rednoise
-reduction routine), Anne Archibald (for significant help with the
-recent accelsearch improvements), and Paul Demorest, Paul Ray, Ingrid
-Stairs, Fernando Camilo, Cees Bassa, Patrick Lazarus, Mike Keith,
-Slavko Bogdanov, Paul Scholz, and Paulo Freire for many comments and
-suggestions (and even some patches!).
+Python routines, and a bunch of other contributions of various kinds
+from (alphabetical): Anne Archibald, Cees Bassa, Slavko Bogdanov,
+Fernando Camilo, Paul Demorest, Paulo Freire, Mike Keith, Patrick
+Lazarus, Maggie Livingstone, Paul Ray, Paul Scholz, Ingrid Stairs,
+Kevin Stovall, and for many comments, suggestions and patches!
 
 Scott Ransom <sransom@nrao.edu>
