@@ -11,7 +11,10 @@ of X-ray data as well).  It is written primarily in ANSI C, with many
 of the recent routines in Python.  According to Steve Eikenberry,
 PRESTO stands for: **PulsaR Exploration and Search TOolkit**!
 
-## New in version 2:
+** To date, PRESTO has discovered over 300 pulsars, including
+more than 150 recycled pulsars, most of which are in binaries! **
+
+## New in Version 2:
  * WAPP, BCPM, Spigot, and 1-bit analog filterbank data are deprecated! 
    (see below)
  * Dramatically improved internal handling (giving better dynamic
@@ -29,7 +32,7 @@ machines or formats:
 
  * PSRFITS search-format data (as from GUPPI at the GBT, PUPPI and
    the Mock Spectrometers at Arecibo, and much new and archived data
-   from Parkes
+   from Parkes)
  * 1-, 2-, 4-, 8-, and 32-bit (float) filterbank format from SIGPROC
  * A time series composed of single precision (i.e. 4-byte) 
    floating point data
@@ -92,11 +95,8 @@ provide limited support via email or telephone (434-296-0320).
 
 **Tutorial**: Note that in the "docs" directory there is a now a
 tutorial which walks you through all the main steps of finding pulsars
-using PRESTO.
-
-To date, PRESTO has discovered well over two hundred pulsars,
-including more than 120 recycled pulsars, most of which are in
-binaries!
+using PRESTO.  This will need some small modifications given that
+PRESTO can't currently process one of the example files (BCPM!).
 
 ## Getting it: 
 The PRESTO source code is released under the GPL and
@@ -148,14 +148,13 @@ above is appropriate.  Thanks!
 
 ### Acknowledgements:
 Big thanks go to Steve Eikenberry for his help developing the
-algorithms, Dunc Lorimer for the basic code which is used to process
+algorithms, Dunc Lorimer for the basic code which was used to process
 BCPM and WAPP data, David Kaplan for lots of help with the GBT SPIGOT
-code, Jason Hessels for many contributions to the Python routines (and
-along with Maggie Livingstone for the rednoise reduction routine),
-Anne Archibald (for significant help with the recent accelsearch
-improvements), and Paul Demorest, Paul Ray, Paul Scholz, Ingrid
-Stairs, Fernando Camilo, Cees Bassa, Patrick Lazarus, Mike Keith,
-Slavko Bogdanov, Kevin Stovall, and Paulo Freire for many comments and
-suggestions (and even some patches!).
+code, Jason Hessels for many contributions to the Python routines, and
+a bunch of other contributions of various kinds from (alphabetical):
+Anne Archibald, Cees Bassa, Slavko Bogdanov, Fernando Camilo, Paul
+Demorest, Paulo Freire, Mike Keith, Patrick Lazarus, Maggie
+Livingstone, Paul Ray, Paul Scholz, Ingrid Stairs, Kevin Stovall, and
+for many comments, suggestions and patches!
 
 Scott Ransom <sransom@nrao.edu>
