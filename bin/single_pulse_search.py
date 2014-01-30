@@ -295,7 +295,7 @@ def main():
                 orig_N = N
                 orig_dt = dt
                 if useffts:
-                    fftd_kerns = make_fftd_kerns(downfacts, fftlen)
+                    fftd_kerns = make_fftd_kerns(default_downfacts, fftlen)
             if info.breaks:
                 offregions = zip([x[1] for x in info.onoff[:-1]],
                                  [x[0] for x in info.onoff[1:]])
