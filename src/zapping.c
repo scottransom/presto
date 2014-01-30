@@ -74,8 +74,8 @@ void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft)
          chkfileseek(fftfile, ilobin, sizeof(fcomplex), SEEK_SET);
          chkfwrite(data, sizeof(fcomplex), binstozap, fftfile);
          vect_free(data);
-         printf("Set bins %9d through %9d to amplitude of %.3g\n",
-                ilobin, ihibin, avgamp);
+         //printf("Set bins %9d through %9d to amplitude of %.3g\n",
+         //       ilobin, ihibin, avgamp);
       }
    }
 }
