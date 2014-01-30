@@ -11,8 +11,8 @@ of X-ray data as well).  It is written primarily in ANSI C, with many
 of the recent routines in Python.  According to Steve Eikenberry,
 PRESTO stands for: **PulsaR Exploration and Search TOolkit**!
 
-** To date, PRESTO has discovered over 300 pulsars, including
-more than 150 recycled pulsars, most of which are in binaries! **
+**To date, PRESTO has discovered over 300 pulsars, including
+more than 150 recycled pulsars, most of which are in binaries!**
 
 ## New in Version 2:
  * WAPP, BCPM, Spigot, and 1-bit analog filterbank data are deprecated! 
