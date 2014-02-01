@@ -191,13 +191,13 @@ class FilterbankFile(object):
         return self.get_spectra(startbins, stopbins)
 
     def get_spectra(self, start, stop):
+        stop = min(stop, self.nspec)
         pos = self.header_size+start*self.bytes_per_spectrum
         # Compute number of elements to read
         nspec = int(stop) - int(start)
         num_to_read = nspec*self.nchans
+        num_to_read = max(0, num_to_read)
         self.filfile.seek(pos, os.SEEK_SET)
-        if DEBUG:
-            print "Reading %d bytes" % (nspec*self.bytes_per_spectrum)
         spectra = np.fromfile(self.filfile, dtype=self.dtype, 
                               count=num_to_read)
         spectra.shape = nspec, self.nchans 
