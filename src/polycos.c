@@ -33,8 +33,10 @@ Sample code:
 #include <string.h>
 #include "presto.h"
 
-static double f0[100], z4[100], rphase[100], mjdmid[100], mjd1mid[100],
-    coeff[100][15];
+#define MAX_POLYCOS 500
+
+static double f0[MAX_POLYCOS], z4[MAX_POLYCOS], rphase[MAX_POLYCOS], mjdmid[MAX_POLYCOS], mjd1mid[MAX_POLYCOS],
+    coeff[MAX_POLYCOS][15];
 static int isets, nblk, ncoeff, icurr;
 
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
@@ -44,7 +46,7 @@ char *make_polycos(char *parfilenm, infodata * idata)
    FILE *tmpfile;
    int tracklen;
    double T, fmid = 0.0, epoch;
-   char command[100], *psrname, scopechar;
+   char command[256], *psrname, scopechar;
    psrparams psr;
 
    /* Read the parfile */
@@ -198,6 +200,10 @@ int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname)
                exit(1);
             }
             j++;
+	    if (j>=MAX_POLYCOS) {
+	      fprintf(stderr,"Too many polycos in polycos.c (MAX_POLYCO = %d)",MAX_POLYCOS);
+	      exit(32);
+	    }
          }
       }
    }

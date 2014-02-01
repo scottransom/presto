@@ -3,6 +3,7 @@
 *.dylib
 *.pyc
 *~
+.DS_Store
 TAGS
 *egg-info
 lib/fftw_wisdom.txt

@@ -53,13 +53,10 @@ PRESTOLINK = $(OTHERLIBDIR) -L$(PRESTO)/lib -lpresto $(FFTLINK)
 # When modifying the CLIG files, the is the location of the clig binary
 CLIG = clig
 
-# For Pentium IVs, use -march=pentium4
-# For Opterons, use -march=opteron
-# For Intel Core2 chips, use -march=nocona
-# For gcc-4.X, use -mtune=native
 CC = gcc
 FC = gfortran
 #FC = g77
+# Very recent Intel CPUs might see a few percent speedup using -mavx
 CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
 	-D$(FFTTYPE) -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-g -O3 -ffast-math -Wall -W -fPIC

@@ -367,7 +367,7 @@ void read_filterbank_files(struct spectra_info *s)
     s->num_channels = fb.nchans;
     s->samples_per_spectra = s->num_polns * s->num_channels;
     s->bytes_per_spectra = s->bits_per_sample * s->samples_per_spectra / 8;
-    s->spectra_per_subint = 512;  // use this as the blocksize
+    s->spectra_per_subint = 480;  // use this as the blocksize
     s->bytes_per_subint = s->bytes_per_spectra * s->spectra_per_subint;
     s->samples_per_subint = s->spectra_per_subint * s->samples_per_spectra;
     s->min_spect_per_read = 1;  // Can read a single spectra at a time
