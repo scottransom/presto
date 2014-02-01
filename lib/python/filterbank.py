@@ -38,6 +38,9 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
     outfile = open(outfn, 'wb')
     outfile.write(sigproc.addto_hdr("HEADER_START", None))
     for paramname in header.keys():
+        if paramname not in sigproc.header_params:
+            # Only add recognized parameters
+            continue
         if verbose:
             print "Writing header param (%s)" % paramname
         value = header[paramname]
@@ -47,6 +50,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
         spectra.flatten().astype(dtype).tofile(outfile)
     outfile.close()
     return FilterbankFile(outfn, read_only=False)
+
 
 def is_float(nbits):
     """For a given number of bits per sample return
@@ -148,7 +152,7 @@ class FilterbankFile(object):
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
         self.bytes_per_spectrum = self.nchans*self.nbits / 8
-       
+      
         # Check if this file is a folded-filterbank file
         if 'npuls' in self.header and 'period' in self.header and \
                 'nbins' in self.header and 'tsamp' not in self.header:
