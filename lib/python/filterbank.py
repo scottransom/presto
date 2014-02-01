@@ -144,15 +144,16 @@ def read_header(filename, verbose=False):
 class FilterbankFile(object):
     def __init__(self, filfn, read_only=True):
         self.filename = filfn
-        self.read_only = read_only
-        self.set_up = False
+        self.filfile = None
         if not os.path.isfile(filfn):
             raise ValueError("ERROR: File does not exist!\n\t(%s)" % filfn)
         self.header, self.header_size = read_header(self.filename)
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
         self.bytes_per_spectrum = self.nchans*self.nbits / 8
-      
+        data_size = os.path.getsize(self.filename)-self.header_size
+        self.nspec = data_size/self.bytes_per_spectrum
+       
         # Check if this file is a folded-filterbank file
         if 'npuls' in self.header and 'period' in self.header and \
                 'nbins' in self.header and 'tsamp' not in self.header:
@@ -172,43 +173,35 @@ class FilterbankFile(object):
         self.dtype_min = tinfo.min
         self.dtype_max = tinfo.max
 
-        self.needs_sync = True
-        self.sync_spectra()
-
-        if not self.read_only:
-            self.set_up = True
-            self.file_append_mode = open(self.filename, 'ab')
+        if read_only:
+            self.filfile = open(self.filename, 'rb')
+        else:
+            self.filfile = open(self.filename, 'r+b')
 
     def __del__(self):
         self.close()
         
     def close(self):
-        if not self.read_only and self.set_up:
-            self.file_append_mode.close()
-
-    def sync_spectra(self):
-        self.file_size = os.stat(self.filename)[6]
-        self.data_size = self.file_size - self.header_size
-        self.nspec = self.data_size / self.bytes_per_spectrum
-
-        if self.data_size % self.bytes_per_spectrum:
-            warnings.warn("Not an integer number of spectra in file.")
-
-        mode = (self.read_only and 'r') or 'r+'
-        self.spectra = np.memmap(self.filename, dtype=self.dtype, \
-                                    mode=mode, offset=self.header_size, \
-                                    shape=(self.nspec, self.nchans))
-        self.needs_sync = False
+        if self.filfile is not None:
+            self.filfile.close()
 
     def get_timeslice(self, start, stop):
-        startbins = int(np.round(start/self.tsamp))
-        stopbins = int(np.round(stop/self.tsamp))
+        startspec = int(np.round(start/self.tsamp))
+        stopspec = int(np.round(stop/self.tsamp))
         return self.get_spectra(startbins, stopbins)
 
     def get_spectra(self, start, stop):
-        if self.needs_sync:
-            warnings.warn("Spectra haven't been sync'ed recently.")
-        return self.spectra[start:stop]
+        pos = self.header_size+start*self.bytes_per_spectrum
+        # Compute number of elements to read
+        nspec = int(stop) - int(start)
+        num_to_read = nspec*self.nchans
+        self.filfile.seek(pos, os.SEEK_SET)
+        if DEBUG:
+            print "Reading %d bytes" % (nspec*self.bytes_per_spectrum)
+        spectra = np.fromfile(self.filfile, dtype=self.dtype, 
+                              count=num_to_read)
+        spectra.shape = nspec, self.nchans 
+        return spectra
 
     def append_spectra(self, spectra):
         """Append spectra to the file if is not read-only.
@@ -221,7 +214,7 @@ class FilterbankFile(object):
             Outputs:
                 None
         """
-        if self.read_only:
+        if self.filfile.mode.lower() in ('r', 'rb'):
             raise ValueError("FilterbankFile object for '%s' is read-only." % \
                         self.filename)
         nspec, nchans = spectra.shape
@@ -232,15 +225,21 @@ class FilterbankFile(object):
                         (self.nchans, nchans))
         data = spectra.flatten()
         np.clip(data, self.dtype_min, self.dtype_max, out=data)
-        self.file_append_mode.write(data.astype(self.dtype))
-        self.file_append_mode.flush()
-        os.fsync(self.file_append_mode)
-        self.needs_sync = True
+        # Move to end of file
+        self.filfile.seek(0, os.SEEK_END)
+        self.filfile.write(data.astype(self.dtype))
+        self.nspec += nspec
+        #self.filfile.flush()
+        #os.fsync(self.filfile)
 
     def __getattr__(self, name):
-        if DEBUG:
-            print "Fetching header param (%s)" % name
-        return self.header[name]
+        if name in self.header:
+            if DEBUG:
+                print "Fetching header param (%s)" % name
+            val = self.header[name]
+        else:
+            raise ValueError("No FilterbankFile attribute called '%s'" % name)
+        return val
 
     def print_header(self):
         """Print header parameters and values.
