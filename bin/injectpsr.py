@@ -749,7 +749,8 @@ def snr_from_smean(fil, prof, smean, gain, tsys):
     return snr
 
 
-def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE):
+def inject(infile, outfn, prof, period, dm, nbitsout=None, 
+           block_size=BLOCKSIZE, pulsar_only=False):
     if isinstance(infile, filterbank.FilterbankFile):
         fil = infile
     else:
@@ -798,6 +799,10 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     spectra = fil.get_spectra(0, block_size)
     numread = spectra.shape[0]
     while numread:
+        if pulsar_only:
+            # Do not write out data from input file
+            # zero it out
+            spectra *= 0
         hibin = lobin+numread
         times = (np.arange(lobin, hibin)+0.5)*fil.dt
         phases = get_phases(times)
@@ -988,7 +993,8 @@ def main():
         sys.exit()
 
     inject(fil, outfn, prof, args.period, args.dm, \
-            nbitsout=args.output_nbits, block_size=args.block_size)
+            nbitsout=args.output_nbits, block_size=args.block_size, \
+            pulsar_only=args.pulsar_only)
 
 
 def parse_model_file(modelfn):
@@ -1105,6 +1111,12 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--outname", dest='outname', \
                     default="injected.fil", \
                     help="The name of the output file.")
+    parser.add_argument("--write-pulsar-only", dest='pulsar_only', \
+                    action='store_true', \
+                    help="Only write the pulsar signal to the output file. "
+                         "That is, do not include the data from the input "
+                         "file. This is useful for debugging. (Default: "
+                         "write data from input file _and_ pulsar signal.)")
     parser.add_argument("infile", \
                     help="File that will receive synthetic pulses.")
     args = parser.parse_args()
