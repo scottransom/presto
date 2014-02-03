@@ -251,7 +251,6 @@ class Candlist(object):
 
         fig = plt.figure(figsize=(10,8)) 
         ax = plt.axes((0.08, 0.18, 0.87, 0.80)) 
-        plt.set_cmap("Spectral") 
         
         # Get all candidates and sort by sigma
         allcands = self.get_all_cands()
@@ -273,6 +272,7 @@ class Candlist(object):
         scatt = plt.scatter(xdata, dms, s=sigma_to_size(sigmas), \
                                 c=Num.log2(numharms), \
                                 marker='o', alpha=0.7, zorder=-1) 
+        plt.set_cmap("Spectral") 
   
         # Add colorbar 
         fmtr = matplotlib.ticker.FuncFormatter(lambda x, pos: "%d" % 2**x)
