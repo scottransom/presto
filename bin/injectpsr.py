@@ -29,6 +29,12 @@ BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
 NUMPOINTS = 512 # Number of points to use for spline profiles when applying DM
 NINTEG_PER_BIN = 1 # Number of points to average integrate per time bin
 
+def integrate_phase_bin(prof_func, phs, dphs, nseg=1):
+    intervals = np.linspace(0, dphs, nseg+1, endpoint=True)
+    edges = intervals+np.asarray(phs)[...,np.newaxis]
+    return np.trapz(prof_func(edges), edges, axis=-1)
+
+
 class Profile(object):
     """A class to represent a generic pulse profile.
     """
