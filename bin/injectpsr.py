@@ -27,6 +27,7 @@ NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
 BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
 NUMPOINTS = 512 # Number of points to use for spline profiles when applying DM
+NINTEG_PER_BIN = 1 # Number of points to average integrate per time bin
 
 class Profile(object):
     """A class to represent a generic pulse profile.
@@ -810,9 +811,17 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
             # zero it out
             spectra *= 0
         hibin = lobin+numread
-        times = (np.arange(lobin, hibin)+0.5)*fil.dt
+        # Sample at middle of time bin
+        times = (np.arange(lobin, hibin, 1.0/NINTEG_PER_BIN)+0.5/NINTEG_PER_BIN)*fil.dt
+        #times = (np.arange(lobin, hibin)+0.5)*fil.dt
         phases = get_phases(times)
-        toinject = prof(phases)
+        profvals = prof(phases)
+        shape = list(profvals.shape)
+        shape[1:1] = [NINTEG_PER_BIN]
+        shape[0] /= NINTEG_PER_BIN
+        profvals.shape = shape
+        toinject = profvals.mean(axis=1)
+        #toinject = profvals
         if np.ndim(toinject) > 1:
             injected = spectra+toinject
         else:
