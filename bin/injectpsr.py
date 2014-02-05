@@ -991,11 +991,11 @@ def main():
             save_profile(prof, args.outprof)
 
     outfn = args.outname % fil.header 
+    print "Showing plot of profile to be injected..."
+    plt.clf()
+    prof.plot()
+    plt.savefig(outfn+".ps")
     if args.dryrun:
-        print "Showing plot of profile to be injected..."
-        plt.clf()
-        prof.plot()
-        plt.savefig(outfn+".ps")
         sys.exit()
 
     inject(fil, outfn, prof, args.period, args.dm, \
