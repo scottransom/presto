@@ -489,6 +489,12 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     # A list of profiles, one for each channel
     profiles = []
 
+    if dm <= 0:
+        warnings.warn("DM will not be applied because it is 0 (or smaller?!)")
+        do_delay = False
+        do_smear = False
+        do_scatter = False
+
     if do_delay:
         phasedelays = get_phasedelays(dm, freqs, period)
     else:
