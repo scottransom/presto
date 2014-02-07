@@ -509,7 +509,7 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
         phasedelays = np.zeros(nfreqs)
 
     # Prepare for smear campaign
-    smeartimes = psr_utils.dm_smear(dm, chan_width, freqs) # In seconds
+    smeartimes = psr_utils.dm_smear(dm, abs(chan_width), freqs) # In seconds
     smearphases = smeartimes/period
     
     # Prepare to scatter
