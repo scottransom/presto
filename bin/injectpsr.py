@@ -22,6 +22,7 @@ import scipy.integrate
 import filterbank
 import psr_utils
 
+DEBUG = False # Print debugging messages
 
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
@@ -515,6 +516,12 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     scattertimes = psr_utils.pulse_broadening(dm, freqs)*1e-3 # In seconds
     scatterphases = scattertimes/period
 
+    if DEBUG:
+        for ichan, (freq, smear, scatt, delay) in \
+                enumerate(zip(freqs, smearphases, scatterphases, phasedelays)):
+            print "    Chan #%d - Freq: %.3f MHz -- " \
+                  "Smearing, scattering, delay (all in phase): " \
+                  "%g, %g, %g" % (ichan, freq, smear, scatt, delay)
     oldprogress = 0
     sys.stdout.write(" %3.0f %%\r" % oldprogress)
     sys.stdout.flush()
