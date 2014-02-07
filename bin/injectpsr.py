@@ -22,11 +22,19 @@ import scipy.integrate
 import filterbank
 import psr_utils
 
+DEBUG = False # Print debugging messages
 
 NUMSECS = 1.0 # Number of seconds of data to use to determine global scale
               # when repacking floating-point data into integers
 BLOCKSIZE = 1e4 # Number of spectra to manipulate at once
 NUMPOINTS = 512 # Number of points to use for spline profiles when applying DM
+NINTEG_PER_BIN = 1 # Number of points to average integrate per time bin
+
+def integrate_phase_bin(prof_func, phs, dphs, nseg=1):
+    intervals = np.linspace(0, dphs, nseg+1, endpoint=True)
+    edges = intervals+np.asarray(phs)[...,np.newaxis]
+    return np.trapz(prof_func(edges), edges, axis=-1)
+
 
 class Profile(object):
     """A class to represent a generic pulse profile.
@@ -409,31 +417,38 @@ class DispersedProfile(VectorProfile):
         self.period = period
         self.intrinsic = intrinsic
 
-    def plot(self, nbin=1024, scale=1):
+    def plot(self, nbin=1024, scale=1, dedisp=False):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
         data = self(phs).transpose()
+        delays = get_phasedelays(self.dm, self.freqs, self.period)
+        delayedphs = (phs+delays[:,np.newaxis]) % 1
+        dedispdata = self(delayedphs).transpose() 
+
         imax = plt.axes((0.1, 0.1, 0.6, 0.6))
-         
-        plt.imshow(data, interpolation='nearest', \
-                    extent=(0, 1, 0, self.nprofs), aspect='auto')
+ 
+        if dedisp:
+            plt.imshow(dedispdata, interpolation='nearest', \
+                       extent=(0, 1, 0, self.nprofs), aspect='auto')
+        else:
+            plt.imshow(data, interpolation='nearest', \
+                       extent=(0, 1, 0, self.nprofs), aspect='auto')
         plt.set_cmap('gist_yarg')
         plt.xlabel("Phase")
         plt.ylabel("Channel number")
-        
+ 
         plt.axes((0.7, 0.1, 0.25, 0.6), sharey=imax)
         plt.plot(np.sum(data, axis=1)[::-1], np.arange(self.nprofs), 'k-')
-        
-        delays = get_phasedelays(self.dm, self.freqs, self.period)
-        delayedphs = (phs+delays[:,np.newaxis]) % 1
-        dedispdata = self(delayedphs).transpose()       
+ 
         plt.axes((0.1, 0.7, 0.6, 0.25), sharex=imax)
-        plt.plot(phs, np.sum(dedispdata, axis=0), 'k-', label='Dedispersed')
+        plt.plot(phs, np.sum(dedispdata, axis=0), ls='-', 
+                 c='k', lw=1, label='Smeared and scattered', zorder=2)
         if self.intrinsic is not None:
-            plt.plot(phs, self.intrinsic(phs)*np.ma.masked_invalid(self.scales).sum(), 'r--', label='Intrinsic')
-            plt.legend(loc='best')
+            plt.plot(phs, self.intrinsic(phs)*np.ma.masked_invalid(self.scales).sum(), 
+                     ls='-', c='#bbbbbb', lw=3, label='Input', zorder=1)
+            plt.legend(loc='best', prop=dict(size='small'))
         plt.figtext(0.05, 0.05, "Period = %.3f ms" % (self.period*1000), size='xx-small')
         plt.figtext(0.05, 0.035, r"DM = %.3f cm$\mathrm{^{-3}}$pc" % self.dm, size='xx-small')
-        
+
         # Re-set axes for image
         imax.set_xlim(0, 1)
         imax.set_ylim(0, self.nprofs)
@@ -489,19 +504,31 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     # A list of profiles, one for each channel
     profiles = []
 
+    if dm <= 0:
+        warnings.warn("DM will not be applied because it is 0 (or smaller?!)")
+        do_delay = False
+        do_smear = False
+        do_scatter = False
+
     if do_delay:
         phasedelays = get_phasedelays(dm, freqs, period)
     else:
         phasedelays = np.zeros(nfreqs)
 
     # Prepare for smear campaign
-    smeartimes = psr_utils.dm_smear(dm, chan_width, freqs) # In seconds
+    smeartimes = psr_utils.dm_smear(dm, abs(chan_width), freqs) # In seconds
     smearphases = smeartimes/period
     
     # Prepare to scatter
     scattertimes = psr_utils.pulse_broadening(dm, freqs)*1e-3 # In seconds
     scatterphases = scattertimes/period
 
+    if DEBUG:
+        for ichan, (freq, smear, scatt, delay) in \
+                enumerate(zip(freqs, smearphases, scatterphases, phasedelays)):
+            print "    Chan #%d - Freq: %.3f MHz -- " \
+                  "Smearing, scattering, delay (all in phase): " \
+                  "%g, %g, %g" % (ichan, freq, smear, scatt, delay)
     oldprogress = 0
     sys.stdout.write(" %3.0f %%\r" % oldprogress)
     sys.stdout.flush()
@@ -749,7 +776,8 @@ def snr_from_smean(fil, prof, smean, gain, tsys):
     return snr
 
 
-def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE):
+def inject(infile, outfn, prof, period, dm, nbitsout=None, 
+           block_size=BLOCKSIZE, pulsar_only=False):
     if isinstance(infile, filterbank.FilterbankFile):
         fil = infile
     else:
@@ -798,10 +826,22 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None, block_size=BLOCKSIZE)
     spectra = fil.get_spectra(0, block_size)
     numread = spectra.shape[0]
     while numread:
+        if pulsar_only:
+            # Do not write out data from input file
+            # zero it out
+            spectra *= 0
         hibin = lobin+numread
-        times = (np.arange(lobin, hibin)+0.5)*fil.dt
+        # Sample at middle of time bin
+        times = (np.arange(lobin, hibin, 1.0/NINTEG_PER_BIN)+0.5/NINTEG_PER_BIN)*fil.dt
+        #times = (np.arange(lobin, hibin)+0.5)*fil.dt
         phases = get_phases(times)
-        toinject = prof(phases)
+        profvals = prof(phases)
+        shape = list(profvals.shape)
+        shape[1:1] = [NINTEG_PER_BIN]
+        shape[0] /= NINTEG_PER_BIN
+        profvals.shape = shape
+        toinject = profvals.mean(axis=1)
+        #toinject = profvals
         if np.ndim(toinject) > 1:
             injected = spectra+toinject
         else:
@@ -953,7 +993,6 @@ SCALE_METHODS = {'scale': get_scaling, \
 
 
 def main():
-    plt.figure(figsize=(8,10))
     fn = args.infile
     fil = filterbank.FilterbankFile(fn, read_only=True)
     if args.inprof is not None:
@@ -980,15 +1019,18 @@ def main():
             save_profile(prof, args.outprof)
 
     outfn = args.outname % fil.header 
+    print "Showing plot of profile to be injected..."
+    plt.figure()
+    plt.clf()
+    prof.plot(dedisp=True)
+    plt.xlim(0.4,0.8)
+    plt.savefig(outfn+".ps")
     if args.dryrun:
-        print "Showing plot of profile to be injected..."
-        plt.clf()
-        prof.plot()
-        plt.savefig(outfn+".ps")
         sys.exit()
 
     inject(fil, outfn, prof, args.period, args.dm, \
-            nbitsout=args.output_nbits, block_size=args.block_size)
+            nbitsout=args.output_nbits, block_size=args.block_size, \
+            pulsar_only=args.pulsar_only)
 
 
 def parse_model_file(modelfn):
@@ -1105,6 +1147,12 @@ if __name__ == '__main__':
     parser.add_argument("-o", "--outname", dest='outname', \
                     default="injected.fil", \
                     help="The name of the output file.")
+    parser.add_argument("--write-pulsar-only", dest='pulsar_only', \
+                    action='store_true', \
+                    help="Only write the pulsar signal to the output file. "
+                         "That is, do not include the data from the input "
+                         "file. This is useful for debugging. (Default: "
+                         "write data from input file _and_ pulsar signal.)")
     parser.add_argument("infile", \
                     help="File that will receive synthetic pulses.")
     args = parser.parse_args()
