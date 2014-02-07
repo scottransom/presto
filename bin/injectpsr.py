@@ -417,31 +417,38 @@ class DispersedProfile(VectorProfile):
         self.period = period
         self.intrinsic = intrinsic
 
-    def plot(self, nbin=1024, scale=1):
+    def plot(self, nbin=1024, scale=1, dedisp=False):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
         data = self(phs).transpose()
+        delays = get_phasedelays(self.dm, self.freqs, self.period)
+        delayedphs = (phs+delays[:,np.newaxis]) % 1
+        dedispdata = self(delayedphs).transpose() 
+
         imax = plt.axes((0.1, 0.1, 0.6, 0.6))
-         
-        plt.imshow(data, interpolation='nearest', \
-                    extent=(0, 1, 0, self.nprofs), aspect='auto')
+ 
+        if dedisp:
+            plt.imshow(dedispdata, interpolation='nearest', \
+                       extent=(0, 1, 0, self.nprofs), aspect='auto')
+        else:
+            plt.imshow(data, interpolation='nearest', \
+                       extent=(0, 1, 0, self.nprofs), aspect='auto')
         plt.set_cmap('gist_yarg')
         plt.xlabel("Phase")
         plt.ylabel("Channel number")
-        
+ 
         plt.axes((0.7, 0.1, 0.25, 0.6), sharey=imax)
         plt.plot(np.sum(data, axis=1)[::-1], np.arange(self.nprofs), 'k-')
-        
-        delays = get_phasedelays(self.dm, self.freqs, self.period)
-        delayedphs = (phs+delays[:,np.newaxis]) % 1
-        dedispdata = self(delayedphs).transpose()       
+ 
         plt.axes((0.1, 0.7, 0.6, 0.25), sharex=imax)
-        plt.plot(phs, np.sum(dedispdata, axis=0), 'k-', label='Dedispersed')
+        plt.plot(phs, np.sum(dedispdata, axis=0), ls='-', 
+                 c='k', lw=1, label='Smeared and scattered', zorder=2)
         if self.intrinsic is not None:
-            plt.plot(phs, self.intrinsic(phs)*np.ma.masked_invalid(self.scales).sum(), 'r--', label='Intrinsic')
-            plt.legend(loc='best')
+            plt.plot(phs, self.intrinsic(phs)*np.ma.masked_invalid(self.scales).sum(), 
+                     ls='-', c='#bbbbbb', lw=3, label='Input', zorder=1)
+            plt.legend(loc='best', prop=dict(size='small'))
         plt.figtext(0.05, 0.05, "Period = %.3f ms" % (self.period*1000), size='xx-small')
         plt.figtext(0.05, 0.035, r"DM = %.3f cm$\mathrm{^{-3}}$pc" % self.dm, size='xx-small')
-        
+
         # Re-set axes for image
         imax.set_xlim(0, 1)
         imax.set_ylim(0, self.nprofs)
@@ -986,7 +993,6 @@ SCALE_METHODS = {'scale': get_scaling, \
 
 
 def main():
-    plt.figure(figsize=(8,10))
     fn = args.infile
     fil = filterbank.FilterbankFile(fn, read_only=True)
     if args.inprof is not None:
@@ -1014,8 +1020,10 @@ def main():
 
     outfn = args.outname % fil.header 
     print "Showing plot of profile to be injected..."
+    plt.figure()
     plt.clf()
-    prof.plot()
+    prof.plot(dedisp=True)
+    plt.xlim(0.4,0.8)
     plt.savefig(outfn+".ps")
     if args.dryrun:
         sys.exit()
