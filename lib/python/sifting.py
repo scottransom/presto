@@ -320,11 +320,11 @@ class Candlist(object):
         ax = plt.axes((0.08, 0.18, 0.87, 0.80)) 
         
         # Plot bad candidates
-        candlists = [self.badcands_knownbirds, self.badcands_longperiod, \
-                     self.badcands_shortperiod, self.badcands_threshold, \
-                     self.badcands_harmpowcutoff, self.badcands_rogueharmpow, \
-                     self.harmonic_cands, self.dmproblem_cands, self.cands, \
-                     self.duplicate_cands]
+        candlists = [self.badlists['knownbirds'], self.badlists['longperiod'], \
+                     self.badlists['shortperiod'], self.badlists['threshold'], \
+                     self.badlists['harmpowcutoff'], self.badlists['rogueharmpow'], \
+                     self.badlists['harmonic'], self.badlists['dmproblem'], \
+                     self.cands, self.duplicates]
         labels = ['Known birdires', 'Long period', 'Short period', \
                     'Threshold', 'Harm power cutoff', 'Rogue harm power', \
                     'Harmonic cand', 'DM problem', 'Good cands', 'Hits']
@@ -495,7 +495,7 @@ class Candlist(object):
         return self.get_all_goodcands() + self.get_all_badcands()
 
     def get_all_goodcands(self):
-        return self.cands + self.duplicate_cands
+        return self.cands + self.duplicates
 
     def get_all_badcands(self):
         cands = []
@@ -505,7 +505,7 @@ class Candlist(object):
 
     def reject_longperiod(self, long_period=None):
         """Find and remove very long period candidates.
-            Long period candidates are moved to the 'badcands_longperiod' list.
+            Long period candidates are moved to the 'longperiod' bad-list.
 
             Inputs:
                 long_period: The longest allowed period for a 'good' cand.
@@ -525,7 +525,7 @@ class Candlist(object):
     
     def reject_shortperiod(self, short_period=None):
         """Find and remove very short period candidates.
-            Short period candidates are moved to the 'badcands_shortperiod' list.
+            Short period candidates are moved to the 'shortperiod' bad-list.
 
             Inputs:
                 short_period: The shortest allowed period for a 'good' cand.
@@ -952,23 +952,23 @@ class Candlist(object):
         summaryfile.write("   Candlist contains %d 'good' candidates\n" % \
                             len(self.cands))
         summaryfile.write("      # Known RFI rejects:           %d\n" % \
-              len(self.badcands_knownbirds))
+              len(self.badlists['knownbirds']))
         summaryfile.write("      # Short period rejects:        %d\n" % \
-              len(self.badcands_shortperiod))
+              len(self.badlists['shortperiod']))
         summaryfile.write("      # Long period rejects:         %d\n" % \
-              len(self.badcands_longperiod))
+              len(self.badlists['longperiod']))
         summaryfile.write("      # Missed threshold:            %d\n" % \
-              len(self.badcands_threshold))
+              len(self.badlists['threshold']))
         summaryfile.write("      # No good harmonics:           %d\n" % \
-              len(self.badcands_harmpowcutoff))
+              len(self.badlists['harmpowcutoff']))
         summaryfile.write("      # One bad harmonic:            %d\n" % \
-              len(self.badcands_rogueharmpow))
+              len(self.badlists['rogueharmpow']))
         summaryfile.write("      # Duplicate candidates:        %d\n" % \
-              len(self.duplicate_cands))
+              len(self.duplicates))
         summaryfile.write("      # Harmonic candidates:         %d\n" % \
-              len(self.harmonic_cands))
+              len(self.badlists['harmonic']))
         summaryfile.write("      # Candidates with DM problems: %d\n" % \
-              len(self.dmproblem_cands))
+              len(self.badlists['dmproblem']))
         if summaryfilenm is not None:
             summaryfile.close()
   
