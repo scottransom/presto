@@ -777,11 +777,13 @@ def snr_from_smean(fil, prof, smean, gain, tsys):
 
 
 def inject(infile, outfn, prof, period, dm, nbitsout=None, 
-           block_size=BLOCKSIZE, pulsar_only=False):
+           block_size=BLOCKSIZE, pulsar_only=False, inplace=False):
     if isinstance(infile, filterbank.FilterbankFile):
         fil = infile
+    elif inplace:
+        fil = filterbank.FilterbankFile(infile, 'readwrite')
     else:
-        fil = filterbank.FilterbankFile(infile, read_only=True)
+        fil = filterbank.FilterbankFile(infile, 'read')
     print "Injecting pulsar signal into: %s" % fil.filename
     if False:
         delays = psr_utils.delay_from_DM(dm, fil.frequencies)
@@ -793,7 +795,14 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
     # Create the output filterbank file
     if nbitsout is None:
         nbitsout = fil.nbits
-    outfil = filterbank.create_filterbank_file(outfn, fil.header, nbits=nbitsout)
+    if inplace:
+        warnings.warn("Injecting pulsar signal *in-place*")
+        outfil = fil
+    else:
+        # Start an output file
+        print "Creating out file: %s" % outfn
+        outfil = filterbank.create_filterbank_file(outfn, fil.header, \
+                                            nbits=nbitsout, mode='append')
 
     if outfil.nbits == 8:
         raise NotImplementedError("This code is out of date. 'delays' is not " \
@@ -815,8 +824,6 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
         minimum = 0
         global_scale = 1
 
-    # Start an output file
-    print "Creating out file: %s" % outfn
     sys.stdout.write(" %3.0f %%\r" % 0)
     sys.stdout.flush()
     oldprogress = -1
@@ -847,7 +854,10 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
         else:
             injected = spectra+toinject[:,np.newaxis]
         scaled = (injected-minimum)*global_scale
-        outfil.append_spectra(scaled)
+        if inplace:
+            outfil.write_spectra(scaled, lobin)
+        else:
+            outfil.append_spectra(scaled)
         
         # Print progress to screen
         progress = int(100.0*hibin/fil.nspec)
@@ -994,7 +1004,10 @@ SCALE_METHODS = {'scale': get_scaling, \
 
 def main():
     fn = args.infile
-    fil = filterbank.FilterbankFile(fn, read_only=True)
+    if args.inplace:
+        fil = filterbank.FilterbankFile(fn, mode='readwrite')
+    else:
+        fil = filterbank.FilterbankFile(fn, mode='read')
     if args.inprof is not None:
         warnings.warn("Saved profiles already may be tuned to a particular " \
                         "DM, period and filterbank file (freq, nchans, " \
@@ -1030,7 +1043,7 @@ def main():
 
     inject(fil, outfn, prof, args.period, args.dm, \
             nbitsout=args.output_nbits, block_size=args.block_size, \
-            pulsar_only=args.pulsar_only)
+            pulsar_only=args.pulsar_only, inplace=args.inplace)
 
 
 def parse_model_file(modelfn):
@@ -1153,6 +1166,11 @@ if __name__ == '__main__':
                          "That is, do not include the data from the input "
                          "file. This is useful for debugging. (Default: "
                          "write data from input file _and_ pulsar signal.)")
+    parser.add_argument("--in-place", dest='inplace', \
+                    action='store_true', \
+                    help="Inject the pulsar signal in-place. " \
+                         "THIS WILL OVERWRITE THE INPUT DATAFILE!" \
+                         "(Default: Do _not_ inject in-place)")
     parser.add_argument("infile", \
                     help="File that will receive synthetic pulses.")
     args = parser.parse_args()
