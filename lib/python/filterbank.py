@@ -15,7 +15,8 @@ import sigproc
 
 DEBUG = False
 
-def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
+def create_filterbank_file(outfn, header, spectra=None, nbits=8, \
+                           verbose=False, mode='append'):
     """Write filterbank header and spectra to file.
 
         Input:
@@ -27,6 +28,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
                 This value always overrides the value in the header dictionary.
                 (Default: 8 - i.e. each sample is an 8-bit integer)
             verbose: If True, be verbose (Default: be quiet)
+            mode: Mode for writing (can be 'append' or 'write')
 
         Output:
             fbfile: The resulting FilterbankFile object opened
@@ -46,7 +48,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, verbose=False):
     if spectra is not None:
         spectra.flatten().astype(dtype).tofile(outfile)
     outfile.close()
-    return FilterbankFile(outfn, read_only=False)
+    return FilterbankFile(outfn, mode=mode)
 
 def is_float(nbits):
     """For a given number of bits per sample return
@@ -138,7 +140,7 @@ def read_header(filename, verbose=False):
 
 
 class FilterbankFile(object):
-    def __init__(self, filfn, read_only=True):
+    def __init__(self, filfn, mode='readonly'):
         self.filename = filfn
         self.filfile = None
         if not os.path.isfile(filfn):
@@ -169,14 +171,15 @@ class FilterbankFile(object):
         self.dtype_min = tinfo.min
         self.dtype_max = tinfo.max
 
-        if read_only:
+        if mode.lower() in ('read', 'readonly'):
             self.filfile = open(self.filename, 'rb')
-        else:
+        elif mode.lower() in ('write', 'readwrite'):
             self.filfile = open(self.filename, 'r+b')
+        elif mode.lower() == 'append':
+            self.filfile = open(self.filename, 'a+b')
+        else:
+            raise ValueError("Unrecognized mode (%s)!" % mode)
 
-    def __del__(self):
-        self.close()
-        
     def close(self):
         if self.filfile is not None:
             self.filfile.close()
@@ -227,6 +230,41 @@ class FilterbankFile(object):
         self.nspec += nspec
         #self.filfile.flush()
         #os.fsync(self.filfile)
+
+    def write_spectra(self, spectra, ispec):
+        """Write spectra to the file if is writable.
+            
+            Input:
+                spectra: The spectra to append. The new spectra
+                    must have the correct number of channels (ie
+                    dimension of axis=1.
+                ispec: The index of the spectrum of where to start writing.
+
+            Outputs:
+                None
+        """
+        if 'r+' not in self.filfile.mode.lower():
+            raise ValueError("FilterbankFile object for '%s' is not writable." % \
+                        self.filename)
+        nspec, nchans = spectra.shape
+        if nchans != self.nchans:
+            raise ValueError("Cannot write spectra. Incorrect shape. " \
+                        "Number of channels in file: %d; Number of " \
+                        "channels in spectra to write: %d" % \
+                        (self.nchans, nchans))
+        if ispec > self.nspec:
+            raise ValueError("Cannot write past end of file! " \
+                             "Present number of spectra: %d; " \
+                             "Requested index of write: %d" % \
+                             (self.nspec, ispec))
+        data = spectra.flatten()
+        np.clip(data, self.dtype_min, self.dtype_max, out=data)
+        # Move to requested position
+        pos = self.header_size + ispec*self.bytes_per_spectrum
+        self.filfile.seek(pos, os.SEEK_SET)
+        self.filfile.write(data.astype(self.dtype))
+        if nspec+ispec > self.nspec:
+            self.nspec = nspec+ispec
 
     def __getattr__(self, name):
         if name in self.header:
