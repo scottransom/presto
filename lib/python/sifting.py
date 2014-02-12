@@ -488,7 +488,7 @@ class Candlist(object):
     def mark_as_duplicate(self, icand):
         cand = self.cands.pop(icand)
         if self.trackdupes:
-            self.duplicates.append(self.cands.pop(icand))
+            self.duplicates.append(cand)
 
     def get_all_cands(self):
         cands = self.get_all_goodcands()
