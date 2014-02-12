@@ -488,7 +488,7 @@ class Candlist(object):
     def mark_as_duplicate(self, icand):
         cand = self.cands.pop(icand)
         if self.trackdupes:
-            self.duplicates.append(self.cands.pop(icand))
+            self.duplicates.append(cand)
 
     def get_all_cands(self):
         cands = self.get_all_goodcands()
@@ -1064,7 +1064,7 @@ class Candlist(object):
             candfile.close()
 
 
-def candlist_from_candfile(filename):
+def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
     candfile = open(filename, 'r')
     # First identify the length of the observation searched
     for line in candfile:
@@ -1155,7 +1155,7 @@ def candlist_from_candfile(filename):
                 cand.ipow_det = opt_ipow
                 current_goodcandnum = 0
     candfile.close()
-    return Candlist(cands)
+    return Candlist(cands, trackbad=trackbad, trackdupes=trackdupes)
 
 
 def read_candidates(filenms, prelim_reject=True, track=False):
@@ -1175,7 +1175,7 @@ def read_candidates(filenms, prelim_reject=True, track=False):
     if filenms:
         print "\nReading candidates from %d files...." % len(filenms)
         for ii, filenm in enumerate(filenms):
-            curr_candlist = candlist_from_candfile(filenm)
+            curr_candlist = candlist_from_candfile(filenm, trackbad=track, trackdupes=track)
             if prelim_reject:
                 curr_candlist.default_rejection()
             candlist.extend(curr_candlist)
