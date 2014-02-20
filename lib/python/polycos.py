@@ -1,5 +1,59 @@
-import numpy as Num
+import os
 import sys
+import subprocess
+import types
+import parfile
+
+import numpy as Num
+
+# Constants
+NUMCOEFFS_DEFAULT = 12
+SPAN_DEFAULT = 60 # span of each poylco in minutes
+
+# Telescope name to TEMPO observatory code conversion
+telescope_to_id = {"GBT": '1', \
+                   "Arecibo":' 3', \
+                   "VLA": '6', \
+                   "Parkes": '7', \
+                   "Jodrell": '8', \
+                   "GB43m": 'a', \
+                   "GB 140FT": 'a', \
+                   "Nancay": 'f', \
+                   "Effelsberg": 'g', \
+                   "WSRT": 'i', \
+                   "GMRT": 'r', \
+                   "Geocenter": '0', \
+                   "Barycenter": '@'}
+
+# TEMPO observatory code to Telescope name conversion
+id_to_telescope = {'1': "GBT", \
+                   '3': "Arecibo", \
+                   '6': "VLA", \
+                   '7': "Parkes", \
+                   '8': "Jodrell", \
+                   'a': "GB43m", \
+                   'a': "GB 140FT", \
+                   'f': "Nancay", \
+                   'g': "Effelsberg", \
+                   'i': "WSRT", \
+                   'r': "GMRT", \
+                   '0': "Geocenter", \
+                   '@': "Barycenter"}
+
+# Telescope name to track length (max hour angle) conversion
+telescope_to_maxha = {"GBT": 12, \
+                   "Arecibo": 3, \
+                   "VLA": 6, \
+                   "Parkes": 12, \
+                   "Jodrell": 12, \
+                   "GB43m": 12, \
+                   "GB 140FT": 12, \
+                   "Nancay": 4, \
+                   "Effelsberg": 12, \
+                   "WSRT": 12, \
+                   "GMRT": 12, \
+                   "Geocenter": 12, \
+                   "Barycenter": 12}
 
 class polyco:
     def __init__(self, fileptr):
@@ -42,17 +96,27 @@ class polyco:
                 nlines = self.numcoeff//3
                 for coeffnum in range(len(sl)):
                     self.coeffs[nlines*3+coeffnum] = float(sl[coeffnum].replace('D', 'E'))
+    
     def phase(self, mjdi, mjdf):
         """
         self.phase(mjdi, mjdf):
             Return the predicted pulsar phase at a given integer and frational MJD.
+        """
+        return self.rotation(mjdi, mjdf) % 1
+
+    def rotation(self, mjdi, mjdf):
+        """
+        self.rotation(mjdi, mjdf):
+            Return the predicted pulsar (fractional) rotation at a 
+            given integer and fractional MJD.
         """
         DT = ((mjdi-self.TMIDi)+(mjdf-self.TMIDf))*1440.0
         phase = self.coeffs[self.numcoeff-1]
         for ii in range(self.numcoeff-1, 0, -1):
             phase = DT*phase + self.coeffs[ii-1]
         phase += self.RPHASE + DT*60.0*self.F0
-        return phase - Num.floor(phase)
+        return phase 
+
     def freq(self, mjdi, mjdf):
         """
         self.freq(mjdi, mjdf):
@@ -65,7 +129,6 @@ class polyco:
         return self.F0 + psrfreq/60.0
         
 class polycos:
-
     def __init__(self, psrname, filenm="polyco.dat"):
         self.psr = psrname
         self.file = filenm
@@ -98,6 +161,31 @@ class polycos:
             sys.stderr.write("Cannot find a valid polyco at %f!\n" % (mjdi+mjdf))
         return goodpoly
 
+    def get_phase(self, mjdi, mjdf):
+        """
+        self.get_phase(mjdi, mjdf):
+            Return the predicted pulsar phase for the specified time.
+        """
+        goodpoly = self.select_polyco(mjdi, mjdf)
+        return self.polycos[goodpoly].phase(mjdi, mjdf) 
+
+    def get_rotation(self, mjdi, mjdf):
+        """
+        self.get_rotation(mjdi, mjdf):
+            Return the predicted pulsar (fractional) rotation 
+            number for the specified time.
+        """
+        goodpoly = self.select_polyco(mjdi, mjdf)
+        return self.polycos[goodpoly].rotation(mjdi, mjdf) 
+
+    def get_freq(self, mjdi, mjdf):
+        """
+        self.get_freq(mjdi, mjdf):
+            Return the predicted pulsar spin frquency for the specified time.
+        """
+        goodpoly = self.select_polyco(mjdi, mjdf)
+        return self.polycos[goodpoly].freq(mjdi, mjdf) 
+
     def get_phs_and_freq(self, mjdi, mjdf):
         """
         self.get_voverc(mjdi, mjdf):
@@ -114,3 +202,69 @@ class polycos:
         """
         goodpoly = self.select_polyco(mjdi, mjdf)
         return self.polycos[goodpoly].doppler
+
+
+def create_polycos(parfn, telescope_id, center_freq, start_mjd, end_mjd, \
+                    max_hour_angle=None, span=SPAN_DEFAULT, \
+                    numcoeffs=NUMCOEFFS_DEFAULT, keep_file=False):
+    """Create polycos object from a parfile.
+        Inputs:
+            parfn: parfile's filename, or a parfile object.
+            telescope_id: The TEMPO 1-character telescope identifier.
+            center_freq: The observation's center frequencies in MHz.
+            start_mjd: MJD on which the polycos should start.
+            end_mjd: MJD until the polycos should extend.
+            max_hour_angle: The maximum hour angle as expected by tempo.
+                (Default: Use default value chosen for given telescope).
+            span: Span of each set of polycos in min.
+                (Default: 60 min).
+            numcoeffs: Number of coefficients to use.
+                (Default: 12).
+            keep_file: If true do not delete polyco.dat file.
+                (Default: delete polyco.dat file).
+
+        Output:
+            new_polycos: a polycos object.
+    """
+    if type(parfn)==types.StringType:
+        # assume parfn is a filename
+        par = parfile.psr_par(parfn)
+    else:
+        # assume par is already a parfile.psr_par object
+        par = parfn
+   
+    if max_hour_angle is None:
+        telescope_name = id_to_telescope[telescope_id]
+        max_hour_angle = telescope_to_maxha[telescope_name]
+    
+    tzfile = open("tz.in", "w")
+    # Default parameters for prediction mode
+    tzfile.write("%s %d %d %d %0.5f\n" % (telescope_id, max_hour_angle, \
+                            SPAN_DEFAULT, NUMCOEFFS_DEFAULT, center_freq))
+    # TEMPO ignores lines 2 and 3 in tz.in file
+    tzfile.write("\n\n")
+    if hasattr(par, "PSR"):
+        psrname = par.PSR
+    else:
+        psrname = par.PSRJ
+    tzfile.write("%s %d %d %d %0.5f\n" % (psrname, SPAN_DEFAULT, \
+                        NUMCOEFFS_DEFAULT, max_hour_angle, center_freq)) 
+    tzfile.close()
+    tempo = subprocess.Popen("tempo -z -f %s" % par.FILE, shell=True, \
+                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, \
+                        stderr=subprocess.PIPE)
+    (out, err) = tempo.communicate("%d %d\n" % (start_mjd, end_mjd))
+    if err:
+        raise TempoError("The following error message was encountered " \
+                        "when running TEMPO to generate polycos from " \
+                        "the input parfile (%s):\n\n%s\n" % (parfn, err))
+    new_polycos = polycos(psrname, filenm='polyco.dat')
+    # Remove files created by us and by TEMPO
+    os.remove("tz.in")
+    if not keep_file:
+        os.remove("polyco.dat")
+    return new_polycos
+
+
+class TempoError(Exception):
+    pass

@@ -128,38 +128,45 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
 
 void get_backend_name(int machine_id, struct spectra_info *s)
 {
-    switch (machine_id) {
-    case 0:
-        strcpy(s->backend, "FAKE");
-        break;
-    case 1:
-        strcpy(s->backend, "PSPM");
-        break;
-    case 2:
-        strcpy(s->backend, "WAPP");
-        break;
-    case 3:
-        strcpy(s->backend, "AOFTM");
-        break;
-    case 4:
-        strcpy(s->backend, "BPP");
-        break;
-    case 5:
-        strcpy(s->backend, "OOTY");
-        break;
-    case 6:
-        strcpy(s->backend, "SCAMP");
-        break;
-    case 7:
-        strcpy(s->backend, "SPIGOT");
-        break;
-    case 11:
-        strcpy(s->backend, "BG/P");
-        break;
-    default:
-        strcpy(s->backend, "Unknown");
-        break;
-    }
+   char *backend, string[80];
+   switch (machine_id) {
+   case 0:
+      strcpy(string, "FAKE");
+      break;
+   case 1:
+      strcpy(string, "PSPM");
+      break;
+   case 2:
+      strcpy(string, "WAPP");
+      break;
+   case 3:
+      strcpy(string, "AOFTM");
+      break;
+   case 4:
+      strcpy(string, "BPP");
+      break;
+   case 5:
+      strcpy(string, "OOTY");
+      break;
+   case 6:
+      strcpy(string, "SCAMP");
+      break;
+   case 7:
+      strcpy(string, "SPIGOT");
+      break;
+   case 11:
+      strcpy(string, "BG/P");
+      break;
+   case 12:
+      strcpy(string, "PDEV");
+      break;
+   default:
+      strcpy(s->backend, "Unknown");
+      break;
+   }
+   backend = (char *) calloc(strlen(string) + 1, 1);
+   strcpy(backend, string);
+   return backend;
 }
 
 
