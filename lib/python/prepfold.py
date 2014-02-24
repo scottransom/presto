@@ -30,20 +30,14 @@ class pfd:
         self.telescope = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         self.pgdev = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         test = infile.read(16)
-        has_posn = 1
-        for ii in range(16):
-            if test[ii] not in '0123456789:.-\0':
-                has_posn = 0
-                break
-        if has_posn:
+        if not test[:8]=="Unknown":
             self.rastr = test[:test.find('\0')]
             test = infile.read(16)
             self.decstr = test[:test.find('\0')]
-            (self.dt, self.startT) = struct.unpack(swapchar+"dd", infile.read(2*8))
         else:
             self.rastr = "Unknown"
             self.decstr = "Unknown"
-            (self.dt, self.startT) = struct.unpack(swapchar+"dd", test)
+        (self.dt, self.startT) = struct.unpack(swapchar+"dd", infile.read(2*8))
         (self.endT, self.tepoch, self.bepoch, self.avgvoverc, self.lofreq, \
          self.chan_wid, self.bestdm) = struct.unpack(swapchar+"d"*7, infile.read(7*8))
         # The following "fixes" (we think) the observing frequency of the Spigot
@@ -116,12 +110,13 @@ class pfd:
         if (self.numchan==1):
             try:
                 idata = infodata.infodata(self.filenm[:self.filenm.rfind('.')]+".inf")
-                if idata.waveband=="Radio":
-                    self.bestdm = idata.DM
-                    self.numchan = idata.numchan
-                else: # i.e. for events
-                    self.bestdm = 0.0
-                    self.numchan = 1
+                try:
+                    if idata.waveband=="Radio":
+                        self.bestdm = idata.DM
+                        self.numchan = idata.numchan
+                except:
+                        self.bestdm = 0.0
+                        self.numchan = 1
             except IOError:
                 print "Warning!  Can't open the .inf file for "+filename+"!"
         self.binspersec = self.fold_p1*self.proflen
