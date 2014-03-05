@@ -15,9 +15,13 @@ else
 	LIBCMD = -dynamiclib
 endif
 
+# How to link with some needed libraries of PGPLOT
+X11LINK = $(shell pkg-config --libs x11)
+PNGLINK = $(shell pkg-config --libs libpng)
+
 # Include and link information for PGPLOT v5.X (including shared libs!)
 PGPLOTINC = -I$(PGPLOT_DIR)
-PGPLOTLINK = -L$(PGPLOT_DIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -lpng -lz -ldl
+PGPLOTLINK = -L$(PGPLOT_DIR) -lcpgplot -lpgplot $(X11LINK) $(PNGLINK)
 
 # Include and link information for the FFTW 3.X single-precision library
 FFTINC := $(shell pkg-config --cflags fftw3f)
