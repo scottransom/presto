@@ -36,19 +36,23 @@ PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread
 # Other options are USESGIFFT or REGFFT
 FFTTYPE = USEFFTW
 # Path to FFT includes
-FFTINCDIR = -I$(LOCDIR)/include
-# Path to FFT libraries
-FFTLIBDIR = -L$(LOCDIR)/lib
+#FFTINC = -I$(LOCDIR)/include
+FFTINC := $(shell pkg-config --cflags fftw3f)
 # How to link with the FFTW libs
-FFTLINK = $(FFTLIBDIR) -lfftw3f
+#FFTLINK = -L$(LOCDIR)/lib -lfftw3f
+FFTLINK := $(shell pkg-config --libs fftw3f)
 
-# Other include directories (i.e. glib.h)
-OTHERINCDIR = -I$(SYSDIR)/include/glib-2.0 -I$(SYSDIR)/lib/glib-2.0/include -I$(SYSDIR)/lib/x86_64-linux-gnu/glib-2.0/include/
-# Other link directories (i.e. libcfitsio if in different location)
-OTHERLIBDIR =
+# Include and link information for the GLIB 2.0 library
+GLIBINC := $(shell pkg-config --cflags glib-2.0)
+GLIBLINK := $(shell pkg-config --libs glib-2.0)
+
+# Other include directories (i.e. CFITSIO if in non-standard locations)
+OTHERINC := $(shell pkg-config --cflags cfitsio)
+# Other link directories (i.e. CFITSIO if in non-standard locations)
+OTHERLINK := $(shell pkg-config --libs cfitsio)
 
 # The standard PRESTO libraries to link into executables
-PRESTOLINK = $(OTHERLIBDIR) -L$(PRESTO)/lib -lpresto $(FFTLINK)
+PRESTOLINK = $(OTHERLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
 
 # When modifying the CLIG files, the is the location of the clig binary
 CLIG = clig
@@ -57,7 +61,7 @@ CC = gcc
 FC = gfortran
 #FC = g77
 # Very recent Intel CPUs might see a few percent speedup using -mavx
-CFLAGS = -I$(PRESTO)/include $(OTHERINCDIR) $(PGPLOTINCDIR) $(FFTINCDIR) \
+CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(OTHERINC) $(PGPLOTINC) $(FFTINC) \
 	-D$(FFTTYPE) -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-g -O3 -ffast-math -Wall -W -fPIC
 #	-g -Wall -W -fPIC
@@ -124,12 +128,12 @@ prep:
 	touch *_cmd.c
 
 makewisdom:
-	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c $(FFTLINK) $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c $(FFTLINK)
 	./makewisdom
 	cp fftw_wisdom.txt $(PRESTO)/lib
 
 timetest: 
-	$(CC) -o $@ timetest.c $(DMALLOCLINK)
+	$(CC) -o $@ timetest.c
 	./timetest
 	rm -f timetest
 
@@ -161,7 +165,7 @@ mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o
 	mpicc $(CLINKFLAGS) -o $(PRESTO)/bin/$@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) -lglib-2.0 -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ bary.o $(PRESTOLINK) -lm
@@ -173,10 +177,10 @@ dftfold: dftfold_cmd.c dftfold_cmd.o dftfold.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ dftfold.o dftfold_cmd.o $(PRESTOLINK) -lm
 
 shiftdata: shiftdata.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ shiftdata.o $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ shiftdata.o -lm
 
 patchdata: patchdata.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ patchdata.o $(DMALLOCLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ patchdata.o
 
 dat2sdat: dat2sdat.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ dat2sdat.o $(PRESTOLINK) -lm
@@ -230,10 +234,10 @@ makeinf: makeinf.o ioinf.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ makeinf.o ioinf.o $(PRESTOLINK) -lm
 
 mjd2cal: djcl.o mjd2cal.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ djcl.o mjd2cal.o $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ djcl.o mjd2cal.o -lm
 
 cal2mjd: cldj.o cal2mjd.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ cldj.o cal2mjd.o $(DMALLOCLINK) -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ cldj.o cal2mjd.o -lm
 
 plotbincand: plotbincand.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ $(PLOT2DOBJS) plotbincand.o $(PRESTOLINK) $(PGPLOTLINK) -lm
@@ -266,22 +270,22 @@ search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ search_rzw.o search_rzw_cmd.o $(PRESTOLINK) -lm
 
 taperaw: taperaw.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ taperaw.o $(DMALLOCLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ taperaw.o
 
 toas2dat: toas2dat_cmd.c toas2dat_cmd.o toas2dat.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ toas2dat.o toas2dat_cmd.o $(DMALLOCLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ toas2dat.o toas2dat_cmd.o
 
 un_sc_td:
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ un_sc_td.c $(DMALLOCLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ un_sc_td.c
 
 swap_endian:
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ swap_endian.c $(DMALLOCLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ swap_endian.c
 
 window: window.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ $(PLOT2DOBJS) window.o $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 zapbirds: zapbirds_cmd.c zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lglib-2.0 -lm
+	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ zapbirds_cmd.o zapbirds.o zapping.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) $(GLIBLINK) -lm
 
 explorefft: explorefft.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ explorefft.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
