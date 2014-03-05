@@ -16,10 +16,11 @@ else
 endif
 
 # How to link with some needed libraries of PGPLOT
-X11LINK = $(shell pkg-config --libs x11)
-PNGLINK = $(shell pkg-config --libs libpng)
+X11LINK := $(shell pkg-config --libs x11)
+PNGLINK := $(shell pkg-config --libs libpng)
 
 # Include and link information for PGPLOT v5.X (including shared libs!)
+# Typically you need to have your PGPLOT_DIR environment variable set
 PGPLOTINC = -I$(PGPLOT_DIR)
 PGPLOTLINK = -L$(PGPLOT_DIR) -lcpgplot -lpgplot $(X11LINK) $(PNGLINK)
 
@@ -37,9 +38,6 @@ CFITSIOLINK := $(shell pkg-config --libs cfitsio)
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
-
-# When modifying the CLIG files, the is the location of the clig binary
-CLIG = clig
 
 CC = gcc
 FC = gfortran
@@ -60,6 +58,9 @@ LINKCOMMAND2 = ar rcs
 
 # Add to the search path for the executables
 VPATH = ../lib:../bin
+
+# When modifying the CLIG files, the is the location of the clig binary
+CLIG = clig
 
 # Rules for CLIG generated files
 %_cmd.c : ../clig/%_cmd.cli
