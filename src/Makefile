@@ -1,5 +1,4 @@
 #  Makefile for PRESTO
-#   for Pentium/Linux
 #   by Scott M. Ransom
 
 # OS type
@@ -10,49 +9,30 @@ OS = Linux
 ifeq ($(OS),Linux)
 	LIBSUFFIX = .so
 	LIBCMD = -shared
-	SYSDIR = /usr
-	LOCDIR = /usr/local
 # else assume Darwin (i.e. OSX)
 else
 	LIBSUFFIX = .dylib
 	LIBCMD = -dynamiclib
-	SYSDIR = /sw
-	LOCDIR = /sw
 endif
 
-# Path to PGPLOT includes
-PGPLOTINCDIR = -I$(PGPLOT_DIR)
-# Path to PGPLOT libraries
-PGPLOTLIBDIR = -L$(PGPLOT_DIR)
-# How to link with the PGPLOT libs
-PGPLOTLINK = $(PGPLOTLIBDIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -lpng -lz -ldl
+# Include and link information for PGPLOT v5.X (including shared libs!)
+PGPLOTINC = -I$(PGPLOT_DIR)
+PGPLOTLINK = -L$(PGPLOT_DIR) -lcpgplot -lpgplot -L/usr/X11R6/lib -lX11 -lpthread -lpng -lz -ldl
 
-# You must define one of the following FFTTYPES (USEFFTW is default).
-# If you want to use FFTW for the FFTs, place sfftw.h and libsfftw.a
-# (or the shared lib version) in a place where we can find it,
-# and then define the FFTTYPE and FFTLIBS variables appropriately.
-# Notes:  PRESTO uses the single precision version of FFTW.
-#         You must also run make makewisdom after you make prep.
-# Other options are USESGIFFT or REGFFT
-FFTTYPE = USEFFTW
-# Path to FFT includes
-#FFTINC = -I$(LOCDIR)/include
+# Include and link information for the FFTW 3.X single-precision library
 FFTINC := $(shell pkg-config --cflags fftw3f)
-# How to link with the FFTW libs
-#FFTLINK = -L$(LOCDIR)/lib -lfftw3f
 FFTLINK := $(shell pkg-config --libs fftw3f)
 
 # Include and link information for the GLIB 2.0 library
 GLIBINC := $(shell pkg-config --cflags glib-2.0)
 GLIBLINK := $(shell pkg-config --libs glib-2.0)
 
-# Other include directories (i.e. CFITSIO if in non-standard locations)
-OTHERINC := $(shell pkg-config --cflags cfitsio)
-# Other link directories (i.e. CFITSIO if in non-standard locations)
-OTHERLINK := $(shell pkg-config --libs cfitsio)
+# Include and link information for CFITSIO
+CFITSIOINC := $(shell pkg-config --cflags cfitsio)
+CFITSIOLINK := $(shell pkg-config --libs cfitsio)
 
 # The standard PRESTO libraries to link into executables
-PRESTOLINK = $(OTHERLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
+PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
 
 # When modifying the CLIG files, the is the location of the clig binary
 CLIG = clig
@@ -61,8 +41,8 @@ CC = gcc
 FC = gfortran
 #FC = g77
 # Very recent Intel CPUs might see a few percent speedup using -mavx
-CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(OTHERINC) $(PGPLOTINC) $(FFTINC) \
-	-D$(FFTTYPE) -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
+CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
+	-DUSEFFTW -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-g -O3 -ffast-math -Wall -W -fPIC
 #	-g -Wall -W -fPIC
 CLINKFLAGS = $(CFLAGS)
@@ -294,16 +274,16 @@ exploredat: exploredat.o $(PLOT2DOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ exploredat.o $(PLOT2DOBJS) $(PRESTOLINK) $(PGPLOTLINK) -lm
 
 weight_psrfits: weight_psrfits.o $(INSTRUMENTOBJS)
-	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ weight_psrfits.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
+	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ weight_psrfits.o $(INSTRUMENTOBJS) $(PRESTOLINK)
 
 psrfits_dumparrays: psrfits_dumparrays.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ psrfits_dumparrays.o $(OTHERLIBDIR) -lcfitsio -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ psrfits_dumparrays.o $(CFITSIOLINK)
 
 fitsdelrow: fitsdelrow.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelrow.o $(OTHERLIBDIR) -lcfitsio -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelrow.o $(CFITSIOLINK)
 
 fitsdelcol: fitsdelcol.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelcol.o $(OTHERLIBDIR) -lcfitsio -lm
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelcol.o $(CFITSIOLINK)
 
 clean:
 	rm -f *.o *~ *#
