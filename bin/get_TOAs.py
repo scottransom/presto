@@ -16,6 +16,14 @@ scopes = {'GBT':'1',
           'LWA': 'x',
           'Geocenter': 'o'}
 
+scopes2 = {'GBT':'gbt',
+          'Arecibo':'ao',
+          'Parkes':'pks',
+          'GMRT': 'gmrt',
+          'LWA1': 'lwa1',
+          'LWA': 'lwa1',
+          'Geocenter': 'coe'}
+
 def measure_phase(profile, template, rotate_prof=True):
     """
     measure_phase(profile, template):
@@ -242,7 +250,11 @@ if __name__ == '__main__':
     if (not fold.topo):
         obs = '@'  # Solarsystem Barycenter
     else:
-        try: obs = scopes[fold_pfd.telescope.split()[0]]
+        try: 
+            if t2format:
+                obs = scopes2[fold_pfd.telescope.split()[0]]
+            else:
+                obs = scopes[fold_pfd.telescope.split()[0]]
         except KeyError:  sys.stderr.write("Unknown telescope!!! : " + fold_pfd.telescope)
 
     # Read the polyco file (if required)
