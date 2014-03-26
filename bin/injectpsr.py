@@ -417,6 +417,15 @@ class DispersedProfile(VectorProfile):
         self.period = period
         self.intrinsic = intrinsic
 
+    def get_equivalent_width(self, *args, **kwargs):
+        return np.ones_like(self.freqs)*self.intrinsic.get_equivalent_width(*args, **kwargs)
+    
+    def get_area(self, *args, **kwargs):
+        return np.ones_like(self.freqs)*self.intrinsic.get_area(*args, **kwargs)
+
+    def get_max(self, *args, **kwargs):
+        return np.ones_like(self.freqs)*self.intrinsic.get_max(*args, **kwargs)
+
     def plot(self, nbin=1024, scale=1, dedisp=False):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
         data = self(phs).transpose()
@@ -741,8 +750,8 @@ def scale_from_snr(fil, prof, snr, rms):
     profmax = prof.get_max()
 
     scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
-    print "Area %g, Profile maximum: %g" % (area, profmax)
-    print "Recommended scale factor: %g" % scale
+    print "Area %s, Profile maximum: %s" % (area, profmax)
+    print "Recommended scale factor: %s" % scale
     return scale
 
 
@@ -772,7 +781,7 @@ def snr_from_smean(fil, prof, smean, gain, tsys):
     warnings.warn("Assuming 2 (summed) polarizations.")
     snr = smean*gain*np.sqrt(2*tint*bw)/tsys*np.sqrt(1/dutycycle-1)
     print "Expected SNR of injected pulsar signal (after folding " \
-            "and integrating over frequency): %g" % snr
+            "and integrating over frequency): %s" % snr
     return snr
 
 
@@ -897,15 +906,16 @@ def save_profile(prof, outfn):
     outfile.close()
 
 
-def parse_cfgstr(cfgstr):
+def parse_cfgstr(cfgstrs):
     cfgs = {}
-    for cfg in cfgstr.split(','):
-        key, val = cfg.split('=')
-        cfgs[key] = val
+    for cfgstr in cfgstrs:
+        for cfg in cfgstr.split(','):
+            key, val = cfg.split('=')
+            cfgs[key] = val
     return cfgs
 
 
-def get_scaling(fil, prof, cfgstr):
+def get_scaling(fil, prof, cfgstrs):
     """Given a target filterbank file, a profile, and
         a configuration string return the corresponding 
         scaling factor.
@@ -913,16 +923,16 @@ def get_scaling(fil, prof, cfgstr):
         Inputs:
             fil: A filterbank.FilterbankFile object.
             prof: A Profile object.
-            cfgstr: A string containing configurations.
+            cfgstrs: A list of strings containing configurations.
 
         Output:
             scaling: The corresponding scaling.
     """
-    cfgs = parse_cfgstr(cfgstr)
+    cfgs = parse_cfgstr(cfgstrs)
     return float(cfgs['scale'])
 
 
-def get_scaling_from_snr(fil, prof, cfgstr):
+def get_scaling_from_snr(fil, prof, cfgstrs):
     """Given a target filterbank file, a profile, and
         a configuration string compute the scaling factor
         given the SNR.
@@ -930,19 +940,19 @@ def get_scaling_from_snr(fil, prof, cfgstr):
         Inputs:
             fil: A filterbank.FilterbankFile object.
             prof: A Profile object.
-            cfgstr: A string containing configurations.
+            cfgstrs: A list of strings containing configurations.
 
         Output:
             scaling: The corresponding scaling.
     """
-    cfgs = parse_cfgstr(cfgstr)
+    cfgs = parse_cfgstr(cfgstrs)
     snr = float(cfgs['snr'])
     rms = float(cfgs['rms'])
     scale = scale_from_snr(fil, prof, snr=snr, rms=rms)
     return scale
 
 
-def get_scaling_from_smean(fil, prof, cfgstr):
+def get_scaling_from_smean(fil, prof, cfgstrs):
     """Given a target filterbank file, a profile, and
         a configuration string compute the scaling factor
         given the target mean flux density.
@@ -950,12 +960,12 @@ def get_scaling_from_smean(fil, prof, cfgstr):
         Inputs:
             fil: A filterbank.FilterbankFile object.
             prof: A Profile object.
-            cfgstr: A string containing configurations.
+            cfgstrs: A list of strings containing configurations.
 
         Output:
             scaling: The corresponding scaling.
     """
-    cfgs = parse_cfgstr(cfgstr)
+    cfgs = parse_cfgstr(cfgstrs)
     smean = float(cfgs['smean'])
     rms = float(cfgs['rms'])
     gain = float(cfgs['gain'])
@@ -966,7 +976,7 @@ def get_scaling_from_smean(fil, prof, cfgstr):
     return scale
     
 
-def get_scaling_from_file(fil, prof, cfgstr):
+def get_scaling_from_file(fil, prof, cfgstrs):
     """Given a target filterbank file, a profile, and
         a configuration string read scaling factors from
         a text file. The file should have one floating point
@@ -976,12 +986,12 @@ def get_scaling_from_file(fil, prof, cfgstr):
         Inputs:
             fil: A filterbank.FilterbankFile object.
             prof: A Profile object.
-            cfgstr: A string containing configurations.
+            cfgstrs: A list of strings containing configurations.
 
         Output:
             scaling: The corresponding scaling.
     """
-    cfgs = parse_cfgstr(cfgstr)
+    cfgs = parse_cfgstr(cfgstrs)
     fn = cfgs['file']
     smean = float(cfgs['smean'])
     col = int(cfgs.get('col', 0))
@@ -1025,7 +1035,7 @@ def main():
                             fil.foff, fil.frequencies, fil.tsamp)
         # Determine scaling
         scale_getter = SCALE_METHODS[args.scale_name]
-        scaling = scale_getter(fil, prof, args.scale_cfgstr)
+        scaling = scale_getter(fil, prof, args.scale_cfgstrs)
         print "Band-averaged scale-factor: %g" % np.ma.masked_invalid(scaling).mean()
         prof.set_scaling(scaling)
         if args.outprof is not None:
@@ -1111,8 +1121,8 @@ if __name__ == '__main__':
                     default=None, type=float, \
                     help="The period (in seconds) of the (fake) injected " \
                         "pulsar signal. (This argument is required.)")
-    parser.add_argument("-c", "--scale-configs", dest='scale_cfgstr', type=str, \
-                    required=True, \
+    parser.add_argument("-c", "--scale-configs", dest='scale_cfgstrs', type=str, \
+                    required=True, default=[], action='append', \
                     help="A string of comma-separated parameters to " \
                         "configure how the injected signal is scaled. " \
                         "Format is '<param-name>=<value>,...'")
