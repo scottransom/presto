@@ -80,7 +80,7 @@ def main():
     outhdr['nchans'] = new_nchans
     outhdr['fch1'] = fil.frequencies[lochan]
     filterbank.create_filterbank_file(outfn, outhdr, nbits=fil.nbits)
-    outfil = filterbank.FilterbankFile(outfn, read_only=False)
+    outfil = filterbank.FilterbankFile(outfn, mode='write')
 
     # Write data
     sys.stdout.write(" %3.0f %%\r" % 0)

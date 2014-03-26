@@ -112,7 +112,39 @@ class Profile(object):
         phs = np.linspace(0, 1.0, npts+1, endpoint=True)
         profmax = np.max(self(phs))
         return profmax
-        
+       
+    def get_fwhm(self, npts=4096):
+        """Determine and return the FWHM of the profile, in phase.
+            This only works if two points in the profile are at half-maximum,
+            and all points in between are larger than half-max.
+
+            Input:
+                npts: The number of points to use when evaluating the
+                    profile.
+
+            Ouput:
+                fwhm: The full-width at half-maximum of the profile, in phase.
+        """
+        phs = np.linspace(0, 1.0, npts+1, endpoint=True)
+        vals = self(phs)
+        profmax = np.max(self(phs))
+        halfmax = profmax/2.0
+        ma = np.ma.masked_less(vals, halfmax)
+        # Unmasked region has vals >= halfmax
+        unmasked = np.ma.notmasked_contiguous(ma)
+        if len(unmasked) == 1:
+            sl = unmasked[0]
+            return ((sl.stop-1) - (sl.start))/float(npts)
+        elif len(unmasked) == 2:
+            sl1 = unmasked[0]
+            sl2 = unmasked[1]
+            if sl1.start==0 and sl2.stop==len(phs):
+                # profile straddles phase=0
+                return (npts+(sl1.stop-1) - sl2.start)/float(npts)
+        else:
+            return None
+
+
     def get_equivalent_width(self, npts=4096):
         """Determine and return the equivalent width of the profile, in phase.
             The equivalent width is the area under the pulse divided
@@ -1036,7 +1068,7 @@ def main():
     plt.figure()
     plt.clf()
     prof.plot(dedisp=True)
-    plt.xlim(0.4,0.8)
+    plt.xlim(0,1)
     plt.savefig(outfn+".ps")
     if args.dryrun:
         sys.exit()
