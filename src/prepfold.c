@@ -454,6 +454,8 @@ int main(int argc, char *argv[])
       if (numrec < cmd->npart) {
           reads_per_part = 1;
           cmd->npart = numrec;
+          printf("Overriding -npart to be %ld, the number of raw (requested) records.\n",
+                 numrec);
       }
 
       /* Correct numrec so that each part will contain */
@@ -1060,6 +1062,8 @@ int main(int argc, char *argv[])
 
       data = gen_fvect(cmd->nsub * worklen);
       if (RAWDATA) {
+          printf("\rTrue starting fraction       =  %g\n",
+                 (double)(lorec * ptsperrec) / s.N);
           offset_to_spectra(lorec * ptsperrec, &s);
       } else {
           if (useshorts) {
