@@ -570,7 +570,43 @@ long long offset_to_PSRFITS_spectra(long long specnum, struct spectra_info *s)
 // This routine offsets into the PSRFITS files to the spectra
 // 'specnum'.  It returns the current spectra number.
 {
-    return 0;
+    int filenum = 0;
+
+    if (specnum > s->N) {
+        fprintf(stderr, "Error:  offset spectra %lld is > total spectra %lld\n\n",
+               specnum, s->N);
+        exit(1);
+    }
+
+    // Find which file we need
+    while (specnum > s->start_spec[filenum+1])
+        filenum++;
+
+    // Shift to that file
+    cur_spec = specnum;
+    new_spec = specnum;
+    cur_file = filenum;
+    numbuffered = 0;
+
+    // Are we in a padding zone?
+    if (specnum > (s->start_spec[cur_file] + s->num_spec[cur_file])) {
+        // "Seek" to the end of the file
+        cur_subint = s->num_subint[cur_file] + 1;
+        new_spec = s->start_spec[cur_file+1];
+        return specnum;
+    }
+
+    // Otherwise, "seek" to the spectra (really a whole subint)
+    // Check to make sure that specnum is the start of a subint
+    if ((specnum - s->start_spec[cur_file]) % s->spectra_per_subint) {
+        fprintf(stderr, "Error:  requested spectra %lld is not the start of a PSRFITS subint\n\n",
+                specnum);
+        exit(1);
+    }
+    // Remember zero offset for CFITSIO...
+    cur_subint = (specnum - s->start_spec[cur_file]) / s->spectra_per_subint + 1;
+    // printf("Current spectra = %lld, subint = %d, in file %d\n", cur_spec, cur_subint, cur_file);
+    return specnum;
 }
 
 
