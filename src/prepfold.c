@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
    pflags.justprofs = cmd->justprofsP;
    pflags.allgrey = cmd->allgreyP;
    pflags.fixchi = cmd->fixchiP;
+   pflags.showfold = 0;
 
 #ifdef DEBUG
    showOptionValues();

@@ -375,7 +375,10 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
    if (xwin)
       loops = 2;
 
-   if (TEST_EQUAL(search->fold.pow, 1.0)) {     /* Barycentric periods */
+   if (flags->showfold) {
+      switch_f_and_p(search->fold.p1, search->fold.p2, search->fold.p3,
+                  &bestp, &bestpd, &bestpdd);
+   } else if (TEST_EQUAL(search->fold.pow, 1.0)) {     /* Barycentric periods */
       bestp = search->bary.p1;
       bestpd = search->bary.p2;
       bestpdd = search->bary.p3;
@@ -384,7 +387,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
       bestpd = search->topo.p2;
       bestpdd = search->topo.p3;
    }
-
+   printf("bestp: %g -- bestpd: %g -- bestpdd: %g\n", bestp, bestpd, bestpdd);
    // The number of samples that can fit across one profile bin
    dt_per_bin = bestp / search->proflen / search->dt;
 
@@ -405,10 +408,14 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
    /* Find the indices for the best periods, p-dots, and DMs */
    for (ii = 0; ii < search->numperiods; ii++) {
-      if (TEST_EQUAL(search->periods[ii], bestp))
+      if (TEST_EQUAL(search->periods[ii], bestp)) {
          bestip = ii;
-      if (TEST_EQUAL(search->pdots[ii], bestpd))
+         printf("bestip: %d\n", bestip);
+      }
+      if (TEST_EQUAL(search->pdots[ii], bestpd)) {
          bestipd = ii;
+         printf("bestipd: %d\n", bestip);
+      }
    }
    if (search->nsub > 1) {
       for (ii = 0; ii < search->numdms; ii++) {
@@ -437,13 +444,15 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
    /* Attempt to make show_pfd work on polyco-folded files */
    if (search->fold.pow == 0.0 && ppdot == NULL &&
        bestip == (search->numperiods - 1) / 2 &&
-       bestipd == (search->numperiods - 1) / 2) {
+       bestipd == (search->numperiods - 1) / 2 &&
+       ! flags->showfold) {
       printf("Assuming this was folded with polycos...\n");
       search->fold.p1 = 1.0 / search->topo.p1;
    }
 
    switch_f_and_p(search->fold.p1, search->fold.p2, search->fold.p3,
                   &pfold, &pdfold, &pddfold);
+   printf("pfold: %g -- pdfold: %g -- pddfold: %g\n", pfold, pdfold, pddfold);
 
    /* Time interval of 1 profile bin */
    dphase = 1.0 / (search->fold.p1 * search->proflen);
@@ -493,7 +502,9 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
          /* Compute the errors in fdot, and f to correct */
          df = 1.0 / bestp - search->fold.p1;
+         printf("df: %g\n", df);
          dfd = switch_pfdot(pfold, bestpd) - search->fold.p2;
+         printf("dfd: %g\n", dfd);
 
          /* Compute the delays for the best profile */
          for (ii = 0; ii < search->npart; ii++)

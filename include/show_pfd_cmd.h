@@ -11,6 +11,8 @@
 typedef struct s_Cmdline {
   /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
   char noxwinP;
+  /***** -showfold: Use the input fold paramters (i.e. not the optimized values) when showing the plot */
+  char showfoldP;
   /***** -scaleparts: Scale the part profiles independently */
   char scalepartsP;
   /***** -allgrey: Make all the images greyscale instead of color */
