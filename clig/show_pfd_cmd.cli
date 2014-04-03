@@ -11,6 +11,7 @@ Commandline full_cmd_line
 # Options (in order you want them to appear)
 
 Flag -noxwin     noxwin     {Do not show the result plots on-screen, only make postscript files}
+Flag -showfold   showfold   {Use the input fold paramters (i.e. not the optimized values) when showing the plot}
 Flag -scaleparts scaleparts {Scale the part profiles independently}
 Flag -allgrey    allgrey    {Make all the images greyscale instead of color}
 Flag -justprofs  justprofs  {Only output the profile portions of the plot}
