@@ -22,6 +22,7 @@ typedef struct plotflags {
   int scaleparts;
   int allgrey;
   int fixchi;
+  int showfold;
 } plotflags;
 
 /* structure used to pass information to plotting routine */

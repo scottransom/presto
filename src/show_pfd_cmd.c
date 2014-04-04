@@ -24,6 +24,8 @@ char *Program;
 static Cmdline cmd = {
   /***** -noxwin: Do not show the result plots on-screen, only make postscript files */
   /* noxwinP = */ 0,
+  /***** -showfold: Use the input fold paramters (i.e. not the optimized values) when showing the plot */
+  /* showfoldP = */ 0,
   /***** -scaleparts: Scale the part profiles independently */
   /* scalepartsP = */ 0,
   /***** -allgrey: Make all the images greyscale instead of color */
@@ -756,6 +758,13 @@ showOptionValues(void)
     printf("-noxwin found:\n");
   }
 
+  /***** -showfold: Use the input fold paramters (i.e. not the optimized values) when showing the plot */
+  if( !cmd.showfoldP ) {
+    printf("-showfold not found.\n");
+  } else {
+    printf("-showfold found:\n");
+  }
+
   /***** -scaleparts: Scale the part profiles independently */
   if( !cmd.scalepartsP ) {
     printf("-scaleparts not found.\n");
@@ -843,9 +852,10 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-noxwin] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-infoonly] [-fixchi] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-noxwin] [-showfold] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-infoonly] [-fixchi] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
   fprintf(stderr,"%s","      Displays or regenerates the Postscript for a 'pfd' file created by prepfold.\n");
   fprintf(stderr,"%s","        -noxwin: Do not show the result plots on-screen, only make postscript files\n");
+  fprintf(stderr,"%s","      -showfold: Use the input fold paramters (i.e. not the optimized values) when showing the plot\n");
   fprintf(stderr,"%s","    -scaleparts: Scale the part profiles independently\n");
   fprintf(stderr,"%s","       -allgrey: Make all the images greyscale instead of color\n");
   fprintf(stderr,"%s","     -justprofs: Only output the profile portions of the plot\n");
@@ -859,7 +869,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: The input 'pfd' file name.\n");
   fprintf(stderr,"%s","                 1...100 values\n");
-  fprintf(stderr,"%s","  version: 10Dec12\n");
+  fprintf(stderr,"%s","  version: 03Apr14\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -879,6 +889,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-noxwin", argv[i]) ) {
       cmd.noxwinP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-showfold", argv[i]) ) {
+      cmd.showfoldP = 1;
       continue;
     }
 
