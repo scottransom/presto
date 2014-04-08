@@ -89,6 +89,10 @@ typedef struct s_Cmdline {
   char downsampP;
   int downsamp;
   int downsampC;
+  /***** -dmprec: The number of decimals in the precision of the DM in the filename. */
+  char dmprecP;
+  int dmprec;
+  int dmprecC;
   /***** -mask: File containing masking information to use */
   char maskfileP;
   char* maskfile;

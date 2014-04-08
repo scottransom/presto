@@ -50,6 +50,8 @@ Int     -nsub   nsub    {The number of sub-bands to use} \
 	-r 1 1024 -d 32
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
 	-r 1 128 -d 1
+Int     -dmprec dmprec  {The number of decimals in the precision of the DM in the filename.} \
+        -r 2 4 -d 2
 String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
