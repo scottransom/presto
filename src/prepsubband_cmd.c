@@ -102,6 +102,10 @@ static Cmdline cmd = {
   /* downsampP = */ 1,
   /* downsamp = */ 1,
   /* downsampC = */ 1,
+  /***** -dmprec: The number of decimals in the precision of the DM in the filename. */
+  /* dmprecP = */ 1,
+  /* dmprec = */ 2,
+  /* dmprecC = */ 1,
   /***** -mask: File containing masking information to use */
   /* maskfileP = */ 0,
   /* maskfile = */ (char*)0,
@@ -1075,6 +1079,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -dmprec: The number of decimals in the precision of the DM in the filename. */
+  if( !cmd.dmprecP ) {
+    printf("-dmprec not found.\n");
+  } else {
+    printf("-dmprec found:\n");
+    if( !cmd.dmprecC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.dmprec);
+    }
+  }
+
   /***** -mask: File containing masking information to use */
   if( !cmd.maskfileP ) {
     printf("-mask not found.\n");
@@ -1101,7 +1117,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-runavg] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-runavg] [-sub] [-subdm subdm] [-numout numout] [-nobary] [-DE405] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-dmprec dmprec] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
@@ -1151,11 +1167,14 @@ usage(void)
   fprintf(stderr,"%s","      -downsamp: The number of neighboring bins to co-add\n");
   fprintf(stderr,"%s","                 1 int value between 1 and 128\n");
   fprintf(stderr,"%s","                 default: `1'\n");
+  fprintf(stderr,"%s","        -dmprec: The number of decimals in the precision of the DM in the filename.\n");
+  fprintf(stderr,"%s","                 1 int value between 2 and 4\n");
+  fprintf(stderr,"%s","                 default: `2'\n");
   fprintf(stderr,"%s","          -mask: File containing masking information to use\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...16384 values\n");
-  fprintf(stderr,"%s","  version: 31Aug12\n");
+  fprintf(stderr,"%s","  version: 08Apr14\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1366,6 +1385,16 @@ parseCmdline(int argc, char **argv)
       cmd.downsampC = i-keep;
       checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 128);
       checkIntHigher("-downsamp", &cmd.downsamp, cmd.downsampC, 1);
+      continue;
+    }
+
+    if( 0==strcmp("-dmprec", argv[i]) ) {
+      int keep = i;
+      cmd.dmprecP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.dmprec, 1);
+      cmd.dmprecC = i-keep;
+      checkIntLower("-dmprec", &cmd.dmprec, cmd.dmprecC, 4);
+      checkIntHigher("-dmprec", &cmd.dmprec, cmd.dmprecC, 2);
       continue;
     }
 
