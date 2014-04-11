@@ -3,13 +3,14 @@ from numpy import *
 from Pgplot import *
 
 class observation:
-    def __init__(self, dt, f_ctr, BW, numchan):
+    def __init__(self, dt, f_ctr, BW, numchan, cDM):
         # dt in sec, f_ctr and in MHz
         self.dt = dt
         self.f_ctr = f_ctr
         self.BW = BW
         self.numchan = numchan
         self.chanwidth = BW/numchan
+        self.cDM = cDM
     def guess_dDM(self, DM):
         """
         guess_dDM(self, DM):
@@ -63,10 +64,10 @@ class dedisp_method:
         Return the smearing (in ms) in each channel at the specified DM
         """
         try:
-            DM = where(DM==0.0, self.dDM/2.0, DM)
+            DM = where(DM-cDM==0.0, cDM+self.dDM/2.0, DM)
         except TypeError:
-            if (DM==0.0): DM = self.dDM/2.0
-        return dm_smear(DM, self.obs.chanwidth, self.obs.f_ctr)
+            if (DM-cDM==0.0): DM = cDM+self.dDM/2.0
+        return dm_smear(DM, self.obs.chanwidth, self.obs.f_ctr, self.obs.cDM)
     def total_smear(self, DM):
         """
         Return the total smearing in ms due to the sampling rate,
@@ -82,13 +83,13 @@ class dedisp_method:
     def DM_for_smearfact(self, smearfact):
         """
         Return the DM where the smearing in a single channel is a factor smearfact
-        larger than all the other smaring causes combined.
+        larger than all the other smearing causes combined.
         """
         other_smear = sqrt((1000.0*self.obs.dt)**2.0 +
                            (1000.0*self.obs.dt*self.downsamp)**2.0 +
                            self.BW_smearing**2.0 +
                            self.sub_smearing**2.0)
-        return smearfact*0.001*other_smear/self.obs.chanwidth*0.0001205*self.obs.f_ctr**3.0
+        return smearfact*0.001*other_smear/self.obs.chanwidth*0.0001205*self.obs.f_ctr**3.0 + self.obs.cDM
     def DM_for_newparams(self, dDM, downsamp):
         """
         Return the DM where the smearing in a single channel is causes the same smearing
@@ -137,13 +138,13 @@ class dedisp_method:
             return "%9.3f  %9.3f  %6.2f    %4d  %6d" % \
                    (self.loDM, self.hiDM, self.dDM, self.downsamp, self.numDMs)
         
-def dm_smear(DM, BW, f_ctr):
+def dm_smear(DM, BW, f_ctr, cDM=0.0):
     """
-    dm_smear(DM, BW, f_ctr):
+    dm_smear(DM, BW, f_ctr, cDM=0.0):
         Return the smearing in ms caused by a 'DM' over a bandwidth
         of 'BW' MHz centered at 'f_ctr' MHz.
     """
-    return 1000.0*DM*BW/(0.0001205*f_ctr**3.0)
+    return 1000.0*fabs(DM-cDM)*BW/(0.0001205*f_ctr**3.0)
 
 def BW_smear(DMstep, BW, f_ctr):
     """
@@ -154,9 +155,9 @@ def BW_smear(DMstep, BW, f_ctr):
     maxDMerror = 0.5*DMstep
     return dm_smear(maxDMerror, BW, f_ctr)
 
-def guess_DMstep(DM, dt, BW, f_ctr):
+def guess_DMstep(dt, BW, f_ctr):
     """
-    guess_DMstep(DM, dt, BW, f_ctr):
+    guess_DMstep(dt, BW, f_ctr):
         Choose a reasonable DMstep by setting the maximum smearing across the
         'BW' to equal the sampling time 'dt'.
     """
@@ -174,22 +175,22 @@ def subband_smear(subDMstep, numsub, BW, f_ctr):
     maxsubDMerror = 0.5*subDMstep
     return dm_smear(maxsubDMerror, subBW, f_ctr)
 
-def total_smear(DM, DMstep, dt, f_ctr, BW, numchan, subDMstep, numsub=0):
+def total_smear(DM, DMstep, dt, f_ctr, BW, numchan, subDMstep, cohdm=0.0, numsub=0):
     """
-    total_smear(DM, DMstep, dt, f_ctr, BW, numchan, subDMstep, numsub=0):
+    total_smear(DM, DMstep, dt, f_ctr, BW, numchan, subDMstep, cohdm=0.0, numsub=0):
         Return the total smearing in ms due to the sampling rate,
         the smearing over each channel, the smearing over each subband
         (if numsub > 0) and the smearing over the full BW assuming the
         worst-case DM error.
     """
     return sqrt(2 * (1000.0*dt)**2.0 +
-                dm_smear(DM, BW/numchan, f_ctr)**2.0 +
+                dm_smear(DM, BW/numchan, f_ctr, cohdm)**2.0 +
                 subband_smear(subDMstep, numsub, BW, f_ctr)**2.0 + 
                 BW_smear(DMstep, BW, f_ctr)**2.0)
 
-def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
+def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWIN"):
     """
-    dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0):
+    dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0):
         Return the optimal DM stepsizes (and subband DM stepsizes if
         numsub>0) to keep the total smearing below 'ok_smearing' (in ms),
         for the DMs between loDM and hiDM.  If 'ok_smearing'=0.0, then
@@ -199,7 +200,7 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
     allow_dDMs = [0.01, 0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0,
                   2.0, 3.0, 5.0, 10.0, 20.0, 30.0, 50.0, 100.0, 200.0, 300.0]
     # Allowable number of downsampling factors
-    allow_downsamps = [1, 2, 4, 8, 16, 32, 64]
+    allow_downsamps = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
     # Initial values
     index_downsamps = index_dDMs = 0
@@ -216,9 +217,10 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
 
     # Minimum possible smearing
     min_tot_smearing = total_smear(loDM+0.5*dDM, dDM, obs.dt, obs.f_ctr,
-                                   obs.BW, obs.numchan, allow_dDMs[0], 0)
+                                   obs.BW, obs.numchan, allow_dDMs[0], cohdm, 0)
     # Minimum channel smearing
-    min_chan_smearing = dm_smear(loDM+0.5*dDM, obs.chanwidth, obs.f_ctr)
+    min_chan_smearing = dm_smear(linspace(loDM, hiDM, 10000), 
+                                 obs.chanwidth, obs.f_ctr, cohdm).min()
     # Minimum smearing across the obs.BW
     min_BW_smearing = BW_smear(dDM, obs.BW, obs.f_ctr)
 
@@ -250,7 +252,7 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
               (downsamp, dtms, dtms*downsamp)
 
     # Calculate the appropriate initial dDM 
-    dDM = guess_DMstep(loDM, obs.dt*downsamp, obs.BW, obs.f_ctr)
+    dDM = guess_DMstep(obs.dt*downsamp, obs.BW, obs.f_ctr)
     print "Best guess for optimal initial dDM is %.3f" % dDM
     while (allow_dDMs[index_dDMs+1] < ff*dDM):
         index_dDMs += 1
@@ -295,7 +297,7 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
 
     # The optimal smearing
     tot_smear = total_smear(DMs, allow_dDMs[0], obs.dt, obs.f_ctr,
-                            obs.BW, obs.numchan, allow_dDMs[0], 0)
+                            obs.BW, obs.numchan, allow_dDMs[0], cohdm, 0)
     # Plot them
     plotxy(log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
            rangey=[log10(0.3*min(tot_smear)), log10(2.5*max(tot_smear))],
@@ -328,7 +330,10 @@ def dm_steps(loDM, hiDM, obs, numsub=0, ok_smearing=0.0, device="/XWIN"):
     ppgplot.pgsci(8)
     ppgplot.pgmtxt("b", 5*dy, 0.97, 1.0, "Optimal Smearing")
     ppgplot.pgsci(4)
-    ppgplot.pgmtxt("b", 4*dy, 0.97, 1.0, "Channel Smearing")
+    if (cohdm):
+        ppgplot.pgmtxt("b", 4*dy, 0.97, 1.0, "Chan Smearing (w/ coherent dedisp)")
+    else:
+        ppgplot.pgmtxt("b", 4*dy, 0.97, 1.0, "Channel Smearing")
     ppgplot.pgsci(3)
     ppgplot.pgmtxt("b", 3*dy, 0.97, 1.0, "Sample Time (ms)")
     ppgplot.pgsci(2)
@@ -358,6 +363,7 @@ usage:  DDplan.py [options]
   [-f fctr, --fctr=fctr]          : Center frequency   (default = 1400MHz)
   [-b BW, --bw=bandwidth]         : Bandwidth in MHz   (default = 300MHz)
   [-n #chan, --numchan=#chan]     : Number of channels (default = 1024)
+  [-c cDM, --cohdm=cDM]           : Coherent DM in each chan  (default = 0.0)
   [-t dt, --dt=dt]                : Sample time (s)    (default = 0.000064 s)
   [-s subbands, --subbands=nsub]  : Number of subbands (default = #chan) 
   [-r resolution, --res=res]      : Acceptable time resolution (ms)
@@ -370,9 +376,9 @@ if __name__=='__main__':
     import getopt, sys
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "ho:l:d:f:b:n:t:s:r:",
+        opts, args = getopt.getopt(sys.argv[1:], "ho:l:d:f:b:n:c:t:s:r:",
                                    ["help", "output=", "loDM=", "hiDM=",
-                                    "fctr=", "bw=", "numchan=", "dt=",
+                                    "fctr=", "bw=", "numchan=", "cDM=", "dt=",
                                     "subbands=", "res="])
 
     except getopt.GetoptError:
@@ -389,6 +395,7 @@ if __name__=='__main__':
     numchan = 1024
     numsubbands = 0
     dt = 0.000064
+    cDM = 0.0
     ok_smearing = 0.0
     device = "/xwin"
 
@@ -415,18 +422,19 @@ if __name__=='__main__':
             numchan = int(a)
         if o in ("-t", "--dt"):
             dt = float(a)
+        if o in ("-c", "--cohdm"):
+            cDM = float(a)
         if o in ("-s", "--subbands"):
             numsubbands = int(a)
         if o in ("-r", "--res"):
             ok_smearing = float(a)
 
     # The following is an instance of an "observation" class
-    obs = observation(dt, fctr, BW, numchan)
+    obs = observation(dt, fctr, BW, numchan, cDM)
     # The following function creates the de-dispersion plan
     # The ok_smearing values is optional and allows you to raise the floor
     # and provide a level of smearing that you are willing to accept (in ms)
-    dm_steps(loDM, hiDM, obs, numsub=numsubbands,
-             ok_smearing=ok_smearing, device=device)
+    dm_steps(loDM, hiDM, obs, cDM, numsubbands, ok_smearing, device)
     
     # The following is an instance of an "observation" class
     # Here's one for a "best" resolution GBT search using the SPIGOT
