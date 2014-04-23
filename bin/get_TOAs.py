@@ -187,9 +187,6 @@ if __name__ == '__main__':
     timestep_day = timestep_sec / SECPERDAY
     fold.epoch = fold.epochi+fold.epochf
 
-#    print dir(fold)
-#    print fold_pfd
-
     # Over-ride the DM that was used during the fold
     if (DM!=0.0):
         fold_pfd.bestdm = DM
