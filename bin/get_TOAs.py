@@ -233,6 +233,8 @@ if __name__ == '__main__':
         fold_pfd.subfreqs = Num.asarray([0.0])
         sumsubfreqs = Num.asarray([0.0])
         sumsubdelays = Num.asarray([0.0])
+        subdelays2 = Num.asarray([0.0])
+        sumsubdelays_phs = Num.asarray([0.0])
 
     # Read the template profile
     if templatefilenm is not None:
