@@ -579,7 +579,7 @@ long long offset_to_PSRFITS_spectra(long long specnum, struct spectra_info *s)
     }
 
     // Find which file we need
-    while (specnum > s->start_spec[filenum+1])
+    while (filenum+1 < s->num_files && specnum > s->start_spec[filenum+1])
         filenum++;
 
     // Shift to that file
