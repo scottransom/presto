@@ -217,6 +217,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
    /* store total number of bytes read so far */
    totalbytes = nbytes;
 
+   fb->ibeam = 1;  // default value
    /* loop over and read remaining header lines until HEADER_END reached */
    while (1) {
       get_string(inputfile, &nbytes, string);
@@ -318,8 +319,6 @@ void read_filterbank_files(struct spectra_info *s)
     s->datatype = SIGPROCFB;
     s->files = (FILE **)malloc(sizeof(FILE *) * s->num_files);
     s->header_offset = gen_ivect(s->num_files);
-    s->start_subint = gen_ivect(s->num_files);
-    s->num_subint = gen_ivect(s->num_files);
     s->start_spec = (long long *)malloc(sizeof(long long) * s->num_files);
     s->num_spec = (long long *)malloc(sizeof(long long) * s->num_files);
     s->num_pad = (long long *)malloc(sizeof(long long) * s->num_files);
