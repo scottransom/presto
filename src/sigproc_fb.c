@@ -425,7 +425,7 @@ void read_filterbank_files(struct spectra_info *s)
             exit(1);
         }
         s->start_MJD[ii] = fb.tstart;
-        s->start_spec[ii] = (long long)((s->start_MJD[ii] - s->start_MJD[0]) \
+        s->start_spec[ii] = (long long)((s->start_MJD[ii] - s->start_MJD[0]) * 86400.0 \
                                         / s->dt + 0.5);
         s->num_pad[ii-1] = s->start_spec[ii] - s->N;
         s->num_spec[ii] = fb.N;
