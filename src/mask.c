@@ -86,19 +86,19 @@ void unset_oldmask_bits(mask * oldmask, unsigned char **bytemask)
 void free_mask(mask obsmask)
 /* Free the contents of an mask structure */
 {
-   int ii;
+    int ii;
 
-   for (ii = 0; ii < obsmask.numint; ii++) {
-      if (obsmask.num_chans_per_int[ii] > 0 &&
-          obsmask.num_chans_per_int[ii] <= obsmask.numchan)
-         vect_free(obsmask.chans[ii]);
-   }
-   free(obsmask.chans);
-   vect_free(obsmask.num_chans_per_int);
-   if (obsmask.num_zap_chans)
-      vect_free(obsmask.zap_chans);
-   if (obsmask.num_zap_ints)
-      vect_free(obsmask.zap_ints);
+    for (ii = 0; ii < obsmask.numint; ii++) {
+        if (obsmask.num_chans_per_int[ii] > 0 &&
+            obsmask.num_chans_per_int[ii] <= obsmask.numchan)
+            vect_free(obsmask.chans[ii]);
+    }
+    free(obsmask.chans);
+    vect_free(obsmask.num_chans_per_int);
+    if (obsmask.num_zap_chans)
+        vect_free(obsmask.zap_chans);
+    if (obsmask.num_zap_ints)
+        vect_free(obsmask.zap_ints);
 }
 
 
@@ -180,7 +180,7 @@ int determine_padvals(char *maskfilenm, mask * obsmask, float *padvals)
 // Determine reasonable padding values from the rfifind produced
 // *.stats file if it is available.  The pre-allocated vector (of
 // length numchan) is in padvals.  Return a '1' if the routine used
-// the stats file, return 0 if the padding was set to aeros.
+// the stats file, return 0 if the padding was set to zeros.
 {
    FILE *statsfile;
    int ii, numchan, numint, ptsperint, lobin, numbetween;
