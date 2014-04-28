@@ -74,7 +74,8 @@ char *make_polycos(char *parfilenm, infodata * idata)
       scopechar = '8';
       tracklen = 12;
    } else if ((strcmp(idata->telescope, "GB43m") == 0) ||
-              (strcmp(idata->telescope, "GB 140FT") == 0)){
+              (strcmp(idata->telescope, "GB 140FT") == 0) ||
+              (strcmp(idata->telescope, "NRAO20") == 0)){
       scopechar = 'a';
       tracklen = 12;
    } else if (strcmp(idata->telescope, "Nancay") == 0) {

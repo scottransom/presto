@@ -206,7 +206,8 @@ void telescope_to_tempocode(char *inname, char *outname, char*obscode)
         strcpy(obscode, "JB");
         strcpy(outname, "Jodrell Bank");
     } else if ((strcmp(scope, "gb43m") == 0) ||
-               (strcmp(scope, "gb 140ft") == 0)){
+               (strcmp(scope, "gb 140ft") == 0) ||
+               (strcmp(scope, "nrao20") == 0)){
         strcpy(obscode, "G1");
         strcpy(outname, "GB43m");
     } else if (strcmp(scope, "nancay") == 0) {
