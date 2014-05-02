@@ -84,7 +84,8 @@ Basic steps to install:
   In general, the following should work:
      "cd $PRESTO/python ; make ; make fftfit"
   If it doesnt, you will probably need to edit the Makefile 
-  or setup.py.
+  or setup.py (one problem that is common is that ppgplot_libraries
+  sometimes needs "gfortran" added...)
 
 14.  Go find pulsars!
 

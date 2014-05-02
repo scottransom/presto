@@ -13,6 +13,8 @@ undef_macros = []
 extra_compile_args = []
 include_dirs = []
 
+# Note:  you might need to add "gfortran" to the following list if 
+# you see errors relating to missing "g" functions....
 ppgplot_libraries = ["cpgplot", "pgplot", "X11", "png", "m"]
 ppgplot_library_dirs = ["/usr/X11R6/lib"]
 
