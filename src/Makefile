@@ -1,5 +1,6 @@
 #  Makefile for PRESTO
 #   by Scott M. Ransom
+#		GPU-related sections by Jintao Luo
 
 # OS type
 OS = Linux
@@ -8,12 +9,59 @@ OS = Linux
 # Linux is the first choice
 ifeq ($(OS),Linux)
 	LIBSUFFIX = .so
-	LIBCMD = -shared
+	LIBCMD = -shared	
 # else assume Darwin (i.e. OSX)
 else
 	LIBSUFFIX = .dylib
 	LIBCMD = -dynamiclib
 endif
+
+
+#------------------------------------------------------------------------------------------
+#determine if compile with CUDA
+use_cuda = no# yes/no
+
+ifeq ($(use_cuda),yes)
+$(info Compile with CUDA)
+#******************************************************************
+#                     for GUP version, CUDA 
+# CUDA compile option
+# CUDA code generation flags
+	GENCODE_SM10    := -gencode arch=compute_10,code=sm_10
+	GENCODE_SM10    := -gencode arch=compute_11,code=sm_11
+	GENCODE_SM20    := -gencode arch=compute_20,code=sm_20
+	GENCODE_SM30    := -gencode arch=compute_30,code=sm_30 -gencode arch=compute_35,code=sm_35
+	GENCODE_FLAGS   := $(GENCODE_SM10) $(GENCODE_SM20) $(GENCODE_SM30)
+# Location of the CUDA Toolkit binaries and libraries
+#modify it if necessary
+#CUDA_PATH       ?= /usr/local/cuda-5.0
+	CUDA_PATH       ?= /usr/local/cuda
+
+#modify it if necessary
+	CUDA_INC_PATH   ?= -I $(CUDA_PATH)/include -I. -I.. -I $(CUDA_PATH)/samples/common/inc/ -I$(PRESTO)/include
+
+	CUDA_BIN_PATH   ?= $(CUDA_PATH)/bin
+	NVCC            ?= $(CUDA_BIN_PATH)/nvcc
+
+#modify it if necessary, for example, if 32-bit machine, -m32
+	NVCCFLAGS 			?= -m64 -ccbin g++
+
+	EXTRA_NVCCFLAGS ?= -Xcompiler -fPIC -O2
+
+#modify it if necessary, -m64 to -m32 for 32-bit machine
+	LINKCOMMAND_CUDA = g++ -m64 -O2 -o	
+
+#modify it if necessary, maybe lib64 should be lib32?
+	CUDA_LINK_EXTRA_FLAGS = -L $(CUDA_PATH)/lib64 -lcufft  -lcudart
+#******************************************************************
+endif
+
+ifeq ($(use_cuda),no)
+$(info Compile without CUDA)
+endif
+#------------------------------------------------------------------------------------------
+
+
 
 # How to link with some needed libraries of PGPLOT
 X11LINK := $(shell pkg-config --libs x11)
@@ -37,7 +85,14 @@ CFITSIOINC := $(shell pkg-config --cflags cfitsio)
 CFITSIOLINK := $(shell pkg-config --libs cfitsio)
 
 # The standard PRESTO libraries to link into executables
+#PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
+ifeq ($(use_cuda),no)
 PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
+endif
+
+ifeq ($(use_cuda),yes)
+PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK) $(CUDA_LINK_EXTRA_FLAGS) -L $(SYSDIR)/lib/x86_64-linux-gnu -lstdc++
+endif
 
 CC = gcc
 FC = gfortran
@@ -46,6 +101,11 @@ FC = gfortran
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
 	-DUSEFFTW -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-g -O3 -ffast-math -Wall -W -fPIC
+
+ifeq ($(use_cuda),yes)
+	CFLAGS += -DUSECUDA
+endif
+	
 #	-g -Wall -W -fPIC
 CLINKFLAGS = $(CFLAGS)
 # NOTE:  Be careful of upping the optimization on the
@@ -69,6 +129,7 @@ CLIG = clig
 	mv ../clig/$*_cmd.c .
 	cp ../clig/$*.1 ../docs/
 
+ifeq ($(use_cuda),yes)
 PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	characteristics.o cldj.o chkio.o corr_prep.o corr_routines.o\
 	correlations.o database.o dcdflib.o dispersion.o\
@@ -79,7 +140,21 @@ PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
 	transpose.o twopass.o twopass_real_fwd.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o\
-	fitsfile.o hget.o hput.o imio.o djcl.o
+	fitsfile.o hget.o hput.o imio.o djcl.o accel_utils_gpu.o
+endif
+ifeq ($(use_cuda),no)
+PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
+	characteristics.o cldj.o chkio.o corr_prep.o corr_routines.o\
+	correlations.o database.o dcdflib.o dispersion.o\
+	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
+	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
+	median.o minifft.o misc_utils.o clipping.o\
+	orbint.o output.o read_fft.o responses.o\
+	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
+	transpose.o twopass.o twopass_real_fwd.o\
+	twopass_real_inv.o vectors.o multifiles.o mask.o\
+	fitsfile.o hget.o hput.o imio.o djcl.o 
+endif
 
 INSTRUMENTOBJS = backend_common.o zerodm.o sigproc_fb.o psrfits.o
 
@@ -112,6 +187,14 @@ indent:
 prep:
 	touch *_cmd.c
 
+ifeq ($(use_cuda),yes)
+accel_utils_gpu.o:	accel_utils_gpu.cu	  
+	$(NVCC) $(EXTRA_NVCCFLAGS) $(NVCCFLAGS) $(CUDA_INC_PATH)  $(GENCODE_FLAGS) -o $@ -c $<
+endif
+ifeq ($(use_cuda),no)
+$(info accel_utils_gpu.o will not be compiled)
+endif
+
 makewisdom:
 	$(CC) $(CLINKFLAGS) -o $@ makewisdom.c $(FFTLINK)
 	./makewisdom
@@ -138,6 +221,17 @@ libsla$(LIBSUFFIX):
 
 binaries: $(BINARIES)
 
+ifeq ($(use_cuda),yes)
+$(info link accelsearch with CUDA)
+accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o accel_utils_gpu.o 
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o accel_utils_gpu.o $(PRESTOLINK) -lglib-2.0 -lm $(CUDA_LINK_EXTRA_FLAGS)
+endif
+ifeq ($(use_cuda),no)
+$(info link accelsearch without CUDA)
+accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
+endif
+
 mpi: mpiprepsubband
 
 mpiprepsubband_utils.o: mpiprepsubband_utils.c
@@ -149,8 +243,8 @@ mpiprepsubband.o: mpiprepsubband.c
 mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS)
 	mpicc $(CLINKFLAGS) -o $(PRESTO)/bin/$@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
-accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
+#accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
+#	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ bary.o $(PRESTOLINK) -lm
@@ -305,3 +399,4 @@ squeaky:  cleaner
 	cd $(PRESTO)/docs ; rm -f *# *~
 	cd $(PRESTO)/python ; rm -f *# *~ *.o *.pyc *.pyo
 	cd $(PRESTO)/include ; rm -f *# *~
+
