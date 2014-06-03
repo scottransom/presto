@@ -494,32 +494,31 @@ double chi2_logp(double chi2, int dof)
 /* Return the natural log probability corresponding to a chi^2 value */
 /* of chi2 given dof degrees of freedom. */
 {
-    double logp, x;
+    double logp;
     
     if (chi2 <= 0.0) {
         return -INFINITY;
     }
 
-    if (chi2/dof > 15.0) {
+    if (chi2/dof > 15.0 || (dof > 150 && chi2/dof > 6.0)) {
         // printf("Using asymtotic expansion...\n");
-        /* Use some asymtotic expansions for the chi^2 distribution */
-        logp = log_asymtotic_incomplete_gamma(0.5*dof, chi2) -
+        // Use some asymtotic expansions for the chi^2 distribution
+        //   this is eqn 26.4.19 of A & S
+        logp = log_asymtotic_incomplete_gamma(0.5*dof, 0.5*chi2) -
             log_asymtotic_gamma(0.5*dof);
     } else {
         int which, status;
-        double p, q, bound, shape, scale = 1.0;
+        double p, q, bound, df = dof, x = chi2;
 
         which = 1;
         status = 0;
-        shape = (double) 0.5*dof;
-        x = chi2;
         /* Determine the basic probability */
-        cdfgam(&which, &p, &q, &x, &shape, &scale, &status, &bound);
+        cdfchi(&which, &p, &q, &x, &df, &status, &bound);
         if (status) {
-            printf("\nError in cdfgam() (candidate_sigma()):\n");
+            printf("\nError in cdfchi() (chi2_logp()):\n");
             printf("   status = %d, bound = %g\n", status, bound);
-            printf("   p = %g, q = %g, x = %g, shape = %g, scale = %g\n\n",
-                   p, q, x, shape, scale);
+            printf("   p = %g, q = %g, x = %g, df = %g\n\n",
+                   p, q, x, df);
             exit(1);
         }
         // printf("p = %.3g  q = %.3g\n", p, q);
@@ -559,7 +558,7 @@ double candidate_sigma(double power, int numsum, double numtrials)
     }
 
     // Get the natural log probability
-    chi2 = power;
+    chi2 = 2.0 * power;
     dof = 2.0 * numsum;
     logp = chi2_logp(chi2, dof);
 
