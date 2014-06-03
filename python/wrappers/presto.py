@@ -871,6 +871,18 @@ def calc_rzwerrs(*args):
   return _presto.calc_rzwerrs(*args)
 calc_rzwerrs = _presto.calc_rzwerrs
 
+def equivalent_gaussian_sigma(*args):
+  return _presto.equivalent_gaussian_sigma(*args)
+equivalent_gaussian_sigma = _presto.equivalent_gaussian_sigma
+
+def chi2_logp(*args):
+  return _presto.chi2_logp(*args)
+chi2_logp = _presto.chi2_logp
+
+def chi2_sigma(*args):
+  return _presto.chi2_sigma(*args)
+chi2_sigma = _presto.chi2_sigma
+
 def candidate_sigma(*args):
   return _presto.candidate_sigma(*args)
 candidate_sigma = _presto.candidate_sigma
