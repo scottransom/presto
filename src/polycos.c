@@ -120,6 +120,8 @@ char *make_polycos(char *parfilenm, infodata * idata)
    // printf("making polycos:  '%s'\n", command);
    system(command);
    remove("tz.in");
+   remove("tz.tmp");
+   remove("tempo.lis");
    psrname = (char *) calloc(strlen(psr.jname) + 1, sizeof(char));
    strcpy(psrname, psr.jname);
    return psrname;
