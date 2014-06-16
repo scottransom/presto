@@ -396,8 +396,8 @@ void calc_rzwerrs(fourierprops * props, double T, rzwerrs * result)
 double extended_equiv_gaussian_sigma(double logp)
 /*
   extended_equiv_gaussian_sigma(double logp):
-      Return the equivalent gaussian sigma corresponding
-          to the log of the cumulative gaussian probability logp.
+      Return the equivalent gaussian sigma corresponding to the 
+          natural log of the cumulative gaussian probability logp.
           In other words, return x, such that Q(x) = p, where Q(x)
           is the cumulative normal distribution.  This version uses
           the rational approximation from Abramowitz and Stegun,
@@ -417,8 +417,8 @@ double extended_equiv_gaussian_sigma(double logp)
 double log_asymtotic_incomplete_gamma(double a, double z)
 /*
   log_asymtotic_incomplete_gamma(double a, double z):
-      Return the log of the incomplete gamma function in its
-          asymtotic limit as z->infty.  This is from Abramowitz
+      Return the natural log of the incomplete gamma function in
+          its asymtotic limit as z->infty.  This is from Abramowitz
           and Stegun eqn 6.5.32.
 */
 {
@@ -437,7 +437,7 @@ double log_asymtotic_incomplete_gamma(double a, double z)
 double log_asymtotic_gamma(double z)
 /*
   log_asymtotic_gamma(double z):
-      Return the log of the gamma function in its asymtotic limit
+      Return the natural log of the gamma function in its asymtotic limit
           as z->infty.  This is from Abramowitz and Stegun eqn 6.1.41.
 */
 {
@@ -451,73 +451,124 @@ double log_asymtotic_gamma(double z)
    return x;
 }
 
+
+double equivalent_gaussian_sigma(double logp)
+/* Return the approximate significance in Gaussian sigmas */
+/* corresponding to a natural log probability logp        */
+{
+    double x;
+
+    if (logp < -600.0) {
+        x = extended_equiv_gaussian_sigma(logp);
+    } else {
+        int which, status;
+        double p, q, bound, mean = 0.0, sd = 1.0;
+        q = exp(logp);
+        p = 1.0 - q;
+        which = 2;
+        status = 0;
+        /* Convert to a sigma */
+        cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
+        if (status) {
+            if (status == -2) {
+                x = 0.0;
+            } else if (status == -3) {
+                x = 38.5;
+            } else {
+                printf("\nError in cdfnor() (candidate_sigma()):\n");
+                printf("   status = %d, bound = %g\n", status, bound);
+                printf("   p = %g, q = %g, x = %g, mean = %g, sd = %g\n\n",
+                       p, q, x, mean, sd);
+                exit(1);
+            }
+        }
+    }
+    if (x < 0.0)
+        return 0.0;
+    else
+        return x;
+}
+
+
+double chi2_logp(double chi2, int dof)
+/* Return the natural log probability corresponding to a chi^2 value */
+/* of chi2 given dof degrees of freedom. */
+{
+    double logp;
+    
+    if (chi2 <= 0.0) {
+        return -INFINITY;
+    }
+
+    if (chi2/dof > 15.0 || (dof > 150 && chi2/dof > 6.0)) {
+        // printf("Using asymtotic expansion...\n");
+        // Use some asymtotic expansions for the chi^2 distribution
+        //   this is eqn 26.4.19 of A & S
+        logp = log_asymtotic_incomplete_gamma(0.5*dof, 0.5*chi2) -
+            log_asymtotic_gamma(0.5*dof);
+    } else {
+        int which, status;
+        double p, q, bound, df = dof, x = chi2;
+
+        which = 1;
+        status = 0;
+        /* Determine the basic probability */
+        cdfchi(&which, &p, &q, &x, &df, &status, &bound);
+        if (status) {
+            printf("\nError in cdfchi() (chi2_logp()):\n");
+            printf("   status = %d, bound = %g\n", status, bound);
+            printf("   p = %g, q = %g, x = %g, df = %g\n\n",
+                   p, q, x, df);
+            exit(1);
+        }
+        // printf("p = %.3g  q = %.3g\n", p, q);
+        logp = log(q);
+    }
+    return logp;
+}
+
+
+double chi2_sigma(double chi2, int dof)
+/* Return the approximate significance in Gaussian sigmas        */
+/* sigmas of a chi^2 value of chi2 given dof degrees of freedom. */
+{
+    double logp;
+
+    if (chi2 <= 0.0) {
+        return 0.0;
+    }
+
+    // Get the natural log probability
+    logp = chi2_logp(chi2, dof);
+
+    // Convert to sigma
+    return equivalent_gaussian_sigma(logp);
+}
+
+
 double candidate_sigma(double power, int numsum, double numtrials)
 /* Return the approximate significance in Gaussian       */
 /* sigmas of a candidate of numsum summed powers,        */
 /* taking into account the number of independent trials. */
 {
-   double x = 0.0;
+    double logp, chi2, dof;
 
-   if (power <= 0.0) {
-      return 0.0;
-   }
+    if (power <= 0.0) {
+        return 0.0;
+    }
 
-   if (power > 100.0) {
-      double logp;
+    // Get the natural log probability
+    chi2 = 2.0 * power;
+    dof = 2.0 * numsum;
+    logp = chi2_logp(chi2, dof);
 
-      /* Use some asymtotic expansions for the chi^2 distribution */
-      logp = log_asymtotic_incomplete_gamma(numsum, power) -
-          log_asymtotic_gamma(numsum);
-      /* Now adjust for the number of trials */
-      logp += log(numtrials);
-      /* Convert to a sigma */
-      x = extended_equiv_gaussian_sigma(logp);
-   } else {
-      int which, status;
-      double p, q, bound, mean = 0.0, sd = 1.0, shape, scale = 1.0;
+    // Correct for numtrials
+    logp += log(numtrials);
 
-      which = 1;
-      status = 0;
-      shape = (double) numsum;
-      x = power;
-      /* Determine the basic probability */
-      cdfgam(&which, &p, &q, &x, &shape, &scale, &status, &bound);
-      if (status) {
-         printf("\nError in cdfgam() (candidate_sigma()):\n");
-         printf("   status = %d, bound = %g\n", status, bound);
-         printf("   p = %g, q = %g, x = %g, shape = %g, scale = %g\n\n",
-                p, q, x, shape, scale);
-         exit(1);
-      }
-      /* Adjust it for the number of trials */
-      if (p == 1.0)
-         q *= numtrials;
-      else
-         q = 1.0 - pow(p, numtrials);
-      p = 1.0 - q;
-      which = 2;
-      status = 0;
-      /* Convert to a sigma */
-      cdfnor(&which, &p, &q, &x, &mean, &sd, &status, &bound);
-      if (status) {
-         if (status == -2) {
-            x = 0.0;
-         } else if (status == -3) {
-            x = 38.5;
-         } else {
-            printf("\nError in cdfnor() (candidate_sigma()):\n");
-            printf("   status = %d, bound = %g\n", status, bound);
-            printf("   p = %g, q = %g, x = %g, mean = %g, sd = %g\n\n",
-                   p, q, x, mean, sd);
-            exit(1);
-         }
-      }
-   }
-   if (x < 0.0)
-      return 0.0;
-   else
-      return x;
+    // Convert to sigma
+    return equivalent_gaussian_sigma(logp);
 }
+
 
 double power_for_sigma(double sigma, int numsum, double numtrials)
 /* Return the approximate summed power level required */

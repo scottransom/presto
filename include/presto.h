@@ -494,6 +494,18 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result);
   /*   'T' is the length of the data set in sec (i.e. N*dt).  */
   /*   'result' is a pointer to the returned rzwerrs struct.  */
 
+double equivalent_gaussian_sigma(double logp);
+/* Return the approximate significance in Gaussian sigmas */
+/* corresponding to a natural log probability logp        */
+
+double chi2_logp(double chi2, int dof);
+/* Return the natural log probability corresponding to a chi^2 value */
+/* of chi2 given dof degrees of freedom. */
+
+double chi2_sigma(double chi2, int dof);
+/* Return the approximate significance in Gaussian sigmas        */
+/* sigmas of a chi^2 value of chi2 given dof degrees of freedom. */
+
 double candidate_sigma(double power, int numsum, double numtrials);
 /* Return the approximate significance in Gaussian       */
 /* sigmas of a candidate of numsum summed powers,        */

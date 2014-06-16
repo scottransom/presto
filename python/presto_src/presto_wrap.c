@@ -13982,6 +13982,90 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_equivalent_gaussian_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:equivalent_gaussian_sigma",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "equivalent_gaussian_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  result = (double)equivalent_gaussian_sigma(arg1);
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_chi2_logp(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:chi2_logp",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_logp" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_logp" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  result = (double)chi2_logp(arg1,arg2);
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_chi2_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:chi2_sigma",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_sigma" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  result = (double)chi2_sigma(arg1,arg2);
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_candidate_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   double arg1 ;
@@ -19208,6 +19292,9 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"calc_props", _wrap_calc_props, METH_VARARGS, NULL},
 	 { (char *)"calc_binprops", _wrap_calc_binprops, METH_VARARGS, NULL},
 	 { (char *)"calc_rzwerrs", _wrap_calc_rzwerrs, METH_VARARGS, NULL},
+	 { (char *)"equivalent_gaussian_sigma", _wrap_equivalent_gaussian_sigma, METH_VARARGS, NULL},
+	 { (char *)"chi2_logp", _wrap_chi2_logp, METH_VARARGS, NULL},
+	 { (char *)"chi2_sigma", _wrap_chi2_sigma, METH_VARARGS, NULL},
 	 { (char *)"candidate_sigma", _wrap_candidate_sigma, METH_VARARGS, NULL},
 	 { (char *)"power_for_sigma", _wrap_power_for_sigma, METH_VARARGS, NULL},
 	 { (char *)"chisqr", _wrap_chisqr, METH_VARARGS, NULL},
