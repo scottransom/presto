@@ -1,5 +1,5 @@
 from types import StringType, FloatType
-import math
+import math, re
 import psr_utils as pu
 try:
     from slalib import sla_ecleq, sla_eqecl, sla_eqgal
@@ -41,15 +41,15 @@ except ImportError:
 #  X2DOT    Second time derivative of projected semi-major axis (1/s)
 #
 
-float_keys = ["F", "F0", "F1", "F2", "F3", "F4", "F5", "F6",
-              "P", "P0", "P1", "P2", "P3", "P4", "P5", "P6",
-              "PEPOCH", "POSEPOCH", "DM", "START", "FINISH", "NTOA",
+float_keys = ["PEPOCH", "POSEPOCH", "DM", "START", "FINISH", "NTOA",
               "TRES", "TZRMJD", "TZRFRQ", "TZRSITE", "NITS",
               "A1", "XDOT", "E", "ECC", "EDOT", "T0", "PB", "PBDOT", "OM", "OMDOT",
               "EPS1", "EPS2", "EPS1DOT", "EPS2DOT", "TASC", "LAMBDA", "BETA",
               "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT",
-              "FB0", "FB1", "FB2", "ELAT", "ELONG", "LAMBDA", "BETA",
+              "ELAT", "ELONG", "LAMBDA", "BETA",
               "PMRA", "PMDEC", "PB_2", "A1_2", "E_2", "T0_2", "OM_2"]
+floatn_keys = ["F", "P", "FB", "FD", "DMX_", "DMXEP_", "DMXR1_",
+               "DMXR2_", "DMXF1_", "DMXF2_"]
 str_keys = ["FILE", "PSR", "PSRJ", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
 
 class psr_par:
@@ -68,6 +68,10 @@ class psr_par:
             if len(splitline)==0:
                 continue
             key = splitline[0]
+            # Regex checks for non-digit chars, followed by digit chars
+            m1 = re.search(r'(\D+)(\d+)$', key)
+            # This one looks for the DMX[RF][12]_* params
+            m2 = re.search(r'(\D+\d+_)(\d+)$', key)
             if key in str_keys:
                 setattr(self, key, splitline[1])
             elif key in float_keys:
@@ -75,6 +79,15 @@ class psr_par:
                     setattr(self, key, float(splitline[1]))
                 except ValueError:
                     pass
+            elif m1 is not None:
+                m = m1
+                if m2 is not None:
+                    m = m2
+                if m.group(1) in floatn_keys:
+                    try:
+                        setattr(self, key, float(splitline[1]))
+                    except ValueError:
+                        pass
             if len(splitline)==3:  # Some parfiles don't have flags, but do have errors
                 if splitline[2] not in ['0', '1']:
                     setattr(self, key+'_ERR', float(splitline[2]))
