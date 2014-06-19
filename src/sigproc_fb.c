@@ -573,6 +573,13 @@ void convert_filterbank_block(float *outdata, unsigned char *indata,
            for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
                outdata[ii + offset] = floatdata[jj + offset];
        }
+   } else if (s->bits_per_sample == 16) {
+       unsigned short *sdata = (unsigned short *) indata;
+       for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+           offset = spec_ct * s->num_channels;
+           for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
+               outdata[ii + offset] = (float) sdata[jj + offset];
+       }
    } else if (s->bits_per_sample == 8) {
        unsigned char *chardata = (unsigned char *) indata;
        for (spec_ct = 0; spec_ct < numread; spec_ct++) {
