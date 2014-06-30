@@ -782,8 +782,9 @@ def scale_from_snr(fil, prof, snr, rms):
     profmax = prof.get_max()
 
     scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
-    print "Area %s, Profile maximum: %s" % (area, profmax)
-    print "Recommended scale factor: %s" % scale
+    print "Average area %s, average profile maximum: %s" % \
+            (np.mean(area), np.mean(profmax))
+    print "Average recommended scale factor: %s" % np.mean(scale)
     return scale
 
 
@@ -1061,6 +1062,7 @@ def main():
         prof = MultiComponentProfile(comps)
         print "Profile area (intensity x phase): %g" % prof.get_area()
         print "Equivalent width (phase): %g" % prof.get_equivalent_width()
+        print "FWHM (phase): %g" % prof.get_fwhm()
         print "Profile maximum: %g" % prof.get_max()
         prof = get_spline_profile(prof)
         prof = apply_dm(prof, args.period, args.dm, \
