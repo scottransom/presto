@@ -314,7 +314,7 @@ void read_PSRFITS_files(struct spectra_info *s)
                     // This makes CFITSIO treat 1-bit data as written in 'B' mode
                     // even if it was written in 'X' mode originally.  This means
                     // that we unpack it ourselves.
-                    if (s->bits_per_sample==1 && s->FITS_typecode==1) {
+                    if (s->bits_per_sample<8 && s->FITS_typecode==1) {
                         s->FITS_typecode = 11;
                     }
                 } else if (colnum != s->data_col) {
