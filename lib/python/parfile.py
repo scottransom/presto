@@ -72,6 +72,16 @@ class psr_par:
             m1 = re.search(r'(\D+)(\d+)$', key)
             # This one looks for the DMX[RF][12]_* params
             m2 = re.search(r'(\D+\d+_)(\d+)$', key)
+            if key == "JUMP":
+                if splitline[3] not in ['0', '1']:
+                    setattr(self, key+'_%s'%splitline[2], float(splitline[3]))
+                if len(splitline)==5:
+                    if splitline[4] not in ['0', '1']:
+                        setattr(self, key+'_%s'%splitline[2]+'_ERR',
+                                float(splitline[4]))
+                elif len(splitline)==6:
+                    setattr(self, key+'_%s'%splitline[2]+'_ERR',
+                            float(splitline[5]))
             if key in str_keys:
                 setattr(self, key, splitline[1])
             elif key in float_keys:
