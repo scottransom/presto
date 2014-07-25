@@ -85,7 +85,10 @@ Basic steps to install:
      "cd $PRESTO/python ; make ; make fftfit"
   If it doesnt, you will probably need to edit the Makefile 
   or setup.py (one problem that is common is that ppgplot_libraries
-  sometimes needs "gfortran" added...)
+  sometimes needs "gfortran" added...).  Note that in order to
+  get python to find the modules and libraries, you should make
+  sure that your PYTHONPATH environment variable contains the
+  directory $PRESTO/lib/python.
 
 14.  Go find pulsars!
 
@@ -93,4 +96,4 @@ Note for Mac users having problems: Paul Ray has been running PRESTO a
 lot and knows the tricks to get it working...
 
 Scott Ransom
-Jan 2014
+July 2014
