@@ -1046,6 +1046,45 @@ SCALE_METHODS = {'scale': get_scaling, \
                  'radiometer': get_scaling_from_smean, \
                  'scalefile': get_scaling_from_file}
 
+def scale_profile(prof, scale_name, scale_cfgstrs, fil, verbose=True):
+    """Scale the profile.
+        
+        Inputs:
+            prof: The profile object to scale.
+            scale_name: The name of the type of scaler to use.
+            scale_cfgstrs: A list of configuration strings for the scaler.
+            fil: A FilterbankFile object.
+            verbose: Print extra information. (Default: True)
+
+        Outputs:
+            None - the scalings are applied directly to the input profile.
+    """
+    # Determine scaling
+    scale_getter = SCALE_METHODS[scale_name]
+    scaling = scale_getter(fil, prof, scale_cfgstrs)
+    if verbose:
+        print "Band-averaged scale-factor: %g" % np.ma.masked_invalid(scaling).mean()
+    prof.set_scaling(scaling)
+
+
+def make_profile(vonmises, verbose=True):
+    """Create the profile object to use.
+        
+        Inputs:
+            vonmises: A list of strings defining von mises components.
+            verbose: Print extra information. (Default: True)
+    """
+    comps = create_vonmises_components(vonmises)
+    prof = MultiComponentProfile(comps)
+    if verbose:
+        print "Creating profile. Number of components: %d" % len(comps)
+        print "Profile area (intensity x phase): %g" % prof.get_area()
+        print "Equivalent width (phase): %g" % prof.get_equivalent_width()
+        print "FWHM (phase): %g" % prof.get_fwhm()
+        print "Profile maximum: %g" % prof.get_max()
+    prof = get_spline_profile(prof)
+    return prof
+
 
 def main():
     fn = args.infile
@@ -1059,21 +1098,10 @@ def main():
                         "tsamp, etc).")
         prof = load_profile(args.inprof)
     else:
-        comps = create_vonmises_components(args.vonmises)
-        print "Creating profile. Number of components: %d" % len(comps)
-        prof = MultiComponentProfile(comps)
-        print "Profile area (intensity x phase): %g" % prof.get_area()
-        print "Equivalent width (phase): %g" % prof.get_equivalent_width()
-        print "FWHM (phase): %g" % prof.get_fwhm()
-        print "Profile maximum: %g" % prof.get_max()
-        prof = get_spline_profile(prof)
+        prof = make_profile(args.vonmises)
+        scale_profile(prof, args.scale_name, args.scale_cfgstrs, fil)
         prof = apply_dm(prof, args.period, args.dm, \
-                            fil.foff, fil.frequencies, fil.tsamp)
-        # Determine scaling
-        scale_getter = SCALE_METHODS[args.scale_name]
-        scaling = scale_getter(fil, prof, args.scale_cfgstrs)
-        print "Band-averaged scale-factor: %g" % np.ma.masked_invalid(scaling).mean()
-        prof.set_scaling(scaling)
+                        fil.foff, fil.frequencies, fil.tsamp)
         if args.outprof is not None:
             save_profile(prof, args.outprof)
 
