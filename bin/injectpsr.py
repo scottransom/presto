@@ -917,8 +917,9 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
     sys.stdout.flush()
 
 
-def load_profile(infn):
-    print "Loading profile from file (%s)" % infn
+def load_profile(infn, verbose=True):
+    if verbose:
+        print "Loading profile from file (%s)" % infn
     data = np.load(infn)
     profiles = []
     for key in sorted(data.keys()):
@@ -928,9 +929,10 @@ def load_profile(infn):
     return prof
 
 
-def save_profile(prof, outfn):
-    print "Writing %s instance to file (%s)" % \
-            (type(prof).__name__, args.outprof)
+def save_profile(prof, outfn, verbose=True):
+    if verbose:
+        print "Writing %s instance to file (%s)" % \
+                (type(prof).__name__, outfn)
     outfile = open(outfn, 'wb')
     profvals = {}
     for ii, pp in enumerate(prof.profiles):
