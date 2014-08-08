@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 
          /* Save the orbital solution every half second */
 
-         startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+         startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
          if (endtime > 2048)
             orbdt = 0.5;
          else

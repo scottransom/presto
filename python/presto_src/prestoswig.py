@@ -779,9 +779,9 @@ def dorbint(*args):
   return _presto.dorbint(*args)
 dorbint = _presto.dorbint
 
-def keplars_eqn(*args):
-  return _presto.keplars_eqn(*args)
-keplars_eqn = _presto.keplars_eqn
+def keplers_eqn(*args):
+  return _presto.keplers_eqn(*args)
+keplers_eqn = _presto.keplers_eqn
 
 def lin_interp_E(*args):
   return _presto.lin_interp_E(*args)

@@ -455,18 +455,18 @@ void drotate(double *data, long numbins, double bins_to_left);
 
 %apply long ARRAYLEN { long numpts };
 double *dorbint(double Eo, long numpts, double dt, orbitparams *orb);
-/* This routine integrates Keplar's Equation and returns a double      */
+/* This routine integrates Kepler's Equation and returns a double      */
 /* vector of the eccentric anomalys (E) for each point.  The initial   */
 /* value for eccentric anomaly (usually determined by using            */
-/* keplars_equation()) goes in Eo.  The time increment to use is dt,   */
+/* keplers_equation()) goes in Eo.  The time increment to use is dt,   */
 /* total number of pts goes in 'numpts' and all of the various orbital */
 /* parameters are found in *orb.  The routine uses 4th order Runge-    */
 /* Kutta in a dumb mode (no adaptive step-size) since all we want is   */
 /* tabulated results with even intervals.                              */
 
 
-double keplars_eqn(double t, double p_orb, double e, double Eacc);
-/* This routine solves Keplar's Equation at a single time t (sec) and  */
+double keplers_eqn(double t, double p_orb, double e, double Eacc);
+/* This routine solves Kepler's Equation at a single time t (sec) and  */
 /* returns the value of the eccentric anomaly.  The orbital period (s) */
 /* is in p_orb and the orbital eccentricity is in e.  Eacc is the      */
 /* absolute accuracy in E that we want to achieve.  t is the time in   */
@@ -553,7 +553,7 @@ void binary_velocity(double T, orbitparams * orbit,
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
 
 int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
   /*  Return the approximate kernel half width in FFT bins required    */
@@ -563,7 +563,7 @@ int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*  Notes:                                                           */
   /*    The result must be multiplied by 2 * 'numbetween' to get the   */
   /*    length of the array required to hold such a kernel.            */
@@ -622,7 +622,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
 

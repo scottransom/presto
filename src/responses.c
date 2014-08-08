@@ -96,7 +96,7 @@ void binary_velocity(double T, orbitparams * orbit, double *minv, double *maxv)
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
 {
    *minv = 1.0;
    *maxv = -1.0;
@@ -121,7 +121,7 @@ void binary_velocity(double T, orbitparams * orbit, double *minv, double *maxv)
       orb.e = orbit->e;
       orb.w = orbit->w * DEGTORAD;
       orb.t = orbit->t;
-      startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+      startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
       E = dorbint(startE, numpoints, dtb, &orb);
       E_to_v(E, numpoints, &orb);
       for (ii = 0; ii < numpoints; ii++) {
@@ -146,7 +146,7 @@ int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit)
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*  Notes:                                                           */
   /*    The result must be multiplied by 2 * 'numbetween' to get the   */
   /*    length of the array required to hold such a kernel.            */
@@ -464,7 +464,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
 {
@@ -521,7 +521,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
 
    /* Generate the orbit */
 
-   startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+   startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
    phi = dorbint(startE, numorbpts, dtb, &orb);
    E_to_phib(phi, numorbpts, &orb);
 

@@ -145,7 +145,7 @@ for i in range(numloops):
         a = raw_input("Press enter to continue...")
         Pgplot.nextplotpage(1)
         
-    # Perform the loops over the Keplarian parameters
+    # Perform the loops over the Keplerian parameters
     for job in range(numjobs):
         if parallel:
             myjob = work[myid]

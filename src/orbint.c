@@ -9,10 +9,10 @@
 
 
 double *dorbint(double Eo, long numpts, double dt, orbitparams * orb)
-/* This routine integrates Keplar's Equation and returns a double      */
+/* This routine integrates Kepler's Equation and returns a double      */
 /* vector of the eccentric anomalys (E) for each point.  The initial   */
 /* value for eccentric anomaly (usually determined by using            */
-/* keplars_equation()) goes in Eo.  The time increment to use is dt,   */
+/* keplers_equation()) goes in Eo.  The time increment to use is dt,   */
 /* total number of pts goes in 'numpts' and all of the various orbital */
 /* parameters are found in *orb.  The routine uses 4th order Runge-    */
 /* Kutta in a dumb mode (no adaptive step-size) since all we want is   */
@@ -38,9 +38,9 @@ double *dorbint(double Eo, long numpts, double dt, orbitparams * orb)
 }
 
 
-double keplars_eqn(double t, double p_orb, double e, double Eacc)
+double keplers_eqn(double t, double p_orb, double e, double Eacc)
 {
-/* This routine solves Keplar's Equation at a single time t (sec) and  */
+/* This routine solves Kepler's Equation at a single time t (sec) and  */
 /* returns the value of the eccentric anomaly.  The orbital period (s) */
 /* is in p_orb and the orbital eccentricity is in e.  Eacc is the      */
 /* absolute accuracy in E that we want to achieve.  t is the time in   */
@@ -61,7 +61,7 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
       fl = E1 - e * sin(E1) - z;
       fh = E2 - e * sin(E2) - z;
       if ((fl > 0.0 && fh > 0.0) || (fl < 0.0 && fh < 0.0)) {
-         printf("Problem with the initial conditions in keplars_eqn().\n");
+         printf("Problem with the initial conditions in keplers_eqn().\n");
          printf("  t = %g  p_orb = %g  e = %g  Eacc = %g\n", t, p_orb, e, Eacc);
          exit(1);
       }
@@ -107,7 +107,7 @@ double keplars_eqn(double t, double p_orb, double e, double Eacc)
       else
          Eh = rEs;
    }
-   printf("Maximum number of iterations exceeded in keplars_eqn.\n");
+   printf("Maximum number of iterations exceeded in keplers_eqn.\n");
    return 0.0;
 }
 

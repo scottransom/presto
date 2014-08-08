@@ -815,7 +815,7 @@ int main(int argc, char *argv[])
       /* Later, we will change them to topocentric times after     */
       /* applying corrections to Ep using TEMPO.                   */
 
-      startE = keplars_eqn(search.orb.t, search.orb.p, search.orb.e, 1.0E-15);
+      startE = keplers_eqn(search.orb.t, search.orb.p, search.orb.e, 1.0E-15);
       if (T > 2048)
          orbdt = 0.5;
       else
@@ -961,7 +961,7 @@ int main(int argc, char *argv[])
          if (binary) {
             double tt, delay;
             tt = fmod(search.orb.t + event, search.orb.p);
-            delay = keplars_eqn(tt, search.orb.p, search.orb.e, 1.0E-15);
+            delay = keplers_eqn(tt, search.orb.p, search.orb.e, 1.0E-15);
             E_to_phib(&delay, 1, &search.orb);
             event -= delay;
          }
