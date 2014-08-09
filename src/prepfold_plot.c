@@ -369,6 +369,10 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
    // in the profile bins caused by fold()
    dofeff = (search->proflen - 1.0) * DOF_corr(dt_per_bin); 
    chifact = 1.0 / DOF_corr(dt_per_bin);
+   if (flags->events) {
+       chifact = 1.0;
+       dofeff = search->proflen - 1.0;
+   }
    
    // Get off-pulse reduced-chi^2
    ftmp = estimate_offpulse_redchi2(search->rawfolds, search->stats,
