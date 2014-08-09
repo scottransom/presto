@@ -552,7 +552,8 @@ int main(int argc, char *argv[])
    printf("Best profile is in  '%s.bestprof'.\n", outfilenm);
 
    /* Generate polycos if required and set the pulsar name */
-   if ((cmd->timingP || cmd->parnameP) && !idata.bary) {
+   if ((cmd->timingP || cmd->parnameP) &&
+       (!idata.bary) || (idata.bary && cmd->barypolycosP)){
       char *polycofilenm;
       cmd->psrnameP = 1;
       if (cmd->timingP)
@@ -574,19 +575,20 @@ int main(int argc, char *argv[])
       if (cmd->polycofileP) {
          FILE *polycofileptr;
          int numsets;
-         double polyco_dm;
+         double polyco_dm, epoch = search.tepoch;
 
+         if (idata.bary) epoch = search.bepoch;
          polycofileptr = chkfopen(cmd->polycofile, "r");
-         numsets = getpoly(search.tepoch, T / SECPERDAY, &polyco_dm,
+         numsets = getpoly(epoch, T / SECPERDAY, &polyco_dm,
                            polycofileptr, cmd->psrname);
          fclose(polycofileptr);
          if (cmd->dm > 0.0) {
             printf("\nRead %d set(s) of polycos for PSR %s at %18.12f\n",
-                   numsets, cmd->psrname, search.tepoch);
+                   numsets, cmd->psrname, epoch);
             printf("Overriding polyco DM = %f with %f\n", polyco_dm, cmd->dm);
          } else {
             printf("\nRead %d set(s) of polycos for PSR %s at %18.12f (DM = %.5g)\n",
-                   numsets, cmd->psrname, search.tepoch, polyco_dm);
+                   numsets, cmd->psrname, epoch, polyco_dm);
             cmd->dm = polyco_dm;
          }
          polyco_index = phcalc(idata.mjd_i, idata.mjd_f + startTday,
@@ -594,6 +596,11 @@ int main(int argc, char *argv[])
          search.topo.p1 = 1.0 / f;
          search.topo.p2 = fd = 0.0;
          search.topo.p3 = fdd = 0.0;
+         if (idata.bary) {
+             search.bary.p1 = search.topo.p1;
+             search.bary.p2 = search.topo.p2;
+             search.bary.p3 = search.topo.p3;
+         }
          strcpy(pname, cmd->psrname);
       } else {                  /* Use the database */
          int pnum;
@@ -945,7 +952,7 @@ int main(int argc, char *argv[])
       foldf = f;
       foldfd = fd;
       foldfdd = fdd;
-      search.fold.pow = 1.0;
+      search.fold.pow = 1.0; // Data are barycentric
       search.fold.p1 = f;
       search.fold.p2 = fd;
       search.fold.p3 = fdd;
@@ -966,7 +973,15 @@ int main(int argc, char *argv[])
             event -= delay;
          }
          partnum = (int) floor(event * dtmp);
-         phase = event * (event * (event * tfdd + tfd) + tf);
+         if (!cmd->polycofileP)
+             phase = event * (event * (event * tfdd + tfd) + tf);
+         else {
+             double mjdf = idata.mjd_f + startTday + event / SECPERDAY;
+             /* Calculate the pulse phase for the event  */
+             polyco_index =
+                 phcalc(idata.mjd_i, mjdf, polyco_index, &phase, &foldf);
+             if (ii==0) orig_foldf = foldf;
+         }
          binnum = (int) ((phase - (long long) phase) * search.proflen);
          search.rawfolds[partnum * search.proflen + binnum] += 1.0;
       }
@@ -1594,7 +1609,7 @@ int main(int argc, char *argv[])
 
          /* Data was barycentered */
 
-         if (idata.bary) {
+         if (idata.bary && !cmd->polycofileP) {
 
             /* Calculate the errors in our new pulsation quantities */
 
@@ -1625,12 +1640,12 @@ int main(int argc, char *argv[])
             printf("Best p-dot       (s/s)  =  %s\n", out);
             nice_output_2(out, search.topo.p3, pdderr, 0);
             printf("Best p-dotdot  (s/s^2)  =  %s\n", out);
-
+            if (idata.bary) search.topo.p1 = 0.0;
          }
 
       } else {
 
-         if (idata.bary) {
+         if (idata.bary && !cmd->polycofileP) {
 
             /* Calculate the errors in our new pulsation quantities */
 
