@@ -43,6 +43,8 @@ typedef struct s_Cmdline {
   char zerodmP;
   /***** -absphase: Use the absolute phase associated with polycos */
   char absphaseP;
+  /***** -barypolycos: Force the use of polycos for barycentered events */
+  char barypolycosP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;

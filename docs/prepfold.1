@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "21Feb13" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "09Aug14" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -38,6 +38,7 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-invert]
 [-zerodm]
 [-absphase]
+[-barypolycos]
 [-numwapps numwapps]
 [-if ifs]
 [-clip clip]
@@ -138,6 +139,8 @@ For rawdata, flip (or invert) the band.
 Subtract the mean of all channels from each sample (i.e. remove zero DM).
 .IP -absphase
 Use the absolute phase associated with polycos.
+.IP -barypolycos
+Force the use of polycos for barycentered events.
 .IP -numwapps
 Number of WAPPs used with contiguous frequencies,
 .br
