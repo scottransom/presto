@@ -832,18 +832,29 @@ fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
 {
     if (obs->mmap_file || obs->dat_input) {
         fcomplex *tmpdata = gen_cvect(numbins);
-        int offset = 0;
+        size_t ii, offset = 0, firstbin, newnumbins;
+        fcomplex zeros = {0.0, 0.0};
+
         // zero-pad if we try to read before the beginning of the FFT
         if (lobin - obs->lobin < 0) {
-            fcomplex zeros = {0.0, 0.0};
-            int ii;
             offset = abs(lobin - obs->lobin);
             for (ii = 0 ; ii < offset ; ii++)
                 tmpdata[ii] = zeros;
-        }            
-        memcpy(tmpdata + offset, 
-               (fcomplex *) (obs->fft + (lobin - obs->lobin) + offset),
-               sizeof(fcomplex) * (numbins - offset));
+        }
+        firstbin = (lobin - obs->lobin) + offset;
+        newnumbins = numbins - offset;
+
+        // zero-pad if we try to read beyond the end of the FFT
+        if (firstbin + newnumbins > obs->numbins) {
+            size_t numpad = firstbin + newnumbins - obs->numbins;
+            newnumbins = newnumbins - numpad;
+            for (ii = numbins - numpad ; ii < numbins ; ii++)
+                tmpdata[ii] = zeros;
+        }
+
+        // Now grab the data we need
+        memcpy(tmpdata + offset, obs->fft + firstbin,
+               sizeof(fcomplex) * newnumbins);
         return tmpdata;
     } else {
         return read_fcomplex_file(obs->fftfile, lobin - obs->lobin, numbins);
