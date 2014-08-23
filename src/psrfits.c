@@ -742,6 +742,9 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
     // The following allows us to read byte-packed data
     if (s->bits_per_sample < 8)
         numtoread = (s->samples_per_subint * s->bits_per_sample) / 8;
+    // or 16-bit data that is listed as being bytes
+    if (s->bits_per_sample == 16 && s->FITS_typecode==11)
+        numtoread = s->samples_per_subint * 2;
 
     // Read the weights, offsets, and scales if required
     if (s->apply_weight)
