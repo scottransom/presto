@@ -901,6 +901,13 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                     *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[jj] +
                                offsets[jj]) * weights[jj];
             }
+        } else if (s->bits_per_sample==32) {
+            for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
+                ftptr = (float *)cdata + ii * s->samples_per_spectra;
+                for (jj = 0 ; jj < s->num_channels ; jj++)
+                    *fptr++ = (((float)(*ftptr++) - s->zero_offset) * scales[jj] +
+                               offsets[jj]) * weights[jj];
+            }
         } else {
             for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
                 cptr = cdata + ii * s->samples_per_spectra;
