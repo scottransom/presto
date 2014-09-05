@@ -196,11 +196,7 @@ if(cmd->cudaP == 1){/****************************************call GPU to run the
 //if( use_cuda_flag == 1 ){
 	
 	printf("\nTry to use a GPU to run the search\n");
-	
-	#ifdef USECUDA
-	printf( "\nUSECUDA\n" );
-	#endif
-	
+		
 	select_cuda_dev(cmd->cuda);
 	
 	//prepare d_data and d_result on GPU	
@@ -304,8 +300,6 @@ if(cmd->cudaP == 1){/****************************************call GPU to run the
    printf("\n\nDone searching.  Now optimizing each candidate.\n\n");
 
 	 destroy_cuFFT_plans( subharminfs, obs.numharmstages ); //destroy cuFFT plans
-	 
-	 printf("\ndebug:.......................\n");
 	 
    //free_subharminfos(obs.numharmstages, subharminfs); //from presto1
    free_subharminfos(&obs, subharminfs); //from presto2

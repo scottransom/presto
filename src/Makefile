@@ -19,7 +19,7 @@ endif
 
 #------------------------------------------------------------------------------------------
 #determine if compile with CUDA
-use_cuda = no# yes/no
+use_cuda = yes# yes/no
 
 ifeq ($(use_cuda),yes)
 $(info Compile with CUDA)
@@ -207,8 +207,18 @@ timetest:
 
 libpresto: libpresto$(LIBSUFFIX)
 
+ifeq ($(use_cuda),yes)
 libpresto$(LIBSUFFIX): $(PRESTOOBJS)
-	$(LINKCOMMAND1) $(PRESTO)/lib/$@ $(PRESTOOBJS) $(FFTLINK)
+	$(LINKCOMMAND1) $(PRESTO)/lib/$@ $(PRESTOOBJS) $(FFTLINK) $(CUDA_LINK_EXTRA_FLAGS) -L $(SYSDIR)/lib/x86_64-linux-gnu -lstdc++
+endif
+
+ifeq ($(use_cuda),no)
+libpresto$(LIBSUFFIX): $(PRESTOOBJS)
+	$(LINKCOMMAND1) $(PRESTO)/lib/$@ $(PRESTOOBJS) $(FFTLINK) 
+endif
+
+#libpresto$(LIBSUFFIX): $(PRESTOOBJS)	
+	#$(LINKCOMMAND1) $(PRESTO)/lib/$@ $(PRESTOOBJS) $(FFTLINK)
 
 slalib: libsla$(LIBSUFFIX)
 	cd slalib ; $(FC) -o sla_test sla_test.f -fno-second-underscore -L$(PRESTO)/lib -lsla
