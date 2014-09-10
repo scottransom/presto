@@ -1605,6 +1605,16 @@ def pulsar_B(f, fdot):
     """
     return 3.2e19 * Num.sqrt(-fdot/f**3.0)
 
+def pulsar_B_lightcyl(f, fdot):
+    """
+    pulsar_B_lightcyl(f, fdot):
+        Return the estimated pulsar magnetic field strength at the
+        light cylinder (in Gauss) given the spin frequency and
+        frequency derivative.
+    """
+    p, pd = p_to_f(f, fdot)
+    return 2.9e8 * p**(-5.0/2.0) * Num.sqrt(pd)
+
 def psr_info(porf, pdorfd, time=None, input=None):
     """
     psr_info(porf, pdorfd, input=None):
