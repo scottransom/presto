@@ -46,7 +46,7 @@ float_keys = ["PEPOCH", "POSEPOCH", "DM", "START", "FINISH", "NTOA",
               "A1", "XDOT", "E", "ECC", "EDOT", "T0", "PB", "PBDOT", "OM", "OMDOT",
               "EPS1", "EPS2", "EPS1DOT", "EPS2DOT", "TASC", "LAMBDA", "BETA",
               "RA_RAD", "DEC_RAD", "GAMMA", "SINI", "M2", "MTOT",
-              "ELAT", "ELONG", "LAMBDA", "BETA",
+              "ELAT", "ELONG", "PMLAMBDA", "PMBETA", "PX",
               "PMRA", "PMDEC", "PB_2", "A1_2", "E_2", "T0_2", "OM_2"]
 floatn_keys = ["F", "P", "FB", "FD", "DMX_", "DMXEP_", "DMXR1_",
                "DMXR2_", "DMXF1_", "DMXF2_"]
