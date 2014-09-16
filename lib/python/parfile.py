@@ -159,6 +159,9 @@ class psr_par:
             if hasattr(self, 'P1'):
                 f, fd, = pu.p_to_f(self.P0, self.P1)
                 setattr(self, 'F1', fd)
+            elif hasattr(self, 'F1'):
+                p, pd, = pu.p_to_f(self.F0, self.F1)
+                setattr(self, 'P1', pd)
         if (hasattr(self, 'F0_ERR') and hasattr(self, 'F1_ERR')):
             p, perr, pd, pderr = pu.pferrs(self.F0, self.F0_ERR, 
                                            self.F1, self.F1_ERR)
