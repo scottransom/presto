@@ -85,6 +85,8 @@ int main(int argc, char *argv[])
    dmprecision=cmd->dmprec;
    s.filenames = cmd->argv;
    s.num_files = cmd->argc;
+   // If we are zeroDMing, make sure that clipping is off.
+   if (cmd->zerodmP) cmd->noclipP = 1;
    s.clip_sigma = cmd->clip;
    // -1 causes the data to determine if we use weights, scales, & 
    // offsets for PSRFITS or flip the band for any data type where

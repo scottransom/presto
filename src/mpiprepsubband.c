@@ -111,6 +111,8 @@ int main(int argc, char *argv[])
 
    cmd = parseCmdline(argc, argv);
    spectra_info_set_defaults(&s);
+   // If we are zeroDMing, make sure that clipping is off.
+   if (cmd->zerodmP) cmd->noclipP = 1;
    s.clip_sigma = cmd->clip;
    if (cmd->noclipP) {
        cmd->clip = 0.0;
