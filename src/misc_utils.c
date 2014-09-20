@@ -87,10 +87,9 @@ void split_path_file(char *input, char **path, char **file)
    len = strlen(input);
    sptr = strrchr(input, '/');
    if (sptr == NULL) {
-      getcwd(stmp, 200);
-      if (stmp == NULL) {
-         printf("\nCurrent directory name is too long.\n");
-         printf("Exiting\n\n");
+      sptr = getcwd(stmp, 200);
+      if (sptr == NULL) {
+         perror("Error:  could not get current directory name (too long?)\n");
          exit(1);
       }
       pathlen = strlen(stmp);
@@ -639,12 +638,20 @@ void ra_dec_from_string(char *radec, int *h_or_d, int *m, double *s)
 /*   radec is a string with J2000 RA  in the format 'hh:mm:ss.ssss' */
 /*   or a string with J2000 DEC in the format 'dd:mm:ss.ssss'       */
 {
-   radec = remove_whitespace(radec);
-   sscanf(radec, "%d:%d:%lf\n", h_or_d, m, s);
-   if (radec[0]=='-' && *h_or_d==0) {
-      *m = -*m;
-      *s = -*s;
-   }
+    int retval;
+
+    radec = remove_whitespace(radec);
+    retval = sscanf(radec, "%d:%d:%lf\n", h_or_d, m, s);
+    if (retval != 3) {
+        char tmp[100];
+        sprintf(tmp, "Error:  can not convert '%s' to RA or DEC in ra_dec_from_string()\n", radec);
+        perror(tmp);
+        exit(1);
+    }
+    if (radec[0]=='-' && *h_or_d==0) {
+        *m = -*m;
+        *s = -*s;
+    }
 }
 
 
