@@ -174,7 +174,8 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
    fprintf(outfile, "# Input file       =  %-s\n", search->filenm);
    fprintf(outfile, "# Candidate        =  %-s\n", search->candnm);
    fprintf(outfile, "# Telescope        =  %-s\n", search->telescope);
-   if (TEST_EQUAL(search->tepoch, 0.0))
+   if (TEST_EQUAL(search->tepoch, 0.0) || TEST_EQUAL(search->tepoch, -1))
+      // -1.0 is for fake data made with makedata
       fprintf(outfile, "# Epoch_topo       =  N/A\n");
    else
       fprintf(outfile, "# Epoch_topo       =  %-.12f\n", search->tepoch);
@@ -1124,7 +1125,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             cpgtext(0.0, 1.0, out);
             sprintf(out, "Telescope:  %-s", search->telescope);
             cpgtext(0.0, 0.9, out);
-            if (TEST_EQUAL(search->tepoch, 0.0))
+            if (TEST_EQUAL(search->tepoch, 0.0) || TEST_EQUAL(search->tepoch, -1))
+               // -1.0 is for fake data made with makedata
                sprintf(out, "Epoch\\dtopo\\u = N/A");
             else
                sprintf(out, "Epoch\\dtopo\\u = %-.11f", search->tepoch);

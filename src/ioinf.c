@@ -46,9 +46,8 @@ void readinf(infodata * data, char *filenm)
       fscanf(infofile, "%*[^)] %*[^=]= %d", &data->bary);
 
    } else {
-
+      data->mjd_i = -1;
       strcpy(data->object, "fake pulsar");
-
    }
 
    fscanf(infofile, "%*[^=]= %lf", &data->N);
