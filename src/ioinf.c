@@ -54,11 +54,11 @@ void read_inf_line_valstr(FILE *infofile, char *valstr, char *errdesc)
 }
 
 double chk_str2double(char *instr, char *desc) {
-    char tmp[100], *sptr=instr;
+    char tmp[100], *sptr=instr, *endptr;
     double retval;
 
-    retval = strtod(sptr, NULL);
-    if (retval==0.0 && sptr==instr) {
+    retval = strtod(sptr, &endptr);
+    if (retval==0.0 && endptr==instr) {
         sprintf(tmp, "Error:  can not convert '%s' to a double (%s) in chk_str2double()\n",
                 instr, desc);
         perror(tmp);
