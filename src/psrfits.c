@@ -8,7 +8,7 @@
 
 static unsigned char *cdatabuffer;
 static float *fdatabuffer, *offsets, *scales, *weights;
-static int cur_file = 0, cur_subint = 1, numbuffered = 0;
+static int cur_file = 0, cur_subint = 1, numbuffered = 0, offs_sub_are_zero = 0;
 static long long cur_spec = 0, new_spec = 0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
@@ -18,7 +18,6 @@ extern void add_padding(float *fdata, float *padding, int numchan, int numtopad)
 
 void get_PSRFITS_subint(float *fdata, unsigned char *cdata, 
                         struct spectra_info *s);
-
 
 double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday)
 // Convert DATE-OBS string from PSRFITS primary HDU to a MJD
@@ -270,16 +269,54 @@ void read_PSRFITS_files(struct spectra_info *s)
                           s->offs_sub_col, 1L, 1L, 1L,
                           0, &offs_sub, &anynull, &status);
 
-            numrows = (int)((offs_sub - 0.5 * s->time_per_subint) /
-                            s->time_per_subint + 1e-7);
-            // Check to see if any rows have been deleted or are missing
-            if (numrows > s->start_subint[ii]) {
-                printf("Warning!:  NSUBOFFS reports %d previous rows\n"
-                       "           but OFFS_SUB implies %d.  Using OFFS_SUB.\n"
-                       "           Will likely be able to correct for this.\n",
-                       s->start_subint[ii], numrows);
+            if (offs_sub != 0.0) {
+                numrows = (int)((offs_sub - 0.5 * s->time_per_subint) /
+                                s->time_per_subint + 1e-7);
+                // Check to see if any rows have been deleted or are missing
+                if (numrows > s->start_subint[ii]) {
+                    printf("Warning!:  NSUBOFFS reports %d previous rows\n"
+                           "           but OFFS_SUB implies %d.  Using OFFS_SUB.\n"
+                           "           Will likely be able to correct for this.\n",
+                           s->start_subint[ii], numrows);
+                }
+                s->start_subint[ii] = numrows;
+            } else {
+                int indexval_col, jj;
+                offs_sub_are_zero = 1;
+
+                // If OFFS_SUB are all 0.0, then we will assume that there are
+                // no gaps in the file.  This isn't truly proper PSRFITS, but
+                // we should still be able to handle it
+                for (jj = 1; jj <= s->num_subint[ii]; jj++){
+                    fits_read_col(s->fitsfiles[ii], TDOUBLE,
+                                  s->offs_sub_col, jj, 1L, 1L,
+                                  0, &offs_sub, &anynull, &status);
+                    if (offs_sub != 0.0) {
+                        offs_sub_are_zero = 0;
+                        perror("Error!:  Some, but not all OFFS_SUB are 0.0.  Not good PSRFITS.\n");
+                        exit(EXIT_FAILURE);
+                    }
+                }
+                if (offs_sub_are_zero) {
+                    printf("Warning!:  All OFFS_SUB are 0.0.  Assuming no missing rows.\n");
+                }
+
+                // Check to see if there is an INDEXVAL column.  That should tell
+                // us if we are missing any subints.  Use it in lieu of OFFS_SUB
+                fits_get_colnum(s->fitsfiles[ii], 0, "INDEXVAL", &indexval_col, &status);
+                if (status==COL_NOT_FOUND) {
+                    printf("Warning!:  No INDEXVAL column, either.  This is not proper PSRFITS.\n");
+                    status = 0; // Reset status
+                    s->start_subint[ii] = 0;
+                } else {
+                    double subint_index;
+                    // Read INDEXVAL
+                    fits_read_col(s->fitsfiles[ii], TDOUBLE,
+                                  indexval_col, 1L, 1L, 1L,
+                                  0, &subint_index, &anynull, &status);
+                    s->start_subint[ii] = (int)(subint_index + 1e-7 - 1.0);
+                }
             }
-            s->start_subint[ii] = numrows;
         }
 
         // This is the MJD offset based on the starting subint number
@@ -637,17 +674,22 @@ int get_PSRFITS_rawblock(float *fdata, struct spectra_info *s, int *padding)
     // Read a subint of data from the DATA col
     if (cur_subint <= s->num_subint[cur_file]) {
         double offs_sub = 0.0;
-        // Read the OFFS_SUB column value in case there were dropped blocks
-        fits_read_col(s->fitsfiles[cur_file], TDOUBLE, 
-                      s->offs_sub_col, cur_subint, 1L, 1L, 
-                      0, &offs_sub, &anynull, &status);
-        // Set new_spec to proper value, accounting for possibly
-        // missing initial rows of data and/or combining observations
-        // Note: need to remove start_subint because that was already put
-        // into start_spec.  This is important if initial rows are gone.
-        new_spec = s->start_spec[cur_file] +
-            roundl((offs_sub - (s->start_subint[cur_file] + 0.5)
-                    * s->time_per_subint) / s->dt);
+        if (!offs_sub_are_zero) {
+            // Read the OFFS_SUB column value in case there were dropped blocks
+            fits_read_col(s->fitsfiles[cur_file], TDOUBLE,
+                          s->offs_sub_col, cur_subint, 1L, 1L,
+                          0, &offs_sub, &anynull, &status);
+            // Set new_spec to proper value, accounting for possibly
+            // missing initial rows of data and/or combining observations
+            // Note: need to remove start_subint because that was already put
+            // into start_spec.  This is important if initial rows are gone.
+            new_spec = s->start_spec[cur_file] +
+                roundl((offs_sub - (s->start_subint[cur_file] + 0.5)
+                        * s->time_per_subint) / s->dt);
+        } else {
+            new_spec = s->start_spec[cur_file] + \
+                (cur_subint - 1) * s->spectra_per_subint;
+        }
 
         //printf("cur/new_spec = %lld, %lld  s->start_spec[cur_file] = %lld\n", 
         //       cur_spec, new_spec, s->start_spec[cur_file]);
