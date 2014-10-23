@@ -302,11 +302,16 @@ int main(int argc, char *argv[])
 
          /* Read a chunk of data */
 
-         if (RAWDATA)
+         if (RAWDATA) {
              read_rawblocks(rawdata, blocksperint, &s, &padding);
-         else if (insubs)
+             // Clip nasty RFI if requested (we are not masking)
+             if (s.clip_sigma > 0.0)
+                 clip_times(rawdata, ptsperint, s.num_channels, s.clip_sigma, s.padvals);
+         } else if (insubs) {
              read_subband_rawblocks(s.files, s.num_files,
                                     srawdata, blocksperint, &padding);
+             // TODO: should implement clipping for subbands
+         }
 
          if (padding)
             for (jj = 0; jj < numchan; jj++)
