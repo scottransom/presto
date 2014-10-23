@@ -12,10 +12,10 @@ char scopes[NUMSCOPES][40] =
 
 void read_inf_line_valstr(FILE *infofile, char *valstr, char *errdesc)
 {
-    char line[100], *sptr=NULL;
+    char line[200], *sptr=NULL;
     int ii;
 
-    sptr = fgets(line, 100, infofile);
+    sptr = fgets(line, 200, infofile);
     if (sptr != NULL && sptr[0] != '\n' && 0 != (ii=strlen(sptr))) {
         // Check to see if this is a "standard" .inf line
         // which has an '=' in character 40
@@ -28,7 +28,7 @@ void read_inf_line_valstr(FILE *infofile, char *valstr, char *errdesc)
                     break;
             }
             if (ii + 1 == 0) {
-                sprintf(line, "Error:  no '=' to separate key/val while looking for '%s in readinf()'\n", errdesc);
+                sprintf(line, "Error:  no '=' to separate key/val while looking for '%s' in readinf()\n", errdesc);
                 perror(line);
                 exit(EXIT_FAILURE);
             }
@@ -43,9 +43,9 @@ void read_inf_line_valstr(FILE *infofile, char *valstr, char *errdesc)
         return;
     } else {
         if (feof(infofile)) {
-            sprintf(line, "Error:  end-of-file while looking for '%s in readinf()'\n", errdesc);
+            sprintf(line, "Error:  end-of-file while looking for '%s' in readinf()\n", errdesc);
         } else {
-            sprintf(line, "Error:  found blank line while looking for '%s in readinf()'\n", errdesc);
+            sprintf(line, "Error:  found blank line while looking for '%s' in readinf()\n", errdesc);
         }
         perror(line);
         exit(EXIT_FAILURE);
