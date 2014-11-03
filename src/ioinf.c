@@ -36,9 +36,9 @@ void read_inf_line_valstr(FILE *infofile, char *valstr, char *errdesc)
         }
         sptr = remove_whitespace(sptr);
         if (strlen(sptr)) {
-            strncpy(valstr, sptr, 100);
+            strcpy(valstr, sptr);
         } else {
-            strncpy(valstr, "Unknown", 10);
+            strcpy(valstr, "Unknown");
         }
         return;
     } else {
@@ -200,9 +200,9 @@ void readinf(infodata * data, char *filenm)
         if (noteslen + strlen(tmp1) > 500) break;
         if (sptr) {
             if (noteslen==0)
-                strncpy(data->notes + noteslen, rmlead(tmp1), 100);
+                strcpy(data->notes + noteslen, rmlead(tmp1));
             else
-                strncpy(data->notes + noteslen, tmp1, 100);
+                strcpy(data->notes + noteslen, tmp1);
             noteslen += strlen(data->notes);
         } else {
             if (feof(infofile)) break;
@@ -215,7 +215,7 @@ void readinf(infodata * data, char *filenm)
 void chk_empty(char *instr)
 {
     if (strlen(remove_whitespace(instr))==0)
-        strncpy(instr, "Unknown", 10);
+        strcpy(instr, "Unknown");
 }
 
 
