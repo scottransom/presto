@@ -215,6 +215,9 @@ void telescope_to_tempocode(char *inname, char *outname, char*obscode)
     } else if (strcmp(scope, "effelsberg") == 0) {
         strcpy(obscode, "EF");
         strcpy(outname, "Effelsberg");
+    } else if (strcmp(scope, "srt") == 0) {
+        strcpy(obscode, "SR");
+        strcpy(outname, "Sardinia Radio Telescope");
     } else if (strcmp(scope, "wsrt") == 0) {
         strcpy(obscode, "WT");
         strcpy(outname, "WSRT");
