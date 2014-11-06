@@ -348,7 +348,7 @@ def asini_c(pb, mf):
     """
     return (mf * pb * pb / 8015123.37129)**(1.0 / 3.0)
 
-def ELL1_check(par_file):
+def ELL1_check(par_file, output=False):
     """
     ELL1_check(par_file):
         Check the parfile to see if ELL1 can be safely used as the
@@ -359,24 +359,30 @@ def ELL1_check(par_file):
     try:
         lhs = psr.A1 * psr.E**2.0 * 1e6
     except:
-        print "Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?"
+        if output:
+            print "Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?"
         return
     try:
         rhs = psr.TRES / Num.sqrt(psr.NTOA)
     except:
-        print "Can't compute TRES / sqrt(# TOAs), maybe this isn't a TEMPO output parfile?"
+        if output:
+            print "Can't compute TRES / sqrt(# TOAs), maybe this isn't a TEMPO output parfile?"
         return
-    print "Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:"
-    print "     asini/c * ecc**2 = %8.3g us"%lhs
-    print "  TRES / sqrt(# TOAs) = %8.3g us"%rhs
+    if output:
+        print "Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:"
+        print "     asini/c * ecc**2 = %8.3g us"%lhs
+        print "  TRES / sqrt(# TOAs) = %8.3g us"%rhs
     if lhs * 50.0 < rhs:
-        print "Should be fine."
+        if output:
+            print "Should be fine."
         return True
     elif lhs * 5.0 < rhs:
-        print "Should be OK, but not optimal."
+        if output:
+            print "Should be OK, but not optimal."
         return True
     else:
-        print "Should probably use BT or DD instead."
+        if output:
+            print "Should probably use BT or DD instead."
         return False
 
 def accel_to_z(accel, T, reffreq, harm=1):
