@@ -237,7 +237,7 @@ def ffdot_plane(data, lor, dr, numr, loz, dz, numz):
 
 def estimate_rz(psr, T, show=0, device='/XWIN'):
     """
-    estimate_rz(psr, T, eo=0.0, show=0, device='/XWIN'):
+    estimate_rz(psr, T, show=0, device='/XWIN'):
         Return estimates of a pulsar's average Fourier freq ('r')
         relative to its nominal Fourier freq as well as its
         Fourier f-dot ('z') in bins, of a pulsar.
@@ -246,7 +246,6 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
            'show' if true, displays plots of 'r' and 'z'.
            'device' if the device to plot to if 'show' is true.
     """
-    from scipy.stats import mean
     startE = keplers_eqn(psr.orb.t, psr.orb.p, psr.orb.e, 1.0E-15)
     numorbpts = int(T / psr.orb.p + 1.0) * 1024 + 1
     dt = T / (numorbpts - 1)
@@ -264,7 +263,7 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
         Pgplot.plotxy(z, times, labx = 'Time',
                       laby = 'Fourier Frequency Derivative (z)', device=device)
         Pgplot.closeplot()
-    return (mean(r), mean(z))
+    return r.mean(), z.mean()
     
 def alias(r, rny):
     """
