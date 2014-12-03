@@ -269,7 +269,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
          totalbytes += sizeof(int);
       } else if (strings_equal(string,"barycentric")) {
          chkfread(&barycentric,sizeof(int),1,inputfile);
-	 totalbytes+=sizeof(int);
+         totalbytes+=sizeof(int);
       } else if (strings_equal(string,"pulsarcentric")) {
          chkfread(&pulsarcentric,sizeof(int),1,inputfile);
          totalbytes+=sizeof(int);
