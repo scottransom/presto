@@ -442,12 +442,13 @@ class VectorProfile(object):
 
 
 class DispersedProfile(VectorProfile):
-    def __init__(self, profiles, dm, freqs, period, scales=1, intrinsic=None):
+    def __init__(self, profiles, dm, freqs, period, scales=1, intrinsic=None, delayed=True):
         super(DispersedProfile, self).__init__(profiles, scales)
         self.dm = dm
         self.freqs = freqs
         self.period = period
         self.intrinsic = intrinsic
+        self.delayed = delayed
 
     def get_equivalent_width(self, *args, **kwargs):
         return np.ones_like(self.freqs)*self.intrinsic.get_equivalent_width(*args, **kwargs)
@@ -461,7 +462,10 @@ class DispersedProfile(VectorProfile):
     def plot(self, nbin=1024, scale=1, dedisp=False):
         phs = np.linspace(0, 1.0, nbin+1, endpoint=True)
         data = self(phs).transpose()
-        delays = get_phasedelays(self.dm, self.freqs, self.period)
+        if self.delayed:
+            delays = get_phasedelays(self.dm, self.freqs, self.period)
+        else:
+            delays = np.zeros_like(self.freqs)
         delayedphs = (phs+delays[:,np.newaxis]) % 1
         dedispdata = self(delayedphs).transpose() 
 
@@ -599,6 +603,8 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
 #                ax2.set_ylim(ylim2)
 #            else:
 #                ylim2 = ax2.get_ylim()
+            if DEBUG:
+                print "Smearing"
             tmpprof = inprof.smear(smearphs, delayphs, npts=NUMPOINTS)
         else:
             tmpprof = inprof.delay(delayphs)
@@ -619,6 +625,8 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
 #                ax4.set_ylim(ylim4)
 #            else:
 #                ylim4 = ax4.get_ylim()
+            if DEBUG:
+                print "Scattering"
             tmpprof = tmpprof.scatter(scattphs, npts=NUMPOINTS)
 #        ax5 = plt.subplot(5,1,5,sharex=ax)
 #        tmpprof.plot()
@@ -640,7 +648,8 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
             oldprogress = progress
     sys.stdout.write("Done   \n")
     sys.stdout.flush()
-    dispersedprof = DispersedProfile(profiles, dm=dm, freqs=freqs, period=period, intrinsic=inprof)
+    dispersedprof = DispersedProfile(profiles, dm=dm, freqs=freqs, period=period, 
+                                     intrinsic=inprof, delayed=do_delay)
     return dispersedprof
 
 
@@ -1099,9 +1108,9 @@ def main():
         prof = load_profile(args.inprof)
     else:
         prof = make_profile(args.vonmises)
-        scale_profile(prof, args.scale_name, args.scale_cfgstrs, fil)
         prof = apply_dm(prof, args.period, args.dm, \
                         fil.foff, fil.frequencies, fil.tsamp)
+        scale_profile(prof, args.scale_name, args.scale_cfgstrs, fil)
         if args.outprof is not None:
             save_profile(prof, args.outprof)
 
