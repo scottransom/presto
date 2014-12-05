@@ -112,7 +112,7 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
         s->beam_FWHM = default_beam;
         break;
     case 10:
-        strcpy(s->telescope, "UTR-2");
+        strcpy(s->telescope, "SRT");
         s->beam_FWHM = default_beam;
         break;
     case 11:
