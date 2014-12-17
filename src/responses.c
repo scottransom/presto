@@ -339,7 +339,7 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
 
    int fftlen, ii, beginbin, numintkern;
    float *data;
-   double amp, f, fd, fdd, dt, t, phase;
+   double amp, fbar, f, fd, fdd, dt, t, phase;
    static int old_numbetween = 0, old_numkern = 0, old_fftlen = 0, firsttime = 1;
    static fcomplex *kernelarray = NULL;
    fcomplex *response, *tmpresponse, *rresp, *dataarray;
@@ -375,8 +375,11 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
 
    dt = 1.0 / (double) NUM_PTS_WDAT;
    amp = 2.0 * dt;
-   f = (double) (NUM_PTS_WDAT / 4);
-   fd = (z - 0.5 * w) / 2.0;
+   fbar = (double) (NUM_PTS_WDAT / 4);  // NUM_PTS_WDAT / 4 is average freq
+   // r_o = rbar - zbar/2 + w/12  where _o is initial and bar is average
+   // z_o = zbar - w/2
+   f = fbar - 0.5 * z + w / 12.0;  //  This shifts the initial f appropriately
+   fd = (z - 0.5 * w) / 2.0;  // z - w/2 is the initial z value
    fdd = w / 6.0;
 
    /* Generate the data set */
