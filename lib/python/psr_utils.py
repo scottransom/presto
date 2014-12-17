@@ -1348,6 +1348,21 @@ def coherent_sum(amps):
     sumamps = Num.add.accumulate(amps*Num.exp(complex(0.0, 1.0)*phscorr))
     return Num.absolute(sumamps)**2.0
 
+def dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
+    """
+    dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
+        Return a complex vector addition of N vectors showing the DFT
+            response for a noise-less signal with Fourier frequency
+            offset roff, (roff=0 would mean that we are exactly at the
+            signal freq), average Fourier f-dot, z, and Fourier 2nd
+            deriv, w.  An optional phase in radians can be added.
+    """
+    r0 = roff - 0.5 * z + w / 12.0 # Make symmetric for all z and w
+    z0 = z - 0.5 * w
+    us = Num.linspace(0.0, 1.0, N)
+    phss = 2.0 * Num.pi * (us * (us * (us * w/6.0 + z0/2.0) + r0) + phs)
+    return Num.cumsum(Num.exp(Num.complex(0.0, 1.0) * phss)) / N
+
 def prob_power(power):
     """
     prob_power(power):
