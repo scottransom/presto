@@ -4,7 +4,8 @@ import ppgplot
 from Pgplot import pgpalette
 
 N = 2**14
-r = 2000.0 # average freq over "observation"
+r = N/4.0 # average freq over "observation"
+#r = N/4.0 + 0.5 # average freq over "observation"
 rint = num.floor(r)
 dr = 1.0/32.0
 dz = 0.18
