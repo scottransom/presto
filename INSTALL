@@ -15,14 +15,19 @@ Basic steps to install:
   of GCC, you can get much improved performance by adding:
   --enable-sse2 --enable-avx
 
-  Note that Ubuntu has good FFTW packages now.
+  Note that Ubuntu has good FFTW packages now (libfftw3-bin and
+  libfftw3-dev).
 
 2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
   You need the X-windows and postscript drivers at a minimum.
   Note that on 64-bit systems, compiling and linking PGPLOT can
   be tricky!
 
-  Note that Ubuntu has good PGPLOT packages now.
+  It is very likely that you will need to have the PGPLOT_DIR
+  environment variable specified to allow the programs to link and to
+  allow PGPLOT to find its important files.
+
+  Note that Ubuntu has good PGPLOT packages now (pgplot5).
 
 3.  Install TEMPO.  Make sure to set the TEMPO environment variable.
   http://tempo.sourceforge.net/
@@ -43,7 +48,8 @@ Basic steps to install:
   a pulsar data standard that external tools can actually
   view!  How about that!)
 
-  Once again, Ubuntu has CFITSIO packages!
+  Once again, Ubuntu has CFITSIO packages (libcfitsio3 and
+  libcfitsio3-dev)!
 
 6.  Define the PRESTO environment variable to the top level
   directory of the PRESTO distribution (i.e. this directory).
@@ -72,6 +78,11 @@ Basic steps to install:
   the library files should stay put.  (That's why you define the 
   PRESTO variable -- so the routines can find them).
 
+  Since dynamic linking will use $PRESTO/lib, you will need to make
+  sure that that is in your LD_LIBRARY_PATH environment variable (or
+  in some other way let your system know where to find the dynamic
+  libraries).  Similarly, you will want $PRESTO/bin in your PATH.
+
 12.  If you want to save some disk space, do a 'make clean' in
   the 'src' directory.  This will leave the libraries and
   binaries in their respective directories but will get rid of
@@ -92,8 +103,24 @@ Basic steps to install:
 
 14.  Go find pulsars!
 
-Note for Mac users having problems: Paul Ray has been running PRESTO a
-lot and knows the tricks to get it working...
+TROUBLE SHOOTING
+----------------
+Couple quick trouble-shooting tips if you are having problems
+compiling and running:
+
+1.  Environment variables!
+  -- Is PRESTO set to the top-level PRESTO source directory?
+  -- Is TEMPO set to the top-level TEMPO source directory?
+  -- Is PGPLOT_DIR set to the location of the PGPLOT utility files?
+  -- Is $PRESTO/bin in your PATH?
+  -- Is $PRESTO/lib in your LD_LIBRARY_PATH?
+  -- Is $PRESTO/lib/python in your PYTHONPATH?
+
+2.  Have you have installed the relevant -dev packages for glib2, FFTW
+  and CFITSIO if you are using a Debian-based Linux distribution?
+
+3.  If you are using a Mac, Paul Ray has been running PRESTO a lot and
+  knows several tricks to get it working...
 
 Scott Ransom
-July 2014
+January 2015
