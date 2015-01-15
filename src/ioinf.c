@@ -12,10 +12,10 @@ char scopes[NUMSCOPES][40] =
 
 void read_inf_line_valstr(FILE *infofile, char *valstr, char *errdesc)
 {
-    char line[200], *sptr=NULL;
-    int ii;
+    char line[250], *sptr=NULL;
+    int ii, slen;
 
-    sptr = fgets(line, 200, infofile);
+    sptr = fgets(line, 250, infofile);
     if (sptr != NULL && sptr[0] != '\n' && 0 != (ii=strlen(sptr))) {
         // Check to see if this is a "standard" .inf line
         // which has an '=' in character 40
@@ -35,7 +35,16 @@ void read_inf_line_valstr(FILE *infofile, char *valstr, char *errdesc)
             sptr = line + ii + 1;
         }
         sptr = remove_whitespace(sptr);
-        if (strlen(sptr)) {
+        slen = strlen(sptr);
+        if (slen) {
+            if ((strcmp(errdesc, "data->name") == 0 && slen > 199) ||
+                (strcmp(errdesc, "data->telescope") == 0 && slen > 39) ||
+                (strcmp(errdesc, "data->band") == 0 && slen > 39) ||
+                (strcmp(errdesc, "data->name") != 0 && slen > 99)) {
+                sprintf(line, "Error:  value string is too long (%d char) while looking for '%s' in readinf()\n", slen, errdesc);
+                perror(line);
+                exit(EXIT_FAILURE);
+            }
             strcpy(valstr, sptr);
         } else {
             strcpy(valstr, "Unknown");
