@@ -338,9 +338,9 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         if usepostfit:
-            plt.title("Postfit Redisuals (Number of TOAs: %d)" % TOAcount)
+            plt.title("Postfit Residuals (Number of TOAs: %d)" % TOAcount)
         else:
-            plt.title("Prefit Redisuals (Number of TOAs: %d)" % TOAcount)
+            plt.title("Prefit Residuals (Number of TOAs: %d)" % TOAcount)
         subplot += 1
 
     if numsubplots > 1:
