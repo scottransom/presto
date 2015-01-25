@@ -947,6 +947,8 @@ class Candlist(object):
         """
         if summaryfilenm is None:
             summaryfile = sys.stdout
+        elif summaryfilenm in [sys.stdout, sys.stderr]:
+            summaryfile = summaryfilenm
         else:
             summaryfile = open(summaryfilenm, "w")
         summaryfile.write("   Candlist contains %d 'good' candidates\n" % \
@@ -969,7 +971,7 @@ class Candlist(object):
               len(self.badlists['harmonic']))
         summaryfile.write("      # Candidates with DM problems: %d\n" % \
               len(self.badlists['dmproblem']))
-        if summaryfilenm is not None:
+        if summaryfilenm not in [None, sys.stdout, sys.stderr]:
             summaryfile.close()
   
     def write_cand_report(self, reportfilenm=None):
@@ -1080,11 +1082,16 @@ def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
     cands = []
     candnums = []
     current_goodcandnum = 0
+    last_candnum = 0
+    last_goodcandnum = 0
+
     for line in candfile:
         # Identify the candidates in the top of the file
         if fund_re.match(line):
             split_line = line.split()
             candnum   = int(split_line[0])
+            if len(cands) and len(split_line[0])==4 and cands[-1].candnum >= 9999:
+                candnum = last_candnum + 1
             sigma     = float(split_line[1])
             i_pow_det = float(split_line[2])
             c_pow     = float(split_line[3])
@@ -1100,13 +1107,16 @@ def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
                                           i_pow_det, c_pow, bin, z, 
                                           DMstr, filename, tobs))
             candnums.append(candnum)
+            last_candnum = candnum
             continue
 
         # Parse the harmonic powers
         elif harms_re.match(line):
             split_line = line.split()
             candnum = int(split_line[0])
-
+            # For rare cases where >10K cands, candnum is wrong in ACCEL file
+            if len(split_line[0])==4 and last_goodcandnum >= 9999:
+                candnum = last_goodcandnum + 1
             if candnum in candnums:
                 cand = cands[candnums.index(candnum)]
                 cand.harm_pows = Num.zeros(cand.numharm, dtype=Num.float64)
@@ -1119,6 +1129,7 @@ def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
                     current_goodcandnum = candnum
                     current_harmnum = 1
                 else:
+                    last_goodcandnum = candnum
                     current_goodcandnum = 0
                     # Compute the S/N
                     cand.harms_to_snr()
@@ -1153,6 +1164,7 @@ def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
                 # List candidate as a hit of itself
                 cand.hits = [(cand.DM, cand.snr, cand.sigma)]
                 cand.ipow_det = opt_ipow
+                last_goodcandnum = candnum
                 current_goodcandnum = 0
     candfile.close()
     return Candlist(cands, trackbad=trackbad, trackdupes=trackdupes)

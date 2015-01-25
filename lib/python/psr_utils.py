@@ -1,6 +1,6 @@
 import numpy as Num
 import numpy.fft as FFT
-import Pgplot, ppgplot, bisect, sinc_interp
+import Pgplot, ppgplot, bisect, sinc_interp, parfile
 from scipy.stats import histogram
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
@@ -348,6 +348,42 @@ def asini_c(pb, mf):
     """
     return (mf * pb * pb / 8015123.37129)**(1.0 / 3.0)
 
+def ELL1_check(par_file, output=False):
+    """
+    ELL1_check(par_file):
+        Check the parfile to see if ELL1 can be safely used as the
+            binary model.  To work properly, we should have:
+            asini/c * ecc**2 << timing precision / sqrt(# TOAs)
+    """
+    psr = parfile.psr_par(par_file)
+    try:
+        lhs = psr.A1 * psr.E**2.0 * 1e6
+    except:
+        if output:
+            print "Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?"
+        return
+    try:
+        rhs = psr.TRES / Num.sqrt(psr.NTOA)
+    except:
+        if output:
+            print "Can't compute TRES / sqrt(# TOAs), maybe this isn't a TEMPO output parfile?"
+        return
+    if output:
+        print "Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:"
+        print "     asini/c * ecc**2 = %8.3g us"%lhs
+        print "  TRES / sqrt(# TOAs) = %8.3g us"%rhs
+    if lhs * 50.0 < rhs:
+        if output:
+            print "Should be fine."
+        return True
+    elif lhs * 5.0 < rhs:
+        if output:
+            print "Should be OK, but not optimal."
+        return True
+    else:
+        if output:
+            print "Should probably use BT or DD instead."
+        return False
 
 def accel_to_z(accel, T, reffreq, harm=1):
     """
@@ -1312,6 +1348,21 @@ def coherent_sum(amps):
     sumamps = Num.add.accumulate(amps*Num.exp(complex(0.0, 1.0)*phscorr))
     return Num.absolute(sumamps)**2.0
 
+def dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
+    """
+    dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
+        Return a complex vector addition of N vectors showing the DFT
+            response for a noise-less signal with Fourier frequency
+            offset roff, (roff=0 would mean that we are exactly at the
+            signal freq), average Fourier f-dot, z, and Fourier 2nd
+            deriv, w.  An optional phase in radians can be added.
+    """
+    r0 = roff - 0.5 * z + w / 12.0 # Make symmetric for all z and w
+    z0 = z - 0.5 * w
+    us = Num.linspace(0.0, 1.0, N)
+    phss = 2.0 * Num.pi * (us * (us * (us * w/6.0 + z0/2.0) + r0) + phs)
+    return Num.cumsum(Num.exp(Num.complex(0.0, 1.0) * phss)) / N
+
 def prob_power(power):
     """
     prob_power(power):
@@ -1604,6 +1655,16 @@ def pulsar_B(f, fdot):
         (in Gauss) given the spin frequency and frequency derivative.
     """
     return 3.2e19 * Num.sqrt(-fdot/f**3.0)
+
+def pulsar_B_lightcyl(f, fdot):
+    """
+    pulsar_B_lightcyl(f, fdot):
+        Return the estimated pulsar magnetic field strength at the
+        light cylinder (in Gauss) given the spin frequency and
+        frequency derivative.
+    """
+    p, pd = p_to_f(f, fdot)
+    return 2.9e8 * p**(-5.0/2.0) * Num.sqrt(pd)
 
 def psr_info(porf, pdorfd, time=None, input=None):
     """

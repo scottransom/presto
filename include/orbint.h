@@ -52,17 +52,17 @@ typedef struct orbitparams {
  */
 
 double *dorbint(double Eo, long numpts, double dt, orbitparams *orb); 
-/* This routine integrates Keplar's Equation and returns a double       */
+/* This routine integrates Kepler's Equation and returns a double       */
 /* vector of the eccentric anomalys (E) for each point.  The initial    */
 /* value for eccentric anomaly (usually determined by using             */
-/* keplars_equation()) goes in Eo.  The time increment to use is dt,    */
+/* keplers_equation()) goes in Eo.  The time increment to use is dt,    */
 /* total number of pts goes in 'numpts' and all of the various orbital  */
 /* parameters are found in *orb.  The routine uses 4th order Runge-     */
 /* Kutta in a dumb mode (no adaptive step-size) since all we want is    */
 /* tabulated results with even intervals.                               */
 
-double keplars_eqn(double t, double p_orb, double e, double Eacc);
-/* This routine solves Keplar's Equation at a single time t (sec) and  */
+double keplers_eqn(double t, double p_orb, double e, double Eacc);
+/* This routine solves Kepler's Equation at a single time t (sec) and  */
 /* returns the value of the eccentric anomaly.  The orbital period (s) */
 /* is in p_orb and the orbital eccentricity is in e.  Eacc is the      */
 /* absolute accuracy in E that we want to achieve.  t is the time in   */

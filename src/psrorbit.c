@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
 
    /* Prep the orbit integrator */
 
-   startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+   startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
    if (endtime > 2048)
       orbdt = 2.0;
    else

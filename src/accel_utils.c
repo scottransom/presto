@@ -518,14 +518,13 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
 static void center_string(char *outstring, char *instring, int width)
 {
    int len;
-   char *tmp;
 
    len = strlen(instring);
    if (width < len) {
       printf("\nwidth < len (%d) in center_string(outstring, '%s', width=%d)\n",
              len, instring, width);
    }
-   tmp = memset(outstring, ' ', width);
+   memset(outstring, ' ', width);
    outstring[width] = '\0';
    if (len >= width) {
       strncpy(outstring, instring, width);
@@ -589,11 +588,13 @@ void output_fundamentals(fourierprops * props, GSList * list,
 
    /* Compare the candidates with the pulsar database */
 
-   if (dms2rad(idata->ra_h, idata->ra_m, idata->ra_s) != 0.0 &&
-       hms2rad(idata->dec_d, idata->dec_m, idata->dec_s) != 0.0) {
-      for (ii = 0; ii < numcands; ii++) {
-         comp_psr_to_cand(props + ii, idata, notes + ii * 20, 0);
-      }
+   if (strncmp(idata->telescope, "None", 4) != 0) {
+       if (dms2rad(idata->ra_h, idata->ra_m, idata->ra_s) != 0.0 &&
+           hms2rad(idata->dec_d, idata->dec_m, idata->dec_s) != 0.0) {
+           for (ii = 0; ii < numcands; ii++) {
+               comp_psr_to_cand(props + ii, idata, notes + ii * 20, 0);
+           }
+       }
    }
 
    /* Compare the candidates with themselves */
@@ -770,7 +771,12 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
                        cand->hizs[jj], 0.0, &props);
          }
          calc_rzwerrs(&props, obs->T, &errs);
-         comp_psr_to_cand(&props, idata, notes, 0);
+         if (strncmp(idata->telescope, "None", 4) != 0) {
+             comp_psr_to_cand(&props, idata, notes, 0);
+         } else {
+             memset(notes, ' ', 20);
+             notes[20] = '\0';
+         }
          if (jj == 0)
             sprintf(tmpstr, " %-4d", ii + 1);
          else
@@ -832,18 +838,29 @@ fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
 {
     if (obs->mmap_file || obs->dat_input) {
         fcomplex *tmpdata = gen_cvect(numbins);
-        int offset = 0;
+        size_t ii, offset = 0, firstbin, newnumbins;
+        fcomplex zeros = {0.0, 0.0};
+
         // zero-pad if we try to read before the beginning of the FFT
         if (lobin - obs->lobin < 0) {
-            fcomplex zeros = {0.0, 0.0};
-            int ii;
             offset = abs(lobin - obs->lobin);
             for (ii = 0 ; ii < offset ; ii++)
                 tmpdata[ii] = zeros;
-        }            
-        memcpy(tmpdata + offset, 
-               (fcomplex *) (obs->fft + (lobin - obs->lobin) + offset),
-               sizeof(fcomplex) * (numbins - offset));
+        }
+        firstbin = (lobin - obs->lobin) + offset;
+        newnumbins = numbins - offset;
+
+        // zero-pad if we try to read beyond the end of the FFT
+        if (firstbin + newnumbins > obs->numbins) {
+            size_t numpad = firstbin + newnumbins - obs->numbins;
+            newnumbins = newnumbins - numpad;
+            for (ii = numbins - numpad ; ii < numbins ; ii++)
+                tmpdata[ii] = zeros;
+        }
+
+        // Now grab the data we need
+        memcpy(tmpdata + offset, obs->fft + firstbin,
+               sizeof(fcomplex) * newnumbins);
         return tmpdata;
     } else {
         return read_fcomplex_file(obs->fftfile, lobin - obs->lobin, numbins);

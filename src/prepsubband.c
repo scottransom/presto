@@ -64,6 +64,7 @@ int main(int argc, char *argv[])
    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL;
    int *idispdt;
    char *datafilenm;
+   int dmprecision=2;
    struct spectra_info s;
    infodata idata;
    mask obsmask;
@@ -81,8 +82,11 @@ int main(int argc, char *argv[])
 
    cmd = parseCmdline(argc, argv);
    spectra_info_set_defaults(&s);
+   dmprecision=cmd->dmprec;
    s.filenames = cmd->argv;
    s.num_files = cmd->argc;
+   // If we are zeroDMing, make sure that clipping is off.
+   if (cmd->zerodmP) cmd->noclipP = 1;
    s.clip_sigma = cmd->clip;
    // -1 causes the data to determine if we use weights, scales, & 
    // offsets for PSRFITS or flip the band for any data type where
@@ -216,7 +220,7 @@ int main(int argc, char *argv[])
       for (ii = 0; ii < cmd->numdms; ii++) {
          dms[ii] = cmd->lodm + ii * cmd->dmstep;
          avgdm += dms[ii];
-         sprintf(datafilenm, "%s_DM%.2f.dat", cmd->outfile, dms[ii]);
+         sprintf(datafilenm, "%s_DM%.*f.dat", cmd->outfile, dmprecision,dms[ii]);
          outfiles[ii] = chkfopen(datafilenm, "wb");
          printf("   '%s'\n", datafilenm);
       }
@@ -240,9 +244,9 @@ int main(int argc, char *argv[])
       maxdm = cmd->subdm;
       outfiles = (FILE **) malloc(cmd->nsub * sizeof(FILE *));
       num_places = (int) ceil(log10(cmd->nsub));
-      sprintf(format_str, "%%s_DM%%.2f.sub%%0%dd", num_places);
+      sprintf(format_str, "%%s_DM%%.*f.sub%%0%dd", num_places);
       for (ii = 0; ii < cmd->nsub; ii++) {
-         sprintf(datafilenm, format_str, cmd->outfile, avgdm, ii);
+         sprintf(datafilenm, format_str, cmd->outfile, dmprecision, avgdm, ii);
          outfiles[ii] = chkfopen(datafilenm, "wb");
          printf("   '%s'\n", datafilenm);
       }
@@ -618,9 +622,9 @@ int main(int argc, char *argv[])
          idata.mjd_f = baryepoch - idata.mjd_i;
       }
       if (cmd->subP)
-         sprintf(idata.name, "%s_DM%.2f.sub", cmd->outfile, dms[ii]);
+         sprintf(idata.name, "%s_DM%.*f.sub", cmd->outfile, dmprecision, dms[ii]);
       else
-         sprintf(idata.name, "%s_DM%.2f", cmd->outfile, dms[ii]);
+         sprintf(idata.name, "%s_DM%.*f", cmd->outfile, dmprecision, dms[ii]);
       writeinf(&idata);
    }
 
@@ -631,7 +635,7 @@ int main(int argc, char *argv[])
 
       for (ii = 0; ii < cmd->numdms; ii++) {
          fclose(outfiles[ii]);
-         sprintf(datafilenm, "%s_DM%.2f.dat", cmd->outfile, dms[ii]);
+         sprintf(datafilenm, "%s_DM%.*f.dat", cmd->outfile, dmprecision, dms[ii]);
          outfiles[ii] = chkfopen(datafilenm, "rb+");
       }
       for (ii = 0; ii < idata.numonoff; ii++) {

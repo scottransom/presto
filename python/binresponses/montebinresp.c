@@ -149,7 +149,7 @@ int main(int argc, char *argv[]){
 	      itmp = (len(data) - len(psr_resp)) / 2
 	      for (ll=0 ; ll<psr_numbins ; ll++)
 		data[ll+itmp] = psr_resp[ll];
-	      eo = keplars_eqn(psr.orb.t, psr.orb.p, psr.orb.e, 1.0e-14)
+	      eo = keplers_eqn(psr.orb.t, psr.orb.p, psr.orb.e, 1.0e-14)
 	      estimate_rz(psr, T, eo, &tryr, &tryz);
 	      tryr = tryr + datalen / 2.0;
 	      width = 201;

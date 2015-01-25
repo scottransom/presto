@@ -96,7 +96,7 @@ void binary_velocity(double T, orbitparams * orbit, double *minv, double *maxv)
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
 {
    *minv = 1.0;
    *maxv = -1.0;
@@ -121,7 +121,7 @@ void binary_velocity(double T, orbitparams * orbit, double *minv, double *maxv)
       orb.e = orbit->e;
       orb.w = orbit->w * DEGTORAD;
       orb.t = orbit->t;
-      startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+      startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
       E = dorbint(startE, numpoints, dtb, &orb);
       E_to_v(E, numpoints, &orb);
       for (ii = 0; ii < numpoints; ii++) {
@@ -146,7 +146,7 @@ int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit)
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*  Notes:                                                           */
   /*    The result must be multiplied by 2 * 'numbetween' to get the   */
   /*    length of the array required to hold such a kernel.            */
@@ -337,9 +337,9 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
   /*       contain.                                                    */
 {
 
-   int fftlen, ii, beginbin, numintkern;
+   int fftlen, ii, beginbin, numintkern, fbar;
    float *data;
-   double amp, f, fd, fdd, dt, t, phase;
+   double amp, f, fd, fdd, dt, t, phase, dfbar;
    static int old_numbetween = 0, old_numkern = 0, old_fftlen = 0, firsttime = 1;
    static fcomplex *kernelarray = NULL;
    fcomplex *response, *tmpresponse, *rresp, *dataarray;
@@ -375,8 +375,12 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
 
    dt = 1.0 / (double) NUM_PTS_WDAT;
    amp = 2.0 * dt;
-   f = (double) (NUM_PTS_WDAT / 4);
-   fd = (z - 0.5 * w) / 2.0;
+   fbar = NUM_PTS_WDAT / 4;  // NUM_PTS_WDAT / 4 is average freq
+   dfbar = (double) fbar;
+   // r_o = rbar - zbar/2 + w/12  where _o is initial and bar is average
+   // z_o = zbar - w/2
+   f = dfbar - 0.5 * z + w / 12.0;  //  This shifts the initial f appropriately
+   fd = (z - 0.5 * w) / 2.0;  // z - w/2 is the initial z value
    fdd = w / 6.0;
 
    /* Generate the data set */
@@ -397,7 +401,7 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
    /* same length as on prior calls.                         */
 
    fftlen = next2_to_n(numkern);
-   beginbin = NUM_PTS_WDAT / 4 - numkern / numbetween;
+   beginbin = fbar - numkern / numbetween;
    if (firsttime ||
        old_numkern != numkern ||
        old_numbetween != numbetween || old_fftlen != fftlen) {
@@ -464,7 +468,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
 {
@@ -521,7 +525,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
 
    /* Generate the orbit */
 
-   startE = keplars_eqn(orb.t, orb.p, orb.e, 1.0E-15);
+   startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
    phi = dorbint(startE, numorbpts, dtb, &orb);
    E_to_phib(phi, numorbpts, &orb);
 

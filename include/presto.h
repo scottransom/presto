@@ -335,7 +335,7 @@ void binary_velocity(double T, orbitparams * orbit,
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
 
 int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
   /*  Return the approximate kernel half width in FFT bins required    */
@@ -345,7 +345,7 @@ int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*  Notes:                                                           */
   /*    The result must be multiplied by 2 * 'numbetween' to get the   */
   /*    length of the array required to hold such a kernel.            */
@@ -400,7 +400,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr, \
   /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
-  /*       Keplarian orbital parameters of the binary system.          */
+  /*       Keplerian orbital parameters of the binary system.          */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
 
@@ -493,6 +493,18 @@ void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result);
   /*   'props' is a pointer to a fourierprops structure.      */
   /*   'T' is the length of the data set in sec (i.e. N*dt).  */
   /*   'result' is a pointer to the returned rzwerrs struct.  */
+
+double equivalent_gaussian_sigma(double logp);
+/* Return the approximate significance in Gaussian sigmas */
+/* corresponding to a natural log probability logp        */
+
+double chi2_logp(double chi2, int dof);
+/* Return the natural log probability corresponding to a chi^2 value */
+/* of chi2 given dof degrees of freedom. */
+
+double chi2_sigma(double chi2, int dof);
+/* Return the approximate significance in Gaussian sigmas        */
+/* sigmas of a chi^2 value of chi2 given dof degrees of freedom. */
 
 double candidate_sigma(double power, int numsum, double numtrials);
 /* Return the approximate significance in Gaussian       */

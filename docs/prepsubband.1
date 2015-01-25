@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "08Apr14" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -51,6 +51,7 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 [-numdms numdms]
 [-nsub nsub]
 [-downsamp downsamp]
+[-dmprec dmprec]
 [-mask maskfile]
 infile ...
 .\" cligPart SYNOPSIS end
@@ -153,6 +154,12 @@ The number of neighboring bins to co-add,
 1 Int value between 1 and 128.
 .br
 Default: `1'
+.IP -dmprec
+The number of decimals in the precision of the DM in the filename.,
+.br
+1 Int value between 2 and 4.
+.br
+Default: `2'
 .IP -mask
 File containing masking information to use,
 .br

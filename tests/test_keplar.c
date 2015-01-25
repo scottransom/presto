@@ -13,7 +13,7 @@ int main (int argc, char **argv)
   e = atof(argv[3]);
   for (i = 0 ; i <= npts ; i++){
     t = (double) i / (double) npts * p;
-    u = keplars_eqn(t, 1.0/p, e, 1.0E-14);
+    u = keplers_eqn(t, 1.0/p, e, 1.0E-14);
     printf(" t = %10.6f   u = %17.15f\n",t,u);
   }
 }

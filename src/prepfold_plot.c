@@ -174,7 +174,8 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
    fprintf(outfile, "# Input file       =  %-s\n", search->filenm);
    fprintf(outfile, "# Candidate        =  %-s\n", search->candnm);
    fprintf(outfile, "# Telescope        =  %-s\n", search->telescope);
-   if (TEST_EQUAL(search->tepoch, 0.0))
+   if (TEST_EQUAL(search->tepoch, 0.0) || TEST_EQUAL(search->tepoch, -1))
+      // -1.0 is for fake data made with makedata
       fprintf(outfile, "# Epoch_topo       =  N/A\n");
    else
       fprintf(outfile, "# Epoch_topo       =  %-.12f\n", search->tepoch);
@@ -190,88 +191,63 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
    fprintf(outfile, "# Profile Avg      =  %-17.15g\n", beststats->prof_avg);
    fprintf(outfile, "# Profile StdDev   =  %-17.15g\n", sqrt(beststats->prof_var));
 
-   /* Calculate the values of P and Q since we know X and DF */
-
    {
-      int chiwhich = 1, chistatus = 0, goodsig = 1;
-      double chip = 0.0, chiq = 0.0, chixmeas = 0.0, chidf = 0.0, chitmp = 0.0;
-      double normz = 0.0, normmean = 0.0, normstdev = 1.0;
-      char out2[80];
+       int chidf;
+       double chip, chi_lnp, chi_sig;
+       char out2[80];
 
-      chidf = search->proflen - 1.0;
-      chixmeas = beststats->redchi * chidf;
-      cdfchi(&chiwhich, &chip, &chiq, &chixmeas, &chidf, &chistatus, &chitmp);
-      if (chistatus != 0) {
-         if (chistatus < 0)
-            printf("\nInput parameter %d to cdfchi() was out of range.\n",
-                   chistatus);
-         else if (chistatus == 3)
-            printf("\nP + Q do not equal 1.0 in cdfchi().\n");
-         else if (chistatus == 10)
-            printf("\nError in cdfgam().\n");
-         else
-            printf("\nUnknown error in cdfchi().\n");
-      }
-
-      /* Calculate the equivalent sigma */
-
-      chiwhich = 2;
-      cdfnor(&chiwhich, &chip, &chiq, &normz, &normmean, &normstdev,
-             &chistatus, &chitmp);
-      if (chistatus != 0)
-         goodsig = 0;
-
-      if (goodsig)
-         sprintf(out2, "(~%.1f sigma)", normz);
-      else
-         sprintf(out2, " ");
-      fprintf(outfile, "# Reduced chi-sqr  =  %.3f\n", beststats->redchi);
-      fprintf(outfile, "# Prob(Noise)      <  %.3g   %s\n", chiq, out2);
-      if (search->nsub > 1)
-         fprintf(outfile, "# Best DM          =  %.3f\n", search->bestdm);
-      {
-         if (search->tepoch != 0.0) {
-            fprintf(outfile, "# P_topo (ms)      =  %-17.15g +/- %-.3g\n",
-                    search->topo.p1 * 1000.0, perr * 1000.0);
-            fprintf(outfile, "# P'_topo (s/s)    =  %-17.15g +/- %-.3g\n",
-                    search->topo.p2, pderr);
-            fprintf(outfile, "# P''_topo (s/s^2) =  %-17.15g +/- %-.3g\n",
-                    search->topo.p3, pdderr);
-         } else {
-            fprintf(outfile, "# P_topo (ms)      =  N/A\n");
-            fprintf(outfile, "# P'_topo (s/s)    =  N/A\n");
-            fprintf(outfile, "# P''_topo (s/s^2) =  N/A\n");
-         }
-         if (search->bepoch != 0.0) {
-            fprintf(outfile, "# P_bary (ms)      =  %-17.15g +/- %-.3g\n",
-                    search->bary.p1 * 1000.0, perr * 1000.0);
-            fprintf(outfile, "# P'_bary (s/s)    =  %-17.15g +/- %-.3g\n",
-                    search->bary.p2, pderr);
-            fprintf(outfile, "# P''_bary (s/s^2) =  %-17.15g +/- %-.3g\n",
-                    search->bary.p3, pdderr);
-         } else {
-            fprintf(outfile, "# P_bary (ms)      =  N/A\n");
-            fprintf(outfile, "# P'_bary (s/s)    =  N/A\n");
-            fprintf(outfile, "# P''_bary (s/s^2) =  N/A\n");
-         }
-      }
-      if (TEST_EQUAL(search->orb.p, 0.0)) {
-         fprintf(outfile, "# P_orb (s)        =  N/A\n");
-         fprintf(outfile, "# asin(i)/c (s)    =  N/A\n");
-         fprintf(outfile, "# eccentricity     =  N/A\n");
-         fprintf(outfile, "# w (rad)          =  N/A\n");
-         fprintf(outfile, "# T_peri           =  N/A\n");
-      } else {
-         fprintf(outfile, "# P_orb (s)        =  %-17.15g\n", search->orb.p);
-         fprintf(outfile, "# asin(i)/c (s)    =  %-17.15g\n", search->orb.x);
-         fprintf(outfile, "# eccentricity     =  %-17.15g\n", search->orb.e);
-         fprintf(outfile, "# w (rad)          =  %-17.15g\n", search->orb.w);
-         fprintf(outfile, "# T_peri           =  %-.12f\n", search->orb.t);
-      }
+       chidf = search->proflen - 1;
+       chi_lnp = chi2_logp(beststats->redchi * chidf, chidf);
+       chip = (chi_lnp < -700) ? 0.0 : exp(chi_lnp);
+       chi_sig = equivalent_gaussian_sigma(chi_lnp);
+       sprintf(out2, "(~%.1f sigma)", chi_sig);
+       fprintf(outfile, "# Reduced chi-sqr  =  %.3f\n", beststats->redchi);
+       fprintf(outfile, "# Prob(Noise)      <  %.3g   %s\n", chip, out2);
+       if (search->nsub > 1)
+           fprintf(outfile, "# Best DM          =  %.3f\n", search->bestdm);
+       {
+           if (search->tepoch != 0.0) {
+               fprintf(outfile, "# P_topo (ms)      =  %-17.15g +/- %-.3g\n",
+                       search->topo.p1 * 1000.0, perr * 1000.0);
+               fprintf(outfile, "# P'_topo (s/s)    =  %-17.15g +/- %-.3g\n",
+                       search->topo.p2, pderr);
+               fprintf(outfile, "# P''_topo (s/s^2) =  %-17.15g +/- %-.3g\n",
+                       search->topo.p3, pdderr);
+           } else {
+               fprintf(outfile, "# P_topo (ms)      =  N/A\n");
+               fprintf(outfile, "# P'_topo (s/s)    =  N/A\n");
+               fprintf(outfile, "# P''_topo (s/s^2) =  N/A\n");
+           }
+           if (search->bepoch != 0.0) {
+               fprintf(outfile, "# P_bary (ms)      =  %-17.15g +/- %-.3g\n",
+                       search->bary.p1 * 1000.0, perr * 1000.0);
+               fprintf(outfile, "# P'_bary (s/s)    =  %-17.15g +/- %-.3g\n",
+                       search->bary.p2, pderr);
+               fprintf(outfile, "# P''_bary (s/s^2) =  %-17.15g +/- %-.3g\n",
+                       search->bary.p3, pdderr);
+           } else {
+               fprintf(outfile, "# P_bary (ms)      =  N/A\n");
+               fprintf(outfile, "# P'_bary (s/s)    =  N/A\n");
+               fprintf(outfile, "# P''_bary (s/s^2) =  N/A\n");
+           }
+       }
+       if (TEST_EQUAL(search->orb.p, 0.0)) {
+           fprintf(outfile, "# P_orb (s)        =  N/A\n");
+           fprintf(outfile, "# asin(i)/c (s)    =  N/A\n");
+           fprintf(outfile, "# eccentricity     =  N/A\n");
+           fprintf(outfile, "# w (rad)          =  N/A\n");
+           fprintf(outfile, "# T_peri           =  N/A\n");
+       } else {
+           fprintf(outfile, "# P_orb (s)        =  %-17.15g\n", search->orb.p);
+           fprintf(outfile, "# asin(i)/c (s)    =  %-17.15g\n", search->orb.x);
+           fprintf(outfile, "# eccentricity     =  %-17.15g\n", search->orb.e);
+           fprintf(outfile, "# w (rad)          =  %-17.15g\n", search->orb.w);
+           fprintf(outfile, "# T_peri           =  %-.12f\n", search->orb.t);
+       }
    }
    fprintf(outfile, "######################################################\n");
    for (ii = 0; ii < search->proflen; ii++)
-      fprintf(outfile, "%4d  %.7g\n", ii, bestprof[ii]);
+       fprintf(outfile, "%4d  %.7g\n", ii, bestprof[ii]);
    fclose(outfile);
 }
 
@@ -348,7 +324,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 /* Make the beautiful 1 page prepfold output */
 {
    int ii, jj, profindex = 0, loops = 1, ct, bestidm = 0, bestip = 0, bestipd = 0;
-   double N = 0.0, T, dphase, dofeff;
+   double N = 0.0, T, dofeff;
    double parttime, bestp, bestpd, bestpdd;
    double perr, pderr, pdderr;
    double pfold, pdfold, pddfold = 0.0;
@@ -394,6 +370,10 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
    // in the profile bins caused by fold()
    dofeff = (search->proflen - 1.0) * DOF_corr(dt_per_bin); 
    chifact = 1.0 / DOF_corr(dt_per_bin);
+   if (flags->events) {
+       chifact = 1.0;
+       dofeff = search->proflen - 1.0;
+   }
    
    // Get off-pulse reduced-chi^2
    ftmp = estimate_offpulse_redchi2(search->rawfolds, search->stats,
@@ -447,9 +427,6 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
    switch_f_and_p(search->fold.p1, search->fold.p2, search->fold.p3,
                   &pfold, &pdfold, &pddfold);
-
-   /* Time interval of 1 profile bin */
-   dphase = 1.0 / (search->fold.p1 * search->proflen);
 
    /* Find out how many total points were folded */
    for (ii = 0; ii < search->npart; ii++)
@@ -898,12 +875,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                vect_free(phaseone);
                vect_free(tmpprof);
             } else {
-               int chanpersb;
                double lofreq, hifreq, losubfreq, hisubfreq;
-               float dsubf;
 
-               chanpersb = search->numchan / search->nsub;
-               dsubf = chanpersb * search->chan_wid;
                lofreq = search->lofreq - 0.5 * search->chan_wid;
                hifreq = lofreq + search->numchan * search->chan_wid;
                losubfreq = doppler(lofreq, search->avgvoverc);
@@ -1152,7 +1125,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             cpgtext(0.0, 1.0, out);
             sprintf(out, "Telescope:  %-s", search->telescope);
             cpgtext(0.0, 0.9, out);
-            if (TEST_EQUAL(search->tepoch, 0.0))
+            if (TEST_EQUAL(search->tepoch, 0.0) || TEST_EQUAL(search->tepoch, -1))
+               // -1.0 is for fake data made with makedata
                sprintf(out, "Epoch\\dtopo\\u = N/A");
             else
                sprintf(out, "Epoch\\dtopo\\u = %-.11f", search->tepoch);
@@ -1200,106 +1174,78 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             sprintf(out, "=  %.4g", sqrt(beststats.prof_var));
             cpgtext(0.45, 0.0, out);
 
-            /* Calculate the values of P and Q since we know X and DF */
-
             {
-               int chiwhich = 1, chistatus = 0, goodsig = 1;
-               double chip = 0.0, chiq = 0.0, chixmeas = 0.0, chidf = 0.0, chitmp =
-                   0.0;
-               double normz = 0.0, normmean = 0.0, normstdev = 1.0;
+                int chidf;
+                double chip, chi_lnp, chi_sig;
 
-               chidf = search->proflen - 1.0;
-               chixmeas = beststats.redchi * chidf;
-               cdfchi(&chiwhich, &chip, &chiq, &chixmeas, &chidf, &chistatus,
-                      &chitmp);
-               if (chistatus != 0) {
-                  if (chistatus < 0)
-                     printf("\nInput parameter %d to cdfchi() was out of range.\n",
-                            chistatus);
-                  else if (chistatus == 3)
-                     printf("\nP + Q do not equal 1.0 in cdfchi().\n");
-                  else if (chistatus == 10)
-                     printf("\nError in cdfgam().\n");
-                  else
-                     printf("\nUnknown error in cdfchi().\n");
-               }
+                chidf = search->proflen - 1;
+                chi_lnp = chi2_logp(beststats.redchi * chidf, chidf);
+                chip = (chi_lnp < -700) ? 0.0 : exp(chi_lnp);
+                chi_sig = equivalent_gaussian_sigma(chi_lnp);
 
-               /* Calculate the equivalent sigma */
+                /* Add the Fold Info area */
 
-               chiwhich = 2;
-               cdfnor(&chiwhich, &chip, &chiq, &normz, &normmean, &normstdev,
-                      &chistatus, &chitmp);
-               if (chistatus != 0)
-                  goodsig = 0;
-
-               /* Add the Fold Info area */
-
-               cpgsvp(0.519, 0.94, 0.68, 0.94);
-               cpgswin(-0.05, 1.05, -0.1, 1.1);
-               cpgsch(0.8);
-               cpgmtxt("T", 0.0, 0.5, 0.5, "Search Information");
-               cpgsch(0.7);
-               sprintf(out, "RA\\dJ2000\\u = %s", search->rastr);
-               cpgtext(0.0, 1.0, out);
-               sprintf(out, "DEC\\dJ2000\\u = %s", search->decstr);
-               cpgtext(0.6, 1.0, out);
-               if (flags->nosearch)
-                  cpgtext(0.0, 0.9, "        Folding Parameters");
-               else
-                  cpgtext(0.0, 0.9, "        Best Fit Parameters");
-               if (goodsig)
-                  sprintf(out2, "(%.1f\\gs)", normz);
-               else
-                  sprintf(out2, " ");
-               if (chiq == 0.0)
-                  sprintf(out, "DOF\\deff\\u = %.2f  \\gx\\u2\\d\\dred\\u = %.3f  P(Noise) ~ 0   %s",
-                          dofeff, beststats.redchi, out2);
-               else
-                  sprintf(out, "DOF\\deff\\u = %.2f  \\gx\\u2\\d\\dred\\u = %.3f  P(Noise) < %.3g  %s",
-                          dofeff, beststats.redchi, chiq, out2);
-
-               cpgtext(0.0, 0.8, out);
-               if (search->nsub > 1) {
-                  sprintf(out, "Dispersion Measure (DM; pc/cm\\u3\\d) = %.3f", search->bestdm);
-                  cpgtext(0.0, 0.7, out);
-               } else {
-                  sprintf(out, "Dispersion Measure (DM) = N/A");
-                  cpgtext(0.0, 0.7, out);
-               }
-               {
-                  if (search->tepoch != 0.0) {
-                     cpgnice_output_2(out2, search->topo.p1 * 1000.0, perr * 1000.0,
-                                      0);
-                     sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
-                     cpgtext(0.0, 0.6, out);
-                     cpgnice_output_2(out2, search->topo.p2, pderr, 0);
-                     sprintf(out, "P'\\dtopo\\u (s/s) = %s", out2);
-                     cpgtext(0.0, 0.5, out);
-                     cpgnice_output_2(out2, search->topo.p3, pdderr, 0);
-                     sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
-                     cpgtext(0.0, 0.4, out);
-                  } else {
-                     cpgtext(0.0, 0.6, "P\\dtopo\\u (ms) = N/A");
-                     cpgtext(0.0, 0.5, "P'\\dtopo\\u (s/s) = N/A");
-                     cpgtext(0.0, 0.4, "P''\\dtopo\\u (s/s\\u2\\d) = N/A");
-                  }
-
-                  if (search->bepoch != 0.0) {
-                     cpgnice_output_2(out2, search->bary.p1 * 1000.0, perr * 1000.0,
-                                      0);
-                     sprintf(out, "P\\dbary\\u (ms) = %s", out2);
-                     cpgtext(0.6, 0.6, out);
-                     cpgnice_output_2(out2, search->bary.p2, pderr, 0);
-                     sprintf(out, "P'\\dbary\\u (s/s) = %s", out2);
-                     cpgtext(0.6, 0.5, out);
-                     cpgnice_output_2(out2, search->bary.p3, pdderr, 0);
-                     sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
-                     cpgtext(0.6, 0.4, out);
-                  } else {
-                     cpgtext(0.6, 0.6, "P\\dbary\\u (ms) = N/A");
-                     cpgtext(0.6, 0.5, "P'\\dbary\\u (s/s) = N/A");
-                     cpgtext(0.6, 0.4, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
-                  }
+                cpgsvp(0.519, 0.94, 0.68, 0.94);
+                cpgswin(-0.05, 1.05, -0.1, 1.1);
+                cpgsch(0.8);
+                cpgmtxt("T", 0.0, 0.5, 0.5, "Search Information");
+                cpgsch(0.7);
+                sprintf(out, "RA\\dJ2000\\u = %s", search->rastr);
+                cpgtext(0.0, 1.0, out);
+                sprintf(out, "DEC\\dJ2000\\u = %s", search->decstr);
+                cpgtext(0.6, 1.0, out);
+                if (flags->nosearch)
+                    cpgtext(0.0, 0.9, "        Folding Parameters");
+                else
+                    cpgtext(0.0, 0.9, "        Best Fit Parameters");
+                sprintf(out2, "(%.1f\\gs)", chi_sig);
+                if (chip == 0.0)
+                    sprintf(out, "DOF\\deff\\u = %.2f  \\gx\\u2\\d\\dred\\u = %.3f  P(Noise) ~ 0   %s",
+                            dofeff, beststats.redchi, out2);
+                else
+                    sprintf(out, "DOF\\deff\\u = %.2f  \\gx\\u2\\d\\dred\\u = %.3f  P(Noise) < %.3g  %s",
+                            dofeff, beststats.redchi, chip, out2);
+                cpgtext(0.0, 0.8, out);
+                if (search->nsub > 1) {
+                    sprintf(out, "Dispersion Measure (DM; pc/cm\\u3\\d) = %.3f", search->bestdm);
+                    cpgtext(0.0, 0.7, out);
+                } else {
+                    sprintf(out, "Dispersion Measure (DM) = N/A");
+                    cpgtext(0.0, 0.7, out);
+                }
+                {
+                    if (search->tepoch != 0.0) {
+                        cpgnice_output_2(out2, search->topo.p1 * 1000.0, perr * 1000.0,
+                                         0);
+                        sprintf(out, "P\\dtopo\\u (ms) = %s", out2);
+                        cpgtext(0.0, 0.6, out);
+                        cpgnice_output_2(out2, search->topo.p2, pderr, 0);
+                        sprintf(out, "P'\\dtopo\\u (s/s) = %s", out2);
+                        cpgtext(0.0, 0.5, out);
+                        cpgnice_output_2(out2, search->topo.p3, pdderr, 0);
+                        sprintf(out, "P''\\dtopo\\u (s/s\\u2\\d) = %s", out2);
+                        cpgtext(0.0, 0.4, out);
+                    } else {
+                        cpgtext(0.0, 0.6, "P\\dtopo\\u (ms) = N/A");
+                        cpgtext(0.0, 0.5, "P'\\dtopo\\u (s/s) = N/A");
+                        cpgtext(0.0, 0.4, "P''\\dtopo\\u (s/s\\u2\\d) = N/A");
+                    }
+                    if (search->bepoch != 0.0) {
+                        cpgnice_output_2(out2, search->bary.p1 * 1000.0, perr * 1000.0,
+                                         0);
+                        sprintf(out, "P\\dbary\\u (ms) = %s", out2);
+                        cpgtext(0.6, 0.6, out);
+                        cpgnice_output_2(out2, search->bary.p2, pderr, 0);
+                        sprintf(out, "P'\\dbary\\u (s/s) = %s", out2);
+                        cpgtext(0.6, 0.5, out);
+                        cpgnice_output_2(out2, search->bary.p3, pdderr, 0);
+                        sprintf(out, "P''\\dbary\\u (s/s\\u2\\d) = %s", out2);
+                        cpgtext(0.6, 0.4, out);
+                    } else {
+                        cpgtext(0.6, 0.6, "P\\dbary\\u (ms) = N/A");
+                        cpgtext(0.6, 0.5, "P'\\dbary\\u (s/s) = N/A");
+                        cpgtext(0.6, 0.4, "P''\\dbary\\u (s/s\\u2\\d) = N/A");
+                    }
                }
                cpgtext(0.0, 0.3, "        Binary Parameters");
                if (TEST_EQUAL(search->orb.p, 0.0)) {

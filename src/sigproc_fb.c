@@ -224,6 +224,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
    /* store total number of bytes read so far */
    totalbytes = nbytes;
 
+   fb->ibeam = 1;  // default value
    /* loop over and read remaining header lines until HEADER_END reached */
    while (1) {
       get_string(inputfile, &nbytes, string);
@@ -275,7 +276,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
          totalbytes += sizeof(int);
       } else if (strings_equal(string,"barycentric")) {
          chkfread(&barycentric,sizeof(int),1,inputfile);
-	 totalbytes+=sizeof(int);
+         totalbytes+=sizeof(int);
       } else if (strings_equal(string,"pulsarcentric")) {
          chkfread(&pulsarcentric,sizeof(int),1,inputfile);
          totalbytes+=sizeof(int);
@@ -325,8 +326,6 @@ void read_filterbank_files(struct spectra_info *s)
     s->datatype = SIGPROCFB;
     s->files = (FILE **)malloc(sizeof(FILE *) * s->num_files);
     s->header_offset = gen_ivect(s->num_files);
-    s->start_subint = gen_ivect(s->num_files);
-    s->num_subint = gen_ivect(s->num_files);
     s->start_spec = (long long *)malloc(sizeof(long long) * s->num_files);
     s->num_spec = (long long *)malloc(sizeof(long long) * s->num_files);
     s->num_pad = (long long *)malloc(sizeof(long long) * s->num_files);
@@ -433,7 +432,7 @@ void read_filterbank_files(struct spectra_info *s)
             exit(1);
         }
         s->start_MJD[ii] = fb.tstart;
-        s->start_spec[ii] = (long long)((s->start_MJD[ii] - s->start_MJD[0]) \
+        s->start_spec[ii] = (long long)((s->start_MJD[ii] - s->start_MJD[0]) * SECPERDAY \
                                         / s->dt + 0.5);
         s->num_pad[ii-1] = s->start_spec[ii] - s->N;
         s->num_spec[ii] = fb.N;
@@ -458,7 +457,7 @@ long long offset_to_filterbank_spectra(long long specnum, struct spectra_info *s
     }
 
     // Find which file we need
-    while (specnum > s->start_spec[filenum+1])
+    while (filenum+1 < s->num_files && specnum > s->start_spec[filenum+1])
         filenum++;
 
     // Shift to that file
@@ -580,6 +579,13 @@ void convert_filterbank_block(float *outdata, unsigned char *indata,
            offset = spec_ct * s->num_channels;
            for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
                outdata[ii + offset] = floatdata[jj + offset];
+       }
+   } else if (s->bits_per_sample == 16) {
+       unsigned short *sdata = (unsigned short *) indata;
+       for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+           offset = spec_ct * s->num_channels;
+           for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
+               outdata[ii + offset] = (float) sdata[jj + offset];
        }
    } else if (s->bits_per_sample == 8) {
        unsigned char *chardata = (unsigned char *) indata;

@@ -12686,7 +12686,7 @@ fail:
 }
 
 
-SWIGINTERN PyObject *_wrap_keplars_eqn(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+SWIGINTERN PyObject *_wrap_keplers_eqn(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   double arg1 ;
   double arg2 ;
@@ -12706,28 +12706,28 @@ SWIGINTERN PyObject *_wrap_keplars_eqn(PyObject *SWIGUNUSEDPARM(self), PyObject 
   PyObject * obj3 = 0 ;
   double result;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOOO:keplars_eqn",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:keplers_eqn",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
   ecode1 = SWIG_AsVal_double(obj0, &val1);
   if (!SWIG_IsOK(ecode1)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "keplars_eqn" "', argument " "1"" of type '" "double""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "keplers_eqn" "', argument " "1"" of type '" "double""'");
   } 
   arg1 = (double)(val1);
   ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "keplars_eqn" "', argument " "2"" of type '" "double""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "keplers_eqn" "', argument " "2"" of type '" "double""'");
   } 
   arg2 = (double)(val2);
   ecode3 = SWIG_AsVal_double(obj2, &val3);
   if (!SWIG_IsOK(ecode3)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "keplars_eqn" "', argument " "3"" of type '" "double""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "keplers_eqn" "', argument " "3"" of type '" "double""'");
   } 
   arg3 = (double)(val3);
   ecode4 = SWIG_AsVal_double(obj3, &val4);
   if (!SWIG_IsOK(ecode4)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "keplars_eqn" "', argument " "4"" of type '" "double""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "keplers_eqn" "', argument " "4"" of type '" "double""'");
   } 
   arg4 = (double)(val4);
-  result = (double)keplars_eqn(arg1,arg2,arg3,arg4);
+  result = (double)keplers_eqn(arg1,arg2,arg3,arg4);
   resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
@@ -13976,6 +13976,90 @@ SWIGINTERN PyObject *_wrap_calc_rzwerrs(PyObject *SWIGUNUSEDPARM(self), PyObject
   arg3 = (rzwerrs *)(argp3);
   calc_rzwerrs(arg1,arg2,arg3);
   resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_equivalent_gaussian_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:equivalent_gaussian_sigma",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "equivalent_gaussian_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  result = (double)equivalent_gaussian_sigma(arg1);
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_chi2_logp(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:chi2_logp",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_logp" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_logp" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  result = (double)chi2_logp(arg1,arg2);
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_chi2_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:chi2_sigma",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_sigma" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  result = (double)chi2_sigma(arg1,arg2);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -19185,7 +19269,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"frotate", _wrap_frotate, METH_VARARGS, NULL},
 	 { (char *)"drotate", _wrap_drotate, METH_VARARGS, NULL},
 	 { (char *)"dorbint", _wrap_dorbint, METH_VARARGS, NULL},
-	 { (char *)"keplars_eqn", _wrap_keplars_eqn, METH_VARARGS, NULL},
+	 { (char *)"keplers_eqn", _wrap_keplers_eqn, METH_VARARGS, NULL},
 	 { (char *)"lin_interp_E", _wrap_lin_interp_E, METH_VARARGS, NULL},
 	 { (char *)"E_to_phib", _wrap_E_to_phib, METH_VARARGS, NULL},
 	 { (char *)"E_to_v", _wrap_E_to_v, METH_VARARGS, NULL},
@@ -19208,6 +19292,9 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"calc_props", _wrap_calc_props, METH_VARARGS, NULL},
 	 { (char *)"calc_binprops", _wrap_calc_binprops, METH_VARARGS, NULL},
 	 { (char *)"calc_rzwerrs", _wrap_calc_rzwerrs, METH_VARARGS, NULL},
+	 { (char *)"equivalent_gaussian_sigma", _wrap_equivalent_gaussian_sigma, METH_VARARGS, NULL},
+	 { (char *)"chi2_logp", _wrap_chi2_logp, METH_VARARGS, NULL},
+	 { (char *)"chi2_sigma", _wrap_chi2_sigma, METH_VARARGS, NULL},
 	 { (char *)"candidate_sigma", _wrap_candidate_sigma, METH_VARARGS, NULL},
 	 { (char *)"power_for_sigma", _wrap_power_for_sigma, METH_VARARGS, NULL},
 	 { (char *)"chisqr", _wrap_chisqr, METH_VARARGS, NULL},

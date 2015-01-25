@@ -61,10 +61,10 @@ int main(int argc, char *argv[])
    short *srawdata = NULL;
    char *outfilenm, *statsfilenm, *maskfilenm;
    char *bytemaskfilenm, *rfifilenm;
-   int numchan = 0, numint = 0, newper = 0, oldper = 0, good_padvals = 0;
+   int numchan = 0, numint = 0, newper = 0, oldper = 0;
    int blocksperint, ptsperint = 0, ptsperblock = 0, padding = 0;
    int numcands, candnum, numrfi = 0, numrfivect = NUM_RFI_VECT;
-   int ii, jj, kk, slen, numread = 0, insubs = 0;
+   int ii, jj, kk, slen, insubs = 0;
    int harmsum = RFI_NUMHARMSUM, lobin = RFI_LOBIN, numbetween = RFI_NUMBETWEEN;
    double davg, dvar, freq;
    struct spectra_info s;
@@ -90,6 +90,8 @@ int main(int argc, char *argv[])
    spectra_info_set_defaults(&s);
    s.filenames = cmd->argv;
    s.num_files = cmd->argc;
+   // If we are zeroDMing, make sure that clipping is off.
+   if (cmd->zerodmP) cmd->noclipP = 1;
    s.clip_sigma = cmd->clip;
    // -1 causes the data to determine if we use weights, scales, & 
    // offsets for PSRFITS or flip the band for any data type where
@@ -156,6 +158,14 @@ int main(int argc, char *argv[])
        }
    }
 
+   /* Read an input mask if wanted */
+   if (cmd->maskfileP) {
+       read_mask(cmd->maskfile, &oldmask);
+       printf("Read old mask information from '%s'\n\n", cmd->maskfile);
+   } else {
+       oldmask.numchan = oldmask.numint = 0;
+   }
+
    if (!cmd->nocomputeP) {
 
        if (RAWDATA || insubs) {
@@ -216,14 +226,8 @@ int main(int argc, char *argv[])
                s.padvals[ii] = 0.0;
        }
 
-       /* Read an input mask if wanted */
-       if (cmd->maskfileP) {
-           read_mask(cmd->maskfile, &oldmask);
-           printf("Read old mask information from '%s'\n\n", cmd->maskfile);
-           good_padvals = determine_padvals(cmd->maskfile, &oldmask, s.padvals);
-       } else {
-           oldmask.numchan = oldmask.numint = 0;
-       }
+       if (cmd->maskfileP)
+           determine_padvals(cmd->maskfile, &oldmask, s.padvals);
 
       /* The number of data points and blocks to work with at a time */
 
@@ -298,11 +302,16 @@ int main(int argc, char *argv[])
 
          /* Read a chunk of data */
 
-         if (RAWDATA)
-             numread = read_rawblocks(rawdata, blocksperint, &s, &padding);
-         else if (insubs)
-             numread = read_subband_rawblocks(s.files, s.num_files,
-                                              srawdata, blocksperint, &padding);
+         if (RAWDATA) {
+             read_rawblocks(rawdata, blocksperint, &s, &padding);
+             // Clip nasty RFI if requested (we are not masking)
+             if (s.clip_sigma > 0.0)
+                 clip_times(rawdata, ptsperint, s.num_channels, s.clip_sigma, s.padvals);
+         } else if (insubs) {
+             read_subband_rawblocks(s.files, s.num_files,
+                                    srawdata, blocksperint, &padding);
+             // TODO: should implement clipping for subbands
+         }
 
          if (padding)
             for (jj = 0; jj < numchan; jj++)

@@ -74,7 +74,8 @@ char *make_polycos(char *parfilenm, infodata * idata)
       scopechar = '8';
       tracklen = 12;
    } else if ((strcmp(idata->telescope, "GB43m") == 0) ||
-              (strcmp(idata->telescope, "GB 140FT") == 0)){
+              (strcmp(idata->telescope, "GB 140FT") == 0) ||
+              (strcmp(idata->telescope, "NRAO20") == 0)){
       scopechar = 'a';
       tracklen = 12;
    } else if (strcmp(idata->telescope, "Nancay") == 0) {
@@ -95,6 +96,9 @@ char *make_polycos(char *parfilenm, infodata * idata)
    } else if (strcmp(idata->telescope, "LWA") == 0) {
      scopechar = 'x';
      tracklen = 12;
+   } else if (strcmp(idata->telescope, "SRT") == 0) {
+      scopechar = 'z';
+      tracklen = 12;
    } else if (strcmp(idata->telescope, "Geocenter") == 0) {
       scopechar = 'o';
       tracklen = 12;
@@ -119,6 +123,8 @@ char *make_polycos(char *parfilenm, infodata * idata)
    // printf("making polycos:  '%s'\n", command);
    system(command);
    remove("tz.in");
+   remove("tz.tmp");
+   remove("tempo.lis");
    psrname = (char *) calloc(strlen(psr.jname) + 1, sizeof(char));
    strcpy(psrname, psr.jname);
    return psrname;
