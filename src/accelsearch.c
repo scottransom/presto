@@ -10,12 +10,12 @@
 #include <fcntl.h>
 #endif
 
-#ifdef USEDMALLOC
-#include "dmalloc.h"
-#endif
+// Use OpenMP
+#include <omp.h>
 
 extern float calc_median_powers(fcomplex * amplitudes, int numamps);
 extern void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft);
+extern void set_openmp_numthreads(int numthreads);
 
 static void print_percent_complete(int current, int number, char *what, int reset)
 {
@@ -112,7 +112,12 @@ int main(int argc, char *argv[])
    printf("Generating correlation kernels:\n");
    subharminfs = create_subharminfos(&obs);
    printf("Done generating kernels.\n\n");
-   printf("Starting the search.\n");
+   if (cmd->ncpus > 1) {
+       set_openmp_numthreads(cmd->ncpus);
+   } else {
+       omp_set_num_threads(1); // Explicitly turn off OpenMP
+       printf("Starting the search.\n\n");
+   }
    /* Don't use the *.txtcand files on short in-memory searches */
    if (!obs.dat_input) {
       printf("  Working candidates in a test format are in '%s'.\n\n",

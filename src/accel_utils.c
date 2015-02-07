@@ -17,6 +17,19 @@
 #include <fcntl.h>
 #endif
 
+// Use OpenMP
+#include <omp.h>
+static int openmp_numthreads = 1;
+
+void set_openmp_numthreads(int numthreads)
+{
+    int maxcpus = omp_get_num_procs();
+    openmp_numthreads = (numthreads <= maxcpus) ? numthreads : maxcpus;
+    omp_set_num_threads(openmp_numthreads);
+    printf("Starting the search using %d threads with OpenMP.\n\n", 
+           openmp_numthreads);
+}
+
 #define NEAREST_INT(x) (int) (x<0 ? x-0.5 : x+0.5)
 
 /* Return 2**n */
@@ -33,7 +46,6 @@ static inline int twon_to_index(int n)
    }
    return x;
 }
-
 
 static inline int calc_required_z(double harm_fract, double zfull)
 /* Calculate the 'z' you need for subharmonic  */
@@ -973,13 +985,21 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    /* Perform the correlations */
 
    result = gen_cmatrix(ffdot->numzs, ffdot->numrs);
+
+   // Do this once outside the loop to set the data cache in corr_complex
    datainf = RAW;
-   for (ii = 0; ii < ffdot->numzs; ii++) {
+   nrs = corr_complex(data, numdata, datainf,
+                      shi->kern[0].data, fftlen, FFT,
+                      result[0], ffdot->numrs, binoffset,
+                      ACCEL_NUMBETWEEN, binoffset, CORR);
+   datainf = SAME;
+// #pragma omp parallel for
+   for (ii = 1; ii < ffdot->numzs; ii++) {
+      // Note that the following still might not be thread-safe...
       nrs = corr_complex(data, numdata, datainf,
                          shi->kern[ii].data, fftlen, FFT,
                          result[ii], ffdot->numrs, binoffset,
                          ACCEL_NUMBETWEEN, binoffset, CORR);
-      datainf = SAME;
    }
 
    // Always free data
@@ -988,6 +1008,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    /* Convert the amplitudes to normalized powers */
 
    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
+#pragma omp parallel for private(powargr,powargi)
    for (ii = 0; ii < (ffdot->numzs * ffdot->numrs); ii++)
       ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i);
    vect_free(result[0]);
@@ -1113,12 +1134,15 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
         indices[ii] = (int)(rrint * harm_fract + 0.5);
 
     // Now add all the powers
+#pragma omp parallel for private(zz,subz,zind,inpows,outpows,jj)
     for (ii = 0; ii < numzs; ii++) {
+        // if (rlo < 600) printf("%d: ii=%d\n", omp_get_thread_num(), ii);
         zz = zlo + ii * ACCEL_DZ;
         subz = calc_required_z(harm_fract, zz);
         zind = index_from_z(subz, zlo);
         inpows = obs->ffdotplane + zind * rlen;
         outpows = fundamental->powers[0] + ii * numrs;
+//#pragma omp parallel for
         for (jj = 0; jj < numrs; jj++)
             outpows[jj] += inpows[indices[jj]];
     }
@@ -1168,21 +1192,25 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
    numindep = obs->numindep[twon_to_index(numharm)];
 
    for (ii = 0; ii < ffdot->numzs; ii++) {
+#pragma omp parallel for
       for (jj = 0; jj < ffdot->numrs; jj++) {
          if (ffdot->powers[ii][jj] > powcut) {
             float pow, sig;
             double rr, zz;
-            int added = 0;
 
             pow = ffdot->powers[ii][jj];
             sig = candidate_sigma(pow, numharm, numindep);
             rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
             zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
-            cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz, &added);
-            if (added && !obs->dat_input)
-               fprintf(obs->workfile,
-                       "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
-                       pow, sig, numharm, rr, rr / obs->T, zz);
+#pragma omp critical
+            {
+                int added = 0;
+                cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz, &added);
+                if (added && !obs->dat_input)
+                    fprintf(obs->workfile,
+                            "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
+                            pow, sig, numharm, rr, rr / obs->T, zz);
+            }
          }
       }
    }
