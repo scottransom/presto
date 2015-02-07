@@ -45,7 +45,7 @@ FC = gfortran
 # Very recent Intel CPUs might see a few percent speedup using -mavx
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
 	-DUSEFFTW -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-g -O3 -ffast-math -Wall -W -fPIC
+	-g -O3 -fopenmp -ffast-math -Wall -W -fPIC
 #	-g -Wall -W -fPIC
 CLINKFLAGS = $(CFLAGS)
 # NOTE:  Be careful of upping the optimization on the
@@ -150,7 +150,7 @@ mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o
 	mpicc $(CLINKFLAGS) -o $(PRESTO)/bin/$@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
+	$(CC) $(CLINKFLAGS) -fopenmp -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ bary.o $(PRESTOLINK) -lm
