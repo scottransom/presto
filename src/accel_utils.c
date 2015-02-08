@@ -1008,7 +1008,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    /* Convert the amplitudes to normalized powers */
 
    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
-#pragma omp parallel for private(powargr,powargi)
+#pragma omp parallel for default(shared), private(ii,powargr,powargi)
    for (ii = 0; ii < (ffdot->numzs * ffdot->numrs); ii++)
       ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i);
    vect_free(result[0]);
@@ -1118,33 +1118,39 @@ void add_ffdotpows_ptrs(ffdotpows * fundamental,
 void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
                          int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, zind, subz;
-    const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
-    const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
     const double harm_fract = (double) harmnum / (double) numharm;
-    float *outpows, *inpows;
     int *indices;
     
     // Pre-compute the frequency lookup table
     indices = gen_ivect(numrs);
-    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-        indices[ii] = (int)(rrint * harm_fract + 0.5);
+    {
+        int ii, rrint;
+        for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+            indices[ii] = (int)(rrint * harm_fract + 0.5);
+    }
 
     // Now add all the powers
-#pragma omp parallel for private(zz,subz,zind,inpows,outpows,jj)
-    for (ii = 0; ii < numzs; ii++) {
-        // if (rlo < 600) printf("%d: ii=%d\n", omp_get_thread_num(), ii);
-        zz = zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, zlo);
-        inpows = obs->ffdotplane + zind * rlen;
-        outpows = fundamental->powers[0] + ii * numrs;
-//#pragma omp parallel for
-        for (jj = 0; jj < numrs; jj++)
-            outpows[jj] += inpows[indices[jj]];
+#pragma omp parallel default(none) shared(indices,fundamental,obs)
+    {
+        const int zlo = fundamental->zlo;
+        const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+        float *powptr = fundamental->powers[0];
+        float *fdp = obs->ffdotplane;
+        int ii, jj, zz, zind, subz;
+        float *inpows, *outpows;
+#pragma omp for
+        for (ii = 0; ii < numzs; ii++) {
+            zz = zlo + ii * ACCEL_DZ;
+            subz = calc_required_z(harm_fract, zz);
+            zind = index_from_z(subz, zlo);
+            inpows = fdp + zind * rlen;
+            outpows = powptr + ii * numrs;
+            for (jj = 0; jj < numrs; jj++)
+                outpows[jj] += inpows[indices[jj]];
+        }
     }
     vect_free(indices);
 }
@@ -1153,29 +1159,39 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
 void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs, 
                                int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, zind, subz;
-    const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
     long *indices;
-    float *inpows, *outpows;
+
     
     // Pre-compute the frequency lookup table
     indices = gen_lvect(numrs);
-    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-        indices[ii] = (long)(rrint * harm_fract + 0.5) * numzs;
+    {
+        int ii, rrint;
+        for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+            indices[ii] = (long)(rrint * harm_fract + 0.5) * numzs;
+    }
 
     // Now add all the powers
-    for (ii = 0; ii < numzs; ii++) {
-        zz = zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, zlo);
-        inpows = obs->ffdotplane + zind;
-        outpows = fundamental->powers[0] + ii * numrs;
-        for (jj = 0; jj < numrs; jj++)
-            outpows[jj] += inpows[indices[jj]];
+#pragma omp parallel default(none) shared(indices,fundamental,obs)
+    {
+        const int zlo = fundamental->zlo;
+        float *powptr = fundamental->powers[0];
+        float *fdp = obs->ffdotplane;
+        int ii, jj, zz, zind, subz;
+        float *inpows, *outpows;
+#pragma omp for
+        for (ii = 0; ii < numzs; ii++) {
+            zz = zlo + ii * ACCEL_DZ;
+            subz = calc_required_z(harm_fract, zz);
+            zind = index_from_z(subz, zlo);
+            inpows = fdp + zind;
+            outpows = powptr + ii * numrs;
+            for (jj = 0; jj < numrs; jj++)
+                outpows[jj] += inpows[indices[jj]];
+        }
     }
     vect_free(indices);
 }
@@ -1194,9 +1210,11 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
    for (ii = 0; ii < ffdot->numzs; ii++) {
 #pragma omp parallel for
       for (jj = 0; jj < ffdot->numrs; jj++) {
+#pragma omp flush(powcut)
          if (ffdot->powers[ii][jj] > powcut) {
             float pow, sig;
             double rr, zz;
+            int added = 0;
 
             pow = ffdot->powers[ii][jj];
             sig = candidate_sigma(pow, numharm, numindep);
@@ -1204,13 +1222,13 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
             zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
 #pragma omp critical
             {
-                int added = 0;
-                cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz, &added);
-                if (added && !obs->dat_input)
-                    fprintf(obs->workfile,
-                            "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
-                            pow, sig, numharm, rr, rr / obs->T, zz);
+                cands = insert_new_accelcand(cands, pow, sig, numharm,
+                                             rr, zz, &added);
             }
+            if (added && !obs->dat_input)
+                fprintf(obs->workfile,
+                        "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
+                        pow, sig, numharm, rr, rr / obs->T, zz);
          }
       }
    }
