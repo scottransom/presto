@@ -1195,66 +1195,74 @@ void deredden(fcomplex * fft, int numamps)
 /* Thanks to Jason Hessels and Maggie Livingstone for the   */
 /* initial implementation (in rednoise.c)                   */
 {
-   int ii, initialbuflen = 6, lastbuflen, newbuflen, maxbuflen = 200;
-   int newoffset = 1, fixedoffset = 1;
-   float *powers, mean_old, mean_new;
-   double slope, lineval, scaleval = 1.0, lineoffset = 0;
+    int ii, ind, initialbuflen = 6, buflen, lastbuflen, maxbuflen = 200;
+    int binnum = 1, numwrote = 1;
+    float *powbuf, mean_old, mean_new, dslope = 1.0, norm;
+    float powargr, powargi;
 
-   powers = gen_fvect(numamps);
+    /* Takes care of the DC term */
+    fft[0].r = 1.0;
+    fft[0].i = 0.0;
 
-   /* Takes care of the DC term */
-   fft[0].r = 1.0;
-   fft[0].i = 0.0;
+    /* Step through the input FFT and create powers */
+    powbuf = gen_fvect(numamps);
+    for (ii = 0; ii < numamps; ii++)
+        powbuf[ii] = POWER(fft[ii].r, fft[ii].i);
 
-   /* Step through the input FFT and create powers */
-   for (ii = 0; ii < numamps; ii++) {
-      float powargr, powargi;
-      powers[ii] = POWER(fft[ii].r, fft[ii].i);
-   }
+    /* Calculate initial values */
+    buflen = initialbuflen;
+    mean_old = median(powbuf + binnum, buflen) / log(2.0);
+    binnum += buflen;
+    lastbuflen = buflen;
+    buflen = initialbuflen * log(binnum);
+    if (buflen > maxbuflen)
+        buflen = maxbuflen;
 
-   /* Calculate initial values */
-   mean_old = median(powers + newoffset, initialbuflen) / log(2.0);
-   newoffset += initialbuflen;
-   lastbuflen = initialbuflen;
-   newbuflen = initialbuflen * log(newoffset);
-   if (newbuflen > maxbuflen)
-      newbuflen = maxbuflen;
+    // Write the first half of the normalized block
+    // Note that this does *not* include a slope, but since it
+    // is only a few bins, that is probably OK.
+    norm = invsqrt(mean_old);
+    for (ii = 0; ii < lastbuflen/2; ii++) {
+        fft[ii].r *= norm;
+        fft[ii].i *= norm;
+        //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
+    }
+    numwrote += lastbuflen/2;
 
-   while (newoffset + newbuflen < numamps) {
-      /* Calculate the next mean */
-      mean_new = median(powers + newoffset, newbuflen) / log(2.0);
-      //slope = (mean_new-mean_old)/(0.5*(newbuflen+lastbuflen));
-      slope = (mean_new - mean_old) / (newbuflen + lastbuflen);
+    while (binnum + buflen < numamps) {
+        // Calculate the next mean
+        mean_new = median(powbuf + binnum, buflen) / log(2.0);
+        // The slope between the last block median and the current median
+        dslope = (mean_new - mean_old)  / (0.5 * (lastbuflen + buflen));
+        //printf("\n%d %.5g %.5g %.5g\n", buflen, mean_old, mean_new, dslope);
 
-      /* Correct the previous segment */
-      lineoffset = 0.5 * (newbuflen + lastbuflen);
-      for (ii = 0; ii < lastbuflen; ii++) {
-         lineval = mean_old + slope * (lineoffset - ii);
-         scaleval = 1.0 / sqrt(lineval);
-         fft[fixedoffset + ii].r *= scaleval;
-         fft[fixedoffset + ii].i *= scaleval;
-      }
+        // Correct the last-half of the old block...
+        for (ii = 0, ind = numwrote; ind < binnum + buflen/2; ii++, ind++) {
+            norm = invsqrt(mean_old + dslope * ii);
+            fft[ind].r *= norm;
+            fft[ind].i *= norm;
+            //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
+        }
+        numwrote += ii;
 
-      /* Update our values */
-      fixedoffset += lastbuflen;
-      lastbuflen = newbuflen;
-      mean_old = mean_new;
-      newoffset += lastbuflen;
-      newbuflen = initialbuflen * log(newoffset);
-      if (newbuflen > maxbuflen)
-         newbuflen = maxbuflen;
-   }
+        /* Update our values */
+        binnum += buflen;
+        lastbuflen = buflen;
+        mean_old = mean_new;
+        buflen = initialbuflen * log(binnum);
+        if (buflen > maxbuflen)
+            buflen = maxbuflen;
+    }
 
-   /* Scale the last (partial) chunk the same way as the last point */
+    // Deal with the last chunk (assume same slope as before)
+    for (ii = 0, ind = numwrote; ind < numamps; ii++, ind++) {
+        norm = invsqrt(mean_old + dslope * ii);
+        fft[ind].r *= norm;
+        fft[ind].i *= norm;
+    }
 
-   while (fixedoffset < numamps) {
-      fft[fixedoffset].r *= scaleval;
-      fft[fixedoffset].i *= scaleval;
-      fixedoffset++;
-   }
-
-   /* Free the powers */
-   vect_free(powers);
+    /* Free the powers */
+    vect_free(powbuf);
 }
 
 
