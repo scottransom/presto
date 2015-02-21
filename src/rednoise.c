@@ -7,178 +7,188 @@
 
 int main(int argc, char *argv[])
 {
-   FILE *infile, *outfile;
-   int ii, bufflen = 10, numread_old, numread_new, numsamp, binnum = 1;
-   int old_percent = 0, new_percent = 0;
-   float *realbuffer = NULL, samprate, mean_old, mean_new, T, slope;
-   fcomplex *inbuffer_old = NULL, *inbuffer_new = NULL, *outbuffer = NULL;
-   char *rootfilenm, *outname;
-   infodata idata;
-   Cmdline *cmd;
-
-   /* Call usage() if we have no command line arguments */
-
-   if (argc == 1) {
-      Program = argv[0];
-      printf("\n");
-      usage();
-      exit(1);
-   }
-
-   /* Parse the command line using the excellent program Clig */
-
-   cmd = parseCmdline(argc, argv);
-
+    FILE *infile, *outfile;
+    char *rootfilenm, *outname;
+    Cmdline *cmd;
+    
+    /* Call usage() if we have no command line arguments */
+    
+    if (argc == 1) {
+        Program = argv[0];
+        printf("\n");
+        usage();
+        exit(1);
+    }
+    
+    /* Parse the command line using the excellent program Clig */
+    
+    cmd = parseCmdline(argc, argv);
+    
 #ifdef DEBUG
-   showOptionValues();
+    showOptionValues();
 #endif
-
-   printf("\n\n");
-   printf("     Rednoise Removal Routine\n");
-   printf("          October, 2002    \n\n");
-
-   {
-      int hassuffix = 0;
-      char *suffix;
-
-      hassuffix = split_root_suffix(cmd->argv[0], &rootfilenm, &suffix);
-
-      if (hassuffix) {
-         if (strcmp(suffix, "fft") != 0) {
+    
+    printf("\n\n");
+    printf("     Rednoise Removal Routine v2.0\n");
+    printf("            Feb, 2015\n\n");
+    
+    {
+        int hassuffix = 0;
+        char *suffix;
+        hassuffix = split_root_suffix(cmd->argv[0], &rootfilenm, &suffix);
+        if (hassuffix) {
+            if (strcmp(suffix, "fft") != 0) {
+                printf("\nInput file ('%s') must be a fourier transform ('.fft')!\n\n",
+                       cmd->argv[0]);
+                free(suffix);
+                exit(0);
+            }
+            free(suffix);
+        } else {
             printf("\nInput file ('%s') must be a fourier transform ('.fft')!\n\n",
                    cmd->argv[0]);
-            free(suffix);
             exit(0);
-         }
-         free(suffix);
-      } else {
-         printf("\nInput file ('%s') must be a fourier transform ('.fft')!\n\n",
-                cmd->argv[0]);
-         exit(0);
-      }
-      outname = (char *) calloc(strlen(rootfilenm) + 11, sizeof(char));
-      sprintf(outname, "%s_red.fft", rootfilenm);
-   }
+        }
+        outname = (char *) calloc(strlen(rootfilenm) + 11, sizeof(char));
+        sprintf(outname, "%s_red.fft", rootfilenm);
+    }
+    
+    {
+        long numsamp, binnum = 1, numwrote = 0;
+        int bufflen, nblk_old, nblk_new, mid_old, mid_new;
+        int ii, ind, old_percent = 0, new_percent = 0;
+        float mean_old, mean_new, T, dslope = 1.0, norm;
+        float *powbuf, powargr, powargi;
+        fcomplex *newbuf, *oldbuf, *inbuf1, *inbuf2, *outbuf, *tempzz;
+        
+        /* Read the info file */
+        {
+            infodata idata;
+            readinf(&idata, rootfilenm);
+            numsamp = idata.N;
+            T = numsamp * idata.dt;
+        }
+        
+        /* Open files and create arrays */
+        
+        infile = chkfopen(argv[1], "rb");
+        outfile = chkfopen(outname, "wb");
+        bufflen = cmd->startwidth;
+        inbuf1 = gen_cvect(cmd->endwidth);
+        inbuf2 = gen_cvect(cmd->endwidth);
+        outbuf = gen_cvect(cmd->endwidth);
+        powbuf = gen_fvect(cmd->endwidth);
+        oldbuf = inbuf1;
+        newbuf = inbuf2;
+        
+        /* Takes care of the DC offset and Nyquist */
+        chkfread(oldbuf, sizeof(fcomplex), 1, infile);
+        oldbuf[0].r = 1.0;
+        oldbuf[0].i = 0.0;
+        chkfwrite(oldbuf, sizeof(fcomplex), 1, outfile);
+        numwrote += 1;
+        
+        // Calculates the first mean
+        nblk_old = chkfread(oldbuf, sizeof(fcomplex), bufflen, infile);
+        if (nblk_old != bufflen) {
+            perror("\nError in rednoise:  number read != bufflen");
+            printf("\n");
+            exit(-1);
+        }
+        // Buffer bin of the ~midpoint of the current block
+        mid_old = nblk_old / 2;
+        
+        // Compute the powers
+        for (ii = 0; ii < nblk_old; ii++)
+            powbuf[ii] = POWER(oldbuf[ii].r, oldbuf[ii].i);
+        mean_old = median(powbuf, nblk_old) / log(2.0);
+        
+        // Write out the first half of the normalized block
+        // Note that this does *not* include a slope, but since it
+        // is only a few bins, that is probably OK.
+        norm = invsqrt(mean_old);
+        for (ii = 0; ii < mid_old; ii++) {
+            outbuf[ii].r = oldbuf[ii].r * norm;
+            outbuf[ii].i = oldbuf[ii].i * norm;
+            //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
+        }
+        chkfwrite(outbuf, sizeof(fcomplex), mid_old, outfile);
+        numwrote += mid_old;
 
-   /* Read the info file */
+        // This is the Fourier bin index for the next read
+        binnum += nblk_old;
+        // This updates the length of the median block logarithmically
+        bufflen = cmd->startwidth * log(binnum);
 
-   readinf(&idata, rootfilenm);
-   samprate = idata.dt;
-   numsamp = idata.N;
-   T = numsamp * samprate;
+        while ((nblk_new = chkfread(newbuf, sizeof(fcomplex), bufflen, infile))) {
+            mid_new = nblk_new / 2;
+            for (ii = 0; ii < nblk_new; ii++)
+                powbuf[ii] = POWER(newbuf[ii].r, newbuf[ii].i);
+            mean_new = median(powbuf, nblk_new) / log(2.0);
+            
+            // The slope between the last block median and the current median
+            dslope = (mean_new - mean_old) / (0.5 * (nblk_old + nblk_new));
+            //printf("\n%d %.5g %.5g %.5g\n", nblk_new, mean_old, mean_new, dslope);
 
-   /* Open files and create arrays */
+            // Correct the last-half of the old block...
+            for (ii = 0, ind = mid_old; ind < nblk_old; ii++, ind++) {
+                norm = invsqrt(mean_old + dslope * ii);
+                outbuf[ii].r = oldbuf[ind].r * norm;
+                outbuf[ii].i = oldbuf[ind].i * norm;
+                //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
+            }
+            // ...and the first-half of the new block
+            for (ind = 0; ind < mid_new; ii++, ind++) {
+                norm = invsqrt(mean_old + dslope * ii);
+                outbuf[ii].r = newbuf[ind].r * norm;
+                outbuf[ii].i = newbuf[ind].i * norm;
+                //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
+            }
+            // Write the normalized amplitudes
+            chkfwrite(outbuf, sizeof(fcomplex), ii, outfile);
+            numwrote += ii;
+            
+            // Update the variables and pointers
+            
+            binnum += nblk_new;
+            if ((float) binnum / T < cmd->endfreq)
+                bufflen = cmd->startwidth * log(binnum);
+            else
+                bufflen = cmd->endwidth;
+            SWAP(oldbuf, newbuf);
+            nblk_old = nblk_new;
+            mean_old = mean_new;
+            mid_old = mid_new;
+            
+            /* Print percent complete */
+            
+            new_percent = (int) 100 * ((binnum * 2.0) / numsamp);
+            if (new_percent != old_percent) {
+                // printf("\rAmount Complete = %d%%", new_percent);
+                old_percent = new_percent;
+                fflush(stdout);
+            }
+        }
+        // Deal with the last chunk (assume same slope as before)
+        for (ii = 0, ind = mid_old; ind < nblk_old; ii++, ind++) {
+            norm = invsqrt(mean_old + dslope * ii);
+            outbuf[ii].r = oldbuf[ind].r * norm;
+            outbuf[ii].i = oldbuf[ind].r * norm;
+        }
+        chkfwrite(outbuf, sizeof(fcomplex), nblk_old-mid_old, outfile);
+        numwrote += nblk_old-mid_old;
 
-   infile = chkfopen(argv[1], "rb");
-   outfile = chkfopen(outname, "wb");
+        printf("\nDone.  Rednoise removed from %ld of %ld points.\n\n", 
+               numwrote, numsamp/2);
+        vect_free(inbuf1);
+        vect_free(inbuf2);
+        vect_free(powbuf);
+        vect_free(outbuf);
+    }        
 
-   /* Read and remove rednoise */
-
-   bufflen = cmd->startwidth;
-   inbuffer_old = gen_cvect(cmd->endwidth);
-   inbuffer_new = gen_cvect(cmd->endwidth);
-   realbuffer = gen_fvect(cmd->endwidth);
-   outbuffer = gen_cvect(cmd->endwidth);
-
-   /* Takes care of the DC offset */
-   chkfread(inbuffer_old, sizeof(fcomplex), 1, infile);
-   inbuffer_old[0].r = 1.0;
-   inbuffer_old[0].i = 0.0;
-   chkfwrite(inbuffer_old, sizeof(fcomplex), 1, outfile);
-
-   /* Calculates the first mean */
-   numread_old = chkfread(inbuffer_old, sizeof(fcomplex), bufflen, infile);
-
-   for (ii = 0; ii < numread_old; ii++) {
-      realbuffer[ii] = 0;
-      realbuffer[ii] = inbuffer_old[ii].r * inbuffer_old[ii].r +
-          inbuffer_old[ii].i * inbuffer_old[ii].i;
-   }
-
-   mean_old = median(realbuffer, numread_old) / log(2.0);
-   binnum += numread_old;
-   bufflen = cmd->startwidth * log(binnum);
-
-   while ((numread_new = chkfread(inbuffer_new, sizeof(fcomplex), bufflen, infile))) {
-      for (ii = 0; ii < numread_new; ii++) {
-         realbuffer[ii] = 0;
-         realbuffer[ii] =
-             inbuffer_new[ii].r * inbuffer_new[ii].r +
-             inbuffer_new[ii].i * inbuffer_new[ii].i;
-      }
-      mean_new = median(realbuffer, numread_new) / log(2.0);
-      slope = (mean_new - mean_old) / (numread_old + numread_new);
-
-      /*
-         printf("realbuffer[3] = %f ", realbuffer[3]);
-         printf("Mean_old = %f ", mean_old);
-         printf("Mean_new = %f ", mean_new);
-         printf("Slope = %f\n", slope);
-       */
-
-      for (ii = 0; ii < numread_old; ii++) {
-         outbuffer[ii].r = 0.0;
-         outbuffer[ii].i = 0.0;
-         outbuffer[ii].r =
-             inbuffer_old[ii].r / sqrt(mean_old +
-                                       slope * ((numread_old + numread_new) / 2.0 -
-                                                ii));
-         outbuffer[ii].i =
-             inbuffer_old[ii].i / sqrt(mean_old +
-                                       slope * ((numread_old + numread_new) / 2.0 -
-                                                ii));
-      }
-
-      chkfwrite(outbuffer, sizeof(fcomplex), numread_old, outfile);
-
-      /* printf("Binnum = %d\n", binnum); */
-      binnum += numread_new;
-      if ((binnum * 1.0) / T < cmd->endfreq)
-         bufflen = cmd->startwidth * log(binnum);
-      else
-         /* exit(0); */
-         bufflen = cmd->endwidth;
-
-      numread_old = numread_new;
-      mean_old = mean_new;
-
-      for (ii = 0; ii < numread_new; ii++) {
-         inbuffer_old[ii].r = 0.0;
-         inbuffer_old[ii].i = 0.0;
-         inbuffer_old[ii].r = inbuffer_new[ii].r;
-         inbuffer_old[ii].i = inbuffer_new[ii].i;
-      }
-
-      /* Print percent complete */
-
-      new_percent = (int) 100 *((binnum * 2.0) / numsamp);
-      if (new_percent != old_percent) {
-         printf("\rAmount Complete = %d%%", new_percent);
-         old_percent = new_percent;
-         fflush(stdout);
-      }
-   }
-
-   /* Deal with the last chunk */
-
-   for (ii = 0; ii < numread_old; ii++) {
-      outbuffer[ii].r = 0;
-      outbuffer[ii].i = 0;
-      outbuffer[ii].r = inbuffer_old[ii].r / sqrt(mean_old);
-      outbuffer[ii].i = inbuffer_old[ii].i / sqrt(mean_old);
-   }
-   chkfwrite(outbuffer, sizeof(fcomplex), numread_old, outfile);
-
-   printf("\nDone.  Rednoise removed.\n\n");
-
-   vect_free(inbuffer_old);
-   vect_free(inbuffer_new);
-   vect_free(realbuffer);
-   vect_free(outbuffer);
-
-   fclose(infile);
-   fclose(outfile);
-   free(rootfilenm);
-   free(outname);
-   exit(0);
+    fclose(infile);
+    fclose(outfile);
+    free(rootfilenm);
+    free(outname);
+    exit(0);
 }
