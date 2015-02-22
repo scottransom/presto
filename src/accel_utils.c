@@ -1212,22 +1212,21 @@ void deredden(fcomplex * fft, int numamps)
     /* Calculate initial values */
     buflen = initialbuflen;
     mean_old = median(powbuf + binnum, buflen) / log(2.0);
-    binnum += buflen;
-    lastbuflen = buflen;
-    buflen = initialbuflen * log(binnum);
-    if (buflen > maxbuflen)
-        buflen = maxbuflen;
 
     // Write the first half of the normalized block
     // Note that this does *not* include a slope, but since it
     // is only a few bins, that is probably OK.
     norm = invsqrt(mean_old);
-    for (ii = 0; ii < lastbuflen/2; ii++) {
-        fft[ii].r *= norm;
-        fft[ii].i *= norm;
-        //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
+    for (ind = numwrote; ind < binnum + buflen/2; ind++) {
+        fft[ind].r *= norm;
+        fft[ind].i *= norm;
     }
-    numwrote += lastbuflen/2;
+    numwrote += buflen/2;
+    binnum += buflen;
+    lastbuflen = buflen;
+    buflen = initialbuflen * log(binnum);
+    if (buflen > maxbuflen)
+        buflen = maxbuflen;
 
     while (binnum + buflen < numamps) {
         // Calculate the next mean
