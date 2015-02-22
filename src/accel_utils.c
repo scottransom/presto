@@ -879,18 +879,16 @@ fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
     }
 }
 
-
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
                                double fullrlo, double fullrhi,
                                subharminfo * shi, accelobs * obs)
 {
-   int ii, lobin, hibin, numdata, nice_numdata, nrs, fftlen, binoffset;
+   int ii, lobin, hibin, numdata, nice_numdata, fftlen, binoffset;
    static int numrs_full = 0;
    float powargr, powargi;
    double drlo, drhi, harm_fract;
    ffdotpows *ffdot;
-   fcomplex *data, **result;
-   presto_datainf datainf;
+   fcomplex *data, *pdata, **result;
 
    if (numrs_full == 0) {
       if (numharm == 1 && harmnum == 1) {
@@ -982,31 +980,57 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
        vect_free(loc_powers);
    }
 
-   /* Perform the correlations */
+   // Prep, spread, and FFT the data
+   pdata = gen_cvect(fftlen);
+   spread_no_pad(data, fftlen / ACCEL_NUMBETWEEN,
+                 pdata, fftlen, ACCEL_NUMBETWEEN);
+   // Note COMPLEXFFT is not thread-safe because of wisdom caching
+   COMPLEXFFT(pdata, fftlen, -1);
 
+   // Perform the correlations in a thread-safe manner
    result = gen_cmatrix(ffdot->numzs, ffdot->numrs);
+#pragma omp parallel default(none) shared(pdata,shi,result,fftlen,binoffset,ffdot)
+  {
+      const float normal = 1.0 / fftlen;
+      fftwf_plan invplan;
+      fcomplex *tmpout = gen_cvect(fftlen);
+      // tmpdat gets overwritten during the correlation
+      fcomplex *tmpdat = gen_cvect(fftlen);
+      memcpy(tmpdat, pdata, sizeof(fcomplex) * fftlen);
 
-   // Do this once outside the loop to set the data cache in corr_complex
-   datainf = RAW;
-   nrs = corr_complex(data, numdata, datainf,
-                      shi->kern[0].data, fftlen, FFT,
-                      result[0], ffdot->numrs, binoffset,
-                      ACCEL_NUMBETWEEN, binoffset, CORR);
-   datainf = SAME;
-// #pragma omp parallel for
-   for (ii = 1; ii < ffdot->numzs; ii++) {
-      // Note that the following still might not be thread-safe...
-      nrs = corr_complex(data, numdata, datainf,
-                         shi->kern[ii].data, fftlen, FFT,
-                         result[ii], ffdot->numrs, binoffset,
-                         ACCEL_NUMBETWEEN, binoffset, CORR);
-   }
-
-   // Always free data
+      // Compute the inverse FFT plan (these are in/out array specific)
+      // FFTW planning is *not* thread-safe
+#pragma omp critical
+      {
+          invplan = fftwf_plan_dft_1d(fftlen, (fftwf_complex *) tmpdat,
+                                      (fftwf_complex *) tmpout,
+                                      +1, FFTW_MEASURE);
+      }
+#pragma omp parallel for
+      for (ii = 0; ii < ffdot->numzs; ii++) {
+          int jj;
+          fcomplex *kernel = shi->kern[ii].data;
+          // multiply data and kernel
+          for (jj = 0; jj < fftlen; jj++) {
+              float dr = tmpdat[jj].r, di = tmpdat[jj].i;
+              float kr = kernel[jj].r, ki = kernel[jj].i;
+              tmpdat[jj].r = (dr * kr + di * ki) * normal;
+              tmpdat[jj].i = (di * kr - ki * dr) * normal;
+          }
+          // Do the inverse FFT
+          fftwf_execute(invplan);
+          // And place the good-parts into the result array
+          chop_complex_ends(tmpdat, fftlen, result[ii], ffdot->numrs,
+                            binoffset * ACCEL_NUMBETWEEN);
+      }
+      vect_free(tmpdat);
+      vect_free(tmpout);
+  }
+   // Free data and the spread-data
    vect_free(data);
+   vect_free(pdata);
 
-   /* Convert the amplitudes to normalized powers */
-
+   // Convert the amplitudes to normalized powers
    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
 #pragma omp parallel for default(shared), private(ii,powargr,powargi)
    for (ii = 0; ii < (ffdot->numzs * ffdot->numrs); ii++)
