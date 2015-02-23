@@ -935,6 +935,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    hibin = (int) ceil(drhi) + binoffset;
    numdata = hibin - lobin + 1;
    nice_numdata = next2_to_n(numdata);  // for FFTs
+   if (nice_numdata != fftlen/ACCEL_NUMBETWEEN)
+       printf("WARNING!!:  nice_numdata != fftlen/2 in subharm_ffdot_plane()!\n");
    data = get_fourier_amplitudes(lobin, nice_numdata, obs);
    if (!obs->mmap_file && !obs->dat_input && 0)
        printf("This is newly malloc'd!\n");
@@ -991,11 +993,11 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    result = gen_cmatrix(ffdot->numzs, ffdot->numrs);
 #pragma omp parallel default(none) shared(pdata,shi,result,fftlen,binoffset,ffdot)
   {
-      const float normal = 1.0 / fftlen;
+      const float norm = 1.0 / fftlen;
       fftwf_plan invplan;
-      fcomplex *tmpout = gen_cvect(fftlen);
       // tmpdat gets overwritten during the correlation
       fcomplex *tmpdat = gen_cvect(fftlen);
+      fcomplex *tmpout = gen_cvect(fftlen);
       memcpy(tmpdat, pdata, sizeof(fcomplex) * fftlen);
 
       // Compute the inverse FFT plan (these are in/out array specific)
@@ -1003,8 +1005,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 #pragma omp critical
       {
           invplan = fftwf_plan_dft_1d(fftlen, (fftwf_complex *) tmpdat,
-                                      (fftwf_complex *) tmpout,
-                                      +1, FFTW_MEASURE);
+                                      (fftwf_complex *) tmpout, +1,
+                                      FFTW_MEASURE | FFTW_DESTROY_INPUT);
       }
 #pragma omp parallel for
       for (ii = 0; ii < ffdot->numzs; ii++) {
@@ -1014,13 +1016,13 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
           for (jj = 0; jj < fftlen; jj++) {
               float dr = tmpdat[jj].r, di = tmpdat[jj].i;
               float kr = kernel[jj].r, ki = kernel[jj].i;
-              tmpdat[jj].r = (dr * kr + di * ki) * normal;
-              tmpdat[jj].i = (di * kr - ki * dr) * normal;
+              tmpdat[jj].r = (dr * kr + di * ki) * norm;
+              tmpdat[jj].i = (di * kr - dr * ki) * norm;
           }
           // Do the inverse FFT
           fftwf_execute(invplan);
           // And place the good-parts into the result array
-          chop_complex_ends(tmpdat, fftlen, result[ii], ffdot->numrs,
+          chop_complex_ends(tmpout, fftlen, result[ii], ffdot->numrs,
                             binoffset * ACCEL_NUMBETWEEN);
       }
       vect_free(tmpdat);
