@@ -2,8 +2,6 @@
 
 #if defined USEFFTW
 
-extern int fftwf_alignment_of(double *p);
-
 void read_wisdom(void)
 {
     FILE *wisdomfile;
