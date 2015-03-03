@@ -72,6 +72,11 @@ typedef struct s_Cmdline {
   /*@null*/char **argv;
   /***** the whole command line concatenated */
   char *full_cmd_line;
+  /***** cuda device parameters */
+  #ifdef USECUDA
+  char cudaP;
+  char cuda;  
+  #endif
 } Cmdline;
 
 

@@ -22,6 +22,44 @@
 /* Return 2**n */
 #define index_to_twon(n) (1<<n)
 
+#ifdef USECUDA
+typedef struct accel_cand_gpu{
+	float pow;					/*pow of selected candidate*/
+	int		nof_cand;			/*number of candidates in sub_array/plane */
+	int		z_ind;				/*z_index of the selected candidate*/
+	int		r_ind;				/*r_index of the selected candidate*/
+}	accel_cand_gpu;
+#endif
+
+#ifdef USECUDA
+extern GSList *search_ffdotpows_sort_gpu_result(ffdotpows * ffdot, int numharm,
+                         accelobs * obs, GSList * cands, accel_cand_gpu *cand_gpu_cpu, int nof_cand, int numzs, int numrs);
+#endif
+
+#ifdef USECUDA
+extern int corr_complex_gpu(fcomplex * data, int numdata, presto_datainf datainf,
+                 fcomplex * kernel_vect_on_gpu, int numkern, presto_datainf kerninf,
+                 fcomplex ** result, int numresult, int lobin,
+                 int numbetween, int kern_half_width, presto_optype optype,
+                 int numkern_in_array, int stage, int harmtosum, int harmnum,
+                 int ** offset_array, fcomplex *d_data, fcomplex *d_result,
+                 unsigned short *zinds, unsigned short *rinds,
+                 int numzs_full, int numrs_full,
+                 float *d_fundamental,
+                 unsigned short *d_zinds, unsigned short *d_rinds,
+                 double obs_zlo, double fullrlo, double harm_fract, int zlo, int rlo
+                 );
+#endif
+
+#ifdef USECUDA
+extern ffdotpows *init_fundamental_ffdot(int numharm, int harmnum,
+                               double fullrlo, double fullrhi,
+                               subharminfo * shi, accelobs * obs,
+                               int stage, int **offset_array,
+                               fcomplex *kernel_vect_on_gpu, fcomplex *d_data, fcomplex *d_result
+                               );
+#endif
+
 /* Return x such that 2**x = n */
 static inline int twon_to_index(int n)
 {
@@ -995,6 +1033,235 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
    return ffdot;
 }
 
+//-----------------------------------------------------------------------------------------
+#ifdef USECUDA
+void subharm_ffdot_plane_gpu(int numharm, int harmnum,
+                               double fullrlo, double fullrhi,
+                               subharminfo * shi, accelobs * obs,
+                               int stage, int **offset_array,
+                               fcomplex *kernel_vect_on_gpu, fcomplex *d_data, fcomplex *d_result,
+                               ffdotpows *fundamental,
+                               float *d_fundamental,
+                               unsigned short *d_zinds, unsigned short *d_rinds
+                               )
+{
+   int ii, lobin, hibin, numdata, nice_numdata, nrs, fftlen, binoffset;
+   static int numrs_full = 0, numzs_full = 0;
+   float powargr, powargi;
+   double drlo, drhi, harm_fract;
+   ffdotpows *ffdot;
+   fcomplex *data, **result;
+   presto_datainf datainf;
+
+	/* numrs, numzs, rlo, zlo , rinds*/
+	int numrs, numzs, rlo, zlo;
+	unsigned short *rinds ;
+
+   if (numrs_full == 0) {
+      if (numharm == 1 && harmnum == 1) {
+         numrs_full = ACCEL_USELEN;
+         numzs_full = shi->numkern;
+      } else {
+         printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
+         printf("harnum=1 before you use other values!  Exiting.\n\n");
+         exit(0);
+      }
+   }
+
+   harm_fract = (double) harmnum / (double) numharm;
+   drlo = calc_required_r(harm_fract, fullrlo);
+   drhi = calc_required_r(harm_fract, fullrhi);
+   rlo = (int) floor(drlo) ;
+   zlo = calc_required_z(harm_fract, obs->zlo) ;
+
+	if(numharm==1 && harmnum==1){
+		fundamental->rlo = rlo;
+		fundamental->zlo = zlo;
+	}
+
+
+	/*Initialize the z-lookup indices*/
+		//printf("\ndebug, accel_utils.c line 1034, numzs_full= %d, numrs_full=%d, obs.zlo=%f, obs.zhi=%f\n", numzs_full, numrs_full, obs->zlo, obs->zhi);
+		unsigned short *zinds ;
+		zinds = (unsigned short *)malloc(numzs_full * sizeof(unsigned short));
+		{
+		if (numharm > 1) {
+			int zz , subz, zind;
+			for (ii = 0; ii < numzs_full; ii++) {			
+				zz = obs->zlo + ii * ACCEL_DZ;//ACCEL_DZ=2
+				subz = calc_required_z(harm_fract, zz);				
+  	    zind = index_from_z(subz, zlo);
+  	    zinds[ii]=zind;  	    
+			}
+		}
+		}
+
+	
+
+   /* Initialize the r-lookup indices */
+   if (numharm > 1) {
+      double rr, subr;
+      for (ii = 0; ii < numrs_full; ii++) {
+         rr = fullrlo + ii * ACCEL_DR;
+         subr = calc_required_r(harm_fract, rr);
+         shi->rinds[ii] = index_from_r(subr, rlo);
+      }
+   }
+   rinds = shi->rinds;
+   
+   numrs = (int) ((ceil(drhi) - floor(drlo))
+                         * ACCEL_RDR + DBLCORRECT) + 1;
+   if (numharm == 1 && harmnum == 1) {
+      numrs = ACCEL_USELEN;
+   } else {
+      if (numrs % ACCEL_RDR) {
+         numrs = (numrs / ACCEL_RDR + 1) * ACCEL_RDR;
+      }
+   }
+   
+   
+   numzs = shi->numkern ;
+
+   binoffset = shi->kern[0].kern_half_width;
+   fftlen = shi->kern[0].fftlen;
+   lobin = rlo - binoffset;
+   hibin = (int) ceil(drhi) + binoffset;
+   numdata = hibin - lobin + 1;
+   nice_numdata = next2_to_n(numdata);  // for FFTs
+   data = get_fourier_amplitudes(lobin, nice_numdata, obs); //lobin, nice_numdata, obs->lobin
+
+   
+   if (!obs->mmap_file && !obs->dat_input && 0)
+       printf("This is newly malloc'd!\n");
+   // Normalize the Fourier amplitudes
+   if (obs->nph > 0.0) {
+       //  Use freq 0 normalization if requested (i.e. photons)
+       printf("\nDebug, accel_utils.c line 1073: Use freq 0 normalization\n");
+       double norm = 1.0 / sqrt(obs->nph);
+       for (ii = 0; ii < numdata; ii++) {
+           data[ii].r *= norm;
+           data[ii].i *= norm;
+       }
+   } else if (obs->norm_type == 0) {
+       //  old-style block median normalization
+       float *powers;
+       double norm;
+
+       powers = gen_fvect(numdata);
+       for (ii = 0; ii < numdata; ii++)
+           powers[ii] = POWER(data[ii].r, data[ii].i);
+       norm = 1.0 / sqrt(median(powers, numdata)/log(2.0));
+       vect_free(powers);
+       for (ii = 0; ii < numdata; ii++) {
+           data[ii].r *= norm;
+           data[ii].i *= norm;
+       }
+   } else {
+       //  new-style running double-tophat local-power normalization
+       float *powers, *loc_powers;
+
+       powers = gen_fvect(nice_numdata);
+       for (ii = 0; ii < nice_numdata; ii++) {
+           powers[ii] = POWER(data[ii].r, data[ii].i);
+       }
+       loc_powers = corr_loc_pow(powers, nice_numdata);
+       for (ii = 0; ii < numdata; ii++) {
+           float norm = invsqrt(loc_powers[ii]);
+           data[ii].r *= norm;
+           data[ii].i *= norm;
+       }
+       vect_free(powers);
+       vect_free(loc_powers);
+   }
+
+   /* Perform the correlations */
+
+   datainf = RAW;   
+   nrs = corr_complex_gpu(data, numdata, datainf,
+				                 kernel_vect_on_gpu, fftlen, FFT,
+				                 result, numrs, binoffset,
+					               ACCEL_NUMBETWEEN, binoffset, CORR,
+				                 numzs, stage, numharm, harmnum,
+				                 offset_array, d_data, d_result, 
+				                 zinds, rinds, numzs_full, numrs_full,
+				                 d_fundamental,
+				                 d_zinds, d_rinds,
+				                 obs->zlo, fullrlo, harm_fract, zlo, rlo);
+
+   // Always free data
+   vect_free(data);
+   
+   free(zinds);
+}
+#endif
+//-----------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------
+//Initialize the fundamental ffdotpows
+#ifdef USECUDA
+ffdotpows *init_fundamental_ffdot(int numharm, int harmnum,
+                               double fullrlo, double fullrhi,
+                               subharminfo * shi, accelobs * obs,
+                               int stage, int **offset_array,
+                               fcomplex *kernel_vect_on_gpu, fcomplex *d_data, fcomplex *d_result
+                               )
+{
+   static int numrs_full = 0, numzs_full = 0;
+   float powargr, powargi;
+   double drlo, drhi, harm_fract;
+   ffdotpows *ffdot;   
+
+	/* numrs, numzs, rlo, zlo , rinds*/
+	int numrs, numzs, rlo, zlo;
+	unsigned short *rinds ;
+
+   if (numrs_full == 0) {
+      if (numharm == 1 && harmnum == 1) {
+         numrs_full = ACCEL_USELEN;
+         numzs_full = shi->numkern;
+      } else {
+         printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
+         printf("harnum=1 before you use other values!  Exiting.\n\n");
+         exit(0);
+      }
+   }
+   ffdot = (ffdotpows *) malloc(sizeof(ffdotpows));
+
+   /* Calculate and get the required amplitudes */
+
+   harm_fract = (double) harmnum / (double) numharm;
+   drlo = calc_required_r(harm_fract, fullrlo);
+   drhi = calc_required_r(harm_fract, fullrhi);
+   rlo = (int) floor(drlo) ;
+   ffdot->rlo = rlo;
+   zlo = calc_required_z(harm_fract, obs->zlo) ;
+   ffdot->zlo = zlo;
+   
+   numrs = (int) ((ceil(drhi) - floor(drlo))
+                         * ACCEL_RDR + DBLCORRECT) + 1;
+   ffdot-> numrs = numrs;
+   if (numharm == 1 && harmnum == 1) {
+      numrs = ACCEL_USELEN;
+   } else {
+      if (numrs % ACCEL_RDR) {
+         numrs = (numrs / ACCEL_RDR + 1) * ACCEL_RDR;
+      }
+   }
+   
+	 ffdot-> numrs = numrs;
+   
+   numzs = shi->numkern ;
+   ffdot->numzs = numzs;     
+   
+   if (!obs->mmap_file && !obs->dat_input && 0)
+       printf("This is newly malloc'd!\n");
+       
+   ffdot->powers = gen_fmatrix(numzs, numrs);
+   
+   return ffdot;
+}
+#endif
+//-----------------------------------------------------------------------------------------
 
 ffdotpows *copy_ffdotpows(ffdotpows * orig)
 {
@@ -1188,6 +1455,51 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
    }
    return cands;
 }
+
+#ifdef USECUDA
+GSList *search_ffdotpows_sort_gpu_result(ffdotpows * ffdot, int numharm,
+                         accelobs * obs, GSList * cands, accel_cand_gpu *cand_gpu_cpu, int nof_cand, int numzs, int numrs)
+{
+   int ii, jj;
+   float powcut;
+   long long numindep;
+
+   powcut = obs->powcut[twon_to_index(numharm)];
+   numindep = obs->numindep[twon_to_index(numharm)];	
+   
+   float pow, sig;
+   double rr, zz;
+   int added = 0;   
+   
+   int rind, zind;
+   
+   if(nof_cand > 0)
+   {
+   		for(ii=0; ii< nof_cand; ii++)
+   		{   			
+   			added = 0;      			
+   			
+   			pow = cand_gpu_cpu[ii].pow; 
+   			sig = candidate_sigma(pow, numharm, numindep);   						
+   			
+   			zind = cand_gpu_cpu[ii].z_ind;
+   			rind = cand_gpu_cpu[ii].r_ind;     			
+
+   			rr = (ffdot->rlo + rind * (double) ACCEL_DR) / (double) numharm;   			
+
+   			zz = (ffdot->zlo + zind * (double) ACCEL_DZ) / (double) numharm;
+   			
+   			cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz, &added);
+   			if (added && !obs->dat_input)
+               fprintf(obs->workfile,
+                       "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
+                       pow, sig, numharm, rr, rr / obs->T, zz);
+   		}  		   		
+   }
+   
+   return cands;
+}
+#endif
 
 void deredden(fcomplex * fft, int numamps)
 /* Attempt to remove rednoise from a time series by using   */
@@ -1542,10 +1854,28 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
        memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN) \
            * obs->numbetween * obs->numz;
        printf("Full f-fdot plane would need %.2f GB: ", (float)memuse / gb);
-       if (memuse < MAXRAMUSE || cmd->inmemP) {
+       if (memuse < MAXRAMUSE || cmd->inmemP) {       		
+           #ifdef USECUDA
+           if(cmd->cudaP == 1)
+           {
+           		printf("using in-memory accelsearch is possible, but the on GPU in-memory is not ready yet.\n\n");
+           		printf("so on GPU, using standard accelsearch.\n\n");
+	           obs->inmem = 0;
+	           obs->ffdotplane = NULL;
+           }                
+           else           
+           {
            printf("using in-memory accelsearch.\n\n");
            obs->inmem = 1;
            obs->ffdotplane = gen_fvect(memuse / sizeof(float));
+           }
+           #else
+           {
+           printf("using in-memory accelsearch.\n\n");
+           obs->inmem = 1;
+           obs->ffdotplane = gen_fvect(memuse / sizeof(float));
+           }
+           #endif
        } else {
            printf("using standard accelsearch.\n\n");
            obs->inmem = 0;

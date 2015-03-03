@@ -1019,6 +1019,9 @@ usage(void)
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
   fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                   1 value\n");
+	#ifdef USECUDA
+	fprintf(stderr,"%s","            -cuda: to run accel_search on GPU, indicate the index of cuda device to be used, 0 means the 1st cuda device \n");
+	#endif
   fprintf(stderr,"%s","  version: 10Nov13\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
@@ -1173,6 +1176,19 @@ parseCmdline(int argc, char **argv)
       cmd.noharmremoveP = 1;
       continue;
     }
+
+		#ifdef USECUDA
+    if( 0==strcmp("-cuda", argv[i]) ) {
+      int keep = i;
+      //cmd.numharmP = 1;
+      cmd.cudaP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.cuda, 1);
+      //cmd.numharmC = i-keep;
+      //checkIntLower("-numharm", &cmd.numharm, cmd.numharmC, 16);
+      //checkIntHigher("-numharm", &cmd.numharm, cmd.numharmC, 1);
+      continue;
+    }/* -cuda  */
+    #endif
 
     if( argv[i][0]=='-' ) {
       fprintf(stderr, "\n%s: unknown option `%s'\n\n",
