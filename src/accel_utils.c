@@ -1026,10 +1026,11 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
             fftwf_execute(invplan);
             // Turn the good parts of the result into powers and store
             // them in the output matrix
+            fdata = (float *)tmpout;
 #pragma GCC ivdep
             for (jj = 0; jj < ffdot->numrs; jj++) {
                 const int ind = 2 * (jj + offset);
-                outpows[jj] = (fdata[ind] * fdata[ind] + 
+                outpows[jj] = (fdata[ind] * fdata[ind] +
                                fdata[ind+1] * fdata[ind+1]) * norm;
             }
         }
