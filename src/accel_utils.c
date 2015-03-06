@@ -990,7 +990,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
 
     // Perform the correlations in a thread-safe manner
-#pragma omp parallel default(none) shared(pdata,shi,result,fftlen,binoffset,ffdot)
+#pragma omp parallel default(none) shared(pdata,shi,fftlen,binoffset,ffdot)
     {
         const float norm = 1.0 / (fftlen * fftlen);
         const int offset = binoffset * ACCEL_NUMBETWEEN;
