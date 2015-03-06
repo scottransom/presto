@@ -104,9 +104,19 @@ void davg_dvar(double *x, int n, double *mean, double *var);
 /* For a double vector, *x, of length n, this routine  */
 /* returns the mean and variance of *x.                */
 
-inline void update_stats(int N, double x, double *min, double *max,
-			 double *avg, double *var);
+static inline void update_stats(int N, double x, double *min, double *max,
+                              double *avg, double *var)
 /* Update time series statistics using one-pass technique */
+{
+    double dev;
+    /* Check the max and min values */
+    if (x > *max) *max = x;
+    if (x < *min) *min = x;
+    /* Use clever single pass mean and variance calculation */
+    dev = x - *avg;
+    *avg += dev / (N + 1.0);
+    *var += dev * (x - *avg);
+}
 
 void ra_dec_to_string(char *radec, int h_or_d, int m, double s);
 /* Return a properly formatted string containing RA or DEC values   */
