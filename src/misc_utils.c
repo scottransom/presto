@@ -243,7 +243,7 @@ void telescope_to_tempocode(char *inname, char *outname, char*obscode)
 }
 
 
-float invsqrt(float x)
+float invsqrtf(float x)
 // See http://en.wikipedia.org/wiki/Fast_inverse_square_root
 {
     union {

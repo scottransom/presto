@@ -971,7 +971,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
         }
         loc_powers = corr_loc_pow(powers, nice_numdata);
         for (ii = 0; ii < numdata; ii++) {
-            float norm = invsqrt(loc_powers[ii]);
+            float norm = invsqrtf(loc_powers[ii]);
             data[ii].r *= norm;
             data[ii].i *= norm;
         }
@@ -1291,7 +1291,7 @@ void deredden(fcomplex * fft, int numamps)
     // Write the first half of the normalized block
     // Note that this does *not* include a slope, but since it
     // is only a few bins, that is probably OK.
-    norm = invsqrt(mean_old);
+    norm = invsqrtf(mean_old);
     for (ind = numwrote; ind < binnum + buflen/2; ind++) {
         fft[ind].r *= norm;
         fft[ind].i *= norm;
@@ -1312,7 +1312,7 @@ void deredden(fcomplex * fft, int numamps)
 
         // Correct the last-half of the old block...
         for (ii = 0, ind = numwrote; ind < binnum + buflen/2; ii++, ind++) {
-            norm = invsqrt(mean_old + dslope * ii);
+            norm = invsqrtf(mean_old + dslope * ii);
             fft[ind].r *= norm;
             fft[ind].i *= norm;
             //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
@@ -1330,7 +1330,7 @@ void deredden(fcomplex * fft, int numamps)
 
     // Deal with the last chunk (assume same slope as before)
     for (ii = 0, ind = numwrote; ind < numamps; ii++, ind++) {
-        norm = invsqrt(mean_old + dslope * ii);
+        norm = invsqrtf(mean_old + dslope * ii);
         fft[ind].r *= norm;
         fft[ind].i *= norm;
     }

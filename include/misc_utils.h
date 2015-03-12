@@ -8,7 +8,7 @@
 long long next2_to_n(long long x);
 /* Return the first value of 2^n >= x */
 
-float invsqrt(float x);
+float invsqrtf(float x);
 // See http://en.wikipedia.org/wiki/Fast_inverse_square_root
 
 float beam_halfwidth(float freq, float dish_diam);
