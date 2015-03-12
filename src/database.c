@@ -382,7 +382,7 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
 /*   the results of the search in *output.                          */
 {
    int ii, jj, kk;
-   double T, theop, ra, dec, beam2, difft = 0.0, epoch;
+   double theop, ra, dec, beam2, difft = 0.0, epoch;
    double bmod, pmod;
    char tmp1[80], tmp2[80], tmp3[80], psrname[20], shortout[30];
 
@@ -402,7 +402,6 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
 
    /* Calculate the time related variables  */
 
-   T = idata->N * idata->dt;
    epoch = (double) idata->mjd_i + idata->mjd_f;
 
    /* Run through RAs in database looking for things close  */
@@ -499,7 +498,7 @@ int comp_rawbin_to_cand(rawbincand * cand, infodata * idata, char *output, int f
 {
    int ii, jj, kk;
    static int np;
-   double T, theop, ra, dec, beam2, difft = 0.0, epoch;
+   double theop, ra, dec, beam2, difft = 0.0, epoch;
    double bmod, pmod, orbperr, psrperr;
    char tmp1[80], tmp2[80], tmp3[80];
 
@@ -519,7 +518,6 @@ int comp_rawbin_to_cand(rawbincand * cand, infodata * idata, char *output, int f
 
    /* Calculate the time related variables  */
 
-   T = idata->N * idata->dt;
    epoch = (double) idata->mjd_i + idata->mjd_f;
 
    /* Calculate the approximate error in our value of orbital period */
