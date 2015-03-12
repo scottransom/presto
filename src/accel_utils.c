@@ -25,6 +25,8 @@ void set_openmp_numthreads(int numthreads)
 {
     int maxcpus = omp_get_num_procs();
     openmp_numthreads = (numthreads <= maxcpus) ? numthreads : maxcpus;
+    // Make sure we are not dynamically setting the number of threads
+    omp_set_dynamic(0);
     omp_set_num_threads(openmp_numthreads);
     printf("Starting the search using %d threads with OpenMP.\n\n", 
            openmp_numthreads);
@@ -890,6 +892,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     double drlo, drhi, harm_fract;
     ffdotpows *ffdot;
     fcomplex *data, *pdata;
+    fftwf_plan invplan;
 
     if (numrs_full == 0) {
         if (numharm == 1 && harmnum == 1) {
@@ -989,27 +992,30 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     // Create the output power array
     ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
 
-    // Perform the correlations in a thread-safe manner
-#ifdef _OPENMP
-#pragma omp parallel default(none) shared(pdata,shi,fftlen,binoffset,ffdot)
-#endif
+    // Create a plan with temp arrays.  We will reuse the plan
+    // with the new-array FFTW execute functions
     {
-        const float norm = 1.0 / (fftlen * fftlen);
-        const int offset = binoffset * ACCEL_NUMBETWEEN;
-        fftwf_plan invplan;
-        // tmpdat gets overwritten during the correlation
         fcomplex *tmpdat = gen_cvect(fftlen);
         fcomplex *tmpout = gen_cvect(fftlen);
         // Compute the inverse FFT plan (these are in/out array specific)
         // FFTW planning is *not* thread-safe
+        invplan = fftwf_plan_dft_1d(fftlen, (fftwf_complex *) tmpdat,
+                                    (fftwf_complex *) tmpout, +1,
+                                    FFTW_MEASURE | FFTW_DESTROY_INPUT);
+        vect_free(tmpdat);
+        vect_free(tmpout);
+    }
+
+    // Perform the correlations in a thread-safe manner
 #ifdef _OPENMP
-#pragma omp critical
+#pragma omp parallel default(none) shared(pdata,shi,fftlen,binoffset,ffdot,invplan)
 #endif
-        {
-            invplan = fftwf_plan_dft_1d(fftlen, (fftwf_complex *) tmpdat,
-                                        (fftwf_complex *) tmpout, +1,
-                                        FFTW_MEASURE | FFTW_DESTROY_INPUT);
-        }
+    {
+        const float norm = 1.0 / (fftlen * fftlen);
+        const int offset = binoffset * ACCEL_NUMBETWEEN;
+        // tmpdat gets overwritten during the correlation
+        fcomplex *tmpdat = gen_cvect(fftlen);
+        fcomplex *tmpout = gen_cvect(fftlen);
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -1031,8 +1037,9 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
                 fdata[jj] = dr * kr + di * ki;
                 fdata[jj+1] = di * kr - dr * ki;
             }
-            // Do the inverse FFT (tmpdat > tmpout)
-            fftwf_execute(invplan);
+            // Do the inverse FFT (tmpdat -> tmpout)
+            fftwf_execute_dft(invplan, (fftwf_complex *)tmpdat,
+                              (fftwf_complex *)tmpout);
             // Turn the good parts of the result into powers and store
             // them in the output matrix
             fdata = (float *)tmpout;
@@ -1255,21 +1262,19 @@ void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
 GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
                          accelobs * obs, GSList * cands)
 {
-   int ii, jj;
+   int ii;
    float powcut;
    long long numindep;
 
    powcut = obs->powcut[twon_to_index(numharm)];
    numindep = obs->numindep[twon_to_index(numharm)];
 
+#ifdef _OPENMP
+#pragma omp parallel for shared(ffdot,powcut,obs,numharm,numindep)
+#endif
    for (ii = 0; ii < ffdot->numzs; ii++) {
-#ifdef _OPENMP
-#pragma omp parallel for
-#endif
+      int jj;
       for (jj = 0; jj < ffdot->numrs; jj++) {
-#ifdef _OPENMP
-#pragma omp flush(powcut)
-#endif
          if (ffdot->powers[ii][jj] > powcut) {
             float pow, sig;
             double rr, zz;
