@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 
    readinf(&idata, rootfilenm);
    T = idata.N * idata.dt;
-   if (idata.object) {
+   if (strlen(remove_whitespace(idata.object)) > 0) {
       printf("Analyzing '%s' data from '%s'.\n\n",
              remove_whitespace(idata.object), cmd->argv[0]);
    } else {

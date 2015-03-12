@@ -21,7 +21,7 @@ static fftwf_plan fftplan;
 static long long N_st;
 static int decreasing_freqs_st = 0, bytesperpt_st, bits_per_lag_st = 0;
 static int numchan_st = 0, numifs_st, ptsperblk_st, bytesperblk_st;
-static int sampperblk_st, usewindow_st = 0, vanvleck_st = 0;
+static int sampperblk_st, usewindow_st = 0; //, vanvleck_st = 0;
 static int currentfile, currentblock;
 //static int currentfile, currentblock, bufferpts = 0, padnum = 0, shiftbuffer = 1;
 static double T_st, dt_st, center_freq_st, *window_st = NULL;
@@ -142,7 +142,7 @@ int read_SPIGOT_header(char *filename, SPIGOT_INFO * spigot)
    /* Calculate the MJD a different way to check it */
    dtmp1 = 40587.0 + spigot->sec_obs / SECPERDAY;
    dtmp2 = (dtmp1 - spigot->MJD_obs) * SECPERDAY;
-   if (fabs(dtmp2 > 1e-6)) {
+   if (fabs(dtmp2) > 1e-6) {
       printf
           ("\n  Warning!  The quoted start times for '%s' disagree by %.15g s!\n\n",
            filename, dtmp2);

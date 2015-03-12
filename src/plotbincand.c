@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
    /* Read the info file */
 
    readinf(&idata, argv[1]);
-   if (idata.object) {
+   if (strlen(remove_whitespace(idata.object)) > 0) {
       printf("Plotting a %s candidate from '%s'.\n", idata.object, filenm);
    } else {
       printf("Plotting a candidate from '%s'.\n", filenm);

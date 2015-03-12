@@ -847,16 +847,16 @@ void print_accelcand(gpointer data, gpointer user_data)
 }
 
 
-fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
+fcomplex *get_fourier_amplitudes(long long lobin, int numbins, accelobs * obs)
 {
     if (obs->mmap_file || obs->dat_input) {
+        long long ii, offset = 0, firstbin, newnumbins;
         fcomplex *tmpdata = gen_cvect(numbins);
-        size_t ii, offset = 0, firstbin, newnumbins;
         fcomplex zeros = {0.0, 0.0};
 
         // zero-pad if we try to read before the beginning of the FFT
         if (lobin - obs->lobin < 0) {
-            offset = abs(lobin - obs->lobin);
+            offset = llabs(lobin - obs->lobin);
             for (ii = 0 ; ii < offset ; ii++)
                 tmpdata[ii] = zeros;
         }
@@ -865,7 +865,7 @@ fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
 
         // zero-pad if we try to read beyond the end of the FFT
         if (firstbin + newnumbins > obs->numbins) {
-            size_t numpad = firstbin + newnumbins - obs->numbins;
+            long long numpad = firstbin + newnumbins - obs->numbins;
             newnumbins = newnumbins - numpad;
             for (ii = numbins - numpad ; ii < numbins ; ii++)
                 tmpdata[ii] = zeros;
@@ -990,7 +990,9 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
 
     // Perform the correlations in a thread-safe manner
+#ifdef _OPENMP
 #pragma omp parallel default(none) shared(pdata,shi,fftlen,binoffset,ffdot)
+#endif
     {
         const float norm = 1.0 / (fftlen * fftlen);
         const int offset = binoffset * ACCEL_NUMBETWEEN;
@@ -1000,13 +1002,17 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
         fcomplex *tmpout = gen_cvect(fftlen);
         // Compute the inverse FFT plan (these are in/out array specific)
         // FFTW planning is *not* thread-safe
+#ifdef _OPENMP
 #pragma omp critical
+#endif
         {
             invplan = fftwf_plan_dft_1d(fftlen, (fftwf_complex *) tmpdat,
                                         (fftwf_complex *) tmpout, +1,
                                         FFTW_MEASURE | FFTW_DESTROY_INPUT);
         }
+#ifdef _OPENMP
 #pragma omp for
+#endif
         for (ii = 0; ii < ffdot->numzs; ii++) {
             int jj;
             float *fkern = (float *)shi->kern[ii].data;
@@ -1015,7 +1021,10 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
             float *outpows = ffdot->powers[ii];
             // multiply data and kernel 
             // (using floats for better vectorization)
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
+#endif
             for (jj = 0; jj < fftlen * 2; jj += 2) {
                 const float dr = fpdata[jj], di = fpdata[jj+1];
                 const float kr = fkern[jj], ki = fkern[jj+1];
@@ -1027,7 +1036,10 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
             // Turn the good parts of the result into powers and store
             // them in the output matrix
             fdata = (float *)tmpout;
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
+#endif
             for (jj = 0; jj < ffdot->numrs; jj++) {
                 const int ind = 2 * (jj + offset);
                 outpows[jj] = (fdata[ind] * fdata[ind] +
@@ -1160,7 +1172,9 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
     }
 
     // Now add all the powers
+#ifdef _OPENMP
 #pragma omp parallel default(none) shared(indices,fundamental,obs)
+#endif
     {
         const int zlo = fundamental->zlo;
         const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
@@ -1168,14 +1182,19 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
         float *inpows, *outpows;
+#ifdef _OPENMP
 #pragma omp for
+#endif
         for (ii = 0; ii < numzs; ii++) {
             zz = zlo + ii * ACCEL_DZ;
             subz = calc_required_z(harm_fract, zz);
             zind = index_from_z(subz, zlo);
             inpows = fdp + zind * rlen;
             outpows = powptr + ii * numrs;
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
+#endif
             for (jj = 0; jj < numrs; jj++)
                 outpows[jj] += inpows[indices[jj]];
         }
@@ -1203,21 +1222,28 @@ void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
     }
 
     // Now add all the powers
+#ifdef _OPENMP
 #pragma omp parallel default(none) shared(indices,fundamental,obs)
+#endif
     {
         const int zlo = fundamental->zlo;
         float *powptr = fundamental->powers[0];
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
         float *inpows, *outpows;
+#ifdef _OPENMP
 #pragma omp for
+#endif
         for (ii = 0; ii < numzs; ii++) {
             zz = zlo + ii * ACCEL_DZ;
             subz = calc_required_z(harm_fract, zz);
             zind = index_from_z(subz, zlo);
             inpows = fdp + zind;
             outpows = powptr + ii * numrs;
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
+#endif
             for (jj = 0; jj < numrs; jj++)
                 outpows[jj] += inpows[indices[jj]];
         }
@@ -1237,9 +1263,13 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
    numindep = obs->numindep[twon_to_index(numharm)];
 
    for (ii = 0; ii < ffdot->numzs; ii++) {
+#ifdef _OPENMP
 #pragma omp parallel for
+#endif
       for (jj = 0; jj < ffdot->numrs; jj++) {
+#ifdef _OPENMP
 #pragma omp flush(powcut)
+#endif
          if (ffdot->powers[ii][jj] > powcut) {
             float pow, sig;
             double rr, zz;
@@ -1249,7 +1279,9 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
             sig = candidate_sigma(pow, numharm, numindep);
             rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
             zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
+#ifdef _OPENMP
 #pragma omp critical
+#endif
             {
                 cands = insert_new_accelcand(cands, pow, sig, numharm,
                                              rr, zz, &added);
@@ -1382,7 +1414,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
    /* Read the info file */
 
    readinf(idata, obs->rootfilenm);
-   if (idata->object) {
+   if (strlen(remove_whitespace(idata->object)) > 0) {
       printf("Analyzing %s data from '%s'.\n\n",
              remove_whitespace(idata->object), cmd->argv[0]);
    } else {

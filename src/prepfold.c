@@ -39,8 +39,8 @@ int main(int argc, char *argv[])
    int *maskchans = NULL, nummasked = 0, polyco_index = 0, insubs = 0;
    int *idispdts = NULL, good_padvals = 0;
    long ii = 0, jj, kk, worklen = 0, numread = 0, reads_per_part = 0;
-   long totnumfolded = 0, lorec = 0, hirec = 0, numbinpoints = 0;
-   unsigned long numrec = 0;
+   long long totnumfolded = 0, lorec = 0, hirec = 0, numbinpoints = 0;
+   long long numrec = 0;
    struct spectra_info s;
    infodata idata;
    foldstats beststats;
@@ -457,7 +457,7 @@ int main(int argc, char *argv[])
       if (numrec < cmd->npart) {
           reads_per_part = 1;
           cmd->npart = numrec;
-          printf("Overriding -npart to be %ld, the number of raw (requested) records.\n",
+          printf("Overriding -npart to be %lld, the number of raw (requested) records.\n",
                  numrec);
       }
 
@@ -554,8 +554,8 @@ int main(int argc, char *argv[])
    printf("Best profile is in  '%s.bestprof'.\n", outfilenm);
 
    /* Generate polycos if required and set the pulsar name */
-   if ((cmd->timingP || cmd->parnameP) &&
-       (!idata.bary) || (idata.bary && cmd->barypolycosP)){
+   if (((cmd->timingP || cmd->parnameP) && (!idata.bary)) ||
+       (idata.bary && cmd->barypolycosP)){
       char *polycofilenm;
       cmd->psrnameP = 1;
       if (cmd->timingP)
@@ -1232,7 +1232,7 @@ int main(int argc, char *argv[])
       printf("\nStarting work on '%s'...\n\n", search.filenm);
       proftime = worklen * search.dt;
       parttimes = gen_dvect(cmd->npart);
-      printf("  Folded %ld points of %.0f", totnumfolded, N);
+      printf("  Folded %lld points of %.0f", totnumfolded, N);
 
       /* sub-integrations in time  */
 
@@ -1322,7 +1322,7 @@ int main(int argc, char *argv[])
             totnumfolded += numread;
          }
 
-         printf("\r  Folded %ld points of %.0f", totnumfolded, N);
+         printf("\r  Folded %lld points of %.0f", totnumfolded, N);
          fflush(NULL);
       }
       vect_free(buffers);
