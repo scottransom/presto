@@ -41,20 +41,22 @@ void fftwcall(fcomplex * indata, long nn, int isign)
     static int lastslot = 0, lastused[4] = { 0, 0, 0, 0 };
     static long nncache[4] = { 0, 0, 0, 0 };
 
+    // This determines the alignment of the input array.  Allows
+    // more flexible calling of FFTW using its plans.
+    // A return value of 0 is "properly" aligned.
+    indata_align = fftwf_alignment_of((double *) indata);
+    //if (indata_align)
+    //    printf("Data not properly aligned (%d)!\n", indata_align);
+
     // Call the six-step algorithm if the FFT is too big to be
-    // efficiently handled by FFTW.
-    if (nn > BIGFFTWSIZE) {
+    // efficiently handled by FFTW or if it is unaligned memory
+    if (nn > BIGFFTWSIZE || indata_align) {
         tablesixstepfft(indata, nn, isign);
         return;
     }
 
     // If calling for the first time, read the wisdom file
     if (firsttime) read_wisdom();
-
-    // This determines the alignment of the input array.  Allows
-    // more flexible calling of FFTW using its plans.
-    // A return value of 0 is "properly" aligned.
-    indata_align = fftwf_alignment_of((double *) indata);
 
     // If we used the same plan during the last few calls, use it
     // again.  We keep, in effect, a stack of the 4 most recent plans.
@@ -89,10 +91,11 @@ void fftwcall(fcomplex * indata, long nn, int isign)
             if (plancache_inverse[oldestplan])
                 fftwf_destroy_plan(plancache_inverse[oldestplan]);
         }
-        //printf("Making a new plan for nn=%ld (dropping nn=%ld) %d\n",
-        //       nn, nncache[oldestplan], badct++);
+        //printf("Making a new plan for nn=%ld, align=%d (dropping nn=%ld) %d\n",
+        //       nn, indata_align, nncache[oldestplan], badct++);
         // We don't want to wait around to measure huge transforms
         planflag = (nn > 90000) ? FFTW_ESTIMATE : FFTW_MEASURE;
+        if (indata_align) planflag |= FFTW_UNALIGNED;
         // Actually make the plans
         plancache_forward[oldestplan] = \
             fftwf_plan_dft_1d(nn, dataptr, dataptr, -1, planflag);

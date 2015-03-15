@@ -262,9 +262,9 @@ void realfft(float idata[], long n, int isign)
       data[0].r = 0.5 * (tmp1 + data[0].i);
       data[0].i = 0.5 * (tmp1 - data[0].i);
       COMPLEXFFT(data, nby2, 1);
-      tmp1 = 2.0 / (double) n;
-      for (il = 0; il < n; il++)
-         idata[il] *= tmp1;
+      //tmp1 = 2.0 / (double) n;
+      //for (il = 0; il < n; il++)
+      //   idata[il] *= tmp1;
    }
 }
 
