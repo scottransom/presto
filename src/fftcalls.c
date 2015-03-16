@@ -75,8 +75,8 @@ void fftwcall(fcomplex * indata, long nn, int isign)
     //    printf("Data not properly aligned (%d)!\n", indata_align);
 
     // Call the six-step algorithm if the FFT is too big to be
-    // efficiently handled by FFTW or if it is unaligned memory
-    if (nn > BIGFFTWSIZE || indata_align) {
+    // efficiently handled by FFTW
+    if (nn > BIGFFTWSIZE) {
         tablesixstepfft(indata, nn, isign);
         return;
     }
