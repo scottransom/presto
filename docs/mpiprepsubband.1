@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "mpiprepsubband" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
+.TH "mpiprepsubband" 1 "17Mar15" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -43,7 +43,6 @@ mpiprepsubband \- Converts a raw radio data file into many de-dispersed time-ser
 [-runavg]
 [-numout numout]
 [-nobary]
-[-DE405]
 [-lodm lodm]
 [-dmstep dmstep]
 [-numdms numdms]
@@ -108,11 +107,9 @@ Running mean subtraction from the input data.
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br
-1 Int value between 1 and oo.
+1 Long value between 1 and oo.
 .IP -nobary
 Do not barycenter the data.
-.IP -DE405
-Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -lodm
 The lowest dispersion measure to de-disperse (cm^-3 pc),
 .br
@@ -140,7 +137,7 @@ Default: `32'
 .IP -downsamp
 The number of neighboring bins to co-add,
 .br
-1 Int value between 1 and 64.
+1 Int value between 1 and 128.
 .br
 Default: `1'
 .IP -mask
