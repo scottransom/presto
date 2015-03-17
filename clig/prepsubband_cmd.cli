@@ -10,6 +10,8 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
+Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
+	-r 1 oo  -d 1
 String -o       outfile {Root of the output file names} \
 	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
@@ -36,18 +38,17 @@ Flag   -runavg  runavg  {Running mean subtraction from the input data}
 Flag   -sub     sub     {Write subbands instead of de-dispersed data}
 Double -subdm   subdm   {The DM to use when de-dispersing subbands for -sub} \
 	-r 0 4000.0  -d 0.0
-Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
+Long    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}
-Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Double  -lodm   lodm    {The lowest dispersion measure to de-disperse (cm^-3 pc)} \
 	-r 0 oo  -d 0
 Double  -dmstep dmstep  {The stepsize in dispersion measure to use(cm^-3 pc)} \
 	-r 0 oo  -d 1.0
 Int     -numdms numdms  {The number of DMs to de-disperse} \
-	-r 1 1000 -d 10
+	-r 1 10000 -d 10
 Int     -nsub   nsub    {The number of sub-bands to use} \
-	-r 1 1024 -d 32
+	-r 1 4096 -d 32
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
 	-r 1 128 -d 1
 Int     -dmprec dmprec  {The number of decimals in the precision of the DM in the filename.} \

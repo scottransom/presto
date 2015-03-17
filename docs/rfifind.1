@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "rfifind" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
+.TH "rfifind" 1 "17Mar15" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,6 +22,7 @@ rfifind \- Examines radio data for narrow and wide band interference as well as 
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B rfifind
+[-ncpus ncpus]
 -o outfile
 [-pkmb]
 [-gmrt]
@@ -58,6 +59,12 @@ infile ...
 
 .\" cligPart OPTIONS
 .SH OPTIONS
+.IP -ncpus
+Number of processors to use with OpenMP,
+.br
+1 Int value between 1 and oo.
+.br
+Default: `1'
 .IP -o
 Root of the output file names,
 .br

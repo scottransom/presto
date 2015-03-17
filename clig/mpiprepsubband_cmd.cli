@@ -33,10 +33,9 @@ Flag   -noclip  noclip  {Do not clip the data.  (The default is to _always_ clip
 Flag   -invert  invert  {For rawdata, flip (or invert) the band}
 Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e. remove zero DM)}
 Flag   -runavg  runavg  {Running mean subtraction from the input data}
-Int    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
+Long    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}
-Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Double  -lodm   lodm    {The lowest dispersion measure to de-disperse (cm^-3 pc)} \
 	-r 0 oo  -d 0
 Double  -dmstep dmstep  {The stepsize in dispersion measure to use(cm^-3 pc)} \
@@ -46,7 +45,7 @@ Int     -numdms numdms  {The number of DMs to de-disperse} \
 Int     -nsub   nsub    {The number of sub-bands to use} \
 	-r 1 4096 -d 32
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
-	-r 1 64 -d 1
+	-r 1 128 -d 1
 String -mask    maskfile {File containing masking information to use}
 
 # Rest of command line:
