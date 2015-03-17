@@ -377,12 +377,8 @@ int main(int argc, char *argv[])
       double maxvoverc = -1.0, minvoverc = 1.0, *voverc = NULL;
       double *dispdt;
 
-      /* What ephemeris will we use?  (Default is DE200) */
-
-      if (cmd->de405P)
-         strcpy(ephem, "DE405");
-      else
-         strcpy(ephem, "DE200");
+      /* What ephemeris will we use?  (Default is DE405) */
+      strcpy(ephem, "DE405");
 
       /* Define the RA and DEC of the observation */
 

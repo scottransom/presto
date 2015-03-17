@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
       printf("     dm is the (optional) Dispersion Measure of the obs (cm^-3 pc)\n");
       printf("        dm defaults to 0.0 cm^-3 pc.\n");
       printf("     ephem is the (optional) ephemeris to use, either 'DE200'\n");
-      printf("        or 'DE400'.  ephem defaults to 'DE200'.\n\n");
+      printf("        or 'DE405'.  ephem defaults to 'DE405'.\n\n");
       printf("   Notes:  The topocentric times must be in UTC MJD format.\n");
       printf("     There is a maximum limit of 5000 input times.\n\n");
       exit(0);
@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
       strcpy(obs, argv[1]);
       strcpy(ra, argv[2]);
       strcpy(dec, argv[3]);
-      strcpy(ephem, "DE200");
+      strcpy(ephem, "DE405");
    }
    if (argc >= 5)
       topof = strtod(argv[4], NULL);

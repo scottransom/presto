@@ -409,12 +409,8 @@ int main(int argc, char *argv[])
       sprintf(search.pgdev, "%s/CPS", plotfilenm);
    }
 
-   /* What ephemeris will we use?  (Default is DE200) */
-
-   if (cmd->de405P)
-      strcpy(ephem, "DE405");
-   else
-      strcpy(ephem, "DE200");
+   /* What ephemeris will we use?  (Default is DE405) */
+   strcpy(ephem, "DE405");
 
    // Set-up values if we are using raw radio pulsar data 
 

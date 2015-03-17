@@ -351,11 +351,8 @@ int main(int argc, char *argv[])
       double avgvoverc = 0.0, maxvoverc = -1.0, minvoverc = 1.0, *voverc = NULL;
       double *bobsf = NULL, *btoa = NULL, *ttoa = NULL;
 
-      /* What ephemeris will we use?  (Default is DE200) */
-      if (cmd->de405P)
-         strcpy(ephem, "DE405");
-      else
-         strcpy(ephem, "DE200");
+      /* What ephemeris will we use?  (Default is DE405) */
+      strcpy(ephem, "DE405");
 
       /* Define the RA and DEC of the observation */
       ra_dec_to_string(rastring, idata.ra_h, idata.ra_m, idata.ra_s);
