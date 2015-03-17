@@ -237,6 +237,14 @@ readinf = _newpresto.readinf
 def writeinf(*args):
   return _newpresto.writeinf(*args)
 writeinf = _newpresto.writeinf
+
+def gen_fvect(*args):
+  return _newpresto.gen_fvect(*args)
+gen_fvect = _newpresto.gen_fvect
+
+def gen_cvect(*args):
+  return _newpresto.gen_cvect(*args)
+gen_cvect = _newpresto.gen_cvect
 # This file is compatible with both classic and new-style classes.
 
 

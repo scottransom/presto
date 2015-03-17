@@ -1,5 +1,6 @@
 import numpy as np
 import newpresto as presto
+import os
 
 print "Testing FFT stuff...",
 N = 20
@@ -33,13 +34,16 @@ assert(x.numonoff==1)
 assert(x.analyzer=="sransom")
 print "success"
 
+print "Testing writing infiles...",
 x.analyzer="test"
 x.name="xxx"
-print "Testing writing infiles...",
+x.dt=0.125
 presto.write_inffile(x, verbose=False)
 y = presto.read_inffile("xxx", verbose=False)
 assert(y.analyzer=="test")
 assert(y.bary==0)
 assert(y.numonoff==1)
+assert(y.dt==0.125)
+os.remove("xxx.inf")
 print "success"
 

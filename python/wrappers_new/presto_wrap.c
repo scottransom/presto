@@ -2913,8 +2913,11 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 #define SWIGTYPE_p_FCOMPLEX swig_types[0]
 #define SWIGTYPE_p_INFODATA swig_types[1]
 #define SWIGTYPE_p_char swig_types[2]
-static swig_type_info *swig_types[4];
-static swig_module_info swig_module = {swig_types, 3, 0, 0, 0, 0};
+#define SWIGTYPE_p_long swig_types[3]
+#define SWIGTYPE_p_p_FCOMPLEX swig_types[4]
+#define SWIGTYPE_p_p_float swig_types[5]
+static swig_type_info *swig_types[7];
+static swig_module_info swig_module = {swig_types, 6, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -3836,6 +3839,27 @@ SWIG_FromCharPtr(const char *cptr)
     void INFODATA_filt_set(infodata *p, char *val) {
         strncpy(p->filt,val,7);
     }
+
+
+#include <errno.h>
+void wrap_gen_fvect(long nl, long *nn, float** vect)
+{
+    float *temp;
+    temp = gen_fvect(nl);
+    if (temp == NULL)
+        errno = ENOMEM;
+    *vect = temp;
+    *nn = nl;
+}
+void wrap_gen_cvect(long nl, long *nn, fcomplex** vect)
+{
+    fcomplex *temp;
+    temp = gen_cvect(nl);
+    if (temp == NULL)
+        errno = ENOMEM;
+    *vect = temp;
+    *nn = nl;
+}
 
 #ifdef __cplusplus
 extern "C" {
@@ -5855,6 +5879,110 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_gen_fvect(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  long arg1 ;
+  long *arg2 = (long *) 0 ;
+  float **arg3 = (float **) 0 ;
+  long val1 ;
+  int ecode1 = 0 ;
+  long dim_temp2 ;
+  float *data_temp2 = NULL ;
+  PyObject * obj0 = 0 ;
+  
+  {
+    arg2 = &dim_temp2;
+    arg3 = &data_temp2;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"O:gen_fvect",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_long(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_fvect" "', argument " "1"" of type '" "long""'");
+  } 
+  arg1 = (long)(val1);
+  wrap_gen_fvect(arg1,arg2,arg3);
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[1] = {
+      *arg2 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_FLOAT, (void*)(*arg3));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg2), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg2), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_gen_cvect(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  long arg1 ;
+  long *arg2 = (long *) 0 ;
+  fcomplex **arg3 = (fcomplex **) 0 ;
+  long val1 ;
+  int ecode1 = 0 ;
+  long dim_temp2 ;
+  fcomplex *data_temp2 = NULL ;
+  PyObject * obj0 = 0 ;
+  
+  {
+    arg2 = &dim_temp2;
+    arg3 = &data_temp2;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"O:gen_cvect",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_long(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_cvect" "', argument " "1"" of type '" "long""'");
+  } 
+  arg1 = (long)(val1);
+  wrap_gen_cvect(arg1,arg2,arg3);
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[1] = {
+      *arg2 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg3));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg2), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg2), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
 	 { (char *)"fcomplex_r_set", _wrap_fcomplex_r_set, METH_VARARGS, NULL},
@@ -5936,6 +6064,8 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"infodata_swigregister", infodata_swigregister, METH_VARARGS, NULL},
 	 { (char *)"readinf", _wrap_readinf, METH_VARARGS, NULL},
 	 { (char *)"writeinf", _wrap_writeinf, METH_VARARGS, NULL},
+	 { (char *)"gen_fvect", _wrap_gen_fvect, METH_VARARGS, NULL},
+	 { (char *)"gen_cvect", _wrap_gen_cvect, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 
@@ -5945,21 +6075,33 @@ static PyMethodDef SwigMethods[] = {
 static swig_type_info _swigt__p_FCOMPLEX = {"_p_FCOMPLEX", "fcomplex *|struct FCOMPLEX *|FCOMPLEX *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_INFODATA = {"_p_INFODATA", "infodata *|struct INFODATA *|INFODATA *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_char = {"_p_char", "char *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_long = {"_p_long", "long *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_p_FCOMPLEX = {"_p_p_FCOMPLEX", "struct FCOMPLEX **|fcomplex **", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_p_float = {"_p_p_float", "float **", 0, 0, (void*)0, 0};
 
 static swig_type_info *swig_type_initial[] = {
   &_swigt__p_FCOMPLEX,
   &_swigt__p_INFODATA,
   &_swigt__p_char,
+  &_swigt__p_long,
+  &_swigt__p_p_FCOMPLEX,
+  &_swigt__p_p_float,
 };
 
 static swig_cast_info _swigc__p_FCOMPLEX[] = {  {&_swigt__p_FCOMPLEX, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_INFODATA[] = {  {&_swigt__p_INFODATA, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_char[] = {  {&_swigt__p_char, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_long[] = {  {&_swigt__p_long, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_p_FCOMPLEX[] = {  {&_swigt__p_p_FCOMPLEX, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_p_float[] = {  {&_swigt__p_p_float, 0, 0, 0},{0, 0, 0, 0}};
 
 static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_FCOMPLEX,
   _swigc__p_INFODATA,
   _swigc__p_char,
+  _swigc__p_long,
+  _swigc__p_p_FCOMPLEX,
+  _swigc__p_p_float,
 };
 
 

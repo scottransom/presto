@@ -141,7 +141,7 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
 	psrorbit window plotbincand prepfold show_pfd\
 	rfifind zapbirds explorefft exploredat\
-	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays
+	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays testfftw
 #	dump_spigot_zerolag spigot2filterbank\
 #	spigotSband2filterbank GBT350filterbank\
 
@@ -183,6 +183,9 @@ libsla$(LIBSUFFIX):
 binaries: $(BINARIES)
 
 mpi: mpiprepsubband
+
+testfftw: testfftw.o
+	$(CC) $(CLINKFLAGS) -o $@ testfftw.o $(PRESTOLINK) -lm
 
 mpiprepsubband_utils.o: mpiprepsubband_utils.c
 	mpicc $(CLINKFLAGS) -c mpiprepsubband_utils.c

@@ -872,7 +872,7 @@
   (PyArrayObject* array=NULL, int is_new_object=0)
 {
   npy_intp size[2] = { -1, -1 };
-  array = obj_to_array_contiguous_allow_conversion($input,
+  array = obj_to_array_fortran_allow_conversion($input,
                                                    DATA_TYPECODE,
                                                    &is_new_object);
   if (!array || !require_dimensions(array, 2) ||
@@ -996,7 +996,7 @@
       size[0] = array_size(temp_array,0);
       size[1] = array_size(temp_array,1);
     }
-    
+
     if (!require_size(temp_array, size, 2)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -1106,7 +1106,7 @@
   (PyArrayObject* array=NULL, int is_new_object=0)
 {
   npy_intp size[3] = { -1, -1, -1 };
-  array = obj_to_array_contiguous_allow_conversion($input,
+  array = obj_to_array_fortran_allow_conversion($input,
                                                    DATA_TYPECODE,
                                                    &is_new_object);
   if (!array || !require_dimensions(array, 3) ||
@@ -1232,7 +1232,7 @@
       size[1] = array_size(temp_array,1);
       size[2] = array_size(temp_array,2);
     }
-    
+
     if (!require_size(temp_array, size, 3)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -1345,7 +1345,7 @@
   (PyArrayObject* array=NULL, int is_new_object=0)
 {
   npy_intp size[4] = { -1, -1, -1 , -1 };
-  array = obj_to_array_contiguous_allow_conversion($input, DATA_TYPECODE,
+  array = obj_to_array_fortran_allow_conversion($input, DATA_TYPECODE,
                                                    &is_new_object);
   if (!array || !require_dimensions(array, 4) ||
       !require_size(array, size, 4) || !require_fortran(array)) SWIG_fail;
@@ -1634,7 +1634,7 @@
       size[0] = array_size(temp_array,0);
       size[1] = array_size(temp_array,1);
     }
-    
+
     if (!require_size(temp_array, size, 2)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -1819,7 +1819,7 @@
       size[1] = array_size(temp_array,1);
       size[2] = array_size(temp_array,2);
     }
-    
+
     if (!require_size(temp_array, size, 3)) SWIG_fail;
 
     array[i] = (DATA_TYPE*) array_data(temp_array);
@@ -2246,7 +2246,7 @@
   PyObject* obj = PyArray_SimpleNewFromData(3, dims, DATA_TYPECODE, (void*)(*$1));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
   $result = SWIG_Python_AppendOutput($result,obj);
 }
 
@@ -2270,7 +2270,7 @@
   PyObject* obj = PyArray_SimpleNewFromData(3, dims, DATA_TYPECODE, (void*)(*$4));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
   $result = SWIG_Python_AppendOutput($result,obj);
 }
 
@@ -2345,7 +2345,7 @@
   PyObject* obj = PyArray_SimpleNewFromData(4, dims, DATA_TYPECODE, (void*)(*$1));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
   $result = SWIG_Python_AppendOutput($result,obj);
 }
 
@@ -2370,7 +2370,7 @@
   PyObject* obj = PyArray_SimpleNewFromData(4, dims, DATA_TYPECODE, (void*)(*$5));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
   $result = SWIG_Python_AppendOutput($result,obj);
 }
 
@@ -2388,7 +2388,7 @@
   $2 = &dim_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_ARRAY1, DIM_TYPE* DIM1)
 {
   npy_intp dims[1] = { *$2 };
@@ -2402,7 +2402,7 @@
 %#else
     PyObject* cap = PyCObject_FromVoidPtr((void*)(*$1), free);
 %#endif
-  
+
 %#if NPY_API_VERSION < 0x00000007
   PyArray_BASE(array) = cap;
 %#else
@@ -2422,7 +2422,7 @@
   $2 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DIM_TYPE* DIM1, DATA_TYPE** ARGOUTVIEWM_ARRAY1)
 {
   npy_intp dims[1] = { *$1 };
@@ -2436,7 +2436,7 @@
 %#else
     PyObject* cap = PyCObject_FromVoidPtr((void*)(*$1), free);
 %#endif
-  
+
 %#if NPY_API_VERSION < 0x00000007
   PyArray_BASE(array) = cap;
 %#else
@@ -2457,7 +2457,7 @@
   $3 = &dim2_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_ARRAY2, DIM_TYPE* DIM1, DIM_TYPE* DIM2)
 {
   npy_intp dims[2] = { *$2, *$3 };
@@ -2492,7 +2492,7 @@
   $3 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DATA_TYPE** ARGOUTVIEWM_ARRAY2)
 {
   npy_intp dims[2] = { *$1, *$2 };
@@ -2527,7 +2527,7 @@
   $3 = &dim2_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_FARRAY2, DIM_TYPE* DIM1, DIM_TYPE* DIM2)
 {
   npy_intp dims[2] = { *$2, *$3 };
@@ -2562,7 +2562,7 @@
   $3 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DATA_TYPE** ARGOUTVIEWM_FARRAY2)
 {
   npy_intp dims[2] = { *$1, *$2 };
@@ -2599,7 +2599,7 @@
   $4 = &dim3_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_ARRAY3, DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3)
 {
   npy_intp dims[3] = { *$2, *$3, *$4 };
@@ -2636,7 +2636,7 @@
   $4 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DATA_TYPE** ARGOUTVIEWM_ARRAY3)
 {
   npy_intp dims[3] = { *$1, *$2, *$3 };
@@ -2673,14 +2673,14 @@
   $4 = &dim3_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_FARRAY3, DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3)
 {
   npy_intp dims[3] = { *$2, *$3, *$4 };
   PyObject* obj = PyArray_SimpleNewFromData(3, dims, DATA_TYPECODE, (void*)(*$1));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
 
 %#ifdef SWIGPY_USE_CAPSULE
     PyObject* cap = PyCapsule_New((void*)(*$1), SWIGPY_CAPSULE_NAME, free_cap);
@@ -2710,14 +2710,14 @@
   $4 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DATA_TYPE** ARGOUTVIEWM_FARRAY3)
 {
   npy_intp dims[3] = { *$1, *$2, *$3 };
   PyObject* obj = PyArray_SimpleNewFromData(3, dims, DATA_TYPECODE, (void*)(*$4));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
 
 %#ifdef SWIGPY_USE_CAPSULE
     PyObject* cap = PyCapsule_New((void*)(*$1), SWIGPY_CAPSULE_NAME, free_cap);
@@ -2748,7 +2748,7 @@
   $5 = &dim4_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_ARRAY4, DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DIM_TYPE* DIM4)
 {
   npy_intp dims[4] = { *$2, *$3, *$4 , *$5 };
@@ -2786,7 +2786,7 @@
   $5 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DIM_TYPE* DIM4, DATA_TYPE** ARGOUTVIEWM_ARRAY4)
 {
   npy_intp dims[4] = { *$1, *$2, *$3 , *$4 };
@@ -2824,14 +2824,14 @@
   $5 = &dim4_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_FARRAY4, DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3)
 {
   npy_intp dims[4] = { *$2, *$3, *$4 , *$5 };
   PyObject* obj = PyArray_SimpleNewFromData(4, dims, DATA_TYPECODE, (void*)(*$1));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
 
 %#ifdef SWIGPY_USE_CAPSULE
     PyObject* cap = PyCapsule_New((void*)(*$1), SWIGPY_CAPSULE_NAME, free_cap);
@@ -2862,14 +2862,14 @@
   $5 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DIM_TYPE* DIM4, DATA_TYPE** ARGOUTVIEWM_FARRAY4)
 {
   npy_intp dims[4] = { *$1, *$2, *$3 , *$4 };
   PyObject* obj = PyArray_SimpleNewFromData(4, dims, DATA_TYPECODE, (void*)(*$5));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
 
 %#ifdef SWIGPY_USE_CAPSULE
     PyObject* cap = PyCapsule_New((void*)(*$1), SWIGPY_CAPSULE_NAME, free_cap);
@@ -2900,7 +2900,7 @@
   $5 = &dim4_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_ARRAY4, DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DIM_TYPE* DIM4)
 {
   npy_intp dims[4] = { *$2, *$3, *$4 , *$5 };
@@ -2938,7 +2938,7 @@
   $5 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility")
+         fragment="NumPy_Backward_Compatibility,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DIM_TYPE* DIM4, DATA_TYPE** ARGOUTVIEWM_ARRAY4)
 {
   npy_intp dims[4] = { *$1, *$2, *$3 , *$4 };
@@ -2976,14 +2976,14 @@
   $5 = &dim4_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DATA_TYPE** ARGOUTVIEWM_FARRAY4, DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DIM_TYPE* DIM4)
 {
   npy_intp dims[4] = { *$2, *$3, *$4 , *$5 };
   PyObject* obj = PyArray_SimpleNewFromData(4, dims, DATA_TYPECODE, (void*)(*$1));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
 
 %#ifdef SWIGPY_USE_CAPSULE
     PyObject* cap = PyCapsule_New((void*)(*$1), SWIGPY_CAPSULE_NAME, free_cap);
@@ -3014,14 +3014,14 @@
   $5 = &data_temp;
 }
 %typemap(argout,
-         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements")
+         fragment="NumPy_Backward_Compatibility,NumPy_Array_Requirements,NumPy_Utilities")
   (DIM_TYPE* DIM1, DIM_TYPE* DIM2, DIM_TYPE* DIM3, DIM_TYPE* DIM4, DATA_TYPE** ARGOUTVIEWM_FARRAY4)
 {
   npy_intp dims[4] = { *$1, *$2, *$3 , *$4 };
   PyObject* obj = PyArray_SimpleNewFromData(4, dims, DATA_TYPECODE, (void*)(*$5));
   PyArrayObject* array = (PyArrayObject*) obj;
 
-  if (!array || require_fortran(array)) SWIG_fail;
+  if (!array || !require_fortran(array)) SWIG_fail;
 
 %#ifdef SWIGPY_USE_CAPSULE
     PyObject* cap = PyCapsule_New((void*)(*$1), SWIGPY_CAPSULE_NAME, free_cap);
@@ -3071,15 +3071,13 @@
  *    %numpy_typemaps(long double, NPY_LONGDOUBLE, int)
  */
 
-/* ***************************************************************
- * Swig complains about a syntax error for the following macro
- * expansions:
- *
- *    %numpy_typemaps(complex float,  NPY_CFLOAT , int)
- *
- *    %numpy_typemaps(complex double, NPY_CDOUBLE, int)
- *
- *    %numpy_typemaps(complex long double, NPY_CLONGDOUBLE, int)
- */
+#ifdef __cplusplus
+
+%include <std_complex.i>
+
+%numpy_typemaps(std::complex<float>,  NPY_CFLOAT , int)
+%numpy_typemaps(std::complex<double>, NPY_CDOUBLE, int)
+
+#endif
 
 #endif /* SWIGPYTHON */

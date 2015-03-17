@@ -152,3 +152,31 @@ void readinf(infodata *data, char *filenm);
 
 void writeinf(infodata *data);
 /* Write a ".inf" file to disk. */
+
+%apply (long* DIM1, float** ARGOUTVIEWM_ARRAY1) {(long *nn, float** vect)}
+%apply (long* DIM1, fcomplex** ARGOUTVIEWM_ARRAY1) {(long *nn, fcomplex** vect)}
+%rename (gen_fvect) wrap_gen_fvect;
+%rename (gen_cvect) wrap_gen_cvect;
+%inline %{
+#include <errno.h>
+void wrap_gen_fvect(long nl, long *nn, float** vect)
+{
+    float *temp;
+    temp = gen_fvect(nl);
+    if (temp == NULL)
+        errno = ENOMEM;
+    *vect = temp;
+    *nn = nl;
+}
+void wrap_gen_cvect(long nl, long *nn, fcomplex** vect)
+{
+    fcomplex *temp;
+    temp = gen_cvect(nl);
+    if (temp == NULL)
+        errno = ENOMEM;
+    *vect = temp;
+    *nn = nl;
+}
+%}
+%clear (long *nn, float** vect);
+%clear (long *nn, fcomplex** vect);
