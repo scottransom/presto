@@ -15,7 +15,7 @@ extern int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pna
 extern int phcalc(double mjd0, double mjd1, int last_index,
                   double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
-extern char *make_polycos(char *parfilenm, infodata * idata);
+extern char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm);
 void set_posn(prepfoldinfo * in, infodata * idata);
 
 /* 
@@ -553,15 +553,14 @@ int main(int argc, char *argv[])
    if ((cmd->timingP || cmd->parnameP) &&
        (!idata.bary) || (idata.bary && cmd->barypolycosP)){
       char *polycofilenm;
-      cmd->psrnameP = 1;
-      if (cmd->timingP)
-         cmd->psrname = make_polycos(cmd->timing, &idata);
-      else
-         cmd->psrname = make_polycos(cmd->parname, &idata);
       polycofilenm = (char *) calloc(strlen(outfilenm) + 9, sizeof(char));
       sprintf(polycofilenm, "%s.polycos", outfilenm);
+      cmd->psrnameP = 1;
+      if (cmd->timingP)
+         cmd->psrname = make_polycos(cmd->timing, &idata, polycofilenm);
+      else
+         cmd->psrname = make_polycos(cmd->parname, &idata, polycofilenm);
       printf("Polycos used are in '%s'.\n", polycofilenm);
-      rename("polyco.dat", polycofilenm);
       cmd->polycofileP = 1;
       cmd->polycofile = (char *) calloc(strlen(polycofilenm) + 1, sizeof(char));
       strcpy(cmd->polycofile, polycofilenm);
