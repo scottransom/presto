@@ -66,10 +66,10 @@ def prune_related1(hibins, hivals, downfact):
     # candidate arrays and uses the single downfact
     # that they were selected with.
     toremove = set()
-    for ii in range(0, len(hibins)-1):
+    for ii in xrange(0, len(hibins)-1):
         if ii in toremove:  continue
         xbin, xsigma = hibins[ii], hivals[ii]
-        for jj in range(ii+1, len(hibins)):
+        for jj in xrange(ii+1, len(hibins)):
             ybin, ysigma = hibins[jj], hivals[jj]
             if (abs(ybin-xbin) > downfact/2):
                 break
@@ -93,11 +93,11 @@ def prune_related2(dm_candlist, downfacts):
     # instances and looks at the different downfacts of the
     # the different candidates.
     toremove = set()
-    for ii in range(0, len(dm_candlist)-1):
+    for ii in xrange(0, len(dm_candlist)-1):
         if ii in toremove:  continue
         xx = dm_candlist[ii]
         xbin, xsigma = xx.bin, xx.sigma
-        for jj in range(ii+1, len(dm_candlist)):
+        for jj in xrange(ii+1, len(dm_candlist)):
             yy = dm_candlist[jj]
             ybin, ysigma = yy.bin, yy.sigma
             if (abs(ybin-xbin) > max(downfacts)/2):
@@ -122,7 +122,7 @@ def prune_border_cases(dm_candlist, offregions):
     # of the boundary between data and padding
     #print offregions
     toremove = set()
-    for ii in range(len(dm_candlist))[::-1]:
+    for ii in xrange(len(dm_candlist))[::-1]:
         cand = dm_candlist[ii]
         loside = cand.bin-cand.downfact/2
         hiside = cand.bin+cand.downfact/2
@@ -374,7 +374,7 @@ def main():
 
             # Step through the data
             dm_candlist = []
-            for chunknum in range(numchunks):
+            for chunknum in xrange(numchunks):
                 loind = chunknum*chunklen-overlap
                 hiind = (chunknum+1)*chunklen+overlap
                 # Take care of beginning and end of file overlap issues

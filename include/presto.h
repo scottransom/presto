@@ -1306,7 +1306,7 @@ void barycenter(double *topotimes, double *barytimes, \
   /* "dd:mm:s.ssss" for DEC.  The observatory site is passed  */
   /* as a 2 letter ITOA code.  This observatory code must be  */
   /* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
-  /* is either "DE200" or "DE400".                            */
+  /* is currently "DE200" or "DE405".                         */
 
 fftcand *search_fft(fcomplex *fft, int numfft, int lobin, int hibin, 
 		    int numharmsum, int numbetween, 

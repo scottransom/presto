@@ -1,0 +1,42 @@
+cd /dev/shm
+mkdir test
+cd test
+wget http://www.cv.nrao.edu/~sransom/GBT_Lband_PSR.fil
+readfile GBT_Lband_PSR.fil 
+rfifind -time 2.0 -o Lband GBT_Lband_PSR.fil 
+gv lband_rfifind.ps
+rfifind -time 1.0 -o Lband GBT_Lband_PSR.fil 
+gv lband_rfifind.ps
+rfifind -nocompute -time 1.0 -freqsig 6.0 -mask -o Lband_rfifind.mask lband GBT_Lband_PSR.fil 
+gv lband_rfifind.ps
+prepdata -nobary -o Lband_topo_DM0.00 -dm 0.0 -mask Lband_rfifind.mask -numout 530000 GBT_Lband_PSR.fil 
+exploredat Lband_topo_DM0.00.dat 
+realfft Lband_topo_DM0.00.dat 
+explorefft Lband_topo_DM0.00.fft 
+accelsearch -numharm 4 -zmax 0 Lband_topo_DM0.00.dat 
+less -S Lband_topo_DM0.00_ACCEL_0
+jed Lband.birds
+cp Lband_rfifind.inf Lband.inf
+makezaplist.py Lband.birds
+explorefft Lband_topo_DM0.00.fft
+prepfold -p 1.0 GBT_Lband_PSR.fil
+DDplan.py -d 500.0 -n 96 -b 96 -t 0.000072 -f 1400.0 -s 32 -r 0.5
+prepsubband -nsub 32 -lodm 0.0 -dmstep 2.0 -numdms 24 -numout 132500 -downsamp 4 -mask Lband_rfifind.mask -o Lband GBT_Lband_PSR.fil 
+cp /usr/local/src/presto/python/dedisp.py .
+jed dedisp.py 
+python dedisp.py
+mkdir subbands
+mv *.sub* subbands/
+rm Lband*topo*
+ls *.dat | xargs -n 1 realfft
+ls *.fft | xargs -n 1 zapbirds -zap -zapfile Lband.zaplist -baryv -5.69726e-05
+ls *dat | xargs -n 1 accelsearch -zmax 0
+cp /usr/local/src/presto/python/ACCEL_sift.py .
+python ACCEL_sift.py > cands.txt
+less cands.txt 
+prepfold -accelcand 2 -accelfile Lband_DM62.00_ACCEL_0.cand Lband_DM62.00.dat
+ls subbands/
+prepfold -accelcand 2 -accelfile Lband_DM62.00_ACCEL_0.cand -dm 62 subbands/Lband_DM72.00.sub??
+prepfold -n 64 -nsub 96 -p 0.004621638 -dm 62.0 GBT_Lband_PSR.fil 
+single_pulse_search.py *dat
+gv Lband_singlepulse.ps

@@ -18,13 +18,13 @@
 
 /* Round a double or float to the nearest integer. */
 /* x.5s get rounded away from zero.                */
-#define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
+#define NEAREST_LONG(x) (long) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
 extern void write_data(FILE * outfiles[], int numfiles, float **outdata,
                        int startpoint, int numtowrite);
 extern void write_padding(FILE * outfiles[], int numfiles, float value,
                           int numtowrite);
-extern void update_infodata(infodata * idata, int datawrote, int padwrote,
+extern void update_infodata(infodata * idata, long datawrote, long padwrote,
                             int *barybins, int numbarybins, int downsamp);
 extern void print_percent_complete(int current, int number);
 extern void make_infodata_struct(void);
@@ -63,10 +63,11 @@ int main(int argc, char *argv[])
    double max = -9.9E30, min = 9.9E30, var = 0.0, avg = 0.0;
    double *btoa = NULL, *ttoa = NULL, avgvoverc = 0.0;
    char obs[3], ephem[10], rastring[50], decstring[50];
-   int totnumtowrite, *idispdt, **offsets;
+   long totnumtowrite, totwrote = 0, padwrote = 0, datawrote = 0;
+   int *idispdt, **offsets;
    int ii, jj, numadded = 0, numremoved = 0, padding = 0, good_inputs = 1;
-   int numbarypts = 0, numread = 0, numtowrite = 0, totwrote = 0, datawrote = 0;
-   int padwrote = 0, padtowrite = 0, statnum = 0;
+   int numbarypts = 0, numread = 0, numtowrite = 0;
+   int padtowrite = 0, statnum = 0;
    int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
    double local_lodm;
    char *datafilenm, *outpath, *outfilenm, *hostname;
@@ -123,7 +124,7 @@ int main(int argc, char *argv[])
        s.use_poln = cmd->ifs + 1;
    }
    if (!cmd->numoutP)
-      cmd->numout = INT_MAX;
+      cmd->numout = LONG_MAX;
 
 #ifdef DEBUG
    showOptionValues();
@@ -381,7 +382,7 @@ int main(int argc, char *argv[])
    if (cmd->numoutP)
       totnumtowrite = cmd->numout;
    else
-      totnumtowrite = (int) idata.N / cmd->downsamp;
+      totnumtowrite = (long) idata.N / cmd->downsamp;
 
    if (cmd->nobaryP) {          /* Main loop if we are not barycentering... */
 
@@ -392,7 +393,7 @@ int main(int argc, char *argv[])
                                      idata.freq, idata.chan_wid, 0.0);
       idispdt = gen_ivect(s.num_channels);
       for (ii = 0; ii < s.num_channels; ii++)
-          idispdt[ii] = NEAREST_INT(dispdt[ii] / idata.dt);
+          idispdt[ii] = NEAREST_LONG(dispdt[ii] / idata.dt);
       vect_free(dispdt);
 
       /* The subband dispersion delays (see note above) */
@@ -405,7 +406,7 @@ int main(int argc, char *argv[])
                                     idata.freq, idata.chan_wid, 0.0);
          dtmp = subdispdt[cmd->nsub - 1];
          for (jj = 0; jj < cmd->nsub; jj++)
-            offsets[ii][jj] = NEAREST_INT((subdispdt[jj] - dtmp) / dsdt);
+            offsets[ii][jj] = NEAREST_LONG((subdispdt[jj] - dtmp) / dsdt);
          vect_free(subdispdt);
       }
 
@@ -461,12 +462,8 @@ int main(int argc, char *argv[])
 
    } else {                     /* Main loop if we are barycentering... */
 
-      /* What ephemeris will we use?  (Default is DE200) */
-
-      if (cmd->de405P)
-         strcpy(ephem, "DE405");
-      else
-         strcpy(ephem, "DE200");
+      /* What ephemeris will we use?  (Default is DE405) */
+      strcpy(ephem, "DE405");
 
       /* Define the RA and DEC of the observation */
 
@@ -523,7 +520,7 @@ int main(int argc, char *argv[])
                                      idata.freq, idata.chan_wid, avgvoverc);
       idispdt = gen_ivect(s.num_channels);
       for (ii = 0; ii < s.num_channels; ii++)
-          idispdt[ii] = NEAREST_INT(dispdt[ii] / idata.dt);
+          idispdt[ii] = NEAREST_LONG(dispdt[ii] / idata.dt);
       vect_free(dispdt);
 
       /* The subband dispersion delays (see note above) */
@@ -536,7 +533,7 @@ int main(int argc, char *argv[])
                                     idata.freq, idata.chan_wid, avgvoverc);
          dtmp = subdispdt[cmd->nsub - 1];
          for (jj = 0; jj < cmd->nsub; jj++)
-            offsets[ii][jj] = NEAREST_INT((subdispdt[jj] - dtmp) / dsdt);
+            offsets[ii][jj] = NEAREST_LONG((subdispdt[jj] - dtmp) / dsdt);
          vect_free(subdispdt);
       }
 
@@ -552,11 +549,11 @@ int main(int argc, char *argv[])
          int oldbin = 0, currentbin;
          double lobin, hibin, calcpt;
 
-         numdiffbins = abs(NEAREST_INT(btoa[numbarypts - 1])) + 1;
+         numdiffbins = abs(NEAREST_LONG(btoa[numbarypts - 1])) + 1;
          diffbins = gen_ivect(numdiffbins);
          diffbinptr = diffbins;
          for (ii = 1; ii < numbarypts; ii++) {
-            currentbin = NEAREST_INT(btoa[ii]);
+            currentbin = NEAREST_LONG(btoa[ii]);
             if (currentbin != oldbin) {
                if (currentbin > 0) {
                   calcpt = oldbin + 0.5;
@@ -571,7 +568,7 @@ int main(int argc, char *argv[])
                   /* Negative bin number means remove that bin */
                   /* Positive bin number means add a bin there */
                   *diffbinptr =
-                      NEAREST_INT(LININTERP
+                      NEAREST_LONG(LININTERP
                                   (calcpt, btoa[ii - 1], btoa[ii], lobin, hibin));
                   diffbinptr++;
                   calcpt = (currentbin > 0) ? calcpt + 1.0 : calcpt - 1.0;
@@ -746,9 +743,9 @@ int main(int argc, char *argv[])
       print_percent_complete(1, 1);
    if (myid == 1) {
       printf("\n\nDone.\n\nSimple statistics of the output data:\n");
-      printf("             Data points written:  %d\n", totwrote);
+      printf("             Data points written:  %ld\n", totwrote);
       if (padwrote)
-         printf("          Padding points written:  %d\n", padwrote);
+         printf("          Padding points written:  %ld\n", padwrote);
       if (!cmd->nobaryP) {
          if (numadded)
             printf("    Bins added for barycentering:  %d\n", numadded);

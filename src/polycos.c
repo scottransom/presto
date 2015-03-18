@@ -41,21 +41,51 @@ static int isets, nblk, ncoeff, icurr;
 
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 
-char *make_polycos(char *parfilenm, infodata * idata)
+char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
 {
    FILE *tmpfile;
    int tracklen;
    double T, fmid = 0.0, epoch;
-   char command[256], *psrname, scopechar;
+   char *command, *psrname, scopechar;
+   char *pcpathnm, *pcfilenm;
    psrparams psr;
+
+   /* Get the path and name of the output polycofilenm */
+   split_path_file(polycofilenm, &pcpathnm, &pcfilenm);
 
    /* Read the parfile */
    epoch = idata->mjd_i + idata->mjd_f;
    T = (idata->dt * idata->N) / SECPERDAY;
    if (!get_psr_from_parfile(parfilenm, epoch, &psr)) {
-      printf("\nError:  Cannot read parfile '%s'\n\n", parfilenm);
-      exit(0);
+       fprintf(stderr,
+               "\nError:  Cannot read parfile '%s' in make_polycos()\n\n",
+               parfilenm);
+       exit(-1);
    }
+
+   /* Generate temp directory */
+   char tmpdir[] = "/tmp/polycoXXXXXX";
+   if (mkdtemp(tmpdir)==NULL) {
+       fprintf(stderr,
+               "\nError:  Cannot generate temp dir '%s' in make_polycos()\n\n",
+               tmpdir);
+       exit(-1);
+   }
+
+   /* Copy the parfile to the temp directory */
+   command = (char *)calloc(strlen(parfilenm) + strlen(tmpdir) +
+                            strlen(pcfilenm) + strlen(pcpathnm) + 200, 1);
+   sprintf(command, "cp %s %s/pulsar.par", parfilenm, tmpdir);
+   if (system(command) != 0) {
+       fprintf(stderr,
+               "\nError:  Cannot copy parfile '%s' to tmpdir '%s' in make_polycos()\n\n",
+               parfilenm, tmpdir);
+       exit(-1);
+   }
+
+   /* change to temp dir */
+   char *origdir = getcwd(NULL,0);
+   chdir(tmpdir);
 
    /* Write tz.in */
    if (strcmp(idata->telescope, "GBT") == 0) {
@@ -118,13 +148,34 @@ char *make_polycos(char *parfilenm, infodata * idata)
    fprintf(tmpfile, "%c %d 60 12 430\n\n\n%s 60 12 %d %.5f\n",
            scopechar, tracklen, psr.jname, tracklen, fmid);
    fclose(tmpfile);
-   sprintf(command, "echo %d %d | tempo -z -f %s > /dev/null",
-           idata->mjd_i-1, (int) ceil(epoch + T), parfilenm);
-   // printf("making polycos:  '%s'\n", command);
-   system(command);
-   remove("tz.in");
-   remove("tz.tmp");
-   remove("tempo.lis");
+   //sprintf(command, "echo %d %d | tempo -z -f %s > /dev/null",
+   sprintf(command, "echo %d %d | tempo -z -f pulsar.par > /dev/null",
+           idata->mjd_i-1, (int) ceil(epoch + T));
+   if (system(command) != 0) {
+       fprintf(stderr,
+               "\nError:  Problem running TEMPO in '%s' for make_polycos()\n\n",
+               tmpdir);
+       exit(-1);
+   } else {
+       sprintf(command, "cp polyco.dat %s/%s", pcpathnm, pcfilenm);
+       if (system(command) != 0) {
+           fprintf(stderr,
+                   "\nError:  Cannot copy polyco.dat in '%s' to '%s' make_polycos()\n\n",
+                   tmpdir, polycofilenm);
+           exit(-1);
+       }
+       remove("polyco.dat");
+       remove("pulsar.par");
+       remove("tempo.lis");
+       remove("tz.in");
+       remove("tz.tmp");
+   }
+   chdir(origdir);
+   free(origdir);
+   free(pcpathnm);
+   free(pcfilenm);
+   free(command);
+   remove(tmpdir);
    psrname = (char *) calloc(strlen(psr.jname) + 1, sizeof(char));
    strcpy(psrname, psr.jname);
    return psrname;

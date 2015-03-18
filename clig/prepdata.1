@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepdata" 1 "31Aug12" "Clig-manuals" "Programmer's Manual"
+.TH "prepdata" 1 "17Mar15" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,6 +22,7 @@ prepdata \- Prepares a raw data file for pulsar searching or folding (conversion
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B prepdata
+[-ncpus ncpus]
 -o outfile
 [-pkmb]
 [-gmrt]
@@ -44,7 +45,6 @@ prepdata \- Prepares a raw data file for pulsar searching or folding (conversion
 [-downsamp downsamp]
 [-nobary]
 [-shorts]
-[-DE405]
 [-dm dm]
 [-mask maskfile]
 infile ...
@@ -52,6 +52,12 @@ infile ...
 
 .\" cligPart OPTIONS
 .SH OPTIONS
+.IP -ncpus
+Number of processors to use with OpenMP,
+.br
+1 Int value between 1 and oo.
+.br
+Default: `1'
 .IP -o
 Root of the output file names,
 .br
@@ -103,19 +109,17 @@ Subtract the mean of all channels from each sample (i.e. remove zero DM).
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br
-1 Int value between 1 and oo.
+1 Long value between 1 and oo.
 .IP -downsamp
 The number of neighboring bins to co-add,
 .br
-1 Int value between 1 and 32.
+1 Int value between 1 and 128.
 .br
 Default: `1'
 .IP -nobary
 Do not barycenter the data.
 .IP -shorts
 Use short ints for the output data instead of floats.
-.IP -DE405
-Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -dm
 The dispersion measure to de-disperse (cm^-3 pc),
 .br

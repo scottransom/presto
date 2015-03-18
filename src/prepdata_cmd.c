@@ -22,6 +22,10 @@ char *Program;
 /*@-null*/
 
 static Cmdline cmd = {
+  /***** -ncpus: Number of processors to use with OpenMP */
+  /* ncpusP = */ 1,
+  /* ncpus = */ 1,
+  /* ncpusC = */ 1,
   /***** -o: Root of the output file names */
   /* outfileP = */ 0,
   /* outfile = */ (char*)0,
@@ -68,7 +72,7 @@ static Cmdline cmd = {
   /* zerodmP = */ 0,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
-  /* numout = */ (int)0,
+  /* numout = */ (long)0,
   /* numoutC = */ 0,
   /***** -downsamp: The number of neighboring bins to co-add */
   /* downsampP = */ 1,
@@ -78,8 +82,6 @@ static Cmdline cmd = {
   /* nobaryP = */ 0,
   /***** -shorts: Use short ints for the output data instead of floats */
   /* shortsP = */ 0,
-  /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
-  /* de405P = */ 0,
   /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
   /* dmP = */ 1,
   /* dm = */ 0,
@@ -799,6 +801,18 @@ showOptionValues(void)
 
   printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
 
+  /***** -ncpus: Number of processors to use with OpenMP */
+  if( !cmd.ncpusP ) {
+    printf("-ncpus not found.\n");
+  } else {
+    printf("-ncpus found:\n");
+    if( !cmd.ncpusC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.ncpus);
+    }
+  }
+
   /***** -o: Root of the output file names */
   if( !cmd.outfileP ) {
     printf("-o not found.\n");
@@ -953,7 +967,7 @@ showOptionValues(void)
     if( !cmd.numoutC ) {
       printf("  no values\n");
     } else {
-      printf("  value = `%d'\n", cmd.numout);
+      printf("  value = `%ld'\n", cmd.numout);
     }
   }
 
@@ -981,13 +995,6 @@ showOptionValues(void)
     printf("-shorts not found.\n");
   } else {
     printf("-shorts found:\n");
-  }
-
-  /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
-  if( !cmd.de405P ) {
-    printf("-DE405 not found.\n");
-  } else {
-    printf("-DE405 found:\n");
   }
 
   /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
@@ -1028,8 +1035,11 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-numout numout] [-downsamp downsamp] [-nobary] [-shorts] [-DE405] [-dm dm] [-mask maskfile] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-ncpus ncpus] -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-numout numout] [-downsamp downsamp] [-nobary] [-shorts] [-dm dm] [-mask maskfile] [--] infile ...\n");
   fprintf(stderr,"%s","      Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n");
+  fprintf(stderr,"%s","         -ncpus: Number of processors to use with OpenMP\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and oo\n");
+  fprintf(stderr,"%s","                 default: `1'\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","          -pkmb: Raw data in Parkes Multibeam format\n");
@@ -1055,13 +1065,12 @@ usage(void)
   fprintf(stderr,"%s","        -invert: For rawdata, flip (or invert) the band\n");
   fprintf(stderr,"%s","        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n");
   fprintf(stderr,"%s","        -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and oo\n");
+  fprintf(stderr,"%s","                 1 long value between 1 and oo\n");
   fprintf(stderr,"%s","      -downsamp: The number of neighboring bins to co-add\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 32\n");
+  fprintf(stderr,"%s","                 1 int value between 1 and 128\n");
   fprintf(stderr,"%s","                 default: `1'\n");
   fprintf(stderr,"%s","        -nobary: Do not barycenter the data\n");
   fprintf(stderr,"%s","        -shorts: Use short ints for the output data instead of floats\n");
-  fprintf(stderr,"%s","         -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default)\n");
   fprintf(stderr,"%s","            -dm: The dispersion measure to de-disperse (cm^-3 pc)\n");
   fprintf(stderr,"%s","                 1 double value between 0 and oo\n");
   fprintf(stderr,"%s","                 default: `0'\n");
@@ -1069,7 +1078,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...512 values\n");
-  fprintf(stderr,"%s","  version: 31Aug12\n");
+  fprintf(stderr,"%s","  version: 17Mar15\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1085,6 +1094,15 @@ parseCmdline(int argc, char **argv)
   for(i=1, cmd.argc=1; i<argc; i++) {
     if( 0==strcmp("--", argv[i]) ) {
       while( ++i<argc ) argv[cmd.argc++] = argv[i];
+      continue;
+    }
+
+    if( 0==strcmp("-ncpus", argv[i]) ) {
+      int keep = i;
+      cmd.ncpusP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.ncpus, 1);
+      cmd.ncpusC = i-keep;
+      checkIntHigher("-ncpus", &cmd.ncpus, cmd.ncpusC, 1);
       continue;
     }
 
@@ -1199,9 +1217,9 @@ parseCmdline(int argc, char **argv)
     if( 0==strcmp("-numout", argv[i]) ) {
       int keep = i;
       cmd.numoutP = 1;
-      i = getIntOpt(argc, argv, i, &cmd.numout, 1);
+      i = getLongOpt(argc, argv, i, &cmd.numout, 1);
       cmd.numoutC = i-keep;
-      checkIntHigher("-numout", &cmd.numout, cmd.numoutC, 1);
+      checkLongHigher("-numout", &cmd.numout, cmd.numoutC, 1);
       continue;
     }
 
@@ -1210,7 +1228,7 @@ parseCmdline(int argc, char **argv)
       cmd.downsampP = 1;
       i = getIntOpt(argc, argv, i, &cmd.downsamp, 1);
       cmd.downsampC = i-keep;
-      checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 32);
+      checkIntLower("-downsamp", &cmd.downsamp, cmd.downsampC, 128);
       checkIntHigher("-downsamp", &cmd.downsamp, cmd.downsampC, 1);
       continue;
     }
@@ -1222,11 +1240,6 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-shorts", argv[i]) ) {
       cmd.shortsP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-DE405", argv[i]) ) {
-      cmd.de405P = 1;
       continue;
     }
 

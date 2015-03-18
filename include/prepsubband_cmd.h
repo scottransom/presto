@@ -9,6 +9,10 @@
 *****/
 
 typedef struct s_Cmdline {
+  /***** -ncpus: Number of processors to use with OpenMP */
+  char ncpusP;
+  int ncpus;
+  int ncpusC;
   /***** -o: Root of the output file names */
   char outfileP;
   char* outfile;
@@ -63,12 +67,10 @@ typedef struct s_Cmdline {
   int subdmC;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
-  int numout;
+  long numout;
   int numoutC;
   /***** -nobary: Do not barycenter the data */
   char nobaryP;
-  /***** -DE405: Use the DE405 ephemeris for barycentering instead of DE200 (the default) */
-  char de405P;
   /***** -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc) */
   char lodmP;
   double lodm;
