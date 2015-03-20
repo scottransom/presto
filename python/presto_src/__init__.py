@@ -1,4 +1,5 @@
 from newprestoswig import *
+import os.path
 import numpy as np
 import Pgplot
 import psr_utils
@@ -60,17 +61,23 @@ def write_inffile(infodata, verbose=True):
 
 def psrepoch(psrname, epoch, verbose=True):
     """
-    psrepoch(psrname, epoch):
+    psrepoch(psrname or parname, epoch):
         Return a psrparams 'C' structure which includes data for
             PSR 'psrname' (a string of the B1950 or J2000 name of the
             pulsar -- without PSR, J, or B included) at epoch 'epoch'
-            (in MJD format).
+            (in MJD format) from the ATNF database, or, a parfile is
+            passed, read the pulsar information from it instead.
     """
     pp = psrparams()
-    num = get_psr_at_epoch(psrname, epoch, pp)
-    if verbose:
-        print 'Retrieved data at MJD %f for %s' % (epoch, pp.jname)
-        print 'The pulsar was #%d in the database.' % num
+    if os.path.isfile(psrname):
+        get_psr_from_parfile("1903+0327.par", epoch, pp)
+        if verbose:
+            print 'Retrieved data at MJD %f from "%s"' % (epoch, psrname)
+    else:
+        num = get_psr_at_epoch(psrname, epoch, pp)
+        if verbose:
+            print 'Retrieved data at MJD %f for %s' % (epoch, pp.jname)
+            print 'The pulsar was #%d in the database.' % num
     return pp
 
 def read_rzwcands(filename):

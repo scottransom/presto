@@ -237,6 +237,19 @@ int get_psr_at_epoch(char *psrname, double epoch, psrparams *psr);
 /* The int returned is the number of the pulsar in the database.    */
 /* If the int = 0, then no match was found.                         */
 
+int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
+/* Converts info from a "par" file to the "current" epoch.  */
+/* Returned values go in *psr.  The name of the parfile is  */
+/* in *parfilenm. epoch is the time in question in MJD.     */
+/* The int returned is 1 if successful, 0 otherwise.        */
+
+void mjd_to_datestr(double mjd, char *datestr);
+// Convert an MJD to a PSRFITS-style DATEOBS
+
+%apply double *OUTPUT { double *ssa,  double *cca };
+int fresnl(double xxa, double *ssa, double *cca);
+// Return the Fresnel inegrals
+
 typedef struct RDERIVS {
   float pow;       /* Power normalized with local power             */
   float phs;       /* Signal phase                                  */

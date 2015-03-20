@@ -352,6 +352,18 @@ psrparams_swigregister(psrparams)
 def get_psr_at_epoch(*args):
   return _newpresto.get_psr_at_epoch(*args)
 get_psr_at_epoch = _newpresto.get_psr_at_epoch
+
+def get_psr_from_parfile(*args):
+  return _newpresto.get_psr_from_parfile(*args)
+get_psr_from_parfile = _newpresto.get_psr_from_parfile
+
+def mjd_to_datestr(*args):
+  return _newpresto.mjd_to_datestr(*args)
+mjd_to_datestr = _newpresto.mjd_to_datestr
+
+def fresnl(*args):
+  return _newpresto.fresnl(*args)
+fresnl = _newpresto.fresnl
 class rderivs(_object):
     __swig_setmethods__ = {}
     __setattr__ = lambda self, name, value: _swig_setattr(self, rderivs, name, value)
