@@ -2,7 +2,7 @@
 import bisect, os, sys, getopt, infodata, glob
 import scipy, scipy.signal, ppgplot
 import numpy as Num
-from presto import rfft
+from presto import rfft, next2_to_n
 from psr_utils import coord_to_string
 from optparse import OptionParser
 from Pgplot import *
@@ -148,14 +148,15 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-g, --glob]        : Use the files from these glob expressions (in quotes)
   [-f, --fast]        : Use a less-accurate but much faster method of detrending
   [-b, --nobadblocks] : Don't check for bad-blocks (may save strong pulses)
+  [-d, --detrendlen]  : Chunksize for detrending (pow-of-2 in 1000s, default=1)
 
   Perform a single-pulse search (or simply re-plot the results of a
   single-pulse search) on a set of de-dispersed time series (.dat
   files).
 
-  The search attempts to find pulses by matched-filtering the data
-  with a series of different width boxcar functions.  The possible
-  boxcar sizes are [1, 2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150]
+  The search attempts to find pulses by matched-filtering the data with
+  a series of different width boxcar functions.  The possible boxcar
+  sizes are [1, 2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150, 220, 300]
   bins.  By default the boxcars <= 30 are used.  You can specify
   that the larger boxcars are used with the -m (or --maxwidth) option.
 
@@ -163,15 +164,57 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   offsets of each boxcar) is accomplished by convolving the boxcars
   with the full resolution data.  'Duplicate' candidates from this
   process are filtered, leaving only the most significant.  The time
-  series are initially smoothed using a piecewise linear fit to the
-  data where each piece is 1000 data points long.
+  series are initially smoothed (by default) using a piecewise linear
+  fit to the data where each piece is 1000 data points long.
 
   If the input files are .singlepulse files, we won't actually perform
   a search, we'll only read in the output .singlepulse files and make
   a plot using the information they contain (along with the
   corresponding .inf files).
 
-  Copyright Scott Ransom <sransom@nrao.edu>, 2005
+  Notes on usage and performance:
+
+    -- single_pulse_search.py is tuned for finding *narrow* pulses
+       (i.e. those of only a few bins width).  Because of this, you
+       should always search appropriately downsampled data (as
+       recommended by DDplan.py, for instance) where dispersion
+       smearing is <~ 1 time series bin.
+
+    -- the linear-piecewise detrending is very useful in long
+       observations with modern instrumentation where you can see
+       long timescale power fluctuations.  Strong pulses can skew the
+       statistics of the 1000-bin chunks, though, and caused some
+       suppression in the detection levels of bright pulses (weak
+       pulses are mostly unaffected since they don't strongly change
+       the statistics).  If your data have no long-timescale
+       fluctuations (for instance, if you are processing old 1-bit
+       analog filterbank data which is AC-coupled or if you remove
+       rednoise via realfft/rednoise/(inverse-)realfft), I recommend
+       using the -f/--fast flag.  And if you want to find wide
+       pulses, it might be worth making the chunksize bigger (i.e.
+       4000 or 8000).
+
+    -- The bad-block detection and removal code can and does remove
+       blocks that have very strong, and particularly strong and broad,
+       pulses in them.  It can also quite effectively remove RFI-
+       infused portions of the data.  Whether to turn it on or off
+       depends on your data.  Note that if there are multiple pulses,
+       only the brightest will usually be "bad-blocked" and removed.
+
+    -- The fourier-domain matched filtering used here has no phase-
+       dependent effects.  So a 15-bin pulse can be found with equal
+       significance no matter which bin it starts in in the time series.
+
+    -- The definition of "sigma" used is possibly slightly different
+       from that used in other codes for S/N:
+           sigma = sum(signal-bkgd_level)/RMS/sqrt(boxcar_width)
+       where the bkgd_level is typically 0 after detrending and RMS=1
+       after normalization.  This definition has the advantage that
+       you will get (basically) the same sigma for any pulse no
+       matter how much the input time series has been downsampled as
+       long as the pulse is still resolved.
+
+  Copyright Scott Ransom <sransom@nrao.edu>, 2015
 """
 usage = "usage: %prog [options] .dat files _or_ .singlepulse files"
     
@@ -226,6 +269,8 @@ def main():
                       default=False, help="Use a faster method of de-trending (2x speedup)")
     parser.add_option("-b", "--nobadblocks", action="store_false", dest="badblocks",
                       default=True, help="Don't check for bad-blocks (may save strong pulses)")
+    parser.add_option("-d", "--detrendlen", type="int", dest="detrendfact", default=1,
+                      help="Chunksize for detrending (pow-of-2 in 1000s)")
     (opts, args) = parser.parse_args()
     if len(args)==0:
         if opts.globexp==None:
@@ -244,13 +289,17 @@ def main():
 
     fftlen = 8192     # Should be a power-of-two for best speed
     chunklen = 8000   # Must be at least max_downfact less than fftlen
-    detrendlen = 1000 # length of a linear piecewise chunk of data for detrending
+    assert(opts.detrendfact in [1,2,4,8,16,32])
+    detrendlen = opts.detrendfact*1000
+    if (detrendlen > chunklen):
+        chunklen = detrendlen
+        fftlen = int(next2_to_n(chunklen))
     blocks_per_chunk = chunklen / detrendlen
     overlap = (fftlen - chunklen)/2
     worklen = chunklen + 2*overlap  # currently it is fftlen...
 
     max_downfact = 30
-    default_downfacts = [2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150]
+    default_downfacts = [2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150, 220, 300]
 
     if args[0].endswith(".singlepulse"):
         filenmbase = args[0][:args[0].rfind(".singlepulse")]
