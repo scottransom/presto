@@ -38,7 +38,7 @@ def val_with_err(value, error, length=0, digits=2, latex=0):
 
 def read_inffile(filename, verbose=True):
     """
-    read_inffile(filename):
+    read_inffile(filename, verbose=True):
         Return an infodata 'C' structure containing the data from the
            'inf' file in 'filename'.
     """
@@ -51,14 +51,14 @@ def read_inffile(filename, verbose=True):
 
 def write_inffile(infodata, verbose=True):
     """
-    wite_inffile(infodata):
+    wite_inffile(infodata, verbose=True):
         Write an '.inf' file based on its input structure
     """
     if verbose:
         print "Writing .inf file to '%s.inf'"%infodata.name
     writeinf(infodata)
 
-def psrepoch(psrname, epoch):
+def psrepoch(psrname, epoch, verbose=True):
     """
     psrepoch(psrname, epoch):
         Return a psrparams 'C' structure which includes data for
@@ -68,8 +68,9 @@ def psrepoch(psrname, epoch):
     """
     pp = psrparams()
     num = get_psr_at_epoch(psrname, epoch, pp)
-    print 'Retrieved data at MJD %f for %s' % (epoch, pp.jname)
-    print 'The pulsar was #%d in the database.' % num
+    if verbose:
+        print 'Retrieved data at MJD %f for %s' % (epoch, pp.jname)
+        print 'The pulsar was #%d in the database.' % num
     return pp
 
 def read_rzwcands(filename):
@@ -136,28 +137,14 @@ def spectralpower(fftarray):
     spectralpower(fftarray):
         Return the power spectrum of a complex FFT 'fftarray'.
     """
-    fftarray = np.asarray(fftarray)
-    if fftarray.dtype.char=='F':
-        return power_arr(fftarray, len(fftarray))
-    elif fftarray.dtype.char=='D':
-        return dpower_arr(fftarray, len(fftarray))
-    else:
-        print 'fftarray must be complex in spectralpower()'
-        return None
+    return power_arr(np.asarray(fftarray).astype(np.complex64))
     
 def spectralphase(fftarray):
     """
     spectralphase(fftarray):
         Return the spectral phase (deg) of a complex FFT 'fftarray'.
     """
-    fftarray = np.asarray(fftarray)
-    if fftarray.dtype.char=='F':
-        return phase_arr(fftarray, len(fftarray))
-    elif fftarray.dtype.char=='D':
-        return dphase_arr(fftarray, len(fftarray))
-    else:
-        print 'fftarray must be complex in spectralpower()'
-        return None
+    return phase_arr(np.asarray(fftarray).astype(np.complex64))
 
 def maximize_rz(data, r, z, norm = None):
     """

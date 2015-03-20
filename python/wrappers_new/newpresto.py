@@ -101,6 +101,24 @@ SECPERJULYR = _newpresto.SECPERJULYR
 SECPERDAY = _newpresto.SECPERDAY
 ARCSEC2RAD = _newpresto.ARCSEC2RAD
 SEC2RAD = _newpresto.SEC2RAD
+LOWACC = _newpresto.LOWACC
+HIGHACC = _newpresto.HIGHACC
+INTERBIN = _newpresto.INTERBIN
+INTERPOLATE = _newpresto.INTERPOLATE
+NO_CHECK_ALIASED = _newpresto.NO_CHECK_ALIASED
+CHECK_ALIASED = _newpresto.CHECK_ALIASED
+CONV = _newpresto.CONV
+CORR = _newpresto.CORR
+INPLACE_CONV = _newpresto.INPLACE_CONV
+INPLACE_CORR = _newpresto.INPLACE_CORR
+FFTDK = _newpresto.FFTDK
+FFTD = _newpresto.FFTD
+FFTK = _newpresto.FFTK
+NOFFTS = _newpresto.NOFFTS
+RAW = _newpresto.RAW
+PREPPED = _newpresto.PREPPED
+FFT = _newpresto.FFT
+SAME = _newpresto.SAME
 
 def read_wisdom():
   return _newpresto.read_wisdom()
@@ -237,6 +255,241 @@ readinf = _newpresto.readinf
 def writeinf(*args):
   return _newpresto.writeinf(*args)
 writeinf = _newpresto.writeinf
+class orbitparams(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, orbitparams, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, orbitparams, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["p"] = _newpresto.orbitparams_p_set
+    __swig_getmethods__["p"] = _newpresto.orbitparams_p_get
+    if _newclass:p = _swig_property(_newpresto.orbitparams_p_get, _newpresto.orbitparams_p_set)
+    __swig_setmethods__["e"] = _newpresto.orbitparams_e_set
+    __swig_getmethods__["e"] = _newpresto.orbitparams_e_get
+    if _newclass:e = _swig_property(_newpresto.orbitparams_e_get, _newpresto.orbitparams_e_set)
+    __swig_setmethods__["x"] = _newpresto.orbitparams_x_set
+    __swig_getmethods__["x"] = _newpresto.orbitparams_x_get
+    if _newclass:x = _swig_property(_newpresto.orbitparams_x_get, _newpresto.orbitparams_x_set)
+    __swig_setmethods__["w"] = _newpresto.orbitparams_w_set
+    __swig_getmethods__["w"] = _newpresto.orbitparams_w_get
+    if _newclass:w = _swig_property(_newpresto.orbitparams_w_get, _newpresto.orbitparams_w_set)
+    __swig_setmethods__["t"] = _newpresto.orbitparams_t_set
+    __swig_getmethods__["t"] = _newpresto.orbitparams_t_get
+    if _newclass:t = _swig_property(_newpresto.orbitparams_t_get, _newpresto.orbitparams_t_set)
+    __swig_setmethods__["pd"] = _newpresto.orbitparams_pd_set
+    __swig_getmethods__["pd"] = _newpresto.orbitparams_pd_get
+    if _newclass:pd = _swig_property(_newpresto.orbitparams_pd_get, _newpresto.orbitparams_pd_set)
+    __swig_setmethods__["wd"] = _newpresto.orbitparams_wd_set
+    __swig_getmethods__["wd"] = _newpresto.orbitparams_wd_get
+    if _newclass:wd = _swig_property(_newpresto.orbitparams_wd_get, _newpresto.orbitparams_wd_set)
+    def __init__(self): 
+        this = _newpresto.new_orbitparams()
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _newpresto.delete_orbitparams
+    __del__ = lambda self : None;
+orbitparams_swigregister = _newpresto.orbitparams_swigregister
+orbitparams_swigregister(orbitparams)
+
+class psrparams(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, psrparams, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, psrparams, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["jname"] = _newpresto.psrparams_jname_set
+    __swig_getmethods__["jname"] = _newpresto.psrparams_jname_get
+    if _newclass:jname = _swig_property(_newpresto.psrparams_jname_get, _newpresto.psrparams_jname_set)
+    __swig_setmethods__["bname"] = _newpresto.psrparams_bname_set
+    __swig_getmethods__["bname"] = _newpresto.psrparams_bname_get
+    if _newclass:bname = _swig_property(_newpresto.psrparams_bname_get, _newpresto.psrparams_bname_set)
+    __swig_setmethods__["alias"] = _newpresto.psrparams_alias_set
+    __swig_getmethods__["alias"] = _newpresto.psrparams_alias_get
+    if _newclass:alias = _swig_property(_newpresto.psrparams_alias_get, _newpresto.psrparams_alias_set)
+    __swig_setmethods__["ra2000"] = _newpresto.psrparams_ra2000_set
+    __swig_getmethods__["ra2000"] = _newpresto.psrparams_ra2000_get
+    if _newclass:ra2000 = _swig_property(_newpresto.psrparams_ra2000_get, _newpresto.psrparams_ra2000_set)
+    __swig_setmethods__["dec2000"] = _newpresto.psrparams_dec2000_set
+    __swig_getmethods__["dec2000"] = _newpresto.psrparams_dec2000_get
+    if _newclass:dec2000 = _swig_property(_newpresto.psrparams_dec2000_get, _newpresto.psrparams_dec2000_set)
+    __swig_setmethods__["dm"] = _newpresto.psrparams_dm_set
+    __swig_getmethods__["dm"] = _newpresto.psrparams_dm_get
+    if _newclass:dm = _swig_property(_newpresto.psrparams_dm_get, _newpresto.psrparams_dm_set)
+    __swig_setmethods__["timepoch"] = _newpresto.psrparams_timepoch_set
+    __swig_getmethods__["timepoch"] = _newpresto.psrparams_timepoch_get
+    if _newclass:timepoch = _swig_property(_newpresto.psrparams_timepoch_get, _newpresto.psrparams_timepoch_set)
+    __swig_setmethods__["p"] = _newpresto.psrparams_p_set
+    __swig_getmethods__["p"] = _newpresto.psrparams_p_get
+    if _newclass:p = _swig_property(_newpresto.psrparams_p_get, _newpresto.psrparams_p_set)
+    __swig_setmethods__["pd"] = _newpresto.psrparams_pd_set
+    __swig_getmethods__["pd"] = _newpresto.psrparams_pd_get
+    if _newclass:pd = _swig_property(_newpresto.psrparams_pd_get, _newpresto.psrparams_pd_set)
+    __swig_setmethods__["pdd"] = _newpresto.psrparams_pdd_set
+    __swig_getmethods__["pdd"] = _newpresto.psrparams_pdd_get
+    if _newclass:pdd = _swig_property(_newpresto.psrparams_pdd_get, _newpresto.psrparams_pdd_set)
+    __swig_setmethods__["f"] = _newpresto.psrparams_f_set
+    __swig_getmethods__["f"] = _newpresto.psrparams_f_get
+    if _newclass:f = _swig_property(_newpresto.psrparams_f_get, _newpresto.psrparams_f_set)
+    __swig_setmethods__["fd"] = _newpresto.psrparams_fd_set
+    __swig_getmethods__["fd"] = _newpresto.psrparams_fd_get
+    if _newclass:fd = _swig_property(_newpresto.psrparams_fd_get, _newpresto.psrparams_fd_set)
+    __swig_setmethods__["fdd"] = _newpresto.psrparams_fdd_set
+    __swig_getmethods__["fdd"] = _newpresto.psrparams_fdd_get
+    if _newclass:fdd = _swig_property(_newpresto.psrparams_fdd_get, _newpresto.psrparams_fdd_set)
+    __swig_setmethods__["orb"] = _newpresto.psrparams_orb_set
+    __swig_getmethods__["orb"] = _newpresto.psrparams_orb_get
+    if _newclass:orb = _swig_property(_newpresto.psrparams_orb_get, _newpresto.psrparams_orb_set)
+    def __init__(self): 
+        this = _newpresto.new_psrparams()
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _newpresto.delete_psrparams
+    __del__ = lambda self : None;
+psrparams_swigregister = _newpresto.psrparams_swigregister
+psrparams_swigregister(psrparams)
+
+
+def get_psr_at_epoch(*args):
+  return _newpresto.get_psr_at_epoch(*args)
+get_psr_at_epoch = _newpresto.get_psr_at_epoch
+class rderivs(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, rderivs, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, rderivs, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["pow"] = _newpresto.rderivs_pow_set
+    __swig_getmethods__["pow"] = _newpresto.rderivs_pow_get
+    if _newclass:pow = _swig_property(_newpresto.rderivs_pow_get, _newpresto.rderivs_pow_set)
+    __swig_setmethods__["phs"] = _newpresto.rderivs_phs_set
+    __swig_getmethods__["phs"] = _newpresto.rderivs_phs_get
+    if _newclass:phs = _swig_property(_newpresto.rderivs_phs_get, _newpresto.rderivs_phs_set)
+    __swig_setmethods__["dpow"] = _newpresto.rderivs_dpow_set
+    __swig_getmethods__["dpow"] = _newpresto.rderivs_dpow_get
+    if _newclass:dpow = _swig_property(_newpresto.rderivs_dpow_get, _newpresto.rderivs_dpow_set)
+    __swig_setmethods__["dphs"] = _newpresto.rderivs_dphs_set
+    __swig_getmethods__["dphs"] = _newpresto.rderivs_dphs_get
+    if _newclass:dphs = _swig_property(_newpresto.rderivs_dphs_get, _newpresto.rderivs_dphs_set)
+    __swig_setmethods__["d2pow"] = _newpresto.rderivs_d2pow_set
+    __swig_getmethods__["d2pow"] = _newpresto.rderivs_d2pow_get
+    if _newclass:d2pow = _swig_property(_newpresto.rderivs_d2pow_get, _newpresto.rderivs_d2pow_set)
+    __swig_setmethods__["d2phs"] = _newpresto.rderivs_d2phs_set
+    __swig_getmethods__["d2phs"] = _newpresto.rderivs_d2phs_get
+    if _newclass:d2phs = _swig_property(_newpresto.rderivs_d2phs_get, _newpresto.rderivs_d2phs_set)
+    __swig_setmethods__["locpow"] = _newpresto.rderivs_locpow_set
+    __swig_getmethods__["locpow"] = _newpresto.rderivs_locpow_get
+    if _newclass:locpow = _swig_property(_newpresto.rderivs_locpow_get, _newpresto.rderivs_locpow_set)
+    def __init__(self): 
+        this = _newpresto.new_rderivs()
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _newpresto.delete_rderivs
+    __del__ = lambda self : None;
+rderivs_swigregister = _newpresto.rderivs_swigregister
+rderivs_swigregister(rderivs)
+
+class fourierprops(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, fourierprops, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, fourierprops, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["r"] = _newpresto.fourierprops_r_set
+    __swig_getmethods__["r"] = _newpresto.fourierprops_r_get
+    if _newclass:r = _swig_property(_newpresto.fourierprops_r_get, _newpresto.fourierprops_r_set)
+    __swig_setmethods__["rerr"] = _newpresto.fourierprops_rerr_set
+    __swig_getmethods__["rerr"] = _newpresto.fourierprops_rerr_get
+    if _newclass:rerr = _swig_property(_newpresto.fourierprops_rerr_get, _newpresto.fourierprops_rerr_set)
+    __swig_setmethods__["z"] = _newpresto.fourierprops_z_set
+    __swig_getmethods__["z"] = _newpresto.fourierprops_z_get
+    if _newclass:z = _swig_property(_newpresto.fourierprops_z_get, _newpresto.fourierprops_z_set)
+    __swig_setmethods__["zerr"] = _newpresto.fourierprops_zerr_set
+    __swig_getmethods__["zerr"] = _newpresto.fourierprops_zerr_get
+    if _newclass:zerr = _swig_property(_newpresto.fourierprops_zerr_get, _newpresto.fourierprops_zerr_set)
+    __swig_setmethods__["w"] = _newpresto.fourierprops_w_set
+    __swig_getmethods__["w"] = _newpresto.fourierprops_w_get
+    if _newclass:w = _swig_property(_newpresto.fourierprops_w_get, _newpresto.fourierprops_w_set)
+    __swig_setmethods__["werr"] = _newpresto.fourierprops_werr_set
+    __swig_getmethods__["werr"] = _newpresto.fourierprops_werr_get
+    if _newclass:werr = _swig_property(_newpresto.fourierprops_werr_get, _newpresto.fourierprops_werr_set)
+    __swig_setmethods__["pow"] = _newpresto.fourierprops_pow_set
+    __swig_getmethods__["pow"] = _newpresto.fourierprops_pow_get
+    if _newclass:pow = _swig_property(_newpresto.fourierprops_pow_get, _newpresto.fourierprops_pow_set)
+    __swig_setmethods__["powerr"] = _newpresto.fourierprops_powerr_set
+    __swig_getmethods__["powerr"] = _newpresto.fourierprops_powerr_get
+    if _newclass:powerr = _swig_property(_newpresto.fourierprops_powerr_get, _newpresto.fourierprops_powerr_set)
+    __swig_setmethods__["sig"] = _newpresto.fourierprops_sig_set
+    __swig_getmethods__["sig"] = _newpresto.fourierprops_sig_get
+    if _newclass:sig = _swig_property(_newpresto.fourierprops_sig_get, _newpresto.fourierprops_sig_set)
+    __swig_setmethods__["rawpow"] = _newpresto.fourierprops_rawpow_set
+    __swig_getmethods__["rawpow"] = _newpresto.fourierprops_rawpow_get
+    if _newclass:rawpow = _swig_property(_newpresto.fourierprops_rawpow_get, _newpresto.fourierprops_rawpow_set)
+    __swig_setmethods__["phs"] = _newpresto.fourierprops_phs_set
+    __swig_getmethods__["phs"] = _newpresto.fourierprops_phs_get
+    if _newclass:phs = _swig_property(_newpresto.fourierprops_phs_get, _newpresto.fourierprops_phs_set)
+    __swig_setmethods__["phserr"] = _newpresto.fourierprops_phserr_set
+    __swig_getmethods__["phserr"] = _newpresto.fourierprops_phserr_get
+    if _newclass:phserr = _swig_property(_newpresto.fourierprops_phserr_get, _newpresto.fourierprops_phserr_set)
+    __swig_setmethods__["cen"] = _newpresto.fourierprops_cen_set
+    __swig_getmethods__["cen"] = _newpresto.fourierprops_cen_get
+    if _newclass:cen = _swig_property(_newpresto.fourierprops_cen_get, _newpresto.fourierprops_cen_set)
+    __swig_setmethods__["cenerr"] = _newpresto.fourierprops_cenerr_set
+    __swig_getmethods__["cenerr"] = _newpresto.fourierprops_cenerr_get
+    if _newclass:cenerr = _swig_property(_newpresto.fourierprops_cenerr_get, _newpresto.fourierprops_cenerr_set)
+    __swig_setmethods__["pur"] = _newpresto.fourierprops_pur_set
+    __swig_getmethods__["pur"] = _newpresto.fourierprops_pur_get
+    if _newclass:pur = _swig_property(_newpresto.fourierprops_pur_get, _newpresto.fourierprops_pur_set)
+    __swig_setmethods__["purerr"] = _newpresto.fourierprops_purerr_set
+    __swig_getmethods__["purerr"] = _newpresto.fourierprops_purerr_get
+    if _newclass:purerr = _swig_property(_newpresto.fourierprops_purerr_get, _newpresto.fourierprops_purerr_set)
+    __swig_setmethods__["locpow"] = _newpresto.fourierprops_locpow_set
+    __swig_getmethods__["locpow"] = _newpresto.fourierprops_locpow_get
+    if _newclass:locpow = _swig_property(_newpresto.fourierprops_locpow_get, _newpresto.fourierprops_locpow_set)
+    def __init__(self): 
+        this = _newpresto.new_fourierprops()
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _newpresto.delete_fourierprops
+    __del__ = lambda self : None;
+fourierprops_swigregister = _newpresto.fourierprops_swigregister
+fourierprops_swigregister(fourierprops)
+
+class foldstats(_object):
+    __swig_setmethods__ = {}
+    __setattr__ = lambda self, name, value: _swig_setattr(self, foldstats, name, value)
+    __swig_getmethods__ = {}
+    __getattr__ = lambda self, name: _swig_getattr(self, foldstats, name)
+    __repr__ = _swig_repr
+    __swig_setmethods__["numdata"] = _newpresto.foldstats_numdata_set
+    __swig_getmethods__["numdata"] = _newpresto.foldstats_numdata_get
+    if _newclass:numdata = _swig_property(_newpresto.foldstats_numdata_get, _newpresto.foldstats_numdata_set)
+    __swig_setmethods__["data_avg"] = _newpresto.foldstats_data_avg_set
+    __swig_getmethods__["data_avg"] = _newpresto.foldstats_data_avg_get
+    if _newclass:data_avg = _swig_property(_newpresto.foldstats_data_avg_get, _newpresto.foldstats_data_avg_set)
+    __swig_setmethods__["data_var"] = _newpresto.foldstats_data_var_set
+    __swig_getmethods__["data_var"] = _newpresto.foldstats_data_var_get
+    if _newclass:data_var = _swig_property(_newpresto.foldstats_data_var_get, _newpresto.foldstats_data_var_set)
+    __swig_setmethods__["numprof"] = _newpresto.foldstats_numprof_set
+    __swig_getmethods__["numprof"] = _newpresto.foldstats_numprof_get
+    if _newclass:numprof = _swig_property(_newpresto.foldstats_numprof_get, _newpresto.foldstats_numprof_set)
+    __swig_setmethods__["prof_avg"] = _newpresto.foldstats_prof_avg_set
+    __swig_getmethods__["prof_avg"] = _newpresto.foldstats_prof_avg_get
+    if _newclass:prof_avg = _swig_property(_newpresto.foldstats_prof_avg_get, _newpresto.foldstats_prof_avg_set)
+    __swig_setmethods__["prof_var"] = _newpresto.foldstats_prof_var_set
+    __swig_getmethods__["prof_var"] = _newpresto.foldstats_prof_var_get
+    if _newclass:prof_var = _swig_property(_newpresto.foldstats_prof_var_get, _newpresto.foldstats_prof_var_set)
+    __swig_setmethods__["redchi"] = _newpresto.foldstats_redchi_set
+    __swig_getmethods__["redchi"] = _newpresto.foldstats_redchi_get
+    if _newclass:redchi = _swig_property(_newpresto.foldstats_redchi_get, _newpresto.foldstats_redchi_set)
+    def __init__(self): 
+        this = _newpresto.new_foldstats()
+        try: self.this.append(this)
+        except: self.this = this
+    __swig_destroy__ = _newpresto.delete_foldstats
+    __del__ = lambda self : None;
+foldstats_swigregister = _newpresto.foldstats_swigregister
+foldstats_swigregister(foldstats)
+
 
 def gen_fvect(*args):
   return _newpresto.gen_fvect(*args)
@@ -245,6 +498,70 @@ gen_fvect = _newpresto.gen_fvect
 def gen_cvect(*args):
   return _newpresto.gen_cvect(*args)
 gen_cvect = _newpresto.gen_cvect
+
+def power_arr(*args):
+  return _newpresto.power_arr(*args)
+power_arr = _newpresto.power_arr
+
+def phase_arr(*args):
+  return _newpresto.phase_arr(*args)
+phase_arr = _newpresto.phase_arr
+
+def frotate(*args):
+  return _newpresto.frotate(*args)
+frotate = _newpresto.frotate
+
+def drotate(*args):
+  return _newpresto.drotate(*args)
+drotate = _newpresto.drotate
+
+def keplers_eqn(*args):
+  return _newpresto.keplers_eqn(*args)
+keplers_eqn = _newpresto.keplers_eqn
+
+def E_to_phib(*args):
+  return _newpresto.E_to_phib(*args)
+E_to_phib = _newpresto.E_to_phib
+
+def E_to_v(*args):
+  return _newpresto.E_to_v(*args)
+E_to_v = _newpresto.E_to_v
+
+def E_to_p(*args):
+  return _newpresto.E_to_p(*args)
+E_to_p = _newpresto.E_to_p
+
+def E_to_z(*args):
+  return _newpresto.E_to_z(*args)
+E_to_z = _newpresto.E_to_z
+
+def E_to_phib_BT(*args):
+  return _newpresto.E_to_phib_BT(*args)
+E_to_phib_BT = _newpresto.E_to_phib_BT
+
+def dorbint(*args):
+  return _newpresto.dorbint(*args)
+dorbint = _newpresto.dorbint
+
+def binary_velocity(*args):
+  return _newpresto.binary_velocity(*args)
+binary_velocity = _newpresto.binary_velocity
+
+def r_resp_halfwidth(*args):
+  return _newpresto.r_resp_halfwidth(*args)
+r_resp_halfwidth = _newpresto.r_resp_halfwidth
+
+def z_resp_halfwidth(*args):
+  return _newpresto.z_resp_halfwidth(*args)
+z_resp_halfwidth = _newpresto.z_resp_halfwidth
+
+def w_resp_halfwidth(*args):
+  return _newpresto.w_resp_halfwidth(*args)
+w_resp_halfwidth = _newpresto.w_resp_halfwidth
+
+def bin_resp_halfwidth(*args):
+  return _newpresto.bin_resp_halfwidth(*args)
+bin_resp_halfwidth = _newpresto.bin_resp_halfwidth
 # This file is compatible with both classic and new-style classes.
 
 
