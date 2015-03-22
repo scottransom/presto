@@ -135,3 +135,21 @@ assert(pr[nn/2]==1.0)
 assert(round(pz[nn/2]-0.227675, 6)==0)
 assert(round(pw[nn/2]-0.019467, 6)==0)
 print "success"
+
+print "Testing angle functions...",
+dd1 = 15.25
+dd2 = presto.dms2rad(*presto.deg2dms(dd1))*presto.RADTODEG
+assert(round(dd1-dd2, 12)==0)
+dd1 = -0.5
+dd2 = presto.dms2rad(*presto.deg2dms(dd1))*presto.RADTODEG
+assert(round(dd1-dd2, 12)==0)
+hh1 = 12.125
+hh2 = presto.hms2rad(*presto.hours2hms(hh1))*presto.RADTODEG/15.0
+assert(round(hh1-hh2, 12)==0)
+hh1 = -0.5
+hh2 = presto.hms2rad(*presto.hours2hms(hh1))*presto.RADTODEG/15.0
+assert(round(hh1-hh2, 12)==0)
+ang = presto.sphere_ang_diff(10.0*presto.DEGTORAD, 10.0*presto.DEGTORAD,
+                             50.0*presto.DEGTORAD, -10.0*presto.DEGTORAD)
+assert(round(160334.960*presto.ARCSEC2RAD-ang, 7)==0)
+print "success"
