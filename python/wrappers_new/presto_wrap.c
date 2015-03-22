@@ -2911,26 +2911,30 @@ SWIG_Python_NonDynamicSetAttr(PyObject *obj, PyObject *name, PyObject *value) {
 /* -------- TYPES TABLE (BEGIN) -------- */
 
 #define SWIGTYPE_p_FCOMPLEX swig_types[0]
-#define SWIGTYPE_p_FOURIERPROPS swig_types[1]
-#define SWIGTYPE_p_INFODATA swig_types[2]
-#define SWIGTYPE_p_PSRPARAMS swig_types[3]
-#define SWIGTYPE_p_RDERIVS swig_types[4]
-#define SWIGTYPE_p_char swig_types[5]
-#define SWIGTYPE_p_double swig_types[6]
-#define SWIGTYPE_p_foldstats swig_types[7]
-#define SWIGTYPE_p_long swig_types[8]
-#define SWIGTYPE_p_orbitparams swig_types[9]
-#define SWIGTYPE_p_p_FCOMPLEX swig_types[10]
-#define SWIGTYPE_p_p_double swig_types[11]
-#define SWIGTYPE_p_p_float swig_types[12]
-#define SWIGTYPE_p_presto_checkaliased swig_types[13]
-#define SWIGTYPE_p_presto_datainf swig_types[14]
-#define SWIGTYPE_p_presto_ffts swig_types[15]
-#define SWIGTYPE_p_presto_interp_acc swig_types[16]
-#define SWIGTYPE_p_presto_interptype swig_types[17]
-#define SWIGTYPE_p_presto_optype swig_types[18]
-static swig_type_info *swig_types[20];
-static swig_module_info swig_module = {swig_types, 19, 0, 0, 0, 0};
+#define SWIGTYPE_p_FILE swig_types[1]
+#define SWIGTYPE_p_FOURIERPROPS swig_types[2]
+#define SWIGTYPE_p_INFODATA swig_types[3]
+#define SWIGTYPE_p_PSRPARAMS swig_types[4]
+#define SWIGTYPE_p_RDERIVS swig_types[5]
+#define SWIGTYPE_p_binaryprops swig_types[6]
+#define SWIGTYPE_p_char swig_types[7]
+#define SWIGTYPE_p_double swig_types[8]
+#define SWIGTYPE_p_foldstats swig_types[9]
+#define SWIGTYPE_p_int swig_types[10]
+#define SWIGTYPE_p_long swig_types[11]
+#define SWIGTYPE_p_orbitparams swig_types[12]
+#define SWIGTYPE_p_p_FCOMPLEX swig_types[13]
+#define SWIGTYPE_p_p_double swig_types[14]
+#define SWIGTYPE_p_p_float swig_types[15]
+#define SWIGTYPE_p_presto_checkaliased swig_types[16]
+#define SWIGTYPE_p_presto_datainf swig_types[17]
+#define SWIGTYPE_p_presto_ffts swig_types[18]
+#define SWIGTYPE_p_presto_interp_acc swig_types[19]
+#define SWIGTYPE_p_presto_interptype swig_types[20]
+#define SWIGTYPE_p_presto_optype swig_types[21]
+#define SWIGTYPE_p_rzwerrs swig_types[22]
+static swig_type_info *swig_types[24];
+static swig_module_info swig_module = {swig_types, 23, 0, 0, 0, 0};
 #define SWIG_TypeQuery(name) SWIG_TypeQueryModule(&swig_module, &swig_module, name)
 #define SWIG_MangledTypeQuery(name) SWIG_MangledTypeQueryModule(&swig_module, &swig_module, name)
 
@@ -2967,6 +2971,10 @@ static swig_module_info swig_module = {swig_types, 19, 0, 0, 0, 0};
 
 #include "presto.h"
 #include "errno.h"
+
+// A few function declarations from some functions not in headers
+int fresnl(double xxa, double *ssa, double *cca);
+int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 
 
 #ifndef SWIG_FILE_WITH_INIT
@@ -3917,6 +3925,99 @@ void wrap_dorbint(double **vect, long *nn, double Eo, long numpts,
 {
     *vect = dorbint(Eo, numpts, dt, orb);
     *nn = numpts;
+}
+
+
+void wrap_gen_r_response(double roffset, int numbetween, int numkern,
+                         fcomplex **vect, long *nn){
+    *vect = gen_r_response(roffset, numbetween, numkern);
+    *nn = numkern;
+}
+
+void wrap_gen_z_response(double roffset, int numbetween, int numkern,
+                         double z,
+                         fcomplex **vect, long *nn){
+    *vect = gen_z_response(roffset, numbetween, z, numkern);
+    *nn = numkern;
+}
+
+void wrap_gen_w_response(double roffset, int numbetween, int numkern,
+                         double z, double w,
+                         fcomplex **vect, long *nn){
+    *vect = gen_w_response(roffset, numbetween, z, w, numkern);
+    *nn = numkern;
+}
+
+void wrap_gen_bin_response(double roffset, int numbetween, int numkern,
+                           double ppsr, double T, orbitparams *orbit,
+                           fcomplex **vect, long *nn){
+    *vect = gen_bin_response(roffset, numbetween, ppsr, T, 
+                             orbit, numkern);
+    *nn = numkern;
+}
+
+
+    double extended_equiv_gaussian_sigma(double logp);
+    double log_asymtotic_incomplete_gamma(double a, double z);
+    double log_asymtotic_gamma(double z);
+
+
+SWIGINTERN int
+SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val) 
+{
+#if PY_VERSION_HEX < 0x03000000
+  if (PyInt_Check(obj)) {
+    long v = PyInt_AsLong(obj);
+    if (v >= 0) {
+      if (val) *val = v;
+      return SWIG_OK;
+    } else {
+      return SWIG_OverflowError;
+    }
+  } else
+#endif
+  if (PyLong_Check(obj)) {
+    unsigned long v = PyLong_AsUnsignedLong(obj);
+    if (!PyErr_Occurred()) {
+      if (val) *val = v;
+      return SWIG_OK;
+    } else {
+      PyErr_Clear();
+#if PY_VERSION_HEX >= 0x03000000
+      {
+        long v = PyLong_AsLong(obj);
+        if (!PyErr_Occurred()) {
+          if (v < 0) {
+            return SWIG_OverflowError;
+          }
+        } else {
+          PyErr_Clear();
+        }
+      }
+#endif
+    }
+  }
+#ifdef SWIG_PYTHON_CAST_MODE
+  {
+    int dispatch = 0;
+    unsigned long v = PyLong_AsUnsignedLong(obj);
+    if (!PyErr_Occurred()) {
+      if (val) *val = v;
+      return SWIG_AddCast(SWIG_OK);
+    } else {
+      PyErr_Clear();
+    }
+    if (!dispatch) {
+      double d;
+      int res = SWIG_AddCast(SWIG_AsVal_double (obj,&d));
+      if (SWIG_IsOK(res) && SWIG_CanCastAsInteger(&d, 0, ULONG_MAX)) {
+	if (val) *val = (unsigned long)(d);
+	return res;
+      }
+    }
+  }
+#endif
+  return SWIG_TypeError;
 }
 
 #ifdef __cplusplus
@@ -10320,6 +10421,2000 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_gen_r_response(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  int arg3 ;
+  fcomplex **arg4 = (fcomplex **) 0 ;
+  long *arg5 = (long *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  fcomplex *data_temp4 = NULL ;
+  long dim_temp4 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  {
+    arg4 = &data_temp4;
+    arg5 = &dim_temp4;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"OOO:gen_r_response",&obj0,&obj1,&obj2)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_r_response" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "gen_r_response" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "gen_r_response" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  {
+    errno = 0;
+    wrap_gen_r_response(arg1,arg2,arg3,arg4,arg5);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[1] = {
+      *arg5 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg4));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg4), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg4), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_gen_z_response(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  int arg3 ;
+  double arg4 ;
+  fcomplex **arg5 = (fcomplex **) 0 ;
+  long *arg6 = (long *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  fcomplex *data_temp5 = NULL ;
+  long dim_temp5 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  
+  {
+    arg5 = &data_temp5;
+    arg6 = &dim_temp5;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:gen_z_response",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_z_response" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "gen_z_response" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "gen_z_response" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "gen_z_response" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  {
+    errno = 0;
+    wrap_gen_z_response(arg1,arg2,arg3,arg4,arg5,arg6);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[1] = {
+      *arg6 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg5));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg5), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg5), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_gen_w_response(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  int arg3 ;
+  double arg4 ;
+  double arg5 ;
+  fcomplex **arg6 = (fcomplex **) 0 ;
+  long *arg7 = (long *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  fcomplex *data_temp6 = NULL ;
+  long dim_temp6 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  
+  {
+    arg6 = &data_temp6;
+    arg7 = &dim_temp6;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:gen_w_response",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_w_response" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "gen_w_response" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "gen_w_response" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "gen_w_response" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  ecode5 = SWIG_AsVal_double(obj4, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "gen_w_response" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  {
+    errno = 0;
+    wrap_gen_w_response(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[1] = {
+      *arg7 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg6));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg6), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg6), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_gen_bin_response(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  int arg3 ;
+  double arg4 ;
+  double arg5 ;
+  orbitparams *arg6 = (orbitparams *) 0 ;
+  fcomplex **arg7 = (fcomplex **) 0 ;
+  long *arg8 = (long *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  void *argp6 = 0 ;
+  int res6 = 0 ;
+  fcomplex *data_temp7 = NULL ;
+  long dim_temp7 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  
+  {
+    arg7 = &data_temp7;
+    arg8 = &dim_temp7;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOO:gen_bin_response",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_bin_response" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "gen_bin_response" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "gen_bin_response" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "gen_bin_response" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  ecode5 = SWIG_AsVal_double(obj4, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "gen_bin_response" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  res6 = SWIG_ConvertPtr(obj5, &argp6,SWIGTYPE_p_orbitparams, 0 |  0 );
+  if (!SWIG_IsOK(res6)) {
+    SWIG_exception_fail(SWIG_ArgError(res6), "in method '" "gen_bin_response" "', argument " "6"" of type '" "orbitparams *""'"); 
+  }
+  arg6 = (orbitparams *)(argp6);
+  {
+    errno = 0;
+    wrap_gen_bin_response(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[1] = {
+      *arg8 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg7));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg7), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg7), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_get_localpower(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  int arg2 ;
+  double arg3 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  float result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:get_localpower",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FCOMPLEX, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_localpower" "', argument " "1"" of type '" "fcomplex *""'"); 
+  }
+  arg1 = (fcomplex *)(argp1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_localpower" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "get_localpower" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  {
+    errno = 0;
+    result = (float)get_localpower(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_float((float)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_get_localpower3d(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  int arg2 ;
+  double arg3 ;
+  double arg4 ;
+  double arg5 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  float result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:get_localpower3d",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FCOMPLEX, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_localpower3d" "', argument " "1"" of type '" "fcomplex *""'"); 
+  }
+  arg1 = (fcomplex *)(argp1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_localpower3d" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "get_localpower3d" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "get_localpower3d" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  ecode5 = SWIG_AsVal_double(obj4, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "get_localpower3d" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  {
+    errno = 0;
+    result = (float)get_localpower3d(arg1,arg2,arg3,arg4,arg5);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_float((float)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_get_derivs3d(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  int arg2 ;
+  double arg3 ;
+  double arg4 ;
+  double arg5 ;
+  float arg6 ;
+  rderivs *arg7 = (rderivs *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  float val6 ;
+  int ecode6 = 0 ;
+  void *argp7 = 0 ;
+  int res7 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  PyObject * obj6 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOO:get_derivs3d",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FCOMPLEX, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_derivs3d" "', argument " "1"" of type '" "fcomplex *""'"); 
+  }
+  arg1 = (fcomplex *)(argp1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_derivs3d" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "get_derivs3d" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "get_derivs3d" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  ecode5 = SWIG_AsVal_double(obj4, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "get_derivs3d" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  ecode6 = SWIG_AsVal_float(obj5, &val6);
+  if (!SWIG_IsOK(ecode6)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode6), "in method '" "get_derivs3d" "', argument " "6"" of type '" "float""'");
+  } 
+  arg6 = (float)(val6);
+  res7 = SWIG_ConvertPtr(obj6, &argp7,SWIGTYPE_p_RDERIVS, 0 |  0 );
+  if (!SWIG_IsOK(res7)) {
+    SWIG_exception_fail(SWIG_ArgError(res7), "in method '" "get_derivs3d" "', argument " "7"" of type '" "rderivs *""'"); 
+  }
+  arg7 = (rderivs *)(argp7);
+  {
+    errno = 0;
+    get_derivs3d(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_calc_props(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  rderivs arg1 ;
+  double arg2 ;
+  double arg3 ;
+  double arg4 ;
+  fourierprops *arg5 = (fourierprops *) 0 ;
+  void *argp1 ;
+  int res1 = 0 ;
+  double val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  void *argp5 = 0 ;
+  int res5 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:calc_props",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  {
+    res1 = SWIG_ConvertPtr(obj0, &argp1, SWIGTYPE_p_RDERIVS,  0 );
+    if (!SWIG_IsOK(res1)) {
+      SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "calc_props" "', argument " "1"" of type '" "rderivs""'"); 
+    }  
+    if (!argp1) {
+      SWIG_exception_fail(SWIG_ValueError, "invalid null reference " "in method '" "calc_props" "', argument " "1"" of type '" "rderivs""'");
+    } else {
+      arg1 = *((rderivs *)(argp1));
+    }
+  }
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "calc_props" "', argument " "2"" of type '" "double""'");
+  } 
+  arg2 = (double)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "calc_props" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "calc_props" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  res5 = SWIG_ConvertPtr(obj4, &argp5,SWIGTYPE_p_FOURIERPROPS, 0 |  0 );
+  if (!SWIG_IsOK(res5)) {
+    SWIG_exception_fail(SWIG_ArgError(res5), "in method '" "calc_props" "', argument " "5"" of type '" "fourierprops *""'"); 
+  }
+  arg5 = (fourierprops *)(argp5);
+  {
+    errno = 0;
+    calc_props(arg1,arg2,arg3,arg4,arg5);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_calc_binprops(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fourierprops *arg1 = (fourierprops *) 0 ;
+  double arg2 ;
+  int arg3 ;
+  int arg4 ;
+  binaryprops *arg5 = (binaryprops *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  double val2 ;
+  int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  int val4 ;
+  int ecode4 = 0 ;
+  void *argp5 = 0 ;
+  int res5 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:calc_binprops",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FOURIERPROPS, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "calc_binprops" "', argument " "1"" of type '" "fourierprops *""'"); 
+  }
+  arg1 = (fourierprops *)(argp1);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "calc_binprops" "', argument " "2"" of type '" "double""'");
+  } 
+  arg2 = (double)(val2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "calc_binprops" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  ecode4 = SWIG_AsVal_int(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "calc_binprops" "', argument " "4"" of type '" "int""'");
+  } 
+  arg4 = (int)(val4);
+  res5 = SWIG_ConvertPtr(obj4, &argp5,SWIGTYPE_p_binaryprops, 0 |  0 );
+  if (!SWIG_IsOK(res5)) {
+    SWIG_exception_fail(SWIG_ArgError(res5), "in method '" "calc_binprops" "', argument " "5"" of type '" "binaryprops *""'"); 
+  }
+  arg5 = (binaryprops *)(argp5);
+  {
+    errno = 0;
+    calc_binprops(arg1,arg2,arg3,arg4,arg5);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_calc_rzwerrs(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fourierprops *arg1 = (fourierprops *) 0 ;
+  double arg2 ;
+  rzwerrs *arg3 = (rzwerrs *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  double val2 ;
+  int ecode2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:calc_rzwerrs",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FOURIERPROPS, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "calc_rzwerrs" "', argument " "1"" of type '" "fourierprops *""'"); 
+  }
+  arg1 = (fourierprops *)(argp1);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "calc_rzwerrs" "', argument " "2"" of type '" "double""'");
+  } 
+  arg2 = (double)(val2);
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_rzwerrs, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "calc_rzwerrs" "', argument " "3"" of type '" "rzwerrs *""'"); 
+  }
+  arg3 = (rzwerrs *)(argp3);
+  {
+    errno = 0;
+    calc_rzwerrs(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_extended_equiv_gaussian_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:extended_equiv_gaussian_sigma",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "extended_equiv_gaussian_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  {
+    errno = 0;
+    result = (double)extended_equiv_gaussian_sigma(arg1);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_log_asymtotic_incomplete_gamma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double arg2 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  double val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:log_asymtotic_incomplete_gamma",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "log_asymtotic_incomplete_gamma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "log_asymtotic_incomplete_gamma" "', argument " "2"" of type '" "double""'");
+  } 
+  arg2 = (double)(val2);
+  {
+    errno = 0;
+    result = (double)log_asymtotic_incomplete_gamma(arg1,arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_log_asymtotic_gamma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:log_asymtotic_gamma",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "log_asymtotic_gamma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  {
+    errno = 0;
+    result = (double)log_asymtotic_gamma(arg1);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_equivalent_gaussian_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  PyObject * obj0 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"O:equivalent_gaussian_sigma",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "equivalent_gaussian_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  {
+    errno = 0;
+    result = (double)equivalent_gaussian_sigma(arg1);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_chi2_logp(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:chi2_logp",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_logp" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_logp" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  {
+    errno = 0;
+    result = (double)chi2_logp(arg1,arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_chi2_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:chi2_sigma",&obj0,&obj1)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_sigma" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  {
+    errno = 0;
+    result = (double)chi2_sigma(arg1,arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_candidate_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double arg3 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:candidate_sigma",&obj0,&obj1,&obj2)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "candidate_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "candidate_sigma" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "candidate_sigma" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  {
+    errno = 0;
+    result = (double)candidate_sigma(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_power_for_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  double arg3 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:power_for_sigma",&obj0,&obj1,&obj2)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "power_for_sigma" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "power_for_sigma" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "power_for_sigma" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  {
+    errno = 0;
+    result = (double)power_for_sigma(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_switch_f_and_p(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double arg2 ;
+  double arg3 ;
+  double *arg4 = (double *) 0 ;
+  double *arg5 = (double *) 0 ;
+  double *arg6 = (double *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  double val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double temp4 ;
+  int res4 = SWIG_TMPOBJ ;
+  double temp5 ;
+  int res5 = SWIG_TMPOBJ ;
+  double temp6 ;
+  int res6 = SWIG_TMPOBJ ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  arg4 = &temp4;
+  arg5 = &temp5;
+  arg6 = &temp6;
+  if (!PyArg_ParseTuple(args,(char *)"OOO:switch_f_and_p",&obj0,&obj1,&obj2)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "switch_f_and_p" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "switch_f_and_p" "', argument " "2"" of type '" "double""'");
+  } 
+  arg2 = (double)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "switch_f_and_p" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  {
+    errno = 0;
+    switch_f_and_p(arg1,arg2,arg3,arg4,arg5,arg6);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res4)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg4)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res4) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg4), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res5)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg5)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res5) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg5), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res6)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg6)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res6) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg6), SWIGTYPE_p_double, new_flags));
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_chisqr(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double *arg1 = (double *) 0 ;
+  int arg2 ;
+  double arg3 ;
+  double arg4 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:chisqr",&obj0,&obj1,&obj2)) SWIG_fail;
+  {
+    npy_intp size[1] = {
+      -1 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(obj0,
+      NPY_DOUBLE,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 1) ||
+      !require_size(array1, size, 1)) SWIG_fail;
+    arg1 = (double*) array_data(array1);
+    arg2 = (int) array_size(array1,0);
+  }
+  ecode3 = SWIG_AsVal_double(obj1, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "chisqr" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj2, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "chisqr" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  {
+    errno = 0;
+    result = (double)chisqr(arg1,arg2,arg3,arg4);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  return resultobj;
+fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_print_candidate(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fourierprops *arg1 = (fourierprops *) 0 ;
+  double arg2 ;
+  unsigned long arg3 ;
+  float arg4 ;
+  int arg5 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  double val2 ;
+  int ecode2 = 0 ;
+  unsigned long val3 ;
+  int ecode3 = 0 ;
+  float val4 ;
+  int ecode4 = 0 ;
+  int val5 ;
+  int ecode5 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:print_candidate",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FOURIERPROPS, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "print_candidate" "', argument " "1"" of type '" "fourierprops *""'"); 
+  }
+  arg1 = (fourierprops *)(argp1);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "print_candidate" "', argument " "2"" of type '" "double""'");
+  } 
+  arg2 = (double)(val2);
+  ecode3 = SWIG_AsVal_unsigned_SS_long(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "print_candidate" "', argument " "3"" of type '" "unsigned long""'");
+  } 
+  arg3 = (unsigned long)(val3);
+  ecode4 = SWIG_AsVal_float(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "print_candidate" "', argument " "4"" of type '" "float""'");
+  } 
+  arg4 = (float)(val4);
+  ecode5 = SWIG_AsVal_int(obj4, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "print_candidate" "', argument " "5"" of type '" "int""'");
+  } 
+  arg5 = (int)(val5);
+  {
+    errno = 0;
+    print_candidate(arg1,arg2,arg3,arg4,arg5);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_print_bin_candidate(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  binaryprops *arg1 = (binaryprops *) 0 ;
+  int arg2 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:print_bin_candidate",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_binaryprops, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "print_bin_candidate" "', argument " "1"" of type '" "binaryprops *""'"); 
+  }
+  arg1 = (binaryprops *)(argp1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "print_bin_candidate" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  {
+    errno = 0;
+    print_bin_candidate(arg1,arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_read_rzw_cand(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  FILE *arg1 = (FILE *) 0 ;
+  fourierprops *arg2 = (fourierprops *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  int result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:read_rzw_cand",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FILE, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "read_rzw_cand" "', argument " "1"" of type '" "FILE *""'"); 
+  }
+  arg1 = (FILE *)(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_FOURIERPROPS, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "read_rzw_cand" "', argument " "2"" of type '" "fourierprops *""'"); 
+  }
+  arg2 = (fourierprops *)(argp2);
+  {
+    errno = 0;
+    result = (int)read_rzw_cand(arg1,arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_int((int)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_get_rzw_cand(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  char *arg1 = (char *) 0 ;
+  int arg2 ;
+  fourierprops *arg3 = (fourierprops *) 0 ;
+  int res1 ;
+  char *buf1 = 0 ;
+  int alloc1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:get_rzw_cand",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_AsCharPtrAndSize(obj0, &buf1, NULL, &alloc1);
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_rzw_cand" "', argument " "1"" of type '" "char *""'");
+  }
+  arg1 = (char *)(buf1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_rzw_cand" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_FOURIERPROPS, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "get_rzw_cand" "', argument " "3"" of type '" "fourierprops *""'"); 
+  }
+  arg3 = (fourierprops *)(argp3);
+  {
+    errno = 0;
+    get_rzw_cand(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  return resultobj;
+fail:
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_read_bin_cand(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  FILE *arg1 = (FILE *) 0 ;
+  binaryprops *arg2 = (binaryprops *) 0 ;
+  void *argp1 = 0 ;
+  int res1 = 0 ;
+  void *argp2 = 0 ;
+  int res2 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  int result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OO:read_bin_cand",&obj0,&obj1)) SWIG_fail;
+  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FILE, 0 |  0 );
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "read_bin_cand" "', argument " "1"" of type '" "FILE *""'"); 
+  }
+  arg1 = (FILE *)(argp1);
+  res2 = SWIG_ConvertPtr(obj1, &argp2,SWIGTYPE_p_binaryprops, 0 |  0 );
+  if (!SWIG_IsOK(res2)) {
+    SWIG_exception_fail(SWIG_ArgError(res2), "in method '" "read_bin_cand" "', argument " "2"" of type '" "binaryprops *""'"); 
+  }
+  arg2 = (binaryprops *)(argp2);
+  {
+    errno = 0;
+    result = (int)read_bin_cand(arg1,arg2);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_int((int)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_get_bin_cand(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  char *arg1 = (char *) 0 ;
+  int arg2 ;
+  binaryprops *arg3 = (binaryprops *) 0 ;
+  int res1 ;
+  char *buf1 = 0 ;
+  int alloc1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  void *argp3 = 0 ;
+  int res3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:get_bin_cand",&obj0,&obj1,&obj2)) SWIG_fail;
+  res1 = SWIG_AsCharPtrAndSize(obj0, &buf1, NULL, &alloc1);
+  if (!SWIG_IsOK(res1)) {
+    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_bin_cand" "', argument " "1"" of type '" "char *""'");
+  }
+  arg1 = (char *)(buf1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_bin_cand" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  res3 = SWIG_ConvertPtr(obj2, &argp3,SWIGTYPE_p_binaryprops, 0 |  0 );
+  if (!SWIG_IsOK(res3)) {
+    SWIG_exception_fail(SWIG_ArgError(res3), "in method '" "get_bin_cand" "', argument " "3"" of type '" "binaryprops *""'"); 
+  }
+  arg3 = (binaryprops *)(argp3);
+  {
+    errno = 0;
+    get_bin_cand(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  return resultobj;
+fail:
+  if (alloc1 == SWIG_NEWOBJ) free((char*)buf1);
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_dms2rad(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  int arg2 ;
+  double arg3 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:dms2rad",&obj0,&obj1,&obj2)) SWIG_fail;
+  ecode1 = SWIG_AsVal_int(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "dms2rad" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = (int)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "dms2rad" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "dms2rad" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  {
+    errno = 0;
+    result = (double)dms2rad(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_hms2rad(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  int arg1 ;
+  int arg2 ;
+  double arg3 ;
+  int val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOO:hms2rad",&obj0,&obj1,&obj2)) SWIG_fail;
+  ecode1 = SWIG_AsVal_int(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "hms2rad" "', argument " "1"" of type '" "int""'");
+  } 
+  arg1 = (int)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "hms2rad" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "hms2rad" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  {
+    errno = 0;
+    result = (double)hms2rad(arg1,arg2,arg3);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_hours2hms(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int *arg2 = (int *) 0 ;
+  int *arg3 = (int *) 0 ;
+  double *arg4 = (double *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int temp2 ;
+  int res2 = SWIG_TMPOBJ ;
+  int temp3 ;
+  int res3 = SWIG_TMPOBJ ;
+  double temp4 ;
+  int res4 = SWIG_TMPOBJ ;
+  PyObject * obj0 = 0 ;
+  
+  arg2 = &temp2;
+  arg3 = &temp3;
+  arg4 = &temp4;
+  if (!PyArg_ParseTuple(args,(char *)"O:hours2hms",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "hours2hms" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  {
+    errno = 0;
+    hours2hms(arg1,arg2,arg3,arg4);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res2)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_int((*arg2)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res2) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg2), SWIGTYPE_p_int, new_flags));
+  }
+  if (SWIG_IsTmpObj(res3)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_int((*arg3)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res3) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg3), SWIGTYPE_p_int, new_flags));
+  }
+  if (SWIG_IsTmpObj(res4)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg4)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res4) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg4), SWIGTYPE_p_double, new_flags));
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_deg2dms(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int *arg2 = (int *) 0 ;
+  int *arg3 = (int *) 0 ;
+  double *arg4 = (double *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int temp2 ;
+  int res2 = SWIG_TMPOBJ ;
+  int temp3 ;
+  int res3 = SWIG_TMPOBJ ;
+  double temp4 ;
+  int res4 = SWIG_TMPOBJ ;
+  PyObject * obj0 = 0 ;
+  
+  arg2 = &temp2;
+  arg3 = &temp3;
+  arg4 = &temp4;
+  if (!PyArg_ParseTuple(args,(char *)"O:deg2dms",&obj0)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "deg2dms" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  {
+    errno = 0;
+    deg2dms(arg1,arg2,arg3,arg4);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res2)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_int((*arg2)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res2) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg2), SWIGTYPE_p_int, new_flags));
+  }
+  if (SWIG_IsTmpObj(res3)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_int((*arg3)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res3) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg3), SWIGTYPE_p_int, new_flags));
+  }
+  if (SWIG_IsTmpObj(res4)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg4)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res4) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg4), SWIGTYPE_p_double, new_flags));
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_sphere_ang_diff(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double arg2 ;
+  double arg3 ;
+  double arg4 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  double val2 ;
+  int ecode2 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:sphere_ang_diff",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "sphere_ang_diff" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "sphere_ang_diff" "', argument " "2"" of type '" "double""'");
+  } 
+  arg2 = (double)(val2);
+  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "sphere_ang_diff" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "sphere_ang_diff" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  {
+    errno = 0;
+    result = (double)sphere_ang_diff(arg1,arg2,arg3,arg4);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
 	 { (char *)"fcomplex_r_set", _wrap_fcomplex_r_set, METH_VARARGS, NULL},
@@ -10542,6 +12637,37 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"z_resp_halfwidth", _wrap_z_resp_halfwidth, METH_VARARGS, NULL},
 	 { (char *)"w_resp_halfwidth", _wrap_w_resp_halfwidth, METH_VARARGS, NULL},
 	 { (char *)"bin_resp_halfwidth", _wrap_bin_resp_halfwidth, METH_VARARGS, NULL},
+	 { (char *)"gen_r_response", _wrap_gen_r_response, METH_VARARGS, NULL},
+	 { (char *)"gen_z_response", _wrap_gen_z_response, METH_VARARGS, NULL},
+	 { (char *)"gen_w_response", _wrap_gen_w_response, METH_VARARGS, NULL},
+	 { (char *)"gen_bin_response", _wrap_gen_bin_response, METH_VARARGS, NULL},
+	 { (char *)"get_localpower", _wrap_get_localpower, METH_VARARGS, NULL},
+	 { (char *)"get_localpower3d", _wrap_get_localpower3d, METH_VARARGS, NULL},
+	 { (char *)"get_derivs3d", _wrap_get_derivs3d, METH_VARARGS, NULL},
+	 { (char *)"calc_props", _wrap_calc_props, METH_VARARGS, NULL},
+	 { (char *)"calc_binprops", _wrap_calc_binprops, METH_VARARGS, NULL},
+	 { (char *)"calc_rzwerrs", _wrap_calc_rzwerrs, METH_VARARGS, NULL},
+	 { (char *)"extended_equiv_gaussian_sigma", _wrap_extended_equiv_gaussian_sigma, METH_VARARGS, NULL},
+	 { (char *)"log_asymtotic_incomplete_gamma", _wrap_log_asymtotic_incomplete_gamma, METH_VARARGS, NULL},
+	 { (char *)"log_asymtotic_gamma", _wrap_log_asymtotic_gamma, METH_VARARGS, NULL},
+	 { (char *)"equivalent_gaussian_sigma", _wrap_equivalent_gaussian_sigma, METH_VARARGS, NULL},
+	 { (char *)"chi2_logp", _wrap_chi2_logp, METH_VARARGS, NULL},
+	 { (char *)"chi2_sigma", _wrap_chi2_sigma, METH_VARARGS, NULL},
+	 { (char *)"candidate_sigma", _wrap_candidate_sigma, METH_VARARGS, NULL},
+	 { (char *)"power_for_sigma", _wrap_power_for_sigma, METH_VARARGS, NULL},
+	 { (char *)"switch_f_and_p", _wrap_switch_f_and_p, METH_VARARGS, NULL},
+	 { (char *)"chisqr", _wrap_chisqr, METH_VARARGS, NULL},
+	 { (char *)"print_candidate", _wrap_print_candidate, METH_VARARGS, NULL},
+	 { (char *)"print_bin_candidate", _wrap_print_bin_candidate, METH_VARARGS, NULL},
+	 { (char *)"read_rzw_cand", _wrap_read_rzw_cand, METH_VARARGS, NULL},
+	 { (char *)"get_rzw_cand", _wrap_get_rzw_cand, METH_VARARGS, NULL},
+	 { (char *)"read_bin_cand", _wrap_read_bin_cand, METH_VARARGS, NULL},
+	 { (char *)"get_bin_cand", _wrap_get_bin_cand, METH_VARARGS, NULL},
+	 { (char *)"dms2rad", _wrap_dms2rad, METH_VARARGS, NULL},
+	 { (char *)"hms2rad", _wrap_hms2rad, METH_VARARGS, NULL},
+	 { (char *)"hours2hms", _wrap_hours2hms, METH_VARARGS, NULL},
+	 { (char *)"deg2dms", _wrap_deg2dms, METH_VARARGS, NULL},
+	 { (char *)"sphere_ang_diff", _wrap_sphere_ang_diff, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 
@@ -10549,13 +12675,16 @@ static PyMethodDef SwigMethods[] = {
 /* -------- TYPE CONVERSION AND EQUIVALENCE RULES (BEGIN) -------- */
 
 static swig_type_info _swigt__p_FCOMPLEX = {"_p_FCOMPLEX", "fcomplex *|struct FCOMPLEX *|FCOMPLEX *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_FILE = {"_p_FILE", "FILE *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_FOURIERPROPS = {"_p_FOURIERPROPS", "struct FOURIERPROPS *|FOURIERPROPS *|fourierprops *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_INFODATA = {"_p_INFODATA", "infodata *|struct INFODATA *|INFODATA *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_PSRPARAMS = {"_p_PSRPARAMS", "psrparams *|struct PSRPARAMS *|PSRPARAMS *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_RDERIVS = {"_p_RDERIVS", "rderivs *|struct RDERIVS *|RDERIVS *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_binaryprops = {"_p_binaryprops", "binaryprops *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_char = {"_p_char", "char *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_double = {"_p_double", "double *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_foldstats = {"_p_foldstats", "struct foldstats *|foldstats *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_int = {"_p_int", "int *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_long = {"_p_long", "long *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_orbitparams = {"_p_orbitparams", "struct orbitparams *|orbitparams *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_p_FCOMPLEX = {"_p_p_FCOMPLEX", "struct FCOMPLEX **|fcomplex **", 0, 0, (void*)0, 0};
@@ -10567,16 +12696,20 @@ static swig_type_info _swigt__p_presto_ffts = {"_p_presto_ffts", "enum presto_ff
 static swig_type_info _swigt__p_presto_interp_acc = {"_p_presto_interp_acc", "enum presto_interp_acc *|presto_interp_acc *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_presto_interptype = {"_p_presto_interptype", "enum presto_interptype *|presto_interptype *", 0, 0, (void*)0, 0};
 static swig_type_info _swigt__p_presto_optype = {"_p_presto_optype", "enum presto_optype *|presto_optype *", 0, 0, (void*)0, 0};
+static swig_type_info _swigt__p_rzwerrs = {"_p_rzwerrs", "rzwerrs *", 0, 0, (void*)0, 0};
 
 static swig_type_info *swig_type_initial[] = {
   &_swigt__p_FCOMPLEX,
+  &_swigt__p_FILE,
   &_swigt__p_FOURIERPROPS,
   &_swigt__p_INFODATA,
   &_swigt__p_PSRPARAMS,
   &_swigt__p_RDERIVS,
+  &_swigt__p_binaryprops,
   &_swigt__p_char,
   &_swigt__p_double,
   &_swigt__p_foldstats,
+  &_swigt__p_int,
   &_swigt__p_long,
   &_swigt__p_orbitparams,
   &_swigt__p_p_FCOMPLEX,
@@ -10588,16 +12721,20 @@ static swig_type_info *swig_type_initial[] = {
   &_swigt__p_presto_interp_acc,
   &_swigt__p_presto_interptype,
   &_swigt__p_presto_optype,
+  &_swigt__p_rzwerrs,
 };
 
 static swig_cast_info _swigc__p_FCOMPLEX[] = {  {&_swigt__p_FCOMPLEX, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_FILE[] = {  {&_swigt__p_FILE, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_FOURIERPROPS[] = {  {&_swigt__p_FOURIERPROPS, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_INFODATA[] = {  {&_swigt__p_INFODATA, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_PSRPARAMS[] = {  {&_swigt__p_PSRPARAMS, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_RDERIVS[] = {  {&_swigt__p_RDERIVS, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_binaryprops[] = {  {&_swigt__p_binaryprops, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_char[] = {  {&_swigt__p_char, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_double[] = {  {&_swigt__p_double, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_foldstats[] = {  {&_swigt__p_foldstats, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_int[] = {  {&_swigt__p_int, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_long[] = {  {&_swigt__p_long, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_orbitparams[] = {  {&_swigt__p_orbitparams, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_p_FCOMPLEX[] = {  {&_swigt__p_p_FCOMPLEX, 0, 0, 0},{0, 0, 0, 0}};
@@ -10609,16 +12746,20 @@ static swig_cast_info _swigc__p_presto_ffts[] = {  {&_swigt__p_presto_ffts, 0, 0
 static swig_cast_info _swigc__p_presto_interp_acc[] = {  {&_swigt__p_presto_interp_acc, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_presto_interptype[] = {  {&_swigt__p_presto_interptype, 0, 0, 0},{0, 0, 0, 0}};
 static swig_cast_info _swigc__p_presto_optype[] = {  {&_swigt__p_presto_optype, 0, 0, 0},{0, 0, 0, 0}};
+static swig_cast_info _swigc__p_rzwerrs[] = {  {&_swigt__p_rzwerrs, 0, 0, 0},{0, 0, 0, 0}};
 
 static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_FCOMPLEX,
+  _swigc__p_FILE,
   _swigc__p_FOURIERPROPS,
   _swigc__p_INFODATA,
   _swigc__p_PSRPARAMS,
   _swigc__p_RDERIVS,
+  _swigc__p_binaryprops,
   _swigc__p_char,
   _swigc__p_double,
   _swigc__p_foldstats,
+  _swigc__p_int,
   _swigc__p_long,
   _swigc__p_orbitparams,
   _swigc__p_p_FCOMPLEX,
@@ -10630,6 +12771,7 @@ static swig_cast_info *swig_cast_initial[] = {
   _swigc__p_presto_interp_acc,
   _swigc__p_presto_interptype,
   _swigc__p_presto_optype,
+  _swigc__p_rzwerrs,
 };
 
 

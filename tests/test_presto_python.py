@@ -1,6 +1,7 @@
 import numpy as np
 import newpresto as presto
 import os
+import matplotlib.pyplot as plt
 
 print "Testing FFT stuff...",
 N = 20
@@ -106,4 +107,31 @@ minv *= presto.SOL/1000.0
 maxv *= presto.SOL/1000.0
 assert(round(minv-Vs_check.min(), 7)==0)
 assert(round(maxv-Vs_check.max(), 7)==0)
+print "success"
+
+print "Testing Fourier response generation...",
+numbetween = 16
+z = 5.0
+w = 40.0
+# Should use w_resp_halfwidth() for this.  Need to update that!
+bins_per_side = max([presto.r_resp_halfwidth(presto.LOWACC), \
+                     presto.z_resp_halfwidth(z, presto.LOWACC), \
+                     presto.w_resp_halfwidth(z, w, presto.LOWACC)])
+nn = numbetween * bins_per_side * 2;
+rresp = presto.gen_r_response(0.0, numbetween, nn)
+zresp = presto.gen_z_response(0.0, numbetween, nn, z)
+wresp = presto.gen_w_response(0.0, numbetween, nn, z, w)
+pr = presto.spectralpower(rresp)
+pz = presto.spectralpower(zresp)
+pw = presto.spectralpower(wresp)
+rs = np.arange(float(nn))/numbetween - bins_per_side
+if 0:
+    plt.plot(rs, pr, 'b-')
+    plt.plot(rs, pz, 'g-')
+    plt.plot(rs, pw, 'r-')
+    plt.show()
+assert(rs[nn/2]==0.0)
+assert(pr[nn/2]==1.0)
+assert(round(pz[nn/2]-0.227675, 6)==0)
+assert(round(pw[nn/2]-0.019467, 6)==0)
 print "success"

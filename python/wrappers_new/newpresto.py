@@ -574,6 +574,130 @@ w_resp_halfwidth = _newpresto.w_resp_halfwidth
 def bin_resp_halfwidth(*args):
   return _newpresto.bin_resp_halfwidth(*args)
 bin_resp_halfwidth = _newpresto.bin_resp_halfwidth
+
+def gen_r_response(*args):
+  return _newpresto.gen_r_response(*args)
+gen_r_response = _newpresto.gen_r_response
+
+def gen_z_response(*args):
+  return _newpresto.gen_z_response(*args)
+gen_z_response = _newpresto.gen_z_response
+
+def gen_w_response(*args):
+  return _newpresto.gen_w_response(*args)
+gen_w_response = _newpresto.gen_w_response
+
+def gen_bin_response(*args):
+  return _newpresto.gen_bin_response(*args)
+gen_bin_response = _newpresto.gen_bin_response
+
+def get_localpower(*args):
+  return _newpresto.get_localpower(*args)
+get_localpower = _newpresto.get_localpower
+
+def get_localpower3d(*args):
+  return _newpresto.get_localpower3d(*args)
+get_localpower3d = _newpresto.get_localpower3d
+
+def get_derivs3d(*args):
+  return _newpresto.get_derivs3d(*args)
+get_derivs3d = _newpresto.get_derivs3d
+
+def calc_props(*args):
+  return _newpresto.calc_props(*args)
+calc_props = _newpresto.calc_props
+
+def calc_binprops(*args):
+  return _newpresto.calc_binprops(*args)
+calc_binprops = _newpresto.calc_binprops
+
+def calc_rzwerrs(*args):
+  return _newpresto.calc_rzwerrs(*args)
+calc_rzwerrs = _newpresto.calc_rzwerrs
+
+def extended_equiv_gaussian_sigma(*args):
+  return _newpresto.extended_equiv_gaussian_sigma(*args)
+extended_equiv_gaussian_sigma = _newpresto.extended_equiv_gaussian_sigma
+
+def log_asymtotic_incomplete_gamma(*args):
+  return _newpresto.log_asymtotic_incomplete_gamma(*args)
+log_asymtotic_incomplete_gamma = _newpresto.log_asymtotic_incomplete_gamma
+
+def log_asymtotic_gamma(*args):
+  return _newpresto.log_asymtotic_gamma(*args)
+log_asymtotic_gamma = _newpresto.log_asymtotic_gamma
+
+def equivalent_gaussian_sigma(*args):
+  return _newpresto.equivalent_gaussian_sigma(*args)
+equivalent_gaussian_sigma = _newpresto.equivalent_gaussian_sigma
+
+def chi2_logp(*args):
+  return _newpresto.chi2_logp(*args)
+chi2_logp = _newpresto.chi2_logp
+
+def chi2_sigma(*args):
+  return _newpresto.chi2_sigma(*args)
+chi2_sigma = _newpresto.chi2_sigma
+
+def candidate_sigma(*args):
+  return _newpresto.candidate_sigma(*args)
+candidate_sigma = _newpresto.candidate_sigma
+
+def power_for_sigma(*args):
+  return _newpresto.power_for_sigma(*args)
+power_for_sigma = _newpresto.power_for_sigma
+
+def switch_f_and_p(*args):
+  return _newpresto.switch_f_and_p(*args)
+switch_f_and_p = _newpresto.switch_f_and_p
+
+def chisqr(*args):
+  return _newpresto.chisqr(*args)
+chisqr = _newpresto.chisqr
+
+def print_candidate(*args):
+  return _newpresto.print_candidate(*args)
+print_candidate = _newpresto.print_candidate
+
+def print_bin_candidate(*args):
+  return _newpresto.print_bin_candidate(*args)
+print_bin_candidate = _newpresto.print_bin_candidate
+
+def read_rzw_cand(*args):
+  return _newpresto.read_rzw_cand(*args)
+read_rzw_cand = _newpresto.read_rzw_cand
+
+def get_rzw_cand(*args):
+  return _newpresto.get_rzw_cand(*args)
+get_rzw_cand = _newpresto.get_rzw_cand
+
+def read_bin_cand(*args):
+  return _newpresto.read_bin_cand(*args)
+read_bin_cand = _newpresto.read_bin_cand
+
+def get_bin_cand(*args):
+  return _newpresto.get_bin_cand(*args)
+get_bin_cand = _newpresto.get_bin_cand
+
+def dms2rad(*args):
+  return _newpresto.dms2rad(*args)
+dms2rad = _newpresto.dms2rad
+
+def hms2rad(*args):
+  return _newpresto.hms2rad(*args)
+hms2rad = _newpresto.hms2rad
+
+def hours2hms(*args):
+  return _newpresto.hours2hms(*args)
+hours2hms = _newpresto.hours2hms
+
+def deg2dms(*args):
+  return _newpresto.deg2dms(*args)
+deg2dms = _newpresto.deg2dms
+
+def sphere_ang_diff(*args):
+  return _newpresto.sphere_ang_diff(*args)
+sphere_ang_diff = _newpresto.sphere_ang_diff
 # This file is compatible with both classic and new-style classes.
 
 

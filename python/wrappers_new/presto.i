@@ -7,6 +7,10 @@
 %{
 #include "presto.h"
 #include "errno.h"
+
+// A few function declarations from some functions not in headers
+int fresnl(double xxa, double *ssa, double *cca);
+int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 %}
 
 %include "numpy.i"
@@ -505,4 +509,203 @@ int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
 /*  Notes:                                                           */
 /*    The result must be multiplied by 2 * 'numbetween' to get the   */
 /*    length of the array required to hold such a kernel.            */
+
+%apply (fcomplex** ARGOUTVIEWM_ARRAY1, long* DIM1) {(fcomplex **vect, long *nn)};
+%rename (gen_r_response) wrap_gen_r_response;
+%rename (gen_z_response) wrap_gen_z_response;
+%rename (gen_w_response) wrap_gen_w_response;
+%rename (gen_bin_response) wrap_gen_bin_response;
+%inline %{
+void wrap_gen_r_response(double roffset, int numbetween, int numkern,
+                         fcomplex **vect, long *nn){
+    *vect = gen_r_response(roffset, numbetween, numkern);
+    *nn = numkern;
+}
+
+void wrap_gen_z_response(double roffset, int numbetween, int numkern,
+                         double z,
+                         fcomplex **vect, long *nn){
+    *vect = gen_z_response(roffset, numbetween, z, numkern);
+    *nn = numkern;
+}
+
+void wrap_gen_w_response(double roffset, int numbetween, int numkern,
+                         double z, double w,
+                         fcomplex **vect, long *nn){
+    *vect = gen_w_response(roffset, numbetween, z, w, numkern);
+    *nn = numkern;
+}
+
+void wrap_gen_bin_response(double roffset, int numbetween, int numkern,
+                           double ppsr, double T, orbitparams *orbit,
+                           fcomplex **vect, long *nn){
+    *vect = gen_bin_response(roffset, numbetween, ppsr, T, 
+                             orbit, numkern);
+    *nn = numkern;
+}
+%}
+%clear (fcomplex **vect, long *nn);
+
+%apply (fcomplex* IN_ARRAY1, int DIM1) {(fcomplex *data, int numdata)};
+float get_localpower(fcomplex *data, int numdata, double r);
+  /* Return the local power level at specific FFT frequency.  */
+  /* Arguments:                                               */
+  /*   'data' is a pointer to a complex FFT.                  */
+  /*   'numdata' is the number of complex points in 'data'.   */
+  /*   'r' is the Fourier frequency in data that we want to   */
+  /*      interpolate.                                        */
+
+float get_localpower3d(fcomplex *data, int numdata, double r,
+		       double z, double w);
+  /* Return the local power level around a specific FFT           */
+  /* frequency, f-dot, and f-dotdot.                              */
+  /* Arguments:                                                   */
+  /*   'data' is a pointer to a complex FFT.                      */
+  /*   'numdata' is the number of complex points in 'data'.       */
+  /*   'r' is the Fourier frequency in data that we want to       */
+  /*      interpolate.                                            */
+  /*   'z' is the Fourier Frequency derivative (# of bins the     */
+  /*       signal smears over during the observation).            */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in the */
+  /*       Fourier f-dot during the observation).                 */
+
+void get_derivs3d(fcomplex *data, int numdata, double r,
+                  double z, double w, float localpower,
+                  rderivs *result);
+  /* Return an rderives structure that contains the power,      */
+  /* phase, and their first and second derivatives at a point   */
+  /* in the F/F-dot/F-dortdot volume.                           */  
+  /* Arguments:                                                 */
+  /*   'data' is a pointer to a complex FFT.                    */
+  /*   'numdata' is the number of complex points in 'data'.     */
+  /*   'r' is the Fourier frequency in data that we want to     */
+  /*      interpolate.                                          */
+  /*   'z' is the Fourier Frequency derivative (# of bins the   */
+  /*       signal smears over during the observation).          */
+  /*   'w' is the Fourier Frequency 2nd derivative (change in   */
+  /*       the Fourier f-dot during the observation).           */
+  /*   'localpower' is the local power level around the signal. */
+  /*   'result' is a pointer to an rderivs structure that will  */
+  /*       contain the results.                                 */
+
+void calc_props(rderivs data, double r, double z, double w, 
+		fourierprops * result);
+  /* Return a fourierprops structure that contains the various  */
+  /* properties of a signal described by Middleditch, Deich,    */ 
+  /* and Kulkarni in _Isolated_Pulsars_, 1993, p372.            */  
+  /* Arguments:                                                 */
+  /*   'data' is a pointer to an rderivs structure containing   */
+  /*       derivative information about the peak in question.   */
+  /*   'r' is the Fourier frequency in data that we want to     */
+  /*      interpolate.                                          */
+  /*   'z' is the Fourier Frequency derivative (# of bins the   */
+  /*       signal smears over during the observation).          */
+  /*   'w' is the Fourier Frequency second derivative.          */
+  /*   'result' is a pointer to an fourierprops structure that  */
+  /*       will contain the results.                            */
+
+void calc_binprops(fourierprops * props, double T, int lowbin, 
+		   int nfftbins, binaryprops * result);
+  /* Return a binaryprops structure that contains the various     */
+  /* estimates of the binary pulsar system from a mini-FFT.       */
+  /* Arguments:                                                   */
+  /*   'props' is a pointer to the candidate's fourierprops.      */
+  /*   'T' is the total length (sec) of the original time series. */
+  /*   'lowbin' is the Fourier bin number from the original FFT   */
+  /*      the lowest bin in the mini-FFT.                         */
+  /*   'nfftbins' is the number of bins in the mini-FFT.          */
+  /*   'absnorm' is the value of the power normalization          */
+  /*      constant for this mini-FFT.                             */
+  /*   'result' is the returned binaryprops structure.            */
+%clear (fcomplex *data, int numdata);
+
+void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result);
+  /* Calculate periods, frequencies, their derivatives        */
+  /* and their errors.                                        */
+  /* Arguments:                                               */
+  /*   'props' is a pointer to a fourierprops structure.      */
+  /*   'T' is the length of the data set in sec (i.e. N*dt).  */
+  /*   'result' is a pointer to the returned rzwerrs struct.  */
+
+%{
+    double extended_equiv_gaussian_sigma(double logp);
+    double log_asymtotic_incomplete_gamma(double a, double z);
+    double log_asymtotic_gamma(double z);
+%}
+double extended_equiv_gaussian_sigma(double logp);
+double log_asymtotic_incomplete_gamma(double a, double z);
+double log_asymtotic_gamma(double z);
+
+double equivalent_gaussian_sigma(double logp);
+/* Return the approximate significance in Gaussian sigmas */
+/* corresponding to a natural log probability logp        */
+
+double chi2_logp(double chi2, int dof);
+/* Return the natural log probability corresponding to a chi^2 value */
+/* of chi2 given dof degrees of freedom. */
+
+double chi2_sigma(double chi2, int dof);
+/* Return the approximate significance in Gaussian sigmas        */
+/* sigmas of a chi^2 value of chi2 given dof degrees of freedom. */
+
+double candidate_sigma(double power, int numsum, double numtrials);
+/* Return the approximate significance in Gaussian       */
+/* sigmas of a candidate of numsum summed powers,        */
+/* taking into account the number of independent trials. */
+
+double power_for_sigma(double sigma, int numsum, double numtrials);
+/* Return the approximate summed power level required */
+/* to get a Gaussian significance of 'sigma', taking  */
+/* into account the number of independent trials.     */
+
+%apply double *OUTPUT { double *out, double *outd, double *outdd };
+void switch_f_and_p(double in, double ind, double indd,
+                    double *out, double *outd, double *outdd);
+/* Convert p, p-dot, and p-dotdot into f, f-dot, */
+/* and f-dotdot or vise-versa.                   */
+
+%apply (double* IN_ARRAY1, int DIM1) {(double *data, int numdata)};
+double chisqr(double *data, int numdata, double avg, double var);
+  /* Calculates the chi-square of the 'data' which has average */
+  /* 'avg', and variance 'var'.                                */
+%clear (double *data, int numdata);
+
+void print_candidate(fourierprops * cand, double dt, unsigned long N, 
+		     float nph, int numerrdigits);
+/* Outputs a 2 column summary of all the properties or a fourier peak  */
+
+void print_bin_candidate(binaryprops * cand, int numerrdigits);
+/* Outputs a 2 column summary of all the properties or a fourier peak  */
+
+int read_rzw_cand(FILE *file, fourierprops *cands);
+/* Read the next rzw candidate from the file */
+/* If successful, return 1, else 0           */
+
+void get_rzw_cand(char *filenm, int candnum, fourierprops * cand);
+/*  Read the rzw candidate file 'filenm' and return a        */
+/*  pointer to the fourierprops that describes it.           */
+
+int read_bin_cand(FILE *file, binaryprops *cands);
+/* Read the next binary candidate from the file */
+/* If successful, return 1, else 0              */
+
+void get_bin_cand(char *filenm, int candnum, binaryprops * cand);
+/*  Read the bin candidate file 'filenm' and return a        */
+/*  pointer to the binaryprops that describes it.            */
+
+double dms2rad(int deg, int min, double sec);
+/* Convert degrees, minutes and seconds into radians */
+
+double hms2rad(int hour, int min, double sec);
+/* Convert hours, minutes and seconds into radians */
+
+%apply int *OUTPUT { int *xx, int *mm };
+%apply double *OUTPUT { double *ss };
+void hours2hms(double hours, int *xx, int *mm, double *ss);
+/* Convert decimal hours to hours, minutes, and seconds */
+void deg2dms(double degrees, int *xx, int *mm, double *ss);
+/* Convert decimal degrees to degrees, minutes, and seconds */
+
+double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
+/* Return the spherical angle (radians) between two RA and DECS */
 
