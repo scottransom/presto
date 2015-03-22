@@ -7,7 +7,6 @@
 /* Function declarations */
 int fresnl(double xxa, double *ssa, double *cca);
 
-
 int r_resp_halfwidth(presto_interp_acc accuracy)
   /*  Return the approximate kernel half width in FFT bins required    */
   /*  to achieve a fairly high accuracy correlation based correction   */
