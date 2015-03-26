@@ -118,11 +118,11 @@ def prune_related2(dm_candlist, downfacts):
     return dm_candlist
 
 def prune_border_cases(dm_candlist, offregions):
-    # Ignore those that are locate in a half-width
+    # Ignore those that are located within a half-width
     # of the boundary between data and padding
     #print offregions
     toremove = set()
-    for ii in xrange(len(dm_candlist))[::-1]:
+    for ii in xrange(len(dm_candlist)-1, -1, -1):
         cand = dm_candlist[ii]
         loside = cand.bin-cand.downfact/2
         hiside = cand.bin+cand.downfact/2
