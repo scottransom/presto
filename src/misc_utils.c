@@ -577,11 +577,7 @@ void ra_dec_to_string(char *radec, int h_or_d, int m, double s)
        radec[0] = '-';
        offset = 1;
    }
-   if (fabs(s) >= 10.0) {
-       sprintf(radec+offset, "%.2d:%.2d:%.4f", h_or_d, abs(m), fabs(s));
-   } else {
-       sprintf(radec+offset, "%.2d:%.2d:0%.4f", h_or_d, abs(m), fabs(s));
-   }
+   sprintf(radec+offset, "%.2d:%.2d:%07.4f", h_or_d, abs(m), fabs(s));
 }
 
 
