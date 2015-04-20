@@ -66,7 +66,7 @@ void scaleprof(double *in, float *out, int n, int scalesep, double gmax)
       norm = 1.0 / (max - min);
    } else {
       /* All plots are normalized together */
-      norm = 1.0 / gmax;
+      norm = 1.0 / fabs(gmax);
    }
    if (TEST_CLOSE(min, max, 1.0e-7)) {
       for (ii = 0; ii < n; ii++)
@@ -104,16 +104,11 @@ void fscaleprof(float *in, float *out, int n, int scalesep, double gmax)
 
 void lininterp(float min, float max, int npts, float *v)
 {
-   register int i;
-   register float step;
-   register float lev;
+   int ii;
+   float step = (max - min) / (npts - 1);
 
-   step = (max - min) / (npts - 1);
-   lev = min;
-   for (i = 0; i < npts; i++) {
-      v[i] = lev;
-      lev += step;
-   }
+   for (ii = 0; ii < npts; ii++)
+      v[ii] = ii * step + min;
 }
 
 
@@ -121,13 +116,13 @@ static void autocal2d(float *a, int rn, int cn,
                       float *fg, float *bg, int nlevels, float *levels,
                       float *x1, float *x2, float *y1, float *y2, float *tr)
 {
-   /* int i; */
+   //int i;
    float dx1, dx2, dy1, dy2;
 
    /* autocalibrate intensity-range. */
    if (*fg == *bg) {
       minmax(a, rn * cn, bg, fg);
-      /* fprintf(stderr,"Intensity range:\n  fg=%f\n  bg=%f\n",*fg,*bg); */
+      //fprintf(stderr,"Intensity range:\n  fg=%f\n  bg=%f\n",*fg,*bg);
    }
 
    if ((nlevels >= 2) && (levels))
@@ -144,17 +139,17 @@ static void autocal2d(float *a, int rn, int cn,
       *y1 = dy1;
       *y2 = dy2;
    }
-   /* fprintf(stderr,"Xrange: [%f, %f]\nYrange[%f, %f]\n",*x1,*x2,*y1,*y2); */
+   //fprintf(stderr,"Xrange: [%f, %f]\nYrange[%f, %f]\n",*x1,*x2,*y1,*y2);
 
    /* calculate transformation vector. */
    tr[2] = tr[4] = 0.0;
    tr[1] = (*x2 - *x1) / cn;
-   tr[0] = *x1 - (tr[1] / 2);
+   tr[0] = *x1 - 0.5 * tr[1];
    tr[5] = (*y2 - *y1) / rn;
-   tr[3] = *y1 - (tr[5] / 2);
+   tr[3] = *y1 - 0.5 * tr[5];
 
-   /* fprintf(stderr,"Tansformation vector:\n"); */
-   /* for (i=0; i<6; fprintf(stderr,"  tr[%d]=%f\n",i,tr[i]),i++); */
+   //fprintf(stderr,"Tansformation vector:\n");
+   //for (i=0; i<6; fprintf(stderr,"  tr[%d]=%f\n",i,tr[i]),i++);
 }
 
 /********************************************/
@@ -254,7 +249,7 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
 
 void CSS_profs(double *inprofs, double *outprofs,
                foldstats * instats, int numprofs, int proflen,
-               double *delays, double *sumprof, foldstats * sumstats, 
+               double *delays, double *sumprof, foldstats * sumstats,
                float *timechi, float chifact)
 /* Combine, Scale and Shift 'numprofs' profiles, of length 'proflen',   */
 /* into a single profile of length 'proflen'.  The profiles are         */
@@ -368,17 +363,17 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
    // Determine the chi^2 correction factor due to the correlations
    // in the profile bins caused by fold()
-   dofeff = (search->proflen - 1.0) * DOF_corr(dt_per_bin); 
+   dofeff = (search->proflen - 1.0) * DOF_corr(dt_per_bin);
    chifact = 1.0 / DOF_corr(dt_per_bin);
    if (flags->events) {
        chifact = 1.0;
        dofeff = search->proflen - 1.0;
    }
-   
+
    // Get off-pulse reduced-chi^2
    ftmp = estimate_offpulse_redchi2(search->rawfolds, search->stats,
-                                    search->npart, search->nsub, 
-                                    search->proflen, 50, dofeff); 
+                                    search->npart, search->nsub,
+                                    search->proflen, 50, dofeff);
    printf("Effective number of DOF = %.2f\n", dofeff);
    printf("Off-pulse Reduced chi^2 correction factor = %.2f\n", ftmp);
    if (flags->fixchi) {
