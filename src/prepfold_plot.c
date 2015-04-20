@@ -159,9 +159,10 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
                     double pderr, double pdderr)
 {
    FILE *outfile;
-   char outfilenm[200];
+   char *outfilenm;
    int ii;
 
+   outfilenm = (char *)malloc(strlen(search->pgdev)+10);
    sprintf(outfilenm, "%.*s.bestprof",
            (int) strlen(search->pgdev) - 7, search->pgdev);
    outfile = chkfopen(outfilenm, "w");
@@ -244,6 +245,7 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
    for (ii = 0; ii < search->proflen; ii++)
        fprintf(outfile, "%4d  %.7g\n", ii, bestprof[ii]);
    fclose(outfile);
+   free(outfilenm);
 }
 
 
@@ -1265,6 +1267,28 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
          }
       }
       cpgclos();
+      if (ct==0) {
+          // Attempt to change the .ps into a nice .png using latex2html...
+          int retval=0;
+          char *command;
+          command = (char *)malloc(2 * strlen(search->pgdev) + 60);
+          // First test to see if pstoimg exists
+          strcpy(command, "which pstoimg > /dev/null");
+          retval = system(command);
+          // If the command exists, then convert the .ps to .png
+          if (retval==0) {
+              sprintf(command, "pstoimg -density 200 -antialias -flip cw "
+                               "-quiet -out %.*s.png %.*s",
+                               (int) strlen(search->pgdev) - 7, search->pgdev,
+                               (int) strlen(search->pgdev) - 4, search->pgdev);
+              // printf("'%s'\n", command);
+              if ((retval=system(command))) {
+                  perror("Error running pstoimg in prepfold_plot()");
+                  printf("\n");
+              }
+          }
+          free(command);
+      }
    }
    vect_free(bestprof);
    vect_free(timeprofs);
