@@ -3,7 +3,11 @@
 
 # OS type
 OS = Linux
-#OS = OSX
+
+UNAME = $(shell uname)
+ifeq ($(UNAME),Darwin)
+OS = OSX
+endif
 
 # Linux is the first choice
 ifeq ($(OS),Linux)

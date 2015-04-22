@@ -114,10 +114,10 @@ static Cmdline cmd = {
   /* proflenP = */ 0,
   /* proflen = */ (int)0,
   /* proflenC = */ 0,
-  /***** -nsub: The number of sub-bands to use for the DM search */
-  /* nsubP = */ 1,
-  /* nsub = */ 32,
-  /* nsubC = */ 1,
+  /***** -nsub: The number of sub-bands to use for the DM search.  If unspecified, will use something reasonable. */
+  /* nsubP = */ 0,
+  /* nsub = */ (int)0,
+  /* nsubC = */ 0,
   /***** -npart: The number of sub-integrations to use for the period search */
   /* npartP = */ 1,
   /* npart = */ 64,
@@ -1271,7 +1271,7 @@ showOptionValues(void)
     }
   }
 
-  /***** -nsub: The number of sub-bands to use for the DM search */
+  /***** -nsub: The number of sub-bands to use for the DM search.  If unspecified, will use something reasonable. */
   if( !cmd.nsubP ) {
     printf("-nsub not found.\n");
   } else {
@@ -1780,9 +1780,8 @@ usage(void)
   fprintf(stderr,"%s","                  default: `0'\n");
   fprintf(stderr,"%s","              -n: The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period\n");
   fprintf(stderr,"%s","                  1 int value\n");
-  fprintf(stderr,"%s","           -nsub: The number of sub-bands to use for the DM search\n");
+  fprintf(stderr,"%s","           -nsub: The number of sub-bands to use for the DM search.  If unspecified, will use something reasonable.\n");
   fprintf(stderr,"%s","                  1 int value between 1 and 4096\n");
-  fprintf(stderr,"%s","                  default: `32'\n");
   fprintf(stderr,"%s","          -npart: The number of sub-integrations to use for the period search\n");
   fprintf(stderr,"%s","                  1 int value between 1 and 4096\n");
   fprintf(stderr,"%s","                  default: `64'\n");
@@ -1874,7 +1873,7 @@ usage(void)
   fprintf(stderr,"%s","                  default: `0'\n");
   fprintf(stderr,"%s","          infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                  1...16384 values\n");
-  fprintf(stderr,"%s","  version: 17Mar15\n");
+  fprintf(stderr,"%s","  version: 21Apr15\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
