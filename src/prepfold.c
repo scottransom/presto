@@ -18,8 +18,8 @@ extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 extern char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm);
 void set_posn(prepfoldinfo * in, infodata * idata);
 
-/* 
- * The main program 
+/*
+ * The main program
  */
 
 int main(int argc, char *argv[])
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
    // If we are zeroDMing, make sure that clipping is off.
    if (cmd->zerodmP) cmd->noclipP = 1;
    s.clip_sigma = cmd->clip;
-   // -1 causes the data to determine if we use weights, scales, & 
+   // -1 causes the data to determine if we use weights, scales, &
    // offsets for PSRFITS or flip the band for any data type where
    // we can figure that out with the data
    s.apply_flipband = (cmd->invertP) ? 1 : -1;
@@ -98,8 +98,6 @@ int main(int argc, char *argv[])
          cmd->proflenP = 1;
          cmd->proflen = 100;
       }
-      if (cmd->nsub == 32)      /* The default value */
-         cmd->nsub = 16;
    }
    if (cmd->fineP) {
       cmd->ndmfact = 1;
@@ -187,7 +185,7 @@ int main(int argc, char *argv[])
            exit(1);
        }
    }
-   
+
    if (!RAWDATA) s.files = (FILE **)malloc(sizeof(FILE *) * s.num_files);
    if (RAWDATA || insubs) {
        char description[40];
@@ -208,6 +206,37 @@ int main(int argc, char *argv[])
            ptsperrec = s.spectra_per_subint;
            numrec = s.N / ptsperrec;
            numchan = s.num_channels;
+           if (!cmd->nsubP) {
+               cmd->nsub = 1;  // flag
+               if (numchan <= 256) {
+                   if (numchan % 32 == 0) {
+                       cmd->nsub = 32;
+                   } else if (numchan % 30 == 0) {
+                       cmd->nsub = 30;
+                   } else if (numchan % 25 == 0) {
+                       cmd->nsub = 25;
+                   } else if (numchan % 20 == 0) {
+                       cmd->nsub = 20;
+                   }
+               } else if (numchan <= 1024) {
+                   if (numchan % 8 == 0) {
+                       cmd->nsub = numchan / 8;
+                   } else if (numchan % 10 == 0) {
+                       cmd->nsub = numchan / 10;
+                   }
+               } else {
+                   if (numchan % 128 == 0) {
+                       cmd->nsub = 128;
+                   } else if (numchan % 100 == 0) {
+                       cmd->nsub = 100;
+                   }
+               }
+               if (cmd->nsub == 1) {
+                   perror("Cannot automatically determine a good value for -nsub");
+                   printf("\n");
+                   exit(1);
+               }
+           }
        } else { // insubs
            cmd->nsub = s.num_files;
            s.N = chkfilelen(s.files[0], sizeof(short));
@@ -278,19 +307,20 @@ int main(int argc, char *argv[])
            printf("Reading information from '%s.inf'.\n\n", root);
            /* Read the info file if available */
            readinf(&idata, root);
+           cmd->nsub = 1;
        }
        free(root);
        free(suffix);
        /* Use events instead of a time series */
        if (cmd->eventsP) {
            int eventtype = 0;     /* 0=sec since .inf, 1=days since .inf, 2=MJDs */
-           
+
            /* The following allows using inf files from searches of a subset */
            /* of events from an event file.                                  */
            if (cmd->rzwcandP || cmd->accelcandP) {
                infodata rzwidata;
                char *cptr = NULL;
-               
+
                if (cmd->rzwcandP) {
                    if (!cmd->rzwfileP) {
                        printf("\nYou must enter a name for the rzw candidate ");
@@ -412,7 +442,7 @@ int main(int argc, char *argv[])
    /* What ephemeris will we use?  (Default is DE405) */
    strcpy(ephem, "DE405");
 
-   // Set-up values if we are using raw radio pulsar data 
+   // Set-up values if we are using raw radio pulsar data
 
    if (RAWDATA || insubs) {
 
@@ -538,7 +568,7 @@ int main(int argc, char *argv[])
 
    /* Make sure that the number of subbands evenly divides the number of channels */
    if (numchan % cmd->nsub != 0) {
-       printf("Error:  # of channels (%d) not divisible by # of subbands (%d)!\n", 
+       printf("Error:  # of channels (%d) not divisible by # of subbands (%d)!\n",
               numchan, cmd->nsub);
        exit(1);
    }
@@ -1081,7 +1111,7 @@ int main(int argc, char *argv[])
       } else {
           if (useshorts) {
               int reclen = 1;
-              
+
               if (insubs)
                   reclen = SUBSBLOCKLEN;
               /* Use a loop to accommodate subband data */
@@ -1092,7 +1122,7 @@ int main(int argc, char *argv[])
           }
       }
 
-      /* Data is already barycentered or 
+      /* Data is already barycentered or
          the polycos will take care of the barycentering or
          we are folding topocentrically.  */
       if (!(RAWDATA || insubs) || cmd->polycofileP || cmd->topoP) {
@@ -1220,7 +1250,7 @@ int main(int argc, char *argv[])
          }
       }
 
-      /* 
+      /*
        *   Perform the actual folding of the data
        */
 
@@ -1524,7 +1554,7 @@ int main(int argc, char *argv[])
                      /* Combine the profiles usingthe above computed delays */
                      combine_profs(ddprofs, ddstats, cmd->npart, search.proflen,
                                    delays, currentprof, &currentstats);
-                    
+
                      /* If this is a simple fold, create the chi-square p-pdot plane */
                      if (cmd->nsub == 1 && !cmd->searchpddP)
                         ppdot[ipd * search.numpdots + ip] = currentstats.redchi;

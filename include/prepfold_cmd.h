@@ -101,7 +101,7 @@ typedef struct s_Cmdline {
   char proflenP;
   int proflen;
   int proflenC;
-  /***** -nsub: The number of sub-bands to use for the DM search */
+  /***** -nsub: The number of sub-bands to use for the DM search.  If unspecified, will use something reasonable. */
   char nsubP;
   int nsub;
   int nsubC;
