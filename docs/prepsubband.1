@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepsubband" 1 "08Apr14" "Clig-manuals" "Programmer's Manual"
+.TH "prepsubband" 1 "17Mar15" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -22,6 +22,7 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 .\" cligPart SYNOPSIS
 .SH SYNOPSIS
 .B prepsubband
+[-ncpus ncpus]
 -o outfile
 [-pkmb]
 [-gmrt]
@@ -45,7 +46,6 @@ prepsubband \- Converts a raw radio data file into many de-dispersed time-series
 [-subdm subdm]
 [-numout numout]
 [-nobary]
-[-DE405]
 [-lodm lodm]
 [-dmstep dmstep]
 [-numdms numdms]
@@ -58,6 +58,12 @@ infile ...
 
 .\" cligPart OPTIONS
 .SH OPTIONS
+.IP -ncpus
+Number of processors to use with OpenMP,
+.br
+1 Int value between 1 and oo.
+.br
+Default: `1'
 .IP -o
 Root of the output file names,
 .br
@@ -119,11 +125,9 @@ Default: `0.0'
 .IP -numout
 Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value,
 .br
-1 Int value between 1 and oo.
+1 Long value between 1 and oo.
 .IP -nobary
 Do not barycenter the data.
-.IP -DE405
-Use the DE405 ephemeris for barycentering instead of DE200 (the default).
 .IP -lodm
 The lowest dispersion measure to de-disperse (cm^-3 pc),
 .br
@@ -139,13 +143,13 @@ Default: `1.0'
 .IP -numdms
 The number of DMs to de-disperse,
 .br
-1 Int value between 1 and 1000.
+1 Int value between 1 and 10000.
 .br
 Default: `10'
 .IP -nsub
 The number of sub-bands to use,
 .br
-1 Int value between 1 and 1024.
+1 Int value between 1 and 4096.
 .br
 Default: `32'
 .IP -downsamp

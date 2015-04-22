@@ -1,6 +1,13 @@
 #include "ransomfft.h"
+#include "stdint.h"
 
 #if defined USEFFTW
+
+// Following gives the same as FFTW's fftwf_alignment_of when
+// BYTE_COUNT = 16, which is what we need for SSE.
+// 0 means that it is aligned on BYTE_COUNT boundaries
+#define is_aligned(POINTER, BYTE_COUNT) \
+    ((uintptr_t)(const void *)(POINTER)) % (BYTE_COUNT)
 
 void read_wisdom(void)
 {
@@ -25,6 +32,25 @@ void read_wisdom(void)
 }
 
 
+void fftwcallsimple(fcomplex *data, long nn, int isign)
+/* Simple FFTW calling function for testing */
+{
+    static int firsttime=1;
+    fftwf_plan plan;
+    if (firsttime) {
+        read_wisdom();
+        firsttime = 0;
+    }
+    // Note: We need to use FFTW_ESTIMATE since other
+    // plan-making destroys the input and output arrays
+    plan = fftwf_plan_dft_1d(nn, (fftwf_complex *)data,
+                             (fftwf_complex *)data, isign,
+                             FFTW_ESTIMATE);
+    fftwf_execute(plan);
+    fftwf_destroy_plan(plan);
+}
+
+
 void fftwcall(fcomplex * indata, long nn, int isign)
 /* This routine calls the FFTW complex-complex FFT using stored wisdom */
 /* files.  It is VERY fast.  nn does _not_ have to be a power of two   */
@@ -41,8 +67,15 @@ void fftwcall(fcomplex * indata, long nn, int isign)
     static int lastslot = 0, lastused[4] = { 0, 0, 0, 0 };
     static long nncache[4] = { 0, 0, 0, 0 };
 
+    // This determines the alignment of the input array.  Allows
+    // more flexible calling of FFTW using its plans.
+    // A return value of 0 is "properly" aligned.
+    indata_align = is_aligned(indata, 16);
+    //if (indata_align)
+    //    printf("Data not properly aligned (%d)!\n", indata_align);
+
     // Call the six-step algorithm if the FFT is too big to be
-    // efficiently handled by FFTW.
+    // efficiently handled by FFTW
     if (nn > BIGFFTWSIZE) {
         tablesixstepfft(indata, nn, isign);
         return;
@@ -50,11 +83,6 @@ void fftwcall(fcomplex * indata, long nn, int isign)
 
     // If calling for the first time, read the wisdom file
     if (firsttime) read_wisdom();
-
-    // This determines the alignment of the input array.  Allows
-    // more flexible calling of FFTW using its plans.
-    // A return value of 0 is "properly" aligned.
-    indata_align = fftwf_alignment_of((double *) indata);
 
     // If we used the same plan during the last few calls, use it
     // again.  We keep, in effect, a stack of the 4 most recent plans.
@@ -79,6 +107,7 @@ void fftwcall(fcomplex * indata, long nn, int isign)
     }
     if (!incache) {
         unsigned int planflag;
+        fcomplex *datacopy;
         if (!firsttime) {
             for (ii = 3; ii >= 0; ii--)
                 if (lastused[ii] >= oldestplan)
@@ -89,15 +118,21 @@ void fftwcall(fcomplex * indata, long nn, int isign)
             if (plancache_inverse[oldestplan])
                 fftwf_destroy_plan(plancache_inverse[oldestplan]);
         }
-        //printf("Making a new plan for nn=%ld (dropping nn=%ld) %d\n",
-        //       nn, nncache[oldestplan], badct++);
+        //printf("Making a new plan for nn=%ld, align=%d (dropping nn=%ld) %d\n",
+        //       nn, indata_align, nncache[oldestplan], badct++);
         // We don't want to wait around to measure huge transforms
         planflag = (nn > 90000) ? FFTW_ESTIMATE : FFTW_MEASURE;
+        // FFTW_MEASURE will destroy the input/output data, so copy it
+        datacopy = gen_cvect(nn);
+        memcpy(datacopy, dataptr, nn*sizeof(fcomplex));
         // Actually make the plans
-        plancache_forward[oldestplan] = \
+        plancache_forward[oldestplan] =                             \
             fftwf_plan_dft_1d(nn, dataptr, dataptr, -1, planflag);
-        plancache_inverse[oldestplan] = \
+        plancache_inverse[oldestplan] =                                 \
             fftwf_plan_dft_1d(nn, dataptr, dataptr, +1, planflag);
+        // Now copy the input data back
+        memcpy(dataptr, datacopy, nn*sizeof(fcomplex));
+        vect_free(datacopy);
         nncache[oldestplan] = nn;
         aligncache[oldestplan] = indata_align;
         plan_forward = &plancache_forward[oldestplan];

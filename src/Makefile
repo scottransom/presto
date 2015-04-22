@@ -3,7 +3,11 @@
 
 # OS type
 OS = Linux
-#OS = OSX
+
+UNAME = $(shell uname)
+ifeq ($(UNAME),Darwin)
+OS = OSX
+endif
 
 # Linux is the first choice
 ifeq ($(OS),Linux)
@@ -40,14 +44,38 @@ CFITSIOLINK := $(shell pkg-config --libs cfitsio)
 PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
 
 CC = gcc
+#CC = clang-3.6
 FC = gfortran
-#FC = g77
+
+# Set this to true if you want to use OpenMP.  false otherwise
+USEOPENMP = true
+
 # Very recent Intel CPUs might see a few percent speedup using -mavx
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
 	-DUSEFFTW -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-g -O3 -fopenmp -ffast-math -Wall -W -fPIC
-#	-g -Wall -W -fPIC
+	-g -Wall -W -fPIC -O3 -ffast-math
 CLINKFLAGS = $(CFLAGS)
+
+# Add some GCC-specific flags that are useful
+ifeq ($(CC),gcc)
+	CFLAGS += -Wno-unused-result -Wno-unused-but-set-variable \
+		-Wno-unused-but-set-parameter
+# The following is great as long as your GCC is > v 4.9
+#	CFLAGS += -fdiagnostics-color=auto
+endif
+
+# Add flags we need fpr
+ifeq ($(USEOPENMP),true)
+	ifeq ($(CC),icc)
+		OMPFLAGS = -openmp
+		CFLAGS += $(OMPFLAGS)
+# for GCC and clang
+	else
+		OMPFLAGS = -fopenmp
+		CFLAGS += $(OMPFLAGS)
+	endif
+endif
+
 # NOTE:  Be careful of upping the optimization on the
 #        FFLAGs.  Certain compilers (i.e. on Intel Macs) will
 #        cause errors for the code in least_squares.f
@@ -85,12 +113,12 @@ INSTRUMENTOBJS = backend_common.o zerodm.o sigproc_fb.o psrfits.o
 
 # Use old header reading stuff for readfile
 READFILEOBJS = $(INSTRUMENTOBJS) multibeam.o bpp.o spigot.o \
-	wapp.o wapp_head_parse.o wapp_y.tab.o 
+	wapp.o wapp_head_parse.o wapp_y.tab.o
 
 PLOT2DOBJS = powerplot.o xyline.o
 
 BINARIES = makedata makeinf mjd2cal realfft quicklook\
-	search_bin search_rzw swap_endian prepdata\
+	search_bin swap_endian prepdata\
 	check_parkes_raw bary shiftdata dftfold\
 	patchdata readfile toas2dat taperaw\
 	accelsearch prepsubband cal2mjd split_parkes_beams\
@@ -117,7 +145,7 @@ makewisdom:
 	./makewisdom
 	cp fftw_wisdom.txt $(PRESTO)/lib
 
-timetest: 
+timetest:
 	$(CC) -o $@ timetest.c
 	./timetest
 	rm -f timetest
@@ -150,7 +178,7 @@ mpiprepsubband: mpiprepsubband_cmd.c mpiprepsubband_cmd.o mpiprepsubband_utils.o
 	mpicc $(CLINKFLAGS) -o $(PRESTO)/bin/$@ mpiprepsubband_cmd.o mpiprepsubband_utils.o mpiprepsubband.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 accelsearch: accelsearch_cmd.c accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o
-	$(CC) $(CLINKFLAGS) -fopenmp -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
+	$(CC) $(CLINKFLAGS) $(OMPFLAGS) -o $(PRESTO)/bin/$@ accelsearch_cmd.o accel_utils.o accelsearch.o zapping.o $(PRESTOLINK) $(GLIBLINK) -lm
 
 bary: bary.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ bary.o $(PRESTOLINK) -lm
@@ -195,7 +223,7 @@ prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o polycos.o readpar.o $(INSTRUMENTOBJS) $(PLOT2DOBJS)
-	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm
+	$(FC) $(FLINKFLAGS) $(OMPFLAGS) -o $(PRESTO)/bin/$@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm
 
 dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ dump_spigot_zerolag.o spigot.o $(PRESTOLINK) -lm
@@ -239,7 +267,7 @@ testbinresp: testbinresp.o $(PLOT2DOBJS)
 quicklook: quicklook.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ quicklook.o $(PRESTOLINK) -lm
 
-readfile: readfile_cmd.c readfile_cmd.o readfile.o $(READFILEOBJS) 
+readfile: readfile_cmd.c readfile_cmd.o readfile.o $(READFILEOBJS)
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ readfile.o readfile_cmd.o $(READFILEOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 realfft: realfft_cmd.c realfft_cmd.o realfft.o
@@ -250,9 +278,6 @@ rednoise: rednoise_cmd.c rednoise.o rednoise_cmd.o
 
 search_bin: search_bin_cmd.c search_bin_cmd.o search_bin.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ search_bin.o search_bin_cmd.o $(PRESTOLINK) -lm
-
-search_rzw: search_rzw_cmd.c search_rzw_cmd.o search_rzw.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ search_rzw.o search_rzw_cmd.o $(PRESTOLINK) -lm
 
 taperaw: taperaw.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ taperaw.o

@@ -3,9 +3,9 @@
 /* Local functions */
 
 /* The following are misc FFTs and other required routines  */
-void tablefft(float data[], long nn, int isign);
+void tablefft(fcomplex *data, long nn, int isign);
 void tablefftraw(float data[], double table[], long n);
-void tablesplitfft(float data[], long nn, int isign);
+void tablesplitfft(fcomplex *data, long nn, int isign);
 void tablesplitfftraw(float data[], double table[], long n, int isign);
 double *maketable(long nn, int isign);
 void fft_scramble(float data[], long nn);
@@ -177,15 +177,15 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
 
 #endif
 
-   /* Scale the FFT if it is an inverse FFT */
-
-   if (isign == 1) {
-      tmp1 = 1.0 / (double) nn;
-      for (jj = 0; jj < n1 * n2; jj++) {
-         indata[jj].r *= tmp1;
-         indata[jj].i *= tmp1;
-      }
-   }
+   // Comment this out so it matches FFTW
+   // Scale the FFT if it is an inverse FFT
+   //if (isign == 1) {
+   //   tmp1 = 1.0 / (double) nn;
+   //   for (jj = 0; jj < n1 * n2; jj++) {
+   //      indata[jj].r *= tmp1;
+   //      indata[jj].i *= tmp1;
+   //   }
+   //}
 
    /* last transpose the matrix */
 
@@ -272,7 +272,7 @@ void realfft(float idata[], long n, int isign)
 /* Various FFT routines and aux. routines */
 
 
-void tablesplitfft(float data[], long nn, int isign)
+void tablesplitfft(fcomplex *data, long nn, int isign)
 {
 
 /*  This is a split-radix Decimation in Frequency FFT */
@@ -280,13 +280,13 @@ void tablesplitfft(float data[], long nn, int isign)
    double *table;
 
    table = maketable(nn, 1);
-   tablesplitfftraw(data, table, nn, isign);
-   fft_scramble(data, nn);
+   tablesplitfftraw((float *)data, table, nn, isign);
+   fft_scramble((float *)data, nn);
    vect_free(table);
 }
 
 
-void tablefft(float data[], long nn, int isign)
+void tablefft(fcomplex *data, long nn, int isign)
 {
 
 /*  This is a radix-2 Gentleman-Sande or Decimation in Frequency FFT */
@@ -294,8 +294,8 @@ void tablefft(float data[], long nn, int isign)
    double *table;
 
    table = maketable(nn, isign);
-   tablefftraw(data, table, nn);
-   fft_scramble(data, nn);
+   tablefftraw((float *)data, table, nn);
+   fft_scramble((float *)data, nn);
    vect_free(table);
 }
 

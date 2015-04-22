@@ -13,7 +13,7 @@
 
 /* Round a double or float to the nearest integer. */
 /* x.5s get rounded away from zero.                */
-#define NEAREST_INT(x) (int) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
+#define NEAREST_LONG(x) (long) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
                  cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
@@ -172,7 +172,7 @@ int main(int argc, char *argv[])
            writeinf(&idata);
            idata.N = dtmp;
        } else {
-           cmd->numout = INT_MAX;
+           cmd->numout = LONG_MAX;
            writeinf(&idata);
        }
        /* The number of topo to bary time points to generate with TEMPO */
@@ -221,7 +221,7 @@ int main(int argc, char *argv[])
 
       /* Compare the size of the data to the size of output we request */
       if (!cmd->numoutP)
-         cmd->numout = INT_MAX;
+         cmd->numout = LONG_MAX;
    }
    
    /* Check if we are downsampling */
@@ -351,11 +351,8 @@ int main(int argc, char *argv[])
       double avgvoverc = 0.0, maxvoverc = -1.0, minvoverc = 1.0, *voverc = NULL;
       double *bobsf = NULL, *btoa = NULL, *ttoa = NULL;
 
-      /* What ephemeris will we use?  (Default is DE200) */
-      if (cmd->de405P)
-         strcpy(ephem, "DE405");
-      else
-         strcpy(ephem, "DE200");
+      /* What ephemeris will we use?  (Default is DE405) */
+      strcpy(ephem, "DE405");
 
       /* Define the RA and DEC of the observation */
       ra_dec_to_string(rastring, idata.ra_h, idata.ra_m, idata.ra_s);
@@ -428,11 +425,11 @@ int main(int argc, char *argv[])
          int oldbin = 0, currentbin;
          double lobin, hibin, calcpt;
 
-         numdiffbins = abs(NEAREST_INT(btoa[numbarypts - 1])) + 1;
+         numdiffbins = abs(NEAREST_LONG(btoa[numbarypts - 1])) + 1;
          diffbins = gen_ivect(numdiffbins);
          diffbinptr = diffbins;
          for (ii = 1; ii < numbarypts; ii++) {
-            currentbin = NEAREST_INT(btoa[ii]);
+            currentbin = NEAREST_LONG(btoa[ii]);
             if (currentbin != oldbin) {
                if (currentbin > 0) {
                   calcpt = oldbin + 0.5;
@@ -446,7 +443,7 @@ int main(int argc, char *argv[])
                while (fabs(calcpt) < fabs(btoa[ii])) {
                   /* Negative bin number means remove that bin */
                   /* Positive bin number means add a bin there */
-                  *diffbinptr = NEAREST_INT(LININTERP(calcpt, btoa[ii - 1],
+                  *diffbinptr = NEAREST_LONG(LININTERP(calcpt, btoa[ii - 1],
                                                       btoa[ii], lobin, hibin));
                   diffbinptr++;
                   calcpt = (currentbin > 0) ? calcpt + 1.0 : calcpt - 1.0;

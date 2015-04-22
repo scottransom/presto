@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 
    /* Initialization strings */
    char datafilenm[200], infofilenm[200];
-   FILE *datfile, *infofile;
+   FILE *datfile;
 
    /* For binary orbit integration */
    double *phib = NULL, startE, orbdt = 1.0;
@@ -215,7 +215,6 @@ int main(int argc, char *argv[])
 
    /* Prep infofile data */
 
-   infofile = chkfopen(infofilenm, "w");
    strcpy(idata.name, mdata.basefilenm);
    strcpy(idata.telescope, scopes[0]);
    strcpy(idata.analyzer, "Unknown");

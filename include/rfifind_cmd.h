@@ -9,6 +9,10 @@
 *****/
 
 typedef struct s_Cmdline {
+  /***** -ncpus: Number of processors to use with OpenMP */
+  char ncpusP;
+  int ncpus;
+  int ncpusC;
   /***** -o: Root of the output file names */
   char outfileP;
   char* outfile;
