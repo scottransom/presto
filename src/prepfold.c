@@ -4,8 +4,9 @@
 #include "mask.h"
 #include "backend_common.h"
 
-#ifdef USEDMALLOC
-#include "dmalloc.h"
+// Use OpenMP
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP \
@@ -74,6 +75,21 @@ int main(int argc, char *argv[])
    s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
    s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
    s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
+   if (cmd->ncpus > 1) {
+#ifdef _OPENMP
+       int maxcpus = omp_get_num_procs();
+       int openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
+       // Make sure we are not dynamically setting the number of threads
+       omp_set_dynamic(0);
+       omp_set_num_threads(openmp_numthreads);
+       printf("Starting the search using %d threads with OpenMP.\n\n",
+              openmp_numthreads);
+#endif
+   } else {
+#ifdef _OPENMP
+       omp_set_num_threads(1); // Explicitly turn off OpenMP
+#endif
+   }
    if (cmd->noclipP) {
        cmd->clip = 0.0;
        s.clip_sigma = 0.0;
@@ -1328,6 +1344,9 @@ int main(int argc, char *argv[])
 
             /* Fold the frequency sub-bands */
 
+#ifdef _OPENMP
+#pragma omp parallel for default(shared)
+#endif
             for (kk = 0; kk < cmd->nsub; kk++) {
                /* This is a quick hack to see if it will remove power drifts */
                if (cmd->runavgP && (numread > 0)) {
