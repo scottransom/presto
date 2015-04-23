@@ -86,7 +86,7 @@ void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
     /* Initialize the result array */
     for (ii = 0; ii < numpts; ii++)
         result[ii] = 0.0;
-    
+
     /* De-disperse */
     for (ii = 0; ii < numchan; ii++) {
         jj = ii + delays[ii] * numchan;
@@ -162,7 +162,7 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 
 
 void dedisp_subbands(float *data, float *lastdata,
-                     int numpts, int numchan, 
+                     int numpts, int numchan,
                      int *delays, int numsubbands, float *result)
 // De-disperse a stretch of data with numpts * numchan points into
 // numsubbands subbands.  Each time point for each subband is a float
@@ -173,16 +173,20 @@ void dedisp_subbands(float *data, float *lastdata,
 // ordered in time, with the channels stored together at each time
 // point.
 {
-    int ii, jj, kk, ll, chan;
-    int chan_per_subband = numchan / numsubbands;
-    
+    const int chan_per_subband = numchan / numsubbands;
+    int ii;
+
     /* Initialize the result array */
     for (ii = 0; ii < numpts * numsubbands; ii++)
         result[ii] = 0.0;
-    
+
     /* De-disperse into the subbands */
+#ifdef _OPENMP
+#pragma omp parallel for default(shared) private(ii)
+#endif
     for (ii = 0; ii < numsubbands; ii++) {
-        chan = ii * chan_per_subband;
+        int jj, kk, ll;
+        int chan = ii * chan_per_subband;
         for (jj = 0; jj < chan_per_subband; jj++, chan++) {
             kk = chan + delays[chan] * numchan;
             for (ll = 0; ll < numpts - delays[chan] ; ll++, kk += numchan)
