@@ -50,6 +50,9 @@ FC = gfortran
 # Set this to true if you want to use OpenMP.  false otherwise
 USEOPENMP = true
 
+# Set this to true if you want to profile.
+USEPROFILE = false
+
 # Very recent Intel CPUs might see a few percent speedup using -mavx
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
 	-DUSEFFTW -DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
@@ -64,7 +67,7 @@ ifeq ($(CC),gcc)
 #	CFLAGS += -fdiagnostics-color=auto
 endif
 
-# Add flags we need fpr
+# Add flags we need for openmp
 ifeq ($(USEOPENMP),true)
 	ifeq ($(CC),icc)
 		OMPFLAGS = -openmp
@@ -81,8 +84,19 @@ endif
 #        cause errors for the code in least_squares.f
 FFLAGS = -g -fPIC
 FLINKFLAGS = $(FFLAGS)
-LINKCOMMAND1 = $(CC) $(LIBCMD) -o
-LINKCOMMAND2 = ar rcs
+
+# Add flags we need for profiling (including making a static libpresto)
+ifeq ($(USEPROFILE),true)
+	CFLAGS += -pg
+	FFLAGS += -pg
+	LIBSUFFIX = .a
+endif
+
+ifeq ($(LIBSUFFIX),.so)
+	LINKCOMMAND = $(CC) $(LIBCMD) $(FFTLINK) -o
+else
+	LINKCOMMAND = ar rcs
+endif
 
 # Add to the search path for the executables
 VPATH = ../lib:../bin
@@ -153,7 +167,7 @@ timetest:
 libpresto: libpresto$(LIBSUFFIX)
 
 libpresto$(LIBSUFFIX): $(PRESTOOBJS)
-	$(LINKCOMMAND1) $(PRESTO)/lib/$@ $(PRESTOOBJS) $(FFTLINK)
+	$(LINKCOMMAND) $(PRESTO)/lib/$@ $(PRESTOOBJS)
 
 slalib: libsla$(LIBSUFFIX)
 	cd slalib ; $(FC) -o sla_test sla_test.f -fno-second-underscore -L$(PRESTO)/lib -lsla
