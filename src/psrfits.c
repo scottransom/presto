@@ -12,8 +12,6 @@ static int cur_file = 0, cur_subint = 1, numbuffered = 0, offs_sub_are_zero = 0;
 static long long cur_spec = 0, new_spec = 0;
 
 extern double slaCldj(int iy, int im, int id, int *j);
-extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *move,
-                             int move_size);
 extern void add_padding(float *fdata, float *padding, int numchan, int numtopad);
 
 void get_PSRFITS_subint(float *fdata, unsigned char *cdata, 
@@ -813,28 +811,25 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
 
     // The following converts that byte-packed data into bytes, in place
     if (s->bits_per_sample == 4) {
-        unsigned char uctmp;
         for (ii = numtoread - 1, jj = 2 * numtoread - 1 ; 
              ii >= 0 ; ii--, jj -= 2) {
-            uctmp = (unsigned char)cdata[ii];
+            const unsigned char uctmp = (unsigned char)cdata[ii];
             cdata[jj] = uctmp & 0x0F;
             cdata[jj-1] = uctmp >> 4;
         }
     } else if (s->bits_per_sample == 2) {
-        unsigned char uctmp;
         for (ii = numtoread - 1, jj = 4 * numtoread - 1 ; 
              ii >= 0 ; ii--, jj -= 4) {
-            uctmp = (unsigned char)cdata[ii];
+            const unsigned char uctmp = (unsigned char)cdata[ii];
             cdata[jj] = (uctmp & 0x03);
             cdata[jj-1] = ((uctmp >> 0x02) & 0x03);
             cdata[jj-2] = ((uctmp >> 0x04) & 0x03);
             cdata[jj-3] = ((uctmp >> 0x06) & 0x03);
         }
     } else if (s->bits_per_sample == 1) {
-        unsigned char uctmp;
         for (ii = numtoread - 1, jj = 8 * numtoread - 1 ; 
              ii >= 0 ; ii--, jj -= 8) {
-            uctmp = (unsigned char)cdata[ii];
+            const unsigned char uctmp = (unsigned char)cdata[ii];
             cdata[jj] = (uctmp & 0x01);
             cdata[jj-1] = ((uctmp >> 0x01) & 0x01);
             cdata[jj-2] = ((uctmp >> 0x02) & 0x01);
@@ -848,12 +843,10 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
 
     if (s->bits_per_sample == 1 && s->flip_bytes) {
         // Hack to flip each byte of data if needed
-        int offset;
-        unsigned char uctmp;
         for (ii = 0 ; ii < s->bytes_per_subint/8 ; ii++) {
-            offset = ii * 8;
+            const int offset = ii * 8;
             for (jj = 0 ; jj < 4 ; jj++) {
-                uctmp = cdata[offset+jj];
+                unsigned char uctmp = cdata[offset+jj];
                 cdata[offset+jj] = cdata[offset+8-1-jj];
                 cdata[offset+8-1-jj] = uctmp;
             }
@@ -872,11 +865,10 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
             sum_polns = 1;
         // User chose which poln to use
         if (s->use_poln > 0 || ((s->num_polns > 2) && !sum_polns)) {
-            int idx;
+            const int idx = (s->use_poln-1) * s->num_channels;
             fptr = fdata;
             if (s->bits_per_sample==16) {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
-                    idx = (s->use_poln-1) * s->num_channels;
                     sptr = (short *)cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
                         *fptr++ = (((float)(*sptr++) - s->zero_offset) * scales[idx+jj] +
@@ -884,7 +876,6 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                 }
             } else if (s->bits_per_sample==32) {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
-                    idx = (s->use_poln-1) * s->num_channels;
                     ftptr = (float *)cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
                         *fptr++ = (((float)(*ftptr++) - s->zero_offset) * scales[idx+jj] +
@@ -892,7 +883,6 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                 }
             } else {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {
-                    idx = (s->use_poln-1) * s->num_channels;
                     cptr = cdata + ii * s->samples_per_spectra + idx;
                     for (jj = 0 ; jj < s->num_channels ; jj++)
                         *fptr++ = (((float)(*cptr++) - s->zero_offset) * scales[idx+jj] +
@@ -900,7 +890,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata,
                 }
             }
         } else if (sum_polns) { // sum the polns if there are 2 by default
-            int idx = s->num_channels;
+            const int idx = s->num_channels;
             fptr = fdata;
             if (s->bits_per_sample==16) {
                 for (ii = 0 ; ii < s->spectra_per_subint ; ii++) {

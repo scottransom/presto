@@ -552,22 +552,6 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[], 
       chandat[ii] = rawdata[jj];
 }
 
-fftwf_plan plan_transpose(int rows, int cols, float *in, float *out) {
-    const unsigned flags = FFTW_MEASURE; /* other flags are possible */
-    fftwf_iodim howmany_dims[2];
-
-    howmany_dims[0].n  = rows;
-    howmany_dims[0].is = cols;
-    howmany_dims[0].os = 1;
-    howmany_dims[1].n  = cols;
-    howmany_dims[1].is = 1;
-    howmany_dims[1].os = rows;
-    return fftwf_plan_guru_r2r(/*rank=*/ 0, /*dims=*/ NULL,
-                               /*howmany_rank=*/ 2, howmany_dims,
-                               in, out, /*kind=*/ NULL, flags);
-}
-
-
 int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
                   struct spectra_info *s, int transpose, 
                   int *maskchans, int *nummasked, mask * obsmask)
