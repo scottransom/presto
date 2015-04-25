@@ -181,6 +181,10 @@ void dedisp_subbands(float *data, float *lastdata,
         result[ii] = 0.0;
 
     /* De-disperse into the subbands */
+//#ifdef _OPENMP
+//#pragma omp parallel for schedule(static,chan_per_subband)\
+//   default(none) private(ii,jj) shared(result,data,lastdata,delays,numchan,numpts)
+//#endif
     for (ii = 0; ii < numchan; ii++) {
         const int subnum = ii / chan_per_subband;
         const int dind = delays[ii];
