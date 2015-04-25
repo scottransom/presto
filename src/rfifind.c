@@ -6,6 +6,11 @@
 #include "backend_common.h"
 #include "rfifind.h"
 
+// Use OpenMP
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
                  cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
@@ -45,10 +50,6 @@ void get_subband(int subbandnum, float chandat[], short srawdata[], int numsampl
 extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 
 /* The main program */
-
-#ifdef USEDMALLOC
-#include "dmalloc.h"
-#endif
 
 int main(int argc, char *argv[])
 {
@@ -93,7 +94,7 @@ int main(int argc, char *argv[])
    // If we are zeroDMing, make sure that clipping is off.
    if (cmd->zerodmP) cmd->noclipP = 1;
    s.clip_sigma = cmd->clip;
-   // -1 causes the data to determine if we use weights, scales, & 
+   // -1 causes the data to determine if we use weights, scales, &
    // offsets for PSRFITS or flip the band for any data type where
    // we can figure that out with the data
    s.apply_flipband = (cmd->invertP) ? 1 : -1;
@@ -110,6 +111,21 @@ int main(int argc, char *argv[])
        s.use_poln = cmd->ifs + 1;
    }
    slen = strlen(cmd->outfile) + 20;
+
+   if (cmd->ncpus > 1) {
+#ifdef _OPENMP
+      int maxcpus = omp_get_num_procs();
+      int openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
+      // Make sure we are not dynamically setting the number of threads
+      omp_set_dynamic(0);
+      omp_set_num_threads(openmp_numthreads);
+      printf("Using %d threads with OpenMP\n\n", openmp_numthreads);
+#endif
+   } else {
+#ifdef _OPENMP
+      omp_set_num_threads(1); // Explicitly turn off OpenMP
+#endif
+   }
 
 #ifdef DEBUG
    showOptionValues();
@@ -181,7 +197,7 @@ int main(int argc, char *argv[])
                if (insubs) s.files[ii] = chkfopen(cmd->argv[ii], "rb");
            }
            printf("\n");
-       }           
+       }
 
        if (RAWDATA) {
            read_rawdata_files(&s);
@@ -192,7 +208,7 @@ int main(int argc, char *argv[])
            idata.dm = 0.0;
            writeinf(&idata);
        }
-       
+
        if (insubs) {
            /* Set-up values if we are using subbands */
            char *tmpname, *root, *suffix;

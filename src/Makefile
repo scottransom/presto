@@ -67,23 +67,25 @@ ifeq ($(CC),gcc)
 #	CFLAGS += -fdiagnostics-color=auto
 endif
 
-# Add flags we need for openmp
-ifeq ($(USEOPENMP),true)
-	ifeq ($(CC),icc)
-		OMPFLAGS = -openmp
-		CFLAGS += $(OMPFLAGS)
-# for GCC and clang
-	else
-		OMPFLAGS = -fopenmp
-		CFLAGS += $(OMPFLAGS)
-	endif
-endif
-
 # NOTE:  Be careful of upping the optimization on the
 #        FFLAGs.  Certain compilers (i.e. on Intel Macs) will
 #        cause errors for the code in least_squares.f
 FFLAGS = -g -fPIC
 FLINKFLAGS = $(FFLAGS)
+
+# Add flags we need for openmp
+ifeq ($(USEOPENMP),true)
+	ifeq ($(CC),icc)
+		OMPFLAGS = -openmp
+		CFLAGS += $(OMPFLAGS)
+		FLINKFLAGS += $(OMPFLAGS)
+# for GCC and clang
+	else
+		OMPFLAGS = -fopenmp
+		CFLAGS += $(OMPFLAGS)
+		FLINKFLAGS += $(OMPFLAGS)
+	endif
+endif
 
 # Add flags we need for profiling (including making a static libpresto)
 ifeq ($(USEPROFILE),true)
@@ -237,7 +239,7 @@ prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ prepsubband.o prepsubband_cmd.o $(INSTRUMENTOBJS) $(PRESTOLINK) -lcfitsio -lm
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o polycos.o readpar.o $(INSTRUMENTOBJS) $(PLOT2DOBJS) libpresto
-	$(FC) $(FLINKFLAGS) $(OMPFLAGS) -o $(PRESTO)/bin/$@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm
+	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm
 
 dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o libpresto
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ dump_spigot_zerolag.o spigot.o $(PRESTOLINK) -lm
