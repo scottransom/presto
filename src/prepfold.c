@@ -77,17 +77,16 @@ int main(int argc, char *argv[])
    s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
    if (cmd->ncpus > 1) {
 #ifdef _OPENMP
-       int maxcpus = omp_get_num_procs();
-       int openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
-       // Make sure we are not dynamically setting the number of threads
-       omp_set_dynamic(0);
-       omp_set_num_threads(openmp_numthreads);
-       printf("Starting the search using %d threads with OpenMP.\n\n",
-              openmp_numthreads);
+      int maxcpus = omp_get_num_procs();
+      int openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
+      // Make sure we are not dynamically setting the number of threads
+      omp_set_dynamic(0);
+      omp_set_num_threads(openmp_numthreads);
+      printf("Using %d threads with OpenMP\n\n", openmp_numthreads);
 #endif
    } else {
 #ifdef _OPENMP
-       omp_set_num_threads(1); // Explicitly turn off OpenMP
+      omp_set_num_threads(1); // Explicitly turn off OpenMP
 #endif
    }
    if (cmd->noclipP) {

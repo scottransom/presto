@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include "backend_common.h"
 #include "misc_utils.h"
+#include "fftw3.h"
 
 static long long currentspectra = 0;
 static int using_MPI = 0;
@@ -551,7 +552,6 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[], 
       chandat[ii] = rawdata[jj];
 }
 
-
 int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
                   struct spectra_info *s, int transpose, 
                   int *maskchans, int *nummasked, mask * obsmask)
@@ -572,19 +572,22 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
    double starttime = 0.0;
    static float *tmpswap, *rawdata1, *rawdata2;
    static float *currentdata, *lastdata;
-   static unsigned char *move;
-   static int firsttime = 1, move_size = 0, mask = 0;
+   static int firsttime = 1, mask = 0;
+   static fftwf_plan tplan1, tplan2;
 
    *nummasked = 0;
    if (firsttime) {
        if (obsmask->numchan)
            mask = 1;
-       move_size = (s->spectra_per_subint + numsubbands) / 2;
-       move = gen_bvect(move_size);
        rawdata1 = gen_fvect(s->spectra_per_subint * s->num_channels);
        rawdata2 = gen_fvect(s->spectra_per_subint * s->num_channels);
        currentdata = rawdata1;
        lastdata = rawdata2;
+       // Make plans to do fast transposes using FFTW
+       tplan1 = plan_transpose(s->spectra_per_subint, s->num_channels,
+                               currentdata, currentdata);
+       tplan2 = plan_transpose(numsubbands, s->spectra_per_subint,
+                               fdata, fdata);
    }
 
    /* Read and de-disperse */
@@ -618,6 +621,10 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
    // currentspectra gets incremented.
    if (using_MPI) currentspectra += s->spectra_per_subint;
    
+   // Now transpose the raw block of data so that the times in each
+   // channel are the most rapidly varying index
+   fftwf_execute_r2r(tplan1, currentdata, currentdata);
+
    if (firsttime) {
        SWAP(currentdata, lastdata);
        firsttime = 0;
@@ -626,12 +633,9 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
        dedisp_subbands(currentdata, lastdata, s->spectra_per_subint, s->num_channels,
                        delays, numsubbands, fdata);
        SWAP(currentdata, lastdata);
-       /* Transpose the data into vectors in the result array */
-       if (transpose) {
-           if ((trtn = transpose_float(fdata, s->spectra_per_subint, numsubbands,
-                                       move, move_size)) < 0)
-               printf("Error %d in transpose_float().\n", trtn);
-       }
+       // Transpose the resulting data into spectra as a function of time
+       if (transpose==0)
+           fftwf_execute_r2r(tplan2, fdata, fdata);
        return s->spectra_per_subint;
    }
 }

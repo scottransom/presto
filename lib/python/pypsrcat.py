@@ -12,10 +12,10 @@ import struct, os, os.path, presto, psr_utils, math
 
 params = ["NAME", "PSRJ", "RAJ", "DECJ", "PMRA", "PMDEC", "PX", "POSEPOCH",
           "Gl", "Gb", "P0", "P1", "F2", "F3", "PEPOCH", "DM", "DM1",
-          "S400", "S1400", "BINARY", "T0", "PB", "A1", "OM", "ECC",
-          "TASC", "EPS1", "EPS2", "DIST", "ASSOC", "PSR"]
+          "S400", "S1400", "SPINDX", "BINARY", "T0", "PB", "A1", "OM", "ECC",
+          "TASC", "EPS1", "EPS2", "DIST", "ASSOC", "SURVEY", "PSR"]
 params_with_errs = ["RAJ", "DECJ", "PMRA", "PMDEC", "PX", "P0", "P1", "F2", "F3",
-                    "DM", "DM1", "S400", "S1400", "T0", "PB", "A1", "OM", "ECC",
+                    "DM", "DM1", "S400", "S1400", "SPINDX", "T0", "PB", "A1", "OM", "ECC",
                     "TASC", "EPS1", "EPS2"]
 digits = '0123456789'
 
@@ -40,6 +40,7 @@ class psr:
                         self.name = ""
             elif param=="RAJ":
                 if not parts[part_index]=='*':
+                    self.rajstr = parts[part_index]
                     hms = map(float, parts[part_index].split(':'))
                     if len(hms)==3:
                         h, m, s = hms
@@ -54,6 +55,7 @@ class psr:
                 part_index += 1
             elif param=="DECJ":
                 if not parts[part_index]=='*':
+                    self.decjstr = parts[part_index]
                     dms = map(float, parts[part_index].split(':'))
                     if len(dms)==3:
                         d, m, s = dms
@@ -143,6 +145,12 @@ class psr:
                 else:
                     self.s1400 = None
                 part_index += 1
+            elif param=="SPINDX":
+                if not parts[part_index]=='*':
+                    self.spindx, self.spindxerr = float(parts[part_index]), float(parts[part_index+1])
+                else:
+                    self.spindx = None
+                part_index += 1
             elif param=="BINARY":
                 if not parts[part_index]=='*':
                     self.binary_model = parts[part_index]
@@ -199,6 +207,11 @@ class psr:
                     self.assoc = parts[part_index]
                 else:
                     self.assoc = None
+            elif param=="SURVEY":
+                if not parts[part_index]=='*':
+                    self.survey = parts[part_index]
+                else:
+                    self.survey = None
             elif param=="PSR":
                 if not parts[part_index]=='*':
                     self.type = parts[part_index]
@@ -220,6 +233,9 @@ class psr:
             out = out + "                 Alias = %s\n" % self.alias
         if (self.assoc is not None):
             out = out + "           Association = %s\n" % self.assoc
+        if (self.survey is not None):
+            out = out + "     Survey Detections = %s\n" % self.survey
+            out = out + "    (Discoverer first)\n"
         if (self.type is not None):
             out = out + "                  Type = %s\n" % self.type
         (h, m, s) = psr_utils.rad_to_hms(self.ra)
@@ -240,6 +256,9 @@ class psr:
         if (self.s1400 is not None):
             out = out + "       S_1400MHz (mJy) = %.3g +/- %.2g\n" % \
                   (self.s1400, self.s1400err)
+        if (self.spindx is not None):
+            out = out + "        Spectral Index = %.3g +/- %.2g\n" % \
+                  (self.spindx, self.spindxerr)
         if (self.dist is not None):
             out = out + "        Distance (kpc) = %.3g\n" % self.dist
         out = out + "            Period (s) = %.15g +/- %.15g\n" % \
@@ -300,6 +319,10 @@ num_binaries = 0
 presto_path = os.getenv("PRESTO")
 infile = open(os.path.join(presto_path, "lib", "psr_catalog.txt"))
 for line in infile:
+    line, sep, comment = line.partition('#')
+    line = line.strip()
+    if not line:
+        continue
     if line[0] in digits:
         currentpulsar = psr(line)
         pulsars[currentpulsar.jname] = currentpulsar
@@ -324,6 +347,20 @@ psr_aliases = {}
 for psr in psrs:
     if psr.alias:
         psr_aliases[psr.alias] = psr
+
+# No create a new master dictionary with all pulsar names and aliases
+allpsrs = {}
+for psr in psrs:
+    allpsrs[psr.jname] = psr
+    allpsrs["j%s" % psr.jname] = psr
+    allpsrs["J%s" % psr.jname] = psr
+
+    if psr.alias:
+        allpsrs[psr.alias] = psr
+    if psr.name:
+        allpsrs[psr.name] = psr
+        allpsrs["b%s" % psr.name] = psr
+        allpsrs["B%s" % psr.name] = psr
 
 # Add a couple important pulsars
 for psr in psrs:
