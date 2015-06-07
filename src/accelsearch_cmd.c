@@ -1019,7 +1019,7 @@ usage(void)
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
   fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                   1 value\n");
-  fprintf(stderr,"%s","  version: 10Nov13\n");
+  fprintf(stderr,"%s","  version: 17Mar15\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }

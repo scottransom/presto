@@ -10,6 +10,8 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
+Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
+	-r 1 oo  -d 1
 String -o       outfile {Root of the output file names} \
 	-m
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}

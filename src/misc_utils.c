@@ -81,22 +81,23 @@ void split_path_file(char *input, char **path, char **file)
 /* path and filename dynamically, the calling program  */
 /* must free both "path" and "file".                   */
 {
-   char *sptr = NULL, stmp[200];
+   char *sptr = NULL;
    unsigned int len, pathlen = 0, filelen = 0;
 
    len = strlen(input);
    sptr = strrchr(input, '/');
    if (sptr == NULL) {
-      sptr = getcwd(stmp, 200);
+      sptr = getcwd(NULL,0);
       if (sptr == NULL) {
-         perror("Error:  could not get current directory name (too long?)\n");
-         exit(1);
+         perror("Error:  could not get current directory name (too long?) in split_path_file()\n");
+         exit(-1);
       }
-      pathlen = strlen(stmp);
+      pathlen = strlen(sptr);
       *path = (char *) calloc(pathlen + 1, sizeof(char));
       *file = (char *) calloc(len + 1, sizeof(char));
-      strcpy(*path, stmp);
+      strcpy(*path, sptr);
       strncpy(*file, input, len);
+      free(sptr);
    } else {
       pathlen = sptr - input;
       filelen = len - pathlen - 1;
@@ -627,11 +628,7 @@ void ra_dec_to_string(char *radec, int h_or_d, int m, double s)
        radec[0] = '-';
        offset = 1;
    }
-   if (fabs(s) >= 10.0) {
-       sprintf(radec+offset, "%.2d:%.2d:%.4f", h_or_d, abs(m), fabs(s));
-   } else {
-       sprintf(radec+offset, "%.2d:%.2d:0%.4f", h_or_d, abs(m), fabs(s));
-   }
+   sprintf(radec+offset, "%.2d:%.2d:%07.4f", h_or_d, abs(m), fabs(s));
 }
 
 

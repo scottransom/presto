@@ -10,7 +10,7 @@ import numpy
 
 define_macros = []
 undef_macros = []
-extra_compile_args = []
+extra_compile_args = ["-DUSEFFTW"]
 include_dirs = []
 
 # Note:  you might need to add "gfortran" to the following list if 

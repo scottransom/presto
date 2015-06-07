@@ -10,6 +10,8 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
+Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
+	-r 1 oo  -d 1
 String -o       outfile {Root of the output file names}
 Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
 Flag   -gmrt    gmrt    {Raw data in GMRT Phased Array format}
@@ -34,7 +36,6 @@ Int    -if      ifs     {A specific IF to use if available (summed IFs is the de
 Float  -clip    clip    {Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default} \
 	-r 0 1000.0  -d 6.0
 Flag   -noclip  noclip  {Do not clip the data.  (The default is to _always_ clip!)}
-Flag   -DE405   de405   {Use the DE405 ephemeris for barycentering instead of DE200 (the default)}
 Flag   -noxwin  noxwin  {Do not show the result plots on-screen, only make postscript files}
 Flag   -runavg  runavg  {Subtract each blocks average as it is read (single channel data only)}
 Flag   -fine fine       {A finer gridding in the p/pdot plane (for well known p and pdot)}
@@ -53,8 +54,8 @@ Flag   -justprofs justprofs {Only output the profile portions of the plot}
 Double -dm      dm      {The central DM of the search (cm^-3 pc)} \
 	-r 0 oo  -d 0
 Int    -n       proflen {The number of bins in the profile.  Defaults to the number of sampling bins which correspond to one folded period}
-Int    -nsub    nsub    {The number of sub-bands to use for the DM search} \
-	-r 1 4096  -d 32
+Int    -nsub    nsub    {The number of sub-bands to use for the DM search.  If unspecified, will use something reasonable.} \
+	-r 1 4096
 Int    -npart   npart   {The number of sub-integrations to use for the period search} \
 	-r 1 4096  -d 64
 Int    -pstep    pstep   {The minimum period stepsize over the observation in profile bins} \
@@ -106,7 +107,7 @@ Flag -bin  binary {Fold a binary pulsar.  Must include all of the following para
 Double -pb   pb      {The orbital period (s)} \
 	-r 0 oo
 Double -x    asinic  {The projected orbital semi-major axis (lt-sec)} \
-	-r 0 oo 
+	-r 0 oo
 Double -e    e       {The orbital eccentricity} \
 	-r 0 0.9999999  -d 0
 Double -To   To      {The time of periastron passage (MJD)} \

@@ -60,11 +60,11 @@ class pfd:
                     if self.tepoch > 0.0: self.tepoch += 0.039365/86400.0
                     if self.bestprof: self.bestprof.epochf += 0.039365/86400.0
                 elif self.chan_wid==800.0/2048:
-                    self.lofreq -= 0.5 * self.chan_wid 
+                    self.lofreq -= 0.5 * self.chan_wid
                     if self.tepoch < 53700.0:  # Spigot 800 MHz mode 16 (downsampled)
                         if self.tepoch > 0.0: self.tepoch += 0.039352/86400.0
                         if self.bestprof: self.bestprof.epochf += 0.039352/86400.0
-                    else:  # Spigot 800 MHz mode 14 
+                    else:  # Spigot 800 MHz mode 14
                         # values measured with 1713+0747 wrt BCPM2 on 13 Sept 2007
                         if self.tepoch > 0.0: self.tepoch += 0.039365/86400.0
                         if self.bestprof: self.bestprof.epochf += 0.039365/86400.0
@@ -133,7 +133,7 @@ class pfd:
         self.killed_intervals = []
         self.pts_per_fold = []
         # Note: a foldstats struct is read in as a group of 7 doubles
-        # the correspond to, in order: 
+        # the correspond to, in order:
         #    numdata, data_avg, data_var, numprof, prof_avg, prof_var, redchi
         self.stats = Num.zeros((self.npart, self.nsub, 7), dtype='d')
         for ii in range(self.npart):
@@ -244,7 +244,7 @@ class pfd:
         freq_offsets(p=*bestp*, pd=*bestpd*, pdd=*bestpdd*):
             Return the offsets between given frequencies
             and fold frequencies.
-    
+
             If p, pd or pdd are None use the best values.
 
             A 3-tuple is returned.
@@ -533,7 +533,7 @@ class pfd:
         # Use the same scaling as in prepfold_plot.c
         global_max = Num.maximum.reduce(Num.maximum.reduce(array2d))
         min_parts = Num.minimum.reduce(array2d, 1)
-        array2d = (array2d-min_parts[:,Num.newaxis])/global_max
+        array2d = (array2d-min_parts[:,Num.newaxis])/Num.fabs(global_max)
         Pgplot.plot2d(array2d, image='antigrey', **kwargs)
 
     def plot_intervals(self, phasebins='All', device='/xwin'):
@@ -542,7 +542,7 @@ class pfd:
             Plot the subband-summed profiles vs time.  Restrict
                 the bins in the plot to the (low:high) slice defined
                 by the phasebins option if it is a tuple (low,high)
-                instead of the string 'All'. 
+                instead of the string 'All'.
         """
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
@@ -556,7 +556,7 @@ class pfd:
         self.greyscale(profs, rangex=[lo, hi], rangey=[0.0, self.npart],
                        labx="Phase Bins", labx2="Pulse Phase", laby="Time Intervals",
                        rangex2=Num.asarray([lo, hi])*1.0/self.proflen,
-                       laby2="Time (s)", rangey2=[0.0, self.T], 
+                       laby2="Time (s)", rangey2=[0.0, self.T],
                        device=device)
 
     def plot_subbands(self, phasebins='All', device='/xwin'):
@@ -565,7 +565,7 @@ class pfd:
             Plot the interval-summed profiles vs subband.  Restrict
                 the bins in the plot to the (low:high) slice defined
                 by the phasebins option if it is a tuple (low,high)
-                instead of the string 'All'. 
+                instead of the string 'All'.
         """
         if not self.__dict__.has_key('subdelays'):
             print "Dedispersing first..."
@@ -686,7 +686,7 @@ class pfd:
         """
         estimate_offsignal_redchi2():
             Estimate the reduced-chi^2 off of the signal based on randomly shifting
-                and summing all of the component profiles.  
+                and summing all of the component profiles.
         """
         redchi2s = []
         for count in range(numtrials):
@@ -809,13 +809,13 @@ class pfd:
             self.greyscale(self.DS, rangex=[lof, hif], rangey=[lot, hit],
                            labx="Frequency (MHz)", labx2="Subband Number",
                            laby="Time (s)", laby2="Interval Number",
-                           rangex2=[0, self.DSnsub], rangey2=[0, self.DSnpart], 
+                           rangex2=[0, self.DSnsub], rangey2=[0, self.DSnpart],
                            device=device)
         return self.DS
 
 if __name__ == "__main__":
     import sys
-    
+
     #testpfd = "/home/ransom/tmp_pfd/M5_52725_W234_PSR_1518+0204A.pfd"
     #testpfd = "/home/ransom/tmp_pfd/M13_52724_W234_PSR_1641+3627C.pfd"
     testpfd = "M13_53135_W34_rficlean_DM30.10_PSR_1641+3627C.pfd"
@@ -840,7 +840,7 @@ if __name__ == "__main__":
     (chis, DMs) = tp.plot_chi2_vs_DM(0.0, 50.0, 501)
     best_index = Num.argmax(chis)
     print "Best DM = ", DMs[best_index]
-    
+
     tp.dedisperse()
     tp.plot_subbands()
     tp.plot_sumprof()

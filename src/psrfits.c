@@ -388,8 +388,8 @@ void read_PSRFITS_files(struct spectra_info *s)
                 status = 0; // Reset status
             } else {
                 int jj;
-                float *freqs = (float *)malloc(sizeof(float) * s->num_channels);
-                fits_read_col(s->fitsfiles[ii], TFLOAT, colnum, 1L, 1L, 
+                double *freqs = (double *)malloc(sizeof(double) * s->num_channels);
+                fits_read_col(s->fitsfiles[ii], TDOUBLE, colnum, 1L, 1L, 
                               s->num_channels, 0, freqs, &anynull, &status);
                 
                 if (ii==0) {
