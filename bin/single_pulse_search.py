@@ -349,9 +349,9 @@ def main():
                 offregions = zip([x[1] for x in info.onoff[:-1]],
                                  [x[0] for x in info.onoff[1:]])
 
-            # If last break spans to end of file, don't read it in (its just padding)
-            if offregions[-1][1] == N - 1:
-                N = offregions[-1][0] + 1
+                # If last break spans to end of file, don't read it in (its just padding)
+                if offregions[-1][1] == N - 1:
+                    N = offregions[-1][0] + 1
 
             outfile = open(filenmbase+'.singlepulse', mode='w')
 
