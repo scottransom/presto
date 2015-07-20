@@ -109,7 +109,7 @@ for logEdot in Edots_to_plot[::-1]:
 
 # Plot Age lines
 Ages_to_plot = [3, 5, 7, 9, 11]
-Ages_labels = ['1 Kyr', '100 Kyr', '100 Myr', '1 Gyr', '100 Gyr']
+Ages_labels = ['1 Kyr', '100 Kyr', '10 Myr', '1 Gyr', '100 Gyr']
 for logAge, label in zip(Ages_to_plot, Ages_labels):
     plt.plot(plims, pu.pdot_from_age(plims, 10.0**logAge), '-', color=grey)
     x = 1.1 * plims[0]
