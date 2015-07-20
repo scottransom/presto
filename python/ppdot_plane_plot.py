@@ -3,10 +3,6 @@ import psr_utils as pu
 import pypsrcat as cat
 import matplotlib.pyplot as plt
 
-ignore_assoc = ['GC']
-special_type = ['RRAT', 'NRAD', 'XINS', 'AXP', 'HE']
-special_assoc = ['SNR']
-
 # Find a list of the "good" pulsars:  those not in GCs and with a measured pdot
 # Also identify which pulsars are "special"
 numgood = 0
@@ -22,9 +18,11 @@ hepsrs = []
 snrs = []
 binaries = []
 for psr in cat.psrs:
+    # Ignore pulsars without measured Pdot
     if psr.pd==0.0:
         numpd0 += 1
         continue
+    # Ignore globular cluster pulsars
     elif (psr.assoc is not None and 'GC' in psr.assoc):
         numGC += 1
         continue
@@ -123,6 +121,7 @@ for logAge, label in zip(Ages_to_plot, Ages_labels):
 plt.plot(ps[radios], pds[radios], '.', color='0.3', ms=3, label="Radio PSRs")
 
 # Plot the HE and non-radio pulsars as triagles
+# Assume that all non-radio pulsars are high-energy emitters
 all_he = np.unique(np.concatenate((hepsrs, nonradios)))
 plt.plot(ps[all_he], pds[all_he], 'k^', ms=6, mew=1.1, mfc='none',
     label="X-ray/$\gamma$-ray")
