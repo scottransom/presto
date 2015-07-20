@@ -367,6 +367,17 @@ for psr in psrs:
         psr.l  = 351.91856
         psr.b  = 19.74496
         psr.dist = 1.80
+    if psr.jname=="2204+27":
+        psr.x  = 0.1
+        psr.xerr  = 1.0
+        psr.e  = 0.129
+        psr.eerr  = 0.05
+        psr.To = 57000.0
+        psr.Toerr = 16.0
+        psr.w  = 180.0
+        psr.werr  = 180.0
+        psr.pb = 32.0*24.0
+        psr.pberr = 1.0
 
 # If calling this as a main program, then write out the new pulsars.cat file
 if __name__ == '__main__' :
