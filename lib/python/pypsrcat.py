@@ -7,15 +7,14 @@ import struct, os, os.path, presto, psr_utils, math
 
 ## And here is the command used to get the data:
 # Note version number now!
-# http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?version=1.51&Name=Name&JName=JName&RaJ=RaJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&P0=P0&P1=P1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&Ecc=Ecc&Tasc=Tasc&Eps1=Eps1&Eps2=Eps2&Dist=Dist&Assoc=Assoc&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Long+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
-
+# http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?version=1.53&Name=Name&JName=JName&RaJ=RaJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&P0=P0&P1=P1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&Ecc=Ecc&Tasc=Tasc&Eps1=Eps1&Eps2=Eps2&Dist=Dist&Assoc=Assoc&Survey=Survey&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Short+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
 
 params = ["NAME", "PSRJ", "RAJ", "DECJ", "PMRA", "PMDEC", "PX", "POSEPOCH",
           "Gl", "Gb", "P0", "P1", "F2", "F3", "PEPOCH", "DM", "DM1",
-          "S400", "S1400", "SPINDX", "BINARY", "T0", "PB", "A1", "OM", "ECC",
+          "S400", "S1400", "BINARY", "T0", "PB", "A1", "OM", "ECC",
           "TASC", "EPS1", "EPS2", "DIST", "ASSOC", "SURVEY", "PSR"]
 params_with_errs = ["RAJ", "DECJ", "PMRA", "PMDEC", "PX", "P0", "P1", "F2", "F3",
-                    "DM", "DM1", "S400", "S1400", "SPINDX", "T0", "PB", "A1", "OM", "ECC",
+                    "DM", "DM1", "S400", "S1400", "T0", "PB", "A1", "OM", "ECC",
                     "TASC", "EPS1", "EPS2"]
 digits = '0123456789'
 
@@ -24,10 +23,9 @@ class psr:
         parts = line.split()[1:]
         part_index = 0
         param_index = 0
-        # print parts
         while param_index < len(params):
             param = params[param_index]
-            # print param, parts[part_index]
+            #print param, parts[part_index]
             if param=="NAME":
                 if not parts[part_index]=='*':
                     self.name = parts[part_index][1:]
@@ -145,12 +143,6 @@ class psr:
                 else:
                     self.s1400 = None
                 part_index += 1
-            elif param=="SPINDX":
-                if not parts[part_index]=='*':
-                    self.spindx, self.spindxerr = float(parts[part_index]), float(parts[part_index+1])
-                else:
-                    self.spindx = None
-                part_index += 1
             elif param=="BINARY":
                 if not parts[part_index]=='*':
                     self.binary_model = parts[part_index]
@@ -256,9 +248,6 @@ class psr:
         if (self.s1400 is not None):
             out = out + "       S_1400MHz (mJy) = %.3g +/- %.2g\n" % \
                   (self.s1400, self.s1400err)
-        if (self.spindx is not None):
-            out = out + "        Spectral Index = %.3g +/- %.2g\n" % \
-                  (self.spindx, self.spindxerr)
         if (self.dist is not None):
             out = out + "        Distance (kpc) = %.3g\n" % self.dist
         out = out + "            Period (s) = %.15g +/- %.15g\n" % \
