@@ -3,6 +3,9 @@ import psr_utils as pu
 import pypsrcat as cat
 import matplotlib.pyplot as plt
 
+# Use color?
+usecolor = True
+
 # Find a list of the "good" pulsars:  those not in GCs and with a measured pdot
 # Also identify which pulsars are "special"
 numgood = 0
@@ -67,7 +70,7 @@ plims = np.asarray([0.001, 20.0])
 pdlims = np.asarray([1e-22, 1e-9])
 dpdpd = (np.log10(plims[1]) - np.log10(plims[0])) / \
     (np.log10(pdlims[1]) - np.log10(pdlims[0]))
-grey = '0.6'
+grey = '0.8'
 greytext = '0.3'
 plt.figure(num=None, figsize=(9, 9), dpi=200)
 ax = plt.gca()
@@ -123,25 +126,34 @@ plt.plot(ps[radios], pds[radios], '.', color='0.3', ms=3, label="Radio PSRs")
 # Plot the HE and non-radio pulsars as triagles
 # Assume that all non-radio pulsars are high-energy emitters
 all_he = np.unique(np.concatenate((hepsrs, nonradios)))
-plt.plot(ps[all_he], pds[all_he], 'k^', ms=6, mew=1.1, mfc='none',
+color = 'magenta' if usecolor else 'black'
+plt.plot(ps[all_he], pds[all_he], '^', ms=6, mew=1.1, mec=color, mfc='none',
     label="X-ray/$\gamma$-ray")
 
 # Plot the binaries as circles
-plt.plot(ps[binaries], pds[binaries], 'ko', ms=8, mfc='none', label="Binaries")
+plt.plot(ps[binaries], pds[binaries], 'ko', ms=8, mfc='none',
+    label="Binaries")
 
 # Plot the SNRs as stars
-plt.plot(ps[snrs], pds[snrs], 'k*', ms=14, mfc='none', label="SNR Assoc")
+color = 'darkorange' if usecolor else 'black'
+mew = 1.0 if usecolor else 0.7
+plt.plot(ps[snrs], pds[snrs], '*', ms=14, mfc='none', mew=mew, mec=color,
+    label="SNR Assoc")
 
 # Plot the magnetars as filled triangles
-plt.plot(ps[magnetars], pds[magnetars], 'k^', ms=8, label="Magnetars")
+color = 'cyan' if usecolor else 'black'
+plt.plot(ps[magnetars], pds[magnetars], '^', mec='black', mfc=color, ms=8,
+    label="Magnetars", alpha=0.5)
 
 # Plot the RRATs as x's
-plt.plot(ps[rrats], pds[rrats], 'kx', ms=6, mew=1.2, label="RRATs")
+color = 'green' if usecolor else 'black'
+plt.plot(ps[rrats], pds[rrats], 'x', ms=6, mew=1.2, mec=color,
+    label="RRATs")
 
 plt.xlabel("Spin Period (s)")
 plt.ylabel("Period Derivative (i.e Spin-Down Rate)")
 
 ax.legend(loc='lower right', numpoints=1)
 
-plt.savefig("ppdot.png")
+plt.savefig("ppdot_color_2015.png" if usecolor else "ppdot_2015.png")
 #plt.show()
