@@ -399,9 +399,9 @@ def z_to_accel(z, T, reffreq, harm=1):
     """
     z_to_accel(z, T, reffreq, harm=1):
         Return the acceleration (in m/s/s) corresponding to the
-            accelsearch 'z' (i.e. number of bins drifted) at a 
+            accelsearch 'z' (i.e. number of bins drifted) at a
             reference frequency 'reffreq', for an observation
-            of duration 'T'. You can specify the harmonic number 
+            of duration 'T'. You can specify the harmonic number
             in 'harm'.
     """
     return z * SOL / (harm * reffreq * T * T)
@@ -441,7 +441,7 @@ def pulsar_mass(pb, x, mc, inc):
     def localmf(mp, mc=mc, mf=massfunct, i=inc*DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
     return zeros.bisect(localmf, 0.0, 1000.0)
-        
+
 def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
     companion_mass(pb, x, inc=60.0, mpsr=1.4):
@@ -456,7 +456,7 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     def localmf(mc, mp=mpsr, mf=massfunct, i=inc*DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
     return zeros.bisect(localmf, 0.0, 1000.0)
-        
+
 def companion_mass_limit(pb, x, mpsr=1.4):
     """
     companion_mass_limit(pb, x, mpsr=1.4):
@@ -468,7 +468,7 @@ def companion_mass_limit(pb, x, mpsr=1.4):
             'mpsr' is the mass of the pulsar in solar mass units.
     """
     return companion_mass(pb, x, inc=90.0, mpsr=mpsr)
-        
+
 def OMDOT(porb, e, Mp, Mc):
     """
     OMDOT(porb, e, Mp, Mc):
@@ -771,7 +771,7 @@ def search_sensitivity(Ttot, G, BW, chan, freq, T, dm, ddm, dt, Pmin=0.001,
                       dm_smear(dm, BW/chan, freq)**2.0 + \
                       dm_smear(ddm/2.0, BW, freq)**2.0 + \
                       dt**2.0) / periods
-    return (periods, limiting_flux_dens(Ttot, G, BW, T, periods, widths, 
+    return (periods, limiting_flux_dens(Ttot, G, BW, T, periods, widths,
                                         polar=polar, factor=factor))
 
 def smin_noise(Ttot, G, BW, dt):
@@ -901,7 +901,7 @@ def interp_rotate(arr, bins, zoomfact=10):
     """
     newlen = len(arr)*zoomfact
     rotbins = int(Num.floor(bins*zoomfact+0.5)) % newlen
-    newarr = sinc_interp.periodic_interp(arr, zoomfact)  
+    newarr = sinc_interp.periodic_interp(arr, zoomfact)
     return rotate(newarr, rotbins)[::zoomfact]
 
 def fft_rotate(arr, bins):
@@ -1059,9 +1059,9 @@ def expcos_profile(N, phase, fwhm):
         phsval = Num.fmod(phsval + phi, TWOPI)
         phsval = Num.where(Num.greater(phsval, PI),
                            phsval - TWOPI, phsval)
-        denom = ((1 + 1/(8*k) + 9/(128*k*k) + 75/(1024*k**3) + 
+        denom = ((1 + 1/(8*k) + 9/(128*k*k) + 75/(1024*k**3) +
                  3675/(32768*k**4) + 59535/(262144*k**5)) / Num.sqrt(TWOPI*k))
-        return Num.where(Num.greater(Num.fabs(phsval/TWOPI), 3.0*fwhm), 0.0, 
+        return Num.where(Num.greater(Num.fabs(phsval/TWOPI), 3.0*fwhm), 0.0,
                          Num.exp(k*(Num.cos(phsval)-1.0))/denom)
     else:
         k = secant(fwhm_func, 1e-8, 0.5)
@@ -1145,7 +1145,7 @@ def gaussian_profile(N, phase, fwhm):
         print "Problem in gaussian prof:  mean = %f  sigma = %f" % \
               (mean, sigma)
         return Num.zeros(N, 'd')
-        
+
 def gauss_profile_params(profile, output=0):
     """
     gauss_profile_params(profile, output=0):
@@ -1157,7 +1157,7 @@ def gauss_profile_params(profile, output=0):
            ret[3] = Baseline (i.e. noise) average value.
            ret[4] = Residuals average value.
            ret[5] = Residuals standard deviation.
-        If 'output' is true, the fit will be plotted and 
+        If 'output' is true, the fit will be plotted and
            the return values will be printed.
     """
     profile = Num.asarray(profile)
@@ -1398,7 +1398,7 @@ def equivalent_gaussian_sigma(p):
         Return the equivalent gaussian sigma corresponding
             to the cumulative gaussian probability p.  In other
             words, return x, such that Q(x) = p, where Q(x) is the
-            cumulative normal distribution.  For very small 
+            cumulative normal distribution.  For very small
     """
     logp = Num.log(p)
     if type(1.0) == type(logp):
@@ -1520,7 +1520,7 @@ def sigma_power(power):
         return Num.where(power > 36.0,
                          Num.sqrt(2.0 * power - Num.log(PI * power)),
                          extended_equiv_gaussian_sigma(log_prob_sum_powers(power, 1)))
-        
+
 def sigma_sum_powers(power, nsum):
     """
     sigma_sum_powers(power, nsum):
@@ -1629,6 +1629,15 @@ def pdot_from_age(p, age):
     """
     return p / (2.0 * age * SECPERJULYR)
 
+def pdot_from_edot(p, edot, I=1.0e45):
+    """
+    pdot_from_edot(p, edot, I=1.0e45):
+        Return the pdot that a pulsar with spin period 'p (in sec)
+        would experience given an Edot 'edot' (in ergs/s) and a
+        moment of inertia I.
+    """
+    return (p**3.0 * edot) / (4.0 * PI * PI * I)
+
 def pulsar_age(f, fdot, n=3, fo=1e99):
     """
     pulsar_age(f, fdot, n=3, fo=1e99):
@@ -1682,7 +1691,7 @@ def psr_info(porf, pdorfd, time=None, input=None):
     I = 1.0e45  # Moment of Inertia in g cm^2
     Edot = 4.0 * PI * PI * I * pdorfd / porf ** 3.0
     Bo = 3.2e19 * Num.sqrt(porf * pdorfd)
-    age = porf / (2.0 * pdorfd * 31557600.0) 
+    age = porf / (2.0 * pdorfd * 31557600.0)
     [f, fd] = p_to_f(porf, pdorfd)
     print ""
     print "             Period = %f s" % porf
@@ -1700,9 +1709,9 @@ def psr_info(porf, pdorfd, time=None, input=None):
 
 def doppler(freq_observed, voverc):
     """doppler(freq_observed, voverc):
-        This routine returns the frequency emitted by a pulsar 
-        (in MHz) given that we observe the pulsar at frequency 
-        freq_observed (MHz) while moving with radial velocity 
+        This routine returns the frequency emitted by a pulsar
+        (in MHz) given that we observe the pulsar at frequency
+        freq_observed (MHz) while moving with radial velocity
         (in units of v/c) of voverc wrt the pulsar.
     """
     return freq_observed * (1.0 + voverc)
