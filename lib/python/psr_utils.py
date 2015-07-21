@@ -1623,7 +1623,7 @@ def pdot_from_B(p, B):
 
 def pdot_from_age(p, age):
     """
-    pdot_from_B(p, B):
+    pdot_from_age(p, age):
         Return the pdot that a pulsar with spin period 'p' (in sec)
         would experience given a characteristic age 'age' (in yrs).
     """
