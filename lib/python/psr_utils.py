@@ -1675,23 +1675,21 @@ def pulsar_B_lightcyl(f, fdot):
     p, pd = p_to_f(f, fdot)
     return 2.9e8 * p**(-5.0/2.0) * Num.sqrt(pd)
 
-def psr_info(porf, pdorfd, time=None, input=None):
+def psr_info(porf, pdorfd, time=None, input=None, I=1e45):
     """
-    psr_info(porf, pdorfd, input=None):
+    psr_info(porf, pdorfd, time=None, input=None, I=1e45):
         Print a list of standard derived pulsar parameters based
         on the period (or frequency) and its first derivative.  The
         routine will automatically assume you are using periods if
         'porf' <= 1.0 and frequencies otherwise.  You can override this
-        by setting input='p' or 'f' appropriately.
+        by setting input='p' or 'f' appropriately.  If time is specified
+        (duration of an observation) it will also return the Fourier
+        frequency 'r' and Fourier fdot 'z'.  I is the NS moment of inertia.
     """
     if ((input==None and porf > 1.0) or
         (input=='f' or input=='F')):
         pdorfd = - pdorfd / (porf * porf)
         porf = 1.0 / porf
-    I = 1.0e45  # Moment of Inertia in g cm^2
-    Edot = 4.0 * PI * PI * I * pdorfd / porf ** 3.0
-    Bo = 3.2e19 * Num.sqrt(porf * pdorfd)
-    age = porf / (2.0 * pdorfd * 31557600.0)
     [f, fd] = p_to_f(porf, pdorfd)
     print ""
     print "             Period = %f s" % porf
@@ -1701,9 +1699,9 @@ def psr_info(porf, pdorfd, time=None, input=None):
     if (time):
         print "       Fourier Freq = %g bins" % (f * time)
         print "      Fourier F-dot = %g bins" % (fd * time * time)
-    print "              E-dot = %g ergs/s" % Edot
-    print "    Surface B Field = %g gauss" % Bo
-    print " Characteristic Age = %g years" % age
+    print "              E-dot = %g ergs/s" % pulsar_edot(f, fd, I)
+    print "    Surface B Field = %g gauss" % pulsar_B(f, fd)
+    print " Characteristic Age = %g years" % pulsar_age(f, fd)
     print "          Assumed I = %g g cm^2" % I
     print ""
 
