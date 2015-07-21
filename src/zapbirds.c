@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
    /* Read the info file */
 
    readinf(&idata, rootfilenm);
-   if (idata.object) {
+   if (strlen(remove_whitespace(idata.object)) > 0) {
       printf("Examining %s data from '%s'.\n\n",
              remove_whitespace(idata.object), cmd->argv[0]);
    } else {

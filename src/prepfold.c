@@ -4,8 +4,9 @@
 #include "mask.h"
 #include "backend_common.h"
 
-#ifdef USEDMALLOC
-#include "dmalloc.h"
+// Use OpenMP
+#ifdef _OPENMP
+#include <omp.h>
 #endif
 
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP \
@@ -39,8 +40,8 @@ int main(int argc, char *argv[])
    int *maskchans = NULL, nummasked = 0, polyco_index = 0, insubs = 0;
    int *idispdts = NULL, good_padvals = 0;
    long ii = 0, jj, kk, worklen = 0, numread = 0, reads_per_part = 0;
-   long totnumfolded = 0, lorec = 0, hirec = 0, numbinpoints = 0;
-   unsigned long numrec = 0;
+   long long totnumfolded = 0, lorec = 0, hirec = 0, numbinpoints = 0;
+   long long numrec = 0;
    struct spectra_info s;
    infodata idata;
    foldstats beststats;
@@ -74,6 +75,20 @@ int main(int argc, char *argv[])
    s.apply_scale  = (cmd->noscalesP) ? 0 : -1;
    s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
    s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
+   if (cmd->ncpus > 1) {
+#ifdef _OPENMP
+      int maxcpus = omp_get_num_procs();
+      int openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
+      // Make sure we are not dynamically setting the number of threads
+      omp_set_dynamic(0);
+      omp_set_num_threads(openmp_numthreads);
+      printf("Using %d threads with OpenMP\n\n", openmp_numthreads);
+#endif
+   } else {
+#ifdef _OPENMP
+      omp_set_num_threads(1); // Explicitly turn off OpenMP
+#endif
+   }
    if (cmd->noclipP) {
        cmd->clip = 0.0;
        s.clip_sigma = 0.0;
@@ -483,7 +498,7 @@ int main(int argc, char *argv[])
       if (numrec < cmd->npart) {
           reads_per_part = 1;
           cmd->npart = numrec;
-          printf("Overriding -npart to be %ld, the number of raw (requested) records.\n",
+          printf("Overriding -npart to be %lld, the number of raw (requested) records.\n",
                  numrec);
       }
 
@@ -580,8 +595,8 @@ int main(int argc, char *argv[])
    printf("Best profile is in  '%s.bestprof'.\n", outfilenm);
 
    /* Generate polycos if required and set the pulsar name */
-   if ((cmd->timingP || cmd->parnameP) &&
-       (!idata.bary) || (idata.bary && cmd->barypolycosP)){
+   if (((cmd->timingP || cmd->parnameP) && (!idata.bary)) ||
+       (idata.bary && cmd->barypolycosP)){
       char *polycofilenm;
       polycofilenm = (char *) calloc(strlen(outfilenm) + 9, sizeof(char));
       sprintf(polycofilenm, "%s.polycos", outfilenm);
@@ -1257,7 +1272,7 @@ int main(int argc, char *argv[])
       printf("\nStarting work on '%s'...\n\n", search.filenm);
       proftime = worklen * search.dt;
       parttimes = gen_dvect(cmd->npart);
-      printf("  Folded %ld points of %.0f", totnumfolded, N);
+      printf("  Folded %lld points of %.0f", totnumfolded, N);
 
       /* sub-integrations in time  */
 
@@ -1328,6 +1343,9 @@ int main(int argc, char *argv[])
 
             /* Fold the frequency sub-bands */
 
+#ifdef _OPENMP
+#pragma omp parallel for default(shared)
+#endif
             for (kk = 0; kk < cmd->nsub; kk++) {
                /* This is a quick hack to see if it will remove power drifts */
                if (cmd->runavgP && (numread > 0)) {
@@ -1347,7 +1365,7 @@ int main(int argc, char *argv[])
             totnumfolded += numread;
          }
 
-         printf("\r  Folded %ld points of %.0f", totnumfolded, N);
+         printf("\r  Folded %lld points of %.0f", totnumfolded, N);
          fflush(NULL);
       }
       vect_free(buffers);

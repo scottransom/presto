@@ -7,13 +7,13 @@
 int main(int argc, char *argv[])
 {
    FILE *fftfile;
-   double flook, dt, nph, t, maxz, pwr, hipow = 0.0;
+   double flook, dt, nph, maxz, pwr, hipow = 0.0;
    double zlo = -30.0, zhi = 30.0, dr, dz = 2.0;
    double hir = 0.0, hiz = 0.0, newhir, newhiz;
    fcomplex **ffdotplane, *data;
    float powargr, powargi;
    int startbin, numdata, nextbin, nr, nz, numkern;
-   int i, j, realpsr, kernel_half_width, numbetween = 4;
+   int i, j, kernel_half_width, numbetween = 4;
    int n, corrsize = 1024;
    char filenm[80], compare[200];
    rderivs derivs;
@@ -60,7 +60,6 @@ int main(int argc, char *argv[])
    fftfile = chkfopen(filenm, "r");
    nph = get_numphotons(fftfile);
    n = chkfilelen(fftfile, sizeof(float));
-   t = n * dt;
    nz = (int) ((zhi - zlo) / dz) + 1;
 
    /* Determine our starting frequency and get the data */
@@ -116,7 +115,7 @@ int main(int argc, char *argv[])
    printf("The best candidate is:\n");
 
    print_candidate(&props, dt, n, nph, 2);
-   realpsr = comp_psr_to_cand(&props, &idata, compare, 1);
+   comp_psr_to_cand(&props, &idata, compare, 1);
    printf("%s\n", compare);
    fclose(fftfile);
 

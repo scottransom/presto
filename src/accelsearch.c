@@ -10,8 +10,10 @@
 #include <fcntl.h>
 #endif
 
-#ifdef USEDMALLOC
-#include "dmalloc.h"
+// Use OpenMP
+#ifdef _OPENMP
+#include <omp.h>
+extern void set_openmp_numthreads(int numthreads);
 #endif
 
 extern float calc_median_powers(fcomplex * amplitudes, int numamps);
@@ -112,7 +114,16 @@ int main(int argc, char *argv[])
    printf("Generating correlation kernels:\n");
    subharminfs = create_subharminfos(&obs);
    printf("Done generating kernels.\n\n");
-   printf("Starting the search.\n");
+   if (cmd->ncpus > 1) {
+#ifdef _OPENMP
+       set_openmp_numthreads(cmd->ncpus);
+#endif
+   } else {
+#ifdef _OPENMP
+       omp_set_num_threads(1); // Explicitly turn off OpenMP
+#endif
+       printf("Starting the search.\n\n");
+   }
    /* Don't use the *.txtcand files on short in-memory searches */
    if (!obs.dat_input) {
       printf("  Working candidates in a test format are in '%s'.\n\n",

@@ -774,7 +774,6 @@ int *nchar;                     /* Number of characters in one table row (return
    hgets(header, "XTENSION", 16, temp);
    if (strncmp(temp, "TABLE", 5) != 0) {
       snprintf(fitserrmsg, 79, "FITSRTHEAD:  Not a FITS table file\n");
-      free(temp);
       return (-1);
    }
 
