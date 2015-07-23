@@ -257,6 +257,7 @@ class Candlist(object):
         sigmas = Num.array([c.sigma for c in allcands])
         isort = sigmas.argsort()
         sigmas = sigmas[isort]
+
         if usefreqs:
             xdata = Num.array([c.f for c in allcands])[isort]
             xlabel = "Freq (Hz)"
@@ -265,6 +266,7 @@ class Candlist(object):
             xdata = Num.array([c.p for c in allcands])[isort]
             xlabel = "Period (s)"
             xscale = "loglin"
+
         dms = Num.array([c.DM for c in allcands])[isort]
         numharms = Num.array([c.numharm for c in allcands])[isort]
 
@@ -287,7 +289,16 @@ class Candlist(object):
         mindm = Num.min(dms)
         maxdm = Num.max(dms)
         dmrange = Num.ptp(dms)
-        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+
+        # Use log-scale y-axis if max DM > 2000
+        yscale = "log" if maxdm > 2000.0 else "linear"
+        plt.yscale(yscale)
+
+        if yscale is "log":
+            plt.ylim(1.0, maxdm+0.1*dmrange)
+        else:
+            plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
         if not usefreqs:
             plt.gca().xaxis.set_ticks(Num.concatenate((\
@@ -299,6 +310,9 @@ class Candlist(object):
                         "9", "11", "13", "15"])
             plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
                         min(long_period+0.5, max(xdata)+0.5))
+        else:
+            plt.xlim(min(xdata)/5.0, max(xdata)*2.0)
+            
         ax.format_coord = lambda x,y: "x=%g, y=%g" % (x,y)
         return fig
 
@@ -367,12 +381,24 @@ class Candlist(object):
 
         plt.xscale(xscale) 
         plt.xlabel(xlabel)
-        mindm = Num.min(dms)
-        maxdm = Num.max(dms)
-        dmrange = Num.ptp(dms)
-        plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+
+        alldms = Num.array([c.DM for c in self.get_all_cands()])
+        mindm = Num.min(alldms)
+        maxdm = Num.max(alldms)
+        dmrange = Num.ptp(alldms)
+
+        # Use log-scale y-axis if max DM > 2000
+        yscale = "log" if maxdm > 2000.0 else "linear"
+        plt.yscale(yscale)
+
+        if yscale is "log":
+            plt.ylim(1.0, maxdm+0.1*dmrange)
+        else:
+            plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
+
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
         if not usefreqs:
+            all_xdata = Num.array([c.p for c in self.get_all_cands()])
             plt.gca().xaxis.set_ticks(Num.concatenate((\
                                         Num.logspace(-4,0,4, endpoint=False), \
                                         Num.linspace(1,15,8))))
@@ -380,8 +406,12 @@ class Candlist(object):
             plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
                         r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
                         "9", "11", "13", "15"])
-            plt.xlim(max(short_period/5.0, min(xdata)/5.0), \
-                        min(long_period+0.5, max(xdata)+0.5))
+            plt.xlim(max(short_period/5.0, min(all_xdata)/5.0), \
+                        min(long_period+0.5, max(all_xdata)+0.5))
+        else:
+            all_xdata = Num.array([c.f for c in self.get_all_cands()])
+            plt.xlim(min(all_xdata)/5.0, max(all_xdata)*2.0)
+
         return fig
 
     def plot_goodcands(self, usefreqs=True):
@@ -1226,7 +1256,7 @@ def sift_directory(dir, outbasenm):
 
     # Read candidates found in low acceleration searching
     lo_accel_fns = glob.glob(os.path.join(dir, '*ACCEL_0'))
-    lo_accel_cands = read_candidates(lo_accel_fns)
+    lo_accel_cands = read_candidates(lo_accel_fns, track=True)
     print "Read %d candidates from %d files" % \
                 (len(lo_accel_cands), len(lo_accel_fns))
     print "%d candidates passed default rejection" % len(lo_accel_cands)
@@ -1238,7 +1268,7 @@ def sift_directory(dir, outbasenm):
 
     # Read candidates found in high acceleration searching
     hi_accel_fns = glob.glob(os.path.join(dir, '*ACCEL_50'))
-    hi_accel_cands = read_candidates(hi_accel_fns)
+    hi_accel_cands = read_candidates(hi_accel_fns, track=True)
     print "Read %d candidates from %d files" % \
                 (len(hi_accel_cands), len(hi_accel_fns))
     print "%d candidates passed default rejection" % len(hi_accel_cands)
@@ -1257,11 +1287,11 @@ def sift_directory(dir, outbasenm):
         all_accel_cands.to_file(outbasenm+".accelcands")
     all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
     all_accel_cands.print_cand_summary()
-    all_accel_cands.plot_rejects(usefreqs=False)
+    all_accel_cands.plot_rejects(usefreqs=True)
     plt.savefig(outbasenm+".accelcands.rejects.png")
-    all_accel_cands.plot_goodcands(usefreqs=False)
-    plt.savefig(outbasenm+".accelcands.goodcands.png")
-    all_accel_cands.plot_summary(usefreqs=False)
+    #all_accel_cands.plot_goodcands(usefreqs=False)
+    #plt.savefig(outbasenm+".accelcands.goodcands.png")
+    all_accel_cands.plot_summary(usefreqs=True)
     plt.savefig(outbasenm+".accelcands.summary.png")
     plt.show()
 
