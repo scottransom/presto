@@ -463,7 +463,7 @@ def keypress(event):
     global options
     global xind, xvals
     global yind, yvals
-    if type(event.key) == types.StringType:
+    if type(event.key) in [types.StringType, types.UnicodeType]:
         if event.key.lower() == 'q':
             quit()
         elif event.key.lower() == 's':
