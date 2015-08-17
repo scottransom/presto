@@ -600,8 +600,6 @@ def parse_options():
         raise ValueError("Frequency bands have overlaps or are inverted.")
     options.freqbands = freqbands
 
-    options.mark_peri = False
-
     if not options.prefit and not options.postfit:
         # If neither prefit or postfit are selected
         # show postfit
