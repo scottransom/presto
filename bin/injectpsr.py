@@ -521,7 +521,8 @@ def get_phasedelays(dm, freqs, period):
 
 
 def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
-                do_delay=True, do_smear=True, do_scatter=True):
+                do_delay=True, do_smear=True, do_scatter=True,
+                verbose=True):
     """Given a profile apply DM delays, smearing, and scattering 
         within each channel as is appropriate for the given params.
 
@@ -544,7 +545,8 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     """
     weq = inprof.get_equivalent_width()
     nfreqs = len(freqs)
-    print "Applying DM to profile (DM = %.2f; %d channels)..." % \
+    if verbose:
+        print "Applying DM to profile (DM = %.2f; %d channels)..." % \
                 (dm, nfreqs)
     # A list of profiles, one for each channel
     profiles = []
@@ -1192,7 +1194,7 @@ if __name__ == '__main__':
                     default=None)
     parser.add_argument("-p", "--period", dest='period', \
                     default=None, type=float, \
-                    help="The period (in seconds) of the (fake) injected " \
+                    help="The *topocentric* period (in seconds) of the (fake) injected " \
                         "pulsar signal. (This argument is required.)")
     parser.add_argument("-c", "--scale-configs", dest='scale_cfgstrs', type=str, \
                     required=True, default=[], action='append', \
