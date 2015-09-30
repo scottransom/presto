@@ -267,7 +267,21 @@ in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template."""
         prof = normal(0.0, noise_stdev, N) + gen_gaussians(params, N)
         filenm = "test"
     else:
-        filenm = sys.argv[1]
+        if args.bestprof_file.endswith(".pfd"):
+            print "Input is PFD"
+            # Input is pfd file
+            pfdfn = args.bestprof_file
+            # Check for bestprof
+            if not os.path.exists(pfdfn+".bestprof"):
+                print "Creating bestprof file"
+                # Create bestprof file with show_pfd
+                devnull = open(os.devnull, 'w')
+                subprocess.call(['show_pfd', '-noxwin', pfdfn], 
+                                stdout=devnull)
+                devnull.close()
+            filenm = pfdfn+".bestprof"
+        else:
+            filenm = args.bestprof_file
         prof = read_profile(filenm, normalize=0)
         if len(sys.argv)>=3:
             noise_stdev = float(sys.argv[2])
