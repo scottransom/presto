@@ -12,7 +12,7 @@ int nice_output_1(char *output, double val, double err, int len)
 /*   If len == 0, left-justified minimum length string is returned. */
 /*   If len > 0, the string returned has is right justified.        */
 {
-   int nint, nfrac, pad, totprec, numchar;
+   int nint, nfrac, totprec;
    int errexp, errval, outexp;
    double rndval, outmant;
    char temp[50];
@@ -69,34 +69,30 @@ int nice_output_1(char *output, double val, double err, int len)
    if (fabs(1.0 - outmant) < DBLCORRECT || fabs(-1.0 - outmant) < DBLCORRECT)
       totprec++;
 
-   /* Space needed for sign, decimal, and error with parenthesis: */
-
-   pad = 5;
-
    /* Use scientific notation:  */
 
    if ((outexp >= 0 && errexp > 0) && outexp > errexp)
-      numchar = sprintf(temp, "% .*f(%d)x10^%d", totprec - 1,
-                        COPYSIGN(outmant, rndval), errval, outexp);
+       sprintf(temp, "% .*f(%d)x10^%d", totprec - 1,
+               COPYSIGN(outmant, rndval), errval, outexp);
 
    /* Use scientific notation but with integer mantissa */
 
    else if ((outexp >= 0 && errexp > 0) && outexp == errexp)
-      numchar = sprintf(temp, "% d(%d)x10^%d",
-                        (int) (COPYSIGN(outmant, rndval)), errval, outexp);
+       sprintf(temp, "% d(%d)x10^%d",
+               (int) (COPYSIGN(outmant, rndval)), errval, outexp);
 
    /* Use scientific notation for real small numbers: */
 
    else if (outexp < -4 && outexp >= errexp)
-      numchar = sprintf(temp, "% .*f(%d)x10^%d", totprec - 1,
-                        COPYSIGN(outmant, rndval), errval, outexp);
+       sprintf(temp, "% .*f(%d)x10^%d", totprec - 1,
+               COPYSIGN(outmant, rndval), errval, outexp);
 
    /* Use scientific notation but with integer mantissa */
 
    else if (outexp < errexp && errexp != 0)
-      numchar = sprintf(temp, "% d(%d)x10^%d",
-                        (int) (COPYSIGN(outmant, rndval) + DBLCORRECT),
-                        errval, errexp);
+       sprintf(temp, "% d(%d)x10^%d",
+               (int) (COPYSIGN(outmant, rndval) + DBLCORRECT),
+               errval, errexp);
 
    /* Use regular notation: */
 

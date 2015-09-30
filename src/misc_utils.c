@@ -244,7 +244,7 @@ void telescope_to_tempocode(char *inname, char *outname, char*obscode)
 }
 
 
-float invsqrt(float x)
+float invsqrtf(float x)
 // See http://en.wikipedia.org/wiki/Fast_inverse_square_root
 {
     union {
@@ -593,27 +593,6 @@ void davg_dvar(double *x, int n, double *mean, double *var)
       *var /= an1;
 
    return;
-}
-
-
-inline void update_stats(int N, double x, double *min, double *max,
-                         double *avg, double *var)
-/* Update time series statistics using one-pass technique */
-{
-   double dev;
-
-   /* Check the max and min values */
-
-   if (x > *max)
-      *max = x;
-   if (x < *min)
-      *min = x;
-
-   /* Use clever single pass mean and variance calculation */
-
-   dev = x - *avg;
-   *avg += dev / (N + 1.0);
-   *var += dev * (x - *avg);
 }
 
 

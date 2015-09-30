@@ -5,6 +5,11 @@
 #include "mask.h"
 #include "backend_common.h"
 
+// Use OpenMP
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 20.0
 
@@ -26,10 +31,6 @@ static void update_infodata(infodata * idata, long datawrote, long padwrote,
                             int *barybins, int numbarybins);
 
 /* The main program */
-
-#ifdef USEDMALLOC
-#include "dmalloc.h"
-#endif
 
 int main(int argc, char *argv[])
 {
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
    // If we are zeroDMing, make sure that clipping is off.
    if (cmd->zerodmP) cmd->noclipP = 1;
    s.clip_sigma = cmd->clip;
-   // -1 causes the data to determine if we use weights, scales, & 
+   // -1 causes the data to determine if we use weights, scales, &
    // offsets for PSRFITS or flip the band for any data type where
    // we can figure that out with the data
    s.apply_flipband = (cmd->invertP) ? 1 : -1;
@@ -85,6 +86,21 @@ int main(int argc, char *argv[])
    if (cmd->ifsP) {
        // 0 = default or summed, 1-4 are possible also
        s.use_poln = cmd->ifs + 1;
+   }
+
+   if (cmd->ncpus > 1) {
+#ifdef _OPENMP
+      int maxcpus = omp_get_num_procs();
+      int openmp_numthreads = (cmd->ncpus <= maxcpus) ? cmd->ncpus : maxcpus;
+      // Make sure we are not dynamically setting the number of threads
+      omp_set_dynamic(0);
+      omp_set_num_threads(openmp_numthreads);
+      printf("Using %d threads with OpenMP\n\n", openmp_numthreads);
+#endif
+   } else {
+#ifdef _OPENMP
+   omp_set_num_threads(1); // Explicitly turn off OpenMP
+#endif
    }
 
 #ifdef DEBUG
@@ -159,7 +175,7 @@ int main(int argc, char *argv[])
        read_rawdata_files(&s);
        print_spectra_info_summary(&s);
        spectra_info_to_inf(&s, &idata);
-       
+
        /* Finish setting up stuff common to all raw formats */
        idata.dm = cmd->dm;
        worklen = s.spectra_per_subint;
@@ -177,7 +193,7 @@ int main(int argc, char *argv[])
        }
        /* The number of topo to bary time points to generate with TEMPO */
        numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
-       
+
        // Identify the TEMPO observatory code
        {
            char *outscope = (char *) calloc(40, sizeof(char));
@@ -204,7 +220,7 @@ int main(int argc, char *argv[])
 
          /* The number of topo to bary time points to generate with TEMPO */
          numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
-         
+
          // Identify the TEMPO observatory code
          {
              char *outscope = (char *) calloc(40, sizeof(char));
@@ -223,7 +239,7 @@ int main(int argc, char *argv[])
       if (!cmd->numoutP)
          cmd->numout = LONG_MAX;
    }
-   
+
    /* Check if we are downsampling */
    dsdt = idata.dt * cmd->downsamp;
    if (cmd->downsamp > 1) {
@@ -298,8 +314,8 @@ int main(int argc, char *argv[])
       printf("Amount Complete = 0%%");
 
       do {
-          if (RAWDATA) 
-              numread = read_psrdata(outdata, worklen, &s, idispdt, &padding, 
+          if (RAWDATA)
+              numread = read_psrdata(outdata, worklen, &s, idispdt, &padding,
                                      maskchans, &nummasked, &obsmask);
           else if (useshorts)
               numread = read_shorts(s.files[0], outdata, worklen, numchan);
@@ -307,7 +323,7 @@ int main(int argc, char *argv[])
               numread = read_floats(s.files[0], outdata, worklen, numchan);
           if (numread == 0)
               break;
-          
+
           /* Downsample if requested */
           if (cmd->downsamp > 1)
               numread = downsample(outdata, numread, cmd->downsamp);
@@ -322,7 +338,7 @@ int main(int argc, char *argv[])
               fflush(stdout);
               oldper = newper;
           }
-          
+
           /* Write the latest chunk of data, but don't   */
           /* write more than cmd->numout points.         */
           numtowrite = numread;
@@ -330,7 +346,7 @@ int main(int argc, char *argv[])
               numtowrite = cmd->numout - totwrote;
           chkfwrite(outdata, sizeof(float), numtowrite, outfile);
           totwrote += numtowrite;
-          
+
           /* Update the statistics */
           if (!padding) {
               for (ii = 0; ii < numtowrite; ii++)
@@ -341,11 +357,11 @@ int main(int argc, char *argv[])
           /* Stop if we have written out all the data we need to */
           if (cmd->numoutP && (totwrote == cmd->numout))
               break;
-          
+
       } while (numread);
-      
+
       datawrote = totwrote;
-      
+
    } else {                     /* Main loop if we are barycentering... */
 
       double avgvoverc = 0.0, maxvoverc = -1.0, minvoverc = 1.0, *voverc = NULL;
@@ -467,9 +483,9 @@ int main(int argc, char *argv[])
       do {                      /* Loop to read and write the data */
           int numwritten = 0;
           double block_avg, block_var;
-          
-          if (RAWDATA) 
-              numread = read_psrdata(outdata, worklen, &s, idispdt, &padding, 
+
+          if (RAWDATA)
+              numread = read_psrdata(outdata, worklen, &s, idispdt, &padding,
                                      maskchans, &nummasked, &obsmask);
           else if (useshorts)
               numread = read_shorts(s.files[0], outdata, worklen, numchan);
@@ -477,16 +493,16 @@ int main(int argc, char *argv[])
               numread = read_floats(s.files[0], outdata, worklen, numchan);
           if (numread == 0)
               break;
-          
+
           /* Downsample if requested */
           if (cmd->downsamp > 1)
               numread = downsample(outdata, numread, cmd->downsamp);
-          
+
           /* Determine the approximate local average */
           avg_var(outdata, numread, &block_avg, &block_var);
-          
+
           /* Print percent complete */
-          
+
           if (cmd->numoutP)
               newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
           else

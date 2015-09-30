@@ -96,7 +96,7 @@ static void add_to_prof(double *prof, double *buffer, int numprof,
 {
    int ii, numbins, loprofbin, hiprofbin;
    double dtmp, part, partphase, profbinwidth;
-   double newphaseadded, phaseleft, hiphase, phase;
+   double newphaseadded, hiphase, phase;
 
    /* Reset the phase counter if needed */
 
@@ -139,7 +139,6 @@ static void add_to_prof(double *prof, double *buffer, int numprof,
       part = dtmp * partphase;
       ADDTOBUFFER(part, loprofbin, lophase)
           phase = lophase + partphase;
-      phaseleft = deltaphase - partphase;
 
       /* Fill the middle buffer bins */
       partphase = profbinwidth;

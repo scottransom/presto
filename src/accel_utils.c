@@ -17,6 +17,22 @@
 #include <fcntl.h>
 #endif
 
+// Use OpenMP
+#ifdef _OPENMP
+#include <omp.h>
+static int openmp_numthreads = 1;
+void set_openmp_numthreads(int numthreads)
+{
+    int maxcpus = omp_get_num_procs();
+    openmp_numthreads = (numthreads <= maxcpus) ? numthreads : maxcpus;
+    // Make sure we are not dynamically setting the number of threads
+    omp_set_dynamic(0);
+    omp_set_num_threads(openmp_numthreads);
+    printf("Starting the search using %d threads with OpenMP.\n\n", 
+           openmp_numthreads);
+}
+#endif
+
 #define NEAREST_INT(x) (int) (x<0 ? x-0.5 : x+0.5)
 
 /* Return 2**n */
@@ -33,7 +49,6 @@ static inline int twon_to_index(int n)
    }
    return x;
 }
-
 
 static inline int calc_required_z(double harm_fract, double zfull)
 /* Calculate the 'z' you need for subharmonic  */
@@ -834,16 +849,16 @@ void print_accelcand(gpointer data, gpointer user_data)
 }
 
 
-fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
+fcomplex *get_fourier_amplitudes(long long lobin, int numbins, accelobs * obs)
 {
     if (obs->mmap_file || obs->dat_input) {
+        long long ii, offset = 0, firstbin, newnumbins;
         fcomplex *tmpdata = gen_cvect(numbins);
-        size_t ii, offset = 0, firstbin, newnumbins;
         fcomplex zeros = {0.0, 0.0};
 
         // zero-pad if we try to read before the beginning of the FFT
         if (lobin - obs->lobin < 0) {
-            offset = abs(lobin - obs->lobin);
+            offset = llabs(lobin - obs->lobin);
             for (ii = 0 ; ii < offset ; ii++)
                 tmpdata[ii] = zeros;
         }
@@ -852,7 +867,7 @@ fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
 
         // zero-pad if we try to read beyond the end of the FFT
         if (firstbin + newnumbins > obs->numbins) {
-            size_t numpad = firstbin + newnumbins - obs->numbins;
+            long long numpad = firstbin + newnumbins - obs->numbins;
             newnumbins = newnumbins - numpad;
             for (ii = numbins - numpad ; ii < numbins ; ii++)
                 tmpdata[ii] = zeros;
@@ -867,132 +882,184 @@ fcomplex *get_fourier_amplitudes(int lobin, int numbins, accelobs * obs)
     }
 }
 
-
 ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
                                double fullrlo, double fullrhi,
                                subharminfo * shi, accelobs * obs)
 {
-   int ii, lobin, hibin, numdata, nice_numdata, nrs, fftlen, binoffset;
-   static int numrs_full = 0;
-   float powargr, powargi;
-   double drlo, drhi, harm_fract;
-   ffdotpows *ffdot;
-   fcomplex *data, **result;
-   presto_datainf datainf;
+    int ii, lobin, hibin, numdata, nice_numdata, fftlen, binoffset;
+    float powargr, powargi;
+    static int numrs_full = 0;
+    double drlo, drhi, harm_fract;
+    ffdotpows *ffdot;
+    fcomplex *data, *pdata;
+    fftwf_plan invplan;
 
-   if (numrs_full == 0) {
-      if (numharm == 1 && harmnum == 1) {
-         numrs_full = ACCEL_USELEN;
-      } else {
-         printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
-         printf("harnum=1 before you use other values!  Exiting.\n\n");
-         exit(0);
-      }
-   }
-   ffdot = (ffdotpows *) malloc(sizeof(ffdotpows));
+    if (numrs_full == 0) {
+        if (numharm == 1 && harmnum == 1) {
+            numrs_full = ACCEL_USELEN;
+        } else {
+            printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
+            printf("harnum=1 before you use other values!  Exiting.\n\n");
+            exit(0);
+        }
+    }
+    ffdot = (ffdotpows *) malloc(sizeof(ffdotpows));
 
-   /* Calculate and get the required amplitudes */
+    /* Calculate and get the required amplitudes */
+    harm_fract = (double) harmnum / (double) numharm;
+    drlo = calc_required_r(harm_fract, fullrlo);
+    drhi = calc_required_r(harm_fract, fullrhi);
+    ffdot->rlo = (int) floor(drlo);
+    ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
 
-   harm_fract = (double) harmnum / (double) numharm;
-   drlo = calc_required_r(harm_fract, fullrlo);
-   drhi = calc_required_r(harm_fract, fullrhi);
-   ffdot->rlo = (int) floor(drlo);
-   ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
+    /* Initialize the lookup indices */
+    if (numharm > 1 && !obs->inmem) {
+        double rr, subr;
+        for (ii = 0; ii < numrs_full; ii++) {
+            rr = fullrlo + ii * ACCEL_DR;
+            subr = calc_required_r(harm_fract, rr);
+            shi->rinds[ii] = index_from_r(subr, ffdot->rlo);
+        }
+    }
+    ffdot->rinds = shi->rinds;
+    ffdot->numrs = (int) ((ceil(drhi) - floor(drlo))
+                          * ACCEL_RDR + DBLCORRECT) + 1;
+    if (numharm == 1 && harmnum == 1) {
+        ffdot->numrs = ACCEL_USELEN;
+    } else {
+        if (ffdot->numrs % ACCEL_RDR) {
+            ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
+        }
+    }
+    ffdot->numzs = shi->numkern;
+    binoffset = shi->kern[0].kern_half_width;
+    fftlen = shi->kern[0].fftlen;
+    lobin = ffdot->rlo - binoffset;
+    hibin = (int) ceil(drhi) + binoffset;
+    numdata = hibin - lobin + 1;
+    nice_numdata = next2_to_n(numdata);  // for FFTs
+    if (nice_numdata != fftlen/ACCEL_NUMBETWEEN)
+        printf("WARNING!!:  nice_numdata != fftlen/2 in subharm_ffdot_plane()!\n");
+    data = get_fourier_amplitudes(lobin, nice_numdata, obs);
+    if (!obs->mmap_file && !obs->dat_input && 0)
+        printf("This is newly malloc'd!\n");
 
-   /* Initialize the lookup indices */
-   if (numharm > 1 && !obs->inmem) {
-      double rr, subr;
-      for (ii = 0; ii < numrs_full; ii++) {
-         rr = fullrlo + ii * ACCEL_DR;
-         subr = calc_required_r(harm_fract, rr);
-         shi->rinds[ii] = index_from_r(subr, ffdot->rlo);
-      }
-   }
-   ffdot->rinds = shi->rinds;
-   ffdot->numrs = (int) ((ceil(drhi) - floor(drlo))
-                         * ACCEL_RDR + DBLCORRECT) + 1;
-   if (numharm == 1 && harmnum == 1) {
-      ffdot->numrs = ACCEL_USELEN;
-   } else {
-      if (ffdot->numrs % ACCEL_RDR) {
-         ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
-      }
-   }
-   ffdot->numzs = shi->numkern;
-   binoffset = shi->kern[0].kern_half_width;
-   fftlen = shi->kern[0].fftlen;
-   lobin = ffdot->rlo - binoffset;
-   hibin = (int) ceil(drhi) + binoffset;
-   numdata = hibin - lobin + 1;
-   nice_numdata = next2_to_n(numdata);  // for FFTs
-   data = get_fourier_amplitudes(lobin, nice_numdata, obs);
-   if (!obs->mmap_file && !obs->dat_input && 0)
-       printf("This is newly malloc'd!\n");
+    // Normalize the Fourier amplitudes
+    if (obs->nph > 0.0) {
+        //  Use freq 0 normalization if requested (i.e. photons)
+        double norm = 1.0 / sqrt(obs->nph);
+        for (ii = 0; ii < numdata; ii++) {
+            data[ii].r *= norm;
+            data[ii].i *= norm;
+        }
+    } else if (obs->norm_type == 0) {
+        //  old-style block median normalization
+        float *powers;
+        double norm;
+        powers = gen_fvect(numdata);
+        for (ii = 0; ii < numdata; ii++)
+            powers[ii] = POWER(data[ii].r, data[ii].i);
+        norm = 1.0 / sqrt(median(powers, numdata)/log(2.0));
+        vect_free(powers);
+        for (ii = 0; ii < numdata; ii++) {
+            data[ii].r *= norm;
+            data[ii].i *= norm;
+        }
+    } else {
+        //  new-style running double-tophat local-power normalization
+        float *powers, *loc_powers;
+        powers = gen_fvect(nice_numdata);
+        for (ii = 0; ii < nice_numdata; ii++) {
+            powers[ii] = POWER(data[ii].r, data[ii].i);
+        }
+        loc_powers = corr_loc_pow(powers, nice_numdata);
+        for (ii = 0; ii < numdata; ii++) {
+            float norm = invsqrtf(loc_powers[ii]);
+            data[ii].r *= norm;
+            data[ii].i *= norm;
+        }
+        vect_free(powers);
+        vect_free(loc_powers);
+    }
 
-   // Normalize the Fourier amplitudes
+    // Prep, spread, and FFT the data
+    pdata = gen_cvect(fftlen);
+    spread_no_pad(data, fftlen / ACCEL_NUMBETWEEN,
+                  pdata, fftlen, ACCEL_NUMBETWEEN);
+    // Note COMPLEXFFT is not thread-safe because of wisdom caching
+    COMPLEXFFT(pdata, fftlen, -1);
 
-   if (obs->nph > 0.0) {
-       //  Use freq 0 normalization if requested (i.e. photons)
-       double norm = 1.0 / sqrt(obs->nph);
-       for (ii = 0; ii < numdata; ii++) {
-           data[ii].r *= norm;
-           data[ii].i *= norm;
-       }
-   } else if (obs->norm_type == 0) {
-       //  old-style block median normalization
-       float *powers;
-       double norm;
+    // Create the output power array
+    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
 
-       powers = gen_fvect(numdata);
-       for (ii = 0; ii < numdata; ii++)
-           powers[ii] = POWER(data[ii].r, data[ii].i);
-       norm = 1.0 / sqrt(median(powers, numdata)/log(2.0));
-       vect_free(powers);
-       for (ii = 0; ii < numdata; ii++) {
-           data[ii].r *= norm;
-           data[ii].i *= norm;
-       }
-   } else {
-       //  new-style running double-tophat local-power normalization
-       float *powers, *loc_powers;
+    // Create a plan with temp arrays.  We will reuse the plan
+    // with the new-array FFTW execute functions
+    {
+        fcomplex *tmpdat = gen_cvect(fftlen);
+        fcomplex *tmpout = gen_cvect(fftlen);
+        // Compute the inverse FFT plan (these are in/out array specific)
+        // FFTW planning is *not* thread-safe
+        invplan = fftwf_plan_dft_1d(fftlen, (fftwf_complex *) tmpdat,
+                                    (fftwf_complex *) tmpout, +1,
+                                    FFTW_MEASURE | FFTW_DESTROY_INPUT);
+        vect_free(tmpdat);
+        vect_free(tmpout);
+    }
 
-       powers = gen_fvect(nice_numdata);
-       for (ii = 0; ii < nice_numdata; ii++) {
-           powers[ii] = POWER(data[ii].r, data[ii].i);
-       }
-       loc_powers = corr_loc_pow(powers, nice_numdata);
-       for (ii = 0; ii < numdata; ii++) {
-           float norm = invsqrt(loc_powers[ii]);
-           data[ii].r *= norm;
-           data[ii].i *= norm;
-       }
-       vect_free(powers);
-       vect_free(loc_powers);
-   }
-
-   /* Perform the correlations */
-
-   result = gen_cmatrix(ffdot->numzs, ffdot->numrs);
-   datainf = RAW;
-   for (ii = 0; ii < ffdot->numzs; ii++) {
-      nrs = corr_complex(data, numdata, datainf,
-                         shi->kern[ii].data, fftlen, FFT,
-                         result[ii], ffdot->numrs, binoffset,
-                         ACCEL_NUMBETWEEN, binoffset, CORR);
-      datainf = SAME;
-   }
-
-   // Always free data
-   vect_free(data);
-
-   /* Convert the amplitudes to normalized powers */
-
-   ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
-   for (ii = 0; ii < (ffdot->numzs * ffdot->numrs); ii++)
-      ffdot->powers[0][ii] = POWER(result[0][ii].r, result[0][ii].i);
-   vect_free(result[0]);
-   vect_free(result);
-   return ffdot;
+    // Perform the correlations in a thread-safe manner
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(pdata,shi,fftlen,binoffset,ffdot,invplan)
+#endif
+    {
+        const float norm = 1.0 / (fftlen * fftlen);
+        const int offset = binoffset * ACCEL_NUMBETWEEN;
+        // tmpdat gets overwritten during the correlation
+        fcomplex *tmpdat = gen_cvect(fftlen);
+        fcomplex *tmpout = gen_cvect(fftlen);
+#ifdef _OPENMP
+#pragma omp for
+#endif
+        for (ii = 0; ii < ffdot->numzs; ii++) {
+            int jj;
+            float *fkern = (float *)shi->kern[ii].data;
+            float *fpdata = (float *)pdata;
+            float *fdata = (float *)tmpdat;
+            float *outpows = ffdot->powers[ii];
+            // multiply data and kernel 
+            // (using floats for better vectorization)
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
+#pragma GCC ivdep
+#endif
+            for (jj = 0; jj < fftlen * 2; jj += 2) {
+                const float dr = fpdata[jj], di = fpdata[jj+1];
+                const float kr = fkern[jj], ki = fkern[jj+1];
+                fdata[jj] = dr * kr + di * ki;
+                fdata[jj+1] = di * kr - dr * ki;
+            }
+            // Do the inverse FFT (tmpdat -> tmpout)
+            fftwf_execute_dft(invplan, (fftwf_complex *)tmpdat,
+                              (fftwf_complex *)tmpout);
+            // Turn the good parts of the result into powers and store
+            // them in the output matrix
+            fdata = (float *)tmpout;
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
+#pragma GCC ivdep
+#endif
+            for (jj = 0; jj < ffdot->numrs; jj++) {
+                const int ind = 2 * (jj + offset);
+                outpows[jj] = (fdata[ind] * fdata[ind] +
+                               fdata[ind+1] * fdata[ind+1]) * norm;
+            }
+        }
+        vect_free(tmpdat);
+        vect_free(tmpout);
+    }
+    // Free data and the spread-data
+    vect_free(data);
+    vect_free(pdata);
+    return ffdot;
 }
 
 
@@ -1097,30 +1164,47 @@ void add_ffdotpows_ptrs(ffdotpows * fundamental,
 void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs, 
                          int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, zind, subz;
-    const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
-    const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
     const double harm_fract = (double) harmnum / (double) numharm;
-    float *outpows, *inpows;
     int *indices;
     
     // Pre-compute the frequency lookup table
     indices = gen_ivect(numrs);
-    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-        indices[ii] = (int)(rrint * harm_fract + 0.5);
+    {
+        int ii, rrint;
+        for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+            indices[ii] = (int)(rrint * harm_fract + 0.5);
+    }
 
     // Now add all the powers
-    for (ii = 0; ii < numzs; ii++) {
-        zz = zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, zlo);
-        inpows = obs->ffdotplane + zind * rlen;
-        outpows = fundamental->powers[0] + ii * numrs;
-        for (jj = 0; jj < numrs; jj++)
-            outpows[jj] += inpows[indices[jj]];
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(indices,fundamental,obs)
+#endif
+    {
+        const int zlo = fundamental->zlo;
+        const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+        float *powptr = fundamental->powers[0];
+        float *fdp = obs->ffdotplane;
+        int ii, jj, zz, zind, subz;
+        float *inpows, *outpows;
+#ifdef _OPENMP
+#pragma omp for
+#endif
+        for (ii = 0; ii < numzs; ii++) {
+            zz = zlo + ii * ACCEL_DZ;
+            subz = calc_required_z(harm_fract, zz);
+            zind = index_from_z(subz, zlo);
+            inpows = fdp + zind * rlen;
+            outpows = powptr + ii * numrs;
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
+#pragma GCC ivdep
+#endif
+            for (jj = 0; jj < numrs; jj++)
+                outpows[jj] += inpows[indices[jj]];
+        }
     }
     vect_free(indices);
 }
@@ -1129,29 +1213,47 @@ void inmem_add_ffdotpows(ffdotpows *fundamental, accelobs *obs,
 void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs, 
                                int numharm, int harmnum)
 {
-    int ii, jj, zz, rrint, zind, subz;
-    const int zlo = fundamental->zlo;
     const int rlo = fundamental->rlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
     long *indices;
-    float *inpows, *outpows;
+
     
     // Pre-compute the frequency lookup table
     indices = gen_lvect(numrs);
-    for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-        indices[ii] = (long)(rrint * harm_fract + 0.5) * numzs;
+    {
+        int ii, rrint;
+        for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
+            indices[ii] = (long)(rrint * harm_fract + 0.5) * numzs;
+    }
 
     // Now add all the powers
-    for (ii = 0; ii < numzs; ii++) {
-        zz = zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, zlo);
-        inpows = obs->ffdotplane + zind;
-        outpows = fundamental->powers[0] + ii * numrs;
-        for (jj = 0; jj < numrs; jj++)
-            outpows[jj] += inpows[indices[jj]];
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(indices,fundamental,obs)
+#endif
+    {
+        const int zlo = fundamental->zlo;
+        float *powptr = fundamental->powers[0];
+        float *fdp = obs->ffdotplane;
+        int ii, jj, zz, zind, subz;
+        float *inpows, *outpows;
+#ifdef _OPENMP
+#pragma omp for
+#endif
+        for (ii = 0; ii < numzs; ii++) {
+            zz = zlo + ii * ACCEL_DZ;
+            subz = calc_required_z(harm_fract, zz);
+            zind = index_from_z(subz, zlo);
+            inpows = fdp + zind;
+            outpows = powptr + ii * numrs;
+#if (defined(__GNUC__) || defined(__GNUG__)) && \
+    !(defined(__clang__) || defined(__INTEL_COMPILER))
+#pragma GCC ivdep
+#endif
+            for (jj = 0; jj < numrs; jj++)
+                outpows[jj] += inpows[indices[jj]];
+        }
     }
     vect_free(indices);
 }
@@ -1160,14 +1262,18 @@ void inmem_add_ffdotpows_trans(ffdotpows *fundamental, accelobs *obs,
 GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
                          accelobs * obs, GSList * cands)
 {
-   int ii, jj;
+   int ii;
    float powcut;
    long long numindep;
 
    powcut = obs->powcut[twon_to_index(numharm)];
    numindep = obs->numindep[twon_to_index(numharm)];
 
+#ifdef _OPENMP
+#pragma omp parallel for shared(ffdot,powcut,obs,numharm,numindep)
+#endif
    for (ii = 0; ii < ffdot->numzs; ii++) {
+      int jj;
       for (jj = 0; jj < ffdot->numrs; jj++) {
          if (ffdot->powers[ii][jj] > powcut) {
             float pow, sig;
@@ -1178,11 +1284,17 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
             sig = candidate_sigma(pow, numharm, numindep);
             rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
             zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
-            cands = insert_new_accelcand(cands, pow, sig, numharm, rr, zz, &added);
+#ifdef _OPENMP
+#pragma omp critical
+#endif
+            {
+                cands = insert_new_accelcand(cands, pow, sig, numharm,
+                                             rr, zz, &added);
+            }
             if (added && !obs->dat_input)
-               fprintf(obs->workfile,
-                       "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
-                       pow, sig, numharm, rr, rr / obs->T, zz);
+                fprintf(obs->workfile,
+                        "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
+                        pow, sig, numharm, rr, rr / obs->T, zz);
          }
       }
    }
@@ -1216,7 +1328,7 @@ void deredden(fcomplex * fft, int numamps)
     // Write the first half of the normalized block
     // Note that this does *not* include a slope, but since it
     // is only a few bins, that is probably OK.
-    norm = invsqrt(mean_old);
+    norm = invsqrtf(mean_old);
     for (ind = numwrote; ind < binnum + buflen/2; ind++) {
         fft[ind].r *= norm;
         fft[ind].i *= norm;
@@ -1237,7 +1349,7 @@ void deredden(fcomplex * fft, int numamps)
 
         // Correct the last-half of the old block...
         for (ii = 0, ind = numwrote; ind < binnum + buflen/2; ii++, ind++) {
-            norm = invsqrt(mean_old + dslope * ii);
+            norm = invsqrtf(mean_old + dslope * ii);
             fft[ind].r *= norm;
             fft[ind].i *= norm;
             //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
@@ -1255,7 +1367,7 @@ void deredden(fcomplex * fft, int numamps)
 
     // Deal with the last chunk (assume same slope as before)
     for (ii = 0, ind = numwrote; ind < numamps; ii++, ind++) {
-        norm = invsqrt(mean_old + dslope * ii);
+        norm = invsqrtf(mean_old + dslope * ii);
         fft[ind].r *= norm;
         fft[ind].i *= norm;
     }
@@ -1307,7 +1419,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
    /* Read the info file */
 
    readinf(idata, obs->rootfilenm);
-   if (idata->object) {
+   if (strlen(remove_whitespace(idata->object)) > 0) {
       printf("Analyzing %s data from '%s'.\n\n",
              remove_whitespace(idata->object), cmd->argv[0]);
    } else {

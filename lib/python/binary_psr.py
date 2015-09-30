@@ -127,9 +127,9 @@ class binary_psr:
         vs = self.radial_velocity(MJD)*1000.0 # m/s
         return self.par.P0*(1.0+vs/SOL)
 
-    def position(self, MJD, inc=60.0):
+    def position(self, MJD, inc=60.0, returnz=False):
         """
-        position(MJD):
+        position(MJD, inc=60.0, returnz=False):
             Return the 'x' (along the LOS with + being towards us) and 'y' (in the
                 plane of the sky with + being away from the line of nodes and -
                 being in the direction of the line of nodes) positions of the
@@ -137,15 +137,41 @@ class binary_psr:
                 (Note:  This places the observer at (+inf,0.0) and the line of nodes
                 extending towards (0.0,-inf) with the pulsar orbiting (0.0,0.0)
                 clockwise).  'inc' is the inclination of the orbit in degrees.
-                MJD can be an array.  The return value is (xs, ys).
+                MJD can be an array.  The return value is (xs, ys).  If returnz
+                is True, return (xs, ys, zs), where 'z' is the other in-the-sky
+                direction.
         """
         ma, ea, ta = self.calc_anoms(MJD)
         ws = self.calc_omega(MJD)
         orb_phs = ta + ws
         sini = Num.sin(inc*DEGTORAD)
-        x = self.par.A1/sini
+        x = self.par.A1/sini # This is a since A1 is asini
         r = x*(1.0-self.par.E*self.par.E)/(1.0+self.par.E*Num.cos(ta))
-        return -r*Num.sin(orb_phs)*sini, -r*Num.cos(orb_phs)
+        if returnz:
+            return -r*Num.sin(orb_phs)*sini, -r*Num.cos(orb_phs), \
+                -r*Num.sin(orb_phs)*Num.cos(inc*DEGTORAD)
+        else:
+            return -r*Num.sin(orb_phs)*sini, -r*Num.cos(orb_phs)
+
+    def reflex_motion(self, MJD, inc, Omega, dist):
+        """
+        reflex_motion(MJD, inc, Omega, dist):
+            Return the projected on-sky orbital reflex motion in mas referenced
+                to Omega, which is the line-of-nodes, counter-clockwise from
+                North towards East.  The distance to the pulsar is in kpc.
+                The returned values are dRA (corrected by cos(dec)), dDEC.
+        """
+        xs, ys, zs = self.position(MJD, inc, returnz=True)
+        # With this defn of Omega, the rotation is a "standard" rotation
+        # matrix with the angle theta = Omega + 90 deg, although RA increases
+        # in the opposite direction (so dRA gets a negative)
+        ys = -ys / dist * 2.003988804115705e-03 # in mas
+        zs = -zs / dist * 2.003988804115705e-03 # in mas
+        theta = Omega + 90.0
+        sino, coso = Num.sin(theta*DEGTORAD), Num.cos(theta*DEGTORAD)
+        dRA = -(coso * zs - sino * ys) / Num.cos(self.par.DEC_RAD)
+        dDEC = (sino * zs + coso * ys)
+        return dRA, dDEC
 
     def demodulate_TOAs(self, MJD):
         """

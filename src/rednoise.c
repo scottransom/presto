@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         // Write out the first half of the normalized block
         // Note that this does *not* include a slope, but since it
         // is only a few bins, that is probably OK.
-        norm = invsqrt(mean_old);
+        norm = invsqrtf(mean_old);
         for (ii = 0; ii < mid_old; ii++) {
             outbuf[ii].r = oldbuf[ii].r * norm;
             outbuf[ii].i = oldbuf[ii].i * norm;
@@ -132,14 +132,14 @@ int main(int argc, char *argv[])
 
             // Correct the last-half of the old block...
             for (ii = 0, ind = mid_old; ind < nblk_old; ii++, ind++) {
-                norm = invsqrt(mean_old + dslope * ii);
+                norm = invsqrtf(mean_old + dslope * ii);
                 outbuf[ii].r = oldbuf[ind].r * norm;
                 outbuf[ii].i = oldbuf[ind].i * norm;
                 //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
             }
             // ...and the first-half of the new block
             for (ind = 0; ind < mid_new; ii++, ind++) {
-                norm = invsqrt(mean_old + dslope * ii);
+                norm = invsqrtf(mean_old + dslope * ii);
                 outbuf[ii].r = newbuf[ind].r * norm;
                 outbuf[ii].i = newbuf[ind].i * norm;
                 //printf("  %10ld %4d %.5g\n", ii+numwrote, ii, 1.0/(norm*norm));
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
         }
         // Deal with the last chunk (assume same slope as before)
         for (ii = 0, ind = mid_old; ind < nblk_old; ii++, ind++) {
-            norm = invsqrt(mean_old + dslope * ii);
+            norm = invsqrtf(mean_old + dslope * ii);
             outbuf[ii].r = oldbuf[ind].r * norm;
             outbuf[ii].i = oldbuf[ind].r * norm;
         }

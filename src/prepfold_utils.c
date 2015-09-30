@@ -573,6 +573,7 @@ void read_prepfoldinfo(prepfoldinfo * in, char *filename)
 {
    FILE *infile;
    int itmp, byteswap = 0;
+   char temp[16];
 
    infile = chkfopen(filename, "rb");
    in->numdms = read_int(infile, byteswap);
@@ -608,10 +609,35 @@ void read_prepfoldinfo(prepfoldinfo * in, char *filename)
    itmp = read_int(infile, byteswap);
    in->pgdev = calloc(itmp + 1, sizeof(char));
    chkfread(in->pgdev, sizeof(char), itmp, infile);
-   chkfread(in->rastr, sizeof(char), 16, infile);
-   chkfread(in->decstr, sizeof(char), 16, infile);
-   in->dt = read_double(infile, byteswap);
-   in->startT = read_double(infile, byteswap);
+   //chkfread(in->rastr, sizeof(char), 16, infile);
+   {
+       int has_posn = 1, ii;
+       chkfread(temp, sizeof(char), 16, infile);
+       /* Check to see if a position string was written */
+       for (ii = 0; ii < 16; ii++){
+           if (!isdigit(temp[ii]) &&
+               temp[ii] != ':' &&
+               temp[ii] != '.' &&
+               temp[ii] != '-' &&
+               temp[ii] != '\0'){
+               has_posn = 0;
+               break;
+           }
+       }
+       if (has_posn){
+           strcpy(in->rastr, temp);
+           chkfread(in->decstr, sizeof(char), 16, infile);
+           in->dt = read_double(infile, byteswap);
+           in->startT = read_double(infile, byteswap);
+       } else {
+           strcpy(in->rastr, "Unknown");
+           strcpy(in->decstr, "Unknown");
+           in->dt = *(double *)(temp + 0);
+           if (byteswap) in->dt = swap_double(in->dt);
+           in->startT = *(double *)(temp + sizeof(double));
+           if (byteswap) in->startT = swap_double(in->startT);
+       }
+   }
    in->endT = read_double(infile, byteswap);
    in->tepoch = read_double(infile, byteswap);
    in->bepoch = read_double(infile, byteswap);

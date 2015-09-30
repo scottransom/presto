@@ -30,13 +30,15 @@ class pfd:
         self.telescope = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         self.pgdev = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         test = infile.read(16)
-        if not test[:8]=="Unknown":
+        if not test[:8]=="Unknown" and ':' in test:
             self.rastr = test[:test.find('\0')]
             test = infile.read(16)
             self.decstr = test[:test.find('\0')]
         else:
             self.rastr = "Unknown"
             self.decstr = "Unknown"
+            if ':' not in test:
+                infile.seek(-16, 1) # rewind the file before the bad read
         (self.dt, self.startT) = struct.unpack(swapchar+"dd", infile.read(2*8))
         (self.endT, self.tepoch, self.bepoch, self.avgvoverc, self.lofreq, \
          self.chan_wid, self.bestdm) = struct.unpack(swapchar+"d"*7, infile.read(7*8))

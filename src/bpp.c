@@ -12,7 +12,7 @@ static double times_st[MAXPATCHFILES], mjds_st[MAXPATCHFILES];
 static double elapsed_st[MAXPATCHFILES], T_st, dt_st;
 static double startblk_st[MAXPATCHFILES], endblk_st[MAXPATCHFILES];
 static infodata idata_st[MAXPATCHFILES];
-static float padvals[MAXNUMCHAN], padval = 4;
+//static float padvals[MAXNUMCHAN], padval = 4;
 //static unsigned char databuffer[2 * MAXDATLEN];
 static unsigned char *splitbytes_buffer[MAXPATCHFILES];
 static int currentfile, currentblock, both_IFs_present = 0;
@@ -23,7 +23,7 @@ static double mid_freq_st, ch1_freq_st, delta_freq_st;
 static double chan_freqs[2 * MAXNUMCHAN];
 static int chan_index[2 * MAXNUMCHAN], chan_mapping[2 * MAXNUMCHAN];
 static float clip_sigma_st = 0.0;
-static int using_MPI = 0;
+//static int using_MPI = 0;
 
 #if 0
 static double chan_freqs2[2 * MAXNUMCHAN];

@@ -1273,7 +1273,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
           char *command;
           command = (char *)malloc(2 * strlen(search->pgdev) + 60);
           // First test to see if pstoimg exists
-          strcpy(command, "which pstoimg > /dev/null");
+          strcpy(command, "which pstoimg >& /dev/null");
           retval = system(command);
           // If the command exists, then convert the .ps to .png
           if (retval==0) {

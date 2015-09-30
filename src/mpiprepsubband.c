@@ -7,6 +7,11 @@
 #include "backend_common.h"
 #include "mpi.h"
 
+// Use OpenMP
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP \
                  || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
 
@@ -78,6 +83,9 @@ int main(int argc, char *argv[])
    MPI_Init(&argc, &argv);
    MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
    MPI_Comm_rank(MPI_COMM_WORLD, &myid);
+#ifdef _OPENMP
+   omp_set_num_threads(1); // Explicitly turn off OpenMP
+#endif
    set_using_MPI();
    {
       FILE *hostfile;

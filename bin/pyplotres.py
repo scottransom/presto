@@ -297,6 +297,8 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
         tick_formatter.set_scientific(False)
         axes[-1].xaxis.set_major_formatter(tick_formatter)
 
+        xmin, xmax = axes[0].get_xlim()
+        
         for ii,(lo,hi) in enumerate(tempo_results.freqbands):
             freq_label = get_freq_label(lo, hi)
             resids = tempo_results.residuals[freq_label]
@@ -311,6 +313,10 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
                     handles.append(handle[0])
                     labels.append(freq_label)
                 TOAcount += xdata.size
+        
+        if subplot > 1:
+            axes[0].set_xlim((xmin, xmax))
+        
         # Finish off the plot
         plt.axhline(0, ls='--', label="_nolegend_", c='k', lw=0.5)
         axes[-1].ticklabel_format(style='plain', axis='x')
@@ -322,7 +328,7 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
                 binpsr = binary_psr.binary_psr(tempo_results.outpar.FILE)
             else:
                 binpsr = binary_psr.binary_psr(tempo_results.inpar.FILE)
-            xmin, xmax = plt.xlim()
+            xmin, xmax = axes[0].get_xlim()
             mjd_min = tempo_results.min_TOA
             mjd_max = tempo_results.max_TOA
             guess_mjds = np.arange(mjd_max + binpsr.par.PB, \
@@ -334,7 +340,7 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
                 elif xkey == 'year':
                     print "plotting peri passage"
                     plt.axvline(mjd_to_year(peri_mjd), ls=':', label='_nolegend_', c='k', lw=0.5)
-            plt.xlim((xmin, xmax))
+            axes[0].set_xlim((xmin, xmax))
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         if usepostfit:
@@ -408,7 +414,7 @@ def redrawplot():
     #plt.show()
 
 def quit():
-    print "Quiting..."
+    print "Quitting..."
     sys.exit(0)
 
 
@@ -444,6 +450,7 @@ def print_help():
     print "\tp - Toggle prefit display on/off"
     print "\tP - Toggle postfit display on/off"
     print "\tz - Toggle Zoom-mode on/off"
+    print "\tm - Toggle marking of periastron passages on/off"
     print "\tL - Toggle legend on/off"
     print "\to - Go to original view"
     print "\t< - Go to previous view"
@@ -463,7 +470,7 @@ def keypress(event):
     global options
     global xind, xvals
     global yind, yvals
-    if type(event.key) == types.StringType:
+    if type(event.key) in [types.StringType, types.UnicodeType]:
         if event.key.lower() == 'q':
             quit()
         elif event.key.lower() == 's':
@@ -482,6 +489,11 @@ def keypress(event):
             # Turn on zoom mode
             print "Toggling zoom mode..."
             event.canvas.toolbar.zoom()
+        elif event.key.lower() == 'm':
+            # Toggle peri markings
+            print "Toggling periastron passage markings..."
+            options.mark_peri = not options.mark_peri
+            reloadplot()
         elif event.key.lower() == 'o':
             # Restore plot to original view
             print "Restoring plot..."
@@ -599,8 +611,6 @@ def parse_options():
     if np.any(freqbands.flat != sorted(freqbands.flat)):
         raise ValueError("Frequency bands have overlaps or are inverted.")
     options.freqbands = freqbands
-
-    options.mark_peri = False
 
     if not options.prefit and not options.postfit:
         # If neither prefit or postfit are selected
