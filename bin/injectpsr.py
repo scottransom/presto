@@ -1165,7 +1165,7 @@ class ScaleHelpAction(argparse.Action):
         "         'rms' - (float) the RMS of the cleaned DM=0 timeseries\n\n" + \
         "radiometer - Scale the injected signal so the integrated \n" + \
         "             profile has the given mean flux density\n" + \
-        "Configs: 'smean' - (float) the target mean flux density\n" + \
+        "Configs: 'smean' - (float) the target mean flux density (in mJy)\n" + \
         "         'gain'  - (float) the telescope's gain (in K/Jy)\n" + \
         "         'tsys'  - (float) the observing system's temperature (in K)\n" + \
         "         'rms'   - (float) the RMS of the cleaned DM=0 timeseries\n\n" + \
