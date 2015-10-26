@@ -69,8 +69,7 @@ def choose_N(orig_N):
     two_N = 2
     while two_N < orig_N:
         two_N *= 2
-    if two_N < new_N: return two_N
-    else: return new_N
+    return min(two_N, new_N)
 
 def running_avg(arr, navg):
     """
@@ -537,7 +536,7 @@ def galactic_accel_simple(l, b, D):
         vectors, and n is the los vector.  This assumes a simple spherically
         symmetric isothermal sphere with v_o = 220 km/s circular velocity
         and R_o = 8 kpc to the center of the sphere from the SSB.  l and
-        b are the galactic longitude and latitude (in deg) respectively, 
+        b are the galactic longitude and latitude (in deg) respectively,
         and D is the distance in kpc.  This is eqn 2.4 of Phinney 1992.
     """
     v_o = 220.0 # km/s
