@@ -166,7 +166,6 @@ void get_backend_name(int machine_id, struct spectra_info *s)
    }
    backend = (char *) calloc(strlen(string) + 1, 1);
    strcpy(backend, string);
-   return backend;
 }
 
 
