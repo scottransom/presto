@@ -46,6 +46,7 @@ class rfifind:
         self.read_mask()
         self.get_bandpass()
         self.get_median_bandpass()
+        self.determine_padvals()
 
     def read_stats(self):
         x = open(self.basename+".stats")
@@ -87,6 +88,7 @@ class rfifind:
             else:
                 tozap = np.asarray([])
             self.mask_zap_chans_per_int.append(tozap)
+        print x.tell()
         x.close()
 
     def get_bandpass(self, plot=False):
@@ -123,6 +125,20 @@ class rfifind:
                    self.freqs, color="red")
             closeplot()
         return self.median_bandpass_avg
+
+    def determine_padvals(self, frac_to_keep=0.8):
+        """
+        determine_padvals():
+            This routines determines padding values to use for each
+            channel.
+        """
+        # NOTE: Casting to 64/32-bit floats are done to mimick 'mask.c'.
+        num = int(np.round(self.nint*frac_to_keep))
+        start = (self.nint - num)/2
+        self.padvals = np.zeros(self.nchan, dtype='float32')
+        for ichan in xrange(self.nchan):
+            isort = np.argsort(self.avg_stats[:,ichan])
+            self.padvals[ichan] = np.mean(self.avg_stats.astype('float64')[isort,ichan][start:start+num])
 
     def get_pow_zap_chans(self, pow_threshold=100.0):
         return np.where(self.bandpass_pow > pow_threshold)[0]
