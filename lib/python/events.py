@@ -86,42 +86,40 @@ def coherent_sum(amps):
     sumamps = Num.add.accumulate(amps*Num.exp(complex(0.0, 1.0)*phscorr))
     return Num.abs(sumamps)**2.0
 
-def Htest_exact(phases, maxnumharms=20):
+def Htest_exact(phases, maxnumharms=20, weights=None):
     """
-    Htest_exact(phases, maxnumharms=20):
+    Htest_exact(phases, maxnumharms=20, weights=None):
        Return an exactly computed (i.e. unbinned) H-test statistic
        for periodicity for the events with folded phases 'phases' [0,1).
        Also return the best number of harmonics.  The H-statistic and
        harmonic number are returned as a tuple: (hstat, harmnum).
-       This routine returns the _non_ Leahy normalized H-statistic,
-       which means that it is a factor of 2 lower than the published
-       H-statistic.  This is so that it corresponds with all of the
-       other power normalizations done by PRESTO (where the average
-       noise powers are normalized to one rather than two).
+       This routine returns the Leahy normalized H-statistic, and the
+       best number of harmonics summed.  If weights are set to be
+       fractional photon weights, then the weighted Htest is returned
+       (see Kerr 2011: http://arxiv.org/pdf/1103.2128.pdf)
     """
     N = len(phases)
-    Zm2s = Num.zeros(maxnumharms, dtype=Num.float)
-    rad_phases = TWOPI*phases
+    Zm2s = np.zeros(maxnumharms, dtype=np.float)
+    rad_phases = 2.0*np.pi*phases
+    weightfact = 1.0/(np.sum(weights**2.0) / N) if \
+                 weights is not None else 1.0
     for harmnum in range(1, maxnumharms+1):
         phss = harmnum*rad_phases
-        Zm2s[harmnum-1] = 2.0/N*(Num.add.reduce(Num.sin(phss))**2.0+
-                                 Num.add.reduce(Num.cos(phss))**2.0)
-    hs = Num.add.accumulate(Zm2s) - \
-         4.0*Num.arange(1, maxnumharms+1, dtype=Num.float)+4.0
+        Zm2s[harmnum-1] = 2.0/N*(np.add.reduce(np.sin(phss))**2.0+
+                                 np.add.reduce(np.cos(phss))**2.0)
+        Zm2s[harmnum-1] *= weightfact
+    hs = np.add.accumulate(Zm2s) - \
+         4.0*np.arange(1.0, maxnumharms+1)+4.0
     bestharm = hs.argmax()
-    # Note that we are returning the _non_ Leahy normalized H!
-    return (hs[bestharm]/2.0, bestharm+1)
+    return (hs[bestharm], bestharm+1)
 
 def Hstat_prob(h):
     """
     Hstat_prob(h):
        Return the probability associated with an H-test statistic
-       of value 'h'.  Uses de Jager & Busching 2010 result.  This
-       assumes that the H-statistic is _not_ Leahy normalized!
-       Divide 'h' by two if you are using the published H-test
-       normalization!.
+       of value 'h'.  Uses de Jager & Busching 2010 result.
     """
-    return Num.exp(-0.4 * 2.0 * h)
+    return Num.exp(-0.4 * h)
 
 def gauss_sigma_to_prob(sigma):
     """
