@@ -7,8 +7,8 @@
 
 extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 
-/* 
- * The main program 
+/*
+ * The main program
  */
 
 int main(int argc, char *argv[])
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
       int numkillparts = 0, numkillsubs = 0;
 
       if (cmd->killpartsstrP) {
-         killparts = ranges_to_ivect(cmd->killpartsstr, 0, 
+         killparts = ranges_to_ivect(cmd->killpartsstr, 0,
                                      search.npart - 1, &numkillparts);
          for (ii = 0; ii < numkillparts; ii++) {
             if ((killparts[ii] >= 0) && (killparts[ii] < search.npart)) {
@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
          free(killparts);
       }
       if (cmd->killsubsstrP) {
-         killsubs = ranges_to_ivect(cmd->killsubsstr, 0, 
+         killsubs = ranges_to_ivect(cmd->killsubsstr, 0,
                                     search.nsub - 1, &numkillsubs);
          for (ii = 0; ii < numkillsubs; ii++) {
             if ((killsubs[ii] >= 0) && (killsubs[ii] < search.nsub)) {

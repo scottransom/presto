@@ -534,6 +534,7 @@ class pfd:
         """
         # Use the same scaling as in prepfold_plot.c
         global_max = Num.maximum.reduce(Num.maximum.reduce(array2d))
+        if (global_max==0.0):  global_max = 1.0
         min_parts = Num.minimum.reduce(array2d, 1)
         array2d = (array2d-min_parts[:,Num.newaxis])/Num.fabs(global_max)
         Pgplot.plot2d(array2d, image='antigrey', **kwargs)

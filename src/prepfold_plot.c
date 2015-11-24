@@ -456,7 +456,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
          pdd_delays[ii] = fdotdot2phasedelay(dfdd, parttimes[ii]);
 
       {                         /* Correct for and fold the best profile */
-         double *tmp_profs, gmin, gmax;
+         double *tmp_profs, gmin = 1e100, gmax = -1e100;
 
          bestprof = gen_fvect(2 * search->proflen);
          dbestprof = gen_dvect(search->proflen);
@@ -467,6 +467,8 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
 
          /* Determine the global min and max in the profiles */
          dminmax(ddprofs, search->npart * search->proflen, &gmin, &gmax);
+         // Take care of a possible rare corner case
+         if (gmax==0.0) gmax = 1.0;
 
          /* Compute the errors in fdot, and f to correct */
          df = 1.0 / bestp - search->fold.p1;
