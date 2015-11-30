@@ -528,9 +528,9 @@ def shklovskii_effect(pm, D):
     """
     return (pm/1000.0*ARCSECTORAD/SECPERJULYR)**2.0 * KMPERKPC*D / (C/1000.0)
 
-def galactic_accel_simple(l, b, D, v_o=220.0, R_o = 8.0):
+def galactic_accel_simple(l, b, D, v_o=240.0, R_o = 8.34):
     """
-    galactic_accel_simple(l, b, D, v_o=220.0, R_o = 8.0):
+    galactic_accel_simple(l, b, D, v_o=240.0, R_o = 8.34):
         Return the approximate projected acceleration/c (in s^-1)
         (a_p - a_ssb) dot n / c, where a_p and a_ssb are acceleration
         vectors, and n is the los vector.  This assumes a simple spherically
@@ -538,21 +538,23 @@ def galactic_accel_simple(l, b, D, v_o=220.0, R_o = 8.0):
         and R_o = 8 kpc to the center of the sphere from the SSB.  l and
         b are the galactic longitude and latitude (in deg) respectively,
         and D is the distance in kpc.  This is eqn 2.4 of Phinney 1992.
+        The default v_o and R_o values are from Reid et al 2014.
     """
     A_sun = v_o*v_o / (C/1000.0 * R_o*KMPERKPC)
     d = D/R_o
     cbcl = Num.cos(b*DEGTORAD) * Num.cos(l*DEGTORAD)
     return -A_sun * (cbcl + (d - cbcl) / (1.0 + d*d - 2.0*d*cbcl))
 
-def galactic_accel(l, b, D, v_o=220.0, R_o = 8.0):
+def galactic_accel(l, b, D, v_o=240.0, R_o = 8.34):
     """
-    galactic_accel(l, b, D, v_o=220.0, R_o = 8.0):
+    galactic_accel(l, b, D, v_o=240.0, R_o = 8.34):
         Return the approximate projected acceleration/c (in s^-1)
         (a_p - a_ssb) dot n / c, where a_p and a_ssb are acceleration
         vectors, and n is the los vector.  This assumes v_o = 220 km/s
         circular velocity and R_o = 8 kpc to the center of Galaxy.  l and
         b are the galactic longitude and latitude (in deg) respectively,
         and D is the distance in kpc.  This is eqn 5 of Nice & Taylor 1995.
+        The default v_o and R_o values are from Reid et al 2014.
     """
     A_sun = v_o*v_o / (C/1000.0 * R_o*KMPERKPC)
     cb = Num.cos(b*DEGTORAD)
