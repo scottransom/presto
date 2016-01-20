@@ -96,7 +96,8 @@ class polyco:
                 nlines = self.numcoeff//3
                 for coeffnum in range(len(sl)):
                     self.coeffs[nlines*3+coeffnum] = float(sl[coeffnum].replace('D', 'E'))
-    
+            self.phasepoly = Num.polynomial.polynomial.Polynomial(self.coeffs)
+
     def phase(self, mjdi, mjdf):
         """
         self.phase(mjdi, mjdf):
@@ -111,9 +112,10 @@ class polyco:
             given integer and fractional MJD.
         """
         DT = ((mjdi-self.TMIDi)+(mjdf-self.TMIDf))*1440.0
-        phase = self.coeffs[self.numcoeff-1]
-        for ii in range(self.numcoeff-1, 0, -1):
-            phase = DT*phase + self.coeffs[ii-1]
+        phase = self.phasepoly(DT)
+        #phase = self.coeffs[self.numcoeff-1]
+        #for ii in range(self.numcoeff-1, 0, -1):
+        #    phase = DT*phase + self.coeffs[ii-1]
         phase += self.RPHASE + DT*60.0*self.F0
         return phase 
 
@@ -202,7 +204,6 @@ class polycos:
         """
         goodpoly = self.select_polyco(mjdi, mjdf)
         return self.polycos[goodpoly].doppler
-
 
 def create_polycos(parfn, telescope_id, center_freq, start_mjd, end_mjd, \
                     max_hour_angle=None, span=SPAN_DEFAULT, \
