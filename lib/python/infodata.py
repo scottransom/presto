@@ -71,3 +71,73 @@ class infodata:
                 self.analyzer = line.split("=")[-1].strip()
                 continue
             
+    def to_file(self, inffn, notes=None):
+        if not inffn.endswith(".inf"):
+            raise ValueError("PRESTO info files must end with '.inf'. "
+                             "Got: %s" % inffn)
+        with open(inffn, 'w') as ff:
+            if hasattr(self, 'basenm'):
+                ff.write(" Data file name without suffix          =  %s\n" %
+                         self.basenm)
+            if hasattr(self, 'telescope'):
+                ff.write(" Telescope used                         =  %s\n" %
+                         self.telescope)
+            if hasattr(self, 'instrument'):
+                ff.write(" Instrument used                        =  %s\n" %
+                         self.instrument)
+            if hasattr(self, 'object'):
+                ff.write(" Object being observed                  =  %s\n" %
+                         self.object)
+            if hasattr(self, 'RA'):
+                ff.write(" J2000 Right Ascension (hh:mm:ss.ssss)  =  %s\n" %
+                         self.RA)
+            if hasattr(self, 'DEC'):
+                ff.write(" J2000 Declination     (dd:mm:ss.ssss)  =  %s\n" %
+                         self.DEC)
+            if hasattr(self, 'observer'):
+                ff.write(" Data observed by                       =  %s\n" %
+                         self.observer)
+            if hasattr(self, 'epoch'):
+                ff.write(" Epoch of observation (MJD)             =  %05.15f\n" %
+                         self.epoch)
+            if hasattr(self, 'bary'):
+                ff.write(" Barycentered?           (1=yes, 0=no)  =  %d\n" %
+                         self.bary)
+            if hasattr(self, 'N'):
+                ff.write(" Number of bins in the time series      =  %d\n" %
+                         self.N)
+            if hasattr(self, 'dt'):
+                ff.write(" Width of each time series bin (sec)    =  %.15g\n" %
+                         self.dt)
+            if hasattr(self, 'breaks') and self.breaks:
+                ff.write(" Any breaks in the data? (1 yes, 0 no)  =  1\n")
+                if hasattr(self, 'onoff'):
+                    for ii, (on, off) in enumerate(self.onoff, 1):
+                        ff.write(" On/Off bin pair #%3d                   =  %d, %d\n" %
+                                 (ii, on, off))
+            else:
+                ff.write(" Any breaks in the data? (1 yes, 0 no)  =  0\n")
+            if hasattr(self, 'DM'):
+                ff.write(" Dispersion measure (cm-3 pc)           =  %f\n" %
+                         self.DM)
+            if hasattr(self, 'lofreq'):
+                ff.write(" Central freq of low channel (Mhz)      =  %f\n" %
+                         self.lofreq)
+            if hasattr(self, 'BW'):
+                ff.write(" Total bandwidth (Mhz)                  =  %f\n" %
+                         self.BW)
+            if hasattr(self, 'numchan'):
+                ff.write(" Number of channels                     =  %d\n" %
+                         self.numchan)
+            if hasattr(self, 'chan_width'):
+                ff.write(" Channel bandwidth (Mhz)                =  %d\n" %
+                         self.chan_width)
+            if hasattr(self, 'analyzer'):
+                ff.write(" Data analyzed by                       =  %s\n" %
+                         self.analyzer)
+            if hasattr(self, 'deorbited'):
+                ff.write(" Orbit removed?          (1=yes, 0=no)  =  %d\n" %
+                         self.deorbited)
+            ff.write(" Any additional notes:\n")
+            if notes is not None:
+                ff.write("    %s\n" % notes.strip())
