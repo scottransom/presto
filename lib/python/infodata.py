@@ -104,7 +104,7 @@ class infodata:
                 ff.write(" Barycentered?           (1=yes, 0=no)  =  %d\n" %
                          self.bary)
             if hasattr(self, 'N'):
-                ff.write(" Number of bins in the time series      =  %d\n" %
+                ff.write(" Number of bins in the time series      =  %-11.0f\n" %
                          self.N)
             if hasattr(self, 'dt'):
                 ff.write(" Width of each time series bin (sec)    =  %.15g\n" %
@@ -113,24 +113,24 @@ class infodata:
                 ff.write(" Any breaks in the data? (1 yes, 0 no)  =  1\n")
                 if hasattr(self, 'onoff'):
                     for ii, (on, off) in enumerate(self.onoff, 1):
-                        ff.write(" On/Off bin pair #%3d                   =  %d, %d\n" %
+                        ff.write(" On/Off bin pair #%3d                   =  %-11.0f, %-11.0f\n" %
                                  (ii, on, off))
             else:
                 ff.write(" Any breaks in the data? (1 yes, 0 no)  =  0\n")
             if hasattr(self, 'DM'):
-                ff.write(" Dispersion measure (cm-3 pc)           =  %f\n" %
+                ff.write(" Dispersion measure (cm-3 pc)           =  %.12g\n" %
                          self.DM)
             if hasattr(self, 'lofreq'):
-                ff.write(" Central freq of low channel (Mhz)      =  %f\n" %
+                ff.write(" Central freq of low channel (Mhz)      =  %.12g\n" %
                          self.lofreq)
             if hasattr(self, 'BW'):
-                ff.write(" Total bandwidth (Mhz)                  =  %f\n" %
+                ff.write(" Total bandwidth (Mhz)                  =  %.12g\n" %
                          self.BW)
             if hasattr(self, 'numchan'):
                 ff.write(" Number of channels                     =  %d\n" %
                          self.numchan)
             if hasattr(self, 'chan_width'):
-                ff.write(" Channel bandwidth (Mhz)                =  %d\n" %
+                ff.write(" Channel bandwidth (Mhz)                =  %.12g\n" %
                          self.chan_width)
             if hasattr(self, 'analyzer'):
                 ff.write(" Data analyzed by                       =  %s\n" %
