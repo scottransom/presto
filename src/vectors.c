@@ -2,300 +2,299 @@
 
 float *gen_fvect(long length)
 {
-   float *v;
+    float *v;
 
-   v = (float *) fftwf_malloc((size_t) (sizeof(float) * length));
-   if (!v) {
-      perror("\nError in gen_fvect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (float *) fftwf_malloc((size_t) (sizeof(float) * length));
+    if (!v) {
+        perror("\nError in gen_fvect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 double *gen_dvect(long length)
 {
-   double *v;
+    double *v;
 
-   v = (double *) fftwf_malloc((size_t) (sizeof(double) * length));
-   if (!v) {
-      perror("\nError in gen_dvect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (double *) fftwf_malloc((size_t) (sizeof(double) * length));
+    if (!v) {
+        perror("\nError in gen_dvect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 fcomplex *gen_cvect(long length)
 {
-   fcomplex *v;
+    fcomplex *v;
 
-   v = (fcomplex *) fftwf_malloc((size_t) (sizeof(fcomplex) * length));
-   if (!v) {
-      perror("\nError in gen_cvect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (fcomplex *) fftwf_malloc((size_t) (sizeof(fcomplex) * length));
+    if (!v) {
+        perror("\nError in gen_cvect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 short *gen_svect(long length)
 {
-   short *v;
+    short *v;
 
-   v = (short *) fftwf_malloc((size_t) (sizeof(short) * length));
-   if (!v) {
-      perror("\nError in gen_svect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (short *) fftwf_malloc((size_t) (sizeof(short) * length));
+    if (!v) {
+        perror("\nError in gen_svect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 int *gen_ivect(long length)
 {
-   int *v;
+    int *v;
 
-   v = (int *) fftwf_malloc((size_t) (sizeof(int) * length));
-   if (!v) {
-      perror("\nError in gen_ivect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (int *) fftwf_malloc((size_t) (sizeof(int) * length));
+    if (!v) {
+        perror("\nError in gen_ivect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 long *gen_lvect(long length)
 {
-   long *v;
+    long *v;
 
-   v = (long *) fftwf_malloc((size_t) (sizeof(long) * length));
-   if (!v) {
-      perror("\nError in gen_lvect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (long *) fftwf_malloc((size_t) (sizeof(long) * length));
+    if (!v) {
+        perror("\nError in gen_lvect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 unsigned char *gen_bvect(long length)
 {
-   unsigned char *v;
+    unsigned char *v;
 
-   v = (unsigned char *) fftwf_malloc((size_t) (sizeof(unsigned char) * length));
-   if (!v) {
-      perror("\nError in gen_bvect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (unsigned char *) fftwf_malloc((size_t) (sizeof(unsigned char) * length));
+    if (!v) {
+        perror("\nError in gen_bvect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 rawtype *gen_rawvect(long length)
 /* Allocate a vector of length 'length' rawtype points */
 {
-   rawtype *v;
+    rawtype *v;
 
-   v = (rawtype *) fftwf_malloc((size_t) (sizeof(rawtype) * length));
-   if (!v) {
-      perror("\nError in gen_rawvect()");
-      printf("\n");
-      exit(-1);
-   }
-   return v;
+    v = (rawtype *) fftwf_malloc((size_t) (sizeof(rawtype) * length));
+    if (!v) {
+        perror("\nError in gen_rawvect()");
+        printf("\n");
+        exit(-1);
+    }
+    return v;
 }
 
 
 unsigned char **gen_bmatrix(long nrows, long ncols)
 {
-   /* Note:  To free this matrix, assuming you called it with:    */
-   /*             x = gen_bmatrix(10,10);                         */
-   /*        all you need to do is the following:                 */
-   /*             free(x[0]) ; free(x) ;                          */
-   /*        The order is important!                              */
+    /* Note:  To free this matrix, assuming you called it with:    */
+    /*             x = gen_bmatrix(10,10);                         */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0]) ; free(x) ;                          */
+    /*        The order is important!                              */
 
-   long i;
-   unsigned char **m;
+    long i;
+    unsigned char **m;
 
-   m = (unsigned char **) fftwf_malloc((size_t) (nrows * sizeof(unsigned char *)));
-   if (!m) {
-      perror("\nError in 1st malloc() in gen_bmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   m[0] =
-       (unsigned char *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(unsigned char)));
-   if (!m[0]) {
-      perror("\nError in 2nd malloc() in gen_bmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   for (i = 1; i < nrows; i++)
-      m[i] = m[i - 1] + ncols;
-   return m;
+    m = (unsigned char **) fftwf_malloc((size_t) (nrows * sizeof(unsigned char *)));
+    if (!m) {
+        perror("\nError in 1st malloc() in gen_bmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    m[0] = (unsigned char *)
+        fftwf_malloc((size_t) ((nrows * ncols) * sizeof(unsigned char)));
+    if (!m[0]) {
+        perror("\nError in 2nd malloc() in gen_bmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    for (i = 1; i < nrows; i++)
+        m[i] = m[i - 1] + ncols;
+    return m;
 }
 
 
 short **gen_smatrix(long nrows, long ncols)
 {
-   /* Note:  To free this matrix, assuming you called it with:    */
-   /*             x = gen_smatrix(10,10);                         */
-   /*        all you need to do is the following:                 */
-   /*             free(x[0]) ; free(x) ;                          */
-   /*        The order is important!                              */
+    /* Note:  To free this matrix, assuming you called it with:    */
+    /*             x = gen_smatrix(10,10);                         */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0]) ; free(x) ;                          */
+    /*        The order is important!                              */
 
-   long i;
-   short **m;
+    long i;
+    short **m;
 
-   m = (short **) fftwf_malloc((size_t) (nrows * sizeof(short *)));
-   if (!m) {
-      perror("\nError in 1st malloc() in gen_smatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   m[0] = (short *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(short)));
-   if (!m[0]) {
-      perror("\nError in 2nd malloc() in gen_smatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   for (i = 1; i < nrows; i++)
-      m[i] = m[i - 1] + ncols;
-   return m;
+    m = (short **) fftwf_malloc((size_t) (nrows * sizeof(short *)));
+    if (!m) {
+        perror("\nError in 1st malloc() in gen_smatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    m[0] = (short *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(short)));
+    if (!m[0]) {
+        perror("\nError in 2nd malloc() in gen_smatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    for (i = 1; i < nrows; i++)
+        m[i] = m[i - 1] + ncols;
+    return m;
 }
 
 
 int **gen_imatrix(long nrows, long ncols)
 {
-   /* Note:  To free this matrix, assuming you called it with:    */
-   /*             x = gen_imatrix(10,10);                         */
-   /*        all you need to do is the following:                 */
-   /*             free(x[0]) ; free(x) ;                          */
-   /*        The order is important!                              */
+    /* Note:  To free this matrix, assuming you called it with:    */
+    /*             x = gen_imatrix(10,10);                         */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0]) ; free(x) ;                          */
+    /*        The order is important!                              */
 
-   long i;
-   int **m;
+    long i;
+    int **m;
 
-   m = (int **) fftwf_malloc((size_t) (nrows * sizeof(int *)));
-   if (!m) {
-      perror("\nError in 1st malloc() in gen_imatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   m[0] = (int *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(int)));
-   if (!m[0]) {
-      perror("\nError in 2nd malloc() in gen_imatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   for (i = 1; i < nrows; i++)
-      m[i] = m[i - 1] + ncols;
-   return m;
+    m = (int **) fftwf_malloc((size_t) (nrows * sizeof(int *)));
+    if (!m) {
+        perror("\nError in 1st malloc() in gen_imatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    m[0] = (int *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(int)));
+    if (!m[0]) {
+        perror("\nError in 2nd malloc() in gen_imatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    for (i = 1; i < nrows; i++)
+        m[i] = m[i - 1] + ncols;
+    return m;
 }
 
 
 float **gen_fmatrix(long nrows, long ncols)
 {
-   /* Note:  To free this matrix, assuming you called it with:    */
-   /*             x = gen_fmatrix(10,10);                         */
-   /*        all you need to do is the following:                 */
-   /*             free(x[0]) ; free(x) ;                          */
-   /*        The order is important!                              */
+    /* Note:  To free this matrix, assuming you called it with:    */
+    /*             x = gen_fmatrix(10,10);                         */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0]) ; free(x) ;                          */
+    /*        The order is important!                              */
 
-   long i;
-   float **m;
+    long i;
+    float **m;
 
-   m = (float **) fftwf_malloc((size_t) (nrows * sizeof(float *)));
-   if (!m) {
-      perror("\nError in 1st malloc() in gen_fmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   m[0] = (float *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(float)));
-   if (!m[0]) {
-      perror("\nError in 2nd malloc() in gen_fmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   for (i = 1; i < nrows; i++)
-      m[i] = m[i - 1] + ncols;
-   return m;
+    m = (float **) fftwf_malloc((size_t) (nrows * sizeof(float *)));
+    if (!m) {
+        perror("\nError in 1st malloc() in gen_fmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    m[0] = (float *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(float)));
+    if (!m[0]) {
+        perror("\nError in 2nd malloc() in gen_fmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    for (i = 1; i < nrows; i++)
+        m[i] = m[i - 1] + ncols;
+    return m;
 }
 
 
 double **gen_dmatrix(long nrows, long ncols)
 {
-   /* Note:  To free this matrix, assuming you called it with:    */
-   /*             x = gen_dmatrix(10,10);                         */
-   /*        all you need to do is the following:                 */
-   /*             free(x[0]) ; free(x) ;                          */
-   /*        The order is important!                              */
+    /* Note:  To free this matrix, assuming you called it with:    */
+    /*             x = gen_dmatrix(10,10);                         */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0]) ; free(x) ;                          */
+    /*        The order is important!                              */
 
-   long i;
-   double **m;
+    long i;
+    double **m;
 
-   m = (double **) fftwf_malloc((size_t) (nrows * sizeof(double *)));
-   if (!m) {
-      perror("\nError in 1st malloc() in gen_dmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   m[0] = (double *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(double)));
-   if (!m[0]) {
-      perror("\nError in 2nd malloc() in gen_dmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   for (i = 1; i < nrows; i++)
-      m[i] = m[i - 1] + ncols;
-   return m;
+    m = (double **) fftwf_malloc((size_t) (nrows * sizeof(double *)));
+    if (!m) {
+        perror("\nError in 1st malloc() in gen_dmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    m[0] = (double *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(double)));
+    if (!m[0]) {
+        perror("\nError in 2nd malloc() in gen_dmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    for (i = 1; i < nrows; i++)
+        m[i] = m[i - 1] + ncols;
+    return m;
 }
 
 
 fcomplex **gen_cmatrix(long nrows, long ncols)
 {
-   /* Note:  To free this matrix, assuming you called it with:    */
-   /*             x = gen_cmatrix(10,10);                         */
-   /*        all you need to do is the following:                 */
-   /*             free(x[0]) ; free(x) ;                          */
-   /*        The order is important!                              */
+    /* Note:  To free this matrix, assuming you called it with:    */
+    /*             x = gen_cmatrix(10,10);                         */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0]) ; free(x) ;                          */
+    /*        The order is important!                              */
 
-   long i;
-   fcomplex **m;
+    long i;
+    fcomplex **m;
 
-   /* allocate pointers to rows */
+    /* allocate pointers to rows */
 
-   m = (fcomplex **) fftwf_malloc((size_t) (nrows * sizeof(fcomplex *)));
-   if (!m) {
-      perror("\nError in 1st malloc() in gen_cmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   /* allocate rows and set pointers to them */
+    m = (fcomplex **) fftwf_malloc((size_t) (nrows * sizeof(fcomplex *)));
+    if (!m) {
+        perror("\nError in 1st malloc() in gen_cmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    /* allocate rows and set pointers to them */
 
-   m[0] = (fcomplex *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(fcomplex)));
-   if (!m[0]) {
-      perror("\nError in 2nd malloc() in gen_cmatrix()");
-      printf("\n");
-      exit(-1);
-   }
-   for (i = 1; i < nrows; i++)
-      m[i] = m[i - 1] + ncols;
+    m[0] = (fcomplex *) fftwf_malloc((size_t) ((nrows * ncols) * sizeof(fcomplex)));
+    if (!m[0]) {
+        perror("\nError in 2nd malloc() in gen_cmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    for (i = 1; i < nrows; i++)
+        m[i] = m[i - 1] + ncols;
 
-   /* return pointer to array of pointers to rows */
+    /* return pointer to array of pointers to rows */
 
-   return m;
+    return m;
 }
 
-void vect_free( void *vect )
+void vect_free(void *vect)
 {
-   fftwf_free(vect);
+    fftwf_free(vect);
 }
-

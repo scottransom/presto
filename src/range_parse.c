@@ -46,9 +46,9 @@
  */
 
 struct range {
-   int min;
-   int max;
-   int mult;
+    int min;
+    int max;
+    int mult;
 };
 
 /*
@@ -112,111 +112,111 @@ int (*parse_func) ();
 char **rangeptr;
 char **errptr;
 {
-   int ncommas;
-   char *tmpstr, *cp, *tok, *n1str, *n2str, *multstr;
-   struct range *rp, *ranges;
-   static char errmsg[256];
+    int ncommas;
+    char *tmpstr, *cp, *tok, *n1str, *n2str, *multstr;
+    struct range *rp, *ranges;
+    static char errmsg[256];
 
-   if (errptr != NULL) {
-      *errptr = errmsg;
-   }
+    if (errptr != NULL) {
+        *errptr = errmsg;
+    }
 
-   for (ncommas = 0, cp = str; *cp != '\0'; cp++) {
-      if (*cp == ',') {
-         ncommas++;
-      }
-   }
+    for (ncommas = 0, cp = str; *cp != '\0'; cp++) {
+        if (*cp == ',') {
+            ncommas++;
+        }
+    }
 
-   if (parse_func == NULL) {
-      parse_func = str_to_int;
-   }
+    if (parse_func == NULL) {
+        parse_func = str_to_int;
+    }
 
-   tmpstr = strdup(str);
-   ranges = (struct range *) malloc((ncommas + 1) * sizeof(struct range));
-   rp = ranges;
+    tmpstr = strdup(str);
+    ranges = (struct range *) malloc((ncommas + 1) * sizeof(struct range));
+    rp = ranges;
 
-   tok = strtok(tmpstr, ",");
-   while (tok != NULL) {
-      n1str = tok;
-      n2str = NULL;
-      multstr = NULL;
+    tok = strtok(tmpstr, ",");
+    while (tok != NULL) {
+        n1str = tok;
+        n2str = NULL;
+        multstr = NULL;
 
-      rp->min = defmin;
-      rp->max = defmax;
-      rp->mult = defmult;
+        rp->min = defmin;
+        rp->max = defmax;
+        rp->mult = defmult;
 
-      if ((cp = strchr(n1str, ':')) != NULL) {
-         *cp = '\0';
-         n2str = cp + 1;
-
-         if ((cp = strchr(n2str, ':')) != NULL) {
+        if ((cp = strchr(n1str, ':')) != NULL) {
             *cp = '\0';
-            multstr = cp + 1;
-         }
-      }
+            n2str = cp + 1;
 
-      /*
-       * Parse the 'min' field - if it is zero length (:n2[:mult]
-       * format), retain the default value, otherwise, pass the
-       * string to the parse function.
-       */
+            if ((cp = strchr(n2str, ':')) != NULL) {
+                *cp = '\0';
+                multstr = cp + 1;
+            }
+        }
 
-      if ((int) strlen(n1str) > 0) {
-         if ((*parse_func) (n1str, &rp->min) < 0) {
-            sprintf(errmsg, "error parsing string %s into an integer", n1str);
-            free(tmpstr);
-            free(ranges);
-            return -1;
-         }
-      }
+        /*
+         * Parse the 'min' field - if it is zero length (:n2[:mult]
+         * format), retain the default value, otherwise, pass the
+         * string to the parse function.
+         */
 
-      /*
-       * Process the 'max' field - if one was not present (n1 format)
-       * set max equal to min.  If the field was present, but 
-       * zero length (n1: format), retain the default.  Otherwise
-       * pass the string to the parse function.
-       */
+        if ((int) strlen(n1str) > 0) {
+            if ((*parse_func) (n1str, &rp->min) < 0) {
+                sprintf(errmsg, "error parsing string %s into an integer", n1str);
+                free(tmpstr);
+                free(ranges);
+                return -1;
+            }
+        }
 
-      if (n2str == NULL) {
-         rp->max = rp->min;
-      } else if ((int) strlen(n2str) > 0) {
-         if ((*parse_func) (n2str, &rp->max) < 0) {
-            sprintf(errmsg, "error parsing string %s into an integer", n2str);
-            free(tmpstr);
-            free(ranges);
-            return -1;
-         }
-      }
+        /*
+         * Process the 'max' field - if one was not present (n1 format)
+         * set max equal to min.  If the field was present, but 
+         * zero length (n1: format), retain the default.  Otherwise
+         * pass the string to the parse function.
+         */
 
-      /*
-       * Process the 'mult' field - if one was not present 
-       * (n1:n2 format), or the field was zero length (n1:n2: format)
-       * then set the mult field to defmult - otherwise pass then
-       * mult field to the parse function.
-       */
+        if (n2str == NULL) {
+            rp->max = rp->min;
+        } else if ((int) strlen(n2str) > 0) {
+            if ((*parse_func) (n2str, &rp->max) < 0) {
+                sprintf(errmsg, "error parsing string %s into an integer", n2str);
+                free(tmpstr);
+                free(ranges);
+                return -1;
+            }
+        }
 
-      if (multstr != NULL && (int) strlen(multstr) > 0) {
-         if ((*parse_func) (multstr, &rp->mult) < 0) {
-            sprintf(errmsg, "error parsing string %s into an integer", multstr);
-            free(tmpstr);
-            free(ranges);
-            return -1;
-         }
-      }
+        /*
+         * Process the 'mult' field - if one was not present 
+         * (n1:n2 format), or the field was zero length (n1:n2: format)
+         * then set the mult field to defmult - otherwise pass then
+         * mult field to the parse function.
+         */
 
-      rp++;
-      tok = strtok(NULL, ",");
-   }
+        if (multstr != NULL && (int) strlen(multstr) > 0) {
+            if ((*parse_func) (multstr, &rp->mult) < 0) {
+                sprintf(errmsg, "error parsing string %s into an integer", multstr);
+                free(tmpstr);
+                free(ranges);
+                return -1;
+            }
+        }
 
-   free(tmpstr);
+        rp++;
+        tok = strtok(NULL, ",");
+    }
 
-   if (rangeptr != NULL) {
-      *rangeptr = (char *) ranges;
-   } else {
-      free(ranges);             /* just running in parse mode */
-   }
+    free(tmpstr);
 
-   return (rp - ranges);
+    if (rangeptr != NULL) {
+        *rangeptr = (char *) ranges;
+    } else {
+        free(ranges);           /* just running in parse mode */
+    }
+
+    return (rp - ranges);
 }
 
 /*
@@ -227,13 +227,13 @@ static int str_to_int(str, ip)
 char *str;
 int *ip;
 {
-   char c;
+    char c;
 
-   if (sscanf(str, "%i%c", ip, &c) != 1) {
-      return -1;
-   } else {
-      return 0;
-   }
+    if (sscanf(str, "%i%c", ip, &c) != 1) {
+        return -1;
+    } else {
+        return 0;
+    }
 }
 
 /*
@@ -246,21 +246,21 @@ int range_min(rbuf, r)
 char *rbuf;
 int r;
 {
-   return ((struct range *) rbuf)[r].min;
+    return ((struct range *) rbuf)[r].min;
 }
 
 int range_max(rbuf, r)
 char *rbuf;
 int r;
 {
-   return ((struct range *) rbuf)[r].max;
+    return ((struct range *) rbuf)[r].max;
 }
 
 int range_mult(rbuf, r)
 char *rbuf;
 int r;
 {
-   return ((struct range *) rbuf)[r].mult;
+    return ((struct range *) rbuf)[r].mult;
 }
 
 void range_vals(rbuf, r, mn, mx, mult)
@@ -270,84 +270,84 @@ int *mn;
 int *mx;
 int *mult;
 {
-   *mn = ((struct range *) rbuf)[r].min;
-   *mx = ((struct range *) rbuf)[r].max;
-   *mult = ((struct range *) rbuf)[r].mult;
+    *mn = ((struct range *) rbuf)[r].min;
+    *mx = ((struct range *) rbuf)[r].max;
+    *mult = ((struct range *) rbuf)[r].mult;
 }
 
 
 int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals)
 {
-   int numranges = 0, numvalues = 0, ii, jj, kk = 0;
-   int *values = NULL;
-   char *ranges = NULL;
+    int numranges = 0, numvalues = 0, ii, jj, kk = 0;
+    int *values = NULL;
+    char *ranges = NULL;
 
-   numranges = parse_ranges(str, minval, maxval, 1, NULL, &ranges, NULL);
+    numranges = parse_ranges(str, minval, maxval, 1, NULL, &ranges, NULL);
 #ifdef DEBUGPRINT
-   printf("\nThere are %d ranges...\n\n", numranges);
+    printf("\nThere are %d ranges...\n\n", numranges);
 #endif
-   if (numranges == 0) {
-      *numvals = 0;
-      return NULL;
-   } else if (numranges > 0) {
-      int mn, mx, mult;
+    if (numranges == 0) {
+        *numvals = 0;
+        return NULL;
+    } else if (numranges > 0) {
+        int mn, mx, mult;
 
-      /* Count the number of values */
-      for (ii = 0; ii < numranges; ii++) {
-         int numinrange = 0;
+        /* Count the number of values */
+        for (ii = 0; ii < numranges; ii++) {
+            int numinrange = 0;
 
-         range_vals(ranges, ii, &mn, &mx, &mult);
-         if (mn < minval)
-            mn = minval;
-         if (mn > maxval)
-            continue;
-         if (mx > maxval)
-            mx = maxval;
-         if (mx < minval)
-            continue;
+            range_vals(ranges, ii, &mn, &mx, &mult);
+            if (mn < minval)
+                mn = minval;
+            if (mn > maxval)
+                continue;
+            if (mx > maxval)
+                mx = maxval;
+            if (mx < minval)
+                continue;
 #ifdef DEBUGPRINT
-         printf("%d-%d by %d's:  ", mn, mx, mult);
+            printf("%d-%d by %d's:  ", mn, mx, mult);
 #endif
-         for (jj = mn; jj <= mx; jj += mult) {
-            numinrange++;
+            for (jj = mn; jj <= mx; jj += mult) {
+                numinrange++;
 #ifdef DEBUGPRINT
-            printf("%d ", jj);
+                printf("%d ", jj);
 #endif
-         }
+            }
 #ifdef DEBUGPRINT
-         printf("\n");
+            printf("\n");
 #endif
-         numvalues += numinrange;
-      }
+            numvalues += numinrange;
+        }
 #ifdef DEBUGPRINT
-      printf("\n %d values total.\n\n", numvalues);
+        printf("\n %d values total.\n\n", numvalues);
 #endif
 
-      values = (int *) malloc((size_t) (sizeof(int) * numvalues));
-      if (!values) {
-         perror("\nAllocation error in ranges_to_ivect()");
-         printf("\n");
-         exit(-1);
-      }
+        values = (int *) malloc((size_t) (sizeof(int) * numvalues));
+        if (!values) {
+            perror("\nAllocation error in ranges_to_ivect()");
+            printf("\n");
+            exit(-1);
+        }
 
-      /* Set the values in the array */
-      for (ii = 0; ii < numranges; ii++) {
-         range_vals(ranges, ii, &mn, &mx, &mult);
-         if (mn < minval)
-            mn = minval;
-         if (mn > maxval)
-            continue;
-         if (mx > maxval)
-            mx = maxval;
-         if (mx < minval)
-            continue;
-         for (jj = mn; jj <= mx; jj += mult, kk++)
-            values[kk] = jj;
-      }
-   }
-   free(ranges);
-   *numvals = numvalues;
-   return values;
+        /* Set the values in the array */
+        for (ii = 0; ii < numranges; ii++) {
+            range_vals(ranges, ii, &mn, &mx, &mult);
+            if (mn < minval)
+                mn = minval;
+            if (mn > maxval)
+                continue;
+            if (mx > maxval)
+                mx = maxval;
+            if (mx < minval)
+                continue;
+            for (jj = mn; jj <= mx; jj += mult, kk++)
+                values[kk] = jj;
+        }
+    }
+    free(ranges);
+    *numvals = numvalues;
+    return values;
 }
 
 

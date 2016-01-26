@@ -49,225 +49,226 @@ int corr_complex(fcomplex * data, int numdata, presto_datainf datainf,
   /*   'kerninf' to help out, the routine must be called with the    */
   /*   same values for 'kern_half_width' and 'numbetween' as well.   */
 {
-   static fcomplex *kernarray, *dataarray;
-   static int firsttime = 1, oldnumbetween, oldkern_half_width;
-   static int oldfftlen, oldnumdata, oldlobin;
-   fcomplex *tmpdata = NULL, zeros = { 0.0, 0.0 };
-   int ii, fftlen = 1, numbins, beginbin, endbin, padlo, padhi;
+    static fcomplex *kernarray, *dataarray;
+    static int firsttime = 1, oldnumbetween, oldkern_half_width;
+    static int oldfftlen, oldnumdata, oldlobin;
+    fcomplex *tmpdata = NULL, zeros = { 0.0, 0.0 };
+    int ii, fftlen = 1, numbins, beginbin, endbin, padlo, padhi;
 
-   /* Check entry arguments for validity */
+    /* Check entry arguments for validity */
 
-   if (numdata <= 0) {
-      printf("\n  'numdata' = %d (out of bounds) in corr_complex().\n\n", numdata);
-      exit(1);
-   }
-   if (numkern <= 0 || numkern > MAXREALFFT / 4) {
-      printf("\n  'numkern' = %d (out of bounds) in corr_complex().\n\n", numkern);
-      exit(1);
-   }
-   if (numresult <= 0 || numresult > MAXREALFFT / 4) {
-      printf("\n  'numresult' = %d (out of bounds) in corr_complex().\n\n",
-             numresult);
-      exit(1);
-   }
-   if (numbetween < 0 || numbetween > 20000) {
-      printf("\n  'numbetween' = %d (out of bounds) in corr_complex().\n\n",
-             numbetween);
-      exit(1);
-   }
-   if (numresult % numbetween != 0) {
-      printf("\n  'numresult' = %d must be a multiple of ", numresult);
-      printf("'numbetween' in corr_complex().\n\n");
-      exit(1);
-   }
-   if (lobin < 0 || lobin >= numdata) {
-      printf("\n  'lobin' = %d (out of bounds) in corr_complex().\n\n", lobin);
-      exit(1);
-   }
-   if ((datainf == SAME || kerninf == SAME) && firsttime) {
-      printf("\n  Can't call corr_complex() with 'datainf' or 'kerninf'\n");
-      printf("  being SAME if this is the 1st time calling the routine.\n\n");
-   }
-   if (datainf == SAME && kerninf == SAME && lobin == oldlobin) {
-      printf("\n  Doesn't make sense to call corr_complex() with SAME for\n");
-      printf("  both 'datainf' and 'kerninf' if 'lobin' hasn't changed.\n\n");
-      exit(1);
-   }
-   if (datainf == PREPPED || datainf == FFT || kerninf == PREPPED || kerninf == FFT) {
-      if (datainf == PREPPED || datainf == FFT)
-         fftlen = numdata;
-      if (kerninf == PREPPED || kerninf == FFT)
-         fftlen = numkern;
-      if ((datainf == PREPPED || datainf == FFT) &&
-          (kerninf == PREPPED || kerninf == FFT)) {
-         if (numdata != numkern) {
-            printf("\n  'numdata' must equal 'numkern' if the data array and\n");
-            printf("  the kernel are either PREPPED or FFT in corr_complex().\n\n");
+    if (numdata <= 0) {
+        printf("\n  'numdata' = %d (out of bounds) in corr_complex().\n\n", numdata);
+        exit(1);
+    }
+    if (numkern <= 0 || numkern > MAXREALFFT / 4) {
+        printf("\n  'numkern' = %d (out of bounds) in corr_complex().\n\n", numkern);
+        exit(1);
+    }
+    if (numresult <= 0 || numresult > MAXREALFFT / 4) {
+        printf("\n  'numresult' = %d (out of bounds) in corr_complex().\n\n",
+               numresult);
+        exit(1);
+    }
+    if (numbetween < 0 || numbetween > 20000) {
+        printf("\n  'numbetween' = %d (out of bounds) in corr_complex().\n\n",
+               numbetween);
+        exit(1);
+    }
+    if (numresult % numbetween != 0) {
+        printf("\n  'numresult' = %d must be a multiple of ", numresult);
+        printf("'numbetween' in corr_complex().\n\n");
+        exit(1);
+    }
+    if (lobin < 0 || lobin >= numdata) {
+        printf("\n  'lobin' = %d (out of bounds) in corr_complex().\n\n", lobin);
+        exit(1);
+    }
+    if ((datainf == SAME || kerninf == SAME) && firsttime) {
+        printf("\n  Can't call corr_complex() with 'datainf' or 'kerninf'\n");
+        printf("  being SAME if this is the 1st time calling the routine.\n\n");
+    }
+    if (datainf == SAME && kerninf == SAME && lobin == oldlobin) {
+        printf("\n  Doesn't make sense to call corr_complex() with SAME for\n");
+        printf("  both 'datainf' and 'kerninf' if 'lobin' hasn't changed.\n\n");
+        exit(1);
+    }
+    if (datainf == PREPPED || datainf == FFT || kerninf == PREPPED || kerninf == FFT) {
+        if (datainf == PREPPED || datainf == FFT)
+            fftlen = numdata;
+        if (kerninf == PREPPED || kerninf == FFT)
+            fftlen = numkern;
+        if ((datainf == PREPPED || datainf == FFT) &&
+            (kerninf == PREPPED || kerninf == FFT)) {
+            if (numdata != numkern) {
+                printf("\n  'numdata' must equal 'numkern' if the data array and\n");
+                printf
+                    ("  the kernel are either PREPPED or FFT in corr_complex().\n\n");
+                exit(1);
+            }
+        }
+    } else if (datainf == SAME || kerninf == SAME) {
+        fftlen = oldfftlen;
+    } else {
+#ifdef DEBUGPRINT
+        printf("Yikes!!\n");
+#endif
+        fftlen = next2_to_n(numresult + 2 * kern_half_width * numbetween);
+    }
+    if (fftlen > MAXREALFFT / 4) {
+        printf("\n  'fftlen' = %d (out of bounds) in corr_complex().\n\n", fftlen);
+        exit(1);
+    }
+    if (kerninf == RAW || kerninf == PREPPED) {
+        if (2 * kern_half_width * numbetween > numkern) {
+            printf("\n  'numkern = %d (out of bounds in corr_complex().\n", numkern);
+            printf("  If 'kerninf' == RAW or PREPPED, 'numkern' must be >=\n");
+            printf("  to 2 * 'kern_half_width' * 'numbetween'.\n\n");
             exit(1);
-         }
-      }
-   } else if (datainf == SAME || kerninf == SAME) {
-      fftlen = oldfftlen;
-   } else {
+        }
+    } else if (kerninf == SAME) {
+        if (lobin != oldlobin || kern_half_width != oldkern_half_width) {
+            printf("\n  When 'kerninf' = SAME, 'lobin' and 'kern_half_width'\n");
+            printf("  must match their previous values in corr_complex().\n\n");
+            exit(1);
+        }
+    }
 #ifdef DEBUGPRINT
-      printf("Yikes!!\n");
-#endif
-      fftlen = next2_to_n(numresult + 2 * kern_half_width * numbetween);
-   }
-   if (fftlen > MAXREALFFT / 4) {
-      printf("\n  'fftlen' = %d (out of bounds) in corr_complex().\n\n", fftlen);
-      exit(1);
-   }
-   if (kerninf == RAW || kerninf == PREPPED) {
-      if (2 * kern_half_width * numbetween > numkern) {
-         printf("\n  'numkern = %d (out of bounds in corr_complex().\n", numkern);
-         printf("  If 'kerninf' == RAW or PREPPED, 'numkern' must be >=\n");
-         printf("  to 2 * 'kern_half_width' * 'numbetween'.\n\n");
-         exit(1);
-      }
-   } else if (kerninf == SAME) {
-      if (lobin != oldlobin || kern_half_width != oldkern_half_width) {
-         printf("\n  When 'kerninf' = SAME, 'lobin' and 'kern_half_width'\n");
-         printf("  must match their previous values in corr_complex().\n\n");
-         exit(1);
-      }
-   }
-#ifdef DEBUGPRINT
-   printf("numdata = %d  fftlen = %d\n", numdata, fftlen);
+    printf("numdata = %d  fftlen = %d\n", numdata, fftlen);
 #endif
 
-   /* Prep the data array */
+    /* Prep the data array */
 
-   if (firsttime || !(datainf == SAME &&
-                      lobin == oldlobin &&
-                      fftlen == oldfftlen &&
-                      numdata == oldnumdata && numbetween == oldnumbetween)) {
+    if (firsttime || !(datainf == SAME &&
+                       lobin == oldlobin &&
+                       fftlen == oldfftlen &&
+                       numdata == oldnumdata && numbetween == oldnumbetween)) {
 
-      numbins = fftlen / numbetween;
-      beginbin = lobin - kern_half_width;
-      endbin = beginbin + numbins;
-      tmpdata = data + beginbin;
+        numbins = fftlen / numbetween;
+        beginbin = lobin - kern_half_width;
+        endbin = beginbin + numbins;
+        tmpdata = data + beginbin;
 
-      if (datainf == RAW) {
-
-#ifdef DEBUGPRINT
-         printf("Prepping, spreading, and FFTing the data...\n");
-#endif
-         /* Zero-pad if necessary (when looking at the beginning or */
-         /* the end of the data array)                              */
-
-         if ((beginbin < 0) || (endbin > numdata)) {
-            tmpdata = gen_cvect(numbins);
-            for (ii = 0; ii < numbins; ii++)
-               tmpdata[ii] = zeros;
-            padlo = (beginbin < 0) ? abs(beginbin) : 0;
-            padhi = ((endbin - numdata) > 0) ? endbin - numdata : 0;
-            memcpy(tmpdata + padlo, data + beginbin + padlo,
-                   sizeof(fcomplex) * (numbins - padhi - padlo));
-         }
-
-         /* Spread the data */
-
-         if (!firsttime)
-            vect_free(dataarray);
-         dataarray = gen_cvect(fftlen);
-         spread_no_pad(tmpdata, numbins, dataarray, fftlen, numbetween);
-
-         if ((beginbin < 0) || (endbin > numdata))
-            vect_free(tmpdata);
-
-         /* FFT the Data */
-
-         COMPLEXFFT(dataarray, fftlen, -1);
-
-      } else if (datainf == PREPPED) {
+        if (datainf == RAW) {
 
 #ifdef DEBUGPRINT
-         printf("FFTing and copying the data...\n");
+            printf("Prepping, spreading, and FFTing the data...\n");
 #endif
+            /* Zero-pad if necessary (when looking at the beginning or */
+            /* the end of the data array)                              */
 
-         if (!firsttime)
-            vect_free(dataarray);
-         dataarray = gen_cvect(fftlen);
-         memcpy(dataarray, data, sizeof(fcomplex) * fftlen);
+            if ((beginbin < 0) || (endbin > numdata)) {
+                tmpdata = gen_cvect(numbins);
+                for (ii = 0; ii < numbins; ii++)
+                    tmpdata[ii] = zeros;
+                padlo = (beginbin < 0) ? abs(beginbin) : 0;
+                padhi = ((endbin - numdata) > 0) ? endbin - numdata : 0;
+                memcpy(tmpdata + padlo, data + beginbin + padlo,
+                       sizeof(fcomplex) * (numbins - padhi - padlo));
+            }
 
-         /* FFT the Data */
+            /* Spread the data */
 
-         COMPLEXFFT(dataarray, fftlen, -1);
+            if (!firsttime)
+                vect_free(dataarray);
+            dataarray = gen_cvect(fftlen);
+            spread_no_pad(tmpdata, numbins, dataarray, fftlen, numbetween);
 
-      } else if (datainf == FFT) {
+            if ((beginbin < 0) || (endbin > numdata))
+                vect_free(tmpdata);
+
+            /* FFT the Data */
+
+            COMPLEXFFT(dataarray, fftlen, -1);
+
+        } else if (datainf == PREPPED) {
 
 #ifdef DEBUGPRINT
-         printf("Just copying the data...\n");
+            printf("FFTing and copying the data...\n");
 #endif
 
-         if (!firsttime)
-            vect_free(dataarray);
-         dataarray = gen_cvect(fftlen);
-         memcpy(dataarray, data, sizeof(fcomplex) * fftlen);
+            if (!firsttime)
+                vect_free(dataarray);
+            dataarray = gen_cvect(fftlen);
+            memcpy(dataarray, data, sizeof(fcomplex) * fftlen);
 
-      }
-   }
+            /* FFT the Data */
 
-   /* Prep the kernel array */
+            COMPLEXFFT(dataarray, fftlen, -1);
 
-   if (firsttime || !(kerninf == SAME && fftlen == oldfftlen)) {
-
-      if (!firsttime)
-         vect_free(kernarray);
-      kernarray = gen_cvect(fftlen);
-
-      if (kerninf == RAW) {
+        } else if (datainf == FFT) {
 
 #ifdef DEBUGPRINT
-         printf("Placing and FFTing the kernel...\n");
+            printf("Just copying the data...\n");
 #endif
 
-         place_complex_kernel(kern, numkern, kernarray, fftlen);
-         COMPLEXFFT(kernarray, fftlen, -1);
+            if (!firsttime)
+                vect_free(dataarray);
+            dataarray = gen_cvect(fftlen);
+            memcpy(dataarray, data, sizeof(fcomplex) * fftlen);
 
-      } else if (kerninf == PREPPED) {
+        }
+    }
+
+    /* Prep the kernel array */
+
+    if (firsttime || !(kerninf == SAME && fftlen == oldfftlen)) {
+
+        if (!firsttime)
+            vect_free(kernarray);
+        kernarray = gen_cvect(fftlen);
+
+        if (kerninf == RAW) {
 
 #ifdef DEBUGPRINT
-         printf("FFTing and copying the kernel...\n");
+            printf("Placing and FFTing the kernel...\n");
 #endif
 
-         memcpy(kernarray, kern, sizeof(fcomplex) * fftlen);
-         COMPLEXFFT(kernarray, fftlen, -1);
+            place_complex_kernel(kern, numkern, kernarray, fftlen);
+            COMPLEXFFT(kernarray, fftlen, -1);
 
-      } else if (kerninf == FFT) {
+        } else if (kerninf == PREPPED) {
 
 #ifdef DEBUGPRINT
-         printf("Just copying the kernel...\n");
+            printf("FFTing and copying the kernel...\n");
 #endif
 
-         memcpy(kernarray, kern, sizeof(fcomplex) * fftlen);
-      }
-   }
+            memcpy(kernarray, kern, sizeof(fcomplex) * fftlen);
+            COMPLEXFFT(kernarray, fftlen, -1);
 
-   /* Perform the correlations */
+        } else if (kerninf == FFT) {
 
-   tmpdata = complex_corr_conv(dataarray, kernarray, fftlen, NOFFTS, optype);
+#ifdef DEBUGPRINT
+            printf("Just copying the kernel...\n");
+#endif
 
-   /* Chop off the contaminated ends and/or the extra data */
+            memcpy(kernarray, kern, sizeof(fcomplex) * fftlen);
+        }
+    }
 
-   chop_complex_ends(tmpdata, fftlen, result, numresult,
-                     kern_half_width * numbetween);
-   vect_free(tmpdata);
+    /* Perform the correlations */
 
-   /* Set variables for next time... */
+    tmpdata = complex_corr_conv(dataarray, kernarray, fftlen, NOFFTS, optype);
 
-   if (firsttime)
-      firsttime = 0;
-   oldlobin = lobin;
-   oldfftlen = fftlen;
-   oldnumdata = numdata;
-   oldnumbetween = numbetween;
-   oldkern_half_width = kern_half_width;
-   if (numresult < fftlen - 2 * numbetween * kern_half_width)
-      return numresult;
-   else
-      return fftlen - 2 * numbetween * kern_half_width;
+    /* Chop off the contaminated ends and/or the extra data */
+
+    chop_complex_ends(tmpdata, fftlen, result, numresult,
+                      kern_half_width * numbetween);
+    vect_free(tmpdata);
+
+    /* Set variables for next time... */
+
+    if (firsttime)
+        firsttime = 0;
+    oldlobin = lobin;
+    oldfftlen = fftlen;
+    oldnumdata = numdata;
+    oldnumbetween = numbetween;
+    oldkern_half_width = kern_half_width;
+    if (numresult < fftlen - 2 * numbetween * kern_half_width)
+        return numresult;
+    else
+        return fftlen - 2 * numbetween * kern_half_width;
 }
 
 
@@ -288,20 +289,20 @@ void stretch_fft(fcomplex * data, int numdata, fcomplex * result, int numresult)
   /*   stretched by a factor of two (i.e. interbinned).             */
 {
 
-   int numkern, numbetween, kern_half_width;
-   fcomplex *kernel;
+    int numkern, numbetween, kern_half_width;
+    fcomplex *kernel;
 
-   numbetween = numresult / numdata;
-   kern_half_width = r_resp_halfwidth(LOWACC);
-   numkern = 2 * numbetween * kern_half_width;
-   kernel = gen_r_response(0.0, numbetween, numkern);
+    numbetween = numresult / numdata;
+    kern_half_width = r_resp_halfwidth(LOWACC);
+    numkern = 2 * numbetween * kern_half_width;
+    kernel = gen_r_response(0.0, numbetween, numkern);
 
-   /* Perform the correlation */
+    /* Perform the correlation */
 
-   corr_complex(data, numdata, RAW,
-                kernel, numkern, RAW,
-                result, numresult, 0, numbetween, kern_half_width, CORR);
-   vect_free(kernel);
+    corr_complex(data, numdata, RAW,
+                 kernel, numkern, RAW,
+                 result, numresult, 0, numbetween, kern_half_width, CORR);
+    vect_free(kernel);
 }
 
 
@@ -315,50 +316,51 @@ float *corr_loc_pow(float *powers, int numpowers)
   /*   'powers' is a pointer to a float vector of powers.             */
   /*   'numpowers' is the number of complex points in 'powers'.       */
 {
-   int ii, kern_half_width;
-   float *local_powers, normal;
-   static float *kernel;
-   static int firsttime = 1;
-   static int old_numpowers;
+    int ii, kern_half_width;
+    float *local_powers, normal;
+    static float *kernel;
+    static int firsttime = 1;
+    static int old_numpowers;
 
-   normal = (numpowers / 2) / NUMLOCPOWAVG;
-   kern_half_width = NUMLOCPOWAVG / 2 + DELTAAVGBINS;
+    normal = (numpowers / 2) / NUMLOCPOWAVG;
+    kern_half_width = NUMLOCPOWAVG / 2 + DELTAAVGBINS;
 
-   /* Make sure our powers array is long enough. */
+    /* Make sure our powers array is long enough. */
 
-   if (numpowers < 2 * kern_half_width) {
-      printf("\n  numpowers = %d (out of bounds) in corr_loc_pow().\n\n", numpowers);
-      exit(1);
-   }
+    if (numpowers < 2 * kern_half_width) {
+        printf("\n  numpowers = %d (out of bounds) in corr_loc_pow().\n\n",
+               numpowers);
+        exit(1);
+    }
 
-   /* Set up the kernel if we need to */
+    /* Set up the kernel if we need to */
 
-   if (firsttime || numpowers != old_numpowers) {
-      if (!firsttime)
-         vect_free(kernel);
-      kernel = gen_fvect(numpowers);
-      for (ii = 0; ii < numpowers; ii++)
-         kernel[ii] = 0.0;
-      for (ii = DELTAAVGBINS + 1; ii < (kern_half_width + 1); ii++) {
-         kernel[ii] = normal;
-         kernel[numpowers - ii] = normal;
-      }
-      realfft(kernel, numpowers, -1);
-      old_numpowers = numpowers;
-      firsttime = 0;
-   }
+    if (firsttime || numpowers != old_numpowers) {
+        if (!firsttime)
+            vect_free(kernel);
+        kernel = gen_fvect(numpowers);
+        for (ii = 0; ii < numpowers; ii++)
+            kernel[ii] = 0.0;
+        for (ii = DELTAAVGBINS + 1; ii < (kern_half_width + 1); ii++) {
+            kernel[ii] = normal;
+            kernel[numpowers - ii] = normal;
+        }
+        realfft(kernel, numpowers, -1);
+        old_numpowers = numpowers;
+        firsttime = 0;
+    }
 
-   /* Do the correlation */
+    /* Do the correlation */
 
-   local_powers = real_corr_conv(powers, kernel, numpowers, FFTD, CORR);
+    local_powers = real_corr_conv(powers, kernel, numpowers, FFTD, CORR);
 
-   /* Correct the nasty end-effects by setting these values equal to */
-   /* the last good values.                                          */
+    /* Correct the nasty end-effects by setting these values equal to */
+    /* the last good values.                                          */
 
-   for (ii = 0; ii < kern_half_width; ii++) {
-      local_powers[ii] = local_powers[kern_half_width];
-      local_powers[numpowers - 1 - ii] = local_powers[numpowers - 1 -
-                                                      kern_half_width];
-   }
-   return local_powers;
+    for (ii = 0; ii < kern_half_width; ii++) {
+        local_powers[ii] = local_powers[kern_half_width];
+        local_powers[numpowers - 1 - ii] = local_powers[numpowers - 1 -
+                                                        kern_half_width];
+    }
+    return local_powers;
 }

@@ -37,73 +37,73 @@ void rzw_interp(fcomplex * data, int numdata, double r, double z,
   /*   'kern_half_width' is the half-width of the kernel in bins.    */
   /*   'ans' is the complex answer.                                  */
 {
-   float *dataptr, *respptr;
-   int ii, numkern, nsum, intfreq, lodata, hidata, loresp, hiresp;
-   double fracfreq, dintfreq, tmpd, tmpr;
-   fcomplex *response;
+    float *dataptr, *respptr;
+    int ii, numkern, nsum, intfreq, lodata, hidata, loresp, hiresp;
+    double fracfreq, dintfreq, tmpd, tmpr;
+    fcomplex *response;
 
-   /* Check 'r' and return 0.0 + 0.0i if out of bounds.        */
-   /* Should this return an error and exit instead?            */
+    /* Check 'r' and return 0.0 + 0.0i if out of bounds.        */
+    /* Should this return an error and exit instead?            */
 
-   if (r > numdata - 1.0 || r < 0.0) {
-      ans->r = 0.0;
-      ans->i = 0.0;
-      return;
-   }
+    if (r > numdata - 1.0 || r < 0.0) {
+        ans->r = 0.0;
+        ans->i = 0.0;
+        return;
+    }
 
-   /* Split 'r' into integer and fractional parts */
+    /* Split 'r' into integer and fractional parts */
 
-   fracfreq = modf(r, &dintfreq);
-   intfreq = (int) dintfreq;
+    fracfreq = modf(r, &dintfreq);
+    intfreq = (int) dintfreq;
 
-   /* Return immediately if 'w' is close to zero  */
+    /* Return immediately if 'w' is close to zero  */
 
-   if (fabs(w) < 1E-4) {
-      rz_interp(data, numdata, r, z, kern_half_width, ans);
-      return;
-   }
+    if (fabs(w) < 1E-4) {
+        rz_interp(data, numdata, r, z, kern_half_width, ans);
+        return;
+    }
 
-   /* Generate the response function */
+    /* Generate the response function */
 
-   numkern = 2 * kern_half_width;
-   response = gen_w_response(fracfreq, 1, z, w, numkern);
+    numkern = 2 * kern_half_width;
+    response = gen_w_response(fracfreq, 1, z, w, numkern);
 
-   /* Determine the summation boundaries */
+    /* Determine the summation boundaries */
 
-   lodata = intfreq - kern_half_width;
-   if (lodata < 0) {
-      loresp = abs(lodata);
-      lodata = 0;
-   } else {
-      loresp = 0;
-   }
-   hidata = intfreq + kern_half_width - 1;
-   if (hidata > numdata - 1) {
-      hiresp = numkern - hidata + numdata - 1;
-   } else {
-      hiresp = numkern;
-   }
-   nsum = hiresp - loresp;
+    lodata = intfreq - kern_half_width;
+    if (lodata < 0) {
+        loresp = abs(lodata);
+        lodata = 0;
+    } else {
+        loresp = 0;
+    }
+    hidata = intfreq + kern_half_width - 1;
+    if (hidata > numdata - 1) {
+        hiresp = numkern - hidata + numdata - 1;
+    } else {
+        hiresp = numkern;
+    }
+    nsum = hiresp - loresp;
 
-   /* Set up our pointers */
+    /* Set up our pointers */
 
-   dataptr = (float *) (data + lodata);
-   respptr = (float *) (response + loresp);
+    dataptr = (float *) (data + lodata);
+    respptr = (float *) (response + loresp);
 
-   /* Do the summation */
+    /* Do the summation */
 
-   ans->r = 0.0;
-   ans->i = 0.0;
+    ans->r = 0.0;
+    ans->i = 0.0;
 
-   for (ii = 0; ii < nsum; ii++) {
-      tmpd = *(dataptr++);
-      tmpr = *(respptr++);
-      ans->r += tmpd * tmpr + (*dataptr) * (*respptr);
-      ans->i += (*dataptr) * tmpr - (*respptr) * tmpd;
-      dataptr++;
-      respptr++;
-   }
+    for (ii = 0; ii < nsum; ii++) {
+        tmpd = *(dataptr++);
+        tmpr = *(respptr++);
+        ans->r += tmpd * tmpr + (*dataptr) * (*respptr);
+        ans->i += (*dataptr) * tmpr - (*respptr) * tmpd;
+        dataptr++;
+        respptr++;
+    }
 
-   vect_free(response);
-   return;
+    vect_free(response);
+    return;
 }

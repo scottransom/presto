@@ -12,38 +12,38 @@ fcomplex *read_fcomplex_file(FILE * file, int firstpt, int numpts)
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 {
-   int ii, startpt = 0, lesspad = 0;
-   fcomplex *result, *fcptr = NULL, zeros = { 0.0, 0.0 };
+    int ii, startpt = 0, lesspad = 0;
+    fcomplex *result, *fcptr = NULL, zeros = { 0.0, 0.0 };
 
-   if (numpts < 0) {
-      printf("\n\n numpts = %d (out-of-bounds) in read_fcomplex_file().", numpts);
-      printf("  Exiting.\n\n");
-      exit(1);
-   }
+    if (numpts < 0) {
+        printf("\n\n numpts = %d (out-of-bounds) in read_fcomplex_file().", numpts);
+        printf("  Exiting.\n\n");
+        exit(1);
+    }
 
-   /* Allocate the result array */
+    /* Allocate the result array */
 
-   result = gen_cvect(numpts);
-   for (ii = 0; ii < numpts; ii++)
-      result[ii] = zeros;
+    result = gen_cvect(numpts);
+    for (ii = 0; ii < numpts; ii++)
+        result[ii] = zeros;
 
-   /* Zero pad if we try to read before the beginning of the file */
+    /* Zero pad if we try to read before the beginning of the file */
 
-   if (firstpt < 0) {
-      fcptr = result + abs(firstpt);
-      lesspad = abs(firstpt);
-      startpt = 0;
-   } else {
-      fcptr = result;
-      startpt = firstpt;
-      lesspad = 0;
-   }
+    if (firstpt < 0) {
+        fcptr = result + abs(firstpt);
+        lesspad = abs(firstpt);
+        startpt = 0;
+    } else {
+        fcptr = result;
+        startpt = firstpt;
+        lesspad = 0;
+    }
 
-   /* Position and read the data */
+    /* Position and read the data */
 
-   chkfileseek(file, startpt, sizeof(fcomplex), SEEK_SET);
-   chkfread(fcptr, sizeof(fcomplex), numpts - lesspad, file);
-   return result;
+    chkfileseek(file, startpt, sizeof(fcomplex), SEEK_SET);
+    chkfread(fcptr, sizeof(fcomplex), numpts - lesspad, file);
+    return result;
 }
 
 
@@ -58,36 +58,36 @@ float *read_float_file(FILE * file, int firstpt, int numpts)
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 {
-   int ii, startpt = 0, lesspad = 0;
-   float *result, *fptr = NULL;
+    int ii, startpt = 0, lesspad = 0;
+    float *result, *fptr = NULL;
 
-   if (numpts < 0) {
-      printf("\n\n numpts = %d (out-of-bounds) in read_float_file().", numpts);
-      printf("  Exiting.\n\n");
-      exit(1);
-   }
+    if (numpts < 0) {
+        printf("\n\n numpts = %d (out-of-bounds) in read_float_file().", numpts);
+        printf("  Exiting.\n\n");
+        exit(1);
+    }
 
-   /* Allocate the result array */
+    /* Allocate the result array */
 
-   result = gen_fvect(numpts);
-   for (ii = 0; ii < numpts; ii++)
-      result[ii] = 0.0;
+    result = gen_fvect(numpts);
+    for (ii = 0; ii < numpts; ii++)
+        result[ii] = 0.0;
 
-   /* Zero pad if we try to read before the beginning of the file */
+    /* Zero pad if we try to read before the beginning of the file */
 
-   if (firstpt < 0) {
-      fptr = result + abs(firstpt);
-      lesspad = abs(firstpt);
-      startpt = 0;
-   } else {
-      fptr = result;
-      startpt = firstpt;
-      lesspad = 0;
-   }
+    if (firstpt < 0) {
+        fptr = result + abs(firstpt);
+        lesspad = abs(firstpt);
+        startpt = 0;
+    } else {
+        fptr = result;
+        startpt = firstpt;
+        lesspad = 0;
+    }
 
-   /* Position and read the data */
+    /* Position and read the data */
 
-   chkfileseek(file, startpt, sizeof(float), SEEK_SET);
-   chkfread(fptr, sizeof(float), numpts - lesspad, file);
-   return result;
+    chkfileseek(file, startpt, sizeof(float), SEEK_SET);
+    chkfread(fptr, sizeof(float), numpts - lesspad, file);
+    return result;
 }

@@ -49,42 +49,42 @@ static void dump_buffer(double *prof, double *buffer, int numprof,
 /* Fill the profile buffer and transfer its contents */
 /* to the real profile.  Reset the buffer.           */
 {
-   int ii;
-   double addpart, deltaphase;
+    int ii;
+    double addpart, deltaphase;
 
-   /* Check for bad input values */
+    /* Check for bad input values */
 
-   if (*phaseadded < 0.0 || *phaseadded > 1.0)
-      printf("Ack!  phaseadded is %17.15g in dump_buffer()!\n", *phaseadded);
-   if (lophase >= 1.0)
-      lophase -= (int) lophase;
+    if (*phaseadded < 0.0 || *phaseadded > 1.0)
+        printf("Ack!  phaseadded is %17.15g in dump_buffer()!\n", *phaseadded);
+    if (lophase >= 1.0)
+        lophase -= (int) lophase;
 
-   /* Squeeze in the last remaining bit of data we can */
+    /* Squeeze in the last remaining bit of data we can */
 
-   deltaphase = 1.0 - *phaseadded;
-   addpart = dataval * deltaphase / partphase;
-   add_to_prof(prof, buffer, numprof, lophase, deltaphase, addpart, phaseadded);
+    deltaphase = 1.0 - *phaseadded;
+    addpart = dataval * deltaphase / partphase;
+    add_to_prof(prof, buffer, numprof, lophase, deltaphase, addpart, phaseadded);
 
-   /* Dump the buffer into the profile array */
-   /* and reset the buffer array to zeros.   */
+    /* Dump the buffer into the profile array */
+    /* and reset the buffer array to zeros.   */
 
-   for (ii = 0; ii < numprof; ii++) {
-      prof[ii] += buffer[ii];
-      buffer[ii] = 0.0;
-   }
+    for (ii = 0; ii < numprof; ii++) {
+        prof[ii] += buffer[ii];
+        buffer[ii] = 0.0;
+    }
 
-   /* Add the remaining bit of data to the fresh buffer */
+    /* Add the remaining bit of data to the fresh buffer */
 
-   lophase += deltaphase;
-   if (lophase >= 1.0)
-      lophase -= (int) lophase;
-   deltaphase = partphase - deltaphase;
-   addpart = dataval - addpart;
-   add_to_prof(prof, buffer, numprof, lophase, deltaphase, addpart, phaseadded);
+    lophase += deltaphase;
+    if (lophase >= 1.0)
+        lophase -= (int) lophase;
+    deltaphase = partphase - deltaphase;
+    addpart = dataval - addpart;
+    add_to_prof(prof, buffer, numprof, lophase, deltaphase, addpart, phaseadded);
 
-   /* Return the new value of phaseadded */
+    /* Return the new value of phaseadded */
 
-   *phaseadded = deltaphase;
+    *phaseadded = deltaphase;
 }
 
 
@@ -94,88 +94,88 @@ static void add_to_prof(double *prof, double *buffer, int numprof,
 /* Note:  phaseadded should be set to 0.0 the first time this */
 /*        function is called.                                 */
 {
-   int ii, numbins, loprofbin, hiprofbin;
-   double dtmp, part, partphase, profbinwidth;
-   double newphaseadded, hiphase, phase;
+    int ii, numbins, loprofbin, hiprofbin;
+    double dtmp, part, partphase, profbinwidth;
+    double newphaseadded, hiphase, phase;
 
-   /* Reset the phase counter if needed */
+    /* Reset the phase counter if needed */
 
-   if (TEST_ONE(*phaseadded))
-      *phaseadded = 0.0;
+    if (TEST_ONE(*phaseadded))
+        *phaseadded = 0.0;
 
-   /* Dump (and reset) the buffer if add_to_prof() gets called with lophase==1 */
+    /* Dump (and reset) the buffer if add_to_prof() gets called with lophase==1 */
 
-   if (TEST_ONE(lophase)) {
-      for (ii = 0; ii < numprof; ii++) {
-         prof[ii] += buffer[ii];
-         buffer[ii] = 0.0;
-      }
-      lophase = 0.0;
-   }
+    if (TEST_ONE(lophase)) {
+        for (ii = 0; ii < numprof; ii++) {
+            prof[ii] += buffer[ii];
+            buffer[ii] = 0.0;
+        }
+        lophase = 0.0;
+    }
 
-   /* Find the bins we will add data to.                 */
-   /* Note:  hiprofbin will be used modulo numprof so    */
-   /*        it could be greater than numprof.           */
+    /* Find the bins we will add data to.                 */
+    /* Note:  hiprofbin will be used modulo numprof so    */
+    /*        it could be greater than numprof.           */
 
-   hiphase = lophase + deltaphase;
-   loprofbin = (int) (lophase * numprof);
-   hiprofbin = (int) (hiphase * numprof);
+    hiphase = lophase + deltaphase;
+    loprofbin = (int) (lophase * numprof);
+    hiprofbin = (int) (hiphase * numprof);
 
-   /* How many profile bins we will spread the data over? */
+    /* How many profile bins we will spread the data over? */
 
-   numbins = hiprofbin - loprofbin + 1;
+    numbins = hiprofbin - loprofbin + 1;
 
-   /* Spread the data into the proper bins. */
+    /* Spread the data into the proper bins. */
 
-   if (numbins >= 3) {
+    if (numbins >= 3) {
 
-      /* Data point will be spread over 3 or more profile bins */
+        /* Data point will be spread over 3 or more profile bins */
 
-      profbinwidth = 1.0 / numprof;
-      dtmp = dataval / deltaphase;
+        profbinwidth = 1.0 / numprof;
+        dtmp = dataval / deltaphase;
 
-      /* Fill the current (low) buffer bin */
-      partphase = (loprofbin + 1) * profbinwidth - lophase;
-      part = dtmp * partphase;
-      ADDTOBUFFER(part, loprofbin, lophase)
-          phase = lophase + partphase;
+        /* Fill the current (low) buffer bin */
+        partphase = (loprofbin + 1) * profbinwidth - lophase;
+        part = dtmp * partphase;
+        ADDTOBUFFER(part, loprofbin, lophase)
+            phase = lophase + partphase;
 
-      /* Fill the middle buffer bins */
-      partphase = profbinwidth;
-      part = dtmp * partphase;
-      for (ii = loprofbin + 1; ii < hiprofbin; ii++) {
-         ADDTOBUFFER(part, ii % numprof, phase)
-             phase += partphase;
-      }
+        /* Fill the middle buffer bins */
+        partphase = profbinwidth;
+        part = dtmp * partphase;
+        for (ii = loprofbin + 1; ii < hiprofbin; ii++) {
+            ADDTOBUFFER(part, ii % numprof, phase)
+                phase += partphase;
+        }
 
-      /* Add what's left into the high beffer bin */
-      partphase = hiphase - phase;
-      part = dtmp * partphase;
-      ADDTOBUFFER(part, hiprofbin % numprof, phase)
+        /* Add what's left into the high beffer bin */
+        partphase = hiphase - phase;
+        part = dtmp * partphase;
+        ADDTOBUFFER(part, hiprofbin % numprof, phase)
 
-   } else if (numbins == 2) {
+    } else if (numbins == 2) {
 
-      /* Data point will be spread over 2 profile bins */
+        /* Data point will be spread over 2 profile bins */
 
-      /* Low bin */
-      partphase = (double) hiprofbin / numprof - lophase;
-      part = dataval * partphase / deltaphase;
-      ADDTOBUFFER(part, loprofbin, lophase)
-          phase = lophase + partphase;
+        /* Low bin */
+        partphase = (double) hiprofbin / numprof - lophase;
+        part = dataval * partphase / deltaphase;
+        ADDTOBUFFER(part, loprofbin, lophase)
+            phase = lophase + partphase;
 
-      /* High bin */
-      partphase = deltaphase - partphase;
-      part = dataval - part;
-      ADDTOBUFFER(part, hiprofbin % numprof, phase)
+        /* High bin */
+        partphase = deltaphase - partphase;
+        part = dataval - part;
+        ADDTOBUFFER(part, hiprofbin % numprof, phase)
 
-   } else {
+    } else {
 
-      /* Data point will go into only 1 profile bin */
+        /* Data point will go into only 1 profile bin */
 
-      partphase = deltaphase;
-      part = dataval;
-      ADDTOBUFFER(part, loprofbin, lophase)
-   }
+        partphase = deltaphase;
+        part = dataval;
+        ADDTOBUFFER(part, loprofbin, lophase)
+    }
 }
 
 
@@ -201,118 +201,118 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 /*      'pderr' is the returned p-dot standard deviation     */
 /*      'pdderr' is the returned p-dotdot standard deviation */
 {
-   int ii, gotone = 0;
-   double T, pwr, norm, sigpow = 2.7, r2, r4, z2, sr2, sz2, errvar = 0.0;
-   double err, r, z, w, pwrfact = 0.0, pwrerr = 0.0, rerr, zerr, werr, dtmp;
-   double rerrn = 0.0, zerrn = 0.0, werrn = 0.0, rerrd = 0.0, zerrd = 0.0, werrd =
-       0.0;
-   float powargr, powargi;
-   fcomplex *fftprof;
+    int ii, gotone = 0;
+    double T, pwr, norm, sigpow = 2.7, r2, r4, z2, sr2, sz2, errvar = 0.0;
+    double err, r, z, w, pwrfact = 0.0, pwrerr = 0.0, rerr, zerr, werr, dtmp;
+    double rerrn = 0.0, zerrn = 0.0, werrn = 0.0, rerrd = 0.0, zerrd = 0.0, werrd =
+        0.0;
+    float powargr, powargi;
+    fcomplex *fftprof;
 
-   /* Total length in time of data set */
+    /* Total length in time of data set */
 
-   T = N * dt;
+    T = N * dt;
 
-   /* Convert p, pd, and pdd into r, z, and w */
+    /* Convert p, pd, and pdd into r, z, and w */
 
-   r = T / p;
-   z = -pd * r * r;
-   if (pdd == 0.0)
-      w = 0.0;
-   else
-      w = 2.0 * z * z / r - pdd * r * r * T;
+    r = T / p;
+    z = -pd * r * r;
+    if (pdd == 0.0)
+        w = 0.0;
+    else
+        w = 2.0 * z * z / r - pdd * r * r * T;
 
-   /* Calculate the normalization constant which converts the raw */
-   /* powers into normalized powers -- just as if we had FFTd the */
-   /* full data set.                                              */
+    /* Calculate the normalization constant which converts the raw */
+    /* powers into normalized powers -- just as if we had FFTd the */
+    /* full data set.                                              */
 
-   norm = 1.0 / (N * datavar);
+    norm = 1.0 / (N * datavar);
 
-   /* Place the profile into a complex array */
+    /* Place the profile into a complex array */
 
-   fftprof = gen_cvect(proflen);
-   for (ii = 0; ii < proflen; ii++) {
-      fftprof[ii].r = (float) prof[ii];
-      fftprof[ii].i = 0.0;
-   }
+    fftprof = gen_cvect(proflen);
+    for (ii = 0; ii < proflen; ii++) {
+        fftprof[ii].r = (float) prof[ii];
+        fftprof[ii].i = 0.0;
+    }
 
-   /* FFT the profile */
+    /* FFT the profile */
 
-   COMPLEXFFT(fftprof, proflen, -1);
+    COMPLEXFFT(fftprof, proflen, -1);
 
-   /* Step through the powers and find the significant ones.  */
-   /* Estimate the error of the fundamental using each one.   */
-   /* Combine these errors into a unified error of the freq.  */
-   /* Note:  In our case the errors are the data points and   */
-   /*        we are combining them using a weighted mean.     */
-   /*        The weights come from the fact that the powers   */
-   /*        have a measurements error = sqrt(2 * P).  This   */
-   /*        causes an error in our estimates of rerr.        */
+    /* Step through the powers and find the significant ones.  */
+    /* Estimate the error of the fundamental using each one.   */
+    /* Combine these errors into a unified error of the freq.  */
+    /* Note:  In our case the errors are the data points and   */
+    /*        we are combining them using a weighted mean.     */
+    /*        The weights come from the fact that the powers   */
+    /*        have a measurements error = sqrt(2 * P).  This   */
+    /*        causes an error in our estimates of rerr.        */
 
-   for (ii = 1; ii < proflen / 2; ii++) {
-      pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
-      pwrerr = sqrt(2.0 * pwr);
-      pwrfact = 1.0 / (sqrt(pwr) * ii);
-      if (pwr > sigpow) {
-         gotone = 1;
-         /* r error */
-         err = 0.38984840062 * pwrfact;
-         errvar = err / pwrerr;
-         errvar = errvar * errvar;
-         rerrn += err / errvar;
-         rerrd += 1.0 / errvar;
-         /* z error */
-         err = 3.01975272627 * pwrfact;
-         errvar = err / pwrerr;
-         errvar = errvar * errvar;
-         zerrn += err / errvar;
-         zerrd += 1.0 / errvar;
-         /* w error */
-         err = 19.5702343923 * pwrfact;
-         errvar = err / pwrerr;
-         errvar = errvar * errvar;
-         werrn += err / errvar;
-         werrd += 1.0 / errvar;
-      }
-   }
+    for (ii = 1; ii < proflen / 2; ii++) {
+        pwr = POWER(fftprof[ii].r, fftprof[ii].i) * norm;
+        pwrerr = sqrt(2.0 * pwr);
+        pwrfact = 1.0 / (sqrt(pwr) * ii);
+        if (pwr > sigpow) {
+            gotone = 1;
+            /* r error */
+            err = 0.38984840062 * pwrfact;
+            errvar = err / pwrerr;
+            errvar = errvar * errvar;
+            rerrn += err / errvar;
+            rerrd += 1.0 / errvar;
+            /* z error */
+            err = 3.01975272627 * pwrfact;
+            errvar = err / pwrerr;
+            errvar = errvar * errvar;
+            zerrn += err / errvar;
+            zerrd += 1.0 / errvar;
+            /* w error */
+            err = 19.5702343923 * pwrfact;
+            errvar = err / pwrerr;
+            errvar = errvar * errvar;
+            werrn += err / errvar;
+            werrd += 1.0 / errvar;
+        }
+    }
 
-   if (gotone) {
+    if (gotone) {
 
-      /* Calculate the standard deviations */
+        /* Calculate the standard deviations */
 
-      rerr = rerrn / rerrd;
-      zerr = zerrn / zerrd;
-      werr = werrn / werrd;
+        rerr = rerrn / rerrd;
+        zerr = zerrn / zerrd;
+        werr = werrn / werrd;
 
-      /* Help protect against really low significance profiles.  */
-      /* And note that this is probably _underestimating_ the    */
-      /* errors in this case...                                  */
+        /* Help protect against really low significance profiles.  */
+        /* And note that this is probably _underestimating_ the    */
+        /* errors in this case...                                  */
 
-   } else {
-      rerr = 0.5;
-      zerr = 7.8;
-      werr = 50.2;
-   }
+    } else {
+        rerr = 0.5;
+        zerr = 7.8;
+        werr = 50.2;
+    }
 
-   /* Some useful values */
+    /* Some useful values */
 
-   r2 = r * r;
-   sr2 = rerr * rerr;
-   r4 = r2 * r2;
-   z2 = z * z;
-   sz2 = zerr * zerr;
-   dtmp = r * w - 3.0 * z2;
+    r2 = r * r;
+    sr2 = rerr * rerr;
+    r4 = r2 * r2;
+    z2 = z * z;
+    sz2 = zerr * zerr;
+    dtmp = r * w - 3.0 * z2;
 
-   /* Convert the standard deviations to periods */
+    /* Convert the standard deviations to periods */
 
-   *perr = T * rerr / r2;
-   *pderr = sqrt(4.0 * z2 * sr2 / (r4 * r2) + sz2 / r4);
-   *pdderr = sqrt((werr * werr * r4 + 16 * z2 * sz2 * r2 +
-                   4.0 * dtmp * dtmp * sr2) / (r4 * r4 * T * T));
+    *perr = T * rerr / r2;
+    *pderr = sqrt(4.0 * z2 * sr2 / (r4 * r2) + sz2 / r4);
+    *pdderr = sqrt((werr * werr * r4 + 16 * z2 * sz2 * r2 +
+                    4.0 * dtmp * dtmp * sr2) / (r4 * r4 * T * T));
 
-   /* Free our FFT array */
+    /* Free our FFT array */
 
-   vect_free(fftprof);
+    vect_free(fftprof);
 }
 
 
@@ -359,86 +359,86 @@ double foldfile(FILE * datafile, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
 {
-   float data[WORKLEN];
-   double *onoffptr = NULL, *buffer, phase = 0.0, phaseadded = 0.0;
-   int ourflags;
-   unsigned long ii, N, onbin, offbin, numbins;
-   unsigned long remainbins, binstoread, numreads;
+    float data[WORKLEN];
+    double *onoffptr = NULL, *buffer, phase = 0.0, phaseadded = 0.0;
+    int ourflags;
+    unsigned long ii, N, onbin, offbin, numbins;
+    unsigned long remainbins, binstoread, numreads;
 
-   /* Get the data file length and initialize some variables */
+    /* Get the data file length and initialize some variables */
 
-   N = chkfilelen(datafile, sizeof(float));
-   if (ONOFF)
-      onoffptr = onoffpairs;
-   stats->numdata = stats->data_avg = stats->data_var = 0.0;
-   if (DELAYS)
-      ourflags = 1;
-   else
-      ourflags = 0;
+    N = chkfilelen(datafile, sizeof(float));
+    if (ONOFF)
+        onoffptr = onoffpairs;
+    stats->numdata = stats->data_avg = stats->data_var = 0.0;
+    if (DELAYS)
+        ourflags = 1;
+    else
+        ourflags = 0;
 
-   /* Create and initialize the buffer needed by fold() */
+    /* Create and initialize the buffer needed by fold() */
 
-   buffer = gen_dvect(numprof);
-   for (ii = 0; ii < (unsigned long) numprof; ii++)
-      buffer[ii] = 0.0;
+    buffer = gen_dvect(numprof);
+    for (ii = 0; ii < (unsigned long) numprof; ii++)
+        buffer[ii] = 0.0;
 
-   do {                         /* Loop over the on-off pairs */
+    do {                        /* Loop over the on-off pairs */
 
-      /* Set the on-off variables */
+        /* Set the on-off variables */
 
-      if (ONOFF) {
-         onbin = (unsigned long) (*onoffptr * N + DBLCORRECT);
-         offbin = (unsigned long) (*(onoffptr + 1) * N + DBLCORRECT);
-         if (offbin)
-            offbin--;
-         onoffptr += 2;
-      } else {
-         onbin = 0;
-         offbin = N - 1;
-      }
-      numbins = (offbin == onbin) ? 0 : offbin - onbin + 1;
-      numreads = numbins / WORKLEN;
-      remainbins = numbins % WORKLEN;
-      if (remainbins)
-         numreads++;
-      binstoread = WORKLEN;
+        if (ONOFF) {
+            onbin = (unsigned long) (*onoffptr * N + DBLCORRECT);
+            offbin = (unsigned long) (*(onoffptr + 1) * N + DBLCORRECT);
+            if (offbin)
+                offbin--;
+            onoffptr += 2;
+        } else {
+            onbin = 0;
+            offbin = N - 1;
+        }
+        numbins = (offbin == onbin) ? 0 : offbin - onbin + 1;
+        numreads = numbins / WORKLEN;
+        remainbins = numbins % WORKLEN;
+        if (remainbins)
+            numreads++;
+        binstoread = WORKLEN;
 
-      /* Skip to the correct file location */
+        /* Skip to the correct file location */
 
-      chkfileseek(datafile, onbin, sizeof(float), SEEK_SET);
+        chkfileseek(datafile, onbin, sizeof(float), SEEK_SET);
 
-      /* Loop over the number of reads we have to perform for */
-      /* the current on-off pair.                             */
+        /* Loop over the number of reads we have to perform for */
+        /* the current on-off pair.                             */
 
-      for (ii = 0; ii < numreads; ii++, onbin += binstoread) {
+        for (ii = 0; ii < numreads; ii++, onbin += binstoread) {
 
-         /* Correct for the fact that our last read might be short */
+            /* Correct for the fact that our last read might be short */
 
-         if (remainbins && (ii == numreads - 1))
-            binstoread = remainbins;
+            if (remainbins && (ii == numreads - 1))
+                binstoread = remainbins;
 
-         /* Read the current chunk of data */
+            /* Read the current chunk of data */
 
-         chkfread(data, sizeof(float), binstoread, datafile);
+            chkfread(data, sizeof(float), binstoread, datafile);
 
-         /* Fold the current chunk of data */
+            /* Fold the current chunk of data */
 
-         phase = fold(data, binstoread, dt, tlo + onbin * dt, prof,
-                      numprof, startphs, buffer, &phaseadded,
-                      fo, fdot, fdotdot, ourflags,
-                      delays, delaytimes, numdelays, NULL, stats);
+            phase = fold(data, binstoread, dt, tlo + onbin * dt, prof,
+                         numprof, startphs, buffer, &phaseadded,
+                         fo, fdot, fdotdot, ourflags,
+                         delays, delaytimes, numdelays, NULL, stats);
 
-         /* Set the current chiarr value */
+            /* Set the current chiarr value */
 
-         chiarr[onbin / WORKLEN] = (float) stats->redchi;
-      }
+            chiarr[onbin / WORKLEN] = (float) stats->redchi;
+        }
 
-   } while (offbin < N - 1 && offbin != 0);
+    } while (offbin < N - 1 && offbin != 0);
 
-   /* Free the buffer and return */
+    /* Free the buffer and return */
 
-   vect_free(buffer);
-   return phase;
+    vect_free(buffer);
+    return phase;
 }
 
 
@@ -464,27 +464,26 @@ double simplefold(float *data, int numdata, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0        */
 /*    (i.e. to the beginning of the first data point)            */
 {
-   double *buffer, phase = 0.0, phaseadded = 0.0;
-   int ii, ourflags = 0;
-   foldstats stats;
+    double *buffer, phase = 0.0, phaseadded = 0.0;
+    int ii, ourflags = 0;
+    foldstats stats;
 
-   /* Get the data file length and initialize some variables */
+    /* Get the data file length and initialize some variables */
 
-   stats.numdata = stats.data_avg = stats.data_var = 0.0;
+    stats.numdata = stats.data_avg = stats.data_var = 0.0;
 
-   /* Create and initialize the buffer needed by fold() */
-   buffer = gen_dvect(numprof);
-   for (ii = 0; ii < numprof; ii++)
-       buffer[ii] = 0.0;
+    /* Create and initialize the buffer needed by fold() */
+    buffer = gen_dvect(numprof);
+    for (ii = 0; ii < numprof; ii++)
+        buffer[ii] = 0.0;
 
-   /* Now fold */
-   phase = fold(data, numdata, dt, tlo, 
-                prof, numprof, startphs, 
-                buffer, &phaseadded,
-                fo, fdot, fdotdot, ourflags,
-                NULL, NULL, 0, NULL, &stats);
-   vect_free(buffer);
-   return phase;
+    /* Now fold */
+    phase = fold(data, numdata, dt, tlo,
+                 prof, numprof, startphs,
+                 buffer, &phaseadded,
+                 fo, fdot, fdotdot, ourflags, NULL, NULL, 0, NULL, &stats);
+    vect_free(buffer);
+    return phase;
 }
 
 
@@ -540,152 +539,152 @@ double fold(float *data, int numdata, double dt, double tlo,
 /* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
 /*    (i.e. to the beginning of the first data point)                 */
 {
-   int ii, onbin, offbin, *onoffptr = NULL;
-   int arrayoffset = 0;
-   double phase, phasenext = 0.0, deltaphase, T, Tnext, TD, TDnext;
-   double profbinwidth, lophase, hiphase, dtmp;
-   double dev, delaytlo = 0.0, delaythi = 0.0, delaylo = 0.0, delayhi = 0.0;
-   double *delayptr = NULL, *delaytimeptr = NULL;
+    int ii, onbin, offbin, *onoffptr = NULL;
+    int arrayoffset = 0;
+    double phase, phasenext = 0.0, deltaphase, T, Tnext, TD, TDnext;
+    double profbinwidth, lophase, hiphase, dtmp;
+    double dev, delaytlo = 0.0, delaythi = 0.0, delaylo = 0.0, delayhi = 0.0;
+    double *delayptr = NULL, *delaytimeptr = NULL;
 
-   /* Initialize some variables and save some FLOPs later... */
+    /* Initialize some variables and save some FLOPs later... */
 
-   fdot /= 2.0;
-   fdotdot /= 6.0;
-   profbinwidth = 1.0 / numprof;
-   if (ONOFF)
-      onoffptr = onoffpairs;
-   stats->numprof = (double) numprof;
-   stats->data_var *= (stats->numdata - 1.0);
+    fdot /= 2.0;
+    fdotdot /= 6.0;
+    profbinwidth = 1.0 / numprof;
+    if (ONOFF)
+        onoffptr = onoffpairs;
+    stats->numprof = (double) numprof;
+    stats->data_var *= (stats->numdata - 1.0);
 
-   do {                         /* Loop over the on-off pairs */
+    do {                        /* Loop over the on-off pairs */
 
-      /* Set the on-off pointers and variables */
+        /* Set the on-off pointers and variables */
 
-      if (ONOFF) {
-         onbin = *onoffptr;
-         offbin = *(onoffptr + 1);
-         onoffptr += 2;
-      } else {
-         onbin = 0;
-         offbin = numdata - 1;
-      }
+        if (ONOFF) {
+            onbin = *onoffptr;
+            offbin = *(onoffptr + 1);
+            onoffptr += 2;
+        } else {
+            onbin = 0;
+            offbin = numdata - 1;
+        }
 
-      /* Initiate the folding start time */
+        /* Initiate the folding start time */
 
-      T = tlo + onbin * dt;
-      TD = T;
+        T = tlo + onbin * dt;
+        TD = T;
 
-      /* Set the delay pointers and variables */
+        /* Set the delay pointers and variables */
 
-      if (DELAYS) {
+        if (DELAYS) {
 
-         /* Guess that the next delay we want is the next available */
+            /* Guess that the next delay we want is the next available */
 
-         arrayoffset += 2;      /* Beware nasty NR zero-offset kludges! */
-         hunt(delaytimes - 1, numdelays, T, &arrayoffset);
-         arrayoffset--;
-         delaytimeptr = delaytimes + arrayoffset;
-         delayptr = delays + arrayoffset;
-         delaytlo = *delaytimeptr;
-         delaythi = *(delaytimeptr + 1);
-         delaylo = *delayptr;
-         delayhi = *(delayptr + 1);
-
-         /* Adjust the folding start time for the delays */
-
-         TD -= LININTERP(TD, delaytlo, delaythi, delaylo, delayhi);
-      }
-
-      /* Get the starting pulsar phase (cyclic). */
-
-      phase = TD * (TD * (TD * fdotdot + fdot) + fo) + startphs;
-      lophase = (phase < 0.0) ? 1.0 + phase - (int) phase : phase - (int) phase;
-
-      /* Generate the profile for this onoff pair */
-
-      for (ii = onbin; ii <= offbin; ii++) {
-
-         /* Calculate the barycentric time for the next point. */
-
-         Tnext = tlo + (ii + 1) * dt;
-         TDnext = Tnext;
-
-         /* Set the delay pointers and variables */
-
-         if (DELAYS) {
-            if (Tnext > delaythi) {
-
-               /* Guess that the next delay we want is the next available */
-
-               arrayoffset += 2;        /* Beware nasty NR zero-offset kludges! */
-               hunt(delaytimes - 1, numdelays, Tnext, &arrayoffset);
-               arrayoffset--;
-               delaytimeptr = delaytimes + arrayoffset;
-               delayptr = delays + arrayoffset;
-               delaytlo = *delaytimeptr;
-               delaythi = *(delaytimeptr + 1);
-               delaylo = *delayptr;
-               delayhi = *(delayptr + 1);
-            }
+            arrayoffset += 2;   /* Beware nasty NR zero-offset kludges! */
+            hunt(delaytimes - 1, numdelays, T, &arrayoffset);
+            arrayoffset--;
+            delaytimeptr = delaytimes + arrayoffset;
+            delayptr = delays + arrayoffset;
+            delaytlo = *delaytimeptr;
+            delaythi = *(delaytimeptr + 1);
+            delaylo = *delayptr;
+            delayhi = *(delayptr + 1);
 
             /* Adjust the folding start time for the delays */
 
-            TDnext -= LININTERP(Tnext, delaytlo, delaythi, delaylo, delayhi);
-         }
+            TD -= LININTERP(TD, delaytlo, delaythi, delaylo, delayhi);
+        }
 
-         /* Get the pulsar phase (cyclic) for the next point. */
+        /* Get the starting pulsar phase (cyclic). */
 
-         phasenext = TDnext * (TDnext * (TDnext * fdotdot + fdot)
-                               + fo) + startphs;
+        phase = TD * (TD * (TD * fdotdot + fdot) + fo) + startphs;
+        lophase = (phase < 0.0) ? 1.0 + phase - (int) phase : phase - (int) phase;
 
-         /* How much total phase does the data point cover? */
+        /* Generate the profile for this onoff pair */
 
-         deltaphase = phasenext - phase;
+        for (ii = onbin; ii <= offbin; ii++) {
 
-         /* Add the current point to the buffer or the profile */
+            /* Calculate the barycentric time for the next point. */
 
-         add_to_prof(prof, buffer, numprof, lophase,
-                     deltaphase, data[ii], phaseadded);
+            Tnext = tlo + (ii + 1) * dt;
+            TDnext = Tnext;
 
-         /* Update variables */
+            /* Set the delay pointers and variables */
 
-         hiphase = lophase + deltaphase;
-         lophase = hiphase - (int) hiphase;
-         phase = phasenext;
+            if (DELAYS) {
+                if (Tnext > delaythi) {
 
-         /* Use clever single pass mean and variance calculation */
+                    /* Guess that the next delay we want is the next available */
 
-         stats->numdata += 1.0;
-         dev = data[ii] - stats->data_avg;
-         stats->data_avg += dev / stats->numdata;
-         stats->data_var += dev * (data[ii] - stats->data_avg);
-      }
+                    arrayoffset += 2;   /* Beware nasty NR zero-offset kludges! */
+                    hunt(delaytimes - 1, numdelays, Tnext, &arrayoffset);
+                    arrayoffset--;
+                    delaytimeptr = delaytimes + arrayoffset;
+                    delayptr = delays + arrayoffset;
+                    delaytlo = *delaytimeptr;
+                    delaythi = *(delaytimeptr + 1);
+                    delaylo = *delayptr;
+                    delayhi = *(delayptr + 1);
+                }
 
-   } while (offbin < numdata - 1 && offbin != 0);
+                /* Adjust the folding start time for the delays */
 
-   /* Update and correct the statistics */
+                TDnext -= LININTERP(Tnext, delaytlo, delaythi, delaylo, delayhi);
+            }
 
-   stats->prof_avg = 0.0;
-   for (ii = 0; ii < numprof; ii++)
-      stats->prof_avg += prof[ii];
-   stats->prof_avg /= numprof;
+            /* Get the pulsar phase (cyclic) for the next point. */
 
-   /* Compute the Chi-Squared probability that there is a signal */
-   /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
+            phasenext = TDnext * (TDnext * (TDnext * fdotdot + fdot)
+                                  + fo) + startphs;
 
-   stats->redchi = 0.0;
-   for (ii = 0; ii < numprof; ii++) {
-      dtmp = prof[ii] - stats->prof_avg;
-      stats->redchi += dtmp * dtmp;
-   }
-   stats->data_var /= (stats->numdata - 1.0);
-   stats->prof_var = stats->data_var * stats->numdata * profbinwidth;
-   stats->redchi /= (stats->prof_var * (numprof - 1));
+            /* How much total phase does the data point cover? */
 
-   phasenext = (phasenext < 0.0) ?
-       1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
+            deltaphase = phasenext - phase;
 
-   return (phasenext);
+            /* Add the current point to the buffer or the profile */
+
+            add_to_prof(prof, buffer, numprof, lophase,
+                        deltaphase, data[ii], phaseadded);
+
+            /* Update variables */
+
+            hiphase = lophase + deltaphase;
+            lophase = hiphase - (int) hiphase;
+            phase = phasenext;
+
+            /* Use clever single pass mean and variance calculation */
+
+            stats->numdata += 1.0;
+            dev = data[ii] - stats->data_avg;
+            stats->data_avg += dev / stats->numdata;
+            stats->data_var += dev * (data[ii] - stats->data_avg);
+        }
+
+    } while (offbin < numdata - 1 && offbin != 0);
+
+    /* Update and correct the statistics */
+
+    stats->prof_avg = 0.0;
+    for (ii = 0; ii < numprof; ii++)
+        stats->prof_avg += prof[ii];
+    stats->prof_avg /= numprof;
+
+    /* Compute the Chi-Squared probability that there is a signal */
+    /* See Leahy et al., ApJ, Vol 266, pp. 160-170, 1983 March 1. */
+
+    stats->redchi = 0.0;
+    for (ii = 0; ii < numprof; ii++) {
+        dtmp = prof[ii] - stats->prof_avg;
+        stats->redchi += dtmp * dtmp;
+    }
+    stats->data_var /= (stats->numdata - 1.0);
+    stats->prof_var = stats->data_var * stats->numdata * profbinwidth;
+    stats->redchi /= (stats->prof_var * (numprof - 1));
+
+    phasenext = (phasenext < 0.0) ?
+        1.0 + phasenext - (int) phasenext : phasenext - (int) phasenext;
+
+    return (phasenext);
 }
 
 #undef WORKLEN
@@ -700,38 +699,38 @@ void shift_prof(double *prof, int proflen, int shift, double *outprof)
 /* If 'shift' < 0 then shift left, 'shift' > 0, shift right. */
 /* Place the shifted  profile in 'outprof'.                  */
 {
-   int wrap = 0, nowrap = 0;
+    int wrap = 0, nowrap = 0;
 
-   wrap = shift % proflen;
+    wrap = shift % proflen;
 
-   if (prof == outprof) {
-      double *tmpprof;
-      /* no shift */
-      if (wrap == 0) {
-         return;
-         /* Convert a left shift into the equivalent right shift */
-      } else if (wrap < 0)
-         wrap += proflen;
-      /* Perform a right shift */
-      nowrap = proflen - wrap;
-      tmpprof = gen_dvect(proflen);
-      memcpy(tmpprof, prof + nowrap, wrap * sizeof(double));
-      memcpy(tmpprof + wrap, prof, nowrap * sizeof(double));
-      memcpy(outprof, tmpprof, proflen * sizeof(double));
-      vect_free(tmpprof);
-   } else {
-      /* no shift */
-      if (wrap == 0) {
-         memcpy(outprof, prof, proflen * sizeof(double));
-         return;
-         /* Convert a left shift into the equivalent right shift */
-      } else if (wrap < 0)
-         wrap += proflen;
-      /* Perform a right shift */
-      nowrap = proflen - wrap;
-      memcpy(outprof, prof + nowrap, wrap * sizeof(double));
-      memcpy(outprof + wrap, prof, nowrap * sizeof(double));
-   }
+    if (prof == outprof) {
+        double *tmpprof;
+        /* no shift */
+        if (wrap == 0) {
+            return;
+            /* Convert a left shift into the equivalent right shift */
+        } else if (wrap < 0)
+            wrap += proflen;
+        /* Perform a right shift */
+        nowrap = proflen - wrap;
+        tmpprof = gen_dvect(proflen);
+        memcpy(tmpprof, prof + nowrap, wrap * sizeof(double));
+        memcpy(tmpprof + wrap, prof, nowrap * sizeof(double));
+        memcpy(outprof, tmpprof, proflen * sizeof(double));
+        vect_free(tmpprof);
+    } else {
+        /* no shift */
+        if (wrap == 0) {
+            memcpy(outprof, prof, proflen * sizeof(double));
+            return;
+            /* Convert a left shift into the equivalent right shift */
+        } else if (wrap < 0)
+            wrap += proflen;
+        /* Perform a right shift */
+        nowrap = proflen - wrap;
+        memcpy(outprof, prof + nowrap, wrap * sizeof(double));
+        memcpy(outprof + wrap, prof, nowrap * sizeof(double));
+    }
 }
 
 
@@ -744,71 +743,71 @@ void combine_profs(double *profs, foldstats * instats, int numprofs,
 /* The result is a profile in 'outprof' (which must be pre-allocated)   */
 /* The input stats in 'instats' are combined and placed in 'outstats'   */
 {
-   int ii, jj, kk, index = 0, offset;
-   double *local_delays;
+    int ii, jj, kk, index = 0, offset;
+    double *local_delays;
 
-   /* Initiate the output statistics */
-   initialize_foldstats(outstats);
-   outstats->numprof = proflen;
-   local_delays = gen_dvect(numprofs);
+    /* Initiate the output statistics */
+    initialize_foldstats(outstats);
+    outstats->numprof = proflen;
+    local_delays = gen_dvect(numprofs);
 
-   /* Convert all the delays to positive offsets from   */
-   /* the phase=0 profile bin, in units of profile bins */
-   /* Note:  The negative sign refers to the fact that  */
-   /*        we want positiev numbers to represent      */
-   /*        shifts _to_ the right not _from_ the right */
+    /* Convert all the delays to positive offsets from   */
+    /* the phase=0 profile bin, in units of profile bins */
+    /* Note:  The negative sign refers to the fact that  */
+    /*        we want positiev numbers to represent      */
+    /*        shifts _to_ the right not _from_ the right */
 
-   for (ii = 0; ii < numprofs; ii++) {
-      local_delays[ii] = fmod(-delays[ii], proflen);
-      if (local_delays[ii] < 0.0)
-         local_delays[ii] += proflen;
-   }
+    for (ii = 0; ii < numprofs; ii++) {
+        local_delays[ii] = fmod(-delays[ii], proflen);
+        if (local_delays[ii] < 0.0)
+            local_delays[ii] += proflen;
+    }
 
-   /* Set the output array to zeros */
-   for (ii = 0; ii < proflen; ii++)
-      outprof[ii] = 0.0;
+    /* Set the output array to zeros */
+    for (ii = 0; ii < proflen; ii++)
+        outprof[ii] = 0.0;
 
-   /* Loop over the profiles */
-   for (ii = 0; ii < numprofs; ii++) {
+    /* Loop over the profiles */
+    for (ii = 0; ii < numprofs; ii++) {
 
-      /* Calculate the appropriate offset into the profile array */
-      offset = (int) (local_delays[ii] + 0.5);
+        /* Calculate the appropriate offset into the profile array */
+        offset = (int) (local_delays[ii] + 0.5);
 
-      /* Sum the profiles */
-      for (jj = 0, kk = proflen - offset; jj < offset; jj++, kk++, index++)
-         outprof[kk] += profs[index];
-      for (kk = 0; jj < proflen; jj++, kk++, index++)
-         outprof[kk] += profs[index];
+        /* Sum the profiles */
+        for (jj = 0, kk = proflen - offset; jj < offset; jj++, kk++, index++)
+            outprof[kk] += profs[index];
+        for (kk = 0; jj < proflen; jj++, kk++, index++)
+            outprof[kk] += profs[index];
 
-      /* Update the output statistics structure */
-      outstats->numdata += instats[ii].numdata;
-      outstats->data_avg += instats[ii].data_avg;
-      outstats->data_var += instats[ii].data_var;
-      outstats->prof_avg += instats[ii].prof_avg;
-      outstats->prof_var += instats[ii].prof_var;
-   }
+        /* Update the output statistics structure */
+        outstats->numdata += instats[ii].numdata;
+        outstats->data_avg += instats[ii].data_avg;
+        outstats->data_var += instats[ii].data_var;
+        outstats->prof_avg += instats[ii].prof_avg;
+        outstats->prof_var += instats[ii].prof_var;
+    }
 
-   /* Profile information gets added together, but */
-   /* data set info gets averaged together.        */
+    /* Profile information gets added together, but */
+    /* data set info gets averaged together.        */
 
-   outstats->data_avg /= numprofs;
-   outstats->data_var /= numprofs;
+    outstats->data_avg /= numprofs;
+    outstats->data_var /= numprofs;
 
-   /* Calculate the reduced chi-squared */
-   outstats->redchi = chisqr(outprof, proflen, outstats->prof_avg,
-                             outstats->prof_var) / (proflen - 1.0);
-   vect_free(local_delays);
+    /* Calculate the reduced chi-squared */
+    outstats->redchi = chisqr(outprof, proflen, outstats->prof_avg,
+                              outstats->prof_var) / (proflen - 1.0);
+    vect_free(local_delays);
 }
 
 
 void initialize_foldstats(foldstats * stats)
 /* Zeroize all of the components of stats */
 {
-   stats->numdata = 0.0;        /* Number of data bins folded         */
-   stats->data_avg = 0.0;       /* Average level of the data bins     */
-   stats->data_var = 0.0;       /* Variance of the data bins          */
-   stats->numprof = 0.0;        /* Number of bins in the profile      */
-   stats->prof_avg = 0.0;       /* Average level of the profile bins  */
-   stats->prof_var = 0.0;       /* Variance of the profile bins       */
-   stats->redchi = 0.0;         /* Reduced chi-squared of the profile */
+    stats->numdata = 0.0;       /* Number of data bins folded         */
+    stats->data_avg = 0.0;      /* Average level of the data bins     */
+    stats->data_var = 0.0;      /* Variance of the data bins          */
+    stats->numprof = 0.0;       /* Number of bins in the profile      */
+    stats->prof_avg = 0.0;      /* Average level of the profile bins  */
+    stats->prof_var = 0.0;      /* Variance of the profile bins       */
+    stats->redchi = 0.0;        /* Reduced chi-squared of the profile */
 }

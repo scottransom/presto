@@ -6,11 +6,11 @@ double tree_max_dm(int numchan, double dt, double lofreq, double hifreq)
 /* interval 'dt', the number of channels 'numchan', and the    */
 /* low and high observation frequencies in MHz.                */
 {
-   if (lofreq == 0.0 || hifreq == 0.0)
-      return 0.0;
-   else
-      return 0.000241 * (numchan - 1) * dt /
-          ((1.0 / (lofreq * lofreq)) - (1.0 / (hifreq * hifreq)));
+    if (lofreq == 0.0 || hifreq == 0.0)
+        return 0.0;
+    else
+        return 0.000241 * (numchan - 1) * dt /
+            ((1.0 / (lofreq * lofreq)) - (1.0 / (hifreq * hifreq)));
 }
 
 
@@ -19,10 +19,11 @@ double smearing_from_bw(double dm, double center_freq, double bandwidth)
 /* a Dispersion Measure (dm) in cm-3 pc, the central frequency */
 /* and the bandwith of the observation in MHz.                 */
 {
-   if (center_freq == 0.0)
-      return 0.0;
-   else
-      return dm * bandwidth / (0.0001205 * center_freq * center_freq * center_freq);
+    if (center_freq == 0.0)
+        return 0.0;
+    else
+        return dm * bandwidth / (0.0001205 * center_freq * center_freq *
+                                 center_freq);
 }
 
 
@@ -31,10 +32,10 @@ double delay_from_dm(double dm, double freq_emitted)
 /* a Dispersion Measure (dm) in cm-3 pc, and the emitted    */
 /* frequency (freq_emitted) of the pulsar in MHz.           */
 {
-   if (freq_emitted == 0.0)
-      return 0.0;
-   else
-      return dm / (0.000241 * freq_emitted * freq_emitted);
+    if (freq_emitted == 0.0)
+        return 0.0;
+    else
+        return dm / (0.000241 * freq_emitted * freq_emitted);
 }
 
 
@@ -43,10 +44,10 @@ double dm_from_delay(double delay, double freq_emitted)
 /* cause a pulse emitted at frequency 'freq_emitted' to be  */
 /* delayed by 'delay' seconds.                              */
 {
-   if (freq_emitted == 0.0)
-      return 0.0;
-   else
-      return delay * 0.000241 * freq_emitted * freq_emitted;
+    if (freq_emitted == 0.0)
+        return 0.0;
+    else
+        return delay * 0.000241 * freq_emitted * freq_emitted;
 }
 
 
@@ -60,15 +61,15 @@ double *dedisp_delays(int numchan, double dm, double lofreq,
 /* the frequencies for doppler effects (for no correction use    */
 /* voverc=0).  The returned array is allocated by this routine.  */
 {
-   int ii;
-   double *delays, freq;
+    int ii;
+    double *delays, freq;
 
-   delays = gen_dvect(numchan);
-   for (ii = 0; ii < numchan; ii++) {
-      freq = doppler(lofreq + ii * chanwidth, voverc);
-      delays[ii] = delay_from_dm(dm, freq);
-   }
-   return delays;
+    delays = gen_dvect(numchan);
+    for (ii = 0; ii < numchan; ii++) {
+        freq = doppler(lofreq + ii * chanwidth, voverc);
+        delays[ii] = delay_from_dm(dm, freq);
+    }
+    return delays;
 }
 
 
@@ -93,7 +94,7 @@ void dedisp(unsigned char *data, unsigned char *lastdata, int numpts,
         for (kk = 0; kk < numpts - delays[ii]; kk++, jj += numchan)
             result[kk] += lastdata[jj];
         jj = ii;
-        for (ll = 0 ; kk < numpts; kk++, jj += numchan, ll++)
+        for (ll = 0; kk < numpts; kk++, jj += numchan, ll++)
             result[kk] += data[jj];
     }
 }
@@ -107,16 +108,16 @@ double *subband_delays(int numchan, int numsubbands, double dm,
 /* description of subband_search_delays().  See the comments  */
 /* for dedisp_delays() for more info.                         */
 {
-   int chan_per_subband;
-   double subbandwidth, losub_hifreq;
+    int chan_per_subband;
+    double subbandwidth, losub_hifreq;
 
-   chan_per_subband = numchan / numsubbands;
-   subbandwidth = chanwidth * chan_per_subband;
-   losub_hifreq = lofreq + subbandwidth - chanwidth;
+    chan_per_subband = numchan / numsubbands;
+    subbandwidth = chanwidth * chan_per_subband;
+    losub_hifreq = lofreq + subbandwidth - chanwidth;
 
-   /* Calculate the appropriate delays to subtract from each subband */
+    /* Calculate the appropriate delays to subtract from each subband */
 
-   return dedisp_delays(numsubbands, dm, losub_hifreq, subbandwidth, voverc);
+    return dedisp_delays(numsubbands, dm, losub_hifreq, subbandwidth, voverc);
 }
 
 
@@ -139,25 +140,25 @@ double *subband_search_delays(int numchan, int numsubbands, double dm,
 /*   subband must be calculated with the frequency of the highest     */
 /*   channel in each subband, _not_ the center subband frequency.     */
 {
-   int ii, jj, chan_per_subband;
-   double *delays, *subbanddelays;
+    int ii, jj, chan_per_subband;
+    double *delays, *subbanddelays;
 
-   chan_per_subband = numchan / numsubbands;
+    chan_per_subband = numchan / numsubbands;
 
-   /* Calculate the appropriate delays to subtract from each subband */
+    /* Calculate the appropriate delays to subtract from each subband */
 
-   subbanddelays = subband_delays(numchan, numsubbands, dm,
-                                  lofreq, chanwidth, voverc);
+    subbanddelays = subband_delays(numchan, numsubbands, dm,
+                                   lofreq, chanwidth, voverc);
 
-   /* Calculate the appropriate delays for each channel */
+    /* Calculate the appropriate delays for each channel */
 
-   delays = dedisp_delays(numchan, dm, lofreq, chanwidth, voverc);
-   for (ii = 0; ii < numsubbands; ii++)
-      for (jj = 0; jj < chan_per_subband; jj++)
-         delays[ii * chan_per_subband + jj] -= subbanddelays[ii];
-   vect_free(subbanddelays);
+    delays = dedisp_delays(numchan, dm, lofreq, chanwidth, voverc);
+    for (ii = 0; ii < numsubbands; ii++)
+        for (jj = 0; jj < chan_per_subband; jj++)
+            delays[ii * chan_per_subband + jj] -= subbanddelays[ii];
+    vect_free(subbanddelays);
 
-   return delays;
+    return delays;
 }
 
 
@@ -214,20 +215,20 @@ void float_dedisp(float *data, float *lastdata,
 // ascending frequency order.  Input data are ordered in time, with
 // the channels stored together at each time point.
 {
-   int ii, jj, kk;
+    int ii, jj, kk;
 
-   for (ii = 0; ii < numpts; ii++)
-      result[ii] = -approx_mean;
+    for (ii = 0; ii < numpts; ii++)
+        result[ii] = -approx_mean;
 
-   /* De-disperse */
-   for (ii = 0; ii < numchan; ii++) {
-      jj = ii + delays[ii] * numchan;
-      for (kk = 0; kk < numpts - delays[ii]; kk++, jj += numchan)
-         result[kk] += lastdata[jj];
-      jj = ii;
-      for (; kk < numpts; kk++, jj += numchan)
-         result[kk] += data[jj];
-   }
+    /* De-disperse */
+    for (ii = 0; ii < numchan; ii++) {
+        jj = ii + delays[ii] * numchan;
+        for (kk = 0; kk < numpts - delays[ii]; kk++, jj += numchan)
+            result[kk] += lastdata[jj];
+        jj = ii;
+        for (; kk < numpts; kk++, jj += numchan)
+            result[kk] += data[jj];
+    }
 }
 
 
@@ -243,47 +244,47 @@ void combine_subbands(double *inprofs, foldstats * stats,
 /* combined as well and the combined stats are returned in             */
 /* 'outprofstats'. All arrays must be pre-allocated.                   */
 {
-   int ii, jj, kk, ptsperpart;
-   int partindex, profindex, ptindex, outprofindex, statindex;
+    int ii, jj, kk, ptsperpart;
+    int partindex, profindex, ptindex, outprofindex, statindex;
 
-   /* Set the output profiles and statistics to 0.0 */
+    /* Set the output profiles and statistics to 0.0 */
 
-   for (ii = 0; ii < numparts * proflen; ii++)
-      outprofs[ii] = 0.0;
-   for (ii = 0; ii < numparts; ii++) {
-      initialize_foldstats(&(outprofstats[ii]));
-      outprofstats[ii].numprof = stats[0].numprof;
-   }
-   ptsperpart = numsubbands * proflen;
+    for (ii = 0; ii < numparts * proflen; ii++)
+        outprofs[ii] = 0.0;
+    for (ii = 0; ii < numparts; ii++) {
+        initialize_foldstats(&(outprofstats[ii]));
+        outprofstats[ii].numprof = stats[0].numprof;
+    }
+    ptsperpart = numsubbands * proflen;
 
-   /* Combine the profiles */
+    /* Combine the profiles */
 
-   for (ii = 0; ii < numparts; ii++) {  /* Step through parts */
-      outprofindex = ii * proflen;
-      partindex = ii * ptsperpart;
-      statindex = ii * numsubbands;
-      outprofstats[ii].numdata += stats[statindex].numdata;
-      for (jj = 0; jj < numsubbands; jj++) {    /* Step through subbands */
-         profindex = partindex + jj * proflen;
+    for (ii = 0; ii < numparts; ii++) { /* Step through parts */
+        outprofindex = ii * proflen;
+        partindex = ii * ptsperpart;
+        statindex = ii * numsubbands;
+        outprofstats[ii].numdata += stats[statindex].numdata;
+        for (jj = 0; jj < numsubbands; jj++) {  /* Step through subbands */
+            profindex = partindex + jj * proflen;
 
-         /* low part of profile  */
+            /* low part of profile  */
 
-         ptindex = profindex + delays[jj];
-         for (kk = 0; kk < proflen - delays[jj]; kk++, ptindex++)
-            outprofs[outprofindex + kk] += inprofs[ptindex];
+            ptindex = profindex + delays[jj];
+            for (kk = 0; kk < proflen - delays[jj]; kk++, ptindex++)
+                outprofs[outprofindex + kk] += inprofs[ptindex];
 
-         /* high part of profile */
+            /* high part of profile */
 
-         ptindex = profindex;
-         for (; kk < proflen; kk++, ptindex++)
-            outprofs[outprofindex + kk] += inprofs[ptindex];
+            ptindex = profindex;
+            for (; kk < proflen; kk++, ptindex++)
+                outprofs[outprofindex + kk] += inprofs[ptindex];
 
-         /* Update the foldstats */
+            /* Update the foldstats */
 
-         outprofstats[ii].data_avg += stats[statindex + jj].data_avg;
-         outprofstats[ii].data_var += stats[statindex + jj].data_var;
-         outprofstats[ii].prof_avg += stats[statindex + jj].prof_avg;
-         outprofstats[ii].prof_var += stats[statindex + jj].prof_var;
-      }
-   }
+            outprofstats[ii].data_avg += stats[statindex + jj].data_avg;
+            outprofstats[ii].data_var += stats[statindex + jj].data_var;
+            outprofstats[ii].prof_avg += stats[statindex + jj].prof_avg;
+            outprofstats[ii].prof_var += stats[statindex + jj].prof_var;
+        }
+    }
 }

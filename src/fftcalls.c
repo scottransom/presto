@@ -20,22 +20,22 @@ void read_wisdom(void)
     wisdomfile = fopen(wisdomfilenm, "r");
     if (wisdomfile == NULL) {
         printf("Warning:  Couldn't open '%s'\n"
-               "          You should run 'makewisdom'.  See $PRESTO/INSTALL.\n", 
+               "          You should run 'makewisdom'.  See $PRESTO/INSTALL.\n",
                wisdomfilenm);
     } else {
         if (!fftwf_import_wisdom_from_file(wisdomfile))
             printf("Warning:  '%s' is not up-to-date.\n"
-                   "          You should run 'makewisdom'.  See $PRESTO/INSTALL.\n", 
+                   "          You should run 'makewisdom'.  See $PRESTO/INSTALL.\n",
                    wisdomfilenm);
         fclose(wisdomfile);
     }
 }
 
 
-void fftwcallsimple(fcomplex *data, long nn, int isign)
+void fftwcallsimple(fcomplex * data, long nn, int isign)
 /* Simple FFTW calling function for testing */
 {
-    static int firsttime=1;
+    static int firsttime = 1;
     fftwf_plan plan;
     if (firsttime) {
         read_wisdom();
@@ -43,9 +43,8 @@ void fftwcallsimple(fcomplex *data, long nn, int isign)
     }
     // Note: We need to use FFTW_ESTIMATE since other
     // plan-making destroys the input and output arrays
-    plan = fftwf_plan_dft_1d(nn, (fftwf_complex *)data,
-                             (fftwf_complex *)data, isign,
-                             FFTW_ESTIMATE);
+    plan = fftwf_plan_dft_1d(nn, (fftwf_complex *) data,
+                             (fftwf_complex *) data, isign, FFTW_ESTIMATE);
     fftwf_execute(plan);
     fftwf_destroy_plan(plan);
 }
@@ -80,9 +79,9 @@ void fftwcall(fcomplex * indata, long nn, int isign)
         tablesixstepfft(indata, nn, isign);
         return;
     }
-
     // If calling for the first time, read the wisdom file
-    if (firsttime) read_wisdom();
+    if (firsttime)
+        read_wisdom();
 
     // If we used the same plan during the last few calls, use it
     // again.  We keep, in effect, a stack of the 4 most recent plans.
@@ -93,9 +92,9 @@ void fftwcall(fcomplex * indata, long nn, int isign)
             plan_forward = &plancache_forward[slot];
             plan_inverse = &plancache_inverse[slot];
             lastused[slot] = 0;
-            lastused[(slot+1)%4]++;
-            lastused[(slot+2)%4]++;
-            lastused[(slot+3)%4]++;
+            lastused[(slot + 1) % 4]++;
+            lastused[(slot + 2) % 4]++;
+            lastused[(slot + 3) % 4]++;
             //printf("Found plan in slot %d (iter = %d):  nn=%ld  align=%d  number=%d\n",
             //       slot, ii, nn, aligncache[slot], goodct++);
             lastslot = slot;
@@ -124,26 +123,25 @@ void fftwcall(fcomplex * indata, long nn, int isign)
         planflag = (nn > 90000) ? FFTW_ESTIMATE : FFTW_MEASURE;
         // FFTW_MEASURE will destroy the input/output data, so copy it
         datacopy = gen_cvect(nn);
-        memcpy(datacopy, dataptr, nn*sizeof(fcomplex));
+        memcpy(datacopy, dataptr, nn * sizeof(fcomplex));
         // Actually make the plans
-        plancache_forward[oldestplan] =                             \
+        plancache_forward[oldestplan] =
             fftwf_plan_dft_1d(nn, dataptr, dataptr, -1, planflag);
-        plancache_inverse[oldestplan] =                                 \
+        plancache_inverse[oldestplan] =
             fftwf_plan_dft_1d(nn, dataptr, dataptr, +1, planflag);
         // Now copy the input data back
-        memcpy(dataptr, datacopy, nn*sizeof(fcomplex));
+        memcpy(dataptr, datacopy, nn * sizeof(fcomplex));
         vect_free(datacopy);
         nncache[oldestplan] = nn;
         aligncache[oldestplan] = indata_align;
         plan_forward = &plancache_forward[oldestplan];
         plan_inverse = &plancache_inverse[oldestplan];
         lastused[oldestplan] = 0;
-        lastused[(oldestplan+1)%4]++;
-        lastused[(oldestplan+2)%4]++;
-        lastused[(oldestplan+3)%4]++;
+        lastused[(oldestplan + 1) % 4]++;
+        lastused[(oldestplan + 2) % 4]++;
+        lastused[(oldestplan + 3) % 4]++;
         lastslot = oldestplan;
     }
-
     // Call the transform using the "new-array" functionality of FFTW
     if (isign == -1) {
         fftwf_execute_dft(*plan_forward, dataptr, dataptr);
@@ -159,27 +157,27 @@ void fftwcall(fcomplex * indata, long nn, int isign)
 
 void sgifftcall(fcomplex * indata, long nn, int isign)
 {
-   int expon;
-   double fracpart;
-   static complex *coeff[30];
+    int expon;
+    double fracpart;
+    static complex *coeff[30];
 
-   /* Determine the twoth power of the length of the data */
+    /* Determine the twoth power of the length of the data */
 
-   fracpart = frexp((double) nn, &expon);
-   expon--;
+    fracpart = frexp((double) nn, &expon);
+    expon--;
 
-   /* If we are calling using an nn we haven't seen before */
+    /* If we are calling using an nn we haven't seen before */
 
-   if (coeff[expon] == NULL) {
+    if (coeff[expon] == NULL) {
 
-      /* Allocate coefficient array */
+        /* Allocate coefficient array */
 
-      coeff[expon] = cfft1di(nn, NULL);
+        coeff[expon] = cfft1di(nn, NULL);
 
-   }
-   /* Do the FFT */
+    }
+    /* Do the FFT */
 
-   cfft1d(isign, nn, (complex *) indata, 1, coeff[expon]);
+    cfft1d(isign, nn, (complex *) indata, 1, coeff[expon]);
 }
 
 #endif

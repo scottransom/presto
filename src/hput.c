@@ -75,13 +75,13 @@ char *keyword;                  /* character string containing the name of the v
                                    The first 8 characters of keyword must be unique. */
 int ival;                       /* int number */
 {
-   char value[30];
+    char value[30];
 
-   /* Translate value from binary to ASCII */
-   sprintf(value, "%d", ival);
+    /* Translate value from binary to ASCII */
+    sprintf(value, "%d", ival);
 
-   /* Put value into header string */
-   return (hputc(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputc(hstring, keyword, value));
 }
 
 
@@ -94,13 +94,13 @@ char *keyword;                  /* Keyword name */
 short ival;                     /* short number */
 
 {
-   char value[30];
+    char value[30];
 
-   /* Translate value from binary to ASCII */
-   sprintf(value, "%d", ival);
+    /* Translate value from binary to ASCII */
+    sprintf(value, "%d", ival);
 
-   /* Put value into header string */
-   return (hputc(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputc(hstring, keyword, value));
 }
 
 
@@ -112,13 +112,13 @@ char *hstring;                  /* FITS header string */
 char *keyword;                  /* Keyword name */
 float rval;                     /* float number */
 {
-   char value[30];
+    char value[30];
 
-   /* Translate value from binary to ASCII */
-   sprintf(value, "%f", rval);
+    /* Translate value from binary to ASCII */
+    sprintf(value, "%f", rval);
 
-   /* Put value into header string */
-   return (hputc(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputc(hstring, keyword, value));
 }
 
 
@@ -130,13 +130,13 @@ char *hstring;                  /* FITS header string */
 char *keyword;                  /* Keyword name */
 double dval;                    /* double number */
 {
-   char value[30];
+    char value[30];
 
-   /* Translate value from binary to ASCII */
-   sprintf(value, "%g", dval);
+    /* Translate value from binary to ASCII */
+    sprintf(value, "%g", dval);
 
-   /* Put value into header string */
-   return (hputc(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputc(hstring, keyword, value));
 }
 
 
@@ -149,24 +149,24 @@ char *keyword;                  /* Keyword name */
 int ndec;                       /* Number of decimal places to print */
 double dval;                    /* double number */
 {
-   char value[30];
-   char format[8];
-   unsigned int i;
+    char value[30];
+    char format[8];
+    unsigned int i;
 
-   /* Translate value from binary to ASCII */
-   if (ndec < 0) {
-      sprintf(format, "%%.%dg", -ndec);
-      sprintf(value, format, dval);
-      for (i = 0; i < strlen(value); i++)
-         if (value[i] == 'e')
-            value[i] = 'E';
-   } else {
-      sprintf(format, "%%.%df", ndec);
-      sprintf(value, format, dval);
-   }
+    /* Translate value from binary to ASCII */
+    if (ndec < 0) {
+        sprintf(format, "%%.%dg", -ndec);
+        sprintf(value, format, dval);
+        for (i = 0; i < strlen(value); i++)
+            if (value[i] == 'e')
+                value[i] = 'E';
+    } else {
+        sprintf(format, "%%.%df", ndec);
+        sprintf(value, format, dval);
+    }
 
-   /* Put value into header string */
-   return (hputc(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputc(hstring, keyword, value));
 }
 
 
@@ -178,13 +178,13 @@ char *hstring;                  /* FITS header string */
 char *keyword;                  /* Keyword name */
 double ra;                      /* Right ascension in degrees */
 {
-   char value[30];
+    char value[30];
 
-   /* Translate value from binary to ASCII */
-   ra2str(value, 30, ra, 3);
+    /* Translate value from binary to ASCII */
+    ra2str(value, 30, ra, 3);
 
-   /* Put value into header string */
-   return (hputs(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputs(hstring, keyword, value));
 }
 
 
@@ -196,13 +196,13 @@ char *hstring;                  /* FITS header string */
 char *keyword;                  /* Keyword name */
 double dec;                     /* Declination in degrees */
 {
-   char value[30];
+    char value[30];
 
-   /* Translate value from binary to ASCII */
-   dec2str(value, 30, dec, 2);
+    /* Translate value from binary to ASCII */
+    dec2str(value, 30, dec, 2);
 
-   /* Put value into header string */
-   return (hputs(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputs(hstring, keyword, value));
 }
 
 
@@ -215,16 +215,16 @@ char *hstring;                  /* FITS header */
 char *keyword;                  /* Keyword name */
 int lval;                       /* logical variable (0=false, else true) */
 {
-   char value[8];
+    char value[8];
 
-   /* Translate value from binary to ASCII */
-   if (lval)
-      strcpy(value, "T");
-   else
-      strcpy(value, "F");
+    /* Translate value from binary to ASCII */
+    if (lval)
+        strcpy(value, "T");
+    else
+        strcpy(value, "F");
 
-   /* Put value into header string */
-   return (hputc(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputc(hstring, keyword, value));
 }
 
 
@@ -238,71 +238,71 @@ char *keyword;                  /* Keyword name root (6 characters or less) */
 char *cval;                     /* character string containing the value for variable
                                    keyword.  trailing and leading blanks are removed.  */
 {
-   int lroot = 0, lcv, i, ii, nkw, lkw, lval;
-   int comment = 0;
-   char keyroot[8], newkey[12], *v, value[80];
-   char squot = 39;
+    int lroot = 0, lcv, i, ii, nkw, lkw, lval;
+    int comment = 0;
+    char keyroot[8], newkey[12], *v, value[80];
+    char squot = 39;
 
-   /*  If COMMENT or HISTORY, use the same keyword on every line */
-   lkw = strlen(keyword);
-   if (lkw == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
-                    strncmp(keyword, "HISTORY", 7) == 0))
-      comment = 1;
+    /*  If COMMENT or HISTORY, use the same keyword on every line */
+    lkw = strlen(keyword);
+    if (lkw == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
+                     strncmp(keyword, "HISTORY", 7) == 0))
+        comment = 1;
 
-   /* Set up keyword root, shortening it to 6 characters, if necessary */
-   else {
-      comment = 0;
-      strcpy(keyroot, keyword);
-      lroot = strlen(keyroot);
-      if (lroot > 6) {
-         keyroot[6] = (char) 0;
-         lroot = 6;
-      }
-   }
+    /* Set up keyword root, shortening it to 6 characters, if necessary */
+    else {
+        comment = 0;
+        strcpy(keyroot, keyword);
+        lroot = strlen(keyroot);
+        if (lroot > 6) {
+            keyroot[6] = (char) 0;
+            lroot = 6;
+        }
+    }
 
-   /* Write keyword value one line of up to 67 characters at a time */
-   ii = '1';
-   nkw = 0;
-   lcv = strlen(cval);
-   strcpy(newkey, keyroot);
-   strcat(newkey, "_");
-   newkey[lroot + 2] = (char) 0;
-   v = cval;
-   while (lcv > 0) {
-      if (lcv > 67)
-         lval = 67;
-      else
-         lval = lcv;
-      value[0] = squot;
-      for (i = 1; i <= lval; i++)
-         value[i] = *v++;
+    /* Write keyword value one line of up to 67 characters at a time */
+    ii = '1';
+    nkw = 0;
+    lcv = strlen(cval);
+    strcpy(newkey, keyroot);
+    strcat(newkey, "_");
+    newkey[lroot + 2] = (char) 0;
+    v = cval;
+    while (lcv > 0) {
+        if (lcv > 67)
+            lval = 67;
+        else
+            lval = lcv;
+        value[0] = squot;
+        for (i = 1; i <= lval; i++)
+            value[i] = *v++;
 
-      /* Pad short strings to 8 characters */
-      if (lval < 8) {
-         for (i = lval + 1; i < 9; i++)
-            value[i] = ' ';
-         lval = 8;
-      }
-      value[lval + 1] = squot;
-      value[lval + 2] = (char) 0;
+        /* Pad short strings to 8 characters */
+        if (lval < 8) {
+            for (i = lval + 1; i < 9; i++)
+                value[i] = ' ';
+            lval = 8;
+        }
+        value[lval + 1] = squot;
+        value[lval + 2] = (char) 0;
 
-      /* Add this line to the header */
-      if (comment)
-         i = hputc(hstring, keyroot, value);
-      else {
-         newkey[lroot + 1] = ii;
-         ii++;
-         i = hputc(hstring, newkey, value);
-      }
-      if (i != 0)
-         return (i);
-      nkw++;
-      if (lcv > 67)
-         lcv = lcv - 67;
-      else
-         break;
-   }
-   return (nkw);
+        /* Add this line to the header */
+        if (comment)
+            i = hputc(hstring, keyroot, value);
+        else {
+            newkey[lroot + 1] = ii;
+            ii++;
+            i = hputc(hstring, newkey, value);
+        }
+        if (i != 0)
+            return (i);
+        nkw++;
+        if (lcv > 67)
+            lcv = lcv - 67;
+        else
+            break;
+    }
+    return (nkw);
 }
 
 
@@ -315,39 +315,39 @@ char *keyword;                  /* Keyword name */
 char *cval;                     /* character string containing the value for variable
                                    keyword.  trailing and leading blanks are removed.  */
 {
-   char squot = 39;
-   char value[80];
-   int lcval, i, lkeyword;
+    char squot = 39;
+    char value[80];
+    int lcval, i, lkeyword;
 
-   /*  If COMMENT or HISTORY, just add it as is */
-   lkeyword = strlen(keyword);
-   if (lkeyword == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
-                         strncmp(keyword, "HISTORY", 7) == 0))
-      return (hputc(hstring, keyword, cval));
+    /*  If COMMENT or HISTORY, just add it as is */
+    lkeyword = strlen(keyword);
+    if (lkeyword == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
+                          strncmp(keyword, "HISTORY", 7) == 0))
+        return (hputc(hstring, keyword, cval));
 
-   /*  find length of variable string */
-   lcval = strlen(cval);
-   if (lcval > 67)
-      lcval = 67;
+    /*  find length of variable string */
+    lcval = strlen(cval);
+    if (lcval > 67)
+        lcval = 67;
 
-   /* Put single quote at start of string */
-   value[0] = squot;
-   strncpy(&value[1], cval, lcval);
+    /* Put single quote at start of string */
+    value[0] = squot;
+    strncpy(&value[1], cval, lcval);
 
-   /* If string is less than eight characters, pad it with spaces */
-   if (lcval < 8) {
-      for (i = lcval; i < 8; i++) {
-         value[i + 1] = ' ';
-      }
-      lcval = 8;
-   }
+    /* If string is less than eight characters, pad it with spaces */
+    if (lcval < 8) {
+        for (i = lcval; i < 8; i++) {
+            value[i + 1] = ' ';
+        }
+        lcval = 8;
+    }
 
-   /* Add single quote and null to end of string */
-   value[lcval + 1] = squot;
-   value[lcval + 2] = (char) 0;
+    /* Add single quote and null to end of string */
+    value[lcval + 1] = squot;
+    value[lcval + 2] = (char) 0;
 
-   /* Put value into header string */
-   return (hputc(hstring, keyword, value));
+    /* Put value into header string */
+    return (hputc(hstring, keyword, value));
 }
 
 
@@ -361,160 +361,160 @@ char *keyword;
 char *value;                    /* character string containing the value for variable
                                    keyword.  trailing and leading blanks are removed.  */
 {
-   char squot = 39;
-   char line[100];
-   char newcom[50];
-   char *v, *vp, *v1, *v2, *q1, *q2, *c1, *ve;
-   int lkeyword, lcom, lval, lc, lv1, lhead;
+    char squot = 39;
+    char line[100];
+    char newcom[50];
+    char *v, *vp, *v1, *v2, *q1, *q2, *c1, *ve;
+    int lkeyword, lcom, lval, lc, lv1, lhead;
 
-   /* Find length of keyword, value, and header */
-   lkeyword = strlen(keyword);
-   lval = strlen(value);
-   lhead = gethlength(hstring);
+    /* Find length of keyword, value, and header */
+    lkeyword = strlen(keyword);
+    lval = strlen(value);
+    lhead = gethlength(hstring);
 
-   /*  If COMMENT or HISTORY, always add it just before the END */
-   if (lkeyword == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
-                         strncmp(keyword, "HISTORY", 7) == 0)) {
+    /*  If COMMENT or HISTORY, always add it just before the END */
+    if (lkeyword == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
+                          strncmp(keyword, "HISTORY", 7) == 0)) {
 
-      /* First look for blank lines before END */
-      v1 = blsearch(hstring, "END");
+        /* First look for blank lines before END */
+        v1 = blsearch(hstring, "END");
 
-      /*  Otherwise, create a space for it at the end of the header */
-      if (v1 == NULL) {
+        /*  Otherwise, create a space for it at the end of the header */
+        if (v1 == NULL) {
 
-         /* Find end of header */
-         v1 = ksearch(hstring, "END");
-         v2 = v1 + 80;
+            /* Find end of header */
+            v1 = ksearch(hstring, "END");
+            v2 = v1 + 80;
 
-         /* If header length is exceeded, return error code */
-         if (v2 - hstring > lhead) {
-            return (-1);
-         }
+            /* If header length is exceeded, return error code */
+            if (v2 - hstring > lhead) {
+                return (-1);
+            }
 
-         /* Move END down 80 characters */
-         strncpy(v2, v1, 80);
-      } else
-         v2 = v1 + 80;
+            /* Move END down 80 characters */
+            strncpy(v2, v1, 80);
+        } else
+            v2 = v1 + 80;
 
-      /* Insert keyword */
-      strncpy(v1, keyword, 7);
+        /* Insert keyword */
+        strncpy(v1, keyword, 7);
 
-      /* Pad with spaces */
-      for (vp = v1 + lkeyword; vp < v2; vp++)
-         *vp = ' ';
+        /* Pad with spaces */
+        for (vp = v1 + lkeyword; vp < v2; vp++)
+            *vp = ' ';
 
-      if (lval > 71)
-         lv1 = 71;
-      else
-         lv1 = lval;
+        if (lval > 71)
+            lv1 = 71;
+        else
+            lv1 = lval;
 
-      /* Insert comment */
-      strncpy(v1 + 9, value, lv1);
-      return (0);
-   }
+        /* Insert comment */
+        strncpy(v1 + 9, value, lv1);
+        return (0);
+    }
 
-   /* Otherwise search for keyword */
-   else
-      v1 = ksearch(hstring, keyword);
+    /* Otherwise search for keyword */
+    else
+        v1 = ksearch(hstring, keyword);
 
-   /*  If parameter is not found, find a place to put it */
-   if (v1 == NULL) {
+    /*  If parameter is not found, find a place to put it */
+    if (v1 == NULL) {
 
-      /* First look for blank lines before END */
-      v1 = blsearch(hstring, "END");
+        /* First look for blank lines before END */
+        v1 = blsearch(hstring, "END");
 
-      /*  Otherwise, create a space for it at the end of the header */
-      if (v1 == NULL) {
-         ve = ksearch(hstring, "END");
-         v1 = ve;
-         v2 = v1 + 80;
+        /*  Otherwise, create a space for it at the end of the header */
+        if (v1 == NULL) {
+            ve = ksearch(hstring, "END");
+            v1 = ve;
+            v2 = v1 + 80;
 
-         /* If header length is exceeded, return error code */
-         if (v2 - hstring > lhead) {
-            return (-1);
-         }
+            /* If header length is exceeded, return error code */
+            if (v2 - hstring > lhead) {
+                return (-1);
+            }
 
-         strncpy(v2, ve, 80);
-      } else
-         v2 = v1 + 80;
-      lcom = 0;
-      newcom[0] = 0;
-   }
+            strncpy(v2, ve, 80);
+        } else
+            v2 = v1 + 80;
+        lcom = 0;
+        newcom[0] = 0;
+    }
 
-   /*  Otherwise, extract the entry for this keyword from the header */
-   else {
-      strncpy(line, v1, 80);
-      line[80] = 0;
-      v2 = v1 + 80;
+    /*  Otherwise, extract the entry for this keyword from the header */
+    else {
+        strncpy(line, v1, 80);
+        line[80] = 0;
+        v2 = v1 + 80;
 
-      /*  check for quoted value */
-      q1 = strchr(line, squot);
-      if (q1 != NULL)
-         q2 = strchr(q1 + 1, squot);
-      else
-         q2 = line;
+        /*  check for quoted value */
+        q1 = strchr(line, squot);
+        if (q1 != NULL)
+            q2 = strchr(q1 + 1, squot);
+        else
+            q2 = line;
 
-      /*  extract comment and remove trailing spaces */
+        /*  extract comment and remove trailing spaces */
 
-      c1 = strchr(q2, '/');
-      if (c1 != NULL) {
-         lcom = 80 - (c1 - line);
-         strncpy(newcom, c1 + 1, lcom);
-         vp = newcom + lcom - 1;
-         while (vp-- > newcom && *vp == ' ')
-            *vp = 0;
-         lcom = strlen(newcom);
-      } else {
-         newcom[0] = 0;
-         lcom = 0;
-      }
-   }
+        c1 = strchr(q2, '/');
+        if (c1 != NULL) {
+            lcom = 80 - (c1 - line);
+            strncpy(newcom, c1 + 1, lcom);
+            vp = newcom + lcom - 1;
+            while (vp-- > newcom && *vp == ' ')
+                *vp = 0;
+            lcom = strlen(newcom);
+        } else {
+            newcom[0] = 0;
+            lcom = 0;
+        }
+    }
 
-   /* Fill new entry with spaces */
-   for (vp = v1; vp < v2; vp++)
-      *vp = ' ';
+    /* Fill new entry with spaces */
+    for (vp = v1; vp < v2; vp++)
+        *vp = ' ';
 
-   /*  Copy keyword to new entry */
-   strncpy(v1, keyword, lkeyword);
+    /*  Copy keyword to new entry */
+    strncpy(v1, keyword, lkeyword);
 
-   /*  Add parameter value in the appropriate place */
-   vp = v1 + 8;
-   *vp = '=';
-   vp = v1 + 9;
-   *vp = ' ';
-   vp = vp + 1;
-   if (*value == squot) {
-      strncpy(vp, value, lval);
-      if (lval + 12 > 31)
-         lc = lval + 12;
-      else
-         lc = 30;
-   } else {
-      vp = v1 + 30 - lval;
-      strncpy(vp, value, lval);
-      lc = 30;
-   }
+    /*  Add parameter value in the appropriate place */
+    vp = v1 + 8;
+    *vp = '=';
+    vp = v1 + 9;
+    *vp = ' ';
+    vp = vp + 1;
+    if (*value == squot) {
+        strncpy(vp, value, lval);
+        if (lval + 12 > 31)
+            lc = lval + 12;
+        else
+            lc = 30;
+    } else {
+        vp = v1 + 30 - lval;
+        strncpy(vp, value, lval);
+        lc = 30;
+    }
 
-   /* Add comment in the appropriate place */
-   if (lcom > 0) {
-      if (lc + 2 + lcom > 80)
-         lcom = 78 - lc;
-      vp = v1 + lc + 2;         /* Jul 16 1997: was vp = v1 + lc * 2 */
-      *vp = '/';
-      vp = vp + 1;
-      strncpy(vp, newcom, lcom);
-      for (v = vp + lcom; v < v2; v++)
-         *v = ' ';
-   }
+    /* Add comment in the appropriate place */
+    if (lcom > 0) {
+        if (lc + 2 + lcom > 80)
+            lcom = 78 - lc;
+        vp = v1 + lc + 2;       /* Jul 16 1997: was vp = v1 + lc * 2 */
+        *vp = '/';
+        vp = vp + 1;
+        strncpy(vp, newcom, lcom);
+        for (v = vp + lcom; v < v2; v++)
+            *v = ' ';
+    }
 
-   if (verbose) {
-      if (lcom > 0)
-         fprintf(stderr, "HPUT: %s  = %s  / %s\n", keyword, value, newcom);
-      else
-         fprintf(stderr, "HPUT: %s  = %s\n", keyword, value);
-   }
+    if (verbose) {
+        if (lcom > 0)
+            fprintf(stderr, "HPUT: %s  = %s  / %s\n", keyword, value, newcom);
+        else
+            fprintf(stderr, "HPUT: %s  = %s\n", keyword, value);
+    }
 
-   return (0);
+    return (0);
 }
 
 
@@ -526,91 +526,91 @@ char *hstring;
 char *keyword;
 char *comment;
 {
-   char squot;
-   char line[100];
-   int lkeyword, lcom, lhead, i, lblank;
-   char *vp, *v1, *v2, *c0 = NULL, *c1, *q1, *q2;
-   char *ksearch();
+    char squot;
+    char line[100];
+    int lkeyword, lcom, lhead, i, lblank;
+    char *vp, *v1, *v2, *c0 = NULL, *c1, *q1, *q2;
+    char *ksearch();
 
-   squot = 39;
+    squot = 39;
 
-   /*  Find length of variable name */
-   lkeyword = strlen(keyword);
-   lhead = gethlength(hstring);
-   lcom = strlen(comment);
+    /*  Find length of variable name */
+    lkeyword = strlen(keyword);
+    lhead = gethlength(hstring);
+    lcom = strlen(comment);
 
-   /*  If COMMENT or HISTORY, always add it just before the END */
-   if (lkeyword == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
-                         strncmp(keyword, "HISTORY", 7) == 0)) {
+    /*  If COMMENT or HISTORY, always add it just before the END */
+    if (lkeyword == 7 && (strncmp(keyword, "COMMENT", 7) == 0 ||
+                          strncmp(keyword, "HISTORY", 7) == 0)) {
 
-      /* Find end of header */
-      v1 = ksearch(hstring, "END");
-      v2 = v1 + 80;
+        /* Find end of header */
+        v1 = ksearch(hstring, "END");
+        v2 = v1 + 80;
 
-      /* If header length is exceeded, return error code */
-      if (v2 - hstring > lhead) {
-         return (-1);
-      }
+        /* If header length is exceeded, return error code */
+        if (v2 - hstring > lhead) {
+            return (-1);
+        }
 
-      /* Move END down 80 characters */
-      strncpy(v2, v1, 80);
+        /* Move END down 80 characters */
+        strncpy(v2, v1, 80);
 
-      /*  blank out new line and insert keyword */
-      for (vp = v1; vp < v2; vp++)
-         *vp = ' ';
-      strncpy(v1, keyword, lkeyword);
-   }
+        /*  blank out new line and insert keyword */
+        for (vp = v1; vp < v2; vp++)
+            *vp = ' ';
+        strncpy(v1, keyword, lkeyword);
+    }
 
-   /* Search header string for variable name */
-   else {
-      v1 = ksearch(hstring, keyword);
-      v2 = v1 + 80;
+    /* Search header string for variable name */
+    else {
+        v1 = ksearch(hstring, keyword);
+        v2 = v1 + 80;
 
-      /* If parameter is not found, return without doing anything */
-      if (v1 == NULL) {
-         if (verbose)
-            fprintf(stderr, "HPUTCOM: %s not found\n", keyword);
-         return (-1);
-      }
+        /* If parameter is not found, return without doing anything */
+        if (v1 == NULL) {
+            if (verbose)
+                fprintf(stderr, "HPUTCOM: %s not found\n", keyword);
+            return (-1);
+        }
 
-      /* Otherwise, extract entry for this variable from the header */
-      strncpy(line, v1, 80);
-      line[80] = '\0';          /* Null-terminate line before strchr call */
+        /* Otherwise, extract entry for this variable from the header */
+        strncpy(line, v1, 80);
+        line[80] = '\0';        /* Null-terminate line before strchr call */
 
-      /* check for quoted value */
-      q1 = strchr(line, squot);
-      if (q1 != NULL)
-         q2 = strchr(q1 + 1, squot);
-      else
-         q2 = NULL;
+        /* check for quoted value */
+        q1 = strchr(line, squot);
+        if (q1 != NULL)
+            q2 = strchr(q1 + 1, squot);
+        else
+            q2 = NULL;
 
-      if (q2 == NULL || q2 - line < 31)
-         c0 = v1 + 31;
-      else
-         c0 = v1 + (q2 - line) + 2;     /* allan: 1997-09-30, was c0=q2+2 */
+        if (q2 == NULL || q2 - line < 31)
+            c0 = v1 + 31;
+        else
+            c0 = v1 + (q2 - line) + 2;  /* allan: 1997-09-30, was c0=q2+2 */
 
-      /* If comment will not fit, do not add it */
-      if (c0 - v1 > 77)
-         return (-1);
-      strncpy(c0, "/ ", 2);
-   }
+        /* If comment will not fit, do not add it */
+        if (c0 - v1 > 77)
+            return (-1);
+        strncpy(c0, "/ ", 2);
+    }
 
-   /* Create new entry */
-   if (lcom > 0) {
-      c1 = c0 + 2;
-      if (c1 + lcom > v2)
-         lcom = v2 - c1 - 2;
-      strncpy(c1, comment, lcom);
-      lblank = v2 - c1 - lcom;
-      c1 = c1 + lcom;
-      for (i = 0; i < lblank; i++)
-         *c1++ = ' ';
-   }
+    /* Create new entry */
+    if (lcom > 0) {
+        c1 = c0 + 2;
+        if (c1 + lcom > v2)
+            lcom = v2 - c1 - 2;
+        strncpy(c1, comment, lcom);
+        lblank = v2 - c1 - lcom;
+        c1 = c1 + lcom;
+        for (i = 0; i < lblank; i++)
+            *c1++ = ' ';
+    }
 
-   if (verbose) {
-      fprintf(stderr, "HPUTCOM: %s / %s\n", keyword, comment);
-   }
-   return (0);
+    if (verbose) {
+        fprintf(stderr, "HPUTCOM: %s / %s\n", keyword, comment);
+    }
+    return (0);
 }
 
 
@@ -623,32 +623,32 @@ int hdel(hstring, keyword)
 char *hstring;                  /* FITS header */
 char *keyword;                  /* Keyword of entry to be deleted */
 {
-   char *v, *v1, *v2, *ve;
-   char *ksearch();
+    char *v, *v1, *v2, *ve;
+    char *ksearch();
 
-   /* Search for keyword */
-   v1 = ksearch(hstring, keyword);
+    /* Search for keyword */
+    v1 = ksearch(hstring, keyword);
 
-   /*  If keyword is not found, return header unchanged */
-   if (v1 == NULL) {
-      return (0);
-   }
+    /*  If keyword is not found, return header unchanged */
+    if (v1 == NULL) {
+        return (0);
+    }
 
-   /*  Find end of header */
-   ve = ksearch(hstring, "END");
+    /*  Find end of header */
+    ve = ksearch(hstring, "END");
 
-   /* Shift rest of header up one line */
-   for (v = v1; v < ve; v = v + 80) {
-      v2 = v + 80;
-      strncpy(v, v2, 80);
-   }
+    /* Shift rest of header up one line */
+    for (v = v1; v < ve; v = v + 80) {
+        v2 = v + 80;
+        strncpy(v, v2, 80);
+    }
 
-   /* Cover former last line with spaces */
-   v2 = ve + 80;
-   for (v = ve; v < v2; v++)
-      *v = ' ';
+    /* Cover former last line with spaces */
+    v2 = ve + 80;
+    for (v = ve; v < v2; v++)
+        *v = ' ';
 
-   return (1);
+    return (1);
 }
 
 
@@ -662,39 +662,39 @@ int hadd(hplace, keyword)
 char *hplace;                   /* FITS header position for new keyword */
 char *keyword;                  /* Keyword of entry to be deleted */
 {
-   char *v, *v1, *v2, *ve;
-   char *ksearch();
-   int i, lkey;
+    char *v, *v1, *v2, *ve;
+    char *ksearch();
+    int i, lkey;
 
-   /*  Find end of header */
-   ve = ksearch(hplace, "END");
+    /*  Find end of header */
+    ve = ksearch(hplace, "END");
 
-   /*  If END is not found, return header unchanged */
-   if (ve == NULL) {
-      return (0);
-   }
+    /*  If END is not found, return header unchanged */
+    if (ve == NULL) {
+        return (0);
+    }
 
-   v1 = hplace;
+    v1 = hplace;
 
-   /* Shift rest of header down one line */
-   /* limit bug found by Paolo Montegriffo fixed 2000-04-19 */
-   for (v = ve; v >= v1; v = v - 80) {
-      v2 = v + 80;
-      strncpy(v2, v, 80);
-   }
+    /* Shift rest of header down one line */
+    /* limit bug found by Paolo Montegriffo fixed 2000-04-19 */
+    for (v = ve; v >= v1; v = v - 80) {
+        v2 = v + 80;
+        strncpy(v2, v, 80);
+    }
 
-   /* Cover former first line with new keyword */
-   lkey = strlen(keyword);
-   strncpy(hplace, keyword, lkey);
-   if (lkey < 8) {
-      for (i = lkey; i < 8; i++)
-         hplace[i] = ' ';
-      hplace[8] = '=';
-   }
-   for (i = 9; i < 80; i++)
-      hplace[i] = ' ';
+    /* Cover former first line with new keyword */
+    lkey = strlen(keyword);
+    strncpy(hplace, keyword, lkey);
+    if (lkey < 8) {
+        for (i = lkey; i < 8; i++)
+            hplace[i] = ' ';
+        hplace[8] = '=';
+    }
+    for (i = 9; i < 80; i++)
+        hplace[i] = ' ';
 
-   return (1);
+    return (1);
 }
 
 
@@ -709,30 +709,30 @@ char *hstring;                  /* FITS header */
 char *keyword1;                 /* Keyword to be changed */
 char *keyword2;                 /* New keyword name */
 {
-   char *v, *v1, *v2;
-   int lv2, i;
-   char *ksearch();
+    char *v, *v1, *v2;
+    int lv2, i;
+    char *ksearch();
 
-   /* Search for keyword */
-   v1 = ksearch(hstring, keyword1);
+    /* Search for keyword */
+    v1 = ksearch(hstring, keyword1);
 
-   /*  If keyword is not found, return header unchanged */
-   if (!v1)
-      return (0);
+    /*  If keyword is not found, return header unchanged */
+    if (!v1)
+        return (0);
 
-   else {
-      lv2 = strlen(keyword2);
-      v = v1;
-      v2 = keyword2;
-      for (i = 0; i < 8; i++) {
-         if (i < lv2)
-            v[i] = v2[i];
-         else
-            v[i] = ' ';
-      }
-   }
+    else {
+        lv2 = strlen(keyword2);
+        v = v1;
+        v2 = keyword2;
+        for (i = 0; i < 8; i++) {
+            if (i < lv2)
+                v[i] = v2[i];
+            else
+                v[i] = ' ';
+        }
+    }
 
-   return (1);
+    return (1);
 }
 
 
@@ -746,125 +746,125 @@ double ra;                      /* Right ascension in degrees */
 int ndec;                       /* Number of decimal places in seconds */
 
 {
-   double a, b;
-   double seconds;
-   char tstring[64];
-   int hours;
-   int minutes;
-   int isec;
-   double dsgn;
+    double a, b;
+    double seconds;
+    char tstring[64];
+    int hours;
+    int minutes;
+    int isec;
+    double dsgn;
 
-   /* Keep RA between 0 and 360 */
-   if (ra < 0.0) {
-      ra = -ra;
-      dsgn = -1.0;
-   } else
-      dsgn = 1.0;
-   ra = fmod(ra, 360.0);
-   ra *= dsgn;
-   if (ra < 0.0)
-      ra = ra + 360.0;
+    /* Keep RA between 0 and 360 */
+    if (ra < 0.0) {
+        ra = -ra;
+        dsgn = -1.0;
+    } else
+        dsgn = 1.0;
+    ra = fmod(ra, 360.0);
+    ra *= dsgn;
+    if (ra < 0.0)
+        ra = ra + 360.0;
 
-   a = ra / 15.0;
+    a = ra / 15.0;
 
-   /* Convert to hours */
-   hours = (int) a;
+    /* Convert to hours */
+    hours = (int) a;
 
-   /* Compute minutes */
-   b = (a - (double) hours) * 60.0;
-   minutes = (int) b;
+    /* Compute minutes */
+    b = (a - (double) hours) * 60.0;
+    minutes = (int) b;
 
-   /* Compute seconds */
-   seconds = (b - (double) minutes) * 60.0;
-   isec = (int) (seconds + 0.5);
+    /* Compute seconds */
+    seconds = (b - (double) minutes) * 60.0;
+    isec = (int) (seconds + 0.5);
 
-   if (ndec > 5) {
-      if (seconds > 59.999999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         hours = hours + 1;
-      }
-      hours = hours % 24;
-      (void) sprintf(tstring, "%02d:%02d:%09.6f", hours, minutes, seconds);
-   } else if (ndec > 4) {
-      if (seconds > 59.99999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         hours = hours + 1;
-      }
-      hours = hours % 24;
-      (void) sprintf(tstring, "%02d:%02d:%08.5f", hours, minutes, seconds);
-   } else if (ndec > 3) {
-      if (seconds > 59.9999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         hours = hours + 1;
-      }
-      hours = hours % 24;
-      (void) sprintf(tstring, "%02d:%02d:%07.4f", hours, minutes, seconds);
-   } else if (ndec > 2) {
-      if (seconds > 59.999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         hours = hours + 1;
-      }
-      hours = hours % 24;
-      (void) sprintf(tstring, "%02d:%02d:%06.3f", hours, minutes, seconds);
-   } else if (ndec > 1) {
-      if (seconds > 59.99) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         hours = hours + 1;
-      }
-      hours = hours % 24;
-      (void) sprintf(tstring, "%02d:%02d:%05.2f", hours, minutes, seconds);
-   } else if (ndec > 0) {
-      if (seconds > 59.9) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         hours = hours + 1;
-      }
-      hours = hours % 24;
-      (void) sprintf(tstring, "%02d:%02d:%04.1f", hours, minutes, seconds);
-   } else if (ndec > -1) {
-      if (isec > 59) {
-         isec = 0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         hours = hours + 1;
-      }
-      hours = hours % 24;
-      (void) sprintf(tstring, "%02d:%02d:%04.1f", hours, minutes, seconds);
-   }
+    if (ndec > 5) {
+        if (seconds > 59.999999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            hours = hours + 1;
+        }
+        hours = hours % 24;
+        (void) sprintf(tstring, "%02d:%02d:%09.6f", hours, minutes, seconds);
+    } else if (ndec > 4) {
+        if (seconds > 59.99999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            hours = hours + 1;
+        }
+        hours = hours % 24;
+        (void) sprintf(tstring, "%02d:%02d:%08.5f", hours, minutes, seconds);
+    } else if (ndec > 3) {
+        if (seconds > 59.9999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            hours = hours + 1;
+        }
+        hours = hours % 24;
+        (void) sprintf(tstring, "%02d:%02d:%07.4f", hours, minutes, seconds);
+    } else if (ndec > 2) {
+        if (seconds > 59.999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            hours = hours + 1;
+        }
+        hours = hours % 24;
+        (void) sprintf(tstring, "%02d:%02d:%06.3f", hours, minutes, seconds);
+    } else if (ndec > 1) {
+        if (seconds > 59.99) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            hours = hours + 1;
+        }
+        hours = hours % 24;
+        (void) sprintf(tstring, "%02d:%02d:%05.2f", hours, minutes, seconds);
+    } else if (ndec > 0) {
+        if (seconds > 59.9) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            hours = hours + 1;
+        }
+        hours = hours % 24;
+        (void) sprintf(tstring, "%02d:%02d:%04.1f", hours, minutes, seconds);
+    } else if (ndec > -1) {
+        if (isec > 59) {
+            isec = 0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            hours = hours + 1;
+        }
+        hours = hours % 24;
+        (void) sprintf(tstring, "%02d:%02d:%04.1f", hours, minutes, seconds);
+    }
 
-   /* Move formatted string to returned string */
-   if (strlen(tstring) < (unsigned int) (lstr - 1))
-      strcpy(string, tstring);
-   else {
-      strncpy(string, tstring, lstr - 1);
-      string[lstr - 1] = 0;
-   }
-   return;
+    /* Move formatted string to returned string */
+    if (strlen(tstring) < (unsigned int) (lstr - 1))
+        strcpy(string, tstring);
+    else {
+        strncpy(string, tstring, lstr - 1);
+        string[lstr - 1] = 0;
+    }
+    return;
 }
 
 
@@ -878,126 +878,133 @@ double dec;                     /* Declination in degrees */
 int ndec;                       /* Number of decimal places in arcseconds */
 
 {
-   double a, b, dsgn, deg1;
-   double seconds;
-   char sign;
-   int degrees;
-   int minutes;
-   int isec;
-   char tstring[64];
+    double a, b, dsgn, deg1;
+    double seconds;
+    char sign;
+    int degrees;
+    int minutes;
+    int isec;
+    char tstring[64];
 
-   /* Keep angle between -180 and 360 degrees */
-   deg1 = dec;
-   if (deg1 < 0.0) {
-      deg1 = -deg1;
-      dsgn = -1.0;
-   } else
-      dsgn = 1.0;
-   deg1 = fmod(deg1, 360.0);
-   deg1 *= dsgn;
-   if (deg1 <= -180.0)
-      deg1 = deg1 + 360.0;
+    /* Keep angle between -180 and 360 degrees */
+    deg1 = dec;
+    if (deg1 < 0.0) {
+        deg1 = -deg1;
+        dsgn = -1.0;
+    } else
+        dsgn = 1.0;
+    deg1 = fmod(deg1, 360.0);
+    deg1 *= dsgn;
+    if (deg1 <= -180.0)
+        deg1 = deg1 + 360.0;
 
-   a = deg1;
+    a = deg1;
 
-   /* Set sign and do all the rest with a positive */
-   if (a < 0) {
-      sign = '-';
-      a = -a;
-   } else
-      sign = '+';
+    /* Set sign and do all the rest with a positive */
+    if (a < 0) {
+        sign = '-';
+        a = -a;
+    } else
+        sign = '+';
 
-   /* Convert to degrees */
-   degrees = (int) a;
+    /* Convert to degrees */
+    degrees = (int) a;
 
-   /* Compute minutes */
-   b = (a - (double) degrees) * 60.0;
-   minutes = (int) b;
+    /* Compute minutes */
+    b = (a - (double) degrees) * 60.0;
+    minutes = (int) b;
 
-   /* Compute seconds */
-   seconds = (b - (double) minutes) * 60.0;
-   isec = (int) (seconds + 0.5);
+    /* Compute seconds */
+    seconds = (b - (double) minutes) * 60.0;
+    isec = (int) (seconds + 0.5);
 
-   if (ndec > 5) {
-      if (seconds > 59.999999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         degrees = degrees + 1;
-      }
-      (void) sprintf(tstring, "%c%02d:%02d:%09.6f", sign, degrees, minutes, seconds);
-   } else if (ndec > 4) {
-      if (seconds > 59.99999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         degrees = degrees + 1;
-      }
-      (void) sprintf(tstring, "%c%02d:%02d:%08.5f", sign, degrees, minutes, seconds);
-   } else if (ndec > 3) {
-      if (seconds > 59.9999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         degrees = degrees + 1;
-      }
-      (void) sprintf(tstring, "%c%02d:%02d:%07.4f", sign, degrees, minutes, seconds);
-   } else if (ndec > 2) {
-      if (seconds > 59.999) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         degrees = degrees + 1;
-      }
-      (void) sprintf(tstring, "%c%02d:%02d:%06.3f", sign, degrees, minutes, seconds);
-   } else if (ndec > 1) {
-      if (seconds > 59.99) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         degrees = degrees + 1;
-      }
-      (void) sprintf(tstring, "%c%02d:%02d:%05.2f", sign, degrees, minutes, seconds);
-   } else if (ndec > 0) {
-      if (seconds > 59.9) {
-         seconds = 0.0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         degrees = degrees + 1;
-      }
-      (void) sprintf(tstring, "%c%02d:%02d:%04.1f", sign, degrees, minutes, seconds);
-   } else if (ndec > -1) {
-      if (isec > 59) {
-         isec = 0;
-         minutes = minutes + 1;
-      }
-      if (minutes > 59) {
-         minutes = 0;
-         degrees = degrees + 1;
-      }
-      (void) sprintf(tstring, "%c%02d:%02d:%04.1f", sign, degrees, minutes, seconds);
-   }
+    if (ndec > 5) {
+        if (seconds > 59.999999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            degrees = degrees + 1;
+        }
+        (void) sprintf(tstring, "%c%02d:%02d:%09.6f", sign, degrees, minutes,
+                       seconds);
+    } else if (ndec > 4) {
+        if (seconds > 59.99999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            degrees = degrees + 1;
+        }
+        (void) sprintf(tstring, "%c%02d:%02d:%08.5f", sign, degrees, minutes,
+                       seconds);
+    } else if (ndec > 3) {
+        if (seconds > 59.9999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            degrees = degrees + 1;
+        }
+        (void) sprintf(tstring, "%c%02d:%02d:%07.4f", sign, degrees, minutes,
+                       seconds);
+    } else if (ndec > 2) {
+        if (seconds > 59.999) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            degrees = degrees + 1;
+        }
+        (void) sprintf(tstring, "%c%02d:%02d:%06.3f", sign, degrees, minutes,
+                       seconds);
+    } else if (ndec > 1) {
+        if (seconds > 59.99) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            degrees = degrees + 1;
+        }
+        (void) sprintf(tstring, "%c%02d:%02d:%05.2f", sign, degrees, minutes,
+                       seconds);
+    } else if (ndec > 0) {
+        if (seconds > 59.9) {
+            seconds = 0.0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            degrees = degrees + 1;
+        }
+        (void) sprintf(tstring, "%c%02d:%02d:%04.1f", sign, degrees, minutes,
+                       seconds);
+    } else if (ndec > -1) {
+        if (isec > 59) {
+            isec = 0;
+            minutes = minutes + 1;
+        }
+        if (minutes > 59) {
+            minutes = 0;
+            degrees = degrees + 1;
+        }
+        (void) sprintf(tstring, "%c%02d:%02d:%04.1f", sign, degrees, minutes,
+                       seconds);
+    }
 
-   /* Move formatted string to returned string */
-   if (strlen(tstring) < (unsigned int) (lstr - 1))
-      strcpy(string, tstring);
-   else {
-      strncpy(string, tstring, lstr - 1);
-      string[lstr - 1] = 0;
-   }
-   return;
+    /* Move formatted string to returned string */
+    if (strlen(tstring) < (unsigned int) (lstr - 1))
+        strcpy(string, tstring);
+    else {
+        strncpy(string, tstring, lstr - 1);
+        string[lstr - 1] = 0;
+    }
+    return;
 }
 
 
@@ -1011,42 +1018,42 @@ double deg;                     /* Angle in degrees */
 int ndec;                       /* Number of decimal places in degree string */
 
 {
-   char degform[8];
-   int field;
-   char tstring[64];
-   double deg1;
-   double dsgn;
+    char degform[8];
+    int field;
+    char tstring[64];
+    double deg1;
+    double dsgn;
 
-   /* Keep angle between -180 and 360 degrees */
-   deg1 = deg;
-   if (deg1 < 0.0) {
-      deg1 = -deg1;
-      dsgn = -1.0;
-   } else
-      dsgn = 1.0;
-   deg1 = fmod(deg1, 360.0);
-   deg1 *= dsgn;
-   if (deg1 <= -180.0)
-      deg1 = deg1 + 360.0;
+    /* Keep angle between -180 and 360 degrees */
+    deg1 = deg;
+    if (deg1 < 0.0) {
+        deg1 = -deg1;
+        dsgn = -1.0;
+    } else
+        dsgn = 1.0;
+    deg1 = fmod(deg1, 360.0);
+    deg1 *= dsgn;
+    if (deg1 <= -180.0)
+        deg1 = deg1 + 360.0;
 
-   /* Write angle to string, adding 4 digits to number of decimal places */
-   field = ndec + 4;
-   if (ndec > 0) {
-      sprintf(degform, "%%%d.%df", field, ndec);
-      sprintf(tstring, degform, deg1);
-   } else {
-      sprintf(degform, "%%%4d", field);
-      sprintf(tstring, degform, (int) deg1);
-   }
+    /* Write angle to string, adding 4 digits to number of decimal places */
+    field = ndec + 4;
+    if (ndec > 0) {
+        sprintf(degform, "%%%d.%df", field, ndec);
+        sprintf(tstring, degform, deg1);
+    } else {
+        sprintf(degform, "%%%4d", field);
+        sprintf(tstring, degform, (int) deg1);
+    }
 
-   /* Move formatted string to returned string */
-   if (strlen(tstring) < (unsigned int) (lstr - 1))
-      strcpy(string, tstring);
-   else {
-      strncpy(string, tstring, (unsigned int) (lstr - 1));
-      string[lstr - 1] = 0;
-   }
-   return;
+    /* Move formatted string to returned string */
+    if (strlen(tstring) < (unsigned int) (lstr - 1))
+        strcpy(string, tstring);
+    else {
+        strncpy(string, tstring, (unsigned int) (lstr - 1));
+        string[lstr - 1] = 0;
+    }
+    return;
 }
 
 
@@ -1060,25 +1067,25 @@ int field;                      /* Number of characters in output field (0=any) 
 int ndec;                       /* Number of decimal places in degree string */
 
 {
-   char numform[8];
+    char numform[8];
 
-   if (field > 0) {
-      if (ndec > 0) {
-         sprintf(numform, "%%%d.%df", field, ndec);
-         sprintf(string, numform, num);
-      } else {
-         sprintf(numform, "%%%dd", field);
-         sprintf(string, numform, (int) num);
-      }
-   } else {
-      if (ndec > 0) {
-         sprintf(numform, "%%.%df", ndec);
-         sprintf(string, numform, num);
-      } else {
-         sprintf(string, "%d", (int) num);
-      }
-   }
-   return;
+    if (field > 0) {
+        if (ndec > 0) {
+            sprintf(numform, "%%%d.%df", field, ndec);
+            sprintf(string, numform, num);
+        } else {
+            sprintf(numform, "%%%dd", field);
+            sprintf(string, numform, (int) num);
+        }
+    } else {
+        if (ndec > 0) {
+            sprintf(numform, "%%.%df", ndec);
+            sprintf(string, numform, num);
+        } else {
+            sprintf(string, "%d", (int) num);
+        }
+    }
+    return;
 }
 
 /* Dec 14 1995	Original subroutines

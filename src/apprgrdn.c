@@ -20,49 +20,49 @@ void apprgrdn(unsigned short n,
    obj    is the flag indicating whether the gradient of the objective
           function (1) or the constraint function (0) is to be calculated. 
 */
-   double const lowbndobj = 2.0e-10, lowbndcnt = 5.0e-15, ten = 10.0, half = 0.5;
-   double d, y, fi;
-   unsigned short i, j, center = 0;
-   for (i = 0; i < n; i++) {
-      y = x[i];
-      d = max(lowbndcnt, fabs(y));
-      d *= deltax[i];
-      if (obj) {
-         if (fabs(d) < lowbndobj) {
+    double const lowbndobj = 2.0e-10, lowbndcnt = 5.0e-15, ten = 10.0, half = 0.5;
+    double d, y, fi;
+    unsigned short i, j, center = 0;
+    for (i = 0; i < n; i++) {
+        y = x[i];
+        d = max(lowbndcnt, fabs(y));
+        d *= deltax[i];
+        if (obj) {
+            if (fabs(d) < lowbndobj) {
+                if (deltax[i] < 0.0)
+                    d = -lowbndobj;
+                else
+                    d = lowbndobj;
+                center = 1;
+            } else
+                center = 0;
+        } else if (fabs(d) < lowbndcnt) {
             if (deltax[i] < 0.0)
-               d = -lowbndobj;
+                d = -lowbndcnt;
             else
-               d = lowbndobj;
-            center = 1;
-         } else
-            center = 0;
-      } else if (fabs(d) < lowbndcnt) {
-         if (deltax[i] < 0.0)
-            d = -lowbndcnt;
-         else
-            d = lowbndcnt;
-      }
-      x[i] = y + d;
-      fi = fun(x);
-      if (obj) {
-         if (fi == f) {
-            for (j = 1; j <= 3; j++) {
-               d *= ten;
-               x[i] = y + d;
-               fi = fun(x);
-               if (fi != f)
-                  break;
+                d = lowbndcnt;
+        }
+        x[i] = y + d;
+        fi = fun(x);
+        if (obj) {
+            if (fi == f) {
+                for (j = 1; j <= 3; j++) {
+                    d *= ten;
+                    x[i] = y + d;
+                    fi = fun(x);
+                    if (fi != f)
+                        break;
+                }
             }
-         }
-      }
-      g[i] = (fi - f) / d;
-      if (obj) {
-         if (center) {
-            x[i] = y - d;
-            fi = fun(x);
-            g[i] = half * (g[i] + (f - fi) / d);
-         }
-      }
-      x[i] = y;
-   }
+        }
+        g[i] = (fi - f) / d;
+        if (obj) {
+            if (center) {
+                x[i] = y - d;
+                fi = fun(x);
+                g[i] = half * (g[i] + (f - fi) / d);
+            }
+        }
+        x[i] = y;
+    }
 }

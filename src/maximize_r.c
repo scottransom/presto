@@ -14,13 +14,13 @@ static int nummaxdata, max_kern_half_width;
 static double power_call_r(double r)
 /*  Maximization function used with an array */
 {
-   double powargr, powargi;
-   fcomplex ans;
+    double powargr, powargi;
+    fcomplex ans;
 
-   rz_interp(maxdata, nummaxdata, r, 0.0, max_kern_half_width, &ans);
-   powargr = (double) ans.r;
-   powargi = (double) ans.i;
-   return -POWER(powargr, powargi);
+    rz_interp(maxdata, nummaxdata, r, 0.0, max_kern_half_width, &ans);
+    powargr = (double) ans.r;
+    powargi = (double) ans.i;
+    return -POWER(powargr, powargi);
 }
 
 
@@ -28,35 +28,35 @@ double max_r_arr(fcomplex * data, int numdata, double rin,
                  double *rout, rderivs * derivs)
 /* Return the Fourier frequency that maximizes the power.  */
 {
-   double ax, bx, xmin, locpow;
+    double ax, bx, xmin, locpow;
 
-   maxdata = data;
-   nummaxdata = numdata;
+    maxdata = data;
+    nummaxdata = numdata;
 
-   /*  Now prep and do the maximization at LOWACC for speed */
+    /*  Now prep and do the maximization at LOWACC for speed */
 
-   max_kern_half_width = r_resp_halfwidth(LOWACC);
-   ax = rin - 0.55;
-   bx = rin + 0.55;
+    max_kern_half_width = r_resp_halfwidth(LOWACC);
+    ax = rin - 0.55;
+    bx = rin + 0.55;
 
-   xmin = fminbr(ax, bx, power_call_r, FTOL);
+    xmin = fminbr(ax, bx, power_call_r, FTOL);
 
-   /*  Restart at minimum using HIGHACC to get a better result */
-   /*  Note:  Don't know if this is really necessary...        */
+    /*  Restart at minimum using HIGHACC to get a better result */
+    /*  Note:  Don't know if this is really necessary...        */
 
-   max_kern_half_width = r_resp_halfwidth(HIGHACC);
-   ax = xmin - 0.05;
-   bx = xmin + 0.05;
+    max_kern_half_width = r_resp_halfwidth(HIGHACC);
+    ax = xmin - 0.05;
+    bx = xmin + 0.05;
 
-   xmin = fminbr(ax, bx, power_call_r, FTOL);
+    xmin = fminbr(ax, bx, power_call_r, FTOL);
 
-   /* The following calculate derivatives at the peak        */
-   /*    See characteristics.c for their definitions         */
+    /* The following calculate derivatives at the peak        */
+    /*    See characteristics.c for their definitions         */
 
-   *rout = xmin;
-   locpow = get_localpower(data, numdata, xmin);
-   get_derivs3d(data, numdata, xmin, 0.0, 0.0, locpow, derivs);
-   return derivs->pow;
+    *rout = xmin;
+    locpow = get_localpower(data, numdata, xmin);
+    get_derivs3d(data, numdata, xmin, 0.0, 0.0, locpow, derivs);
+    return derivs->pow;
 }
 
 #undef FTOL

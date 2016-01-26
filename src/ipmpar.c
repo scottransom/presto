@@ -67,8 +67,8 @@ int ipmpar(int *);
 */
 int ipmpar(int *i)
 {
-   static int imach[11];
-   static int ipmparval;
+    static int imach[11];
+    static int ipmparval;
 /*     MACHINE CONSTANTS FOR AMDAHL MACHINES. */
 /*
    imach[1] = 2;
@@ -384,16 +384,16 @@ int ipmpar(int *i)
        3B SERIES, MOTOROLA 68000 BASED MACHINES (E.G. SUN 3 AND AT&T
        PC 7300), AND 8087 BASED MICROS (E.G. IBM PC AND AT&T 6300). */
 
-   imach[1] = 2;
-   imach[2] = 31;
-   imach[3] = 2147483647;
-   imach[4] = 2;
-   imach[5] = 24;
-   imach[6] = -125;
-   imach[7] = 128;
-   imach[8] = 53;
-   imach[9] = -1021;
-   imach[10] = 1024;
+    imach[1] = 2;
+    imach[2] = 31;
+    imach[3] = 2147483647;
+    imach[4] = 2;
+    imach[5] = 24;
+    imach[6] = -125;
+    imach[7] = 128;
+    imach[8] = 53;
+    imach[9] = -1021;
+    imach[10] = 1024;
 
 /*     MACHINE CONSTANTS FOR THE UNIVAC 1100 SERIES. */
 /*
@@ -421,6 +421,6 @@ int ipmpar(int *i)
    imach[9] = -127;
    imach[10] = 127;
 */
-   ipmparval = imach[*i];
-   return ipmparval;
+    ipmparval = imach[*i];
+    return ipmparval;
 }

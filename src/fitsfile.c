@@ -90,301 +90,301 @@ int *nbhead;                    /* Number of bytes before start of data (returne
                         /* This includes all skipped image extensions */
 
 {
-   int fd;
-   char *header;                /* FITS image header (filled) */
-   int extend;
-   int nbytes, naxis, i;
-   int ntry, nbr, irec, nrec, nbh, ipos, npos, nbprim, lprim, lext;
-   int nax1, nax2, nax3, nax4, nbpix, ibpix, nblock, nbskip;
-   char fitsbuf[2884];
-   char *headend;               /* Pointer to last line of header */
-   char *headnext;              /* Pointer to next line of header to be added */
-   int hdu;                     /* header/data unit counter */
-   int extnum;                  /* desired header data number
+    int fd;
+    char *header;               /* FITS image header (filled) */
+    int extend;
+    int nbytes, naxis, i;
+    int ntry, nbr, irec, nrec, nbh, ipos, npos, nbprim, lprim, lext;
+    int nax1, nax2, nax3, nax4, nbpix, ibpix, nblock, nbskip;
+    char fitsbuf[2884];
+    char *headend;              /* Pointer to last line of header */
+    char *headnext;             /* Pointer to next line of header to be added */
+    int hdu;                    /* header/data unit counter */
+    int extnum;                 /* desired header data number
                                    (0=primary -1=first with data -2=use EXTNAME) */
-   char extname[32];            /* FITS extension name */
-   char extnam[32];             /* Desired FITS extension name */
-   char *ext;                   /* FITS extension name or number in header, if any */
-   char *pheader;               /* Primary header (naxis is 0) */
-   char cext = 0;
-   char *rbrac;                 /* Pointer to right bracket if present in file name */
-   char *mwcs;                  /* Pointer to WCS name separated by % */
+    char extname[32];           /* FITS extension name */
+    char extnam[32];            /* Desired FITS extension name */
+    char *ext;                  /* FITS extension name or number in header, if any */
+    char *pheader;              /* Primary header (naxis is 0) */
+    char cext = 0;
+    char *rbrac;                /* Pointer to right bracket if present in file name */
+    char *mwcs;                 /* Pointer to WCS name separated by % */
 
-   pheader = NULL;
-   lprim = 0;
-   header = NULL;
+    pheader = NULL;
+    lprim = 0;
+    header = NULL;
 
-   /* Check for FITS WCS specification and ignore for file opening */
-   mwcs = strchr(filename, '%');
-   if (mwcs != NULL)
-      *mwcs = (char) 0;
+    /* Check for FITS WCS specification and ignore for file opening */
+    mwcs = strchr(filename, '%');
+    if (mwcs != NULL)
+        *mwcs = (char) 0;
 
-   /* Check for FITS extension and ignore for file opening */
-   rbrac = NULL;
-   ext = strchr(filename, ',');
-   if (ext == NULL) {
-      ext = strchr(filename, '[');
-      if (ext != NULL) {
-         rbrac = strchr(filename, ']');
-         if (rbrac != NULL)
-            *rbrac = (char) 0;
-      }
-   }
-   if (ext != NULL) {
-      cext = *ext;
-      *ext = (char) 0;
-   }
+    /* Check for FITS extension and ignore for file opening */
+    rbrac = NULL;
+    ext = strchr(filename, ',');
+    if (ext == NULL) {
+        ext = strchr(filename, '[');
+        if (ext != NULL) {
+            rbrac = strchr(filename, ']');
+            if (rbrac != NULL)
+                *rbrac = (char) 0;
+        }
+    }
+    if (ext != NULL) {
+        cext = *ext;
+        *ext = (char) 0;
+    }
 
-   /* Open the image file and read the header */
-   if (strncasecmp(filename, "stdin", 5)) {
-      fd = -1;
-      fd = fitsropen(filename);
-   }
+    /* Open the image file and read the header */
+    if (strncasecmp(filename, "stdin", 5)) {
+        fd = -1;
+        fd = fitsropen(filename);
+    }
 #ifndef VMS
-   else {
-      fd = STDIN_FILENO;
-      extnum = -1;
-   }
+    else {
+        fd = STDIN_FILENO;
+        extnum = -1;
+    }
 #endif
 
-   if (ext != NULL) {
-      if (isnum(ext + 1))
-         extnum = atoi(ext + 1);
-      else {
-         extnum = -2;
-         strcpy(extnam, ext + 1);
-      }
-   } else
-      extnum = -1;
+    if (ext != NULL) {
+        if (isnum(ext + 1))
+            extnum = atoi(ext + 1);
+        else {
+            extnum = -2;
+            strcpy(extnam, ext + 1);
+        }
+    } else
+        extnum = -1;
 
-   /* Repair the damage done to the file-name string during parsing */
-   if (ext != NULL)
-      *ext = cext;
-   if (rbrac != NULL)
-      *rbrac = ']';
-   if (mwcs != NULL)
-      *mwcs = '%';
+    /* Repair the damage done to the file-name string during parsing */
+    if (ext != NULL)
+        *ext = cext;
+    if (rbrac != NULL)
+        *rbrac = ']';
+    if (mwcs != NULL)
+        *mwcs = '%';
 
-   if (fd < 0) {
-      snprintf(fitserrmsg, 79, "FITSRHEAD:  cannot read file %s\n", filename);
-      return (NULL);
-   }
+    if (fd < 0) {
+        snprintf(fitserrmsg, 79, "FITSRHEAD:  cannot read file %s\n", filename);
+        return (NULL);
+    }
 
-   nbytes = FITSBLOCK;
-   *nbhead = 0;
-   headend = NULL;
-   nbh = FITSBLOCK * 20 + 4;
-   header = (char *) calloc((unsigned int) nbh, 1);
-   (void) hlength(header, nbh);
-   headnext = header;
-   nrec = 1;
-   hdu = 0;
+    nbytes = FITSBLOCK;
+    *nbhead = 0;
+    headend = NULL;
+    nbh = FITSBLOCK * 20 + 4;
+    header = (char *) calloc((unsigned int) nbh, 1);
+    (void) hlength(header, nbh);
+    headnext = header;
+    nrec = 1;
+    hdu = 0;
 
-   /* Read FITS header from input file one FITS block at a time */
-   irec = 0;
-   while (irec < 100) {
-      nbytes = FITSBLOCK;
-      for (ntry = 0; ntry < 10; ntry++) {
-         for (i = 0; i < 2884; i++)
-            fitsbuf[i] = 0;
-         nbr = read(fd, fitsbuf, nbytes);
+    /* Read FITS header from input file one FITS block at a time */
+    irec = 0;
+    while (irec < 100) {
+        nbytes = FITSBLOCK;
+        for (ntry = 0; ntry < 10; ntry++) {
+            for (i = 0; i < 2884; i++)
+                fitsbuf[i] = 0;
+            nbr = read(fd, fitsbuf, nbytes);
 
-         /* Short records allowed only if they have the last header line */
-         if (nbr < nbytes) {
-            headend = ksearch(fitsbuf, "END");
-            if (headend == NULL) {
-               if (ntry < 9) {
-                  if (verbose)
-                     fprintf(stderr, "FITSRHEAD: %d / %d bytes read %d\n",
-                             nbr, nbytes, ntry);
-               } else {
-                  snprintf(fitserrmsg, 79,
-                           "FITSRHEAD: '%d / %d bytes of header read from %s\n", nbr,
-                           nbytes, filename);
+            /* Short records allowed only if they have the last header line */
+            if (nbr < nbytes) {
+                headend = ksearch(fitsbuf, "END");
+                if (headend == NULL) {
+                    if (ntry < 9) {
+                        if (verbose)
+                            fprintf(stderr, "FITSRHEAD: %d / %d bytes read %d\n",
+                                    nbr, nbytes, ntry);
+                    } else {
+                        snprintf(fitserrmsg, 79,
+                                 "FITSRHEAD: '%d / %d bytes of header read from %s\n",
+                                 nbr, nbytes, filename);
 #ifndef VMS
-                  if (fd != STDIN_FILENO)
+                        if (fd != STDIN_FILENO)
 #endif
-                     (void) close(fd);
-                  free(header);
-                  if (pheader != NULL)
-                     free(pheader);
-                  return (NULL);
-               }
+                            (void) close(fd);
+                        free(header);
+                        if (pheader != NULL)
+                            free(pheader);
+                        return (NULL);
+                    }
+                } else
+                    break;
             } else
-               break;
-         } else
-            break;
-      }
+                break;
+        }
 
-      /* Move current FITS record into header string */
-      for (i = 0; i < 2880; i++)
-         if (fitsbuf[i] < 32)
-            fitsbuf[i] = 32;
-      strncpy(headnext, fitsbuf, nbr);
-      *nbhead = *nbhead + nbr;
-      nrec = nrec + 1;
-      *(headnext + nbr) = 0;
+        /* Move current FITS record into header string */
+        for (i = 0; i < 2880; i++)
+            if (fitsbuf[i] < 32)
+                fitsbuf[i] = 32;
+        strncpy(headnext, fitsbuf, nbr);
+        *nbhead = *nbhead + nbr;
+        nrec = nrec + 1;
+        *(headnext + nbr) = 0;
 
-      /* Check to see if this is the final record in this header */
-      headend = ksearch(fitsbuf, "END");
-      if (headend == NULL) {
-         if (nrec * FITSBLOCK > nbh) {
-            nbh = (nrec + 4) * FITSBLOCK + 4;
-            header = (char *) realloc(header, (unsigned int) nbh);
-            (void) hlength(header, nbh);
-            headnext = header + *nbhead - FITSBLOCK;
-         }
-         headnext = headnext + FITSBLOCK;
-      }
+        /* Check to see if this is the final record in this header */
+        headend = ksearch(fitsbuf, "END");
+        if (headend == NULL) {
+            if (nrec * FITSBLOCK > nbh) {
+                nbh = (nrec + 4) * FITSBLOCK + 4;
+                header = (char *) realloc(header, (unsigned int) nbh);
+                (void) hlength(header, nbh);
+                headnext = header + *nbhead - FITSBLOCK;
+            }
+            headnext = headnext + FITSBLOCK;
+        }
 
-      else {
-         naxis = 0;
-         hgeti4(header, "NAXIS", &naxis);
+        else {
+            naxis = 0;
+            hgeti4(header, "NAXIS", &naxis);
 
-         /* If header has no data, save it for appending to desired header */
-         if (naxis < 1) {
-            nbprim = nrec * FITSBLOCK;
-            headend = ksearch(header, "END");
-            lprim = headend + 80 - header;
-            pheader = (char *) calloc((unsigned int) nbprim, 1);
-            strncpy(pheader, header, lprim);
-            pheader[lprim] = 0;
-            hchange(pheader, "SIMPLE", "ROOTHEAD");
-            hchange(pheader, "NEXTEND", "NUMEXT");
-            hdel(pheader, "BITPIX");
-            hdel(pheader, "NAXIS");
-         }
-
-         /* If header has no data, start with the next record */
-         if (naxis < 1 && extnum == -1) {
-            extend = 0;
-            hgetl(header, "EXTEND", &extend);
-            if (naxis == 0 && extend) {
-               headnext = header;
-               *headend = ' ';
-               headend = NULL;
-               /* nrec = 1; */
-               hdu = hdu + 1;
-            } else
-               break;
-         }
-
-         /* If this is the desired header data unit, keep it */
-         else if (ext != NULL) {
-            if (extnum > -1 && hdu == extnum)
-               break;
-            else if (extnum < 0) {
-               extname[0] = 0;
-               hgets(header, "EXTNAME", 32, extname);
-               if (!strcmp(extnam, extname))
-                  break;
+            /* If header has no data, save it for appending to desired header */
+            if (naxis < 1) {
+                nbprim = nrec * FITSBLOCK;
+                headend = ksearch(header, "END");
+                lprim = headend + 80 - header;
+                pheader = (char *) calloc((unsigned int) nbprim, 1);
+                strncpy(pheader, header, lprim);
+                pheader[lprim] = 0;
+                hchange(pheader, "SIMPLE", "ROOTHEAD");
+                hchange(pheader, "NEXTEND", "NUMEXT");
+                hdel(pheader, "BITPIX");
+                hdel(pheader, "NAXIS");
             }
 
-            /* If this is not desired header data unit, skip over data */
-            hdu = hdu + 1;
-            if (naxis > 0) {
-               ibpix = 0;
-               hgeti4(header, "BITPIX", &ibpix);
-               if (ibpix < 0)
-                  nbpix = -ibpix / 8;
-               else
-                  nbpix = ibpix / 8;
-               nax1 = 1;
-               hgeti4(header, "NAXIS1", &nax1);
-               nax2 = 1;
-               if (naxis > 1)
-                  hgeti4(header, "NAXIS2", &nax2);
-               nax3 = 1;
-               if (naxis > 2)
-                  hgeti4(header, "NAXIS3", &nax3);
-               nax4 = 1;
-               if (naxis > 3)
-                  hgeti4(header, "NAXIS4", &nax4);
-               nbskip = nax1 * nax2 * nax3 * nax4 * nbpix;
-               nblock = nbskip / 2880;
-               if (nblock * 2880 < nbskip)
-                  nblock = nblock + 1;
-            } else
-               nblock = 0;
-            *nbhead = *nbhead + (nblock * 2880);
+            /* If header has no data, start with the next record */
+            if (naxis < 1 && extnum == -1) {
+                extend = 0;
+                hgetl(header, "EXTEND", &extend);
+                if (naxis == 0 && extend) {
+                    headnext = header;
+                    *headend = ' ';
+                    headend = NULL;
+                    /* nrec = 1; */
+                    hdu = hdu + 1;
+                } else
+                    break;
+            }
 
-            /* Set file pointer to beginning of next header/data unit */
-            if (nblock > 0) {
-#ifndef VMS
-               if (fd != STDIN_FILENO) {
-                  ipos = lseek(fd, *nbhead, SEEK_SET);
-                  npos = *nbhead;
-               } else {
-#else
-               {
-#endif
-                  ipos = 0;
-                  for (i = 0; i < nblock; i++) {
-                     nbytes = FITSBLOCK;
-                     nbr = read(fd, fitsbuf, nbytes);
-                     if (nbr < nbytes) {
-                        ipos = ipos + nbr;
+            /* If this is the desired header data unit, keep it */
+            else if (ext != NULL) {
+                if (extnum > -1 && hdu == extnum)
+                    break;
+                else if (extnum < 0) {
+                    extname[0] = 0;
+                    hgets(header, "EXTNAME", 32, extname);
+                    if (!strcmp(extnam, extname))
                         break;
-                     } else
-                        ipos = ipos + nbytes;
-                  }
-                  npos = nblock * 2880;
-               }
-               if (ipos < npos) {
-                  snprintf(fitserrmsg, 79, "FITSRHEAD: %d / %d bytes skipped\n",
-                           ipos, npos);
-                  break;
-               }
-            }
-            headnext = header;
-            headend = NULL;
-            nrec = 1;
-         } else
-            break;
-      }
-   }
+                }
+
+                /* If this is not desired header data unit, skip over data */
+                hdu = hdu + 1;
+                if (naxis > 0) {
+                    ibpix = 0;
+                    hgeti4(header, "BITPIX", &ibpix);
+                    if (ibpix < 0)
+                        nbpix = -ibpix / 8;
+                    else
+                        nbpix = ibpix / 8;
+                    nax1 = 1;
+                    hgeti4(header, "NAXIS1", &nax1);
+                    nax2 = 1;
+                    if (naxis > 1)
+                        hgeti4(header, "NAXIS2", &nax2);
+                    nax3 = 1;
+                    if (naxis > 2)
+                        hgeti4(header, "NAXIS3", &nax3);
+                    nax4 = 1;
+                    if (naxis > 3)
+                        hgeti4(header, "NAXIS4", &nax4);
+                    nbskip = nax1 * nax2 * nax3 * nax4 * nbpix;
+                    nblock = nbskip / 2880;
+                    if (nblock * 2880 < nbskip)
+                        nblock = nblock + 1;
+                } else
+                    nblock = 0;
+                *nbhead = *nbhead + (nblock * 2880);
+
+                /* Set file pointer to beginning of next header/data unit */
+                if (nblock > 0) {
+#ifndef VMS
+                    if (fd != STDIN_FILENO) {
+                        ipos = lseek(fd, *nbhead, SEEK_SET);
+                        npos = *nbhead;
+                    } else {
+#else
+                    {
+#endif
+                        ipos = 0;
+                        for (i = 0; i < nblock; i++) {
+                            nbytes = FITSBLOCK;
+                            nbr = read(fd, fitsbuf, nbytes);
+                            if (nbr < nbytes) {
+                                ipos = ipos + nbr;
+                                break;
+                            } else
+                                ipos = ipos + nbytes;
+                        }
+                        npos = nblock * 2880;
+                    }
+                    if (ipos < npos) {
+                        snprintf(fitserrmsg, 79,
+                                 "FITSRHEAD: %d / %d bytes skipped\n", ipos, npos);
+                        break;
+                    }
+                }
+                headnext = header;
+                headend = NULL;
+                nrec = 1;
+            } else
+                break;
+        }
+    }
 
 #ifndef VMS
-   if (fd != STDIN_FILENO)
-      (void) close(fd);
+    if (fd != STDIN_FILENO)
+        (void) close(fd);
 #endif
 
-   /* Allocate an extra block for good measure */
-   *lhead = (nrec + 1) * FITSBLOCK;
-   if (*lhead > nbh) {
-      header = (char *) realloc(header, (unsigned int) *lhead);
-      (void) hlength(header, *lhead);
-   } else
-      *lhead = nbh;
+    /* Allocate an extra block for good measure */
+    *lhead = (nrec + 1) * FITSBLOCK;
+    if (*lhead > nbh) {
+        header = (char *) realloc(header, (unsigned int) *lhead);
+        (void) hlength(header, *lhead);
+    } else
+        *lhead = nbh;
 
-   if (pheader != NULL && extnum != 0) {
-      extname[0] = 0;
-      hgets(header, "XTENSION", 32, extname);
-      if (!strcmp(extname, "IMAGE")) {
-         strncpy(header, "SIMPLE  ", 8);
-         hputl(header, "SIMPLE", 1);
-      }
-      hputs(header, "COMMENT", "-------------------------------------------");
-      hputs(header, "COMMENT", "Information from Primary Header");
-      hputs(header, "COMMENT", "-------------------------------------------");
-      headend = blsearch(header, "END");
-      if (headend == NULL)
-         headend = ksearch(header, "END");
-      lext = headend - header;
-      if (lext + lprim > nbh) {
-         nrec = (lext + lprim) / FITSBLOCK;
-         if (FITSBLOCK * nrec < lext + lprim)
-            nrec = nrec + 1;
-         *lhead = (nrec + 1) * FITSBLOCK;
-         header = (char *) realloc(header, (unsigned int) *lhead);
-         (void) hlength(header, *lhead);
-      }
-      strncpy(headend, pheader, lprim);
-      hdel(header, "EXTEND");
-      free(pheader);
-   }
+    if (pheader != NULL && extnum != 0) {
+        extname[0] = 0;
+        hgets(header, "XTENSION", 32, extname);
+        if (!strcmp(extname, "IMAGE")) {
+            strncpy(header, "SIMPLE  ", 8);
+            hputl(header, "SIMPLE", 1);
+        }
+        hputs(header, "COMMENT", "-------------------------------------------");
+        hputs(header, "COMMENT", "Information from Primary Header");
+        hputs(header, "COMMENT", "-------------------------------------------");
+        headend = blsearch(header, "END");
+        if (headend == NULL)
+            headend = ksearch(header, "END");
+        lext = headend - header;
+        if (lext + lprim > nbh) {
+            nrec = (lext + lprim) / FITSBLOCK;
+            if (FITSBLOCK * nrec < lext + lprim)
+                nrec = nrec + 1;
+            *lhead = (nrec + 1) * FITSBLOCK;
+            header = (char *) realloc(header, (unsigned int) *lhead);
+            (void) hlength(header, *lhead);
+        }
+        strncpy(headend, pheader, lprim);
+        hdel(header, "EXTEND");
+        free(pheader);
+    }
 
-   return (header);
+    return (header);
 }
 
 
@@ -400,129 +400,129 @@ int nx;                         /* Number of columns to read (less than NAXIS1) 
 int ny;                         /* Number of rows to read (less than NAXIS2) */
 int nlog;                       /* Note progress mod this rows */
 {
-   int fd;                      /* File descriptor */
-   int nbimage, naxis1, naxis2, bytepix, nbread;
-   int bitpix, naxis, nblocks, nbytes, nbr;
-   int x1, y1, nbline, impos, nblin, nyleft;
-   char *image, *imline, *imlast;
-   int ilog = 0;
-   int row;
+    int fd;                     /* File descriptor */
+    int nbimage, naxis1, naxis2, bytepix, nbread;
+    int bitpix, naxis, nblocks, nbytes, nbr;
+    int x1, y1, nbline, impos, nblin, nyleft;
+    char *image, *imline, *imlast;
+    int ilog = 0;
+    int row;
 
-   /* Open the image file and read the header */
-   if (strncasecmp(filename, "stdin", 5)) {
-      fd = -1;
+    /* Open the image file and read the header */
+    if (strncasecmp(filename, "stdin", 5)) {
+        fd = -1;
 
-      fd = fitsropen(filename);
-      if (fd < 0) {
-         snprintf(fitserrmsg, 79, "FITSRSECT:  cannot read file %s\n", filename);
-         return (NULL);
-      }
+        fd = fitsropen(filename);
+        if (fd < 0) {
+            snprintf(fitserrmsg, 79, "FITSRSECT:  cannot read file %s\n", filename);
+            return (NULL);
+        }
 
-      /* Skip over FITS header and whatever else needs to be skipped */
-      if (lseek(fd, nbhead, SEEK_SET) < 0) {
-         (void) close(fd);
-         snprintf(fitserrmsg, 79, "FITSRSECT:  cannot skip header of file %s\n",
-                  filename);
-         return (NULL);
-      }
-   }
+        /* Skip over FITS header and whatever else needs to be skipped */
+        if (lseek(fd, nbhead, SEEK_SET) < 0) {
+            (void) close(fd);
+            snprintf(fitserrmsg, 79, "FITSRSECT:  cannot skip header of file %s\n",
+                     filename);
+            return (NULL);
+        }
+    }
 #ifndef VMS
-   else
-      fd = STDIN_FILENO;
+    else
+        fd = STDIN_FILENO;
 #endif
 
-   /* Compute size of image in bytes using relevant header parameters */
-   naxis = 1;
-   hgeti4(header, "NAXIS", &naxis);
-   naxis1 = 1;
-   hgeti4(header, "NAXIS1", &naxis1);
-   naxis2 = 1;
-   hgeti4(header, "NAXIS2", &naxis2);
-   bitpix = 0;
-   hgeti4(header, "BITPIX", &bitpix);
-   if (bitpix == 0) {
-      /* snprintf (fitserrmsg,79, "FITSRSECT:  BITPIX is 0; image not read\n"); */
-      (void) close(fd);
-      return (NULL);
-   }
-   bytepix = bitpix / 8;
-   if (bytepix < 0)
-      bytepix = -bytepix;
+    /* Compute size of image in bytes using relevant header parameters */
+    naxis = 1;
+    hgeti4(header, "NAXIS", &naxis);
+    naxis1 = 1;
+    hgeti4(header, "NAXIS1", &naxis1);
+    naxis2 = 1;
+    hgeti4(header, "NAXIS2", &naxis2);
+    bitpix = 0;
+    hgeti4(header, "BITPIX", &bitpix);
+    if (bitpix == 0) {
+        /* snprintf (fitserrmsg,79, "FITSRSECT:  BITPIX is 0; image not read\n"); */
+        (void) close(fd);
+        return (NULL);
+    }
+    bytepix = bitpix / 8;
+    if (bytepix < 0)
+        bytepix = -bytepix;
 
-   /* Keep X coordinates within image limits */
-   if (x0 < 1)
-      x0 = 1;
-   else if (x0 > naxis1)
-      x0 = naxis1;
-   x1 = x0 + nx - 1;
-   if (x1 < 1)
-      x1 = 1;
-   else if (x1 > naxis1)
-      x1 = naxis1;
-   nx = x1 - x0 + 1;
+    /* Keep X coordinates within image limits */
+    if (x0 < 1)
+        x0 = 1;
+    else if (x0 > naxis1)
+        x0 = naxis1;
+    x1 = x0 + nx - 1;
+    if (x1 < 1)
+        x1 = 1;
+    else if (x1 > naxis1)
+        x1 = naxis1;
+    nx = x1 - x0 + 1;
 
-   /* Keep Y coordinates within image limits */
-   if (y0 < 1)
-      y0 = 1;
-   else if (y0 > naxis2)
-      y0 = naxis2;
-   y1 = y0 + ny - 1;
-   if (y1 < 1)
-      y1 = 1;
-   else if (y1 > naxis2)
-      y1 = naxis2;
-   ny = y1 - y0 + 1;
+    /* Keep Y coordinates within image limits */
+    if (y0 < 1)
+        y0 = 1;
+    else if (y0 > naxis2)
+        y0 = naxis2;
+    y1 = y0 + ny - 1;
+    if (y1 < 1)
+        y1 = 1;
+    else if (y1 > naxis2)
+        y1 = naxis2;
+    ny = y1 - y0 + 1;
 
-   /* Number of bytes in output image */
-   nbline = nx * bytepix;
-   nbimage = nbline * ny;
+    /* Number of bytes in output image */
+    nbline = nx * bytepix;
+    nbimage = nbline * ny;
 
-   /* Set number of bytes to integral number of 2880-byte blocks */
-   nblocks = nbimage / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbimage)
-      nblocks = nblocks + 1;
-   nbytes = nblocks * FITSBLOCK;
+    /* Set number of bytes to integral number of 2880-byte blocks */
+    nblocks = nbimage / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbimage)
+        nblocks = nblocks + 1;
+    nbytes = nblocks * FITSBLOCK;
 
-   /* Allocate image section to be read */
-   image = (char *) malloc(nbytes);
-   nyleft = ny;
-   imline = image;
-   nbr = 0;
+    /* Allocate image section to be read */
+    image = (char *) malloc(nbytes);
+    nyleft = ny;
+    imline = image;
+    nbr = 0;
 
-   /* Computer pointer to first byte of input image to read */
-   nblin = naxis1 * bytepix;
-   impos = nbhead + ((y0 - 1) * nblin) + ((x0 - 1) * bytepix);
-   row = y0 - 1;
+    /* Computer pointer to first byte of input image to read */
+    nblin = naxis1 * bytepix;
+    impos = nbhead + ((y0 - 1) * nblin) + ((x0 - 1) * bytepix);
+    row = y0 - 1;
 
-   /* Read image section one line at a time */
-   while (nyleft-- > 0) {
-      if (lseek(fd, impos, SEEK_SET) >= 0) {
-         nbread = read(fd, imline, nbline);
-         nbr = nbr + nbread;
-         impos = impos + nblin;
-         imline = imline + nbline;
-         row++;
-         if (++ilog == nlog) {
-            ilog = 0;
-            fprintf(stderr, "Row %5d extracted   ", row);
-            (void) putc(13, stderr);
-         }
-      }
-   }
-   if (nlog)
-      fprintf(stderr, "\n");
+    /* Read image section one line at a time */
+    while (nyleft-- > 0) {
+        if (lseek(fd, impos, SEEK_SET) >= 0) {
+            nbread = read(fd, imline, nbline);
+            nbr = nbr + nbread;
+            impos = impos + nblin;
+            imline = imline + nbline;
+            row++;
+            if (++ilog == nlog) {
+                ilog = 0;
+                fprintf(stderr, "Row %5d extracted   ", row);
+                (void) putc(13, stderr);
+            }
+        }
+    }
+    if (nlog)
+        fprintf(stderr, "\n");
 
-   /* Fill rest of image with zeroes */
-   imline = image + nbimage;
-   imlast = image + nbytes;
-   while (imline++ < imlast)
-      *imline = (char) 0;
+    /* Fill rest of image with zeroes */
+    imline = image + nbimage;
+    imlast = image + nbytes;
+    while (imline++ < imlast)
+        *imline = (char) 0;
 
-   /* Byte-reverse image, if necessary */
-   if (imswapped())
-      imswap(bitpix, image, nbytes);
+    /* Byte-reverse image, if necessary */
+    if (imswapped())
+        imswap(bitpix, image, nbytes);
 
-   return (image);
+    return (image);
 }
 
 
@@ -534,97 +534,97 @@ char *filename;                 /* Name of FITS image file */
 int nbhead;                     /* Actual length of image header(s) in bytes */
 char *header;                   /* FITS header for image (previously read) */
 {
-   int fd;
-   int nbimage, naxis1, naxis2, bytepix, nbread;
-   int bitpix, naxis, nblocks, nbytes, nbleft, nbr;
-   char *image, *imleft;
+    int fd;
+    int nbimage, naxis1, naxis2, bytepix, nbread;
+    int bitpix, naxis, nblocks, nbytes, nbleft, nbr;
+    char *image, *imleft;
 
-   /* Open the image file and read the header */
-   if (strncasecmp(filename, "stdin", 5)) {
-      fd = -1;
+    /* Open the image file and read the header */
+    if (strncasecmp(filename, "stdin", 5)) {
+        fd = -1;
 
-      fd = fitsropen(filename);
-      if (fd < 0) {
-         snprintf(fitserrmsg, 79, "FITSRIMAGE:  cannot read file %s\n", filename);
-         return (NULL);
-      }
+        fd = fitsropen(filename);
+        if (fd < 0) {
+            snprintf(fitserrmsg, 79, "FITSRIMAGE:  cannot read file %s\n", filename);
+            return (NULL);
+        }
 
-      /* Skip over FITS header and whatever else needs to be skipped */
-      if (lseek(fd, nbhead, SEEK_SET) < 0) {
-         (void) close(fd);
-         snprintf(fitserrmsg, 79, "FITSRIMAGE:  cannot skip header of file %s\n",
-                  filename);
-         return (NULL);
-      }
-   }
+        /* Skip over FITS header and whatever else needs to be skipped */
+        if (lseek(fd, nbhead, SEEK_SET) < 0) {
+            (void) close(fd);
+            snprintf(fitserrmsg, 79, "FITSRIMAGE:  cannot skip header of file %s\n",
+                     filename);
+            return (NULL);
+        }
+    }
 #ifndef VMS
-   else
-      fd = STDIN_FILENO;
+    else
+        fd = STDIN_FILENO;
 #endif
 
-   /* Compute size of image in bytes using relevant header parameters */
-   naxis = 1;
-   hgeti4(header, "NAXIS", &naxis);
-   naxis1 = 1;
-   hgeti4(header, "NAXIS1", &naxis1);
-   naxis2 = 1;
-   hgeti4(header, "NAXIS2", &naxis2);
-   bitpix = 0;
-   hgeti4(header, "BITPIX", &bitpix);
-   if (bitpix == 0) {
-      /* snprintf (fitserrmsg,79, "FITSRIMAGE:  BITPIX is 0; image not read\n"); */
-      (void) close(fd);
-      return (NULL);
-   }
-   bytepix = bitpix / 8;
-   if (bytepix < 0)
-      bytepix = -bytepix;
+    /* Compute size of image in bytes using relevant header parameters */
+    naxis = 1;
+    hgeti4(header, "NAXIS", &naxis);
+    naxis1 = 1;
+    hgeti4(header, "NAXIS1", &naxis1);
+    naxis2 = 1;
+    hgeti4(header, "NAXIS2", &naxis2);
+    bitpix = 0;
+    hgeti4(header, "BITPIX", &bitpix);
+    if (bitpix == 0) {
+        /* snprintf (fitserrmsg,79, "FITSRIMAGE:  BITPIX is 0; image not read\n"); */
+        (void) close(fd);
+        return (NULL);
+    }
+    bytepix = bitpix / 8;
+    if (bytepix < 0)
+        bytepix = -bytepix;
 
-   /* If either dimension is one and image is 3-D, read all three dimensions */
-   if (naxis == 3 && (naxis1 == 1 || naxis2 == 1)) {
-      int naxis3;
-      hgeti4(header, "NAXIS3", &naxis3);
-      nbimage = naxis1 * naxis2 * naxis3 * bytepix;
-   } else
-      nbimage = naxis1 * naxis2 * bytepix;
+    /* If either dimension is one and image is 3-D, read all three dimensions */
+    if (naxis == 3 && (naxis1 == 1 || naxis2 == 1)) {
+        int naxis3;
+        hgeti4(header, "NAXIS3", &naxis3);
+        nbimage = naxis1 * naxis2 * naxis3 * bytepix;
+    } else
+        nbimage = naxis1 * naxis2 * bytepix;
 
-   /* Set number of bytes to integral number of 2880-byte blocks */
-   nblocks = nbimage / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbimage)
-      nblocks = nblocks + 1;
-   nbytes = nblocks * FITSBLOCK;
+    /* Set number of bytes to integral number of 2880-byte blocks */
+    nblocks = nbimage / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbimage)
+        nblocks = nblocks + 1;
+    nbytes = nblocks * FITSBLOCK;
 
-   /* Allocate and read image */
-   image = (char *) malloc(nbytes);
-   nbleft = nbytes;
-   imleft = image;
-   nbr = 0;
-   while (nbleft > 0) {
-      nbread = read(fd, imleft, nbleft);
-      nbr = nbr + nbread;
+    /* Allocate and read image */
+    image = (char *) malloc(nbytes);
+    nbleft = nbytes;
+    imleft = image;
+    nbr = 0;
+    while (nbleft > 0) {
+        nbread = read(fd, imleft, nbleft);
+        nbr = nbr + nbread;
 #ifndef VMS
-      if (fd == STDIN_FILENO && nbread < nbleft && nbread > 0) {
-         nbleft = nbleft - nbread;
-         imleft = imleft + nbread;
-      } else
+        if (fd == STDIN_FILENO && nbread < nbleft && nbread > 0) {
+            nbleft = nbleft - nbread;
+            imleft = imleft + nbread;
+        } else
 #endif
-         nbleft = 0;
-   }
+            nbleft = 0;
+    }
 #ifndef VMS
-   if (fd != STDIN_FILENO)
-      (void) close(fd);
+    if (fd != STDIN_FILENO)
+        (void) close(fd);
 #endif
-   if (nbr < nbimage) {
-      snprintf(fitserrmsg, 79, "FITSRIMAGE:  %d of %d bytes read from file %s\n",
-               nbr, nbimage, filename);
-      return (NULL);
-   }
+    if (nbr < nbimage) {
+        snprintf(fitserrmsg, 79, "FITSRIMAGE:  %d of %d bytes read from file %s\n",
+                 nbr, nbimage, filename);
+        return (NULL);
+    }
 
-   /* Byte-reverse image, if necessary */
-   if (imswapped())
-      imswap(bitpix, image, nbytes);
+    /* Byte-reverse image, if necessary */
+    if (imswapped())
+        imswap(bitpix, image, nbytes);
 
-   return (image);
+    return (image);
 }
 
 
@@ -635,55 +635,55 @@ int fitsropen(inpath)
 char *inpath;                   /* Pathname for FITS tables file to read */
 
 {
-   int ntry;
-   int fd;                      /* file descriptor for FITS tables file (returned) */
-   char *ext;                   /* extension name or number */
-   char cext = 0;
-   char *rbrac;
-   char *mwcs;                  /* Pointer to WCS name separated by % */
+    int ntry;
+    int fd;                     /* file descriptor for FITS tables file (returned) */
+    char *ext;                  /* extension name or number */
+    char cext = 0;
+    char *rbrac;
+    char *mwcs;                 /* Pointer to WCS name separated by % */
 
 /* Check for FITS WCS specification and ignore for file opening */
-   mwcs = strchr(inpath, '%');
+    mwcs = strchr(inpath, '%');
 
 /* Check for FITS extension and ignore for file opening */
-   ext = strchr(inpath, ',');
-   rbrac = NULL;
-   if (ext == NULL) {
-      ext = strchr(inpath, '[');
-      if (ext != NULL) {
-         rbrac = strchr(inpath, ']');
-      }
-   }
+    ext = strchr(inpath, ',');
+    rbrac = NULL;
+    if (ext == NULL) {
+        ext = strchr(inpath, '[');
+        if (ext != NULL) {
+            rbrac = strchr(inpath, ']');
+        }
+    }
 
 /* Open input file */
-   for (ntry = 0; ntry < 3; ntry++) {
-      if (ext != NULL) {
-         cext = *ext;
-         *ext = 0;
-      }
-      if (rbrac != NULL)
-         *rbrac = (char) 0;
-      if (mwcs != NULL)
-         *mwcs = (char) 0;
-      fd = open(inpath, O_RDONLY);
-      if (ext != NULL)
-         *ext = cext;
-      if (rbrac != NULL)
-         *rbrac = ']';
-      if (mwcs != NULL)
-         *mwcs = '%';
-      if (fd >= 0)
-         break;
-      else if (ntry == 2) {
-         snprintf(fitserrmsg, 79, "FITSROPEN:  cannot read file %s\n", inpath);
-         return (-1);
-      }
-   }
+    for (ntry = 0; ntry < 3; ntry++) {
+        if (ext != NULL) {
+            cext = *ext;
+            *ext = 0;
+        }
+        if (rbrac != NULL)
+            *rbrac = (char) 0;
+        if (mwcs != NULL)
+            *mwcs = (char) 0;
+        fd = open(inpath, O_RDONLY);
+        if (ext != NULL)
+            *ext = cext;
+        if (rbrac != NULL)
+            *rbrac = ']';
+        if (mwcs != NULL)
+            *mwcs = '%';
+        if (fd >= 0)
+            break;
+        else if (ntry == 2) {
+            snprintf(fitserrmsg, 79, "FITSROPEN:  cannot read file %s\n", inpath);
+            return (-1);
+        }
+    }
 
-   if (verbose)
-      fprintf(stderr, "FITSROPEN:  input file %s opened\n", inpath);
+    if (verbose)
+        fprintf(stderr, "FITSROPEN:  input file %s opened\n", inpath);
 
-   return (fd);
+    return (fd);
 }
 
 
@@ -705,42 +705,43 @@ int *nchar;                     /* Number of characters in one table row (return
 int *nbhead;                    /* Number of characters before table starts */
 
 {
-   char temp[16];
-   int fd;
-   int lhead;                   /* Maximum length in bytes of FITS header */
-   char *header;                /* Header for FITS tables file to read */
+    char temp[16];
+    int fd;
+    int lhead;                  /* Maximum length in bytes of FITS header */
+    char *header;               /* Header for FITS tables file to read */
 
 /* Read FITS header from input file */
-   header = fitsrhead(inpath, &lhead, nbhead);
-   if (!header) {
-      snprintf(fitserrmsg, 79, "FITSRTOPEN:  %s is not a FITS file\n", inpath);
-      return (0);
-   }
+    header = fitsrhead(inpath, &lhead, nbhead);
+    if (!header) {
+        snprintf(fitserrmsg, 79, "FITSRTOPEN:  %s is not a FITS file\n", inpath);
+        return (0);
+    }
 
 /* Make sure this file is really a FITS table file */
-   temp[0] = 0;
-   (void) hgets(header, "XTENSION", 16, temp);
-   if (strncmp(temp, "TABLE", 5)) {
-      snprintf(fitserrmsg, 79, "FITSRTOPEN:  %s is not a FITS table file\n", inpath);
-      free((void *) header);
-      return (0);
-   }
+    temp[0] = 0;
+    (void) hgets(header, "XTENSION", 16, temp);
+    if (strncmp(temp, "TABLE", 5)) {
+        snprintf(fitserrmsg, 79, "FITSRTOPEN:  %s is not a FITS table file\n",
+                 inpath);
+        free((void *) header);
+        return (0);
+    }
 
 /* If it is a FITS file, get table information from the header */
-   else {
-      if (fitsrthead(header, nk, kw, nrows, nchar)) {
-         snprintf(fitserrmsg, 79, "FITSRTOPEN: Cannot read FITS table from %s\n",
-                  inpath);
-         free((void *) header);
-         return (-1);
-      } else {
-         fd = fitsropen(inpath);
-         offset1 = 0;
-         offset2 = 0;
-         free((void *) header);
-         return (fd);
-      }
-   }
+    else {
+        if (fitsrthead(header, nk, kw, nrows, nchar)) {
+            snprintf(fitserrmsg, 79, "FITSRTOPEN: Cannot read FITS table from %s\n",
+                     inpath);
+            free((void *) header);
+            return (-1);
+        } else {
+            fd = fitsropen(inpath);
+            offset1 = 0;
+            offset2 = 0;
+            free((void *) header);
+            return (fd);
+        }
+    }
 }
 
 static struct Keyword *pw;      /* Structure for all entries */
@@ -758,130 +759,132 @@ int *nrows;                     /* Number of rows in table (returned) */
 int *nchar;                     /* Number of characters in one table row (returned) */
 
 {
-   struct Keyword *rw;          /* Structure for desired entries */
-   int nfields;
-   int ifield, ik, ln, i;
-   char *h0, *h1, *tf1, *tf2;
-   char tname[12];
-   char temp[16];
-   char tform[16];
-   int tverb;
+    struct Keyword *rw;         /* Structure for desired entries */
+    int nfields;
+    int ifield, ik, ln, i;
+    char *h0, *h1, *tf1, *tf2;
+    char tname[12];
+    char temp[16];
+    char tform[16];
+    int tverb;
 
-   h0 = header;
+    h0 = header;
 
 /* Make sure this is really a FITS table file header */
-   temp[0] = 0;
-   hgets(header, "XTENSION", 16, temp);
-   if (strncmp(temp, "TABLE", 5) != 0) {
-      snprintf(fitserrmsg, 79, "FITSRTHEAD:  Not a FITS table file\n");
-      return (-1);
-   }
+    temp[0] = 0;
+    hgets(header, "XTENSION", 16, temp);
+    if (strncmp(temp, "TABLE", 5) != 0) {
+        snprintf(fitserrmsg, 79, "FITSRTHEAD:  Not a FITS table file\n");
+        return (-1);
+    }
 
 /* Get table size from FITS header */
-   *nchar = 0;
-   hgeti4(header, "NAXIS1", nchar);
-   *nrows = 0;
-   hgeti4(header, "NAXIS2", nrows);
-   if (*nrows <= 0 || *nchar <= 0) {
-      snprintf(fitserrmsg, 79, "FITSRTHEAD: cannot read %d x %d table\n",
-               *nrows, *nchar);
-      return (-1);
-   }
+    *nchar = 0;
+    hgeti4(header, "NAXIS1", nchar);
+    *nrows = 0;
+    hgeti4(header, "NAXIS2", nrows);
+    if (*nrows <= 0 || *nchar <= 0) {
+        snprintf(fitserrmsg, 79, "FITSRTHEAD: cannot read %d x %d table\n",
+                 *nrows, *nchar);
+        return (-1);
+    }
 
 /* Set up table for access to individual fields */
-   nfields = 0;
-   hgeti4(header, "TFIELDS", &nfields);
-   if (verbose)
-      fprintf(stderr, "FITSRTHEAD: %d fields per table entry\n", nfields);
-   if (nfields > bfields) {
-      if (bfields > 0)
-         free((void *) pw);
-      pw = (struct Keyword *) calloc(nfields, sizeof(struct Keyword));
-      if (pw == NULL) {
-         snprintf(fitserrmsg, 79, "FITSRTHEAD: cannot allocate table structure\n");
-         return (-1);
-      }
-      if (bfields > 0)
-         free((void *) lpnam);
-      lpnam = (int *) calloc(nfields, sizeof(int));
-      if (lpnam == NULL) {
-         snprintf(fitserrmsg, 79, "FITSRTHEAD: cannot allocate length structure\n");
-         return (-1);
-      }
-      bfields = nfields;
-   }
+    nfields = 0;
+    hgeti4(header, "TFIELDS", &nfields);
+    if (verbose)
+        fprintf(stderr, "FITSRTHEAD: %d fields per table entry\n", nfields);
+    if (nfields > bfields) {
+        if (bfields > 0)
+            free((void *) pw);
+        pw = (struct Keyword *) calloc(nfields, sizeof(struct Keyword));
+        if (pw == NULL) {
+            snprintf(fitserrmsg, 79,
+                     "FITSRTHEAD: cannot allocate table structure\n");
+            return (-1);
+        }
+        if (bfields > 0)
+            free((void *) lpnam);
+        lpnam = (int *) calloc(nfields, sizeof(int));
+        if (lpnam == NULL) {
+            snprintf(fitserrmsg, 79,
+                     "FITSRTHEAD: cannot allocate length structure\n");
+            return (-1);
+        }
+        bfields = nfields;
+    }
 
-   tverb = verbose;
-   verbose = 0;
+    tverb = verbose;
+    verbose = 0;
 
-   for (ifield = 0; ifield < nfields; ifield++) {
+    for (ifield = 0; ifield < nfields; ifield++) {
 
-      /* First column of field */
-      for (i = 0; i < 12; i++)
-         tname[i] = 0;
-      sprintf(tname, "TBCOL%d", ifield + 1);
-      h1 = ksearch(h0, tname);
-      pw[ifield].kf = 0;
-      hgeti4(h0, tname, &pw[ifield].kf);
+        /* First column of field */
+        for (i = 0; i < 12; i++)
+            tname[i] = 0;
+        sprintf(tname, "TBCOL%d", ifield + 1);
+        h1 = ksearch(h0, tname);
+        pw[ifield].kf = 0;
+        hgeti4(h0, tname, &pw[ifield].kf);
 
-      /* Length of field */
-      for (i = 0; i < 12; i++)
-         tname[i] = 0;
-      sprintf(tname, "TFORM%d", ifield + 1);;
-      tform[0] = 0;
-      hgets(h0, tname, 16, tform);
-      tf1 = tform + 1;
-      tf2 = strchr(tform, '.');
-      if (tf2 != NULL)
-         *tf2 = ' ';
-      pw[ifield].kl = atoi(tf1);
+        /* Length of field */
+        for (i = 0; i < 12; i++)
+            tname[i] = 0;
+        sprintf(tname, "TFORM%d", ifield + 1);;
+        tform[0] = 0;
+        hgets(h0, tname, 16, tform);
+        tf1 = tform + 1;
+        tf2 = strchr(tform, '.');
+        if (tf2 != NULL)
+            *tf2 = ' ';
+        pw[ifield].kl = atoi(tf1);
 
-      /* Name of field */
-      for (i = 0; i < 12; i++)
-         tname[i] = 0;
-      sprintf(tname, "TTYPE%d", ifield + 1);;
-      temp[0] = 0;
-      hgets(h0, tname, 16, temp);
-      strcpy(pw[ifield].kname, temp);
-      lpnam[ifield] = strlen(pw[ifield].kname);
-      h0 = h1;
-   }
+        /* Name of field */
+        for (i = 0; i < 12; i++)
+            tname[i] = 0;
+        sprintf(tname, "TTYPE%d", ifield + 1);;
+        temp[0] = 0;
+        hgets(h0, tname, 16, temp);
+        strcpy(pw[ifield].kname, temp);
+        lpnam[ifield] = strlen(pw[ifield].kname);
+        h0 = h1;
+    }
 
 /* Set up table for access to desired fields */
-   verbose = tverb;
-   if (verbose)
-      fprintf(stderr, "FITSRTHEAD: %d keywords read\n", *nk);
+    verbose = tverb;
+    if (verbose)
+        fprintf(stderr, "FITSRTHEAD: %d keywords read\n", *nk);
 
 /* If nk = 0, allocate and return structures for all table fields */
-   if (*nk <= 0) {
-      *kw = pw;
-      *nk = nfields;
-      return (0);
-   } else
-      rw = *kw;
+    if (*nk <= 0) {
+        *kw = pw;
+        *nk = nfields;
+        return (0);
+    } else
+        rw = *kw;
 
 /* Find each desired keyword in the header */
-   for (ik = 0; ik < *nk; ik++) {
-      if (rw[ik].kn <= 0) {
-         for (ifield = 0; ifield < nfields; ifield++) {
-            ln = lpnam[ifield];
-            if (rw[ik].lname > ln)
-               ln = rw[ik].lname;
-            if (strncmp(pw[ifield].kname, rw[ik].kname, ln) == 0) {
-               break;
+    for (ik = 0; ik < *nk; ik++) {
+        if (rw[ik].kn <= 0) {
+            for (ifield = 0; ifield < nfields; ifield++) {
+                ln = lpnam[ifield];
+                if (rw[ik].lname > ln)
+                    ln = rw[ik].lname;
+                if (strncmp(pw[ifield].kname, rw[ik].kname, ln) == 0) {
+                    break;
+                }
             }
-         }
-      } else
-         ifield = rw[ik].kn - 1;
+        } else
+            ifield = rw[ik].kn - 1;
 
 /* Set pointer, lentth, and name in returned array of structures */
-      rw[ik].kn = ifield + 1;
-      rw[ik].kf = pw[ifield].kf - 1;
-      rw[ik].kl = pw[ifield].kl;
-      strcpy(rw[ik].kname, pw[ifield].kname);
-   }
+        rw[ik].kn = ifield + 1;
+        rw[ik].kf = pw[ifield].kf - 1;
+        rw[ik].kl = pw[ifield].kl;
+        strcpy(rw[ik].kname, pw[ifield].kname);
+    }
 
-   return (0);
+    return (0);
 }
 
 
@@ -896,52 +899,52 @@ int nbline;                     /* Number of bytes to read for this line */
 char *line;                     /* One line of FITS table (returned) */
 
 {
-   int nbuff, nlbuff, nbr = 0;
-   int offset, offend, ntry, ioff;
-   char *tbuff1;
+    int nbuff, nlbuff, nbr = 0;
+    int offset, offend, ntry, ioff;
+    char *tbuff1;
 
-   offset = nbhead + (nbline * irow);
-   offend = offset + nbline - 1;
+    offset = nbhead + (nbline * irow);
+    offend = offset + nbline - 1;
 
 /* Read a new buffer of the FITS table into memory if needed */
-   if (offset < offset1 || offend > offset2) {
-      nlbuff = lbuff / nbline;
-      nbuff = nlbuff * nbline;
-      for (ntry = 0; ntry < 3; ntry++) {
-         ioff = lseek(fd, offset, SEEK_SET);
-         if (ioff < offset) {
-            if (ntry == 2)
-               return (0);
-            else
-               continue;
-         }
-         nbr = read(fd, tbuff, nbuff);
-         if (nbr < nbline) {
-            if (verbose)
-               fprintf(stderr, "FITSRTLINE: %d / %d bytes read %d\n",
-                       nbr, nbuff, ntry);
-            if (ntry == 2)
-               return (nbr);
-         } else
-            break;
-      }
-      offset1 = offset;
-      offset2 = offset + nbr - 1;
-      strncpy(line, tbuff, nbline);
-      return (nbline);
-   } else {
-      tbuff1 = tbuff + (offset - offset1);
-      strncpy(line, tbuff1, nbline);
-      return (nbline);
-   }
+    if (offset < offset1 || offend > offset2) {
+        nlbuff = lbuff / nbline;
+        nbuff = nlbuff * nbline;
+        for (ntry = 0; ntry < 3; ntry++) {
+            ioff = lseek(fd, offset, SEEK_SET);
+            if (ioff < offset) {
+                if (ntry == 2)
+                    return (0);
+                else
+                    continue;
+            }
+            nbr = read(fd, tbuff, nbuff);
+            if (nbr < nbline) {
+                if (verbose)
+                    fprintf(stderr, "FITSRTLINE: %d / %d bytes read %d\n",
+                            nbr, nbuff, ntry);
+                if (ntry == 2)
+                    return (nbr);
+            } else
+                break;
+        }
+        offset1 = offset;
+        offset2 = offset + nbr - 1;
+        strncpy(line, tbuff, nbline);
+        return (nbline);
+    } else {
+        tbuff1 = tbuff + (offset - offset1);
+        strncpy(line, tbuff1, nbline);
+        return (nbline);
+    }
 }
 
 
 void fitsrtlset()
 {
-   offset1 = 0;
-   offset2 = 0;
-   return;
+    offset1 = 0;
+    offset2 = 0;
+    return;
 }
 
 
@@ -952,12 +955,12 @@ short ftgeti2(entry, kw)
 char *entry;                    /* Row or entry from table */
 struct Keyword *kw;             /* Table column information from FITS header */
 {
-   char temp[30];
+    char temp[30];
 
-   if (ftgetc(entry, kw, temp, 30))
-      return ((short) atof(temp));
-   else
-      return ((short) 0);
+    if (ftgetc(entry, kw, temp, 30))
+        return ((short) atof(temp));
+    else
+        return ((short) 0);
 }
 
 
@@ -968,12 +971,12 @@ int ftgeti4(entry, kw)
 char *entry;                    /* Row or entry from table */
 struct Keyword *kw;             /* Table column information from FITS header */
 {
-   char temp[30];
+    char temp[30];
 
-   if (ftgetc(entry, kw, temp, 30))
-      return ((int) atof(temp));
-   else
-      return (0);
+    if (ftgetc(entry, kw, temp, 30))
+        return ((int) atof(temp));
+    else
+        return (0);
 }
 
 
@@ -984,12 +987,12 @@ float ftgetr4(entry, kw)
 char *entry;                    /* Row or entry from table */
 struct Keyword *kw;             /* Table column information from FITS header */
 {
-   char temp[30];
+    char temp[30];
 
-   if (ftgetc(entry, kw, temp, 30))
-      return ((float) atof(temp));
-   else
-      return ((float) 0.0);
+    if (ftgetc(entry, kw, temp, 30))
+        return ((float) atof(temp));
+    else
+        return ((float) 0.0);
 }
 
 
@@ -1000,12 +1003,12 @@ double ftgetr8(entry, kw)
 char *entry;                    /* Row or entry from table */
 struct Keyword *kw;             /* Table column information from FITS header */
 {
-   char temp[30];
+    char temp[30];
 
-   if (ftgetc(entry, kw, temp, 30))
-      return (atof(temp));
-   else
-      return ((double) 0.0);
+    if (ftgetc(entry, kw, temp, 30))
+        return (atof(temp));
+    else
+        return ((double) 0.0);
 }
 
 
@@ -1018,16 +1021,16 @@ struct Keyword *kw;             /* Table column information from FITS header */
 char *string;                   /* Returned string */
 int maxchar;                    /* Maximum number of characters in returned string */
 {
-   int length = maxchar;
+    int length = maxchar;
 
-   if (kw->kl < length)
-      length = kw->kl;
-   if (length > 0) {
-      strncpy(string, entry + kw->kf, length);
-      string[length] = 0;
-      return (1);
-   } else
-      return (0);
+    if (kw->kl < length)
+        length = kw->kl;
+    if (length > 0) {
+        strncpy(string, entry + kw->kf, length);
+        string[length] = 0;
+        return (1);
+    } else
+        return (0);
 }
 
 extern int errno;
@@ -1042,33 +1045,33 @@ char *header;                   /* FITS image header */
 char *image;                    /* FITS image pixels */
 
 {
-   int fd;
+    int fd;
 
-   /* Open the output file */
-   if (strcasecmp(filename, "stdout")) {
+    /* Open the output file */
+    if (strcasecmp(filename, "stdout")) {
 
-      if (!access(filename, 0)) {
-         fd = open(filename, O_WRONLY);
-         if (fd < 3) {
-            snprintf(fitserrmsg, 79, "FITSWIMAGE:  file %s not writeable\n",
-                     filename);
-            return (0);
-         }
-      } else {
-         fd = open(filename, O_RDWR + O_CREAT, 0666);
-         if (fd < 3) {
-            snprintf(fitserrmsg, 79, "FITSWIMAGE:  cannot create file %s\n",
-                     filename);
-            return (0);
-         }
-      }
-   }
+        if (!access(filename, 0)) {
+            fd = open(filename, O_WRONLY);
+            if (fd < 3) {
+                snprintf(fitserrmsg, 79, "FITSWIMAGE:  file %s not writeable\n",
+                         filename);
+                return (0);
+            }
+        } else {
+            fd = open(filename, O_RDWR + O_CREAT, 0666);
+            if (fd < 3) {
+                snprintf(fitserrmsg, 79, "FITSWIMAGE:  cannot create file %s\n",
+                         filename);
+                return (0);
+            }
+        }
+    }
 #ifndef VMS
-   else
-      fd = STDOUT_FILENO;
+    else
+        fd = STDOUT_FILENO;
 #endif
 
-   return (fitswhdu(fd, filename, header, image));
+    return (fitswhdu(fd, filename, header, image));
 }
 
 
@@ -1081,32 +1084,33 @@ char *header;                   /* FITS image header */
 char *image;                    /* FITS image pixels */
 
 {
-   int fd;
+    int fd;
 
-   /* Open the output file */
-   if (strcasecmp(filename, "stdout")) {
+    /* Open the output file */
+    if (strcasecmp(filename, "stdout")) {
 
-      if (!access(filename, 0)) {
-         fd = open(filename, O_WRONLY);
-         if (fd < 3) {
-            snprintf(fitserrmsg, 79, "FITSWEXT:  file %s not writeable\n", filename);
-            return (0);
-         }
-      } else {
-         fd = open(filename, O_APPEND, 0666);
-         if (fd < 3) {
-            snprintf(fitserrmsg, 79, "FITSWEXT:  cannot append to file %s\n",
-                     filename);
-            return (0);
-         }
-      }
-   }
+        if (!access(filename, 0)) {
+            fd = open(filename, O_WRONLY);
+            if (fd < 3) {
+                snprintf(fitserrmsg, 79, "FITSWEXT:  file %s not writeable\n",
+                         filename);
+                return (0);
+            }
+        } else {
+            fd = open(filename, O_APPEND, 0666);
+            if (fd < 3) {
+                snprintf(fitserrmsg, 79, "FITSWEXT:  cannot append to file %s\n",
+                         filename);
+                return (0);
+            }
+        }
+    }
 #ifndef VMS
-   else
-      fd = STDOUT_FILENO;
+    else
+        fd = STDOUT_FILENO;
 #endif
 
-   return (fitswhdu(fd, filename, header, image));
+    return (fitswhdu(fd, filename, header, image));
 }
 
 
@@ -1117,107 +1121,107 @@ char *filename;                 /* Name of IFTS image file */
 char *header;                   /* FITS image header */
 char *image;                    /* FITS image pixels */
 {
-   int nbhead, nbimage, nblocks, bytepix;
-   int bitpix, naxis, naxis1, naxis2, nbytes, nbw, nbpad, nbwp;
-   char *endhead, *lasthead, *padding;
-   double bzero, bscale;
+    int nbhead, nbimage, nblocks, bytepix;
+    int bitpix, naxis, naxis1, naxis2, nbytes, nbw, nbpad, nbwp;
+    char *endhead, *lasthead, *padding;
+    double bzero, bscale;
 
-   /* Change BITPIX=-16 files to BITPIX=16 with BZERO and BSCALE */
-   bitpix = 0;
-   hgeti4(header, "BITPIX", &bitpix);
-   if (bitpix == -16) {
-      if (!hgetr8(header, "BZERO", &bzero) && !hgetr8(header, "BSCALE", &bscale)) {
-         bitpix = 16;
-         hputi4(header, "BITPIX", bitpix);
-         hputr8(header, "BZERO", 32768.0);
-         hputr8(header, "BSCALE", 1.0);
-      }
-   }
+    /* Change BITPIX=-16 files to BITPIX=16 with BZERO and BSCALE */
+    bitpix = 0;
+    hgeti4(header, "BITPIX", &bitpix);
+    if (bitpix == -16) {
+        if (!hgetr8(header, "BZERO", &bzero) && !hgetr8(header, "BSCALE", &bscale)) {
+            bitpix = 16;
+            hputi4(header, "BITPIX", bitpix);
+            hputr8(header, "BZERO", 32768.0);
+            hputr8(header, "BSCALE", 1.0);
+        }
+    }
 
-   /* Write header to file */
-   endhead = ksearch(header, "END") + 80;
-   nbhead = endhead - header;
-   nblocks = nbhead / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbhead)
-      nblocks = nblocks + 1;
-   nbytes = nblocks * FITSBLOCK;
+    /* Write header to file */
+    endhead = ksearch(header, "END") + 80;
+    nbhead = endhead - header;
+    nblocks = nbhead / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbhead)
+        nblocks = nblocks + 1;
+    nbytes = nblocks * FITSBLOCK;
 
-   /* Pad header with spaces */
-   lasthead = header + nbytes;
-   while (endhead < lasthead)
-      *(endhead++) = ' ';
+    /* Pad header with spaces */
+    lasthead = header + nbytes;
+    while (endhead < lasthead)
+        *(endhead++) = ' ';
 
-   nbw = write(fd, header, nbytes);
-   if (nbw < nbhead) {
-      snprintf(fitserrmsg, 79,
-               "FITSWHDU:  wrote %d / %d bytes of header to file %s\n", nbw, nbytes,
-               filename);
-      (void) close(fd);
-      return (0);
-   }
+    nbw = write(fd, header, nbytes);
+    if (nbw < nbhead) {
+        snprintf(fitserrmsg, 79,
+                 "FITSWHDU:  wrote %d / %d bytes of header to file %s\n", nbw,
+                 nbytes, filename);
+        (void) close(fd);
+        return (0);
+    }
 
-   /* Return if file has no data */
-   if (bitpix == 0) {
-      (void) close(fd);
-      return (nbytes);
-   }
+    /* Return if file has no data */
+    if (bitpix == 0) {
+        (void) close(fd);
+        return (nbytes);
+    }
 
-   /* Compute size of image in bytes using relevant header parameters */
-   naxis = 1;
-   hgeti4(header, "NAXIS", &naxis);
-   naxis1 = 1;
-   hgeti4(header, "NAXIS1", &naxis1);
-   naxis2 = 1;
-   hgeti4(header, "NAXIS2", &naxis2);
-   if (bitpix == 0) {
-      /* snprintf (fitserrmsg,79, "FITSWHDU:  BITPIX is 0; image not written\n"); */
-      (void) close(fd);
-      return (0);
-   }
-   bytepix = bitpix / 8;
-   if (bytepix < 0)
-      bytepix = -bytepix;
+    /* Compute size of image in bytes using relevant header parameters */
+    naxis = 1;
+    hgeti4(header, "NAXIS", &naxis);
+    naxis1 = 1;
+    hgeti4(header, "NAXIS1", &naxis1);
+    naxis2 = 1;
+    hgeti4(header, "NAXIS2", &naxis2);
+    if (bitpix == 0) {
+        /* snprintf (fitserrmsg,79, "FITSWHDU:  BITPIX is 0; image not written\n"); */
+        (void) close(fd);
+        return (0);
+    }
+    bytepix = bitpix / 8;
+    if (bytepix < 0)
+        bytepix = -bytepix;
 
-   /* If either dimension is one and image is 3-D, read all three dimensions */
-   if (naxis == 3 && (naxis1 == 1 || naxis2 == 1)) {
-      int naxis3;
-      hgeti4(header, "NAXIS3", &naxis3);
-      nbimage = naxis1 * naxis2 * naxis3 * bytepix;
-   } else
-      nbimage = naxis1 * naxis2 * bytepix;
+    /* If either dimension is one and image is 3-D, read all three dimensions */
+    if (naxis == 3 && (naxis1 == 1 || naxis2 == 1)) {
+        int naxis3;
+        hgeti4(header, "NAXIS3", &naxis3);
+        nbimage = naxis1 * naxis2 * naxis3 * bytepix;
+    } else
+        nbimage = naxis1 * naxis2 * bytepix;
 
-   nblocks = nbimage / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbimage)
-      nblocks = nblocks + 1;
-   nbytes = nblocks * FITSBLOCK;
+    nblocks = nbimage / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbimage)
+        nblocks = nblocks + 1;
+    nbytes = nblocks * FITSBLOCK;
 
-   /* Byte-reverse image before writing, if necessary */
-   if (imswapped())
-      imswap(bitpix, image, nbimage);
+    /* Byte-reverse image before writing, if necessary */
+    if (imswapped())
+        imswap(bitpix, image, nbimage);
 
-   /* Write image to file */
-   nbw = write(fd, image, nbimage);
+    /* Write image to file */
+    nbw = write(fd, image, nbimage);
 
-   /* Write extra zeroes to make an integral number of 2880-byte blocks */
-   nbpad = nbytes - nbimage;
-   padding = (char *) calloc(1, nbpad);
-   nbwp = write(fd, padding, nbpad);
-   nbw = nbw + nbwp;
-   free(padding);
+    /* Write extra zeroes to make an integral number of 2880-byte blocks */
+    nbpad = nbytes - nbimage;
+    padding = (char *) calloc(1, nbpad);
+    nbwp = write(fd, padding, nbpad);
+    nbw = nbw + nbwp;
+    free(padding);
 
-   (void) close(fd);
+    (void) close(fd);
 
-   /* Byte-reverse image after writing, if necessary */
-   if (imswapped())
-      imswap(bitpix, image, nbimage);
+    /* Byte-reverse image after writing, if necessary */
+    if (imswapped())
+        imswap(bitpix, image, nbimage);
 
-   if (nbw < nbimage) {
-      snprintf(fitserrmsg, 79,
-               "FITSWHDU:  wrote %d / %d bytes of image to file %s\n", nbw, nbimage,
-               filename);
-      return (0);
-   }
-   return (nbw);
+    if (nbw < nbimage) {
+        snprintf(fitserrmsg, 79,
+                 "FITSWHDU:  wrote %d / %d bytes of image to file %s\n", nbw,
+                 nbimage, filename);
+        return (0);
+    }
+    return (nbw);
 }
 
 
@@ -1231,164 +1235,167 @@ char *header;                   /* FITS image header */
 char *filename0;                /* Name of input FITS image file */
 
 {
-   int fdout, fdin;
-   int nbhead, nbimage, nblocks, bytepix;
-   int bitpix, naxis, naxis1, naxis2, nbytes, nbw, nbpad, nbwp;
-   char *endhead, *lasthead, *padding;
-   char *image;                 /* FITS image pixels */
-   char *oldhead;               /* Input file image header */
-   int nbhead0;                 /* Length of input file image header */
-   int lhead0;
-   int nbbuff, nbuff, ibuff, nbr, nbdata;
-   int fitsheadsize();
+    int fdout, fdin;
+    int nbhead, nbimage, nblocks, bytepix;
+    int bitpix, naxis, naxis1, naxis2, nbytes, nbw, nbpad, nbwp;
+    char *endhead, *lasthead, *padding;
+    char *image;                /* FITS image pixels */
+    char *oldhead;              /* Input file image header */
+    int nbhead0;                /* Length of input file image header */
+    int lhead0;
+    int nbbuff, nbuff, ibuff, nbr, nbdata;
+    int fitsheadsize();
 
-   /* Compute size of image in bytes using relevant header parameters */
-   naxis = 1;
-   hgeti4(header, "NAXIS", &naxis);
-   naxis1 = 1;
-   hgeti4(header, "NAXIS1", &naxis1);
-   naxis2 = 1;
-   hgeti4(header, "NAXIS2", &naxis2);
-   hgeti4(header, "BITPIX", &bitpix);
-   bytepix = bitpix / 8;
-   if (bytepix < 0)
-      bytepix = -bytepix;
+    /* Compute size of image in bytes using relevant header parameters */
+    naxis = 1;
+    hgeti4(header, "NAXIS", &naxis);
+    naxis1 = 1;
+    hgeti4(header, "NAXIS1", &naxis1);
+    naxis2 = 1;
+    hgeti4(header, "NAXIS2", &naxis2);
+    hgeti4(header, "BITPIX", &bitpix);
+    bytepix = bitpix / 8;
+    if (bytepix < 0)
+        bytepix = -bytepix;
 
-   /* If either dimension is one and image is 3-D, read all three dimensions */
-   if (naxis == 3 && (naxis1 == 1 || naxis2 == 1)) {
-      int naxis3;
-      hgeti4(header, "NAXIS3", &naxis3);
-      nbimage = naxis1 * naxis2 * naxis3 * bytepix;
-   } else
-      nbimage = naxis1 * naxis2 * bytepix;
+    /* If either dimension is one and image is 3-D, read all three dimensions */
+    if (naxis == 3 && (naxis1 == 1 || naxis2 == 1)) {
+        int naxis3;
+        hgeti4(header, "NAXIS3", &naxis3);
+        nbimage = naxis1 * naxis2 * naxis3 * bytepix;
+    } else
+        nbimage = naxis1 * naxis2 * bytepix;
 
-   nblocks = nbimage / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbimage)
-      nblocks = nblocks + 1;
-   nbytes = nblocks * FITSBLOCK;
+    nblocks = nbimage / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbimage)
+        nblocks = nblocks + 1;
+    nbytes = nblocks * FITSBLOCK;
 
-   /* Allocate image buffer */
-   nbbuff = FITSBLOCK * 100;
-   if (nbytes < nbbuff)
-      nbbuff = nbytes;
-   image = (char *) calloc(1, nbbuff);
-   nbuff = nbytes / nbbuff;
-   if (nbytes > nbuff * nbbuff)
-      nbuff = nbuff + 1;
+    /* Allocate image buffer */
+    nbbuff = FITSBLOCK * 100;
+    if (nbytes < nbbuff)
+        nbbuff = nbytes;
+    image = (char *) calloc(1, nbbuff);
+    nbuff = nbytes / nbbuff;
+    if (nbytes > nbuff * nbbuff)
+        nbuff = nbuff + 1;
 
-   /* Read input file header */
-   if ((oldhead = fitsrhead(filename0, &lhead0, &nbhead0)) == NULL) {
-      snprintf(fitserrmsg, 79,
-               "FITSCIMAGE: header of input file %s cannot be read\n", filename0);
-      return (0);
-   }
+    /* Read input file header */
+    if ((oldhead = fitsrhead(filename0, &lhead0, &nbhead0)) == NULL) {
+        snprintf(fitserrmsg, 79,
+                 "FITSCIMAGE: header of input file %s cannot be read\n", filename0);
+        return (0);
+    }
 
-   /* Find size of output header */
-   nbhead = fitsheadsize(header);
+    /* Find size of output header */
+    nbhead = fitsheadsize(header);
 
-   /* If overwriting, be more careful if new header is longer than old */
-   if (!strcmp(filename, filename0) && nbhead > nbhead0) {
-      if ((image = fitsrimage(filename0, nbhead0, oldhead)) == NULL) {
-         snprintf(fitserrmsg, 79, "FITSCIMAGE:  cannot read image from file %s\n",
-                  filename0);
-         free(oldhead);
-         return (0);
-      }
-      return (fitswimage(filename, header, image));
-   }
-   free(oldhead);
+    /* If overwriting, be more careful if new header is longer than old */
+    if (!strcmp(filename, filename0) && nbhead > nbhead0) {
+        if ((image = fitsrimage(filename0, nbhead0, oldhead)) == NULL) {
+            snprintf(fitserrmsg, 79, "FITSCIMAGE:  cannot read image from file %s\n",
+                     filename0);
+            free(oldhead);
+            return (0);
+        }
+        return (fitswimage(filename, header, image));
+    }
+    free(oldhead);
 
-   /* Open the input file and skip over the header */
-   if (strcasecmp(filename0, "stdin")) {
-      fdin = -1;
-      fdin = fitsropen(filename0);
-      if (fdin < 0) {
-         snprintf(fitserrmsg, 79, "FITSCIMAGE:  cannot read file %s\n", filename0);
-         return (0);
-      }
+    /* Open the input file and skip over the header */
+    if (strcasecmp(filename0, "stdin")) {
+        fdin = -1;
+        fdin = fitsropen(filename0);
+        if (fdin < 0) {
+            snprintf(fitserrmsg, 79, "FITSCIMAGE:  cannot read file %s\n",
+                     filename0);
+            return (0);
+        }
 
-      /* Skip over FITS header */
-      if (lseek(fdin, nbhead0, SEEK_SET) < 0) {
-         (void) close(fdin);
-         snprintf(fitserrmsg, 79, "FITSCIMAGE:  cannot skip header of file %s\n",
-                  filename0);
-         return (0);
-      }
-   }
+        /* Skip over FITS header */
+        if (lseek(fdin, nbhead0, SEEK_SET) < 0) {
+            (void) close(fdin);
+            snprintf(fitserrmsg, 79, "FITSCIMAGE:  cannot skip header of file %s\n",
+                     filename0);
+            return (0);
+        }
+    }
 #ifndef VMS
-   else
-      fdin = STDIN_FILENO;
+    else
+        fdin = STDIN_FILENO;
 #endif
 
-   /* Open the output file */
-   if (!access(filename, 0)) {
-      fdout = open(filename, O_WRONLY);
-      if (fdout < 3) {
-         snprintf(fitserrmsg, 79, "FITSCIMAGE:  file %s not writeable\n", filename);
-         return (0);
-      }
-   } else {
-      fdout = open(filename, O_RDWR + O_CREAT, 0666);
-      if (fdout < 3) {
-         snprintf(fitserrmsg, 79, "FITSCHEAD:  cannot create file %s\n", filename);
-         return (0);
-      }
-   }
+    /* Open the output file */
+    if (!access(filename, 0)) {
+        fdout = open(filename, O_WRONLY);
+        if (fdout < 3) {
+            snprintf(fitserrmsg, 79, "FITSCIMAGE:  file %s not writeable\n",
+                     filename);
+            return (0);
+        }
+    } else {
+        fdout = open(filename, O_RDWR + O_CREAT, 0666);
+        if (fdout < 3) {
+            snprintf(fitserrmsg, 79, "FITSCHEAD:  cannot create file %s\n",
+                     filename);
+            return (0);
+        }
+    }
 
-   /* Pad header with spaces */
-   endhead = ksearch(header, "END") + 80;
-   lasthead = header + nbhead;
-   while (endhead < lasthead)
-      *(endhead++) = ' ';
+    /* Pad header with spaces */
+    endhead = ksearch(header, "END") + 80;
+    lasthead = header + nbhead;
+    while (endhead < lasthead)
+        *(endhead++) = ' ';
 
-   /* Write header to file */
-   nbw = write(fdout, header, nbhead);
-   if (nbw < nbhead) {
-      snprintf(fitserrmsg, 79,
-               "FITSCIMAGE:  wrote %d / %d bytes of header to file %s\n", nbw,
-               nbytes, filename);
-      (void) close(fdout);
-      (void) close(fdin);
-      return (0);
-   }
+    /* Write header to file */
+    nbw = write(fdout, header, nbhead);
+    if (nbw < nbhead) {
+        snprintf(fitserrmsg, 79,
+                 "FITSCIMAGE:  wrote %d / %d bytes of header to file %s\n", nbw,
+                 nbytes, filename);
+        (void) close(fdout);
+        (void) close(fdin);
+        return (0);
+    }
 
-   /* Return if no data */
-   if (bitpix == 0) {
-      (void) close(fdout);
-      (void) close(fdin);
-      return (nbhead);
-   }
+    /* Return if no data */
+    if (bitpix == 0) {
+        (void) close(fdout);
+        (void) close(fdin);
+        return (nbhead);
+    }
 
-   nbdata = 0;
-   for (ibuff = 0; ibuff < nbuff; ibuff++) {
-      nbr = read(fdin, image, nbbuff);
-      if (nbr > 0) {
-         nbw = write(fdout, image, nbr);
-         nbdata = nbdata + nbw;
-      }
-   }
+    nbdata = 0;
+    for (ibuff = 0; ibuff < nbuff; ibuff++) {
+        nbr = read(fdin, image, nbbuff);
+        if (nbr > 0) {
+            nbw = write(fdout, image, nbr);
+            nbdata = nbdata + nbw;
+        }
+    }
 
-   /* Write extra to make integral number of 2880-byte blocks */
-   nblocks = nbdata / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbdata)
-      nblocks = nblocks + 1;
-   nbytes = nblocks * FITSBLOCK;
-   nbpad = nbytes - nbdata;
-   padding = (char *) calloc(1, nbpad);
-   nbwp = write(fdout, padding, nbpad);
-   nbw = nbdata + nbwp;
-   free(padding);
+    /* Write extra to make integral number of 2880-byte blocks */
+    nblocks = nbdata / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbdata)
+        nblocks = nblocks + 1;
+    nbytes = nblocks * FITSBLOCK;
+    nbpad = nbytes - nbdata;
+    padding = (char *) calloc(1, nbpad);
+    nbwp = write(fdout, padding, nbpad);
+    nbw = nbdata + nbwp;
+    free(padding);
 
-   (void) close(fdout);
-   (void) close(fdin);
+    (void) close(fdout);
+    (void) close(fdin);
 
-   if (nbw < nbimage) {
-      snprintf(fitserrmsg, 79,
-               "FITSWIMAGE:  wrote %d / %d bytes of image to file %s\n", nbw,
-               nbimage, filename);
-      return (0);
-   } else
-      return (nbw);
+    if (nbw < nbimage) {
+        snprintf(fitserrmsg, 79,
+                 "FITSWIMAGE:  wrote %d / %d bytes of image to file %s\n", nbw,
+                 nbimage, filename);
+        return (0);
+    } else
+        return (nbw);
 }
 
 
@@ -1400,47 +1407,49 @@ char *filename;                 /* Name of IFTS image file */
 char *header;                   /* FITS image header */
 
 {
-   int fd;
-   int nbhead, nblocks;
-   int nbytes, nbw;
-   char *endhead, *lasthead;
+    int fd;
+    int nbhead, nblocks;
+    int nbytes, nbw;
+    char *endhead, *lasthead;
 
-   /* Open the output file */
-   if (!access(filename, 0)) {
-      fd = open(filename, O_WRONLY);
-      if (fd < 3) {
-         snprintf(fitserrmsg, 79, "FITSWHEAD:  file %s not writeable\n", filename);
-         return (0);
-      }
-   } else {
-      fd = open(filename, O_RDWR + O_CREAT, 0666);
-      if (fd < 3) {
-         snprintf(fitserrmsg, 79, "FITSWHEAD:  cannot create file %s\n", filename);
-         return (0);
-      }
-   }
+    /* Open the output file */
+    if (!access(filename, 0)) {
+        fd = open(filename, O_WRONLY);
+        if (fd < 3) {
+            snprintf(fitserrmsg, 79, "FITSWHEAD:  file %s not writeable\n",
+                     filename);
+            return (0);
+        }
+    } else {
+        fd = open(filename, O_RDWR + O_CREAT, 0666);
+        if (fd < 3) {
+            snprintf(fitserrmsg, 79, "FITSWHEAD:  cannot create file %s\n",
+                     filename);
+            return (0);
+        }
+    }
 
-   /* Write header to file */
-   endhead = ksearch(header, "END") + 80;
-   nbhead = endhead - header;
-   nblocks = nbhead / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbhead)
-      nblocks = nblocks + 1;
-   nbytes = nblocks * FITSBLOCK;
+    /* Write header to file */
+    endhead = ksearch(header, "END") + 80;
+    nbhead = endhead - header;
+    nblocks = nbhead / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbhead)
+        nblocks = nblocks + 1;
+    nbytes = nblocks * FITSBLOCK;
 
-   /* Pad header with spaces */
-   lasthead = header + nbytes;
-   while (endhead < lasthead)
-      *(endhead++) = ' ';
+    /* Pad header with spaces */
+    lasthead = header + nbytes;
+    while (endhead < lasthead)
+        *(endhead++) = ' ';
 
-   nbw = write(fd, header, nbytes);
-   if (nbw < nbhead) {
-      fprintf(stderr, "FITSWHEAD:  wrote %d / %d bytes of header to file %s\n",
-              nbw, nbytes, filename);
-      (void) close(fd);
-      return (0);
-   }
-   return (fd);
+    nbw = write(fd, header, nbytes);
+    if (nbw < nbhead) {
+        fprintf(stderr, "FITSWHEAD:  wrote %d / %d bytes of header to file %s\n",
+                nbw, nbytes, filename);
+        (void) close(fd);
+        return (0);
+    }
+    return (fd);
 }
 
 
@@ -1449,38 +1458,38 @@ int isfits(filename)
 
 char *filename;                 /* Name of file for which to find size */
 {
-   FILE *diskfile;
-   char keyword[16];
-   int nbr;
+    FILE *diskfile;
+    char keyword[16];
+    int nbr;
 
-   /* First check to see if this is an assignment */
-   if (strchr(filename, '='))
-      return (0);
+    /* First check to see if this is an assignment */
+    if (strchr(filename, '='))
+        return (0);
 
-   /* Then check file extension */
-   else if (strsrch(filename, ".fit") ||
-            strsrch(filename, ".fits") || strsrch(filename, ".fts"))
-      return (1);
+    /* Then check file extension */
+    else if (strsrch(filename, ".fit") ||
+             strsrch(filename, ".fits") || strsrch(filename, ".fts"))
+        return (1);
 
-   /* Check for stdin (input from pipe) */
-   else if (!strcasecmp(filename, "stdin"))
-      return (1);
+    /* Check for stdin (input from pipe) */
+    else if (!strcasecmp(filename, "stdin"))
+        return (1);
 
-   /* If no FITS file extension, try opening the file */
-   else {
-      if ((diskfile = fopen(filename, "rb")) == NULL)
-         return (0);
-      else {
-         nbr = fread(keyword, 1, 8, diskfile);
-         fclose(diskfile);
-         if (nbr < 8)
+    /* If no FITS file extension, try opening the file */
+    else {
+        if ((diskfile = fopen(filename, "rb")) == NULL)
             return (0);
-         else if (!strncmp(keyword, "SIMPLE", 6))
-            return (1);
-         else
-            return (0);
-      }
-   }
+        else {
+            nbr = fread(keyword, 1, 8, diskfile);
+            fclose(diskfile);
+            if (nbr < 8)
+                return (0);
+            else if (!strncmp(keyword, "SIMPLE", 6))
+                return (1);
+            else
+                return (0);
+        }
+    }
 }
 
 /* FITSHEADSIZE -- Find size of FITS header */
@@ -1489,22 +1498,22 @@ int fitsheadsize(header)
 
 char *header;                   /* FITS header */
 {
-   char *endhead;
-   int nbhead, nblocks;
+    char *endhead;
+    int nbhead, nblocks;
 
-   endhead = ksearch(header, "END") + 80;
-   nbhead = endhead - header;
-   nblocks = nbhead / FITSBLOCK;
-   if (nblocks * FITSBLOCK < nbhead)
-      nblocks = nblocks + 1;
-   return (nblocks * FITSBLOCK);
+    endhead = ksearch(header, "END") + 80;
+    nbhead = endhead - header;
+    nblocks = nbhead / FITSBLOCK;
+    if (nblocks * FITSBLOCK < nbhead)
+        nblocks = nblocks + 1;
+    return (nblocks * FITSBLOCK);
 }
 
 /* Print error message */
 void fitserr()
 {
-   fprintf(stderr, "%s\n", fitserrmsg);
-   return;
+    fprintf(stderr, "%s\n", fitserrmsg);
+    return;
 }
 
 /*

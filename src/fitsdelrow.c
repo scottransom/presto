@@ -3,10 +3,10 @@
 
 int main(int argc, char *argv[])
 {
-    fitsfile *infptr;   /* FITS file pointers defined in fitsio.h */
-    int status = 0;     /* status must always be initialized = 0  */
+    fitsfile *infptr;           /* FITS file pointers defined in fitsio.h */
+    int status = 0;             /* status must always be initialized = 0  */
 
-    if (argc==1) {
+    if (argc == 1) {
         printf("usage:  fitsdelrow fitsfile.fits[3] 1 7\n"
                "        where the optional [#] means the HDU number, and 1 and 7\n"
                "        are the start row and number of rows to delete\n\n");
@@ -20,8 +20,9 @@ int main(int argc, char *argv[])
         /* Close the input file */
         fits_close_file(infptr, &status);
     }
-    
+
     /* if error occured, print out error message */
-    if (status) fits_report_error(stderr, status);
-    return(status);
+    if (status)
+        fits_report_error(stderr, status);
+    return (status);
 }

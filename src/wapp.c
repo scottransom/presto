@@ -38,13 +38,13 @@ extern short transpose_bytes(unsigned char *a, int nx, int ny, unsigned char *mo
 
 static double *hanning_window(int numlags)
 {
-   double *win;
-   int ii;
+    double *win;
+    int ii;
 
-   win = gen_dvect(numlags);
-   for (ii = 0; ii < numlags; ii++)
-      win[ii] = 0.5 + 0.5 * cos(PI * ii / (numlags - 1));
-   return win;
+    win = gen_dvect(numlags);
+    for (ii = 0; ii < numlags; ii++)
+        win[ii] = 0.5 + 0.5 * cos(PI * ii / (numlags - 1));
+    return win;
 }
 
 char *get_hdr_string(struct HEADERP *h, char *name, int *slen)
@@ -52,11 +52,11 @@ char *get_hdr_string(struct HEADERP *h, char *name, int *slen)
     struct HEADERVAL val;
     char *cptr;
 
-    if(find_hdrval(h, name, &val)) {
+    if (find_hdrval(h, name, &val)) {
         printf("ERROR:  Can't find '%s' in the WAPP header!\n", name);
         exit(0);
     }
-    cptr = (char *)val.value;
+    cptr = (char *) val.value;
     *slen = strlen(cptr);
     return cptr;
 }
@@ -66,11 +66,11 @@ double get_hdr_double(struct HEADERP *h, char *name)
     struct HEADERVAL val;
     double dval;
 
-    if(find_hdrval(h, name, &val)) {
+    if (find_hdrval(h, name, &val)) {
         printf("ERROR:  Can't find '%s' in the WAPP header!\n", name);
         exit(0);
     }
-    dval = *((double *)val.value);
+    dval = *((double *) val.value);
     if (need_byteswap_st) {
         dval = swap_double(dval);
     }
@@ -82,11 +82,11 @@ int get_hdr_int(struct HEADERP *h, char *name)
     struct HEADERVAL val;
     int ival;
 
-    if(find_hdrval(h, name, &val)) {
+    if (find_hdrval(h, name, &val)) {
         printf("ERROR:  Can't find '%s' in the WAPP header!\n", name);
         exit(0);
     }
-    ival = *((int *)val.value);
+    ival = *((int *) val.value);
     if (need_byteswap_st) {
         ival = swap_int(ival);
     }
@@ -98,11 +98,11 @@ long long get_hdr_longlong(struct HEADERP *h, char *name)
     struct HEADERVAL val;
     long long llval;
 
-    if(find_hdrval(h, name, &val)) {
+    if (find_hdrval(h, name, &val)) {
         printf("ERROR:  Can't find '%s' in the WAPP header!\n", name);
         exit(0);
     }
-    llval = *((long long *)val.value);
+    llval = *((long long *) val.value);
     if (need_byteswap_st) {
         llval = swap_longlong(llval);
     }
@@ -115,20 +115,20 @@ double *get_hdr_double_arr(struct HEADERP *h, char *name, int *len)
     int ii;
     double *dptr, *darr;
 
-    if(find_hdrval(h, name, &val)) {
+    if (find_hdrval(h, name, &val)) {
         printf("ERROR:  Can't find '%s' in the WAPP header!\n", name);
         exit(0);
     }
-    dptr = (double *)val.value;
+    dptr = (double *) val.value;
     *len = val.key->alen;
     /* Note that this needs to be freed! */
     darr = gen_dvect(*len);
     if (need_byteswap_st) {
-        for (ii=0; ii<*len; ii++, dptr++) {
+        for (ii = 0; ii < *len; ii++, dptr++) {
             darr[ii] = swap_double(*dptr);
-        } 
+        }
     } else {
-        for (ii=0; ii<*len; ii++, dptr++) {
+        for (ii = 0; ii < *len; ii++, dptr++) {
             darr[ii] = *dptr;
         }
     }
@@ -140,20 +140,20 @@ int *get_hdr_int_arr(struct HEADERP *h, char *name, int *len)
     struct HEADERVAL val;
     int ii, *iptr, *iarr;
 
-    if(find_hdrval(h, name, &val)) {
+    if (find_hdrval(h, name, &val)) {
         printf("ERROR:  Can't find '%s' in the WAPP header!\n", name);
         exit(0);
     }
-    iptr = (int *)val.value;
+    iptr = (int *) val.value;
     *len = val.key->alen;
     /* Note that this needs to be freed! */
     iarr = gen_ivect(*len);
     if (need_byteswap_st) {
-        for (ii=0; ii<*len; ii++, iptr++) {
+        for (ii = 0; ii < *len; ii++, iptr++) {
             iarr[ii] = swap_int(*iptr);
-        } 
+        }
     } else {
-        for (ii=0; ii<*len; ii++, iptr++) {
+        for (ii = 0; ii < *len; ii++, iptr++) {
             iarr[ii] = *iptr;
         }
     }
@@ -163,16 +163,16 @@ int *get_hdr_int_arr(struct HEADERP *h, char *name, int *len)
 void set_WAPP_HEADER_version(struct HEADERP *hdr)
 {
     int bin_hdrlen, ascii_hdrlen;
-    
+
     bin_hdrlen = hdr->headlen;
     ascii_hdrlen = hdr->offset;
     header_version_st = get_hdr_int(hdr, "header_version");
     header_size_st = bin_hdrlen + ascii_hdrlen;
-    
+
     /* The following tries to determine if we need to byteswap */
     if ((header_version_st < 1 || header_version_st > 15) &&
         ((bin_hdrlen < 1000 || bin_hdrlen > 4000) ||
-         (ascii_hdrlen < 1000 || ascii_hdrlen > 40000))){
+         (ascii_hdrlen < 1000 || ascii_hdrlen > 40000))) {
         header_version_st = swap_int(header_version_st);
         bin_hdrlen = swap_int(bin_hdrlen);
         ascii_hdrlen = swap_int(ascii_hdrlen);
@@ -188,37 +188,37 @@ void set_WAPP_HEADER_version(struct HEADERP *hdr)
 static double UT_strings_to_MJD(char *obs_date, char *start_time,
                                 int *mjd_day, double *mjd_fracday)
 {
-   int year, month, day, hour, min, sec, err;
+    int year, month, day, hour, min, sec, err;
 
-   sscanf(obs_date, "%4d%2d%2d", &year, &month, &day);
-   sscanf(start_time, "%2d:%2d:%2d", &hour, &min, &sec);
-   *mjd_fracday = (hour + (min + (sec / 60.0)) / 60.0) / 24.0;
-   *mjd_day = slaCldj(year, month, day, &err);
-   return *mjd_day + *mjd_fracday;
+    sscanf(obs_date, "%4d%2d%2d", &year, &month, &day);
+    sscanf(start_time, "%2d:%2d:%2d", &hour, &min, &sec);
+    *mjd_fracday = (hour + (min + (sec / 60.0)) / 60.0) / 24.0;
+    *mjd_day = slaCldj(year, month, day, &err);
+    return *mjd_day + *mjd_fracday;
 }
 
 static double wappcorrect(double mjd)
 /* subroutine to return correction to wapp_time (us) based on mjd */
 {
-   double correction;
+    double correction;
 
-   /* assume no correction initially */
-   correction = 0.0;
+    /* assume no correction initially */
+    correction = 0.0;
 
-   if ((mjd >= 51829.0) && (mjd < 51834.0))
-      correction = -0.08;
-   if ((mjd >= 51834.0) && (mjd < 51854.0))
-      correction = -0.68;
-   if ((mjd >= 51854.0) && (mjd < 51969.0))
-      correction = +0.04;
+    if ((mjd >= 51829.0) && (mjd < 51834.0))
+        correction = -0.08;
+    if ((mjd >= 51834.0) && (mjd < 51854.0))
+        correction = -0.68;
+    if ((mjd >= 51854.0) && (mjd < 51969.0))
+        correction = +0.04;
 
-   if (correction != 0.0) {
-      fprintf(stderr, "WARNING: correction %f us applied for MJD %.1f\n",
-              correction, mjd);
-      fflush(stderr);
-   }
+    if (correction != 0.0) {
+        fprintf(stderr, "WARNING: correction %f us applied for MJD %.1f\n",
+                correction, mjd);
+        fflush(stderr);
+    }
 
-   return (correction);
+    return (correction);
 }
 
 static void WAPP_hdr_to_inf(struct HEADERP *h, infodata * idata)
@@ -227,7 +227,7 @@ static void WAPP_hdr_to_inf(struct HEADERP *h, infodata * idata)
     int len;
     double MJD, dval;
     char ctmp[80], *cptr1, *cptr2;
-    
+
     cptr1 = get_hdr_string(h, "src_name", &len);
     strncpy(idata->object, cptr1, 24);
     dval = get_hdr_double(h, "src_ra");
@@ -257,7 +257,8 @@ static void WAPP_hdr_to_inf(struct HEADERP *h, infodata * idata)
     idata->freqband = get_hdr_double(h, "bandwidth");
     idata->chan_wid = fabs(idata->freqband / idata->num_chan);
     idata->freq =
-        get_hdr_double(h, "cent_freq") - 0.5 * idata->freqband + 0.5 * idata->chan_wid;
+        get_hdr_double(h,
+                       "cent_freq") - 0.5 * idata->freqband + 0.5 * idata->chan_wid;
     idata->fov = 1.2 * SOL * 3600.0 / (1000000.0 * idata->freq * 300.0 * DEGTORAD);
     idata->bary = 0;
     idata->numonoff = 0;
@@ -275,11 +276,11 @@ static void WAPP_hdr_to_inf(struct HEADERP *h, infodata * idata)
     sprintf(idata->notes,
             "Starting Azimuth (deg) = %.15g,  Zenith angle (deg) = %.15g\n"
             "Project ID %s, Scan number %d, Date: %s %s.\n    %s\n",
-            get_hdr_double(h, "start_az"), 
-            get_hdr_double(h, "start_za"), 
+            get_hdr_double(h, "start_az"),
+            get_hdr_double(h, "start_za"),
             get_hdr_string(h, "project_id", &len),
-            get_hdr_int(h, "scan_number"), 
-            get_hdr_string(h, "obs_date", &len), 
+            get_hdr_int(h, "scan_number"),
+            get_hdr_string(h, "obs_date", &len),
             get_hdr_string(h, "start_time", &len), ctmp);
 }
 
@@ -297,7 +298,7 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
     int ii, jj, ival;
     double dval;
     struct HEADERP *hdr, *hdr2;
-    
+
     if (numfiles > MAXPATCHFILES) {
         printf("\nThe number of input files (%d) is greater than \n", numfiles);
         printf("   MAXPATCHFILES=%d.  Exiting.\n\n", MAXPATCHFILES);
@@ -309,33 +310,32 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
     hdr = head_parse(files[0]);
     /* Check the header version and find out the header offsets */
     set_WAPP_HEADER_version(hdr);
-    
+
     /* Skip the ASCII and binary headers of all the WAPP files */
     for (ii = 0; ii < numwapps_st; ii++)
         chkfseek(files[ii], header_size_st, SEEK_SET);
-    
+
     /* Now start getting the technical info */
     numifs_st = get_hdr_int(hdr, "nifs");
-    
+
     if (get_hdr_int(hdr, "freqinversion")) {
-        decreasing_freqs_st = (decreasing_freqs_st==1 ? 0 : 1);
+        decreasing_freqs_st = (decreasing_freqs_st == 1 ? 0 : 1);
     }
     if (get_hdr_int(hdr, "iflo_flip")) {
-        decreasing_freqs_st = (decreasing_freqs_st==1 ? 0 : 1);
+        decreasing_freqs_st = (decreasing_freqs_st == 1 ? 0 : 1);
     }
-    printf("freqinversion = %d   iflo_flip = %d : using decreasing_freqs = %d\n", 
+    printf("freqinversion = %d   iflo_flip = %d : using decreasing_freqs = %d\n",
            get_hdr_int(hdr, "freqinversion"),
-           get_hdr_int(hdr, "iflo_flip"),
-           decreasing_freqs_st);
+           get_hdr_int(hdr, "iflo_flip"), decreasing_freqs_st);
 
     ival = get_hdr_int(hdr, "level");
-    if (ival==1)
+    if (ival == 1)
         corr_level_st = 3;
-    else if (ival==2)
+    else if (ival == 2)
         corr_level_st = 9;
     else
         printf("\nERROR:  Unrecognized level setting!\n\n");
-    
+
     ival = get_hdr_int(hdr, "lagformat");
     if (ival == 0)
         bits_per_samp_st = 16;
@@ -343,7 +343,7 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
         bits_per_samp_st = 32;
     else
         printf("\nERROR:  Unrecognized number of bits per sample!\n\n");
-    
+
     /* Quick hack to allow offsets of the WAPP center freq without recompiling */
     dval = get_hdr_double(hdr, "cent_freq");
     {
@@ -359,7 +359,7 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
         }
     }
     center_freqs_st[0] = dval;
-    
+
     if (numifs_st == 2)
         printf("Both IFs are present.\n");
     WAPP_hdr_to_inf(hdr, &idata_st[0]);
@@ -384,7 +384,8 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
     /* The following should be freed sometime... */
     lags = (float *) fftwf_malloc((numwappchan_st + 1) * sizeof(float));
     fftplan =
-        fftwf_plan_r2r_1d(numwappchan_st + 1, lags, lags, FFTW_REDFT00, FFTW_PATIENT);
+        fftwf_plan_r2r_1d(numwappchan_st + 1, lags, lags, FFTW_REDFT00,
+                          FFTW_PATIENT);
     if (usewindow) {
         usewindow_st = 1;
         printf("Calculated Hanning window for use.\n");
@@ -423,9 +424,9 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
     /* Correction for narrow band use */
     if (idata->freqband < 50.0)
         corr_scale_st = corr_rate_st / 50.0;
-    if (corr_level_st == 9)      /* 9-level sampling */
+    if (corr_level_st == 9)     /* 9-level sampling */
         corr_scale_st /= 16.0;
-    if (get_hdr_int(hdr, "sum")) /* summed IFs (search mode) */
+    if (get_hdr_int(hdr, "sum"))        /* summed IFs (search mode) */
         corr_scale_st /= 2.0;
     corr_scale_st *= pow(2.0, (double) get_hdr_int(hdr, "lagtrunc"));
     idata->freqband *= numwapps_st;
@@ -451,8 +452,7 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
         if (idata_st[ii].dt != dt_st) {
             printf("Sample time (file %d) is not the same!\n\n", ii + 1);
         }
-        filedatalen_st[ii] = chkfilelen(files[ii * numwapps_st], 1) -
-            header_size_st;
+        filedatalen_st[ii] = chkfilelen(files[ii * numwapps_st], 1) - header_size_st;
         numblks_st[ii] = filedatalen_st[ii] / bytesperblk_st;
         numpts_st[ii] = numblks_st[ii] * ptsperblk_st;
         times_st[ii] = numpts_st[ii] * dt_st;
@@ -500,7 +500,7 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
         printf("  Total points (N) = %lld\n", N_st);
         printf("  Sample time (dt) = %-14.14g\n", dt_st);
         printf("    Total time (s) = %-14.14g\n", T_st);
-        printf("  ASCII Header (B) = %d\n", header_size_st - 
+        printf("  ASCII Header (B) = %d\n", header_size_st -
                get_hdr_int(hdr, "header_size"));
         printf(" Binary Header (B) = %d\n\n", get_hdr_int(hdr, "header_size"));
         printf
@@ -510,8 +510,8 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
         for (ii = 0; ii < numfiles / numwapps_st; ii++)
             printf
                 ("%2d    %12.11g  %12.11g  %10lld  %14.13g  %14.13g  %17.12f  %10lld\n",
-                 ii + 1, startblk_st[ii], endblk_st[ii], numpts_st[ii], elapsed_st[ii],
-                 times_st[ii], mjds_st[ii], padpts_st[ii]);
+                 ii + 1, startblk_st[ii], endblk_st[ii], numpts_st[ii],
+                 elapsed_st[ii], times_st[ii], mjds_st[ii], padpts_st[ii]);
         printf("\n");
     }
     close_parse(hdr);
@@ -521,33 +521,33 @@ void get_WAPP_file_info(FILE * files[], int numwapps, int numfiles, int usewindo
 void WAPP_update_infodata(int numfiles, infodata * idata)
 /* Update the onoff bins section in case we used multiple files */
 {
-   int ii, index = 2;
+    int ii, index = 2;
 
-   idata->N = N_st;
-   if (numfiles / numwapps_st == 1 && padpts_st[0] == 0) {
-      idata->numonoff = 0;
-      return;
-   }
-   /* Determine the topocentric onoff bins */
-   idata->numonoff = 1;
-   idata->onoff[0] = 0.0;
-   idata->onoff[1] = numpts_st[0] - 1.0;
-   for (ii = 1; ii < numfiles / numwapps_st; ii++) {
-      if (padpts_st[ii - 1]) {
-         idata->onoff[index] = idata->onoff[index - 1] + padpts_st[ii - 1];
-         idata->onoff[index + 1] = idata->onoff[index] + numpts_st[ii];
-         idata->numonoff++;
-         index += 2;
-      } else {
-         idata->onoff[index - 1] += numpts_st[ii];
-      }
-   }
-   if (padpts_st[numfiles / numwapps_st - 1]) {
-      idata->onoff[index] =
-          idata->onoff[index - 1] + padpts_st[numfiles / numwapps_st - 1];
-      idata->onoff[index + 1] = idata->onoff[index];
-      idata->numonoff++;
-   }
+    idata->N = N_st;
+    if (numfiles / numwapps_st == 1 && padpts_st[0] == 0) {
+        idata->numonoff = 0;
+        return;
+    }
+    /* Determine the topocentric onoff bins */
+    idata->numonoff = 1;
+    idata->onoff[0] = 0.0;
+    idata->onoff[1] = numpts_st[0] - 1.0;
+    for (ii = 1; ii < numfiles / numwapps_st; ii++) {
+        if (padpts_st[ii - 1]) {
+            idata->onoff[index] = idata->onoff[index - 1] + padpts_st[ii - 1];
+            idata->onoff[index + 1] = idata->onoff[index] + numpts_st[ii];
+            idata->numonoff++;
+            index += 2;
+        } else {
+            idata->onoff[index - 1] += numpts_st[ii];
+        }
+    }
+    if (padpts_st[numfiles / numwapps_st - 1]) {
+        idata->onoff[index] =
+            idata->onoff[index - 1] + padpts_st[numfiles / numwapps_st - 1];
+        idata->onoff[index + 1] = idata->onoff[index];
+        idata->numonoff++;
+    }
 }
 
 
@@ -557,36 +557,54 @@ void print_WAPP_hdr(struct HEADERP *hdr)
     int mjd_i, len;
     double mjd_d;
 
-    printf("\n             Header version = %d\n", get_hdr_int(hdr, "header_version"));
-    printf("  ASCII Header size (bytes) = %d\n", header_size_st -
-           get_hdr_int(hdr, "header_size"));
+    printf("\n             Header version = %d\n",
+           get_hdr_int(hdr, "header_version"));
+    printf("  ASCII Header size (bytes) = %d\n",
+           header_size_st - get_hdr_int(hdr, "header_size"));
     printf(" Binary Header size (bytes) = %d\n", get_hdr_int(hdr, "header_size"));
-    printf("                Source Name = %s\n", get_hdr_string(hdr, "src_name", &len));
-    printf("           Observation Type = %s\n", get_hdr_string(hdr, "obs_type", &len));
-    printf(" Observation Date (YYYMMDD) = %s\n", get_hdr_string(hdr, "obs_date", &len));
-    printf("    Obs Start UT (HH:MM:SS) = %s\n", get_hdr_string(hdr, "start_time", &len));
+    printf("                Source Name = %s\n",
+           get_hdr_string(hdr, "src_name", &len));
+    printf("           Observation Type = %s\n",
+           get_hdr_string(hdr, "obs_type", &len));
+    printf(" Observation Date (YYYMMDD) = %s\n",
+           get_hdr_string(hdr, "obs_date", &len));
+    printf("    Obs Start UT (HH:MM:SS) = %s\n",
+           get_hdr_string(hdr, "start_time", &len));
     printf("             MJD start time = %.12f\n",
-           UT_strings_to_MJD(get_hdr_string(hdr, "obs_date", &len), 
-                             get_hdr_string(hdr, "start_time", &len), &mjd_i, &mjd_d));
-    printf("                 Project ID = %s\n", get_hdr_string(hdr, "project_id", &len));
-    printf("                  Observers = %s\n", get_hdr_string(hdr, "observers", &len));
+           UT_strings_to_MJD(get_hdr_string(hdr, "obs_date", &len),
+                             get_hdr_string(hdr, "start_time", &len), &mjd_i,
+                             &mjd_d));
+    printf("                 Project ID = %s\n",
+           get_hdr_string(hdr, "project_id", &len));
+    printf("                  Observers = %s\n",
+           get_hdr_string(hdr, "observers", &len));
     printf("                Scan Number = %d\n", get_hdr_int(hdr, "scan_number"));
     printf("    RA (J2000, HHMMSS.SSSS) = %.4f\n", get_hdr_double(hdr, "src_ra"));
     printf("   DEC (J2000, DDMMSS.SSSS) = %.4f\n", get_hdr_double(hdr, "src_dec"));
-    printf("        Start Azimuth (deg) = %-17.15g\n", get_hdr_double(hdr, "start_az"));
-    printf("     Start Zenith Ang (deg) = %-17.15g\n", get_hdr_double(hdr, "start_za"));
-    printf("            Start AST (sec) = %-17.15g\n", get_hdr_double(hdr, "start_ast"));
-    printf("            Start LST (sec) = %-17.15g\n", get_hdr_double(hdr, "start_lst"));
-    printf("           Obs Length (sec) = %-17.15g\n", get_hdr_double(hdr, "obs_time"));
-    printf("      Requested T_samp (us) = %-17.15g\n", get_hdr_double(hdr, "samp_time"));
-    printf("         Actual T_samp (us) = %-17.15g\n", get_hdr_double(hdr, "wapp_time"));
-    printf("         Central freq (MHz) = %-17.15g\n", get_hdr_double(hdr, "cent_freq"));
-    printf("      Total Bandwidth (MHz) = %-17.15g\n", get_hdr_double(hdr, "bandwidth"));
+    printf("        Start Azimuth (deg) = %-17.15g\n",
+           get_hdr_double(hdr, "start_az"));
+    printf("     Start Zenith Ang (deg) = %-17.15g\n",
+           get_hdr_double(hdr, "start_za"));
+    printf("            Start AST (sec) = %-17.15g\n",
+           get_hdr_double(hdr, "start_ast"));
+    printf("            Start LST (sec) = %-17.15g\n",
+           get_hdr_double(hdr, "start_lst"));
+    printf("           Obs Length (sec) = %-17.15g\n",
+           get_hdr_double(hdr, "obs_time"));
+    printf("      Requested T_samp (us) = %-17.15g\n",
+           get_hdr_double(hdr, "samp_time"));
+    printf("         Actual T_samp (us) = %-17.15g\n",
+           get_hdr_double(hdr, "wapp_time"));
+    printf("         Central freq (MHz) = %-17.15g\n",
+           get_hdr_double(hdr, "cent_freq"));
+    printf("      Total Bandwidth (MHz) = %-17.15g\n",
+           get_hdr_double(hdr, "bandwidth"));
     printf("             Number of lags = %d\n", get_hdr_int(hdr, "num_lags"));
     printf("              Number of IFs = %d\n", get_hdr_int(hdr, "nifs"));
     printf("    Samples since obs start = %lld\n", get_hdr_longlong(hdr, "timeoff"));
     printf("   Other information:\n");
-    if (get_hdr_int(hdr, "sum") == 1) printf("      IFs are summed.\n");
+    if (get_hdr_int(hdr, "sum") == 1)
+        printf("      IFs are summed.\n");
     if (header_version_st < 7) {
         if (get_hdr_int(hdr, "freqinversion")) {
             decreasing_freqs_st = 1;
@@ -600,10 +618,10 @@ void print_WAPP_hdr(struct HEADERP *hdr)
             decreasing_freqs_st = 1;
         }
     }
-    if (decreasing_freqs_st) printf("      Frequency band is inverted.\n");
+    if (decreasing_freqs_st)
+        printf("      Frequency band is inverted.\n");
     if (get_hdr_int(hdr, "lagformat") == 0)
         printf("      Lags are 16 bit integers.\n\n");
     else
         printf("      Lags are 32 bit integers.\n\n");
 }
-

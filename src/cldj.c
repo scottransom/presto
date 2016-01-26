@@ -31,37 +31,38 @@ static int mtab[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 double slaCldj(int iy, int im, int id, int *j)
 {
-   double mjd = 0.0;
-   /*  Month lengths in days */
+    double mjd = 0.0;
+    /*  Month lengths in days */
 
-   /* Preset status */
-   *j = 0;
-   /* Validate year */
-   if (iy < -4699) {
-      *j = 1;
-   } else {
-      /* Validate month */
-      if (im >= 1 && im <= 12) {
-         /* Allow for leap year */
-         if (iy % 4 == 0) {
-            mtab[1] = 29;
-         } else {
-            mtab[1] = 28;
-         }
-         if (iy % 100 == 0 && iy % 400 != 0) {
-            mtab[1] = 28;
-         }
-         /* Validate day */
-         if (id < 1 || id > mtab[im - 1]) {
-            *j = 3;
-         }
-         /* Modified Julian Date */
-         mjd = (double) ((iy - (12 - im) / 10 + 4712) * 1461 / 4 +
-                         ((im + 9) % 12 * 306 + 5) / 10 -
-                         (iy - (12 - im) / 10 + 4900) / 100 * 3 / 4 + id - 2399904);
-      } else {                  /* Bad month */
-         *j = 2;
-      }
-   }
-   return mjd;
+    /* Preset status */
+    *j = 0;
+    /* Validate year */
+    if (iy < -4699) {
+        *j = 1;
+    } else {
+        /* Validate month */
+        if (im >= 1 && im <= 12) {
+            /* Allow for leap year */
+            if (iy % 4 == 0) {
+                mtab[1] = 29;
+            } else {
+                mtab[1] = 28;
+            }
+            if (iy % 100 == 0 && iy % 400 != 0) {
+                mtab[1] = 28;
+            }
+            /* Validate day */
+            if (id < 1 || id > mtab[im - 1]) {
+                *j = 3;
+            }
+            /* Modified Julian Date */
+            mjd = (double) ((iy - (12 - im) / 10 + 4712) * 1461 / 4 +
+                            ((im + 9) % 12 * 306 + 5) / 10 -
+                            (iy - (12 - im) / 10 + 4900) / 100 * 3 / 4 + id -
+                            2399904);
+        } else {                /* Bad month */
+            *j = 2;
+        }
+    }
+    return mjd;
 }
