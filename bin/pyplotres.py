@@ -309,6 +309,9 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
                 handle = plt.errorbar(xdata, ydata, yerr=yerr, fmt='.', \
                                       label=freq_label, picker=5,
                                       c=colors[len(tempo_results.freqbands)][ii])
+                # Label isn't being set as expected. Use the following
+                # as a kludgey work-around.
+                handle[0].set_label(freq_label)
                 if subplot == 1:
                     handles.append(handle[0])
                     labels.append(freq_label)
