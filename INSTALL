@@ -90,7 +90,7 @@ Basic steps to install:
 
 13.  If you want to use all the python routines (which if you are
   doing anything but the most rudimentary analyses you will want 
-  to), you need Python >= version 2.3, and Numpy/Scipy
+  to), you need Python >= version 2.7, and Numpy/Scipy
   http://www.numpy.org  and  http://www.scipy.org
   In general, the following should work:
      "cd $PRESTO/python ; make ; make fftfit"
@@ -112,15 +112,22 @@ compiling and running:
   -- Is PRESTO set to the top-level PRESTO source directory?
   -- Is TEMPO set to the top-level TEMPO source directory?
   -- Is PGPLOT_DIR set to the location of the PGPLOT utility files?
+     (Note: On Ubuntu, that should be /usr/lib/pgplot5)
   -- Is $PRESTO/bin in your PATH?
   -- Is $PRESTO/lib in your LD_LIBRARY_PATH?
   -- Is $PRESTO/lib/python in your PYTHONPATH?
 
 2.  Have you have installed the relevant -dev packages for glib2, FFTW
   and CFITSIO if you are using a Debian-based Linux distribution?
+  Here are the required packages:
+    pgplot5
+	libcfitsio3-dev
+	libfftw3-dev
+	libpng12-dev
+	libglib2.0-dev
 
 3.  If you are using a Mac, Paul Ray has been running PRESTO a lot and
   knows several tricks to get it working...
 
 Scott Ransom
-January 2015
+February 2016
