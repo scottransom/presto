@@ -1,6 +1,6 @@
 import os.path
 import numpy as np
-import pyfits
+import astropy.io.fits as pyfits
 
 def unpack_4bit(data):                       
     """Unpack 4-bit data that has been read in as bytes.
