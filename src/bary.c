@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
     }
 
     fprintf(stderr,
-            "   Inf Freq          Inf Freq          Radial Vel     Emitted    DM Delay \n");
+            "   Obs Freq          Inf Freq          Radial Vel     Emitted    DM Delay \n");
     fprintf(stderr,
             " Topotimes (MJD)   Barytimes (MJD)       (v/c)       Freq (MHz)   (sec)   \n");
     fprintf(stderr,
@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < N; i++)
         fprintf(stdout, "%16.10f  %16.10f  %14.7g  %11.6f  %9.7f\n",
-                topotimes[i], barytimes[i], voverc[i], doppler(topof, voverc[i]),
-                dmdelays[i]);
+                topotimes[i], barytimes[i] - dmdelays[i]/86400.0, voverc[i],
+                doppler(topof, voverc[i]), dmdelays[i]);
 
     fprintf(stderr, "\n\n");
     exit(0);
