@@ -105,6 +105,17 @@ void barycenter(double *topotimes, double *barytimes,
     double fobs = 1000.0, femit, dtmp;
     char command[100], temporaryfile[100];
 
+    /* Make/chdir to a temp dir to avoid multiple prepfolds stepping on 
+     * each other.
+     */
+    char tmpdir[]  = "/tmp/prestoXXXXXX";
+    if (mkdtemp(tmpdir)==NULL) {
+        fprintf(stderr, "barycenter: error creating temp dir.\n");
+        exit(1);
+    }
+    char *origdir = getcwd(NULL,0);
+    chdir(tmpdir);
+
     /* Write the free format TEMPO file to begin barycentering */
 
     strcpy(temporaryfile, "bary.tmp");
@@ -234,4 +245,8 @@ void barycenter(double *topotimes, double *barytimes,
     remove("bary.tmp");
     remove("matrix.tmp");
     remove("bary.par");
+
+    chdir(origdir);
+    free(origdir);
+    rmdir(tmpdir);
 }
