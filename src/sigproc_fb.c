@@ -119,6 +119,10 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
         strcpy(s->telescope, "LOFAR");
         s->beam_FWHM = default_beam;
         break;
+    case 12:
+        strcpy(s->telescope, "VLA");
+        s->beam_FWHM = default_beam;
+        break;
     default:
         strcpy(s->telescope, "Unknown");
         s->beam_FWHM = default_beam;
@@ -568,7 +572,7 @@ int get_filterbank_rawblock(float *fdata, struct spectra_info *s, int *padding)
   return_block:
     // Apply the corrections that need a full block
 
-    // Invert the band if requested 
+    // Invert the band if requested
     if (s->apply_flipband)
         flip_band(fdata, s);
 
