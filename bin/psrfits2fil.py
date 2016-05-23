@@ -104,7 +104,7 @@ def main(fits_fn, outfn, nbits, \
     print "Writing data..."
     sys.stdout.flush()
     oldpcnt = ""
-    for isub in range(psrfits_file.nsubints):
+    for isub in range(int(psrfits_file.nsubints)):
 	subint = psrfits_file.read_subint(isub, \
                     apply_weights, apply_scales, apply_offsets)
         if flip_band:

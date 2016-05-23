@@ -570,7 +570,7 @@ def main():
         print args.output % specinf
     else:
         if debug:
-            print "Reading '%s'" % fn
+            print "Reading '%s'" % args.files[0]
         print specinf
 
 
