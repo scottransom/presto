@@ -4,9 +4,10 @@ import numpy, sys, presto, time, sigproc, sifting
 import psr_utils as pu
 import pyfits
 
-institution = "UTB" 
-base_tmp_dir = "/dev/shm/"
-base_output_dir = "/home/kstovall/data/GBNCC/results/"
+institution = "NRAO" 
+base_tmp_dir = "."  # "/dev/shm/" is a good choice
+# This is where the output will be archived.
+base_output_dir = "."
 
 #-------------------------------------------------------------------
 # Tunable parameters for searching and folding
@@ -52,7 +53,6 @@ def get_baryv(ra, dec, mjd, T, obs="GB"):
     nn = len(tts)
     bts = numpy.zeros(nn, dtype=numpy.float64)
     vel = numpy.zeros(nn, dtype=numpy.float64)
-    
     presto.barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
     return vel.mean()
 
@@ -83,9 +83,9 @@ def timed_execute(cmd, run_cmd=1):
     end = time.time()
     return end - start
 
-def get_folding_command(cand, obs, ddplans):
+def get_folding_command(cand, obs, ddplans, maskfile):
     """
-    get_folding_command(cand, obs, ddplans):
+    get_folding_command(cand, obs, ddplans, maskfile):
         Return a command for prepfold for folding the subbands using
             an obs_info instance, a list of the ddplans, and a candidate 
             instance that describes the observations and searches.
@@ -125,8 +125,8 @@ def get_folding_command(cand, obs, ddplans):
     else:
         Mp, Mdm, N = 1, 1, 200
         otheropts = "-npart 30 -nopdsearch -pstep 1 -pdstep 2 -dmstep 1"
-    return "prepfold -noxwin -accelcand %d -accelfile %s.cand -dm %.2f -o %s %s -n %d -npfact %d -ndmfact %d -nsub %d %s" % \
-           (cand.candnum, cand.filename, cand.DM, outfilenm,
+    return "prepfold -mask %s -noxwin -accelcand %d -accelfile %s.cand -dm %.2f -o %s %s -n %d -npfact %d -ndmfact %d -nsub %d %s" % \
+           (maskfile, cand.candnum, cand.filename, cand.DM, outfilenm,
             otheropts, N, Mp, Mdm, foldnsubs, fitsfile)
 
 class obs_info:
@@ -248,22 +248,22 @@ def remove_crosslist_duplicate_candidates(candlist1,candlist2):
         jj=0
         while jj < n2:
             if numpy.fabs(candlist1[ii].r-candlist2[jj].r) < sifting.r_err:
-              if sifting.cmp_sigma(candlist1[ii],candlist2[jj])<0:
-                  print "Crosslist remove from candlist 2, %f > %f, %d:%f~%f" % (candlist1[ii].sigma,candlist2[jj].sigma,jj,candlist1[ii].r,candlist2[jj].r)
-                  if jj not in removelist2:
-                      removelist2.append(jj)
-              else:
-                  print "Crosslist remove from candlist 1, %f > %f, %d:%f~%f" % (candlist2[jj].sigma,candlist1[ii].sigma,ii,candlist1[ii].r,candlist2[jj].r)
-                  if ii not in removelist1:
-                      removelist1.append(ii)
+                if sifting.cmp_sigma(candlist1[ii],candlist2[jj])<0:
+                    print "Crosslist remove from candlist 2, %f > %f, %d:%f~%f" % (candlist1[ii].sigma,candlist2[jj].sigma,jj,candlist1[ii].r,candlist2[jj].r)
+                    if jj not in removelist2:
+                        removelist2.append(jj)
+                else:
+                    print "Crosslist remove from candlist 1, %f > %f, %d:%f~%f" % (candlist2[jj].sigma,candlist1[ii].sigma,ii,candlist1[ii].r,candlist2[jj].r)
+                    if ii not in removelist1:
+                        removelist1.append(ii)
             jj += 1
         ii += 1
     for ii in range(len(removelist2)-1,-1,-1):
-      print "Removing %d from candlist2" % removelist2[ii]
-      del(candlist2[removelist2[ii]])
+        print "Removing %d from candlist2" % removelist2[ii]
+        del(candlist2[removelist2[ii]])
     for ii in range(len(removelist1)-1,-1,-1):
-      print "Removing %d from candlist1" % removelist1[ii]
-      del(candlist1[removelist1[ii]])
+        print "Removing %d from candlist1" % removelist1[ii]
+        del(candlist1[removelist1[ii]])
     print "Removed %d crosslist candidates\n" % (len(removelist1)+len(removelist2))
     print "Found %d candidates.  Sorting them by significance...\n" % (len(candlist1)+len(candlist2))
     candlist1.sort(sifting.cmp_sigma)
@@ -283,9 +283,9 @@ def main(fits_filenm, workdir, ddplans):
         sys.exit()
     job.total_time = time.time()
     if job.dt == 163.84:
-      ddplans = ddplans[str(job.nchans)+"slow"]
+        ddplans = ddplans[str(job.nchans)+"slow"]
     else:
-      ddplans = ddplans[str(job.nchans)+"fast"]
+        ddplans = ddplans[str(job.nchans)+"fast"]
     
     # Use whatever .zaplist is found in the current directory
     default_zaplist = glob.glob("*.zaplist")[0]
@@ -309,7 +309,6 @@ def main(fits_filenm, workdir, ddplans):
     rfifindmask=job.basefilenm+"_rfifind.mask"
 
     if not os.path.exists(rfifindout) or not os.path.exists(rfifindmask):
-  
         # rfifind the filterbank file
         cmd = "rfifind -time %.17g -o %s %s > %s_rfifind.out"%\
               (rfifind_chunk_time, job.basefilenm,
@@ -325,7 +324,6 @@ def main(fits_filenm, workdir, ddplans):
     dmstrs = []
     
     for ddplan in ddplans:
-
         # Make a downsampled filterbank file
         if ddplan.downsamp > 1:
             cmd = "psrfits_subband -dstime %d -nsub %d -o %s_DS%d %s"%\
@@ -335,6 +333,7 @@ def main(fits_filenm, workdir, ddplans):
                           (ddplan.downsamp,job.fits_filenm[job.fits_filenm.rfind("_"):])
         else:
             fits_filenm = job.fits_filenm
+
         # Iterate over the individual passes through the .fil file
         for passnum in range(ddplan.numpasses):
             subbasenm = "%s_DM%s"%(job.basefilenm, ddplan.subdmlist[passnum])
@@ -347,6 +346,16 @@ def main(fits_filenm, workdir, ddplans):
                    tmpdir, job.basefilenm, fits_filenm)
             job.dedispersing_time += timed_execute(cmd)
             
+            # Do the single-pulse search
+            cmd = "single_pulse_search.py -p -m %f -t %f %s/*.dat"%\
+                (singlepulse_maxwidth, singlepulse_threshold, tmpdir)
+            job.singlepulse_time += timed_execute(cmd)
+            spfiles = glob.glob("%s/*.singlepulse"%tmpdir)
+            for spfile in spfiles:
+                try:
+                    shutil.move(spfile, workdir)
+                except: pass
+
             # Iterate over all the new DMs
             for dmstr in ddplan.dmlist[passnum]:
                 dmstrs.append(dmstr)
@@ -354,14 +363,6 @@ def main(fits_filenm, workdir, ddplans):
                 datnm = basenm+".dat"
                 fftnm = basenm+".fft"
                 infnm = basenm+".inf"
-
-                # Do the single-pulse search
-                cmd = "single_pulse_search.py -p -m %f -t %f %s"%\
-                      (singlepulse_maxwidth, singlepulse_threshold, datnm)
-                job.singlepulse_time += timed_execute(cmd)
-                try:
-                    shutil.move(basenm+".singlepulse", workdir)
-                except: pass
 
                 # FFT, zap, and de-redden
                 cmd = "realfft %s"%datnm
@@ -376,7 +377,7 @@ def main(fits_filenm, workdir, ddplans):
                 except: pass
                 
                 # Do the low-acceleration search
-                cmd = "accelsearch -harmpolish -numharm %d -sigma %f -zmax %d -flo %f %s"%\
+                cmd = "accelsearch -numharm %d -sigma %f -zmax %d -flo %f %s"%\
                       (lo_accel_numharm, lo_accel_sigma, lo_accel_zmax, lo_accel_flo, fftnm)
                 job.lo_accelsearch_time += timed_execute(cmd)
                 try:
@@ -388,7 +389,7 @@ def main(fits_filenm, workdir, ddplans):
                 except: pass
         
                 # Do the high-acceleration search
-                cmd = "accelsearch -harmpolish -numharm %d -sigma %f -zmax %d -flo %f %s"%\
+                cmd = "accelsearch -numharm %d -sigma %f -zmax %d -flo %f %s"%\
                       (hi_accel_numharm, hi_accel_sigma, hi_accel_zmax, hi_accel_flo, fftnm)
                 job.hi_accelsearch_time += timed_execute(cmd)
                 try:
@@ -478,14 +479,14 @@ def main(fits_filenm, workdir, ddplans):
         if cands_folded == max_lo_cands_to_fold:
             break
         elif cand.sigma > to_prepfold_sigma:
-            job.folding_time += timed_execute(get_folding_command(cand, job, ddplans))
+            job.folding_time += timed_execute(get_folding_command(cand, job, ddplans, maskfilenm))
             cands_folded += 1
     cands_folded = 0
     for cand in hi_accel_cands:
         if cands_folded == max_hi_cands_to_fold:
             break
         elif cand.sigma > to_prepfold_sigma:
-            job.folding_time += timed_execute(get_folding_command(cand, job, ddplans))
+            job.folding_time += timed_execute(get_folding_command(cand, job, ddplans, maskfilenm))
             cands_folded += 1
     # Remove the bestprof files
     bpfiles = glob.glob("*.pfd.bestprof")
@@ -497,15 +498,12 @@ def main(fits_filenm, workdir, ddplans):
     psfiles = glob.glob("*.ps")
     for psfile in psfiles:
         if "singlepulse" in psfile:
-            # For some reason the singlepulse files don't transform nicely...
-            epsfile = psfile.replace(".ps", ".eps")
-            os.system("eps2eps "+psfile+" "+epsfile)
-            os.system("pstoimg -density 100 -crop a "+epsfile)
+            os.system("pstoimg -density 200 -antialias -crop a "+psfile)
             try:
                 os.remove(epsfile)
             except: pass
         else:
-            os.system("pstoimg -density 100 -flip cw "+psfile)
+            os.system("pstoimg -density 200 -antialias -flip cw "+psfile)
         os.system("gzip "+psfile)
     
     # Tar up the results files 
