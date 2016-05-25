@@ -231,6 +231,9 @@ void telescope_to_tempocode(char *inname, char *outname, char *obscode)
     } else if (strcmp(scope, "lwa") == 0) {
         strcpy(obscode, "LW");
         strcpy(outname, "LWA1");
+    } else if (strcmp(scope, "mwa") == 0 ) {
+        strcpy(obscode, "MW");
+        strcpy(outname, "MWA128T");
     } else if (strcmp(scope, "geocenter") == 0) {
         strcpy(obscode, "EC");
         strcpy(outname, "Geocenter");
