@@ -53,7 +53,7 @@ def get_mask(rfimask, startsamp, N):
         
 def maskfile(maskfn, data, start_bin, nbinsextra):
     rfimask = rfifind.rfifind(maskfn) 
-    mask = get_mask(rfimask, start_bin, nbinsextra)
+    mask = get_mask(rfimask, start_bin, nbinsextra)[::-1]
     masked_chans = mask.all(axis=1)
     # Mask data
     data = data.masked(mask, maskval='median-mid80')
