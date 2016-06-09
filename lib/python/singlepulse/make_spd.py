@@ -62,7 +62,7 @@ def waterfall_array(rawdatafile, start, duration, dm, nbins, nsub, subdm, zerodm
 
 def make_spd_from_file(spdcand, rawdatafile, \
                        inffile, txtfile, maskfile, \
-                       min_rank, \
+                       min_rank, group_rank, \
                        plot, just_waterfall, \
                        integrate_ts, integrate_spec, disp_pulse, \
                        maxnumcands, \
@@ -73,7 +73,10 @@ def make_spd_from_file(spdcand, rawdatafile, \
     loop_must_break = False # dont break the loop unless num of cands >100.
     inf = infodata.infodata(inffile)
     files = spio.get_textfile(options.txtfile)
-    groups = [i for i in range(7) if(i>=min_rank)][::-1]
+    if group_rank:
+        groups=[group_rank]
+    else:
+        groups = [i for i in range(7) if(i>=min_rank)][::-1]
     print groups
      
     for group in groups:
@@ -312,7 +315,7 @@ def main():
         print_debug('Maximum number of candidates to plot: %i'%options.maxnumcands)
         make_spd_from_file(spdcand, rawdatafile, \
                            options.infile, options.txtfile, options.maskfile, \
-                           options.min_rank, \
+                           options.min_rank, options.group_rank, \
                            options.plot, options.just_waterfall, \
                            options.integrate_ts, options.integrate_spec, options.disp_pulse, \
                            options.maxnumcands, \
@@ -429,6 +432,16 @@ if __name__=='__main__':
                              "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,"\
                              "  Rank 7: Either bright astrophysical source or RFI.",\
                         default=3)
+    parser.add_option('--group-rank', dest='group_rank', type='int',\
+                       help="Min rank you want to make spd files for. (Default: None)"\
+                             "  Rank 1: noise,"\
+                             "  Rank 2: RFI,"\
+                             "  Rank 3: maybe astrophysical, very low S/N,"\
+                             "  Rank 4: probably astrophysical but weak, low S/N,"\
+                             "  Rank 5: Very high chance of being astrophysical. S/N>8.0,"\
+                             "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,"\
+                             "  Rank 7: Either bright astrophysical source or RFI.",\
+                        default=None)
     parser.add_option('--use_manual_params', dest='man_params', action='store_true', \
                         help="If this flag is not set it will use the parameters " \
                                 "from the RRATrap groups.txt file. "\
