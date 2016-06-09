@@ -167,7 +167,16 @@ def plot_waterfall(z, x=None, y=None, title=None, rangex=None, rangey=None, \
 
 def dm_time_plot(dms, times, sigmas, dm_arr, sigma_arr, time_arr, Total_observed_time, xwin):
     """
-    Plot DM vs Time.
+    Plot DM vs Time subplot for the spd plots.
+    Input: 
+        dms: list of dms of single pulse events to be plotted.
+        times: list of times of single pulse events to be plotted.
+        sigmas: list of sigmas of single pulse events to be plotted.
+        dm_arr: array of dms of the main single pulse group (plotted in black).
+        sigma_arr: array of sigmas of the main single pulse group (plotted in black).
+        time_arr: array of times of single pulse group (plotted in black).
+        Total_observed_time: float : Total observation time 
+        xwin: True or False. Use xwin or vcps window.
     """
     min_dm = Num.min(dms)
     max_dm = Num.max(dms)

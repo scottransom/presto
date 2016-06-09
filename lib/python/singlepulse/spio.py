@@ -4,12 +4,18 @@ import fileinput as _fileinput
 def get_textfile(txtfile):
     """ Read in the groups.txt file.
     Contains information about the DM, time, box car width, signal to noise, sample number and rank    of groups. 
+    Input: name of the text file.
+    Output: Array of strings in the file line by line.
     """
     return  _np.loadtxt(txtfile,dtype = 'str',delimiter='\n')
 
 def group_info(rank, txtfile):
     """
     Extracts out relevant information from the groups.txt file as strings. 
+    Input: integer:rank of the groups to read.
+           string :name of the text file to read from.
+    Output: 
+           list of single pulse parameters as strings.
     """
     files = get_textfile(txtfile)
     lis=_np.where(files == '\tRank:             %i.000000'%rank)[0]#Checks for this contidion and gives its indices where true.
@@ -32,6 +38,10 @@ def group_info(rank, txtfile):
 def split_parameters(rank, txtfile):
     """
     Splits the string into individual parameters and converts them into floats/int. 
+    Input: integer:rank of the groups to read.
+           string :name of the text file to read from.
+    Output: 
+           list of single pulse parameters as floats and integers.
     """
     parameters = group_info(rank, txtfile)
     final_parameters=[]
@@ -137,6 +147,11 @@ def read_tarfile(filenames, names, tar):
     return main_array
 
 def pick_DM_for_singlepulse_files(filenm):
+    """
+       Extract DM values from filenames from .singlepulse files.
+       Input: string : .singlepulse file mane 
+       Output: float: DM value of that file.
+    """
     return float(filenm[filenm.find('DM')+2:filenm.find('.singlepulse')])
 
 def gen_arrays(dm, sp_files, tar, threshold):    

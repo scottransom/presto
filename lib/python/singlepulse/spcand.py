@@ -38,7 +38,7 @@ class params:
         self.topo_start_time = 0.0
         self.sample_number = 0
 
-    def read_from_file(self, params, tsamp, N, lofreq, hifreq, inffile, dedisp = False, \
+    def read_from_file(self, params, tsamp, N, lofreq, hifreq, rawdatafile, dedisp = False, \
                        scaleindep = None, zerodm = None, mask = None, \
                        bandpass_corr = False): 
         """
@@ -47,12 +47,12 @@ class params:
                   tsamp: sampling time (downsampled: 65.5 us for PALFA)
                   lofreq: lowest observation frequency
                   hifreq: highest observation frequency
-                  inffile: supply a .inf file (I suggest .rfifind.inf) 
+                  rawdatafile: supply a PSRFITS file object 
         """
         self.subdm = params[0]
         self.sigma = params[1]
         self.bary_start_time = params[2]
-        topo, bary = bary_and_topo.bary_to_topo(inffile)
+        topo, bary = bary_and_topo.bary_to_topo(rawdatafile.filename, rawdatafile=rawdatafile)
         time_shift = bary-topo
         self.topo_start_time = self.bary_start_time - topo_timeshift(self.bary_start_time, \
                                                                      time_shift, topo)[0]
@@ -97,7 +97,7 @@ class params:
             self.bandpass_corr = False
 
     def manual_params(self, subdm, dm, sweep_dm, sigma, start_time, width_bins, downsamp, \
-                      duration, nbins, nsub, tsamp, N, lofreq, hifreq, inffile, dedisp = False, \
+                      duration, nbins, nsub, tsamp, N, lofreq, hifreq, rawdatafile, dedisp = False, \
                       scaleindep = None, zerodm = None, mask = False, bandpass_corr = False): 
         """
            Set up parameters based on input from the groups.txt file.
@@ -105,13 +105,13 @@ class params:
                   tsamp: sampling time (downsampled: 65.5 us for PALFA)
                   lofreq: lowest observation frequency
                   hifreq: highest observation frequency
-                  inffile: supply a .inf file (I suggest .rfifind.inf) 
+                  rawdatafile: supply a psrfits file object 
         """
         self.subdm = subdm
         self.mask = mask
         self.sigma = sigma
         self.bary_start_time = start_time
-        topo, bary = bary_and_topo.bary_to_topo(inffile)
+        topo, bary = bary_and_topo.bary_to_topo(rawdatafile.filename, rawdatafile=rawdatafile)
         time_shift = bary-topo
         self.topo_start_time = self.bary_start_time - topo_timeshift(self.bary_start_time, \
                                                                      time_shift, topo)[0]
