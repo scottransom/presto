@@ -60,9 +60,9 @@ def bary_to_topo(infofilenm, rawdatafile=False, ephem="DE200"):
    elif filetype=="PSRFITS": 
        if not rawdatafile:
            rawdatafile = psrfits.PsrfitsFile(infofilenm)
-       T = rawdatafile.nsamp_per_subint*rawdatafile.nsubints * rawdatafile.tsamp
+       T = rawdatafile.specinfo.T
        dt = 10.0
-       tto = rawdatafile.specinfo.start_MJD
+       tto = rawdatafile.specinfo.start_MJD[0]
        tts = Num.arange(tto, tto + (T + dt) / psr_utils.SECPERDAY, dt / psr_utils.SECPERDAY)
        nn = len(tts)
        bts = Num.zeros(nn, 'd')

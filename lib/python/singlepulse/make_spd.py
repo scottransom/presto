@@ -76,7 +76,6 @@ def make_spd_from_file(spdcand, rawdatafile, \
     else:
         groups = [i for i in range(7) if(i>=min_rank)][::-1]
     print groups
-    N = rawdatafile.nsamp_per_subint*rawdatafile.nsubints
      
     for group in groups:
         rank = group+1
@@ -90,8 +89,9 @@ def make_spd_from_file(spdcand, rawdatafile, \
 
 
                 # Array for Plotting Dedispersed waterfall plot - zerodm - OFF
-                spdcand.read_from_file(values[ii], rawdatafile.tsamp, N, rawdatafile.frequencies[0], \
-                                       rawdatafile.frequencies[-1], rawdatafile, dedisp = True, \
+                spdcand.read_from_file(values[ii], rawdatafile.tsamp, rawdatafile.specinfo.N, \
+                                       rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
+                                       rawdatafile, dedisp = True, \
                                        scaleindep = None, zerodm = None, mask = mask, \
                                        bandpass_corr = bandpass_corr)
 
@@ -108,14 +108,13 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                              spdcand.scaleindep, spdcand.width_bins, \
                                              spdcand.mask, maskfile, spdcand.bandpass_corr)
 
-                Total_observed_time = N*rawdatafile.tsamp
                 text_array = np.array([args[0], rawdatafile.specinfo.telescope, \
                                        rawdatafile.specinfo.ra_str, rawdatafile.specinfo.dec_str, \
-                                       rawdatafile.specinfo.start_MJD, \
+                                       rawdatafile.specinfo.start_MJD[0], \
                                        rank, spdcand.nsub, spdcand.nbins, spdcand.subdm, \
                                        spdcand.sigma, spdcand.sample_number, spdcand.duration, \
                                        spdcand.width_bins, spdcand.pulse_width, rawdatafile.tsamp,\
-                                       Total_observed_time, spdcand.topo_start_time, data.starttime, \
+                                       rawdatafile.specinfo.T, spdcand.topo_start_time, data.starttime, \
                                        data.dt,data.numspectra, data.freqs.min(), data.freqs.max()])
 
                 #### Array for plotting Dedispersed waterfall plot zerodm - ON
@@ -127,8 +126,9 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                            spdcand.scaleindep, spdcand.width_bins, \
                                            spdcand.mask, maskfile, spdcand.bandpass_corr)
                 ####Sweeped without zerodm
-                spdcand.read_from_file(values[ii], rawdatafile.tsamp, N, rawdatafile.frequencies[0], \
-                                      rawdatafile.frequencies[-1], rawdatafile, dedisp = None, \
+                spdcand.read_from_file(values[ii], rawdatafile.tsamp, rawdatafile.specinfo.N, \
+                                      rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
+                                      rawdatafile, dedisp = None, \
                                       scaleindep = None, zerodm = None, mask = mask, \
                                       bandpass_corr = bandpass_corr)
                 data, Data_nozerodm = waterfall_array(rawdatafile, spdcand.start, \
@@ -207,11 +207,11 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
     if not nsub:
         nsub = rawdatafile.nchan
     print nsub
-    N = rawdatafile.nsamp_per_subint*rawdatafile.nsubints
 
     # Array for Plotting Dedispersed waterfall plot - zerodm - OFF
     spdcand.manual_params(subdm, dm, sweep_dm, sigma, start_time, \
-                         width_bins, downsamp, duration, nbins, nsub, rawdatafile.tsamp, N, \
+                         width_bins, downsamp, duration, nbins, nsub, rawdatafile.tsamp, \
+                         rawdatafile.specinfo.N, \
                          rawdatafile.frequencies[0], rawdatafile.frequencies[-1], rawdatafile, \
                          dedisp=True, scaleindep=False, zerodm=False, \
                          mask=mask, bandpass_corr=bandpass_corr)
@@ -225,14 +225,13 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                                  spdcand.scaleindep, spdcand.width_bins, \
                                  spdcand.mask, maskfile, spdcand.bandpass_corr)
     # Add additional information to the header information array
-    Total_observed_time = N*rawdatafile.tsamp
     text_array = np.array([args[0], rawdatafile.specinfo.telescope, \
                            rawdatafile.specinfo.ra_str, rawdatafile.specinfo.dec_str, \
-                           rawdatafile.specinfo.start_MJD, rank, \
+                           rawdatafile.specinfo.start_MJD[0], rank, \
                            spdcand.nsub, spdcand.nbins, \
                            spdcand.subdm, spdcand.sigma, spdcand.sample_number, \
                            spdcand.duration, spdcand.width_bins, spdcand.pulse_width, \
-                           rawdatafile.tsamp, Total_observed_time, spdcand.topo_start_time, \
+                           rawdatafile.tsamp, rawdatafile.specinfo.T, spdcand.topo_start_time, \
                            data.starttime, data.dt,data.numspectra, data.freqs.min(), \
                            data.freqs.max()])
 
@@ -246,7 +245,8 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                                  spdcand.mask, maskfile, spdcand.bandpass_corr)
     ####Sweeped without zerodm
     spdcand.manual_params(subdm, dm, sweep_dm, sigma, start_time, \
-                          width_bins, downsamp, duration, nbins, nsub, rawdatafile.tsamp, N, \
+                          width_bins, downsamp, duration, nbins, nsub, rawdatafile.tsamp, \
+                          rawdatafile.specinfo.N, \
                           rawdatafile.frequencies[0], rawdatafile.frequencies[-1], rawdatafile, \
                           dedisp=None, scaleindep=None, zerodm=None, mask=mask, \
                           bandpass_corr=bandpass_corr)
