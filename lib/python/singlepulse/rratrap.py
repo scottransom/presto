@@ -31,8 +31,8 @@ DEBUG = True # if True, will be verbose
 
 def dmthreshold(dm, use_ddplan, min_group=45):
     if use_ddplan:
-        import Grouping_config
-        dmt, min_group = Grouping_config.use_ddplan(dm)
+        import rratrap_config
+        dmt, min_group = rratrap_config.use_ddplan(dm)
     else:
         dmt = 1
         min_group = min_group 
@@ -315,7 +315,6 @@ def flag_noise(groups, use_ddplan=False, min_group=45):
     """
     for grp in groups:
         min_group = dmthreshold(grp.min_dm, use_ddplan, min_group)[1]
-        print min_group
         if grp.numpulses < min_group:
             grp.rank = 1
     return groups
@@ -718,24 +717,24 @@ def main():
         raise ValueError("You must supply a .inf file. I suggest .rfifind.inf")
     
     if not options.inffile.endswith(".inf"):
-        raise ValurError("Cannot recognize file type from extension. "
+        raise ValueError("Cannot recognize file type from extension. "
                          " Only '.inf' types are supported.")
     
     if options.use_DDplan or options.use_configfile:
-        import Grouping_config
+        import rratrap_config
 
     RANKS = np.asarray([2,0,3,4,5,6])
     
     if options.use_configfile:
-        CLOSE_DM = Grouping_config.CLOSE_DM
-        MIN_GROUP = Grouping_config.MIN_GROUP
-        TIME_THRESH = Grouping_config.TIME_THRESH
-        DM_THRESH = Grouping_config.DM_THRESH
-        MIN_SIGMA = Grouping_config.MIN_SIGMA
-        PLOT = Grouping_config.PLOT
-        PLOTTYPE = Grouping_config.PLOTTYPE
-        RANKS_TO_WRITE = Grouping_config.RANKS_TO_WRITE
-        RANKS_TO_PLOT = Grouping_config.RANKS_TO_PLOT
+        CLOSE_DM = rratrap_config.CLOSE_DM
+        MIN_GROUP = rratrap_config.MIN_GROUP
+        TIME_THRESH = rratrap_config.TIME_THRESH
+        DM_THRESH = rratrap_config.DM_THRESH
+        MIN_SIGMA = rratrap_config.MIN_SIGMA
+        PLOT = rratrap_config.PLOT
+        PLOTTYPE = rratrap_config.PLOTTYPE
+        RANKS_TO_WRITE = rratrap_config.RANKS_TO_WRITE
+        RANKS_TO_PLOT = rratrap_config.RANKS_TO_PLOT
     else:
         CLOSE_DM = options.close_dm
         MIN_GROUP = options.min_group

@@ -73,7 +73,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
     if group_rank:
         groups=[group_rank]
     else:
-        groups = [i for i in range(7) if(i>=min_rank)][::-1]
+        groups = [i for i in range(6) if(i>=min_rank)][::-1]
     print groups
      
     for group in groups:
@@ -372,7 +372,8 @@ if __name__=='__main__':
                                 "number of channels)", default=None)
     parser.add_option('--sigma', dest='sigma', type='float', \
                         help="Signal-to-Noise of the pulse." \
-                             "(Default: Do not specify. You must specify the number ofsubbands.)", \
+                             "(Default: Do not specify. In this case you must specify the " \
+                             "number of subbands.)", \
                         default=None)
     parser.add_option('-d', '--dm', dest='dm', type='float', \
                         help="DM to use when dedispersing data for plot. " \
@@ -431,7 +432,6 @@ if __name__=='__main__':
                              "  Rank 4: probably astrophysical but weak, low S/N,"\
                              "  Rank 5: Very high chance of being astrophysical. S/N>8.0,"\
                              "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,"\
-                             "  Rank 7: Either bright astrophysical source or RFI.",\
                         default=3)
     parser.add_option('--group-rank', dest='group_rank', type='int',\
                        help="Min rank you want to make spd files for. (Default: None)"\
@@ -441,7 +441,6 @@ if __name__=='__main__':
                              "  Rank 4: probably astrophysical but weak, low S/N,"\
                              "  Rank 5: Very high chance of being astrophysical. S/N>8.0,"\
                              "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,"\
-                             "  Rank 7: Either bright astrophysical source or RFI.",\
                         default=None)
     parser.add_option('--use_manual_params', dest='man_params', action='store_true', \
                         help="If this flag is not set it will use the parameters " \
