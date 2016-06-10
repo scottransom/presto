@@ -363,9 +363,6 @@ if __name__=='__main__':
     parser.add_option('--subdm', dest='subdm', type='float', \
                         help="DM to use when subbanding. (Default: " \
                                 "same as --dm)", default=None)
-    parser.add_option('--zerodm', dest='zerodm', action='store_true', \
-                        help="If this flag is set - Turn Zerodm filter - ON  (Default: " \
-                                "OFF)", default=False)
     parser.add_option('-s', '--nsub', dest='nsub', type='int', \
                         help="Number of subbands to use. Must be a factor " \
                                 "of number of channels. (Default: " \
@@ -431,7 +428,7 @@ if __name__=='__main__':
                              "  Rank 3: maybe astrophysical, very low S/N,"\
                              "  Rank 4: probably astrophysical but weak, low S/N,"\
                              "  Rank 5: Very high chance of being astrophysical. S/N>8.0,"\
-                             "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,"\
+                             "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,",\
                         default=3)
     parser.add_option('--group-rank', dest='group_rank', type='int',\
                        help="Min rank you want to make spd files for. (Default: None)"\
@@ -440,7 +437,7 @@ if __name__=='__main__':
                              "  Rank 3: maybe astrophysical, very low S/N,"\
                              "  Rank 4: probably astrophysical but weak, low S/N,"\
                              "  Rank 5: Very high chance of being astrophysical. S/N>8.0,"\
-                             "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,"\
+                             "  Rank 6: Almost guranteed to be astrophysical. S/N>9.2,",\
                         default=None)
     parser.add_option('--use_manual_params', dest='man_params', action='store_true', \
                         help="If this flag is not set it will use the parameters " \
