@@ -67,6 +67,32 @@ def make_spd_from_file(spdcand, rawdatafile, \
                        basename, \
                        mask=False, bandpass_corr=True, man_params=None):
     
+    """
+    Makes spd files from output files of rratrap. 
+    Inputs:
+        spdcand: spcand parameters instance (read in spcand.params)
+        rawdatafile: psrfits file instance
+        txtfile: rratrap output file (groups.txt file)
+        maskfile: rfifind mask file. need this file if you want to remove the bandpass 
+                  or use rfifind mask information.
+        min_rank: plot all groups with rank more than this. min 1, max 6
+        group_rank: plot groups ranked whatever you specify
+        plot: do you want to produce the plots as well? 
+        just_waterfall: Do you just want to make the waterfall plots.
+        integrate_ts: Do you want to display the dedispersed time series in the plot?
+        integrate_spec: Do you want to display the pulse spectrum in the plot?
+        disp_pulse: Do you want to see the inset dispersed pulse in the plot?
+        maxnumcands: What is the maximum number of candidates you would like to generate?
+        basename: output basename of the file. Appended with _DM_TIME(s)_RANK.spd 
+    Optional arguments:
+        mask: Do you want to mask out rfi contaminated channels?
+        bandpass_corr: Do you want to remove the bandpass?
+        man_params: Do you want to specify the parameters for waterfalling 
+                    manually? If yes, I suggest using the function make_spd_from_man_params().
+                    (I suggest giving it the rratrap output file)    
+    Outputs:
+       Binary npz file containing the necessary arrays and header information to generate the spd plots.
+    """
     numcands=0 # counter for max number of candidates
     loop_must_break = False # dont break the loop unless num of cands >100.
     files = spio.get_textfile(options.txtfile)
