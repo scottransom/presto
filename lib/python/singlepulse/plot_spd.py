@@ -258,6 +258,7 @@ def plot(spdfile, singlepulsefiles=None, xwin=False, outfile="spdplot", just_wat
         if not man_params:
             dm_arr = np.float32(spdobj.dmVt_this_dms)
             sigma_arr = np.float32 (spdobj.dmVt_this_sigmas)
+            time_arr = np.float32 (spdobj.dmVt_this_times)
             if integrate_spec:
                 sp_pgplot.ppgplot.pgsvp(0.55, 0.80, 0.65, 0.90)
             else:
@@ -271,6 +272,9 @@ def plot(spdfile, singlepulsefiles=None, xwin=False, outfile="spdplot", just_wat
             sp_pgplot.ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-noise")
             sp_pgplot.ppgplot.pgpt(dm_arr, sigma_arr, 20)
         else:
+            dm_arr = np.array([])
+            sigma_arr = np.array([])
+            time_arr = np.array([])
             if integrate_spec:
                 sp_pgplot.ppgplot.pgsvp(0.55, 0.80, 0.65, 0.90)
             else:
@@ -287,7 +291,7 @@ def plot(spdfile, singlepulsefiles=None, xwin=False, outfile="spdplot", just_wat
         spfiles = singlepulsefiles
         threshold = 5.0
         dm_list = map(np.float32, list(dm_arr))
-        time_list = map(np.float32, list(spdobj.dmVt_this_times))
+        time_list = map(np.float32, list(time_arr))
         if len(spfiles) > 2:
             if integrate_spec:
                 sp_pgplot.ppgplot.pgsvp(0.55, 0.97, 0.1, 0.54)
