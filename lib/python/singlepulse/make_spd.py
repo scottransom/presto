@@ -78,7 +78,6 @@ def make_spd_from_file(spdcand, rawdatafile, \
     for group in groups:
         rank = group+1
         if files[group] != "Number of rank %i groups: 0 "%rank:
-            print_debug(files[group])
             values = spio.split_parameters(rank, txtfile)
             lis = np.where(files == '\tRank:             %i.000000'%rank)[0]
             for ii in range(len(values)):
@@ -204,7 +203,6 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
     rank = None
     if not nsub:
         nsub = rawdatafile.nchan
-    print nsub
 
     # Array for Plotting Dedispersed waterfall plot - zerodm - OFF
     spdcand.manual_params(subdm, dm, sweep_dm, sigma, start_time, \
@@ -248,7 +246,6 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                           rawdatafile.frequencies[0], rawdatafile.frequencies[-1], rawdatafile, \
                           dedisp=None, scaleindep=None, zerodm=None, mask=mask, \
                           bandpass_corr=bandpass_corr)
-    print spdcand.dm, spdcand.subdm, spdcand.sweep_dm
     data, Data_nozerodm = waterfall_array(rawdatafile, spdcand.start, \
                                  spdcand.duration, spdcand.dm, spdcand.nbins, spdcand.nsub, \
                                  spdcand.subdm, spdcand.zerodm, spdcand.downsamp, \
