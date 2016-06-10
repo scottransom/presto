@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
 """
-Single pulse sifting code: performs grouping and ranking of single pulses identified by PRESTO's single_pulse_search.py.
+rratrap.py 
 
-Input:
-    Takes no input, but runs on all .singlepulse files in working directory, and assumes all belong to the same pointing. Also requires the presence of an .inf file in the working directory to get observation information.
+Single pulse sifting code: performs grouping and ranking of single pulses identified by PRESTO's single_pulse_search.py.
+Usage:
+    python rratrap.py [OPTIONS] --inffile <.inf file> <.singlepulse files>
 
 Output:
     - groups.txt : a file listing all single pulse groups and their ranking.
     - several colourized DM vs. time single-pulse plots, for different DM ranges, with colours corresponding to group ratings.
 
-Chen Karako
-May 7, 2014
+Chen Karako May 7, 2014
+Updated by Chitrang Patel June 10, 2016.
 """
 import fileinput
 import numpy as np

@@ -2,6 +2,7 @@
 
 """
    Original code found in presto. Written by Scott M. Ransom.
+   Modified by Chitrang Patel to read information from PSRFITs file.
    Modified to return topocentric and corresponding barycentric
    times. 
 """

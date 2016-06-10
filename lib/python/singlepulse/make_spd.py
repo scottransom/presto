@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
 """
-sp_pipeline.py
+make_spd.py
 
 Make single pulse plots which include the waterfall plots and dedispersed time series with Zero-DM On/Off.
 Also includes Signal-to-noise vs DM and DM vs Time subplots.
 Usage on the command line:
-./sp_pipeline.py --groupsfile <a groups.txt file> --mask <.rfifind.mask file> <psrfits file> <singlepulse files>
+python make_spd.py [OPTIONS] <psrfits file> <singlepulse files> 
 
-Chitrang Patel - May. 21, 2015
+Chitrang Patel - May. 21, 2015 -- Updated on June 10 2016
 """
 
 import sys
@@ -71,10 +71,9 @@ def make_spd_from_file(spdcand, rawdatafile, \
     loop_must_break = False # dont break the loop unless num of cands >100.
     files = spio.get_textfile(options.txtfile)
     if group_rank:
-        groups=[group_rank]
+        groups=[group_rank-1]
     else:
         groups = [i for i in range(6) if(i>=min_rank)][::-1]
-    print groups
      
     for group in groups:
         rank = group+1
@@ -178,7 +177,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                   integrate_spec=integrate_spec, \
                                   integrate_ts=integrate_ts, \
                                   disp_pulse=disp_pulse, tar = None)
-                    print_debug("Finished plot %i " %i+strftime("%Y-%m-%d %H:%M:%S"))
+                    print_debug("Finished plot %i " %ii+strftime("%Y-%m-%d %H:%M:%S"))
                 numcands+= 1
                 print_debug('Finished sp_candidate : %i'%numcands)
                 if numcands >= maxnumcands:    # Max number of candidates to plot 100.
@@ -313,7 +312,6 @@ def main():
     if options.outbasenm:
         basename=options.outbasenm
     spdcand = spcand.params()
-    print spdcand
     if not options.man_params:
         print_debug('Maximum number of candidates to plot: %i'%options.maxnumcands)
         make_spd_from_file(spdcand, rawdatafile, \

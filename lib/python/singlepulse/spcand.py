@@ -45,9 +45,16 @@ class params:
            Set up parameters based on input from the groups.txt file.
            Input: params: list of parameters (DM, S/N, Time, Sample number, downfactor)
                   tsamp: sampling time (downsampled: 65.5 us for PALFA)
+                  N    : The total number of time samples in the observation
                   lofreq: lowest observation frequency
                   hifreq: highest observation frequency
-                  rawdatafile: supply a PSRFITS file object 
+                  rawdatafile: supply a PSRFITS file instance
+           optional arguments:
+                  dedisp: Do you want to dedisperse?(Type: Boolean).
+                  scaleindep:Do you want to scale each subband independently?(Type: Boolean)
+                  zerodm:Do you want to use zero-DM filtering?(Type: Boolean)
+                  mask: Do you want to use a rfifind mask? (Type: Boolean)
+                  bandpass_corr:Would you like to remove the bandpass? (Type: Boolean)
         """
         self.subdm = params[0]
         self.sigma = params[1]
@@ -101,11 +108,29 @@ class params:
                       scaleindep = None, zerodm = None, mask = False, bandpass_corr = False): 
         """
            Set up parameters based on input from the groups.txt file.
-           Input: params: list of parameters (DM, S/N, Time, Sample number, downfactor)
+           Input:
+                  subdm: DM to use when subbanding.
+                  dm: DM to use when dedispersing data for plot. 
+                  sweep_dm: Show the frequency sweep using this DM.
+                  sigma: signal-to-noise of the pulse
+                  start_time: start time of the data to be read in for waterfalling.
+                  width_bins: Smooth each channel/subband with a boxcar width_bins wide.
+                  downsamp: Factor to downsample in time by. Default: Don't downsample.
+                  duration: duration of data to be waterfalled.
+                  nbins: Number of time bins to plot. This option overrides
+                          the duration argument. 
+                  nsub: Number of subbands to use. Must be a factor of number of channels.
                   tsamp: sampling time (downsampled: 65.5 us for PALFA)
+                  N: total number of samples in an observations
                   lofreq: lowest observation frequency
                   hifreq: highest observation frequency
-                  rawdatafile: supply a psrfits file object 
+                  rawdatafile: supply a psrfits file instance
+           optional arguments:
+                  dedisp: Do you want to dedisperse?(Type: Boolean).
+                  scaleindep:Do you want to scale each subband independently?(Type: Boolean)
+                  zerodm:Do you want to use zero-DM filtering?(Type: Boolean)
+                  mask: Do you want to use a rfifind mask? (Type: Boolean)
+                  bandpass_corr:Would you like to remove the bandpass? (Type: Boolean)
         """
         self.subdm = subdm
         self.mask = mask

@@ -8,7 +8,32 @@ import sp_pgplot
 import read_spd
 import spio
 
-def plot(spdfile, singlepulsefiles, xwin, outfile, just_waterfall, integrate_spec, integrate_ts, disp_pulse, tar):
+def plot(spdfile, singlepulsefiles=None, xwin=False, outfile="spdplot", just_waterfall=True, integrate_spec=True, integrate_ts=True, disp_pulse=True, tar=None):
+    """
+       Generates spd plots which include the following subplots:
+           De-dispersed Zero-DM filtered Waterfall plot
+           De-dispersed Waterfall plot
+        optional subplots:
+           Dispersed Zero-DM filtered Waterfall plot (Inset of the corresponding dedispersed plot).
+           Dispersed Waterfall plot ((Inset of the corresponding dedispersed plot).).
+           Dedispersed zero-DM filtered time series for the corresponding waterfall plot.
+           Dedispersed time series for the corresponding waterfall plot.
+           Spectra of the de-dispersed pulse for each of the above waterfalled plots.
+           SNR vs DM
+           DM vs. Time
+
+        Inputs:
+           spdfile: A .spd file.
+        Optional Inputs:  
+           singlepulsefiles: list of .singlepulse files
+           xwin: plot in an xwin window?
+           outfile: name of the output file you want.
+           just_waterfall: Do you only want to display the waterfall plots?
+           integrate_spec: Do you want to show the pulse spectrum?
+           integrate_ts: Do you want to show the time series?
+           disp_pulse: Do you want to show the inset dispersed pulse?
+           tar: Supply the tarball of the singlepulse files instead of individual files.
+    """
     if not spdfile.endswith(".spd"):
 	    raise ValueError("The first file must be a .spd file")
     #npzfile = np.load(spdfile)
