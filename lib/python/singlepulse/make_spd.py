@@ -20,7 +20,6 @@ import numpy as np
 import optparse
 import waterfaller
 import psr_utils
-import rfifind
 import plot_spd
 import spcand
 import spio

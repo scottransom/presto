@@ -1,7 +1,5 @@
 #! /usr/bin/env python
 
-import sys
-import os
 import numpy as np
 import optparse
 import tarfile 
@@ -9,7 +7,6 @@ from subprocess import Popen, PIPE
 import sp_pgplot
 import read_spd
 import spio
-import matplotlib.pyplot as plt
 
 def plot(spdfile, singlepulsefiles, xwin, outfile, just_waterfall, integrate_spec, integrate_ts, disp_pulse, tar):
     if not spdfile.endswith(".spd"):
@@ -463,11 +460,9 @@ def main():
     (options, args) = parser.parse_args()
    
     if len(args) == 0:
-        print "need a .spd file and .singlepulse files in that order."
-        sys.exit()
+        raise ValueError("need a .spd file and .singlepulse files in that order.")
     if not args[0].endswith(".spd"):
-        print "the first file must be a .spd file"
-        sys.exit()
+        raise ValueError("the first file must be a .spd file")
     if len(args) == 2:
         tar = tarfile.open(args[1], "r:gz")# read in the tarball
         filenames = tar.getnames()# get the filenames
