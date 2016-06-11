@@ -23,7 +23,7 @@ extern short transpose_float(float *a, int nx, int ny, unsigned char *move,
 extern double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday);
 extern void read_filterbank_files(struct spectra_info *s);
 extern void read_PSRFITS_files(struct spectra_info *s);
-
+extern fftwf_plan plan_transpose(int rows, int cols, float *in, float *out);
 
 void psrdatatype_description(char *outstr, psrdatatype ptype)
 {
@@ -103,9 +103,10 @@ void identify_psrdatatype(struct spectra_info *s, int output)
 
     /* Split the filename into a rootname and a suffix */
     if (split_root_suffix(s->filenames[0], &root, &suffix) == 0) {
-        fprintf(stderr, "Error!:  The input filename (%s) must have a suffix!\n\n",
+        fprintf(stderr,
+                "Error!:  The input filename (%s) must have a suffix!",
                 s->filenames[0]);
-        exit(1);
+        exit(-1);
     } else {
         if (strcmp(suffix, "dat") == 0)
             s->datatype = DAT;
@@ -505,7 +506,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
             fprintf(stderr,
                     "Error!:  numspect %d must be a multiple of %d in read_psrdata()!\n",
                     numspect, s->spectra_per_subint);
-            exit(1);
+            exit(-1);
         } else
             numsubints = numspect / s->spectra_per_subint;
         if (obsmask->numchan)
@@ -584,7 +585,7 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[],
     if (channum > s->num_channels || channum < 0) {
         fprintf(stderr, "Error!: channum = %d is out of range in get_channel()!\n",
                 channum);
-        exit(1);
+        exit(-1);
     }
     /* Select the correct channel */
     for (ii = 0, jj = channum; ii < numsubints * s->spectra_per_subint;
@@ -608,7 +609,7 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
 // for masking.  If 'transpose'==0, the data will be kept in time
 // order instead of arranged by subband as above.
 {
-    int ii, jj, trtn, offset;
+    int ii, jj, offset;
     double starttime = 0.0;
     static float *tmpswap, *rawdata1, *rawdata2;
     static float *currentdata, *lastdata;
@@ -704,18 +705,23 @@ int read_subbands(float *fdata, int *delays, int numsubbands,
     static float *frawdata;
 
     if (firsttime) {
+        // Check to make sure there isn't more dispersion across a
+        // subband than time in a block of data
+        if (delays[0] > s->spectra_per_subint) {
+            perror("\nError: there is more dispersion across a subband than time\n"
+                   "in a block of data.  Increase spectra_per_subint if possible.");
+            exit(-1);
+        }
         // Needs to be twice as large for buffering if adding observations together
         frawdata = gen_fvect(2 * s->num_channels * s->spectra_per_subint);
         if (!s->get_rawblock(frawdata, s, padding)) {
-            fprintf(stderr,
-                    "Error: problem reading the raw data file in read_subbands()\n");
-            return 0;
+            perror("Error: problem reading the raw data file in read_subbands()");
+            exit(-1);
         }
         if (0 != prep_subbands(fdata, frawdata, delays, numsubbands, s,
                                transpose, maskchans, nummasked, obsmask)) {
-            fprintf(stderr,
-                    "Error: problem initializing prep_subbands() in read_subbands()\n");
-            return 0;
+            perror("Error: problem initializing prep_subbands() in read_subbands()");
+            exit(-1);
         }
         firsttime = 0;
     }

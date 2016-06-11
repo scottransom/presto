@@ -906,19 +906,13 @@ static int get_data(float **outdata, int blocksperread,
             maskchans = gen_ivect(s->num_channels);
         worklen = s->spectra_per_subint * blocksperread;
         dsworklen = worklen / cmd->downsamp;
-        {                       // Make sure that our working blocks are long enough...
-            for (ii = 0; ii < s->num_channels; ii++) {
-                if (idispdts[ii] > worklen)
-                    printf("WARNING!:  (idispdts[%d] = %d) > (worklen = %d)\n",
-                           ii, idispdts[ii], worklen);
-            }
-            for (ii = 0; ii < cmd->numdms; ii++) {
-                for (jj = 0; jj < cmd->nsub; jj++) {
-                    if (offsets[ii][jj] > dsworklen)
-                        printf
-                            ("WARNING!:  (offsets[%d][%d] = %d) > (dsworklen = %d)\n",
-                             ii, jj, offsets[ii][jj], dsworklen);
-                }
+        // Make sure that our working blocks are long enough...
+        for (ii = 0; ii < cmd->numdms; ii++) {
+            for (jj = 0; jj < cmd->nsub; jj++) {
+                if (offsets[ii][jj] > dsworklen)
+                    printf
+                        ("WARNING!:  (offsets[%d][%d] = %d) > (dsworklen = %d)\n",
+                         ii, jj, offsets[ii][jj], dsworklen);
             }
         }
 
