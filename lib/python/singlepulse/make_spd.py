@@ -201,6 +201,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                 if plot:
                     print_debug("Now plotting...")
                     plot_spd.plot(temp_filename+".spd", args[1:], \
+                                  spec_width=1.5, loc_pulse=0.25, \
                                   xwin=False, outfile=basename, \
                                   just_waterfall=just_waterfall, \
                                   integrate_spec=integrate_spec, \
@@ -227,6 +228,7 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                              width_bins, nbins, downsamp, \
                              nsub, \
                              scaleindep, \
+                             spec_width, loc_pulse, \
                              integrate_ts, integrate_spec, disp_pulse, \
                              basename, \
                              mask, bandpass_corr, barytime, man_params):            
@@ -252,6 +254,9 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
         downsamp: Factor to downsample in time by. Default: Don't downsample.
         nsub: Number of subbands to use. Must be a factor of number of channels.
         scaleindep:Do you want to scale each subband independently?(Type: Boolean)
+        spec_width: Twice this number times the pulse_width around the pulse to consider for the spectrum
+        loc_pulse: Fraction of the window length where the pulse is located.(eg. 0.25 = 1/4th of the way in.
+                                                                             0.5 = middle of the plot)
         integrate_ts: Do you want to display the dedispersed time series in the plot?
         integrate_spec: Do you want to display the pulse spectrum in the plot?
         disp_pulse: Do you want to see the inset dispersed pulse in the plot?
@@ -347,7 +352,8 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
     #### Arrays for Plotting DM vs Time is in plot_spd.plot(...)
     if plot:
         print_debug("Now plotting...")
-        plot_spd.plot(temp_filename+".spd", args[1:], xwin=False, \
+        plot_spd.plot(temp_filename+".spd", args[1:], \
+                      spec_width=spec_width, loc_pulse=loc_pulse, xwin=False, \
                       outfile = basename, just_waterfall=just_waterfall, \
                       integrate_spec=integrate_spec, integrate_ts=integrate_ts, \
                       disp_pulse=disp_pulse, tar = None)
@@ -397,6 +403,7 @@ def main():
                                  options.width_bins, options.nbins, options.downsamp, \
                                  options.nsub, \
                                  options.scaleindep, \
+                                 options.spec_width, options.loc_pulse, \
                                  options.integrate_ts, options.integrate_spec, options.disp_pulse, \
                                  basename, \
                                  options.mask, options.bandpass_corr, options.barytime, \
@@ -444,6 +451,14 @@ if __name__=='__main__':
     parser.add_option('--show-spec', dest='integrate_spec', action='store_true', \
                         help="Plot the spectrum. " \
                                 "(Default: Do not show the spectrum)", default=False)
+    parser.add_option("--spec-width", dest="spec_width", type="float", help="Twice " \
+                      "this number times the pulse width is the window around the " \
+                      "pulse considered for the spectrum. (Default: 1.5)", \
+                      default=1.5)
+    parser.add_option("--loc", dest="loc_pulse", type="float", help="Fraction of " \
+                      "the window length where the pulse is located." \
+                      "(Default: 0.25 quarter of the way in.)", \
+                      default=0.25)
     parser.add_option('--show-sweep', dest='disp_pulse', action='store_true', \
                         help="Plot the inset dispersed pulse. " \
                                 "(Default: Do not show the dispersed pulse)", default=False)
