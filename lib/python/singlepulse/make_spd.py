@@ -226,6 +226,40 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                              integrate_ts, integrate_spec, disp_pulse, \
                              basename, \
                              mask, bandpass_corr, man_params):            
+    """
+    Makes spd files from output files of rratrap. 
+    Inputs:
+        spdcand: spcand parameters instance (read in spcand.params)
+        rawdatafile: psrfits file instance
+        txtfile: rratrap output file (groups.txt file)
+        maskfile: rfifind mask file. need this file if you want to remove the bandpass 
+                  or use rfifind mask information.
+        plot: do you want to produce the plots as well? 
+        just_waterfall: Do you just want to make the waterfall plots.
+        subdm: DM to use when subbanding.
+        dm: DM to use when dedispersing data for plot. 
+        sweep_dm: Show the frequency sweep using this DM.
+        sigma: signal-to-noise of the pulse
+        start_time: start time of the data to be read in for waterfalling.
+        duration: duration of data to be waterfalled.
+        width_bins: Smooth each channel/subband with a boxcar width_bins wide.
+        nbins: Number of time bins to plot. This option overrides
+                the duration argument. 
+        downsamp: Factor to downsample in time by. Default: Don't downsample.
+        nsub: Number of subbands to use. Must be a factor of number of channels.
+        scaleindep:Do you want to scale each subband independently?(Type: Boolean)
+        integrate_ts: Do you want to display the dedispersed time series in the plot?
+        integrate_spec: Do you want to display the pulse spectrum in the plot?
+        disp_pulse: Do you want to see the inset dispersed pulse in the plot?
+        basename: output basename of the file. Appended with _DM_TIME(s)_RANK.spd 
+        mask: Do you want to mask out rfi contaminated channels?
+        bandpass_corr: Do you want to remove the bandpass?
+        man_params: Do you want to specify the parameters for waterfalling 
+                    manually? If yes, I suggest using the function make_spd_from_man_params().
+                    (I suggest giving it the rratrap output file)    
+    Outputs:
+       Binary npz file containing the necessary arrays and header information to generate the spd plots.
+    """
     rank = None
     if not nsub:
         nsub = rawdatafile.nchan
@@ -346,7 +380,8 @@ def main():
                            basename, \
                            mask=options.mask, bandpass_corr=options.bandpass_corr)
     else:
-        print_debug("Making spd files based on mannual parameters. I suggest reading in parameters from the groups.txt file.")
+        print_debug("Making spd files based on mannual parameters. I suggest" \
+                    "reading in parameters from the groups.txt file.")
         make_spd_from_man_params(spdcand, rawdatafile, \
                                  options.txtfile, options.maskfile, \
                                  options.plot, options.just_waterfall, \

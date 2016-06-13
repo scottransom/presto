@@ -290,9 +290,9 @@ def plot(spdfile, singlepulsefiles=None, xwin=False, outfile="spdplot", just_wat
         print "Making arrays for DM vs time plot"
         spfiles = singlepulsefiles
         threshold = 5.0
-        dm_list = map(np.float32, list(dm_arr))
-        time_list = map(np.float32, list(time_arr))
         if len(spfiles) > 2:
+            dm_list = map(np.float32, list(dm_arr))
+            time_list = map(np.float32, list(time_arr))
             if integrate_spec:
                 sp_pgplot.ppgplot.pgsvp(0.55, 0.97, 0.1, 0.54)
             else:
