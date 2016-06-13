@@ -65,7 +65,8 @@ def make_spd_from_file(spdcand, rawdatafile, \
                        integrate_ts, integrate_spec, disp_pulse, \
                        maxnumcands, \
                        basename, \
-                       mask=False, bandpass_corr=True, man_params=None):
+                       mask=False, bandpass_corr=True, barytime=True, \
+                       man_params=None):
     
     """
     Makes spd files from output files of rratrap. 
@@ -116,6 +117,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                        rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
                                        rawdatafile, dedisp = True, \
                                        scaleindep = None, zerodm = None, mask = mask, \
+                                       barytime=barytime, \
                                        bandpass_corr = bandpass_corr)
 
                 #make an array to store header information for the spd files
@@ -153,6 +155,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                       rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
                                       rawdatafile, dedisp = None, \
                                       scaleindep = None, zerodm = None, mask = mask, \
+                                      barytime=barytime, \
                                       bandpass_corr = bandpass_corr)
                 data, Data_nozerodm = waterfall_array(rawdatafile, spdcand.start, \
                                            spdcand.duration, spdcand.dm, spdcand.nbins, spdcand.nsub, \
@@ -225,7 +228,7 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                              scaleindep, \
                              integrate_ts, integrate_spec, disp_pulse, \
                              basename, \
-                             mask, bandpass_corr, man_params):            
+                             mask, bandpass_corr, barytime, man_params):            
     """
     Makes spd files from output files of rratrap. 
     Inputs:
@@ -270,7 +273,7 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                          rawdatafile.specinfo.N, \
                          rawdatafile.frequencies[0], rawdatafile.frequencies[-1], rawdatafile, \
                          dedisp=True, scaleindep=False, zerodm=False, \
-                         mask=mask, bandpass_corr=bandpass_corr)
+                         mask=mask, barytime=barytime, bandpass_corr=bandpass_corr)
     #make an array to store header information for the spd files
     temp_filename = basename+"_DM%.1f_%.1fs"%(spdcand.subdm, spdcand.topo_start_time)
            
@@ -305,7 +308,7 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                           rawdatafile.specinfo.N, \
                           rawdatafile.frequencies[0], rawdatafile.frequencies[-1], rawdatafile, \
                           dedisp=None, scaleindep=None, zerodm=None, mask=mask, \
-                          bandpass_corr=bandpass_corr)
+                          barytime=barytime, bandpass_corr=bandpass_corr)
     data, Data_nozerodm = waterfall_array(rawdatafile, spdcand.start, \
                                  spdcand.duration, spdcand.dm, spdcand.nbins, spdcand.nsub, \
                                  spdcand.subdm, spdcand.zerodm, spdcand.downsamp, \
@@ -378,7 +381,8 @@ def main():
                            options.integrate_ts, options.integrate_spec, options.disp_pulse, \
                            options.maxnumcands, \
                            basename, \
-                           mask=options.mask, bandpass_corr=options.bandpass_corr)
+                           mask=options.mask, barytime=options.barytime, \
+                           bandpass_corr=options.bandpass_corr)
     else:
         print_debug("Making spd files based on mannual parameters. I suggest" \
                     "reading in parameters from the groups.txt file.")
@@ -393,7 +397,8 @@ def main():
                                  options.scaleindep, \
                                  options.integrate_ts, options.integrate_spec, options.disp_pulse, \
                                  basename, \
-                                 options.mask, options.bandpass_corr, options.man_params)            
+                                 options.mask, options.bandpass_corr, options.barytime, \
+                                 options.man_params)            
 
 if __name__=='__main__':
     parser = optparse.OptionParser(prog="sp_pipeline..py", \
@@ -447,6 +452,10 @@ if __name__=='__main__':
     parser.add_option('-T', '--start-time', dest='start', type='float', \
                         help="Time into observation (in seconds) at which " \
                                 "to start plot.")
+    parser.add_option('--notopo', dest='barytime', action='store_false', \
+                        help="Do not topocenter the given time. Use this option " \
+                             "only if the given time is topocentric." \
+                             "(Default: topocenter the given barycentric time)", default=True)
     parser.add_option('-t', '--duration', dest='duration', type='float', \
                         help="Duration (in seconds) of plot.")
     parser.add_option('-n', '--nbins', dest='nbins', type='int', \

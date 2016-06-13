@@ -37,7 +37,7 @@ class params:
         self.sample_number = 0
 
     def read_from_file(self, params, tsamp, N, lofreq, hifreq, rawdatafile, dedisp = False, \
-                       scaleindep = None, zerodm = None, mask = None, \
+                       scaleindep = None, zerodm = None, mask = None, barytime = True, \
                        bandpass_corr = False): 
         """
            Set up parameters based on input from the groups.txt file.
@@ -56,11 +56,19 @@ class params:
         """
         self.subdm = params[0]
         self.sigma = params[1]
-        self.bary_start_time = params[2]
         topo, bary = bary_and_topo.bary_to_topo(rawdatafile.filename, rawdatafile=rawdatafile)
         time_shift = bary-topo
-        self.topo_start_time = self.bary_start_time - topo_timeshift(self.bary_start_time, \
-                                                                     time_shift, topo)[0]
+        if barytime:
+            #### if the times in the groups.txt file are barycentric then get the corresponding
+            #### topocentric times.
+            self.bary_start_time = params[2]
+            self.topo_start_time = self.bary_start_time - topo_timeshift(self.bary_start_time, \
+                                                                         time_shift, topo)[0]
+        else:
+            #### Vice versa.
+            self.topo_start_time = params[2]
+            self.bary_start_time = self.topo_start_time + topo_timeshift(self.bary_start_time, \
+                                                                         time_shift, topo)[0]
         self.sample_number = params[3]
         self.width_bins = params[4]
         sweep_posn = 0.0
@@ -103,7 +111,8 @@ class params:
 
     def manual_params(self, subdm, dm, sweep_dm, sigma, start_time, width_bins, downsamp, \
                       duration, nbins, nsub, tsamp, N, lofreq, hifreq, rawdatafile, dedisp = False, \
-                      scaleindep = None, zerodm = None, mask = False, bandpass_corr = False): 
+                      scaleindep = None, zerodm = None, mask = False, barytime = True, \
+                      bandpass_corr = False): 
         """
            Set up parameters based on input from the groups.txt file.
            Input:
@@ -128,16 +137,25 @@ class params:
                   scaleindep:Do you want to scale each subband independently?(Type: Boolean)
                   zerodm:Do you want to use zero-DM filtering?(Type: Boolean)
                   mask: Do you want to use a rfifind mask? (Type: Boolean)
+                  topocenter: Do you want to convert the arrival time from barycentric to topocentric time.
                   bandpass_corr:Would you like to remove the bandpass? (Type: Boolean)
         """
         self.subdm = subdm
         self.mask = mask
         self.sigma = sigma
-        self.bary_start_time = start_time
         topo, bary = bary_and_topo.bary_to_topo(rawdatafile.filename, rawdatafile=rawdatafile)
         time_shift = bary-topo
-        self.topo_start_time = self.bary_start_time - topo_timeshift(self.bary_start_time, \
-                                                                     time_shift, topo)[0]
+        if barytime:
+            #### if the time is barycentric then get the corresponding topocentric time.
+            self.bary_start_time = start_time
+            self.topo_start_time = self.bary_start_time - topo_timeshift(self.bary_start_time, \
+                                                                         time_shift, topo)[0]
+        else:
+            #### Vice versa.
+            self.topo_start_time = start_time
+            self.bary_start_time = self.topo_start_time + topo_timeshift(self.bary_start_time, \
+                                                                         time_shift, topo)[0]
+
         self.sample_number = np.round(self.bary_start_time/tsamp).astype('int')
         self.width_bins = width_bins
         sweep_posn = 0.0
