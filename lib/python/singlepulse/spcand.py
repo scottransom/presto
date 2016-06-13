@@ -52,6 +52,7 @@ class params:
                   scaleindep:Do you want to scale each subband independently?(Type: Boolean)
                   zerodm:Do you want to use zero-DM filtering?(Type: Boolean)
                   mask: Do you want to use a rfifind mask? (Type: Boolean)
+                  barytime: Is the given time(s) barycentric?
                   bandpass_corr:Would you like to remove the bandpass? (Type: Boolean)
         """
         self.subdm = params[0]
@@ -137,7 +138,7 @@ class params:
                   scaleindep:Do you want to scale each subband independently?(Type: Boolean)
                   zerodm:Do you want to use zero-DM filtering?(Type: Boolean)
                   mask: Do you want to use a rfifind mask? (Type: Boolean)
-                  topocenter: Do you want to convert the arrival time from barycentric to topocentric time.
+                  barytime: Is the given time(s) barycentric?
                   bandpass_corr:Would you like to remove the bandpass? (Type: Boolean)
         """
         self.subdm = subdm

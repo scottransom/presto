@@ -88,6 +88,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
     Optional arguments:
         mask: Do you want to mask out rfi contaminated channels?
         bandpass_corr: Do you want to remove the bandpass?
+        barytime: Is the given time(s) barycentric?
         man_params: Do you want to specify the parameters for waterfalling 
                     manually? If yes, I suggest using the function make_spd_from_man_params().
                     (I suggest giving it the rratrap output file)    
@@ -257,6 +258,7 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
         basename: output basename of the file. Appended with _DM_TIME(s)_RANK.spd 
         mask: Do you want to mask out rfi contaminated channels?
         bandpass_corr: Do you want to remove the bandpass?
+        barytime: Is the given time(s) barycentric?
         man_params: Do you want to specify the parameters for waterfalling 
                     manually? If yes, I suggest using the function make_spd_from_man_params().
                     (I suggest giving it the rratrap output file)    
