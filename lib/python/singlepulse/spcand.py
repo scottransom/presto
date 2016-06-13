@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 import bary_and_topo
 
