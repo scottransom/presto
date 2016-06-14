@@ -16,7 +16,7 @@ def use_ddplan(dm):
         the downsampling rate. 
         This makes the DM_THRESH and TIME_THRESH depend on the DM instead of having fixed 
         values throughout. This helps at higher DMs where the DM step size is > 0.5 pc cm-3. 
-        This is specific to PALFA. You can make a similar plan depending on the survey needs.
+        This is specific to PALFA. You can make a similar plan depending on the survey's DDplan.
     """
     if (dm <=212.8):
         dmt = 1
