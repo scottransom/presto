@@ -73,7 +73,7 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=Fa
     tsamp = spdobj.tsamp
     Total_observed_time = spdobj.total_obs_time
     topo_start = spdobj.pulse_peak_time
-    start = topo_start - 0.25*duration
+    start = topo_start - loc_pulse*duration
     datastart = spdobj.waterfall_start_time
     datasamp = spdobj.waterfall_tsamp
     datanumspectra = spdobj.waterfall_prededisp_nbins
@@ -92,14 +92,14 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=Fa
     else:
         if (outfile == "spdplot"): # default filename
             if rank:
-                sp_pgplot.ppgplot.pgopen(fn[:-5]+'_DM%.1f_%.1fs_rank_%i.spd.ps/VPS'%(subdm, (start+0.25*duration), rank))
+                sp_pgplot.ppgplot.pgopen(fn[:-5]+'_DM%.1f_%.1fs_rank_%i.spd.ps/VPS'%(subdm, (start+loc_pulse*duration), rank))
             else:
-                sp_pgplot.ppgplot.pgopen(fn[:-5]+'_DM%.1f_%.1fs.spd.ps/VPS'%(subdm, (start+0.25*duration)))
+                sp_pgplot.ppgplot.pgopen(fn[:-5]+'_DM%.1f_%.1fs.spd.ps/VPS'%(subdm, (start+loc_pulse*duration)))
         else:
             if rank:
-                sp_pgplot.ppgplot.pgopen(outfile+'_DM%.1f_%.1fs_rank_%i.spd.ps/VPS'%(subdm, (start+0.25*duration), rank))
+                sp_pgplot.ppgplot.pgopen(outfile+'_DM%.1f_%.1fs_rank_%i.spd.ps/VPS'%(subdm, (start+loc_pulse*duration), rank))
             else:
-                sp_pgplot.ppgplot.pgopen(outfile+'_DM%.1f_%.1fs.spd.ps/VPS'%(subdm, (start+0.25*duration)))
+                sp_pgplot.ppgplot.pgopen(outfile+'_DM%.1f_%.1fs.spd.ps/VPS'%(subdm, (start+loc_pulse*duration)))
     if (just_waterfall == False):
         sp_pgplot.ppgplot.pgpap(10.25, 8.5/11.0)
         # Dedispersed waterfall plot - zerodm - OFF

@@ -116,7 +116,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                 # Array for Plotting Dedispersed waterfall plot - zerodm - OFF
                 spdcand.read_from_file(values[ii], rawdatafile.tsamp, rawdatafile.specinfo.N, \
                                        rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
-                                       rawdatafile, dedisp = True, \
+                                       rawdatafile, loc_pulse=0.25, dedisp = True, \
                                        scaleindep = None, zerodm = None, mask = mask, \
                                        barytime=barytime, \
                                        bandpass_corr = bandpass_corr)
@@ -154,7 +154,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                 ####Sweeped without zerodm
                 spdcand.read_from_file(values[ii], rawdatafile.tsamp, rawdatafile.specinfo.N, \
                                       rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
-                                      rawdatafile, dedisp = None, \
+                                      rawdatafile, loc_pulse=0.25, dedisp = None, \
                                       scaleindep = None, zerodm = None, mask = mask, \
                                       barytime=barytime, \
                                       bandpass_corr = bandpass_corr)
@@ -279,7 +279,7 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                          width_bins, downsamp, duration, nbins, nsub, rawdatafile.tsamp, \
                          rawdatafile.specinfo.N, \
                          rawdatafile.frequencies[0], rawdatafile.frequencies[-1], rawdatafile, \
-                         dedisp=True, scaleindep=False, zerodm=False, \
+                         loc_pulse=loc_pulse, dedisp=True, scaleindep=False, zerodm=False, \
                          mask=mask, barytime=barytime, bandpass_corr=bandpass_corr)
     #make an array to store header information for the spd files
     temp_filename = basename+"_DM%.1f_%.1fs"%(spdcand.subdm, spdcand.topo_start_time)
@@ -314,7 +314,7 @@ def make_spd_from_man_params(spdcand, rawdatafile, \
                           width_bins, downsamp, duration, nbins, nsub, rawdatafile.tsamp, \
                           rawdatafile.specinfo.N, \
                           rawdatafile.frequencies[0], rawdatafile.frequencies[-1], rawdatafile, \
-                          dedisp=None, scaleindep=None, zerodm=None, mask=mask, \
+                          loc_pulse=loc_pulse, dedisp=None, scaleindep=None, zerodm=None, mask=mask, \
                           barytime=barytime, bandpass_corr=bandpass_corr)
     data, Data_nozerodm = waterfall_array(rawdatafile, spdcand.start, \
                                  spdcand.duration, spdcand.dm, spdcand.nbins, spdcand.nsub, \

@@ -36,7 +36,7 @@ class params:
         self.topo_start_time = 0.0
         self.sample_number = 0
 
-    def read_from_file(self, params, tsamp, N, lofreq, hifreq, rawdatafile, dedisp = False, \
+    def read_from_file(self, params, tsamp, N, lofreq, hifreq, rawdatafile, loc_pulse = 0.25, dedisp = False, \
                        scaleindep = None, zerodm = None, mask = None, barytime = True, \
                        bandpass_corr = False): 
         """
@@ -76,7 +76,7 @@ class params:
         self.scaleindep = scaleindep
         self.downsamp = np.round((params[2]/self.sample_number/tsamp)).astype('int')
         self.duration = self.binratio * self.width_bins * tsamp * self.downsamp
-        self.start = self.topo_start_time - (0.25 * self.duration)
+        self.start = self.topo_start_time - (loc_pulse * self.duration)
         if (self.start<0.0):
             self.start = 0.0
         self.start_bin = np.round(self.start/tsamp).astype('int')
@@ -102,7 +102,7 @@ class params:
             self.dm = None
             self.sweep_dm = self.subdm
             self.sweep_duration = 4.15e3 * np.abs(1./lofreq**2-1./hifreq**2)*self.sweep_dm
-            self.start = self.start + (0.25*self.duration)
+            self.start = self.start + (loc_pulse*self.duration)
             self.start_bin = np.round(self.start/tsamp).astype('int')
             self.nbins = np.round(self.sweep_duration/tsamp).astype('int')
             self.nbinsextra = self.nbins
@@ -111,7 +111,7 @@ class params:
             self.bandpass_corr = False
 
     def manual_params(self, subdm, dm, sweep_dm, sigma, start_time, width_bins, downsamp, \
-                      duration, nbins, nsub, tsamp, N, lofreq, hifreq, rawdatafile, dedisp = False, \
+                      duration, nbins, nsub, tsamp, N, lofreq, hifreq, rawdatafile, loc_pulse=0.25, dedisp = False, \
                       scaleindep = None, zerodm = None, mask = False, barytime = True, \
                       bandpass_corr = False): 
         """
@@ -169,7 +169,7 @@ class params:
         if duration:
             self.duration = duration
             self.nbins = np.round(self.duration/tsamp).astype('int')
-        self.start = self.topo_start_time - (0.25 * self.duration)
+        self.start = self.topo_start_time - (loc_pulse * self.duration)
         if (self.start<0.0):
             self.start = 0.0
         self.start_bin = np.round(self.start/tsamp).astype('int')
@@ -195,7 +195,7 @@ class params:
             else:
                 self.sweep_dm = sweep_dm
             self.sweep_duration = 4.15e3 * np.abs(1./lofreq**2-1./hifreq**2)*self.sweep_dm
-            self.start = self.start + (0.25*self.duration)
+            self.start = self.start + (loc_pulse*self.duration)
             self.start_bin = np.round(self.start/tsamp).astype('int')
             self.nbinsextra = self.nbins
 
