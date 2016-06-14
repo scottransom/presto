@@ -97,6 +97,26 @@ def read_RRATrap_info(groupfile, group_to_read, rank):
     return dm_list, time_list, dm_arr, sigma_arr, width_arr
 
 
+def old_read_sp_files(sp_files):
+    """*** OLD VERSION ***
+        Read all *.singlepulse files in the current directory.
+	Return 5 arrays (properties of all single pulses):
+		DM, sigma, time, sample, downfact.
+    """
+    tmp_sp_params = np.array(np.empty((1,0)), 
+                             dtype=np.dtype([('dm', 'float64'),
+                                             ('sigma','float32'),
+                                             ('time','float64'),
+                                             ('sample','uint32'),
+                                             ('downfact','uint8')]))
+
+    for file in sp_files:
+       if os.path.getsize(file):
+           curr = np.atleast_2d(np.loadtxt(file, dtype=np.dtype([('dm', 'float64'),('sigma','float32'),('time','float64'),('sample','uint32'),('downfact','uint8')])))
+           tmp_sp_params = np.concatenate([tmp_sp_params, curr], axis=1)
+
+    return tmp_sp_params
+
 def read_sp_files(files):
     """Read all *.singlepulse files in the current directory in a DM range.
         Return 5 arrays (properties of all single pulses):

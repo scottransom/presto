@@ -25,6 +25,7 @@ from Pgplot import *
 from scipy.special import erf
 import optparse
 import sys
+import spio
 
 FRACTIONAL_SIGMA = 0.9 # change to 0.8?
 ALL_RANKS_ORDERED = [1,2,0,3,4,5,6]
@@ -39,43 +40,7 @@ def dmthreshold(dm, use_ddplan, min_group=45):
         min_group = min_group 
     return dmt, min_group
 
-    
-def old_read_sp_files(sp_files):
-    """*** OLD VERSION ***
-        Read all *.singlepulse files in the current directory.
-	Return 5 arrays (properties of all single pulses):
-		DM, sigma, time, sample, downfact.
-    """
-    tmp_sp_params = np.array(np.empty((1,0)), 
-                             dtype=np.dtype([('dm', 'float64'),
-                                             ('sigma','float32'),
-                                             ('time','float64'),
-                                             ('sample','uint32'),
-                                             ('downfact','uint8')]))
 
-    for file in sp_files:
-       if os.path.getsize(file):
-           curr = np.atleast_2d(np.loadtxt(file, dtype=np.dtype([('dm', 'float64'),('sigma','float32'),('time','float64'),('sample','uint32'),('downfact','uint8')])))
-           tmp_sp_params = np.concatenate([tmp_sp_params, curr], axis=1)
-
-    return tmp_sp_params
-
-
-def read_sp_files(sp_files):
-    """Read all *.singlepulse files in the current directory.
-	Return 5 arrays (properties of all single pulses):
-		DM, sigma, time, sample, downfact.
-    """
-    finput = fileinput.input(sp_files)
-    data = np.loadtxt(finput, 
-                      dtype=np.dtype([('dm', 'float32'),
-                                      ('sigma','float32'),
-                                      ('time','float32'),
-                                      ('sample','uint32'),
-                                      ('downfact','uint8')]))
-    return np.atleast_2d(data)
-
-#class SinglePulseGroup:
 class SinglePulseGroup(object): # Greg's modification
     """Define single pulse group
     """
@@ -751,7 +716,7 @@ def main():
     inf = infodata.infodata(inffile)    
     print_debug("Beginning read_sp_files... "+strftime("%Y-%m-%d %H:%M:%S"))
     
-    groups = read_sp_files(args[1:])[0]
+    groups = spio.read_sp_files(args[1:])[0]
     print_debug("Finished read_sp_files, beginning create_groups... " +
                 strftime("%Y-%m-%d %H:%M:%S"))
     print_debug("Number of single pulse events: %d " % len(groups))
