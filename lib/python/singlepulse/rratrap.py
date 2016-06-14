@@ -22,7 +22,6 @@ import os.path
 import infodata
 import matplotlib.pyplot as plt
 from Pgplot import *
-from scipy.special import erf
 import optparse
 import sys
 import spio
@@ -402,33 +401,6 @@ def rank_groups(groups, use_ddplan=False, min_group=45, min_sigma=8.0):
             if grp.rank == 0:
                 pass 
 
-def ddm_response(ddm, width_ms, lofreq, hifreq):
-    if np.isscalar(ddm):
-        ddm = np.array([ddm])
-        scal = True
-    else:
-        ddm = np.array([ddm])
-        scal = False
-    band_MHz = np.array((lofreq, hifreq))
-    zeta = 6.91e-3 * ddm * np.diff(band_MHz)[0] / (width_ms * (np.mean(band_MHz)/1000.)**3)
-    result = np.zeros_like(ddm)
-    where_nonzero = np.where(zeta != 0)
-    result[where_nonzero] = 0.5*np.sqrt(np.pi)*erf(zeta[where_nonzero])/zeta[where_nonzero]
-    result[zeta == 0] = 1.
-    if scal: return result[0]
-    else: return result
-
-def theoritical_dmspan(maxsigma, minsigma, width_ms, lofreq, hifreq):
-    # since the sigma threshold = 5
-    sigma_limit = minsigma/maxsigma
-    # spans over a dm range of 1000 (500*2)  
-    ddm = np.linspace(0, 5000, 50001)
-    # makes a normalized gaussian of sigma values
-    sigma_range = ddm_response(ddm, width_ms, lofreq, hifreq)
-    # Returns te index where sigma_limit is closest to one of the values in sigma_range
-    ind = (np.abs(sigma_range-sigma_limit)).argmin()
-    return 2*ddm[ind]
-
 def check_dmspan(groups, dt, lofreq, hifreq):
     """Read in groups and check whether each group's DM span exceeds the threshold.
     """
@@ -438,7 +410,7 @@ def check_dmspan(groups, dt, lofreq, hifreq):
                 downsamp = (sp[2]/dt)/sp[3]
                 width_ms = 1000.0*sp[4]*dt*downsamp
                 break
-        if (grp.max_dm-grp.min_dm > 5*theoritical_dmspan(grp.max_sigma, 5.0, width_ms, lofreq, hifreq)): 
+        if (grp.max_dm-grp.min_dm > 5*spio.theoritical_dmspan(grp.max_sigma, 5.0, width_ms, lofreq, hifreq)): 
             # checks if the DM span is more than 5 times theoritical dm value.
             if not ((grp.rank == 5) or (grp.rank == 6)): #if group is not good or excellent
                 grp.rank = 2                             # then its most likely RFI.
