@@ -287,10 +287,15 @@ void print_spectra_info(struct spectra_info *s)
     printf("      Time per subint (sec) = %-.12g\n", s->time_per_subint);
     printf("        Time per file (sec) = %-.12g\n", s->num_spec[0] * s->dt);
     printf("            bits per sample = %d\n", s->bits_per_sample);
-    printf("          bytes per spectra = %d\n", s->bytes_per_spectra);
-    printf("        samples per spectra = %d\n", s->samples_per_spectra);
-    printf("           bytes per subint = %d\n", s->bytes_per_subint);
-    printf("         samples per subint = %d\n", s->samples_per_subint);
+    {
+        int fact = 1;
+        if ((s->datatype == PSRFITS) && (s->bits_per_sample < 8))
+            fact = 8 / s->bits_per_sample;
+        printf("          bytes per spectra = %d\n", s->bytes_per_spectra / fact);
+        printf("        samples per spectra = %d\n", s->samples_per_spectra);
+        printf("           bytes per subint = %d\n", s->bytes_per_subint / fact);
+        printf("         samples per subint = %d\n", s->samples_per_subint);
+    }
     printf("                zero offset = %-17.15g\n", s->zero_offset);
     printf("           Invert the band? = %s\n",
            (s->apply_flipband > 0) ? "True" : "False");
