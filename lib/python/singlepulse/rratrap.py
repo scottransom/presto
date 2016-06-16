@@ -252,11 +252,6 @@ def grouping_sp_t(groups, use_ddplan=False, time_thresh=0.5, dm_thresh=0.1):
                     grp1.dmisclose(groups[j],use_ddplan,DMDIFF): # We check if two events
                                                       # have similar time and 
                                                       # a DM difference < DMDIFF
-#                    if DEBUG:
-#                        if grp1.rank == 2 or groups[j].rank == 2:
-#                            print "Grouping RFI group(s). grp1 rank: %s, \
-#                                    grp2 rank: %s, time: %s" \
-#                                    % (grp1.rank, groups[j].rank, grp1.center_time)
                     grp1.combine(groups.pop(j)) # Note group rank is not 
                                                 # updated when combine groups,
                                                 # need to re-run ranking after.
@@ -357,7 +352,6 @@ def rank_groups(groups, use_ddplan=False, min_group=45, min_sigma=8.0):
             #if maxavgsigma<1.05*minavgsigma:
             if all(stdsigma < 0.1 for stdsigma in stdsigmas): 
                 # Sigmas pretty much constant. Group is RFI
-                # FIXME: do this better; there can be fluctuations! use stddev
                 grp.rank = 2
             if maxsigmas[2] > maxsigmas[1]:
                 if maxsigmas[2] > maxsigmas[3]:
