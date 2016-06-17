@@ -145,21 +145,28 @@ class rfifind:
 
     def get_avg_zap_chans(self, sigma=5.0):
         resid = np.fabs(self.bandpass_avg - self.median_bandpass_avg)
-        resid /= self.median_bandpass_std
+        has_var = self.median_bandpass_std != 0.0
+        no_var = self.median_bandpass_std == 0.0
+        resid[has_var] /= self.median_bandpass_std[has_var]
+        resid[no_var] = np.inf
         return np.where(resid > sigma)[0]
 
     def get_std_zap_chans(self, sigma=5.0):
         resid = np.fabs(self.bandpass_std - self.median_bandpass_std)
-        resid /= self.median_bandpass_std
+        has_var = self.median_bandpass_std != 0.0
+        no_var = self.median_bandpass_std == 0.0
+        resid[has_var] /= self.median_bandpass_std[has_var]
+        resid[no_var] = np.inf
         return np.where(resid > sigma)[0]
 
     def get_no_signal_chans(self):
         med_std = np.median(self.median_bandpass_std)
-        return np.where(self.bandpass_std<0.15*med_std)[0]
+        return np.where(self.bandpass_std < 0.15 * med_std)[0]
 
     def get_edge_chans(self, edges=0.01):
         nedge = int(self.nchan * edges)
-        return np.concatenate((np.arange(nedge), np.arange(nedge)+self.nchan-nedge))
+        return np.concatenate((np.arange(nedge),
+                               np.arange(nedge) + self.nchan-nedge))
 
     def set_zap_chans(self, power=100.0, asigma=5.0, ssigma=2.0, plot=True,
                       edges=0.01, usemask=True, chans=[]):
@@ -238,7 +245,10 @@ class rfifind:
         not_zapped = set(np.arange(self.nchan)) - set(self.zap_chans)
         not_zapped = np.asarray(list(not_zapped))
         std_norm = self.bandpass_std[not_zapped].max()
-        self.weights = std_norm / self.bandpass_std
+        has_var = self.bandpass_std != 0.0
+        # weights for channels without variance will automatically be 0
+        self.weights = np.zeros_like(self.bandpass_std)
+        self.weights[has_var] = std_norm / self.bandpass_std[has_var]
         self.weights[self.zap_chans] = 0.0
         self.offsets = self.bandpass_avg
 
@@ -251,6 +261,28 @@ class rfifind:
         offsets = self.offsets[::-1] if invertband else self.offsets
         for c, w, o in zip(np.arange(self.nchan), self.weights, self.offsets):
             outfile.write("%5d     %7.5f   %7.5f\n" % (c, w, o))
+        outfile.close()
+
+    def write_bandpass(self, filename=None, invertband=False):
+        if filename is None:
+            filename = self.basename+".bandpass"
+        outfile = open(filename, "w")
+        outfile.write("# Chan    Average   Stdev\n")
+        avg = self.bandpass_avg[::-1] if invertband else self.bandpass_avg
+        std = self.bandpass_std[::-1] if invertband else self.bandpass_std
+        for c, a, s in zip(np.arange(self.nchan), avg, std):
+            outfile.write("%5d     %7.5f   %7.5f\n" % (c, a, s))
+        outfile.close()
+
+    def write_median_bandpass(self, filename=None, invertband=False):
+        if filename is None:
+            filename = self.basename+".median_bandpass"
+        outfile = open(filename, "w")
+        outfile.write("# Chan    Average   Stdev\n")
+        avg = self.median_bandpass_avg[::-1] if invertband else self.median_bandpass_avg
+        std = self.median_bandpass_std[::-1] if invertband else self.median_bandpass_std
+        for c, a, s in zip(np.arange(self.nchan), avg, std):
+            outfile.write("%5d     %7.5f   %7.5f\n" % (c, a, s))
         outfile.close()
 
     def write_weights(self, threshold=0.05, filename=None, invertband=False):
@@ -289,4 +321,5 @@ if __name__=="__main__":
     a.write_zap_chans()
     a.set_weights_and_offsets()
     a.write_weights(invertband=invert)
+    a.write_bandpass(invertband=invert)
     #a.write_weights_and_offsets(invertband=invert)
