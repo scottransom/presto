@@ -105,7 +105,7 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=Fa
         # Dedispersed waterfall plot - zerodm - OFF
         array = spdobj.data_nozerodm_dedisp.astype(np.float64)
         sp_pgplot.ppgplot.pgsvp(0.07, 0.40, 0.50, 0.80)
-        sp_pgplot.ppgplot.pgswin(datastart - start, datastart -start+datanumspectra*datasamp, min_freq, max_freq)
+        sp_pgplot.ppgplot.pgswin(datastart-start, datastart-start+datanumspectra*datasamp, min_freq, max_freq)
         sp_pgplot.ppgplot.pgsch(0.8)
         sp_pgplot.ppgplot.pgslw(3)
         sp_pgplot.ppgplot.pgbox("BCST", 0, 0, "BCNST", 0, 0)

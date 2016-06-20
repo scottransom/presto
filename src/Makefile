@@ -29,16 +29,17 @@ PGPLOTINC = -I$(PGPLOT_DIR)
 PGPLOTLINK = -L$(PGPLOT_DIR) -lcpgplot -lpgplot $(X11LINK) $(PNGLINK)
 
 # Include and link information for the FFTW 3.X single-precision library
-FFTINC := $(shell pkg-config --cflags fftw3f)
-FFTLINK := $(shell pkg-config --libs fftw3f)
+FFTINC := -I/usr/include
+FFTLINK := -L/usr/lib64 -lfftw3f
+#FFTLINK := -L$(MKLROOT)/lib/intel64  -Wl,--start-group -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -Wl,--end-group -lpthread
 
 # Include and link information for the GLIB 2.0 library
 GLIBINC := $(shell pkg-config --cflags glib-2.0)
 GLIBLINK := $(shell pkg-config --libs glib-2.0)
 
 # Include and link information for CFITSIO
-CFITSIOINC := $(shell pkg-config --cflags cfitsio)
-CFITSIOLINK := $(shell pkg-config --libs cfitsio)
+CFITSIOINC := -I/sb/software/CentOS-6/libraries/CFITSIO/3.28/include
+CFITSIOLINK := -L/sb/software/CentOS-6/libraries/CFITSIO/3.28/lib -lcfitsio
 
 # The standard PRESTO libraries to link into executables
 PRESTOLINK = $(CFITSIOLINK) -L$(PRESTO)/lib -lpresto $(FFTLINK)
