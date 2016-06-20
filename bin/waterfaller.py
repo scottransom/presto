@@ -47,7 +47,9 @@ def get_mask(rfimask, startsamp, N):
     mask = np.zeros((N, rfimask.nchan), dtype='bool')
     for blocknum in np.unique(blocknums):
         blockmask = np.zeros_like(mask[blocknums==blocknum])
-        blockmask[:,rfimask.mask_zap_chans_per_int[blocknum]] = True
+        chans_to_mask = rfimask.mask_zap_chans_per_int[blocknum]
+        if chans_to_mask:
+            blockmask[:,chans_to_mask] = True
         mask[blocknums==blocknum] = blockmask
     return mask.T
         
