@@ -461,8 +461,8 @@ if __name__=='__main__':
                       default=1.5)
     parser.add_option("--loc", dest="loc_pulse", type="float", help="Fraction of " \
                       "the window length where the pulse is located." \
-                      "(Default: 0.25 quarter of the way in.)", \
-                      default=0.25)
+                      "(Default: 0.5: half way in.)", \
+                      default=0.5)
     parser.add_option('--show-sweep', dest='disp_pulse', action='store_true', \
                         help="Plot the inset dispersed pulse. " \
                                 "(Default: Do not show the dispersed pulse)", default=False)

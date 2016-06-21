@@ -16,7 +16,7 @@ import sp_pgplot
 import read_spd
 import spio
 
-def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=False, outfile="spdplot", just_waterfall=True, \
+def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=False, outfile="spdplot", just_waterfall=True, \
          integrate_spec=True, integrate_ts=True, disp_pulse=True, tar=None):
     """
        Generates spd plots which include the following subplots:
@@ -363,7 +363,8 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=Fa
         if integrate_spec:
             spectrum_window = spec_width*pulse_width
             window_width = int(spectrum_window/datasamp)
-            burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            #burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            burst_bin = int(nbins*loc_pulse/downsamp)
             on_spec = array[..., burst_bin-window_width:burst_bin+window_width]
             Dedisp_spec = on_spec.sum(axis=1)
             freqs = np.linspace(min_freq, max_freq, len(Dedisp_spec)) 
@@ -413,7 +414,8 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=Fa
         if integrate_spec:
             spectrum_window = spec_width*pulse_width
             window_width = int(spectrum_window/datasamp)
-            burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            #burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            burst_bin = int(nbins*loc_pulse/downsamp)
             on_spec = array[..., burst_bin-window_width:burst_bin+window_width]
             Dedisp_spec = on_spec.sum(axis=1)
             freqs = np.linspace(min_freq, max_freq, len(Dedisp_spec)) 
@@ -496,8 +498,8 @@ def main():
                       "is the window around the pulse considered for the spectrum. (Default: 1.5)", \
                       default=1.5)
     parser.add_option("--loc", dest="loc_pulse", type="float", help="Fraction of the window length where the pulse is located." \
-                      "(Default: 0.25 quarter of the way in.)", \
-                      default=0.25)
+                      "(Default: 0.5 half way in.)", \
+                      default=0.5)
     parser.add_option("--just-waterfall", action="store_true", dest="just_waterfall",
                       default=False, help="Just produce the waterfall plots.")
     parser.add_option("--show-spec", action="store_true", dest="integrate_spec",

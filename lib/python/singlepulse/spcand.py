@@ -36,7 +36,7 @@ class params:
         self.topo_start_time = 0.0
         self.sample_number = 0
 
-    def read_from_file(self, params, tsamp, N, lofreq, hifreq, rawdatafile, loc_pulse = 0.25, dedisp = False, \
+    def read_from_file(self, params, tsamp, N, lofreq, hifreq, rawdatafile, loc_pulse = 0.5, dedisp = False, \
                        scaleindep = None, zerodm = None, mask = None, barytime = True, \
                        bandpass_corr = False): 
         """
@@ -111,7 +111,7 @@ class params:
             self.bandpass_corr = False
 
     def manual_params(self, subdm, dm, sweep_dm, sigma, start_time, width_bins, downsamp, \
-                      duration, nbins, nsub, tsamp, N, lofreq, hifreq, rawdatafile, loc_pulse=0.25, dedisp = False, \
+                      duration, nbins, nsub, tsamp, N, lofreq, hifreq, rawdatafile, loc_pulse=0.5, dedisp = False, \
                       scaleindep = None, zerodm = None, mask = False, barytime = True, \
                       bandpass_corr = False): 
         """
