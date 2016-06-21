@@ -140,7 +140,8 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=Fa
         if integrate_spec:
             spectrum_window = spec_width*pulse_width
             window_width = int(spectrum_window/datasamp)
-            burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            #burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            burst_bin = int(nbins*loc_pulse/downsamp)
             on_spec = array[..., burst_bin-window_width:burst_bin+window_width]
             Dedisp_spec = on_spec.sum(axis=1)
             freqs = np.linspace(min_freq, max_freq, len(Dedisp_spec)) 
@@ -190,7 +191,8 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.25, xwin=Fa
         if integrate_spec:
             spectrum_window = spec_width*pulse_width
             window_width = int(spectrum_window/datasamp)
-            burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            #burst_bin = int(datanumspectra*loc_pulse/downsamp)
+            burst_bin = int(nbins*loc_pulse/downsamp)
             on_spec = array[..., burst_bin-window_width:burst_bin+window_width]
             Dedisp_spec = on_spec.sum(axis=1)
             freqs = np.linspace(min_freq, max_freq, len(Dedisp_spec)) 

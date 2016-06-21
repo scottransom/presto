@@ -63,6 +63,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                        min_rank, group_rank, \
                        plot, just_waterfall, \
                        integrate_ts, integrate_spec, disp_pulse, \
+                       loc_pulse, \
                        maxnumcands, \
                        basename, \
                        mask=False, bandpass_corr=True, barytime=True, \
@@ -83,6 +84,8 @@ def make_spd_from_file(spdcand, rawdatafile, \
         integrate_ts: Do you want to display the dedispersed time series in the plot?
         integrate_spec: Do you want to display the pulse spectrum in the plot?
         disp_pulse: Do you want to see the inset dispersed pulse in the plot?
+        loc_pulse: Fraction of the window length where the pulse is located.(eg. 0.25 = 1/4th of the way in.
+                                                                             0.5 = middle of the plot)
         maxnumcands: What is the maximum number of candidates you would like to generate?
         basename: output basename of the file. Appended with _DM_TIME(s)_RANK.spd 
     Optional arguments:
@@ -116,7 +119,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                 # Array for Plotting Dedispersed waterfall plot - zerodm - OFF
                 spdcand.read_from_file(values[ii], rawdatafile.tsamp, rawdatafile.specinfo.N, \
                                        rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
-                                       rawdatafile, loc_pulse=0.25, dedisp = True, \
+                                       rawdatafile, loc_pulse=loc_pulse, dedisp = True, \
                                        scaleindep = None, zerodm = None, mask = mask, \
                                        barytime=barytime, \
                                        bandpass_corr = bandpass_corr)
@@ -154,7 +157,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                 ####Sweeped without zerodm
                 spdcand.read_from_file(values[ii], rawdatafile.tsamp, rawdatafile.specinfo.N, \
                                       rawdatafile.frequencies[0], rawdatafile.frequencies[-1], \
-                                      rawdatafile, loc_pulse=0.25, dedisp = None, \
+                                      rawdatafile, loc_pulse=loc_pulse, dedisp = None, \
                                       scaleindep = None, zerodm = None, mask = mask, \
                                       barytime=barytime, \
                                       bandpass_corr = bandpass_corr)
@@ -201,7 +204,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                 if plot:
                     print_debug("Now plotting...")
                     plot_spd.plot(temp_filename+".spd", args[1:], \
-                                  spec_width=1.5, loc_pulse=0.25, \
+                                  spec_width=1.5, loc_pulse=loc_pulse, \
                                   xwin=False, outfile=basename, \
                                   just_waterfall=just_waterfall, \
                                   integrate_spec=integrate_spec, \
@@ -387,6 +390,7 @@ def main():
                            options.min_rank, options.group_rank, \
                            options.plot, options.just_waterfall, \
                            options.integrate_ts, options.integrate_spec, options.disp_pulse, \
+                           options.loc_pulse, \
                            options.maxnumcands, \
                            basename, \
                            mask=options.mask, barytime=options.barytime, \
