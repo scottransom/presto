@@ -196,7 +196,7 @@ void dedisp_subbands(float *data, float *lastdata,
 #endif
         for (jj = 0; jj < numpts - dind; jj++)
             sub[jj] += chan[jj];
-        chan = data + ii * numpts;
+        chan = data + ii * numpts + dind;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) private(jj) shared(sub,chan,numpts)
 #endif
