@@ -610,7 +610,7 @@ def rank_occur(groups):
 
 #@profile
 def main():
-    parser = optparse.OptionParser(prog="Group_sp_events.py", \
+    parser = optparse.OptionParser(prog="rratrap.py", \
                          version="Chen Karako, updated by Chitrang Patel(June 23, 2015)",\
                          usage="%prog --inffile <.inf file> [options] *.singlepulse",\
                          description="Group single pulse events and rank them based on the sigma behavior. \
