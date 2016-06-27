@@ -490,9 +490,31 @@ def plot_sp_rated_pgplot(groups, ranks, inffile, ylow=0, yhigh=100, xlow=0, xhig
         xhigh = obsinfo['T'] # set xhigh to observation duration
     ppgplot.pgopen('grouped_pgplot_DMs%s-%s.ps/vcps' % (ylow, yhigh))
     # copying from single_pulse_search.py plotting
-    ppgplot.pgpap(8, 0.7) # Width in inches, aspect
+    ppgplot.pgpap(9, 0.7) # Width in inches, aspect
 #    ppgplot.pgsvp(0.06, 0.97, 0.08, 0.52) # single_pulse_search.py
-    ppgplot.pgsvp(0.06, 0.97, 0.08, 0.90)
+    ppgplot.pgsvp(0.87, 0.97, 0.80, 0.97)
+    ppgplot.pgsch(0.9)
+    ppgplot.pgsci(15)
+    ppgplot.pgpt(np.array([0.01]), np.array([0.12]), 9)
+    ppgplot.pgptxt(0.1, 0.1, 0.0, 0.0, '2: RFI')
+    ppgplot.pgsci(1)
+    ppgplot.pgpt(np.array([0.01]), np.array([0.27]), 9)
+    ppgplot.pgptxt(0.1, 0.25, 0.0, 0.0, '0: Noise')
+    ppgplot.pgsci(5)
+    ppgplot.pgpt(np.array([0.01]), np.array([0.42]), 9)
+    ppgplot.pgptxt(0.1, 0.4, 0.0, 0.0, '3: Ok')
+    ppgplot.pgsci(11)
+    ppgplot.pgpt(np.array([0.01]), np.array([0.57]), 9)
+    ppgplot.pgptxt(0.1, 0.55, 0.0, 0.0, '4: Good')
+    ppgplot.pgsci(4)
+    ppgplot.pgpt(np.array([0.01]), np.array([0.72]), 9)
+    ppgplot.pgptxt(0.1, 0.7, 0.0, 0.0, '5:Very Good')
+    ppgplot.pgsci(6)
+    ppgplot.pgpt(np.array([0.01]), np.array([0.87]), 9)
+    ppgplot.pgptxt(0.1, 0.85, 0.0, 0.0, '6: Excellent')
+    ppgplot.pgsci(1)
+
+    ppgplot.pgsvp(0.06, 0.97, 0.08, 0.80)
     #ppgplot.pgenv(xlow, xhigh, ylow, yhigh, 0, 1) #not sure if need 0,1
     ppgplot.pgswin(xlow, xhigh, ylow, yhigh)
     ppgplot.pgsch(0.8)
