@@ -12,9 +12,9 @@ import numpy as np
 import optparse
 import tarfile 
 from subprocess import Popen, PIPE
-import sp_pgplot
-import read_spd
-import spio
+import singlepulse.sp_pgplot as sp_pgplot
+import singlepulse.read_spd as read_spd
+import singlepulse.spio as spio
 
 def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=False, outfile="spdplot", just_waterfall=True, \
          integrate_spec=True, integrate_ts=True, disp_pulse=True, tar=None):

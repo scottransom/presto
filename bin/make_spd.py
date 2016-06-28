@@ -21,8 +21,8 @@ import optparse
 import waterfaller
 import psr_utils
 import plot_spd
-import spcand
-import spio
+import singlepulse.spcand as spcand
+import singlepulse.spio as spio
 import psrfits
 import spectra
 #import filterbank need to implement in PRESTO

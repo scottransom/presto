@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from Pgplot import *
 import optparse
 import sys
-import spio
+import singlepulse.spio as spio
 
 FRACTIONAL_SIGMA = 0.9 # change to 0.8?
 ALL_RANKS_ORDERED = [1,2,0,3,4,5,6]
