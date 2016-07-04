@@ -267,22 +267,24 @@ class rfifind:
         if filename is None:
             filename = self.basename+".bandpass"
         outfile = open(filename, "w")
-        outfile.write("# Chan    Average   Stdev\n")
         avg = self.bandpass_avg[::-1] if invertband else self.bandpass_avg
         std = self.bandpass_std[::-1] if invertband else self.bandpass_std
-        for c, a, s in zip(np.arange(self.nchan), avg, std):
-            outfile.write("%5d     %7.5f   %7.5f\n" % (c, a, s))
+        freqs = self.freqs[::-1] if invertband else self.freqs
+        outfile.write("# Chan   Freq(MHz)     Mean       StDev\n")
+        for ii, (freq, mean, stdev) in enumerate(zip(freqs, avg, std)):
+            outfile.write("%6d  %9.3f  %9.3f  %9.3f\n" % (ii, freq, mean, stdev))
         outfile.close()
 
     def write_median_bandpass(self, filename=None, invertband=False):
         if filename is None:
             filename = self.basename+".median_bandpass"
         outfile = open(filename, "w")
-        outfile.write("# Chan    Average   Stdev\n")
         avg = self.median_bandpass_avg[::-1] if invertband else self.median_bandpass_avg
         std = self.median_bandpass_std[::-1] if invertband else self.median_bandpass_std
-        for c, a, s in zip(np.arange(self.nchan), avg, std):
-            outfile.write("%5d     %7.5f   %7.5f\n" % (c, a, s))
+        freqs = self.freqs[::-1] if invertband else self.freqs
+        outfile.write("# Chan   Freq(MHz)     Mean       StDev\n")
+        for ii, (freq, mean, stdev) in enumerate(zip(freqs, avg, std)):
+            outfile.write("%6d  %9.3f  %9.3f  %9.3f\n" % (ii, freq, mean, stdev))
         outfile.close()
 
     def write_weights(self, threshold=0.05, filename=None, invertband=False):
