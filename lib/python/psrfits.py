@@ -5,7 +5,7 @@ Collect PSRFITS information, emulating behaviour of PRESTO.
 Read PSRFITS data.
 
 Patrick Lazarus, May 11, 2010
-Last Updated: May 15, 2016 (Paul Scholz; minor mods from Dec 16, 2014 version) 
+Last Updated: Jul 4, 2016 (Scott Ransom to add 2-bit reading)
 
 """
 import re
@@ -31,7 +31,24 @@ date_obs_re = re.compile(r"^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-" \
 # Default global debugging mode
 debug = True 
 
-def unpack_4bit(data):                       
+def unpack_2bit(data):
+    """Unpack 2-bit data that has been read in as bytes.
+
+        Input: 
+            data2bit: array of unsigned 2-bit ints packed into
+                an array of bytes.
+
+        Output: 
+            outdata: unpacked array. The size of this array will 
+                be four times the size of the input data.
+    """
+    piece0 = np.bitwise_and(data >> 0x06, 0x03)
+    piece1 = np.bitwise_and(data >> 0x04, 0x03)
+    piece2 = np.bitwise_and(data >> 0x02, 0x03)
+    piece3 = np.bitwise_and(data, 0x03)
+    return np.dstack([piece0, piece1, piece2, piece3]).flatten()
+
+def unpack_4bit(data):
     """Unpack 4-bit data that has been read in as bytes.
 
         Input: 
@@ -42,10 +59,9 @@ def unpack_4bit(data):
             outdata: unpacked array. The size of this array will 
                 be twice the size of the input data.
     """
-    first_piece = np.bitwise_and(15,data)
-    second_piece = data >> 4
-    return np.dstack([first_piece,second_piece]).flatten()
-
+    piece0 = np.bitwise_and(data >> 0x04, 0x0F)
+    piece1 = np.bitwise_and(data, 0x0F)
+    return np.dstack([piece0, piece1]).flatten()
 
 class PsrfitsFile(object):
     def __init__(self, psrfitsfn):
@@ -62,7 +78,7 @@ class PsrfitsFile(object):
         self.nsubints = self.specinfo.num_subint[0]
         self.freqs = self.fits['SUBINT'].data[0]['DAT_FREQ'] 
         self.frequencies = self.freqs # Alias
-        self.tsamp = self.specinfo.dt 
+        self.tsamp = self.specinfo.dt
 
     def read_subint(self, isub, apply_weights=True, apply_scales=True, \
                     apply_offsets=True):
@@ -84,8 +100,16 @@ class PsrfitsFile(object):
                      applied in float32 dtype with shape (nsamps,nchan).
         """ 
         subintdata = self.fits['SUBINT'].data[isub]['DATA']
+        shp = subintdata.squeeze().shape
+        if ((self.nbits < 8) and \
+            (shp[0] != self.nsamp_per_subint) and \
+            (shp[1] != self.nchan * self.nbits / 8)):
+            subintdata = subintdata.reshape(self.nsamp_per_subint,
+                                            self.nchan * self.nbits / 8)
         if self.nbits == 4:
             data = unpack_4bit(subintdata)
+        elif self.nbits == 2:
+            data = unpack_2bit(subintdata)
         else:
             data = np.array(subintdata)
         if apply_offsets:
@@ -100,7 +124,7 @@ class PsrfitsFile(object):
             weights = self.get_weights(isub)
         else:
             weights = 1
-        data = data.reshape((self.nsamp_per_subint,self.nchan))
+        data = data.reshape((self.nsamp_per_subint, self.nchan))
         data_wso = ((data * scales) + offsets) * weights
         return data_wso
 
