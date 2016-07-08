@@ -12,6 +12,9 @@ if __name__=="__main__":
         invert = True
     else:
         invert = False
+    # Write the bandpass before we zap things
+    a.write_bandpass(invertband=invert)
+    # Now do the zapping and set the weights
     a.set_zap_chans(power=200.0,
                     edges=0.01,
                     asigma=2.0,
@@ -22,5 +25,4 @@ if __name__=="__main__":
     a.write_zap_chans()
     a.set_weights_and_offsets()
     a.write_weights(invertband=invert)
-    a.write_bandpass(invertband=invert)
     #a.write_weights_and_offsets(invertband=invert)
