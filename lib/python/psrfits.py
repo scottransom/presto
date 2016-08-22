@@ -232,7 +232,7 @@ class SpectraInfo:
                 raise ValueError("File '%s' does not appear to be PSRFITS!" % fn)
             
             # Open the PSRFITS file
-            hdus = pyfits.open(fn, mode='readonly')
+            hdus = pyfits.open(fn, mode='readonly', memmap=True)
             
             if ii==0:
                 self.hdu_names = [hdu.name for hdu in hdus]
@@ -564,7 +564,7 @@ def is_PSRFITS(filename):
     """Return True if filename appears to be PSRFITS format.
         Return False otherwise.
     """
-    hdus = pyfits.open(filename, mode='readonly')
+    hdus = pyfits.open(filename, mode='readonly', memmap=True)
     primary = hdus['PRIMARY'].header
 
     try:
