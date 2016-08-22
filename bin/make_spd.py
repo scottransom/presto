@@ -63,7 +63,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                        min_rank, group_rank, \
                        plot, just_waterfall, \
                        integrate_ts, integrate_spec, disp_pulse, \
-                       loc_pulse, \
+                       loc_pulse, nsub, \
                        maxnumcands, \
                        basename, \
                        mask=False, bandpass_corr=True, barytime=True, \
@@ -122,7 +122,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                        rawdatafile, loc_pulse=loc_pulse, dedisp = True, \
                                        scaleindep = None, zerodm = None, mask = mask, \
                                        barytime=barytime, \
-                                       bandpass_corr = bandpass_corr)
+                                       nsub = nsub, bandpass_corr = bandpass_corr)
 
                 #make an array to store header information for the spd files
                 temp_filename = basename+"_DM%.1f_%.1fs_rank_%i"%(spdcand.subdm, \
@@ -160,7 +160,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                       rawdatafile, loc_pulse=loc_pulse, dedisp = None, \
                                       scaleindep = None, zerodm = None, mask = mask, \
                                       barytime=barytime, \
-                                      bandpass_corr = bandpass_corr)
+                                      nsub = nsub, bandpass_corr = bandpass_corr)
                 data, Data_nozerodm = waterfall_array(rawdatafile, spdcand.start, \
                                            spdcand.duration, spdcand.dm, spdcand.nbins, spdcand.nsub, \
                                            spdcand.subdm, spdcand.zerodm, spdcand.downsamp, \
@@ -196,7 +196,7 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                         Data_zerodm = Data_zerodm.astype(np.float16), \
                                         dm_arr= map(np.float16, dm_arr),\
                                         sigma_arr = map(np.float16, sigma_arr), \
-                                        width_arr =map(np.int8, width_arr),\
+                                        width_arr =map(np.uint8, width_arr),\
                                         dm_list= map(np.float16, dm_list), \
                                         time_list = map(np.float16, time_list), \
                                         text_array = text_array)
@@ -390,7 +390,7 @@ def main():
                            options.min_rank, options.group_rank, \
                            options.plot, options.just_waterfall, \
                            options.integrate_ts, options.integrate_spec, options.disp_pulse, \
-                           options.loc_pulse, \
+                           options.loc_pulse, options.nsub, \
                            options.maxnumcands, \
                            basename, \
                            mask=options.mask, barytime=options.barytime, \

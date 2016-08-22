@@ -1,10 +1,27 @@
 import numpy as np
 import bary_and_topo
-
 def topo_timeshift(bary_start_time, time_shift, topo):
     ind = np.where(topo == float(int(bary_start_time)/10*10))[0]
     return time_shift[ind]
 
+def numsub(nchans, snr):
+    if not nchans==960 and np.log2(nchans).is_integer(): #Puppi L-wide and GBNCC 
+        if snr < 10:
+            nsub = 32
+        elif snr >= 10 and snr < 15:
+            nsub = 64
+        else:
+            nsub = 128
+    elif nchans == 960: #PALFA
+        if snr < 10:
+            nsub = 32
+        elif snr >= 10 and snr < 15:
+            nsub = 64
+        else:
+            nsub = 96
+    else:
+        nsub = nchans
+    return nsub    
 
 class params:
     """
@@ -38,7 +55,7 @@ class params:
 
     def read_from_file(self, params, tsamp, N, lofreq, hifreq, rawdatafile, loc_pulse = 0.5, dedisp = False, \
                        scaleindep = None, zerodm = None, mask = None, barytime = True, \
-                       bandpass_corr = False): 
+                       nsub = None, bandpass_corr = False): 
         """
            Set up parameters based on input from the groups.txt file.
            Input: params: list of parameters (DM, S/N, Time, Sample number, downfactor)
@@ -81,12 +98,10 @@ class params:
             self.start = 0.0
         self.start_bin = np.round(self.start/tsamp).astype('int')
         self.pulse_width = self.width_bins*self.downsamp*tsamp
-        if self.sigma < 10:
-            self.nsub = 32
-        elif self.sigma >= 10 and self.sigma < 15:
-            self.nsub = 64
+        if nsub is not None:
+            self.nsub = nsub
         else:
-            self.nsub = 96
+            self.nsub = numsub(rawdatafile.nchan, self.sigma)
         self.zerodm = zerodm
         if dedisp:
             self.dm = self.subdm
