@@ -1,11 +1,11 @@
-#!/usr/bin/env python
+#/usr/bin/env python
 
 """
-rratrap.py 
+rrattrap.py 
 
 Single pulse sifting code: performs grouping and ranking of single pulses identified by PRESTO's single_pulse_search.py.
 Usage:
-    python rratrap.py [OPTIONS] --inffile <.inf file> <.singlepulse files>
+    python rrattrap.py [OPTIONS] --inffile <.inf file> <.singlepulse files>
 
 Output:
     - groups.txt : a file listing all single pulse groups and their ranking.
@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 from Pgplot import *
 import optparse
 import sys
-import spio
+import singlepulse.spio as spio
 
 FRACTIONAL_SIGMA = 0.9 # change to 0.8?
 ALL_RANKS_ORDERED = [1,2,0,3,4,5,6]
@@ -32,8 +32,8 @@ DEBUG = True # if True, will be verbose
 
 def dmthreshold(dm, use_dmplan, min_group=45):
     if use_dmplan:
-        import rratrap_config
-        dmt, min_group = rratrap_config.use_dmplan(dm)
+        import singlepulse.rrattrap_config as rrattrap_config
+        dmt, min_group = rrattrap_config.use_dmplan(dm)
     else:
         dmt = 1
         min_group = min_group 
@@ -610,7 +610,7 @@ def rank_occur(groups):
 
 #@profile
 def main():
-    parser = optparse.OptionParser(prog="Group_sp_events.py", \
+    parser = optparse.OptionParser(prog="rrattrap.py", \
                          version="Chen Karako, updated by Chitrang Patel(June 23, 2015)",\
                          usage="%prog --inffile <.inf file> [options] *.singlepulse",\
                          description="Group single pulse events and rank them based on the sigma behavior. \
@@ -675,20 +675,20 @@ def main():
                          " Only '.inf' types are supported.")
     
     if options.use_DMplan or options.use_configfile:
-        import rratrap_config
+        import singlepulse.rrattrap_config as rrattrap_config
 
     RANKS = np.asarray([2,0,3,4,5,6])
     
     if options.use_configfile:
-        CLOSE_DM = rratrap_config.CLOSE_DM
-        MIN_GROUP = rratrap_config.MIN_GROUP
-        TIME_THRESH = rratrap_config.TIME_THRESH
-        DM_THRESH = rratrap_config.DM_THRESH
-        MIN_SIGMA = rratrap_config.MIN_SIGMA
-        PLOT = rratrap_config.PLOT
-        PLOTTYPE = rratrap_config.PLOTTYPE
-        RANKS_TO_WRITE = rratrap_config.RANKS_TO_WRITE
-        RANKS_TO_PLOT = rratrap_config.RANKS_TO_PLOT
+        CLOSE_DM = rrattrap_config.CLOSE_DM
+        MIN_GROUP = rrattrap_config.MIN_GROUP
+        TIME_THRESH = rrattrap_config.TIME_THRESH
+        DM_THRESH = rrattrap_config.DM_THRESH
+        MIN_SIGMA = rrattrap_config.MIN_SIGMA
+        PLOT = rrattrap_config.PLOT
+        PLOTTYPE = rrattrap_config.PLOTTYPE
+        RANKS_TO_WRITE = rrattrap_config.RANKS_TO_WRITE
+        RANKS_TO_PLOT = rrattrap_config.RANKS_TO_PLOT
     else:
         CLOSE_DM = options.close_dm
         MIN_GROUP = options.min_group
