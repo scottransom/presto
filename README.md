@@ -73,6 +73,9 @@ main areas of pulsar analysis:
    de-dispersion planning (`DDplan.py`), date conversion (`mjd2cal`,
    `cal2mjd`), tons of python pulsar/astro libraries, average pulse
    creation, flux density estimation, and more...
+5. Post Single Pulse Searching Tools: Grouping algorithm (`rrattrap.py`),
+   Production and of single pulse diagnostic plots (`make_spd.py` and 
+   `plot_spd.py`).    
 
 Many additional utilities are provided for various tasks that are
 often required when working with pulsar data such as time conversions,
@@ -153,8 +156,8 @@ BCPM and WAPP data, David Kaplan for lots of help with the GBT SPIGOT
 code, Jason Hessels for many contributions to the Python routines, and
 a bunch of other contributions of various kinds from (alphabetical):
 Anne Archibald, Cees Bassa, Slavko Bogdanov, Fernando Camilo, Paul
-Demorest, Paulo Freire, Mike Keith, Patrick Lazarus, Maggie
-Livingstone, Paul Ray, Paul Scholz, Ingrid Stairs, Kevin Stovall, and
-for many comments, suggestions and patches!
+Demorest, Paulo Freire, Chen Karako, Mike Keith, Patrick Lazarus, Maggie
+Livingstone, Chitrang Patel, Paul Ray, Paul Scholz, Ingrid Stairs, and 
+Kevin Stovall for many comments, suggestions and patches!
 
 Scott Ransom <sransom@nrao.edu>
