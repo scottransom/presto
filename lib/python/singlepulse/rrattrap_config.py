@@ -1,4 +1,4 @@
-# /usr/bin/env python
+#! /usr/bin/env python
 
 CLOSE_DM = 2 # pc cm-3
 # MIN_GROUP, DM_THRESH, TIME_THRESH will change later on depending on the DDplan.

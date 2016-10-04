@@ -39,7 +39,7 @@ def bary_to_topo(infofilenm, rawdatafile=False, ephem="DE200"):
        filetype = 'PSRFITS'
    else:
        raise ValueError("file type not recognized. Must be .inf, or .fits")
-   if filetype=="int": 
+   if filetype=="inf": 
        obs = read_inffile(infofilenm)
        T = obs.N * obs.dt
        dt = 10.0
