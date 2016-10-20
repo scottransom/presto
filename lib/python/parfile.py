@@ -1,6 +1,8 @@
 from __future__ import print_function
 from builtins import object
-from types import StringType, FloatType
+import six
+#from types import StringType, FloatType
+import collections
 import math, re
 import psr_utils as pu
 try:
@@ -184,11 +186,12 @@ class psr_par(object):
         if hasattr(self, 'T0') and not hasattr(self, 'TASC'):
             setattr(self, 'TASC', self.T0 - self.PB * self.OM/360.0)
         pf.close()
+
     def __str__(self):
         out = ""
         for k, v in list(self.__dict__.items()):
             if k[:2]!="__":
-                if type(self.__dict__[k]) is StringType:
+                if type(self.__dict__[k]) in six.string_types:
                     out += "%10s = '%s'\n" % (k, v)
                 else:
                     out += "%10s = %-20.15g\n" % (k, v)
