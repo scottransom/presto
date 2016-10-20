@@ -656,7 +656,7 @@ class pfd(object):
             sumprof = profs.sum(0)
             chis[ii] = self.calc_redchi2(prof=sumprof, avg=avgprof)
         # Now plot it
-        Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d", device=device)
+        Pgplot.plotxy(chis, DMs, labx="DM", laby=r"Reduced-\gx\u2\d", device=device)
         return (chis, DMs)
 
     def plot_chi2_vs_sub(self, device='/xwin'):
@@ -684,7 +684,7 @@ class pfd(object):
         for ii in range(self.nsub):
             chis[ii] = self.calc_redchi2(prof=profs[ii], avg=avgs[ii], var=vars[ii])
         # Now plot it
-        Pgplot.plotxy(chis, labx="Subband Number", laby="Reduced-\gx\u2\d",
+        Pgplot.plotxy(chis, labx="Subband Number", laby=r"Reduced-\gx\u2\d",
                       rangey=[0.0, max(chis)*1.1], device=device)
         return chis
 
