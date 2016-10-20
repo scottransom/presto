@@ -1,5 +1,7 @@
+from __future__ import print_function
 import numpy as num
 import Pgplot
+from functools import reduce
 
 def noverk(n,k):
     # This is the combinations formula
@@ -95,8 +97,8 @@ def kuiper_uniform_test(data, output=0):
                       labx="Fraction of Data", laby="Cumulative Value", width=2)
         Pgplot.plotxy(num.asarray([0.0, 1.0]), num.asarray([0.0, 1.0]), width=1)
         Pgplot.closeplot()
-        print "Max distance between the cumulative distributions (D) = %.5g" % D
-        print "Prob the data is from the specified distrbution   (P) = %.3g" % P
+        print("Max distance between the cumulative distributions (D) = %.5g" % D)
+        print("Prob the data is from the specified distrbution   (P) = %.3g" % P)
     return (D, P)
 
 if __name__=="__main__":
@@ -105,10 +107,10 @@ if __name__=="__main__":
         for ii in range(4):
             N = 200
             data = num.random.random(N)
-            print "-------"
-            print "K-S:"
+            print("-------")
+            print("K-S:")
             (D, P) = KS_test(data, cum_uniform_dist, output=1)
-            print "Kuiper:"
+            print("Kuiper:")
             (D, P) = kuiper_uniform_test(data, output=1)
     if (1):
         from Pgplot import *

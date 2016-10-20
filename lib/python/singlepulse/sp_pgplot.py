@@ -1,3 +1,4 @@
+from __future__ import print_function
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
@@ -135,7 +136,7 @@ def plot_waterfall(z, x=None, y=None, title=None, rangex=None, rangey=None, \
     # Make sure the input data is a 2D array
     z = Num.asarray(z);
     if not len(z.shape)==2:
-        print 'Input data array must be 2 dimensional.'
+        print('Input data array must be 2 dimensional.')
         return
     # Announce the global variables we will be using
     global ppgplot_dev_open_, ppgplot_dev_prep_, pgpalette

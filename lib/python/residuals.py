@@ -1,3 +1,4 @@
+from __future__ import print_function
 #
 #  From the TEMPO Documentation:
 #    
@@ -56,7 +57,7 @@ def read_residuals(filename="resid2.tmp"):
     filelen = infile.tell()
     if (filelen % reclen or
         not (reclen==struct.calcsize(rectype))):
-        print "Warning:  possibly reading residuals incorrectly... don't understand record size"
+        print("Warning:  possibly reading residuals incorrectly... don't understand record size")
     infile.seek(0, 0) # position at file start
     r.numTOAs = filelen / reclen
     r.bary_TOA = Num.zeros(r.numTOAs, 'd')

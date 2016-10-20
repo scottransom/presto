@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import os
 import struct
 import sys
@@ -75,13 +76,13 @@ def ra2radians(src_raj):
 def read_doubleval(filfile, stdout=False):
     dblval = struct.unpack('d', filfile.read(8))[0]
     if stdout:
-        print "  double value = '%20.15f'"%dblval
+        print("  double value = '%20.15f'"%dblval)
     return dblval
 
 def read_intval(filfile, stdout=False):
     intval = struct.unpack('i', filfile.read(4))[0]
     if stdout:
-        print "  int value = '%d'"%intval
+        print("  int value = '%d'"%intval)
     return intval
 
 def read_charval(filfile, stdout=False):
@@ -93,20 +94,20 @@ def read_charval(filfile, stdout=False):
 def read_longintval(filfile, stdout=False):
     longintval = struct.unpack('q', filfile.read(8))[0]
     if stdout:
-        print "  long int value = '%d'"%longintval
+        print("  long int value = '%d'"%longintval)
     return longintval
 
 def read_string(filfile, stdout=False):
     strlen = struct.unpack('i', filfile.read(4))[0]
     strval = filfile.read(strlen)
     if stdout:
-        print "  string = '%s'"%strval
+        print("  string = '%s'"%strval)
     return strval
 
 def read_paramname(filfile, stdout=False):
     paramname = read_string(filfile, stdout=False)
     if stdout:
-        print "Read '%s'"%paramname
+        print("Read '%s'"%paramname)
     return paramname
 
 def read_hdr_val(filfile, stdout=False):
@@ -183,13 +184,13 @@ def samples_per_file(infile, hdrdict, hdrlen):
     numbytes = os.stat(infile)[6] - hdrlen
     bytes_per_sample = hdrdict['nchans'] * (hdrdict['nbits']/8)
     if numbytes % bytes_per_sample:
-        print "Warning!:  File does not appear to be of the correct length!"
+        print("Warning!:  File does not appear to be of the correct length!")
     numsamples = numbytes / bytes_per_sample
     return numsamples
 
 if __name__ == "__main__":
     if len(sys.argv)==1:
-        print "\nusage:  mod_filterbank_hdr.py infile.fil [outfile.fil]\n"
+        print("\nusage:  mod_filterbank_hdr.py infile.fil [outfile.fil]\n")
         sys.exit()
     filhdr = {}
     newhdr = ""
@@ -210,9 +211,9 @@ if __name__ == "__main__":
         if param=="HEADER_END":  break
             
     if len(sys.argv) > 2:
-        print "Writing new header to '%s'"%sys.argv[2]
+        print("Writing new header to '%s'"%sys.argv[2])
         outfile = open(sys.argv[2], 'wb')
         outfile.write(newhdr)
         outfile.close()
     else:
-        print filhdr
+        print(filhdr)

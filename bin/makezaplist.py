@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 from sys import argv, exit
 from string import index
 from presto import *
@@ -22,7 +23,7 @@ def processbirds(filename):
     try:
         ii = index(filename, ".birds")
     except ValueError:
-        print "\nThe birdie filename must end in '.birds'\n"
+        print("\nThe birdie filename must end in '.birds'\n")
         exit(0)
     else:
         rootname = filename[:ii]
@@ -30,7 +31,7 @@ def processbirds(filename):
     freqs = 0
     trains = 0
     birds = []
-    print "\nProcessing the birds..."
+    print("\nProcessing the birds...")
     info = read_inffile(rootname)
     T = info.dt * info.N;
     # PSRs get 40 bins minimum zapped (overkill for most,
@@ -82,9 +83,9 @@ def processbirds(filename):
             else:
                 freqs += 1
                 birds.append(bird(float(words[0]), float(words[1])))
-    print "\nRead %d freqs, %d pulsars, and %d harmonic series." % \
-          (freqs, psrs, trains)
-    print "Total number of birdies = %d" % (len(birds)) 
+    print("\nRead %d freqs, %d pulsars, and %d harmonic series." % \
+          (freqs, psrs, trains))
+    print("Total number of birdies = %d" % (len(birds))) 
     birds.sort()
     file.close()
     file = open(rootname+".zaplist", "w")
@@ -96,12 +97,12 @@ def processbirds(filename):
     for birdie in birds:
         file.write(str(birdie))
     file.close()
-    print "\nWrote '%s'\n" % (rootname+".zaplist")
+    print("\nWrote '%s'\n" % (rootname+".zaplist"))
 
 if __name__ == '__main__':
     if len(argv)==1:
-        print "\nusage:  makezaplist.py birdsfilename"
-        print "       Note:  'birdsfilename' must end in '.birds'\n"
-        print "               and a related infofile ('.inf') must exist.\n"
+        print("\nusage:  makezaplist.py birdsfilename")
+        print("       Note:  'birdsfilename' must end in '.birds'\n")
+        print("               and a related infofile ('.inf') must exist.\n")
     else:
         processbirds(argv[1])

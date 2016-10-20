@@ -5,6 +5,7 @@ A script to truncate a filterbank file in time/frequency.
 
 Patrick Lazarus, Aug 27, 2012
 """
+from __future__ import print_function
 
 import sys
 import copy
@@ -20,7 +21,7 @@ BLOCKSIZE = 1e5 # Number of spectra to manipulate at once
 
 def main():
     infn = args[0]
-    print "Reading filterbank file (%s)" % infn
+    print("Reading filterbank file (%s)" % infn)
     fil = filterbank.FilterbankFile(infn)
     if options.start_time is None:
         startbin = 0
@@ -67,15 +68,15 @@ def main():
         raise ValueError("Bad number of channels to be written (%d). " \
                             "Check lo/hi frequencies." % new_nchans)
 
-    print "Will extract"
-    print "    %d bins (%d to %d incl.)" % (new_nspec, startbin, endbin-1)
-    print "    (Original num bins: %d)" % fil.nspec
-    print "    %d channels (%d to %d incl.)" % (new_nchans, lochan, hichan-1)
-    print "    (Original num chans: %d)" % fil.nchans
+    print("Will extract")
+    print("    %d bins (%d to %d incl.)" % (new_nspec, startbin, endbin-1))
+    print("    (Original num bins: %d)" % fil.nspec)
+    print("    %d channels (%d to %d incl.)" % (new_nchans, lochan, hichan-1))
+    print("    (Original num chans: %d)" % fil.nchans)
 
     # Create output file
     outfn = options.outname % fil.header
-    print "Creating out file: %s" % outfn
+    print("Creating out file: %s" % outfn)
     outhdr = copy.deepcopy(fil.header)
     outhdr['nchans'] = new_nchans
     outhdr['fch1'] = fil.frequencies[lochan]
