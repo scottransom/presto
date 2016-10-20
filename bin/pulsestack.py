@@ -20,6 +20,8 @@
 ######################################################################
 
 from __future__ import print_function
+from builtins import str
+from builtins import range
 import numpy as np
 import array as ar
 import os, os.path, stat, glob, sys

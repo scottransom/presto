@@ -401,6 +401,9 @@ Perform Levenberg-Marquardt least-squares minimization, based on MINPACK-1.
    August, 2002.  Mark Rivers
 """
 from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 
 import numpy
 import types
@@ -588,7 +591,7 @@ import types
 #
 #     **********
 
-class mpfit:
+class mpfit(object):
    def __init__(self, fcn, xall=None, functkw={}, parinfo=None,
                 ftol=1.e-10, xtol=1.e-10, gtol=1.e-10,
                 damp=0., maxiter=200, factor=100., nprint=1,
@@ -2236,7 +2239,7 @@ Keywords:
 
       return(r)
 
-class machar:
+class machar(object):
    def __init__(self, double=1):
       if (double == 0):
          self.machep = 1.19209e-007

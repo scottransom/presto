@@ -12,6 +12,8 @@ Chitrang Patel - May. 21, 2015 -- Updated on June 10 2016
 """
 from __future__ import print_function
 from __future__ import absolute_import
+from builtins import map
+from builtins import range
 
 import sys
 import copy
@@ -196,11 +198,11 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                         delays_nozerodm = delays_nozerodm, \
                                         freqs_nozerodm = freqs_nozerodm,\
                                         Data_zerodm = Data_zerodm.astype(np.float16), \
-                                        dm_arr= map(np.float16, dm_arr),\
-                                        sigma_arr = map(np.float16, sigma_arr), \
-                                        width_arr =map(np.uint8, width_arr),\
-                                        dm_list= map(np.float16, dm_list), \
-                                        time_list = map(np.float16, time_list), \
+                                        dm_arr= list(map(np.float16, dm_arr)),\
+                                        sigma_arr = list(map(np.float16, sigma_arr)), \
+                                        width_arr =list(map(np.uint8, width_arr)),\
+                                        dm_list= list(map(np.float16, dm_list)), \
+                                        time_list = list(map(np.float16, time_list)), \
                                         text_array = text_array)
                 #### Arrays for Plotting DM vs Time is in plot_spd.plot(...)
                 if plot:

@@ -1,4 +1,7 @@
 from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
@@ -557,7 +560,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
 
 #########################################################################
 
-class Palette:
+class Palette(object):
     # Set the color palette
     def setpalette(self, palette):
         """

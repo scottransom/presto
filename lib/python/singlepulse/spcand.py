@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from builtins import object
 import numpy as np
 from . import bary_and_topo
 def topo_timeshift(bary_start_time, time_shift, topo):
@@ -24,7 +25,7 @@ def numsub(nchans, snr):
         nsub = nchans
     return nsub    
 
-class params:
+class params(object):
     """
     A class for input parameters for the spd plots.
 

@@ -2,6 +2,7 @@
 from __future__ import print_function
 import astropy.coordinates as coords
 import astropy.units as u
+from builtins import str
 import os
 import os.path
 import argparse
