@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+from builtins import object
 from sys import argv, exit
 from string import index
 from presto import *
 
-class bird:
+class bird(object):
     def __init__(self, freq, width, bary=0):
         self.freq = freq
         self.width = width
@@ -48,7 +52,7 @@ def processbirds(filename):
             if (psr.orb.p):
                 (minv, maxv) = binary_velocity(T, psr.orb)
             psrs += 1
-            for harm in xrange(1, numharm+1):
+            for harm in range(1, numharm+1):
                 if (psr.orb.p):
                     midv = 0.5 * (maxv + minv)
                     midf = (1.0 + midv) * psr.f * harm
@@ -75,10 +79,10 @@ def processbirds(filename):
                         bary = int(words[4])
                 trains += 1
                 if (increase_width):
-                    for harm in xrange(1, numharm+1):
+                    for harm in range(1, numharm+1):
                         birds.append(bird(freq * harm, width * harm, bary))
                 else:
-                    for harm in xrange(1, numharm+1):
+                    for harm in range(1, numharm+1):
                         birds.append(bird(freq * harm, width, bary))
             else:
                 freqs += 1

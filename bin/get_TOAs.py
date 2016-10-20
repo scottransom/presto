@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
 import struct, getopt, sys, fftfit, psr_utils
 import numpy as Num
 from infodata import infodata
@@ -157,14 +158,14 @@ if __name__ == '__main__':
             for subs in a.split(','):
                 if (subs.find("-") > 0):
                     lo, hi = subs.split("-")
-                    kill.extend(range(int(lo), int(hi)+1))
+                    kill.extend(list(range(int(lo), int(hi)+1)))
                 else:
                     kill.append(int(subs))
         if o in ("-i", "--kints"):
             for ints in a.split(','):
                 if (ints.find("-") > 0):
                     lo, hi = ints.split("-")
-                    kints.extend(range(int(lo), int(hi)+1))
+                    kints.extend(list(range(int(lo), int(hi)+1)))
                 else:
                     kints.append(int(ints))
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import zip
 import os
 import struct
 import sys
@@ -12,13 +13,13 @@ telescope_ids = {"Fake": 0, "Arecibo": 1, "ARECIBO 305m": 1,
                  "GBT": 6, "GMRT": 7, "Effelsberg": 8, "ATA": 9,
                  "SRT": 10, "LOFAR": 11, "VLA": 12, "CHIME": 20,
                  "FAST": 21, "MeerKAT": 64, "KAT-7": 65}
-ids_to_telescope = dict(zip(telescope_ids.values(), telescope_ids.keys()))
+ids_to_telescope = dict(list(zip(list(telescope_ids.values()), list(telescope_ids.keys()))))
 
 machine_ids = {"FAKE": 0, "PSPM": 1, "Wapp": 2, "WAPP": 2, "AOFTM": 3,
                "BCPM1": 4, "BPP": 4, "OOTY": 5, "SCAMP": 6,
                "GBT Pulsar Spigot": 7, "SPIGOT": 7, "BG/P": 11,
                "PDEV": 12, "CHIME+PSR": 20, "KAT": 64, "KAT-DC2": 65}
-ids_to_machine = dict(zip(machine_ids.values(), machine_ids.keys()))
+ids_to_machine = dict(list(zip(list(machine_ids.values()), list(machine_ids.keys()))))
 
 header_params = {
     "HEADER_START": 'flag',

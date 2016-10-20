@@ -1,11 +1,13 @@
 from __future__ import print_function
+from builtins import range
+from builtins import object
 import numpy as Num
 import copy, random, struct, sys
 import psr_utils, infodata, polycos, Pgplot
 from types import StringType, FloatType, IntType
 from bestprof import bestprof
 
-class pfd:
+class pfd(object):
 
     def __init__(self, filename):
         self.pfd_filename = filename
@@ -187,7 +189,7 @@ class pfd:
 
     def __str__(self):
         out = ""
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             if k[:2]!="__":
                 if type(self.__dict__[k]) is StringType:
                     out += "%10s = '%s'\n" % (k, v)

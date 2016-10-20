@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
 import sys, sigproc
 import numpy as num
 
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         print("Whoops!  File length calculation is not right...")
 
     # Now loop over the spectra
-    for ii in xrange(numspec / DS_fact):
+    for ii in range(numspec / DS_fact):
         try:
             x = num.fromfile(infile, dtype=num.ubyte, count=DS_fact*nchans)
             x.shape = (DS_fact, nchans)

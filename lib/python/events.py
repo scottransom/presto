@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import range
 import bisect
 import numpy as Num
 from psr_constants import PI, TWOPI, PIBYTWO

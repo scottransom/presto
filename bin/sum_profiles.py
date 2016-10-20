@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import zip
+from builtins import range
 import struct, getopt, sys, fftfit, psr_utils, os.path, sinc_interp, Pgplot
 import numpy as Num
 from infodata import infodata

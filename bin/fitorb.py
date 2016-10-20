@@ -4,6 +4,7 @@
 fitorb: A non-linear optimizer for solving pulsar orbits by Ryan Lynch
 """
 from __future__ import print_function
+from builtins import range
 
 from numpy import *
 from mpfit import mpfit

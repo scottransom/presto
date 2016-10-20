@@ -1,11 +1,12 @@
 from __future__ import print_function
+from builtins import range
 import numpy as num
 import Pgplot
 from functools import reduce
 
 def noverk(n,k):
     # This is the combinations formula
-    return float(reduce(lambda a,b: a*(n-b)/(b+1), xrange(k),1))
+    return float(reduce(lambda a,b: a*(n-b)/(b+1), range(k),1))
 
 def Tt(t, z, N):
     overN = 1.0/float(N)

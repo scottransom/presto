@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import object
 import numpy as Num
 import parfile, psr_utils
 from psr_constants import *
@@ -30,7 +31,7 @@ def shapS(m1, m2, x, pb):
 
 # Note:  S is also equal to sin(i)
 
-class binary_psr:
+class binary_psr(object):
     """
     class binary_psr
 

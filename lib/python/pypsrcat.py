@@ -1,4 +1,7 @@
 from __future__ import print_function
+from past.builtins import cmp
+from builtins import map
+from builtins import object
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 import struct, os, os.path, presto, psr_utils, math
 
@@ -19,7 +22,7 @@ params_with_errs = ["RAJ", "DECJ", "PMRA", "PMDEC", "PX", "P0", "P1", "F2", "F3"
                     "TASC", "EPS1", "EPS2"]
 digits = '0123456789'
 
-class psr:
+class psr(object):
     def __init__(self, line):
         parts = line.split()[1:]
         part_index = 0
@@ -40,7 +43,7 @@ class psr:
             elif param=="RAJ":
                 if not parts[part_index]=='*':
                     self.rajstr = parts[part_index]
-                    hms = map(float, parts[part_index].split(':'))
+                    hms = list(map(float, parts[part_index].split(':')))
                     if len(hms)==3:
                         h, m, s = hms
                     elif len(hms)==2:
@@ -55,7 +58,7 @@ class psr:
             elif param=="DECJ":
                 if not parts[part_index]=='*':
                     self.decjstr = parts[part_index]
-                    dms = map(float, parts[part_index].split(':'))
+                    dms = list(map(float, parts[part_index].split(':')))
                     if len(dms)==3:
                         d, m, s = dms
                     elif len(dms)==2:
@@ -329,7 +332,7 @@ for line in infile.readlines()[1:]:
             pulsars[jname].alias = vals[2]
 infile.close()
 
-psrs = pulsars.values()
+psrs = list(pulsars.values())
 psrs.sort()
 
 # Now create a new dictionary of pulsars with aliases

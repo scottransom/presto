@@ -15,6 +15,10 @@ Chen Karako May 7, 2014
 Updated by Chitrang Patel June 10, 2016.
 """
 from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+from builtins import object
 import fileinput
 import numpy as np
 from time import strftime 
@@ -217,9 +221,9 @@ def grouping_rfi(groups, use_dmplan=False, time_thresh=0.5, dm_thresh=0.1):
     while didcombine:
         didcombine = False
         # If a group is very close to a group of rfi, set it as rfi  
-        for i in reversed(range(len(groups))):
+        for i in reversed(list(range(len(groups)))):
             grp1 = groups[i]
-            for j in reversed(range(len(groups))):
+            for j in reversed(list(range(len(groups)))):
                 if j <= i:
                     continue
                 grp2 = groups[j]
@@ -586,7 +590,7 @@ def pop_by_rank(groups, rank):
         Outputs:
             None
     """
-    for j in reversed(range(len(groups))):
+    for j in reversed(list(range(len(groups)))):
         if groups[j].rank == rank:
            del groups[j] 
     
