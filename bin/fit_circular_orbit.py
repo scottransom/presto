@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import numpy as num
 import psr_utils as pu
 import parfile, bestprof, sys
@@ -29,13 +30,13 @@ def parse_eph(filenm):
         epoch = x.PEPOCH
         T = (x.FINISH - x.START) * 86400.0
     else:
-        print "I don't recognize the file type for", filenm
+        print("I don't recognize the file type for", filenm)
         sys.exit()
     newts = epoch + num.arange(int(T/10.0+0.5), dtype=num.float)/8640.0
     time = num.concatenate((time, newts))
     newps = 1.0 / pu.calc_freq(newts, epoch, *fs)
     period = num.concatenate((period, newps))
-    print "%13.7f (%0.1f sec): " % (epoch, T), fs
+    print("%13.7f (%0.1f sec): " % (epoch, T), fs)
 
 def orbeqn(Ppxt, times):
     # P = Ppsr, p = Porb, x = a*sin(i)/s, t = T_o
@@ -47,7 +48,7 @@ def funct(Ppxt, times, measured):
 
 if __name__ == '__main__':
     if len(sys.argv)==1:
-        print "\nusage: fit_circular_orbit.py P_psr P_orb X_orb parfiles or bestprofs"
+        print("\nusage: fit_circular_orbit.py P_psr P_orb X_orb parfiles or bestprofs")
         exit(0)
     Ppsr = float(sys.argv[1])
     Porb = float(sys.argv[2])*86400.0
@@ -61,17 +62,17 @@ if __name__ == '__main__':
     To = ret[0][3]
 
     if (ret[0][2] < 0.0):
-        print "Modifying TO because of negative asini/c..."
+        print("Modifying TO because of negative asini/c...")
         ret[0][3] += 0.5 * (ret[0][1]/86400.0)
         ret[0][2] = abs(ret[0][2])
 
-    print "P_orb = %.3f hrs" % (ret[0][1]/3600.0)
-    print "P0  %17.15g 1" % ret[0][0]
-    print "PB  %17.15g 1" % (ret[0][1]/86400.0)
-    print "A1  %17.15g 1" % ret[0][2]
-    print "T0  %17.15g 1" % ret[0][3]
-    print "E                 0.0"
-    print "OM                0.0"
+    print("P_orb = %.3f hrs" % (ret[0][1]/3600.0))
+    print("P0  %17.15g 1" % ret[0][0])
+    print("PB  %17.15g 1" % (ret[0][1]/86400.0))
+    print("A1  %17.15g 1" % ret[0][2])
+    print("T0  %17.15g 1" % ret[0][3])
+    print("E                 0.0")
+    print("OM                0.0")
 
     T = max(time)-min(time)
     model_time = num.arange(min(time)-0.1*T, max(time)+0.1*T, 0.01)

@@ -6,6 +6,7 @@
    Modified to return topocentric and corresponding barycentric
    times. 
 """
+from __future__ import print_function
 from presto.prestoswig import *
 import numpy as Num
 import Pgplot
@@ -21,7 +22,7 @@ def read_inffile(filename):
        '.inf' suffix.
    """
    id = infodata()
-   print "Reading information from", "\""+filename+".inf\""
+   print("Reading information from", "\""+filename+".inf\"")
    readinf(id, filename)
    return id
 
@@ -56,7 +57,7 @@ def bary_to_topo(infofilenm, rawdatafile=False, ephem="DE200"):
        elif (obs.telescope == 'MMT'):  tel = 'MT'
        elif (obs.telescope == 'GBT'):  tel = 'GB'
        else:
-          print "Telescope not recognized."
+          print("Telescope not recognized.")
           return 0
    elif filetype=="PSRFITS": 
        if not rawdatafile:
@@ -76,7 +77,7 @@ def bary_to_topo(infofilenm, rawdatafile=False, ephem="DE200"):
        elif (rawdatafile.specinfo.telescope == 'MMT'):  tel = 'MT'
        elif (rawdatafile.specinfo.telescope == 'GBT'):  tel = 'GB'
        else:
-          print "Telescope not recognized."
+          print("Telescope not recognized.")
           return 0
    barycenter(tts, bts, vel, nn, ra, dec, tel, ephem)
    avgvel = Num.add.reduce(vel) / nn

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import bisect
 import numpy as Num
 from psr_constants import PI, TWOPI, PIBYTWO
@@ -172,7 +173,7 @@ def xray_time_to_detect(ctrate, pfract, dt, fpsr, bins=0, confidence=0.99,
 	# The following is from para 1, sect 3.3, of Ransom, Gaensler, and Slane, 2002
 	#return  (power_required - 1.0)          4 * ctrate * dt**2.0 / (A**2.0 * factor) * 
     else:
-        print "Not implemented yet...I think we need to iterate."
+        print("Not implemented yet...I think we need to iterate.")
 
 # The following routines are based on the method of signal
 # estimation described by Vaughan et al., 1994, ApJ, 435, p362.
@@ -429,9 +430,9 @@ if __name__=="__main__":
     tcsum =  Num.add.accumulate(Num.sqrt(pows[1:10]))**2.0
     csum = coherent_sum(fprof[1:10])
     isum = incoherent_sum(fprof[1:10])
-    print isum
-    print csum
-    print tcsum
+    print(isum)
+    print(csum)
+    print(tcsum)
     for ii in range(len(csum)):
-        print candidate_sigma(isum[ii], ii+1, 1), candidate_sigma(csum[ii]/(ii+1), 1, 1)
+        print(candidate_sigma(isum[ii], ii+1, 1), candidate_sigma(csum[ii]/(ii+1), 1, 1))
         
