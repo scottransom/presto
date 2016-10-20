@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 from psr_utils import gaussian_profile, span, read_profile
 from matplotlib.patches import Rectangle
 from bestprof import bestprof
@@ -219,24 +220,24 @@ def fit_gaussians(data, initial_params, errs, profnm):
     dof = len(data) - len(fit_params)
     # chi-squared for the model fit
     chi_sq = mpfit_out.fnorm
-    print "------------------------------------------------------------------"
-    print "Multi-Gaussian Fit by pygaussfit.py of '%s'"%profnm
-    print "------------------------------------------------------------------"
-    print "mpfit status:", mpfit_out.status
-    print "gaussians:", numgaussians
-    print "DOF:", dof
-    print "chi-sq: %.2f" % chi_sq
-    print "reduced chi-sq: %.2f" % (chi_sq/dof)
+    print("------------------------------------------------------------------")
+    print("Multi-Gaussian Fit by pygaussfit.py of '%s'"%profnm)
+    print("------------------------------------------------------------------")
+    print("mpfit status:", mpfit_out.status)
+    print("gaussians:", numgaussians)
+    print("DOF:", dof)
+    print("chi-sq: %.2f" % chi_sq)
+    print("reduced chi-sq: %.2f" % (chi_sq/dof))
     residuals = data - gen_gaussians(fit_params, len(data))
-    print "residuals  mean: %.3g" % Num.mean(residuals)
-    print "residuals stdev: %.3g" % Num.std(residuals)
-    print "--------------------------------------"
-    print " const = %.5f +/- %.5f" % (fit_params[0], fit_errs[0])
+    print("residuals  mean: %.3g" % Num.mean(residuals))
+    print("residuals stdev: %.3g" % Num.std(residuals))
+    print("--------------------------------------")
+    print(" const = %.5f +/- %.5f" % (fit_params[0], fit_errs[0]))
     for ii in range(numgaussians):
-        print " phas%d = %.5f +/- %.5f" % (ii+1, fit_params[1+ii*3], fit_errs[1+ii*3])
-        print " fwhm%d = %.5f +/- %.5f" % (ii+1, fit_params[2+ii*3], fit_errs[2+ii*3])
-        print " ampl%d = %.5f +/- %.5f" % (ii+1, fit_params[3+ii*3], fit_errs[3+ii*3])
-    print "--------------------------------------"
+        print(" phas%d = %.5f +/- %.5f" % (ii+1, fit_params[1+ii*3], fit_errs[1+ii*3]))
+        print(" fwhm%d = %.5f +/- %.5f" % (ii+1, fit_params[2+ii*3], fit_errs[2+ii*3]))
+        print(" ampl%d = %.5f +/- %.5f" % (ii+1, fit_params[3+ii*3], fit_errs[3+ii*3]))
+    print("--------------------------------------")
     return fit_params, fit_errs, chi_sq, dof
 
 if __name__ == '__main__':
@@ -244,7 +245,7 @@ if __name__ == '__main__':
     if len(sys.argv)==1:
         from numpy.random import normal
 
-        print """usage:  python pygaussfit.py input_file [prof_stdev]
+        print("""usage:  python pygaussfit.py input_file [prof_stdev]
 
 Left mouse draws a region roughly boxing where you'll place a gaussian.
     Draw several to fit multiple gaussians.
@@ -255,7 +256,7 @@ The input_file should simply be an ASCII file with columns for pulse phase
 and amplitude.  Comments with "#" are allowed.  .bestprof files work.
 
 Paste the full resulting STDOUT to a '.gaussians' file for use
-in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template."""
+in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template.""")
 
 
         N = 128
@@ -271,12 +272,12 @@ in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template."""
         filenm = "test"
     else:
         if sys.argv[1].endswith(".pfd"):
-            print "Input is PFD"
+            print("Input is PFD")
             # Input is pfd file
             pfdfn = sys.argv[1]
             # Check for bestprof
             if not os.path.exists(pfdfn+".bestprof"):
-                print "Creating bestprof file"
+                print("Creating bestprof file")
                 # Create bestprof file with show_pfd
                 devnull = open(os.devnull, 'w')
                 subprocess.call(['show_pfd', '-noxwin', pfdfn], 

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as Num
 import scipy.special
 import numpy.fft as FFT
@@ -87,11 +88,11 @@ def windowed_sinc_interp(data, newx, halfwidth=None,
     lo_pt = int(Num.floor(newx)) - halfwidth
     if lo_pt < 0:
         lo_pt < 0
-        print "Warning:  trying to access below the lowest index!"
+        print("Warning:  trying to access below the lowest index!")
     hi_pt = lo_pt + 2*halfwidth
     if hi_pt >= len(data):
         hi_pt = len(data)-1
-        print "Warning:  trying to access above the highest index!"
+        print("Warning:  trying to access above the highest index!")
     halfwidth = (hi_pt-lo_pt)/2
     pts = Num.arange(2*halfwidth)+lo_pt
     xs = newx - pts
@@ -109,7 +110,7 @@ def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
     """
     zoomfact = int(zoomfact)
     if (zoomfact < 1):
-        print "zoomfact must be >= 1."
+        print("zoomfact must be >= 1.")
         return 0.0
     elif zoomfact==1:
         return data

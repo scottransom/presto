@@ -8,6 +8,7 @@ Usage:  plot_spd.py [OPTIONS] <.spd file> <.singlepulse files (optional:
 
 Chitrang Patel - June 10, 2016.
 """
+from __future__ import print_function
 import numpy as np
 import optparse
 import tarfile 
@@ -301,7 +302,7 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
             sp_pgplot.ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-noise")
 
         # DM vs Time
-        print "Making arrays for DM vs time plot"
+        print("Making arrays for DM vs time plot")
         spfiles = singlepulsefiles
         threshold = 5.0
         if len(spfiles) > 2:
@@ -314,7 +315,7 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
             dms, times, sigmas, widths, filelist = spio.gen_arrays(dm_arr, spfiles, tar, threshold)
             sp_pgplot.dm_time_plot(dms, times, sigmas, dm_list, sigma_arr, time_list, Total_observed_time, xwin)
         else:
-            print "You need a .singlepulse.tgz file to plot DM vs Time plot."
+            print("You need a .singlepulse.tgz file to plot DM vs Time plot.")
             if integrate_spec:
                 sp_pgplot.ppgplot.pgsvp(0.55, 0.97, 0.1, 0.54)
             else:

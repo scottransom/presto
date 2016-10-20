@@ -8,6 +8,7 @@ Patrick Lazarus, May 11, 2010
 Last Updated: Jul 4, 2016 (Scott Ransom to add 2-bit reading)
 
 """
+from __future__ import print_function
 import re
 import os
 import os.path
@@ -303,8 +304,8 @@ class SpectraInfo:
             if envval is not None:
                 ival = int(envval)
                 if ((ival > -1) and (ival < self.num_polns)):
-                    print "Using polarisation %d (from 0-%d) from PSRFITS_POLN." % \
-                                (ival, self.num_polns-1)
+                    print("Using polarisation %d (from 0-%d) from PSRFITS_POLN." % \
+                                (ival, self.num_polns-1))
                     self.default_poln = ival
                     self.user_poln = 1
 
@@ -600,11 +601,11 @@ def debug_mode(mode=None):
 def main():
     specinf = SpectraInfo(args.files)
     if args.output is not None:
-        print args.output % specinf
+        print(args.output % specinf)
     else:
         if debug:
-            print "Reading '%s'" % args.files[0]
-        print specinf
+            print("Reading '%s'" % args.files[0])
+        print(specinf)
 
 
 if __name__=='__main__':

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import bisect, os, sys, getopt, infodata, glob
 import scipy, scipy.signal, scipy.stats, ppgplot
 import numpy as Num
@@ -274,7 +275,7 @@ def main():
     (opts, args) = parser.parse_args()
     if len(args)==0:
         if opts.globexp==None:
-            print full_usage
+            print(full_usage)
             sys.exit(0)
         else:
             args = []
@@ -359,14 +360,14 @@ def main():
             roundN = N/detrendlen * detrendlen
             numchunks = roundN / chunklen
             # Read in the file
-            print 'Reading "%s"...'%filenm
+            print('Reading "%s"...'%filenm)
             timeseries = Num.fromfile(filenm, dtype=Num.float32, count=roundN)
             # Split the timeseries into chunks for detrending
             numblocks = roundN/detrendlen
             timeseries.shape = (numblocks, detrendlen)
             stds = Num.zeros(numblocks, dtype=Num.float64)
             # de-trend the data one chunk at a time
-            print '  De-trending the data and computing statistics...'
+            print('  De-trending the data and computing statistics...')
             for ii, chunk in enumerate(timeseries):
                 if opts.fast:  # use median removal instead of detrending (2x speedup)
                     tmpchunk = chunk.copy()
@@ -400,19 +401,19 @@ def main():
                      sort_stds[numblocks/2:-1]).argmax() + numblocks/2 - 2
             std_stds = scipy.std(sort_stds[locut:hicut])
             median_stds = sort_stds[(locut+hicut)/2]
-            print "    pseudo-median block standard deviation = %.2f" % (median_stds)
+            print("    pseudo-median block standard deviation = %.2f" % (median_stds))
             if (opts.badblocks):
                 lo_std = median_stds - 4.0 * std_stds
                 hi_std = median_stds + 4.0 * std_stds
                 # Determine a list of "bad" chunks.  We will not search these.
                 bad_blocks = Num.nonzero((stds < lo_std) | (stds > hi_std))[0]
-                print "    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
+                print("    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
                       (len(bad_blocks), len(stds),
-                       100.0*float(len(bad_blocks))/float(len(stds)))
+                       100.0*float(len(bad_blocks))/float(len(stds))))
                 stds[bad_blocks] = median_stds
             else:
                 bad_blocks = []
-            print "  Now searching..."
+            print("  Now searching...")
 
             # Now normalize all of the data and reshape it to 1-D
             timeseries /= stds[:,Num.newaxis]
@@ -507,7 +508,7 @@ def main():
             # are within the downsample proximity of a higher
             # signal-to-noise pulse
             dm_candlist = prune_related2(dm_candlist, downfacts)
-            print "  Found %d pulse candidates"%len(dm_candlist)
+            print("  Found %d pulse candidates"%len(dm_candlist))
             
             # Get rid of those near padding regions
             if info.breaks: prune_border_cases(dm_candlist, offregions)

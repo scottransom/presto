@@ -1,9 +1,10 @@
+from __future__ import print_function
 from numpyio import fread, fwrite
 from sys import argv
 
-print "\nReading info from %s.hdr and" % argv[1]
-print "%s.dat\n" % argv[1]
-print "Writing %s.raw\n" % argv[1]
+print("\nReading info from %s.hdr and" % argv[1])
+print("%s.dat\n" % argv[1])
+print("Writing %s.raw\n" % argv[1])
 
 HEADERLEN = 640
 BLOCKLEN = 49152
@@ -26,6 +27,6 @@ while (1):
         fwrite(outfile, BLOCKLEN, data[4:-4], 'b')
     else:
         break
-print ''
+print('')
 infile.close()
 outfile.close()

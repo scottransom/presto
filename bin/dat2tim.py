@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import os, struct, presto, sys
 
 telescope_ids = {"Fake": 0, "Arecibo": 1, "Ooty": 2, "Nancay": 3,
@@ -49,7 +50,7 @@ def infodata_to_sigproc_header(inf):
 
 if __name__ == "__main__":
     if len(sys.argv)==1:
-        print "\nusage:  dat2tim.py file.dat\n"
+        print("\nusage:  dat2tim.py file.dat\n")
         sys.exit()
     if sys.argv[1].endswith(".dat"):
         basefilenm = sys.argv[1][:sys.argv[1].rfind(".dat")]
