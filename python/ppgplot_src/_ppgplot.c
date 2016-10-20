@@ -2308,23 +2308,61 @@ static PyMethodDef PpgMethods[] = {
     {NULL,      NULL}        /* Sentinel */
 };
 
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef ppgplotdef = {
+        PyModuleDef_HEAD_INIT,
+        "_ppgplot",     /* m_name */
+        "PPGPLOT Module",  /* m_doc */
+        -1,                  /* m_size */
+        PpgMethods,    /* m_methods */
+        NULL,                /* m_reload */
+        NULL,                /* m_traverse */
+        NULL,                /* m_clear */
+        NULL,                /* m_free */
+    };
+#endif
+
 /************************************************************************/
 
-void
-init_ppgplot (void)
+static PyObject *
+moduleinit(void)
 {
     PyObject *m, *d;
+#if PY_MAJOR_VERSION <= 2
     m = Py_InitModule("_ppgplot", PpgMethods);
+#else
+    m = PyModule_Create(&ppgplotdef);
+#endif
     d = PyModule_GetDict(m);
     import_array();
+#if PY_MAJOR_VERSION <= 2
     PpgIOErr = PyString_FromString("_ppgplot.ioerror");
     PpgTYPEErr = PyString_FromString("_ppgplot.typeerror");
     PpgMEMErr = PyString_FromString("_ppgplot.memerror");
+#else
+    PpgIOErr = PyBytes_FromString("_ppgplot.ioerror");
+    PpgTYPEErr = PyBytes_FromString("_ppgplot.typeerror");
+    PpgMEMErr = PyBytes_FromString("_ppgplot.memerror");
+#endif
     PyDict_SetItemString(d, "ioerror", PpgIOErr);
     PyDict_SetItemString(d, "typeerror", PpgTYPEErr);
     PyDict_SetItemString(d, "memerror", PpgMEMErr);
+    return m;
 }
 
+#if PY_MAJOR_VERSION < 3
+    void
+    init_ppgplot(void)
+    {
+        moduleinit();
+    }
+#else
+    PyMODINIT_FUNC
+    PyInit__ppgplot(void)
+    {
+        return moduleinit();
+    }
+#endif
 /************************************************************************/
 /* End of _ppgplot.c */
 /************************************************************************/
