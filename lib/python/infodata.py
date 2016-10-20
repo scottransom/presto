@@ -1,6 +1,7 @@
+from builtins import object
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 
-class infodata:
+class infodata(object):
     def __init__(self, filenm):
         self.breaks = 0
         for line in open(filenm):

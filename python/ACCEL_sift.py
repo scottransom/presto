@@ -1,3 +1,4 @@
+from builtins import map
 import sifting, re, glob
 
 # Note:  You will almost certainly want to adjust
@@ -50,7 +51,7 @@ if len(re.findall("_[0-9][0-9][0-9]M_" , inffiles[0])):
     dmstrs = [x.split("DM")[-1].split("_")[0] for x in candfiles]
 else:
     dmstrs = [x.split("DM")[-1].split(".inf")[0] for x in inffiles]
-dms = map(float, dmstrs)
+dms = list(map(float, dmstrs))
 dms.sort()
 dmstrs = ["%.2f"%x for x in dms]
 

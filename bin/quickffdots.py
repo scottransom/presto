@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
 from infodata import *
 from presto import ffdot_plane, spectralpower
 from pylab import *

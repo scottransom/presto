@@ -1,5 +1,10 @@
 from __future__ import print_function
-import math, string, Numeric, presto, random, sys, cPickle
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import input
+from builtins import range
+import math, string, Numeric, presto, random, sys, pickle
 from LeastSquares import leastSquaresFit
 from orbitstuff import *
 
@@ -141,7 +146,7 @@ for i in range(numloops):
         Pgplot.plotxy(presto.spectralpower(data), color='red',
                       title='Data', labx='Fourier Frequency',
                       laby='Relative Power')
-        a = raw_input("Press enter to continue...")
+        a = input("Press enter to continue...")
         Pgplot.nextplotpage(1)
         
     # Perform the loops over the Keplerian parameters
@@ -199,7 +204,7 @@ for i in range(numloops):
                     # Plot the results of the correlation
                     Pgplot.plotxy(respow, labx='Frequency',
                                   laby='Relative Power')
-                    a = raw_input("Press enter to continue...")
+                    a = input("Press enter to continue...")
                     Pgplot.nextplotpage(1)
             # A very rough adaptive stepsize
             if abs(vals[-3][1] - vals[-1][1]) < 0.04:
@@ -223,6 +228,6 @@ for i in range(numloops):
     if debugout:
         print('Widths are', widths[i])
     # Save our most recent orbit and width information
-    cPickle.dump(widths[i], file, 1)
+    pickle.dump(widths[i], file, 1)
 file.close()
 

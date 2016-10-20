@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
+from builtins import object
 from psr_utils import gaussian_profile, span, read_profile
 from matplotlib.patches import Rectangle
 from bestprof import bestprof
@@ -7,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as Num
 import mpfit, sys
 
-class GaussianSelector:
+class GaussianSelector(object):
     def __init__(self, ax, profile, errs, profnm, minspanx=None,
                  minspany=None, useblit=True):
         self.ax = ax.axes

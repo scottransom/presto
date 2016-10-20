@@ -6,6 +6,10 @@
 #           Patrick Lazarus, Feb 26th, 2009
 
 from __future__ import print_function
+from builtins import input
+from builtins import str
+from builtins import range
+from builtins import object
 import optparse
 import sys
 import re
@@ -77,7 +81,7 @@ def find_freq_clusters(freqs):
         return freqbands
 
 
-class TempoResults:
+class TempoResults(object):
     def __init__(self, freqbands):
         """Read TEMPO results (resid2.tmp, tempo.lis, timfile and parfiles)
             freqbands is a list of frequency pairs to display.
@@ -163,7 +167,7 @@ class TempoResults:
 
 
 
-class Resids:
+class Resids(object):
     """The Resids object contains the following information
         about TEMPO residuals:
             bary_TOA
@@ -533,8 +537,8 @@ def keypress(event):
         elif event.key.lower() == 'x':
             # Set x-axis limits
             print("Setting x-axis limits. User input required...")
-            xmin = raw_input("X-axis minimum: ")
-            xmax = raw_input("X-axis maximum: ")
+            xmin = input("X-axis minimum: ")
+            xmax = input("X-axis maximum: ")
             try:
                 xmin = float(xmin)
                 xmax = float(xmax)
@@ -549,15 +553,15 @@ def keypress(event):
             # Set y-axis limits
             print("Setting y-axis limits. User input required...")
             if len(axes) == 2:
-                axes_to_adjust = raw_input("Axes to adjust (pre/post): ")
+                axes_to_adjust = input("Axes to adjust (pre/post): ")
                 if axes_to_adjust.lower().startswith('pre'):
                     plt.axes(axes[0])
                 elif axes_to_adjust.lower().startswith('post'):
                     plt.axes(axes[1])
                 else:
                     raise ValueError
-            ymin = raw_input("Y-axis minimum: ")
-            ymax = raw_input("Y-axis maximum: ")
+            ymin = input("Y-axis minimum: ")
+            ymax = input("Y-axis maximum: ")
             try:
                 ymin = float(ymin)
                 ymax = float(ymax)
@@ -643,7 +647,7 @@ def main():
 
         # Before setting up our own event handlers delete matplotlib's
         # default 'key_press_event' handler.
-        defcids = fig.canvas.callbacks.callbacks['key_press_event'].keys()
+        defcids = list(fig.canvas.callbacks.callbacks['key_press_event'].keys())
         for cid in defcids:
             fig.canvas.callbacks.disconnect(cid)
 

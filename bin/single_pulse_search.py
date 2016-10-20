@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
 import bisect, os, sys, getopt, infodata, glob
 import scipy, scipy.signal, scipy.stats, ppgplot
 import numpy as Num
@@ -8,7 +13,7 @@ from psr_utils import coord_to_string
 from optparse import OptionParser
 from Pgplot import *
 
-class candidate:
+class candidate(object):
     def __init__(self, DM, sigma, time, bin, downfact):
         self.DM = DM
         self.sigma = sigma
@@ -67,10 +72,10 @@ def prune_related1(hibins, hivals, downfact):
     # candidate arrays and uses the single downfact
     # that they were selected with.
     toremove = set()
-    for ii in xrange(0, len(hibins)-1):
+    for ii in range(0, len(hibins)-1):
         if ii in toremove:  continue
         xbin, xsigma = hibins[ii], hivals[ii]
-        for jj in xrange(ii+1, len(hibins)):
+        for jj in range(ii+1, len(hibins)):
             ybin, ysigma = hibins[jj], hivals[jj]
             if (abs(ybin-xbin) > downfact/2):
                 break
@@ -94,11 +99,11 @@ def prune_related2(dm_candlist, downfacts):
     # instances and looks at the different downfacts of the
     # the different candidates.
     toremove = set()
-    for ii in xrange(0, len(dm_candlist)-1):
+    for ii in range(0, len(dm_candlist)-1):
         if ii in toremove:  continue
         xx = dm_candlist[ii]
         xbin, xsigma = xx.bin, xx.sigma
-        for jj in xrange(ii+1, len(dm_candlist)):
+        for jj in range(ii+1, len(dm_candlist)):
             yy = dm_candlist[jj]
             ybin, ysigma = yy.bin, yy.sigma
             if (abs(ybin-xbin) > max(downfacts)/2):
@@ -123,7 +128,7 @@ def prune_border_cases(dm_candlist, offregions):
     # of the boundary between data and padding
     #print offregions
     toremove = set()
-    for ii in xrange(len(dm_candlist)-1, -1, -1):
+    for ii in range(len(dm_candlist)-1, -1, -1):
         cand = dm_candlist[ii]
         loside = cand.bin-cand.downfact/2
         hiside = cand.bin+cand.downfact/2
@@ -347,8 +352,8 @@ def main():
                 if useffts:
                     fftd_kerns = make_fftd_kerns(default_downfacts, fftlen)
             if info.breaks:
-                offregions = zip([x[1] for x in info.onoff[:-1]],
-                                 [x[0] for x in info.onoff[1:]])
+                offregions = list(zip([x[1] for x in info.onoff[:-1]],
+                                 [x[0] for x in info.onoff[1:]]))
 
                 # If last break spans to end of file, don't read it in (its just padding)
                 if offregions[-1][1] == N - 1:
@@ -429,7 +434,7 @@ def main():
 
             # Step through the data
             dm_candlist = []
-            for chunknum in xrange(numchunks):
+            for chunknum in range(numchunks):
                 loind = chunknum*chunklen-overlap
                 hiind = (chunknum+1)*chunklen+overlap
                 # Take care of beginning and end of file overlap issues

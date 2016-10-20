@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import range
 from time import clock
 from math import *
 from Numeric import *

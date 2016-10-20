@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
 import sys, re
 
 maxwappnum = 7
@@ -14,7 +15,7 @@ for filename in sys.argv[1:]:
 		wappfiles[wappnum] = [filename]
 	    break
 
-for key in wappfiles.keys():
+for key in list(wappfiles.keys()):
     numfiles = len(wappfiles[key])
     wappfiles[key].sort()
 

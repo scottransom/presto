@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import zip
+from builtins import object
 from numpy import *
 from Pgplot import *
 
-class observation:
+class observation(object):
     def __init__(self, dt, f_ctr, BW, numchan, cDM):
         # dt in sec, f_ctr and in MHz
         self.dt = dt
@@ -20,7 +22,7 @@ class observation:
         """
         return self.dt*0.0001205*self.f_ctr**3.0/(0.5*self.BW)
 
-class dedisp_method:
+class dedisp_method(object):
     def __init__(self, obs, downsamp, loDM, hiDM, dDM, numDMs=0,
                  numsub=0, smearfact=2.0):
         self.obs = obs
