@@ -1,3 +1,4 @@
+from __future__ import print_function
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 import struct, os, os.path, presto, psr_utils, math
 
@@ -324,7 +325,7 @@ for line in infile.readlines()[1:]:
     if line[0]=='J':
         vals = line.split()
         jname = vals[0][1:]
-        if pulsars.has_key(jname):
+        if jname in pulsars:
             pulsars[jname].alias = vals[2]
 infile.close()
 
@@ -384,12 +385,12 @@ if __name__ == '__main__' :
     presto_path = os.getenv("PRESTO")
     outfilename = os.path.join(presto_path, "lib", "pulsars.cat")
     outfile = open(outfilename, "w")
-    print "Writing %d pulsars (%d binaries) to %s" % \
-          (len(psrs), num_binaries, outfilename)
+    print("Writing %d pulsars (%d binaries) to %s" % \
+          (len(psrs), num_binaries, outfilename))
     for ii, psr in enumerate(psrs):
         try:
             outfile.write(psr.pack_structs())
         except:
-            print ii, psr.jname
+            print(ii, psr.jname)
     outfile.close()
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import numpy as np
 import psrfits
 import filterbank
@@ -67,8 +68,8 @@ def main(fits_fn, outfn, nbits, \
     # band will need to be flipped
     if psrfits_file.fits['SUBINT'].header['CHAN_BW'] > 0:
         flip_band=True
-        print "\nFits file frequencies in ascending order."
-        print "\tFlipping frequency band.\n"
+        print("\nFits file frequencies in ascending order.")
+        print("\tFlipping frequency band.\n")
     else:
         flip_band=False
 
@@ -78,30 +79,30 @@ def main(fits_fn, outfn, nbits, \
                         psrfits_file.nbits)
 
     if nbits != 32:
-        print "\nCalculating statistics on first subintegration..."
+        print("\nCalculating statistics on first subintegration...")
         subint0 = psrfits_file.read_subint(0, \
                         apply_weights, apply_scales, apply_offsets)
         #new_max = np.mean(subint0) + 3*np.std(subint0)
         new_max = 3 * np.median(subint0)
-        print "\t3*median =",new_max
+        print("\t3*median =",new_max)
         if new_max > 2.0**nbits:
             scale = True
             scale_fac = new_max / ( 2.0**nbits )
-            print "\tScaling data by",1/scale_fac
-            print "\tValues larger than",new_max,"(pre-scaling) "\
-                  "will be set to",2.0**nbits - 1,"\n"
+            print("\tScaling data by",1/scale_fac)
+            print("\tValues larger than",new_max,"(pre-scaling) "\
+                  "will be set to",2.0**nbits - 1,"\n")
                   
         else:
             scale = False
             scale_fac = 1
-            print "\tNo scaling necessary"
-            print "\tValues larger than",2.0**nbits-1,"(2^nbits) will "\
-                  "be set to ",2.0**nbits-1,"\n"
+            print("\tNo scaling necessary")
+            print("\tValues larger than",2.0**nbits-1,"(2^nbits) will "\
+                  "be set to ",2.0**nbits-1,"\n")
     else:
         scale_fac = 1
-        print "\nNo scaling necessary for 32-bit float output file."
+        print("\nNo scaling necessary for 32-bit float output file.")
 
-    print "Writing data..."
+    print("Writing data...")
     sys.stdout.flush()
     oldpcnt = ""
     for isub in range(int(psrfits_file.nsubints)):
@@ -116,10 +117,10 @@ def main(fits_fn, outfn, nbits, \
             sys.stdout.write("% 4s%% complete\r" % pcnt)
             sys.stdout.flush()
 
-    print "Done               "
+    print("Done               ")
     outfil.close()
 
-    print "Runtime:",time.time() - start
+    print("Runtime:",time.time() - start)
 
 if __name__=='__main__':
     parser = optparse.OptionParser(prog='psrfits2fil.py', \
