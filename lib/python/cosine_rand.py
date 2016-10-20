@@ -25,11 +25,11 @@ if (0):
             xs[ii] = newton_raphson(func, dfunc, 0.0, 1.0)
     xs[0] = 0.0
     xs[n] = 1.0
-    pickle.dump(xs, file("cosine_rand.pickle", "w"), 1)
+    pickle.dump(xs, open("cosine_rand.pickle", "w"), 1)
 else:
     pfile = os.path.join(os.environ['PRESTO'],
                          "lib", "python", "cosine_rand.pickle")
-    xs = pickle.load(file(pfile))
+    xs = pickle.load(open(pfile))
 
 def cosine_rand(num):
     """cosine_rand(num):  Return num phases that are randomly distributed
