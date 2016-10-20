@@ -7,7 +7,6 @@ from infodata import infodata
 from prepfold import pfd
 from polycos import polycos
 from psr_constants import *
-from types import StringType, FloatType, IntType
 
 scopes = {'GBT':'1',
           'Arecibo':'3',
