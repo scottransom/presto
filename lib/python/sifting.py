@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from past.builtins import cmp
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 import sys
 import re
 import os
@@ -530,7 +535,7 @@ class Candlist(object):
 
     def get_all_badcands(self):
         cands = []
-        for key in self.badlists.keys():
+        for key in list(self.badlists.keys()):
             cands += self.badlists[key]
         return cands
 
@@ -547,7 +552,7 @@ class Candlist(object):
         """
         if long_period is None:
             long_period = globals()['long_period']
-        for ii in reversed(range(len(self.cands))):
+        for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
             if (cand.p > long_period):
                 cand.note = "Period is too long (%g ms > %g ms)" % \
@@ -567,7 +572,7 @@ class Candlist(object):
         """
         if short_period is None:
             short_period = globals()['short_period']
-        for ii in reversed(range(len(self.cands))):
+        for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
             if (cand.p < short_period):
                 cand.note = "Period is too short (%g ms < %g ms)" % \
@@ -594,7 +599,7 @@ class Candlist(object):
             known_birds_f = globals()['known_birds_f']
         if known_birds_p is None:
             known_birds_p = globals()['known_birds_p']
-        for ii in reversed(range(len(self.cands))):
+        for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
             known_bird = 0
             for bird, err in known_birds_f:
@@ -637,7 +642,7 @@ class Candlist(object):
             sigma_threshold = globals()['sigma_threshold']
         if c_pow_threshold is None:
             c_pow_threshold = globals()['c_pow_threshold']
-        for ii in reversed(range(len(self.cands))):
+        for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
             
             if cand.numharm == 1:
@@ -671,7 +676,7 @@ class Candlist(object):
         """
         if harm_pow_cutoff is None:
             harm_pow_cutoff = globals()['harm_pow_cutoff']
-        for ii in reversed(range(len(self.cands))):
+        for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
             maxharm = Num.argmax(cand.harm_pows)
             maxpow = cand.harm_pows[maxharm]
@@ -689,7 +694,7 @@ class Candlist(object):
             Ouputs:
                 None
         """
-        for ii in reversed(range(len(self.cands))):
+        for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
             maxharm = Num.argmax(cand.harm_pows)
             maxpow = cand.harm_pows[maxharm]
@@ -767,7 +772,7 @@ class Candlist(object):
                 # flag the duplicates
                 bestcand = self.cands[bestindex]
                 # Add other matching cands as hit of highest-sigma cand
-                for matchind in reversed(range(ii, jj)):
+                for matchind in reversed(list(range(ii, jj))):
                     if matchind == bestindex:
                         # The current candidate is the highest-sigma cand
                         # Don't remove it
@@ -901,13 +906,13 @@ class Candlist(object):
         dmdict = {}
         dms = Num.unique([float(dm) for dm in dmlist])
         dmstrs = ['%.2f'%dm for dm in dms]
-        dmdict = dict(zip(dmstrs, range(len(dms))))
+        dmdict = dict(list(zip(dmstrs, list(range(len(dms))))))
         numremoved = 0
         num_toofew = 0
         num_toolow = 0
         num_gaps = 0
         self.cands.sort(cmp_sigma)
-        for ii in reversed(range(len(self.cands))):
+        for ii in reversed(list(range(len(self.cands)))):
             currcand = self.cands[ii]
             # Remove all the candidates without enough DM hits
             if len(currcand.hits) < numdms:
