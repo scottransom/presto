@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys, prepfold
 
 if len(sys.argv) == 1:
@@ -11,8 +12,8 @@ for pfdfile in sys.argv[1:]:
     try:
         pfd = prepfold.pfd(pfdfile)
         if pfd.use_for_timing():
-            print "%s: true"%pfdfile
+            print("%s: true"%pfdfile)
         else:
-            print "%s: false"%pfdfile
+            print("%s: false"%pfdfile)
     except:
         sys.stderr.write("Error:  Can't check '%s'\n"%pfdfile)

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 
 # To use this script to help you dedisperse a bunch of time series, first
@@ -29,7 +30,7 @@ import os
 
 
 def myexecute(cmd):
-    print "'%s'"%cmd
+    print("'%s'"%cmd)
     os.system(cmd)
 
 

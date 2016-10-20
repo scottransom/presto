@@ -1,3 +1,4 @@
+from __future__ import print_function
 from distutils.core import setup, Extension
 from distutils.sysconfig import get_python_inc, get_python_lib
 import os
@@ -30,18 +31,18 @@ presto_include_dirs = include_dirs
 undef_macros.append('USE_NUMARRAY')
 
 if os.name == "posix":
-    if os.environ.has_key("PGPLOT_DIR"):
+    if "PGPLOT_DIR" in os.environ:
         ppgplot_library_dirs.append(os.environ["PGPLOT_DIR"])
         ppgplot_include_dirs.append(os.environ["PGPLOT_DIR"])
     else:
-        print >>sys.stderr, "PGPLOT_DIR env var not defined!"
-    if os.environ.has_key("PRESTO"):
+        print("PGPLOT_DIR env var not defined!", file=sys.stderr)
+    if "PRESTO" in os.environ:
         presto_library_dirs.append(os.path.join(os.environ["PRESTO"], "lib"))
         presto_include_dirs.append(os.path.join(os.environ["PRESTO"], "include"))
     else:
-        print >>sys.stderr, "PRESTO env var not defined!"
+        print("PRESTO env var not defined!", file=sys.stderr)
 else:
-    raise Exception, "os not supported"
+    raise Exception("os not supported")
 
 ext_ppgplot = make_extension('_ppgplot',
                              [os.path.join('ppgplot_src','_ppgplot.c')],

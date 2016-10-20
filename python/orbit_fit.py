@@ -1,3 +1,4 @@
+from __future__ import print_function
 from Numeric import *
 from miscutils import *
 from Scientific.Functions.Interpolation import *
@@ -84,8 +85,8 @@ def write_itoa(toa, toaerr, name, freq, dm, obs):
     46-55    DM correction (pc cm^-3)
     58-59    Observatory (two-letter code)
     """
-    print "%8s %19.13f %5.1f %10.5f %9.4f  %2s" % \
-          (name, toa, toaerr, freq, dm, obs)
+    print("%8s %19.13f %5.1f %10.5f %9.4f  %2s" % \
+          (name, toa, toaerr, freq, dm, obs))
 
 def corr(profile, template):
     ft = rfft(template)
@@ -137,12 +138,12 @@ def orbresid(args, goodts, goodps):
 
 # These are barycentric profs and standard deviations of the profiles
 
-print "Reading profiles",
+print("Reading profiles", end=' ')
 profs = []
 for (ii, file) in indexed(argv[1:]):
-    print ".",
+    print(".", end=' ')
     profs.append(read_bestprof(file))
-print "\n"
+print("\n")
 
 ps = []
 times = []
@@ -165,14 +166,14 @@ plotxy(periodorbeqn(ret[0], fullts)*1000.0, fullts,
        line=1, symbol=None, color='red')
 closeplot()
 
-print "Best Ppsr (ms)  = %17.15g" % ret[0][0]
-print "Best Porb (s)   = %17.15g" % ret[0][1]
-print "Best Porb (h)   = %17.15g" % (ret[0][1]/3600.0)
-print "Best xorb (s)   = %17.15g" % ret[0][2]
-print "Best torb (s)   = %17.15g" % ret[0][3]
-print "Best torb (MJD) = %17.15g" % (MJD-ret[0][3]/86400.0)
-print "M_c (M_sun)     < %17.15g" % \
-      companion_mass_limit(1.4, ret[0][1], ret[0][2])
+print("Best Ppsr (ms)  = %17.15g" % ret[0][0])
+print("Best Porb (s)   = %17.15g" % ret[0][1])
+print("Best Porb (h)   = %17.15g" % (ret[0][1]/3600.0))
+print("Best xorb (s)   = %17.15g" % ret[0][2])
+print("Best torb (s)   = %17.15g" % ret[0][3])
+print("Best torb (MJD) = %17.15g" % (MJD-ret[0][3]/86400.0))
+print("M_c (M_sun)     < %17.15g" % \
+      companion_mass_limit(1.4, ret[0][1], ret[0][2]))
 
 
 if (0):
@@ -191,32 +192,32 @@ if (0):
     delays = (phases - fdcorr) / f
     toas = (delays + times) / 86400.0 + MJD
     toaerrs = phaseerrs / f * 1000000.0  # in microsec
-    print ""
+    print("")
 
-    print "Performing linear fit"
+    print("Performing linear fit")
     ret = leastsq(funct, [0.01, 5700.0, 1.0, 0.0], args=(times, delays))
     x = ret[0][0]
     p = ret[0][1]
     t = -ret[0][2] / (2.0 * pi) * p
     #t = ret[0][2] * 180.0 / pi
-    print "Linear fit (no weights:"
-    print ret[0][0], ret[0][1], ret[0][2], ret[0][3]
+    print("Linear fit (no weights:")
+    print(ret[0][0], ret[0][1], ret[0][2], ret[0][3])
 
-    print "raw To = ", t
+    print("raw To = ", t)
 
     t = t / 86400.0 + MJD
     resid = delays - orbeqn(ret[0], times)
 
-    print ret[-1]
-    print ""
-    print "       P_pulsar = %.14f s" % (1.0 / f)
-    print "        P_orbit = %.4f s" % p
-    print "     a*sin(i)/c = %.7f s" % x
-    print "   Time of peri = %.12f MJD" % t
-    print "  mass function = %.4g solar masses" % mass_funct(p, x)
-    print " companion mass > %.4f solar masses" % companion_mass_limit(1.4, p, x)
-    print "  Residual mean = %.4f ms" % average(resid*1000.0)
-    print " Residual stdev = %.4f ms" % standardDeviation(resid*1000.0)
-    print ""
-    print " Note:  Assuming pulsar mass = 1.4 solar masses"
-    print ""
+    print(ret[-1])
+    print("")
+    print("       P_pulsar = %.14f s" % (1.0 / f))
+    print("        P_orbit = %.4f s" % p)
+    print("     a*sin(i)/c = %.7f s" % x)
+    print("   Time of peri = %.12f MJD" % t)
+    print("  mass function = %.4g solar masses" % mass_funct(p, x))
+    print(" companion mass > %.4f solar masses" % companion_mass_limit(1.4, p, x))
+    print("  Residual mean = %.4f ms" % average(resid*1000.0))
+    print(" Residual stdev = %.4f ms" % standardDeviation(resid*1000.0))
+    print("")
+    print(" Note:  Assuming pulsar mass = 1.4 solar masses")
+    print("")

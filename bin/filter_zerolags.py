@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import numpy as N
 import sys, scipy.io, scipy.signal
 
@@ -69,10 +70,10 @@ if (num_bps):
     break_points = break_points[:num_bps]
     break_points.sort()
     detrend_zls = scipy.signal.detrend(zls, bp=break_points)
-    print "%s: Found %d breakpoints for detrending "%(basename, num_bps), break_points
+    print("%s: Found %d breakpoints for detrending "%(basename, num_bps), break_points)
 else:
     detrend_zls = scipy.signal.detrend(zls)
-    print "%s: Found 0 breakpoints for detrending"%basename
+    print("%s: Found 0 breakpoints for detrending"%basename)
     
 # Now high-pass filter the data to get rid of the not-so-drastic
 # power fluctuations

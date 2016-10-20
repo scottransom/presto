@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as num
 import psr_utils as pu
@@ -45,7 +46,7 @@ def total_smear(DM, nchan, chanDM, nsub, subDM,
                     subband_smear(DM, subDM, BW/nsub, fctr)**2.0)
 
 def usage():
-    print """
+    print("""
 usage:  subband_smearing.py [options]
   [-l loDM, --loDM=loDM]          : Low DM
   [-h hiDM, --hiDM=HIDM]          : High DM 
@@ -58,7 +59,7 @@ usage:  subband_smearing.py [options]
   [-c chanDM, --chanDM=chanDM]    : DM in each channel (default = 0.0)
   [-d N, --downsamp=downsamp]     : Integer downsample (default = 1)
 
-"""    
+""")    
 
 if __name__=='__main__':
     import getopt, sys

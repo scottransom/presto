@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Binary floating point data file concatenation routine
 #
 # Written by Scott M. Ransom <ransom@cfa.harvard.edu>
@@ -51,26 +52,26 @@ SBF = 1.0e-4   # Smallest bin fraction to worry about
 # Show a usage statement if necessary
 
 if (len(argv)<6):
-    print usage
+    print(usage)
     exit(0)
 
 # Get and check the arguments
 
-print ''
-print '   Binary Data Concatenation Routine'
-print '      Written by Scott M. Ransom'
-print '              1 Mar 99\n'
+print('')
+print('   Binary Data Concatenation Routine')
+print('      Written by Scott M. Ransom')
+print('              1 Mar 99\n')
 
 outfilenm = argv[1]
 numpts = atol(argv[2])
 padval = float(argv[3])
-if (numpts < 0L):
-    print 'numpts must be greater than 0.  Exiting.'
-    print usage
+if (numpts < 0):
+    print('numpts must be greater than 0.  Exiting.')
+    print(usage)
     exit(-1)
 
-print 'Creating a %ld point file named \'%s\'.' % (numpts, outfilenm)
-print 'Using %f for each padding point.\n' % padval
+print('Creating a %ld point file named \'%s\'.' % (numpts, outfilenm))
+print('Using %f for each padding point.\n' % padval)
 
 # Read the important data from the infofiles into lists
 
@@ -82,7 +83,7 @@ file_endMJDi = []
 file_endMJDf = []
 file_N = []
 padbins = []
-print 'The input files are:'
+print('The input files are:')
 for index in range(len(argv)-4):
     infile.append(argv[index+4])
     infile[index] = infile[index][0:rfind(infile[index],'.')]
@@ -103,13 +104,13 @@ for index in range(len(argv)-4):
                             file_startMJDf[index])
     file_endMJDi.append(MJDi)
     file_endMJDf.append(MJDf)
-    print '  %s.dat:  %9.0f pts at MJD %5d.%015.0f' % \
+    print('  %s.dat:  %9.0f pts at MJD %5d.%015.0f' % \
           (infile[index], file_N[index], \
-           file_startMJDi[index], file_startMJDf[index] * 1.0e15)
+           file_startMJDi[index], file_startMJDf[index] * 1.0e15))
     if (index > 0):
         if not (dt == file_data[index].dt):
-            print '\nCannot concatenate the data.  The input file dt\'s'
-            print '   are different.  Exiting.'
+            print('\nCannot concatenate the data.  The input file dt\'s')
+            print('   are different.  Exiting.')
             exit(-1)
         else:
             dt = file_data[index].dt            
@@ -125,7 +126,7 @@ for index in range(len(argv)-4):
     else:
         dt = file_data[index].dt
                                             
-print ''
+print('')
 
 # Convert the infodata into Numpy Arrays and determine the number of
 # bins to add as padding as well as the shifts needed in the data sets
@@ -145,7 +146,7 @@ shift = where(less(shift, -1.0 + SBF), 0.0, shift)
 shift = where(greater(shift, 1.0 - SBF), 0.0, shift)
 for index in range(len(shift)):
     if (fabs(shift[index]) > SBF):
-        file_N[index + 1] = file_N[index + 1] + 1L;
+        file_N[index + 1] = file_N[index + 1] + 1;
 shift = where(greater(fabs(shift), SBF), shift, 0.0)
 wholebins = wholebins.tolist()
 
@@ -168,15 +169,15 @@ for index in range(len(shift)):
         
 # Show the user what shifts were required
 
-print 'The bin shifts requires to align the data files in phase are:'
-print '  %s.dat:  %+f bins' % (infile[0], 0.0)
+print('The bin shifts requires to align the data files in phase are:')
+print('  %s.dat:  %+f bins' % (infile[0], 0.0))
 for index in range(len(shift)):
-    print '  %s.dat:  %+f bins' % (infile[index+1], shift[index])
-print ''
+    print('  %s.dat:  %+f bins' % (infile[index+1], shift[index]))
+print('')
 
 # Show the user what the output files will consist of
 
-print 'The output file will consist of:'
+print('The output file will consist of:')
 
 outfile_N = []
 commands = []
@@ -187,8 +188,8 @@ for index in range(len(wholebins)):
                             file_startMJDi[0], \
                             file_startMJDf[0])
     totalbins = totalbins + outfile_N[2 * index]
-    print '     data:  %9.0f pts starting at MJD %5d.%015.0f' % \
-          (outfile_N[2 * index], MJDi, MJDf * 1.0e15)
+    print('     data:  %9.0f pts starting at MJD %5d.%015.0f' % \
+          (outfile_N[2 * index], MJDi, MJDf * 1.0e15))
     if (index == 0):
         commands.append("  cp %s.dat %s" % (infile[0], outfilenm))
     else:
@@ -198,8 +199,8 @@ for index in range(len(wholebins)):
     (MJDi, MJDf) = addtoMJD(totalbins * dt / SECPERDAY, \
                             file_startMJDi[0], \
                             file_startMJDf[0])
-    print '  padding:  %9.0f pts starting at MJD %5d.%015.0f' % \
-          (outfile_N[2 * index + 1], MJDi, MJDf * 1.0e15)
+    print('  padding:  %9.0f pts starting at MJD %5d.%015.0f' % \
+          (outfile_N[2 * index + 1], MJDi, MJDf * 1.0e15))
     totalbins = totalbins + outfile_N[2 * index + 1]
     commands.append("  patchdata %ld %f >> %s" % \
                    (wholebins[index], padval, outfilenm))
@@ -209,16 +210,16 @@ if (len(wholebins) < len(file_N)):
     (MJDi, MJDf) = addtoMJD(totalbins * dt / SECPERDAY, \
                             file_startMJDi[0], \
                             file_startMJDf[0])
-    print '     data:  %9.0f pts starting at MJD %5d.%015.0f' % \
-          (outfile_N[2 * index + 1], MJDi, MJDf * 1.0e15)
+    print('     data:  %9.0f pts starting at MJD %5d.%015.0f' % \
+          (outfile_N[2 * index + 1], MJDi, MJDf * 1.0e15))
     commands.append("  shiftdata %f %s.dat >> %s" % \
                    (shift[len(file_N)-1], infile[len(file_N)], outfilenm))
-print ''
+print('')
 
 # Show the user the commands we will use to concat everything
 
-print 'The commands to perform the concatenation will be:'
+print('The commands to perform the concatenation will be:')
 
 for index in range(len(commands)):
-    print commands[index]
-print ''
+    print(commands[index])
+print('')

@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys, re
 
 maxwappnum = 7
@@ -7,7 +8,7 @@ for filename in sys.argv[1:]:
     for wappnum in range(1,maxwappnum+1):
 	if ((wappnum==1 and re.search("\.wapp\.", filename)) or \
 	(wappnum>1  and re.search("\.wapp%d?\."%wappnum, filename))):
-	    if wappfiles.has_key(wappnum):
+	    if wappnum in wappfiles:
 		wappfiles[wappnum].append(filename)
 	    else:
 		wappfiles[wappnum] = [filename]
@@ -19,5 +20,5 @@ for key in wappfiles.keys():
 
 for filenum in range(numfiles):
     for wappnum in range(1,maxwappnum+1):
-	if wappfiles.has_key(wappnum):
-	    print wappfiles[wappnum][filenum],
+	if wappnum in wappfiles:
+	    print(wappfiles[wappnum][filenum], end=' ')

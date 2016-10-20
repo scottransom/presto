@@ -1,3 +1,4 @@
+from __future__ import print_function
 from types import StringType, FloatType
 import math, re
 import psr_utils as pu
@@ -194,4 +195,4 @@ class psr_par:
 
 if __name__ == '__main__':
     a = psr_par("2140-2310A.par")
-    print a
+    print(a)

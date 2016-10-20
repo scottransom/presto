@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import struct, getopt, sys, fftfit, psr_utils
 import numpy as Num
 from infodata import infodata
@@ -261,7 +262,7 @@ if __name__ == '__main__':
 
     # Read the polyco file (if required)
     if (fold.psr and fold.topo):
-        if (fold_pfd.__dict__.has_key("polycos") and
+        if ("polycos" in fold_pfd.__dict__ and
             not fold_pfd.polycos==0):
             pcs = fold_pfd.polycos
         else:
@@ -278,7 +279,7 @@ if __name__ == '__main__':
     #
 
     if t2format:
-        print "FORMAT 1"
+        print("FORMAT 1")
         
     for ii in range(numtoas):
 
@@ -385,5 +386,6 @@ if __name__ == '__main__':
                     sys.stderr.write("FFTFIT results:  b = %.4g +/- %.4g   SNR = %.4g +/- %.4g" %
                           (b, errb, snr, esnr))
 
-            except ValueError, fftfit.error:
+            except ValueError as xxx_todo_changeme:
+                fftfit.error = xxx_todo_changeme
                 pass

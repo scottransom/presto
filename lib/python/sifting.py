@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys
 import re
 import os
@@ -119,14 +120,14 @@ def sigma_to_size(sigmas):
 
 
 def print_sift_globals():
-    print "r_err =", r_err
-    print "short_period =", short_period     
-    print "long_period =", long_period     
-    print "sigma_threshold =", sigma_threshold 
-    print "c_pow_threshold =", c_pow_threshold 
-    print "harm_pow_cutoff =", harm_pow_cutoff 
-    print "known_birds_p =", known_birds_p   
-    print "known_birds_f =", known_birds_f
+    print("r_err =", r_err)
+    print("short_period =", short_period)     
+    print("long_period =", long_period)     
+    print("sigma_threshold =", sigma_threshold) 
+    print("c_pow_threshold =", c_pow_threshold) 
+    print("harm_pow_cutoff =", harm_pow_cutoff) 
+    print("known_birds_p =", known_birds_p)   
+    print("known_birds_f =", known_birds_f)
 
 
 def parse_power(pow):
@@ -190,7 +191,7 @@ class Candidate(object):
         self.hits.extend(other.hits)
 
     def __str__(self):
-        cand = self.filename + ':' + `self.candnum`
+        cand = self.filename + ':' + repr(self.candnum)
         return "%-65s   %7.2f  %6.2f  %6.2f  %s   %7.1f  %7.1f  " \
                 "%12.6f  %10.2f  %8.2f " % \
                         (cand, self.DM, self.snr, self.sigma, \
@@ -742,11 +743,11 @@ class Candlist(object):
                 None
         """
         if verbosity >= 1:
-            print "  Sorting the %d candidates by frequency..." % \
-                        self.get_numcands()
+            print("  Sorting the %d candidates by frequency..." % \
+                        self.get_numcands())
         self.cands.sort(cmp_freq)
         if verbosity >= 1:
-            print "  Searching for dupes..."
+            print("  Searching for dupes...")
         ii = 0
         # Find any match
         while ii < self.get_numcands():
@@ -777,9 +778,9 @@ class Candlist(object):
                                 (bestcand.filename, bestcand.candnum)
                     self.mark_as_duplicate(matchind)
                     if verbosity >= 2:
-                        print "Removing %s:%d (index: %d)" % \
-                                (match.filename, match.candnum, matchind)
-                        print "    %s" % match.note
+                        print("Removing %s:%d (index: %d)" % \
+                                (match.filename, match.candnum, matchind))
+                        print("    %s" % match.note)
                 # If the best candidate isn't at the same freq
                 # as ii, then it's possible even more hits should
                 # be added. So we don't increment the index
@@ -787,7 +788,7 @@ class Candlist(object):
             else:
                 ii += 1 # No candidates to be added as hits, move on
         if verbosity >= 1:
-            print "Found %d candidates.\n" % self.get_numcands()
+            print("Found %d candidates.\n" % self.get_numcands())
         self.cands.sort(cmp_sigma)
 
     def remove_harmonics(self, verbosity=1):
@@ -805,7 +806,7 @@ class Candlist(object):
         self.cands.sort(cmp_sigma)
         f_err = r_err/self.cands[0].T
         if verbosity >= 1:
-            print "\nSearching for duplicate harmonics..."
+            print("\nSearching for duplicate harmonics...")
         ii = 0
         while 1:
             fundcand = self.cands[ii]
@@ -813,7 +814,7 @@ class Candlist(object):
             zapj = 0
             while 1:
                 harmcand = self.cands[jj]
-                if zapj:  print "Hey!"
+                if zapj:  print("Hey!")
                 for factor in Num.arange(1.0, 17.0):
                     if Num.fabs(fundcand.f - harmcand.f*factor) < f_err*factor:
                         zapj = 1
@@ -826,7 +827,7 @@ class Candlist(object):
                             harmstr = "%dth" % factor
                     if zapj:
                         if verbosity >= 2:
-                            print "Removing %s:%d (%.2f Hz) because it is " \
+                            print("Removing %s:%d (%.2f Hz) because it is " \
                                     "a harmonic (%s) of %s:%d (%.2f Hz)" % \
                                     (harmcand.filename, \
                                         harmcand.candnum, \
@@ -834,7 +835,7 @@ class Candlist(object):
                                         harmstr, \
                                         fundcand.filename, \
                                         fundcand.candnum, \
-                                        fundcand.f)
+                                        fundcand.f))
                         break
                 # Check a few other common ratios
                 for numer,denom in zip([3.0, 5.0, 2.0, 4.0, 5.0, \
@@ -844,7 +845,7 @@ class Candlist(object):
                     factor = numer/denom
                     if Num.fabs(fundcand.f-harmcand.f*factor) < f_err*factor:
                         if verbosity >= 2:
-                            print "Removing %s:%d (%.2f Hz) because it is " \
+                            print("Removing %s:%d (%.2f Hz) because it is " \
                                     "a harmonic (%d/%dth) of %s:%d (%.2f Hz)" % \
                                     (harmcand.filename, \
                                         harmcand.candnum, \
@@ -853,7 +854,7 @@ class Candlist(object):
                                         numer, \
                                         fundcand.filename, \
                                         fundcand.candnum, \
-                                        fundcand.f)
+                                        fundcand.f))
                         harmstr = "%d/%dth" % (denom, numer)
                         zapj = 1
                         break
@@ -867,9 +868,9 @@ class Candlist(object):
                     numremoved += 1
                     self.mark_as_bad(jj, 'harmonic')
                     if verbosity >= 2:
-                        print "Removing %s:%d (index: %d)" % \
-                                (harmcand.filename, harmcand.candnum, jj)
-                        print "    %s" % harmcand.note
+                        print("Removing %s:%d (index: %d)" % \
+                                (harmcand.filename, harmcand.candnum, jj))
+                        print("    %s" % harmcand.note)
                     zapj = 0
                 jj -= 1
                 if jj == ii:
@@ -878,7 +879,7 @@ class Candlist(object):
             if ii >= len(self.cands) - 1:
                 break
         if verbosity >= 1:
-            print "Removed a total of %d harmonics.\n" % numremoved
+            print("Removed a total of %d harmonics.\n" % numremoved)
 
     def remove_DM_problems(self, numdms, dmlist, low_DM_cutoff, verbosity=1):
         """Remove the candidates where any of the following are true:
@@ -917,9 +918,9 @@ class Candlist(object):
                                 (len(currcand.hits), numdms)
                 self.mark_as_bad(ii, 'dmproblem')
                 if verbosity >= 2:
-                    print "Removing %s:%d (index: %d)" % \
-                            (currcand.filename, currcand.candnum, ii)
-                    print "    %s" % currcand.note
+                    print("Removing %s:%d (index: %d)" % \
+                            (currcand.filename, currcand.candnum, ii))
+                    print("    %s" % currcand.note)
                 continue
 
             # Remove all the candidates where the max sigma DM is 
@@ -935,9 +936,9 @@ class Candlist(object):
                                     (hitsigma, hitdm, low_DM_cutoff)
                 self.mark_as_bad(ii, 'dmproblem')
                 if verbosity >= 2:
-                    print "Removing %s:%d (index: %d)" % \
-                            (currcand.filename, currcand.candnum, ii)
-                    print "    %s" % currcand.note
+                    print("Removing %s:%d (index: %d)" % \
+                            (currcand.filename, currcand.candnum, ii))
+                    print("    %s" % currcand.note)
                 continue
 
             # Remove all the candidates where there are no hits at consecutive DMs
@@ -953,17 +954,17 @@ class Candlist(object):
                                     "consecutive DMs don't have hits)."
                     self.mark_as_bad(ii, 'dmproblem')
                     if verbosity >= 2:
-                        print "Removing %s:%d (index: %d)" % \
-                                (currcand.filename, currcand.candnum, ii)
-                        print "    %s" % currcand.note
+                        print("Removing %s:%d (index: %d)" % \
+                                (currcand.filename, currcand.candnum, ii))
+                        print("    %s" % currcand.note)
                     continue
 
         if verbosity >= 1:
-            print "Removed %d candidates with DM problems.\n" % numremoved
+            print("Removed %d candidates with DM problems.\n" % numremoved)
         if verbosity >= 2:
-            print "  # with too few hits:", num_toofew
-            print "  # with peak SNR too low:", num_toolow
-            print "  # with gaps in DM hits:", num_gaps
+            print("  # with too few hits:", num_toofew)
+            print("  # with peak SNR too low:", num_toolow)
+            print("  # with gaps in DM hits:", num_gaps)
 
     def print_cand_summary(self, summaryfilenm=None):
         """Write a summary of all candidates to file (or stdout).
@@ -1215,7 +1216,7 @@ def read_candidates(filenms, prelim_reject=True, track=False):
     candlist = Candlist(trackbad=track, trackdupes=track)
     numfiles = len(filenms)
     if filenms:
-        print "\nReading candidates from %d files...." % len(filenms)
+        print("\nReading candidates from %d files...." % len(filenms))
         for ii, filenm in enumerate(filenms):
             curr_candlist = candlist_from_candfile(filenm, trackbad=track, trackdupes=track)
             if prelim_reject:
@@ -1223,9 +1224,9 @@ def read_candidates(filenms, prelim_reject=True, track=False):
             candlist.extend(curr_candlist)
             sys.stdout.write(" Read %d of %d files (%d cands)\r" % (ii+1, numfiles, len(candlist)))
             sys.stdout.flush()
-        print "\nDone"
+        print("\nDone")
     else:
-        print "Error:  There are no candidate files to read!"
+        print("Error:  There are no candidate files to read!")
     return candlist
 
 
@@ -1257,9 +1258,9 @@ def sift_directory(dir, outbasenm):
     # Read candidates found in low acceleration searching
     lo_accel_fns = glob.glob(os.path.join(dir, '*ACCEL_0'))
     lo_accel_cands = read_candidates(lo_accel_fns, track=True)
-    print "Read %d candidates from %d files" % \
-                (len(lo_accel_cands), len(lo_accel_fns))
-    print "%d candidates passed default rejection" % len(lo_accel_cands)
+    print("Read %d candidates from %d files" % \
+                (len(lo_accel_cands), len(lo_accel_fns)))
+    print("%d candidates passed default rejection" % len(lo_accel_cands))
     if len(lo_accel_cands):
         lo_accel_cands.remove_duplicate_candidates()
     if len(lo_accel_cands):
@@ -1269,9 +1270,9 @@ def sift_directory(dir, outbasenm):
     # Read candidates found in high acceleration searching
     hi_accel_fns = glob.glob(os.path.join(dir, '*ACCEL_50'))
     hi_accel_cands = read_candidates(hi_accel_fns, track=True)
-    print "Read %d candidates from %d files" % \
-                (len(hi_accel_cands), len(hi_accel_fns))
-    print "%d candidates passed default rejection" % len(hi_accel_cands)
+    print("Read %d candidates from %d files" % \
+                (len(hi_accel_cands), len(hi_accel_fns)))
+    print("%d candidates passed default rejection" % len(hi_accel_cands))
     if len(hi_accel_cands):
         hi_accel_cands.remove_duplicate_candidates()
     if len(hi_accel_cands):
@@ -1283,7 +1284,7 @@ def sift_directory(dir, outbasenm):
         all_accel_cands.remove_harmonics()
         # Note:  the candidates will be sorted in _sigma_ order, not _SNR_!
         all_accel_cands.cands.sort(cmp_sigma)
-        print "Found %d good candidates" % len(all_accel_cands)
+        print("Found %d good candidates" % len(all_accel_cands))
         all_accel_cands.to_file(outbasenm+".accelcands")
     all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
     all_accel_cands.print_cand_summary()

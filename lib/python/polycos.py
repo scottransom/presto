@@ -227,7 +227,7 @@ def create_polycos(parfn, telescope_id, center_freq, start_mjd, end_mjd, \
         Output:
             new_polycos: a polycos object.
     """
-    if type(parfn)==types.StringType:
+    if type(parfn)==bytes:
         # assume parfn is a filename
         par = parfile.psr_par(parfn)
     else:

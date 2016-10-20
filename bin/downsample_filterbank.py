@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import sys, sigproc
 import numpy as num
 
 if __name__ == "__main__":
     if len(sys.argv)==1:
-        print "\nusage:  downsample_filterbank_hdr.py DS_fact infile.fil\n"
+        print("\nusage:  downsample_filterbank_hdr.py DS_fact infile.fil\n")
         sys.exit()
     DS_fact = int(sys.argv[1])
     basefilenm = sys.argv[2][:sys.argv[2].find(".fil")]
@@ -45,7 +46,7 @@ if __name__ == "__main__":
     infilelen -= infile.tell()
     numspec = infilelen / nchans
     if infilelen % nchans:
-        print "Whoops!  File length calculation is not right..."
+        print("Whoops!  File length calculation is not right...")
 
     # Now loop over the spectra
     for ii in xrange(numspec / DS_fact):

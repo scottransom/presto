@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 import infodata
 from scipy.signal import medfilt
@@ -88,7 +89,7 @@ class rfifind:
             else:
                 tozap = np.asarray([])
             self.mask_zap_chans_per_int.append(tozap)
-        print x.tell()
+        print(x.tell())
         x.close()
 
     def get_bandpass(self, plot=False):
@@ -182,22 +183,22 @@ class rfifind:
                          self.user_zap_chans | \
                          self.edge_chans | \
                          self.no_signal_chans
-        print "Recommending to zap %d channels:" % len(self.zap_chans)
-        print "  %d channels from Fourier power levels > %.1f" % \
-              (len(self.pow_zap_chans), power)
-        print "  %d channels from avgs levels being off by > %.1f sigma" % \
-              (len(self.avg_zap_chans), asigma)
-        print "  %d channels from stds levels being off by > %.1f sigma" % \
-              (len(self.std_zap_chans), ssigma)
-        print "  %d channels for being within %.3g of the band edge" % \
-              (len(self.edge_chans), edges)
-        print "  %d channels were specified by the user" % len(self.user_zap_chans)
-        print "  %d channels for having no variation" % len(self.no_signal_chans)
+        print("Recommending to zap %d channels:" % len(self.zap_chans))
+        print("  %d channels from Fourier power levels > %.1f" % \
+              (len(self.pow_zap_chans), power))
+        print("  %d channels from avgs levels being off by > %.1f sigma" % \
+              (len(self.avg_zap_chans), asigma))
+        print("  %d channels from stds levels being off by > %.1f sigma" % \
+              (len(self.std_zap_chans), ssigma))
+        print("  %d channels for being within %.3g of the band edge" % \
+              (len(self.edge_chans), edges))
+        print("  %d channels were specified by the user" % len(self.user_zap_chans))
+        print("  %d channels for having no variation" % len(self.no_signal_chans))
         if usemask:
             onlymask = self.mask_zap_chans - self.zap_chans
-            print "  The mask recommends %d additional bad channels" % len(onlymask)
+            print("  The mask recommends %d additional bad channels" % len(onlymask))
             if len(onlymask):
-                print "  adding them to the zap_chans list."
+                print("  adding them to the zap_chans list.")
             self.zap_chans = self.zap_chans | self.mask_zap_chans
         self.zap_chans = np.asarray(sorted(list(self.zap_chans)))
         if plot: self.plot_zapped_bandpass()

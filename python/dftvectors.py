@@ -1,3 +1,4 @@
+from __future__ import print_function
 import umath
 import Numeric
 from Pgplot import plotxy, closeplot
@@ -117,8 +118,8 @@ class dftvector:
          self.timefract = copy(self.orig_timefract)
          self.times = copy(self.orig_times)
       elif not (factor * (self.numvect / factor) == self.numvect):
-         print "'factor' in dftvector.rebin(factor) must evenly divide"
-         print "   the number of vector components (numvect)."
+         print("'factor' in dftvector.rebin(factor) must evenly divide")
+         print("   the number of vector components (numvect).")
       else:
          try:
             self.orig_n
@@ -209,19 +210,19 @@ class dftvector:
       modprzw[0] = (self.r + modprzw[0])
       [f, fd, fdd] = (modprzw / self.T**Numeric.array([1.0, 2.0, 3.0])).tolist()
       [p, pd, pdd] = p_to_f(f, fd, fdd)
-      print ""
-      print "      Phase (rad) = %.3f" % (przw[0])
-      print "      Phase (deg) = %.3f" % (przw[0] * 180.0 / umath.pi)
-      print "     Fourier freq = %.3f" % (modprzw[0])
-      print "     Fourier fdot = %.5g" % (modprzw[1])
-      print "  Fourier fdotdot = %.5g" % (modprzw[2])
-      print "   Frequency (Hz) = %.9f" % (f)
-      print "      fdot (Hz/s) = %.5g" % (fd)
-      print " fdotdot (Hz/s^2) = %.5g" % (fdd)
-      print "       Period (s) = %.12f" % (p)
-      print "       pdot (s/s) = %.5g" % (pd)
-      print "  pdotdot (s/s^2) = %.5g" % (pdd)
-      print ""
+      print("")
+      print("      Phase (rad) = %.3f" % (przw[0]))
+      print("      Phase (deg) = %.3f" % (przw[0] * 180.0 / umath.pi))
+      print("     Fourier freq = %.3f" % (modprzw[0]))
+      print("     Fourier fdot = %.5g" % (modprzw[1]))
+      print("  Fourier fdotdot = %.5g" % (modprzw[2]))
+      print("   Frequency (Hz) = %.9f" % (f))
+      print("      fdot (Hz/s) = %.5g" % (fd))
+      print(" fdotdot (Hz/s^2) = %.5g" % (fdd))
+      print("       Period (s) = %.12f" % (p))
+      print("       pdot (s/s) = %.5g" % (pd))
+      print("  pdotdot (s/s^2) = %.5g" % (pdd))
+      print("")
    def fitrzw(self, przw=None, funct=rzw_dist_model):
       """
       dftvector.fitrzw(przw=None, funct=rzw_dist_model):):
@@ -238,7 +239,7 @@ class dftvector:
       else:
          przw = Numeric.array([0.0, 0.0, 0.0, 0.0])
       retval = leastsq(funct, przw, args=(self))
-      print retval[1]
+      print(retval[1])
       return retval[0] * Numeric.array([1.0, 1.0, 4.0, 20.0])
    def plotvector(self, vector, amp=None, color='red',
                   device='/XWIN', step=0):
@@ -298,8 +299,8 @@ else:
    dv.rebin(4)
 
 if (1):
-   print "    Max amplitude =", dv.maxamplitude()
-   print "Current amplitude =", dv.amplitude()
+   print("    Max amplitude =", dv.maxamplitude())
+   print("Current amplitude =", dv.amplitude())
    dv.rzwinfo(przw)
    phasecorr = dv.rzw_phases(przw)
    corrvect = add_components(dv.rotate(-phasecorr))

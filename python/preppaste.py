@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import mygetopt, string, sys, os, presto, Numeric
 
 if (len(sys.argv)==1):
-    print """
+    print("""
 usage:  preppaste [whatever options you send to prepdata] rawfiles
   This program takes Parkes Multibeam rawfiles and pastes them
   together to create a single barycentered and de-dispersed
@@ -20,18 +21,18 @@ usage:  preppaste [whatever options you send to prepdata] rawfiles
                   Default = 49792 for PKMB
 
   Note:  The rawfiles need to be able to be sorted into the
-         correct order!  (i.e. alphabetical == chronological)"""
+         correct order!  (i.e. alphabetical == chronological)""")
     sys.exit(0)
 
 def pkmb_prepdata(optlist, file, filenum):
     # Runs prepdata and returns a tuple containg number of points
     # written, time per point, and starting time (MJD)
-    outfile = optlist['o']+`filenum`
+    outfile = optlist['o']+repr(filenum)
     command = 'prepdata -pkmb -nobary -dm '+optlist['dm']+' -o '+\
               outfile+' '+file
-    print ""
-    print command
-    print ""
+    print("")
+    print(command)
+    print("")
     os.system(command)
     inf = presto.read_inffile(outfile)
     return (int(inf.N), inf.dt, inf.mjd_i+inf.mjd_f)
@@ -43,7 +44,7 @@ options = ['o=', 'pkmb', 'ebpp', 'pad0', 'padavg',
 optlist, files = mygetopt.getopt(sys.argv[1:], options)
 files.sort()
 
-if optlist.has_key('pkmb'):
+if 'pkmb' in optlist:
     datatype = 'pkmb'
     numout = int(optlist.get('numout', 0))
     blocklen = int(optlist.get('blocklen', 49792))
@@ -53,7 +54,7 @@ if optlist.has_key('pkmb'):
 
 # Prep the individual data files (makes topocentric data)
 
-print "\n\n**** Making topocentric data files...\n\n"
+print("\n\n**** Making topocentric data files...\n\n")
 
 ns = []
 epochs = []
@@ -77,15 +78,15 @@ padbins = binsneeded - ns[:-1]
 
 # Add padding to the data topocentric files we just wrote
 
-print "\n\n**** Adding padding...\n\n"
+print("\n\n**** Adding padding...\n\n")
 
 for filenum in xrange(len(padbins)):
-    outfile = optlist['o']+`filenum`+'.dat'
+    outfile = optlist['o']+repr(filenum)+'.dat'
     if (padbins[filenum] > 0):
-	command = 'patchdata '+`padbins[filenum]`+' '+`padval`+' >> '+outfile
-	print ""
-	print command
-	print ""
+	command = 'patchdata '+repr(padbins[filenum])+' '+repr(padval)+' >> '+outfile
+	print("")
+	print(command)
+	print("")
 	os.system(command)
 
 # Cat the files together and remove the temp files
@@ -95,18 +96,18 @@ for filenum in xrange(len(padbins)):
 #        This might not be needed since we will run prepdata
 #        to barycenter the data.
 
-print "\n\n**** Joining files...\n\n"
+print("\n\n**** Joining files...\n\n")
 
 outfile = optlist['o']+'0.dat'
 for filenum in xrange(1, len(files)):
-    infile = optlist['o']+`filenum`+'.dat'
+    infile = optlist['o']+repr(filenum)+'.dat'
     command = 'cat '+infile+' >> '+outfile
-    print ""
-    print command
-    print ""
+    print("")
+    print(command)
+    print("")
     os.system(command)
     os.remove(infile)
-    os.remove(optlist['o']+`filenum`+'.inf')
+    os.remove(optlist['o']+repr(filenum)+'.inf')
 
 # Adjust infofile for the pasted data set
 
@@ -116,18 +117,18 @@ presto.writeinf(inf)
 
 # Run prepdata on the big file to barycenter it
 
-print "\n\n**** Barycentering...\n\n"
+print("\n\n**** Barycentering...\n\n")
 
 if (numout):
-    command = ('prepdata -numout '+`numout`+' -o '+
+    command = ('prepdata -numout '+repr(numout)+' -o '+
                optlist['o']+' '+outfile)
 else:
     command = ('prepdata -o '+optlist['o']+' '+outfile)
-print ""
-print command
-print ""
+print("")
+print(command)
+print("")
 os.system(command)
 os.remove(outfile)
 os.remove(optlist['o']+'0.inf')
 
-print "\n\n**** Done.\n\n"
+print("\n\n**** Done.\n\n")
