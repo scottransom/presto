@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import range
 import numpy as _np
 import fileinput as _fileinput
 from scipy.special import erf
@@ -224,7 +225,7 @@ def gen_arrays(dm, sp_files, tar, threshold):
     hidm = max_dm+diff_dm
     if (ddm <= 0):
         ddm = 0
-    name_DMs = _np.asarray(map(lambda x:pick_DM_for_singlepulse_files(sp_files[x]), range(len(sp_files))))
+    name_DMs = _np.asarray([pick_DM_for_singlepulse_files(sp_files[x]) for x in range(len(sp_files))])
     inds = name_DMs.argsort()
     name_DMs = name_DMs[inds]
     sp_files = _np.asarray(sp_files)[inds]

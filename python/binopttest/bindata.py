@@ -1,4 +1,7 @@
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 def catvar(col):
     ret = []
     global a, b, c, d, e
@@ -28,7 +31,7 @@ def readsaves(file='montebinopt_saves.txt'):
     return result
 
 def saveresults(file="testresults.txt"):
-    from cPickle import *
+    from pickle import *
     global psrp, orbp, orbx, orbe, orbw, orbt
     global widthp, widthx, widtht, widthe, widthw
     global mf, z
@@ -127,7 +130,7 @@ if __name__ == '__main__':
         """
         print(eval(funct + '.__doc__'))
     
-    from cPickle import *
+    from pickle import *
     vars = ('psrp', 'orbp', 'orbx', 'orbe', 'orbw', 'orbt',
             'widthp', 'widthx', 'widtht', 'widthe', 'widthw',
             'mf', 'z')

@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import input
 import numpy as Num
 from events import *
 
 def answer_yes(question):
     yes = ['', 'Y', 'y', 'Yes', 'yes', 'YES',
            'T', 't', 'True', 'true', 'TRUE']
-    return raw_input('\n'+question) in yes
+    return input('\n'+question) in yes
 
 def ask_float(question, default=None):
     while 1:
-        ans = raw_input('\n'+question)
+        ans = input('\n'+question)
         if not ans:
             ans = default
         try:
@@ -20,7 +21,7 @@ def ask_float(question, default=None):
 
 def ask_int(question, default=None):
     while 1:
-        ans = raw_input('\n'+question)
+        ans = input('\n'+question)
         if not ans:
             ans = default
         try:
@@ -61,8 +62,7 @@ if __name__ == '__main__':
         numphot = ask_int("How many counts (photons) were there?  ")
         lofreq, hifreq = rlo / T, rhi / T
         trial_freqs = (10.0**(Num.arange(7.0)-2.0)).tolist()
-        trial_freqs = filter(lambda x:  x > lofreq and x < hifreq,
-                             trial_freqs)
+        trial_freqs = [x for x in trial_freqs if x > lofreq and x < hifreq]
         print("\nThe trial frequencies (Hz) are:", trial_freqs)
         if answer_yes(\
             "Would you like to add any more?  [y]  "):

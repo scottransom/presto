@@ -1,4 +1,7 @@
 from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 # Binary floating point data file concatenation routine
 #
 # Written by Scott M. Ransom <ransom@cfa.harvard.edu>
@@ -93,7 +96,7 @@ for index in range(len(argv)-4):
     file_data.append(infodata(infile[index]+".inf"))
     file_data[index].mjd_i = int(file_data[index].epoch)
     file_data[index].mjd_f = file_data[index].epoch - file_data[index].mjd_i
-    file_N.append(long(file_data[index].N + 1.0e-10))
+    file_N.append(int(file_data[index].N + 1.0e-10))
     file_startMJDi.append(file_data[index].mjd_i)
     file_startMJDf.append(file_data[index].mjd_f)
 
