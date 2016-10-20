@@ -62,15 +62,49 @@ static PyMethodDef my_range_method[] = {
   { NULL, NULL }
 };
 
-void initmy_range()
+#if PY_MAJOR_VERSION >= 3
+  static struct PyModuleDef moduledef = {
+    PyModuleDef_HEAD_INIT,
+    "my_range", /* m_name */
+    module___doc__,      /* m_doc */
+    -1,                  /* m_size */
+    my_range_method,    /* m_methods */
+    NULL,                /* m_reload */
+    NULL,                /* m_traverse */
+    NULL,                /* m_clear */
+    NULL,                /* m_free */
+  };
+#endif
+
+static PyObject *
+moduleinit()
 {
   PyObject *m, *d;
 
-  m = Py_InitModule("my_range", my_range_method);
+#if PY_MAJOR_VERSION >= 3
+    m = PyModule_Create(&moduledef);
+#else
+    m = Py_InitModule("my_range", my_range_method);
+#endif
   d = PyModule_GetDict(m);
   import_array();
   ErrorObject = PyString_FromString("my_range.error");
   PyDict_SetItemString(d, "error", ErrorObject);
   if (PyErr_Occurred())
     Py_FatalError("can't initialize module my_range");
+  return m;
 }
+
+#if PY_MAJOR_VERSION < 3
+    PyMODINIT_FUNC
+    initmy_range(void)
+    {
+        moduleinit();
+    }
+#else
+    PyMODINIT_FUNC
+    PyInit_my_range(void)
+    {
+        return moduleinit();
+    }
+#endif
