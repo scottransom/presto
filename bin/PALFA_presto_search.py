@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 import glob, os, os.path, shutil, socket, struct, sys, time, tarfile
 import numpy, psr_utils, presto, sifting, sigproc
 
@@ -209,7 +213,7 @@ def get_folding_command(cand, obs, ddplans):
            (cand.candnum, cand.filename, cand.DM, outfilenm,
             otheropts, N, Mp, Mdm, foldfiles)
 
-class obs_info:
+class obs_info(object):
     """
     class obs_info(fil_filenm)
         A class describing the observation and the analysis.
@@ -309,7 +313,7 @@ class obs_info:
         report_file.write("---------------------------------------------------------\n")
         report_file.close()
 
-class dedisp_plan:
+class dedisp_plan(object):
     """
     class dedisp_plan(lodm, dmstep, dmsperpass, numpasses, numsub, downsamp)
         A class describing a de-dispersion plan for prepsubband in detail.

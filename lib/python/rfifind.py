@@ -1,4 +1,7 @@
 from __future__ import print_function
+from builtins import zip
+from builtins import range
+from builtins import object
 import numpy as np
 import infodata
 from scipy.signal import medfilt
@@ -39,7 +42,7 @@ class rfifind:
         
 """
 
-class rfifind:
+class rfifind(object):
     def __init__(self, filename):
         self.basename = filename[:filename.find("_rfifind.")+8]
         self.idata = infodata.infodata(self.basename+".inf")
@@ -137,7 +140,7 @@ class rfifind:
         num = int(np.round(self.nint*frac_to_keep))
         start = (self.nint - num)/2
         self.padvals = np.zeros(self.nchan, dtype='float32')
-        for ichan in xrange(self.nchan):
+        for ichan in range(self.nchan):
             isort = np.argsort(self.avg_stats[:,ichan])
             self.padvals[ichan] = np.mean(self.avg_stats.astype('float64')[isort,ichan][start:start+num])
 

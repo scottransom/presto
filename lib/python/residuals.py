@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import range
+from builtins import object
 #
 #  From the TEMPO Documentation:
 #    
@@ -16,7 +18,7 @@ from __future__ import print_function
 import struct
 import numpy as Num
 
-class residuals:
+class residuals(object):
     pass
 
 def read_residuals(filename="resid2.tmp"):

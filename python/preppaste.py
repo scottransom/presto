@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
 import mygetopt, string, sys, os, presto, Numeric
 
 if (len(sys.argv)==1):
@@ -58,7 +59,7 @@ print("\n\n**** Making topocentric data files...\n\n")
 
 ns = []
 epochs = []
-for filenum in xrange(len(files)):
+for filenum in range(len(files)):
     file = files[filenum]
     if (datatype=='pkmb'):
         (nout, dt, epoch) = pkmb_prepdata(optlist, file, filenum)
@@ -80,7 +81,7 @@ padbins = binsneeded - ns[:-1]
 
 print("\n\n**** Adding padding...\n\n")
 
-for filenum in xrange(len(padbins)):
+for filenum in range(len(padbins)):
     outfile = optlist['o']+repr(filenum)+'.dat'
     if (padbins[filenum] > 0):
 	command = 'patchdata '+repr(padbins[filenum])+' '+repr(padval)+' >> '+outfile
@@ -99,7 +100,7 @@ for filenum in xrange(len(padbins)):
 print("\n\n**** Joining files...\n\n")
 
 outfile = optlist['o']+'0.dat'
-for filenum in xrange(1, len(files)):
+for filenum in range(1, len(files)):
     infile = optlist['o']+repr(filenum)+'.dat'
     command = 'cat '+infile+' >> '+outfile
     print("")

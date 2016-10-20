@@ -1,4 +1,5 @@
 from __future__ import print_function
+from builtins import range
 # 'Safe' Newton-Raphson and Secant method
 #    for numerical root-finding
 #
@@ -20,7 +21,7 @@ def bisect(func, lox, hix, TOL=1e-14, MAXIT=200):
         dx, rtb = hix - lox, lox
     else:
         dx, rtb = lox - hix, hix
-    for i in xrange(MAXIT):
+    for i in range(MAXIT):
         dx = dx * 0.5
         xmid = rtb + dx
         fmid = func(xmid)

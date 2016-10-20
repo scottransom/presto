@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import range
+from builtins import object
 from math import sqrt, sin, pi
 from Numeric import *
 from RandomArray import random, randint, normal
@@ -43,7 +45,7 @@ def secant(func, oldx, x, TOL=1e-6): # f(x)=func(x)
         count = count + 1
         print("secant(%d): x=%s, f(x)=%s" % (count, x, f))
 
-class trials:
+class trials(object):
     def __init__(self, Nbins, Nphot, pfrac):
         self.Nphot = Nphot
         self.Nbins = Nbins
@@ -86,7 +88,7 @@ class trials:
             # print ' StdDev Data = ', standardDeviation(data)
         return data
     def do_trials(self, Ntrials):
-        for trial in xrange(Ntrials):
+        for trial in range(Ntrials):
             data = self.calc_time_series()
             ft = rfft(data)
             # pows = spectralpower(ft)/ft[0].real

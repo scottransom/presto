@@ -5,6 +5,7 @@ Patrick Lazarus, June 26, 2012
 (Minor modification from file originally from June 6th, 2009)
 """
 from __future__ import print_function
+from builtins import object
 
 import sys
 import warnings
@@ -40,7 +41,7 @@ def create_filterbank_file(outfn, header, spectra=None, nbits=8, \
     header['nbits'] = nbits
     outfile = open(outfn, 'wb')
     outfile.write(sigproc.addto_hdr("HEADER_START", None))
-    for paramname in header.keys():
+    for paramname in list(header.keys()):
         if paramname not in sigproc.header_params:
             # Only add recognized parameters
             continue

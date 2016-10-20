@@ -1,8 +1,9 @@
+from builtins import object
 import numpy as _np
 from scipy.special import erf as _erf
 import sys
 
-class spd:
+class spd(object):
     """
     A class for reading in single pulse files.
 

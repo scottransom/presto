@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import str
+from builtins import range
 import numpy as Num
 import numpy.fft as FFT
 import Pgplot, ppgplot, bisect, sinc_interp, parfile
@@ -100,7 +102,7 @@ def hist(data, bins, range=None, laby="Number", **kwargs):
     maxy = int(1.1*max(ys))
     if maxy < max(ys):
         maxy = max(ys) + 1.0
-    if 'rangey' not in kwargs.keys():
+    if 'rangey' not in list(kwargs.keys()):
         kwargs['rangey']=[0,maxy]
     Pgplot.plotbinned(ys, xs, laby=laby, **kwargs)
     return (xs, ys)

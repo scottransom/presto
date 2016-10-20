@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
+from builtins import range
 import numpy as num
 import psr_utils as pu
 import parfile, bestprof, sys

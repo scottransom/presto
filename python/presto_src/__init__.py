@@ -1,5 +1,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
+from builtins import input
+from builtins import range
 from .prestoswig import *
 import numpy as Num
 import Pgplot
@@ -260,7 +262,7 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
                       laby = 'Fourier Frequency (r)', device=device)
         if device=='/XWIN':
            print('Press enter to continue:')
-           i = raw_input()
+           i = input()
         Pgplot.nextplotpage()
         Pgplot.plotxy(z, times, labx = 'Time',
                       laby = 'Fourier Frequency Derivative (z)', device=device)

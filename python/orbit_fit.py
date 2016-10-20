@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import range
+from builtins import object
 from Numeric import *
 from miscutils import *
 from Scientific.Functions.Interpolation import *
@@ -12,7 +14,7 @@ from sys import argv
 fwhm = 0.04 # FWHM of expcos profile to fit for first TOA analysis
 fit_template = expcos_profile(42, 0.0, fwhm)
 
-class profdat:
+class profdat(object):
     pass
 
 def read_bestprof(proffile):
@@ -103,7 +105,7 @@ def interp_prof(profile, zoom=10):
     profphases = arange(0.0, 1.0001, 1.0/len(profile))
     iprof_func = InterpolatingFunction((profphases,), nprofile)
     iprof = zeros(zoom * len(profile), 'd')
-    for i in xrange(zoom * len(profile)):
+    for i in range(zoom * len(profile)):
         iprof[i] = iprof_func(float(i) / (zoom * len(profile)))
     return iprof
 
@@ -177,7 +179,7 @@ print("M_c (M_sun)     < %17.15g" % \
 
 
 if (0):
-    for ii in xrange(numparts):
+    for ii in range(numparts):
         (phases[ii], phaseerrs[ii], b, berr, a) = \
                     measure_phase(profs[ii], fit_template, stdevs[ii], fwhm)
         # phases[i] = old_measure_phase(profs[i], fit_template, fwhm)

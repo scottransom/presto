@@ -1,4 +1,6 @@
 from __future__ import print_function
+from builtins import range
+from builtins import object
 import umath
 import Numeric
 from Pgplot import plotxy, closeplot
@@ -7,7 +9,7 @@ from time import sleep
 from Multipack import leastsq
 
 def smooth_phases(phases):
-   for ii in xrange(len(phases)-1):
+   for ii in range(len(phases)-1):
       l = phases[ii]
       h = phases[ii+1]
       if (h - l < -umath.pi):
@@ -74,7 +76,7 @@ def point_distances(vec1, vec2):
    return umath.sqrt((vec2.real-vec1.real)**2.0 +
                      (vec2.imag-vec1.imag)**2.0)
 
-class dftvector:
+class dftvector(object):
    def __init__(self, filename=None):
       if filename:
          self.fromfile(filename)
@@ -96,7 +98,7 @@ class dftvector:
       self.components = Numeric.zeros(self.numvect, 'D')
       self.timefract = (Numeric.arange(self.numvect) + 1.0) / self.numvect
       self.times = self.timefract * self.dt * self.n * self.numvect
-      for ii in xrange(self.numvect):
+      for ii in range(self.numvect):
          index = 2 * ii + 6
          self.components[ii] = complex(dblarr[index], dblarr[index+1])
       self.vector = add_components(self.components)
@@ -256,7 +258,7 @@ class dftvector:
          amp = 1.1 * umath.maximum(max(umath.absolute(x)),
                                    max(umath.absolute(y)))
       if step:
-         for ii in xrange(self.numvect):
+         for ii in range(self.numvect):
             sleep(0.01)
             plotxy(y[ii:ii+2], x[ii:ii+2],
                    rangex=[-amp, amp], rangey=[-amp, amp],

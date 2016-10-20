@@ -9,6 +9,8 @@ Last Updated: Jul 4, 2016 (Scott Ransom to add 2-bit reading)
 
 """
 from __future__ import print_function
+from builtins import range
+from builtins import object
 import re
 import os
 import os.path
@@ -180,7 +182,7 @@ class PsrfitsFile(object):
         
         # Read data
         data = []
-        for isub in xrange(startsub, endsub+1):
+        for isub in range(startsub, endsub+1):
             data.append(self.read_subint(isub))
         if len(data) > 1:
             data = np.concatenate(data)
@@ -206,7 +208,7 @@ class PsrfitsFile(object):
                                starttime=self.tsamp*startsamp, dm=0)
 
 
-class SpectraInfo:
+class SpectraInfo(object):
     def __init__(self, filenames):
         self.filenames = filenames
         self.num_files = len(filenames)
@@ -240,7 +242,7 @@ class SpectraInfo:
 
             primary = hdus['PRIMARY'].header
 
-            if 'TELESCOP' not in primary.keys():
+            if 'TELESCOP' not in list(primary.keys()):
                 telescope = ""
             else:
                 telescope = primary['TELESCOP']
@@ -268,7 +270,7 @@ class SpectraInfo:
             self.beam_FWHM = primary['BMIN']
 
             # CHAN_DM card is not in earlier versions of PSRFITS
-            if 'CHAN_DM' not in primary.keys():
+            if 'CHAN_DM' not in list(primary.keys()):
                 self.chan_dm = 0.0
             else:
                 self.chan_dm = primary['CHAN_DM']

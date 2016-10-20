@@ -1,3 +1,5 @@
+from builtins import range
+from builtins import object
 import os
 import sys
 import subprocess
@@ -55,7 +57,7 @@ telescope_to_maxha = {"GBT": 12, \
                    "Geocenter": 12, \
                    "Barycenter": 12}
 
-class polyco:
+class polyco(object):
     def __init__(self, fileptr):
         line = fileptr.readline()
         if (line==""):
@@ -130,7 +132,7 @@ class polyco:
             psrfreq = DT*psrfreq + ii*self.coeffs[ii]
         return self.F0 + psrfreq/60.0
         
-class polycos:
+class polycos(object):
     def __init__(self, psrname, filenm="polyco.dat"):
         self.psr = psrname
         self.file = filenm
