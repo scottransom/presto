@@ -4,7 +4,9 @@ from builtins import object
 import numpy as Num
 import copy, random, struct, sys
 import psr_utils, infodata, polycos, Pgplot
-from types import StringType, FloatType, IntType
+# from types import StringType, FloatType, IntType
+import six
+import numbers
 from bestprof import bestprof
 
 class pfd(object):
@@ -191,11 +193,11 @@ class pfd(object):
         out = ""
         for k, v in list(self.__dict__.items()):
             if k[:2]!="__":
-                if type(self.__dict__[k]) is StringType:
+                if isinstance(self.__dict__[k], six.string_types):
                     out += "%10s = '%s'\n" % (k, v)
-                elif type(self.__dict__[k]) is IntType:
+                elif isinstance(self.__dict__[k], numbers.Integral):
                     out += "%10s = %d\n" % (k, v)
-                elif type(self.__dict__[k]) is FloatType:
+                elif isinstance(self.__dict__[k], numbers.Real):
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
 
