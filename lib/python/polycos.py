@@ -147,7 +147,7 @@ class polycos(object):
         infile = open(filenm, "r")
         tmppoly = polyco(infile)
         while(tmppoly.psr):
-	    if (len(self.polycos)):
+            if (len(self.polycos)):
                 if (tmppoly.dataspan != self.dataspan):
                     sys.stderr.write("Data span is changing!\n")
             else:
