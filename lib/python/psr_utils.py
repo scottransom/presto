@@ -515,9 +515,9 @@ def bins_to_accel(z, T, f=[1.0, 1000.0], device="/XWIN"):
     if (device):
         Pgplot.plotxy(Num.log10(accels), fs, logx=1, logy=1,
                       labx="Frequency (Hz)",
-                      laby="Acceleration (m/s\u2\d)", device=device)
+                      laby=r"Acceleration (m/s\u2\d)", device=device)
         ppgplot.pgmtxt("T", -2.0, 0.75, 0.0, "T = %.0f sec"%T)
-        ppgplot.pgmtxt("T", -3.5, 0.75, 0.0, "r\B\u\.\d = %.1f bins"%z)
+        ppgplot.pgmtxt("T", -3.5, 0.75, 0.0, r"r\B\u\.\d = %.1f bins"%z)
         if (device != '/XWIN'):
             Pgplot.closeplot()
     else:
@@ -861,12 +861,12 @@ def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
                   logx=1, logy=1, labx="Dispersion Measure",
                   laby="Smearing (ms)", device=device)
     ppgplot.pgsch(0.8)
-    ppgplot.pgmtxt("t", 1.5, 1.0/12.0, 0.5, "\(2156)\dcenter\u = %gMHz" % freq)
-    ppgplot.pgmtxt("t", 1.5, 3.0/12.0, 0.5, "N\dchan\u = %d" % numchan)
-    ppgplot.pgmtxt("t", 1.5, 5.0/12.0, 0.5, "N\dsub\u = %d" % numsub)
-    ppgplot.pgmtxt("t", 1.5, 7.0/12.0, 0.5, "BW\dchan\u = %gMHz" % chanwidth)
-    ppgplot.pgmtxt("t", 1.5, 9.0/12.0, 0.5, "\gDDM = %g" % dmstep)
-    ppgplot.pgmtxt("t", 1.5, 11.0/12.0, 0.5, "\gDDM\dsub\u = %g" % subdmstep)
+    ppgplot.pgmtxt("t", 1.5, 1.0/12.0, 0.5, r"\(2156)\dcenter\u = %gMHz" % freq)
+    ppgplot.pgmtxt("t", 1.5, 3.0/12.0, 0.5, r"N\dchan\u = %d" % numchan)
+    ppgplot.pgmtxt("t", 1.5, 5.0/12.0, 0.5, r"N\dsub\u = %d" % numsub)
+    ppgplot.pgmtxt("t", 1.5, 7.0/12.0, 0.5, r"BW\dchan\u = %gMHz" % chanwidth)
+    ppgplot.pgmtxt("t", 1.5, 9.0/12.0, 0.5, r"\gDDM = %g" % dmstep)
+    ppgplot.pgmtxt("t", 1.5, 11.0/12.0, 0.5, r"\gDDM\dsub\u = %g" % subdmstep)
     ppgplot.pgsch(1.0)
     ppgplot.pgmtxt("b", -7.5, 0.95, 1.0, "Total")
     Pgplot.plotxy(Num.log10(dts), ldms, color="green",
