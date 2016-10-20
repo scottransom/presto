@@ -1,9 +1,10 @@
+from __future__ import print_function
 import numpy as Num
 import parfile, psr_utils
 from psr_constants import *
 
 def myasarray(a):
-    if type(a) in [type(1.0),type(1L),type(1),type(1j)]:
+    if type(a) in [type(1.0),type(1),type(1),type(1j)]:
         a = Num.asarray([a])
     if len(a) == 0:
         a = Num.asarray([a])
@@ -43,7 +44,7 @@ class binary_psr:
     def __init__(self, parfilenm):
         self.par = parfile.psr_par(parfilenm)
         if not hasattr(self.par, 'BINARY'):
-            print "'%s' doesn't contain parameters for a binary pulsar!"
+            print("'%s' doesn't contain parameters for a binary pulsar!")
             return None
         self.PBsec = self.par.PB*SECPERDAY
         self.T0 = self.par.T0

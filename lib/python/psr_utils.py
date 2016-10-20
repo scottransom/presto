@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as Num
 import numpy.fft as FFT
 import Pgplot, ppgplot, bisect, sinc_interp, parfile
@@ -6,7 +7,7 @@ from scipy.optimize import leastsq
 import scipy.optimize.zeros as zeros
 from psr_constants import *
 
-isintorlong = lambda x: type(x) == type(0) or type(x) == type(0L)
+isintorlong = lambda x: type(x) == type(0) or type(x) == type(0)
 
 def span(Min, Max, Number):
     """
@@ -133,8 +134,8 @@ def KS_test(data, cumdist, output=0):
     D = max((D1, D2))
     P = kolmogorov(Num.sqrt(nn)*D)
     if (output):
-        print "Max distance between the cumulative distributions (D) = %.5g" % D
-        print "Prob the data is from the specified distrbution   (P) = %.3g" % P
+        print("Max distance between the cumulative distributions (D) = %.5g" % D)
+        print("Prob the data is from the specified distrbution   (P) = %.3g" % P)
     return (D, P)
 
 def weighted_mean(arrin, weights_in, inputmean=None, calcerr=False, sdev=False):
@@ -453,29 +454,29 @@ def ELL1_check(par_file, output=False):
         lhs = psr.A1 * psr.E**2.0 * 1e6
     except:
         if output:
-            print "Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?"
+            print("Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?")
         return
     try:
         rhs = psr.TRES / Num.sqrt(psr.NTOA)
     except:
         if output:
-            print "Can't compute TRES / sqrt(# TOAs), maybe this isn't a TEMPO output parfile?"
+            print("Can't compute TRES / sqrt(# TOAs), maybe this isn't a TEMPO output parfile?")
         return
     if output:
-        print "Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:"
-        print "     asini/c * ecc**2 = %8.3g us"%lhs
-        print "  TRES / sqrt(# TOAs) = %8.3g us"%rhs
+        print("Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:")
+        print("     asini/c * ecc**2 = %8.3g us"%lhs)
+        print("  TRES / sqrt(# TOAs) = %8.3g us"%rhs)
     if lhs * 50.0 < rhs:
         if output:
-            print "Should be fine."
+            print("Should be fine.")
         return True
     elif lhs * 5.0 < rhs:
         if output:
-            print "Should be OK, but not optimal."
+            print("Should be OK, but not optimal.")
         return True
     else:
         if output:
-            print "Should probably use BT or DD instead."
+            print("Should probably use BT or DD instead.")
         return False
 
 def accel_to_z(accel, T, reffreq, harm=1):
@@ -709,16 +710,16 @@ def dm_info(dm=None, dmstep=1.0, freq=1390.0, numchan=512, chanwidth=0.5):
         Return info about potential DM smearing during an observation.
     """
     BW = chanwidth * numchan
-    print "      Center freq (MHz) = %.3f" % (freq)
-    print "     Number of channels = %d" % (numchan)
-    print "    Channel width (MHz) = %.3g" % (chanwidth)
-    print "  Total bandwidth (MHz) = %.3g" % (BW)
-    print "   DM offset (0.5*step) = %.3g" % (0.5 * dmstep)
-    print "  Smearing over BW (ms) = %.3g" % \
-          (1000.0 * dm_smear(0.5 * dmstep, BW, freq))
+    print("      Center freq (MHz) = %.3f" % (freq))
+    print("     Number of channels = %d" % (numchan))
+    print("    Channel width (MHz) = %.3g" % (chanwidth))
+    print("  Total bandwidth (MHz) = %.3g" % (BW))
+    print("   DM offset (0.5*step) = %.3g" % (0.5 * dmstep))
+    print("  Smearing over BW (ms) = %.3g" % \
+          (1000.0 * dm_smear(0.5 * dmstep, BW, freq)))
     if (dm):
-        print " Smearing per chan (ms) = %.3g" % \
-              (1000.0 * dm_smear(dm, chanwidth, freq))
+        print(" Smearing per chan (ms) = %.3g" % \
+              (1000.0 * dm_smear(dm, chanwidth, freq)))
 
 def best_dm_step(maxsmear=0.1, dt=0.00080, dm=0.0, freq=1390.0, numchan=512, chanwidth=0.5):
     """
@@ -730,7 +731,7 @@ def best_dm_step(maxsmear=0.1, dt=0.00080, dm=0.0, freq=1390.0, numchan=512, cha
     tau_chan = dm_smear(dm, chanwidth, freq)
     tau_samp = dt
     if (tau_tot**2.0 < (tau_chan**2.0+tau_samp**2.0)):
-        print "The requested total smearing is smaller than one or more of the components."
+        print("The requested total smearing is smaller than one or more of the components.")
         return 0.0
     else:
         return 0.0001205*freq**3.0*2.0/BW*Num.sqrt(tau_tot**2.0-tau_chan**2.0-tau_samp**2.0)
@@ -780,12 +781,12 @@ def rrat_period(times, numperiods=20, output=True):
     numrots = xs.round()[pnum].sum()
     p = (ts[-1] - ts[0]) / numrots
     if output:
-        print "Min, avg, std metric values are %.4f, %.4f, %.4f" % \
-              (metric.min(), metric.mean(), metric.std())
-        print " Approx period is likely:", ps[pnum]
-        print "Refined period is likely:", p
-        print "Rotations between pulses are:"
-        print dts / p
+        print("Min, avg, std metric values are %.4f, %.4f, %.4f" % \
+              (metric.min(), metric.mean(), metric.std()))
+        print(" Approx period is likely:", ps[pnum])
+        print("Refined period is likely:", p)
+        print("Rotations between pulses are:")
+        print(dts / p)
     return p
 
 def guess_DMstep(DM, dt, BW, f_ctr):
@@ -1006,11 +1007,11 @@ def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' '*
     # Splice together the fractional and integer MJDs
     toa = "%5d"%int(toa_MJDi) + ("%.13f"%toa_MJDf)[1:]
     if dm!=0.0:
-        print obs+" %13s %8.3f %s %8.2f              %9.4f" % \
-              (name, freq, toa, toaerr, dm)
+        print(obs+" %13s %8.3f %s %8.2f              %9.4f" % \
+              (name, freq, toa, toaerr, dm))
     else:
-        print obs+" %13s %8.3f %s %8.2f" % \
-              (name, freq, toa, toaerr)
+        print(obs+" %13s %8.3f %s %8.2f" % \
+              (name, freq, toa, toaerr))
 
 def write_tempo2_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name='unk', flags=""):
     """
@@ -1021,7 +1022,7 @@ def write_tempo2_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name='unk', 
     toa = "%5d"%int(toa_MJDi) + ("%.13f"%toa_MJDf)[1:]
     if dm != 0.0:
         flags += "-dm %.4f" % (dm,)
-    print "%s %f %s %.2f %s %s" % (name,freq,toa,toaerr,obs,flags)
+    print("%s %f %s %.2f %s %s" % (name,freq,toa,toaerr,obs,flags))
 
 def rotate(arr, bins):
     """
@@ -1110,7 +1111,7 @@ def downsample(vector, factor):
             of a vector by an integer factor.
     """
     if (len(vector) % factor):
-        print "Lenght of 'vector' is not divisible by 'factor'=%d!" % factor
+        print("Length of 'vector' is not divisible by 'factor'=%d!" % factor)
         return 0
     newvector = Num.reshape(vector, (len(vector)/factor, factor))
     return Num.add.reduce(newvector, 1)
@@ -1127,9 +1128,9 @@ def measure_phase_corr(profile, template, zoom=10):
         if (len(template)%len(profile) == 0):
             zoomprof = zoom*len(template)/len(profile)
         else:
-            print "Warning!:  The lengths of the template (%d) and profile (%d)" % \
-                  (len(template), len(profile))
-            print "           are not the same!"
+            print("Warning!:  The lengths of the template (%d) and profile (%d)" % \
+                  (len(template), len(profile)))
+            print("           are not the same!")
     #itemp = linear_interpolate(rotate(template, Num.argmax(template)), zoomtemp)
     itemp = linear_interpolate(template, zoomtemp)
     iprof = linear_interpolate(profile, zoomprof)
@@ -1239,7 +1240,7 @@ def read_gaussfitfile(gaussfitfile, proflen):
         if line.lstrip().startswith("fwhm"):
             fwhms.append(float(line.split()[2]))
     if not (len(phass) == len(ampls) == len(fwhms)):
-        print "Number of phases, amplitudes, and FWHMs are not the same in '%s'!"%gaussfitfile
+        print("Number of phases, amplitudes, and FWHMs are not the same in '%s'!"%gaussfitfile)
         return 0.0
     phass = Num.asarray(phass)
     ampls = Num.asarray(ampls)
@@ -1325,14 +1326,14 @@ def gauss_profile_params(profile, output=0):
                        resid_std, 2)
         Pgplot.plotxy([resid_avg, resid_avg], [0.0, 1.0], line=2)
         Pgplot.closeplot()
-        print ""
-        print "  Best-fit gaussian integrated 'flux'  = ", ret[0][0]
-        print "               Best-fit gaussian FWHM  = ", ret[0][1]
-        print "    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][2]
-        print "        Baseline (i.e. noise) average  = ", ret[0][3]
-        print "                    Residuals average  = ", resid_avg
-        print "         Residuals standard deviation  = ", resid_std
-        print ""
+        print("")
+        print("  Best-fit gaussian integrated 'flux'  = ", ret[0][0])
+        print("               Best-fit gaussian FWHM  = ", ret[0][1])
+        print("    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][2])
+        print("        Baseline (i.e. noise) average  = ", ret[0][3])
+        print("                    Residuals average  = ", resid_avg)
+        print("         Residuals standard deviation  = ", resid_std)
+        print("")
     return (ret[0][0], ret[0][1], ret[0][2], ret[0][3], resid_avg, resid_std)
 
 def twogauss_profile_params(profile, output=0):
@@ -1387,17 +1388,17 @@ def twogauss_profile_params(profile, output=0):
                        resid_std, 2)
         Pgplot.plotxy([resid_avg, resid_avg], [0.0, 1.0], line=2)
         Pgplot.closeplot()
-        print ""
-        print "  Best-fit gaussian integrated 'flux'  = ", ret[0][0]
-        print "               Best-fit gaussian FWHM  = ", ret[0][1]
-        print "    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][2]
-        print "  Best-fit gaussian integrated 'flux'  = ", ret[0][3]
-        print "               Best-fit gaussian FWHM  = ", ret[0][4]
-        print "    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][5]
-        print "        Baseline (i.e. noise) average  = ", ret[0][6]
-        print "                    Residuals average  = ", resid_avg
-        print "         Residuals standard deviation  = ", resid_std
-        print ""
+        print("")
+        print("  Best-fit gaussian integrated 'flux'  = ", ret[0][0])
+        print("               Best-fit gaussian FWHM  = ", ret[0][1])
+        print("    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][2])
+        print("  Best-fit gaussian integrated 'flux'  = ", ret[0][3])
+        print("               Best-fit gaussian FWHM  = ", ret[0][4])
+        print("    Best-fit gaussian phase (0.0-1.0)  = ", ret[0][5])
+        print("        Baseline (i.e. noise) average  = ", ret[0][6])
+        print("                    Residuals average  = ", resid_avg)
+        print("         Residuals standard deviation  = ", resid_std)
+        print("")
     return (ret[0][0], ret[0][1], ret[0][2], ret[0][3], ret[0][4],
             ret[0][5], ret[0][6], resid_avg, resid_std)
 
@@ -1824,19 +1825,19 @@ def psr_info(porf, pdorfd, time=None, input=None, I=1e45):
         pdorfd = - pdorfd / (porf * porf)
         porf = 1.0 / porf
     [f, fd] = p_to_f(porf, pdorfd)
-    print ""
-    print "             Period = %f s" % porf
-    print "              P-dot = %g s/s" % pdorfd
-    print "          Frequency = %f Hz" % f
-    print "              F-dot = %g Hz/s" % fd
+    print("")
+    print("             Period = %f s" % porf)
+    print("              P-dot = %g s/s" % pdorfd)
+    print("          Frequency = %f Hz" % f)
+    print("              F-dot = %g Hz/s" % fd)
     if (time):
-        print "       Fourier Freq = %g bins" % (f * time)
-        print "      Fourier F-dot = %g bins" % (fd * time * time)
-    print "              E-dot = %g ergs/s" % pulsar_edot(f, fd, I)
-    print "    Surface B Field = %g gauss" % pulsar_B(f, fd)
-    print " Characteristic Age = %g years" % pulsar_age(f, fd)
-    print "          Assumed I = %g g cm^2" % I
-    print ""
+        print("       Fourier Freq = %g bins" % (f * time))
+        print("      Fourier F-dot = %g bins" % (fd * time * time))
+    print("              E-dot = %g ergs/s" % pulsar_edot(f, fd, I))
+    print("    Surface B Field = %g gauss" % pulsar_B(f, fd))
+    print(" Characteristic Age = %g years" % pulsar_age(f, fd))
+    print("          Assumed I = %g g cm^2" % I)
+    print("")
 
 def doppler(freq_observed, voverc):
     """doppler(freq_observed, voverc):

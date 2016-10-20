@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 import glob, os, os.path, shutil, socket, struct, sys, time, tarfile
 import numpy, psr_utils, presto, sifting, sigproc
 
@@ -348,7 +349,7 @@ def main(fil_filenm, workdir):
     # Get information on the observation and the jbo
     job = obs_info(fil_filenm)
     if job.T < low_T_to_search:
-        print "The observation is too short (%.2f s) to search."%job.T
+        print("The observation is too short (%.2f s) to search."%job.T)
         sys.exit()
     job.total_time = time.time()
     
@@ -366,8 +367,8 @@ def main(fil_filenm, workdir):
             os.makedirs("subbands")
         except: pass
     
-    print "\nBeginning PALFA search of '%s'"%job.fil_filenm
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nBeginning PALFA search of '%s'"%job.fil_filenm)
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # rfifind the filterbank file
     cmd = "rfifind -time %.17g -o %s %s > %s_rfifind.out"%\
@@ -579,8 +580,8 @@ def main(fil_filenm, workdir):
     # And finish up
 
     job.total_time = time.time() - job.total_time
-    print "\nFinished"
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nFinished")
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # Write the job report
 

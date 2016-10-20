@@ -10,6 +10,7 @@ python make_spd.py [OPTIONS] <psrfits file> <singlepulse files>
 
 Chitrang Patel - May. 21, 2015 -- Updated on June 10 2016
 """
+from __future__ import print_function
 
 import sys
 import copy
@@ -30,7 +31,7 @@ import spectra
 DEBUG = True
 def print_debug(msg):
     if DEBUG:
-        print msg
+        print(msg)
 
 def waterfall_array(rawdatafile, start, duration, dm, nbins, nsub, subdm, zerodm, \
                     downsamp, scaleindep, width_bins, mask, maskfn, bandpass_corr):

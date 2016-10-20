@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as Num
 import cPickle, os
 
@@ -52,7 +53,7 @@ if __name__ == '__main__':
                 tt = time.clock()
                 funct(numrandnums)
                 times.append(time.clock()-tt)
-            print "Average time = ", Num.add.reduce(Num.asarray(times))/numtrials
+            print("Average time = ", Num.add.reduce(Num.asarray(times))/numtrials)
     else:
         rs = Num.arange(n+1, dtype=Num.float)/n
         plotxy(xs, rs)
