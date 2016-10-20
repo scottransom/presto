@@ -909,7 +909,7 @@ def read_profile(filenm, normalize=0):
             normalized if 'normalize' is true.
     """
     prof = []
-    for line in file(filenm):
+    for line in open(filenm):
         if line.startswith("#"): continue
         else: prof.append(float(line.split()[-1]))
     prof = Num.asarray(prof)
