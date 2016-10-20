@@ -30,15 +30,17 @@ class pfd(object):
                       struct.unpack(swapchar+"i"*5, data)
         (self.proflen, self.numchan, self.pstep, self.pdstep, self.dmstep, \
          self.ndmfact, self.npfact) = struct.unpack(swapchar+"i"*7, infile.read(7*4))
+
         self.filenm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
+        print(self.proflen, self.ndmfact, self.npfact, self.nsub, self.filenm)
         self.candnm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         self.telescope = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         self.pgdev = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         test = infile.read(16)
-        if not test[:8]=="Unknown" and ':' in test:
-            self.rastr = test[:test.find('\0')]
+        if not test[:8]==b"Unknown" and b':' in test:
+            self.rastr = test[:test.find(b'\0')]
             test = infile.read(16)
-            self.decstr = test[:test.find('\0')]
+            self.decstr = test[:test.find(b'\0')]
         else:
             self.rastr = "Unknown"
             self.decstr = "Unknown"
@@ -116,7 +118,7 @@ class pfd(object):
             self.profs = Num.reshape(self.profs, (self.npart, self.nsub, self.proflen))
         if (self.numchan==1):
             try:
-                idata = infodata.infodata(self.filenm[:self.filenm.rfind('.')]+".inf")
+                idata = infodata.infodata(self.filenm[:self.filenm.rfind(b'.')]+b".inf")
                 try:
                     if idata.waveband=="Radio":
                         self.bestdm = idata.DM
@@ -173,7 +175,7 @@ class pfd(object):
         infile.close()
         self.barysubfreqs = None
         if self.avgvoverc==0:
-            if self.candnm.startswith("PSR_"):
+            if self.candnm.startswith(b"PSR_"):
                 # If this doesn't work, we should try to use the barycentering calcs
                 # in the presto module.
                 try:
