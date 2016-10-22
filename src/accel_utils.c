@@ -1077,11 +1077,14 @@ void fund_to_ffdotplane(ffdotpows * ffd, accelobs * obs)
 {
     // This moves the fundamental's ffdot plane powers
     // into the one for the full array
-    int ii, rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+    int ii;
+    long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+    long long offset;
     float *outpow;
 
     for (ii = 0; ii < ffd->numzs; ii++) {
-        outpow = obs->ffdotplane + ii * rlen + ffd->rlo * ACCEL_RDR;
+        offset = ii * rlen;
+        outpow = obs->ffdotplane + offset + ffd->rlo * ACCEL_RDR;
         memcpy(outpow, ffd->powers[ii], ffd->numrs * sizeof(float));
     }
 }
@@ -1177,11 +1180,12 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
 #endif
     {
         const int zlo = fundamental->zlo;
-        const int rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+        const long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
         float *powptr = fundamental->powers[0];
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
         float *inpows, *outpows;
+        long long offset;
 #ifdef _OPENMP
 #pragma omp for
 #endif
@@ -1189,7 +1193,8 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
             zz = zlo + ii * ACCEL_DZ;
             subz = calc_required_z(harm_fract, zz);
             zind = index_from_z(subz, zlo);
-            inpows = fdp + zind * rlen;
+            offset = zind * rlen;
+            inpows = fdp + offset;
             outpows = powptr + ii * numrs;
 #if (defined(__GNUC__) || defined(__GNUG__)) && \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
@@ -1211,7 +1216,6 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
     long *indices;
-
 
     // Pre-compute the frequency lookup table
     indices = gen_lvect(numrs);
