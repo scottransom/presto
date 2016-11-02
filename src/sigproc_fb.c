@@ -127,6 +127,10 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
         strcpy(s->telescope, "MeerKAT");
         s->beam_FWHM = default_beam;
         break;
+    case 65:
+        strcpy(s->telescope, "KAT-7");
+        s->beam_FWHM = default_beam;
+        break;
     default:
         strcpy(s->telescope, "Unknown");
         s->beam_FWHM = default_beam;
@@ -170,6 +174,9 @@ void get_backend_name(int machine_id, struct spectra_info *s)
         break;
     case 64:
         strcpy(string, "KAT");
+        break;
+    case 65:
+        strcpy(string, "KAT-DC2");
         break;
     default:
         strcpy(s->backend, "Unknown");
