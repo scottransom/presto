@@ -132,6 +132,12 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
     } else if (strcmp(idata->telescope, "SRT") == 0) {
         scopechar = 'z';
         tracklen = 12;
+    } else if (strcmp(idata->telescope, "MeerKAT") == 0) {
+        scopechar = 'm';
+        tracklen = 12;
+    } else if (strcmp(idata->telescope, "KAT-7") == 0) {
+        scopechar = 'k';
+        tracklen = 12;
     } else if (strcmp(idata->telescope, "Geocenter") == 0) {
         scopechar = 'o';
         tracklen = 12;
