@@ -15,7 +15,7 @@ Int -ncpus   ncpus      {Number of processors to use with OpenMP} \
 Int -lobin   lobin      {The first Fourier frequency in the data file} \
 	-r 0 oo  -d 0
 Int -numharm numharm    {The number of harmonics to sum (power-of-two)}\
-	-r 1 16 -d 8
+	-r 1 32 -d 8
 Int -zmax    zmax       {The max (+ and -) Fourier freq deriv to search} \
 	-r 0 1200  -d 200
 Float -sigma sigma      {Cutoff sigma for choosing candidates}\
@@ -25,7 +25,7 @@ Double -rlo     rlo     {The lowest Fourier frequency (of the highest harmonic!)
 Double -rhi     rhi     {The highest Fourier frequency (of the highest harmonic!) to search} \
 	-r 0.0 oo
 Double -flo     flo     {The lowest frequency (Hz) (of the highest harmonic!) to search} \
-	-r 0.0 oo -d 1.0
+	-r 0.0 oo -d 0.125
 Double -fhi     fhi     {The highest frequency (Hz) (of the highest harmonic!) to search} \
 	-r 0.0 oo -d 10000.0
 Flag   -inmem   inmem   {Compute full f-fdot plane in memory.  Very fast, but only for short time series.}

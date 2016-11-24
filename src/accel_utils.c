@@ -1566,7 +1566,8 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     }
     if (cmd->numharm != 1 &&
         cmd->numharm != 2 &&
-        cmd->numharm != 4 && cmd->numharm != 8 && cmd->numharm != 16) {
+        cmd->numharm != 4 &&
+        cmd->numharm != 8 && cmd->numharm != 16 && cmd->numharm != 32) {
         printf("\n'numharm' = %d must be a power-of-two!  Exiting\n\n",
                cmd->numharm);
         exit(1);
