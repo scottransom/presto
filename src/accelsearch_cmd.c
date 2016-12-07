@@ -52,7 +52,7 @@ static Cmdline cmd = {
   /* rhiC = */ 0,
   /***** -flo: The lowest frequency (Hz) (of the highest harmonic!) to search */
   /* floP = */ 1,
-  /* flo = */ 0.125,
+  /* flo = */ 1.0,
   /* floC = */ 1,
   /***** -fhi: The highest frequency (Hz) (of the highest harmonic!) to search */
   /* fhiP = */ 1,
@@ -1001,7 +1001,7 @@ usage(void)
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
   fprintf(stderr,"%s","             -flo: The lowest frequency (Hz) (of the highest harmonic!) to search\n");
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
-  fprintf(stderr,"%s","                   default: `0.125'\n");
+  fprintf(stderr,"%s","                   default: `1.0'\n");
   fprintf(stderr,"%s","             -fhi: The highest frequency (Hz) (of the highest harmonic!) to search\n");
   fprintf(stderr,"%s","                   1 double value between 0.0 and oo\n");
   fprintf(stderr,"%s","                   default: `10000.0'\n");
@@ -1019,7 +1019,7 @@ usage(void)
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
   fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                   1 value\n");
-  fprintf(stderr,"%s","  version: 23Nov16\n");
+  fprintf(stderr,"%s","  version: 07Dec16\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }

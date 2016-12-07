@@ -25,7 +25,7 @@ Double -rlo     rlo     {The lowest Fourier frequency (of the highest harmonic!)
 Double -rhi     rhi     {The highest Fourier frequency (of the highest harmonic!) to search} \
 	-r 0.0 oo
 Double -flo     flo     {The lowest frequency (Hz) (of the highest harmonic!) to search} \
-	-r 0.0 oo -d 0.125
+	-r 0.0 oo -d 1.0
 Double -fhi     fhi     {The highest frequency (Hz) (of the highest harmonic!) to search} \
 	-r 0.0 oo -d 10000.0
 Flag   -inmem   inmem   {Compute full f-fdot plane in memory.  Very fast, but only for short time series.}

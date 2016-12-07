@@ -134,9 +134,37 @@ int main(int argc, char *argv[])
     /* Start the main search loop */
 
     {
-        double startr = obs.rlo, lastr = 0, nextr = 0;
+        double startr, lastr, nextr;
         ffdotpows *fundamental;
 
+        /* Populate the saved F-Fdot plane at low freqs for in-memory
+         * searches of harmonics that are below obs.rlo */
+
+        if (obs.inmem) {
+            startr = 8;  // Choose a very low Fourier bin
+            lastr = 0;
+            nextr = 0;
+            while (startr < obs.rlo) {
+                nextr = startr + ACCEL_USELEN * ACCEL_DR;
+                lastr = nextr - ACCEL_DR;
+                // Compute the F-Fdot plane
+                fundamental = subharm_ffdot_plane(1, 1, startr, lastr,
+                                                  &subharminfs[0][0], &obs);
+                // Copy it into the full in-core one
+                if (cmd->otheroptP)
+                    fund_to_ffdotplane_trans(fundamental, &obs);
+                else
+                    fund_to_ffdotplane(fundamental, &obs);
+                free_ffdotpows(fundamental);
+                startr = nextr;
+            }
+        }    
+        
+        /* Reset indices if needed and search for real */
+
+        startr = obs.rlo;
+        lastr = 0;
+        nextr = 0;
         while (startr + ACCEL_USELEN * ACCEL_DR < obs.highestbin) {
             /* Search the fundamental */
             print_percent_complete(startr - obs.rlo,
