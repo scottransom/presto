@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 N = 1000 # number of points in each orbit calc
 ma = np.arange(float(N))*2.0/N
 
-# This is going for Figure 1 in Julse & Taylor 1975
+# This is going for Figure 1 in Hulse & Taylor 1975
 psr1 = presto.psrepoch("B1913+16", 42320.0)
 # unfortunatey, OMDOT is not in the binary part of the
 # database correctly.  So we need to set that:
