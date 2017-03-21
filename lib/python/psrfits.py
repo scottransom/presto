@@ -323,6 +323,7 @@ class SpectraInfo:
 
             # Now pull stuff from the columns
             subint_hdu = hdus['SUBINT']
+            first_subint = subint_hdu.data[0]
             # Identify the OFFS_SUB column number
             if 'OFFS_SUB' not in subint_hdu.columns.names:
                 warnings.warn("Can't find the 'OFFS_SUB' column!")
@@ -351,7 +352,7 @@ class SpectraInfo:
                 colnum = subint_hdu.columns.names.index('TEL_AZ')
                 if ii==0:
                     self.tel_az_col = colnum
-                    self.azimuth = subint_hdu.data[0]['TEL_AZ']
+                    self.azimuth = first_subint['TEL_AZ']
 
             # Telescope zenith angle
             if 'TEL_ZEN' not in subint_hdu.columns.names:
@@ -360,14 +361,14 @@ class SpectraInfo:
                 colnum = subint_hdu.columns.names.index('TEL_ZEN')
                 if ii==0:
                     self.tel_zen_col = colnum
-                    self.zenith_ang = subint_hdu.data[0]['TEL_ZEN']
+                    self.zenith_ang = first_subint['TEL_ZEN']
 
             # Observing frequencies
             if 'DAT_FREQ' not in subint_hdu.columns.names:
                 warnings.warn("Can't find the channel freq column, 'DAT_FREQ'!")
             else:
                 colnum = subint_hdu.columns.names.index('DAT_FREQ')
-                freqs = subint_hdu.data[0]['DAT_FREQ']
+                freqs = first_subint['DAT_FREQ']
                 if ii==0:
                     self.freqs_col = colnum
                     self.df = freqs[1]-freqs[0]
@@ -397,7 +398,7 @@ class SpectraInfo:
                     self.dat_wts_col = colnum
                 elif self.dat_wts_col != colnum:
                     warnings.warn("'DAT_WTS column changes between files 0 and %d!" % ii)
-                if np.any(subint_hdu.data[0]['DAT_WTS'] != 1.0):
+                if np.any(first_subint['DAT_WTS'] != 1.0):
                     self.need_weight = True
                 
             # Data offsets
@@ -409,7 +410,7 @@ class SpectraInfo:
                     self.dat_offs_col = colnum
                 elif self.dat_offs_col != colnum:
                     warnings.warn("'DAT_OFFS column changes between files 0 and %d!" % ii)
-                if np.any(subint_hdu.data[0]['DAT_OFFS'] != 0.0):
+                if np.any(first_subint['DAT_OFFS'] != 0.0):
                     self.need_offset = True
 
             # Data scalings
@@ -421,7 +422,7 @@ class SpectraInfo:
                     self.dat_scl_col = colnum
                 elif self.dat_scl_col != colnum:
                     warnings.warn("'DAT_SCL' column changes between files 0 and %d!" % ii)
-                if np.any(subint_hdu.data[0]['DAT_SCL'] != 1.0):
+                if np.any(first_subint['DAT_SCL'] != 1.0):
                     self.need_scale = True
 
             # Comute the samples per file and the amount of padding
