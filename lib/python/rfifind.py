@@ -83,7 +83,9 @@ class rfifind:
         nzap_per_int = np.fromfile(x, dtype=np.int32, count=nint)
         self.mask_zap_chans_per_int = []
         for nzap in nzap_per_int:
-            if nzap:
+            if nzap == nchan:
+                tozap = np.arange(0,nchan)
+            elif nzap > 0:
                 tozap = np.fromfile(x, dtype=np.int32, count=nzap)
             else:
                 tozap = np.asarray([])
