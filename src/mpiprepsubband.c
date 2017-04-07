@@ -232,7 +232,7 @@ int main(int argc, char *argv[])
                 s.num_subint[0] = s.N / SUBSBLOCKLEN;
                 s.num_pad[0] = 0L;
                 s.padvals = gen_fvect(s.num_files);
-                for (ii = 0; ii < ii; ii++)
+                for (ii = 0; ii < s.num_files; ii++)
                     s.padvals[ii] = 0.0;
                 if (split_root_suffix(s.filenames[0], &root, &suffix) == 0) {
                     printf
@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
     if (cmd->numdms % (numprocs - 1)) {
         if (myid == 0)
             printf
-                ("\nThe number of DMs must be divisible by (the number of processors - 1).\n\n");
+                ("\nThe number of DMs (%d) must be divisible by (the number of processors (%d) - 1).\n\n", cmd->numdms, numprocs);
         MPI_Finalize();
         exit(1);
     }
