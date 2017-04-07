@@ -2,7 +2,7 @@
 import glob, os, os.path, shutil, socket, struct, tarfile, stat
 import numpy, sys, presto, time, sigproc, sifting
 import psr_utils as pu
-import pyfits
+import astropy.io.fits as pyfits
 
 institution = "NRAO" 
 base_tmp_dir = "."  # "/dev/shm/" is a good choice
