@@ -1,4 +1,8 @@
-from prestoswig import *
+from __future__ import print_function
+from __future__ import absolute_import
+from builtins import input
+from builtins import range
+from .prestoswig import *
 import numpy as Num
 import Pgplot
 import psr_utils
@@ -44,7 +48,7 @@ def read_inffile(filename):
        '.inf' suffix.
    """
    id = infodata()
-   print "Reading information from", "\""+filename+".inf\""
+   print("Reading information from", "\""+filename+".inf\"")
    readinf(id, filename)
    return id
 
@@ -69,8 +73,8 @@ def psrepoch(psrname, epoch):
    """
    pp = psrparams()
    num = get_psr_at_epoch(psrname, epoch, pp)
-   print 'Retrieved data at MJD %f for %s' % (epoch, pp.jname)
-   print 'The pulsar was #%d in the database.' % num
+   print('Retrieved data at MJD %f for %s' % (epoch, pp.jname))
+   print('The pulsar was #%d in the database.' % num)
    return pp
 
 def read_rzwcands(filename):
@@ -108,7 +112,7 @@ def next2_to_n(x):
     next2_to_n(x):
         Return the first value of 2^n >= x.
     """
-    i = 1L
+    i = 1
     while (i < x): i = i << 1
     return i
 
@@ -144,7 +148,7 @@ def spectralpower(fftarray):
     elif fftarray.dtype.char=='D':
        return dpower_arr(fftarray, len(fftarray))
     else:
-       print 'fftarray must be complex in spectralpower()'
+       print('fftarray must be complex in spectralpower()')
        return None
     
 def spectralphase(fftarray):
@@ -158,7 +162,7 @@ def spectralphase(fftarray):
     elif fftarray.dtype.char=='D':
        return dphase_arr(fftarray, len(fftarray))
     else:
-       print 'fftarray must be complex in spectralpower()'
+       print('fftarray must be complex in spectralpower()')
        return None
 
 def maximize_rz(data, r, z, norm = None):
@@ -257,8 +261,8 @@ def estimate_rz(psr, T, show=0, device='/XWIN'):
         Pgplot.plotxy(r, times, labx = 'Time', \
                       laby = 'Fourier Frequency (r)', device=device)
         if device=='/XWIN':
-           print 'Press enter to continue:'
-           i = raw_input()
+           print('Press enter to continue:')
+           i = input()
         Pgplot.nextplotpage()
         Pgplot.plotxy(z, times, labx = 'Time',
                       laby = 'Fourier Frequency Derivative (z)', device=device)
@@ -295,13 +299,13 @@ def show_ffdot_plane(data, r, z, dr = 0.125, dz = 0.5,
    highpt = Num.argmax(ffdpow.ravel())
    hir = highpt % numr
    hiz = highpt / numr
-   print ""
-   print "Fourier Freqs from ", min(x), "to", max(x), "."
-   print "Fourier Fdots from ", min(y), "to", max(y), "."
-   print "Maximum normalized power is ", ffdpow[hiz][hir]
-   print "The max value is located at:  r =", startbin + hir * dr, \
-         "  z =", startz + hiz * dz
-   print ""
+   print("")
+   print("Fourier Freqs from ", min(x), "to", max(x), ".")
+   print("Fourier Fdots from ", min(y), "to", max(y), ".")
+   print("Maximum normalized power is ", ffdpow[hiz][hir])
+   print("The max value is located at:  r =", startbin + hir * dr, \
+         "  z =", startz + hiz * dz)
+   print("")
    if not T:
       Pgplot.plot2d(ffdpow, x, y, labx = "Fourier Frequency (bins)", \
                     laby = "Fourier Frequency Derivative", \
@@ -434,13 +438,13 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    elif (obs.telescope == 'Arecibo'):  tel = 'AO'
    elif (obs.telescope == 'MMT'):  tel = 'MT'
    else:
-      print "Telescope not recognized."
+      print("Telescope not recognized.")
       return 0
    barycenter(tts, bts, vel, nn, ra, dec, tel, ephem)
-   print "Topocentric start time = %17.11f" % tts[0]
-   print "Barycentric start time = %17.11f" % bts[0]
+   print("Topocentric start time = %17.11f" % tts[0])
+   print("Barycentric start time = %17.11f" % bts[0])
    avgvel = Num.add.reduce(vel) / nn
-   print "Average Earth velocity = %10.5e c" % (avgvel)
+   print("Average Earth velocity = %10.5e c" % (avgvel))
    tts = Num.arange(nn, dtype='d') * dt
    bts = (bts - bts[0]) * SECPERDAY
    [fb, fbd, fbdd] = p_to_f(pb, pbd, pbdd)
@@ -448,12 +452,12 @@ def bary_to_topo(pb, pbd, pbdd, infofilenm, ephem="DE200"):
    a = Num.transpose(Num.asarray([tts, tts**2.0, tts**3.0]))
    [ft, ftd, ftdd], residuals, rank, sv = linear_least_squares(a,b)
    [pt, ptd, ptdd] = p_to_f(ft, ftd, ftdd)
-   print "    Topocentric period = %15.12f" % pt
-   print "     Topocentric p-dot = %15.9e" % ptd
-   print "  Topocentric p-dotdot = %15.9e" % ptdd
-   print "     Quick Topo period = %15.12f" % (pb * (1.0 + avgvel))
-   print "      Quick Topo p-dot = %15.9e" % (pbd * (1.0 + avgvel))
-   print "   Quick Topo p-dotdot = %15.9e" % (pbdd * (1.0 + avgvel))
+   print("    Topocentric period = %15.12f" % pt)
+   print("     Topocentric p-dot = %15.9e" % ptd)
+   print("  Topocentric p-dotdot = %15.9e" % ptdd)
+   print("     Quick Topo period = %15.12f" % (pb * (1.0 + avgvel)))
+   print("      Quick Topo p-dot = %15.9e" % (pbd * (1.0 + avgvel)))
+   print("   Quick Topo p-dotdot = %15.9e" % (pbdd * (1.0 + avgvel)))
    return [pt, ptd, ptdd]
 
 
@@ -477,8 +481,8 @@ def measure_phase(profile, template, sigma, fwhm):
     from simple_roots import newton_raphson
     N = len(profile)
     if not (N == len(template)):
-       print "Lengths of 'profile' and 'template' must"
-       print "  be equal in measure_phase()."
+       print("Lengths of 'profile' and 'template' must")
+       print("  be equal in measure_phase().")
        return 0.0
     ft = rfft(profile)
     p0 = ft[0].real

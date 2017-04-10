@@ -1,5 +1,9 @@
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 import numpy as Num
-import cPickle, os
+import pickle, os
 
 n = 1000
 
@@ -21,11 +25,11 @@ if (0):
             xs[ii] = newton_raphson(func, dfunc, 0.0, 1.0)
     xs[0] = 0.0
     xs[n] = 1.0
-    cPickle.dump(xs, file("cosine_rand.pickle", "w"), 1)
+    pickle.dump(xs, open("cosine_rand.pickle", "w"), 1)
 else:
     pfile = os.path.join(os.environ['PRESTO'],
                          "lib", "python", "cosine_rand.pickle")
-    xs = cPickle.load(file(pfile))
+    xs = pickle.load(open(pfile))
 
 def cosine_rand(num):
     """cosine_rand(num):  Return num phases that are randomly distributed
@@ -52,7 +56,7 @@ if __name__ == '__main__':
                 tt = time.clock()
                 funct(numrandnums)
                 times.append(time.clock()-tt)
-            print "Average time = ", Num.add.reduce(Num.asarray(times))/numtrials
+            print("Average time = ", Num.add.reduce(Num.asarray(times))/numtrials)
     else:
         rs = Num.arange(n+1, dtype=Num.float)/n
         plotxy(xs, rs)

@@ -1,10 +1,15 @@
+from __future__ import print_function
+from builtins import range
+from builtins import object
 import numpy as Num
 import copy, random, struct, sys
 import psr_utils, infodata, polycos, Pgplot
-from types import StringType, FloatType, IntType
+# from types import StringType, FloatType, IntType
+import six
+import numbers
 from bestprof import bestprof
 
-class pfd:
+class pfd(object):
 
     def __init__(self, filename):
         self.pfd_filename = filename
@@ -25,15 +30,17 @@ class pfd:
                       struct.unpack(swapchar+"i"*5, data)
         (self.proflen, self.numchan, self.pstep, self.pdstep, self.dmstep, \
          self.ndmfact, self.npfact) = struct.unpack(swapchar+"i"*7, infile.read(7*4))
+
         self.filenm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
+        print(self.proflen, self.ndmfact, self.npfact, self.nsub, self.filenm)
         self.candnm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         self.telescope = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         self.pgdev = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         test = infile.read(16)
-        if not test[:8]=="Unknown" and ':' in test:
-            self.rastr = test[:test.find('\0')]
+        if not test[:8]==b"Unknown" and b':' in test:
+            self.rastr = test[:test.find(b'\0')]
             test = infile.read(16)
-            self.decstr = test[:test.find('\0')]
+            self.decstr = test[:test.find(b'\0')]
         else:
             self.rastr = "Unknown"
             self.decstr = "Unknown"
@@ -111,7 +118,7 @@ class pfd:
             self.profs = Num.reshape(self.profs, (self.npart, self.nsub, self.proflen))
         if (self.numchan==1):
             try:
-                idata = infodata.infodata(self.filenm[:self.filenm.rfind('.')]+".inf")
+                idata = infodata.infodata(self.filenm[:self.filenm.rfind(b'.')]+b".inf")
                 try:
                     if idata.waveband=="Radio":
                         self.bestdm = idata.DM
@@ -120,7 +127,7 @@ class pfd:
                         self.bestdm = 0.0
                         self.numchan = 1
             except IOError:
-                print "Warning!  Can't open the .inf file for "+filename+"!"
+                print("Warning!  Can't open the .inf file for "+filename+"!")
         self.binspersec = self.fold_p1*self.proflen
         self.chanpersub = self.numchan/self.nsub
         self.subdeltafreq = self.chan_wid*self.chanpersub
@@ -168,7 +175,7 @@ class pfd:
         infile.close()
         self.barysubfreqs = None
         if self.avgvoverc==0:
-            if self.candnm.startswith("PSR_"):
+            if self.candnm.startswith(b"PSR_"):
                 # If this doesn't work, we should try to use the barycentering calcs
                 # in the presto module.
                 try:
@@ -186,13 +193,13 @@ class pfd:
 
     def __str__(self):
         out = ""
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             if k[:2]!="__":
-                if type(self.__dict__[k]) is StringType:
+                if isinstance(self.__dict__[k], six.string_types):
                     out += "%10s = '%s'\n" % (k, v)
-                elif type(self.__dict__[k]) is IntType:
+                elif isinstance(self.__dict__[k], numbers.Integral):
                     out += "%10s = %d\n" % (k, v)
-                elif type(self.__dict__[k]) is FloatType:
+                elif isinstance(self.__dict__[k], numbers.Real):
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
 
@@ -238,7 +245,7 @@ class pfd:
         self.subdelays_bins += new_subdelays_bins
         self.sumprof = self.profs.sum(0).sum(0)
         if Num.fabs((self.sumprof/self.proflen).sum() - self.avgprof) > 1.0:
-            print "self.avgprof is not the correct value!"
+            print("self.avgprof is not the correct value!")
         self.currdm = DM
 
     def freq_offsets(self, p=None, pd=None, pdd=None):
@@ -450,7 +457,7 @@ class pfd:
 
         self.sumprof = self.profs.sum(0).sum(0)
         if Num.fabs((self.sumprof/self.proflen).sum() - self.avgprof) > 1.0:
-            print "self.avgprof is not the correct value!"
+            print("self.avgprof is not the correct value!")
 
         # Save current p, pd, pdd
         self.curr_p1, self.curr_p2, self.curr_p3 = p, pd, pdd
@@ -462,14 +469,14 @@ class pfd:
                 array of profiles.
         """
         if (self.npart % new_npart):
-            print "Warning!  The new number of intervals (%d) is not a" % new_npart
-            print "          divisor of the original number of intervals (%d)!"  % self.npart
-            print "Doing nothing."
+            print("Warning!  The new number of intervals (%d) is not a" % new_npart)
+            print("          divisor of the original number of intervals (%d)!"  % self.npart)
+            print("Doing nothing.")
             return None
         if (self.nsub % new_nsub):
-            print "Warning!  The new number of subbands (%d) is not a" % new_nsub
-            print "          divisor of the original number of subbands (%d)!"  % self.nsub
-            print "Doing nothing."
+            print("Warning!  The new number of subbands (%d) is not a" % new_nsub)
+            print("          divisor of the original number of subbands (%d)!"  % self.nsub)
+            print("Doing nothing.")
             return None
 
         dp = self.npart/new_npart
@@ -518,8 +525,8 @@ class pfd:
         plot_sumprof(self, device='/xwin'):
             Plot the dedispersed and summed profile.
         """
-        if not self.__dict__.has_key('subdelays'):
-            print "Dedispersing first..."
+        if 'subdelays' not in self.__dict__:
+            print("Dedispersing first...")
             self.dedisperse()
         normprof = self.sumprof - min(self.sumprof)
         normprof /= max(normprof)
@@ -547,8 +554,8 @@ class pfd:
                 by the phasebins option if it is a tuple (low,high)
                 instead of the string 'All'.
         """
-        if not self.__dict__.has_key('subdelays'):
-            print "Dedispersing first..."
+        if 'subdelays' not in self.__dict__:
+            print("Dedispersing first...")
             self.dedisperse()
         if phasebins is not 'All':
             lo, hi = phasebins
@@ -570,8 +577,8 @@ class pfd:
                 by the phasebins option if it is a tuple (low,high)
                 instead of the string 'All'.
         """
-        if not self.__dict__.has_key('subdelays'):
-            print "Dedispersing first..."
+        if 'subdelays' not in self.__dict__:
+            print("Dedispersing first...")
             self.dedisperse()
         if phasebins is not 'All':
             lo, hi = phasebins
@@ -606,8 +613,8 @@ class pfd:
         calc_redchi2(self, prof=None, avg=None, var=None):
             Return the calculated reduced-chi^2 of the current summed profile.
         """
-        if not self.__dict__.has_key('subdelays'):
-            print "Dedispersing first..."
+        if 'subdelays' not in self.__dict__:
+            print("Dedispersing first...")
             self.dedisperse()
         if prof is None:  prof = self.sumprof
         if avg is None:  avg = self.avgprof
@@ -653,7 +660,7 @@ class pfd:
             sumprof = profs.sum(0)
             chis[ii] = self.calc_redchi2(prof=sumprof, avg=avgprof)
         # Now plot it
-        Pgplot.plotxy(chis, DMs, labx="DM", laby="Reduced-\gx\u2\d", device=device)
+        Pgplot.plotxy(chis, DMs, labx="DM", laby=r"Reduced-\gx\u2\d", device=device)
         return (chis, DMs)
 
     def plot_chi2_vs_sub(self, device='/xwin'):
@@ -681,7 +688,7 @@ class pfd:
         for ii in range(self.nsub):
             chis[ii] = self.calc_redchi2(prof=profs[ii], avg=avgs[ii], var=vars[ii])
         # Now plot it
-        Pgplot.plotxy(chis, labx="Subband Number", laby="Reduced-\gx\u2\d",
+        Pgplot.plotxy(chis, labx="Subband Number", laby=r"Reduced-\gx\u2\d",
                       rangey=[0.0, max(chis)*1.1], device=device)
         return chis
 
@@ -713,11 +720,11 @@ class pfd:
 				If shiftsubs is not False, then actually correct the subbands
 				instead of a 2D projection of them.
         """
-        if not self.__dict__.has_key('subdelays'):
-            print "Dedispersing first..."
+        if 'subdelays' not in self.__dict__:
+            print("Dedispersing first...")
             self.dedisperse()
         if shiftsubs:
-            print "Shifting all the subbands..."
+            print("Shifting all the subbands...")
             if profs is None:
                 profs = self.profs
             for ii in range(self.npart):
@@ -726,14 +733,14 @@ class pfd:
                     profs[ii,jj] = psr_utils.rotate(profs[ii,jj], bins_to_shift)
             redchi = self.calc_redchi2(prof=profs.sum(0).sum(0))
         else:
-            print "Shifting just the projected intervals (not individual subbands)..."
+            print("Shifting just the projected intervals (not individual subbands)...")
             if profs is None:
                 profs = self.profs.sum(1)
             for ii in range(self.npart):
                 bins_to_shift = int(round(float(ii)/self.npart * phasebins))
                 profs[ii] = psr_utils.rotate(profs[ii], bins_to_shift)
             redchi = self.calc_redchi2(prof=profs.sum(0))
-        print "New reduced-chi^2 =", redchi
+        print("New reduced-chi^2 =", redchi)
         return profs, redchi
 
     def dynamic_spectra(self, onbins, combineints=1, combinechans=1,
@@ -756,8 +763,8 @@ class pfd:
         numon = len(onbins)
         numoff = len(offbins)
         # De-disperse if required first
-        if not self.__dict__.has_key('subdelays'):
-            print "Dedispersing first..."
+        if 'subdelays' not in self.__dict__:
+            print("Dedispersing first...")
             self.dedisperse()
         # The following is the average offpulse level
         offpulse = Num.sum(Num.take(self.profs, offbins, 2), 2)/float(numoff)
@@ -784,7 +791,7 @@ class pfd:
             # Now reshape and add the neighboring intervals
             self.DS = Num.reshape(self.DS, (self.DSnpart/combineints,
                                             combineints, self.DSnsub))
-            print Num.shape(self.DS)
+            print(Num.shape(self.DS))
             self.DS = Num.sum(self.DS, 1)
             self.DSstart_secs = self.DSstart_secs[::combineints]
             self.DSintdt *= combineints
@@ -802,7 +809,7 @@ class pfd:
             self.DSsubfreqs = psr_utils.running_avg(self.subfreqs[:self.DSnsub], combinechans)
             self.DSsubdeltafreq *= combinechans
             self.DSnsub /= combinechans
-        print "DS shape = ", Num.shape(self.DS)
+        print("DS shape = ", Num.shape(self.DS))
         # Plot it if required
         if plot:
             lof = self.subfreqs[0]-0.5*self.DSsubdeltafreq
@@ -826,11 +833,11 @@ if __name__ == "__main__":
     tp = pfd(testpfd)
 
     if (0):
-        print tp.start_secs
-        print tp.mid_secs
-        print tp.start_topo_MJDs
-        print tp.mid_topo_MJDs
-        print tp.T
+        print(tp.start_secs)
+        print(tp.mid_secs)
+        print(tp.start_topo_MJDs)
+        print(tp.mid_topo_MJDs)
+        print(tp.T)
 
     #tp.kill_subbands([6,7,8,9,30,31,32,33])
     #tp.kill_intervals([2,3,4,5,6])
@@ -842,21 +849,21 @@ if __name__ == "__main__":
 
     (chis, DMs) = tp.plot_chi2_vs_DM(0.0, 50.0, 501)
     best_index = Num.argmax(chis)
-    print "Best DM = ", DMs[best_index]
+    print("Best DM = ", DMs[best_index])
 
     tp.dedisperse()
     tp.plot_subbands()
     tp.plot_sumprof()
-    print "DM =", tp.bestdm, "gives reduced chi^2 =", tp.calc_redchi2()
+    print("DM =", tp.bestdm, "gives reduced chi^2 =", tp.calc_redchi2())
 
     tp.dedisperse(27.0)
     tp.plot_subbands()
     tp.plot_sumprof()
-    print "DM = 27.0 gives reduced chi^2 =", tp.calc_redchi2()
+    print("DM = 27.0 gives reduced chi^2 =", tp.calc_redchi2())
 
     tp.dedisperse(33.0)
     tp.plot_subbands()
     tp.plot_sumprof()
-    print "DM = 33.0 gives reduced chi^2 =", tp.calc_redchi2()
+    print("DM = 33.0 gives reduced chi^2 =", tp.calc_redchi2())
 
     tp.plot_intervals()

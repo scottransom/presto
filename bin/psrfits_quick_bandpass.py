@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from builtins import zip
 import numpy as np
 import matplotlib.pyplot as plt
 import sys, psrfits
@@ -45,11 +47,11 @@ def main():
                       help="Output filename (default will be INFILE.bandpass")
     (opts, args) = parser.parse_args()
     if len(args)==0:
-        print full_usage
+        print(full_usage)
         sys.exit(0)
 
     for infile in args:
-        print "Processing '%s'" % (infile)
+        print("Processing '%s'" % (infile))
         pf = psrfits.PsrfitsFile(infile)
         if opts.nomods:
             # for a bandpass histogram of raw bits
@@ -59,7 +61,7 @@ def main():
         means = np.zeros((len(subints), pf.nchan))
         stdevs = np.zeros((len(subints), pf.nchan))
         for ii, subint in enumerate(subints):
-            print "%.0f%%.." % (100.0 * float(subint) / pf.specinfo.num_subint),
+            print("%.0f%%.." % (100.0 * float(subint) / pf.specinfo.num_subint), end=' ')
             sys.stdout.flush()
             specs = pf.read_subint(subint, apply_weights=opts.weights,
                                    apply_scales=not opts.nomods,
@@ -70,7 +72,7 @@ def main():
                 htot += h
             means[ii] = specs.mean(axis=0)
             stdevs[ii] = specs.std(axis=0)
-        print "%.0f%%" % (100.0)
+        print("%.0f%%" % (100.0))
         med_mean = np.median(means, axis=0)
         med_stdev = np.median(stdevs, axis=0)
         outfilenm = infile+".bandpass" if opts.outfile is None else opts.outfile
@@ -79,11 +81,11 @@ def main():
             plot_bandpass(pf.freqs, med_mean, med_stdev, outfile=plotfilenm)
         if opts.nomods:
             htot = htot / htot.sum()
-            print "# Bits histogram"
-            print "# val  fract"
-            print "#---------------"
+            print("# Bits histogram")
+            print("# val  fract")
+            print("#---------------")
             for b, h in zip(b, htot):
-                print "%3d  %6.4f" % (b, h)
+                print("%3d  %6.4f" % (b, h))
         write_bandpass(outfilenm, pf.freqs, med_mean, med_stdev)
 
 if __name__=='__main__':

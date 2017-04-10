@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 from time import clock
 from math import *
 from Numeric import *
@@ -56,7 +58,7 @@ if parallel:
     from mpihelp import *
     myid = mpi.comm_rank()
     numprocs = mpi.comm_size()
-    outfilenm = (outfiledir+'/'+outfilenm+`myid`+
+    outfilenm = (outfiledir+'/'+outfilenm+repr(myid)+
                  '_'+searchtype+'_'+ctype+'.out')
 else:
     myid = 0
@@ -109,9 +111,9 @@ def mini_fft_sum_pows(tryamp):
     # print 'avg(fft) = ',average(spectralpower(fdata)[1:]/norm)
     # print tryamp
     if debugout:
-        print 'Nyquist = '+`fftlen/2`
-        print '   rpred = %10.3f  power = %10.7f' % \
-              (rpred, b_pows[ct])
+        print('Nyquist = '+repr(fftlen/2))
+        print('   rpred = %10.3f  power = %10.7f' % \
+              (rpred, b_pows[ct]))
     bsum_pows[ct] = b_pows[ct]
     if (TbyPb[x] > 2.0):
         for harmonic in arange(int(TbyPb[x]-1.0))+2:
@@ -121,19 +123,19 @@ def mini_fft_sum_pows(tryamp):
                      maximize_r(fdata, hrpred, norm=norm)
             bsum_pows[ct] = bsum_pows[ct] + tmppow
             if debugout:
-                print '  hrpred = %10.3f  power = %10.7f' % \
-                      (hrpred, tmppow)
+                print('  hrpred = %10.3f  power = %10.7f' % \
+                      (hrpred, tmppow))
     if debugout:
-        print '  r = %10.3f  meas_r = %10.3f '\
+        print('  r = %10.3f  meas_r = %10.3f '\
               'alias_r = %10.3f' % \
               (fftlen * psr.orb.p / T, rmax,
-               alias(rmax, fftlen/2))
-        print '  p = %10.3f  meas_p = %10.3f '\
+               alias(rmax, fftlen/2)))
+        print('  p = %10.3f  meas_p = %10.3f '\
               'alias_p = %10.3f' % \
               (psr.orb.p, rmax * T / fftlen,
-               alias(rmax, fftlen/2) * T / fftlen)
-        print '  BigPow = %10.7f  SumPow = %10.7f' % \
-              (b_pows[ct], bsum_pows[ct])
+               alias(rmax, fftlen/2) * T / fftlen))
+        print('  BigPow = %10.7f  SumPow = %10.7f' % \
+              (b_pows[ct], bsum_pows[ct]))
     return bsum_pows[ct] - theo_sum_pow
     
 def psrparams_from_list(pplist):
@@ -211,12 +213,12 @@ for x in range(len(TbyPb)):
                 psr_resp = gen_bin_response(0.0, 1, psr.p, T, psr.orb,
                                             psr_numbins)
                 if debugout:
-                    print 'T = %9.3f  Pb = %9.3f  Ppsr = %9.7f' % \
-                          (T, psr.orb.p, psr.p)
+                    print('T = %9.3f  Pb = %9.3f  Ppsr = %9.7f' % \
+                          (T, psr.orb.p, psr.p))
 
                 newpows = slice_resp(psr, T, spectralpower(psr_resp))
                 if showplots:
-                    print "The raw response:"
+                    print("The raw response:")
                     Pgplot.plotxy(newpows)
                     Pgplot.closeplot()
                 fftlen = len(newpows)
@@ -225,7 +227,7 @@ for x in range(len(TbyPb)):
                 theo_sum_pow = powersum_at_sigma(detect_sigma,
                                                  int(T/psr.orb.p))
                 if debugout:
-                    print 'theo_sum_pow = ', theo_sum_pow
+                    print('theo_sum_pow = ', theo_sum_pow)
                 newloop = 1
                 tryamp[ct] = secant(mini_fft_sum_pows, tryamp[ct]/2,
                                     tryamp[ct], 0.01)
@@ -238,7 +240,7 @@ for x in range(len(TbyPb)):
                 #      (b_pows[ct], bsum_pows[ct]-theo_sum_pow, 2 * sigma_t * sqrt(tryamp[ct]/N))
                 tim = clock() - stim
                 if debugout:
-                    print 'Time for this point was ',tim, ' s.'
+                    print('Time for this point was ',tim, ' s.')
         # Note:  The output contains the average value of tryamp.  To convert this
         #        to a minimum flux density, use the formula
         #               S(mJy) = 2 * sigma_t * sqrt(tryamp / N)   

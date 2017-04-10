@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import range
+from builtins import object
 import umath
 import Numeric
 from Pgplot import plotxy, closeplot
@@ -6,7 +9,7 @@ from time import sleep
 from Multipack import leastsq
 
 def smooth_phases(phases):
-   for ii in xrange(len(phases)-1):
+   for ii in range(len(phases)-1):
       l = phases[ii]
       h = phases[ii+1]
       if (h - l < -umath.pi):
@@ -73,7 +76,7 @@ def point_distances(vec1, vec2):
    return umath.sqrt((vec2.real-vec1.real)**2.0 +
                      (vec2.imag-vec1.imag)**2.0)
 
-class dftvector:
+class dftvector(object):
    def __init__(self, filename=None):
       if filename:
          self.fromfile(filename)
@@ -95,7 +98,7 @@ class dftvector:
       self.components = Numeric.zeros(self.numvect, 'D')
       self.timefract = (Numeric.arange(self.numvect) + 1.0) / self.numvect
       self.times = self.timefract * self.dt * self.n * self.numvect
-      for ii in xrange(self.numvect):
+      for ii in range(self.numvect):
          index = 2 * ii + 6
          self.components[ii] = complex(dblarr[index], dblarr[index+1])
       self.vector = add_components(self.components)
@@ -117,8 +120,8 @@ class dftvector:
          self.timefract = copy(self.orig_timefract)
          self.times = copy(self.orig_times)
       elif not (factor * (self.numvect / factor) == self.numvect):
-         print "'factor' in dftvector.rebin(factor) must evenly divide"
-         print "   the number of vector components (numvect)."
+         print("'factor' in dftvector.rebin(factor) must evenly divide")
+         print("   the number of vector components (numvect).")
       else:
          try:
             self.orig_n
@@ -209,19 +212,19 @@ class dftvector:
       modprzw[0] = (self.r + modprzw[0])
       [f, fd, fdd] = (modprzw / self.T**Numeric.array([1.0, 2.0, 3.0])).tolist()
       [p, pd, pdd] = p_to_f(f, fd, fdd)
-      print ""
-      print "      Phase (rad) = %.3f" % (przw[0])
-      print "      Phase (deg) = %.3f" % (przw[0] * 180.0 / umath.pi)
-      print "     Fourier freq = %.3f" % (modprzw[0])
-      print "     Fourier fdot = %.5g" % (modprzw[1])
-      print "  Fourier fdotdot = %.5g" % (modprzw[2])
-      print "   Frequency (Hz) = %.9f" % (f)
-      print "      fdot (Hz/s) = %.5g" % (fd)
-      print " fdotdot (Hz/s^2) = %.5g" % (fdd)
-      print "       Period (s) = %.12f" % (p)
-      print "       pdot (s/s) = %.5g" % (pd)
-      print "  pdotdot (s/s^2) = %.5g" % (pdd)
-      print ""
+      print("")
+      print("      Phase (rad) = %.3f" % (przw[0]))
+      print("      Phase (deg) = %.3f" % (przw[0] * 180.0 / umath.pi))
+      print("     Fourier freq = %.3f" % (modprzw[0]))
+      print("     Fourier fdot = %.5g" % (modprzw[1]))
+      print("  Fourier fdotdot = %.5g" % (modprzw[2]))
+      print("   Frequency (Hz) = %.9f" % (f))
+      print("      fdot (Hz/s) = %.5g" % (fd))
+      print(" fdotdot (Hz/s^2) = %.5g" % (fdd))
+      print("       Period (s) = %.12f" % (p))
+      print("       pdot (s/s) = %.5g" % (pd))
+      print("  pdotdot (s/s^2) = %.5g" % (pdd))
+      print("")
    def fitrzw(self, przw=None, funct=rzw_dist_model):
       """
       dftvector.fitrzw(przw=None, funct=rzw_dist_model):):
@@ -238,7 +241,7 @@ class dftvector:
       else:
          przw = Numeric.array([0.0, 0.0, 0.0, 0.0])
       retval = leastsq(funct, przw, args=(self))
-      print retval[1]
+      print(retval[1])
       return retval[0] * Numeric.array([1.0, 1.0, 4.0, 20.0])
    def plotvector(self, vector, amp=None, color='red',
                   device='/XWIN', step=0):
@@ -255,7 +258,7 @@ class dftvector:
          amp = 1.1 * umath.maximum(max(umath.absolute(x)),
                                    max(umath.absolute(y)))
       if step:
-         for ii in xrange(self.numvect):
+         for ii in range(self.numvect):
             sleep(0.01)
             plotxy(y[ii:ii+2], x[ii:ii+2],
                    rangex=[-amp, amp], rangey=[-amp, amp],
@@ -298,8 +301,8 @@ else:
    dv.rebin(4)
 
 if (1):
-   print "    Max amplitude =", dv.maxamplitude()
-   print "Current amplitude =", dv.amplitude()
+   print("    Max amplitude =", dv.maxamplitude())
+   print("Current amplitude =", dv.amplitude())
    dv.rzwinfo(przw)
    phasecorr = dv.rzw_phases(przw)
    corrvect = add_components(dv.rotate(-phasecorr))

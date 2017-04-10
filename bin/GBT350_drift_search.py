@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
 import glob, os, os.path, shutil, socket, struct, tarfile, stat
 import numpy, sys, presto, time, sigproc, sifting
 import psr_utils as pu
@@ -128,7 +133,7 @@ def get_folding_command(cand, obs, ddplans):
            (cand.candnum, cand.filename, cand.DM, outfilenm,
             otheropts, N, Mp, Mdm, filfile)
 
-class obs_info:
+class obs_info(object):
     """
     class obs_info(fil_filenm)
         A class describing the observation and the analysis.
@@ -212,7 +217,7 @@ class obs_info:
         report_file.write("---------------------------------------------------------\n")
         report_file.close()
         
-class dedisp_plan:
+class dedisp_plan(object):
     """
     class dedisp_plan(lodm, dmstep, dmsperpass, numpasses, numsub, downsamp)
        A class describing a de-dispersion plan for prepsubband in detail.
@@ -242,7 +247,7 @@ def main(fil_filenm, workdir, ddplans):
     # Get information on the observation and the job
     job = obs_info(fil_filenm)
     if job.raw_T < low_T_to_search:
-        print "The observation is too short (%.2f s) to search."%job.raw_T
+        print("The observation is too short (%.2f s) to search."%job.raw_T)
         sys.exit()
     job.total_time = time.time()
     ddplans = ddplans[job.nchans]
@@ -262,8 +267,8 @@ def main(fil_filenm, workdir, ddplans):
         os.makedirs(tmpdir)
     except: pass
 
-    print "\nBeginning GBT350 driftscan search of '%s'"%job.fil_filenm
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nBeginning GBT350 driftscan search of '%s'"%job.fil_filenm)
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # rfifind the filterbank file
     cmd = "rfifind -time %.17g -o %s %s > %s_rfifind.out"%\
@@ -494,8 +499,8 @@ def main(fil_filenm, workdir, ddplans):
     # And finish up
 
     job.total_time = time.time() - job.total_time
-    print "\nFinished"
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nFinished")
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # Write the job report
 
@@ -593,4 +598,4 @@ if __name__ == "__main__":
         fil_filenm = sys.argv[1]
         main(fil_filenm, '.', ddplans)
     else:
-        print "GBT350_drift_search.py fil_filenm [workdir]"
+        print("GBT350_drift_search.py fil_filenm [workdir]")

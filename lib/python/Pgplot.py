@@ -1,3 +1,7 @@
+from __future__ import print_function
+from builtins import str
+from builtins import range
+from builtins import object
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
@@ -122,7 +126,7 @@ def nextplotpage(reset=0):
         ppgplot.pgpage()
         ppgplot_dev_prep_ = 0
     else:
-        print "Can't go to the next plot page unless a plotting device is open."
+        print("Can't go to the next plot page unless a plotting device is open.")
     if (reset): resetdefaults()
 
 # Reset the color indices to the default values
@@ -336,7 +340,7 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
                  logx, logy, logx2, logy2, font, fontsize, \
                  id, aspect, ticks, panels, device=device)
     # Choose the line color
-    if type(color) == types.StringType:
+    if type(color) == bytes:
         ppgplot.pgsci(ppgplot_colors_[color])
     else:
         ppgplot.pgsci(color)
@@ -493,7 +497,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
     # Make sure the input data is a 2D array
     z = Num.asarray(z);
     if not len(z.shape)==2:
-        print 'Input data array must be 2 dimensional.'
+        print('Input data array must be 2 dimensional.')
         return
     # Announce the global variables we will be using
     global ppgplot_dev_open_, ppgplot_dev_prep_, pgpalette
@@ -535,7 +539,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
         # Choose the line width
         ppgplot.pgslw(width)
         # Choose the line color for the contourlines
-        if type(color) == types.StringType:
+        if type(color) == bytes:
             ppgplot.pgsci(ppgplot_colors_[color])
         else:
             ppgplot.pgsci(color)
@@ -545,7 +549,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
         # Label the contours if requested
         if labels is not None:
             # Choose the line color for the contourlines
-            if type(labels) == types.StringType:
+            if type(labels) == bytes:
                 ppgplot.pgsci(ppgplot_colors_[labels])
             else:
                 ppgplot.pgsci(labels)
@@ -556,7 +560,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
 
 #########################################################################
 
-class Palette:
+class Palette(object):
     # Set the color palette
     def setpalette(self, palette):
         """

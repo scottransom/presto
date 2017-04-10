@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 from time import clock
 from math import *
 from Numeric import *
@@ -39,7 +41,7 @@ if parallel:
     from mpihelp import *
     myid = mpi.comm_rank()
     numprocs = mpi.comm_size()
-    outfilenm = (outfiledir+'/'+outfilenm+`myid`+
+    outfilenm = (outfiledir+'/'+outfilenm+repr(myid)+
                  '_'+searchtype+'_'+ctype+'.out')
 else:
     myid = 0
@@ -98,15 +100,15 @@ for x in range(numTbyPb)[51:66]:
                         orbi = orbi / sqrt(orbsperpt[ctype])
                         wb, tp = orbf * 180.0, Pb * orbi
                     if debugout:
-                        print 'T = '+`T`+'  ppsr = '+`ppsr[y]`+\
-                              ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
-                              `eb`+' wb = '+`wb`+' tp = '+`tp`
+                        print('T = '+repr(T)+'  ppsr = '+repr(ppsr[y])+\
+                              ' Pb = '+repr(Pb)+' xb = '+repr(xb)+' eb = '+\
+                              repr(eb)+' wb = '+repr(wb)+' tp = '+repr(tp))
                     psr = psrparams_from_list([ppsr[y], Pb, xb, eb, wb, tp])
                     psr_numbins = 2 * bin_resp_halfwidth(psr.p, T, psr.orb)
                     psr_resp = gen_bin_response(0.0, 1, psr.p, T, psr.orb,
                                                 psr_numbins)
                     if showplots:
-                        print "The raw response:"
+                        print("The raw response:")
                         Pgplot.plotxy(spectralpower(psr_resp))
                         Pgplot.closeplot()
                     # The following places the nominative psr freq
@@ -128,8 +130,8 @@ for x in range(numTbyPb)[51:66]:
                         #   ' TbyPb[x] = '+`TbyPb[x]`+\
                         #   ' ppsr[y] = '+`ppsr[y]`+\
                         #   ' len(data) = '+`len(data)`
-                        print ' tryr = %11.5f   tryz = %11.5f' % \
-                              (tryr, tryz)
+                        print(' tryr = %11.5f   tryz = %11.5f' % \
+                              (tryr, tryz))
                     ffd = ffdot_plane(data, tryr, dr, numr,
                                       tryz, dz, numz)
                     maxarg = argmax(spectralpower(ffd.flat))
@@ -152,8 +154,8 @@ for x in range(numTbyPb)[51:66]:
                                       image="astro")
                         Pgplot.closeplot()
                     if debugout:
-                        print 'peakr = %11.5f  peakz = %11.5f' % \
-                              (peakr, peakz)
+                        print('peakr = %11.5f  peakz = %11.5f' % \
+                              (peakr, peakz))
                     if (peakpow < 0.2):
                         pows[ct] = peakpow
                         rmax = peakr
@@ -163,14 +165,14 @@ for x in range(numTbyPb)[51:66]:
                                    maximize_rz(data, peakr, peakz, \
                                                norm=1.0)
                     if debugout:
-                        print 'max_r = %11.5f  max_z = %11.5f' % \
-                              (rmax, zmax)
+                        print('max_r = %11.5f  max_z = %11.5f' % \
+                              (rmax, zmax))
                     if debugout:
-                        print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
-                        print `ppsr[y]`+'  '+`pows[ct]`
+                        print(repr(x)+'  '+repr(y)+'  '+repr(TbyPb[x])+'  ', end=' ')
+                        print(repr(ppsr[y])+'  '+repr(pows[ct]))
             tim = clock() - stim
             if debugout:
-                print 'Time for this point was ',tim, ' s.'
+                print('Time for this point was ',tim, ' s.')
             file.write('%5d  %9.6f  %8.6f  %11.9f  %11.9f  %11.9f\n' % \
                        (y * numTbyPb + x, TbyPb[x], ppsr[y], \
                         average(pows), max(pows), min(pows)))

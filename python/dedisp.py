@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import zip
+from builtins import range
 import os
 
 # To use this script to help you dedisperse a bunch of time series, first
@@ -29,7 +32,7 @@ import os
 
 
 def myexecute(cmd):
-    print "'%s'"%cmd
+    print("'%s'"%cmd)
     os.system(cmd)
 
 

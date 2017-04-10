@@ -1,4 +1,8 @@
-from types import StringType, FloatType
+from __future__ import print_function
+from builtins import object
+import six
+#from types import StringType, FloatType
+import collections
 import math, re
 import psr_utils as pu
 try:
@@ -52,7 +56,7 @@ floatn_keys = ["F", "P", "FB", "FD", "DMX_", "DMXEP_", "DMXR1_",
                "DMXR2_", "DMXF1_", "DMXF2_"]
 str_keys = ["FILE", "PSR", "PSRJ", "RAJ", "DECJ", "EPHEM", "CLK", "BINARY"]
 
-class psr_par:
+class psr_par(object):
     def __init__(self, parfilenm):
         self.FILE = parfilenm
         pf = open(parfilenm)
@@ -182,11 +186,12 @@ class psr_par:
         if hasattr(self, 'T0') and not hasattr(self, 'TASC'):
             setattr(self, 'TASC', self.T0 - self.PB * self.OM/360.0)
         pf.close()
+
     def __str__(self):
         out = ""
-        for k, v in self.__dict__.items():
+        for k, v in list(self.__dict__.items()):
             if k[:2]!="__":
-                if type(self.__dict__[k]) is StringType:
+                if type(self.__dict__[k]) in six.string_types:
                     out += "%10s = '%s'\n" % (k, v)
                 else:
                     out += "%10s = %-20.15g\n" % (k, v)
@@ -194,4 +199,4 @@ class psr_par:
 
 if __name__ == '__main__':
     a = psr_par("2140-2310A.par")
-    print a
+    print(a)

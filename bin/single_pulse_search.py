@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import zip
+from builtins import range
+from builtins import object
 import bisect, os, sys, getopt, infodata, glob
 import scipy, scipy.signal, ppgplot
 import numpy as Num
@@ -7,7 +13,7 @@ from psr_utils import coord_to_string
 from optparse import OptionParser
 from Pgplot import *
 
-class candidate:
+class candidate(object):
     def __init__(self, DM, sigma, time, bin, downfact):
         self.DM = DM
         self.sigma = sigma
@@ -66,10 +72,10 @@ def prune_related1(hibins, hivals, downfact):
     # candidate arrays and uses the single downfact
     # that they were selected with.
     toremove = set()
-    for ii in xrange(0, len(hibins)-1):
+    for ii in range(0, len(hibins)-1):
         if ii in toremove:  continue
         xbin, xsigma = hibins[ii], hivals[ii]
-        for jj in xrange(ii+1, len(hibins)):
+        for jj in range(ii+1, len(hibins)):
             ybin, ysigma = hibins[jj], hivals[jj]
             if (abs(ybin-xbin) > downfact/2):
                 break
@@ -93,11 +99,11 @@ def prune_related2(dm_candlist, downfacts):
     # instances and looks at the different downfacts of the
     # the different candidates.
     toremove = set()
-    for ii in xrange(0, len(dm_candlist)-1):
+    for ii in range(0, len(dm_candlist)-1):
         if ii in toremove:  continue
         xx = dm_candlist[ii]
         xbin, xsigma = xx.bin, xx.sigma
-        for jj in xrange(ii+1, len(dm_candlist)):
+        for jj in range(ii+1, len(dm_candlist)):
             yy = dm_candlist[jj]
             ybin, ysigma = yy.bin, yy.sigma
             if (abs(ybin-xbin) > max(downfacts)/2):
@@ -122,7 +128,7 @@ def prune_border_cases(dm_candlist, offregions):
     # of the boundary between data and padding
     #print offregions
     toremove = set()
-    for ii in xrange(len(dm_candlist)-1, -1, -1):
+    for ii in range(len(dm_candlist)-1, -1, -1):
         cand = dm_candlist[ii]
         loside = cand.bin-cand.downfact/2
         hiside = cand.bin+cand.downfact/2
@@ -274,7 +280,7 @@ def main():
     (opts, args) = parser.parse_args()
     if len(args)==0:
         if opts.globexp==None:
-            print full_usage
+            print(full_usage)
             sys.exit(0)
         else:
             args = []
@@ -346,8 +352,8 @@ def main():
                 if useffts:
                     fftd_kerns = make_fftd_kerns(default_downfacts, fftlen)
             if info.breaks:
-                offregions = zip([x[1] for x in info.onoff[:-1]],
-                                 [x[0] for x in info.onoff[1:]])
+                offregions = list(zip([x[1] for x in info.onoff[:-1]],
+                                 [x[0] for x in info.onoff[1:]]))
 
                 # If last break spans to end of file, don't read it in (its just padding)
                 if offregions[-1][1] == N - 1:
@@ -359,14 +365,14 @@ def main():
             roundN = N/detrendlen * detrendlen
             numchunks = roundN / chunklen
             # Read in the file
-            print 'Reading "%s"...'%filenm
+            print('Reading "%s"...'%filenm)
             timeseries = Num.fromfile(filenm, dtype=Num.float32, count=roundN)
             # Split the timeseries into chunks for detrending
             numblocks = roundN/detrendlen
             timeseries.shape = (numblocks, detrendlen)
             stds = Num.zeros(numblocks, dtype=Num.float64)
             # de-trend the data one chunk at a time
-            print '  De-trending the data and computing statistics...'
+            print('  De-trending the data and computing statistics...')
             for ii, chunk in enumerate(timeseries):
                 if opts.fast:  # use median removal instead of detrending (2x speedup)
                     tmpchunk = chunk.copy()
@@ -400,19 +406,19 @@ def main():
                      sort_stds[numblocks/2:-1]).argmax() + numblocks/2 - 2
             std_stds = scipy.std(sort_stds[locut:hicut])
             median_stds = sort_stds[(locut+hicut)/2]
-            print "    pseudo-median block standard deviation = %.2f" % (median_stds)
+            print("    pseudo-median block standard deviation = %.2f" % (median_stds))
             if (opts.badblocks):
                 lo_std = median_stds - 4.0 * std_stds
                 hi_std = median_stds + 4.0 * std_stds
                 # Determine a list of "bad" chunks.  We will not search these.
                 bad_blocks = Num.nonzero((stds < lo_std) | (stds > hi_std))[0]
-                print "    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
+                print("    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
                       (len(bad_blocks), len(stds),
-                       100.0*float(len(bad_blocks))/float(len(stds)))
+                       100.0*float(len(bad_blocks))/float(len(stds))))
                 stds[bad_blocks] = median_stds
             else:
                 bad_blocks = []
-            print "  Now searching..."
+            print("  Now searching...")
 
             # Now normalize all of the data and reshape it to 1-D
             timeseries /= stds[:,Num.newaxis]
@@ -428,7 +434,7 @@ def main():
 
             # Step through the data
             dm_candlist = []
-            for chunknum in xrange(numchunks):
+            for chunknum in range(numchunks):
                 loind = chunknum*chunklen-overlap
                 hiind = (chunknum+1)*chunklen+overlap
                 # Take care of beginning and end of file overlap issues
@@ -507,7 +513,7 @@ def main():
             # are within the downsample proximity of a higher
             # signal-to-noise pulse
             dm_candlist = prune_related2(dm_candlist, downfacts)
-            print "  Found %d pulse candidates"%len(dm_candlist)
+            print("  Found %d pulse candidates"%len(dm_candlist))
             
             # Get rid of those near padding regions
             if info.breaks: prune_border_cases(dm_candlist, offregions)

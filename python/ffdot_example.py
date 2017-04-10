@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as num
 import presto
 import ppgplot
@@ -24,7 +25,7 @@ ffdot = presto.ffdot_plane(ft, rint-np/2*dr, dr, np, 0.0-np/2*dz, dz, np)
 pffdot = presto.spectralpower(ffdot.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pffdot) / theo_max_pow # Fraction of recovered power
-print "Fraction of recovered signal power = %f" % frp
+print("Fraction of recovered signal power = %f" % frp)
 # print "Raw power should be ~%.2e" % theo_max_pow
 pffdot = pffdot / theo_max_pow
 pffdot.shape = (np, np)

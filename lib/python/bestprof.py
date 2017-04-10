@@ -1,3 +1,4 @@
+from builtins import object
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 
 import numpy as num
@@ -15,7 +16,7 @@ def get_epochs(line):
         epochf = float(int(fsec))/86400.0
     return epochi, epochf
 
-class bestprof:
+class bestprof(object):
     def __init__(self, filenm):
         infile = open(filenm)
         self.topo = 0

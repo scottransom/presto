@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 from numpy import *
 from Pgplot import *
 from presto import *
@@ -33,8 +35,8 @@ cpow = spectralpower(asarray(ca)) / nph
 cphs = spectralphase(ca)
 maxval = argmax(cpow)
 plotxy(cpow, cf-1e6, labx="Fourier Frequency - 1e6", laby="Power")
-print "Maximum value is at r =", startbin + maxval / float(numbetween)
-print "   Power =", cpow[maxval], "  Phase =", cphs[maxval]
+print("Maximum value is at r =", startbin + maxval / float(numbetween))
+print("   Power =", cpow[maxval], "  Phase =", cphs[maxval])
 closeplot()
 
 # Show the power spectrum with f-dot correction
@@ -46,7 +48,7 @@ cpow = spectralpower(ca) / nph
 cphs = spectralphase(ca)
 maxval = argmax(cpow)
 plotxy(cpow, cf-1e6, labx="Fourier Frequency - 1e6", laby="Power")
-print "Maximum value is at r =", startbin + maxval / float(numbetween)
-print "   Power =", cpow[maxval], "  Phase =", cphs[maxval]
+print("Maximum value is at r =", startbin + maxval / float(numbetween))
+print("   Power =", cpow[maxval], "  Phase =", cphs[maxval])
 closeplot()
 

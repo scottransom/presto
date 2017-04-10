@@ -1,3 +1,6 @@
+from __future__ import print_function
+from builtins import range
+from builtins import object
 from math import sqrt, sin, pi
 from Numeric import *
 from RandomArray import random, randint, normal
@@ -40,9 +43,9 @@ def secant(func, oldx, x, TOL=1e-6): # f(x)=func(x)
         oldx, x = x, x - dx
         oldf, f = f, func(x)
         count = count + 1
-        print "secant(%d): x=%s, f(x)=%s" % (count, x, f)
+        print("secant(%d): x=%s, f(x)=%s" % (count, x, f))
 
-class trials:
+class trials(object):
     def __init__(self, Nbins, Nphot, pfrac):
         self.Nphot = Nphot
         self.Nbins = Nbins
@@ -85,7 +88,7 @@ class trials:
             # print ' StdDev Data = ', standardDeviation(data)
         return data
     def do_trials(self, Ntrials):
-        for trial in xrange(Ntrials):
+        for trial in range(Ntrials):
             data = self.calc_time_series()
             ft = rfft(data)
             # pows = spectralpower(ft)/ft[0].real
@@ -104,16 +107,16 @@ class trials:
         self.avg_diff_pows = self.avg_meas_pows - self.avg_theo_pows
         self.sig_diff_pows = self.sig_meas_pows
     def print_props(self):
-        print 'Nbins = %-7d  Nphot = %-7d  pfrac = %-.2f' % \
-              (self.Nbins, self.Nphot, self.pfrac)
-        print '----------------------------------------------'
-        print ' Theo Power = %-6.2f +/- %-5.2f' % (self.avg_theo_pows,
-                                                   self.sig_theo_pows)
-        print ' Meas Power = %-6.2f +/- %-5.2f' % (self.avg_meas_pows,
-                                                   self.sig_meas_pows)
-        print ' Difference = %-6.2f +/- %-5.2f' % (self.avg_diff_pows,
-                                                   self.sig_diff_pows)
-        print ''
+        print('Nbins = %-7d  Nphot = %-7d  pfrac = %-.2f' % \
+              (self.Nbins, self.Nphot, self.pfrac))
+        print('----------------------------------------------')
+        print(' Theo Power = %-6.2f +/- %-5.2f' % (self.avg_theo_pows,
+                                                   self.sig_theo_pows))
+        print(' Meas Power = %-6.2f +/- %-5.2f' % (self.avg_meas_pows,
+                                                   self.sig_meas_pows))
+        print(' Difference = %-6.2f +/- %-5.2f' % (self.avg_diff_pows,
+                                                   self.sig_diff_pows))
+        print('')
 
 # The main loop
 

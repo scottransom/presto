@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 # 'Safe' Newton-Raphson and Secant method
 #    for numerical root-finding
 #
@@ -13,13 +15,13 @@ def bisect(func, lox, hix, TOL=1e-14, MAXIT=200):
     f = func(lox)
     fmid = func(hix)
     if (f * fmid >= 0.0):
-        print "Root must be bracketed in bisect()!"
+        print("Root must be bracketed in bisect()!")
         return 0.0
     if (f < 0.0):
         dx, rtb = hix - lox, lox
     else:
         dx, rtb = lox - hix, hix
-    for i in xrange(MAXIT):
+    for i in range(MAXIT):
         dx = dx * 0.5
         xmid = rtb + dx
         fmid = func(xmid)
@@ -27,7 +29,7 @@ def bisect(func, lox, hix, TOL=1e-14, MAXIT=200):
             rtb = xmid
         if (abs(dx) < TOL or fmid == 0.0):
             return rtb
-    print "Too many bisections in bisect()!"
+    print("Too many bisections in bisect()!")
     return 0.0
 
 
@@ -64,7 +66,7 @@ def newton_raphson(func, dfunc, lox, hix, TOL=1.0e-14):
     maxit = 500
     fl, fh = func(lox), func(hix)
     if ((fl > 0.0 and fh > 0.0) or (fl < 0.0 and fh < 0.0)):
-        print "Root must be bracketed in newtonRaphson()"
+        print("Root must be bracketed in newtonRaphson()")
         return 0.0
     if (fl == 0.0): return lox
     if (fh == 0.0): return hix
@@ -97,7 +99,7 @@ def newton_raphson(func, dfunc, lox, hix, TOL=1.0e-14):
             xl=rts
         else:
             xh=rts
-    print "Maximum number of iterations exceeded in newton_raphson()"
+    print("Maximum number of iterations exceeded in newton_raphson()")
     return 0.0
 
 # Test code
@@ -115,12 +117,12 @@ if __name__ == '__main__':
     s = secant(func, 0.0, 3.0)
     bs = bisect(func, 0.0, 3.0)
     theo = 1.766340286602865756325301235707
-    print ''
-    print 'Finding the root (between 0.0 and 3.0) of:'
-    print '    x - sin(x) = pi/4'
-    print ''
-    print '         Newton-Raphson gives (default accuracy) = %15.14f' % nr
-    print '          Secant method gives (default accuracy) = %15.14f' % s
-    print '       Bisection method gives (default accuracy) = %15.14f' % bs
-    print 'Theoretical result (correct to all shown digits) = %15.14f' % theo
-    print ''
+    print('')
+    print('Finding the root (between 0.0 and 3.0) of:')
+    print('    x - sin(x) = pi/4')
+    print('')
+    print('         Newton-Raphson gives (default accuracy) = %15.14f' % nr)
+    print('          Secant method gives (default accuracy) = %15.14f' % s)
+    print('       Bisection method gives (default accuracy) = %15.14f' % bs)
+    print('Theoretical result (correct to all shown digits) = %15.14f' % theo)
+    print('')

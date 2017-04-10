@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 from numpy import *
 from Pgplot import *
 from presto import *
@@ -8,7 +10,7 @@ numkern = 2 * numbetween * kern_half_width
 f = arange(numkern, dtype=float64) / numbetween - kern_half_width
 kern = gen_z_response(0.0, numbetween, 0.0, numkern)
 pkern = spectralpower(kern)
-print "Freq ", f[len(f)/2], " = ", pkern[len(f)/2]
+print("Freq ", f[len(f)/2], " = ", pkern[len(f)/2])
 plotxy(pkern, f, labx="Fourier Frequency Offset", \
        laby="Normalized Power", device="z_responses.eps/CPS")
 #plotxy(pkern, f, labx="Fourier Frequency Offset", \

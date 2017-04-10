@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 from time import clock
 from math import *
 from Numeric import *
@@ -41,7 +43,7 @@ if parallel:
     from mpihelp import *
     myid = mpi.comm_rank()
     numprocs = mpi.comm_size()
-    outfilenm = (outfiledir+'/'+outfilenm+`myid`+
+    outfilenm = (outfiledir+'/'+outfilenm+repr(myid)+
                  '_'+searchtype+'_'+ctype+'.out')
 else:
     myid = 0
@@ -104,15 +106,15 @@ for x in range(numTbyPb):
                         orbi = orbi / sqrt(orbsperpt[ctype])
                         wb, tp = orbf * 180.0, Pb * orbi
                     if debugout:
-                        print 'T = '+`T`+'  ppsr = '+`ppsr[y]`+\
-                              ' Pb = '+`Pb`+' xb = '+`xb`+' eb = '+\
-                              `eb`+' wb = '+`wb`+' tp = '+`tp`
+                        print('T = '+repr(T)+'  ppsr = '+repr(ppsr[y])+\
+                              ' Pb = '+repr(Pb)+' xb = '+repr(xb)+' eb = '+\
+                              repr(eb)+' wb = '+repr(wb)+' tp = '+repr(tp))
                     psr = psrparams_from_list([ppsr[y], Pb, xb, eb, wb, tp])
                     psr_numbins = 2 * bin_resp_halfwidth(psr.p, T, psr.orb)
                     psr_resp = gen_bin_response(0.0, 1, psr.p, T, psr.orb,
                                                 psr_numbins)
                     if showplots:
-                        print "The raw response:"
+                        print("The raw response:")
                         Pgplot.plotxy(spectralpower(psr_resp))
                         Pgplot.closeplot()
                     if searchtype == 'ffdot':
@@ -135,8 +137,8 @@ for x in range(numTbyPb):
 #                                  ' TbyPb[x] = '+`TbyPb[x]`+\
 #                                  ' ppsr[y] = '+`ppsr[y]`+\
 #                                  ' len(data) = '+`len(data)`
-                            print ' tryr = %11.5f   tryz = %11.5f' % \
-                                  (tryr, tryz)
+                            print(' tryr = %11.5f   tryz = %11.5f' % \
+                                  (tryr, tryz))
                         ffd = ffdot_plane(data, tryr, dr, numr,
                                           tryz, dz, numz)
                         maxarg = argmax(spectralpower(ffd.flat))
@@ -159,8 +161,8 @@ for x in range(numTbyPb):
                                           image="astro")
                             Pgplot.closeplot()
                         if debugout:
-                            print 'peakr = %11.5f  peakz = %11.5f' % \
-                                  (peakr, peakz)
+                            print('peakr = %11.5f  peakz = %11.5f' % \
+                                  (peakr, peakz))
                         if (peakpow < 0.2):
                             pows[ct] = peakpow
                             rmax = peakr
@@ -170,12 +172,12 @@ for x in range(numTbyPb):
                                        maximize_rz(data, peakr, peakz, \
                                                    norm=1.0)
                         if debugout:
-                            print 'max_r = %11.5f  max_z = %11.5f' % \
-                                  (rmax, zmax)
+                            print('max_r = %11.5f  max_z = %11.5f' % \
+                                  (rmax, zmax))
                     elif searchtype == 'sideband':
                         if debugout:
-                            print 'T = %9.3f  Pb = %9.3f  Ppsr = %9.7f' % \
-                                  (T, psr.orb.p, psr.p)
+                            print('T = %9.3f  Pb = %9.3f  Ppsr = %9.7f' % \
+                                  (T, psr.orb.p, psr.p))
                         # The biggest FFT first
                         psr_pows = spectralpower(psr_resp)
                         fftlen = int(next2_to_n(len(psr_pows)))
@@ -186,10 +188,10 @@ for x in range(numTbyPb):
                         [pows[ct], rmax, rd] = \
                                    maximize_r(fdata, rpred, norm=1.0)
                         if debugout:
-                            print 'theo_r = %f  alias_r = %f' % \
-                                  (fftlen * psr.orb.p / T, rpred)
-                            print 'pow1 = %f  Porb = %f' % \
-                                  (pows[ct], rmax * T / fftlen)
+                            print('theo_r = %f  alias_r = %f' % \
+                                  (fftlen * psr.orb.p / T, rpred))
+                            print('pow1 = %f  Porb = %f' % \
+                                  (pows[ct], rmax * T / fftlen))
                         #cands = search_fft(fdata, 15, norm=1.0/fftlen)
                         #if debugout:
                             #print 'rpred = %11.5f  '\
@@ -215,10 +217,10 @@ for x in range(numTbyPb):
                                    maximize_r(fdata, rpred, norm=1.0)
                         if tmppow > pows[ct]:  pows[ct] = tmppow
                         if debugout:
-                            print 'theo_r = %f  alias_r = %f' % \
-                                  (fftlen * psr.orb.p / T, rpred)
-                            print 'pow1 = %f  Porb = %f' % \
-                                  (tmppow, rmax * T / fftlen)
+                            print('theo_r = %f  alias_r = %f' % \
+                                  (fftlen * psr.orb.p / T, rpred))
+                            print('pow1 = %f  Porb = %f' % \
+                                  (tmppow, rmax * T / fftlen))
                         #cands = search_fft(fdata, 15, norm=1.0/fftlen)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata), \
@@ -240,10 +242,10 @@ for x in range(numTbyPb):
                                    maximize_r(fdata, rpred, norm=1.0)
                         if tmppow > pows[ct]:  pows[ct] = tmppow
                         if debugout:
-                            print 'theo_r = %f  alias_r = %f' % \
-                                  (fftlen * psr.orb.p / T, rpred)
-                            print 'pow1 = %f  Porb = %f' % \
-                                  (tmppow, rmax * T / fftlen)
+                            print('theo_r = %f  alias_r = %f' % \
+                                  (fftlen * psr.orb.p / T, rpred))
+                            print('pow1 = %f  Porb = %f' % \
+                                  (tmppow, rmax * T / fftlen))
                         #cands = search_fft(fdata, 15, norm=1.0/fftlen)
                         if showplots:
                             Pgplot.plotxy(spectralpower(fdata), \
@@ -256,11 +258,11 @@ for x in range(numTbyPb):
                             #    print '  r = %11.5f  pow = %9.7f' % \
                             #      (cands[ii][1], cands[ii][0])
                     if debugout:
-                        print `x`+'  '+`y`+'  '+`TbyPb[x]`+'  ',
-                        print `ppsr[y]`+'  '+`pows[ct]`
+                        print(repr(x)+'  '+repr(y)+'  '+repr(TbyPb[x])+'  ', end=' ')
+                        print(repr(ppsr[y])+'  '+repr(pows[ct]))
             tim = clock() - stim
             if debugout:
-                print 'Time for this point was ',tim, ' s.'
+                print('Time for this point was ',tim, ' s.')
             file.write('%5d  %9.6f  %8.6f  %11.9f  %11.9f  %11.9f\n' % \
                        (y * numTbyPb + x, TbyPb[x], ppsr[y], \
                         average(pows), max(pows), min(pows)))

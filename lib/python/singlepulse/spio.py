@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 import numpy as _np
 import fileinput as _fileinput
 from scipy.special import erf
@@ -75,8 +77,8 @@ def read_RRATrap_info(groupfile, group_to_read, rank):
     files = get_textfile(groupfile)
     if files[rank-1] != "Number of rank %i groups: 0 "%rank: # checks whether there are %i \
                                                              # ranked groups in the file.
-        print files[rank-1]
-        print "Making arrays for DM vs Signal to Noise..."
+        print(files[rank-1])
+        print("Making arrays for DM vs Signal to Noise...")
         temp_list = files[group_to_read-6].split()
         npulses = int(temp_list[2])
         temp_lines = files[(group_to_read+3):(group_to_read+npulses+1)]
@@ -93,7 +95,7 @@ def read_RRATrap_info(groupfile, group_to_read, rank):
         sigma_arr = _np.array([arr_2[i][1] for i in range(len(arr))], dtype = _np.float32)
         width_arr = _np.array([arr_2[i][4] for i in range(len(arr))], dtype = _np.int8)
     else:
-        print "No Rank %i groups for this candidate."%rank
+        print("No Rank %i groups for this candidate."%rank)
     
     return dm_list, time_list, dm_arr, sigma_arr, width_arr
 
@@ -223,13 +225,13 @@ def gen_arrays(dm, sp_files, tar, threshold):
     hidm = max_dm+diff_dm
     if (ddm <= 0):
         ddm = 0
-    name_DMs = _np.asarray(map(lambda x:pick_DM_for_singlepulse_files(sp_files[x]), range(len(sp_files))))
+    name_DMs = _np.asarray([pick_DM_for_singlepulse_files(sp_files[x]) for x in range(len(sp_files))])
     inds = name_DMs.argsort()
     name_DMs = name_DMs[inds]
     sp_files = _np.asarray(sp_files)[inds]
     loidx = _np.argmin(_np.abs(name_DMs-ddm))
     hiidx = _np.argmin(_np.abs(name_DMs-hidm))
-    print loidx, hiidx
+    print(loidx, hiidx)
     singlepulsefiles = list(sp_files[loidx:hiidx])
 
     if tar is not None:

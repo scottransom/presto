@@ -14,6 +14,11 @@ Output:
 Chen Karako May 7, 2014
 Updated by Chitrang Patel June 10, 2016.
 """
+from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+from builtins import object
 import fileinput
 import numpy as np
 from time import strftime 
@@ -150,8 +155,8 @@ def create_groups(sps, inffile, min_nearby=1, time_thresh=0.5, \
 
     Tobs = get_obs_info(inffile)['T'] # duration of observation
     if not (0 <= ignore_obs_end < Tobs):
-        print "Invalid ignore_obs_end value. Value must be: \
-            0 <= ignore_obs_end < Tobs. Setting ignore_obs_end to 0."
+        print("Invalid ignore_obs_end value. Value must be: \
+            0 <= ignore_obs_end < Tobs. Setting ignore_obs_end to 0.")
         ignore_obs_end = 0
     Tignore = Tobs - ignore_obs_end # sps with t>=Tignore will be ignored
 
@@ -216,9 +221,9 @@ def grouping_rfi(groups, use_dmplan=False, time_thresh=0.5, dm_thresh=0.1):
     while didcombine:
         didcombine = False
         # If a group is very close to a group of rfi, set it as rfi  
-        for i in reversed(range(len(groups))):
+        for i in reversed(list(range(len(groups)))):
             grp1 = groups[i]
-            for j in reversed(range(len(groups))):
+            for j in reversed(list(range(len(groups)))):
                 if j <= i:
                     continue
                 grp2 = groups[j]
@@ -570,7 +575,7 @@ def plot_sp_rated_pgplot(groups, ranks, inffile, ylow=0, yhigh=100, xlow=0, xhig
 
 def print_debug(msg):
     if DEBUG:
-        print msg
+        print(msg)
 #        print h.heap()
 
 
@@ -585,7 +590,7 @@ def pop_by_rank(groups, rank):
         Outputs:
             None
     """
-    for j in reversed(range(len(groups))):
+    for j in reversed(list(range(len(groups)))):
         if groups[j].rank == rank:
            del groups[j] 
     
@@ -816,7 +821,7 @@ def main():
             plot_sp_rated_all(groups, ranks, inffile, 1000, 10000)
             print_debug("Finished plotting DMs1000-10000 "+strftime("%Y-%m-%d %H:%M:%S"))
         else:
-            print "Plot type must be one of 'matplotlib' or 'pgplot'. Not plotting."
+            print("Plot type must be one of 'matplotlib' or 'pgplot'. Not plotting.")
 
 
 if __name__ == '__main__':

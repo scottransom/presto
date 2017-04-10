@@ -1,3 +1,5 @@
+from builtins import range
+from builtins import object
 import os
 import sys
 import subprocess
@@ -55,7 +57,7 @@ telescope_to_maxha = {"GBT": 12, \
                    "Geocenter": 12, \
                    "Barycenter": 12}
 
-class polyco:
+class polyco(object):
     def __init__(self, fileptr):
         line = fileptr.readline()
         if (line==""):
@@ -130,7 +132,7 @@ class polyco:
             psrfreq = DT*psrfreq + ii*self.coeffs[ii]
         return self.F0 + psrfreq/60.0
         
-class polycos:
+class polycos(object):
     def __init__(self, psrname, filenm="polyco.dat"):
         self.psr = psrname
         self.file = filenm
@@ -139,7 +141,7 @@ class polycos:
         infile = open(filenm, "r")
         tmppoly = polyco(infile)
         while(tmppoly.psr):
-	    if (len(self.polycos)):
+            if (len(self.polycos)):
                 if (tmppoly.dataspan != self.dataspan):
                     sys.stderr.write("Data span is changing!\n")
             else:
@@ -227,7 +229,7 @@ def create_polycos(parfn, telescope_id, center_freq, start_mjd, end_mjd, \
         Output:
             new_polycos: a polycos object.
     """
-    if type(parfn)==types.StringType:
+    if type(parfn)==bytes:
         # assume parfn is a filename
         par = parfile.psr_par(parfn)
     else:

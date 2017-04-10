@@ -1,3 +1,4 @@
+from builtins import range
 ## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
 
 import math
@@ -50,16 +51,16 @@ def rad2dms(rad):
     ss = ss * 60.0
     id = abs(int(dd))
     if (abs(dd) < 10.0):
-        if (dd < 0): d = '-0'+`id`
-        else: d = '0'+`id`
+        if (dd < 0): d = '-0'+repr(id)
+        else: d = '0'+repr(id)
     else:
-        if (dd < 0): d = '-'+`id`
-        else: d = `id`
+        if (dd < 0): d = '-'+repr(id)
+        else: d = repr(id)
     im = abs(int(mm))
-    if (abs(mm) < 10): m = '0'+`im`
-    else: m = `im`
-    if (abs(ss) < 10): s = '0'+`abs(ss)`
-    else: s = `abs(ss)`
+    if (abs(mm) < 10): m = '0'+repr(im)
+    else: m = repr(im)
+    if (abs(ss) < 10): s = '0'+repr(abs(ss))
+    else: s = repr(abs(ss))
     return d+':'+m+':'+s
 
 def rad2hms(rad):
@@ -73,16 +74,16 @@ def rad2hms(rad):
     ss = ss * 60.0
     ih = abs(int(hh))
     if (abs(hh) < 10.0):
-        if (hh < 0): h = '-0'+`ih`
-        else: h = '0'+`ih`
+        if (hh < 0): h = '-0'+repr(ih)
+        else: h = '0'+repr(ih)
     else:
-        if (hh < 0): h = '-'+`ih`
-        else: h = `ih`
+        if (hh < 0): h = '-'+repr(ih)
+        else: h = repr(ih)
     im = abs(int(mm))
-    if (abs(mm) < 10): m = '0'+`im`
-    else: m = `im`
-    if (abs(ss) < 10): s = '0'+`abs(ss)`
-    else: s = `abs(ss)`
+    if (abs(mm) < 10): m = '0'+repr(im)
+    else: m = repr(im)
+    if (abs(ss) < 10): s = '0'+repr(abs(ss))
+    else: s = repr(abs(ss))
     return h+':'+m+':'+s
 
 

@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+from past.builtins import cmp
+from builtins import str
+from builtins import range
+from builtins import object
 from sys import argv, exit
 from string import index
 from presto import *
 
-class bird:
+class bird(object):
     def __init__(self, freq, width, bary=0):
         self.freq = freq
         self.width = width
@@ -22,7 +27,7 @@ def processbirds(filename):
     try:
         ii = index(filename, ".birds")
     except ValueError:
-        print "\nThe birdie filename must end in '.birds'\n"
+        print("\nThe birdie filename must end in '.birds'\n")
         exit(0)
     else:
         rootname = filename[:ii]
@@ -30,7 +35,7 @@ def processbirds(filename):
     freqs = 0
     trains = 0
     birds = []
-    print "\nProcessing the birds..."
+    print("\nProcessing the birds...")
     info = read_inffile(rootname)
     T = info.dt * info.N;
     # PSRs get 40 bins minimum zapped (overkill for most,
@@ -47,7 +52,7 @@ def processbirds(filename):
             if (psr.orb.p):
                 (minv, maxv) = binary_velocity(T, psr.orb)
             psrs += 1
-            for harm in xrange(1, numharm+1):
+            for harm in range(1, numharm+1):
                 if (psr.orb.p):
                     midv = 0.5 * (maxv + minv)
                     midf = (1.0 + midv) * psr.f * harm
@@ -74,17 +79,17 @@ def processbirds(filename):
                         bary = int(words[4])
                 trains += 1
                 if (increase_width):
-                    for harm in xrange(1, numharm+1):
+                    for harm in range(1, numharm+1):
                         birds.append(bird(freq * harm, width * harm, bary))
                 else:
-                    for harm in xrange(1, numharm+1):
+                    for harm in range(1, numharm+1):
                         birds.append(bird(freq * harm, width, bary))
             else:
                 freqs += 1
                 birds.append(bird(float(words[0]), float(words[1])))
-    print "\nRead %d freqs, %d pulsars, and %d harmonic series." % \
-          (freqs, psrs, trains)
-    print "Total number of birdies = %d" % (len(birds)) 
+    print("\nRead %d freqs, %d pulsars, and %d harmonic series." % \
+          (freqs, psrs, trains))
+    print("Total number of birdies = %d" % (len(birds))) 
     birds.sort()
     file.close()
     file = open(rootname+".zaplist", "w")
@@ -96,12 +101,12 @@ def processbirds(filename):
     for birdie in birds:
         file.write(str(birdie))
     file.close()
-    print "\nWrote '%s'\n" % (rootname+".zaplist")
+    print("\nWrote '%s'\n" % (rootname+".zaplist"))
 
 if __name__ == '__main__':
     if len(argv)==1:
-        print "\nusage:  makezaplist.py birdsfilename"
-        print "       Note:  'birdsfilename' must end in '.birds'\n"
-        print "               and a related infofile ('.inf') must exist.\n"
+        print("\nusage:  makezaplist.py birdsfilename")
+        print("       Note:  'birdsfilename' must end in '.birds'\n")
+        print("               and a related infofile ('.inf') must exist.\n")
     else:
         processbirds(argv[1])

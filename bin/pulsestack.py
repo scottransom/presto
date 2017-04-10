@@ -19,6 +19,9 @@
 #
 ######################################################################
 
+from __future__ import print_function
+from builtins import str
+from builtins import range
 import numpy as np
 import array as ar
 import os, os.path, stat, glob, sys
@@ -98,30 +101,30 @@ def detrending (data, is_fast):
 
 # gives the short list of options without explanations
 def list_options(prg):
-	print "Usage: %s [options] <.dat OR .tim (use --tim option)>" % (prg)
-	print
-	print "Options:"
-	print "  [-h, --help]              [-n, --nbins #BINS]     [-p, --pulsar NAME]"
-	print "  [--polyco FILE]           [--period PERIOD]       [-b, --block SAMPLES]"
-	print "  [-s, --startphase PHASE]  [-e, --endphase PHASE]  [--start TIME]"
-	print "  [-w, --window TIME]       [-f, --fast-detrend]    [--no-detrend]"
-	print "  [-t, --timeseries]        [-a, --rebin FACTOR]    [-y, --profileonly]"
-	print "  [-k, --stacking]          [--offset OFFSET]       [-d, --dump #PULSES | TIME]"
-	print "  [--saveprof FILE]         [--saveonly]            [-i, --image FILEEXT]"
-	print "  [--tim]                   [--events]              [-l, --list]"
-	print "  [-2, --double]            [-m, --mjd MJD]         [--tsamp TIME]"
-	print "  [--chandra]"
-	print
-	print "Graphics Options:"
-	print "  [--fontsize SIZE]         [--color COLOR]         [--linestyle STYLE]"
-	print "  [--linewidth WIDTH]       [--marker TYPE]         [--markercolor COLOR]"
-	print "  [--markerwidth WIDTH]     [--markersize SIZE]     [--facecolor COLOR]"
-	print "  [--cmap COLORMAP]         [-c, --colorbar]        [--title STR]"
-	print "  [--legend STR]            [--loc STR]             [-g, --grid]"
-	print "  [--titlepos STR]          [--label STR]           [--labelpos STR]"
-	print "  [--no-top-axis]           [--no-right-axis]"
+	print("Usage: %s [options] <.dat OR .tim (use --tim option)>" % (prg))
+	print()
+	print("Options:")
+	print("  [-h, --help]              [-n, --nbins #BINS]     [-p, --pulsar NAME]")
+	print("  [--polyco FILE]           [--period PERIOD]       [-b, --block SAMPLES]")
+	print("  [-s, --startphase PHASE]  [-e, --endphase PHASE]  [--start TIME]")
+	print("  [-w, --window TIME]       [-f, --fast-detrend]    [--no-detrend]")
+	print("  [-t, --timeseries]        [-a, --rebin FACTOR]    [-y, --profileonly]")
+	print("  [-k, --stacking]          [--offset OFFSET]       [-d, --dump #PULSES | TIME]")
+	print("  [--saveprof FILE]         [--saveonly]            [-i, --image FILEEXT]")
+	print("  [--tim]                   [--events]              [-l, --list]")
+	print("  [-2, --double]            [-m, --mjd MJD]         [--tsamp TIME]")
+	print("  [--chandra]")
+	print()
+	print("Graphics Options:")
+	print("  [--fontsize SIZE]         [--color COLOR]         [--linestyle STYLE]")
+	print("  [--linewidth WIDTH]       [--marker TYPE]         [--markercolor COLOR]")
+	print("  [--markerwidth WIDTH]     [--markersize SIZE]     [--facecolor COLOR]")
+	print("  [--cmap COLORMAP]         [-c, --colorbar]        [--title STR]")
+	print("  [--legend STR]            [--loc STR]             [-g, --grid]")
+	print("  [--titlepos STR]          [--label STR]           [--labelpos STR]")
+	print("  [--no-top-axis]           [--no-right-axis]")
 	if kapteyn_loaded:
-		print "  [--cmap-scale SCALE]"
+		print("  [--cmap-scale SCALE]")
 
 
 ###################################################################################################################################
@@ -297,19 +300,19 @@ if __name__=="__main__":
     			tsamp = filhdr['tsamp']
                 	source = filhdr['source_name']
 		except:
-			print "Error: Can't open the tim-file '%s'!" % (datfile,)
+			print("Error: Can't open the tim-file '%s'!" % (datfile,))
 			sys.exit(1)
 
 	elif opts.is_events:
 		opts.is_no_detrend = True  # we don't do detrending for events
 		if opts.mjd == '' and not opts.is_chandra:
-			print "Error: for events' file start MJD _must_ be given with --mjd option or --chandra option!"
+			print("Error: for events' file start MJD _must_ be given with --mjd option or --chandra option!")
 			sys.exit(1)
 		if opts.nbins == -1:
-			print "Error: number of bins _must_ be given with --nbins option!"
+			print("Error: number of bins _must_ be given with --nbins option!")
 			sys.exit(1)
 		if opts.rebin != 1:
-			print "Event data can not be re-binned"
+			print("Event data can not be re-binned")
 			opts.rebin = 1
 	else:
 		if (opts.mjd == '' and not opts.is_chandra) or opts.tsamp == '' or opts.psrname == '':
@@ -321,13 +324,13 @@ if __name__=="__main__":
 				startmjd = id.epoch  # start MJD
                 		source = id.object   # pulsar name
 			except:
-				print "Error: Can't read the inf-file '%s'!" % (inffile,)
+				print("Error: Can't read the inf-file '%s'!" % (inffile,))
 				sys.exit(1)
 
 	# overwriting MJD, tsamp, pulsarname from the command line if given
 	if opts.is_chandra:
 		opts.mjd = "50814.0"
-		print "Chandra event file. Reference start MJD is %s" % (opts.mjd)
+		print("Chandra event file. Reference start MJD is %s" % (opts.mjd))
 	if opts.mjd != '':
 		startmjd = float(opts.mjd)
 	if opts.tsamp != '':
@@ -337,7 +340,7 @@ if __name__=="__main__":
 
 	# checking start, end times and adjusting them if necessary
 	if opts.start_time < 0:
-		print "Error: start time %.3f is < 0!" % (opts.start_time)
+		print("Error: start time %.3f is < 0!" % (opts.start_time))
 		sys.exit(1)
 
 	if not opts.is_events:
@@ -345,13 +348,13 @@ if __name__=="__main__":
 		try:
 			size=(os.stat(datfile)[stat.ST_SIZE] - headersize) / 4   # 4 bytes in float
 		except:
-			print "Error: Can't open the input file '%s'!" % (datfile,)
+			print("Error: Can't open the input file '%s'!" % (datfile,))
 			sys.exit(1)
 
 		# checking start, end times and adjusting them if necessary
 		start_sample = int(opts.start_time / tsamp)
 		if start_sample >= size:
-			print "Start time %.3f is out of range!" % (opts.start_time)
+			print("Start time %.3f is out of range!" % (opts.start_time))
 			sys.exit(1)
 		else:
 			size = size - start_sample
@@ -367,10 +370,10 @@ if __name__=="__main__":
 			opts.window_time = window * tsamp
 
 		if start_sample + window > size:
-			print "End time %.3f is out of range. The window duration will be adjusted" % (opts.start_time + opts.window_time)
+			print("End time %.3f is out of range. The window duration will be adjusted" % (opts.start_time + opts.window_time))
 			window = size - start_sample
 			opts.window_time = window * tsamp
-			print "New window is %.3f s" % (opts.window_time)
+			print("New window is %.3f s" % (opts.window_time))
 
 	else:  # reading the file, and so, we can get the start and end events' time
 		events = np.loadtxt(datfile, comments='#', usecols=(0,0), dtype=float, unpack=True)[0]
@@ -379,11 +382,11 @@ if __name__=="__main__":
 		except:
 			energy = []
 		if np.size(energy) == 0 and opts.is_timeseries:
-			print "No energy column is given in the events'file '%s'. It _must_ be given to plot the timeseries!" % (datfile)
+			print("No energy column is given in the events'file '%s'. It _must_ be given to plot the timeseries!" % (datfile))
 			sys.exit(1)
 		duration = events[-1]-events[0]
 		if opts.start_time >= duration:
-			print "Start time %.3f sec is more than duration of observation of %.3f sec!" % (opts.start_time, duration)
+			print("Start time %.3f sec is more than duration of observation of %.3f sec!" % (opts.start_time, duration))
 			sys.exit(1)
 		else:
 			events.compress(events >= opts.start_time + events[0])
@@ -392,9 +395,9 @@ if __name__=="__main__":
 		if opts.window_time == -1:
 			opts.window_time = duration
 		if opts.start_time + opts.window_time > duration:
-			print "End time %.3f is out of range. The window duration will be adjusted" % (opts.start_time + opts.window_time)
+			print("End time %.3f is out of range. The window duration will be adjusted" % (opts.start_time + opts.window_time))
 			opts.window_time = duration - opts.start_time
-			print "New window is %.3f s" % (opts.window_time)
+			print("New window is %.3f s" % (opts.window_time))
 
 	# checking dump settings
 	if opts.dump != '':
@@ -402,17 +405,17 @@ if __name__=="__main__":
 			dump_time = float(opts.dump)
 			dump_pulses = 0
 			if dump_time > 0:
-				print "Dump time is %.3f s" % (dump_time)
+				print("Dump time is %.3f s" % (dump_time))
 			else:
-				print "Dump time %.3f should be > 0!" % (dump_time)
+				print("Dump time %.3f should be > 0!" % (dump_time))
 				sys.exit(1)
 		else:  # number of pulses to dump is given
 			dump_pulses = int(opts.dump)
 			dump_time = 0	
 			if dump_pulses > 0:
-				print "Number of pulses in subintegration is %d" % (dump_pulses)
+				print("Number of pulses in subintegration is %d" % (dump_pulses))
 			else:
-				print "Number of pulses in subintegration %d should be > 0!" % (dump_pulses)
+				print("Number of pulses in subintegration %d should be > 0!" % (dump_pulses))
 				sys.exit(1)
 	else:
 		dump_pulses = 0
@@ -422,25 +425,25 @@ if __name__=="__main__":
 	if not opts.is_timeseries:
 		if opts.phase_start < 0 or opts.phase_start >= 1.0:
 			opts.phase_start = 0.0
-			print "Start phase is out of range. Adjusted value is %.3f" % (opts.phase_start,)
+			print("Start phase is out of range. Adjusted value is %.3f" % (opts.phase_start,))
 
 		if opts.phase_end <= 0.0 or opts.phase_end > 1.0:
 			opts.phase_end = 1.0
-			print "End phase is out of range. Adjusted value is %.3f" % (opts.phase_end,)
+			print("End phase is out of range. Adjusted value is %.3f" % (opts.phase_end,))
 
 		if opts.phase_end <= opts.phase_start:
-			print "End phase %.3f is <= than start phase %.3f! Please adjust." % (opts.phase_end, opts.phase_start)
+			print("End phase %.3f is <= than start phase %.3f! Please adjust." % (opts.phase_end, opts.phase_start))
 			sys.exit(1)
 
 		if not opts.is_no_detrend:
 			# checking the blocksize
 			if opts.blocksize < 3 * detrendlen:
-				print "Block size is too small: %d. Will be increased to %d." % (opts.blocksize, 3 * detrendlen)
+				print("Block size is too small: %d. Will be increased to %d." % (opts.blocksize, 3 * detrendlen))
 				opts.blocksize = 3 * detrendlen
 			# making blocksize to be divisible by detrendlen (in order not to loose samples between blocks)
 			if int (opts.blocksize / detrendlen) * detrendlen != opts.blocksize:
 				opts.blocksize = detrendlen * (1 + int (opts.blocksize / detrendlen))
-				print "Adjusting block size to %d to be divisible by detrendlen=%d" % (opts.blocksize, detrendlen)
+				print("Adjusting block size to %d to be divisible by detrendlen=%d" % (opts.blocksize, detrendlen))
 
 	
 	# forming the array of time samples
@@ -448,7 +451,7 @@ if __name__=="__main__":
 		try:
 			infile = open(datfile, "rb")
 		except:
-			print "Error: Can't read the dat-file '%s'!" % (datfile,)
+			print("Error: Can't read the dat-file '%s'!" % (datfile,))
 			sys.exit(1)
 		dataptr = ar.array('f')  # 'f' - for float
 		infile.seek(headersize + 4 * start_sample)  # position to the first byte to read; '4' - is the size of float 
@@ -468,12 +471,12 @@ if __name__=="__main__":
 				else:
                 			fold_period = get_period (pid, data[0])
 			except:
-				print "Check the name of the pulsar in polyco file '%s' and inf-file '%s'!" % (opts.polycofile, inffile)
-				print "If different, try --pulsar option to set the name of pulsar the same as in polyco file."
+				print("Check the name of the pulsar in polyco file '%s' and inf-file '%s'!" % (opts.polycofile, inffile))
+				print("If different, try --pulsar option to set the name of pulsar the same as in polyco file.")
 				sys.exit(1)
 			is_update_period = True
 			if fold_period <= 0:
-				print "Computed fold period is bad: %f. Check your polyco and/or MJD!" % (float(fold_period))
+				print("Computed fold period is bad: %f. Check your polyco and/or MJD!" % (float(fold_period)))
 				sys.exit(1)
 		else: # period is given
 			fold_period = opts.period / 1000.
@@ -484,33 +487,33 @@ if __name__=="__main__":
 		# if dump_time is given - checking that it is >= fold_period
 		if dump_time > 0:
 			if dump_time < fold_period:
-				print "Dump time %.3f s is less than folding period of %f s. Adjusting to match." % (dump_time, fold_period)
+				print("Dump time %.3f s is less than folding period of %f s. Adjusting to match." % (dump_time, fold_period))
 				dump_time = fold_period
-				print "Dump time is now %.3f s" % (dump_time) 
+				print("Dump time is now %.3f s" % (dump_time)) 
 			if dump_time > opts.window_time:
-				print "Dump time %.3f is more than window duration of %f s. Adjusting..." % (dump_time, opts.window_time)
+				print("Dump time %.3f is more than window duration of %f s. Adjusting..." % (dump_time, opts.window_time))
 				# we make it a one period less than duration, because otherwise plt.imshow
 				# fails to plot
 				dump_time = opts.window_time - fold_period
-				print "Dump time is now %.3f s" % (dump_time) 
+				print("Dump time is now %.3f s" % (dump_time)) 
 		else: # we need this for plotting purposes
 			dump_time = dump_pulses * fold_period
 			if dump_time > opts.window_time:
-				print "Number of pulses per subintegration %d is more than within window duration of %f s." % (dump_pulses, opts.window_time)
-				print "Adjusting to match to the closest maximum possible number."
+				print("Number of pulses per subintegration %d is more than within window duration of %f s." % (dump_pulses, opts.window_time))
+				print("Adjusting to match to the closest maximum possible number.")
 				dump_pulses = int((opts.window_time - fold_period) / fold_period)
 				dump_time = dump_pulses * fold_period
-				print "Number of pulses per subintegration is now %d" % (dump_pulses)
+				print("Number of pulses per subintegration is now %d" % (dump_pulses))
 
 		bin_start = int (opts.nbins * opts.phase_start)
 		bin_end = int(math.ceil((opts.nbins - 1) * opts.phase_end))
 		bin_range = bin_end - bin_start + 1
 		if "%f" % (opts.phase_start) != "%f" % (float(bin_start)/opts.nbins):
 			opts.phase_start = float(bin_start)/opts.nbins
-			print "Adjusting the start phase to %.3f to account for integer number of bins" % (opts.phase_start)
+			print("Adjusting the start phase to %.3f to account for integer number of bins" % (opts.phase_start))
 		if "%f" % (opts.phase_end) != "%f" % (float(bin_end)/(opts.nbins - 1)):
 			opts.phase_end = float(bin_end)/(opts.nbins - 1)
-			print "Adjusting the end phase to %.3f to account for integer number of bins" % (opts.phase_end)
+			print("Adjusting the end phase to %.3f to account for integer number of bins" % (opts.phase_end))
 
 		# initializing some variables and arrays
 		elapsed_secs = opts.start_time
