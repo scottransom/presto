@@ -99,34 +99,22 @@ class PsrfitsFile(object):
                 data: Subint data with scales, weights, and offsets
                      applied in float32 dtype with shape (nsamps,nchan).
         """ 
-        subintdata = self.fits['SUBINT'].data[isub]['DATA']
-        shp = subintdata.squeeze().shape
-        if ((self.nbits < 8) and \
-            (shp[0] != self.nsamp_per_subint) and \
-            (shp[1] != self.nchan * self.nbits / 8)):
-            subintdata = subintdata.reshape(self.nsamp_per_subint,
-                                            self.nchan * self.nbits / 8)
-        if self.nbits == 4:
-            data = unpack_4bit(subintdata)
-        elif self.nbits == 2:
-            data = unpack_2bit(subintdata)
-        else:
-            data = np.array(subintdata)
-        if apply_offsets:
-            offsets = self.get_offsets(isub)
-        else:
-            offsets = 0
-        if apply_scales:
-            scales = self.get_scales(isub)
-        else:
-            scales = 1
-        if apply_weights:
-            weights = self.get_weights(isub)
-        else:
-            weights = 1
-        data = data.reshape((self.nsamp_per_subint, self.nchan))
-        data_wso = ((data * scales) + offsets) * weights
-        return data_wso
+        sdata = self.fits['SUBINT'].data[isub]['DATA']
+        shp = sdata.squeeze().shape
+        if self.nbits < 8: # Unpack the bytes data
+            if (shp[0] != self.nsamp_per_subint) and \
+                    (shp[1] != self.nchan * self.nbits / 8):
+                sdata = sdata.reshape(self.nsamp_per_subint,
+                                      self.nchan * self.nbits / 8)
+            if self.nbits == 4: data = unpack_4bit(sdata)
+            elif self.nbits == 2: data = unpack_2bit(sdata)
+            else: data = np.asarray(sdata)
+        data = data.reshape((self.nsamp_per_subint, 
+                             self.nchan)).astype(np.float32)
+        if apply_scales: data *= self.get_scales(isub)
+        if apply_offsets: data += self.get_offsets(isub)
+        if apply_weights: data *= self.get_weights(isub)
+        return data
 
     def get_weights(self, isub):
         """Return weights for a particular subint.
