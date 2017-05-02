@@ -60,7 +60,10 @@ print "success"
 print "Testing psrparams and orbitparams stuff...",
 psr = presto.psrepoch("J0737-3039A", 56000.0, verbose=False)
 assert(round(psr.dm-48.92, 7)==0)
-assert(round(psr.orb.p-8834.534998272, 7)==0)
+# This needs to change when we start using the actual psrcat.db file
+print "\nTODO:  fix the precision of the values in the catalog!!"
+assert(round(psr.orb.p-8838.72, 7)==0)
+#assert(round(psr.orb.p-8834.534998272, 7)==0)
 print "success"
 
 print "Testing spectralpower and spectralphase...",
@@ -86,7 +89,7 @@ orb.p = 10000.0
 orb.e = 0.1
 orb.x = 1.0
 orb.t = 1234.0
-orb.w = 75.0
+orb.w = np.radians(75.0)
 orb.pd = orb.wd = 0.0
 E0 = presto.keplers_eqn(orb.t+0.0, orb.p, orb.e, 1e-15)
 E1 = presto.keplers_eqn(orb.t+100.0, orb.p, orb.e, 1e-15)
@@ -102,6 +105,8 @@ presto.E_to_v(Es, orb)
 Vs_check = np.asarray([-112.15558594, -122.45299212,
                        -131.9991447, -140.76659065])
 assert(np.allclose(Es, Vs_check))
+print "\nTODO:  fix inconsistent omega units of deg vs rad!!"
+orb.w = 75.0
 minv, maxv = presto.binary_velocity(300.0, orb)
 minv *= presto.SOL/1000.0
 maxv *= presto.SOL/1000.0
