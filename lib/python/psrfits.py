@@ -74,6 +74,8 @@ class PsrfitsFile(object):
         self.header = self.fits[0].header # Primary HDU
         self.nbits = self.specinfo.bits_per_sample
         self.nchan = self.specinfo.num_channels
+        self.npoln = self.specinfo.num_polns
+        self.poln_order = self.specinfo.poln_order
         self.nsamp_per_subint = self.specinfo.spectra_per_subint
         self.nsubints = self.specinfo.num_subint[0]
         self.freqs = self.fits['SUBINT'].data[0]['DAT_FREQ'] 
@@ -109,11 +111,28 @@ class PsrfitsFile(object):
             if self.nbits == 4: data = unpack_4bit(sdata)
             elif self.nbits == 2: data = unpack_2bit(sdata)
             else: data = np.asarray(sdata)
+        else:
+            # Handle 4-poln GUPPI/PUPPI data
+            if (len(shp)==3 and shp[1]==self.npoln and
+                self.poln_order=="AABBCRCI"):
+                warnings.warn("Polarization is AABBCRCI, summing AA and BB")
+                data = np.zeros((self.nsamp_per_subint,
+                                 self.nchan), dtype=np.float32)
+                data += sdata[:,0,:].squeeze()
+                data += sdata[:,1,:].squeeze()
+            elif (len(shp)==3 and shp[1]==self.npoln and
+                self.poln_order=="IQUV"):
+                warnings.warn("Polarization is IQUV, just using Stokes I")
+                data = np.zeros((self.nsamp_per_subint,
+                                 self.nchan), dtype=np.float32)
+                data += sdata[:,0,:].squeeze()
+            else:
+                data = np.asarray(sdata)
         data = data.reshape((self.nsamp_per_subint, 
                              self.nchan)).astype(np.float32)
-        if apply_scales: data *= self.get_scales(isub)
-        if apply_offsets: data += self.get_offsets(isub)
-        if apply_weights: data *= self.get_weights(isub)
+        if apply_scales: data *= self.get_scales(isub)[:self.nchan]
+        if apply_offsets: data += self.get_offsets(isub)[:self.nchan]
+        if apply_weights: data *= self.get_weights(isub)[:self.nchan]
         return data
 
     def get_weights(self, isub):
