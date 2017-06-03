@@ -189,6 +189,14 @@ int main(int argc, char *argv[])
 
     if (RAWDATA) {
         read_rawdata_files(&s);
+        if (cmd->ignorechanstrP) {
+            s.ignorechans = get_ignorechans(cmd->ignorechanstr, 0, s.num_channels-1,
+                                            &s.num_ignorechans, &s.ignorechans_str);
+            if (s.ignorechans_str==NULL) {
+                s.ignorechans_str = (char *)malloc(strlen(cmd->ignorechanstr)+1);
+                strcpy(s.ignorechans_str, cmd->ignorechanstr);
+            }
+        }
         print_spectra_info_summary(&s);
         spectra_info_to_inf(&s, &idata);
 

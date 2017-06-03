@@ -235,6 +235,10 @@ typedef struct s_Cmdline {
   char maskfileP;
   char* maskfile;
   int maskfileC;
+  /***** -ignorechan: Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step] */
+  char ignorechanstrP;
+  char* ignorechanstr;
+  int ignorechanstrC;
   /***** -events: Use a event file instead of a time series (.dat) file */
   char eventsP;
   /***** -days: Events are in days since the EPOCH in the '.inf' file (default is seconds) */

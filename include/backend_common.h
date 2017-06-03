@@ -67,19 +67,22 @@ struct spectra_info {
     int remove_zerodm;      // Do zero-DM substraction?
     int use_poln;           // The number of the specific polarization to use 0-num_polns-1
     int flip_bytes;         // Hack to flip the order of the bits in a byte of data
+    int num_ignorechans;    // Number of channels to explicitly ignore (set to zero)
     float zero_offset;      // A DC zero-offset value to apply to all the data
     float clip_sigma;       // Clipping value in standard deviations to use
     long double *start_MJD; // Array of long double MJDs for the file starts
     char **filenames;       // Array of the input file names
     FILE **files;           // Array of normal file pointers if needed
-    fitsfile **fitsfiles;   // Array of FITS file pointers if needed
+    fitsfile **fitsfiles;    // Array of FITS file pointers if needed
     float *padvals;         // Array of length num_channels for current padding values
     int *header_offset;     // Number of bytes to skip in each file to get to spectra
     int *start_subint;      // Starting ISUBINT in each file (for PSRFITS)
     int *num_subint;        // Number of subints per file
-    long long *start_spec;  // Starting spectra for each file (zero offset)
-    long long *num_spec;    // Number of spectra per file
-    long long *num_pad;     // Number of padding samples after each file
+    int *ignorechans;       // Array of channels to explicitly ignore (set to zero)
+    char *ignorechans_str; // String describing the ignorechans
+    long long *start_spec; // Starting spectra for each file (zero offset)
+    long long *num_spec;   // Number of spectra per file
+    long long *num_pad;    // Number of padding samples after each file
     int (*get_rawblock)(float *, struct spectra_info *, int *);  // Raw data block function pointer
     long long (*offset_to_spectra)(long long, struct spectra_info *);  // Shift into file(s) function pointer
 };
@@ -101,6 +104,7 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[], 
 int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands, struct spectra_info *s, int transpose, int *maskchans, int *nummasked, mask *obsmask);
 int read_subbands(float *fdata, int *delays, int numsubbands, struct spectra_info *s, int transpose, int *padding, int *maskchans, int *nummasked, mask *obsmask);
 void flip_band(float *fdata, struct spectra_info *s);
+int *get_ignorechans(char *ignorechans_str, int minchan, int maxchan, int *num_ignorechans, char **filestr);
 
 /* zerodm.c */
 void remove_zerodm(float *fdata, struct spectra_info *s);

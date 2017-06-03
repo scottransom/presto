@@ -89,11 +89,11 @@ typedef struct s_Cmdline {
   char inttrigfracP;
   float inttrigfrac;
   int inttrigfracC;
-  /***** -zapchan: Comma separated string (no spaces!) of channels to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step] */
+  /***** -zapchan: Comma separated string (no spaces!) of channels to explicitly mask.  Ranges are specified by min:max[:step] */
   char zapchanstrP;
   char* zapchanstr;
   int zapchanstrC;
-  /***** -zapints: Comma separated string (no spaces!) of intervals to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step] */
+  /***** -zapints: Comma separated string (no spaces!) of intervals to explicitly mask.  Ranges are specified by min:max[:step] */
   char zapintsstrP;
   char* zapintsstr;
   int zapintsstrC;
@@ -101,6 +101,10 @@ typedef struct s_Cmdline {
   char maskfileP;
   char* maskfile;
   int maskfileC;
+  /***** -ignorechan: Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step] */
+  char ignorechanstrP;
+  char* ignorechanstr;
+  int ignorechanstrC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

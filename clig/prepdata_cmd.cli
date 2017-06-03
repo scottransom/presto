@@ -43,6 +43,7 @@ Flag   -shorts  shorts  {Use short ints for the output data instead of floats}
 Double  -dm      dm      {The dispersion measure to de-disperse (cm^-3 pc)} \
 	-r 0 oo  -d 0
 String -mask    maskfile {File containing masking information to use}
+String -ignorechan ignorechanstr {Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step]}
 
 # Rest of command line:
 

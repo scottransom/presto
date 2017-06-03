@@ -4,6 +4,7 @@
 #include "backend_common.h"
 #include "misc_utils.h"
 #include "fftw3.h"
+#include "error.h"
 
 static long long currentspectra = 0;
 static int using_MPI = 0;
@@ -24,6 +25,7 @@ extern double DATEOBS_to_MJD(char *dateobs, int *mjd_day, double *mjd_fracday);
 extern void read_filterbank_files(struct spectra_info *s);
 extern void read_PSRFITS_files(struct spectra_info *s);
 extern fftwf_plan plan_transpose(int rows, int cols, float *in, float *out);
+extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 
 void psrdatatype_description(char *outstr, psrdatatype ptype)
 {
@@ -200,6 +202,7 @@ void spectra_info_set_defaults(struct spectra_info *s)
     s->remove_zerodm = 0;
     s->use_poln = 0;
     s->flip_bytes = 0;
+    s->num_ignorechans = 0;
     s->zero_offset = 0.0;
     s->clip_sigma = 0.0;
     s->start_MJD = NULL;
@@ -209,6 +212,8 @@ void spectra_info_set_defaults(struct spectra_info *s)
     s->header_offset = NULL;
     s->start_subint = NULL;
     s->num_subint = NULL;
+    s->ignorechans = NULL;
+    s->ignorechans_str = NULL;
     s->start_spec = NULL;
     s->num_spec = NULL;
     s->num_pad = NULL;
@@ -353,6 +358,8 @@ void print_spectra_info_summary(struct spectra_info *s)
         printf("     Apply offsets? = %s\n", s->apply_offset ? "True" : "False");
         printf("     Apply weights? = %s\n", s->apply_weight ? "True" : "False");
     }
+    if (s->num_ignorechans)
+    printf("  Ignoring channels = %s\n", s->ignorechans_str);
     printf("\nFile  Start Spec   Samples     Padding        Start MJD\n");
     printf("----  ----------  ----------  ----------  --------------------\n");
     if (s->datatype == SUBBAND || s->datatype == DAT ||
@@ -554,6 +561,18 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
                     }
                 }
             }
+
+            if (s->num_ignorechans) { // These are channels we explicitly zero
+                int channum;
+                for (ii = 0; ii < numspect; ii++) {
+                    offset = ii * s->num_channels;
+                    for (jj = 0; jj < s->num_ignorechans; jj++) {
+                        channum = s->ignorechans[jj];
+                        currentdata[offset + channum] = 0.0;
+                    }
+                }
+            }
+
             if (!firsttime)
                 float_dedisp(currentdata, lastdata, numspect, s->num_channels,
                              delays, 0.0, fdata);
@@ -592,7 +611,17 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[],
                 channum);
         exit(-1);
     }
-    /* Select the correct channel */
+    /* Check to see if we are explicitly zeroing this channel */
+    if (s->num_ignorechans) {
+        for (ii = 0; ii < s->num_ignorechans; ii++) {
+            if (channum==s->ignorechans[ii]) { // zero it
+                for (jj = 0; jj < numsubints * s->spectra_per_subint; jj++)
+                    chandat[jj] = 0.0;
+                return;
+            }
+        }
+    }
+    /* Else select the correct channel */
     for (ii = 0, jj = channum; ii < numsubints * s->spectra_per_subint;
          ii++, jj += s->num_channels)
         chandat[ii] = rawdata[jj];
@@ -663,6 +692,18 @@ int prep_subbands(float *fdata, float *rawdata, int *delays, int numsubbands,
             }
         }
     }
+
+    if (s->num_ignorechans) { // These are channels we explicitly zero
+        int channum;
+        for (ii = 0; ii < s->spectra_per_subint; ii++) {
+            offset = ii * s->num_channels;
+            for (jj = 0; jj < s->num_ignorechans; jj++) {
+                channum = s->ignorechans[jj];
+                currentdata[offset + channum] = 0.0;
+            }
+        }
+    }
+
     // In mpiprepsubband, the nodes do not call read_subbands() where
     // currentspectra gets incremented.
     if (using_MPI)
@@ -757,4 +798,64 @@ void flip_band(float *fdata, struct spectra_info *s)
             fdata[hioffs] = ftmp;
         }
     }
+}
+
+
+int *get_ignorechans(char *ignorechans_str, int minchan, int maxchan,
+                     int *num_ignorechans, char **filestr)
+// Parse an ignorechans string (or file it was from) and return it as
+// a vector of length num_ignorechans.  If the channel string came
+// from a file, return the channel string in the file in filestr.
+{
+    int ii;
+    char *parsestr, *sptr;
+    FILE *file;
+    long long filelen;
+    
+    if ((file = fopen(ignorechans_str, "r")) != NULL) {
+        // If so, see how big it is in bytes
+        filelen = chkfilelen(file, 1);
+        // if not too big, assume that this is a string to parse
+        if (filelen < 100000L) {
+            *filestr = (char *) malloc(filelen+1);
+            // Now read lines of the file, until the first character
+            // is not a comment marker or a newline
+            do {
+                sptr = fgets(*filestr, filelen, file);
+                // Remove newline if needed
+                if ((*filestr)[strlen(*filestr)-1] == '\n')
+                    (*filestr)[strlen(*filestr)-1] = '\0';
+                if (sptr != NULL &&
+                    sptr[0] != '\n' &&
+                    sptr[0] != '#' &&
+                    0 != (ii = strlen(sptr))) { // This is a good line
+                    // Copy the line read into parsestr
+                    parsestr = (char *) malloc(strlen(*filestr)+1);
+                    strcpy(parsestr, *filestr);
+                    fclose(file);
+                    break;
+                } else {
+                    if (feof(file)) {
+                        sprintf(*filestr,
+                                "Error:  end-of-file while looking for range string in get_ignorechans()\n");
+                        perror(*filestr);
+                        exit(EXIT_FAILURE);
+                    }
+                }
+            } while (1);
+            
+        } else {
+            parsestr = (char *) malloc(1000);
+            sprintf(parsestr,
+                    "Error:  '%s' is a file, but too big to parse in get_ignorechans()\n",
+                    ignorechans_str);
+            perror(parsestr);
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        // Input string name is not a file, so we will parse it directly
+        parsestr = ignorechans_str;
+        *filestr = NULL; // Not being used
+    }
+    return ranges_to_ivect(parsestr, minchan, maxchan, num_ignorechans);
 }

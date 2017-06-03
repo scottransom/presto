@@ -99,6 +99,10 @@ typedef struct s_Cmdline {
   char maskfileP;
   char* maskfile;
   int maskfileC;
+  /***** -ignorechan: Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step] */
+  char ignorechanstrP;
+  char* ignorechanstr;
+  int ignorechanstrC;
   /***** uninterpreted command line parameters */
   int argc;
   /*@null*/char **argv;

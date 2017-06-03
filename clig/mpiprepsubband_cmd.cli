@@ -47,6 +47,7 @@ Int     -nsub   nsub    {The number of sub-bands to use} \
 Int     -downsamp downsamp {The number of neighboring bins to co-add} \
 	-r 1 128 -d 1
 String -mask    maskfile {File containing masking information to use}
+String -ignorechan ignorechanstr {Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step]}
 
 # Rest of command line:
 

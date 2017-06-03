@@ -17,6 +17,7 @@ extern int phcalc(double mjd0, double mjd1, int last_index,
                   double *phase, double *psrfreq);
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 extern char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm);
+extern int *ranges_to_ivect(char *str, int minval, int maxval, int *numvals);
 void set_posn(prepfoldinfo * in, infodata * idata);
 
 /*
@@ -235,6 +236,14 @@ int main(int argc, char *argv[])
         printf("\n");
         if (RAWDATA) {
             read_rawdata_files(&s);
+            if (cmd->ignorechanstrP) {
+                s.ignorechans = get_ignorechans(cmd->ignorechanstr, 0, s.num_channels-1,
+                                                &s.num_ignorechans, &s.ignorechans_str);
+                if (s.ignorechans_str==NULL) {
+                    s.ignorechans_str = (char *)malloc(strlen(cmd->ignorechanstr)+1);
+                    strcpy(s.ignorechans_str, cmd->ignorechanstr);
+                }
+            }
             print_spectra_info_summary(&s);
             spectra_info_to_inf(&s, &idata);
             ptsperrec = s.spectra_per_subint;

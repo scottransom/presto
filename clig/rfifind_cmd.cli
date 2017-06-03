@@ -50,9 +50,10 @@ Float  -chanfrac chantrigfrac {The fraction of bad channels that will mask a ful
 	-r 0.0 1.0 -d 0.7
 Float  -intfrac  inttrigfrac  {The fraction of bad intervals that will mask a full channel} \
 	-r 0.0 1.0 -d 0.3
-String -zapchan zapchanstr {Comma separated string (no spaces!) of channels to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step]}
-String -zapints zapintsstr {Comma separated string (no spaces!) of intervals to explicitly remove from analysis (zero-offset).  Ranges are specified by min:max[:step]}
+String -zapchan zapchanstr {Comma separated string (no spaces!) of channels to explicitly mask.  Ranges are specified by min:max[:step]}
+String -zapints zapintsstr {Comma separated string (no spaces!) of intervals to explicitly mask.  Ranges are specified by min:max[:step]}
 String -mask    maskfile {File containing masking information to use}
+String -ignorechan ignorechanstr {Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step]}
 
 # Rest of command line:
 

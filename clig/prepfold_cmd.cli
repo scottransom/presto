@@ -119,6 +119,8 @@ Double -wdot wdot    {Rate of advance of periastron (deg/yr)} \
 
 String -mask    maskfile   {File containing masking information to use}
 
+String -ignorechan ignorechanstr {Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step]}
+
 # Parameters if we are using events instead of a timeseries
 
 Flag -events events  {Use a event file instead of a time series (.dat) file}

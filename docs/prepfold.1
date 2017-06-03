@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "21Apr15" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "03Jun17" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -95,6 +95,7 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-w w]
 [-wdot wdot]
 [-mask maskfile]
+[-ignorechan ignorechanstr]
 [-events]
 [-days]
 [-mjds]
@@ -371,6 +372,10 @@ Rate of advance of periastron (deg/yr),
 Default: `0'
 .IP -mask
 File containing masking information to use,
+.br
+1 String value
+.IP -ignorechan
+Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step],
 .br
 1 String value
 .IP -events
