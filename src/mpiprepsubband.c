@@ -390,6 +390,9 @@ int main(int argc, char *argv[])
                 if (cmd->maskfileP)
                     printf("WARNING!:  masking does not work with old-style subbands and -start or -offset!\n");
             }
+        } else { // This is needed for masking on the nodes
+            if (RAWDATA)
+                set_currentspectra(cmd->offset);
         }
     }
 

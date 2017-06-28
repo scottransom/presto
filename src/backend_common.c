@@ -448,6 +448,15 @@ long long offset_to_spectra(long long specnum, struct spectra_info *s)
 }
 
 
+void set_currentspectra(long long specnum)
+// Set the static variable currentspectra to specnum.  This is used
+// 'by mpiprepsubband for the non-master CPUs to know what spectra they
+// are getting for masking.
+{
+    currentspectra = specnum;
+}
+
+
 int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s,
                    int *padding)
 // This routine reads numsubints rawdata blocks from raw radio pulsar

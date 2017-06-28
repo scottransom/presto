@@ -98,6 +98,7 @@ void print_spectra_info(struct spectra_info *s);
 void print_spectra_info_summary(struct spectra_info *s);
 void spectra_info_to_inf(struct spectra_info *s, infodata *idata);
 long long offset_to_spectra(long long specnum, struct spectra_info *s);
+void set_currentspectra(long long specnum);
 int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s, int *padding);
 int read_psrdata(float *fdata, int numspect, struct spectra_info *s, int *delays, int *padding, int *maskchans, int *nummasked, mask *obsmask);
 void get_channel(float chandat[], int channum, int numsubints, float rawdata[], struct spectra_info *s);
