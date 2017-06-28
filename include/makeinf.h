@@ -58,3 +58,4 @@ typedef struct INFODATA {
 
 void readinf(infodata * data, char *filenm);
 void writeinf(infodata * data);
+void add_to_inf_epoch(infodata * data, double seconds);

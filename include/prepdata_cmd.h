@@ -17,14 +17,6 @@ typedef struct s_Cmdline {
   char outfileP;
   char* outfile;
   int outfileC;
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  char pkmbP;
-  /***** -gmrt: Raw data in GMRT Phased Array format */
-  char gmrtP;
-  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
-  char bcpmP;
-  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
-  char spigotP;
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   char filterbankP;
   /***** -psrfits: Raw data in PSRFITS format */
@@ -35,14 +27,8 @@ typedef struct s_Cmdline {
   char noscalesP;
   /***** -nooffsets: Do not apply PSRFITS offsets */
   char nooffsetsP;
-  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
-  char wappP;
   /***** -window: Window correlator lags with a Hamming window before FFTing */
   char windowP;
-  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
-  char numwappsP;
-  int numwapps;
-  int numwappsC;
   /***** -if: A specific IF to use if available (summed IFs is the default) */
   char ifsP;
   int ifs;
@@ -57,6 +43,10 @@ typedef struct s_Cmdline {
   char invertP;
   /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
   char zerodmP;
+  /***** -nobary: Do not barycenter the data */
+  char nobaryP;
+  /***** -shorts: Use short ints for the output data instead of floats */
+  char shortsP;
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   char numoutP;
   long numout;
@@ -65,10 +55,14 @@ typedef struct s_Cmdline {
   char downsampP;
   int downsamp;
   int downsampC;
-  /***** -nobary: Do not barycenter the data */
-  char nobaryP;
-  /***** -shorts: Use short ints for the output data instead of floats */
-  char shortsP;
+  /***** -offset: Number of spectra to offset into as starting data point */
+  char offsetP;
+  long offset;
+  int offsetC;
+  /***** -start: Starting point of the processing as a fraction of the full obs */
+  char startP;
+  double start;
+  int startC;
   /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
   char dmP;
   double dm;

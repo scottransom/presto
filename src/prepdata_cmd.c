@@ -30,14 +30,6 @@ static Cmdline cmd = {
   /* outfileP = */ 0,
   /* outfile = */ (char*)0,
   /* outfileC = */ 0,
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  /* pkmbP = */ 0,
-  /***** -gmrt: Raw data in GMRT Phased Array format */
-  /* gmrtP = */ 0,
-  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
-  /* bcpmP = */ 0,
-  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
-  /* spigotP = */ 0,
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   /* filterbankP = */ 0,
   /***** -psrfits: Raw data in PSRFITS format */
@@ -48,14 +40,8 @@ static Cmdline cmd = {
   /* noscalesP = */ 0,
   /***** -nooffsets: Do not apply PSRFITS offsets */
   /* nooffsetsP = */ 0,
-  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
-  /* wappP = */ 0,
   /***** -window: Window correlator lags with a Hamming window before FFTing */
   /* windowP = */ 0,
-  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
-  /* numwappsP = */ 1,
-  /* numwapps = */ 1,
-  /* numwappsC = */ 1,
   /***** -if: A specific IF to use if available (summed IFs is the default) */
   /* ifsP = */ 0,
   /* ifs = */ (int)0,
@@ -70,6 +56,10 @@ static Cmdline cmd = {
   /* invertP = */ 0,
   /***** -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM) */
   /* zerodmP = */ 0,
+  /***** -nobary: Do not barycenter the data */
+  /* nobaryP = */ 0,
+  /***** -shorts: Use short ints for the output data instead of floats */
+  /* shortsP = */ 0,
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   /* numoutP = */ 0,
   /* numout = */ (long)0,
@@ -78,10 +68,14 @@ static Cmdline cmd = {
   /* downsampP = */ 1,
   /* downsamp = */ 1,
   /* downsampC = */ 1,
-  /***** -nobary: Do not barycenter the data */
-  /* nobaryP = */ 0,
-  /***** -shorts: Use short ints for the output data instead of floats */
-  /* shortsP = */ 0,
+  /***** -offset: Number of spectra to offset into as starting data point */
+  /* offsetP = */ 1,
+  /* offset = */ 0,
+  /* offsetC = */ 1,
+  /***** -start: Starting point of the processing as a fraction of the full obs */
+  /* startP = */ 1,
+  /* start = */ 0.0,
+  /* startC = */ 1,
   /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
   /* dmP = */ 1,
   /* dm = */ 0,
@@ -829,34 +823,6 @@ showOptionValues(void)
     }
   }
 
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  if( !cmd.pkmbP ) {
-    printf("-pkmb not found.\n");
-  } else {
-    printf("-pkmb found:\n");
-  }
-
-  /***** -gmrt: Raw data in GMRT Phased Array format */
-  if( !cmd.gmrtP ) {
-    printf("-gmrt not found.\n");
-  } else {
-    printf("-gmrt found:\n");
-  }
-
-  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
-  if( !cmd.bcpmP ) {
-    printf("-bcpm not found.\n");
-  } else {
-    printf("-bcpm found:\n");
-  }
-
-  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
-  if( !cmd.spigotP ) {
-    printf("-spigot not found.\n");
-  } else {
-    printf("-spigot found:\n");
-  }
-
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   if( !cmd.filterbankP ) {
     printf("-filterbank not found.\n");
@@ -892,30 +858,11 @@ showOptionValues(void)
     printf("-nooffsets found:\n");
   }
 
-  /***** -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format */
-  if( !cmd.wappP ) {
-    printf("-wapp not found.\n");
-  } else {
-    printf("-wapp found:\n");
-  }
-
   /***** -window: Window correlator lags with a Hamming window before FFTing */
   if( !cmd.windowP ) {
     printf("-window not found.\n");
   } else {
     printf("-window found:\n");
-  }
-
-  /***** -numwapps: Number of WAPPs used with contiguous frequencies */
-  if( !cmd.numwappsP ) {
-    printf("-numwapps not found.\n");
-  } else {
-    printf("-numwapps found:\n");
-    if( !cmd.numwappsC ) {
-      printf("  no values\n");
-    } else {
-      printf("  value = `%d'\n", cmd.numwapps);
-    }
   }
 
   /***** -if: A specific IF to use if available (summed IFs is the default) */
@@ -963,6 +910,20 @@ showOptionValues(void)
     printf("-zerodm found:\n");
   }
 
+  /***** -nobary: Do not barycenter the data */
+  if( !cmd.nobaryP ) {
+    printf("-nobary not found.\n");
+  } else {
+    printf("-nobary found:\n");
+  }
+
+  /***** -shorts: Use short ints for the output data instead of floats */
+  if( !cmd.shortsP ) {
+    printf("-shorts not found.\n");
+  } else {
+    printf("-shorts found:\n");
+  }
+
   /***** -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value */
   if( !cmd.numoutP ) {
     printf("-numout not found.\n");
@@ -987,18 +948,28 @@ showOptionValues(void)
     }
   }
 
-  /***** -nobary: Do not barycenter the data */
-  if( !cmd.nobaryP ) {
-    printf("-nobary not found.\n");
+  /***** -offset: Number of spectra to offset into as starting data point */
+  if( !cmd.offsetP ) {
+    printf("-offset not found.\n");
   } else {
-    printf("-nobary found:\n");
+    printf("-offset found:\n");
+    if( !cmd.offsetC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%ld'\n", cmd.offset);
+    }
   }
 
-  /***** -shorts: Use short ints for the output data instead of floats */
-  if( !cmd.shortsP ) {
-    printf("-shorts not found.\n");
+  /***** -start: Starting point of the processing as a fraction of the full obs */
+  if( !cmd.startP ) {
+    printf("-start not found.\n");
   } else {
-    printf("-shorts found:\n");
+    printf("-start found:\n");
+    if( !cmd.startC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.start);
+    }
   }
 
   /***** -dm: The dispersion measure to de-disperse (cm^-3 pc) */
@@ -1051,27 +1022,19 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-ncpus ncpus] -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-numout numout] [-downsamp downsamp] [-nobary] [-shorts] [-dm dm] [-mask maskfile] [-ignorechan ignorechanstr] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-ncpus ncpus] -o outfile [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-window] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-nobary] [-shorts] [-numout numout] [-downsamp downsamp] [-offset offset] [-start start] [-dm dm] [-mask maskfile] [-ignorechan ignorechanstr] [--] infile ...\n");
   fprintf(stderr,"%s","      Prepares a raw data file for pulsar searching or folding (conversion, de-dispersion, and barycentering).\n");
   fprintf(stderr,"%s","         -ncpus: Number of processors to use with OpenMP\n");
   fprintf(stderr,"%s","                 1 int value between 1 and oo\n");
   fprintf(stderr,"%s","                 default: `1'\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
-  fprintf(stderr,"%s","          -pkmb: Raw data in Parkes Multibeam format\n");
-  fprintf(stderr,"%s","          -gmrt: Raw data in GMRT Phased Array format\n");
-  fprintf(stderr,"%s","          -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n");
-  fprintf(stderr,"%s","        -spigot: Raw data in Caltech-NRAO Spigot Card format\n");
   fprintf(stderr,"%s","    -filterbank: Raw data in SIGPROC filterbank format\n");
   fprintf(stderr,"%s","       -psrfits: Raw data in PSRFITS format\n");
   fprintf(stderr,"%s","     -noweights: Do not apply PSRFITS weights\n");
   fprintf(stderr,"%s","      -noscales: Do not apply PSRFITS scales\n");
   fprintf(stderr,"%s","     -nooffsets: Do not apply PSRFITS offsets\n");
-  fprintf(stderr,"%s","          -wapp: Raw data in Wideband Arecibo Pulsar Processor (WAPP) format\n");
   fprintf(stderr,"%s","        -window: Window correlator lags with a Hamming window before FFTing\n");
-  fprintf(stderr,"%s","      -numwapps: Number of WAPPs used with contiguous frequencies\n");
-  fprintf(stderr,"%s","                 1 int value between 1 and 8\n");
-  fprintf(stderr,"%s","                 default: `1'\n");
   fprintf(stderr,"%s","            -if: A specific IF to use if available (summed IFs is the default)\n");
   fprintf(stderr,"%s","                 1 int value between 0 and 1\n");
   fprintf(stderr,"%s","          -clip: Time-domain sigma to use for clipping (0.0 = no clipping, 6.0 = default\n");
@@ -1080,13 +1043,19 @@ usage(void)
   fprintf(stderr,"%s","        -noclip: Do not clip the data.  (The default is to _always_ clip!)\n");
   fprintf(stderr,"%s","        -invert: For rawdata, flip (or invert) the band\n");
   fprintf(stderr,"%s","        -zerodm: Subtract the mean of all channels from each sample (i.e. remove zero DM)\n");
+  fprintf(stderr,"%s","        -nobary: Do not barycenter the data\n");
+  fprintf(stderr,"%s","        -shorts: Use short ints for the output data instead of floats\n");
   fprintf(stderr,"%s","        -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n");
   fprintf(stderr,"%s","                 1 long value between 1 and oo\n");
   fprintf(stderr,"%s","      -downsamp: The number of neighboring bins to co-add\n");
   fprintf(stderr,"%s","                 1 int value between 1 and 128\n");
   fprintf(stderr,"%s","                 default: `1'\n");
-  fprintf(stderr,"%s","        -nobary: Do not barycenter the data\n");
-  fprintf(stderr,"%s","        -shorts: Use short ints for the output data instead of floats\n");
+  fprintf(stderr,"%s","        -offset: Number of spectra to offset into as starting data point\n");
+  fprintf(stderr,"%s","                 1 long value between 0 and oo\n");
+  fprintf(stderr,"%s","                 default: `0'\n");
+  fprintf(stderr,"%s","         -start: Starting point of the processing as a fraction of the full obs\n");
+  fprintf(stderr,"%s","                 1 double value between 0.0 and 1.0\n");
+  fprintf(stderr,"%s","                 default: `0.0'\n");
   fprintf(stderr,"%s","            -dm: The dispersion measure to de-disperse (cm^-3 pc)\n");
   fprintf(stderr,"%s","                 1 double value between 0 and oo\n");
   fprintf(stderr,"%s","                 default: `0'\n");
@@ -1096,7 +1065,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...512 values\n");
-  fprintf(stderr,"%s","  version: 03Jun17\n");
+  fprintf(stderr,"%s","  version: 28Jun17\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1132,26 +1101,6 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-pkmb", argv[i]) ) {
-      cmd.pkmbP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-gmrt", argv[i]) ) {
-      cmd.gmrtP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-bcpm", argv[i]) ) {
-      cmd.bcpmP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-spigot", argv[i]) ) {
-      cmd.spigotP = 1;
-      continue;
-    }
-
     if( 0==strcmp("-filterbank", argv[i]) ) {
       cmd.filterbankP = 1;
       continue;
@@ -1177,23 +1126,8 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-wapp", argv[i]) ) {
-      cmd.wappP = 1;
-      continue;
-    }
-
     if( 0==strcmp("-window", argv[i]) ) {
       cmd.windowP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-numwapps", argv[i]) ) {
-      int keep = i;
-      cmd.numwappsP = 1;
-      i = getIntOpt(argc, argv, i, &cmd.numwapps, 1);
-      cmd.numwappsC = i-keep;
-      checkIntLower("-numwapps", &cmd.numwapps, cmd.numwappsC, 8);
-      checkIntHigher("-numwapps", &cmd.numwapps, cmd.numwappsC, 1);
       continue;
     }
 
@@ -1232,6 +1166,16 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
+    if( 0==strcmp("-nobary", argv[i]) ) {
+      cmd.nobaryP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-shorts", argv[i]) ) {
+      cmd.shortsP = 1;
+      continue;
+    }
+
     if( 0==strcmp("-numout", argv[i]) ) {
       int keep = i;
       cmd.numoutP = 1;
@@ -1251,13 +1195,22 @@ parseCmdline(int argc, char **argv)
       continue;
     }
 
-    if( 0==strcmp("-nobary", argv[i]) ) {
-      cmd.nobaryP = 1;
+    if( 0==strcmp("-offset", argv[i]) ) {
+      int keep = i;
+      cmd.offsetP = 1;
+      i = getLongOpt(argc, argv, i, &cmd.offset, 1);
+      cmd.offsetC = i-keep;
+      checkLongHigher("-offset", &cmd.offset, cmd.offsetC, 0);
       continue;
     }
 
-    if( 0==strcmp("-shorts", argv[i]) ) {
-      cmd.shortsP = 1;
+    if( 0==strcmp("-start", argv[i]) ) {
+      int keep = i;
+      cmd.startP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.start, 1);
+      cmd.startC = i-keep;
+      checkDoubleLower("-start", &cmd.start, cmd.startC, 1.0);
+      checkDoubleHigher("-start", &cmd.start, cmd.startC, 0.0);
       continue;
     }
 

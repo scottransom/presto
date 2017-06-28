@@ -11,8 +11,7 @@
 #include <omp.h>
 #endif
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
-                 cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
+#define RAWDATA (cmd->filterbankP || cmd->psrfitsP)
 
 /* Some function definitions */
 
@@ -158,28 +157,12 @@ int main(int argc, char *argv[])
             s.datatype = SIGPROCFB;
         else if (cmd->psrfitsP)
             s.datatype = PSRFITS;
-        else if (cmd->pkmbP)
-            s.datatype = SCAMP;
-        else if (cmd->bcpmP)
-            s.datatype = BPP;
-        else if (cmd->wappP)
-            s.datatype = WAPP;
-        else if (cmd->spigotP)
-            s.datatype = SPIGOT;
     } else {                    // Attempt to auto-identify the data
         identify_psrdatatype(&s, 1);
         if (s.datatype == SIGPROCFB)
             cmd->filterbankP = 1;
         else if (s.datatype == PSRFITS)
             cmd->psrfitsP = 1;
-        else if (s.datatype == SCAMP)
-            cmd->pkmbP = 1;
-        else if (s.datatype == BPP)
-            cmd->bcpmP = 1;
-        else if (s.datatype == WAPP)
-            cmd->wappP = 1;
-        else if (s.datatype == SPIGOT)
-            cmd->spigotP = 1;
         else if (s.datatype == SUBBAND)
             insubs = 1;
         else {

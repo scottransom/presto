@@ -17,14 +17,6 @@ typedef struct s_Cmdline {
   char outfileP;
   char* outfile;
   int outfileC;
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  char pkmbP;
-  /***** -gmrt: Raw data in GMRT Phased Array format */
-  char gmrtP;
-  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
-  char bcpmP;
-  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
-  char spigotP;
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   char filterbankP;
   /***** -psrfits: Raw data in PSRFITS format */

@@ -26,14 +26,6 @@ static Cmdline cmd = {
   /* outfileP = */ 0,
   /* outfile = */ (char*)0,
   /* outfileC = */ 0,
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  /* pkmbP = */ 0,
-  /***** -gmrt: Raw data in GMRT Phased Array format */
-  /* gmrtP = */ 0,
-  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
-  /* bcpmP = */ 0,
-  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
-  /* spigotP = */ 0,
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   /* filterbankP = */ 0,
   /***** -psrfits: Raw data in PSRFITS format */
@@ -74,6 +66,14 @@ static Cmdline cmd = {
   /* numoutC = */ 0,
   /***** -nobary: Do not barycenter the data */
   /* nobaryP = */ 0,
+  /***** -offset: Number of spectra to offset into as starting data point */
+  /* offsetP = */ 1,
+  /* offset = */ 0,
+  /* offsetC = */ 1,
+  /***** -start: Starting point of the processing as a fraction of the full obs */
+  /* startP = */ 1,
+  /* start = */ 0.0,
+  /* startC = */ 1,
   /***** -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc) */
   /* lodmP = */ 1,
   /* lodm = */ 0,
@@ -825,34 +825,6 @@ showOptionValues(void)
     }
   }
 
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  if( !cmd.pkmbP ) {
-    printf("-pkmb not found.\n");
-  } else {
-    printf("-pkmb found:\n");
-  }
-
-  /***** -gmrt: Raw data in GMRT Phased Array format */
-  if( !cmd.gmrtP ) {
-    printf("-gmrt not found.\n");
-  } else {
-    printf("-gmrt found:\n");
-  }
-
-  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
-  if( !cmd.bcpmP ) {
-    printf("-bcpm not found.\n");
-  } else {
-    printf("-bcpm found:\n");
-  }
-
-  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
-  if( !cmd.spigotP ) {
-    printf("-spigot not found.\n");
-  } else {
-    printf("-spigot found:\n");
-  }
-
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   if( !cmd.filterbankP ) {
     printf("-filterbank not found.\n");
@@ -985,6 +957,30 @@ showOptionValues(void)
     printf("-nobary found:\n");
   }
 
+  /***** -offset: Number of spectra to offset into as starting data point */
+  if( !cmd.offsetP ) {
+    printf("-offset not found.\n");
+  } else {
+    printf("-offset found:\n");
+    if( !cmd.offsetC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%ld'\n", cmd.offset);
+    }
+  }
+
+  /***** -start: Starting point of the processing as a fraction of the full obs */
+  if( !cmd.startP ) {
+    printf("-start not found.\n");
+  } else {
+    printf("-start found:\n");
+    if( !cmd.startC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%.40g'\n", cmd.start);
+    }
+  }
+
   /***** -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc) */
   if( !cmd.lodmP ) {
     printf("-lodm not found.\n");
@@ -1083,14 +1079,10 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   -o outfile [-pkmb] [-gmrt] [-bcpm] [-spigot] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-runavg] [-numout numout] [-nobary] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [-ignorechan ignorechanstr] [--] infile ...\n");
+  fprintf(stderr,"%s","   -o outfile [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-invert] [-zerodm] [-runavg] [-numout numout] [-nobary] [-offset offset] [-start start] [-lodm lodm] [-dmstep dmstep] [-numdms numdms] [-nsub nsub] [-downsamp downsamp] [-mask maskfile] [-ignorechan ignorechanstr] [--] infile ...\n");
   fprintf(stderr,"%s","      Converts a raw radio data file into many de-dispersed time-series (including barycentering).\n");
   fprintf(stderr,"%s","             -o: Root of the output file names\n");
   fprintf(stderr,"%s","                 1 char* value\n");
-  fprintf(stderr,"%s","          -pkmb: Raw data in Parkes Multibeam format\n");
-  fprintf(stderr,"%s","          -gmrt: Raw data in GMRT Phased Array format\n");
-  fprintf(stderr,"%s","          -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format\n");
-  fprintf(stderr,"%s","        -spigot: Raw data in Caltech-NRAO Spigot Card format\n");
   fprintf(stderr,"%s","    -filterbank: Raw data in SIGPROC filterbank format\n");
   fprintf(stderr,"%s","       -psrfits: Raw data in PSRFITS format\n");
   fprintf(stderr,"%s","     -noweights: Do not apply PSRFITS weights\n");
@@ -1113,6 +1105,12 @@ usage(void)
   fprintf(stderr,"%s","        -numout: Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value\n");
   fprintf(stderr,"%s","                 1 long value between 1 and oo\n");
   fprintf(stderr,"%s","        -nobary: Do not barycenter the data\n");
+  fprintf(stderr,"%s","        -offset: Number of spectra to offset into as starting data point\n");
+  fprintf(stderr,"%s","                 1 long value between 0 and oo\n");
+  fprintf(stderr,"%s","                 default: `0'\n");
+  fprintf(stderr,"%s","         -start: Starting point of the processing as a fraction of the full obs\n");
+  fprintf(stderr,"%s","                 1 double value between 0.0 and 1.0\n");
+  fprintf(stderr,"%s","                 default: `0.0'\n");
   fprintf(stderr,"%s","          -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc)\n");
   fprintf(stderr,"%s","                 1 double value between 0 and oo\n");
   fprintf(stderr,"%s","                 default: `0'\n");
@@ -1134,7 +1132,7 @@ usage(void)
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                 1...16384 values\n");
-  fprintf(stderr,"%s","  version: 03Jun17\n");
+  fprintf(stderr,"%s","  version: 28Jun17\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1158,26 +1156,6 @@ parseCmdline(int argc, char **argv)
       cmd.outfileP = 1;
       i = getStringOpt(argc, argv, i, &cmd.outfile, 1);
       cmd.outfileC = i-keep;
-      continue;
-    }
-
-    if( 0==strcmp("-pkmb", argv[i]) ) {
-      cmd.pkmbP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-gmrt", argv[i]) ) {
-      cmd.gmrtP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-bcpm", argv[i]) ) {
-      cmd.bcpmP = 1;
-      continue;
-    }
-
-    if( 0==strcmp("-spigot", argv[i]) ) {
-      cmd.spigotP = 1;
       continue;
     }
 
@@ -1277,6 +1255,25 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-nobary", argv[i]) ) {
       cmd.nobaryP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-offset", argv[i]) ) {
+      int keep = i;
+      cmd.offsetP = 1;
+      i = getLongOpt(argc, argv, i, &cmd.offset, 1);
+      cmd.offsetC = i-keep;
+      checkLongHigher("-offset", &cmd.offset, cmd.offsetC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-start", argv[i]) ) {
+      int keep = i;
+      cmd.startP = 1;
+      i = getDoubleOpt(argc, argv, i, &cmd.start, 1);
+      cmd.startC = i-keep;
+      checkDoubleLower("-start", &cmd.start, cmd.startC, 1.0);
+      checkDoubleHigher("-start", &cmd.start, cmd.startC, 0.0);
       continue;
     }
 

@@ -12,8 +12,7 @@
 #include <omp.h>
 #endif
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP \
-                 || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
+#define RAWDATA (cmd->filterbankP || cmd->psrfitsP)
 
 /* This causes the barycentric motion to be calculated once per TDT sec */
 #define TDT 20.0
@@ -160,28 +159,12 @@ int main(int argc, char *argv[])
                 s.datatype = SIGPROCFB;
             else if (cmd->psrfitsP)
                 s.datatype = PSRFITS;
-            else if (cmd->pkmbP)
-                s.datatype = SCAMP;
-            else if (cmd->bcpmP)
-                s.datatype = BPP;
-            else if (cmd->wappP)
-                s.datatype = WAPP;
-            else if (cmd->spigotP)
-                s.datatype = SPIGOT;
         } else {                // Attempt to auto-identify the data
             identify_psrdatatype(&s, 1);
             if (s.datatype == SIGPROCFB)
                 cmd->filterbankP = 1;
             else if (s.datatype == PSRFITS)
                 cmd->psrfitsP = 1;
-            else if (s.datatype == SCAMP)
-                cmd->pkmbP = 1;
-            else if (s.datatype == BPP)
-                cmd->bcpmP = 1;
-            else if (s.datatype == WAPP)
-                cmd->wappP = 1;
-            else if (s.datatype == SPIGOT)
-                cmd->spigotP = 1;
             else if (s.datatype == SUBBAND)
                 insubs = 1;
             else {
@@ -340,14 +323,6 @@ int main(int argc, char *argv[])
             cmd->filterbankP = 1;
         else if (s.datatype == PSRFITS)
             cmd->psrfitsP = 1;
-        else if (s.datatype == SCAMP)
-            cmd->pkmbP = 1;
-        else if (s.datatype == BPP)
-            cmd->bcpmP = 1;
-        else if (s.datatype == WAPP)
-            cmd->wappP = 1;
-        else if (s.datatype == SPIGOT)
-            cmd->spigotP = 1;
         else if (s.datatype == SUBBAND)
             insubs = 1;
     }
@@ -397,6 +372,26 @@ int main(int argc, char *argv[])
         delay_from_dm(maxdm, idata.freq + (idata.num_chan - 1) * idata.chan_wid);
     blocksperread = ((int) (BW_ddelay / idata.dt) / s.spectra_per_subint + 1);
     worklen = s.spectra_per_subint * blocksperread;
+
+    /* If we are offsetting into the file, change inf file start time */
+    if (cmd->start > 0.0 || cmd->offset > 0) {
+        if (cmd->start > 0.0) /* Offset in units of worklen */
+            cmd->offset = (long) (cmd->start *
+                                  idata.N / worklen) * worklen;
+        add_to_inf_epoch(&idata, cmd->offset * idata.dt);
+        if (myid==0) {
+            printf("Offsetting into the input files by %ld spectra (%.6g sec)\n",
+                   cmd->offset, cmd->offset * idata.dt);
+            if (RAWDATA)
+                offset_to_spectra(cmd->offset, &s);
+            else { // subbands
+                for (ii = 0; ii < s.num_files; ii++)
+                    chkfileseek(s.files[ii], cmd->offset, sizeof(short), SEEK_SET);
+                if (cmd->maskfileP)
+                    printf("WARNING!:  masking does not work with old-style subbands and -start or -offset!\n");
+            }
+        }
+    }
 
     if (cmd->nsub > s.num_channels) {
         printf

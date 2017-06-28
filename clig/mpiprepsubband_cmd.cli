@@ -12,10 +12,6 @@ Commandline full_cmd_line
 
 String -o       outfile {Root of the output file names} \
 	-m
-Flag   -pkmb    pkmb    {Raw data in Parkes Multibeam format}
-Flag   -gmrt    gmrt    {Raw data in GMRT Phased Array format}
-Flag   -bcpm    bcpm    {Raw data in Berkeley-Caltech Pulsar Machine (BPP) format}
-Flag   -spigot  spigot  {Raw data in Caltech-NRAO Spigot Card format}
 Flag   -filterbank  filterbank  {Raw data in SIGPROC filterbank format}
 Flag   -psrfits     psrfits     {Raw data in PSRFITS format}
 Flag   -noweights  noweights  {Do not apply PSRFITS weights}
@@ -36,6 +32,10 @@ Flag   -runavg  runavg  {Running mean subtraction from the input data}
 Long    -numout  numout  {Output this many values.  If there are not enough values in the original data file, will pad the output file with the average value} \
 	-r 1 oo
 Flag   -nobary  nobary  {Do not barycenter the data}
+Long   -offset  offset {Number of spectra to offset into as starting data point} \
+    -r 0 oo -d 0
+Double -start  start  {Starting point of the processing as a fraction of the full obs} \
+    -r 0.0 1.0  -d 0.0
 Double  -lodm   lodm    {The lowest dispersion measure to de-disperse (cm^-3 pc)} \
 	-r 0 oo  -d 0
 Double  -dmstep dmstep  {The stepsize in dispersion measure to use(cm^-3 pc)} \

@@ -10,6 +10,13 @@ char scopes[NUMSCOPES][40] =
     "MMT", "Las Campanas 2.5m", "Mt. Hopkins 48in", "Other"
 };
 
+void add_to_inf_epoch(infodata * data, double seconds)
+{
+    data->mjd_f += seconds / SECPERDAY;
+    data->mjd_i += 1 ? (data->mjd_f > 1.0) : 0;
+    data->mjd_f -= 1.0 ? (data->mjd_f > 1.0) : 0.0;
+}
+
 void read_inf_line_valstr(FILE * infofile, char *valstr, char *errdesc)
 {
     char line[250], *sptr = NULL;

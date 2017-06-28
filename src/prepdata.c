@@ -20,8 +20,7 @@
 /* x.5s get rounded away from zero.                */
 #define NEAREST_LONG(x) (long) (x < 0 ? ceil(x - 0.5) : floor(x + 0.5))
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP || \
-                 cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
+#define RAWDATA (cmd->filterbankP || cmd->psrfitsP)
 
 /* Some function definitions */
 static int read_floats(FILE * file, float *data, int numpts, int numchan);
@@ -118,28 +117,12 @@ int main(int argc, char *argv[])
             s.datatype = SIGPROCFB;
         else if (cmd->psrfitsP)
             s.datatype = PSRFITS;
-        else if (cmd->pkmbP)
-            s.datatype = SCAMP;
-        else if (cmd->bcpmP)
-            s.datatype = BPP;
-        else if (cmd->wappP)
-            s.datatype = WAPP;
-        else if (cmd->spigotP)
-            s.datatype = SPIGOT;
     } else {                    // Attempt to auto-identify the data
         identify_psrdatatype(&s, 1);
         if (s.datatype == SIGPROCFB)
             cmd->filterbankP = 1;
         else if (s.datatype == PSRFITS)
             cmd->psrfitsP = 1;
-        else if (s.datatype == SCAMP)
-            cmd->pkmbP = 1;
-        else if (s.datatype == BPP)
-            cmd->bcpmP = 1;
-        else if (s.datatype == WAPP)
-            cmd->wappP = 1;
-        else if (s.datatype == SPIGOT)
-            cmd->spigotP = 1;
         else if (s.datatype == SDAT)
             useshorts = 1;
         else if (s.datatype != DAT) {
@@ -199,12 +182,23 @@ int main(int argc, char *argv[])
         }
         print_spectra_info_summary(&s);
         spectra_info_to_inf(&s, &idata);
-
         /* Finish setting up stuff common to all raw formats */
         idata.dm = cmd->dm;
         worklen = s.spectra_per_subint;
+
+        /* If we are offsetting into the file, change inf file start time */
+        if (cmd->start > 0.0 || cmd->offset > 0) {
+            if (cmd->start > 0.0) /* Offset in units of worklen */
+                cmd->offset = (long) (cmd->start *
+                                      idata.N / worklen) * worklen;
+            add_to_inf_epoch(&idata, cmd->offset * idata.dt);
+            offset_to_spectra(cmd->offset, &s);
+            printf("Offsetting into the input files by %ld spectra (%.6g sec)\n",
+                   cmd->offset, cmd->offset * idata.dt);
+        }
         if (cmd->maskfileP)
             maskchans = gen_ivect(idata.num_chan);
+
         /* Compare the size of the data to the size of output we request */
         if (cmd->numoutP) {
             dtmp = idata.N;
@@ -215,6 +209,7 @@ int main(int argc, char *argv[])
             cmd->numout = LONG_MAX;
             writeinf(&idata);
         }
+
         /* The number of topo to bary time points to generate with TEMPO */
         numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
 
@@ -241,23 +236,35 @@ int main(int argc, char *argv[])
 
         /* If we will be barycentering... */
         if (!cmd->nobaryP) {
-
             /* The number of topo to bary time points to generate with TEMPO */
             numbarypts = (long) (idata.dt * idata.N * 1.1 / TDT + 5.5) + 1;
-
             // Identify the TEMPO observatory code
             {
                 char *outscope = (char *) calloc(40, sizeof(char));
                 telescope_to_tempocode(idata.telescope, outscope, obs);
                 free(outscope);
             }
-
         }
 
         /* The number of data points to work with at a time */
         if (worklen > idata.N)
             worklen = idata.N;
         worklen = (long) (worklen / 1024) * 1024;
+
+        /* If we are offsetting into the file, change inf file start time */
+        if (cmd->start > 0.0 || cmd->offset > 0) {
+            if (cmd->start > 0.0) /* Offset in units of worklen */
+                cmd->offset = (long) (cmd->start *
+                                      idata.N / worklen) * worklen;
+            add_to_inf_epoch(&idata, cmd->offset * idata.dt);
+            printf("Offsetting into the input files by %ld samples (%.6g sec)\n",
+                   cmd->offset, cmd->offset * idata.dt);
+            if (useshorts) {
+                chkfileseek(s.files[0], cmd->offset, sizeof(short), SEEK_SET);
+            } else {
+                chkfileseek(s.files[0], cmd->offset, sizeof(float), SEEK_SET);
+            }
+        }
 
         /* Compare the size of the data to the size of output we request */
         if (!cmd->numoutP)

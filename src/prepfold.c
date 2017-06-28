@@ -9,8 +9,7 @@
 #include <omp.h>
 #endif
 
-#define RAWDATA (cmd->pkmbP || cmd->bcpmP || cmd->wappP \
-                 || cmd->spigotP || cmd->filterbankP || cmd->psrfitsP)
+#define RAWDATA (cmd->filterbankP || cmd->psrfitsP)
 
 extern int getpoly(double mjd, double duration, double *dm, FILE * fp, char *pname);
 extern int phcalc(double mjd0, double mjd1, int last_index,
@@ -163,6 +162,7 @@ int main(int argc, char *argv[])
 
         if (!cmd->outfileP) {
             char *tmprootnm, *suffix;
+            printf("XXX  %s\n", cmd->argv[0]);
             split_root_suffix(cmd->argv[0], &tmprootnm, &suffix);
             if ((cmd->startT != 0.0) || (cmd->endT != 1.0)) {
                 rootnm = (char *) calloc(strlen(tmprootnm) + 11, sizeof(char));
@@ -181,28 +181,12 @@ int main(int argc, char *argv[])
             s.datatype = SIGPROCFB;
         else if (cmd->psrfitsP)
             s.datatype = PSRFITS;
-        else if (cmd->pkmbP)
-            s.datatype = SCAMP;
-        else if (cmd->bcpmP)
-            s.datatype = BPP;
-        else if (cmd->wappP)
-            s.datatype = WAPP;
-        else if (cmd->spigotP)
-            s.datatype = SPIGOT;
     } else {                    // Attempt to auto-identify the data
         identify_psrdatatype(&s, 1);
         if (s.datatype == SIGPROCFB)
             cmd->filterbankP = 1;
         else if (s.datatype == PSRFITS)
             cmd->psrfitsP = 1;
-        else if (s.datatype == SCAMP)
-            cmd->pkmbP = 1;
-        else if (s.datatype == BPP)
-            cmd->bcpmP = 1;
-        else if (s.datatype == WAPP)
-            cmd->wappP = 1;
-        else if (s.datatype == SPIGOT)
-            cmd->spigotP = 1;
         else if (s.datatype == EVENTS)
             cmd->eventsP = pflags.events = 1;
         else if (s.datatype == SDAT)

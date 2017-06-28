@@ -13,14 +13,6 @@ typedef struct s_Cmdline {
   char outfileP;
   char* outfile;
   int outfileC;
-  /***** -pkmb: Raw data in Parkes Multibeam format */
-  char pkmbP;
-  /***** -gmrt: Raw data in GMRT Phased Array format */
-  char gmrtP;
-  /***** -bcpm: Raw data in Berkeley-Caltech Pulsar Machine (BPP) format */
-  char bcpmP;
-  /***** -spigot: Raw data in Caltech-NRAO Spigot Card format */
-  char spigotP;
   /***** -filterbank: Raw data in SIGPROC filterbank format */
   char filterbankP;
   /***** -psrfits: Raw data in PSRFITS format */
@@ -61,6 +53,14 @@ typedef struct s_Cmdline {
   int numoutC;
   /***** -nobary: Do not barycenter the data */
   char nobaryP;
+  /***** -offset: Number of spectra to offset into as starting data point */
+  char offsetP;
+  long offset;
+  int offsetC;
+  /***** -start: Starting point of the processing as a fraction of the full obs */
+  char startP;
+  double start;
+  int startC;
   /***** -lodm: The lowest dispersion measure to de-disperse (cm^-3 pc) */
   char lodmP;
   double lodm;
