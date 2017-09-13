@@ -1235,25 +1235,15 @@ def gaussian_profile(N, phase, fwhm):
         Note:  The FWHM of a gaussian is approx 2.35482 sigma
     """
     sigma = fwhm / 2.35482
-    mean = phase % 1.0
-    phsval = Num.arange(N, dtype='d') / float(N)
-    if (mean < 0.5):
-        phsval = Num.where(Num.greater(phsval, mean+0.5),
-                           phsval-1.0, phsval)
-    else:
-        phsval = Num.where(Num.less(phsval, mean-0.5),
-                           phsval+1.0, phsval)
-    try:
-        zs = (phsval-mean)/sigma
-        okzinds = Num.compress(Num.fabs(zs)<20.0, Num.arange(N))
-        okzs = Num.take(zs, okzinds)
-        retval = Num.zeros(N, 'd')
-        Num.put(retval, okzinds, Num.exp(-0.5*(okzs)**2.0)/(sigma*Num.sqrt(2*PI)))
-        return retval
-    except OverflowError:
-        print "Problem in gaussian prof:  mean = %f  sigma = %f" % \
-              (mean, sigma)
-        return Num.zeros(N, 'd')
+    mean = phase % 1.0 # Ensures between 0-1
+    phss = Num.arange(N, dtype=Num.float64) / N - mean
+    # Following two lines allow the Gaussian to wrap in phase
+    phss[phss > 0.5] -= 1.0
+    phss[phss < -0.5] += 1.0
+    zs = Num.fabs(phss) / sigma
+    # The following avoids overflow by truncating the Gaussian at 20 sigma
+    return Num.where(zs<20.0, Num.exp(-0.5 * zs**2.0) / \
+                     (sigma * Num.sqrt(2*Num.pi)), 0.0)
 
 def gauss_profile_params(profile, output=0):
     """
