@@ -25,6 +25,10 @@ typedef struct s_Cmdline {
   char zmaxP;
   int zmax;
   int zmaxC;
+  /***** -wmax: The max (+ and -) Fourier freq double derivs to search */
+  char wmaxP;
+  int wmax;
+  int wmaxC;
   /***** -sigma: Cutoff sigma for choosing candidates */
   char sigmaP;
   float sigma;
