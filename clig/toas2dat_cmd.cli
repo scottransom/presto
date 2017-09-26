@@ -10,7 +10,7 @@ Commandline full_cmd_line
 
 # Options (in order you want them to appear)
 
-Int 	-n 	numout 	{The number of bins in the output time series} \
+Long 	-n 	numout 	{The number of bins in the output time series} \
 			-r 0 oo  -m
 Double 	-dt	dt	{Time interval in seconds for output time bins} \
 			-r 0 oo  -m

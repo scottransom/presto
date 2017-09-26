@@ -11,7 +11,7 @@
 typedef struct s_Cmdline {
   /***** -n: The number of bins in the output time series */
   char numoutP;
-  int numout;
+  long numout;
   int numoutC;
   /***** -dt: Time interval in seconds for output time bins */
   char dtP;
