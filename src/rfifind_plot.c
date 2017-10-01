@@ -336,6 +336,17 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
             /* Calculate the predicted distribution of max powers */
 
             numpows = numint * numchan;
+            {
+                int badpows = 0;
+                for (ii = 0; ii < numpows; ii++) {
+                    if (!isnormal(*(datapow[0]+ii))) {
+                        *(datapow[0]+ii)=0.0;
+                        badpows++;
+                    }
+                }
+                printf("WARNING:  Found %d bad powers in the datapow array.  "
+                           "Zeroing them out.\n", badpows);
+            }
             find_min_max_arr(numpows, datapow[0], &min, &max);
             min = (min < 5.0) ? log10(5.0 * 0.95) : log10(min * 0.95);
             max = log10(max * 1.05);
@@ -354,7 +365,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
                 if (bin < 0)
                     bin = 0;
                 if (bin >= numhist)
-                    bin = numhist;
+                    bin = numhist - 1;
                 hist[bin] += 1.0;
             }
             for (ii = 0; ii < numhist; ii++)
