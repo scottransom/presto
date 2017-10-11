@@ -50,6 +50,16 @@ static inline int twon_to_index(int n)
     return x;
 }
 
+
+static inline double calc_required_r(double harm_fract, double rfull)
+/* Calculate the 'r' you need for subharmonic  */
+/* harm_fract = harmnum / numharm if the       */
+/* 'r' at the fundamental harmonic is 'rfull'. */
+{
+    return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
+}
+
+
 static inline int calc_required_z(double harm_fract, double zfull)
 /* Calculate the 'z' you need for subharmonic  */
 /* harm_fract = harmnum / numharm if the       */
@@ -59,12 +69,12 @@ static inline int calc_required_z(double harm_fract, double zfull)
 }
 
 
-static inline double calc_required_r(double harm_fract, double rfull)
-/* Calculate the 'r' you need for subharmonic  */
+static inline int calc_required_w(double harm_fract, double wfull)
+/* Calculate the maximum 'w' needed for the given subharmonic  */
 /* harm_fract = harmnum / numharm if the       */
-/* 'r' at the fundamental harmonic is 'rfull'. */
+/* 'w' at the fundamental harmonic is 'wfull'. */
 {
-    return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
+    return NEAREST_INT(ACCEL_RDW * wfull * harm_fract) * ACCEL_DW;
 }
 
 
@@ -78,9 +88,17 @@ static inline int index_from_r(double r, double lor)
 
 static inline int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
-/* has stepsize ACCEL_DZ and low freq 'lor'.              */
+/* has stepsize ACCEL_DZ and low freq dot 'loz'.              */
 {
     return (int) ((z - loz) * ACCEL_RDZ + DBLCORRECT);
+}
+
+
+static inline int index_from_w(double w, double low)
+/* Return an index for a Fourier Fdotdot given an array that */
+/* has stepsize ACCEL_DW and low freq dotdot 'low'.              */
+{
+    return (int) ((w - low) * ACCEL_RDW + DBLCORRECT);
 }
 
 
@@ -116,7 +134,7 @@ static void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
 }
 
 
-static int calc_fftlen(int numharm, int harmnum, int max_zfull)
+static int calc_fftlen(int numharm, int harmnum, int max_zfull, int max_wfull)
 /* The fft length needed to properly process a subharmonic */
 {
     int bins_needed, end_effects;
@@ -125,26 +143,27 @@ static int calc_fftlen(int numharm, int harmnum, int max_zfull)
     harm_fract = (double) harmnum / (double) numharm;
     bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
     end_effects = 2 * ACCEL_NUMBETWEEN *
-        z_resp_halfwidth(calc_required_z(harm_fract, max_zfull), LOWACC);
+      w_resp_halfwidth(calc_required_z(harm_fract, max_zfull), calc_required_w(harm_fract, max_wfull), LOWACC);
     //printf("bins_needed = %d  end_effects = %d  FFTlen = %lld\n", 
     //       bins_needed, end_effects, next2_to_n(bins_needed + end_effects));
     return next2_to_n(bins_needed + end_effects);
 }
 
 
-static void init_kernel(int z, int fftlen, kernel * kern)
+static void init_kernel(int z, int w, int fftlen, kernel * kern)
 {
     int numkern;
     fcomplex *tempkern;
 
     kern->z = z;
+    kern->w = w;
     kern->fftlen = fftlen;
     kern->numbetween = ACCEL_NUMBETWEEN;
-    kern->kern_half_width = z_resp_halfwidth((double) z, LOWACC);
+    kern->kern_half_width = w_resp_halfwidth((double) z, (double) w, LOWACC);
     numkern = 2 * kern->numbetween * kern->kern_half_width;
     kern->numgoodbins = kern->fftlen - numkern;
     kern->data = gen_cvect(kern->fftlen);
-    tempkern = gen_z_response(0.0, kern->numbetween, kern->z, numkern);
+    tempkern = gen_w_response(0.0, kern->numbetween, kern->z, kern->w, numkern);
     place_complex_kernel(tempkern, numkern, kern->data, kern->fftlen);
     vect_free(tempkern);
     COMPLEXFFT(kern->data, kern->fftlen, -1);
@@ -157,24 +176,57 @@ static void free_kernel(kernel * kern)
 }
 
 
-static void init_subharminfo(int numharm, int harmnum, int zmax, subharminfo * shi)
-/* Note:  'zmax' is the overall maximum 'z' in the search */
+kernel **gen_kernmatrix(int numz, int numw) {
+    int ii;
+    kernel **kerns;
+    
+    kerns = (kernel **) malloc((size_t) numw * sizeof(kernel *));
+    if (!kerns) {
+      perror("\nError in 1st malloc() in gen_kernmatrix()");
+      printf("\n");
+      exit(-1);
+    }
+    kerns[0] = (kernel *) malloc((size_t) ((numz * numw) * sizeof(kernel)));
+    if (!kerns[0]) {
+      perror("\nError in 2nd malloc() in init_subharminfo()");
+      printf("\n");
+      exit(-1);
+    }
+    for (ii = 1; ii < numw; ii++)
+      kerns[ii] = kerns[ii - 1] + numz;
+    return kerns;
+}
+
+
+static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subharminfo * shi)
+/* Note:  'zmax' is the overall maximum 'z' in the search while
+          'wmax' is the overall maximum 'w' in the search       */
 {
-    int ii, fftlen;
+    int ii, jj, fftlen;
     double harm_fract;
+    int numkern_zdim, numkern_wdim;
 
     harm_fract = (double) harmnum / (double) numharm;
     shi->numharm = numharm;
     shi->harmnum = harmnum;
     shi->zmax = calc_required_z(harm_fract, zmax);
-    if (numharm > 1)
-        shi->rinds =
-            (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
-    fftlen = calc_fftlen(numharm, harmnum, zmax);
-    shi->numkern = (shi->zmax / ACCEL_DZ) * 2 + 1;
-    shi->kern = (kernel *) malloc(shi->numkern * sizeof(kernel));
-    for (ii = 0; ii < shi->numkern; ii++)
-        init_kernel(-shi->zmax + ii * ACCEL_DZ, fftlen, &shi->kern[ii]);
+    shi->wmax = calc_required_w(harm_fract, wmax);
+    if (numharm > 1) {
+        shi->rinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
+	shi->zinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
+    }
+    fftlen = calc_fftlen(numharm, harmnum, zmax, wmax);
+    shi->numkern_zdim = (shi->zmax / ACCEL_DZ) * 2 + 1;
+    shi->numkern_wdim = (shi->wmax / ACCEL_DW) * 2 + 1;
+    shi->numkern = numkern_zdim * numkern_wdim;
+    /* Allocate 2D array of kernels, with dimensions being z and w */
+    shi->kern = gen_kernmatrix(shi->numkern_zdim, shi->numkern_wdim);
+    /* Actually append kernels to each array element */
+    for (ii = 0; ii < shi->numkern_wdim; ii++) {
+      for (jj = 0; jj < shi->numkern_zdim; jj++) {
+        init_kernel(-shi->zmax + jj * ACCEL_DZ,-shi->wmax + ii * ACCEL_DW, fftlen, &shi->kern[ii][jj]);
+      }
+    }
 }
 
 
@@ -186,23 +238,24 @@ subharminfo **create_subharminfos(accelobs * obs)
     shis = (subharminfo **) malloc(obs->numharmstages * sizeof(subharminfo *));
     /* Prep the fundamental (actually, the highest harmonic) */
     shis[0] = (subharminfo *) malloc(2 * sizeof(subharminfo));
-    init_subharminfo(1, 1, (int) obs->zhi, &shis[0][0]);
+    init_subharminfo(1, 1, (int) obs->zhi, (int) obs->whi, &shis[0][0]);
     printf
-        ("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
+        ("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d and w = %4d to %4d,  FFT length = %d\n",
          shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
-         calc_fftlen(1, 1, (int) obs->zhi));
+	 -shis[0][0].wmax, shis[0][0].wmax,
+         calc_fftlen(1, 1, (int) obs->zhi, (int) obs->whi));
     /* Prep the sub-harmonics if needed */
     if (!obs->inmem) {
         for (ii = 1; ii < obs->numharmstages; ii++) {
             harmtosum = index_to_twon(ii);
             shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
             for (jj = 1; jj < harmtosum; jj += 2) {
-                init_subharminfo(harmtosum, jj, (int) obs->zhi, &shis[ii][jj - 1]);
+	      init_subharminfo(harmtosum, jj, (int) obs->zhi, (int) obs->whi, &shis[ii][jj - 1]);
                 printf
-                    ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
-                     jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax,
-                     shis[ii][jj - 1].zmax,
-                     calc_fftlen(harmtosum, jj, (int) obs->zhi));
+                    ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d and w = %4d to %4d,  FFT length = %d\n",
+                     jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax,
+		     -shis[ii][jj - 1].wmax, shis[ii][jj - 1].wmax,
+                     calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi));
             }
         }
     }
@@ -212,13 +265,18 @@ subharminfo **create_subharminfos(accelobs * obs)
 
 static void free_subharminfo(subharminfo * shi)
 {
-    int ii;
+  int ii, jj;
 
-    for (ii = 0; ii < shi->numkern; ii++)
-        free_kernel(&shi->kern[ii]);
-    if (shi->numharm > 1)
-        free(shi->rinds);
-    free(shi->kern);
+  for (ii = 0; ii < shi->numkern_wdim; ii++) {
+    for (jj = 0; jj < shi->numkern_zdim; jj++) {
+      free_kernel(&shi->kern[ii][jj]);
+    }
+  }
+  if (shi->numharm > 1) {
+    free(shi->rinds);
+    free(shi->zinds);
+  }
+  free(shi->kern);
 }
 
 
@@ -1522,7 +1580,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     }
 
     /* Determine the other parameters */
-
+    
     if (cmd->zmax % ACCEL_DZ)
         cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
     if (!obs->dat_input)
@@ -1573,8 +1631,25 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         exit(1);
     }
     obs->numharmstages = twon_to_index(cmd->numharm) + 1;
+
     obs->dz = ACCEL_DZ;
     obs->numz = (cmd->zmax / ACCEL_DZ) * 2 + 1;
+    
+    /* Setting extra parameters for jerk search */
+    if (cmd->wmaxP) {
+      if (cmd->wmax % ACCEL_DW)
+	cmd->wmax = (cmd->wmax / ACCEL_DW + 1) * ACCEL_DW;
+      obs->whi = cmd->wmax;
+      obs->wlo = -cmd->wmax;
+      obs->dw = ACCEL_DW;
+      printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
+    }
+    else {
+      obs->whi = 0.0;
+      obs->wlo = 0.0;
+      obs->dw = 0.0;
+    }
+    
     obs->numbetween = ACCEL_NUMBETWEEN;
     obs->dt = idata->dt;
     obs->T = idata->dt * idata->N;

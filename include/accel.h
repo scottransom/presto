@@ -25,6 +25,10 @@
 #define ACCEL_DZ  2
 /* Reciprocal of ACCEL_DZ */
 #define ACCEL_RDZ 0.5
+/* Stepsize in Fourier F-dot-dot */
+#define ACCEL_DW 20
+/* Reciprocal of ACCEL_DW */
+#define ACCEL_RDW 0.05
 /* Closest candidates we will accept as independent */
 #define ACCEL_CLOSEST_R 15.0
 /* Padding for .dat file reading so that we don't SEGFAULT */
@@ -52,6 +56,9 @@ typedef struct accelobs{
   double zlo;          /* Minimum fourier fdot to search */
   double zhi;          /* Maximum fourier fdot to search */
   double dz;           /* Stepsize in fourier fdot */
+  double wlo;          /* Minimum fourier fdotdot to search */
+  double whi;          /* Maximum fourier fdotdot to search */
+  double dw;           /* Stepsize in fourier fdotdot */
   double baryv;        /* Average barycentric velocity during observation */
   float nph;           /* Freq 0 level if requested, 0 otherwise */
   float sigma;         /* Cutoff sigma to choose a candidate */
@@ -84,6 +91,7 @@ typedef struct accelcand{
 
 typedef struct kernel{
   int z;               /* The fourier f-dot of the kernel */
+  int w;               /* The fourier f-dot-dot of the kernel */
   int fftlen;          /* Number of complex points in the kernel */
   int numgoodbins;     /* The number of good points you can get back */
   int numbetween;      /* Fourier freq resolution (2=interbin) */
@@ -95,9 +103,13 @@ typedef struct subharminfo{
   int numharm;       /* The number of sub-harmonics */
   int harmnum;       /* The sub-harmonic number (fundamental = numharm) */
   int zmax;          /* The maximum Fourier f-dot for this harmonic */
-  int numkern;       /* Number of kernels in the vector */
-  kernel *kern;      /* The kernels themselves */
-  unsigned short *rinds; /* Table of indices for Fourier Freqs */
+  int wmax;          /* The maximum Fourier f-dot-dot for this harmonic */
+  int numkern_zdim;  /* Number of kernels calculated in the z dimension */
+  int numkern_wdim;  /* Number of kernels calculated in the w dimension */
+  int numkern;       /* Total number of kernels in the vector */
+  kernel **kern;     /* A 2D array of the kernels themselves, with dimensions of z and w */
+  unsigned short *rinds; /* Table of lookup indices for Fourier Freqs: subharmonic r values corresponding to "fundamental" r values */
+  unsigned short *zinds; /* Table of lookup indices for Fourier F-dots */
 } subharminfo;
 
 typedef struct ffdotpows{
@@ -106,7 +118,7 @@ typedef struct ffdotpows{
   int rlo;            /* Lowest Fourier freq present */
   int zlo;            /* Lowest Fourier f-dot present */
   float **powers;     /* Matrix of the powers */
-  unsigned short *rinds; /* Table of indices for Fourier Freqs */
+  unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
 } ffdotpows;
 
 /* accel_utils.c */
