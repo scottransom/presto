@@ -38,38 +38,37 @@ int compare_doubles(const void *a, const void *b)
     return (*da > *db) - (*da < *db);
 }
 
-int read_toas(FILE * toafile, double **toas)
+int read_toas(FILE *infile, double **toas)
 /* Read a text file containing ASCII text TOAs. */
 /* The number of TOAs read is returned.         */
 /* Lines beginning with '#' are ignored.        */
 {
-    char line[200];
-    int ii, numtoa;
+    double dtmp;
+    char line[80], *sptr = NULL;
+    int ii=0, numtoa=0;
 
     /* Read the input file once to count TOAs */
-
-    numtoa = 0;
-    while (!feof(toafile)) {
-        fgets(line, 200, toafile);
-        if (line[0] == '#')
-            continue;
-        else
-            numtoa++;
+    while (1) {
+        sptr = fgets(line, 80, infile);
+        if (!feof(infile) && sptr != NULL && sptr[0] != '\n') {
+            if (line[0] != '#' && sscanf(line, "%lf", &dtmp) == 1)
+                numtoa++;
+        } else {
+            break;
+        }
     }
-    numtoa--;
+
     *toas = (double *) malloc(sizeof(double) * numtoa);
 
     /* Rewind and read the TOAs for real */
-
-    rewind(toafile);
-    ii = 0;
-    while (ii < numtoa) {
-        fgets(line, 200, toafile);
-        if (line[0] == '#')
-            continue;
-        else {
-            sscanf(line, "%lf\n", &(*toas)[ii]);
-            ii++;
+    rewind(infile);
+    while (1) {
+        sptr = fgets(line, 80, infile);
+        if (!feof(infile) && sptr != NULL && sptr[0] != '\n') {
+            if (line[0] != '#' && sscanf(line, "%lf", &(*toas)[ii]) == 1)
+                ii++;
+        } else {
+            break;
         }
     }
     return numtoa;
@@ -147,7 +146,7 @@ int main(int argc, char *argv[])
     /* Allocate our output array */
 
     fdata = (float *) malloc(sizeof(float) * WORKLEN);
-    printf("\nWriting time series of %d points of\n", cmd->numout);
+    printf("\nWriting time series of %ld points of\n", cmd->numout);
     printf("length %f seconds to '%s'.\n\n", cmd->dt, cmd->outfile);
 
     /* Sort the TOAs */
