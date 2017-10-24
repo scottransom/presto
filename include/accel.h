@@ -42,6 +42,7 @@ typedef struct accelobs{
   int fftlen;          /* Length of short FFTs to us in search */
   int numharmstages;   /* Number of stages of harmonic summing */
   int numz;            /* Number of f-dots searched */
+  int numw;            /* Number of f-dotdots searched */
   int numbetween;      /* Highest fourier freq resolution (2=interbin) */
   int numzap;          /* Number of birdies to zap */
   int dat_input;       /* The input file is a short time series */
@@ -115,10 +116,13 @@ typedef struct subharminfo{
 typedef struct ffdotpows{
   int numrs;          /* Number of Fourier freqs present */
   int numzs;          /* Number of Fourier f-dots present */
+  int numws;          /* Number of Fourier f-dotdots present */
   int rlo;            /* Lowest Fourier freq present */
   int zlo;            /* Lowest Fourier f-dot present */
+  int wlo;            /* Lowest Fourier f-dotdot present */
   float **powers;     /* Matrix of the powers */
   unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
+  unsigned short *zinds; /* Table of lookup indices for Fourier Fdots */
 } ffdotpows;
 
 /* accel_utils.c */

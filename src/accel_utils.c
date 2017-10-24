@@ -963,6 +963,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     drhi = calc_required_r(harm_fract, fullrhi);
     ffdot->rlo = (int) floor(drlo);
     ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
+    ffdot->wlo = calc_required_w(harm_fract, obs->wlo);
 
     /* Initialize the lookup indices */
     if (numharm > 1 && !obs->inmem) {
@@ -972,6 +973,12 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
             subr = calc_required_r(harm_fract, rr);
             shi->rinds[ii] = index_from_r(subr, ffdot->rlo);
         }
+	double zz, subz;
+	for (ii = 0; ii < obs->numz; ii++) {
+	    zz = obs->zlo + ii * ACCEL_DZ;
+	    subz = calc_required_z(harm_fract, zz);
+	    shi->zinds[ii] = index_from_z(subz, ffdot->zlo);
+	}
     }
     ffdot->rinds = shi->rinds;
     ffdot->numrs = (int) ((ceil(drhi) - floor(drlo))
@@ -983,7 +990,9 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
             ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
         }
     }
-    ffdot->numzs = shi->numkern;
+    ffdot->zinds = shi->zinds;
+    ffdot->numzs = shi->numkern_zdim;
+    
     binoffset = shi->kern[0].kern_half_width;
     fftlen = shi->kern[0].fftlen;
     lobin = ffdot->rlo - binoffset;
@@ -1642,12 +1651,14 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
       obs->whi = cmd->wmax;
       obs->wlo = -cmd->wmax;
       obs->dw = ACCEL_DW;
+      obs->numw = (cmd->wmax / ACCEL_DW) * 2 + 1;
       printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
     }
     else {
       obs->whi = 0.0;
       obs->wlo = 0.0;
       obs->dw = 0.0;
+      obs->numw = 0.0;
     }
     
     obs->numbetween = ACCEL_NUMBETWEEN;
