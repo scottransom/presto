@@ -65,19 +65,19 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy)
 {
     if (fabs(w) < 1.0e-7)
         return z_resp_halfwidth(z, accuracy);
-
-    double r0 = w/12.0 - 0.5 * z;
-    double r1 = w/12.0 + 0.5 * z;
+    double r0 = 0.5 * (w / 6.0 - z); // Starting deviation from r_avg
+    double r1 = 0.5 * (w / 6.0 + z); // Ending deviation from r_avg
     double rmax = r0 > r1 ? r0 : r1;
     double rmin = r0 > r1 ? r1 : r0;
     // If the extrema of the parabola is within 0 < u < 1, then
     // it will be a new freq minimum or maximum
-    double u_extrema = 0.5 * (double) z / (double) w;
-    if (u_extrema > 0.0 && u_extrema < 1.0) {
-        double r_extrema =  0.5 * w * u_extrema * u_extrema +   \
-            (z - 0.5 * w) * u_extrema - 0.5 * z + w / 12.0;
-        rmax = r_extrema > rmax ? r_extrema : rmax;
-        rmin = r_extrema < rmin ? r_extrema : rmin;
+    double u_ext = 0.5 - z / w;
+    if (u_ext > 0.0 && u_ext < 1.0) {
+        double z0 = z - w / 2.0; // Starting z
+        // Value of r at the extremum
+        double r_ext =  0.5 * w * u_ext * u_ext + z0 * u_ext + r0;
+        rmax = r_ext > rmax ? r_ext : rmax;
+        rmin = r_ext < rmin ? r_ext : rmin;
     }
     if (accuracy == HIGHACC) {
         return (int) (0.5 * 1.1 * (rmax - rmin)) + NUMFINTBINS * 3;
