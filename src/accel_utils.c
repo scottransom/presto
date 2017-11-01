@@ -992,9 +992,11 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     }
     ffdot->zinds = shi->zinds;
     ffdot->numzs = shi->numkern_zdim;
-    
-    binoffset = shi->kern[0].kern_half_width;
-    fftlen = shi->kern[0].fftlen;
+    ffdot->numws = shi->numkern_wdim;
+
+    /* Should it be kern[0][0]? Not necessarily... Figure this out... */
+    binoffset = shi->kern[0][0].kern_half_width;
+    fftlen = shi->kern[0][0].fftlen;
     lobin = ffdot->rlo - binoffset;
     hibin = (int) ceil(drhi) + binoffset;
     numdata = hibin - lobin + 1;
@@ -1081,7 +1083,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 #endif
         for (ii = 0; ii < ffdot->numzs; ii++) {
             int jj;
-            float *fkern = (float *) shi->kern[ii].data;
+            float *fkern = (float *) shi->kern[ii][0].data; //edited to compile
             float *fpdata = (float *) pdata;
             float *fdata = (float *) tmpdat;
             float *outpows = ffdot->powers[ii];
@@ -1186,17 +1188,22 @@ void free_ffdotpows(ffdotpows * ffd)
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
-    int ii, jj, zz, rind, zind, subz;
+  /* Note: edited to include the w direction, but haven't updated the
+     powers arrays to 3D arrays yet. Will not compile until that is done. */
+    int ii, jj, kk, ww, rind, zind, wind, subw;
     const double harm_fract = (double) harmnum / (double) numharm;
 
-    for (ii = 0; ii < fundamental->numzs; ii++) {
-        zz = fundamental->zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, subharmonic->zlo);
-        for (jj = 0; jj < fundamental->numrs; jj++) {
-            rind = subharmonic->rinds[jj];
-            fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
+    for (ii = 0; ii < fundamental->numws; ii++) {
+      ww = fundamental->wlo + ii * ACCEL_DW;
+      subw = calc_required_w(harm_fract, ww);
+      wind = index_from_w(subw, subharmonic->wlo);
+      for (jj = 0; jj < fundamental->numzs; jj++) {
+        zind = subharmonic->zinds[jj];
+        for (kk = 0; kk < fundamental->numrs; kk++) {
+	  rind = subharmonic->rinds[kk];
+	  ///fundamental->powers[ii][jj][kk] += subharmonic->powers[wind][zind][rind]; // commented out to compile
         }
+      }
     }
 }
 
