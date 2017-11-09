@@ -1,7 +1,6 @@
 import numpy as Num
 import numpy.fft as FFT
 import Pgplot, ppgplot, bisect, sinc_interp, parfile
-from scipy.stats import histogram
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
 import scipy.optimize.zeros as zeros
@@ -94,7 +93,7 @@ def hist(data, bins, range=None, laby="Number", **kwargs):
                data values are used to define the interval.
     Note:  This command also accepts all the keyword arge of plotbinned().
     """
-    (ys, lox, dx, out) = histogram(data, bins, range)
+    (ys, lox, dx, out) = Num.histogram(data, bins, range)
     xs = Num.arange(bins, dtype='d')*dx + lox + 0.5*dx
     maxy = int(1.1*max(ys))
     if maxy < max(ys):
