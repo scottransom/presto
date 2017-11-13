@@ -23,7 +23,7 @@ import psr_utils
 import rfifind
 
 import psrfits
-#import filterbank # need to implement in PRESTO!
+import filterbank
 import spectra
 
 SWEEP_STYLES = ['r-', 'b-', 'g-', 'm-', 'c-']
@@ -114,9 +114,10 @@ def waterfall(rawdatafile, start, duration, dm=None, nbins=None, nsub=None,\
         ref_freq = rawdatafile.freqs.max()
 
     if nsub and dm:
+        df = rawdatafile.freqs[1] - rawdatafile.freqs[0]
         nchan_per_sub = rawdatafile.nchan/nsub
         top_ctrfreq = rawdatafile.freqs.max() - \
-                      0.5*nchan_per_sub*rawdatafile.specinfo.df # center of top subband
+                      0.5*nchan_per_sub*df # center of top subband
         start += 4.15e3 * np.abs(1./ref_freq**2 - 1./top_ctrfreq**2) * dm
 
     start_bin = np.round(start/rawdatafile.tsamp).astype('int')
@@ -131,8 +132,8 @@ def waterfall(rawdatafile, start, duration, dm=None, nbins=None, nsub=None,\
         nbinsextra = nbins    
 
     # If at end of observation
-    if (start_bin + nbinsextra) > rawdatafile.specinfo.N-1:
-        nbinsextra = rawdatafile.specinfo.N-1-start_bin
+    if (start_bin + nbinsextra) > rawdatafile.nspec-1:
+        nbinsextra = rawdatafile.nspec-1-start_bin
 
     data = rawdatafile.get_spectra(start_bin, nbinsextra)
 
@@ -283,8 +284,8 @@ def main():
     if fn.endswith(".fil"):
         # Filterbank file
         filetype = "filterbank"
-        rawdatafile = filterbank.filterbank(fn)
-    if fn.endswith(".fits"):
+        rawdatafile = filterbank.FilterbankFile(fn)
+    elif fn.endswith(".fits"):
         # PSRFITS file
         filetype = "psrfits"
         rawdatafile = psrfits.PsrfitsFile(fn)
