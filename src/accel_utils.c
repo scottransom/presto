@@ -994,7 +994,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     ffdot->numzs = shi->numkern_zdim;
     ffdot->numws = shi->numkern_wdim;
 
-    /* Should it be kern[0][0]? Not necessarily... Figure this out... */
+    /* Determine the largest kernel halfwidth needed to analyze the current subharmonic */
+    /* Verified numerically that, as long as we have symmetric z's and w's ... */
     binoffset = shi->kern[0][0].kern_half_width;
     fftlen = shi->kern[0][0].fftlen;
     lobin = ffdot->rlo - binoffset;
@@ -1053,6 +1054,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
 
     // Create the output power array
     ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
+    // ffdot->powers = gen_fcube(ffdot->numws, ffdot->numzs, ffdot->numrs); <-- Check the ordering of arguments
 
     // Create a plan with temp arrays.  We will reuse the plan
     // with the new-array FFTW execute functions

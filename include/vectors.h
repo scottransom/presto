@@ -53,6 +53,12 @@ double **gen_dmatrix(long nrows, long ncols);
 fcomplex **gen_cmatrix(long nrows, long ncols);
 /* Generate a floating complex number matrix (2 dimensions) */
 
+float ***gen_f3Darr(long nhgts, long nrows, long ncols);
+/* Generate a floating point 3D array */
+
+fcomplex ***gen_c3Darr(long nhgts, long nrows, long ncols);
+/* Generate a floating complex 3D array */
+
 void vect_free(void *vect);
 /* Free a generated vector */ 
 
