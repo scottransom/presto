@@ -215,7 +215,6 @@ class FilterbankFile(object):
         spectra_dat = np.fromfile(self.filfile, dtype=self.dtype, 
                               count=num_to_read)
         spectra_dat.shape = nspec, self.nchans 
-        print spectra_dat.shape
         spec = spectra.Spectra(self.freqs, self.tsamp, spectra_dat.T,
                 starttime=start*self.tsamp, dm=0.0)
         return spec
