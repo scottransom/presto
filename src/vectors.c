@@ -294,6 +294,92 @@ fcomplex **gen_cmatrix(long nrows, long ncols)
     return m;
 }
 
+float ***gen_f3Darr(long nhgts, long nrows, long ncols)
+{
+    /* Note:  To free this 3D array, assuming you called it with:  */
+    /*             x = gen_f3Darr(10,10,10);                       */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0][0]) ; free(x[0]) ; free(x) ;          */
+    /*        The order is important!                              */
+
+    long i, j;
+    float ***c;
+
+    c = (float ***) fftwf_malloc((size_t) (nhgts * sizeof(float **)));
+    if (!c) {
+        perror("\nError in 1st malloc() in gen_f3Darr()");
+        printf("\n");
+        exit(-1);
+    }
+    c[0] = (float **) fftwf_malloc((size_t) ((nhgts * nrows) * sizeof(float *)));
+    if (!c[0]) {
+        perror("\nError in 2nd malloc() in gen_f3Darr()");
+        printf("\n");
+        exit(-1);
+    }
+    c[0][0] = (float *) fftwf_malloc((size_t) ((nhgts * nrows * ncols) * sizeof(float)));
+    if (!c[0][0]) {
+        perror("\nError in 3rd malloc() in gen_f3Darr()");
+        printf("\n");
+        exit(-1);
+    }
+
+    for (j = 1; j < nrows; j++)
+        c[0][j] = c[0][j - 1] + ncols;
+
+    for (i = 1; i < nhgts; i++) {
+        c[i] = c[i - 1] + nrows;
+        c[i][0] = c[i - 1][0] + nrows * ncols;
+        for (j = 1; j < nrows; j++)
+            c[i][j] = c[i][j - 1] + ncols;
+    }
+
+    return c;
+}
+
+fcomplex ***gen_c3Darr(long nhgts, long nrows, long ncols)
+{
+    /* Note:  To free this 3D array, assuming you called it with:  */
+    /*             x = gen_f3Darr(10,10,10);                       */
+    /*        all you need to do is the following:                 */
+    /*             free(x[0][0]) ; free(x[0]) ; free(x) ;          */
+    /*        The order is important!                              */
+
+    long i, j;
+    fcomplex ***c;
+
+    c = (fcomplex ***) fftwf_malloc((size_t) (nhgts * sizeof(fcomplex **)));
+    if (!c) {
+        perror("\nError in 1st malloc() in gen_c3Darr()");
+        printf("\n");
+        exit(-1);
+    }
+    c[0] = (fcomplex **) fftwf_malloc((size_t) ((nhgts * nrows) * sizeof(fcomplex *)));
+    if (!c[0]) {
+        perror("\nError in 2nd malloc() in gen_c3Darr()");
+        printf("\n");
+        exit(-1);
+    }
+    c[0][0] = (fcomplex *) fftwf_malloc((size_t) ((nhgts * nrows * ncols) * sizeof(fcomplex)));
+    if (!c[0][0]) {
+        perror("\nError in 3rd malloc() in gen_c3Darr()");
+        printf("\n");
+        exit(-1);
+    }
+
+    for (j = 1; j < nrows; j++)
+        c[0][j] = c[0][j - 1] + ncols;
+
+    for (i = 1; i < nhgts; i++) {
+        c[i] = c[i - 1] + nrows;
+        c[i][0] = c[i - 1][0] + nrows * ncols;
+        for (j = 1; j < nrows; j++)
+            c[i][j] = c[i][j - 1] + ncols;
+    }
+
+    return c;
+}
+
 void vect_free(void *vect)
 {
     fftwf_free(vect);
