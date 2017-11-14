@@ -182,9 +182,6 @@ binaries: $(BINARIES)
 
 mpi: mpiprepsubband
 
-testfftw: testfftw.o
-	$(CC) $(CLINKFLAGS) -o $@ testfftw.o $(PRESTOLINK) -lm
-
 mpiprepsubband_utils.o: mpiprepsubband_utils.c
 	mpicc $(CLINKFLAGS) -c mpiprepsubband_utils.c
 
