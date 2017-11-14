@@ -119,7 +119,7 @@ PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	fastffts.o fftcalls.o fminbr.o fold.o fresnl.o ioinf.o\
 	get_candidates.o iomak.o ipmpar.o maximize_r.o maximize_rz.o\
 	median.o minifft.o misc_utils.o clipping.o\
-	orbint.o output.o read_fft.o responses.o\
+	orbint.o output.o read_fft.o readpar.o responses.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
 	transpose.o twopass.o twopass_real_fwd.o\
 	twopass_real_inv.o vectors.o multifiles.o mask.o\
@@ -141,7 +141,7 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
 	psrorbit window plotbincand prepfold show_pfd\
 	rfifind zapbirds explorefft exploredat\
-	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays
+	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays testfftw
 #	dump_spigot_zerolag spigot2filterbank\
 #	spigotSband2filterbank GBT350filterbank\
 
@@ -183,6 +183,9 @@ libsla$(LIBSUFFIX):
 binaries: $(BINARIES)
 
 mpi: mpiprepsubband
+
+testfftw: testfftw.o
+	$(CC) $(CLINKFLAGS) -o $@ testfftw.o $(PRESTOLINK) -lm
 
 mpiprepsubband_utils.o: mpiprepsubband_utils.c
 	mpicc $(CLINKFLAGS) -c mpiprepsubband_utils.c

@@ -59,6 +59,22 @@ ext_presto = make_extension('_presto',
                             define_macros=define_macros,
                             extra_compile_args=extra_compile_args)
 
+ext_newpresto = make_extension('_newpresto',
+                            [os.path.join('presto_src', 'newpresto_wrap.c')],
+                            include_dirs=presto_include_dirs,
+                            libraries=presto_libraries,
+                            library_dirs=presto_library_dirs,
+                            define_macros=define_macros,
+                            extra_compile_args=extra_compile_args)
+
+ext_swigtest = make_extension('_swigtest',
+                            ['swigtest_wrap.c'],
+                            include_dirs=presto_include_dirs,
+                            libraries=presto_libraries,
+                            library_dirs=presto_library_dirs,
+                            define_macros=define_macros,
+                            extra_compile_args=extra_compile_args)
+
 ###################################################################
 # the package
 #
@@ -68,6 +84,12 @@ setup(name="PRESTO",
       description="Python interfaces to PGPLOT and PRESTO",
       author="Scott Ransom (ppgplot from Nick Patavlis)",
       author_email="sransom@nrao.edu",
-      packages=['ppgplot', "presto"],
-      package_dir={'ppgplot':'ppgplot_src','presto':'presto_src'},
-      ext_modules=[ext_ppgplot,ext_presto])
+      packages=['newpresto'],
+      package_dir={'newpresto':'presto_src'},
+      ext_modules=[ext_newpresto])
+#      packages=['ppgplot', 'newpresto'],
+#      package_dir={'ppgplot':'ppgplot_src','newpresto':'presto_src'},
+#      ext_modules=[ext_ppgplot,ext_newpresto])
+#      packages=['swigtest'],
+#      package_dir={'swigtest':'.'},
+#      ext_modules=[ext_swigtest])

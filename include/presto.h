@@ -332,7 +332,6 @@ void binary_velocity(double T, orbitparams * orbit,
   /*  Return the minimum and maximum orbital velocities of a pulsar    */
   /*  during an observation as a fraction of the speed of light.       */
   /*  Arguments:                                                       */
-  /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
   /*       Keplerian orbital parameters of the binary system.          */
