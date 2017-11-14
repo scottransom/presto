@@ -934,7 +934,7 @@ fcomplex *get_fourier_amplitudes(long long lobin, int numbins, accelobs * obs)
     }
 }
 
-ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
+ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                                double fullrlo, double fullrhi,
                                subharminfo * shi, accelobs * obs)
 {
@@ -950,7 +950,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
         if (numharm == 1 && harmnum == 1) {
             numrs_full = ACCEL_USELEN;
         } else {
-            printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
+            printf("You must call subharm_fderivs_vol() with numharm=1 and\n");
             printf("harnum=1 before you use other values!  Exiting.\n\n");
             exit(0);
         }
@@ -995,7 +995,8 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     ffdot->numws = shi->numkern_wdim;
 
     /* Determine the largest kernel halfwidth needed to analyze the current subharmonic */
-    /* Verified numerically that, as long as we have symmetric z's and w's ... */
+    /* Verified numerically that, as long as we have symmetric z's and w's, */
+    /* shi->kern[0][0].kern_half_width is the maximal halfwidth over the range of w's and z's */
     binoffset = shi->kern[0][0].kern_half_width;
     fftlen = shi->kern[0][0].fftlen;
     lobin = ffdot->rlo - binoffset;
@@ -1003,7 +1004,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     numdata = hibin - lobin + 1;
     nice_numdata = next2_to_n(numdata); // for FFTs
     if (nice_numdata != fftlen / ACCEL_NUMBETWEEN)
-        printf("WARNING!!:  nice_numdata != fftlen/2 in subharm_ffdot_plane()!\n");
+        printf("WARNING!!:  nice_numdata != fftlen/2 in subharm_fderivs_vol()!\n");
     data = get_fourier_amplitudes(lobin, nice_numdata, obs);
     if (!obs->mmap_file && !obs->dat_input && 0)
         printf("This is newly malloc'd!\n");
@@ -1053,8 +1054,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     COMPLEXFFT(pdata, fftlen, -1);
 
     // Create the output power array
-    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
-    // ffdot->powers = gen_fcube(ffdot->numws, ffdot->numzs, ffdot->numrs); <-- Check the ordering of arguments
+    ffdot->powers = gen_f3Darr(ffdot->numws, ffdot->numzs, ffdot->numrs);
 
     // Create a plan with temp arrays.  We will reuse the plan
     // with the new-array FFTW execute functions
@@ -1081,44 +1081,47 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
         fcomplex *tmpdat = gen_cvect(fftlen);
         fcomplex *tmpout = gen_cvect(fftlen);
 #ifdef _OPENMP
-#pragma omp for
+#pragma omp for collapse(2)
 #endif
-        for (ii = 0; ii < ffdot->numzs; ii++) {
-            int jj;
-            float *fkern = (float *) shi->kern[ii][0].data; //edited to compile
-            float *fpdata = (float *) pdata;
-            float *fdata = (float *) tmpdat;
-            float *outpows = ffdot->powers[ii];
-            // multiply data and kernel 
-            // (using floats for better vectorization)
+	/* Check, should we add the collapse to parallelize numws and numzs loops? */
+	for (ii = 0; ii < ffdot->numws; ii++) {
+	    for (jj = 0; jj < ffdot->numzs; jj++) {
+                int kk;
+                float *fkern = (float *) shi->kern[ii][jj].data;
+                float *fpdata = (float *) pdata;
+                float *fdata = (float *) tmpdat;
+                float *outpows = ffdot->powers[ii][jj];
+                // multiply data and kernel 
+                // (using floats for better vectorization)
 #if (defined(__GNUC__) || defined(__GNUG__)) && \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
 #endif
-            for (jj = 0; jj < fftlen * 2; jj += 2) {
-                const float dr = fpdata[jj], di = fpdata[jj + 1];
-                const float kr = fkern[jj], ki = fkern[jj + 1];
-                fdata[jj] = dr * kr + di * ki;
-                fdata[jj + 1] = di * kr - dr * ki;
-            }
-            // Do the inverse FFT (tmpdat -> tmpout)
-            fftwf_execute_dft(invplan, (fftwf_complex *) tmpdat,
-                              (fftwf_complex *) tmpout);
-            // Turn the good parts of the result into powers and store
-            // them in the output matrix
-            fdata = (float *) tmpout;
+                for (kk = 0; kk < fftlen * 2; kk += 2) {
+                    const float dr = fpdata[kk], di = fpdata[kk + 1];
+                    const float kr = fkern[kk], ki = fkern[kk + 1];
+                    fdata[kk] = dr * kr + di * ki;
+                    fdata[kk + 1] = di * kr - dr * ki;
+                }
+                // Do the inverse FFT (tmpdat -> tmpout)
+                fftwf_execute_dft(invplan, (fftwf_complex *) tmpdat,
+                                  (fftwf_complex *) tmpout);
+                // Turn the good parts of the result into powers and store
+                // them in the output matrix
+                fdata = (float *) tmpout;
 #if (defined(__GNUC__) || defined(__GNUG__)) && \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
 #endif
-            for (jj = 0; jj < ffdot->numrs; jj++) {
-                const int ind = 2 * (jj + offset);
-                outpows[jj] = (fdata[ind] * fdata[ind] +
-                               fdata[ind + 1] * fdata[ind + 1]) * norm;
+                for (kk = 0; kk < ffdot->numrs; kk++) {
+                    const int ind = 2 * (kk + offset);
+                    outpows[kk] = (fdata[ind] * fdata[ind] +
+                                   fdata[ind + 1] * fdata[ind + 1]) * norm;
+                }
             }
-        }
-        vect_free(tmpdat);
-        vect_free(tmpout);
+	    vect_free(tmpdat);
+	    vect_free(tmpout);
+	}
     }
     // Free data and the spread-data
     vect_free(data);
@@ -1182,6 +1185,7 @@ void fund_to_ffdotplane_trans(ffdotpows * ffd, accelobs * obs)
 
 void free_ffdotpows(ffdotpows * ffd)
 {
+    vect_free(ffd->powers[0][0]);
     vect_free(ffd->powers[0]);
     vect_free(ffd->powers);
     free(ffd);
@@ -1203,7 +1207,7 @@ void add_ffdotpows(ffdotpows * fundamental,
         zind = subharmonic->zinds[jj];
         for (kk = 0; kk < fundamental->numrs; kk++) {
 	  rind = subharmonic->rinds[kk];
-	  ///fundamental->powers[ii][jj][kk] += subharmonic->powers[wind][zind][rind]; // commented out to compile
+	  fundamental->powers[ii][jj][kk] += subharmonic->powers[wind][zind][rind];
         }
       }
     }

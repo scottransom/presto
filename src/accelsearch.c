@@ -148,7 +148,7 @@ int main(int argc, char *argv[])
                 nextr = startr + ACCEL_USELEN * ACCEL_DR;
                 lastr = nextr - ACCEL_DR;
                 // Compute the F-Fdot plane
-                fundamental = subharm_ffdot_plane(1, 1, startr, lastr,
+                fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
                                                   &subharminfs[0][0], &obs);
                 // Copy it into the full in-core one
                 if (cmd->otheroptP)
@@ -171,7 +171,7 @@ int main(int argc, char *argv[])
                                    obs.highestbin - obs.rlo, "search", 0);
             nextr = startr + ACCEL_USELEN * ACCEL_DR;
             lastr = nextr - ACCEL_DR;
-            fundamental = subharm_ffdot_plane(1, 1, startr, lastr,
+            fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
                                               &subharminfs[0][0], &obs);
             cands = search_ffdotpows(fundamental, 1, &obs, cands);
 
@@ -198,7 +198,7 @@ int main(int argc, char *argv[])
                                                     harm);
                         } else {
                             subharmonic =
-                                subharm_ffdot_plane(harmtosum, harm, startr, lastr,
+                                subharm_fderivs_vol(harmtosum, harm, startr, lastr,
                                                     &subharminfs[stage][harm - 1],
                                                     &obs);
                             if (cmd->otheroptP)

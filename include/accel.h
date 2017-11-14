@@ -143,7 +143,7 @@ void output_harmonics(GSList *list, accelobs *obs, infodata *idata);
 void free_accelcand(gpointer data, gpointer user_data);
 void print_accelcand(gpointer data, gpointer user_data);
 fcomplex *get_fourier_amplitudes(long long lobin, int numbins, accelobs *obs);
-ffdotpows *subharm_ffdot_plane(int numharm, int harmnum, 
+ffdotpows *subharm_fderivs_vol(int numharm, int harmnum, 
 			       double fullrlo, double fullrhi, 
 			       subharminfo *shi, accelobs *obs);
 ffdotpows *copy_ffdotpows(ffdotpows *orig);
