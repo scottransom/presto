@@ -1,5 +1,5 @@
 import numpy as num
-import newpresto as presto
+import presto
 import ppgplot
 from Pgplot import pgpalette
 

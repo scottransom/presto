@@ -141,9 +141,7 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	dat2sdat sdat2dat downsample rednoise un_sc_td bincand\
 	psrorbit window plotbincand prepfold show_pfd\
 	rfifind zapbirds explorefft exploredat\
-	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays testfftw
-#	dump_spigot_zerolag spigot2filterbank\
-#	spigotSband2filterbank GBT350filterbank\
+	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays
 
 all: libpresto slalib binaries
 

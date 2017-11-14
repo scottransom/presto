@@ -1,4 +1,4 @@
-from newprestoswig import *
+from prestoswig import *
 import os.path
 import numpy as np
 import Pgplot

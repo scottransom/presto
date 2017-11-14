@@ -1,5 +1,5 @@
 import numpy as np
-import newpresto as presto
+import presto
 import os
 import matplotlib.pyplot as plt
 
