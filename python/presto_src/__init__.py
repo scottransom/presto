@@ -236,10 +236,9 @@ def ffdot_plane(data, lor, dr, numr, loz, dz, numz):
     maxabsz = max(abs(loz), abs(hiz))
     kern_half_width = z_resp_halfwidth(maxabsz, LOWACC)
     fftlen = next2_to_n(numr + 2 * numbetween * kern_half_width)
-    (ffdraw, nextbin) = corr_rz_plane(data, len(data), numbetween,
-                                        lor, loz, hiz, numz,
-                                        fftlen, LOWACC)
-    return np.array(ffdraw[:,0:numr], copy=1)
+    ffd = corr_rz_plane(data, numbetween, lor, loz, hiz,
+                        numz, fftlen, LOWACC)
+    return np.array(ffd[:,0:numr], copy=1)
 
 def estimate_rz(psr, T, show=0, device='/XWIN'):
     """

@@ -4161,6 +4161,22 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
   return SWIG_TypeError;
 }
 
+
+    void wrap_corr_rz_plane(fcomplex *data, long N, int numbetween,
+                            int startbin, double zlo, double zhi,
+                            int numz, int fftlen,
+                            presto_interp_acc accuracy,
+                            fcomplex **arr, long *nr, long *nc){
+        fcomplex **outarr;
+        int nextbin;
+        outarr = corr_rz_plane(data, N, numbetween, startbin, zlo, zhi,
+                               numz, fftlen, accuracy, &nextbin);
+        *arr = outarr[0];
+        *nr = numz;
+        *nc = (nextbin - startbin) * numbetween;
+        vect_free(outarr);
+    }
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -12556,6 +12572,144 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_corr_rz_plane(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  long arg2 ;
+  int arg3 ;
+  int arg4 ;
+  double arg5 ;
+  double arg6 ;
+  int arg7 ;
+  int arg8 ;
+  presto_interp_acc arg9 ;
+  fcomplex **arg10 = (fcomplex **) 0 ;
+  long *arg11 = (long *) 0 ;
+  long *arg12 = (long *) 0 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  int val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  double val6 ;
+  int ecode6 = 0 ;
+  int val7 ;
+  int ecode7 = 0 ;
+  int val8 ;
+  int ecode8 = 0 ;
+  int val9 ;
+  int ecode9 = 0 ;
+  fcomplex *data_temp10 = NULL ;
+  long dim1_temp10 ;
+  long dim2_temp10 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  PyObject * obj6 = 0 ;
+  PyObject * obj7 = 0 ;
+  
+  {
+    arg10 = &data_temp10;
+    arg11 = &dim1_temp10;
+    arg12 = &dim2_temp10;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOOO:corr_rz_plane",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(obj0, NPY_CFLOAT);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  ecode3 = SWIG_AsVal_int(obj1, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "corr_rz_plane" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  ecode4 = SWIG_AsVal_int(obj2, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "corr_rz_plane" "', argument " "4"" of type '" "int""'");
+  } 
+  arg4 = (int)(val4);
+  ecode5 = SWIG_AsVal_double(obj3, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "corr_rz_plane" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  ecode6 = SWIG_AsVal_double(obj4, &val6);
+  if (!SWIG_IsOK(ecode6)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode6), "in method '" "corr_rz_plane" "', argument " "6"" of type '" "double""'");
+  } 
+  arg6 = (double)(val6);
+  ecode7 = SWIG_AsVal_int(obj5, &val7);
+  if (!SWIG_IsOK(ecode7)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode7), "in method '" "corr_rz_plane" "', argument " "7"" of type '" "int""'");
+  } 
+  arg7 = (int)(val7);
+  ecode8 = SWIG_AsVal_int(obj6, &val8);
+  if (!SWIG_IsOK(ecode8)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode8), "in method '" "corr_rz_plane" "', argument " "8"" of type '" "int""'");
+  } 
+  arg8 = (int)(val8);
+  ecode9 = SWIG_AsVal_int(obj7, &val9);
+  if (!SWIG_IsOK(ecode9)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode9), "in method '" "corr_rz_plane" "', argument " "9"" of type '" "presto_interp_acc""'");
+  } 
+  arg9 = (presto_interp_acc)(val9);
+  {
+    errno = 0;
+    wrap_corr_rz_plane(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[2] = {
+      *arg11, *arg12 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(2, dims, NPY_CFLOAT, (void*)(*arg10));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg10), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg10), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
 	 { (char *)"fcomplex_r_set", _wrap_fcomplex_r_set, METH_VARARGS, NULL},
@@ -12809,6 +12963,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"hours2hms", _wrap_hours2hms, METH_VARARGS, NULL},
 	 { (char *)"deg2dms", _wrap_deg2dms, METH_VARARGS, NULL},
 	 { (char *)"sphere_ang_diff", _wrap_sphere_ang_diff, METH_VARARGS, NULL},
+	 { (char *)"corr_rz_plane", _wrap_corr_rz_plane, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 

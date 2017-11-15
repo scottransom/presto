@@ -709,3 +709,26 @@ void deg2dms(double degrees, int *xx, int *mm, double *ss);
 double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 /* Return the spherical angle (radians) between two RA and DECS */
 
+%apply (fcomplex** ARGOUTVIEWM_ARRAY2, long* DIM1, long* DIM2) \
+    {(fcomplex **arr, long *nr, long *nc)};
+%apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long N)};
+%rename (corr_rz_plane) wrap_corr_rz_plane;
+%inline %{
+    void wrap_corr_rz_plane(fcomplex *data, long N, int numbetween,
+                            int startbin, double zlo, double zhi,
+                            int numz, int fftlen,
+                            presto_interp_acc accuracy,
+                            fcomplex **arr, long *nr, long *nc){
+        fcomplex **outarr;
+        int nextbin;
+        outarr = corr_rz_plane(data, N, numbetween, startbin, zlo, zhi,
+                               numz, fftlen, accuracy, &nextbin);
+        *arr = outarr[0];
+        *nr = numz;
+        *nc = (nextbin - startbin) * numbetween;
+        vect_free(outarr);
+    }
+%}
+%clear (fcomplex **arr, long *nr, long *nc);
+%clear (fcomplex **data, long N);
+

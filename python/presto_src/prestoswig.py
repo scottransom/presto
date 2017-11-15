@@ -833,6 +833,10 @@ deg2dms = _presto.deg2dms
 def sphere_ang_diff(ra1, dec1, ra2, dec2):
     return _presto.sphere_ang_diff(ra1, dec1, ra2, dec2)
 sphere_ang_diff = _presto.sphere_ang_diff
+
+def corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy):
+    return _presto.corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy)
+corr_rz_plane = _presto.corr_rz_plane
 # This file is compatible with both classic and new-style classes.
 
 
