@@ -153,6 +153,20 @@ def spectralphase(fftarray):
     """
     return phase_arr(np.asarray(fftarray).astype(np.complex64))
 
+def rzw_response(roffset, z, w, numbetween=1, numkern=None):
+    """
+    rzw_response(roffset, z, w, numbetween=1, numkern=None):
+        Return the response of a signal offset from a Fourier bin
+            by roffset bins, with a Fourier f-dot of z, and a
+            Fourier f-dotdot of w.  The Fourier interpolation
+            factor is the integer numbetween, and the the length
+            of the resulting kernel will be auto-determined if
+            numkern is None.
+    """
+    if numkern is None:
+        numkern = w_resp_halfwidth(z, w, LOWACC)
+    return gen_w_response(roffset, numbetween, numkern, z, w)
+
 def maximize_rz(data, r, z, norm = None):
     """
     maximize_rz(data, r, z, norm = None):
