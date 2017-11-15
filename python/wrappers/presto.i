@@ -514,6 +514,7 @@ int bin_resp_halfwidth(double ppsr, double T, orbitparams * orbit);
 %rename (gen_r_response) wrap_gen_r_response;
 %rename (gen_z_response) wrap_gen_z_response;
 %rename (gen_w_response) wrap_gen_w_response;
+%rename (gen_w_response2) wrap_gen_w_response2;
 %rename (gen_bin_response) wrap_gen_bin_response;
 %inline %{
 void wrap_gen_r_response(double roffset, int numbetween, int numkern,
@@ -533,6 +534,13 @@ void wrap_gen_w_response(double roffset, int numbetween, int numkern,
                          double z, double w,
                          fcomplex **vect, long *nn){
     *vect = gen_w_response(roffset, numbetween, z, w, numkern);
+    *nn = numkern;
+}
+
+void wrap_gen_w_response2(double roffset, int numbetween, int numkern,
+                         int num_pts_wdat, double z, double w,
+                         fcomplex **vect, long *nn){
+    *vect = gen_w_response2(roffset, numbetween, z, w, numkern, num_pts_wdat);
     *nn = numkern;
 }
 

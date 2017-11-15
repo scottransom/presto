@@ -4100,6 +4100,13 @@ void wrap_gen_w_response(double roffset, int numbetween, int numkern,
     *nn = numkern;
 }
 
+void wrap_gen_w_response2(double roffset, int numbetween, int numkern,
+                         int num_pts_wdat, double z, double w,
+                         fcomplex **vect, long *nn){
+    *vect = gen_w_response2(roffset, numbetween, z, w, numkern, num_pts_wdat);
+    *nn = numkern;
+}
+
 void wrap_gen_bin_response(double roffset, int numbetween, int numkern,
                            double ppsr, double T, orbitparams *orbit,
                            fcomplex **vect, long *nn){
@@ -10887,6 +10894,119 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_gen_w_response2(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  int arg2 ;
+  int arg3 ;
+  int arg4 ;
+  double arg5 ;
+  double arg6 ;
+  fcomplex **arg7 = (fcomplex **) 0 ;
+  long *arg8 = (long *) 0 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  int val2 ;
+  int ecode2 = 0 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  int val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  double val6 ;
+  int ecode6 = 0 ;
+  fcomplex *data_temp7 = NULL ;
+  long dim_temp7 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  
+  {
+    arg7 = &data_temp7;
+    arg8 = &dim_temp7;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOO:gen_w_response2",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5)) SWIG_fail;
+  ecode1 = SWIG_AsVal_double(obj0, &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_w_response2" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  if (!SWIG_IsOK(ecode2)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "gen_w_response2" "', argument " "2"" of type '" "int""'");
+  } 
+  arg2 = (int)(val2);
+  ecode3 = SWIG_AsVal_int(obj2, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "gen_w_response2" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  ecode4 = SWIG_AsVal_int(obj3, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "gen_w_response2" "', argument " "4"" of type '" "int""'");
+  } 
+  arg4 = (int)(val4);
+  ecode5 = SWIG_AsVal_double(obj4, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "gen_w_response2" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  ecode6 = SWIG_AsVal_double(obj5, &val6);
+  if (!SWIG_IsOK(ecode6)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode6), "in method '" "gen_w_response2" "', argument " "6"" of type '" "double""'");
+  } 
+  arg6 = (double)(val6);
+  {
+    errno = 0;
+    wrap_gen_w_response2(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[1] = {
+      *arg8 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg7));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg7), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg7), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_gen_bin_response(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   double arg1 ;
@@ -13251,6 +13371,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"gen_r_response", _wrap_gen_r_response, METH_VARARGS, NULL},
 	 { (char *)"gen_z_response", _wrap_gen_z_response, METH_VARARGS, NULL},
 	 { (char *)"gen_w_response", _wrap_gen_w_response, METH_VARARGS, NULL},
+	 { (char *)"gen_w_response2", _wrap_gen_w_response2, METH_VARARGS, NULL},
 	 { (char *)"gen_bin_response", _wrap_gen_bin_response, METH_VARARGS, NULL},
 	 { (char *)"get_localpower", _wrap_get_localpower, METH_VARARGS, NULL},
 	 { (char *)"get_localpower3d", _wrap_get_localpower3d, METH_VARARGS, NULL},

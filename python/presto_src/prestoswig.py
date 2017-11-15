@@ -722,6 +722,10 @@ def gen_w_response(roffset, numbetween, numkern, z, w):
     return _presto.gen_w_response(roffset, numbetween, numkern, z, w)
 gen_w_response = _presto.gen_w_response
 
+def gen_w_response2(roffset, numbetween, numkern, num_pts_wdat, z, w):
+    return _presto.gen_w_response2(roffset, numbetween, numkern, num_pts_wdat, z, w)
+gen_w_response2 = _presto.gen_w_response2
+
 def gen_bin_response(roffset, numbetween, numkern, ppsr, T, orbit):
     return _presto.gen_bin_response(roffset, numbetween, numkern, ppsr, T, orbit)
 gen_bin_response = _presto.gen_bin_response
