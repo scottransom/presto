@@ -837,6 +837,14 @@ sphere_ang_diff = _presto.sphere_ang_diff
 def corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy):
     return _presto.corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy)
 corr_rz_plane = _presto.corr_rz_plane
+
+def max_r_arr(data, rin, derivs):
+    return _presto.max_r_arr(data, rin, derivs)
+max_r_arr = _presto.max_r_arr
+
+def max_rz_arr(data, rin, zin, derivs):
+    return _presto.max_rz_arr(data, rin, zin, derivs)
+max_rz_arr = _presto.max_rz_arr
 # This file is compatible with both classic and new-style classes.
 
 

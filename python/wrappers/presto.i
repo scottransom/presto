@@ -732,3 +732,26 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 %clear (fcomplex **arr, long *nr, long *nc);
 %clear (fcomplex **data, long N);
 
+%apply double *OUTPUT { double *rout, double *powout };
+%apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long numdata)};
+%rename (max_r_arr) wrap_max_r_arr;
+%inline %{
+    void wrap_max_r_arr(fcomplex * data, long numdata, double rin,
+                         rderivs * derivs, double *rout, double *powout){
+        double pow;
+        pow = max_r_arr(data, numdata, rin, rout, derivs);
+        *powout = pow;
+    }
+%}
+
+%apply double *OUTPUT { double *rout, double *zout, double *powout };
+%apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long numdata)};
+%rename (max_rz_arr) wrap_max_rz_arr;
+%inline %{
+    void wrap_max_rz_arr(fcomplex * data, long numdata, double rin, double zin,
+                         rderivs * derivs, double *rout, double *zout, double *powout){
+        double pow;
+        pow = max_rz_arr(data, numdata, rin, zin, rout, zout, derivs);
+        *powout = pow;
+    }
+%}

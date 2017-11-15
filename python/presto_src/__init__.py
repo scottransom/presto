@@ -176,7 +176,7 @@ def maximize_rz(data, r, z, norm = None):
             zmax, and an rderivs structure for the peak.
     """
     rd = rderivs()
-    (maxpow, rmax, zmax) = max_rz_arr(data, len(data), r, z, rd)
+    (rmax, zmax, maxpow) = max_rz_arr(data, r, z, rd)
     if not norm:
         maxpow = maxpow / rd.locpow
     else:
@@ -192,7 +192,7 @@ def maximize_r(data, r, norm = None):
             and an rderivs structure for the peak.
     """
     rd = rderivs()
-    (maxpow, rmax) = max_r_arr(data, len(data), r, rd)
+    (rmax, maxpow) = max_r_arr(data, r, rd)
     if not norm:
         maxpow = maxpow / rd.locpow
     else:
