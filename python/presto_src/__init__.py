@@ -548,10 +548,9 @@ def get_baryv(ra, dec, mjd, T, obs="PK"):
      'T' is in sec and 'mjd' is (of course) in MJD.  The obs variable
      is the standard two character string from TEMPO:  PK, GB, AO, GM, JB, ...
    """
-   tts = psr_utils.span(mjd, mjd+T/86400.0, 100)
+   tts = np.linspace(mjd, mjd+T/86400.0, 100)
    nn = len(tts)
-   bts = np.zeros(nn, 'd')
-   vel = np.zeros(nn, 'd')
-   barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
-   avgvel = np.add.reduce(vel)/nn
-   return avgvel
+   bts = np.zeros(nn, dtype=np.float64)
+   vel = np.zeros(nn, dtype=np.float64)
+   barycenter(tts, bts, vel, ra, dec, obs, "DE421")
+   return vel.mean()

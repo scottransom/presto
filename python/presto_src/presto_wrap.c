@@ -4193,6 +4193,14 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
         *powout = pow;
     }
 
+
+    void wrap_barycenter(double *topotimes, long N1,
+                         double *barytimes, long N2,
+                         double *voverc, long N3,
+                         char *ra, char *dec, char *obs, char *ephem){
+        barycenter(topotimes, barytimes, voverc, N1, ra, dec, obs, ephem);
+    }
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -12903,6 +12911,121 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_barycenter(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double *arg1 = (double *) 0 ;
+  long arg2 ;
+  double *arg3 = (double *) 0 ;
+  long arg4 ;
+  double *arg5 = (double *) 0 ;
+  long arg6 ;
+  char *arg7 = (char *) 0 ;
+  char *arg8 = (char *) 0 ;
+  char *arg9 = (char *) 0 ;
+  char *arg10 = (char *) 0 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  PyArrayObject *array3 = NULL ;
+  int i3 = 1 ;
+  PyArrayObject *array5 = NULL ;
+  int i5 = 1 ;
+  int res7 ;
+  char *buf7 = 0 ;
+  int alloc7 = 0 ;
+  int res8 ;
+  char *buf8 = 0 ;
+  int alloc8 = 0 ;
+  int res9 ;
+  char *buf9 = 0 ;
+  int alloc9 = 0 ;
+  int res10 ;
+  char *buf10 = 0 ;
+  int alloc10 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  PyObject * obj6 = 0 ;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOO:barycenter",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(obj0, NPY_DOUBLE);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (double*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  {
+    array3 = obj_to_array_no_conversion(obj1, NPY_DOUBLE);
+    if (!array3 || !require_dimensions(array3,1) || !require_contiguous(array3)
+      || !require_native(array3)) SWIG_fail;
+    arg3 = (double*) array_data(array3);
+    arg4 = 1;
+    for (i3=0; i3 < array_numdims(array3); ++i3) arg4 *= array_size(array3,i3);
+  }
+  {
+    array5 = obj_to_array_no_conversion(obj2, NPY_DOUBLE);
+    if (!array5 || !require_dimensions(array5,1) || !require_contiguous(array5)
+      || !require_native(array5)) SWIG_fail;
+    arg5 = (double*) array_data(array5);
+    arg6 = 1;
+    for (i5=0; i5 < array_numdims(array5); ++i5) arg6 *= array_size(array5,i5);
+  }
+  res7 = SWIG_AsCharPtrAndSize(obj3, &buf7, NULL, &alloc7);
+  if (!SWIG_IsOK(res7)) {
+    SWIG_exception_fail(SWIG_ArgError(res7), "in method '" "barycenter" "', argument " "7"" of type '" "char *""'");
+  }
+  arg7 = (char *)(buf7);
+  res8 = SWIG_AsCharPtrAndSize(obj4, &buf8, NULL, &alloc8);
+  if (!SWIG_IsOK(res8)) {
+    SWIG_exception_fail(SWIG_ArgError(res8), "in method '" "barycenter" "', argument " "8"" of type '" "char *""'");
+  }
+  arg8 = (char *)(buf8);
+  res9 = SWIG_AsCharPtrAndSize(obj5, &buf9, NULL, &alloc9);
+  if (!SWIG_IsOK(res9)) {
+    SWIG_exception_fail(SWIG_ArgError(res9), "in method '" "barycenter" "', argument " "9"" of type '" "char *""'");
+  }
+  arg9 = (char *)(buf9);
+  res10 = SWIG_AsCharPtrAndSize(obj6, &buf10, NULL, &alloc10);
+  if (!SWIG_IsOK(res10)) {
+    SWIG_exception_fail(SWIG_ArgError(res10), "in method '" "barycenter" "', argument " "10"" of type '" "char *""'");
+  }
+  arg10 = (char *)(buf10);
+  {
+    errno = 0;
+    wrap_barycenter(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (alloc7 == SWIG_NEWOBJ) free((char*)buf7);
+  if (alloc8 == SWIG_NEWOBJ) free((char*)buf8);
+  if (alloc9 == SWIG_NEWOBJ) free((char*)buf9);
+  if (alloc10 == SWIG_NEWOBJ) free((char*)buf10);
+  return resultobj;
+fail:
+  if (alloc7 == SWIG_NEWOBJ) free((char*)buf7);
+  if (alloc8 == SWIG_NEWOBJ) free((char*)buf8);
+  if (alloc9 == SWIG_NEWOBJ) free((char*)buf9);
+  if (alloc10 == SWIG_NEWOBJ) free((char*)buf10);
+  return NULL;
+}
+
+
 static PyMethodDef SwigMethods[] = {
 	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
 	 { (char *)"fcomplex_r_set", _wrap_fcomplex_r_set, METH_VARARGS, NULL},
@@ -13159,6 +13282,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"corr_rz_plane", _wrap_corr_rz_plane, METH_VARARGS, NULL},
 	 { (char *)"max_r_arr", _wrap_max_r_arr, METH_VARARGS, NULL},
 	 { (char *)"max_rz_arr", _wrap_max_rz_arr, METH_VARARGS, NULL},
+	 { (char *)"barycenter", _wrap_barycenter, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 

@@ -755,3 +755,16 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
         *powout = pow;
     }
 %}
+
+%apply (double* INPLACE_ARRAY1, long DIM1) {(double *topotimes, long N1)};
+%apply (double* INPLACE_ARRAY1, long DIM1) {(double *barytimes, long N2)};
+%apply (double* INPLACE_ARRAY1, long DIM1) {(double *voverc, long N3)};
+%rename (barycenter) wrap_barycenter;
+%inline %{
+    void wrap_barycenter(double *topotimes, long N1,
+                         double *barytimes, long N2,
+                         double *voverc, long N3,
+                         char *ra, char *dec, char *obs, char *ephem){
+        barycenter(topotimes, barytimes, voverc, N1, ra, dec, obs, ephem);
+    }
+%}
