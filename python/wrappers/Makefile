@@ -1,4 +1,4 @@
-SWIG          = swig 
+SWIG          = swig3.0
 SWIGOPT       = -make_default -python -shadow
 
 prestowrap:
