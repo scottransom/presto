@@ -738,7 +738,32 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
     }
 %}
 %clear (fcomplex **arr, long *nr, long *nc);
-%clear (fcomplex **data, long N);
+%clear (fcomplex *data, long N);
+
+%apply (fcomplex** ARGOUTVIEWM_ARRAY3, long* DIM1, long* DIM2, long* DIM3) \
+    {(fcomplex **arr, long *nh, long *nr, long *nc)};
+%apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long N)};
+%rename (corr_rzw_vol) wrap_corr_rzw_vol;
+%inline %{
+    void wrap_corr_rzw_vol(fcomplex *data, long N, int numbetween, \
+                           int startbin, double zlo, double zhi, int numz, \
+                           double wlo, double whi, int numw, int fftlen, \
+                           presto_interp_acc accuracy, \
+                           fcomplex **arr, long *nh, long *nr, long *nc){
+        fcomplex ***outarr;
+        int nextbin;
+        outarr = corr_rzw_vol(data, N, numbetween, startbin, zlo, zhi,
+                              numz, wlo, whi, numw, fftlen, accuracy, &nextbin);
+        *arr = outarr[0][0];
+        *nh = numw;
+        *nr = numz;
+        *nc = (nextbin - startbin) * numbetween;
+        vect_free(outarr[0]);
+        vect_free(outarr);
+    }
+%}
+%clear (fcomplex **arr, long *nh, long *nr, long *nc);
+%clear (fcomplex *data, long N);
 
 %apply double *OUTPUT { double *rout, double *powout };
 %apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long numdata)};

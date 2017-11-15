@@ -240,6 +240,32 @@ def ffdot_plane(data, lor, dr, numr, loz, dz, numz):
                         numz, fftlen, LOWACC)
     return np.array(ffd[:,0:numr], copy=1)
 
+def fdotdot_vol(data, lor, dr, numr, loz, dz, numz, low, dw, numw):
+    """
+    fdotdot_vol(data, lor, dr, numr, loz, dz, numz, low, dw, numw):
+         Generate an F-Fdot-Fdotdot volume with the 'lower-left' corners
+         at the point 'lor', 'loz', 'low'.  The vol will have 'numr' frequency
+         bins, 'numz'/'numw' slices in the fdot/fdotdot direction, separated 
+         by 'dr', 'dz', and 'dw' respectively.  'lor', 'numr', 'numz', and 
+         'numw' should all be integers.  'data' is the input FFT.
+         Note:  'dr' much be the reciprocal of an integer
+              (i.e. 1 / numbetween).  Also, 'r' is considered to be
+              the average frequency (r = r0 + w/6 + z0/2), and 'z'
+              is the average fdot (z = z0 + w / 2).
+    """
+    lor = int(lor)
+    numr, numz, numw = int(numr), int(numz), int(numw)
+    numbetween = int(1.0 / dr)
+    hiz = loz + (numz-1) * dz
+    maxabsz = max(abs(loz), abs(hiz))
+    hiw = low + (numw-1) * dw
+    maxabsw = max(abs(low), abs(hiw))
+    kern_half_width = w_resp_halfwidth(maxabsz, maxabsw, LOWACC)
+    fftlen = next2_to_n(numr + 2 * numbetween * kern_half_width)
+    ffd = corr_rzw_vol(data, numbetween, lor, loz, hiz,
+                        numz, low, hiw, numw, fftlen, LOWACC)
+    return np.array(ffd[:,:,0:numr], copy=1)
+
 def estimate_rz(psr, T, show=0, device='/XWIN'):
     """
     estimate_rz(psr, T, show=0, device='/XWIN'):

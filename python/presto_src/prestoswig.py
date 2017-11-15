@@ -842,6 +842,10 @@ def corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy):
     return _presto.corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy)
 corr_rz_plane = _presto.corr_rz_plane
 
+def corr_rzw_vol(data, numbetween, startbin, zlo, zhi, numz, wlo, whi, numw, fftlen, accuracy):
+    return _presto.corr_rzw_vol(data, numbetween, startbin, zlo, zhi, numz, wlo, whi, numw, fftlen, accuracy)
+corr_rzw_vol = _presto.corr_rzw_vol
+
 def max_r_arr(data, rin, derivs):
     return _presto.max_r_arr(data, rin, derivs)
 max_r_arr = _presto.max_r_arr

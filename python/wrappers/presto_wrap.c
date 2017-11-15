@@ -4185,6 +4185,24 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
     }
 
 
+    void wrap_corr_rzw_vol(fcomplex *data, long N, int numbetween, \
+                           int startbin, double zlo, double zhi, int numz, \
+                           double wlo, double whi, int numw, int fftlen, \
+                           presto_interp_acc accuracy, \
+                           fcomplex **arr, long *nh, long *nr, long *nc){
+        fcomplex ***outarr;
+        int nextbin;
+        outarr = corr_rzw_vol(data, N, numbetween, startbin, zlo, zhi,
+                              numz, wlo, whi, numw, fftlen, accuracy, &nextbin);
+        *arr = outarr[0][0];
+        *nh = numw;
+        *nr = numz;
+        *nc = (nextbin - startbin) * numbetween;
+        vect_free(outarr[0]);
+        vect_free(outarr);
+    }
+
+
     void wrap_max_r_arr(fcomplex * data, long numdata, double rin,
                          rderivs * derivs, double *rout, double *powout){
         double pow;
@@ -12854,6 +12872,174 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_corr_rzw_vol(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  long arg2 ;
+  int arg3 ;
+  int arg4 ;
+  double arg5 ;
+  double arg6 ;
+  int arg7 ;
+  double arg8 ;
+  double arg9 ;
+  int arg10 ;
+  int arg11 ;
+  presto_interp_acc arg12 ;
+  fcomplex **arg13 = (fcomplex **) 0 ;
+  long *arg14 = (long *) 0 ;
+  long *arg15 = (long *) 0 ;
+  long *arg16 = (long *) 0 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  int val3 ;
+  int ecode3 = 0 ;
+  int val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  double val6 ;
+  int ecode6 = 0 ;
+  int val7 ;
+  int ecode7 = 0 ;
+  double val8 ;
+  int ecode8 = 0 ;
+  double val9 ;
+  int ecode9 = 0 ;
+  int val10 ;
+  int ecode10 = 0 ;
+  int val11 ;
+  int ecode11 = 0 ;
+  int val12 ;
+  int ecode12 = 0 ;
+  fcomplex *data_temp13 = NULL ;
+  long dim1_temp13 ;
+  long dim2_temp13 ;
+  long dim3_temp13 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  PyObject * obj6 = 0 ;
+  PyObject * obj7 = 0 ;
+  PyObject * obj8 = 0 ;
+  PyObject * obj9 = 0 ;
+  PyObject * obj10 = 0 ;
+  
+  {
+    arg13 = &data_temp13;
+    arg14 = &dim1_temp13;
+    arg15 = &dim2_temp13;
+    arg16 = &dim3_temp13;
+  }
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOOOOOO:corr_rzw_vol",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7,&obj8,&obj9,&obj10)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(obj0, NPY_CFLOAT);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  ecode3 = SWIG_AsVal_int(obj1, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "corr_rzw_vol" "', argument " "3"" of type '" "int""'");
+  } 
+  arg3 = (int)(val3);
+  ecode4 = SWIG_AsVal_int(obj2, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "corr_rzw_vol" "', argument " "4"" of type '" "int""'");
+  } 
+  arg4 = (int)(val4);
+  ecode5 = SWIG_AsVal_double(obj3, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "corr_rzw_vol" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  ecode6 = SWIG_AsVal_double(obj4, &val6);
+  if (!SWIG_IsOK(ecode6)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode6), "in method '" "corr_rzw_vol" "', argument " "6"" of type '" "double""'");
+  } 
+  arg6 = (double)(val6);
+  ecode7 = SWIG_AsVal_int(obj5, &val7);
+  if (!SWIG_IsOK(ecode7)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode7), "in method '" "corr_rzw_vol" "', argument " "7"" of type '" "int""'");
+  } 
+  arg7 = (int)(val7);
+  ecode8 = SWIG_AsVal_double(obj6, &val8);
+  if (!SWIG_IsOK(ecode8)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode8), "in method '" "corr_rzw_vol" "', argument " "8"" of type '" "double""'");
+  } 
+  arg8 = (double)(val8);
+  ecode9 = SWIG_AsVal_double(obj7, &val9);
+  if (!SWIG_IsOK(ecode9)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode9), "in method '" "corr_rzw_vol" "', argument " "9"" of type '" "double""'");
+  } 
+  arg9 = (double)(val9);
+  ecode10 = SWIG_AsVal_int(obj8, &val10);
+  if (!SWIG_IsOK(ecode10)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode10), "in method '" "corr_rzw_vol" "', argument " "10"" of type '" "int""'");
+  } 
+  arg10 = (int)(val10);
+  ecode11 = SWIG_AsVal_int(obj9, &val11);
+  if (!SWIG_IsOK(ecode11)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode11), "in method '" "corr_rzw_vol" "', argument " "11"" of type '" "int""'");
+  } 
+  arg11 = (int)(val11);
+  ecode12 = SWIG_AsVal_int(obj10, &val12);
+  if (!SWIG_IsOK(ecode12)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode12), "in method '" "corr_rzw_vol" "', argument " "12"" of type '" "presto_interp_acc""'");
+  } 
+  arg12 = (presto_interp_acc)(val12);
+  {
+    errno = 0;
+    wrap_corr_rzw_vol(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11,arg12,arg13,arg14,arg15,arg16);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  {
+    npy_intp dims[3] = {
+      *arg14, *arg15, *arg16 
+    };
+    PyObject* obj = PyArray_SimpleNewFromData(3, dims, NPY_CFLOAT, (void*)(*arg13));
+    PyArrayObject* array = (PyArrayObject*) obj;
+    
+    if (!array) SWIG_fail;
+    
+#ifdef SWIGPY_USE_CAPSULE
+    PyObject* cap = PyCapsule_New((void*)(*arg13), SWIGPY_CAPSULE_NAME, free_cap);
+#else
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg13), free);
+#endif
+    
+#if NPY_API_VERSION < 0x00000007
+    PyArray_BASE(array) = cap;
+#else
+    PyArray_SetBaseObject(array,cap);
+#endif
+    
+    resultobj = SWIG_Python_AppendOutput(resultobj,obj);
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_max_r_arr(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   fcomplex *arg1 = (fcomplex *) 0 ;
@@ -13401,6 +13587,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"deg2dms", _wrap_deg2dms, METH_VARARGS, NULL},
 	 { (char *)"sphere_ang_diff", _wrap_sphere_ang_diff, METH_VARARGS, NULL},
 	 { (char *)"corr_rz_plane", _wrap_corr_rz_plane, METH_VARARGS, NULL},
+	 { (char *)"corr_rzw_vol", _wrap_corr_rzw_vol, METH_VARARGS, NULL},
 	 { (char *)"max_r_arr", _wrap_max_r_arr, METH_VARARGS, NULL},
 	 { (char *)"max_rz_arr", _wrap_max_rz_arr, METH_VARARGS, NULL},
 	 { (char *)"barycenter", _wrap_barycenter, METH_VARARGS, NULL},

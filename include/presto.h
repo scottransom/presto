@@ -1044,7 +1044,29 @@ fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween, \
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
-fcomplex *corr_rzw_interp(fcomplex *data, int numdata, int numbetween, \
+fcomplex ***corr_rzw_vol(fcomplex * data, int numdata, int numbetween, \
+                         int startbin, double zlo, double zhi, int numz, \
+                         double wlo, double whi, int numw, int fftlen, \
+                         presto_interp_acc accuracy, int *nextbin);
+  /* This routine uses the correlation method to do Fourier          */
+  /* complex interpolations of the f-fdot-fdotdot volume.            */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'numbetween' is the number of points to interpolate per bin.  */
+  /*   'startbin' is the first bin to use in data for interpolation. */
+  /*   'zlo' is the lowest fdot to use (z=f-dot*T^2)                 */
+  /*   'zhi' is the highest fdot to use (z=f-dot*T^2)                */
+  /*   'numz' is the number of z values to use to make the volume    */
+  /*   'wlo' is the lowest fdotdot to use (w=f-dotdot*T^3)           */
+  /*   'whi' is the highest fdotdot to use (w=f-dotdot*T^3)          */
+  /*   'numw' is the number of w values to use to make the volume    */
+  /*   'fftlen' is the # of complex pts in kernel and result.        */
+  /*   'accuracy' is either HIGHACC or LOWACC.                       */
+  /*   'nextbin' will contain the bin number of the first bin not    */
+  /*      interpolated in data.                                      */
+
+    fcomplex *corr_rzw_interp(fcomplex *data, int numdata, int numbetween, \
 			  int startbin, double z, double w, int fftlen, \
 			  presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do a Fourier        */

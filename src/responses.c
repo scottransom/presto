@@ -2,7 +2,7 @@
 
 #define MIN_NUMDATA 131072
 #define MIN_NUMORBPTS 2049      /* This should be a power-of-two + 1 */
-#define NUM_PTS_WDAT 131072
+#define NUM_PTS_WDAT 16384
 // Tests conducted checking the fractional deviation of the amplitudes
 // of the w-response calculation using different NUM_PTS_WDAT,
 // compared to 262144.  roffset=[0,1], z=[-200,200], w=[-1000,1000]
