@@ -1,71 +1,53 @@
 #include "presto.h"
-
-#define ZSCALE 4.0
-#define WSCALE 20.0
-
-static fcomplex *maxdata;
-static int nummaxdata, max_kern_half_width, num_funct_calls;
-
-extern void amoeba(double p[3][2], double y[], double ftol,
-                   double (*funk) (double[]), int *nfunk);
-
-static double power_call_rzw(double rzw[])
-/*  Maximization function used with an array */
-{
-    double powargr, powargi;
-    fcomplex ans;
-
-    num_funct_calls++;
-    rzw_interp(maxdata, nummaxdata, rzw[0], rzw[1] * ZSCALE,
-               rzw[2] * WSCALE, max_kern_half_width, &ans);
-    return -POWER(ans.r, ans.i);
-}
-
+#include "accel.h"
 
 double max_rzw_arr(fcomplex * data, int numdata, double rin, double zin,
                    double win, double *rout, double *zout,
                    double *wout, rderivs * derivs)
 /* Return the Fourier frequency, f-dot, and fdotdot that    */
 /* maximizes the power.                                     */
+/* This isn't a true optimization, but just maximizing the  */
+/* oversampled F/Fdot/Fdotdot volume.                       */
 {
-    double maxpower, x[3], locpow;
+    float locpow = get_localpower3d(data, numdata, rin, zin, win);
+    float maxpow = 0;
+    int kern_half_width, extra = 10, startbin = (int)(rin) - 1;
+    int numz, numw, numbetween, nextbin, numret;
+    // The factor beyond ACCEL_DR, ACCEL_DZ, ACCEL_DW will interpolate
+    int interpfac = 8, wind, zind, rind;
+    double ifrac = 1.0/interpfac;
+    fcomplex ***vol;
 
-    maxdata = data;
-    nummaxdata = numdata;
-
-    /* Use a slightly larger working value for 'z' just incase */
-    /* the true value of z is a little larger than z.  This    */
-    /* keeps a little more accuracy.                           */
-
-    max_kern_half_width = w_resp_halfwidth(fabs(zin) + 4.0, win, HIGHACC);
-    x[0] = rin;
-    x[1] = zin / ZSCALE;
-    x[2] = win / WSCALE;
-
-    /* Call the solver: */
-
-    solvopt_options[0] = -0.1;
-    maxpower = solvopt(3, x, power_call_rzw, NULL, solvopt_options, NULL, NULL);
-
-    /* Re-run solvopt from the value obtained if needed. */
-
-    if (solvopt_options[8] == -11.0) {
-        solvopt_options[0] = -0.01;
-        maxpower = solvopt(3, x, power_call_rzw, NULL, solvopt_options, NULL, NULL);
+    kern_half_width = w_resp_halfwidth(zin, win, HIGHACC);
+    numz = numw = 2 * interpfac + 1;
+    fftlen = next2_to_n(2 * kern_half_width + extra);
+    vol = corr_rzw_vol(data, numdata, interpfac*ACCEL_RDR, startbin, 
+                       zin-ACCEL_DZ, zin+ACCEL+DZ, numz,
+                       win-ACCEL_DW, win+ACCEL_DW, numw, 
+                       fftlen, LOWACC, &nextbin);
+    {
+        int ii, jj, kk;
+        for (ii = 0; ii < numw; ii++) {
+            for (jj = 0; jj < numz; jj++) {
+                for (kk = 0; kk < 3*interpfac*ACCEL_RDR; kk++) {
+                    amp = vol[ii][jj][kk];
+                    pow = POWER(amp.r, amp.i);
+                    if (pow > maxpow) {
+                        maxpow = pow;
+                        wind = ii;
+                        zind = jj;
+                        rind = kk;
+                    }
+                }
+            }
+        }
     }
-
-    printf("\nCalled rzw_interp() %d times.\n", num_funct_calls);
-
-    /* The following calculates derivatives at the peak           */
-
-    x[1] *= ZSCALE;
-    x[2] *= WSCALE;
-    *rout = x[0];
-    *zout = x[1];
-    *wout = x[2];
-    locpow = get_localpower3d(data, numdata, x[0], x[1], x[2]);
-    get_derivs3d(data, numdata, x[0], x[1], x[2], locpow, derivs);
-    return -maxpower;
+    maxpow /= locpow;
+    *rout = startbin + rind * ACCEL_DR * ifrac;
+    *zout = zin-ACCEL_DZ + zind * ACCEL_DZ * ifrac;
+    *wout = win=ACCEL_DW + wind * ACCEL_DW * ifrac;
+    get_derivs3d(data, numdata, *rout, *zout, *wout, locpow, derivs);
+    return maxpow;
 }
 
 double max_rzw_file(FILE * fftfile, double rin, double zin, double win,
@@ -78,7 +60,7 @@ double max_rzw_file(FILE * fftfile, double rin, double zin, double win,
     fcomplex *filedata;
 
     rin_frac = modf(rin, &rin_int);
-    kern_half_width = w_resp_halfwidth(fabs(zin) + 4.0, win, HIGHACC);
+    kern_half_width = w_resp_halfwidth(zin, win, HIGHACC);
     filedatalen = 2 * kern_half_width + extra;
     startbin = (int) rin_int - filedatalen / 2;
 

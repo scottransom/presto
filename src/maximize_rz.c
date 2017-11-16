@@ -30,7 +30,6 @@ double max_rz_arr(fcomplex * data, int numdata, double rin, double zin,
 
     maxdata = data;
     nummaxdata = numdata;
-    locpow = get_localpower3d(data, numdata, rin, zin, 0.0);
 
     /*  Now prep the maximization at LOWACC for speed */
 
