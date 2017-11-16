@@ -1,5 +1,6 @@
 #include "ransomfft.h"
 #include "stdint.h"
+#include <errno.h>
 
 #if defined USEFFTW
 
@@ -29,6 +30,8 @@ void read_wisdom(void)
                    wisdomfilenm);
         fclose(wisdomfile);
     }
+    // The following resets errno if one of the wisdom files was not found
+    errno = 0;
 }
 
 

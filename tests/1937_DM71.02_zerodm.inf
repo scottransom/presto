@@ -1,0 +1,25 @@
+ Data file name without suffix          =  1937_DM71.02_zerodm
+ Telescope used                         =  GBT
+ Instrument used                        =  GUPPI
+ Object being observed                  =  1937+21
+ J2000 Right Ascension (hh:mm:ss.ssss)  =  19:39:38.5920
+ J2000 Declination     (dd:mm:ss.ssss)  =  21:35:00.2400
+ Data observed by                       =  Maura McLaughlin
+ Epoch of observation (MJD)             =  55267.436250000000001
+ Barycentered?           (1=yes, 0=no)  =  0
+ Number of bins in the time series      =  471040     
+ Width of each time series bin (sec)    =  8.192e-05
+ Any breaks in the data? (1=yes, 0=no)  =  0
+ Type of observation (EM band)          =  Radio
+ Beam diameter (arcsec)                 =  905
+ Dispersion measure (cm-3 pc)           =  71.02
+ Central freq of low channel (Mhz)      =  720.830078125
+ Total bandwidth (Mhz)                  =  200
+ Number of channels                     =  128
+ Channel bandwidth (Mhz)                =  1.5625
+ Data analyzed by                       =  sransom
+ Any additional notes:
+    Project ID AGBT10A_022_01, Date: 2010-03-12T10:28:12.000.
+    2 polns were summed.  Samples have 8 bits.
+
+

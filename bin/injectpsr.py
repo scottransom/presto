@@ -921,7 +921,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
         
         # Prepare for next iteration
         lobin = hibin 
-        spectra = fil.get_spectra(lobin, lobin+block_size)
+        spectra = fil.get_spectra(lobin, block_size)
         numread = spectra.shape[0]
 
     sys.stdout.write("Done   \n")
