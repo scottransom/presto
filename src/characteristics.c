@@ -1,8 +1,8 @@
 #include "presto.h"
 
-static double extended_equiv_gaussian_sigma(double logp);
-static double log_asymtotic_incomplete_gamma(double a, double z);
-static double log_asymtotic_gamma(double z);
+double extended_equiv_gaussian_sigma(double logp);
+double log_asymtotic_incomplete_gamma(double a, double z);
+double log_asymtotic_gamma(double z);
 
 float get_numphotons(FILE * file)
   /* Return the total number of photons in the FFT file      */

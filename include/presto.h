@@ -332,7 +332,6 @@ void binary_velocity(double T, orbitparams * orbit,
   /*  Return the minimum and maximum orbital velocities of a pulsar    */
   /*  during an observation as a fraction of the speed of light.       */
   /*  Arguments:                                                       */
-  /*    'ppsr' is the period of the pusar in seconds.                  */
   /*    'T' is the length of the observation in seconds.               */
   /*    'orbit' is a ptr to a orbitparams structure containing the     */
   /*       Keplerian orbital parameters of the binary system.          */
@@ -374,7 +373,22 @@ fcomplex *gen_z_response(double roffset, int numbetween, double z, \
   /*       contain.                                                    */
 
 fcomplex *gen_w_response(double roffset, int numbetween, double z, \
-			 double w, int numkern);
+                         double w, int numkern);
+  /*  Generate the response function for Fourier f-dot interpolation.  */
+  /*  Arguments:                                                       */
+  /*    'roffset' is the offset in Fourier bins for the full response  */
+  /*       (i.e. At this point, the response would equal 1.0)          */
+  /*    'numbetween' is the number of points to interpolate between    */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 1 = interbins) */
+  /*    'z' is the average Fourier Frequency derivative (# of bins     */
+  /*       the signal smears over during the observation).             */
+  /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
+  /*       Fourier f-dot during the observation).                      */
+  /*    'numkern' is the number of complex points that the kernel will */
+  /*       contain.                                                    */
+
+fcomplex *gen_w_response2(double roffset, int numbetween, double z, \
+                          double w, int numkern, int num_pts_wdat);
   /*  Generate the response function for Fourier f-dot interpolation.  */
   /*  Arguments:                                                       */
   /*    'roffset' is the offset in Fourier bins for the full response  */
@@ -1030,7 +1044,29 @@ fcomplex *corr_rz_interp(fcomplex *data, int numdata, int numbetween, \
   /*   'nextbin' will contain the bin number of the first bin not    */
   /*      interpolated in data.                                      */
 
-fcomplex *corr_rzw_interp(fcomplex *data, int numdata, int numbetween, \
+fcomplex ***corr_rzw_vol(fcomplex * data, int numdata, int numbetween, \
+                         int startbin, double zlo, double zhi, int numz, \
+                         double wlo, double whi, int numw, int fftlen, \
+                         presto_interp_acc accuracy, int *nextbin);
+  /* This routine uses the correlation method to do Fourier          */
+  /* complex interpolations of the f-fdot-fdotdot volume.            */
+  /* Arguments:                                                      */
+  /*   'data' is a complex array of the data to be interpolated.     */
+  /*   'numdata' is the number of complex points (bins) in data.     */
+  /*   'numbetween' is the number of points to interpolate per bin.  */
+  /*   'startbin' is the first bin to use in data for interpolation. */
+  /*   'zlo' is the lowest fdot to use (z=f-dot*T^2)                 */
+  /*   'zhi' is the highest fdot to use (z=f-dot*T^2)                */
+  /*   'numz' is the number of z values to use to make the volume    */
+  /*   'wlo' is the lowest fdotdot to use (w=f-dotdot*T^3)           */
+  /*   'whi' is the highest fdotdot to use (w=f-dotdot*T^3)          */
+  /*   'numw' is the number of w values to use to make the volume    */
+  /*   'fftlen' is the # of complex pts in kernel and result.        */
+  /*   'accuracy' is either HIGHACC or LOWACC.                       */
+  /*   'nextbin' will contain the bin number of the first bin not    */
+  /*      interpolated in data.                                      */
+
+    fcomplex *corr_rzw_interp(fcomplex *data, int numdata, int numbetween, \
 			  int startbin, double z, double w, int fftlen, \
 			  presto_interp_acc accuracy, int *nextbin);
   /* This routine uses the correlation method to do a Fourier        */

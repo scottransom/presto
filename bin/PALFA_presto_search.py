@@ -51,22 +51,6 @@ sifting.short_period    = 0.0005 # Shortest period candidates to consider (s)
 sifting.long_period     = 15.0   # Longest period candidates to consider (s)
 sifting.harm_pow_cutoff = 8.0    # Power required in at least one harmonic
 
-def get_baryv(ra, dec, mjd, T, obs="AO"):
-    """
-    get_baryv(ra, dec, mjd, T):
-         Determine the average barycentric velocity towards 'ra', 'dec'
-             during an observation from 'obs'.  The RA and DEC are in the
-             standard string format (i.e. 'hh:mm:ss.ssss' and
-             'dd:mm:ss.ssss').  'T' is in sec and 'mjd' is (of course) in MJD.
-   """
-    tts = psr_utils.span(mjd, mjd+T/86400.0, 100)
-    nn = len(tts)
-    bts = numpy.zeros(nn, dtype=numpy.float64)
-    vel = numpy.zeros(nn, dtype=numpy.float64)
-    presto.barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
-    avgvel = numpy.add.reduce(vel)/nn
-    return avgvel
-
 def fix_fil_posn(fil_filenm, hdrlen, ra, dec):
     """
     fix_fil_posn(fil_filenm, hdrlen, ra, dec):
@@ -243,8 +227,8 @@ class obs_info:
             fix_fil_posn(fil_filenm, self.hdrlen,
                          self.ra_string, self.dec_string)
         # Determine the average barycentric velocity of the observation
-        self.baryv = get_baryv(self.ra_string, self.dec_string,
-                               self.MJD, self.T, obs="AO")
+        self.baryv = presto.get_baryv(self.ra_string, self.dec_string,
+                                      self.MJD, self.T, obs="AO")
         # Where to dump all the results
         # Directory structure is under the base_output_directory
         # according to base/MJD/filenmbase/beam

@@ -68,6 +68,6 @@ setup(name="PRESTO",
       description="Python interfaces to PGPLOT and PRESTO",
       author="Scott Ransom (ppgplot from Nick Patavlis)",
       author_email="sransom@nrao.edu",
-      packages=['ppgplot', "presto"],
+      packages=['ppgplot', 'presto'],
       package_dir={'ppgplot':'ppgplot_src','presto':'presto_src'},
       ext_modules=[ext_ppgplot,ext_presto])

@@ -41,21 +41,6 @@ sifting.harm_pow_cutoff = 8.0    # Power required in at least one harmonic
 foldnsubs               = 128    # Number of subbands to use when folding
 #-------------------------------------------------------------------
 
-def get_baryv(ra, dec, mjd, T, obs="GB"):
-    """
-    get_baryv(ra, dec, mjd, T):
-        Determine the average barycentric velocity towards 'ra', 'dec'
-        during an observation from 'obs'.  The RA and DEC are in the
-        standard string format (i.e. 'hh:mm:ss.ssss' and 'dd:mm:ss.ssss').
-        'T' is in sec and 'mjd' is (of course) in MJD.
-    """
-    tts = pu.span(mjd, mjd+T/86400.0, 100)
-    nn = len(tts)
-    bts = numpy.zeros(nn, dtype=numpy.float64)
-    vel = numpy.zeros(nn, dtype=numpy.float64)
-    presto.barycenter(tts, bts, vel, nn, ra, dec, obs, "DE200")
-    return vel.mean()
-
 def find_masked_fraction(obs):
     """
     find_masked_fraction(obs):
@@ -156,8 +141,8 @@ class obs_info:
         self.T = self.N * self.dt
         self.srcname=fitshandle[0].header['SRC_NAME']
         # Determine the average barycentric velocity of the observation
-        self.baryv = get_baryv(self.ra_string, self.dec_string,
-                               self.MJD, self.T, obs="GB")
+        self.baryv = presto.get_baryv(self.ra_string, self.dec_string,
+                                      self.MJD, self.T, obs="GB")
         # Where to dump all the results
         # Directory structure is under the base_output_directory
         # according to base/MJD/filenmbase/beam

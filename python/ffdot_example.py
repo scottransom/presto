@@ -1,7 +1,9 @@
 import numpy as num
-import newpresto as presto
+import presto
 import ppgplot
 from Pgplot import pgpalette
+from numpy.random import standard_normal as norm
+import time
 
 N = 2**14
 r = N/4.0 # average freq over "observation"
@@ -10,10 +12,10 @@ rint = num.floor(r)
 dr = 1.0/32.0
 dz = 0.18
 np = 512 # number of pixels across for f-fdot image
-z = 0.0 # average fourier f-dot
-w = 0.0 # fourier freq double deriv
+z = 10.0 # average fourier f-dot
+w = -40.0 # fourier freq double deriv
 noise = 0.0
-#noise = 4*num.random.standard_normal(N)
+noise = 1.0*norm(N)
 
 us = num.arange(N, dtype=num.float64) / N # normalized time coordinate
 r0 = r - 0.5 * z + w / 12.0 # Make symmetric for all z and w
@@ -25,7 +27,19 @@ pffdot = presto.spectralpower(ffdot.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pffdot) / theo_max_pow # Fraction of recovered power
 print "Fraction of recovered signal power = %f" % frp
-# print "Raw power should be ~%.2e" % theo_max_pow
+a = time.clock()
+[maxpow, rmax, zmax, rd] = presto.maximize_rz(ft, r+norm(1)[0]/5.0,
+                                              z+norm(1)[0], norm=1.0)
+print "Time for rz:", time.clock()-a
+print r, rmax, z, zmax, theo_max_pow, maxpow
+a = time.clock()
+[maxpow, rmax, zmax, wmax, rd] = presto.maximize_rzw(ft, r+norm(1)[0]/5.0,
+                                                     z+norm(1)[0],
+                                                     w+norm(1)[0]*5.0,
+                                                     norm=1.0)
+print "Time for rzw:", time.clock()-a
+print r, rmax, z, zmax, w, wmax, theo_max_pow, maxpow
+#print "Raw power should be ~%.2e" % theo_max_pow
 pffdot = pffdot / theo_max_pow
 pffdot.shape = (np, np)
 rs = num.arange(np) * dr - np/2*dr

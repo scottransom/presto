@@ -11,6 +11,7 @@ import os
 import os.path
 import numpy as np
 import sigproc
+import spectra
 
 
 DEBUG = False
@@ -184,6 +185,16 @@ class FilterbankFile(object):
         else:
             raise ValueError("Unrecognized mode (%s)!" % mode)
 
+    @property
+    def freqs(self):
+        # Alias for frequencies
+        return self.frequencies
+
+    @property
+    def nchan(self):
+        # more aliases..
+        return self.nchans
+
     def close(self):
         if self.filfile is not None:
             self.filfile.close()
@@ -191,20 +202,22 @@ class FilterbankFile(object):
     def get_timeslice(self, start, stop):
         startspec = int(np.round(start/self.tsamp))
         stopspec = int(np.round(stop/self.tsamp))
-        return self.get_spectra(startbins, stopbins)
+        return self.get_spectra(startspec, stopspec-startspec)
 
-    def get_spectra(self, start, stop):
-        stop = min(stop, self.nspec)
+    def get_spectra(self, start, nspec):
+        stop = min(start+nspec, self.nspec)
         pos = self.header_size+start*self.bytes_per_spectrum
         # Compute number of elements to read
         nspec = int(stop) - int(start)
         num_to_read = nspec*self.nchans
         num_to_read = max(0, num_to_read)
         self.filfile.seek(pos, os.SEEK_SET)
-        spectra = np.fromfile(self.filfile, dtype=self.dtype, 
+        spectra_dat = np.fromfile(self.filfile, dtype=self.dtype, 
                               count=num_to_read)
-        spectra.shape = nspec, self.nchans 
-        return spectra
+        spectra_dat.shape = nspec, self.nchans 
+        spec = spectra.Spectra(self.freqs, self.tsamp, spectra_dat.T,
+                starttime=start*self.tsamp, dm=0.0)
+        return spec
 
     def append_spectra(self, spectra):
         """Append spectra to the file if is not read-only.

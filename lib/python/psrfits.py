@@ -81,6 +81,7 @@ class PsrfitsFile(object):
         self.freqs = self.fits['SUBINT'].data[0]['DAT_FREQ'] 
         self.frequencies = self.freqs # Alias
         self.tsamp = self.specinfo.dt
+        self.nspec = self.specinfo.N
 
     def read_subint(self, isub, apply_weights=True, apply_scales=True, \
                     apply_offsets=True):
