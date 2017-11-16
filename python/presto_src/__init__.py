@@ -167,6 +167,22 @@ def rzw_response(roffset, z, w, numbetween=1, numkern=None):
         numkern = w_resp_halfwidth(z, w, LOWACC)
     return gen_w_response(roffset, numbetween, numkern, z, w)
 
+def maximize_r(data, r, norm = None):
+    """
+    maximize_r(data, r, norm = None):
+        Optimize the detection of a signal at Fourier frequency 'r' in
+            a FFT 'data'.  The routine returns a list containing
+            the optimized values of the maximum normalized power, rmax,
+            and an rderivs structure for the peak.
+    """
+    rd = rderivs()
+    (rmax, maxpow) = max_r_arr(data, r, rd)
+    if not norm:
+        maxpow = maxpow / rd.locpow
+    else:
+        maxpow = maxpow / norm
+    return [maxpow, rmax, rd]
+
 def maximize_rz(data, r, z, norm = None):
     """
     maximize_rz(data, r, z, norm = None):
@@ -183,21 +199,21 @@ def maximize_rz(data, r, z, norm = None):
         maxpow = maxpow / norm
     return [maxpow, rmax, zmax, rd]
 
-def maximize_r(data, r, norm = None):
+def maximize_rzw(data, r, z, w, norm = None):
     """
-    maximize_r(data, r, norm = None):
-        Optimize the detection of a signal at Fourier frequency 'r' in
-            a FFT 'data'.  The routine returns a list containing
+    maximize_rzw(data, r, z, w, norm = None):
+        Optimize the detection of a signal at location 'r', 'z', 'w' in
+            the F-Fdot-Fdotdot plane.  The routine returns a list containing
             the optimized values of the maximum normalized power, rmax,
-            and an rderivs structure for the peak.
+            zmax, wmax, and an rderivs structure for the peak.
     """
     rd = rderivs()
-    (rmax, maxpow) = max_r_arr(data, r, rd)
+    (rmax, zmax, wmax, maxpow) = max_rzw_arr(data, r, z, w, rd)
     if not norm:
         maxpow = maxpow / rd.locpow
     else:
         maxpow = maxpow / norm
-    return [maxpow, rmax, rd]
+    return [maxpow, rmax, zmax, wmax, rd]
 
 def search_fft(data, numcands, norm='default'):
     """

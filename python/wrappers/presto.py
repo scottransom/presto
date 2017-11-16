@@ -854,6 +854,10 @@ def max_rz_arr(data, rin, zin, derivs):
     return _presto.max_rz_arr(data, rin, zin, derivs)
 max_rz_arr = _presto.max_rz_arr
 
+def max_rzw_arr(data, rin, zin, win, derivs):
+    return _presto.max_rzw_arr(data, rin, zin, win, derivs)
+max_rzw_arr = _presto.max_rzw_arr
+
 def barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem):
     return _presto.barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem)
 barycenter = _presto.barycenter

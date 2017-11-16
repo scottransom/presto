@@ -1,5 +1,7 @@
-#include "presto.h"
 #include "accel.h"
+
+// Will need to zap this when we merge with Bridget's code
+#define ACCEL_DW 20.0
 
 double max_rzw_arr(fcomplex * data, int numdata, double rin, double zin,
                    double win, double *rout, double *zout,
@@ -10,19 +12,21 @@ double max_rzw_arr(fcomplex * data, int numdata, double rin, double zin,
 /* oversampled F/Fdot/Fdotdot volume.                       */
 {
     float locpow = get_localpower3d(data, numdata, rin, zin, win);
-    float maxpow = 0;
+    float maxpow = 0, pow, powargr, powargi;
     int kern_half_width, extra = 10, startbin = (int)(rin) - 1;
-    int numz, numw, numbetween, nextbin, numret;
+    int numz, numw, nextbin, fftlen, numbetween;
     // The factor beyond ACCEL_DR, ACCEL_DZ, ACCEL_DW will interpolate
-    int interpfac = 8, wind, zind, rind;
+    int interpfac = 4, wind = 0, zind = 0, rind = 0;
     double ifrac = 1.0/interpfac;
-    fcomplex ***vol;
+    fcomplex ***vol, amp;
 
-    kern_half_width = w_resp_halfwidth(zin, win, HIGHACC);
+    kern_half_width = w_resp_halfwidth(zin, win, LOWACC);
     numz = numw = 2 * interpfac + 1;
-    fftlen = next2_to_n(2 * kern_half_width + extra);
-    vol = corr_rzw_vol(data, numdata, interpfac*ACCEL_RDR, startbin, 
-                       zin-ACCEL_DZ, zin+ACCEL+DZ, numz,
+    numbetween = interpfac*ACCEL_RDR;
+    fftlen = next2_to_n(numbetween * (2 * kern_half_width + extra));
+    // printf("fftlen = %d\n", fftlen);
+    vol = corr_rzw_vol(data, numdata, numbetween, startbin, 
+                       zin-ACCEL_DZ, zin+ACCEL_DZ, numz,
                        win-ACCEL_DW, win+ACCEL_DW, numw, 
                        fftlen, LOWACC, &nextbin);
     {
@@ -42,10 +46,12 @@ double max_rzw_arr(fcomplex * data, int numdata, double rin, double zin,
             }
         }
     }
-    maxpow /= locpow;
     *rout = startbin + rind * ACCEL_DR * ifrac;
     *zout = zin-ACCEL_DZ + zind * ACCEL_DZ * ifrac;
-    *wout = win=ACCEL_DW + wind * ACCEL_DW * ifrac;
+    *wout = win-ACCEL_DW + wind * ACCEL_DW * ifrac;
+    vect_free(vol[0][0]);
+    vect_free(vol[0]);
+    vect_free(vol);
     get_derivs3d(data, numdata, *rout, *zout, *wout, locpow, derivs);
     return maxpow;
 }

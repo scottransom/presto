@@ -4219,6 +4219,14 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
     }
 
 
+    void wrap_max_rzw_arr(fcomplex * data, long numdata, double rin, double zin, double win,
+                          rderivs * derivs, double *rout, double *zout, double *wout, double *powout){
+        double pow;
+        pow = max_rzw_arr(data, numdata, rin, zin, win, rout, zout, wout, derivs);
+        *powout = pow;
+    }
+
+
     void wrap_barycenter(double *topotimes, long N1,
                          double *barytimes, long N2,
                          double *voverc, long N3,
@@ -13217,6 +13225,123 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_max_rzw_arr(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  long arg2 ;
+  double arg3 ;
+  double arg4 ;
+  double arg5 ;
+  rderivs *arg6 = (rderivs *) 0 ;
+  double *arg7 = (double *) 0 ;
+  double *arg8 = (double *) 0 ;
+  double *arg9 = (double *) 0 ;
+  double *arg10 = (double *) 0 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  void *argp6 = 0 ;
+  int res6 = 0 ;
+  double temp7 ;
+  int res7 = SWIG_TMPOBJ ;
+  double temp8 ;
+  int res8 = SWIG_TMPOBJ ;
+  double temp9 ;
+  int res9 = SWIG_TMPOBJ ;
+  double temp10 ;
+  int res10 = SWIG_TMPOBJ ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  
+  arg7 = &temp7;
+  arg8 = &temp8;
+  arg9 = &temp9;
+  arg10 = &temp10;
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:max_rzw_arr",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(obj0, NPY_CFLOAT);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  ecode3 = SWIG_AsVal_double(obj1, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "max_rzw_arr" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj2, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "max_rzw_arr" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  ecode5 = SWIG_AsVal_double(obj3, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "max_rzw_arr" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  res6 = SWIG_ConvertPtr(obj4, &argp6,SWIGTYPE_p_RDERIVS, 0 |  0 );
+  if (!SWIG_IsOK(res6)) {
+    SWIG_exception_fail(SWIG_ArgError(res6), "in method '" "max_rzw_arr" "', argument " "6"" of type '" "rderivs *""'"); 
+  }
+  arg6 = (rderivs *)(argp6);
+  {
+    errno = 0;
+    wrap_max_rzw_arr(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res7)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg7)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res7) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg7), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res8)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg8)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res8) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg8), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res9)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg9)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res9) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg9), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res10)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg10)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res10) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg10), SWIGTYPE_p_double, new_flags));
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_barycenter(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   double *arg1 = (double *) 0 ;
@@ -13590,6 +13715,7 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"corr_rzw_vol", _wrap_corr_rzw_vol, METH_VARARGS, NULL},
 	 { (char *)"max_r_arr", _wrap_max_r_arr, METH_VARARGS, NULL},
 	 { (char *)"max_rz_arr", _wrap_max_rz_arr, METH_VARARGS, NULL},
+	 { (char *)"max_rzw_arr", _wrap_max_rzw_arr, METH_VARARGS, NULL},
 	 { (char *)"barycenter", _wrap_barycenter, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
