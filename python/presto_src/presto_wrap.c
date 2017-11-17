@@ -4101,9 +4101,9 @@ void wrap_gen_w_response(double roffset, int numbetween, int numkern,
 }
 
 void wrap_gen_w_response2(double roffset, int numbetween, int numkern,
-                         int num_pts_wdat, double z, double w,
+                          double z, double w,
                          fcomplex **vect, long *nn){
-    *vect = gen_w_response2(roffset, numbetween, z, w, numkern, num_pts_wdat);
+    *vect = gen_w_response2(roffset, numbetween, z, w, numkern);
     *nn = numkern;
 }
 
@@ -10925,37 +10925,33 @@ SWIGINTERN PyObject *_wrap_gen_w_response2(PyObject *SWIGUNUSEDPARM(self), PyObj
   double arg1 ;
   int arg2 ;
   int arg3 ;
-  int arg4 ;
+  double arg4 ;
   double arg5 ;
-  double arg6 ;
-  fcomplex **arg7 = (fcomplex **) 0 ;
-  long *arg8 = (long *) 0 ;
+  fcomplex **arg6 = (fcomplex **) 0 ;
+  long *arg7 = (long *) 0 ;
   double val1 ;
   int ecode1 = 0 ;
   int val2 ;
   int ecode2 = 0 ;
   int val3 ;
   int ecode3 = 0 ;
-  int val4 ;
+  double val4 ;
   int ecode4 = 0 ;
   double val5 ;
   int ecode5 = 0 ;
-  double val6 ;
-  int ecode6 = 0 ;
-  fcomplex *data_temp7 = NULL ;
-  long dim_temp7 ;
+  fcomplex *data_temp6 = NULL ;
+  long dim_temp6 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
   PyObject * obj3 = 0 ;
   PyObject * obj4 = 0 ;
-  PyObject * obj5 = 0 ;
   
   {
-    arg7 = &data_temp7;
-    arg8 = &dim_temp7;
+    arg6 = &data_temp6;
+    arg7 = &dim_temp6;
   }
-  if (!PyArg_ParseTuple(args,(char *)"OOOOOO:gen_w_response2",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:gen_w_response2",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
   ecode1 = SWIG_AsVal_double(obj0, &val1);
   if (!SWIG_IsOK(ecode1)) {
     SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "gen_w_response2" "', argument " "1"" of type '" "double""'");
@@ -10971,24 +10967,19 @@ SWIGINTERN PyObject *_wrap_gen_w_response2(PyObject *SWIGUNUSEDPARM(self), PyObj
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "gen_w_response2" "', argument " "3"" of type '" "int""'");
   } 
   arg3 = (int)(val3);
-  ecode4 = SWIG_AsVal_int(obj3, &val4);
+  ecode4 = SWIG_AsVal_double(obj3, &val4);
   if (!SWIG_IsOK(ecode4)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "gen_w_response2" "', argument " "4"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "gen_w_response2" "', argument " "4"" of type '" "double""'");
   } 
-  arg4 = (int)(val4);
+  arg4 = (double)(val4);
   ecode5 = SWIG_AsVal_double(obj4, &val5);
   if (!SWIG_IsOK(ecode5)) {
     SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "gen_w_response2" "', argument " "5"" of type '" "double""'");
   } 
   arg5 = (double)(val5);
-  ecode6 = SWIG_AsVal_double(obj5, &val6);
-  if (!SWIG_IsOK(ecode6)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode6), "in method '" "gen_w_response2" "', argument " "6"" of type '" "double""'");
-  } 
-  arg6 = (double)(val6);
   {
     errno = 0;
-    wrap_gen_w_response2(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+    wrap_gen_w_response2(arg1,arg2,arg3,arg4,arg5,arg6,arg7);
     
     if (errno != 0)
     {
@@ -11006,17 +10997,17 @@ SWIGINTERN PyObject *_wrap_gen_w_response2(PyObject *SWIGUNUSEDPARM(self), PyObj
   resultobj = SWIG_Py_Void();
   {
     npy_intp dims[1] = {
-      *arg8 
+      *arg7 
     };
-    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg7));
+    PyObject* obj = PyArray_SimpleNewFromData(1, dims, NPY_CFLOAT, (void*)(*arg6));
     PyArrayObject* array = (PyArrayObject*) obj;
     
     if (!array) SWIG_fail;
     
 #ifdef SWIGPY_USE_CAPSULE
-    PyObject* cap = PyCapsule_New((void*)(*arg7), SWIGPY_CAPSULE_NAME, free_cap);
+    PyObject* cap = PyCapsule_New((void*)(*arg6), SWIGPY_CAPSULE_NAME, free_cap);
 #else
-    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg7), free);
+    PyObject* cap = PyCObject_FromVoidPtr((void*)(*arg6), free);
 #endif
     
 #if NPY_API_VERSION < 0x00000007

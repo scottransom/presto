@@ -538,9 +538,9 @@ void wrap_gen_w_response(double roffset, int numbetween, int numkern,
 }
 
 void wrap_gen_w_response2(double roffset, int numbetween, int numkern,
-                         int num_pts_wdat, double z, double w,
+                          double z, double w,
                          fcomplex **vect, long *nn){
-    *vect = gen_w_response2(roffset, numbetween, z, w, numkern, num_pts_wdat);
+    *vect = gen_w_response2(roffset, numbetween, z, w, numkern);
     *nn = numkern;
 }
 

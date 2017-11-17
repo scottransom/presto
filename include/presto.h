@@ -388,7 +388,7 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z, \
   /*       contain.                                                    */
 
 fcomplex *gen_w_response2(double roffset, int numbetween, double z, \
-                          double w, int numkern, int num_pts_wdat);
+                          double w, int numkern);
   /*  Generate the response function for Fourier f-dot interpolation.  */
   /*  Arguments:                                                       */
   /*    'roffset' is the offset in Fourier bins for the full response  */
