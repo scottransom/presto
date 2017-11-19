@@ -240,11 +240,12 @@ class binary_psr:
 if __name__=='__main__':
     from Pgplot import *
     
-    psrA = binary_psr("0737A_Lyne_DD.par")
-    times = psr_utils.span(0.0, psrA.par.PB, 1000) + psrA.par.T0
+    # The following reproduces the RV plot in Hulse & Taylor, 1975
+    psrA = binary_psr("B1913+16.par")
+    T0 = 42320.933 # From Hulse & Taylor, 1975
+    times = psr_utils.span(0.0, psrA.par.PB, 1000) + T0
     rv = psrA.radial_velocity(times)
-    plotxy(rv, (times-psrA.par.T0)*24,
+    plotxy(rv, (times-T0)*24,
            labx="Hours since Periastron", laby="Radial Velocity (km.s)")
     closeplot()
-    print psrA.calc_anoms(52345.32476876)
     
