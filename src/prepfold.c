@@ -898,7 +898,6 @@ int main(int argc, char *argv[])
 
         /* Convert Eccentric anomaly to time delays */
 
-        search.orb.w *= DEGTORAD;
         E_to_phib(Ep, numbinpoints, &search.orb);
         numdelays = numbinpoints;
         if (search.bepoch == 0.0)
@@ -961,7 +960,7 @@ int main(int argc, char *argv[])
                     "Eccentricity                 =  %-.10g\n", search.orb.e);
             fprintf(filemarker,
                     "Longitude of peri (w) (deg)  =  %-.10g\n",
-                    search.orb.w / DEGTORAD);
+                    search.orb.w);
             tmpTo = search.orb.t;
             if (cmd->eventsP) {
                 if (search.bepoch == 0.0)
@@ -1024,8 +1023,6 @@ int main(int argc, char *argv[])
         tfdd = fdd / 6.0;
         dtmp = cmd->npart / T;
         parttimes = gen_dvect(cmd->npart);
-        if (binary)
-            search.orb.w *= DEGTORAD;
         for (ii = 0; ii < numevents; ii++) {
             event = events[ii];
             if (binary) {

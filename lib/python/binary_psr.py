@@ -196,34 +196,36 @@ class binary_psr:
             ts = ts - dts
         return ts
 
-    def shapiro_delays(self, R, S, ecc_anoms):
+    def shapiro_delays(self, R, S, MJD):
         """
-        shapiro_delays(R, S, ecc_anoms):
+        shapiro_delays(R, S, MJD):
             Return the predicted Shapiro delay (in us) for a variety of
-                eccentric anomalies (in radians) given the R and
-                S parameters.
+                barycentric MJDs, given the R and S parameters.
         """
-        canoms = Num.cos(ecc_anoms)
-        sanoms = Num.sin(ecc_anoms)
+        ma, ea, ta = self.calc_anoms(MJD)
+        ws = self.calc_omega(MJD)
+        canoms = Num.cos(ea)
+        sanoms = Num.sin(ea)
         ecc = self.par.E
-        omega = self.par.OM * DEGTORAD
-        cw = Num.cos(omega)
-        sw = Num.sin(omega)
+        cw = Num.cos(ws)
+        sw = Num.sin(ws)
         delay = -2.0e6*R*Num.log(1.0 - ecc*canoms -
                                  S*(sw*(canoms-ecc) +
                                     Num.sqrt((1.0 - ecc*ecc)) * cw * sanoms))
         return delay
 
 
-    def shapiro_measurable(self, R, S, mean_anoms):
+    def shapiro_measurable(self, R, S, MJD):
         """
-        shapiro_measurable(R, S, mean_anoms):
+        shapiro_measurable(R, S, MJD):
             Return the predicted _measurable_ Shapiro delay (in us) for a
-                variety of mean anomalies (in radians) given the R
-                and S parameters.  This is eqn 28 in Freire & Wex
-                2010 and is only valid in the low eccentricity limit.
+                variety of barycentric MJDs, given the R and S parameters.  
+                This is eqn 28 in Freire & Wex 2010 and is only valid in 
+                the low eccentricity limit.
         """
-        Phi = mean_anoms + self.par.OM * DEGTORAD
+        ma, ea, ta = self.calc_anoms(MJD)
+        ws = self.calc_omega(MJD)
+        Phi = ma + ws
         cbar = Num.sqrt(1.0 - S**2.0)
         zeta = S / (1.0 + cbar)
         h3 = R * zeta**3.0

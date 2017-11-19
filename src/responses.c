@@ -113,7 +113,7 @@ void binary_velocity(double T, orbitparams * orbit, double *minv, double *maxv)
         orb.p = orbit->p;
         orb.x = orbit->x;
         orb.e = orbit->e;
-        orb.w = orbit->w * DEGTORAD;
+        orb.w = orbit->w;
         orb.t = orbit->t;
         startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
         E = dorbint(startE, numpoints, dtb, &orb);
@@ -628,7 +628,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
     f = TWOPI * datar;
     orb.x = orbit->x / (ppsr * datar);
     orb.e = orbit->e;
-    orb.w = orbit->w * DEGTORAD;
+    orb.w = orbit->w;
     orb.t = orbit->t / T;
 
     /* Generate the orbit */

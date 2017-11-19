@@ -237,7 +237,7 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
             fprintf(outfile, "# P_orb (s)        =  %-17.15g\n", search->orb.p);
             fprintf(outfile, "# asin(i)/c (s)    =  %-17.15g\n", search->orb.x);
             fprintf(outfile, "# eccentricity     =  %-17.15g\n", search->orb.e);
-            fprintf(outfile, "# w (rad)          =  %-17.15g\n", search->orb.w);
+            fprintf(outfile, "# w (deg)          =  %-17.15g\n", search->orb.w);
             fprintf(outfile, "# T_peri           =  %-.12f\n", search->orb.t);
         }
     }
@@ -1279,7 +1279,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                         cpgtext(0.0, 0.1, out);
                         sprintf(out, "e = %f", search->orb.e);
                         cpgtext(0.6, 0.2, out);
-                        sprintf(out, "\\gw (rad) = %f", search->orb.w);
+                        sprintf(out, "\\gw (deg) = %f", search->orb.w);
                         cpgtext(0.6, 0.1, out);
                         sprintf(out, "T\\dperi\\u = %-.11f", search->orb.t);
                         cpgtext(0.0, 0.0, out);
