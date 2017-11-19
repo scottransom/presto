@@ -79,7 +79,6 @@ int main(int argc, char *argv[])
             orbdt = mdata.T / 4096.0;
         numpoints = (long) floor(mdata.T / orbdt + 0.5) + 2;
         phib = dorbint(startE, numpoints, orbdt, &mdata.orb);
-        mdata.orb.w *= DEGTORAD;
         orbmaxt = orbdt * numpoints;
         E_to_phib(phib, numpoints, &mdata.orb);
     }
@@ -237,7 +236,7 @@ int main(int argc, char *argv[])
     if (mdata.binary) {
         sprintf(idata.notes,
                 "   T (s) = %-12.4f, r = %-14.4f, z_bin= %-10.4f, "
-                "r_bin = %-8.4f, w_bin (rad) = %-7.3f\n", mdata.T,
+                "r_bin = %-8.4f, w_bin (deg) = %-7.3f\n", mdata.T,
                 mdata.r, TWOPI * mdata.orb.x * mdata.f,
                 mdata.T / mdata.orb.p, mdata.orb.w);
         vect_free(phib);

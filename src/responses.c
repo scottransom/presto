@@ -2,23 +2,6 @@
 
 #define MIN_NUMDATA 131072
 #define MIN_NUMORBPTS 2049      /* This should be a power-of-two + 1 */
-#define NUM_PTS_WDAT 16384
-// Tests conducted checking the fractional deviation of the amplitudes
-// of the w-response calculation using different NUM_PTS_WDAT,
-// compared to 262144.  roffset=[0,1], z=[-200,200], w=[-1000,1000]
-//
-// NUM_PTS_WDAT  MinFracDev   MedFracDev  MaxFracDev
-//   131072      1.5983e-05   6.4267e-05   0.002060
-//    65536      5.1875e-05   0.00021747   0.005147
-//    32768      0.00012699   0.00051079   0.012568
-//    16384      0.00027375   0.00112215   0.026279
-//     8192      0.00054102   0.00221496   0.053507
-//     4096      0.00104040   0.00410371   0.101785
-//     2048      0.00244757   0.00875644   0.224530
-//     1024      0.00427585   0.01669957   0.497524
-//
-// This means we could probably go to 16384 or so, with very
-// little impact.
 
 /* Function declarations */
 int fresnl(double xxa, double *ssa, double *cca);
@@ -82,8 +65,8 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy)
         return z_resp_halfwidth(z, accuracy);
     double r0 = 0.5 * (w / 6.0 - z); // Starting deviation from r_avg
     double r1 = 0.5 * (w / 6.0 + z); // Ending deviation from r_avg
-    double rmax = r0 > r1 ? r0 : r1;
-    double rmin = r0 > r1 ? r1 : r0;
+    // We need to know the maximum deviation from r_avg
+    double maxdev = fabs(r0) > fabs(r1) ? fabs(r0) : fabs(r1);
     // If the extrema of the parabola is within 0 < u < 1, then
     // it will be a new freq minimum or maximum
     double u_ext = 0.5 - z / w;
@@ -91,13 +74,12 @@ int w_resp_halfwidth(double z, double w, presto_interp_acc accuracy)
         double z0 = z - w / 2.0; // Starting z
         // Value of r at the extremum
         double r_ext =  0.5 * w * u_ext * u_ext + z0 * u_ext + r0;
-        rmax = r_ext > rmax ? r_ext : rmax;
-        rmin = r_ext < rmin ? r_ext : rmin;
+        maxdev = fabs(r_ext) > maxdev ? fabs(r_ext) : maxdev;
     }
     if (accuracy == HIGHACC) {
-        return (int) (0.5 * 1.1 * (rmax - rmin)) + NUMFINTBINS * 3;
+        return (int) (1.1 * maxdev) + NUMFINTBINS * 3;
     } else {
-        return (int) (0.5 * 1.1 * (rmax - rmin)) + NUMFINTBINS;
+        return (int) (1.1 * maxdev) + NUMFINTBINS;
     }
 }
 
@@ -131,7 +113,7 @@ void binary_velocity(double T, orbitparams * orbit, double *minv, double *maxv)
         orb.p = orbit->p;
         orb.x = orbit->x;
         orb.e = orbit->e;
-        orb.w = orbit->w * DEGTORAD;
+        orb.w = orbit->w;
         orb.t = orbit->t;
         startE = keplers_eqn(orb.t, orb.p, orb.e, 1.0E-15);
         E = dorbint(startE, numpoints, dtb, &orb);
@@ -334,6 +316,20 @@ fcomplex *gen_z_response(double roffset, int numbetween, double z, int numkern)
 }
 
 
+// Tests conducted checking the fractional deviation of the amplitudes
+// of the w-response calculation using different num_pts_wdat,
+// compared to 262144.  roffset=[0,1], z=[-200,200], w=[-1000,1000]
+//
+// NUM_PTS_WDAT  MinFracDev   MedFracDev  MaxFracDev
+//   131072      1.5983e-05   6.4267e-05   0.002060
+//    65536      5.1875e-05   0.00021747   0.005147
+//    32768      0.00012699   0.00051079   0.012568
+//    16384      0.00027375   0.00112215   0.026279
+//     8192      0.00054102   0.00221496   0.053507
+//     4096      0.00104040   0.00410371   0.101785
+//     2048      0.00244757   0.00875644   0.224530
+//     1024      0.00427585   0.01669957   0.497524
+
 fcomplex *gen_w_response(double roffset, int numbetween, double z,
                          double w, int numkern)
   /*  Generate the response for Fourier f, f-dot, f-dotdot interp.     */
@@ -348,8 +344,9 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
   /*       Fourier f-dot during the observation).                      */
   /*    'numkern' is the number of complex points that the kernel will */
   /*       contain.                                                    */
+  /*  This version uses zero-padding to get the "numbetween"           */
 {
-    int ii, fbar;
+    int ii, fbar, num_pts_wdat;
     float *data;
     double amp, f, fd, fdd, dt, t, phase, dfbar;
     fcomplex *response;
@@ -379,87 +376,10 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
         return response;
     }
 
-    /* Otherwise initialize some data */
-    dt = 1.0 / (double) NUM_PTS_WDAT;
-    amp = 2.0 * dt;
-    fbar = NUM_PTS_WDAT / 4;  // NUM_PTS_WDAT / 4 is average freq
-    dfbar = (double) fbar + roffset;
-    // r_o = rbar - zbar/2 + w/12  where _o is initial and bar is average
-    // z_o = zbar - w/2
-    f = dfbar - 0.5 * z + w / 12.0;     //  This shifts the initial f appropriately
-    fd = (z - 0.5 * w) / 2.0;   // z - w/2 is the initial z value
-    fdd = w / 6.0;
-
-    /* Generate the data set.  Use zero-padding to do the interpolation. */
-    data = gen_fvect(NUM_PTS_WDAT * numbetween);
-    for (ii = 0; ii < NUM_PTS_WDAT * numbetween; ii++)
-        data[ii] = 0.0;
-    for (ii = 0; ii < NUM_PTS_WDAT; ii++) {
-        t = ii * dt;
-        phase = TWOPI * (t * (t * (t * fdd + fd) + f));
-        data[ii] = amp * cos(phase);
-    }
-
-    /* FFT the data */
-    realfft(data, NUM_PTS_WDAT * numbetween, -1);
-
-    /* Generate the final response */
-    response = gen_cvect(numkern);
-
-    /* Chop off the contaminated ends and/or the extra data */
-    memcpy(response, data + 2 * (fbar * numbetween - numkern / 2),
-           sizeof(fcomplex) * numkern);
-
-    /* cleanup */
-    vect_free(data);
-    return response;
-}
-
-
-fcomplex *gen_w_response2(double roffset, int numbetween, double z,
-                         double w, int numkern, int num_pts_wdat)
-  /*  Generate the response for Fourier f, f-dot, f-dotdot interp.     */
-  /*  Arguments:                                                       */
-  /*    'roffset' is the offset in Fourier bins for the full response  */
-  /*       (i.e. At this point, the response would equal 1.0)          */
-  /*    'numbetween' is the number of points to interpolate between    */
-  /*       each standard FFT bin.  (i.e. 'numbetween' = 2 = interbins) */
-  /*    'z' is the average Fourier Frequency derivative (# of bins     */
-  /*       the signal smears over during the observation).             */
-  /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
-  /*       Fourier f-dot during the observation).                      */
-  /*    'numkern' is the number of complex points that the kernel will */
-  /*       contain.                                                    */
-{
-    int ii, fbar;
-    float *data;
-    double amp, f, fd, fdd, dt, t, phase, dfbar;
-    fcomplex *response;
-
-    /* Check that the arguments are OK */
-    if (roffset < 0.0 || roffset >= 1.0) {
-        printf("\n  roffset = %f (out of bounds) in gen_w_response().\n\n", roffset);
-        exit(-1);
-    }
-    if (numbetween < 1 || numbetween >= 20000) {
-        printf("\n  numbetween = %d (out of bounds) in gen_w_response().\n\n",
-               numbetween);
-        exit(-1);
-    }
-    if (numkern < numbetween) {
-        printf("\n  numkern = %d (out of bounds) in gen_w_response().\n\n", numkern);
-        exit(-1);
-    }
-    if ((numkern % (2 * numbetween)) != 0) {
-        printf("\n  numkern %% (2 * numbetween) != 0 in gen_w_response().\n\n");
-        exit(-1);
-    }
-
-    /* If w~=0 use the normal F-dot Fourier interpolation kernel */
-    if (fabs(w) < 1E-4) {
-        response = gen_z_response(roffset, numbetween, z, numkern);
-        return response;
-    }
+    /* Cheeose num_pts_wdat so that there is plenty of Freq range */
+    /* outside of the RZW response. */
+    num_pts_wdat = next2_to_n(6 * w_resp_halfwidth(z, w, LOWACC) +
+                              200 + numkern / numbetween);
 
     /* Otherwise initialize some data */
     dt = 1.0 / (double) num_pts_wdat;
@@ -491,6 +411,150 @@ fcomplex *gen_w_response2(double roffset, int numbetween, double z,
     /* Chop off the contaminated ends and/or the extra data */
     memcpy(response, data + 2 * (fbar * numbetween - numkern / 2),
            sizeof(fcomplex) * numkern);
+
+    /* cleanup */
+    vect_free(data);
+    return response;
+}
+
+
+fcomplex *gen_w_response2(double roffset, int numbetween, double z,
+                          double w, int numkern)
+  /*  Generate the response for Fourier f, f-dot, f-dotdot interp.     */
+  /*  Arguments:                                                       */
+  /*    'roffset' is the offset in Fourier bins for the full response  */
+  /*       (i.e. At this point, the response would equal 1.0)          */
+  /*    'numbetween' is the number of points to interpolate between    */
+  /*       each standard FFT bin.  (i.e. 'numbetween' = 2 = interbins) */
+  /*    'z' is the average Fourier Frequency derivative (# of bins     */
+  /*       the signal smears over during the observation).             */
+  /*    'w' is the Fourier Frequency 2nd derivative (change in the     */
+  /*       Fourier f-dot during the observation).                      */
+  /*    'numkern' is the number of complex points that the kernel will */
+  /*       contain.                                                    */
+  /*  This version uses Fourier interpolation to get the "numbetween"  */
+{
+    int ii, fbar, num_pts_wdat;
+    float *data;
+    double amp, f, fd, fdd, dt, t, phase, dfbar;
+    fcomplex *response = NULL;
+    static int firsttime = 1, old_numkern = 0, old_numbetween = 1, old_fftlen = 0;
+    static fcomplex *kernelarray = NULL;
+
+    /* Check that the arguments are OK */
+    if (roffset < 0.0 || roffset >= 1.0) {
+        printf("\n  roffset = %f (out of bounds) in gen_w_response().\n\n", roffset);
+        exit(-1);
+    }
+    if (numbetween < 1 || numbetween >= 20000) {
+        printf("\n  numbetween = %d (out of bounds) in gen_w_response().\n\n",
+               numbetween);
+        exit(-1);
+    }
+    if (numkern < numbetween) {
+        printf("\n  numkern = %d (out of bounds) in gen_w_response().\n\n", numkern);
+        exit(-1);
+    }
+    if ((numkern % (2 * numbetween)) != 0) {
+        printf("\n  numkern %% (2 * numbetween) != 0 in gen_w_response().\n\n");
+        exit(-1);
+    }
+
+    /* If w~=0 use the normal F-dot Fourier interpolation kernel */
+    if (fabs(w) < 1E-4) {
+        response = gen_z_response(roffset, numbetween, z, numkern);
+        return response;
+    }
+
+    /* Cheeose num_pts_wdat so that there is plenty of Freq range */
+    /* outside of the RZW response. */
+    num_pts_wdat = next2_to_n(6 * w_resp_halfwidth(z, w, LOWACC) +
+                              200 + numkern / numbetween);
+
+    /* Otherwise initialize some data */
+    dt = 1.0 / (double) num_pts_wdat;
+    amp = 2.0 * dt;
+    fbar = num_pts_wdat / 4; // num_pts_wdat / 4 is average freq
+    dfbar = (double) fbar + roffset;
+    // r_o = rbar - zbar/2 + w/12  where _o is initial and bar is average
+    // z_o = zbar - w/2
+    f = dfbar - 0.5 * z + w / 12.0; //  This shifts the initial f appropriately
+    fd = 0.5 * (z - 0.5 * w); // z - w/2 is the initial z value
+    fdd = w / 6.0;
+
+    /* Generate the data set. */
+    data = gen_fvect(num_pts_wdat);
+    for (ii = 0; ii < num_pts_wdat; ii++) {
+        t = ii * dt;
+        phase = TWOPI * (t * (t * (t * fdd + fd) + f));
+        data[ii] = amp * cos(phase);
+    }
+
+    /* FFT the data */
+    realfft(data, num_pts_wdat, -1);
+
+    /* The following block saves us from having to re-compute */
+    /* the Fourier interpolation kernels if 'numkern' is the  */
+    /* same length as on prior calls.                         */
+
+    if (numbetween > 1) {
+        int numintkern, fftlen, beginbin;
+        fcomplex *tmpresponse, *rresp, *dataarray;
+
+        beginbin = (int)(fbar) - numkern / (2 * numbetween);
+        numintkern = 2 * numbetween * r_resp_halfwidth(HIGHACC);
+        fftlen = next2_to_n(numkern + numintkern);
+        //if (old_fftlen > fftlen)
+        //    fftlen = old_fftlen;
+        if (firsttime ||
+            old_numkern != numkern ||
+            old_numbetween != numbetween ||
+            old_fftlen != fftlen) {
+
+            /* Free the old kernelarray if one exists */
+            if (!firsttime)
+                vect_free(kernelarray);
+
+            /* Generate the interpolating kernel array */
+            kernelarray = gen_cvect(fftlen);
+            rresp = gen_r_response(0.0, numbetween, numintkern);
+            place_complex_kernel(rresp, numintkern, kernelarray, fftlen);
+            vect_free(rresp);
+
+            /* FFT the kernel array */
+            COMPLEXFFT(kernelarray, fftlen, -1);
+
+            /* Set our new static variables */
+            old_numkern = numkern;
+            old_numbetween = numbetween;
+            old_fftlen = fftlen;
+            firsttime = 0;
+        }
+
+        /* Generate the data array */
+        dataarray = gen_cvect(fftlen);
+        spread_no_pad(((fcomplex *) (data + 2 * beginbin)),
+                      numkern / numbetween, dataarray, fftlen, numbetween);
+
+        /* Generate the final response */
+        response = gen_cvect(numkern);
+        tmpresponse = complex_corr_conv(dataarray, kernelarray,
+                                        fftlen, FFTD, CORR);
+
+        /* Chop off the extra data */
+        memcpy(response, tmpresponse, sizeof(fcomplex) * numkern);
+        vect_free(tmpresponse);
+        vect_free(dataarray);
+
+    } else {
+
+        /* Generate the final response */
+        response = gen_cvect(numkern);
+
+        /* Chop off the contaminated ends and/or the extra data */
+        memcpy(response, data + 2 * (fbar * numbetween - numkern / 2),
+               sizeof(fcomplex) * numkern);
+    }
 
     /* cleanup */
     vect_free(data);
@@ -564,7 +628,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
     f = TWOPI * datar;
     orb.x = orbit->x / (ppsr * datar);
     orb.e = orbit->e;
-    orb.w = orbit->w * DEGTORAD;
+    orb.w = orbit->w;
     orb.t = orbit->t / T;
 
     /* Generate the orbit */
@@ -642,7 +706,6 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
         }
         spread_no_pad(((fcomplex *) data) + beginbin, numkern / numbetween,
                       dataarray, fftlen, numbetween);
-        vect_free(data);
 
         /* Generate the final response */
 
@@ -661,7 +724,7 @@ fcomplex *gen_bin_response(double roffset, int numbetween, double ppsr,
 
         response = gen_cvect(numkern);
         memcpy(response, ((fcomplex *) data) + beginbin, sizeof(fcomplex) * numkern);
-        vect_free(data);
     }
+    vect_free(data);
     return response;
 }

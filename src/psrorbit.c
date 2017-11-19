@@ -122,7 +122,6 @@ int main(int argc, char *argv[])
             scanf("%lf", &orb.x);
             scanf("%lf", &orb.e);
             scanf("%lf", &orb.w);
-            orb.w *= DEGTORAD;
             scanf("%lf", &orb.t);
             zz = getchar();
             orb.t = fmod(orb.t, orb.p);
@@ -138,7 +137,6 @@ int main(int argc, char *argv[])
             N = mdata.N;
             dt = mdata.dt;
             endtime = mdata.T;
-            orb.w *= DEGTORAD;
         }
     }
     if (ps) {
@@ -215,7 +213,7 @@ int main(int argc, char *argv[])
     printf("  Orbital period      (s) =  %-13.4f\n", orb.p);
     printf("  eccentricity            =  %-8.6f\n", orb.e);
     printf("  a_sin(i)/c          (s) =  %-9.4f\n", orb.x);
-    printf("  Angle of Peri     (rad) =  %-9.7f\n", orb.w);
+    printf("  Angle of Peri     (deg) =  %-11.7f\n", orb.w);
     printf("  Time since Peri     (s) =  %-13.4f\n", orb.t);
     printf("  Length of Obs       (s) =  %-9.2f\n", endtime);
     printf("  Average 'z'      (bins) =  %-9.3f\n\n", avgz);
