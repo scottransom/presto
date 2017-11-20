@@ -373,9 +373,8 @@ def v_from_e(e, psr):
            'psr' is a psrparams instance containing info about the pulsar.
    """
    oldw = psr.orb.w
-   psr.orb.w = psr.orb.w * DEGTORAD
    v = np.array(e, copy=1)
-   E_to_v(v, len(v), psr.orb)
+   E_to_v(v, psr.orb)
    psr.orb.w = oldw
    return v
 
@@ -388,9 +387,8 @@ def d_from_e(e, psr):
            'psr' is a psrparams instance containing info about the pulsar.
    """
    oldw = psr.orb.w
-   psr.orb.w = psr.orb.w * DEGTORAD
    d = np.array(e, copy=1)
-   E_to_phib(d, len(d), psr.orb)
+   E_to_phib(d, psr.orb)
    psr.orb.w = oldw
    return d
 
@@ -405,7 +403,7 @@ def p_from_e(e, psr):
    oldw = psr.orb.w
    psr.orb.w = psr.orb.w * DEGTORAD
    p = np.array(e, copy=1)
-   E_to_p(p, len(p), psr.p, psr.orb)
+   E_to_p(p, psr.p, psr.orb)
    psr.orb.w = oldw
    return p
 
@@ -421,7 +419,7 @@ def z_from_e(e, psr, T):
    oldw = psr.orb.w
    psr.orb.w = psr.orb.w * DEGTORAD
    z = np.array(e, copy=1)
-   E_to_z(z, len(z), psr.p, T, psr.orb)
+   E_to_z(z, psr.p, T, psr.orb)
    psr.orb.w = oldw
    return z
 
