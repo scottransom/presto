@@ -12,11 +12,11 @@ numbetween = 8
 dr = 1.0/numbetween
 dz = 4.0/numbetween
 dw = 20.0/numbetween
-np = 128 # number of pixels across for f-fdot image
-z = 15.0 # average fourier f-dot
-w = -100.0 # fourier freq double deriv
+np = 256 # number of pixels across for f-fdot image
+z = 0.0 # average fourier f-dot
+w = 0.0 # fourier freq double deriv
 #noise = 0.0
-noise = 6.0*num.random.standard_normal(N)
+noise = 0.0*num.random.standard_normal(N)
 
 us = num.arange(N, dtype=num.float64) / N # normalized time coordinate
 r0 = r - 0.5 * z + w / 12.0 # Make symmetric for all z and w
@@ -24,9 +24,16 @@ z0 = z - 0.5 * w
 phss = 2.0 * num.pi * (us * (us * (us * w/6.0 + z0/2.0) + r0))
 ft = presto.rfft(num.cos(phss)+noise)
 
+a = time.clock()
 vol = presto.fdotdot_vol(ft, rint-np/2*dr, dr, np,
                          0.0-np/2*dz, dz, np,
                          0.0-np/2*dw, dw, np)
+print "First jerk vol took %.3f s" % (time.clock()-a)
+a = time.clock()
+vol = presto.fdotdot_vol(ft, rint-np/2*dr, dr, np,
+                         0.0-np/2*dz, dz, np,
+                         0.0-np/2*dw, dw, np)
+print "Second jerk vol took %.3f s" % (time.clock()-a)
 pvol = presto.spectralpower(vol.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pvol) / theo_max_pow # Fraction of recovered power
@@ -43,9 +50,12 @@ ws = num.arange(np) * dw - np/2*dw
 rgx = num.asarray([rs[0], rs[np-1]])
 rgy = num.asarray([zs[0], zs[np-1]])
 
-image='antirainbow'
-device='ffdot_combined.eps/VCPS'
+# Use the following if you want frames for a movie.  See the bottom
+# of this file for the other commands to generate that movie.
+#device='jerk_%03d.eps/VCPS'
 device='/XWIN'
+
+image='antirainbow'
 labx='Fourier Frequency Offset (bins)'
 laby='Fourier Frequency Derivative (bins)'
 contours = num.asarray([0.1, 0.3, 0.5, 0.7, 0.9])
@@ -53,11 +63,16 @@ contours = num.asarray([0.1, 0.3, 0.5, 0.7, 0.9])
 imfract = 0.65
 margin = 0.08
 
-ppgplot.pgopen(device)
-ppgplot.pgpap(0.0, 1.0)
-ppgplot.pgpage()
-
+if device=="/XWIN":
+    ppgplot.pgopen(device)
+    ppgplot.pgpap(0.0, 1.0)
+    ppgplot.pgpage()
+    
 for ii in range(np):
+    if not device=="/XWIN":
+        ppgplot.pgopen(device%ii)
+        ppgplot.pgpap(0.0, 1.0)
+        ppgplot.pgpage()
     freqcut = pvol[ii, np/2, :]
     fdotcut = pvol[ii, :, np/2]
     frp = pvol[ii].max() # Fraction of recovered power
@@ -109,8 +124,18 @@ for ii in range(np):
     ppgplot.pgline(num.asarray([0.0, 0.0]), rgy)
 
     time.sleep(0.1)
-    ppgplot.pgeras()
+    if device=="/XWIN":
+        ppgplot.pgeras()
+    else:
+        ppgplot.pgclos()
 
-ppgplot.pgclos()
-
-
+if device=="/XWIN":
+    ppgplot.pgclos()
+else:
+    print """If you want to make a movie with the resulting .eps files, here are
+the appropriate commands:
+    
+> python jerk_example.py 
+> pstoimg -density 200 -antialias -crop a jerk_*eps
+> ffmpeg -r 16 -f image2 -s 1000x1000 -i jerk_%03d.png -vcodec libx264 -crf 25 -pix_fmt yuv420p jerk_search.mp4
+"""
