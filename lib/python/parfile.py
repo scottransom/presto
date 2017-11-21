@@ -180,7 +180,8 @@ class psr_par:
             setattr(self, 'TASC', self.T0 - self.PB * self.OM/360.0)
         if hasattr(self, 'E') and not hasattr(self, 'ECC'):
             setattr(self, 'ECC', self.E)
-            setattr(self, 'ECC_ERR', self.E_ERR)
+            if not hasattr(self, 'EPS1'):
+                setattr(self, 'ECC_ERR', self.E_ERR)
         if hasattr(self, 'ECC') and not hasattr(self, 'E'):
             setattr(self, 'E', self.ECC)
             setattr(self, 'E_ERR', self.ECC_ERR)
