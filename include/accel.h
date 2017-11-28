@@ -78,17 +78,29 @@ typedef struct accelobs{
   int use_harmonic_polishing; /* Should we force harmonics to be related */
 } accelobs;
 
+typedef struct oldaccelcand{
+  float power;         /* Summed power level (normalized) */
+  float sigma;         /* Equivalent sigma based on numindep (above) */
+  int numharm;         /* Number of harmonics summed */
+  double r;            /* Fourier freq of first harmonic */
+  double z;            /* Fourier f-dot of first harmonic */
+  double *pows;        /* Optimized powers for the harmonics */
+  double *hirs;        /* Optimized freqs for the harmonics */
+  double *hizs;        /* Optimized fdots for the harmonics */
+  rderivs *derivs;     /* An rderivs structure for each harmonic */
+} oldaccelcand;
+
 typedef struct accelcand{
   float power;         /* Summed power level (normalized) */
   float sigma;         /* Equivalent sigma based on numindep (above) */
   int numharm;         /* Number of harmonics summed */
   double r;            /* Fourier freq of first harmonic */
   double z;            /* Fourier f-dot of first harmonic */
-  double w;            /* Fourier f-dot-dot of the first harmonic */
+  double w;            /* Fourier f-dotdot of first harmonic */
   double *pows;        /* Optimized powers for the harmonics */
   double *hirs;        /* Optimized freqs for the harmonics */
   double *hizs;        /* Optimized fdots for the harmonics */
-  double *hiws;        /* Optimized fddots for the harmonics */
+  double *hiws;        /* Optimized fdotdots for the harmonics */
   rderivs *derivs;     /* An rderivs structure for each harmonic */
 } accelcand;
 

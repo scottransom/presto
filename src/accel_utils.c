@@ -143,7 +143,8 @@ static int calc_fftlen(int numharm, int harmnum, int max_zfull, int max_wfull)
     harm_fract = (double) harmnum / (double) numharm;
     bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
     end_effects = 2 * ACCEL_NUMBETWEEN *
-      w_resp_halfwidth(calc_required_z(harm_fract, max_zfull), calc_required_w(harm_fract, max_wfull), LOWACC);
+      w_resp_halfwidth(calc_required_z(harm_fract, max_zfull),
+                       calc_required_w(harm_fract, max_wfull), LOWACC);
     //printf("bins_needed = %d  end_effects = %d  FFTlen = %lld\n", 
     //       bins_needed, end_effects, next2_to_n(bins_needed + end_effects));
     return next2_to_n(bins_needed + end_effects);
@@ -303,7 +304,7 @@ void free_subharminfos(accelobs * obs, subharminfo ** shis)
 
 
 static accelcand *create_accelcand(float power, float sigma,
-                                   int numharm, double r, double z)
+                                   int numharm, double r, double z, double w)
 {
     accelcand *obj;
 
@@ -313,9 +314,11 @@ static accelcand *create_accelcand(float power, float sigma,
     obj->numharm = numharm;
     obj->r = r;
     obj->z = z;
+    obj->w = w;
     obj->pows = NULL;
     obj->hirs = NULL;
     obj->hizs = NULL;
+    obj->hiws = NULL;
     obj->derivs = NULL;
     return obj;
 }
@@ -327,6 +330,7 @@ void free_accelcand(gpointer data, gpointer user_data)
         vect_free(((accelcand *) data)->pows);
         vect_free(((accelcand *) data)->hirs);
         vect_free(((accelcand *) data)->hizs);
+        vect_free(((accelcand *) data)->hiws);
         free(((accelcand *) data)->derivs);
     }
     free((accelcand *) data);
@@ -357,7 +361,7 @@ GSList *sort_accelcands(GSList * list)
 
 
 static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
-                                    int numharm, double rr, double zz, int *added)
+                                    int numharm, double rr, double zz, double ww, int *added)
 /* Checks the current list to see if there is already */
 /* a candidate within ACCEL_CLOSEST_R bins.  If not,  */
 /* it adds it to the list in increasing freq order.   */
@@ -369,7 +373,7 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
     if (!list) {
         new_list = g_slist_alloc();
         new_list->data =
-            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz);
+            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz, ww);
         *added = 1;
         return new_list;
     }
@@ -391,7 +395,7 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
         if (((accelcand *) (prev_list->data))->sigma < sigma) {
             free_accelcand(prev_list->data, NULL);
             prev_list->data = (gpointer *) create_accelcand(power, sigma,
-                                                            numharm, rr, zz);
+                                                            numharm, rr, zz, ww);
             *added = 1;
         }
         if (next_diff_r < ACCEL_CLOSEST_R) {
@@ -404,7 +408,7 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
                 } else {
                     /* Overwrite the next cand */
                     tmp_list->data = (gpointer *) create_accelcand(power, sigma,
-                                                                   numharm, rr, zz);
+                                                                   numharm, rr, zz, ww);
                     *added = 1;
                 }
             }
@@ -414,13 +418,13 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
         if (((accelcand *) (tmp_list->data))->sigma < sigma) {
             free_accelcand(tmp_list->data, NULL);
             tmp_list->data = (gpointer *) create_accelcand(power, sigma,
-                                                           numharm, rr, zz);
+                                                           numharm, rr, zz, ww);
             *added = 1;
         }
     } else {                    /* This is a new candidate */
         new_list = g_slist_alloc();
         new_list->data =
-            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz);
+            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz, ww);
         *added = 1;
         if (!tmp_list->next &&
             (((accelcand *) (tmp_list->data))->r < (rr - ACCEL_CLOSEST_R))) {
@@ -522,15 +526,15 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
 void optimize_accelcand(accelcand * cand, accelobs * obs)
 {
     int ii;
-    int *r_offset;
+    long *r_offset;
     fcomplex **data;
-    double r, z;
+    double r, z, w;
 
     cand->pows = gen_dvect(cand->numharm);
     cand->hirs = gen_dvect(cand->numharm);
     cand->hizs = gen_dvect(cand->numharm);
     cand->hiws = gen_dvect(cand->numharm);
-    r_offset = (int *) malloc(sizeof(int) * cand->numharm);
+    r_offset = (long *) malloc(sizeof(long) * cand->numharm);
     data = (fcomplex **) malloc(sizeof(fcomplex *) * cand->numharm);
     cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
 
@@ -546,6 +550,7 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
                                  obs->numbins,
                                  cand->r - obs->lobin,
                                  cand->z, &r, &z, cand->derivs, cand->pows);
+            
         } else {
             max_rz_file_harmonics(obs->fftfile,
                                   cand->numharm,
@@ -556,26 +561,45 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
         for (ii = 0; ii < cand->numharm; ii++) {
             cand->hirs[ii] = (r + obs->lobin) * (ii + 1);
             cand->hizs[ii] = z * (ii + 1);
+            cand->hiws[ii] = obs->numw ? w * (ii + 1) : 0.0;
         }
     } else {
         for (ii = 0; ii < cand->numharm; ii++) {
-            if (obs->mmap_file || obs->dat_input)
-                cand->pows[ii] = max_rzw_arr(obs->fft,
-                                            obs->numbins,
-                                            cand->r * (ii + 1) - obs->lobin,
-                                            cand->z * (ii + 1),
-					    cand->w * (ii + 1),
-                                            &(cand->hirs[ii]),
-                                            &(cand->hizs[ii]),
-					    &(cand->hiws[ii]), &(cand->derivs[ii]));
-            else
-                cand->pows[ii] = max_rzw_file(obs->fftfile,
-                                             cand->r * (ii + 1) - obs->lobin,
-                                             cand->z * (ii + 1),
-					     cand->w * (ii + 1),
-                                             &(cand->hirs[ii]),
-                                             &(cand->hizs[ii]),
-					     &(cand->hiws[ii]), &(cand->derivs[ii]));
+            if (obs->mmap_file || obs->dat_input) {
+                if (obs->numw)
+                    cand->pows[ii] = max_rzw_arr(obs->fft,
+                                                 obs->numbins,
+                                                 cand->r * (ii + 1) - obs->lobin,
+                                                 cand->z * (ii + 1),
+                                                 cand->w * (ii + 1),
+                                                 &(cand->hirs[ii]),
+                                                 &(cand->hizs[ii]),
+                                                 &(cand->hiws[ii]),
+                                                 &(cand->derivs[ii]));
+                else
+                    cand->pows[ii] = max_rz_arr(obs->fft,
+                                                obs->numbins,
+                                                cand->r * (ii + 1) - obs->lobin,
+                                                cand->z * (ii + 1),
+                                                &(cand->hirs[ii]),
+                                                &(cand->hizs[ii]), &(cand->derivs[ii]));
+            } else {
+                if (obs->numw)
+                    cand->pows[ii] = max_rzw_file(obs->fftfile,
+                                                  cand->r * (ii + 1) - obs->lobin,
+                                                  cand->z * (ii + 1),
+                                                  cand->w * (ii + 1),
+                                                  &(cand->hirs[ii]),
+                                                  &(cand->hizs[ii]),
+                                                  &(cand->hiws[ii]),
+                                                  &(cand->derivs[ii]));
+                else
+                    cand->pows[ii] = max_rz_file(obs->fftfile,
+                                                 cand->r * (ii + 1) - obs->lobin,
+                                                 cand->z * (ii + 1),
+                                                 &(cand->hirs[ii]),
+                                                 &(cand->hizs[ii]), &(cand->derivs[ii]));
+            }
             cand->hirs[ii] += obs->lobin;
         }
     }
@@ -628,20 +652,20 @@ void output_fundamentals(fourierprops * props, GSList * list,
                          accelobs * obs, infodata * idata)
 {
     double accel = 0.0, accelerr = 0.0, coherent_pow;
-    int ii, jj, numcols = 12, numcands, *width, *error;
-    int widths[12] = { 4, 5, 6, 8, 4, 16, 15, 15, 15, 11, 15, 20 };
-    int errors[12] = { 0, 0, 0, 0, 0, 1, 1, 2, 1, 2, 2, 0 };
+    int ii, jj, numcols = 13, numcands, *width, *error;
+    int widths[13] = { 4, 5, 6, 8, 4, 16, 15, 15, 15, 11, 11, 15, 20 };
+    int errors[13] = { 0, 0, 0, 0, 0, 1, 1, 2, 1, 2, 2, 2, 0 };
     char tmpstr[30], ctrstr[30], *notes;
     accelcand *cand;
     GSList *listptr;
     rzwerrs errs;
     static char **title;
     static char *titles1[] = { "", "", "Summed", "Coherent", "Num", "Period",
-        "Frequency", "FFT 'r'", "Freq Deriv", "FFT 'z'",
+        "Frequency", "FFT 'r'", "Freq Deriv", "FFT 'z'", "FFT 'w'",
         "Accel", ""
     };
     static char *titles2[] = { "Cand", "Sigma", "Power", "Power", "Harm", "(ms)",
-        "(Hz)", "(bin)", "(Hz/s)", "(bins)",
+        "(Hz)", "(bin)", "(Hz/s)", "(bins)", "(bins)",
         "(m/s^2)", "Notes"
     };
 
@@ -679,8 +703,12 @@ void output_fundamentals(fourierprops * props, GSList * list,
     width = widths;
     title = titles1;
     for (ii = 0; ii < numcols - 1; ii++) {
-        center_string(ctrstr, *title++, *width++);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && ii==10) { // Skip jerk parts
+            continue;
+        } else {
+            center_string(ctrstr, *title++, *width++);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, *title++, *width++);
     fprintf(obs->workfile, "%s\n", ctrstr);
@@ -688,17 +716,25 @@ void output_fundamentals(fourierprops * props, GSList * list,
     width = widths;
     title = titles2;
     for (ii = 0; ii < numcols - 1; ii++) {
-        center_string(ctrstr, *title++, *width++);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && ii==10) { // Skip jerk parts
+            continue;
+        } else {
+            center_string(ctrstr, *title++, *width++);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, *title++, *width++);
     fprintf(obs->workfile, "%s\n", ctrstr);
 
     width = widths;
     for (ii = 0; ii < numcols - 1; ii++) {
-        memset(tmpstr, '-', *width);
-        tmpstr[*width++] = '\0';
-        fprintf(obs->workfile, "%s--", tmpstr);
+        if (obs->numw==0 && ii==10) { // Skip jerk parts
+            continue;
+        } else {
+            memset(tmpstr, '-', *width);
+            tmpstr[*width++] = '\0';
+            fprintf(obs->workfile, "%s--", tmpstr);
+        }
     }
     memset(tmpstr, '-', *width++);
     tmpstr[widths[ii]] = '\0';
@@ -766,6 +802,13 @@ void output_fundamentals(fourierprops * props, GSList * list,
         write_val_with_err(obs->workfile, errs.fd, errs.fderr, *error++, *width++);
         write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr,
                            *error++, *width++);
+        if (obs->numz) {
+            write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr,
+                               *error++, *width++);
+        } else {
+            error++;
+            width++;
+        }
         accel = props[ii].z * SOL / (obs->T * obs->T * errs.f);
         accelerr = props[ii].zerr * SOL / (obs->T * obs->T * errs.f);
         write_val_with_err(obs->workfile, accel, accelerr, *error++, *width++);
@@ -780,20 +823,20 @@ void output_fundamentals(fourierprops * props, GSList * list,
 
 void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
 {
-    int ii, jj, numcols = 13, numcands;
-    int widths[13] = { 5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 10, 10, 20 };
-    int errors[13] = { 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 0 };
+    int ii, jj, numcols = 15, numcands;
+    int widths[15] = { 5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 9, 12, 10, 10, 20 };
+    int errors[15] = { 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 0 };
     char tmpstr[30], ctrstr[30], notes[21], *command;
     accelcand *cand;
     GSList *listptr;
     fourierprops props;
     rzwerrs errs;
     static char *titles1[] = { "", "", "", "Power /", "Raw",
-        "FFT 'r'", "Pred 'r'", "FFT 'z'", "Pred 'z'",
+        "FFT 'r'", "Pred 'r'", "FFT 'z'", "Pred 'z'", "FFT 'w'", "Pred 'w'",
         "Phase", "Centroid", "Purity", ""
     };
     static char *titles2[] = { "Cand", "Harm", "Sigma", "Loc Pow", "Power",
-        "(bin)", "(bin)", "(bins)", "(bins)",
+        "(bin)", "(bin)", "(bins)", "(bins)", "(bins)", "(bins)",
         "(rad)", "(0-1)", "<p> = 1", "Notes"
     };
 
@@ -803,24 +846,36 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
     /* Print the header */
 
     for (ii = 0; ii < numcols - 1; ii++) {
-        center_string(ctrstr, titles1[ii], widths[ii]);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && (ii==9 || ii==10)) { // Skip jerk parts
+            continue;
+        } else {
+            center_string(ctrstr, titles1[ii], widths[ii]);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, titles1[ii], widths[ii]);
     fprintf(obs->workfile, "%s\n", ctrstr);
     for (ii = 0; ii < numcols - 1; ii++) {
-        if (obs->nph > 0.0 && ii == 3)  /*  HAAACK!!! */
-            center_string(ctrstr, "NumPhot", widths[ii]);
-        else
-            center_string(ctrstr, titles2[ii], widths[ii]);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && (ii==9 || ii==10)) { // Skip jerk parts
+            continue;
+        } else {
+            if (obs->nph > 0.0 && ii == 3)  /*  HAAACK!!! */
+                center_string(ctrstr, "NumPhot", widths[ii]);
+            else
+                center_string(ctrstr, titles2[ii], widths[ii]);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, titles2[ii], widths[ii]);
     fprintf(obs->workfile, "%s\n", ctrstr);
     for (ii = 0; ii < numcols - 1; ii++) {
-        memset(tmpstr, '-', widths[ii]);
-        tmpstr[widths[ii]] = '\0';
-        fprintf(obs->workfile, "%s--", tmpstr);
+        if (obs->numw==0 && (ii==9 || ii==10)) { // Skip jerk parts
+            continue;
+        } else {
+            memset(tmpstr, '-', widths[ii]);
+            tmpstr[widths[ii]] = '\0';
+            fprintf(obs->workfile, "%s--", tmpstr);
+        }
     }
     memset(tmpstr, '-', widths[ii]);
     tmpstr[widths[ii]] = '\0';
@@ -877,12 +932,19 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
             sprintf(tmpstr, "%.2f", cand->z * (jj + 1));
             center_string(ctrstr, tmpstr, widths[8]);
             fprintf(obs->workfile, "%s  ", ctrstr);
+            if (obs->numw) {
+                write_val_with_err(obs->workfile, props.w, props.werr,
+                                   errors[9], widths[9]);
+                sprintf(tmpstr, "%.2f", cand->w * (jj + 1));
+                center_string(ctrstr, tmpstr, widths[10]);
+                fprintf(obs->workfile, "%s  ", ctrstr);
+            }
             write_val_with_err(obs->workfile, props.phs, props.phserr,
-                               errors[9], widths[9]);
-            write_val_with_err(obs->workfile, props.cen, props.cenerr,
-                               errors[10], widths[10]);
-            write_val_with_err(obs->workfile, props.pur, props.purerr,
                                errors[11], widths[11]);
+            write_val_with_err(obs->workfile, props.cen, props.cenerr,
+                               errors[12], widths[12]);
+            write_val_with_err(obs->workfile, props.pur, props.purerr,
+                               errors[13], widths[13]);
             fprintf(obs->workfile, "  %.20s\n", notes);
             fflush(obs->workfile);
         }
@@ -902,8 +964,8 @@ void print_accelcand(gpointer data, gpointer user_data)
     accelcand *obj = (accelcand *) data;
 
     user_data = NULL;
-    printf("sigma: %-7.4f  pow: %-7.2f  harm: %-2d  r: %-14.4f  z: %-10.4f\n",
-           obj->sigma, obj->power, obj->numharm, obj->r, obj->z);
+    printf("sigma: %-7.4f  pow: %-7.2f  harm: %-2d  r: %-14.4f  z: %-10.4f  w: %-10.2f\n",
+           obj->sigma, obj->power, obj->numharm, obj->r, obj->z, obj->w);
 }
 
 
@@ -1568,16 +1630,6 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         printf("done.\n\n");
     }
 
-    /* Determine the output filenames */
-
-    rootlen = strlen(obs->rootfilenm) + 25;
-    obs->candnm = (char *) calloc(rootlen, 1);
-    obs->accelnm = (char *) calloc(rootlen, 1);
-    obs->workfilenm = (char *) calloc(rootlen, 1);
-    sprintf(obs->candnm, "%s_ACCEL_%d.cand", obs->rootfilenm, cmd->zmax);
-    sprintf(obs->accelnm, "%s_ACCEL_%d", obs->rootfilenm, cmd->zmax);
-    sprintf(obs->workfilenm, "%s_ACCEL_%d.txtcand", obs->rootfilenm, cmd->zmax);
-
     /* Open the FFT file if it exists appropriately */
     if (!obs->dat_input) {
         obs->fftfile = chkfopen(cmd->argv[0], "rb");
@@ -1610,8 +1662,6 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     
     if (cmd->zmax % ACCEL_DZ)
         cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
-    if (!obs->dat_input)
-        obs->workfile = chkfopen(obs->workfilenm, "w");
     obs->N = (long long) idata->N;
     if (cmd->photonP) {
         if (obs->mmap_file || obs->dat_input) {
@@ -1652,7 +1702,9 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     if (cmd->numharm != 1 &&
         cmd->numharm != 2 &&
         cmd->numharm != 4 &&
-        cmd->numharm != 8 && cmd->numharm != 16 && cmd->numharm != 32) {
+        cmd->numharm != 8 &&
+        cmd->numharm != 16 &&
+        cmd->numharm != 32) {
         printf("\n'numharm' = %d must be a power-of-two!  Exiting\n\n",
                cmd->numharm);
         exit(1);
@@ -1664,21 +1716,38 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     
     /* Setting extra parameters for jerk search */
     if (cmd->wmaxP) {
-      if (cmd->wmax % ACCEL_DW)
-	cmd->wmax = (cmd->wmax / ACCEL_DW + 1) * ACCEL_DW;
-      obs->whi = cmd->wmax;
-      obs->wlo = -cmd->wmax;
-      obs->dw = ACCEL_DW;
-      obs->numw = (cmd->wmax / ACCEL_DW) * 2 + 1;
-      printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
-    }
-    else {
-      obs->whi = 0.0;
-      obs->wlo = 0.0;
-      obs->dw = 0.0;
-      obs->numw = 0.0;
+        if (cmd->wmax % ACCEL_DW)
+            cmd->wmax = (cmd->wmax / ACCEL_DW + 1) * ACCEL_DW;
+        obs->whi = cmd->wmax;
+        obs->wlo = -cmd->wmax;
+        obs->dw = ACCEL_DW;
+        obs->numw = (cmd->wmax / ACCEL_DW) * 2 + 1;
+        obs->use_harmonic_polishing = 0; // Turn this off as it is too expensive
+        printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
+    } else {
+        obs->whi = 0.0;
+        obs->wlo = 0.0;
+        obs->dw = 0.0;
+        obs->numw = 0;
     }
     
+    /* Determine the output filenames */
+    rootlen = strlen(obs->rootfilenm) + 45;
+    obs->candnm = (char *) calloc(rootlen, 1);
+    obs->accelnm = (char *) calloc(rootlen, 1);
+    obs->workfilenm = (char *) calloc(rootlen, 1);
+    if (obs->numw) {
+        sprintf(obs->candnm, "%s_ACCEL_%d_JERK_%d.cand", obs->rootfilenm, cmd->zmax, cmd->wmax);
+        sprintf(obs->accelnm, "%s_ACCEL_%d_JERK_%d", obs->rootfilenm, cmd->zmax, cmd->wmax);
+        sprintf(obs->workfilenm, "%s_ACCEL_%d_JERK_%d.txtcand", obs->rootfilenm, cmd->zmax, cmd->wmax);
+    } else {
+        sprintf(obs->candnm, "%s_ACCEL_%d.cand", obs->rootfilenm, cmd->zmax);
+        sprintf(obs->accelnm, "%s_ACCEL_%d", obs->rootfilenm, cmd->zmax);
+        sprintf(obs->workfilenm, "%s_ACCEL_%d.txtcand", obs->rootfilenm, cmd->zmax);
+    }
+    if (!obs->dat_input)
+        obs->workfile = chkfopen(obs->workfilenm, "w");
+
     obs->numbetween = ACCEL_NUMBETWEEN;
     obs->dt = idata->dt;
     obs->T = idata->dt * idata->N;
@@ -1762,7 +1831,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
             * obs->numbetween * obs->numz;
         printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
-        if (memuse < MAXRAMUSE || cmd->inmemP) {
+        if (!cmd->wmaxP && (memuse < MAXRAMUSE || cmd->inmemP)) {
             printf("using in-memory accelsearch.\n\n");
             obs->inmem = 1;
             obs->ffdotplane = gen_fvect(memuse / sizeof(float));
