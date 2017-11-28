@@ -264,10 +264,11 @@ int main(int argc, char *argv[])
                 /* send the originally determined r and z from the       */
                 /* harmonic sum in the search.  Note that the derivs are */
                 /* not used for the computations with the fundamental.   */
-                calc_props(cand->derivs[0], cand->r, cand->z, 0.0, props + ii);
+                calc_props(cand->derivs[0], cand->r, cand->z, cand->w, props + ii);
                 /* Override the error estimates based on power */
                 props[ii].rerr = (float) (ACCEL_DR) / cand->numharm;
                 props[ii].zerr = (float) (ACCEL_DZ) / cand->numharm;
+		props[ii].werr = (float) (ACCEL_DW) / cand->numharm;
                 listptr = listptr->next;
             }
 

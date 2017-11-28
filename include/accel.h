@@ -84,9 +84,11 @@ typedef struct accelcand{
   int numharm;         /* Number of harmonics summed */
   double r;            /* Fourier freq of first harmonic */
   double z;            /* Fourier f-dot of first harmonic */
+  double w;            /* Fourier f-dot-dot of the first harmonic */
   double *pows;        /* Optimized powers for the harmonics */
   double *hirs;        /* Optimized freqs for the harmonics */
   double *hizs;        /* Optimized fdots for the harmonics */
+  double *hiws;        /* Optimized fddots for the harmonics */
   rderivs *derivs;     /* An rderivs structure for each harmonic */
 } accelcand;
 
@@ -120,7 +122,7 @@ typedef struct ffdotpows{
   int rlo;            /* Lowest Fourier freq present */
   int zlo;            /* Lowest Fourier f-dot present */
   int wlo;            /* Lowest Fourier f-dotdot present */
-  float **powers;     /* Matrix of the powers */
+  float ***powers;     /* 3D Matrix of the powers */
   unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
   unsigned short *zinds; /* Table of lookup indices for Fourier Fdots */
 } ffdotpows;

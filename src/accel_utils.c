@@ -519,7 +519,6 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
 }
 
 
-// FIXME: this shouldn't be a #define, or it shouldn't be here
 void optimize_accelcand(accelcand * cand, accelobs * obs)
 {
     int ii;
@@ -530,12 +529,13 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
     cand->pows = gen_dvect(cand->numharm);
     cand->hirs = gen_dvect(cand->numharm);
     cand->hizs = gen_dvect(cand->numharm);
+    cand->hiws = gen_dvect(cand->numharm);
     r_offset = (int *) malloc(sizeof(int) * cand->numharm);
     data = (fcomplex **) malloc(sizeof(fcomplex *) * cand->numharm);
     cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
 
-    if (obs->use_harmonic_polishing) {
-        if (obs->mmap_file || obs->dat_input) {
+    if (obs->use_harmonic_polishing) { /* Should I bother editing these now??? */
+      if (obs->mmap_file || obs->dat_input) {
             for (ii = 0; ii < cand->numharm; ii++) {
                 r_offset[ii] = obs->lobin;
                 data[ii] = obs->fft;
@@ -560,18 +560,22 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
     } else {
         for (ii = 0; ii < cand->numharm; ii++) {
             if (obs->mmap_file || obs->dat_input)
-                cand->pows[ii] = max_rz_arr(obs->fft,
+                cand->pows[ii] = max_rzw_arr(obs->fft,
                                             obs->numbins,
                                             cand->r * (ii + 1) - obs->lobin,
                                             cand->z * (ii + 1),
+					    cand->w * (ii + 1),
                                             &(cand->hirs[ii]),
-                                            &(cand->hizs[ii]), &(cand->derivs[ii]));
+                                            &(cand->hizs[ii]),
+					    &(cand->hiws[ii]), &(cand->derivs[ii]));
             else
-                cand->pows[ii] = max_rz_file(obs->fftfile,
+                cand->pows[ii] = max_rzw_file(obs->fftfile,
                                              cand->r * (ii + 1) - obs->lobin,
                                              cand->z * (ii + 1),
+					     cand->w * (ii + 1),
                                              &(cand->hirs[ii]),
-                                             &(cand->hizs[ii]), &(cand->derivs[ii]));
+                                             &(cand->hizs[ii]),
+					     &(cand->hiws[ii]), &(cand->derivs[ii]));
             cand->hirs[ii] += obs->lobin;
         }
     }
@@ -1080,6 +1084,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
         // tmpdat gets overwritten during the correlation
         fcomplex *tmpdat = gen_cvect(fftlen);
         fcomplex *tmpout = gen_cvect(fftlen);
+	int jj;
 #ifdef _OPENMP
 #pragma omp for collapse(2)
 #endif
@@ -1352,12 +1357,12 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
     for (ii = 0; ii < ffdot->numzs; ii++) {
         int jj;
         for (jj = 0; jj < ffdot->numrs; jj++) {
-            if (ffdot->powers[ii][jj] > powcut) {
+	  if (ffdot->powers[ii][jj][0] > powcut) { // edited to compile
                 float pow, sig;
                 double rr, zz;
                 int added = 0;
 
-                pow = ffdot->powers[ii][jj];
+                pow = ffdot->powers[ii][jj][0]; // edited to compile
                 sig = candidate_sigma(pow, numharm, numindep);
                 rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
                 zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
