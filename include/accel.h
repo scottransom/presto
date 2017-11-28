@@ -134,7 +134,7 @@ typedef struct ffdotpows{
   int rlo;            /* Lowest Fourier freq present */
   int zlo;            /* Lowest Fourier f-dot present */
   int wlo;            /* Lowest Fourier f-dotdot present */
-  float **powers;     /* Matrix of the powers */
+  float ***powers;     /* 3D Matrix of the powers */
   unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
   unsigned short *zinds; /* Table of lookup indices for Fourier Fdots */
 } ffdotpows;

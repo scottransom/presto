@@ -538,8 +538,8 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
     data = (fcomplex **) malloc(sizeof(fcomplex *) * cand->numharm);
     cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
 
-    if (obs->use_harmonic_polishing) {
-        if (obs->mmap_file || obs->dat_input) {
+    if (obs->use_harmonic_polishing) { /* Should I bother editing these now??? */
+      if (obs->mmap_file || obs->dat_input) {
             for (ii = 0; ii < cand->numharm; ii++) {
                 r_offset[ii] = obs->lobin;
                 data[ii] = obs->fft;
@@ -1146,6 +1146,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
         // tmpdat gets overwritten during the correlation
         fcomplex *tmpdat = gen_cvect(fftlen);
         fcomplex *tmpout = gen_cvect(fftlen);
+	int jj;
 #ifdef _OPENMP
 #pragma omp for collapse(2)
 #endif
@@ -1418,12 +1419,12 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
     for (ii = 0; ii < ffdot->numzs; ii++) {
         int jj;
         for (jj = 0; jj < ffdot->numrs; jj++) {
-            if (ffdot->powers[ii][jj] > powcut) {
+	  if (ffdot->powers[ii][jj][0] > powcut) { // edited to compile
                 float pow, sig;
                 double rr, zz;
                 int added = 0;
 
-                pow = ffdot->powers[ii][jj];
+                pow = ffdot->powers[ii][jj][0]; // edited to compile
                 sig = candidate_sigma(pow, numharm, numindep);
                 rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
                 zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
