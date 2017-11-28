@@ -23,7 +23,7 @@ float get_numphotons(FILE * file)
 }
 
 
-double get_localpower(fcomplex * data, int numdata, double r)
+double get_localpower(fcomplex * data, long numdata, double r)
   /* Return the local power level at specific FFT frequency.  */
   /* Arguments:                                               */
   /*   'data' is a pointer to a complex FFT.                  */
@@ -32,7 +32,7 @@ double get_localpower(fcomplex * data, int numdata, double r)
   /*      interpolate.                                        */
 {
     double powargr, powargi, sum = 0.0;
-    int ii, binsperside, lo1, lo2, hi1, hi2, intfreq;
+    long ii, binsperside, lo1, lo2, hi1, hi2, intfreq;
 
     intfreq = (long) floor(r);
     binsperside = NUMLOCPOWAVG / 2;
@@ -74,7 +74,7 @@ double get_localpower(fcomplex * data, int numdata, double r)
 }
 
 
-double get_localpower3d(fcomplex * data, int numdata, double r, double z, double w)
+double get_localpower3d(fcomplex * data, long numdata, double r, double z, double w)
   /* Return the local power level around a specific FFT           */
   /* frequency, f-dot, and f-dotdot.                              */
   /* Arguments:                                                   */
@@ -136,7 +136,7 @@ double get_localpower3d(fcomplex * data, int numdata, double r, double z, double
 }
 
 
-void get_derivs3d(fcomplex * data, int numdata, double r,
+void get_derivs3d(fcomplex * data, long numdata, double r,
                   double z, double w, double localpower, rderivs * result)
   /* Return an rderives structure that contains the power,      */
   /* phase, and their first and second derivatives at a point   */

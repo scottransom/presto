@@ -17,7 +17,7 @@ float calc_median_powers(fcomplex * amplitudes, int numamps)
 }
 
 fcomplex *get_rawbins(FILE * fftfile, double bin,
-                      int numtoget, float *med, int *lobin)
+                      int numtoget, float *med, long *lobin)
 {
     fcomplex *result;
     *lobin = (int) bin - numtoget / 2;
@@ -28,13 +28,13 @@ fcomplex *get_rawbins(FILE * fftfile, double bin,
 
 void zapbirds(double lobin, double hibin, FILE * fftfile, fcomplex * fft)
 {
-    int ii, ilobin, ihibin, binstozap, lodatabin;
+    long ii, ilobin, ihibin, binstozap, lodatabin;
     float median_lo, median_hi, avgamp;
     /* double phase, radargr, radargi, radtmp; */
     fcomplex *data;
 
-    ilobin = (int) floor(lobin);
-    ihibin = (int) ceil(hibin);
+    ilobin = (long) floor(lobin);
+    ihibin = (long) ceil(hibin);
     binstozap = ihibin - ilobin;
     if (lobin - 1.5 * MEDIANBINS > 1) {
         if (fftfile) {          /* If we are reading a file */

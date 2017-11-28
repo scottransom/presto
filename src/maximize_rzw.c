@@ -1,9 +1,6 @@
 #include "accel.h"
 
-// Will need to zap this when we merge with Bridget's code
-#define ACCEL_DW 20.0
-
-double max_rzw_arr(fcomplex * data, int numdata, double rin, double zin,
+double max_rzw_arr(fcomplex * data, long numdata, double rin, double zin,
                    double win, double *rout, double *zout,
                    double *wout, rderivs * derivs)
 /* Return the Fourier frequency, f-dot, and fdotdot that    */
@@ -62,13 +59,14 @@ double max_rzw_file(FILE * fftfile, double rin, double zin, double win,
 /* maximizes the power of the candidate in 'fftfile'.       */
 {
     double maxpow, rin_int, rin_frac;
-    int kern_half_width, filedatalen, startbin, extra = 10;
+    int kern_half_width, filedatalen, extra = 10;
+    long startbin;
     fcomplex *filedata;
 
     rin_frac = modf(rin, &rin_int);
     kern_half_width = w_resp_halfwidth(zin, win, HIGHACC);
     filedatalen = 2 * kern_half_width + extra;
-    startbin = (int) rin_int - filedatalen / 2;
+    startbin = (long) rin_int - filedatalen / 2;
 
     filedata = read_fcomplex_file(fftfile, startbin, filedatalen);
     maxpow = max_rzw_arr(filedata, filedatalen, rin_frac + filedatalen / 2,
