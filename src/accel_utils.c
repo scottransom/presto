@@ -536,9 +536,9 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
     r_offset = (long *) malloc(sizeof(long) * cand->numharm);
     data = (fcomplex **) malloc(sizeof(fcomplex *) * cand->numharm);
     cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
-
+    
     if (obs->use_harmonic_polishing) {
-      if (obs->mmap_file || obs->dat_input) {
+        if (obs->mmap_file || obs->dat_input) {
             for (ii = 0; ii < cand->numharm; ii++) {
                 r_offset[ii] = obs->lobin;
                 data[ii] = obs->fft;
@@ -803,7 +803,7 @@ void output_fundamentals(fourierprops * props, GSList * list,
         write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr,
                            *error++, *width++);
         if (obs->numz) {
-            write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr,
+            write_val_with_err(obs->workfile, props[ii].w, props[ii].werr,
                                *error++, *width++);
         } else {
             error++;
@@ -881,7 +881,7 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
     tmpstr[widths[ii]] = '\0';
     fprintf(obs->workfile, "%s\n", tmpstr);
 
-    /* Print the fundamentals */
+    /* Print the harmonics */
 
     for (ii = 0; ii < numcands; ii++) {
         cand = (accelcand *) (listptr->data);
@@ -892,11 +892,11 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
                 tmp_locpow = cand->derivs[jj].locpow;
                 cand->derivs[jj].locpow = obs->nph;
                 calc_props(cand->derivs[jj], cand->hirs[jj],
-                           cand->hizs[jj], 0.0, &props);
+                           cand->hizs[jj], cand->hiws[jj], &props);
                 cand->derivs[jj].locpow = tmp_locpow;
             } else {
                 calc_props(cand->derivs[jj], cand->hirs[jj],
-                           cand->hizs[jj], 0.0, &props);
+                           cand->hizs[jj], cand->hiws[jj], &props);
             }
             calc_rzwerrs(&props, obs->T, &errs);
             if (strncmp(idata->telescope, "None", 4) != 0) {
@@ -1041,12 +1041,12 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
             subr = calc_required_r(harm_fract, rr);
             shi->rinds[ii] = index_from_r(subr, ffdot->rlo);
         }
-	double zz, subz;
-	for (ii = 0; ii < obs->numz; ii++) {
-	    zz = obs->zlo + ii * ACCEL_DZ;
-	    subz = calc_required_z(harm_fract, zz);
-	    shi->zinds[ii] = index_from_z(subz, ffdot->zlo);
-	}
+        double zz, subz;
+        for (ii = 0; ii < obs->numz; ii++) {
+            zz = obs->zlo + ii * ACCEL_DZ;
+            subz = calc_required_z(harm_fract, zz);
+            shi->zinds[ii] = index_from_z(subz, ffdot->zlo);
+        }
     }
     ffdot->rinds = shi->rinds;
     ffdot->numrs = (int) ((ceil(drhi) - floor(drlo))
@@ -1148,13 +1148,14 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
         // tmpdat gets overwritten during the correlation
         fcomplex *tmpdat = gen_cvect(fftlen);
         fcomplex *tmpout = gen_cvect(fftlen);
-	int jj;
+        int jj;
 #ifdef _OPENMP
-#pragma omp for collapse(2)
+// #pragma omp for collapse(2)  Do we want this somehow?
+#pragma omp for
 #endif
-	/* Check, should we add the collapse to parallelize numws and numzs loops? */
-	for (ii = 0; ii < ffdot->numws; ii++) {
-	    for (jj = 0; jj < ffdot->numzs; jj++) {
+        /* Check, should we add the collapse to parallelize numws and numzs loops? */
+        for (ii = 0; ii < ffdot->numws; ii++) {
+            for (jj = 0; jj < ffdot->numzs; jj++) {
                 int kk;
                 float *fkern = (float *) shi->kern[ii][jj].data;
                 float *fpdata = (float *) pdata;
@@ -1162,7 +1163,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                 float *outpows = ffdot->powers[ii][jj];
                 // multiply data and kernel 
                 // (using floats for better vectorization)
-#if (defined(__GNUC__) || defined(__GNUG__)) && \
+#if (defined(__GNUC__) || defined(__GNUG__)) &&         \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
 #endif
@@ -1178,7 +1179,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                 // Turn the good parts of the result into powers and store
                 // them in the output matrix
                 fdata = (float *) tmpout;
-#if (defined(__GNUC__) || defined(__GNUG__)) && \
+#if (defined(__GNUC__) || defined(__GNUG__)) &&         \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
 #endif
@@ -1188,9 +1189,9 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                                    fdata[ind + 1] * fdata[ind + 1]) * norm;
                 }
             }
-	    vect_free(tmpdat);
-	    vect_free(tmpout);
-	}
+        }
+        vect_free(tmpdat);
+        vect_free(tmpout);
     }
     // Free data and the spread-data
     vect_free(data);
@@ -1204,7 +1205,7 @@ ffdotpows *copy_ffdotpows(ffdotpows * orig)
 {
     int ii;
     ffdotpows *copy;
-
+    
     copy = (ffdotpows *) malloc(sizeof(ffdotpows));
     copy->numrs = orig->numrs;
     copy->numzs = orig->numzs;
@@ -1227,7 +1228,7 @@ void fund_to_ffdotplane(ffdotpows * ffd, accelobs * obs)
     long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
     long long offset;
     float *outpow;
-
+    
     for (ii = 0; ii < ffd->numzs; ii++) {
         offset = ii * rlen;
         outpow = obs->ffdotplane + offset + ffd->rlo * ACCEL_RDR;
@@ -1266,22 +1267,22 @@ void free_ffdotpows(ffdotpows * ffd)
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
-  /* Note: edited to include the w direction, but haven't updated the
-     powers arrays to 3D arrays yet. Will not compile until that is done. */
+    /* Note: edited to include the w direction, but haven't updated the
+       powers arrays to 3D arrays yet. Will not compile until that is done. */
     int ii, jj, kk, ww, rind, zind, wind, subw;
     const double harm_fract = (double) harmnum / (double) numharm;
-
+    
     for (ii = 0; ii < fundamental->numws; ii++) {
-      ww = fundamental->wlo + ii * ACCEL_DW;
-      subw = calc_required_w(harm_fract, ww);
-      wind = index_from_w(subw, subharmonic->wlo);
-      for (jj = 0; jj < fundamental->numzs; jj++) {
-        zind = subharmonic->zinds[jj];
-        for (kk = 0; kk < fundamental->numrs; kk++) {
-	  rind = subharmonic->rinds[kk];
-	  fundamental->powers[ii][jj][kk] += subharmonic->powers[wind][zind][rind];
+        ww = fundamental->wlo + ii * ACCEL_DW;
+        subw = calc_required_w(harm_fract, ww);
+        wind = index_from_w(subw, subharmonic->wlo);
+        for (jj = 0; jj < fundamental->numzs; jj++) {
+            zind = subharmonic->zinds[jj];
+            for (kk = 0; kk < fundamental->numrs; kk++) {
+                rind = subharmonic->rinds[kk];
+                fundamental->powers[ii][jj][kk] += subharmonic->powers[wind][zind][rind];
+            }
         }
-      }
     }
 }
 
@@ -1295,7 +1296,7 @@ void add_ffdotpows_ptrs(ffdotpows * fundamental,
     const double harm_fract = (double) harmnum / (double) numharm;
     float *outpows, *inpows;
     unsigned short *indsptr;
-
+    
     for (ii = 0; ii < numzs; ii++) {
         zz = zlo + ii * ACCEL_DZ;
         subz = calc_required_z(harm_fract, zz);
@@ -1414,12 +1415,12 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
     int ii;
     float powcut;
     long long numindep;
-
+    
     printf("Entering search_ffdotpows()...\n");
-
+    
     powcut = obs->powcut[twon_to_index(numharm)];
     numindep = obs->numindep[twon_to_index(numharm)];
-
+    
 #ifdef _OPENMP
 #pragma omp parallel for shared(ffdot,powcut,obs,numharm,numindep)
 #endif
@@ -1428,16 +1429,16 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
         for (jj = 0; jj < ffdot->numzs; jj++) {
             int kk;
             for (kk = 0; kk < ffdot->numrs; kk++) {
-	        if (ffdot->powers[ii][jj][kk] > powcut) {
+                if (ffdot->powers[ii][jj][kk] > powcut) {
                     float pow, sig;
                     double rr, zz, ww;
                     int added = 0;
-
+                    
                     pow = ffdot->powers[ii][jj][kk];
                     sig = candidate_sigma(pow, numharm, numindep);
                     rr = (ffdot->rlo + kk * (double) ACCEL_DR) / (double) numharm;
                     zz = (ffdot->zlo + jj * (double) ACCEL_DZ) / (double) numharm;
-		    ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
+                    ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
 #ifdef _OPENMP
 #pragma omp critical
 #endif
@@ -1814,13 +1815,19 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     obs->powcut = (float *) malloc(obs->numharmstages * sizeof(float));
     obs->numindep = (long long *) malloc(obs->numharmstages * sizeof(long long));
     for (ii = 0; ii < obs->numharmstages; ii++) {
-        if (obs->numz == 1)
+        if (obs->numz == 1 && obs->numw == 1)
             obs->numindep[ii] = (obs->rhi - obs->rlo) / index_to_twon(ii);
-        else
+        else if (obs->numz > 1 && obs->numw == 1)
             /* The numz+1 takes care of the small amount of  */
             /* search we get above zmax and below zmin.      */
             obs->numindep[ii] = (obs->rhi - obs->rlo) * (obs->numz + 1) *
                 (obs->dz / 6.95) / index_to_twon(ii);
+        else
+            /* The numw+1 takes care of the small amount of  */
+            /* search we get above wmax and below wmin.      */
+            obs->numindep[ii] = (obs->rhi - obs->rlo) * \
+                (obs->numz + 1) * (obs->dz / 6.95) *        \
+                (obs->numw + 1) * (obs->dw / 44.2) / index_to_twon(ii);
         obs->powcut[ii] = power_for_sigma(obs->sigma,
                                           index_to_twon(ii), obs->numindep[ii]);
     }
@@ -1843,7 +1850,9 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
             * obs->numbetween * obs->numz;
         printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
-        if (!cmd->wmaxP && (memuse < MAXRAMUSE || cmd->inmemP)) {
+
+        // Force standard for now
+        if (0 && !cmd->wmaxP && (memuse < MAXRAMUSE || cmd->inmemP)) {
             printf("using in-memory accelsearch.\n\n");
             obs->inmem = 1;
             obs->ffdotplane = gen_fvect(memuse / sizeof(float));
