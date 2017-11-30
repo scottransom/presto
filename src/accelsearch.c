@@ -175,6 +175,9 @@ int main(int argc, char *argv[])
                                               &subharminfs[0][0], &obs);
             cands = search_ffdotpows(fundamental, 1, &obs, cands);
 
+	    printf("obs.inmem = %d\n", obs.inmem);
+	    printf("cmd->otheroptP = %d\n", cmd->otheroptP);
+
             if (obs.numharmstages > 1) {        /* Search the subharmonics */
                 int stage, harmtosum, harm;
                 ffdotpows *subharmonic;

@@ -205,7 +205,6 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
 {
     int ii, jj, fftlen;
     double harm_fract;
-    int numkern_zdim, numkern_wdim;
 
     harm_fract = (double) harmnum / (double) numharm;
     shi->numharm = numharm;
@@ -219,7 +218,7 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
     fftlen = calc_fftlen(numharm, harmnum, zmax, wmax);
     shi->numkern_zdim = (shi->zmax / ACCEL_DZ) * 2 + 1;
     shi->numkern_wdim = (shi->wmax / ACCEL_DW) * 2 + 1;
-    shi->numkern = numkern_zdim * numkern_wdim;
+    shi->numkern = shi->numkern_zdim * shi->numkern_wdim;
     /* Allocate 2D array of kernels, with dimensions being z and w */
     shi->kern = gen_kernmatrix(shi->numkern_zdim, shi->numkern_wdim);
     /* Actually append kernels to each array element */
@@ -538,7 +537,7 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
     data = (fcomplex **) malloc(sizeof(fcomplex *) * cand->numharm);
     cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
 
-    if (obs->use_harmonic_polishing) { /* Should I bother editing these now??? */
+    if (obs->use_harmonic_polishing) {
       if (obs->mmap_file || obs->dat_input) {
             for (ii = 0; ii < cand->numharm; ii++) {
                 r_offset[ii] = obs->lobin;
@@ -558,6 +557,7 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
                                   cand->r - obs->lobin,
                                   cand->z, &r, &z, cand->derivs, cand->pows);
         }
+        w = cand->w;
         for (ii = 0; ii < cand->numharm; ii++) {
             cand->hirs[ii] = (r + obs->lobin) * (ii + 1);
             cand->hizs[ii] = z * (ii + 1);
@@ -1012,6 +1012,8 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     fcomplex *data, *pdata;
     fftwf_plan invplan;
 
+    printf("Entering subharm_fderivs_vol()...\n");
+
     if (numrs_full == 0) {
         if (numharm == 1 && harmnum == 1) {
             numrs_full = ACCEL_USELEN;
@@ -1193,6 +1195,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     // Free data and the spread-data
     vect_free(data);
     vect_free(pdata);
+    printf("Exiting subharm_fderivs_vol()...\n");
     return ffdot;
 }
 
@@ -1205,11 +1208,13 @@ ffdotpows *copy_ffdotpows(ffdotpows * orig)
     copy = (ffdotpows *) malloc(sizeof(ffdotpows));
     copy->numrs = orig->numrs;
     copy->numzs = orig->numzs;
+    copy->numws = orig->numws;
     copy->rlo = orig->rlo;
     copy->zlo = orig->zlo;
-    copy->powers = gen_fmatrix(orig->numzs, orig->numrs);
-    for (ii = 0; ii < (orig->numzs * orig->numrs); ii++)
-        copy->powers[0][ii] = orig->powers[0][ii];
+    copy->wlo = orig->wlo;
+    copy->powers = gen_f3Darr(orig->numws, orig->numzs, orig->numrs);
+    for (ii = 0; ii < (orig->numws * orig->numzs * orig->numrs); ii++)
+        copy->powers[0][0][ii] = orig->powers[0][0][ii];
     return copy;
 }
 
@@ -1410,38 +1415,45 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
     float powcut;
     long long numindep;
 
+    printf("Entering search_ffdotpows()...\n");
+
     powcut = obs->powcut[twon_to_index(numharm)];
     numindep = obs->numindep[twon_to_index(numharm)];
 
 #ifdef _OPENMP
 #pragma omp parallel for shared(ffdot,powcut,obs,numharm,numindep)
 #endif
-    for (ii = 0; ii < ffdot->numzs; ii++) {
+    for (ii = 0; ii < ffdot->numws; ii++) {
         int jj;
-        for (jj = 0; jj < ffdot->numrs; jj++) {
-	  if (ffdot->powers[ii][jj][0] > powcut) { // edited to compile
-                float pow, sig;
-                double rr, zz;
-                int added = 0;
+        for (jj = 0; jj < ffdot->numzs; jj++) {
+            int kk;
+            for (kk = 0; kk < ffdot->numrs; kk++) {
+	        if (ffdot->powers[ii][jj][kk] > powcut) {
+                    float pow, sig;
+                    double rr, zz, ww;
+                    int added = 0;
 
-                pow = ffdot->powers[ii][jj][0]; // edited to compile
-                sig = candidate_sigma(pow, numharm, numindep);
-                rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
-                zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
+                    pow = ffdot->powers[ii][jj][kk];
+                    sig = candidate_sigma(pow, numharm, numindep);
+                    rr = (ffdot->rlo + kk * (double) ACCEL_DR) / (double) numharm;
+                    zz = (ffdot->zlo + jj * (double) ACCEL_DZ) / (double) numharm;
+		    ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-                {
-                    cands = insert_new_accelcand(cands, pow, sig, numharm,
-                                                 rr, zz, &added);
+                    {
+                        cands = insert_new_accelcand(cands, pow, sig, numharm,
+                                                     rr, zz, ww, &added);
+                    }
+                    if (added && !obs->dat_input)
+                        fprintf(obs->workfile,
+                                "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f %-10.4f\n",
+                                pow, sig, numharm, rr, rr / obs->T, zz, ww);
                 }
-                if (added && !obs->dat_input)
-                    fprintf(obs->workfile,
-                            "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
-                            pow, sig, numharm, rr, rr / obs->T, zz);
             }
         }
     }
+    printf("Exiting search_ffdotpows()...\n");
     return cands;
 }
 
