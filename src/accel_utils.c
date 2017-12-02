@@ -232,33 +232,46 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
 
 subharminfo **create_subharminfos(accelobs * obs)
 {
-    int ii, jj, harmtosum;
+    double kern_ram_use=0;
+    int ii, jj, harmtosum, fftlen;
     subharminfo **shis;
     
     shis = (subharminfo **) malloc(obs->numharmstages * sizeof(subharminfo *));
     /* Prep the fundamental (actually, the highest harmonic) */
     shis[0] = (subharminfo *) malloc(2 * sizeof(subharminfo));
     init_subharminfo(1, 1, (int) obs->zhi, (int) obs->whi, &shis[0][0]);
-    printf
-        ("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d and w = %4d to %4d,  FFT length = %d\n",
-         shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
-         -shis[0][0].wmax, shis[0][0].wmax,
-         calc_fftlen(1, 1, (int) obs->zhi, (int) obs->whi));
+    fftlen = calc_fftlen(1, 1, (int) obs->zhi, (int) obs->whi);
+    kern_ram_use += shis[0][0].numkern * fftlen * sizeof(fcomplex); // in Bytes
+    if (obs->numw)
+        printf("  Harm  1/1 : %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
+               shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
+               -shis[0][0].wmax, shis[0][0].wmax, fftlen);
+    else
+        printf("  Harm  1/1 : %5d kernels, %4d < z < %-4d (%d pt FFTs)\n",
+               shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax, fftlen);
     /* Prep the sub-harmonics if needed */
     if (!obs->inmem) {
         for (ii = 1; ii < obs->numharmstages; ii++) {
             harmtosum = index_to_twon(ii);
             shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
             for (jj = 1; jj < harmtosum; jj += 2) {
-                init_subharminfo(harmtosum, jj, (int) obs->zhi, (int) obs->whi, &shis[ii][jj - 1]);
-                printf
-                    ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d and w = %4d to %4d,  FFT length = %d\n",
-                     jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax,
-                     -shis[ii][jj - 1].wmax, shis[ii][jj - 1].wmax,
-                     calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi));
+                init_subharminfo(harmtosum, jj, (int) obs->zhi,
+                                 (int) obs->whi, &shis[ii][jj - 1]);
+                fftlen = calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi);
+                kern_ram_use += shis[ii][jj - 1].numkern * fftlen * sizeof(fcomplex); // in Bytes
+                if (obs->numw)
+                    printf("  Harm %2d/%-2d: %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
+                           jj, harmtosum, shis[ii][jj - 1].numkern,
+                           -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax,
+                           -shis[ii][jj - 1].wmax, shis[ii][jj - 1].wmax, fftlen);
+                else
+                    printf("  Harm %2d/%-2d: %5d kernels, %4d < z < %-4d (%d pt FFTs)\n",
+                           jj, harmtosum, shis[ii][jj - 1].numkern,
+                           -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax, fftlen);
             }
         }
     }
+    printf("Total RAM used by correlation kernels:  %.3f GB\n", kern_ram_use / (1 << 30));
     return shis;
 }
 
