@@ -177,10 +177,7 @@ def maximize_r(data, r, norm = None):
     """
     rd = rderivs()
     (rmax, maxpow) = max_r_arr(data, r, rd)
-    if not norm:
-        maxpow = maxpow / rd.locpow
-    else:
-        maxpow = maxpow / norm
+    maxpow = maxpow / rd.locpow if norm is None else maxpow / norm
     return [maxpow, rmax, rd]
 
 def maximize_rz(data, r, z, norm = None):
@@ -193,11 +190,32 @@ def maximize_rz(data, r, z, norm = None):
     """
     rd = rderivs()
     (rmax, zmax, maxpow) = max_rz_arr(data, r, z, rd)
-    if not norm:
-        maxpow = maxpow / rd.locpow
-    else:
-        maxpow = maxpow / norm
+    maxpow = maxpow / rd.locpow if norm is None else maxpow / norm
     return [maxpow, rmax, zmax, rd]
+
+def maximize_rz_harmonics(data, r, z, numharm, norm = None):
+    """
+    maximize_rz_harmonics(data, r, z, numharm, norm = None):
+        Optimize the detection of a signal at location 'r', 'z' in
+            the F-Fdot plane, including harmonic summing of the harmonics.
+            The routine returns a list containing the optimized values of 
+            the maximum normalized power, rmax, zmax, and a list of 
+            rderivs structures for the peak.
+    """
+    rds = [rderivs() for ii in range(numharm)]
+    derivdata = np.zeros(7 * numharm, dtype=np.float64)
+    rmax, zmax = max_rz_arr_harmonics(data, r, z, derivdata)
+    maxpow = 0.0
+    for ii in range(numharm):
+        rds[ii].pow = derivdata[ii*7+0]
+        rds[ii].phs = derivdata[ii*7+1]
+        rds[ii].dpow = derivdata[ii*7+2]
+        rds[ii].dphs = derivdata[ii*7+3]
+        rds[ii].d2pow = derivdata[ii*7+4]
+        rds[ii].d2phs = derivdata[ii*7+5]
+        rds[ii].locpow = derivdata[ii*7+6]
+        maxpow += rds[ii].pow / rds[ii].locpow if norm is None else rds[ii].pow / norm
+    return [maxpow, rmax, zmax, rds]
 
 def maximize_rzw(data, r, z, w, norm = None):
     """
@@ -209,11 +227,32 @@ def maximize_rzw(data, r, z, w, norm = None):
     """
     rd = rderivs()
     (rmax, zmax, wmax, maxpow) = max_rzw_arr(data, r, z, w, rd)
-    if not norm:
-        maxpow = maxpow / rd.locpow
-    else:
-        maxpow = maxpow / norm
+    maxpow = maxpow / rd.locpow if norm is None else maxpow / norm
     return [maxpow, rmax, zmax, wmax, rd]
+
+def maximize_rzw_harmonics(data, r, z, w, numharm, norm = None):
+    """
+    maximize_rzw_harmonics(data, r, z, w, numharm, norm = None):
+        Optimize the detection of a signal at location 'r', 'z', 'w' in
+            the F-Fd-Fdd volume, including harmonic summing of the harmonics.
+            The routine returns a list containing the optimized values of 
+            the maximum normalized power, rmax, zmax, wmax, and a list of 
+            rderivs structures for the peak.
+    """
+    rds = [rderivs() for ii in range(numharm)]
+    derivdata = np.zeros(7 * numharm, dtype=np.float64)
+    rmax, zmax, wmax = max_rzw_arr_harmonics(data, r, z, w, derivdata)
+    maxpow = 0.0
+    for ii in range(numharm):
+        rds[ii].pow = derivdata[ii*7+0]
+        rds[ii].phs = derivdata[ii*7+1]
+        rds[ii].dpow = derivdata[ii*7+2]
+        rds[ii].dphs = derivdata[ii*7+3]
+        rds[ii].d2pow = derivdata[ii*7+4]
+        rds[ii].d2phs = derivdata[ii*7+5]
+        rds[ii].locpow = derivdata[ii*7+6]
+        maxpow += rds[ii].pow / rds[ii].locpow if norm is None else rds[ii].pow / norm
+    return [maxpow, rmax, zmax, wmax, rds]
 
 def search_fft(data, numcands, norm='default'):
     """

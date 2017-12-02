@@ -730,12 +730,12 @@ def gen_bin_response(roffset, numbetween, numkern, ppsr, T, orbit):
     return _presto.gen_bin_response(roffset, numbetween, numkern, ppsr, T, orbit)
 gen_bin_response = _presto.gen_bin_response
 
-def get_localpower(data, numdata, r):
-    return _presto.get_localpower(data, numdata, r)
+def get_localpower(data, r):
+    return _presto.get_localpower(data, r)
 get_localpower = _presto.get_localpower
 
-def get_localpower3d(data, numdata, r, z, w):
-    return _presto.get_localpower3d(data, numdata, r, z, w)
+def get_localpower3d(data, r, z, w):
+    return _presto.get_localpower3d(data, r, z, w)
 get_localpower3d = _presto.get_localpower3d
 
 def get_derivs3d(data, numdata, r, z, w, localpower, result):
@@ -853,6 +853,14 @@ max_r_arr = _presto.max_r_arr
 def max_rz_arr(data, rin, zin, derivs):
     return _presto.max_rz_arr(data, rin, zin, derivs)
 max_rz_arr = _presto.max_rz_arr
+
+def max_rz_arr_harmonics(data, rin, zin, derivdata):
+    return _presto.max_rz_arr_harmonics(data, rin, zin, derivdata)
+max_rz_arr_harmonics = _presto.max_rz_arr_harmonics
+
+def max_rzw_arr_harmonics(data, rin, zin, win, derivdata):
+    return _presto.max_rzw_arr_harmonics(data, rin, zin, win, derivdata)
+max_rzw_arr_harmonics = _presto.max_rzw_arr_harmonics
 
 def max_rzw_arr(data, rin, zin, win, derivs):
     return _presto.max_rzw_arr(data, rin, zin, win, derivs)

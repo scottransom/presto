@@ -4219,6 +4219,55 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
     }
 
 
+    void wrap_max_rz_arr_harmonics(fcomplex *data, long numdata,
+                                   double rin, double zin,
+                                   double *derivdata, int len,
+                                   double *rout, double *zout){
+        int ii, numharm = len / 7;
+        double *powers = gen_dvect(numharm);
+        rderivs *derivs = (rderivs *)malloc(sizeof(rderivs) * numharm);
+        
+        max_rz_arr_harmonics(data, numdata, numharm, rin, zin, rout, zout, derivs, powers);
+        vect_free(powers);
+        // Hack to effectively return a array of rderivs
+        for (ii = 0 ; ii < numharm ; ii++) {
+            derivdata[ii*7+0] = derivs[ii].pow;
+            derivdata[ii*7+1] = derivs[ii].phs;
+            derivdata[ii*7+2] = derivs[ii].dpow;
+            derivdata[ii*7+3] = derivs[ii].dphs;
+            derivdata[ii*7+4] = derivs[ii].d2pow;
+            derivdata[ii*7+5] = derivs[ii].d2phs;
+            derivdata[ii*7+6] = derivs[ii].locpow;
+        }
+        free(derivs);
+    }
+
+
+    void wrap_max_rzw_arr_harmonics(fcomplex *data, long numdata,
+                                    double rin, double zin, double win,
+                                    double *derivdata, int len,
+                                    double *rout, double *zout, double *wout){
+        int ii, numharm = len / 7;
+        double *powers = gen_dvect(numharm);
+        rderivs *derivs = (rderivs *)malloc(sizeof(rderivs) * numharm);
+        
+        max_rzw_arr_harmonics(data, numdata, numharm, rin, zin, win,
+                              rout, zout, wout, derivs, powers);
+        vect_free(powers);
+        // Hack to effectively return a array of rderivs
+        for (ii = 0 ; ii < numharm ; ii++) {
+            derivdata[ii*7+0] = derivs[ii].pow;
+            derivdata[ii*7+1] = derivs[ii].phs;
+            derivdata[ii*7+2] = derivs[ii].dpow;
+            derivdata[ii*7+3] = derivs[ii].dphs;
+            derivdata[ii*7+4] = derivs[ii].d2pow;
+            derivdata[ii*7+5] = derivs[ii].d2phs;
+            derivdata[ii*7+6] = derivs[ii].locpow;
+        }
+        free(derivs);
+    }
+
+
     void wrap_max_rzw_arr(fcomplex * data, long numdata, double rin, double zin, double win,
                           rderivs * derivs, double *rout, double *zout, double *wout, double *powout){
         double pow;
@@ -7727,10 +7776,10 @@ fail:
 SWIGINTERN PyObject *_wrap_rderivs_pow_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   struct RDERIVS *arg1 = (struct RDERIVS *) 0 ;
-  float arg2 ;
+  double arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  float val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -7741,11 +7790,11 @@ SWIGINTERN PyObject *_wrap_rderivs_pow_set(PyObject *SWIGUNUSEDPARM(self), PyObj
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_pow_set" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  ecode2 = SWIG_AsVal_float(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_pow_set" "', argument " "2"" of type '" "float""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_pow_set" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (float)(val2);
+  arg2 = (double)(val2);
   if (arg1) (arg1)->pow = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -7760,7 +7809,7 @@ SWIGINTERN PyObject *_wrap_rderivs_pow_get(PyObject *SWIGUNUSEDPARM(self), PyObj
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  float result;
+  double result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:rderivs_pow_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RDERIVS, 0 |  0 );
@@ -7768,8 +7817,8 @@ SWIGINTERN PyObject *_wrap_rderivs_pow_get(PyObject *SWIGUNUSEDPARM(self), PyObj
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_pow_get" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  result = (float) ((arg1)->pow);
-  resultobj = SWIG_From_float((float)(result));
+  result = (double) ((arg1)->pow);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -7779,10 +7828,10 @@ fail:
 SWIGINTERN PyObject *_wrap_rderivs_phs_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   struct RDERIVS *arg1 = (struct RDERIVS *) 0 ;
-  float arg2 ;
+  double arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  float val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -7793,11 +7842,11 @@ SWIGINTERN PyObject *_wrap_rderivs_phs_set(PyObject *SWIGUNUSEDPARM(self), PyObj
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_phs_set" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  ecode2 = SWIG_AsVal_float(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_phs_set" "', argument " "2"" of type '" "float""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_phs_set" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (float)(val2);
+  arg2 = (double)(val2);
   if (arg1) (arg1)->phs = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -7812,7 +7861,7 @@ SWIGINTERN PyObject *_wrap_rderivs_phs_get(PyObject *SWIGUNUSEDPARM(self), PyObj
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  float result;
+  double result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:rderivs_phs_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RDERIVS, 0 |  0 );
@@ -7820,8 +7869,8 @@ SWIGINTERN PyObject *_wrap_rderivs_phs_get(PyObject *SWIGUNUSEDPARM(self), PyObj
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_phs_get" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  result = (float) ((arg1)->phs);
-  resultobj = SWIG_From_float((float)(result));
+  result = (double) ((arg1)->phs);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -7831,10 +7880,10 @@ fail:
 SWIGINTERN PyObject *_wrap_rderivs_dpow_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   struct RDERIVS *arg1 = (struct RDERIVS *) 0 ;
-  float arg2 ;
+  double arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  float val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -7845,11 +7894,11 @@ SWIGINTERN PyObject *_wrap_rderivs_dpow_set(PyObject *SWIGUNUSEDPARM(self), PyOb
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_dpow_set" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  ecode2 = SWIG_AsVal_float(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_dpow_set" "', argument " "2"" of type '" "float""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_dpow_set" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (float)(val2);
+  arg2 = (double)(val2);
   if (arg1) (arg1)->dpow = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -7864,7 +7913,7 @@ SWIGINTERN PyObject *_wrap_rderivs_dpow_get(PyObject *SWIGUNUSEDPARM(self), PyOb
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  float result;
+  double result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:rderivs_dpow_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RDERIVS, 0 |  0 );
@@ -7872,8 +7921,8 @@ SWIGINTERN PyObject *_wrap_rderivs_dpow_get(PyObject *SWIGUNUSEDPARM(self), PyOb
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_dpow_get" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  result = (float) ((arg1)->dpow);
-  resultobj = SWIG_From_float((float)(result));
+  result = (double) ((arg1)->dpow);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -7883,10 +7932,10 @@ fail:
 SWIGINTERN PyObject *_wrap_rderivs_dphs_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   struct RDERIVS *arg1 = (struct RDERIVS *) 0 ;
-  float arg2 ;
+  double arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  float val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -7897,11 +7946,11 @@ SWIGINTERN PyObject *_wrap_rderivs_dphs_set(PyObject *SWIGUNUSEDPARM(self), PyOb
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_dphs_set" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  ecode2 = SWIG_AsVal_float(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_dphs_set" "', argument " "2"" of type '" "float""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_dphs_set" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (float)(val2);
+  arg2 = (double)(val2);
   if (arg1) (arg1)->dphs = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -7916,7 +7965,7 @@ SWIGINTERN PyObject *_wrap_rderivs_dphs_get(PyObject *SWIGUNUSEDPARM(self), PyOb
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  float result;
+  double result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:rderivs_dphs_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RDERIVS, 0 |  0 );
@@ -7924,8 +7973,8 @@ SWIGINTERN PyObject *_wrap_rderivs_dphs_get(PyObject *SWIGUNUSEDPARM(self), PyOb
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_dphs_get" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  result = (float) ((arg1)->dphs);
-  resultobj = SWIG_From_float((float)(result));
+  result = (double) ((arg1)->dphs);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -7935,10 +7984,10 @@ fail:
 SWIGINTERN PyObject *_wrap_rderivs_d2pow_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   struct RDERIVS *arg1 = (struct RDERIVS *) 0 ;
-  float arg2 ;
+  double arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  float val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -7949,11 +7998,11 @@ SWIGINTERN PyObject *_wrap_rderivs_d2pow_set(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_d2pow_set" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  ecode2 = SWIG_AsVal_float(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_d2pow_set" "', argument " "2"" of type '" "float""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_d2pow_set" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (float)(val2);
+  arg2 = (double)(val2);
   if (arg1) (arg1)->d2pow = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -7968,7 +8017,7 @@ SWIGINTERN PyObject *_wrap_rderivs_d2pow_get(PyObject *SWIGUNUSEDPARM(self), PyO
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  float result;
+  double result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:rderivs_d2pow_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RDERIVS, 0 |  0 );
@@ -7976,8 +8025,8 @@ SWIGINTERN PyObject *_wrap_rderivs_d2pow_get(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_d2pow_get" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  result = (float) ((arg1)->d2pow);
-  resultobj = SWIG_From_float((float)(result));
+  result = (double) ((arg1)->d2pow);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -7987,10 +8036,10 @@ fail:
 SWIGINTERN PyObject *_wrap_rderivs_d2phs_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   struct RDERIVS *arg1 = (struct RDERIVS *) 0 ;
-  float arg2 ;
+  double arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  float val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -8001,11 +8050,11 @@ SWIGINTERN PyObject *_wrap_rderivs_d2phs_set(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_d2phs_set" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  ecode2 = SWIG_AsVal_float(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_d2phs_set" "', argument " "2"" of type '" "float""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_d2phs_set" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (float)(val2);
+  arg2 = (double)(val2);
   if (arg1) (arg1)->d2phs = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -8020,7 +8069,7 @@ SWIGINTERN PyObject *_wrap_rderivs_d2phs_get(PyObject *SWIGUNUSEDPARM(self), PyO
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  float result;
+  double result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:rderivs_d2phs_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RDERIVS, 0 |  0 );
@@ -8028,8 +8077,8 @@ SWIGINTERN PyObject *_wrap_rderivs_d2phs_get(PyObject *SWIGUNUSEDPARM(self), PyO
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_d2phs_get" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  result = (float) ((arg1)->d2phs);
-  resultobj = SWIG_From_float((float)(result));
+  result = (double) ((arg1)->d2phs);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -8039,10 +8088,10 @@ fail:
 SWIGINTERN PyObject *_wrap_rderivs_locpow_set(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   struct RDERIVS *arg1 = (struct RDERIVS *) 0 ;
-  float arg2 ;
+  double arg2 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  float val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -8053,11 +8102,11 @@ SWIGINTERN PyObject *_wrap_rderivs_locpow_set(PyObject *SWIGUNUSEDPARM(self), Py
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_locpow_set" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  ecode2 = SWIG_AsVal_float(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_locpow_set" "', argument " "2"" of type '" "float""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "rderivs_locpow_set" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (float)(val2);
+  arg2 = (double)(val2);
   if (arg1) (arg1)->locpow = arg2;
   resultobj = SWIG_Py_Void();
   return resultobj;
@@ -8072,7 +8121,7 @@ SWIGINTERN PyObject *_wrap_rderivs_locpow_get(PyObject *SWIGUNUSEDPARM(self), Py
   void *argp1 = 0 ;
   int res1 = 0 ;
   PyObject * obj0 = 0 ;
-  float result;
+  double result;
   
   if (!PyArg_ParseTuple(args,(char *)"O:rderivs_locpow_get",&obj0)) SWIG_fail;
   res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_RDERIVS, 0 |  0 );
@@ -8080,8 +8129,8 @@ SWIGINTERN PyObject *_wrap_rderivs_locpow_get(PyObject *SWIGUNUSEDPARM(self), Py
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "rderivs_locpow_get" "', argument " "1"" of type '" "struct RDERIVS *""'"); 
   }
   arg1 = (struct RDERIVS *)(argp1);
-  result = (float) ((arg1)->locpow);
-  resultobj = SWIG_From_float((float)(result));
+  result = (double) ((arg1)->locpow);
+  resultobj = SWIG_From_double((double)(result));
   return resultobj;
 fail:
   return NULL;
@@ -11140,31 +11189,30 @@ fail:
 SWIGINTERN PyObject *_wrap_get_localpower(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   fcomplex *arg1 = (fcomplex *) 0 ;
-  int arg2 ;
+  long arg2 ;
   double arg3 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  int val2 ;
-  int ecode2 = 0 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
   double val3 ;
   int ecode3 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
-  PyObject * obj2 = 0 ;
   float result;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOO:get_localpower",&obj0,&obj1,&obj2)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FCOMPLEX, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_localpower" "', argument " "1"" of type '" "fcomplex *""'"); 
+  if (!PyArg_ParseTuple(args,(char *)"OO:get_localpower",&obj0,&obj1)) SWIG_fail;
+  {
+    npy_intp size[1] = {
+      -1 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(obj0,
+      NPY_CFLOAT,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 1) ||
+      !require_size(array1, size, 1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = (long) array_size(array1,0);
   }
-  arg1 = (fcomplex *)(argp1);
-  ecode2 = SWIG_AsVal_int(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_localpower" "', argument " "2"" of type '" "int""'");
-  } 
-  arg2 = (int)(val2);
-  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  ecode3 = SWIG_AsVal_double(obj1, &val3);
   if (!SWIG_IsOK(ecode3)) {
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "get_localpower" "', argument " "3"" of type '" "double""'");
   } 
@@ -11187,8 +11235,20 @@ SWIGINTERN PyObject *_wrap_get_localpower(PyObject *SWIGUNUSEDPARM(self), PyObje
     }
   }
   resultobj = SWIG_From_float((float)(result));
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
   return resultobj;
 fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
   return NULL;
 }
 
@@ -11196,14 +11256,12 @@ fail:
 SWIGINTERN PyObject *_wrap_get_localpower3d(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   fcomplex *arg1 = (fcomplex *) 0 ;
-  int arg2 ;
+  long arg2 ;
   double arg3 ;
   double arg4 ;
   double arg5 ;
-  void *argp1 = 0 ;
-  int res1 = 0 ;
-  int val2 ;
-  int ecode2 = 0 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
   double val3 ;
   int ecode3 = 0 ;
   double val4 ;
@@ -11214,31 +11272,32 @@ SWIGINTERN PyObject *_wrap_get_localpower3d(PyObject *SWIGUNUSEDPARM(self), PyOb
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
   PyObject * obj3 = 0 ;
-  PyObject * obj4 = 0 ;
   float result;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOOOO:get_localpower3d",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
-  res1 = SWIG_ConvertPtr(obj0, &argp1,SWIGTYPE_p_FCOMPLEX, 0 |  0 );
-  if (!SWIG_IsOK(res1)) {
-    SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_localpower3d" "', argument " "1"" of type '" "fcomplex *""'"); 
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:get_localpower3d",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  {
+    npy_intp size[1] = {
+      -1 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(obj0,
+      NPY_CFLOAT,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 1) ||
+      !require_size(array1, size, 1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = (long) array_size(array1,0);
   }
-  arg1 = (fcomplex *)(argp1);
-  ecode2 = SWIG_AsVal_int(obj1, &val2);
-  if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_localpower3d" "', argument " "2"" of type '" "int""'");
-  } 
-  arg2 = (int)(val2);
-  ecode3 = SWIG_AsVal_double(obj2, &val3);
+  ecode3 = SWIG_AsVal_double(obj1, &val3);
   if (!SWIG_IsOK(ecode3)) {
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "get_localpower3d" "', argument " "3"" of type '" "double""'");
   } 
   arg3 = (double)(val3);
-  ecode4 = SWIG_AsVal_double(obj3, &val4);
+  ecode4 = SWIG_AsVal_double(obj2, &val4);
   if (!SWIG_IsOK(ecode4)) {
     SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "get_localpower3d" "', argument " "4"" of type '" "double""'");
   } 
   arg4 = (double)(val4);
-  ecode5 = SWIG_AsVal_double(obj4, &val5);
+  ecode5 = SWIG_AsVal_double(obj3, &val5);
   if (!SWIG_IsOK(ecode5)) {
     SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "get_localpower3d" "', argument " "5"" of type '" "double""'");
   } 
@@ -11261,8 +11320,20 @@ SWIGINTERN PyObject *_wrap_get_localpower3d(PyObject *SWIGUNUSEDPARM(self), PyOb
     }
   }
   resultobj = SWIG_From_float((float)(result));
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
   return resultobj;
 fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
   return NULL;
 }
 
@@ -11270,7 +11341,7 @@ fail:
 SWIGINTERN PyObject *_wrap_get_derivs3d(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   fcomplex *arg1 = (fcomplex *) 0 ;
-  int arg2 ;
+  long arg2 ;
   double arg3 ;
   double arg4 ;
   double arg5 ;
@@ -11278,7 +11349,7 @@ SWIGINTERN PyObject *_wrap_get_derivs3d(PyObject *SWIGUNUSEDPARM(self), PyObject
   rderivs *arg7 = (rderivs *) 0 ;
   void *argp1 = 0 ;
   int res1 = 0 ;
-  int val2 ;
+  long val2 ;
   int ecode2 = 0 ;
   double val3 ;
   int ecode3 = 0 ;
@@ -11304,11 +11375,11 @@ SWIGINTERN PyObject *_wrap_get_derivs3d(PyObject *SWIGUNUSEDPARM(self), PyObject
     SWIG_exception_fail(SWIG_ArgError(res1), "in method '" "get_derivs3d" "', argument " "1"" of type '" "fcomplex *""'"); 
   }
   arg1 = (fcomplex *)(argp1);
-  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  ecode2 = SWIG_AsVal_long(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_derivs3d" "', argument " "2"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "get_derivs3d" "', argument " "2"" of type '" "long""'");
   } 
-  arg2 = (int)(val2);
+  arg2 = (long)(val2);
   ecode3 = SWIG_AsVal_double(obj2, &val3);
   if (!SWIG_IsOK(ecode3)) {
     SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "get_derivs3d" "', argument " "3"" of type '" "double""'");
@@ -13216,6 +13287,209 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_max_rz_arr_harmonics(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  long arg2 ;
+  double arg3 ;
+  double arg4 ;
+  double *arg5 = (double *) 0 ;
+  int arg6 ;
+  double *arg7 = (double *) 0 ;
+  double *arg8 = (double *) 0 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  PyArrayObject *array5 = NULL ;
+  int i5 = 1 ;
+  double temp7 ;
+  int res7 = SWIG_TMPOBJ ;
+  double temp8 ;
+  int res8 = SWIG_TMPOBJ ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  
+  arg7 = &temp7;
+  arg8 = &temp8;
+  if (!PyArg_ParseTuple(args,(char *)"OOOO:max_rz_arr_harmonics",&obj0,&obj1,&obj2,&obj3)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(obj0, NPY_CFLOAT);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  ecode3 = SWIG_AsVal_double(obj1, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "max_rz_arr_harmonics" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj2, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "max_rz_arr_harmonics" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  {
+    array5 = obj_to_array_no_conversion(obj3, NPY_DOUBLE);
+    if (!array5 || !require_dimensions(array5,1) || !require_contiguous(array5)
+      || !require_native(array5)) SWIG_fail;
+    arg5 = (double*) array_data(array5);
+    arg6 = 1;
+    for (i5=0; i5 < array_numdims(array5); ++i5) arg6 *= array_size(array5,i5);
+  }
+  {
+    errno = 0;
+    wrap_max_rz_arr_harmonics(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res7)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg7)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res7) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg7), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res8)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg8)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res8) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg8), SWIGTYPE_p_double, new_flags));
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
+SWIGINTERN PyObject *_wrap_max_rzw_arr_harmonics(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  fcomplex *arg1 = (fcomplex *) 0 ;
+  long arg2 ;
+  double arg3 ;
+  double arg4 ;
+  double arg5 ;
+  double *arg6 = (double *) 0 ;
+  int arg7 ;
+  double *arg8 = (double *) 0 ;
+  double *arg9 = (double *) 0 ;
+  double *arg10 = (double *) 0 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  double val5 ;
+  int ecode5 = 0 ;
+  PyArrayObject *array6 = NULL ;
+  int i6 = 1 ;
+  double temp8 ;
+  int res8 = SWIG_TMPOBJ ;
+  double temp9 ;
+  int res9 = SWIG_TMPOBJ ;
+  double temp10 ;
+  int res10 = SWIG_TMPOBJ ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  
+  arg8 = &temp8;
+  arg9 = &temp9;
+  arg10 = &temp10;
+  if (!PyArg_ParseTuple(args,(char *)"OOOOO:max_rzw_arr_harmonics",&obj0,&obj1,&obj2,&obj3,&obj4)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(obj0, NPY_CFLOAT);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (fcomplex*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  ecode3 = SWIG_AsVal_double(obj1, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "max_rzw_arr_harmonics" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj2, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "max_rzw_arr_harmonics" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  ecode5 = SWIG_AsVal_double(obj3, &val5);
+  if (!SWIG_IsOK(ecode5)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode5), "in method '" "max_rzw_arr_harmonics" "', argument " "5"" of type '" "double""'");
+  } 
+  arg5 = (double)(val5);
+  {
+    array6 = obj_to_array_no_conversion(obj4, NPY_DOUBLE);
+    if (!array6 || !require_dimensions(array6,1) || !require_contiguous(array6)
+      || !require_native(array6)) SWIG_fail;
+    arg6 = (double*) array_data(array6);
+    arg7 = 1;
+    for (i6=0; i6 < array_numdims(array6); ++i6) arg7 *= array_size(array6,i6);
+  }
+  {
+    errno = 0;
+    wrap_max_rzw_arr_harmonics(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_Py_Void();
+  if (SWIG_IsTmpObj(res8)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg8)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res8) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg8), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res9)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg9)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res9) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg9), SWIGTYPE_p_double, new_flags));
+  }
+  if (SWIG_IsTmpObj(res10)) {
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_From_double((*arg10)));
+  } else {
+    int new_flags = SWIG_IsNewObj(res10) ? (SWIG_POINTER_OWN |  0 ) :  0 ;
+    resultobj = SWIG_Python_AppendOutput(resultobj, SWIG_NewPointerObj((void*)(arg10), SWIGTYPE_p_double, new_flags));
+  }
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_max_rzw_arr(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   fcomplex *arg1 = (fcomplex *) 0 ;
@@ -13706,6 +13980,8 @@ static PyMethodDef SwigMethods[] = {
 	 { (char *)"corr_rzw_vol", _wrap_corr_rzw_vol, METH_VARARGS, NULL},
 	 { (char *)"max_r_arr", _wrap_max_r_arr, METH_VARARGS, NULL},
 	 { (char *)"max_rz_arr", _wrap_max_rz_arr, METH_VARARGS, NULL},
+	 { (char *)"max_rz_arr_harmonics", _wrap_max_rz_arr_harmonics, METH_VARARGS, NULL},
+	 { (char *)"max_rzw_arr_harmonics", _wrap_max_rzw_arr_harmonics, METH_VARARGS, NULL},
 	 { (char *)"max_rzw_arr", _wrap_max_rzw_arr, METH_VARARGS, NULL},
 	 { (char *)"barycenter", _wrap_barycenter, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
