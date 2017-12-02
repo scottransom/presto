@@ -16,7 +16,8 @@ static double power_call_rz(double rz[])
     fcomplex ans;
 
     /* num_funct_calls++; */
-    rz_interp(maxdata, nummaxdata, rz[0], rz[1] * ZSCALE, max_kern_half_width, &ans);
+    rz_interp(maxdata, nummaxdata, rz[0], rz[1] * ZSCALE,
+              max_kern_half_width, &ans);
     return -POWER(ans.r, ans.i);
 }
 
@@ -140,8 +141,8 @@ static double power_call_rz_harmonics(double rz[])
 void max_rz_arr_harmonics(fcomplex * data[], int num_harmonics,
                           long r_offset[],
                           long numdata, double rin, double zin,
-                          double *rout, double *zout, rderivs derivs[],
-                          double power[])
+                          double *rout, double *zout,
+                          rderivs derivs[], double powers[])
 /* Return the Fourier frequency and Fourier f-dot that      */
 /* maximizes the power.                                     */
 {
@@ -227,7 +228,7 @@ void max_rz_arr_harmonics(fcomplex * data[], int num_harmonics,
         x[0][0] = (r_offset[ii] + *rout) * n - r_offset[ii];
         x[0][1] = *zout / ZSCALE * n;
         maxdata = data[ii];
-        power[ii] = -power_call_rz(x[0]);
+        powers[ii] = -power_call_rz(x[0]);
         get_derivs3d(data[ii], numdata,
                      (r_offset[ii] + *rout) * n - r_offset[ii], (*zout) * n,
                      0.0, locpow[ii], &(derivs[ii]));
@@ -240,8 +241,8 @@ void max_rz_arr_harmonics(fcomplex * data[], int num_harmonics,
 void max_rz_file_harmonics(FILE * fftfile, int num_harmonics,
                            long lobin,
                            double rin, double zin,
-                           double *rout, double *zout, rderivs derivs[],
-                           double maxpow[])
+                           double *rout, double *zout,
+                           rderivs derivs[], double powers[])
 /* Return the Fourier frequency and Fourier f-dot that      */
 /* maximizes the power of the candidate in 'fftfile'.       */
 {
@@ -265,7 +266,7 @@ void max_rz_file_harmonics(FILE * fftfile, int num_harmonics,
     max_rz_arr_harmonics(filedata, num_harmonics,
                          r_offset,
                          filedatalen, rin_frac + filedatalen / 2,
-                         zin, rout, zout, derivs, maxpow);
+                         zin, rout, zout, derivs, powers);
 
     *rout += r_offset[0];
     for (ii = 0; ii < num_harmonics; ii++)

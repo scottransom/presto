@@ -539,17 +539,25 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
     
     if (obs->use_harmonic_polishing) {
         if (obs->mmap_file || obs->dat_input) {
-            for (ii = 0; ii < cand->numharm; ii++) {
-                r_offset[ii] = obs->lobin;
-                data[ii] = obs->fft;
+            if (obs->numw) {
+                max_rzw_arr_harmonics(obs->fft, obs->numbins,
+                                      cand->numharm,
+                                      cand->r - obs->lobin,
+                                      cand->z, cand->w, &r, &z, &w,
+                                      cand->derivs, cand->pows);
+
+            } else {
+                for (ii = 0; ii < cand->numharm; ii++) {
+                    r_offset[ii] = obs->lobin;
+                    data[ii] = obs->fft;
+                }
+                max_rz_arr_harmonics(data,
+                                     cand->numharm,
+                                     r_offset,
+                                     obs->numbins,
+                                     cand->r - obs->lobin,
+                                     cand->z, &r, &z, cand->derivs, cand->pows);
             }
-            max_rz_arr_harmonics(data,
-                                 cand->numharm,
-                                 r_offset,
-                                 obs->numbins,
-                                 cand->r - obs->lobin,
-                                 cand->z, &r, &z, cand->derivs, cand->pows);
-            
         } else {
             max_rz_file_harmonics(obs->fftfile,
                                   cand->numharm,
@@ -557,7 +565,7 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
                                   cand->r - obs->lobin,
                                   cand->z, &r, &z, cand->derivs, cand->pows);
         }
-        w = cand->w;
+        // w = cand->w;
         for (ii = 0; ii < cand->numharm; ii++) {
             cand->hirs[ii] = (r + obs->lobin) * (ii + 1);
             cand->hizs[ii] = z * (ii + 1);
@@ -1735,7 +1743,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         obs->wlo = -cmd->wmax;
         obs->dw = ACCEL_DW;
         obs->numw = (cmd->wmax / ACCEL_DW) * 2 + 1;
-        obs->use_harmonic_polishing = 0; // Turn this off as it is too expensive
+        // obs->use_harmonic_polishing = 0; // Turn this off as it is too expensive
         printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
     } else {
         obs->whi = 0.0;
@@ -1815,9 +1823,9 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     obs->powcut = (float *) malloc(obs->numharmstages * sizeof(float));
     obs->numindep = (long long *) malloc(obs->numharmstages * sizeof(long long));
     for (ii = 0; ii < obs->numharmstages; ii++) {
-        if (obs->numz == 1 && obs->numw == 1)
+        if (obs->numz == 1 && obs->numw == 0)
             obs->numindep[ii] = (obs->rhi - obs->rlo) / index_to_twon(ii);
-        else if (obs->numz > 1 && obs->numw == 1)
+        else if (obs->numz > 1 && obs->numw == 0)
             /* The numz+1 takes care of the small amount of  */
             /* search we get above zmax and below zmin.      */
             obs->numindep[ii] = (obs->rhi - obs->rlo) * (obs->numz + 1) *
