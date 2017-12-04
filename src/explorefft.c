@@ -655,9 +655,12 @@ int main(int argc, char *argv[])
 
         switch (inchar) {
         case 'A':              /* Zoom in */
+            /* FALLTHRU */
         case 'a':
             centerr = (inx + offsetf) * T;
+            /* FALLTHRU */
         case 'I':
+            /* FALLTHRU */
         case 'i':
             if (DEBUGOUT)
                 printf("  Zooming in  (zoomlevel = %d)...\n", zoomlevel);
@@ -671,8 +674,11 @@ int main(int argc, char *argv[])
                 printf("  Already at maximum zoom level (%d).\n", zoomlevel);
             break;
         case 'X':              /* Zoom out */
+            /* FALLTHRU */
         case 'x':
+            /* FALLTHRU */
         case 'O':
+            /* FALLTHRU */
         case 'o':
             if (DEBUGOUT)
                 printf("  Zooming out  (zoomlevel = %d)...\n", zoomlevel);
@@ -687,6 +693,7 @@ int main(int argc, char *argv[])
             break;
         case '<':              /* Shift left 1 full screen */
             centerr -= fv->numbins + fv->numbins / 8;
+            /* FALLTHRU */
         case ',':              /* Shift left 1/8 screen */
             if (DEBUGOUT)
                 printf("  Shifting left...\n");
@@ -705,6 +712,7 @@ int main(int argc, char *argv[])
             break;
         case '>':              /* Shift right 1 full screen */
             centerr += fv->numbins - fv->numbins / 8;
+            /* FALLTHRU */
         case '.':              /* Shift right 1/8 screen */
             if (DEBUGOUT)
                 printf("  Shifting right...\n");
@@ -722,6 +730,7 @@ int main(int argc, char *argv[])
             offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
             break;
         case '+':              /* Increase height of powers */
+            /* FALLTHRU */
         case '=':
             if (maxpow == 0.0) {
                 printf("  Auto-scaling is off.\n");
@@ -732,6 +741,7 @@ int main(int argc, char *argv[])
             offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
             break;
         case '-':              /* Decrease height of powers */
+            /* FALLTHRU */
         case '_':
             if (maxpow == 0.0) {
                 printf("  Auto-scaling is off.\n");
@@ -742,6 +752,7 @@ int main(int argc, char *argv[])
             offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
             break;
         case 'S':              /* Auto-scale */
+            /* FALLTHRU */
         case 's':
             if (maxpow == 0.0)
                 break;
@@ -753,6 +764,7 @@ int main(int argc, char *argv[])
                 break;
             }
         case 'G':              /* Goto a frequency */
+            /* FALLTHRU */
         case 'g':
             {
                 char freqstr[50];
@@ -774,6 +786,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'H':              /* Show harmonics */
+            /* FALLTHRU */
         case 'h':
             {
                 double retval;
@@ -793,6 +806,7 @@ int main(int argc, char *argv[])
             print_help();
             break;
         case 'D':              /* Show details about a selected point  */
+            /* FALLTHRU */
         case 'd':
             {
                 double newr;
@@ -808,6 +822,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'L':              /* Load a zaplist */
+            /* FALLTHRU */
         case 'l':
             {
                 int ii, len;
@@ -835,6 +850,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'Z':              /* Add a birdie to a zaplist */
+            /* FALLTHRU */
         case 'z':
             {
                 int badchoice = 2;
@@ -884,6 +900,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'P':              /* Print the current plot */
+            /* FALLTHRU */
         case 'p':
             {
                 int len;
@@ -910,6 +927,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'N':              /* Changing power normalization */
+            /* FALLTHRU */
         case 'n':
             {
                 float inx2 = 0.0, iny2 = 0.0;
@@ -925,6 +943,7 @@ int main(int argc, char *argv[])
                     cpgcurs(&inx2, &iny2, &choice);
                     switch (choice) {
                     case 'M':
+                        /* FALLTHRU */
                     case 'm':
                         norm_const = 0.0;
                         maxpow = 0.0;
@@ -933,6 +952,7 @@ int main(int argc, char *argv[])
                             ("  Using local median normalization.  Autoscaling is on.\n");
                         break;
                     case 'D':
+                        /* FALLTHRU */
                     case 'd':
                         norm_const = 1.0 / r0;
                         maxpow = 0.0;
@@ -942,6 +962,7 @@ int main(int argc, char *argv[])
                              r0);
                         break;
                     case 'R':
+                        /* FALLTHRU */
                     case 'r':
                         norm_const = 1.0;
                         maxpow = 0.0;
@@ -950,6 +971,7 @@ int main(int argc, char *argv[])
                             ("  Using raw powers (i.e. no normalization).  Autoscaling is on.\n");
                         break;
                     case 'U':
+                        /* FALLTHRU */
                     case 'u':
                         {
                             char choice2;
@@ -1006,6 +1028,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'Q':              /* Quit */
+            /* FALLTHRU */
         case 'q':
             printf("  Quitting...\n");
             free(fv);

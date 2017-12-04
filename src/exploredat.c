@@ -480,6 +480,7 @@ int main(int argc, char *argv[])
             offsetn = plot_dataview(dv, minval, maxval, 1.0);
             break;
         case 'M':              /* Toggle between median and average */
+            /* FALLTHRU */
         case 'm':
             usemedian = (usemedian) ? 0 : 1;
             free(dv);
@@ -488,9 +489,12 @@ int main(int argc, char *argv[])
             offsetn = plot_dataview(dv, minval, maxval, 1.0);
             break;
         case 'A':              /* Zoom in */
+            /* FALLTHRU */
         case 'a':
             centern = inx + offsetn;
+            /* FALLTHRU */
         case 'I':
+            /* FALLTHRU */
         case 'i':
             if (DEBUGOUT)
                 printf("  Zooming in  (zoomlevel = %ld)...\n", zoomlevel);
@@ -504,8 +508,11 @@ int main(int argc, char *argv[])
                 printf("  Already at maximum zoom level (%ld).\n", zoomlevel);
             break;
         case 'X':              /* Zoom out */
+            /* FALLTHRU */
         case 'x':
+            /* FALLTHRU */
         case 'O':
+            /* FALLTHRU */
         case 'o':
             if (DEBUGOUT)
                 printf("  Zooming out  (zoomlevel = %ld)...\n", zoomlevel);
@@ -520,6 +527,7 @@ int main(int argc, char *argv[])
             break;
         case '<':              /* Shift left 1 full screen */
             centern -= dv->numsamps + dv->numsamps / 8;
+            /* FALLTHRU */
         case ',':              /* Shift left 1/8 screen */
             if (DEBUGOUT)
                 printf("  Shifting left...\n");
@@ -538,6 +546,7 @@ int main(int argc, char *argv[])
             break;
         case '>':              /* Shift right 1 full screen */
             centern += dv->numsamps - dv->numsamps / 8;
+            /* FALLTHRU */
         case '.':              /* Shift right 1/8 screen */
             centern += dv->numsamps / 8;
             if (DEBUGOUT)
@@ -643,6 +652,7 @@ int main(int argc, char *argv[])
                 break;
             }
         case 'S':              /* Auto-scale */
+            /* FALLTHRU */
         case 's':
             printf("  Auto-scaling is on.\n");
             minval = SMALLNUM;
@@ -651,6 +661,7 @@ int main(int argc, char *argv[])
             offsetn = plot_dataview(dv, minval, maxval, 1.0);
             break;
         case 'G':              /* Goto a time */
+            /* FALLTHRU */
         case 'g':
             {
                 char timestr[50];
@@ -676,6 +687,7 @@ int main(int argc, char *argv[])
             print_help();
             break;
         case 'P':              /* Print the current plot */
+            /* FALLTHRU */
         case 'p':
             {
                 int len;
@@ -701,6 +713,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'V':              /* Show the basic statistics for the current dataview */
+            /* FALLTHRU */
         case 'v':
             statvals = calc_stats(dv, lodp);
             printf("\n  Statistics:\n"
@@ -722,6 +735,7 @@ int main(int argc, char *argv[])
             free(statvals);
             break;
         case 'Q':              /* Quit */
+            /* FALLTHRU */
         case 'q':
             printf("  Quitting...\n");
             free(dv);

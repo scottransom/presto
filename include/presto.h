@@ -1130,21 +1130,21 @@ double max_rz_file(FILE *fftfile, double rin, double zin, \
   /* maximizes the power of the candidate in 'fftfile'.       */
 
 
-void max_rz_arr_harmonics(fcomplex * data[], int num_harmonics,
-                            long r_offset[],
-                            long numdata, double rin, double zin,
-                            double *rout, double *zout, rderivs derivs[],
-                            double power[]);
+void max_rz_arr_harmonics(fcomplex data[], long numdata,
+                          int num_harmonics,
+                          double rin, double zin,
+                          double *rout, double *zout,
+                          rderivs derivs[], double powers[]);
 /* Return the Fourier frequency and Fourier f-dot that      */
 /* maximizes the power.                                     */
 
-void max_rz_file_harmonics(FILE * fftfile, int num_harmonics,
-                             long lobin,
-                             double rin, double zin,
-                             double *rout, double *zout, rderivs derivs[],
-                             double maxpow[]);
-/* Return the Fourier frequency and Fourier f-dot that      */
-/* maximizes the power of the candidate in 'fftfile'.       */
+void max_rzw_arr_harmonics(fcomplex data[], long numdata,
+                           int num_harmonics,
+                           double rin, double zin, double win,
+                           double *rout, double *zout, double *wout,
+                           rderivs derivs[], double powers[]);
+/* Return the Fourier frequency, f-dot, and f-dotdot that       */
+/* maximizes the *summed* power of the multi-harmonic candidate */
 
 double max_rzw_arr(fcomplex *data, long numdata, double rin, double zin, \
                    double win, double *rout, double *zout,              \

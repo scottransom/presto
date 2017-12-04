@@ -73,8 +73,8 @@ int main(int argc, char *argv[])
 #endif
 
     printf("\n\n");
-    printf("    Fourier-Domain Acceleration Search Routine\n");
-    printf("               by Scott M. Ransom\n\n");
+    printf("    Fourier-Domain Acceleration and Jerk Search Routine\n");
+    printf("                    by Scott M. Ransom\n\n");
 
     /* Create the accelobs structure */
     create_accelobs(&obs, &idata, cmd, 1);
@@ -108,11 +108,13 @@ int main(int argc, char *argv[])
            1 << (obs.numharmstages - 1));
     printf("  f = %.1f to %.1f Hz\n", obs.rlo / obs.T, obs.rhi / obs.T);
     printf("  r = %.1f to %.1f Fourier bins\n", obs.rlo, obs.rhi);
-    printf("  z = %.1f to %.1f Fourier bins drifted\n\n", obs.zlo, obs.zhi);
+    printf("  z = %.1f to %.1f Fourier bins drifted\n", obs.zlo, obs.zhi);
+    if (obs.numw)
+        printf("  w = %.1f to %.1f Fourier-derivative bins drifted\n", obs.wlo, obs.whi);
 
     /* Generate the correlation kernels */
 
-    printf("Generating correlation kernels:\n");
+    printf("\nGenerating correlation kernels:\n");
     subharminfs = create_subharminfos(&obs);
     printf("Done generating kernels.\n\n");
     if (cmd->ncpus > 1) {

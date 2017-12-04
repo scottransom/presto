@@ -183,18 +183,18 @@ kernel **gen_kernmatrix(int numz, int numw) {
     
     kerns = (kernel **) malloc((size_t) numw * sizeof(kernel *));
     if (!kerns) {
-      perror("\nError in 1st malloc() in gen_kernmatrix()");
-      printf("\n");
-      exit(-1);
+        perror("\nError in 1st malloc() in gen_kernmatrix()");
+        printf("\n");
+        exit(-1);
     }
     kerns[0] = (kernel *) malloc((size_t) ((numz * numw) * sizeof(kernel)));
     if (!kerns[0]) {
-      perror("\nError in 2nd malloc() in init_subharminfo()");
-      printf("\n");
-      exit(-1);
+        perror("\nError in 2nd malloc() in init_subharminfo()");
+        printf("\n");
+        exit(-1);
     }
     for (ii = 1; ii < numw; ii++)
-      kerns[ii] = kerns[ii - 1] + numz;
+        kerns[ii] = kerns[ii - 1] + numz;
     return kerns;
 }
 
@@ -213,7 +213,7 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
     shi->wmax = calc_required_w(harm_fract, wmax);
     if (numharm > 1) {
         shi->rinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
-	shi->zinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
+        shi->zinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
     }
     fftlen = calc_fftlen(numharm, harmnum, zmax, wmax);
     shi->numkern_zdim = (shi->zmax / ACCEL_DZ) * 2 + 1;
@@ -223,67 +223,80 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
     shi->kern = gen_kernmatrix(shi->numkern_zdim, shi->numkern_wdim);
     /* Actually append kernels to each array element */
     for (ii = 0; ii < shi->numkern_wdim; ii++) {
-      for (jj = 0; jj < shi->numkern_zdim; jj++) {
-        init_kernel(-shi->zmax + jj * ACCEL_DZ,-shi->wmax + ii * ACCEL_DW, fftlen, &shi->kern[ii][jj]);
-      }
+        for (jj = 0; jj < shi->numkern_zdim; jj++) {
+            init_kernel(-shi->zmax + jj * ACCEL_DZ,-shi->wmax + ii * ACCEL_DW, fftlen, &shi->kern[ii][jj]);
+        }
     }
 }
 
 
 subharminfo **create_subharminfos(accelobs * obs)
 {
-    int ii, jj, harmtosum;
+    double kern_ram_use=0;
+    int ii, jj, harmtosum, fftlen;
     subharminfo **shis;
-
+    
     shis = (subharminfo **) malloc(obs->numharmstages * sizeof(subharminfo *));
     /* Prep the fundamental (actually, the highest harmonic) */
     shis[0] = (subharminfo *) malloc(2 * sizeof(subharminfo));
     init_subharminfo(1, 1, (int) obs->zhi, (int) obs->whi, &shis[0][0]);
-    printf
-        ("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d and w = %4d to %4d,  FFT length = %d\n",
-         shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
-	 -shis[0][0].wmax, shis[0][0].wmax,
-         calc_fftlen(1, 1, (int) obs->zhi, (int) obs->whi));
+    fftlen = calc_fftlen(1, 1, (int) obs->zhi, (int) obs->whi);
+    kern_ram_use += shis[0][0].numkern * fftlen * sizeof(fcomplex); // in Bytes
+    if (obs->numw)
+        printf("  Harm  1/1 : %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
+               shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
+               -shis[0][0].wmax, shis[0][0].wmax, fftlen);
+    else
+        printf("  Harm  1/1 : %5d kernels, %4d < z < %-4d (%d pt FFTs)\n",
+               shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax, fftlen);
     /* Prep the sub-harmonics if needed */
     if (!obs->inmem) {
         for (ii = 1; ii < obs->numharmstages; ii++) {
             harmtosum = index_to_twon(ii);
             shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
             for (jj = 1; jj < harmtosum; jj += 2) {
-	      init_subharminfo(harmtosum, jj, (int) obs->zhi, (int) obs->whi, &shis[ii][jj - 1]);
-                printf
-                    ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d and w = %4d to %4d,  FFT length = %d\n",
-                     jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax,
-		     -shis[ii][jj - 1].wmax, shis[ii][jj - 1].wmax,
-                     calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi));
+                init_subharminfo(harmtosum, jj, (int) obs->zhi,
+                                 (int) obs->whi, &shis[ii][jj - 1]);
+                fftlen = calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi);
+                kern_ram_use += shis[ii][jj - 1].numkern * fftlen * sizeof(fcomplex); // in Bytes
+                if (obs->numw)
+                    printf("  Harm %2d/%-2d: %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
+                           jj, harmtosum, shis[ii][jj - 1].numkern,
+                           -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax,
+                           -shis[ii][jj - 1].wmax, shis[ii][jj - 1].wmax, fftlen);
+                else
+                    printf("  Harm %2d/%-2d: %5d kernels, %4d < z < %-4d (%d pt FFTs)\n",
+                           jj, harmtosum, shis[ii][jj - 1].numkern,
+                           -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax, fftlen);
             }
         }
     }
+    printf("Total RAM used by correlation kernels:  %.3f GB\n", kern_ram_use / (1 << 30));
     return shis;
 }
 
 
 static void free_subharminfo(subharminfo * shi)
 {
-  int ii, jj;
-
-  for (ii = 0; ii < shi->numkern_wdim; ii++) {
-    for (jj = 0; jj < shi->numkern_zdim; jj++) {
-      free_kernel(&shi->kern[ii][jj]);
+    int ii, jj;
+    
+    for (ii = 0; ii < shi->numkern_wdim; ii++) {
+        for (jj = 0; jj < shi->numkern_zdim; jj++) {
+            free_kernel(&shi->kern[ii][jj]);
+        }
     }
-  }
-  if (shi->numharm > 1) {
-    free(shi->rinds);
-    free(shi->zinds);
-  }
-  free(shi->kern);
+    if (shi->numharm > 1) {
+        free(shi->rinds);
+        free(shi->zinds);
+    }
+    free(shi->kern);
 }
 
 
 void free_subharminfos(accelobs * obs, subharminfo ** shis)
 {
     int ii, jj, harmtosum;
-
+    
     /* Free the sub-harmonics */
     if (!obs->inmem) {
         for (ii = 1; ii < obs->numharmstages; ii++) {
@@ -306,7 +319,7 @@ static accelcand *create_accelcand(float power, float sigma,
                                    int numharm, double r, double z, double w)
 {
     accelcand *obj;
-
+    
     obj = (accelcand *) malloc(sizeof(accelcand));
     obj->power = power;
     obj->sigma = sigma;
@@ -525,39 +538,30 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
 void optimize_accelcand(accelcand * cand, accelobs * obs)
 {
     int ii;
-    long *r_offset;
-    fcomplex **data;
     double r, z, w;
 
     cand->pows = gen_dvect(cand->numharm);
     cand->hirs = gen_dvect(cand->numharm);
     cand->hizs = gen_dvect(cand->numharm);
     cand->hiws = gen_dvect(cand->numharm);
-    r_offset = (long *) malloc(sizeof(long) * cand->numharm);
-    data = (fcomplex **) malloc(sizeof(fcomplex *) * cand->numharm);
     cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
     
-    if (obs->use_harmonic_polishing) {
-        if (obs->mmap_file || obs->dat_input) {
-            for (ii = 0; ii < cand->numharm; ii++) {
-                r_offset[ii] = obs->lobin;
-                data[ii] = obs->fft;
-            }
-            max_rz_arr_harmonics(data,
-                                 cand->numharm,
-                                 r_offset,
-                                 obs->numbins,
-                                 cand->r - obs->lobin,
-                                 cand->z, &r, &z, cand->derivs, cand->pows);
+    if (obs->use_harmonic_polishing &&
+        (obs->mmap_file || obs->dat_input)) {
+        if (obs->numw) {
+            max_rzw_arr_harmonics(obs->fft, obs->numbins,
+                                  cand->numharm,
+                                  cand->r - obs->lobin,
+                                  cand->z, cand->w, &r, &z, &w,
+                                  cand->derivs, cand->pows);
             
         } else {
-            max_rz_file_harmonics(obs->fftfile,
-                                  cand->numharm,
-                                  obs->lobin,
-                                  cand->r - obs->lobin,
-                                  cand->z, &r, &z, cand->derivs, cand->pows);
+            max_rz_arr_harmonics(obs->fft, obs->numbins,
+                                 cand->numharm,
+                                 cand->r - obs->lobin,
+                                 cand->z, &r, &z,
+                                 cand->derivs, cand->pows);
         }
-        w = cand->w;
         for (ii = 0; ii < cand->numharm; ii++) {
             cand->hirs[ii] = (r + obs->lobin) * (ii + 1);
             cand->hizs[ii] = z * (ii + 1);
@@ -603,9 +607,6 @@ void optimize_accelcand(accelcand * cand, accelobs * obs)
             cand->hirs[ii] += obs->lobin;
         }
     }
-    free(r_offset);
-    free(data);
-
     cand->sigma = candidate_sigma(cand->power, cand->numharm,
                                   obs->numindep[twon_to_index(cand->numharm)]);
 }
@@ -704,6 +705,8 @@ void output_fundamentals(fourierprops * props, GSList * list,
     title = titles1;
     for (ii = 0; ii < numcols - 1; ii++) {
         if (obs->numw==0 && ii==10) { // Skip jerk parts
+            title++;
+            width++;
             continue;
         } else {
             center_string(ctrstr, *title++, *width++);
@@ -717,6 +720,8 @@ void output_fundamentals(fourierprops * props, GSList * list,
     title = titles2;
     for (ii = 0; ii < numcols - 1; ii++) {
         if (obs->numw==0 && ii==10) { // Skip jerk parts
+            title++;
+            width++;
             continue;
         } else {
             center_string(ctrstr, *title++, *width++);
@@ -729,6 +734,7 @@ void output_fundamentals(fourierprops * props, GSList * list,
     width = widths;
     for (ii = 0; ii < numcols - 1; ii++) {
         if (obs->numw==0 && ii==10) { // Skip jerk parts
+            width++;
             continue;
         } else {
             memset(tmpstr, '-', *width);
@@ -802,7 +808,7 @@ void output_fundamentals(fourierprops * props, GSList * list,
         write_val_with_err(obs->workfile, errs.fd, errs.fderr, *error++, *width++);
         write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr,
                            *error++, *width++);
-        if (obs->numz) {
+        if (obs->numw) {
             write_val_with_err(obs->workfile, props[ii].w, props[ii].werr,
                                *error++, *width++);
         } else {
@@ -1735,7 +1741,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         obs->wlo = -cmd->wmax;
         obs->dw = ACCEL_DW;
         obs->numw = (cmd->wmax / ACCEL_DW) * 2 + 1;
-        obs->use_harmonic_polishing = 0; // Turn this off as it is too expensive
+        // obs->use_harmonic_polishing = 0; // Turn this off as it is too expensive
         printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
     } else {
         obs->whi = 0.0;
@@ -1815,9 +1821,9 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     obs->powcut = (float *) malloc(obs->numharmstages * sizeof(float));
     obs->numindep = (long long *) malloc(obs->numharmstages * sizeof(long long));
     for (ii = 0; ii < obs->numharmstages; ii++) {
-        if (obs->numz == 1 && obs->numw == 1)
+        if (obs->numz == 1 && obs->numw == 0)
             obs->numindep[ii] = (obs->rhi - obs->rlo) / index_to_twon(ii);
-        else if (obs->numz > 1 && obs->numw == 1)
+        else if (obs->numz > 1 && obs->numw == 0)
             /* The numz+1 takes care of the small amount of  */
             /* search we get above zmax and below zmin.      */
             obs->numindep[ii] = (obs->rhi - obs->rlo) * (obs->numz + 1) *
