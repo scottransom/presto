@@ -162,7 +162,6 @@ int main(int argc, char *argv[])
 
         if (!cmd->outfileP) {
             char *tmprootnm, *suffix;
-            printf("XXX  %s\n", cmd->argv[0]);
             split_root_suffix(cmd->argv[0], &tmprootnm, &suffix);
             if ((cmd->startT != 0.0) || (cmd->endT != 1.0)) {
                 rootnm = (char *) calloc(strlen(tmprootnm) + 11, sizeof(char));
@@ -346,38 +345,20 @@ int main(int argc, char *argv[])
 
             /* The following allows using inf files from searches of a subset */
             /* of events from an event file.                                  */
-            if (cmd->rzwcandP || cmd->accelcandP) {
+            if (cmd->accelcandP) {
                 infodata rzwidata;
                 char *cptr = NULL;
 
-                if (cmd->rzwcandP) {
-                    if (!cmd->rzwfileP) {
-                        printf("\nYou must enter a name for the rzw candidate ");
-                        printf("file (-rzwfile filename)\n");
-                        printf("Exiting.\n\n");
-                        exit(1);
-                    } else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))) {
-                        ii = (long) (cptr - cmd->rzwfile);
-                    } else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))) {
-                        ii = (long) (cptr - cmd->rzwfile);
-                    }
-                    cptr = (char *) calloc(ii + 1, sizeof(char));
-                    strncpy(cptr, cmd->rzwfile, ii);
+                if (!cmd->accelfileP) {
+                    printf("\nYou must enter a name for the ACCEL candidate ");
+                    printf("file (-accelfile filename)\n");
+                    printf("Exiting.\n\n");
+                    exit(1);
+                } else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))) {
+                    ii = (long) (cptr - cmd->accelfile);
                 }
-                if (cmd->accelcandP) {
-                    if (!cmd->accelfileP) {
-                        printf("\nYou must enter a name for the ACCEL candidate ");
-                        printf("file (-accelfile filename)\n");
-                        printf("Exiting.\n\n");
-                        exit(1);
-                    } else if (NULL != (cptr = strstr(cmd->accelfile, "_rzw"))) {
-                        ii = (long) (cptr - cmd->accelfile);
-                    } else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))) {
-                        ii = (long) (cptr - cmd->accelfile);
-                    }
-                    cptr = (char *) calloc(ii + 1, sizeof(char));
-                    strncpy(cptr, cmd->accelfile, ii);
-                }
+                cptr = (char *) calloc(ii + 1, sizeof(char));
+                strncpy(cptr, cmd->accelfile, ii);
                 readinf(&rzwidata, cptr);
                 free(cptr);
                 idata.mjd_i = rzwidata.mjd_i;
@@ -403,7 +384,7 @@ int main(int argc, char *argv[])
             events = read_events(s.files[0], cmd->doubleP, eventtype, &numevents,
                                  idata.mjd_i + idata.mjd_f, idata.N * idata.dt,
                                  cmd->startT, cmd->endT, cmd->offset);
-            if (cmd->rzwcandP || cmd->accelcandP)
+            if (cmd->accelcandP)
                 T = idata.N * idata.dt;
             else {
                 /* The 1e-8 prevents floating point rounding issues from
@@ -437,14 +418,14 @@ int main(int argc, char *argv[])
             get_psr_from_parfile(cmd->parname, 51000.0, &psr);
             search.candnm = (char *) calloc(strlen(psr.jname) + 5, sizeof(char));
             sprintf(search.candnm, "PSR_%s", psr.jname);
-        } else if (cmd->rzwcandP) {
-            slen = 20;
-            search.candnm = (char *) calloc(slen, sizeof(char));
-            sprintf(search.candnm, "RZW_Cand_%d", cmd->rzwcand);
         } else if (cmd->accelcandP) {
+            char *cptr = NULL;
             slen = 22;
             search.candnm = (char *) calloc(slen, sizeof(char));
-            sprintf(search.candnm, "ACCEL_Cand_%d", cmd->accelcand);
+            if (NULL != (cptr = strstr(cmd->accelfile, "_JERK")))
+                sprintf(search.candnm, "JERK_Cand_%d", cmd->accelcand);
+            else
+                sprintf(search.candnm, "ACCEL_Cand_%d", cmd->accelcand);
         } else {
             slen = 20;
             search.candnm = (char *) calloc(slen, sizeof(char));
@@ -740,49 +721,35 @@ int main(int argc, char *argv[])
         search.orb.w = (cmd->w + dtmp * cmd->wdot / SECPERJULYR);
         binary = 1;
 
-    } else if (cmd->rzwcandP || cmd->accelcandP) {
+    } else if (cmd->accelcandP) {
         fourierprops rzwcand;
         infodata rzwidata;
         char *cptr = NULL;
+        double T, r0, z0;
 
-        if (cmd->rzwcandP) {
-            if (!cmd->rzwfileP) {
-                printf("\nYou must enter a name for the rzw candidate ");
-                printf("file (-rzwfile filename)\n");
-                printf("Exiting.\n\n");
-                exit(1);
-            } else if (NULL != (cptr = strstr(cmd->rzwfile, "_rzw"))) {
-                ii = (long) (cptr - cmd->rzwfile);
-            } else if (NULL != (cptr = strstr(cmd->rzwfile, "_ACCEL"))) {
-                ii = (long) (cptr - cmd->rzwfile);
-            }
-            cptr = (char *) calloc(ii + 1, sizeof(char));
-            strncpy(cptr, cmd->rzwfile, ii);
+        if (!cmd->accelfileP) {
+            printf("\nYou must enter a name for the ACCEL candidate ");
+            printf("file (-accelfile filename)\n");
+            printf("Exiting.\n\n");
+            exit(1);
+        } else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))) {
+            ii = (long) (cptr - cmd->accelfile);
         }
-        if (cmd->accelcandP) {
-            if (!cmd->accelfileP) {
-                printf("\nYou must enter a name for the ACCEL candidate ");
-                printf("file (-accelfile filename)\n");
-                printf("Exiting.\n\n");
-                exit(1);
-            } else if (NULL != (cptr = strstr(cmd->accelfile, "_rzw"))) {
-                ii = (long) (cptr - cmd->accelfile);
-            } else if (NULL != (cptr = strstr(cmd->accelfile, "_ACCEL"))) {
-                ii = (long) (cptr - cmd->accelfile);
-            }
-            cptr = (char *) calloc(ii + 1, sizeof(char));
-            strncpy(cptr, cmd->accelfile, ii);
-        }
+        cptr = (char *) calloc(ii + 1, sizeof(char));
+        strncpy(cptr, cmd->accelfile, ii);
         printf("\nAttempting to read '%s.inf'.  ", cptr);
         readinf(&rzwidata, cptr);
         free(cptr);
         printf("Successful.\n");
-        if (cmd->rzwfileP)
-            get_rzw_cand(cmd->rzwfile, cmd->rzwcand, &rzwcand);
-        if (cmd->accelfileP)
-            get_rzw_cand(cmd->accelfile, cmd->accelcand, &rzwcand);
-        f = (rzwcand.r - 0.5 * rzwcand.z) / (rzwidata.dt * rzwidata.N);
-        fd = rzwcand.z / ((rzwidata.dt * rzwidata.N) * (rzwidata.dt * rzwidata.N));
+        get_rzw_cand(cmd->accelfile, cmd->accelcand, &rzwcand);
+        T = rzwidata.dt * rzwidata.N;
+        // fourier props file reports average r and average z.
+        // We need the starting values.
+        z0 = rzwcand.z - 0.5 * rzwcand.w;
+        r0 = rzwcand.r - 0.5 * z0 - rzwcand.w / 6.0;
+        f = r0 / T;
+        fd = z0 / (T * T);
+        fdd = rzwcand.w / (T * T * T);
 
         /* Now correct for the fact that we may not be starting */
         /* to fold at the same start time as the rzw search.    */
@@ -802,7 +769,7 @@ int main(int argc, char *argv[])
     /* Determine the pulsar parameters to fold if we are not getting   */
     /* the data from a .cand file, the pulsar database, or a makefile. */
 
-    if (!cmd->rzwcandP && !cmd->accelcandP && !cmd->psrnameP && !cmd->parnameP) {
+    if (!cmd->accelcandP && !cmd->psrnameP && !cmd->parnameP) {
         double p = 0.0, pd = 0.0, pdd = 0.0;
 
         if (cmd->pP) {
