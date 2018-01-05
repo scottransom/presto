@@ -181,7 +181,8 @@ class psr_par:
         if hasattr(self, 'E') and not hasattr(self, 'ECC'):
             setattr(self, 'ECC', self.E)
             if not hasattr(self, 'EPS1'):
-                setattr(self, 'ECC_ERR', self.E_ERR)
+                if hasattr(self, 'E_ERR'):
+                    setattr(self, 'ECC_ERR', self.E_ERR)
         if hasattr(self, 'ECC') and not hasattr(self, 'E'):
             setattr(self, 'E', self.ECC)
             setattr(self, 'E_ERR', self.ECC_ERR)

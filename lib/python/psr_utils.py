@@ -1686,7 +1686,7 @@ def p_to_f(p, pd, pdd=None):
    """
    f = 1.0 / p
    fd = -pd / (p * p)
-   if (pdd==None):
+   if (pdd is None):
        return [f, fd]
    else:
        if (pdd==0.0):
@@ -1701,7 +1701,7 @@ def pferrs(porf, porferr, pdorfd=None, pdorfderr=None):
        Calculate the period or frequency errors and
        the pdot or fdot errors from the opposite one.
     """
-    if (pdorfd==None):
+    if (pdorfd is None):
         return [1.0 / porf, porferr / porf**2.0]
     else:
         forperr = porferr / porf**2.0
