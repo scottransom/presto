@@ -219,6 +219,9 @@ void telescope_to_tempocode(char *inname, char *outname, char *obscode)
     } else if (strcmp(scope, "srt") == 0) {
         strcpy(obscode, "SR");
         strcpy(outname, "Sardinia Radio Telescope");
+    } else if (strcmp(scope, "fast") == 0) {
+        strcpy(obscode, "FA");
+        strcpy(outname, "FAST");
     } else if (strcmp(scope, "wsrt") == 0) {
         strcpy(obscode, "WT");
         strcpy(outname, "WSRT");

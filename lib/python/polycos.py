@@ -21,6 +21,7 @@ telescope_to_id = {"GBT": '1', \
                    "Nancay": 'f', \
                    "Effelsberg": 'g', \
                    "WSRT": 'i', \
+                   "FAST": 'k', \
                    "GMRT": 'r', \
                    "Geocenter": '0', \
                    "Barycenter": '@'}
@@ -36,6 +37,7 @@ id_to_telescope = {'1': "GBT", \
                    'f': "Nancay", \
                    'g': "Effelsberg", \
                    'i': "WSRT", \
+                   'k': "FAST", \
                    'r': "GMRT", \
                    '0': "Geocenter", \
                    '@': "Barycenter"}
@@ -43,6 +45,7 @@ id_to_telescope = {'1': "GBT", \
 # Telescope name to track length (max hour angle) conversion
 telescope_to_maxha = {"GBT": 12, \
                    "Arecibo": 3, \
+                   "FAST": 5, \
                    "VLA": 6, \
                    "Parkes": 12, \
                    "Jodrell": 12, \

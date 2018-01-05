@@ -120,6 +120,9 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
     } else if (strcmp(idata->telescope, "WSRT") == 0) {
         scopechar = 'i';
         tracklen = 12;
+    } else if (strcmp(idata->telescope, "FAST") == 0) {
+        scopechar = 'k';
+        tracklen = 5;
     } else if (strcmp(idata->telescope, "GMRT") == 0) {
         scopechar = 'r';
         tracklen = 12;
