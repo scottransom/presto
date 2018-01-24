@@ -42,12 +42,12 @@ typedef struct accelobs{
     int fftlen;          /* Length of short FFTs to us in search */
     int numharmstages;   /* Number of stages of harmonic summing */
     int numz;            /* Number of f-dots searched */
-    int numw;            /* Number of f-dotdots searched */
+    int numw;            /* Number of f-dot-dots searched */
     int numbetween;      /* Highest fourier freq resolution (2=interbin) */
     int numzap;          /* Number of birdies to zap */
     int dat_input;       /* The input file is a short time series */
     int mmap_file;       /* The file number if using MMAP */
-    int inmem;           /* True if we want to keep the full f/fdot plan in RAM */
+    int inmem;           /* True if we want to keep the full f-fdot plane in RAM */
     int norm_type;       /* 0 = old-style block median, 1 = local-means power norm */
     double dt;           /* Data sample length (s) */
     double T;            /* Total observation length */
@@ -57,14 +57,14 @@ typedef struct accelobs{
     double zlo;          /* Minimum fourier fdot to search */
     double zhi;          /* Maximum fourier fdot to search */
     double dz;           /* Stepsize in fourier fdot */
-    double wlo;          /* Minimum fourier fdotdot to search */
-    double whi;          /* Maximum fourier fdotdot to search */
-    double dw;           /* Stepsize in fourier fdotdot */
+    double wlo;          /* Minimum fourier f-dot-dot to search */
+    double whi;          /* Maximum fourier f-dot-dot to search */
+    double dw;           /* Stepsize in fourier f-dot-dot */
     double baryv;        /* Average barycentric velocity during observation */
     float nph;            /* Freq 0 level if requested, 0 otherwise */
     float sigma;          /* Cutoff sigma to choose a candidate */
     float *powcut;        /* Cutoff powers to choose a cand (per harmsummed) */
-    float *ffdotplane;    /* The full F-Fdot plane if working in memory */
+    float *ffdotplane;    /* The full f-fdot-fdotdot plane if working in memory */
     double *lobins;      /* The low Fourier freq boundaries to zap (RFI) */
     double *hibins;      /* The high Fourier freq boundaries to zap (RFI) */
     long long *numindep;  /* Number of independent spectra (per harmsummed) */
@@ -84,11 +84,11 @@ typedef struct accelcand{
     int numharm;         /* Number of harmonics summed */
     double r;            /* Fourier freq of first harmonic */
     double z;            /* Fourier f-dot of first harmonic */
-    double w;            /* Fourier f-dotdot of first harmonic */
+    double w;            /* Fourier f-dot-dot of first harmonic */
     double *pows;        /* Optimized powers for the harmonics */
     double *hirs;        /* Optimized freqs for the harmonics */
-    double *hizs;        /* Optimized fdots for the harmonics */
-    double *hiws;        /* Optimized fdotdots for the harmonics */
+    double *hizs;        /* Optimized f-dots for the harmonics */
+    double *hiws;        /* Optimized f-dot-dots for the harmonics */
     rderivs *derivs;     /* An rderivs structure for each harmonic */
 } accelcand;
 
@@ -118,13 +118,13 @@ typedef struct subharminfo{
 typedef struct ffdotpows{
     int numrs;          /* Number of Fourier freqs present */
     int numzs;          /* Number of Fourier f-dots present */
-    int numws;          /* Number of Fourier f-dotdots present */
+    int numws;          /* Number of Fourier f-dot-dots present */
     int rlo;            /* Lowest Fourier freq present */
     int zlo;            /* Lowest Fourier f-dot present */
-    int wlo;            /* Lowest Fourier f-dotdot present */
+    int wlo;            /* Lowest Fourier f-dot-dot present */
     float ***powers;     /* 3D Matrix of the powers */
     unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
-    unsigned short *zinds; /* Table of lookup indices for Fourier Fdots */
+    unsigned short *zinds; /* Table of lookup indices for Fourier f-dots */
 } ffdotpows;
 
 /* accel_utils.c */

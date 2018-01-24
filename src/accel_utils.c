@@ -189,7 +189,7 @@ kernel **gen_kernmatrix(int numz, int numw) {
     }
     kerns[0] = (kernel *) malloc((size_t) ((numz * numw) * sizeof(kernel)));
     if (!kerns[0]) {
-        perror("\nError in 2nd malloc() in init_subharminfo()");
+        perror("\nError in 2nd malloc() in gen_kernmatrix()");
         printf("\n");
         exit(-1);
     }
@@ -1018,8 +1018,6 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     fcomplex *data, *pdata;
     fftwf_plan invplan;
 
-    printf("Entering subharm_fderivs_vol()...\n");
-
     if (numrs_full == 0) {
         if (numharm == 1 && harmnum == 1) {
             numrs_full = ACCEL_USELEN;
@@ -1202,7 +1200,6 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     // Free data and the spread-data
     vect_free(data);
     vect_free(pdata);
-    printf("Exiting subharm_fderivs_vol()...\n");
     return ffdot;
 }
 
@@ -1234,11 +1231,11 @@ void fund_to_ffdotplane(ffdotpows * ffd, accelobs * obs)
     long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
     long long offset;
     float *outpow;
-    
+
     for (ii = 0; ii < ffd->numzs; ii++) {
         offset = ii * rlen;
         outpow = obs->ffdotplane + offset + ffd->rlo * ACCEL_RDR;
-        memcpy(outpow, ffd->powers[ii], ffd->numrs * sizeof(float));
+        memcpy(outpow, ffd->powers[0][ii], ffd->numrs * sizeof(float));
     }
 }
 
@@ -1251,10 +1248,8 @@ void fund_to_ffdotplane_trans(ffdotpows * ffd, accelobs * obs)
     // memory local (since numz << numr)
     int ii, jj;
     float *outpow = obs->ffdotplane + ffd->rlo * ACCEL_RDR * ffd->numzs;
-    //printf("rlo = %d, numrs = %d, nextrlo = %d\n", 
-    //       ffd->rlo, ffd->numrs, (int)(ffd->rlo+ffd->numrs*ACCEL_DR));
     for (ii = 0; ii < ffd->numrs; ii++) {
-        float *inpow = ffd->powers[0] + ii;
+        float *inpow = ffd->powers[0][0] + ii;
         for (jj = 0; jj < ffd->numzs; jj++, inpow += ffd->numrs) {
             *outpow++ = *inpow;
         }
@@ -1273,8 +1268,6 @@ void free_ffdotpows(ffdotpows * ffd)
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
-    /* Note: edited to include the w direction, but haven't updated the
-       powers arrays to 3D arrays yet. Will not compile until that is done. */
     int ii, jj, kk, ww, rind, zind, wind, subw;
     const double harm_fract = (double) harmnum / (double) numharm;
     
@@ -1295,23 +1288,27 @@ void add_ffdotpows(ffdotpows * fundamental,
 void add_ffdotpows_ptrs(ffdotpows * fundamental,
                         ffdotpows * subharmonic, int numharm, int harmnum)
 {
-    int ii, jj, zz, zind, subz;
-    const int zlo = fundamental->zlo;
+    int ii, jj, kk, ww, wind, subw;
+    const int wlo = fundamental->wlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
+    const int numws = fundamental->numws;
     const double harm_fract = (double) harmnum / (double) numharm;
     float *outpows, *inpows;
-    unsigned short *indsptr;
-    
-    for (ii = 0; ii < numzs; ii++) {
-        zz = zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, subharmonic->zlo);
-        inpows = subharmonic->powers[zind];
-        outpows = fundamental->powers[ii];
-        indsptr = subharmonic->rinds;
-        for (jj = 0; jj < numrs; jj++)
-            *outpows++ += inpows[*indsptr++];
+    unsigned short *rindsptr, *zindsptr;
+
+    for (ii = 0; ii < numws; ii++) {
+        ww = wlo + ii * ACCEL_DW;
+        subw = calc_required_w(harm_fract, ww);
+        wind = index_from_w(subw, subharmonic->wlo);
+        zindsptr = subharmonic->zinds;
+        for (jj = 0; jj < numzs; jj++) {
+            inpows = subharmonic->powers[wind][*zindsptr++];
+            outpows = fundamental->powers[ii][jj];
+            rindsptr = subharmonic->rinds;
+            for (kk = 0; kk < numrs; kk++)
+                *outpows++ += inpows[*rindsptr++];
+        }
     }
 }
 
@@ -1323,14 +1320,14 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
-    int *indices;
+    int *rinds;
 
     // Pre-compute the frequency lookup table
-    indices = gen_ivect(numrs);
+    rinds = gen_ivect(numrs);
     {
         int ii, rrint;
         for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-            indices[ii] = (int) (rrint * harm_fract + 0.5);
+            rinds[ii] = (int) (rrint * harm_fract + 0.5);
     }
 
     // Now add all the powers
@@ -1340,7 +1337,7 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
     {
         const int zlo = fundamental->zlo;
         const long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
-        float *powptr = fundamental->powers[0];
+        float *powptr = fundamental->powers[0][0];
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
         float *inpows, *outpows;
@@ -1360,10 +1357,10 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
 #pragma GCC ivdep
 #endif
             for (jj = 0; jj < numrs; jj++)
-                outpows[jj] += inpows[indices[jj]];
+                outpows[jj] += inpows[rinds[jj]];
         }
     }
-    vect_free(indices);
+    vect_free(rinds);
 }
 
 
@@ -1374,14 +1371,14 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
-    long *indices;
+    long *rinds;
 
     // Pre-compute the frequency lookup table
-    indices = gen_lvect(numrs);
+    rinds = gen_lvect(numrs);
     {
         int ii, rrint;
         for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-            indices[ii] = (long) (rrint * harm_fract + 0.5) * numzs;
+            rinds[ii] = (long) (rrint * harm_fract + 0.5) * numzs;
     }
 
     // Now add all the powers
@@ -1390,7 +1387,7 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
 #endif
     {
         const int zlo = fundamental->zlo;
-        float *powptr = fundamental->powers[0];
+        float *powptr = fundamental->powers[0][0];
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
         float *inpows, *outpows;
@@ -1408,10 +1405,10 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
 #pragma GCC ivdep
 #endif
             for (jj = 0; jj < numrs; jj++)
-                outpows[jj] += inpows[indices[jj]];
+                outpows[jj] += inpows[rinds[jj]];
         }
     }
-    vect_free(indices);
+    vect_free(rinds);
 }
 
 
@@ -1421,8 +1418,6 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
     int ii;
     float powcut;
     long long numindep;
-    
-    printf("Entering search_ffdotpows()...\n");
     
     powcut = obs->powcut[twon_to_index(numharm)];
     numindep = obs->numindep[twon_to_index(numharm)];
@@ -1460,7 +1455,6 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
             }
         }
     }
-    printf("Exiting search_ffdotpows()...\n");
     return cands;
 }
 
@@ -1851,14 +1845,18 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         long long memuse;
         double gb = (double) (1L << 30);
 
-        // This is the size of powers covering the full f-dot plane to search
+        // This is the size of powers covering the full f-dot-dot plane to search
         // Need the extra ACCEL_USELEN since we generate the plane in blocks
-        memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
-            * obs->numbetween * obs->numz;
+        if (cmd->wmaxP) {
+            memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
+                * obs->numbetween * obs->numz * obs->numw;
+        } else {
+            memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
+                * obs->numbetween * obs->numz;
+        }
         printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
 
-        // Force standard for now
-        if (0 && !cmd->wmaxP && (memuse < MAXRAMUSE || cmd->inmemP)) {
+        if (!cmd->wmaxP && (memuse < MAXRAMUSE || cmd->inmemP)) {
             printf("using in-memory accelsearch.\n\n");
             obs->inmem = 1;
             obs->ffdotplane = gen_fvect(memuse / sizeof(float));
