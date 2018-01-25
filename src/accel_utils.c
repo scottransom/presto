@@ -1332,7 +1332,7 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(indices,fundamental,obs)
+#pragma omp parallel default(none) shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;
@@ -1383,7 +1383,7 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(indices,fundamental,obs)
+#pragma omp parallel default(none) shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;
@@ -1850,11 +1850,12 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         if (cmd->wmaxP) {
             memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
                 * obs->numbetween * obs->numz * obs->numw;
+            printf("Full f-dot-dot volume would need %.2f GB: ", (float) memuse / gb);
         } else {
             memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
                 * obs->numbetween * obs->numz;
+            printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
         }
-        printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
 
         if (!cmd->wmaxP && (memuse < MAXRAMUSE || cmd->inmemP)) {
             printf("using in-memory accelsearch.\n\n");
