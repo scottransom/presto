@@ -133,15 +133,33 @@ int main(int argc, char *argv[])
                obs.workfilenm);
     }
 
-    /* Start the main search loop */
+    /* Function pointers to make code a bit cleaner */
+    void (*fund_to_ffdot)() = NULL;
+    void (*add_subharm)() = NULL;
+    void (*inmem_add_subharm)() = NULL;
+    if (obs.inmem) {
+        if (cmd->otheroptP) {
+            fund_to_ffdot = &fund_to_ffdotplane_trans;
+            inmem_add_subharm = &inmem_add_ffdotpows_trans;
+        } else {
+            fund_to_ffdot = &fund_to_ffdotplane;
+            inmem_add_subharm = &inmem_add_ffdotpows;
+        }
+    } else {
+        if (cmd->otheroptP) {
+            add_subharm = &add_ffdotpows_ptrs;
+        } else {
+            add_subharm = &add_ffdotpows;
+        }
+    }
 
+    /* Start the main search loop */
     {
         double startr, lastr, nextr;
         ffdotpows *fundamental;
 
         /* Populate the saved F-Fdot plane at low freqs for in-memory
          * searches of harmonics that are below obs.rlo */
-
         if (obs.inmem) {
             startr = 8;  // Choose a very low Fourier bin
             lastr = 0;
@@ -153,17 +171,13 @@ int main(int argc, char *argv[])
                 fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
                                                   &subharminfs[0][0], &obs);
                 // Copy it into the full in-core one
-                if (cmd->otheroptP)
-                    fund_to_ffdotplane_trans(fundamental, &obs);
-                else
-                    fund_to_ffdotplane(fundamental, &obs);
+                fund_to_ffdot(fundamental, &obs);
                 free_ffdotpows(fundamental);
                 startr = nextr;
             }
         }    
         
         /* Reset indices if needed and search for real */
-
         startr = obs.rlo;
         lastr = 0;
         nextr = 0;
@@ -182,33 +196,19 @@ int main(int argc, char *argv[])
                 ffdotpows *subharmonic;
 
                 // Copy the fundamental's ffdot plane to the full in-core one
-                if (obs.inmem) {
-                    if (cmd->otheroptP)
-                        fund_to_ffdotplane_trans(fundamental, &obs);
-                    else
-                        fund_to_ffdotplane(fundamental, &obs);
-                }
+                if (obs.inmem)
+                    fund_to_ffdot(fundamental, &obs);
                 for (stage = 1; stage < obs.numharmstages; stage++) {
                     harmtosum = 1 << stage;
                     for (harm = 1; harm < harmtosum; harm += 2) {
                         if (obs.inmem) {
-                            if (cmd->otheroptP)
-                                inmem_add_ffdotpows_trans(fundamental, &obs,
-                                                          harmtosum, harm);
-                            else
-                                inmem_add_ffdotpows(fundamental, &obs, harmtosum,
-                                                    harm);
+                            inmem_add_subharm(fundamental, &obs, harmtosum, harm);
                         } else {
                             subharmonic =
                                 subharm_fderivs_vol(harmtosum, harm, startr, lastr,
                                                     &subharminfs[stage][harm - 1],
                                                     &obs);
-                            if (cmd->otheroptP)
-                                add_ffdotpows_ptrs(fundamental, subharmonic,
-                                                   harmtosum, harm);
-                            else
-                                add_ffdotpows(fundamental, subharmonic, harmtosum,
-                                              harm);
+                            add_subharm(fundamental, subharmonic, harmtosum, harm);
                             free_ffdotpows(subharmonic);
                         }
                     }
@@ -226,18 +226,14 @@ int main(int argc, char *argv[])
     free_subharminfos(&obs, subharminfs);
 
     {                           /* Candidate list trimming and optimization */
-        int numcands;
+        int numcands = g_slist_length(cands);
         GSList *listptr;
         accelcand *cand;
         fourierprops *props;
 
-
-        numcands = g_slist_length(cands);
-
         if (numcands) {
 
             /* Sort the candidates according to the optimized sigmas */
-
             cands = sort_accelcands(cands);
 
             /* Eliminate (most of) the harmonically related candidates */
@@ -245,7 +241,6 @@ int main(int argc, char *argv[])
                 eliminate_harmonics(cands, &numcands);
 
             /* Now optimize each candidate and its harmonics */
-
             print_percent_complete(0, 0, NULL, 1);
             listptr = cands;
             for (ii = 0; ii < numcands; ii++) {
@@ -257,7 +252,6 @@ int main(int argc, char *argv[])
             print_percent_complete(ii, numcands, "optimization", 0);
 
             /* Calculate the properties of the fundamentals */
-
             props = (fourierprops *) malloc(sizeof(fourierprops) * numcands);
             listptr = cands;
             for (ii = 0; ii < numcands; ii++) {
@@ -270,20 +264,17 @@ int main(int argc, char *argv[])
                 /* Override the error estimates based on power */
                 props[ii].rerr = (float) (ACCEL_DR) / cand->numharm;
                 props[ii].zerr = (float) (ACCEL_DZ) / cand->numharm;
-		props[ii].werr = (float) (ACCEL_DW) / cand->numharm;
+                props[ii].werr = (float) (ACCEL_DW) / cand->numharm;
                 listptr = listptr->next;
             }
 
             /* Write the fundamentals to the output text file */
-
             output_fundamentals(props, cands, &obs, &idata);
 
             /* Write the harmonics to the output text file */
-
             output_harmonics(cands, &obs, &idata);
-
+            
             /* Write the fundamental fourierprops to the cand file */
-
             obs.workfile = chkfopen(obs.candnm, "wb");
             chkfwrite(props, sizeof(fourierprops), numcands, obs.workfile);
             fclose(obs.workfile);
