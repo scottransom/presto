@@ -1088,7 +1088,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
             data[ii].i *= norm;
         }
     } else if (obs->norm_type == 0) {
-        //  old-style block median normalization
+        // default block median normalization
         float *powers;
         double norm;
         powers = gen_fvect(numdata);
@@ -1101,7 +1101,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
             data[ii].i *= norm;
         }
     } else {
-        //  new-style running double-tophat local-power normalization
+        // optional running double-tophat local-power normalization
         float *powers, *loc_powers;
         powers = gen_fvect(numdata);
         for (ii = 0; ii < numdata; ii++) {
