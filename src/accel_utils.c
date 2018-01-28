@@ -56,7 +56,7 @@ static inline double calc_required_r(double harm_fract, double rfull)
 /* harm_fract = harmnum / numharm if the       */
 /* 'r' at the fundamental harmonic is 'rfull'. */
 {
-    return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
+    return rint(ACCEL_RDR * rfull * harm_fract) * ACCEL_DR;
 }
 
 
@@ -224,7 +224,8 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
     /* Actually append kernels to each array element */
     for (ii = 0; ii < shi->numkern_wdim; ii++) {
         for (jj = 0; jj < shi->numkern_zdim; jj++) {
-            init_kernel(-shi->zmax + jj * ACCEL_DZ,-shi->wmax + ii * ACCEL_DW, fftlen, &shi->kern[ii][jj]);
+            init_kernel(-shi->zmax + jj * ACCEL_DZ,
+                        -shi->wmax + ii * ACCEL_DW, fftlen, &shi->kern[ii][jj]);
         }
     }
 }
@@ -1010,7 +1011,8 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                                double fullrlo, double fullrhi,
                                subharminfo * shi, accelobs * obs)
 {
-    int ii, lobin, hibin, numdata, nice_numdata, fftlen, binoffset;
+    int ii, numdata, fftlen, binoffset;
+    long long lobin;
     float powargr, powargi;
     static int numrs_full = 0;
     double drlo, drhi, harm_fract;
@@ -1033,7 +1035,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     harm_fract = (double) harmnum / (double) numharm;
     drlo = calc_required_r(harm_fract, fullrlo);
     drhi = calc_required_r(harm_fract, fullrhi);
-    ffdot->rlo = (int) floor(drlo);
+    ffdot->rlo = (long long) floor(drlo);
     ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
     ffdot->wlo = calc_required_w(harm_fract, obs->wlo);
 
@@ -1072,12 +1074,8 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     binoffset = shi->kern[0][0].kern_half_width;
     fftlen = shi->kern[0][0].fftlen;
     lobin = ffdot->rlo - binoffset;
-    hibin = (int) ceil(drhi) + binoffset;
-    numdata = hibin - lobin + 1;
-    nice_numdata = next2_to_n(numdata); // for FFTs
-    if (nice_numdata != fftlen / ACCEL_NUMBETWEEN)
-        printf("WARNING!!:  nice_numdata != fftlen/2 in subharm_fderivs_vol()!\n");
-    data = get_fourier_amplitudes(lobin, nice_numdata, obs);
+    numdata = fftlen / ACCEL_NUMBETWEEN;
+    data = get_fourier_amplitudes(lobin, numdata, obs);
     if (!obs->mmap_file && !obs->dat_input && 0)
         printf("This is newly malloc'd!\n");
 
@@ -1105,11 +1103,11 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     } else {
         //  new-style running double-tophat local-power normalization
         float *powers, *loc_powers;
-        powers = gen_fvect(nice_numdata);
-        for (ii = 0; ii < nice_numdata; ii++) {
+        powers = gen_fvect(numdata);
+        for (ii = 0; ii < numdata; ii++) {
             powers[ii] = POWER(data[ii].r, data[ii].i);
         }
-        loc_powers = corr_loc_pow(powers, nice_numdata);
+        loc_powers = corr_loc_pow(powers, numdata);
         for (ii = 0; ii < numdata; ii++) {
             float norm = invsqrtf(loc_powers[ii]);
             data[ii].r *= norm;

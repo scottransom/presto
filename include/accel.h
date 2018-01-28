@@ -116,12 +116,12 @@ typedef struct subharminfo{
 } subharminfo;
 
 typedef struct ffdotpows{
+    long long rlo;      /* Lowest Fourier freq present */
+    int zlo;            /* Lowest Fourier f-dot present */
+    int wlo;            /* Lowest Fourier f-dot-dot present */
     int numrs;          /* Number of Fourier freqs present */
     int numzs;          /* Number of Fourier f-dots present */
     int numws;          /* Number of Fourier f-dot-dots present */
-    int rlo;            /* Lowest Fourier freq present */
-    int zlo;            /* Lowest Fourier f-dot present */
-    int wlo;            /* Lowest Fourier f-dot-dot present */
     float ***powers;     /* 3D Matrix of the powers */
     unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
     unsigned short *zinds; /* Table of lookup indices for Fourier f-dots */
