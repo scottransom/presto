@@ -1733,7 +1733,8 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         obs->wlo = -cmd->wmax;
         obs->dw = ACCEL_DW;
         obs->numw = (cmd->wmax / ACCEL_DW) * 2 + 1;
-        // obs->use_harmonic_polishing = 0; // Turn this off as it is too expensive
+        if (cmd->wmax==0.0)
+            obs->numw = 0;
         printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
     } else {
         obs->whi = 0.0;
