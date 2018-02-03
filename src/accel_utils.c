@@ -134,20 +134,21 @@ static void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
 }
 
 
-static int calc_fftlen(int numharm, int harmnum, int max_zfull, int max_wfull)
+static int calc_fftlen(int numharm, int harmnum, int max_zfull, int max_wfull, accelobs * obs)
 /* The fft length needed to properly process a subharmonic */
 {
     int bins_needed, end_effects;
     double harm_fract;
 
     harm_fract = (double) harmnum / (double) numharm;
-    bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
+    bins_needed = (int) ceil(obs->corr_uselen * harm_fract) + 2;
+    printf("harm_fract = %f  harmnum = %d  numharm = %d\n", harm_fract, harmnum, numharm);
     end_effects = 2 * ACCEL_NUMBETWEEN *
-      w_resp_halfwidth(calc_required_z(harm_fract, max_zfull),
-                       calc_required_w(harm_fract, max_wfull), LOWACC);
-    //printf("bins_needed = %d  end_effects = %d  FFTlen = %lld\n", 
-    //       bins_needed, end_effects, next2_to_n(bins_needed + end_effects));
-    return next2_to_n(bins_needed + end_effects);
+        w_resp_halfwidth(calc_required_z(harm_fract, max_zfull),
+                         calc_required_w(harm_fract, max_wfull), LOWACC);
+    printf("bins_needed = %d  end_effects = %d  FFTlen = %d\n", 
+           bins_needed, end_effects, next_good_fftlen(bins_needed + end_effects));
+    return next_good_fftlen(bins_needed + end_effects);
 }
 
 
@@ -199,7 +200,7 @@ kernel **gen_kernmatrix(int numz, int numw) {
 }
 
 
-static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subharminfo * shi)
+static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subharminfo * shi, accelobs * obs)
 /* Note:  'zmax' is the overall maximum 'z' in the search while
           'wmax' is the overall maximum 'w' in the search       */
 {
@@ -212,10 +213,16 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
     shi->zmax = calc_required_z(harm_fract, zmax);
     shi->wmax = calc_required_w(harm_fract, wmax);
     if (numharm > 1) {
-        shi->rinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
-        shi->zinds = (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
+        shi->rinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
+        shi->zinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
     }
-    fftlen = calc_fftlen(numharm, harmnum, zmax, wmax);
+    if (numharm==1 && harmnum==1) {
+        fftlen = obs->fftlen;
+        printf("for fundamental:  bins_needed = %d  maxkern = %d  fftlen = %d\n",
+               obs->corr_uselen, obs->maxkernlen, obs->fftlen);
+    }
+    else
+        fftlen = calc_fftlen(numharm, harmnum, zmax, wmax, obs);
     shi->numkern_zdim = (shi->zmax / ACCEL_DZ) * 2 + 1;
     shi->numkern_wdim = (shi->wmax / ACCEL_DW) * 2 + 1;
     shi->numkern = shi->numkern_zdim * shi->numkern_wdim;
@@ -240,8 +247,8 @@ subharminfo **create_subharminfos(accelobs * obs)
     shis = (subharminfo **) malloc(obs->numharmstages * sizeof(subharminfo *));
     /* Prep the fundamental (actually, the highest harmonic) */
     shis[0] = (subharminfo *) malloc(2 * sizeof(subharminfo));
-    init_subharminfo(1, 1, (int) obs->zhi, (int) obs->whi, &shis[0][0]);
-    fftlen = calc_fftlen(1, 1, (int) obs->zhi, (int) obs->whi);
+    init_subharminfo(1, 1, (int) obs->zhi, (int) obs->whi, &shis[0][0], obs);
+    fftlen = obs->fftlen;
     kern_ram_use += shis[0][0].numkern * fftlen * sizeof(fcomplex); // in Bytes
     if (obs->numw)
         printf("  Harm  1/1 : %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
@@ -257,8 +264,8 @@ subharminfo **create_subharminfos(accelobs * obs)
             shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
             for (jj = 1; jj < harmtosum; jj += 2) {
                 init_subharminfo(harmtosum, jj, (int) obs->zhi,
-                                 (int) obs->whi, &shis[ii][jj - 1]);
-                fftlen = calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi);
+                                 (int) obs->whi, &shis[ii][jj - 1], obs);
+                fftlen = calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi, obs);
                 kern_ram_use += shis[ii][jj - 1].numkern * fftlen * sizeof(fcomplex); // in Bytes
                 if (obs->numw)
                     printf("  Harm %2d/%-2d: %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
@@ -1014,22 +1021,10 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     int ii, numdata, fftlen, binoffset;
     long long lobin;
     float powargr, powargi;
-    static int numrs_full = 0;
     double drlo, drhi, harm_fract;
-    ffdotpows *ffdot;
     fcomplex *data, *pdata;
     fftwf_plan invplan;
-
-    if (numrs_full == 0) {
-        if (numharm == 1 && harmnum == 1) {
-            numrs_full = ACCEL_USELEN;
-        } else {
-            printf("You must call subharm_fderivs_vol() with numharm=1 and\n");
-            printf("harnum=1 before you use other values!  Exiting.\n\n");
-            exit(0);
-        }
-    }
-    ffdot = (ffdotpows *) malloc(sizeof(ffdotpows));
+    ffdotpows *ffdot = (ffdotpows *) malloc(sizeof(ffdotpows));
 
     /* Calculate and get the required amplitudes */
     harm_fract = (double) harmnum / (double) numharm;
@@ -1042,7 +1037,7 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     /* Initialize the lookup indices */
     if (numharm > 1 && !obs->inmem) {
         double rr, subr;
-        for (ii = 0; ii < numrs_full; ii++) {
+        for (ii = 0; ii < obs->corr_uselen; ii++) {
             rr = fullrlo + ii * ACCEL_DR;
             subr = calc_required_r(harm_fract, rr);
             shi->rinds[ii] = index_from_r(subr, ffdot->rlo);
@@ -1056,14 +1051,16 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     }
     ffdot->rinds = shi->rinds;
     ffdot->numrs = (int) ((ceil(drhi) - floor(drlo))
-                          * ACCEL_RDR + DBLCORRECT) + 1;
+                          * ACCEL_RDR + DBLCORRECT);
     if (numharm == 1 && harmnum == 1) {
-        ffdot->numrs = ACCEL_USELEN;
+        ffdot->numrs = obs->corr_uselen;
     } else {
         if (ffdot->numrs % ACCEL_RDR) {
             ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
         }
     }
+    //printf("%d/%d  fullrlo = %f fullrhi = %f  drlo = %f  drhi = %f ffdot->numrs = %d\n",
+    //       harmnum, numharm, fullrlo, fullrhi, drlo, drhi, ffdot->numrs);
     ffdot->zinds = shi->zinds;
     ffdot->numzs = shi->numkern_zdim;
     ffdot->numws = shi->numkern_wdim;
@@ -1226,7 +1223,7 @@ void fund_to_ffdotplane(ffdotpows * ffd, accelobs * obs)
     // This moves the fundamental's ffdot plane powers
     // into the one for the full array
     int ii;
-    long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+    long long rlen = (obs->highestbin + obs->corr_uselen) * ACCEL_RDR;
     long long offset;
     float *outpow;
 
@@ -1334,7 +1331,7 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
 #endif
     {
         const int zlo = fundamental->zlo;
-        const long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+        const long long rlen = (obs->highestbin + obs->corr_uselen) * ACCEL_RDR;
         float *powptr = fundamental->powers[0][0];
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
@@ -1670,7 +1667,7 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     }
 
     /* Determine the other parameters */
-    
+
     if (cmd->zmax % ACCEL_DZ)
         cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
     obs->N = (long long) idata->N;
@@ -1839,19 +1836,29 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
        obs->numzap = 0;
      */
 
+    /* Determine corr_uselen from zmax and wmax */
+    obs->maxkernlen = 2 * ACCEL_NUMBETWEEN *                \
+        w_resp_halfwidth(obs->zhi, obs->whi, LOWACC);
+    obs->fftlen = fftlen_from_kernwidth(obs->maxkernlen);
+    obs->corr_uselen = obs->fftlen - obs->maxkernlen;
+    // Make sure that obs->corr_uselen is an integer number of
+    // full (i.e. un-interpolated) Fourier bins
+    if (obs->corr_uselen % ACCEL_RDR)
+        obs->corr_uselen = obs->corr_uselen / ACCEL_RDR * ACCEL_RDR;
+
     /* Can we perform the search in-core memory? */
     {
         long long memuse;
         double gb = (double) (1L << 30);
 
         // This is the size of powers covering the full f-dot-dot plane to search
-        // Need the extra ACCEL_USELEN since we generate the plane in blocks
+        // Need the extra obs->corr_uselen since we generate the plane in blocks
         if (cmd->wmaxP) {
-            memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
+            memuse = sizeof(float) * (obs->highestbin + obs->corr_uselen)
                 * obs->numbetween * obs->numz * obs->numw;
             printf("Full f-dot-dot volume would need %.2f GB: ", (float) memuse / gb);
         } else {
-            memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
+            memuse = sizeof(float) * (obs->highestbin + obs->corr_uselen)
                 * obs->numbetween * obs->numz;
             printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
         }

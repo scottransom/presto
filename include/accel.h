@@ -39,6 +39,8 @@ typedef struct accelobs{
     long long numbins;   /* Number of spectral bins in the file */
     long long lobin;     /* Lowest spectral bin present in the file */
     long long highestbin;/* Highest spectral bin present in the file */
+    int maxkernlen;      /* Maximum full width (in points, not Fourier bins) of corr kernels */
+    int corr_uselen;     /* Number of good data points we will get from high-harm correlations */
     int fftlen;          /* Length of short FFTs to us in search */
     int numharmstages;   /* Number of stages of harmonic summing */
     int numz;            /* Number of f-dots searched */

@@ -801,7 +801,15 @@ float percolate_bin(binaryprops * list, int nlist);
 
 /* From prep_corr.c  */
 
-void spread_with_pad(fcomplex *data, int numdata, \
+int next_good_fftlen(int N);
+/* Return one of the shortest, yet best performing, FFT lengths larger
+ * than N.  This assumes FFTW. */
+
+int fftlen_from_kernwidth(int kernwidth);
+  /* return the length of the optimal FFT to use for correlations with
+   * some kernel width kernwidth.  This assumes FFTW. */
+
+void spread_with_pad(fcomplex *data, int numdata,   \
 		     fcomplex *result, int numresult, \
 		     int numbetween, int numpad);
   /* Prepare the data array for correlation by spreading         */

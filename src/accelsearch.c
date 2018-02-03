@@ -42,7 +42,7 @@ static void print_percent_complete(int current, int number, char *what, int rese
 
 int main(int argc, char *argv[])
 {
-    int ii;
+    int ii, rstep;
     double ttim, utim, stim, tott;
     struct tms runtimes;
     subharminfo **subharminfs;
@@ -78,6 +78,9 @@ int main(int argc, char *argv[])
 
     /* Create the accelobs structure */
     create_accelobs(&obs, &idata, cmd, 1);
+
+    /* The step-size of blocks to walk through the input data */
+    rstep = obs.corr_uselen * ACCEL_DR;
 
     /* Zap birdies if requested and if in memory */
     if (cmd->zaplistP && !obs.mmap_file && obs.fft) {
@@ -165,7 +168,7 @@ int main(int argc, char *argv[])
             lastr = 0;
             nextr = 0;
             while (startr < obs.rlo) {
-                nextr = startr + ACCEL_USELEN * ACCEL_DR;
+                nextr = startr + rstep;
                 lastr = nextr - ACCEL_DR;
                 // Compute the F-Fdot plane
                 fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
@@ -181,11 +184,11 @@ int main(int argc, char *argv[])
         startr = obs.rlo;
         lastr = 0;
         nextr = 0;
-        while (startr + ACCEL_USELEN * ACCEL_DR < obs.highestbin) {
+        while (startr + rstep < obs.highestbin) {
             /* Search the fundamental */
             print_percent_complete(startr - obs.rlo,
                                    obs.highestbin - obs.rlo, "search", 0);
-            nextr = startr + ACCEL_USELEN * ACCEL_DR;
+            nextr = startr + rstep;
             lastr = nextr - ACCEL_DR;
             fundamental = subharm_fderivs_vol(1, 1, startr, lastr,
                                               &subharminfs[0][0], &obs);
