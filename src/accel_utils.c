@@ -142,12 +142,9 @@ static int calc_fftlen(int numharm, int harmnum, int max_zfull, int max_wfull, a
 
     harm_fract = (double) harmnum / (double) numharm;
     bins_needed = (int) ceil(obs->corr_uselen * harm_fract) + 2;
-    printf("harm_fract = %f  harmnum = %d  numharm = %d\n", harm_fract, harmnum, numharm);
     end_effects = 2 * ACCEL_NUMBETWEEN *
         w_resp_halfwidth(calc_required_z(harm_fract, max_zfull),
                          calc_required_w(harm_fract, max_wfull), LOWACC);
-    printf("bins_needed = %d  end_effects = %d  FFTlen = %d\n", 
-           bins_needed, end_effects, next_good_fftlen(bins_needed + end_effects));
     return next_good_fftlen(bins_needed + end_effects);
 }
 
@@ -216,11 +213,8 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
         shi->rinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
         shi->zinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
     }
-    if (numharm==1 && harmnum==1) {
+    if (numharm==1 && harmnum==1)
         fftlen = obs->fftlen;
-        printf("for fundamental:  bins_needed = %d  maxkern = %d  fftlen = %d\n",
-               obs->corr_uselen, obs->maxkernlen, obs->fftlen);
-    }
     else
         fftlen = calc_fftlen(numharm, harmnum, zmax, wmax, obs);
     shi->numkern_zdim = (shi->zmax / ACCEL_DZ) * 2 + 1;
@@ -1050,17 +1044,15 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
         }
     }
     ffdot->rinds = shi->rinds;
+    // The +1 below is important!
     ffdot->numrs = (int) ((ceil(drhi) - floor(drlo))
-                          * ACCEL_RDR + DBLCORRECT);
+                          * ACCEL_RDR + DBLCORRECT) + 1;
     if (numharm == 1 && harmnum == 1) {
         ffdot->numrs = obs->corr_uselen;
     } else {
-        if (ffdot->numrs % ACCEL_RDR) {
+        if (ffdot->numrs % ACCEL_RDR)
             ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
-        }
     }
-    //printf("%d/%d  fullrlo = %f fullrhi = %f  drlo = %f  drhi = %f ffdot->numrs = %d\n",
-    //       harmnum, numharm, fullrlo, fullrhi, drlo, drhi, ffdot->numrs);
     ffdot->zinds = shi->zinds;
     ffdot->numzs = shi->numkern_zdim;
     ffdot->numws = shi->numkern_wdim;
@@ -1837,9 +1829,10 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
      */
 
     /* Determine corr_uselen from zmax and wmax */
-    obs->maxkernlen = 2 * ACCEL_NUMBETWEEN *                \
-        w_resp_halfwidth(obs->zhi, obs->whi, LOWACC);
+    obs->maxkernlen = 2 * ACCEL_NUMBETWEEN * w_resp_halfwidth(obs->zhi, obs->whi, LOWACC);
     obs->fftlen = fftlen_from_kernwidth(obs->maxkernlen);
+    if (obs->fftlen < 2048)
+        obs->fftlen = 2048;  // This gives slightly better speed empirically
     obs->corr_uselen = obs->fftlen - obs->maxkernlen;
     // Make sure that obs->corr_uselen is an integer number of
     // full (i.e. un-interpolated) Fourier bins
