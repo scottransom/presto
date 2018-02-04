@@ -14,8 +14,8 @@ int main(void)
     fftwf_plan plan;
     fftwf_complex *inout;
     int ii, fftlen;
-    int padlen[13] = { 288, 540, 1080, 2100, 4200, 8232, 16464, 32805,
-        65610, 131220, 262440, 525000, 1050000
+    int padlen[20] = { 192, 288, 384, 540, 768, 1080, 1280, 2100, 4200, 5120,
+                       7680, 8232, 10240, 12288, 15360, 16464, 25600, 32805, 65610, 131220
     };
 
     fftlen = 2;
@@ -34,7 +34,7 @@ int main(void)
     printf("Generating plans for FFTs of length:\n");
 
     inout = fftwf_malloc(sizeof(fftwf_complex) * BIGFFTWSIZE + 2);
-    while (fftlen <= 1.1e6) {
+    while (fftlen <= 1.1e5) {
         printf("   %d forward\n", fftlen);
         plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
         fftwf_destroy_plan(plan);
@@ -50,7 +50,7 @@ int main(void)
 
     fftlen = 10;
 
-    while (fftlen <= 1.1e6) {
+    while (fftlen <= 1.1e5) {
         inout = fftwf_malloc(sizeof(fftwf_complex) * fftlen);
         printf("   %d forward\n", fftlen);
         plan = fftwf_plan_dft_1d(fftlen, inout, inout, FFTW_FORWARD, FFTW_PATIENT);
