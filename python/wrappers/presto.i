@@ -255,13 +255,13 @@ int fresnl(double xxa, double *ssa, double *cca);
 // Return the Fresnel inegrals
 
 typedef struct RDERIVS {
-  float pow;       /* Power normalized with local power             */
-  float phs;       /* Signal phase                                  */
-  float dpow;      /* 1st deriv of power wrt fourier freq           */
-  float dphs;      /* 1st deriv of phase wrt fourier freq           */
-  float d2pow;     /* 2nd deriv of power wrt fourier freq           */
-  float d2phs;     /* 2nd deriv of power wrt fourier freq           */
-  float locpow;    /* Local mean power level                        */
+  double pow;       /* Power normalized with local power             */
+  double phs;       /* Signal phase                                  */
+  double dpow;      /* 1st deriv of power wrt fourier freq           */
+  double dphs;      /* 1st deriv of phase wrt fourier freq           */
+  double d2pow;     /* 2nd deriv of power wrt fourier freq           */
+  double d2phs;     /* 2nd deriv of power wrt fourier freq           */
+  double locpow;    /* Local mean power level                        */
 } rderivs;
 
 typedef struct FOURIERPROPS {
@@ -554,8 +554,8 @@ void wrap_gen_bin_response(double roffset, int numbetween, int numkern,
 %}
 %clear (fcomplex **vect, long *nn);
 
-%apply (fcomplex* IN_ARRAY1, int DIM1) {(fcomplex *data, int numdata)};
-float get_localpower(fcomplex *data, int numdata, double r);
+%apply (fcomplex* IN_ARRAY1, long DIM1) {(fcomplex *data, long numdata)};
+float get_localpower(fcomplex *data, long numdata, double r);
   /* Return the local power level at specific FFT frequency.  */
   /* Arguments:                                               */
   /*   'data' is a pointer to a complex FFT.                  */
@@ -563,7 +563,7 @@ float get_localpower(fcomplex *data, int numdata, double r);
   /*   'r' is the Fourier frequency in data that we want to   */
   /*      interpolate.                                        */
 
-float get_localpower3d(fcomplex *data, int numdata, double r,
+float get_localpower3d(fcomplex *data, long numdata, double r,
 		       double z, double w);
   /* Return the local power level around a specific FFT           */
   /* frequency, f-dot, and f-dotdot.                              */
@@ -576,8 +576,9 @@ float get_localpower3d(fcomplex *data, int numdata, double r,
   /*       signal smears over during the observation).            */
   /*   'w' is the Fourier Frequency 2nd derivative (change in the */
   /*       Fourier f-dot during the observation).                 */
+%clear (fcomplex *data, long numdata);
 
-void get_derivs3d(fcomplex *data, int numdata, double r,
+void get_derivs3d(fcomplex *data, long numdata, double r,
                   double z, double w, float localpower,
                   rderivs *result);
   /* Return an rderives structure that contains the power,      */
@@ -625,7 +626,6 @@ void calc_binprops(fourierprops * props, double T, int lowbin,
   /*   'absnorm' is the value of the power normalization          */
   /*      constant for this mini-FFT.                             */
   /*   'result' is the returned binaryprops structure.            */
-%clear (fcomplex *data, int numdata);
 
 void calc_rzwerrs(fourierprops *props, double T, rzwerrs *result);
   /* Calculate periods, frequencies, their derivatives        */
@@ -778,7 +778,6 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 %}
 
 %apply double *OUTPUT { double *rout, double *zout, double *powout };
-%apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long numdata)};
 %rename (max_rz_arr) wrap_max_rz_arr;
 %inline %{
     void wrap_max_rz_arr(fcomplex * data, long numdata, double rin, double zin,
@@ -789,8 +788,64 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
     }
 %}
 
+%apply double *OUTPUT { double *rout, double *zout };
+%apply (double* INPLACE_ARRAY1, int DIM1) {(double *derivdata, int len)};
+%rename (max_rz_arr_harmonics) wrap_max_rz_arr_harmonics;
+%inline %{
+    void wrap_max_rz_arr_harmonics(fcomplex *data, long numdata,
+                                   double rin, double zin,
+                                   double *derivdata, int len,
+                                   double *rout, double *zout){
+        int ii, numharm = len / 7;
+        double *powers = gen_dvect(numharm);
+        rderivs *derivs = (rderivs *)malloc(sizeof(rderivs) * numharm);
+        
+        max_rz_arr_harmonics(data, numdata, numharm, rin, zin, rout, zout, derivs, powers);
+        vect_free(powers);
+        // Hack to effectively return a array of rderivs
+        for (ii = 0 ; ii < numharm ; ii++) {
+            derivdata[ii*7+0] = derivs[ii].pow;
+            derivdata[ii*7+1] = derivs[ii].phs;
+            derivdata[ii*7+2] = derivs[ii].dpow;
+            derivdata[ii*7+3] = derivs[ii].dphs;
+            derivdata[ii*7+4] = derivs[ii].d2pow;
+            derivdata[ii*7+5] = derivs[ii].d2phs;
+            derivdata[ii*7+6] = derivs[ii].locpow;
+        }
+        free(derivs);
+    }
+%}
+
+%apply double *OUTPUT { double *rout, double *zout, double *wout };
+%rename (max_rzw_arr_harmonics) wrap_max_rzw_arr_harmonics;
+%inline %{
+    void wrap_max_rzw_arr_harmonics(fcomplex *data, long numdata,
+                                    double rin, double zin, double win,
+                                    double *derivdata, int len,
+                                    double *rout, double *zout, double *wout){
+        int ii, numharm = len / 7;
+        double *powers = gen_dvect(numharm);
+        rderivs *derivs = (rderivs *)malloc(sizeof(rderivs) * numharm);
+        
+        max_rzw_arr_harmonics(data, numdata, numharm, rin, zin, win,
+                              rout, zout, wout, derivs, powers);
+        vect_free(powers);
+        // Hack to effectively return a array of rderivs
+        for (ii = 0 ; ii < numharm ; ii++) {
+            derivdata[ii*7+0] = derivs[ii].pow;
+            derivdata[ii*7+1] = derivs[ii].phs;
+            derivdata[ii*7+2] = derivs[ii].dpow;
+            derivdata[ii*7+3] = derivs[ii].dphs;
+            derivdata[ii*7+4] = derivs[ii].d2pow;
+            derivdata[ii*7+5] = derivs[ii].d2phs;
+            derivdata[ii*7+6] = derivs[ii].locpow;
+        }
+        free(derivs);
+    }
+%}
+%clear (double *derivdata, int len);
+
 %apply double *OUTPUT { double *rout, double *zout, double *wout, double *powout };
-%apply (fcomplex* INPLACE_ARRAY1, long DIM1) {(fcomplex *data, long numdata)};
 %rename (max_rzw_arr) wrap_max_rzw_arr;
 %inline %{
     void wrap_max_rzw_arr(fcomplex * data, long numdata, double rin, double zin, double win,
@@ -800,6 +855,7 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
         *powout = pow;
     }
 %}
+%clear (fcomplex *data, long numdata);
 
 %apply (double* INPLACE_ARRAY1, long DIM1) {(double *topotimes, long N1)};
 %apply (double* INPLACE_ARRAY1, long DIM1) {(double *barytimes, long N2)};

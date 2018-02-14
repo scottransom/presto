@@ -1,7 +1,7 @@
 #include "chkio.h"
 #include "ransomfft.h"
 
-fcomplex *read_fcomplex_file(FILE * file, int firstpt, int numpts)
+fcomplex *read_fcomplex_file(FILE * file, long firstpt, long numpts)
 /* Return an fcomplex vector with complex data taken from a file. */
 /* Argumants:                                                     */
 /*   'file' is a pointer to the file you want to access.          */
@@ -12,11 +12,11 @@ fcomplex *read_fcomplex_file(FILE * file, int firstpt, int numpts)
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 {
-    int ii, startpt = 0, lesspad = 0;
+    long ii, startpt = 0, lesspad = 0;
     fcomplex *result, *fcptr = NULL, zeros = { 0.0, 0.0 };
 
     if (numpts < 0) {
-        printf("\n\n numpts = %d (out-of-bounds) in read_fcomplex_file().", numpts);
+        printf("\n\n numpts = %ld (out-of-bounds) in read_fcomplex_file().", numpts);
         printf("  Exiting.\n\n");
         exit(1);
     }
@@ -47,7 +47,7 @@ fcomplex *read_fcomplex_file(FILE * file, int firstpt, int numpts)
 }
 
 
-float *read_float_file(FILE * file, int firstpt, int numpts)
+float *read_float_file(FILE * file, long firstpt, long numpts)
 /* Return a float vector with complex data taken from a file.     */
 /* Argumants:                                                     */
 /*   'file' is a pointer to the file you want to access.          */
@@ -58,11 +58,11 @@ float *read_float_file(FILE * file, int firstpt, int numpts)
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 {
-    int ii, startpt = 0, lesspad = 0;
+    long ii, startpt = 0, lesspad = 0;
     float *result, *fptr = NULL;
 
     if (numpts < 0) {
-        printf("\n\n numpts = %d (out-of-bounds) in read_float_file().", numpts);
+        printf("\n\n numpts = %ld (out-of-bounds) in read_float_file().", numpts);
         printf("  Exiting.\n\n");
         exit(1);
     }

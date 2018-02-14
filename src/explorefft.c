@@ -47,19 +47,19 @@ static int lenzaplist = 0;      /* The number of possible lobin/hibin pairs in z
 static bird *zaplist = NULL;
 
 typedef struct fftpart {
-    int rlo;                    /* Lowest Fourier freq displayed */
-    int numamps;                /* Number of raw amplitudes */
+    long rlo;                  /* Lowest Fourier freq displayed */
+    long numamps;              /* Number of raw amplitudes */
     float maxrawpow;            /* The highest raw power present */
     float *rawpowers;           /* The raw powers */
     float *medians;             /* The local median values (chunks of size LOCALCHUNK bins) */
     float *normvals;            /* The values to use for normalization (default is median/-log(0.5)) */
-    fcomplex *amps;             /* Raw FFT amplitudes    */
+    fcomplex *amps;            /* Raw FFT amplitudes    */
 } fftpart;
 
 typedef struct fftview {
     double dr;                  /* Fourier frequency stepsize (2.0**(-zoomlevel)) */
     double centerr;             /* The center Fourier freq to plot */
-    int lor;                    /* The lowest Fourier freq to plot */
+    long lor;                   /* The lowest Fourier freq to plot */
     int zoomlevel;              /* Positive = zoomed in, Negative = zoomed out */
     int numbins;                /* The number of full bins from low to high to display */
     float maxpow;               /* The maximum normalized power in the view */
@@ -232,7 +232,7 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart * fp)
         if (norm_const == 0.0) {
             for (ii = 0; ii < DISPLAYNUM; ii++) {
                 fv->rs[ii] = fv->lor + ii * fv->dr;
-                index = (int) ((fv->rs[ii] - fp->rlo) * split + 0.5);
+                index = (long) ((fv->rs[ii] - fp->rlo) * split + 0.5);
                 fv->powers[ii] =
                     POWER(interp[ii].r, interp[ii].i) * fp->normvals[index];
             }
@@ -244,13 +244,13 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart * fp)
         }
         vect_free(interp);
     } else {                    /* Down-sampled power spectrum */
-        int jj, powindex, normindex, binstocombine;
+        long jj, powindex, normindex, binstocombine;
         float *tmprawpwrs, maxpow;
 
         binstocombine = (1 << abs(zoomlevel));
         fv->numbins = DISPLAYNUM * binstocombine;
         fv->dr = (double) binstocombine;
-        fv->lor = (int) floor(centerr - 0.5 * fv->numbins);
+        fv->lor = (long) floor(centerr - 0.5 * fv->numbins);
         if (fv->lor + fv->numbins > Nfft) {
             fv->lor = Nfft - fv->numbins;
             fv->centerr = fv->lor + fv->numbins / 2;
@@ -260,13 +260,13 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart * fp)
         tmprawpwrs = gen_fvect(fv->numbins);
         if (norm_const == 0.0) {
             for (ii = 0; ii < fv->numbins; ii++) {
-                powindex = (int) (fv->lor - fp->rlo + ii + 0.5);
-                normindex = (int) (powindex * split);
+                powindex = (long) (fv->lor - fp->rlo + ii + 0.5);
+                normindex = (long) (powindex * split);
                 tmprawpwrs[ii] = fp->rawpowers[powindex] * fp->normvals[normindex];
             }
         } else {
             for (ii = 0; ii < fv->numbins; ii++) {
-                powindex = (int) (fv->lor - fp->rlo + ii + 0.5);
+                powindex = (long) (fv->lor - fp->rlo + ii + 0.5);
                 tmprawpwrs[ii] = fp->rawpowers[powindex] * norm_const;
             }
         }
@@ -288,7 +288,7 @@ static fftview *get_fftview(double centerr, int zoomlevel, fftpart * fp)
 }
 
 
-static fftpart *get_fftpart(int rlo, int numr)
+static fftpart *get_fftpart(long rlo, long numr)
 {
     int ii, jj, index;
     float powargr, powargi, tmppwr, chunk[LOCALCHUNK];
@@ -349,7 +349,7 @@ static void free_fftpart(fftpart * fp)
 
 static double find_peak(float inf, fftview * fv, fftpart * fp)
 {
-    int ii, lobin, hibin, maxbin = 0;
+    long ii, lobin, hibin, maxbin = 0;
     float maxpow = 0.0;
     double inr, viewfrac = 0.05, newmaxr, newmaxz;
     rderivs derivs;
@@ -414,7 +414,7 @@ static fftview *get_harmonic(double rr, int zoomlevel, fftpart * fp)
     fftview *harmview;
 
     numharmbins = (1 << (LOGDISPLAYNUM - zoomlevel));
-    harmpart = get_fftpart((int) (rr - numharmbins), 2 * numharmbins);
+    harmpart = get_fftpart((long) (rr - numharmbins), 2 * numharmbins);
     if (harmpart != NULL) {
         harmview = get_fftview(rr, zoomlevel, harmpart);
         free_fftpart(harmpart);
@@ -504,7 +504,7 @@ static double harmonic_loop(int xid, double rr, int zoomlevel, fftpart * fp)
             cpgiden();
             cpgscr(15, 0.8, 0.8, 0.8);
             numharmbins = (1 << (LOGDISPLAYNUM - zoomlevel));
-            harmpart = get_fftpart((int) (rr - numharmbins), 2 * numharmbins);
+            harmpart = get_fftpart((long) (rr - numharmbins), 2 * numharmbins);
             harmview = get_fftview(rr, zoomlevel, harmpart);
             free_fftpart(harmpart);
             offsetf = plot_fftview(harmview, 0.0, 1.0, rr, 2);
@@ -517,13 +517,13 @@ static double harmonic_loop(int xid, double rr, int zoomlevel, fftpart * fp)
             printf("  Wrote the plot to the file '%s'.\n", filename);
         } else if (choice == 'A' || choice == 'a') {
             if (iny > 1.0)
-                retval = rr * (int) (inx);
+                retval = rr * (long) (inx);
             else if (iny > 0.0)
-                retval = rr * ((int) (inx) + 4.0);
+                retval = rr * ((long) (inx) + 4.0);
             else if (iny > -1.0)
-                retval = rr / (int) (inx);
+                retval = rr / (long) (inx);
             else
-                retval = rr / ((int) (inx) + 4.0);
+                retval = rr / ((long) (inx) + 4.0);
             badchoice = 0;
         } else {
             printf("  Option not recognized.\n");
@@ -603,11 +603,11 @@ int main(int argc, char *argv[])
     lofp = get_fftpart(0, Nfft);
 #else
     {
-        int numamps;
+        long numamps;
 
         fftfile = chkfopen(argv[1], "rb");
         Nfft = chkfilelen(fftfile, sizeof(fcomplex));
-        numamps = (Nfft > MAXBINS) ? (int) MAXBINS : (int) Nfft;
+        numamps = (Nfft > MAXBINS) ? (long) MAXBINS : (long) Nfft;
         lofp = get_fftpart(0, numamps);
     }
 #endif
@@ -615,7 +615,7 @@ int main(int argc, char *argv[])
     /* Plot the initial data */
 
     {
-        int initnumbins = INITIALNUMBINS;
+        long initnumbins = INITIALNUMBINS;
 
         if (initnumbins > Nfft) {
             initnumbins = next2_to_n(Nfft) / 2;
@@ -655,9 +655,12 @@ int main(int argc, char *argv[])
 
         switch (inchar) {
         case 'A':              /* Zoom in */
+            /* FALLTHRU */
         case 'a':
             centerr = (inx + offsetf) * T;
+            /* FALLTHRU */
         case 'I':
+            /* FALLTHRU */
         case 'i':
             if (DEBUGOUT)
                 printf("  Zooming in  (zoomlevel = %d)...\n", zoomlevel);
@@ -671,8 +674,11 @@ int main(int argc, char *argv[])
                 printf("  Already at maximum zoom level (%d).\n", zoomlevel);
             break;
         case 'X':              /* Zoom out */
+            /* FALLTHRU */
         case 'x':
+            /* FALLTHRU */
         case 'O':
+            /* FALLTHRU */
         case 'o':
             if (DEBUGOUT)
                 printf("  Zooming out  (zoomlevel = %d)...\n", zoomlevel);
@@ -687,6 +693,7 @@ int main(int argc, char *argv[])
             break;
         case '<':              /* Shift left 1 full screen */
             centerr -= fv->numbins + fv->numbins / 8;
+            /* FALLTHRU */
         case ',':              /* Shift left 1/8 screen */
             if (DEBUGOUT)
                 printf("  Shifting left...\n");
@@ -705,6 +712,7 @@ int main(int argc, char *argv[])
             break;
         case '>':              /* Shift right 1 full screen */
             centerr += fv->numbins - fv->numbins / 8;
+            /* FALLTHRU */
         case '.':              /* Shift right 1/8 screen */
             if (DEBUGOUT)
                 printf("  Shifting right...\n");
@@ -722,6 +730,7 @@ int main(int argc, char *argv[])
             offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
             break;
         case '+':              /* Increase height of powers */
+            /* FALLTHRU */
         case '=':
             if (maxpow == 0.0) {
                 printf("  Auto-scaling is off.\n");
@@ -732,6 +741,7 @@ int main(int argc, char *argv[])
             offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
             break;
         case '-':              /* Decrease height of powers */
+            /* FALLTHRU */
         case '_':
             if (maxpow == 0.0) {
                 printf("  Auto-scaling is off.\n");
@@ -742,6 +752,7 @@ int main(int argc, char *argv[])
             offsetf = plot_fftview(fv, maxpow, 1.0, 0.0, 0);
             break;
         case 'S':              /* Auto-scale */
+            /* FALLTHRU */
         case 's':
             if (maxpow == 0.0)
                 break;
@@ -753,6 +764,7 @@ int main(int argc, char *argv[])
                 break;
             }
         case 'G':              /* Goto a frequency */
+            /* FALLTHRU */
         case 'g':
             {
                 char freqstr[50];
@@ -774,6 +786,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'H':              /* Show harmonics */
+            /* FALLTHRU */
         case 'h':
             {
                 double retval;
@@ -793,6 +806,7 @@ int main(int argc, char *argv[])
             print_help();
             break;
         case 'D':              /* Show details about a selected point  */
+            /* FALLTHRU */
         case 'd':
             {
                 double newr;
@@ -808,6 +822,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'L':              /* Load a zaplist */
+            /* FALLTHRU */
         case 'l':
             {
                 int ii, len;
@@ -835,6 +850,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'Z':              /* Add a birdie to a zaplist */
+            /* FALLTHRU */
         case 'z':
             {
                 int badchoice = 2;
@@ -884,6 +900,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'P':              /* Print the current plot */
+            /* FALLTHRU */
         case 'p':
             {
                 int len;
@@ -910,6 +927,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'N':              /* Changing power normalization */
+            /* FALLTHRU */
         case 'n':
             {
                 float inx2 = 0.0, iny2 = 0.0;
@@ -925,6 +943,7 @@ int main(int argc, char *argv[])
                     cpgcurs(&inx2, &iny2, &choice);
                     switch (choice) {
                     case 'M':
+                        /* FALLTHRU */
                     case 'm':
                         norm_const = 0.0;
                         maxpow = 0.0;
@@ -933,6 +952,7 @@ int main(int argc, char *argv[])
                             ("  Using local median normalization.  Autoscaling is on.\n");
                         break;
                     case 'D':
+                        /* FALLTHRU */
                     case 'd':
                         norm_const = 1.0 / r0;
                         maxpow = 0.0;
@@ -942,6 +962,7 @@ int main(int argc, char *argv[])
                              r0);
                         break;
                     case 'R':
+                        /* FALLTHRU */
                     case 'r':
                         norm_const = 1.0;
                         maxpow = 0.0;
@@ -950,11 +971,12 @@ int main(int argc, char *argv[])
                             ("  Using raw powers (i.e. no normalization).  Autoscaling is on.\n");
                         break;
                     case 'U':
+                        /* FALLTHRU */
                     case 'u':
                         {
                             char choice2;
                             float xx = inx, yy = iny;
-                            int lor, hir, numr;
+                            long lor, hir, numr;
                             double avg, var;
 
                             printf
@@ -963,19 +985,19 @@ int main(int argc, char *argv[])
                             do {
                                 cpgcurs(&xx, &yy, &choice2);
                             } while (choice2 != 'A' && choice2 != 'a');
-                            lor = (int) ((xx + offsetf) * T);
+                            lor = (long) ((xx + offsetf) * T);
                             cpgsci(7);
                             cpgmove(xx, 0.0);
                             cpgdraw(xx, 10.0 * fv->maxpow);
                             do {
                                 cpgcurs(&xx, &yy, &choice2);
                             } while (choice2 != 'A' && choice2 != 'a');
-                            hir = (int) ((xx + offsetf) * T);
+                            hir = (long) ((xx + offsetf) * T);
                             cpgmove(xx, 0.0);
                             cpgdraw(xx, 10.0 * fv->maxpow);
                             cpgsci(1);
                             if (lor > hir) {
-                                int tempr;
+                                long tempr;
                                 tempr = hir;
                                 hir = lor;
                                 lor = tempr;
@@ -1006,6 +1028,7 @@ int main(int argc, char *argv[])
             }
             break;
         case 'Q':              /* Quit */
+            /* FALLTHRU */
         case 'q':
             printf("  Quitting...\n");
             free(fv);

@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "07Dec16" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "19Sep17" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -26,6 +26,7 @@ accelsearch \- Search an FFT or short time series for pulsars using a Fourier do
 [-lobin lobin]
 [-numharm numharm]
 [-zmax zmax]
+[-wmax wmax]
 [-sigma sigma]
 [-rlo rlo]
 [-rhi rhi]
@@ -69,6 +70,10 @@ The max (+ and -) Fourier freq deriv to search,
 1 Int value between 0 and 1200.
 .br
 Default: `200'
+.IP -wmax
+The max (+ and -) Fourier freq double derivs to search,
+.br
+1 Int value between 0 and 4000.
 .IP -sigma
 Cutoff sigma for choosing candidates,
 .br

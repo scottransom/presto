@@ -38,6 +38,10 @@ static Cmdline cmd = {
   /* zmaxP = */ 1,
   /* zmax = */ 200,
   /* zmaxC = */ 1,
+  /***** -wmax: The max (+ and -) Fourier freq double derivs to search */
+  /* wmaxP = */ 0,
+  /* wmax = */ (int)0,
+  /* wmaxC = */ 0,
   /***** -sigma: Cutoff sigma for choosing candidates */
   /* sigmaP = */ 1,
   /* sigma = */ 2.0,
@@ -831,6 +835,18 @@ showOptionValues(void)
     }
   }
 
+  /***** -wmax: The max (+ and -) Fourier freq double derivs to search */
+  if( !cmd.wmaxP ) {
+    printf("-wmax not found.\n");
+  } else {
+    printf("-wmax found:\n");
+    if( !cmd.wmaxC ) {
+      printf("  no values\n");
+    } else {
+      printf("  value = `%d'\n", cmd.wmax);
+    }
+  }
+
   /***** -sigma: Cutoff sigma for choosing candidates */
   if( !cmd.sigmaP ) {
     printf("-sigma not found.\n");
@@ -978,7 +994,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-ncpus ncpus] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile\n");
+  fprintf(stderr,"%s","   [-ncpus ncpus] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile\n");
   fprintf(stderr,"%s","      Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n");
   fprintf(stderr,"%s","           -ncpus: Number of processors to use with OpenMP\n");
   fprintf(stderr,"%s","                   1 int value between 1 and oo\n");
@@ -992,6 +1008,8 @@ usage(void)
   fprintf(stderr,"%s","            -zmax: The max (+ and -) Fourier freq deriv to search\n");
   fprintf(stderr,"%s","                   1 int value between 0 and 1200\n");
   fprintf(stderr,"%s","                   default: `200'\n");
+  fprintf(stderr,"%s","            -wmax: The max (+ and -) Fourier freq double derivs to search\n");
+  fprintf(stderr,"%s","                   1 int value between 0 and 4000\n");
   fprintf(stderr,"%s","           -sigma: Cutoff sigma for choosing candidates\n");
   fprintf(stderr,"%s","                   1 float value between 1.0 and 30.0\n");
   fprintf(stderr,"%s","                   default: `2.0'\n");
@@ -1019,7 +1037,7 @@ usage(void)
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
   fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
   fprintf(stderr,"%s","                   1 value\n");
-  fprintf(stderr,"%s","  version: 07Dec16\n");
+  fprintf(stderr,"%s","  version: 19Sep17\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1072,6 +1090,16 @@ parseCmdline(int argc, char **argv)
       cmd.zmaxC = i-keep;
       checkIntLower("-zmax", &cmd.zmax, cmd.zmaxC, 1200);
       checkIntHigher("-zmax", &cmd.zmax, cmd.zmaxC, 0);
+      continue;
+    }
+
+    if( 0==strcmp("-wmax", argv[i]) ) {
+      int keep = i;
+      cmd.wmaxP = 1;
+      i = getIntOpt(argc, argv, i, &cmd.wmax, 1);
+      cmd.wmaxC = i-keep;
+      checkIntLower("-wmax", &cmd.wmax, cmd.wmaxC, 4000);
+      checkIntHigher("-wmax", &cmd.wmax, cmd.wmaxC, 0);
       continue;
     }
 

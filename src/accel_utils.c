@@ -50,6 +50,16 @@ static inline int twon_to_index(int n)
     return x;
 }
 
+
+static inline double calc_required_r(double harm_fract, double rfull)
+/* Calculate the 'r' you need for subharmonic  */
+/* harm_fract = harmnum / numharm if the       */
+/* 'r' at the fundamental harmonic is 'rfull'. */
+{
+    return rint(ACCEL_RDR * rfull * harm_fract) * ACCEL_DR;
+}
+
+
 static inline int calc_required_z(double harm_fract, double zfull)
 /* Calculate the 'z' you need for subharmonic  */
 /* harm_fract = harmnum / numharm if the       */
@@ -59,12 +69,12 @@ static inline int calc_required_z(double harm_fract, double zfull)
 }
 
 
-static inline double calc_required_r(double harm_fract, double rfull)
-/* Calculate the 'r' you need for subharmonic  */
+static inline int calc_required_w(double harm_fract, double wfull)
+/* Calculate the maximum 'w' needed for the given subharmonic  */
 /* harm_fract = harmnum / numharm if the       */
-/* 'r' at the fundamental harmonic is 'rfull'. */
+/* 'w' at the fundamental harmonic is 'wfull'. */
 {
-    return (int) (ACCEL_RDR * rfull * harm_fract + 0.5) * ACCEL_DR;
+    return NEAREST_INT(ACCEL_RDW * wfull * harm_fract) * ACCEL_DW;
 }
 
 
@@ -78,9 +88,17 @@ static inline int index_from_r(double r, double lor)
 
 static inline int index_from_z(double z, double loz)
 /* Return an index for a Fourier Fdot given an array that */
-/* has stepsize ACCEL_DZ and low freq 'lor'.              */
+/* has stepsize ACCEL_DZ and low freq dot 'loz'.              */
 {
     return (int) ((z - loz) * ACCEL_RDZ + DBLCORRECT);
+}
+
+
+static inline int index_from_w(double w, double low)
+/* Return an index for a Fourier Fdotdot given an array that */
+/* has stepsize ACCEL_DW and low freq dotdot 'low'.              */
+{
+    return (int) ((w - low) * ACCEL_RDW + DBLCORRECT);
 }
 
 
@@ -116,35 +134,35 @@ static void compare_rzw_cands(fourierprops * list, int nlist, char *notes)
 }
 
 
-static int calc_fftlen(int numharm, int harmnum, int max_zfull)
+static int calc_fftlen(int numharm, int harmnum, int max_zfull, int max_wfull, accelobs * obs)
 /* The fft length needed to properly process a subharmonic */
 {
     int bins_needed, end_effects;
     double harm_fract;
 
     harm_fract = (double) harmnum / (double) numharm;
-    bins_needed = (ACCEL_USELEN * harmnum) / numharm + 2;
+    bins_needed = (int) ceil(obs->corr_uselen * harm_fract) + 2;
     end_effects = 2 * ACCEL_NUMBETWEEN *
-        z_resp_halfwidth(calc_required_z(harm_fract, max_zfull), LOWACC);
-    //printf("bins_needed = %d  end_effects = %d  FFTlen = %lld\n", 
-    //       bins_needed, end_effects, next2_to_n(bins_needed + end_effects));
-    return next2_to_n(bins_needed + end_effects);
+        w_resp_halfwidth(calc_required_z(harm_fract, max_zfull),
+                         calc_required_w(harm_fract, max_wfull), LOWACC);
+    return next_good_fftlen(bins_needed + end_effects);
 }
 
 
-static void init_kernel(int z, int fftlen, kernel * kern)
+static void init_kernel(int z, int w, int fftlen, kernel * kern)
 {
     int numkern;
     fcomplex *tempkern;
 
     kern->z = z;
+    kern->w = w;
     kern->fftlen = fftlen;
     kern->numbetween = ACCEL_NUMBETWEEN;
-    kern->kern_half_width = z_resp_halfwidth((double) z, LOWACC);
+    kern->kern_half_width = w_resp_halfwidth((double) z, (double) w, LOWACC);
     numkern = 2 * kern->numbetween * kern->kern_half_width;
     kern->numgoodbins = kern->fftlen - numkern;
     kern->data = gen_cvect(kern->fftlen);
-    tempkern = gen_z_response(0.0, kern->numbetween, kern->z, numkern);
+    tempkern = gen_w_response(0.0, kern->numbetween, kern->z, kern->w, numkern);
     place_complex_kernel(tempkern, numkern, kern->data, kern->fftlen);
     vect_free(tempkern);
     COMPLEXFFT(kern->data, kern->fftlen, -1);
@@ -157,67 +175,122 @@ static void free_kernel(kernel * kern)
 }
 
 
-static void init_subharminfo(int numharm, int harmnum, int zmax, subharminfo * shi)
-/* Note:  'zmax' is the overall maximum 'z' in the search */
+kernel **gen_kernmatrix(int numz, int numw) {
+    int ii;
+    kernel **kerns;
+    
+    kerns = (kernel **) malloc((size_t) numw * sizeof(kernel *));
+    if (!kerns) {
+        perror("\nError in 1st malloc() in gen_kernmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    kerns[0] = (kernel *) malloc((size_t) ((numz * numw) * sizeof(kernel)));
+    if (!kerns[0]) {
+        perror("\nError in 2nd malloc() in gen_kernmatrix()");
+        printf("\n");
+        exit(-1);
+    }
+    for (ii = 1; ii < numw; ii++)
+        kerns[ii] = kerns[ii - 1] + numz;
+    return kerns;
+}
+
+
+static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subharminfo * shi, accelobs * obs)
+/* Note:  'zmax' is the overall maximum 'z' in the search while
+          'wmax' is the overall maximum 'w' in the search       */
 {
-    int ii, fftlen;
+    int ii, jj, fftlen;
     double harm_fract;
 
     harm_fract = (double) harmnum / (double) numharm;
     shi->numharm = numharm;
     shi->harmnum = harmnum;
     shi->zmax = calc_required_z(harm_fract, zmax);
-    if (numharm > 1)
-        shi->rinds =
-            (unsigned short *) malloc(ACCEL_USELEN * sizeof(unsigned short));
-    fftlen = calc_fftlen(numharm, harmnum, zmax);
-    shi->numkern = (shi->zmax / ACCEL_DZ) * 2 + 1;
-    shi->kern = (kernel *) malloc(shi->numkern * sizeof(kernel));
-    for (ii = 0; ii < shi->numkern; ii++)
-        init_kernel(-shi->zmax + ii * ACCEL_DZ, fftlen, &shi->kern[ii]);
+    shi->wmax = calc_required_w(harm_fract, wmax);
+    if (numharm > 1) {
+        shi->rinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
+        shi->zinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
+    }
+    if (numharm==1 && harmnum==1)
+        fftlen = obs->fftlen;
+    else
+        fftlen = calc_fftlen(numharm, harmnum, zmax, wmax, obs);
+    shi->numkern_zdim = (shi->zmax / ACCEL_DZ) * 2 + 1;
+    shi->numkern_wdim = (shi->wmax / ACCEL_DW) * 2 + 1;
+    shi->numkern = shi->numkern_zdim * shi->numkern_wdim;
+    /* Allocate 2D array of kernels, with dimensions being z and w */
+    shi->kern = gen_kernmatrix(shi->numkern_zdim, shi->numkern_wdim);
+    /* Actually append kernels to each array element */
+    for (ii = 0; ii < shi->numkern_wdim; ii++) {
+        for (jj = 0; jj < shi->numkern_zdim; jj++) {
+            init_kernel(-shi->zmax + jj * ACCEL_DZ,
+                        -shi->wmax + ii * ACCEL_DW, fftlen, &shi->kern[ii][jj]);
+        }
+    }
 }
 
 
 subharminfo **create_subharminfos(accelobs * obs)
 {
-    int ii, jj, harmtosum;
+    double kern_ram_use=0;
+    int ii, jj, harmtosum, fftlen;
     subharminfo **shis;
-
+    
     shis = (subharminfo **) malloc(obs->numharmstages * sizeof(subharminfo *));
     /* Prep the fundamental (actually, the highest harmonic) */
     shis[0] = (subharminfo *) malloc(2 * sizeof(subharminfo));
-    init_subharminfo(1, 1, (int) obs->zhi, &shis[0][0]);
-    printf
-        ("  Harmonic  1/1  has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
-         shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
-         calc_fftlen(1, 1, (int) obs->zhi));
+    init_subharminfo(1, 1, (int) obs->zhi, (int) obs->whi, &shis[0][0], obs);
+    fftlen = obs->fftlen;
+    kern_ram_use += shis[0][0].numkern * fftlen * sizeof(fcomplex); // in Bytes
+    if (obs->numw)
+        printf("  Harm  1/1 : %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
+               shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax,
+               -shis[0][0].wmax, shis[0][0].wmax, fftlen);
+    else
+        printf("  Harm  1/1 : %5d kernels, %4d < z < %-4d (%d pt FFTs)\n",
+               shis[0][0].numkern, -shis[0][0].zmax, shis[0][0].zmax, fftlen);
     /* Prep the sub-harmonics if needed */
     if (!obs->inmem) {
         for (ii = 1; ii < obs->numharmstages; ii++) {
             harmtosum = index_to_twon(ii);
             shis[ii] = (subharminfo *) malloc(harmtosum * sizeof(subharminfo));
             for (jj = 1; jj < harmtosum; jj += 2) {
-                init_subharminfo(harmtosum, jj, (int) obs->zhi, &shis[ii][jj - 1]);
-                printf
-                    ("  Harmonic %2d/%-2d has %3d kernel(s) from z = %4d to %4d,  FFT length = %d\n",
-                     jj, harmtosum, shis[ii][jj - 1].numkern, -shis[ii][jj - 1].zmax,
-                     shis[ii][jj - 1].zmax,
-                     calc_fftlen(harmtosum, jj, (int) obs->zhi));
+                init_subharminfo(harmtosum, jj, (int) obs->zhi,
+                                 (int) obs->whi, &shis[ii][jj - 1], obs);
+                fftlen = calc_fftlen(harmtosum, jj, (int) obs->zhi, (int) obs->whi, obs);
+                kern_ram_use += shis[ii][jj - 1].numkern * fftlen * sizeof(fcomplex); // in Bytes
+                if (obs->numw)
+                    printf("  Harm %2d/%-2d: %5d kernels, %4d < z < %-4d and %5d < w < %-5d (%5d pt FFTs)\n",
+                           jj, harmtosum, shis[ii][jj - 1].numkern,
+                           -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax,
+                           -shis[ii][jj - 1].wmax, shis[ii][jj - 1].wmax, fftlen);
+                else
+                    printf("  Harm %2d/%-2d: %5d kernels, %4d < z < %-4d (%d pt FFTs)\n",
+                           jj, harmtosum, shis[ii][jj - 1].numkern,
+                           -shis[ii][jj - 1].zmax, shis[ii][jj - 1].zmax, fftlen);
             }
         }
     }
+    printf("Total RAM used by correlation kernels:  %.3f GB\n", kern_ram_use / (1 << 30));
     return shis;
 }
 
 
 static void free_subharminfo(subharminfo * shi)
 {
-    int ii;
-
-    for (ii = 0; ii < shi->numkern; ii++)
-        free_kernel(&shi->kern[ii]);
-    if (shi->numharm > 1)
+    int ii, jj;
+    
+    for (ii = 0; ii < shi->numkern_wdim; ii++) {
+        for (jj = 0; jj < shi->numkern_zdim; jj++) {
+            free_kernel(&shi->kern[ii][jj]);
+        }
+    }
+    if (shi->numharm > 1) {
         free(shi->rinds);
+        free(shi->zinds);
+    }
     free(shi->kern);
 }
 
@@ -225,7 +298,7 @@ static void free_subharminfo(subharminfo * shi)
 void free_subharminfos(accelobs * obs, subharminfo ** shis)
 {
     int ii, jj, harmtosum;
-
+    
     /* Free the sub-harmonics */
     if (!obs->inmem) {
         for (ii = 1; ii < obs->numharmstages; ii++) {
@@ -245,19 +318,21 @@ void free_subharminfos(accelobs * obs, subharminfo ** shis)
 
 
 static accelcand *create_accelcand(float power, float sigma,
-                                   int numharm, double r, double z)
+                                   int numharm, double r, double z, double w)
 {
     accelcand *obj;
-
+    
     obj = (accelcand *) malloc(sizeof(accelcand));
     obj->power = power;
     obj->sigma = sigma;
     obj->numharm = numharm;
     obj->r = r;
     obj->z = z;
+    obj->w = w;
     obj->pows = NULL;
     obj->hirs = NULL;
     obj->hizs = NULL;
+    obj->hiws = NULL;
     obj->derivs = NULL;
     return obj;
 }
@@ -269,6 +344,7 @@ void free_accelcand(gpointer data, gpointer user_data)
         vect_free(((accelcand *) data)->pows);
         vect_free(((accelcand *) data)->hirs);
         vect_free(((accelcand *) data)->hizs);
+        vect_free(((accelcand *) data)->hiws);
         free(((accelcand *) data)->derivs);
     }
     free((accelcand *) data);
@@ -299,7 +375,7 @@ GSList *sort_accelcands(GSList * list)
 
 
 static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
-                                    int numharm, double rr, double zz, int *added)
+                                    int numharm, double rr, double zz, double ww, int *added)
 /* Checks the current list to see if there is already */
 /* a candidate within ACCEL_CLOSEST_R bins.  If not,  */
 /* it adds it to the list in increasing freq order.   */
@@ -311,7 +387,7 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
     if (!list) {
         new_list = g_slist_alloc();
         new_list->data =
-            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz);
+            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz, ww);
         *added = 1;
         return new_list;
     }
@@ -333,7 +409,7 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
         if (((accelcand *) (prev_list->data))->sigma < sigma) {
             free_accelcand(prev_list->data, NULL);
             prev_list->data = (gpointer *) create_accelcand(power, sigma,
-                                                            numharm, rr, zz);
+                                                            numharm, rr, zz, ww);
             *added = 1;
         }
         if (next_diff_r < ACCEL_CLOSEST_R) {
@@ -346,7 +422,7 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
                 } else {
                     /* Overwrite the next cand */
                     tmp_list->data = (gpointer *) create_accelcand(power, sigma,
-                                                                   numharm, rr, zz);
+                                                                   numharm, rr, zz, ww);
                     *added = 1;
                 }
             }
@@ -356,13 +432,13 @@ static GSList *insert_new_accelcand(GSList * list, float power, float sigma,
         if (((accelcand *) (tmp_list->data))->sigma < sigma) {
             free_accelcand(tmp_list->data, NULL);
             tmp_list->data = (gpointer *) create_accelcand(power, sigma,
-                                                           numharm, rr, zz);
+                                                           numharm, rr, zz, ww);
             *added = 1;
         }
     } else {                    /* This is a new candidate */
         new_list = g_slist_alloc();
         new_list->data =
-            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz);
+            (gpointer *) create_accelcand(power, sigma, numharm, rr, zz, ww);
         *added = 1;
         if (!tmp_list->next &&
             (((accelcand *) (tmp_list->data))->r < (rr - ACCEL_CLOSEST_R))) {
@@ -461,65 +537,78 @@ GSList *eliminate_harmonics(GSList * cands, int *numcands)
 }
 
 
-// FIXME: this shouldn't be a #define, or it shouldn't be here
 void optimize_accelcand(accelcand * cand, accelobs * obs)
 {
     int ii;
-    int *r_offset;
-    fcomplex **data;
-    double r, z;
+    double r, z, w;
 
     cand->pows = gen_dvect(cand->numharm);
     cand->hirs = gen_dvect(cand->numharm);
     cand->hizs = gen_dvect(cand->numharm);
-    r_offset = (int *) malloc(sizeof(int) * cand->numharm);
-    data = (fcomplex **) malloc(sizeof(fcomplex *) * cand->numharm);
+    cand->hiws = gen_dvect(cand->numharm);
     cand->derivs = (rderivs *) malloc(sizeof(rderivs) * cand->numharm);
-
-    if (obs->use_harmonic_polishing) {
-        if (obs->mmap_file || obs->dat_input) {
-            for (ii = 0; ii < cand->numharm; ii++) {
-                r_offset[ii] = obs->lobin;
-                data[ii] = obs->fft;
-            }
-            max_rz_arr_harmonics(data,
-                                 cand->numharm,
-                                 r_offset,
-                                 obs->numbins,
-                                 cand->r - obs->lobin,
-                                 cand->z, &r, &z, cand->derivs, cand->pows);
-        } else {
-            max_rz_file_harmonics(obs->fftfile,
+    
+    if (obs->use_harmonic_polishing &&
+        (obs->mmap_file || obs->dat_input)) {
+        if (obs->numw) {
+            max_rzw_arr_harmonics(obs->fft, obs->numbins,
                                   cand->numharm,
-                                  obs->lobin,
                                   cand->r - obs->lobin,
-                                  cand->z, &r, &z, cand->derivs, cand->pows);
+                                  cand->z, cand->w, &r, &z, &w,
+                                  cand->derivs, cand->pows);
+            
+        } else {
+            max_rz_arr_harmonics(obs->fft, obs->numbins,
+                                 cand->numharm,
+                                 cand->r - obs->lobin,
+                                 cand->z, &r, &z,
+                                 cand->derivs, cand->pows);
         }
         for (ii = 0; ii < cand->numharm; ii++) {
             cand->hirs[ii] = (r + obs->lobin) * (ii + 1);
             cand->hizs[ii] = z * (ii + 1);
+            cand->hiws[ii] = obs->numw ? w * (ii + 1) : 0.0;
         }
     } else {
         for (ii = 0; ii < cand->numharm; ii++) {
-            if (obs->mmap_file || obs->dat_input)
-                cand->pows[ii] = max_rz_arr(obs->fft,
-                                            obs->numbins,
-                                            cand->r * (ii + 1) - obs->lobin,
-                                            cand->z * (ii + 1),
-                                            &(cand->hirs[ii]),
-                                            &(cand->hizs[ii]), &(cand->derivs[ii]));
-            else
-                cand->pows[ii] = max_rz_file(obs->fftfile,
-                                             cand->r * (ii + 1) - obs->lobin,
-                                             cand->z * (ii + 1),
-                                             &(cand->hirs[ii]),
-                                             &(cand->hizs[ii]), &(cand->derivs[ii]));
+            if (obs->mmap_file || obs->dat_input) {
+                if (obs->numw)
+                    cand->pows[ii] = max_rzw_arr(obs->fft,
+                                                 obs->numbins,
+                                                 cand->r * (ii + 1) - obs->lobin,
+                                                 cand->z * (ii + 1),
+                                                 cand->w * (ii + 1),
+                                                 &(cand->hirs[ii]),
+                                                 &(cand->hizs[ii]),
+                                                 &(cand->hiws[ii]),
+                                                 &(cand->derivs[ii]));
+                else
+                    cand->pows[ii] = max_rz_arr(obs->fft,
+                                                obs->numbins,
+                                                cand->r * (ii + 1) - obs->lobin,
+                                                cand->z * (ii + 1),
+                                                &(cand->hirs[ii]),
+                                                &(cand->hizs[ii]), &(cand->derivs[ii]));
+            } else {
+                if (obs->numw)
+                    cand->pows[ii] = max_rzw_file(obs->fftfile,
+                                                  cand->r * (ii + 1) - obs->lobin,
+                                                  cand->z * (ii + 1),
+                                                  cand->w * (ii + 1),
+                                                  &(cand->hirs[ii]),
+                                                  &(cand->hizs[ii]),
+                                                  &(cand->hiws[ii]),
+                                                  &(cand->derivs[ii]));
+                else
+                    cand->pows[ii] = max_rz_file(obs->fftfile,
+                                                 cand->r * (ii + 1) - obs->lobin,
+                                                 cand->z * (ii + 1),
+                                                 &(cand->hirs[ii]),
+                                                 &(cand->hizs[ii]), &(cand->derivs[ii]));
+            }
             cand->hirs[ii] += obs->lobin;
         }
     }
-    free(r_offset);
-    free(data);
-
     cand->sigma = candidate_sigma(cand->power, cand->numharm,
                                   obs->numindep[twon_to_index(cand->numharm)]);
 }
@@ -566,20 +655,20 @@ void output_fundamentals(fourierprops * props, GSList * list,
                          accelobs * obs, infodata * idata)
 {
     double accel = 0.0, accelerr = 0.0, coherent_pow;
-    int ii, jj, numcols = 12, numcands, *width, *error;
-    int widths[12] = { 4, 5, 6, 8, 4, 16, 15, 15, 15, 11, 15, 20 };
-    int errors[12] = { 0, 0, 0, 0, 0, 1, 1, 2, 1, 2, 2, 0 };
+    int ii, jj, numcols = 13, numcands, *width, *error;
+    int widths[13] = { 4, 5, 6, 8, 4, 16, 15, 15, 15, 11, 11, 15, 20 };
+    int errors[13] = { 0, 0, 0, 0, 0, 1, 1, 2, 1, 2, 2, 2, 0 };
     char tmpstr[30], ctrstr[30], *notes;
     accelcand *cand;
     GSList *listptr;
     rzwerrs errs;
     static char **title;
     static char *titles1[] = { "", "", "Summed", "Coherent", "Num", "Period",
-        "Frequency", "FFT 'r'", "Freq Deriv", "FFT 'z'",
+        "Frequency", "FFT 'r'", "Freq Deriv", "FFT 'z'", "FFT 'w'",
         "Accel", ""
     };
     static char *titles2[] = { "Cand", "Sigma", "Power", "Power", "Harm", "(ms)",
-        "(Hz)", "(bin)", "(Hz/s)", "(bins)",
+        "(Hz)", "(bin)", "(Hz/s)", "(bins)", "(bins)",
         "(m/s^2)", "Notes"
     };
 
@@ -617,8 +706,14 @@ void output_fundamentals(fourierprops * props, GSList * list,
     width = widths;
     title = titles1;
     for (ii = 0; ii < numcols - 1; ii++) {
-        center_string(ctrstr, *title++, *width++);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && ii==10) { // Skip jerk parts
+            title++;
+            width++;
+            continue;
+        } else {
+            center_string(ctrstr, *title++, *width++);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, *title++, *width++);
     fprintf(obs->workfile, "%s\n", ctrstr);
@@ -626,17 +721,28 @@ void output_fundamentals(fourierprops * props, GSList * list,
     width = widths;
     title = titles2;
     for (ii = 0; ii < numcols - 1; ii++) {
-        center_string(ctrstr, *title++, *width++);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && ii==10) { // Skip jerk parts
+            title++;
+            width++;
+            continue;
+        } else {
+            center_string(ctrstr, *title++, *width++);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, *title++, *width++);
     fprintf(obs->workfile, "%s\n", ctrstr);
 
     width = widths;
     for (ii = 0; ii < numcols - 1; ii++) {
-        memset(tmpstr, '-', *width);
-        tmpstr[*width++] = '\0';
-        fprintf(obs->workfile, "%s--", tmpstr);
+        if (obs->numw==0 && ii==10) { // Skip jerk parts
+            width++;
+            continue;
+        } else {
+            memset(tmpstr, '-', *width);
+            tmpstr[*width++] = '\0';
+            fprintf(obs->workfile, "%s--", tmpstr);
+        }
     }
     memset(tmpstr, '-', *width++);
     tmpstr[widths[ii]] = '\0';
@@ -704,6 +810,13 @@ void output_fundamentals(fourierprops * props, GSList * list,
         write_val_with_err(obs->workfile, errs.fd, errs.fderr, *error++, *width++);
         write_val_with_err(obs->workfile, props[ii].z, props[ii].zerr,
                            *error++, *width++);
+        if (obs->numw) {
+            write_val_with_err(obs->workfile, props[ii].w, props[ii].werr,
+                               *error++, *width++);
+        } else {
+            error++;
+            width++;
+        }
         accel = props[ii].z * SOL / (obs->T * obs->T * errs.f);
         accelerr = props[ii].zerr * SOL / (obs->T * obs->T * errs.f);
         write_val_with_err(obs->workfile, accel, accelerr, *error++, *width++);
@@ -718,20 +831,20 @@ void output_fundamentals(fourierprops * props, GSList * list,
 
 void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
 {
-    int ii, jj, numcols = 13, numcands;
-    int widths[13] = { 5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 10, 10, 20 };
-    int errors[13] = { 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 0 };
+    int ii, jj, numcols = 15, numcands;
+    int widths[15] = { 5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 9, 12, 10, 10, 20 };
+    int errors[15] = { 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 0 };
     char tmpstr[30], ctrstr[30], notes[21], *command;
     accelcand *cand;
     GSList *listptr;
     fourierprops props;
     rzwerrs errs;
     static char *titles1[] = { "", "", "", "Power /", "Raw",
-        "FFT 'r'", "Pred 'r'", "FFT 'z'", "Pred 'z'",
+        "FFT 'r'", "Pred 'r'", "FFT 'z'", "Pred 'z'", "FFT 'w'", "Pred 'w'",
         "Phase", "Centroid", "Purity", ""
     };
     static char *titles2[] = { "Cand", "Harm", "Sigma", "Loc Pow", "Power",
-        "(bin)", "(bin)", "(bins)", "(bins)",
+        "(bin)", "(bin)", "(bins)", "(bins)", "(bins)", "(bins)",
         "(rad)", "(0-1)", "<p> = 1", "Notes"
     };
 
@@ -741,30 +854,42 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
     /* Print the header */
 
     for (ii = 0; ii < numcols - 1; ii++) {
-        center_string(ctrstr, titles1[ii], widths[ii]);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && (ii==9 || ii==10)) { // Skip jerk parts
+            continue;
+        } else {
+            center_string(ctrstr, titles1[ii], widths[ii]);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, titles1[ii], widths[ii]);
     fprintf(obs->workfile, "%s\n", ctrstr);
     for (ii = 0; ii < numcols - 1; ii++) {
-        if (obs->nph > 0.0 && ii == 3)  /*  HAAACK!!! */
-            center_string(ctrstr, "NumPhot", widths[ii]);
-        else
-            center_string(ctrstr, titles2[ii], widths[ii]);
-        fprintf(obs->workfile, "%s  ", ctrstr);
+        if (obs->numw==0 && (ii==9 || ii==10)) { // Skip jerk parts
+            continue;
+        } else {
+            if (obs->nph > 0.0 && ii == 3)  /*  HAAACK!!! */
+                center_string(ctrstr, "NumPhot", widths[ii]);
+            else
+                center_string(ctrstr, titles2[ii], widths[ii]);
+            fprintf(obs->workfile, "%s  ", ctrstr);
+        }
     }
     center_string(ctrstr, titles2[ii], widths[ii]);
     fprintf(obs->workfile, "%s\n", ctrstr);
     for (ii = 0; ii < numcols - 1; ii++) {
-        memset(tmpstr, '-', widths[ii]);
-        tmpstr[widths[ii]] = '\0';
-        fprintf(obs->workfile, "%s--", tmpstr);
+        if (obs->numw==0 && (ii==9 || ii==10)) { // Skip jerk parts
+            continue;
+        } else {
+            memset(tmpstr, '-', widths[ii]);
+            tmpstr[widths[ii]] = '\0';
+            fprintf(obs->workfile, "%s--", tmpstr);
+        }
     }
     memset(tmpstr, '-', widths[ii]);
     tmpstr[widths[ii]] = '\0';
     fprintf(obs->workfile, "%s\n", tmpstr);
 
-    /* Print the fundamentals */
+    /* Print the harmonics */
 
     for (ii = 0; ii < numcands; ii++) {
         cand = (accelcand *) (listptr->data);
@@ -775,11 +900,11 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
                 tmp_locpow = cand->derivs[jj].locpow;
                 cand->derivs[jj].locpow = obs->nph;
                 calc_props(cand->derivs[jj], cand->hirs[jj],
-                           cand->hizs[jj], 0.0, &props);
+                           cand->hizs[jj], cand->hiws[jj], &props);
                 cand->derivs[jj].locpow = tmp_locpow;
             } else {
                 calc_props(cand->derivs[jj], cand->hirs[jj],
-                           cand->hizs[jj], 0.0, &props);
+                           cand->hizs[jj], cand->hiws[jj], &props);
             }
             calc_rzwerrs(&props, obs->T, &errs);
             if (strncmp(idata->telescope, "None", 4) != 0) {
@@ -815,12 +940,19 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
             sprintf(tmpstr, "%.2f", cand->z * (jj + 1));
             center_string(ctrstr, tmpstr, widths[8]);
             fprintf(obs->workfile, "%s  ", ctrstr);
+            if (obs->numw) {
+                write_val_with_err(obs->workfile, props.w, props.werr,
+                                   errors[9], widths[9]);
+                sprintf(tmpstr, "%.2f", cand->w * (jj + 1));
+                center_string(ctrstr, tmpstr, widths[10]);
+                fprintf(obs->workfile, "%s  ", ctrstr);
+            }
             write_val_with_err(obs->workfile, props.phs, props.phserr,
-                               errors[9], widths[9]);
-            write_val_with_err(obs->workfile, props.cen, props.cenerr,
-                               errors[10], widths[10]);
-            write_val_with_err(obs->workfile, props.pur, props.purerr,
                                errors[11], widths[11]);
+            write_val_with_err(obs->workfile, props.cen, props.cenerr,
+                               errors[12], widths[12]);
+            write_val_with_err(obs->workfile, props.pur, props.purerr,
+                               errors[13], widths[13]);
             fprintf(obs->workfile, "  %.20s\n", notes);
             fflush(obs->workfile);
         }
@@ -840,8 +972,8 @@ void print_accelcand(gpointer data, gpointer user_data)
     accelcand *obj = (accelcand *) data;
 
     user_data = NULL;
-    printf("sigma: %-7.4f  pow: %-7.2f  harm: %-2d  r: %-14.4f  z: %-10.4f\n",
-           obj->sigma, obj->power, obj->numharm, obj->r, obj->z);
+    printf("sigma: %-7.4f  pow: %-7.2f  harm: %-2d  r: %-14.4f  z: %-10.4f  w: %-10.2f\n",
+           obj->sigma, obj->power, obj->numharm, obj->r, obj->z, obj->w);
 }
 
 
@@ -876,65 +1008,63 @@ fcomplex *get_fourier_amplitudes(long long lobin, int numbins, accelobs * obs)
     }
 }
 
-ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
+ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
                                double fullrlo, double fullrhi,
                                subharminfo * shi, accelobs * obs)
 {
-    int ii, lobin, hibin, numdata, nice_numdata, fftlen, binoffset;
+    int ii, numdata, fftlen, binoffset;
+    long long lobin;
     float powargr, powargi;
-    static int numrs_full = 0;
     double drlo, drhi, harm_fract;
-    ffdotpows *ffdot;
     fcomplex *data, *pdata;
     fftwf_plan invplan;
-
-    if (numrs_full == 0) {
-        if (numharm == 1 && harmnum == 1) {
-            numrs_full = ACCEL_USELEN;
-        } else {
-            printf("You must call subharm_ffdot_plane() with numharm=1 and\n");
-            printf("harnum=1 before you use other values!  Exiting.\n\n");
-            exit(0);
-        }
-    }
-    ffdot = (ffdotpows *) malloc(sizeof(ffdotpows));
+    ffdotpows *ffdot = (ffdotpows *) malloc(sizeof(ffdotpows));
 
     /* Calculate and get the required amplitudes */
     harm_fract = (double) harmnum / (double) numharm;
     drlo = calc_required_r(harm_fract, fullrlo);
     drhi = calc_required_r(harm_fract, fullrhi);
-    ffdot->rlo = (int) floor(drlo);
+    ffdot->rlo = (long long) floor(drlo);
     ffdot->zlo = calc_required_z(harm_fract, obs->zlo);
+    ffdot->wlo = calc_required_w(harm_fract, obs->wlo);
 
     /* Initialize the lookup indices */
     if (numharm > 1 && !obs->inmem) {
         double rr, subr;
-        for (ii = 0; ii < numrs_full; ii++) {
+        for (ii = 0; ii < obs->corr_uselen; ii++) {
             rr = fullrlo + ii * ACCEL_DR;
             subr = calc_required_r(harm_fract, rr);
             shi->rinds[ii] = index_from_r(subr, ffdot->rlo);
         }
+        double zz, subz;
+        for (ii = 0; ii < obs->numz; ii++) {
+            zz = obs->zlo + ii * ACCEL_DZ;
+            subz = calc_required_z(harm_fract, zz);
+            shi->zinds[ii] = index_from_z(subz, ffdot->zlo);
+        }
     }
     ffdot->rinds = shi->rinds;
+    // The +1 below is important!
     ffdot->numrs = (int) ((ceil(drhi) - floor(drlo))
                           * ACCEL_RDR + DBLCORRECT) + 1;
     if (numharm == 1 && harmnum == 1) {
-        ffdot->numrs = ACCEL_USELEN;
+        ffdot->numrs = obs->corr_uselen;
     } else {
-        if (ffdot->numrs % ACCEL_RDR) {
+        if (ffdot->numrs % ACCEL_RDR)
             ffdot->numrs = (ffdot->numrs / ACCEL_RDR + 1) * ACCEL_RDR;
-        }
     }
-    ffdot->numzs = shi->numkern;
-    binoffset = shi->kern[0].kern_half_width;
-    fftlen = shi->kern[0].fftlen;
+    ffdot->zinds = shi->zinds;
+    ffdot->numzs = shi->numkern_zdim;
+    ffdot->numws = shi->numkern_wdim;
+
+    /* Determine the largest kernel halfwidth needed to analyze the current subharmonic */
+    /* Verified numerically that, as long as we have symmetric z's and w's, */
+    /* shi->kern[0][0].kern_half_width is the maximal halfwidth over the range of w's and z's */
+    binoffset = shi->kern[0][0].kern_half_width;
+    fftlen = shi->kern[0][0].fftlen;
     lobin = ffdot->rlo - binoffset;
-    hibin = (int) ceil(drhi) + binoffset;
-    numdata = hibin - lobin + 1;
-    nice_numdata = next2_to_n(numdata); // for FFTs
-    if (nice_numdata != fftlen / ACCEL_NUMBETWEEN)
-        printf("WARNING!!:  nice_numdata != fftlen/2 in subharm_ffdot_plane()!\n");
-    data = get_fourier_amplitudes(lobin, nice_numdata, obs);
+    numdata = fftlen / ACCEL_NUMBETWEEN;
+    data = get_fourier_amplitudes(lobin, numdata, obs);
     if (!obs->mmap_file && !obs->dat_input && 0)
         printf("This is newly malloc'd!\n");
 
@@ -947,7 +1077,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
             data[ii].i *= norm;
         }
     } else if (obs->norm_type == 0) {
-        //  old-style block median normalization
+        // default block median normalization
         float *powers;
         double norm;
         powers = gen_fvect(numdata);
@@ -960,13 +1090,13 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
             data[ii].i *= norm;
         }
     } else {
-        //  new-style running double-tophat local-power normalization
+        // optional running double-tophat local-power normalization
         float *powers, *loc_powers;
-        powers = gen_fvect(nice_numdata);
-        for (ii = 0; ii < nice_numdata; ii++) {
+        powers = gen_fvect(numdata);
+        for (ii = 0; ii < numdata; ii++) {
             powers[ii] = POWER(data[ii].r, data[ii].i);
         }
-        loc_powers = corr_loc_pow(powers, nice_numdata);
+        loc_powers = corr_loc_pow(powers, numdata);
         for (ii = 0; ii < numdata; ii++) {
             float norm = invsqrtf(loc_powers[ii]);
             data[ii].r *= norm;
@@ -983,7 +1113,7 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
     COMPLEXFFT(pdata, fftlen, -1);
 
     // Create the output power array
-    ffdot->powers = gen_fmatrix(ffdot->numzs, ffdot->numrs);
+    ffdot->powers = gen_f3Darr(ffdot->numws, ffdot->numzs, ffdot->numrs);
 
     // Create a plan with temp arrays.  We will reuse the plan
     // with the new-array FFTW execute functions
@@ -1009,41 +1139,46 @@ ffdotpows *subharm_ffdot_plane(int numharm, int harmnum,
         // tmpdat gets overwritten during the correlation
         fcomplex *tmpdat = gen_cvect(fftlen);
         fcomplex *tmpout = gen_cvect(fftlen);
+        int jj;
 #ifdef _OPENMP
+// #pragma omp for collapse(2)  Do we want this somehow?
 #pragma omp for
 #endif
-        for (ii = 0; ii < ffdot->numzs; ii++) {
-            int jj;
-            float *fkern = (float *) shi->kern[ii].data;
-            float *fpdata = (float *) pdata;
-            float *fdata = (float *) tmpdat;
-            float *outpows = ffdot->powers[ii];
-            // multiply data and kernel 
-            // (using floats for better vectorization)
-#if (defined(__GNUC__) || defined(__GNUG__)) && \
+        /* Check, should we add the collapse to parallelize numws and numzs loops? */
+        for (ii = 0; ii < ffdot->numws; ii++) {
+            for (jj = 0; jj < ffdot->numzs; jj++) {
+                int kk;
+                float *fkern = (float *) shi->kern[ii][jj].data;
+                float *fpdata = (float *) pdata;
+                float *fdata = (float *) tmpdat;
+                float *outpows = ffdot->powers[ii][jj];
+                // multiply data and kernel 
+                // (using floats for better vectorization)
+#if (defined(__GNUC__) || defined(__GNUG__)) &&         \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
 #endif
-            for (jj = 0; jj < fftlen * 2; jj += 2) {
-                const float dr = fpdata[jj], di = fpdata[jj + 1];
-                const float kr = fkern[jj], ki = fkern[jj + 1];
-                fdata[jj] = dr * kr + di * ki;
-                fdata[jj + 1] = di * kr - dr * ki;
-            }
-            // Do the inverse FFT (tmpdat -> tmpout)
-            fftwf_execute_dft(invplan, (fftwf_complex *) tmpdat,
-                              (fftwf_complex *) tmpout);
-            // Turn the good parts of the result into powers and store
-            // them in the output matrix
-            fdata = (float *) tmpout;
-#if (defined(__GNUC__) || defined(__GNUG__)) && \
+                for (kk = 0; kk < fftlen * 2; kk += 2) {
+                    const float dr = fpdata[kk], di = fpdata[kk + 1];
+                    const float kr = fkern[kk], ki = fkern[kk + 1];
+                    fdata[kk] = dr * kr + di * ki;
+                    fdata[kk + 1] = di * kr - dr * ki;
+                }
+                // Do the inverse FFT (tmpdat -> tmpout)
+                fftwf_execute_dft(invplan, (fftwf_complex *) tmpdat,
+                                  (fftwf_complex *) tmpout);
+                // Turn the good parts of the result into powers and store
+                // them in the output matrix
+                fdata = (float *) tmpout;
+#if (defined(__GNUC__) || defined(__GNUG__)) &&         \
     !(defined(__clang__) || defined(__INTEL_COMPILER))
 #pragma GCC ivdep
 #endif
-            for (jj = 0; jj < ffdot->numrs; jj++) {
-                const int ind = 2 * (jj + offset);
-                outpows[jj] = (fdata[ind] * fdata[ind] +
-                               fdata[ind + 1] * fdata[ind + 1]) * norm;
+                for (kk = 0; kk < ffdot->numrs; kk++) {
+                    const int ind = 2 * (kk + offset);
+                    outpows[kk] = (fdata[ind] * fdata[ind] +
+                                   fdata[ind + 1] * fdata[ind + 1]) * norm;
+                }
             }
         }
         vect_free(tmpdat);
@@ -1060,15 +1195,17 @@ ffdotpows *copy_ffdotpows(ffdotpows * orig)
 {
     int ii;
     ffdotpows *copy;
-
+    
     copy = (ffdotpows *) malloc(sizeof(ffdotpows));
     copy->numrs = orig->numrs;
     copy->numzs = orig->numzs;
+    copy->numws = orig->numws;
     copy->rlo = orig->rlo;
     copy->zlo = orig->zlo;
-    copy->powers = gen_fmatrix(orig->numzs, orig->numrs);
-    for (ii = 0; ii < (orig->numzs * orig->numrs); ii++)
-        copy->powers[0][ii] = orig->powers[0][ii];
+    copy->wlo = orig->wlo;
+    copy->powers = gen_f3Darr(orig->numws, orig->numzs, orig->numrs);
+    for (ii = 0; ii < (orig->numws * orig->numzs * orig->numrs); ii++)
+        copy->powers[0][0][ii] = orig->powers[0][0][ii];
     return copy;
 }
 
@@ -1078,14 +1215,14 @@ void fund_to_ffdotplane(ffdotpows * ffd, accelobs * obs)
     // This moves the fundamental's ffdot plane powers
     // into the one for the full array
     int ii;
-    long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
+    long long rlen = (obs->highestbin + obs->corr_uselen) * ACCEL_RDR;
     long long offset;
     float *outpow;
 
     for (ii = 0; ii < ffd->numzs; ii++) {
         offset = ii * rlen;
         outpow = obs->ffdotplane + offset + ffd->rlo * ACCEL_RDR;
-        memcpy(outpow, ffd->powers[ii], ffd->numrs * sizeof(float));
+        memcpy(outpow, ffd->powers[0][ii], ffd->numrs * sizeof(float));
     }
 }
 
@@ -1098,10 +1235,8 @@ void fund_to_ffdotplane_trans(ffdotpows * ffd, accelobs * obs)
     // memory local (since numz << numr)
     int ii, jj;
     float *outpow = obs->ffdotplane + ffd->rlo * ACCEL_RDR * ffd->numzs;
-    //printf("rlo = %d, numrs = %d, nextrlo = %d\n", 
-    //       ffd->rlo, ffd->numrs, (int)(ffd->rlo+ffd->numrs*ACCEL_DR));
     for (ii = 0; ii < ffd->numrs; ii++) {
-        float *inpow = ffd->powers[0] + ii;
+        float *inpow = ffd->powers[0][0] + ii;
         for (jj = 0; jj < ffd->numzs; jj++, inpow += ffd->numrs) {
             *outpow++ = *inpow;
         }
@@ -1111,6 +1246,7 @@ void fund_to_ffdotplane_trans(ffdotpows * ffd, accelobs * obs)
 
 void free_ffdotpows(ffdotpows * ffd)
 {
+    vect_free(ffd->powers[0][0]);
     vect_free(ffd->powers[0]);
     vect_free(ffd->powers);
     free(ffd);
@@ -1119,16 +1255,19 @@ void free_ffdotpows(ffdotpows * ffd)
 void add_ffdotpows(ffdotpows * fundamental,
                    ffdotpows * subharmonic, int numharm, int harmnum)
 {
-    int ii, jj, zz, rind, zind, subz;
+    int ii, jj, kk, ww, rind, zind, wind, subw;
     const double harm_fract = (double) harmnum / (double) numharm;
-
-    for (ii = 0; ii < fundamental->numzs; ii++) {
-        zz = fundamental->zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, subharmonic->zlo);
-        for (jj = 0; jj < fundamental->numrs; jj++) {
-            rind = subharmonic->rinds[jj];
-            fundamental->powers[ii][jj] += subharmonic->powers[zind][rind];
+    
+    for (ii = 0; ii < fundamental->numws; ii++) {
+        ww = fundamental->wlo + ii * ACCEL_DW;
+        subw = calc_required_w(harm_fract, ww);
+        wind = index_from_w(subw, subharmonic->wlo);
+        for (jj = 0; jj < fundamental->numzs; jj++) {
+            zind = subharmonic->zinds[jj];
+            for (kk = 0; kk < fundamental->numrs; kk++) {
+                rind = subharmonic->rinds[kk];
+                fundamental->powers[ii][jj][kk] += subharmonic->powers[wind][zind][rind];
+            }
         }
     }
 }
@@ -1136,23 +1275,27 @@ void add_ffdotpows(ffdotpows * fundamental,
 void add_ffdotpows_ptrs(ffdotpows * fundamental,
                         ffdotpows * subharmonic, int numharm, int harmnum)
 {
-    int ii, jj, zz, zind, subz;
-    const int zlo = fundamental->zlo;
+    int ii, jj, kk, ww, wind, subw;
+    const int wlo = fundamental->wlo;
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
+    const int numws = fundamental->numws;
     const double harm_fract = (double) harmnum / (double) numharm;
     float *outpows, *inpows;
-    unsigned short *indsptr;
+    unsigned short *rindsptr, *zindsptr;
 
-    for (ii = 0; ii < numzs; ii++) {
-        zz = zlo + ii * ACCEL_DZ;
-        subz = calc_required_z(harm_fract, zz);
-        zind = index_from_z(subz, subharmonic->zlo);
-        inpows = subharmonic->powers[zind];
-        outpows = fundamental->powers[ii];
-        indsptr = subharmonic->rinds;
-        for (jj = 0; jj < numrs; jj++)
-            *outpows++ += inpows[*indsptr++];
+    for (ii = 0; ii < numws; ii++) {
+        ww = wlo + ii * ACCEL_DW;
+        subw = calc_required_w(harm_fract, ww);
+        wind = index_from_w(subw, subharmonic->wlo);
+        zindsptr = subharmonic->zinds;
+        for (jj = 0; jj < numzs; jj++) {
+            inpows = subharmonic->powers[wind][*zindsptr++];
+            outpows = fundamental->powers[ii][jj];
+            rindsptr = subharmonic->rinds;
+            for (kk = 0; kk < numrs; kk++)
+                *outpows++ += inpows[*rindsptr++];
+        }
     }
 }
 
@@ -1164,24 +1307,24 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
-    int *indices;
+    int *rinds;
 
     // Pre-compute the frequency lookup table
-    indices = gen_ivect(numrs);
+    rinds = gen_ivect(numrs);
     {
         int ii, rrint;
         for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-            indices[ii] = (int) (rrint * harm_fract + 0.5);
+            rinds[ii] = (int) (rrint * harm_fract + 0.5);
     }
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(indices,fundamental,obs)
+#pragma omp parallel default(none) shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;
-        const long long rlen = (obs->highestbin + ACCEL_USELEN) * ACCEL_RDR;
-        float *powptr = fundamental->powers[0];
+        const long long rlen = (obs->highestbin + obs->corr_uselen) * ACCEL_RDR;
+        float *powptr = fundamental->powers[0][0];
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
         float *inpows, *outpows;
@@ -1201,10 +1344,10 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
 #pragma GCC ivdep
 #endif
             for (jj = 0; jj < numrs; jj++)
-                outpows[jj] += inpows[indices[jj]];
+                outpows[jj] += inpows[rinds[jj]];
         }
     }
-    vect_free(indices);
+    vect_free(rinds);
 }
 
 
@@ -1215,23 +1358,23 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
     const int numrs = fundamental->numrs;
     const int numzs = fundamental->numzs;
     const double harm_fract = (double) harmnum / (double) numharm;
-    long *indices;
+    long *rinds;
 
     // Pre-compute the frequency lookup table
-    indices = gen_lvect(numrs);
+    rinds = gen_lvect(numrs);
     {
         int ii, rrint;
         for (ii = 0, rrint = ACCEL_RDR * rlo; ii < numrs; ii++, rrint++)
-            indices[ii] = (long) (rrint * harm_fract + 0.5) * numzs;
+            rinds[ii] = (long) (rrint * harm_fract + 0.5) * numzs;
     }
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(indices,fundamental,obs)
+#pragma omp parallel default(none) shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;
-        float *powptr = fundamental->powers[0];
+        float *powptr = fundamental->powers[0][0];
         float *fdp = obs->ffdotplane;
         int ii, jj, zz, zind, subz;
         float *inpows, *outpows;
@@ -1249,10 +1392,10 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
 #pragma GCC ivdep
 #endif
             for (jj = 0; jj < numrs; jj++)
-                outpows[jj] += inpows[indices[jj]];
+                outpows[jj] += inpows[rinds[jj]];
         }
     }
-    vect_free(indices);
+    vect_free(rinds);
 }
 
 
@@ -1262,36 +1405,40 @@ GSList *search_ffdotpows(ffdotpows * ffdot, int numharm,
     int ii;
     float powcut;
     long long numindep;
-
+    
     powcut = obs->powcut[twon_to_index(numharm)];
     numindep = obs->numindep[twon_to_index(numharm)];
-
+    
 #ifdef _OPENMP
 #pragma omp parallel for shared(ffdot,powcut,obs,numharm,numindep)
 #endif
-    for (ii = 0; ii < ffdot->numzs; ii++) {
+    for (ii = 0; ii < ffdot->numws; ii++) {
         int jj;
-        for (jj = 0; jj < ffdot->numrs; jj++) {
-            if (ffdot->powers[ii][jj] > powcut) {
-                float pow, sig;
-                double rr, zz;
-                int added = 0;
-
-                pow = ffdot->powers[ii][jj];
-                sig = candidate_sigma(pow, numharm, numindep);
-                rr = (ffdot->rlo + jj * (double) ACCEL_DR) / (double) numharm;
-                zz = (ffdot->zlo + ii * (double) ACCEL_DZ) / (double) numharm;
+        for (jj = 0; jj < ffdot->numzs; jj++) {
+            int kk;
+            for (kk = 0; kk < ffdot->numrs; kk++) {
+                if (ffdot->powers[ii][jj][kk] > powcut) {
+                    float pow, sig;
+                    double rr, zz, ww;
+                    int added = 0;
+                    
+                    pow = ffdot->powers[ii][jj][kk];
+                    sig = candidate_sigma(pow, numharm, numindep);
+                    rr = (ffdot->rlo + kk * (double) ACCEL_DR) / (double) numharm;
+                    zz = (ffdot->zlo + jj * (double) ACCEL_DZ) / (double) numharm;
+                    ww = (ffdot->wlo + ii * (double) ACCEL_DW) / (double) numharm;
 #ifdef _OPENMP
 #pragma omp critical
 #endif
-                {
-                    cands = insert_new_accelcand(cands, pow, sig, numharm,
-                                                 rr, zz, &added);
+                    {
+                        cands = insert_new_accelcand(cands, pow, sig, numharm,
+                                                     rr, zz, ww, &added);
+                    }
+                    if (added && !obs->dat_input)
+                        fprintf(obs->workfile,
+                                "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f %-10.4f\n",
+                                pow, sig, numharm, rr, rr / obs->T, zz, ww);
                 }
-                if (added && !obs->dat_input)
-                    fprintf(obs->workfile,
-                            "%-7.2f  %-7.4f  %-2d  %-14.4f  %-14.9f  %-10.4f\n",
-                            pow, sig, numharm, rr, rr / obs->T, zz);
             }
         }
     }
@@ -1483,16 +1630,6 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
         printf("done.\n\n");
     }
 
-    /* Determine the output filenames */
-
-    rootlen = strlen(obs->rootfilenm) + 25;
-    obs->candnm = (char *) calloc(rootlen, 1);
-    obs->accelnm = (char *) calloc(rootlen, 1);
-    obs->workfilenm = (char *) calloc(rootlen, 1);
-    sprintf(obs->candnm, "%s_ACCEL_%d.cand", obs->rootfilenm, cmd->zmax);
-    sprintf(obs->accelnm, "%s_ACCEL_%d", obs->rootfilenm, cmd->zmax);
-    sprintf(obs->workfilenm, "%s_ACCEL_%d.txtcand", obs->rootfilenm, cmd->zmax);
-
     /* Open the FFT file if it exists appropriately */
     if (!obs->dat_input) {
         obs->fftfile = chkfopen(cmd->argv[0], "rb");
@@ -1525,8 +1662,6 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
 
     if (cmd->zmax % ACCEL_DZ)
         cmd->zmax = (cmd->zmax / ACCEL_DZ + 1) * ACCEL_DZ;
-    if (!obs->dat_input)
-        obs->workfile = chkfopen(obs->workfilenm, "w");
     obs->N = (long long) idata->N;
     if (cmd->photonP) {
         if (obs->mmap_file || obs->dat_input) {
@@ -1567,14 +1702,53 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     if (cmd->numharm != 1 &&
         cmd->numharm != 2 &&
         cmd->numharm != 4 &&
-        cmd->numharm != 8 && cmd->numharm != 16 && cmd->numharm != 32) {
+        cmd->numharm != 8 &&
+        cmd->numharm != 16 &&
+        cmd->numharm != 32) {
         printf("\n'numharm' = %d must be a power-of-two!  Exiting\n\n",
                cmd->numharm);
         exit(1);
     }
     obs->numharmstages = twon_to_index(cmd->numharm) + 1;
+
     obs->dz = ACCEL_DZ;
     obs->numz = (cmd->zmax / ACCEL_DZ) * 2 + 1;
+    
+    /* Setting extra parameters for jerk search */
+    if (cmd->wmaxP) {
+        if (cmd->wmax % ACCEL_DW)
+            cmd->wmax = (cmd->wmax / ACCEL_DW + 1) * ACCEL_DW;
+        obs->whi = cmd->wmax;
+        obs->wlo = -cmd->wmax;
+        obs->dw = ACCEL_DW;
+        obs->numw = (cmd->wmax / ACCEL_DW) * 2 + 1;
+        if (cmd->wmax==0.0)
+            obs->numw = 0;
+        printf("Jerk search enabled with maximum fdotdot wmax = %d\n", cmd->wmax);
+    } else {
+        obs->whi = 0.0;
+        obs->wlo = 0.0;
+        obs->dw = 0.0;
+        obs->numw = 0;
+    }
+    
+    /* Determine the output filenames */
+    rootlen = strlen(obs->rootfilenm) + 45;
+    obs->candnm = (char *) calloc(rootlen, 1);
+    obs->accelnm = (char *) calloc(rootlen, 1);
+    obs->workfilenm = (char *) calloc(rootlen, 1);
+    if (obs->numw) {
+        sprintf(obs->candnm, "%s_ACCEL_%d_JERK_%d.cand", obs->rootfilenm, cmd->zmax, cmd->wmax);
+        sprintf(obs->accelnm, "%s_ACCEL_%d_JERK_%d", obs->rootfilenm, cmd->zmax, cmd->wmax);
+        sprintf(obs->workfilenm, "%s_ACCEL_%d_JERK_%d.txtcand", obs->rootfilenm, cmd->zmax, cmd->wmax);
+    } else {
+        sprintf(obs->candnm, "%s_ACCEL_%d.cand", obs->rootfilenm, cmd->zmax);
+        sprintf(obs->accelnm, "%s_ACCEL_%d", obs->rootfilenm, cmd->zmax);
+        sprintf(obs->workfilenm, "%s_ACCEL_%d.txtcand", obs->rootfilenm, cmd->zmax);
+    }
+    if (!obs->dat_input)
+        obs->workfile = chkfopen(obs->workfilenm, "w");
+
     obs->numbetween = ACCEL_NUMBETWEEN;
     obs->dt = idata->dt;
     obs->T = idata->dt * idata->N;
@@ -1629,13 +1803,19 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
     obs->powcut = (float *) malloc(obs->numharmstages * sizeof(float));
     obs->numindep = (long long *) malloc(obs->numharmstages * sizeof(long long));
     for (ii = 0; ii < obs->numharmstages; ii++) {
-        if (obs->numz == 1)
+        if (obs->numz == 1 && obs->numw == 0)
             obs->numindep[ii] = (obs->rhi - obs->rlo) / index_to_twon(ii);
-        else
+        else if (obs->numz > 1 && obs->numw == 0)
             /* The numz+1 takes care of the small amount of  */
             /* search we get above zmax and below zmin.      */
             obs->numindep[ii] = (obs->rhi - obs->rlo) * (obs->numz + 1) *
                 (obs->dz / 6.95) / index_to_twon(ii);
+        else
+            /* The numw+1 takes care of the small amount of  */
+            /* search we get above wmax and below wmin.      */
+            obs->numindep[ii] = (obs->rhi - obs->rlo) * \
+                (obs->numz + 1) * (obs->dz / 6.95) *        \
+                (obs->numw + 1) * (obs->dw / 44.2) / index_to_twon(ii);
         obs->powcut[ii] = power_for_sigma(obs->sigma,
                                           index_to_twon(ii), obs->numindep[ii]);
     }
@@ -1648,17 +1828,35 @@ void create_accelobs(accelobs * obs, infodata * idata, Cmdline * cmd, int usemma
        obs->numzap = 0;
      */
 
+    /* Determine corr_uselen from zmax and wmax */
+    obs->maxkernlen = 2 * ACCEL_NUMBETWEEN * w_resp_halfwidth(obs->zhi, obs->whi, LOWACC);
+    obs->fftlen = fftlen_from_kernwidth(obs->maxkernlen);
+    if (obs->fftlen < 2048)
+        obs->fftlen = 2048;  // This gives slightly better speed empirically
+    obs->corr_uselen = obs->fftlen - obs->maxkernlen;
+    // Make sure that obs->corr_uselen is an integer number of
+    // full (i.e. un-interpolated) Fourier bins
+    if (obs->corr_uselen % ACCEL_RDR)
+        obs->corr_uselen = obs->corr_uselen / ACCEL_RDR * ACCEL_RDR;
+
     /* Can we perform the search in-core memory? */
     {
         long long memuse;
         double gb = (double) (1L << 30);
 
-        // This is the size of powers covering the full f-dot plane to search
-        // Need the extra ACCEL_USELEN since we generate the plane in blocks
-        memuse = sizeof(float) * (obs->highestbin + ACCEL_USELEN)
-            * obs->numbetween * obs->numz;
-        printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
-        if (memuse < MAXRAMUSE || cmd->inmemP) {
+        // This is the size of powers covering the full f-dot-dot plane to search
+        // Need the extra obs->corr_uselen since we generate the plane in blocks
+        if (cmd->wmaxP) {
+            memuse = sizeof(float) * (obs->highestbin + obs->corr_uselen)
+                * obs->numbetween * obs->numz * obs->numw;
+            printf("Full f-dot-dot volume would need %.2f GB: ", (float) memuse / gb);
+        } else {
+            memuse = sizeof(float) * (obs->highestbin + obs->corr_uselen)
+                * obs->numbetween * obs->numz;
+            printf("Full f-fdot plane would need %.2f GB: ", (float) memuse / gb);
+        }
+
+        if (!cmd->wmaxP && (memuse < MAXRAMUSE || cmd->inmemP)) {
             printf("using in-memory accelsearch.\n\n");
             obs->inmem = 1;
             obs->ffdotplane = gen_fvect(memuse / sizeof(float));

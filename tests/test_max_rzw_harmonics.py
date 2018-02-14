@@ -2,12 +2,11 @@ import numpy as np
 import presto
 from numpy.random import standard_normal as norm
 from numpy.random import uniform
-import matplotlib.pyplot as plt
 import time
 
 N = 2**17
-noiseamp = 40.0
-numharm = 4
+noiseamp = 1.0
+numharm = 1
 numtrials = 100
 
 us = np.arange(N, dtype=np.float64) / N # normalized time coordinate
@@ -22,7 +21,7 @@ for n in range(numtrials):
     r = N/(4*numharm) + uniform(0.0, 1.0, 1)[0] # average freq over "observation"
     z = uniform(-100, 100, 1)[0] # average fourier f-dot
     w = uniform(-600, 600, 1)[0] # fourier freq double deriv
-    # w = 0.0 # fourier freq double deriv
+    w = 0.0 # fourier freq double deriv
     data = np.zeros_like(us)
     for ii in range(numharm):
         rh = r * (ii + 1)
@@ -35,8 +34,8 @@ for n in range(numtrials):
     data += noiseamp * norm(N)
     ft = presto.rfft(data)
 
-    offset = uniform(-1.0, 1.0, 3) * np.array([0.5, 2.0, 20.0]) / numharm
-    
+    offset = uniform(-1.0, 1.0, 3) * np.array([0.5, 2.0, 20.0]) / (0.5 * numharm)
+
     a = time.clock()
     if (numharm > 1):
         [maxpow, rmax, zmax, rds] = presto.maximize_rz_harmonics(ft, r+offset[0],
@@ -73,7 +72,3 @@ print "  std: %6.3f %6.3f %6.3f" % tuple(rzerrs.std(axis=0))
 print "rzwerrs:"
 print "  avg: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.mean(axis=0))
 print "  std: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.std(axis=0))
-
-plt.hist(rzerrs[:, 0], bins=50, color='blue', alpha=0.5)
-plt.hist(rzwerrs[:,0], bins=50, color='red', alpha=0.5)
-plt.show()

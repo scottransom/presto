@@ -43,27 +43,27 @@ static int plotstats = 0, usemedian = 0;
 
 typedef struct datapart {
     double tlo;                 /* Elapsed time (s) of the first point */
-    int nlo;                    /* The sample number of the first point */
-    int nn;                     /* The total number samples in *data */
-    float *data;                /* Raw data  */
+    long nlo;                   /* The sample number of the first point */
+    long nn;                    /* The total number samples in *data */
+    float *data;                 /* Raw data  */
 } datapart;
 
 typedef struct dataview {
     double vdt;                 /* Data view time step (2.0**(-zoomlevel))*dt */
-    float minval;               /* The minimum sample value in this view */
-    float maxval;               /* The maximum sample value in this view */
-    int centern;                /* The center sample to plot */
-    int lon;                    /* The lowest sample to plot */
-    int zoomlevel;              /* Positive = zoomed in, Negative = zoomed out */
-    int numsamps;               /* The number of samples covered by the display */
-    int dispnum;                /* The number of points actually plotted */
-    int chunklen;               /* The length of the chunk of samples used to calculate stats */
-    int numchunks;              /* The number of chunks that are being displayed */
-    float avgmeds[MAXDISPNUM];  /* The average or median samples for each chunk */
-    float stds[MAXDISPNUM];     /* The standard deviation of the samples for each chunk */
-    float maxs[MAXDISPNUM];     /* The maximum samples for each chunk */
-    float mins[MAXDISPNUM];     /* The minimum samples for each chunk */
-    float vals[MAXDISPNUM];     /* The raw data values when zoomlevel > 0 */
+    float minval;                /* The minimum sample value in this view */
+    float maxval;                /* The maximum sample value in this view */
+    long centern;               /* The center sample to plot */
+    long lon;                   /* The lowest sample to plot */
+    long zoomlevel;             /* Positive = zoomed in, Negative = zoomed out */
+    long numsamps;              /* The number of samples covered by the display */
+    long dispnum;               /* The number of points actually plotted */
+    long chunklen;              /* The length of the chunk of samples used to calculate stats */
+    long numchunks;             /* The number of chunks that are being displayed */
+    float avgmeds[MAXDISPNUM];   /* The average or median samples for each chunk */
+    float stds[MAXDISPNUM];      /* The standard deviation of the samples for each chunk */
+    float maxs[MAXDISPNUM];      /* The maximum samples for each chunk */
+    float mins[MAXDISPNUM];      /* The minimum samples for each chunk */
+    float vals[MAXDISPNUM];      /* The raw data values when zoomlevel > 0 */
 } dataview;
 
 
@@ -106,7 +106,7 @@ static basicstats *calc_stats(dataview * dv, datapart * dp)
 static int plot_dataview(dataview * dv, float minval, float maxval, float charhgt)
 /* The return value is offsetn */
 {
-    int ii, lon, hin, offsetn = 0, tmpn;
+    long ii, lon, hin, offsetn = 0, tmpn;
     double lot, hit, offsett = 0.0;
     float ns[MAXDISPNUM], hiavg[MAXDISPNUM], loavg[MAXDISPNUM];
     float scalemin = 0.0, scalemax = 0.0, dscale;
@@ -165,7 +165,7 @@ static int plot_dataview(dataview * dv, float minval, float maxval, float charhg
         char label[50];
 
         offsetn = (lon / 10000) * 10000;
-        numchar = snprintf(label, 50, "Sample - %d", offsetn);
+        numchar = snprintf(label, 50, "Sample - %ld", offsetn);
         cpgmtxt("B", 2.8, 0.5, 0.5, label);
     } else {
         cpgmtxt("B", 2.8, 0.5, 0.5, "Sample");
@@ -238,9 +238,9 @@ static int plot_dataview(dataview * dv, float minval, float maxval, float charhg
 }
 
 
-static dataview *get_dataview(int centern, int zoomlevel, datapart * dp)
+static dataview *get_dataview(long centern, long zoomlevel, datapart * dp)
 {
-    int ii, jj, offset;
+    long ii, jj, offset;
     double tmpavg, tmpvar;
     float *tmpchunk;
     dataview *dv;
@@ -254,7 +254,7 @@ static dataview *get_dataview(int centern, int zoomlevel, datapart * dp)
         (1 << abs(zoomlevel)) : (1 << LOGMINCHUNKLEN);
     dv->dispnum = (dv->numsamps > MAXDISPNUM) ? MAXDISPNUM : dv->numsamps;
     if (DEBUGOUT)
-        printf("zoomlevel = %d  numsamps = %d  chunklen = %d  dispnum %d  nn = %d\n",
+        printf("zoomlevel = %ld  numsamps = %ld  chunklen = %ld  dispnum %ld  nn = %ld\n",
                dv->zoomlevel, dv->numsamps, dv->chunklen, dv->dispnum, dp->nn);
     dv->numchunks = dv->numsamps / dv->chunklen;
     dv->centern = centern;
@@ -305,7 +305,7 @@ static dataview *get_dataview(int centern, int zoomlevel, datapart * dp)
 }
 
 
-static datapart *get_datapart(int nlo, int numn)
+static datapart *get_datapart(long nlo, long numn)
 {
     datapart *dp;
 
@@ -365,8 +365,8 @@ static void print_help(void)
 int main(int argc, char *argv[])
 {
     float minval = SMALLNUM, maxval = LARGENUM, inx = 0, iny = 0;
-    int centern, offsetn;
-    int zoomlevel, maxzoom = 0, minzoom, xid, psid;
+    long centern, offsetn;
+    long zoomlevel, maxzoom = 0, minzoom, xid, psid;
     char *rootfilenm, inchar;
     datapart *lodp;
     dataview *dv;
@@ -430,11 +430,11 @@ int main(int argc, char *argv[])
     lodp = get_datapart(0, Ndat);
 #else
     {
-        int numsamp;
+        long numsamp;
 
         datfile = chkfopen(argv[1], "rb");
         Ndat = chkfilelen(datfile, sizeof(float));
-        numsamp = (Ndat > MAXPTS) ? (int) MAXPTS : (int) Ndat;
+        numsamp = (Ndat > MAXPTS) ? (long) MAXPTS : (long) Ndat;
         lodp = get_datapart(0, numsamp);
     }
 #endif
@@ -480,6 +480,7 @@ int main(int argc, char *argv[])
             offsetn = plot_dataview(dv, minval, maxval, 1.0);
             break;
         case 'M':              /* Toggle between median and average */
+            /* FALLTHRU */
         case 'm':
             usemedian = (usemedian) ? 0 : 1;
             free(dv);
@@ -488,12 +489,15 @@ int main(int argc, char *argv[])
             offsetn = plot_dataview(dv, minval, maxval, 1.0);
             break;
         case 'A':              /* Zoom in */
+            /* FALLTHRU */
         case 'a':
             centern = inx + offsetn;
+            /* FALLTHRU */
         case 'I':
+            /* FALLTHRU */
         case 'i':
             if (DEBUGOUT)
-                printf("  Zooming in  (zoomlevel = %d)...\n", zoomlevel);
+                printf("  Zooming in  (zoomlevel = %ld)...\n", zoomlevel);
             if (zoomlevel < maxzoom) {
                 zoomlevel++;
                 free(dv);
@@ -501,14 +505,17 @@ int main(int argc, char *argv[])
                 cpgpage();
                 offsetn = plot_dataview(dv, minval, maxval, 1.0);
             } else
-                printf("  Already at maximum zoom level (%d).\n", zoomlevel);
+                printf("  Already at maximum zoom level (%ld).\n", zoomlevel);
             break;
         case 'X':              /* Zoom out */
+            /* FALLTHRU */
         case 'x':
+            /* FALLTHRU */
         case 'O':
+            /* FALLTHRU */
         case 'o':
             if (DEBUGOUT)
-                printf("  Zooming out  (zoomlevel = %d)...\n", zoomlevel);
+                printf("  Zooming out  (zoomlevel = %ld)...\n", zoomlevel);
             if (zoomlevel > minzoom) {
                 zoomlevel--;
                 free(dv);
@@ -516,10 +523,11 @@ int main(int argc, char *argv[])
                 cpgpage();
                 offsetn = plot_dataview(dv, minval, maxval, 1.0);
             } else
-                printf("  Already at minimum zoom level (%d).\n", zoomlevel);
+                printf("  Already at minimum zoom level (%ld).\n", zoomlevel);
             break;
         case '<':              /* Shift left 1 full screen */
             centern -= dv->numsamps + dv->numsamps / 8;
+            /* FALLTHRU */
         case ',':              /* Shift left 1/8 screen */
             if (DEBUGOUT)
                 printf("  Shifting left...\n");
@@ -538,6 +546,7 @@ int main(int argc, char *argv[])
             break;
         case '>':              /* Shift right 1 full screen */
             centern += dv->numsamps - dv->numsamps / 8;
+            /* FALLTHRU */
         case '.':              /* Shift right 1/8 screen */
             centern += dv->numsamps / 8;
             if (DEBUGOUT)
@@ -643,6 +652,7 @@ int main(int argc, char *argv[])
                 break;
             }
         case 'S':              /* Auto-scale */
+            /* FALLTHRU */
         case 's':
             printf("  Auto-scaling is on.\n");
             minval = SMALLNUM;
@@ -651,6 +661,7 @@ int main(int argc, char *argv[])
             offsetn = plot_dataview(dv, minval, maxval, 1.0);
             break;
         case 'G':              /* Goto a time */
+            /* FALLTHRU */
         case 'g':
             {
                 char timestr[50];
@@ -664,8 +675,8 @@ int main(int argc, char *argv[])
                     time = atof(timestr);
                 }
                 offsetn = 0.0;
-                centern = (int) (time / idata.dt + 0.5);
-                printf("  Moving to time %.15g (data point %d).\n", time, centern);
+                centern = (long) (time / idata.dt + 0.5);
+                printf("  Moving to time %.15g (data point %ld).\n", time, centern);
                 free(dv);
                 dv = get_dataview(centern, zoomlevel, lodp);
                 cpgpage();
@@ -676,6 +687,7 @@ int main(int argc, char *argv[])
             print_help();
             break;
         case 'P':              /* Print the current plot */
+            /* FALLTHRU */
         case 'p':
             {
                 int len;
@@ -701,11 +713,12 @@ int main(int argc, char *argv[])
             }
             break;
         case 'V':              /* Show the basic statistics for the current dataview */
+            /* FALLTHRU */
         case 'v':
             statvals = calc_stats(dv, lodp);
             printf("\n  Statistics:\n"
-                   "    Low sample               %d\n"
-                   "    Number of samples        %d\n"
+                   "    Low sample               %ld\n"
+                   "    Number of samples        %ld\n"
                    "    Low time (s)             %.7g\n"
                    "    Duration of samples (s)  %.7g\n"
                    "    Maximum value            %.7g\n"
@@ -722,6 +735,7 @@ int main(int argc, char *argv[])
             free(statvals);
             break;
         case 'Q':              /* Quit */
+            /* FALLTHRU */
         case 'q':
             printf("  Quitting...\n");
             free(dv);

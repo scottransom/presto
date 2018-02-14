@@ -429,7 +429,7 @@ float get_numphotons(FILE * file);
   /* Arguments:                                              */
   /*   'file' is a pointer to the file you want to access.   */
 
-double get_localpower(fcomplex *data, int numdata, double r);
+double get_localpower(fcomplex *data, long numdata, double r);
   /* Return the local power level at specific FFT frequency.  */
   /* Arguments:                                               */
   /*   'data' is a pointer to a complex FFT.                  */
@@ -437,7 +437,7 @@ double get_localpower(fcomplex *data, int numdata, double r);
   /*   'r' is the Fourier frequency in data that we want to   */
   /*      interpolate.                                        */
 
-double get_localpower3d(fcomplex *data, int numdata, double r, \
+double get_localpower3d(fcomplex *data, long numdata, double r, \
 			double z, double w);
   /* Return the local power level around a specific FFT           */
   /* frequency, f-dot, and f-dotdot.                              */
@@ -451,7 +451,7 @@ double get_localpower3d(fcomplex *data, int numdata, double r, \
   /*   'w' is the Fourier Frequency 2nd derivative (change in the */
   /*       Fourier f-dot during the observation).                 */
 
-void get_derivs3d(fcomplex *data, int numdata, double r, \
+void get_derivs3d(fcomplex *data, long numdata, double r, \
 		  double z, double w, double localpower, \
 		  rderivs *result);
   /* Return an rderives structure that contains the power,      */
@@ -718,7 +718,7 @@ void get_rawbin_cand(char *filenm, int candnum, rawbincand * cand);
 /*  read_fft.c:  */
 /*  Functions for getting information from an FFT file  */
 
-fcomplex *read_fcomplex_file(FILE *file, int firstpt, int numpts);
+fcomplex *read_fcomplex_file(FILE *file, long firstpt, long numpts);
 /* Return an fcomplex vector with complex data taken from a file. */
 /* Argumants:                                                     */
 /*   'file' is a pointer to the file you want to access.          */
@@ -729,7 +729,7 @@ fcomplex *read_fcomplex_file(FILE *file, int firstpt, int numpts);
 /*       If the number of bins to read takes us past the end of   */
 /*       file, the returned vector will be zero padded.           */
 
-float *read_float_file(FILE *file, int firstpt, int numpts);
+float *read_float_file(FILE *file, long firstpt, long numpts);
 /* Return a float vector with complex data taken from a file.     */
 /* Argumants:                                                     */
 /*   'file' is a pointer to the file you want to access.          */
@@ -801,7 +801,15 @@ float percolate_bin(binaryprops * list, int nlist);
 
 /* From prep_corr.c  */
 
-void spread_with_pad(fcomplex *data, int numdata, \
+int next_good_fftlen(int N);
+/* Return one of the shortest, yet best performing, FFT lengths larger
+ * than N.  This assumes FFTW. */
+
+int fftlen_from_kernwidth(int kernwidth);
+  /* return the length of the optimal FFT to use for correlations with
+   * some kernel width kernwidth.  This assumes FFTW. */
+
+void spread_with_pad(fcomplex *data, int numdata,   \
 		     fcomplex *result, int numresult, \
 		     int numbetween, int numpad);
   /* Prepare the data array for correlation by spreading         */
@@ -1114,12 +1122,12 @@ void rzw_interp(fcomplex *data, int numdata, double r, double z, \
 
 /* In maximize_r.c and maximize_rw.c */
 
-double max_r_arr(fcomplex *data, int numdata, double rin, 
+double max_r_arr(fcomplex *data, long numdata, double rin, 
 		 double *rout, rderivs *derivs);
   /* Return the Fourier frequency that maximizes the power.  */
 
 
-double max_rz_arr(fcomplex *data, int numdata, double rin, double zin, \
+double max_rz_arr(fcomplex *data, long numdata, double rin, double zin, \
 		  double *rout, double *zout, rderivs * derivs);
   /* Return the Fourier frequency and Fourier f-dot that      */ 
   /* maximizes the power.                                     */
@@ -1130,33 +1138,32 @@ double max_rz_file(FILE *fftfile, double rin, double zin, \
   /* maximizes the power of the candidate in 'fftfile'.       */
 
 
-void max_rz_arr_harmonics(fcomplex * data[], int num_harmonics,
-                            int r_offset[],
-                            int numdata, double rin, double zin,
-                            double *rout, double *zout, rderivs derivs[],
-                            double power[]);
+void max_rz_arr_harmonics(fcomplex data[], long numdata,
+                          int num_harmonics,
+                          double rin, double zin,
+                          double *rout, double *zout,
+                          rderivs derivs[], double powers[]);
 /* Return the Fourier frequency and Fourier f-dot that      */
 /* maximizes the power.                                     */
 
-void max_rz_file_harmonics(FILE * fftfile, int num_harmonics,
-                             int lobin,
-                             double rin, double zin,
-                             double *rout, double *zout, rderivs derivs[],
-                             double maxpow[]);
-/* Return the Fourier frequency and Fourier f-dot that      */
+void max_rzw_arr_harmonics(fcomplex data[], long numdata,
+                           int num_harmonics,
+                           double rin, double zin, double win,
+                           double *rout, double *zout, double *wout,
+                           rderivs derivs[], double powers[]);
+/* Return the Fourier frequency, f-dot, and f-dotdot that       */
+/* maximizes the *summed* power of the multi-harmonic candidate */
+
+double max_rzw_arr(fcomplex *data, long numdata, double rin, double zin, \
+                   double win, double *rout, double *zout,              \
+                   double *wout, rderivs * derivs);
+/* Return the Fourier frequency, f-dot, and fdotdot that    */ 
+/* maximizes the power.                                     */
+
+double max_rzw_file(FILE * fftfile, double rin, double zin, double win, \
+                    double *rout, double *zout, double *wout, rderivs * derivs);
+/* Return the Fourier frequency, f-dot, and fdotdot that    */
 /* maximizes the power of the candidate in 'fftfile'.       */
-
-
-double max_rzw_arr(fcomplex *data, int numdata, double rin, double zin, \
-		   double win, double *rout, double *zout, \
-		   double *wout, rderivs * derivs);
-  /* Return the Fourier frequency, f-dot, and fdotdot that    */ 
-  /* maximizes the power.                                     */
-
-double max_rz_file(FILE *fftfile, double rin, double zin, \
-		   double *rout, double *zout, rderivs * derivs);
-  /* Return the Fourier frequency and Fourier f-dot that      */ 
-  /* maximizes the power of the candidate in 'fftfile'.       */
 
 
 /* In fold.c */

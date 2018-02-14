@@ -6,6 +6,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include "ransomfft.h"
 
 #ifndef SWAP
 /* Swaps two variables of undetermined type */
@@ -13,10 +14,13 @@
 #endif
 
 static double amotry(double p[3][2], double *y, double *psum,
-                     double (*funk) (double[]), int ihi, double fac);
+                     double (*funk) (double[], fcomplex[], long[], float[], int[], int[]),
+                     int ihi, double fac, fcomplex data[], long *numdata,
+                     float *locpows, int *numharm, int *kernhw);
 
 void amoeba(double p[3][2], double *y, double ftol,
-            double (*funk) (double[]), int *nfunk)
+            double (*funk) (double[], fcomplex[], long[], float[], int[], int[]),
+            int *nfunk, fcomplex data[], long *numdata, float *locpows, int *numharm, int *kernhw)
 {
     int ii, ihi, ilo, inhi;
     double rtol, ysave, ytry, psum[2], tempzz;
@@ -51,18 +55,22 @@ void amoeba(double p[3][2], double *y, double ftol,
             return;
         }
         *nfunk += 2;
-        ytry = amotry(p, y, psum, funk, ihi, -1.0);
+        ytry = amotry(p, y, psum, funk, ihi, -1.0, data,
+                      numdata, locpows, numharm, kernhw);
         if (ytry <= y[ilo])
-            ytry = amotry(p, y, psum, funk, ihi, 2.0);
+            ytry = amotry(p, y, psum, funk, ihi, 2.0, data,
+                          numdata, locpows, numharm, kernhw);
         else if (ytry >= y[inhi]) {
             ysave = y[ihi];
-            ytry = amotry(p, y, psum, funk, ihi, 0.5);
+            ytry = amotry(p, y, psum, funk, ihi, 0.5, data,
+                          numdata, locpows, numharm, kernhw);
             if (ytry >= ysave) {
                 for (ii = 0; ii <= 2; ii++) {
                     if (ii != ilo) {
                         p[ii][0] = psum[0] = 0.5 * (p[ii][0] + p[ilo][0]);
                         p[ii][1] = psum[1] = 0.5 * (p[ii][1] + p[ilo][1]);
-                        y[ii] = (*funk) (psum);
+                        y[ii] = (*funk) (psum, data, numdata, locpows,
+                                         numharm, kernhw);
                     }
                 }
                 *nfunk += 2;
@@ -76,7 +84,9 @@ void amoeba(double p[3][2], double *y, double ftol,
 
 
 static double amotry(double p[3][2], double *y, double *psum,
-                     double (*funk) (double[]), int ihi, double fac)
+                     double (*funk) (double[], fcomplex[], long[], float[], int[], int[]),
+                     int ihi, double fac, fcomplex data[], long *numdata, float *locpows,
+                     int *numharm, int *kernhw)
 {
     double fac1, fac2, ytry, ptry[2];
 
@@ -84,7 +94,7 @@ static double amotry(double p[3][2], double *y, double *psum,
     fac2 = fac1 - fac;
     ptry[0] = psum[0] * fac1 - p[ihi][0] * fac2;
     ptry[1] = psum[1] * fac1 - p[ihi][1] * fac2;
-    ytry = (*funk) (ptry);
+    ytry = (*funk) (ptry, data, numdata, locpows, numharm, kernhw);
     if (ytry < y[ihi]) {
         y[ihi] = ytry;
         psum[0] += ptry[0] - p[ihi][0];

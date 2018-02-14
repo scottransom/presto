@@ -1,5 +1,39 @@
 #include "presto.h"
 
+int next_good_fftlen(int N)
+/* Return one of the shortest, yet best performing, FFT lengths larger
+ * than N.  This assumes FFTW. */
+{
+    int fftlens[17] = {128, 192, 256, 384, 512, 768, 1024, 1280, 2048, 4096,
+                       5120, 7680, 10240, 12288, 15360, 16384, 25600};
+    int ii = 0;
+    if (N <= fftlens[0])
+        return fftlens[0];
+    if (N > fftlens[16])
+        return next2_to_n(N);
+    while (N > fftlens[ii]) ii++;
+    return fftlens[ii];
+}
+
+int fftlen_from_kernwidth(int kernwidth)
+/* return the length of the optimal FFT to use for correlations with
+ * some kernel width kernwidth.  This assumes FFTW. */
+{
+    // The following nummbers were determined using FFTW 3.3.7 on an
+    // AVX-enabled processor.  Metric used was max throughput of good
+    // correlated data.
+    if (kernwidth < 6) return 128;
+    else if (kernwidth < 52) return 256;
+    else if (kernwidth < 67) return 512;
+    else if (kernwidth < 378) return 1024;
+    else if (kernwidth < 664) return 2048;
+    else if (kernwidth < 1672) return 4096;
+    else if (kernwidth < 3015) return 10240;
+    else if (kernwidth < 3554) return 15360;
+    else if (kernwidth < 6000) return 25600;
+    else return next2_to_n(kernwidth*5);
+}
+
 void spread_with_pad(fcomplex * data, int numdata,
                      fcomplex * result, int numresult, int numbetween, int numpad)
   /* Prepare the data array for correlation by spreading         */

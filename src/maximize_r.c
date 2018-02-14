@@ -9,7 +9,8 @@ double fminbr(double a, double b, double (*f) (double x), double tol);
 
 /* Some Static-Global Variables */
 static fcomplex *maxdata;
-static int nummaxdata, max_kern_half_width;
+static int max_kern_half_width;
+static long nummaxdata;
 
 static double power_call_r(double r)
 /*  Maximization function used with an array */
@@ -24,7 +25,7 @@ static double power_call_r(double r)
 }
 
 
-double max_r_arr(fcomplex * data, int numdata, double rin,
+double max_r_arr(fcomplex * data, long numdata, double rin,
                  double *rout, rderivs * derivs)
 /* Return the Fourier frequency that maximizes the power.  */
 {
