@@ -8,7 +8,7 @@ import numpy as Num
 
 # Constants
 NUMCOEFFS_DEFAULT = 12
-SPAN_DEFAULT = 60 # span of each poylco in minutes
+SPAN_DEFAULT = 60 # span of each polyco in minutes
 
 # Telescope name to TEMPO observatory code conversion
 telescope_to_id = {"GBT": '1', \
@@ -23,6 +23,7 @@ telescope_to_id = {"GBT": '1', \
                    "WSRT": 'i', \
                    "FAST": 'k', \
                    "GMRT": 'r', \
+                   "CHIME": 'y', \
                    "Geocenter": '0', \
                    "Barycenter": '@'}
 
@@ -39,6 +40,7 @@ id_to_telescope = {'1': "GBT", \
                    'i': "WSRT", \
                    'k': "FAST", \
                    'r': "GMRT", \
+                   'y': "CHIME", \
                    '0': "Geocenter", \
                    '@': "Barycenter"}
 
@@ -55,6 +57,7 @@ telescope_to_maxha = {"GBT": 12, \
                    "Effelsberg": 12, \
                    "WSRT": 12, \
                    "GMRT": 12, \
+                   "CHIME": 1, \
                    "Geocenter": 12, \
                    "Barycenter": 12}
 
