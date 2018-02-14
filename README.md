@@ -17,7 +17,7 @@ recycled and/or binary pulsars!**
 
 ## New in Version 2.1:
  * `accelsearch` now has a "jerk" search capability (thanks to UVA
-   undergrad Bridget Anderson for help with this!).  This makes
+   undergrad Bridget Andersen for help with this!).  This makes
    searches take a *lot* longer, but definitely improves sensitivity
    when the observation duration is 5-15% of the duration of the orbital
    period.  Typically -wmax should be set to 3-5x -zmax (and you probably
@@ -152,7 +152,7 @@ Big thanks go to Steve Eikenberry for his help developing the
 algorithms, Dunc Lorimer and David Kaplan for help with (retired) code
 to process BCPM, SCAMP, and Spigot data, Jason Hessels for many
 contributions to the Python routines, and (alphabetical): Bridget
-Anderson, Anne Archibald, Cees Bassa, Matteo Bachetti, Slavko
+Andersen, Anne Archibald, Cees Bassa, Matteo Bachetti, Slavko
 Bogdanov, Fernando Camilo, Paul Demorest, Paulo Freire, Chen Karako,
 Mike Keith, Patrick Lazarus, Maggie Livingstone, Chitrang Patel, Paul
 Ray, Paul Scholz, Ingrid Stairs, Kevin Stovall, Joeri van Leeuwen for
