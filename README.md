@@ -3,27 +3,32 @@
 http://www.cv.nrao.edu/~sransom/presto/
 
 PRESTO is a large suite of pulsar search and analysis software
-developed by Scott Ransom mostly from scratch.  It was primarily
-designed to efficiently search for binary millisecond pulsars from
-long observations of globular clusters (although it has since been
-used in several surveys with short integrations and to process a lot
-of X-ray data as well).  It is written primarily in ANSI C, with many
-of the recent routines in Python.  According to Steve Eikenberry,
-PRESTO stands for: **PulsaR Exploration and Search TOolkit**!
+developed by Scott Ransom mostly from scratch, and released under the
+GPL (v2).  It was primarily designed to efficiently search for binary
+millisecond pulsars from long observations of globular clusters
+(although it has since been used in several surveys with short
+integrations and to process a lot of X-ray data as well).  It is
+written primarily in ANSI C, with many of the recent routines in
+Python.  According to Steve Eikenberry, PRESTO stands for: PulsaR
+Exploration and Search TOolkit!
 
-**To date, PRESTO has discovered over 300 pulsars, including
-more than 150 recycled pulsars, most of which are in binaries!**
+**PRESTO has discovered over 600 pulsars, including more than 230
+recycled and/or binary pulsars!**
 
-## New in Version 2:
- * WAPP, BCPM, Spigot, and 1-bit analog filterbank data are deprecated! 
-   (see below)
- * Dramatically improved internal handling (giving better dynamic
-   range and RFI removal) of PSRFITS and SIGPROC filterbank data
- * Massive speed-ups (factors of 2 or more) of `accelsearch` when
-   all of the F-Fdot plane can fit into core memory (that can be set
-   by changing values in `include/meminfo.h`)
- * Many bug fixes and several new scripts (including new orbit fitters)
-
+## New in Version 2.1:
+ * `accelsearch` now has a "jerk" search capability (thanks to UVA
+   undergrad Bridget Anderson for help with this!).  This makes
+   searches take a *lot* longer, but definitely improves sensitivity
+   when the observation duration is 5-15% of the duration of the orbital
+   period.  Typically -wmax should be set to 3-5x -zmax (and you probably
+   never need to set -zmax to anything larger than 300).
+ * Ability to ignore bad channels on the command line (-ignorechan)
+   (see `rfifind_stats.py` and `weights_to_ignorechan.py`)
+ * Lots of new python utilities (such as for handling RFI, showing
+   bandpasses, making waterfall plots, ...)
+ * New wrappers for the python interface (will make the transition
+   to Python 3.X much smoother later this year)
+ * Many bug fixes and minor improvements
 
 ## About PRESTO:
 PRESTO is written with portability, ease-of-use, and memory efficiency
@@ -35,7 +40,7 @@ machines or formats:
    from Parkes)
  * 1-, 2-, 4-, 8-, and 32-bit (float) filterbank format from SIGPROC
  * A time series composed of single precision (i.e. 4-byte) 
-   floating point data
+   floating point data (with a text ".inf" file describing it)
  * Photon arrival times (or events) in ASCII or double-precision 
    binary formats
 
@@ -43,8 +48,8 @@ Notice that the following formats which *used* to be supported are not:
 
  * Wideband Arecibo Pulsar Processor (WAPP) at Arecibo
  * The Parkes and Jodrell Bank 1-bit filterbank formats
- * SPIGOT at the GBT (may it RIP...)
- * Berkeley-Caltech Pulsar Machine (BCPM) at the GBT (may it RIP...)
+ * SPIGOT at the GBT
+ * Berkeley-Caltech Pulsar Machine (BCPM) at the GBT
 
 If you need to process them, you can either checkout the "classic"
 branch of PRESTO (see below), which is not being actively developed.
@@ -61,21 +66,18 @@ main areas of pulsar analysis:
 1. Data Preparation: Interference detection (`rfifind`) and removal
    (`zapbirds`) , de-dispersion (`prepdata`, `prepsubband`, and
    `mpiprepsubband`), barycentering (via TEMPO).
-
 2. Searching: Fourier-domain acceleration (`accelsearch`), single-pulse
    (`single_pulse_search.py`), and phase-modulation or sideband searches
    (`search_bin`).
-
 3. Folding: Candidate optimization (`prepfold`) and Time-of-Arrival
    (TOA) generation (`get_TOAs.py`).
-
 4. Misc: Data exploration (`readfile`, `exploredat`, `explorefft`),
    de-dispersion planning (`DDplan.py`), date conversion (`mjd2cal`,
    `cal2mjd`), tons of python pulsar/astro libraries, average pulse
    creation, flux density estimation, and more...
 5. Post Single Pulse Searching Tools: Grouping algorithm (`rrattrap.py`),
-   Production and of single pulse diagnostic plots (`make_spd.py` and 
-   `plot_spd.py`).    
+   Production and of single pulse diagnostic plots (`make_spd.py`,
+   `plot_spd.py`, and `waterfaller.py`).
 
 Many additional utilities are provided for various tasks that are
 often required when working with pulsar data such as time conversions,
@@ -96,10 +98,9 @@ but until then you should know that each routine returns its basic
 usage when you call it with no arguments.  I am also willing to
 provide limited support via email or telephone (434-296-0320).
 
-**Tutorial**: Note that in the "docs" directory there is a now a
-tutorial which walks you through all the main steps of finding pulsars
-using PRESTO.  This will need some small modifications given that
-PRESTO can't currently process one of the example files (BCPM!).
+**Tutorial**: Note that in the "docs" directory there is a tutorial
+which walks you through all the main steps of finding pulsars using
+PRESTO.
 
 ## Getting it: 
 The PRESTO source code is released under the GPL and
@@ -132,14 +133,11 @@ If you want the "classic" branch, do the following:
 then build as per the (old) INSTALL file.
 
 ### Development:
+
 If you plan to tweak the code, I highly suggest that you use git and
-clone the directory (or fork it using an account on github).  Read the
-following "living document" on how to develop and collaborate in a
-relatively sane way using git:
-  http://docs.scipy.org/doc/numpy/dev/gitwash/index.html
-If you plan on doing any significant development, please let me know
-and I'll either add you as a developer, or we can push/pull changes
-via git/github (see the "gitwash" document above).
+clone the directory (or fork it using an account on github).  And if
+you want to contribute your changes back, please give me a "pull
+request"!
 
 *Code contributions and/or patches to fix bugs are most welcome!*
 
@@ -151,13 +149,13 @@ above is appropriate.  Thanks!
 
 ### Acknowledgements:
 Big thanks go to Steve Eikenberry for his help developing the
-algorithms, Dunc Lorimer for the basic code which was used to process
-BCPM and WAPP data, David Kaplan for lots of help with the GBT SPIGOT
-code, Jason Hessels for many contributions to the Python routines, and
-a bunch of other contributions of various kinds from (alphabetical):
-Anne Archibald, Cees Bassa, Slavko Bogdanov, Fernando Camilo, Paul
-Demorest, Paulo Freire, Chen Karako, Mike Keith, Patrick Lazarus, Maggie
-Livingstone, Chitrang Patel, Paul Ray, Paul Scholz, Ingrid Stairs, and 
-Kevin Stovall for many comments, suggestions and patches!
+algorithms, Dunc Lorimer and David Kaplan for help with (retired) code
+to process BCPM, SCAMP, and Spigot data, Jason Hessels for many
+contributions to the Python routines, and (alphabetical): Bridget
+Anderson, Anne Archibald, Cees Bassa, Matteo Bachetti, Slavko
+Bogdanov, Fernando Camilo, Paul Demorest, Paulo Freire, Chen Karako,
+Mike Keith, Patrick Lazarus, Maggie Livingstone, Chitrang Patel, Paul
+Ray, Paul Scholz, Ingrid Stairs, Kevin Stovall, Joeri van Leeuwen for
+many comments, suggestions and patches!
 
 Scott Ransom <sransom@nrao.edu>
