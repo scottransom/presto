@@ -27,11 +27,11 @@ def val_with_err(value, error, length=0, digits=2, latex=0):
         slen = nice_output_2(outstr, value, error, length)
     else:
         slen = nice_output_1(outstr, value, error, length)
-    if len <= 0 and outstr[0]==' ':  # Not quite sure why this is necessary...
-        outstr = outstr[1:slen]
-        if len < 0:
-            outstr += ' '
-    outstr = outstr[:slen]
+    outstr = outstr[:slen].strip() # remove null termination and any space
+    if length < 0:
+        outstr = outstr + (20-len(outstr))*' '
+    if length > 0:
+        outstr = (20-len(outstr))*' ' + outstr
     if latex:
         if outstr.find("x10") > 0:
             outstr = outstr.replace("x10^", r"$\times$10$^{")+"}$"

@@ -869,3 +869,21 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
         barycenter(topotimes, barytimes, voverc, N1, ra, dec, obs, ephem);
     }
 %}
+
+int nice_output_1(char *output, double val, double err, int len);
+/* Generates a string in "output" of length len with "val" rounded  */
+/*   to the appropriate decimal place and the error in parenthesis  */
+/*   as in scientific journals.  The error has 1 decimal place.     */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */
+
+int nice_output_2(char *output, double val, double err, int len);
+/* Generates a string in "output" of length len with "val" rounded  */
+/*   to the appropriate decimal place and the error in parenthesis  */
+/*   as in scientific journals.  The error has 2 decimal places.    */
+/* Note:  len should be ~ 20 to show full double precision          */
+/*   if the base 10 exponent of the error needs to be shown.        */
+/*   If len == 0, left-justified minimum length string is returned. */
+/*   If len > 0, the string returned has is right justified.        */

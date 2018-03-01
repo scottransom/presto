@@ -869,6 +869,14 @@ max_rzw_arr = _presto.max_rzw_arr
 def barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem):
     return _presto.barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem)
 barycenter = _presto.barycenter
+
+def nice_output_1(output, val, err, len):
+    return _presto.nice_output_1(output, val, err, len)
+nice_output_1 = _presto.nice_output_1
+
+def nice_output_2(output, val, err, len):
+    return _presto.nice_output_2(output, val, err, len)
+nice_output_2 = _presto.nice_output_2
 # This file is compatible with both classic and new-style classes.
 
 
