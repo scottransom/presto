@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 import sys, os, glob, os.path, string, re
 from presto import fourierprops, get_rzw_cand, read_inffile
 
