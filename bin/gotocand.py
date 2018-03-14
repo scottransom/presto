@@ -55,7 +55,7 @@ def find_node(DM):
     return None
 
 def find_local_datfile(basename, DM):
-    i,o = os.popen4("find ../.. -name \*%s\*DM%s\*dat"%(basename, DM))
+    i,o = os.popen4("find .. -name \*%s\*DM%s\*dat"%(basename, DM))
     datfile = ''
     for line in o:
         line = line.strip()
