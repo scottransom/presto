@@ -97,9 +97,9 @@ void barycenter(double *topotimes, double *barytimes,
 /* "dd:mm:ss.ssss" for DEC.  The observatory site is passed */
 /* as a 2 letter ITOA code.  This observatory code must be  */
 /* found in obsys.dat (in the TEMPO paths).  The ephemeris  */
-/* is either "DE200" or "DE405".                            */
+/* is the full name of an ephemeris supported by TEMPO,     */
+/* examples include DE200, DE421, or DE436.                 */
 {
-
     FILE *outfile;
     long i;
     double fobs = 1000.0, femit, dtmp;

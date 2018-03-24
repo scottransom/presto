@@ -31,25 +31,27 @@ int main(int argc, char *argv[])
         printf
             ("     dm is the (optional) Dispersion Measure of the obs (cm^-3 pc)\n");
         printf("        dm defaults to 0.0 cm^-3 pc.\n");
-        printf("     ephem is the (optional) ephemeris to use, either 'DE200'\n");
-        printf("        or 'DE405'.  ephem defaults to 'DE405'.\n\n");
+        printf("     ephem is the (optional) ephemeris to use.  Must be supported by TEMPO.\n");
+        printf("        Examples include 'DE200', 'DE421', or 'DE436'.  Defaults is 'DE421'.\n\n");
         printf("   Notes:  The topocentric times must be in UTC MJD format.\n");
         printf("     There is a maximum limit of 5000 input times.\n\n");
         exit(0);
     }
 
+    strcpy(ephem, "DE421"); // Default choice
     if (argc >= 4) {
         strcpy(obs, argv[1]);
         strcpy(ra, argv[2]);
         strcpy(dec, argv[3]);
-        strcpy(ephem, "DE405");
     }
     if (argc >= 5)
         topof = strtod(argv[4], NULL);
     if (argc >= 6)
         dm = strtod(argv[5], NULL);
-    if (argc >= 7)
-        strcpy(ephem, argv[6]);
+    if (argc >= 7) {
+        if (strlen(argv[6])==5 && argv[6][0]=='D' && argv[6][1]=='E')
+            strcpy(ephem, argv[6]);
+    }
 
     /* Read in the topocentric times */
 
@@ -64,8 +66,12 @@ int main(int argc, char *argv[])
     fprintf(stderr, "            by Scott M. Ransom\n");
     fprintf(stderr, "               20 July 1998\n\n");
 
-    fprintf(stderr, "  Calling TEMPO with %ld topocentic time(s)...\n\n", N);
-
+    fprintf(stderr, "  Calling TEMPO with %ld topocentic time(s).  Using:\n", N);
+    fprintf(stderr, "                  RA = '%s'\n", ra);
+    fprintf(stderr, "                 DEC = '%s'\n", dec);
+    fprintf(stderr, "      Obs freq (MHz) = %.6g\n", topof);
+    fprintf(stderr, "        DM (pc/cm^3) = %.4g\n", dm);
+    fprintf(stderr, "           Ephemeris = '%s'\n\n", ephem);
     /* Call TEMPO */
 
     barycenter(topotimes, barytimes, voverc, N, ra, dec, obs, ephem);
