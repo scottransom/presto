@@ -139,7 +139,11 @@ class binary_psr:
                 clockwise).  'inc' is the inclination of the orbit in degrees.
                 MJD can be an array.  The return value is (xs, ys).  If returnz
                 is True, return (xs, ys, zs), where 'z' is the other in-the-sky
-                direction.
+                direction.  These coordinates correspond to the I, J, and K vectors
+                in Damour & Taylor (1992) in the following way:
+                x = -K
+                y = -I
+                z = -J
         """
         ma, ea, ta = self.calc_anoms(MJD)
         ws = self.calc_omega(MJD)
@@ -157,20 +161,20 @@ class binary_psr:
         """
         reflex_motion(MJD, inc, Omega, dist):
             Return the projected on-sky orbital reflex motion in mas referenced
-                to Omega, which is the line-of-nodes, counter-clockwise from
-                North towards East.  The distance to the pulsar is in kpc.
-                The returned values are dRA (corrected by cos(dec)), dDEC.
+                to Omega, which is the line-of-nodes, clockwise from East towards
+                North.  This is the definition of Omega used by e.g. Damour & 
+                Taylor (1992) and Kopeikin (1996), but note that it differs from
+                most non-pulsar applications (in which Omega is measured counter-
+                clockwise from North to East). The distance to the pulsar is in 
+                kpc. The returned values are dRA (corrected by cos(dec)), dDEC.
         """
         xs, ys, zs = self.position(MJD, inc, returnz=True)
-        # With this defn of Omega, the rotation is a "standard" rotation
-        # matrix with the angle theta = Omega + 90 deg, although RA increases
-        # in the opposite direction (so dRA gets a negative)
-        ys = -ys / dist * 2.003988804115705e-03 # in mas
-        zs = -zs / dist * 2.003988804115705e-03 # in mas
-        theta = Omega + 90.0
-        sino, coso = Num.sin(theta*DEGTORAD), Num.cos(theta*DEGTORAD)
-        dRA = -(coso * zs - sino * ys) / Num.cos(self.par.DEC_RAD)
-        dDEC = (sino * zs + coso * ys)
+        ys = -ys / dist * 2.003988804115705e-03 # in mas, (i.e. DT92 "I")
+        zs = -zs / dist * 2.003988804115705e-03 # in mas, (i.e. DT92 "J")
+        sino, coso = Num.sin(omega*DEGTORAD), Num.cos(omega*DEGTORAD)
+        # Convert from DT92 I, J to I_0, J_0 (= RA, Dec)
+        dRA  = (coso * ys - sino * zs) / Num.cos(self.par.DEC_RAD)
+        dDEC = (sino * ys + coso * zs)
         return dRA, dDEC
 
     def demodulate_TOAs(self, MJD):
