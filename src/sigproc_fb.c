@@ -355,6 +355,10 @@ void read_filterbank_files(struct spectra_info *s)
     s->datatype = SIGPROCFB;
     s->files = (FILE **) malloc(sizeof(FILE *) * s->num_files);
     s->header_offset = gen_ivect(s->num_files);
+    // The following two aren't used for filterbank data,
+    // but they should be initialized for mpiprepsubband
+    s->start_subint = gen_ivect(s->num_files);
+    s->num_subint = gen_ivect(s->num_files);
     s->start_spec = (long long *) malloc(sizeof(long long) * s->num_files);
     s->num_spec = (long long *) malloc(sizeof(long long) * s->num_files);
     s->num_pad = (long long *) malloc(sizeof(long long) * s->num_files);
