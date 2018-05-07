@@ -189,6 +189,14 @@ if __name__ == '__main__':
     timestep_day = timestep_sec / SECPERDAY
     fold.epoch = fold.epochi+fold.epochf
 
+    # If the requested number of TOAs doesn't divide into the
+    # number of time intervals, then exit
+    if fold_pfd.npart % numtoas:
+        sys.stderr.write(
+            "Error: # of TOAs (%d) doesn't divide # of time intervals (%d)!\n" % \
+            (numtoas, fold_pfd.npart))
+        sys.exit(2)
+
     # Over-ride the DM that was used during the fold
     if (DM!=0.0):
         fold_pfd.bestdm = DM
