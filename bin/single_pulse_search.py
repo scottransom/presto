@@ -540,12 +540,10 @@ def main():
 
         # Generate the SNR histogram
         snrs = Num.asarray(snrs)
-        (num_v_snr, lo_snr, d_snr, num_out_of_range) = \
-                    scipy.stats.histogram(snrs,
-                                          int(maxsnr-opts.threshold+1),
-                                          [opts.threshold, maxsnr])
-        snrs = Num.arange(maxsnr-opts.threshold+1, dtype=Num.float64) * d_snr \
-               + lo_snr + 0.5*d_snr
+        (num_v_snr, edges) = Num.histogram(snrs,
+                                           int(maxsnr-opts.threshold+1),
+                                           [opts.threshold, maxsnr])
+        snrs = edges[:-1] + 0.5*(edges[1]-edges[0])
         num_v_snr = num_v_snr.astype(Num.float32)
         num_v_snr[num_v_snr==0.0] = 0.001
 
