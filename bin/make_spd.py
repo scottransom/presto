@@ -24,8 +24,8 @@ import plot_spd
 import singlepulse.spcand as spcand
 import singlepulse.spio as spio
 import psrfits
+import filterbank
 import spectra
-#import filterbank need to implement in PRESTO
 
 DEBUG = True
 def print_debug(msg):
@@ -367,9 +367,9 @@ def main():
         # Filterbank file
         filetype = "filterbank"
         print_debug("Reading filterbank file..")
-        rawdatafile = filterbank.filterbank(fn)
+        rawdatafile = filterbank.FilterbankFile(fn)
         basename = fn[:-4]
-    if fn.endswith(".fits"):
+    elif fn.endswith(".fits"):
         # PSRFITS file
         filetype = "psrfits"
         print_debug("Reading PSRFITS file..")
@@ -545,7 +545,7 @@ if __name__=='__main__':
                         default=False)
     options, args = parser.parse_args()
 
-    if not args[0].endswith("fits") or args[0].endswith("fil"):
+    if not (args[0].endswith("fits") or args[0].endswith("fil")):
         raise ValueError("The first file must be a psrFits or a filterbank file! ") 
     if (hasattr(options, 'bandpass_corr')) and (not hasattr(options, 'maskfile')):
         raise ValueError("For bandpass correction you need to supply a mask file.")
