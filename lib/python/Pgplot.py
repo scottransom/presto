@@ -2,9 +2,7 @@ from __future__ import print_function
 from builtins import str
 from builtins import range
 from builtins import object
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
-
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+import sys
 
 # Routine for easy to use 1-D and 2-D plotting using 'PGPLOT'
 #       and the Python 'PPGPLOT' package
@@ -23,6 +21,10 @@ from builtins import object
 
 import numpy as Num
 import types, math, ppgplot
+
+# Check if string in Py2 and Py3 compatible way
+def isstr(var):
+    return isinstance(var, str if sys.version_info[0] >= 3 else basestring)
 
 # True if we have an /XWIN or /XSERVE device open yet
 ppgplot_dev_open_ = 0
@@ -340,7 +342,7 @@ def plotxy(y, x=None, title=None, rangex=None, rangey=None, \
                  logx, logy, logx2, logy2, font, fontsize, \
                  id, aspect, ticks, panels, device=device)
     # Choose the line color
-    if type(color) == bytes:
+    if isstr(color):
         ppgplot.pgsci(ppgplot_colors_[color])
     else:
         ppgplot.pgsci(color)
@@ -539,7 +541,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
         # Choose the line width
         ppgplot.pgslw(width)
         # Choose the line color for the contourlines
-        if type(color) == bytes:
+        if isstr(color):
             ppgplot.pgsci(ppgplot_colors_[color])
         else:
             ppgplot.pgsci(color)
@@ -549,7 +551,7 @@ def plot2d(z, x=None, y=None, title=None, rangex=None, rangey=None, \
         # Label the contours if requested
         if labels is not None:
             # Choose the line color for the contourlines
-            if type(labels) == bytes:
+            if isstr(labels):
                 ppgplot.pgsci(ppgplot_colors_[labels])
             else:
                 ppgplot.pgsci(labels)
