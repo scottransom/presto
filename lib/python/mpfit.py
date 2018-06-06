@@ -1356,11 +1356,11 @@ Keywords:
       nprint = len(x)
       print("Iter ", ('%6i' % iter),"   CHI-SQUARE = ",('%.10g' % fnorm)," DOF = ", ('%i' % dof))
       for i in range(nprint):
-         if (parinfo is not None) and (parinfo[i].has_key('parname')):
+         if (parinfo is not None) and ('parname' in parinfo[i]):
             p = '   ' + parinfo[i]['parname'] + ' = '
          else:
             p = '   P' + str(i) + ' = '
-         if (parinfo is not None) and (parinfo[i].has_key('mpprint')):
+         if (parinfo is not None) and ('mpprint' in parinfo[i]):
             iprint = parinfo[i]['mpprint']
          else:
             iprint = 1
@@ -1395,7 +1395,7 @@ Keywords:
 
       values = []
       for i in range(n):
-         if ((parinfo is not None) and (parinfo[i].has_key(key))):
+         if ((parinfo is not None) and (key in parinfo[i])):
            values.append(parinfo[i][key])
          else:
            values.append(default)
@@ -2184,7 +2184,7 @@ Keywords:
    def calc_covar(self, rr, ipvt=None, tol=1.e-14):
 
       if (self.debug): print('Entering calc_covar...')
-      if numpy.rank(rr) != 2:
+      if rr.ndim != 2:
          print('ERROR: r must be a two-dimensional matrix')
          return(-1)
       s = numpy.shape(rr)
