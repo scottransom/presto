@@ -43,12 +43,12 @@ print(r, rmax, z, zmax, w, wmax, theo_max_pow, maxpow)
 #print "Raw power should be ~%.2e" % theo_max_pow
 pffdot = pffdot / theo_max_pow
 pffdot.shape = (np, np)
-rs = num.arange(np) * dr - np/2*dr
-zs = num.arange(np) * dz - np/2*dz
+rs = num.arange(np) * dr - np//2*dr
+zs = num.arange(np) * dz - np//2*dz
 rgx = num.asarray([rs[0], rs[np-1]])
 rgy = num.asarray([zs[0], zs[np-1]])
-freqcut = pffdot[np/2, :]
-fdotcut = pffdot[:, np/2]
+freqcut = pffdot[np//2, :]
+fdotcut = pffdot[:, np//2]
 
 image='antirainbow'
 device='ffdot_combined.eps/VCPS'
