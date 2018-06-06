@@ -45,12 +45,12 @@ if __name__ == "__main__":
     # Remove the header length from infilelen and then
     # determine how many spectra are in the file
     infilelen -= infile.tell()
-    numspec = infilelen / nchans
+    numspec = infilelen // nchans
     if infilelen % nchans:
         print("Whoops!  File length calculation is not right...")
 
     # Now loop over the spectra
-    for ii in range(numspec / DS_fact):
+    for ii in range(numspec // DS_fact):
         try:
             x = num.fromfile(infile, dtype=num.ubyte, count=DS_fact*nchans)
             x.shape = (DS_fact, nchans)
