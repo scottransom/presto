@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as num
 import presto
 import ppgplot
@@ -28,20 +29,20 @@ a = time.clock()
 vol = presto.fdotdot_vol(ft, rint-np/2*dr, dr, np,
                          0.0-np/2*dz, dz, np,
                          0.0-np/2*dw, dw, np)
-print "First jerk vol took %.3f s" % (time.clock()-a)
+print("First jerk vol took %.3f s" % (time.clock()-a))
 a = time.clock()
 vol = presto.fdotdot_vol(ft, rint-np/2*dr, dr, np,
                          0.0-np/2*dz, dz, np,
                          0.0-np/2*dw, dw, np)
-print "Second jerk vol took %.3f s" % (time.clock()-a)
+print("Second jerk vol took %.3f s" % (time.clock()-a))
 pvol = presto.spectralpower(vol.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pvol) / theo_max_pow # Fraction of recovered power
-print "Fraction of recovered signal power = %f" % frp
+print("Fraction of recovered signal power = %f" % frp)
 [maxpow, rmax, zmax, rd] = presto.maximize_rz(ft, r+num.random.standard_normal(1)[0]/5.0,
                                        z+num.random.standard_normal(1)[0], norm=1.0)
-print r, rmax, z, zmax, theo_max_pow, maxpow
-# print "Raw power should be ~%.2e" % theo_max_pow
+print(r, rmax, z, zmax, theo_max_pow, maxpow)
+# print("Raw power should be ~%.2e" % theo_max_pow)
 pvol = pvol / theo_max_pow
 pvol.shape = (np, np, np)
 rs = num.arange(np) * dr - np/2*dr
@@ -73,10 +74,10 @@ for ii in range(np):
         ppgplot.pgopen(device%ii)
         ppgplot.pgpap(0.0, 1.0)
         ppgplot.pgpage()
-    freqcut = pvol[ii, np/2, :]
-    fdotcut = pvol[ii, :, np/2]
+    freqcut = pvol[ii, np//2, :]
+    fdotcut = pvol[ii, :, np//2]
     frp = pvol[ii].max() # Fraction of recovered power
-    print "w = %.3f  frac pow recovered = %.3f" % (ws[ii], frp)
+    print("w = %.3f  frac pow recovered = %.3f" % (ws[ii], frp))
     # Give z and w values and power change
     ppgplot.pgsvp(margin+imfract, 1.0-margin/2, margin+imfract, 1.0-margin/2)
     ppgplot.pgswin(0.0, 1.0, 0.0, 1.0)
@@ -132,10 +133,10 @@ for ii in range(np):
 if device=="/XWIN":
     ppgplot.pgclos()
 else:
-    print """If you want to make a movie with the resulting .eps files, here are
+    print("""If you want to make a movie with the resulting .eps files, here are
 the appropriate commands:
     
 > python jerk_example.py 
 > pstoimg -density 200 -antialias -crop a jerk_*eps
 > ffmpeg -r 16 -f image2 -s 1000x1000 -i jerk_%03d.png -vcodec libx264 -crf 25 -pix_fmt yuv420p jerk_search.mp4
-"""
+""")
