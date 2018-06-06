@@ -19,7 +19,7 @@ class GaussianSelector(object):
         self.phases = Num.arange(self.proflen, dtype='d')/self.proflen
         self.errs = errs
         self.visible = True
-        self.DCguess = sorted(profile)[len(profile)/10+1]
+        self.DCguess = sorted(profile)[len(profile) // 10 + 1]
         self.init_params = [self.DCguess]
         self.numgaussians = 0
         self.canvas = ax.figure.canvas
@@ -192,7 +192,7 @@ def gen_gaussians(params, N):
                 FWHM (0-1), and amplitude (>0.0).
             N is the number of points in the model.
     """
-    numgaussians = (len(params)-1)/3
+    numgaussians = (len(params)-1) // 3
     model = Num.zeros(N, dtype='d') + params[0]
     for ii in range(numgaussians):
         phase, FWHM, amp = params[1+ii*3:4+ii*3]
@@ -204,7 +204,7 @@ def fit_function(params, fjac=None, data=None, errs=None):
 
 def fit_gaussians(data, initial_params, errs, profnm):
     numparams = len(initial_params)
-    numgaussians = (len(initial_params)-1)/3
+    numgaussians = (len(initial_params)-1) // 3
     # Generate the parameter structure
     parinfo = []
     params0 = []
