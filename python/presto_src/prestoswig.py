@@ -95,7 +95,7 @@ try:
     _object = object
     _newclass = 1
 except __builtin__.Exception:
-    class _object(object) : pass
+    class _object(object) :
         pass
     _newclass = 0
 
