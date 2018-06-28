@@ -4,6 +4,12 @@ build:
 	cd fftfit_src ; cp fftfit*.so ${PRESTO}/lib/python
 	python fftfit_src/test_fftfit.py
 
+build3:
+	python3 setup.py install --home=${PRESTO}
+	cd fftfit_src ; f2py3 -c fftfit.pyf *.f
+	cd fftfit_src ; cp fftfit*.so ${PRESTO}/lib/python
+	python3 fftfit_src/test_fftfit.py
+
 clean:
 	rm -rf build
 	rm -f *~ *.o *.so *.pyc
