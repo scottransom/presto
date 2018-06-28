@@ -60,7 +60,7 @@ def write_inffile(infodata, verbose=True):
         Write an '.inf' file based on its input structure
     """
     if verbose:
-        print "Writing .inf file to '%s.inf'"%infodata.name
+        print("Writing .inf file to '%s.inf'"%infodata.name)
     writeinf(infodata)
 
 def psrepoch(psrname, epoch, verbose=True):
@@ -76,7 +76,7 @@ def psrepoch(psrname, epoch, verbose=True):
     if os.path.isfile(psrname):
         get_psr_from_parfile("1903+0327.par", epoch, pp)
         if verbose:
-            print 'Retrieved data at MJD %f from "%s"' % (epoch, psrname)
+            print('Retrieved data at MJD %f from "%s"' % (epoch, psrname))
     else:
         num = get_psr_at_epoch(psrname, epoch, pp)
         if verbose:
