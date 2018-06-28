@@ -155,5 +155,5 @@ plt.ylabel("Period Derivative (i.e Spin-Down Rate)")
 
 ax.legend(loc='lower right', numpoints=1)
 
-plt.savefig("ppdot_color_2015.png" if usecolor else "ppdot_2015.png")
+plt.savefig("ppdot_color_2018.png" if usecolor else "ppdot_2018.png")
 #plt.show()
