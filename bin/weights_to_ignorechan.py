@@ -38,9 +38,27 @@ def build_chanline(weights):
         outstr += str(N-1)
     return outstr if outstr[-1]!=',' else outstr[:-1]
 
+def build_pazline(chanline):
+    """
+    build_pazline(chanline):
+        Build a command line for paz from an ignorechan line
+    """
+    outstr = 'paz -e zap '
+    for part in chanline.split(','):
+        outstr += "-Z '"+part.replace(":", " ")+"' " if ":" \
+            in part else "-z "+part+" "
+    return outstr
+
 if __name__=="__main__":
     # Read the channels and weights
     chans, weights = read_weights(sys.argv[1])
 
-    # Get the chanline and print it
-    print build_chanline(weights)
+    # Get the chanline
+    chanline = build_chanline(weights)
+    print chanline
+
+    # Convert it to a paz command
+    pazline = build_pazline(chanline)
+    print "\n"+pazline
+
+    
