@@ -701,6 +701,16 @@ void get_bin_cand(char *filenm, int candnum, binaryprops * cand);
 /*  Read the bin candidate file 'filenm' and return a        */
 /*  pointer to the binaryprops that describes it.            */
 
+long long next2_to_n(long long x);
+/* Return the first value of 2^n >= x */
+
+int is_power_of_10(long long n);
+/* Check whether n is a power of 10 or not.  Return 0 or 1 */
+
+long long choose_good_N(long long orig_N);
+/* Choose a time series length that is larger than the input */
+/* value but that is highly factorable.                      */
+
 double dms2rad(int deg, int min, double sec);
 /* Convert degrees, minutes and seconds into radians */
 
