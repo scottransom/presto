@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 from __future__ import print_function
-from past.builtins import cmp
-from builtins import str
-from builtins import zip
-from builtins import range
-from builtins import object
+from builtins import str, zip, range, object
 import bisect, os, sys, getopt, infodata, glob
 import scipy, scipy.signal, scipy.stats, ppgplot
 import numpy as Num
@@ -12,6 +8,10 @@ from presto import rfft, next2_to_n
 from psr_utils import coord_to_string
 from optparse import OptionParser
 from Pgplot import *
+
+# This is for Python 2/3 comptibility
+def mycmp(a, b):
+    return ((a > b) - (a < b))
 
 class candidate(object):
     def __init__(self, DM, sigma, time, bin, downfact):
@@ -23,13 +23,25 @@ class candidate(object):
     def __str__(self):
         return "%7.2f %7.2f %13.6f %10d     %3d\n"%\
                (self.DM, self.sigma, self.time, self.bin, self.downfact)
+    def __eq__(self, other):
+        return (self.bin == other.bin)
+    def __ne__(self, other):
+        return (self.bin != other.bin)
+    def __lt__(self, other):
+        return (self.bin < other.bin)
+    def __le__(self, other):
+        return (self.bin <= other.bin)
+    def __gt__(self, other):
+        return (self.bin > other.bin)
+    def __ge__(self, other):
+        return (self.bin >= other.bin)
     def __cmp__(self, other):
 	# Sort by time (i.e. bin) by default)
-        return cmp(self.bin, other.bin)
+        return mycmp(self.bin, other.bin)
 
 def cmp_sigma(self, other):
     #Comparison function to sort candidates by significance
-    retval = -cmp(self.sigma, other.sigma)
+    retval = -mycmp(self.sigma, other.sigma)
     return retval
 
 def fft_convolve(fftd_data, fftd_kern, lo, hi):
@@ -55,12 +67,12 @@ def make_fftd_kerns(downfacts, fftlen):
         # These offsets produce kernels that give results
         # equal to scipy.signal.convolve
         if downfact % 2:  # Odd number
-            kern[:downfact/2+1] += 1.0
-            kern[-(downfact/2):] += 1.0
+            kern[:downfact//2+1] += 1.0
+            kern[-(downfact//2):] += 1.0
         else:             # Even number
-            kern[:downfact/2+1] += 1.0
+            kern[:downfact//2+1] += 1.0
             if (downfact > 2):
-                kern[-(downfact/2-1):] += 1.0
+                kern[-(downfact//2-1):] += 1.0
         # The following normalization preserves the
         # RMS=1 characteristic of the data
         fftd_kerns.append(rfft(kern / Num.sqrt(downfact), -1))
@@ -77,7 +89,7 @@ def prune_related1(hibins, hivals, downfact):
         xbin, xsigma = hibins[ii], hivals[ii]
         for jj in range(ii+1, len(hibins)):
             ybin, ysigma = hibins[jj], hivals[jj]
-            if (abs(ybin-xbin) > downfact/2):
+            if (abs(ybin-xbin) > downfact//2):
                 break
             else:
                 if jj in toremove:
@@ -106,12 +118,12 @@ def prune_related2(dm_candlist, downfacts):
         for jj in range(ii+1, len(dm_candlist)):
             yy = dm_candlist[jj]
             ybin, ysigma = yy.bin, yy.sigma
-            if (abs(ybin-xbin) > max(downfacts)/2):
+            if (abs(ybin-xbin) > max(downfacts)//2):
                 break
             else:
                 if jj in toremove:
                     continue
-                prox = max([xx.downfact/2, yy.downfact/2, 1])
+                prox = max([xx.downfact//2, yy.downfact//2, 1])
                 if (abs(ybin-xbin) <= prox):
                     if (xsigma > ysigma):
                         toremove.add(jj)
@@ -300,8 +312,8 @@ def main():
     if (detrendlen > chunklen):
         chunklen = detrendlen
         fftlen = int(next2_to_n(chunklen))
-    blocks_per_chunk = chunklen / detrendlen
-    overlap = (fftlen - chunklen)/2
+    blocks_per_chunk = chunklen // detrendlen
+    overlap = (fftlen - chunklen) // 2
     worklen = chunklen + 2*overlap  # currently it is fftlen...
 
     max_downfact = 30
@@ -362,13 +374,13 @@ def main():
             outfile = open(filenmbase+'.singlepulse', mode='w')
 
             # Compute the file length in detrendlens
-            roundN = N/detrendlen * detrendlen
-            numchunks = roundN / chunklen
+            roundN = N // detrendlen * detrendlen
+            numchunks = roundN // chunklen
             # Read in the file
             print('Reading "%s"...'%filenm)
             timeseries = Num.fromfile(filenm, dtype=Num.float32, count=roundN)
             # Split the timeseries into chunks for detrending
-            numblocks = roundN/detrendlen
+            numblocks = roundN // detrendlen
             timeseries.shape = (numblocks, detrendlen)
             stds = Num.zeros(numblocks, dtype=Num.float64)
             # de-trend the data one chunk at a time
@@ -377,7 +389,7 @@ def main():
                 if opts.fast:  # use median removal instead of detrending (2x speedup)
                     tmpchunk = chunk.copy()
                     tmpchunk.sort()
-                    med = tmpchunk[detrendlen/2]
+                    med = tmpchunk[detrendlen//2]
                     chunk -= med
                     tmpchunk -= med
                 else:
@@ -391,7 +403,7 @@ def main():
                 # of random gaussian deviates, the measured stdev is ~0.871
                 # of the true stdev.  Thus the 1.0/0.871=1.148 correction below.
                 # The following is roughly .std() since we already removed the median
-                stds[ii] = Num.sqrt((tmpchunk[detrendlen/40:-detrendlen/40]**2.0).sum() /
+                stds[ii] = Num.sqrt((tmpchunk[detrendlen//40:-detrendlen//40]**2.0).sum() /
                                     (0.95*detrendlen))
             stds *= 1.148
             # sort the standard deviations and separate those with
@@ -400,12 +412,12 @@ def main():
             sort_stds.sort()
             # identify the differences with the larges values (this
             # will split off the chunks with very low and very high stds
-            locut = (sort_stds[1:numblocks/2+1] -
-                     sort_stds[:numblocks/2]).argmax() + 1
-            hicut = (sort_stds[numblocks/2+1:] -
-                     sort_stds[numblocks/2:-1]).argmax() + numblocks/2 - 2
+            locut = (sort_stds[1:numblocks//2+1] -
+                     sort_stds[:numblocks//2]).argmax() + 1
+            hicut = (sort_stds[numblocks//2+1:] -
+                     sort_stds[numblocks//2:-1]).argmax() + numblocks//2 - 2
             std_stds = scipy.std(sort_stds[locut:hicut])
-            median_stds = sort_stds[(locut+hicut)/2]
+            median_stds = sort_stds[(locut+hicut)//2]
             print("    pseudo-median block standard deviation = %.2f" % (median_stds))
             if (opts.badblocks):
                 lo_std = median_stds - 4.0 * std_stds
@@ -468,7 +480,7 @@ def main():
                     hibins = Num.flatnonzero(goodchunk>opts.threshold)
                     hivals = goodchunk[hibins]
                     hibins += chunknum * chunklen
-                    hiblocks = hibins/detrendlen
+                    hiblocks = hibins // detrendlen
                     # Add the candidates (which are sorted by bin)
                     for bin, val, block in zip(hibins, hivals, hiblocks):
                         if block not in bad_blocks:
@@ -494,7 +506,7 @@ def main():
                         hibins = Num.flatnonzero(goodchunk>opts.threshold)
                         hivals = goodchunk[hibins]
                         hibins += chunknum * chunklen
-                        hiblocks = hibins/detrendlen
+                        hiblocks = hibins // detrendlen
                         hibins = hibins.tolist()
                         hivals = hivals.tolist()
                         # Now walk through the new candidates and remove those
@@ -590,7 +602,7 @@ def main():
         ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, 0.0, 1.1*max(num_v_DM+[1]))
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
-        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
+        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, r"DM (pc cm\u-3\d)")
         ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Number of Pulses")
         ppgplot.pgsch(1.0)
         ppgplot.pgbin(DMs, num_v_DM, 1)
@@ -600,7 +612,7 @@ def main():
         ppgplot.pgswin(min(DMs)-0.5, max(DMs)+0.5, opts.threshold, maxsnr)
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
-        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
+        ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, r"DM (pc cm\u-3\d)")
         ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-Noise")
         ppgplot.pgsch(1.0)
         cand_ts = Num.zeros(len(candlist), dtype=Num.float32)
@@ -617,7 +629,7 @@ def main():
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
-        ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
+        ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, r"DM (pc cm\u-3\d)")
         # Circles are symbols 20-26 in increasing order
         snr_range = 12.0
         cand_symbols = (cand_SNRs-opts.threshold)/snr_range * 6.0 + 20.5
@@ -653,10 +665,10 @@ def main():
             instrument = info.instrument
         ppgplot.pgmtxt('T', -3.7, 0.02, 0.0, 'Instrument: %s'%instrument)
         if (info.bary):
-            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dbary\u: %.12f'%info.epoch)
+            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, r'MJD\dbary\u: %.12f'%info.epoch)
         else:
-            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, 'MJD\dtopo\u: %.12f'%info.epoch)
-        ppgplot.pgmtxt('T', -3.7, 0.73, 0.0, 'Freq\dctr\u: %.1f MHz'%\
+            ppgplot.pgmtxt('T', -3.7, 0.33, 0.0, r'MJD\dtopo\u: %.12f'%info.epoch)
+        ppgplot.pgmtxt('T', -3.7, 0.73, 0.0, r'Freq\dctr\u: %.1f MHz'%\
                        ((info.numchan/2-0.5)*info.chan_width+info.lofreq))
         ppgplot.pgiden()
         ppgplot.pgend()
@@ -674,4 +686,5 @@ if __name__ == '__main__':
             s = stats.load("hotshot_edi_stats")
             s.sort_stats("time").print_stats()
     else:
+        # print(sys.version)
         main()
