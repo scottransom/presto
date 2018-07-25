@@ -1,19 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
-from past.builtins import cmp
-from builtins import zip
-from builtins import str
-from builtins import range
-from builtins import object
-import sys
-import re
-import os
-import copy
-
-import numpy as Num
+from builtins import zip, str, range, object
+import sys, re, os, copy
+import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-
 from presto import candidate_sigma
 
 # Note: the following are global variables that can
@@ -121,7 +112,7 @@ def sigma_to_size(sigmas):
             sizes: Numpy array of marker sizes.
     """
     # return 8+sigmas**1.7
-    return Num.clip(20**(sigmas/6), 5, 400)
+    return np.clip(20**(sigmas/6), 5, 400)
 
 
 def print_sift_globals():
@@ -144,30 +135,6 @@ def parse_power(pow):
             expon = 5 # power gets chopped off if this large
         power *= 10.0**(expon)
     return power
-
-
-def cmp_sigma(self, other):
-    retval = -cmp(self.sigma, other.sigma)
-    if retval==0:
-        return -cmp(self.ipow_det, other.ipow_det)
-    else:
-        return retval
-
-
-def cmp_snr(self, other):
-    retval = -cmp(self.snr, other.snr)
-    if retval==0:
-        return -cmp(self.ipow_det, other.ipow_det)
-    else:
-        return retval
-
-
-def cmp_dms(self, other):
-    return cmp(float(self[0]), float(other[0]))
-
-
-def cmp_freq(self, other):
-    return cmp(self.r, other.r)
 
 
 class Candidate(object):
@@ -205,10 +172,10 @@ class Candidate(object):
 
     def harms_to_snr(self):
         # Remove the average power level
-        harmamps = Num.asarray(self.harm_pows) - 1.0
+        harmamps = np.asarray(self.harm_pows) - 1.0
         # Set the S/N to 0.0 for harmonics with "negative" amplitudes
         harmamps[harmamps < 0.0] = 0.0
-        self.snr = Num.sum(Num.sqrt(harmamps))
+        self.snr = np.sum(np.sqrt(harmamps))
 
 
 class Candlist(object):
@@ -260,25 +227,25 @@ class Candlist(object):
         
         # Get all candidates and sort by sigma
         allcands = self.get_all_cands()
-        sigmas = Num.array([c.sigma for c in allcands])
+        sigmas = np.array([c.sigma for c in allcands])
         isort = sigmas.argsort()
         sigmas = sigmas[isort]
 
         if usefreqs:
-            xdata = Num.array([c.f for c in allcands])[isort]
+            xdata = np.array([c.f for c in allcands])[isort]
             xlabel = "Freq (Hz)"
             xscale = "log"
         else:
-            xdata = Num.array([c.p for c in allcands])[isort]
+            xdata = np.array([c.p for c in allcands])[isort]
             xlabel = "Period (s)"
             xscale = "loglin"
 
-        dms = Num.array([c.DM for c in allcands])[isort]
-        numharms = Num.array([c.numharm for c in allcands])[isort]
+        dms = np.array([c.DM for c in allcands])[isort]
+        numharms = np.array([c.numharm for c in allcands])[isort]
 
         # Plot the all candidates 
         scatt = plt.scatter(xdata, dms, s=sigma_to_size(sigmas), \
-                                c=Num.log2(numharms), \
+                                c=np.log2(numharms), \
                                 marker='o', alpha=0.7, zorder=-1) 
         plt.set_cmap("Spectral") 
   
@@ -292,9 +259,9 @@ class Candlist(object):
         plt.axes(ax) # Set scatter plot's axes as current
         plt.xscale(xscale)
         plt.xlabel(xlabel)
-        mindm = Num.min(dms)
-        maxdm = Num.max(dms)
-        dmrange = Num.ptp(dms)
+        mindm = np.min(dms)
+        maxdm = np.max(dms)
+        dmrange = np.ptp(dms)
 
         # Use log-scale y-axis if max DM > 2000
         yscale = "log" if maxdm > 2000.0 else "linear"
@@ -307,10 +274,10 @@ class Candlist(object):
 
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
         if not usefreqs:
-            plt.gca().xaxis.set_ticks(Num.concatenate((\
-                                        Num.logspace(-4,0,4, endpoint=False), \
-                                        Num.linspace(1,15,8))))
-            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticks(np.concatenate((\
+                                        np.logspace(-4,0,4, endpoint=False), \
+                                        np.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(np.logspace(-4,0,40), minor=True)
             plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
                         r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
                         "9", "11", "13", "15"])
@@ -359,18 +326,18 @@ class Candlist(object):
         for cands, colour, marker, zorder, size, fixedsize, lw in \
                 zip(candlists, colours, markers, zorders, sizes, fixedsizes, lws):
             if len(cands):
-                sigmas = Num.array([c.sigma for c in cands])
+                sigmas = np.array([c.sigma for c in cands])
                 isort = sigmas.argsort()
                 sigmas = sigmas[isort]
                 if usefreqs:
-                    xdata = Num.array([c.f for c in cands])[isort]
+                    xdata = np.array([c.f for c in cands])[isort]
                     xlabel = "Freq (Hz)"
                     xscale = "log"
                 else:
-                    xdata = Num.array([c.p for c in cands])[isort]
+                    xdata = np.array([c.p for c in cands])[isort]
                     xlabel = "Period (s)"
                     xscale = "loglin"
-                dms = Num.array([c.DM for c in cands])[isort]
+                dms = np.array([c.DM for c in cands])[isort]
                 
                 # Plot the candidates
                 if fixedsize:
@@ -388,10 +355,10 @@ class Candlist(object):
         plt.xscale(xscale) 
         plt.xlabel(xlabel)
 
-        alldms = Num.array([c.DM for c in self.get_all_cands()])
-        mindm = Num.min(alldms)
-        maxdm = Num.max(alldms)
-        dmrange = Num.ptp(alldms)
+        alldms = np.array([c.DM for c in self.get_all_cands()])
+        mindm = np.min(alldms)
+        maxdm = np.max(alldms)
+        dmrange = np.ptp(alldms)
 
         # Use log-scale y-axis if max DM > 2000
         yscale = "log" if maxdm > 2000.0 else "linear"
@@ -404,18 +371,18 @@ class Candlist(object):
 
         plt.ylabel(r"DM (pc cm$^{-3}$)") 
         if not usefreqs:
-            all_xdata = Num.array([c.p for c in self.get_all_cands()])
-            plt.gca().xaxis.set_ticks(Num.concatenate((\
-                                        Num.logspace(-4,0,4, endpoint=False), \
-                                        Num.linspace(1,15,8))))
-            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            all_xdata = np.array([c.p for c in self.get_all_cands()])
+            plt.gca().xaxis.set_ticks(np.concatenate((\
+                                        np.logspace(-4,0,4, endpoint=False), \
+                                        np.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(np.logspace(-4,0,40), minor=True)
             plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
                         r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
                         "9", "11", "13", "15"])
             plt.xlim(max(short_period/5.0, min(all_xdata)/5.0), \
                         min(long_period+0.5, max(all_xdata)+0.5))
         else:
-            all_xdata = Num.array([c.f for c in self.get_all_cands()])
+            all_xdata = np.array([c.f for c in self.get_all_cands()])
             plt.xlim(min(all_xdata)/5.0, max(all_xdata)*2.0)
 
         return fig
@@ -468,9 +435,9 @@ class Candlist(object):
                 else:
                     xval = c.p
                 xdata.extend([xval]*len(c.hits))
-            sigmas = Num.array(sigmas)
-            dms = Num.array(dms)
-            xdata = Num.array(xdata)
+            sigmas = np.array(sigmas)
+            dms = np.array(dms)
+            xdata = np.array(xdata)
 
             isort = sigmas.argsort()
             sigmas = sigmas[isort]
@@ -498,16 +465,16 @@ class Candlist(object):
 
         plt.xscale(xscale) 
         plt.xlabel(xlabel) 
-        mindm = Num.min(dms)
-        maxdm = Num.max(dms)
-        dmrange = Num.ptp(dms)
+        mindm = np.min(dms)
+        maxdm = np.max(dms)
+        dmrange = np.ptp(dms)
         plt.ylim(mindm-0.1*dmrange, maxdm+0.1*dmrange)
         plt.ylabel(r"DM (pc cm$^{-3}$)")
         if not usefreqs:
-            plt.gca().xaxis.set_ticks(Num.concatenate((\
-                                        Num.logspace(-4,0,4, endpoint=False), \
-                                        Num.linspace(1,15,8))))
-            plt.gca().xaxis.set_ticks(Num.logspace(-4,0,40), minor=True)
+            plt.gca().xaxis.set_ticks(np.concatenate((\
+                                        np.logspace(-4,0,4, endpoint=False), \
+                                        np.linspace(1,15,8))))
+            plt.gca().xaxis.set_ticks(np.logspace(-4,0,40), minor=True)
             plt.gca().xaxis.set_ticklabels([r"10$^{-4}$", r"10$^{-3}$", \
                         r"10$^{-2}$", r"10$^{-1}$", "1", "3", "5", "7", \
                         "9", "11", "13", "15"])
@@ -603,7 +570,7 @@ class Candlist(object):
             cand = self.cands[ii]
             known_bird = 0
             for bird, err in known_birds_f:
-                if (Num.fabs(cand.f-bird) < err):
+                if (np.fabs(cand.f-bird) < err):
                     known_bird = 1
                     cand.note = "Freq (%.2f Hz) is within %g Hz " \
                                     "of a known birdie centred at %.2f Hz" % \
@@ -613,7 +580,7 @@ class Candlist(object):
                 self.mark_as_bad(ii, 'knownbirds')
                 continue
             for bird, err in known_birds_p:
-                if (Num.fabs(cand.p*1000.0-bird) < err):
+                if (np.fabs(cand.p*1000.0-bird) < err):
                     known_bird = 1
                     cand.note = "Period (%.2f ms) is within %g ms " \
                                     "of a known birdie centred at %.2f ms" % \
@@ -678,7 +645,7 @@ class Candlist(object):
             harm_pow_cutoff = globals()['harm_pow_cutoff']
         for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
-            maxharm = Num.argmax(cand.harm_pows)
+            maxharm = np.argmax(cand.harm_pows)
             maxpow = cand.harm_pows[maxharm]
             if maxpow < harm_pow_cutoff:
                 cand.note = "All harmonics have power < %g" % harm_pow_cutoff
@@ -696,11 +663,11 @@ class Candlist(object):
         """
         for ii in reversed(list(range(len(self.cands)))):
             cand = self.cands[ii]
-            maxharm = Num.argmax(cand.harm_pows)
+            maxharm = np.argmax(cand.harm_pows)
             maxpow = cand.harm_pows[maxharm]
             
             # Sort the harmonics by power
-            sortedpows = Num.sort(cand.harm_pows)
+            sortedpows = np.sort(cand.harm_pows)
 
             if (cand.numharm >= 8 and maxharm > 4 and \
                                         maxpow > 2*sortedpows[-2]):
@@ -750,7 +717,7 @@ class Candlist(object):
         if verbosity >= 1:
             print("  Sorting the %d candidates by frequency..." % \
                         self.get_numcands())
-        self.cands.sort(cmp_freq)
+        self.cands.sort(key=lambda cand: cand.r)
         if verbosity >= 1:
             print("  Searching for dupes...")
         ii = 0
@@ -758,17 +725,17 @@ class Candlist(object):
         while ii < self.get_numcands():
             jj = ii + 1
             if jj < self.get_numcands() and \
-                        Num.fabs(self.cands[ii].r-self.cands[jj].r) < r_err:
+                        np.fabs(self.cands[ii].r-self.cands[jj].r) < r_err:
                 # Find others that match
                 jj += 1
                 while jj < self.get_numcands() and \
-                        Num.fabs(self.cands[ii].r-self.cands[jj].r) < r_err:
+                        np.fabs(self.cands[ii].r-self.cands[jj].r) < r_err:
                     jj += 1
                 matches = self.cands[ii:jj]
-                matches.sort(cmp_sigma)
+                matches.sort(key=lambda cand: cand.sigma, reverse=True)
                 bestindex = self.cands.index(matches[0])
                 #sigmas = [c.sigma for c in matches]
-                #bestindex = Num.argmax(sigmas)+ii
+                #bestindex = np.argmax(sigmas)+ii
                 # flag the duplicates
                 bestcand = self.cands[bestindex]
                 # Add other matching cands as hit of highest-sigma cand
@@ -794,7 +761,7 @@ class Candlist(object):
                 ii += 1 # No candidates to be added as hits, move on
         if verbosity >= 1:
             print("Found %d candidates.\n" % self.get_numcands())
-        self.cands.sort(cmp_sigma)
+        self.cands.sort(key=lambda cand: cand.sigma, reverse=True)
 
     def remove_harmonics(self, verbosity=1):
         """Remove the candidates that are lower significance harmonics
@@ -808,7 +775,7 @@ class Candlist(object):
         """
         # Note:  should probably put the harmonics into the fundamental as hits (use sets)
         numremoved = 0
-        self.cands.sort(cmp_sigma)
+        self.cands.sort(key=lambda cand: cand.sigma, reverse=True)
         f_err = r_err/self.cands[0].T
         if verbosity >= 1:
             print("\nSearching for duplicate harmonics...")
@@ -820,11 +787,11 @@ class Candlist(object):
             while 1:
                 harmcand = self.cands[jj]
                 if zapj:  print("Hey!")
-                for factor in Num.arange(1.0, 17.0):
-                    if Num.fabs(fundcand.f - harmcand.f*factor) < f_err*factor:
+                for factor in np.arange(1.0, 17.0):
+                    if np.fabs(fundcand.f - harmcand.f*factor) < f_err*factor:
                         zapj = 1
                         harmstr = "1/%dth" % factor
-                    elif Num.fabs(fundcand.f - harmcand.f/factor) < f_err/factor:
+                    elif np.fabs(fundcand.f - harmcand.f/factor) < f_err/factor:
                         zapj = 1
                         if factor==2.0:
                             harmstr = "%dnd" % factor
@@ -848,7 +815,7 @@ class Candlist(object):
                                        [2.0, 2.0, 3.0, 3.0, 3.0, \
                                         4.0, 4.0, 5.0, 5.0, 5.0]):
                     factor = numer/denom
-                    if Num.fabs(fundcand.f-harmcand.f*factor) < f_err*factor:
+                    if np.fabs(fundcand.f-harmcand.f*factor) < f_err*factor:
                         if verbosity >= 2:
                             print("Removing %s:%d (%.2f Hz) because it is " \
                                     "a harmonic (%d/%dth) of %s:%d (%.2f Hz)" % \
@@ -904,14 +871,14 @@ class Candlist(object):
         # Create a dictionary where the key is the dmstr 
         # and the values are the index
         dmdict = {}
-        dms = Num.unique([float(dm) for dm in dmlist])
+        dms = np.unique([float(dm) for dm in dmlist])
         dmstrs = ['%.2f'%dm for dm in dms]
         dmdict = dict(list(zip(dmstrs, list(range(len(dms))))))
         numremoved = 0
         num_toofew = 0
         num_toolow = 0
         num_gaps = 0
-        self.cands.sort(cmp_sigma)
+        self.cands.sort(key=lambda cand: cand.sigma, reverse=True)
         for ii in reversed(list(range(len(self.cands)))):
             currcand = self.cands[ii]
             # Remove all the candidates without enough DM hits
@@ -931,7 +898,7 @@ class Candlist(object):
             # Remove all the candidates where the max sigma DM is 
             # less than the cutoff DM
             # Recall - A hit is a 3-tuple: (DM, SNR, sigma)
-            imax = Num.argmax(Num.array([hit[2] for hit in currcand.hits]))
+            imax = np.argmax(np.array([hit[2] for hit in currcand.hits]))
             hitdm, hitsnr, hitsigma = currcand.hits[imax]
             if float(hitdm) <= low_DM_cutoff:
                 numremoved += 1
@@ -948,8 +915,8 @@ class Candlist(object):
 
             # Remove all the candidates where there are no hits at consecutive DMs
             if len(currcand.hits) > 1:
-                currcand.hits.sort(cmp_dms)
-                dm_indices = Num.asarray([dmdict["%.2f"%currcand.hits[jj][0]]
+                currcand.hits.sort(key=lambda cand: float(cand[0]))
+                dm_indices = np.asarray([dmdict["%.2f"%currcand.hits[jj][0]]
                                           for jj in range(len(currcand.hits))])
                 min_dmind_diff = min(dm_indices[1:] - dm_indices[:-1])
                 if min_dmind_diff > 1:
@@ -1093,7 +1060,7 @@ class Candlist(object):
         for goodcand in self.cands:
             candfile.write("%s (%d)\n" % (str(goodcand), len(goodcand.hits)))
             if (len(goodcand.hits) > 1):
-                goodcand.hits.sort(cmp_dms)
+                goodcand.hits.sort(key=lambda cand: float(cand[0]))
                 for hit in goodcand.hits:
                     numstars = int(hit[2]/3.0)
                     candfile.write("  DM=%6.2f SNR=%5.2f Sigma=%5.2f   "%hit + \
@@ -1155,12 +1122,12 @@ def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
                 candnum = last_goodcandnum + 1
             if candnum in candnums:
                 cand = cands[candnums.index(candnum)]
-                cand.harm_pows = Num.zeros(cand.numharm, dtype=Num.float64)
-                cand.harm_amps = Num.zeros(cand.numharm, dtype=Num.complex64) 
+                cand.harm_pows = np.zeros(cand.numharm, dtype=np.float64)
+                cand.harm_amps = np.zeros(cand.numharm, dtype=np.complex64) 
                 power = parse_power(split_line[3])
                 phase = float(split_line[9].split("(")[0])
                 cand.harm_pows[0] = power
-                cand.harm_amps[0] = Num.sqrt(power) * Num.exp(phase*1.0j)
+                cand.harm_amps[0] = np.sqrt(power) * np.exp(phase*1.0j)
                 if (cand.numharm > 1):
                     current_goodcandnum = candnum
                     current_harmnum = 1
@@ -1186,7 +1153,7 @@ def candlist_from_candfile(filename, trackbad=False, trackdupes=False):
             power = parse_power(line.split()[2])
             phase = float(line.split()[8].split("(")[0])
             cand.harm_pows[current_harmnum] = power
-            cand.harm_amps[current_harmnum] = Num.sqrt(power) * Num.exp(phase*1.0j)
+            cand.harm_amps[current_harmnum] = np.sqrt(power) * np.exp(phase*1.0j)
             current_harmnum += 1
             # Calculate other stats after all harmonics have been read in
             if (current_harmnum==cand.numharm):
@@ -1288,7 +1255,7 @@ def sift_directory(dir, outbasenm):
     if len(all_accel_cands):
         all_accel_cands.remove_harmonics()
         # Note:  the candidates will be sorted in _sigma_ order, not _SNR_!
-        all_accel_cands.cands.sort(cmp_sigma)
+        all_accel_cands.cands.sort(key=lambda cand: cand.sigma, reverse=True)
         print("Found %d good candidates" % len(all_accel_cands))
         all_accel_cands.to_file(outbasenm+".accelcands")
     all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
@@ -1332,13 +1299,13 @@ def LogLinScaleFactory(b):
                 self.thresh = thresh
 
             def transform(self, a):
-                aa = Num.ma.masked_where(a<self.thresh, a)
+                aa = np.ma.masked_where(a<self.thresh, a)
                 if aa.mask.any():
-                    aa[a<self.brk] = Num.ma.log10(a[a<self.brk]) - \
-                                        Num.log10(self.brk)+self.brk
+                    aa[a<self.brk] = np.ma.log10(a[a<self.brk]) - \
+                                        np.log10(self.brk)+self.brk
                 else:
-                    aa[a<self.brk] = Num.log10(a[a<self.brk]) - \
-                                        Num.log10(self.brk)+self.brk
+                    aa[a<self.brk] = np.log10(a[a<self.brk]) - \
+                                        np.log10(self.brk)+self.brk
                 return aa
 
             def inverted(self):
@@ -1356,8 +1323,8 @@ def LogLinScaleFactory(b):
 
             def transform(self, a):
                 aa = a.copy()
-                aa[a<self.brk] = Num.ma.power(10, a[a<self.brk]-self.brk + \
-                                                Num.log10(self.brk))
+                aa[a<self.brk] = np.ma.power(10, a[a<self.brk]-self.brk + \
+                                                np.log10(self.brk))
                 return aa
 
             def inverted(self):
@@ -1370,7 +1337,6 @@ def main():
     # Sift candidates in PWD
     outbasenm = sys.argv[1]
     sift_directory(os.getcwd(), outbasenm)
-
 
 if __name__ == '__main__':
     main()
