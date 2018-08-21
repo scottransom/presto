@@ -129,9 +129,6 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
     } else if (strcmp(idata->telescope, "GMRT") == 0) {
         scopechar = 'r';
         tracklen = 12;
-    } else if (strcmp(idata->telescope, "SHAO") == 0) {
-        scopechar = 's';
-        tracklen = 12;
     } else if (strcmp(idata->telescope, "CHIME") == 0) {
         scopechar = 'y';
         tracklen = 1;
