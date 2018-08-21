@@ -222,9 +222,6 @@ void telescope_to_tempocode(char *inname, char *outname, char *obscode)
     } else if (strcmp(scope, "fast") == 0) {
         strcpy(obscode, "FA");
         strcpy(outname, "FAST");
-    } else if (strcmp(scope, "shao") == 0) {
-        strcpy(obscode, "SH");
-        strcpy(outname, "SHAO");
     } else if (strcmp(scope, "wsrt") == 0) {
         strcpy(obscode, "WT");
         strcpy(outname, "WSRT");
