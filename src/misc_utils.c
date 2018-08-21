@@ -247,12 +247,12 @@ void telescope_to_tempocode(char *inname, char *outname, char *obscode)
         strcpy(obscode, "K7");
         strcpy(outname, "KAT-7");
     } else if (strcmp(scope, "geocenter") == 0) {
-        strcpy(obscode, "EC");
+        strcpy(obscode, "0 ");
         strcpy(outname, "Geocenter");
     } else {
         printf("\nWARNING!!!:  I don't recognize the observatory (%s)!\n", inname);
         printf("                 Defaulting to the Geocenter for TEMPO.\n");
-        strcpy(obscode, "EC");
+        strcpy(obscode, "0 ");
         strcpy(outname, "Unknown");
     }
 }
