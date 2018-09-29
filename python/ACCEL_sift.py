@@ -1,5 +1,6 @@
 from builtins import map
 import sifting, re, glob
+from operator import itemgetter, attrgetter
 
 # Note:  You will almost certainly want to adjust
 #        the following variables for your particular search
@@ -73,5 +74,5 @@ if len(cands):
 
 # Write candidates to STDOUT
 if len(cands):
-    cands.sort(sifting.cmp_sigma)
+    cands.sort(key=attrgetter('sigma'), reverse=True)
     sifting.write_candlist(cands)
