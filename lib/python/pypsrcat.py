@@ -1,8 +1,6 @@
 from __future__ import print_function
-from past.builtins import cmp
-from builtins import map
-from builtins import object
-## Automatically adapted for numpy Apr 14, 2006 by convertcode.py
+from builtins import map, object
+from operator import attrgetter
 import struct, os, os.path, presto, psr_utils, math
 
 ## The most recent catalogs are available here:
@@ -50,7 +48,7 @@ class psr(object):
                         h, m = hms
                         s = 0.0
                     elif len(hms)==1:
-                        h = hms
+                        h = hms[0]
                         m = s = 0.0
                     self.ra = psr_utils.hms_to_rad(h, m, s)
                     self.raerr = float(parts[part_index+1]) * psr_utils.SECTORAD
@@ -65,13 +63,13 @@ class psr(object):
                         d, m = dms
                         s = 0.0
                     elif len(dms)==1:
-                        d = dms
+                        d = dms[0]
                         m = s = 0.0
 		    # Fixed silly dec=-0.0 bug
-		    if parts[part_index].split(":")[0]=="-00":
-			m = -m
-			s = -s
-		    self.dec = psr_utils.dms_to_rad(d, m, s)
+                    if parts[part_index].split(":")[0]=="-00":
+                        m = -m
+                        s = -s
+                    self.dec = psr_utils.dms_to_rad(d, m, s)
                     self.decerr = float(parts[part_index+1]) * psr_utils.ARCSECTORAD
                 part_index += 1
             elif param=="PMRA":
@@ -216,8 +214,6 @@ class psr(object):
             part_index += 1
             param_index += 1
         self.alias = ""
-    def __cmp__(self, other):
-        return cmp(self.jname, other.jname)
     def __str__(self):
         out = ''
         if (self.name):
@@ -333,7 +329,7 @@ for line in infile.readlines()[1:]:
 infile.close()
 
 psrs = list(pulsars.values())
-psrs.sort()
+psrs.sort(key=attrgetter('jname'))
 
 # Now create a new dictionary of pulsars with aliases
 psr_aliases = {}
