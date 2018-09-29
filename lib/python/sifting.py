@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import zip, str, range, object
+from operator import itemgetter, attrgetter
 import sys, re, os, copy
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
+
 from presto import candidate_sigma
 
 # Note: the following are global variables that can
@@ -717,7 +719,7 @@ class Candlist(object):
         if verbosity >= 1:
             print("  Sorting the %d candidates by frequency..." % \
                         self.get_numcands())
-        self.cands.sort(key=lambda cand: cand.r)
+        self.cands.sort(key=attrgetter('r'))
         if verbosity >= 1:
             print("  Searching for dupes...")
         ii = 0
@@ -732,7 +734,7 @@ class Candlist(object):
                         np.fabs(self.cands[ii].r-self.cands[jj].r) < r_err:
                     jj += 1
                 matches = self.cands[ii:jj]
-                matches.sort(key=lambda cand: cand.sigma, reverse=True)
+                matches.sort(key=attrgetter('sigma'), reverse=True)
                 bestindex = self.cands.index(matches[0])
                 #sigmas = [c.sigma for c in matches]
                 #bestindex = np.argmax(sigmas)+ii
@@ -761,7 +763,7 @@ class Candlist(object):
                 ii += 1 # No candidates to be added as hits, move on
         if verbosity >= 1:
             print("Found %d candidates.\n" % self.get_numcands())
-        self.cands.sort(key=lambda cand: cand.sigma, reverse=True)
+        self.cands.sort(key=attrgetter('sigma'), reverse=True)
 
     def remove_harmonics(self, verbosity=1):
         """Remove the candidates that are lower significance harmonics
@@ -775,7 +777,7 @@ class Candlist(object):
         """
         # Note:  should probably put the harmonics into the fundamental as hits (use sets)
         numremoved = 0
-        self.cands.sort(key=lambda cand: cand.sigma, reverse=True)
+        self.cands.sort(key=attrgetter('sigma'), reverse=True)
         f_err = r_err/self.cands[0].T
         if verbosity >= 1:
             print("\nSearching for duplicate harmonics...")
@@ -878,7 +880,7 @@ class Candlist(object):
         num_toofew = 0
         num_toolow = 0
         num_gaps = 0
-        self.cands.sort(key=lambda cand: cand.sigma, reverse=True)
+        self.cands.sort(key=attrgetter('sigma'), reverse=True)
         for ii in reversed(list(range(len(self.cands)))):
             currcand = self.cands[ii]
             # Remove all the candidates without enough DM hits
@@ -1255,7 +1257,7 @@ def sift_directory(dir, outbasenm):
     if len(all_accel_cands):
         all_accel_cands.remove_harmonics()
         # Note:  the candidates will be sorted in _sigma_ order, not _SNR_!
-        all_accel_cands.cands.sort(key=lambda cand: cand.sigma, reverse=True)
+        all_accel_cands.cands.sort(key=attrgetter('sigma'), reverse=True)
         print("Found %d good candidates" % len(all_accel_cands))
         all_accel_cands.to_file(outbasenm+".accelcands")
     all_accel_cands.write_cand_report(outbasenm+".accelcands.report")
@@ -1337,6 +1339,7 @@ def main():
     # Sift candidates in PWD
     outbasenm = sys.argv[1]
     sift_directory(os.getcwd(), outbasenm)
+
 
 if __name__ == '__main__':
     main()
