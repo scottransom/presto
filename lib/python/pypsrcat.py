@@ -1,7 +1,9 @@
 from __future__ import print_function
 from builtins import map, object
 from operator import attrgetter
-import struct, os, os.path, presto, psr_utils, math
+import astropy.coordinates as c
+import astropy.units as u
+import struct, os, os.path, presto, psr_utils, math, csv
 
 ## The most recent catalogs are available here:
 ## 
@@ -9,10 +11,10 @@ import struct, os, os.path, presto, psr_utils, math
 
 ## And here is the command used to get the data:
 # Note version number now!
-# http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?version=1.53&Name=Name&JName=JName&RaJ=RaJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&P0=P0&P1=P1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&Ecc=Ecc&Tasc=Tasc&Eps1=Eps1&Eps2=Eps2&Dist=Dist&Assoc=Assoc&Survey=Survey&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Short+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
+# http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?version=1.59&Name=Name&JName=JName&RaJ=RaJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&F0=F0&F1=F1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&Ecc=Ecc&Tasc=Tasc&Eps1=Eps1&Eps2=Eps2&Dist=Dist&Assoc=Assoc&Survey=Survey&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Long+csv+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
 
 params = ["NAME", "PSRJ", "RAJ", "DECJ", "PMRA", "PMDEC", "PX", "POSEPOCH",
-          "Gl", "Gb", "P0", "P1", "F2", "F3", "PEPOCH", "DM", "DM1",
+          "Gl", "Gb", "F0", "F1", "F2", "F3", "PEPOCH", "DM", "DM1",
           "S400", "S1400", "BINARY", "T0", "PB", "A1", "OM", "ECC",
           "TASC", "EPS1", "EPS2", "DIST", "ASSOC", "SURVEY", "PSR"]
 params_with_errs = ["RAJ", "DECJ", "PMRA", "PMDEC", "PX", "P0", "P1", "F2", "F3",
@@ -21,13 +23,12 @@ params_with_errs = ["RAJ", "DECJ", "PMRA", "PMDEC", "PX", "P0", "P1", "F2", "F3"
 digits = '0123456789'
 
 class psr(object):
-    def __init__(self, line):
-        parts = line.split()[1:]
-        part_index = 0
-        param_index = 0
-        while param_index < len(params):
-            param = params[param_index]
-            #print param, parts[part_index]
+    def __init__(self, parts, indices):
+        # Do RAJ and DECJ first
+        posn = c.SkyCoord(parts[indices['RAJ']]+" "+parts[indices['DECJ']],
+                          frame=c.ICRS, unit=(u.hourangle, u.deg))
+        for param in params:
+            part_index = indices[param]
             if param=="NAME":
                 if not parts[part_index]=='*':
                     self.name = parts[part_index][1:]
@@ -41,49 +42,22 @@ class psr(object):
             elif param=="RAJ":
                 if not parts[part_index]=='*':
                     self.rajstr = parts[part_index]
-                    hms = list(map(float, parts[part_index].split(':')))
-                    if len(hms)==3:
-                        h, m, s = hms
-                    elif len(hms)==2:
-                        h, m = hms
-                        s = 0.0
-                    elif len(hms)==1:
-                        h = hms[0]
-                        m = s = 0.0
-                    self.ra = psr_utils.hms_to_rad(h, m, s)
+                    self.ra = posn.ra.to(u.rad).value
                     self.raerr = float(parts[part_index+1]) * psr_utils.SECTORAD
-                part_index += 1
             elif param=="DECJ":
                 if not parts[part_index]=='*':
                     self.decjstr = parts[part_index]
-                    dms = list(map(float, parts[part_index].split(':')))
-                    if len(dms)==3:
-                        d, m, s = dms
-                    elif len(dms)==2:
-                        d, m = dms
-                        s = 0.0
-                    elif len(dms)==1:
-                        d = dms[0]
-                        m = s = 0.0
-		    # Fixed silly dec=-0.0 bug
-                    if parts[part_index].split(":")[0]=="-00":
-                        m = -m
-                        s = -s
-                    self.dec = psr_utils.dms_to_rad(d, m, s)
+                    self.dec = posn.dec.to(u.rad).value
                     self.decerr = float(parts[part_index+1]) * psr_utils.ARCSECTORAD
-                part_index += 1
             elif param=="PMRA":
                 if not parts[part_index]=='*':
                     self.pmra, self.pmraerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="PMDEC":
                 if not parts[part_index]=='*':
                     self.pmdec, self.pmdecerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="PX":
                 if not parts[part_index]=='*':
                     self.px, self.pxerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="POSEPOCH":
                 if not parts[part_index]=='*':
                     self.posepoch = float(parts[part_index])
@@ -93,31 +67,27 @@ class psr(object):
             elif param=="Gb":
                 if not parts[part_index]=='*':
                     self.b = float(parts[part_index])
-            elif param=="P0":
+            elif param=="F0":
                 if not parts[part_index]=='*':
-                    self.p, self.perr = float(parts[part_index]), float(parts[part_index+1])
-                    self.f, self.ferr = psr_utils.pferrs(self.p, self.perr)
+                    self.f, self.ferr = float(parts[part_index]), float(parts[part_index+1])
+                    self.p, self.perr = psr_utils.pferrs(self.f, self.ferr)
                 else:
                     self.f = self.ferr = self.p = self.perr = 0.0
                 self.fd = self.fdd = self.fddd = 0.0
                 self.pd = self.pdd = self.pddd = 0.0
                 self.fderr = self.fdderr = self.fddderr = 0.0
                 self.pderr = self.pdderr = self.pddderr = 0.0
-                part_index += 1
-            elif param=="P1":
+            elif param=="F1":
                 if not parts[part_index]=='*':
-                    self.pd, self.pderr = float(parts[part_index]), float(parts[part_index+1])
-                    self.f, self.ferr, self.fd, self.fderr = psr_utils.pferrs(self.p, self.perr, self.pd, self.pderr)
-                part_index += 1
+                    self.fd, self.fderr = float(parts[part_index]), float(parts[part_index+1])
+                    self.p, self.perr, self.pd, self.pderr = psr_utils.pferrs(self.f, self.ferr, self.fd, self.fderr)
             elif param=="F2":
                 if not parts[part_index]=='*':
                     self.fdd, self.fdderr = float(parts[part_index]), float(parts[part_index+1])
                     self.p, self.pd, self.pdd = presto.p_to_f(self.f, self.fd, self.fdd)
-                part_index += 1
             elif param=="F3":
                 if not parts[part_index]=='*':
                     self.fddd, self.fddderr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="PEPOCH":
                 if parts[part_index]=='*': 
                     self.pepoch = 51000.0 # Just to pick a reasonable value
@@ -128,23 +98,19 @@ class psr(object):
                     self.dm, self.dmerr = float(parts[part_index]), float(parts[part_index+1])
                 else:
                     self.dm = self.dmerr = 0.0
-                part_index += 1
             elif param=="DM1":
                 if not parts[part_index]=='*':
                     self.ddm, self.ddmerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="S400":
                 if not parts[part_index]=='*':
                     self.s400, self.s400err = float(parts[part_index]), float(parts[part_index+1])
                 else:
                     self.s400 = None
-                part_index += 1
             elif param=="S1400":
                 if not parts[part_index]=='*':
                     self.s1400, self.s1400err = float(parts[part_index]), float(parts[part_index+1])
                 else:
                     self.s1400 = None
-                part_index += 1
             elif param=="BINARY":
                 if not parts[part_index]=='*':
                     self.binary_model = parts[part_index]
@@ -156,31 +122,24 @@ class psr(object):
             elif param=="T0":
                 if self.binary and not parts[part_index]=='*':
                     self.To, self.Toerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="PB":
                 if self.binary and not parts[part_index]=='*':
                     self.pb, self.pberr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="A1":
                 if self.binary and not parts[part_index]=='*':
                     self.x, self.xerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="OM":
                 if self.binary and not parts[part_index]=='*':
                     self.w, self.werr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="ECC":
                 if self.binary and not parts[part_index]=='*':
                     self.e, self.eerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="TASC":
                 if self.binary and self.binary_model=="ELL1" and not parts[part_index]=='*':
                     self.To, self.Toerr = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="EPS1":
                 if self.binary and self.binary_model=="ELL1" and not parts[part_index]=='*':
                     self.eps1, self.eps1err = float(parts[part_index]), float(parts[part_index+1])
-                part_index += 1
             elif param=="EPS2":
                 if self.binary and self.binary_model=="ELL1" and not parts[part_index]=='*':
                     self.eps2, self.eps2err = float(parts[part_index]), float(parts[part_index+1])
@@ -190,7 +149,6 @@ class psr(object):
                     self.w = psr_utils.RADTODEG*math.atan2(self.eps1, self.eps2)
                     if (self.w < 0.0): self.w += 360.0
                     self.werr = 1.0 # This needs fixing...
-                part_index += 1
             elif param=="DIST":
                 if not parts[part_index]=='*':
                     self.dist = float(parts[part_index])
@@ -211,8 +169,6 @@ class psr(object):
                     self.type = parts[part_index]
                 else:
                     self.type = None
-            part_index += 1
-            param_index += 1
         self.alias = ""
     def __str__(self):
         out = ''
@@ -279,9 +235,12 @@ class psr(object):
                           (self.To, self.Toerr)
         return out
     def pack_structs(self):
-        out = struct.pack("13s9s10s12d", \
-                          self.jname, self.name, self.alias.lower(),
-                          self.ra, self.raerr, self.dec, self.decerr,
+        out = struct.Struct("13s9s10s12d")
+        packed = out.pack(self.jname.encode('utf-8'),
+                          self.name.encode('utf-8'),
+                          self.alias.lower().encode('utf-8'),
+                          self.ra, self.raerr,
+                          self.dec, self.decerr,
                           self.p, self.perr, self.pd, self.pderr,
                           self.dm, self.dmerr, self.pepoch, self.binary)
         if self.binary:
@@ -295,28 +254,29 @@ class psr(object):
             if self.werr is None: self.werr = 0.0
             if self.To is None: self.To = 0.0
             if self.Toerr is None: self.Toerr = 0.0
-            out = out + struct.pack("10d",
-                                    self.pb, self.pberr, self.x, self.xerr,
-                                    self.e, self.eerr, self.w, self.werr,
-                                    self.To, self.Toerr)
-        return out
+            packed += struct.pack("10d",
+                                  self.pb, self.pberr, self.x, self.xerr,
+                                  self.e, self.eerr, self.w, self.werr,
+                                  self.To, self.Toerr)
+        return packed
 
 pulsars = {}
 num_binaries = 0
 
 # Read the file that was taken from the ATNF database
 presto_path = os.getenv("PRESTO")
-infile = open(os.path.join(presto_path, "lib", "psr_catalog.txt"))
-for line in infile:
-    line, sep, comment = line.partition('#')
-    line = line.strip()
-    if not line:
-        continue
-    if line[0] in digits:
-        currentpulsar = psr(line)
+with open(os.path.join(presto_path, "lib", "psr_catalog.txt")) as csvfile:
+    reader = csv.reader(csvfile, delimiter=';')
+    first = next(reader)
+    indices = {}
+    for ii in range(len(first)):
+        if first[ii]!='' and first!="#":
+            indices[first[ii]] = ii
+    units = next(reader)
+    for row in reader:
+        currentpulsar = psr(row, indices)
         pulsars[currentpulsar.jname] = currentpulsar
         if currentpulsar.binary: num_binaries += 1
-infile.close()
 
 # Now add the aliases to the pulsars
 infile = open(os.path.join(presto_path, "lib", "aliases.txt"))
@@ -383,7 +343,7 @@ for psr in psrs:
 if __name__ == '__main__' :
     presto_path = os.getenv("PRESTO")
     outfilename = os.path.join(presto_path, "lib", "pulsars.cat")
-    outfile = open(outfilename, "w")
+    outfile = open(outfilename, "wb")
     print("Writing %d pulsars (%d binaries) to %s" % \
           (len(psrs), num_binaries, outfilename))
     for ii, psr in enumerate(psrs):
