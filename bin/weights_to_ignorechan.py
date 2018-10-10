@@ -50,6 +50,11 @@ def build_pazline(chanline):
     return outstr
 
 if __name__=="__main__":
+
+    if len(sys.argv) != 2:
+        print("\nusage: {} file\n".format(sys.argv[0]))
+        sys.exit(1)
+
     # Read the channels and weights
     chans, weights = read_weights(sys.argv[1])
 
