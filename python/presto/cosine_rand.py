@@ -2,9 +2,12 @@ from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
 import numpy as Num
-import pickle, os
+import os
+import json
 from presto.psr_utils import hist
 from presto.Pgplot import plotxy, closeplot
+
+here = os.path.dirname(__file__)
 
 n = 1000
 
@@ -26,11 +29,10 @@ if (0):
             xs[ii] = newton_raphson(func, dfunc, 0.0, 1.0)
     xs[0] = 0.0
     xs[n] = 1.0
-    pickle.dump(xs, open("cosine_rand.pickle", "w"), 1)
+    json.dump(list(i for i in xs), open('cosine_rand.json', 'w'))
 else:
-    pfile = os.path.join(os.environ['PRESTO'],
-                         "lib", "python", "cosine_rand.pickle")
-    xs = pickle.load(open(pfile))
+    pfile = os.path.join(here, 'cosine_rand.json')
+    xs = json.load(open(pfile))
 
 
 def cosine_rand(num):

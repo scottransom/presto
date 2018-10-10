@@ -1,5 +1,5 @@
 import numpy as np
-import presto
+from presto import presto
 from numpy.random import standard_normal as norm
 from numpy.random import uniform
 import time
@@ -62,13 +62,13 @@ for n in range(numtrials):
     rzwtime += time.clock() - a
     rzwerrs[n] = (maxpow/numharm - theo_max_pow) / theo_max_pow, rmax - r, zmax - z, wmax - w
 
-print "Time for  rz:", rztime / numtrials
-print "Time for rzw:", rzwtime / numtrials
+print("Time for  rz: %s".format(rztime / numtrials))
+print("Time for rzw: %s".format(rzwtime / numtrials))
 
-print "rzerrs:"
-print "  avg: %6.3f %6.3f %6.3f" % tuple(rzerrs.mean(axis=0))
-print "  std: %6.3f %6.3f %6.3f" % tuple(rzerrs.std(axis=0))
+print("rzerrs:")
+print("  avg: %6.3f %6.3f %6.3f" % tuple(rzerrs.mean(axis=0)))
+print("  std: %6.3f %6.3f %6.3f" % tuple(rzerrs.std(axis=0)))
 
-print "rzwerrs:"
-print "  avg: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.mean(axis=0))
-print "  std: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.std(axis=0))
+print("rzwerrs:")
+print("  avg: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.mean(axis=0)))
+print("  std: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.std(axis=0)))
