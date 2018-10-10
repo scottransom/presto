@@ -4,6 +4,12 @@ from builtins import range
 import numpy as N
 import sys, scipy.io, scipy.signal
 
+
+if len(sys.argv) != 2:
+    print("\nusage: {} file\n".format(sys.argv[0]))
+    sys.exit(1)
+
+
 plot=0
 
 infilenm = sys.argv[1]

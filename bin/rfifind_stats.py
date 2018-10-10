@@ -2,6 +2,12 @@
 import sys
 from presto import rfifind
 
+if len(sys.argv) != 2:
+    print("\nusage: {} file\n".format(sys.argv[0]))
+    sys.exit(1)
+
+
+
 if __name__=="__main__":
     a = rfifind.rfifind(sys.argv[1])
     sys.stderr.write("\nWARNING!:  If raw data have channels in decreasing freq\n")

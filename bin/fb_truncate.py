@@ -9,13 +9,15 @@ from __future__ import print_function
 
 import sys
 import copy
-import optparse
+from argparse import ArgumentParser
 import numpy as np
 from presto import filterbank
 
 BLOCKSIZE = 1e5 # Number of spectra to manipulate at once
 
-def main():
+
+
+def main(args):
     infn = args[0]
     print("Reading filterbank file (%s)" % infn)
     fil = filterbank.FilterbankFile(infn)
@@ -106,36 +108,34 @@ def main():
 
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser(prog='fb_truncate.py', \
-                    version="v0.1 Patrick Lazarus (Aug. 28, 2012)")
-    parser.add_option("-L", "--lo-freq", dest="lo_freq", type='float', \
-                    help="Desired low frequency for output file. Note: " \
-                        "actual low frequency will be rounded to the nearest" \
-                        "channel (Default: Don't truncate low-freq channels)", \
+    parser = ArgumentParser(description="v0.1 Patrick Lazarus (Aug. 28, 2012)")
+    parser.add_argument("-L", "--lo-freq", dest="lo_freq", type=float,
+                    help="Desired low frequency for output file. Note: "
+                        "actual low frequency will be rounded to the nearest"
+                        "channel (Default: Don't truncate low-freq channels)",
                     default=None)
-    parser.add_option("-H", "--hi-freq", dest="hi_freq", type='float', \
-                    help="Desired high frequency for output file. Note: " \
-                        "actual high frequency will be rounded to the nearest" \
-                        "channel (Default: Don't truncate high-freq channels)", \
+    parser.add_argument("-H", "--hi-freq", dest="hi_freq", type=float,
+                    help="Desired high frequency for output file. Note: "
+                        "actual high frequency will be rounded to the nearest"
+                        "channel (Default: Don't truncate high-freq channels)",
                     default=None)
-    parser.add_option("-s", "--start-time", dest="start_time", type='float', \
-                    help="Start of desired range of input file to write " \
-                        "to output file. Note: The actual start time will " \
-                        "be rounded to the nearest sample.(Default: Don't " \
+    parser.add_argument("-s", "--start-time", dest="start_time", type=float,
+                    help="Start of desired range of input file to write "
+                        "to output file. Note: The actual start time will "
+                        "be rounded to the nearest sample.(Default: Don't "
                         "truncate from start of file.)", default=None)
-    parser.add_option("-e", "--end-time", dest="end_time", type='float', \
-                    help="End of desired range of input file to write " \
-                        "to output file. Note: The actual end time will " \
-                        "be rounded to the nearest sample. (Default: " \
+    parser.add_argument("-e", "--end-time", dest="end_time", type=float,
+                    help="End of desired range of input file to write "
+                        "to output file. Note: The actual end time will "
+                        "be rounded to the nearest sample. (Default: "
                         "Don't truncate from end of file.)", default=None)
-    parser.add_option("--block-size", dest='block_size', default=BLOCKSIZE, \
-                    type='float', \
-                    help="Number of spectra per block. This is the amount " \
-                        "of data manipulated/written at a time. (Default: " \
+    parser.add_argument("--block-size", dest='block_size', default=BLOCKSIZE,
+                    type=float,
+                    help="Number of spectra per block. This is the amount "
+                        "of data manipulated/written at a time. (Default: "
                         " %d spectra)" % BLOCKSIZE)
-    parser.add_option("-o", "--outname", dest='outname', action='store', \
+    parser.add_argument("-o", "--outname", dest='outname', action='store', required=True,
                     help="The name of the output file.")
     (options, args) = parser.parse_args()
-    if not hasattr(options, 'outname'):
-        raise ValueError("An output file name _must_ be provided!")
-    main()
+
+    main(args)
