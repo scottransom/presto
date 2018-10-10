@@ -303,27 +303,27 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
     # Plot them
     plotxy(log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
            rangey=[log10(0.3*min(tot_smear)), log10(2.5*max(tot_smear))],
-           labx="Dispersion Measure (pc/cm\u3\d)", laby="Smearing (ms)",
+           labx="Dispersion Measure (pc/cm\\u3\\d)", laby="Smearing (ms)",
            device=device)
     ppgplot.pgsch(1.1)
     ppgplot.pgsci(1)
     if (numsub):
-        ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\(2156)\dctr\u = %g MHz" % obs.f_ctr)
+        ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\(2156)\dctr\\u = %g MHz" % obs.f_ctr)
         if (dtms < 0.1):
-            ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g \gms" % (dtms*1000))
+            ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g \\gms" % (dtms*1000))
         else:
             ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g ms" % dtms)
         ppgplot.pgmtxt("t", 1.5, 5.0/10.0, 0.5, "BW = %g MHz" % obs.BW)
-        ppgplot.pgmtxt("t", 1.5, 7.2/10.0, 0.5, "N\dchan\u = %d" % obs.numchan)
-        ppgplot.pgmtxt("t", 1.5, 9.4/10.0, 0.5, "N\dsub\u = %d" % numsub)
+        ppgplot.pgmtxt("t", 1.5, 7.2/10.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
+        ppgplot.pgmtxt("t", 1.5, 9.4/10.0, 0.5, "N\\dsub\\u = %d" % numsub)
     else:
-        ppgplot.pgmtxt("t", 1.5, 1.0/8.0, 0.5, "\(2156)\dctr\u = %g MHz" % obs.f_ctr)
+        ppgplot.pgmtxt("t", 1.5, 1.0/8.0, 0.5, "\\(2156)\\dctr\\u = %g MHz" % obs.f_ctr)
         if (dtms < 0.1):
-            ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g \gms" % (dtms*1000))
+            ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g \\gms" % (dtms*1000))
         else:
             ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g ms" % dtms)
         ppgplot.pgmtxt("t", 1.5, 5.0/8.0, 0.5, "BW = %g MHz" % obs.BW)
-        ppgplot.pgmtxt("t", 1.5, 7.0/8.0, 0.5, "N\dchan\u = %d" % obs.numchan)
+        ppgplot.pgmtxt("t", 1.5, 7.0/8.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
 
     ppgplot.pgsch(1.0)
     dy = -1.4

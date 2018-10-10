@@ -4,6 +4,7 @@ import numpy as _np
 import fileinput as _fileinput
 from scipy.special import erf
 
+
 def get_textfile(txtfile):
     """ Read in the groups.txt file.
     Contains information about the DM, time, box car width, signal to noise, sample number and rank    of groups. 
@@ -11,6 +12,7 @@ def get_textfile(txtfile):
     Output: Array of strings in the file line by line.
     """
     return  _np.loadtxt(txtfile,dtype = 'str',delimiter='\n')
+
 
 def group_info(rank, txtfile):
     """

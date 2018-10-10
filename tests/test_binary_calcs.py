@@ -1,6 +1,6 @@
 import numpy as np
-import presto
-import binary_psr
+from presto import presto
+from presto import binary_psr
 import matplotlib.pyplot as plt
 
 N = 1000 # number of points in each orbit calc
