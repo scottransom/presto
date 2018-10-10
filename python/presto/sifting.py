@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import zip, str, range, object
-from operator import itemgetter, attrgetter
+from operator import attrgetter
 import sys, re, os, copy
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-
-from presto import candidate_sigma
+import os.path
+import glob
+from presto import infodata
+from presto.presto import candidate_sigma
 
 # Note: the following are global variables that can
 #       (and should) be set in whatever module
@@ -1214,9 +1216,7 @@ def sift_directory(dir, outbasenm):
         Outputs:
             None
     """
-    import os.path
-    import glob
-    import infodata
+
   
     # TODO: Remove hard-coded values in this function
     #       replace with command line options.

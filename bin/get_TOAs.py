@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import range
-import struct, getopt, sys, fftfit, psr_utils
+import getopt, sys
+from presto import fftfit
+from presto import psr_utils
 import numpy as Num
-from infodata import infodata
-from prepfold import pfd
-from polycos import polycos
-from psr_constants import *
+from presto.prepfold import pfd
+from presto.polycos import polycos
+from presto.psr_constants import *
 
 scopes = {'GBT':'1',
           'Arecibo':'3',

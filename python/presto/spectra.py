@@ -5,7 +5,7 @@ import copy
 
 import numpy as np
 import scipy.signal
-import psr_utils
+from presto import psr_utils
 
 class Spectra(object):
     """A class to store spectra. This is mainly to provide

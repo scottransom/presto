@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import sifting, sys
+import sys
+from presto import sifting
+
 
 if len(sys.argv) < 2:
     sys.stderr.write("\nusage:  quick_prune_cands.py ACCEL_file_name [sigma]\n\n")

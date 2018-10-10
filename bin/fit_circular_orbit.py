@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import range
+import sys
 import numpy as num
-import psr_utils as pu
-import parfile, bestprof, sys
+from presto import psr_utils as pu
+from presto import parfile
+from presto import bestprof
 import matplotlib.pyplot as plt
 from scipy.optimize import leastsq
 

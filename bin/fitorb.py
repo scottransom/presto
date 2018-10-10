@@ -7,12 +7,13 @@ from __future__ import print_function
 from builtins import range
 
 from numpy import *
-from mpfit import mpfit
-from psr_constants import SECPERDAY,TWOPI,DEGTORAD,SOL
-import psr_utils,parfile,sys,glob
+from presto.mpfit import mpfit
+from presto.psr_constants import SECPERDAY,TWOPI,DEGTORAD,SOL
+from presto import psr_utils
+from presto import parfile
 from pylab import *
 import sys
-cspeed = 299792458.0 # m/s
+cspeed = 299792458.0  # m/s
 
 
 # begin function definitions

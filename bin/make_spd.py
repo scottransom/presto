@@ -13,22 +13,19 @@ Chitrang Patel - May. 21, 2015 -- Updated on June 10 2016
 from __future__ import print_function
 from builtins import map
 from builtins import range
-
-import sys
-import copy
 from time import strftime
-from subprocess import Popen, PIPE
 
 import numpy as np
 import optparse
-import waterfaller
-import psr_utils
+from presto import waterfaller
+from presto import psr_utils
+# todo: (gijs) plot_spd is a script, not a module.
 import plot_spd
-import singlepulse.spcand as spcand
-import singlepulse.spio as spio
-import psrfits
-import filterbank
-import spectra
+from presto.singlepulse import spcand as spcand
+from presto.singlepulse import spio as spio
+from presto import psrfits
+from presto import filterbank
+
 
 DEBUG = True
 def print_debug(msg):

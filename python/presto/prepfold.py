@@ -2,12 +2,12 @@ from __future__ import print_function
 from builtins import range
 from builtins import object
 import numpy as Num
-import copy, random, struct, sys
-import psr_utils, infodata, polycos, Pgplot
-# from types import StringType, FloatType, IntType
+import copy, random, struct
+from presto import psr_utils, infodata, polycos, Pgplot
 import six
 import numbers
-from bestprof import bestprof
+from presto.bestprof import bestprof
+
 
 class pfd(object):
 

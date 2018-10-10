@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import range
-from infodata import *
-from presto import ffdot_plane, spectralpower
+from presto.infodata import *
+from presto.presto import ffdot_plane, spectralpower
 from pylab import *
 import numpy as N
 import sys

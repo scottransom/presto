@@ -8,12 +8,11 @@ from __future__ import print_function
 from builtins import object
 
 import sys
-import warnings
 import os
 import os.path
 import numpy as np
-import sigproc
-import spectra
+from presto import sigproc
+from presto import spectra
 
 
 DEBUG = False

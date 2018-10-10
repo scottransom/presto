@@ -1,26 +1,24 @@
+"""
+ Routine for easy to use 1-D and 2-D plotting using 'PGPLOT'
+       and the Python 'PPGPLOT' package
+
+ Written by Scott M. Ransom (ransom@cfa.harvard.edu)
+          last revision: 01 Jul 2000
+
+ 'PGPLOT' was writtten by Tim Pearson <tjp@astro.caltech.edu>,
+ and can be found at http://astro.caltech.edu/~tjp/pgplot/
+
+ 'PPGPLOT' was written by Nick Patavalis <npat@ariadne.di.uoa.gr>,
+ and can be found at http://ariadne.di.uoa.gr/ppgplot/
+ _or_ an updated version is available in the same directory
+ where this file was found:  ftp://cfa-ftp.harvard.edu/pub/ransom
+"""
 from __future__ import print_function
-from builtins import str
 from builtins import range
 from builtins import object
-import sys
-
-# Routine for easy to use 1-D and 2-D plotting using 'PGPLOT'
-#       and the Python 'PPGPLOT' package
-#
-# Written by Scott M. Ransom (ransom@cfa.harvard.edu)
-#          last revision: 01 Jul 2000
-#
-# 'PGPLOT' was writtten by Tim Pearson <tjp@astro.caltech.edu>,
-# and can be found at http://astro.caltech.edu/~tjp/pgplot/
-#
-# 'PPGPLOT' was written by Nick Patavalis <npat@ariadne.di.uoa.gr>,
-# and can be found at http://ariadne.di.uoa.gr/ppgplot/
-# _or_ an updated version is available in the same directory
-# where this file was found:  ftp://cfa-ftp.harvard.edu/pub/ransom 
-#
-
 import numpy as Num
-import types, math, ppgplot
+from presto import ppgplot
+
 
 # Check if string in Py2 and Py3 compatible way
 def isstr(var):

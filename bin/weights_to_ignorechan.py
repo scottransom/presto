@@ -55,10 +55,8 @@ if __name__=="__main__":
 
     # Get the chanline
     chanline = build_chanline(weights)
-    print chanline
+    print(chanline)
 
     # Convert it to a paz command
     pazline = build_pazline(chanline)
-    print "\n"+pazline
-
-    
+    print("\n"+pazline)
