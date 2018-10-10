@@ -268,12 +268,12 @@ def main(fits_fn, outfn, nbits, \
                     input_nbits=input_nbits)
         if flip_band:
             subint = np.fliplr(subint)
-	subint /= scale_fac
-	outfil.append_spectra(subint)
-	pcnt = "%d" % (i*100.0/output_subints)
-	if pcnt != oldpcnt:
-            sys.stdout.write("% 4s%% complete\r" % pcnt)
-            sys.stdout.flush()
+    subint /= scale_fac
+    outfil.append_spectra(subint)
+    pcnt = "%d" % (i*100.0/output_subints)
+    if pcnt != oldpcnt:
+        sys.stdout.write("% 4s%% complete\r" % pcnt)
+        sys.stdout.flush()
 
     print("Done               ")
     outfil.close()
