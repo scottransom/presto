@@ -6,16 +6,18 @@ from builtins import str
 from builtins import range
 from builtins import object
 from sys import argv, exit
-from string import index
-from presto import *
+from presto.presto import read_inffile, binary_velocity, psrepoch
+
 
 class bird(object):
     def __init__(self, freq, width, bary=0):
         self.freq = freq
         self.width = width
         self.bary = bary
+
     def __cmp__(self, other):
         return cmp(self.freq, other.freq)
+
     def __str__(self):
         if self.bary:
             return "B %20.15g  %20.15g\n" % (self.freq, self.width)
@@ -25,7 +27,7 @@ class bird(object):
 def processbirds(filename):
     # Filename should be the rootfilename of the FFT + '.birds'
     try:
-        ii = index(filename, ".birds")
+        ii = filename.index(".birds")
     except ValueError:
         print("\nThe birdie filename must end in '.birds'\n")
         exit(0)

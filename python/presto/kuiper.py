@@ -1,7 +1,7 @@
 from __future__ import print_function
 from builtins import range
 import numpy as num
-import Pgplot
+from presto import Pgplot
 from functools import reduce
 
 def noverk(n,k):

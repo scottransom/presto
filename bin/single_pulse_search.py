@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 from __future__ import print_function
-from builtins import str, zip, range, object
-import bisect, os, sys, getopt, infodata, glob
-import scipy, scipy.signal, scipy.stats, ppgplot
-import numpy as Num
-from presto import rfft, next2_to_n
-from psr_utils import coord_to_string
+from builtins import str, zip
 from optparse import OptionParser
-from Pgplot import *
+import bisect, os, sys, glob
+import scipy, scipy.signal, scipy.stats
+from presto.presto import rfft, next2_to_n
+from presto import infodata
+from presto.Pgplot import *
 
 # This is for Python 2/3 comptibility
 def mycmp(a, b):
@@ -682,7 +681,7 @@ if __name__ == '__main__':
         prof.close()
         # To see the results:
         if (0):
-            from hotshot import stats
+            from presto.hotshot import stats
             s = stats.load("hotshot_edi_stats")
             s.sort_stats("time").print_stats()
     else:

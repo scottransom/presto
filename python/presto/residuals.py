@@ -1,6 +1,9 @@
 from __future__ import print_function
 from builtins import range
 from builtins import object
+import struct
+import numpy as Num
+
 #
 #  From the TEMPO Documentation:
 #    
@@ -15,8 +18,7 @@ from builtins import object
 #    --Timing uncertainty (according to input file)
 #    --Prefit residual (seconds)
 #
-import struct
-import numpy as Num
+
 
 class residuals(object):
     pass

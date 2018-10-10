@@ -11,7 +11,6 @@ from builtins import object
 import sys
 import argparse
 import warnings
-import pickle
 import copy
 
 import numpy as np
@@ -22,8 +21,8 @@ matplotlib.use('agg') # Use a non-interactive backend
 import matplotlib.pyplot as plt
 import scipy.integrate
 
-import filterbank
-import psr_utils
+from presto import filterbank
+from presto import psr_utils
 
 DEBUG = False # Print debugging messages
 

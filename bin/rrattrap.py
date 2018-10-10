@@ -17,19 +17,14 @@ Updated by Chitrang Patel June 10, 2016.
 from __future__ import print_function
 from past.builtins import cmp
 from builtins import str
-from builtins import range
-from builtins import object
-import fileinput
 import numpy as np
 from time import strftime 
-import glob
-import os.path
-import infodata
+from presto import infodata
 import matplotlib.pyplot as plt
-from Pgplot import *
+from presto.Pgplot import *
 import optparse
-import sys
-import singlepulse.spio as spio
+import presto.singlepulse.spio as spio
+
 
 FRACTIONAL_SIGMA = 0.9 # change to 0.8?
 ALL_RANKS_ORDERED = [1,2,0,3,4,5,6]

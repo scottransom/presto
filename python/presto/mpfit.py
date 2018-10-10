@@ -406,7 +406,6 @@ from builtins import range
 from builtins import object
 
 import numpy
-import types
 
 
 #     Original FORTRAN documentation

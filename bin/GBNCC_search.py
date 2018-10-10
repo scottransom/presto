@@ -4,9 +4,10 @@ from builtins import zip
 from builtins import str
 from builtins import range
 from builtins import object
-import glob, os, os.path, shutil, socket, struct, tarfile, stat
-import numpy, sys, presto, time, sigproc, sifting
-import psr_utils as pu
+import glob, os, os.path, shutil, socket, tarfile, stat
+import numpy, sys, time
+from presto import presto
+from presto import sifting
 import astropy.io.fits as pyfits
 
 institution = "NRAO" 
@@ -283,7 +284,7 @@ def main(fits_filenm, workdir, ddplans):
     # Make sure the output directory (and parent directories) exist
     try:
         os.makedirs(job.outputdir)
-        os.chmod(job.outputdir, stat.S_IRWXU | stat.S_IRWXG | S_IROTH | S_IXOTH)
+        os.chmod(job.outputdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
     except: pass
 
     # Make sure the tmp directory (in a tmpfs mount) exists
@@ -490,7 +491,7 @@ def main(fits_filenm, workdir, ddplans):
         if "singlepulse" in psfile:
             os.system("pstoimg -density 200 -antialias -crop a "+psfile)
             try:
-                os.remove(epsfile)
+                os.remove(psfile)
             except: pass
         else:
             os.system("pstoimg -density 200 -antialias -flip cw "+psfile)

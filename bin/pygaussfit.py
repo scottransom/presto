@@ -2,12 +2,14 @@
 from __future__ import print_function
 from builtins import range
 from builtins import object
-from psr_utils import gaussian_profile, span, read_profile
+import sys
+from presto.psr_utils import gaussian_profile, read_profile
 from matplotlib.patches import Rectangle
-from bestprof import bestprof
+from presto.bestprof import bestprof
 import matplotlib.pyplot as plt
 import numpy as Num
-import mpfit, sys
+from presto import mpfit
+
 
 class GaussianSelector(object):
     def __init__(self, ax, profile, errs, profnm, minspanx=None,

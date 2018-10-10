@@ -4,8 +4,12 @@ from builtins import zip
 from builtins import str
 from builtins import range
 from builtins import object
-import glob, os, os.path, shutil, socket, struct, sys, time, tarfile
-import numpy, psr_utils, presto, sifting, sigproc
+import glob, os, os.path, socket, struct, sys, time, tarfile
+import numpy
+from presto import psr_utils
+from presto import presto
+from presto import sifting
+from presto import sigproc
 
 # Calling convention:
 #

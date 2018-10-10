@@ -1,6 +1,5 @@
 from __future__ import print_function
 import numpy as Num
-import scipy.special
 import numpy.fft as FFT
 
 def sinc(xs):
@@ -27,6 +26,7 @@ def kaiser_window(xs, halfwidth, alpha):
             6           Similar to Hanning window
             8.6         Almost identical to the Blackman window 
     """
+    # TODO: (gijs) bug, i0 not defined
     win = i0(alpha*Num.sqrt(1.0-(xs/halfwidth)**2.0))/i0(alpha)
     return Num.where(Num.fabs(xs)<=halfwidth, win, 0.0)
 
@@ -138,10 +138,9 @@ def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
 
 
 if __name__=='__main__':
-    from psr_utils import *
-    from Pgplot import *
+    from presto.psr_utils import *
+    from presto.Pgplot import *
     from numpy.random import normal
-    from scipy import interpolate
     # from spline import *
     
     fwhm = 0.01

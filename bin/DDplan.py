@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import zip
-from builtins import object
 from numpy import *
-from Pgplot import *
+from presto.Pgplot import *
 
 class observation(object):
     def __init__(self, dt, f_ctr, BW, numchan, cDM):

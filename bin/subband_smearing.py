@@ -2,7 +2,7 @@
 from __future__ import print_function
 import matplotlib.pyplot as plt
 import numpy as num
-import psr_utils as pu
+import presto.psr_utils as pu
 
 def subband_smear(DM, subDM, subBW, fctr):
     """

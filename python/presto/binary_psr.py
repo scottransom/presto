@@ -1,8 +1,8 @@
 from __future__ import print_function
 from builtins import object
 import numpy as Num
-import parfile, psr_utils
-from psr_constants import *
+from presto import parfile, psr_utils
+from presto.psr_constants import *
 
 def myasarray(a):
     if type(a) in [type(1.0),type(1),type(1),type(1j)]:

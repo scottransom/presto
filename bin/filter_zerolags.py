@@ -20,7 +20,7 @@ zls = N.fromfile(infilenm, 'f')
 numpts = len(zls)
 
 if (plot):
-    from Pgplot import *
+    from presto.Pgplot import *
     plotxy(zls)
 
 T = numpts*dt

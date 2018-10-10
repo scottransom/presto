@@ -1,22 +1,25 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import range
-import sys, os, random, sigproc
-import psr_utils as pu
-import pyfits
+import sys, os, random
+from astropy.io import fits
+from presto import sigproc
+from presto import psr_utils as pu
 import math as math
+
+
 def guppi_subint_per_file(guppi_filenm):
     """
     guppi_samples_per_file(spigot_filenm,):
         Return the number of subints present in the GUPPI FITs file.
     """
-    fitsfile = pyfits.open(guppi_filenm,memmap=True)
+    fitsfile = fits.open(guppi_filenm,memmap=True)
     nsubint = fitsfile['SUBINT'].header['NAXIS2']
     fitsfile.close()
     return nsubint
  
 def guppi_time_per_subint(guppi_filenm):
-    fitsfile = pyfits.open(guppi_filenm,memmap=True)
+    fitsfile = fits.open(guppi_filenm,memmap=True)
     subint_hdr = fitsfile['SUBINT'].header
     time_subint = subint_hdr['TBIN']*subint_hdr['NSBLK']
     fitsfile.close()

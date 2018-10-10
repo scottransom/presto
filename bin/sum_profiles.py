@@ -2,14 +2,19 @@
 from __future__ import print_function
 from builtins import zip
 from builtins import range
-import struct, getopt, sys, fftfit, psr_utils, os.path, sinc_interp, Pgplot
+import getopt, sys
+import os.path
+from presto import fftfit
+from presto import psr_utils
+from presto import sinc_interp
+from presto import Pgplot
 import numpy as Num
-from infodata import infodata
-from prepfold import pfd
-from polycos import polycos
-from psr_constants import *
+from presto.prepfold import pfd
+from presto.psr_constants import *
+
 
 scopes = {'GBT':'1', 'Arecibo':'3', 'Parkes':'7', 'GMRT': 'r'}
+
 
 def measure_phase(profile, template):
     """
@@ -200,7 +205,7 @@ if __name__ == '__main__':
     pfdfilenms = []
     killsubss = []
     killintss = []
-    for line in file(sys.argv[-1]):
+    for line in open(sys.argv[-1]):
         if not line.startswith("#"):
             sline = line.split()
             pfdfilenm = sline[0]
