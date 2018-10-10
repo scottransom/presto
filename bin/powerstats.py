@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import input
-import numpy as Num
-from events import *
+from presto.events import *
+
 
 def answer_yes(question):
     yes = ['', 'Y', 'y', 'Yes', 'yes', 'YES',
            'T', 't', 'True', 'true', 'TRUE']
     return input('\n'+question) in yes
+
 
 def ask_float(question, default=None):
     while 1:

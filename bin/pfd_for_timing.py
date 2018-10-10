@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import sys, prepfold
+import sys
+from presto import prepfold
+
 
 if len(sys.argv) == 1:
     sys.stderr.write("""usage:  pfd_for_timing.py PFDFILES\n

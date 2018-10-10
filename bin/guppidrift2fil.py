@@ -4,8 +4,8 @@
 from __future__ import print_function
 from builtins import range
 import numpy as np
-import pyfits
-import filterbank
+from astropy.io import fits as pyfits
+from presto import filterbank
 import optparse
 import sys
 import os

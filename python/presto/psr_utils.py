@@ -1,15 +1,17 @@
 from __future__ import print_function
 from builtins import str
 from builtins import range
+import bisect
 import numpy as Num
 import numpy.fft as FFT
-import Pgplot, ppgplot, bisect, sinc_interp, parfile
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
 import scipy.optimize.zeros as zeros
-from psr_constants import *
+from presto import Pgplot, ppgplot, sinc_interp, parfile
+from presto.psr_constants import *
 
 isintorlong = lambda x: type(x) == type(0) or type(x) == type(0)
+
 
 def span(Min, Max, Number):
     """
@@ -18,9 +20,10 @@ def span(Min, Max, Number):
     """
     assert isintorlong(Number)
     if isintorlong(Min) and isintorlong(Max) and \
-       (Max-Min) % (Number-1) != 0:
-        Max = float(Max) # force floating points
-    return Min+(Max-Min)*Num.arange(Number)/(Number-1)
+            (Max - Min) % (Number - 1) != 0:
+        Max = float(Max)  # force floating points
+    return Min + (Max - Min) * Num.arange(Number) / (Number - 1)
+
 
 def distance(width):
     """
@@ -28,9 +31,10 @@ def distance(width):
         Return a 'width' x 'width' Num Python array with each
             point set to the geometric distance from the array's center.
     """
-    x = Num.arange(-width/2.0+0.5, width/2.0+0.5, 1.0)**2
-    x = Num.resize(x, (width,width))
+    x = Num.arange(-width / 2.0 + 0.5, width / 2.0 + 0.5, 1.0) ** 2
+    x = Num.resize(x, (width, width))
     return Num.sqrt(x + Num.transpose(x))
+
 
 def choose_N(orig_N):
     """
@@ -73,6 +77,7 @@ def choose_N(orig_N):
         two_N *= 2
     return min(two_N, new_N)
 
+
 def running_avg(arr, navg):
     """
     running_avg(arr, navg):
@@ -82,6 +87,7 @@ def running_avg(arr, navg):
     a = Num.asarray(arr, 'd')
     a.shape = (len(a) / navg, navg)
     return Num.add.reduce(Num.transpose(a)) / navg
+
 
 def hist(data, bins, range=None, laby="Number", **kwargs):
     """
@@ -97,14 +103,15 @@ def hist(data, bins, range=None, laby="Number", **kwargs):
     Note:  This command also accepts all the keyword arge of plotbinned().
     """
     (ys, lox, dx, out) = Num.histogram(data, bins, range)
-    xs = Num.arange(bins, dtype='d')*dx + lox + 0.5*dx
-    maxy = int(1.1*max(ys))
+    xs = Num.arange(bins, dtype='d') * dx + lox + 0.5 * dx
+    maxy = int(1.1 * max(ys))
     if maxy < max(ys):
         maxy = max(ys) + 1.0
     if 'rangey' not in list(kwargs.keys()):
-        kwargs['rangey']=[0,maxy]
+        kwargs['rangey'] = [0, maxy]
     Pgplot.plotbinned(ys, xs, laby=laby, **kwargs)
     return (xs, ys)
+
 
 def KS_test(data, cumdist, output=0):
     """
@@ -114,16 +121,17 @@ def KS_test(data, cumdist, output=0):
     """
     nn = len(data)
     sdata = Num.sort(Num.asarray(data))
-    D1 = Num.maximum.reduce(Num.absolute(cumdist(sdata)-
-                                         Num.arange(nn, dtype='d')/nn))
-    D2 = Num.maximum.reduce(Num.absolute(cumdist(sdata)-
-                                         Num.arange(1,nn+1, dtype='d')/nn))
+    D1 = Num.maximum.reduce(Num.absolute(cumdist(sdata) -
+                                         Num.arange(nn, dtype='d') / nn))
+    D2 = Num.maximum.reduce(Num.absolute(cumdist(sdata) -
+                                         Num.arange(1, nn + 1, dtype='d') / nn))
     D = max((D1, D2))
-    P = kolmogorov(Num.sqrt(nn)*D)
+    P = kolmogorov(Num.sqrt(nn) * D)
     if (output):
         print("Max distance between the cumulative distributions (D) = %.5g" % D)
         print("Prob the data is from the specified distrbution   (P) = %.3g" % P)
     return (D, P)
+
 
 def weighted_mean(arrin, weights_in, inputmean=None, calcerr=False, sdev=False):
     """
@@ -169,81 +177,91 @@ def weighted_mean(arrin, weights_in, inputmean=None, calcerr=False, sdev=False):
     wtot = weights.sum()
     # user has input a mean value
     if inputmean is None:
-        wmean = ( weights*arr ).sum()/wtot
+        wmean = (weights * arr).sum() / wtot
     else:
-        wmean=float(inputmean)
+        wmean = float(inputmean)
     # how should error be calculated?
     if calcerr:
-        werr2 = ( weights**2 * (arr-wmean)**2 ).sum()
-        werr = Num.sqrt( werr2 )/wtot
+        werr2 = (weights ** 2 * (arr - wmean) ** 2).sum()
+        werr = Num.sqrt(werr2) / wtot
     else:
-        werr = 1.0/Num.sqrt(wtot)
+        werr = 1.0 / Num.sqrt(wtot)
     # should output include the weighted standard deviation?
     if sdev:
-        wvar = ( weights*(arr-wmean)**2 ).sum()/wtot
+        wvar = (weights * (arr - wmean) ** 2).sum() / wtot
         wsdev = Num.sqrt(wvar)
-        return wmean,werr,wsdev
+        return wmean, werr, wsdev
     else:
-        return wmean,werr
+        return wmean, werr
+
 
 def MJD_to_JD(MJD):
     """
     MJD_to_JD(MJD):
        Convert Modified Julian Date (MJD) to Julian Date (JD)
     """
-    return MJD+2400000.5
+    return MJD + 2400000.5
+
 
 def JD_to_MJD(JD):
     """
     JD_to_MJD(JD):
        Convert Julian Date (JD) to Modified Julian Date (MJD)
     """
-    return JD-2400000.5
+    return JD - 2400000.5
+
 
 def MJD_to_Julian_Epoch(MJD):
     """
     MJD_to_Julian_Epoch(MJD):
        Convert Modified Julian Date (MJD) to Julian Epoch
     """
-    return 2000.0 + (MJD-51544.5)/365.25
+    return 2000.0 + (MJD - 51544.5) / 365.25
+
 
 def Julian_Epoch_to_MJD(jepoch):
     """
     Julian_Epoch_to_MJD(jepoch):
        Convert Julian Epoch to Modified Julian Date (MJD)
     """
-    return 51544.5 + (jepoch-2000.0)*365.25
+    return 51544.5 + (jepoch - 2000.0) * 365.25
+
 
 def MJD_to_Besselian_Epoch(MJD):
     """
     MJD_to_Besselian_Epoch(MJD):
        Convert Modified Julian Date (MJD) to Besselian Epoch
     """
-    return 1900.0 + (MJD-15019.81352)/365.242198781
+    return 1900.0 + (MJD - 15019.81352) / 365.242198781
+
 
 def Besselian_Epoch_to_MJD(bepoch):
     """
     Besselian_Epoch_to_MJD(bepoch):
        Convert Besselian Epoch to Modified Julian Date (MJD)
     """
-    return 15019.81352 + (bepoch-1900.0)*365.242198781
+    return 15019.81352 + (bepoch - 1900.0) * 365.242198781
+
 
 def rad_to_dms(rad):
     """
     rad_to_dms(rad):
        Convert radians to degrees, minutes, and seconds of arc.
     """
-    if (rad < 0.0): sign = -1
-    else: sign = 1
+    if (rad < 0.0):
+        sign = -1
+    else:
+        sign = 1
     arc = RADTODEG * Num.fmod(Num.fabs(rad), PI)
     d = int(arc)
     arc = (arc - d) * 60.0
     m = int(arc)
     s = (arc - m) * 60.0
-    if sign==-1 and d==0:
+    if sign == -1 and d == 0:
         return (sign * d, sign * m, sign * s)
     else:
         return (sign * d, m, s)
+
 
 def dms_to_rad(deg, min, sec):
     """
@@ -252,7 +270,7 @@ def dms_to_rad(deg, min, sec):
     """
     if (deg < 0.0):
         sign = -1
-    elif (deg==0.0 and (min < 0.0 or sec < 0.0)):
+    elif (deg == 0.0 and (min < 0.0 or sec < 0.0)):
         sign = -1
     else:
         sign = 1
@@ -260,12 +278,14 @@ def dms_to_rad(deg, min, sec):
            (60.0 * (60.0 * Num.fabs(deg) +
                     Num.fabs(min)) + Num.fabs(sec))
 
+
 def dms_to_deg(deg, min, sec):
     """
     dms_to_deg(deg, min, sec):
        Convert degrees, minutes, and seconds of arc to degrees.
     """
     return RADTODEG * dms_to_rad(deg, min, sec)
+
 
 def rad_to_hms(rad):
     """
@@ -281,16 +301,20 @@ def rad_to_hms(rad):
     s = (arc - m) * 60.0
     return (h, m, s)
 
+
 def hms_to_rad(hour, min, sec):
     """
     hms_to_rad(hour, min, sec):
        Convert hours, minutes, and seconds of arc to radians
     """
-    if (hour < 0.0): sign = -1
-    else: sign = 1
+    if (hour < 0.0):
+        sign = -1
+    else:
+        sign = 1
     return sign * SECTORAD * \
            (60.0 * (60.0 * Num.fabs(hour) +
                     Num.fabs(min)) + Num.fabs(sec))
+
 
 def hms_to_hrs(hour, min, sec):
     """
@@ -298,6 +322,7 @@ def hms_to_hrs(hour, min, sec):
        Convert hours, minutes, and seconds of arc to hours.
     """
     return RADTOHRS * hms_to_rad(hour, min, sec)
+
 
 def coord_to_string(h_or_d, m, s):
     """
@@ -308,14 +333,15 @@ def coord_to_string(h_or_d, m, s):
     retstr = ""
     if h_or_d < 0:
         retstr = "-"
-    elif abs(h_or_d)==0:
+    elif abs(h_or_d) == 0:
         if (m < 0.0) or (s < 0.0):
             retstr = "-"
     h_or_d, m, s = abs(h_or_d), abs(m), abs(s)
     if (s >= 9.9995):
-        return retstr+"%.2d:%.2d:%.4f" % (h_or_d, m, s)
+        return retstr + "%.2d:%.2d:%.4f" % (h_or_d, m, s)
     else:
-        return retstr+"%.2d:%.2d:0%.4f" % (h_or_d, m, s)
+        return retstr + "%.2d:%.2d:0%.4f" % (h_or_d, m, s)
+
 
 def ra_to_rad(ra_string):
     """
@@ -327,6 +353,7 @@ def ra_to_rad(ra_string):
     h, m, s = ra_string.split(":")
     return hms_to_rad(int(h), int(m), float(s))
 
+
 def dec_to_rad(dec_string):
     """
     dec_to_rad(dec_string):
@@ -335,9 +362,10 @@ def dec_to_rad(dec_string):
        radians.
     """
     d, m, s = dec_string.split(":")
-    if "-" in d and int(d)==0:
-        m, s = '-'+m, '-'+s
+    if "-" in d and int(d) == 0:
+        m, s = '-' + m, '-' + s
     return dms_to_rad(int(d), int(m), float(s))
+
 
 def delta_m(flux_factor):
     """
@@ -345,7 +373,8 @@ def delta_m(flux_factor):
         Return the change in magnitudes caused by a change
             in flux of flux_factor.
     """
-    return -2.5*Num.log10(flux_factor)
+    return -2.5 * Num.log10(flux_factor)
+
 
 def flux_factor(delta_m):
     """
@@ -353,7 +382,8 @@ def flux_factor(delta_m):
         Return the change in flux caused by a change
             in magnitude of delta_m magnitudes
     """
-    return 10.0**(delta_m/-2.5)
+    return 10.0 ** (delta_m / -2.5)
+
 
 def distance_modulus_to_distance(dm, absorption=0.0):
     """
@@ -361,7 +391,8 @@ def distance_modulus_to_distance(dm, absorption=0.0):
         Return the distance (kpc) given a distance modulus dm and
             an optional absorption.
     """
-    return 10.0**(((dm-absorption)+5.0)/5.0)/1000.0
+    return 10.0 ** (((dm - absorption) + 5.0) / 5.0) / 1000.0
+
 
 def distance_to_distance_modulus(d, absorption=0.0):
     """
@@ -369,7 +400,8 @@ def distance_to_distance_modulus(d, absorption=0.0):
         Return the distance modulus given a distance d and
             an optional absorption.
     """
-    return 5.0*Num.log10(d*1000.0)-5.0+absorption
+    return 5.0 * Num.log10(d * 1000.0) - 5.0 + absorption
+
 
 def true_anomaly(E, ecc):
     """
@@ -377,7 +409,8 @@ def true_anomaly(E, ecc):
         Return the True Anomaly (in radians) given the Eccentric anomaly
             (E in radians) and the eccentricity (ecc)
     """
-    return 2.0*Num.arctan(Num.sqrt((1.0+ecc)/(1.0-ecc))*Num.tan(E/2.0))
+    return 2.0 * Num.arctan(Num.sqrt((1.0 + ecc) / (1.0 - ecc)) * Num.tan(E / 2.0))
+
 
 def mass_funct(pb, x):
     """
@@ -387,7 +420,8 @@ def mass_funct(pb, x):
             'x' is the projected semi-major axis in lt-sec.
     """
     pbs = pb * 86400.0
-    return 8015123.37129 * x**3.0 / (pbs * pbs)
+    return 8015123.37129 * x ** 3.0 / (pbs * pbs)
+
 
 def mass_funct2(mp, mc, i):
     """
@@ -398,7 +432,8 @@ def mass_funct2(mp, mc, i):
             'i' is the orbital inclination (rad).
         Note:  An 'average' orbit has cos(i) = 0.5, or i = 60 deg
     """
-    return (mc * Num.sin(i))**3.0 / (mc + mp)**2.0
+    return (mc * Num.sin(i)) ** 3.0 / (mc + mp) ** 2.0
+
 
 def asini_c(pb, mf):
     """
@@ -407,7 +442,8 @@ def asini_c(pb, mf):
             'pb' is the binary period in sec.
             'mf' is the mass function of the orbit.
     """
-    return (mf * pb * pb / 8015123.37129)**(1.0 / 3.0)
+    return (mf * pb * pb / 8015123.37129) ** (1.0 / 3.0)
+
 
 def ELL1_check(par_file, output=False):
     """
@@ -418,7 +454,7 @@ def ELL1_check(par_file, output=False):
     """
     psr = parfile.psr_par(par_file)
     try:
-        lhs = psr.A1 * psr.E**2.0 * 1e6
+        lhs = psr.A1 * psr.E ** 2.0 * 1e6
     except:
         if output:
             print("Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?")
@@ -431,8 +467,8 @@ def ELL1_check(par_file, output=False):
         return
     if output:
         print("Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:")
-        print("     asini/c * ecc**2 = %8.3g us"%lhs)
-        print("  TRES / sqrt(# TOAs) = %8.3g us"%rhs)
+        print("     asini/c * ecc**2 = %8.3g us" % lhs)
+        print("  TRES / sqrt(# TOAs) = %8.3g us" % rhs)
     if lhs * 50.0 < rhs:
         if output:
             print("Should be fine.")
@@ -446,6 +482,7 @@ def ELL1_check(par_file, output=False):
             print("Should probably use BT or DD instead.")
         return False
 
+
 def accel_to_z(accel, T, reffreq, harm=1):
     """
     accel_to_z(accel, T, reffreq, harm=1):
@@ -455,6 +492,7 @@ def accel_to_z(accel, T, reffreq, harm=1):
             'accel'.  You can specify the harmonic number in 'harm'.
     """
     return accel * harm * reffreq * T * T / SOL
+
 
 def z_to_accel(z, T, reffreq, harm=1):
     """
@@ -476,17 +514,18 @@ def bins_to_accel(z, T, f=[1.0, 1000.0], device="/XWIN"):
         an observation of length 'T'.
     """
     fs = span(Num.log10(f[0]), Num.log10(f[1]), 1000)
-    accels = z_to_accel(z, T, 10.0**fs)
+    accels = z_to_accel(z, T, 10.0 ** fs)
     if (device):
         Pgplot.plotxy(Num.log10(accels), fs, logx=1, logy=1,
                       labx="Frequency (Hz)",
                       laby=r"Acceleration (m/s\u2\d)", device=device)
-        ppgplot.pgmtxt("T", -2.0, 0.75, 0.0, "T = %.0f sec"%T)
-        ppgplot.pgmtxt("T", -3.5, 0.75, 0.0, r"r\B\u\.\d = %.1f bins"%z)
+        ppgplot.pgmtxt("T", -2.0, 0.75, 0.0, "T = %.0f sec" % T)
+        ppgplot.pgmtxt("T", -3.5, 0.75, 0.0, r"r\B\u\.\d = %.1f bins" % z)
         if (device != '/XWIN'):
             Pgplot.closeplot()
     else:
         return accels
+
 
 def pulsar_mass(pb, x, mc, inc):
     """
@@ -499,9 +538,12 @@ def pulsar_mass(pb, x, mc, inc):
             'mc' is the mass of the companion in solar mass units.
     """
     massfunct = mass_funct(pb, x)
-    def localmf(mp, mc=mc, mf=massfunct, i=inc*DEGTORAD):
+
+    def localmf(mp, mc=mc, mf=massfunct, i=inc * DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
+
     return zeros.bisect(localmf, 0.0, 1000.0)
+
 
 def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
@@ -514,9 +556,12 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.4):
             'mpsr' is the mass of the pulsar in solar mass units.
     """
     massfunct = mass_funct(pb, x)
-    def localmf(mc, mp=mpsr, mf=massfunct, i=inc*DEGTORAD):
+
+    def localmf(mc, mp=mpsr, mf=massfunct, i=inc * DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
+
     return zeros.bisect(localmf, 0.0, 1000.0)
+
 
 def companion_mass_limit(pb, x, mpsr=1.4):
     """
@@ -530,15 +575,17 @@ def companion_mass_limit(pb, x, mpsr=1.4):
     """
     return companion_mass(pb, x, inc=90.0, mpsr=mpsr)
 
+
 def OMDOT(porb, e, Mp, Mc):
     """
     OMDOT(porb, e, Mp, Mc):
         Return the predicted advance of periaston (deg/yr) given the
         orbital period (days), eccentricity, and pulsar and companion masses.
     """
-    return 3.0 * (porb*86400.0/TWOPI)**(-5.0/3.0) * \
-           (Tsun*(Mp+Mc))**(2.0/3.0) / (1.0-e**2.0) * \
+    return 3.0 * (porb * 86400.0 / TWOPI) ** (-5.0 / 3.0) * \
+           (Tsun * (Mp + Mc)) ** (2.0 / 3.0) / (1.0 - e ** 2.0) * \
            RADTODEG * SECPERJULYR
+
 
 def GAMMA(porb, e, Mp, Mc):
     """
@@ -546,8 +593,9 @@ def GAMMA(porb, e, Mp, Mc):
         Return the predicted value of relativistic gamma (sec) given the
         orbital period (days), eccentricity, and pulsar and companion masses.
     """
-    return e * (porb*86400.0/TWOPI)**(1.0/3.0) * Tsun**(2.0/3.0) * \
-           (Mp+Mc)**(-4.0/3.0) * Mc * (Mp+2.0*Mc)
+    return e * (porb * 86400.0 / TWOPI) ** (1.0 / 3.0) * Tsun ** (2.0 / 3.0) * \
+           (Mp + Mc) ** (-4.0 / 3.0) * Mc * (Mp + 2.0 * Mc)
+
 
 def PBDOT(porb, e, Mp, Mc):
     """
@@ -555,10 +603,11 @@ def PBDOT(porb, e, Mp, Mc):
         Return the predicted orbital period derivative (s/s) given the
         orbital period (s), eccentricity, and pulsar and companion masses.
     """
-    return -192.0*PI/5.0 * (porb*86400.0/TWOPI)**(-5.0/3.0) * \
-           (1.0 + 73.0/24.0*e**2.0 + 37.0/96.0*e**4.0) * \
-           (1.0-e**2.0)**(-7.0/2.0) * Tsun**(5.0/3.0) * \
-           Mp * Mc * (Mp+Mc)**(-1.0/3.0)
+    return -192.0 * PI / 5.0 * (porb * 86400.0 / TWOPI) ** (-5.0 / 3.0) * \
+           (1.0 + 73.0 / 24.0 * e ** 2.0 + 37.0 / 96.0 * e ** 4.0) * \
+           (1.0 - e ** 2.0) ** (-7.0 / 2.0) * Tsun ** (5.0 / 3.0) * \
+           Mp * Mc * (Mp + Mc) ** (-1.0 / 3.0)
+
 
 def OMDOT_to_Mtot(OMDOT, porb, e):
     """
@@ -566,8 +615,9 @@ def OMDOT_to_Mtot(OMDOT, porb, e):
         Return the total mass (in solar units) of a system given an advance
         of periastron (OMDOT) in deg/yr.  The orbital period should be in days.
     """
-    wd = OMDOT/SECPERJULYR*DEGTORAD # rad/s
-    return (wd/3.0*(1.0-e*e)*(porb*SECPERDAY/TWOPI)**(5.0/3.0))**(3.0/2.0)/Tsun
+    wd = OMDOT / SECPERJULYR * DEGTORAD  # rad/s
+    return (wd / 3.0 * (1.0 - e * e) * (porb * SECPERDAY / TWOPI) ** (5.0 / 3.0)) ** (3.0 / 2.0) / Tsun
+
 
 def GAMMA_to_Mc(gamma, porb, e, Mp):
     """
@@ -576,9 +626,12 @@ def GAMMA_to_Mc(gamma, porb, e, Mp):
         the eccentricity and the pulsar mass in solar units, return the
         predicted companion mass.
     """
+
     def funct(mc, mp=Mp, porb=porb, e=e, gamma=gamma):
         return GAMMA(porb, e, mp, mc) - gamma
+
     return zeros.bisect(funct, 0.01, 20.0)
+
 
 def shklovskii_effect(pm, D):
     """
@@ -588,9 +641,10 @@ def shklovskii_effect(pm, D):
         and the distance (D) in kpc.  Note:  What is returned is a_pm/C,
         or equivalently, Pdot_pm/P.
     """
-    return (pm/1000.0*ARCSECTORAD/SECPERJULYR)**2.0 * KMPERKPC*D / (C/1000.0)
+    return (pm / 1000.0 * ARCSECTORAD / SECPERJULYR) ** 2.0 * KMPERKPC * D / (C / 1000.0)
 
-def galactic_accel_simple(l, b, D, v_o=240.0, R_o = 8.34):
+
+def galactic_accel_simple(l, b, D, v_o=240.0, R_o=8.34):
     """
     galactic_accel_simple(l, b, D, v_o=240.0, R_o = 8.34):
         Return the approximate projected acceleration/c (in s^-1)
@@ -602,12 +656,13 @@ def galactic_accel_simple(l, b, D, v_o=240.0, R_o = 8.34):
         and D is the distance in kpc.  This is eqn 2.4 of Phinney 1992.
         The default v_o and R_o values are from Reid et al 2014.
     """
-    A_sun = v_o*v_o / (C/1000.0 * R_o*KMPERKPC)
-    d = D/R_o
-    cbcl = Num.cos(b*DEGTORAD) * Num.cos(l*DEGTORAD)
-    return -A_sun * (cbcl + (d - cbcl) / (1.0 + d*d - 2.0*d*cbcl))
+    A_sun = v_o * v_o / (C / 1000.0 * R_o * KMPERKPC)
+    d = D / R_o
+    cbcl = Num.cos(b * DEGTORAD) * Num.cos(l * DEGTORAD)
+    return -A_sun * (cbcl + (d - cbcl) / (1.0 + d * d - 2.0 * d * cbcl))
 
-def galactic_accel(l, b, D, v_o=240.0, R_o = 8.34):
+
+def galactic_accel(l, b, D, v_o=240.0, R_o=8.34):
     """
     galactic_accel(l, b, D, v_o=240.0, R_o = 8.34):
         Return the approximate projected acceleration/c (in s^-1)
@@ -618,12 +673,13 @@ def galactic_accel(l, b, D, v_o=240.0, R_o = 8.34):
         and D is the distance in kpc.  This is eqn 5 of Nice & Taylor 1995.
         The default v_o and R_o values are from Reid et al 2014.
     """
-    A_sun = v_o*v_o / (C/1000.0 * R_o*KMPERKPC)
-    cb = Num.cos(b*DEGTORAD)
-    cl = Num.cos(l*DEGTORAD)
-    sl = Num.sin(l*DEGTORAD)
-    beta = D/R_o * cb - cl
-    return -A_sun * cb * (cl + beta / (sl**2 + beta**2))
+    A_sun = v_o * v_o / (C / 1000.0 * R_o * KMPERKPC)
+    cb = Num.cos(b * DEGTORAD)
+    cl = Num.cos(l * DEGTORAD)
+    sl = Num.sin(l * DEGTORAD)
+    beta = D / R_o * cb - cl
+    return -A_sun * cb * (cl + beta / (sl ** 2 + beta ** 2))
+
 
 def gal_z_accel(l, b, D):
     """
@@ -635,10 +691,11 @@ def gal_z_accel(l, b, D):
         the galactic longitude and latitude (in deg) respectively, and D
         is the distance in kpc.  This is eqn 3+4 of Nice & Taylor 1995.
     """
-    sb = Num.sin(b*DEGTORAD)
+    sb = Num.sin(b * DEGTORAD)
     z = D * sb
-    az = 1.08e-19 * (1.25 * z / Num.sqrt(z**2 + 0.0324) + 0.58 * z)
+    az = 1.08e-19 * (1.25 * z / Num.sqrt(z ** 2 + 0.0324) + 0.58 * z)
     return az * sb
+
 
 def beam_halfwidth(obs_freq, dish_diam):
     """
@@ -647,7 +704,8 @@ def beam_halfwidth(obs_freq, dish_diam):
             'obs_freq' = the observing frqeuency in MHz
             'dish_diam' = the telescope diameter in m
     """
-    return 1.2*SOL/(obs_freq*10.0**6)/dish_diam*RADTODEG*60/2
+    return 1.2 * SOL / (obs_freq * 10.0 ** 6) / dish_diam * RADTODEG * 60 / 2
+
 
 def limiting_flux_dens(Ttot, G, BW, T, P=0.01, W=0.05, polar=2, factor=15.0):
     """
@@ -669,7 +727,8 @@ def limiting_flux_dens(Ttot, G, BW, T, P=0.01, W=0.05, polar=2, factor=15.0):
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
     w = W * P
-    return Num.sqrt(w/((P-w)*polar*BW*T))*factor*Ttot/G
+    return Num.sqrt(w / ((P - w) * polar * BW * T)) * factor * Ttot / G
+
 
 def dm_info(dm=None, dmstep=1.0, freq=1390.0, numchan=512, chanwidth=0.5):
     """
@@ -688,20 +747,22 @@ def dm_info(dm=None, dmstep=1.0, freq=1390.0, numchan=512, chanwidth=0.5):
         print(" Smearing per chan (ms) = %.3g" % \
               (1000.0 * dm_smear(dm, chanwidth, freq)))
 
+
 def best_dm_step(maxsmear=0.1, dt=0.00080, dm=0.0, freq=1390.0, numchan=512, chanwidth=0.5):
     """
     best_dm_step(maxsmear=0.1, dt=0.00080, dm=0.0, freq=1390.0, numchan=512, chanwidth=0.5):
         Return the required DM step to keep the total smearing below 'maxsmear' (in ms).
     """
     BW = chanwidth * numchan
-    tau_tot = maxsmear/1000.0
+    tau_tot = maxsmear / 1000.0
     tau_chan = dm_smear(dm, chanwidth, freq)
     tau_samp = dt
-    if (tau_tot**2.0 < (tau_chan**2.0+tau_samp**2.0)):
+    if (tau_tot ** 2.0 < (tau_chan ** 2.0 + tau_samp ** 2.0)):
         print("The requested total smearing is smaller than one or more of the components.")
         return 0.0
     else:
-        return 0.0001205*freq**3.0*2.0/BW*Num.sqrt(tau_tot**2.0-tau_chan**2.0-tau_samp**2.0)
+        return 0.0001205 * freq ** 3.0 * 2.0 / BW * Num.sqrt(tau_tot ** 2.0 - tau_chan ** 2.0 - tau_samp ** 2.0)
+
 
 def dm_smear(dm, BW, center_freq):
     """
@@ -711,6 +772,7 @@ def dm_smear(dm, BW, center_freq):
     """
     return dm * BW / (0.0001205 * center_freq * center_freq * center_freq)
 
+
 def diagonal_DM(dt, chanBW, center_freq):
     """
     diagonal_DM(dt, chanBW, center_freq):
@@ -718,6 +780,7 @@ def diagonal_DM(dt, chanBW, center_freq):
         one channel is equal to the sample time.
     """
     return (0.0001205 * center_freq * center_freq * center_freq) * dt / chanBW
+
 
 def pulse_broadening(DM, f_ctr):
     """
@@ -727,8 +790,9 @@ def pulse_broadening(DM, f_ctr):
         'f_ctr' should be in MHz.  The approximate error is 0.65 in log(tau).
     """
     logDM = Num.log10(DM)
-    return 10.0**(-3.59 + 0.129*logDM + 1.02*logDM**2.0 -
-                  4.4*Num.log10(f_ctr/1000.0))/1000.0
+    return 10.0 ** (-3.59 + 0.129 * logDM + 1.02 * logDM ** 2.0 -
+                    4.4 * Num.log10(f_ctr / 1000.0)) / 1000.0
+
 
 def rrat_period(times, numperiods=20, output=True):
     """
@@ -740,9 +804,9 @@ def rrat_period(times, numperiods=20, output=True):
         print some diagnostic information
     """
     ts = Num.asarray(sorted(times))
-    ps = (ts[1]-ts[0])/Num.arange(1, numperiods+1)
+    ps = (ts[1] - ts[0]) / Num.arange(1, numperiods + 1)
     dts = Num.diff(ts)
-    xs = dts / ps[:,Num.newaxis]
+    xs = dts / ps[:, Num.newaxis]
     metric = Num.sum(Num.fabs((xs - xs.round())), axis=1)
     pnum = metric.argmin()
     numrots = xs.round()[pnum].sum()
@@ -756,13 +820,15 @@ def rrat_period(times, numperiods=20, output=True):
         print(dts / p)
     return p
 
+
 def guess_DMstep(DM, dt, BW, f_ctr):
     """
     guess_DMstep(DM, dt, BW, f_ctr):
         Choose a reasonable DMstep by setting the maximum smearing across the
         'BW' to equal the sampling time 'dt'.
     """
-    return dt*0.0001205*f_ctr**3.0/(0.5*BW)
+    return dt * 0.0001205 * f_ctr ** 3.0 / (0.5 * BW)
+
 
 def delay_from_DM(DM, freq_emitted):
     """
@@ -770,14 +836,15 @@ def delay_from_DM(DM, freq_emitted):
     a Dispersion Measure (DM) in cm-3 pc, and the emitted
     frequency (freq_emitted) of the pulsar in MHz.
     """
-    if (type(freq_emitted)==type(0.0)):
+    if (type(freq_emitted) == type(0.0)):
         if (freq_emitted > 0.0):
-            return DM/(0.000241*freq_emitted*freq_emitted)
+            return DM / (0.000241 * freq_emitted * freq_emitted)
         else:
             return 0.0
     else:
         return Num.where(freq_emitted > 0.0,
-                         DM/(0.000241*freq_emitted*freq_emitted), 0.0)
+                         DM / (0.000241 * freq_emitted * freq_emitted), 0.0)
+
 
 def delay_from_foffsets(df, dfd, dfdd, times):
     """
@@ -786,11 +853,12 @@ def delay_from_foffsets(df, dfd, dfdd, times):
     at the given times in seconds.
     """
     f_delays = df * times
-    fd_delays = dfd * times**2 / 2.0
-    fdd_delays = dfdd * times**3 / 6.0
+    fd_delays = dfd * times ** 2 / 2.0
+    fdd_delays = dfdd * times ** 3 / 6.0
     return (f_delays + fd_delays + fdd_delays)
 
-def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
+
+def smear_plot(dm=[1.0, 1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
                numchan=512, numsub=32, chanwidth=0.5, dt=0.000125,
                device='/xwin'):
     """
@@ -806,7 +874,7 @@ def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
     maxDMerror = 0.5 * dmstep
     maxsubDMerror = 0.5 * subdmstep
     ldms = span(Num.log10(dm[0]), Num.log10(dm[1]), numpts)
-    dms = 10.0**ldms
+    dms = 10.0 ** ldms
     # Smearing from sample rate
     dts = Num.zeros(numpts) + 1000.0 * dt
     # Smearing due to the intrinsic channel width
@@ -817,21 +885,21 @@ def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
     # Smearing in each subband due to max DM mismatch
     subband_smear = Num.zeros(numpts) + \
                     1000.0 * dm_smear(maxsubDMerror, subBW, freq)
-    total_smear = Num.sqrt(dts**2.0 + chan_smear**2.0 +
-                           subband_smear**2.0 + BW_smear**2.0)
+    total_smear = Num.sqrt(dts ** 2.0 + chan_smear ** 2.0 +
+                           subband_smear ** 2.0 + BW_smear ** 2.0)
     maxval = Num.log10(2.0 * max(total_smear))
     minval = Num.log10(0.5 * min([min(dts), min(chan_smear),
-                                    min(BW_smear), min(subband_smear)]))
+                                  min(BW_smear), min(subband_smear)]))
     Pgplot.plotxy(Num.log10(total_smear), ldms, rangey=[minval, maxval],
                   logx=1, logy=1, labx="Dispersion Measure",
                   laby="Smearing (ms)", device=device)
     ppgplot.pgsch(0.8)
-    ppgplot.pgmtxt("t", 1.5, 1.0/12.0, 0.5, r"\(2156)\dcenter\u = %gMHz" % freq)
-    ppgplot.pgmtxt("t", 1.5, 3.0/12.0, 0.5, r"N\dchan\u = %d" % numchan)
-    ppgplot.pgmtxt("t", 1.5, 5.0/12.0, 0.5, r"N\dsub\u = %d" % numsub)
-    ppgplot.pgmtxt("t", 1.5, 7.0/12.0, 0.5, r"BW\dchan\u = %gMHz" % chanwidth)
-    ppgplot.pgmtxt("t", 1.5, 9.0/12.0, 0.5, r"\gDDM = %g" % dmstep)
-    ppgplot.pgmtxt("t", 1.5, 11.0/12.0, 0.5, r"\gDDM\dsub\u = %g" % subdmstep)
+    ppgplot.pgmtxt("t", 1.5, 1.0 / 12.0, 0.5, r"\(2156)\dcenter\u = %gMHz" % freq)
+    ppgplot.pgmtxt("t", 1.5, 3.0 / 12.0, 0.5, r"N\dchan\u = %d" % numchan)
+    ppgplot.pgmtxt("t", 1.5, 5.0 / 12.0, 0.5, r"N\dsub\u = %d" % numsub)
+    ppgplot.pgmtxt("t", 1.5, 7.0 / 12.0, 0.5, r"BW\dchan\u = %gMHz" % chanwidth)
+    ppgplot.pgmtxt("t", 1.5, 9.0 / 12.0, 0.5, r"\gDDM = %g" % dmstep)
+    ppgplot.pgmtxt("t", 1.5, 11.0 / 12.0, 0.5, r"\gDDM\dsub\u = %g" % subdmstep)
     ppgplot.pgsch(1.0)
     ppgplot.pgmtxt("b", -7.5, 0.95, 1.0, "Total")
     Pgplot.plotxy(Num.log10(dts), ldms, color="green",
@@ -850,7 +918,7 @@ def smear_plot(dm=[1.0,1000.0], dmstep=1.0, subdmstep=10.0, freq=1390.0,
 
 
 def search_sensitivity(Ttot, G, BW, chan, freq, T, dm, ddm, dt, Pmin=0.001,
-                        Pmax=1.0, W=0.1, polar=2, factor=15.0, pts=1000):
+                       Pmax=1.0, W=0.1, polar=2, factor=15.0, pts=1000):
     """
     (periods, S_min) = search_sensitivity(Ttot, G, BW, chan, freq, T, dm,
              ddm, dt, Pmin=0.001, Pmax=1.0, W=0.1, polar=2, factor=15.0, pts=1000):
@@ -878,12 +946,13 @@ def search_sensitivity(Ttot, G, BW, chan, freq, T, dm, ddm, dt, Pmin=0.001,
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
     periods = span(Pmin, Pmax, pts)
-    widths = Num.sqrt((W * periods)**2.0 +
-                      dm_smear(dm, BW/chan, freq)**2.0 + \
-                      dm_smear(ddm/2.0, BW, freq)**2.0 + \
-                      dt**2.0) / periods
+    widths = Num.sqrt((W * periods) ** 2.0 +
+                      dm_smear(dm, BW / chan, freq) ** 2.0 + \
+                      dm_smear(ddm / 2.0, BW, freq) ** 2.0 + \
+                      dt ** 2.0) / periods
     return (periods, limiting_flux_dens(Ttot, G, BW, T, periods, widths,
                                         polar=polar, factor=factor))
+
 
 def smin_noise(Ttot, G, BW, dt):
     """
@@ -900,6 +969,7 @@ def smin_noise(Ttot, G, BW, dt):
     """
     return Ttot / (G * Num.sqrt(2 * BW * dt))
 
+
 def read_profile(filenm, normalize=0):
     """
     read_profile(filenm, normalize=0):
@@ -910,13 +980,16 @@ def read_profile(filenm, normalize=0):
     """
     prof = []
     for line in open(filenm):
-        if line.startswith("#"): continue
-        else: prof.append(float(line.split()[-1]))
+        if line.startswith("#"):
+            continue
+        else:
+            prof.append(float(line.split()[-1]))
     prof = Num.asarray(prof)
     if normalize:
         prof -= min(prof)
         prof /= max(prof)
     return prof
+
 
 def calc_phs(MJD, refMJD, *args):
     """
@@ -926,13 +999,14 @@ def calc_phs(MJD, refMJD, *args):
             optional freq derivs (f1...) as ordered in the *args
             list (e.g. [f0, f1, f2, ...]).
     """
-    t = (MJD-refMJD)*SECPERDAY
-    n = len(args) # polynomial order
+    t = (MJD - refMJD) * SECPERDAY
+    n = len(args)  # polynomial order
     nargs = Num.concatenate(([0.0], args))
     taylor_coeffs = Num.concatenate(([0.0],
-                                     Num.cumprod(1.0/(Num.arange(float(n))+1.0))))
+                                     Num.cumprod(1.0 / (Num.arange(float(n)) + 1.0))))
     p = Num.poly1d((taylor_coeffs * nargs)[::-1])
     return Num.fmod(p(t), 1.0)
+
 
 def calc_freq(MJD, refMJD, *args):
     """
@@ -942,12 +1016,13 @@ def calc_freq(MJD, refMJD, *args):
             optional freq derivs (f1...) as ordered in the *args
             list (e.g. [f0, f1, f2, ...]).
     """
-    t = (MJD-refMJD)*SECPERDAY
-    n = len(args) # polynomial order
+    t = (MJD - refMJD) * SECPERDAY
+    n = len(args)  # polynomial order
     taylor_coeffs = Num.concatenate(([1.0],
-                                     Num.cumprod(1.0/(Num.arange(float(n-1))+1.0))))
+                                     Num.cumprod(1.0 / (Num.arange(float(n - 1)) + 1.0))))
     p = Num.poly1d((taylor_coeffs * args)[::-1])
     return p(t)
+
 
 def calc_t0(MJD, refMJD, *args):
     """
@@ -957,9 +1032,10 @@ def calc_t0(MJD, refMJD, *args):
     """
     phs = calc_phs(MJD, refMJD, *args)
     p = 1.0 / calc_freq(MJD, refMJD, *args)
-    return MJD - phs*p/SECPERDAY
+    return MJD - phs * p / SECPERDAY
 
-def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' '*13):
+
+def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' ' * 13):
     """
     Princeton Format
 
@@ -972,13 +1048,14 @@ def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' '*
     69-78   DM correction (pc cm^-3)
     """
     # Splice together the fractional and integer MJDs
-    toa = "%5d"%int(toa_MJDi) + ("%.13f"%toa_MJDf)[1:]
-    if dm!=0.0:
-        print(obs+" %13s %8.3f %s %8.2f              %9.4f" % \
+    toa = "%5d" % int(toa_MJDi) + ("%.13f" % toa_MJDf)[1:]
+    if dm != 0.0:
+        print(obs + " %13s %8.3f %s %8.2f              %9.4f" % \
               (name, freq, toa, toaerr, dm))
     else:
-        print(obs+" %13s %8.3f %s %8.2f" % \
+        print(obs + " %13s %8.3f %s %8.2f" % \
               (name, freq, toa, toaerr))
+
 
 def write_tempo2_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name='unk', flags=""):
     """
@@ -986,10 +1063,11 @@ def write_tempo2_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name='unk', 
     Note that first line of file should be "FORMAT 1"
     TOA format is "file freq sat satErr siteID <flags>"
     """
-    toa = "%5d"%int(toa_MJDi) + ("%.13f"%toa_MJDf)[1:]
+    toa = "%5d" % int(toa_MJDi) + ("%.13f" % toa_MJDf)[1:]
     if dm != 0.0:
         flags += "-dm %.4f" % (dm,)
-    print("%s %f %s %.2f %s %s" % (name,freq,toa,toaerr,obs,flags))
+    print("%s %f %s %.2f %s %s" % (name, freq, toa, toaerr, obs, flags))
+
 
 def rotate(arr, bins):
     """
@@ -997,10 +1075,11 @@ def rotate(arr, bins):
         Return an array rotated by 'bins' places to the left
     """
     bins = bins % len(arr)
-    if bins==0:
+    if bins == 0:
         return arr
     else:
         return Num.concatenate((arr[bins:], arr[:bins]))
+
 
 def interp_rotate(arr, bins, zoomfact=10):
     """
@@ -1010,10 +1089,11 @@ def interp_rotate(arr, bins, zoomfact=10):
             whole-number of interpolated bins.  The resulting vector will
             have the same length as the oiginal.
     """
-    newlen = len(arr)*zoomfact
-    rotbins = int(Num.floor(bins*zoomfact+0.5)) % newlen
+    newlen = len(arr) * zoomfact
+    rotbins = int(Num.floor(bins * zoomfact + 0.5)) % newlen
     newarr = sinc_interp.periodic_interp(arr, zoomfact)
     return rotate(newarr, rotbins)[::zoomfact]
+
 
 def fft_rotate(arr, bins):
     """
@@ -1024,9 +1104,10 @@ def fft_rotate(arr, bins):
             the same length as the original.
     """
     arr = Num.asarray(arr)
-    freqs = Num.arange(arr.size/2+1, dtype=Num.float)
+    freqs = Num.arange(arr.size / 2 + 1, dtype=Num.float)
     phasor = Num.exp(complex(0.0, TWOPI) * freqs * bins / float(arr.size))
     return Num.fft.irfft(phasor * Num.fft.rfft(arr), arr.size)
+
 
 def corr(profile, template):
     """
@@ -1036,6 +1117,7 @@ def corr(profile, template):
     return FFT.irfft(FFT.rfft(template) * Num.conjugate(FFT.rfft(profile)),
                      profile.size)
 
+
 def autocorr(x):
     """
     autocorr(x):
@@ -1044,8 +1126,9 @@ def autocorr(x):
         points are symmetric (corresponding to negative lags).
     """
     fftx = FFT.rfft(x)
-    acf = FFT.irfft(fftx * Num.conjugate(fftx), x.size)[:len(x)/2+1]
+    acf = FFT.irfft(fftx * Num.conjugate(fftx), x.size)[:len(x) / 2 + 1]
     return acf / acf[0]
+
 
 def maxphase(profile, template):
     """
@@ -1055,21 +1138,23 @@ def maxphase(profile, template):
     """
     return float(Num.argmax(corr(profile, template))) / len(profile)
 
+
 def linear_interpolate(vector, zoom=10):
     """
     linear_interpolate(vector, zoom=10):
         Linearly interpolate 'vector' by a factor of 'zoom'.
     """
     n = len(vector)
-    ivect = Num.zeros(zoom*n, dtype='d')
+    ivect = Num.zeros(zoom * n, dtype='d')
     nvect = Num.concatenate((vector, vector[:1]))
-    ivals = Num.arange(zoom, dtype='d')/zoom
+    ivals = Num.arange(zoom, dtype='d') / zoom
     loy = nvect[0]
     for ii in range(n):
-        hiy = nvect[ii+1]
-        ivect[ii*zoom:(ii+1)*zoom] = ivals*(hiy-loy) + loy
+        hiy = nvect[ii + 1]
+        ivect[ii * zoom:(ii + 1) * zoom] = ivals * (hiy - loy) + loy
         loy = hiy
     return ivect
+
 
 def downsample(vector, factor):
     """
@@ -1080,8 +1165,9 @@ def downsample(vector, factor):
     if (len(vector) % factor):
         print("Length of 'vector' is not divisible by 'factor'=%d!" % factor)
         return 0
-    newvector = Num.reshape(vector, (len(vector)/factor, factor))
+    newvector = Num.reshape(vector, (len(vector) / factor, factor))
     return Num.add.reduce(newvector, 1)
+
 
 def measure_phase_corr(profile, template, zoom=10):
     """
@@ -1092,16 +1178,17 @@ def measure_phase_corr(profile, template, zoom=10):
     """
     zoomprof = zoomtemp = zoom
     if (len(template) != len(profile)):
-        if (len(template)%len(profile) == 0):
-            zoomprof = zoom*len(template)/len(profile)
+        if (len(template) % len(profile) == 0):
+            zoomprof = zoom * len(template) / len(profile)
         else:
             print("Warning!:  The lengths of the template (%d) and profile (%d)" % \
                   (len(template), len(profile)))
             print("           are not the same!")
-    #itemp = linear_interpolate(rotate(template, Num.argmax(template)), zoomtemp)
+    # itemp = linear_interpolate(rotate(template, Num.argmax(template)), zoomtemp)
     itemp = linear_interpolate(template, zoomtemp)
     iprof = linear_interpolate(profile, zoomprof)
     return maxphase(iprof, itemp)
+
 
 def spike_profile(N, phase, fwhm):
     """
@@ -1116,12 +1203,14 @@ def spike_profile(N, phase, fwhm):
     peakst = 0.5 - fwhm
     peakend = 0.5 + fwhm
     normalize = 1.0 / fwhm
+
+    # TODO: (gijs) bug, mean is not defined
     if (mean < 0.5):
-        phsval = Num.where(Num.greater(phsval, mean+0.5),
-                           phsval-1.0, phsval)
+        phsval = Num.where(Num.greater(phsval, mean + 0.5),
+                           phsval - 1.0, phsval)
     else:
-        phsval = Num.where(Num.less(phsval, mean-0.5),
-                               phsval+1.0, phsval)
+        phsval = Num.where(Num.less(phsval, mean - 0.5),
+                           phsval + 1.0, phsval)
     return Num.where(Num.less_equal(phsval, 0.5),
                      Num.where(Num.less_equal(phsval, peakst),
                                0.0, (phsval - peakst) *
@@ -1129,6 +1218,7 @@ def spike_profile(N, phase, fwhm):
                      Num.where(Num.greater(phsval, peakend),
                                0.0, (1.0 - (phsval - 0.5) *
                                      normalize) * normalize))
+
 
 def harm_to_sum(fwhm):
     """
@@ -1141,7 +1231,8 @@ def harm_to_sum(fwhm):
              0.0180, 0.0191, 0.0199, 0.0207, 0.0220, 0.0228, 0.0242, 0.0257,
              0.0273, 0.0295, 0.0313, 0.0338, 0.0366, 0.0396, 0.0437, 0.0482,
              0.0542, 0.0622, 0.0714, 0.0836, 0.1037, 0.1313, 0.1799, 0.2883]
-    return len(fwhms)-bisect.bisect(fwhms, fwhm)+1
+    return len(fwhms) - bisect.bisect(fwhms, fwhm) + 1
+
 
 def expcos_profile(N, phase, fwhm):
     """
@@ -1155,10 +1246,11 @@ def expcos_profile(N, phase, fwhm):
     from simple_roots import secant
     def fwhm_func(k, fwhm=fwhm):
         if (fwhm < 0.02):
-            return Num.arccos(1.0-Num.log(2.0)/k)/PI-fwhm
+            return Num.arccos(1.0 - Num.log(2.0) / k) / PI - fwhm
         else:
-            return Num.arccos(Num.log(0.5*(Num.exp(k)+
-                                           Num.exp(-k)))/k)/PI-fwhm
+            return Num.arccos(Num.log(0.5 * (Num.exp(k) +
+                                             Num.exp(-k))) / k) / PI - fwhm
+
     phsval = TWOPI * Num.arange(N, dtype='d') / float(N)
     phi = -phase * TWOPI
     if (fwhm >= 0.5):
@@ -1170,10 +1262,10 @@ def expcos_profile(N, phase, fwhm):
         phsval = Num.fmod(phsval + phi, TWOPI)
         phsval = Num.where(Num.greater(phsval, PI),
                            phsval - TWOPI, phsval)
-        denom = ((1 + 1/(8*k) + 9/(128*k*k) + 75/(1024*k**3) +
-                 3675/(32768*k**4) + 59535/(262144*k**5)) / Num.sqrt(TWOPI*k))
-        return Num.where(Num.greater(Num.fabs(phsval/TWOPI), 3.0*fwhm), 0.0,
-                         Num.exp(k*(Num.cos(phsval)-1.0))/denom)
+        denom = ((1 + 1 / (8 * k) + 9 / (128 * k * k) + 75 / (1024 * k ** 3) +
+                  3675 / (32768 * k ** 4) + 59535 / (262144 * k ** 5)) / Num.sqrt(TWOPI * k))
+        return Num.where(Num.greater(Num.fabs(phsval / TWOPI), 3.0 * fwhm), 0.0,
+                         Num.exp(k * (Num.cos(phsval) - 1.0)) / denom)
     else:
         k = secant(fwhm_func, 1e-8, 0.5)
         norm = 1.0 / (i0(k) - Num.exp(-k))
@@ -1187,6 +1279,7 @@ def expcos_profile(N, phase, fwhm):
     else:
         return norm * (Num.exp(k * Num.cos(phsval + phi)) -
                        Num.exp(-k))
+
 
 def read_gaussfitfile(gaussfitfile, proflen):
     """
@@ -1207,7 +1300,7 @@ def read_gaussfitfile(gaussfitfile, proflen):
         if line.lstrip().startswith("fwhm"):
             fwhms.append(float(line.split()[2]))
     if not (len(phass) == len(ampls) == len(fwhms)):
-        print("Number of phases, amplitudes, and FWHMs are not the same in '%s'!"%gaussfitfile)
+        print("Number of phases, amplitudes, and FWHMs are not the same in '%s'!" % gaussfitfile)
         return 0.0
     phass = Num.asarray(phass)
     ampls = Num.asarray(ampls)
@@ -1220,11 +1313,12 @@ def read_gaussfitfile(gaussfitfile, proflen):
     fwhms = Num.take(fwhms, new_order)
     # Now put the biggest gaussian at phase = 0.0
     phass = phass - phass[0]
-    phass = Num.where(phass<0.0, phass+1.0, phass)
+    phass = Num.where(phass < 0.0, phass + 1.0, phass)
     template = Num.zeros(proflen, dtype='d')
     for ii in range(len(ampls)):
-        template += ampls[ii]*gaussian_profile(proflen, phass[ii], fwhms[ii])
+        template += ampls[ii] * gaussian_profile(proflen, phass[ii], fwhms[ii])
     return template
+
 
 def gaussian_profile(N, phase, fwhm):
     """
@@ -1237,15 +1331,16 @@ def gaussian_profile(N, phase, fwhm):
         Note:  The FWHM of a gaussian is approx 2.35482 sigma
     """
     sigma = fwhm / 2.35482
-    mean = phase % 1.0 # Ensures between 0-1
+    mean = phase % 1.0  # Ensures between 0-1
     phss = Num.arange(N, dtype=Num.float64) / N - mean
     # Following two lines allow the Gaussian to wrap in phase
     phss[phss > 0.5] -= 1.0
     phss[phss < -0.5] += 1.0
     zs = Num.fabs(phss) / sigma
     # The following avoids overflow by truncating the Gaussian at 20 sigma
-    return Num.where(zs<20.0, Num.exp(-0.5 * zs**2.0) / \
-                     (sigma * Num.sqrt(2*Num.pi)), 0.0)
+    return Num.where(zs < 20.0, Num.exp(-0.5 * zs ** 2.0) / \
+                     (sigma * Num.sqrt(2 * Num.pi)), 0.0)
+
 
 def gauss_profile_params(profile, output=0):
     """
@@ -1262,11 +1357,13 @@ def gauss_profile_params(profile, output=0):
            the return values will be printed.
     """
     profile = Num.asarray(profile)
+
     def funct(afpo, profile):
         return afpo[0] * gaussian_profile(len(profile), afpo[2], afpo[1]) \
                + afpo[3] - profile
-    ret = leastsq(funct, [profile.max()-profile.min(),
-                          0.25, profile.argmax()/float(len(profile)),
+
+    ret = leastsq(funct, [profile.max() - profile.min(),
+                          0.25, profile.argmax() / float(len(profile)),
                           profile.min()], args=(profile))
     if (output):
         phases = Num.arange(0.0, 1.0,
@@ -1303,6 +1400,7 @@ def gauss_profile_params(profile, output=0):
         print("")
     return (ret[0][0], ret[0][1], ret[0][2], ret[0][3], resid_avg, resid_std)
 
+
 def twogauss_profile_params(profile, output=0):
     """
     twogauss_profile_params(profile, output=0):
@@ -1320,21 +1418,24 @@ def twogauss_profile_params(profile, output=0):
         If 'output' is true, the fit will be plotted and
            the return values will be printed.
     """
+
     def yfunct(afpo, n):
         return afpo[0] * gaussian_profile(n, afpo[2], afpo[1]) + \
                afpo[3] * gaussian_profile(n, afpo[5], afpo[4]) + afpo[6]
+
     def min_funct(afpo, profile):
         return yfunct(afpo, len(profile)) - profile
-    ret = leastsq(min_funct, [max(profile)-min(profile),
+
+    ret = leastsq(min_funct, [max(profile) - min(profile),
                               0.05,
-                              Num.argmax(profile)/float(len(profile)),
-                              0.2 * max(profile)-min(profile),
+                              Num.argmax(profile) / float(len(profile)),
+                              0.2 * max(profile) - min(profile),
                               0.1,
-                              Num.fmod(Num.argmax(profile)/float(len(profile))+0.5, 1.0),
+                              Num.fmod(Num.argmax(profile) / float(len(profile)) + 0.5, 1.0),
                               min(profile)], args=(profile))
     if (output):
         phases = Num.arange(0.0, 1.0,
-                                1.0 / len(profile)) + 0.5 / len(profile)
+                            1.0 / len(profile)) + 0.5 / len(profile)
         Pgplot.plotxy(profile, phases, rangex=[0.0, 1.0],
                       labx='Pulse Phase', laby='Pulse Intensity')
     bestfit = yfunct(ret[0], len(profile))
@@ -1370,8 +1471,6 @@ def twogauss_profile_params(profile, output=0):
             ret[0][5], ret[0][6], resid_avg, resid_std)
 
 
-
-
 def estimate_flux_density(profile, N, dt, Ttot, G, BW, prof_stdev, display=0):
     """
     estimate_flux_density(profile, N, dt, Ttot, G, BW, prof_stdev, display=0):
@@ -1388,11 +1487,12 @@ def estimate_flux_density(profile, N, dt, Ttot, G, BW, prof_stdev, display=0):
             Parkes Multibeam: Tsys = 21 K, G = 0.735 K/Jy
     """
     (amp, fwhm, phase, offset, resid_avg, resid_std) = \
-          gauss_profile_params(profile, display)
+        gauss_profile_params(profile, display)
     T = N * dt
     norm_fact = (prof_stdev * len(profile)) / \
-                 smin_noise(Ttot, G, BW, T / len(profile))
+                smin_noise(Ttot, G, BW, T / len(profile))
     return Num.add.reduce(profile - offset) / norm_fact
+
 
 def max_spike_power(FWHM):
     """
@@ -1410,7 +1510,8 @@ def max_spike_power(FWHM):
                 (0.0 < FWHM <= 0.5)
     """
     return ((36.4165309504 * FWHM - 32.0107844537) * FWHM \
-           + 0.239948319674) * FWHM + 4.00277916584
+            + 0.239948319674) * FWHM + 4.00277916584
+
 
 def num_spike_powers(FWHM):
     """
@@ -1426,8 +1527,9 @@ def num_spike_powers(FWHM):
             'FWHM' is the full width at half-max of the spike.
                 (0.0 < FWHM <= 0.5)
     """
-    return -3.95499721563e-05 / FWHM**2 + 0.562069634689 / FWHM - \
+    return -3.95499721563e-05 / FWHM ** 2 + 0.562069634689 / FWHM - \
            0.683604041138
+
 
 def incoherent_sum(amps):
     """
@@ -1435,7 +1537,8 @@ def incoherent_sum(amps):
         Given a series of complex Fourier amplitudes, return a vector
             showing the accumulated incoherently-summed powers.
     """
-    return Num.add.accumulate(Num.absolute(amps)**2.0)
+    return Num.add.accumulate(Num.absolute(amps) ** 2.0)
+
 
 def coherent_sum(amps):
     """
@@ -1445,9 +1548,10 @@ def coherent_sum(amps):
     """
     phss = Num.arctan2(amps.imag, amps.real)
     phs0 = phss[0]
-    phscorr = phs0 - Num.fmod((Num.arange(len(amps), dtype='d')+1.0)*phs0, TWOPI)
-    sumamps = Num.add.accumulate(amps*Num.exp(complex(0.0, 1.0)*phscorr))
-    return Num.absolute(sumamps)**2.0
+    phscorr = phs0 - Num.fmod((Num.arange(len(amps), dtype='d') + 1.0) * phs0, TWOPI)
+    sumamps = Num.add.accumulate(amps * Num.exp(complex(0.0, 1.0) * phscorr))
+    return Num.absolute(sumamps) ** 2.0
+
 
 def dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
     """
@@ -1458,11 +1562,12 @@ def dft_vector_response(roff, z=0.0, w=0.0, phs=0.0, N=1000):
             signal freq), average Fourier f-dot, z, and Fourier 2nd
             deriv, w.  An optional phase in radians can be added.
     """
-    r0 = roff - 0.5 * z + w / 12.0 # Make symmetric for all z and w
+    r0 = roff - 0.5 * z + w / 12.0  # Make symmetric for all z and w
     z0 = z - 0.5 * w
     us = Num.linspace(0.0, 1.0, N)
-    phss = 2.0 * Num.pi * (us * (us * (us * w/6.0 + z0/2.0) + r0) + phs)
+    phss = 2.0 * Num.pi * (us * (us * (us * w / 6.0 + z0 / 2.0) + r0) + phs)
     return Num.cumsum(Num.exp(Num.complex(0.0, 1.0) * phss)) / N
+
 
 def prob_power(power):
     """
@@ -1471,6 +1576,7 @@ def prob_power(power):
         level of 'power' in a power spectrum.
     """
     return Num.exp(-power)
+
 
 def Ftest(chi2_1, dof_1, chi2_2, dof_2):
     """
@@ -1493,6 +1599,7 @@ def Ftest(chi2_1, dof_1, chi2_2, dof_2):
     F = (delta_chi2 / delta_dof) / new_redchi2
     return 1.0 - fdtr(delta_dof, dof_2, F)
 
+
 def equivalent_gaussian_sigma(p):
     """
     equivalent_gaussian_sigma(p):
@@ -1508,9 +1615,10 @@ def equivalent_gaussian_sigma(p):
         else:
             return extended_equiv_gaussian_sigma(logp)
     else:  # Array input
-        return Num.where(logp>-30.0,
-                         ndtri(1.0-p),
+        return Num.where(logp > -30.0,
+                         ndtri(1.0 - p),
                          extended_equiv_gaussian_sigma(logp))
+
 
 def extended_equiv_gaussian_sigma(logp):
     """
@@ -1528,6 +1636,7 @@ def extended_equiv_gaussian_sigma(logp):
     denom = 1.0 + t * (1.432788 + t * (0.189269 + t * 0.001308))
     return t - num / denom
 
+
 def log_asymtotic_incomplete_gamma(a, z):
     """
     log_asymtotic_incomplete_gamma(a, z):
@@ -1541,10 +1650,11 @@ def log_asymtotic_incomplete_gamma(a, z):
     ii = 1
     while (Num.fabs(newxpart) > 1e-15):
         term *= (a - ii)
-        newxpart = term / z**ii
+        newxpart = term / z ** ii
         x += newxpart
         ii += 1
-    return (a-1.0)*Num.log(z) - z + Num.log(x)
+    return (a - 1.0) * Num.log(z) - z + Num.log(x)
+
 
 def log_asymtotic_gamma(z):
     """
@@ -1552,13 +1662,14 @@ def log_asymtotic_gamma(z):
         Return the log of the gamma function in its asymtotic limit
             as z->infty.  This is from Abramowitz and Stegun eqn 6.1.41.
     """
-    x = (z-0.5) * Num.log(z) - z + 0.91893853320467267
-    y = 1.0/(z*z)
+    x = (z - 0.5) * Num.log(z) - z + 0.91893853320467267
+    y = 1.0 / (z * z)
     x += (((- 5.9523809523809529e-4 * y
             + 7.9365079365079365079365e-4) * y
-            - 2.7777777777777777777778e-3) * y
-            + 8.3333333333333333333333e-2) / z;
+           - 2.7777777777777777777778e-3) * y
+          + 8.3333333333333333333333e-2) / z;
     return x
+
 
 def prob_sum_powers(power, nsum):
     """
@@ -1574,7 +1685,8 @@ def prob_sum_powers(power, nsum):
     # = Q(power*2|nsum*2)  (from A&S 26.4.19)
     # = Gamma(nsum,power)/Gamma(nsum)
     # = [Gamma(nsum) - gamma(nsum,power)]/Gamma(nsum)
-    return chdtrc(2*nsum, 2.0*power)
+    return chdtrc(2 * nsum, 2.0 * power)
+
 
 def log_prob_sum_powers(power, nsum):
     """
@@ -1605,6 +1717,7 @@ def log_prob_sum_powers(power, nsum):
                          log_asymtotic_incomplete_gamma(nsum, power) - \
                          log_asymtotic_gamma(nsum))
 
+
 def sigma_power(power):
     """
     sigma_power(power):
@@ -1622,6 +1735,7 @@ def sigma_power(power):
                          Num.sqrt(2.0 * power - Num.log(PI * power)),
                          extended_equiv_gaussian_sigma(log_prob_sum_powers(power, 1)))
 
+
 def sigma_sum_powers(power, nsum):
     """
     sigma_sum_powers(power, nsum):
@@ -1634,10 +1748,11 @@ def sigma_sum_powers(power, nsum):
             return equivalent_gaussian_sigma(prob_sum_powers(power, nsum))
         else:
             return extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum))
-    else: # Array input
+    else:  # Array input
         return Num.where(power < 100.0,
                          equivalent_gaussian_sigma(prob_sum_powers(power, nsum)),
                          extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum)))
+
 
 def power_at_sigma(sigma):
     """
@@ -1645,8 +1760,10 @@ def power_at_sigma(sigma):
         Return the approximate normalized power level that is
         equivalent to a detection of significance 'sigma'.
     """
-    return sigma**2 / 2.0 + Num.log(Num.sqrt(PIBYTWO)
+    return sigma ** 2 / 2.0 + Num.log(Num.sqrt(PIBYTWO)
                                       * sigma)
+
+
 def powersum_at_sigma(sigma, nsum):
     """
     powersum_at_sigma(sigma, nsum):
@@ -1654,6 +1771,7 @@ def powersum_at_sigma(sigma, nsum):
         equivalent to a detection of significance 'sigma'.
     """
     return 0.5 * chdtri(2.0 * nsum, 1.0 - ndtr(sigma))
+
 
 def cand_sigma(N, power):
     """
@@ -1663,6 +1781,7 @@ def cand_sigma(N, power):
         number of bins searched.
     """
     return ndtri(1.0 - N * prob_power(power))
+
 
 def fft_max_pulsed_frac(N, numphot, sigma=3.0):
     """
@@ -1677,26 +1796,28 @@ def fft_max_pulsed_frac(N, numphot, sigma=3.0):
     # The following is the power level required to get a
     # noise spike that would appear somewhere in N bins
     # at the 'sigma' level
-    power_required = -Num.log((1.0-ndtr(sigma))/N)
-    return Num.sqrt(4.0 * numphot * power_required)/N
+    power_required = -Num.log((1.0 - ndtr(sigma)) / N)
+    return Num.sqrt(4.0 * numphot * power_required) / N
+
 
 def p_to_f(p, pd, pdd=None):
-   """
-   p_to_f(p, pd, pdd=None):
-      Convert period, period derivative and period second
-      derivative to the equivalent frequency counterparts.
-      Will also convert from f to p.
-   """
-   f = 1.0 / p
-   fd = -pd / (p * p)
-   if (pdd is None):
-       return [f, fd]
-   else:
-       if (pdd==0.0):
-           fdd = 0.0
-       else:
-           fdd = 2.0 * pd * pd / (p**3.0) - pdd / (p * p)
-       return [f, fd, fdd]
+    """
+    p_to_f(p, pd, pdd=None):
+       Convert period, period derivative and period second
+       derivative to the equivalent frequency counterparts.
+       Will also convert from f to p.
+    """
+    f = 1.0 / p
+    fd = -pd / (p * p)
+    if (pdd is None):
+        return [f, fd]
+    else:
+        if (pdd == 0.0):
+            fdd = 0.0
+        else:
+            fdd = 2.0 * pd * pd / (p ** 3.0) - pdd / (p * p)
+        return [f, fd, fdd]
+
 
 def pferrs(porf, porferr, pdorfd=None, pdorfderr=None):
     """
@@ -1705,13 +1826,14 @@ def pferrs(porf, porferr, pdorfd=None, pdorfderr=None):
        the pdot or fdot errors from the opposite one.
     """
     if (pdorfd is None):
-        return [1.0 / porf, porferr / porf**2.0]
+        return [1.0 / porf, porferr / porf ** 2.0]
     else:
-        forperr = porferr / porf**2.0
-        fdorpderr = Num.sqrt((4.0 * pdorfd**2.0 * porferr**2.0) / porf**6.0 +
-                               pdorfderr**2.0 / porf**4.0)
+        forperr = porferr / porf ** 2.0
+        fdorpderr = Num.sqrt((4.0 * pdorfd ** 2.0 * porferr ** 2.0) / porf ** 6.0 +
+                             pdorfderr ** 2.0 / porf ** 4.0)
         [forp, fdorpd] = p_to_f(porf, pdorfd)
         return [forp, forperr, fdorpd, fdorpderr]
+
 
 def pdot_from_B(p, B):
     """
@@ -1720,7 +1842,8 @@ def pdot_from_B(p, B):
         period (or pdot) 'p' (in sec) would experience given a
         magnetic field strength 'B' in gauss.
     """
-    return (B / 3.2e19)**2.0 / p
+    return (B / 3.2e19) ** 2.0 / p
+
 
 def pdot_from_age(p, age):
     """
@@ -1730,6 +1853,7 @@ def pdot_from_age(p, age):
     """
     return p / (2.0 * age * SECPERJULYR)
 
+
 def pdot_from_edot(p, edot, I=1.0e45):
     """
     pdot_from_edot(p, edot, I=1.0e45):
@@ -1737,7 +1861,8 @@ def pdot_from_edot(p, edot, I=1.0e45):
         would experience given an Edot 'edot' (in ergs/s) and a
         moment of inertia I.
     """
-    return (p**3.0 * edot) / (4.0 * PI * PI * I)
+    return (p ** 3.0 * edot) / (4.0 * PI * PI * I)
+
 
 def pulsar_age(f, fdot, n=3, fo=1e99):
     """
@@ -1747,7 +1872,8 @@ def pulsar_age(f, fdot, n=3, fo=1e99):
         is returned (assuming a braking index 'n'=3 and an initial
         spin freqquency fo >> f).  But 'n' and 'fo' can be set.
     """
-    return -f / ((n-1.0) * fdot) * (1.0 - (f / fo)**(n-1.0)) / SECPERJULYR
+    return -f / ((n - 1.0) * fdot) * (1.0 - (f / fo) ** (n - 1.0)) / SECPERJULYR
+
 
 def pulsar_edot(f, fdot, I=1.0e45):
     """
@@ -1758,13 +1884,15 @@ def pulsar_edot(f, fdot, I=1.0e45):
     """
     return -4.0 * PI * PI * I * f * fdot
 
+
 def pulsar_B(f, fdot):
     """
     pulsar_B(f, fdot):
         Return the estimated pulsar surface magnetic field strength
         (in Gauss) given the spin frequency and frequency derivative.
     """
-    return 3.2e19 * Num.sqrt(-fdot/f**3.0)
+    return 3.2e19 * Num.sqrt(-fdot / f ** 3.0)
+
 
 def pulsar_B_lightcyl(f, fdot):
     """
@@ -1774,7 +1902,8 @@ def pulsar_B_lightcyl(f, fdot):
         frequency derivative.
     """
     p, pd = p_to_f(f, fdot)
-    return 2.9e8 * p**(-5.0/2.0) * Num.sqrt(pd)
+    return 2.9e8 * p ** (-5.0 / 2.0) * Num.sqrt(pd)
+
 
 def psr_info(porf, pdorfd, time=None, input=None, I=1e45):
     """
@@ -1787,8 +1916,8 @@ def psr_info(porf, pdorfd, time=None, input=None, I=1e45):
         (duration of an observation) it will also return the Fourier
         frequency 'r' and Fourier fdot 'z'.  I is the NS moment of inertia.
     """
-    if ((input==None and porf > 1.0) or
-        (input=='f' or input=='F')):
+    if ((input == None and porf > 1.0) or
+            (input == 'f' or input == 'F')):
         pdorfd = - pdorfd / (porf * porf)
         porf = 1.0 / porf
     [f, fd] = p_to_f(porf, pdorfd)
@@ -1805,6 +1934,7 @@ def psr_info(porf, pdorfd, time=None, input=None, I=1e45):
     print(" Characteristic Age = %g years" % pulsar_age(f, fd))
     print("          Assumed I = %g g cm^2" % I)
     print("")
+
 
 def doppler(freq_observed, voverc):
     """doppler(freq_observed, voverc):

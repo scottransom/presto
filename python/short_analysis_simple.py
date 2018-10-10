@@ -1,11 +1,11 @@
 #!/usr/bin/python
-from os import system, chdir, remove, environ
+from os import system, chdir
 from sys import stdout, argv, exit
 from glob import glob
 from optparse import OptionParser
-from fcntl import *
-from presto import read_inffile, writeinf, get_baryv
-import infodata
+from presto.presto import read_inffile, writeinf, get_baryv
+from presto import infodata
+
 
 def myexecute(cmd):
     stdout.write("\n'"+cmd+"'\n")

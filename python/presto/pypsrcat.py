@@ -1,9 +1,13 @@
 from __future__ import print_function
-from builtins import map, object
+from builtins import object
 from operator import attrgetter
+import struct
+import os.path
+import math
+import csv
 import astropy.coordinates as c
 import astropy.units as u
-import struct, os, os.path, presto, psr_utils, math, csv
+from presto import presto, psr_utils
 
 ## The most recent catalogs are available here:
 ## 

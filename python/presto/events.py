@@ -1,11 +1,11 @@
 from __future__ import print_function
-from builtins import range
 import bisect
-import numpy as Num
-from psr_constants import PI, TWOPI, PIBYTWO
-from simple_roots import newton_raphson
+from presto.psr_constants import PI, TWOPI, PIBYTWO
+from presto.simple_roots import newton_raphson
 from scipy.special import iv, chdtri, ndtr, ndtri
-from cosine_rand import *
+from presto.cosine_rand import *
+import numpy as np
+
 
 def sine_events(pulsed_frac, Nevents, phase=0.0):
     """
@@ -416,12 +416,13 @@ def pulsed_fraction_limit(Nphot, Pow):
     """
     return Num.sqrt(4.0 * (Pow - 1.0) / Nphot)
 
+
 if __name__=="__main__":
-    from psr_utils import *
-    from Pgplot import *
-    from presto import *
+    from presto.psr_utils import *
+    from presto.Pgplot import *
+    from presto.presto import *
     from RandomArray import *
-    
+
     prof = expcos_profile(128, 0.0, 0.1) + normal(0.0, 5.0, 128)
     plotxy(prof)
     closeplot()

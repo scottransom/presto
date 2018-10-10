@@ -70,14 +70,16 @@ scripts = ['bin/' + i for i in os.listdir('bin')]
 
 setup(name="presto",
       version=version,
-      #install_requires=['numpy'],
+      install_requires=['numpy', 'future', 'six', 'scipy', 'matplotlib', 'astropy', 'pyslalib'],
       scripts=scripts,
       description="Python interfaces to PGPLOT and PRESTO",
       author="Scott Ransom (ppgplot from Nick Patavlis)",
       author_email="sransom@nrao.edu",
       url="https://github.com/scottransom/presto",
-      packages=['presto', 'presto.ppgplot', 'presto.presto'],
+      packages=['presto', 'presto.ppgplot', 'presto.presto', 'presto.singlepulse'],
       package_dir={'presto.ppgplot': 'python/ppgplot_src',
                    'presto.presto': 'python/presto_src',
-                   'presto': 'python/presto'},
-      ext_modules=[ext_ppgplot,ext_presto]) #, ext_fftfit])
+                   'presto': 'python/presto',
+                   'presto.singlepulse': 'python/presto/singlepulse',
+                   },
+      ext_modules=[ext_ppgplot, ext_presto]) #, ext_fftfit])

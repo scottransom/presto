@@ -11,7 +11,6 @@ from builtins import object
 import sys
 import argparse
 import warnings
-import pickle
 import copy
 
 import numpy as np
@@ -22,8 +21,8 @@ matplotlib.use('agg') # Use a non-interactive backend
 import matplotlib.pyplot as plt
 import scipy.integrate
 
-import filterbank
-import psr_utils
+from presto import filterbank
+from presto import psr_utils
 
 DEBUG = False # Print debugging messages
 
@@ -224,6 +223,8 @@ class Profile(object):
             Output:
                 smeared: The smeared Profile.
         """
+
+        # todo: (gijs) bug, scatterphs not defined
         if smearphs < 0:
             raise ValueError("Amount of phase to smear by (%g) " \
                                 "cannot be negative!" % scatterphs)

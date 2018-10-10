@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import range
-import sys, os, random, sigproc
-import psr_utils as pu
+import sys, os, random
+from presto import sigproc
+from presto import psr_utils as pu
+
 
 def spigot_samples_per_file(spigot_filenm):
     """

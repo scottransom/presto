@@ -43,4 +43,4 @@ if __name__=="__main__":
     chans, weights = read_weights(sys.argv[1])
 
     # Get the chanline and print it
-    print build_chanline(weights)
+    print(build_chanline(weights))
