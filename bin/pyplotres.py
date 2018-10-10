@@ -14,19 +14,17 @@ import optparse
 import sys
 import re
 import os
-import types
-import warnings
-
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.cluster.vq import kmeans2
 
 import pyslalib.slalib as slalib
-import binary_psr
-import parfile as par
-import residuals
+from presto import binary_psr
+from presto import parfile as par
+from presto import residuals
 
-from scipy.cluster.vq import kmeans2
+
 
 # Available x-axis types
 xvals = ['mjd', 'year', 'numtoa', 'orbitphase']

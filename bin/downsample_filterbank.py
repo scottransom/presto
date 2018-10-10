@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 from __future__ import print_function
 from builtins import range
-import sys, sigproc
+import sys
 import numpy as num
+from presto import sigproc
+
 
 if __name__ == "__main__":
     if len(sys.argv)==1:

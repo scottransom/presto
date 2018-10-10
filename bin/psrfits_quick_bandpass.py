@@ -3,7 +3,8 @@ from __future__ import print_function
 from builtins import zip
 import numpy as np
 import matplotlib.pyplot as plt
-import sys, psrfits
+import sys
+from presto import psrfits
 from optparse import OptionParser
 
 full_usage = """

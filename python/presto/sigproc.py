@@ -6,7 +6,7 @@ import struct
 import sys
 import math
 import warnings
-from psr_constants import ARCSECTORAD
+from presto.psr_constants import ARCSECTORAD
 
 telescope_ids = {"Fake": 0, "Arecibo": 1, "ARECIBO 305m": 1, 
                  "Ooty": 2, "Nancay": 3, "Parkes": 4, "Jodrell": 5,

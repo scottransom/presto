@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import astropy.coordinates as coords
-import astropy.units as u
 from builtins import str
 import os
 import os.path
 import argparse
 import sys
 import getpass
-import re
 import numpy as np
-import sigproc
+from presto import sigproc
 
 BLOCKSIZE = 10000  # Amount of data to copy at a time
                    # from input file to output file (in samples)

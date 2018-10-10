@@ -8,13 +8,14 @@
 from __future__ import print_function
 from numpy import *
 from pylab import *
-from psr_utils import *
-from sys import argv, exit
-import parfile
+from presto.psr_utils import *
+from sys import argv
+from presto import parfile
 from matplotlib.patches import Ellipse
 from scipy.optimize import leastsq
 verbose = True
 cspeed = 299792458.0 # m/s
+
 
 def read_bestprof(filename,f1errmax=999.0):
     infile = open(filename)

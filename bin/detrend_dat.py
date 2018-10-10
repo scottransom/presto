@@ -18,7 +18,7 @@ stds_inds = np.arange(nblocks)[~good_stds.mask]
 # zero-out the bad blocks
 data[good_stds.mask,:] *= 0.0
 
-print "Found %d bad blocks out of %d" % (good_stds.mask.sum(), nblocks)
+print("Found %d bad blocks out of %d" % (good_stds.mask.sum(), nblocks))
 
 # Now detrend the good blocks
 for ii in stds_inds:

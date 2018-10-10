@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 from __future__ import print_function
+import sys
 import numpy as num
-import events as evts
-import sys, kuiper
-from Pgplot import *
+import presto.events as evts
+from presto import kuiper
+from presto.Pgplot import *
+
 
 def calc_phases(events, f, fd):
     return num.fmod(events*(f+(0.5*fd*events)), 1.0)

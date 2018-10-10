@@ -3,8 +3,7 @@ from builtins import object
 import os
 import sys
 import subprocess
-import types
-import parfile
+from presto import parfile
 
 import numpy as Num
 
