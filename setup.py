@@ -2,8 +2,10 @@ from __future__ import print_function
 import os
 import sys
 import numpy
-from numpy.distutils.core import Extension, setup
 
+# setuptools has to be imported before numpy.distutils.core
+import setuptools
+from numpy.distutils.core import Extension, setup
 
 version = "2.2"
 
@@ -56,16 +58,15 @@ ext_presto = Extension('_presto',
                        define_macros=define_macros,
                        extra_compile_args=extra_compile_args)
 
-# not working yet
-ext_fftfit = Extension('fftfit', sources=['python/fftfit_src/brent.f',
-                                          'python/fftfit_src/bcprof.f',
-                                          'python/fftfit_src/bfccf.f',
-                                          'python/fftfit_src/bffft.f',
-                                          'python/fftfit_src/bfftfit.f',
-                                          'python/fftfit_src/bfftfit.pyf'])
+ext_fftfit = Extension('_fftfit', sources=['python/fftfit_src/brent.f',
+                                          'python/fftfit_src/cprof.f',
+                                          'python/fftfit_src/fccf.f',
+                                          'python/fftfit_src/ffft.f',
+                                          'python/fftfit_src/fftfit.f',
+                                          'python/fftfit_src/_fftfit.pyf'])
 
 
-scripts = ['bin/' + i for i in os.listdir('bin')]
+scripts = ['bin/' + i for i in os.listdir('bin') if i.endswith('.py') or i.endswith('.sh')]
 
 
 setup(name="presto",
@@ -82,5 +83,5 @@ setup(name="presto",
                    'presto': 'python/presto',
                    'presto.singlepulse': 'python/presto/singlepulse',
                    },
-      package_data={'presto': ['python/presto/cosine_rand.json']},
-      ext_modules=[ext_ppgplot, ext_presto]) #, ext_fftfit])
+      package_data={'presto': ['*.json']},
+      ext_modules=[ext_ppgplot, ext_presto, ext_fftfit])

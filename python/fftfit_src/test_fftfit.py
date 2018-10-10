@@ -10,8 +10,8 @@ from __future__ import print_function
 #  fftfit(prof,s,phi,nmax,shift,eshift,snr,esnr,b,errb,ngood)
 
 import numpy as num
-from psr_utils import gaussian_profile, TWOPI
-from fftfit import cprof, fftfit
+from presto.psr_utils import gaussian_profile, TWOPI
+from presto.fftfit import cprof, fftfit
 
 template = gaussian_profile(64, 0.5, 0.1)
 c,amp,pha = cprof(template)
