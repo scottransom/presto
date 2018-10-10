@@ -21,7 +21,7 @@ from presto import infodata
 import matplotlib.pyplot as plt
 from presto.Pgplot import *
 import optparse
-import presto.singlepulse.spio as spio
+from presto.singlepulse import spio
 
 FRACTIONAL_SIGMA = 0.9 # change to 0.8?
 ALL_RANKS_ORDERED = [1,2,0,3,4,5,6]

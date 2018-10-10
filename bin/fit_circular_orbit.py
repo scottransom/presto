@@ -12,6 +12,7 @@ from scipy.optimize import leastsq
 period = num.asarray([])
 time = num.asarray([])
 
+
 def parse_eph(filenm):
     global period, time
     suffix = filenm.split(".")[-1]
@@ -41,13 +42,16 @@ def parse_eph(filenm):
     period = num.concatenate((period, newps))
     print("%13.7f (%0.1f sec): " % (epoch, T), fs)
 
+
 def orbeqn(Ppxt, times):
     # P = Ppsr, p = Porb, x = a*sin(i)/s, t = T_o
     phi = pu.TWOPI*(times - Ppxt[3])*86400.0/Ppxt[1]
     return Ppxt[0]*(1.0+pu.TWOPI*Ppxt[2]/Ppxt[1]*num.cos(phi))
 
+
 def funct(Ppxt, times, measured):
     return orbeqn(Ppxt, times) - measured
+
 
 if __name__ == '__main__':
     if len(sys.argv)==1:

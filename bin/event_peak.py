@@ -1,13 +1,20 @@
 #!/usr/bin/env python
 from __future__ import print_function
 import numpy as num
+import sys
 import presto.events as evts
 from presto import kuiper
 from presto.Pgplot import *
 
 
+if len(sys.argv) != 2:
+    print("\nusage: {} file\n".format(sys.argv[0]))
+    sys.exit(1)
+
+
 def calc_phases(events, f, fd):
     return num.fmod(events*(f+(0.5*fd*events)), 1.0)
+
 
 events = num.loadtxt(sys.argv[1])
 events.sort()

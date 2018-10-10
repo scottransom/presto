@@ -2,6 +2,7 @@
 import numpy as np
 import sys
 
+
 def read_weights(filename):
     """
     reat_weights(filename):
@@ -9,6 +10,7 @@ def read_weights(filename):
     """
     chans, weights = np.loadtxt(filename, unpack=True)
     return chans.astype(np.int), weights.astype(np.float)
+
 
 def build_chanline(weights):
     """
@@ -50,6 +52,12 @@ def build_pazline(chanline):
     return outstr
 
 if __name__=="__main__":
+
+    if len(sys.argv) != 2:
+        print("\nusage: {} file\n".format(sys.argv[0]))
+        sys.exit(1)
+
+
     # Read the channels and weights
     chans, weights = read_weights(sys.argv[1])
 

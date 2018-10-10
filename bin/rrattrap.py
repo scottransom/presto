@@ -520,7 +520,7 @@ def plot_sp_rated_pgplot(groups, ranks, inffile, ylow=0, yhigh=100, xlow=0, xhig
     ppgplot.pgsch(0.8)
     ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0) # redundant with pgenv
     ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
-    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
+    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\\u-3\\d)")
     ppgplot.pgsch(1.0)
     ppgplot.pgmtxt('T', 2.5, 0.3, 0.0,
                    "Single Pulse Results for %s" % obsinfo['src'])
