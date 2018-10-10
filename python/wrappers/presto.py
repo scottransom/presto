@@ -44,10 +44,9 @@ try:
 except NameError:
     pass  # Python < 2.2 doesn't have 'property'.
 
-try:
-    import builtins as __builtin__
-except ImportError:
-    import __builtin__
+# works for python2 and python3 if future module is installed
+import builtins as __builtin__
+
 
 def _swig_setattr_nondynamic(self, class_type, name, value, static=1):
     if (name == "thisown"):
@@ -90,11 +89,13 @@ def _swig_repr(self):
 
 try:
     _object = object
-    _newclass = 1
 except __builtin__.Exception:
-    class _object(object) : pass
+    class _object(object) :
         pass
-    _newclass = 0
+    _newclass = False
+else:
+    _newclass = True
+
 
 class fcomplex(_object):
     __swig_setmethods__ = {}

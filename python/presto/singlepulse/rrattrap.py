@@ -16,24 +16,17 @@ Updated by Chitrang Patel June 10, 2016.
 """
 from __future__ import print_function
 from past.builtins import cmp
-from builtins import str
-from builtins import range
-from builtins import object
-import fileinput
-import numpy as np
-from time import strftime 
-import glob
-import os.path
-import infodata
+from time import strftime
+from presto import infodata
 import matplotlib.pyplot as plt
-from Pgplot import *
+from presto.Pgplot import *
 import optparse
-import sys
-import singlepulse.spio as spio
+import presto.singlepulse.spio as spio
 
 FRACTIONAL_SIGMA = 0.9 # change to 0.8?
 ALL_RANKS_ORDERED = [1,2,0,3,4,5,6]
 DEBUG = True # if True, will be verbose
+
 
 def dmthreshold(dm, use_dmplan, min_group=45):
     if use_dmplan:
@@ -525,7 +518,7 @@ def plot_sp_rated_pgplot(groups, ranks, inffile, ylow=0, yhigh=100, xlow=0, xhig
     ppgplot.pgsch(0.8)
     ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0) # redundant with pgenv
     ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
-    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
+    ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\\u-3\\d)")
     ppgplot.pgsch(1.0)
     ppgplot.pgmtxt('T', 2.5, 0.3, 0.0,
                    "Single Pulse Results for %s" % obsinfo['src'])

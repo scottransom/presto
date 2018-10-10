@@ -7,12 +7,11 @@
    times. 
 """
 from __future__ import print_function
-from presto.prestoswig import *
+from presto.presto.prestoswig import *
 import numpy as Num
-import Pgplot
-import psr_utils
-import glob
-import psrfits
+from presto import psr_utils
+from presto import psrfits
+
 
 def read_inffile(filename):
    """
@@ -25,6 +24,7 @@ def read_inffile(filename):
    print("Reading information from", "\""+filename+".inf\"")
    readinf(id, filename)
    return id
+
 
 def bary_to_topo(infofilenm, rawdatafile=False, ephem="DE200"):
    """

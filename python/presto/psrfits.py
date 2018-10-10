@@ -15,24 +15,24 @@ import re
 import os
 import os.path
 import warnings
-import sys
 import argparse
 
 import astropy.io.fits as pyfits
 from astropy import coordinates, units
 import astropy.time as aptime
 import numpy as np
-import psr_utils
-import spectra
+from presto import psr_utils
+from presto import spectra
 
 # Regular expression for parsing DATE-OBS card's format.
-date_obs_re = re.compile(r"^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-" \
-                            "(?P<day>[0-9]{2})T(?P<hour>[0-9]{2}):" \
-                            "(?P<min>[0-9]{2}):(?P<sec>[0-9]{2}" \
+date_obs_re = re.compile(r"^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-"
+                            "(?P<day>[0-9]{2})T(?P<hour>[0-9]{2}):"
+                            "(?P<min>[0-9]{2}):(?P<sec>[0-9]{2}"
                             "(?:\.[0-9]+)?)$")
 
 # Default global debugging mode
 debug = True 
+
 
 def unpack_2bit(data):
     """Unpack 2-bit data that has been read in as bytes.
@@ -50,6 +50,7 @@ def unpack_2bit(data):
     piece2 = np.bitwise_and(data >> 0x02, 0x03)
     piece3 = np.bitwise_and(data, 0x03)
     return np.dstack([piece0, piece1, piece2, piece3]).flatten()
+
 
 def unpack_4bit(data):
     """Unpack 4-bit data that has been read in as bytes.
@@ -69,7 +70,7 @@ def unpack_4bit(data):
 class PsrfitsFile(object):
     def __init__(self, psrfitsfn):
         if not os.path.isfile(psrfitsfn):
-            raise ValueError("ERROR: File does not exist!\n\t(%s)" % \
+            raise ValueError("ERROR: File does not exist!\n\t(%s)" %
                                 psrfitsfn)
         self.filename = psrfitsfn
         self.fits = pyfits.open(psrfitsfn, mode='readonly', memmap=True)
@@ -86,7 +87,7 @@ class PsrfitsFile(object):
         self.tsamp = self.specinfo.dt
         self.nspec = self.specinfo.N
 
-    def read_subint(self, isub, apply_weights=True, apply_scales=True, \
+    def read_subint(self, isub, apply_weights=True, apply_scales=True,
                     apply_offsets=True):
         """
         Read a PSRFITS subint from a open pyfits file object.
@@ -196,11 +197,11 @@ class PsrfitsFile(object):
             data = np.concatenate(data)
         else:
             data = np.array(data).squeeze()
-	data = np.transpose(data)
+        data = np.transpose(data)
         # Truncate data to desired interval
-	if trunc > 0:
+        if trunc > 0:
             data = data[:, skip:-trunc]
-	elif trunc == 0:
+        elif trunc == 0:
             data = data[:, skip:]
         else:
             raise ValueError("Number of bins to truncate is negative: %d" % trunc)
@@ -212,7 +213,7 @@ class PsrfitsFile(object):
         else:
             freqs = self.freqs 
 
-	return spectra.Spectra(freqs, self.tsamp, data, \
+        return spectra.Spectra(freqs, self.tsamp, data,
                                starttime=self.tsamp*startsamp, dm=0)
 
 
