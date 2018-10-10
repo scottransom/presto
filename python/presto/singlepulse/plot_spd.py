@@ -14,12 +14,13 @@ import numpy as np
 import optparse
 import tarfile 
 from subprocess import Popen, PIPE
-import singlepulse.sp_pgplot as sp_pgplot
-import singlepulse.read_spd as read_spd
-import singlepulse.spio as spio
+import presto.singlepulse.sp_pgplot as sp_pgplot
+import presto.singlepulse.read_spd as read_spd
+import presto.singlepulse.spio as spio
 
-def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=False, outfile="spdplot", just_waterfall=True, \
-         integrate_spec=True, integrate_ts=True, disp_pulse=True, tar=None):
+
+def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=False, outfile="spdplot",
+         just_waterfall=True, integrate_spec=True, integrate_ts=True, disp_pulse=True, tar=None):
     """
        Generates spd plots which include the following subplots:
            De-dispersed Zero-DM filtered Waterfall plot
@@ -49,7 +50,8 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
            tar: Supply the tarball of the singlepulse files instead of individual files.
     """
     if not spdfile.endswith(".spd"):
-	    raise ValueError("The first file must be a .spd file")
+        raise ValueError("The first file must be a .spd file")
+
     #npzfile = np.load(spdfile)
     spdobj = read_spd.spd(spdfile) 
     ##### Read in the header information and other required variables for the plots. ######
@@ -257,15 +259,15 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
         sp_pgplot.ppgplot.pgmtxt('T', -4.1, 0.01, 0.0, "MJD: %f" %MJD)
         sp_pgplot.ppgplot.pgmtxt('T', -5.6, 0.01, 0.0, "Obs date: %s %s %s" %(date[0], date[1], date[2]))
         sp_pgplot.ppgplot.pgmtxt('T', -7.1, 0.01, 0.0, "Telescope: %s" %telescope)
-        sp_pgplot.ppgplot.pgmtxt('T', -8.6, 0.01, 0.0, "DM: %.2f pc cm\u-3\d" %dm)
+        sp_pgplot.ppgplot.pgmtxt('T', -8.6, 0.01, 0.0, "DM: %.2f pc cm\\u-3\\d" %dm)
         if sigma:
-            sp_pgplot.ppgplot.pgmtxt('T', -10.1, 0.01, 0.0, "S/N\dMAX\u: %.2f" %sigma)
+            sp_pgplot.ppgplot.pgmtxt('T', -10.1, 0.01, 0.0, "S/N\\dMAX\\u: %.2f" %sigma)
         else:
-            sp_pgplot.ppgplot.pgmtxt('T', -10.1, 0.01, 0.0, "S/N\dMAX\u: N/A")
+            sp_pgplot.ppgplot.pgmtxt('T', -10.1, 0.01, 0.0, "S/N\\dMAX\\u: N/A")
         sp_pgplot.ppgplot.pgmtxt('T', -11.6, 0.01, 0.0, "Number of samples: %i" %nbins)
         sp_pgplot.ppgplot.pgmtxt('T', -13.1, 0.01, 0.0, "Number of subbands: %i" %nsub)
         sp_pgplot.ppgplot.pgmtxt('T', -14.6, 0.01, 0.0, "Pulse width: %.2f ms" %(pulse_width*1e3))
-        sp_pgplot.ppgplot.pgmtxt('T', -16.1, 0.01, 0.0, "Sampling time: %.3f \gms" %(tsamp*1e6))
+        sp_pgplot.ppgplot.pgmtxt('T', -16.1, 0.01, 0.0, "Sampling time: %.3f \\gms" %(tsamp*1e6))
         sp_pgplot.ppgplot.pgmtxt('T', -17.6, 0.0, 0.0, "Bary pulse peak time: %.2f s" %(bary_start))
         sp_pgplot.ppgplot.pgsvp(0.07, 0.7, 0.01, 0.05)
         sp_pgplot.ppgplot.pgmtxt('T', -2.1, 0.01, 0.0, "%s" %fn)
@@ -284,7 +286,7 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
             sp_pgplot.ppgplot.pgslw(3)
             sp_pgplot.ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
             sp_pgplot.ppgplot.pgslw(3)
-            sp_pgplot.ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
+            sp_pgplot.ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\\u-3\d)")
             sp_pgplot.ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-noise")
             sp_pgplot.ppgplot.pgpt(dm_arr, sigma_arr, 20)
         else:
@@ -299,7 +301,7 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
             sp_pgplot.ppgplot.pgslw(3)
             sp_pgplot.ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
             sp_pgplot.ppgplot.pgslw(3)
-            sp_pgplot.ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\u-3\d)")
+            sp_pgplot.ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "DM (pc cm\\u-3\\d)")
             sp_pgplot.ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-noise")
 
         # DM vs Time
@@ -326,7 +328,7 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
             sp_pgplot.ppgplot.pgbox("BCNST", 0, 0, "BCNST", 0, 0)
             sp_pgplot.ppgplot.pgslw(3)
             sp_pgplot.ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Time (s)")
-            sp_pgplot.ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\u-3\d)")
+            sp_pgplot.ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "DM (pc cm\\u-3\\d)")
     else:
         #sp_pgplot.ppgplot.pgpap(10.25, 10.0/5.0)
         sp_pgplot.ppgplot.pgpap(8.0, 1.5)
@@ -475,11 +477,11 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
         sp_pgplot.ppgplot.pgmtxt('T', -3.9, 0.01, 0.0, "MJD: %f" %MJD)
         sp_pgplot.ppgplot.pgmtxt('T', -5.3, 0.01, 0.0, "Obs date: %s %s %s" %(date[0], date[1], date[2]))
         sp_pgplot.ppgplot.pgmtxt('T', -1.1, 0.35, 0.0, "Telescope: %s" %telescope)
-        sp_pgplot.ppgplot.pgmtxt('T', -2.5, 0.35, 0.0, "DM: %.2f pc cm\u-3\d" %dm)
+        sp_pgplot.ppgplot.pgmtxt('T', -2.5, 0.35, 0.0, "DM: %.2f pc cm\\u-3\\d" %dm)
         if sigma:
-            sp_pgplot.ppgplot.pgmtxt('T', -3.9, 0.35, 0.0, "S/N\dMAX\u: %.2f" %sigma)
+            sp_pgplot.ppgplot.pgmtxt('T', -3.9, 0.35, 0.0, "S/N\dMAX\\u: %.2f" %sigma)
         else:
-            sp_pgplot.ppgplot.pgmtxt('T', -3.9, 0.35, 0.0, "S/N\dMAX\u: N/A")
+            sp_pgplot.ppgplot.pgmtxt('T', -3.9, 0.35, 0.0, "S/N\dMAX\\u: N/A")
         sp_pgplot.ppgplot.pgmtxt('T', -5.3, 0.35, 0.0, "Number of samples: %i" %nbins)
         sp_pgplot.ppgplot.pgmtxt('T', -1.1, 0.65, 0.0, "Number of subbands: %i" %nsub)
         sp_pgplot.ppgplot.pgmtxt('T', -2.5, 0.65, 0.0, "Pulse width: %.2f ms" %(pulse_width*1e3))
@@ -489,18 +491,18 @@ def plot(spdfile, singlepulsefiles=None, spec_width=1.5, loc_pulse=0.5, xwin=Fal
     sp_pgplot.ppgplot.pgclos()
 
 def main():
-    parser = optparse.OptionParser(prog="plot_spd.py", \
+    parser = optparse.OptionParser(prog="plot_spd.py",
 				   usage = "%prog [OPTIONS] INFILE (.spd file) INFILES (.singlepulse files)")
     parser.add_option("-x", "--xwin", action="store_true", dest="xwin",
                       default=False, help="Don't make a postscript plot, just use an X-window")
-    parser.add_option("-o", dest= "outfile", type = "string", default = "spdplot", \
-                      help= "give a base name to the saved plot. DM, time and" \
+    parser.add_option("-o", dest= "outfile", type = "string", default = "spdplot",
+                      help= "give a base name to the saved plot. DM, time and"
                             "rank values will be added automatically" )
-    parser.add_option("--spec-width", dest="spec_width", type="float", help="Twice this number times the pulse width" \
-                      "is the window around the pulse considered for the spectrum. (Default: 1.5)", \
+    parser.add_option("--spec-width", dest="spec_width", type="float", help="Twice this number times the pulse width"
+                      "is the window around the pulse considered for the spectrum. (Default: 1.5)",
                       default=1.5)
-    parser.add_option("--loc", dest="loc_pulse", type="float", help="Fraction of the window length where the pulse is located." \
-                      "(Default: 0.5 half way in.)", \
+    parser.add_option("--loc", dest="loc_pulse", type="float", help="Fraction of the window length where the pulse is located."
+                      "(Default: 0.5 half way in.)",
                       default=0.5)
     parser.add_option("--just-waterfall", action="store_true", dest="just_waterfall",
                       default=False, help="Just produce the waterfall plots.")
@@ -517,14 +519,15 @@ def main():
     if not args[0].endswith(".spd"):
         raise ValueError("the first file must be a .spd file")
     if len(args) == 2:
-        tar = tarfile.open(args[1], "r:gz")# read in the tarball
-        filenames = tar.getnames()# get the filenames
-        plot(args[0], filenames, options.spec_width, options.loc_pulse, options.xwin, options.outfile, options.just_waterfall, \
-             options.integrate_spec, options.integrate_ts, options.disp_pulse, tar)# make the sp plots   
+        tar = tarfile.open(args[1], "r:gz")  # read in the tarball
+        filenames = tar.getnames()  # get the filenames
+        plot(args[0], filenames, options.spec_width, options.loc_pulse, options.xwin, options.outfile, options.just_waterfall,
+             options.integrate_spec, options.integrate_ts, options.disp_pulse, tar)  # make the sp plots
         tar.close()
     else:
-        plot(args[0], args[1:], options.spec_width, options.loc_pulse, options.xwin, options.outfile, options.just_waterfall, \
-             options.integrate_spec, options.integrate_ts, options.disp_pulse, tar = None)# make the sp plots   
+        plot(args[0], args[1:], options.spec_width, options.loc_pulse, options.xwin, options.outfile, options.just_waterfall,
+             options.integrate_spec, options.integrate_ts, options.disp_pulse, tar = None)  # make the sp plots
+
 
 if __name__ == '__main__':
     main() 
