@@ -11,20 +11,17 @@ Paul Scholz - Nov 2015
 
 """
 
-import sys
 import optparse
-import copy
 
 import matplotlib.pyplot as plt
 import matplotlib.cm
 import numpy as np
 
-import psr_utils
-import rfifind
+from presto import psr_utils
+from presto import rfifind
+from presto import psrfits
+from presto import filterbank
 
-import psrfits
-import filterbank
-import spectra
 
 SWEEP_STYLES = ['r-', 'b-', 'g-', 'm-', 'c-']
 

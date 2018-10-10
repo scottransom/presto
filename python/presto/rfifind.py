@@ -3,9 +3,9 @@ from builtins import zip
 from builtins import range
 from builtins import object
 import numpy as np
-import infodata
 from scipy.signal import medfilt
-from Pgplot import *
+from presto import infodata
+from presto.Pgplot import *
 
 """
 class rfifind:
@@ -81,14 +81,14 @@ class rfifind(object):
             self.mask_zap_chans = np.asarray([])
         self.mask_zap_chans = set(self.mask_zap_chans)
         if len(self.mask_zap_chans)==self.nchan:
-            print "WARNING!:  All channels recommended for masking!"
+            print("WARNING!:  All channels recommended for masking!")
         nzap = np.fromfile(x, dtype=np.int32, count=1)[0]
         if nzap:
             self.mask_zap_ints = np.fromfile(x, dtype=np.int32, count=nzap)
         else:
             self.mask_zap_ints = np.asarray([])
         if len(self.mask_zap_ints)==self.nint:
-            print "WARNING!:  All intervals recommended for masking!"
+            print("WARNING!:  All intervals recommended for masking!")
         nzap_per_int = np.fromfile(x, dtype=np.int32, count=nint)
         self.mask_zap_chans_per_int = []
         for nzap in nzap_per_int:
@@ -112,7 +112,7 @@ class rfifind(object):
         goodints = np.asarray(list(goodints))
         self.goodints = goodints
         if not len(goodints):
-            print "WARNING!:  Cannot get bandpass because all intervals zapped."
+            print("WARNING!:  Cannot get bandpass because all intervals zapped.")
             return 0.0
         self.bandpass_avg = self.avg_stats[goodints,:].mean(0)
         self.bandpass_std = self.std_stats[goodints,:].mean(0)
@@ -242,7 +242,7 @@ class rfifind(object):
                    line=None, symbol=16, color='red')
             closeplot()
         else:
-            print "WARNING!:  All channels recommended for masking!"
+            print("WARNING!:  All channels recommended for masking!")
 
     def write_zap_chans(self, filename=None):
         if filename is None:
@@ -267,7 +267,7 @@ class rfifind(object):
             self.weights[self.zap_chans] = 0.0
             self.offsets = self.bandpass_avg
         else:
-            print "WARNING!:  All channels recommended for masking!"
+            print("WARNING!:  All channels recommended for masking!")
 
     def write_weights_and_offsets(self, filename=None, invertband=False):
         if filename is None:

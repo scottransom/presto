@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-import rfifind, sys
+import sys
+from presto import rfifind
 
 if __name__=="__main__":
     a = rfifind.rfifind(sys.argv[1])

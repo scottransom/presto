@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import sys, os, glob, os.path, string, re
-from presto import fourierprops, get_rzw_cand, read_inffile
+from presto.presto import fourierprops, get_rzw_cand
 
 short_re = re.compile("_\d\d\dM_\d\d_ACCEL_")
 
@@ -63,7 +63,7 @@ def find_local_datfile(basename, DM):
             line = line.join(line.split()[1:])
         if line.endswith(".dat"):
             datfile = line
-    print "'%s'"%datfile
+    print("'%s'"%datfile)
     if datfile!='':
         return datfile
 
@@ -94,7 +94,7 @@ def get_datfile_len(nodename, datfile):
 
 if __name__ == "__main__":
     if (len(sys.argv) < 2):
-        print "\nusage: gotocand.py [-local] candfile:candnum\n"
+        print("\nusage: gotocand.py [-local] candfile:candnum\n")
         sys.exit(0)
     
     local = 0
@@ -110,12 +110,12 @@ if __name__ == "__main__":
         
     dm = get_dm(candfile)
     if dm is None:
-        print "Error:  Could not find a DM value in '%s'!"%candfile
+        print("Error:  Could not find a DM value in '%s'!"%candfile)
         sys.exit(0)
 
     base = get_basename(candfile)
     if base is None:
-        print "Error:  Could not find the base filename in '%s'!"%candfile
+        print("Error:  Could not find the base filename in '%s'!"%candfile)
         sys.exit(0)
 
     # Is the candidate from a short-chunk search?
@@ -127,12 +127,12 @@ if __name__ == "__main__":
     else:
         node = find_node(dm)
         if node is None:
-            print "Error:  Could not find the node where the dat file should be!"
+            print("Error:  Could not find the node where the dat file should be!")
             sys.exit(0)
 
         datfile = find_datfile(node, base, dm)
         if datfile is None:
-            print "Error:  Could not find .dat file on the node!"
+            print("Error:  Could not find .dat file on the node!")
             sys.exit(0)
 
     fullcandfile = os.path.join(outdir, candfile)+".cand"
@@ -140,9 +140,9 @@ if __name__ == "__main__":
     datfiledir, datfilenm = os.path.split(datfile)
     
     if not local:
-        print "\nGoing to %s and folding candidate #%s from the file %s."%\
-              (node,candnum,candfile)
-    print "  Folding command:"
+        print("\nGoing to %s and folding candidate #%s from the file %s."%\
+              (node,candnum,candfile))
+    print("  Folding command:")
 
     if shortcand:
         shortparts, shortoutext, f, fd, fdd = short_stuff(candfile, int(candnum),
@@ -151,7 +151,7 @@ if __name__ == "__main__":
         outfile += shortoutext
         foldcommand = "prepfold %s -f %.15g -fd %.15g -fdd %.15g -o %s %s"%\
                       (extraargs, f, fd, fdd, outfile, datfile)
-        print foldcommand
+        print(foldcommand)
         if not local:
             os.system("ssh -X %s 'cd %s ; %s'"%(node, datfiledir, foldcommand))
             os.system("scp -c blowfish %s:%s*_%.2f*.pfd* %s"% \
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         foldcommand = "prepfold %s -accelcand %s -accelfile %s -o %s %s"%\
                       (extraargs, candnum, fullcandfile, outfile, datfile)
 
-        print "    %s"%foldcommand
+        print("    %s"%foldcommand)
         if not local:
             os.system("ssh -X %s 'cd %s ; %s'"%(node, datfiledir, foldcommand))
             os.system("scp -c blowfish %s:%s*ACCEL_Cand_%d*.pfd* %s"% \

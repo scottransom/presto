@@ -23,14 +23,16 @@ from __future__ import print_function
 from builtins import str
 from builtins import range
 import numpy as np
+import scipy
+import scipy.signal
 import array as ar
-import os, os.path, stat, glob, sys
+import os.path, stat, sys
 import math
 import optparse as opt
-import infodata as inf
-import polycos as poly
-import scipy, scipy.signal
-import sigproc
+import presto.infodata as inf
+import presto.polycos as poly
+
+
 # importing VariableColormap from kapteyn module of it exists
 try:
         from kapteyn.mplutil import VariableColormap

@@ -1,15 +1,16 @@
 from __future__ import print_function
 from future import standard_library
 standard_library.install_aliases()
-from builtins import range
 import numpy as Num
 import pickle, os
+from presto.psr_utils import hist
+from presto.Pgplot import plotxy, closeplot
 
 n = 1000
 
 if (0):
     # Use the following to generate the xs
-    from simple_roots import newton_raphson
+    from presto.simple_roots import newton_raphson
 
     rval = 0.0
     rs = Num.arange(n+1, dtype=Num.float)/n
@@ -31,6 +32,7 @@ else:
                          "lib", "python", "cosine_rand.pickle")
     xs = pickle.load(open(pfile))
 
+
 def cosine_rand(num):
     """cosine_rand(num):  Return num phases that are randomly distributed
           as per a sinusoid with maximum at phase=0 (0 < phase < 1).
@@ -42,11 +44,8 @@ def cosine_rand(num):
     hi = Num.take(xs, indices+1)
     return fracts*(hi-lo)+lo
 
+
 if __name__ == '__main__':
-    from psr_utils import hist
-    from Pgplot import plotxy, closeplot
-    import time
-    
     if (0):
         numtrials = 20
         numrandnums = 1000000

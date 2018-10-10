@@ -9,13 +9,9 @@ from __future__ import print_function
 
 import sys
 import copy
-import os.path
-import warnings
 import optparse
-
 import numpy as np
-
-import filterbank
+from presto import filterbank
 
 BLOCKSIZE = 1e5 # Number of spectra to manipulate at once
 

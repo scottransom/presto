@@ -1,10 +1,8 @@
 from __future__ import print_function
 from builtins import object
 import six
-#from types import StringType, FloatType
-import collections
 import math, re
-import psr_utils as pu
+from presto import psr_utils as pu
 try:
     from slalib import sla_ecleq, sla_eqecl, sla_eqgal
     slalib = True

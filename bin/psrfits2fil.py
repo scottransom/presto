@@ -3,9 +3,9 @@
 from __future__ import print_function
 from builtins import range
 import numpy as np
-import psrfits
-import filterbank
-import sigproc
+from presto import psrfits
+from presto import filterbank
+from presto import sigproc
 import optparse
 import sys
 import os
