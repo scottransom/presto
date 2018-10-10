@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from __future__ import print_function
-import sys
 import numpy as num
 import presto.events as evts
 from presto import kuiper

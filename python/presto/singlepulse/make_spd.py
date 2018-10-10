@@ -15,20 +15,15 @@ from __future__ import absolute_import
 from builtins import map
 from builtins import range
 
-import sys
-import copy
 from time import strftime
-from subprocess import Popen, PIPE
-
 import numpy as np
 import optparse
-import waterfaller
-import psr_utils
+from presto import waterfaller
+from presto import psr_utils
 from . import plot_spd
-import singlepulse.spcand as spcand
-import singlepulse.spio as spio
-import psrfits
-import spectra
+from presto.singlepulse import spcand as spcand
+from presto.singlepulse import spio as spio
+from presto import psrfits
 #import filterbank need to implement in PRESTO
 
 DEBUG = True

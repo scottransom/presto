@@ -82,4 +82,5 @@ setup(name="presto",
                    'presto': 'python/presto',
                    'presto.singlepulse': 'python/presto/singlepulse',
                    },
+      package_data={'presto': ['python/presto/cosine_rand.json']},
       ext_modules=[ext_ppgplot, ext_presto]) #, ext_fftfit])

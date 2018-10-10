@@ -1,8 +1,12 @@
 from __future__ import print_function
 import numpy as np
-import presto
+from presto import presto
 import os
-import matplotlib.pyplot as plt
+from os import path
+
+here = path.dirname(__file__)
+
+
 
 print("Testing FFT stuff...", end=' ')
 N = 20
@@ -28,7 +32,7 @@ assert(np.allclose(cx/N, ncx, atol=1e-6))
 print("success")
 
 print("Testing reading infiles...", end=' ')
-x = presto.read_inffile("1937_DM71.02_zerodm.inf", verbose=False)
+x = presto.read_inffile(path.join(here, "1937_DM71.02_zerodm.inf"), verbose=False)
 assert(x.telescope=="GBT")
 assert(x.mjd_i==55267)
 assert(x.dt==8.192e-05)
