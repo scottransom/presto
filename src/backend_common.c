@@ -4,7 +4,6 @@
 #include "backend_common.h"
 #include "misc_utils.h"
 #include "fftw3.h"
-#include "error.h"
 
 static long long currentspectra = 0;
 static int using_MPI = 0;

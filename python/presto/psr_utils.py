@@ -36,6 +36,17 @@ def distance(width):
     return Num.sqrt(x + Num.transpose(x))
 
 
+def is_power_of_10(n):
+    """
+    is_power_of_10(n):
+        If n is a power of 10, return True.
+    """
+    N = int(n)
+    while (N > 9 and N % 10 == 0):
+        N //= 10
+    return N == 1
+
+
 def choose_N(orig_N):
     """
     choose_N(orig_N):
@@ -45,20 +56,20 @@ def choose_N(orig_N):
             by at least the maximum downsample factor * 2.
             Currently, this is 8 * 2 = 16.
     """
-    # A list of 4-digit numbers that are highly factorable by small primes
-    goodfactors = [1008, 1024, 1056, 1120, 1152, 1200, 1232, 1280, 1296,
-                   1344, 1408, 1440, 1536, 1568, 1584, 1600, 1680, 1728,
-                   1760, 1792, 1920, 1936, 2000, 2016, 2048, 2112, 2160,
-                   2240, 2304, 2352, 2400, 2464, 2560, 2592, 2640, 2688,
-                   2800, 2816, 2880, 3024, 3072, 3136, 3168, 3200, 3360,
-                   3456, 3520, 3584, 3600, 3696, 3840, 3872, 3888, 3920,
-                   4000, 4032, 4096, 4224, 4320, 4400, 4480, 4608, 4704,
-                   4752, 4800, 4928, 5040, 5120, 5184, 5280, 5376, 5488,
-                   5600, 5632, 5760, 5808, 6000, 6048, 6144, 6160, 6272,
-                   6336, 6400, 6480, 6720, 6912, 7040, 7056, 7168, 7200,
-                   7392, 7680, 7744, 7776, 7840, 7920, 8000, 8064, 8192,
-                   8400, 8448, 8624, 8640, 8800, 8960, 9072, 9216, 9408,
-                   9504, 9600, 9680, 9856]
+    # A list of 4-dgit numbers that are highly factorable by small primes
+    goodfactors = [1000, 1008, 1024, 1056, 1120, 1152, 1200, 1232, 1280,
+                   1296, 1344, 1408, 1440, 1536, 1568, 1584, 1600, 1680,
+                   1728, 1760, 1792, 1920, 1936, 2000, 2016, 2048, 2112,
+                   2160, 2240, 2304, 2352, 2400, 2464, 2560, 2592, 2640,
+                   2688, 2800, 2816, 2880, 3024, 3072, 3136, 3168, 3200,
+                   3360, 3456, 3520, 3584, 3600, 3696, 3840, 3872, 3888,
+                   3920, 4000, 4032, 4096, 4224, 4320, 4400, 4480, 4608,
+                   4704, 4752, 4800, 4928, 5040, 5120, 5184, 5280, 5376,
+                   5488, 5600, 5632, 5760, 5808, 6000, 6048, 6144, 6160,
+                   6272, 6336, 6400, 6480, 6720, 6912, 7040, 7056, 7168,
+                   7200, 7392, 7680, 7744, 7776, 7840, 7920, 8000, 8064,
+                   8192, 8400, 8448, 8624, 8640, 8800, 8960, 9072, 9216,
+                   9408, 9504, 9600, 9680, 9856, 10000]
     if orig_N < 10000:
         return 0
     # Get the number represented by the first 4 digits of orig_N
@@ -66,10 +77,15 @@ def choose_N(orig_N):
     # Now get the number that is just bigger than orig_N
     # that has its first 4 digits equal to "factor"
     for factor in goodfactors:
+        if (factor == first4 and
+            orig_N % factor == 0 and
+            is_power_of_10(orig_N//factor)): break
         if factor > first4: break
     new_N = factor
     while new_N < orig_N:
         new_N *= 10
+    if new_N == orig_N:
+        return orig_N
     # Finally, compare new_N to the closest power_of_two
     # greater than orig_N.  Take the closest.
     two_N = 2

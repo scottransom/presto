@@ -8,6 +8,13 @@
 long long next2_to_n(long long x);
 /* Return the first value of 2^n >= x */
 
+int is_power_of_10(long long n);
+/* Check whether n is a power of 10 or not.  Return 0 or 1 */
+
+long long choose_good_N(long long orig_N);
+// Choose a time series length that is larger than the input value but
+// that is highly factorable.
+
 float invsqrtf(float x);
 // See http://en.wikipedia.org/wiki/Fast_inverse_square_root
 
