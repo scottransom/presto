@@ -114,6 +114,9 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
     } else if (strcmp(idata->telescope, "Effelsberg") == 0) {
         scopechar = 'g';
         tracklen = 12;
+    } else if (strcmp(idata->telescope, "ATA") == 0) {
+        scopechar = 's';
+        tracklen = 12;
     } else if (strcmp(idata->telescope, "LOFAR") == 0) {
         scopechar = 't';
         tracklen = 12;
