@@ -1,0 +1,7 @@
+FROM kernsuite/base:4
+RUN docker-apt-install python3-pip
+RUN pip3 install pycodestyle
+ADD . /code
+WORKDIR /code
+RUN pycodestyle python --ignore=E501
+

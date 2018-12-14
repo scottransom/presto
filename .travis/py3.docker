@@ -1,0 +1,18 @@
+FROM kernsuite/base:4
+RUN docker-apt-install \
+    python3-pip \
+    python3-numpy \
+    python3-future \
+    python3-six \
+    python3-scipy \
+    python3-astropy \
+    gfortran \
+    pgplot5 \
+    libx11-dev \
+    libglib2.0-dev \
+    libcfitsio-dev \
+    libpng-dev \
+    libfftw3-dev
+ADD . /code
+RUN pip3 install /code
+
