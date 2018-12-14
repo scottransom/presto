@@ -19,7 +19,7 @@ include_dirs = [numpy.get_include()]
 ppgplot_libraries = ["cpgplot", "pgplot", "X11", "png", "m"]
 ppgplot_library_dirs = ["/usr/X11R6/lib"]
 
-presto_libraries = ["presto", "fftw3f", "m"]
+presto_libraries = ["fftw3f", "m"]
 presto_library_dirs = []
 
 ppgplot_include_dirs = include_dirs
