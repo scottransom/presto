@@ -202,7 +202,13 @@ class Resids(object):
         """Return label describing xaxis and the corresponding
             data given keyword 'key'.
         """
-        if not (isinstance(key, bytes) or isinstance(key, str)):
+        # Python2/3 compatible way of checking for string types
+        # Taken from https://stackoverflow.com/questions/11301138/how-to-check-if-variable-is-string-with-python-2-and-3-compatibility
+        try:
+            basestring
+        except NameError:
+            basestring = str
+        if not isinstance(key, basestring):
             raise ValueError("key must be of type string.")
         xopt = key.lower()
         if xopt == 'numtoa':
@@ -228,7 +234,13 @@ class Resids(object):
             'postfit' is a boolean argument that determines if
             postfit, or prefit data is to be returned.
         """
-        if not (isinstance(key, bytes) or isinstance(key, str)):
+        # Python2/3 compatible way of checking for string types
+        # Taken from https://stackoverflow.com/questions/11301138/how-to-check-if-variable-is-string-with-python-2-and-3-compatibility
+        try:
+            basestring
+        except NameError:
+            basestring = str
+        if not isinstance(key, basestring):
             raise ValueError("key must be of type string.")
         yopt = key.lower()
         if postfit:
