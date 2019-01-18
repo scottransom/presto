@@ -61,7 +61,7 @@ def read_residuals(filename="resid2.tmp"):
         not (reclen==struct.calcsize(rectype))):
         print("Warning:  possibly reading residuals incorrectly... don't understand record size")
     infile.seek(0, 0) # position at file start
-    r.numTOAs = int(filelen / reclen)
+    r.numTOAs = filelen // reclen
     r.bary_TOA = Num.zeros(r.numTOAs, 'd')
     r.postfit_phs = Num.zeros(r.numTOAs, 'd')
     r.postfit_sec = Num.zeros(r.numTOAs, 'd')
