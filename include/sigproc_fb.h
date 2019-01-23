@@ -21,6 +21,7 @@ typedef struct SIGPROCFB {
   int nbeams;            /* Number of beams in the observing system */
   int ibeam;             /* Beam number used for this data */
   int sumifs;            /* Whether the IFs are summed or not */
+  int signedints;        /* Whether the integer data is signed or not */
   int headerlen;         /* Header length in bytes */
 } sigprocfb;
 
