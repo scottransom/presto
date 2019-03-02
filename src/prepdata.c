@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
         } else {
         /* Set the output length to a good number if it wasn't requested */
             cmd->numoutP = 1;
-            cmd->numout = choose_good_N((long long)(idata.N));
+            cmd->numout = choose_good_N((long long)(idata.N/cmd->downsamp));
             writeinf(&idata);
             printf("Setting a 'good' output length of %ld samples\n", cmd->numout);
         }
@@ -272,7 +272,7 @@ int main(int argc, char *argv[])
         /* Set the output length to a good number if it wasn't requested */
         if (!cmd->numoutP) {
             cmd->numoutP = 1;
-            cmd->numout = choose_good_N((long long)(idata.N));
+            cmd->numout = choose_good_N((long long)(idata.N/cmd->downsamp));
             printf("Setting a 'good' output length of %ld samples\n", cmd->numout);
         }
     }
