@@ -279,13 +279,13 @@ weight_psrfits: weight_psrfits.o $(INSTRUMENTOBJS)
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ weight_psrfits.o $(INSTRUMENTOBJS) $(PRESTOLINK)
 
 psrfits_dumparrays: psrfits_dumparrays.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ psrfits_dumparrays.o $(CFITSIOLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ psrfits_dumparrays.o $(CFITSIOLINK) -lm
 
 fitsdelrow: fitsdelrow.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelrow.o $(CFITSIOLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelrow.o $(CFITSIOLINK) -lm
 
 fitsdelcol: fitsdelcol.o
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelcol.o $(CFITSIOLINK)
+	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ fitsdelcol.o $(CFITSIOLINK) -lm
 
 clean:
 	rm -f *.o *~ *#
