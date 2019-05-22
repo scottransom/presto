@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     int padtowrite = 0, statnum = 0;
     int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
     double local_lodm;
-    char *datafilenm, *outpath, *outfilenm, *hostname;
+    char *datafilenm, *outpath, *outfilenm, hostname[256];
     struct spectra_info s;
     infodata idata;
     mask obsmask;
@@ -85,20 +85,9 @@ int main(int argc, char *argv[])
     omp_set_num_threads(1);     // Explicitly turn off OpenMP
 #endif
     set_using_MPI();
-    {
-        FILE *hostfile;
-        char tmpname[100];
-        int retval;
 
-        hostfile = chkfopen("/etc/hostname", "r");
-        retval = fscanf(hostfile, "%s\n", tmpname);
-        if (retval == 0) {
-            printf("Warning:  error reading /etc/hostname on proc %d\n", myid);
-        }
-        hostname = (char *) calloc(strlen(tmpname) + 1, 1);
-        memcpy(hostname, tmpname, strlen(tmpname));
-        fclose(hostfile);
-    }
+    /* Get hostname on Unix machine */
+    gethostname(hostname, 255);
 
     /* Call usage() if we have no command line arguments */
 
