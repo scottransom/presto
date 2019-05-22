@@ -1,6 +1,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
 #include "presto.h"
 #include "mpiprepsubband_cmd.h"
 #include "mask.h"
@@ -87,7 +88,13 @@ int main(int argc, char *argv[])
     set_using_MPI();
 
     /* Get hostname on Unix machine */
-    gethostname(hostname, 255);
+    {
+        int retval = gethostname(hostname, 255);
+        if (retval == -1) {
+            printf("Warning:  error determining hostname: %s\n", strerror(errno));
+            sprintf(hostname, "unknown");
+        }
+    }
 
     /* Call usage() if we have no command line arguments */
 
