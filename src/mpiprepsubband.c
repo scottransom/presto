@@ -806,7 +806,6 @@ int main(int argc, char *argv[])
     vect_free(outdata[0]);
     vect_free(outdata);
     vect_free(dms);
-    free(hostname);
     vect_free(idispdt);
     vect_free(offsets[0]);
     vect_free(offsets);
