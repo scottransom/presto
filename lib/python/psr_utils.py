@@ -1031,7 +1031,7 @@ def rotate(arr, bins):
     rotate(arr, bins):
         Return an array rotated by 'bins' places to the left
     """
-    bins = bins % len(arr)
+    bins = int(bins % len(arr))
     if bins==0:
         return arr
     else:
