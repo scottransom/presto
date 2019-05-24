@@ -421,6 +421,26 @@ def asini_c(pb, mf):
     """
     return (mf * pb * pb / 8015123.37129)**(1.0 / 3.0)
 
+def TS99_WDmass(pb, pop="I+II"):
+    """
+    TS99_WDmass(pb, pop="I+II"):
+        Return the mass of the predicted WD companion for an MSP-HE WD
+            system, with an oprbital period of 'pb' days.  The options
+            for the pop parameter are "I", "II", or the default "I+II".
+            That is the population of the stars that formed the system
+            (i.e. pop II stars are older and more metal poor)
+            From Tauris & Savonije, 1999, ApJ.
+    """
+    vals = {"I":    (4.50, 1.2e5, 0.120),
+            "I+II": (4.75, 1.1e5, 0.115),
+            "II":   (5.00, 1.0e5, 0.110)}
+    if pop not in vals.keys():
+        print "Not a valid stellar pop: should be 'I', 'I+II', or 'II'"
+        return None
+    else:
+        a, b, c = vals[pop]
+        return (pb/b)**(1.0/a) + c
+
 def ELL1_check(par_file, output=False):
     """
     ELL1_check(par_file):
