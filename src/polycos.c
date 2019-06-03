@@ -114,6 +114,9 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
     } else if (strcmp(idata->telescope, "Effelsberg") == 0) {
         scopechar = 'g';
         tracklen = 12;
+    } else if (strcmp(idata->telescope, "ATA") == 0) {
+        scopechar = 's';
+        tracklen = 12;
     } else if (strcmp(idata->telescope, "LOFAR") == 0) {
         scopechar = 't';
         tracklen = 12;
@@ -125,6 +128,9 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
         tracklen = 5;
     } else if (strcmp(idata->telescope, "GMRT") == 0) {
         scopechar = 'r';
+        tracklen = 12;
+    } else if (strcmp(idata->telescope, "SHAO") == 0) {
+        scopechar = 's';
         tracklen = 12;
     } else if (strcmp(idata->telescope, "CHIME") == 0) {
         scopechar = 'y';

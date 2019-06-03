@@ -339,10 +339,13 @@ int main(int argc, char *argv[])
 
     tlotoa = idata.mjd_i + idata.mjd_f; /* Topocentric epoch */
 
-    if (cmd->numoutP)
-        totnumtowrite = cmd->numout;
-    else
-        totnumtowrite = (long) idata.N / cmd->downsamp;
+    /* Set the output length to a good number if it wasn't requested */
+    if (!cmd->numoutP) {
+        cmd->numoutP = 1;
+        cmd->numout = choose_good_N((long long)(idata.N/cmd->downsamp));
+        printf("Setting a 'good' output length of %ld samples\n", cmd->numout);
+    }
+    totnumtowrite = cmd->numout;
 
     if (cmd->nobaryP) {         /* Main loop if we are not barycentering... */
         double *dispdt;
@@ -398,7 +401,7 @@ int main(int argc, char *argv[])
             /* write more than cmd->numout points.         */
 
             numtowrite = numread;
-            if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+            if ((totwrote + numtowrite) > cmd->numout)
                 numtowrite = cmd->numout - totwrote;
             if (cmd->subP)
                 write_subs(outfiles, cmd->nsub, subsdata, 0, numtowrite);
@@ -417,7 +420,7 @@ int main(int argc, char *argv[])
 
             /* Stop if we have written out all the data we need to */
 
-            if (cmd->numoutP && (totwrote == cmd->numout))
+            if (totwrote == cmd->numout)
                 break;
 
             numread = get_data(outdata, blocksperread, &s,
@@ -563,7 +566,7 @@ int main(int argc, char *argv[])
             /* the next bin that will be added or removed.      */
 
             numtowrite = abs(*diffbinptr) - datawrote;
-            if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+            if ((totwrote + numtowrite) > cmd->numout)
                 numtowrite = cmd->numout - totwrote;
             if (numtowrite > numread)
                 numtowrite = numread;
@@ -608,7 +611,7 @@ int main(int argc, char *argv[])
                     /* Write the part after the diffbin */
 
                     numtowrite = numread - numwritten;
-                    if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+                    if ((totwrote + numtowrite) > cmd->numout)
                         numtowrite = cmd->numout - totwrote;
                     nextdiffbin = abs(*diffbinptr) - datawrote;
                     if (numtowrite > nextdiffbin)
@@ -633,13 +636,13 @@ int main(int argc, char *argv[])
 
                     /* Stop if we have written out all the data we need to */
 
-                    if (cmd->numoutP && (totwrote == cmd->numout))
+                    if (totwrote == cmd->numout)
                         break;
                 } while (numwritten < numread);
             }
             /* Stop if we have written out all the data we need to */
 
-            if (cmd->numoutP && (totwrote == cmd->numout))
+            if (totwrote == cmd->numout)
                 break;
 
             numread = get_data(outdata, blocksperread, &s,
@@ -649,7 +652,7 @@ int main(int argc, char *argv[])
 
     /* Calculate the amount of padding we need  */
 
-    if (cmd->numoutP && (cmd->numout > totwrote))
+    if (cmd->numout > totwrote)
         padwrote = padtowrite = cmd->numout - totwrote;
 
     /* Write the new info file for the output data */

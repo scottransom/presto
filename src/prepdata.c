@@ -206,8 +206,11 @@ int main(int argc, char *argv[])
             writeinf(&idata);
             idata.N = dtmp;
         } else {
-            cmd->numout = LONG_MAX;
+        /* Set the output length to a good number if it wasn't requested */
+            cmd->numoutP = 1;
+            cmd->numout = choose_good_N((long long)(idata.N/cmd->downsamp));
             writeinf(&idata);
+            printf("Setting a 'good' output length of %ld samples\n", cmd->numout);
         }
 
         /* The number of topo to bary time points to generate with TEMPO */
@@ -266,9 +269,12 @@ int main(int argc, char *argv[])
             }
         }
 
-        /* Compare the size of the data to the size of output we request */
-        if (!cmd->numoutP)
-            cmd->numout = LONG_MAX;
+        /* Set the output length to a good number if it wasn't requested */
+        if (!cmd->numoutP) {
+            cmd->numoutP = 1;
+            cmd->numout = choose_good_N((long long)(idata.N/cmd->downsamp));
+            printf("Setting a 'good' output length of %ld samples\n", cmd->numout);
+        }
     }
 
     /* Check if we are downsampling */
@@ -360,11 +366,7 @@ int main(int argc, char *argv[])
                 numread = downsample(outdata, numread, cmd->downsamp);
 
             /* Print percent complete */
-            if (cmd->numoutP)
-                newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
-            else
-                newper =
-                    (int) ((float) totwrote * cmd->downsamp * 100.0 / idata.N) + 1;
+            newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
             if (newper > oldper) {
                 printf("\rAmount Complete = %3d%%", newper);
                 fflush(stdout);
@@ -374,7 +376,7 @@ int main(int argc, char *argv[])
             /* Write the latest chunk of data, but don't   */
             /* write more than cmd->numout points.         */
             numtowrite = numread;
-            if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+            if ((totwrote + numtowrite) > cmd->numout)
                 numtowrite = cmd->numout - totwrote;
             chkfwrite(outdata, sizeof(float), numtowrite, outfile);
             totwrote += numtowrite;
@@ -387,7 +389,7 @@ int main(int argc, char *argv[])
             }
 
             /* Stop if we have written out all the data we need to */
-            if (cmd->numoutP && (totwrote == cmd->numout))
+            if (totwrote == cmd->numout)
                 break;
 
         } while (numread);
@@ -536,11 +538,7 @@ int main(int argc, char *argv[])
 
             /* Print percent complete */
 
-            if (cmd->numoutP)
-                newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
-            else
-                newper =
-                    (int) ((float) totwrote * cmd->downsamp * 100.0 / idata.N) + 1;
+            newper = (int) ((float) totwrote / cmd->numout * 100.0) + 1;
             if (newper > oldper) {
                 printf("\rAmount Complete = %3d%%", newper);
                 fflush(stdout);
@@ -554,7 +552,7 @@ int main(int argc, char *argv[])
 
             numtowrite = abs(*diffbinptr) - datawrote;
             /* FIXME: numtowrite+totwrote can wrap! */
-            if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+            if ((totwrote + numtowrite) > cmd->numout)
                 numtowrite = cmd->numout - totwrote;
             if (numtowrite > numread)
                 numtowrite = numread;
@@ -601,7 +599,7 @@ int main(int argc, char *argv[])
                     /* Write the part after the diffbin */
 
                     numtowrite = numread - numwritten;
-                    if (cmd->numoutP && (totwrote + numtowrite) > cmd->numout)
+                    if ((totwrote + numtowrite) > cmd->numout)
                         numtowrite = cmd->numout - totwrote;
                     nextdiffbin = abs(*diffbinptr) - datawrote;
                     if (numtowrite > nextdiffbin)
@@ -623,13 +621,13 @@ int main(int argc, char *argv[])
 
                     /* Stop if we have written out all the data we need to */
 
-                    if (cmd->numoutP && (totwrote == cmd->numout))
+                    if (totwrote == cmd->numout)
                         break;
                 } while (numwritten < numread);
             }
             /* Stop if we have written out all the data we need to */
 
-            if (cmd->numoutP && (totwrote == cmd->numout))
+            if (totwrote == cmd->numout)
                 break;
 
         } while (numread);
@@ -643,7 +641,7 @@ int main(int argc, char *argv[])
 
     /* Calculate what the amount of padding we need  */
 
-    if (cmd->numoutP && (cmd->numout > totwrote))
+    if (cmd->numout > totwrote)
         padwrote = padtowrite = cmd->numout - totwrote;
 
 

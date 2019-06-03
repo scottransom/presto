@@ -4,7 +4,6 @@
 #include "backend_common.h"
 #include "misc_utils.h"
 #include "fftw3.h"
-#include "error.h"
 
 static long long currentspectra = 0;
 static int using_MPI = 0;
@@ -292,6 +291,9 @@ void print_spectra_info(struct spectra_info *s)
     printf("      Time per subint (sec) = %-.12g\n", s->time_per_subint);
     printf("        Time per file (sec) = %-.12g\n", s->num_spec[0] * s->dt);
     printf("            bits per sample = %d\n", s->bits_per_sample);
+    if (s->bits_per_sample==8)
+        printf("          Are bytes signed? = %s\n",
+               s->signedints ? "True" : "False");
     {
         int fact = 1;
         if ((s->datatype == PSRFITS) && (s->bits_per_sample < 8))
