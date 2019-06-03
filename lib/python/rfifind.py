@@ -77,14 +77,14 @@ class rfifind:
             self.mask_zap_chans = np.asarray([])
         self.mask_zap_chans = set(self.mask_zap_chans)
         if len(self.mask_zap_chans)==self.nchan:
-            print "WARNING!:  All channels recommended for masking!"
+            print("WARNING!:  All channels recommended for masking!")
         nzap = np.fromfile(x, dtype=np.int32, count=1)[0]
         if nzap:
             self.mask_zap_ints = np.fromfile(x, dtype=np.int32, count=nzap)
         else:
             self.mask_zap_ints = np.asarray([])
         if len(self.mask_zap_ints)==self.nint:
-            print "WARNING!:  All intervals recommended for masking!"
+            print("WARNING!:  All intervals recommended for masking!")
         nzap_per_int = np.fromfile(x, dtype=np.int32, count=nint)
         self.mask_zap_chans_per_int = []
         for nzap in nzap_per_int:
@@ -108,7 +108,7 @@ class rfifind:
         goodints = np.asarray(list(goodints))
         self.goodints = goodints
         if not len(goodints):
-            print "WARNING!:  Cannot get bandpass because all intervals zapped."
+            print("WARNING!:  Cannot get bandpass because all intervals zapped.")
             return 0.0
         self.bandpass_avg = self.avg_stats[goodints,:].mean(0)
         self.bandpass_std = self.std_stats[goodints,:].mean(0)
@@ -189,22 +189,22 @@ class rfifind:
                          self.user_zap_chans | \
                          self.edge_chans | \
                          self.no_signal_chans
-        print "Recommending to zap %d channels:" % len(self.zap_chans)
-        print "  %d channels from Fourier power levels > %.1f" % \
-              (len(self.pow_zap_chans), power)
-        print "  %d channels from avgs levels being off by > %.1f sigma" % \
-              (len(self.avg_zap_chans), asigma)
-        print "  %d channels from stds levels being off by > %.1f sigma" % \
-              (len(self.std_zap_chans), ssigma)
-        print "  %d channels for being within %.3g of the band edge" % \
-              (len(self.edge_chans), edges)
-        print "  %d channels were specified by the user" % len(self.user_zap_chans)
-        print "  %d channels for having no variation" % len(self.no_signal_chans)
+        print("Recommending to zap %d channels:" % len(self.zap_chans))
+        print("  %d channels from Fourier power levels > %.1f" % \
+              (len(self.pow_zap_chans), power))
+        print("  %d channels from avgs levels being off by > %.1f sigma" % \
+              (len(self.avg_zap_chans), asigma))
+        print("  %d channels from stds levels being off by > %.1f sigma" % \
+              (len(self.std_zap_chans), ssigma))
+        print("  %d channels for being within %.3g of the band edge" % \
+              (len(self.edge_chans), edges))
+        print("  %d channels were specified by the user" % len(self.user_zap_chans))
+        print("  %d channels for having no variation" % len(self.no_signal_chans))
         if usemask:
             onlymask = self.mask_zap_chans - self.zap_chans
-            print "  The mask recommends %d additional bad channels" % len(onlymask)
+            print("  The mask recommends %d additional bad channels" % len(onlymask))
             if len(onlymask):
-                print "  adding them to the zap_chans list."
+                print("  adding them to the zap_chans list.")
             self.zap_chans = self.zap_chans | self.mask_zap_chans
         self.zap_chans = np.asarray(sorted(list(self.zap_chans)))
         if plot: self.plot_zapped_bandpass()
@@ -238,7 +238,7 @@ class rfifind:
                    line=None, symbol=16, color='red')
             closeplot()
         else:
-            print "WARNING!:  All channels recommended for masking!"
+            print("WARNING!:  All channels recommended for masking!")
 
     def write_zap_chans(self, filename=None):
         if filename is None:
@@ -263,7 +263,7 @@ class rfifind:
             self.weights[self.zap_chans] = 0.0
             self.offsets = self.bandpass_avg
         else:
-            print "WARNING!:  All channels recommended for masking!"
+            print("WARNING!:  All channels recommended for masking!")
 
     def write_weights_and_offsets(self, filename=None, invertband=False):
         if filename is None:
