@@ -87,10 +87,12 @@ etc.
 The Fourier-Domain acceleration search technique that PRESTO uses in
 the routine accelsearch is described in [Ransom, Eikenberry, and
 Middleditch
-(2002)](http://adsabs.harvard.edu/abs/2002AJ....124.1788R), and the
-phase-modulation search technique used by search_bin is described in
+(2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract), 
+the new "jerk" search capability is described in [Andersen & Ransom (2018)]
+(https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract),
+and the phase-modulation search technique used by search_bin is described in
 [Ransom, Cordes, and Eikenberry
-(2003)](http://adsabs.harvard.edu/abs/2003ApJ...589..911R).  Some
+(2003)](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract).  Some
 other basic information about PRESTO can be found in my
 [thesis](http://www.cv.nrao.edu/~sransom/ransom_thesis_2001.pdf).  I
 will eventually get around to finishing the documentation for PRESTO,
@@ -143,9 +145,16 @@ request"!
 
 ### Final Thoughts:
 Please let me know if you decide to use PRESTO for any "real"
-searches.  And if you find anything with it, it would be great if you
-would cite either my thesis or whichever of the two papers listed
-above is appropriate.  Thanks!
+searches, especially if you find pulsars with it!
+
+And if you find anything with it, it would be great if you would cite
+either my thesis or whichever of the three papers listed above is
+appropriate.
+
+Also note that many people are now citing software using the ASCL.
+[PRESTO is there as well](https://www.ascl.net/1107.017).
+
+Thanks!
 
 ### Acknowledgements:
 Big thanks go to Steve Eikenberry for his help developing the
