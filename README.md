@@ -87,9 +87,9 @@ etc.
 The Fourier-Domain acceleration search technique that PRESTO uses in
 the routine accelsearch is described in [Ransom, Eikenberry, and
 Middleditch
-(2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract), 
-the new "jerk" search capability is described in [Andersen & Ransom (2018)]
-(https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract),
+(2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract),
+the new "jerk" search capability is described in
+[Andersen & Ransom (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract),
 and the phase-modulation search technique used by search_bin is described in
 [Ransom, Cordes, and Eikenberry
 (2003)](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract).  Some
