@@ -1293,7 +1293,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
             int retval = 0;
             char *command = (char *) malloc(2 * strlen(search->pgdev) + 60);
             sprintf(command, "pstoimg -density 200 -antialias -flip cw "
-                    "-quiet -out %.*s.png %.*s",
+                    "-quiet -type png -out %.*s.png %.*s",
                     (int) strlen(search->pgdev) - 7, search->pgdev,
                     (int) strlen(search->pgdev) - 4, search->pgdev);
             if ((retval = system(command))) {
