@@ -7,7 +7,7 @@ rfifind -time 2.0 -o Lband GBT_Lband_PSR.fil
 gv lband_rfifind.ps
 rfifind -time 1.0 -o Lband GBT_Lband_PSR.fil 
 gv lband_rfifind.ps
-rfifind -nocompute -time 1.0 -freqsig 6.0 -mask -o Lband_rfifind.mask lband GBT_Lband_PSR.fil 
+rfifind -nocompute -time 1.0 -freqsig 6.0 -mask Lband_rfifind.mask -o Lband GBT_Lband_PSR.fil 
 gv lband_rfifind.ps
 prepdata -nobary -o Lband_topo_DM0.00 -dm 0.0 -mask Lband_rfifind.mask -numout 530000 GBT_Lband_PSR.fil 
 exploredat Lband_topo_DM0.00.dat 

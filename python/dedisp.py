@@ -79,5 +79,5 @@ for dDM, dsubDM, downsamp, subcall, startDM in \
         # And now create the time series
         loDM = startDM + ii*dsubDM
         subnames = basename+"_DM%.2f.sub[0-9]*"%subDM
-        myexecute("prepsubband -numout %d -lodm %.2f -dmstep %.2f -numdms %d -downsamp %d -o %s %s" %
-                  (numout/downsamp, loDM, dDM, dmspercall, datdownsamp, basename, subnames))
+        myexecute("prepsubband -lodm %.2f -dmstep %.2f -numdms %d -downsamp %d -o %s %s" %
+                  (loDM, dDM, dmspercall, datdownsamp, basename, subnames))

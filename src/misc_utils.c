@@ -86,7 +86,12 @@ void split_path_file(char *input, char **path, char **file)
 
     len = strlen(input);
     sptr = strrchr(input, '/');
-    if (sptr == NULL) {
+    // The 2nd part of the following handles relative paths,
+    // but in a strange way, in that the file will have the
+    // relative part in it.  The path will be the absolute
+    // path of the current working directory.  That's usually
+    // euivalent to what we want, though.
+    if ((sptr == NULL) || (input[0] == '.')) {
         sptr = getcwd(NULL, 0);
         if (sptr == NULL) {
             perror
@@ -246,6 +251,9 @@ void telescope_to_tempocode(char *inname, char *outname, char *obscode)
     } else if (strcmp(scope, "meerkat") == 0 ) {
         strcpy(obscode, "MK");
         strcpy(outname, "MeerKAT");
+    } else if (strcmp(scope, "ata") == 0) {
+        strcpy(obscode, "AT");
+        strcpy(outname, "ATA");
     } else if (strcmp(scope, "k7") == 0 ) {
         strcpy(obscode, "K7");
         strcpy(outname, "KAT-7");

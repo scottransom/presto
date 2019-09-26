@@ -254,6 +254,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
     totalbytes = nbytes;
 
     fb->ibeam = 1;              // default value
+    fb->signedints = 0;         // default value
     /* loop over and read remaining header lines until HEADER_END reached */
     while (1) {
         get_string(inputfile, &nbytes, string);
@@ -321,6 +322,11 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
             totalbytes += sizeof(int);
         } else if (strings_equal(string, "ibeam")) {
             chkfread(&(fb->ibeam), sizeof(int), 1, inputfile);
+            totalbytes += sizeof(int);
+        } else if (strings_equal(string, "signed")) {
+            char tmp;
+            chkfread(&tmp, sizeof(char), 1, inputfile);
+            fb->signedints = tmp;
             totalbytes += sizeof(int);
         } else if (expecting_rawdatafile) {
             strcpy(fb->inpfile, string);
@@ -397,6 +403,7 @@ void read_filterbank_files(struct spectra_info *s)
         s->dec2000 = dms2rad(d, m, sec) * RADTODEG;
     }
     s->bits_per_sample = fb.nbits;
+    s->signedints = fb.signedints;
     s->num_channels = fb.nchans;
     s->samples_per_spectra = s->num_polns * s->num_channels;
     s->bytes_per_spectra = s->bits_per_sample * s->samples_per_spectra / 8;
@@ -635,11 +642,20 @@ void convert_filterbank_block(float *outdata, unsigned char *indata,
                 outdata[ii + offset] = (float) sdata[jj + offset];
         }
     } else if (s->bits_per_sample == 8) {
-        unsigned char *chardata = (unsigned char *) indata;
-        for (spec_ct = 0; spec_ct < numread; spec_ct++) {
-            offset = spec_ct * s->num_channels;
-            for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
-                outdata[ii + offset] = (float) chardata[jj + offset];
+        if (s->signedints) {
+            char *chardata = (char *) indata;
+            for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+                offset = spec_ct * s->num_channels;
+                for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
+                    outdata[ii + offset] = (float) chardata[jj + offset];
+            }
+        } else {
+            unsigned char *chardata = (unsigned char *) indata;
+            for (spec_ct = 0; spec_ct < numread; spec_ct++) {
+                offset = spec_ct * s->num_channels;
+                for (ii = 0, jj = s->num_channels - 1; ii < s->num_channels; ii++, jj--)
+                    outdata[ii + offset] = (float) chardata[jj + offset];
+            }
         }
     } else if (s->bits_per_sample == 4) {
         unsigned char c, *chardata = (unsigned char *) indata;
