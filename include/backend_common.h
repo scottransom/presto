@@ -64,6 +64,7 @@ struct spectra_info {
     int apply_offset;       // Do we apply the offsets to the data? (1=Yes, 0=No)
     int apply_weight;       // Do we apply the weights to the data? (1=Yes, 0=No)
     int apply_flipband;     // Do we invert the band?
+    int signedints;         // Used signed bytes rather than default unsigned bytes
     int remove_zerodm;      // Do zero-DM substraction?
     int use_poln;           // The number of the specific polarization to use 0-num_polns-1
     int flip_bytes;         // Hack to flip the order of the bits in a byte of data

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-from __future__ import print_function
+from __future__ import print_function, absolute_import
 from builtins import zip
 import os
 import struct
 import sys
 import math
 import warnings
-from presto.psr_constants import ARCSECTORAD
+from .psr_constants import ARCSECTORAD
 
 telescope_ids = {"Fake": 0, "Arecibo": 1, "ARECIBO 305m": 1, 
                  "Ooty": 2, "Nancay": 3, "Parkes": 4, "Jodrell": 5,
@@ -37,6 +37,7 @@ header_params = {
     "tstart": 'd',  
     "tsamp": 'd',  
     "nbits": 'i', 
+    "signed": 'b', 
     "nsamples": 'i', 
     "nbeams": "i",
     "ibeam": "i",
@@ -85,6 +86,12 @@ def read_intval(filfile, stdout=False):
         print("  int value = '%d'"%intval)
     return intval
 
+def read_charval(filfile, stdout=False):
+    charval = struct.unpack('b', filfile.read(1))[0]
+    if stdout:
+        print(" char value = '%d'"%charval)
+    return charval
+
 def read_longintval(filfile, stdout=False):
     longintval = struct.unpack('q', filfile.read(8))[0]
     if stdout:
@@ -106,18 +113,22 @@ def read_paramname(filfile, stdout=False):
 
 def read_hdr_val(filfile, stdout=False):
     paramname = read_paramname(filfile, stdout)
-    if header_params[paramname] == 'd':
-        return paramname, read_doubleval(filfile, stdout)
-    elif header_params[paramname] == 'i':
-        return paramname, read_intval(filfile, stdout)
-    elif header_params[paramname] == 'q':
-        return paramname, read_longintval(filfile, stdout)
-    elif header_params[paramname] == 'str':
-        return paramname, read_string(filfile, stdout)
-    elif header_params[paramname] == 'flag':
-        return paramname, None
-    else:
-        print("Warning:  key '%s' is unknown!" % paramname)
+
+    try:
+        if header_params[paramname] == 'd':
+            return paramname, read_doubleval(filfile, stdout)
+        elif header_params[paramname] == 'i':
+            return paramname, read_intval(filfile, stdout)
+        elif header_params[paramname] == 'q':
+            return paramname, read_longintval(filfile, stdout)
+        elif header_params[paramname] == 'b':
+            return paramname, read_charval(filfile, stdout)
+        elif header_params[paramname] == 'str':
+            return paramname, read_string(filfile, stdout)
+        elif header_params[paramname] == 'flag':
+            return paramname, None
+    except KeyError:
+        warnings.warn("key '%s' is unknown!" % paramname)
         return None, None
 
 def prep_string(string):
@@ -129,20 +140,25 @@ def prep_double(name, value):
 def prep_int(name, value):
     return prep_string(name)+struct.pack('i', int(value))
 
-def addto_hdr(paramname, value):
-    if header_params[paramname] == 'd':
-        return prep_double(paramname, value)
-    elif header_params[paramname] == 'i':
-        return prep_int(paramname, value)
-    elif header_params[paramname] == 'str':
-        return prep_string(paramname) + prep_string(value)
-    elif header_params[paramname] == 'flag':
-        return prep_string(paramname)
-    else:
-        warnings.warning("key '%s' is unknown!" % paramname)
+def prep_char(name, value):
+    return prep_string(name)+struct.pack('b', int(value))
 
-    # TODO: (gijs) bug, hdr not defined
-    return hdr
+def addto_hdr(paramname, value):
+
+    try:
+        if header_params[paramname] == 'd':
+            return prep_double(paramname, value)
+        elif header_params[paramname] == 'i':
+            return prep_int(paramname, value)
+        elif header_params[paramname] == 'b':
+            return prep_char(paramname, value)
+        elif header_params[paramname] == 'str':
+            return prep_string(paramname) + prep_string(value)
+        elif header_params[paramname] == 'flag':
+            return prep_string(paramname)
+    except KeyError:
+        warnings.warn("key '%s' is unknown!" % paramname)
+        return ""
 
 def read_header(infile):
     """
@@ -185,14 +201,14 @@ if __name__ == "__main__":
 
     # Loop over the values in the .fil file
     while 1:
-        param, val = read_hdr_val(infile, stdout=False)
+        param, val = read_hdr_val(infile, stdout=True)
         filhdr[param] = val
 
         # Add lines here to correct stuff
         #if param=="nchans":  val = 768
 
         # Append to the new hdr string
-        newhdr += addto_hdr(param, val)
+        # newhdr += addto_hdr(param, val)
 
         # Break out of the loop if the header is over
         if param=="HEADER_END":  break

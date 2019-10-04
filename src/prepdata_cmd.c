@@ -1064,8 +1064,8 @@ usage(void)
   fprintf(stderr,"%s","    -ignorechan: Comma separated string (no spaces!) of channels to ignore (or file containing such string).  Ranges are specified by min:max[:step]\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
-  fprintf(stderr,"%s","                 1...512 values\n");
-  fprintf(stderr,"%s","  version: 28Jun17\n");
+  fprintf(stderr,"%s","                 1...16384 values\n");
+  fprintf(stderr,"%s","  version: 16Jun19\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1263,8 +1263,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 512<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 512 non-option argument(s)\n",
+  if( 16384<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 16384 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

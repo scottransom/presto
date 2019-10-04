@@ -45,8 +45,4 @@ String -ignorechan ignorechanstr {Comma separated string (no spaces!) of channel
 # Rest of command line:
 
 Rest infile {Input data file name.  If the data is not in a known raw format, it should be a single channel of single-precision floating point data.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)} \
-        -c 1 512
-
-
-
-
+        -c 1 16384

@@ -17,6 +17,7 @@ scopes = {'GBT':'1',
           'LWA1': 'x',
           'LWA': 'x',
           'VLA': 'c',
+          'FAST': 'k',
           'Geocenter': 'o'}
 
 scopes2 = {'GBT':'gbt',
@@ -26,6 +27,7 @@ scopes2 = {'GBT':'gbt',
           'LWA1': 'lwa1',
           'LWA': 'lwa1',
           'VLA': 'vla',
+          'FAST': 'fast',
           'Geocenter': 'coe'}
 
 def measure_phase(profile, template, rotate_prof=True):

@@ -49,7 +49,7 @@ def find_node(DM):
     nodefiles = glob.glob("node*")
     for nodefile in nodefiles:
         for line in open(nodefile):
-            if line[:4]=="node":
+            if line[:4]=="nimr":
                 if DM in line.split():
                     return line.split()[0]
     return None
@@ -68,7 +68,7 @@ def find_local_datfile(basename, DM):
         return datfile
 
 def find_datfile(nodename, basename, DM):
-    i,o = os.popen4("rsh %s find /scratch1 -name \*%s\*DM%s\*dat"%\
+    i,o = os.popen4("ssh %s find -L /scratch -name \*%s\*DM%s\*dat"%\
                     (nodename, basename, DM))
     datfile = ''
     for line in o:
@@ -77,6 +77,7 @@ def find_datfile(nodename, basename, DM):
             line = line.join(line.split()[1:])
         if line.endswith(".dat"):
             datfile = line
+<<<<<<< HEAD
     print("'%s'"%datfile)
     if datfile!='' and datfile.startswith("/scratch1"):
         return datfile
@@ -91,12 +92,16 @@ def find_datfile(nodename, basename, DM):
             datfile = line
     print("'%s'"%datfile)
     if datfile!='' and datfile.startswith("/scratch2"):
+=======
+    print "'%s'"%datfile
+    if datfile!='' and datfile.startswith("/scratch"):
+>>>>>>> master
         return datfile
     return None
 
 def get_datfile_len(nodename, datfile):
     if nodename:
-        i,o = os.popen4("rsh %s ls -l %s | awk '{ print $5 };'"%(nodename, datfile))
+        i,o = os.popen4("ssh %s ls -l %s | awk '{ print $5 };'"%(nodename, datfile))
     else:
         i,o = os.popen4("ls -l %s | awk '{ print $5 };'"%(datfile))
     filelen = o.readline()

@@ -1,5 +1,7 @@
 Basic steps to install:
 
+(Note:  For Mac users, please see the bottom of the document!)
+
 1.  Install FFTW3.X  You need to compile FFTW for _single_
   precision (see the config flags I recommend below).
 
@@ -103,6 +105,11 @@ Basic steps to install:
 
 14.  Go find pulsars!
 
+Scott Ransom
+July 2019
+
+-----------------------------------------------------------------
+
 TROUBLE SHOOTING
 ----------------
 Couple quick trouble-shooting tips if you are having problems
@@ -127,7 +134,31 @@ compiling and running:
 	libglib2.0-dev
 
 3.  If you are using a Mac, Paul Ray has been running PRESTO a lot and
-  knows several tricks to get it working...
+  knows several tricks to get it working:
 
-Scott Ransom
-February 2016
+   PRESTO should build almost "out of the box" on a Mac. I have had
+   success using MacPorts to install the necessary dependencies. You
+   will need MacPorts packages: pgplot, cfitsio, glib2, fftw-3,
+   fftw-3-single, and gcc5 You can probably use a more recent gcc
+   instead, if you prefer (e.g. gcc8).  It just needs to provide
+   gfortran.
+
+   TEMPO should build easily with gfortran. I did not make any changes
+   to the distro.
+
+   Also you need to delete the line #include "error.h" from
+   src/backend_common.c
+
+   For python, you will need to install numpy, scipy, etc. using
+   MacPorts or pip, as you prefer.  Currently this must be Python 2.7,
+   but soon PRESTO will switch to Python 3.6 or later.
+
+   Next, edit python/Makefile to make sure that the version of f2py
+   you have installed is called.  Instead of f2py, you may need to
+   call f2py-2.7, for example.
+
+   Finally, in python/setup.py add "/opt/local/include" to
+   include_dirs.
+
+   Then, just follow the PRESTO installation instructions (cd src;
+   make; make makewisdom; cd ../python ; make)

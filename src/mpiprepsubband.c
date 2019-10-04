@@ -1,6 +1,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <errno.h>
 #include "presto.h"
 #include "mpiprepsubband_cmd.h"
 #include "mask.h"
@@ -73,7 +74,7 @@ int main(int argc, char *argv[])
     int padtowrite = 0, statnum = 0;
     int numdiffbins = 0, *diffbins = NULL, *diffbinptr = NULL, good_padvals = 0;
     double local_lodm;
-    char *datafilenm, *outpath, *outfilenm, *hostname;
+    char *datafilenm, *outpath, *outfilenm, hostname[256];
     struct spectra_info s;
     infodata idata;
     mask obsmask;
@@ -85,19 +86,14 @@ int main(int argc, char *argv[])
     omp_set_num_threads(1);     // Explicitly turn off OpenMP
 #endif
     set_using_MPI();
-    {
-        FILE *hostfile;
-        char tmpname[100];
-        int retval;
 
-        hostfile = chkfopen("/etc/hostname", "r");
-        retval = fscanf(hostfile, "%s\n", tmpname);
-        if (retval == 0) {
-            printf("Warning:  error reading /etc/hostname on proc %d\n", myid);
+    /* Get hostname on Unix machine */
+    {
+        int retval = gethostname(hostname, 255);
+        if (retval == -1) {
+            printf("Warning:  error determining hostname: %s\n", strerror(errno));
+            sprintf(hostname, "unknown");
         }
-        hostname = (char *) calloc(strlen(tmpname) + 1, 1);
-        memcpy(hostname, tmpname, strlen(tmpname));
-        fclose(hostfile);
     }
 
     /* Call usage() if we have no command line arguments */
@@ -421,7 +417,7 @@ int main(int argc, char *argv[])
     /* Set the output length to a good number if it wasn't requested */
     if (!cmd->numoutP) {
         cmd->numoutP = 1;
-        cmd->numout = choose_good_N((long long)(idata.N));
+        cmd->numout = choose_good_N((long long)(idata.N/cmd->downsamp));
         printf("Setting a 'good' output length of %ld samples\n", cmd->numout);
     }
     totnumtowrite = cmd->numout;
@@ -817,7 +813,6 @@ int main(int argc, char *argv[])
     vect_free(outdata[0]);
     vect_free(outdata);
     vect_free(dms);
-    free(hostname);
     vect_free(idispdt);
     vect_free(offsets[0]);
     vect_free(offsets);

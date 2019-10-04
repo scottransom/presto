@@ -8,7 +8,11 @@ from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
 import scipy.optimize.zeros as zeros
 from presto import Pgplot, ppgplot, sinc_interp, parfile
-from presto.psr_constants import *
+from presto.psr_constants import ARCSECTORAD, RADTOARCSEC, SECTORAD, RADTOSEC, \
+    RADTODEG, DEGTORAD, RADTOHRS, HRSTORAD, PI, TWOPI, PIBYTWO, SECPERDAY, SECPERJULYR, \
+    KMPERPC, KMPERKPC, Tsun, Msun, Mjup, Rsun, Rearth, SOL, MSUN, G, C
+
+
 
 isintorlong = lambda x: type(x) == type(0) or type(x) == type(0)
 
@@ -460,6 +464,26 @@ def asini_c(pb, mf):
     """
     return (mf * pb * pb / 8015123.37129) ** (1.0 / 3.0)
 
+
+def TS99_WDmass(pb, pop="I+II"):
+    """
+    TS99_WDmass(pb, pop="I+II"):
+        Return the mass of the predicted WD companion for an MSP-HE WD
+            system, with an oprbital period of 'pb' days.  The options
+            for the pop parameter are "I", "II", or the default "I+II".
+            That is the population of the stars that formed the system
+            (i.e. pop II stars are older and more metal poor)
+            From Tauris & Savonije, 1999, ApJ.
+    """
+    vals = {"I":    (4.50, 1.2e5, 0.120),
+            "I+II": (4.75, 1.1e5, 0.115),
+            "II":   (5.00, 1.0e5, 0.110)}
+    if pop not in vals.keys():
+        print("Not a valid stellar pop: should be 'I', 'I+II', or 'II'")
+        return None
+    else:
+        a, b, c = vals[pop]
+        return (pb/b)**(1.0/a) + c
 
 def ELL1_check(par_file, output=False):
     """
