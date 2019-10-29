@@ -35,23 +35,48 @@ int is_PSRFITS(char *filename)
 {
     fitsfile *fptr;
     int status = 0;
-    char ctmp[80], comment[120];
+    char ctmp[80], comment[120], err_text[81];
 
     // Read the primary HDU
     fits_open_file(&fptr, filename, READONLY, &status);
-    if (status)
+    if (status) {
+        fits_get_errstatus(status, err_text);
+        printf("Error %d opening %s : %s\n", status, filename, err_text);
+        fits_close_file(fptr, &status);
         return 0;
+    }
 
     // Make the easy check first
     fits_read_key(fptr, TSTRING, "FITSTYPE", ctmp, comment, &status);
-    if (status || strcmp(ctmp, "PSRFITS"))
+    if (status) {
+        fits_get_errstatus(status, err_text);
+        printf("Error %d reading 'FITSTYPE' from %s : %s\n",
+               status, filename, err_text);
+        fits_close_file(fptr, &status);
         return 0;
+    } else {
+        if (strcmp(ctmp, "PSRFITS")) {
+            printf("Error 'FITSTYPE' is not 'PSRFITS' in %s\n", filename);
+            fits_close_file(fptr, &status);
+            return 0;
+        }
+    }
 
     // See if the data are search-mode
     fits_read_key(fptr, TSTRING, "OBS_MODE", ctmp, comment, &status);
-    if (status || (strcmp(ctmp, "SEARCH") && strcmp(ctmp, "SRCH")))
+    if (status) {
+        fits_get_errstatus(status, err_text);
+        printf("Error %d reading 'OBS_MODE' from %s : %s\n",
+               status, filename, err_text);
+        fits_close_file(fptr, &status);
         return 0;
-
+    } else {
+        if ((strcmp(ctmp, "SEARCH") && strcmp(ctmp, "SRCH"))) {
+            printf("Error 'OBS_MODE' is not 'SEARCH' in %s\n", filename);
+            fits_close_file(fptr, &status);
+            return 0;
+        }
+    }
     fits_close_file(fptr, &status);
     return 1;                   // it is search-mode  PSRFITS
 }
