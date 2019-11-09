@@ -145,7 +145,7 @@ class rfifind(object):
         """
         # NOTE: Casting to 64/32-bit floats are done to mimick 'mask.c'.
         num = int(np.round(self.nint*frac_to_keep))
-        start = (self.nint - num)/2
+        start = (self.nint - num) // 2
         self.padvals = np.zeros(self.nchan, dtype='float32')
         for ichan in range(self.nchan):
             isort = np.argsort(self.avg_stats[:,ichan])
