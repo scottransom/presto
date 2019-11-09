@@ -77,7 +77,7 @@ def find_datfile(nodename, basename, DM):
             line = line.join(line.split()[1:])
         if line.endswith(".dat"):
             datfile = line
-    print "'%s'"%datfile
+    print("'%s'"%datfile)
     if datfile!='' and datfile.startswith("/scratch"):
         return datfile
     return None

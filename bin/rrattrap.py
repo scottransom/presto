@@ -571,7 +571,7 @@ def plot_sp_rated_pgplot(groups, ranks, inffile, ylow=0, yhigh=100, xlow=0, xhig
 def print_debug(msg):
     if DEBUG:
         print(msg)
-#        print h.heap()
+        # print(h.heap())
 
 
 def pop_by_rank(groups, rank):

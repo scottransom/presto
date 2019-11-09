@@ -473,7 +473,7 @@ def TS99_WDmass(pb, pop="I+II"):
             "I+II": (4.75, 1.1e5, 0.115),
             "II":   (5.00, 1.0e5, 0.110)}
     if pop not in vals.keys():
-        print "Not a valid stellar pop: should be 'I', 'I+II', or 'II'"
+        print("Not a valid stellar pop: should be 'I', 'I+II', or 'II'")
         return None
     else:
         a, b, c = vals[pop]
@@ -1292,7 +1292,7 @@ def expcos_profile(N, phase, fwhm):
     elif (fwhm < 0.02):
         # The following is from expanding of iO(x) as x->Infinity.
         k = Num.log(2.0) / (1.0 - Num.cos(PI * fwhm))
-        # print "Expansion:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0))
+        # print("Expansion:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0)))
         phsval = Num.fmod(phsval + phi, TWOPI)
         phsval = Num.where(Num.greater(phsval, PI),
                            phsval - TWOPI, phsval)
@@ -1303,7 +1303,7 @@ def expcos_profile(N, phase, fwhm):
     else:
         k = secant(fwhm_func, 1e-8, 0.5)
         norm = 1.0 / (i0(k) - Num.exp(-k))
-        # print "Full Calc:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0))
+        # print("Full Calc:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0)))
     if (k < 0.05):
         tmp = Num.cos(phsval + phi)
         tmp2 = tmp * tmp
