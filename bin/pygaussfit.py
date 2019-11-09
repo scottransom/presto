@@ -2,6 +2,7 @@
 from __future__ import print_function
 from builtins import range
 from builtins import object
+import os
 import sys
 from presto.psr_utils import gaussian_profile, read_profile
 from matplotlib.patches import Rectangle
