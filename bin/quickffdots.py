@@ -84,7 +84,7 @@ for harmnum in range(1, numharm+1):
 
     argmax = ffd_pows.argmax()
     maxvals.append(ffd_pows.max())
-    maxargs.append((argmax / numrs, argmax % numrs))
+    maxargs.append((argmax // numrs, argmax % numrs))
     print("  Maximum power for harmonic %d = %.2f"%(harmnum, maxvals[-1]))
 
     if (convals.max() < 1.5): # Using relative contours
@@ -131,7 +131,7 @@ for harmnum in range(1, numharm+1):
 print("\nMax summed power = %.2f"%(sumpows.max()))
 argmax = sumpows.argmax()
 maxr = rs0[argmax % numrs]
-maxz = zs0[argmax / numrs]
+maxz = zs0[argmax // numrs]
 maxf = maxr/idata.T
 maxfd = maxz/(idata.T*idata.T)
 initf = (maxr - 0.5*maxz)/idata.T
