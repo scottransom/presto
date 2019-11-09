@@ -1,5 +1,7 @@
 from builtins import map
-import sifting, re, glob
+import re
+import glob
+import presto.sifting as sifting
 from operator import itemgetter, attrgetter
 
 # Note:  You will almost certainly want to adjust
