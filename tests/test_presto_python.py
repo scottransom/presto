@@ -6,8 +6,6 @@ from os import path
 
 here = path.dirname(__file__)
 
-
-
 print("Testing FFT stuff...", end=' ')
 N = 20
 x = np.random.standard_normal(N)
@@ -66,9 +64,7 @@ print("Testing psrparams and orbitparams stuff...", end=' ')
 psr = presto.psrepoch("J0737-3039A", 56000.0, verbose=False)
 assert(round(psr.dm-48.92, 7)==0)
 # This needs to change when we start using the actual psrcat.db file
-print("\nTODO:  fix the precision of the values in the catalog!!")
-assert(round(psr.orb.p-8838.72, 7)==0)
-#assert(round(psr.orb.p-8834.534998272, 7)==0)
+assert(round(psr.orb.p-8834.534998272, 7)==0)
 print("success")
 
 print("Testing spectralpower and spectralphase...", end=' ')
@@ -121,7 +117,6 @@ print("Testing Fourier response generation...", end=' ')
 numbetween = 16
 z = 5.0
 w = 40.0
-# Should use w_resp_halfwidth() for this.  Need to update that!
 bins_per_side = max([presto.r_resp_halfwidth(presto.LOWACC), \
                      presto.z_resp_halfwidth(z, presto.LOWACC), \
                      presto.w_resp_halfwidth(z, w, presto.LOWACC)])
@@ -133,7 +128,8 @@ pr = presto.spectralpower(rresp)
 pz = presto.spectralpower(zresp)
 pw = presto.spectralpower(wresp)
 rs = np.arange(float(nn))/numbetween - bins_per_side
-if 0:
+if False:
+    import matplotlib.pyplot as plt
     plt.plot(rs, pr, 'b-')
     plt.plot(rs, pz, 'g-')
     plt.plot(rs, pw, 'r-')
