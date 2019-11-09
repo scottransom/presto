@@ -89,7 +89,7 @@ def read_intval(filfile, stdout=False):
 def read_charval(filfile, stdout=False):
     charval = struct.unpack('b', filfile.read(1))[0]
     if stdout:
-        print " char value = '%d'"%charval
+        print(" char value = '%d'"%charval)
     return charval
 
 def read_longintval(filfile, stdout=False):
