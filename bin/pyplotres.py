@@ -24,8 +24,6 @@ from presto import binary_psr
 from presto import parfile as par
 from presto import residuals
 
-
-
 # Available x-axis types
 xvals = ['mjd', 'year', 'numtoa', 'orbitphase']
 xind = 0
@@ -53,7 +51,7 @@ def find_freq_clusters(freqs):
     maxbins = 8  # related to the max colors defined...
     df = 4.0 # MHz
     if ((maxf - minf) < df):  # Only a single freq to our resolution
-        return [[0.0, 'inf']]
+        return [[0.0, np.inf]]
     numbins = int((maxf - minf) / df) + 2
     lobound = minf - 0.5 * df
     hibound = lobound + numbins * df
@@ -68,16 +66,15 @@ def find_freq_clusters(freqs):
     # and use these as starting points for kmeans
     kmeans, indices = kmeans2(freqs, ctrs)
     if len(kmeans)==1:
-        return [[0.0, 'inf']]
+        return [[0.0, np.inf]]
     elif len(kmeans)==2:
-        return [[0.0, kmeans.mean()], [kmeans.mean(), 'inf']]
+        return [[0.0, kmeans.mean()], [kmeans.mean(), np.inf]]
     else:
         freqbands = [[0.0, kmeans[0:2].mean()]]
         for ii in range(len(kmeans)-2):
             freqbands.append([kmeans[ii:ii+2].mean(), kmeans[ii+1:ii+3].mean()])
-        freqbands.append([kmeans[-2:].mean(), 'inf'])
+        freqbands.append([kmeans[-2:].mean(), np.inf])
         return freqbands
-
 
 class TempoResults(object):
     def __init__(self, freqbands):
@@ -145,22 +142,16 @@ class TempoResults(object):
         description.append("TOA Selected:")
         description.append("\tNumber: %s" % r.TOA_index[index][0])
         description.append("\tEpoch (MJD): %s" % r.bary_TOA[index][0])
-        if yvals[yind] == "phase":
-            description.append("\tPre-fit residual (phase): %s" % r.prefit_phs[index][0])
-            description.append("\tPost-fit residual (phase): %s" % r.postfit_phs[index][0])
-            if postfit:
-                description.append("\tUncertainty (phase): %s" % (r.uncertainty[index][0]/r.outpar.P0))
-            else:
-                description.append("\tUncertainty (phase): %s" % (r.uncertainty[index][0]/r.inpar.P0))
-        elif yvals[yind] == "usec":
-            description.append("\tPre-fit residual (usec): %s" % (r.prefit_sec[index][0]*1e6))
-            description.append("\tPost-fit residual (usec): %s" % (r.postfit_sec[index][0]*1e6))
-            description.append("\tUncertainty (usec): %s" % (r.uncertainty[index][0]*1e6))
-        elif yvals[yind] == "sec":
-            description.append("\tPre-fit residual (sec): %s" % r.prefit_sec[index][0])
-            description.append("\tPost-fit residual (sec): %s" % r.postfit_sec[index][0])
-            description.append("\tUncertainty (sec): %s" % r.uncertainty[index][0])
         description.append("\tFrequency (MHz): %s" % r.bary_freq[index][0])
+        description.append("\tPre-fit residual (phase): %s" % r.prefit_phs[index][0])
+        description.append("\tPre-fit residual  (usec): %s" % (r.prefit_sec[index][0]*1e6))
+        description.append("\tPost-fit residual (phase): %s" % r.postfit_phs[index][0])
+        description.append("\tPost-fit residual  (usec): %s" % (r.postfit_sec[index][0]*1e6))
+        if postfit:
+            description.append("\tUncertainty (phase): %s" % (r.uncertainty[index][0]/r.outpar.P0))
+        else:
+            description.append("\tUncertainty (phase): %s" % (r.uncertainty[index][0]/r.inpar.P0))
+        description.append("\tUncertainty  (usec): %s" % (r.uncertainty[index][0]*1e6))
         return description
 
 
@@ -392,7 +383,7 @@ def get_freq_label(lo, hi):
     """Return frequency label given a lo and hi
         frequency pair.
     """
-    if hi is 'inf':
+    if hi==np.inf:
         return "%.0f - Inf MHz" % (lo)
     else:
         return "%.0f - %.0f MHz" % (lo, hi)
@@ -404,12 +395,15 @@ def savefigure(savefn='./resid2.tmp.ps'):
 
 def reloadplot():
     global options
+    global tempo_results
     # Reload residuals and replot
     print("Plotting...")
     fig = plt.gcf()
     fig.set_visible(False)
     plt.clf() # clear figure
     tempo_results = TempoResults(options.freqbands)
+    if options.freqbands is None:
+        options.freqbands = tempo_results.freqbands
     try:
         plot_data(tempo_results, options.xaxis, options.yaxis, \
                 postfit=options.postfit, prefit=options.prefit, \
