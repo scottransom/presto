@@ -1,22 +1,18 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-from past.builtins import cmp
 from builtins import str
 from builtins import range
 from builtins import object
-from sys import argv, exit
+import sys
+from operator import attrgetter
 from presto.presto import read_inffile, binary_velocity, psrepoch
-
 
 class bird(object):
     def __init__(self, freq, width, bary=0):
         self.freq = freq
         self.width = width
         self.bary = bary
-
-    def __cmp__(self, other):
-        return cmp(self.freq, other.freq)
 
     def __str__(self):
         if self.bary:
@@ -30,7 +26,7 @@ def processbirds(filename):
         ii = filename.index(".birds")
     except ValueError:
         print("\nThe birdie filename must end in '.birds'\n")
-        exit(0)
+        sys.exit(0)
     else:
         rootname = filename[:ii]
     psrs = 0
@@ -92,7 +88,7 @@ def processbirds(filename):
     print("\nRead %d freqs, %d pulsars, and %d harmonic series." % \
           (freqs, psrs, trains))
     print("Total number of birdies = %d" % (len(birds))) 
-    birds.sort()
+    birds.sort(key=attrgetter('freq'))
     file.close()
     file = open(rootname+".zaplist", "w")
     file.write("# This file created automatically with makebirds.py\n")
@@ -106,9 +102,9 @@ def processbirds(filename):
     print("\nWrote '%s'\n" % (rootname+".zaplist"))
 
 if __name__ == '__main__':
-    if len(argv)==1:
+    if len(sys.argv)==1:
         print("\nusage:  makezaplist.py birdsfilename")
         print("       Note:  'birdsfilename' must end in '.birds'\n")
         print("               and a related infofile ('.inf') must exist.\n")
     else:
-        processbirds(argv[1])
+        processbirds(sys.argv[1])
