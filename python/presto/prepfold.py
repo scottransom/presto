@@ -32,9 +32,8 @@ class pfd(object):
          self.ndmfact, self.npfact) = struct.unpack(swapchar+"i"*7, infile.read(7*4))
 
         self.filenm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
-        print(self.proflen, self.ndmfact, self.npfact, self.nsub, self.filenm)
         self.candnm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
-        self.telescope = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
+        self.telescope = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0]).decode("utf-8")
         self.pgdev = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         test = infile.read(16)
         if not test[:8]==b"Unknown" and b':' in test:
@@ -129,7 +128,7 @@ class pfd(object):
             except IOError:
                 print("Warning!  Can't open the .inf file for "+filename+"!")
         self.binspersec = self.fold_p1*self.proflen
-        self.chanpersub = self.numchan/self.nsub
+        self.chanpersub = self.numchan // self.nsub
         self.subdeltafreq = self.chan_wid*self.chanpersub
         self.hifreq = self.lofreq + (self.numchan-1)*self.chan_wid
         self.losubfreq = self.lofreq + self.subdeltafreq - self.chan_wid
@@ -479,8 +478,8 @@ class pfd(object):
             print("Doing nothing.")
             return None
 
-        dp = self.npart/new_npart
-        ds = self.nsub/new_nsub
+        dp = self.npart // new_npart
+        ds = self.nsub // new_nsub
 
         newprofs = Num.zeros((new_npart, new_nsub, self.proflen), 'd')
         for ii in range(new_npart):
@@ -786,29 +785,29 @@ class pfd(object):
         if (combineints > 1):
             # First chop off any extra intervals
             if (self.npart % combineints):
-                self.DSnpart = (self.npart/combineints) * combineints
+                self.DSnpart = (self.npart // combineints) * combineints
                 self.DS = self.DS[:self.DSnpart,:]
             # Now reshape and add the neighboring intervals
-            self.DS = Num.reshape(self.DS, (self.DSnpart/combineints,
+            self.DS = Num.reshape(self.DS, (self.DSnpart // combineints,
                                             combineints, self.DSnsub))
             print(Num.shape(self.DS))
             self.DS = Num.sum(self.DS, 1)
             self.DSstart_secs = self.DSstart_secs[::combineints]
             self.DSintdt *= combineints
-            self.DSnpart /= combineints
+            self.DSnpart //= combineints
         # Combine channels if required
         if (combinechans > 1):
             # First chop off any extra channels
             if (self.nsub % combinechans):
-                self.DSnsub = (self.nsub/combinechans) * combinechans
+                self.DSnsub = (self.nsub // combinechans) * combinechans
                 self.DS = self.DS[:,:self.DSnsub]
             # Now reshape and add the neighboring intervals
             self.DS = Num.reshape(self.DS, (self.DSnpart,
-                                            self.DSnsub/combinechans, combinechans))
+                                            self.DSnsub // combinechans, combinechans))
             self.DS = Num.sum(self.DS, 2)
             self.DSsubfreqs = psr_utils.running_avg(self.subfreqs[:self.DSnsub], combinechans)
             self.DSsubdeltafreq *= combinechans
-            self.DSnsub /= combinechans
+            self.DSnsub //= combinechans
         print("DS shape = ", Num.shape(self.DS))
         # Plot it if required
         if plot:
