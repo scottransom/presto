@@ -1,12 +1,18 @@
 #!/usr/bin/env python
-import sys, os, glob, os.path, string, re
+import sys
+import os
+import os.path
+import glob
+import string
+import re
+from subprocess import Popen, PIPE, STDOUT
 from presto.presto import fourierprops, get_rzw_cand
 
 short_re = re.compile("_\d\d\dM_\d\d_ACCEL_")
 
 def determine_dt(candfile):
     for line in open(candfile):
-        if line.startswith(" Width of each time series bin"):
+        if line.startswith(b" Width of each time series bin"):
             return float(line.split()[-1])
 
 def short_stuff(candfile, candnum, shortinfo, nodename, datfile):
@@ -55,39 +61,48 @@ def find_node(DM):
     return None
 
 def find_local_datfile(basename, DM):
-    i,o = os.popen4("find .. -name \*%s\*DM%s\*dat"%(basename, DM))
+    p = Popen("find .. -name \*%s\*DM%s\*dat"%(basename, DM), shell=True,
+              bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+    (i, o) = (p.stdin, p.stdout)
     datfile = ''
     for line in o:
         line = line.strip()
-        if line.startswith("find:"):
+        if line.startswith(b"find:"):
             line = line.join(line.split()[1:])
-        if line.endswith(".dat"):
-            datfile = line
+        if line.endswith(b".dat"):
+            datfile = line.decode("utf-8")
     print("'%s'"%datfile)
     if datfile!='':
         return datfile
 
 def find_datfile(nodename, basename, DM):
-    i,o = os.popen4("ssh %s find -L /scratch -name \*%s\*DM%s\*dat"%\
-                    (nodename, basename, DM))
+    p = Popen("ssh %s find -L /scratch -name \*%s\*DM%s\*dat"%(nodename, basename, DM),
+              shell=True, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+    (i, o) = (p.stdin, p.stdout)
     datfile = ''
     for line in o:
         line = line.strip()
-        if line.startswith("find:"):
+        if line.startswith(b"find:"):
             line = line.join(line.split()[1:])
-        if line.endswith(".dat"):
-            datfile = line
+        if line.endswith(b".dat"):
+            datfile = line.decode("utf-8")
     print("'%s'"%datfile)
-    if datfile!='' and datfile.startswith("/scratch"):
+    if datfile!='' and datfile.startswith(b"/scratch"):
         return datfile
     return None
 
 def get_datfile_len(nodename, datfile):
     if nodename:
-        i,o = os.popen4("ssh %s ls -l %s | awk '{ print $5 };'"%(nodename, datfile))
+        p = Popen("ssh %s ls -l %s | awk '{ print $5 };'"%(nodename, datfile),
+                  shell=True, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
+                  close_fds=True)
+        (i, o) = (p.stdin, p.stdout)
     else:
-        i,o = os.popen4("ls -l %s | awk '{ print $5 };'"%(datfile))
-    filelen = o.readline()
+        p = Popen("ls -l %s | awk '{ print $5 };'"%(datfile),
+                  shell=True, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
+                  close_fds=True)
+        (i, o) = (p.stdin, p.stdout)
+    filelen = o.readline().decode("utf-8")
     if filelen!='':
         return int(filelen)/4
     return None
