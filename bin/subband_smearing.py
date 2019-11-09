@@ -124,7 +124,7 @@ if __name__=='__main__':
     leg = ax.legend(('Sampling time', 'Downsampling',
                      'Channel smear', 'Subband smear',
                      'Original time res', 'Total time res'),
-                    'upper center')
+                    loc='upper center')
     ax.set_xlabel('Disperson Measure')
     ax.set_ylabel('Smearing (ms)')
     ax.set_xlim([DMs.min(), DMs.max()])
