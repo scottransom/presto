@@ -16,6 +16,8 @@ before_install:
 install:
 - docker build . -t ${TARGET} -f .travis/${TARGET}.docker
 before_script:
-- true
+- export PRESTO=$PWD
+- export LD_LIBRARY_PATH=$PRESTO:$LD_LIBRARY_PATH
+- pushd src && make && popd
 script:
 - true
