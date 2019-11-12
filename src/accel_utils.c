@@ -1319,7 +1319,7 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(rinds,fundamental,obs,numrs,numzs,harm_fract)
+#pragma omp parallel shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;
@@ -1370,7 +1370,7 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(rinds,fundamental,obs,numrs,numzs,harm_fract)
+#pragma omp parallel shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;
