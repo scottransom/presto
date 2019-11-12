@@ -637,7 +637,7 @@ static void write_val_with_err(FILE * outfile, double val, double err,
                                int numerr, int width)
 {
     int retval;
-    char tmpstr[30], ctrstr[30];
+    char tmpstr[80], ctrstr[80];
 
     if (numerr == 1)
         retval = nice_output_1(tmpstr, val, err, 0);
@@ -658,7 +658,7 @@ void output_fundamentals(fourierprops * props, GSList * list,
     int ii, jj, numcols = 13, numcands, *width, *error;
     int widths[13] = { 4, 5, 6, 8, 4, 16, 15, 15, 15, 11, 11, 15, 20 };
     int errors[13] = { 0, 0, 0, 0, 0, 1, 1, 2, 1, 2, 2, 2, 0 };
-    char tmpstr[30], ctrstr[30], *notes;
+    char tmpstr[80], ctrstr[80], *notes;
     accelcand *cand;
     GSList *listptr;
     rzwerrs errs;
@@ -1319,7 +1319,7 @@ void inmem_add_ffdotpows(ffdotpows * fundamental, accelobs * obs,
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(rinds,fundamental,obs)
+#pragma omp parallel shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;
@@ -1370,7 +1370,7 @@ void inmem_add_ffdotpows_trans(ffdotpows * fundamental, accelobs * obs,
 
     // Now add all the powers
 #ifdef _OPENMP
-#pragma omp parallel default(none) shared(rinds,fundamental,obs)
+#pragma omp parallel shared(rinds,fundamental,obs)
 #endif
     {
         const int zlo = fundamental->zlo;

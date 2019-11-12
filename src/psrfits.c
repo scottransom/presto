@@ -35,31 +35,65 @@ int is_PSRFITS(char *filename)
 {
     fitsfile *fptr;
     int status = 0;
-    char ctmp[80], comment[120];
+    char ctmp[80], comment[120], err_text[81];
 
     // Read the primary HDU
     fits_open_file(&fptr, filename, READONLY, &status);
-    if (status)
+    if (status) {
+        fits_get_errstatus(status, err_text);
+        printf("Error %d opening %s : %s\n", status, filename, err_text);
+        fits_close_file(fptr, &status);
         return 0;
+    }
 
     // Make the easy check first
     fits_read_key(fptr, TSTRING, "FITSTYPE", ctmp, comment, &status);
-    if (status || strcmp(ctmp, "PSRFITS"))
+    if (status) {
+        fits_get_errstatus(status, err_text);
+        printf("Error %d reading 'FITSTYPE' from %s : %s\n",
+               status, filename, err_text);
+        fits_close_file(fptr, &status);
         return 0;
+    } else {
+        if (strcmp(ctmp, "PSRFITS")) {
+            printf("Error 'FITSTYPE' is not 'PSRFITS' in %s\n", filename);
+            fits_close_file(fptr, &status);
+            return 0;
+        }
+    }
 
     // See if the data are search-mode
     fits_read_key(fptr, TSTRING, "OBS_MODE", ctmp, comment, &status);
-    if (status || (strcmp(ctmp, "SEARCH") && strcmp(ctmp, "SRCH")))
+    if (status) {
+        fits_get_errstatus(status, err_text);
+        printf("Error %d reading 'OBS_MODE' from %s : %s\n",
+               status, filename, err_text);
+        fits_close_file(fptr, &status);
         return 0;
-
+    } else {
+        if ((strcmp(ctmp, "SEARCH") && strcmp(ctmp, "SRCH"))) {
+            printf("Error 'OBS_MODE' is not 'SEARCH' in %s\n", filename);
+            fits_close_file(fptr, &status);
+            return 0;
+        }
+    }
     fits_close_file(fptr, &status);
     return 1;                   // it is search-mode  PSRFITS
 }
 
+#define check_read_status(name) {                                   \
+        if (status) {\
+            fits_get_errstatus(status, err_text); \
+            printf("Error %d reading %s : %s\n", status, name, err_text); \
+            status=0;      \
+        }                                                               \
+    }
+
 #define get_hdr_string(name, param) {                                   \
         fits_read_key(s->fitsfiles[ii], TSTRING, (name), ctmp, comment, &status); \
         if (status) {\
-            printf("Error %d reading key %s\n", status, name); \
+            fits_get_errstatus(status, err_text); \
+            printf("Error %d reading %s : %s\n", status, name, err_text); \
             if (ii==0) param[0]='\0'; \
             if (status==KEY_NO_EXIST) status=0;                      \
         } else {                                                     \
@@ -73,7 +107,8 @@ int is_PSRFITS(char *filename)
 #define get_hdr_int(name, param) {                                      \
         fits_read_key(s->fitsfiles[ii], TINT, (name), &itmp, comment, &status); \
         if (status) {\
-            printf("Error %d reading key %s\n", status, name); \
+            fits_get_errstatus(status, err_text); \
+            printf("Error %d reading %s : %s\n", status, name, err_text); \
             if (ii==0) param=0; \
             if (status==KEY_NO_EXIST) status=0;\
         } else {                                                          \
@@ -87,7 +122,8 @@ int is_PSRFITS(char *filename)
 #define get_hdr_double(name, param) {                                   \
         fits_read_key(s->fitsfiles[ii], TDOUBLE, (name), &dtmp, comment, &status); \
         if (status) {\
-            printf("Error %d reading key %s\n", status, name); \
+            fits_get_errstatus(status, err_text); \
+            printf("Error %d reading %s : %s\n", status, name, err_text); \
             if (ii==0.0) param=0.0; \
             if (status==KEY_NO_EXIST) status=0;\
         } else {                                                          \
@@ -107,7 +143,7 @@ void read_PSRFITS_files(struct spectra_info *s)
     int IMJD, SMJD, itmp, ii, status = 0;
     double OFFS, dtmp;
     long double MJDf;
-    char ctmp[80], comment[120];
+    char ctmp[80], comment[120], err_text[81];
 
     s->datatype = PSRFITS;
     s->fitsfiles = (fitsfile **) malloc(sizeof(fitsfile *) * s->num_files);
@@ -142,6 +178,7 @@ void read_PSRFITS_files(struct spectra_info *s)
 
         // Is the data in search mode?
         fits_read_key(s->fitsfiles[ii], TSTRING, "OBS_MODE", ctmp, comment, &status);
+        check_read_status("OBS_MODE");
         // Quick fix for Parkes DFB data (SRCH?  why????)...
         if (strcmp("SRCH", ctmp) == 0) {
             strncpy(ctmp, "SEARCH", 40);
@@ -197,24 +234,26 @@ void read_PSRFITS_files(struct spectra_info *s)
         //get_hdr_double("CHAN_DM", s->chan_dm);
         get_hdr_double("BMIN", s->beam_FWHM);
 
-        /* This is likely not in earlier versions of PSRFITS so */
-        /* treat it a bit differently                           */
+        /* This is likely not in earlier versions of PSRFITS */
+        s->chan_dm = 0.0;
         fits_read_key(s->fitsfiles[ii], TDOUBLE, "CHAN_DM",
                       &(s->chan_dm), comment, &status);
-        if (status == KEY_NO_EXIST) {
-            status = 0;
-            s->chan_dm = 0.0;
-        }
+        if (status==KEY_NO_EXIST) status=0; // Prevents error messages on old files
+        check_read_status("CHAN_DM");
         // Don't use the macros unless you are using the struct!
         fits_read_key(s->fitsfiles[ii], TINT, "STT_IMJD", &IMJD, comment, &status);
+        check_read_status("STT_IMJD");
         s->start_MJD[ii] = (long double) IMJD;
         fits_read_key(s->fitsfiles[ii], TINT, "STT_SMJD", &SMJD, comment, &status);
+        check_read_status("STT_SMJD");
         fits_read_key(s->fitsfiles[ii], TDOUBLE, "STT_OFFS", &OFFS, comment,
                       &status);
+        check_read_status("STT_OFFS");
         s->start_MJD[ii] += ((long double) SMJD + (long double) OFFS) / SECPERDAY;
 
         // Are we tracking?
         fits_read_key(s->fitsfiles[ii], TSTRING, "TRK_MODE", ctmp, comment, &status);
+        check_read_status("TRK_MODE");
         itmp = (strcmp("TRACK", ctmp) == 0) ? 1 : 0;
         if (ii == 0)
             s->tracking = itmp;
@@ -224,29 +263,31 @@ void read_PSRFITS_files(struct spectra_info *s)
 
         // Now switch to the SUBINT HDU header
         fits_movnam_hdu(s->fitsfiles[ii], BINARY_TBL, "SUBINT", 0, &status);
+        check_read_status("SUBINT");
         get_hdr_double("TBIN", s->dt);
         get_hdr_int("NCHAN", s->num_channels);
         get_hdr_int("NPOL", s->num_polns);
         get_hdr_string("POL_TYPE", s->poln_order);
         fits_read_key(s->fitsfiles[ii], TINT, "NCHNOFFS", &itmp, comment, &status);
+        check_read_status("NCHNOFFS");
         if (itmp > 0)
             printf("Warning!:  First freq channel is not 0 in file %d!\n", ii);
         get_hdr_int("NSBLK", s->spectra_per_subint);
         get_hdr_int("NBITS", s->bits_per_sample);
         fits_read_key(s->fitsfiles[ii], TINT, "NAXIS2",
                       &(s->num_subint[ii]), comment, &status);
+        check_read_status("NAXIS2");
         fits_read_key(s->fitsfiles[ii], TINT, "NSUBOFFS",
                       &(s->start_subint[ii]), comment, &status);
+        check_read_status("NSUBOFFS");
         s->time_per_subint = s->dt * s->spectra_per_subint;
 
-        /* This is likely not in earlier versions of PSRFITS so */
-        /* treat it a bit differently                           */
+        /* This is likely not in earlier versions of PSRFITS */
+        s->zero_offset = 0.0;
         fits_read_key(s->fitsfiles[ii], TFLOAT, "ZERO_OFF",
                       &(s->zero_offset), comment, &status);
-        if (status == KEY_NO_EXIST) {
-            status = 0;
-            s->zero_offset = 0.0;
-        }
+        if (status==KEY_NO_EXIST) status=0; // Prevents error messages on old files
+        check_read_status("ZERO_OFF");
         s->zero_offset = fabs(s->zero_offset);
 
         // Get the time offset column info and the offset for the 1st row
@@ -894,7 +935,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata, struct spectra_info 
             const int idx = (s->use_poln - 1) * s->num_channels;
             if (s->bits_per_sample == 16) {
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(s,cdata,fdata,scales,offsets,weights)
+#pragma omp parallel for shared(s,cdata,fdata,scales,offsets,weights)
 #endif
                 for (ii = 0; ii < s->spectra_per_subint; ii++) {
                     int jj;
@@ -908,7 +949,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata, struct spectra_info 
                 }
             } else if (s->bits_per_sample == 32) {
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(s,cdata,fdata,scales,offsets,weights)
+#pragma omp parallel for shared(s,cdata,fdata,scales,offsets,weights)
 #endif
                 for (ii = 0; ii < s->spectra_per_subint; ii++) {
                     int jj;
@@ -923,7 +964,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata, struct spectra_info 
                 }
             } else {
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(s,cdata,fdata,scales,offsets,weights)
+#pragma omp parallel for shared(s,cdata,fdata,scales,offsets,weights)
 #endif
                 for (ii = 0; ii < s->spectra_per_subint; ii++) {
                     int jj;
@@ -940,7 +981,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata, struct spectra_info 
             const int idx = s->num_channels;
             if (s->bits_per_sample == 16) {
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(s,cdata,fdata,scales,offsets,weights)
+#pragma omp parallel for shared(s,cdata,fdata,scales,offsets,weights)
 #endif
                 for (ii = 0; ii < s->spectra_per_subint; ii++) {
                     int jj;
@@ -959,7 +1000,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata, struct spectra_info 
                 }
             } else if (s->bits_per_sample == 32) {
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(s,cdata,fdata,scales,offsets,weights)
+#pragma omp parallel for shared(s,cdata,fdata,scales,offsets,weights)
 #endif
                 for (ii = 0; ii < s->spectra_per_subint; ii++) {
                     int jj;
@@ -979,7 +1020,7 @@ void get_PSRFITS_subint(float *fdata, unsigned char *cdata, struct spectra_info 
                 }
             } else {
 #ifdef _OPENMP
-#pragma omp parallel for default(none) shared(s,cdata,fdata,scales,offsets,weights)
+#pragma omp parallel for shared(s,cdata,fdata,scales,offsets,weights)
 #endif
                 for (ii = 0; ii < s->spectra_per_subint; ii++) {
                     int jj;
