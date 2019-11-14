@@ -3,8 +3,8 @@
 /*        by Scott M. Ransom          */
 /*            1 Mar 1999              */
 /*                                    */
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 

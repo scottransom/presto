@@ -66,11 +66,11 @@
  *		Return 1 if file is a FITS file, else 0
  */
 
+#include <stdio.h>
 #include <stdlib.h>
 #ifndef VMS
 #include <unistd.h>
 #endif
-#include <stdio.h>
 #include <fcntl.h>
 #include <sys/file.h>
 #include <errno.h>

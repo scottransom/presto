@@ -1,8 +1,8 @@
 /*    Pulsar Data Set Info File Creator     */
 /*          by Scott Ransom                 */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 #include <string.h>
 #include "chkio.h"

@@ -59,6 +59,7 @@
    Copyright 1984, 1987, 1989 by Stephen L. Moshier
  */
 
+#include <stdio.h>
 #include<stdlib.h>
 #include<math.h>
 
