@@ -1,8 +1,8 @@
 from __future__ import print_function
 from builtins import zip
 import numpy as np
-import psr_utils as pu
-import pypsrcat as cat
+import presto.psr_utils as pu
+import presto.pypsrcat as cat
 import matplotlib.pyplot as plt
 
 # Use color?
