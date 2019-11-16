@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import bisect
@@ -7,11 +8,10 @@ import numpy.fft as FFT
 from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
 from scipy.optimize import leastsq
 import scipy.optimize.zeros as zeros
-from presto import Pgplot, ppgplot, sinc_interp, parfile
-from presto.psr_constants import *
+from presto import Pgplot, ppgplot, sinc_interp
+import presto.psr_constants as pc
 
 isintorlong = lambda x: type(x) == type(0) or type(x) == type(0)
-
 
 def span(Min, Max, Number):
     """
@@ -266,7 +266,7 @@ def rad_to_dms(rad):
         sign = -1
     else:
         sign = 1
-    arc = RADTODEG * Num.fmod(Num.fabs(rad), PI)
+    arc = pc.RADTODEG * Num.fmod(Num.fabs(rad), pc.PI)
     d = int(arc)
     arc = (arc - d) * 60.0
     m = int(arc)
@@ -288,7 +288,7 @@ def dms_to_rad(deg, min, sec):
         sign = -1
     else:
         sign = 1
-    return sign * ARCSECTORAD * \
+    return sign * pc.ARCSECTORAD * \
            (60.0 * (60.0 * Num.fabs(deg) +
                     Num.fabs(min)) + Num.fabs(sec))
 
@@ -298,7 +298,7 @@ def dms_to_deg(deg, min, sec):
     dms_to_deg(deg, min, sec):
        Convert degrees, minutes, and seconds of arc to degrees.
     """
-    return RADTODEG * dms_to_rad(deg, min, sec)
+    return pc.RADTODEG * dms_to_rad(deg, min, sec)
 
 
 def rad_to_hms(rad):
@@ -306,9 +306,9 @@ def rad_to_hms(rad):
     rad_to_hms(rad):
        Convert radians to hours, minutes, and seconds of arc.
     """
-    rad = Num.fmod(rad, TWOPI)
-    if (rad < 0.0): rad = rad + TWOPI
-    arc = RADTOHRS * rad
+    rad = Num.fmod(rad, pc.TWOPI)
+    if (rad < 0.0): rad = rad + pc.TWOPI
+    arc = pc.RADTOHRS * rad
     h = int(arc)
     arc = (arc - h) * 60.0
     m = int(arc)
@@ -325,7 +325,7 @@ def hms_to_rad(hour, min, sec):
         sign = -1
     else:
         sign = 1
-    return sign * SECTORAD * \
+    return sign * pc.SECTORAD * \
            (60.0 * (60.0 * Num.fabs(hour) +
                     Num.fabs(min)) + Num.fabs(sec))
 
@@ -335,7 +335,7 @@ def hms_to_hrs(hour, min, sec):
     hms_to_hrs(hour, min, sec):
        Convert hours, minutes, and seconds of arc to hours.
     """
-    return RADTOHRS * hms_to_rad(hour, min, sec)
+    return pc.RADTOHRS * hms_to_rad(hour, min, sec)
 
 
 def coord_to_string(h_or_d, m, s):
@@ -433,7 +433,7 @@ def mass_funct(pb, x):
             'pb' is the binary period in days.
             'x' is the projected semi-major axis in lt-sec.
     """
-    pbs = pb * 86400.0
+    pbs = pb * pc.SECPERDAY
     return 8015123.37129 * x ** 3.0 / (pbs * pbs)
 
 
@@ -479,26 +479,16 @@ def TS99_WDmass(pb, pop="I+II"):
         a, b, c = vals[pop]
         return (pb/b)**(1.0/a) + c
 
-def ELL1_check(par_file, output=False):
+def ELL1_check(A1, E, TRES, NTOA, output=False):
     """
-    ELL1_check(par_file):
-        Check the parfile to see if ELL1 can be safely used as the
+    ELL1_check(A1, E, TRES, NTOA, output=False):
+        Check if a binary pulsar to see if ELL1 can be safely used as the
             binary model.  To work properly, we should have:
             asini/c * ecc**2 << timing precision / sqrt(# TOAs)
+            or A1 * E**2 << TRES / sqrt(NTOA)
     """
-    psr = parfile.psr_par(par_file)
-    try:
-        lhs = psr.A1 * psr.E ** 2.0 * 1e6
-    except:
-        if output:
-            print("Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?")
-        return
-    try:
-        rhs = psr.TRES / Num.sqrt(psr.NTOA)
-    except:
-        if output:
-            print("Can't compute TRES / sqrt(# TOAs), maybe this isn't a TEMPO output parfile?")
-        return
+    lhs = A1 * E ** 2.0 * 1e6
+    rhs = TRES / Num.sqrt(NTOA)
     if output:
         print("Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:")
         print("     asini/c * ecc**2 = %8.3g us" % lhs)
@@ -525,7 +515,7 @@ def accel_to_z(accel, T, reffreq, harm=1):
             of duration 'T' seconds and with acceleration (in m/s/s)
             'accel'.  You can specify the harmonic number in 'harm'.
     """
-    return accel * harm * reffreq * T * T / SOL
+    return accel * harm * reffreq * T * T / pc.SOL
 
 
 def z_to_accel(z, T, reffreq, harm=1):
@@ -537,7 +527,7 @@ def z_to_accel(z, T, reffreq, harm=1):
             of duration 'T'. You can specify the harmonic number
             in 'harm'.
     """
-    return z * SOL / (harm * reffreq * T * T)
+    return z * pc.SOL / (harm * reffreq * T * T)
 
 
 def bins_to_accel(z, T, f=[1.0, 1000.0], device="/XWIN"):
@@ -573,7 +563,7 @@ def pulsar_mass(pb, x, mc, inc):
     """
     massfunct = mass_funct(pb, x)
 
-    def localmf(mp, mc=mc, mf=massfunct, i=inc * DEGTORAD):
+    def localmf(mp, mc=mc, mf=massfunct, i=inc * pc.DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
 
     return zeros.bisect(localmf, 0.0, 1000.0)
@@ -591,7 +581,7 @@ def companion_mass(pb, x, inc=60.0, mpsr=1.4):
     """
     massfunct = mass_funct(pb, x)
 
-    def localmf(mc, mp=mpsr, mf=massfunct, i=inc * DEGTORAD):
+    def localmf(mc, mp=mpsr, mf=massfunct, i=inc * pc.DEGTORAD):
         return mass_funct2(mp, mc, i) - mf
 
     return zeros.bisect(localmf, 0.0, 1000.0)
@@ -616,9 +606,9 @@ def OMDOT(porb, e, Mp, Mc):
         Return the predicted advance of periaston (deg/yr) given the
         orbital period (days), eccentricity, and pulsar and companion masses.
     """
-    return 3.0 * (porb * 86400.0 / TWOPI) ** (-5.0 / 3.0) * \
-           (Tsun * (Mp + Mc)) ** (2.0 / 3.0) / (1.0 - e ** 2.0) * \
-           RADTODEG * SECPERJULYR
+    return 3.0 * (porb * pc.SECPERDAY / pc.TWOPI) ** (-5.0 / 3.0) * \
+           (pc.Tsun * (Mp + Mc)) ** (2.0 / 3.0) / (1.0 - e ** 2.0) * \
+           pc.RADTODEG * pc.SECPERJULYR
 
 
 def GAMMA(porb, e, Mp, Mc):
@@ -627,8 +617,8 @@ def GAMMA(porb, e, Mp, Mc):
         Return the predicted value of relativistic gamma (sec) given the
         orbital period (days), eccentricity, and pulsar and companion masses.
     """
-    return e * (porb * 86400.0 / TWOPI) ** (1.0 / 3.0) * Tsun ** (2.0 / 3.0) * \
-           (Mp + Mc) ** (-4.0 / 3.0) * Mc * (Mp + 2.0 * Mc)
+    return e * (porb * pc.SECPERDAY / pc.TWOPI) ** (1.0 / 3.0) * \
+        pc.Tsun ** (2.0 / 3.0) * (Mp + Mc) ** (-4.0 / 3.0) * Mc * (Mp + 2.0 * Mc)
 
 
 def PBDOT(porb, e, Mp, Mc):
@@ -637,9 +627,9 @@ def PBDOT(porb, e, Mp, Mc):
         Return the predicted orbital period derivative (s/s) given the
         orbital period (s), eccentricity, and pulsar and companion masses.
     """
-    return -192.0 * PI / 5.0 * (porb * 86400.0 / TWOPI) ** (-5.0 / 3.0) * \
+    return -192.0 * pc.PI / 5.0 * (porb * pc.SECPERDAY / pc.TWOPI) ** (-5.0 / 3.0) * \
            (1.0 + 73.0 / 24.0 * e ** 2.0 + 37.0 / 96.0 * e ** 4.0) * \
-           (1.0 - e ** 2.0) ** (-7.0 / 2.0) * Tsun ** (5.0 / 3.0) * \
+           (1.0 - e ** 2.0) ** (-7.0 / 2.0) * pc.Tsun ** (5.0 / 3.0) * \
            Mp * Mc * (Mp + Mc) ** (-1.0 / 3.0)
 
 
@@ -649,8 +639,9 @@ def OMDOT_to_Mtot(OMDOT, porb, e):
         Return the total mass (in solar units) of a system given an advance
         of periastron (OMDOT) in deg/yr.  The orbital period should be in days.
     """
-    wd = OMDOT / SECPERJULYR * DEGTORAD  # rad/s
-    return (wd / 3.0 * (1.0 - e * e) * (porb * SECPERDAY / TWOPI) ** (5.0 / 3.0)) ** (3.0 / 2.0) / Tsun
+    wd = OMDOT / pc.SECPERJULYR * pc.DEGTORAD  # rad/s
+    return (wd / 3.0 * (1.0 - e * e) * (porb * pc.SECPERDAY / \
+                                        pc.TWOPI) ** (5.0 / 3.0)) ** (3.0 / 2.0) / pc.Tsun
 
 
 def GAMMA_to_Mc(gamma, porb, e, Mp):
@@ -675,7 +666,8 @@ def shklovskii_effect(pm, D):
         and the distance (D) in kpc.  Note:  What is returned is a_pm/C,
         or equivalently, Pdot_pm/P.
     """
-    return (pm / 1000.0 * ARCSECTORAD / SECPERJULYR) ** 2.0 * KMPERKPC * D / (C / 1000.0)
+    return (pm / 1000.0 * pc.ARCSECTORAD / pc.SECPERJULYR) ** 2.0 * \
+        pc.KMPERKPC * D / (pc.C / 1000.0)
 
 
 def galactic_accel_simple(l, b, D, v_o=240.0, R_o=8.34):
@@ -690,9 +682,9 @@ def galactic_accel_simple(l, b, D, v_o=240.0, R_o=8.34):
         and D is the distance in kpc.  This is eqn 2.4 of Phinney 1992.
         The default v_o and R_o values are from Reid et al 2014.
     """
-    A_sun = v_o * v_o / (C / 1000.0 * R_o * KMPERKPC)
+    A_sun = v_o * v_o / (pc.C / 1000.0 * R_o * pc.KMPERKPC)
     d = D / R_o
-    cbcl = Num.cos(b * DEGTORAD) * Num.cos(l * DEGTORAD)
+    cbcl = Num.cos(b * pc.DEGTORAD) * Num.cos(l * pc.DEGTORAD)
     return -A_sun * (cbcl + (d - cbcl) / (1.0 + d * d - 2.0 * d * cbcl))
 
 
@@ -707,10 +699,10 @@ def galactic_accel(l, b, D, v_o=240.0, R_o=8.34):
         and D is the distance in kpc.  This is eqn 5 of Nice & Taylor 1995.
         The default v_o and R_o values are from Reid et al 2014.
     """
-    A_sun = v_o * v_o / (C / 1000.0 * R_o * KMPERKPC)
-    cb = Num.cos(b * DEGTORAD)
-    cl = Num.cos(l * DEGTORAD)
-    sl = Num.sin(l * DEGTORAD)
+    A_sun = v_o * v_o / (pc.C / 1000.0 * R_o * pc.KMPERKPC)
+    cb = Num.cos(b * pc.DEGTORAD)
+    cl = Num.cos(l * pc.DEGTORAD)
+    sl = Num.sin(l * pc.DEGTORAD)
     beta = D / R_o * cb - cl
     return -A_sun * cb * (cl + beta / (sl ** 2 + beta ** 2))
 
@@ -725,7 +717,7 @@ def gal_z_accel(l, b, D):
         the galactic longitude and latitude (in deg) respectively, and D
         is the distance in kpc.  This is eqn 3+4 of Nice & Taylor 1995.
     """
-    sb = Num.sin(b * DEGTORAD)
+    sb = Num.sin(b * pc.DEGTORAD)
     z = D * sb
     az = 1.08e-19 * (1.25 * z / Num.sqrt(z ** 2 + 0.0324) + 0.58 * z)
     return az * sb
@@ -738,7 +730,7 @@ def beam_halfwidth(obs_freq, dish_diam):
             'obs_freq' = the observing frqeuency in MHz
             'dish_diam' = the telescope diameter in m
     """
-    return 1.2 * SOL / (obs_freq * 10.0 ** 6) / dish_diam * RADTODEG * 60 / 2
+    return 1.2 * pc.SOL / (obs_freq * 10.0 ** 6) / dish_diam * pc.RADTODEG * 60 / 2
 
 
 def limiting_flux_dens(Ttot, G, BW, T, P=0.01, W=0.05, polar=2, factor=15.0):
@@ -1139,7 +1131,7 @@ def fft_rotate(arr, bins):
     """
     arr = Num.asarray(arr)
     freqs = Num.arange(arr.size / 2 + 1, dtype=Num.float)
-    phasor = Num.exp(complex(0.0, TWOPI) * freqs * bins / float(arr.size))
+    phasor = Num.exp(complex(0.0, pc.TWOPI) * freqs * bins / float(arr.size))
     return Num.fft.irfft(phasor * Num.fft.rfft(arr), arr.size)
 
 
@@ -1280,25 +1272,25 @@ def expcos_profile(N, phase, fwhm):
     from simple_roots import secant
     def fwhm_func(k, fwhm=fwhm):
         if (fwhm < 0.02):
-            return Num.arccos(1.0 - Num.log(2.0) / k) / PI - fwhm
+            return Num.arccos(1.0 - Num.log(2.0) / k) / pc.PI - fwhm
         else:
             return Num.arccos(Num.log(0.5 * (Num.exp(k) +
-                                             Num.exp(-k))) / k) / PI - fwhm
+                                             Num.exp(-k))) / k) / pc.PI - fwhm
 
-    phsval = TWOPI * Num.arange(N, dtype='d') / float(N)
-    phi = -phase * TWOPI
+    phsval = pc.TWOPI * Num.arange(N, dtype='d') / float(N)
+    phi = -phase * pc.TWOPI
     if (fwhm >= 0.5):
         return Num.cos(phsval + phi) + 1.0
     elif (fwhm < 0.02):
         # The following is from expanding of iO(x) as x->Infinity.
-        k = Num.log(2.0) / (1.0 - Num.cos(PI * fwhm))
+        k = Num.log(2.0) / (1.0 - Num.cos(pc.PI * fwhm))
         # print("Expansion:  k = %f  FWHM = %f" % (k, fwhm_func(k, 0.0)))
-        phsval = Num.fmod(phsval + phi, TWOPI)
-        phsval = Num.where(Num.greater(phsval, PI),
-                           phsval - TWOPI, phsval)
+        phsval = Num.fmod(phsval + phi, pc.TWOPI)
+        phsval = Num.where(Num.greater(phsval, pc.PI),
+                           phsval - pc.TWOPI, phsval)
         denom = ((1 + 1 / (8 * k) + 9 / (128 * k * k) + 75 / (1024 * k ** 3) +
-                  3675 / (32768 * k ** 4) + 59535 / (262144 * k ** 5)) / Num.sqrt(TWOPI * k))
-        return Num.where(Num.greater(Num.fabs(phsval / TWOPI), 3.0 * fwhm), 0.0,
+                  3675 / (32768 * k ** 4) + 59535 / (262144 * k ** 5)) / Num.sqrt(pc.TWOPI * k))
+        return Num.where(Num.greater(Num.fabs(phsval / pc.TWOPI), 3.0 * fwhm), 0.0,
                          Num.exp(k * (Num.cos(phsval) - 1.0)) / denom)
     else:
         k = secant(fwhm_func, 1e-8, 0.5)
@@ -1582,7 +1574,7 @@ def coherent_sum(amps):
     """
     phss = Num.arctan2(amps.imag, amps.real)
     phs0 = phss[0]
-    phscorr = phs0 - Num.fmod((Num.arange(len(amps), dtype='d') + 1.0) * phs0, TWOPI)
+    phscorr = phs0 - Num.fmod((Num.arange(len(amps), dtype='d') + 1.0) * phs0, pc.TWOPI)
     sumamps = Num.add.accumulate(amps * Num.exp(complex(0.0, 1.0) * phscorr))
     return Num.absolute(sumamps) ** 2.0
 
@@ -1761,12 +1753,12 @@ def sigma_power(power):
     """
     if type(1.0) == type(power):
         if power > 36.0:
-            return Num.sqrt(2.0 * power - Num.log(PI * power))
+            return Num.sqrt(2.0 * power - Num.log(pc.PI * power))
         else:
             return equivalent_gaussian_sigma(prob_power(power))
     else:
         return Num.where(power > 36.0,
-                         Num.sqrt(2.0 * power - Num.log(PI * power)),
+                         Num.sqrt(2.0 * power - Num.log(pc.PI * power)),
                          extended_equiv_gaussian_sigma(log_prob_sum_powers(power, 1)))
 
 
@@ -1794,7 +1786,7 @@ def power_at_sigma(sigma):
         Return the approximate normalized power level that is
         equivalent to a detection of significance 'sigma'.
     """
-    return sigma ** 2 / 2.0 + Num.log(Num.sqrt(PIBYTWO)
+    return sigma ** 2 / 2.0 + Num.log(Num.sqrt(pc.PIBYTWO)
                                       * sigma)
 
 
@@ -1895,7 +1887,7 @@ def pdot_from_edot(p, edot, I=1.0e45):
         would experience given an Edot 'edot' (in ergs/s) and a
         moment of inertia I.
     """
-    return (p ** 3.0 * edot) / (4.0 * PI * PI * I)
+    return (p ** 3.0 * edot) / (4.0 * pc.PI * pc.PI * I)
 
 
 def pulsar_age(f, fdot, n=3, fo=1e99):
@@ -1916,7 +1908,7 @@ def pulsar_edot(f, fdot, I=1.0e45):
         frequency derivative. The NS moment of inertia is assumed to be
         I = 1.0e45 g cm^2
     """
-    return -4.0 * PI * PI * I * f * fdot
+    return -4.0 * pc.PI * pc.PI * I * f * fdot
 
 
 def pulsar_B(f, fdot):
