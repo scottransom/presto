@@ -1,3 +1,7 @@
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
 def catvar(col):
     ret = []
     global a, b, c, d, e
@@ -27,7 +31,7 @@ def readsaves(file='montebinopt_saves.txt'):
     return result
 
 def saveresults(file="testresults.txt"):
-    from cPickle import *
+    from pickle import *
     global psrp, orbp, orbx, orbe, orbw, orbt
     global widthp, widthx, widtht, widthe, widthw
     global mf, z
@@ -36,10 +40,10 @@ def saveresults(file="testresults.txt"):
             'mf', 'z')
     f = open(file, 'w')
     for var in vars:
-        print 'Saving ', var, '...'
+        print('Saving ', var, '...')
         exec('dump(%s, f)' % (var))
     f.close()
-    print 'Saved em.'
+    print('Saved em.')
 
 def quadratic(parameters, x):
     a = parameters[0]
@@ -65,11 +69,11 @@ def genfits():
         for i in range(len(xvals[fitvar])):
             vals.append((xvals[fitvar][i], yvals[fitvar][i]))
         fit = leastSquaresFit(linear, (1.0, 0.0), vals)
-        print '%s width = %10.7f * %s + %10.7f  (Acc: %f)' % (fitvar,
+        print('%s width = %10.7f * %s + %10.7f  (Acc: %f)' % (fitvar,
                                                               fit[0][0],
                                                               xtits[fitvar],
                                                               fit[0][1],
-                                                              fit[1])
+                                                              fit[1]))
         plotxy(yvals[fitvar], xvals[fitvar],
                laby=fitvar+' Width (Fractional)',
                labx=xtits[fitvar], line=None, font=2,
@@ -95,11 +99,11 @@ def genlogfits():
         for i in range(len(xvals[fitvar])):
             vals.append((xvals[fitvar][i], yvals[fitvar][i]))
         fit = leastSquaresFit(linear, (1.0, 0.0), vals)
-        print 'log(%s) width = %10.7f * %s + %10.7f  (Acc: %f)' % (fitvar,
+        print('log(%s) width = %10.7f * %s + %10.7f  (Acc: %f)' % (fitvar,
                                                                    fit[0][0],
                                                                    xtits[fitvar],
                                                                    fit[0][1],
-                                                                   fit[1])
+                                                                   fit[1]))
         plotxy(yvals[fitvar], xvals[fitvar],
                laby='log('+fitvar+') Width (Fractional)',
                labx=xtits[fitvar], line=None, font=2,
@@ -124,16 +128,16 @@ if __name__ == '__main__':
         help(funct):
         Print the documentation string of a function or method.
         """
-        print eval(funct + '.__doc__')
+        print(eval(funct + '.__doc__'))
     
-    from cPickle import *
+    from pickle import *
     vars = ('psrp', 'orbp', 'orbx', 'orbe', 'orbw', 'orbt',
             'widthp', 'widthx', 'widtht', 'widthe', 'widthw',
             'mf', 'z')
     f = open("testresults.txt")
     for var in vars:
-        print 'Loading ', var, '...'
+        print('Loading ', var, '...')
         exec(var + ' = asarray(load(f))')
     f.close()
-    print 'Got em.'
+    print('Got em.')
     

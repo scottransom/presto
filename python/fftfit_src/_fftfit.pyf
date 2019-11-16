@@ -1,0 +1,29 @@
+!%f90 -*- f90 -*-
+python module _fftfit ! in
+    interface  ! in :fftfit
+        subroutine cprof(y,nmax,nh,c,amp,pha) ! in :fftfit:brent.f,cprof.f,fccf.f,ffft.f,fftfit.f
+            real*4 dimension(nmax) :: y
+            integer optional,check(len(y)>=nmax),depend(y) :: nmax=len(y)
+            integer optional :: nh=(nmax/2)
+            complex intent(out),dimension(nh+1) :: c
+            real*4 intent(out),dimension(nh),depend(nh) :: amp
+            real*4 intent(out),dimension(nh),depend(nh) :: pha
+        end subroutine cprof
+        subroutine fftfit(prof,s,phi,nmax,shift,eshift,snr,esnr,b,errb,ngood) ! in :fftfit:fftfit.f
+            real*4 dimension(nmax),intent(in) :: prof
+            real*4 dimension(nmax/2),intent(in) :: s
+            real*4 dimension(nmax/2),intent(in) :: phi
+            integer optional,check(len(prof)>=nmax),depend(prof) :: nmax=len(prof)
+            real intent(out) :: shift
+            real intent(out) :: eshift
+            real intent(out) :: snr
+            real intent(out) :: esnr
+            real intent(out) :: b
+            real intent(out) :: errb
+            integer intent(out) :: ngood
+        end subroutine fftfit
+    end interface 
+end python module _fftfit
+
+! This file was auto-generated with f2py (version:2.13.175-1250).
+! See http://cens.ioc.ee/projects/f2py2e/

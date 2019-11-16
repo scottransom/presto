@@ -11,20 +11,17 @@ Paul Scholz - Nov 2015
 
 """
 
-import sys
 import optparse
-import copy
 
 import matplotlib.pyplot as plt
 import matplotlib.cm
 import numpy as np
 
-import psr_utils
-import rfifind
+from presto import psr_utils
+from presto import rfifind
+from presto import psrfits
+from presto import filterbank
 
-import psrfits
-import filterbank
-import spectra
 
 SWEEP_STYLES = ['r-', 'b-', 'g-', 'm-', 'c-']
 
@@ -52,7 +49,8 @@ def get_mask(rfimask, startsamp, N):
             blockmask[:,chans_to_mask] = True
         mask[blocknums==blocknum] = blockmask
     return mask.T
-        
+
+
 def maskfile(maskfn, data, start_bin, nbinsextra):
     rfimask = rfifind.rfifind(maskfn) 
     mask = get_mask(rfimask, start_bin, nbinsextra)[::-1]
@@ -63,9 +61,10 @@ def maskfile(maskfn, data, start_bin, nbinsextra):
     #datacopy = copy.deepcopy(data)
     return data, masked_chans
 
+
 def waterfall(rawdatafile, start, duration, dm=None, nbins=None, nsub=None,\
               subdm=None, zerodm=False, downsamp=1, scaleindep=False,\
-              width_bins=1, mask=False, maskfn=None, bandpass_corr=False, \
+              width_bins=1, mask=False, maskfn=None, bandpass_corr=False,
               ref_freq=None):
     """
     Create a waterfall plot (i.e. dynamic specrum) from a raw data file.
@@ -127,9 +126,9 @@ def waterfall(rawdatafile, start, duration, dm=None, nbins=None, nsub=None,\
         nbins = np.round(duration/rawdatafile.tsamp).astype('int')
 
     if dm:
-	nbinsextra = np.round((duration + dmfac * dm)/rawdatafile.tsamp).astype('int')
+        nbinsextra = np.round((duration + dmfac * dm)/rawdatafile.tsamp).astype('int')
     else:
-        nbinsextra = nbins    
+        nbinsextra = nbins
 
     # If at end of observation
     if (start_bin + nbinsextra) > rawdatafile.nspec-1:
@@ -150,7 +149,7 @@ def waterfall(rawdatafile, start, duration, dm=None, nbins=None, nsub=None,\
         masked_chans[bandpass == 0] = True
 
         # ignore top and bottom 1% of band
-        ignore_chans = np.ceil(0.01*rawdatafile.nchan) 
+        ignore_chans = np.ceil(0.01*rawdatafile.nchan)
         masked_chans[:ignore_chans] = True
         masked_chans[-ignore_chans:] = True
 
@@ -166,7 +165,7 @@ def waterfall(rawdatafile, start, duration, dm=None, nbins=None, nsub=None,\
     if (zerodm == True):
         data.data -=  data.data.mean(axis=0)
 
-    
+
     # Subband data
     if (nsub is not None) and (subdm is not None):
         data.subband(nsub, subdm, padval='mean')
@@ -180,15 +179,16 @@ def waterfall(rawdatafile, start, duration, dm=None, nbins=None, nsub=None,\
 
     # scale data
     data = data.scaled(scaleindep)
-    
+
     # Smooth
     if width_bins > 1:
         data.smooth(width_bins, padval='mean')
 
     return data, nbinsextra, nbins, start
 
-def plot_waterfall(data, start, duration, 
-                   integrate_ts=False, integrate_spec=False, show_cb=False, 
+
+def plot_waterfall(data, start, duration,
+                   integrate_ts=False, integrate_spec=False, show_cb=False,
                    cmap_str="gist_yarg", sweep_dms=[], sweep_posns=[],
                    ax_im=None, ax_ts=None, ax_spec=None, interactive=True):
     """ I want a docstring too!
@@ -213,10 +213,10 @@ def plot_waterfall(data, start, duration,
     # Ploting it up
     nbinlim = np.int(duration/data.dt)
 
-    img = ax_im.imshow(data.data[..., :nbinlim], aspect='auto', \
-                cmap=matplotlib.cm.cmap_d[cmap_str], \
-                interpolation='nearest', origin='upper', \
-                extent=(data.starttime, data.starttime+ nbinlim*data.dt, \
+    img = ax_im.imshow(data.data[..., :nbinlim], aspect='auto',
+                cmap=matplotlib.cm.cmap_d[cmap_str],
+                interpolation='nearest', origin='upper',
+                extent=(data.starttime, data.starttime+ nbinlim*data.dt,
                         data.freqs.min(), data.freqs.max()))
     if show_cb:
         cb = ax_im.get_figure().colorbar(img)
@@ -228,7 +228,7 @@ def plot_waterfall(data, start, duration,
         ddm = sweep_dm-data.dm
         delays = psr_utils.delay_from_DM(ddm, data.freqs)
         delays -= delays.min()
-        
+
         if sweep_posns is None:
             sweep_posn = 0.0
         elif len(sweep_posns) == 1:
@@ -251,8 +251,8 @@ def plot_waterfall(data, start, duration,
         times = (np.arange(data.numspectra)*data.dt + start)[..., :nbinlim]
         ax_ts.plot(times, Dedisp_ts,"k")
         ax_ts.set_xlim([times.min(),times.max()])
-	plt.setp(ax_ts.get_xticklabels(), visible = False)
-	plt.setp(ax_ts.get_yticklabels(), visible = False)
+        plt.setp(ax_ts.get_xticklabels(), visible = False)
+        plt.setp(ax_ts.get_yticklabels(), visible = False)
 
     # Plot Spectrum                                                             
     if integrate_spec:                                                         
@@ -273,7 +273,7 @@ def plot_waterfall(data, start, duration,
 
     if interactive:
         fig.suptitle("Frequency vs. Time")
-        fig.canvas.mpl_connect('key_press_event', \
+        fig.canvas.mpl_connect('key_press_event',
                 lambda ev: (ev.key in ('q','Q') and plt.close(fig)))
 
         plt.show()
@@ -294,107 +294,107 @@ def main():
                          "extension. (Only '.fits' and '.fil' "
                          "are supported.)")
 
-    data, bins, nbins, start = waterfall(rawdatafile, options.start, \
-                            options.duration, dm=options.dm,\
-                            nbins=options.nbins, nsub=options.nsub,\
-                            subdm=options.subdm, zerodm=options.zerodm, \
-                            downsamp=options.downsamp, \
-                            scaleindep=options.scaleindep, \
-                            width_bins=options.width_bins, mask=options.mask, \
-                            maskfn=options.maskfile, \
+    data, bins, nbins, start = waterfall(rawdatafile, options.start,
+                            options.duration, dm=options.dm,
+                            nbins=options.nbins, nsub=options.nsub,
+                            subdm=options.subdm, zerodm=options.zerodm,
+                            downsamp=options.downsamp,
+                            scaleindep=options.scaleindep,
+                            width_bins=options.width_bins, mask=options.mask,
+                            maskfn=options.maskfile,
                             bandpass_corr=options.bandpass_corr)
 
-    plot_waterfall(data, start, options.duration, integrate_ts=options.integrate_ts, \
+    plot_waterfall(data, start, options.duration, integrate_ts=options.integrate_ts,
                    integrate_spec=options.integrate_spec, show_cb=options.show_cb, 
                    cmap_str=options.cmap, sweep_dms=options.sweep_dms, 
                    sweep_posns=options.sweep_posns)
 
 if __name__=='__main__':
-    parser = optparse.OptionParser(prog="waterfaller.py", \
-                        version="v0.9 Patrick Lazarus (Aug. 19, 2011)", \
-                        usage="%prog [OPTIONS] INFILE", \
-                        description="Create a waterfall plot to show the " \
-                                    "frequency sweep of a single pulse " \
+    parser = optparse.OptionParser(prog="waterfaller.py",
+                        version="v0.9 Patrick Lazarus (Aug. 19, 2011)",
+                        usage="%prog [OPTIONS] INFILE",
+                        description="Create a waterfall plot to show the "
+                                    "frequency sweep of a single pulse "
                                     "in psrFits data.")
-    parser.add_option('--subdm', dest='subdm', type='float', \
-                        help="DM to use when subbanding. (Default: " \
+    parser.add_option('--subdm', dest='subdm', type='float',
+                        help="DM to use when subbanding. (Default: "
                                 "same as --dm)", default=None)
-    parser.add_option('--zerodm', dest='zerodm', action='store_true', \
-                        help="If this flag is set - Turn Zerodm filter - ON  (Default: " \
+    parser.add_option('--zerodm', dest='zerodm', action='store_true',
+                        help="If this flag is set - Turn Zerodm filter - ON  (Default: "
                                 "OFF)", default=False)
-    parser.add_option('-s', '--nsub', dest='nsub', type='int', \
-                        help="Number of subbands to use. Must be a factor " \
-                                "of number of channels. (Default: " \
+    parser.add_option('-s', '--nsub', dest='nsub', type='int',
+                        help="Number of subbands to use. Must be a factor "
+                                "of number of channels. (Default: "
                                 "number of channels)", default=None)
-    parser.add_option('-d', '--dm', dest='dm', type='float', \
-                        help="DM to use when dedispersing data for plot. " \
+    parser.add_option('-d', '--dm', dest='dm', type='float',
+                        help="DM to use when dedispersing data for plot. "
                                 "(Default: 0 pc/cm^3)", default=0.0)
-    parser.add_option('--show-ts', dest='integrate_ts', action='store_true', \
-                        help="Plot the time series. " \
+    parser.add_option('--show-ts', dest='integrate_ts', action='store_true',
+                        help="Plot the time series. "
                                 "(Default: Do not show the time series)", default=False)
-    parser.add_option('--show-spec', dest='integrate_spec', action='store_true', \
-                        help="Plot the spectrum. " \
+    parser.add_option('--show-spec', dest='integrate_spec', action='store_true',
+                        help="Plot the spectrum. "
                                 "(Default: Do not show the spectrum)", default=False)
-    parser.add_option('--bandpass', dest='bandpass_corr', action='store_true', \
-                        help="Correct for the bandpass. Requires an rfifind " \
-                                "mask provided by --mask option." \
+    parser.add_option('--bandpass', dest='bandpass_corr', action='store_true',
+                        help="Correct for the bandpass. Requires an rfifind "
+                                "mask provided by --mask option."
                                 "(Default: Do not remove bandpass)", default=False)
-    parser.add_option('-T', '--start-time', dest='start', type='float', \
-                        help="Time into observation (in seconds) at which " \
+    parser.add_option('-T', '--start-time', dest='start', type='float',
+                        help="Time into observation (in seconds) at which "
                                 "to start plot.")
-    parser.add_option('-t', '--duration', dest='duration', type='float', \
+    parser.add_option('-t', '--duration', dest='duration', type='float',
                         help="Duration (in seconds) of plot.")
-    parser.add_option('-n', '--nbins', dest='nbins', type='int', \
-                        help="Number of time bins to plot. This option takes " \
-                                "precedence over -t/--duration if both are " \
+    parser.add_option('-n', '--nbins', dest='nbins', type='int',
+                        help="Number of time bins to plot. This option takes "
+                                "precedence over -t/--duration if both are "
                                 "provided.")
-    parser.add_option('--width-bins', dest='width_bins', type='int', \
-                        help="Smooth each channel/subband with a boxcar " \
-                                "this many bins wide. (Default: Don't smooth)", \
+    parser.add_option('--width-bins', dest='width_bins', type='int',
+                        help="Smooth each channel/subband with a boxcar "
+                                "this many bins wide. (Default: Don't smooth)",
                         default=1)
-    parser.add_option('--sweep-dm', dest='sweep_dms', type='float', \
-                        action='append', \
-                        help="Show the frequency sweep using this DM. " \
+    parser.add_option('--sweep-dm', dest='sweep_dms', type='float',
+                        action='append',
+                        help="Show the frequency sweep using this DM. "
                                 "(Default: Don't show sweep)", default=[])
-    parser.add_option('--sweep-posn', dest='sweep_posns', type='float', \
-                        action='append', \
-                        help="Show the frequency sweep at this position. " \
-                                "The position refers to the high-frequency " \
-                                "edge of the plot. Also, the position should " \
-                                "be a number between 0 and 1, where 0 is the " \
+    parser.add_option('--sweep-posn', dest='sweep_posns', type='float',
+                        action='append',
+                        help="Show the frequency sweep at this position. "
+                                "The position refers to the high-frequency "
+                                "edge of the plot. Also, the position should "
+                                "be a number between 0 and 1, where 0 is the "
                                 "left edge of the plot. "
                                 "(Default: 0)", default=None)
-    parser.add_option('--downsamp', dest='downsamp', type='int', \
-                        help="Factor to downsample data by. (Default: 1).", \
+    parser.add_option('--downsamp', dest='downsamp', type='int',
+                        help="Factor to downsample data by. (Default: 1).",
                         default=1)
-    parser.add_option('--maskfile', dest='maskfile', type='string', \
-                        help="Mask file produced by rfifind. Used for " \
-                             "masking and bandpass correction.", \
+    parser.add_option('--maskfile', dest='maskfile', type='string',
+                        help="Mask file produced by rfifind. Used for "
+                             "masking and bandpass correction.",
                         default=None)
-    parser.add_option('--mask', dest='mask', action="store_true", \
-                        help="Mask data using rfifind mask (Default: Don't mask).", \
+    parser.add_option('--mask', dest='mask', action="store_true",
+                        help="Mask data using rfifind mask (Default: Don't mask).",
                         default=False)
-    parser.add_option('--scaleindep', dest='scaleindep', action='store_true', \
-                        help="If this flag is set scale each channel " \
-                                "independently. (Default: Scale using " \
-                                "global maximum.)", \
+    parser.add_option('--scaleindep', dest='scaleindep', action='store_true',
+                        help="If this flag is set scale each channel "
+                                "independently. (Default: Scale using "
+                                "global maximum.)",
                         default=False)
-    parser.add_option('--show-colour-bar', dest='show_cb', action='store_true', \
-                        help="If this flag is set show a colour bar. " \
-                                "(Default: No colour bar.)", \
+    parser.add_option('--show-colour-bar', dest='show_cb', action='store_true',
+                        help="If this flag is set show a colour bar. "
+                                "(Default: No colour bar.)",
                         default=False)
-    parser.add_option('--colour-map', dest='cmap', \
-                        help="The name of a valid matplotlib colour map." \
-                                "(Default: gist_yarg.)", \
+    parser.add_option('--colour-map', dest='cmap',
+                        help="The name of a valid matplotlib colour map."
+                                "(Default: gist_yarg.)",
                         default='gist_yarg')
     options, args = parser.parse_args()
     
     if not hasattr(options, 'start'):
-        raise ValueError("Start time (-T/--start-time) " \
+        raise ValueError("Start time (-T/--start-time) "
                             "must be given on command line!")
     if (not hasattr(options, 'duration')) and (not hasattr(options, 'nbins')):
-        raise ValueError("One of duration (-t/--duration) " \
-                            "and num bins (-n/--nbins)" \
+        raise ValueError("One of duration (-t/--duration) "
+                            "and num bins (-n/--nbins)"
                             "must be given on command line!")
     if options.subdm is None:
         options.subdm = options.dm

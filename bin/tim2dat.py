@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-import sys, os, os.path
-import argparse, getpass
+from __future__ import print_function
 import astropy.coordinates as coords
-import astropy.units as u
+from builtins import str
+import os
+import os.path
+import argparse
+import sys
+import getpass
 import numpy as np
-import sigproc
+from presto import sigproc
 
 BLOCKSIZE = 10000  # Amount of data to copy at a time
                    # from input file to output file (in samples)
@@ -125,19 +129,20 @@ def convert_tim_to_dat(tim):
 
 def main():
     for tim in args.timfiles:
-        print "Working on %s" % tim
+        print("Working on %s" % tim)
+
         if args.write_dat:
             try:
                 datfn = convert_tim_to_dat(tim)
-                print "    Wrote PRESTO time series: %s" % datfn
-            except ValueError, e:
+                print("    Wrote PRESTO time series: %s" % datfn)
+            except ValueError as e:
                 sys.stderr.write("Error encountered when converting on %s" % tim)
                 sys.stderr.write(str(e))
         else:
             datfn = tim[-3:]+"dat"
         hdr, hdrlen = sigproc.read_header(tim)
         inffn = write_inf_file(datfn, hdr, hdrlen)
-        print "    Wrote info data: %s" % inffn
+        print("    Wrote info data: %s" % inffn)
 
 
 if __name__ == '__main__':

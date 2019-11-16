@@ -1,4 +1,8 @@
-import sifting, re, glob
+from builtins import map
+import re
+import glob
+import presto.sifting as sifting
+from operator import itemgetter, attrgetter
 
 # Note:  You will almost certainly want to adjust
 #        the following variables for your particular search
@@ -50,7 +54,7 @@ if len(re.findall("_[0-9][0-9][0-9]M_" , inffiles[0])):
     dmstrs = [x.split("DM")[-1].split("_")[0] for x in candfiles]
 else:
     dmstrs = [x.split("DM")[-1].split(".inf")[0] for x in inffiles]
-dms = map(float, dmstrs)
+dms = list(map(float, dmstrs))
 dms.sort()
 dmstrs = ["%.2f"%x for x in dms]
 
@@ -72,5 +76,5 @@ if len(cands):
 
 # Write candidates to STDOUT
 if len(cands):
-    cands.sort(sifting.cmp_sigma)
+    cands.sort(key=attrgetter('sigma'), reverse=True)
     sifting.write_candlist(cands)

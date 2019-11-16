@@ -1,6 +1,10 @@
 #!/usr/bin/env python
-import sys, os, random, sigproc
-import psr_utils as pu
+from __future__ import print_function
+from builtins import range
+import sys, os, random
+from presto import sigproc
+from presto import psr_utils as pu
+
 
 def spigot_samples_per_file(spigot_filenm):
     """
@@ -16,10 +20,10 @@ debug = 1
 
 if __name__=="__main__":
     if (len(sys.argv) < 3):
-        print "usage:  GBT350_drift_prep.py NUM spigot_fits_files"
-        print "    NUM is the 'beam' number in the scan.  It starts "
-        print "        with 0 and goes to NMAX.  If NUM is < 0, NMAX"
-        print "        is sent to STDOUT by the program."
+        print("usage:  GBT350_drift_prep.py NUM spigot_fits_files")
+        print("    NUM is the 'beam' number in the scan.  It starts ")
+        print("        with 0 and goes to NMAX.  If NUM is < 0, NMAX")
+        print("        is sent to STDOUT by the program.")
         sys.exit()
 
     orig_N  = 1728000     # Number of samples to analyze at a time (~141 sec)
@@ -35,19 +39,19 @@ if __name__=="__main__":
     for ii in range(numinfiles):
         samps = spigot_samples_per_file(infilenms[ii])
         if ((samps < nom_samps_per_file) and (ii < numinfiles-1)):
-            print "Warning!  '%s' only has %d samples!"%\
-                  (infilenms[ii], samps)
-            print "    You need to fix that file!"
+            print("Warning!  '%s' only has %d samples!"%\
+                  (infilenms[ii], samps))
+            print("    You need to fix that file!")
             sys.exit(-1)
         samples_per_file.append(samps)
     total_samples = sum(samples_per_file)
     num = int(sys.argv[1])
     nmax = total_samples/overlap_samples-1
     if num < 0:
-        print nmax
+        print(nmax)
         sys.exit(0)
     if num > nmax:
-        print "NUM > NMAX (%d)!  Exiting!"%nmax
+        print("NUM > NMAX (%d)!  Exiting!"%nmax)
         sys.exit(-1)
 
     # Now figure out which file is the first
@@ -65,12 +69,12 @@ if __name__=="__main__":
             if ((raw_N - first_file_samples) % nom_samps_per_file):
                 numfiles += 1
             if debug:
-                print "first_filenum  = ", ii
-                print "1st sample     = ", first_sample
-                print "1st filenam    = ", infilenms[ii]
-                print "skip           = ", skip
-                print "1st_file_samps = ", first_file_samples
-                print "numfiles       = ", numfiles
+                print("first_filenum  = ", ii)
+                print("1st sample     = ", first_sample)
+                print("1st filenam    = ", infilenms[ii])
+                print("skip           = ", skip)
+                print("1st_file_samps = ", first_file_samples)
+                print("numfiles       = ", numfiles)
             break
         else:
             accum_samples += samples_per_file[ii]
@@ -97,7 +101,7 @@ if __name__=="__main__":
     str_coords += "".join(dec_string.split(":")[:2])
     filfilenm = "GBT350drift_%d_%s.fil" % (MJDi, str_coords)
     os.rename(tmpfilenm, filfilenm)
-    print "Renamed '%s' to '%s'." % (tmpfilenm, filfilenm)
+    print("Renamed '%s' to '%s'." % (tmpfilenm, filfilenm))
     
 
     

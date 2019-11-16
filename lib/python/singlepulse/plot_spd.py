@@ -1,1 +1,0 @@
-../../../bin/plot_spd.py

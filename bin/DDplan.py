@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from builtins import zip
 from numpy import *
-from Pgplot import *
+from presto.Pgplot import *
 
-class observation:
+class observation(object):
     def __init__(self, dt, f_ctr, BW, numchan, cDM):
         # dt in sec, f_ctr and in MHz
         self.dt = dt
@@ -19,7 +21,7 @@ class observation:
         """
         return self.dt*0.0001205*self.f_ctr**3.0/(0.5*self.BW)
 
-class dedisp_method:
+class dedisp_method(object):
     def __init__(self, obs, downsamp, loDM, hiDM, dDM, numDMs=0,
                  numsub=0, smearfact=2.0):
         self.obs = obs
@@ -224,36 +226,36 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
     # Minimum smearing across the obs.BW
     min_BW_smearing = BW_smear(dDM, obs.BW, obs.f_ctr)
 
-    print
-    print "Minimum total smearing     : %.3g ms" % min_tot_smearing
-    print "--------------------------------------------"
-    print "Minimum channel smearing   : %.3g ms" % min_chan_smearing
-    print "Minimum smearing across BW : %.3g ms" % min_BW_smearing
-    print "Minimum sample time        : %.3g ms" % dtms
-    print
+    print()
+    print("Minimum total smearing     : %.3g ms" % min_tot_smearing)
+    print("--------------------------------------------")
+    print("Minimum channel smearing   : %.3g ms" % min_chan_smearing)
+    print("Minimum smearing across BW : %.3g ms" % min_BW_smearing)
+    print("Minimum sample time        : %.3g ms" % dtms)
+    print()
 
     ok_smearing = max([ok_smearing, min_chan_smearing, min_BW_smearing, dtms])
-    print "Setting the new 'best' resolution to : %.3g ms" % ok_smearing
+    print("Setting the new 'best' resolution to : %.3g ms" % ok_smearing)
 
     # See if the data is too high time resolution for our needs
     if (ff*min_chan_smearing > dtms or
         ok_smearing > dtms):
         if (ok_smearing > ff*min_chan_smearing):
-            print "   Note: ok_smearing > dt (i.e. data is higher resolution than needed)"
+            print("   Note: ok_smearing > dt (i.e. data is higher resolution than needed)")
             okval = ok_smearing
         else:
-            print "   Note: min_chan_smearing > dt (i.e. data is higher resolution than needed)"
+            print("   Note: min_chan_smearing > dt (i.e. data is higher resolution than needed)")
             okval = ff*min_chan_smearing
 
         while (dtms*allow_downsamps[index_downsamps+1] < okval):
             index_downsamps += 1    
         downsamp = allow_downsamps[index_downsamps]
-        print "         New dt is %d x %.12g ms = %.12g ms" % \
-              (downsamp, dtms, dtms*downsamp)
+        print("         New dt is %d x %.12g ms = %.12g ms" % \
+              (downsamp, dtms, dtms*downsamp))
 
     # Calculate the appropriate initial dDM 
     dDM = guess_DMstep(obs.dt*downsamp, obs.BW, obs.f_ctr)
-    print "Best guess for optimal initial dDM is %.3f" % dDM
+    print("Best guess for optimal initial dDM is %.3f" % dDM)
     while (allow_dDMs[index_dDMs+1] < ff*dDM):
         index_dDMs += 1
 
@@ -301,27 +303,27 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
     # Plot them
     plotxy(log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
            rangey=[log10(0.3*min(tot_smear)), log10(2.5*max(tot_smear))],
-           labx="Dispersion Measure (pc/cm\u3\d)", laby="Smearing (ms)",
+           labx="Dispersion Measure (pc/cm\\u3\\d)", laby="Smearing (ms)",
            device=device)
     ppgplot.pgsch(1.1)
     ppgplot.pgsci(1)
     if (numsub):
-        ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\(2156)\dctr\u = %g MHz" % obs.f_ctr)
+        ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\(2156)\dctr\\u = %g MHz" % obs.f_ctr)
         if (dtms < 0.1):
-            ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g \gms" % (dtms*1000))
+            ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g \\gms" % (dtms*1000))
         else:
             ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g ms" % dtms)
         ppgplot.pgmtxt("t", 1.5, 5.0/10.0, 0.5, "BW = %g MHz" % obs.BW)
-        ppgplot.pgmtxt("t", 1.5, 7.2/10.0, 0.5, "N\dchan\u = %d" % obs.numchan)
-        ppgplot.pgmtxt("t", 1.5, 9.4/10.0, 0.5, "N\dsub\u = %d" % numsub)
+        ppgplot.pgmtxt("t", 1.5, 7.2/10.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
+        ppgplot.pgmtxt("t", 1.5, 9.4/10.0, 0.5, "N\\dsub\\u = %d" % numsub)
     else:
-        ppgplot.pgmtxt("t", 1.5, 1.0/8.0, 0.5, "\(2156)\dctr\u = %g MHz" % obs.f_ctr)
+        ppgplot.pgmtxt("t", 1.5, 1.0/8.0, 0.5, "\\(2156)\\dctr\\u = %g MHz" % obs.f_ctr)
         if (dtms < 0.1):
-            ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g \gms" % (dtms*1000))
+            ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g \\gms" % (dtms*1000))
         else:
             ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g ms" % dtms)
         ppgplot.pgmtxt("t", 1.5, 5.0/8.0, 0.5, "BW = %g MHz" % obs.BW)
-        ppgplot.pgmtxt("t", 1.5, 7.0/8.0, 0.5, "N\dchan\u = %d" % obs.numchan)
+        ppgplot.pgmtxt("t", 1.5, 7.0/8.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
 
     ppgplot.pgsch(1.0)
     dy = -1.4
@@ -344,17 +346,17 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
     ppgplot.pgsci(11)
     
     if (numsub):
-        print "\n  Low DM    High DM     dDM  DownSamp  dsubDM   #DMs  DMs/call  calls  WorkFract"
+        print("\n  Low DM    High DM     dDM  DownSamp  dsubDM   #DMs  DMs/call  calls  WorkFract")
     else:
-        print "\n  Low DM    High DM     dDM  DownSamp   #DMs  WorkFract"
+        print("\n  Low DM    High DM     dDM  DownSamp   #DMs  WorkFract")
     for method, fract in zip(methods, work_fracts):
-        print method, "  %.4g" % fract
+        print(method, "  %.4g" % fract)
         method.plot(fract)
-    print "\n\n"
+    print("\n\n")
     closeplot()
     
 def usage():
-    print """
+    print("""
 usage:  DDplan.py [options]
   [-h, --help]                    : Display this help
   [-o outfile, --outfile=outfile] : Output .eps plot file (default is xwin)
@@ -370,7 +372,7 @@ usage:  DDplan.py [options]
   The program generates a good plan for de-dispersing raw data.  It
   trades a small amount of sensitivity in order to save computation costs.
 
-"""    
+""")    
 
 if __name__=='__main__':
     import getopt, sys

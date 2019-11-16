@@ -5,15 +5,17 @@
 # Inputs are a set of .bestprof files or .par files from which the P0 and P1 (or F0 and F1) values
 # and their errors are read.  It can ignore points with too large an F1 error
 #
+from __future__ import print_function
 from numpy import *
 from pylab import *
-from psr_utils import *
-from sys import argv, exit
-import parfile
+from presto.psr_utils import *
+from sys import argv
+from presto import parfile
 from matplotlib.patches import Ellipse
 from scipy.optimize import leastsq
 verbose = True
 cspeed = 299792458.0 # m/s
+
 
 def read_bestprof(filename,f1errmax=999.0):
     infile = open(filename)
@@ -62,11 +64,11 @@ def read_bestprof(filename,f1errmax=999.0):
         else:
                 break
     f0,f0err,f1,f1err = pferrs(p0,p0err,p1,p1err)
-    print "%.4f %10.9g %8.3g  %10.5g %8.3g" % (epoch,f0,f0err,f1,f1err),
+    print("%.4f %10.9g %8.3g  %10.5g %8.3g" % (epoch,f0,f0err,f1,f1err), end=' ')
     if (f1err > f1errmax):
-        print " * Ignored *"
+        print(" * Ignored *")
     else:
-        print
+        print()
 
     
     #print "----- ",filename
@@ -99,17 +101,17 @@ def read_par(pfname,f1errmax=999.0):
     mjd = pf.PEPOCH
     if (verbose):
 #        print "%6s: %.4f F0 %10.9g +/- %8.03g   F1 %10.5g +/- %8.03g" % (pfname,mjd,f0,f0err,f1,f1err)
-        print "%.4f %10.9g %8.3g  %10.5g %8.3g" % (mjd,f0,f0err,f1,f1err),
+        print("%.4f %10.9g %8.3g  %10.5g %8.3g" % (mjd,f0,f0err,f1,f1err), end=' ')
         if (f1err > f1errmax):
-            print " * Ignored *"
+            print(" * Ignored *")
         else:
-            print
+            print()
 #        print "          P0 = %g,    P1 = %g" % (p0,p1)
 
-        print "----- ",pfname
-        print "PEPOCH ",mjd
-        print "F0 ", f0
-        print "F1 ", f1
+        print("----- ",pfname)
+        print("PEPOCH ",mjd)
+        print("F0 ", f0)
+        print("F1 ", f1)
 
     return mjd,f0,f0err,f1,f1err
 
@@ -122,7 +124,7 @@ def readPeriodAccelFromPars(parfilelist,f1errmax=3.0e-6):
     f1errs = []
     accs = []
     if (verbose):
-        print "MJD        F0        F0_err     F1       F1_err"
+        print("MJD        F0        F0_err     F1       F1_err")
     for fn in argv[1:]:
         if fn.endswith('.bestprof'):
             mjd,Tobs,f0,f0err,f1,f1err = read_bestprof(fn,f1errmax)
@@ -212,15 +214,15 @@ if __name__ == '__main__':
 # First read the periods and accelerations from the parfiles
     parfilelist = argv[1:]
     if len(parfilelist)<1:
-        print "No par files specified"
+        print("No par files specified")
         sys.exit(1)
     mjds,ps,perrs,accs,accerrs = readPeriodAccelFromPars(parfilelist,
                                                          f1errmax=3.0e-7)
-    print
+    print()
 
-    print "MJD :",mjds
-    print "accs :",accs
-    print "accerrs :",accerrs
+    print("MJD :",mjds)
+    print("accs :",accs)
+    print("accerrs :",accerrs)
 
 # Now setup initial parameter values based on observed periods and accs
     P0_init = ps.mean()
@@ -231,34 +233,34 @@ if __name__ == '__main__':
 
     vmin = cspeed*(ps.min()/P0_init - 1)
     vmax = cspeed*(ps.max()/P0_init - 1)
-    print "vmin = %.2f km/s" % (vmin/1000.0,)
-    print "vmax = %.2f km/s" % (vmax/1000.0,)
+    print("vmin = %.2f km/s" % (vmin/1000.0,))
+    print("vmax = %.2f km/s" % (vmax/1000.0,))
 
-    print "amin = %.4f m/s^2" % (accs.min(),)
-    print "amax = %.4f m/s^2" % (accs.max(),)
+    print("amin = %.4f m/s^2" % (accs.min(),))
+    print("amax = %.4f m/s^2" % (accs.max(),))
 
-    print "pmin = %.6f ms" % (1000.0*ps.min(),)
-    print "pmax = %.6f ms" % (1000.0*ps.max(),)
+    print("pmin = %.6f ms" % (1000.0*ps.min(),))
+    print("pmax = %.6f ms" % (1000.0*ps.max(),))
 
 
-    print "Initial Values:"
-    print " P0 = ",P0_init
-    print " Porb = %g s (%.3f days)" % (Porb_init,Porb_init/86400.0)
-    print " X   = ",X_init
-    print " A1  = ",A1_init
-    print " P1  = ",P1_init
-    print
+    print("Initial Values:")
+    print(" P0 = ",P0_init)
+    print(" Porb = %g s (%.3f days)" % (Porb_init,Porb_init/86400.0))
+    print(" X   = ",X_init)
+    print(" A1  = ",A1_init)
+    print(" P1  = ",P1_init)
+    print()
 
 # If enough points, do the ellipse fit
     if len(mjds)>=3:
         P0, Porb, X, A1, P1 = fitellipse(mjds,accs,accerrs,ps,P0_init,Porb_init,X_init)
 
-        print "Fitted Values:"
-        print " P0 = ",P0
-        print " Porb = %g s (%.3f days)" % (Porb, Porb/86400.0)
-        print " X   = ",X
-        print " A1  = ",A1
-        print " P1  = ",P1
+        print("Fitted Values:")
+        print(" P0 = ",P0)
+        print(" Porb = %g s (%.3f days)" % (Porb, Porb/86400.0))
+        print(" X   = ",X)
+        print(" A1  = ",A1)
+        print(" P1  = ",P1)
         #print "Mcomp,min = ",companion_mass_limit(Porb/86400.0,X)
     else:
         A1 = 0.0
@@ -298,15 +300,15 @@ if __name__ == '__main__':
         #xlabel('Time (MJD)')
         #grid(1)
 
-        print
-        print "PAR file of fit: "
+        print()
+        print("PAR file of fit: ")
 
-        print "P0 %.15f" % P0
-        print "BINARY BT"
-        print "PB %.8f" % Porb_days
-        print "A1 %.6f" % X
-        print "T0 %.6f" % T0
-        print "OM 0.0"
-        print "E 0.0"
+        print("P0 %.15f" % P0)
+        print("BINARY BT")
+        print("PB %.8f" % Porb_days)
+        print("A1 %.6f" % X)
+        print("T0 %.6f" % T0)
+        print("OM 0.0")
+        print("E 0.0")
 
     show()

@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import zip
 import numpy as np
 import psr_utils as pu
 import pypsrcat as cat
@@ -55,15 +57,15 @@ hepsrs = np.asarray(hepsrs)
 snrs = np.asarray(snrs)
 binaries = np.asarray(binaries)
 
-print "Plotting %d pulsars total:" % numgood
-print "  %d radio, %d non-radio" % (len(radios), len(nonradios))
-print "  RRATs:", len(rrats)
-print "  magnetars:", len(magnetars)
-print "  high-energy:", len(hepsrs)
-print "  in SNRs:", len(snrs)
-print "  in binaries:", len(binaries)
-print "Rejected %d for having no p-dot and %d for being in a cluster" % \
-    (numpd0, numGC)
+print("Plotting %d pulsars total:" % numgood)
+print("  %d radio, %d non-radio" % (len(radios), len(nonradios)))
+print("  RRATs:", len(rrats))
+print("  magnetars:", len(magnetars))
+print("  high-energy:", len(hepsrs))
+print("  in SNRs:", len(snrs))
+print("  in binaries:", len(binaries))
+print("Rejected %d for having no p-dot and %d for being in a cluster" % \
+    (numpd0, numGC))
 
 # Now set up the plot
 plims = np.asarray([0.001, 20.0])

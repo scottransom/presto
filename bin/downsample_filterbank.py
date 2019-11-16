@@ -1,10 +1,14 @@
 #!/usr/bin/env python
-import sys, sigproc
+from __future__ import print_function
+from builtins import range
+import sys
 import numpy as num
+from presto import sigproc
+
 
 if __name__ == "__main__":
     if len(sys.argv)==1:
-        print "\nusage:  downsample_filterbank_hdr.py DS_fact infile.fil\n"
+        print("\nusage:  downsample_filterbank_hdr.py DS_fact infile.fil\n")
         sys.exit()
     DS_fact = int(sys.argv[1])
     basefilenm = sys.argv[2][:sys.argv[2].find(".fil")]
@@ -43,12 +47,12 @@ if __name__ == "__main__":
     # Remove the header length from infilelen and then
     # determine how many spectra are in the file
     infilelen -= infile.tell()
-    numspec = infilelen / nchans
+    numspec = infilelen // nchans
     if infilelen % nchans:
-        print "Whoops!  File length calculation is not right..."
+        print("Whoops!  File length calculation is not right...")
 
     # Now loop over the spectra
-    for ii in xrange(numspec / DS_fact):
+    for ii in range(numspec // DS_fact):
         try:
             x = num.fromfile(infile, dtype=num.ubyte, count=DS_fact*nchans)
             x.shape = (DS_fact, nchans)

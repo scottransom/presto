@@ -1,6 +1,15 @@
 #!/usr/bin/env python
-import glob, os, os.path, shutil, socket, struct, sys, time, tarfile
-import numpy, psr_utils, presto, sifting, sigproc
+from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
+import glob, os, os.path, socket, struct, sys, time, tarfile
+import numpy
+from presto import psr_utils
+from presto import presto
+from presto import sifting
+from presto import sigproc
 
 # Calling convention:
 #
@@ -192,7 +201,7 @@ def get_folding_command(cand, obs, ddplans):
            (cand.candnum, cand.filename, cand.DM, outfilenm,
             otheropts, N, Mp, Mdm, foldfiles)
 
-class obs_info:
+class obs_info(object):
     """
     class obs_info(fil_filenm)
         A class describing the observation and the analysis.
@@ -292,7 +301,7 @@ class obs_info:
         report_file.write("---------------------------------------------------------\n")
         report_file.close()
 
-class dedisp_plan:
+class dedisp_plan(object):
     """
     class dedisp_plan(lodm, dmstep, dmsperpass, numpasses, numsub, downsamp)
         A class describing a de-dispersion plan for prepsubband in detail.
@@ -348,7 +357,7 @@ def main(fil_filenm, workdir):
     # Get information on the observation and the jbo
     job = obs_info(fil_filenm)
     if job.T < low_T_to_search:
-        print "The observation is too short (%.2f s) to search."%job.T
+        print("The observation is too short (%.2f s) to search."%job.T)
         sys.exit()
     job.total_time = time.time()
     
@@ -366,8 +375,8 @@ def main(fil_filenm, workdir):
             os.makedirs("subbands")
         except: pass
     
-    print "\nBeginning PALFA search of '%s'"%job.fil_filenm
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nBeginning PALFA search of '%s'"%job.fil_filenm)
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # rfifind the filterbank file
     cmd = "rfifind -time %.17g -o %s %s > %s_rfifind.out"%\
@@ -579,8 +588,8 @@ def main(fil_filenm, workdir):
     # And finish up
 
     job.total_time = time.time() - job.total_time
-    print "\nFinished"
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nFinished")
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # Write the job report
 

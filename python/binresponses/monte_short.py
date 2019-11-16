@@ -1,3 +1,5 @@
+from __future__ import print_function
+from builtins import range
 from time import clock
 from math import *
 from Numeric import *
@@ -31,7 +33,7 @@ numbetween = 2
 ##################################################
 
 outfilenm = (outfiledir+'/'+outfilenm+
-             '_'+searchtype+`Tfft`+'_'+ctype+'.out')
+             '_'+searchtype+repr(Tfft)+'_'+ctype+'.out')
 
 def psrparams_from_list(pplist):
     psr = psrparams()
@@ -65,15 +67,15 @@ for pp in ppsr:
     pwrs_w = zeros((orbsperpt[ctype], numbins), Float32)
     for ct in range(orbsperpt[ctype]):
         wb = ct * 180.0 / orbsperpt[ctype]
-        if debugout:  print 'wb = '+`wb`
+        if debugout:  print('wb = '+repr(wb))
         psr = psrparams_from_list([pp, Pb, xb, ecc[ctype], wb, 0.0])
         for i in range(numffts):
             psr.orb.t = i * Tfft
             tmppwrs = spectralpower(gen_bin_response(0.0, numbetween,
                                                      psr.p, Tfft,
                                                      psr.orb, numbins))
-            if debugout:  print '     tb = '+`psr.orb.t`+'  Max pow = '+\
-               `max(tmppwrs)`
+            if debugout:  print('     tb = '+repr(psr.orb.t)+'  Max pow = '+\
+               repr(max(tmppwrs)))
             if showplots:
                 Pgplot.plotxy(tmppwrs)
                 Pgplot.closeplot()
@@ -88,7 +90,7 @@ for pp in ppsr:
         Pgplot.closeplot()
     tim = clock() - stim
     if debugout:
-        print 'Time for this point was ',tim, ' s.'
+        print('Time for this point was ',tim, ' s.')
     file.write('%8.6f  %10.5f  %10d  %13.9f\n' % \
                (pp, Tfft, int(Tfft/dt), max_avg_pow))
     file.flush()

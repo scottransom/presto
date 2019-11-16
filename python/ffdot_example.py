@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as num
 import presto
 import ppgplot
@@ -26,28 +27,28 @@ ffdot = presto.ffdot_plane(ft, rint-np/2*dr, dr, np, 0.0-np/2*dz, dz, np)
 pffdot = presto.spectralpower(ffdot.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pffdot) / theo_max_pow # Fraction of recovered power
-print "Fraction of recovered signal power = %f" % frp
+print("Fraction of recovered signal power = %f" % frp)
 a = time.clock()
 [maxpow, rmax, zmax, rd] = presto.maximize_rz(ft, r+norm(1)[0]/5.0,
                                               z+norm(1)[0], norm=1.0)
-print "Time for rz:", time.clock()-a
-print r, rmax, z, zmax, theo_max_pow, maxpow
+print("Time for rz:", time.clock()-a)
+print(r, rmax, z, zmax, theo_max_pow, maxpow)
 a = time.clock()
 [maxpow, rmax, zmax, wmax, rd] = presto.maximize_rzw(ft, r+norm(1)[0]/5.0,
                                                      z+norm(1)[0],
                                                      w+norm(1)[0]*5.0,
                                                      norm=1.0)
-print "Time for rzw:", time.clock()-a
-print r, rmax, z, zmax, w, wmax, theo_max_pow, maxpow
+print("Time for rzw:", time.clock()-a)
+print(r, rmax, z, zmax, w, wmax, theo_max_pow, maxpow)
 #print "Raw power should be ~%.2e" % theo_max_pow
 pffdot = pffdot / theo_max_pow
 pffdot.shape = (np, np)
-rs = num.arange(np) * dr - np/2*dr
-zs = num.arange(np) * dz - np/2*dz
+rs = num.arange(np) * dr - np//2*dr
+zs = num.arange(np) * dz - np//2*dz
 rgx = num.asarray([rs[0], rs[np-1]])
 rgy = num.asarray([zs[0], zs[np-1]])
-freqcut = pffdot[np/2, :]
-fdotcut = pffdot[:, np/2]
+freqcut = pffdot[np//2, :]
+fdotcut = pffdot[:, np//2]
 
 image='antirainbow'
 device='ffdot_combined.eps/VCPS'

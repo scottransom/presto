@@ -1,16 +1,17 @@
 #!/usr/bin/python
-from os import system, chdir, remove, environ
+from os import system, chdir
 from sys import stdout, argv, exit
 from glob import glob
 from optparse import OptionParser
-from fcntl import *
-from presto import read_inffile, writeinf, get_baryv
-import infodata
+from presto.presto import read_inffile, writeinf, get_baryv
+from presto import infodata
+
 
 def myexecute(cmd):
     stdout.write("\n'"+cmd+"'\n")
     stdout.flush()
     system(cmd)
+
 
 def main():
     usage = "usage: %prog [options]"
@@ -36,13 +37,13 @@ def main():
     parser.add_option("-s", "--sigma", type="float", dest="sigma", default=2.0,
                       help="Cutoff sigma to consider a candidate")
     (options, args) = parser.parse_args()
-    if (options.outdir[-1]!="/"):
+    if options.outdir[-1]!= "/":
         options.outdir = options.outdir+"/"
-    if (options.workdir!='.'):
+    if options.workdir!= '.':
         chdir(options.workdir)
-    if (options.nM >= 1000000):
-        if (options.nM % 1000000):
-            print "If you specify --num nM to be > 1000000, it must be divisible by 1000000."
+    if options.nM >= 1000000:
+        if options.nM % 1000000:
+            print("If you specify --num nM to be > 1000000, it must be divisible by 1000000.")
             exit(1)
     else:
         options.nM *= 1000000
@@ -69,23 +70,23 @@ def main():
     point = 0
     T = options.nM * inf.dt / 86400.0
     baryv = get_baryv(idata.RA, idata.DEC, idata.epoch, T, obs='GB')
-    print "Baryv = ", baryv
+    print("Baryv = ", baryv)
     inf.N = options.nM
     inf.numonoff = 0
     nM = options.nM / 1000000
-    while (point + options.nM < N):
+    while point + options.nM < N:
         pM = point / 1000000
         outname = basename[3:]+'_%03dM'%nM+'_%02d'%num
         stdout.write('\n'+outname+'\n\n')
         inf.name = outname
         tstartf = inf.mjd_f + num * T * options.frac
-        if (tstartf > 1.0):
+        if tstartf > 1.0:
             tstartf = tstartf - 1.0
             inf.mjd_i = inf.mjd_i + 1
         inf.mjd_f = tstartf
         writeinf(inf)
-        myexecute('dd if='+basename+'.dat of='+outname+'.dat bs=4000000 skip='+
-                  `pM`+' count='+`nM`)
+        myexecute('dd if=' + basename +'.dat of=' + outname +'.dat bs=4000000 skip=' +
+                  repr(pM) + ' count=' + repr(nM))
         myexecute('realfft '+outname+'.dat')
         myexecute('rm -f '+outname+'.dat')
         myexecute('cp '+birdname+' '+outname+'.birds')
@@ -101,6 +102,7 @@ def main():
         myexecute('cp '+outname+'.inf '+options.outdir)
         num = num + 1
         point = point + int(options.nM * options.frac)
+
 
 if __name__ == "__main__":
       main()

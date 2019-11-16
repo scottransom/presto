@@ -1,6 +1,14 @@
 #!/usr/bin/env python
+from __future__ import print_function
+from builtins import range
 import numpy as N
 import sys, scipy.io, scipy.signal
+
+
+if len(sys.argv) != 2:
+    print("\nusage: {} file\n".format(sys.argv[0]))
+    sys.exit(1)
+
 
 plot=0
 
@@ -18,7 +26,7 @@ zls = N.fromfile(infilenm, 'f')
 numpts = len(zls)
 
 if (plot):
-    from Pgplot import *
+    from presto.Pgplot import *
     plotxy(zls)
 
 T = numpts*dt
@@ -69,10 +77,10 @@ if (num_bps):
     break_points = break_points[:num_bps]
     break_points.sort()
     detrend_zls = scipy.signal.detrend(zls, bp=break_points)
-    print "%s: Found %d breakpoints for detrending "%(basename, num_bps), break_points
+    print("%s: Found %d breakpoints for detrending "%(basename, num_bps), break_points)
 else:
     detrend_zls = scipy.signal.detrend(zls)
-    print "%s: Found 0 breakpoints for detrending"%basename
+    print("%s: Found 0 breakpoints for detrending"%basename)
     
 # Now high-pass filter the data to get rid of the not-so-drastic
 # power fluctuations

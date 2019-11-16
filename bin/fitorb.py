@@ -3,20 +3,23 @@
 """
 fitorb: A non-linear optimizer for solving pulsar orbits by Ryan Lynch
 """
+from __future__ import print_function
+from builtins import range
 
 from numpy import *
-from mpfit import mpfit
-from psr_constants import SECPERDAY,TWOPI,DEGTORAD,SOL
-import psr_utils,parfile,sys,glob
+from presto.mpfit import mpfit
+from presto.psr_constants import SECPERDAY,TWOPI,DEGTORAD,SOL
+from presto import psr_utils
+from presto import parfile
 from pylab import *
 import sys
-cspeed = 299792458.0 # m/s
+cspeed = 299792458.0  # m/s
 
 
 # begin function definitions
 
 def print_usage():
-    print """
+    print("""
 A non-linear least-squares optimizer for solving pulsar orbits
 
 Usage: fitorb.py [-p p] [-pb pb] [-x x] [-T0 T0] [-e e] [-w w] [-par par_file] [-nofit const_params] bestprof_files
@@ -37,7 +40,7 @@ Usage: fitorb.py [-p p] [-pb pb] [-x x] [-T0 T0] [-e e] [-w w] [-par par_file] [
             -o: Root of the output file name(s) (default = "fitorb")
 bestprof_files: prepfold .bestprof files containing measurements of p and p-dot
                 (and possibly p-ddot)
-    """
+    """)
 
     return None
 
@@ -66,7 +69,7 @@ def parse_cmd_line(args):
         # check to make sure all arguments are valid
         if (arg.startswith("-")) and (arg not in valid_args) and \
                not arg.strip("-").replace(".","").isdigit():
-            print "ERROR: Unknown arg %s"%arg
+            print("ERROR: Unknown arg %s"%arg)
             print_usage()
             exit(0)
     
@@ -90,46 +93,46 @@ def parse_cmd_line(args):
             e = par.E
             w = par.OM
         except IOError:
-            print "ERROR: %s not found\n"%par_file_name
+            print("ERROR: %s not found\n"%par_file_name)
             exit(0)
         except AttributeError:
-            print "ERROR: %s does not appear to be a valid binary .par file\n" \
-                  %par_file_name
+            print("ERROR: %s does not appear to be a valid binary .par file\n" \
+                  %par_file_name)
             exit(0)
     else:        
         try:
             p = float(args.pop(args.index("-p")+1))
             args.remove("-p")
         except ValueError:
-            print "ERROR: You must specify a spin period\n"
+            print("ERROR: You must specify a spin period\n")
             exit(0)
         
         try:
             pb_days = float(args.pop(args.index("-pb")+1))
             args.remove("-pb")
         except ValueError:
-            print "ERROR: You must specify an orbital period\n"
+            print("ERROR: You must specify an orbital period\n")
             exit(0)
         
         try:
             x = float(args.pop(args.index("-x")+1))
             args.remove("-x")
         except ValueError:
-            print "ERROR: You must specify a projected semi-major axis\n"
+            print("ERROR: You must specify a projected semi-major axis\n")
             exit(0)
         
         try:
             T0 = float(args.pop(args.index("-T0")+1))
             args.remove("-T0")
         except ValueError:
-            print "ERROR: You must specify a time of periastron passage\n"
+            print("ERROR: You must specify a time of periastron passage\n")
             exit(0)
         
         try:
             e = float(args.pop(args.index("-e")+1))
             args.remove("-e")
         except ValueError:
-            print "WARNING: Orbital eccentricity not specified, assuming e = 0\n"
+            print("WARNING: Orbital eccentricity not specified, assuming e = 0\n")
             e = 0.0
             const_params = const_params + ",e"
             pass
@@ -138,7 +141,7 @@ def parse_cmd_line(args):
             w = float(args.pop(args.index("-w")+1))
             args.remove("-w")
         except ValueError:
-            print "WARNING: Longitude of periastron not specified, assuming w = 0\n"
+            print("WARNING: Longitude of periastron not specified, assuming w = 0\n")
             w = 0.0
             const_params = const_params + ",w"
             pass
@@ -255,7 +258,7 @@ def get_params_info(params_start, const_params):
                             # upper and low limits (used if "limited" is "True"
                             "limits":[0.9*params_start[0],1.1*params_start[0]],
                             "fixed":True}) # parameter fixed?
-        print "Holding spin period constant"
+        print("Holding spin period constant")
     else:
         params_info.append({"parname":"p",
                             "value":params_start[0],
@@ -269,7 +272,7 @@ def get_params_info(params_start, const_params):
                             "limited":[True,False],
                             "limits":[0.0,0.0],
                             "fixed":True})
-        print "Holding orbital period constant"
+        print("Holding orbital period constant")
     else:
         params_info.append({"parname":"pb",
                             "value":params_start[1],
@@ -283,7 +286,7 @@ def get_params_info(params_start, const_params):
                             "limited":[True,False],
                             "limits":[0.0,0.0],
                             "fixed":True})
-        print "Holding projected semi-major axis constant"
+        print("Holding projected semi-major axis constant")
     else:
         params_info.append({"parname":"x",
                             "value":params_start[2],
@@ -298,7 +301,7 @@ def get_params_info(params_start, const_params):
                             "limits":[params_start[3] - params_start[1]/SECPERDAY,
                                       params_start[3] + params_start[1]/SECPERDAY],
                             "fixed":True})
-        print "Holding time of periastron passage constant"
+        print("Holding time of periastron passage constant")
     else:
         params_info.append({"parname":"T0",
                             "value":params_start[3],
@@ -313,7 +316,7 @@ def get_params_info(params_start, const_params):
                             "limited":[True,True],
                             "limits":[0.0,1.0],
                             "fixed":True})
-        print "Holding eccentricity constant"
+        print("Holding eccentricity constant")
     else:
         params_info.append({"parname":"e",
                             "value":params_start[4],
@@ -327,7 +330,7 @@ def get_params_info(params_start, const_params):
                             "limited":[True,True],
                             "limits":[0.0,360.0],
                             "fixed":True})
-        print "Holding longitude of periastron constant"
+        print("Holding longitude of periastron constant")
     else:
         params_info.append({"parname":"w",
                             "value":params_start[5],
@@ -351,7 +354,7 @@ def myasarray(a):
         a - modified python array
     """
     
-    if type(a) in [type(1.0),type(1L),type(1),type(1j)]:
+    if type(a) in [type(1.0),type(1),type(1),type(1j)]:
         a = asarray([a])
     if len(a) == 0:
         a = asarray([a])
@@ -468,7 +471,7 @@ def plot_file_panel(in_file,params):
             t = minute*60.0
             time.append(minute/1440.0)
             period.append(p0 + t*(p1 + 0.5*t*p2))
-    print "Plotting: file,  epoch, Tobs",in_file,epoch,T
+    print("Plotting: file,  epoch, Tobs",in_file,epoch,T)
     period = asarray(period)
     time = asarray(time)
     plot(time,period*1000.0,'o')
@@ -594,20 +597,20 @@ for in_file in in_files:
 # do the actual fitting
 ret = mpfit(funct, functkw={"times":time, "measured":period}, parinfo=params_info, iterfunct=None)
 
-print "\nmpfit exited with status %i (1--4 is OK)\n"%ret.status
+print("\nmpfit exited with status %i (1--4 is OK)\n"%ret.status)
 
 # print the parameters in a tempo .par file format
-print "PEPOCH %17.15g"%epoch
-print "P0  %17.15g"%ret.params[0]
-print "BINARY BT"
-print "A1  %17.15g"%ret.params[2]
-print "E   %17.15g"%ret.params[4]
-print "T0  %17.15g"%(ret.params[3]+0.5*ret.params[0]/SECPERDAY)
-print "PB  %17.15g"%(ret.params[1]/SECPERDAY)
-print "OM  %17.15g"%ret.params[5]
-print
+print("PEPOCH %17.15g"%epoch)
+print("P0  %17.15g"%ret.params[0])
+print("BINARY BT")
+print("A1  %17.15g"%ret.params[2])
+print("E   %17.15g"%ret.params[4])
+print("T0  %17.15g"%(ret.params[3]+0.5*ret.params[0]/SECPERDAY))
+print("PB  %17.15g"%(ret.params[1]/SECPERDAY))
+print("OM  %17.15g"%ret.params[5])
+print()
 
-print "Generating plots..."
+print("Generating plots...")
 
 # make the plots...
 

@@ -10,27 +10,27 @@ python make_spd.py [OPTIONS] <psrfits file> <singlepulse files>
 
 Chitrang Patel - May. 21, 2015 -- Updated on June 10 2016
 """
-
-import sys
-import copy
+from __future__ import print_function
+from builtins import map
+from builtins import range
 from time import strftime
-from subprocess import Popen, PIPE
 
 import numpy as np
 import optparse
-import waterfaller
-import psr_utils
+from presto import waterfaller
+from presto import psr_utils
+# todo: (gijs) plot_spd is a script, not a module.
 import plot_spd
-import singlepulse.spcand as spcand
-import singlepulse.spio as spio
-import psrfits
-import filterbank
-import spectra
+from presto.singlepulse import spcand as spcand
+from presto.singlepulse import spio as spio
+from presto import psrfits
+from presto import filterbank
+
 
 DEBUG = True
 def print_debug(msg):
     if DEBUG:
-        print msg
+        print(msg)
 
 def waterfall_array(rawdatafile, start, duration, dm, nbins, nsub, subdm, zerodm, \
                     downsamp, scaleindep, width_bins, mask, maskfn, bandpass_corr):
@@ -194,11 +194,11 @@ def make_spd_from_file(spdcand, rawdatafile, \
                                         delays_nozerodm = delays_nozerodm, \
                                         freqs_nozerodm = freqs_nozerodm,\
                                         Data_zerodm = Data_zerodm.astype(np.float16), \
-                                        dm_arr= map(np.float16, dm_arr),\
-                                        sigma_arr = map(np.float16, sigma_arr), \
-                                        width_arr =map(np.uint8, width_arr),\
-                                        dm_list= map(np.float16, dm_list), \
-                                        time_list = map(np.float16, time_list), \
+                                        dm_arr= list(map(np.float16, dm_arr)),\
+                                        sigma_arr = list(map(np.float16, sigma_arr)), \
+                                        width_arr =list(map(np.uint8, width_arr)),\
+                                        dm_list= list(map(np.float16, dm_list)), \
+                                        time_list = list(map(np.float16, time_list)), \
                                         text_array = text_array)
                 #### Arrays for Plotting DM vs Time is in plot_spd.plot(...)
                 if plot:

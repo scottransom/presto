@@ -1,0 +1,19 @@
+FROM kernsuite/base:4
+RUN docker-apt-install \
+    python-pip \
+    python-numpy \
+    python-future \
+    python-six \
+    python-scipy \
+    python-astropy \
+    gfortran \
+    pgplot5 \
+    libx11-dev \
+    libglib2.0-dev \
+    libcfitsio-dev \
+    libpng-dev \
+    libfftw3-dev
+RUN docker-apt-install pgplot5
+ADD . /code
+RUN pip install /code
+
