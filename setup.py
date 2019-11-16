@@ -13,6 +13,8 @@ define_macros = []
 undef_macros = []
 extra_compile_args = ["-DUSEFFTW"]
 include_dirs = [numpy.get_include()]
+# For MacOS with MacPorts use the following
+include_dirs.append("/opt/local/include")
 
 # Note:  you might need to add "gfortran" to the following list if 
 # you see errors relating to missing "g" functions....
