@@ -99,7 +99,7 @@ def running_avg(arr, navg):
         input array 'arr'.
     """
     a = Num.asarray(arr, 'd')
-    a.shape = (len(a) / navg, navg)
+    a.shape = (len(a) // navg, navg)
     return Num.add.reduce(Num.transpose(a)) / navg
 
 
