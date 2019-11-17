@@ -3,9 +3,11 @@
 # A simple command line version of plotres written in python
 # using matplotlib and numpy
 #
-#           Patrick Lazarus, Feb 26th, 2009
-
+#  Patrick Lazarus, Feb 26th, 2009
+#  Many other tweaks by S. Ransom, T. Pennucci et al over years
+#
 from __future__ import print_function
+from __future__ import absolute_import
 from builtins import input
 from builtins import str
 from builtins import range
@@ -308,8 +310,8 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
         for ii,(lo,hi) in enumerate(tempo_results.freqbands):
             freq_label = get_freq_label(lo, hi)
             resids = tempo_results.residuals[freq_label]
-            xlabel, xdata = resids.get_xdata(xkey)
-            ylabel, ydata, yerr = resids.get_ydata(ykey, usepostfit)
+            xlabel, xdata = resids.get_xdata(str(xkey))
+            ylabel, ydata, yerr = resids.get_ydata(str(ykey), usepostfit)
             if len(xdata):
                 # Plot the residuals
                 handle = plt.errorbar(xdata, ydata, yerr=yerr, fmt='.', \

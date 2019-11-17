@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from builtins import map
 import re
 import glob

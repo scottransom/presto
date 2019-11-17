@@ -1,15 +1,7 @@
 from __future__ import print_function
+from __future__ import absolute_import
 import numpy as Num
 import numpy.fft as FFT
-
-def sinc(xs):
-    """
-    sinc(xs):
-        Return the sinc function [i.e. sin(pi * xs)/(pi * xs)]
-            for the values xs.
-    """
-    pxs = Num.pi*xs
-    return Num.where(Num.fabs(pxs)<1e-3, 1.0-pxs*pxs/6.0, Num.sin(pxs)/pxs)
 
 def kaiser_window(xs, halfwidth, alpha):
     """
@@ -93,14 +85,14 @@ def windowed_sinc_interp(data, newx, halfwidth=None,
     if hi_pt >= len(data):
         hi_pt = len(data)-1
         print("Warning:  trying to access above the highest index!")
-    halfwidth = (hi_pt-lo_pt)/2
+    halfwidth = (hi_pt-lo_pt)//2
     pts = Num.arange(2*halfwidth)+lo_pt
     xs = newx - pts
     if window.lower() is "kaiser":
-        win = _window_function[window](xs, len(data)/2, alpha)
+        win = _window_function[window](xs, len(data)//2, alpha)
     else:
-        win = _window_function[window](xs, len(data)/2)
-    return Num.add.reduce(Num.take(data, pts) * win * sinc(xs))
+        win = _window_function[window](xs, len(data)//2)
+    return Num.add.reduce(Num.take(data, pts) * win * Num.sinc(xs))
 
 def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
     """
@@ -121,16 +113,16 @@ def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
     comb = Num.reshape(Num.transpose(comb), (newN,))
     # Compute the offsets
     xs = Num.zeros(newN, dtype='d')
-    xs[:newN/2+1] = Num.arange(newN/2+1, dtype='d')/zoomfact
-    xs[-newN/2:]  = xs[::-1][newN/2-1:-1]
+    xs[:newN//2+1] = Num.arange(newN//2+1, dtype='d')/zoomfact
+    xs[-newN//2:]  = xs[::-1][newN//2-1:-1]
     # Calculate the sinc times window for the kernel
     if window.lower()=="kaiser":
-        win = _window_function[window](xs, len(data)/2, alpha)
+        win = _window_function[window](xs, len(data)//2, alpha)
     else:
-        win = _window_function[window](xs, len(data)/2)
-    kernel = win * sinc(xs)
+        win = _window_function[window](xs, len(data)//2)
+    kernel = win * Num.sinc(xs)
     if (0):
-        plotxy(sinc(xs), color='yellow')
+        plotxy(Num.sinc(xs), color='yellow')
         plotxy(win)
         plotxy(kernel, color='red')
         closeplot()
@@ -154,8 +146,8 @@ if __name__=='__main__':
 
     # The "sampled" data
     Ndata = 100
-    data = theo[::Ntheo/Ndata]
-    data_phases = theo_phases[::Ntheo/Ndata]
+    data = theo[::Ntheo//Ndata]
+    data_phases = theo_phases[::Ntheo//Ndata]
 
     # The values to interpolate
     Ncalc = 30
@@ -166,7 +158,7 @@ if __name__=='__main__':
     plotxy(data, data_phases, line=None, symbol=3, color='green')
 
     # Do the interpolation one point at a time
-    halfwidth = Ndata/2-5
+    halfwidth = Ndata//2-5
     calc_vals = []
     for phs in calc_phases:
         calc_vals.append(windowed_sinc_interp(data, phs*len(data), halfwidth))

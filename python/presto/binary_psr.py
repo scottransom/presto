@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import absolute_import
 from builtins import object
 import numpy as Num
 from presto import parfile, psr_utils
@@ -244,14 +245,14 @@ class binary_psr(object):
 
 
 if __name__=='__main__':
-    from Pgplot import *
+    import presto.Pgplot as pg
     
     # The following reproduces the RV plot in Hulse & Taylor, 1975
     psrA = binary_psr("B1913+16.par")
     T0 = 42320.933 # From Hulse & Taylor, 1975
     times = psr_utils.span(0.0, psrA.par.PB, 1000) + T0
     rv = psrA.radial_velocity(times)
-    plotxy(rv, (times-T0)*24,
-           labx="Hours since Periastron", laby="Radial Velocity (km.s)")
-    closeplot()
+    pg.plotxy(rv, (times-T0)*24, \
+        labx="Hours since Periastron", laby="Radial Velocity (km.s)")
+    pg.closeplot()
     
