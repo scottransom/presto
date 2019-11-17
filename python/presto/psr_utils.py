@@ -1025,7 +1025,7 @@ def calc_phs(MJD, refMJD, *args):
             optional freq derivs (f1...) as ordered in the *args
             list (e.g. [f0, f1, f2, ...]).
     """
-    t = (MJD - refMJD) * SECPERDAY
+    t = (MJD - refMJD) * pc.SECPERDAY
     n = len(args)  # polynomial order
     nargs = Num.concatenate(([0.0], args))
     taylor_coeffs = Num.concatenate(([0.0],
@@ -1042,7 +1042,7 @@ def calc_freq(MJD, refMJD, *args):
             optional freq derivs (f1...) as ordered in the *args
             list (e.g. [f0, f1, f2, ...]).
     """
-    t = (MJD - refMJD) * SECPERDAY
+    t = (MJD - refMJD) * pc.SECPERDAY
     n = len(args)  # polynomial order
     taylor_coeffs = Num.concatenate(([1.0],
                                      Num.cumprod(1.0 / (Num.arange(float(n - 1)) + 1.0))))
@@ -1058,7 +1058,7 @@ def calc_t0(MJD, refMJD, *args):
     """
     phs = calc_phs(MJD, refMJD, *args)
     p = 1.0 / calc_freq(MJD, refMJD, *args)
-    return MJD - phs * p / SECPERDAY
+    return MJD - phs * p / pc.SECPERDAY
 
 
 def write_princeton_toa(toa_MJDi, toa_MJDf, toaerr, freq, dm, obs='@', name=' ' * 13):
@@ -1877,7 +1877,7 @@ def pdot_from_age(p, age):
         Return the pdot that a pulsar with spin period 'p' (in sec)
         would experience given a characteristic age 'age' (in yrs).
     """
-    return p / (2.0 * age * SECPERJULYR)
+    return p / (2.0 * age * pc.SECPERJULYR)
 
 
 def pdot_from_edot(p, edot, I=1.0e45):
@@ -1898,7 +1898,7 @@ def pulsar_age(f, fdot, n=3, fo=1e99):
         is returned (assuming a braking index 'n'=3 and an initial
         spin freqquency fo >> f).  But 'n' and 'fo' can be set.
     """
-    return -f / ((n - 1.0) * fdot) * (1.0 - (f / fo) ** (n - 1.0)) / SECPERJULYR
+    return -f / ((n - 1.0) * fdot) * (1.0 - (f / fo) ** (n - 1.0)) / pc.SECPERJULYR
 
 
 def pulsar_edot(f, fdot, I=1.0e45):

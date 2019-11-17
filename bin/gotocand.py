@@ -118,7 +118,7 @@ if __name__ == "__main__":
         sys.argv.pop(1)
     outdir = os.getcwd()
     if (len(sys.argv) > 2):
-        extraargs = string.join(sys.argv[2:])
+        extraargs = "".join(sys.argv[2:])
     else:
         extraargs = ""
     candfile, candnum = sys.argv[1].split(':')

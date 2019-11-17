@@ -1,8 +1,10 @@
 from __future__ import print_function
+from __future__ import absolute_import
 from builtins import object
 import six
 import math, re
 from presto import psr_utils as pu
+from presto import psr_constants as pc
 try:
     from slalib import sla_ecleq, sla_eqecl, sla_eqgal
     slalib = True
@@ -114,8 +116,8 @@ class psr_par(object):
             setattr(self, 'ELONG', self.LAMBDA)
         if (slalib and hasattr(self, 'ELAT') and hasattr(self, 'ELONG')):
             # TEMPO's ecliptic coords are always based on J2000 epoch
-            ra_rad, dec_rad = sla_ecleq(self.ELONG*pu.DEGTORAD,
-                                        self.ELAT*pu.DEGTORAD, J2000)
+            ra_rad, dec_rad = sla_ecleq(self.ELONG*pc.DEGTORAD,
+                                        self.ELAT*pc.DEGTORAD, J2000)
             rstr = pu.coord_to_string(*pu.rad_to_hms(ra_rad))
             dstr = pu.coord_to_string(*pu.rad_to_dms(dec_rad))
             setattr(self, 'RAJ', rstr)
@@ -127,14 +129,14 @@ class psr_par(object):
         # Compute the Galactic coords
         if (slalib and hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
             l, b = sla_eqgal(self.RA_RAD, self.DEC_RAD)
-            setattr(self, 'GLONG', l*pu.RADTODEG)
-            setattr(self, 'GLAT', b*pu.RADTODEG)
+            setattr(self, 'GLONG', l*pc.RADTODEG)
+            setattr(self, 'GLAT', b*pc.RADTODEG)
         # Compute the Ecliptic coords
         if (slalib and hasattr(self, 'RA_RAD') and hasattr(self, 'DEC_RAD')):
             # TEMPO's ecliptic coords are always based on J2000 epoch
             elon, elat = sla_eqecl(self.RA_RAD, self.DEC_RAD, J2000)
-            setattr(self, 'ELONG', elon*pu.RADTODEG)
-            setattr(self, 'ELAT', elat*pu.RADTODEG)
+            setattr(self, 'ELONG', elon*pc.RADTODEG)
+            setattr(self, 'ELAT', elat*pc.RADTODEG)
         if hasattr(self, 'P'):
             setattr(self, 'P0', self.P)
         if hasattr(self, 'P0'):
@@ -142,7 +144,7 @@ class psr_par(object):
         if hasattr(self, 'F0'):
             setattr(self, 'P0', 1.0/self.F0)
         if hasattr(self, 'FB0'):
-            setattr(self, 'PB', (1.0/self.FB0)/86400.0)
+            setattr(self, 'PB', (1.0/self.FB0)/pc.SECPERDAY)
         if hasattr(self, 'P0_ERR'):
             if hasattr(self, 'P1_ERR'):
                 f, ferr, fd, fderr = pu.pferrs(self.P0, self.P0_ERR,
@@ -173,8 +175,8 @@ class psr_par(object):
             ecc = math.sqrt(self.EPS1 * self.EPS1 + self.EPS2 * self.EPS2)
             omega = math.atan2(self.EPS1, self.EPS2)
             setattr(self, 'E', ecc)
-            setattr(self, 'OM', omega * pu.RADTODEG)
-            setattr(self, 'T0', self.TASC + self.PB * omega/pu.TWOPI)
+            setattr(self, 'OM', omega * pc.RADTODEG)
+            setattr(self, 'T0', self.TASC + self.PB * omega/pc.TWOPI)
         if hasattr(self, 'PB') and hasattr(self, 'A1') and not \
                (hasattr(self, 'E') or hasattr(self, 'ECC')):
             setattr(self, 'E', 0.0)

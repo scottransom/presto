@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import absolute_import
 from builtins import range
 import numpy as num
 from presto import Pgplot
@@ -114,7 +115,6 @@ if __name__=="__main__":
             print("Kuiper:")
             (D, P) = kuiper_uniform_test(data, output=1)
     if (1):
-        from Pgplot import *
         p1s = []
         p2s = []
         p3s = []
@@ -124,7 +124,7 @@ if __name__=="__main__":
            p1s.append(kuiper_prob(D, N))
            p2s.append(kuiper_prob2(D, N))
            p3s.append(kuiper_prob3(D, N))
-        plotxy(num.log10(num.asarray(p1s)), Ds, color='red')
-        plotxy(num.log10(num.asarray(p2s)), Ds, color='blue')
-        plotxy(num.log10(num.asarray(p3s)), Ds, color='green')
-        closeplot()
+        Pgplot.plotxy(num.log10(num.asarray(p1s)), Ds, color='red')
+        Pgplot.plotxy(num.log10(num.asarray(p2s)), Ds, color='blue')
+        Pgplot.plotxy(num.log10(num.asarray(p3s)), Ds, color='green')
+        Pgplot.closeplot()
