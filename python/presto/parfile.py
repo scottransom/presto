@@ -200,6 +200,44 @@ class psr_par(object):
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
 
+
+def ELL1_check(par_file, output=False):
+    """
+    ELL1_check(par_file):
+        Check the parfile to see if ELL1 can be safely used as the
+            binary model.  To work properly, we should have:
+            asini/c * ecc**2 << timing precision / sqrt(# TOAs)
+    """
+    psr = psr_par(par_file)
+    try:
+        lhs = psr.A1 * psr.E ** 2.0 * 1e6
+    except:
+        if output:
+            print("Can't compute asini/c * ecc**2, maybe parfile doesn't have a binary?")
+        return
+    try:
+        rhs = psr.TRES / Num.sqrt(psr.NTOA)
+    except:
+        if output:
+            print("Can't compute TRES / sqrt(# TOAs), maybe this isn't a TEMPO output parfile?")
+        return
+    if output:
+        print("Condition is asini/c * ecc**2 << timing precision / sqrt(# TOAs) to use ELL1:")
+        print("     asini/c * ecc**2 = %8.3g us" % lhs)
+        print("  TRES / sqrt(# TOAs) = %8.3g us" % rhs)
+    if lhs * 50.0 < rhs:
+        if output:
+            print("Should be fine.")
+        return True
+    elif lhs * 5.0 < rhs:
+        if output:
+            print("Should be OK, but not optimal.")
+        return True
+    else:
+        if output:
+            print("Should probably use BT or DD instead.")
+        return False
+
 if __name__ == '__main__':
     a = psr_par("2140-2310A.par")
     print(a)
