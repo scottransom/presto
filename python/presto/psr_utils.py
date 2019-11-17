@@ -116,8 +116,9 @@ def hist(data, bins, range=None, laby="Number", **kwargs):
                data values are used to define the interval.
     Note:  This command also accepts all the keyword arge of plotbinned().
     """
-    (ys, lox, dx, out) = Num.histogram(data, bins, range)
-    xs = Num.arange(bins, dtype='d') * dx + lox + 0.5 * dx
+    ys, bin_edges = Num.histogram(data, bins, range)
+    dx = bin_edges[1] - bin_edges[0]
+    xs = bin_edges[:-1] + 0.5 * dx
     maxy = int(1.1 * max(ys))
     if maxy < max(ys):
         maxy = max(ys) + 1.0
