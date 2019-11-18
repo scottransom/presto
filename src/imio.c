@@ -58,8 +58,8 @@
  *		Return 1 if PC/DEC byte order, else 0
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "imio.h"
 
 static int scale = 1;           /* If 0, skip scaling step */

@@ -1,9 +1,9 @@
 from __future__ import print_function
 import numpy as num
-import presto
-import ppgplot
+from presto import presto
+import presto.ppgplot as ppgplot
 import time
-from Pgplot import pgpalette
+from presto.Pgplot import pgpalette
 
 N = 2**14
 r = N/4.0 # average freq over "observation"

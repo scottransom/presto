@@ -1,8 +1,8 @@
 from __future__ import print_function
 import numpy as num
-import presto
-import ppgplot
-from Pgplot import pgpalette
+from presto import presto
+import presto.ppgplot as ppgplot
+from presto.Pgplot import pgpalette
 from numpy.random import standard_normal as norm
 import time
 
@@ -96,9 +96,9 @@ lo_col_ind = lo_col_ind + 2
 ppgplot.pgscir(lo_col_ind, hi_col_ind)
 pgpalette.setpalette(image)
 ppgplot.pgctab(pgpalette.l, pgpalette.r, pgpalette.g, pgpalette.b)
-ppgplot.pgimag_s(pffdot, 0.0, 0.0, rgx[0], rgy[0], rgx[1], rgy[1])  
+ppgplot.pgimag_s(pffdot, 0.0, 0.0, rgx[0], rgy[0], rgx[1], rgy[1])
 ppgplot.pgsci(1)
-ppgplot.pgcont_s(pffdot, len(contours), contours, rgx[0], rgy[0], rgx[1], rgy[1])  
+ppgplot.pgcont_s(pffdot, len(contours), contours, rgx[0], rgy[0], rgx[1], rgy[1])
 ppgplot.pgbox("BCST", 0.0, 0, "BCST", 0.0, 0)
 ppgplot.pgsci(1)
 ppgplot.pgbox("N", 0.0, 0, "N", 0.0, 0)
@@ -111,5 +111,3 @@ ppgplot.pgline(rgx, num.asarray([0.0, 0.0]))
 ppgplot.pgline(num.asarray([0.0, 0.0]), rgy)
 
 ppgplot.pgclos()
-
-

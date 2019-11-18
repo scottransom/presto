@@ -1,4 +1,5 @@
-import random, presto, math, Numeric
+import random, math
+from presto import presto
 
 def copyorb(old, new):
     """
