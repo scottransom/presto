@@ -93,11 +93,12 @@ for logB in Bs_to_plot:
         x = pu.pdot_from_B(y, 10.0**logB)
     elif logB==8:
         x = 0.05
-        y = 1.1 * pu.pdot_from_B(x, 10.0**logB)
+        y = pu.pdot_from_B(x, 10.0**logB)
     else:
         x = 1.1 * plims[0]
-        y = 1.1 * pu.pdot_from_B(x, 10.0**logB)
+        y = pu.pdot_from_B(x, 10.0**logB)
     plt.text(x, y, "$10^{%d}$ G"%logB, color=greytext,
+        horizontalalignment='left', verticalalignment='baseline',
         rotation=np.degrees(np.arctan(-1.0 * dpdpd)))
 
 # Plot Edot lines
@@ -111,6 +112,7 @@ for logEdot in Edots_to_plot[::-1]:
         y = 1e-21
         x = 0.6 * (y * 4e45 * np.pi * np.pi / 10.0**logEdot)**(1.0/3.0)
     plt.text(x, y, "$10^{%d}$ erg/s"%logEdot, color=greytext,
+        horizontalalignment='left', verticalalignment='baseline',
         rotation=np.degrees(np.arctan(3.0 * dpdpd)))
 
 # Plot Age lines
@@ -158,5 +160,6 @@ plt.ylabel("Period Derivative (i.e Spin-Down Rate)")
 
 ax.legend(loc='lower right', numpoints=1)
 
-plt.savefig("ppdot_color_2018.png" if usecolor else "ppdot_2018.png")
+plt.savefig("ppdot_color_%s.png"%cat.version if usecolor \
+            else "ppdot_%s.png"%cat.version)
 #plt.show()
