@@ -1,4 +1,5 @@
 from __future__ import print_function
+from __future__ import absolute_import
 from builtins import object
 from operator import attrgetter
 import struct
@@ -7,11 +8,15 @@ import math
 import csv
 import astropy.coordinates as c
 import astropy.units as u
-from presto import presto, psr_utils
+from presto import presto
+import presto.psr_utils as pu
+import presto.psr_constants as pc
 
 ## The most recent catalogs are available here:
 ## 
 ## http://www.atnf.csiro.au/research/pulsar/psrcat/
+
+version = 'v1.59'
 
 ## And here is the command used to get the data:
 # Note version number now!
@@ -47,12 +52,12 @@ class psr(object):
                 if not parts[part_index]=='*':
                     self.rajstr = parts[part_index]
                     self.ra = posn.ra.to(u.rad).value
-                    self.raerr = float(parts[part_index+1]) * psr_utils.SECTORAD
+                    self.raerr = float(parts[part_index+1]) * pc.SECTORAD
             elif param=="DECJ":
                 if not parts[part_index]=='*':
                     self.decjstr = parts[part_index]
                     self.dec = posn.dec.to(u.rad).value
-                    self.decerr = float(parts[part_index+1]) * psr_utils.ARCSECTORAD
+                    self.decerr = float(parts[part_index+1]) * pc.ARCSECTORAD
             elif param=="PMRA":
                 if not parts[part_index]=='*':
                     self.pmra, self.pmraerr = float(parts[part_index]), float(parts[part_index+1])
@@ -74,7 +79,7 @@ class psr(object):
             elif param=="F0":
                 if not parts[part_index]=='*':
                     self.f, self.ferr = float(parts[part_index]), float(parts[part_index+1])
-                    self.p, self.perr = psr_utils.pferrs(self.f, self.ferr)
+                    self.p, self.perr = pu.pferrs(self.f, self.ferr)
                 else:
                     self.f = self.ferr = self.p = self.perr = 0.0
                 self.fd = self.fdd = self.fddd = 0.0
@@ -84,7 +89,7 @@ class psr(object):
             elif param=="F1":
                 if not parts[part_index]=='*':
                     self.fd, self.fderr = float(parts[part_index]), float(parts[part_index+1])
-                    self.p, self.perr, self.pd, self.pderr = psr_utils.pferrs(self.f, self.ferr, self.fd, self.fderr)
+                    self.p, self.perr, self.pd, self.pderr = pu.pferrs(self.f, self.ferr, self.fd, self.fderr)
             elif param=="F2":
                 if not parts[part_index]=='*':
                     self.fdd, self.fdderr = float(parts[part_index]), float(parts[part_index+1])
@@ -150,7 +155,7 @@ class psr(object):
                     if not hasattr(self, 'eps1'): self.eps1 = 0.0
                     self.e = math.sqrt(self.eps1*self.eps1 + self.eps2*self.eps2)
                     self.eerr = 0.0001 # This needs fixing...
-                    self.w = psr_utils.RADTODEG*math.atan2(self.eps1, self.eps2)
+                    self.w = pc.RADTODEG*math.atan2(self.eps1, self.eps2)
                     if (self.w < 0.0): self.w += 360.0
                     self.werr = 1.0 # This needs fixing...
             elif param=="DIST":
@@ -190,14 +195,14 @@ class psr(object):
             out = out + "    (Discoverer first)\n"
         if (self.type is not None):
             out = out + "                  Type = %s\n" % self.type
-        (h, m, s) = psr_utils.rad_to_hms(self.ra)
-        serr = psr_utils.RADTOSEC * self.raerr
+        (h, m, s) = pu.rad_to_hms(self.ra)
+        serr = pc.RADTOSEC * self.raerr
         out = out + "            RA (J2000) = %s +/- %.4fs\n" % \
-              (psr_utils.coord_to_string(h, m, s), serr)
-        (d, m, s) = psr_utils.rad_to_dms(self.dec)
-        serr = psr_utils.RADTOARCSEC * self.decerr
+              (pu.coord_to_string(h, m, s), serr)
+        (d, m, s) = pu.rad_to_dms(self.dec)
+        serr = pc.RADTOARCSEC * self.decerr
         out = out + "           DEC (J2000) = %s +/- %.4f\"\n" % \
-              (psr_utils.coord_to_string(d, m, s), serr)
+              (pu.coord_to_string(d, m, s), serr)
         out = out + "                (l, b) = (%.2f, %.2f)\n" % \
               (self.l, self.b)
         out = out + "          DM (cm-3 pc) = %.8g +/- %.5g\n" % \
@@ -321,7 +326,7 @@ for psr in psrs:
         psr.jname=="1614-2318"
         psr.f = 29.8475387364133766
         psr.fd = -4.683105034721e-17
-        psr.p, psr.pd = psr_utils.p_to_f(psr.f, psr.fd)
+        psr.p, psr.pd = pu.p_to_f(psr.f, psr.fd)
         psr.x  = 1.327490
         psr.e  = 0.0
         psr.To = 52819.878171
