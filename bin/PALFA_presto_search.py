@@ -4,6 +4,7 @@ from builtins import zip
 from builtins import str
 from builtins import range
 from builtins import object
+from operator import attrgetter
 import glob, os, os.path, socket, struct, sys, time, tarfile
 import numpy
 from presto import psr_utils
@@ -521,7 +522,7 @@ def main(fil_filenm, workdir):
     if len(all_accel_cands):
         all_accel_cands = sifting.remove_harmonics(all_accel_cands)
         # Note:  the candidates will be sorted in _sigma_ order, not _SNR_!
-        all_accel_cands.sort(sifting.cmp_sigma)
+        all_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(all_accel_cands, job.basefilenm+".accelcands")
 
     try:

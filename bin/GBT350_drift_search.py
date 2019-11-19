@@ -4,6 +4,7 @@ from builtins import zip
 from builtins import str
 from builtins import range
 from builtins import object
+from operator import attrgetter
 import glob, os, os.path, shutil, socket, tarfile, stat
 import numpy, sys, time
 from presto import sigproc
@@ -392,7 +393,7 @@ def main(fil_filenm, workdir, ddplans):
         lo_accel_cands = sifting.remove_DM_problems(lo_accel_cands, numhits_to_fold,
                                                     dmstrs, low_DM_cutoff)
     if len(lo_accel_cands):
-        lo_accel_cands.sort(sifting.cmp_sigma)
+        lo_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(lo_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%lo_accel_zmax)
         
@@ -403,7 +404,7 @@ def main(fil_filenm, workdir, ddplans):
         hi_accel_cands = sifting.remove_DM_problems(hi_accel_cands, numhits_to_fold,
                                                     dmstrs, low_DM_cutoff)
     if len(hi_accel_cands):
-        hi_accel_cands.sort(sifting.cmp_sigma)
+        hi_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(hi_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%hi_accel_zmax)
 
