@@ -21,4 +21,4 @@ WORKDIR /code/src
 RUN make libpresto slalib
 WORKDIR /code
 RUN pip install /code
-RUN python tests/test_presto_python.py
+# RUN python tests/test_presto_python.py
