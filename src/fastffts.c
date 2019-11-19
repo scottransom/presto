@@ -46,20 +46,13 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
     double wpr, wpi, wr, wi, theta, tmp1, tmp2;
     int move_size;
     unsigned char *move;
-#if defined USEFFTW
     fftwf_plan plan;
     static fftwf_plan last_plan = NULL;
     static int firsttime = 1, lastn = 0, lastisign = 0;
-#else
-    float *p1;
-    double *table;
-#endif
 
-#if defined USEFFTW
     /* If calling for the first time, read the wisdom file */
     if (firsttime)
         read_wisdom();
-#endif
 
     if (nn < 2)
         return;
@@ -85,8 +78,6 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
 
     /* then do n2 transforms of length n1 */
 
-#if defined USEFFTW
-
     /* Use FFTW for the small transforms if available. */
 
     if (n1 == lastn && isign == lastisign) {
@@ -106,18 +97,6 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
         lastisign = isign;
     }
     fftwf_execute(plan);
-
-#else
-
-    table = maketable(n1, 1);
-    for (kk = 0; kk < n2; kk++) {
-        p1 = (float *) (indata + kk * n1);
-        tablesplitfftraw(p1, table, n1, isign);
-        fft_scramble(p1, n1);
-    }
-    vect_free(table);
-
-#endif
 
     /* transpose the matrix */
 
@@ -147,8 +126,6 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
 
     /* then do n1 transforms of length n2 */
 
-#if defined USEFFTW
-
     /* Use FFTW for the small transforms if available. */
 
     if (n2 == lastn && isign == lastisign) {
@@ -165,18 +142,6 @@ void tablesixstepfft(fcomplex * indata, long nn, int isign)
         lastisign = isign;
     }
     fftwf_execute(plan);
-
-#else
-
-    table = maketable(n2, 1);
-    for (kk = 0; kk < n1; kk++) {
-        p1 = (float *) (indata + kk * n2);
-        tablesplitfftraw(p1, table, n2, isign);
-        fft_scramble(p1, n2);
-    }
-    vect_free(table);
-
-#endif
 
     // Comment this out so it matches FFTW
     // Scale the FFT if it is an inverse FFT

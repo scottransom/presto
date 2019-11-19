@@ -32,19 +32,11 @@ typedef fcomplex rawtype;
 
 /* Figure out which FFTs we are using */
 
+#include "fftw3.h"
+void fftwcall(fcomplex *indata, long nn, int isign);
+void read_wisdom(void);
 #ifndef COMPLEXFFT
-#if defined USEFFTW
-  #define COMPLEXFFT    fftwcall
-  #include "fftw3.h"
-  void fftwcall(fcomplex *indata, long nn, int isign);
-  void read_wisdom(void);
-#elif defined USESGIFFT
-  #define COMPLEXFFT    sgifftcall
-  #include "fft.h"
-  void sgifftcall(fcomplex *indata, long nn, int isign);
-#else
-  #define COMPLEXFFT    tablesixstepfft
-#endif
+#define COMPLEXFFT    fftwcall
 #endif
 
 #ifndef TWOPI
