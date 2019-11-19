@@ -15,5 +15,9 @@ RUN docker-apt-install \
     libfftw3-dev
 RUN docker-apt-install pgplot5
 ADD . /code
+ENV PRESTO /code
+WORKDIR /code/src
+RUN make
+WORKDIR /code
 RUN pip install /code
 

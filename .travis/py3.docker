@@ -14,5 +14,9 @@ RUN docker-apt-install \
     libpng-dev \
     libfftw3-dev
 ADD . /code
+ENV PRESTO /code
+WORKDIR /code/src
+RUN make
+WORKDIR /code
 RUN pip3 install /code
 
