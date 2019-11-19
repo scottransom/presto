@@ -16,6 +16,7 @@ RUN docker-apt-install \
 RUN docker-apt-install pgplot5
 ADD . /code
 ENV PRESTO /code
+ENV LD_LIBRARY_PATH /code/lib
 WORKDIR /code/src
 RUN make
 WORKDIR /code

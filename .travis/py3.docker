@@ -15,6 +15,7 @@ RUN docker-apt-install \
     libfftw3-dev
 ADD . /code
 ENV PRESTO /code
+ENV LD_LIBRARY_PATH /code/lib
 WORKDIR /code/src
 RUN make
 WORKDIR /code
