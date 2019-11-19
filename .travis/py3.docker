@@ -20,4 +20,4 @@ WORKDIR /code/src
 RUN make libpresto slalib
 WORKDIR /code
 RUN pip3 install /code
-
+RUN python tests/test_presto_python.py
