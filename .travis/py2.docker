@@ -18,7 +18,7 @@ ADD . /code
 ENV PRESTO /code
 ENV LD_LIBRARY_PATH /code/lib
 WORKDIR /code/src
-RUN make
+RUN make libpresto slalib
 WORKDIR /code
 RUN pip install /code
 
