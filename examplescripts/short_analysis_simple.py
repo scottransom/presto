@@ -99,11 +99,16 @@ def main():
             myexecute('accelsearch -sigma %.2f -zmax %d -wmax %d -numharm %d -flo %f -fhi %f '%
                       (options.sigma, options.zmax, options.wmax,
                        options.numharm, options.flo, options.fhi)+outname+'.fft')
+            myexecute('rm '+outname+'.fft '+outname+'_JERK_%d.txtcand'%options.wmax)
+            myexecute('cp '+outname+'_JERK_%d '%options.wmax + options.outdir)
+            myexecute('cp '+outname+'_JERK_%d.cand '%options.wmax + options.outdir)
         else:
             myexecute('accelsearch -sigma %.2f -zmax %d -numharm %d -flo %f -fhi %f '%
                       (options.sigma, options.zmax,
                        options.numharm, options.flo, options.fhi)+outname+'.fft')
-        myexecute('rm '+outname+'.fft '+outname+'_ACCEL_%d.txtcand'%options.zmax)
+            myexecute('rm '+outname+'.fft '+outname+'_ACCEL_%d.txtcand'%options.zmax)
+            myexecute('cp '+outname+'_ACCEL_%d '%options.zmax + options.outdir)
+            myexecute('cp '+outname+'_ACCEL_%d.cand '%options.zmax + options.outdir)
         myexecute('cp '+outname+'.inf '+options.outdir)
         num = num + 1
         point = point + int(options.nM * options.frac)
