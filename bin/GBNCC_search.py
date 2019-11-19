@@ -4,6 +4,7 @@ from builtins import zip
 from builtins import str
 from builtins import range
 from builtins import object
+from operator import attrgetter
 import glob, os, os.path, shutil, socket, tarfile, stat
 import numpy, sys, time
 from presto import presto
@@ -231,20 +232,24 @@ def remove_crosslist_duplicate_candidates(candlist1,candlist2):
     n2 = len(candlist2)
     removelist1 = []
     removelist2 = []
-    candlist2.sort(sifting.cmp_freq)
-    candlist1.sort(sifting.cmp_freq)
+    candlist2.sort(key=attrgetter('r'))
+    candlist1.sort(key=attrgetter('r'))
     print("  Searching for crosslist dupes...")
     ii = 0
     while ii < n1:
         jj=0
         while jj < n2:
             if numpy.fabs(candlist1[ii].r-candlist2[jj].r) < sifting.r_err:
-                if sifting.cmp_sigma(candlist1[ii],candlist2[jj])<0:
-                    print("Crosslist remove from candlist 2, %f > %f, %d:%f~%f" % (candlist1[ii].sigma,candlist2[jj].sigma,jj,candlist1[ii].r,candlist2[jj].r))
+                if candlist1[ii].sigma > candlist2[jj].sigma:
+                    print("Crosslist remove from candlist 2, %f > %f, %d:%f~%f" % \
+                          (candlist1[ii].sigma, candlist2[jj].sigma, jj,
+                           candlist1[ii].r, candlist2[jj].r))
                     if jj not in removelist2:
                         removelist2.append(jj)
                 else:
-                    print("Crosslist remove from candlist 1, %f > %f, %d:%f~%f" % (candlist2[jj].sigma,candlist1[ii].sigma,ii,candlist1[ii].r,candlist2[jj].r))
+                    print("Crosslist remove from candlist 1, %f > %f, %d:%f~%f" % \
+                          (candlist2[jj].sigma, candlist1[ii].sigma, ii,
+                           candlist1[ii].r, candlist2[jj].r))
                     if ii not in removelist1:
                         removelist1.append(ii)
             jj += 1
@@ -257,8 +262,8 @@ def remove_crosslist_duplicate_candidates(candlist1,candlist2):
         del(candlist1[removelist1[ii]])
     print("Removed %d crosslist candidates\n" % (len(removelist1)+len(removelist2)))
     print("Found %d candidates.  Sorting them by significance...\n" % (len(candlist1)+len(candlist2)))
-    candlist1.sort(sifting.cmp_sigma)
-    candlist2.sort(sifting.cmp_sigma)
+    candlist1.sort(key=attrgetter('sigma'), reverse=True)
+    candlist2.sort(key=attrgetter('sigma'), reverse=True)
     return candlist1,candlist2
 
 
@@ -449,11 +454,11 @@ def main(fits_filenm, workdir, ddplans):
         lo_accel_cands, hi_accel_cands = remove_crosslist_duplicate_candidates(lo_accel_cands, hi_accel_cands)
 
     if len(lo_accel_cands):
-        lo_accel_cands.sort(sifting.cmp_sigma)
+        lo_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(lo_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%lo_accel_zmax)
     if len(hi_accel_cands):
-        hi_accel_cands.sort(sifting.cmp_sigma)
+        hi_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(hi_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%hi_accel_zmax)
 
