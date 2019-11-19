@@ -30,7 +30,7 @@ def main():
                       help="High frequency (Hz) to search")
     parser.add_option("-z", "--zmax", type="int", dest="zmax", default=160,
                       help="Maximum fourier drift (bins) to search")
-    parser.add_option("-w", "--wmax", type="int", dest="wmax", default=400,
+    parser.add_option("-w", "--wmax", type="int", dest="wmax", default=0,
                       help="Maximum fourier drift deriv (bins) to search")
     parser.add_option("-a", "--numharm", type="int", dest="numharm", default=4,
                       help="Number of harmonics to sum when searching")
@@ -47,7 +47,7 @@ def main():
             exit(1)
     else:
         options.nM *= 1000000
-    short_nM = options.nM / 1000000
+    short_nM = options.nM // 1000000
 
     # The basename of the data files
     if argv[1].endswith(".dat"):
@@ -73,9 +73,9 @@ def main():
     print("Baryv = ", baryv)
     inf.N = options.nM
     inf.numonoff = 0
-    nM = options.nM / 1000000
+    nM = options.nM // 1000000
     while point + options.nM < N:
-        pM = point / 1000000
+        pM = point // 1000000
         outname = basename[3:]+'_%03dM'%nM+'_%02d'%num
         stdout.write('\n'+outname+'\n\n')
         inf.name = outname
@@ -95,9 +95,14 @@ def main():
         myexecute('zapbirds -zap -zapfile '+outname+'.zaplist -baryv %g '%
                   baryv+outname+'.fft')
         myexecute('rm -f '+outname+'.zaplist')
-        myexecute('accelsearch -sigma %.2f -zmax %d -wmax %d -numharm %d -flo %f -fhi %f '% 
-                  (options.sigma, options.zmax, options.wmax,
-                  options.numharm, options.flo, options.fhi)+outname+'.fft')
+        if options.wmax > 0:
+            myexecute('accelsearch -sigma %.2f -zmax %d -wmax %d -numharm %d -flo %f -fhi %f '%
+                      (options.sigma, options.zmax, options.wmax,
+                       options.numharm, options.flo, options.fhi)+outname+'.fft')
+        else:
+            myexecute('accelsearch -sigma %.2f -zmax %d -numharm %d -flo %f -fhi %f '%
+                      (options.sigma, options.zmax,
+                       options.numharm, options.flo, options.fhi)+outname+'.fft')
         myexecute('rm '+outname+'.fft '+outname+'_ACCEL_%d.txtcand'%options.zmax)
         myexecute('cp '+outname+'.inf '+options.outdir)
         num = num + 1
