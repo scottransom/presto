@@ -3,19 +3,27 @@
 http://www.cv.nrao.edu/~sransom/presto/
 
 PRESTO is a large suite of pulsar search and analysis software
-developed by Scott Ransom mostly from scratch, and released under the
-GPL (v2).  It was primarily designed to efficiently search for binary
-millisecond pulsars from long observations of globular clusters
-(although it has since been used in several surveys with short
-integrations and to process a lot of X-ray data as well).  It is
+developed primarily by Scott Ransom mostly from scratch, and released
+under the GPL (v2).  It was primarily designed to efficiently search
+for binary millisecond pulsars from long observations of globular
+clusters (although it has since been used in several surveys with
+short integrations and to process a lot of X-ray data as well).  It is
 written primarily in ANSI C, with many of the recent routines in
 Python.  According to Steve Eikenberry, PRESTO stands for: PulsaR
 Exploration and Search TOolkit!
 
-**PRESTO has discovered over 600 pulsars, including more than 230
+**PRESTO has discovered over 700 pulsars, including almost 300
 recycled and/or binary pulsars!**
 
-## New in Version 2.1:
+## New in Version 2.2:
+ * This is the last version of PRESTO to work with the old-style
+   python interface which requires Python v2.7 or earlier and is
+   "installed" in-place and used via having $PRESTO/lib/python
+   in your PYTHONPATH.  There will probably be occasional bug fixes
+   of the v2.2 branch, but in general, people should switch to v3.0,
+   which is what the master branch will get tagged with.
+
+## Key improvements from Version 2.1:
  * `accelsearch` now has a "jerk" search capability (thanks to UVA
    undergrad Bridget Andersen for help with this!).  This makes
    searches take a *lot* longer, but definitely improves sensitivity
@@ -24,11 +32,6 @@ recycled and/or binary pulsars!**
    never need to set -zmax to anything larger than 300).
  * Ability to ignore bad channels on the command line (-ignorechan)
    (see `rfifind_stats.py` and `weights_to_ignorechan.py`)
- * Lots of new python utilities (such as for handling RFI, showing
-   bandpasses, making waterfall plots, ...)
- * New wrappers for the python interface (will make the transition
-   to Python 3.X much smoother later this year)
- * Many bug fixes and minor improvements
 
 ## About PRESTO:
 PRESTO is written with portability, ease-of-use, and memory efficiency
@@ -88,7 +91,7 @@ The Fourier-Domain acceleration search technique that PRESTO uses in
 the routine accelsearch is described in [Ransom, Eikenberry, and
 Middleditch
 (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract),
-the new "jerk" search capability is described in
+the "jerk" search capability is described in
 [Andersen & Ransom (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract),
 and the phase-modulation search technique used by search_bin is described in
 [Ransom, Cordes, and Eikenberry
@@ -129,7 +132,6 @@ If you want the "classic" branch, do the following:
 
     git clone git://github.com/scottransom/presto.git
     cd presto
-    git remote add classic origin/classic 
     git checkout -b classic origin/classic
 
 then build as per the (old) INSTALL file.
