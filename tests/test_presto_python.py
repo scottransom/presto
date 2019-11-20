@@ -158,9 +158,15 @@ ang = presto.sphere_ang_diff(10.0*presto.DEGTORAD, 10.0*presto.DEGTORAD,
 assert(round(160334.960*presto.ARCSEC2RAD-ang, 7)==0)
 print("success")
 
-print("Testing get_baryv (barycenter)...", end=' ')
-vavg1 = presto.get_baryv("18:24:32.9520", "-24:52:12.0000",
-                         56421.44222222222222, 214.5386496, obs="GB")
-vavg2 = -7.2069293455783169e-05
-assert(round(vavg1-vavg2, 10)==0)
-print("success")
+# Only run this test if TEMPO is available
+envval = os.getenv("TEMPO")
+if envval is not None:
+    print("Testing get_baryv (barycenter)...", end=' ')
+    vavg1 = presto.get_baryv("18:24:32.9520", "-24:52:12.0000",
+                             56421.44222222222222, 214.5386496, obs="GB")
+    vavg2 = -7.2069293455783169e-05
+    assert(round(vavg1-vavg2, 10)==0)
+    print("success")
+else:
+    print("Skipping test of presto.get_baryv() since TEMPO not set.")
+
