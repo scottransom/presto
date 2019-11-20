@@ -1,7 +1,14 @@
 #!/usr/bin/env python
-import glob, os, os.path, shutil, socket, struct, tarfile, stat
-import numpy, sys, presto, time, sigproc, sifting
-import psr_utils as pu
+from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
+from operator import attrgetter
+import glob, os, os.path, shutil, socket, tarfile, stat
+import numpy, sys, time
+from presto import presto
+from presto import sifting
 import astropy.io.fits as pyfits
 
 institution = "NRAO" 
@@ -114,7 +121,7 @@ def get_folding_command(cand, obs, ddplans, maskfile):
            (maskfile, cand.candnum, cand.filename, cand.DM, outfilenm,
             otheropts, N, Mp, Mdm, foldnsubs, fitsfile)
 
-class obs_info:
+class obs_info(object):
     """
     class obs_info(fits_filenm)
         A class describing the observation and the analysis.
@@ -198,7 +205,7 @@ class obs_info:
         report_file.write("---------------------------------------------------------\n")
         report_file.close()
         
-class dedisp_plan:
+class dedisp_plan(object):
     """
     class dedisp_plan(lodm, dmstep, dmsperpass, numpasses, numsub, downsamp)
        A class describing a de-dispersion plan for prepsubband in detail.
@@ -225,34 +232,38 @@ def remove_crosslist_duplicate_candidates(candlist1,candlist2):
     n2 = len(candlist2)
     removelist1 = []
     removelist2 = []
-    candlist2.sort(sifting.cmp_freq)
-    candlist1.sort(sifting.cmp_freq)
-    print "  Searching for crosslist dupes..."
+    candlist2.sort(key=attrgetter('r'))
+    candlist1.sort(key=attrgetter('r'))
+    print("  Searching for crosslist dupes...")
     ii = 0
     while ii < n1:
         jj=0
         while jj < n2:
             if numpy.fabs(candlist1[ii].r-candlist2[jj].r) < sifting.r_err:
-                if sifting.cmp_sigma(candlist1[ii],candlist2[jj])<0:
-                    print "Crosslist remove from candlist 2, %f > %f, %d:%f~%f" % (candlist1[ii].sigma,candlist2[jj].sigma,jj,candlist1[ii].r,candlist2[jj].r)
+                if candlist1[ii].sigma > candlist2[jj].sigma:
+                    print("Crosslist remove from candlist 2, %f > %f, %d:%f~%f" % \
+                          (candlist1[ii].sigma, candlist2[jj].sigma, jj,
+                           candlist1[ii].r, candlist2[jj].r))
                     if jj not in removelist2:
                         removelist2.append(jj)
                 else:
-                    print "Crosslist remove from candlist 1, %f > %f, %d:%f~%f" % (candlist2[jj].sigma,candlist1[ii].sigma,ii,candlist1[ii].r,candlist2[jj].r)
+                    print("Crosslist remove from candlist 1, %f > %f, %d:%f~%f" % \
+                          (candlist2[jj].sigma, candlist1[ii].sigma, ii,
+                           candlist1[ii].r, candlist2[jj].r))
                     if ii not in removelist1:
                         removelist1.append(ii)
             jj += 1
         ii += 1
     for ii in range(len(removelist2)-1,-1,-1):
-        print "Removing %d from candlist2" % removelist2[ii]
+        print("Removing %d from candlist2" % removelist2[ii])
         del(candlist2[removelist2[ii]])
     for ii in range(len(removelist1)-1,-1,-1):
-        print "Removing %d from candlist1" % removelist1[ii]
+        print("Removing %d from candlist1" % removelist1[ii])
         del(candlist1[removelist1[ii]])
-    print "Removed %d crosslist candidates\n" % (len(removelist1)+len(removelist2))
-    print "Found %d candidates.  Sorting them by significance...\n" % (len(candlist1)+len(candlist2))
-    candlist1.sort(sifting.cmp_sigma)
-    candlist2.sort(sifting.cmp_sigma)
+    print("Removed %d crosslist candidates\n" % (len(removelist1)+len(removelist2)))
+    print("Found %d candidates.  Sorting them by significance...\n" % (len(candlist1)+len(candlist2)))
+    candlist1.sort(key=attrgetter('sigma'), reverse=True)
+    candlist2.sort(key=attrgetter('sigma'), reverse=True)
     return candlist1,candlist2
 
 
@@ -264,7 +275,7 @@ def main(fits_filenm, workdir, ddplans):
     # Get information on the observation and the job
     job = obs_info(fits_filenm)
     if job.raw_T < low_T_to_search:
-        print "The observation is too short (%.2f s) to search."%job.raw_T
+        print("The observation is too short (%.2f s) to search."%job.raw_T)
         sys.exit()
     job.total_time = time.time()
     if job.dt == 163.84:
@@ -278,7 +289,7 @@ def main(fits_filenm, workdir, ddplans):
     # Make sure the output directory (and parent directories) exist
     try:
         os.makedirs(job.outputdir)
-        os.chmod(job.outputdir, stat.S_IRWXU | stat.S_IRWXG | S_IROTH | S_IXOTH)
+        os.chmod(job.outputdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
     except: pass
 
     # Make sure the tmp directory (in a tmpfs mount) exists
@@ -287,8 +298,8 @@ def main(fits_filenm, workdir, ddplans):
         os.makedirs(tmpdir)
     except: pass
 
-    print "\nBeginning GBNCC search of '%s'"%job.fits_filenm
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nBeginning GBNCC search of '%s'"%job.fits_filenm)
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     rfifindout=job.basefilenm+"_rfifind.out"
     rfifindmask=job.basefilenm+"_rfifind.mask"
@@ -443,11 +454,11 @@ def main(fits_filenm, workdir, ddplans):
         lo_accel_cands, hi_accel_cands = remove_crosslist_duplicate_candidates(lo_accel_cands, hi_accel_cands)
 
     if len(lo_accel_cands):
-        lo_accel_cands.sort(sifting.cmp_sigma)
+        lo_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(lo_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%lo_accel_zmax)
     if len(hi_accel_cands):
-        hi_accel_cands.sort(sifting.cmp_sigma)
+        hi_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(hi_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%hi_accel_zmax)
 
@@ -485,7 +496,7 @@ def main(fits_filenm, workdir, ddplans):
         if "singlepulse" in psfile:
             os.system("pstoimg -density 200 -antialias -crop a "+psfile)
             try:
-                os.remove(epsfile)
+                os.remove(psfile)
             except: pass
         else:
             os.system("pstoimg -density 200 -antialias -flip cw "+psfile)
@@ -528,8 +539,8 @@ def main(fits_filenm, workdir, ddplans):
     # And finish up
 
     job.total_time = time.time() - job.total_time
-    print "\nFinished"
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nFinished")
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # Write the job report
 
@@ -587,4 +598,4 @@ if __name__ == "__main__":
         fits_filenm = sys.argv[1]
         main(fits_filenm, '.', ddplans)
     else:
-        print "GBNCC_search.py fits_filenm [workdir]"
+        print("GBNCC_search.py fits_filenm [workdir]")

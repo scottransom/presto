@@ -5,10 +5,12 @@ a filterbank file.
 
 Patrick Lazarus, June 26, 2012
 """
+from __future__ import print_function
+from builtins import zip
+from builtins import object
 import sys
 import argparse
 import warnings
-import pickle
 import copy
 
 import numpy as np
@@ -19,8 +21,8 @@ matplotlib.use('agg') # Use a non-interactive backend
 import matplotlib.pyplot as plt
 import scipy.integrate
 
-import filterbank
-import psr_utils
+from presto import filterbank
+from presto import psr_utils
 
 DEBUG = False # Print debugging messages
 
@@ -221,6 +223,8 @@ class Profile(object):
             Output:
                 smeared: The smeared Profile.
         """
+
+        # todo: (gijs) bug, scatterphs not defined
         if smearphs < 0:
             raise ValueError("Amount of phase to smear by (%g) " \
                                 "cannot be negative!" % scatterphs)
@@ -546,8 +550,8 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     weq = inprof.get_equivalent_width()
     nfreqs = len(freqs)
     if verbose:
-        print "Applying DM to profile (DM = %.2f; %d channels)..." % \
-                (dm, nfreqs)
+        print("Applying DM to profile (DM = %.2f; %d channels)..." % \
+                (dm, nfreqs))
     # A list of profiles, one for each channel
     profiles = []
 
@@ -573,9 +577,9 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
     if DEBUG:
         for ichan, (freq, smear, scatt, delay) in \
                 enumerate(zip(freqs, smearphases, scatterphases, phasedelays)):
-            print "    Chan #%d - Freq: %.3f MHz -- " \
+            print("    Chan #%d - Freq: %.3f MHz -- " \
                   "Smearing, scattering, delay (all in phase): " \
-                  "%g, %g, %g" % (ichan, freq, smear, scatt, delay)
+                  "%g, %g, %g" % (ichan, freq, smear, scatt, delay))
     oldprogress = 0
     sys.stdout.write(" %3.0f %%\r" % oldprogress)
     sys.stdout.flush()
@@ -606,7 +610,7 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
 #            else:
 #                ylim2 = ax2.get_ylim()
             if DEBUG:
-                print "Smearing"
+                print("Smearing")
             tmpprof = inprof.smear(smearphs, delayphs, npts=NUMPOINTS)
         else:
             tmpprof = inprof.delay(delayphs)
@@ -628,7 +632,7 @@ def apply_dm(inprof, period, dm, chan_width, freqs, tsamp, \
 #            else:
 #                ylim4 = ax4.get_ylim()
             if DEBUG:
-                print "Scattering"
+                print("Scattering")
             tmpprof = tmpprof.scatter(scattphs, npts=NUMPOINTS)
 #        ax5 = plt.subplot(5,1,5,sharex=ax)
 #        tmpprof.plot()
@@ -793,9 +797,9 @@ def scale_from_snr(fil, prof, snr, rms):
     profmax = prof.get_max()
 
     scale = snr*rms/fil.nchans/np.sqrt(fil.nspec*profmax*area)
-    print "Average area %s, average profile maximum: %s" % \
-            (np.mean(area), np.mean(profmax))
-    print "Average recommended scale factor: %s" % np.mean(scale)
+    print("Average area %s, average profile maximum: %s" % \
+            (np.mean(area), np.mean(profmax)))
+    print("Average recommended scale factor: %s" % np.mean(scale))
     return scale
 
 
@@ -824,8 +828,8 @@ def snr_from_smean(fil, prof, smean, gain, tsys):
     # Target SNR
     warnings.warn("Assuming 2 (summed) polarizations.")
     snr = smean*gain*np.sqrt(2*tint*bw)/tsys*np.sqrt(1/dutycycle-1)
-    print "Expected SNR of injected pulsar signal (after folding " \
-            "and integrating over frequency): %s" % snr
+    print("Expected SNR of injected pulsar signal (after folding " \
+            "and integrating over frequency): %s" % snr)
     return snr
 
 
@@ -837,7 +841,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
         fil = filterbank.FilterbankFile(infile, 'readwrite')
     else:
         fil = filterbank.FilterbankFile(infile, 'read')
-    print "Injecting pulsar signal into: %s" % fil.filename
+    print("Injecting pulsar signal into: %s" % fil.filename)
     if False:
         delays = psr_utils.delay_from_DM(dm, fil.frequencies)
         delays -= delays[np.argmax(fil.frequencies)]
@@ -853,7 +857,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
         outfil = fil
     else:
         # Start an output file
-        print "Creating out file: %s" % outfn
+        print("Creating out file: %s" % outfn)
         outfil = filterbank.create_filterbank_file(outfn, fil.header, \
                                             nbits=nbitsout, mode='append')
 
@@ -930,7 +934,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
 
 def load_profile(infn, verbose=True):
     if verbose:
-        print "Loading profile from file (%s)" % infn
+        print("Loading profile from file (%s)" % infn)
     data = np.load(infn)
     profiles = []
     for key in sorted(data.keys()):
@@ -942,8 +946,8 @@ def load_profile(infn, verbose=True):
 
 def save_profile(prof, outfn, verbose=True):
     if verbose:
-        print "Writing %s instance to file (%s)" % \
-                (type(prof).__name__, outfn)
+        print("Writing %s instance to file (%s)" % \
+                (type(prof).__name__, outfn))
     outfile = open(outfn, 'wb')
     profvals = {}
     for ii, pp in enumerate(prof.profiles):
@@ -1074,7 +1078,7 @@ def scale_profile(prof, scale_name, scale_cfgstrs, fil, verbose=True):
     scale_getter = SCALE_METHODS[scale_name]
     scaling = scale_getter(fil, prof, scale_cfgstrs)
     if verbose:
-        print "Band-averaged scale-factor: %g" % np.ma.masked_invalid(scaling).mean()
+        print("Band-averaged scale-factor: %g" % np.ma.masked_invalid(scaling).mean())
     prof.set_scaling(scaling)
 
 
@@ -1088,11 +1092,11 @@ def make_profile(vonmises, verbose=True):
     comps = create_vonmises_components(vonmises)
     prof = MultiComponentProfile(comps)
     if verbose:
-        print "Creating profile. Number of components: %d" % len(comps)
-        print "Profile area (intensity x phase): %g" % prof.get_area()
-        print "Equivalent width (phase): %g" % prof.get_equivalent_width()
-        print "FWHM (phase): %g" % prof.get_fwhm()
-        print "Profile maximum: %g" % prof.get_max()
+        print("Creating profile. Number of components: %d" % len(comps))
+        print("Profile area (intensity x phase): %g" % prof.get_area())
+        print("Equivalent width (phase): %g" % prof.get_equivalent_width())
+        print("FWHM (phase): %g" % prof.get_fwhm())
+        print("Profile maximum: %g" % prof.get_max())
     prof = get_spline_profile(prof)
     return prof
 
@@ -1117,7 +1121,7 @@ def main():
             save_profile(prof, args.outprof)
 
     outfn = args.outname % fil.header 
-    print "Showing plot of profile to be injected..."
+    print("Showing plot of profile to be injected...")
     plt.figure()
     plt.clf()
     prof.plot(dedisp=True)

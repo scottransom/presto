@@ -1,12 +1,18 @@
 #!/usr/bin/env python
-import sys, os, glob, os.path, string, re
-from presto import fourierprops, get_rzw_cand, read_inffile
+import sys
+import os
+import os.path
+import glob
+import string
+import re
+from subprocess import Popen, PIPE, STDOUT
+from presto.presto import fourierprops, get_rzw_cand
 
 short_re = re.compile("_\d\d\dM_\d\d_ACCEL_")
 
 def determine_dt(candfile):
     for line in open(candfile):
-        if line.startswith(" Width of each time series bin"):
+        if line.startswith(b" Width of each time series bin"):
             return float(line.split()[-1])
 
 def short_stuff(candfile, candnum, shortinfo, nodename, datfile):
@@ -55,46 +61,55 @@ def find_node(DM):
     return None
 
 def find_local_datfile(basename, DM):
-    i,o = os.popen4("find .. -name \*%s\*DM%s\*dat"%(basename, DM))
+    p = Popen("find .. -name \*%s\*DM%s\*dat"%(basename, DM), shell=True,
+              bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+    (i, o) = (p.stdin, p.stdout)
     datfile = ''
     for line in o:
         line = line.strip()
-        if line.startswith("find:"):
+        if line.startswith(b"find:"):
             line = line.join(line.split()[1:])
-        if line.endswith(".dat"):
-            datfile = line
-    print "'%s'"%datfile
+        if line.endswith(b".dat"):
+            datfile = line.decode("utf-8")
+    print("'%s'"%datfile)
     if datfile!='':
         return datfile
 
 def find_datfile(nodename, basename, DM):
-    i,o = os.popen4("ssh %s find -L /scratch -name \*%s\*DM%s\*dat"%\
-                    (nodename, basename, DM))
+    p = Popen("ssh %s find -L /scratch -name \*%s\*DM%s\*dat"%(nodename, basename, DM),
+              shell=True, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+    (i, o) = (p.stdin, p.stdout)
     datfile = ''
     for line in o:
         line = line.strip()
-        if line.startswith("find:"):
+        if line.startswith(b"find:"):
             line = line.join(line.split()[1:])
-        if line.endswith(".dat"):
-            datfile = line
-    print "'%s'"%datfile
-    if datfile!='' and datfile.startswith("/scratch"):
+        if line.endswith(b".dat"):
+            datfile = line.decode("utf-8")
+    print("'%s'"%datfile)
+    if datfile!='' and datfile.startswith(b"/scratch"):
         return datfile
     return None
 
 def get_datfile_len(nodename, datfile):
     if nodename:
-        i,o = os.popen4("ssh %s ls -l %s | awk '{ print $5 };'"%(nodename, datfile))
+        p = Popen("ssh %s ls -l %s | awk '{ print $5 };'"%(nodename, datfile),
+                  shell=True, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
+                  close_fds=True)
+        (i, o) = (p.stdin, p.stdout)
     else:
-        i,o = os.popen4("ls -l %s | awk '{ print $5 };'"%(datfile))
-    filelen = o.readline()
+        p = Popen("ls -l %s | awk '{ print $5 };'"%(datfile),
+                  shell=True, bufsize=-1, stdin=PIPE, stdout=PIPE, stderr=STDOUT,
+                  close_fds=True)
+        (i, o) = (p.stdin, p.stdout)
+    filelen = o.readline().decode("utf-8")
     if filelen!='':
         return int(filelen)/4
     return None
 
 if __name__ == "__main__":
     if (len(sys.argv) < 2):
-        print "\nusage: gotocand.py [-local] candfile:candnum\n"
+        print("\nusage: gotocand.py [-local] candfile:candnum\n")
         sys.exit(0)
     
     local = 0
@@ -103,19 +118,19 @@ if __name__ == "__main__":
         sys.argv.pop(1)
     outdir = os.getcwd()
     if (len(sys.argv) > 2):
-        extraargs = string.join(sys.argv[2:])
+        extraargs = "".join(sys.argv[2:])
     else:
         extraargs = ""
     candfile, candnum = sys.argv[1].split(':')
         
     dm = get_dm(candfile)
     if dm is None:
-        print "Error:  Could not find a DM value in '%s'!"%candfile
+        print("Error:  Could not find a DM value in '%s'!"%candfile)
         sys.exit(0)
 
     base = get_basename(candfile)
     if base is None:
-        print "Error:  Could not find the base filename in '%s'!"%candfile
+        print("Error:  Could not find the base filename in '%s'!"%candfile)
         sys.exit(0)
 
     # Is the candidate from a short-chunk search?
@@ -127,12 +142,12 @@ if __name__ == "__main__":
     else:
         node = find_node(dm)
         if node is None:
-            print "Error:  Could not find the node where the dat file should be!"
+            print("Error:  Could not find the node where the dat file should be!")
             sys.exit(0)
 
         datfile = find_datfile(node, base, dm)
         if datfile is None:
-            print "Error:  Could not find .dat file on the node!"
+            print("Error:  Could not find .dat file on the node!")
             sys.exit(0)
 
     fullcandfile = os.path.join(outdir, candfile)+".cand"
@@ -140,9 +155,9 @@ if __name__ == "__main__":
     datfiledir, datfilenm = os.path.split(datfile)
     
     if not local:
-        print "\nGoing to %s and folding candidate #%s from the file %s."%\
-              (node,candnum,candfile)
-    print "  Folding command:"
+        print("\nGoing to %s and folding candidate #%s from the file %s."%\
+              (node,candnum,candfile))
+    print("  Folding command:")
 
     if shortcand:
         shortparts, shortoutext, f, fd, fdd = short_stuff(candfile, int(candnum),
@@ -151,7 +166,7 @@ if __name__ == "__main__":
         outfile += shortoutext
         foldcommand = "prepfold %s -f %.15g -fd %.15g -fdd %.15g -o %s %s"%\
                       (extraargs, f, fd, fdd, outfile, datfile)
-        print foldcommand
+        print(foldcommand)
         if not local:
             os.system("ssh -X %s 'cd %s ; %s'"%(node, datfiledir, foldcommand))
             os.system("scp -c blowfish %s:%s*_%.2f*.pfd* %s"% \
@@ -162,7 +177,7 @@ if __name__ == "__main__":
         foldcommand = "prepfold %s -accelcand %s -accelfile %s -o %s %s"%\
                       (extraargs, candnum, fullcandfile, outfile, datfile)
 
-        print "    %s"%foldcommand
+        print("    %s"%foldcommand)
         if not local:
             os.system("ssh -X %s 'cd %s ; %s'"%(node, datfiledir, foldcommand))
             os.system("scp -c blowfish %s:%s*ACCEL_Cand_%d*.pfd* %s"% \

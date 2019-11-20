@@ -1,41 +1,44 @@
+from __future__ import print_function
 import numpy as np
-import presto
+from presto import presto
 import os
-import matplotlib.pyplot as plt
+from os import path
 
-print "Testing FFT stuff...",
+here = path.dirname(__file__)
+
+print("Testing FFT stuff...", end=' ')
 N = 20
 x = np.random.standard_normal(N)
 nx = presto.rfft(presto.rfft(x, -1), 1)
 assert(np.allclose(x, nx, atol=1e-6))
-print "success"
+print("success")
 
-print "Testing FFTW call...",
+print("Testing FFTW call...", end=' ')
 cx = np.random.standard_normal(N).astype(np.complex64)
 ncx = np.array(cx, copy=1)
 presto.fftwcall(cx, -1)
 presto.fftwcall(cx, 1)
 assert(np.allclose(cx/N, ncx, atol=1e-6))
-print "success"
+print("success")
 
-print "Testing tablesixstepfft call...",
+print("Testing tablesixstepfft call...", end=' ')
 cx = np.random.standard_normal(N).astype(np.complex64)
 ncx = np.array(cx, copy=1)
 presto.tablesixstepfft(cx, -1)
 presto.tablesixstepfft(cx, 1)
 assert(np.allclose(cx/N, ncx, atol=1e-6))
-print "success"
+print("success")
 
-print "Testing reading infiles...",
-x = presto.read_inffile("1937_DM71.02_zerodm.inf", verbose=False)
+print("Testing reading infiles...", end=' ')
+x = presto.read_inffile(path.join(here, "1937_DM71.02_zerodm.inf"), verbose=False)
 assert(x.telescope=="GBT")
 assert(x.mjd_i==55267)
 assert(x.dt==8.192e-05)
 assert(x.numonoff==1)
 assert(x.analyzer=="sransom")
-print "success"
+print("success")
 
-print "Testing writing infiles...",
+print("Testing writing infiles...", end=' ')
 x.analyzer="test"
 x.name="xxx"
 x.dt=0.125
@@ -46,44 +49,42 @@ assert(y.bary==0)
 assert(y.numonoff==1)
 assert(y.dt==0.125)
 os.remove("xxx.inf")
-print "success"
+print("success")
 
-print "Testing allocation and freeing of memory...",
+print("Testing allocation and freeing of memory...", end=' ')
 for ii in range(1024):
     a = presto.gen_fvect(1024 * 32768)
     del a
 for ii in range(1024):
     a = presto.gen_cvect(1024 * 16384)
     del a
-print "success"
+print("success")
 
-print "Testing psrparams and orbitparams stuff...",
+print("Testing psrparams and orbitparams stuff...", end=' ')
 psr = presto.psrepoch("J0737-3039A", 56000.0, verbose=False)
 assert(round(psr.dm-48.92, 7)==0)
 # This needs to change when we start using the actual psrcat.db file
-print "\nTODO:  fix the precision of the values in the catalog!!"
-assert(round(psr.orb.p-8838.72, 7)==0)
-#assert(round(psr.orb.p-8834.534998272, 7)==0)
-print "success"
+assert(round(psr.orb.p-8834.534998272, 7)==0)
+print("success")
 
-print "Testing spectralpower and spectralphase...",
+print("Testing spectralpower and spectralphase...", end=' ')
 a = np.arange(5.0) + complex(0.0, 1.0)
 assert(np.allclose(presto.spectralpower(a),
                    np.arange(5.0)**2.0 + 1))
 assert(np.allclose(presto.spectralphase(a),
                    np.array([90., 45., 26.56505203, 18.43494797, 14.03624344])))
-print "success"
+print("success")
 
-print "Testing vector shifting / rotation...",
+print("Testing vector shifting / rotation...", end=' ')
 a = np.arange(4, dtype=np.float32)
 presto.frotate(a, 1)
 assert(np.allclose(a, np.array([1, 2, 3, 0])))
 a = np.arange(4, dtype=np.float64)
 presto.drotate(a, 1)
 assert(np.allclose(a, np.array([1, 2, 3, 0])))
-print "success"
+print("success")
 
-print "Testing orbit integration stuff...",
+print("Testing orbit integration stuff...", end=' ')
 orb = presto.orbitparams()
 orb.p = 10000.0
 orb.e = 0.1
@@ -110,13 +111,12 @@ minv *= presto.SOL/1000.0
 maxv *= presto.SOL/1000.0
 assert(round(minv-Vs_check.min(), 7)==0)
 assert(round(maxv-Vs_check.max(), 7)==0)
-print "success"
+print("success")
 
-print "Testing Fourier response generation...",
+print("Testing Fourier response generation...", end=' ')
 numbetween = 16
 z = 5.0
 w = 40.0
-# Should use w_resp_halfwidth() for this.  Need to update that!
 bins_per_side = max([presto.r_resp_halfwidth(presto.LOWACC), \
                      presto.z_resp_halfwidth(z, presto.LOWACC), \
                      presto.w_resp_halfwidth(z, w, presto.LOWACC)])
@@ -128,18 +128,19 @@ pr = presto.spectralpower(rresp)
 pz = presto.spectralpower(zresp)
 pw = presto.spectralpower(wresp)
 rs = np.arange(float(nn))/numbetween - bins_per_side
-if 0:
+if False:
+    import matplotlib.pyplot as plt
     plt.plot(rs, pr, 'b-')
     plt.plot(rs, pz, 'g-')
     plt.plot(rs, pw, 'r-')
     plt.show()
-assert(rs[nn/2]==0.0)
-assert(pr[nn/2]==1.0)
-assert(round(pz[nn/2]-0.227675, 6)==0)
-assert(round(pw[nn/2]-0.019462, 6)==0)
-print "success"
+assert(rs[nn//2]==0.0)
+assert(pr[nn//2]==1.0)
+assert(round(pz[nn//2]-0.227675, 6)==0)
+assert(round(pw[nn//2]-0.019462, 6)==0)
+print("success")
 
-print "Testing angle functions...",
+print("Testing angle functions...", end=' ')
 dd1 = 15.25
 dd2 = presto.dms2rad(*presto.deg2dms(dd1))*presto.RADTODEG
 assert(round(dd1-dd2, 12)==0)
@@ -155,11 +156,17 @@ assert(round(hh1-hh2, 12)==0)
 ang = presto.sphere_ang_diff(10.0*presto.DEGTORAD, 10.0*presto.DEGTORAD,
                              50.0*presto.DEGTORAD, -10.0*presto.DEGTORAD)
 assert(round(160334.960*presto.ARCSEC2RAD-ang, 7)==0)
-print "success"
+print("success")
 
-print "Testing get_baryv (barycenter)...",
-vavg1 = presto.get_baryv("18:24:32.9520", "-24:52:12.0000",
-                         56421.44222222222222, 214.5386496, obs="GB")
-vavg2 = -7.2069293455783169e-05
-assert(round(vavg1-vavg2, 10)==0)
-print "success"
+# Only run this test if TEMPO is available
+envval = os.getenv("TEMPO")
+if envval is not None:
+    print("Testing get_baryv (barycenter)...", end=' ')
+    vavg1 = presto.get_baryv("18:24:32.9520", "-24:52:12.0000",
+                             56421.44222222222222, 214.5386496, obs="GB")
+    vavg2 = -7.2069293455783169e-05
+    assert(round(vavg1-vavg2, 10)==0)
+    print("success")
+else:
+    print("Skipping test of presto.get_baryv() since TEMPO not set.")
+

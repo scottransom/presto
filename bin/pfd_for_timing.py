@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-import sys, prepfold
+from __future__ import print_function
+import sys
+from presto import prepfold
+
 
 if len(sys.argv) == 1:
     sys.stderr.write("""usage:  pfd_for_timing.py PFDFILES\n
@@ -11,8 +14,8 @@ for pfdfile in sys.argv[1:]:
     try:
         pfd = prepfold.pfd(pfdfile)
         if pfd.use_for_timing():
-            print "%s: true"%pfdfile
+            print("%s: true"%pfdfile)
         else:
-            print "%s: false"%pfdfile
+            print("%s: false"%pfdfile)
     except:
         sys.stderr.write("Error:  Can't check '%s'\n"%pfdfile)

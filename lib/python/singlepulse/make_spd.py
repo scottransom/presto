@@ -1,1 +1,0 @@
-../../../bin/make_spd.py

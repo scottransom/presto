@@ -50,15 +50,18 @@ def build_pazline(chanline):
     return outstr
 
 if __name__=="__main__":
+
+    if len(sys.argv) != 2:
+        print("\nusage: {} file\n".format(sys.argv[0]))
+        sys.exit(1)
+
     # Read the channels and weights
     chans, weights = read_weights(sys.argv[1])
 
     # Get the chanline
     chanline = build_chanline(weights)
-    print chanline
+    print(chanline)
 
     # Convert it to a paz command
     pazline = build_pazline(chanline)
-    print "\n"+pazline
-
-    
+    print("\n"+pazline)

@@ -1,4 +1,10 @@
-import math, string, Numeric, presto, random, sys, cPickle
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+from builtins import input
+from builtins import range
+import math, string, Numeric, presto, random, sys, pickle
 from LeastSquares import leastSquaresFit
 from orbitstuff import *
 
@@ -31,12 +37,10 @@ if parallel:
     numprocs = mpi.comm_size()
     if ctype=='WD':
         if numprocs!=3:
-            raise SystemExit, \
-                  'You need 3 procs for the NS-WD simulation.'
+            raise SystemExit('You need 3 procs for the NS-WD simulation.')
     else:
         if numprocs!=5:
-            raise SystemExit, \
-                  'You need 5 procs for a NS-NS or NS-BH simulation.'
+            raise SystemExit('You need 5 procs for a NS-NS or NS-BH simulation.')
 else:
     myid = 0
 
@@ -110,23 +114,23 @@ for i in range(numloops):
         else: psr = psrparams_from_list(psrlist)
         if debugout:
             allproc_print(numprocs, 'Psr period =', psr.p)
-    print ''
-    print 'Trial', i
+    print('')
+    print('Trial', i)
     if debugout:
-        print ''
-        print '   PSR mass              =', mpsr
-        print '   Companion mass        =', mc
-        print '   PSR period (s)        =', psr.p
-        print '   PSR frequency (hz)    =', 1.0/psr.p
-        print '   Orbit period (s)      =', psr.orb.p
-        print '   Orbit asini/c (lt-s)  =', psr.orb.x
-        print '   Orbit eccentricity    =', psr.orb.e
-        print '   Orbit angle (deg)     =', psr.orb.w
-        print '   Orbit time (s)        =', psr.orb.t
-        print '   Orbit Fourier Freq    =', T/psr.orb.p
-        print '   Orbit z               =', \
-              presto.TWOPI*psr.orb.x/psr.p
-        print ''
+        print('')
+        print('   PSR mass              =', mpsr)
+        print('   Companion mass        =', mc)
+        print('   PSR period (s)        =', psr.p)
+        print('   PSR frequency (hz)    =', 1.0/psr.p)
+        print('   Orbit period (s)      =', psr.orb.p)
+        print('   Orbit asini/c (lt-s)  =', psr.orb.x)
+        print('   Orbit eccentricity    =', psr.orb.e)
+        print('   Orbit angle (deg)     =', psr.orb.w)
+        print('   Orbit time (s)        =', psr.orb.t)
+        print('   Orbit Fourier Freq    =', T/psr.orb.p)
+        print('   Orbit z               =', \
+              presto.TWOPI*psr.orb.x/psr.p)
+        print('')
             
     # Create the data set
     cand = presto.orbitparams()
@@ -142,7 +146,7 @@ for i in range(numloops):
         Pgplot.plotxy(presto.spectralpower(data), color='red',
                       title='Data', labx='Fourier Frequency',
                       laby='Relative Power')
-        a = raw_input("Press enter to continue...")
+        a = input("Press enter to continue...")
         Pgplot.nextplotpage(1)
         
     # Perform the loops over the Keplerian parameters
@@ -194,13 +198,13 @@ for i in range(numloops):
                              Numeric.maximum.reduce(respow)))
                 if debugout:
                     # Print the most recent results
-                    print '   %s:  Delta = %10.6f   Response = %8.5f' % \
-                          (myjob, vals[-1][0], vals[-1][1])
+                    print('   %s:  Delta = %10.6f   Response = %8.5f' % \
+                          (myjob, vals[-1][0], vals[-1][1]))
                 if showplots and not parallel:
                     # Plot the results of the correlation
                     Pgplot.plotxy(respow, labx='Frequency',
                                   laby='Relative Power')
-                    a = raw_input("Press enter to continue...")
+                    a = input("Press enter to continue...")
                     Pgplot.nextplotpage(1)
             # A very rough adaptive stepsize
             if abs(vals[-3][1] - vals[-1][1]) < 0.04:
@@ -209,9 +213,9 @@ for i in range(numloops):
         # Fit a quadratic to the width values
         fit = leastSquaresFit(quadratic, (-1.0, 0.0, 1.0), vals)
         if debugout:
-            print '\n   %sfit = %fx^2 + %fx + %f\n' % (myjob, fit[0][0],
+            print('\n   %sfit = %fx^2 + %fx + %f\n' % (myjob, fit[0][0],
                                                        fit[0][1],
-                                                       fit[0][2])
+                                                       fit[0][2]))
         width = 2.0*math.sqrt(-0.5/fit[0][0])
         if parallel:
             newwidths = mpi.gather_string(str(width), 0)
@@ -222,8 +226,8 @@ for i in range(numloops):
             psrlist.append(width)
     widths.append(psrlist)
     if debugout:
-        print 'Widths are', widths[i]
+        print('Widths are', widths[i])
     # Save our most recent orbit and width information
-    cPickle.dump(widths[i], file, 1)
+    pickle.dump(widths[i], file, 1)
 file.close()
 

@@ -1,7 +1,16 @@
 #!/usr/bin/env python
-import glob, os, os.path, shutil, socket, struct, tarfile, stat
-import numpy, sys, presto, time, sigproc, sifting
-import psr_utils as pu
+from __future__ import print_function
+from builtins import zip
+from builtins import str
+from builtins import range
+from builtins import object
+from operator import attrgetter
+import glob, os, os.path, shutil, socket, tarfile, stat
+import numpy, sys, time
+from presto import sigproc
+from presto import sifting
+from presto import presto
+from presto import psr_utils as pu
 
 institution = "NRAOCV" 
 base_tmp_dir = "/dev/shm/"
@@ -113,7 +122,7 @@ def get_folding_command(cand, obs, ddplans):
            (cand.candnum, cand.filename, cand.DM, outfilenm,
             otheropts, N, Mp, Mdm, filfile)
 
-class obs_info:
+class obs_info(object):
     """
     class obs_info(fil_filenm)
         A class describing the observation and the analysis.
@@ -197,7 +206,7 @@ class obs_info:
         report_file.write("---------------------------------------------------------\n")
         report_file.close()
         
-class dedisp_plan:
+class dedisp_plan(object):
     """
     class dedisp_plan(lodm, dmstep, dmsperpass, numpasses, numsub, downsamp)
        A class describing a de-dispersion plan for prepsubband in detail.
@@ -227,7 +236,7 @@ def main(fil_filenm, workdir, ddplans):
     # Get information on the observation and the job
     job = obs_info(fil_filenm)
     if job.raw_T < low_T_to_search:
-        print "The observation is too short (%.2f s) to search."%job.raw_T
+        print("The observation is too short (%.2f s) to search."%job.raw_T)
         sys.exit()
     job.total_time = time.time()
     ddplans = ddplans[job.nchans]
@@ -238,7 +247,7 @@ def main(fil_filenm, workdir, ddplans):
     # Make sure the output directory (and parent directories) exist
     try:
         os.makedirs(job.outputdir)
-        os.chmod(job.outputdir, stat.S_IRWXU | stat.S_IRWXG | S_IROTH | S_IXOTH)
+        os.chmod(job.outputdir, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH)
     except: pass
 
     # Make sure the tmp directory (in a tmpfs mount) exists
@@ -247,8 +256,8 @@ def main(fil_filenm, workdir, ddplans):
         os.makedirs(tmpdir)
     except: pass
 
-    print "\nBeginning GBT350 driftscan search of '%s'"%job.fil_filenm
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nBeginning GBT350 driftscan search of '%s'"%job.fil_filenm)
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # rfifind the filterbank file
     cmd = "rfifind -time %.17g -o %s %s > %s_rfifind.out"%\
@@ -384,7 +393,7 @@ def main(fil_filenm, workdir, ddplans):
         lo_accel_cands = sifting.remove_DM_problems(lo_accel_cands, numhits_to_fold,
                                                     dmstrs, low_DM_cutoff)
     if len(lo_accel_cands):
-        lo_accel_cands.sort(sifting.cmp_sigma)
+        lo_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(lo_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%lo_accel_zmax)
         
@@ -395,7 +404,7 @@ def main(fil_filenm, workdir, ddplans):
         hi_accel_cands = sifting.remove_DM_problems(hi_accel_cands, numhits_to_fold,
                                                     dmstrs, low_DM_cutoff)
     if len(hi_accel_cands):
-        hi_accel_cands.sort(sifting.cmp_sigma)
+        hi_accel_cands.sort(key=attrgetter('sigma'), reverse=True)
         sifting.write_candlist(hi_accel_cands,
                                job.basefilenm+".accelcands_Z%d"%hi_accel_zmax)
 
@@ -479,8 +488,8 @@ def main(fil_filenm, workdir, ddplans):
     # And finish up
 
     job.total_time = time.time() - job.total_time
-    print "\nFinished"
-    print "UTC time is:  %s"%(time.asctime(time.gmtime()))
+    print("\nFinished")
+    print("UTC time is:  %s"%(time.asctime(time.gmtime())))
 
     # Write the job report
 
@@ -578,4 +587,4 @@ if __name__ == "__main__":
         fil_filenm = sys.argv[1]
         main(fil_filenm, '.', ddplans)
     else:
-        print "GBT350_drift_search.py fil_filenm [workdir]"
+        print("GBT350_drift_search.py fil_filenm [workdir]")

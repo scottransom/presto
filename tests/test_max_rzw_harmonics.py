@@ -1,8 +1,14 @@
+import sys
+import time
 import numpy as np
-import presto
 from numpy.random import standard_normal as norm
 from numpy.random import uniform
-import time
+from presto import presto
+
+if sys.version_info[0]<3:
+    clk = time.clock
+else:
+    clk = time.perf_counter
 
 N = 2**17
 noiseamp = 1.0
@@ -36,7 +42,7 @@ for n in range(numtrials):
 
     offset = uniform(-1.0, 1.0, 3) * np.array([0.5, 2.0, 20.0]) / (0.5 * numharm)
 
-    a = time.clock()
+    a = clk()
     if (numharm > 1):
         [maxpow, rmax, zmax, rds] = presto.maximize_rz_harmonics(ft, r+offset[0],
                                                                  z+offset[1], numharm,
@@ -45,10 +51,10 @@ for n in range(numtrials):
         [maxpow, rmax, zmax, rd] = presto.maximize_rz(ft, r+offset[0],
                                                       z+offset[1],
                                                       norm=1.0)
-    rztime += time.clock() - a
+    rztime += clk() - a
     rzerrs[n] = (maxpow/numharm - theo_max_pow) / theo_max_pow, rmax - r, zmax - z
 
-    a = time.clock()
+    a = clk()
     if (numharm > 1):
         [maxpow, rmax, zmax, wmax, rds] = presto.maximize_rzw_harmonics(ft, r+offset[0],
                                                                         z+offset[1],
@@ -59,16 +65,16 @@ for n in range(numtrials):
                                                              z+offset[1],
                                                              w+offset[2],
                                                              norm=1.0)
-    rzwtime += time.clock() - a
+    rzwtime += clk() - a
     rzwerrs[n] = (maxpow/numharm - theo_max_pow) / theo_max_pow, rmax - r, zmax - z, wmax - w
 
-print "Time for  rz:", rztime / numtrials
-print "Time for rzw:", rzwtime / numtrials
+print("Time for  rz: %f" % (rztime / numtrials))
+print("Time for rzw: %f" % (rzwtime / numtrials))
 
-print "rzerrs:"
-print "  avg: %6.3f %6.3f %6.3f" % tuple(rzerrs.mean(axis=0))
-print "  std: %6.3f %6.3f %6.3f" % tuple(rzerrs.std(axis=0))
+print("rzerrs:")
+print("  avg: %6.3f %6.3f %6.3f" % tuple(rzerrs.mean(axis=0)))
+print("  std: %6.3f %6.3f %6.3f" % tuple(rzerrs.std(axis=0)))
 
-print "rzwerrs:"
-print "  avg: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.mean(axis=0))
-print "  std: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.std(axis=0))
+print("rzwerrs:")
+print("  avg: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.mean(axis=0)))
+print("  std: %6.3f %6.3f %6.3f %6.3f" % tuple(rzwerrs.std(axis=0)))

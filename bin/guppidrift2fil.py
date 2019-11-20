@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
 #Begun on 2/13/2014 from a copy of psrfits2fil.py //NEG-D//
+from __future__ import print_function
+from builtins import range
 import numpy as np
-import pyfits
-import filterbank
+from astropy.io import fits as pyfits
+from presto import filterbank
 import optparse
 import sys
 import os
@@ -216,8 +218,8 @@ def main(fits_fn, outfn, nbits, \
     # band will need to be flipped
     if firstfits['SUBINT'].header['CHAN_BW'] > 0:
         flip_band=True
-        print "\nFits file frequencies in ascending order."
-        print "\tFlipping frequency band.\n"
+        print("\nFits file frequencies in ascending order.")
+        print("\tFlipping frequency band.\n")
     else:
         flip_band=False
 
@@ -227,35 +229,35 @@ def main(fits_fn, outfn, nbits, \
         raise ValueError('Does not support %d-bit data' % input_nbits)
 
     if nbits != 32:
-        print "\nCalculating statistics on first subintegration..."
+        print("\nCalculating statistics on first subintegration...")
         subint0 = read_subint(firstfits,0,nchan,nsamps, \
                         apply_weights, apply_scales, apply_offsets, \
                         input_nbits=input_nbits)
         #new_max = np.mean(subint0) + 3*np.std(subint0)
         new_max = 3 * np.median(subint0)
-        print "\t3*median =",new_max
+        print("\t3*median =",new_max)
         if new_max > 2.0**nbits:
             scale = True
             scale_fac = new_max / ( 2.0**nbits )
-            print "\tScaling data by",1/scale_fac
-            print "\tValues larger than",new_max,"(pre-scaling) "\
-                  "will be set to",2.0**nbits - 1,"\n"
+            print("\tScaling data by",1/scale_fac)
+            print("\tValues larger than",new_max,"(pre-scaling) "\
+                  "will be set to",2.0**nbits - 1,"\n")
                   
         else:
             scale = False
             scale_fac = 1
-            print "\tNo scaling necessary"
-            print "\tValues larger than",2.0**nbits-1,"(2^nbits) will "\
-                  "be set to ",2.0**nbits-1,"\n"
+            print("\tNo scaling necessary")
+            print("\tValues larger than",2.0**nbits-1,"(2^nbits) will "\
+                  "be set to ",2.0**nbits-1,"\n")
     else:
         scale_fac = 1
-        print "\nNo scaling necessary for 32-bit float output file."
+        print("\nNo scaling necessary for 32-bit float output file.")
 
     firstfits.close()
 
     fits = [pyfits.open(filename,memmap=True) for filename in fits_fn]
 
-    print "Writing data..."
+    print("Writing data...")
     sys.stdout.flush()
     oldpcnt = ""
     for i in range(skip+1,output_subints+skip+1):
@@ -266,17 +268,17 @@ def main(fits_fn, outfn, nbits, \
                     input_nbits=input_nbits)
         if flip_band:
             subint = np.fliplr(subint)
-	subint /= scale_fac
-	outfil.append_spectra(subint)
-	pcnt = "%d" % (i*100.0/output_subints)
-	if pcnt != oldpcnt:
-            sys.stdout.write("% 4s%% complete\r" % pcnt)
-            sys.stdout.flush()
+    subint /= scale_fac
+    outfil.append_spectra(subint)
+    pcnt = "%d" % (i*100.0/output_subints)
+    if pcnt != oldpcnt:
+        sys.stdout.write("% 4s%% complete\r" % pcnt)
+        sys.stdout.flush()
 
-    print "Done               "
+    print("Done               ")
     outfil.close()
 
-    print "Runtime:",time.time() - start
+    print("Runtime:",time.time() - start)
 
 if __name__=='__main__':
     parser = optparse.OptionParser(prog='guppidrift2fil.py', \
@@ -309,7 +311,7 @@ if __name__=='__main__':
     
     fits_fn = args
 
-    print fits_fn
+    print(fits_fn)
 
     if options.outfn:
         outfn = options.outfn

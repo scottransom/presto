@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import os, struct, presto, sys
+from __future__ import print_function
+import os, struct, sys
+from presto import presto
 
 telescope_ids = {"Fake": 0, "Arecibo": 1, "Ooty": 2, "Nancay": 3,
                  "Parkes": 4, "Jodrell": 5, "GBT": 6, "GMRT": 7,
@@ -9,20 +11,24 @@ machine_ids = {"FAKE": 0, "PSPM": 1, "Wapp": 2,"AOFTM": 3,
                "BCPM1": 4, "OOTY": 5, "SCAMP": 6, 
                "GBT Pulsar Spigot": 7, "SPIGOT": 7}
 
+
 def prep_string(string):
     return struct.pack('i', len(string))+string
+
 
 def prep_double(name, value):
     return prep_string(name)+struct.pack('d', float(value))
 
+
 def prep_int(name, value):
     return prep_string(name)+struct.pack('i', int(value))
+
 
 def infodata_to_sigproc_header(inf):
     hdr = prep_string("HEADER_START")
     hdr += prep_int("telescope_id", telescope_ids[inf.telescope.strip()])
-    if (len(inf.instrument.split()) > 1):
-        if (inf.instrument.split()[0]=="Multibeam"):
+    if len(inf.instrument.split()) > 1:
+        if inf.instrument.split()[0]=="Multibeam":
             hdr += prep_int("machine_id", machine_ids["SCAMP"])
     else:
         hdr += prep_int("machine_id", machine_ids[inf.instrument.strip()])
@@ -47,9 +53,10 @@ def infodata_to_sigproc_header(inf):
     hdr += prep_string("HEADER_END")
     return hdr
 
+
 if __name__ == "__main__":
-    if len(sys.argv)==1:
-        print "\nusage:  dat2tim.py file.dat\n"
+    if len(sys.argv) == 1:
+        print("\nusage:  dat2tim.py file.dat\n")
         sys.exit()
     if sys.argv[1].endswith(".dat"):
         basefilenm = sys.argv[1][:sys.argv[1].rfind(".dat")]

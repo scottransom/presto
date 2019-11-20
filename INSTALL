@@ -15,10 +15,9 @@ Basic steps to install:
 
   If you are on a modern Intel processor and have a recent version
   of GCC, you can get much improved performance by adding:
-  --enable-sse2 --enable-avx
+  --enable-sse --enable-sse2 --enable-avx --enable-avx2 --enable-fma
 
-  Note that Ubuntu has good FFTW packages now (libfftw3-bin and
-  libfftw3-dev).
+  Ubuntu has good FFTW packages: libfftw3-bin and libfftw3-dev
 
 2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
   You need the X-windows and postscript drivers at a minimum.
@@ -29,7 +28,7 @@ Basic steps to install:
   environment variable specified to allow the programs to link and to
   allow PGPLOT to find its important files.
 
-  Note that Ubuntu has good PGPLOT packages now (pgplot5).
+  Ubuntu has a good PGPLOT package: pgplot5
 
 3.  Install TEMPO.  Make sure to set the TEMPO environment variable.
   http://tempo.sourceforge.net/
@@ -50,8 +49,7 @@ Basic steps to install:
   a pulsar data standard that external tools can actually
   view!  How about that!)
 
-  Once again, Ubuntu has CFITSIO packages (libcfitsio3 and
-  libcfitsio3-dev)!
+  Ubuntu has CFITSIO packages: libcfitsio3 and libcfitsio3-dev
 
 6.  Define the PRESTO environment variable to the top level
   directory of the PRESTO distribution (i.e. this directory).
@@ -75,7 +73,7 @@ Basic steps to install:
   you will need to do a 'make mpi' as well.
 
 11.  The required libraries and miscellaneous files will be
-  located in $PRESTO/lib.  The executable will be in $PRESTO/bin.
+  located in $PRESTO/lib.  The executables will be in $PRESTO/bin.
   You may copy or move the executables wherever you like, but 
   the library files should stay put.  (That's why you define the 
   PRESTO variable -- so the routines can find them).
@@ -83,7 +81,9 @@ Basic steps to install:
   Since dynamic linking will use $PRESTO/lib, you will need to make
   sure that that is in your LD_LIBRARY_PATH environment variable (or
   in some other way let your system know where to find the dynamic
-  libraries).  Similarly, you will want $PRESTO/bin in your PATH.
+  libraries).  Similarly, you will want $PRESTO/bin in your PATH, or
+  you can copy/link all of the files that are in $PRESTO/bin to
+  somewhere in your path.
 
 12.  If you want to save some disk space, do a 'make clean' in
   the 'src' directory.  This will leave the libraries and
@@ -92,21 +92,27 @@ Basic steps to install:
 
 13.  If you want to use all the python routines (which if you are
   doing anything but the most rudimentary analyses you will want 
-  to), you need Python >= version 2.7, and Numpy/Scipy
+  to), you need Python >= version 2.7 or >= 3.6, and Numpy/Scipy
   http://www.numpy.org  and  http://www.scipy.org
   In general, the following should work:
-     "cd $PRESTO/python ; make ; make fftfit"
-  If it doesnt, you will probably need to edit the Makefile 
-  or setup.py (one problem that is common is that ppgplot_libraries
-  sometimes needs "gfortran" added...).  Note that in order to
-  get python to find the modules and libraries, you should make
-  sure that your PYTHONPATH environment variable contains the
-  directory $PRESTO/lib/python.
+     "cd $PRESTO ; pip install ."
+  if you are using a virtual environment or have permissions for
+  installing normal Python packages.  If not, you may need to
+  install as an administrator or with the "--user" flag.  With
+  this new and better Python installation you do *not* need
+  to set the PYTHONPATH environment variable anymore and so you
+  should ensure that it doesn't contain $PRESTO/lib/python as in
+  the past.
+
+  If you want to test some of the Python code (especially the
+  trickiest bits to get compiled and installed), you can run:
+     "python tests/test_presto_python.py"
+  and you should get a bunch of tests and a bunch of "success"es.
 
 14.  Go find pulsars!
 
 Scott Ransom
-July 2019
+November 2019
 
 -----------------------------------------------------------------
 
@@ -120,17 +126,19 @@ compiling and running:
   -- Is TEMPO set to the top-level TEMPO source directory?
   -- Is PGPLOT_DIR set to the location of the PGPLOT utility files?
      (Note: On Ubuntu, that should be /usr/lib/pgplot5)
-  -- Is $PRESTO/bin in your PATH?
-  -- Is $PRESTO/lib in your LD_LIBRARY_PATH?
-  -- Is $PRESTO/lib/python in your PYTHONPATH?
+  -- Is $PRESTO/bin in your PATH? (It should be!)
+  -- Is $PRESTO/lib in your LD_LIBRARY_PATH? (It should be!)
+  -- Is $PRESTO/lib/python in your PYTHONPATH? (It shouldn't be now!)
 
 2.  Have you have installed the relevant -dev packages for glib2, FFTW
   and CFITSIO if you are using a Debian-based Linux distribution?
   Here are the required packages:
+    gfortran
     pgplot5
-	libcfitsio3-dev
+	libcfitsio-dev
 	libfftw3-dev
-	libpng12-dev
+	libpng-dev
+    libx11-dev
 	libglib2.0-dev
 
 3.  If you are using a Mac, Paul Ray has been running PRESTO a lot and
@@ -150,15 +158,10 @@ compiling and running:
    src/backend_common.c
 
    For python, you will need to install numpy, scipy, etc. using
-   MacPorts or pip, as you prefer.  Currently this must be Python 2.7,
-   but soon PRESTO will switch to Python 3.6 or later.
+   MacPorts or pip, as you prefer.
 
-   Next, edit python/Makefile to make sure that the version of f2py
-   you have installed is called.  Instead of f2py, you may need to
-   call f2py-2.7, for example.
-
-   Finally, in python/setup.py add "/opt/local/include" to
-   include_dirs.
+   Finally, in $PRESTO/setup.py you might need to add
+   "/opt/local/include" to the include_dirs.
 
    Then, just follow the PRESTO installation instructions (cd src;
-   make; make makewisdom; cd ../python ; make)
+   make; make makewisdom; cd .. ; pip install .)
