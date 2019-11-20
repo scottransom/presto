@@ -125,25 +125,25 @@ often required when working with pulsar data such as time conversions,
 Fourier transforms, time series and FFT exploration, byte-swapping,
 etc.
 
-The Fourier-Domain acceleration search technique that PRESTO uses in
-the routine accelsearch is described in [Ransom, Eikenberry, and
-Middleditch
+**References**: The Fourier-Domain acceleration search technique
+that PRESTO uses in the routine `accelsearch` is described in
+[Ransom, Eikenberry, and Middleditch
 (2002)](https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R/abstract),
 the "jerk" search capability is described in
 [Andersen & Ransom (2018)](https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A/abstract),
-and the phase-modulation search technique used by search_bin is described in
+and the phase-modulation search technique used by `search_bin` is described in
 [Ransom, Cordes, and Eikenberry
 (2003)](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract).  Some
 other basic information about PRESTO can be found in my
-[thesis](http://www.cv.nrao.edu/~sransom/ransom_thesis_2001.pdf).  I
-will eventually get around to finishing the documentation for PRESTO,
-but until then you should know that each routine returns its basic
-usage when you call it with no arguments.  I am also willing to
-provide limited support via email or telephone (434-296-0320).
+[thesis](http://www.cv.nrao.edu/~sransom/ransom_thesis_2001.pdf).
 
-**Tutorial**: Note that in the "docs" directory there is a tutorial
-which walks you through all the main steps of finding pulsars using
-PRESTO.
+**Support/Docs**:  I may eventually get around to finishing the
+documentation for PRESTO, but until then you should know that each
+routine returns its basic usage when you call it with no arguments.
+I am also willing to provide limited support via email (see below).
+
+**Tutorial**: There is a tutorial in the "docs" directory which walks
+you through all the main steps of finding pulsars using PRESTO.
 
 ## Getting it: 
 The PRESTO source code is released under the GPL and
