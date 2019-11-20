@@ -23,12 +23,12 @@ recycled and/or binary pulsars!**
    so that PYTHONPATH is not needed, and all of the various modules
    are now under a top-level "presto" module.  For example, to
    use the psr_utils module you would now do:
-
-    import presto.psr_utils as pu
-
+   
+   `import presto.psr_utils as pu`
+   
    rather than
 
-    import psr_utils as pu
+   `import psr_utils as pu`
 
    All of these changes will likely lead to code breakage and bugs!
 
@@ -57,13 +57,13 @@ recycled and/or binary pulsars!**
    for v2.2 in the `v2.2maint` branch of PRESTO.  You can get it
    using:
 
-    git checkout -b v2.2maint origin/v2.2maint
+   `git checkout -b v2.2maint origin/v2.2maint`
 
    and then installing as per the INSTALL file.
 
 ## Improvements in Version 2.1:
- * `accelsearch` now has a "jerk" search capability (thanks to UVA
-   undergrad Bridget Andersen for help with this!).  This makes
+ * `accelsearch` now has a "jerk" search capability (thanks to (then)
+   UVA undergrad Bridget Andersen for help with this!).  This makes
    searches take a *lot* longer, but definitely improves sensitivity
    when the observation duration is 5-15% of the duration of the orbital
    period.  Typically -wmax should be set to 3-5x -zmax (and you probably
