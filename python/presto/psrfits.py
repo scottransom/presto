@@ -21,8 +21,8 @@ import astropy.io.fits as pyfits
 from astropy import coordinates, units
 import astropy.time as aptime
 import numpy as np
-from presto import psr_utils
 from presto import spectra
+from presto import psr_constants as pc
 
 # Regular expression for parsing DATE-OBS card's format.
 date_obs_re = re.compile(r"^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-"
@@ -110,9 +110,9 @@ class PsrfitsFile(object):
         shp = sdata.squeeze().shape
         if self.nbits < 8: # Unpack the bytes data
             if (shp[0] != self.nsamp_per_subint) and \
-                    (shp[1] != self.nchan * self.nbits / 8):
+                    (shp[1] != self.nchan * self.nbits // 8):
                 sdata = sdata.reshape(self.nsamp_per_subint,
-                                      self.nchan * self.nbits / 8)
+                                      self.nchan * self.nbits // 8)
             if self.nbits == 4: data = unpack_4bit(sdata)
             elif self.nbits == 2: data = unpack_2bit(sdata)
             else: data = np.asarray(sdata)
@@ -285,7 +285,7 @@ class SpectraInfo(object):
                 self.chan_dm = primary['CHAN_DM']
 
             self.start_MJD[ii] = primary['STT_IMJD'] + (primary['STT_SMJD'] + \
-                                    primary['STT_OFFS'])/psr_utils.SECPERDAY
+                                    primary['STT_OFFS'])/pc.SECPERDAY
             
             # Are we tracking
             track = (primary['TRK_MODE'] == "TRACK")
@@ -322,7 +322,7 @@ class SpectraInfo(object):
             self.time_per_subint = self.dt * self.spectra_per_subint
 
             # This is the MJD offset based on the starting subint number
-            MJDf = (self.time_per_subint * self.start_subint[ii])/psr_utils.SECPERDAY
+            MJDf = (self.time_per_subint * self.start_subint[ii])/pc.SECPERDAY
             # The start_MJD values should always be correct
             self.start_MJD[ii] += MJDf
 
@@ -331,7 +331,7 @@ class SpectraInfo(object):
             if MJDf < 0.0:
                 raise ValueError("File %d seems to be from before file 0!" % ii)
 
-            self.start_spec[ii] = (MJDf * psr_utils.SECPERDAY / self.dt + 0.5)
+            self.start_spec[ii] = (MJDf * pc.SECPERDAY / self.dt + 0.5)
 
             # Now pull stuff from the columns
             subint_hdu = hdus['SUBINT']
@@ -467,7 +467,7 @@ class SpectraInfo(object):
         if self.bits_per_sample < 8:
             self.bytes_per_spectra = self.samples_per_spectra
         else:
-            self.bytes_per_spectra = (self.bits_per_sample * self.samples_per_spectra)/8
+            self.bytes_per_spectra = (self.bits_per_sample * self.samples_per_spectra) // 8
         self.samples_per_subint = self.samples_per_spectra * self.spectra_per_subint
         self.bytes_per_subint = self.bytes_per_spectra * self.spectra_per_subint
 
@@ -481,7 +481,7 @@ class SpectraInfo(object):
         # Compute the bandwidth
         self.BW = self.num_channels * self.df
         self.mjd = int(self.start_MJD[0])
-        self.secs = (self.start_MJD[0] % 1)*psr_utils.SECPERDAY
+        self.secs = (self.start_MJD[0] % 1)*pc.SECPERDAY
 
     def __str__(self):
         """Format spectra_info's information into a easy to
@@ -539,8 +539,8 @@ class SpectraInfo(object):
             result.append("                DATA column = %d" % self.data_col)
             result.append("            bits per sample = %d" % self.bits_per_sample)
             if self.bits_per_sample < 8:
-                spectmp = (self.bytes_per_spectra * self.bits_per_sample) / 8
-                subtmp = (self.bytes_per_subint * self.bits_per_sample) / 8
+                spectmp = (self.bytes_per_spectra * self.bits_per_sample) // 8
+                subtmp = (self.bytes_per_subint * self.bits_per_sample) // 8
             else:
                 spectmp = self.bytes_per_spectra
                 subtmp = self.bytes_per_subint

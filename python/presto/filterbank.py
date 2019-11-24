@@ -154,9 +154,9 @@ class FilterbankFile(object):
         self.header, self.header_size = read_header(self.filename)
         self.frequencies = self.fch1 + self.foff*np.arange(self.nchans)
         self.is_hifreq_first = (self.foff < 0)
-        self.bytes_per_spectrum = self.nchans*self.nbits / 8
+        self.bytes_per_spectrum = self.nchans*self.nbits // 8
         data_size = os.path.getsize(self.filename)-self.header_size
-        self.nspec = data_size/self.bytes_per_spectrum
+        self.nspec = data_size // self.bytes_per_spectrum
        
         # Check if this file is a folded-filterbank file
         if 'npuls' in self.header and 'period' in self.header and \
