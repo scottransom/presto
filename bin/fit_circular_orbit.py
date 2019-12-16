@@ -4,6 +4,7 @@ from builtins import range
 import sys
 import numpy as num
 from presto import psr_utils as pu
+from presto import psr_constants as pc
 from presto import parfile
 from presto import bestprof
 import matplotlib.pyplot as plt
@@ -45,8 +46,8 @@ def parse_eph(filenm):
 
 def orbeqn(Ppxt, times):
     # P = Ppsr, p = Porb, x = a*sin(i)/s, t = T_o
-    phi = pu.TWOPI*(times - Ppxt[3])*86400.0/Ppxt[1]
-    return Ppxt[0]*(1.0+pu.TWOPI*Ppxt[2]/Ppxt[1]*num.cos(phi))
+    phi = pc.TWOPI*(times - Ppxt[3])*86400.0/Ppxt[1]
+    return Ppxt[0]*(1.0+pc.TWOPI*Ppxt[2]/Ppxt[1]*num.cos(phi))
 
 
 def funct(Ppxt, times, measured):
