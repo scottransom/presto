@@ -335,17 +335,17 @@ if __name__ == '__main__':
                     continue
                 # Interpolate the data
                 if (len(template) > fold_pfd.proflen):
-                    prof = psr_utils.linear_interpolate(prof, len(template)/fold_pfd.proflen)
+                    prof = psr_utils.linear_interpolate(prof, len(template)//fold_pfd.proflen)
                     if not ii and not jj:
                         sys.stderr.write("Note: Interpolating the data for '%s'\n"%fold_pfd.filenm)
                 # Interpolate the template
                 elif (1):
-                    template = psr_utils.linear_interpolate(template, fold_pfd.proflen/len(template))
+                    template = psr_utils.linear_interpolate(template, fold_pfd.proflen//len(template))
                     if not ii and not jj:
                         sys.stderr.write("Note: Interpolating the template for '%s'\n"%fold_pfd.filenm)
                 # Downsample the data (Probably not a good idea)
                 else:
-                    prof = psr_utils.downsample(prof, fold_pfd.proflen/len(template))
+                    prof = psr_utils.downsample(prof, fold_pfd.proflen//len(template))
                     if not ii and not jj:
                         sys.stderr.write("Note:  Downsampling the data for '%s'\n"%fold_pfd.filenm)
 
