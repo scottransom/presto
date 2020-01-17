@@ -33,7 +33,7 @@ class pfd(object):
          self.ndmfact, self.npfact) = struct.unpack(swapchar+"i"*7, infile.read(7*4))
 
         self.filenm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
-        self.candnm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
+        self.candnm = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0]).decode("utf-8")
         self.telescope = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0]).decode("utf-8")
         self.pgdev = infile.read(struct.unpack(swapchar+"i", infile.read(4))[0])
         test = infile.read(16)
@@ -175,11 +175,12 @@ class pfd(object):
         infile.close()
         self.barysubfreqs = None
         if self.avgvoverc==0:
-            if self.candnm.startswith(b"PSR_"):
+            if self.candnm.startswith("PSR_"):
                 # If this doesn't work, we should try to use the barycentering calcs
                 # in the presto module.
                 try:
-                    self.polycos = polycos.polycos(self.candnm[4:],
+                    psrname = self.candnm[4:]
+                    self.polycos = polycos.polycos(psrname,
                                                    filenm=self.pfd_filename+".polycos")
                     midMJD = self.tepoch + 0.5*self.T/86400.0
                     self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
