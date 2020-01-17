@@ -18,12 +18,7 @@ def span(Min, Max, Number):
     span(Min, Max, Number):
         Create a range of 'Num' floats given inclusive 'Min' and 'Max' values.
     """
-    assert isintorlong(Number)
-    if isintorlong(Min) and isintorlong(Max) and \
-            (Max - Min) % (Number - 1) != 0:
-        Max = float(Max)  # force floating points
-    return Min + (Max - Min) * Num.arange(Number) / (Number - 1)
-
+    return Num.linspace(Min, Max, Number)
 
 def distance(width):
     """
@@ -1153,7 +1148,7 @@ def autocorr(x):
         points are symmetric (corresponding to negative lags).
     """
     fftx = FFT.rfft(x)
-    acf = FFT.irfft(fftx * Num.conjugate(fftx), x.size)[:len(x) / 2 + 1]
+    acf = FFT.irfft(fftx * Num.conjugate(fftx), x.size)[:len(x) // 2 + 1]
     return acf / acf[0]
 
 
@@ -1192,7 +1187,7 @@ def downsample(vector, factor):
     if (len(vector) % factor):
         print("Length of 'vector' is not divisible by 'factor'=%d!" % factor)
         return 0
-    newvector = Num.reshape(vector, (len(vector) / factor, factor))
+    newvector = Num.reshape(vector, (len(vector) // factor, factor))
     return Num.add.reduce(newvector, 1)
 
 
@@ -1206,7 +1201,7 @@ def measure_phase_corr(profile, template, zoom=10):
     zoomprof = zoomtemp = zoom
     if (len(template) != len(profile)):
         if (len(template) % len(profile) == 0):
-            zoomprof = zoom * len(template) / len(profile)
+            zoomprof = zoom * len(template) // len(profile)
         else:
             print("Warning!:  The lengths of the template (%d) and profile (%d)" % \
                   (len(template), len(profile)))
