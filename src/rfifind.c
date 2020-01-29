@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     FILE *bytemaskfile;
     float **dataavg = NULL, **datastd = NULL, **datapow = NULL;
     float *chandata = NULL, powavg, powstd, powmax;
-    float inttime, norm, fracterror = RFI_FRACTERROR;
+    float inttime, norm = 0.0, fracterror = RFI_FRACTERROR;
     float *rawdata = NULL;
     unsigned char **bytemask = NULL;
     short *srawdata = NULL;
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
     presto_interptype interptype;
     rfi *rfivect = NULL;
     mask oldmask, newmask;
-    fftcand *cands;
+    fftcand *cands = NULL;
     infodata idata;
     Cmdline *cmd;
 
@@ -364,15 +364,26 @@ int main(int argc, char *argv[])
                     avg_var(chandata, ptsperint, &davg, &dvar);
                     dataavg[ii][jj] = davg;
                     datastd[ii][jj] = sqrt(dvar);
-                    realfft(chandata, ptsperint, -1);
                     numcands = 0;
-                    norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
-                    if (norm == 0.0)
-                        norm = (chandata[0] == 0.0) ? 1.0 : chandata[0];
-                    cands = search_fft((fcomplex *) chandata, ptsperint / 2,
-                                       lobin, ptsperint / 2, harmsum,
-                                       numbetween, interptype, norm, cmd->freqsigma,
-                                       &numcands, &powavg, &powstd, &powmax);
+                    powmax = 0.0;
+                    // Don't search the power spectrum if there is little to no variance
+                    if (datastd[ii][jj] > 1e-4) {
+                        realfft(chandata, ptsperint, -1);
+                        norm = datastd[ii][jj] * datastd[ii][jj] * ptsperint;
+                        cands = search_fft((fcomplex *) chandata, ptsperint / 2,
+                                           lobin, ptsperint / 2, harmsum,
+                                           numbetween, interptype, norm, cmd->freqsigma,
+                                           &numcands, &powavg, &powstd, &powmax);
+                        // Make sure that nothing bad happened in the FFT search
+                        if (!isnormal(powmax)) {
+                            printf("WARNING:  FFT search returned bad powmax (%f) in"
+                                   "int=%d and chan=%d.  Fixing.\n",
+                                   powmax, ii, jj);
+                            powmax = 0.0;
+                            numcands = 0;
+                            free(cands);
+                        }
+                    }
                     datapow[ii][jj] = powmax;
 
                     /* Record the birdies */
