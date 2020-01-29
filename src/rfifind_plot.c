@@ -291,7 +291,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
         float tt, ft, th, fh;   /* thin and fat thicknesses and heights */
         float lm, rm, tm, bm;   /* LRTB margins */
         float xarr[2], yarr[2];
-        char outdev[100];
+        char outdev[300];
         int ii, mincol, maxcol, numcol;
 
         /*Set the PGPLOT device to an X-Window */
@@ -340,11 +340,16 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
                 int badpows = 0;
                 for (ii = 0; ii < numpows; ii++) {
                     if (!isnormal(*(datapow[0]+ii))) {
-                        *(datapow[0]+ii)=0.0;
-                        badpows++;
+                        if (*(datapow[0]+ii) != 0.0) {
+                            printf("WARNING:  bad power (%f) at int=%d, chan=%d\n",
+                                   *(datapow[0]+ii), ii/numchan, ii%numchan);
+                            *(datapow[0]+ii)=0.0;
+                            badpows++;
+                        }
                     }
                 }
-                printf("WARNING:  Found %d bad powers in the datapow array.  "
+                if (badpows)
+                    printf("WARNING:  Found %d bad powers in the datapow array.  "
                            "Zeroing them out.\n", badpows);
             }
             find_min_max_arr(numpows, datapow[0], &min, &max);
@@ -755,7 +760,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
         cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (MHz)");
 
         {                       /* Add the Data Info area */
-            char out[200], out2[100];
+            char out[300], out2[300];
             float dy = 0.025;
 
             cpgsvp(0.0, 1.0, 0.0, 1.0);
@@ -880,7 +885,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
 
         {                       /* Plot the Mask */
             unsigned char byte;
-            char temp[200];
+            char temp[300];
             float **plotmask, rr, gg, bb, page;
 
             plotmask = gen_fmatrix(numint, numchan);
@@ -1005,7 +1010,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
         if ((ct == 0 && rfips) || (ct == 1 && rfixwin)) {       /* Plot the RFI instances */
             int maxcol, mincol, numperpage = 25, numtoplot;
             float dy = 0.035, top = 0.95, rr, gg, bb;
-            char temp[200];
+            char temp[300];
 
             qsort(rfivect, numrfi, sizeof(rfi), compare_rfi_freq);
             /* qsort(rfivect, numrfi, sizeof(rfi), compare_rfi_sigma); */
