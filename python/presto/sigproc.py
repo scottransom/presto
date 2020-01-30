@@ -103,7 +103,7 @@ def read_string(filfile, stdout=False):
     strval = filfile.read(strlen)
     if stdout:
         print("  string = '%s'"%strval)
-    return strval
+    return strval.decode('utf-8')
 
 def read_paramname(filfile, stdout=False):
     paramname = read_string(filfile, stdout=False)
