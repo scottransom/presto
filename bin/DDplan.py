@@ -2,8 +2,10 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from builtins import zip
-from numpy import *
+import numpy as np
 from presto.Pgplot import *
+import presto.filterbank as fil
+import presto.psrfits as pfits
 
 class observation(object):
     def __init__(self, dt, f_ctr, BW, numchan, cDM):
@@ -54,20 +56,20 @@ class dedisp_method(object):
         if (cross_DM > hiDM):
             cross_DM = hiDM
         if (numDMs==0):
-            self.numDMs = int(ceil((cross_DM-loDM)/dDM))
+            self.numDMs = int(np.ceil((cross_DM-loDM)/dDM))
             if (numsub):
-                self.numprepsub = int(ceil(self.numDMs*dDM / self.dsubDM))
+                self.numprepsub = int(np.ceil(self.numDMs*dDM / self.dsubDM))
                 self.numDMs = self.numprepsub * DMs_per_prepsub
         else:
             self.numDMs = numDMs
         self.hiDM = loDM + self.numDMs*dDM
-        self.DMs = arange(self.numDMs, dtype='d')*dDM + loDM
+        self.DMs = np.arange(self.numDMs, dtype='d')*dDM + loDM
     def chan_smear(self, DM):
         """
         Return the smearing (in ms) in each channel at the specified DM
         """
         try:
-            DM = where(DM-cDM==0.0, cDM+self.dDM/2.0, DM)
+            DM = np.where(DM-cDM==0.0, cDM+self.dDM/2.0, DM)
         except TypeError:
             if (DM-cDM==0.0): DM = cDM+self.dDM/2.0
         return dm_smear(DM, self.obs.chanwidth, self.obs.f_ctr, self.obs.cDM)
@@ -78,30 +80,30 @@ class dedisp_method(object):
         (if numsub > 0) and the smearing over the full BW assuming the
         worst-case DM error.
         """
-        return sqrt((1000.0*self.obs.dt)**2.0 +
-                    (1000.0*self.obs.dt*self.downsamp)**2.0 +
-                    self.BW_smearing**2.0 +
-                    self.sub_smearing**2.0 +
-                    self.chan_smear(DM)**2.0)
+        return np.sqrt((1000.0*self.obs.dt)**2.0 +
+                       (1000.0*self.obs.dt*self.downsamp)**2.0 +
+                       self.BW_smearing**2.0 +
+                       self.sub_smearing**2.0 +
+                       self.chan_smear(DM)**2.0)
     def DM_for_smearfact(self, smearfact):
         """
         Return the DM where the smearing in a single channel is a factor smearfact
         larger than all the other smearing causes combined.
         """
-        other_smear = sqrt((1000.0*self.obs.dt)**2.0 +
-                           (1000.0*self.obs.dt*self.downsamp)**2.0 +
-                           self.BW_smearing**2.0 +
-                           self.sub_smearing**2.0)
+        other_smear = np.sqrt((1000.0*self.obs.dt)**2.0 +
+                              (1000.0*self.obs.dt*self.downsamp)**2.0 +
+                              self.BW_smearing**2.0 +
+                              self.sub_smearing**2.0)
         return smearfact*0.001*other_smear/self.obs.chanwidth*0.0001205*self.obs.f_ctr**3.0 + self.obs.cDM
     def DM_for_newparams(self, dDM, downsamp):
         """
         Return the DM where the smearing in a single channel is causes the same smearing
         as the effects of the new dosnsampling rate and dDM.
         """
-        other_smear = sqrt((1000.0*self.obs.dt)**2.0 +
-                           (1000.0*self.obs.dt*downsamp)**2.0 +
-                           BW_smear(dDM, self.obs.BW, self.obs.f_ctr)**2.0 +
-                           self.sub_smearing**2.0)
+        other_smear = np.sqrt((1000.0*self.obs.dt)**2.0 +
+                              (1000.0*self.obs.dt*downsamp)**2.0 +
+                              BW_smear(dDM, self.obs.BW, self.obs.f_ctr)**2.0 +
+                              self.sub_smearing**2.0)
         return 0.001*other_smear/self.obs.chanwidth*0.0001205*self.obs.f_ctr**3.0
     def plot(self, work_fract):
         DMspan = self.DMs[-1]-self.DMs[0]
@@ -109,26 +111,26 @@ class dedisp_method(object):
         hiDM  = self.DMs[-1] - DMspan*0.02
         midDM = self.DMs[0]  + DMspan*0.5
         dt_ms = 1000.0*self.obs.dt*self.downsamp
-        plotxy(log10(self.total_smear(self.DMs)), self.DMs, width=4)
+        plotxy(np.log10(self.total_smear(self.DMs)), self.DMs, width=4)
         ppgplot.pgslw(1)
         ppgplot.pgsch(0.8)
-        ppgplot.pgptxt(midDM, log10(1.1*self.total_smear(midDM)), 90.0, 0.0,
+        ppgplot.pgptxt(midDM, np.log10(1.1*self.total_smear(midDM)), 90.0, 0.0,
                        "%d (%.1f%%)" % (self.numDMs, 100.0*work_fract))
         # Sample time
-        plotxy(log10(zeros(self.numDMs)+dt_ms), self.DMs, width=1, color='green')
-        ppgplot.pgptxt(loDM, log10(0.85*dt_ms), 0.0, 0.0,
+        plotxy(np.log10(np.zeros(self.numDMs)+dt_ms), self.DMs, width=1, color='green')
+        ppgplot.pgptxt(loDM, np.log10(0.85*dt_ms), 0.0, 0.0,
                        "%g" % dt_ms)
         # DM stepsize smearing
-        plotxy(log10(zeros(self.numDMs)+self.BW_smearing), self.DMs, width=1, color='red')
-        ppgplot.pgptxt(hiDM, log10(0.85*self.BW_smearing), 0.0, 1.0,
+        plotxy(np.log10(np.zeros(self.numDMs)+self.BW_smearing), self.DMs, width=1, color='red')
+        ppgplot.pgptxt(hiDM, np.log10(0.85*self.BW_smearing), 0.0, 1.0,
                        "%g" % self.dDM)
         # channel smearing
-        plotxy(log10(self.chan_smear(self.DMs)), self.DMs, width=1, color='blue')
+        plotxy(np.log10(self.chan_smear(self.DMs)), self.DMs, width=1, color='blue')
         # subband smearing
         if (self.numsub):
-            plotxy(log10(zeros(self.numDMs)+self.sub_smearing),
+            plotxy(np.log10(np.zeros(self.numDMs)+self.sub_smearing),
                    self.DMs, width=1, color='purple')
-            ppgplot.pgptxt(midDM, log10(0.85*self.sub_smearing), 0.0, 0.5,
+            ppgplot.pgptxt(midDM, np.log10(0.85*self.sub_smearing), 0.0, 0.5,
                            "%g (%d)" % (self.dsubDM, self.numprepsub))
         ppgplot.pgsci(1)
         ppgplot.pgsch(1.0)
@@ -147,7 +149,7 @@ def dm_smear(DM, BW, f_ctr, cDM=0.0):
         Return the smearing in ms caused by a 'DM' over a bandwidth
         of 'BW' MHz centered at 'f_ctr' MHz.
     """
-    return 1000.0*fabs(DM-cDM)*BW/(0.0001205*f_ctr**3.0)
+    return 1000.0*np.fabs(DM-cDM)*BW/(0.0001205*f_ctr**3.0)
 
 def BW_smear(DMstep, BW, f_ctr):
     """
@@ -186,10 +188,10 @@ def total_smear(DM, DMstep, dt, f_ctr, BW, numchan, subDMstep, cohdm=0.0, numsub
         (if numsub > 0) and the smearing over the full BW assuming the
         worst-case DM error.
     """
-    return sqrt(2 * (1000.0*dt)**2.0 +
-                dm_smear(DM, BW/numchan, f_ctr, cohdm)**2.0 +
-                subband_smear(subDMstep, numsub, BW, f_ctr)**2.0 + 
-                BW_smear(DMstep, BW, f_ctr)**2.0)
+    return np.sqrt(2 * (1000.0*dt)**2.0 +
+                   dm_smear(DM, BW/numchan, f_ctr, cohdm)**2.0 +
+                   subband_smear(subDMstep, numsub, BW, f_ctr)**2.0 + 
+                   BW_smear(DMstep, BW, f_ctr)**2.0)
 
 def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWIN"):
     """
@@ -222,7 +224,7 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
     min_tot_smearing = total_smear(loDM+0.5*dDM, dDM, obs.dt, obs.f_ctr,
                                    obs.BW, obs.numchan, allow_dDMs[0], cohdm, 0)
     # Minimum channel smearing
-    min_chan_smearing = dm_smear(linspace(loDM, hiDM, 10000), 
+    min_chan_smearing = dm_smear(np.linspace(loDM, hiDM, 10000), 
                                  obs.chanwidth, obs.f_ctr, cohdm).min()
     # Minimum smearing across the obs.BW
     min_BW_smearing = BW_smear(dDM, obs.BW, obs.f_ctr)
@@ -285,25 +287,25 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
             
     # Calculate the DMs to search and the smearing at each
     total_numDMs = sum(numDMs)
-    DMs = zeros(total_numDMs, dtype='d')
-    total_smears = zeros(total_numDMs, dtype='d')
+    DMs = np.zeros(total_numDMs, dtype='d')
+    total_smears = np.zeros(total_numDMs, dtype='d')
 
     # Calculate the DMs and optimal smearing for all the DMs
-    for ii, offset in enumerate(add.accumulate([0]+numDMs[:-1])):
+    for ii, offset in enumerate(np.add.accumulate([0]+numDMs[:-1])):
         DMs[offset:offset+numDMs[ii]] = methods[ii].DMs
         total_smears[offset:offset+numDMs[ii]] = methods[ii].total_smear(methods[ii].DMs)
 
     # Calculate the predicted amount of time that will be spent in searching
     # this batch of DMs as a fraction of the total
     work_fracts = [meth.numDMs/float(meth.downsamp) for meth in methods]
-    work_fracts = asarray(work_fracts)/sum(work_fracts)
+    work_fracts = np.asarray(work_fracts)/sum(work_fracts)
 
     # The optimal smearing
     tot_smear = total_smear(DMs, allow_dDMs[0], obs.dt, obs.f_ctr,
                             obs.BW, obs.numchan, allow_dDMs[0], cohdm, 0)
     # Plot them
-    plotxy(log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
-           rangey=[log10(0.3*min(tot_smear)), log10(2.5*max(tot_smear))],
+    plotxy(np.log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
+           rangey=[np.log10(0.3*min(tot_smear)), np.log10(2.5*max(tot_smear))],
            labx="Dispersion Measure (pc/cm\\u3\\d)", laby="Smearing (ms)",
            device=device)
     ppgplot.pgsch(1.1)
@@ -355,10 +357,51 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
         method.plot(fract)
     print("\n\n")
     closeplot()
+    return methods
+
+dedisp_template1 = """
+from __future__ import print_function
+from builtins import zip
+from builtins import range
+import os
+
+def myexecute(cmd):
+    print("'%s'"%cmd)
+    os.system(cmd)
+
+# By default, do not output subbands
+outsubs = False
+
+"""
+
+dedisp_template2 = """
+
+# Loop over the DDplan plans
+for dDM, dsubDM, dmspercall, downsamp, subcall, startDM in zip(dDMs, dsubDMs, dmspercalls, downsamps, subcalls, startDMs):
+    # Get our downsampling right
+    subdownsamp = downsamp/2
+    datdownsamp = 2
+    if downsamp < 2: subdownsamp = datdownsamp = 1
+    # Loop over the number of calls
+    for ii in range(subcall):
+        subDM = startDM + (ii+0.5)*dsubDM
+        loDM = startDM + ii*dsubDM
+        if outsubs:
+            # First create the subbands
+            myexecute("prepsubband -sub -subdm %.2f -nsub %d -downsamp %d -o %s %s" %
+                      (subDM, nsub, subdownsamp, basename, rawfiles))
+            # And now create the time series
+            subnames = basename+"_DM%.2f.sub[0-9]*"%subDM
+            myexecute("prepsubband -lodm %.2f -dmstep %.2f -numdms %d -downsamp %d -o %s %s" %
+                      (loDM, dDM, dmspercall, datdownsamp, basename, subnames))
+        else:
+            myexecute("prepsubband -nsub %d -lodm %.2f -dmstep %.2f -numdms %d -downsamp %d -o %s %s" %
+                      (nsub, loDM, dDM, dmspercall, datdownsamp, basename, rawfiles))
+"""
     
 def usage():
     print("""
-usage:  DDplan.py [options]
+    usage:  DDplan.py [options] [raw PSRFITS or filterbank file]
   [-h, --help]                    : Display this help
   [-o outfile, --outfile=outfile] : Output .eps plot file (default is xwin)
   [-l loDM, --loDM=loDM]          : Low DM to search   (default = 0 pc cm-3)
@@ -370,17 +413,23 @@ usage:  DDplan.py [options]
   [-t dt, --dt=dt]                : Sample time (s)    (default = 0.000064 s)
   [-s subbands, --subbands=nsub]  : Number of subbands (default = #chan) 
   [-r resolution, --res=res]      : Acceptable time resolution (ms)
+  [-w, --write]                   : Write a dedisp.py file for the plan
+
   The program generates a good plan for de-dispersing raw data.  It
   trades a small amount of sensitivity in order to save computation costs.
+  It will determine the observation parameters from the raw data file
+  if it exists.
 
 """)    
 
 if __name__=='__main__':
-    import getopt, sys
+    import sys
+    import os
+    import getopt
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "ho:l:d:f:b:n:c:t:s:r:",
-                                   ["help", "output=", "loDM=", "hiDM=",
+        opts, args = getopt.getopt(sys.argv[1:], "hwo:l:d:f:b:n:c:t:s:r:",
+                                   ["help", "write", "output=", "loDM=", "hiDM=",
                                     "fctr=", "bw=", "numchan=", "cDM=", "dt=",
                                     "subbands=", "res="])
 
@@ -401,11 +450,55 @@ if __name__=='__main__':
     cDM = 0.0
     ok_smearing = 0.0
     device = "/xwin"
+    write_dedisp = False
+
+    if len(args):
+        fname, ext = os.path.splitext(args[0])
+        if ext==".fil":  # Assume it is filterbank
+            try:
+                hdr, hdr_size = fil.read_header(args[0])
+                dt = hdr['tsamp']
+                numchan = hdr['nchans']
+                BW = np.fabs(hdr['foff']) * numchan
+                fctr = hdr['fch1'] + 0.5 * hdr['foff'] * numchan - 0.5 * hdr['foff']
+                print("""
+Using:
+       dt = %g s
+  numchan = %d
+       BW = %g MHz
+     fctr = %g MHz
+from '%s'
+""" % (dt, numchan, BW, fctr, args[0]))
+            except:
+                print("Cannot read '%s' as SIGPROC filterbank.  Ignoring."%args[0])
+        else: # Assume it is PSRFITS
+            try:
+                pf = pfits.PsrfitsFile(args[0])
+                dt = pf.tsamp
+                numchan = pf.nchan
+                fctr = pf.header["OBSFREQ"]
+                BW = numchan * np.fabs(pf.specinfo.df)
+                print("""
+Using:
+       dt = %g s
+  numchan = %d
+       BW = %g MHz
+     fctr = %g MHz
+from '%s'
+""" % (dt, numchan, BW, fctr, args[0]))
+                if "CHAN_DM" in pf.header:
+                    cDM = pf.header["CHAN_DM"]
+                    if cDM != 0.0:
+                        print("And assuming channels coherently dedispersed at DM = %g pc/cm^3"%cDM)
+            except:
+                print("Cannot read '%s' as PSRFITS.  Ignoring."%args[0])
 
     for o, a in opts:
         if o in ("-h", "--help"):
             usage()
             sys.exit()
+        if o in ("-w", "--write"):
+            write_dedisp = True
         if o in ("-o", "--output"):
             device = a
             if not (device.endswith(".eps") or device.endswith(".ps")):
@@ -434,11 +527,49 @@ if __name__=='__main__':
 
     # The following is an instance of an "observation" class
     obs = observation(dt, fctr, BW, numchan, cDM)
+
+    if write_dedisp: # Always use subbands if writing a dedisp routine
+        if numsubbands==0:
+            divs = [20, 16, 15, 12, 10, 9, 8, 7, 6, 5, 4, 3]
+            for div in divs[::-1]:
+                if numchan % div == 0 and numchan // div >= 32:
+                    numsubbands = numchan // div
+            if numsubbands==0:
+                numsubbands = numchan
+            print("Setting nsub to %d since writing a dedisp.py file"%numsubbands)
+
     # The following function creates the de-dispersion plan
     # The ok_smearing values is optional and allows you to raise the floor
     # and provide a level of smearing that you are willing to accept (in ms)
-    dm_steps(loDM, hiDM, obs, cDM, numsubbands, ok_smearing, device)
+    methods = dm_steps(loDM, hiDM, obs, cDM, numsubbands, ok_smearing, device)
     
+    if write_dedisp:
+        dDMs = [m.dDM for m in methods]
+        dsubDMs = [m.dsubDM for m in methods]
+        startDMs = [m.loDM for m in methods]
+        downsamps = [m.downsamp for m in methods]
+        dmspercalls = [m.DMs_per_prepsub for m in methods]
+        subcalls = [m.numprepsub for m in methods]
+        basename, ext = os.path.splitext(args[0])
+        with open('dedisp_%s.py'%basename, 'w') as f:
+            f.write(dedisp_template1)
+            f.write("nsub = %d\n\n"%numsubbands)
+            f.write("basename = %s\n"%repr(basename))
+            f.write("rawfiles = %s\n\n"%repr(args[0]))
+            f.write("""# dDM steps from DDplan.py
+dDMs        = %s\n"""%repr(dDMs))
+            f.write("""# dsubDM steps
+dsubDMs     = %s\n"""%repr(dsubDMs))
+            f.write("""# downsample factors
+downsamps   = %s\n"""%repr(downsamps))
+            f.write("""# number of calls per set of subbands
+subcalls    = %s\n"""%repr(subcalls))
+            f.write("""# The low DM for each set of DMs
+startDMs    = %s\n"""%repr(startDMs))
+            f.write("""# DMs/call
+dmspercalls = %s\n"""%repr(dmspercalls))
+            f.write(dedisp_template2)
+
     # The following is an instance of an "observation" class
     # Here's one for a "best" resolution GBT search using the SPIGOT
     # Check out how many DMs you need!  Cool.  ;-)
