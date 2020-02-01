@@ -760,7 +760,7 @@ void rfifind_plot(int numchan, int numint, int ptsperint,
         cpgmtxt("T", 1.8, 0.5, 0.5, "Frequency (MHz)");
 
         {                       /* Add the Data Info area */
-            char out[300], out2[300];
+            char out[310], out2[300];
             float dy = 0.025;
 
             cpgsvp(0.0, 1.0, 0.0, 1.0);
