@@ -15,7 +15,21 @@ Exploration and Search TOolkit!
 **PRESTO has discovered over 700 pulsars, including almost 300
 recycled and/or binary pulsars!**
 
-## New in Version 3.0:
+## New in Version 3.0.1:
+ * This is a minor release which fixes several issues and adds some 
+   minor improvements:
+   * Fix of long-standing `rfifind` bug that could cause the program
+     to hang if channels had zero variance
+   * Multiple Python3-related bug fixes
+   * Added `-debug` flag to `prepfold` to allow debugging of TEMPO
+     calls to make polycos
+   * `DDplan.py` can now read observation parameters from filterbank
+     or PSRFITS input files.  And you can write a `dedisp_*.py`
+     dedispersion script, based on the plan, using the `-w` option
+   * The `rednoise` program now writes a corresponding *_red.inf file
+   * Update of the Tutorial document, including a new slide on red noise
+
+## In Version 3.0:
  * This major release of PRESTO includes a massive restructuring
    of python code and capabilities.  Things should work with Python
    versions 2.7 and Python 3.6 and 3.7 at least.  The installation
