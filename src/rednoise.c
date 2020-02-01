@@ -62,12 +62,18 @@ int main(int argc, char *argv[])
         float *powbuf, powargr, powargi;
         fcomplex *newbuf, *oldbuf, *inbuf1, *inbuf2, *outbuf, *tempzz;
 
-        /* Read the info file */
+        /* Read the info file, and write a copy */
         {
+            char *newinf;
             infodata idata;
             readinf(&idata, rootfilenm);
             numsamp = idata.N;
             T = numsamp * idata.dt;
+            newinf = (char *) calloc(strlen(idata.name) + 5, sizeof(char));
+            sprintf(newinf, "%s_red", idata.name);
+            sprintf(idata.name, "%s", newinf);
+            writeinf(&idata);
+            free(newinf);
         }
 
         /* Open files and create arrays */
