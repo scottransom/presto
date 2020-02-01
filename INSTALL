@@ -141,7 +141,12 @@ compiling and running:
     libx11-dev
 	libglib2.0-dev
 
-3.  If you are using a Mac, Paul Ray has been running PRESTO a lot and
+3.  If you are having trouble with PRESTO creating polycos, you can
+   use prepfold with the "-debug" option when folding using "-timing".
+   That will show you the TEMPO call and keep all of the (usually)
+   temporary output files.
+
+4.  If you are using a Mac, Paul Ray has been running PRESTO a lot and
   knows several tricks to get it working:
 
    PRESTO should build almost "out of the box" on a Mac. I have had
