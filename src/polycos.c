@@ -41,7 +41,7 @@ static int isets, nblk, ncoeff, icurr;
 
 extern int get_psr_from_parfile(char *parfilenm, double epoch, psrparams * psr);
 
-char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
+char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm, int debug_tempo)
 {
     FILE *tmpfile;
     int tracklen;
@@ -71,7 +71,12 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
                 tmpdir);
         exit(-1);
     }
+    if (debug_tempo) {
+        fprintf(stderr, "Debugging TEMPO call:  Using temp directory '%s'\n",
+                tmpdir);
+    }
 
+    
     /* Copy the parfile to the temp directory */
     command = (char *) calloc(strlen(parfilenm) + strlen(tmpdir) +
                               strlen(pcfilenm) + strlen(pcpathnm) + 200, 1);
@@ -166,9 +171,14 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
     fprintf(tmpfile, "%c %d 60 12 430\n\n\n%s 60 12 %d %.5f\n",
             scopechar, tracklen, psr.jname, tracklen, fmid);
     fclose(tmpfile);
-    //sprintf(command, "echo %d %d | tempo -z -f %s > /dev/null",
-    sprintf(command, "echo %d %d | tempo -z -f pulsar.par > /dev/null",
-            idata->mjd_i - 1, (int) ceil(epoch + T));
+    if (debug_tempo) {
+        sprintf(command, "echo %d %d | tempo -z -f pulsar.par > tempo.out",
+                idata->mjd_i - 1, (int) ceil(epoch + T));
+        fprintf(stderr, "Debugging TEMPO call:  '%s'\n", command);
+    } else {
+        sprintf(command, "echo %d %d | tempo -z -f pulsar.par > /dev/null",
+                idata->mjd_i - 1, (int) ceil(epoch + T));
+    }
     if (system(command) != 0) {
         fprintf(stderr,
                 "\nError:  Problem running TEMPO in '%s' for make_polycos()\n\n",
@@ -182,18 +192,20 @@ char *make_polycos(char *parfilenm, infodata * idata, char *polycofilenm)
                     tmpdir, polycofilenm);
             exit(-1);
         }
-        remove("polyco.dat");
-        remove("pulsar.par");
-        remove("tempo.lis");
-        remove("tz.in");
-        remove("tz.tmp");
+        if (!debug_tempo) {
+            remove("polyco.dat");
+            remove("pulsar.par");
+            remove("tempo.lis");
+            remove("tz.in");
+            remove("tz.tmp");
+        }
     }
     chdir(origdir);
     free(origdir);
     free(pcpathnm);
     free(pcfilenm);
     free(command);
-    remove(tmpdir);
+    if (!debug_tempo) remove(tmpdir);
     psrname = (char *) calloc(strlen(psr.jname) + 1, sizeof(char));
     strcpy(psrname, psr.jname);
     return psrname;

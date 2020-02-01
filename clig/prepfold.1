@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "prepfold" 1 "28Jun17" "Clig-manuals" "Programmer's Manual"
+.TH "prepfold" 1 "01Feb20" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -36,6 +36,7 @@ prepfold \- Prepares (if required) and folds raw radio data, standard time serie
 [-zerodm]
 [-absphase]
 [-barypolycos]
+[-debug]
 [-numwapps numwapps]
 [-if ifs]
 [-clip clip]
@@ -136,6 +137,8 @@ Subtract the mean of all channels from each sample (i.e. remove zero DM).
 Use the absolute phase associated with polycos.
 .IP -barypolycos
 Force the use of polycos for barycentered events.
+.IP -debug
+Show debugging output when calling TEMPO for polycos.
 .IP -numwapps
 Number of WAPPs used with contiguous frequencies,
 .br

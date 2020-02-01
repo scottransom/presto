@@ -41,6 +41,8 @@ typedef struct s_Cmdline {
   char absphaseP;
   /***** -barypolycos: Force the use of polycos for barycentered events */
   char barypolycosP;
+  /***** -debug: Show debugging output when calling TEMPO for polycos */
+  char debugP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;
