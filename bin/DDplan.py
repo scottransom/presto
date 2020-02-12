@@ -16,6 +16,7 @@ class observation(object):
         self.numchan = numchan
         self.chanwidth = BW/numchan
         self.cDM = cDM
+
     def guess_dDM(self, DM):
         """
         guess_dDM(self, DM):
@@ -64,6 +65,7 @@ class dedisp_method(object):
             self.numDMs = numDMs
         self.hiDM = loDM + self.numDMs*dDM
         self.DMs = np.arange(self.numDMs, dtype='d')*dDM + loDM
+
     def chan_smear(self, DM):
         """
         Return the smearing (in ms) in each channel at the specified DM
@@ -73,6 +75,7 @@ class dedisp_method(object):
         except TypeError:
             if (DM-cDM==0.0): DM = cDM+self.dDM/2.0
         return dm_smear(DM, self.obs.chanwidth, self.obs.f_ctr, self.obs.cDM)
+
     def total_smear(self, DM):
         """
         Return the total smearing in ms due to the sampling rate,
@@ -85,6 +88,7 @@ class dedisp_method(object):
                        self.BW_smearing**2.0 +
                        self.sub_smearing**2.0 +
                        self.chan_smear(DM)**2.0)
+
     def DM_for_smearfact(self, smearfact):
         """
         Return the DM where the smearing in a single channel is a factor smearfact
@@ -95,6 +99,7 @@ class dedisp_method(object):
                               self.BW_smearing**2.0 +
                               self.sub_smearing**2.0)
         return smearfact*0.001*other_smear/self.obs.chanwidth*0.0001205*self.obs.f_ctr**3.0 + self.obs.cDM
+
     def DM_for_newparams(self, dDM, downsamp):
         """
         Return the DM where the smearing in a single channel is causes the same smearing
@@ -105,6 +110,7 @@ class dedisp_method(object):
                               BW_smear(dDM, self.obs.BW, self.obs.f_ctr)**2.0 +
                               self.sub_smearing**2.0)
         return 0.001*other_smear/self.obs.chanwidth*0.0001205*self.obs.f_ctr**3.0
+
     def plot(self, work_fract):
         DMspan = self.DMs[-1]-self.DMs[0]
         loDM  = self.DMs[0]  + DMspan*0.02
@@ -134,6 +140,7 @@ class dedisp_method(object):
                            "%g (%d)" % (self.dsubDM, self.numprepsub))
         ppgplot.pgsci(1)
         ppgplot.pgsch(1.0)
+
     def __str__(self):
         if (self.numsub):
             return "%9.3f  %9.3f  %6.2f    %4d  %6.2f  %6d  %6d  %6d " % \
@@ -143,6 +150,36 @@ class dedisp_method(object):
             return "%9.3f  %9.3f  %6.2f    %4d  %6d" % \
                    (self.loDM, self.hiDM, self.dDM, self.downsamp, self.numDMs)
         
+def choose_downsamps(blocklen):
+    """
+    choose_downsamps(blocklen):
+        Return a good list of possible downsample sizes given a
+        block of data of length blocklen spectra.
+    """
+    # This is first cut.  We will then remove redundant ones.
+    x = np.asarray([n for n in np.arange(1, 260) if blocklen%n==0])
+    if len(x)==1: return x
+    # Now only choose those where the ratio is between 1.5 and 2, if possible
+    if (x[1:]/x[:-1]).min() < 1.5:
+        newx = [1]
+        if 2 in x: newx.append(2)
+        if 3 in x: newx.append(3)
+        maxnewx = newx[-1]
+        while maxnewx < x[-1]:
+            if round(1.5*maxnewx+1e-7) in x:
+                newx.append(round(1.5*maxnewx+1e-7))
+            elif 2*maxnewx in x:
+                newx.append(2*maxnewx)
+            else:
+                if x[-1] > 1.5*maxnewx:
+                    newx.append(int(x[x>1.5*maxnewx].min()))
+                else:
+                    return newx
+            maxnewx = newx[-1]
+        return newx
+    else:
+        return x
+
 def dm_smear(DM, BW, f_ctr, cDM=0.0):
     """
     dm_smear(DM, BW, f_ctr, cDM=0.0):
@@ -193,19 +230,24 @@ def total_smear(DM, DMstep, dt, f_ctr, BW, numchan, subDMstep, cohdm=0.0, numsub
                    subband_smear(subDMstep, numsub, BW, f_ctr)**2.0 + 
                    BW_smear(DMstep, BW, f_ctr)**2.0)
 
-def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWIN"):
+def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0,
+             blocklen=None, device="/XWIN"):
     """
-    dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0):
+    dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0,
+              blocklen=None, device="/XWIN"):
         Return the optimal DM stepsizes (and subband DM stepsizes if
         numsub>0) to keep the total smearing below 'ok_smearing' (in ms),
         for the DMs between loDM and hiDM.  If 'ok_smearing'=0.0, then
-        use the best values based only on the data.
+        use the best values based only on the data.  If the blocklen is
+        not None, use it to determine possible downsampling values.
+        And if device is not None, use it as the PGPLOT device for plotting.
     """
     # Allowable DM stepsizes
     allow_dDMs = [0.01, 0.02, 0.03, 0.05, 0.1, 0.2, 0.3, 0.5, 1.0,
                   2.0, 3.0, 5.0, 10.0, 20.0, 30.0, 50.0, 100.0, 200.0, 300.0]
+
     # Allowable number of downsampling factors
-    allow_downsamps = [1, 2, 4, 8, 16, 32, 64, 128, 256]
+    allow_downsamps = choose_downsamps(blocklen)
 
     # Initial values
     index_downsamps = index_dDMs = 0
@@ -303,60 +345,61 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0, device="/XWI
     # The optimal smearing
     tot_smear = total_smear(DMs, allow_dDMs[0], obs.dt, obs.f_ctr,
                             obs.BW, obs.numchan, allow_dDMs[0], cohdm, 0)
-    # Plot them
-    plotxy(np.log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
-           rangey=[np.log10(0.3*min(tot_smear)), np.log10(2.5*max(tot_smear))],
-           labx="Dispersion Measure (pc/cm\\u3\\d)", laby="Smearing (ms)",
-           device=device)
-    ppgplot.pgsch(1.1)
-    ppgplot.pgsci(1)
-    if (numsub):
-        ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\(2156)\dctr\\u = %g MHz" % obs.f_ctr)
-        if (dtms < 0.1):
-            ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g \\gms" % (dtms*1000))
-        else:
-            ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g ms" % dtms)
-        ppgplot.pgmtxt("t", 1.5, 5.0/10.0, 0.5, "BW = %g MHz" % obs.BW)
-        ppgplot.pgmtxt("t", 1.5, 7.2/10.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
-        ppgplot.pgmtxt("t", 1.5, 9.4/10.0, 0.5, "N\\dsub\\u = %d" % numsub)
-    else:
-        ppgplot.pgmtxt("t", 1.5, 1.0/8.0, 0.5, "\\(2156)\\dctr\\u = %g MHz" % obs.f_ctr)
-        if (dtms < 0.1):
-            ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g \\gms" % (dtms*1000))
-        else:
-            ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g ms" % dtms)
-        ppgplot.pgmtxt("t", 1.5, 5.0/8.0, 0.5, "BW = %g MHz" % obs.BW)
-        ppgplot.pgmtxt("t", 1.5, 7.0/8.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
 
-    ppgplot.pgsch(1.0)
-    dy = -1.4
-    ppgplot.pgsci(1)
-    ppgplot.pgmtxt("b", 6*dy, 0.97, 1.0, "Total Smearing")
-    ppgplot.pgsci(8)
-    ppgplot.pgmtxt("b", 5*dy, 0.97, 1.0, "Optimal Smearing")
-    ppgplot.pgsci(4)
-    if (cohdm):
-        ppgplot.pgmtxt("b", 4*dy, 0.97, 1.0, "Chan Smearing (w/ coherent dedisp)")
-    else:
-        ppgplot.pgmtxt("b", 4*dy, 0.97, 1.0, "Channel Smearing")
-    ppgplot.pgsci(3)
-    ppgplot.pgmtxt("b", 3*dy, 0.97, 1.0, "Sample Time (ms)")
-    ppgplot.pgsci(2)
-    ppgplot.pgmtxt("b", 2*dy, 0.97, 1.0, "DM Stepsize Smearing")
-    if (numsub):
-        ppgplot.pgsci(12)
-        ppgplot.pgmtxt("b", 1*dy, 0.97, 1.0, "Subband Stepsize Smearing (# passes)")
-    ppgplot.pgsci(11)
-    
-    if (numsub):
-        print("\n  Low DM    High DM     dDM  DownSamp  dsubDM   #DMs  DMs/call  calls  WorkFract")
-    else:
-        print("\n  Low DM    High DM     dDM  DownSamp   #DMs  WorkFract")
-    for method, fract in zip(methods, work_fracts):
-        print(method, "  %.4g" % fract)
-        method.plot(fract)
-    print("\n\n")
-    closeplot()
+    if device is not None:
+        # Plot them
+        plotxy(np.log10(tot_smear), DMs, color='orange', logy=1, rangex=[loDM, hiDM],
+               rangey=[np.log10(0.3*min(tot_smear)), np.log10(2.5*max(tot_smear))],
+               labx="Dispersion Measure (pc/cm\\u3\\d)", laby="Smearing (ms)",
+               device=device)
+        ppgplot.pgsch(1.1)
+        ppgplot.pgsci(1)
+        if (numsub):
+            ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\(2156)\dctr\\u = %g MHz" % obs.f_ctr)
+            if (dtms < 0.1):
+                ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g \\gms" % (dtms*1000))
+            else:
+                ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g ms" % dtms)
+            ppgplot.pgmtxt("t", 1.5, 5.0/10.0, 0.5, "BW = %g MHz" % obs.BW)
+            ppgplot.pgmtxt("t", 1.5, 7.2/10.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
+            ppgplot.pgmtxt("t", 1.5, 9.4/10.0, 0.5, "N\\dsub\\u = %d" % numsub)
+        else:
+            ppgplot.pgmtxt("t", 1.5, 1.0/8.0, 0.5, "\\(2156)\\dctr\\u = %g MHz" % obs.f_ctr)
+            if (dtms < 0.1):
+                ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g \\gms" % (dtms*1000))
+            else:
+                ppgplot.pgmtxt("t", 1.5, 3.0/8.0, 0.5, "dt = %g ms" % dtms)
+            ppgplot.pgmtxt("t", 1.5, 5.0/8.0, 0.5, "BW = %g MHz" % obs.BW)
+            ppgplot.pgmtxt("t", 1.5, 7.0/8.0, 0.5, "N\\dchan\\u = %d" % obs.numchan)
+        ppgplot.pgsch(1.0)
+        dy = -1.4
+        ppgplot.pgsci(1)
+        ppgplot.pgmtxt("b", 6*dy, 0.97, 1.0, "Total Smearing")
+        ppgplot.pgsci(8)
+        ppgplot.pgmtxt("b", 5*dy, 0.97, 1.0, "Optimal Smearing")
+        ppgplot.pgsci(4)
+        if (cohdm):
+            ppgplot.pgmtxt("b", 4*dy, 0.97, 1.0, "Chan Smearing (w/ coherent dedisp)")
+        else:
+            ppgplot.pgmtxt("b", 4*dy, 0.97, 1.0, "Channel Smearing")
+        ppgplot.pgsci(3)
+        ppgplot.pgmtxt("b", 3*dy, 0.97, 1.0, "Sample Time (ms)")
+        ppgplot.pgsci(2)
+        ppgplot.pgmtxt("b", 2*dy, 0.97, 1.0, "DM Stepsize Smearing")
+        if (numsub):
+            ppgplot.pgsci(12)
+            ppgplot.pgmtxt("b", 1*dy, 0.97, 1.0, "Subband Stepsize Smearing (# passes)")
+        ppgplot.pgsci(11)
+
+        if (numsub):
+            print("\n  Low DM    High DM     dDM  DownSamp  dsubDM   #DMs  DMs/call  calls  WorkFract")
+        else:
+            print("\n  Low DM    High DM     dDM  DownSamp   #DMs  WorkFract")
+        for method, fract in zip(methods, work_fracts):
+            print(method, "  %.4g" % fract)
+            method.plot(fract)
+        print("\n\n")
+        closeplot()
     return methods
 
 dedisp_template1 = """
@@ -409,6 +452,7 @@ def usage():
   [-f fctr, --fctr=fctr]          : Center frequency   (default = 1400MHz)
   [-b BW, --bw=bandwidth]         : Bandwidth in MHz   (default = 300MHz)
   [-n #chan, --numchan=#chan]     : Number of channels (default = 1024)
+  [-k blocklen, --blocklen=#spec] : Spectra per subint (for downsampling) (default = 1024)
   [-c cDM, --cohdm=cDM]           : Coherent DM in each chan  (default = 0.0)
   [-t dt, --dt=dt]                : Sample time (s)    (default = 0.000064 s)
   [-s subbands, --subbands=nsub]  : Number of subbands (default = #chan) 
@@ -428,10 +472,10 @@ if __name__=='__main__':
     import getopt
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hwo:l:d:f:b:n:c:t:s:r:",
+        opts, args = getopt.getopt(sys.argv[1:], "hwo:l:d:f:b:n:k:c:t:s:r:",
                                    ["help", "write", "output=", "loDM=", "hiDM=",
-                                    "fctr=", "bw=", "numchan=", "cDM=", "dt=",
-                                    "subbands=", "res="])
+                                    "fctr=", "bw=", "numchan=", "blocklen=",
+                                    "cDM=", "dt=", "subbands=", "res="])
 
     except getopt.GetoptError:
         # print help information and exit:
@@ -451,6 +495,7 @@ if __name__=='__main__':
     ok_smearing = 0.0
     device = "/xwin"
     write_dedisp = False
+    blocklen = 1024
 
     if len(args):
         fname, ext = os.path.splitext(args[0])
@@ -461,14 +506,16 @@ if __name__=='__main__':
                 numchan = hdr['nchans']
                 BW = np.fabs(hdr['foff']) * numchan
                 fctr = hdr['fch1'] + 0.5 * hdr['foff'] * numchan - 0.5 * hdr['foff']
+                blocklen = 2400 # from $PRESTO/src/sigproc_fb.c (spectra_per_subint)
                 print("""
 Using:
-       dt = %g s
-  numchan = %d
-       BW = %g MHz
-     fctr = %g MHz
+        dt = %g s
+   numchan = %d
+  blocklen = %d
+        BW = %g MHz
+      fctr = %g MHz
 from '%s'
-""" % (dt, numchan, BW, fctr, args[0]))
+""" % (dt, numchan, blocklen, BW, fctr, args[0]))
             except:
                 print("Cannot read '%s' as SIGPROC filterbank.  Ignoring."%args[0])
         else: # Assume it is PSRFITS
@@ -478,19 +525,22 @@ from '%s'
                 numchan = pf.nchan
                 fctr = pf.header["OBSFREQ"]
                 BW = numchan * np.fabs(pf.specinfo.df)
+                blocklen = pf.specinfo.spectra_per_subint
                 print("""
 Using:
-       dt = %g s
-  numchan = %d
-       BW = %g MHz
-     fctr = %g MHz
+        dt = %g s
+   numchan = %d
+  blocklen = %d
+        BW = %g MHz
+      fctr = %g MHz
 from '%s'
-""" % (dt, numchan, BW, fctr, args[0]))
+""" % (dt, numchan, blocklen, BW, fctr, args[0]))
                 if "CHAN_DM" in pf.header:
                     cDM = pf.header["CHAN_DM"]
                     if cDM != 0.0:
                         print("And assuming channels coherently dedispersed at DM = %g pc/cm^3"%cDM)
             except:
+                print(sys.exc_info()[0])
                 print("Cannot read '%s' as PSRFITS.  Ignoring."%args[0])
 
     for o, a in opts:
@@ -516,6 +566,8 @@ from '%s'
             BW = float(a)
         if o in ("-n", "--numchan"):
             numchan = int(a)
+        if o in ("-k", "--blocklen"):
+            blocklen = int(a)
         if o in ("-t", "--dt"):
             dt = float(a)
         if o in ("-c", "--cohdm"):
@@ -541,7 +593,8 @@ from '%s'
     # The following function creates the de-dispersion plan
     # The ok_smearing values is optional and allows you to raise the floor
     # and provide a level of smearing that you are willing to accept (in ms)
-    methods = dm_steps(loDM, hiDM, obs, cDM, numsubbands, ok_smearing, device)
+    methods = dm_steps(loDM, hiDM, obs, cDM, numsubbands, ok_smearing,
+                       blocklen, device)
     
     if write_dedisp:
         dDMs = [m.dDM for m in methods]
