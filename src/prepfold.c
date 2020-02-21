@@ -1251,7 +1251,7 @@ int main(int argc, char *argv[])
                     lodm = 0.0;
                 hidm = lodm + numdmtrials * ddm;
                 printf("Will search %d DMs from %.3f to %.3f (ddm = %.4f)\n",
-                       numdmtrials, lodm, hidm, ddm);
+                       cmd->nodmsearchP ? 1 : numdmtrials, lodm, hidm, ddm);
             }
         }
 
@@ -1453,7 +1453,7 @@ int main(int argc, char *argv[])
 
         {                       /* Do the optimization */
             int numdmtrials = 1, numpdds = 1, lodmnum = 0;
-            int totnumtrials, currtrial = 0;
+            long long totnumtrials, currtrial = 0;
             int oldper = -1, newper = 0;
             int idm, ip, ipd, ipdd, bestidm = 0, bestip = 0, bestipd = 0, bestipdd =
                 0;
@@ -1505,11 +1505,15 @@ int main(int argc, char *argv[])
                 if (cmd->searchpddP)
                     printf
                         ("  Searching %d DMs, %d periods, %d p-dots, and %d p-dotdots...\n",
-                         search.numdms, search.numperiods, search.numpdots,
-                         search.numpdots);
+                         cmd->nodmsearchP ? 1 : search.numdms,
+                         cmd->nopsearchP ? 1 : search.numperiods,
+                         cmd->nopdsearchP ? 1 : search.numpdots,
+                         cmd->searchpddP ? search.numpdots : 1);
                 else
                     printf("  Searching %d DMs, %d periods, and %d p-dots...\n",
-                           search.numdms, search.numperiods, search.numpdots);
+                           cmd->nodmsearchP ? 1 : search.numdms,
+                           cmd->nopsearchP ? 1 : search.numperiods,
+                           cmd->nopdsearchP ? 1 : search.numpdots);
             } else {            /* No DM searches are to be done */
                 /* Allocate our p-pdot plane to speed up plotting */
                 if (!cmd->searchpddP)
@@ -1517,10 +1521,13 @@ int main(int argc, char *argv[])
                 if (cmd->searchpddP)
                     printf
                         ("  Searching %d periods, %d p-dots, and %d p-dotdots...\n",
-                         search.numperiods, search.numpdots, search.numpdots);
+                         cmd->nopsearchP ? 1 : search.numperiods,
+                         cmd->nopdsearchP ? 1 : search.numpdots,
+                         cmd->searchpddP ? search.numpdots : 1);
                 else
                     printf("  Searching %d periods, and %d p-dots...\n",
-                           search.numperiods, search.numpdots);
+                           cmd->nopsearchP ? 1 : search.numperiods,
+                           cmd->nopdsearchP ? 1 : search.numpdots);
             }
 
             /* Skip searching over all the DMs if we know that we're */
@@ -1530,7 +1537,20 @@ int main(int argc, char *argv[])
                 numdmtrials = lodmnum + 1;
             }
             /* The total number of search trials */
-            totnumtrials = numdmtrials * numpdds * numtrials * numtrials;
+            totnumtrials = (cmd->nodmsearchP ? 1l : numdmtrials) *
+                (cmd->nopsearchP ? 1l : numtrials) *
+                (cmd->nopdsearchP ? 1l : numtrials) *
+                (cmd->searchpddP ? numpdds : 1);
+            if (totnumtrials < 100000000l) {
+                printf("     (%lld total trials)\n", totnumtrials);
+            } else if (totnumtrials < 1000000000l) {
+                printf("     Warning!:  This is %lld trials!  It will take a while!\n",
+                       totnumtrials);
+            } else {
+                printf("     Warning!:  This is %lld trials!  This will take forever!\n"
+                       "                You almost certainly want some type of -nosearch!!\n",
+                       totnumtrials);
+            }
 
             for (idm = lodmnum; idm < numdmtrials; idm++) {     /* Loop over DMs */
                 if (cmd->nsub > 1) {    /* This is only for doing DM searches */
@@ -1599,7 +1619,7 @@ int main(int argc, char *argv[])
                             }
                             currtrial += 1;
                             newper =
-                                (int) ((float) currtrial / totnumtrials * 100.0 +
+                                (int) (((double) currtrial) / totnumtrials * 100.0 +
                                        0.5);
                             if (newper > oldper) {
                                 printf("\r  Amount Complete = %3d%%", newper);
