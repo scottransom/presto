@@ -141,7 +141,7 @@ void read_PSRFITS_files(struct spectra_info *s)
 // and place the resulting info into a spectra_info structure.
 {
     int IMJD, SMJD, itmp, ii, status = 0;
-    double OFFS, dtmp;
+    double OFFS, BE_DELAY, dtmp;
     long double MJDf;
     char ctmp[80], comment[120], err_text[81];
 
@@ -249,7 +249,14 @@ void read_PSRFITS_files(struct spectra_info *s)
         fits_read_key(s->fitsfiles[ii], TDOUBLE, "STT_OFFS", &OFFS, comment,
                       &status);
         check_read_status("STT_OFFS");
-        s->start_MJD[ii] += ((long double) SMJD + (long double) OFFS) / SECPERDAY;
+        BE_DELAY = 0.0; // Back-end delay.  Will only be applied to STT*-based times
+        fits_read_key(s->fitsfiles[ii], TDOUBLE, "BE_DELAY", &BE_DELAY, comment,
+                      &status);
+        if (status==KEY_NO_EXIST) status=0; // Prevents error messages on old files
+        check_read_status("BE_DELAY");
+        s->start_MJD[ii] += ((long double) SMJD +
+                             (long double) OFFS +
+                             (long double) BE_DELAY) / SECPERDAY;
 
         // Are we tracking?
         fits_read_key(s->fitsfiles[ii], TSTRING, "TRK_MODE", ctmp, comment, &status);
