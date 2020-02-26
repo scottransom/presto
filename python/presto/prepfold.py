@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from builtins import range
 from builtins import object
+import sys
 import numpy as Num
 import copy, random, struct
 from presto import psr_utils, infodata, polycos, Pgplot
@@ -825,8 +826,6 @@ class pfd(object):
         return self.DS
 
 if __name__ == "__main__":
-    import sys
-
     #testpfd = "/home/ransom/tmp_pfd/M5_52725_W234_PSR_1518+0204A.pfd"
     #testpfd = "/home/ransom/tmp_pfd/M13_52724_W234_PSR_1641+3627C.pfd"
     testpfd = "M13_53135_W34_rficlean_DM30.10_PSR_1641+3627C.pfd"
