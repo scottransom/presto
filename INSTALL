@@ -19,6 +19,11 @@ Basic steps to install:
 
   Ubuntu has good FFTW packages: libfftw3-bin and libfftw3-dev
 
+  Note that if you install to a non-default directory, you will likely
+  need to edit setup.py for the python install to add the locations of
+  the include files (in the "include_dirs" variable) as well as the
+  path to the libraries (in "presto_library_dirs").
+
 2.  Install PGPLOT.  http://www.astro.caltech.edu/~tjp/pgplot/
   You need the X-windows and postscript drivers at a minimum.
   Note that on 64-bit systems, compiling and linking PGPLOT can
@@ -29,6 +34,9 @@ Basic steps to install:
   allow PGPLOT to find its important files.
 
   Ubuntu has a good PGPLOT package: pgplot5
+
+  If you install to a non-standard location, see the note in #1
+  about editing the setup.py file for the python install!
 
 3.  Install TEMPO.  Make sure to set the TEMPO environment variable.
   http://tempo.sourceforge.net/
@@ -50,6 +58,9 @@ Basic steps to install:
   view!  How about that!)
 
   Ubuntu has CFITSIO packages: libcfitsio3 and libcfitsio3-dev
+
+  If you install to a non-standard location, see the note in #1
+  about editing the setup.py file for the python install!
 
 6.  Define the PRESTO environment variable to the top level
   directory of the PRESTO distribution (i.e. this directory).
