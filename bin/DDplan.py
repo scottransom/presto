@@ -421,15 +421,15 @@ dedisp_template2 = """
 
 # Loop over the DDplan plans
 for dDM, dsubDM, dmspercall, downsamp, subcall, startDM in zip(dDMs, dsubDMs, dmspercalls, downsamps, subcalls, startDMs):
-    # Get our downsampling right
-    subdownsamp = downsamp/2
-    datdownsamp = 2
-    if downsamp < 2: subdownsamp = datdownsamp = 1
     # Loop over the number of calls
     for ii in range(subcall):
         subDM = startDM + (ii+0.5)*dsubDM
         loDM = startDM + ii*dsubDM
         if outsubs:
+            # Get our downsampling right
+            subdownsamp = downsamp // 2
+            datdownsamp = 2
+            if downsamp < 2: subdownsamp = datdownsamp = 1
             # First create the subbands
             myexecute("prepsubband -sub -subdm %.2f -nsub %d -downsamp %d -o %s %s" %
                       (subDM, nsub, subdownsamp, basename, rawfiles))
@@ -439,7 +439,7 @@ for dDM, dsubDM, dmspercall, downsamp, subcall, startDM in zip(dDMs, dsubDMs, dm
                       (loDM, dDM, dmspercall, datdownsamp, basename, subnames))
         else:
             myexecute("prepsubband -nsub %d -lodm %.2f -dmstep %.2f -numdms %d -downsamp %d -o %s %s" %
-                      (nsub, loDM, dDM, dmspercall, datdownsamp, basename, rawfiles))
+                      (nsub, loDM, dDM, dmspercall, downsamp, basename, rawfiles))
 """
     
 def usage():
