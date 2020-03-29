@@ -34,7 +34,6 @@ date_obs_re = re.compile(r"^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-"
 # Default global debugging mode
 debug = True 
 
-
 def unpack_2bit(data):
     """Unpack 2-bit data that has been read in as bytes.
 
@@ -51,7 +50,6 @@ def unpack_2bit(data):
     piece2 = np.bitwise_and(data >> 0x02, 0x03)
     piece3 = np.bitwise_and(data, 0x03)
     return np.dstack([piece0, piece1, piece2, piece3]).flatten()
-
 
 def unpack_4bit(data):
     """Unpack 4-bit data that has been read in as bytes.
@@ -87,9 +85,11 @@ class PsrfitsFile(object):
         self.frequencies = self.freqs # Alias
         self.tsamp = self.specinfo.dt
         self.nspec = self.specinfo.N
+        self.zero_off = self.specinfo.zero_off
 
     def read_subint(self, isub, apply_weights=True, apply_scales=True,
-                    apply_offsets=True):
+                    apply_offsets=True, apply_zero_off=True,
+                    total_intensity=True):
         """
         Read a PSRFITS subint from a open pyfits file object.
          Applys scales, weights, and offsets to the data.
@@ -102,43 +102,51 @@ class PsrfitsFile(object):
                     (Default: apply scales)
                 apply_offsets: If True, apply offsets. 
                     (Default: apply offsets)
+                apply_zero_off: If True, apply ZERO_OFF
+                    (Default: apply ZERO_OFF)
+                total_intensity: If True, and data have 2+ polns, average them.
+                    (Default: return just total intensity)
 
              Output: 
                 data: Subint data with scales, weights, and offsets
-                     applied in float32 dtype with shape (nsamps,nchan).
+                     applied in float32 dtype with shape (nsamps,(npoln),nchan).
         """ 
         sdata = self.fits['SUBINT'].data[isub]['DATA']
         shp = sdata.squeeze().shape
         if self.nbits < 8: # Unpack the bytes data
             if (shp[0] != self.nsamp_per_subint) and \
-                    (shp[1] != self.nchan * self.nbits // 8):
+                    (shp[1] != self.nchan * self.npoln * self.nbits // 8):
                 sdata = sdata.reshape(self.nsamp_per_subint,
-                                      self.nchan * self.nbits // 8)
-            if self.nbits == 4: data = unpack_4bit(sdata)
-            elif self.nbits == 2: data = unpack_2bit(sdata)
-            else: data = np.asarray(sdata)
+                                      self.nchan * self.npoln * self.nbits // 8)
+            if self.nbits == 4:
+                sdata = unpack_4bit(sdata)
+            elif self.nbits == 2:
+                sdata = unpack_2bit(sdata)
+        data = np.asarray(sdata, dtype=np.float32)
+        if apply_zero_off:
+            data += self.zero_off
+        if apply_scales or apply_offsets:
+            data = data.reshape((self.nsamp_per_subint,  self.npoln * self.nchan))
+            if apply_scales:
+                data *= self.get_scales(isub)
+            if apply_offsets:
+                data += self.get_offsets(isub)
+        if apply_weights:
+            data = data.reshape((self.nsamp_per_subint * self.npoln, self.nchan))
+            data *= self.get_weights(isub)
+        if self.npoln > 1:
+            data = data.reshape((self.nsamp_per_subint, self.npoln, self.nchan))
         else:
-            # Handle 4-poln GUPPI/PUPPI data
-            if (len(shp)==3 and shp[1]==self.npoln and
-                self.poln_order=="AABBCRCI"):
-                warnings.warn("Polarization is AABBCRCI, summing AA and BB")
-                data = np.zeros((self.nsamp_per_subint,
-                                 self.nchan), dtype=np.float32)
-                data += sdata[:,0,:].squeeze()
-                data += sdata[:,1,:].squeeze()
-            elif (len(shp)==3 and shp[1]==self.npoln and
-                self.poln_order=="IQUV"):
-                warnings.warn("Polarization is IQUV, just using Stokes I")
-                data = np.zeros((self.nsamp_per_subint,
-                                 self.nchan), dtype=np.float32)
-                data += sdata[:,0,:].squeeze()
-            else:
-                data = np.asarray(sdata)
-        data = data.reshape((self.nsamp_per_subint, 
-                             self.nchan)).astype(np.float32)
-        if apply_scales: data *= self.get_scales(isub)[:self.nchan]
-        if apply_offsets: data += self.get_offsets(isub)[:self.nchan]
-        if apply_weights: data *= self.get_weights(isub)[:self.nchan]
+            data = data.reshape((self.nsamp_per_subint, self.nchan))
+        # Handle 4-poln coherence data or 2-poln data
+        if (total_intensity and len(shp)==3 and shp[1]==self.npoln and
+            (self.poln_order=="AABBCRCI" or self.poln_order=="AABB")):
+            warnings.warn("Polarization is %s, averaging AA and BB"%self.poln_order)
+            data = 0.5*(data[:,0,:] + data[:,1,:])
+        elif (total_intensity and len(shp)==3 and shp[1]==self.npoln and
+            self.poln_order=="IQUV"):
+            warnings.warn("Polarization is IQUV, just using Stokes I")
+            data = data[:,0,:]
         return data
 
     def get_weights(self, isub):
@@ -159,7 +167,7 @@ class PsrfitsFile(object):
                 isub: index of subint (first subint is 0)
             
             Output:
-                scales: Subint scales. (There is one value for each channel)
+                scales: Subint scales. (There is one value for each channel * npoln)
         """
         return self.fits['SUBINT'].data[isub]['DAT_SCL']
 
@@ -170,7 +178,7 @@ class PsrfitsFile(object):
                 isub: index of subint (first subint is 0)
             
             Output:
-                offsets: Subint offsets. (There is one value for each channel)
+                offsets: Subint offsets. (There is one value for each channel * npoln)
         """
         return self.fits['SUBINT'].data[isub]['DAT_OFFS']
 
@@ -322,6 +330,12 @@ class SpectraInfo(object):
             self.start_subint[ii] = subint['NSUBOFFS']
             self.time_per_subint = self.dt * self.spectra_per_subint
 
+            # ZERO_OFF is not in earlier versions of PSRFITS
+            if 'ZERO_OFF' not in list(subint.keys()):
+                self.zero_off = 0.0
+            else:
+                self.zero_off = np.fabs(subint['ZERO_OFF'])
+
             # This is the MJD offset based on the starting subint number
             MJDf = (self.time_per_subint * self.start_subint[ii])/pc.SECPERDAY
             # The start_MJD values should always be correct
@@ -454,7 +468,7 @@ class SpectraInfo(object):
         self.dec2000 = coordinates.Angle(self.dec_str,unit=units.deg).deg
         
         # Are the polarisations summed?
-        if (self.poln_order=="AA+BB") or (self.poln_order=="INTEN"):
+        if self.poln_order in ["AA+BB", "INTEN", "IQUV"]:
             self.summed_polns = True
         else:
             self.summed_polns = False

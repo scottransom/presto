@@ -66,7 +66,8 @@ def main():
             sys.stdout.flush()
             specs = pf.read_subint(subint, apply_weights=opts.weights,
                                    apply_scales=not opts.nomods,
-                                   apply_offsets=not opts.nomods)
+                                   apply_offsets=not opts.nomods,
+                                   apply_zero_off=not opts.nomods)
             if opts.nomods:
                 h, b = np.histogram(specs.flatten(),
                                     bins=np.arange((1<<pf.nbits)+1))
