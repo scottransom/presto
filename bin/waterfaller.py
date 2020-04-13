@@ -258,7 +258,7 @@ def plot_waterfall(data, start, duration,
     if integrate_spec:                                                         
         spectrum_window = 0.05*duration
         window_width = int(spectrum_window/data.dt) # bins
-        burst_bin = nbinlim/2
+        burst_bin = nbinlim//2
         on_spec = np.array(data.data[..., burst_bin-window_width:burst_bin+window_width])
         Dedisp_spec = on_spec.sum(axis=1)[::-1]                                 
                                                                                 

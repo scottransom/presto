@@ -132,7 +132,7 @@ def read_hdr_val(filfile, stdout=False):
         return None, None
 
 def prep_string(string):
-    return struct.pack('i', len(string))+string
+    return struct.pack('i', len(string))+string.encode('utf-8')
 
 def prep_double(name, value):
     return prep_string(name)+struct.pack('d', float(value))
