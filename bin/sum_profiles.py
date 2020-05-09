@@ -377,7 +377,7 @@ if __name__ == '__main__':
 
     print("\n Writing profile to '%s'..."%(outfilenm), end=' ')
 
-    outfile = file(outfilenm, "w")
+    outfile = open(outfilenm, "w")
     for ii, val in enumerate(sumprof):
         outfile.write("%04d  %20.15g\n"%(ii, val))
     outfile.close()
