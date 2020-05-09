@@ -29,7 +29,7 @@ scopes2 = {'GBT':'gbt',
           'LWA': 'lwa1',
           'VLA': 'vla',
           'FAST': 'fast',
-          'MeerKAT': 'meerkat',
+          'MeerKAT': 'mk',
           'Geocenter': 'coe'}
 
 def measure_phase(profile, template, rotate_prof=True):
