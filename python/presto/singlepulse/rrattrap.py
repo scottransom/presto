@@ -321,14 +321,14 @@ def rank_groups(groups, use_dmplan=False, min_group=45, min_sigma=8.0):
             # sort list by increasing DM
             idmsort = np.argsort([sp[0] for sp in grp.singlepulses])
             
-            sigmas = np.ma.zeros(np.ceil(numsps/5.0)*5)
+            sigmas = np.ma.zeros(int(np.ceil(numsps/5.0)*5))
             sigmas[-numsps:] = np.asarray([sp[1] for sp in grp.singlepulses])[idmsort]
             # Mask sigma=0. These are elements added to pad size of array
             # to have multiple of 5 elements
             # (there should never be actual SPs with sigma=0)
             sigmas = np.ma.masked_equal(sigmas, 0.0)
          
-            sigmas.shape = (5, np.ceil(numsps/5.0))
+            sigmas.shape = (5, int(np.ceil(numsps/5.0)))
            
             maxsigmas = sigmas.max(axis=1)
             avgsigmas = sigmas.mean(axis=1)
