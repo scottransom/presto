@@ -15,10 +15,11 @@ Chen Karako May 7, 2014
 Updated by Chitrang Patel June 10, 2016.
 """
 from __future__ import print_function
-from past.builtins import cmp
+#from past.builtins import cmp
 from time import strftime
 from presto import infodata
 import matplotlib.pyplot as plt
+import numpy as np
 from presto.Pgplot import *
 import optparse
 from presto.singlepulse import spio
@@ -67,10 +68,34 @@ class SinglePulseGroup(object): # Greg's modification
         self.numpulses = 1
         self.rank = 0
 
-    def __cmp__(self, other):
-        return cmp(ALL_RANKS_ORDERED.index(self.rank),
-                   ALL_RANKS_ORDERED.index(other.rank))
-        return dmt
+
+    # Python 3 no longer honors the __cmp__ special method, so another way of comparing is required
+    # see: https://portingguide.readthedocs.io/en/latest/comparisons.html
+    # The best way is to just define the six rich comparison methods
+    # def __cmp__(self, other):
+    #     return cmp(ALL_RANKS_ORDERED.index(self.rank),
+    #                ALL_RANKS_ORDERED.index(other.rank))
+
+    # Define the six rich comparison methods, based on the ordered rank 
+    def __eq__(self, other):
+        return (ALL_RANKS_ORDERED.index(self.rank) == ALL_RANKS_ORDERED.index(other.rank))
+
+    def __ne__(self, other):
+        return not (self == other)  # this is fine because we already defined __eq__
+
+    def __lt__(self, other):
+        return (ALL_RANKS_ORDERED.index(self.rank) < ALL_RANKS_ORDERED.index(other.rank))
+
+    def __le__(self, other):
+        return (ALL_RANKS_ORDERED.index(self.rank) <= ALL_RANKS_ORDERED.index(other.rank))
+
+    def __gt__(self, other):
+        return (ALL_RANKS_ORDERED.index(self.rank) > ALL_RANKS_ORDERED.index(other.rank))
+
+    def __ge__(self, other):
+        return (ALL_RANKS_ORDERED.index(self.rank) >= ALL_RANKS_ORDERED.index(other.rank))
+
+
     def timeisclose(self,other,use_dmplan,time_thresh=0.5):
         """Checks whether the overlap in time of self and other is within
             time_thresh. Takes as input other, a SinglePulseGroup object,
