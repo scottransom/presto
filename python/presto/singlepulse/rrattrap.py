@@ -77,23 +77,23 @@ class SinglePulseGroup(object): # Greg's modification
     #                ALL_RANKS_ORDERED.index(other.rank))
 
     # Define the six rich comparison methods, based on the ordered rank 
-    def __eq__(self, other):
-        return (ALL_RANKS_ORDERED.index(self.rank) == ALL_RANKS_ORDERED.index(other.rank))
+    # def __eq__(self, other):
+    #     return (ALL_RANKS_ORDERED.index(self.rank) == ALL_RANKS_ORDERED.index(other.rank))
 
-    def __ne__(self, other):
-        return not (self == other)  # this is fine because we already defined __eq__
+    # def __ne__(self, other):
+    #     return not (self == other)  # this is fine because we already defined __eq__
 
-    def __lt__(self, other):
-        return (ALL_RANKS_ORDERED.index(self.rank) < ALL_RANKS_ORDERED.index(other.rank))
+    # def __lt__(self, other):
+    #     return (ALL_RANKS_ORDERED.index(self.rank) < ALL_RANKS_ORDERED.index(other.rank))
 
-    def __le__(self, other):
-        return (ALL_RANKS_ORDERED.index(self.rank) <= ALL_RANKS_ORDERED.index(other.rank))
+    # def __le__(self, other):
+    #     return (ALL_RANKS_ORDERED.index(self.rank) <= ALL_RANKS_ORDERED.index(other.rank))
 
-    def __gt__(self, other):
-        return (ALL_RANKS_ORDERED.index(self.rank) > ALL_RANKS_ORDERED.index(other.rank))
+    # def __gt__(self, other):
+    #     return (ALL_RANKS_ORDERED.index(self.rank) > ALL_RANKS_ORDERED.index(other.rank))
 
-    def __ge__(self, other):
-        return (ALL_RANKS_ORDERED.index(self.rank) >= ALL_RANKS_ORDERED.index(other.rank))
+    # def __ge__(self, other):
+    #     return (ALL_RANKS_ORDERED.index(self.rank) >= ALL_RANKS_ORDERED.index(other.rank))
 
 
     def timeisclose(self,other,use_dmplan,time_thresh=0.5):
@@ -792,7 +792,7 @@ def main():
     summaryfile.close()
 
     # Reverse sort lists so good groups are written at the top of the file
-    groups.sort(reverse=True)
+    groups.sort(key=lambda x: ALL_RANKS_ORDERED.index(x.rank), reverse=True)
 
     # write list of events in each group
     for grp in groups:
@@ -811,7 +811,7 @@ def main():
     if PLOT:
         ranks = RANKS_TO_PLOT 
         # Sort groups so better-ranked groups are plotted on top of worse groups
-        groups.sort()
+        groups.sort(key=lambda x: ALL_RANKS_ORDERED.index(x.rank))
         # create several DM vs t plots, splitting up DM in overlapping intervals 
         # DMs 0-30, 20-110, 100-300, 300-1000 
         if PLOTTYPE.lower() == 'pgplot':
