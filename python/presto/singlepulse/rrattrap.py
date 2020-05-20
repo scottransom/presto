@@ -15,10 +15,11 @@ Chen Karako May 7, 2014
 Updated by Chitrang Patel June 10, 2016.
 """
 from __future__ import print_function
-from past.builtins import cmp
+#from past.builtins import cmp
 from time import strftime
 from presto import infodata
 import matplotlib.pyplot as plt
+import numpy as np
 from presto.Pgplot import *
 import optparse
 from presto.singlepulse import spio
@@ -67,10 +68,13 @@ class SinglePulseGroup(object): # Greg's modification
         self.numpulses = 1
         self.rank = 0
 
-    def __cmp__(self, other):
-        return cmp(ALL_RANKS_ORDERED.index(self.rank),
-                   ALL_RANKS_ORDERED.index(other.rank))
-        return dmt
+
+    # Python 3 no longer honors the __cmp__ special method, so another way of comparing is required
+    # see: https://portingguide.readthedocs.io/en/latest/comparisons.html
+    # def __cmp__(self, other):
+    #     return cmp(ALL_RANKS_ORDERED.index(self.rank),
+    #                ALL_RANKS_ORDERED.index(other.rank))
+
     def timeisclose(self,other,use_dmplan,time_thresh=0.5):
         """Checks whether the overlap in time of self and other is within
             time_thresh. Takes as input other, a SinglePulseGroup object,
@@ -321,14 +325,14 @@ def rank_groups(groups, use_dmplan=False, min_group=45, min_sigma=8.0):
             # sort list by increasing DM
             idmsort = np.argsort([sp[0] for sp in grp.singlepulses])
             
-            sigmas = np.ma.zeros(np.ceil(numsps/5.0)*5)
+            sigmas = np.ma.zeros(int(np.ceil(numsps/5.0)*5))
             sigmas[-numsps:] = np.asarray([sp[1] for sp in grp.singlepulses])[idmsort]
             # Mask sigma=0. These are elements added to pad size of array
             # to have multiple of 5 elements
             # (there should never be actual SPs with sigma=0)
             sigmas = np.ma.masked_equal(sigmas, 0.0)
          
-            sigmas.shape = (5, np.ceil(numsps/5.0))
+            sigmas.shape = (5, int(np.ceil(numsps/5.0)))
            
             maxsigmas = sigmas.max(axis=1)
             avgsigmas = sigmas.mean(axis=1)
@@ -767,7 +771,7 @@ def main():
     summaryfile.close()
 
     # Reverse sort lists so good groups are written at the top of the file
-    groups.sort(reverse=True)
+    groups.sort(key=lambda x: ALL_RANKS_ORDERED.index(x.rank), reverse=True)
 
     # write list of events in each group
     for grp in groups:
@@ -786,7 +790,7 @@ def main():
     if PLOT:
         ranks = RANKS_TO_PLOT 
         # Sort groups so better-ranked groups are plotted on top of worse groups
-        groups.sort()
+        groups.sort(key=lambda x: ALL_RANKS_ORDERED.index(x.rank))
         # create several DM vs t plots, splitting up DM in overlapping intervals 
         # DMs 0-30, 20-110, 100-300, 300-1000 
         if PLOTTYPE.lower() == 'pgplot':
