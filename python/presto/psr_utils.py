@@ -5,7 +5,7 @@ from builtins import range
 import bisect
 import numpy as Num
 import numpy.fft as FFT
-from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtr, i0, kolmogorov
+from scipy.special import ndtr, ndtri, chdtrc, chdtri, fdtrc, i0, kolmogorov
 from scipy.optimize import leastsq
 import scipy.optimize.zeros as zeros
 from presto import Pgplot, ppgplot, sinc_interp
@@ -1619,7 +1619,7 @@ def Ftest(chi2_1, dof_1, chi2_2, dof_2):
     delta_dof = dof_1 - dof_2
     new_redchi2 = chi2_2 / dof_2
     F = (delta_chi2 / delta_dof) / new_redchi2
-    return 1.0 - fdtr(delta_dof, dof_2, F)
+    return fdtrc(delta_dof, dof_2, F)
 
 
 def equivalent_gaussian_sigma(p):
