@@ -16,11 +16,11 @@ import presto.psr_constants as pc
 ## 
 ## http://www.atnf.csiro.au/research/pulsar/psrcat/
 
-version = 'v1.59'
+version = 'v1.63'
 
 ## And here is the command used to get the data:
 # Note version number now!
-# http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?version=1.59&Name=Name&JName=JName&RaJ=RaJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&F0=F0&F1=F1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&Ecc=Ecc&Tasc=Tasc&Eps1=Eps1&Eps2=Eps2&Dist=Dist&Assoc=Assoc&Survey=Survey&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Long+csv+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
+# http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?version=1.63&Name=Name&JName=JName&RaJ=RaJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&F0=F0&F1=F1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&Ecc=Ecc&Tasc=Tasc&Eps1=Eps1&Eps2=Eps2&Dist=Dist&Assoc=Assoc&Survey=Survey&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Long+csv+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
 
 params = ["NAME", "PSRJ", "RAJ", "DECJ", "PMRA", "PMDEC", "PX", "POSEPOCH",
           "Gl", "Gb", "F0", "F1", "F2", "F3", "PEPOCH", "DM", "DM1",
