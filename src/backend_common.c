@@ -283,9 +283,9 @@ void print_spectra_info(struct spectra_info *s)
         printf("                       Beam = %d of %d\n", s->beamnum, s->num_beams);
     printf("            Beam FWHM (deg) = %.3f\n", s->beam_FWHM);
     printf("         Spectra per subint = %d\n", s->spectra_per_subint);
-    if (s->start_subint != NULL)
+    if (s->start_subint != NULL && s->datatype != SIGPROCFB)
         printf("            Starting subint = %d\n", s->start_subint[0]);
-    if (s->num_subint != NULL)
+    if (s->num_subint != NULL && s->datatype != SIGPROCFB)
         printf("           Subints per file = %d\n", s->num_subint[0]);
     printf("           Spectra per file = %lld\n", s->num_spec[0]);
     printf("      Time per subint (sec) = %-.12g\n", s->time_per_subint);
