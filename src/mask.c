@@ -5,7 +5,7 @@ extern int compare_ints(const void *a, const void *b);
 extern int compare_floats(const void *a, const void *b);
 
 static int find_num(int num, int *arr, int arrlen);
-static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2, int *merged);
+static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2, int *merged, int lenout);
 
 void fill_mask(double timesigma, double freqsigma, double mjd,
                double dtint, double lofreq, double dfreq,
@@ -317,7 +317,8 @@ int check_mask(double starttime, double duration, mask * obsmask, int *maskchans
         old_numchan = merge_no_dupes(obsmask->zap_chans,
                                      obsmask->num_zap_chans,
                                      obsmask->chans[loint],
-                                     obsmask->num_chans_per_int[loint], maskchans);
+                                     obsmask->num_chans_per_int[loint],
+                                     maskchans, obsmask->numchan);
     } else {                    /* We are straddling a rfifind interval boundary */
         int *tmpchans;
 
@@ -341,7 +342,7 @@ int check_mask(double starttime, double duration, mask * obsmask, int *maskchans
                                          obsmask->num_zap_chans,
                                          obsmask->chans[loint],
                                          obsmask->num_chans_per_int[loint],
-                                         tmpchans);
+                                         tmpchans, obsmask->numchan);
         } else {
             tmpchans = obsmask->zap_chans;
             old_numchan = obsmask->num_zap_chans;
@@ -350,7 +351,8 @@ int check_mask(double starttime, double duration, mask * obsmask, int *maskchans
         old_numchan = merge_no_dupes(tmpchans,
                                      old_numchan,
                                      obsmask->chans[hiint],
-                                     obsmask->num_chans_per_int[hiint], maskchans);
+                                     obsmask->num_chans_per_int[hiint],
+                                     maskchans, obsmask->numchan);
         if (obsmask->num_zap_chans)
             vect_free(tmpchans);
     }
@@ -370,18 +372,24 @@ static int find_num(int num, int *arr, int arrlen)
 }
 
 
-static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2, int *merged)
+static int merge_no_dupes(int *arr1, int len1, int *arr2, int len2, int *merged, int lenout)
 {
     int ptr1 = 0, ptr2 = 0, count = 0;
 
     while (1) {
         if (ptr1 == len1) {
-            while (ptr2 < len2)
-                merged[count++] = arr2[ptr2++];
+            while ((ptr2 < len2) && (merged[count-1] < lenout - 1)) {
+                if (arr2[ptr2] > merged[count-1])
+                    merged[count++] = arr2[ptr2++];
+                else ptr2++;
+            }
             break;
         } else if (ptr2 == len2) {
-            while (ptr1 < len1)
-                merged[count++] = arr1[ptr1++];
+            while ((ptr1 < len1) && (merged[count-1] < lenout - 1)) {
+                if (arr1[ptr1] > merged[count-1])
+                    merged[count++] = arr1[ptr1++];
+                else ptr1++;
+            }
             break;
         }
         if (arr1[ptr1] < arr2[ptr2])
