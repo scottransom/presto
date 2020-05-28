@@ -347,9 +347,11 @@ class pfd(object):
         bin_dphi = 1.0/self.proflen
         # If any of the offsets causes more than a 0.1-bin rotation over
         # the obs, then prepfold searched and we can't time using it
+        # Allow up to a 0.5 bin shift for pdd/fdd since the conversions
+        # back and forth can cause float issues.
         offsets = Num.fabs(Num.asarray(self.freq_offsets()))
         dphis = offsets * Num.asarray([T, T**2.0/2.0, T**3.0/6.0])
-        if max(dphis) > 0.1 * bin_dphi:
+        if max(dphis[:2]) > 0.1 * bin_dphi or dphis[2] > 0.5 * bin_dphi:
             return False
         else:
             return True
@@ -559,7 +561,7 @@ class pfd(object):
         if 'subdelays' not in self.__dict__:
             print("Dedispersing first...")
             self.dedisperse()
-        if phasebins is not 'All':
+        if phasebins != 'All':
             lo, hi = phasebins
             profs = self.profs[:,:,lo:hi].sum(1)
         else:
@@ -582,7 +584,7 @@ class pfd(object):
         if 'subdelays' not in self.__dict__:
             print("Dedispersing first...")
             self.dedisperse()
-        if phasebins is not 'All':
+        if phasebins != 'All':
             lo, hi = phasebins
             profs = self.profs[:,:,lo:hi].sum(0)
         else:
