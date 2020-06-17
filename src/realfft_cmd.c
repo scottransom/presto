@@ -863,7 +863,7 @@ void usage(void)
             "    -outdir: Directory where result file(s) will reside\n");
     fprintf(stderr, "%s", "             1 char* value\n");
     fprintf(stderr, "%s", "    infiles: Input data file(s)\n");
-    fprintf(stderr, "%s", "             1...16 values\n");
+    fprintf(stderr, "%s", "             1...16384 values\n");
     fprintf(stderr, "%s", "  version: 12Mar10\n");
     fprintf(stderr, "%s", "  ");
     exit(EXIT_FAILURE);
@@ -942,8 +942,8 @@ Cmdline *parseCmdline(int argc, char **argv)
                 Program);
         exit(EXIT_FAILURE);
     }
-    if (16 < cmd.argc) {
-        fprintf(stderr, "%s: there should be at most 16 non-option argument(s)\n",
+    if (16384 < cmd.argc) {
+        fprintf(stderr, "%s: there should be at most 16384 non-option argument(s)\n",
                 Program);
         exit(EXIT_FAILURE);
     }

@@ -151,151 +151,161 @@ int main(int argc, char *argv[])
     for (ii = 0; ii < numfiles; ii++) {
         if (datfile->filelens[ii] > maxfilelen)
             maxfilelen = datfile->filelens[ii];
-    }
-    for (ii = 0; ii < numfiles; ii++)
         printf("   %d:  '%s'\n", ii + 1, datfile->filenames[ii]);
-    numdata = datfile->length / sizeof(float);
-    if (isign == -1) {
-        if (datfile->length % sizeof(float)) {
-            printf("\nInput file does not contain the correct number of\n");
-            printf("   bytes for it to be floating point data!\n\n");
-            exit(1);
+        if (isign == -1) {
+            if (datfile->length % sizeof(float)) {
+                printf("\nInput file does not contain the correct number of\n");
+                printf("   bytes for it to be floating point data!\n\n");
+                exit(1);
+            }
+        } else {
+            if (datfile->length % sizeof(fcomplex)) {
+                printf("\nInput file does not contain the correct number of\n");
+                printf("   bytes for it to be single precision complex data!\n\n");
+                exit(1);
+            }
         }
-        printf("\nData OK.  There are %lld floats.\n\n", numdata);
-    } else {
-        if (datfile->length % sizeof(fcomplex)) {
-            printf("\nInput file does not contain the correct number of\n");
-            printf("   bytes for it to be single precision complex data!\n\n");
-            exit(1);
-        }
-        printf("\nData OK.  There are %lld complex points.\n\n", numdata / 2);
     }
+    numdata = datfile->length / numfiles / sizeof(float);
+    if (isign == -1)
+        printf("\nData OK.  There are %lld floats.\n\n", numdata);
+    else
+        printf("\nData OK.  There are %lld complex points.\n\n", numdata / 2);
     printf("Result will be written to %d output file(s):\n", numfiles);
     for (ii = 0; ii < numfiles; ii++)
         printf("   %d:  '%s'\n", ii + 1, outfilenms[ii]);
+    fclose_multifile(datfile);
 
-    /*  Start the transform sequence  */
+    /* Copy the input files if we want to keep them */
 
-    if ((numdata > MAXREALFFT || cmd->diskfftP) && !cmd->memfftP) {
+    if (!cmd->deleteP) {
+        int status, maxslen = 0, slen, suf;
+        char *cmd, *root, *suffix;
 
-        /*  Perform Two-Pass, Out-of-Core, FFT  */
-
-        if (isign == -1) {
-            printf("\nPerforming out-of-core two-pass forward FFT on data.\n");
-        } else {
-            printf("\nPerforming out-of-core two-pass inverse FFT on data.\n");
+        for (ii = 0; ii < datfile->numfiles; ii++) {
+            slen = strlen(datfile->filenames[ii]);
+            if (slen > maxslen)
+                maxslen = slen;
         }
-
-        /* Copy the input files if we want to keep them */
-
-        if (!cmd->deleteP) {
-            int status, maxslen = 0, slen, suf;
-            char *cmd, *root, *suffix;
-
-            for (ii = 0; ii < datfile->numfiles; ii++) {
-                slen = strlen(datfile->filenames[ii]);
-                if (slen > maxslen)
-                    maxslen = slen;
+        maxslen = 2 * maxslen + 10;
+        cmd = (char *) calloc(maxslen, 1);
+        for (ii = 0; ii < datfile->numfiles; ii++) {
+            suf = split_root_suffix(datfile->filenames[ii], &root, &suffix);
+            sprintf(cmd, "cp %s %s.bak", datfile->filenames[ii], root);
+            if ((status = (system(cmd))) == -1 || status == 127) {
+                perror("\nSystem call (cp) failed");
+                printf("\n");
+                exit(1);
             }
-            maxslen = 2 * maxslen + 10;
-            cmd = (char *) calloc(maxslen, 1);
-            for (ii = 0; ii < datfile->numfiles; ii++) {
-                suf = split_root_suffix(datfile->filenames[ii], &root, &suffix);
-                sprintf(cmd, "cp %s %s.bak", datfile->filenames[ii], root);
-                if ((status = (system(cmd))) == -1 || status == 127) {
-                    perror("\nSystem call (cp) failed");
-                    printf("\n");
-                    exit(1);
-                }
-                if (suf)
-                    free(suffix);
-                free(root);
-            }
-            free(cmd);
+            if (suf)
+                free(suffix);
+            free(root);
         }
-
-        /* Close the input files and re-open them in write mode */
-
-        fclose_multifile(datfile);
-        datfile = fopen_multifile(numfiles, datfilenms, "r+", maxfilelen);
-        tmpfile = fopen_multifile(numfiles, tmpfilenms, "w+", maxfilelen);
-        if (isign == 1) {
-            realfft_scratch_inv(datfile, tmpfile, numdata);
-        } else {
-            realfft_scratch_fwd(datfile, tmpfile, numdata);
-        }
-        /* twopassfft_scratch(datfile, tmpfile, numdata, isign); */
-
-        /* Remove the scratch files */
-
-        fclose_multifile(tmpfile);
-        for (ii = 0; ii < numfiles; ii++)
-            remove(tmpfilenms[ii]);
-
-        /* Change the output filename to the correct suffix and   */
-        /* rename the back-up data files if needed.               */
-
-        {
-            int maxslen = 0, slen, suf;
-            char *file1, *file2, *root, *suffix;
-
-            for (ii = 0; ii < datfile->numfiles; ii++) {
-                slen = strlen(datfile->filenames[ii]);
-                if (slen > maxslen)
-                    maxslen = slen;
-            }
-            maxslen = maxslen + 5;
-            file1 = (char *) calloc(maxslen, 1);
-            file2 = (char *) calloc(maxslen, 1);
-            for (ii = 0; ii < datfile->numfiles; ii++) {
-                suf = split_root_suffix(datfile->filenames[ii], &root, &suffix);
-                sprintf(file1, "%s.%s", root, datsuffix);
-                sprintf(file2, "%s.%s", root, outsuffix);
-                rename(file1, file2);
-                if (!cmd->deleteP) {
-                    sprintf(file1, "%s.bak", root);
-                    rename(file1, datfile->filenames[ii]);
-                }
-                if (suf)
-                    free(suffix);
-                free(root);
-            }
-            free(file1);
-            free(file2);
-        }
-
-    } else {
-
-        /* Perform standard FFT for real functions  */
-
-        outfile = fopen_multifile(numfiles, outfilenms, "w", maxfilelen);
-        if (isign == -1) {
-            printf("\nPerforming in-core forward FFT on data:\n");
-        } else {
-            printf("\nPerforming in-core inverse FFT on data:\n");
-        }
-        printf("   Reading.\n");
-        data = gen_fvect(numdata);
-        fread_multifile(data, sizeof(float), numdata, datfile);
-        printf("   Transforming.\n");
-        realfft(data, numdata, isign);
-        /* fftwcall((fcomplex *)data, numdata/2, isign); */
-        /* tablesixstepfft((fcomplex *)data, numdata/2, isign); */
-        printf("   Writing.\n");
-        fwrite_multifile(data, sizeof(float), numdata, outfile);
-        fclose_multifile(outfile);
-
-        /* Delete the input files if requested */
-
-        if (cmd->deleteP) {
-            for (ii = 0; ii < numfiles; ii++)
-                remove(datfilenms[ii]);
-        }
+        free(cmd);
     }
 
-    /* Close our input files */
+    /* loop over files */
+    for (int fi = 0; fi < numfiles; fi++)
+    {
+        datfile = fopen_multifile(1, &datfilenms[fi], "r", 0);
+        numdata = datfile->length / sizeof(float);
+        /*  Start the transform sequence  */
 
-    fclose_multifile(datfile);
+        if ((numdata > MAXREALFFT || cmd->diskfftP) && !cmd->memfftP) {
+
+            /*  Perform Two-Pass, Out-of-Core, FFT  */
+
+            if (isign == -1) {
+                printf("\nPerforming out-of-core two-pass forward FFT on data.\n");
+            } else {
+                printf("\nPerforming out-of-core two-pass inverse FFT on data.\n");
+            }
+
+            /* Close the input files and re-open them in write mode */
+
+            fclose_multifile(datfile);
+            datfile = fopen_multifile(1, &datfilenms[fi], "r+", maxfilelen);
+            tmpfile = fopen_multifile(1, &tmpfilenms[fi], "w+", maxfilelen);
+            if (isign == 1) {
+                realfft_scratch_inv(datfile, tmpfile, numdata);
+            } else {
+                realfft_scratch_fwd(datfile, tmpfile, numdata);
+            }
+            /* twopassfft_scratch(datfile, tmpfile, numdata, isign); */
+
+            /* Remove the scratch files */
+
+            fclose_multifile(tmpfile);
+            for (ii = 0; ii < numfiles; ii++)
+                remove(tmpfilenms[ii]);
+
+            /* Change the output filename to the correct suffix and   */
+            /* rename the back-up data files if needed.               */
+
+            {
+                int maxslen = 0, slen, suf;
+                char *file1, *file2, *root, *suffix;
+
+                for (ii = 0; ii < datfile->numfiles; ii++) {
+                    slen = strlen(datfile->filenames[ii]);
+                    if (slen > maxslen)
+                        maxslen = slen;
+                }
+                maxslen = maxslen + 5;
+                file1 = (char *) calloc(maxslen, 1);
+                file2 = (char *) calloc(maxslen, 1);
+                for (ii = 0; ii < datfile->numfiles; ii++) {
+                    suf = split_root_suffix(datfile->filenames[ii], &root, &suffix);
+                    sprintf(file1, "%s.%s", root, datsuffix);
+                    sprintf(file2, "%s.%s", root, outsuffix);
+                    rename(file1, file2);
+                    if (!cmd->deleteP) {
+                        sprintf(file1, "%s.bak", root);
+                        rename(file1, datfile->filenames[ii]);
+                    }
+                    if (suf)
+                        free(suffix);
+                    free(root);
+                }
+                free(file1);
+                free(file2);
+            }
+
+        } else {
+
+            /* Perform standard FFT for real functions  */
+
+            outfile = fopen_multifile(1, &outfilenms[fi], "w", maxfilelen);
+            if (isign == -1) {
+                printf("\nPerforming in-core forward FFT on data ");
+            } else {
+                printf("\nPerforming in-core inverse FFT on data ");
+            }
+            printf("%s:\n", datfilenms[fi]);
+            printf("   Reading.\n");
+            data = gen_fvect(numdata);
+            fread_multifile(data, sizeof(float), numdata, datfile);
+            printf("   Transforming.\n");
+            realfft(data, numdata, isign);
+            /* fftwcall((fcomplex *)data, numdata/2, isign); */
+            /* tablesixstepfft((fcomplex *)data, numdata/2, isign); */
+            printf("   Writing.\n");
+            fwrite_multifile(data, sizeof(float), numdata, outfile);
+            fclose_multifile(outfile);
+
+            /* Delete the input files if requested */
+
+            if (cmd->deleteP) {
+                for (ii = 0; ii < numfiles; ii++)
+                    remove(datfilenms[ii]);
+            }
+        }
+
+        /* Close our input files */
+
+        fclose_multifile(datfile);
+        free(data);
+    }
 
     /* Output the timing information */
 
