@@ -1,5 +1,12 @@
 #include "accel.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 /*#undef USEMMAP*/
 
 #ifdef USEMMAP
@@ -40,7 +47,8 @@ static void print_percent_complete(int current, int number, char *what, int rese
     }
 }
 
-int main(int argc, char *argv[])
+/* subprogram that does the real work; called from the real main function */
+int sub_main(int argc, char *argv[])
 {
     int ii, rstep;
     double ttim, utim, stim, tott;
@@ -311,4 +319,86 @@ int main(int argc, char *argv[])
     g_slist_foreach(cands, free_accelcand, NULL);
     g_slist_free(cands);
     return (0);
+}
+
+int main(int argc, char *argv[])
+{
+    int i_dd;
+
+    /*  Check if there exists a double-dash on the command line,
+        which indicates that the program is called to handle
+        multiple data files.
+
+        Without a double-dash, it is assumed that the program should
+        work traditionally and handle exactly one data file.
+    */
+    for(i_dd = argc; i_dd --> 1;)
+    {
+        if(strcmp(argv[i_dd], "--") == 0)
+        {
+            break;
+        }
+    }
+    if(i_dd < 1)
+    {
+        /* "--" not found on the command line */
+        return sub_main(argc, argv);
+    }
+    else
+    {
+        /* argv[i_dd] is "--" */
+        int i_dat, sub_argc, err;
+        char **sub_argv;
+
+        err = 0;
+        sub_argc = i_dd + 1;
+        sub_argv = malloc(sizeof(*sub_argv) * sub_argc);
+        memmove(sub_argv, argv, sizeof(*sub_argv) * i_dd);
+        for(i_dat = argc; i_dat --> sub_argc;)
+        {
+            int pid, child_status;
+
+            pid = fork();
+            if(pid == 0)
+            {
+                /* This is the child process that does the real work */
+                sub_argv[i_dd] = argv[i_dat];
+                /* valgrind may complain, but no harm to omit free(sub_argv) */
+                return sub_main(sub_argc, sub_argv);
+            }
+            /*  This is the parent process, let's collect the child status and
+                stop on error.
+            */
+            if(pid == -1)
+            {
+                fprintf(stderr, "%s: error calling worker process: ", argv[0]);
+                perror("fork");
+                return -1;
+            }
+            if(waitpid(pid, &child_status, 0) < 1)
+            {
+                fprintf(stderr, "%s: error calling worker process: ", argv[0]);
+                perror("waitpid");
+                return -1;
+            }
+            if(!WIFEXITED(child_status))
+            {
+                fprintf(stderr, "%s: worker process terminated abnormally, ", argv[0]);
+                err = -1;
+            }
+            else if(err = WEXITSTATUS(child_status))
+            {
+                fprintf(stderr, "%s: error returned from worker process. Aborting ... ", argv[0]);
+            }
+            if(err)
+            {
+                fprintf(stderr, "%d files left unprocessed.\n", sub_argc - i_dat + 1);
+                break;
+            }
+        }
+        free(sub_argv);
+        return err;
+    }
+    /* Never reached */
+    return 0;
 }
