@@ -994,7 +994,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-ncpus ncpus] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile\n");
+  fprintf(stderr,"%s","   [-ncpus ncpus] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile ...\n");
   fprintf(stderr,"%s","      Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n");
   fprintf(stderr,"%s","           -ncpus: Number of processors to use with OpenMP\n");
   fprintf(stderr,"%s","                   1 int value between 1 and oo\n");
@@ -1035,9 +1035,9 @@ usage(void)
   fprintf(stderr,"%s","        -otheropt: Use the alternative optimization (for testing/debugging)\n");
   fprintf(stderr,"%s","    -noharmpolish: Do not use 'harmpolish' by default\n");
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
-  fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
-  fprintf(stderr,"%s","                   1 value\n");
-  fprintf(stderr,"%s","  version: 19Sep17\n");
+  fprintf(stderr,"%s","           infile: Input file name(s) of the floating point .fft or .[s]dat file(s).  '.inf' file(s) of the same name must also exist\n");
+  fprintf(stderr,"%s","                   1...16384 values\n");
+  fprintf(stderr,"%s","  version: 09Jul20\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1221,8 +1221,8 @@ parseCmdline(int argc, char **argv)
             Program);
     exit(EXIT_FAILURE);
   }
-  if( 1<cmd.argc ) {
-    fprintf(stderr, "%s: there should be at most 1 non-option argument(s)\n",
+  if( 16384<cmd.argc ) {
+    fprintf(stderr, "%s: there should be at most 16384 non-option argument(s)\n",
             Program);
     exit(EXIT_FAILURE);
   }

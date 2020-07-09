@@ -11,7 +11,7 @@
 .\" it edited by clig, remove the respective pair of cligPart-lines.
 .\"
 .\" cligPart TITLE
-.TH "accelsearch" 1 "19Sep17" "Clig-manuals" "Programmer's Manual"
+.TH "accelsearch" 1 "09Jul20" "Clig-manuals" "Programmer's Manual"
 .\" cligPart TITLE end
 
 .\" cligPart NAME
@@ -41,7 +41,7 @@ accelsearch \- Search an FFT or short time series for pulsars using a Fourier do
 [-otheropt]
 [-noharmpolish]
 [-noharmremove]
-infile
+infile ...
 .\" cligPart SYNOPSIS end
 
 .\" cligPart OPTIONS
@@ -125,7 +125,7 @@ Do not use 'harmpolish' by default.
 .IP -noharmremove
 Do not remove harmonically related candidates (never removed for numharm = 1).
 .IP infile
-Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist.
+Input file name(s) of the floating point .fft or .[s]dat file(s).  '.inf' file(s) of the same name must also exist.
 .\" cligPart OPTIONS end
 
 .\" cligPart DESCRIPTION
