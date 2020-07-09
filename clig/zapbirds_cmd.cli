@@ -25,7 +25,7 @@ Double  -baryv      baryv \
 # Rest of command line:
 
 Rest infile {Input file name (no suffix) of floating point fft data.  A '.inf' file of the same name must also exist} \
-        -c 1 1
+        -c 1 16384
 
 
 
