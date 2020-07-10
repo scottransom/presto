@@ -994,7 +994,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-ncpus ncpus] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [[[--] infile] | [-- infile...]]\n");
+  fprintf(stderr,"%s","   [-ncpus ncpus] [-lobin lobin] [-numharm numharm] [-zmax zmax] [-wmax wmax] [-sigma sigma] [-rlo rlo] [-rhi rhi] [-flo flo] [-fhi fhi] [-inmem] [-photon] [-median] [-locpow] [-zaplist zaplist] [-baryv baryv] [-otheropt] [-noharmpolish] [-noharmremove] [--] infile\n");
   fprintf(stderr,"%s","      Search an FFT or short time series for pulsars using a Fourier domain acceleration search with harmonic summing.\n");
   fprintf(stderr,"%s","           -ncpus: Number of processors to use with OpenMP\n");
   fprintf(stderr,"%s","                   1 int value between 1 and oo\n");
@@ -1035,9 +1035,9 @@ usage(void)
   fprintf(stderr,"%s","        -otheropt: Use the alternative optimization (for testing/debugging)\n");
   fprintf(stderr,"%s","    -noharmpolish: Do not use 'harmpolish' by default\n");
   fprintf(stderr,"%s","    -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1)\n");
-  fprintf(stderr,"%s"," infile|infile...: Input file name[s] of the floating point .fft or .[s]dat file[s].  A '.inf' file of the same name must also exist for each input file\n");
-  fprintf(stderr,"%s","                   The options list must be terminated by a double-dash if multiple input files are provided\n");
-  fprintf(stderr,"%s","  version: 2020-07-09\n");
+  fprintf(stderr,"%s","           infile: Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist\n");
+  fprintf(stderr,"%s","                   1 value\n");
+  fprintf(stderr,"%s","  version: 19Sep17\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
