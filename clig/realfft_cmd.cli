@@ -14,4 +14,4 @@ Flag -mem  memfft   {Force the use of the in-core memory FFT}
 String -tmpdir tmpdir {Scratch directory for temp file(s) in out-of-core FFT}
 String -outdir outdir {Directory where result file(s) will reside}
 Rest infiles {Input data file(s)} \
-	-c 1 16
+	-c 1 16384

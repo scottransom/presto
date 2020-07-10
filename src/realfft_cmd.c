@@ -141,7 +141,7 @@ int getIntOpts(int argc, char **argv, int i, int **values, int cmin, int cmax)
         exit(EXIT_FAILURE);
     }
 
-  /***** 
+                                  /***** 
     alloc a bit more than cmin values. It does not hurt to have room
     for a bit more values than cmax.
   *****/
@@ -257,7 +257,7 @@ int getLongOpts(int argc, char **argv, int i, long **values, int cmin, int cmax)
         exit(EXIT_FAILURE);
     }
 
-  /***** 
+                                  /***** 
     alloc a bit more than cmin values. It does not hurt to have room
     for a bit more values than cmax.
   *****/
@@ -371,7 +371,7 @@ int getFloatOpts(int argc, char **argv, int i, float **values, int cmin, int cma
         exit(EXIT_FAILURE);
     }
 
-  /***** 
+                                  /***** 
     alloc a bit more than cmin values.
   *****/
     alloced = cmin + 4;
@@ -481,7 +481,7 @@ int getDoubleOpts(int argc, char **argv, int i, double **values, int cmin, int c
         exit(EXIT_FAILURE);
     }
 
-  /***** 
+                                  /***** 
     alloc a bit more than cmin values.
   *****/
     alloced = cmin + 4;
@@ -863,8 +863,8 @@ void usage(void)
             "    -outdir: Directory where result file(s) will reside\n");
     fprintf(stderr, "%s", "             1 char* value\n");
     fprintf(stderr, "%s", "    infiles: Input data file(s)\n");
-    fprintf(stderr, "%s", "             1...16 values\n");
-    fprintf(stderr, "%s", "  version: 12Mar10\n");
+    fprintf(stderr, "%s", "             1...16384 values\n");
+    fprintf(stderr, "%s", "  version: 09Jul20\n");
     fprintf(stderr, "%s", "  ");
     exit(EXIT_FAILURE);
 }
@@ -942,11 +942,10 @@ Cmdline *parseCmdline(int argc, char **argv)
                 Program);
         exit(EXIT_FAILURE);
     }
-    if (16 < cmd.argc) {
-        fprintf(stderr, "%s: there should be at most 16 non-option argument(s)\n",
+    if (16384 < cmd.argc) {
+        fprintf(stderr, "%s: there should be at most 16384 non-option argument(s)\n",
                 Program);
         exit(EXIT_FAILURE);
     }
-    /*@-compmempass */
-    return &cmd;
+    /*@-compmempass */ return &cmd;
 }

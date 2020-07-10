@@ -45,5 +45,5 @@ Flag   -noharmremove noharmremove  {Do not remove harmonically related candidate
 
 # Rest of command line:
 
-Rest infile {Input file name of the floating point .fft or .[s]dat file.  A '.inf' file of the same name must also exist} \
-        -c 1 1
+Rest infile {Input file name(s) of the floating point .fft or .[s]dat file(s).  '.inf' file(s) of the same name must also exist} \
+        -c 1 16384
