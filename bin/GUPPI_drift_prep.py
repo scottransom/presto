@@ -59,7 +59,7 @@ if __name__=="__main__":
         subints = guppi_subint_per_file(infilenms[ii])
         if ((subints < nom_subint_per_file) and (ii < numinfiles-1)):
             print("Warning!  '%s' only has %d samples!"%\
-                  (infilenms[ii], ubints))
+                  (infilenms[ii], subints))
             print("    You need to fix that file!")
             sys.exit(-1)
         subints_per_file.append(subints)
