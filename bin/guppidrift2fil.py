@@ -160,7 +160,7 @@ def translate_header(fits_file,skip,output_subints):
 
     rmn,dmn = sla.sla_amp(rap,dap,MJD,eq)
     hours,hmin,hsec = presto.hours2hms(degrees(rmn)/15.0)
-    deg,dmin,dsec = presto.deg2dms(degrees(dmn)/15.0)
+    deg,dmin,dsec = presto.deg2dms(degrees(dmn))
 
 
     fil_header["src_raj"] = float(hours*10000.0 + hmin*100.0 +  hsec)
