@@ -66,7 +66,7 @@ if __name__=="__main__":
     total_subints = sum(subints_per_file)
     print(total_subints)
     num = int(sys.argv[1])
-    nmax = total_subints/overlap_subints-1
+    nmax = total_subints//overlap_subints-1
     if num < 0:
         print(nmax)
         sys.exit(0)
@@ -85,7 +85,7 @@ if __name__=="__main__":
             skip = first_subint - accum_subints
             # How many total files we need
             first_file_subints = subints_per_file[ii]-skip
-            numfiles = (raw_N - first_file_subints) / nom_subint_per_file + 1
+            numfiles = (raw_N - first_file_subints) // nom_subint_per_file + 1
             if ((raw_N - first_file_subints) % nom_subint_per_file):
                 numfiles += 1
             if debug:
