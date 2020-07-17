@@ -597,7 +597,7 @@ int main(int argc, char *argv[])
             int oldbin = 0, currentbin;
             double lobin, hibin, calcpt;
 
-            numdiffbins = abs(NEAREST_LONG(btoa[numbarypts - 1])) + 1;
+            numdiffbins = labs(NEAREST_LONG(btoa[numbarypts - 1])) + 1;
             diffbins = gen_ivect(numdiffbins);
             diffbinptr = diffbins;
             for (ii = 1; ii < numbarypts; ii++) {
