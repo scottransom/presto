@@ -193,6 +193,14 @@ int main(int argc, char *argv[])
             printf("\n");
             if (RAWDATA) {
                 read_rawdata_files(&s);
+                // Make sure that the requested number of subbands divides into the
+                // the raw number of channels.
+                if (s.num_channels % cmd->nsub) {
+                    printf("Error:  The number of subbands (-nsub %d) must divide into the\n"
+                           "        number of channels (%d)\n\n",
+                           cmd->nsub, s.num_channels);
+                    exit(1);
+                }
                 if (cmd->ignorechanstrP) {
                     s.ignorechans = get_ignorechans(cmd->ignorechanstr, 0, s.num_channels-1,
                                                     &s.num_ignorechans, &s.ignorechans_str);
