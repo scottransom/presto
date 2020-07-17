@@ -241,10 +241,14 @@ int main(int argc, char *argv[])
                     sprintf(tmpname, "%s.sub", root);
                     readinf(&idata, tmpname);
                     free(tmpname);
-                    strncpy(s.telescope, idata.telescope, 40);
-                    strncpy(s.backend, idata.instrument, 40);
-                    strncpy(s.observer, idata.observer, 40);
-                    strncpy(s.source, idata.object, 40);
+                    // Both are length 40
+                    strcpy(s.telescope, idata.telescope);
+                    // Both are length 100
+                    strcpy(s.backend, idata.instrument);
+                    // Both are length 100
+                    strcpy(s.observer, idata.observer);
+                    // Both are length 100
+                    strcpy(s.source, idata.object);
                     s.ra2000 = hms2rad(idata.ra_h, idata.ra_m,
                                        idata.ra_s) * RADTODEG;
                     s.dec2000 = dms2rad(idata.dec_d, idata.dec_m,
