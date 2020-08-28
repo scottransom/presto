@@ -34,6 +34,7 @@ Basic steps to install:
   allow PGPLOT to find its important files.
 
   Ubuntu has a good PGPLOT package: pgplot5
+  And on Ubuntu, I have PGPLOT_DIR=/usr/lib/pgplot5
 
   If you install to a non-standard location, see the note in #1
   about editing the setup.py file for the python install!
