@@ -97,7 +97,7 @@ for logB in Bs_to_plot:
     else:
         x = 1.1 * plims[0]
         y = pu.pdot_from_B(x, 10.0**logB)
-    plt.text(x, y, "$10^{%d}$ G"%logB, color=greytext,
+    plt.text(x, 0.6*y, "$10^{%d}$ G"%logB, color=greytext,
         horizontalalignment='left', verticalalignment='baseline',
         rotation=np.degrees(np.arctan(-1.0 * dpdpd)))
 
@@ -111,7 +111,7 @@ for logEdot in Edots_to_plot[::-1]:
     else:
         y = 1e-21
         x = 0.6 * (y * 4e45 * np.pi * np.pi / 10.0**logEdot)**(1.0/3.0)
-    plt.text(x, y, "$10^{%d}$ erg/s"%logEdot, color=greytext,
+    plt.text(x, 0.14*y, "$10^{%d}$ erg/s"%logEdot, color=greytext,
         horizontalalignment='left', verticalalignment='baseline',
         rotation=np.degrees(np.arctan(3.0 * dpdpd)))
 
