@@ -170,3 +170,17 @@ if envval is not None:
 else:
     print("Skipping test of presto.get_baryv() since TEMPO not set.")
 
+print("Testing simple folding code...", end=' ')
+prof, phs = presto.fold(np.ones(10000), 0.001, 10, 1)
+assert(np.allclose(prof, prof.mean()))
+assert(np.all(prof>0))
+prof, phs = presto.fold(np.ones(10000), 0.001, 100, 1)
+assert(np.allclose(prof, prof.mean()))
+assert(np.all(prof>0))
+prof, phs = presto.fold(np.ones(10000), 0.001, 200, 1)
+assert(np.allclose(prof, prof.mean()))
+assert(np.all(prof>0))
+prof, phs = presto.fold(np.ones(10000), 0.001, 500, 1)
+assert(np.allclose(prof, prof.mean()))
+assert(np.all(prof>0))
+print("success")
