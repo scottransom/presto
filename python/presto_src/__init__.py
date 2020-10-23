@@ -676,3 +676,24 @@ def get_baryv(ra, dec, mjd, T, obs="PK"):
     vel = np.zeros(nn, dtype=np.float64)
     barycenter(tts, bts, vel, ra, dec, obs, "DE421")
     return vel.mean()
+
+
+def fold(indata, dt, nbins, f, fd=0.0, fdd=0.0, startphs=0.0, tlo=0.0):
+    """
+    fold(indata, dt, nbins, f, fd=0.0, fdd=0.0, startphs=0.0, tlo=0.0):
+      This is an interface into PRESTO's fold() code, which is what
+      prepfold uses to fold data.  It will return a tuple of a
+      double-precision profile of length nbins, and the ending phase
+      (0-1) of the fold.
+        indata is an array of floats to fold
+        dt is the duration in sec of each of the indata bins
+        f, fd, and fdd are the freq, freq deriv, and freq 2nd deriv to fold (Hz)
+        startphs (0-1) is the phase for the beginning of the first bin
+        tlo is the time (in sec) referring to the start of the first bin,
+          with respect to the reference time of f, fd, and fdd (i.e. tlo=0.0).
+    """
+    prof = np.zeros(nbins, dtype=np.float64)
+    data = indata.astype(np.float32)
+    phs = simplefold(data, dt, tlo, prof, startphs, f, fd, fdd)
+    return (prof, phs)
+

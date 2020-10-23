@@ -1608,6 +1608,14 @@ SwigPyObject_repr(SwigPyObject *v, PyObject *args)
   return repr;  
 }
 
+/* We need a version taking two PyObject* parameters so it's a valid
+ * PyCFunction to use in swigobject_methods[]. */
+SWIGRUNTIME PyObject *
+SwigPyObject_repr2(PyObject *v, PyObject *SWIGUNUSEDPARM(args))
+{
+  return SwigPyObject_repr((SwigPyObject*)v);
+}
+
 SWIGRUNTIME int
 SwigPyObject_compare(SwigPyObject *v, SwigPyObject *w)
 {
@@ -1737,11 +1745,7 @@ SwigPyObject_append(PyObject* v, PyObject* next)
 }
 
 SWIGRUNTIME PyObject* 
-#ifdef METH_NOARGS
-SwigPyObject_next(PyObject* v)
-#else
 SwigPyObject_next(PyObject* v, PyObject *SWIGUNUSEDPARM(args))
-#endif
 {
   SwigPyObject *sobj = (SwigPyObject *) v;
   if (sobj->next) {    
@@ -1775,6 +1779,20 @@ SwigPyObject_acquire(PyObject* v, PyObject *SWIGUNUSEDPARM(args))
   sobj->own = SWIG_POINTER_OWN;
   return SWIG_Py_Void();
 }
+
+#ifdef METH_NOARGS
+static PyObject*
+SwigPyObject_disown2(PyObject* v, PyObject *SWIGUNUSEDPARM(args))
+{
+  return SwigPyObject_disown(v);
+}
+
+static PyObject*
+SwigPyObject_acquire2(PyObject* v, PyObject *SWIGUNUSEDPARM(args))
+{
+  return SwigPyObject_acquire(v);
+}
+#endif
 
 SWIGINTERN PyObject*
 SwigPyObject_own(PyObject *v, PyObject *args)
@@ -1816,12 +1834,12 @@ SwigPyObject_own(PyObject *v, PyObject *args)
 #ifdef METH_O
 static PyMethodDef
 swigobject_methods[] = {
-  {(char *)"disown",  (PyCFunction)SwigPyObject_disown,  METH_NOARGS,  (char *)"releases ownership of the pointer"},
-  {(char *)"acquire", (PyCFunction)SwigPyObject_acquire, METH_NOARGS,  (char *)"acquires ownership of the pointer"},
+  {(char *)"disown",  (PyCFunction)SwigPyObject_disown2, METH_NOARGS,  (char *)"releases ownership of the pointer"},
+  {(char *)"acquire", (PyCFunction)SwigPyObject_acquire2,METH_NOARGS,  (char *)"acquires ownership of the pointer"},
   {(char *)"own",     (PyCFunction)SwigPyObject_own,     METH_VARARGS, (char *)"returns/sets ownership of the pointer"},
   {(char *)"append",  (PyCFunction)SwigPyObject_append,  METH_O,       (char *)"appends another 'this' object"},
   {(char *)"next",    (PyCFunction)SwigPyObject_next,    METH_NOARGS,  (char *)"returns the next 'this' object"},
-  {(char *)"__repr__",(PyCFunction)SwigPyObject_repr,    METH_NOARGS,  (char *)"returns object representation"},
+  {(char *)"__repr__",(PyCFunction)SwigPyObject_repr2,   METH_NOARGS,  (char *)"returns object representation"},
   {0, 0, 0, 0}  
 };
 #else
@@ -1832,7 +1850,7 @@ swigobject_methods[] = {
   {(char *)"own",     (PyCFunction)SwigPyObject_own,     METH_VARARGS,  (char *)"returns/sets ownership of the pointer"},
   {(char *)"append",  (PyCFunction)SwigPyObject_append,  METH_VARARGS,  (char *)"appends another 'this' object"},
   {(char *)"next",    (PyCFunction)SwigPyObject_next,    METH_VARARGS,  (char *)"returns the next 'this' object"},
-  {(char *)"__repr__",(PyCFunction)SwigPyObject_repr,   METH_VARARGS,  (char *)"returns object representation"},
+  {(char *)"__repr__",(PyCFunction)SwigPyObject_repr,    METH_VARARGS,  (char *)"returns object representation"},
   {0, 0, 0, 0}  
 };
 #endif
@@ -4296,6 +4314,15 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
                          double *voverc, long N3,
                          char *ra, char *dec, char *obs, char *ephem){
         barycenter(topotimes, barytimes, voverc, N1, ra, dec, obs, ephem);
+    }
+
+
+    double wrap_simplefold(float *data, long N1, double dt, double tlo,
+                           double *prof, long N2, double startphs,
+                           double f0, double fdot, double fdotdot){
+        return simplefold(data, N1, dt, tlo,
+                          prof, N2, startphs,
+                          f0, fdot, fdotdot);
     }
 
 #ifdef __cplusplus
@@ -13851,6 +13878,115 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_simplefold(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  float *arg1 = (float *) 0 ;
+  long arg2 ;
+  double arg3 ;
+  double arg4 ;
+  double *arg5 = (double *) 0 ;
+  long arg6 ;
+  double arg7 ;
+  double arg8 ;
+  double arg9 ;
+  double arg10 ;
+  PyArrayObject *array1 = NULL ;
+  int i1 = 1 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  double val4 ;
+  int ecode4 = 0 ;
+  PyArrayObject *array5 = NULL ;
+  int i5 = 1 ;
+  double val7 ;
+  int ecode7 = 0 ;
+  double val8 ;
+  int ecode8 = 0 ;
+  double val9 ;
+  int ecode9 = 0 ;
+  double val10 ;
+  int ecode10 = 0 ;
+  PyObject * obj0 = 0 ;
+  PyObject * obj1 = 0 ;
+  PyObject * obj2 = 0 ;
+  PyObject * obj3 = 0 ;
+  PyObject * obj4 = 0 ;
+  PyObject * obj5 = 0 ;
+  PyObject * obj6 = 0 ;
+  PyObject * obj7 = 0 ;
+  double result;
+  
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOOO:simplefold",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7)) SWIG_fail;
+  {
+    array1 = obj_to_array_no_conversion(obj0, NPY_FLOAT);
+    if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
+      || !require_native(array1)) SWIG_fail;
+    arg1 = (float*) array_data(array1);
+    arg2 = 1;
+    for (i1=0; i1 < array_numdims(array1); ++i1) arg2 *= array_size(array1,i1);
+  }
+  ecode3 = SWIG_AsVal_double(obj1, &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "simplefold" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_double(obj2, &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "simplefold" "', argument " "4"" of type '" "double""'");
+  } 
+  arg4 = (double)(val4);
+  {
+    array5 = obj_to_array_no_conversion(obj3, NPY_DOUBLE);
+    if (!array5 || !require_dimensions(array5,1) || !require_contiguous(array5)
+      || !require_native(array5)) SWIG_fail;
+    arg5 = (double*) array_data(array5);
+    arg6 = 1;
+    for (i5=0; i5 < array_numdims(array5); ++i5) arg6 *= array_size(array5,i5);
+  }
+  ecode7 = SWIG_AsVal_double(obj4, &val7);
+  if (!SWIG_IsOK(ecode7)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode7), "in method '" "simplefold" "', argument " "7"" of type '" "double""'");
+  } 
+  arg7 = (double)(val7);
+  ecode8 = SWIG_AsVal_double(obj5, &val8);
+  if (!SWIG_IsOK(ecode8)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode8), "in method '" "simplefold" "', argument " "8"" of type '" "double""'");
+  } 
+  arg8 = (double)(val8);
+  ecode9 = SWIG_AsVal_double(obj6, &val9);
+  if (!SWIG_IsOK(ecode9)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode9), "in method '" "simplefold" "', argument " "9"" of type '" "double""'");
+  } 
+  arg9 = (double)(val9);
+  ecode10 = SWIG_AsVal_double(obj7, &val10);
+  if (!SWIG_IsOK(ecode10)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode10), "in method '" "simplefold" "', argument " "10"" of type '" "double""'");
+  } 
+  arg10 = (double)(val10);
+  {
+    errno = 0;
+    result = (double)wrap_simplefold(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_nice_output_1(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   char *arg1 = (char *) 0 ;
@@ -13988,272 +14124,273 @@ fail:
 
 
 static PyMethodDef SwigMethods[] = {
-	 { (char *)"SWIG_PyInstanceMethod_New", (PyCFunction)SWIG_PyInstanceMethod_New, METH_O, NULL},
-	 { (char *)"fcomplex_r_set", _wrap_fcomplex_r_set, METH_VARARGS, NULL},
-	 { (char *)"fcomplex_r_get", _wrap_fcomplex_r_get, METH_VARARGS, NULL},
-	 { (char *)"fcomplex_i_set", _wrap_fcomplex_i_set, METH_VARARGS, NULL},
-	 { (char *)"fcomplex_i_get", _wrap_fcomplex_i_get, METH_VARARGS, NULL},
-	 { (char *)"new_fcomplex", _wrap_new_fcomplex, METH_VARARGS, NULL},
-	 { (char *)"delete_fcomplex", _wrap_delete_fcomplex, METH_VARARGS, NULL},
-	 { (char *)"fcomplex_swigregister", fcomplex_swigregister, METH_VARARGS, NULL},
-	 { (char *)"read_wisdom", _wrap_read_wisdom, METH_VARARGS, NULL},
-	 { (char *)"good_factor", _wrap_good_factor, METH_VARARGS, NULL},
-	 { (char *)"fftwcall", _wrap_fftwcall, METH_VARARGS, NULL},
-	 { (char *)"tablesixstepfft", _wrap_tablesixstepfft, METH_VARARGS, NULL},
-	 { (char *)"realfft", _wrap_realfft, METH_VARARGS, NULL},
-	 { (char *)"infodata_ra_s_set", _wrap_infodata_ra_s_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_ra_s_get", _wrap_infodata_ra_s_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_dec_s_set", _wrap_infodata_dec_s_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_dec_s_get", _wrap_infodata_dec_s_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_N_set", _wrap_infodata_N_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_N_get", _wrap_infodata_N_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_dt_set", _wrap_infodata_dt_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_dt_get", _wrap_infodata_dt_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_fov_set", _wrap_infodata_fov_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_fov_get", _wrap_infodata_fov_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_mjd_f_set", _wrap_infodata_mjd_f_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_mjd_f_get", _wrap_infodata_mjd_f_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_dm_set", _wrap_infodata_dm_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_dm_get", _wrap_infodata_dm_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_freq_set", _wrap_infodata_freq_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_freq_get", _wrap_infodata_freq_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_freqband_set", _wrap_infodata_freqband_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_freqband_get", _wrap_infodata_freqband_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_chan_wid_set", _wrap_infodata_chan_wid_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_chan_wid_get", _wrap_infodata_chan_wid_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_wavelen_set", _wrap_infodata_wavelen_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_wavelen_get", _wrap_infodata_wavelen_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_waveband_set", _wrap_infodata_waveband_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_waveband_get", _wrap_infodata_waveband_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_energy_set", _wrap_infodata_energy_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_energy_get", _wrap_infodata_energy_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_energyband_set", _wrap_infodata_energyband_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_energyband_get", _wrap_infodata_energyband_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_num_chan_set", _wrap_infodata_num_chan_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_num_chan_get", _wrap_infodata_num_chan_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_mjd_i_set", _wrap_infodata_mjd_i_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_mjd_i_get", _wrap_infodata_mjd_i_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_ra_h_set", _wrap_infodata_ra_h_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_ra_h_get", _wrap_infodata_ra_h_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_ra_m_set", _wrap_infodata_ra_m_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_ra_m_get", _wrap_infodata_ra_m_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_dec_d_set", _wrap_infodata_dec_d_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_dec_d_get", _wrap_infodata_dec_d_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_dec_m_set", _wrap_infodata_dec_m_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_dec_m_get", _wrap_infodata_dec_m_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_bary_set", _wrap_infodata_bary_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_bary_get", _wrap_infodata_bary_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_numonoff_set", _wrap_infodata_numonoff_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_numonoff_get", _wrap_infodata_numonoff_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_notes_set", _wrap_infodata_notes_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_notes_get", _wrap_infodata_notes_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_name_set", _wrap_infodata_name_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_name_get", _wrap_infodata_name_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_object_set", _wrap_infodata_object_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_object_get", _wrap_infodata_object_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_instrument_set", _wrap_infodata_instrument_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_instrument_get", _wrap_infodata_instrument_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_observer_set", _wrap_infodata_observer_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_observer_get", _wrap_infodata_observer_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_analyzer_set", _wrap_infodata_analyzer_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_analyzer_get", _wrap_infodata_analyzer_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_telescope_set", _wrap_infodata_telescope_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_telescope_get", _wrap_infodata_telescope_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_band_set", _wrap_infodata_band_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_band_get", _wrap_infodata_band_get, METH_VARARGS, NULL},
-	 { (char *)"infodata_filt_set", _wrap_infodata_filt_set, METH_VARARGS, NULL},
-	 { (char *)"infodata_filt_get", _wrap_infodata_filt_get, METH_VARARGS, NULL},
-	 { (char *)"new_infodata", _wrap_new_infodata, METH_VARARGS, NULL},
-	 { (char *)"delete_infodata", _wrap_delete_infodata, METH_VARARGS, NULL},
-	 { (char *)"infodata_swigregister", infodata_swigregister, METH_VARARGS, NULL},
-	 { (char *)"readinf", _wrap_readinf, METH_VARARGS, NULL},
-	 { (char *)"writeinf", _wrap_writeinf, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_p_set", _wrap_orbitparams_p_set, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_p_get", _wrap_orbitparams_p_get, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_e_set", _wrap_orbitparams_e_set, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_e_get", _wrap_orbitparams_e_get, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_x_set", _wrap_orbitparams_x_set, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_x_get", _wrap_orbitparams_x_get, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_w_set", _wrap_orbitparams_w_set, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_w_get", _wrap_orbitparams_w_get, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_t_set", _wrap_orbitparams_t_set, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_t_get", _wrap_orbitparams_t_get, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_pd_set", _wrap_orbitparams_pd_set, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_pd_get", _wrap_orbitparams_pd_get, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_wd_set", _wrap_orbitparams_wd_set, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_wd_get", _wrap_orbitparams_wd_get, METH_VARARGS, NULL},
-	 { (char *)"new_orbitparams", _wrap_new_orbitparams, METH_VARARGS, NULL},
-	 { (char *)"delete_orbitparams", _wrap_delete_orbitparams, METH_VARARGS, NULL},
-	 { (char *)"orbitparams_swigregister", orbitparams_swigregister, METH_VARARGS, NULL},
-	 { (char *)"psrparams_jname_set", _wrap_psrparams_jname_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_jname_get", _wrap_psrparams_jname_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_bname_set", _wrap_psrparams_bname_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_bname_get", _wrap_psrparams_bname_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_alias_set", _wrap_psrparams_alias_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_alias_get", _wrap_psrparams_alias_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_ra2000_set", _wrap_psrparams_ra2000_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_ra2000_get", _wrap_psrparams_ra2000_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_dec2000_set", _wrap_psrparams_dec2000_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_dec2000_get", _wrap_psrparams_dec2000_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_dm_set", _wrap_psrparams_dm_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_dm_get", _wrap_psrparams_dm_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_timepoch_set", _wrap_psrparams_timepoch_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_timepoch_get", _wrap_psrparams_timepoch_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_p_set", _wrap_psrparams_p_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_p_get", _wrap_psrparams_p_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_pd_set", _wrap_psrparams_pd_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_pd_get", _wrap_psrparams_pd_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_pdd_set", _wrap_psrparams_pdd_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_pdd_get", _wrap_psrparams_pdd_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_f_set", _wrap_psrparams_f_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_f_get", _wrap_psrparams_f_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_fd_set", _wrap_psrparams_fd_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_fd_get", _wrap_psrparams_fd_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_fdd_set", _wrap_psrparams_fdd_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_fdd_get", _wrap_psrparams_fdd_get, METH_VARARGS, NULL},
-	 { (char *)"psrparams_orb_set", _wrap_psrparams_orb_set, METH_VARARGS, NULL},
-	 { (char *)"psrparams_orb_get", _wrap_psrparams_orb_get, METH_VARARGS, NULL},
-	 { (char *)"new_psrparams", _wrap_new_psrparams, METH_VARARGS, NULL},
-	 { (char *)"delete_psrparams", _wrap_delete_psrparams, METH_VARARGS, NULL},
-	 { (char *)"psrparams_swigregister", psrparams_swigregister, METH_VARARGS, NULL},
-	 { (char *)"get_psr_at_epoch", _wrap_get_psr_at_epoch, METH_VARARGS, NULL},
-	 { (char *)"get_psr_from_parfile", _wrap_get_psr_from_parfile, METH_VARARGS, NULL},
-	 { (char *)"mjd_to_datestr", _wrap_mjd_to_datestr, METH_VARARGS, NULL},
-	 { (char *)"fresnl", _wrap_fresnl, METH_VARARGS, NULL},
-	 { (char *)"rderivs_pow_set", _wrap_rderivs_pow_set, METH_VARARGS, NULL},
-	 { (char *)"rderivs_pow_get", _wrap_rderivs_pow_get, METH_VARARGS, NULL},
-	 { (char *)"rderivs_phs_set", _wrap_rderivs_phs_set, METH_VARARGS, NULL},
-	 { (char *)"rderivs_phs_get", _wrap_rderivs_phs_get, METH_VARARGS, NULL},
-	 { (char *)"rderivs_dpow_set", _wrap_rderivs_dpow_set, METH_VARARGS, NULL},
-	 { (char *)"rderivs_dpow_get", _wrap_rderivs_dpow_get, METH_VARARGS, NULL},
-	 { (char *)"rderivs_dphs_set", _wrap_rderivs_dphs_set, METH_VARARGS, NULL},
-	 { (char *)"rderivs_dphs_get", _wrap_rderivs_dphs_get, METH_VARARGS, NULL},
-	 { (char *)"rderivs_d2pow_set", _wrap_rderivs_d2pow_set, METH_VARARGS, NULL},
-	 { (char *)"rderivs_d2pow_get", _wrap_rderivs_d2pow_get, METH_VARARGS, NULL},
-	 { (char *)"rderivs_d2phs_set", _wrap_rderivs_d2phs_set, METH_VARARGS, NULL},
-	 { (char *)"rderivs_d2phs_get", _wrap_rderivs_d2phs_get, METH_VARARGS, NULL},
-	 { (char *)"rderivs_locpow_set", _wrap_rderivs_locpow_set, METH_VARARGS, NULL},
-	 { (char *)"rderivs_locpow_get", _wrap_rderivs_locpow_get, METH_VARARGS, NULL},
-	 { (char *)"new_rderivs", _wrap_new_rderivs, METH_VARARGS, NULL},
-	 { (char *)"delete_rderivs", _wrap_delete_rderivs, METH_VARARGS, NULL},
-	 { (char *)"rderivs_swigregister", rderivs_swigregister, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_r_set", _wrap_fourierprops_r_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_r_get", _wrap_fourierprops_r_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_rerr_set", _wrap_fourierprops_rerr_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_rerr_get", _wrap_fourierprops_rerr_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_z_set", _wrap_fourierprops_z_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_z_get", _wrap_fourierprops_z_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_zerr_set", _wrap_fourierprops_zerr_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_zerr_get", _wrap_fourierprops_zerr_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_w_set", _wrap_fourierprops_w_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_w_get", _wrap_fourierprops_w_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_werr_set", _wrap_fourierprops_werr_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_werr_get", _wrap_fourierprops_werr_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_pow_set", _wrap_fourierprops_pow_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_pow_get", _wrap_fourierprops_pow_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_powerr_set", _wrap_fourierprops_powerr_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_powerr_get", _wrap_fourierprops_powerr_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_sig_set", _wrap_fourierprops_sig_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_sig_get", _wrap_fourierprops_sig_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_rawpow_set", _wrap_fourierprops_rawpow_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_rawpow_get", _wrap_fourierprops_rawpow_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_phs_set", _wrap_fourierprops_phs_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_phs_get", _wrap_fourierprops_phs_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_phserr_set", _wrap_fourierprops_phserr_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_phserr_get", _wrap_fourierprops_phserr_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_cen_set", _wrap_fourierprops_cen_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_cen_get", _wrap_fourierprops_cen_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_cenerr_set", _wrap_fourierprops_cenerr_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_cenerr_get", _wrap_fourierprops_cenerr_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_pur_set", _wrap_fourierprops_pur_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_pur_get", _wrap_fourierprops_pur_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_purerr_set", _wrap_fourierprops_purerr_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_purerr_get", _wrap_fourierprops_purerr_get, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_locpow_set", _wrap_fourierprops_locpow_set, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_locpow_get", _wrap_fourierprops_locpow_get, METH_VARARGS, NULL},
-	 { (char *)"new_fourierprops", _wrap_new_fourierprops, METH_VARARGS, NULL},
-	 { (char *)"delete_fourierprops", _wrap_delete_fourierprops, METH_VARARGS, NULL},
-	 { (char *)"fourierprops_swigregister", fourierprops_swigregister, METH_VARARGS, NULL},
-	 { (char *)"foldstats_numdata_set", _wrap_foldstats_numdata_set, METH_VARARGS, NULL},
-	 { (char *)"foldstats_numdata_get", _wrap_foldstats_numdata_get, METH_VARARGS, NULL},
-	 { (char *)"foldstats_data_avg_set", _wrap_foldstats_data_avg_set, METH_VARARGS, NULL},
-	 { (char *)"foldstats_data_avg_get", _wrap_foldstats_data_avg_get, METH_VARARGS, NULL},
-	 { (char *)"foldstats_data_var_set", _wrap_foldstats_data_var_set, METH_VARARGS, NULL},
-	 { (char *)"foldstats_data_var_get", _wrap_foldstats_data_var_get, METH_VARARGS, NULL},
-	 { (char *)"foldstats_numprof_set", _wrap_foldstats_numprof_set, METH_VARARGS, NULL},
-	 { (char *)"foldstats_numprof_get", _wrap_foldstats_numprof_get, METH_VARARGS, NULL},
-	 { (char *)"foldstats_prof_avg_set", _wrap_foldstats_prof_avg_set, METH_VARARGS, NULL},
-	 { (char *)"foldstats_prof_avg_get", _wrap_foldstats_prof_avg_get, METH_VARARGS, NULL},
-	 { (char *)"foldstats_prof_var_set", _wrap_foldstats_prof_var_set, METH_VARARGS, NULL},
-	 { (char *)"foldstats_prof_var_get", _wrap_foldstats_prof_var_get, METH_VARARGS, NULL},
-	 { (char *)"foldstats_redchi_set", _wrap_foldstats_redchi_set, METH_VARARGS, NULL},
-	 { (char *)"foldstats_redchi_get", _wrap_foldstats_redchi_get, METH_VARARGS, NULL},
-	 { (char *)"new_foldstats", _wrap_new_foldstats, METH_VARARGS, NULL},
-	 { (char *)"delete_foldstats", _wrap_delete_foldstats, METH_VARARGS, NULL},
-	 { (char *)"foldstats_swigregister", foldstats_swigregister, METH_VARARGS, NULL},
-	 { (char *)"gen_fvect", _wrap_gen_fvect, METH_VARARGS, NULL},
-	 { (char *)"gen_cvect", _wrap_gen_cvect, METH_VARARGS, NULL},
-	 { (char *)"power_arr", _wrap_power_arr, METH_VARARGS, NULL},
-	 { (char *)"phase_arr", _wrap_phase_arr, METH_VARARGS, NULL},
-	 { (char *)"frotate", _wrap_frotate, METH_VARARGS, NULL},
-	 { (char *)"drotate", _wrap_drotate, METH_VARARGS, NULL},
-	 { (char *)"keplers_eqn", _wrap_keplers_eqn, METH_VARARGS, NULL},
-	 { (char *)"E_to_phib", _wrap_E_to_phib, METH_VARARGS, NULL},
-	 { (char *)"E_to_v", _wrap_E_to_v, METH_VARARGS, NULL},
-	 { (char *)"E_to_p", _wrap_E_to_p, METH_VARARGS, NULL},
-	 { (char *)"E_to_z", _wrap_E_to_z, METH_VARARGS, NULL},
-	 { (char *)"E_to_phib_BT", _wrap_E_to_phib_BT, METH_VARARGS, NULL},
-	 { (char *)"dorbint", _wrap_dorbint, METH_VARARGS, NULL},
-	 { (char *)"binary_velocity", _wrap_binary_velocity, METH_VARARGS, NULL},
-	 { (char *)"r_resp_halfwidth", _wrap_r_resp_halfwidth, METH_VARARGS, NULL},
-	 { (char *)"z_resp_halfwidth", _wrap_z_resp_halfwidth, METH_VARARGS, NULL},
-	 { (char *)"w_resp_halfwidth", _wrap_w_resp_halfwidth, METH_VARARGS, NULL},
-	 { (char *)"bin_resp_halfwidth", _wrap_bin_resp_halfwidth, METH_VARARGS, NULL},
-	 { (char *)"gen_r_response", _wrap_gen_r_response, METH_VARARGS, NULL},
-	 { (char *)"gen_z_response", _wrap_gen_z_response, METH_VARARGS, NULL},
-	 { (char *)"gen_w_response", _wrap_gen_w_response, METH_VARARGS, NULL},
-	 { (char *)"gen_w_response2", _wrap_gen_w_response2, METH_VARARGS, NULL},
-	 { (char *)"gen_bin_response", _wrap_gen_bin_response, METH_VARARGS, NULL},
-	 { (char *)"get_localpower", _wrap_get_localpower, METH_VARARGS, NULL},
-	 { (char *)"get_localpower3d", _wrap_get_localpower3d, METH_VARARGS, NULL},
-	 { (char *)"get_derivs3d", _wrap_get_derivs3d, METH_VARARGS, NULL},
-	 { (char *)"calc_props", _wrap_calc_props, METH_VARARGS, NULL},
-	 { (char *)"calc_binprops", _wrap_calc_binprops, METH_VARARGS, NULL},
-	 { (char *)"calc_rzwerrs", _wrap_calc_rzwerrs, METH_VARARGS, NULL},
-	 { (char *)"extended_equiv_gaussian_sigma", _wrap_extended_equiv_gaussian_sigma, METH_VARARGS, NULL},
-	 { (char *)"log_asymtotic_incomplete_gamma", _wrap_log_asymtotic_incomplete_gamma, METH_VARARGS, NULL},
-	 { (char *)"log_asymtotic_gamma", _wrap_log_asymtotic_gamma, METH_VARARGS, NULL},
-	 { (char *)"equivalent_gaussian_sigma", _wrap_equivalent_gaussian_sigma, METH_VARARGS, NULL},
-	 { (char *)"chi2_logp", _wrap_chi2_logp, METH_VARARGS, NULL},
-	 { (char *)"chi2_sigma", _wrap_chi2_sigma, METH_VARARGS, NULL},
-	 { (char *)"candidate_sigma", _wrap_candidate_sigma, METH_VARARGS, NULL},
-	 { (char *)"power_for_sigma", _wrap_power_for_sigma, METH_VARARGS, NULL},
-	 { (char *)"switch_f_and_p", _wrap_switch_f_and_p, METH_VARARGS, NULL},
-	 { (char *)"chisqr", _wrap_chisqr, METH_VARARGS, NULL},
-	 { (char *)"print_candidate", _wrap_print_candidate, METH_VARARGS, NULL},
-	 { (char *)"print_bin_candidate", _wrap_print_bin_candidate, METH_VARARGS, NULL},
-	 { (char *)"read_rzw_cand", _wrap_read_rzw_cand, METH_VARARGS, NULL},
-	 { (char *)"get_rzw_cand", _wrap_get_rzw_cand, METH_VARARGS, NULL},
-	 { (char *)"read_bin_cand", _wrap_read_bin_cand, METH_VARARGS, NULL},
-	 { (char *)"get_bin_cand", _wrap_get_bin_cand, METH_VARARGS, NULL},
-	 { (char *)"next2_to_n", _wrap_next2_to_n, METH_VARARGS, NULL},
-	 { (char *)"is_power_of_10", _wrap_is_power_of_10, METH_VARARGS, NULL},
-	 { (char *)"choose_good_N", _wrap_choose_good_N, METH_VARARGS, NULL},
-	 { (char *)"dms2rad", _wrap_dms2rad, METH_VARARGS, NULL},
-	 { (char *)"hms2rad", _wrap_hms2rad, METH_VARARGS, NULL},
-	 { (char *)"hours2hms", _wrap_hours2hms, METH_VARARGS, NULL},
-	 { (char *)"deg2dms", _wrap_deg2dms, METH_VARARGS, NULL},
-	 { (char *)"sphere_ang_diff", _wrap_sphere_ang_diff, METH_VARARGS, NULL},
-	 { (char *)"corr_rz_plane", _wrap_corr_rz_plane, METH_VARARGS, NULL},
-	 { (char *)"corr_rzw_vol", _wrap_corr_rzw_vol, METH_VARARGS, NULL},
-	 { (char *)"max_r_arr", _wrap_max_r_arr, METH_VARARGS, NULL},
-	 { (char *)"max_rz_arr", _wrap_max_rz_arr, METH_VARARGS, NULL},
-	 { (char *)"max_rz_arr_harmonics", _wrap_max_rz_arr_harmonics, METH_VARARGS, NULL},
-	 { (char *)"max_rzw_arr_harmonics", _wrap_max_rzw_arr_harmonics, METH_VARARGS, NULL},
-	 { (char *)"max_rzw_arr", _wrap_max_rzw_arr, METH_VARARGS, NULL},
-	 { (char *)"barycenter", _wrap_barycenter, METH_VARARGS, NULL},
-	 { (char *)"nice_output_1", _wrap_nice_output_1, METH_VARARGS, NULL},
-	 { (char *)"nice_output_2", _wrap_nice_output_2, METH_VARARGS, NULL},
+	 { "SWIG_PyInstanceMethod_New", SWIG_PyInstanceMethod_New, METH_O, NULL},
+	 { "fcomplex_r_set", _wrap_fcomplex_r_set, METH_VARARGS, NULL},
+	 { "fcomplex_r_get", _wrap_fcomplex_r_get, METH_VARARGS, NULL},
+	 { "fcomplex_i_set", _wrap_fcomplex_i_set, METH_VARARGS, NULL},
+	 { "fcomplex_i_get", _wrap_fcomplex_i_get, METH_VARARGS, NULL},
+	 { "new_fcomplex", _wrap_new_fcomplex, METH_VARARGS, NULL},
+	 { "delete_fcomplex", _wrap_delete_fcomplex, METH_VARARGS, NULL},
+	 { "fcomplex_swigregister", fcomplex_swigregister, METH_VARARGS, NULL},
+	 { "read_wisdom", _wrap_read_wisdom, METH_VARARGS, NULL},
+	 { "good_factor", _wrap_good_factor, METH_VARARGS, NULL},
+	 { "fftwcall", _wrap_fftwcall, METH_VARARGS, NULL},
+	 { "tablesixstepfft", _wrap_tablesixstepfft, METH_VARARGS, NULL},
+	 { "realfft", _wrap_realfft, METH_VARARGS, NULL},
+	 { "infodata_ra_s_set", _wrap_infodata_ra_s_set, METH_VARARGS, NULL},
+	 { "infodata_ra_s_get", _wrap_infodata_ra_s_get, METH_VARARGS, NULL},
+	 { "infodata_dec_s_set", _wrap_infodata_dec_s_set, METH_VARARGS, NULL},
+	 { "infodata_dec_s_get", _wrap_infodata_dec_s_get, METH_VARARGS, NULL},
+	 { "infodata_N_set", _wrap_infodata_N_set, METH_VARARGS, NULL},
+	 { "infodata_N_get", _wrap_infodata_N_get, METH_VARARGS, NULL},
+	 { "infodata_dt_set", _wrap_infodata_dt_set, METH_VARARGS, NULL},
+	 { "infodata_dt_get", _wrap_infodata_dt_get, METH_VARARGS, NULL},
+	 { "infodata_fov_set", _wrap_infodata_fov_set, METH_VARARGS, NULL},
+	 { "infodata_fov_get", _wrap_infodata_fov_get, METH_VARARGS, NULL},
+	 { "infodata_mjd_f_set", _wrap_infodata_mjd_f_set, METH_VARARGS, NULL},
+	 { "infodata_mjd_f_get", _wrap_infodata_mjd_f_get, METH_VARARGS, NULL},
+	 { "infodata_dm_set", _wrap_infodata_dm_set, METH_VARARGS, NULL},
+	 { "infodata_dm_get", _wrap_infodata_dm_get, METH_VARARGS, NULL},
+	 { "infodata_freq_set", _wrap_infodata_freq_set, METH_VARARGS, NULL},
+	 { "infodata_freq_get", _wrap_infodata_freq_get, METH_VARARGS, NULL},
+	 { "infodata_freqband_set", _wrap_infodata_freqband_set, METH_VARARGS, NULL},
+	 { "infodata_freqband_get", _wrap_infodata_freqband_get, METH_VARARGS, NULL},
+	 { "infodata_chan_wid_set", _wrap_infodata_chan_wid_set, METH_VARARGS, NULL},
+	 { "infodata_chan_wid_get", _wrap_infodata_chan_wid_get, METH_VARARGS, NULL},
+	 { "infodata_wavelen_set", _wrap_infodata_wavelen_set, METH_VARARGS, NULL},
+	 { "infodata_wavelen_get", _wrap_infodata_wavelen_get, METH_VARARGS, NULL},
+	 { "infodata_waveband_set", _wrap_infodata_waveband_set, METH_VARARGS, NULL},
+	 { "infodata_waveband_get", _wrap_infodata_waveband_get, METH_VARARGS, NULL},
+	 { "infodata_energy_set", _wrap_infodata_energy_set, METH_VARARGS, NULL},
+	 { "infodata_energy_get", _wrap_infodata_energy_get, METH_VARARGS, NULL},
+	 { "infodata_energyband_set", _wrap_infodata_energyband_set, METH_VARARGS, NULL},
+	 { "infodata_energyband_get", _wrap_infodata_energyband_get, METH_VARARGS, NULL},
+	 { "infodata_num_chan_set", _wrap_infodata_num_chan_set, METH_VARARGS, NULL},
+	 { "infodata_num_chan_get", _wrap_infodata_num_chan_get, METH_VARARGS, NULL},
+	 { "infodata_mjd_i_set", _wrap_infodata_mjd_i_set, METH_VARARGS, NULL},
+	 { "infodata_mjd_i_get", _wrap_infodata_mjd_i_get, METH_VARARGS, NULL},
+	 { "infodata_ra_h_set", _wrap_infodata_ra_h_set, METH_VARARGS, NULL},
+	 { "infodata_ra_h_get", _wrap_infodata_ra_h_get, METH_VARARGS, NULL},
+	 { "infodata_ra_m_set", _wrap_infodata_ra_m_set, METH_VARARGS, NULL},
+	 { "infodata_ra_m_get", _wrap_infodata_ra_m_get, METH_VARARGS, NULL},
+	 { "infodata_dec_d_set", _wrap_infodata_dec_d_set, METH_VARARGS, NULL},
+	 { "infodata_dec_d_get", _wrap_infodata_dec_d_get, METH_VARARGS, NULL},
+	 { "infodata_dec_m_set", _wrap_infodata_dec_m_set, METH_VARARGS, NULL},
+	 { "infodata_dec_m_get", _wrap_infodata_dec_m_get, METH_VARARGS, NULL},
+	 { "infodata_bary_set", _wrap_infodata_bary_set, METH_VARARGS, NULL},
+	 { "infodata_bary_get", _wrap_infodata_bary_get, METH_VARARGS, NULL},
+	 { "infodata_numonoff_set", _wrap_infodata_numonoff_set, METH_VARARGS, NULL},
+	 { "infodata_numonoff_get", _wrap_infodata_numonoff_get, METH_VARARGS, NULL},
+	 { "infodata_notes_set", _wrap_infodata_notes_set, METH_VARARGS, NULL},
+	 { "infodata_notes_get", _wrap_infodata_notes_get, METH_VARARGS, NULL},
+	 { "infodata_name_set", _wrap_infodata_name_set, METH_VARARGS, NULL},
+	 { "infodata_name_get", _wrap_infodata_name_get, METH_VARARGS, NULL},
+	 { "infodata_object_set", _wrap_infodata_object_set, METH_VARARGS, NULL},
+	 { "infodata_object_get", _wrap_infodata_object_get, METH_VARARGS, NULL},
+	 { "infodata_instrument_set", _wrap_infodata_instrument_set, METH_VARARGS, NULL},
+	 { "infodata_instrument_get", _wrap_infodata_instrument_get, METH_VARARGS, NULL},
+	 { "infodata_observer_set", _wrap_infodata_observer_set, METH_VARARGS, NULL},
+	 { "infodata_observer_get", _wrap_infodata_observer_get, METH_VARARGS, NULL},
+	 { "infodata_analyzer_set", _wrap_infodata_analyzer_set, METH_VARARGS, NULL},
+	 { "infodata_analyzer_get", _wrap_infodata_analyzer_get, METH_VARARGS, NULL},
+	 { "infodata_telescope_set", _wrap_infodata_telescope_set, METH_VARARGS, NULL},
+	 { "infodata_telescope_get", _wrap_infodata_telescope_get, METH_VARARGS, NULL},
+	 { "infodata_band_set", _wrap_infodata_band_set, METH_VARARGS, NULL},
+	 { "infodata_band_get", _wrap_infodata_band_get, METH_VARARGS, NULL},
+	 { "infodata_filt_set", _wrap_infodata_filt_set, METH_VARARGS, NULL},
+	 { "infodata_filt_get", _wrap_infodata_filt_get, METH_VARARGS, NULL},
+	 { "new_infodata", _wrap_new_infodata, METH_VARARGS, NULL},
+	 { "delete_infodata", _wrap_delete_infodata, METH_VARARGS, NULL},
+	 { "infodata_swigregister", infodata_swigregister, METH_VARARGS, NULL},
+	 { "readinf", _wrap_readinf, METH_VARARGS, NULL},
+	 { "writeinf", _wrap_writeinf, METH_VARARGS, NULL},
+	 { "orbitparams_p_set", _wrap_orbitparams_p_set, METH_VARARGS, NULL},
+	 { "orbitparams_p_get", _wrap_orbitparams_p_get, METH_VARARGS, NULL},
+	 { "orbitparams_e_set", _wrap_orbitparams_e_set, METH_VARARGS, NULL},
+	 { "orbitparams_e_get", _wrap_orbitparams_e_get, METH_VARARGS, NULL},
+	 { "orbitparams_x_set", _wrap_orbitparams_x_set, METH_VARARGS, NULL},
+	 { "orbitparams_x_get", _wrap_orbitparams_x_get, METH_VARARGS, NULL},
+	 { "orbitparams_w_set", _wrap_orbitparams_w_set, METH_VARARGS, NULL},
+	 { "orbitparams_w_get", _wrap_orbitparams_w_get, METH_VARARGS, NULL},
+	 { "orbitparams_t_set", _wrap_orbitparams_t_set, METH_VARARGS, NULL},
+	 { "orbitparams_t_get", _wrap_orbitparams_t_get, METH_VARARGS, NULL},
+	 { "orbitparams_pd_set", _wrap_orbitparams_pd_set, METH_VARARGS, NULL},
+	 { "orbitparams_pd_get", _wrap_orbitparams_pd_get, METH_VARARGS, NULL},
+	 { "orbitparams_wd_set", _wrap_orbitparams_wd_set, METH_VARARGS, NULL},
+	 { "orbitparams_wd_get", _wrap_orbitparams_wd_get, METH_VARARGS, NULL},
+	 { "new_orbitparams", _wrap_new_orbitparams, METH_VARARGS, NULL},
+	 { "delete_orbitparams", _wrap_delete_orbitparams, METH_VARARGS, NULL},
+	 { "orbitparams_swigregister", orbitparams_swigregister, METH_VARARGS, NULL},
+	 { "psrparams_jname_set", _wrap_psrparams_jname_set, METH_VARARGS, NULL},
+	 { "psrparams_jname_get", _wrap_psrparams_jname_get, METH_VARARGS, NULL},
+	 { "psrparams_bname_set", _wrap_psrparams_bname_set, METH_VARARGS, NULL},
+	 { "psrparams_bname_get", _wrap_psrparams_bname_get, METH_VARARGS, NULL},
+	 { "psrparams_alias_set", _wrap_psrparams_alias_set, METH_VARARGS, NULL},
+	 { "psrparams_alias_get", _wrap_psrparams_alias_get, METH_VARARGS, NULL},
+	 { "psrparams_ra2000_set", _wrap_psrparams_ra2000_set, METH_VARARGS, NULL},
+	 { "psrparams_ra2000_get", _wrap_psrparams_ra2000_get, METH_VARARGS, NULL},
+	 { "psrparams_dec2000_set", _wrap_psrparams_dec2000_set, METH_VARARGS, NULL},
+	 { "psrparams_dec2000_get", _wrap_psrparams_dec2000_get, METH_VARARGS, NULL},
+	 { "psrparams_dm_set", _wrap_psrparams_dm_set, METH_VARARGS, NULL},
+	 { "psrparams_dm_get", _wrap_psrparams_dm_get, METH_VARARGS, NULL},
+	 { "psrparams_timepoch_set", _wrap_psrparams_timepoch_set, METH_VARARGS, NULL},
+	 { "psrparams_timepoch_get", _wrap_psrparams_timepoch_get, METH_VARARGS, NULL},
+	 { "psrparams_p_set", _wrap_psrparams_p_set, METH_VARARGS, NULL},
+	 { "psrparams_p_get", _wrap_psrparams_p_get, METH_VARARGS, NULL},
+	 { "psrparams_pd_set", _wrap_psrparams_pd_set, METH_VARARGS, NULL},
+	 { "psrparams_pd_get", _wrap_psrparams_pd_get, METH_VARARGS, NULL},
+	 { "psrparams_pdd_set", _wrap_psrparams_pdd_set, METH_VARARGS, NULL},
+	 { "psrparams_pdd_get", _wrap_psrparams_pdd_get, METH_VARARGS, NULL},
+	 { "psrparams_f_set", _wrap_psrparams_f_set, METH_VARARGS, NULL},
+	 { "psrparams_f_get", _wrap_psrparams_f_get, METH_VARARGS, NULL},
+	 { "psrparams_fd_set", _wrap_psrparams_fd_set, METH_VARARGS, NULL},
+	 { "psrparams_fd_get", _wrap_psrparams_fd_get, METH_VARARGS, NULL},
+	 { "psrparams_fdd_set", _wrap_psrparams_fdd_set, METH_VARARGS, NULL},
+	 { "psrparams_fdd_get", _wrap_psrparams_fdd_get, METH_VARARGS, NULL},
+	 { "psrparams_orb_set", _wrap_psrparams_orb_set, METH_VARARGS, NULL},
+	 { "psrparams_orb_get", _wrap_psrparams_orb_get, METH_VARARGS, NULL},
+	 { "new_psrparams", _wrap_new_psrparams, METH_VARARGS, NULL},
+	 { "delete_psrparams", _wrap_delete_psrparams, METH_VARARGS, NULL},
+	 { "psrparams_swigregister", psrparams_swigregister, METH_VARARGS, NULL},
+	 { "get_psr_at_epoch", _wrap_get_psr_at_epoch, METH_VARARGS, NULL},
+	 { "get_psr_from_parfile", _wrap_get_psr_from_parfile, METH_VARARGS, NULL},
+	 { "mjd_to_datestr", _wrap_mjd_to_datestr, METH_VARARGS, NULL},
+	 { "fresnl", _wrap_fresnl, METH_VARARGS, NULL},
+	 { "rderivs_pow_set", _wrap_rderivs_pow_set, METH_VARARGS, NULL},
+	 { "rderivs_pow_get", _wrap_rderivs_pow_get, METH_VARARGS, NULL},
+	 { "rderivs_phs_set", _wrap_rderivs_phs_set, METH_VARARGS, NULL},
+	 { "rderivs_phs_get", _wrap_rderivs_phs_get, METH_VARARGS, NULL},
+	 { "rderivs_dpow_set", _wrap_rderivs_dpow_set, METH_VARARGS, NULL},
+	 { "rderivs_dpow_get", _wrap_rderivs_dpow_get, METH_VARARGS, NULL},
+	 { "rderivs_dphs_set", _wrap_rderivs_dphs_set, METH_VARARGS, NULL},
+	 { "rderivs_dphs_get", _wrap_rderivs_dphs_get, METH_VARARGS, NULL},
+	 { "rderivs_d2pow_set", _wrap_rderivs_d2pow_set, METH_VARARGS, NULL},
+	 { "rderivs_d2pow_get", _wrap_rderivs_d2pow_get, METH_VARARGS, NULL},
+	 { "rderivs_d2phs_set", _wrap_rderivs_d2phs_set, METH_VARARGS, NULL},
+	 { "rderivs_d2phs_get", _wrap_rderivs_d2phs_get, METH_VARARGS, NULL},
+	 { "rderivs_locpow_set", _wrap_rderivs_locpow_set, METH_VARARGS, NULL},
+	 { "rderivs_locpow_get", _wrap_rderivs_locpow_get, METH_VARARGS, NULL},
+	 { "new_rderivs", _wrap_new_rderivs, METH_VARARGS, NULL},
+	 { "delete_rderivs", _wrap_delete_rderivs, METH_VARARGS, NULL},
+	 { "rderivs_swigregister", rderivs_swigregister, METH_VARARGS, NULL},
+	 { "fourierprops_r_set", _wrap_fourierprops_r_set, METH_VARARGS, NULL},
+	 { "fourierprops_r_get", _wrap_fourierprops_r_get, METH_VARARGS, NULL},
+	 { "fourierprops_rerr_set", _wrap_fourierprops_rerr_set, METH_VARARGS, NULL},
+	 { "fourierprops_rerr_get", _wrap_fourierprops_rerr_get, METH_VARARGS, NULL},
+	 { "fourierprops_z_set", _wrap_fourierprops_z_set, METH_VARARGS, NULL},
+	 { "fourierprops_z_get", _wrap_fourierprops_z_get, METH_VARARGS, NULL},
+	 { "fourierprops_zerr_set", _wrap_fourierprops_zerr_set, METH_VARARGS, NULL},
+	 { "fourierprops_zerr_get", _wrap_fourierprops_zerr_get, METH_VARARGS, NULL},
+	 { "fourierprops_w_set", _wrap_fourierprops_w_set, METH_VARARGS, NULL},
+	 { "fourierprops_w_get", _wrap_fourierprops_w_get, METH_VARARGS, NULL},
+	 { "fourierprops_werr_set", _wrap_fourierprops_werr_set, METH_VARARGS, NULL},
+	 { "fourierprops_werr_get", _wrap_fourierprops_werr_get, METH_VARARGS, NULL},
+	 { "fourierprops_pow_set", _wrap_fourierprops_pow_set, METH_VARARGS, NULL},
+	 { "fourierprops_pow_get", _wrap_fourierprops_pow_get, METH_VARARGS, NULL},
+	 { "fourierprops_powerr_set", _wrap_fourierprops_powerr_set, METH_VARARGS, NULL},
+	 { "fourierprops_powerr_get", _wrap_fourierprops_powerr_get, METH_VARARGS, NULL},
+	 { "fourierprops_sig_set", _wrap_fourierprops_sig_set, METH_VARARGS, NULL},
+	 { "fourierprops_sig_get", _wrap_fourierprops_sig_get, METH_VARARGS, NULL},
+	 { "fourierprops_rawpow_set", _wrap_fourierprops_rawpow_set, METH_VARARGS, NULL},
+	 { "fourierprops_rawpow_get", _wrap_fourierprops_rawpow_get, METH_VARARGS, NULL},
+	 { "fourierprops_phs_set", _wrap_fourierprops_phs_set, METH_VARARGS, NULL},
+	 { "fourierprops_phs_get", _wrap_fourierprops_phs_get, METH_VARARGS, NULL},
+	 { "fourierprops_phserr_set", _wrap_fourierprops_phserr_set, METH_VARARGS, NULL},
+	 { "fourierprops_phserr_get", _wrap_fourierprops_phserr_get, METH_VARARGS, NULL},
+	 { "fourierprops_cen_set", _wrap_fourierprops_cen_set, METH_VARARGS, NULL},
+	 { "fourierprops_cen_get", _wrap_fourierprops_cen_get, METH_VARARGS, NULL},
+	 { "fourierprops_cenerr_set", _wrap_fourierprops_cenerr_set, METH_VARARGS, NULL},
+	 { "fourierprops_cenerr_get", _wrap_fourierprops_cenerr_get, METH_VARARGS, NULL},
+	 { "fourierprops_pur_set", _wrap_fourierprops_pur_set, METH_VARARGS, NULL},
+	 { "fourierprops_pur_get", _wrap_fourierprops_pur_get, METH_VARARGS, NULL},
+	 { "fourierprops_purerr_set", _wrap_fourierprops_purerr_set, METH_VARARGS, NULL},
+	 { "fourierprops_purerr_get", _wrap_fourierprops_purerr_get, METH_VARARGS, NULL},
+	 { "fourierprops_locpow_set", _wrap_fourierprops_locpow_set, METH_VARARGS, NULL},
+	 { "fourierprops_locpow_get", _wrap_fourierprops_locpow_get, METH_VARARGS, NULL},
+	 { "new_fourierprops", _wrap_new_fourierprops, METH_VARARGS, NULL},
+	 { "delete_fourierprops", _wrap_delete_fourierprops, METH_VARARGS, NULL},
+	 { "fourierprops_swigregister", fourierprops_swigregister, METH_VARARGS, NULL},
+	 { "foldstats_numdata_set", _wrap_foldstats_numdata_set, METH_VARARGS, NULL},
+	 { "foldstats_numdata_get", _wrap_foldstats_numdata_get, METH_VARARGS, NULL},
+	 { "foldstats_data_avg_set", _wrap_foldstats_data_avg_set, METH_VARARGS, NULL},
+	 { "foldstats_data_avg_get", _wrap_foldstats_data_avg_get, METH_VARARGS, NULL},
+	 { "foldstats_data_var_set", _wrap_foldstats_data_var_set, METH_VARARGS, NULL},
+	 { "foldstats_data_var_get", _wrap_foldstats_data_var_get, METH_VARARGS, NULL},
+	 { "foldstats_numprof_set", _wrap_foldstats_numprof_set, METH_VARARGS, NULL},
+	 { "foldstats_numprof_get", _wrap_foldstats_numprof_get, METH_VARARGS, NULL},
+	 { "foldstats_prof_avg_set", _wrap_foldstats_prof_avg_set, METH_VARARGS, NULL},
+	 { "foldstats_prof_avg_get", _wrap_foldstats_prof_avg_get, METH_VARARGS, NULL},
+	 { "foldstats_prof_var_set", _wrap_foldstats_prof_var_set, METH_VARARGS, NULL},
+	 { "foldstats_prof_var_get", _wrap_foldstats_prof_var_get, METH_VARARGS, NULL},
+	 { "foldstats_redchi_set", _wrap_foldstats_redchi_set, METH_VARARGS, NULL},
+	 { "foldstats_redchi_get", _wrap_foldstats_redchi_get, METH_VARARGS, NULL},
+	 { "new_foldstats", _wrap_new_foldstats, METH_VARARGS, NULL},
+	 { "delete_foldstats", _wrap_delete_foldstats, METH_VARARGS, NULL},
+	 { "foldstats_swigregister", foldstats_swigregister, METH_VARARGS, NULL},
+	 { "gen_fvect", _wrap_gen_fvect, METH_VARARGS, NULL},
+	 { "gen_cvect", _wrap_gen_cvect, METH_VARARGS, NULL},
+	 { "power_arr", _wrap_power_arr, METH_VARARGS, NULL},
+	 { "phase_arr", _wrap_phase_arr, METH_VARARGS, NULL},
+	 { "frotate", _wrap_frotate, METH_VARARGS, NULL},
+	 { "drotate", _wrap_drotate, METH_VARARGS, NULL},
+	 { "keplers_eqn", _wrap_keplers_eqn, METH_VARARGS, NULL},
+	 { "E_to_phib", _wrap_E_to_phib, METH_VARARGS, NULL},
+	 { "E_to_v", _wrap_E_to_v, METH_VARARGS, NULL},
+	 { "E_to_p", _wrap_E_to_p, METH_VARARGS, NULL},
+	 { "E_to_z", _wrap_E_to_z, METH_VARARGS, NULL},
+	 { "E_to_phib_BT", _wrap_E_to_phib_BT, METH_VARARGS, NULL},
+	 { "dorbint", _wrap_dorbint, METH_VARARGS, NULL},
+	 { "binary_velocity", _wrap_binary_velocity, METH_VARARGS, NULL},
+	 { "r_resp_halfwidth", _wrap_r_resp_halfwidth, METH_VARARGS, NULL},
+	 { "z_resp_halfwidth", _wrap_z_resp_halfwidth, METH_VARARGS, NULL},
+	 { "w_resp_halfwidth", _wrap_w_resp_halfwidth, METH_VARARGS, NULL},
+	 { "bin_resp_halfwidth", _wrap_bin_resp_halfwidth, METH_VARARGS, NULL},
+	 { "gen_r_response", _wrap_gen_r_response, METH_VARARGS, NULL},
+	 { "gen_z_response", _wrap_gen_z_response, METH_VARARGS, NULL},
+	 { "gen_w_response", _wrap_gen_w_response, METH_VARARGS, NULL},
+	 { "gen_w_response2", _wrap_gen_w_response2, METH_VARARGS, NULL},
+	 { "gen_bin_response", _wrap_gen_bin_response, METH_VARARGS, NULL},
+	 { "get_localpower", _wrap_get_localpower, METH_VARARGS, NULL},
+	 { "get_localpower3d", _wrap_get_localpower3d, METH_VARARGS, NULL},
+	 { "get_derivs3d", _wrap_get_derivs3d, METH_VARARGS, NULL},
+	 { "calc_props", _wrap_calc_props, METH_VARARGS, NULL},
+	 { "calc_binprops", _wrap_calc_binprops, METH_VARARGS, NULL},
+	 { "calc_rzwerrs", _wrap_calc_rzwerrs, METH_VARARGS, NULL},
+	 { "extended_equiv_gaussian_sigma", _wrap_extended_equiv_gaussian_sigma, METH_VARARGS, NULL},
+	 { "log_asymtotic_incomplete_gamma", _wrap_log_asymtotic_incomplete_gamma, METH_VARARGS, NULL},
+	 { "log_asymtotic_gamma", _wrap_log_asymtotic_gamma, METH_VARARGS, NULL},
+	 { "equivalent_gaussian_sigma", _wrap_equivalent_gaussian_sigma, METH_VARARGS, NULL},
+	 { "chi2_logp", _wrap_chi2_logp, METH_VARARGS, NULL},
+	 { "chi2_sigma", _wrap_chi2_sigma, METH_VARARGS, NULL},
+	 { "candidate_sigma", _wrap_candidate_sigma, METH_VARARGS, NULL},
+	 { "power_for_sigma", _wrap_power_for_sigma, METH_VARARGS, NULL},
+	 { "switch_f_and_p", _wrap_switch_f_and_p, METH_VARARGS, NULL},
+	 { "chisqr", _wrap_chisqr, METH_VARARGS, NULL},
+	 { "print_candidate", _wrap_print_candidate, METH_VARARGS, NULL},
+	 { "print_bin_candidate", _wrap_print_bin_candidate, METH_VARARGS, NULL},
+	 { "read_rzw_cand", _wrap_read_rzw_cand, METH_VARARGS, NULL},
+	 { "get_rzw_cand", _wrap_get_rzw_cand, METH_VARARGS, NULL},
+	 { "read_bin_cand", _wrap_read_bin_cand, METH_VARARGS, NULL},
+	 { "get_bin_cand", _wrap_get_bin_cand, METH_VARARGS, NULL},
+	 { "next2_to_n", _wrap_next2_to_n, METH_VARARGS, NULL},
+	 { "is_power_of_10", _wrap_is_power_of_10, METH_VARARGS, NULL},
+	 { "choose_good_N", _wrap_choose_good_N, METH_VARARGS, NULL},
+	 { "dms2rad", _wrap_dms2rad, METH_VARARGS, NULL},
+	 { "hms2rad", _wrap_hms2rad, METH_VARARGS, NULL},
+	 { "hours2hms", _wrap_hours2hms, METH_VARARGS, NULL},
+	 { "deg2dms", _wrap_deg2dms, METH_VARARGS, NULL},
+	 { "sphere_ang_diff", _wrap_sphere_ang_diff, METH_VARARGS, NULL},
+	 { "corr_rz_plane", _wrap_corr_rz_plane, METH_VARARGS, NULL},
+	 { "corr_rzw_vol", _wrap_corr_rzw_vol, METH_VARARGS, NULL},
+	 { "max_r_arr", _wrap_max_r_arr, METH_VARARGS, NULL},
+	 { "max_rz_arr", _wrap_max_rz_arr, METH_VARARGS, NULL},
+	 { "max_rz_arr_harmonics", _wrap_max_rz_arr_harmonics, METH_VARARGS, NULL},
+	 { "max_rzw_arr_harmonics", _wrap_max_rzw_arr_harmonics, METH_VARARGS, NULL},
+	 { "max_rzw_arr", _wrap_max_rzw_arr, METH_VARARGS, NULL},
+	 { "barycenter", _wrap_barycenter, METH_VARARGS, NULL},
+	 { "simplefold", _wrap_simplefold, METH_VARARGS, NULL},
+	 { "nice_output_1", _wrap_nice_output_1, METH_VARARGS, NULL},
+	 { "nice_output_2", _wrap_nice_output_2, METH_VARARGS, NULL},
 	 { NULL, NULL, 0, NULL }
 };
 
@@ -14898,9 +15035,9 @@ extern "C" {
             char *ndoc = (char*)malloc(ldoc + lptr + 10);
             if (ndoc) {
               char *buff = ndoc;
-              strncpy(buff, methods[i].ml_doc, ldoc);
+              memcpy(buff, methods[i].ml_doc, ldoc);
               buff += ldoc;
-              strncpy(buff, "swig_ptr: ", 10);
+              memcpy(buff, "swig_ptr: ", 10);
               buff += 10;
               SWIG_PackVoidPtr(buff, ptr, ty->name, lptr);
               methods[i].ml_doc = ndoc;
@@ -14962,8 +15099,8 @@ SWIG_init(void) {
     (char *)"this", &SwigPyBuiltin_ThisClosure, NULL, NULL, NULL
   };
   static SwigPyGetSet thisown_getset_closure = {
-    (PyCFunction) SwigPyObject_own,
-    (PyCFunction) SwigPyObject_own
+    SwigPyObject_own,
+    SwigPyObject_own
   };
   static PyGetSetDef thisown_getset_def = {
     (char *)"thisown", SwigPyBuiltin_GetterClosure, SwigPyBuiltin_SetterClosure, NULL, &thisown_getset_closure

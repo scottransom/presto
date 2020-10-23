@@ -879,6 +879,24 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
         barycenter(topotimes, barytimes, voverc, N1, ra, dec, obs, ephem);
     }
 %}
+%clear (double *topotimes, long N1);
+%clear (double *barytimes, long N2);
+%clear (double *voverc, long N3);
+
+%apply (float* INPLACE_ARRAY1, long DIM1) {(float *data, long N1)};
+%apply (double* INPLACE_ARRAY1, long DIM1) {(double *prof, long N2)};
+%rename (simplefold) wrap_simplefold;
+%inline %{
+    double wrap_simplefold(float *data, long N1, double dt, double tlo,
+                           double *prof, long N2, double startphs,
+                           double f0, double fdot, double fdotdot){
+        return simplefold(data, N1, dt, tlo,
+                          prof, N2, startphs,
+                          f0, fdot, fdotdot);
+    }
+%}
+%clear (float *data, long N1);
+%clear (double *prof, long N2);
 
 int nice_output_1(char *output, double val, double err, int len);
 /* Generates a string in "output" of length len with "val" rounded  */
