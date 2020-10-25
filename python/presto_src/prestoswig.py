@@ -879,8 +879,8 @@ def barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem):
     return _presto.barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem)
 barycenter = _presto.barycenter
 
-def simplefold(data, dt, tlo, prof, startphs, f0, fdot, fdotdot):
-    return _presto.simplefold(data, dt, tlo, prof, startphs, f0, fdot, fdotdot)
+def simplefold(data, dt, tlo, prof, startphs, f0, fdot, fdotdot, standard):
+    return _presto.simplefold(data, dt, tlo, prof, startphs, f0, fdot, fdotdot, standard)
 simplefold = _presto.simplefold
 
 def nice_output_1(output, val, err, len):

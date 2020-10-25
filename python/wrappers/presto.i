@@ -889,10 +889,11 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
 %inline %{
     double wrap_simplefold(float *data, long N1, double dt, double tlo,
                            double *prof, long N2, double startphs,
-                           double f0, double fdot, double fdotdot){
+                           double f0, double fdot, double fdotdot,
+                           int standard){
         return simplefold(data, N1, dt, tlo,
                           prof, N2, startphs,
-                          f0, fdot, fdotdot);
+                          f0, fdot, fdotdot, standard);
     }
 %}
 %clear (float *data, long N1);

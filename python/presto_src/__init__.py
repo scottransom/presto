@@ -678,7 +678,7 @@ def get_baryv(ra, dec, mjd, T, obs="PK"):
     return vel.mean()
 
 
-def fold(indata, dt, nbins, f, fd=0.0, fdd=0.0, startphs=0.0, tlo=0.0):
+def fold(indata, dt, nbins, f, fd=0.0, fdd=0.0, startphs=0.0, tlo=0.0, standard=True):
     """
     fold(indata, dt, nbins, f, fd=0.0, fdd=0.0, startphs=0.0, tlo=0.0):
       This is an interface into PRESTO's fold() code, which is what
@@ -691,9 +691,13 @@ def fold(indata, dt, nbins, f, fd=0.0, fdd=0.0, startphs=0.0, tlo=0.0):
         startphs (0-1) is the phase for the beginning of the first bin
         tlo is the time (in sec) referring to the start of the first bin,
           with respect to the reference time of f, fd, and fdd (i.e. tlo=0.0).
+        If standard (bool), then traditional prepfold "drizzling" will be
+          used.  Otherwise, treat each input data point as a sample and put
+          it fully in a single profile bin.
     """
     prof = np.zeros(nbins, dtype=np.float64)
     data = indata.astype(np.float32)
-    phs = simplefold(data, dt, tlo, prof, startphs, f, fd, fdd)
+    phs = simplefold(data, dt, tlo, prof, startphs, f, fd, fdd,
+                     1 if standard else 0)
     return (prof, phs)
 

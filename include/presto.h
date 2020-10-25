@@ -1236,7 +1236,7 @@ double foldfile(FILE *datafile, double dt, double tlo,
 
 double simplefold(float *data, int numdata, double dt, double tlo,
 		  double *prof, int numprof, double startphase, 
-		  double fo, double fdot, double fdotdot);
+		  double fo, double fdot, double fdotdot, int standard);
 /* This routine is a simplified pulsar folding algorithm.  It    */
 /* folds data for a pulsar with single and double frequency      */
 /* derivatives.  The profile will have the data corresponding    */
@@ -1253,7 +1253,9 @@ double simplefold(float *data, int numdata, double dt, double tlo,
 /*    'fo' the starting frequency to fold.                       */
 /*    'fdot' the starting frequency derivative.                  */
 /*    'fdotdot' the frequency second derivative.                 */
-/* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0        */
+/*    'standard' If true, uses classic prepfold 'drizzling'      */
+/*       Otherwise, adds full sample to nearest bin.             */
+/* Notes:  fo, fdot, and fdotdot correspond to 'tlo' = 0.0       */
 /*    (i.e. to the beginning of the first data point)            */
 
 double fold(float *data, int numdata, double dt, double tlo, 
@@ -1261,7 +1263,7 @@ double fold(float *data, int numdata, double dt, double tlo,
 	    double *buffer, double *phaseadded, 
 	    double fo, double fdot, double fdotdot, int flags, 
 	    double *delays, double *delaytimes, int numdelays, 
-	    int *onoffpairs, foldstats *stats);
+	    int *onoffpairs, foldstats *stats, int standard);
 /* This routine is a general pulsar folding algorithm.  It will fold  */
 /* data for a pulsar with single and double frequency derivatives and */
 /* with arbitrary pulse delays (for example: variable time delays     */
@@ -1305,7 +1307,9 @@ double fold(float *data, int numdata, double dt, double tlo,
 /*            and update them at the end of each call.                */
 /*            So each parameter must be set to 0.0 before             */
 /*            fold() is called for the first time.                    */
-/* Notes:  fo, fdot, and fdotdot correspon to 'tlo' = 0.0             */
+/*    'standard' If true, uses classic prepfold 'drizzling'           */
+/*            Otherwise, adds full sample to nearest bin.             */
+/* Notes:  fo, fdot, and fdotdot correspond to 'tlo' = 0.0            */
 /*    (i.e. to the beginning of the first data point)                 */
 
 void shift_prof(double *prof, int proflen, int shift, double *outprof);

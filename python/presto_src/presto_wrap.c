@@ -4319,10 +4319,11 @@ SWIG_AsVal_unsigned_SS_long (PyObject *obj, unsigned long *val)
 
     double wrap_simplefold(float *data, long N1, double dt, double tlo,
                            double *prof, long N2, double startphs,
-                           double f0, double fdot, double fdotdot){
+                           double f0, double fdot, double fdotdot,
+                           int standard){
         return simplefold(data, N1, dt, tlo,
                           prof, N2, startphs,
-                          f0, fdot, fdotdot);
+                          f0, fdot, fdotdot, standard);
     }
 
 #ifdef __cplusplus
@@ -13890,6 +13891,7 @@ SWIGINTERN PyObject *_wrap_simplefold(PyObject *SWIGUNUSEDPARM(self), PyObject *
   double arg8 ;
   double arg9 ;
   double arg10 ;
+  int arg11 ;
   PyArrayObject *array1 = NULL ;
   int i1 = 1 ;
   double val3 ;
@@ -13906,6 +13908,8 @@ SWIGINTERN PyObject *_wrap_simplefold(PyObject *SWIGUNUSEDPARM(self), PyObject *
   int ecode9 = 0 ;
   double val10 ;
   int ecode10 = 0 ;
+  int val11 ;
+  int ecode11 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
   PyObject * obj2 = 0 ;
@@ -13914,9 +13918,10 @@ SWIGINTERN PyObject *_wrap_simplefold(PyObject *SWIGUNUSEDPARM(self), PyObject *
   PyObject * obj5 = 0 ;
   PyObject * obj6 = 0 ;
   PyObject * obj7 = 0 ;
+  PyObject * obj8 = 0 ;
   double result;
   
-  if (!PyArg_ParseTuple(args,(char *)"OOOOOOOO:simplefold",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7)) SWIG_fail;
+  if (!PyArg_ParseTuple(args,(char *)"OOOOOOOOO:simplefold",&obj0,&obj1,&obj2,&obj3,&obj4,&obj5,&obj6,&obj7,&obj8)) SWIG_fail;
   {
     array1 = obj_to_array_no_conversion(obj0, NPY_FLOAT);
     if (!array1 || !require_dimensions(array1,1) || !require_contiguous(array1)
@@ -13963,9 +13968,14 @@ SWIGINTERN PyObject *_wrap_simplefold(PyObject *SWIGUNUSEDPARM(self), PyObject *
     SWIG_exception_fail(SWIG_ArgError(ecode10), "in method '" "simplefold" "', argument " "10"" of type '" "double""'");
   } 
   arg10 = (double)(val10);
+  ecode11 = SWIG_AsVal_int(obj8, &val11);
+  if (!SWIG_IsOK(ecode11)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode11), "in method '" "simplefold" "', argument " "11"" of type '" "int""'");
+  } 
+  arg11 = (int)(val11);
   {
     errno = 0;
-    result = (double)wrap_simplefold(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10);
+    result = (double)wrap_simplefold(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10,arg11);
     
     if (errno != 0)
     {
