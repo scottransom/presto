@@ -367,7 +367,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
     // in the profile bins caused by fold()
     dofeff = (search->proflen - 1.0) * DOF_corr(dt_per_bin);
     chifact = 1.0 / DOF_corr(dt_per_bin);
-    if (flags->events) {
+    if (flags->events || flags->samples) {
         chifact = 1.0;
         dofeff = search->proflen - 1.0;
     }

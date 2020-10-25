@@ -60,7 +60,7 @@ static void add_to_prof(double *prof, double *buffer, int N,
         buffer[icurbin] += fdphs * valperphs;
         *phaseadded += fdphs;
         // For debugging....
-        // printf("%4d  %10.6g  %10.6g  %10.6g  %10.6g  %10.6g\n",
+        //printf("%4d  %10.6g  %10.6g  %10.6g  %10.6g  %10.6g\n",
         //    icurbin, curbin, deltaphase, fdphs, fdphs * valperphs, *phaseadded);
         if (TEST_ONE(*phaseadded)) { // Need to dump buffer
             // Dump the buffer into the profile array
@@ -73,11 +73,11 @@ static void add_to_prof(double *prof, double *buffer, int N,
             // And correct the phase added
             *phaseadded = fdphs;
             // For debugging....
-            // printf("----  %10.6g  %10.6g  %10.6g  %10.6g  %10.6g\n",
+            //printf("----  %10.6g  %10.6g  %10.6g  %10.6g  %10.6g\n",
             //    curbin, deltaphase, fdphs, fdphs * valperphs, *phaseadded);
         }
         deltaphase -= dphs;
-        curbin += dphs * profbinwidth;
+        curbin += dphs * N;
     }
     return;
 }
