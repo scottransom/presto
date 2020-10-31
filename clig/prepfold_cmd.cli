@@ -26,6 +26,7 @@ Flag   -zerodm  zerodm  {Subtract the mean of all channels from each sample (i.e
 Flag   -absphase absphase  {Use the absolute phase associated with polycos}
 Flag   -barypolycos barypolycos  {Force the use of polycos for barycentered events}
 Flag   -debug  debug {Show debugging output when calling TEMPO for polycos}
+Flag   -samples samples {Treat the data as samples and not as finite-duration integrated data}
 Int    -numwapps numwapps  {Number of WAPPs used with contiguous frequencies} \
 	-r 1 8    -d 1
 Int    -if      ifs     {A specific IF to use if available (summed IFs is the default)} \
