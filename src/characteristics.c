@@ -619,6 +619,29 @@ double chisqr(double *data, int numdata, double avg, double var)
     return chixmeas / var;
 }
 
+
+double z2n(double *data, int numdata, double var, int n)
+/* Calculates the Z^2_n of the 'data' which has variance 'var'. */
+{
+    double dtmp, chitmp, z2nmeas = 0.0;
+    double ph;
+    double dph = TWOPI / numdata;
+    int ii, kk;
+
+    for (kk = 1; kk <= n; kk++){
+      double A, B = 0.0;
+      for (ii = 0; ii < numdata; ii++) {
+          dtmp = data[ii];
+          ph = ii * dph;
+          A += dtmp * cos(kk * ph);
+          B += dtmp * sin(kk * ph);
+      }
+      z2nmeas += A * A + B * B;
+    }
+    return z2nmeas / numdata / var;
+}
+
+
 void switch_f_and_p(double in, double ind, double indd,
                     double *out, double *outd, double *outdd)
 /* Convert p, p-dot, and p-dotdot into f, f-dot, */

@@ -693,6 +693,11 @@ double chisqr(double *data, int numdata, double avg, double var);
   /* 'avg', and variance 'var'.                                */
 %clear (double *data, int numdata);
 
+%apply (double* IN_ARRAY1, int DIM1) {(double *data, int numdata)};
+double z2n(double *data, int numdata, double var, int n);
+  /* Calculates the z2n of the 'data' which has variance 'var'.                                */
+%clear (double *data, int numdata);
+
 void print_candidate(fourierprops * cand, double dt, unsigned long N, 
 		     float nph, int numerrdigits);
 /* Outputs a 2 column summary of all the properties or a fourier peak  */

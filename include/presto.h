@@ -534,6 +534,9 @@ double chisqr(double *data, int numdata, double avg, double var);
 /* Calculates the chi-square of the 'data' which has average */
 /* 'avg', and variance 'var'.                                */
 
+double z2n(double *data, int numdata, double var, int n);
+/* Calculates the chi-square of the 'data' which has variance 'var'. */
+
 void switch_f_and_p(double in, double ind, double indd,
 		    double *out, double *outd, double *outdd);
 /* Convert p, p-dot, and p-dotdot into f, f-dot, */
