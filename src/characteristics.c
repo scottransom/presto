@@ -623,7 +623,7 @@ double chisqr(double *data, int numdata, double avg, double var)
 double z2n(double *data, int numdata, double var, int n)
 /* Calculates the Z^2_n of the 'data' which has variance 'var'. */
 {
-    double dtmp, chitmp, z2nmeas = 0.0;
+    double dtmp, z2nmeas = 0.0;
     double ph;
     double dph = TWOPI / numdata;
     int ii, kk;
