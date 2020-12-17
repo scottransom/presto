@@ -156,7 +156,7 @@ static void autocal2d(float *a, int rn, int cn,
 
 void write_bestprof(prepfoldinfo * search, foldstats * beststats,
                     float *bestprof, double N, double perr,
-                    double pderr, double pdderr)
+                    double pderr, double pdderr, double dofeff)
 {
     FILE *outfile;
     char *outfilenm;
@@ -192,7 +192,7 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
         double chip, chi_lnp, chi_sig;
         char out2[80];
 
-        chidf = search->proflen - 1;
+        chidf = (int)(dofeff + 1e-12);
         chi_lnp = chi2_logp(beststats->redchi * chidf, chidf);
         chip = (chi_lnp < -700) ? 0.0 : exp(chi_lnp);
         chi_sig = equivalent_gaussian_sigma(chi_lnp);
@@ -367,7 +367,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
     // in the profile bins caused by fold()
     dofeff = (search->proflen - 1.0) * DOF_corr(dt_per_bin);
     chifact = 1.0 / DOF_corr(dt_per_bin);
-    if (flags->events) {
+    if (flags->events || flags->samples) {
         chifact = 1.0;
         dofeff = search->proflen - 1.0;
     }
@@ -631,7 +631,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                     search->bary.p3, &perr, &pderr, &pdderr);
     vect_free(dbestprof);
 
-    write_bestprof(search, &beststats, bestprof, N, perr, pderr, pdderr);
+    write_bestprof(search, &beststats, bestprof, N, perr, pderr, pdderr, dofeff);
 
     /*
      *  Now plot the results
@@ -1193,7 +1193,7 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                     int chidf;
                     double chip, chi_lnp, chi_sig;
 
-                    chidf = search->proflen - 1;
+                    chidf = (int)(dofeff + 1e-12);
                     chi_lnp = chi2_logp(beststats.redchi * chidf, chidf);
                     chip = (chi_lnp < -700) ? 0.0 : exp(chi_lnp);
                     chi_sig = equivalent_gaussian_sigma(chi_lnp);

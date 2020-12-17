@@ -39,10 +39,13 @@ else:
 if "PRESTO" in os.environ:
     presto_library_dirs.append(os.path.join(os.environ["PRESTO"], "lib"))
     presto_include_dirs.append(os.path.join(os.environ["PRESTO"], "include"))
+    extra_link_args = ["-Wl,-rpath,"+os.path.join(os.environ["PRESTO"], "lib")]
 else:
     print("PRESTO env var not defined!", file=sys.stderr)
     presto_include_dirs.append(os.path.join(os.path.dirname(__file__),
                                             'include'))
+    extra_link_args = ["-Wl,-rpath,"+os.path.join(os.path.dirname(__file__),
+                                                  "lib")]
 
 ext_ppgplot = Extension('_ppgplot',
                         ['python/ppgplot_src/_ppgplot.c'],
@@ -50,7 +53,8 @@ ext_ppgplot = Extension('_ppgplot',
                         libraries=ppgplot_libraries,
                         library_dirs=ppgplot_library_dirs,
                         define_macros=define_macros,
-                        extra_compile_args=extra_compile_args)
+                        extra_compile_args=extra_compile_args,
+                        extra_link_args=extra_link_args)
 
 ext_presto = Extension('_presto',
                        ['python/presto_src/presto_wrap.c'],
@@ -58,7 +62,8 @@ ext_presto = Extension('_presto',
                        libraries=presto_libraries,
                        library_dirs=presto_library_dirs,
                        define_macros=define_macros,
-                       extra_compile_args=extra_compile_args)
+                       extra_compile_args=extra_compile_args,
+                       extra_link_args=extra_link_args)
 
 ext_fftfit = Extension('_fftfit', sources=['python/fftfit_src/brent.f',
                                           'python/fftfit_src/cprof.f',

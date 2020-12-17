@@ -34,6 +34,7 @@ Basic steps to install:
   allow PGPLOT to find its important files.
 
   Ubuntu has a good PGPLOT package: pgplot5
+  And on Ubuntu, I have PGPLOT_DIR=/usr/lib/pgplot5
 
   If you install to a non-standard location, see the note in #1
   about editing the setup.py file for the python install!
@@ -89,12 +90,12 @@ Basic steps to install:
   the library files should stay put.  (That's why you define the 
   PRESTO variable -- so the routines can find them).
 
-  Since dynamic linking will use $PRESTO/lib, you will need to make
-  sure that that is in your LD_LIBRARY_PATH environment variable (or
-  in some other way let your system know where to find the dynamic
-  libraries).  Similarly, you will want $PRESTO/bin in your PATH, or
+  Given the new use of "-Wl,-rpath,$(PRESTO)/lib" during linking
+  (thanks to Mike Keith for the tip!), you no longer need
+  $PRESTO/lib in your LD_LIBRARY_PATH environment variable.
+  However, you do still need $PRESTO/bin in your PATH, or else
   you can copy/link all of the files that are in $PRESTO/bin to
-  somewhere in your path.
+  somewhere that *is* in your path.
 
 12.  If you want to save some disk space, do a 'make clean' in
   the 'src' directory.  This will leave the libraries and
@@ -138,7 +139,6 @@ compiling and running:
   -- Is PGPLOT_DIR set to the location of the PGPLOT utility files?
      (Note: On Ubuntu, that should be /usr/lib/pgplot5)
   -- Is $PRESTO/bin in your PATH? (It should be!)
-  -- Is $PRESTO/lib in your LD_LIBRARY_PATH? (It should be!)
   -- Is $PRESTO/lib/python in your PYTHONPATH? (It shouldn't be now!)
 
 2.  Have you have installed the relevant -dev packages for glib2, FFTW

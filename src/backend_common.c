@@ -383,7 +383,7 @@ void spectra_info_to_inf(struct spectra_info *s, infodata * idata)
     char ctmp[100];
     struct passwd *pwd;
 
-    strncpy(idata->object, s->source, 80);
+    strcpy(idata->object, s->source);
     hours2hms(s->ra2000 / 15.0, &(idata->ra_h), &(idata->ra_m), &(idata->ra_s));
     deg2dms(s->dec2000, &(idata->dec_d), &(idata->dec_m), &(idata->dec_s));
     strcpy(idata->telescope, s->telescope);
@@ -403,7 +403,7 @@ void spectra_info_to_inf(struct spectra_info *s, infodata * idata)
     strcpy(idata->band, "Radio");
     pwd = getpwuid(geteuid());
     strcpy(idata->analyzer, pwd->pw_name);
-    strncpy(idata->observer, s->observer, 80);
+    strcpy(idata->observer, s->observer);
     if (s->summed_polns)
         sprintf(ctmp,
                 "2 polns were summed.  Samples have %d bits.", s->bits_per_sample);

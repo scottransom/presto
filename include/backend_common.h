@@ -11,10 +11,10 @@ typedef enum {
 
 struct spectra_info {
     char telescope[40];     // Telescope used
-    char observer[40];      // Observer's name
-    char source[40];        // Source name
-    char frontend[40];      // Frontend used
-    char backend[40];       // Backend or instrument used
+    char observer[100];     // Observer's name
+    char source[100];       // Source name
+    char frontend[100];     // Frontend used
+    char backend[100];      // Backend or instrument used
     char project_id[40];    // Project identifier
     char date_obs[40];      // Start of observation (YYYY-MM-DDTHH:MM:SS.SSS)
     char ra_str[40];        // Right Ascension string (HH:MM:SS.SSSS)

@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
     pflags.justprofs = cmd->justprofsP;
     pflags.allgrey = cmd->allgreyP;
     pflags.fixchi = cmd->fixchiP;
+    pflags.samples = cmd->samplesP;
     pflags.showfold = 0;
 
 #ifdef DEBUG
@@ -1355,7 +1356,8 @@ int main(int argc, char *argv[])
                          search.rawfolds + (ii * cmd->nsub + kk) * search.proflen,
                          search.proflen, cmd->phs, buffers + kk * search.proflen,
                          phasesadded + kk, foldf, foldfd, foldfdd, flags, Ep, tp,
-                         numdelays, NULL, &(search.stats[ii * cmd->nsub + kk]));
+                         numdelays, NULL, &(search.stats[ii * cmd->nsub + kk]),
+                         !cmd->samplesP);
                 }
                 totnumfolded += numread;
             }

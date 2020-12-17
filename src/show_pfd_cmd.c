@@ -40,6 +40,8 @@ static Cmdline cmd = {
   /* infoonlyP = */ 0,
   /***** -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1 */
   /* fixchiP = */ 0,
+  /***** -samples: Treat the data as samples and not as finite-duration integrated data */
+  /* samplesP = */ 0,
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   /* killsubsstrP = */ 0,
   /* killsubsstr = */ (char*)0,
@@ -814,6 +816,13 @@ showOptionValues(void)
     printf("-fixchi found:\n");
   }
 
+  /***** -samples: Treat the data as samples and not as finite-duration integrated data */
+  if( !cmd.samplesP ) {
+    printf("-samples not found.\n");
+  } else {
+    printf("-samples found:\n");
+  }
+
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   if( !cmd.killsubsstrP ) {
     printf("-killsubs not found.\n");
@@ -852,7 +861,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-noxwin] [-showfold] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-infoonly] [-fixchi] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-noxwin] [-showfold] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-infoonly] [-fixchi] [-samples] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
   fprintf(stderr,"%s","      Displays or regenerates the Postscript for a 'pfd' file created by prepfold.\n");
   fprintf(stderr,"%s","        -noxwin: Do not show the result plots on-screen, only make postscript files\n");
   fprintf(stderr,"%s","      -showfold: Use the input fold paramters (i.e. not the optimized values) when showing the plot\n");
@@ -863,13 +872,14 @@ usage(void)
   fprintf(stderr,"%s","        -events: The folded data were events instead of samples or bins\n");
   fprintf(stderr,"%s","      -infoonly: Display the pfd info and exit without generating plots.\n");
   fprintf(stderr,"%s","        -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1\n");
+  fprintf(stderr,"%s","       -samples: Treat the data as samples and not as finite-duration integrated data\n");
   fprintf(stderr,"%s","      -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step]\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","     -killparts: Comma separated string (no spaces!) of intervals to explicitly remove from analysis (i.e. zero-out).  Ranges are specified by min:max[:step]\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: The input 'pfd' file name.\n");
   fprintf(stderr,"%s","                 1...100 values\n");
-  fprintf(stderr,"%s","  version: 03Jun17\n");
+  fprintf(stderr,"%s","  version: 25Oct20\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -929,6 +939,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-fixchi", argv[i]) ) {
       cmd.fixchiP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-samples", argv[i]) ) {
+      cmd.samplesP = 1;
       continue;
     }
 

@@ -13,7 +13,7 @@ import time
 from math import *
 # 2/13/2014 //NEG-D///
 import pyslalib.slalib as sla
-import presto as presto
+from presto import presto
 fil_header_keys = [
     "telescope_id",
     "machine_id",
@@ -160,13 +160,13 @@ def translate_header(fits_file,skip,output_subints):
 
     rmn,dmn = sla.sla_amp(rap,dap,MJD,eq)
     hours,hmin,hsec = presto.hours2hms(degrees(rmn)/15.0)
-    deg,dmin,dsec = presto.deg2dms(degrees(dmn)/15.0)
+    deg,dmin,dsec = presto.deg2dms(degrees(dmn))
 
 
     fil_header["src_raj"] = float(hours*10000.0 + hmin*100.0 +  hsec)
     fil_header["src_dej"] = float(deg*10000.0 + dmin*100.0 + dsec)
 
-    fn = fits_file._HDUList__file.name
+    fn = fits_file.filename()
     fil_header["rawdatafile"] = os.path.basename(fn) 
     fil_header["source_name"] = fits_hdr['SRC_NAME']
     fil_header["barycentric"] = 0 # always not barycentered?
@@ -261,19 +261,19 @@ def main(fits_fn, outfn, nbits, \
     sys.stdout.flush()
     oldpcnt = ""
     for i in range(skip+1,output_subints+skip+1):
-        index = (i-1)/320
+        index = (i-1)//320
         subint_in_file = i-1-(index * 320)
         subint = read_subint(fits[index],subint_in_file,nchan,nsamps, \
                     apply_weights, apply_scales, apply_offsets, \
                     input_nbits=input_nbits)
         if flip_band:
             subint = np.fliplr(subint)
-    subint /= scale_fac
-    outfil.append_spectra(subint)
-    pcnt = "%d" % (i*100.0/output_subints)
-    if pcnt != oldpcnt:
-        sys.stdout.write("% 4s%% complete\r" % pcnt)
-        sys.stdout.flush()
+        subint /= scale_fac
+        outfil.append_spectra(subint)
+        pcnt = "%d" % (i*100.0/output_subints)
+        if pcnt != oldpcnt:
+           sys.stdout.write("% 4s%% complete\r" % pcnt)
+           sys.stdout.flush()
 
     print("Done               ")
     outfil.close()

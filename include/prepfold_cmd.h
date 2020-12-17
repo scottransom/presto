@@ -43,6 +43,8 @@ typedef struct s_Cmdline {
   char barypolycosP;
   /***** -debug: Show debugging output when calling TEMPO for polycos */
   char debugP;
+  /***** -samples: Treat the data as samples and not as finite-duration integrated data */
+  char samplesP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;

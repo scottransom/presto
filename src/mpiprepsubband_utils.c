@@ -29,11 +29,11 @@ void make_maskbase_struct(void)
     MPI_Aint displs[2];
     maskbase mbase;
 
-    MPI_Address(&mbase.timesigma, &displs[0]);
-    MPI_Address(&mbase.numchan, &displs[1]);
+    MPI_Get_address(&mbase.timesigma, &displs[0]);
+    MPI_Get_address(&mbase.numchan, &displs[1]);
     displs[1] -= displs[0];
     displs[0] = 0;
-    MPI_Type_struct(2, blockcounts, displs, types, &maskbase_type);
+    MPI_Type_create_struct(2, blockcounts, displs, types, &maskbase_type);
     MPI_Type_commit(&maskbase_type);
 }
 
@@ -118,26 +118,26 @@ void make_spectra_info_struct(void)
     MPI_Aint displs[17];
     struct spectra_info s;
 
-    MPI_Address(&s.telescope, &displs[0]);
-    MPI_Address(&s.observer, &displs[1]);
-    MPI_Address(&s.source, &displs[2]);
-    MPI_Address(&s.frontend, &displs[3]);
-    MPI_Address(&s.backend, &displs[4]);
-    MPI_Address(&s.project_id, &displs[5]);
-    MPI_Address(&s.date_obs, &displs[6]);
-    MPI_Address(&s.ra_str, &displs[7]);
-    MPI_Address(&s.dec_str, &displs[8]);
-    MPI_Address(&s.poln_type, &displs[9]);
-    MPI_Address(&s.poln_order, &displs[10]);
-    MPI_Address(&s.N, &displs[11]);
-    MPI_Address(&s.T, &displs[12]);
-    MPI_Address(&s.datatype, &displs[13]);
-    MPI_Address(&s.scan_number, &displs[14]);
-    MPI_Address(&s.zero_offset, &displs[15]);
-    MPI_Address(&s.start_MJD, &displs[16]);
+    MPI_Get_address(&s.telescope, &displs[0]);
+    MPI_Get_address(&s.observer, &displs[1]);
+    MPI_Get_address(&s.source, &displs[2]);
+    MPI_Get_address(&s.frontend, &displs[3]);
+    MPI_Get_address(&s.backend, &displs[4]);
+    MPI_Get_address(&s.project_id, &displs[5]);
+    MPI_Get_address(&s.date_obs, &displs[6]);
+    MPI_Get_address(&s.ra_str, &displs[7]);
+    MPI_Get_address(&s.dec_str, &displs[8]);
+    MPI_Get_address(&s.poln_type, &displs[9]);
+    MPI_Get_address(&s.poln_order, &displs[10]);
+    MPI_Get_address(&s.N, &displs[11]);
+    MPI_Get_address(&s.T, &displs[12]);
+    MPI_Get_address(&s.datatype, &displs[13]);
+    MPI_Get_address(&s.scan_number, &displs[14]);
+    MPI_Get_address(&s.zero_offset, &displs[15]);
+    MPI_Get_address(&s.start_MJD, &displs[16]);
     for (ii = 16; ii >= 0; ii--)
         displs[ii] -= displs[0];
-    MPI_Type_struct(17, blockcounts, displs, types, &spectra_info_type);
+    MPI_Type_create_struct(17, blockcounts, displs, types, &spectra_info_type);
     MPI_Type_commit(&spectra_info_type);
 }
 

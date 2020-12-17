@@ -842,6 +842,42 @@ def rrat_period(times, numperiods=20, output=True):
         print(dts / p)
     return p
 
+def rrat_period_multiday(days_times, numperiods=20, output=True):
+    """
+    rrat_period_multiday(days_times, numperiods=20, output=True):
+        Try to determine a RRAT pulse period using a brute force
+        search when the input times are (real!) single-pulse
+        arrival times. numperiods is the maximum number of periods
+        to try in the smallest interval betweeen pulses.
+        If output is True, print some diagnostic information.
+        days_times should be a list where each entry is the list
+        you would pass to rrat_period for a single day/observation.
+        e.g.
+        [[times, from, one, day], [times from, another, day], ...]
+    """
+    all_dt = []
+    for times in days_times:
+        daily_dt = Num.diff(sorted(times))
+        all_dt.extend(daily_dt.tolist())
+
+    dts = Num.asarray(sorted(all_dt))
+    ps = dts[0] / Num.arange(1, numperiods + 1)
+    xs = dts / ps[:, Num.newaxis]
+    metric = Num.sum(Num.fabs((xs - xs.round())), axis=1)
+    pnum = metric.argmin()
+
+    numrots = xs.round()[pnum].sum()
+    p = dts.sum() / numrots
+
+    if output:
+        print("Min, avg, std metric values are %.4f, %.4f, %.4f" % \
+              (metric.min(), metric.mean(), metric.std()))
+        print(" Approx period is likely:", ps[pnum])
+        print("Refined period is likely:", p)
+        print("Rotations between pulses are:")
+        print(dts / p)
+    return p
+
 
 def guess_DMstep(DM, dt, BW, f_ctr):
     """

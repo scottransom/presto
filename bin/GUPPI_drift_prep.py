@@ -59,14 +59,14 @@ if __name__=="__main__":
         subints = guppi_subint_per_file(infilenms[ii])
         if ((subints < nom_subint_per_file) and (ii < numinfiles-1)):
             print("Warning!  '%s' only has %d samples!"%\
-                  (infilenms[ii], ubints))
+                  (infilenms[ii], subints))
             print("    You need to fix that file!")
             sys.exit(-1)
         subints_per_file.append(subints)
     total_subints = sum(subints_per_file)
     print(total_subints)
     num = int(sys.argv[1])
-    nmax = total_subints/overlap_subints-1
+    nmax = total_subints//overlap_subints-1
     if num < 0:
         print(nmax)
         sys.exit(0)
@@ -85,7 +85,7 @@ if __name__=="__main__":
             skip = first_subint - accum_subints
             # How many total files we need
             first_file_subints = subints_per_file[ii]-skip
-            numfiles = (raw_N - first_file_subints) / nom_subint_per_file + 1
+            numfiles = (raw_N - first_file_subints) // nom_subint_per_file + 1
             if ((raw_N - first_file_subints) % nom_subint_per_file):
                 numfiles += 1
             if debug:

@@ -22,7 +22,7 @@ explorefft Lband_topo_DM0.00.fft
 prepfold -p 1.0 GBT_Lband_PSR.fil
 DDplan.py -d 500.0 -n 96 -b 96 -t 0.000072 -f 1400.0 -s 32 -r 0.5
 prepsubband -nsub 32 -lodm 0.0 -dmstep 2.0 -numdms 24 -numout 132500 -downsamp 4 -mask Lband_rfifind.mask -o Lband GBT_Lband_PSR.fil 
-cp /usr/local/src/presto/python/dedisp.py .
+cp $PRESTO/tests/dedisp.py .
 jed dedisp.py 
 python dedisp.py
 mkdir subbands
@@ -31,7 +31,7 @@ rm Lband*topo*
 ls *.dat | xargs -n 1 realfft
 ls *.fft | xargs -n 1 zapbirds -zap -zapfile Lband.zaplist -baryv -5.69726e-05
 ls *dat | xargs -n 1 accelsearch -zmax 0
-cp /usr/local/src/presto/python/ACCEL_sift.py .
+cp $PRESTO/examplescripts/ACCEL_sift.py .
 python ACCEL_sift.py > cands.txt
 less cands.txt 
 prepfold -accelcand 2 -accelfile Lband_DM62.00_ACCEL_0.cand Lband_DM62.00.dat

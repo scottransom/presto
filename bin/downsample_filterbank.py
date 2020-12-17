@@ -14,7 +14,7 @@ if __name__ == "__main__":
     basefilenm = sys.argv[2][:sys.argv[2].find(".fil")]
     
     filhdr = {}
-    newhdr = ""
+    newhdr = "".encode('utf-8')
     infile = open(sys.argv[2], 'rb')
 
     # Determine the full size of the file

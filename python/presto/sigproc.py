@@ -167,7 +167,7 @@ def read_header(infile):
     """
     hdrdict = {}
     if type(infile) == type("abc"):
-        infile = open(infile)
+        infile = open(infile,'rb')
     param = ""
     while (param != "HEADER_END"):
         param, val = read_hdr_val(infile, stdout=False)

@@ -57,21 +57,21 @@ USEPROFILE = false
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
 	-DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
 	-g -Wall -W -fPIC -O3 -ffast-math
-CLINKFLAGS = $(CFLAGS)
+CLINKFLAGS = $(CFLAGS) -Wl,-rpath,$(PRESTO)/lib
 
 # Add some GCC-specific flags that are useful
 ifeq ($(CC),gcc)
 	CFLAGS += -Wno-unused-result -Wno-unused-but-set-variable \
 		-Wno-unused-but-set-parameter
 # The following is great as long as your GCC is > v 4.9
-#	CFLAGS += -fdiagnostics-color=auto
+	CFLAGS += -fdiagnostics-color=auto
 endif
 
 # NOTE:  Be careful of upping the optimization on the
 #        FFLAGs.  Certain compilers (i.e. on Intel Macs) will
 #        cause errors for the code in least_squares.f
 FFLAGS = -g -fPIC
-FLINKFLAGS = $(FFLAGS)
+FLINKFLAGS = $(FFLAGS) -Wl,-rpath,$(PRESTO)/lib
 
 # Add flags we need for openmp
 ifeq ($(USEOPENMP),true)

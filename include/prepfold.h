@@ -22,6 +22,7 @@ typedef struct plotflags {
   int scaleparts;
   int allgrey;
   int fixchi;
+  int samples;
   int showfold;
 } plotflags;
 
