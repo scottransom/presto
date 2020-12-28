@@ -348,11 +348,13 @@ int main(int argc, char *argv[])
     tlotoa = idata.mjd_i + idata.mjd_f; /* Topocentric epoch */
 
     /* Set the output length to a good number if it wasn't requested */
-    if (!cmd->numoutP) {
+    if (!cmd->numoutP && !cmd->subP) {
         cmd->numoutP = 1;
         cmd->numout = choose_good_N((long long)(idata.N/cmd->downsamp));
         printf("Setting a 'good' output length of %ld samples\n", cmd->numout);
     }
+    if (cmd->subP && (cmd->numout > idata.N/cmd->downsamp))
+        cmd->numout = (long long)(idata.N/cmd->downsamp); // Don't pad subbands
     totnumtowrite = cmd->numout;
 
     if (cmd->nobaryP) {         /* Main loop if we are not barycentering... */
@@ -658,9 +660,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* Calculate the amount of padding we need  */
+    /* Calculate the amount of padding we need (don't pad subbands) */
 
-    if (cmd->numout > totwrote)
+    if (!cmd->subP && (cmd->numout > totwrote))
         padwrote = padtowrite = cmd->numout - totwrote;
 
     /* Write the new info file for the output data */
