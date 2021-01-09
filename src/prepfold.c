@@ -820,13 +820,16 @@ int main(int argc, char *argv[])
             cmd->ffact = 1.0 / cmd->pfact;
         else if (cmd->ffact != 1.0)
             cmd->pfact = 1.0 / cmd->ffact;
-        search.bary.p1 *= cmd->pfact;
-        search.bary.p2 /= cmd->pfact;
-        search.topo.p1 *= cmd->pfact;
-        search.topo.p2 /= cmd->pfact;
         f *= cmd->ffact;
         fd *= cmd->ffact;
         fdd *= cmd->ffact;
+        if (idata.bary) {
+            switch_f_and_p(f, fd, fdd,\
+                &search.bary.p1, &search.bary.p2, &search.bary.p3);
+        } else {
+            switch_f_and_p(f, fd, fdd,\
+                &search.topo.p1, &search.topo.p2, &search.topo.p3);
+        }
     }
 
     /* Determine the length of the profile */
