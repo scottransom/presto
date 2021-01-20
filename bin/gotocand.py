@@ -11,8 +11,8 @@ from presto.presto import fourierprops, get_rzw_cand
 short_re = re.compile("_\d\d\dM_\d\d_ACCEL_")
 
 def determine_dt(candfile):
-    for line in open(candfile):
-        if line.startswith(b" Width of each time series bin"):
+    for line in open(candfile, 'r', encoding='utf-8'):
+        if line.startswith(" Width of each time series bin"):
             return float(line.split()[-1])
 
 def short_stuff(candfile, candnum, shortinfo, nodename, datfile):
@@ -87,7 +87,7 @@ def find_datfile(nodename, basename, DM):
         if line.endswith(b".dat"):
             datfile = line.decode("utf-8")
     print("'%s'"%datfile)
-    if datfile!='' and datfile.startswith(b"/scratch"):
+    if datfile!='' and datfile.startswith("/scratch"):
         return datfile
     return None
 
