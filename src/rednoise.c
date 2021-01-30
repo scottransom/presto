@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
         for (ii = 0, ind = mid_old; ind < nblk_old; ii++, ind++) {
             norm = invsqrtf(mean_old + dslope * ii);
             outbuf[ii].r = oldbuf[ind].r * norm;
-            outbuf[ii].i = oldbuf[ind].r * norm;
+            outbuf[ii].i = oldbuf[ind].i * norm;
         }
         chkfwrite(outbuf, sizeof(fcomplex), nblk_old - mid_old, outfile);
         numwrote += nblk_old - mid_old;
