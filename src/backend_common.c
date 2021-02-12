@@ -518,6 +518,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
 {
     int ii, jj, numread = 0, offset;
     double starttime = 0.0;
+    long long templen;
     static float *tmpswap, *rawdata1, *rawdata2;
     static float *currentdata, *lastdata;
     static int firsttime = 1, numsubints = 1, allocd = 0, mask = 0;
@@ -534,8 +535,16 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
             numsubints = numspect / s->spectra_per_subint;
         if (obsmask->numchan)
             mask = 1;
-        rawdata1 = gen_fvect(numsubints * s->spectra_per_subint * s->num_channels);
-        rawdata2 = gen_fvect(numsubints * s->spectra_per_subint * s->num_channels);
+        // The following can overflow a regular int
+        templen = ((long long) numsubints) * s->spectra_per_subint * s->num_channels;
+        if (templen > 200000000L) {
+            printf("\nWARNING:  Trying to allocate %.2f GB of RAM in read_psrdata()!!\n",
+                   templen*8L/1e9);
+            printf("    This will possibly fail.  Is the dispersive delay across the\n");
+            printf("    band longer than (or comparable to) the duration of the input file??\n");
+        }
+        rawdata1 = gen_fvect(templen);
+        rawdata2 = gen_fvect(templen);
         allocd = 1;
         duration = numsubints * s->time_per_subint;
         currentdata = rawdata1;
