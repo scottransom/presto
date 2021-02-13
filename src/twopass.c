@@ -1,4 +1,6 @@
 #include "ransomfft.h"
+#include "chkio.h"
+
 #define Maxblocksize          67108864
 
 /* Optimized "two-pass" mass storage FFT function for complex data  */
@@ -19,7 +21,7 @@ long long find_blocksize(long long n1, long long n2)
     return b;
 }
 
-void twopassfft_scratch(multifile * infile, multifile * scratch,
+void twopassfft_scratch(FILE * infile, FILE * scratch,
                         long long nn, int isign)
 {
     long long n1, n2, bb, fp, ii, jj, kk, kind, df;
@@ -62,8 +64,8 @@ void twopassfft_scratch(multifile * infile, multifile * scratch,
         fp = sizeof(rawtype) * ii;
         df = sizeof(rawtype) * n2;
         for (jj = 0; jj < n1; jj++) {
-            fseek_multifile(infile, fp, SEEK_SET);
-            fread_multifile(dp, sizeof(rawtype), bb, infile);
+            chkfseek(infile, fp, SEEK_SET);
+            chkfread(dp, sizeof(rawtype), bb, infile);
             dp += bb;           /* Data ptr */
             fp += df;           /* File ptr */
         }
@@ -98,7 +100,7 @@ void twopassfft_scratch(multifile * infile, multifile * scratch,
                 wi = wi * wpr + wtemp * wpi + wi;
             }
         }
-        fwrite_multifile(data, sizeof(rawtype), bb * n1, scratch);
+        chkfwrite(data, sizeof(rawtype), bb * n1, scratch);
     }
 
     /* Now do n1 transforms of length n2 by fetching  */
@@ -112,8 +114,8 @@ void twopassfft_scratch(multifile * infile, multifile * scratch,
         fp = sizeof(rawtype) * ii;
         df = sizeof(rawtype) * n1;
         for (jj = 0; jj < n2; jj++) {
-            fseek_multifile(scratch, fp, SEEK_SET);
-            fread_multifile(dp, sizeof(rawtype), bb, scratch);
+            chkfseek(scratch, fp, SEEK_SET);
+            chkfread(dp, sizeof(rawtype), bb, scratch);
             dp += bb;           /* Data ptr */
             fp += df;           /* File ptr */
         }
@@ -148,8 +150,8 @@ void twopassfft_scratch(multifile * infile, multifile * scratch,
         fp = sizeof(rawtype) * ii;
         df = sizeof(rawtype) * n1;
         for (jj = 0; jj < n2; jj++) {
-            fseek_multifile(infile, fp, SEEK_SET);
-            fwrite_multifile(dp, sizeof(rawtype), bb, infile);
+            chkfseek(infile, fp, SEEK_SET);
+            chkfwrite(dp, sizeof(rawtype), bb, infile);
             dp += bb;           /* Data ptr */
             fp += df;           /* File ptr */
         }

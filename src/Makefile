@@ -122,7 +122,7 @@ PRESTOOBJS = amoeba.o atwood.o barycenter.o birdzap.o cand_output.o\
 	orbint.o output.o read_fft.o readpar.o responses.o\
 	rzinterp.o rzwinterp.o select.o sorter.o swapendian.o\
 	transpose.o twopass.o twopass_real_fwd.o\
-	twopass_real_inv.o vectors.o multifiles.o mask.o\
+	twopass_real_inv.o vectors.o mask.o\
 	fitsfile.o hget.o hput.o imio.o djcl.o range_parse.o
 
 INSTRUMENTOBJS = backend_common.o zerodm.o sigproc_fb.o psrfits.o
@@ -223,9 +223,6 @@ downsample: downsample_cmd.c downsample.o downsample_cmd.o libpresto
 
 split_parkes_beams: split_parkes_beams.o
 	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ split_parkes_beams.o
-
-test_multifiles: test_multifiles.o libpresto
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ test_multifiles.o $(PRESTOLINK) -lm
 
 rfifind: rfifind_cmd.c rfifind_cmd.o rfifind.o rfi_utils.o rfifind_plot.o $(INSTRUMENTOBJS) $(PLOT2DOBJS) libpresto
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@  $(INSTRUMENTOBJS) $(PLOT2DOBJS) rfifind.o rfi_utils.o rfifind_cmd.o rfifind_plot.o $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm

@@ -1,4 +1,5 @@
 #include "ransomfft.h"
+#include "chkio.h"
 
 /* Optimized "two-pass" mass storage FFT function for real data   */
 /* This version utilizes a scratch file the same size as the      */
@@ -7,7 +8,7 @@
 
 extern long long find_blocksize(long long n1, long long n2);
 
-void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
+void realfft_scratch_fwd(FILE * infile, FILE * scratch, long long nn)
 {
     long long n1, n2, bb, bb2, fp1, fp2, df, ii, jj, kk, kind;
     int i1, i2, move_size;
@@ -61,8 +62,8 @@ void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
         fp1 = sizeof(rawtype) * ii;
         df = sizeof(rawtype) * n2;
         for (jj = 0; jj < n1; jj++) {
-            fseek_multifile(infile, fp1, SEEK_SET);
-            fread_multifile(dp, sizeof(rawtype), bb, infile);
+            chkfseek(infile, fp1, SEEK_SET);
+            chkfread(dp, sizeof(rawtype), bb, infile);
             dp += bb;           /* Data ptr */
             fp1 += df;          /* File ptr */
         }
@@ -97,7 +98,7 @@ void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
                 wi = wi * wpr + wtemp * wpi + wi;
             }
         }
-        fwrite_multifile(data, sizeof(rawtype), bb * n1, scratch);
+        chkfwrite(data, sizeof(rawtype), bb * n1, scratch);
     }
 
     /* Now do n1 transforms of length n2 by fetching      */
@@ -131,12 +132,12 @@ void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
         fp1 = sizeof(rawtype) * (ii + 1);       /* File ptr */
         fp2 = sizeof(rawtype) * (n1 - ii - bb2);        /* File ptr */
         for (jj = 0; jj < n2; jj++) {
-            fseek_multifile(scratch, fp1, SEEK_SET);
-            fread_multifile(dp, sizeof(rawtype), bb2, scratch);
+            chkfseek(scratch, fp1, SEEK_SET);
+            chkfread(dp, sizeof(rawtype), bb2, scratch);
             dp += bb2;          /* Data ptr */
             fp1 += df;          /* File ptr */
-            fseek_multifile(scratch, fp2, SEEK_SET);
-            fread_multifile(dp, sizeof(rawtype), bb2, scratch);
+            chkfseek(scratch, fp2, SEEK_SET);
+            chkfread(dp, sizeof(rawtype), bb2, scratch);
             dp += bb2;          /* Data ptr */
             fp2 += df;          /* File ptr */
         }
@@ -198,12 +199,12 @@ void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
         fp1 = sizeof(rawtype) * (ii + 1);       /* File ptr */
         fp2 = sizeof(rawtype) * (n1 - ii - bb2);        /* File ptr */
         for (jj = 0; jj < n2; jj++) {
-            fseek_multifile(infile, fp1, SEEK_SET);
-            fwrite_multifile(dp, sizeof(rawtype), bb2, infile);
+            chkfseek(infile, fp1, SEEK_SET);
+            chkfwrite(dp, sizeof(rawtype), bb2, infile);
             dp += bb2;          /* Data ptr */
             fp1 += df;          /* File ptr */
-            fseek_multifile(infile, fp2, SEEK_SET);
-            fwrite_multifile(dp, sizeof(rawtype), bb2, infile);
+            chkfseek(infile, fp2, SEEK_SET);
+            chkfwrite(dp, sizeof(rawtype), bb2, infile);
             dp += bb2;          /* Data ptr */
             fp2 += df;          /* File ptr */
         }
@@ -215,8 +216,8 @@ void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
     /* Read the n2 data points */
 
     for (jj = 0; jj < n2; jj++) {
-        fseek_multifile(scratch, sizeof(rawtype) * jj * n1, SEEK_SET);
-        fread_multifile(data + jj, sizeof(rawtype), 1, scratch);
+        chkfseek(scratch, sizeof(rawtype) * jj * n1, SEEK_SET);
+        chkfread(data + jj, sizeof(rawtype), 1, scratch);
     }
 
     /* FFT the array: */
@@ -250,8 +251,8 @@ void realfft_scratch_fwd(multifile * infile, multifile * scratch, long long nn)
     /* Write the n2 data points and clean up */
 
     for (jj = 0; jj < n2; jj++) {
-        fseek_multifile(infile, sizeof(rawtype) * jj * n1, SEEK_SET);
-        fwrite_multifile(data + jj, sizeof(rawtype), 1, infile);
+        chkfseek(infile, sizeof(rawtype) * jj * n1, SEEK_SET);
+        chkfwrite(data + jj, sizeof(rawtype), 1, infile);
     }
     free(move);
     vect_free(data);
