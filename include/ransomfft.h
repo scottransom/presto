@@ -5,7 +5,6 @@
 #include <stddef.h>
 #include "meminfo.h"
 #include "vectors.h"
-#include "multifiles.h"
 
 #ifndef SWAP
 #define SWAP(a,b) tempzz=(a);(a)=(b);(b)=tempzz;
@@ -58,11 +57,11 @@ void read_wisdom(void);
 long long good_factor(long long nn);
 void tablesixstepfft(fcomplex *indata, long nn, int isign);
 void realfft(float data[], long n, int isign);
-void twopassfft_scratch(multifile* infile, multifile* scratch,
+void twopassfft_scratch(FILE * infile, FILE * scratch,
 			long long nn, int isign);
-void realfft_scratch_fwd(multifile* infile, multifile* scratch, 
+void realfft_scratch_fwd(FILE * infile, FILE * scratch, 
 			 long long nn);
-void realfft_scratch_inv(multifile* infile, multifile* scratch, 
+void realfft_scratch_inv(FILE * infile, FILE * scratch, 
 			 long long nn);
 void realsingfft(FILE * bigfft[5], long numdata, int isign, \
 		 char *inpath, char *outpath);

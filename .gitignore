@@ -62,3 +62,4 @@ MANIFEST
 .venv*/
 dist/
 .mypy_cache/
+.vscode/settings.json
