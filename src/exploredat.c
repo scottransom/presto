@@ -251,7 +251,7 @@ static dataview *get_dataview(long centern, long zoomlevel, datapart * dp)
     if (dv->numsamps > dp->nn)
         dv->numsamps = next2_to_n(dp->nn) / 2;
     dv->chunklen = (zoomlevel < -LOGMINCHUNKLEN) ?
-        (1 << abs(zoomlevel)) : (1 << LOGMINCHUNKLEN);
+        (1 << labs(zoomlevel)) : (1 << LOGMINCHUNKLEN);
     dv->dispnum = (dv->numsamps > MAXDISPNUM) ? MAXDISPNUM : dv->numsamps;
     if (DEBUGOUT)
         printf("zoomlevel = %ld  numsamps = %ld  chunklen = %ld  dispnum %ld  nn = %ld\n",

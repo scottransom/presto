@@ -30,8 +30,8 @@ fcomplex *read_fcomplex_file(FILE * file, long firstpt, long numpts)
     /* Zero pad if we try to read before the beginning of the file */
 
     if (firstpt < 0) {
-        fcptr = result + abs(firstpt);
-        lesspad = abs(firstpt);
+        fcptr = result + labs(firstpt);
+        lesspad = labs(firstpt);
         startpt = 0;
     } else {
         fcptr = result;
@@ -76,8 +76,8 @@ float *read_float_file(FILE * file, long firstpt, long numpts)
     /* Zero pad if we try to read before the beginning of the file */
 
     if (firstpt < 0) {
-        fptr = result + abs(firstpt);
-        lesspad = abs(firstpt);
+        fptr = result + labs(firstpt);
+        lesspad = labs(firstpt);
         startpt = 0;
     } else {
         fptr = result;

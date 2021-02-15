@@ -1,5 +1,6 @@
 #include "ransomfft.h"
 #include "stdint.h"
+#include "string.h"
 #include <errno.h>
 
 // Following gives the same as FFTW's fftwf_alignment_of when
