@@ -85,6 +85,11 @@ void split_path_file(char *input, char **path, char **file)
     unsigned int len, pathlen = 0, filelen = 0;
 
     len = strlen(input);
+    if (len > 200) {
+        perror
+            ("Error:  input string length > 200, in split_path_file().  Likely an issue.\n");
+        exit(-1);
+    }
     sptr = strrchr(input, '/');
     // The 2nd part of the following handles relative paths,
     // but in a strange way, in that the file will have the
@@ -101,16 +106,22 @@ void split_path_file(char *input, char **path, char **file)
         pathlen = strlen(sptr);
         *path = (char *) calloc(pathlen + 1, sizeof(char));
         *file = (char *) calloc(len + 1, sizeof(char));
-        strcpy(*path, sptr);
-        strncpy(*file, input, len);
+        strncpy(*path, sptr, pathlen + 1);
+        strncpy(*file, input, len + 1);
+        // ensure null-terminated
+        (*path)[pathlen] = '\0';
+        (*file)[len] = '\0';
         free(sptr);
     } else {
         pathlen = sptr - input;
         filelen = len - pathlen - 1;
         *path = (char *) calloc(pathlen + 1, sizeof(char));
         *file = (char *) calloc(filelen + 1, sizeof(char));
-        strncpy(*path, input, pathlen);
-        strncpy(*file, sptr + 1, filelen);
+        strncpy(*path, input, pathlen + 1);
+        strncpy(*file, sptr + 1, filelen + 1);
+        // ensure null-terminated
+        (*path)[pathlen] = '\0';
+        (*file)[filelen] = '\0';
     }
 }
 
@@ -125,18 +136,29 @@ int split_root_suffix(char *input, char **root, char **suffix)
     unsigned int len, rootlen = 0, suffixlen = 0;
 
     len = strlen(input);
+    if (len > 200) {
+        perror
+            ("Error:  input string length > 200, in split_root_suffix().  Likely an issue.\n");
+        exit(-1);
+    }
     sptr = strrchr(input, '.');
     if (sptr == NULL) {
         *root = (char *) calloc(len + 1, sizeof(char));
-        strncpy(*root, input, len);
+        strncpy(*root, input, len + 1);
+        // ensure null-terminated
+        *root[len] = '\0';
         return 0;
     } else {
         rootlen = sptr - input;
         *root = (char *) calloc(rootlen + 1, sizeof(char));
-        strncpy(*root, input, rootlen);
+        strncpy(*root, input, rootlen + 1);
+        // ensure null-terminated
+        (*root)[rootlen] = '\0';
         suffixlen = len - rootlen - 1;
         *suffix = (char *) calloc(suffixlen + 1, sizeof(char));
-        strncpy(*suffix, sptr + 1, suffixlen);
+        strncpy(*suffix, sptr + 1, suffixlen + 1);
+        // ensure null-terminated
+        (*suffix)[suffixlen] = '\0';
         return 1;
     }
 }
@@ -195,6 +217,8 @@ void telescope_to_tempocode(char *inname, char *outname, char *obscode)
     char scope[40];
 
     strncpy(scope, inname, 40);
+    // ensure null-terminated
+    scope[39] = '\0';
     strlower(scope);
     if (strcmp(scope, "gbt") == 0) {
         strcpy(obscode, "GB");
@@ -325,7 +349,9 @@ long long choose_good_N(long long orig_N)
     if (orig_N <= 0) return 0;
     // Get the number represented by the first 4 digits of orig_N
     sprintf(ctmp20, "%lld", orig_N);
-    first4 = atoi(strncpy(ctmp5, ctmp20, 4));
+    strncpy(ctmp5, ctmp20, 4);
+    ctmp5[4] = '\0';
+    first4 = atoi(ctmp5);
     // Now get the number that is just bigger than orig_N
     // that has its first 4 digits equal to "factor"
     for (ii = 0; ii < 114; ii++) {

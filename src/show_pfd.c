@@ -106,7 +106,8 @@ int main(int argc, char *argv[])
         sprintf(tmpdev, "%s/VCPS", search.pgdev);
         free(search.pgdev);
         search.pgdev = calloc(goodlen + 6, sizeof(char));
-        strncpy(search.pgdev, tmpdev, strlen(tmpdev));
+        strncpy(search.pgdev, tmpdev, goodlen + 6);
+        search.pgdev[goodlen + 6] = '\0';
         free(tmpdev);
         printf("New device is '%s'\n", search.pgdev);
     }
