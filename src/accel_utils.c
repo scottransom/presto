@@ -1065,8 +1065,8 @@ ffdotpows *subharm_fderivs_vol(int numharm, int harmnum,
     lobin = ffdot->rlo - binoffset;
     numdata = fftlen / ACCEL_NUMBETWEEN;
     data = get_fourier_amplitudes(lobin, numdata, obs);
-    if (!obs->mmap_file && !obs->dat_input && 0)
-        printf("This is newly malloc'd!\n");
+    //if (!obs->mmap_file && !obs->dat_input && 0)
+    //    printf("This is newly malloc'd!\n");
 
     // Normalize the Fourier amplitudes
     if (obs->nph > 0.0) {
