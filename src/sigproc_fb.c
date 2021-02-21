@@ -255,6 +255,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
 
     fb->ibeam = 1;              // default value
     fb->signedints = 0;         // default value
+    fb->sumifs = 1;             // default value
     /* loop over and read remaining header lines until HEADER_END reached */
     while (1) {
         get_string(inputfile, &nbytes, string);
@@ -316,6 +317,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
             totalbytes += sizeof(int);
         } else if (strings_equal(string, "nifs")) {
             chkfread(&(fb->nifs), sizeof(int), 1, inputfile);
+            if (fb->nifs > 1) fb->sumifs = 0;
             totalbytes += sizeof(int);
         } else if (strings_equal(string, "nbeams")) {
             chkfread(&(fb->nbeams), sizeof(int), 1, inputfile);
@@ -381,7 +383,8 @@ void read_filterbank_files(struct spectra_info *s)
     s->header_offset[0] = read_filterbank_header(&fb, s->files[0]);
     // Make an initial offset into the file
     chkfseek(s->files[0], s->header_offset[0], SEEK_SET);
-    strncpy(s->source, fb.source_name, 40);
+    strncpy(s->source, fb.source_name, 80);
+    s->source[80] = '\0'; // ensure null-terminated
     if (fb.sumifs) {
         s->summed_polns = 1;
         s->num_polns = 1;
