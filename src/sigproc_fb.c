@@ -348,7 +348,12 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
     /* return total number of bytes read */
     fb->headerlen = totalbytes;
     /* Calculate the number of samples in the file */
-    fb->N = (chkfilelen(inputfile, 1) - fb->headerlen) / fb->nchans * 8 / fb->nbits;
+    if (fb->nbits <= 8)
+        fb->N = (chkfilelen(inputfile, 1) - fb->headerlen) / \
+            (fb->nchans / (8 / fb->nbits));
+    else
+        fb->N = (chkfilelen(inputfile, 1) - fb->headerlen) / \
+            (fb->nchans * (fb->nbits / 8));
     return totalbytes;
 }
 
