@@ -8,7 +8,7 @@ def read_weights(filename):
         Read the channels and weights from a .weights text file.
     """
     chans, weights = np.loadtxt(filename, unpack=True)
-    return chans.astype(np.int), weights.astype(np.float)
+    return chans.astype(np.int64), weights.astype(np.float)
 
 def build_chanline(weights):
     """

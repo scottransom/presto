@@ -211,7 +211,7 @@ def plot_waterfall(data, start, duration,
         ax_spec = plt.axes((0.75, 0.15, 0.2, im_height),sharey=ax_im)
 
     # Ploting it up
-    nbinlim = np.int(duration/data.dt)
+    nbinlim = np.int64(duration/data.dt)
 
     img = ax_im.imshow(data.data[..., :nbinlim], aspect='auto',
                 cmap=matplotlib.cm.cmap_d[cmap_str],

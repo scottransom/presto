@@ -51,7 +51,7 @@ def waterfall_array(rawdatafile, start, duration, dm, nbins, nsub, subdm, zerodm
     if dm is not None:            # If dedispersing the data, extra bins will be added. We need to cut off the extra bins to get back the appropriate window size.   
         ragfac = float(nbins)/bins
         dmrange, trange = array.shape
-        nbinlim = np.int(trange * ragfac)
+        nbinlim = np.int64(trange * ragfac)
     else:
         nbinlim = nbins
     array = array[..., :nbinlim]

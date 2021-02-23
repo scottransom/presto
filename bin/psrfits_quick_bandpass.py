@@ -58,7 +58,7 @@ def main():
             # for a bandpass histogram of raw bits
             htot = np.zeros(1<<pf.nbits)
         subints = np.arange(opts.subfirst, pf.specinfo.num_subint,
-                            opts.subskip).astype(np.int)
+                            opts.subskip).astype(np.int64)
         means = np.zeros((len(subints), pf.nchan))
         stdevs = np.zeros((len(subints), pf.nchan))
         for ii, subint in enumerate(subints):
