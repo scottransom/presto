@@ -63,7 +63,9 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
     double *chan_avg_temp;
     float current_med, trigger;
     double current_avg = 0.0, current_std = 0.0;
-    int ii, jj, clipit = 0, clipped = 0;
+    long long ii, jj, loffset;
+    int clipit = 0, clipped = 0;
+
     if (firsttime) {
         chan_running_avg = gen_fvect(numchan);
         firsttime = 0;
@@ -87,7 +89,8 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
     /* Calculate the zero DM time series */
     for (ii = 0; ii < ptsperblk; ii++) {
         zero_dm_block[ii] = 0.0;
-        powptr = rawdata + ii * numchan;
+        loffset = ii * numchan;
+        powptr = rawdata + loffset;
         for (jj = 0; jj < numchan; jj++)
             zero_dm_block[ii] += *powptr++;
         ftmp[ii] = zero_dm_block[ii];
@@ -112,7 +115,8 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
         for (ii = 0; ii < ptsperblk; ii++) {
             if (zero_dm_block[ii] > lo_cutoff && zero_dm_block[ii] < hi_cutoff) {
                 ftmp[numgoodpts] = zero_dm_block[ii];
-                powptr = rawdata + ii * numchan;
+                loffset = ii * numchan;
+                powptr = rawdata + loffset;
                 for (jj = 0; jj < numchan; jj++)
                     chan_avg_temp[jj] += *powptr++;
                 numgoodpts++;
@@ -181,7 +185,8 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
             if ((fabs(zero_dm_block[ii] - running_avg) > trigger) ||
                 (numonoff && (current_point > onbins[onoffindex]
                               && current_point <= offbins[onoffindex]))) {
-                powptr = rawdata + ii * numchan;
+                loffset = ii * numchan;
+                powptr = rawdata + loffset;
                 for (jj = 0; jj < numchan; jj++)
                     *powptr++ = good_chan_levels[jj];
                 clipped++;

@@ -467,7 +467,8 @@ int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s,
 // number of blocks read is returned.  If padding is returned as 1,
 // then padding was added and statistics should not be calculated.
 {
-    int ii, retval = 0, gotblock = 0, pad = 0, numpad = 0, numvals;
+    long long ii, loffset;
+    int retval = 0, gotblock = 0, pad = 0, numpad = 0, numvals;
     static float *rawdata = NULL;
     static int firsttime = 1;
 
@@ -483,16 +484,20 @@ int read_rawblocks(float *fdata, int numsubints, struct spectra_info *s,
         if (gotblock == 0)
             break;
         retval += gotblock;
-        memcpy(fdata + ii * numvals, rawdata, numvals * sizeof(float));
+        loffset = ii * numvals;
+        memcpy(fdata + loffset, rawdata, numvals * sizeof(float));
         if (pad)
             numpad++;
     }
     if (gotblock == 0) {        // Now fill the rest of the data with padding
         for (; ii < numsubints; ii++) {
-            int jj;
-            for (jj = 0; jj < s->spectra_per_subint; jj++)
-                memcpy(fdata + ii * numvals + jj * s->num_channels,
-                       s->padvals, s->num_channels * sizeof(float));
+            long long jj, loffset2;
+            loffset = ii * numvals;
+            for (jj = 0; jj < s->spectra_per_subint; jj++) {
+                loffset2 = loffset + jj * s->num_channels;
+                memcpy(fdata + loffset2, s->padvals,
+                       s->num_channels * sizeof(float));
+            }
         }
         numpad++;
     }
@@ -516,9 +521,9 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
 // of channels masked is returned in nummasked.  obsmask is the mask
 // structure to use for masking.
 {
-    int ii, jj, numread = 0, offset;
+    int numread = 0;
     double starttime = 0.0;
-    long long templen;
+    long long ii, jj, templen, loffset;
     static float *tmpswap, *rawdata1, *rawdata2;
     static float *currentdata, *lastdata;
     static int firsttime = 1, numsubints = 1, allocd = 0, mask = 0;
@@ -537,7 +542,7 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
             mask = 1;
         // The following can overflow a regular int
         templen = ((long long) numsubints) * s->spectra_per_subint * s->num_channels;
-        if (templen > 200000000L) {
+        if (templen > 1000000000L) {
             printf("\nWARNING:  Trying to allocate %.2f GB of RAM in read_psrdata()!!\n",
                    templen*8L/1e9);
             printf("    This will possibly fail.  Is the dispersive delay across the\n");
@@ -567,16 +572,18 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
 
             if (mask) {
                 if (*nummasked == -1) { /* If all channels are masked */
-                    for (ii = 0; ii < numspect; ii++)
-                        memcpy(currentdata + ii * s->num_channels,
+                    for (ii = 0; ii < numspect; ii++) {
+                        loffset = ii * s->num_channels;
+                        memcpy(currentdata + loffset,
                                s->padvals, s->num_channels * sizeof(float));
+                    }
                 } else if (*nummasked > 0) {    /* Only some of the channels are masked */
                     int channum;
                     for (ii = 0; ii < numspect; ii++) {
-                        offset = ii * s->num_channels;
+                        loffset = ii * s->num_channels;
                         for (jj = 0; jj < *nummasked; jj++) {
                             channum = maskchans[jj];
-                            currentdata[offset + channum] = s->padvals[channum];
+                            currentdata[loffset + channum] = s->padvals[channum];
                         }
                     }
                 }
@@ -585,10 +592,10 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
             if (s->num_ignorechans) { // These are channels we explicitly zero
                 int channum;
                 for (ii = 0; ii < numspect; ii++) {
-                    offset = ii * s->num_channels;
+                    loffset = ii * s->num_channels;
                     for (jj = 0; jj < s->num_ignorechans; jj++) {
                         channum = s->ignorechans[jj];
-                        currentdata[offset + channum] = 0.0;
+                        currentdata[loffset + channum] = 0.0;
                     }
                 }
             }
@@ -598,15 +605,16 @@ int read_psrdata(float *fdata, int numspect, struct spectra_info *s,
                              delays, 0.0, fdata);
 
             SWAP(currentdata, lastdata);
-            if (numread != numsubints) {
-                vect_free(rawdata1);
-                vect_free(rawdata2);
-                allocd = 0;
-            }
             if (firsttime)
                 firsttime = 0;
-            else
+            else {
+                if (numread != numsubints) {
+                    vect_free(rawdata1);
+                    vect_free(rawdata2);
+                    allocd = 0;
+                }
                 break;
+            }
         }
         return numsubints * s->spectra_per_subint;
     } else {
@@ -624,7 +632,7 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[],
 // 's->spectra_per_subint' spaces.  Channel 0 is assumed to be the
 // lowest freq channel.
 {
-    int ii, jj;
+    long long ii, jj, numspec = numsubints * s->spectra_per_subint;
 
     if (channum > s->num_channels || channum < 0) {
         fprintf(stderr, "Error!: channum = %d is out of range in get_channel()!\n",
@@ -635,15 +643,14 @@ void get_channel(float chandat[], int channum, int numsubints, float rawdata[],
     if (s->num_ignorechans) {
         for (ii = 0; ii < s->num_ignorechans; ii++) {
             if (channum==s->ignorechans[ii]) { // zero it
-                for (jj = 0; jj < numsubints * s->spectra_per_subint; jj++)
+                for (jj = 0; jj < numspec; jj++)
                     chandat[jj] = 0.0;
                 return;
             }
         }
     }
     /* Else select the correct channel */
-    for (ii = 0, jj = channum; ii < numsubints * s->spectra_per_subint;
-         ii++, jj += s->num_channels)
+    for (ii = 0, jj = channum; ii < numspec; ii++, jj += s->num_channels)
         chandat[ii] = rawdata[jj];
 }
 
