@@ -188,12 +188,10 @@ void write_bestprof(prepfoldinfo * search, foldstats * beststats,
     fprintf(outfile, "# Profile StdDev   =  %-17.15g\n", sqrt(beststats->prof_var));
 
     {
-        int chidf;
         double chip, chi_lnp, chi_sig;
         char out2[80];
 
-        chidf = (int)(dofeff + 1e-12);
-        chi_lnp = chi2_logp(beststats->redchi * chidf, chidf);
+        chi_lnp = chi2_logp(beststats->redchi * dofeff, dofeff);
         chip = (chi_lnp < -700) ? 0.0 : exp(chi_lnp);
         chi_sig = equivalent_gaussian_sigma(chi_lnp);
         sprintf(out2, "(~%.1f sigma)", chi_sig);
@@ -1190,11 +1188,9 @@ void prepfold_plot(prepfoldinfo * search, plotflags * flags, int xwin, float *pp
                 cpgtext(0.45, 0.0, out);
 
                 {
-                    int chidf;
                     double chip, chi_lnp, chi_sig;
 
-                    chidf = (int)(dofeff + 1e-12);
-                    chi_lnp = chi2_logp(beststats.redchi * chidf, chidf);
+                    chi_lnp = chi2_logp(beststats.redchi * dofeff, dofeff);
                     chip = (chi_lnp < -700) ? 0.0 : exp(chi_lnp);
                     chi_sig = equivalent_gaussian_sigma(chi_lnp);
 

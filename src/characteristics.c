@@ -491,7 +491,7 @@ double equivalent_gaussian_sigma(double logp)
 }
 
 
-double chi2_logp(double chi2, int dof)
+double chi2_logp(double chi2, double dof)
 /* Return the natural log probability corresponding to a chi^2 value */
 /* of chi2 given dof degrees of freedom. */
 {
@@ -528,7 +528,7 @@ double chi2_logp(double chi2, int dof)
 }
 
 
-double chi2_sigma(double chi2, int dof)
+double chi2_sigma(double chi2, double dof)
 /* Return the approximate significance in Gaussian sigmas        */
 /* sigmas of a chi^2 value of chi2 given dof degrees of freedom. */
 {

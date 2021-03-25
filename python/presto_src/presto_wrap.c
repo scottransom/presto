@@ -11843,10 +11843,10 @@ fail:
 SWIGINTERN PyObject *_wrap_chi2_logp(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   double arg1 ;
-  int arg2 ;
+  double arg2 ;
   double val1 ;
   int ecode1 = 0 ;
-  int val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -11858,11 +11858,11 @@ SWIGINTERN PyObject *_wrap_chi2_logp(PyObject *SWIGUNUSEDPARM(self), PyObject *a
     SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_logp" "', argument " "1"" of type '" "double""'");
   } 
   arg1 = (double)(val1);
-  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_logp" "', argument " "2"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_logp" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (int)(val2);
+  arg2 = (double)(val2);
   {
     errno = 0;
     result = (double)chi2_logp(arg1,arg2);
@@ -11890,10 +11890,10 @@ fail:
 SWIGINTERN PyObject *_wrap_chi2_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   double arg1 ;
-  int arg2 ;
+  double arg2 ;
   double val1 ;
   int ecode1 = 0 ;
-  int val2 ;
+  double val2 ;
   int ecode2 = 0 ;
   PyObject * obj0 = 0 ;
   PyObject * obj1 = 0 ;
@@ -11905,11 +11905,11 @@ SWIGINTERN PyObject *_wrap_chi2_sigma(PyObject *SWIGUNUSEDPARM(self), PyObject *
     SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "chi2_sigma" "', argument " "1"" of type '" "double""'");
   } 
   arg1 = (double)(val1);
-  ecode2 = SWIG_AsVal_int(obj1, &val2);
+  ecode2 = SWIG_AsVal_double(obj1, &val2);
   if (!SWIG_IsOK(ecode2)) {
-    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_sigma" "', argument " "2"" of type '" "int""'");
+    SWIG_exception_fail(SWIG_ArgError(ecode2), "in method '" "chi2_sigma" "', argument " "2"" of type '" "double""'");
   } 
-  arg2 = (int)(val2);
+  arg2 = (double)(val2);
   {
     errno = 0;
     result = (double)chi2_sigma(arg1,arg2);
