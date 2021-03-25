@@ -9,6 +9,7 @@ from presto import psr_utils, infodata, polycos, Pgplot
 import six
 import numbers
 from presto.bestprof import bestprof
+from presto.presto import chi2_sigma
 
 
 class pfd(object):
@@ -625,6 +626,13 @@ class pfd(object):
         if var is None:  var = self.varprof
         # Note:  use the _corrected_ DOF for reduced chi^2 calculation
         return ((prof-avg)**2.0/var).sum() / self.DOFcor
+
+    def calc_sigma(self):
+        """
+        calc_sigma(self):
+            Return the calculated sigma (equivalent gaussian sig) of the summed profile.
+        """
+        return chi2_sigma(self.calc_redchi2() * self.DOFcor, self.DOFcor)
 
     def plot_chi2_vs_DM(self, loDM, hiDM, N=100, interp=0, device='/xwin'):
         """
