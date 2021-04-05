@@ -44,9 +44,6 @@ static int get_data(float **outdata, int blocksperread,
                     mask * obsmask, int *idispdts, int **offsets, int *padding);
 extern void set_using_MPI(void);
 
-MPI_Datatype maskbase_type;
-MPI_Datatype spectra_info_type;
-
 static Cmdline *cmd;
 static int blocksperread = 0, worklen = 0;
 static int insubs = 0;
