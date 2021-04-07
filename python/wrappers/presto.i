@@ -1,4 +1,5 @@
-%module presto
+//%module presto
+%module(package="presto", moduleimport="import _presto") presto
 
 %{
 #define SWIG_FILE_WITH_INIT

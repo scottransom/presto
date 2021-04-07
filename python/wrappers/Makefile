@@ -1,5 +1,5 @@
-SWIG          = swig3.0
-SWIGOPT       = -make_default -python -shadow
+SWIG          = swig
+SWIGOPT       = -python
 
 prestowrap:
 	$(SWIG) $(SWIGOPT) presto.i
