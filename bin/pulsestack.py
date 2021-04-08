@@ -88,7 +88,7 @@ def detrending (data, is_fast):
     # will split off the chunks with very low and very high stds
     locut = (sort_stds[1:numblocks/2+1] - sort_stds[:numblocks/2]).argmax() + 1
     hicut = (sort_stds[numblocks/2+1:] - sort_stds[numblocks/2:-1]).argmax() + numblocks/2 - 2
-    std_stds = scipy.std(sort_stds[locut:hicut])
+    std_stds = np.std(sort_stds[locut:hicut])
     median_stds = sort_stds[(locut+hicut)/2]
     lo_std = median_stds - 4.0 * std_stds
     hi_std = median_stds + 4.0 * std_stds

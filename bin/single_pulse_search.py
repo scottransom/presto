@@ -3,6 +3,7 @@ from __future__ import print_function
 from builtins import str, zip
 from optparse import OptionParser
 import bisect, os, sys, glob
+import numpy as np
 import scipy, scipy.signal, scipy.stats
 from presto.presto import rfft, next2_to_n
 from presto import infodata
@@ -54,15 +55,15 @@ def fft_convolve(fftd_data, fftd_kern, lo, hi):
     # Note:  The initial FFTs should be done like:
     # fftd_kern = rfft(kernel, -1)
     # fftd_data = rfft(data, -1)
-    prod = Num.multiply(fftd_data, fftd_kern)
+    prod = np.multiply(fftd_data, fftd_kern)
     prod.real[0] = fftd_kern.real[0] * fftd_data.real[0]
     prod.imag[0] = fftd_kern.imag[0] * fftd_data.imag[0]
-    return rfft(prod, 1)[lo:hi].astype(Num.float32)
+    return rfft(prod, 1)[lo:hi].astype(np.float32)
 
 def make_fftd_kerns(downfacts, fftlen):
     fftd_kerns = []
     for downfact in downfacts:
-        kern = Num.zeros(fftlen, dtype=Num.float32)
+        kern = np.zeros(fftlen, dtype=np.float32)
         # These offsets produce kernels that give results
         # equal to scipy.signal.convolve
         if downfact % 2:  # Odd number
@@ -74,7 +75,7 @@ def make_fftd_kerns(downfacts, fftlen):
                 kern[-(downfact//2-1):] += 1.0
         # The following normalization preserves the
         # RMS=1 characteristic of the data
-        fftd_kerns.append(rfft(kern / Num.sqrt(downfact), -1))
+        fftd_kerns.append(rfft(kern / np.sqrt(downfact), -1))
     return fftd_kerns
 
 def prune_related1(hibins, hivals, downfact):
@@ -252,9 +253,9 @@ def read_singlepulse_files(infiles, threshold, T_start, T_end):
             info0 = info
         if os.stat(infile)[6]:
             try:
-                cands = Num.loadtxt(infile)
+                cands = np.loadtxt(infile)
                 if len(cands.shape)==1:
-                    cands = Num.asarray([cands])
+                    cands = np.asarray([cands])
                 for cand in cands:
                     if cand[2] < T_start: continue
                     if cand[2] > T_end: break
@@ -377,11 +378,11 @@ def main():
             numchunks = roundN // chunklen
             # Read in the file
             print('Reading "%s"...'%filenm)
-            timeseries = Num.fromfile(filenm, dtype=Num.float32, count=roundN)
+            timeseries = np.fromfile(filenm, dtype=np.float32, count=roundN)
             # Split the timeseries into chunks for detrending
             numblocks = roundN // detrendlen
             timeseries.shape = (numblocks, detrendlen)
-            stds = Num.zeros(numblocks, dtype=Num.float64)
+            stds = np.zeros(numblocks, dtype=np.float64)
             # de-trend the data one chunk at a time
             print('  De-trending the data and computing statistics...')
             for ii, chunk in enumerate(timeseries):
@@ -402,7 +403,7 @@ def main():
                 # of random gaussian deviates, the measured stdev is ~0.871
                 # of the true stdev.  Thus the 1.0/0.871=1.148 correction below.
                 # The following is roughly .std() since we already removed the median
-                stds[ii] = Num.sqrt((tmpchunk[detrendlen//40:-detrendlen//40]**2.0).sum() /
+                stds[ii] = np.sqrt((tmpchunk[detrendlen//40:-detrendlen//40]**2.0).sum() /
                                     (0.95*detrendlen))
             stds *= 1.148
             # sort the standard deviations and separate those with
@@ -415,14 +416,14 @@ def main():
                      sort_stds[:numblocks//2]).argmax() + 1
             hicut = (sort_stds[numblocks//2+1:] -
                      sort_stds[numblocks//2:-1]).argmax() + numblocks//2 - 2
-            std_stds = scipy.std(sort_stds[locut:hicut])
+            std_stds = np.std(sort_stds[locut:hicut])
             median_stds = sort_stds[(locut+hicut)//2]
             print("    pseudo-median block standard deviation = %.2f" % (median_stds))
             if (opts.badblocks):
                 lo_std = median_stds - 4.0 * std_stds
                 hi_std = median_stds + 4.0 * std_stds
                 # Determine a list of "bad" chunks.  We will not search these.
-                bad_blocks = Num.nonzero((stds < lo_std) | (stds > hi_std))[0]
+                bad_blocks = np.nonzero((stds < lo_std) | (stds > hi_std))[0]
                 print("    identified %d bad blocks out of %d (i.e. %.2f%%)" % \
                       (len(bad_blocks), len(stds),
                        100.0*float(len(bad_blocks))/float(len(stds))))
@@ -432,7 +433,7 @@ def main():
             print("  Now searching...")
 
             # Now normalize all of the data and reshape it to 1-D
-            timeseries /= stds[:,Num.newaxis]
+            timeseries /= stds[:,np.newaxis]
             timeseries.shape = (roundN,)
             # And set the data in the bad blocks to zeros
             # Even though we don't search these parts, it is important
@@ -450,18 +451,18 @@ def main():
                 hiind = (chunknum+1)*chunklen+overlap
                 # Take care of beginning and end of file overlap issues
                 if (chunknum==0): # Beginning of file
-                    chunk = Num.zeros(worklen, dtype=Num.float32)
+                    chunk = np.zeros(worklen, dtype=np.float32)
                     chunk[overlap:] = timeseries[loind+overlap:hiind]
                 elif (chunknum==numchunks-1): # end of the timeseries
-                    chunk = Num.zeros(worklen, dtype=Num.float32)
+                    chunk = np.zeros(worklen, dtype=np.float32)
                     chunk[:-overlap] = timeseries[loind:hiind-overlap]
                 else:
                     chunk = timeseries[loind:hiind]
 
                 # Make a set with the current block numbers
                 lowblock = blocks_per_chunk * chunknum
-                currentblocks = set(Num.arange(blocks_per_chunk) + lowblock)
-                localgoodblocks = Num.asarray(list(currentblocks -
+                currentblocks = set(np.arange(blocks_per_chunk) + lowblock)
+                localgoodblocks = np.asarray(list(currentblocks -
                                                    bad_blocks)) - lowblock
                 # Search this chunk if it is not all bad
                 if len(localgoodblocks):
@@ -476,7 +477,7 @@ def main():
                     #        expensive calls in the program.  Best bet would 
                     #        probably be to simply iterate over the goodchunk
                     #        in C and append to the candlist there.
-                    hibins = Num.flatnonzero(goodchunk>opts.threshold)
+                    hibins = np.flatnonzero(goodchunk>opts.threshold)
                     hivals = goodchunk[hibins]
                     hibins += chunknum * chunklen
                     hiblocks = hibins // detrendlen
@@ -497,12 +498,12 @@ def main():
                                                      overlap, -overlap)
                         else:
                             # The normalization of this kernel keeps the post-smoothing RMS = 1
-                            kernel = Num.ones(downfact, dtype=Num.float32) / \
-                                     Num.sqrt(downfact)
+                            kernel = np.ones(downfact, dtype=np.float32) / \
+                                     np.sqrt(downfact)
                             smoothed_chunk = scipy.signal.convolve(chunk, kernel, 1)
                             goodchunk = smoothed_chunk[overlap:-overlap]
-                        #hibins = Num.nonzero(goodchunk>opts.threshold)[0]
-                        hibins = Num.flatnonzero(goodchunk>opts.threshold)
+                        #hibins = np.nonzero(goodchunk>opts.threshold)[0]
+                        hibins = np.flatnonzero(goodchunk>opts.threshold)
                         hivals = goodchunk[hibins]
                         hibins += chunknum * chunklen
                         hiblocks = hibins // detrendlen
@@ -548,7 +549,7 @@ def main():
         DMs.sort()
         snrs = []
         for cand in candlist:
-            if not Num.isinf(cand.sigma):
+            if not np.isinf(cand.sigma):
                 snrs.append(cand.sigma)
         if snrs:
             maxsnr = max(int(max(snrs)), int(opts.threshold)) + 3
@@ -556,19 +557,19 @@ def main():
             maxsnr = int(opts.threshold) + 3
 
         # Generate the SNR histogram
-        snrs = Num.asarray(snrs)
-        (num_v_snr, edges) = Num.histogram(snrs,
+        snrs = np.asarray(snrs)
+        (num_v_snr, edges) = np.histogram(snrs,
                                            int(maxsnr-opts.threshold+1),
                                            [opts.threshold, maxsnr])
         snrs = edges[:-1] + 0.5*(edges[1]-edges[0])
-        num_v_snr = num_v_snr.astype(Num.float32)
+        num_v_snr = num_v_snr.astype(np.float32)
         num_v_snr[num_v_snr==0.0] = 0.001
 
         # Generate the DM histogram
-        num_v_DM = Num.zeros(len(DMs))
+        num_v_DM = np.zeros(len(DMs))
         for ii, DM in enumerate(DMs):
             num_v_DM[ii] = num_v_DMstr["%.2f"%DM]
-        DMs = Num.asarray(DMs)
+        DMs = np.asarray(DMs)
 
         # open the plot device
         short_filenmbase = filenmbase[:filenmbase.find("_DM")]
@@ -587,13 +588,13 @@ def main():
         # plot the SNR histogram
         ppgplot.pgsvp(0.06, 0.31, 0.6, 0.87)
         ppgplot.pgswin(opts.threshold, maxsnr,
-                       Num.log10(0.5), Num.log10(2*max(num_v_snr)))
+                       np.log10(0.5), np.log10(2*max(num_v_snr)))
         ppgplot.pgsch(0.8)
         ppgplot.pgbox("BCNST", 0, 0, "BCLNST", 0, 0)
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, "Signal-to-Noise")
         ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Number of Pulses")
         ppgplot.pgsch(1.0)
-        ppgplot.pgbin(snrs, Num.log10(num_v_snr), 1)
+        ppgplot.pgbin(snrs, np.log10(num_v_snr), 1)
 
         # plot the DM histogram
         ppgplot.pgsvp(0.39, 0.64, 0.6, 0.87)
@@ -614,9 +615,9 @@ def main():
         ppgplot.pgmtxt('B', 2.5, 0.5, 0.5, r"DM (pc cm\u-3\d)")
         ppgplot.pgmtxt('L', 1.8, 0.5, 0.5, "Signal-to-Noise")
         ppgplot.pgsch(1.0)
-        cand_ts = Num.zeros(len(candlist), dtype=Num.float32)
-        cand_SNRs = Num.zeros(len(candlist), dtype=Num.float32)
-        cand_DMs = Num.zeros(len(candlist), dtype=Num.float32)
+        cand_ts = np.zeros(len(candlist), dtype=np.float32)
+        cand_SNRs = np.zeros(len(candlist), dtype=np.float32)
+        cand_DMs = np.zeros(len(candlist), dtype=np.float32)
         for ii, cand in enumerate(candlist):
             cand_ts[ii], cand_SNRs[ii], cand_DMs[ii] = \
                          cand.time, cand.sigma, cand.DM
@@ -632,10 +633,10 @@ def main():
         # Circles are symbols 20-26 in increasing order
         snr_range = 12.0
         cand_symbols = (cand_SNRs-opts.threshold)/snr_range * 6.0 + 20.5
-        cand_symbols = cand_symbols.astype(Num.int32)
+        cand_symbols = cand_symbols.astype(np.int32)
         cand_symbols[cand_symbols>26] = 26
         for ii in [26, 25, 24, 23, 22, 21, 20]:
-            inds = Num.nonzero(cand_symbols==ii)[0]
+            inds = np.nonzero(cand_symbols==ii)[0]
             ppgplot.pgpt(cand_ts[inds], cand_DMs[inds], ii)
 
         # Now fill the infomation area

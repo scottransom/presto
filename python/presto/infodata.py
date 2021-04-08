@@ -4,7 +4,7 @@ from builtins import object
 class infodata(object):
     def __init__(self, filenm):
         self.breaks = 0
-        for line in open(filenm):
+        for line in open(filenm, encoding="latin-1"):
             if line.startswith(" Data file name"):
                 self.basenm = line.split("=")[-1].strip()
                 continue
