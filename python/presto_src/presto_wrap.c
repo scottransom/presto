@@ -3031,6 +3031,7 @@ SWIG_From_long_SS_long  (long long value)
 #define array_data(a)          (((PyArrayObject*)a)->data)
 #define array_descr(a)         (((PyArrayObject*)a)->descr)
 #define array_flags(a)         (((PyArrayObject*)a)->flags)
+#define array_clearflags(a,f)  (((PyArrayObject*)a)->flags) &= ~f
 #define array_enableflags(a,f) (((PyArrayObject*)a)->flags) = f
 #define array_is_fortran(a)    (PyArray_ISFORTRAN((PyArrayObject*)a))
 #else
@@ -3045,6 +3046,7 @@ SWIG_From_long_SS_long  (long long value)
 #define array_descr(a)         PyArray_DESCR((PyArrayObject*)a)
 #define array_flags(a)         PyArray_FLAGS((PyArrayObject*)a)
 #define array_enableflags(a,f) PyArray_ENABLEFLAGS((PyArrayObject*)a,f)
+#define array_clearflags(a,f)  PyArray_CLEARFLAGS((PyArrayObject*)a,f)
 #define array_is_fortran(a)    (PyArray_IS_F_CONTIGUOUS((PyArrayObject*)a))
 #endif
 #define array_is_contiguous(a) (PyArray_ISCONTIGUOUS((PyArrayObject*)a))
@@ -3058,17 +3060,12 @@ SWIG_From_long_SS_long  (long long value)
     if (py_obj == NULL          ) return "C NULL value";
     if (py_obj == Py_None       ) return "Python None" ;
     if (PyCallable_Check(py_obj)) return "callable"    ;
-    if (PyString_Check(  py_obj)) return "string"      ;
-    if (PyInt_Check(     py_obj)) return "int"         ;
+    if (PyBytes_Check(   py_obj)) return "string"      ;
+    if (PyLong_Check(    py_obj)) return "int"         ;
     if (PyFloat_Check(   py_obj)) return "float"       ;
     if (PyDict_Check(    py_obj)) return "dict"        ;
     if (PyList_Check(    py_obj)) return "list"        ;
     if (PyTuple_Check(   py_obj)) return "tuple"       ;
-#if PY_MAJOR_VERSION < 3
-    if (PyFile_Check(    py_obj)) return "file"        ;
-    if (PyModule_Check(  py_obj)) return "module"      ;
-    if (PyInstance_Check(py_obj)) return "instance"    ;
-#endif
 
     return "unknown type";
   }
@@ -3416,7 +3413,7 @@ SWIG_From_long_SS_long  (long long value)
   {
     int i;
     int success = 1;
-    int len;
+    size_t len;
     char desired_dims[255] = "[";
     char s[255];
     char actual_dims[255] = "[";
@@ -3469,7 +3466,13 @@ SWIG_From_long_SS_long  (long long value)
     int i;
     npy_intp * strides = array_strides(ary);
     if (array_is_fortran(ary)) return success;
+    int n_non_one = 0;
     /* Set the Fortran ordered flag */
+    const npy_intp *dims = array_dimensions(ary);
+    for (i=0; i < nd; ++i)
+      n_non_one += (dims[i] != 1) ? 1 : 0;
+    if (n_non_one > 1)
+      array_clearflags(ary,NPY_ARRAY_CARRAY);
     array_enableflags(ary,NPY_ARRAY_FARRAY);
     /* Recompute the strides */
     strides[0] = strides[nd-1];

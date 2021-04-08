@@ -100,19 +100,19 @@ PREPPED = _presto.PREPPED
 FFT = _presto.FFT
 SAME = _presto.SAME
 
-def read_wisdom():
+def read_wisdom() -> "void":
     return _presto.read_wisdom()
 
-def good_factor(nn):
+def good_factor(nn: "long long") -> "long long":
     return _presto.good_factor(nn)
 
-def fftwcall(indata, isign):
+def fftwcall(indata: "fcomplex", isign: "int") -> "void":
     return _presto.fftwcall(indata, isign)
 
-def tablesixstepfft(indata, isign):
+def tablesixstepfft(indata: "fcomplex", isign: "int") -> "void":
     return _presto.tablesixstepfft(indata, isign)
 
-def realfft(data, isign):
+def realfft(data: "float *", isign: "int") -> "void":
     return _presto.realfft(data, isign)
 class infodata(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
@@ -157,10 +157,10 @@ class infodata(object):
 _presto.infodata_swigregister(infodata)
 
 
-def readinf(data, filenm):
+def readinf(data: "infodata", filenm: "char *") -> "void":
     return _presto.readinf(data, filenm)
 
-def writeinf(data):
+def writeinf(data: "infodata") -> "void":
     return _presto.writeinf(data)
 class orbitparams(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
@@ -206,16 +206,16 @@ class psrparams(object):
 _presto.psrparams_swigregister(psrparams)
 
 
-def get_psr_at_epoch(psrname, epoch, psr):
+def get_psr_at_epoch(psrname: "char *", epoch: "double", psr: "psrparams") -> "int":
     return _presto.get_psr_at_epoch(psrname, epoch, psr)
 
-def get_psr_from_parfile(parfilenm, epoch, psr):
+def get_psr_from_parfile(parfilenm: "char *", epoch: "double", psr: "psrparams") -> "int":
     return _presto.get_psr_from_parfile(parfilenm, epoch, psr)
 
-def mjd_to_datestr(mjd, datestr):
+def mjd_to_datestr(mjd: "double", datestr: "char *") -> "void":
     return _presto.mjd_to_datestr(mjd, datestr)
 
-def fresnl(xxa):
+def fresnl(xxa: "double") -> "double *, double *":
     return _presto.fresnl(xxa)
 class rderivs(object):
     thisown = property(lambda x: x.this.own(), lambda x, v: x.this.own(v), doc="The membership flag")
@@ -282,196 +282,196 @@ class foldstats(object):
 _presto.foldstats_swigregister(foldstats)
 
 
-def gen_fvect(nl):
+def gen_fvect(nl: "long") -> "long *":
     return _presto.gen_fvect(nl)
 
-def gen_cvect(nl):
+def gen_cvect(nl: "long") -> "long *":
     return _presto.gen_cvect(nl)
 
-def power_arr(dft):
+def power_arr(dft: "fcomplex") -> "long *":
     return _presto.power_arr(dft)
 
-def phase_arr(dft):
+def phase_arr(dft: "fcomplex") -> "long *":
     return _presto.phase_arr(dft)
 
-def frotate(data, bins_to_left):
+def frotate(data: "float *", bins_to_left: "float") -> "void":
     return _presto.frotate(data, bins_to_left)
 
-def drotate(data, bins_to_left):
+def drotate(data: "double *", bins_to_left: "double") -> "void":
     return _presto.drotate(data, bins_to_left)
 
-def keplers_eqn(t, p_orb, e, Eacc):
+def keplers_eqn(t: "double", p_orb: "double", e: "double", Eacc: "double") -> "double":
     return _presto.keplers_eqn(t, p_orb, e, Eacc)
 
-def E_to_phib(E, orb):
+def E_to_phib(E: "double *", orb: "orbitparams") -> "void":
     return _presto.E_to_phib(E, orb)
 
-def E_to_v(E, orb):
+def E_to_v(E: "double *", orb: "orbitparams") -> "void":
     return _presto.E_to_v(E, orb)
 
-def E_to_p(E, p_psr, orb):
+def E_to_p(E: "double *", p_psr: "double", orb: "orbitparams") -> "void":
     return _presto.E_to_p(E, p_psr, orb)
 
-def E_to_z(E, p_psr, T, orb):
+def E_to_z(E: "double *", p_psr: "double", T: "double", orb: "orbitparams") -> "void":
     return _presto.E_to_z(E, p_psr, T, orb)
 
-def E_to_phib_BT(E, orb):
+def E_to_phib_BT(E: "double *", orb: "orbitparams") -> "void":
     return _presto.E_to_phib_BT(E, orb)
 
-def dorbint(Eo, numpts, dt, orb):
+def dorbint(Eo: "double", numpts: "long", dt: "double", orb: "orbitparams") -> "long *":
     return _presto.dorbint(Eo, numpts, dt, orb)
 
-def binary_velocity(T, orbit):
+def binary_velocity(T: "double", orbit: "orbitparams") -> "double *, double *":
     return _presto.binary_velocity(T, orbit)
 
-def r_resp_halfwidth(accuracy):
+def r_resp_halfwidth(accuracy: "presto_interp_acc") -> "int":
     return _presto.r_resp_halfwidth(accuracy)
 
-def z_resp_halfwidth(z, accuracy):
+def z_resp_halfwidth(z: "double", accuracy: "presto_interp_acc") -> "int":
     return _presto.z_resp_halfwidth(z, accuracy)
 
-def w_resp_halfwidth(z, w, accuracy):
+def w_resp_halfwidth(z: "double", w: "double", accuracy: "presto_interp_acc") -> "int":
     return _presto.w_resp_halfwidth(z, w, accuracy)
 
-def bin_resp_halfwidth(ppsr, T, orbit):
+def bin_resp_halfwidth(ppsr: "double", T: "double", orbit: "orbitparams") -> "int":
     return _presto.bin_resp_halfwidth(ppsr, T, orbit)
 
-def gen_r_response(roffset, numbetween, numkern):
+def gen_r_response(roffset: "double", numbetween: "int", numkern: "int") -> "long *":
     return _presto.gen_r_response(roffset, numbetween, numkern)
 
-def gen_z_response(roffset, numbetween, numkern, z):
+def gen_z_response(roffset: "double", numbetween: "int", numkern: "int", z: "double") -> "long *":
     return _presto.gen_z_response(roffset, numbetween, numkern, z)
 
-def gen_w_response(roffset, numbetween, numkern, z, w):
+def gen_w_response(roffset: "double", numbetween: "int", numkern: "int", z: "double", w: "double") -> "long *":
     return _presto.gen_w_response(roffset, numbetween, numkern, z, w)
 
-def gen_w_response2(roffset, numbetween, numkern, z, w):
+def gen_w_response2(roffset: "double", numbetween: "int", numkern: "int", z: "double", w: "double") -> "long *":
     return _presto.gen_w_response2(roffset, numbetween, numkern, z, w)
 
-def gen_bin_response(roffset, numbetween, numkern, ppsr, T, orbit):
+def gen_bin_response(roffset: "double", numbetween: "int", numkern: "int", ppsr: "double", T: "double", orbit: "orbitparams") -> "long *":
     return _presto.gen_bin_response(roffset, numbetween, numkern, ppsr, T, orbit)
 
-def get_localpower(data, r):
+def get_localpower(data: "fcomplex", r: "double") -> "float":
     return _presto.get_localpower(data, r)
 
-def get_localpower3d(data, r, z, w):
+def get_localpower3d(data: "fcomplex", r: "double", z: "double", w: "double") -> "float":
     return _presto.get_localpower3d(data, r, z, w)
 
-def get_derivs3d(data, numdata, r, z, w, localpower, result):
+def get_derivs3d(data: "fcomplex", numdata: "long", r: "double", z: "double", w: "double", localpower: "float", result: "rderivs") -> "void":
     return _presto.get_derivs3d(data, numdata, r, z, w, localpower, result)
 
-def calc_props(data, r, z, w, result):
+def calc_props(data: "rderivs", r: "double", z: "double", w: "double", result: "fourierprops") -> "void":
     return _presto.calc_props(data, r, z, w, result)
 
-def calc_binprops(props, T, lowbin, nfftbins, result):
+def calc_binprops(props: "fourierprops", T: "double", lowbin: "int", nfftbins: "int", result: "binaryprops *") -> "void":
     return _presto.calc_binprops(props, T, lowbin, nfftbins, result)
 
-def calc_rzwerrs(props, T, result):
+def calc_rzwerrs(props: "fourierprops", T: "double", result: "rzwerrs *") -> "void":
     return _presto.calc_rzwerrs(props, T, result)
 
-def extended_equiv_gaussian_sigma(logp):
+def extended_equiv_gaussian_sigma(logp: "double") -> "double":
     return _presto.extended_equiv_gaussian_sigma(logp)
 
-def log_asymtotic_incomplete_gamma(a, z):
+def log_asymtotic_incomplete_gamma(a: "double", z: "double") -> "double":
     return _presto.log_asymtotic_incomplete_gamma(a, z)
 
-def log_asymtotic_gamma(z):
+def log_asymtotic_gamma(z: "double") -> "double":
     return _presto.log_asymtotic_gamma(z)
 
-def equivalent_gaussian_sigma(logp):
+def equivalent_gaussian_sigma(logp: "double") -> "double":
     return _presto.equivalent_gaussian_sigma(logp)
 
-def chi2_logp(chi2, dof):
+def chi2_logp(chi2: "double", dof: "double") -> "double":
     return _presto.chi2_logp(chi2, dof)
 
-def chi2_sigma(chi2, dof):
+def chi2_sigma(chi2: "double", dof: "double") -> "double":
     return _presto.chi2_sigma(chi2, dof)
 
-def candidate_sigma(power, numsum, numtrials):
+def candidate_sigma(power: "double", numsum: "int", numtrials: "double") -> "double":
     return _presto.candidate_sigma(power, numsum, numtrials)
 
-def power_for_sigma(sigma, numsum, numtrials):
+def power_for_sigma(sigma: "double", numsum: "int", numtrials: "double") -> "double":
     return _presto.power_for_sigma(sigma, numsum, numtrials)
 
-def switch_f_and_p(_in, ind, indd):
+def switch_f_and_p(_in: "double", ind: "double", indd: "double") -> "double *, double *, double *":
     return _presto.switch_f_and_p(_in, ind, indd)
 
-def chisqr(data, avg, var):
+def chisqr(data: "double *", avg: "double", var: "double") -> "double":
     return _presto.chisqr(data, avg, var)
 
-def print_candidate(cand, dt, N, nph, numerrdigits):
+def print_candidate(cand: "fourierprops", dt: "double", N: "unsigned long", nph: "float", numerrdigits: "int") -> "void":
     return _presto.print_candidate(cand, dt, N, nph, numerrdigits)
 
-def print_bin_candidate(cand, numerrdigits):
+def print_bin_candidate(cand: "binaryprops *", numerrdigits: "int") -> "void":
     return _presto.print_bin_candidate(cand, numerrdigits)
 
-def read_rzw_cand(file, cands):
+def read_rzw_cand(file: "FILE *", cands: "fourierprops") -> "int":
     return _presto.read_rzw_cand(file, cands)
 
-def get_rzw_cand(filenm, candnum, cand):
+def get_rzw_cand(filenm: "char *", candnum: "int", cand: "fourierprops") -> "void":
     return _presto.get_rzw_cand(filenm, candnum, cand)
 
-def read_bin_cand(file, cands):
+def read_bin_cand(file: "FILE *", cands: "binaryprops *") -> "int":
     return _presto.read_bin_cand(file, cands)
 
-def get_bin_cand(filenm, candnum, cand):
+def get_bin_cand(filenm: "char *", candnum: "int", cand: "binaryprops *") -> "void":
     return _presto.get_bin_cand(filenm, candnum, cand)
 
-def next2_to_n(x):
+def next2_to_n(x: "long long") -> "long long":
     return _presto.next2_to_n(x)
 
-def is_power_of_10(n):
+def is_power_of_10(n: "long long") -> "int":
     return _presto.is_power_of_10(n)
 
-def choose_good_N(orig_N):
+def choose_good_N(orig_N: "long long") -> "long long":
     return _presto.choose_good_N(orig_N)
 
-def dms2rad(deg, min, sec):
+def dms2rad(deg: "int", min: "int", sec: "double") -> "double":
     return _presto.dms2rad(deg, min, sec)
 
-def hms2rad(hour, min, sec):
+def hms2rad(hour: "int", min: "int", sec: "double") -> "double":
     return _presto.hms2rad(hour, min, sec)
 
-def hours2hms(hours):
+def hours2hms(hours: "double") -> "int *, int *, double *":
     return _presto.hours2hms(hours)
 
-def deg2dms(degrees):
+def deg2dms(degrees: "double") -> "int *, int *, double *":
     return _presto.deg2dms(degrees)
 
-def sphere_ang_diff(ra1, dec1, ra2, dec2):
+def sphere_ang_diff(ra1: "double", dec1: "double", ra2: "double", dec2: "double") -> "double":
     return _presto.sphere_ang_diff(ra1, dec1, ra2, dec2)
 
-def corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy):
+def corr_rz_plane(data: "fcomplex", numbetween: "int", startbin: "int", zlo: "double", zhi: "double", numz: "int", fftlen: "int", accuracy: "presto_interp_acc") -> "long *":
     return _presto.corr_rz_plane(data, numbetween, startbin, zlo, zhi, numz, fftlen, accuracy)
 
-def corr_rzw_vol(data, numbetween, startbin, zlo, zhi, numz, wlo, whi, numw, fftlen, accuracy):
+def corr_rzw_vol(data: "fcomplex", numbetween: "int", startbin: "int", zlo: "double", zhi: "double", numz: "int", wlo: "double", whi: "double", numw: "int", fftlen: "int", accuracy: "presto_interp_acc") -> "long *":
     return _presto.corr_rzw_vol(data, numbetween, startbin, zlo, zhi, numz, wlo, whi, numw, fftlen, accuracy)
 
-def max_r_arr(data, rin, derivs):
+def max_r_arr(data: "fcomplex", rin: "double", derivs: "rderivs") -> "double *, double *":
     return _presto.max_r_arr(data, rin, derivs)
 
-def max_rz_arr(data, rin, zin, derivs):
+def max_rz_arr(data: "fcomplex", rin: "double", zin: "double", derivs: "rderivs") -> "double *, double *, double *":
     return _presto.max_rz_arr(data, rin, zin, derivs)
 
-def max_rz_arr_harmonics(data, rin, zin, derivdata):
+def max_rz_arr_harmonics(data: "fcomplex", rin: "double", zin: "double", derivdata: "double *") -> "double *, double *":
     return _presto.max_rz_arr_harmonics(data, rin, zin, derivdata)
 
-def max_rzw_arr_harmonics(data, rin, zin, win, derivdata):
+def max_rzw_arr_harmonics(data: "fcomplex", rin: "double", zin: "double", win: "double", derivdata: "double *") -> "double *, double *, double *":
     return _presto.max_rzw_arr_harmonics(data, rin, zin, win, derivdata)
 
-def max_rzw_arr(data, rin, zin, win, derivs):
+def max_rzw_arr(data: "fcomplex", rin: "double", zin: "double", win: "double", derivs: "rderivs") -> "double *, double *, double *, double *":
     return _presto.max_rzw_arr(data, rin, zin, win, derivs)
 
-def barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem):
+def barycenter(topotimes: "double *", barytimes: "double *", voverc: "double *", ra: "char *", dec: "char *", obs: "char *", ephem: "char *") -> "void":
     return _presto.barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem)
 
-def simplefold(data, dt, tlo, prof, startphs, f0, fdot, fdotdot, standard):
+def simplefold(data: "float *", dt: "double", tlo: "double", prof: "double *", startphs: "double", f0: "double", fdot: "double", fdotdot: "double", standard: "int") -> "double":
     return _presto.simplefold(data, dt, tlo, prof, startphs, f0, fdot, fdotdot, standard)
 
-def nice_output_1(output, val, err, len):
+def nice_output_1(output: "char *", val: "double", err: "double", len: "int") -> "int":
     return _presto.nice_output_1(output, val, err, len)
 
-def nice_output_2(output, val, err, len):
+def nice_output_2(output: "char *", val: "double", err: "double", len: "int") -> "int":
     return _presto.nice_output_2(output, val, err, len)
 
 
