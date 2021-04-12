@@ -55,8 +55,8 @@ USEPROFILE = false
 
 # Very recent Intel CPUs might see a few percent speedup using -mavx
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
-	-DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 \
-	-g -Wall -W -fPIC -O3 -ffast-math
+	-g -Wall -W -fPIC -O3 -ffast-math \
+	-DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CLINKFLAGS = $(CFLAGS) -Wl,-rpath,$(PRESTO)/lib
 
 # Add some GCC-specific flags that are useful
