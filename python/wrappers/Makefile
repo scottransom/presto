@@ -1,5 +1,5 @@
 SWIG          = swig
-SWIGOPT       = -python -py3
+SWIGOPT       = -Wall -python -py3
 
 prestowrap:
 	$(SWIG) $(SWIGOPT) presto.i

@@ -1,3 +1,5 @@
+/* -*- C -*-  (not really, but good for syntax highlighting) */
+
 //%module presto
 %module(package="presto", moduleimport="import _presto") presto
 
@@ -126,55 +128,64 @@ typedef struct INFODATA {
         return p->notes;
     }
     void INFODATA_notes_set(infodata *p, char *val) {
-        strncpy(p->notes,val,500);
+        strncpy(p->notes,val,499);
+        p->notes[499] = '\0';
     }
     char *INFODATA_name_get(infodata *p) {
         return p->name;
     }
     void INFODATA_name_set(infodata *p, char *val) {
-        strncpy(p->name,val,200);
+        strncpy(p->name,val,199);
+        p->name[199] = '\0';
     }
     char *INFODATA_object_get(infodata *p) {
         return p->object;
     }
     void INFODATA_object_set(infodata *p, char *val) {
-        strncpy(p->object,val,100);
+        strncpy(p->object,val,99);
+        p->object[99] = '\0';
     }
     char *INFODATA_instrument_get(infodata *p) {
         return p->instrument;
     }
     void INFODATA_instrument_set(infodata *p, char *val) {
-        strncpy(p->instrument,val,100);
+        strncpy(p->instrument,val,99);
+        p->instrument[99] = '\0';
     }
     char *INFODATA_observer_get(infodata *p) {
         return p->observer;
     }
     void INFODATA_observer_set(infodata *p, char *val) {
-        strncpy(p->observer,val,100);
+        strncpy(p->observer,val,99);
+        p->observer[99] = '\0';
     }
     char *INFODATA_analyzer_get(infodata *p) {
         return p->analyzer;
     }
     void INFODATA_analyzer_set(infodata *p, char *val) {
-        strncpy(p->analyzer,val,100);
+        strncpy(p->analyzer,val,99);
+        p->analyzer[99] = '\0';
     }
     char *INFODATA_telescope_get(infodata *p) {
         return p->telescope;
     }
     void INFODATA_telescope_set(infodata *p, char *val) {
-        strncpy(p->telescope,val,40);
+        strncpy(p->telescope,val,39);
+        p->telescope[39] = '\0';
     }
     char *INFODATA_band_get(infodata *p) {
         return p->band;
     }
     void INFODATA_band_set(infodata *p, char *val) {
-        strncpy(p->band,val,40);
+        strncpy(p->band,val,39);
+        p->band[39] = '\0';
     }
     char *INFODATA_filt_get(infodata *p) {
         return p->filt;
     }
     void INFODATA_filt_set(infodata *p, char *val) {
-        strncpy(p->filt,val,7);
+        strncpy(p->filt,val,6);
+        p->filt[6] = '\0';
     }
 %}
 
@@ -218,19 +229,22 @@ typedef struct PSRPARAMS {
         return p->jname;
     }
     void PSRPARAMS_jname_set(psrparams *p, char *val) {
-        strncpy(p->jname,val,13);
+        strncpy(p->jname,val,12);
+        p->jname[12] = '\0';
     }
     char *PSRPARAMS_bname_get(psrparams *p) {
         return p->bname;
     }
     void PSRPARAMS_bname_set(psrparams *p, char *val) {
-        strncpy(p->bname,val,9);
+        strncpy(p->bname,val,8);
+        p->bname[8] = '\0';
     }
     char *PSRPARAMS_alias_get(psrparams *p) {
-        return p->jname;
+        return p->alias;
     }
     void PSRPARAMS_alias_set(psrparams *p, char *val) {
-        strncpy(p->jname,val,10);
+        strncpy(p->alias,val,9);
+        p->alias[9] = '\0';
     }
 %}
 
@@ -295,8 +309,8 @@ typedef struct foldstats {
   double redchi;      /* Reduced chi-squared of the profile */
 } foldstats;
 
-%apply (float** ARGOUTVIEWM_ARRAY1, long* DIM1) {(float** vect, long *nn)}
-%apply (fcomplex** ARGOUTVIEWM_ARRAY1, long* DIM1) {(fcomplex** vect, long *nn)}
+%apply (float** ARGOUTVIEWM_ARRAY1, long* DIM1) {(float** vect1, long *n1)}
+%apply (fcomplex** ARGOUTVIEWM_ARRAY1, long* DIM1) {(fcomplex** vect2, long *n2)}
 
 %exception
 {
@@ -320,19 +334,19 @@ typedef struct foldstats {
 %rename (gen_fvect) wrap_gen_fvect;
 %rename (gen_cvect) wrap_gen_cvect;
 %inline %{
-void wrap_gen_fvect(long nl, float** vect, long *nn)
+void wrap_gen_fvect(long nl, float** vect1, long *n1)
 {
-    *vect = gen_fvect(nl);
-    *nn = nl;
+    *vect1 = gen_fvect(nl);
+    *n1 = nl;
 }
-void wrap_gen_cvect(long nl, fcomplex** vect, long *nn)
+void wrap_gen_cvect(long nl, fcomplex** vect2, long *n2)
 {
-    *vect = gen_cvect(nl);
-    *nn = nl;
+    *vect2 = gen_cvect(nl);
+    *n2 = nl;
 }
 %}
-%clear (float **vect, long *nn);
-%clear (fcomplex **vect, long *nn);
+%clear (float **vect1, long *n1);
+%clear (fcomplex **vect2, long *n2);
 
 
 %apply (float** ARGOUTVIEWM_ARRAY1, long* DIM1) {(float** vect, long *nn)}
@@ -808,9 +822,10 @@ double sphere_ang_diff(double ra1, double dec1, double ra2, double dec2);
                                    double *derivdata, int len,
                                    double *rout, double *zout){
         int ii, numharm = len / 7;
-        double *powers = gen_dvect(numharm);
+        double *powers;
         rderivs *derivs = (rderivs *)malloc(sizeof(rderivs) * numharm);
         
+        powers = gen_dvect(numharm);
         max_rz_arr_harmonics(data, numdata, numharm, rin, zin, rout, zout, derivs, powers);
         vect_free(powers);
         // Hack to effectively return a array of rderivs
