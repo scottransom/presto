@@ -59,6 +59,12 @@ CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
 	-DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CLINKFLAGS = $(CFLAGS) -Wl,-rpath,$(PRESTO)/lib
 
+# If you are getting errors running the test code for the Python PRESTO parts
+# (tests/test_presto_python.py) try commenting the following, do a "make clean",
+# re-compile PRESTO, and re-install the python modules.  This seems to be
+# required when using Anaconda Python.
+CFLAGS += -DUSE_FFTW_MALLOC
+
 # Add some GCC-specific flags that are useful
 ifeq ($(CC),gcc)
 	CFLAGS += -Wno-unused-result -Wno-unused-but-set-variable \
