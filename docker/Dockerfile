@@ -1,12 +1,9 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 # Install prerequisites
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && \
-    apt-get -y install software-properties-common && \
-    add-apt-repository -y universe && \
-    add-apt-repository -y multiverse && \
-    apt-get -y install \
+RUN apt-get update -qq && \
+    apt-get -y --no-install-recommends install \
     build-essential \
     software-properties-common \
     wget \
@@ -32,7 +29,6 @@ RUN apt-get update && \
     pkg-config \
     cmake \
     csh \
-    gcc-5 \
     git \
     cvs \
     libcfitsio-dev \
@@ -51,11 +47,9 @@ RUN apt-get update && \
     libxml2-dev \
     libltdl-dev \
     gsl-bin \
-    libgsl-dev 
-
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
-    python get-pip.py && \
-    pip install future
+    libgsl-dev && \
+    apt-get clean all && \
+    rm -r /var/lib/apt/lists/*
 
 RUN pip3 install numpy \
     scipy \
