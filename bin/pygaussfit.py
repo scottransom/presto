@@ -10,7 +10,7 @@ from presto.bestprof import bestprof
 import matplotlib.pyplot as plt
 import numpy as Num
 from presto import mpfit
-
+import subprocess
 
 class GaussianSelector(object):
     def __init__(self, ax, profile, errs, profnm, minspanx=None,
