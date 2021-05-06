@@ -20,6 +20,7 @@ RUN apt-get update -qq && \
     gfortran \
     libglib2.0-dev \
     libpng-dev \
+    bc \
     curl \
     autoconf \
     autotools-dev \
