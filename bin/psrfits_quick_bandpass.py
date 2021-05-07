@@ -7,10 +7,8 @@ import sys
 from presto import psrfits
 from optparse import OptionParser
 
-full_usage = """
-"""
-
-usage = "Calculate the average and stdev bandpass of PSRFITS search data"
+usage = """usage: %prog [options] PSRFITS_FILEs
+Calculate the average and stdev bandpass of PSRFITS search data"""
 
 def write_bandpass(filenm, freqs, means, stdevs):
     of = open(filenm, 'w')
@@ -39,16 +37,16 @@ def main():
     parser.add_option("-n", "--nomods", action="store_true", dest="nomods",
                       default=False, help="Do not apply offsets/scales (default applies)")
     parser.add_option("-w", "--weights", action="store_true", dest="weights",
-                      default=False, help="Apply weights (default doesn't apply_")
+                      default=False, help="Apply weights (default doesn't apply)")
     parser.add_option("-f", "--first", type="int", dest="subfirst", default=0,
                       help="First subint to compute stats for")
     parser.add_option("-s", "--skip", type="int", dest="subskip", default=10,
                       help="Number of subints to skip during stats calculations")
     parser.add_option("-o", "--outfile", type="string", dest="outfile", default=None,
-                      help="Output filename (default will be INFILE.bandpass")
+                      help="Output filename (default will be INFILE.bandpass)")
     (opts, args) = parser.parse_args()
     if len(args)==0:
-        print(full_usage)
+        parser.print_help()
         sys.exit(0)
 
     for infile in args:
