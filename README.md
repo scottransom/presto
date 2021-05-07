@@ -230,8 +230,8 @@ Python routines, and (alphabetical): Bridget Andersen, Anne Archibald, Cees
 Bassa, Matteo Bachetti, Slavko Bogdanov, Fernando Camilo, Shami Chatterjee,
 Kathryn Crowter, Paul Demorest, Paulo Freire, Nate Garver-Daniels, Chen Karako,
 Mike Keith, Maggie Livingstone, Ryan Lynch, Erik Madsen, Bradley Meyers, Gijs
-Molenaar, Timothy Olszanski, Chitrang Patel, Paul Ray, Paul Scholz, Maciej
-Serylak, Ingrid Stairs, Kevin Stovall, Nick Swainston, and Joeri van Leeuwen for
-many comments, suggestions and patches!
+Molenaar, Timothy Olszanski, Chitrang Patel, Paul Ray, Alessandro Ridolfi, Paul
+Scholz, Maciej Serylak, Ingrid Stairs, Kevin Stovall, Nick Swainston, and Joeri
+van Leeuwen for many comments, suggestions and patches!
 
 Scott Ransom <sransom@nrao.edu>

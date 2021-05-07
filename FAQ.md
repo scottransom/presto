@@ -99,6 +99,61 @@ with no additional options, it gives you a brief usage statement.
 
 -----------------
 
+### **Does PRESTO use GPUs to speed up any of the routines?**
+
+There are currently two different versions of GPU-accelerated `accelsearch`,
+although to my knowledge, neither of them do jerk searches.
+
+I believe that they can both be used as drop-in replacements for the regular
+`accelsearch`, but with everything else coming from the current, standard
+PRESTO.
+
+From Jintao Luo: https://github.com/jintaoluo/presto_on_gpu
+
+From Chris Laidler: https://github.com/ChrisLaidler/presto
+
+And slightly further afield, there is a new GPU implementation of the Fourier
+Domain Acceleration Search here:
+https://github.com/AstroAccelerateOrg/astro-accelerate
+
+-----------------
+
+### **I've read the tutorial, but this is just too complicated.  Is there any easier way to run this software and find pulsars?!**
+
+Yes!  Thanks to Alessandro Ridolfi, there is [PULSAR
+MINER](http://alex88ridolfi.altervista.org/pagine/pulsar_software_PULSAR_MINER.html),
+which uses PRESTO under the hood, but with a mostly automated pipeline that you
+set up with a simple configure script.  It can even use Jintao Luo's
+GPU-accelerated `accelsearch` by default.
+
+PULSAR MINER has been used to find many of the newly discovered globular cluster
+MSPs from MeerKAT.
+
+-----------------
+
+### **Many of these routines are really slow, and they don't seem to get faster using the `-ncpus` option?  Why is that?**
+
+Most of PRESTO was written before multi-core processing was really much of a
+thing.  And so it was designed to be mostly serial, with parallelism coming via
+independent searches of different DMs at the same time (which is why
+`mpiprepsubband` was written: to speed-up de-dispersion and to distribute the
+time series among many processors/nodes).
+
+I've added some OpenMP pragmas over the years, and they make some small
+improvements in, for example, dedispersion loops.  But the improvement is not
+great.  For `prepdata`, `prepsubband`, and `rfifind`, I'd recommend not using
+more than 3-4 CPUs currently with `-ncpus`.  And even then, you won't see
+anything close to a 3-4x speedup (probably only a couple tens of percent).
+
+`accelsearch` is the exception, and it does fairly well with `-ncpus`, although
+the performance got much worse after the addition of the jerk-search code.
+
+In summary, the OpenMP stuff is very much a work in progress, and I'd love to
+work with someone on this if there is any interest.  I suspect that significant
+speed-ups could be had without a ton of work.  It is on my ToDo list!
+
+-----------------
+
 ### **I have some data in some format XXX. I want to search it with PRESTO. How do I do that?**
 
 If your data have multiple frequency channels, you first need to integrate them
