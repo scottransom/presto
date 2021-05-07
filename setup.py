@@ -7,7 +7,7 @@ import numpy
 import setuptools
 from numpy.distutils.core import Extension, setup
 
-version = "3.0.1"
+version = "4.0"
 
 define_macros = []
 undef_macros = []
