@@ -47,7 +47,7 @@ with no additional options, it gives you a brief usage statement.
 
 - `show_pfd`: Do various things to a `prepfold` ".pfd" file, including zap
   interference as a function of time (`-killparts`) or freq (`-killsubs`),
-  partially fixing corrupted $\chi^2$ values due to interference (`\fixchi`),
+  partially fixing corrupted $\chi^2$ values due to interference (`-fixchi`),
   and make publication-quality phase-vs-time plots (`-justprofs`).
 
 - `pygaussfit.py`: A interactive gaussian fitter that reads in a ".pfd.bestprof"
