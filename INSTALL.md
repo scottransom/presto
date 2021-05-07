@@ -116,11 +116,12 @@
      you should ensure that it doesn't contain `$PRESTO/lib/python` as in the
      past.
 
-  If you want to test some of the Python code (especially the trickiest bits to
-  get compiled and installed), you can run: `python tests/test_presto_python.py`
-  and you should get a bunch of tests and a bunch of "success"es.
+14.  It is highly recommended that you test some of the Python code that wraps
+     parts of the PRESTO C library.  Once you have installed the python modules,
+     you should run: `python tests/test_presto_python.py`.  If all is well, you
+     will get a bunch of tests and a bunch of `success`es.
 
-14.  Go find pulsars!
+15.  Go find pulsars!
 
 Scott Ransom
 Updated May 2021
