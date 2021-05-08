@@ -399,9 +399,8 @@ def switch_f_and_p(_in: "double", ind: "double", indd: "double") -> "double *, d
 def chisqr(data: "double *", avg: "double", var: "double") -> "double":
     return _presto.chisqr(data, avg, var)
 
-def z2n(data, var, n):
+def z2n(data: "double *", var: "double", n: "int") -> "double":
     return _presto.z2n(data, var, n)
-# z2n = _presto.z2n
 
 def print_candidate(cand: "fourierprops", dt: "double", N: "unsigned long", nph: "float", numerrdigits: "int") -> "void":
     return _presto.print_candidate(cand, dt, N, nph, numerrdigits)

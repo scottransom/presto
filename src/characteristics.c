@@ -629,7 +629,7 @@ double z2n(double *data, int numdata, double var, int n)
     int ii, kk;
 
     for (kk = 1; kk <= n; kk++){
-      double A, B = 0.0;
+      double A = 0.0, B = 0.0;
       for (ii = 0; ii < numdata; ii++) {
           dtmp = data[ii];
           ph = ii * dph;

@@ -11857,6 +11857,80 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_z2n(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double *arg1 = (double *) 0 ;
+  int arg2 ;
+  double arg3 ;
+  int arg4 ;
+  PyArrayObject *array1 = NULL ;
+  int is_new_object1 = 0 ;
+  double val3 ;
+  int ecode3 = 0 ;
+  int val4 ;
+  int ecode4 = 0 ;
+  PyObject *swig_obj[3] ;
+  double result;
+  
+  if (!SWIG_Python_UnpackTuple(args, "z2n", 3, 3, swig_obj)) SWIG_fail;
+  {
+    npy_intp size[1] = {
+      -1 
+    };
+    array1 = obj_to_array_contiguous_allow_conversion(swig_obj[0],
+      NPY_DOUBLE,
+      &is_new_object1);
+    if (!array1 || !require_dimensions(array1, 1) ||
+      !require_size(array1, size, 1)) SWIG_fail;
+    arg1 = (double*) array_data(array1);
+    arg2 = (int) array_size(array1,0);
+  }
+  ecode3 = SWIG_AsVal_double(swig_obj[1], &val3);
+  if (!SWIG_IsOK(ecode3)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode3), "in method '" "z2n" "', argument " "3"" of type '" "double""'");
+  } 
+  arg3 = (double)(val3);
+  ecode4 = SWIG_AsVal_int(swig_obj[2], &val4);
+  if (!SWIG_IsOK(ecode4)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode4), "in method '" "z2n" "', argument " "4"" of type '" "int""'");
+  } 
+  arg4 = (int)(val4);
+  {
+    errno = 0;
+    result = (double)z2n(arg1,arg2,arg3,arg4);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  return resultobj;
+fail:
+  {
+    if (is_new_object1 && array1)
+    {
+      Py_DECREF(array1); 
+    }
+  }
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_print_candidate(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   fourierprops *arg1 = (fourierprops *) 0 ;
@@ -13967,6 +14041,7 @@ static PyMethodDef SwigMethods[] = {
 	 { "power_for_sigma", _wrap_power_for_sigma, METH_VARARGS, NULL},
 	 { "switch_f_and_p", _wrap_switch_f_and_p, METH_VARARGS, NULL},
 	 { "chisqr", _wrap_chisqr, METH_VARARGS, NULL},
+	 { "z2n", _wrap_z2n, METH_VARARGS, NULL},
 	 { "print_candidate", _wrap_print_candidate, METH_VARARGS, NULL},
 	 { "print_bin_candidate", _wrap_print_bin_candidate, METH_VARARGS, NULL},
 	 { "read_rzw_cand", _wrap_read_rzw_cand, METH_VARARGS, NULL},
