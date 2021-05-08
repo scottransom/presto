@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 """
-Collect PSRFITS information, emulating behaviour of PRESTO.
+Collect PSRFITS information, emulating behavior of PRESTO.
 Read PSRFITS data.
 
 Patrick Lazarus, May 11, 2010
-Last Updated: Jul 4, 2016 (Scott Ransom to add 2-bit reading)
-
+  Jul 4, 2016  (Scott Ransom added 2-bit reading)
+  Mar 25, 2021 (Scott Ransom added 1-bit reading)
 """
 from __future__ import print_function
 from __future__ import absolute_import
@@ -34,11 +34,31 @@ date_obs_re = re.compile(r"^(?P<year>[0-9]{4})-(?P<month>[0-9]{2})-"
 # Default global debugging mode
 debug = True 
 
+def unpack_1bit(data):
+    """Unpack 1-bit data that has been read in as bytes.
+
+        Input:
+            data: array of bits packed into an array of bytes.
+
+        Output:
+            outdata: unpacked array. The size of this array will
+                be eight times the size of the input data.
+    """
+    b0 = np.bitwise_and(data >> 0x07, 0x01)
+    b1 = np.bitwise_and(data >> 0x06, 0x01)
+    b2 = np.bitwise_and(data >> 0x05, 0x01)
+    b3 = np.bitwise_and(data >> 0x04, 0x01)
+    b4 = np.bitwise_and(data >> 0x03, 0x01)
+    b5 = np.bitwise_and(data >> 0x02, 0x01)
+    b6 = np.bitwise_and(data >> 0x01, 0x01)
+    b7 = np.bitwise_and(data, 0x01)
+    return np.dstack([b0, b1, b2, b3, b4, b5, b6, b7]).flatten()
+
 def unpack_2bit(data):
     """Unpack 2-bit data that has been read in as bytes.
 
         Input: 
-            data2bit: array of unsigned 2-bit ints packed into
+            data: array of unsigned 2-bit ints packed into
                 an array of bytes.
 
         Output: 
@@ -122,6 +142,8 @@ class PsrfitsFile(object):
                 sdata = unpack_4bit(sdata)
             elif self.nbits == 2:
                 sdata = unpack_2bit(sdata)
+            elif self.nbits == 1:
+                sdata = unpack_1bit(sdata)
         data = np.asarray(sdata, dtype=np.float32)
         if apply_zero_off:
             data += self.zero_off
