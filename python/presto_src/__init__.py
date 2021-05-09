@@ -701,3 +701,42 @@ def fold(indata, dt, nbins, f, fd=0.0, fdd=0.0, startphs=0.0, tlo=0.0, standard=
                      1 if standard else 0)
     return (prof, phs)
 
+def compute_chi2(data, avg, var):
+    """Compute chi^2 as a pulsation test for a folded pulse profile 'data'
+
+    To get the reduced-chi^2, you would typically divide the result by
+    the number of profile bins minus 1 (but beware of prepfold's inter-bin
+    correlations!  See DOF_corr() in prepfold.py for details.)
+
+    See Leahy et al. 1983 for details:
+    https://ui.adsabs.harvard.edu/abs/1983ApJ...266..160L/abstract
+
+    Parameters
+    ----------
+    data : [double precision numpy array]
+        A folded pulse profile on which to compute Z^2_N
+    avg : [double]
+        The average level of the data (should be the background average).
+    var : [double]
+        The variance of the data (should be the background variance).
+        Beware prepfold's bin correlations!
+    """
+    return chisqr(data, avg, var)
+
+def compute_Z2N(data, N, var):
+    """Compute Z^2_N statistic for a folded pulse profile 'data'
+
+    See Bachetti et al. 2021 for details:
+    https://ui.adsabs.harvard.edu/abs/2021ApJ...909...33B/abstract
+
+    Parameters
+    ----------
+    data : [double precision numpy array]
+        A folded pulse profile on which to compute Z^2_N
+    N : [integer]
+        The number of harmonics to include in the Z^2_N calculation
+    var : [double]
+        The variance of the data (should be the background variance).
+        Beware prepfold's bin correlations!
+    """
+    return z2n(data, var, N)
