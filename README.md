@@ -36,7 +36,8 @@ and/or binary pulsars!**
    command line. This benefits HPC systems which often don't like many programs
    running serially on many small files.
  * A new python interface to the internal `prepfold` folding code
-   (`simplefold`).
+   (`simplefold`), as well as wrappers of fast `C` implementations of $\chi^2$
+   and $Z^2_N$ (thanks to **Matteo Bachetti**).
  * Many bug fixes and minor improvements, including one that would cause
    segfaults with very large dispersion sweeps in `prepdata` and `prepsubband`,
    and a problem with `prepfold` significance calculations.
