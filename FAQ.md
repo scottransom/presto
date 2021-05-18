@@ -558,6 +558,38 @@ For reference, the details as to what is going on in these codes is described in
 
 -----------------
 
+### **What is all of this chi-square and reduced chi-squared stuff and what does it mean?**
+
+`prepfold` uses the reduced chi-squared (or $\chi^2_{red}$) as a way of
+determining how significant pulsations are in your "folded" data (meaning when
+you take data and co-add it modulo an assumed pulsation period).  The technique
+has been around for quite a while and is often known as "epoch folding" [(See
+section IIIb in Leahy et. al 1983 for
+details).](https://ui.adsabs.harvard.edu/abs/1983ApJ...266..160L/abstract)
+
+Basically, this is like a normal $\chi^2$ goodness-of-fit statistic, but in this
+case, the model that we are fitting to the data is a constant one, i.e. no
+pulsations.  We compute the $\chi^2$ of the folded profile compared to the
+average value of the folded profile.  The resulting statistic (assuming gaussian
+random data in the time series) is $\chi^2$ distributed with Nbins-1 Degrees of
+Freedom, where Nbins is the number of bins in the pulse profile.
+
+Because of the exact way that `prepfold` folds binned data, the statistics are
+slightly more complicated than that, in reality (see below), but the bottom line
+is that the larger the reduced-$\chi^2$ is, the more likely it was that noise
+fluctuations didn't cause it (i.e. it is due to real pulsations).  There are
+better and alternate statistics we could use, but $\chi^2$ is quick and simple
+and quite sensitive to narrow pulse profiles, which we often have in radio
+pulsar searches.
+
+Note that for the statistics to be reasonably correct (in the face of strong
+RFI, for instance), the off-pulse (i.e. away from the periodicity in question)
+reduced-$\chi^2$ noise floor should be approximately 1.  That makes sense
+because in that part of parameter space there should be no pulsations, and so
+the no-pulsations model should fit the data well and give a $\chi^2_{red} \sim 1$.
+
+-----------------
+
 ### **In a `prepfold` plot of a search candidate, there is a significance provided by the chi-square. Does that include the number of trials searched?**
 
 No, the $\chi^2$ from `prepfold` is single-trial significance. And it is only
