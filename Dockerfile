@@ -42,6 +42,9 @@ ENV LD_LIBRARY_PATH /code/presto/lib
 ADD . /code/presto
 
 WORKDIR /code/presto/src
+# The following is necessary if your system isn't Ubuntu 20.04
+RUN make cleaner
+# Now build from scratch
 RUN make libpresto slalib
 WORKDIR /code/presto
 RUN pip3 install /code/presto && \
