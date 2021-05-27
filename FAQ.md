@@ -632,6 +632,27 @@ reduced-$\chi^2$ noise floor is approximately 1.
 
 -----------------
 
+### **What is a *sigma* in `prepfold` and what does it mean?**
+
+Just as for *sigma* in `accelsearch`, *sigma* in `prepfold` is the probability
+that a given pulsed signal might be due to noise, but expressed in terms of
+equivalent gaussian sigma, despite that the true probability distribution for
+`prepfold` trials is $\chi^2$. In other words, it is shorthand for a
+probability.
+
+As described above and below, `prepfold` uses reduced chi-squared to determine
+pulsation significance (which, if all due to noise, would be distributed as a
+$\chi^2$ distribution with Nbins-1 degrees of freedom), and so the probability
+is based on that number.
+
+For real pulsar signals, that probability can be a tiny number, so I convert it
+to the equivalent gaussian significance in sigma (i.e. meaning as if the
+significance distribution was gaussian distributed rather than $\chi^2$) since
+that is nicer numerically and we are often used to thinking of things in terms
+of gaussian significance.
+
+-----------------
+
 ### **Why is the number of degrees of freedom a fraction and why does it have a subscript "EFF"?**
 
 The folding algorithm in `prepfold` is different than in many other pulsar
