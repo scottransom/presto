@@ -809,7 +809,10 @@ profile).
 De-reddening the time series data also helps as that makes the noise more like
 gaussian white noise (which the error derivations assumed).
 
-Bottom line: they are likely underestimated by between 20-100% for real data.
+Bottom line: they are likely underestimated by between 20-100% for real data,
+although very recently (June 2021) I pushed up a commit related to the
+correlation of `prepfold`'s profile bins that likely fixes most of this issue.
+I'm planning to test it with fake data in the future.
 
 -----------------
 
