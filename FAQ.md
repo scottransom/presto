@@ -255,17 +255,13 @@ Depends on the search tool:
 
 Yes, there is a python convenience function available in the 2nd-level `presto`
 module (i.e. `from presto import presto`):
-```
-def get_baryv(ra, dec, mjd, T, obs="PK"):
-   """
-   get_baryv(ra, dec, mjd, T, obs="PK"):
-     Determine the average barycentric velocity towards 'ra', 'dec'
-     during an observation from 'obs'. The RA and DEC are in the
-     standard string format (i.e. 'hh:mm:ss.ssss' and 'dd:mm:ss.ssss').
-     'T' is in sec and 'mjd' is (of course) in MJD. The obs variable
-     is the standard two character string from TEMPO:  PK, GB, AO, GM, JB, ...
-   """
-```
+
+    get_baryv(ra, dec, mjd, T, obs="PK"):
+      Determine the average barycentric velocity towards 'ra', 'dec'
+      during an observation from 'obs'. The RA and DEC are in the
+      standard string format (i.e. 'hh:mm:ss.ssss' and 'dd:mm:ss.ssss').
+      'T' is in sec and 'mjd' is (of course) in MJD. The obs variable
+      is the standard two character string from TEMPO:  PK, GB, AO, GM, JB, ...
 
 Note:  there is also a general-purpose barycentering code you can run called
 `bary`, where you feed it topocentric UTC MJDs in ASCII from STDIN (and give it
@@ -367,27 +363,27 @@ trials factors).
 ### **Can I get or change the information in the `rfifind` masks in Python?**
 
 Yes. There is a `rfifind` module in PRESTO's Python tools. That at least lets you read and play with mask and statistics values from `rfifind`. It is not currently possible to write "mask" files, but that could change (and would not be difficult). Here is an example of usage:
-```
-In [1]: import presto.rfifind as r
 
-In [2]: r = r.rfifind("GBT_Lband_PSR_rfifind.mask")
+    In [1]: import presto.rfifind as r
+    
+    In [2]: r = r.rfifind("GBT_Lband_PSR_rfifind.mask")
+    
+    In [3]: r.nint
+    Out[3]: 37
+    
+    In [4]: r.read_mask()
+    
+    In [5]: shape(r.mask_zap_chans_per_int)
+    Out[5]: (37,)
+    
+    In [6]: r.mask_zap_chans_per_int
+    Out[6]:
+    [array([56, 59, 94], dtype=int32),
+     array([18, 32, 53, 94], dtype=int32),
+    ...
+     array([44, 50, 94], dtype=int32),
+     array([94], dtype=int32)]
 
-In [3]: r.nint
-Out[3]: 37
-
-In [4]: r.read_mask()
-
-In [5]: shape(r.mask_zap_chans_per_int)
-Out[5]: (37,)
-
-In [6]: r.mask_zap_chans_per_int
-Out[6]:
-[array([56, 59, 94], dtype=int32),
- array([18, 32, 53, 94], dtype=int32),
-...
- array([44, 50, 94], dtype=int32),
- array([94], dtype=int32)]
-```
 Note that the first `r.rfifind()` call does a `read_mask()` automatically. So
 that is already available in `r.mask_zap_chans_per_int` as soon as you load the
 first file.
@@ -402,9 +398,9 @@ flip it in memory automatically.
 
 You can tell if this is happening by running `readfile` on the file. If the BW
 is lower sideband (i.e. needs flipped) you will see:
-```
+
            Invert the band? = True
-```
+
 If you see that, you likely will need to change your channel ordering if you
 want to zap channels using other software (i.e. PSRCHIVE).
 
@@ -821,23 +817,23 @@ Bottom line: they are likely underestimated by between 20-100% for real data.
 
 Yes! The `prepfold.py` module has a bunch of methods to let you do many
 interesting things with your ".pfd" files. Here is an example usage:
-```
-In [1]: import presto.prepfold as pp
 
-In [2]: a = pp.pfd("GBT_Lband_PSR_4.62ms_Cand.pfd")
+    In [1]: import presto.prepfold as pp
+    
+    In [2]: a = pp.pfd("GBT_Lband_PSR_4.62ms_Cand.pfd")
+    
+    In [3]: a.use_for_timing()  # can we use this pfd file for TOAs?
+    Out[3]: False
+    
+    In [4]: a.dedisperse(16)  # dedisperse at a DM of 16 pc/cm^3
+    
+    In [5]: a.sumprof  # return the summed profile of the dedispersed data
+    Out[5]: 
+    array([5656790.31402834, 5652502.51116502, 5654345.94100014,
+           5656388.48898718, 5656145.69576171, 5655103.75782315,
+           5656093.92149403, 5654931.8004717 , 5654154.6155577 ,
+           5655499.99197552, 5658468.12322909, 5658051.62727781, ...
 
-In [3]: a.use_for_timing()  # can we use this pfd file for TOAs?
-Out[3]: False
-
-In [4]: a.dedisperse(16)  # dedisperse at a DM of 16 pc/cm^3
-
-In [5]: a.sumprof  # return the summed profile of the dedispersed data
-Out[5]: 
-array([5656790.31402834, 5652502.51116502, 5654345.94100014,
-       5656388.48898718, 5656145.69576171, 5655103.75782315,
-       5656093.92149403, 5654931.8004717 , 5654154.6155577 ,
-       5655499.99197552, 5658468.12322909, 5658051.62727781, ...
-```
 There are lots of plotting and analysis options. Just take a read through the
 `python/presto/prepfold.py` file, especially all the docstrings for the `pfd`
 class methods and attributes.
@@ -904,9 +900,9 @@ For PSRFITS data, the minimum block size is the duration of each PSRFITS SUBINT
 row. But for SIGPROC filterbank files, it is hardcoded in PRESTO. If you have
 a need (and there are some special reasons why you might), it is possible to
 change that size. It is in `$PRESTO/src/sigproc_fb.c` in the line:
-```
+
     s->spectra_per_subint = 2400;        // use this as the blocksize
-```
+
 You then need to re-run "make".
 
 -----------------
@@ -918,10 +914,10 @@ for your data, which can be seen using the `readfile` command.
 
 That number is the duration of each PSRFITS row, or for SIGPROC filterbank data,
 is hard-coded (see above question) at 2400 (which is highly factorable):
-```
-❯ factor 2400
-2400: 2 2 2 2 2 3 5 5
-```
+
+    ❯ factor 2400
+    2400: 2 2 2 2 2 3 5 5
+
 So you can use `-downsamp` of 2, 3, 4, 5, 6, 8, 10, 12, 15, 16, 20, 24, 25, ...
 etc, which is pretty good.
 
@@ -936,13 +932,12 @@ PRESTO's ".dat" files are straight 32-bit floats (i.e. `numpy.float32`, or
 typecode "f"), and the ".fft" files are straight 2x32-bit floats treated as
 complex numbers (i.e. `numpy.complex64`, or typecode "F"). This means that you
 can easily read them using `numpy.fromfile`:
-```
-In [1]: import numpy as np
 
-In [2]: dat = np.fromfile("myfile.dat", dtype=np.float32)
-
-In [3]: fft = np.fromfile("myfile.fft", dtype=np.complex64)
-```
+    In [1]: import numpy as np
+    
+    In [2]: dat = np.fromfile("myfile.dat", dtype=np.float32)
+    
+    In [3]: fft = np.fromfile("myfile.fft", dtype=np.complex64)
 
 For the FFT data, the zeroth frequency bin (i.e. `fft[0]`) has the real-valued
 DC component in the real portion, and the real-valued Nyquist frequency stored
@@ -953,24 +948,24 @@ unnormalized (equivalent to using the "raw" normalization mode with
 `explorefft`).
 
 Note that you can read in the information in the related ".inf" files using either:
-```
-In [4]: from presto import presto
 
-In [5]: inf1 = presto.read_inffile("myfile.inf")
-Reading information from "myfile.inf"
+    In [4]: from presto import presto
+    
+    In [5]: inf1 = presto.read_inffile("myfile.inf")
+    Reading information from "myfile.inf"
+    
+    In [6]: inf1
+    Out[6]: <presto.presto.prestoswig.infodata; proxy of <Swig Object of type 'INFODATA *' at 0x7f8061d1ac00> 
 
-In [6]: inf1
-Out[6]: <presto.presto.prestoswig.infodata; proxy of <Swig Object of type 'INFODATA *' at 0x7f8061d1ac00> 
-```
 which uses PRESTO's C-code and structures, as wrapped by `swig`, or:
-```
-In [7]: from presto import infodata
 
-In [8]: inf2 = infodata.infodata("myfile.inf")
+    In [7]: from presto import infodata
+    
+    In [8]: inf2 = infodata.infodata("myfile.inf")
+    
+    In [9]: inf2
+    Out[9]: <presto.infodata.infodata at 0x7f80c9d2d400>
 
-In [9]: inf2
-Out[9]: <presto.infodata.infodata at 0x7f80c9d2d400>
-```
 which is pure Python (and therefore much easier to modify, if needed).
 
 -----------------
