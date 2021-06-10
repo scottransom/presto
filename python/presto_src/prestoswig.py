@@ -468,6 +468,9 @@ def max_rzw_arr(data: "fcomplex", rin: "double", zin: "double", win: "double", d
 def barycenter(topotimes: "double *", barytimes: "double *", voverc: "double *", ra: "char *", dec: "char *", obs: "char *", ephem: "char *") -> "void":
     return _presto.barycenter(topotimes, barytimes, voverc, ra, dec, obs, ephem)
 
+def DOF_corr(dt_per_bin: "double") -> "double":
+    return _presto.DOF_corr(dt_per_bin)
+
 def simplefold(data: "float *", dt: "double", tlo: "double", prof: "double *", startphs: "double", f0: "double", fdot: "double", fdotdot: "double", standard: "int") -> "double":
     return _presto.simplefold(data, dt, tlo, prof, startphs, f0, fdot, fdotdot, standard)
 

@@ -673,10 +673,11 @@ significance, as `prepfold` does.
 
 There is a semi-analytic correction for this effect that has been tested using
 large numbers of simulations with fake data. You can see it in the `DOF_corr`
-function/method in `src/prepfold_utils.c` or `python/presto/prepfold.py`,
-respectfully. That correction can also be used to correct for the noise level in
-the pulse profile, for more accurate flux densities estimates via the radiometer
-equation, for example (`sum_profiles.py` uses the correction).
+function/method in `src/fold.c` or `python/presto/prepfold.py`, respectfully.
+That correction can also be used to correct for the noise level in the pulse
+profile, for more accurate flux densities estimates via the radiometer equation,
+for example (`sum_profiles.py` uses the correction; newrms = oldrms /
+sqrt(DOF_corr)).
 
 The effect and the correction are described in detail in Appendix E of the
 recent paper [Bachetti et al.,

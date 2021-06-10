@@ -19,6 +19,30 @@
 /* Some helper functions */
 void hunt(double *xx, int n, double x, int *jlo);
 
+double DOF_corr(double dt_per_bin)
+// Return a multiplicative correction for the effective number of degrees of
+// freedom in the chi^2 measurement resulting from a pulse profile folded by
+// PRESTO's fold() function (i.e. prepfold).  This is required because there are
+// correlations between the bins caused by the way that prepfold folds data
+// (i.e. treating a sample as finite duration and smearing it over potentially
+// several bins in the profile as opposed to instantaneous and going into just
+// one profile bin).  The correction is semi-analytic (thanks to Paul Demorest
+// and Walter Brisken) but the values for 'power' and 'factor' have been
+// determined from Monte Carlos.  The correction is good to a fractional error
+// of less than a few percent as long as dt_per_bin is > 0.5 or so (which it
+// usually is for pulsar candidates).  There is a very minimal number-of-bins
+// dependence, which is apparent when dt_per_bin < 0.7 or so.  dt_per_bin is the
+// width of a profile bin in samples (a float), and so for prepfold is pulse
+// period / nbins / sample time.  Note that the sqrt of this factor can be used
+// to 'inflate' the RMS of the profile as well, for radiometer eqn flux density
+// estimates, for instance (newrms = oldrms / sqrt(DOF_corr)).
+{
+    double power = 1.806;       // From Monte Carlos
+    double factor = 0.96;       // From Monte Carlos
+    return dt_per_bin * factor * pow(1.0 + pow(dt_per_bin, power), -1.0 / power);
+}
+
+
 static void add_to_prof(double *prof, double *buffer, int N,
                         double lophase, double deltaphase,
                         double dataval, double *phaseadded)
@@ -118,7 +142,7 @@ void fold_errors(double *prof, int proflen, double dt, double N,
 /*      'datavar' is the variance of the original data       */
 /*      'p' is the folding period                            */
 /*      'pd' is the folding period derivative                */
-/*      'pdd' is the folding period 2nd dervivative          */
+/*      'pdd' is the folding period 2nd derivative          */
 /*      'perr' is the returned period standard deviation     */
 /*      'pderr' is the returned p-dot standard deviation     */
 /*      'pdderr' is the returned p-dotdot standard deviation */
@@ -128,6 +152,7 @@ void fold_errors(double *prof, int proflen, double dt, double N,
     double err, r, z, w, pwrfact = 0.0, pwrerr = 0.0, rerr, zerr, werr, dtmp;
     double rerrn = 0.0, zerrn = 0.0, werrn = 0.0, rerrd = 0.0, zerrd = 0.0, werrd =
         0.0;
+    double dt_per_bin = p / proflen / dt;
     float powargr, powargi;
     fcomplex *fftprof;
 
@@ -144,11 +169,13 @@ void fold_errors(double *prof, int proflen, double dt, double N,
     else
         w = 2.0 * z * z / r - pdd * r * r * T;
 
-    /* Calculate the normalization constant which converts the raw */
-    /* powers into normalized powers -- just as if we had FFTd the */
-    /* full data set.                                              */
+    // Calculate the normalization constant which converts the raw powers into
+    // normalized powers -- just as if we had FFTd the full data set.  This
+    // needs to be corrected for the fact that prepfold's folding algorithm
+    // causes neighboring bins to be slightly correlated (and therefore have
+    // less variance than it should).
 
-    norm = 1.0 / (N * datavar);
+    norm = 1.0 / (N * datavar / DOF_corr(dt_per_bin));
 
     /* Place the profile into a complex array */
 
