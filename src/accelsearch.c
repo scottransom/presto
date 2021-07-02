@@ -1,5 +1,12 @@
 #include "accel.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 /*#undef USEMMAP*/
 
 #ifdef USEMMAP
@@ -40,7 +47,7 @@ static void print_percent_complete(int current, int number, char *what, int rese
     }
 }
 
-int main(int argc, char *argv[])
+static void accelsearch(Cmdline *cmd)
 {
     int ii, rstep;
     double ttim, utim, stim, tott;
@@ -49,32 +56,10 @@ int main(int argc, char *argv[])
     accelobs obs;
     infodata idata;
     GSList *cands = NULL;
-    Cmdline *cmd;
 
     /* Prep the timer */
 
     tott = times(&runtimes) / (double) CLK_TCK;
-
-    /* Call usage() if we have no command line arguments */
-
-    if (argc == 1) {
-        Program = argv[0];
-        printf("\n");
-        usage();
-        exit(1);
-    }
-
-    /* Parse the command line using the excellent program Clig */
-
-    cmd = parseCmdline(argc, argv);
-
-#ifdef DEBUG
-    showOptionValues();
-#endif
-
-    printf("\n\n");
-    printf("    Fourier-Domain Acceleration and Jerk Search Routine\n");
-    printf("                    by Scott M. Ransom\n\n");
 
     /* Create the accelobs structure */
     create_accelobs(&obs, &idata, cmd, 1);
@@ -178,8 +163,8 @@ int main(int argc, char *argv[])
                 free_ffdotpows(fundamental);
                 startr = nextr;
             }
-        }    
-        
+        }
+
         /* Reset indices if needed and search for real */
         startr = obs.rlo;
         lastr = 0;
@@ -276,7 +261,7 @@ int main(int argc, char *argv[])
 
             /* Write the harmonics to the output text file */
             output_harmonics(cands, &obs, &idata);
-            
+
             /* Write the fundamental fourierprops to the cand file */
             obs.workfile = chkfopen(obs.candnm, "wb");
             chkfwrite(props, sizeof(fourierprops), numcands, obs.workfile);
@@ -310,5 +295,80 @@ int main(int argc, char *argv[])
     free_accelobs(&obs);
     g_slist_foreach(cands, free_accelcand, NULL);
     g_slist_free(cands);
-    return (0);
+}
+
+int main(int argc, char *argv[])
+{
+    int ii, err;
+    Cmdline *cmd;
+
+    /* Parse the command line using the excellent program Clig */
+    /* Call usage() if we have no command line arguments */
+    if (argc == 1 ||
+        (cmd = parseCmdline(argc, argv), cmd->argc < 1)) {
+        Program = argv[0];
+        printf("\n");
+        usage();
+        exit(1);
+    }
+
+#ifdef DEBUG
+    showOptionValues();
+#endif
+
+    printf("\n\n");
+    printf("    Fourier-Domain Acceleration and Jerk Search Routine\n");
+    printf("                    by Scott M. Ransom\n\n");
+
+    for(ii = 0, err = 0; ii < cmd->argc && !err; ++ii)
+    {
+        int child_status;
+        pid_t pid;
+
+        /* So that fork doesn't duplicate buffer contents ...
+            workaround for child processes calling exit(3) instead of _exit(2)
+        */
+        fflush(stdout);
+        fflush(stderr);
+
+        pid = fork();
+        if(pid == 0)
+        {
+            /* This is the child process that does the real work */
+            cmd->argc = 1;
+            cmd->argv[0] = cmd->argv[ii];
+            accelsearch(cmd);
+            /* TODO: All invocations of exit(3) by accelsearch(...) should be changed to use _exit(2) */
+            _exit(0);
+        }
+        /*  This is the parent process, let's collect the child status and
+            stop on error.
+        */
+        if(pid == -1)
+        {
+            fprintf(stderr, "\n%s: error calling worker process: ", argv[0]);
+            perror("fork");
+            err = -1;
+        }
+        else if(waitpid(pid, &child_status, 0) < 1)
+        {
+            fprintf(stderr, "\n%s: error calling worker process: ", argv[0]);
+            perror("waitpid");
+            err = -1;
+        }
+        else if(!WIFEXITED(child_status))
+        {
+            fprintf(stderr, "\n%s: worker process terminated abnormally,", argv[0]);
+            err = -1;
+        }
+        else if(err = WEXITSTATUS(child_status))
+        {
+            fprintf(stderr, "\n%s: error returned from worker process. Aborting ...", argv[0]);
+        }
+        if(err)
+        {
+            fprintf(stderr, " %d file%s left unprocessed.\n\n", cmd->argc - ii, cmd->argc - ii > 1 ? "s" : "");
+        }
+    }
+    return err;
 }
