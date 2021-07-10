@@ -1,6 +1,8 @@
 #include <presto.h>
 
 #define BLOCKSTOSKIP 100
+#define inf 1.0e100
+
 int read_onoff_paris(FILE * onofffile, long long **onbins, long long **offbins)
 // Read a text file containing rows of ASCII pairs of integers
 // corresponding to where clipping should be on or off 
@@ -43,8 +45,7 @@ int read_onoff_paris(FILE * onofffile, long long **onbins, long long **offbins)
     return numpairs;
 }
 
-
-/* NEW Clipping Routine (uses channel running averages) */
+/* NEW Clipping Routine (uses channel running averages and reuse array avoid heavy copy) */
 int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
                float *good_chan_levels)
 // Perform time-domain clipping of rawdata.  This is a 2D array with
@@ -59,42 +60,65 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
     static long long current_point = 0;
     static int numonoff = 0, onoffindex = 0;
     static long long *onbins = NULL, *offbins = NULL;
-    float *zero_dm_block, *ftmp, *powptr;
-    double *chan_avg_temp;
+    static float exchange_tmp;
+    float *zero_dm_block, *raw_zero_dm_block, *ftmp, *powptr;
+    float biggest_zero_dm_blk, smallest_zero_dm_blk;
+    float *chan_avg_temp;
     float current_med, trigger;
     double current_avg = 0.0, current_std = 0.0;
-    long long ii, jj, loffset;
-    int clipit = 0, clipped = 0;
-
+    int ii, jj, clipit = 0, clipped = 0;
     if (firsttime) {
         chan_running_avg = gen_fvect(numchan);
         firsttime = 0;
         {                       // This is experimental code to zap radar-filled data
             char *envval = getenv("CLIPBINSFILE");
-            if (envval != NULL) {
+            if (unlikely(envval != NULL)) {
                 FILE *onofffile = chkfopen(envval, "r");
                 numonoff = read_onoff_paris(onofffile, &onbins, &offbins);
                 fclose(onofffile);
                 printf("\nRead %d bin clipping pairs from '%s'.\n", numonoff,
                        envval);
 
-                //for (ii=0;ii<numonoff;ii++) printf("%lld %lld\n", onbins[ii], offbins[ii]);
             }
         }
     }
-    chan_avg_temp = gen_dvect(numchan);
-    zero_dm_block = gen_fvect(ptsperblk);
+
+    // each block has ptsperblk points, each points has numchan rawdata
+    // zero_dm_block records the sum of numchan rawdata of each points
+    // chan_avg_temp 
+    chan_avg_temp = gen_fvect(numchan);
+    zero_dm_block = gen_fvect(ptsperblk); 
+    raw_zero_dm_block = gen_fvect(ptsperblk); 
     ftmp = gen_fvect(ptsperblk);
+    biggest_zero_dm_blk = -inf;
+    smallest_zero_dm_blk = inf;
+
+    for (jj = 0; jj < numchan; jj++) {
+        chan_avg_temp[jj] = 0.0;
+    }
 
     /* Calculate the zero DM time series */
     for (ii = 0; ii < ptsperblk; ii++) {
         zero_dm_block[ii] = 0.0;
-        loffset = ii * numchan;
-        powptr = rawdata + loffset;
-        for (jj = 0; jj < numchan; jj++)
-            zero_dm_block[ii] += *powptr++;
+        powptr = rawdata + ii * numchan;
+        for (jj = 0; jj < numchan; jj ++) {
+            zero_dm_block[ii] += *powptr;
+            chan_avg_temp[jj] += *powptr++;
+        }
+
+        if (zero_dm_block[ii] > biggest_zero_dm_blk) {
+            biggest_zero_dm_blk = zero_dm_block[ii];
+        }
+        if (zero_dm_block[ii] < smallest_zero_dm_blk) {
+            smallest_zero_dm_blk = zero_dm_block[ii];
+        }
         ftmp[ii] = zero_dm_block[ii];
+        raw_zero_dm_block[ii] = zero_dm_block[ii];
     }
+
+    // calculate the avg and std of zero_dm_block
+    // since it will exchange the order of zero_dm_block in median()
+    //     therefore the corresponding index will be disordered, so use ftmp
     avg_var(ftmp, ptsperblk, &current_avg, &current_std);
     current_std = sqrt(current_std);
     current_med = median(ftmp, ptsperblk);
@@ -107,24 +131,53 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
         float lo_cutoff, hi_cutoff;
         int numgoodpts = 0;
         lo_cutoff = current_med - 3.0 * current_std;
-        hi_cutoff = current_med + 3.0 * current_std;;
-        for (jj = 0; jj < numchan; jj++)
-            chan_avg_temp[jj] = 0.0;
+        hi_cutoff = current_med + 3.0 * current_std;
 
-        /* Find the "good" points */
-        for (ii = 0; ii < ptsperblk; ii++) {
-            if (zero_dm_block[ii] > lo_cutoff && zero_dm_block[ii] < hi_cutoff) {
-                ftmp[numgoodpts] = zero_dm_block[ii];
-                loffset = ii * numchan;
-                powptr = rawdata + loffset;
-                for (jj = 0; jj < numchan; jj++)
-                    chan_avg_temp[jj] += *powptr++;
-                numgoodpts++;
+        // if fabs(current_std) <= DBL_EPSILON, that numgoodpts = 0, chan_avg_temp will be overwritten
+        if (fabs(current_std) > DBL_EPSILON) {
+            /* Delete the "bad" points */
+            float* lhs = zero_dm_block;
+            float* rhs = zero_dm_block + ptsperblk - 1;
+            
+            while (lhs != rhs) {
+                while (lhs != rhs && *lhs > lo_cutoff && *lhs < hi_cutoff) {
+                    lhs ++; // find a good point, continue
+                }
+                while (lhs != rhs && (*rhs < lo_cutoff || *rhs > hi_cutoff)) {
+                    powptr = rawdata + (lhs - zero_dm_block) * numchan;
+                    #pragma simd
+                    #pragma vector aligned
+                    for (jj = 0; jj < numchan; jj++)
+                        chan_avg_temp[jj] -= *powptr++;
+                    rhs --; // find a bad point, continue
+                }
+                if (lhs != rhs) {
+                    // exchange good and bad point
+                    exchange_tmp = *lhs;
+                    *lhs = *rhs;
+                    *rhs = exchange_tmp;
+                } else {
+                    numgoodpts = lhs - zero_dm_block;
+                    // determine whether this point is bad point
+                    if ((*lhs > lo_cutoff && *lhs < hi_cutoff)) {
+                        // it is good point
+                        numgoodpts ++;
+                    } else {
+                        /*
+                            situation1: lhs -> rhs && rhs is bad point
+                            situation2: lhs -> mid_left && rhs -> mid_left && mid_left is bad point
+                            situation3: lhs -> mid_left && rhs -> mid_right |> exchange and lhs -> mid_right
+                        */
+                        powptr = rawdata + (lhs - zero_dm_block) * numchan;
+                        #pragma simd
+                        #pragma vector aligned
+                        for (jj = 0; jj < numchan; jj++)
+                            chan_avg_temp[jj] -= *powptr++;
+                    }
+                    break;
+                }
             }
         }
-
-        //printf("avg = %f  med = %f  std = %f  numgoodpts = %d\n", 
-        //       current_avg, current_med, current_std, numgoodpts);
 
         /* Calculate the current average and stddev */
         if (numgoodpts < 1) {
@@ -133,60 +186,61 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
             for (jj = 0; jj < numchan; jj++)
                 chan_avg_temp[jj] = chan_running_avg[jj];
         } else {
-            avg_var(ftmp, numgoodpts, &current_avg, &current_std);
+            avg_var(zero_dm_block, numgoodpts, &current_avg, &current_std);
             current_std = sqrt(current_std);
             for (jj = 0; jj < numchan; jj++)
                 chan_avg_temp[jj] /= numgoodpts;
         }
-    }
+    } 
 
     /* Update a pseudo running average and stdev */
     if (blocksread) {
         running_avg = 0.9 * running_avg + 0.1 * current_avg;
         running_std = 0.9 * running_std + 0.1 * current_std;
-        for (ii = 0; ii < numchan; ii++)
+        #pragma simd
+        #pragma vector aligned
+        for (ii = 0; ii < numchan; ii++) {
             chan_running_avg[ii] =
                 0.9 * chan_running_avg[ii] + 0.1 * chan_avg_temp[ii];
+            good_chan_levels[ii] = chan_running_avg[ii];
+        }
     } else {
         running_avg = current_avg;
         running_std = current_std;
-        for (ii = 0; ii < numchan; ii++)
+        #pragma simd
+        #pragma vector aligned
+        for (ii = 0; ii < numchan; ii++) {
             chan_running_avg[ii] = chan_avg_temp[ii];
+            good_chan_levels[ii] = chan_running_avg[ii];
+        }
         if (current_avg == 0.0)
             printf("Warning:  problem with clipping in first block!!!\n\n");
     }
 
     /* See if any points need clipping */
     trigger = clip_sigma * running_std;
-    for (ii = 0; ii < ptsperblk; ii++) {
-        if (fabs(zero_dm_block[ii] - running_avg) > trigger) {
-            clipit = 1;
-            break;
-        }
+    if ((fabs(biggest_zero_dm_blk - running_avg) > trigger || fabs(smallest_zero_dm_blk - running_avg) > trigger)) {
+        clipit = 1;
     }
 
     /* or alternatively from the CLIPBINSFILE */
-    if (numonoff && ((current_point > onbins[onoffindex]
+    if (!clipit && numonoff && ((current_point > onbins[onoffindex]
                       && current_point <= offbins[onoffindex])
                      || (current_point + ptsperblk > onbins[onoffindex]
                          && current_point + ptsperblk <= offbins[onoffindex])
                      || (current_point < onbins[onoffindex]
-                         && current_point + ptsperblk > offbins[onoffindex])))
+                         && current_point + ptsperblk > offbins[onoffindex]))) {
         clipit = 1;
-
-    /* Update the good channel levels */
-    for (ii = 0; ii < numchan; ii++)
-        good_chan_levels[ii] = chan_running_avg[ii];
+    }
 
     /* Replace the bad channel data with channel median values */
     /* that are scaled to equal the running_avg.               */
     if (clipit) {
         for (ii = 0; ii < ptsperblk; ii++) {
-            if ((fabs(zero_dm_block[ii] - running_avg) > trigger) ||
+            if ((fabs(raw_zero_dm_block[ii] - running_avg) > trigger) ||
                 (numonoff && (current_point > onbins[onoffindex]
                               && current_point <= offbins[onoffindex]))) {
-                loffset = ii * numchan;
-                powptr = rawdata + loffset;
+                powptr = rawdata + ii * numchan;
                 for (jj = 0; jj < numchan; jj++)
                     *powptr++ = good_chan_levels[jj];
                 clipped++;
@@ -197,9 +251,10 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
             if (numonoff && current_point > offbins[onoffindex]
                 && onoffindex < numonoff - 1) {
                 while (current_point > offbins[onoffindex]
-                       && onoffindex < numonoff - 1)
+                       && onoffindex < numonoff - 1) {
                     onoffindex++;
-
+                }
+                
                 //printf("updating index to %d\n", onoffindex);
             }
         }
@@ -208,8 +263,9 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
         if (numonoff && current_point > offbins[onoffindex]
             && onoffindex < numonoff - 1) {
             while (current_point > offbins[onoffindex]
-                   && onoffindex < numonoff - 1)
+                   && onoffindex < numonoff - 1) {
                 onoffindex++;
+            }
 
             //printf("updating index to %d\n", onoffindex);
         }
@@ -217,13 +273,13 @@ int clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
     blocksread++;
     vect_free(chan_avg_temp);
     vect_free(zero_dm_block);
+    vect_free(raw_zero_dm_block);
     vect_free(ftmp);
     return clipped;
 }
 
-
-/* OLD Clipping Routine (uses channel medians) */
-int old_clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
+/* OLD OLD Clipping Routine (uses channel medians) */
+int old_old_clip_times(float *rawdata, int ptsperblk, int numchan, float clip_sigma,
                    float *good_chan_levels)
 // Perform time-domain clipping of rawdata.  This is a 2D array with
 // ptsperblk*numchan points, each of which is a float.  The clipping
