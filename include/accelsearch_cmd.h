@@ -83,7 +83,5 @@ extern char *Program;
 extern void usage(void);
 extern /*@shared*/Cmdline *parseCmdline(int argc, char **argv);
 
-extern void showOptionValues(void);
-
 #endif
 

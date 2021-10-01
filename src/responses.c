@@ -376,7 +376,7 @@ fcomplex *gen_w_response(double roffset, int numbetween, double z,
         return response;
     }
 
-    /* Cheeose num_pts_wdat so that there is plenty of Freq range */
+    /* Choose num_pts_wdat so that there is plenty of Freq range */
     /* outside of the RZW response. */
     num_pts_wdat = next2_to_n(6 * w_resp_halfwidth(z, w, LOWACC) +
                               200 + numkern / numbetween);

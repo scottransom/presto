@@ -2,19 +2,6 @@
 #include "presto.h"
 #include "accelsearch_cmd.h"
 
-// ACCEL_USELEN must be less than 65536 since we
-// use unsigned short ints to index our arrays...
-//
-// #define ACCEL_USELEN 32000 // This works up to zmax=300 to use 32K FFTs
-// #define ACCEL_USELEN 15660 // This works up to zmax=300 to use 16K FFTs
-//   The following is probably the best bet for general use given
-//   current speeds of FFTs.  However, if you only need to search up
-//   to zmax < 100, dropping to 4K FFTs is a few percent faster.  SMR 131110
-#define ACCEL_USELEN 7470 // This works up to zmax=300 to use 8K FFTs
-// #define ACCEL_USELEN 7960 // This works up to zmax=100 to use 8K FFTs
-// #define ACCEL_USELEN 3850 // This works up to zmax=100 to use 4K FFTs
-// #define ACCEL_USELEN 1820 // This works up to zmax=100 to use 2K FFTs
-
 /* Stepsize in Fourier Freq */
 #define ACCEL_NUMBETWEEN 2
 /* Stepsize in Fourier Freq */
@@ -113,8 +100,8 @@ typedef struct subharminfo{
     int numkern_wdim;  /* Number of kernels calculated in the w dimension */
     int numkern;       /* Total number of kernels in the vector */
     kernel **kern;     /* A 2D array of the kernels themselves, with dimensions of z and w */
-    unsigned short *rinds; /* Table of lookup indices for Fourier Freqs: subharmonic r values corresponding to "fundamental" r values */
-    unsigned short *zinds; /* Table of lookup indices for Fourier F-dots */
+    int *rinds; /* Table of lookup indices for Fourier Freqs: subharmonic r values corresponding to "fundamental" r values */
+    int *zinds; /* Table of lookup indices for Fourier F-dots */
 } subharminfo;
 
 typedef struct ffdotpows{
@@ -125,8 +112,8 @@ typedef struct ffdotpows{
     int numzs;          /* Number of Fourier f-dots present */
     int numws;          /* Number of Fourier f-dot-dots present */
     float ***powers;     /* 3D Matrix of the powers */
-    unsigned short *rinds; /* Table of lookup indices for Fourier Freqs */
-    unsigned short *zinds; /* Table of lookup indices for Fourier f-dots */
+    int *rinds; /* Table of lookup indices for Fourier Freqs */
+    int *zinds; /* Table of lookup indices for Fourier f-dots */
 } ffdotpows;
 
 /* accel_utils.c */

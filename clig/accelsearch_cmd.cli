@@ -17,9 +17,9 @@ Int -lobin   lobin      {The first Fourier frequency in the data file} \
 Int -numharm numharm    {The number of harmonics to sum (power-of-two)}\
 	-r 1 32 -d 8
 Int -zmax    zmax       {The max (+ and -) Fourier freq deriv to search} \
-	-r 0 1200  -d 200
+	-r 0 5000  -d 200
 Int -wmax    wmax       {The max (+ and -) Fourier freq double derivs to search} \
-	-r 0 4000
+	-r 0 10000
 Float -sigma sigma      {Cutoff sigma for choosing candidates}\
 	-r 1.0 30.0 -d 2.0
 Double -rlo     rlo     {The lowest Fourier frequency (of the highest harmonic!) to search} \

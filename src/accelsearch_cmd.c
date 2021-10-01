@@ -808,217 +808,6 @@ static char *catArgv(int argc, char **argv)
 
 /**********************************************************************/
 
-void showOptionValues(void)
-{
-    int i;
-
-    printf("Full command line is:\n`%s'\n", cmd.full_cmd_line);
-
-  /***** -ncpus: Number of processors to use with OpenMP */
-    if (!cmd.ncpusP) {
-        printf("-ncpus not found.\n");
-    } else {
-        printf("-ncpus found:\n");
-        if (!cmd.ncpusC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%d'\n", cmd.ncpus);
-        }
-    }
-
-  /***** -lobin: The first Fourier frequency in the data file */
-    if (!cmd.lobinP) {
-        printf("-lobin not found.\n");
-    } else {
-        printf("-lobin found:\n");
-        if (!cmd.lobinC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%d'\n", cmd.lobin);
-        }
-    }
-
-  /***** -numharm: The number of harmonics to sum (power-of-two) */
-    if (!cmd.numharmP) {
-        printf("-numharm not found.\n");
-    } else {
-        printf("-numharm found:\n");
-        if (!cmd.numharmC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%d'\n", cmd.numharm);
-        }
-    }
-
-  /***** -zmax: The max (+ and -) Fourier freq deriv to search */
-    if (!cmd.zmaxP) {
-        printf("-zmax not found.\n");
-    } else {
-        printf("-zmax found:\n");
-        if (!cmd.zmaxC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%d'\n", cmd.zmax);
-        }
-    }
-
-  /***** -wmax: The max (+ and -) Fourier freq double derivs to search */
-    if (!cmd.wmaxP) {
-        printf("-wmax not found.\n");
-    } else {
-        printf("-wmax found:\n");
-        if (!cmd.wmaxC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%d'\n", cmd.wmax);
-        }
-    }
-
-  /***** -sigma: Cutoff sigma for choosing candidates */
-    if (!cmd.sigmaP) {
-        printf("-sigma not found.\n");
-    } else {
-        printf("-sigma found:\n");
-        if (!cmd.sigmaC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%.40g'\n", cmd.sigma);
-        }
-    }
-
-  /***** -rlo: The lowest Fourier frequency (of the highest harmonic!) to search */
-    if (!cmd.rloP) {
-        printf("-rlo not found.\n");
-    } else {
-        printf("-rlo found:\n");
-        if (!cmd.rloC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%.40g'\n", cmd.rlo);
-        }
-    }
-
-  /***** -rhi: The highest Fourier frequency (of the highest harmonic!) to search */
-    if (!cmd.rhiP) {
-        printf("-rhi not found.\n");
-    } else {
-        printf("-rhi found:\n");
-        if (!cmd.rhiC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%.40g'\n", cmd.rhi);
-        }
-    }
-
-  /***** -flo: The lowest frequency (Hz) (of the highest harmonic!) to search */
-    if (!cmd.floP) {
-        printf("-flo not found.\n");
-    } else {
-        printf("-flo found:\n");
-        if (!cmd.floC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%.40g'\n", cmd.flo);
-        }
-    }
-
-  /***** -fhi: The highest frequency (Hz) (of the highest harmonic!) to search */
-    if (!cmd.fhiP) {
-        printf("-fhi not found.\n");
-    } else {
-        printf("-fhi found:\n");
-        if (!cmd.fhiC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%.40g'\n", cmd.fhi);
-        }
-    }
-
-  /***** -inmem: Compute full f-fdot plane in memory.  Very fast, but only for short time series. */
-    if (!cmd.inmemP) {
-        printf("-inmem not found.\n");
-    } else {
-        printf("-inmem found:\n");
-    }
-
-  /***** -photon: Data is poissonian so use freq 0 as power normalization */
-    if (!cmd.photonP) {
-        printf("-photon not found.\n");
-    } else {
-        printf("-photon found:\n");
-    }
-
-  /***** -median: Use block-median power normalization (default) */
-    if (!cmd.medianP) {
-        printf("-median not found.\n");
-    } else {
-        printf("-median found:\n");
-    }
-
-  /***** -locpow: Use double-tophat local-power normalization (not usually recommended) */
-    if (!cmd.locpowP) {
-        printf("-locpow not found.\n");
-    } else {
-        printf("-locpow found:\n");
-    }
-
-  /***** -zaplist: A file of freqs+widths to zap from the FFT (only if the input file is a *.[s]dat file) */
-    if (!cmd.zaplistP) {
-        printf("-zaplist not found.\n");
-    } else {
-        printf("-zaplist found:\n");
-        if (!cmd.zaplistC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%s'\n", cmd.zaplist);
-        }
-    }
-
-  /***** -baryv: The radial velocity component (v/c) towards the target during the obs */
-    if (!cmd.baryvP) {
-        printf("-baryv not found.\n");
-    } else {
-        printf("-baryv found:\n");
-        if (!cmd.baryvC) {
-            printf("  no values\n");
-        } else {
-            printf("  value = `%.40g'\n", cmd.baryv);
-        }
-    }
-
-  /***** -otheropt: Use the alternative optimization (for testing/debugging) */
-    if (!cmd.otheroptP) {
-        printf("-otheropt not found.\n");
-    } else {
-        printf("-otheropt found:\n");
-    }
-
-  /***** -noharmpolish: Do not use 'harmpolish' by default */
-    if (!cmd.noharmpolishP) {
-        printf("-noharmpolish not found.\n");
-    } else {
-        printf("-noharmpolish found:\n");
-    }
-
-  /***** -noharmremove: Do not remove harmonically related candidates (never removed for numharm = 1) */
-    if (!cmd.noharmremoveP) {
-        printf("-noharmremove not found.\n");
-    } else {
-        printf("-noharmremove found:\n");
-    }
-    if (!cmd.argc) {
-        printf("no remaining parameters in argv\n");
-    } else {
-        printf("argv =");
-        for (i = 0; i < cmd.argc; i++) {
-            printf(" `%s'", cmd.argv[i]);
-        }
-        printf("\n");
-    }
-}
-
-/**********************************************************************/
-
 void usage(void)
 {
     fprintf(stderr, "%s",
@@ -1039,11 +828,11 @@ void usage(void)
     fprintf(stderr, "%s", "                   default: `8'\n");
     fprintf(stderr, "%s",
             "            -zmax: The max (+ and -) Fourier freq deriv to search\n");
-    fprintf(stderr, "%s", "                   1 int value between 0 and 1200\n");
+    fprintf(stderr, "%s", "                   1 int value between 0 and 5000\n");
     fprintf(stderr, "%s", "                   default: `200'\n");
     fprintf(stderr, "%s",
             "            -wmax: The max (+ and -) Fourier freq double derivs to search\n");
-    fprintf(stderr, "%s", "                   1 int value between 0 and 4000\n");
+    fprintf(stderr, "%s", "                   1 int value between 0 and 10000\n");
     fprintf(stderr, "%s",
             "           -sigma: Cutoff sigma for choosing candidates\n");
     fprintf(stderr, "%s", "                   1 float value between 1.0 and 30.0\n");
@@ -1086,7 +875,7 @@ void usage(void)
     fprintf(stderr, "%s",
             "           infile: Input file name(s) of the floating point .fft or .[s]dat file(s).  '.inf' file(s) of the same name must also exist\n");
     fprintf(stderr, "%s", "                   1...16384 values\n");
-    fprintf(stderr, "%s", "  version: 09Jul20\n");
+    fprintf(stderr, "%s", "  version: 30Sep21\n");
     fprintf(stderr, "%s", "  ");
     exit(EXIT_FAILURE);
 }
@@ -1138,7 +927,7 @@ Cmdline *parseCmdline(int argc, char **argv)
             cmd.zmaxP = 1;
             i = getIntOpt(argc, argv, i, &cmd.zmax, 1);
             cmd.zmaxC = i - keep;
-            checkIntLower("-zmax", &cmd.zmax, cmd.zmaxC, 1200);
+            checkIntLower("-zmax", &cmd.zmax, cmd.zmaxC, 5000);
             checkIntHigher("-zmax", &cmd.zmax, cmd.zmaxC, 0);
             continue;
         }
@@ -1148,7 +937,7 @@ Cmdline *parseCmdline(int argc, char **argv)
             cmd.wmaxP = 1;
             i = getIntOpt(argc, argv, i, &cmd.wmax, 1);
             cmd.wmaxC = i - keep;
-            checkIntLower("-wmax", &cmd.wmax, cmd.wmaxC, 4000);
+            checkIntLower("-wmax", &cmd.wmax, cmd.wmaxC, 10000);
             checkIntHigher("-wmax", &cmd.wmax, cmd.wmaxC, 0);
             continue;
         }

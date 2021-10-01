@@ -210,8 +210,8 @@ static void init_subharminfo(int numharm, int harmnum, int zmax, int wmax, subha
     shi->zmax = calc_required_z(harm_fract, zmax);
     shi->wmax = calc_required_w(harm_fract, wmax);
     if (numharm > 1) {
-        shi->rinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
-        shi->zinds = (unsigned short *) malloc(obs->corr_uselen * sizeof(unsigned short));
+        shi->rinds = (int *) malloc(obs->corr_uselen * sizeof(int));
+        shi->zinds = (int *) malloc(obs->corr_uselen * sizeof(int));
     }
     if (numharm==1 && harmnum==1)
         fftlen = obs->fftlen;
@@ -1282,7 +1282,7 @@ void add_ffdotpows_ptrs(ffdotpows * fundamental,
     const int numws = fundamental->numws;
     const double harm_fract = (double) harmnum / (double) numharm;
     float *outpows, *inpows;
-    unsigned short *rindsptr, *zindsptr;
+    int *rindsptr, *zindsptr;
 
     for (ii = 0; ii < numws; ii++) {
         ww = wlo + ii * ACCEL_DW;
