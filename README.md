@@ -2,7 +2,7 @@
 
 http://www.cv.nrao.edu/~sransom/presto/
 
-PRESTO is a large suite of pulsar search and analysis software developed
+sdsdsPRESTO is a large suite of pulsar search and analysis software developed
 primarily by Scott Ransom mostly from scratch, and released under the GPL (v2).
 It was primarily designed to efficiently search for binary millisecond pulsars
 from long observations of globular clusters (although it has since been used in
