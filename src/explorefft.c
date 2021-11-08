@@ -1,15 +1,10 @@
-#include "presto.h"
-#include "cpgplot.h"
-
-/*#undef USEMMAP*/
-
-#ifdef USEMMAP
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#endif
+#include "presto.h"
+#include "cpgplot.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -36,11 +31,7 @@ static long long Nfft;          /* Number of bins in the FFT */
 static double T;                /* The time duration of FFT */
 static float r0;                /* The value of the zeroth Fourier freq */
 static infodata idata;
-#ifdef USEMMAP
 static int mmap_file;
-#else
-static FILE *fftfile;
-#endif
 static double norm_const = 0.0; /* Used if the user specifies a power normalization. */
 static int numzaplist = 0;      /* The number of actual lobin/hibin pairs in zaplist */
 static int lenzaplist = 0;      /* The number of possible lobin/hibin pairs in zaplist */
@@ -300,12 +291,8 @@ static fftpart *get_fftpart(long rlo, long numr)
         fp = (fftpart *) malloc(sizeof(fftpart));
         fp->rlo = rlo;
         fp->numamps = numr;
-#ifdef USEMMAP
         fp->amps = (fcomplex *) mmap(0, sizeof(fcomplex) * numr, PROT_READ,
                                      MAP_SHARED, mmap_file, 0);
-#else
-        fp->amps = read_fcomplex_file(fftfile, rlo, numr);
-#endif
         if (rlo == 0)
             r0 = fp->amps[0].r;
         fp->rawpowers = gen_fvect(fp->numamps);
@@ -338,11 +325,7 @@ static void free_fftpart(fftpart * fp)
     vect_free(fp->normvals);
     vect_free(fp->medians);
     vect_free(fp->rawpowers);
-#ifdef USEMMAP
     munmap(fp->amps, sizeof(fcomplex) * fp->numamps);
-#else
-    vect_free(fp->amps);
-#endif
     free(fp);
 }
 
@@ -403,26 +386,11 @@ static fftview *get_harmonic(double rr, int zoomlevel, fftpart * fp)
 {
     int numharmbins;
 
-#ifdef USEMMAP
     numharmbins = (1 << (LOGDISPLAYNUM - zoomlevel));
     if (rr + numharmbins > Nfft)
         return NULL;
     else
         return get_fftview(rr, zoomlevel, fp);
-#else
-    fftpart *harmpart;
-    fftview *harmview;
-
-    numharmbins = (1 << (LOGDISPLAYNUM - zoomlevel));
-    harmpart = get_fftpart((long) (rr - numharmbins), 2 * numharmbins);
-    if (harmpart != NULL) {
-        harmview = get_fftview(rr, zoomlevel, harmpart);
-        free_fftpart(harmpart);
-        return harmview;
-    } else {
-        return NULL;
-    }
-#endif
 }
 
 static void plot_harmonics(double rr, int zoomlevel, fftpart * fp)
@@ -585,7 +553,6 @@ int main(int argc, char *argv[])
     }
     N = idata.N;
     T = idata.dt * idata.N;
-#ifdef USEMMAP
     printf("Memory mapping the input FFT.  This may take a while...\n");
     mmap_file = open(argv[1], O_RDONLY);
     {
@@ -601,16 +568,6 @@ int main(int argc, char *argv[])
         Nfft = buf.st_size / sizeof(fcomplex);
     }
     lofp = get_fftpart(0, Nfft);
-#else
-    {
-        long numamps;
-
-        fftfile = chkfopen(argv[1], "rb");
-        Nfft = chkfilelen(fftfile, sizeof(fcomplex));
-        numamps = (Nfft > MAXBINS) ? (long) MAXBINS : (long) Nfft;
-        lofp = get_fftpart(0, numamps);
-    }
-#endif
 
     /* Plot the initial data */
 
@@ -635,11 +592,7 @@ int main(int argc, char *argv[])
     xid = cpgopen("/XWIN");
     if (xid <= 0) {
         free(fv);
-#ifdef USEMMAP
         close(mmap_file);
-#else
-        fclose(fftfile);
-#endif
         free_fftpart(lofp);
         exit(EXIT_FAILURE);
     }
@@ -1041,11 +994,7 @@ int main(int argc, char *argv[])
     } while (inchar != 'Q' && inchar != 'q');
 
     free_fftpart(lofp);
-#ifdef USEMMAP
     close(mmap_file);
-#else
-    fclose(fftfile);
-#endif
     if (lenzaplist)
         free(zaplist);
     printf("Done\n\n");

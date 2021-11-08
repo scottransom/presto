@@ -1,12 +1,10 @@
-#include "presto.h"
-#include "cpgplot.h"
-#ifdef USEMMAP
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#endif
+#include "presto.h"
+#include "cpgplot.h"
 
 #ifdef USEDMALLOC
 #include "dmalloc.h"
@@ -32,11 +30,7 @@
 
 static long long Ndat;
 static infodata idata;
-#ifdef USEMMAP
 static int mmap_file;
-#else
-static FILE *datfile;
-#endif
 static int plotstats = 0, usemedian = 0;
 /* plotstats: 0 = both, 1 = stats only, 2 = data only */
 /* usemedian: 0 = average, 1 = median */
@@ -316,12 +310,8 @@ static datapart *get_datapart(long nlo, long numn)
         dp->nn = numn;
         dp->nlo = nlo;
         dp->tlo = idata.dt * nlo;
-#ifdef USEMMAP
         dp->data = (float *) mmap(0, sizeof(float) * numn, PROT_READ,
                                   MAP_SHARED, mmap_file, 0);
-#else
-        dp->data = read_float_file(datfile, nlo, numn);
-#endif
         return dp;
     }
 }
@@ -329,11 +319,7 @@ static datapart *get_datapart(long nlo, long numn)
 
 static void free_datapart(datapart * dp)
 {
-#ifdef USEMMAP
     munmap(dp->data, sizeof(float) * dp->nn);
-#else
-    vect_free(dp->data);
-#endif
     free(dp);
 }
 
@@ -413,7 +399,6 @@ int main(int argc, char *argv[])
     } else {
         printf("Examining data from '%s'.\n\n", argv[1]);
     }
-#ifdef USEMMAP
     mmap_file = open(argv[1], O_RDONLY);
     {
         int rt;
@@ -428,16 +413,6 @@ int main(int argc, char *argv[])
         Ndat = buf.st_size / sizeof(float);
     }
     lodp = get_datapart(0, Ndat);
-#else
-    {
-        long numsamp;
-
-        datfile = chkfopen(argv[1], "rb");
-        Ndat = chkfilelen(datfile, sizeof(float));
-        numsamp = (Ndat > MAXPTS) ? (long) MAXPTS : (long) Ndat;
-        lodp = get_datapart(0, numsamp);
-    }
-#endif
 
     /* Plot the initial data */
 
@@ -454,11 +429,7 @@ int main(int argc, char *argv[])
     xid = cpgopen("/XWIN");
     if (xid <= 0) {
         free_datapart(lodp);
-#ifdef USEMMAP
         close(mmap_file);
-#else
-        fclose(datfile);
-#endif
         free(dv);
         exit(EXIT_FAILURE);
     }
@@ -748,11 +719,7 @@ int main(int argc, char *argv[])
     } while (inchar != 'Q' && inchar != 'q');
 
     free_datapart(lodp);
-#ifdef USEMMAP
     close(mmap_file);
-#else
-    fclose(datfile);
-#endif
     printf("Done\n\n");
     return 0;
 }

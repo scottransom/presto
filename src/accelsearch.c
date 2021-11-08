@@ -1,14 +1,9 @@
-#include "accel.h"
-
-/*#undef USEMMAP*/
-
-#ifdef USEMMAP
 #include <unistd.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#endif
+#include "accel.h"
 
 // Use OpenMP
 #ifdef _OPENMP

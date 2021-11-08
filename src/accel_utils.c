@@ -1,3 +1,8 @@
+#include <unistd.h>
+#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include "accel.h"
 #include "accelsearch_cmd.h"
 
@@ -5,16 +10,6 @@
 #define inline __inline__
 #else
 #undef inline
-#endif
-
-/*#undef USEMMAP*/
-
-#ifdef USEMMAP
-#include <unistd.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #endif
 
 // Use OpenMP

@@ -56,7 +56,7 @@ USEPROFILE = false
 # Very recent Intel CPUs might see a few percent speedup using -mavx
 CFLAGS = -I$(PRESTO)/include $(GLIBINC) $(CFITSIOINC) $(PGPLOTINC) $(FFTINC) \
 	-g -Wall -W -fPIC -O3 -ffast-math \
-	-DUSEMMAP -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+	-D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 CLINKFLAGS = $(CFLAGS) -Wl,-rpath,$(PRESTO)/lib
 
 # If you are getting errors running the test code for the Python PRESTO parts
