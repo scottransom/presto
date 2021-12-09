@@ -18,17 +18,17 @@ static double orbit_step(orbitparams orb, double ppsr, char param)
     switch (param) {
     case 'p':
     case 'P':
-        return orb.p * exp(0.9792168 * log(orb.p / phiorb) - 10.9658871);
+        return 0.5 * orb.p * exp(0.9792168 * log(orb.p / phiorb) - 10.9658871);
     case 'x':
     case 'X':
-        return orb.x * exp(0.9572412 * log(1.0 / phiorb) + 0.7110553);
+        return 0.5 * orb.x * exp(0.9572412 * log(1.0 / phiorb) + 0.7110553);
     case 'e':
         return 0.016;
     case 'w':
         return 0.8;
     case 't':
     case 'T':
-        return orb.p * exp(0.9420009 * log(1.0 / phiorb) - 1.1676730);
+        return 0.5 * orb.p * exp(0.9420009 * log(1.0 / phiorb) - 1.1676730);
     default:
         printf("  Unrecognized parameter '%c' in orbit_step()\n", param);
     }
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
     } else if (cmd->candnumP) {
         double hir, hipow;
         float *powers;
-        int miniN;
+        int miniN, tmpminiN;
         fourierprops fp;
         rderivs rd;
         rawbincand bincand;
@@ -306,8 +306,26 @@ int main(int argc, char *argv[])
         norm = sqrt(miniN) / powers[0];
         for (ii = 0; ii < miniN; ii++)
             powers[ii] *= norm;
+        tmpminiN = miniN;
+        if (bincand.full_lo_r > miniN / 2) { // Handle aliased periods
+            fcomplex *newpowers = gen_cvect(miniN + 1);
+            fcomplex *cpowers = (fcomplex *)powers;
+            for (ii = 0 ; ii < miniN / 2; ii++) {
+                newpowers[ii] = cpowers[ii];
+                newpowers[miniN/2+ii+1] = cpowers[miniN/2-ii-1];
+            }
+            newpowers[miniN/2].r = 1.0; // Nyquist real
+            newpowers[miniN/2].i = 0.0; // Nyquist real
+            vect_free(powers);
+            //for (ii = 0 ; ii < miniN + 1; ii++) {
+            //    printf("ii = %3d  %8.3f  %8.3fi\n", ii, newpowers[ii].r, newpowers[ii].i);
+            //}
+            powers = (float *)newpowers;
+            tmpminiN = miniN * 2;
+        }
         powers[0] = 1.0;
-        hipow = max_r_arr((fcomplex *) powers, miniN / 2, bincand.mini_r, &hir, &rd);
+        powers[1] = 0.0;
+        hipow = max_r_arr((fcomplex *) powers, tmpminiN / 2, bincand.mini_r, &hir, &rd);
         vect_free(powers);
         calc_props(rd, hir, 0.0, 0.0, &fp);
         calc_binprops(&fp, bincand.full_T, bincand.full_lo_r, miniN, &binprops);
@@ -500,9 +518,10 @@ int main(int argc, char *argv[])
     printf("\tHighest power found = %f\n", bestpowr);
     printf("\t        Power ratio = %f\n\n", bestpowr / bestrawpowr);
     printf("\t Best Pulsar period = %.15f\n", bestpsrp);
-    printf("\tBest Orbital period = %f\n", bestorb.p);
+    printf("\t   Best Pulsar freq = %.15f\n", 1.0 / bestpsrp);
+    printf("\tBest Orbital period = %f (%f days)\n", bestorb.p, bestorb.p/86400.0);
     printf("\t    Best a*sin(i)/c = %f\n", bestorb.x);
-    printf("\tBest Time of Periap = %f\n", bestorb.t);
+    printf("\tBest Time of Periap = %f (%20.15f)\n", bestorb.t, idata.mjd_i+idata.mjd_f-bestorb.t/86400.0);
     printf("\nNote:  These results have not been optimized!\n\n");
     exit(0);
 }
