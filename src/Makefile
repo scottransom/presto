@@ -32,6 +32,13 @@ PGPLOTLINK = -L$(PGPLOT_DIR) -lcpgplot -lpgplot $(X11LINK) $(PNGLINK)
 FFTINC := $(shell pkg-config --cflags fftw3f)
 FFTLINK := $(shell pkg-config --libs fftw3f)
 
+# Link line from:
+# https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl-link-line-advisor.html
+# MKLROOT := /usr
+# FFTINC := -I${MKLROOT}/include/mkl -DMKL_ILP64
+# FFTLINK := -L${MKLROOT}/lib/intel64 -Wl,--no-as-needed -lmkl_intel_ilp64 -lmkl_sequential -lmkl_core -lpthread -lm -ldl
+# Note:  accelsearch tests seems to show that Intel's MKL FFTW interface is about 10% slower than FFTW
+
 # Include and link information for the GLIB 2.0 library
 GLIBINC := $(shell pkg-config --cflags glib-2.0)
 GLIBLINK := $(shell pkg-config --libs glib-2.0)
