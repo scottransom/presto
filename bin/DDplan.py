@@ -27,7 +27,7 @@ class observation(object):
 
 class dedisp_method(object):
     def __init__(self, obs, downsamp, loDM, hiDM, dDM, numDMs=0,
-                 numsub=0, smearfact=2.0):
+                 numsub=0, numprocs=1, smearfact=2.0):
         self.obs = obs
         self.downsamp = downsamp
         self.loDM = loDM
@@ -60,9 +60,19 @@ class dedisp_method(object):
             self.numDMs = int(np.ceil((cross_DM-loDM)/dDM))
             if (numsub):
                 self.numprepsub = int(np.ceil(self.numDMs*dDM / self.dsubDM))
-                self.numDMs = self.numprepsub * DMs_per_prepsub
+                if (numprocs > 1 and self.numprepsub % numprocs):
+                    # Make sure the number of "calls" is a multiple of numprocs
+                    self.numprepsub = (self.numprepsub // numprocs + 1) * numprocs
+                    # Now adjust DMs_per_prepsub in case numprepsub increased a lot
+                    while (self.DMs_per_prepsub > 1 and
+                           self.numprepsub * self.DMs_per_prepsub > self.numDMs):
+                        self.DMs_per_prepsub -= 1
+                self.numDMs = self.numprepsub * self.DMs_per_prepsub
         else:
             self.numDMs = numDMs
+        # Make sure the number of DMs is divisible by the number of processors
+        if (numprocs > 1 and self.numDMs % numprocs):
+            self.numDMs = (self.numDMs // numprocs + 1) * numprocs
         self.hiDM = loDM + self.numDMs*dDM
         self.DMs = np.arange(self.numDMs, dtype='d')*dDM + loDM
 
@@ -230,11 +240,11 @@ def total_smear(DM, DMstep, dt, f_ctr, BW, numchan, subDMstep, cohdm=0.0, numsub
                    subband_smear(subDMstep, numsub, BW, f_ctr)**2.0 + 
                    BW_smear(DMstep, BW, f_ctr)**2.0)
 
-def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0,
-             blocklen=None, device="/XWIN"):
+def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, numprocs=1,
+             ok_smearing=0.0, blocklen=None, device="/XWIN"):
     """
-    dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0,
-              blocklen=None, device="/XWIN"):
+    dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, numprocs=1,
+             ok_smearing=0.0, blocklen=None, device="/XWIN"):
         Return the optimal DM stepsizes (and subband DM stepsizes if
         numsub>0) to keep the total smearing below 'ok_smearing' (in ms),
         for the DMs between loDM and hiDM.  If 'ok_smearing'=0.0, then
@@ -304,9 +314,18 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0,
     while (allow_dDMs[index_dDMs+1] < ff*dDM):
         index_dDMs += 1
 
+    # If numprocs > 1, we are using mpiprepsubband, so let the
+    # user know
+    if (numprocs > 1):
+        print("\nAssuming we are using mpiprepsubband with %d dedispersing CPUs:"
+              % numprocs)
+        print("Each line of the dedispersion plan is one or more distinct runs of")
+        print("mpiprepsubband, and each 'call' is the work that a single CPU is doing.")
+
     # Create the first method
     methods = [dedisp_method(obs, downsamp, loDM, hiDM,
-                             allow_dDMs[index_dDMs], numsub=numsub)]
+                             allow_dDMs[index_dDMs], numsub=numsub,
+                             numprocs=numprocs)]
     numDMs = [methods[-1].numDMs]
    
     # Calculate the next methods
@@ -324,7 +343,8 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, ok_smearing=0.0,
 
         # Get the next method
         methods.append(dedisp_method(obs, downsamp, methods[-1].hiDM,
-                                     hiDM, dDM, numsub=numsub))
+                                     hiDM, dDM, numsub=numsub,
+                                     numprocs=numprocs))
         numDMs.append(methods[-1].numDMs)
             
     # Calculate the DMs to search and the smearing at each
@@ -455,7 +475,8 @@ def usage():
   [-k blocklen, --blocklen=#spec] : Spectra per subint (for downsampling) (default = 1024)
   [-c cDM, --cohdm=cDM]           : Coherent DM in each chan  (default = 0.0)
   [-t dt, --dt=dt]                : Sample time (s)    (default = 0.000064 s)
-  [-s subbands, --subbands=nsub]  : Number of subbands (default = #chan) 
+  [-s #subbands, --subbands=nsub] : Number of subbands (default = #chan)
+  [-p #procs, --procs=nprocs]     : # CPUs dedispersing for mpiprepsubband (default = 1)
   [-r resolution, --res=res]      : Acceptable time resolution (ms)
   [-w, --write]                   : Write a dedisp.py file for the plan
 
@@ -472,10 +493,10 @@ if __name__=='__main__':
     import getopt
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hwo:l:d:f:b:n:k:c:t:s:r:",
+        opts, args = getopt.getopt(sys.argv[1:], "hwo:l:d:f:b:n:k:c:t:s:p:r:",
                                    ["help", "write", "output=", "loDM=", "hiDM=",
                                     "fctr=", "bw=", "numchan=", "blocklen=",
-                                    "cDM=", "dt=", "subbands=", "res="])
+                                    "cDM=", "dt=", "subbands=", "procs=", "res="])
 
     except getopt.GetoptError:
         # print help information and exit:
@@ -490,6 +511,7 @@ if __name__=='__main__':
     BW = 300.0
     numchan = 1024
     numsubbands = 0
+    numprocs = 1
     dt = 0.000064
     cDM = 0.0
     ok_smearing = 0.0
@@ -574,6 +596,8 @@ from '%s'
             cDM = float(a)
         if o in ("-s", "--subbands"):
             numsubbands = int(a)
+        if o in ("-p", "--procs"):
+            numprocs = int(a)
         if o in ("-r", "--res"):
             ok_smearing = float(a)
 
@@ -593,8 +617,8 @@ from '%s'
     # The following function creates the de-dispersion plan
     # The ok_smearing values is optional and allows you to raise the floor
     # and provide a level of smearing that you are willing to accept (in ms)
-    methods = dm_steps(loDM, hiDM, obs, cDM, numsubbands, ok_smearing,
-                       blocklen, device)
+    methods = dm_steps(loDM, hiDM, obs, cDM, numsubbands, numprocs,
+                       ok_smearing, blocklen, device)
     
     if write_dedisp:
         dDMs = [m.dDM for m in methods]

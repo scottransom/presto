@@ -67,7 +67,7 @@ def group_infiles(infilenms):
     DMs = []
     for name in names:
         try:
-            ind = name.index("_DM")
+            ind = name.rfind("_DM")
             if name[:ind] not in basenames:
                 basenames.append(name[:ind])
             try:

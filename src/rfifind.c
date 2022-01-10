@@ -457,13 +457,13 @@ int main(int argc, char *argv[])
             zapints = ranges_to_ivect(cmd->zapintsstr, 0, numint - 1, &numzapints);
             zapints = (int *) realloc(zapints, (size_t) (sizeof(int) * numint));
         } else {
-            zapints = gen_ivect(numint);
+            zapints = (int *) malloc((size_t) (sizeof(int) * numint));
         }
         if (cmd->zapchanstrP) {
             zapchan = ranges_to_ivect(cmd->zapchanstr, 0, numchan - 1, &numzapchan);
             zapchan = (int *) realloc(zapchan, (size_t) (sizeof(int) * numchan));
         } else {
-            zapchan = gen_ivect(numchan);
+            zapchan = (int *) malloc((size_t) (sizeof(int) * numchan));
         }
         rfifind_plot(numchan, numint, ptsperint, cmd->timesigma, cmd->freqsigma,
                      cmd->inttrigfrac, cmd->chantrigfrac,
@@ -472,8 +472,8 @@ int main(int argc, char *argv[])
                      &oldmask, &newmask, rfivect, numrfi,
                      cmd->rfixwinP, cmd->rfipsP, cmd->xwinP);
 
-        vect_free(zapints);
-        vect_free(zapchan);
+        free(zapints);
+        free(zapchan);
     }
 
     /* Write the new mask and bytemask to the file */
