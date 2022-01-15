@@ -1,14 +1,11 @@
 #!/usr/bin/env python
-from __future__ import print_function
-from builtins import range
-from builtins import object
 import os
 import sys
 from presto.psr_utils import gaussian_profile, read_profile
 from matplotlib.patches import Rectangle
 from presto.bestprof import bestprof
 import matplotlib.pyplot as plt
-import numpy as Num
+import numpy as np
 from presto import mpfit
 import subprocess
 
@@ -19,7 +16,7 @@ class GaussianSelector(object):
         self.profile = profile
         self.proflen = len(profile)
         self.profnm = profnm
-        self.phases = Num.arange(self.proflen, dtype='d')/self.proflen
+        self.phases = np.arange(self.proflen, dtype='d')/self.proflen
         self.errs = errs
         self.visible = True
         self.DCguess = sorted(profile)[len(profile) // 10 + 1]
@@ -138,8 +135,8 @@ class GaussianSelector(object):
             x1, y1 = event1.xdata, event1.ydata
             x2, y2 = event2.xdata, event2.ydata
             phase = 0.5*(x1+x2)
-            FWHM = Num.fabs(x2-x1)
-            amp = Num.fabs(1.05*(y2-self.init_params[0])*(x2-x1))
+            FWHM = np.fabs(x2-x1)
+            amp = np.fabs(1.05*(y2-self.init_params[0])*(x2-x1))
             self.init_params += [phase, FWHM, amp]
             self.numgaussians += 1
             self.plot_gaussians(self.init_params)
@@ -148,13 +145,13 @@ class GaussianSelector(object):
         elif event1.button == event2.button == 2:
             fit_params, fit_errs, chi_sq, dof = \
                         fit_gaussians(self.profile, self.init_params,
-                                      Num.zeros(self.proflen)+self.errs,
+                                      np.zeros(self.proflen)+self.errs,
                                       self.profnm)
             # Save the fit parameters so the caller can retrieve them if needed
             self.fit_params = fit_params
             self.fit_errs = fit_errs
             # scaled uncertainties
-            #scaled_fit_errs = fit_errs * Num.sqrt(chi_sq / dof)
+            #scaled_fit_errs = fit_errs * np.sqrt(chi_sq / dof)
 
             # Plot the best-fit profile
             self.plot_gaussians(fit_params)
@@ -196,7 +193,7 @@ def gen_gaussians(params, N):
             N is the number of points in the model.
     """
     numgaussians = (len(params)-1) // 3
-    model = Num.zeros(N, dtype='d') + params[0]
+    model = np.zeros(N, dtype='d') + params[0]
     for ii in range(numgaussians):
         phase, FWHM, amp = params[1+ii*3:4+ii*3]
         model += amp * gaussian_profile(N, phase, FWHM)
@@ -234,8 +231,8 @@ def fit_gaussians(data, initial_params, errs, profnm):
     print("chi-sq: %.2f" % chi_sq)
     print("reduced chi-sq: %.2f" % (chi_sq/dof))
     residuals = data - gen_gaussians(fit_params, len(data))
-    print("residuals  mean: %.3g" % Num.mean(residuals))
-    print("residuals stdev: %.3g" % Num.std(residuals))
+    print("residuals  mean: %.3g" % np.mean(residuals))
+    print("residuals stdev: %.3g" % np.std(residuals))
     print("--------------------------------------")
     print(" const = %.5f +/- %.5f" % (fit_params[0], fit_errs[0]))
     for ii in range(numgaussians):
@@ -299,7 +296,10 @@ in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template.""")
                 bprof = bestprof(sys.argv[1])
                 noise_stdev = bprof.prof_std
             except:
-                noise_stdev = 1.0
+                # Use the std of the smallest 25% of the bins
+                n = len(prof)//4
+                noise_stdev = np.partition(prof, n)[:n].std()
+                print("Using stdev of lowest 25% of bins as noise level: ", noise_stdev)
     fig = plt.figure()
     dataplot = fig.add_subplot(211)
     interactor = GaussianSelector(dataplot, prof, noise_stdev, filenm)
