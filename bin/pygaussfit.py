@@ -54,7 +54,7 @@ class GaussianSelector(object):
             return event.inaxes!= self.ax       
         # If a button was pressed, check if the release-button is the
         # same.
-        return (event.inaxes!=self.ax or
+        return (event.inaxes != self.ax or
                 event.button != self.eventpress.button)
       
     def press(self, event):
@@ -244,6 +244,8 @@ def fit_gaussians(data, initial_params, errs, profnm):
 
 if __name__ == '__main__':
 
+    noise_stdev = 0.0
+    
     if len(sys.argv)==1:
         from numpy.random import normal
 
@@ -255,7 +257,9 @@ Middle mouse performs the fit.
 Right mouse removes the last gaussian from the fit.
 
 The input_file should simply be an ASCII file with columns for pulse phase
-and amplitude.  Comments with "#" are allowed.  .bestprof files work.
+and amplitude, or, a PSRCHIVE archive works as long as you have the PSRCHIVE
+python interface installed.  Comments in the text file starting with "#" are
+allowed.  *.bestprof files work.
 
 Paste the full resulting STDOUT to a '.gaussians' file for use
 in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template.""")
@@ -286,19 +290,36 @@ in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template.""")
                                 stdout=devnull)
                 devnull.close()
             filenm = pfdfn+".bestprof"
+            prof = read_profile(filenm, normalize=0)
         else:
             filenm = sys.argv[1]
-        prof = read_profile(filenm, normalize=0)
+            try:
+                prof = read_profile(filenm, normalize=0)
+            except:
+                import psrchive
+                arch = psrchive.Archive_load(filenm)
+                #arch.bscrunch_to_nbin(256)
+                arch.dedisperse()
+                arch.fscrunch()
+                arch.tscrunch()
+                arch.convert_state('Stokes')
+                subint = arch.get_Integration(0)
+                (b_mean, b_var) = subint.baseline_stats()
+                noise_stdev = np.sqrt(b_var[0][0])
+                sprof = subint.get_Profile(0,0)
+                prof = sprof.get_amps()
         if len(sys.argv)>=3:
             noise_stdev = float(sys.argv[2])
-        else:
+        elif noise_stdev == 0.0:
             try:
                 bprof = bestprof(sys.argv[1])
                 noise_stdev = bprof.prof_std
             except:
                 # Use the std of the smallest 25% of the bins
                 n = len(prof)//4
-                noise_stdev = np.partition(prof, n)[:n].std()
+                # The 2.07 compensates for the bias of this method if the data
+                # is pure gaussian noise
+                noise_stdev = np.partition(prof, n)[:n].std() * 2.07
                 print("Using stdev of lowest 25% of bins as noise level: ", noise_stdev)
     fig = plt.figure()
     dataplot = fig.add_subplot(211)
