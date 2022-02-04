@@ -79,10 +79,10 @@ def main():
         outname = basename[3:]+'_%03dM'%nM+'_%02d'%num
         stdout.write('\n'+outname+'\n\n')
         inf.name = outname
-        tstartf = inf.mjd_f + num * T * options.frac
+        tstartf = t0f + num * T * options.frac
         if tstartf > 1.0:
             tstartf = tstartf - 1.0
-            inf.mjd_i = inf.mjd_i + 1
+            inf.mjd_i = t0i + 1
         inf.mjd_f = tstartf
         writeinf(inf)
         myexecute('dd if=' + basename +'.dat of=' + outname +'.dat bs=4000000 skip=' +
