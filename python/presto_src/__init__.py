@@ -78,7 +78,7 @@ def psrepoch(psrname, epoch, verbose=True):
     """
     pp = psrparams()
     if os.path.isfile(psrname):
-        get_psr_from_parfile("1903+0327.par", epoch, pp)
+        get_psr_from_parfile(psrname, epoch, pp)
         if verbose:
             print('Retrieved data at MJD %f from "%s"' % (epoch, psrname))
     else:
