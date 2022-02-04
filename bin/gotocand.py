@@ -15,12 +15,14 @@ def determine_dt(candfile):
         if line.startswith(" Width of each time series bin"):
             return float(line.split()[-1])
 
-def short_stuff(candfile, candnum, shortinfo, nodename, datfile):
+def short_stuff(candfile, candnum, shortinfo, nodename, datfile, frac=0.5):
+    # Note: frac is the overlap fraction which is usually 0.5
+    # It needs to be explicitly changed if you used a different overlap!
     tmp = shortinfo[0].split("_")
     ii = int(tmp[2])
     searchN = 1000000 * int(tmp[1][:-1])
     fileN = get_datfile_len(nodename, datfile)
-    start = ii * float(searchN/2) / fileN
+    start = ii * float(searchN * frac) / fileN
     end = start + float(searchN) / fileN
     dt = determine_dt(candfile)
     chunkT = dt * searchN
