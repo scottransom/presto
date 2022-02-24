@@ -329,7 +329,7 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
             char tmp;
             chkfread(&tmp, sizeof(char), 1, inputfile);
             fb->signedints = tmp;
-            totalbytes += sizeof(int);
+            totalbytes += sizeof(char);
         } else if (expecting_rawdatafile) {
             strcpy(fb->inpfile, string);
             expecting_rawdatafile = 0;
