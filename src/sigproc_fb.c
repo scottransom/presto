@@ -290,6 +290,9 @@ int read_filterbank_header(sigprocfb * fb, FILE * inputfile)
         } else if (strings_equal(string, "foff")) {
             chkfread(&(fb->foff), sizeof(double), 1, inputfile);
             totalbytes += sizeof(double);
+        } else if (strings_equal(string, "refdm")) {
+            chkfread(&(fb->refdm), sizeof(double), 1, inputfile);
+            totalbytes += sizeof(double);
         } else if (strings_equal(string, "nchans")) {
             chkfread(&(fb->nchans), sizeof(int), 1, inputfile);
             totalbytes += sizeof(int);
