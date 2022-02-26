@@ -310,6 +310,49 @@ The quick summary is that RFI is handled in at least **six** different ways:
 
 -----------------
 
+### **What is the difference between using `-ignorechan` and explicitly including channels that you want to zap in an `rfifind` mask using `-zapchan`? Is one preferred over the other?**
+
+`-ignorechan` is a recent-ish addition to PRESTO, and, in general, gives
+better performance for most cases *if* know know for certain what channels
+you want to zap for the full observation. You pass the list of bad
+channels to `rfifind` and all of the other raw-data routines in PRESTO
+(i.e. `prepdata`, `prepsubband`, `prepfold`, and `mpiprepsubband`), and
+those routines then *completely ignore* those channels. If those channels
+have bad data (i.e. they are at band edges or something like that), this
+will allow `rfifind` to do its job on the channels where there is real
+signal and real noise.
+
+The difference between using `-ignorechan` and `-zapchan` is that the
+former completely ignores those channels in all processing (as if they
+were pure zeros), while the latter, when used with an `rfifind` mask, will
+effectively replace the channel values with a smooth-ish running median
+(as determined from the `rfifind` "stats" file) for that channel over the
+observation.
+
+If the data are well behaved, then they should both do about the same
+thing. However, if the input data are badly behaved, for example if the
+power levels change a lot during the observation, and especially if the
+statistics of the channels in question are highly variable, then masking
+the data can end up leaving low-frequency artifacts in the resulting time
+series or folds. And those often show up in your searches or folds and are not good.
+
+If you don't know what channels might be bad, and which you might want to
+use `-ignorechan` on, you could do a quick first pass with `rfifind` on a
+portion of the data (for instance) to identify the bad channels, and then
+make an `-ignorechan` list from that. That's exactly what `rfifind` +
+`rfifind_stats.py` + `weights_to_ignorechan.py` does. And if you are
+lucky, you can simply use the resulting `-ignorechan` and its values and
+not even use an `rfifind` mask.
+
+The way I use `-zapchan` (which is only rarely) is almost always after I
+do a search (or after closely looking at my `rfifind` mask results) where
+I see that some periodic RFI is leaking through into certain channels.  So
+I change the mask (via `rfifind -nocompute`) to explicitly add those
+channels (they may have been partly masked but didn't pass the `-intfrac`
+cutoff to have them zapped completely).
+
+-----------------
+
 ### **I'm seeing strong 60 (or 50!) Hz signals in my `accelsearch` results which are obviously from the power mains. Why doesn't `rfifind` filter that out?**
 
 **If** the 50Hz signal is strong enough to show up in individual frequency
