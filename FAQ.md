@@ -623,7 +623,7 @@ list to update for a long time...
 
 For reference, the details as to what is going on in these codes is described in
 [Ransom, Cordes, & Eikenberry,
-2003](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract}).
+2003](https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R/abstract).
 
 -----------------
 
