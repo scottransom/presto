@@ -62,6 +62,12 @@ if __name__=="__main__":
                       action='store_true',help='The ignorechannels will be stored in a textfile')
     options,args = parser.parse_args()
     
+    
+    if len(sys.argv) == 1:
+        print("\nusage: {} --file file --text \n".format(sys.argv[0]))
+        sys.exit(0)
+    
+    
     # Read the channels and weights
     chans, weights = read_weights(options.file)
 
@@ -76,3 +82,4 @@ if __name__=="__main__":
     # Convert it to a paz command
     pazline = build_pazline(chanline)
     print("\n"+pazline)
+   
