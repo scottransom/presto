@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import sys
-import optparse
+#import optparse
 def read_weights(filename):
     """
     reat_weights(filename):
@@ -54,32 +54,41 @@ def build_pazline(chanline):
 
 
 if __name__=="__main__":
-  
-    parser = optparse.OptionParser()
-    parser.add_option('--file', type=str,
-                      help='The weights filename')
-    parser.add_option('--text', default=False, 
-                      action='store_true',help='The ignorechannels will be stored in a textfile')
-    options,args = parser.parse_args()
     
-    
-    if len(sys.argv) == 1:
-        print("\nusage: {} --file file --text \n".format(sys.argv[0]))
-        sys.exit(0)
-    
-    
-    # Read the channels and weights
-    chans, weights = read_weights(options.file)
 
-    # Get the chanline
-    chanline = build_chanline(weights)
-    print(chanline)
+    if len(sys.argv) < 2:
+        print("\nusage: {} file\n".format(sys.argv[0]))
+        print('\nBelow usage will also OPTIONALLY save the ignore channels to a text file\n')
+        print("\nusage: {0:s} file [name of the text file]\n".format(sys.argv[0]))
+        sys.exit(1)
     
-    if options.text:
-        with open('ignorechan.txt', 'w') as ignorechan:
+    elif len(sys.argv) == 2:
+        # Read the channels and weights
+        chans, weights = read_weights(sys.argv[1])
+
+        # Get the chanline
+        chanline = build_chanline(weights)
+        print(chanline)
+
+        # Convert it to a paz command
+        pazline = build_pazline(chanline)
+        print("\n"+pazline)
+        sys.exit(1)
+        
+    elif len(sys.argv) == 3:
+        
+        # Read the channels and weights
+        chans, weights = read_weights(sys.argv[1])
+
+        # Get the chanline
+        chanline = build_chanline(weights)
+        print(chanline)
+
+        # Convert it to a paz command
+        pazline = build_pazline(chanline)
+        print("\n"+pazline)
+            
+        with open(sys.argv[2], 'w') as ignorechan:
             ignorechan.write(chanline)
-    
-    # Convert it to a paz command
-    pazline = build_pazline(chanline)
-    print("\n"+pazline)
-   
+
+        sys.exit(1)
