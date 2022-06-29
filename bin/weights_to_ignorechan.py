@@ -58,7 +58,7 @@ if __name__=="__main__":
 
     if len(sys.argv) < 2:
         print("\nusage: {} file\n".format(sys.argv[0]))
-        print('\nBelow usage will also OPTIONALLY save the ignore channels to a text file\n')
+        print('\nBelow usage will also optionally save the ignore channels to a text file\n')
         print("\nusage: {} file [name of the text file]\n".format(sys.argv[0]))
         sys.exit(1)
     
