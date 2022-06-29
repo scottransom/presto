@@ -59,36 +59,22 @@ if __name__=="__main__":
     if len(sys.argv) < 2:
         print("\nusage: {} file\n".format(sys.argv[0]))
         print('\nBelow usage will also OPTIONALLY save the ignore channels to a text file\n')
-        print("\nusage: {0:s} file [name of the text file]\n".format(sys.argv[0]))
+        print("\nusage: {} file [name of the text file]\n".format(sys.argv[0]))
         sys.exit(1)
     
-    elif len(sys.argv) == 2:
-        # Read the channels and weights
-        chans, weights = read_weights(sys.argv[1])
+    
+    # Read the channels and weights
+    chans, weights = read_weights(sys.argv[1])
 
-        # Get the chanline
-        chanline = build_chanline(weights)
-        print(chanline)
+    # Get the chanline
+    chanline = build_chanline(weights)
+    print(chanline)
 
-        # Convert it to a paz command
-        pazline = build_pazline(chanline)
-        print("\n"+pazline)
-        sys.exit(1)
-        
-    elif len(sys.argv) == 3:
-        
-        # Read the channels and weights
-        chans, weights = read_weights(sys.argv[1])
-
-        # Get the chanline
-        chanline = build_chanline(weights)
-        print(chanline)
-
-        # Convert it to a paz command
-        pazline = build_pazline(chanline)
-        print("\n"+pazline)
-            
+    # Convert it to a paz command
+    pazline = build_pazline(chanline)
+    print("\n"+pazline)
+    
+    if len(sys.argv)==3:
         with open(sys.argv[2], 'w') as ignorechan:
             ignorechan.write(chanline)
-
-        sys.exit(1)
+            sys.exit(1)
