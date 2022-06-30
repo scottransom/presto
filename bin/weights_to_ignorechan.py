@@ -54,15 +54,14 @@ def build_pazline(chanline):
 
 
 if __name__=="__main__":
-    
+
 
     if len(sys.argv) < 2:
         print("\nusage: {} file\n".format(sys.argv[0]))
-        print('\nBelow usage will also optionally save the ignore channels to a text file\n')
-        print("\nusage: {} file [name of the text file]\n".format(sys.argv[0]))
+        print('\nOptionally, save the ignore channel list to a text file with,\n')
+        print("\nusage: {} file <output fname>\n".format(sys.argv[0]))
         sys.exit(1)
-    
-    
+
     # Read the channels and weights
     chans, weights = read_weights(sys.argv[1])
 
@@ -73,8 +72,8 @@ if __name__=="__main__":
     # Convert it to a paz command
     pazline = build_pazline(chanline)
     print("\n"+pazline)
-    
-    if len(sys.argv)==3:
+
+    # if output file name provided store the channel list to a file
+    if len(sys.argv) == 3:
         with open(sys.argv[2], 'w') as ignorechan:
             ignorechan.write(chanline)
-            sys.exit(1)
