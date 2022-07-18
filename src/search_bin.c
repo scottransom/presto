@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
 
     ct = 4;
     ii = 1;
-    while (ct < MAXREALFFT || ii) {
+    while (ct < 1048576*2 || ii) {
         if (ct == cmd->maxfft)
             ii = 0;
         ct <<= 1;
@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
     ct = 4;
     ii = 1;
-    while (ct < MAXREALFFT || ii) {
+    while (ct < 1048576*2 || ii) {
         if (ct == cmd->minfft)
             ii = 0;
         ct <<= 1;
