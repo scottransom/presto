@@ -397,6 +397,7 @@ void read_filterbank_files(struct spectra_info *s)
         s->summed_polns = 1;
         s->num_polns = 1;
     } else {
+        s->summed_polns = 0;
         s->num_polns = fb.nifs;
         strncpy(s->poln_order, fb.ifstream, 8);
     }
