@@ -832,6 +832,7 @@ static void update_infodata(infodata * idata, long datawrote, long padwrote,
 {
     int ii, jj, index;
 
+    printf("In update_infodata:  datawrote=%ld, padwrote=%ld, barybins=%d\n", datawrote, padwrote, numbarybins);
     idata->N = datawrote + padwrote;
     if (idata->numonoff == 0) {
         if (padwrote) {
@@ -860,8 +861,21 @@ static void update_infodata(infodata * idata, long datawrote, long padwrote,
                 jj++;
             }
             idata->onoff[ii] += numadded - numremoved;
+            printf("ii=%d: %f\n", ii, idata->onoff[ii]);
             ii++;
         }
+        printf("numadded = %d, numremoved = %d\n", numadded, numremoved);
+    }
+
+    /* If we had padded data before, and added more padding, fix the last onoff */
+    /* This fixes a long-standing bug reported by Megan DeCesar on Aug 29, 2019 */
+
+    if ((idata->onoff[idata->numonoff * 2 - 2] == idata->onoff[idata->numonoff * 2 - 1]) &&
+        (idata->onoff[idata->numonoff * 2 - 1] + padwrote == idata->N -1)) {
+        idata->onoff[idata->numonoff * 2 - 2] = idata->N - 1;
+        idata->onoff[idata->numonoff * 2 - 1] = idata->N - 1;
+        datawrote += padwrote;
+        padwrote = 0;
     }
 
     /* Now cut off the extra onoff bins */
