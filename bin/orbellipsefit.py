@@ -198,7 +198,7 @@ def fitellipse(mjds, accs,accerrs,ps,P0_init,Porb_init,X_init):
     P1 = 2.0*pi*X*P0/Porb
     
     figure(7)
-    errorbar(ps,asq,asq_errs,fmt='o')
+    errorbar(ps,asq,np.fabs(asq_errs),fmt='o')
     xs = linspace(ps.min(),ps.max(),100)
     plot(xs,apar_init[2]*xs**2 + apar_init[1]*xs + apar_init[0],'b--')
     plot(xs,apar[2]*xs**2 + apar[1]*xs + apar[0],'r--')
