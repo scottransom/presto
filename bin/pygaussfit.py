@@ -1,14 +1,11 @@
 #!/usr/bin/env python
-from __future__ import print_function
-from builtins import range
-from builtins import object
 import os
 import sys
 from presto.psr_utils import gaussian_profile, read_profile
 from matplotlib.patches import Rectangle
 from presto.bestprof import bestprof
 import matplotlib.pyplot as plt
-import numpy as Num
+import numpy as np
 from presto import mpfit
 import subprocess
 
@@ -19,7 +16,7 @@ class GaussianSelector(object):
         self.profile = profile
         self.proflen = len(profile)
         self.profnm = profnm
-        self.phases = Num.arange(self.proflen, dtype='d')/self.proflen
+        self.phases = np.arange(self.proflen, dtype='d')/self.proflen
         self.errs = errs
         self.visible = True
         self.DCguess = sorted(profile)[len(profile) // 10 + 1]
@@ -57,7 +54,7 @@ class GaussianSelector(object):
             return event.inaxes!= self.ax       
         # If a button was pressed, check if the release-button is the
         # same.
-        return (event.inaxes!=self.ax or
+        return (event.inaxes != self.ax or
                 event.button != self.eventpress.button)
       
     def press(self, event):
@@ -138,8 +135,8 @@ class GaussianSelector(object):
             x1, y1 = event1.xdata, event1.ydata
             x2, y2 = event2.xdata, event2.ydata
             phase = 0.5*(x1+x2)
-            FWHM = Num.fabs(x2-x1)
-            amp = Num.fabs(1.05*(y2-self.init_params[0])*(x2-x1))
+            FWHM = np.fabs(x2-x1)
+            amp = np.fabs(1.05*(y2-self.init_params[0])*(x2-x1))
             self.init_params += [phase, FWHM, amp]
             self.numgaussians += 1
             self.plot_gaussians(self.init_params)
@@ -148,13 +145,13 @@ class GaussianSelector(object):
         elif event1.button == event2.button == 2:
             fit_params, fit_errs, chi_sq, dof = \
                         fit_gaussians(self.profile, self.init_params,
-                                      Num.zeros(self.proflen)+self.errs,
+                                      np.zeros(self.proflen)+self.errs,
                                       self.profnm)
             # Save the fit parameters so the caller can retrieve them if needed
             self.fit_params = fit_params
             self.fit_errs = fit_errs
             # scaled uncertainties
-            #scaled_fit_errs = fit_errs * Num.sqrt(chi_sq / dof)
+            #scaled_fit_errs = fit_errs * np.sqrt(chi_sq / dof)
 
             # Plot the best-fit profile
             self.plot_gaussians(fit_params)
@@ -196,7 +193,7 @@ def gen_gaussians(params, N):
             N is the number of points in the model.
     """
     numgaussians = (len(params)-1) // 3
-    model = Num.zeros(N, dtype='d') + params[0]
+    model = np.zeros(N, dtype='d') + params[0]
     for ii in range(numgaussians):
         phase, FWHM, amp = params[1+ii*3:4+ii*3]
         model += amp * gaussian_profile(N, phase, FWHM)
@@ -234,8 +231,8 @@ def fit_gaussians(data, initial_params, errs, profnm):
     print("chi-sq: %.2f" % chi_sq)
     print("reduced chi-sq: %.2f" % (chi_sq/dof))
     residuals = data - gen_gaussians(fit_params, len(data))
-    print("residuals  mean: %.3g" % Num.mean(residuals))
-    print("residuals stdev: %.3g" % Num.std(residuals))
+    print("residuals  mean: %.3g" % np.mean(residuals))
+    print("residuals stdev: %.3g" % np.std(residuals))
     print("--------------------------------------")
     print(" const = %.5f +/- %.5f" % (fit_params[0], fit_errs[0]))
     for ii in range(numgaussians):
@@ -247,6 +244,8 @@ def fit_gaussians(data, initial_params, errs, profnm):
 
 if __name__ == '__main__':
 
+    noise_stdev = 0.0
+    
     if len(sys.argv)==1:
         from numpy.random import normal
 
@@ -258,7 +257,9 @@ Middle mouse performs the fit.
 Right mouse removes the last gaussian from the fit.
 
 The input_file should simply be an ASCII file with columns for pulse phase
-and amplitude.  Comments with "#" are allowed.  .bestprof files work.
+and amplitude, or, a PSRCHIVE archive works as long as you have the PSRCHIVE
+python interface installed.  Comments in the text file starting with "#" are
+allowed.  *.bestprof files work.
 
 Paste the full resulting STDOUT to a '.gaussians' file for use
 in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template.""")
@@ -289,17 +290,37 @@ in get_TOAs.py or sum_profiles.py with the '-g' parameter as a template.""")
                                 stdout=devnull)
                 devnull.close()
             filenm = pfdfn+".bestprof"
+            prof = read_profile(filenm, normalize=0)
         else:
             filenm = sys.argv[1]
-        prof = read_profile(filenm, normalize=0)
+            try:
+                prof = read_profile(filenm, normalize=0)
+            except:
+                import psrchive
+                arch = psrchive.Archive_load(filenm)
+                #arch.bscrunch_to_nbin(256)
+                arch.dedisperse()
+                arch.fscrunch()
+                arch.tscrunch()
+                arch.convert_state('Stokes')
+                subint = arch.get_Integration(0)
+                (b_mean, b_var) = subint.baseline_stats()
+                noise_stdev = np.sqrt(b_var[0][0])
+                sprof = subint.get_Profile(0,0)
+                prof = sprof.get_amps()
         if len(sys.argv)>=3:
             noise_stdev = float(sys.argv[2])
-        else:
+        elif noise_stdev == 0.0:
             try:
                 bprof = bestprof(sys.argv[1])
                 noise_stdev = bprof.prof_std
             except:
-                noise_stdev = 1.0
+                # Use the std of the smallest 25% of the bins
+                n = len(prof)//4
+                # The 2.07 compensates for the bias of this method if the data
+                # is pure gaussian noise
+                noise_stdev = np.partition(prof, n)[:n].std() * 2.07
+                print("Using stdev of lowest 25% of bins as noise level: ", noise_stdev)
     fig = plt.figure()
     dataplot = fig.add_subplot(211)
     interactor = GaussianSelector(dataplot, prof, noise_stdev, filenm)

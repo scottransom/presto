@@ -1894,7 +1894,6 @@ Keywords:
             wa[j] = (wa[j]-sum)/sdiag[j]
 
       ## Permute the components of z back to components of x
-      print("wa = ",wa, ipvt)
       numpy.put(x, ipvt, wa)
       return(r, x, sdiag)
 

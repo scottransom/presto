@@ -13551,6 +13551,45 @@ fail:
 }
 
 
+SWIGINTERN PyObject *_wrap_DOF_corr(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
+  PyObject *resultobj = 0;
+  double arg1 ;
+  double val1 ;
+  int ecode1 = 0 ;
+  PyObject *swig_obj[1] ;
+  double result;
+  
+  if (!args) SWIG_fail;
+  swig_obj[0] = args;
+  ecode1 = SWIG_AsVal_double(swig_obj[0], &val1);
+  if (!SWIG_IsOK(ecode1)) {
+    SWIG_exception_fail(SWIG_ArgError(ecode1), "in method '" "DOF_corr" "', argument " "1"" of type '" "double""'");
+  } 
+  arg1 = (double)(val1);
+  {
+    errno = 0;
+    result = (double)DOF_corr(arg1);
+    
+    if (errno != 0)
+    {
+      switch(errno)
+      {
+      case ENOMEM:
+        PyErr_Format(PyExc_MemoryError, "Failed malloc()");
+        break;
+      default:
+        PyErr_Format(PyExc_Exception, "Unknown exception");
+      }
+      SWIG_fail;
+    }
+  }
+  resultobj = SWIG_From_double((double)(result));
+  return resultobj;
+fail:
+  return NULL;
+}
+
+
 SWIGINTERN PyObject *_wrap_simplefold(PyObject *SWIGUNUSEDPARM(self), PyObject *args) {
   PyObject *resultobj = 0;
   float *arg1 = (float *) 0 ;
@@ -14064,6 +14103,7 @@ static PyMethodDef SwigMethods[] = {
 	 { "max_rzw_arr_harmonics", _wrap_max_rzw_arr_harmonics, METH_VARARGS, NULL},
 	 { "max_rzw_arr", _wrap_max_rzw_arr, METH_VARARGS, NULL},
 	 { "barycenter", _wrap_barycenter, METH_VARARGS, NULL},
+	 { "DOF_corr", _wrap_DOF_corr, METH_O, NULL},
 	 { "simplefold", _wrap_simplefold, METH_VARARGS, NULL},
 	 { "nice_output_1", _wrap_nice_output_1, METH_VARARGS, NULL},
 	 { "nice_output_2", _wrap_nice_output_2, METH_VARARGS, NULL},

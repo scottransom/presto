@@ -167,24 +167,3 @@ float estimate_offpulse_redchi2(double *inprofs, foldstats *stats,
 // inverse of the average of the off-pulse reduced-chi^2 (i.e. the
 // correction factor).  dofeff is the effective number of DOF as
 // returned by DOF_corr().
-
-double DOF_corr(double dt_per_bin);
-// Return a multiplicative correction for the effective number of
-// degrees of freedom in the chi^2 measurement resulting from a pulse
-// profile folded by PRESTO's fold() function (i.e. prepfold).  This
-// is required because there are correlations between the bins caused
-// by the way that prepfold folds data (i.e. treating a sample as
-// finite duration and smearing it over potenitally several bins in
-// the profile as opposed to instantaneous and going into just one
-// profile bin).  The correction is semi-analytic (thanks to Paul
-// Demorest and Walter Brisken) but the values for 'power' and
-// 'factor' have been determined from Monte Carlos.  The correction is
-// good to a fractional error of less than a few percent as long as
-// dt_per_bin is > 0.5 or so (which it usually is for pulsar
-// candidates).  There is a very minimal number-of-bins dependence,
-// which is apparent when dt_per_bin < 0.7 or so.  dt_per_bin is the
-// width of a profile bin in samples (a float), and so for prepfold is
-// pulse period / nbins / sample time.  Note that the sqrt of this
-// factor can be used to 'inflate' the RMS of the profile as well, for
-// radiometer eqn flux density estimates, for instance.
-

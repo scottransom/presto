@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import numpy as np
 import sys
-
+#import optparse
 def read_weights(filename):
     """
     reat_weights(filename):
@@ -36,7 +36,9 @@ def build_chanline(weights):
         ii += 1
     if outstr[-1]==':':
         outstr += str(N-1)
+    
     return outstr if outstr[-1]!=',' else outstr[:-1]
+
 
 def build_pazline(chanline):
     """
@@ -49,10 +51,15 @@ def build_pazline(chanline):
             in part else "-z "+part+" "
     return outstr
 
+
+
 if __name__=="__main__":
 
-    if len(sys.argv) != 2:
+
+    if len(sys.argv) < 2:
         print("\nusage: {} file\n".format(sys.argv[0]))
+        print('\nOptionally, save the ignore channel list to a text file with,\n')
+        print("\nusage: {} file <output fname>\n".format(sys.argv[0]))
         sys.exit(1)
 
     # Read the channels and weights
@@ -65,3 +72,8 @@ if __name__=="__main__":
     # Convert it to a paz command
     pazline = build_pazline(chanline)
     print("\n"+pazline)
+
+    # if output file name provided store the channel list to a file
+    if len(sys.argv) == 3:
+        with open(sys.argv[2], 'w') as ignorechan:
+            ignorechan.write(chanline)

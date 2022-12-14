@@ -864,6 +864,17 @@ static void update_infodata(infodata * idata, long datawrote, long padwrote,
         }
     }
 
+    /* If we had padded data before, and added more padding, fix the last onoff */
+    /* This fixes a long-standing bug reported by Megan DeCesar on Aug 29, 2019 */
+
+    if ((idata->onoff[idata->numonoff * 2 - 2] == idata->onoff[idata->numonoff * 2 - 1]) &&
+        (idata->onoff[idata->numonoff * 2 - 1] + padwrote == idata->N -1)) {
+        idata->onoff[idata->numonoff * 2 - 2] = idata->N - 1;
+        idata->onoff[idata->numonoff * 2 - 1] = idata->N - 1;
+        datawrote += padwrote;
+        padwrote = 0;
+    }
+
     /* Now cut off the extra onoff bins */
 
     for (ii = 1, index = 1; ii <= idata->numonoff; ii++, index += 2) {
