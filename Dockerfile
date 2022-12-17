@@ -20,7 +20,6 @@ RUN apt-get update -qq && \
     libx11-dev \
     pgplot5 \
     python3-dev \
-    python3-numpy \
     python3-pip \
     tcsh \
     wget && \
