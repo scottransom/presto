@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Install prerequisites
 ARG DEBIAN_FRONTEND=noninteractive
