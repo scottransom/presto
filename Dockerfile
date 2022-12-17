@@ -6,6 +6,7 @@ RUN apt-get update -qq && \
     apt-get -y --no-install-recommends install \
     autoconf \
     automake \
+    bc \
     build-essential \
     gcc-9 \
     gfortran \
@@ -53,7 +54,7 @@ RUN make libpresto slalib
 WORKDIR /code/presto
 RUN pip3 install /code/presto && \
     sed -i 's/env python/env python3/' /code/presto/bin/*py && \
-    python3 tests/test_presto_python.py 
+    python3 tests/test_presto_python.py
 
 
 # Installs all the C dependancies -----------------------------
@@ -65,11 +66,10 @@ RUN wget https://www.atnf.csiro.au/research/pulsar/psrcat/downloads/psrcat_pkg.t
     tar -xvf psrcat_pkg.tar && \
     rm psrcat_pkg.tar && \
     cd psrcat_tar && \
-    ls && \
     bash makeit && \
     cp psrcat /usr/bin
 ENV PSRCAT_FILE /home/soft/psrcat_tar/psrcat.db
-    
+
 # Install tempo
 RUN git clone https://github.com/nanograv/tempo.git && \
     cd tempo && \
@@ -78,7 +78,7 @@ RUN git clone https://github.com/nanograv/tempo.git && \
     make && \
     make install
 ENV TEMPO /home/soft/tempo
- 
+
 # Install presto
 WORKDIR /code/presto/src
 RUN make makewisdom && \
