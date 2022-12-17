@@ -7,6 +7,7 @@ RUN apt-get update -qq && \
     autoconf \
     automake \
     build-essential \
+    gcc-9 \
     gfortran \
     git \
     latex2html \
@@ -25,6 +26,10 @@ RUN apt-get update -qq && \
     wget && \
     apt-get clean all && \
     rm -r /var/lib/apt/lists/*
+
+# Set gcc version to 9 (prevents psrcat install errors)
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100 && \
+    update-alternatives --config gcc
 
 # Add pgplot environment variables
 ENV PGPLOT_DIR=/usr/local/pgplot
