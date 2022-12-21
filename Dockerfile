@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Install prerequisites
 ARG DEBIAN_FRONTEND=noninteractive
@@ -6,7 +6,9 @@ RUN apt-get update -qq && \
     apt-get -y --no-install-recommends install \
     autoconf \
     automake \
+    bc \
     build-essential \
+    gcc-9 \
     gfortran \
     git \
     latex2html \
@@ -20,12 +22,15 @@ RUN apt-get update -qq && \
     libx11-dev \
     pgplot5 \
     python3-dev \
-    python3-numpy \
     python3-pip \
     tcsh \
     wget && \
     apt-get clean all && \
     rm -r /var/lib/apt/lists/*
+
+# Set gcc version to 9 (prevents psrcat install errors)
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100 && \
+    update-alternatives --config gcc
 
 # Add pgplot environment variables
 ENV PGPLOT_DIR=/usr/local/pgplot
@@ -49,7 +54,7 @@ RUN make libpresto slalib
 WORKDIR /code/presto
 RUN pip3 install /code/presto && \
     sed -i 's/env python/env python3/' /code/presto/bin/*py && \
-    python3 tests/test_presto_python.py 
+    python3 tests/test_presto_python.py
 
 
 # Installs all the C dependancies -----------------------------
@@ -61,11 +66,10 @@ RUN wget https://www.atnf.csiro.au/research/pulsar/psrcat/downloads/psrcat_pkg.t
     tar -xvf psrcat_pkg.tar && \
     rm psrcat_pkg.tar && \
     cd psrcat_tar && \
-    ls && \
     bash makeit && \
     cp psrcat /usr/bin
 ENV PSRCAT_FILE /home/soft/psrcat_tar/psrcat.db
-    
+
 # Install tempo
 RUN git clone https://github.com/nanograv/tempo.git && \
     cd tempo && \
@@ -74,7 +78,7 @@ RUN git clone https://github.com/nanograv/tempo.git && \
     make && \
     make install
 ENV TEMPO /home/soft/tempo
- 
+
 # Install presto
 WORKDIR /code/presto/src
 RUN make makewisdom && \
