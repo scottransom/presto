@@ -45,6 +45,8 @@ typedef struct s_Cmdline {
   char debugP;
   /***** -samples: Treat the data as samples and not as finite-duration integrated data */
   char samplesP;
+  /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+  char normalizeP;
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   char numwappsP;
   int numwapps;

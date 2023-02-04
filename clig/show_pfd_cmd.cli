@@ -20,6 +20,7 @@ Flag -events     events     {The folded data were events instead of samples or b
 Flag -infoonly   infoonly   {Display the pfd info and exit without generating plots.}
 Flag -fixchi     fixchi     {Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1}
 Flag -samples    samples    {Treat the data as samples and not as finite-duration integrated data}
+Flag -normalize  normalize  {Normalize stats for each fold (i.e. to bandpass flatten subbands)}
 String -killsubs killsubsstr {Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step]}
 String -killparts killpartsstr {Comma separated string (no spaces!) of intervals to explicitly remove from analysis (i.e. zero-out).  Ranges are specified by min:max[:step]}
 

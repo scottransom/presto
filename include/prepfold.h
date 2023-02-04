@@ -157,6 +157,12 @@ void correct_subbands_for_DM(double dm, prepfoldinfo *search,
 /* Calculate the DM delays and apply them to the subbands */
 /* to create de-disopersed profiles.                      */
 
+void normalize_stats(double *inprofs, foldstats * stats,
+                    int numparts, int numsubbands, int proflen);
+// Normalize the profiles and statistics for each fold, so that the
+// profile average is ~0.0 and stdev ~1.0.  For weak pulses, this means
+// that the off-pulse RMS is ~1, which should be OK for most pulsars
+// as long as you are folding raw data with many parts and subbands
 
 float estimate_offpulse_redchi2(double *inprofs, foldstats *stats,
                                 int numparts, int numsubbands, 

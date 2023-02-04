@@ -754,6 +754,31 @@ void correct_subbands_for_DM(double dm, prepfoldinfo * search,
     vect_free(dmdelays);
 }
 
+void normalize_stats(double *inprofs, foldstats * stats,
+                    int numparts, int numsubbands, int proflen)
+// Normalize the profiles and statistics for each fold, so that the
+// profile average is ~0.0 and stdev ~1.0.  For weak pulses, this means
+// that the off-pulse RMS is ~1, which should be OK for most pulsars
+// as long as you are folding raw data with many parts and subbands
+{ 
+    int itmp, ii, jj, kk, index;
+    for (ii = 0; ii < numparts; ii++) {
+        index = ii * proflen * numsubbands;
+        for (jj = 0; jj < numsubbands; jj++) {
+            itmp = ii * numsubbands + jj;
+            for (kk = 0; kk < proflen; kk++) {
+                inprofs[index + kk] -= stats[itmp].prof_avg;
+                inprofs[index + kk] /= sqrt(stats[itmp].prof_var);
+            }
+            // scale data_var by the same amount we are scaling prof_var
+            stats[itmp].data_var /= stats[itmp].prof_var;
+            stats[itmp].prof_var = 1.0;
+            stats[itmp].prof_avg = 0.0;
+            stats[itmp].data_avg = 0.0;
+            index += proflen;
+        }
+    }
+}
 
 float estimate_offpulse_redchi2(double *inprofs, foldstats * stats,
                                 int numparts, int numsubbands,

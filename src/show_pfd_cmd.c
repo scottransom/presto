@@ -42,6 +42,8 @@ static Cmdline cmd = {
   /* fixchiP = */ 0,
   /***** -samples: Treat the data as samples and not as finite-duration integrated data */
   /* samplesP = */ 0,
+  /***** -normalize: Normalize stats for each fold (i.e. to bandpass flatten subbands) */
+  /* normalizeP = */ 0,
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   /* killsubsstrP = */ 0,
   /* killsubsstr = */ (char*)0,
@@ -823,6 +825,13 @@ showOptionValues(void)
     printf("-samples found:\n");
   }
 
+  /***** -normalize: Normalize stats for each fold (i.e. to bandpass flatten subbands) */
+  if( !cmd.normalizeP ) {
+    printf("-normalize not found.\n");
+  } else {
+    printf("-normalize found:\n");
+  }
+
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   if( !cmd.killsubsstrP ) {
     printf("-killsubs not found.\n");
@@ -861,7 +870,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-noxwin] [-showfold] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-infoonly] [-fixchi] [-samples] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-noxwin] [-showfold] [-scaleparts] [-allgrey] [-justprofs] [-portrait] [-events] [-infoonly] [-fixchi] [-samples] [-normalize] [-killsubs killsubsstr] [-killparts killpartsstr] [--] infile ...\n");
   fprintf(stderr,"%s","      Displays or regenerates the Postscript for a 'pfd' file created by prepfold.\n");
   fprintf(stderr,"%s","        -noxwin: Do not show the result plots on-screen, only make postscript files\n");
   fprintf(stderr,"%s","      -showfold: Use the input fold paramters (i.e. not the optimized values) when showing the plot\n");
@@ -873,13 +882,14 @@ usage(void)
   fprintf(stderr,"%s","      -infoonly: Display the pfd info and exit without generating plots.\n");
   fprintf(stderr,"%s","        -fixchi: Adjust the reduced chi^2 values so that off-pulse reduced chi^2 = 1\n");
   fprintf(stderr,"%s","       -samples: Treat the data as samples and not as finite-duration integrated data\n");
+  fprintf(stderr,"%s","     -normalize: Normalize stats for each fold (i.e. to bandpass flatten subbands)\n");
   fprintf(stderr,"%s","      -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step]\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","     -killparts: Comma separated string (no spaces!) of intervals to explicitly remove from analysis (i.e. zero-out).  Ranges are specified by min:max[:step]\n");
   fprintf(stderr,"%s","                 1 char* value\n");
   fprintf(stderr,"%s","         infile: The input 'pfd' file name.\n");
   fprintf(stderr,"%s","                 1...100 values\n");
-  fprintf(stderr,"%s","  version: 25Oct20\n");
+  fprintf(stderr,"%s","  version: 04Feb23\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -944,6 +954,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-samples", argv[i]) ) {
       cmd.samplesP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-normalize", argv[i]) ) {
+      cmd.normalizeP = 1;
       continue;
     }
 

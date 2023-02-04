@@ -58,6 +58,8 @@ static Cmdline cmd = {
   /* debugP = */ 0,
   /***** -samples: Treat the data as samples and not as finite-duration integrated data */
   /* samplesP = */ 0,
+  /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+  /* normalizeP = */ 0,
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   /* numwappsP = */ 1,
   /* numwapps = */ 1,
@@ -1085,6 +1087,13 @@ showOptionValues(void)
     printf("-samples found:\n");
   }
 
+  /***** -normalize: Bandpass flatten the data by normalizing the subbands */
+  if( !cmd.normalizeP ) {
+    printf("-normalize not found.\n");
+  } else {
+    printf("-normalize found:\n");
+  }
+
   /***** -numwapps: Number of WAPPs used with contiguous frequencies */
   if( !cmd.numwappsP ) {
     printf("-numwapps not found.\n");
@@ -1726,7 +1735,7 @@ showOptionValues(void)
 void
 usage(void)
 {
-  fprintf(stderr,"%s","   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-topo] [-invert] [-zerodm] [-absphase] [-barypolycos] [-debug] [-samples] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-ignorechan ignorechanstr] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n");
+  fprintf(stderr,"%s","   [-ncpus ncpus] [-o outfile] [-filterbank] [-psrfits] [-noweights] [-noscales] [-nooffsets] [-wapp] [-window] [-topo] [-invert] [-zerodm] [-absphase] [-barypolycos] [-debug] [-samples] [-normalize] [-numwapps numwapps] [-if ifs] [-clip clip] [-noclip] [-noxwin] [-runavg] [-fine] [-coarse] [-slow] [-searchpdd] [-searchfdd] [-nosearch] [-nopsearch] [-nopdsearch] [-nodmsearch] [-scaleparts] [-allgrey] [-fixchi] [-justprofs] [-dm dm] [-n proflen] [-nsub nsub] [-npart npart] [-pstep pstep] [-pdstep pdstep] [-dmstep dmstep] [-npfact npfact] [-ndmfact ndmfact] [-p p] [-pd pd] [-pdd pdd] [-f f] [-fd fd] [-fdd fdd] [-pfact pfact] [-ffact ffact] [-phs phs] [-start startT] [-end endT] [-psr psrname] [-par parname] [-polycos polycofile] [-timing timing] [-rzwcand rzwcand] [-rzwfile rzwfile] [-accelcand accelcand] [-accelfile accelfile] [-bin] [-pb pb] [-x asinic] [-e e] [-To To] [-w w] [-wdot wdot] [-mask maskfile] [-ignorechan ignorechanstr] [-events] [-days] [-mjds] [-double] [-offset offset] [--] infile ...\n");
   fprintf(stderr,"%s","      Prepares (if required) and folds raw radio data, standard time series, or events.\n");
   fprintf(stderr,"%s","          -ncpus: Number of processors to use with OpenMP\n");
   fprintf(stderr,"%s","                  1 int value between 1 and oo\n");
@@ -1747,6 +1756,7 @@ usage(void)
   fprintf(stderr,"%s","    -barypolycos: Force the use of polycos for barycentered events\n");
   fprintf(stderr,"%s","          -debug: Show debugging output when calling TEMPO for polycos\n");
   fprintf(stderr,"%s","        -samples: Treat the data as samples and not as finite-duration integrated data\n");
+  fprintf(stderr,"%s","      -normalize: Bandpass flatten the data by normalizing the subbands\n");
   fprintf(stderr,"%s","       -numwapps: Number of WAPPs used with contiguous frequencies\n");
   fprintf(stderr,"%s","                  1 int value between 1 and 8\n");
   fprintf(stderr,"%s","                  default: `1'\n");
@@ -1871,7 +1881,7 @@ usage(void)
   fprintf(stderr,"%s","                  default: `0'\n");
   fprintf(stderr,"%s","          infile: Input data file name.  If the data is not in a regognized raw data format, it should be a file containing a time series of single-precision floats or short ints.  In this case a '.inf' file with the same root filename must also exist (Note that this means that the input data file must have a suffix that starts with a period)\n");
   fprintf(stderr,"%s","                  1...16384 values\n");
-  fprintf(stderr,"%s","  version: 25Oct20\n");
+  fprintf(stderr,"%s","  version: 04Feb23\n");
   fprintf(stderr,"%s","  ");
   exit(EXIT_FAILURE);
 }
@@ -1973,6 +1983,11 @@ parseCmdline(int argc, char **argv)
 
     if( 0==strcmp("-samples", argv[i]) ) {
       cmd.samplesP = 1;
+      continue;
+    }
+
+    if( 0==strcmp("-normalize", argv[i]) ) {
+      cmd.normalizeP = 1;
       continue;
     }
 

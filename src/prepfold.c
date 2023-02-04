@@ -1383,6 +1383,13 @@ int main(int argc, char *argv[])
      */
 
     printf("\n\nOptimizing...\n\n");
+
+    // Normalize the profiles if requested (this changes the stats in
+    // the .ofd file, unlike if you use this option for show_pfd)
+    if (cmd->normalizeP)
+        normalize_stats(search.rawfolds, search.stats, \
+            search.npart, search.nsub, search.proflen);
+
     bestprof = gen_dvect(search.proflen);
     {
         int numtrials, totpdelay;

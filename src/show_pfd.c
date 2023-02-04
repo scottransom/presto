@@ -48,12 +48,19 @@ int main(int argc, char *argv[])
     print_prepfoldinfo(&search);
     if (cmd->infoonlyP)
         return 0;
+
+    // Normalize the profiles if requested (for plotting only)
+    // The .pfd file is not changed.
+    if (cmd->normalizeP)
+        normalize_stats(search.rawfolds, search.stats, \
+            search.npart, search.nsub, search.proflen);
+
     /*
      *   Zap requested subbands or intervals
      */
 
     {
-        int *killparts, *killsubs, ii, jj, kk, index;
+        int *killparts, *killsubs, ii, jj, kk, index, itmp;
         int numkillparts = 0, numkillsubs = 0;
 
         if (cmd->killpartsstrP) {
@@ -63,10 +70,11 @@ int main(int argc, char *argv[])
                 if ((killparts[ii] >= 0) && (killparts[ii] < search.npart)) {
                     index = killparts[ii] * search.proflen * search.nsub;
                     for (jj = 0; jj < search.nsub; jj++) {
-                        search.stats[killparts[ii] * search.nsub + jj].prof_var =
-                            0.0;
-                        search.stats[killparts[ii] * search.nsub + jj].prof_avg =
-                            0.0;
+                        itmp = killparts[ii] * search.nsub + jj;
+                        search.stats[itmp].prof_var = 0.0;
+                        search.stats[itmp].prof_avg = 0.0;
+                        search.stats[itmp].data_var = 0.0;
+                        search.stats[itmp].data_avg = 0.0;
                         for (kk = 0; kk < search.proflen; kk++)
                             search.rawfolds[index + kk] = 0.0;
                         index += search.proflen;
@@ -81,9 +89,12 @@ int main(int argc, char *argv[])
             for (ii = 0; ii < numkillsubs; ii++) {
                 if ((killsubs[ii] >= 0) && (killsubs[ii] < search.nsub)) {
                     for (jj = 0; jj < search.npart; jj++) {
-                        index = search.proflen * (jj * search.nsub + killsubs[ii]);
-                        search.stats[jj * search.nsub + killsubs[ii]].prof_var = 0.0;
-                        search.stats[jj * search.nsub + killsubs[ii]].prof_avg = 0.0;
+                        itmp = jj * search.nsub + killsubs[ii];
+                        search.stats[itmp].prof_var = 0.0;
+                        search.stats[itmp].prof_avg = 0.0;
+                        search.stats[itmp].data_var = 0.0;
+                        search.stats[itmp].data_avg = 0.0;
+                        index = search.proflen * itmp;
                         for (kk = 0; kk < search.proflen; kk++)
                             search.rawfolds[index + kk] = 0.0;
                     }

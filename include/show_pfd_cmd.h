@@ -29,6 +29,8 @@ typedef struct s_Cmdline {
   char fixchiP;
   /***** -samples: Treat the data as samples and not as finite-duration integrated data */
   char samplesP;
+  /***** -normalize: Normalize stats for each fold (i.e. to bandpass flatten subbands) */
+  char normalizeP;
   /***** -killsubs: Comma separated string (no spaces!) of subbands to explicitly remove from analysis (i.e. zero out).  Ranges are specified by min:max[:step] */
   char killsubsstrP;
   char* killsubsstr;
