@@ -762,17 +762,26 @@ void normalize_stats(double *inprofs, foldstats * stats,
 // as long as you are folding raw data with many parts and subbands
 { 
     int itmp, ii, jj, kk, index;
+    float prms;
     for (ii = 0; ii < numparts; ii++) {
         index = ii * proflen * numsubbands;
         for (jj = 0; jj < numsubbands; jj++) {
             itmp = ii * numsubbands + jj;
-            for (kk = 0; kk < proflen; kk++) {
-                inprofs[index + kk] -= stats[itmp].prof_avg;
-                inprofs[index + kk] /= sqrt(stats[itmp].prof_var);
+            prms = sqrt(stats[itmp].prof_var);
+            if (prms==0.0) {
+                for (kk = 0; kk < proflen; kk++)
+                    inprofs[index + kk] = 0.0;
+                stats[itmp].data_var = 0.0;
+                stats[itmp].prof_var = 0.0;
+            } else {
+                for (kk = 0; kk < proflen; kk++) {
+                    inprofs[index + kk] -= stats[itmp].prof_avg;
+                    inprofs[index + kk] /= prms;
+                }
+                // scale data_var by the same amount we are scaling prof_var
+                stats[itmp].data_var /= stats[itmp].prof_var;
+                stats[itmp].prof_var = 1.0;
             }
-            // scale data_var by the same amount we are scaling prof_var
-            stats[itmp].data_var /= stats[itmp].prof_var;
-            stats[itmp].prof_var = 1.0;
             stats[itmp].prof_avg = 0.0;
             stats[itmp].data_avg = 0.0;
             index += proflen;
