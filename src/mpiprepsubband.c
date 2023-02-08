@@ -146,6 +146,7 @@ int main(int argc, char *argv[])
         s.apply_scale = (cmd->noscalesP) ? 0 : -1;
         s.apply_offset = (cmd->nooffsetsP) ? 0 : -1;
         s.remove_zerodm = (cmd->zerodmP) ? 1 : 0;
+        s.num_ignorechans = 0;
 
         if (RAWDATA) {
             if (cmd->filterbankP)
