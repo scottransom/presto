@@ -322,6 +322,12 @@ int main(int argc, char *argv[])
     // Broadcast the raw data information
 
     broadcast_spectra_info(&s, myid);
+    // Broadcast the ignorechans stuff separately, since that was an add-on
+    MPI_Bcast(&s.num_ignorechans, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    if (s.num_ignorechans) {
+        if (myid > 0) s.ignorechans = gen_ivect(s.num_ignorechans);
+        MPI_Bcast(s.ignorechans, s.num_ignorechans, MPI_INT, 0, MPI_COMM_WORLD);
+    }
     if (myid > 0) {
         spectra_info_to_inf(&s, &idata);
         if (s.datatype == SIGPROCFB)
