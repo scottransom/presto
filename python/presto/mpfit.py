@@ -135,7 +135,7 @@ Perform Levenberg-Marquardt least-squares minimization, based on MINPACK-1.
     # stop the calculation.
     status = 0
     if (dojac):
-       pderiv = numpy.zeros([len(x), len(p)], numpy.float)
+       pderiv = numpy.zeros([len(x), len(p)], numpy.float64)
        for j in range(len(p)):
          pderiv[:,j] = FGRAD(x, p, j)
     else:
@@ -273,7 +273,7 @@ Perform Levenberg-Marquardt least-squares minimization, based on MINPACK-1.
 
    import mpfit
    import numpy
-   x = numpy.arange(100, numpy.float)
+   x = numpy.arange(100, numpy.float64)
    p0 = [5.7, 2.2, 500., 1.5, 2000.]
    y = ( p[0] + p[1]*[x] + p[2]*[x**2] + p[3]*numpy.sqrt(x) +
          p[4]*numpy.log(x))
@@ -893,7 +893,7 @@ Keywords:
             return
 
       ## Make sure parameters are numpy arrays of type numpy.float
-      xall = numpy.asarray(xall, numpy.float)
+      xall = numpy.asarray(xall, numpy.float64)
 
       npar = len(xall)
       self.fnorm  = -1.
@@ -991,7 +991,7 @@ Keywords:
          self.errmsg = ''
 
       # Make sure x is a numpy array of type numpy.float
-      x = numpy.asarray(x, numpy.float)
+      x = numpy.asarray(x, numpy.float64)
 
       [self.status, fvec] = self.call(fcn, self.params, functkw)
       if (self.status < 0):
@@ -1324,14 +1324,14 @@ Keywords:
 
             ## Fill in actual covariance matrix, accounting for fixed
             ## parameters.
-            self.covar = numpy.zeros([nn, nn], numpy.float)
+            self.covar = numpy.zeros([nn, nn], numpy.float64)
             for i in range(n):
                indices = ifree+ifree[i]*n
                numpy.put(self.covar, indices, cv[:,i])
 
             ## Compute errors in parameters
             catch_msg = 'computing parameter errors'
-            self.perror = numpy.zeros(nn, numpy.float)
+            self.perror = numpy.zeros(nn, numpy.float64)
             d = numpy.diagonal(self.covar).copy()
             wh, = numpy.nonzero(d >= 0)
             if len(wh) > 0:
@@ -1403,9 +1403,9 @@ Keywords:
       test = default
       if (type(default) == list): test=default[0]
       if isinstance(test, int):
-         values = numpy.asarray(values, numpy.int)
+         values = numpy.asarray(values, numpy.int64)
       elif isinstance(test, float):
-         values = numpy.asarray(values, numpy.float)
+         values = numpy.asarray(values, numpy.float64)
       return(values)
 
 
@@ -1477,7 +1477,7 @@ Keywords:
       ## Compute analytical derivative if requested
       if (autoderivative == 0):
          mperr = 0
-         fjac = numpy.zeros(nall, numpy.float)
+         fjac = numpy.zeros(nall, numpy.float64)
          numpy.put(fjac, ifree, 1.0)  ## Specify which parameters need derivatives
          [status, fp, pderiv] = self.call(fcn, xall, functkw, fjac=fjac)
 
@@ -1497,7 +1497,7 @@ Keywords:
             fjac.shape = [m, n]
             return(fjac)
 
-      fjac = numpy.zeros([m, n], numpy.float)
+      fjac = numpy.zeros([m, n], numpy.float64)
 
       h = eps * abs(x)
 
@@ -1682,7 +1682,7 @@ Keywords:
       n = sz[1]
 
       ## Compute the initial column norms and initialize arrays
-      acnorm = numpy.zeros(n, numpy.float)
+      acnorm = numpy.zeros(n, numpy.float64)
       for j in range(n):
          acnorm[j] = self.enorm(a[:,j])
       rdiag = acnorm.copy()
