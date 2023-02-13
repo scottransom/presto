@@ -1162,7 +1162,7 @@ def fft_rotate(arr, bins):
             the same length as the original.
     """
     arr = Num.asarray(arr)
-    freqs = Num.arange(arr.size / 2 + 1, dtype=Num.float)
+    freqs = Num.arange(arr.size / 2 + 1, dtype=float)
     phasor = Num.exp(complex(0.0, pc.TWOPI) * freqs * bins / float(arr.size))
     return Num.fft.irfft(phasor * Num.fft.rfft(arr), arr.size)
 

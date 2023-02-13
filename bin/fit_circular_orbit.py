@@ -37,7 +37,7 @@ def parse_eph(filenm):
     else:
         print("I don't recognize the file type for", filenm)
         sys.exit()
-    newts = epoch + num.arange(int(T/10.0+0.5), dtype=num.float)/8640.0
+    newts = epoch + num.arange(int(T/10.0+0.5), dtype=float)/8640.0
     time = num.concatenate((time, newts))
     newps = 1.0 / pu.calc_freq(newts, epoch, *fs)
     period = num.concatenate((period, newps))

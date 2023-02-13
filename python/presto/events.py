@@ -17,7 +17,7 @@ def sine_events(pulsed_frac, Nevents, phase=0.0):
     """
     Nsrc = int(pulsed_frac*Nevents+0.5)
     Nbak = Nevents - Nsrc
-    phases = Num.zeros(Nevents, dtype=Num.float)
+    phases = Num.zeros(Nevents, dtype=float)
     phases[:Nsrc] += cosine_rand(Nsrc) + phase
     phases[Nsrc:] += Num.random.random(Nbak)
     phases = Num.fmod(phases, 1.0)
@@ -35,7 +35,7 @@ def gaussian_events(pulsed_frac, Nevents, fwhm, phase=0.0):
     sigma = fwhm / 2.35482
     Nsrc = int(pulsed_frac*Nevents+0.5)
     Nbak = Nevents - Nsrc
-    phases = Num.zeros(Nevents, dtype=Num.float)
+    phases = Num.zeros(Nevents, dtype=float)
     phases[:Nsrc] += Num.random.standard_normal(Nsrc)*sigma + phase
     phases[Nsrc:] += Num.random.random(Nbak)
     phases = Num.fmod(phases, 1.0)
@@ -62,7 +62,7 @@ def DFTexact(times, f, maxnumharms=20):
        corresponding to the harmonics of the 'times' (in sec)
        with a fundamental at frequency 'f' Hz.
     """
-    const = -TWOPI*(Num.arange(maxnumharms, dtype=Num.float)+1.0)*f*complex(0.0, 1.0)
+    const = -TWOPI*(Num.arange(maxnumharms, dtype=float)+1.0)*f*complex(0.0, 1.0)
     return Num.add.reduce(Num.exp(Num.outerproduct(const,times)), axis=1)
 
 def incoherent_sum(amps):
@@ -84,7 +84,7 @@ def coherent_sum(amps):
     phss = Num.arctan2(amps.imag, amps.real)
     phs0 = phss[0]
     phscorr = phs0 - Num.fmod(Num.arange(1.0, len(amps)+1,
-                                         dtype=Num.float)*phs0, TWOPI)
+                                         dtype=float)*phs0, TWOPI)
     sumamps = Num.add.accumulate(amps*Num.exp(complex(0.0, 1.0)*phscorr))
     return Num.abs(sumamps)**2.0
 
