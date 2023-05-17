@@ -1,0 +1,30 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: PRESTO
+message: >-
+  If you use this software, please at least cite the ASCL
+  link below, but even better, please cite the relevant
+  research papers as listed in the README.
+type: software
+authors:
+  - given-names: Scott
+    family-names: Ransom
+    email: sransom@nrao.edu
+    name-particle: Scott
+    affiliation: NRAO / Univ. of Virginia
+    orcid: 'https://orcid.org/0000-0001-5799-9714'
+identifiers:
+  - type: url
+    value: 'https://ascl.net/1107.017'
+    description: ASCL entry
+repository-code: 'https://github.com/scottransom/presto'
+abstract: >-
+  PRESTO is a large suite of pulsar search and analysis
+  software developed primarily by Scott Ransom.
+keywords:
+  - astronomy
+  - pulsars
+  - timing
+license: GPL-2.0+
