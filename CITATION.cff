@@ -12,7 +12,6 @@ authors:
   - given-names: Scott
     family-names: Ransom
     email: sransom@nrao.edu
-    name-particle: Scott
     affiliation: NRAO / Univ. of Virginia
     orcid: 'https://orcid.org/0000-0001-5799-9714'
 identifiers:
@@ -28,3 +27,52 @@ keywords:
   - pulsars
   - timing
 license: GPL-2.0+
+preferred-citation:
+  title: "New search techniques for binary pulsars"
+  notes: "Cite this for general uses of PRESTO"
+  year: "2001"
+  type: generic
+  thesis-type: "PhD thesis"
+  authors:
+    - family-names: Ransom
+      given-names: Scott M.
+  institution:
+    name: "Harvard University"
+references:
+  - title: "Fourier Techniques for Very Long Astrophysical Time-Series Analysis"
+    notes: "Cite this if you use accelsearch (acceleration search)"
+    doi: "10.1086/342285"
+    year: "2002"
+    type: article
+    journal: "AJ"
+    authors:
+      - family-names: Ransom
+        given-names: Scott M.
+      - family-names: Eikenberry
+        given-names: Stephen S.
+      - family-names: Middleditch
+        given-names: John.
+  - title: "A New Search Technique for Short Orbital Period Binary Pulsars"
+    notes: "Cite this if you use searchbin (phase modulation search)"
+    doi: "10.1086/374806"
+    year: "2003"
+    type: article
+    journal: "ApJ"
+    authors:
+      - family-names: Ransom
+        given-names: Scott M.
+      - family-names: Cordes
+        given-names: James M.
+      - family-names: Eikenberry
+        given-names: Stephen S.
+  - title: "A Fourier Domain \textquotedblleftJerk\textquotedblright Search for Binary Pulsars"
+    notes: "Cite this if you use accelsearch (jerk search)"
+    doi: "10.3847/2041-8213/aad59f"
+    year: "2018"
+    type: article
+    journal: "ApJL"
+    authors:
+      - family-names: Andersen
+        given-names: Bridget C.
+      - family-names: Ransom
+        given-names: Scott M.
