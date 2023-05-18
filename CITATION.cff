@@ -5,8 +5,8 @@ cff-version: 1.2.0
 title: PRESTO
 message: >-
   If you use this software, please at least cite the ASCL
-  link below, but even better, please cite the relevant
-  research papers as listed below or in the README.
+  link below. But even better, please cite the relevant
+  research papers listed below or in the README.
 type: software
 authors:
   - given-names: Scott
