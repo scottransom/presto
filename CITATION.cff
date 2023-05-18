@@ -26,7 +26,7 @@ keywords:
   - astronomy
   - pulsars
   - timing
-license: GPL-2.0+
+license: GPL-2.0
 preferred-citation:
   title: "New search techniques for binary pulsars"
   notes: "Cite this for general uses of PRESTO"
@@ -38,6 +38,7 @@ preferred-citation:
       given-names: Scott M.
   institution:
     name: "Harvard University"
+  url: "https://ui.adsabs.harvard.edu/abs/2001PhDT.......123R"
 references:
   - title: "Fourier Techniques for Very Long Astrophysical Time-Series Analysis"
     notes: "Cite this if you use accelsearch (acceleration search)"
@@ -52,6 +53,7 @@ references:
         given-names: Stephen S.
       - family-names: Middleditch
         given-names: John.
+    url: "https://ui.adsabs.harvard.edu/abs/2002AJ....124.1788R"
   - title: "A New Search Technique for Short Orbital Period Binary Pulsars"
     notes: "Cite this if you use searchbin (phase modulation search)"
     doi: "10.1086/374806"
@@ -65,6 +67,7 @@ references:
         given-names: James M.
       - family-names: Eikenberry
         given-names: Stephen S.
+    url: "https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R"
   - title: "A Fourier Domain \textquotedblleftJerk\textquotedblright Search for Binary Pulsars"
     notes: "Cite this if you use accelsearch (jerk search)"
     doi: "10.3847/2041-8213/aad59f"
@@ -76,3 +79,4 @@ references:
         given-names: Bridget C.
       - family-names: Ransom
         given-names: Scott M.
+    url: "https://ui.adsabs.harvard.edu/abs/2018ApJ...863L..13A"
