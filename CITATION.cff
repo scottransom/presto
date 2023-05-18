@@ -6,7 +6,7 @@ title: PRESTO
 message: >-
   If you use this software, please at least cite the ASCL
   link below, but even better, please cite the relevant
-  research papers as listed in the README.
+  research papers as listed below or in the README.
 type: software
 authors:
   - given-names: Scott
@@ -68,7 +68,7 @@ references:
       - family-names: Eikenberry
         given-names: Stephen S.
     url: "https://ui.adsabs.harvard.edu/abs/2003ApJ...589..911R"
-  - title: "A Fourier Domain \textquotedblleftJerk\textquotedblright Search for Binary Pulsars"
+  - title: "A Fourier Domain Jerk Search for Binary Pulsars"
     notes: "Cite this if you use accelsearch (jerk search)"
     doi: "10.3847/2041-8213/aad59f"
     year: "2018"
