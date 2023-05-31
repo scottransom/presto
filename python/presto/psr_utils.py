@@ -1666,16 +1666,14 @@ def equivalent_gaussian_sigma(p):
             words, return x, such that Q(x) = p, where Q(x) is the
             cumulative normal distribution.  For very small
     """
-    logp = Num.log(p)
-    if type(1.0) == type(logp):
-        if logp > -30.0:
-            return ndtri(1.0 - p)
-        else:
-            return extended_equiv_gaussian_sigma(logp)
-    else:  # Array input
-        return Num.where(logp > -30.0,
-                         ndtri(1.0 - p),
-                         extended_equiv_gaussian_sigma(logp))
+    if Num.isscalar(p):
+        logp = Num.log(p)
+        return ndtri(1.0 - p) if logp > -30.0 else extended_equiv_gaussian_sigma(logp)
+    else: # logp is an array
+        return _vec_equivalent_gaussian_sigma(p)
+
+_vec_equivalent_gaussian_sigma = Num.vectorize(equivalent_gaussian_sigma,
+                                               doc="Vectorized `equivalent_gaussian_sigma` over p")
 
 
 def extended_equiv_gaussian_sigma(logp):
@@ -1763,17 +1761,19 @@ def log_prob_sum_powers(power, nsum):
     # = Q(power*2|nsum*2)  (from A&S 26.4.19)
     # = Gamma(nsum,power)/Gamma(nsum)
     # = [Gamma(nsum) - gamma(nsum,power)]/Gamma(nsum)
-    if type(1.0) == type(power):
-        if power < 100.0:
-            return Num.log(prob_sum_powers(power, nsum))
-        else:
-            return log_asymtotic_incomplete_gamma(nsum, power) - \
-                   log_asymtotic_gamma(nsum)
-    else:
-        return Num.where(power < 100.0,
-                         Num.log(prob_sum_powers(power, nsum)),
-                         log_asymtotic_incomplete_gamma(nsum, power) - \
-                         log_asymtotic_gamma(nsum))
+    #
+    # For chi^2 dist with dof=2*nsum, mean=dof and var=2*dof
+    # And our powers are 1/2 what they should be in chi^2 dist
+    # Set our cutoff above ~10 sigma
+    thresh = 0.5 * (2 * nsum + 10 * Num.sqrt(4 * nsum)) # (mean + 10*std) / 2
+    if Num.isscalar(power):
+        return Num.log(prob_sum_powers(power, nsum)) if power < thresh \
+                else log_asymtotic_incomplete_gamma(nsum, power) - log_asymtotic_gamma(nsum)
+    else: # power is an array
+        return _vec_log_prob_sum_powers(power, nsum)
+
+_vec_log_prob_sum_powers = Num.vectorize(log_prob_sum_powers,
+                                         doc="Vectorized `log_prob_sum_powers` over powers")
 
 
 def sigma_power(power):
@@ -1783,15 +1783,14 @@ def sigma_power(power):
         to exceed a normalized power level given as 'power'
         in a power spectrum.
     """
-    if type(1.0) == type(power):
-        if power > 36.0:
-            return Num.sqrt(2.0 * power - Num.log(pc.PI * power))
-        else:
-            return equivalent_gaussian_sigma(prob_power(power))
-    else:
-        return Num.where(power > 36.0,
-                         Num.sqrt(2.0 * power - Num.log(pc.PI * power)),
-                         extended_equiv_gaussian_sigma(log_prob_sum_powers(power, 1)))
+    if Num.isscalar(power):
+        return Num.sqrt(2.0 * power - Num.log(pc.PI * power)) if power > 36.0 \
+            else equivalent_gaussian_sigma(prob_power(power))
+    else: # power is an array
+        return _vec_sigma_power(power)
+
+_vec_sigma_power = Num.vectorize(sigma_power,
+                                 doc="Vectorized `sigma_power` over powers")
 
 
 def sigma_sum_powers(power, nsum):
@@ -1801,15 +1800,18 @@ def sigma_sum_powers(power, nsum):
         to exceed a sum of 'nsum' normalized powers given by 'power'
         in a power spectrum.
     """
-    if type(1.0) == type(power):
-        if power < 100.0:
-            return equivalent_gaussian_sigma(prob_sum_powers(power, nsum))
-        else:
-            return extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum))
-    else:  # Array input
-        return Num.where(power < 100.0,
-                         equivalent_gaussian_sigma(prob_sum_powers(power, nsum)),
-                         extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum)))
+    # For chi^2 dist with dof=2*nsum, mean=dof and var=2*dof
+    # And our powers are 1/2 what they should be in chi^2 dist
+    # Set our cutoff above ~10 sigma
+    thresh = 0.5 * (2 * nsum + 10 * Num.sqrt(4 * nsum)) # (mean + 10*std) / 2
+    if Num.isscalar(power):
+        return equivalent_gaussian_sigma(prob_sum_powers(power, nsum)) if power < thresh \
+            else extended_equiv_gaussian_sigma(log_prob_sum_powers(power, nsum))
+    else: # power is an array
+        return _vec_sigma_sum_powers(power, nsum)
+
+_vec_sigma_sum_powers = Num.vectorize(sigma_sum_powers,
+                                      doc="Vectorized `sigma_sum_powers` over powers")
 
 
 def power_at_sigma(sigma):
