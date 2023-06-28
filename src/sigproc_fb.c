@@ -132,6 +132,10 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
         strcpy(s->telescope, "FAST");
         s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 350.0);
         break;
+    case 30:
+        strcpy(s->telescope, "MWA");
+        s->beam_FWHM = default_beam;
+        break;
     case 64:
         strcpy(s->telescope, "MeerKAT");
         s->beam_FWHM = default_beam;
@@ -183,6 +187,9 @@ void get_backend_name(int machine_id, struct spectra_info *s)
         break;
     case 20:
         strcpy(string, "CHIME+PSR");
+        break;
+    case 30:
+        strcpy(string, "MWA-VCS");
         break;
     case 64:
         strcpy(string, "KAT");
