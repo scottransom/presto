@@ -268,7 +268,7 @@ void telescope_to_tempocode(char *inname, char *outname, char *obscode)
         strcpy(outname, "LWA1");
     } else if (strcmp(scope, "mwa") == 0 ) {
         strcpy(obscode, "MW");
-        strcpy(outname, "MWA128T");
+        strcpy(outname, "MWA");
     } else if (strcmp(scope, "meerkat") == 0 ) {
         strcpy(obscode, "MK");
         strcpy(outname, "MeerKAT");
