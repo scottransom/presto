@@ -46,7 +46,7 @@ class binary_psr(object):
     def __init__(self, parfilenm):
         self.par = parfile.psr_par(parfilenm)
         if not hasattr(self.par, 'BINARY'):
-            print("'%s' doesn't contain parameters for a binary pulsar!")
+            print(f"'{parfilenm}' doesn't contain parameters for a binary pulsar!")
             return None
         self.PBsec = self.par.PB*SECPERDAY
         self.T0 = self.par.T0
