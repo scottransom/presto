@@ -70,12 +70,13 @@ def main():
             print(f"Eccentricity: {psr.par.ECC:.6g}")
             print(f"Mcmin (Msun): {pu.companion_mass_limit(psr.par.PB, psr.par.A1):.6f}")
             print(f"Mcmed (Msun): {pu.companion_mass(psr.par.PB, psr.par.A1):.6f}")
+            if hasattr(psr.par, "OMDOT"):
+                print(f"Mtot (Msun):  {pu.OMDOT_to_Mtot(psr.par.OMDOT, psr.par.PB, psr.par.ECC):.6f}")
             if opts.duration < 0.15 * psr.PBsec:
                 pvals = np.polyfit((times - times[0]) * 86400.0, ps / 1000.0, deg=2, full=False)
                 # Note:  the pvals[0] * 2 is because there is a 1/2 factor for Taylor expansion
-                print(f"Fold observation with: prepfold -p {pvals[2]} -pd {pvals[1]} -pdd {pvals[0] * 2} {inf.basenm if inf else '...'}.dat")
-            if hasattr(psr.par, "OMDOT"):
-                print(f"Mtot (Msun):  {pu.OMDOT_to_Mtot(psr.par.OMDOT, psr.par.PB, psr.par.ECC):.6f}")
+                print(f"\nFold observation with:\nprepfold -p {pvals[2]} -pd {pvals[1]} "
+                      f"-pdd {pvals[0] * 2} {inf.basenm if inf else '...'}.dat")
             if opts.plot:
                 if opts.plot=="v":
                     vals = rvs
