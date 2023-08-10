@@ -63,3 +63,4 @@ MANIFEST
 dist/
 .mypy_cache/
 .vscode/
+build/

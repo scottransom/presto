@@ -55,6 +55,7 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
   [-n numTOAs, --numtoas=numTOAs]    : Divide the fold into numTOAs parts
   [-d DM, --dm=DM]                   : Re-combine subbands at DM
   [-f, --FFTFITouts]                 : Print all FFTFIT outputs and errors
+  [-p, --phase]                      : Include prepfold phase in TOA flags
   [-g gausswidth, --gaussian=width]  : Use a Gaussian template of FWHM width
                                        or, if the arg is a string, read the file
                                        to get multiple-gaussian parameters
@@ -101,8 +102,8 @@ usage:  get_TOAs.py [options which must include -t or -g] pfd_file
 
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "herf2s:n:d:g:t:o:k:i:",
-                                   ["help", "event", "norotate", "FFTFITouts",
+        opts, args = getopt.getopt(sys.argv[1:], "herfp2s:n:d:g:t:o:k:i:",
+                                   ["help", "event", "norotate", "FFTFITouts", "phase",
                                     "tempo2","subbands=", "numtoas=", "dm=", "gaussian=",
                                     "template=", "offset=", "kill=", "kints="])
                                     
@@ -122,6 +123,7 @@ if __name__ == '__main__':
     numsubbands = 1
     numtoas = 1
     otherouts = 0
+    incphs = 0
     offset = 0.0
     events = 0
     t2format = False
@@ -133,6 +135,9 @@ if __name__ == '__main__':
             sys.exit()
         if o in ("-f", "--FFTFITouts"):
             otherouts = 1
+        if o in ("-p", "--phase"):
+            incphs = 1
+            t2format = True
         if o in ("-r", "--norotate"):
             rotate_prof = False
         if o in ("-2", "--tempo2"):
@@ -390,9 +395,10 @@ if __name__ == '__main__':
                 toaf = t0f + (tau_tot*p + offset)/SECPERDAY
                 newdays = int(Num.floor(toaf))
                 if t2format:
-                    psr_utils.write_tempo2_toa(t0i+newdays, toaf-newdays,
-                                                  tau_err*p*1000000.0,
-                                                  sumsubfreqs[jj], 0.0, name=fold_pfd.pfd_filename, obs=obs)
+                    flags = f"-ffphs {tau % 1:.4f} -fferr {tau_err:.4f}" if incphs else ""
+                    psr_utils.write_tempo2_toa(t0i+newdays, toaf-newdays, tau_err*p*1000000.0,
+                                                  sumsubfreqs[jj], 0.0, name=fold_pfd.pfd_filename,
+                                                  obs=obs, flags=flags)
                 else:
                     psr_utils.write_princeton_toa(t0i+newdays, toaf-newdays,
                                                   tau_err*p*1000000.0,
