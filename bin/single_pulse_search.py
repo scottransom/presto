@@ -2,7 +2,7 @@
 from __future__ import print_function
 from builtins import str, zip
 from optparse import OptionParser
-import bisect, os, sys, glob
+import bisect, os, sys, glob, gzip
 import numpy as np
 import scipy, scipy.signal, scipy.stats
 from presto.presto import rfft, next2_to_n
@@ -167,6 +167,7 @@ usage:  single_pulse_search.py [options] .dat files _or_ .singlepulse files
   [-f, --fast]        : Use a less-accurate but much faster method of detrending
   [-b, --nobadblocks] : Don't check for bad-blocks (may save strong pulses)
   [-d, --detrendlen]  : Chunksize for detrending (pow-of-2 in 1000s, default=1)
+  [-z, --gzip]        : gzip the output .singlepulse files
 
   Perform a single-pulse search (or simply re-plot the results of a
   single-pulse search) on a set of de-dispersed time series (.dat
@@ -241,7 +242,7 @@ def read_singlepulse_files(infiles, threshold, T_start, T_end):
     candlist = []
     num_v_DMstr = {}
     for ii, infile in enumerate(infiles):
-        if infile.endswith(".singlepulse"):
+        if infile.endswith(".singlepulse") or infile.endswith(".singlepulse.gz"):
             filenmbase = infile[:infile.rfind(".singlepulse")]
         else:
             filenmbase = infile
@@ -289,6 +290,8 @@ def main():
                       default=True, help="Don't check for bad-blocks (may save strong pulses)")
     parser.add_option("-d", "--detrendlen", type="int", dest="detrendfact", default=1,
                       help="Chunksize for detrending (pow-of-2 in 1000s)")
+    parser.add_option("-z", "--gzip", action="store_true", dest="gzip",
+                      default=False, help="gzip the output .singlepulse files")
     (opts, args) = parser.parse_args()
     if len(args)==0:
         if opts.globexp==None:
@@ -319,7 +322,7 @@ def main():
     max_downfact = 30
     default_downfacts = [2, 3, 4, 6, 9, 14, 20, 30, 45, 70, 100, 150, 220, 300]
 
-    if args[0].endswith(".singlepulse"):
+    if args[0].endswith(".singlepulse") or args[0].endswith(".singlepulse.gz"):
         filenmbase = args[0][:args[0].rfind(".singlepulse")]
         dosearch = False
     elif args[0].endswith(".dat"):
@@ -370,8 +373,6 @@ def main():
                 # If last break spans to end of file, don't read it in (its just padding)
                 if offregions[-1][1] == N - 1:
                     N = offregions[-1][0] + 1
-
-            outfile = open(filenmbase+'.singlepulse', mode='w')
 
             # Compute the file length in detrendlens
             roundN = N // detrendlen * detrendlen
@@ -530,13 +531,19 @@ def main():
             # Get rid of those near padding regions
             if info.breaks: prune_border_cases(dm_candlist, offregions)
 
-            # Write the pulses to an ASCII output file
-            if len(dm_candlist):
-                #dm_candlist.sort(cmp_sigma)
-                outfile.write("# DM      Sigma      Time (s)     Sample    Downfact\n")
-                for cand in dm_candlist:
-                    outfile.write(str(cand))
-            outfile.close()
+            # Write the pulses to an ASCII output file, otherwise make an empty file
+            if opts.gzip:
+                with gzip.GzipFile(filenmbase+'.singlepulse.gz', mode='w') as outfile:
+                    if len(dm_candlist):
+                        outfile.write("# DM      Sigma      Time (s)     Sample    Downfact\n".encode('utf-8'))
+                        for cand in dm_candlist:
+                            outfile.write(str(cand).encode('utf-8'))
+            else: # not gzipped
+                with open(filenmbase+'.singlepulse', mode='w') as outfile:
+                    if len(dm_candlist):
+                        outfile.write("# DM      Sigma      Time (s)     Sample    Downfact\n")
+                        for cand in dm_candlist:
+                            outfile.write(str(cand))
 
             # Add these candidates to the overall candidate list
             for cand in dm_candlist:
