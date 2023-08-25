@@ -56,7 +56,7 @@ def main():
             rvs = psr.radial_velocity(times) # km/s
             ps = psr.par.P0*(1.0 + rvs * 1000.0 / SOL) * 1000 # ms
             print("---------------------------------")
-            print(f"PSR:          {psr.par.PSR}")
+            print(f"PSR:          {psr.par.PSR if hasattr(psr.par, 'PSR') else psr.par.PSRJ}")
             print(f"Pspin (ms):   {psr.par.P0 * 1000.0:.6f}")
             print(f"  min (ms):   {ps.min():.6f}")
             print(f"  max (ms):   {ps.max():.6f}")
