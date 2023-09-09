@@ -20,7 +20,7 @@ machine_ids = {"FAKE": 0, "PSPM": 1, "Wapp": 2, "WAPP": 2, "AOFTM": 3,
                "BCPM1": 4, "BPP": 4, "OOTY": 5, "SCAMP": 6,
                "GBT Pulsar Spigot": 7, "SPIGOT": 7, "BG/P": 11,
                "PDEV": 12, "CHIME+PSR": 20, "MWA-VCS": 30,
-               "MWAX-VCS": 31, "MWAX-RTB": 32 "KAT": 64, "KAT-DC2": 65}
+               "MWAX-VCS": 31, "MWAX-RTB": 32, "KAT": 64, "KAT-DC2": 65}
 ids_to_machine = dict(list(zip(list(machine_ids.values()), list(machine_ids.keys()))))
 
 header_params = {
