@@ -132,6 +132,10 @@ void get_telescope_name(int telescope_id, struct spectra_info *s)
         strcpy(s->telescope, "FAST");
         s->beam_FWHM = 2.0 / 3600.0 * beam_halfwidth(s->fctr, 350.0);
         break;
+    case 30:
+        strcpy(s->telescope, "MWA");
+        s->beam_FWHM = default_beam;
+        break;
     case 64:
         strcpy(s->telescope, "MeerKAT");
         s->beam_FWHM = default_beam;
@@ -183,6 +187,15 @@ void get_backend_name(int machine_id, struct spectra_info *s)
         break;
     case 20:
         strcpy(string, "CHIME+PSR");
+        break;
+    case 30:
+        strcpy(string, "MWA-VCS"); // Legacy MWA voltage capture system (retired Aug 2021)
+        break;
+    case 31:
+        strcpy(string, "MWAX-VCS"); // New MWA voltage capture system (as of Oct 2021)
+        break;
+    case 32:
+        strcpy(string, "MWAX-RTB"); // Future-proof for real-time MWAX beamformer
         break;
     case 64:
         strcpy(string, "KAT");
