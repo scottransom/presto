@@ -176,21 +176,18 @@ class pfd(object):
         self.DOFcor = self.DOFnom * self.DOF_corr()
         infile.close()
         self.barysubfreqs = None
-        if self.avgvoverc==0:
-            if self.candnm.startswith("PSR_"):
-                # If this doesn't work, we should try to use the barycentering calcs
-                # in the presto module.
-                try:
-                    psrname = self.candnm[4:]
-                    self.polycos = polycos.polycos(psrname,
-                                                   filenm=self.pfd_filename+".polycos")
-                    midMJD = self.tepoch + 0.5*self.T/86400.0
-                    self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
-                    #sys.stderr.write("Approximate Doppler velocity (in c) is:  %.4g\n"%self.avgvoverc)
-                    # Make the Doppler correction
-                    self.barysubfreqs = self.subfreqs*(1.0+self.avgvoverc)
-                except IOError:
-                    self.polycos = 0
+        if self.avgvoverc==0 and self.candnm.startswith("PSR_"):
+            try:
+                psrname = self.candnm[4:]
+                self.polycos = polycos.polycos(psrname,
+                                               filenm=self.pfd_filename+".polycos")
+                midMJD = self.tepoch + 0.5*self.T/86400.0
+                self.avgvoverc = self.polycos.get_voverc(int(midMJD), midMJD-int(midMJD))
+                #sys.stderr.write("Approximate Doppler velocity (in c) is:  %.4g\n"%self.avgvoverc)
+                # Make the Doppler correction
+                self.barysubfreqs = self.subfreqs*(1.0+self.avgvoverc)
+            except IOError:
+                self.polycos = 0
         if self.barysubfreqs is None:
             self.barysubfreqs = self.subfreqs
 
@@ -206,14 +203,17 @@ class pfd(object):
                     out += "%10s = %-20.15g\n" % (k, v)
         return out
 
-    def dedisperse(self, DM=None, interp=0, doppler=0):
+    def dedisperse(self, DM=None, interp=False, doppler=False):
         """
-        dedisperse(DM=self.bestdm, interp=0, doppler=0):
+        dedisperse(DM=self.bestdm, interp=False, doppler=False):
             Rotate (internally) the profiles so that they are de-dispersed
                 at a dispersion measure of DM.  Use FFT-based interpolation if
                 'interp' is non-zero (NOTE: It is off by default!).
                 Doppler shift subband frequencies if doppler is non-zero.
-                (NOTE: It is also off by default.)
+                (NOTE: It is off by default. However, if you fold raw data
+                for a search candidate (and let it search), prepfold *does*
+                doppler correct the frequencies! It does *not* doppler
+                correct if you fold with polycos for timing, for instance.)
         """
         if DM is None:
             DM = self.bestdm
