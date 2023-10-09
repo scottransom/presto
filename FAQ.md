@@ -649,7 +649,7 @@ Freedom, where Nbins is the number of bins in the pulse profile.
 
 Because of the exact way that `prepfold` folds binned data, the statistics are
 slightly more complicated than that, in reality (see below), but the bottom line
-is that the larger the reduced-$\chi^2$ is, the more likely it was that noise
+is that the larger the $\chi^2_{red}$ is, the more likely it was that noise
 fluctuations didn't cause it (i.e. it is due to real pulsations).  There are
 better and alternate statistics we could use, but $\chi^2$ is quick and simple
 and quite sensitive to narrow pulse profiles, which we often have in radio
@@ -657,7 +657,7 @@ pulsar searches.
 
 Note that for the statistics to be reasonably correct (in the face of strong
 RFI, for instance), the off-pulse (i.e. away from the periodicity in question)
-reduced-$\chi^2$ noise floor should be approximately 1.  That makes sense
+$\chi^2_{red}$ noise floor should be approximately 1.  That makes sense
 because in that part of parameter space there should be no pulsations, and so
 the no-pulsations model should fit the data well and give a $\chi^2_{red} \sim 1$.
 
@@ -667,7 +667,7 @@ the no-pulsations model should fit the data well and give a $\chi^2_{red} \sim 1
 
 No, the $\chi^2$ from `prepfold` is single-trial significance. And it is only
 valid if the mean of the off-pulse (i.e. away from the periodicity in question)
-reduced-$\chi^2$ noise floor is approximately 1.
+$\chi^2_{red}$ noise floor is approximately 1.
 
 -----------------
 
