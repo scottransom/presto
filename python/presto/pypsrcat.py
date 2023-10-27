@@ -16,7 +16,7 @@ import presto.psr_constants as pc
 ## 
 ## http://www.atnf.csiro.au/research/pulsar/psrcat/
 
-version = 'v1.63'
+version = 'v1.70'
 
 ## And here is the command used to get the data:
 # Note version number now!
