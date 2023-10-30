@@ -28,7 +28,7 @@ int read_database(void)
 
     while (chkfread(&pdata, sizeof(psrdata), 1, database)) {
         if (np >= NP) {
-            printf("NP value set to small (%d) in $PRESTO/include/database.h\n", NP);
+            printf("NP value set too small (%d) in $PRESTO/include/database.h\n", NP);
             printf("Please increase it and recompile\n");
             exit(-1);
         }
