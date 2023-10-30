@@ -1,6 +1,6 @@
 /* Number of entries in PSR database */
-#define NP  3000
-#define NBP 200
+#define NP  5000
+#define NBP 600
 
 /* This is a structure that contains the "normal" information in the database */
 typedef struct PSRDATA {
