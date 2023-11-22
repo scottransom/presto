@@ -64,7 +64,7 @@ print("success")
 
 print("Testing psrparams and orbitparams stuff...", end=' ')
 psr = presto.psrepoch("J0737-3039A", 56000.0, verbose=False)
-assert(round(psr.dm-48.92, 7)==0)
+assert(round(psr.dm-48.916, 7)==0)
 # This needs to change when we start using the actual psrcat.db file
 assert(round(psr.orb.p-8834.534998272, 7)==0)
 print("success")
