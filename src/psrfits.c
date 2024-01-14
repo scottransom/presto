@@ -245,7 +245,7 @@ void read_PSRFITS_files(struct spectra_info *s)
         // was fixed at 65 deg(!).  This IDs and fixes that
         if ((strcmp("VEGAS", s->backend) == 0) && (s->beam_FWHM == 65.0)) {
             // beam_halfwidth() returns halfwidth in arcsec
-            s->beam_FWHM = 2 * 3600 * beam_halfwidth(s->fctr, 100.0); // 100m for GBT
+            s->beam_FWHM = 2 * beam_halfwidth(s->fctr, 100.0) / 3600.0; // 100m for GBT
         }
 
         /* This is likely not in earlier versions of PSRFITS */
