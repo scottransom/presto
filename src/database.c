@@ -32,9 +32,12 @@ int read_database(void)
             printf("Please increase it and recompile\n");
             exit(-1);
         }
-        strncpy(pulsardata[np].jname, pdata.jname, 13);
-        strncpy(pulsardata[np].bname, pdata.bname, 9);
-        strncpy(pulsardata[np].alias, pdata.alias, 10);
+        strncpy(pulsardata[np].jname, pdata.jname, sizeof(pulsardata[np].jname));
+        pulsardata[np].jname[sizeof(pulsardata[np].jname)-1] = '\0';
+        strncpy(pulsardata[np].bname, pdata.bname, sizeof(pulsardata[np].bname));
+        pulsardata[np].bname[sizeof(pulsardata[np].bname)-1] = '\0';
+        strncpy(pulsardata[np].alias, pdata.alias, sizeof(pulsardata[np].alias));
+        pulsardata[np].alias[sizeof(pulsardata[np].alias)-1] = '\0';
         pulsardata[np].ra2000 = pdata.ra2000;
         pulsardata[np].dec2000 = pdata.dec2000;
         pulsardata[np].dm = pdata.dm;
@@ -82,9 +85,12 @@ void get_psr(int psrnumber, psrparams * psr)
         printf("psrnumber < 0 in get_psr().  Exiting.\n\n");
         exit(1);
     }
-    strncpy(psr->jname, pulsardata[ii].jname, 13);
-    strncpy(psr->bname, pulsardata[ii].bname, 9);
-    strncpy(psr->alias, pulsardata[ii].alias, 10);
+    strncpy(psr->jname, pulsardata[ii].jname, sizeof(psr->jname));
+    psr->jname[sizeof(psr->jname)-1] = '\0';
+    strncpy(psr->bname, pulsardata[ii].bname, sizeof(psr->bname));
+    psr->bname[sizeof(psr->bname)-1] = '\0';
+    strncpy(psr->alias, pulsardata[ii].alias, sizeof(psr->alias));
+    psr->alias[sizeof(psr->alias)-1] = '\0';
     psr->ra2000 = pulsardata[ii].ra2000;
     psr->dec2000 = pulsardata[ii].dec2000;
     psr->dm = pulsardata[ii].dm;
@@ -148,8 +154,10 @@ int psr_number_from_name(char *psrname)
 
     /* Search for the J-name, the B-name, or the alias */
     for (ii = 0; ii < np; ii++) {
-        strncpy(jname, pulsardata[ii].jname, 13);
-        strncpy(bname, pulsardata[ii].bname, 9);
+        strncpy(jname, pulsardata[ii].jname, sizeof(jname)-1);
+        jname[sizeof(jname)-1] = '\0';
+        strncpy(bname, pulsardata[ii].bname, sizeof(bname)-1);
+        bname[sizeof(bname)-1] = '\0';
         if (!strcmp(strlower(jname), matchname) ||
             !strcmp(strlower(bname), matchname) ||
             !strcmp(pulsardata[ii].alias, matchname)) {
@@ -331,6 +339,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
                             } else {
                                 sprintf(shortout, "PSR %s%s", psrname, tmp1);
                                 strncpy(output, shortout, 20);
+                                output[20-1] = '\0';
                             }
                         } else {
                             if (full) {
@@ -342,6 +351,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
                                 sprintf(shortout, "%s H %s%s", num[jj], psrname,
                                         tmp1);
                                 strncpy(output, shortout, 20);
+                                output[20-1] = '\0';
                             }
                         }
                         return ii + 1;
@@ -359,6 +369,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
                         } else {
                             sprintf(shortout, "SL H%d %s", jj, psrname);
                             strncpy(output, shortout, 20);
+                            output[20-1] = '\0';
                         }
                         return ii + 1;
                     }
@@ -374,6 +385,7 @@ int comp_psr_to_cand(fourierprops * cand, infodata * idata, char *output, int fu
                 "I don't recognize this candidate in the pulsar database.\n");
     } else {
         strncpy(output, "                       ", 20);
+        output[20-1] = '\0';
     }
     return 0;
 }
@@ -469,6 +481,7 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
                                             sprintf(shortout, "%s H %s", num[kk],
                                                     psrname);
                                             strncpy(output, shortout, 20);
+                                            output[20-1] = '\0';
                                         }
                                     } else {
                                         if (full) {
@@ -480,6 +493,7 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
                                         } else {
                                             sprintf(shortout, "PSR %s", psrname);
                                             strncpy(output, shortout, 20);
+                                            output[20-1] = '\0';
                                         }
                                     }
                                 }
@@ -499,6 +513,7 @@ int comp_bin_to_cand(binaryprops * cand, infodata * idata, char *output, int ful
                 "I don't recognize this candidate in the pulsar database.\n");
     } else {
         strncpy(output, "                       ", 20);
+        output[20-1] = '\0';
     }
     return 0;
 }

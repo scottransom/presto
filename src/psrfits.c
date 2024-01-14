@@ -95,10 +95,16 @@ int is_PSRFITS(char *filename)
             fits_get_errstatus(status, err_text); \
             printf("Error %d reading %s : %s\n", status, name, err_text); \
             if (ii==0) param[0]='\0'; \
-            if (status==KEY_NO_EXIST) status=0;                      \
-        } else {                                                     \
-            if (ii==0) strncpy((param), ctmp, 40);                          \
-            else if (strcmp((param), ctmp)!=0)                              \
+            if (status==KEY_NO_EXIST) status=0;                       \
+        } else {                                                      \
+            if (ii==0) {                                              \
+                if (sizeof(ctmp) > sizeof((param))) {                 \
+                    strncpy((param), ctmp, sizeof(param));            \
+                    (param)[sizeof((param))-1] = '\0';                \
+                } else {                                              \
+                    strncpy((param), ctmp, sizeof((param)));          \
+                }                                                     \
+            } else if (strcmp((param), ctmp)!=0)                      \
                 printf("Warning!:  %s values don't match for files 0 and %d!\n", \
                        (name), ii);                                         \
         }                                                               \
@@ -181,7 +187,7 @@ void read_PSRFITS_files(struct spectra_info *s)
         check_read_status("OBS_MODE");
         // Quick fix for Parkes DFB data (SRCH?  why????)...
         if (strcmp("SRCH", ctmp) == 0) {
-            strncpy(ctmp, "SEARCH", 40);
+            strncpy(ctmp, "SEARCH", sizeof(ctmp));
         }
         if (strcmp(ctmp, "SEARCH")) {
             fprintf(stderr,
@@ -193,7 +199,7 @@ void read_PSRFITS_files(struct spectra_info *s)
         fits_read_key(s->fitsfiles[ii], TSTRING, "TELESCOP", ctmp, comment, &status);
         // Quick fix for MockSpec data...
         if (strcmp("ARECIBO 305m", ctmp) == 0) {
-            strncpy(ctmp, "Arecibo", 40);
+            strncpy(ctmp, "Arecibo", sizeof(ctmp));
         }
         // Quick fix for Parkes DFB data...
         {
@@ -202,7 +208,7 @@ void read_PSRFITS_files(struct spectra_info *s)
             // Copy ctmp first since strlower() is in-place
             strcpy(newctmp, ctmp);
             if (strcmp("parkes", strlower(remove_whitespace(newctmp))) == 0) {
-                strncpy(ctmp, "Parkes", 40);
+                strncpy(ctmp, "Parkes", sizeof(ctmp));
             }
         }
         if (status) {
@@ -212,9 +218,11 @@ void read_PSRFITS_files(struct spectra_info *s)
             if (status == KEY_NO_EXIST)
                 status = 0;
         } else {
-            if (ii == 0)
-                strncpy(s->telescope, ctmp, 40);
-            else if (strcmp(s->telescope, ctmp) != 0)
+            if (ii == 0) {
+                strncpy(s->telescope, ctmp, sizeof(s->telescope));
+                // ensure that we are null-terminated
+                s->telescope[sizeof(s->telescope)-1] = '\0';
+            } else if (strcmp(s->telescope, ctmp) != 0)
                 printf("Warning!:  %s values don't match for files 0 and %d!\n",
                        "TELESCOP", ii);
         }
@@ -233,6 +241,11 @@ void read_PSRFITS_files(struct spectra_info *s)
         get_hdr_double("OBSBW", s->orig_df);
         //get_hdr_double("CHAN_DM", s->chan_dm);
         get_hdr_double("BMIN", s->beam_FWHM);
+        // There is a VEGAS PSRFITS header bug where the beamwidth
+        // was fixed at 65 deg(!).  This IDs and fixes that
+        if ((strcmp("VEGAS", s->backend) == 0) && (s->beam_FWHM == 65.0)) {
+            s->beam_FWHM = 2 * beam_halfwidth(s->fctr, 100.0); // 100m for GBT
+        }
 
         /* This is likely not in earlier versions of PSRFITS */
         s->chan_dm = 0.0;
