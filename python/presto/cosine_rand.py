@@ -55,9 +55,9 @@ if __name__ == '__main__':
         for funct in [cosine_rand1, cosine_rand2]:
             times = []
             for jj in range(numtrials):
-                tt = time.clock()
+                tt = time.perf_counter()
                 funct(numrandnums)
-                times.append(time.clock()-tt)
+                times.append(time.perf_counter()-tt)
             print("Average time = ", Num.add.reduce(Num.asarray(times))/numtrials)
     else:
         rs = Num.arange(n+1, dtype=float)/n

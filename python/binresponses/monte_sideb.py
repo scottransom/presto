@@ -1,6 +1,5 @@
 from __future__ import print_function
 from builtins import range
-from time import clock
 from math import *
 from Numeric import *
 from presto import *
@@ -8,6 +7,7 @@ from miscutils import *
 from Statistics import *
 from random import expovariate
 import RNG
+import time
 
 global theo_sum_pow, b_pows, bsum_pows, newpows, noise, fftlen
 
@@ -199,7 +199,7 @@ for x in range(len(TbyPb)):
             fftlen = 0
             # Loop over the number of tries per point
             for ct in range(orbsperpt[ctype]):
-                stim = clock()
+                stim = time.perf_counter()
                 if (ecc[ctype] == 0.0):
                     wb, tp = 0.0, ct * Pb / orbsperpt[ctype]
                 else:
@@ -238,7 +238,7 @@ for x in range(len(TbyPb)):
                 # Pgplot.closeplot()
                 #print '  BigPow = %10.7f  SumPow = %10.7f  S(mJy) = %10.5f' % \
                 #      (b_pows[ct], bsum_pows[ct]-theo_sum_pow, 2 * sigma_t * sqrt(tryamp[ct]/N))
-                tim = clock() - stim
+                tim = time.perf_counter() - stim
                 if debugout:
                     print('Time for this point was ',tim, ' s.')
         # Note:  The output contains the average value of tryamp.  To convert this

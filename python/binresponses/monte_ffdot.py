@@ -1,11 +1,11 @@
 from __future__ import print_function
 from builtins import range
-from time import clock
 from math import *
 from Numeric import *
 from presto import *
 from miscutils import *
 from Statistics import *
+import time
 
 # Some admin variables
 parallel = 0          # True or false
@@ -89,7 +89,7 @@ for x in range(numTbyPb)[51:66]:
         if not (y % numprocs == myid):  continue
         else:
             pows = zeros(orbsperpt[ctype], 'd')
-            stim = clock()
+            stim = time.perf_counter()
             if (TbyPb[x] <= maxTbyPb_ffdot):
                 # Loop over the number of tries per point
                 for ct in range(orbsperpt[ctype]):
@@ -170,7 +170,7 @@ for x in range(numTbyPb)[51:66]:
                     if debugout:
                         print(repr(x)+'  '+repr(y)+'  '+repr(TbyPb[x])+'  ', end=' ')
                         print(repr(ppsr[y])+'  '+repr(pows[ct]))
-            tim = clock() - stim
+            tim = time.perf_counter() - stim
             if debugout:
                 print('Time for this point was ',tim, ' s.')
             file.write('%5d  %9.6f  %8.6f  %11.9f  %11.9f  %11.9f\n' % \

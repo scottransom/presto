@@ -1,12 +1,12 @@
 from __future__ import print_function
 from builtins import range
-from time import clock
 from math import *
 from Numeric import *
 from presto import *
 from miscutils import *
 from Statistics import *
 import Pgplot
+import time
 
 # Some admin variables
 showplots = 0         # True or false
@@ -56,7 +56,7 @@ xb = asini_c(Pb, mass_funct2(pmass, cmass[ctype], pi / 3.0))
 
 for pp in ppsr:
     pows = zeros(orbsperpt[ctype], 'd')
-    stim = clock()
+    stim = time.perf_counter()
     numbins = 0
     for ct in range(orbsperpt[ctype]):
         wb = ct * 180.0 / orbsperpt[ctype]
@@ -88,7 +88,7 @@ for pp in ppsr:
     if showsumplots:
         Pgplot.plotxy(add.reduce(pwrs_w), title='power(w) averaged over orb.t')
         Pgplot.closeplot()
-    tim = clock() - stim
+    tim = time.perf_counter() - stim
     if debugout:
         print('Time for this point was ',tim, ' s.')
     file.write('%8.6f  %10.5f  %10d  %13.9f\n' % \

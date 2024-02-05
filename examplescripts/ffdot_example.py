@@ -28,17 +28,17 @@ pffdot = presto.spectralpower(ffdot.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pffdot) / theo_max_pow # Fraction of recovered power
 print("Fraction of recovered signal power = %f" % frp)
-a = time.clock()
+a = time.perf_counter()
 [maxpow, rmax, zmax, rd] = presto.maximize_rz(ft, r+norm(1)[0]/5.0,
                                               z+norm(1)[0], norm=1.0)
-print("Time for rz:", time.clock()-a)
+print("Time for rz:", time.perf_counter()-a)
 print(r, rmax, z, zmax, theo_max_pow, maxpow)
-a = time.clock()
+a = time.perf_counter()
 [maxpow, rmax, zmax, wmax, rd] = presto.maximize_rzw(ft, r+norm(1)[0]/5.0,
                                                      z+norm(1)[0],
                                                      w+norm(1)[0]*5.0,
                                                      norm=1.0)
-print("Time for rzw:", time.clock()-a)
+print("Time for rzw:", time.perf_counter()-a)
 print(r, rmax, z, zmax, w, wmax, theo_max_pow, maxpow)
 #print "Raw power should be ~%.2e" % theo_max_pow
 pffdot = pffdot / theo_max_pow
