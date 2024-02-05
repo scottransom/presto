@@ -133,11 +133,11 @@ int is_PSRFITS(char *filename)
             if (ii==0.0) param=0.0; \
             if (status==KEY_NO_EXIST) status=0;\
         } else {                                                          \
-            if (ii==0) param = dtmp;                                        \
-            else if (param != dtmp)                                         \
+            if (ii==0) param = dtmp;                                  \
+            else if ((strcmp(name, "BMIN") != 0) && (param != dtmp))                                   \
                 printf("Warning!:  %s values don't match for files 0 and %d!\n", \
-                       (name), ii);                                         \
-        }                                                               \
+                       (name), ii);                                   \
+        }                                                                 \
     }
 
 
