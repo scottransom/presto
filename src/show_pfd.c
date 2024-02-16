@@ -32,6 +32,7 @@ int main(int argc, char *argv[])
     flags.justprofs = cmd->justprofsP;
     flags.allgrey = cmd->allgreyP;
     flags.fixchi = cmd->fixchiP;
+    flags.samples = cmd->samplesP;
     flags.showfold = cmd->showfoldP;
     flags.nosearch = 1;
 
