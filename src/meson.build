@@ -1,3 +1,36 @@
+cal2mjd = executable('cal2mjd', 'cal2mjd.c', 'cldj.c',
+    dependencies: libm, include_directories: inc, install: true)
+
+fitsdelcol = executable('fitsdelcol', 'fitsdelcol.c',
+    dependencies: [fits, libm], include_directories: inc, install: true)
+
+fitsdelrow = executable('fitsdelrow', 'fitsdelrow.c',
+    dependencies: [fits, libm], include_directories: inc, install: true)
+
+makewisdom = executable('makewisdom', 'makewisdom.c',
+    dependencies: [fftw, libm], include_directories: inc, install: false)
+
+mjd2cal = executable('mjd2cal', 'mjd2cal.c', 'djcl.c',
+    dependencies: libm, include_directories: inc, install: true)
+
+patchdata = executable('patchdata', 'patchdata.c', install: false)
+
+psrfits_dumparrays = executable('psrfits_dumparrays', 'psrfits_dumparrays.c',
+    dependencies: [fits, libm], include_directories: inc, install: true)
+
+shiftdata = executable('shiftdata', 'shiftdata.c', install: false)
+
+split_parkes_beams = executable('split_parkes_beams', 'split_parkes_beams.c', install: false)
+
+swap_endian = executable('swap_endian', 'swap_endian.c', install: false)
+
+taperaw  = executable('taperaw', 'taperaw.c', install: false)
+
+toas2dat  = executable('toas2dat', 'toas2dat.c', 'toas2dat_cmd.c',
+    dependencies: libm, include_directories: inc, install: true)
+
+un_sc_td = executable('un_sc_td', 'un_sc_td.c', install: false)
+
 libpresto = library(
     'presto', 'amoeba.c', 'atwood.c', 'barycenter.c', 'birdzap.c',
     'cand_output.c', 'characteristics.c', 'chkio.c', 'cldj.c',
@@ -16,7 +49,7 @@ libpresto = library(
     install: true,
 )
 
-INSTRUMENTOBJS= ['backend_common.c', 'zerodm.c', 'sigproc_fb.c', 'psrfits.c']
+INSTRUMENTOBJS= ['backend_common.c', 'psrfits.c', 'sigproc_fb.c', 'zerodm.c']
 PLOT2DOBJS = ['powerplot.c', 'xyline.c']
 
 accelsearch = executable('accelsearch', 'accelsearch.c', 'accelsearch_cmd.c', 'accel_utils.c', 'zapping.c',
@@ -58,6 +91,13 @@ makedata = executable('makedata', 'makedata.c', 'com.c', 'randlib.c',
 makeinf = executable('makeinf', 'makeinf.c', 'ioinf.c',
     dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
 
+if mpi.found()
+    mpiprepsubband = executable('mpiprepsubband',
+        sources: ['mpiprepsubband.c', 'mpiprepsubband_cmd.c', 'mpiprepsubband_utils.c'] + INSTRUMENTOBJS,
+        dependencies: [glib, fftw, libm, fits, omp, mpi],
+        include_directories: inc, link_with: libpresto, install: true)
+endif
+
 plotbincand = executable('plotbincand',
     sources: ['plotbincand.c'] + PLOT2DOBJS,
     dependencies: [glib, fftw, libm, pgplot, cpgplot, x11, png],
@@ -65,7 +105,7 @@ plotbincand = executable('plotbincand',
 
 prepdata = executable('prepdata',
     sources: ['prepdata.c', 'prepdata_cmd.c'] + INSTRUMENTOBJS,
-    dependencies: [glib, fftw, libm, fits],
+    dependencies: [glib, fftw, libm, fits, omp],
     include_directories: inc, link_with: libpresto, install: true)
 
 prepfold = executable('prepfold',
@@ -75,7 +115,7 @@ prepfold = executable('prepfold',
 
 prepsubband = executable('prepsubband',
     sources: ['prepsubband.c', 'prepsubband_cmd.c'] + INSTRUMENTOBJS,
-    dependencies: [glib, fftw, libm, fits],
+    dependencies: [glib, fftw, libm, fits, omp],
     include_directories: inc, link_with: libpresto, install: true)
 
 psrorbit = executable('psrorbit',
