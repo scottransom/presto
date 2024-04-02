@@ -1,4 +1,18 @@
-# pep 518 way of specifying setup requirements
 [build-system]
-requires = ["setuptools", "wheel", "oldest-supported-numpy"]
-#requires = ["setuptools", "wheel", "numpy==1.19"]
+build-backend = 'mesonpy'
+requires = ['meson-python']
+
+[project]
+name = 'presto'
+version = '5.0.0'
+description = 'Pulsar search and analysis toolkit'
+readme = 'README.md'
+requires = ['numpy', 'scipy', 'astropy', 'matplotlib']
+requires-python = '>=3.8'
+license = 'GPLv2'
+authors = [
+  {name = 'Scott Ransom', email = 'sransom@nrao.edu'},
+]
+
+[project.urls]
+"Source" = "https://github.com/scottransom/presto"

@@ -26,3 +26,4 @@ inc_f2py = include_directories(incdir_f2py)
 fortranobject_c = incdir_f2py / 'fortranobject.c'
 
 subdir('fftfit_src')
+subdir('ppgplot_src')

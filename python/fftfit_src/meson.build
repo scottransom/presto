@@ -1,5 +1,5 @@
 fftfit_module = custom_target('fftfit_module',
-  output: ['fftfitmodule.c'],
+  output: 'fftfitmodule.c',
   input: 'fftfit.pyf',
   command : [py3, '-m', 'numpy.f2py', '@INPUT@', '--build-dir', '@OUTDIR@']
 )
@@ -10,6 +10,6 @@ py3.extension_module('fftfit',
   c_args: [numpy_nodepr_api, '-Wno-unused-variable'],
   dependencies : py3_dep,
   link_language: 'fortran',
-  subdir: 'presto',
+  subdir: 'presto/fftfit',
   install : true,
 )
