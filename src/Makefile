@@ -156,7 +156,7 @@ BINARIES = makedata makeinf mjd2cal realfft quicklook\
 	rfifind zapbirds explorefft exploredat\
 	weight_psrfits fitsdelrow fitsdelcol psrfits_dumparrays
 
-all: libpresto slalib binaries
+all: libpresto binaries
 
 # Default indentation is K&R style with no-tabs,
 # an indentation level of 4 (default), and a line-length of 85
@@ -181,15 +181,6 @@ libpresto: libpresto$(LIBSUFFIX)
 
 libpresto$(LIBSUFFIX): $(PRESTOOBJS)
 	$(LINKCOMMAND) $(PRESTO)/lib/$@ $(PRESTOOBJS)
-
-slalib: libsla$(LIBSUFFIX)
-	cd slalib ; $(FC) -o sla_test sla_test.f -fno-second-underscore -L$(PRESTO)/lib -lsla
-	slalib/sla_test
-
-libsla$(LIBSUFFIX):
-	cd slalib ; $(FC) $(FFLAGS) -fno-second-underscore -c -I. *.f *.F
-	rm slalib/sla_test.o
-	cd slalib ; $(FC) $(LIBCMD) -o $(PRESTO)/lib/libsla$(LIBSUFFIX) -fno-second-underscore *.o
 
 binaries: $(BINARIES)
 
@@ -248,18 +239,6 @@ prepsubband: prepsubband_cmd.c prepsubband_cmd.o prepsubband.o $(INSTRUMENTOBJS)
 
 prepfold: prepfold_cmd.c prepfold_cmd.o prepfold.o prepfold_utils.o prepfold_plot.o least_squares.o polycos.o readpar.o $(INSTRUMENTOBJS) $(PLOT2DOBJS) libpresto
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ prepfold.o prepfold_utils.o prepfold_plot.o prepfold_cmd.o least_squares.o polycos.o readpar.o $(PLOT2DOBJS) $(INSTRUMENTOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lcfitsio -lm
-
-dump_spigot_zerolag: dump_spigot_zerolag.o spigot.o libpresto
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ dump_spigot_zerolag.o spigot.o $(PRESTOLINK) -lm
-
-spigot2filterbank: spigot2filterbank_cmd.c spigot2filterbank_cmd.o spigot2filterbank.o spigot.o sigproc_fb.o sla.o libpresto
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ spigot2filterbank.o spigot.o sigproc_fb.o spigot2filterbank_cmd.o sla.o $(PRESTOLINK) -lsla -lm
-
-GBT350filterbank: GBT350filterbank.o spigot.o sigproc_fb.o libpresto
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ GBT350filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
-
-spigotSband2filterbank: spigotSband2filterbank.o spigot.o sigproc_fb.o libpresto
-	$(CC) $(CLINKFLAGS) -o $(PRESTO)/bin/$@ spigotSband2filterbank.o spigot.o sigproc_fb.o $(PRESTOLINK) -lm
 
 show_pfd: show_pfd_cmd.c show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) libpresto
 	$(FC) $(FLINKFLAGS) -o $(PRESTO)/bin/$@ show_pfd.o show_pfd_cmd.o prepfold_utils.o prepfold_plot.o least_squares.o $(PLOT2DOBJS) $(LAPACKLINK) $(PRESTOLINK) $(PGPLOTLINK) -lm
@@ -338,11 +317,10 @@ fitsdelcol: fitsdelcol.o
 
 clean:
 	rm -f *.o *~ *#
-	rm -f slalib/*.o slalib/sla_test
 
 cleaner: clean
 	cd ../bin ; rm -f $(BINARIES)
-	rm -f $(PRESTO)/lib/libpresto.* $(PRESTO)/lib/libsla.*
+	rm -f $(PRESTO)/lib/libpresto.*
 
 squeaky:  cleaner
 	rm -f *.dat *.fft *.inf fftw_wisdom.txt
