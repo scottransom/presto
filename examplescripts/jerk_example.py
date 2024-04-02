@@ -1,4 +1,3 @@
-from __future__ import print_function
 import numpy as num
 from presto import presto
 import presto.ppgplot as ppgplot

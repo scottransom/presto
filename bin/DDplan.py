@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import zip
 import numpy as np
 from presto.Pgplot import *
@@ -423,7 +421,6 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, numprocs=1,
     return methods
 
 dedisp_template1 = """
-from __future__ import print_function
 from builtins import zip
 from builtins import range
 import os

@@ -8,7 +8,6 @@ Usage:  plot_spd.py [OPTIONS] <.spd file> <.singlepulse files (optional:
 
 Chitrang Patel - June 10, 2016.
 """
-from __future__ import print_function
 from builtins import map
 import numpy as np
 import optparse

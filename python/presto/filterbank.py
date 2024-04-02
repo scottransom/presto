@@ -4,8 +4,6 @@ A module for reading filterbank files.
 Patrick Lazarus, June 26, 2012
 (Minor modification from file originally from June 6th, 2009)
 """
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import object
 
 import sys

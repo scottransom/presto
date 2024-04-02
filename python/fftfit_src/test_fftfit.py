@@ -1,4 +1,3 @@
-from __future__ import print_function
 #>>> print fftfit.__doc__
 #This module 'fftfit' is auto-generated with f2py (version:2.13.175-1250).
 #Functions:

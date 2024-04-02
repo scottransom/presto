@@ -1,4 +1,3 @@
-from __future__ import print_function
 from numpyio import fread, fwrite
 from sys import argv
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import (print_function,division)
 import presto.psr_utils as pu
 import sys
 from presto.infodata import infodata
