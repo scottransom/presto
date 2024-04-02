@@ -1,6 +1,0 @@
-rm *.o
-gfortran -fPIC -g -O2 -fno-second-underscore -c -I. *.f *.F
-rm sla_test.o
-gfortran -shared -o libsla.so -fno-second-underscore -g *.o
-gfortran -o sla_test sla_test.f -fno-second-underscore -L. -lsla
-./sla_test
