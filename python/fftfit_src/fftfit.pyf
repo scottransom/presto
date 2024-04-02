@@ -1,5 +1,5 @@
 !%f90 -*- f90 -*-
-python module _fftfit ! in
+python module fftfit ! in
     interface  ! in :fftfit
         subroutine cprof(y,nmax,nh,c,amp,pha) ! in :fftfit:brent.f,cprof.f,fccf.f,ffft.f,fftfit.f
             real*4 dimension(nmax) :: y
@@ -23,7 +23,7 @@ python module _fftfit ! in
             integer intent(out) :: ngood
         end subroutine fftfit
     end interface 
-end python module _fftfit
+end python module fftfit
 
 ! This file was auto-generated with f2py (version:2.13.175-1250).
 ! See http://cens.ioc.ee/projects/f2py2e/

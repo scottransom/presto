@@ -26,11 +26,15 @@ libm = cc.find_library('m', required: false)
 pgplot = cc.find_library('pgplot', required: true)
 cpgplot = cc.find_library('cpgplot', required: true)
 
-python_dep = dependency('python3')
-
 inc = include_directories('include')
 
 subdir('src')
+
+
+py_mod = import('python')
+py3 = py_mod.find_installation()
+py3_dep = py3.dependency()
+subdir('python')
 
 import('pkgconfig').generate(
     libpresto,
