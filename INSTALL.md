@@ -9,26 +9,37 @@ As always, there are a set of essential packages required to build PRESTO. This 
 Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past.
 
 From your activated Python virtual or [Conda](https://docs.conda.io/) environment, make sure that you have `meson`, `meson-python`, `ninja`, and a recent `pip` installed (also Python >=3.8):
+
 `pip install meson meson-python ninja` or `conda install meson meson-python ninja`
+
 and
+
 `pip install --upgrade pip`.
 
-Now build the C/Fortran codes:
+Now setup the C/Fortran code builds:
+
 `cd $PRESTO`
+
 `meson setup build --prefix=$CONDA_PREFIX` if you use Conda/Mamba/Anaconda
+
 or
+
 `meson setup build --prefix=$VIRTUAL_ENV` if you use a Python virtual environment
+
 or
+
 `meson setup build --prefix=$HOME` if you want things installed in your `$HOME/bin`, `$HOME/lib` directories.
-or, if you have sudo permissions and want to install to `/usr/local` (or equivalent):
+
+or, if you have `sudo` permissions and want to install to `/usr/local` (or equivalent system directory):
+
 `meson setup build`.
 
-Now build and install via:
+Now do the actual build and install via:
 
     meson compile -C build
     meson install -C build
 
-There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`. You should be able to run `prepfold`, for example, at this time and see the usage information. If that doesn't work, see the **troubleshooting** information below.
+You will see a lot of compiler warnings due to my crappy C-coding (I should fix those...), but that's OK. There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`. You should be able to run `prepfold` (for example), at this time and see the usage information. If that doesn't work, see the **troubleshooting** information below.
 
 Then finally, install the Python codes and bindings via `pip`:
 
