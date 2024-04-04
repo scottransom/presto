@@ -101,16 +101,23 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
     In the top level PRESTO directory (i.e. `cd $PRESTO`), configure `meson` via:
 
     `meson setup build --prefix=$CONDA_PREFIX` if you use Conda/Mamba/Anaconda
-      or
+    
+    or
+
     `meson setup build --prefix=$VIRTUAL_ENV` if you use a Python virtual environment
-      or
+
+    or
+
     `meson setup build --prefix=$HOME` if you want things installed in your `$HOME/bin`, `$HOME/lib` directories.
-      or, if you have sudo permissions and want to install to `/usr/local` (or equivalent):
+
+    or, if you have sudo permissions and want to install to `/usr/local` (or equivalent):
+
     `meson setup build`.
 
 9. **Build and install all the C/Fortran codes and the PRESTO shared library (e.g. `libpresto.so`)**
 
     `meson compile -C build`
+
     `meson install -C build`
 
     There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`
@@ -122,6 +129,7 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
 11. **Compile and install the PRESTO python codes and libraries**
 
     `cd $PRESTO/python`
+
     `pip install --config-settings=builddir=build .`
 
     If you get a shared library error, see the troubleshooting steps above or below.
@@ -129,8 +137,11 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
 12. **Run some basic tests**
 
     `cd $PRESTO`
+
     `python tests/test_presto_python.py`
+
     `python examplescripts/ffdot_example.py`
+
     `python python/fftfit_src/test_fftfit.py`
 
     Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
@@ -144,8 +155,11 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
     Everything should be ready to go now, and installed (likely) in the same place as the rest of your Python virtual environment and/or Conda/Mamba/Anaconda environment.
 
     If you want to uninstall everything you can do:
+
     `cd $PRESTO/build`
+
     `ninja uninstall`
+
     `pip uninstall presto` 
 
 Scott Ransom
