@@ -62,11 +62,9 @@ To update it on a regular basis do
     cd $PRESTO
     git pull
 
-and then re-build things in $PRESTO/src.
+and then re-build things in $PRESTO.
 
 For more detailed installation instructions, see [INSTALL.md](https://github.com/scottransom/presto/blob/master/INSTALL.md).
-
-If you don't want to mess with git (which means that you will need to re-install a tarball whenever there are updates) you can get it from the "Download Source" link on the github page.
 
 If you want the "classic" branch, do the following:
 
@@ -86,7 +84,7 @@ Please let me know if you decide to use PRESTO for any "real" searches, especial
 
 And if you find anything with it, it would be great if you would cite either my thesis or whichever of the three papers listed above is appropriate.
 
-Also note that many people are now citing software using the ASCL: [PRESTO is there!](https://www.ascl.net/1107.017).
+Also note that many people are now also citing software using the ASCL, in addition to the relevant papers: [PRESTO is there!](https://www.ascl.net/1107.017).
 
 Thanks!
 

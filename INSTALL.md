@@ -61,6 +61,7 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
 **(Note:  For Mac users, please see the bottom of the document!)**
 
 1.  **Install [FFTW3](http://www.fftw.org)**
+
     I highly recommend that you use pre-compiled packages for your OS/distribution! FOr example, Ubuntu has good FFTW packages: `libfftw3-bin` and `libfftw3-dev`.
 
     If you compile your own, you need to compile FFTW for **single** precision. For all architectures I recommend the following configuration: `./configure --enable-shared --enable-single`
@@ -68,28 +69,35 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
     If you are on a modern Intel processor and have a recent version of GCC, you can get much improved performance by adding: `--enable-sse --enable-sse2 --enable-avx --enable-avx2 --enable-fma`
 
 2.  **Install [PGPLOT](http://www.astro.caltech.edu/~tjp/pgplot/)**
+
     I highly recommend that you use pre-compiled packages for your OS/distribution! FOr example, Ubuntu has a good PGPLOT package: `pgplot5`. You will likely need to set the `PGPLOT_DIR` environment variable. On Ubuntu, I have `PGPLOT_DIR=/usr/lib/pgplot5`
 
     If you want to try to compile your own (good luck!), you need the X-windows and postscript drivers at a minimum.
 
 3.  **Install [TEMPO](http://tempo.sourceforge.net/)**
+
     Make sure to set the `TEMPO` environment variable so that it points to the top level of the `TEMPO` code base.
 
 4.  **Install [GLIBv2](http://library.gnome.org/devel/glib/)**
+
     On Linux machines this is almost certainly already on your system (check in `/usr/lib` and `/usr/include/glib*`). Although you may need to install a glib development package in order to have the required include files. On Ubuntu, the package you need is: `libglib2.0-dev`
 
 5.  **Install [CFITSIO](http://heasarc.gsfc.nasa.gov/fitsio/)**
+
     I highly recommend using pre-compiled packages, once again (on Ubuntu they are `libcfitsio-bin` and `libcfitsio-dev`), however, this is a very easy install via source.
 
 6.  **Set the `PRESTO` environment variable**
+
     It should be set to the top level directory of the PRESTO distribution (i.e. this directory). And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past.
 
 7.  **Activate your Python virtual environment *or* Conda/Mamba/Anaconda environment**
+
     * That environment should have `numpy` installed at a minimum
     * Make sure that `pip` is recent (`pip install --upgrade pip`)
     * Install the build tools: `pip install meson meson-python ninja` or `conda install meson meson-python ninja`
 
 8.  **Configure the meson build**
+
     In the top level PRESTO directory (i.e. `cd $PRESTO`), configure `meson` via:
 
     `meson setup build --prefix=$CONDA_PREFIX` if you use Conda/Mamba/Anaconda
@@ -101,21 +109,25 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
     `meson setup build`.
 
 9. **Build and install all the C/Fortran codes and the PRESTO shared library (e.g. `libpresto.so`)**
+
     `meson compile -C build`
     `meson install -C build`
 
     There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`
 
 10. **Try running a PRESTO command like `prepfold`**
+
     You should get the regular usage screen. If you get a shared library error, see the troubleshooting steps above or below.
 
 11. **Compile and install the PRESTO python codes and libraries**
+
     `cd $PRESTO/python`
     `pip install --config-settings=builddir=build .`
 
     If you get a shared library error, see the troubleshooting steps above or below.
 
 12. **Run some basic tests**
+
     `cd $PRESTO`
     `python tests/test_presto_python.py`
     `python examplescripts/ffdot_example.py`
@@ -124,6 +136,7 @@ If you want to run `makewisdom` for slightly faster FFT calls, it is located in 
     Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
 
 13. **Run `makewisdom` to have (slightly) fast FFTs**
+
     Just run `$PRESTO/build/src/makewisdom`. It takes about 10-20 min to run, so be patient.
 
 14. **Go find pulsars!**
