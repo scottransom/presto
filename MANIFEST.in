@@ -1,4 +1,0 @@
-recursive-include bin *
-include pyproject.toml
-recursive-include include *.h
-include python/presto/cosine_rand.json
