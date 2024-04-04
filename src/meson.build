@@ -46,7 +46,7 @@ libpresto = library(
     'twopass_real_inv.c', 'vectors.c',
     dependencies: [glib, fftw, libm, omp],
     include_directories: inc,
-    install: true,
+    install: true
 )
 
 INSTRUMENTOBJS= ['backend_common.c', 'psrfits.c', 'sigproc_fb.c', 'zerodm.c']

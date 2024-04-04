@@ -9,7 +9,6 @@ project('PRESTO', 'c', 'fortran',
 # Other possibilities
 #    'buildtype=debugoptimized',
 #    'buildtype=debug',
-#
 
 cc = meson.get_compiler('c')
 
@@ -20,7 +19,7 @@ x11 = dependency('x11')
 png = dependency('libpng')
 omp = dependency('openmp', required: false)
 mpi = dependency('mpi', language: 'c', required: false,
-  not_found_message: 'MPI not found. Skipping building mpiprepsubband.')
+  not_found_message: 'MPI not found. Skipping mpiprepsubband build.')
 
 libm = cc.find_library('m', required: false)
 pgplot = cc.find_library('pgplot', required: true)
@@ -28,17 +27,17 @@ cpgplot = cc.find_library('cpgplot', required: true)
 
 inc = include_directories('include')
 
-subdir('src')
-
-
+# Compile and prepare all PRESTO code and python packages
 py_mod = import('python')
-py3 = py_mod.find_installation()
+py3 = py_mod.find_installation(pure: false)
 py3_dep = py3.dependency()
-subdir('python')
+
+subdir('src')
+subdir('bin')
 
 import('pkgconfig').generate(
-    libpresto,
-    filebase: 'presto',
-    name: 'PRESTO',
-    description: 'Pulsar search and analysis toolkit library by Scott Ransom',
+  libpresto,
+  filebase: 'presto',
+  name: 'PRESTO',
+  description: 'PulsaR Exploration and Search TOolkit by Scott Ransom',
 )

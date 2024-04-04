@@ -3,7 +3,6 @@
 py3.extension_module('_ppgplot', '_ppgplot.c',
   include_directories: inc_np,
   dependencies : [py3_dep, libm, pgplot, cpgplot, x11, png],
-  subdir: 'presto/ppgplot',
   install : true,
 )
 
