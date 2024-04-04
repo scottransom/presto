@@ -30,12 +30,7 @@ Now build and install via:
 
 There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`. You should be able to run `prepfold`, for example, at this time and see the usage information. If that doesn't work, see the **troubleshooting** information below.
 
-You can uninstall via:
-
-    cd $PRESTO/build
-    ninja uninstall
-
-Then on the Python codes and bindings which we will install via `pip`:
+Then finally, install the Python codes and bindings via `pip`:
 
     cd $PRESTO/python
     pip install --config-settings=builddir=build .
@@ -50,6 +45,12 @@ And that should do it! You can quickly test to see if most things are working by
 Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
 
 If you want to run `makewisdom` for slightly faster FFT calls, it is located in `$PRESTO/build/src`. Just run it from there.
+
+Note that you can uninstall everything via:
+
+    cd $PRESTO/build
+    ninja uninstall
+    pip uninstall presto
 
 **Some quick troubleshooting info for the new meson build process:**
   * If you get an error when trying to run one of the compiled executables (like `prepfold`) about shared libraries (e.g. `prepfold: error while loading shared libraries: libpresto.so: cannot open shared object file: No such file or directory`) you will need to add the install location of `libpresto.so` to your `LD_LIBRARY_PATH` environment variable.
