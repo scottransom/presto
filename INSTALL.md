@@ -1,134 +1,146 @@
-## Basic steps to install PRESTO:
+# New and improved steps to install PRESTO!
+
+## td;dr for experienced PRESTO builders:
+With v5, we have switched to building and installing with [meson](https://mesonbuild.com/).
+
+As always, there are a set of essential packages required to build PRESTO. This command should do it on a Debian/Ubuntu-like system:
+`apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
+
+Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past.
+
+From your activated Python virtual or [Conda](https://docs.conda.io/) environment, make sure that you have `meson`, `meson-python`, `ninja`, and a recent `pip` installed (also Python >=3.8):
+`pip install meson meson-python ninja` or `conda install meson meson-python ninja`
+and
+`pip install --upgrade pip`.
+
+Now build the C/Fortran codes:
+`cd $PRESTO`
+`meson setup build --prefix=$CONDA_PREFIX` if you use Conda/Mamba/Anaconda
+or
+`meson setup build --prefix=$VIRTUAL_ENV` if you use a Python virtual environment
+or
+`meson setup build --prefix=$HOME` if you want things installed in your `$HOME/bin`, `$HOME/lib` directories.
+or, if you have sudo permissions and want to install to `/usr/local` (or equivalent):
+`meson setup build`.
+
+Now build and install via:
+
+    meson compile -C build
+    meson install -C build
+
+There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`. You should be able to run `prepfold`, for example, at this time and see the usage information. If that doesn't work, see the **troubleshooting** information below.
+
+You can uninstall via:
+
+    cd $PRESTO/build
+    ninja uninstall
+
+Then on the Python codes and bindings which we will install via `pip`:
+
+    cd $PRESTO/python
+    pip install --config-settings=builddir=build .
+
+And that should do it! You can quickly test to see if most things are working by doing:
+
+    cd $PRESTO
+    python tests/test_presto_python.py
+    python examplescripts/ffdot_example.py
+    python python/fftfit_src/test_fftfit.py
+
+Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
+
+If you want to run `makewisdom` for slightly faster FFT calls, it is located in `$PRESTO/build/src`. Just run it from there.
+
+**Some quick troubleshooting info for the new meson build process:**
+  * If you get an error when trying to run one of the compiled executables (like `prepfold`) about shared libraries (e.g. `prepfold: error while loading shared libraries: libpresto.so: cannot open shared object file: No such file or directory`) you will need to add the install location of `libpresto.so` to your `LD_LIBRARY_PATH` environment variable.
+    * Note: You can find the install location by doing: `grep libpresto $PRESTO/build/meson-logs/install-log.txt`
+  * If you get an error when running `pip install ...` for the Python codes saying `../meson.build:29:15: ERROR: C shared or static library 'presto' not found`, you will need to do something similar to the above and add the install location of `libpresto.so` to `LIBRARY_PATH` (note that that is **not** `LD_LIBRARY_PATH`! The former is for runtime linking and the latter is for linking at compile time. Note that you might need to use `DYLD_LIBRARY_PATH` on macOS!)
+
+## Detailed install and build instructions:
 
 **(Note:  For Mac users, please see the bottom of the document!)**
 
-1.  **Install FFTW3.X**
-    http://www.fftw.org
+1.  **Install [FFTW3](http://www.fftw.org)**
+    I highly recommend that you use pre-compiled packages for your OS/distribution! FOr example, Ubuntu has good FFTW packages: `libfftw3-bin` and `libfftw3-dev`.
 
-    You need to compile FFTW for **single** precision (see the config flags I
-    recommend below).
+    If you compile your own, you need to compile FFTW for **single** precision. For all architectures I recommend the following configuration: `./configure --enable-shared --enable-single`
 
-    For all architectures I recommend the following configuration: `./configure
-    --enable-shared --enable-single`
+    If you are on a modern Intel processor and have a recent version of GCC, you can get much improved performance by adding: `--enable-sse --enable-sse2 --enable-avx --enable-avx2 --enable-fma`
 
-    Use the `--prefix=SOME_PATH` option to install the library and its related
-    files to SOME_PATH. If you have admin access to your machine,
-    `--prefix=/usr/local` is the default for FFTW and is a safe bet.
+2.  **Install [PGPLOT](http://www.astro.caltech.edu/~tjp/pgplot/)**
+    I highly recommend that you use pre-compiled packages for your OS/distribution! FOr example, Ubuntu has a good PGPLOT package: `pgplot5`. You will likely need to set the `PGPLOT_DIR` environment variable. On Ubuntu, I have `PGPLOT_DIR=/usr/lib/pgplot5`
 
-    If you are on a modern Intel processor and have a recent version of GCC, you
-    can get much improved performance by adding: `--enable-sse --enable-sse2
-    --enable-avx --enable-avx2 --enable-fma`
+    If you want to try to compile your own (good luck!), you need the X-windows and postscript drivers at a minimum.
 
-    Ubuntu has good FFTW packages: `libfftw3-bin` and `libfftw3-dev`
+3.  **Install [TEMPO](http://tempo.sourceforge.net/)**
+    Make sure to set the `TEMPO` environment variable so that it points to the top level of the `TEMPO` code base.
 
-    Note that if you install to a non-default directory, you will likely need to
-    edit `setup.py` for the python install to add the locations of the include
-    files (in the `include_dirs` variable) as well as the path to the libraries
-    (in `presto_library_dirs`).
+4.  **Install [GLIBv2](http://library.gnome.org/devel/glib/)**
+    On Linux machines this is almost certainly already on your system (check in `/usr/lib` and `/usr/include/glib*`). Although you may need to install a glib development package in order to have the required include files. On Ubuntu, the package you need is: `libglib2.0-dev`
 
-2.  **Install PGPLOT**
-    http://www.astro.caltech.edu/~tjp/pgplot/
+5.  **Install [CFITSIO](http://heasarc.gsfc.nasa.gov/fitsio/)**
+    I highly recommend using pre-compiled packages, once again (on Ubuntu they are `libcfitsio-bin` and `libcfitsio-dev`), however, this is a very easy install via source.
 
-    You need the X-windows and postscript drivers at a minimum. Note that on
-    64-bit systems, compiling and linking PGPLOT can be tricky!
+6.  **Set the `PRESTO` environment variable**
+    It should be set to the top level directory of the PRESTO distribution (i.e. this directory). And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past.
 
-    It is very likely that you will need to have the `PGPLOT_DIR` environment
-    variable specified to allow the programs to link and to allow PGPLOT to find
-    its important files.
+7.  **Activate your Python virtual environment *or* Conda/Mamba/Anaconda environment**
+    * That environment should have `numpy` installed at a minimum
+    * Make sure that `pip` is recent (`pip install --upgrade pip`)
+    * Install the build tools: `pip install meson meson-python ninja` or `conda install meson meson-python ninja`
 
-    Ubuntu has a good PGPLOT package: `pgplot5`
-    And on Ubuntu, I have `PGPLOT_DIR=/usr/lib/pgplot5`
+8.  **Configure the meson build**
+    In the top level PRESTO directory (i.e. `cd $PRESTO`), configure `meson` via:
 
-    If you install to a non-standard location, see the note in #1
-    about editing the setup.py file for the python install!
+    `meson setup build --prefix=$CONDA_PREFIX` if you use Conda/Mamba/Anaconda
+      or
+    `meson setup build --prefix=$VIRTUAL_ENV` if you use a Python virtual environment
+      or
+    `meson setup build --prefix=$HOME` if you want things installed in your `$HOME/bin`, `$HOME/lib` directories.
+      or, if you have sudo permissions and want to install to `/usr/local` (or equivalent):
+    `meson setup build`.
 
-3.  **Install TEMPO**
-    http://tempo.sourceforge.net/
+9. **Build and install all the C/Fortran codes and the PRESTO shared library (e.g. `libpresto.so`)**
+    `meson compile -C build`
+    `meson install -C build`
 
-    Make sure to set the `TEMPO` environment variable.
+    There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`
 
-4.  **Install GLIB** (v2.X)
-    http://library.gnome.org/devel/glib/
+10. **Try running a PRESTO command like `prepfold`**
+    You should get the regular usage screen. If you get a shared library error, see the troubleshooting steps above or below.
+
+11. **Compile and install the PRESTO python codes and libraries**
+    `cd $PRESTO/python`
+    `pip install --config-settings=builddir=build .`
+
+    If you get a shared library error, see the troubleshooting steps above or below.
+
+12. **Run some basic tests**
+    `cd $PRESTO`
+    `python tests/test_presto_python.py`
+    `python examplescripts/ffdot_example.py`
+    `python python/fftfit_src/test_fftfit.py`
+
+    Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
+
+13. **Run `makewisdom` to have (slightly) fast FFTs**
+    Just run `$PRESTO/build/src/makewisdom`. It takes about 10-20 min to run, so be patient.
+
+14. **Go find pulsars!**
     
-    On Linux machines this is almost certainly already on your system (check in
-    `/usr/lib` and `/usr/include/glib*`). Although you may need to install a
-    glib development package in order to have the required include files...
+    Everything should be ready to go now, and installed (likely) in the same place as the rest of your Python virtual environment and/or Conda/Mamba/Anaconda environment.
 
-    On Ubuntu, the package you need is: `libglib2.0-dev`
-
-5.  **Install CFITSIO**
-    http://heasarc.gsfc.nasa.gov/fitsio/
-
-    This is a very easy install and is needed since PSRFITS is now being written
-    by several pulsar instruments.
-
-    Ubuntu has CFITSIO packages: `libcfitsio-bin` and `libcfitsio-dev`
-
-    If you install to a non-standard location, see the note in #1 about editing
-    the setup.py file for the python install!
-
-6.  Define the `PRESTO` environment variable to the top level directory of the
-    PRESTO distribution (i.e. this directory).
-
-7.  cd to `$PRESTO/src`.  Check and modify the Makefile for your machine of
-    choice.  Ensure that the library and include file directories are correct
-    for FFTW, PGPLOT, GLIB, CFITSIO, and TEMPO.
-
-8.  If you are using FFTW, do a `make makewisdom`.  This gets FFTW acquainted
-    with your system.  It is best if you are the only user on the machine when
-    you run this, as it is very computation intensive and may take a while.
-
-9.  Just for safety's sake, do a `make prep`.  That will make sure that make
-    does not try to run Clig to re-generate all of the command line interface
-    files.
-
-10.  Do a `make`.  This will make all of the executables.  If you want
-     `mpiprepsubband` (for parallel de-dispersion on clusters) you will need to
-     do a `make mpi` as well (and for that, you will need to have OpenMPI
-     installed!)
-
-11.  The required libraries and miscellaneous files will be located in
-     `$PRESTO/lib`.  The executables will be in `$PRESTO/bin`. You may copy or
-     move the executables wherever you like, but the library files should stay
-     put.  (That's why you define the `PRESTO` variable -- so the routines can
-     find them).
-
-     Given the new use of `-Wl,-rpath,$(PRESTO)/lib` during linking (thanks to
-     Mike Keith for the tip!), you no longer need `$PRESTO/lib` in your
-     `LD_LIBRARY_PATH` environment variable. However, you do still need
-     `$PRESTO/bin` in your `PATH`, or else you can copy/link all of the files
-     that are in `$PRESTO/bin` to somewhere that *is* in your path.
-
-12.  If you want to save some disk space, do a `make clean` in the 'src'
-     directory.  This will leave the libraries and binaries in their respective
-     directories but will get rid of all the extra stuff in the 'src' directory.
-
-13.  If you want to use all the python routines (which if you are doing anything
-     but the most rudimentary analyses you will want to), you need Python >=
-     version 3.7, and [NumPy](http://www.numpy.org) and
-     [SciPy](http://www.scipy.org)
-     
-     In general, the following should work: `cd $PRESTO ; pip install .` if you
-     are using a virtual environment or have permissions for installing normal
-     Python packages.  If not, you may need to install as an administrator or
-     with the `--user` flag.  With this new and better Python installation you
-     do *not* need to set the `PYTHONPATH` environment variable anymore and so
-     you should ensure that it doesn't contain `$PRESTO/lib/python` as in the
-     past.
-
-14.  It is highly recommended that you test some of the Python code that wraps
-     parts of the PRESTO C library.  Once you have installed the python modules,
-     you should run: `python tests/test_presto_python.py`.  If all is well, you
-     will get a bunch of tests and a bunch of `success`es.
-
-15.  Go find pulsars!
+    If you want to uninstall everything you can do:
+    `cd $PRESTO/build`
+    `ninja uninstall`
+    `pip uninstall presto` 
 
 Scott Ransom
-Updated May 2021
+Updated April 2024, for v5.0.0
 
 -----------------------------------------------------------------
 
-## TROUBLE SHOOTING
+## TROUBLESHOOTING
 --------------------
 
 Couple quick trouble-shooting tips if you are having problems compiling and
@@ -139,64 +151,41 @@ running:
    - Is `TEMPO` set to the top-level TEMPO source directory?
    - Is `PGPLOT_DIR` set to the location of the PGPLOT utility files?
      (Note: On Ubuntu, that should be `/usr/lib/pgplot5`)
-   - Is `$PRESTO/bin` in your `PATH`? (It should be!)
-   - Is `$PRESTO/lib/python` in your `PYTHONPATH`? (It shouldn't be now!)
+   - Is `$PRESTO/bin` in your `PATH`? (It should *not* be!)
+   - Is `$PRESTO/lib` in your `LD_LIBRARY_PATH`? (It should *not* be!)
+   - Is there any `presto` stuff in your `PYTHONPATH`? (There should *not* be!)
 
-2. Have you have installed the relevant -dev packages for glib2, FFTW and
-   CFITSIO if you are using a Debian-based Linux distribution? Here are the
-   required packages on a clean Ubuntu:
-   - build-essential
-   - libfftw3-bin
-   - libfftw3-dev
-   - pgplot5
-   - libglib2.0-dev
-   - libcfitsio-bin
-   - libcfitsio-dev
-   - libpng-dev
-   - gfortran
-   - tcsh
-   - autoconf
-   - libx11-dev
-   - python3-dev
-   - python3-numpy
-   - python3-pip
+2. Have you have installed the relevant `-dev` packages for `glib2`, `FFTW` and `CFITSIO` if you are using a Debian-based Linux distribution? Here are the required packages on a clean Ubuntu:
+   - `git`
+   - `build-essential`
+   - `libfftw3-bin`
+   - `libfftw3-dev`
+   - `pgplot5`
+   - `libglib2.0-dev`
+   - `libcfitsio-bin`
+   - `libcfitsio-dev`
+   - `libpng-dev`
+   - `gfortran`
+   - `tcsh`
+   - `autoconf`
+   - `libx11-dev`
+   - `python3-dev`
+   - `python3-numpy`
+   - `python3-pip`
    
-   And the following command should get all of them: `apt install git
-   build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev
-   libcfitsio-bin libcfitsio-dev libpng-dev gfortran tcsh autoconf libx11-dev
-   python3-dev python3-numpy python3-pip`
+   And the following command should get all of them: `apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
 
-3. After the Python modules are built and installed, and you run `python
-   tests/test_presto_python.py`, if you get a memory error, there are
-   instructions for making a minor change to the `Makefile`.  If you make that
-   change, you should re-run `make`, and re-build and install the Python
-   modules.  Re-running the test *should* then work.
+3. After the Python modules are built and installed, and you run `python tests/test_presto_python.py`, if you get a memory error, please contact Scott! I think that these issues are fixed, but if they are not, we will need to change the build process a tiny bit with a special variable define.
+   
+4. If you are having trouble with PRESTO creating polycos, you can use `prepfold` with the `-debug` option when folding using `-timing`. That will show you the `TEMPO` call and keep all of the (usually) temporary output files.
 
-4. If you are having trouble with PRESTO creating polycos, you can use prepfold
-   with the `-debug` option when folding using `-timing`. That will show you the
-   TEMPO call and keep all of the (usually) temporary output files.
+5. If you are using a Mac, Paul Ray has been running PRESTO a lot and knows several tricks to get it working:
 
-5. If you are using a Mac, Paul Ray has been running PRESTO a lot and knows
-   several tricks to get it working:
+    - PRESTO should build almost "out of the box" on a Mac. I have had success using MacPorts to install the necessary dependencies. You will need MacPorts packages: pgplot, cfitsio, glib2, fftw-3, fftw-3-single, and gcc5 You can probably use a more recent gcc instead, if you prefer (e.g. gcc8).  It just needs to provide gfortran.
 
-   PRESTO should build almost "out of the box" on a Mac. I have had
-   success using MacPorts to install the necessary dependencies. You
-   will need MacPorts packages: pgplot, cfitsio, glib2, fftw-3,
-   fftw-3-single, and gcc5 You can probably use a more recent gcc
-   instead, if you prefer (e.g. gcc8).  It just needs to provide
-   gfortran.
+    - TEMPO should build easily with gfortran. I did not make any changes to the distro.
 
-   TEMPO should build easily with gfortran. I did not make any changes
-   to the distro.
+    - Also you need to delete the line `#include "error.h"` from `src/backend_common.c`
 
-   Also you need to delete the line `#include "error.h"` from
-   `src/backend_common.c`
+    - **These Mac tips will need updating for the new `meson` build process in v5!**
 
-   For python, you will need to install numpy, scipy, etc. using
-   MacPorts or pip, as you prefer.
-
-   Finally, in `$PRESTO/setup.py` you might need to add
-   `/opt/local/include` to the `include_dirs`.
-
-   Then, just follow the PRESTO installation instructions:
-   `cd src; make; make makewisdom; cd .. ; pip install .`
