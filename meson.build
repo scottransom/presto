@@ -5,7 +5,6 @@ project('PRESTO', 'c', 'fortran',
     'buildtype=release',
   ],
 )
-#
 # Other possibilities
 #    'buildtype=debugoptimized',
 #    'buildtype=debug',
@@ -13,7 +12,7 @@ project('PRESTO', 'c', 'fortran',
 cc = meson.get_compiler('c')
 
 glib = dependency('glib-2.0')
-fftw = dependency('fftw3f') # Note the 'f' for the single-precision version!
+fftw = dependency('fftw3f') # Note the 'f' for single-precision version!
 fits = dependency('cfitsio')
 x11 = dependency('x11')
 png = dependency('libpng')
@@ -27,10 +26,16 @@ cpgplot = cc.find_library('cpgplot', required: true)
 
 inc = include_directories('include')
 
-# Compile and prepare all PRESTO code and python packages
-py_mod = import('python')
-py3 = py_mod.find_installation(pure: false)
-py3_dep = py3.dependency()
+_global_c_args = cc.get_supported_arguments(
+  '-DUSE_FFTW_MALLOC',
+  '-Wno-unused-but-set-variable',
+  '-Wno-unused-function',
+  '-Wno-conversion',
+  '-Wno-misleading-indentation',
+  '-Wno-unused-result',
+  '-Wno-unused-but-set-parameter'
+)
+add_project_arguments(_global_c_args, language : 'c')
 
 subdir('src')
 subdir('bin')
