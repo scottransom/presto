@@ -34,6 +34,8 @@ or, if you have `sudo` permissions and want to install to `/usr/local` (or equiv
 
 `meson setup build`.
 
+Note that if you don't want to set `--prefix` on the command line, you can also edit the top-level `meson.build` file and add e.g. `'prefix=/home/sransom'` to the `default_options` variable in the project definition.
+
 Now do the actual build and install via:
 
     meson compile -C build

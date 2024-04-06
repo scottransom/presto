@@ -3,11 +3,13 @@ project('PRESTO', 'c',
   license: 'GPL-2.0',
   default_options: [
     'buildtype=release',
+    'prefix=/home/sransom'
   ],
 )
-# Other possibilities
+# Other buildtype possibilities:
 #    'buildtype=debugoptimized',
 #    'buildtype=debug',
+# Can also set install prefix as option via e.g. 'prefix=/home/sransom'
 
 cc = meson.get_compiler('c')
 
