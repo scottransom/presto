@@ -71,6 +71,7 @@ else:
 chk = os.path.join(presto, "bin")
 path = os.environ.get('PATH')
 path = path.split(":") if path is not None else []
+path = [x.rstrip("/") for x in path]
 if (chk != bininstall):
     print(f"Is $PRESTO/bin in PATH? (it shouldn't be):", end="")
     if (chk in path):
@@ -104,6 +105,7 @@ else:
 print(f"Is {bcolors.BOLD}{libinstall}{bcolors.ENDC} in LIBRARY_PATH? (it probably should be)", end="")
 libpath = os.environ.get('LIBRARY_PATH')
 libpath = libpath.split(":") if libpath is not None else []
+libpath = [x.rstrip("/") for x in libpath]
 if libinstall not in libpath:
     print(f"  {bcolors.FAIL}no{bcolors.ENDC}")
     print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} {libinstall} is not in LIBRARY_PATH!")
@@ -117,6 +119,7 @@ else:
 print(f"Is {bcolors.BOLD}{libinstall}{bcolors.ENDC} in LD_LIBRARY_PATH? (it probably should be)", end="")
 ldlibpath = os.environ.get('LD_LIBRARY_PATH')
 ldlibpath = ldlibpath.split(":") if ldlibpath is not None else []
+ldlibpath = [x.rstrip("/") for x in ldlibpath]
 if libinstall not in ldlibpath:
     print(f"  {bcolors.FAIL}no{bcolors.ENDC}")
     print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} {libinstall} is not in LD_LIBRARY_PATH!")
