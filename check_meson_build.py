@@ -2,6 +2,7 @@ import subprocess
 import json
 import os
 import os.path
+import sys
 
 # For simple terminal colors
 class bcolors:
@@ -15,6 +16,11 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+# Bail with error
+def bail():
+    print(f"\n{bcolors.FAIL}There seem to be some issues. Please fix before trying to build!{bcolors.ENDC}")
+    sys.exit(1)
+
 # Run meson introspect and get the key buildoptions as JSON
 result = subprocess.run(['meson', 'introspect', 'build', '--buildoptions'],
     stdout=subprocess.PIPE)
@@ -23,9 +29,8 @@ result = subprocess.run(['meson', 'introspect', 'build', '--buildoptions'],
 vars = json.loads(result.stdout)
 
 # Which variables do we want to see?
-grab = ['prefix', 'libdir']
+grab = ['prefix', 'libdir', 'bindir']
 ourvars = {}
-allgood = True
 
 # Grab the important values
 for var in vars:
@@ -35,55 +40,91 @@ for var in vars:
 # Show the values for prefix and libdir
 print("\nPRESTO's meson build directory currently has:")
 print(f"  prefix = {ourvars['prefix']}")
+print(f"  bindir = {ourvars['bindir']}")
 print(f"  libdir = {ourvars['libdir']}\n")
+libinstall = os.path.join(ourvars['prefix'], ourvars['libdir'])
+bininstall = os.path.join(ourvars['prefix'], ourvars['bindir'])
 
 # Now show the user what they should be setting
 print(f"Checking for {bcolors.BOLD}PRESTO{bcolors.ENDC} as an environment variable:", end="")
-x = os.environ.get('PRESTO')
-if x==None:
+presto = os.environ.get('PRESTO')
+if presto==None:
     print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} PRESTO environment variable is not set!")
     print("  You can set it using something like:")
     print(f"  export PRESTO={os.getcwd()}")
-    allgood = False
+    bail()
 else:
-    if (os.getcwd()!=os.path.realpath(x)):
+    print(f"  {bcolors.OKGREEN}yes{bcolors.ENDC}")
+    if (os.getcwd()!=os.path.realpath(presto)):
         print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} PRESTO is set, but not to the current directory!")
-        allgood = False
-    else:
-        print(f"  {bcolors.OKGREEN}yes{bcolors.ENDC}")
 
 print(f"Checking for {bcolors.BOLD}TEMPO{bcolors.ENDC} as an environment variable:", end="")
 x = os.environ.get('TEMPO')
 if x==None:
+    print(f"  {bcolors.FAIL}no{bcolors.ENDC}")
     print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} TEMPO environment variable is not set!")
     print("  You need to set it to the location of the TEMPO code.")
-    allgood = False
+    bail()
 else:
     print(f"  {bcolors.OKGREEN}yes{bcolors.ENDC}")
 
-libinstall = os.path.join(ourvars['prefix'], ourvars['libdir'])
-print(f"Is {bcolors.BOLD}{libinstall}{bcolors.ENDC} in LIBRARY_PATH?", end="")
-if libinstall not in os.environ.get('LIBRARY_PATH').split(":"):
+chk = os.path.join(presto, "bin")
+path = os.environ.get('PATH')
+path = path.split(":") if path is not None else []
+if (chk != bininstall):
+    print(f"Is $PRESTO/bin in PATH? (it shouldn't be):", end="")
+    if (chk in path):
+        print(f"  {bcolors.FAIL}yes{bcolors.ENDC}")
+        print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} $PRESTO/bin should probably not be in your PATH!")
+        bail()
+    else:
+        print(f"  {bcolors.OKGREEN}no{bcolors.ENDC}")
+    
+chk = os.path.join(presto, "lib")
+if (chk != libinstall):
+    print(f"Is $PRESTO/lib in LD_LIBRARY_PATH? (it shouldn't be):", end="")
+    if (chk in path):
+        print(f"  {bcolors.FAIL}yes{bcolors.ENDC}")
+        print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} $PRESTO/lib should probably not be in your LD_LIBRARY_PATH!")
+        bail()
+    else:
+        print(f"  {bcolors.OKGREEN}no{bcolors.ENDC}")
+
+print(f"Is {bcolors.BOLD}{bininstall}{bcolors.ENDC} in PATH? (it should be):", end="")
+if bininstall not in path:
+    print(f"  {bcolors.FAIL}no{bcolors.ENDC}")
+    print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} {bininstall} is not in PATH!")
+    print(f"  That may cause issues with linking if {bininstall} is not a standard binary directory.")
+    print("  You can ensure that it is used by setting PATH using something like:")
+    print(f"  export PATH={bininstall}:$PATH")
+    bail()
+else:
+    print(f"  {bcolors.OKGREEN}yes{bcolors.ENDC}")
+
+print(f"Is {bcolors.BOLD}{libinstall}{bcolors.ENDC} in LIBRARY_PATH? (it probably should be)", end="")
+libpath = os.environ.get('LIBRARY_PATH')
+libpath = libpath.split(":") if libpath is not None else []
+if libinstall not in libpath:
+    print(f"  {bcolors.FAIL}no{bcolors.ENDC}")
     print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} {libinstall} is not in LIBRARY_PATH!")
-    print(f"  That may cause issues with linking if {libinstall} is not a standard library directory.")
+    print(f"  That may cause link issues if {libinstall} is not a standard library directory.")
     print("  You can ensure that it is used by setting LIBRARY_PATH using something like:")
     print(f"  export LIBRARY_PATH={libinstall}:$LIBRARY_PATH")
-    allgood = False
+    bail()
 else:
     print(f"  {bcolors.OKGREEN}yes{bcolors.ENDC}")
 
-print(f"Is {bcolors.BOLD}{libinstall}{bcolors.ENDC} in LD_LIBRARY_PATH?", end="")
-if libinstall not in os.environ.get('LD_LIBRARY_PATH').split(":"):
+print(f"Is {bcolors.BOLD}{libinstall}{bcolors.ENDC} in LD_LIBRARY_PATH? (it probably should be)", end="")
+ldlibpath = os.environ.get('LD_LIBRARY_PATH')
+ldlibpath = ldlibpath.split(":") if ldlibpath is not None else []
+if libinstall not in ldlibpath:
+    print(f"  {bcolors.FAIL}no{bcolors.ENDC}")
     print(f"\n  {bcolors.WARNING}WARNING:{bcolors.ENDC} {libinstall} is not in LD_LIBRARY_PATH!")
-    print(f"  That may cause issues with running codes if {libinstall} is not a standard library directory.")
+    print(f"  That may cause runtime issues if {libinstall} is not a standard library directory.")
     print("  You can ensure that it is used by setting LD_LIBRARY_PATH using something like:")
     print(f"  export LD_LIBRARY_PATH={libinstall}:$LD_LIBRARY_PATH")
-    allgood = False
+    bail()
 else:
     print(f"  {bcolors.OKGREEN}yes{bcolors.ENDC}")
 
-if allgood:
-    print(f"\n{bcolors.OKGREEN}Everything looks good! Let's try to build.{bcolors.ENDC}")
-else:
-    print(f"\n{bcolors.FAIL}There seem to be some issues. Please fix before trying to build!{bcolors.ENDC}")
-    
+print(f"\n{bcolors.OKGREEN}Everything looks good! Let's try to build.{bcolors.ENDC}")

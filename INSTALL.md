@@ -6,7 +6,7 @@ With v5, we have switched to building and installing with [meson](https://mesonb
 As always, there are a set of essential packages required to build PRESTO. This command should do it on a Debian/Ubuntu-like system:
 `apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
 
-Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past.
+Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past. It is probably a good idea to clean your earlier compiles, as well.  Just cd into the `src` directory and do a `make cleaner`, and then come back here.
 
 From your activated Python virtual or [Conda](https://docs.conda.io/) environment, make sure that you have `meson`, `meson-python`, `ninja`, and a recent `pip` installed (also Python >=3.8):
 
@@ -36,6 +36,12 @@ or, if you have `sudo` permissions and want to install to `/usr/local` (or equiv
 
 Note that if you don't want to set `--prefix` on the command line, you can also edit the top-level `meson.build` file and add e.g. `'prefix=/home/sransom'` to the `default_options` variable in the project definition.
 
+In order to avoid the possible issues with linking and running, I recommend doing:
+
+`python check_meson_build.py`.
+
+If all looks good, it will let you know. If not, I recommend trying to fix the issues that it caught, and then starting again.
+
 Now do the actual build and install via:
 
     meson compile -C build
@@ -57,7 +63,7 @@ And that should do it! You can quickly test to see if most things are working by
 
 Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
 
-If you want to run `makewisdom` for slightly faster FFT calls, it is located in `$PRESTO/build/src`. Just run it from there.
+If you want to run `makewisdom` for slightly faster FFT calls, it is located in `$PRESTO/build/src`. Just run it from there, and then copy or move the resulting `fftw_wisdom.txt` file to `$PRESTO/lib`.
 
 Note that you can uninstall everything via:
 
@@ -128,19 +134,25 @@ Note that you can uninstall everything via:
 
     `meson setup build`.
 
-9. **Build and install all the C/Fortran codes and the PRESTO shared library (e.g. `libpresto.so`)**
+9. **Check your environment variables against the configuration**
+
+    `python check_meson_build.py`
+
+    If everything looks good, it will tell you. Otherwise, try fixing the issues and starting over from step #8.
+
+10. **Build and install all the C/Fortran codes and the PRESTO shared library (e.g. `libpresto.so`)**
 
     `meson compile -C build`
 
     `meson install -C build`
 
-    There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`
+    There should be logs in case anything goes wrong in `$PRESTO/build/meson-logs`. Note that all PRESTO compiled binaries will be installed in `{prefix}/{bindir}`, and the PRESTO shared library (likely either `libpresto.so` or `libpreso.dylib`) will be installed in `{prefix}/{libdir}` as defined by `meson`. You can see the values of `{prefix}`, `{bindir}`, and `{libdir}` using the `check_meson_build.py` script from the previous step.
 
-10. **Try running a PRESTO command like `prepfold`**
+11. **Try running a PRESTO command like `prepfold`**
 
     You should get the regular usage screen. If you get a shared library error, see the troubleshooting steps above or below.
 
-11. **Compile and install the PRESTO python codes and libraries**
+12. **Compile and install the PRESTO python codes and libraries**
 
     `cd $PRESTO/python`
 
@@ -148,7 +160,7 @@ Note that you can uninstall everything via:
 
     If you get a shared library error, see the troubleshooting steps above or below.
 
-12. **Run some basic tests**
+13. **Run some basic tests**
 
     `cd $PRESTO`
 
@@ -160,11 +172,11 @@ Note that you can uninstall everything via:
 
     Another good test is to see if you can run and fit the default profile in `pygaussfit.py`
 
-13. **Run `makewisdom` to have (slightly) fast FFTs**
+14. **Run `makewisdom` to have (slightly) fast FFTs**
 
-    Just run `$PRESTO/build/src/makewisdom`. It takes about 10-20 min to run, so be patient.
+    Just run `$PRESTO/build/src/makewisdom`. It takes about 10-20 min to run, so be patient. Note that the `fftw_wosdom.txt` file will be located in `$PRESTO/build/src`, so you will need to move it to `$PRESTO/lib` so that PRESTO can find it.
 
-14. **Go find pulsars!**
+15. **Go find pulsars!**
     
     Everything should be ready to go now, and installed (likely) in the same place as the rest of your Python virtual environment and/or Conda/Mamba/Anaconda environment.
 
