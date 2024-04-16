@@ -57,23 +57,23 @@ executable('accelsearch', 'accelsearch.c', 'accelsearch_cmd.c', 'accel_utils.c',
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('bary', 'bary.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('bincand', 'bincand.c', 'bincand_cmd.c',
     dependencies: [glib, fftw, libm, omp],
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('check_parkes_raw', 'check_parkes_raw.c', 'multibeam.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('dat2sdat', 'dat2sdat.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('dftfold', 'dftfold_cmd.c', 'dftfold.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('downsample', 'downsample.c', 'downsample_cmd.c', 
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('exploredat',
     sources: ['exploredat.c'] + PLOT2DOBJS,
@@ -86,10 +86,10 @@ executable('explorefft',
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('makedata', 'makedata.c', 'com.c', 'randlib.c', 
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('makeinf', 'makeinf.c', 'ioinf.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 if mpi.found()
     executable('mpiprepsubband',
@@ -124,7 +124,7 @@ executable('psrorbit',
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('quicklook', 'quicklook.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('readfile',
     sources: ['readfile.c', 'readfile_cmd.c', 'multibeam.c', 'bpp.c', 'spigot.c', 'wapp.c', 'wapp_head_parse.c', 'wapp_y.tab.c'] + INSTRUMENTOBJS,
@@ -136,7 +136,7 @@ executable('realfft', 'realfft.c', 'realfft_cmd.c',
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('rednoise', 'rednoise.c', 'rednoise_cmd.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('rfifind',
     sources: ['rfifind.c', 'rfifind_cmd.c', 'rfi_utils.c', 'rfifind_plot.c'] + INSTRUMENTOBJS + PLOT2DOBJS,
@@ -144,7 +144,7 @@ executable('rfifind',
     include_directories: inc, link_with: libpresto, install: true)
 
 executable('sdat2dat', 'sdat2dat.c',
-    dependencies: libm, include_directories: inc, link_with: libpresto, install: true)
+    dependencies: [fftw, libm], include_directories: inc, link_with: libpresto, install: true)
 
 executable('search_bin', 'search_bin.c', 'search_bin_cmd.c',
     dependencies: [glib, fftw, libm],
