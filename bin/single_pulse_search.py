@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 from builtins import str, zip
 from optparse import OptionParser
 import bisect, os, sys, glob, gzip

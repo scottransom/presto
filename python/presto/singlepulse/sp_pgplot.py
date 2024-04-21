@@ -13,7 +13,6 @@
  _or_ an updated version is available in the same directory
  where this file was found:  ftp://cfa-ftp.harvard.edu/pub/ransom
 """
-from __future__ import print_function
 from builtins import range
 from builtins import object
 import numpy as Num

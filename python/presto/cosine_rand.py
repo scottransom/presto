@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
 from future import standard_library
 standard_library.install_aliases()
 import numpy as Num
@@ -41,7 +39,7 @@ def cosine_rand(num):
           as per a sinusoid with maximum at phase=0 (0 < phase < 1).
     """
     rands = n*Num.random.random(num)
-    indices = rands.astype(Num.int)
+    indices = rands.astype(int)
     fracts = rands-indices
     lo = Num.take(xs, indices)
     hi = Num.take(xs, indices+1)

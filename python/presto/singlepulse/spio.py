@@ -1,4 +1,3 @@
-from __future__ import print_function
 from builtins import range
 import numpy as _np
 import fileinput as _fileinput

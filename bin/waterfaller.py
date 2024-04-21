@@ -197,7 +197,7 @@ def plot_waterfall(data, start, duration,
     # Set up axes
     if interactive:
         fig = plt.figure()
-        fig.canvas.set_window_title("Frequency vs. Time")
+        fig.canvas.manager.set_window_title("Frequency vs. Time")
 
     im_width = 0.6 if integrate_spec else 0.8
     im_height = 0.6 if integrate_ts else 0.8
@@ -214,7 +214,7 @@ def plot_waterfall(data, start, duration,
     nbinlim = np.int64(duration/data.dt)
 
     img = ax_im.imshow(data.data[..., :nbinlim], aspect='auto',
-                cmap=matplotlib.cm.cmap_d[cmap_str],
+                cmap=cmap_str,
                 interpolation='nearest', origin='upper',
                 extent=(data.starttime, data.starttime+ nbinlim*data.dt,
                         data.freqs.min(), data.freqs.max()))

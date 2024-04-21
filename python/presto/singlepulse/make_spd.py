@@ -10,8 +10,6 @@ python make_spd.py [OPTIONS] <psrfits file> <singlepulse files>
 
 Chitrang Patel - May. 21, 2015 -- Updated on June 10 2016
 """
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import map
 from builtins import range
 

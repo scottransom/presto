@@ -1,0 +1,17 @@
+[build-system]
+build-backend = 'mesonpy'
+requires = ['meson-python', 'numpy']
+
+[project]
+name = 'presto'
+version = '5.0.0'
+description = 'PulsaR Exploration and Search TOolkit'
+requires-python = '>=3.8'
+dependencies = ['numpy', 'scipy', 'astropy', 'matplotlib']
+authors = [
+  {name = 'Scott Ransom', email = 'sransom@nrao.edu'},
+]
+
+[project.urls]
+"Source" = "https://github.com/scottransom/presto"
+"ASCL" = "https://ascl.net/1107.017"

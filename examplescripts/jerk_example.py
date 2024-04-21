@@ -1,4 +1,3 @@
-from __future__ import print_function
 import numpy as num
 from presto import presto
 import presto.ppgplot as ppgplot
@@ -25,16 +24,16 @@ z0 = z - 0.5 * w
 phss = 2.0 * num.pi * (us * (us * (us * w/6.0 + z0/2.0) + r0))
 ft = presto.rfft(num.cos(phss)+noise)
 
-a = time.clock()
+a = time.time()
 vol = presto.fdotdot_vol(ft, rint-np/2*dr, dr, np,
                          0.0-np/2*dz, dz, np,
                          0.0-np/2*dw, dw, np)
-print("First jerk vol took %.3f s" % (time.clock()-a))
-a = time.clock()
+print("First jerk vol took %.3f s" % (time.time()-a))
+a = time.time()
 vol = presto.fdotdot_vol(ft, rint-np/2*dr, dr, np,
                          0.0-np/2*dz, dz, np,
                          0.0-np/2*dw, dw, np)
-print("Second jerk vol took %.3f s" % (time.clock()-a))
+print("Second jerk vol took %.3f s" % (time.time()-a))
 pvol = presto.spectralpower(vol.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pvol) / theo_max_pow # Fraction of recovered power

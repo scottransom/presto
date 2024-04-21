@@ -6,7 +6,6 @@
    Modified to return topocentric and corresponding barycentric
    times. 
 """
-from __future__ import print_function
 from presto.presto.prestoswig import *
 import numpy as Num
 from presto import psr_utils

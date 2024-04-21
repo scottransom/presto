@@ -1,4 +1,0 @@
-# pep 518 way of specifying setup requirements
-[build-system]
-requires = ["setuptools", "wheel", "oldest-supported-numpy"]
-#requires = ["setuptools", "wheel", "numpy==1.19"]

@@ -14,7 +14,6 @@ Output:
 Chen Karako May 7, 2014
 Updated by Chitrang Patel June 10, 2016.
 """
-from __future__ import print_function
 #from past.builtins import cmp
 from time import strftime
 from presto import infodata

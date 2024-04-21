@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-from __future__ import print_function
 from builtins import range
 from presto.infodata import *
 from presto.presto import ffdot_plane, spectralpower

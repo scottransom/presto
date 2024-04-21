@@ -5,7 +5,6 @@ A script to truncate a filterbank file in time/frequency.
 
 Patrick Lazarus, Aug 27, 2012
 """
-from __future__ import print_function
 
 import sys
 import copy

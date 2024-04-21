@@ -1,4 +1,3 @@
-from __future__ import print_function
 from builtins import range
 # 'Safe' Newton-Raphson and Secant method
 #    for numerical root-finding

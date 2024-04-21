@@ -6,8 +6,6 @@
 #  Patrick Lazarus, Feb 26th, 2009
 #  Many other tweaks by S. Ransom, T. Pennucci et al over years
 #
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import input
 from builtins import str
 from builtins import range

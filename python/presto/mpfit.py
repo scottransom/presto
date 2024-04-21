@@ -400,7 +400,6 @@ Perform Levenberg-Marquardt least-squares minimization, based on MINPACK-1.
    Translated from MPFIT (Craig Markwardt's IDL package) to Python,
    August, 2002.  Mark Rivers
 """
-from __future__ import print_function
 from builtins import str
 from builtins import range
 from builtins import object

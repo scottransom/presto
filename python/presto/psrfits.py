@@ -8,8 +8,6 @@ Patrick Lazarus, May 11, 2010
   Jul 4, 2016  (Scott Ransom added 2-bit reading)
   Mar 25, 2021 (Scott Ransom added 1-bit reading)
 """
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import range
 from builtins import object
 import re

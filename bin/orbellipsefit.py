@@ -5,7 +5,6 @@
 # Inputs are a set of .bestprof files or .par files from which the P0 and P1 (or F0 and F1) values
 # and their errors are read.  It can ignore points with too large an F1 error
 #
-from __future__ import print_function
 from numpy import *
 from pylab import *
 from presto.psr_utils import *

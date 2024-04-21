@@ -1,4 +1,3 @@
-from __future__ import print_function
 import bisect
 from presto.psr_constants import PI, TWOPI, PIBYTWO
 from presto.simple_roots import newton_raphson

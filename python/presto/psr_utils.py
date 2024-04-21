@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
 from builtins import str
 from builtins import range
 import bisect
@@ -621,7 +619,7 @@ def PBDOT(porb, e, Mp, Mc):
     """
     PBDOT(porb, e, Mp, Mc):
         Return the predicted orbital period derivative (s/s) given the
-        orbital period (s), eccentricity, and pulsar and companion masses.
+        orbital period (d), eccentricity, and pulsar and companion masses.
     """
     return -192.0 * pc.PI / 5.0 * (porb * pc.SECPERDAY / pc.TWOPI) ** (-5.0 / 3.0) * \
            (1.0 + 73.0 / 24.0 * e ** 2.0 + 37.0 / 96.0 * e ** 4.0) * \

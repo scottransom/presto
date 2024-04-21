@@ -5,7 +5,6 @@ a filterbank file.
 
 Patrick Lazarus, June 26, 2012
 """
-from __future__ import print_function
 from builtins import zip
 from builtins import object
 import sys
