@@ -3,10 +3,12 @@
 ## td;dr for experienced PRESTO builders:
 With v5, we have switched to building and installing with [meson](https://mesonbuild.com/).
 
+**MacOS users should see the comments at the bottom of this file!**
+
 As always, there are a set of essential packages required to build PRESTO. This command should do it on a Debian/Ubuntu-like system:
 `apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
 
-Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past. It is probably a good idea to clean your earlier compiles, as well.  Just cd into the `src` directory and do a `make cleaner`, and then come back here.
+Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past. It is probably a good idea to clean your earlier compiles, as well. Just cd into the `src` directory and do a `make cleaner`, and then come back here.
 
 From your activated Python virtual or [Conda](https://docs.conda.io/) environment, make sure that you have `meson`, `meson-python`, `ninja`, and a recent `pip` installed (also Python >=3.8):
 
@@ -78,7 +80,7 @@ Note that you can uninstall everything via:
 
 ## Detailed install and build instructions:
 
-**(Note:  For Mac users, please see the bottom of the document!)**
+**(Note:  For MacOS users, please see the bottom of the document!)**
 
 1.  **Install [FFTW3](http://www.fftw.org)**
 
@@ -232,13 +234,31 @@ running:
    
 4. If you are having trouble with PRESTO creating polycos, you can use `prepfold` with the `-debug` option when folding using `-timing`. That will show you the `TEMPO` call and keep all of the (usually) temporary output files.
 
-5. If you are using a Mac, Paul Ray has been running PRESTO a lot and knows several tricks to get it working:
+5. If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows several tricks to get it working:
 
-    - PRESTO should build almost "out of the box" on a Mac. I have had success using MacPorts to install the necessary dependencies. You will need MacPorts packages: pgplot, cfitsio, glib2, fftw-3, fftw-3-single, and gcc5 You can probably use a more recent gcc instead, if you prefer (e.g. gcc8).  It just needs to provide gfortran.
+    - PRESTO should build almost "out of the box" on a Mac, once you have the external packages installed and after setting a few environment variables.
+    
+    - For MacPorts, which has worked well, this should install all the important packages. **This assumes you use Python 3.11 and gcc13.  You may use different versions.**:
+
+        ~~~
+        % sudo port install mp-gcc13 python311 py311-ipython pip311 virtualenv311 virtualenvwrapper311
+        % sudo port select --set gcc mp-gcc13
+        % sudo port select --set python python311
+        % sudo port select --set virtualenv virtualenv311
+        % sudo port select --set  virtualenvwrapper virtualenvwrapper311
+        % sudo port install pgplot cfitsio glib2 fftw-3 fftw-3-single
+        ~~~
 
     - TEMPO should build easily with gfortran. I did not make any changes to the distro.
 
-    - Also you need to delete the line `#include "error.h"` from `src/backend_common.c`
+    - Before you build, you will likely need to set the following environment variables. You probably do *not* need to have `DYLD_LIBRARY_PATH` set at runtime.
 
-    - **These Mac tips will need updating for the new `meson` build process in v5!**
-
+        ~~~
+        # These are needed only at *BUILD* time
+        # This points to the MacPorts libraries and those installed in your virtualenv
+        export LIBRARY_PATH=/opt/local/lib:/opt/local/lib/libgcc
+        # This prevents using the macOS native "cc" command, in favor of the MacPorts gcc
+        export CC=gcc
+        # This makes sure the MacPorts includes can be found
+        export CFLAGS="-I/opt/local/include"
+        ~~~

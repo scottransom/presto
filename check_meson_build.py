@@ -172,4 +172,5 @@ if libinstall not in ldlibpath:
 else:
     print(f"  {bcolors.OKGREEN}yes{bcolors.ENDC}")
 
-print(f"\n{bcolors.OKGREEN}Everything looks good! Let's try to build.{bcolors.ENDC}")
+print(f"\n{bcolors.OKGREEN}Everything looks good! Let's try to build:{bcolors.ENDC}\n"
+    "  meson compile -C build\n  meson install -C build")
