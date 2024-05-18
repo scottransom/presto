@@ -3,12 +3,20 @@
 #include "rednoise_cmd.h"
 #ifdef USEDMALLOC
 #include "dmalloc.h"
+#include "misc_utils.h"
 #endif
+
+#include <sys/types.h>
+#include <sys/stat.h>
+struct stat info;
 
 int main(int argc, char *argv[])
 {
     FILE *infile, *outfile;
     char *rootfilenm, *outname;
+    char *fftfullpath;
+    char *inffullpath;
+
     Cmdline *cmd;
 
     /* Call usage() if we have no command line arguments */
@@ -29,12 +37,13 @@ int main(int argc, char *argv[])
 #endif
 
     printf("\n\n");
-    printf("     Rednoise Removal Routine v2.0\n");
-    printf("            Feb, 2015\n\n");
+    printf("     Rednoise Removal Routine v2.0.1\n");
+    printf("                May, 2024\n\n");
 
     {
         int hassuffix = 0;
         char *suffix;
+        
         hassuffix = split_root_suffix(cmd->argv[0], &rootfilenm, &suffix);
         if (hassuffix) {
             if (strcmp(suffix, "fft") != 0) {
@@ -51,7 +60,6 @@ int main(int argc, char *argv[])
             exit(0);
         }
         outname = (char *) calloc(strlen(rootfilenm) + 11, sizeof(char));
-        sprintf(outname, "%s_red.fft", rootfilenm);
     }
 
     {
@@ -62,16 +70,69 @@ int main(int argc, char *argv[])
         float *powbuf, powargr, powargi;
         fcomplex *newbuf, *oldbuf, *inbuf1, *inbuf2, *outbuf, *tempzz;
 
+        struct stat info;
+        
         /* Read the info file, and write a copy */
         {
             char *newinf;
+            char *infdir;
+            char *filenm;
             infodata idata;
+
+
             readinf(&idata, rootfilenm);
             numsamp = idata.N;
             T = numsamp * idata.dt;
+
+            split_path_file(idata.name, &infdir, &filenm);
+            
             newinf = (char *) calloc(strlen(idata.name) + 5, sizeof(char));
+
+            /* Uncomment for debugging 
+            printf("idata.name: %s\n", idata.name);
+            printf("rootfilenm: %s\n", rootfilenm);
+            printf("infdir: %s\n", infdir);
+            printf("filenm: %s\n", filenm)
+            */
+
+            if( stat( infdir, &info ) != 0 ) {
+                    printf("WARNING: Original directory '%s' does not exists!\n", infdir );
+                    printf("         Writing output files in the current working directory.\n");
+                    sprintf(newinf, "%s_red", rootfilenm);
+                    sprintf(outname, "%s_red.fft", rootfilenm);
+                    sprintf(idata.name, "%s", newinf);
+                    
+                    fftfullpath = (char *) calloc(strlen(outname), sizeof(char));
+                    inffullpath = (char *) calloc(strlen(outname), sizeof(char));                    
+                    sprintf(fftfullpath, "./%s_red.fft", rootfilenm);
+                    sprintf(inffullpath, "./%s_red.inf", rootfilenm);
+                    
+                    //Uncomment for debugging
+                    //printf("newinf: %s\n", newinf);
+                    //printf("outname case 1: %s\n", outname);
+                    
+            
+            } else {
+                    //printf( "Directory %s exists! All good.\n", infdir );
+                    sprintf(newinf, "%s_red", idata.name);
+                    sprintf(idata.name, "%s", newinf);
+                    sprintf(outname, "%s.fft", newinf);
+                    
+                    fftfullpath = (char *) calloc(strlen(outname), sizeof(char));
+                    inffullpath = (char *) calloc(strlen(outname), sizeof(char));
+                    sprintf(fftfullpath, "%s.fft", idata.name);
+                    sprintf(inffullpath, "%s.inf", idata.name);
+
+                    //Uncomment for debugging
+                    //printf("newinf: %s\n", newinf);                    
+                    //printf("outname case 2: %s\n", outname);
+            }
+
+            /* Uncomment for debugging
             sprintf(newinf, "%s_red", idata.name);
             sprintf(idata.name, "%s", newinf);
+            printf("newinf: %s\n", newinf);
+            */
             writeinf(&idata);
             free(newinf);
         }
@@ -191,6 +252,11 @@ int main(int argc, char *argv[])
         vect_free(inbuf2);
         vect_free(powbuf);
         vect_free(outbuf);
+        //printf("Output files:\n");
+        //printf("\n");
+        printf("   Dereddened fft file: %s\n", fftfullpath);
+        printf("Corresponding inf file: %s\n", inffullpath);
+        printf("\n");
     }
 
     fclose(infile);
