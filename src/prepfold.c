@@ -285,6 +285,11 @@ int main(int argc, char *argv[])
         if (cmd->maskfileP) {
             read_mask(cmd->maskfile, &obsmask);
             printf("Read mask information from '%s'\n\n", cmd->maskfile);
+            if ((obsmask.numchan != idata.num_chan) ||
+                (fabs(obsmask.mjd - (idata.mjd_i + idata.mjd_f)) > 1e-9)) {
+                    printf("WARNING!: maskfile has different number of channels or start MJD than raw data! Exiting.\n\n");
+                    exit(1);
+            }
             good_padvals = determine_padvals(cmd->maskfile, &obsmask, s.padvals);
         } else {
             obsmask.numchan = obsmask.numint = 0;
@@ -328,6 +333,11 @@ int main(int argc, char *argv[])
             if (cmd->maskfileP) {
                 read_mask(cmd->maskfile, &obsmask);
                 printf("Read mask information from '%s'\n\n", cmd->maskfile);
+                if ((obsmask.numchan != idata.num_chan) ||
+                    (fabs(obsmask.mjd - (idata.mjd_i + idata.mjd_f)) > 1e-9)) {
+                        printf("WARNING!: maskfile has different number of channels or start MJD than raw data! Exiting.\n\n");
+                        exit(1);
+                }
                 good_padvals = determine_padvals(cmd->maskfile, &obsmask, s.padvals);
             } else {
                 obsmask.numchan = obsmask.numint = 0;
