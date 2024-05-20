@@ -269,6 +269,14 @@ a single '.' to tell it you are done).
 
 -----------------
 
+### **Some of my plot `*.ps` outputfiles are not being written correctly. The filenames are chopped off! What's up with that?**
+
+PGPLOT has a hardcoded limit on the length of a filename of something like 90 characters. So if you are including a long absolute path, or specifying a very long output filename, you might run into this and get a truncated filename!
+
+If an absolute path is the issue, I recommend writing the output files to the current directory, and then moving the files once they are written. This isn't something I can really fix in PRESTO.
+
+-----------------
+
 ## RFI-related questions
 
 -----------------
