@@ -6,7 +6,14 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1000 pulsars, including ~400 recycled and/or binary pulsars!**
 
-## New in Version 5.0.0!:
+## Version 5.0.1:
+ * Minor improvements over v5.0.0
+ * Some clarifications and improvements to the build process
+ * Addition of new recipes for docker / singularity images (thanks Alessandro Ridolfi!)
+ * Bugfix in `rednoise` having to do with absolute paths (thanks Alessandro Ridolfi!)
+ * Bugfix that checks to see if the maskfile you intend to use matches the properties of the data you are using
+
+## Version 5.0.0:
  * This is a major release since I've moved to a completely different and modern build system: [meson](https://mesonbuild.com/), along with the [meson-python](https://meson-python.readthedocs.io/en/latest/) backend. This was required since *Numpy* has deprecated `numpy.distutils` and this caused python builds to stop working with Python v3.12.
    * See the [INSTALL.md](https://github.com/scottransom/presto/blob/master/INSTALL.md) for updated installation instructions.
    * You will need to install **meson**, **meson-python**, and **ninja**, but that is easily done via `pip`!

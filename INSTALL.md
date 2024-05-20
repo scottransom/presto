@@ -5,8 +5,10 @@ With v5, we have switched to building and installing with [meson](https://mesonb
 
 **MacOS users should see the comments at the bottom of this file!**
 
+**If you are interested in using Docker or Singularity containers of PRESTO, see the bottom of this file!**
+
 As always, there are a set of essential packages required to build PRESTO. This command should do it on a Debian/Ubuntu-like system:
-`apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
+`apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev latex2html gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
 
 Make sure that your `PRESTO` environment variable points to the top-level PRESTO git checkout. And make sure that `$PRESTO/lib` and `$PRESTO/bin` are **not** in your `PATH` or `LD_LIBRARY_PATH` or `PYTHONPATH` environment variables as we have required in the past. It is probably a good idea to clean your earlier compiles, as well. Just cd into the `src` directory and do a `make cleaner`, and then come back here.
 
@@ -84,7 +86,7 @@ Note that you can uninstall everything via:
 
 1.  **Install [FFTW3](http://www.fftw.org)**
 
-    I highly recommend that you use pre-compiled packages for your OS/distribution! FOr example, Ubuntu has good FFTW packages: `libfftw3-bin` and `libfftw3-dev`.
+    I highly recommend that you use pre-compiled packages for your OS/distribution! For example, Ubuntu has good FFTW packages: `libfftw3-bin` and `libfftw3-dev`.
 
     If you compile your own, you need to compile FFTW for **single** precision. For all architectures I recommend the following configuration: `./configure --enable-shared --enable-single`
 
@@ -92,7 +94,7 @@ Note that you can uninstall everything via:
 
 2.  **Install [PGPLOT](http://www.astro.caltech.edu/~tjp/pgplot/)**
 
-    I highly recommend that you use pre-compiled packages for your OS/distribution! FOr example, Ubuntu has a good PGPLOT package: `pgplot5`. You will likely need to set the `PGPLOT_DIR` environment variable. On Ubuntu, I have `PGPLOT_DIR=/usr/lib/pgplot5`
+    I highly recommend that you use pre-compiled packages for your OS/distribution! For example, Ubuntu has a good PGPLOT package: `pgplot5`. You will likely need to set the `PGPLOT_DIR` environment variable. On Ubuntu, I have `PGPLOT_DIR=/usr/lib/pgplot5`
 
     If you want to try to compile your own (good luck!), you need the X-windows and postscript drivers at a minimum.
 
@@ -176,7 +178,7 @@ Note that you can uninstall everything via:
 
 14. **Run `makewisdom` to have (slightly) fast FFTs**
 
-    Just run `$PRESTO/build/src/makewisdom`. It takes about 10-20 min to run, so be patient. Note that the `fftw_wosdom.txt` file will be located in `$PRESTO/build/src`, so you will need to move it to `$PRESTO/lib` so that PRESTO can find it.
+    Just run `$PRESTO/build/src/makewisdom`. It takes about 10-20 min to run, so be patient. Note that the `fftw_wisdom.txt` file will be located in `$PRESTO/build/src`, so you will need to move it to `$PRESTO/lib` so that PRESTO can find it.
 
 15. **Go find pulsars!**
     
@@ -191,7 +193,7 @@ Note that you can uninstall everything via:
     `pip uninstall presto` 
 
 Scott Ransom
-Updated April 2024, for v5.0.0
+Updated May 2024, for v5.0.X
 
 -----------------------------------------------------------------
 
@@ -220,6 +222,7 @@ running:
    - `libcfitsio-bin`
    - `libcfitsio-dev`
    - `libpng-dev`
+   - `latex2html`
    - `gfortran`
    - `tcsh`
    - `autoconf`
@@ -228,37 +231,69 @@ running:
    - `python3-numpy`
    - `python3-pip`
    
-   And the following command should get all of them: `apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
+   And the following command should get all of them: `apt install git build-essential libfftw3-bin libfftw3-dev pgplot5 libglib2.0-dev libcfitsio-bin libcfitsio-dev libpng-dev latex2html gfortran tcsh autoconf libx11-dev python3-dev python3-numpy python3-pip`
 
 3. After the Python modules are built and installed, and you run `python tests/test_presto_python.py`, if you get a memory error, please contact Scott! I think that these issues are fixed, but if they are not, we will need to change the build process a tiny bit with a special variable define.
    
 4. If you are having trouble with PRESTO creating polycos, you can use `prepfold` with the `-debug` option when folding using `-timing`. That will show you the `TEMPO` call and keep all of the (usually) temporary output files.
 
-5. If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows several tricks to get it working:
+## For MacOS Users
+-------------------
 
-    - PRESTO should build almost "out of the box" on a Mac, once you have the external packages installed and after setting a few environment variables.
-    
-    - For MacPorts, which has worked well, this should install all the important packages. **This assumes you use Python 3.11 and gcc13.  You may use different versions.**:
+If you are using **MacOS**, Paul Ray has been running PRESTO a lot and knows several tricks to get it working:
 
-        ~~~
-        % sudo port install mp-gcc13 python311 py311-ipython pip311 virtualenv311 virtualenvwrapper311
-        % sudo port select --set gcc mp-gcc13
-        % sudo port select --set python python311
-        % sudo port select --set virtualenv virtualenv311
-        % sudo port select --set  virtualenvwrapper virtualenvwrapper311
-        % sudo port install pgplot cfitsio glib2 fftw-3 fftw-3-single
-        ~~~
+- PRESTO should build almost "out of the box" on a Mac, once you have the external packages installed and after setting a few environment variables.
 
-    - TEMPO should build easily with gfortran. I did not make any changes to the distro.
+- For MacPorts, which has worked well, this should install all the important packages. **This assumes you use Python 3.11 and gcc13.  You may use different versions.**:
+    ~~~
+    % sudo port install mp-gcc13 python311 py311-ipython pip311 virtualenv311 virtualenvwrapper311
+    % sudo port select --set gcc mp-gcc13
+    % sudo port select --set python python311
+    % sudo port select --set virtualenv virtualenv311
+    % sudo port select --set  virtualenvwrapper virtualenvwrapper311
+    % sudo port install pgplot cfitsio glib2 fftw-3 fftw-3-single
+    ~~~
+- TEMPO should build easily with gfortran. I did not make any changes to the distro.
+- Before you build, you will likely need to set the following environment variables. You probably do *not* need to have `DYLD_LIBRARY_PATH` set at runtime.
+    ~~~
+    # These are needed only at *BUILD* time
+    # This points to the MacPorts libraries and those installed in your virtualenv
+    export LIBRARY_PATH=/opt/local/lib:/opt/local/lib/libgcc
+    # This prevents using the macOS native "cc" command, in favor of the MacPorts gcc
+    export CC=gcc
+    # This makes sure the MacPorts includes can be found
+    export CFLAGS="-I/opt/local/include"
+    ~~~
 
-    - Before you build, you will likely need to set the following environment variables. You probably do *not* need to have `DYLD_LIBRARY_PATH` set at runtime.
+## For Docker / Singularity Users
+----------------------------------
 
-        ~~~
-        # These are needed only at *BUILD* time
-        # This points to the MacPorts libraries and those installed in your virtualenv
-        export LIBRARY_PATH=/opt/local/lib:/opt/local/lib/libgcc
-        # This prevents using the macOS native "cc" command, in favor of the MacPorts gcc
-        export CC=gcc
-        # This makes sure the MacPorts includes can be found
-        export CFLAGS="-I/opt/local/include"
-        ~~~
+Alessandro Ridolfi wrote recipes to create Docker images which you can use and modify in the `examplescripts` directory.
+
+He made two versions: one without PNG image support (i.e. providing `pstoimg` via the latex2html package, which is quite large. `pstoimg` is used by `prepfold` to make the nice .png versions of the .pfd.ps files) and the other one without the PNG support. The files are:
+- examplescripts/Dockerfile_presto5_png_ubuntu24.04.txt
+- examplescripts/Dockerfile_presto5_ubuntu24.04.txt
+
+He has also made available pre-built Docker and Singularity images which can be grabbed from his DockerHub with the following commands:
+
+- Docker images:
+  ~~~
+  docker pull alex88ridolfi/presto5:latest
+  docker pull alex88ridolfi/presto5:png
+  ~~~
+
+- Apptainer / Singularity images:
+  ~~~
+  singularity pull docker://alex88ridolfi/presto5:latest
+  singularity pull docker://alex88ridolfi/presto5:png
+  ~~~
+
+These can  be used with commands like:
+  ~~~
+  singularity shell -B /path/to/mount:/path/to/mount presto5_latest.sif
+  singularity shell -B /path/to/mount:/path/to/mount presto5_png.sif
+  ~~~
+
+These images could be of help for people who don’t want / cannot install PRESTO by themselves, or for use on HPC systems.
+
+Alessandro is also planning to make images that include PRESTO5+PULSAR_MINER, and PRESTO5+PRESTO_GPU+PULSAR_MINER in the near future.
