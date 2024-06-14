@@ -1,6 +1,8 @@
 #include "accel.h"
 #include "accelsearch_cmd.h"
 
+#include <stdio.h>
+
 #if defined (__GNUC__)
 #define inline __inline__
 #else
@@ -828,13 +830,27 @@ void output_fundamentals(fourierprops * props, GSList * list,
     free(notes);
 }
 
+static void filecat(char *dest, char *src)
+{
+    FILE *fp_dest, *fp_src;
+    char buf[4096];
+
+    fp_dest = chkfopen(dest, "a");
+    fp_src = chkfopen(src, "r");
+    while(!feof(fp_src) && !ferror(fp_src) && !ferror(fp_dest))
+    {
+        fwrite(buf, 1, fread(buf, 1, sizeof(buf), fp_src), fp_dest);
+    }
+    fclose(fp_dest);
+    fclose(fp_src);
+}
 
 void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
 {
     int ii, jj, numcols = 15, numcands;
     int widths[15] = { 5, 4, 5, 15, 11, 18, 13, 12, 9, 12, 9, 12, 10, 10, 20 };
     int errors[15] = { 0, 0, 0, 2, 0, 2, 0, 2, 0, 2, 0, 2, 2, 2, 0 };
-    char tmpstr[30], ctrstr[30], notes[21], *command;
+    char tmpstr[30], ctrstr[30], notes[21];
     accelcand *cand;
     GSList *listptr;
     fourierprops props;
@@ -960,10 +976,14 @@ void output_harmonics(GSList * list, accelobs * obs, infodata * idata)
     }
     fprintf(obs->workfile, "\n\n");
     fclose(obs->workfile);
-    command = malloc(strlen(obs->rootfilenm) + strlen(obs->accelnm) + 20);
-    sprintf(command, "cat %s.inf >> %s", obs->rootfilenm, obs->accelnm);
-    system(command);
-    free(command);
+    {
+        char *infnm;
+
+        infnm = malloc(strlen(obs->rootfilenm) + 5);
+        sprintf(infnm, "%s.inf", obs->rootfilenm);
+        filecat(obs->accelnm, infnm);
+        free(infnm);
+    }
 }
 
 
