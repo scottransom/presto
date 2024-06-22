@@ -6,6 +6,11 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
 
 **PRESTO has discovered well over 1000 pulsars, including ~400 recycled and/or binary pulsars!**
 
+## Version 5.0.2:
+ * Updated the C wrappers for PGPLOT for the Numpy 2.0 C API (with thanks to Tom Marsh)
+ * Python v3.9 or newer is now required.
+ * Several minor bug fixes, including to `injectpsr.py`, thanks to @remsforian
+
 ## Version 5.0.1:
  * Minor improvements over v5.0.0
  * Some clarifications and improvements to the build process

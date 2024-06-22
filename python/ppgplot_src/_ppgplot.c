@@ -2,17 +2,16 @@
  * FILE:
  *    _ppgplot.c
  * DESCRIPTION:
- *    ppgplot: Python / Numeric Python interface to the PGPLOT graphical 
- *    library.
- *    Tested with PGPLOT 5.2, Python 2.3.1 and Numeric 23.1, on
- *    Linux (v2.4.x).
+ *    ppgplot: Python / Numeric Python interface to the PGPLOT graphical library.
+ *    Tested with PGPLOT 5.2.2, Python 3.10+, and Numpy 1.2X/2.X on Linux
  * AUTHOR(S):
- *    Nick Patavalis (npat@efault.net)
+ *    Nick Patavalis (npat@efault.net), Tom Marsh, Scott Ransom
  * NOTES:
  *    - A few ppgplot functions have not been interfaced yet.
  *    - The pythonic calling conventions of some functions are *not*
  *      identical to the original PGPLOT ones.
  *    - added pgpt1 15/04/2008 TRM
+ *    - updates to docs and for Numpy 2.0 in June 2024 by SMR
  */
 
 #include <Python.h>
@@ -74,32 +73,51 @@ tofloatvector (PyObject *o, float **v, npy_intp *vsz)
        TRM, 12/02/09. This avoids an irritating deprecation warning from numpy.
     */
     PyArrayObject* array = NULL;
-    array = (PyArrayObject*) PyArray_FromAny(o, PyArray_DescrFromType(NPY_FLOAT), 1, 1, NPY_ALIGNED | NPY_C_CONTIGUOUS | NPY_FORCECAST, NULL);
-    if(array == NULL) return NULL;
-    *vsz = PyArray_Size(array);
-    *v   = (float*) PyArray_DATA(array);
+    array = (PyArrayObject*) PyArray_FromAny(o, PyArray_DescrFromType(NPY_FLOAT), 1, 1,
+      NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_FORCECAST, NULL);
+    if (array == NULL) return NULL;
+    *vsz = PyArray_Size((PyArrayObject*) array);
+    *v = (float*) PyArray_DATA((PyArrayObject*) array);
     return (PyObject*)array;
 }
+
+/*************************************************************************/
+
+//static PyObject *
+//tofloatmatX(PyObject *o, float **m, npy_intp *nr, npy_intp *nc)
+//{
+//    /* 
+//       This is based on the tofloatvector() changes by TRM.
+//    */
+//    PyArrayObject* array = NULL;
+//    array = (PyArrayObject*) PyArray_FromAny(o, PyArray_DescrFromType(NPY_FLOAT), 1, 1,
+//      NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_FORCECAST, NULL);
+//    if(array == NULL) return NULL;
+//    *vsz = PyArray_Size(array);
+//    *v   = (float*) PyArray_DATA(array);
+//    return (PyObject*)array;
+//}
 
 /*************************************************************************/
 
 static PyObject *
 tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 {
+    npy_intp newdims[2];
     PyArrayObject *a1, *af1, *af2;
     int ownedaf1=0;
     char **tmpdat;
     
     /* Check if args are arrays. */
     if (!PyArray_Check(o)) {
-		PyErr_SetString(PpgTYPEErr,"object is not an array");
-		return(NULL);
+		  PyErr_SetString(PpgTYPEErr,"object is not an array");
+		  return(NULL);
     }
     a1 = (PyArrayObject *)o;
     /* Check if args are matrices. */
     if (a1->nd != 2) {
-	PyErr_SetString(PpgTYPEErr,"object is not a matrix");
-	return(NULL);
+    	PyErr_SetString(PpgTYPEErr,"object is not a matrix");
+	    return(NULL);
     }
     
 #ifdef DEBUG_TOARRAY
@@ -107,29 +125,24 @@ tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 #endif
     
     switch (a1->descr->type_num) {
-    case PyArray_FLOAT:
-		af1 = a1;
-		break;
-    case PyArray_CHAR: 
-#ifndef USE_NUMARRAY
-    case PyArray_UBYTE: 
-#endif
-//    case PyArray_SBYTE:
-    case PyArray_SHORT: 
-    case PyArray_INT: 
-#ifndef USE_NUMARRAY
-    case PyArray_LONG:
-#endif
-    case PyArray_DOUBLE:
-		if (!(af1 = (PyArrayObject *)PyArray_Cast(a1,PyArray_FLOAT))) {
-			PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
-			return(NULL);
-		}
-		ownedaf1 = 1;
-		break;
+    case NPY_FLOAT:
+		  af1 = a1;
+		  break;
+    case NPY_CHAR: 
+    case NPY_UBYTE: 
+    case NPY_SHORT: 
+    case NPY_INT: 
+    case NPY_LONG:
+    case NPY_DOUBLE:
+		  if (!(af1 = (PyArrayObject *)PyArray_Cast(a1,NPY_FLOAT))) {
+			  PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
+			  return(NULL);
+		  }
+		  ownedaf1 = 1;
+		  break;
     default:
-		PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
-		return(NULL);
+		  PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
+		  return(NULL);
 		break;
     }
     
@@ -139,11 +152,14 @@ tofloatmat(PyObject *o, float **m, int *nr, int *nc)
     
     af2 = af1;
     /* (void *) avoids irritating gcc warning about strict aliasing */
-    if (PyArray_As2D((PyObject **)(void *)&af2, (char ***)&tmpdat, nr, nc, PyArray_FLOAT) == -1) {
-		af2 = NULL;
-		goto bailout;
+    if (PyArray_AsCArray((PyObject **)(void *)&af2, (char ***)&tmpdat,
+        newdims, 2, PyArray_DescrFromType(NPY_FLOAT)) == -1) {
+		  af2 = NULL;
+		  goto bailout;
     }
-    
+    *nr = (int ) newdims[0];
+    *nc = (int ) newdims[1];
+
     /* WARNING: What follows is a little tricky and I dunno if I'm 
        really allowed to do this. On the other hand it really conserves 
        time and memory! So this assert statement will make sure that 
