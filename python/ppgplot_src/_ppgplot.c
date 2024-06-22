@@ -83,23 +83,6 @@ tofloatvector (PyObject *o, float **v, npy_intp *vsz)
 
 /*************************************************************************/
 
-//static PyObject *
-//tofloatmatX(PyObject *o, float **m, npy_intp *nr, npy_intp *nc)
-//{
-//    /* 
-//       This is based on the tofloatvector() changes by TRM.
-//    */
-//    PyArrayObject* array = NULL;
-//    array = (PyArrayObject*) PyArray_FromAny(o, PyArray_DescrFromType(NPY_FLOAT), 1, 1,
-//      NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_FORCECAST, NULL);
-//    if(array == NULL) return NULL;
-//    *vsz = PyArray_Size(array);
-//    *v   = (float*) PyArray_DATA(array);
-//    return (PyObject*)array;
-//}
-
-/*************************************************************************/
-
 static PyObject *
 tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 {
