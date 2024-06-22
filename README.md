@@ -23,7 +23,7 @@ PRESTO is a large suite of pulsar search and analysis software developed primari
    * See the [INSTALL.md](https://github.com/scottransom/presto/blob/master/INSTALL.md) for updated installation instructions.
    * You will need to install **meson**, **meson-python**, and **ninja**, but that is easily done via `pip`!
    * Python v3.8 or newer is now required.
- * All of the old Spigot-related codes have been removed. If you need to process Spigot data, please use the `classis` branch that is mentioned in the README.md.
+ * All of the old Spigot-related codes have been removed. If you need to process Spigot data, please use the `classic` branch that is mentioned in the README.md.
  * All of the `slalib` codes (and the python interface to it) have been removed. If you need that stuff, you should transition to [ERFA](https://github.com/liberfa/erfa) and/or [Astropy](https://www.astropy.org/).
  * There are two nice new python utilities:
    * `binary_utils.py` reads a parfile of a binary pulsar and computes min/max observed barycentric spin periods or velocities as either a function of the orbit (default), or for a prescribed duration of time, and optionally plots those. It also shows basic information about the binary.
