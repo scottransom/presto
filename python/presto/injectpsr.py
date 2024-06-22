@@ -5,6 +5,7 @@ a filterbank file.
 
 Patrick Lazarus, June 26, 2012
 """
+from __future__ import print_function
 from builtins import zip
 from builtins import object
 import sys
@@ -222,6 +223,8 @@ class Profile(object):
             Output:
                 smeared: The smeared Profile.
         """
+
+        # todo: (gijs) bug, scatterphs not defined
         if smearphs < 0:
             raise ValueError("Amount of phase to smear by (%g) " \
                                 "cannot be negative!" % scatterphs)
@@ -884,7 +887,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
     
     # Loop over data
     lobin = 0
-    spectra = fil.get_spectra(0, block_size)
+    spectra = fil.get_spectra(0, block_size).data.T
     numread = spectra.shape[0]
     while numread:
         if pulsar_only:
@@ -898,8 +901,8 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
         phases = get_phases(times)
         profvals = prof(phases)
         shape = list(profvals.shape)
-        shape[1:1] = [NINTEG_PER_BIN]
-        shape[0] /= NINTEG_PER_BIN
+        shape[1:1] = [NINTEG_PER_BIN] # these next lines add a new axis=1
+        shape[0] //= NINTEG_PER_BIN
         profvals.shape = shape
         toinject = profvals.mean(axis=1)
         #toinject = profvals
@@ -922,7 +925,7 @@ def inject(infile, outfn, prof, period, dm, nbitsout=None,
         
         # Prepare for next iteration
         lobin = hibin 
-        spectra = fil.get_spectra(lobin, lobin+block_size)
+        spectra = fil.get_spectra(lobin, block_size).data.T
         numread = spectra.shape[0]
 
     sys.stdout.write("Done   \n")
