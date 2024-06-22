@@ -2,16 +2,16 @@
  * FILE:
  *    _ppgplot.c
  * DESCRIPTION:
- *    ppgplot: Python / Numeric Python interface to the PGPLOT graphical 
- *    library.
- *    Tested with PGPLOT 5.2, Python 2.3.1 and Numeric 23.1, on
- *    Linux (v2.4.x).
+ *    ppgplot: Python / Numeric Python interface to the PGPLOT graphical library.
+ *    Tested with PGPLOT 5.2.2, Python 3.10+, and Numpy 1.2X/2.X on Linux
  * AUTHOR(S):
- *    Nick Patavalis (npat@efault.net)
+ *    Nick Patavalis (npat@efault.net), Tom Marsh, Scott Ransom
  * NOTES:
  *    - A few ppgplot functions have not been interfaced yet.
  *    - The pythonic calling conventions of some functions are *not*
  *      identical to the original PGPLOT ones.
+ *    - added pgpt1 15/04/2008 TRM
+ *    - updates to docs and for Numpy 2.0 in June 2024 by SMR
  */
 
 #include <Python.h>
@@ -37,7 +37,7 @@
  * Default values and stuff
  */
 
-#define STD_DEVICE "/XWINDOW"
+#define STD_DEVICE "/XSERVE"
 #define DEF_XLABEL "x"
 #define DEF_YLABEL "y"
 #define DEF_PLOTLABEL "x = f(y)"
@@ -66,94 +66,58 @@ static PyObject *PpgMEMErr;
 /**************************************************************************/
 
 static PyObject *
-tofloatvector (PyObject *o, float **v, int *vsz)
+tofloatvector (PyObject *o, float **v, npy_intp *vsz)
 {
-    PyArrayObject *a1, *af1, *af2;
-    PyArray_Descr *descr;
-    npy_intp dims;
-    int ownedaf1=0;
-
-    /* Check if args are arrays. */
-    if (!PyArray_Check(o)) {
-		PyErr_SetString(PpgTYPEErr,"object is not an array");
-		return(NULL);
-    }
-    a1 = (PyArrayObject *)o;
-    /* Check if args are vectors. */
-    if (a1->nd != 1) {
-		PyErr_SetString(PpgTYPEErr,"object is not a vector");
-		return(NULL);
-    }
-    
-#ifdef DEBUG_TOARRAY
-    fprintf(stderr,"(tofloatvector): array type = %d\n",a1->descr->type_num);
-#endif
-
-    switch (a1->descr->type_num) {
-    case PyArray_FLOAT:
-		af1 = a1;
-		break;
-    case PyArray_CHAR:
-#ifndef USE_NUMARRAY 
-    case PyArray_UBYTE: 
-#endif
-//    case PyArray_SBYTE:
-    case PyArray_SHORT:
-    case PyArray_INT:
-#ifndef USE_NUMARRAY
-    case PyArray_LONG:
-#endif
-    case PyArray_DOUBLE:
-		if (!(af1 = (PyArrayObject *)PyArray_Cast(a1,PyArray_FLOAT))) {
-			PyErr_SetString(PpgTYPEErr,"cannot cast vector to floats");
-			return(NULL);
-		}
-		ownedaf1 = 1;
-		break;
-    default:
-		PyErr_SetString(PpgTYPEErr,"cannot cast vector to floats");
-		return(NULL);
-		break;
-    }
-    
-#ifdef DEBUG_TOARRAY
-    fprintf(stderr,"(tofloatvector): array type = %d\n",a1->descr->type_num);
-#endif
-    
-    af2 = af1;
-    descr = PyArray_DescrFromType(PyArray_FLOAT); 
-    if (PyArray_AsCArray((PyObject **)&af2, (void *)v, &dims, 1,
-                         descr) == -1) {
-		af2 = NULL;
-    }
-    *vsz = dims;
-
-    if (ownedaf1) { Py_DECREF(af1); }
-
-    return((PyObject *)af2);
+    /* 
+       I have radically simplified the code here using numpy's convenience functions 
+       TRM, 12/02/09. This avoids an irritating deprecation warning from numpy.
+    */
+    PyArrayObject* array = NULL;
+    array = (PyArrayObject*) PyArray_FromAny(o, PyArray_DescrFromType(NPY_FLOAT), 1, 1,
+      NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_FORCECAST, NULL);
+    if (array == NULL) return NULL;
+    *vsz = PyArray_Size((PyArrayObject*) array);
+    *v = (float*) PyArray_DATA((PyArrayObject*) array);
+    return (PyObject*)array;
 }
+
+/*************************************************************************/
+
+//static PyObject *
+//tofloatmatX(PyObject *o, float **m, npy_intp *nr, npy_intp *nc)
+//{
+//    /* 
+//       This is based on the tofloatvector() changes by TRM.
+//    */
+//    PyArrayObject* array = NULL;
+//    array = (PyArrayObject*) PyArray_FromAny(o, PyArray_DescrFromType(NPY_FLOAT), 1, 1,
+//      NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_FORCECAST, NULL);
+//    if(array == NULL) return NULL;
+//    *vsz = PyArray_Size(array);
+//    *v   = (float*) PyArray_DATA(array);
+//    return (PyObject*)array;
+//}
 
 /*************************************************************************/
 
 static PyObject *
 tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 {
+    npy_intp newdims[2];
     PyArrayObject *a1, *af1, *af2;
-    PyArray_Descr *descr;
-    npy_intp dims[2];
     int ownedaf1=0;
     char **tmpdat;
     
     /* Check if args are arrays. */
     if (!PyArray_Check(o)) {
-		PyErr_SetString(PpgTYPEErr,"object is not and array");
-		return(NULL);
+		  PyErr_SetString(PpgTYPEErr,"object is not an array");
+		  return(NULL);
     }
     a1 = (PyArrayObject *)o;
     /* Check if args are matrices. */
     if (a1->nd != 2) {
-		PyErr_SetString(PpgTYPEErr,"object is not a matrix");
-		return(NULL);
+    	PyErr_SetString(PpgTYPEErr,"object is not a matrix");
+	    return(NULL);
     }
     
 #ifdef DEBUG_TOARRAY
@@ -161,29 +125,24 @@ tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 #endif
     
     switch (a1->descr->type_num) {
-    case PyArray_FLOAT:
-		af1 = a1;
-		break;
-    case PyArray_CHAR: 
-#ifndef USE_NUMARRAY
-    case PyArray_UBYTE: 
-#endif
-//    case PyArray_SBYTE:
-    case PyArray_SHORT: 
-    case PyArray_INT: 
-#ifndef USE_NUMARRAY
-    case PyArray_LONG:
-#endif
-    case PyArray_DOUBLE:
-		if (!(af1 = (PyArrayObject *)PyArray_Cast(a1,PyArray_FLOAT))) {
-			PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
-			return(NULL);
-		}
-		ownedaf1 = 1;
-		break;
+    case NPY_FLOAT:
+		  af1 = a1;
+		  break;
+    case NPY_CHAR: 
+    case NPY_UBYTE: 
+    case NPY_SHORT: 
+    case NPY_INT: 
+    case NPY_LONG:
+    case NPY_DOUBLE:
+		  if (!(af1 = (PyArrayObject *)PyArray_Cast(a1,NPY_FLOAT))) {
+			  PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
+			  return(NULL);
+		  }
+		  ownedaf1 = 1;
+		  break;
     default:
-		PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
-		return(NULL);
+		  PyErr_SetString(PpgTYPEErr,"cannot cast matrix to floats");
+		  return(NULL);
 		break;
     }
     
@@ -192,15 +151,15 @@ tofloatmat(PyObject *o, float **m, int *nr, int *nc)
 #endif
     
     af2 = af1;
-    descr = PyArray_DescrFromType(PyArray_FLOAT); 
-    if (PyArray_AsCArray((PyObject **)&af2, (void *)&tmpdat, dims, 2,
-                         descr) == -1) {
-		af2 = NULL;
-		goto bailout;
+    /* (void *) avoids irritating gcc warning about strict aliasing */
+    if (PyArray_AsCArray((PyObject **)(void *)&af2, (char ***)&tmpdat,
+        newdims, 2, PyArray_DescrFromType(NPY_FLOAT)) == -1) {
+		  af2 = NULL;
+		  goto bailout;
     }
-    *nr = dims[0];
-    *nc = dims[1];
-    
+    *nr = (int ) newdims[0];
+    *nc = (int ) newdims[1];
+
     /* WARNING: What follows is a little tricky and I dunno if I'm 
        really allowed to do this. On the other hand it really conserves 
        time and memory! So this assert statement will make sure that 
@@ -284,34 +243,34 @@ lininterp (float min, float max, int npts, float *v)
 
 static void
 autocal2d(float *a, int rn, int cn,
-		  float *fg, float *bg, int nlevels, float *levels,
-		  float *x1, float *x2, float *y1, float *y2,
-		  float *tr)
+	  float *fg, float *bg, int nlevels, float *levels,
+	  float *x1, float *x2, float *y1, float *y2,
+	  float *tr)
 {
     float dx1, dx2, dy1, dy2;
 
     /* autocalibrate intensity-range. */
     if (*fg == *bg) {
-		minmax(a,rn*cn,bg,fg);
+	minmax(a,rn*cn,bg,fg);
 /* 	fprintf(stderr,"Intensity range:\n  fg=%f\n  bg=%f\n",*fg,*bg); */
     }
     
     if ((nlevels >= 2) && (levels))
-		lininterp(*bg, *fg, nlevels, levels);
+	lininterp(*bg, *fg, nlevels, levels);
     
     /* autocalibrate x-y range. */
     if ((*x1 == *x2) || (*y1 == *y2)) cpgqwin(&dx1,&dx2,&dy1,&dy2);
     if (*x1 == *x2) {*x1=dx1; *x2=dx2;}
     if (*y1 == *y2) {*y1=dy1; *y2=dy2;}
 /*     fprintf(stderr,"Xrange: [%f, %f]\nYrange[%f, %f]\n",*x1,*x2,*y1,*y2); */
-
+    
     /* calculate transformation vector. */
     tr[2] = tr[4] = 0.0;
     tr[1] = (*x2 - *x1) / cn;
     tr[0] = *x1 - (tr[1] / 2);
     tr[5] = (*y2 - *y1) / rn;
     tr[3] = *y1 - (tr[5] / 2);
-
+    
 /*     fprintf(stderr,"Tansformation vector:\n"); */
 /*     for (i=0; i<6; fprintf(stderr,"  tr[%d]=%f\n",i,tr[i]),i++); */
 }
@@ -346,8 +305,7 @@ PYF(pgqinf)
 PYF(pgpoly)
 {
 	int n;
-	int xlen;
-	int ylen;
+	npy_intp xlen, ylen;
 	float* xpoints = NULL;
 	float* ypoints = NULL;
 	PyObject *xarray = NULL;
@@ -359,13 +317,9 @@ PYF(pgpoly)
 		return NULL;
 	if(!(xa = (PyArrayObject*)tofloatvector(xarray, &xpoints, &xlen))) goto fail;
 	if(!(ya = (PyArrayObject*)tofloatvector(yarray, &ypoints, &ylen))) goto fail;
-	/*for(int i = 0; i < xlen; i++)
-	  {
-	  printf("%i: %f,%f\n", i, xpoints
-	  }*/
+
 	n = xlen;
-	if(ylen < n)
-		n = ylen;
+	if(ylen < n) n = ylen;
 	cpgpoly(n, xpoints, ypoints);
 
 	Py_DECREF(xa);
@@ -395,6 +349,7 @@ PYF(pgqvp)
 	return Py_BuildValue("ffff", x1, x2, y1, y2);
 }
 
+
 /*
   pgqvsz(units : int)
   return x1, x2, y1, y2
@@ -407,6 +362,18 @@ PYF(pgqvsz)
 	if(!PyArg_ParseTuple(args, "i", &units))
 		return NULL;
 	cpgqvsz(units, &x1, &x2, &y1, &y2);
+	return Py_BuildValue("ffff", x1, x2, y1, y2);
+}
+
+/*
+  pgqwin()
+  return x1, x2, y1, y2
+*/
+PYF(pgqwin)
+{
+	float x1, x2, y1, y2;
+	cpgqwin(&x1, &x2, &y1, &y2);
+
 	return Py_BuildValue("ffff", x1, x2, y1, y2);
 }
 
@@ -455,9 +422,8 @@ PYF(pgconf)
     PyArrayObject
 		*aa=NULL, *atr=NULL;
     float *a=NULL, *tr=NULL, c_1 = 0.0, c_2 = 0.0;
-    int cd=0 ,rd=0,
-		c1=0,c2=0,r1=0,r2=0,
-		trsz=0;
+    int cd=0 ,rd=0,c1=0,c2=0,r1=0,r2=0;
+    npy_intp trsz=0;
 
     if (!PyArg_ParseTuple(args,"OiiiiiiffO:pgconl",
 						  &oa, &cd, &rd, &c1, &c2, &r1, &r2,
@@ -525,6 +491,26 @@ PYF(pgopen)
     }
 
     return(Py_BuildValue("i",did));
+}    
+
+PYF(pgaxis)
+{
+  char  *opt=NULL;
+  float x1=0.,x2=1.,y1=0.,y2=1.,v1=0.,v2=1.,step=1.;
+  float dmajl=1.,dmajr=1., fmin=1., disp=0.,orient=0.;
+  int   nsub=2;
+
+  if (!PyArg_ParseTuple(args,"|zfffffffifffff:pgaxis",
+			&opt, &x1, &y1, &x2, &y2, &v1, &v2,
+			&step, &nsub, &dmajl, &dmajr, &fmin, 
+			&disp, &orient))
+    return(NULL);
+    
+  if (!opt) opt = "N";
+
+  cpgaxis(opt,x1,y1,x2,y2,v1,v2,step,nsub,dmajl,dmajr,fmin,disp,orient);
+
+  PYRN;
 }    
 
 PYF(pgslct)
@@ -915,7 +901,7 @@ PYF(pgctab)
     PyArrayObject *la = NULL, *ra = NULL, *ga = NULL, *ba = NULL;
     float *l = NULL, *r = NULL, *g = NULL, *b = NULL,
 		contra = 1.0, bright = 0.5;
-    int nc = 0, nr=0, ng=0, nb=0;
+    npy_intp nc = 0, nr=0, ng=0, nb=0;
 
     if (!PyArg_ParseTuple(args,"OOOO|iff:pgctab",
 						  &lo, &ro, &go, &bo, &nc, &contra, &bright))
@@ -1022,10 +1008,8 @@ PYF(pgband)
     float xref = 0.0, yref = 0.0, x=0.0, y=0.0;
     char ch = '\0';
 
-    if (!PyArg_ParseTuple(args,"i|iff:pgband",
-						  &mode, &i, &xref, &yref))
+    if (!PyArg_ParseTuple(args,"i|iff:pgband", &mode, &i, &xref, &yref))
 		return(NULL);
-
 
     cpgband(mode,i,xref,yref,&x,&y,&ch);
 
@@ -1342,7 +1326,7 @@ PYF(pgrect)
 
 PYF(pgline)
 {
-    int xsz, ysz;
+    npy_intp xsz, ysz;
     PyObject *op1=NULL, *op2=NULL, *o1=NULL, *o2=NULL;
     float *xpts, *ypts;
 
@@ -1365,7 +1349,7 @@ fail:
 
 PYF(pgpt)
 {
-    int xsz, ysz;
+    npy_intp xsz, ysz;
     PyObject *op1=NULL, *op2=NULL, *o1=NULL, *o2=NULL;
     float *xpts, *ypts;
     int symbol=0;
@@ -1385,6 +1369,20 @@ fail:
     if (o1) { Py_DECREF(o1); }
     if (o2) { Py_DECREF(o2); }
     return(NULL);
+}
+
+PYF(pgpt1)
+{
+    float xpt, ypt;
+    int symbol=0;
+
+    if(!PyArg_ParseTuple(args, "ff|i", &xpt, &ypt, &symbol)) 
+	return NULL;
+
+    cpgpt1(xpt, ypt, symbol);
+
+    PYRN;
+
 }
 
 
@@ -1452,7 +1450,7 @@ fail:
  * In order to plot (map) a matrix 
  *            a[r1:r2,c1:c2] 
  * in a viewport scaled as:
- *            x-axis form x1 to x2
+ *            x-axis from x1 to x2
  *            y-axis from y1 to y2
  * having rows run on x and columns on run y, you have to use the
  * following transformation matrix:
@@ -1489,36 +1487,46 @@ static PyObject *
 ImageMap(int color, PyObject *args)
 {
     float fg=0.0, bg=0.0, *a=NULL, *tr=NULL;
-    int cd=0, rd=0, c1=0, c2=0, r1=0, r2=0, rn=0, cn=0, sz=0;
+    int c1=0, c2=0, r1=0, r2=0, rn=0, cn=0;
+    npy_intp sz=0;
     PyObject *oa = NULL, *ot = NULL;
     PyArrayObject *aa = NULL, *at = NULL;
 
 
-    if (!PyArg_ParseTuple(args,"OiiiiiiffO:pggray",
-						  &oa, &cd, &rd, &c1, &c2, &r1, &r2,
-						  &fg, &bg, &ot))
-		return(NULL);
+    if (!PyArg_ParseTuple(args,"OiiiiffO:pggray", &oa, &c1, &c2, &r1, &r2, &fg, &bg, &ot))
+	return(NULL);
 
     if (!(aa =(PyArrayObject *)tofloatmat(oa, &a, &rn, &cn))) goto fail;
     if (!(at =(PyArrayObject *)tofloatvector(ot, &tr, &sz))) goto fail;
 
     if (sz < 6) {
-		PyErr_SetString(PpgTYPEErr,"pggray: invalid transform. vactor");
-		goto fail;
+	if(color)
+	    PyErr_SetString(PpgTYPEErr,"pgimag: invalid transform. vactor");
+	else
+	    PyErr_SetString(PpgTYPEErr,"pggray: invalid transform. vactor");
+	goto fail;
+    }
+
+    if(c1 >= c2 || r1 >= r2 || c2 >= cn || r2 >= rn || c1 < 0 || r1 < 0){ 
+	if(color)
+	    PyErr_SetString(PpgTYPEErr,"pgimag: column and/or row indices out of range");
+	else
+	    PyErr_SetString(PpgTYPEErr,"pggray: column and/or row indices out of range");
+	goto fail;
     }
 
     if (color)
-		cpgimag(a, cn, rn, c1+1, c2+1, r1+1, r2+1, bg, fg, tr);
+	cpgimag(a, cn, rn, c1+1, c2+1, r1+1, r2+1, bg, fg, tr);
     else
-		cpggray(a, cn, rn, c1+1, c2+1, r1+1, r2+1, fg, bg, tr);
+	cpggray(a, cn, rn, c1+1, c2+1, r1+1, r2+1, fg, bg, tr);
 
     Py_DECREF(aa);
     Py_DECREF(at);
     PYRN;
 
 fail:
-    if (aa) { Py_DECREF(aa); }
-    if (at) { Py_DECREF(at); }
+    Py_XDECREF(aa);
+    Py_XDECREF(at);
     return(NULL);
 }
 
@@ -1541,7 +1549,7 @@ ImageMap_s (int color, PyObject *args)
     
     if (!(aa =(PyArrayObject *)tofloatmat(oa, &a, &rn, &cn))) return(NULL);
 
-    /* Perform autocalibrations as nesecairy. */
+    /* Perform autocalibrations as necessary. */
     autocal2d(a, rn, cn, &fg, &bg, 5, levels, &x1, &x2, &y1, &y2, tr);
 
     if (color)
@@ -1615,7 +1623,8 @@ PYF(pgerrb)
     PyObject *ox=NULL, *oy=NULL, *oe=NULL;
     PyArrayObject *ax=NULL, *ay=NULL, *ae=NULL;
     float *x=NULL, *y=NULL, *e=NULL, t=1.0;
-    int szx=0, szy=0, sze =0, dir = 0, n1;
+    int dir = 0, n1;
+    npy_intp szx=0, szy=0, sze =0;
 
     if (!PyArg_ParseTuple(args,"iOOO|f:pgerrb", &dir, &ox, &oy, &oe, &t))
 		return(NULL);
@@ -1646,7 +1655,8 @@ PYF(pgerrx)
     PyObject *oy=NULL, *ox1=NULL, *ox2=NULL;
     PyArrayObject *ay=NULL, *ax1=NULL, *ax2=NULL;
     float *y=NULL, *x1=NULL, *x2=NULL, t=1.0;
-    int szy=0, szx1=0, szx2 =0, n1;
+    npy_intp szy=0, szx1=0, szx2=0;
+    int n1;
 
     if (!PyArg_ParseTuple(args,"OOO|f:pgerrx", &ox1, &ox2, &oy, &t))
         return(NULL);
@@ -1678,7 +1688,8 @@ PYF(pgerry)
     PyObject *ox=NULL, *oy1=NULL, *oy2=NULL;
     PyArrayObject *ax=NULL, *ay1=NULL, *ay2=NULL;
     float *x=NULL, *y1=NULL, *y2=NULL, t=1.0;
-    int szx=0, szy1=0, szy2 =0, n1;
+    npy_intp szx=0, szy1=0, szy2 =0;
+    int n1;
 
     if (!PyArg_ParseTuple(args,"OOO|f:pgerry", &ox, &oy1, &oy2, &t))
         return(NULL);
@@ -1711,25 +1722,17 @@ PYF(pghist)
 {
     PyObject *od=NULL;
     PyArrayObject *ad=NULL;
-    int 
-		nusrpts = 0,
-		npts = 0,
-		nbin = 0,
-		pgflag = 0;
-    float
-		datamin=0,
-		datamax=0,
-		*data=NULL;
-    
-    if (!PyArg_ParseTuple(args,"iOffi|i:pghist", &nusrpts, &od, &datamin, 
-						  &datamax, &nbin, &pgflag))
-		return(NULL);
+    int nbin = 0, pgflag = 1;
+    float datamin=0, datamax=0,	*data=NULL;
+    npy_intp npts;
+
+    if (!PyArg_ParseTuple(args,"Offi|i:pghist", &od, &datamin, 
+			  &datamax, &nbin, &pgflag))
+	return(NULL);
     
     if (!(ad = (PyArrayObject *)tofloatvector(od,&data,&npts))) goto fail;
 
-    if (nusrpts > npts) nusrpts = npts;
-    
-    cpghist(nusrpts, data, datamin, datamax, nbin, pgflag);
+    cpghist(npts, data, datamin, datamax, nbin, pgflag);
     
     Py_DECREF(ad);
     PYRN;
@@ -1743,15 +1746,10 @@ PYF(pghist_s)
 {
     PyObject *od=NULL;
     PyArrayObject *ad=NULL;
-    int 
-		npts = 0,
-		nbin = 0,
-		pgflag = 0;
-    float
-		datamin=0,
-		datamax=0,
-		*data=NULL;
-    
+    int nbin = 0, pgflag = 0;
+    float datamin=0, datamax=0, *data=NULL;
+    npy_intp npts;
+
     if (!PyArg_ParseTuple(args,"Oi|iff:pghist_s", &od, &nbin, &pgflag, 
 						  &datamin, &datamax))
 		return(NULL);
@@ -1776,12 +1774,9 @@ PYF(pgbin)
 {
     PyObject *ox=NULL, *od=NULL;
     PyArrayObject *ax=NULL, *ad=NULL;
-    int 
-		szx=0, szd=0,
-		center = 1;
-    float
-		*x,
-		*data;
+    int center = 1;
+    npy_intp szx, szd;
+    float *x, *data;
 
     if (!PyArg_ParseTuple(args,"OO|i:pgbin", &ox, &od, &center))
 		return(NULL);
@@ -1807,7 +1802,8 @@ PYF(pgbin_s)
 {
     PyObject  *od=NULL;
     PyArrayObject *ad=NULL;
-    int nbin = 0, center = 1;
+    int center = 1;
+    npy_intp nbin;
     float x1 = 0.0, x2 = 0.0, *x, *data,
 		dummy1, dummy2;
 
@@ -1848,11 +1844,10 @@ PYF(pghi2d)
 		*od=NULL, *ox=NULL, *oyl=NULL;
     PyArrayObject 
 		*ad=NULL, *ax=NULL, *ayl=NULL;
-    int 
-		cd=0, rd=0, c1=0, c2=0, r1=0, r2=0,
-		ioff, center, vxsz=0, vylsz=0;
+    int cd=0, rd=0, c1=0, c2=0, r1=0, r2=0, ioff, center;
     float *md = NULL, *vx=NULL, *vyl,
 		bias=0;
+    npy_intp vxsz, vylsz;
 
     if (!PyArg_ParseTuple(args,"OiiiiiiOifiO:pghi2d", 
 						  &od,&cd,&rd,&c1,&c2,&r1,&r2,&ox,
@@ -1876,7 +1871,7 @@ PYF(pghi2d)
     Py_DECREF(ax);
     Py_DECREF(ayl);
     PYRN;
-    
+
 fail:
     if (ad) { Py_DECREF(ad); }
     if (ax) { Py_DECREF(ax); }
@@ -1957,13 +1952,10 @@ genContours (enum pp_contour_funcs ft, PyObject *args)
     PyArrayObject 
 		*aa=NULL, *ac=NULL, *atr=NULL;
     float *a=NULL, *c=NULL, *tr=NULL, blank=0.0;
-    int cd=0 ,rd=0,
-		c1=0,c2=0,r1=0,r2=0, 
-		csz=0, trsz=0,
-		nc=0;
-
+    int cd=0, rd=0, c1=0, c2=0, r1=0, r2=0, nc=0;
+    npy_intp csz, trsz;
     if (!PyArg_ParseTuple(args,"OiiiiiiOiO|f:contour",
-						  &oa, &cd, &rd, &c1, &c2, &r1, &r2,
+						  &oa, &cd, &rd, &c1, &c2, &r1, &r2, 
 						  &oc, &nc, &otr, &blank))
 		return(NULL);
     
@@ -1977,6 +1969,7 @@ genContours (enum pp_contour_funcs ft, PyObject *args)
     if (abs(nc) > csz) {
 		PyErr_SetString(PpgTYPEErr,"contour: size of cont vec < than the "
 						"req. contours number");
+		//printf("%d %d\n", nc, csz);
 		goto fail;
     }
     if (trsz < 6) {
@@ -2034,76 +2027,76 @@ genContours_s (enum pp_contour_funcs ft, PyObject *args)
     PyObject *oa=NULL, *oc=NULL;
     PyArrayObject *aa=NULL, *ac=NULL;
     float *a = NULL, *c = NULL, tr[6],
-		x1=0.0,y1=0.0,x2=0.0,y2=0.0,blank=0.0,
-		mn = 0.0, mx = 0.0;
-    int rd=0, cd=0, csz=0, nc=0, ncont=0;
-
+	x1=0.0,y1=0.0,x2=0.0,y2=0.0,blank=0.0,
+	mn = 0.0, mx = 0.0;
+    int rd=0, cd=0, nc=0, ncont=0;
+    npy_intp csz;
     if (!PyArg_ParseTuple(args,"Oi|Offfff:contour_s",
-						  &oa,&nc,&oc,&x1,&y1,&x2,&y2,&blank))
-		return(NULL);
+			  &oa,&nc,&oc,&x1,&x2,&y1,&y2,&blank))
+	return(NULL);
 
     if (abs(nc)<1) {
-		PyErr_SetString(PpgTYPEErr,"_ppgplot.error: Number of contours is 0");
-		return(NULL);
+	PyErr_SetString(PpgTYPEErr,"_ppgplot.error: Number of contours is 0");
+	return(NULL);
     }
     if (!(aa = (PyArrayObject *)tofloatmat(oa, &a, &rd, &cd)))
-		goto fail;
+	goto fail;
     if (oc) {
-		if (!(ac = (PyArrayObject *)tofloatvector(oc, &c, &csz)))
-			goto fail;
+	if (!(ac = (PyArrayObject *)tofloatvector(oc, &c, &csz)))
+	    goto fail;
     } else {
-		if (!(c = malloc(abs(nc)*sizeof(*c)))) {
-			PyErr_SetString(PpgTYPEErr,"_ppgplot.error: Out of mem!");
-			goto fail;
-		}
-		ncont = abs(nc);
+	if (!(c = malloc(abs(nc)*sizeof(*c)))) {
+	    PyErr_SetString(PpgTYPEErr,"_ppgplot.error: Out of mem!");
+	    goto fail;
+	}
+	ncont = abs(nc);
     }
 
-    /* Perform autocalibrations as nesecairy. */
+    /* Perform autocalibrations as necessary. */
     autocal2d(a, rd, cd, &mx, &mn, ncont, c, &x1, &x2, &y1, &y2, tr);
 
 #ifdef DEBUG_CONT_S
     {
-		int i;
-		fprintf(stderr,"ncontours = %d = %d\n",nc,ncont);
-		fprintf(stderr,"Contours:\n");
-		for (i=0; i<abs(nc); i++)
-			fprintf(stderr,"   cont[%d] = %f\n",i,c[i]);
-		fprintf(stderr,"blank = %f\n",blank);
+	int i;
+	fprintf(stderr,"ncontours = %d = %d\n",nc,ncont);
+	fprintf(stderr,"Contours:\n");
+	for (i=0; i<abs(nc); i++)
+	    fprintf(stderr,"   cont[%d] = %f\n",i,c[i]);
+	fprintf(stderr,"blank = %f\n",blank);
     }
 #endif
 
 
     switch (ft) {
-    case FUN_PGCONB:
-		cpgconb(a,cd,rd,0+1,cd,0+1,rd,c,nc,tr,blank);
-		break;
-    case FUN_PGCONS:
-		cpgcons(a,cd,rd,0+1,cd,0+1,rd,c,nc,tr);
-		break;
-    case FUN_PGCONT:
-		cpgcont(a,cd,rd,0+1,cd,0+1,rd,c,nc,tr);
-		break;
-    default:
-		assert(0);
-		break;
+	case FUN_PGCONB:
+	    cpgconb(a,cd,rd,0+1,cd,0+1,rd,c,nc,tr,blank);
+	    break;
+	case FUN_PGCONS:
+	    cpgcons(a,cd,rd,0+1,cd,0+1,rd,c,nc,tr);
+	    break;
+	case FUN_PGCONT:
+	    cpgcont(a,cd,rd,0+1,cd,0+1,rd,c,nc,tr);
+	    break;
+	default:
+	    assert(0);
+	    break;
     }
-
+    
     Py_DECREF(aa);
     if (ac)
-		Py_DECREF(ac);
+	Py_DECREF(ac);
     else if (c)
-		free(c);
+	free(c);
     PYRN;
-
+    
 fail:
     if (aa) { Py_DECREF(aa); }
     if (ac) { 
-		Py_DECREF(ac);
+	Py_DECREF(ac);
     } else if (c) {
-		free(c);
-	}
-
+	free(c);
+    }
+    
     return(NULL);
 }
 
@@ -2129,10 +2122,8 @@ PYF(pgconl)
     PyArrayObject
 		*aa=NULL, *atr=NULL;
     float *a=NULL, *tr=NULL, c = 0.0;
-    int cd=0 ,rd=0,
-		c1=0,c2=0,r1=0,r2=0,
-		trsz=0,
-		intval = 20, minint = 10;
+    int cd=0 ,rd=0, c1=0, c2=0, r1=0, r2=0, intval=20, minint=10;
+    npy_intp trsz;
     char *label = NULL;
 
     if (!PyArg_ParseTuple(args,"OiiiiiifOs|ii:pgconl",
@@ -2197,172 +2188,166 @@ PYF(pgconl_s)
 /***************************************************************************/
 
 static PyMethodDef PpgMethods[] = {
-    {"pgarro", pgarro, 1},
-    {"pgask", pgask,1},
-    {"pgband", pgband, 1},
-    {"pgbbuf", pgbbuf, 1},
-    {"pgbeg",  pgbeg, 1},
-    {"pgbin", pgbin, 1},
-    {"pgbin_s", pgbin_s, 1},
-    {"pgbox", pgbox, 1},
-    {"pgcirc", pgcirc, 1},
-    {"pgclos", pgclos, 1},
-    {"pgconb",pgconb,1},
-    {"pgconb_s",pgconb_s,1},
-    {"pgconl", pgconl, 1},
-    {"pgconl_s", pgconl_s, 1},
-    {"pgcons",pgcons,1},
-    {"pgcons_s",pgcons_s,1},
-    {"pgcont",pgcont,1},    
-    {"pgcont_s",pgcont_s,1},
-    {"pgctab",pgctab, 1},
-    {"pgcurs", pgcurs, 1},
-    {"pgdraw", pgdraw, 1},
-    {"pgebuf", pgebuf, 1},
-    {"pgend", pgend, 1},
-    {"pgenv", pgenv, 1},
-    {"pgeras", pgeras, 1},
-    {"pgerrb", pgerrb, 1},
-    {"pgerrx", pgerrx, 1},
-    {"pgerry", pgerry, 1},
-    {"pgetxt", pgetxt, 1},
-    {"pggray", pggray, 1},
-    {"pggray_s", pggray_s, 1},
-    {"pghi2d", pghi2d, 1},
-    {"pghi2d_s", pghi2d_s, 1},
-    {"pghist", pghist, 1},
-    {"pghist_s", pghist_s, 1},
-    {"pgiden", pgiden, 1},
-    {"pgimag", pgimag, 1},
-    {"pgimag_s", pgimag_s, 1},
-    {"pglab", pglab, 1},
-    {"pgldev", pgldev, 1},
-    {"pglen", pglen, 1},
-    {"pgline", pgline, 1},
-    {"pgmove", pgmove, 1},
-    {"pgmtxt", pgmtxt, 1},
-    {"pgopen",  pgopen, 1},
-    {"pgpage", pgpage, 1},
-    {"pgpanl", pgpanl, 1},
-    {"pgpap", pgpap, 1},
-    {"pgpt", pgpt, 1},
-    {"pgptxt", pgptxt, 1},
-    {"pgqah", pgqah, 1},
-    {"pgqcf", pgqcf, 1},
-    {"pgqch", pgqch, 1},
-    {"pgqci", pgqci, 1},
-    {"pgqcir", pgqcir, 1},
-    {"pgqcol", pgqcol, 1},
-    {"pgqcr", pgqcr, 1},
-    {"pgqcs", pgqcs, 1},
-    {"pgqfs", pgqfs, 1},
-    {"pgqhs", pgqhs, 1},
-    {"pgqid", pgqid, 1},
-    {"pgqitf", pgqitf, 1},
-    {"pgqls", pgqls, 1},
-    {"pgqlw", pgqlw, 1},
-    {"pgqpos", pgqpos, 1},
-    {"pgrect", pgrect, 1},
-    {"pgsah", pgsah, 1},
-    {"pgsave", pgsave, 1},
-    {"pgscf", pgscf, 1},
-    {"pgsch", pgsch, 1},
-    {"pgsci", pgsci, 1},
-    {"pgscir", pgscir,1},
-    {"pgscr", pgscr, 1},
-    {"pgsfs", pgsfs, 1},
-    {"pgshls", pgshls, 1},
-    {"pgshs", pgshs, 1},
-    {"pgsitf", pgsitf, 1},
-    {"pgslct", pgslct, 1},
-    {"pgsls", pgsls,1},
-    {"pgslw", pgslw,1},
-    {"pgstbg", pgstbg, 1},
-    {"pgsubp", pgsubp, 1},
-    {"pgsvp",pgsvp,1},
-    {"pgswin",pgswin,1},
-    {"pgtbox", pgtbox, 1},
-    {"pgtext", pgtext, 1},
-    {"pgunsa", pgunsa, 1},
-    {"pgupdt", pgupdt, 1},
-    {"pgvsiz", pgvsiz, 1},
-    {"pgvstd", pgvstd, 1},
-    {"pgwedg", pgwedg, 1},
-    {"pgwedg_s", pgwedg_s, 1},
-    {"pgwnad", pgwnad, 1},
-	/* ADDED */
-    {"pgqinf", pgqinf, 1},
-    {"pgpoly", pgpoly, 1},
-    {"pgqvp", pgqvp, 1},
-    {"pgqvsz", pgqvsz, 1},
-    {"pgsclp", pgsclp, 1},
-    {"pgqclp", pgqclp, 1},
-    {"pgconf", pgconf, 1},
-    {"pgqtxt", pgqtxt, 1},
+    {"pgarro", pgarro, METH_VARARGS, "pgarro(x1,y1,x2,y2): draw arrow from x1,y1 to x2,y2"},
+    {"pgask", pgask,METH_VARARGS, "pgask(flag): switch prompting for new pages on or off"},
+    {"pgaxis", pgaxis,METH_VARARGS, "pgaxis(opt,x1,y1,x2,y2,v1,v2,step,nsub,dmajl,dmajr,fmin,disp,orient): draw an axis"},
+    {"pgband", pgband, METH_VARARGS, "(x,y,ch) = pgband(mode, posn=0, xref=0., yref=0.): cursor routine"},
+    {"pgbbuf", pgbbuf, METH_VARARGS,"pgbbuf(): start buffering pgplot output"},
+    {"pgbeg",  pgbeg, METH_VARARGS, "pgbeg(device=/xserve, nx=1, ny=1): open plot device"},
+    {"pgbin", pgbin, METH_VARARGS, "pgbin(x,y,center=1): bar chart type plot."},
+    {"pgbin_s", pgbin_s, METH_VARARGS, "pgbin_s(y, x1=0., x2=0., center=1): bar chart. Defaults spread over x-range of plot."},
+    {"pgbox", pgbox, METH_VARARGS, "pgbox(xopt='ABCGNTS', xtick=0., nxsub=0, yopt='ABCGNTS', ytick=0., nysub=0): draw axes"},
+    {"pgcirc", pgcirc, METH_VARARGS, "pgcirc(x,y,r): draw a circle radius r centred at (x,y)"},
+    {"pgclos", pgclos, METH_VARARGS, "pgclos(): close the current plot."},
+    {"pgconb",pgconb,METH_VARARGS,"pgconb(a,nc,nr,c1,c2,r1,r2,con,ncon,tr,blank=0): contours an array; column/row numbers c1, c2 etc start at 0"},
+    {"pgconb_s",pgconb_s,METH_VARARGS,"pgconb_s(a,ncon,con=def,x1=0,x2=0,y1=0,y2=0,blank=0): sets contours and scales automatically."},
+    {"pgconl", pgconl, METH_VARARGS},
+    {"pgconl_s", pgconl_s, METH_VARARGS},
+    {"pgcons",pgcons,METH_VARARGS},
+    {"pgcons_s",pgcons_s,METH_VARARGS},
+    {"pgcont",pgcont,METH_VARARGS},    
+    {"pgcont_s",pgcont_s,METH_VARARGS},
+    {"pgctab",pgctab, METH_VARARGS},
+    {"pgcurs", pgcurs, METH_VARARGS},
+    {"pgdraw", pgdraw, METH_VARARGS},
+    {"pgebuf", pgebuf, METH_VARARGS},
+    {"pgend", pgend, METH_VARARGS},
+    {"pgenv", pgenv, METH_VARARGS},
+    {"pgeras", pgeras, METH_VARARGS},
+    {"pgerrb", pgerrb, METH_VARARGS},
+    {"pgerrx", pgerrx, METH_VARARGS},
+    {"pgerry", pgerry, METH_VARARGS},
+    {"pgetxt", pgetxt, METH_VARARGS},
+    {"pggray", pggray, METH_VARARGS, "pggray(data, c1, c2, r1, r2, fg, bg, tr): grayscale image"},
+    {"pggray_s", pggray_s, METH_VARARGS},
+    {"pghi2d", pghi2d, METH_VARARGS},
+    {"pghi2d_s", pghi2d_s, METH_VARARGS},
+    {"pghist", pghist, METH_VARARGS, "pghist(data, d1, d2, nbin, pgflag=1)"},
+    {"pghist_s", pghist_s, METH_VARARGS},
+    {"pgiden", pgiden, METH_VARARGS},
+    {"pgimag", pgimag, METH_VARARGS},
+    {"pgimag_s", pgimag_s, METH_VARARGS},
+    {"pglab", pglab, METH_VARARGS},
+    {"pgldev", pgldev, METH_VARARGS},
+    {"pglen", pglen, METH_VARARGS},
+    {"pgline", pgline, METH_VARARGS, "pgline(x,y): draw a line of 1D array y vs x."},
+    {"pgmove", pgmove, METH_VARARGS},
+    {"pgmtxt", pgmtxt, METH_VARARGS},
+    {"pgopen",  pgopen, METH_VARARGS},
+    {"pgpage", pgpage, METH_VARARGS},
+    {"pgpanl", pgpanl, METH_VARARGS},
+    {"pgpap",  pgpap, METH_VARARGS},
+    {"pgpt",   pgpt, METH_VARARGS},
+    {"pgpt1",  pgpt1, METH_VARARGS},
+    {"pgptxt", pgptxt, METH_VARARGS},
+    {"pgqah", pgqah, METH_VARARGS},
+    {"pgqcf", pgqcf, METH_VARARGS},
+    {"pgqch", pgqch, METH_VARARGS},
+    {"pgqci", pgqci, METH_VARARGS},
+    {"pgqcir", pgqcir, METH_VARARGS},
+    {"pgqcol", pgqcol, METH_VARARGS},
+    {"pgqcr", pgqcr, METH_VARARGS},
+    {"pgqcs", pgqcs, METH_VARARGS},
+    {"pgqfs", pgqfs, METH_VARARGS},
+    {"pgqhs", pgqhs, METH_VARARGS},
+    {"pgqid", pgqid, METH_VARARGS},
+    {"pgqitf", pgqitf, METH_VARARGS},
+    {"pgqls", pgqls, METH_VARARGS},
+    {"pgqlw", pgqlw, METH_VARARGS},
+    {"pgqpos", pgqpos, METH_VARARGS},
+    {"pgrect", pgrect, METH_VARARGS, "pgrect(x1, x2, y1, y2): draw a rectangle."},
+    {"pgsah", pgsah, METH_VARARGS},
+    {"pgsave", pgsave, METH_VARARGS},
+    {"pgscf", pgscf, METH_VARARGS},
+    {"pgsch", pgsch, METH_VARARGS},
+    {"pgsci", pgsci, METH_VARARGS},
+    {"pgscir", pgscir,METH_VARARGS},
+    {"pgscr", pgscr, METH_VARARGS},
+    {"pgsfs", pgsfs, METH_VARARGS},
+    {"pgshls", pgshls, METH_VARARGS},
+    {"pgshs", pgshs, METH_VARARGS},
+    {"pgsitf", pgsitf, METH_VARARGS},
+    {"pgslct", pgslct, METH_VARARGS},
+    {"pgsls", pgsls,METH_VARARGS},
+    {"pgslw", pgslw,METH_VARARGS},
+    {"pgstbg", pgstbg, METH_VARARGS},
+    {"pgsubp", pgsubp, METH_VARARGS},
+    {"pgsvp",pgsvp,METH_VARARGS, "pgvsp(x1=0,x2=1,y1=0,y2=1): set the viewport"},
+    {"pgswin",pgswin,METH_VARARGS},
+    {"pgtbox", pgtbox, METH_VARARGS},
+    {"pgtext", pgtext, METH_VARARGS},
+    {"pgunsa", pgunsa, METH_VARARGS},
+    {"pgupdt", pgupdt, METH_VARARGS},
+    {"pgvsiz", pgvsiz, METH_VARARGS},
+    {"pgvstd", pgvstd, METH_VARARGS},
+    {"pgwedg", pgwedg, METH_VARARGS},
+    {"pgwedg_s", pgwedg_s, METH_VARARGS},
+    {"pgwnad", pgwnad, METH_VARARGS},
+    {"pgqinf", pgqinf, METH_VARARGS},
+    {"pgpoly", pgpoly, METH_VARARGS},
+    {"pgqvp", pgqvp, METH_VARARGS, "pgqvp(units): query the viewport. Returns (xv1,xv2,yv1,yv2)"},
+    {"pgqvsz", pgqvsz, METH_VARARGS},
+    {"pgqwin", pgqwin, METH_VARARGS, "pgwin(): query the window. Returns (x1,x2,y1,y2)"},
+    {"pgsclp", pgsclp, METH_VARARGS},
+    {"pgqclp", pgqclp, METH_VARARGS},
+    {"pgconf", pgconf, METH_VARARGS},
+    {"pgqtxt", pgqtxt, METH_VARARGS},
 
 /* END ADDED */
 #ifdef DEBUG
-    {"tstmat", tstmat, 1},
+    {"tstmat", tstmat, METH_VARARGS},
 #endif
 
     {NULL,      NULL}        /* Sentinel */
 };
 
-#if PY_MAJOR_VERSION >= 3
-    static struct PyModuleDef ppgplotdef = {
-        PyModuleDef_HEAD_INIT,
-        "_ppgplot",     /* m_name */
-        "PPGPLOT Module",  /* m_doc */
-        -1,                  /* m_size */
-        PpgMethods,    /* m_methods */
-        NULL,                /* m_reload */
-        NULL,                /* m_traverse */
-        NULL,                /* m_clear */
-        NULL,                /* m_free */
-    };
-#endif
-
 /************************************************************************/
 
-static PyObject *
-moduleinit(void)
+
+#if PY_MAJOR_VERSION >= 3
+    #define MOD_INIT(name) PyMODINIT_FUNC PyInit_##name(void)
+#else
+    #define MOD_INIT(name) PyMODINIT_FUNC init##name(void)
+#endif
+
+MOD_INIT(_ppgplot)
 {
     PyObject *m, *d;
-#if PY_MAJOR_VERSION <= 2
-    m = Py_InitModule("_ppgplot", PpgMethods);
+#if PY_MAJOR_VERSION >= 3
+    static struct PyModuleDef moduledef = {
+        PyModuleDef_HEAD_INIT,
+        "_ppgplot",
+        NULL,
+        -1,
+        PpgMethods,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+    };
+    m = PyModule_Create(&moduledef);
 #else
-    m = PyModule_Create(&ppgplotdef);
+    m = Py_InitModule("_ppgplot", PpgMethods);
 #endif
     d = PyModule_GetDict(m);
     import_array();
-#if PY_MAJOR_VERSION <= 2
+#if PY_MAJOR_VERSION >= 3
+    PpgIOErr = PyUnicode_FromString("_ppgplot.ioerror");
+    PpgTYPEErr = PyUnicode_FromString("_ppgplot.typeerror");
+    PpgMEMErr = PyUnicode_FromString("_ppgplot.memerror");
+#else
     PpgIOErr = PyString_FromString("_ppgplot.ioerror");
     PpgTYPEErr = PyString_FromString("_ppgplot.typeerror");
     PpgMEMErr = PyString_FromString("_ppgplot.memerror");
-#else
-    PpgIOErr = PyBytes_FromString("_ppgplot.ioerror");
-    PpgTYPEErr = PyBytes_FromString("_ppgplot.typeerror");
-    PpgMEMErr = PyBytes_FromString("_ppgplot.memerror");
 #endif
     PyDict_SetItemString(d, "ioerror", PpgIOErr);
     PyDict_SetItemString(d, "typeerror", PpgTYPEErr);
     PyDict_SetItemString(d, "memerror", PpgMEMErr);
+#if PY_MAJOR_VERSION >= 3
     return m;
+#endif
 }
 
-#if PY_MAJOR_VERSION < 3
-    void
-    init_ppgplot(void)
-    {
-        moduleinit();
-    }
-#else
-    PyMODINIT_FUNC
-    PyInit__ppgplot(void)
-    {
-        return moduleinit();
-    }
-#endif
 /************************************************************************/
 /* End of _ppgplot.c */
 /************************************************************************/

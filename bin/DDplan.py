@@ -373,7 +373,7 @@ def dm_steps(loDM, hiDM, obs, cohdm=0.0, numsub=0, numprocs=1,
         ppgplot.pgsch(1.1)
         ppgplot.pgsci(1)
         if (numsub):
-            ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\(2156)\dctr\\u = %g MHz" % obs.f_ctr)
+            ppgplot.pgmtxt("t", 1.5, 0.6/10.0, 0.5, "\\(2156)\\dctr\\u = %g MHz" % obs.f_ctr)
             if (dtms < 0.1):
                 ppgplot.pgmtxt("t", 1.5, 2.8/10.0, 0.5, "dt = %g \\gms" % (dtms*1000))
             else:

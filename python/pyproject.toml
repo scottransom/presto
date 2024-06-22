@@ -1,12 +1,12 @@
 [build-system]
 build-backend = 'mesonpy'
-requires = ['meson-python', 'numpy<2.0']
+requires = ['meson-python', 'numpy']
 
 [project]
 name = 'presto'
-version = '5.0.1'
+version = '5.0.2'
 description = 'PulsaR Exploration and Search TOolkit'
-requires-python = '>=3.8'
+requires-python = '>=3.9'
 dependencies = ['numpy', 'scipy', 'astropy', 'matplotlib']
 authors = [
   {name = 'Scott Ransom', email = 'sransom@nrao.edu'},
