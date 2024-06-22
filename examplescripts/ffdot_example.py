@@ -26,20 +26,20 @@ ffdot = presto.ffdot_plane(ft, rint-np/2*dr, dr, np, 0.0-np/2*dz, dz, np)
 pffdot = presto.spectralpower(ffdot.flat)
 theo_max_pow = N**2.0/4.0
 frp = max(pffdot) / theo_max_pow # Fraction of recovered power
-print("Fraction of recovered signal power = %f" % frp)
+print(f"Recovered {frp:.3f} of theoretical signal power in F-Fdot plane")
 a = time.perf_counter()
 [maxpow, rmax, zmax, rd] = presto.maximize_rz(ft, r+norm(1)[0]/5.0,
                                               z+norm(1)[0], norm=1.0)
-print("Time for rz:", time.perf_counter()-a)
-print(r, rmax, z, zmax, theo_max_pow, maxpow)
+print(f"Time for rz optimization {time.perf_counter()-a:.3g} s")
+print(f"  Optimization recovered {maxpow / theo_max_pow:.3f} of theoretical signal power")
 a = time.perf_counter()
 [maxpow, rmax, zmax, wmax, rd] = presto.maximize_rzw(ft, r+norm(1)[0]/5.0,
                                                      z+norm(1)[0],
                                                      w+norm(1)[0]*5.0,
                                                      norm=1.0)
-print("Time for rzw:", time.perf_counter()-a)
-print(r, rmax, z, zmax, w, wmax, theo_max_pow, maxpow)
-#print "Raw power should be ~%.2e" % theo_max_pow
+print(f"Time for rzw optimization {time.perf_counter()-a:.3g} s")
+print(f"  Optimization recovered {maxpow / theo_max_pow:.3f} of theoretical signal power")
+print("  Recovered power fraction should be near 1.0.")
 pffdot = pffdot / theo_max_pow
 pffdot.shape = (np, np)
 rs = num.arange(np) * dr - np//2*dr

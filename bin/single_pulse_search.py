@@ -662,7 +662,7 @@ def main():
                        info.telescope)
         ppgplot.pgmtxt('T', -2.4, 0.33, 0.0, 'DEC (J2000):')
         ppgplot.pgmtxt('T', -2.4, 0.5, 0.0, info.DEC)
-        ppgplot.pgmtxt('T', -2.4, 0.73, 0.0, 'Sampling time: %.2f \gms'%\
+        ppgplot.pgmtxt('T', -2.4, 0.73, 0.0, r'Sampling time: %.2f \gms'%\
                        (orig_dt*1e6))
         # third row
         if info.instrument.find("pigot") >= 0:
