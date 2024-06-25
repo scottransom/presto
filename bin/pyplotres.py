@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.cluster.vq import kmeans2
 
-import pyslalib.slalib as slalib
 from presto import binary_psr
 from presto import parfile as par
 from presto import residuals
+import presto.psr_utils as pu
 
 # Available x-axis types
 xvals = ['mjd', 'year', 'numtoa', 'orbitphase']
@@ -210,7 +210,7 @@ class Resids(object):
             xdata = self.orbit_phs
             xlabel = "Orbital Phase"
         elif xopt == 'year':
-            xdata = mjd_to_year(self.bary_TOA)
+            xdata = pu.MJD_to_Julian_Epoch(self.bary_TOA)
             xlabel = "Year"
         else:
             raise ValueError("Unknown xaxis type (%s)." % xopt)
@@ -348,7 +348,7 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
                     plt.axvline(peri_mjd, ls=':', label='_nolegend_', c='k', lw=0.5)
                 elif xkey == 'year':
                     print("plotting peri passage")
-                    plt.axvline(mjd_to_year(peri_mjd), ls=':', label='_nolegend_', c='k', lw=0.5)
+                    plt.axvline(pu.MJD_to_Julian_Epoch(peri_mjd), ls=':', label='_nolegend_', c='k', lw=0.5)
             axes[0].set_xlim((xmin, xmax))
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -370,7 +370,7 @@ def plot_data(tempo_results, xkey, ykey, postfit=True, prefit=False, \
                             horizontalalignment='left')
 
     # Make the legend and set its visibility state
-    leg = plt.figlegend(handles, labels, 'upper right')
+    leg = plt.figlegend(handles, labels, loc='upper right')
     leg.set_visible(show_legend)
     leg.legendPatch.set_alpha(0.5)
 
@@ -577,20 +577,6 @@ def keypress(event):
             plt.ylim(ymin, ymax)
         elif event.key.lower() == 'h':
             print_help()
-
-
-def mjd_to_year(mjds):
-    mjds = np.asarray(mjds)
-    if mjds.size < 1:
-        return mjds
-    old_shape = mjds.shape # Remember original shape
-    mjds.shape = (mjds.size, 1)
-    years, months, days, fracs, stats = np.apply_along_axis(slalib.sla_djcl, 1, mjds).transpose()
-    # Take into account leap years
-    daysperyear = (((years % 4) == 0) & (((years % 100) != 0) | ((years % 400) == 0))) * 1 + 365.0
-    years, days, stats = np.array([slalib.sla_clyd(*ymd) for ymd in np.vstack((years, months, days)).transpose()]).transpose()
-    mjds.shape = old_shape # Change back to original shape
-    return (years + (days + fracs) / daysperyear)
 
 
 def parse_options():
