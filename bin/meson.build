@@ -15,5 +15,5 @@ scripts = ['a2x.sh', 'binary_info.py', 'chooseN.py', 'combine_weights.py',
 
 # This puts all the scripts into the requested binary directory
 foreach script: scripts
-  install_data(script, install_dir: get_option('bindir'))
+  install_data(script, install_dir: get_option('bindir'), follow_symlinks: true)
 endforeach
