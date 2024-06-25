@@ -211,7 +211,10 @@ if __name__ == '__main__':
 
     # Over-ride the DM that was used during the fold
     if (DM!=0.0):
-        fold_pfd.bestdm = DM
+        if (fold_pfd.nsub==1):
+            sys.stderr.write("Warning: Do not set DM when using .pfds from de-dispersed time series!\n")
+        else:
+            fold_pfd.bestdm = DM
     if (fold_pfd.numchan==1 and DM==0.0 and events):
         fold_pfd.bestdm = 0.0
         fold_pfd.numchan = 1
@@ -224,7 +227,8 @@ if __name__ == '__main__':
 
     # De-disperse at the requested DM
     # Also save the pulse period used in dedispersion calc
-    fold_pfd.dedisperse(interp=1)
+    if (fold_pfd.nsub > 1):
+        fold_pfd.dedisperse(interp=1)
     p_dedisp = fold_pfd.proflen / fold_pfd.binspersec
     
     # Combine the profiles as required
