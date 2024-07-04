@@ -1299,7 +1299,7 @@ def expcos_profile(N, phase, fwhm):
             'phase' = the pulse phase (0-1)
             'fwhm' = pulse full width at half-max (0.0 < fwhm <= 0.5)
     """
-    from simple_roots import secant
+    from presto.simple_roots import secant
     def fwhm_func(k, fwhm=fwhm):
         if (fwhm < 0.02):
             return Num.arccos(1.0 - Num.log(2.0) / k) / pc.PI - fwhm
