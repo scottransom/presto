@@ -1,4 +1,5 @@
 #include "presto.h"
+#include <errno.h>
 
 double extended_equiv_gaussian_sigma(double logp);
 double log_asymtotic_incomplete_gamma(double a, double z);
@@ -459,6 +460,10 @@ double equivalent_gaussian_sigma(double logp)
 {
     double x;
 
+    // CDFLIB can trigger via 33 or 34 (math range and/or representation)
+    // but we are going to only check the returned status. errno is checked
+    // by SWIG, and can cause exceptions when we shouldn't really get them.
+    errno = 0;
     if (logp < -600.0) {
         x = extended_equiv_gaussian_sigma(logp);
     } else {
@@ -484,6 +489,7 @@ double equivalent_gaussian_sigma(double logp)
             }
         }
     }
+    errno = 0;
     if (x < 0.0)
         return 0.0;
     else
@@ -501,6 +507,10 @@ double chi2_logp(double chi2, double dof)
         return -INFINITY;
     }
 
+    // CDFLIB can trigger via 33 or 34 (math range and/or representation)
+    // but we are going to only check the returned status. errno is checked
+    // by SWIG, and can cause exceptions when we shouldn't really get them.
+    errno = 0;
     if (chi2 / dof > 15.0 || (dof > 150 && chi2 / dof > 6.0)) {
         // printf("Using asymtotic expansion...\n");
         // Use some asymtotic expansions for the chi^2 distribution
@@ -524,6 +534,7 @@ double chi2_logp(double chi2, double dof)
         // printf("p = %.3g  q = %.3g\n", p, q);
         logp = log(q);
     }
+    errno = 0;
     return logp;
 }
 
@@ -576,6 +587,10 @@ double power_for_sigma(double sigma, int numsum, double numtrials)
     int which, status;
     double p, q, x, bound, mean = 0.0, sd = 1.0, df, scale = 1.0;
 
+    // CDFLIB can trigger via 33 or 34 (math range and/or representation)
+    // but we are going to only check the returned status. errno is checked
+    // by SWIG, and can cause exceptions when we shouldn't really get them.
+    errno = 0;
     which = 1;
     status = 0;
     x = sigma;
@@ -587,6 +602,7 @@ double power_for_sigma(double sigma, int numsum, double numtrials)
                sd);
         exit(1);
     }
+    errno = 0;
     q = q / numtrials;
     p = 1.0 - q;
     which = 2;
@@ -600,6 +616,7 @@ double power_for_sigma(double sigma, int numsum, double numtrials)
                p, q, x, df, scale);
         exit(1);
     }
+    errno = 0;
     return 0.5 * x;
 }
 
