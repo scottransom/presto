@@ -9,6 +9,7 @@ import astropy.units as u
 from presto import presto
 import presto.psr_utils as pu
 import presto.psr_constants as pc
+import presto.parfile as pp
 
 ## The most recent catalogs are available here:
 ## 
@@ -29,7 +30,7 @@ params_with_errs = ["RAJ", "DECJ", "PMRA", "PMDEC", "PX", "P0", "P1", "F2", "F3"
                     "TASC", "EPS1", "EPS2"]
 digits = '0123456789'
 
-class psr(object):
+class Pulsar(object):
     def __init__(self, parts, indices):
         # Do RAJ and DECJ first
         posn = c.SkyCoord(parts[indices['RAJ']]+" "+parts[indices['DECJ']],
@@ -71,9 +72,13 @@ class psr(object):
             elif param=="Gl":
                 if not parts[part_index]=='*':
                     self.l = float(parts[part_index])
+                else:
+                    self.l = posn.galactic.l.value
             elif param=="Gb":
                 if not parts[part_index]=='*':
                     self.b = float(parts[part_index])
+                else:
+                    self.b = posn.galactic.b.value
             elif param=="F0":
                 if not parts[part_index]=='*':
                     self.f, self.ferr = float(parts[part_index]), float(parts[part_index+1])
@@ -282,7 +287,7 @@ with open(os.path.join(presto_path, "lib", "psr_catalog.txt")) as csvfile:
     units = next(reader)
     for row in reader:
         try:
-            currentpulsar = psr(row, indices)
+            currentpulsar = Pulsar(row, indices)
             pulsars[currentpulsar.jname] = currentpulsar
             if currentpulsar.binary: num_binaries += 1
         except:
@@ -348,6 +353,27 @@ for psr in psrs:
         psr.werr  = 180.0
         psr.pb = 32.0*24.0
         psr.pberr = 1.0
+
+def add_psr_from_parfile(parfile, indices):
+    "Add a pulsar from a parfile to the list of pulsars `psrs`"
+    psr = pp.psr_par(parfile)
+    if hasattr(psr, "PSR"):
+        psr.NAME = "J"+psr.PSR if not psr.PSR.startswith("J") else psr.PSR
+        psr.PSRJ = "J"+psr.PSR if not psr.PSR.startswith("J") else psr.PSR
+        psr.PSR = "*"
+    max_index = max([indices[x] for x in indices])
+    rowlist = ["*"] * (max_index + 1)
+    dirpsr = dir(psr)
+    for param in params:
+        if param in dirpsr:
+            rowlist[indices[param]] = str(getattr(psr, param))
+        if param+"_ERR" in dirpsr:
+            rowlist[indices[param]+1] = str(getattr(psr, param+"_ERR"))
+    newpsr = Pulsar(rowlist, indices)
+    psrs.append(newpsr)
+    allpsrs[newpsr.jname] = newpsr
+    allpsrs["j%s" % newpsr.jname] = newpsr
+    allpsrs["J%s" % newpsr.jname] = newpsr
 
 # If calling this as a main program, then write out the new pulsars.cat file
 if __name__ == '__main__' :
