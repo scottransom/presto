@@ -354,7 +354,7 @@ for psr in psrs:
         psr.pb = 32.0*24.0
         psr.pberr = 1.0
 
-def add_psr_from_parfile(parfile, indices):
+def add_psr_from_parfile(parfile):
     "Add a pulsar from a parfile to the list of pulsars `psrs`"
     psr = pp.psr_par(parfile)
     if hasattr(psr, "PSR"):
