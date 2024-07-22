@@ -655,7 +655,7 @@ f-dot error $\Delta \dot f$ is:
 
 $\Delta \phi = \Delta f T + \Delta \dot f T^2 /2 + \dots$
 
-So `prepfold` allows usually $\pm$2 full phase wraps of error, which is
+So `prepfold` allows usually +/-2 full phase wraps of error, which is
 quantized for each pulse period by the number of bins in the profile, $N$.
 Usually stepping every individual bin is overkill, so the default stepsize is 2
 bins in the period direction and 4 bins in the p-dot direction.  You can control
@@ -664,7 +664,7 @@ using `-npfact`.
 
 It works very similarly with DM in that we quantize the DM delays as a function
 of observing frequency in the $N$ bins of the pulse profile and look at the
-total delays across the full observing band. Typically we allow $\pm$3 full
+total delays across the full observing band. Typically we allow +/-3 full
 rotations across the band due to DM error, and can control the stepsize using
 `-dmstep` and the number of rotations using `-ndmfact`. This is one of the main
 reasons why if you are folding a slow pulsar (which means you don't have good
