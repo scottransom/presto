@@ -639,6 +639,43 @@ For reference, the details as to what is going on in these codes is described in
 
 -----------------
 
+### **How does `prepfold` decide on the step sizes and ranges of DM, period, and p-dot to search?**
+
+Since `prepfold` is based on folding data, which by definition needs to account
+for pulse phase correctly, the search ranges are based on a accounting for error
+in phase drift over the duration of the observation for p and p-dot and over the
+bandwidth of the observation for DM. In general, we allow for 1 or 2 full phase
+wraps of error (meaning one or two pulse periods, which we have divided into the
+number of bins that are in the pulse profile, $N$).
+
+For period and p-dot, it is easier to think in terms of spin frequency $f$ and
+frequency-derivative $\dot f$. If the observation duration is $T$, then the
+phase drift $\Delta \phi$ you will get from a frequency error $\Delta f$ or
+f-dot error $\Delta \dot f$ is:
+
+$\Delta \phi = \Delta f T + \Delta \dot f T^2 /2 + \dots$
+
+So `prepfold` allows usually $\pm$2 full phase wraps of error, which is
+quantized for each pulse period by the number of bins in the profile, $N$.
+Usually stepping every individual bin is overkill, so the default stepsize is 2
+bins in the period direction and 4 bins in the p-dot direction.  You can control
+the stepsizes using `-pstep` and `-pdstep` and the number of rotations we allow
+using `-npfact`.
+
+It works very similarly with DM in that we quantize the DM delays as a function
+of observing frequency in the $N$ bins of the pulse profile and look at the
+total delays across the full observing band. Typically we allow $\pm$3 full
+rotations across the band due to DM error, and can control the stepsize using
+`-dmstep` and the number of rotations using `-ndmfact`. This is one of the main
+reasons why if you are folding a slow pulsar (which means you don't have good
+resolution in DM) that you want to use a larger number of bins (100 or more) in
+your pulse profile in order to better resolve the DM curve. Note that we don't
+plot or search negative DMs, so DM=0 is always a hard minimum.
+
+There are `-fine` and `-coarse` options that give you finer or coarser
+resolution in these dimensions, as well as a `-slow` option that helps you out
+for folding slow pulsars.
+
 ### **What is all of this chi-square and reduced chi-squared stuff and what does it mean?**
 
 `prepfold` uses the reduced chi-squared (or $\chi^2_{red}$) as a way of
