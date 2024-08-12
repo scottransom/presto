@@ -13,7 +13,7 @@ data = np.fromfile(sys.argv[1]+".bak", dtype=np.float32)
 N = len(data)
 
 nblocks = 10000
-data.shape = (nblocks, N/nblocks)
+data.shape = (nblocks, N//nblocks)
 block_stds = np.std(data, axis=1)
 
 good_stds = sigma_clip(block_stds, sigma=4.0)
