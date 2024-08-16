@@ -160,7 +160,7 @@ Note that you can uninstall everything via:
 
     `cd $PRESTO/python`
 
-    `pip install --config-settings=builddir=build .`
+    `pip install .`
 
     If you get a shared library error, see the troubleshooting steps above or below.
 
