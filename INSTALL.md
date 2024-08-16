@@ -200,10 +200,9 @@ Updated May 2024, for v5.0.X
 ## TROUBLESHOOTING
 --------------------
 
-Couple quick trouble-shooting tips if you are having problems compiling and
-running:
+Couple quick trouble-shooting tips if you are having problems compiling and running:
 
-1. Environment variables!
+1. Environment variables!  Use `python check_meson_build.py`!
    - Is `PRESTO` set to the top-level PRESTO source directory?
    - Is `TEMPO` set to the top-level TEMPO source directory?
    - Is `PGPLOT_DIR` set to the location of the PGPLOT utility files?
@@ -236,6 +235,8 @@ running:
 3. After the Python modules are built and installed, and you run `python tests/test_presto_python.py`, if you get a memory error, please contact Scott! I think that these issues are fixed, but if they are not, we will need to change the build process a tiny bit with a special variable define.
    
 4. If you are having trouble with PRESTO creating polycos, you can use `prepfold` with the `-debug` option when folding using `-timing`. That will show you the `TEMPO` call and keep all of the (usually) temporary output files.
+
+5. If the python build or install is failing, it can be useful to save and inspect the build directory via `pip install --config-settings=builddir=build .`.
 
 ## For MacOS Users
 -------------------
