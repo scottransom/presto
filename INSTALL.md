@@ -56,7 +56,7 @@ You will see a lot of compiler warnings due to my crappy C-coding (I should fix 
 Then finally, install the Python codes and bindings via `pip`:
 
     cd $PRESTO/python
-    pip install --config-settings=builddir=build .
+    pip install .
 
 And that should do it! You can quickly test to see if most things are working by doing:
 

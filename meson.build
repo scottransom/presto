@@ -18,7 +18,8 @@ fftw = dependency('fftw3f') # Note the 'f' for single-precision version!
 fits = dependency('cfitsio')
 x11 = dependency('x11')
 png = dependency('libpng')
-omp = dependency('openmp', required: false)
+# omp = dependency('openmp', required: false)
+omp = dependency('NO_openmp', required: false)
 mpi = dependency('mpi', language: 'c', required: false,
   not_found_message: 'MPI not found. Skipping mpiprepsubband build.')
 
