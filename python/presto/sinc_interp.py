@@ -86,7 +86,7 @@ def windowed_sinc_interp(data, newx, halfwidth=None,
     halfwidth = (hi_pt-lo_pt)//2
     pts = Num.arange(2*halfwidth)+lo_pt
     xs = newx - pts
-    if window.lower() is "kaiser":
+    if window.lower() == "kaiser":
         win = _window_function[window](xs, len(data)//2, alpha)
     else:
         win = _window_function[window](xs, len(data)//2)
@@ -114,7 +114,7 @@ def periodic_interp(data, zoomfact, window='hanning', alpha=6.0):
     xs[:newN//2+1] = Num.arange(newN//2+1, dtype='d')/zoomfact
     xs[-newN//2:]  = xs[::-1][newN//2-1:-1]
     # Calculate the sinc times window for the kernel
-    if window.lower()=="kaiser":
+    if window.lower() == "kaiser":
         win = _window_function[window](xs, len(data)//2, alpha)
     else:
         win = _window_function[window](xs, len(data)//2)
@@ -179,4 +179,3 @@ if __name__=='__main__':
         plotxy(svals, new_phases, line=1, symbol=None, color='cyan')
     
     closeplot()
-           
