@@ -76,7 +76,7 @@ tofloatvector (PyObject *o, float **v, npy_intp *vsz)
     array = (PyArrayObject*) PyArray_FromAny(o, PyArray_DescrFromType(NPY_FLOAT), 1, 1,
       NPY_ARRAY_ALIGNED | NPY_ARRAY_C_CONTIGUOUS | NPY_ARRAY_FORCECAST, NULL);
     if (array == NULL) return NULL;
-    *vsz = PyArray_Size((PyArrayObject*) array);
+    *vsz = PyArray_Size((PyObject*) array);
     *v = (float*) PyArray_DATA((PyArrayObject*) array);
     return (PyObject*)array;
 }
@@ -111,7 +111,7 @@ tofloatmat(PyObject *o, float **m, int *nr, int *nc)
     case NPY_FLOAT:
 		  af1 = a1;
 		  break;
-    case NPY_CHAR: 
+    case NPY_STRING: 
     case NPY_UBYTE: 
     case NPY_SHORT: 
     case NPY_INT: 
@@ -148,7 +148,7 @@ tofloatmat(PyObject *o, float **m, int *nr, int *nc)
        time and memory! So this assert statement will make sure that 
        the program *will* blow in your face if what I'm doing here 
        turns-out be bogus. */
-    assert((af2->dimensions[1] * af2->descr->elsize) == af2->strides[0]);
+    assert((af2->dimensions[1] * PyArray_ITEMSIZE(af2)) == af2->strides[0]);
     
     /* Phew! we 're clear! */
     *m = (float *)(*tmpdat);
