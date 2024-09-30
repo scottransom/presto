@@ -1,6 +1,7 @@
 #include "makedata.h"
 #include "makeinf.h"
 #include "randlib.h"
+#include <time.h>
 
 extern char bands[NUMBANDS][40];
 extern char scopes[NUMSCOPES][40];
@@ -17,6 +18,15 @@ int main(int argc, char *argv[])
     double tb = 0.0, T, phase, amp, signal, orbmaxt = 0.0;
     infodata idata;
     makedata mdata;
+
+	srand(time(NULL));   // Initialization, should only be called once.
+	long s1 = rand();    // Returns a pseudo-random integer between 0 and RAND_MAX.
+	long s2 = rand();    // Returns a pseudo-random integer between 0 and RAND_MAX.
+
+	/* Set the random number seeds for randlib */
+	ignlgi();
+	initgn(0);
+	setsd(s1, s2);
 
     /* Initialization strings */
     char datafilenm[200], infofilenm[200];
