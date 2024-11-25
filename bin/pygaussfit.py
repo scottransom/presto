@@ -3,6 +3,7 @@ import os
 import sys
 from presto.psr_utils import gaussian_profile, read_profile
 from matplotlib.patches import Rectangle
+from matplotlib.backend_bases import MouseButton
 from presto.bestprof import bestprof
 import matplotlib.pyplot as plt
 import numpy as np
@@ -50,7 +51,7 @@ class GaussianSelector(object):
         'return True if event should be ignored'
         # If no button was pressed yet ignore the event if it was out
         # of the axes
-        if self.eventpress == None:
+        if self.eventpress is None:
             return event.inaxes!= self.ax       
         # If a button was pressed, check if the release-button is the
         # same.
@@ -63,17 +64,20 @@ class GaussianSelector(object):
         if self.ignore(event): return         
         # make the drawed box/line visible get the click-coordinates,
         # button, ...
-        self.eventpress = event               
-        if event.button==1:
+        self.eventpress = event
+        if event.button==MouseButton.LEFT:
             self.to_draw.set_visible(self.visible)
             self.eventpress.ydata = self.DCguess
+        elif event.button==MouseButton.MIDDLE or event.button==MouseButton.RIGHT:
+            self.eventrelease = self.eventpress
+            self.onselect()
 
     def release(self, event):
         'on button release event'
         if self.eventpress is None or self.ignore(event): return
         # release coordinates, button, ...
-        self.eventrelease = event             
-        if event.button==1:
+        self.eventrelease = event
+        if event.button==MouseButton.LEFT:
             # make the box/line invisible again
             self.to_draw.set_visible(False)       
             self.canvas.draw()
@@ -142,7 +146,7 @@ class GaussianSelector(object):
             self.plot_gaussians(self.init_params)
             plt.draw()
         # Middle mouse button = fit the gaussians
-        elif event1.button == event2.button == 2:
+        elif event1.button == MouseButton.MIDDLE:
             fit_params, fit_errs, chi_sq, dof = \
                         fit_gaussians(self.profile, self.init_params,
                                       np.zeros(self.proflen)+self.errs,
@@ -169,8 +173,10 @@ class GaussianSelector(object):
             plt.xlabel('Pulse Phase')
             plt.ylabel('Data-Fit Residuals')
             plt.draw()
+            self.eventpress = None                # reset the variables to their
+            self.eventrelease = None              #   inital values
         # Right mouse button = remove last gaussian
-        elif event1.button == event2.button == 3:
+        elif event1.button == MouseButton.RIGHT:
             if self.numgaussians:
                 self.init_params = self.init_params[:-3]
                 self.numgaussians -= 1
@@ -181,6 +187,8 @@ class GaussianSelector(object):
                 plt.xlabel('Pulse Phase')
                 plt.ylabel('Data-Fit Residuals')
                 plt.draw()
+            self.eventpress = None                # reset the variables to their
+            self.eventrelease = None              #   inital values
 
 def gen_gaussians(params, N):
     """
