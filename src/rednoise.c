@@ -58,6 +58,8 @@ int main(int argc, char *argv[])
                    cmd->argv[0]);
             exit(0);
         }
+        // The "+11" makes space for '_red' (4 bytes), a suffix if needed (4 bytes), 
+        // a "./" prefix if needed (2 bytes), plus 1 for null termination
         outname = (char *) calloc(strlen(rootfilenm) + 11, sizeof(char));
     }
 
@@ -85,7 +87,7 @@ int main(int argc, char *argv[])
 
             split_path_file(idata.name, &infdir, &filenm);
 
-            newinf = (char *) calloc(strlen(idata.name) + 5, sizeof(char));
+            newinf = (char *) calloc(strlen(idata.name) + strlen("_red") + 1, sizeof(char));
 
             /* Uncomment for debugging 
                printf("idata.name: %s\n", idata.name);
@@ -103,8 +105,8 @@ int main(int argc, char *argv[])
                 sprintf(outname, "%s_red.fft", rootfilenm);
                 sprintf(idata.name, "%s", newinf);
 
-                fftfullpath = (char *) calloc(strlen(outname), sizeof(char));
-                inffullpath = (char *) calloc(strlen(outname), sizeof(char));
+                fftfullpath = (char *) calloc(strlen(outname) + 1, sizeof(char));
+                inffullpath = (char *) calloc(strlen(outname) + 1, sizeof(char));
                 sprintf(fftfullpath, "./%s_red.fft", rootfilenm);
                 sprintf(inffullpath, "./%s_red.inf", rootfilenm);
 
@@ -119,8 +121,8 @@ int main(int argc, char *argv[])
                 sprintf(idata.name, "%s", newinf);
                 sprintf(outname, "%s.fft", newinf);
 
-                fftfullpath = (char *) calloc(strlen(outname), sizeof(char));
-                inffullpath = (char *) calloc(strlen(outname), sizeof(char));
+                fftfullpath = (char *) calloc(strlen(outname) + 1, sizeof(char));
+                inffullpath = (char *) calloc(strlen(outname) + 1, sizeof(char));
                 sprintf(fftfullpath, "%s.fft", idata.name);
                 sprintf(inffullpath, "%s.inf", idata.name);
 

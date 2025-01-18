@@ -144,19 +144,19 @@ int split_root_suffix(char *input, char **root, char **suffix)
     sptr = strrchr(input, '.');
     if (sptr == NULL) {
         *root = (char *) calloc(len + 1, sizeof(char));
-        strncpy(*root, input, len + 1);
+        strncpy(*root, input, len);
         // ensure null-terminated
-        *root[len] = '\0';
+        (*root)[len] = '\0';
         return 0;
     } else {
         rootlen = sptr - input;
         *root = (char *) calloc(rootlen + 1, sizeof(char));
-        strncpy(*root, input, rootlen + 1);
+        strncpy(*root, input, rootlen);
         // ensure null-terminated
         (*root)[rootlen] = '\0';
         suffixlen = len - rootlen - 1;
         *suffix = (char *) calloc(suffixlen + 1, sizeof(char));
-        strncpy(*suffix, sptr + 1, suffixlen + 1);
+        strncpy(*suffix, sptr + 1, suffixlen);
         // ensure null-terminated
         (*suffix)[suffixlen] = '\0';
         return 1;

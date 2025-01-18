@@ -18,3 +18,4 @@ dist/
 .mypy_cache/
 .vscode/
 build/
+examplescripts/ppdot_*.png
