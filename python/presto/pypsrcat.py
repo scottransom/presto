@@ -3,6 +3,7 @@ from operator import attrgetter
 import struct
 import os.path
 import math
+import sys
 import csv
 import astropy.coordinates as c
 import astropy.units as u
@@ -15,11 +16,11 @@ import presto.parfile as pp
 ## 
 ## http://www.atnf.csiro.au/research/pulsar/psrcat/
 
-version = 'v1.71'
+version = 'v2.51'
 
 ## And here is the command used to get the data:
-# Note version number now!
-# http://www.atnf.csiro.au/people/pulsar/psrcat/proc_form.php?version=1.71&Name=Name&JName=JName&RaJ=RaJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&F0=F0&F1=F1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&Ecc=Ecc&Tasc=Tasc&Eps1=Eps1&Eps2=Eps2&Dist=Dist&Assoc=Assoc&Survey=Survey&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Long+csv+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
+# Note version number now!  Might need to use Firefox (issue with RAJ not showing up)
+# https://www.atnf.csiro.au/research/pulsar/psrcat/proc_form.php?version=2.51&Name=Name&JName=JName&RAJ=RAJ&DecJ=DecJ&PMRA=PMRA&PMDec=PMDec&PX=PX&PosEpoch=PosEpoch&GL=GL&GB=GB&F0=F0&F1=F1&F2=F2&F3=F3&PEpoch=PEpoch&DM=DM&DM1=DM1&S400=S400&S1400=S1400&Binary=Binary&T0=T0&PB=PB&A1=A1&OM=OM&ECC=ECC&TASC=TASC&EPS1=EPS1&EPS2=EPS2&Dist=Dist&Assoc=Assoc&Survey=Survey&Type=Type&startUserDefined=true&c1_val=&c2_val=&c3_val=&c4_val=&sort_attr=jname&sort_order=asc&condition=&pulsar_names=&ephemeris=short&coords_unit=raj%2Fdecj&radius=&coords_1=&coords_2=&style=Long+csv+with+errors&no_value=*&x_axis=&x_scale=linear&y_axis=&y_scale=linear&state=query&table_bottom.x=40&table_bottom.y=0
 
 params = ["NAME", "PSRJ", "RAJ", "DECJ", "PMRA", "PMDEC", "PX", "POSEPOCH",
           "Gl", "Gb", "F0", "F1", "F2", "F3", "PEPOCH", "DM", "DM1",
@@ -33,8 +34,11 @@ digits = '0123456789'
 class Pulsar(object):
     def __init__(self, parts, indices):
         # Do RAJ and DECJ first
-        posn = c.SkyCoord(parts[indices['RAJ']]+" "+parts[indices['DECJ']],
-                          frame=c.ICRS, unit=(u.hourangle, u.deg))
+        if ((parts[indices["RAJ"]]=='*') or (parts[indices["DECJ"]]=='*')):
+            posn = None
+        else:        
+            posn = c.SkyCoord(parts[indices['RAJ']]+" "+parts[indices['DECJ']],
+                            frame=c.ICRS, unit=(u.hourangle, u.deg))
         for param in params:
             part_index = indices[param]
             if param=="NAME":
@@ -48,12 +52,12 @@ class Pulsar(object):
                     if self.name == self.jname:
                         self.name = ""
             elif param=="RAJ":
-                if not parts[part_index]=='*':
+                if not parts[part_index]=='*' and posn is not None:
                     self.rajstr = parts[part_index]
                     self.ra = posn.ra.to(u.rad).value
                     self.raerr = float(parts[part_index+1]) * pc.SECTORAD
             elif param=="DECJ":
-                if not parts[part_index]=='*':
+                if not parts[part_index]=='*' and posn is not None:
                     self.decjstr = parts[part_index]
                     self.dec = posn.dec.to(u.rad).value
                     self.decerr = float(parts[part_index+1]) * pc.ARCSECTORAD
@@ -292,6 +296,7 @@ with open(os.path.join(presto_path, "lib", "psr_catalog.txt")) as csvfile:
             if currentpulsar.binary: num_binaries += 1
         except:
             print(f"Bad read for {row[:15]}...")
+            sys.exit()
 
 # Now add the aliases to the pulsars
 infile = open(os.path.join(presto_path, "lib", "aliases.txt"))
@@ -325,34 +330,6 @@ for psr in psrs:
         allpsrs[psr.name] = psr
         allpsrs["b%s" % psr.name] = psr
         allpsrs["B%s" % psr.name] = psr
-
-# Add a couple important pulsars
-for psr in psrs:
-    if psr.jname=="1614-23":
-        psr.jname=="1614-2318"
-        psr.f = 29.8475387364133766
-        psr.fd = -4.683105034721e-17
-        psr.p, psr.pd = pu.p_to_f(psr.f, psr.fd)
-        psr.x  = 1.327490
-        psr.e  = 0.0
-        psr.To = 52819.878171
-        psr.pb = 3.15238573
-        psr.w  = 0.0
-        psr.dm = 52.43
-        psr.l  = 351.91856
-        psr.b  = 19.74496
-        psr.dist = 1.80
-    if psr.jname=="2204+27":
-        psr.x  = 0.1
-        psr.xerr  = 1.0
-        psr.e  = 0.129
-        psr.eerr  = 0.05
-        psr.To = 57000.0
-        psr.Toerr = 16.0
-        psr.w  = 180.0
-        psr.werr  = 180.0
-        psr.pb = 32.0*24.0
-        psr.pberr = 1.0
 
 def add_psr_from_parfile(parfile):
     "Add a pulsar from a parfile to the list of pulsars `psrs`"

@@ -132,7 +132,7 @@ plt.plot(ps[radios], pds[radios], '.', color='0.3', ms=3, label="Radio PSRs")
 all_he = np.unique(np.concatenate((hepsrs, nonradios)))
 color = 'magenta' if usecolor else 'black'
 plt.plot(ps[all_he], pds[all_he], '^', ms=6, mew=1.1, mec=color, mfc='none',
-    label="X-ray/$\gamma$-ray")
+    label=r"X-ray/$\gamma$-ray")
 
 # Plot the binaries as circles
 plt.plot(ps[binaries], pds[binaries], 'ko', ms=8, mfc='none',
