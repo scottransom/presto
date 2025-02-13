@@ -1,3 +1,11 @@
+## Version 5.0.3:
+ * Updated ATNF Pulsar Catalog to v2.51
+ * Added an experimental version of `fit_circular_orbit` using sliders in `examplescripts`
+ * Added the ability to use `pygaussfit.py` without middle or right mouse buttons
+ * Fixed a couple memory issues in `rednoise`, thanks to @bwmeyers
+ * Explicitly set the random number seeds (for reproducibility) in `makedata`
+ * Several other very minor tweaks and bug fixes
+
 ## Version 5.0.2:
  * Updated the C wrappers for PGPLOT for the Numpy 2.0 C API 
  * Python v3.9 or newer is now required.

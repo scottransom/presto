@@ -4,7 +4,15 @@
 
 PRESTO is a large suite of pulsar search and analysis software developed primarily by Scott Ransom mostly from scratch, and released under the GPL (v2). It was primarily designed to efficiently search for binary millisecond pulsars from long observations of globular clusters (although it has since been used in several surveys with short integrations and to process a lot of X-ray data as well). It is written primarily in ANSI C, with many of the recent routines in Python. According to Steve Eikenberry, PRESTO stands for: PulsaR Exploration and Search TOolkit!
 
-**PRESTO has discovered well over 1000 pulsars, including ~400 recycled and/or binary pulsars!**
+**PRESTO has discovered well over 1500 pulsars, including ~500 recycled and/or binary pulsars!**
+
+## Version 5.0.3:
+ * Updated ATNF Pulsar Catalog to v2.51
+ * Added an experimental version of `fit_circular_orbit` using sliders in `examplescripts`
+ * Added the ability to use `pygaussfit.py` without middle or right mouse buttons
+ * Fixed a couple memory issues in `rednoise`, thanks to @bwmeyers
+ * Explicitly set the random number seeds (for reproducibility) in `makedata`
+ * Several other very minor tweaks and bug fixes
 
 ## Version 5.0.2:
  * Updated the C wrappers for PGPLOT for the Numpy 2.0 C API (with thanks to Tom Marsh)
