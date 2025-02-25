@@ -468,7 +468,7 @@ MYFILE_rfifind.inf`
 
 Maybe! I highly recommend you browse the code in `$PRESTO/python`, and
 especially the highly useful `psr_utils.py`. I normally load that with: `import
-presto.psr_utils as pu`.
+presto.psr_utils as pu`. There are dozens of useful functions in that module.
 
 You can also read in `rfifind` result files using the `presto.rfifind` module
 and `prepfold` files using the `presto.prepfold` module. The ATNF pulsar
@@ -476,6 +476,43 @@ database is available in `presto.pypsrcat`. And there are tools for reading
 filterbank and PSRFITs files into PRESTO as well (i.e. `psrfits.py`,
 `filterbank.py`, and `spectra.py`). You can read TEMPO residuals using
 `residuals.py`.
+
+As for the ATNF pulsar database code, since many people don't know about it,
+you might want to take a look at `$PRESTO/examplescripts/ppdot_plane_plot.py`
+which was used to make this really nice version of the [P-Pdot 
+diagram](https://www.cv.nrao.edu/~sransom/web/Ch6.html#F3).
+
+And here is some sample code to show how to use it:
+```
+In [1]: import presto.pypsrcat as ppsr
+
+In [2]: print(ppsr.version) # ATNF Catalog version number
+v2.51
+
+In [3]: # All the pulsars are available as keys in a dictionary (without "J" or "B" to start)
+   ...: print(list(ppsr.pulsars.keys())[:10])
+['0002+6216', '0006+1834', '0007+7303', '0011+08', '0012+5431', '0014+4746', '0021-0909', '0023+0923', '0024-7204C', '0024-7204D']
+
+In [4]: # You can print a summary info about a pulsar
+   ...: print(ppsr.pulsars["1124-5638"])
+
+Pulsar J1124-5638
+     Survey Detections = pksmb,htru_pks
+    (Discoverer first)
+            RA (J2000) = 11:24:56.4700 +/- 0.0600s
+           DEC (J2000) = -56:38:39.7000 +/- 0.5000"
+                (l, b) = (291.21, 4.25)
+          DM (cm-3 pc) = 289.5 +/- 1.6
+       S_1400MHz (mJy) = 0.31 +/- 0.04
+        Distance (kpc) = 2.64
+            Period (s) = 0.185559973401813 +/- 1.37730014915527e-11
+           P-dot (s/s) = 8.952451e-18 +/- 5.1648756e-18
+           Epoch (MJD) = 51752
+
+In [5]: # Or grab individual information
+   ...: print(ppsr.pulsars["1124-5638"].p, ppsr.pulsars["1124-5638"].dm)
+0.18555997340181338 289.5
+```
 
 -----------------
 
