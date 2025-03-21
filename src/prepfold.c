@@ -898,7 +898,10 @@ int main(int argc, char *argv[])
     }
 
     if (cmd->eventsP) {
-        search.dt = (search.bary.p1 + 0.5 * T * search.bary.p2) / search.proflen;
+        if (search.topo.p1 == 0.0)
+            search.dt = (search.bary.p1 + 0.5 * T * search.bary.p2) / search.proflen;
+        else
+            search.dt = (search.topo.p1 + 0.5 * T * search.topo.p2) / search.proflen;
         N = ceil(T / search.dt);
     }
 
