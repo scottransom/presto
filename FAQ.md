@@ -1118,6 +1118,79 @@ which is pure Python (and therefore much easier to modify, if needed).
 
 -----------------
 
+### How do I add a new telescope into PRESTO?
+
+Thanks to Pascual Marcone for providing this question and a first-cut at the answer!
+​
+In general, you will need to edit two files in PRESTO and one in Tempo:
+
+- `$TEMPO/obsys.dat`
+- `$PRESTO/src/misc_utils.c`
+- `$PRESTO/src/polycos.c`
+​
+#### TEMPO's `obsys.dat` file:
+If this is for temporary work, I recommend removing a telescope from this file
+and replacing it with the telescope that you want.  For instance, we can remove
+the LWA line (which has observatory codes `x` and `LW`) with the following for
+Gemini South. Make sure that you get the coordinates correct!
+​
+```
+...
+ 5088964.00    301689.80        3825017.0      1  PICO VELETA         v  PV
+-1820198.1987  -5208357.7142   -3194851.5658   1  Gemini South        x  GS
+-2059166.313    -3621302.972    4814304.113    1  CHIME               y  CH
+...
+```
+​
+You will need to use the `x` and `GS` codes below in the changes to the PRESTO files.
+​
+#### PRESTO's `misc_utils.c` file:
+​In the long list of `else if` commands, just enter the new observatory using
+the two-character code (`GS`) that you used in `$TEMPO/obsys.dat`. Note that you
+need things in lower case with the same spelling that you will have in the raw
+data and `.inf` files. ​
+
+```c
+...
+    } else if (strcmp(scope, "meerkat") == 0 ) {
+        strcpy(obscode, "MK");
+        strcpy(outname, "MeerKAT");
+    } else if (strcmp(scope, "gemini-s") == 0 ) {
+        strcpy(obscode, "GS");
+        strcpy(outname, "Gemini-S");
+    } else if (strcmp(scope, "ata") == 0) {
+        strcpy(obscode, "AT");
+        strcpy(outname, "ATA");
+...
+```
+​​
+#### PRESTO's `polycos.c` file (in the `make_polycos()` function.)
+​Make a similar addition here, but where the observatory name is the same as
+the `outname` from `misc_utils.c`.  In this case you need to use the same
+one-character code (`x`) that you used in `$TEMPO/obsys.dat`. ​
+
+```c
+...
+    } else if (strcmp(idata->telescope, "MeerKAT") == 0) {
+        scopechar = 'm';
+        tracklen = 12;
+    } else if (strcmp(idata->telescope, "Gemini-S") == 0) {
+        scopechar = 'x';
+        tracklen = 12;
+    } else if (strcmp(idata->telescope, "KAT-7") == 0) {
+        scopechar = 'k';
+        tracklen = 12;
+...
+```
+​
+#### Final Step
+​Now you need to re-build and re-install PRESTO.  Tempo does not need to be
+re-built.  And as long as your data has the correct telescope name in the raw
+data (or `.inf`) files, you should be able to barycenter or use `prepfold` with
+(for instance) the `-timing` flag.
+
+-----------------
+
 Please let me know if you have other things that you think should go in this file!
 
 Scott Ransom <sransom@nrao.edu>
